@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -116,7 +116,7 @@ void renumber(std::shared_ptr<const ReferenceExecutor> exec,
     for (size_type i = 0; i < num; i++) {
         agg_map_vals[agg_vals[i]] = 1;
     }
-    components::prefix_sum(exec, agg_map_vals, num + 1);
+    components::prefix_sum_nonnegative(exec, agg_map_vals, num + 1);
     for (size_type i = 0; i < num; i++) {
         agg_vals[i] = agg_map_vals[agg_vals[i]];
     }

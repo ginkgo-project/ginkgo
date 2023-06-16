@@ -1,6 +1,3 @@
-ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_VERSION)
-set(GINKGO_DPCPP_VERSION ${GINKGO_DPCPP_VERSION} PARENT_SCOPE)
-
 find_package(MKL CONFIG REQUIRED HINTS "$ENV{MKLROOT}")
 set(GINKGO_MKL_ROOT "${MKL_ROOT}" PARENT_SCOPE)
 find_package(oneDPL REQUIRED HINTS "$ENV{DPL_ROOT}")
@@ -14,6 +11,7 @@ target_sources(ginkgo_dpcpp
     base/helper.dp.cpp
     base/index_set_kernels.dp.cpp
     base/scoped_device_id.dp.cpp
+    base/timer.dp.cpp
     base/version.dp.cpp
     components/prefix_sum_kernels.dp.cpp
     distributed/matrix_kernels.dp.cpp

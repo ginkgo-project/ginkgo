@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -228,17 +228,15 @@ TYPED_TEST(Pgm, CanBeCopied)
     using MgLevel = typename TestFixture::MgLevel;
     auto copy = this->pgm_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(this->mg_level.get());
+    copy->copy_from(this->mg_level);
     auto copy_mtx = copy->get_system_matrix();
     auto copy_agg = copy->get_const_agg();
     auto copy_coarse = copy->get_coarse_op();
 
-    this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
-                               this->mtx.get());
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
     this->assert_same_agg(copy_agg, this->agg.get_data(),
                           this->agg.get_num_elems());
-    this->assert_same_matrices(static_cast<const Mtx*>(copy_coarse.get()),
-                               this->coarse.get());
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_coarse), this->coarse, 0.0);
 }
 
 
@@ -248,17 +246,15 @@ TYPED_TEST(Pgm, CanBeMoved)
     using MgLevel = typename TestFixture::MgLevel;
     auto copy = this->pgm_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(std::move(this->mg_level));
+    copy->move_from(this->mg_level);
     auto copy_mtx = copy->get_system_matrix();
     auto copy_agg = copy->get_const_agg();
     auto copy_coarse = copy->get_coarse_op();
 
-    this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
-                               this->mtx.get());
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
     this->assert_same_agg(copy_agg, this->agg.get_data(),
                           this->agg.get_num_elems());
-    this->assert_same_matrices(static_cast<const Mtx*>(copy_coarse.get()),
-                               this->coarse.get());
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_coarse), this->coarse, 0.0);
 }
 
 
@@ -271,12 +267,10 @@ TYPED_TEST(Pgm, CanBeCloned)
     auto clone_agg = clone->get_const_agg();
     auto clone_coarse = clone->get_coarse_op();
 
-    this->assert_same_matrices(static_cast<const Mtx*>(clone_mtx.get()),
-                               this->mtx.get());
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(clone_mtx), this->mtx, 0.0);
     this->assert_same_agg(clone_agg, this->agg.get_data(),
                           this->agg.get_num_elems());
-    this->assert_same_matrices(static_cast<const Mtx*>(clone_coarse.get()),
-                               this->coarse.get());
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(clone_coarse), this->coarse, 0.0);
 }
 
 
@@ -383,9 +377,9 @@ TYPED_TEST(Pgm, CoarseFineRestrictApply)
     auto pgm = this->pgm_factory->generate(this->mtx);
     using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
-    auto x = Vec::create_with_config_of(gko::lend(this->coarse_b));
+    auto x = Vec::create_with_config_of(this->coarse_b);
 
-    pgm->get_restrict_op()->apply(this->fine_b.get(), x.get());
+    pgm->get_restrict_op()->apply(this->fine_b, x);
 
     GKO_ASSERT_MTX_NEAR(x, this->restrict_ans, r<value_type>::value);
 }
@@ -399,8 +393,7 @@ TYPED_TEST(Pgm, CoarseFineProlongApplyadd)
     auto one = gko::initialize<Vec>({value_type{1.0}}, this->exec);
     auto x = gko::clone(this->fine_x);
 
-    pgm->get_prolong_op()->apply(one.get(), this->coarse_b.get(), one.get(),
-                                 x.get());
+    pgm->get_prolong_op()->apply(one, this->coarse_b, one, x);
 
     GKO_ASSERT_MTX_NEAR(x, this->prolong_ans, r<value_type>::value);
 }
@@ -412,7 +405,7 @@ TYPED_TEST(Pgm, CoarseFineProlongApply)
     auto pgm = this->pgm_factory->generate(this->mtx);
     auto x = gko::clone(this->fine_x);
 
-    pgm->get_prolong_op()->apply(this->coarse_b.get(), x.get());
+    pgm->get_prolong_op()->apply(this->coarse_b, x);
 
     GKO_ASSERT_MTX_NEAR(x, this->prolong_applyans, r<value_type>::value);
 }
@@ -431,7 +424,7 @@ TYPED_TEST(Pgm, Apply)
          I<VT>({17.0, -5.0}), I<VT>({-23.0, 5.0})},
         exec);
 
-    pgm->apply(b.get(), x.get());
+    pgm->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, answer, r<VT>::value);
 }
@@ -452,7 +445,7 @@ TYPED_TEST(Pgm, AdvancedApply)
          I<VT>({17.0, -5.0}), I<VT>({-23.0, 9.0})},
         exec);
 
-    pgm->apply(alpha.get(), b.get(), beta.get(), x.get());
+    pgm->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, answer, r<VT>::value);
 }

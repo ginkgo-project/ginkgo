@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -124,7 +124,7 @@ TYPED_TEST(UpperTrs, SolvesTriangularSystem)
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
     auto solver = this->upper_trs_factory->generate(this->mtx);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({13.0, -4.0, 3.0}), r<value_type>::value);
 }
@@ -139,7 +139,7 @@ TYPED_TEST(UpperTrs, SolvesTriangularSystemMixed)
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
     auto solver = this->upper_trs_factory->generate(this->mtx);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({13.0, -4.0, 3.0}),
                         (r_mixed<value_type, other_value_type>()));
@@ -159,7 +159,7 @@ TYPED_TEST(UpperTrs, SolvesTriangularSystemComplex)
         this->exec);
     auto solver = this->upper_trs_factory->generate(this->mtx);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x,
                         l({value_type{13.0, -26.0}, value_type{-4.0, 8.0},
@@ -182,7 +182,7 @@ TYPED_TEST(UpperTrs, SolvesTriangularSystemMixedComplex)
         this->exec);
     auto solver = this->upper_trs_factory->generate(this->mtx);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x,
                         l({value_type{13.0, -26.0}, value_type{-4.0, 8.0},
@@ -202,7 +202,7 @@ TYPED_TEST(UpperTrs, SolvesMultipleTriangularSystems)
         {I<T>{0.0, 0.0}, I<T>{0.0, 0.0}, I<T>{0.0, 0.0}}, this->exec);
     auto solver = this->upper_trs_factory_mrhs->generate(this->mtx);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({{13.0, -6.0}, {-4.0, 3.0}, {3.0, -1.0}}),
                         r<value_type>::value);
@@ -218,7 +218,7 @@ TYPED_TEST(UpperTrs, SolvesNonUnitTriangularSystem)
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
     auto solver = this->upper_trs_factory->generate(this->mtx2);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, -1.0}), r<value_type>::value);
 }
@@ -234,7 +234,7 @@ TYPED_TEST(UpperTrs, SolvesTriangularSystemUsingAdvancedApply)
     auto x = gko::initialize<Mtx>({1.0, -1.0, 1.0}, this->exec);
     auto solver = this->upper_trs_factory->generate(this->mtx);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({25.0, -7.0, 5.0}), r<value_type>::value);
 }
@@ -251,7 +251,7 @@ TYPED_TEST(UpperTrs, SolvesTriangularSystemUsingAdvancedApplyMixed)
     auto x = gko::initialize<Mtx>({1.0, -1.0, 1.0}, this->exec);
     auto solver = this->upper_trs_factory->generate(this->mtx);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({25.0, -7.0, 5.0}),
                         (r_mixed<value_type, other_value_type>()));
@@ -273,7 +273,7 @@ TYPED_TEST(UpperTrs, SolvesTriangularSystemUsingAdvancedApplyComplex)
         this->exec);
     auto solver = this->upper_trs_factory->generate(this->mtx);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x,
                         l({value_type{25.0, -50.0}, value_type{-7.0, 14.0},
@@ -298,7 +298,7 @@ TYPED_TEST(UpperTrs, SolvesTriangularSystemUsingAdvancedApplyMixedComplex)
         this->exec);
     auto solver = this->upper_trs_factory->generate(this->mtx);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x,
                         l({value_type{25.0, -50.0}, value_type{-7.0, 14.0},
@@ -320,7 +320,7 @@ TYPED_TEST(UpperTrs, SolvesMultipleTriangularSystemsUsingAdvancedApply)
         {I<T>{1.0, 2.0}, I<T>{-1.0, -1.0}, I<T>{1.0, -2.0}}, this->exec);
     auto solver = this->upper_trs_factory_mrhs->generate(this->mtx);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({{-9.0, -6.0}, {1.0, 2.0}, {0.0, -7.0}}),
                         r<value_type>::value);
@@ -336,7 +336,7 @@ TYPED_TEST(UpperTrs, SolvesBigDenseSystem)
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
     auto solver = this->upper_trs_factory->generate(this->mtx_big_upper);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({-1.0, 4.0, 9.0, 3.0, -2.0}),
                         r<value_type>::value * 1e3);
@@ -352,7 +352,7 @@ TYPED_TEST(UpperTrs, SolvesBigDenseSystemWithUnitDiagonal)
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
     auto solver = this->upper_trs_factory_unit->generate(this->mtx_big_upper);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({-1.0, 4.0, 9.0, 3.0, -2.0}),
                         r<value_type>::value * 1e3);
@@ -368,7 +368,7 @@ TYPED_TEST(UpperTrs, SolveBigDenseSystemIgnoresNonTriangleEntries)
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
     auto solver = this->upper_trs_factory->generate(this->mtx_big_general);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({-1.0, 4.0, 9.0, 3.0, -2.0}),
                         r<value_type>::value * 1e3);
@@ -383,7 +383,7 @@ TYPED_TEST(UpperTrs, SolvesTransposedTriangularSystem)
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
     auto solver = this->upper_trs_factory->generate(this->mtx);
 
-    solver->transpose()->apply(b.get(), x.get());
+    solver->transpose()->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({4.0, -10.0, 19.0}), r<value_type>::value);
 }
@@ -397,7 +397,7 @@ TYPED_TEST(UpperTrs, SolvesConjTransposedTriangularSystem)
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
     auto solver = this->upper_trs_factory->generate(this->mtx);
 
-    solver->conj_transpose()->apply(b.get(), x.get());
+    solver->conj_transpose()->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({4.0, -10.0, 19.0}), r<value_type>::value);
 }

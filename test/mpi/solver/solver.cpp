@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -51,6 +51,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/cgs.hpp>
 #include <ginkgo/core/solver/fcg.hpp>
+#include <ginkgo/core/solver/gcr.hpp>
+#include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
@@ -174,6 +176,30 @@ struct Ir : SimpleSolverTest<gko::solver::Ir<solver_value_type>> {
                             .on(exec))
                     .on(exec))
             .with_relaxation_factor(0.9);
+    }
+};
+
+
+template <unsigned dimension>
+struct Gmres : SimpleSolverTest<gko::solver::Gmres<solver_value_type>> {
+    static typename solver_type::parameters_type build(
+        std::shared_ptr<const gko::Executor> exec)
+    {
+        return SimpleSolverTest<gko::solver::Gmres<solver_value_type>>::build(
+                   std::move(exec))
+            .with_krylov_dim(dimension);
+    }
+};
+
+
+template <unsigned dimension>
+struct Gcr : SimpleSolverTest<gko::solver::Gcr<solver_value_type>> {
+    static typename solver_type::parameters_type build(
+        std::shared_ptr<const gko::Executor> exec)
+    {
+        return SimpleSolverTest<gko::solver::Gcr<solver_value_type>>::build(
+                   std::move(exec))
+            .with_krylov_dim(dimension);
     }
 };
 
@@ -317,7 +343,7 @@ protected:
         }
         {
             SCOPED_TRACE("Some empty partition");
-            guarded_fn(gen_part(50, comm.size() - 1));
+            guarded_fn(gen_part(50, std::max(1, comm.size() - 1)));
         }
     }
 
@@ -387,7 +413,7 @@ protected:
             SCOPED_TRACE("Single vector with correct initial guess");
             auto in = gen_in_vec<DistVecType>(part, solver, 1, 1);
             auto out = gen_out_vec<DistVecType>(part, solver, 1, 1);
-            solver->get_system_matrix()->apply(out.get(), in.get());
+            solver->get_system_matrix()->apply(out, in);
             guarded_fn(std::move(in), std::move(out));
         }
         {
@@ -444,8 +470,8 @@ protected:
         auto norm = DistVecType::local_vector_type::absolute_type::create(
             ref, gko::dim<2>{1, b->get_size()[1]});
         auto dist_res = gko::clone(b);
-        mtx->apply(neg_one.get(), x.get(), one.get(), dist_res.get());
-        dist_res->compute_norm2(norm.get());
+        mtx->apply(neg_one, x, one, dist_res);
+        dist_res->compute_norm2(norm);
 
         for (int i = 0; i < norm->get_num_stored_elements(); ++i) {
             ASSERT_LE(norm->at(i), tolerance);
@@ -471,10 +497,10 @@ protected:
         // compute rx = (x_sol - beta * x_old) / alpha, since A * rx = b
         // and we only know the accuracy of that operation
         auto recovered_x = gko::clone(x_sol);
-        recovered_x->sub_scaled(beta.get(), x_old.get());
-        recovered_x->inv_scale(alpha.get());
-        mtx->apply(neg_one.get(), recovered_x.get(), one.get(), dist_res.get());
-        dist_res->compute_norm2(norm.get());
+        recovered_x->sub_scaled(beta, x_old);
+        recovered_x->inv_scale(alpha);
+        mtx->apply(neg_one, recovered_x, one, dist_res);
+        dist_res->compute_norm2(norm);
 
         for (int i = 0; i < norm->get_num_stored_elements(); ++i) {
             ASSERT_LE(norm->at(i), tolerance);
@@ -484,7 +510,8 @@ protected:
     std::default_random_engine rand_engine;
 };
 
-using SolverTypes = ::testing::Types<Cg, Cgs, Fcg, Bicgstab, Ir>;
+using SolverTypes = ::testing::Types<Cg, Cgs, Fcg, Bicgstab, Ir, Gcr<10u>,
+                                     Gcr<100u>, Gmres<10u>, Gmres<100u>>;
 
 TYPED_TEST_SUITE(Solver, SolverTypes, TypenameNameGenerator);
 
@@ -496,7 +523,7 @@ TYPED_TEST(Solver, ApplyIsEquivalentToRef)
             this->forall_solver_scenarios(mtx, [&](auto solver) {
                 this->forall_vector_scenarios(
                     part.get(), solver, [&](auto b, auto x) {
-                        solver->apply(b.get(), x.get());
+                        solver->apply(b, x);
 
                         this->assert_residual_near(mtx, x, b, this->tol(x));
                     });
@@ -517,8 +544,7 @@ TYPED_TEST(Solver, AdvancedApplyIsEquivalentToRef)
                         auto beta = this->gen_scalar();
                         auto x_old = gko::share(gko::clone(x));
 
-                        solver->apply(alpha.get(), b.get(), beta.get(),
-                                      x.get());
+                        solver->apply(alpha, b, beta, x);
 
                         this->assert_residual_near(mtx, x, x_old, b, alpha,
                                                    beta, 10 * this->tol(x));
@@ -537,7 +563,7 @@ TYPED_TEST(Solver, MixedApplyIsEquivalentToRef)
             this->forall_solver_scenarios(mtx, [&](auto solver) {
                 this->template forall_vector_scenarios<MixedVec>(
                     part.get(), solver, [&](auto b, auto x) {
-                        solver->apply(b.get(), x.get());
+                        solver->apply(b, x);
 
                         this->assert_residual_near(mtx, x, b,
                                                    this->mixed_tol(x));
@@ -561,8 +587,7 @@ TYPED_TEST(Solver, MixedAdvancedApplyIsEquivalentToRef)
                         auto beta = this->template gen_scalar<MixedLocalVec>();
                         auto x_old = gko::share(gko::clone(x));
 
-                        solver->apply(alpha.get(), b.get(), beta.get(),
-                                      x.get());
+                        solver->apply(alpha, b, beta, x);
 
                         this->assert_residual_near(mtx, x, x_old, b, alpha,
                                                    beta,

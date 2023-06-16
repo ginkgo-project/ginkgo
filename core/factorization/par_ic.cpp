@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -88,7 +88,7 @@ std::unique_ptr<Composition<ValueType>> ParIc<ValueType, IndexType>::generate(
     // Throws an exception if it is not convertible.
     auto csr_system_matrix = CsrMatrix::create(exec);
     as<ConvertibleTo<CsrMatrix>>(system_matrix.get())
-        ->convert_to(csr_system_matrix.get());
+        ->convert_to(csr_system_matrix);
     // If necessary, sort it
     if (!skip_sorting) {
         csr_system_matrix->sort_by_column_index();

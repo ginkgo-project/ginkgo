@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -467,7 +467,7 @@ public:
             GKO_ENSURE_COMPATIBLE_BOUNDS(other.get_num_elems(),
                                          this->num_elems_);
         }
-        exec_->copy_from(other.get_executor().get(), other.get_num_elems(),
+        exec_->copy_from(other.get_executor(), other.get_num_elems(),
                          other.get_const_data(), this->get_data());
         return *this;
     }
@@ -865,7 +865,7 @@ template <typename ValueType>
 array<ValueType> const_array_view<ValueType>::copy_to_array() const
 {
     array<ValueType> result(this->get_executor(), this->get_num_elems());
-    result.get_executor()->copy_from(this->get_executor().get(),
+    result.get_executor()->copy_from(this->get_executor(),
                                      this->get_num_elems(),
                                      this->get_const_data(), result.get_data());
     return result;

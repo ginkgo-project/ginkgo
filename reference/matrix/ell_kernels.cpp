@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -87,7 +87,7 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
         for (size_type row = 0; row < a->get_size()[0]; row++) {
             arithmetic_type result{};
             for (size_type i = 0; i < num_stored_elements_per_row; i++) {
-                auto val = a_vals(row + i * stride);
+                arithmetic_type val = a_vals(row + i * stride);
                 auto col = a->col_at(row, i);
                 if (col != invalid_index<IndexType>()) {
                     result += val * b_vals(col, j);
@@ -140,7 +140,7 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
             arithmetic_type result = c->at(row, j);
             result *= beta_val;
             for (size_type i = 0; i < num_stored_elements_per_row; i++) {
-                auto val = a_vals(row + i * stride);
+                arithmetic_type val = a_vals(row + i * stride);
                 auto col = a->col_at(row, i);
                 if (col != invalid_index<IndexType>()) {
                     result += alpha_val * val * b_vals(col, j);

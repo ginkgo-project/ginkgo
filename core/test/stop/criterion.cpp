@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -56,7 +56,7 @@ struct DummyLogger : public gko::log::Logger {
     void on_criterion_check_completed(
         const gko::stop::Criterion* criterion,
         const gko::size_type& num_iterations, const gko::LinOp* residual,
-        const gko::LinOp* residual_norm, const gko::LinOp* solutino,
+        const gko::LinOp* residual_norm, const gko::LinOp* solution,
         const gko::uint8& stopping_id, const bool& set_finalized,
         const gko::array<gko::stopping_status>* status, const bool& one_changed,
         const bool& all_converged) const override
@@ -108,6 +108,17 @@ protected:
     gko::array<gko::stopping_status> stopping_status;
     std::shared_ptr<DummyLogger> logger;
 };
+
+
+TEST_F(Criterion, DefaultUpdateStatus)
+{
+    EXPECT_EQ(criterion->update().num_iterations_, 0);
+    EXPECT_EQ(criterion->update().ignore_residual_check_, false);
+    EXPECT_EQ(criterion->update().residual_, nullptr);
+    EXPECT_EQ(criterion->update().residual_norm_, nullptr);
+    EXPECT_EQ(criterion->update().implicit_sq_residual_norm_, nullptr);
+    EXPECT_EQ(criterion->update().solution_, nullptr);
+}
 
 
 TEST_F(Criterion, CanLogCheck)

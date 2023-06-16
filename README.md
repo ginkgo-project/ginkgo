@@ -40,8 +40,8 @@ For Ginkgo core library:
 *   C++14 compliant compiler, one of:
     *   _gcc 5.5+_
     *   _clang 3.9+_
-    *   _Intel compiler 2018+_
-    *   _Apple LLVM 8.0+_
+    *   _Intel compiler 2019+_
+    *   _Apple Clang 14.0_ is tested. Earlier versions might also work.
     *   _Cray Compiler 14.0.1+_
     *   _NVHPC Compiler 22.7+_
 
@@ -55,7 +55,7 @@ The Ginkgo CUDA module has the following __additional__ requirements:
 
 The Ginkgo HIP module has the following __additional__ requirements:
 
-* _ROCm 4.0+_
+* _ROCm 4.5+_
 *    the HIP, hipBLAS, hipSPARSE, hip/rocRAND and rocThrust packages compiled with either:
     * _AMD_ backend (using the `clang` compiler)
     * _9.2 <= CUDA < 11_ backend
@@ -70,6 +70,10 @@ The Ginkgo DPC++ module has the following __additional__ requirements:
     * oneMKL
     * oneDPL
 
+The Ginkgo MPI module has the following __additional__ requirements:
+
+* MPI 3.1+, ideally with GPUDirect support for best performance
+
 In addition, if you want to contribute code to Ginkgo, you will also need the
 following:
 
@@ -82,10 +86,7 @@ following:
 *   _cmake 3.13+_
 *   C++14 compliant 64-bit compiler:
     *   _MinGW : gcc 5.5+_
-    *   _Cygwin : gcc 5.5+_
     *   _Microsoft Visual Studio : VS 2019+_
-
-__NOTE:__ Need to add `--autocrlf=input` after `git clone` in _Cygwin_.
 
 The Ginkgo CUDA module has the following __additional__ requirements:
 
@@ -96,7 +97,7 @@ The Ginkgo CUDA module has the following __additional__ requirements:
     [CUDA installation guide for Windows](https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/index.html)
 
 The Ginkgo OMP module has the following __additional__ requirements:
-*  _MinGW_ or _Cygwin_
+*  _MinGW_
 
 In these environments, two problems can be encountered, the solution for which is described in the
 [windows section in INSTALL.md](INSTALL.md#building-ginkgo-in-windows):

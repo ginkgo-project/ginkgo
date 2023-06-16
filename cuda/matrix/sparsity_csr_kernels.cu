@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -60,7 +60,7 @@ namespace cuda {
 namespace sparsity_csr {
 
 
-constexpr int classical_overweight = 32;
+constexpr int classical_oversubscription = 32;
 constexpr int spmv_block_size = 128;
 constexpr int warps_in_block = 4;
 
@@ -92,7 +92,8 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
         gko::acc::reduced_row_major<2, arithmetic_type, OutputValueType>;
 
     const auto nwarps = exec->get_num_warps_per_sm() *
-                        exec->get_num_multiprocessor() * classical_overweight;
+                        exec->get_num_multiprocessor() *
+                        classical_oversubscription;
     const auto gridx =
         std::min(ceildiv(a->get_size()[0], spmv_block_size / subwarp_size),
                  int64(nwarps / warps_in_block));
@@ -118,16 +119,21 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
         return;
     }
     if (alpha == nullptr && beta == nullptr) {
-        kernel::abstract_classical_spmv<subwarp_size><<<grid, block, 0, 0>>>(
-            a->get_size()[0], as_cuda_type(a->get_const_value()),
-            a->get_const_col_idxs(), as_cuda_type(a->get_const_row_ptrs()),
-            acc::as_cuda_range(b_vals), acc::as_cuda_range(c_vals));
+        kernel::abstract_classical_spmv<subwarp_size>
+            <<<grid, block, 0, exec->get_stream()>>>(
+                a->get_size()[0], as_device_type(a->get_const_value()),
+                a->get_const_col_idxs(),
+                as_device_type(a->get_const_row_ptrs()),
+                acc::as_cuda_range(b_vals), acc::as_cuda_range(c_vals));
     } else if (alpha != nullptr && beta != nullptr) {
-        kernel::abstract_classical_spmv<subwarp_size><<<grid, block, 0, 0>>>(
-            a->get_size()[0], as_cuda_type(alpha->get_const_values()),
-            as_cuda_type(a->get_const_value()), a->get_const_col_idxs(),
-            as_cuda_type(a->get_const_row_ptrs()), acc::as_cuda_range(b_vals),
-            as_cuda_type(beta->get_const_values()), acc::as_cuda_range(c_vals));
+        kernel::abstract_classical_spmv<subwarp_size>
+            <<<grid, block, 0, exec->get_stream()>>>(
+                a->get_size()[0], as_device_type(alpha->get_const_values()),
+                as_device_type(a->get_const_value()), a->get_const_col_idxs(),
+                as_device_type(a->get_const_row_ptrs()),
+                acc::as_cuda_range(b_vals),
+                as_device_type(beta->get_const_values()),
+                acc::as_cuda_range(c_vals));
     } else {
         GKO_KERNEL_NOT_FOUND;
     }
@@ -170,64 +176,6 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
-                   const matrix::SparsityCsr<ValueType, IndexType>* input,
-                   matrix::Dense<ValueType>* output) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_CSR_FILL_IN_DENSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void count_num_diagonal_elements(
-    std::shared_ptr<const CudaExecutor> exec,
-    const matrix::SparsityCsr<ValueType, IndexType>* matrix,
-    size_type* num_diagonal_elements) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_CSR_COUNT_NUM_DIAGONAL_ELEMENTS_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void remove_diagonal_elements(
-    std::shared_ptr<const CudaExecutor> exec, const IndexType* row_ptrs,
-    const IndexType* col_idxs,
-    matrix::SparsityCsr<ValueType, IndexType>* matrix) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_CSR_REMOVE_DIAGONAL_ELEMENTS_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void transpose(std::shared_ptr<const CudaExecutor> exec,
-               const matrix::SparsityCsr<ValueType, IndexType>* orig,
-               matrix::SparsityCsr<ValueType, IndexType>* trans)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_CSR_TRANSPOSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void sort_by_column_index(std::shared_ptr<const CudaExecutor> exec,
-                          matrix::SparsityCsr<ValueType, IndexType>* to_sort)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_CSR_SORT_BY_COLUMN_INDEX);
-
-
-template <typename ValueType, typename IndexType>
-void is_sorted_by_column_index(
-    std::shared_ptr<const CudaExecutor> exec,
-    const matrix::SparsityCsr<ValueType, IndexType>* to_check,
-    bool* is_sorted) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_CSR_IS_SORTED_BY_COLUMN_INDEX);
 
 
 }  // namespace sparsity_csr

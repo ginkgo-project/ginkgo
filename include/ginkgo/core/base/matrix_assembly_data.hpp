@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -54,6 +54,8 @@ namespace detail {
 
 template <typename IndexType>
 struct symbolic_nonzero_hash {
+    symbolic_nonzero_hash() = default;
+
     explicit symbolic_nonzero_hash(size_type num_cols) noexcept
         : num_cols_{num_cols}
     {}

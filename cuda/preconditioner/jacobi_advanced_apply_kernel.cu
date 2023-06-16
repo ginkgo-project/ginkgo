@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -55,7 +55,8 @@ namespace jacobi {
 template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
 void advanced_apply(
-    syn::value_list<int, max_block_size>, size_type num_blocks,
+    syn::value_list<int, max_block_size>,
+    std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
     const precision_reduction* block_precisions,
     const IndexType* block_pointers, const ValueType* blocks,
     const preconditioner::block_interleaved_storage_scheme<IndexType>&
@@ -87,9 +88,9 @@ void apply(std::shared_ptr<const CudaExecutor> exec, size_type num_blocks,
                 return max_block_size <= compiled_block_size;
             },
             syn::value_list<int, config::min_warps_per_block>(),
-            syn::type_list<>(), num_blocks, block_precisions.get_const_data(),
-            block_pointers.get_const_data(), blocks.get_const_data(),
-            storage_scheme, alpha->get_const_values(),
+            syn::type_list<>(), exec, num_blocks,
+            block_precisions.get_const_data(), block_pointers.get_const_data(),
+            blocks.get_const_data(), storage_scheme, alpha->get_const_values(),
             b->get_const_values() + col, b->get_stride(), x->get_values() + col,
             x->get_stride());
     }

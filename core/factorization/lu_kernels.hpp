@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -58,12 +58,12 @@ namespace kernels {
                     matrix::Csr<ValueType, IndexType>* factors)
 
 
-#define GKO_DECLARE_LU_FACTORIZE(ValueType, IndexType)                      \
-    void factorize(                                                         \
-        std::shared_ptr<const DefaultExecutor> exec,                        \
-        const IndexType* lookup_storage_offsets, const int64* lookup_descs, \
-        const int32* lookup_storage, const IndexType* diag_idxs,            \
-        matrix::Csr<ValueType, IndexType>* factors, array<int>& tmp_storage)
+#define GKO_DECLARE_LU_FACTORIZE(ValueType, IndexType)                         \
+    void factorize(std::shared_ptr<const DefaultExecutor> exec,                \
+                   const IndexType* lookup_offsets, const int64* lookup_descs, \
+                   const int32* lookup_storage, const IndexType* diag_idxs,    \
+                   matrix::Csr<ValueType, IndexType>* factors,                 \
+                   array<int>& tmp_storage)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                  \

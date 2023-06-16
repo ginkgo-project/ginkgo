@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -628,7 +628,7 @@ vector<IndexType> compute_level_offsets(std::shared_ptr<const OmpExecutor> exec,
 {
     auto counts = count_levels(exec, levels, previous_component, num_vertices);
     counts.push_back(0);
-    components::prefix_sum(exec, &counts[0], counts.size());
+    components::prefix_sum_nonnegative(exec, &counts[0], counts.size());
     return counts;
 }
 

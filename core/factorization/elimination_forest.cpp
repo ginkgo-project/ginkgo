@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -156,18 +156,6 @@ void compute_elim_forest_postorder_parent_impl(const IndexType* parent,
 
 
 template <typename IndexType>
-elimination_forest<IndexType>::elimination_forest(
-    std::shared_ptr<const Executor> host_exec, IndexType size)
-    : parents{host_exec, static_cast<size_type>(size)},
-      child_ptrs{host_exec, static_cast<size_type>(size + 2)},
-      children{host_exec, static_cast<size_type>(size)},
-      postorder{host_exec, static_cast<size_type>(size)},
-      inv_postorder{host_exec, static_cast<size_type>(size)},
-      postorder_parents{host_exec, static_cast<size_type>(size)}
-{}
-
-
-template <typename IndexType>
 void elimination_forest<IndexType>::set_executor(
     std::shared_ptr<const Executor> exec)
 {
@@ -181,35 +169,38 @@ void elimination_forest<IndexType>::set_executor(
 
 
 template <typename ValueType, typename IndexType>
-elimination_forest<IndexType> compute_elim_forest(
-    const matrix::Csr<ValueType, IndexType>* mtx)
+void compute_elim_forest(const matrix::Csr<ValueType, IndexType>* mtx,
+                         std::unique_ptr<elimination_forest<IndexType>>& forest)
 {
     const auto host_exec = mtx->get_executor()->get_master();
     const auto host_mtx = make_temporary_clone(host_exec, mtx);
     const auto num_rows = static_cast<IndexType>(host_mtx->get_size()[0]);
-    elimination_forest<IndexType> forest{host_exec, num_rows};
+    forest =
+        std::make_unique<elimination_forest<IndexType>>(host_exec, num_rows);
     compute_elim_forest_parent_impl(host_exec, host_mtx->get_const_row_ptrs(),
                                     host_mtx->get_const_col_idxs(), num_rows,
-                                    forest.parents.get_data());
-    compute_elim_forest_children_impl(forest.parents.get_const_data(), num_rows,
-                                      forest.child_ptrs.get_data(),
-                                      forest.children.get_data());
+                                    forest->parents.get_data());
+    compute_elim_forest_children_impl(forest->parents.get_const_data(),
+                                      num_rows, forest->child_ptrs.get_data(),
+                                      forest->children.get_data());
     compute_elim_forest_postorder_impl(
-        host_exec, forest.parents.get_const_data(),
-        forest.child_ptrs.get_const_data(), forest.children.get_const_data(),
-        num_rows, forest.postorder.get_data(), forest.inv_postorder.get_data());
+        host_exec, forest->parents.get_const_data(),
+        forest->child_ptrs.get_const_data(), forest->children.get_const_data(),
+        num_rows, forest->postorder.get_data(),
+        forest->inv_postorder.get_data());
     compute_elim_forest_postorder_parent_impl(
-        forest.parents.get_const_data(), forest.inv_postorder.get_const_data(),
-        num_rows, forest.postorder_parents.get_data());
+        forest->parents.get_const_data(),
+        forest->inv_postorder.get_const_data(), num_rows,
+        forest->postorder_parents.get_data());
 
-    forest.set_executor(mtx->get_executor());
-    return forest;
+    forest->set_executor(mtx->get_executor());
 }
 
 
 #define GKO_DECLARE_COMPUTE_ELIM_FOREST(ValueType, IndexType) \
-    elimination_forest<IndexType> compute_elim_forest(        \
-        const matrix::Csr<ValueType, IndexType>* mtx)
+    void compute_elim_forest(                                 \
+        const matrix::Csr<ValueType, IndexType>* mtx,         \
+        std::unique_ptr<elimination_forest<IndexType>>& forest)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COMPUTE_ELIM_FOREST);
 

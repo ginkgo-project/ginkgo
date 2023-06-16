@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -82,17 +82,12 @@ protected:
           drow_descs{exec}
     {}
 
-    void initialize_data(const char* mtx_filename)
+    void initialize_data(const char* mtx_filename, const char* mtx_lu_filename)
     {
         std::ifstream s_mtx{mtx_filename};
         mtx = gko::read<matrix_type>(s_mtx, ref);
         dmtx = gko::clone(exec, mtx);
         num_rows = mtx->get_size()[0];
-    }
-
-    void initialize_data(const char* mtx_filename, const char* mtx_lu_filename)
-    {
-        initialize_data(mtx_filename);
         std::ifstream s_mtx_lu{mtx_lu_filename};
         mtx_lu = gko::read<matrix_type>(s_mtx_lu, ref);
         storage_offsets.resize_and_reset(num_rows + 1);
@@ -114,9 +109,37 @@ protected:
         drow_descs = row_descs;
         dmtx_lu = gko::clone(exec, mtx_lu);
         mtx_lu_sparsity = sparsity_pattern_type::create(ref);
-        mtx_lu_sparsity->copy_from(mtx_lu.get());
+        mtx_lu_sparsity->copy_from(mtx_lu);
         dmtx_lu_sparsity = sparsity_pattern_type::create(exec);
-        dmtx_lu_sparsity->copy_from(mtx_lu_sparsity.get());
+        dmtx_lu_sparsity->copy_from(mtx_lu_sparsity);
+    }
+
+    void forall_matrices(std::function<void()> fn)
+    {
+        {
+            SCOPED_TRACE("ani1");
+            this->initialize_data(gko::matrices::location_ani1_mtx,
+                                  gko::matrices::location_ani1_lu_mtx);
+            fn();
+        }
+        {
+            SCOPED_TRACE("ani1_amd");
+            this->initialize_data(gko::matrices::location_ani1_amd_mtx,
+                                  gko::matrices::location_ani1_amd_lu_mtx);
+            fn();
+        }
+        {
+            SCOPED_TRACE("ani4");
+            this->initialize_data(gko::matrices::location_ani4_mtx,
+                                  gko::matrices::location_ani4_lu_mtx);
+            fn();
+        }
+        {
+            SCOPED_TRACE("ani4_amd");
+            this->initialize_data(gko::matrices::location_ani4_amd_mtx,
+                                  gko::matrices::location_ani4_amd_lu_mtx);
+            fn();
+        }
     }
 
     gko::size_type num_rows;
@@ -156,57 +179,29 @@ TYPED_TEST(Lu, KernelInitializeIsEquivalentToRef)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    this->initialize_data(gko::matrices::location_ani4_mtx,
-                          gko::matrices::location_ani4_lu_mtx);
-    std::fill_n(this->mtx_lu->get_values(),
-                this->mtx_lu->get_num_stored_elements(),
-                gko::zero<value_type>());
-    gko::kernels::EXEC_NAMESPACE::components::fill_array(
-        this->exec, this->dmtx_lu->get_values(),
-        this->dmtx_lu->get_num_stored_elements(), gko::zero<value_type>());
-    gko::array<index_type> diag_idxs{this->ref, this->num_rows};
-    gko::array<index_type> ddiag_idxs{this->exec, this->num_rows};
+    this->forall_matrices([this] {
+        std::fill_n(this->mtx_lu->get_values(),
+                    this->mtx_lu->get_num_stored_elements(),
+                    gko::zero<value_type>());
+        gko::kernels::EXEC_NAMESPACE::components::fill_array(
+            this->exec, this->dmtx_lu->get_values(),
+            this->dmtx_lu->get_num_stored_elements(), gko::zero<value_type>());
+        gko::array<index_type> diag_idxs{this->ref, this->num_rows};
+        gko::array<index_type> ddiag_idxs{this->exec, this->num_rows};
 
-    gko::kernels::reference::lu_factorization::initialize(
-        this->ref, this->mtx.get(), this->storage_offsets.get_const_data(),
-        this->row_descs.get_const_data(), this->storage.get_const_data(),
-        diag_idxs.get_data(), this->mtx_lu.get());
-    gko::kernels::EXEC_NAMESPACE::lu_factorization::initialize(
-        this->exec, this->dmtx.get(), this->dstorage_offsets.get_const_data(),
-        this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
-        ddiag_idxs.get_data(), this->dmtx_lu.get());
+        gko::kernels::reference::lu_factorization::initialize(
+            this->ref, this->mtx.get(), this->storage_offsets.get_const_data(),
+            this->row_descs.get_const_data(), this->storage.get_const_data(),
+            diag_idxs.get_data(), this->mtx_lu.get());
+        gko::kernels::EXEC_NAMESPACE::lu_factorization::initialize(
+            this->exec, this->dmtx.get(),
+            this->dstorage_offsets.get_const_data(),
+            this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
+            ddiag_idxs.get_data(), this->dmtx_lu.get());
 
-    GKO_ASSERT_MTX_NEAR(this->dmtx_lu, this->dmtx_lu, 0.0);
-    GKO_ASSERT_ARRAY_EQ(diag_idxs, ddiag_idxs);
-}
-
-
-TYPED_TEST(Lu, KernelInitializeAmdIsEquivalentToRef)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    this->initialize_data(gko::matrices::location_ani4_amd_mtx,
-                          gko::matrices::location_ani4_amd_lu_mtx);
-    std::fill_n(this->mtx_lu->get_values(),
-                this->mtx_lu->get_num_stored_elements(),
-                gko::zero<value_type>());
-    gko::kernels::EXEC_NAMESPACE::components::fill_array(
-        this->exec, this->dmtx_lu->get_values(),
-        this->dmtx_lu->get_num_stored_elements(), gko::zero<value_type>());
-    gko::array<index_type> diag_idxs{this->ref, this->num_rows};
-    gko::array<index_type> ddiag_idxs{this->exec, this->num_rows};
-
-    gko::kernels::reference::lu_factorization::initialize(
-        this->ref, this->mtx.get(), this->storage_offsets.get_const_data(),
-        this->row_descs.get_const_data(), this->storage.get_const_data(),
-        diag_idxs.get_data(), this->mtx_lu.get());
-    gko::kernels::EXEC_NAMESPACE::lu_factorization::initialize(
-        this->exec, this->dmtx.get(), this->dstorage_offsets.get_const_data(),
-        this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
-        ddiag_idxs.get_data(), this->dmtx_lu.get());
-
-    GKO_ASSERT_MTX_NEAR(this->dmtx_lu, this->dmtx_lu, 0.0);
-    GKO_ASSERT_ARRAY_EQ(diag_idxs, ddiag_idxs);
+        GKO_ASSERT_MTX_NEAR(this->dmtx_lu, this->dmtx_lu, 0.0);
+        GKO_ASSERT_ARRAY_EQ(diag_idxs, ddiag_idxs);
+    });
 }
 
 
@@ -214,63 +209,32 @@ TYPED_TEST(Lu, KernelFactorizeIsEquivalentToRef)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    this->initialize_data(gko::matrices::location_ani4_mtx,
-                          gko::matrices::location_ani4_lu_mtx);
-    gko::array<index_type> diag_idxs{this->ref, this->num_rows};
-    gko::array<index_type> ddiag_idxs{this->exec, this->num_rows};
-    gko::array<int> tmp{this->ref};
-    gko::array<int> dtmp{this->exec};
-    gko::kernels::reference::lu_factorization::initialize(
-        this->ref, this->mtx.get(), this->storage_offsets.get_const_data(),
-        this->row_descs.get_const_data(), this->storage.get_const_data(),
-        diag_idxs.get_data(), this->mtx_lu.get());
-    gko::kernels::EXEC_NAMESPACE::lu_factorization::initialize(
-        this->exec, this->dmtx.get(), this->dstorage_offsets.get_const_data(),
-        this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
-        ddiag_idxs.get_data(), this->dmtx_lu.get());
+    this->forall_matrices([this] {
+        gko::array<index_type> diag_idxs{this->ref, this->num_rows};
+        gko::array<index_type> ddiag_idxs{this->exec, this->num_rows};
+        gko::array<int> tmp{this->ref};
+        gko::array<int> dtmp{this->exec};
+        gko::kernels::reference::lu_factorization::initialize(
+            this->ref, this->mtx.get(), this->storage_offsets.get_const_data(),
+            this->row_descs.get_const_data(), this->storage.get_const_data(),
+            diag_idxs.get_data(), this->mtx_lu.get());
+        gko::kernels::EXEC_NAMESPACE::lu_factorization::initialize(
+            this->exec, this->dmtx.get(),
+            this->dstorage_offsets.get_const_data(),
+            this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
+            ddiag_idxs.get_data(), this->dmtx_lu.get());
 
-    gko::kernels::reference::lu_factorization::factorize(
-        this->ref, this->storage_offsets.get_const_data(),
-        this->row_descs.get_const_data(), this->storage.get_const_data(),
-        diag_idxs.get_const_data(), this->mtx_lu.get(), tmp);
-    gko::kernels::EXEC_NAMESPACE::lu_factorization::factorize(
-        this->exec, this->dstorage_offsets.get_const_data(),
-        this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
-        ddiag_idxs.get_const_data(), this->dmtx_lu.get(), dtmp);
+        gko::kernels::reference::lu_factorization::factorize(
+            this->ref, this->storage_offsets.get_const_data(),
+            this->row_descs.get_const_data(), this->storage.get_const_data(),
+            diag_idxs.get_const_data(), this->mtx_lu.get(), tmp);
+        gko::kernels::EXEC_NAMESPACE::lu_factorization::factorize(
+            this->exec, this->dstorage_offsets.get_const_data(),
+            this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
+            ddiag_idxs.get_const_data(), this->dmtx_lu.get(), dtmp);
 
-    GKO_ASSERT_MTX_NEAR(this->mtx_lu, this->dmtx_lu, r<value_type>::value);
-}
-
-
-TYPED_TEST(Lu, KernelFactorizeAmdIsEquivalentToRef)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    this->initialize_data(gko::matrices::location_ani4_amd_mtx,
-                          gko::matrices::location_ani4_amd_lu_mtx);
-    gko::array<index_type> diag_idxs{this->ref, this->num_rows};
-    gko::array<index_type> ddiag_idxs{this->exec, this->num_rows};
-    gko::array<int> tmp{this->ref};
-    gko::array<int> dtmp{this->exec};
-    gko::kernels::reference::lu_factorization::initialize(
-        this->ref, this->mtx.get(), this->storage_offsets.get_const_data(),
-        this->row_descs.get_const_data(), this->storage.get_const_data(),
-        diag_idxs.get_data(), this->mtx_lu.get());
-    gko::kernels::EXEC_NAMESPACE::lu_factorization::initialize(
-        this->exec, this->dmtx.get(), this->dstorage_offsets.get_const_data(),
-        this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
-        ddiag_idxs.get_data(), this->dmtx_lu.get());
-
-    gko::kernels::reference::lu_factorization::factorize(
-        this->ref, this->storage_offsets.get_const_data(),
-        this->row_descs.get_const_data(), this->storage.get_const_data(),
-        diag_idxs.get_const_data(), this->mtx_lu.get(), tmp);
-    gko::kernels::EXEC_NAMESPACE::lu_factorization::factorize(
-        this->exec, this->dstorage_offsets.get_const_data(),
-        this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
-        ddiag_idxs.get_const_data(), this->dmtx_lu.get(), dtmp);
-
-    GKO_ASSERT_MTX_NEAR(this->mtx_lu, this->dmtx_lu, r<value_type>::value);
+        GKO_ASSERT_MTX_NEAR(this->mtx_lu, this->dmtx_lu, r<value_type>::value);
+    });
 }
 
 
@@ -278,45 +242,24 @@ TYPED_TEST(Lu, GenerateSymmWithUnknownSparsityIsEquivalentToRef)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    this->initialize_data(gko::matrices::location_ani4_mtx);
-    auto factory =
-        gko::experimental::factorization::Lu<value_type, index_type>::build()
-            .with_symmetric_sparsity(true)
-            .on(this->ref);
-    auto dfactory =
-        gko::experimental::factorization::Lu<value_type, index_type>::build()
-            .with_symmetric_sparsity(true)
-            .on(this->exec);
+    this->forall_matrices([this] {
+        auto factory = gko::experimental::factorization::Lu<value_type,
+                                                            index_type>::build()
+                           .with_symmetric_sparsity(true)
+                           .on(this->ref);
+        auto dfactory =
+            gko::experimental::factorization::Lu<value_type,
+                                                 index_type>::build()
+                .with_symmetric_sparsity(true)
+                .on(this->exec);
 
-    auto lu = factory->generate(this->mtx);
-    auto dlu = dfactory->generate(this->dmtx);
+        auto lu = factory->generate(this->mtx);
+        auto dlu = dfactory->generate(this->dmtx);
 
-    GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_combined(), dlu->get_combined());
-    GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
-                        r<value_type>::value);
-}
-
-
-TYPED_TEST(Lu, GenerateSymmWithUnknownSparsityAmdIsEquivalentToRef)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    this->initialize_data(gko::matrices::location_ani4_amd_mtx);
-    auto factory =
-        gko::experimental::factorization::Lu<value_type, index_type>::build()
-            .with_symmetric_sparsity(true)
-            .on(this->ref);
-    auto dfactory =
-        gko::experimental::factorization::Lu<value_type, index_type>::build()
-            .with_symmetric_sparsity(true)
-            .on(this->exec);
-
-    auto lu = factory->generate(this->mtx);
-    auto dlu = dfactory->generate(this->dmtx);
-
-    GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_combined(), dlu->get_combined());
-    GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
-                        r<value_type>::value);
+        GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_combined(), dlu->get_combined());
+        GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
+                            r<value_type>::value);
+    });
 }
 
 
@@ -324,59 +267,45 @@ TYPED_TEST(Lu, GenerateWithKnownSparsityIsEquivalentToRef)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    this->initialize_data(gko::matrices::location_ani4_mtx,
-                          gko::matrices::location_ani4_lu_mtx);
-    auto factory =
-        gko::experimental::factorization::Lu<value_type, index_type>::build()
-            .with_symbolic_factorization(this->mtx_lu_sparsity)
-            .on(this->ref);
-    auto dfactory =
-        gko::experimental::factorization::Lu<value_type, index_type>::build()
-            .with_symbolic_factorization(this->dmtx_lu_sparsity)
-            .on(this->exec);
+    this->forall_matrices([this] {
+        auto factory = gko::experimental::factorization::Lu<value_type,
+                                                            index_type>::build()
+                           .with_symbolic_factorization(this->mtx_lu_sparsity)
+                           .on(this->ref);
+        auto dfactory =
+            gko::experimental::factorization::Lu<value_type,
+                                                 index_type>::build()
+                .with_symbolic_factorization(this->dmtx_lu_sparsity)
+                .on(this->exec);
 
-    auto lu = factory->generate(this->mtx);
-    auto dlu = dfactory->generate(this->dmtx);
+        auto lu = factory->generate(this->mtx);
+        auto dlu = dfactory->generate(this->dmtx);
 
-    GKO_ASSERT_MTX_EQ_SPARSITY(this->dmtx_lu_sparsity, dlu->get_combined());
-    GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
-                        r<value_type>::value);
+        GKO_ASSERT_MTX_EQ_SPARSITY(this->dmtx_lu_sparsity, dlu->get_combined());
+        GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
+                            r<value_type>::value);
+    });
 }
 
 
-TYPED_TEST(Lu, GenerateWithKnownSparsityAmdIsEquivalentToRef)
+TYPED_TEST(Lu, GenerateUnsymmWithUnknownSparsityIsEquivalentToRef)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    this->initialize_data(gko::matrices::location_ani4_amd_mtx,
-                          gko::matrices::location_ani4_amd_lu_mtx);
-    auto factory =
-        gko::experimental::factorization::Lu<value_type, index_type>::build()
-            .with_symbolic_factorization(this->mtx_lu_sparsity)
-            .on(this->ref);
-    auto dfactory =
-        gko::experimental::factorization::Lu<value_type, index_type>::build()
-            .with_symbolic_factorization(this->dmtx_lu_sparsity)
-            .on(this->exec);
+    this->forall_matrices([this] {
+        auto factory = gko::experimental::factorization::Lu<value_type,
+                                                            index_type>::build()
+                           .on(this->ref);
+        auto dfactory =
+            gko::experimental::factorization::Lu<value_type,
+                                                 index_type>::build()
+                .on(this->exec);
 
-    auto lu = factory->generate(this->mtx);
-    auto dlu = dfactory->generate(this->dmtx);
+        auto lu = factory->generate(this->mtx);
+        auto dlu = dfactory->generate(this->dmtx);
 
-    GKO_ASSERT_MTX_EQ_SPARSITY(this->dmtx_lu_sparsity, dlu->get_combined());
-    GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
-                        r<value_type>::value);
-}
-
-
-TYPED_TEST(Lu, GenerateUnsymmWithUnknownSparsityFails)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    this->initialize_data(gko::matrices::location_ani4_amd_mtx);
-
-    auto dfactory =
-        gko::experimental::factorization::Lu<value_type, index_type>::build()
-            .on(this->exec);
-
-    ASSERT_THROW(dfactory->generate(this->dmtx), gko::NotSupported);
+        GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_combined(), dlu->get_combined());
+        GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
+                            r<value_type>::value);
+    });
 }

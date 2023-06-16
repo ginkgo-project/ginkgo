@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -109,8 +109,7 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
     gko::array<IndexType> row_idxs(exec, nnz);
     gko::array<IndexType> col_idxs(exec, nnz);
     gko::array<ValueType> vals(exec, nnz);
-    exec->copy_from(exec.get(), nnz, fine_csr->get_const_values(),
-                    vals.get_data());
+    exec->copy_from(exec, nnz, fine_csr->get_const_values(), vals.get_data());
     // map row_ptrs to coarse row index
     exec->run(pgm::make_map_row(num, fine_csr->get_const_row_ptrs(),
                                 agg.get_const_data(), row_idxs.get_data()));
@@ -133,10 +132,10 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
         coarse_nnz);
     exec->run(pgm::make_compute_coarse_coo(
         nnz, row_idxs.get_const_data(), col_idxs.get_const_data(),
-        vals.get_const_data(), gko::lend(coarse_coo)));
+        vals.get_const_data(), coarse_coo.get()));
     // use move_to
     auto coarse_csr = matrix::Csr<ValueType, IndexType>::create(exec);
-    coarse_csr->copy_from(std::move(coarse_coo));
+    coarse_csr->move_from(coarse_coo);
     return std::move(coarse_csr);
 }
 
@@ -180,8 +179,7 @@ void Pgm<ValueType, IndexType>::generate()
     auto half_scalar = initialize<matrix::Dense<real_type>>({0.5}, exec);
     auto identity = matrix::Identity<real_type>::create(exec, num_rows);
     // W = (abs_mtx + transpose(abs_mtx))/2
-    abs_mtx->apply(lend(half_scalar), lend(identity), lend(half_scalar),
-                   lend(weight_mtx));
+    abs_mtx->apply(half_scalar, identity, half_scalar, weight_mtx);
     // Extract the diagonal value of matrix
     auto diag = weight_mtx->extract_diagonal();
     for (int i = 0; i < parameters_.max_iterations; i++) {
@@ -219,7 +217,7 @@ void Pgm<ValueType, IndexType>::generate()
     // prolong_row_gather is the lightway implementation for prolongation
     auto prolong_row_gather = share(matrix::RowGatherer<IndexType>::create(
         exec, gko::dim<2>{fine_dim, coarse_dim}));
-    exec->copy_from(exec.get(), agg_.get_num_elems(), agg_.get_const_data(),
+    exec->copy_from(exec, agg_.get_num_elems(), agg_.get_const_data(),
                     prolong_row_gather->get_row_idxs());
     auto restrict_sparsity =
         share(matrix::SparsityCsr<ValueType, IndexType>::create(

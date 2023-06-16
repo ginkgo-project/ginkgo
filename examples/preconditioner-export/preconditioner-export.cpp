@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -61,7 +61,8 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
                }}};
 
 
-void output(const gko::WritableToMatrixData<double, int>* mtx, std::string name)
+void output(gko::ptr_param<const gko::WritableToMatrixData<double, int>> mtx,
+            std::string name)
 {
     std::ofstream stream{name};
     std::cerr << "Writing " << name << std::endl;
@@ -144,15 +145,15 @@ int main(int argc, char* argv[])
                     : gko::precision_reduction(0, std::stoi(argv[6]));
         }
         auto jacobi = try_generate([&] { return factory->generate(mtx); });
-        output(jacobi.get(), matrix + ".jacobi" + output_suffix);
+        output(jacobi, matrix + ".jacobi" + output_suffix);
     } else if (precond == "ilu") {
         // ilu: no parameters
         auto ilu = gko::as<gko::Composition<>>(try_generate([&] {
             return gko::factorization::Ilu<>::build().on(exec)->generate(mtx);
         }));
-        output(gko::as<gko::matrix::Csr<>>(ilu->get_operators()[0].get()),
+        output(gko::as<gko::matrix::Csr<>>(ilu->get_operators()[0]),
                matrix + ".ilu-l");
-        output(gko::as<gko::matrix::Csr<>>(ilu->get_operators()[1].get()),
+        output(gko::as<gko::matrix::Csr<>>(ilu->get_operators()[1]),
                matrix + ".ilu-u");
     } else if (precond == "parilu") {
         // parilu: iterations
@@ -162,9 +163,9 @@ int main(int argc, char* argv[])
         }
         auto ilu = gko::as<gko::Composition<>>(
             try_generate([&] { return factory->generate(mtx); }));
-        output(gko::as<gko::matrix::Csr<>>(ilu->get_operators()[0].get()),
+        output(gko::as<gko::matrix::Csr<>>(ilu->get_operators()[0]),
                matrix + ".parilu" + output_suffix + "-l");
-        output(gko::as<gko::matrix::Csr<>>(ilu->get_operators()[1].get()),
+        output(gko::as<gko::matrix::Csr<>>(ilu->get_operators()[1]),
                matrix + ".parilu" + output_suffix + "-u");
     } else if (precond == "parilut") {
         // parilut: iterations, fill-in limit
@@ -177,9 +178,9 @@ int main(int argc, char* argv[])
         }
         auto ilut = gko::as<gko::Composition<>>(
             try_generate([&] { return factory->generate(mtx); }));
-        output(gko::as<gko::matrix::Csr<>>(ilut->get_operators()[0].get()),
+        output(gko::as<gko::matrix::Csr<>>(ilut->get_operators()[0]),
                matrix + ".parilut" + output_suffix + "-l");
-        output(gko::as<gko::matrix::Csr<>>(ilut->get_operators()[1].get()),
+        output(gko::as<gko::matrix::Csr<>>(ilut->get_operators()[1]),
                matrix + ".parilut" + output_suffix + "-u");
     } else if (precond == "ilu-isai") {
         // ilu-isai: sparsity power
@@ -201,9 +202,9 @@ int main(int argc, char* argv[])
                                            .on(exec))
                 .on(exec);
         auto ilu_isai = try_generate([&] { return factory->generate(mtx); });
-        output(ilu_isai->get_l_solver()->get_approximate_inverse().get(),
+        output(ilu_isai->get_l_solver()->get_approximate_inverse(),
                matrix + ".ilu-isai" + output_suffix + "-l");
-        output(ilu_isai->get_u_solver()->get_approximate_inverse().get(),
+        output(ilu_isai->get_u_solver()->get_approximate_inverse(),
                matrix + ".ilu-isai" + output_suffix + "-u");
     } else if (precond == "parilu-isai") {
         // parilu-isai: iterations, sparsity power
@@ -228,9 +229,9 @@ int main(int argc, char* argv[])
                                            .on(exec))
                 .on(exec);
         auto ilu_isai = try_generate([&] { return factory->generate(mtx); });
-        output(ilu_isai->get_l_solver()->get_approximate_inverse().get(),
+        output(ilu_isai->get_l_solver()->get_approximate_inverse(),
                matrix + ".parilu-isai" + output_suffix + "-l");
-        output(ilu_isai->get_u_solver()->get_approximate_inverse().get(),
+        output(ilu_isai->get_u_solver()->get_approximate_inverse(),
                matrix + ".parilu-isai" + output_suffix + "-u");
     } else if (precond == "parilut-isai") {
         // parilut-isai: iterations, fill-in limit, sparsity power
@@ -258,9 +259,9 @@ int main(int argc, char* argv[])
                                            .on(exec))
                 .on(exec);
         auto ilu_isai = try_generate([&] { return factory->generate(mtx); });
-        output(ilu_isai->get_l_solver()->get_approximate_inverse().get(),
+        output(ilu_isai->get_l_solver()->get_approximate_inverse(),
                matrix + ".parilut-isai" + output_suffix + "-l");
-        output(ilu_isai->get_u_solver()->get_approximate_inverse().get(),
+        output(ilu_isai->get_u_solver()->get_approximate_inverse(),
                matrix + ".parilut-isai" + output_suffix + "-u");
     }
 }

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -71,8 +71,8 @@ public:
      * @param matrix  An existing FBCSR matrix
      *                for which intrusive access is needed
      */
-    explicit FbcsrBuilder(Fbcsr<ValueType, IndexType>* const matrix)
-        : matrix_{matrix}
+    explicit FbcsrBuilder(ptr_param<Fbcsr<ValueType, IndexType>> const matrix)
+        : matrix_{matrix.get()}
     {}
 
     ~FbcsrBuilder() = default;

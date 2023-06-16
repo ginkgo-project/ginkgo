@@ -20,58 +20,6 @@ include:
   - local: '.gitlab/scripts.yml'
   - local: '.gitlab/variables.yml'
 
-status_pending:
-  stage: init-status
-  extends:
-    - .default_variables
-    - .pr_condition
-    - .use_status-job-settings
-  variables:
-    STATUS_CONTEXT: "quick"
-  script: |
-    curl -s -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
-    https://api.github.com/repos/ginkgo-project/ginkgo/statuses/${CI_COMMIT_SHA} \
-    -d "{\"state\":\"pending\",\"context\":\"ci/gitlab/${STATUS_CONTEXT}\",\"target_url\":\"${CI_PIPELINE_URL}\"}"
-    exit 3
-  allow_failure:
-    exit_codes: 3
-
-status_success:
-  stage: finalize-status
-  extends:
-    - .default_variables
-    - .pr_condition
-    - .use_status-job-settings
-  variables:
-    STATUS_CONTEXT: "quick"
-  # we always exit with the code 3 such that it will process when retrying
-  script: |
-    curl -s -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
-    https://api.github.com/repos/ginkgo-project/ginkgo/statuses/${CI_COMMIT_SHA} \
-    -d "{\"state\":\"success\",\"context\":\"ci/gitlab/${STATUS_CONTEXT}\",\"target_url\":\"${CI_PIPELINE_URL}\"}"
-    exit 3
-  allow_failure:
-    exit_codes: 3
-
-status_failure:
-  stage: finalize-status
-  extends:
-    - .default_variables
-    - .pr_condition
-    - .use_status-job-settings
-  variables:
-    STATUS_CONTEXT: "quick"
-  # we always exit with the code 3 such that it will process when retrying
-  script: |
-    curl -s -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
-    https://api.github.com/repos/ginkgo-project/ginkgo/statuses/${CI_COMMIT_SHA} \
-    -d "{\"state\":\"failure\",\"context\":\"ci/gitlab/${STATUS_CONTEXT}\",\"target_url\":\"${CI_PIPELINE_URL}\"}"
-    exit 3
-  when: on_failure
-  allow_failure:
-    exit_codes: 3
-
-
 sync:
   stage: sync
   extends:
@@ -116,7 +64,7 @@ trigger_pipeline:
           echo "Skipping the full pipeline and making the full pipeline succeed"
           curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
             https://api.github.com/repos/ginkgo-project/ginkgo/statuses/${CI_COMMIT_SHA} \
-            -d "{\"state\":\"success\",\"context\":\"ci/gitlab/full\",\"target_url\":\"${CI_JOB_URL}\",\"description\":\"skipped full pipeline\"}"
+            -d "{\"state\":\"success\",\"context\":\"ci/gitlab/gitlab.com/trigger_pipeline\",\"target_url\":\"${CI_JOB_URL}\",\"description\":\"skipped full pipeline\"}"
           echo "If you want to run the full tests, remove 1:ST:skip-full-test and add 1:ST:ready-to-merge or 1:ST:run-full-test to the pull request. Then rerun this job or start a new pipeline."
         elif [[ "${ENABLE_FULL_PIPELINE}" == "true" ]]; then
           echo "Running full pipeline."
@@ -127,7 +75,7 @@ trigger_pipeline:
           echo "Didn't find required labels, so we're making the full pipeline fail."
           curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
             https://api.github.com/repos/ginkgo-project/ginkgo/statuses/${CI_COMMIT_SHA} \
-            -d "{\"state\":\"failure\",\"context\":\"ci/gitlab/full\",\"target_url\":\"${CI_JOB_URL}\",\"description\":\"no run/skip full pipeline\"}"
+            -d "{\"state\":\"failure\",\"context\":\"ci/gitlab/gitlab.com/trigger_pipeline\",\"target_url\":\"${CI_JOB_URL}\",\"description\":\"no run/skip full pipeline\"}"
           echo "To skip the full pipeline for this pull request, rerun this job or start a new pipeline after adding the label 1:ST:skip-full-test."
           echo "To run the full pipeline for this pull request, rerun this job or start a new pipeline after adding one of the 1:ST:run-full-test or 1:ST:ready-to-merge labels."
         fi
@@ -150,89 +98,42 @@ build/cuda92/nompi/gcc/all/release/shared:
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
-    RUN_EXAMPLES: "ON"
     CUDA_ARCH: 61
 
-# cuda 10.0 and friends
-# Make sure that our jobs run when using self-installed
-# third-party HWLOC.
-build/cuda100/mvapich2/gcc/all/debug/shared:
-  extends:
-    - .build_template
-    - .default_variables
-    - .quick_test_condition
-    - .use_gko-cuda100-mvapich2-gnu7-llvm60-intel2018
-  variables:
-    BUILD_MPI: "ON"
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
-    BUILD_TYPE: "Debug"
-    FAST_TESTS: "ON"
-    CUDA_ARCH: 35
-
+# cuda 10.1 and friends
+# Build CUDA NVIDIA without omp
 # Make sure that our jobs run when HWLOC is
 # forcibly switched off
-build/cuda100/nompi/clang/all/release/static:
-  extends:
-    - .build_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-cuda100-mvapich2-gnu7-llvm60-intel2018
-  variables:
-    C_COMPILER: "clang"
-    CXX_COMPILER: "clang++"
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
-    BUILD_HWLOC: "OFF"
-    BUILD_TYPE: "Release"
-    BUILD_SHARED_LIBS: "OFF"
-    CUDA_ARCH: 35
-
-build/cuda100/nompi/intel/cuda/release/shared:
-  extends:
-    - .build_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-cuda100-mvapich2-gnu7-llvm60-intel2018
-  variables:
-    C_COMPILER: "icc"
-    CXX_COMPILER: "icpc"
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_TYPE: "Release"
-    CUDA_ARCH: 35
-
-# Build CUDA NVIDIA without omp
-build/cuda100/nompi/intel/cuda_wo_omp/release/shared:
-  extends:
-    - .build_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-cuda100-mvapich2-gnu7-llvm60-intel2018
-  variables:
-    C_COMPILER: "icc"
-    CXX_COMPILER: "icpc"
-    BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
-    BUILD_HWLOC: "OFF"
-    BUILD_TYPE: "Release"
-    CUDA_ARCH: 35
-
-# cuda 10.1 and friends
-build/cuda101/nompi/gcc/all/debug/shared:
+build/cuda101/nompi/clang/cuda_wo_omp/release/shared:
   extends:
     - .build_template
     - .default_variables
     - .full_test_condition
     - .use_gko-cuda101-openmpi-gnu8-llvm7-intel2019
   variables:
-    BUILD_OMP: "ON"
+    C_COMPILER: "clang"
+    CXX_COMPILER: "clang++"
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
+    BUILD_HWLOC: "OFF"
+    BUILD_TYPE: "Release"
+    CUDA_ARCH: 35
+
+# Job with example runs.
+build/cuda101/openmpi/gcc/all/debug/shared:
+  extends:
+    - .build_template
+    - .default_variables
+    - .quick_test_condition
+    - .use_gko-cuda101-openmpi-gnu8-llvm7-intel2019
+  variables:
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_MPI: "ON"
+    MPI_AS_ROOT: "ON"
+    BUILD_HIP: "ON"
     BUILD_TYPE: "Debug"
-    FAST_TESTS: "ON"
+    RUN_EXAMPLES: "ON"
     CUDA_ARCH: 35
 
 build/cuda101/nompi/clang/all/release/static:
@@ -345,7 +246,7 @@ build/cuda110/mvapich2/gcc/cuda/debug/shared:
   extends:
     - .build_template
     - .default_variables
-    - .full_test_condition
+    - .quick_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
   variables:
     BUILD_OMP: "ON"
@@ -353,6 +254,7 @@ build/cuda110/mvapich2/gcc/cuda/debug/shared:
     BUILD_MPI: "ON"
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
+    NONDEFAULT_STREAM: "ON"
     CUDA_ARCH: 80
     USE_NAME: "cuda110-mvapich2-gcc-${CI_PIPELINE_ID}"
     KEEP_CONTAINER: "ON"
@@ -362,13 +264,13 @@ test/cuda110/mvapich2/gcc/cuda/debug/shared:
   extends:
     - .horeka_test_template
     - .default_variables
-    - .full_test_condition
+    - .quick_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
   variables:
     USE_NAME: "cuda110-mvapich2-gcc-${CI_PIPELINE_ID}"
     SLURM_PARTITION: "accelerated"
     SLURM_GRES: "gpu:4"
-    SLURM_TIME: "01:00:00"
+    SLURM_TIME: "02:00:00"
   dependencies: null
   needs: [ "build/cuda110/mvapich2/gcc/cuda/debug/shared" ]
 
@@ -401,7 +303,7 @@ test/cuda110/nompi/clang/cuda/release/static:
     USE_NAME: "cuda110-nompi-clang-${CI_PIPELINE_ID}"
     SLURM_PARTITION: "accelerated"
     SLURM_GRES: "gpu:1"
-    SLURM_TIME: "01:00:00"
+    SLURM_TIME: "01:30:00"
   dependencies: null
   needs: [ "build/cuda110/nompi/clang/cuda/release/static" ]
 
@@ -410,7 +312,7 @@ build/cuda110/nompi/intel/cuda/debug/static:
   extends:
     - .build_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
   variables:
     C_COMPILER: "icc"
@@ -429,13 +331,13 @@ test/cuda110/nompi/intel/cuda/debug/static:
   extends:
     - .horeka_test_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
   variables:
     USE_NAME: "cuda110-nompi-intel-${CI_PIPELINE_ID}"
     SLURM_PARTITION: "accelerated"
     SLURM_GRES: "gpu:1"
-    SLURM_TIME: "01:00:00"
+    SLURM_TIME: "02:00:00"
   dependencies: null
   needs: [ "build/cuda110/nompi/intel/cuda/debug/static" ]
 
@@ -458,35 +360,48 @@ build/cuda114/nompi/gcc/cuda/debug/shared:
     EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
     CUDA_ARCH: 61
 
-# ROCm 4.0 and friends
-build/amd/nompi/gcc/rocm40/debug/shared:
+
+# nvhpc and friends
+build/nvhpc233/cuda120/nompi/nvcpp/release/static:
   extends:
     - .build_and_test_template
     - .default_variables
     - .quick_test_condition
-    - .use_gko-rocm40-openmpi-gnu8-llvm50
+    - .use_gko_nvhpc233-cuda120-openmpi-gnu12-llvm16
   variables:
+    C_COMPILER: "nvc"
+    CXX_COMPILER: "nvc++"
     BUILD_OMP: "ON"
-    BUILD_HIP: "ON"
-    RUN_EXAMPLES: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_MPI: "OFF"
+    BUILD_TYPE: "Release"
+    FAST_TESTS: "ON"
+    BUILD_SHARED_LIBS: "OFF"
+    # disable common gflags warnings
+    CXX_FLAGS: "--diag_suppress=useless_using_declaration,declared_but_not_referenced"
+    # disable spurious unused argument warning
+    EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
+    CUDA_ARCH: 61
+
+build/nvhpc227/cuda117/nompi/nvcpp/debug/shared:
+  extends:
+    - .build_and_test_template
+    - .default_variables
+    - .quick_test_condition
+    - .use_gko_nvhpc227-cuda117-openmpi-gnu11-llvm14
+  variables:
+    C_COMPILER: "nvc"
+    CXX_COMPILER: "nvc++"
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_MPI: "OFF"
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
-
-build/amd/openmpi/clang/rocm40/release/static:
-  extends:
-    - .build_and_test_template
-    - .default_variables
-    - .quick_test_condition
-    - .use_gko-rocm40-openmpi-gnu8-llvm50
-  variables:
-    C_COMPILER: "clang"
-    CXX_COMPILER: "clang++"
-    BUILD_OMP: "ON"
-    BUILD_HIP: "ON"
-    BUILD_MPI: "ON"
-    MPI_AS_ROOT: "ON"
-    BUILD_TYPE: "Release"
-    BUILD_SHARED_LIBS: "OFF"
+    # disable common gflags warnings
+    CXX_FLAGS: "--diag_suppress=useless_using_declaration,declared_but_not_referenced"
+    # disable spurious unused argument warning
+    EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
+    CUDA_ARCH: 61
 
 # ROCm 4.5 and friends
 build/amd/nompi/gcc/rocm45/release/shared:
@@ -498,8 +413,24 @@ build/amd/nompi/gcc/rocm45/release/shared:
   variables:
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
+    NONDEFAULT_STREAM: "ON"
     RUN_EXAMPLES: "ON"
     BUILD_TYPE: "Release"
+
+build/amd/nompi/clang/rocm45/release/static:
+  extends:
+    - .build_and_test_template
+    - .default_variables
+    - .full_test_condition
+    - .use_gko-rocm45-nompi-gnu8-llvm8
+  variables:
+    C_COMPILER: "clang"
+    CXX_COMPILER: "clang++"
+    BUILD_OMP: "ON"
+    BUILD_HIP: "ON"
+    RUN_EXAMPLES: "ON"
+    BUILD_TYPE: "Release"
+    BUILD_SHARED_LIBS: "OFF"
 
 build/amd/nompi/clang/rocm45/debug/shared:
   extends:
@@ -607,21 +538,18 @@ build/nocuda/openmpi/clang/omp/debug/static:
     FAST_TESTS: "ON"
     BUILD_SHARED_LIBS: "OFF"
 
-# nocuda with the oldest supported compiler
-build/nocuda/nompi/intel/core/debug/shared:
+test/nocuda/openmpi/clang/omp/debug/static:
   extends:
     - .build_and_test_template
     - .default_variables
-    - .quick_test_condition
-    - .use_gko-nocuda-mvapich2-gnu5-llvm39-intel2018
+    - .full_test_condition
+    - .use_gko-nocuda-openmpi-gnu9-llvm8
   variables:
-    # intel with old gcc without include path leads error: identifier "____m128d" is undefined
-    CXX_FLAGS: "-I /opt/intel/include/icc"
-    C_COMPILER: "icc"
-    CXX_COMPILER: "icpc"
-    BUILD_TYPE: "Debug"
-    FAST_TESTS: "ON"
+    USE_NAME: "nocuda-openmpi-clang-${CI_PIPELINE_ID}"
+  dependencies: null
+  needs: [ "build/nocuda/openmpi/clang/omp/debug/static" ]
 
+# nocuda with the oldest supported compiler
 build/nocuda/nompi/gcc/omp/release/static:
   extends:
     - .build_and_test_template
@@ -674,7 +602,7 @@ build/nocuda-nomixed/nompi/clang/omp/debug/static:
     BUILD_SHARED_LIBS: "OFF"
     MIXED_PRECISION: "OFF"
 
-build/dpcpp/cpu/release/static:
+build/dpcpp/2022-1/cpu/release/static:
   extends:
     - .build_and_test_template
     - .default_variables

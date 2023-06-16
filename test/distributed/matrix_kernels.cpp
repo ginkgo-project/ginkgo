@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -57,28 +57,30 @@ using comm_index_type = gko::experimental::distributed::comm_index_type;
 template <typename ValueLocalGlobalIndexType>
 class Matrix : public CommonTestFixture {
 protected:
-    using value_type =
-        typename std::tuple_element<0, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using local_index_type =
-        typename std::tuple_element<1, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using global_index_type =
-        typename std::tuple_element<2, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
+    using value_type = typename std::tuple_element<
+        0, decltype(ValueLocalGlobalIndexType())>::type;
+    using local_index_type = typename std::tuple_element<
+        1, decltype(ValueLocalGlobalIndexType())>::type;
+    using global_index_type = typename std::tuple_element<
+        2, decltype(ValueLocalGlobalIndexType())>::type;
     using Mtx = gko::matrix::Csr<value_type, local_index_type>;
 
     Matrix() : engine(42) {}
 
-    void validate(const gko::experimental::distributed::Partition<
-                      local_index_type, global_index_type>* row_partition,
-                  const gko::experimental::distributed::Partition<
-                      local_index_type, global_index_type>* col_partition,
-                  const gko::experimental::distributed::Partition<
-                      local_index_type, global_index_type>* d_row_partition,
-                  const gko::experimental::distributed::Partition<
-                      local_index_type, global_index_type>* d_col_partition,
-                  gko::device_matrix_data<value_type, global_index_type> input)
+    void validate(
+        gko::ptr_param<const gko::experimental::distributed::Partition<
+            local_index_type, global_index_type>>
+            row_partition,
+        gko::ptr_param<const gko::experimental::distributed::Partition<
+            local_index_type, global_index_type>>
+            col_partition,
+        gko::ptr_param<const gko::experimental::distributed::Partition<
+            local_index_type, global_index_type>>
+            d_row_partition,
+        gko::ptr_param<const gko::experimental::distributed::Partition<
+            local_index_type, global_index_type>>
+            d_col_partition,
+        gko::device_matrix_data<value_type, global_index_type> input)
     {
         gko::device_matrix_data<value_type, global_index_type> d_input{exec,
                                                                        input};
@@ -108,17 +110,17 @@ protected:
             gko::array<global_index_type> d_local_to_global_col{exec};
 
             gko::kernels::reference::distributed_matrix::build_local_nonlocal(
-                ref, input, row_partition, col_partition, part, local_row_idxs,
-                local_col_idxs, local_values, non_local_row_idxs,
-                non_local_col_idxs, non_local_values, gather_idxs, recv_sizes,
-                local_to_global_col);
+                ref, input, row_partition.get(), col_partition.get(), part,
+                local_row_idxs, local_col_idxs, local_values,
+                non_local_row_idxs, non_local_col_idxs, non_local_values,
+                gather_idxs, recv_sizes, local_to_global_col);
             gko::kernels::EXEC_NAMESPACE::distributed_matrix::
-                build_local_nonlocal(exec, d_input, d_row_partition,
-                                     d_col_partition, part, d_local_row_idxs,
-                                     d_local_col_idxs, d_local_values,
-                                     d_non_local_row_idxs, d_non_local_col_idxs,
-                                     d_non_local_values, d_gather_idxs,
-                                     d_recv_sizes, d_local_to_global_col);
+                build_local_nonlocal(
+                    exec, d_input, d_row_partition.get(), d_col_partition.get(),
+                    part, d_local_row_idxs, d_local_col_idxs, d_local_values,
+                    d_non_local_row_idxs, d_non_local_col_idxs,
+                    d_non_local_values, d_gather_idxs, d_recv_sizes,
+                    d_local_to_global_col);
 
             GKO_ASSERT_ARRAY_EQ(local_row_idxs, d_local_row_idxs);
             GKO_ASSERT_ARRAY_EQ(local_col_idxs, d_local_col_idxs);
@@ -135,7 +137,8 @@ protected:
     std::default_random_engine engine;
 };
 
-TYPED_TEST_SUITE(Matrix, gko::test::ValueLocalGlobalIndexTypes);
+TYPED_TEST_SUITE(Matrix, gko::test::ValueLocalGlobalIndexTypes,
+                 TupleTypenameNameGenerator);
 
 
 TYPED_TEST(Matrix, BuildsDiagOffdiagEmptyIsSameAsRef)
@@ -156,7 +159,7 @@ TYPED_TEST(Matrix, BuildsDiagOffdiagEmptyIsSameAsRef)
                                                                  num_parts);
 
     this->validate(
-        partition.get(), partition.get(), d_partition.get(), d_partition.get(),
+        partition, partition, d_partition, d_partition,
         gko::device_matrix_data<value_type, global_index_type>{this->ref});
 }
 
@@ -191,8 +194,7 @@ TYPED_TEST(Matrix, BuildsLocalSmallIsEquivalentToRef)
                                                                  mapping,
                                                                  num_parts);
 
-    this->validate(partition.get(), partition.get(), d_partition.get(),
-                   d_partition.get(), input);
+    this->validate(partition, partition, d_partition, d_partition, input);
 }
 
 
@@ -227,8 +229,7 @@ TYPED_TEST(Matrix, BuildsLocalIsEquivalentToRef)
                                                                  mapping,
                                                                  num_parts);
 
-    this->validate(partition.get(), partition.get(), d_partition.get(),
-                   d_partition.get(), input);
+    this->validate(partition, partition, d_partition, d_partition, input);
 }
 
 
@@ -261,8 +262,7 @@ TYPED_TEST(Matrix, BuildsDiagOffdiagEmptyWithColPartitionIsSameAsRef)
                                                                  num_parts);
 
     this->validate(
-        row_partition.get(), col_partition.get(), d_row_partition.get(),
-        d_col_partition.get(),
+        row_partition, col_partition, d_row_partition, d_col_partition,
         gko::device_matrix_data<value_type, global_index_type>{this->ref});
 }
 
@@ -311,8 +311,8 @@ TYPED_TEST(Matrix, BuildsLocalSmallWithColPartitionIsEquivalentToRef)
                                                                  col_mapping,
                                                                  num_parts);
 
-    this->validate(row_partition.get(), col_partition.get(),
-                   d_row_partition.get(), d_col_partition.get(), input);
+    this->validate(row_partition, col_partition, d_row_partition,
+                   d_col_partition, input);
 }
 
 
@@ -361,6 +361,6 @@ TYPED_TEST(Matrix, BuildsLocalWithColPartitionIsEquivalentToRef)
                                                                  col_mapping,
                                                                  num_parts);
 
-    this->validate(row_partition.get(), col_partition.get(),
-                   d_row_partition.get(), d_col_partition.get(), input);
+    this->validate(row_partition, col_partition, d_row_partition,
+                   d_col_partition, input);
 }

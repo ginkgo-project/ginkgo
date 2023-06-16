@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -195,7 +195,7 @@ TYPED_TEST(CbGmres, SolvesStencilSystem)
     auto b = gko::initialize<Mtx>({13.0, 7.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), this->assert_precision());
 }
@@ -209,7 +209,7 @@ TYPED_TEST(CbGmres, SolvesStencilSystemMixed)
     auto b = gko::initialize<Mtx>({13.0, 7.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(
         x, l({1.0, 3.0, 2.0}),
@@ -230,7 +230,7 @@ TYPED_TEST(CbGmres, SolvesStencilSystemComplex)
         {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
         this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x,
                         l({value_type{1.0, -2.0}, value_type{3.0, -6.0},
@@ -253,7 +253,7 @@ TYPED_TEST(CbGmres, SolvesStencilSystemMixedComplex)
         {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
         this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,
@@ -286,7 +286,7 @@ TYPED_TEST(CbGmres, SolvesStencilSystem2)
     auto b = gko::initialize<Mtx>({33.0, 20.0, 20.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 4.0, 8.0}), 8 * this->assert_precision());
 }
@@ -302,7 +302,7 @@ TYPED_TEST(CbGmres, SolvesMultipleStencilSystems)
     auto x = gko::initialize<Mtx>(
         {I<T>{0.0, 0.0}, I<T>{0.0, 0.0}, I<T>{0.0, 0.0}}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({I<T>{1.0, 1.0}, I<T>{3.0, 1.0}, I<T>{2.0, 1.0}}),
                         this->assert_precision());
@@ -319,7 +319,7 @@ TYPED_TEST(CbGmres, SolvesStencilSystemUsingAdvancedApply)
     auto b = gko::initialize<Mtx>({13.0, 7.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, this->exec);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), this->assert_precision());
 }
@@ -335,7 +335,7 @@ TYPED_TEST(CbGmres, SolvesStencilSystemUsingAdvancedApplyMixed)
     auto b = gko::initialize<Mtx>({13.0, 7.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, this->exec);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(
         x, l({1.5, 5.0, 2.0}),
@@ -359,7 +359,7 @@ TYPED_TEST(CbGmres, SolvesStencilSystemUsingAdvancedApplyComplex)
         {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
         this->exec);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x,
                         l({value_type{1.5, -3.0}, value_type{5.0, -10.0},
@@ -385,7 +385,7 @@ TYPED_TEST(CbGmres, SolvesStencilSystemUsingAdvancedApplyMixedComplex)
         {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
         this->exec);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,
@@ -407,7 +407,7 @@ TYPED_TEST(CbGmres, SolvesMultipleStencilSystemsUsingAdvancedApply)
     auto x = gko::initialize<Mtx>(
         {I<T>{0.5, 1.0}, I<T>{1.0, 2.0}, I<T>{2.0, 3.0}}, this->exec);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({I<T>{1.5, 1.0}, I<T>{5.0, 0.0}, I<T>{2.0, -1.0}}),
                         this->assert_precision());
@@ -424,7 +424,7 @@ TYPED_TEST(CbGmres, SolvesBigDenseSystem1)
         this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({52.7, 85.4, 134.2, -250.0, -16.8, 35.3}),
                         this->assert_precision());
@@ -441,25 +441,10 @@ TYPED_TEST(CbGmres, SolvesBigDenseSystem2)
         this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
                         this->assert_precision());
-}
-
-
-template <typename T>
-gko::remove_complex<T> inf_norm(gko::matrix::Dense<T>* mat, size_t col = 0)
-{
-    using std::abs;
-    auto host_data = clone(mat->get_executor()->get_master(), mat);
-    using no_cpx_t = gko::remove_complex<T>;
-    no_cpx_t norm = 0.0;
-    for (size_t i = 0; i < host_data->get_size()[0]; ++i) {
-        no_cpx_t abs_entry = abs(host_data->at(i, col));
-        if (norm < abs_entry) norm = abs_entry;
-    }
-    return norm;
 }
 
 
@@ -490,9 +475,9 @@ TYPED_TEST(CbGmres, SolvesMultipleDenseSystemForDivergenceCheck)
         xc->at(i, 1) = x2->at(i);
     }
 
-    solver->apply(b1.get(), x1.get());
-    solver->apply(b2.get(), x2.get());
-    solver->apply(bc.get(), xc.get());
+    solver->apply(b1, x1);
+    solver->apply(b2, x2);
+    solver->apply(bc, xc);
     auto mergedRes = Mtx::create(this->exec, gko::dim<2>{b1->get_size()[0], 2});
     for (size_t i = 0; i < mergedRes->get_size()[0]; ++i) {
         mergedRes->at(i, 0) = x1->at(i);
@@ -503,22 +488,22 @@ TYPED_TEST(CbGmres, SolvesMultipleDenseSystemForDivergenceCheck)
     auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
 
     auto residual1 = Mtx::create(this->exec, b1->get_size());
-    residual1->copy_from(b1.get());
+    residual1->copy_from(b1);
     auto residual2 = Mtx::create(this->exec, b2->get_size());
-    residual2->copy_from(b2.get());
+    residual2->copy_from(b2);
     auto residualC = Mtx::create(this->exec, bc->get_size());
-    residualC->copy_from(bc.get());
+    residualC->copy_from(bc);
 
-    this->mtx_big->apply(alpha.get(), x1.get(), beta.get(), residual1.get());
-    this->mtx_big->apply(alpha.get(), x2.get(), beta.get(), residual2.get());
-    this->mtx_big->apply(alpha.get(), xc.get(), beta.get(), residualC.get());
+    this->mtx_big->apply(alpha, x1, beta, residual1);
+    this->mtx_big->apply(alpha, x2, beta, residual2);
+    this->mtx_big->apply(alpha, xc, beta, residualC);
 
-    auto normS1 = inf_norm(residual1.get());
-    auto normS2 = inf_norm(residual2.get());
-    auto normC1 = inf_norm(residualC.get(), 0);
-    auto normC2 = inf_norm(residualC.get(), 1);
-    auto normB1 = inf_norm(b1.get());
-    auto normB2 = inf_norm(b2.get());
+    auto normS1 = inf_norm(residual1);
+    auto normS2 = inf_norm(residual2);
+    auto normC1 = inf_norm(residualC, 0);
+    auto normC2 = inf_norm(residualC, 1);
+    auto normB1 = inf_norm(b1);
+    auto normB2 = inf_norm(b2);
 
     // make sure that all combined solutions are as good or better than the
     // single solutions
@@ -554,7 +539,7 @@ TYPED_TEST(CbGmres, SolvesBigDenseSystem1WithRestart)
         {-13945.16, 11205.66, 16132.96, 24342.18, -10910.98}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({-140.20, -142.20, 48.80, -17.70, -19.60}),
                         half_tol);
@@ -587,7 +572,7 @@ TYPED_TEST(CbGmres, SolvesWithPreconditioner)
         this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
                         4 * this->assert_precision());

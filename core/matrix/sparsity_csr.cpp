@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -56,8 +56,8 @@ namespace {
 GKO_REGISTER_OPERATION(spmv, sparsity_csr::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, sparsity_csr::advanced_spmv);
 GKO_REGISTER_OPERATION(transpose, sparsity_csr::transpose);
-GKO_REGISTER_OPERATION(count_num_diagonal_elements,
-                       sparsity_csr::count_num_diagonal_elements);
+GKO_REGISTER_OPERATION(diagonal_element_prefix_sum,
+                       sparsity_csr::diagonal_element_prefix_sum);
 GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 GKO_REGISTER_OPERATION(fill_in_dense, sparsity_csr::fill_in_dense);
 GKO_REGISTER_OPERATION(remove_diagonal_elements,
@@ -270,15 +270,19 @@ SparsityCsr<ValueType, IndexType>::to_adjacency_matrix() const
     auto exec = this->get_executor();
     // Adjacency matrix has to be square.
     GKO_ASSERT_IS_SQUARE_MATRIX(this);
-    size_type num_diagonal_elements = 0;
-    exec->run(sparsity_csr::make_count_num_diagonal_elements(
-        this, &num_diagonal_elements));
+    const auto num_rows = this->get_size()[0];
+    array<IndexType> diag_prefix_sum{exec, num_rows + 1};
+    exec->run(sparsity_csr::make_diagonal_element_prefix_sum(
+        this, diag_prefix_sum.get_data()));
+    const auto num_diagonal_elements = static_cast<size_type>(
+        exec->copy_val_to_host(diag_prefix_sum.get_const_data() + num_rows));
     auto adj_mat =
         SparsityCsr::create(exec, this->get_size(),
                             this->get_num_nonzeros() - num_diagonal_elements);
 
     exec->run(sparsity_csr::make_remove_diagonal_elements(
-        this->get_const_row_ptrs(), this->get_const_col_idxs(), adj_mat.get()));
+        this->get_const_row_ptrs(), this->get_const_col_idxs(),
+        diag_prefix_sum.get_const_data(), adj_mat.get()));
     return std::move(adj_mat);
 }
 

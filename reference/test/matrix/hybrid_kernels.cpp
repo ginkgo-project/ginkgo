@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -137,7 +137,7 @@ TYPED_TEST(Hybrid, AppliesToDenseVector)
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
     auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
 
-    this->mtx1->apply(x.get(), y.get());
+    this->mtx1->apply(x, y);
 
     GKO_ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
 }
@@ -149,7 +149,7 @@ TYPED_TEST(Hybrid, AppliesToMixedDenseVector)
     auto x = gko::initialize<MixedVec>({2.0, 1.0, 4.0}, this->exec);
     auto y = MixedVec::create(this->exec, gko::dim<2>{2, 1});
 
-    this->mtx1->apply(x.get(), y.get());
+    this->mtx1->apply(x, y);
 
     GKO_ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
 }
@@ -167,7 +167,7 @@ TYPED_TEST(Hybrid, AppliesToDenseMatrix)
     // clang-format on
     auto y = Vec::create(this->exec, gko::dim<2>{2});
 
-    this->mtx1->apply(x.get(), y.get());
+    this->mtx1->apply(x, y);
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(y,
@@ -185,7 +185,7 @@ TYPED_TEST(Hybrid, AppliesLinearCombinationToDenseVector)
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
     auto y = gko::initialize<Vec>({1.0, 2.0}, this->exec);
 
-    this->mtx1->apply(alpha.get(), x.get(), beta.get(), y.get());
+    this->mtx1->apply(alpha, x, beta, y);
 
     GKO_ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
 }
@@ -199,7 +199,7 @@ TYPED_TEST(Hybrid, AppliesLinearCombinationToMixedDenseVector)
     auto x = gko::initialize<MixedVec>({2.0, 1.0, 4.0}, this->exec);
     auto y = gko::initialize<MixedVec>({1.0, 2.0}, this->exec);
 
-    this->mtx1->apply(alpha.get(), x.get(), beta.get(), y.get());
+    this->mtx1->apply(alpha, x, beta, y);
 
     GKO_ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
 }
@@ -221,7 +221,7 @@ TYPED_TEST(Hybrid, AppliesLinearCombinationToDenseMatrix)
          I<T>{2.0, -1.5}}, this->exec);
     // clang-format on
 
-    this->mtx1->apply(alpha.get(), x.get(), beta.get(), y.get());
+    this->mtx1->apply(alpha, x, beta, y);
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(y,
@@ -237,7 +237,7 @@ TYPED_TEST(Hybrid, ApplyFailsOnWrongInnerDimension)
     auto x = Vec::create(this->exec, gko::dim<2>{2});
     auto y = Vec::create(this->exec, gko::dim<2>{2});
 
-    ASSERT_THROW(this->mtx1->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx1->apply(x, y), gko::DimensionMismatch);
 }
 
 
@@ -247,7 +247,7 @@ TYPED_TEST(Hybrid, ApplyFailsOnWrongNumberOfRows)
     auto x = Vec::create(this->exec, gko::dim<2>{3, 2});
     auto y = Vec::create(this->exec, gko::dim<2>{3, 2});
 
-    ASSERT_THROW(this->mtx1->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx1->apply(x, y), gko::DimensionMismatch);
 }
 
 
@@ -257,7 +257,7 @@ TYPED_TEST(Hybrid, ApplyFailsOnWrongNumberOfCols)
     auto x = Vec::create(this->exec, gko::dim<2>{3}, 2);
     auto y = Vec::create(this->exec, gko::dim<2>{2});
 
-    ASSERT_THROW(this->mtx1->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx1->apply(x, y), gko::DimensionMismatch);
 }
 
 
@@ -275,8 +275,8 @@ TYPED_TEST(Hybrid, ConvertsToPrecision)
                         ? gko::remove_complex<ValueType>{0}
                         : gko::remove_complex<ValueType>{r<OtherType>::value};
 
-    this->mtx1->convert_to(tmp.get());
-    tmp->convert_to(res.get());
+    this->mtx1->convert_to(tmp);
+    tmp->convert_to(res);
 
     GKO_ASSERT_MTX_NEAR(this->mtx1, res, residual);
 }
@@ -296,8 +296,8 @@ TYPED_TEST(Hybrid, MovesToPrecision)
                         ? gko::remove_complex<ValueType>{0}
                         : gko::remove_complex<ValueType>{r<OtherType>::value};
 
-    this->mtx1->move_to(tmp.get());
-    tmp->move_to(res.get());
+    this->mtx1->move_to(tmp);
+    tmp->move_to(res);
 
     GKO_ASSERT_MTX_NEAR(this->mtx1, res, residual);
 }
@@ -308,7 +308,7 @@ TYPED_TEST(Hybrid, ConvertsToDense)
     using Vec = typename TestFixture::Vec;
     auto dense_mtx = Vec::create(this->mtx1->get_executor());
 
-    this->mtx1->convert_to(dense_mtx.get());
+    this->mtx1->convert_to(dense_mtx);
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(dense_mtx,
@@ -323,7 +323,7 @@ TYPED_TEST(Hybrid, MovesToDense)
     using Vec = typename TestFixture::Vec;
     auto dense_mtx = Vec::create(this->mtx1->get_executor());
 
-    this->mtx1->move_to(dense_mtx.get());
+    this->mtx1->move_to(dense_mtx);
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(dense_mtx,
@@ -341,8 +341,8 @@ TYPED_TEST(Hybrid, ConvertsToCsr)
     auto csr_mtx_c = Csr::create(this->mtx1->get_executor(), csr_s_classical);
     auto csr_mtx_m = Csr::create(this->mtx1->get_executor(), csr_s_merge);
 
-    this->mtx1->convert_to(csr_mtx_c.get());
-    this->mtx1->convert_to(csr_mtx_m.get());
+    this->mtx1->convert_to(csr_mtx_c);
+    this->mtx1->convert_to(csr_mtx_m);
 
     this->assert_equal_to_mtx(csr_mtx_c.get());
     this->assert_equal_to_mtx(csr_mtx_m.get());
@@ -360,8 +360,8 @@ TYPED_TEST(Hybrid, MovesToCsr)
     auto csr_mtx_m = Csr::create(this->mtx1->get_executor(), csr_s_merge);
     auto mtx_clone = this->mtx1->clone();
 
-    this->mtx1->move_to(csr_mtx_c.get());
-    mtx_clone->move_to(csr_mtx_m.get());
+    this->mtx1->move_to(csr_mtx_c);
+    mtx_clone->move_to(csr_mtx_m);
 
     this->assert_equal_to_mtx(csr_mtx_c.get());
     this->assert_equal_to_mtx(csr_mtx_m.get());
@@ -375,7 +375,7 @@ TYPED_TEST(Hybrid, ConvertsToCsrWithoutZeros)
     using Csr = typename TestFixture::Csr;
     auto csr_mtx = Csr::create(this->mtx3->get_executor());
 
-    this->mtx3->convert_to(csr_mtx.get());
+    this->mtx3->convert_to(csr_mtx);
 
     this->assert_equal_to_mtx(csr_mtx.get());
 }
@@ -386,7 +386,7 @@ TYPED_TEST(Hybrid, MovesToCsrWithoutZeros)
     using Csr = typename TestFixture::Csr;
     auto csr_mtx = Csr::create(this->mtx3->get_executor());
 
-    this->mtx3->move_to(csr_mtx.get());
+    this->mtx3->move_to(csr_mtx);
 
     this->assert_equal_to_mtx(csr_mtx.get());
 }
@@ -402,7 +402,7 @@ TYPED_TEST(Hybrid, ConvertsEmptyToPrecision)
     auto other = Hybrid::create(this->exec);
     auto res = OtherHybrid::create(this->exec);
 
-    other->convert_to(res.get());
+    other->convert_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_FALSE(res->get_size());
@@ -419,7 +419,7 @@ TYPED_TEST(Hybrid, MovesEmptyToPrecision)
     auto other = Hybrid::create(this->exec);
     auto res = OtherHybrid::create(this->exec);
 
-    other->move_to(res.get());
+    other->move_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_FALSE(res->get_size());
@@ -435,7 +435,7 @@ TYPED_TEST(Hybrid, ConvertsEmptyToDense)
     auto other = Hybrid::create(this->exec);
     auto res = Dense::create(this->exec);
 
-    other->convert_to(res.get());
+    other->convert_to(res);
 
     ASSERT_FALSE(res->get_size());
 }
@@ -450,7 +450,7 @@ TYPED_TEST(Hybrid, MovesEmptyToDense)
     auto other = Hybrid::create(this->exec);
     auto res = Dense::create(this->exec);
 
-    other->move_to(res.get());
+    other->move_to(res);
 
     ASSERT_FALSE(res->get_size());
 }
@@ -465,7 +465,7 @@ TYPED_TEST(Hybrid, ConvertsEmptyToCsr)
     auto other = Hybrid::create(this->exec);
     auto res = Csr::create(this->exec);
 
-    other->convert_to(res.get());
+    other->convert_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_EQ(*res->get_const_row_ptrs(), 0);
@@ -482,7 +482,7 @@ TYPED_TEST(Hybrid, MovesEmptyToCsr)
     auto other = Hybrid::create(this->exec);
     auto res = Csr::create(this->exec);
 
-    other->move_to(res.get());
+    other->move_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_EQ(*res->get_const_row_ptrs(), 0);
@@ -496,7 +496,7 @@ TYPED_TEST(Hybrid, AppliesWithStrideToDenseVector)
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
     auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
 
-    this->mtx2->apply(x.get(), y.get());
+    this->mtx2->apply(x, y);
 
     GKO_ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
 }
@@ -514,7 +514,7 @@ TYPED_TEST(Hybrid, AppliesWithStrideToDenseMatrix)
     // clang-format on
     auto y = Vec::create(this->exec, gko::dim<2>{2});
 
-    this->mtx2->apply(x.get(), y.get());
+    this->mtx2->apply(x, y);
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(y,
@@ -532,7 +532,7 @@ TYPED_TEST(Hybrid, AppliesWithStrideLinearCombinationToDenseVector)
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
     auto y = gko::initialize<Vec>({1.0, 2.0}, this->exec);
 
-    this->mtx2->apply(alpha.get(), x.get(), beta.get(), y.get());
+    this->mtx2->apply(alpha, x, beta, y);
 
     GKO_ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
 }
@@ -554,7 +554,7 @@ TYPED_TEST(Hybrid, AppliesWithStrideLinearCombinationToDenseMatrix)
          I<T>{2.0, -1.5}}, this->exec);
     // clang-format on
 
-    this->mtx2->apply(alpha.get(), x.get(), beta.get(), y.get());
+    this->mtx2->apply(alpha, x, beta, y);
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(y,
@@ -570,7 +570,7 @@ TYPED_TEST(Hybrid, ApplyWithStrideFailsOnWrongInnerDimension)
     auto x = Vec::create(this->exec, gko::dim<2>{2});
     auto y = Vec::create(this->exec, gko::dim<2>{2});
 
-    ASSERT_THROW(this->mtx2->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx2->apply(x, y), gko::DimensionMismatch);
 }
 
 
@@ -580,7 +580,7 @@ TYPED_TEST(Hybrid, ApplyWithStrideFailsOnWrongNumberOfRows)
     auto x = Vec::create(this->exec, gko::dim<2>{3, 2});
     auto y = Vec::create(this->exec, gko::dim<2>{3, 2});
 
-    ASSERT_THROW(this->mtx2->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx2->apply(x, y), gko::DimensionMismatch);
 }
 
 
@@ -590,7 +590,7 @@ TYPED_TEST(Hybrid, ApplyWithStrideFailsOnWrongNumberOfCols)
     auto x = Vec::create(this->exec, gko::dim<2>{3}, 2);
     auto y = Vec::create(this->exec, gko::dim<2>{2});
 
-    ASSERT_THROW(this->mtx2->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx2->apply(x, y), gko::DimensionMismatch);
 }
 
 
@@ -604,7 +604,7 @@ TYPED_TEST(Hybrid, ConvertsWithStrideToDense)
             {0.0, 5.0, 0.0}}, this->exec);
     // clang-format on
 
-    this->mtx2->convert_to(dense_mtx.get());
+    this->mtx2->convert_to(dense_mtx);
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(dense_mtx,
@@ -619,7 +619,7 @@ TYPED_TEST(Hybrid, MovesWithStrideToDense)
     using Vec = typename TestFixture::Vec;
     auto dense_mtx = Vec::create(this->mtx2->get_executor());
 
-    this->mtx2->move_to(dense_mtx.get());
+    this->mtx2->move_to(dense_mtx);
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(dense_mtx,
@@ -715,7 +715,7 @@ TYPED_TEST(Hybrid, AppliesToComplex)
     auto x = Vec::create(exec, gko::dim<2>{2,2});
     // clang-format on
 
-    this->mtx1->apply(b.get(), x.get());
+    this->mtx1->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,
@@ -741,7 +741,7 @@ TYPED_TEST(Hybrid, AppliesToMixedComplex)
     auto x = Vec::create(exec, gko::dim<2>{2,2});
     // clang-format on
 
-    this->mtx1->apply(b.get(), x.get());
+    this->mtx1->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,
@@ -772,7 +772,7 @@ TYPED_TEST(Hybrid, AdvancedAppliesToComplex)
     auto beta = gko::initialize<Dense>({2.0}, this->exec);
     // clang-format on
 
-    this->mtx1->apply(alpha.get(), b.get(), beta.get(), x.get());
+    this->mtx1->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,
@@ -804,7 +804,7 @@ TYPED_TEST(Hybrid, AdvancedAppliesToMixedComplex)
     auto beta = gko::initialize<MixedDense>({2.0}, this->exec);
     // clang-format on
 
-    this->mtx1->apply(alpha.get(), b.get(), beta.get(), x.get());
+    this->mtx1->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,

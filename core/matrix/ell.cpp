@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -72,7 +72,8 @@ GKO_REGISTER_OPERATION(convert_to_csr, ell::convert_to_csr);
 GKO_REGISTER_OPERATION(count_nonzeros_per_row, ell::count_nonzeros_per_row);
 GKO_REGISTER_OPERATION(extract_diagonal, ell::extract_diagonal);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
-GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum);
+GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
+                       components::prefix_sum_nonnegative);
 GKO_REGISTER_OPERATION(inplace_absolute_array,
                        components::inplace_absolute_array);
 GKO_REGISTER_OPERATION(outplace_absolute_array,
@@ -230,8 +231,8 @@ void Ell<ValueType, IndexType>::convert_to(
         tmp->row_ptrs_.resize_and_reset(num_rows + 1);
         exec->run(
             ell::make_count_nonzeros_per_row(this, tmp->row_ptrs_.get_data()));
-        exec->run(
-            ell::make_prefix_sum(tmp->row_ptrs_.get_data(), num_rows + 1));
+        exec->run(ell::make_prefix_sum_nonnegative(tmp->row_ptrs_.get_data(),
+                                                   num_rows + 1));
         const auto nnz = static_cast<size_type>(
             exec->copy_val_to_host(tmp->row_ptrs_.get_const_data() + num_rows));
         tmp->col_idxs_.resize_and_reset(nnz);
@@ -325,7 +326,7 @@ Ell<ValueType, IndexType>::extract_diagonal() const
     auto diag = Diagonal<ValueType>::create(exec, diag_size);
     exec->run(ell::make_fill_array(diag->get_values(), diag->get_size()[0],
                                    zero<ValueType>()));
-    exec->run(ell::make_extract_diagonal(this, lend(diag)));
+    exec->run(ell::make_extract_diagonal(this, diag.get()));
     return diag;
 }
 

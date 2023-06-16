@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,21 +45,12 @@ int main(int argc, char* argv[])
 {
     // Some shortcuts
     using ValueType = double;
-    using MixedType = float;
     using IndexType = int;
     using vec = gko::matrix::Dense<ValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
-    using fcg = gko::solver::Fcg<ValueType>;
     using cg = gko::solver::Cg<ValueType>;
-    using ir = gko::solver::Ir<ValueType>;
     using mg = gko::solver::Multigrid;
-    using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
     using pgm = gko::multigrid::Pgm<ValueType, IndexType>;
-
-    using cg_f = gko::solver::Cg<MixedType>;
-    using ir_f = gko::solver::Ir<MixedType>;
-    using bj_f = gko::preconditioner::Jacobi<MixedType, IndexType>;
-    using pgm_f = gko::multigrid::Pgm<MixedType, IndexType>;
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
@@ -89,9 +80,6 @@ int main(int argc, char* argv[])
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
-    const int mixed_int = argc >= 3 ? std::atoi(argv[2]) : 1;
-    const bool use_mixed = mixed_int != 0;  // nonzero uses mixed
-    std::cout << "Using mixed precision? " << use_mixed << std::endl;
     // Read data
     auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
     // Create RHS as 1 and initial guess as 0
@@ -104,118 +92,38 @@ int main(int argc, char* argv[])
     }
     auto x = vec::create(exec);
     auto b = vec::create(exec);
-    x->copy_from(host_x.get());
-    b->copy_from(host_b.get());
+    x->copy_from(host_x);
+    b->copy_from(host_b);
 
     // Calculate initial residual by overwriting b
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
     auto initres = gko::initialize<vec>({0.0}, exec);
-    A->apply(lend(one), lend(x), lend(neg_one), lend(b));
-    b->compute_norm2(lend(initres));
+    A->apply(one, x, neg_one, b);
+    b->compute_norm2(initres);
 
     // copy b again
-    b->copy_from(host_b.get());
+    b->copy_from(host_b);
 
-    // Prepare the stopping criteria
-    const gko::remove_complex<ValueType> tolerance = 1e-8;
-    auto iter_stop =
-        gko::share(gko::stop::Iteration::build().with_max_iters(100u).on(exec));
-    auto tol_stop = gko::share(gko::stop::ResidualNorm<ValueType>::build()
-                                   .with_baseline(gko::stop::mode::absolute)
-                                   .with_reduction_factor(tolerance)
-                                   .on(exec));
-
-    std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
-        gko::log::Convergence<ValueType>::create();
-    iter_stop->add_logger(logger);
-    tol_stop->add_logger(logger);
-
-    // Create smoother factory (ir with bj)
-    auto inner_solver_gen =
-        gko::share(bj::build().with_max_block_size(1u).on(exec));
-    auto inner_solver_gen_f =
-        gko::share(bj_f::build().with_max_block_size(1u).on(exec));
-    auto smoother_gen = gko::share(
-        ir::build()
-            .with_solver(inner_solver_gen)
-            .with_relaxation_factor(static_cast<ValueType>(0.9))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
-            .on(exec));
-    auto smoother_gen_f = gko::share(
-        ir_f::build()
-            .with_solver(inner_solver_gen_f)
-            .with_relaxation_factor(static_cast<MixedType>(0.9))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
-            .on(exec));
-    // Create MultigridLevel factory
-    auto mg_level_gen =
-        gko::share(pgm::build().with_deterministic(true).on(exec));
-    auto mg_level_gen_f =
-        gko::share(pgm_f::build().with_deterministic(true).on(exec));
-    // Create CoarsestSolver factory
-    auto coarsest_gen = gko::share(
-        ir::build()
-            .with_solver(inner_solver_gen)
-            .with_relaxation_factor(static_cast<ValueType>(0.9))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(4u).on(exec))
-            .on(exec));
-    auto coarsest_gen_f = gko::share(
-        ir_f::build()
-            .with_solver(inner_solver_gen_f)
-            .with_relaxation_factor(static_cast<MixedType>(0.9))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(4u).on(exec))
-            .on(exec));
     // Create multigrid factory
     std::shared_ptr<gko::LinOpFactory> multigrid_gen;
-    if (use_mixed) {
-        multigrid_gen =
-            mg::build()
-                .with_max_levels(10u)
-                .with_min_coarse_rows(2u)
-                .with_pre_smoother(smoother_gen, smoother_gen_f)
-                .with_post_uses_pre(true)
-                .with_mg_level(mg_level_gen, mg_level_gen_f)
-                .with_level_selector([](const gko::size_type level,
-                                        const gko::LinOp*) -> gko::size_type {
-                    // The first (index 0) level will use the first
-                    // mg_level_gen, smoother_gen which are the factories with
-                    // ValueType. The rest of levels (>= 1) will use the second
-                    // (index 1) mg_level_gen2 and smoother_gen2 which use the
-                    // MixedType. The rest of levels will use different type
-                    // than the normal multigrid.
-                    return level >= 1 ? 1 : 0;
-                })
-                .with_coarsest_solver(coarsest_gen_f)
-                .with_default_initial_guess(
-                    gko::solver::initial_guess_mode::zero)
-                .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(1u).on(exec))
-                .on(exec);
-    } else {
-        multigrid_gen =
-            mg::build()
-                .with_max_levels(10u)
-                .with_min_coarse_rows(2u)
-                .with_pre_smoother(smoother_gen)
-                .with_post_uses_pre(true)
-                .with_mg_level(mg_level_gen)
-                .with_coarsest_solver(coarsest_gen)
-                .with_default_initial_guess(
-                    gko::solver::initial_guess_mode::zero)
-                .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(1u).on(exec))
-                .on(exec);
-    }
-    // Create solver factory
-    auto solver_gen = cg::build()
-                          .with_criteria(iter_stop, tol_stop)
-                          .with_preconditioner(multigrid_gen)
-                          .on(exec);
+    multigrid_gen =
+        mg::build()
+            .with_mg_level(pgm::build().with_deterministic(true).on(exec))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+            .on(exec);
+    const gko::remove_complex<ValueType> tolerance = 1e-8;
+    auto solver_gen =
+        cg::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(100u).on(exec),
+                gko::stop::ResidualNorm<ValueType>::build()
+                    .with_baseline(gko::stop::mode::absolute)
+                    .with_reduction_factor(tolerance)
+                    .on(exec))
+            .with_preconditioner(multigrid_gen)
+            .on(exec);
     // Create solver
     std::chrono::nanoseconds gen_time(0);
     auto gen_tic = std::chrono::steady_clock::now();
@@ -225,24 +133,27 @@ int main(int argc, char* argv[])
     gen_time +=
         std::chrono::duration_cast<std::chrono::nanoseconds>(gen_toc - gen_tic);
 
+    // Add logger
+    std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
+        gko::log::Convergence<ValueType>::create();
+    solver->add_logger(logger);
+
     // Solve system
     exec->synchronize();
     std::chrono::nanoseconds time(0);
     auto tic = std::chrono::steady_clock::now();
-    solver->apply(lend(b), lend(x));
+    solver->apply(b, x);
     exec->synchronize();
     auto toc = std::chrono::steady_clock::now();
     time += std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
 
     // Calculate residual
-    auto res = gko::initialize<vec>({0.0}, exec);
-    A->apply(lend(one), lend(x), lend(neg_one), lend(b));
-    b->compute_norm2(lend(res));
+    auto res = gko::as<vec>(logger->get_residual_norm());
 
     std::cout << "Initial residual norm sqrt(r^T r): \n";
-    write(std::cout, lend(initres));
+    write(std::cout, initres);
     std::cout << "Final residual norm sqrt(r^T r): \n";
-    write(std::cout, lend(res));
+    write(std::cout, res);
 
     // Print solver statistics
     std::cout << "CG iteration count:     " << logger->get_num_iterations()

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -90,7 +90,7 @@ protected:
           mtxsq(fbsamplesquare.generate_fbcsr())
     {}
 
-    void assert_equal_to_mtx(const Csr* const m)
+    void assert_equal_to_mtx(gko::ptr_param<const Csr> m)
     {
         ASSERT_EQ(m->get_size(), refcsrmtx->get_size());
         ASSERT_EQ(m->get_num_stored_elements(),
@@ -106,7 +106,7 @@ protected:
         }
     }
 
-    void assert_equal_to_mtx(const SparCsr* m)
+    void assert_equal_to_mtx(gko::ptr_param<const SparCsr> m)
     {
         ASSERT_EQ(m->get_size(), refspcmtx->get_size());
         ASSERT_EQ(m->get_num_nonzeros(), refspcmtx->get_num_nonzeros());
@@ -166,10 +166,10 @@ TYPED_TEST(Fbcsr, AppliesToDenseVector)
     using Csr = typename TestFixture::Csr;
     auto csr_mtx = Csr::create(this->mtx->get_executor(),
                                std::make_shared<typename Csr::classical>());
-    this->mtx2->convert_to(csr_mtx.get());
+    this->mtx2->convert_to(csr_mtx);
 
-    this->mtx2->apply(x.get(), y.get());
-    csr_mtx->apply(x.get(), yref.get());
+    this->mtx2->apply(x, y);
+    csr_mtx->apply(x, yref);
 
     const double tolerance =
         std::numeric_limits<gko::remove_complex<T>>::epsilon();
@@ -189,8 +189,8 @@ TYPED_TEST(Fbcsr, AppliesToDenseMatrix)
     auto y = Vec::create(this->exec, gko::dim<2>{nrows, nvecs});
     auto yref = Vec::create(this->exec, gko::dim<2>{nrows, nvecs});
 
-    this->mtx2->apply(x.get(), y.get());
-    this->ref2csrmtx->apply(x.get(), yref.get());
+    this->mtx2->apply(x, y);
+    this->ref2csrmtx->apply(x, yref);
 
     const double tolerance =
         std::numeric_limits<gko::remove_complex<T>>::epsilon();
@@ -211,8 +211,8 @@ TYPED_TEST(Fbcsr, AppliesToDenseComplexMatrix)
     auto y = CVec::create(this->exec, gko::dim<2>{nrows, nvecs});
     auto yref = CVec::create(this->exec, gko::dim<2>{nrows, nvecs});
 
-    this->mtx2->apply(x.get(), y.get());
-    this->ref2csrmtx->apply(x.get(), yref.get());
+    this->mtx2->apply(x, y);
+    this->ref2csrmtx->apply(x, yref);
 
     const double tolerance =
         std::numeric_limits<gko::remove_complex<T>>::epsilon();
@@ -235,8 +235,8 @@ TYPED_TEST(Fbcsr, AppliesLinearCombinationToDenseVector)
     auto y = get_some_vectors<T>(this->exec, nrows, 1);
     auto yref = y->clone();
 
-    this->mtx2->apply(alpha.get(), x.get(), beta.get(), y.get());
-    this->ref2csrmtx->apply(alpha.get(), x.get(), beta.get(), yref.get());
+    this->mtx2->apply(alpha, x, beta, y);
+    this->ref2csrmtx->apply(alpha, x, beta, yref);
 
     const double tolerance =
         std::numeric_limits<gko::remove_complex<T>>::epsilon();
@@ -260,8 +260,8 @@ TYPED_TEST(Fbcsr, AppliesLinearCombinationToDenseMatrix)
     auto y = get_some_vectors<T>(this->exec, nrows, nvecs);
     auto yref = y->clone();
 
-    this->mtx2->apply(alpha.get(), x.get(), beta.get(), y.get());
-    this->ref2csrmtx->apply(alpha.get(), x.get(), beta.get(), yref.get());
+    this->mtx2->apply(alpha, x, beta, y);
+    this->ref2csrmtx->apply(alpha, x, beta, yref);
 
     const double tolerance =
         std::numeric_limits<gko::remove_complex<T>>::epsilon();
@@ -275,7 +275,7 @@ TYPED_TEST(Fbcsr, ApplyFailsOnWrongInnerDimension)
     auto x = Vec::create(this->exec, gko::dim<2>{2});
     auto y = Vec::create(this->exec, gko::dim<2>{this->fbsample.nrows});
 
-    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx->apply(x, y), gko::DimensionMismatch);
 }
 
 
@@ -285,7 +285,7 @@ TYPED_TEST(Fbcsr, ApplyFailsOnWrongNumberOfRows)
     auto x = Vec::create(this->exec, gko::dim<2>{this->fbsample.ncols, 2});
     auto y = Vec::create(this->exec, gko::dim<2>{3, 2});
 
-    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx->apply(x, y), gko::DimensionMismatch);
 }
 
 
@@ -295,7 +295,7 @@ TYPED_TEST(Fbcsr, ApplyFailsOnWrongNumberOfCols)
     auto x = Vec::create(this->exec, gko::dim<2>{this->fbsample.ncols, 3});
     auto y = Vec::create(this->exec, gko::dim<2>{this->fbsample.nrows, 2});
 
-    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx->apply(x, y), gko::DimensionMismatch);
 }
 
 
@@ -313,8 +313,8 @@ TYPED_TEST(Fbcsr, ConvertsToPrecision)
                         ? gko::remove_complex<ValueType>{0}
                         : gko::remove_complex<ValueType>{r<OtherType>::value};
 
-    this->mtx->convert_to(tmp.get());
-    tmp->convert_to(res.get());
+    this->mtx->convert_to(tmp);
+    tmp->convert_to(res);
 
     GKO_ASSERT_MTX_NEAR(this->mtx, res, residual);
 }
@@ -334,8 +334,8 @@ TYPED_TEST(Fbcsr, MovesToPrecision)
                         ? gko::remove_complex<ValueType>{0}
                         : gko::remove_complex<ValueType>{r<OtherType>::value};
 
-    this->mtx->move_to(tmp.get());
-    tmp->move_to(res.get());
+    this->mtx->move_to(tmp);
+    tmp->move_to(res);
 
     GKO_ASSERT_MTX_NEAR(this->mtx, res, residual);
 }
@@ -346,10 +346,10 @@ TYPED_TEST(Fbcsr, ConvertsToDense)
     using Dense = typename TestFixture::Dense;
     auto dense_mtx = Dense::create(this->mtx->get_executor());
 
-    this->mtx->convert_to(dense_mtx.get());
+    this->mtx->convert_to(dense_mtx);
 
     auto refdenmtx = Dense::create(this->mtx->get_executor());
-    this->refcsrmtx->convert_to(refdenmtx.get());
+    this->refcsrmtx->convert_to(refdenmtx);
     GKO_ASSERT_MTX_NEAR(dense_mtx, refdenmtx, 0.0);
 }
 
@@ -359,10 +359,10 @@ TYPED_TEST(Fbcsr, MovesToDense)
     using Dense = typename TestFixture::Dense;
     auto dense_mtx = Dense::create(this->mtx->get_executor());
 
-    this->mtx->move_to(dense_mtx.get());
+    this->mtx->move_to(dense_mtx);
 
     auto refdenmtx = Dense::create(this->mtx->get_executor());
-    this->refcsrmtx->convert_to(refdenmtx.get());
+    this->refcsrmtx->convert_to(refdenmtx);
     GKO_ASSERT_MTX_NEAR(dense_mtx, refdenmtx, 0.0);
 }
 
@@ -372,12 +372,12 @@ TYPED_TEST(Fbcsr, ConvertsToCsr)
     using Csr = typename TestFixture::Csr;
     auto csr_mtx = Csr::create(this->mtx->get_executor(),
                                std::make_shared<typename Csr::classical>());
-    this->mtx->convert_to(csr_mtx.get());
+    this->mtx->convert_to(csr_mtx);
     this->assert_equal_to_mtx(csr_mtx.get());
 
     auto csr_mtx_2 = Csr::create(this->mtx->get_executor(),
                                  std::make_shared<typename Csr::classical>());
-    this->ref2mtx->convert_to(csr_mtx_2.get());
+    this->ref2mtx->convert_to(csr_mtx_2);
     GKO_ASSERT_MTX_NEAR(csr_mtx_2, this->ref2csrmtx, 0.0);
 }
 
@@ -388,7 +388,7 @@ TYPED_TEST(Fbcsr, MovesToCsr)
     auto csr_mtx = Csr::create(this->mtx->get_executor(),
                                std::make_shared<typename Csr::classical>());
 
-    this->mtx->move_to(csr_mtx.get());
+    this->mtx->move_to(csr_mtx);
 
     this->assert_equal_to_mtx(csr_mtx.get());
 }
@@ -399,7 +399,7 @@ TYPED_TEST(Fbcsr, ConvertsToSparsityCsr)
     using SparsityCsr = typename TestFixture::SparCsr;
     auto sparsity_mtx = SparsityCsr::create(this->mtx->get_executor());
 
-    this->mtx->convert_to(sparsity_mtx.get());
+    this->mtx->convert_to(sparsity_mtx);
 
     this->assert_equal_to_mtx(sparsity_mtx.get());
 }
@@ -411,7 +411,7 @@ TYPED_TEST(Fbcsr, MovesToSparsityCsr)
     using Fbcsr = typename TestFixture::Mtx;
     auto sparsity_mtx = SparsityCsr::create(this->mtx->get_executor());
 
-    this->mtx->move_to(sparsity_mtx.get());
+    this->mtx->move_to(sparsity_mtx);
 
     this->assert_equal_to_mtx(sparsity_mtx.get());
 }
@@ -428,7 +428,7 @@ TYPED_TEST(Fbcsr, ConvertsEmptyToPrecision)
     empty->get_row_ptrs()[0] = 0;
     auto res = Fbcsr::create(this->exec);
 
-    empty->convert_to(res.get());
+    empty->convert_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_EQ(*res->get_const_row_ptrs(), 0);
@@ -447,7 +447,7 @@ TYPED_TEST(Fbcsr, MovesEmptyToPrecision)
     empty->get_row_ptrs()[0] = 0;
     auto res = Fbcsr::create(this->exec);
 
-    empty->move_to(res.get());
+    empty->move_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_EQ(*res->get_const_row_ptrs(), 0);
@@ -463,7 +463,7 @@ TYPED_TEST(Fbcsr, ConvertsEmptyToDense)
     auto empty = Fbcsr::create(this->exec);
     auto res = Dense::create(this->exec);
 
-    empty->convert_to(res.get());
+    empty->convert_to(res);
 
     ASSERT_FALSE(res->get_size());
 }
@@ -477,7 +477,7 @@ TYPED_TEST(Fbcsr, MovesEmptyToDense)
     auto empty = Fbcsr::create(this->exec);
     auto res = Dense::create(this->exec);
 
-    empty->move_to(res.get());
+    empty->move_to(res);
 
     ASSERT_FALSE(res->get_size());
 }
@@ -493,7 +493,7 @@ TYPED_TEST(Fbcsr, ConvertsEmptyToSparsityCsr)
     empty->get_row_ptrs()[0] = 0;
     auto res = SparCsr::create(this->exec);
 
-    empty->convert_to(res.get());
+    empty->convert_to(res);
 
     ASSERT_EQ(res->get_num_nonzeros(), 0);
     ASSERT_EQ(*res->get_const_row_ptrs(), 0);
@@ -510,7 +510,7 @@ TYPED_TEST(Fbcsr, MovesEmptyToSparsityCsr)
     empty->get_row_ptrs()[0] = 0;
     auto res = SparCsr::create(this->exec);
 
-    empty->move_to(res.get());
+    empty->move_to(res);
 
     ASSERT_EQ(res->get_num_nonzeros(), 0);
     ASSERT_EQ(*res->get_const_row_ptrs(), 0);
@@ -523,7 +523,7 @@ TYPED_TEST(Fbcsr, SquareMtxIsTransposable)
     using Csr = typename TestFixture::Csr;
     auto csrmtxsq =
         Csr::create(this->exec, std::make_shared<typename Csr::classical>());
-    this->mtxsq->convert_to(csrmtxsq.get());
+    this->mtxsq->convert_to(csrmtxsq);
 
     std::unique_ptr<const gko::LinOp> reftmtx = csrmtxsq->transpose();
     auto reftmtx_as_csr = static_cast<const Csr*>(reftmtx.get());
@@ -540,7 +540,7 @@ TYPED_TEST(Fbcsr, NonSquareMtxIsTransposable)
     using Csr = typename TestFixture::Csr;
     auto csrmtx =
         Csr::create(this->exec, std::make_shared<typename Csr::classical>());
-    this->mtx2->convert_to(csrmtx.get());
+    this->mtx2->convert_to(csrmtx);
 
     std::unique_ptr<gko::LinOp> reftmtx = csrmtx->transpose();
     auto reftmtx_as_csr = static_cast<Csr*>(reftmtx.get());
@@ -664,7 +664,7 @@ TYPED_TEST(FbcsrComplex, ConvertsComplexToCsr)
     auto csr_mtx =
         Csr::create(exec, std::make_shared<typename Csr::classical>());
 
-    mtx->convert_to(csr_mtx.get());
+    mtx->convert_to(csr_mtx);
 
     GKO_ASSERT_MTX_NEAR(csr_mtx, mtx, 0.0);
 }

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -103,19 +103,21 @@ protected:
         int m = 597;
 #endif
         x = gen_mtx(m, nrhs);
-        y = gen_mtx(gko::solver::default_krylov_dim, nrhs);
-        before_preconditioner = Mtx::create_with_config_of(x.get());
+        y = gen_mtx(gko::solver::gmres_default_krylov_dim, nrhs);
+        before_preconditioner = Mtx::create_with_config_of(x);
         b = gen_mtx(m, nrhs);
-        krylov_bases = gen_mtx(m * (gko::solver::default_krylov_dim + 1), nrhs);
-        hessenberg = gen_mtx(gko::solver::default_krylov_dim + 1,
-                             gko::solver::default_krylov_dim * nrhs);
-        hessenberg_iter = gen_mtx(gko::solver::default_krylov_dim + 1, nrhs);
+        krylov_bases =
+            gen_mtx(m * (gko::solver::gmres_default_krylov_dim + 1), nrhs);
+        hessenberg = gen_mtx(gko::solver::gmres_default_krylov_dim + 1,
+                             gko::solver::gmres_default_krylov_dim * nrhs);
+        hessenberg_iter =
+            gen_mtx(gko::solver::gmres_default_krylov_dim + 1, nrhs);
         residual = gen_mtx(m, nrhs);
         residual_norm = gen_mtx<norm_type>(1, nrhs);
         residual_norm_collection =
-            gen_mtx(gko::solver::default_krylov_dim + 1, nrhs);
-        givens_sin = gen_mtx(gko::solver::default_krylov_dim, nrhs);
-        givens_cos = gen_mtx(gko::solver::default_krylov_dim, nrhs);
+            gen_mtx(gko::solver::gmres_default_krylov_dim + 1, nrhs);
+        givens_sin = gen_mtx(gko::solver::gmres_default_krylov_dim, nrhs);
+        givens_cos = gen_mtx(gko::solver::gmres_default_krylov_dim, nrhs);
         stop_status = gko::array<gko::stopping_status>(ref, nrhs);
         for (size_t i = 0; i < stop_status.get_num_elems(); ++i) {
             stop_status.get_data()[i].reset();
@@ -126,7 +128,7 @@ protected:
         }
 
         d_x = gko::clone(exec, x);
-        d_before_preconditioner = Mtx::create_with_config_of(d_x.get());
+        d_before_preconditioner = Mtx::create_with_config_of(d_x);
         d_y = gko::clone(exec, y);
         d_b = gko::clone(exec, b);
         d_krylov_bases = gko::clone(exec, krylov_bases);
@@ -201,8 +203,8 @@ TEST_F(Gmres, GmresKernelInitializeIsEquivalentToRef)
 TEST_F(Gmres, GmresKernelRestartIsEquivalentToRef)
 {
     initialize_data();
-    residual->compute_norm2(residual_norm.get());
-    d_residual_norm->copy_from(residual_norm.get());
+    residual->compute_norm2(residual_norm);
+    d_residual_norm->copy_from(residual_norm);
 
     gko::kernels::reference::gmres::restart(
         ref, residual.get(), residual_norm.get(),
@@ -316,8 +318,8 @@ TEST_F(Gmres, GmresApplyOneRHSIsEquivalentToRef)
     auto d_b = gko::clone(exec, b);
     auto d_x = gko::clone(exec, x);
 
-    ref_solver->apply(b.get(), x.get());
-    exec_solver->apply(d_b.get(), d_x.get());
+    ref_solver->apply(b, x);
+    exec_solver->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_b, b, 0);
     GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 1e2);
@@ -335,8 +337,8 @@ TEST_F(Gmres, GmresApplyMultipleRHSIsEquivalentToRef)
     auto d_b = gko::clone(exec, b);
     auto d_x = gko::clone(exec, x);
 
-    ref_solver->apply(b.get(), x.get());
-    exec_solver->apply(d_b.get(), d_x.get());
+    ref_solver->apply(b, x);
+    exec_solver->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_b, b, 0);
     GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 1e3);

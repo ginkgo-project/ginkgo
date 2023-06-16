@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -94,6 +94,10 @@ class SparsityCsr
 public:
     using EnableLinOp<SparsityCsr>::convert_to;
     using EnableLinOp<SparsityCsr>::move_to;
+    using ConvertibleTo<Csr<ValueType, IndexType>>::convert_to;
+    using ConvertibleTo<Csr<ValueType, IndexType>>::move_to;
+    using ConvertibleTo<Dense<ValueType>>::convert_to;
+    using ConvertibleTo<Dense<ValueType>>::move_to;
     using ReadableFromMatrixData<ValueType, IndexType>::read;
 
     using value_type = ValueType;
@@ -326,7 +330,7 @@ protected:
         : EnableLinOp<SparsityCsr>(exec, matrix->get_size())
     {
         auto tmp_ = copy_and_convert_to<SparsityCsr>(exec, matrix);
-        this->copy_from(std::move(tmp_.get()));
+        this->copy_from(tmp_);
     }
 
     void apply_impl(const LinOp* b, LinOp* x) const override;

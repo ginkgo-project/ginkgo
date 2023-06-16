@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -56,8 +56,10 @@ class Combined : public EnablePolymorphicObject<Combined, Criterion> {
     friend class EnablePolymorphicObject<Combined, Criterion>;
 
 public:
-    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
-    {
+    class Factory;
+
+    struct parameters_type
+        : public ::gko::enable_parameters_type<parameters_type, Factory> {
         /**
          * Criterion factories to combine
          *
@@ -70,35 +72,48 @@ public:
         std::vector<std::shared_ptr<const CriterionFactory>>
             GKO_FACTORY_PARAMETER_VECTOR(criteria, nullptr);
     };
-    GKO_ENABLE_CRITERION_FACTORY(Combined, parameters, Factory);
-    GKO_ENABLE_BUILD_METHOD(Factory);
+
+    class Factory
+        : public ::gko::stop::EnableDefaultCriterionFactory<Factory, Combined,
+                                                            parameters_type> {
+        friend class ::gko::EnablePolymorphicObject<
+            Factory, ::gko::stop::CriterionFactory>;
+        friend class ::gko::enable_parameters_type<parameters_type, Factory>;
+
+        using Base =
+            ::gko::stop::EnableDefaultCriterionFactory<Factory, Combined,
+                                                       parameters_type>;
+
+    public:
+        explicit Factory(std::shared_ptr<const ::gko::Executor> exec);
+        explicit Factory(std::shared_ptr<const ::gko::Executor> exec,
+                         const parameters_type& parameters);
+
+        Factory(const Factory& other) = default;
+        Factory(Factory&& other) = default;
+
+        Factory& operator=(const Factory& other);
+    };
+
+    static parameters_type build() { return {}; }
+
+    const parameters_type& get_parameters() const { return parameters_; }
 
 protected:
     bool check_impl(uint8 stoppingId, bool setFinalized,
                     array<stopping_status>* stop_status, bool* one_changed,
                     const Updater&) override;
 
-    explicit Combined(std::shared_ptr<const gko::Executor> exec)
-        : EnablePolymorphicObject<Combined, Criterion>(std::move(exec))
-    {}
+    explicit Combined(std::shared_ptr<const gko::Executor> exec);
 
-    explicit Combined(const Factory* factory, const CriterionArgs& args)
-        : EnablePolymorphicObject<Combined, Criterion>(factory->get_executor()),
-          parameters_{factory->get_parameters()}
-    {
-        for (const auto& f : parameters_.criteria) {
-            // Ignore the nullptr from the list
-            if (f != nullptr) {
-                criteria_.push_back(f->generate(args));
-            }
-        }
-        // If the list are empty or all nullptr, throw gko::NotSupported
-        if (criteria_.size() == 0) {
-            GKO_NOT_SUPPORTED(this);
-        }
-    }
+    explicit Combined(const Factory* factory, const CriterionArgs& args);
 
 private:
+    friend ::gko::stop::EnableDefaultCriterionFactory<Factory, Combined,
+                                                      parameters_type>;
+
+    parameters_type parameters_;
+
     std::vector<std::unique_ptr<Criterion>> criteria_{};
 };
 

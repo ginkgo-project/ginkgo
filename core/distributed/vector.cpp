@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -102,7 +102,7 @@ Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
 template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm, dim<2> global_size,
-                          local_vector_type* local_vector)
+                          std::unique_ptr<local_vector_type> local_vector)
     : EnableDistributedLinOp<Vector<ValueType>>{exec, global_size},
       DistributedBase{comm},
       local_{exec}
@@ -114,7 +114,7 @@ Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
 template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm,
-                          local_vector_type* local_vector)
+                          std::unique_ptr<local_vector_type> local_vector)
     : EnableDistributedLinOp<Vector<ValueType>>{exec, {}},
       DistributedBase{comm},
       local_{exec}
@@ -125,8 +125,66 @@ Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType>
+std::unique_ptr<const Vector<ValueType>> Vector<ValueType>::create_const(
+    std::shared_ptr<const Executor> exec, mpi::communicator comm,
+    dim<2> global_size, std::unique_ptr<const local_vector_type> local_vector)
+{
+    auto non_const_local_vector =
+        const_cast<local_vector_type*>(local_vector.release());
+
+    return std::unique_ptr<const Vector<ValueType>>(new Vector<ValueType>(
+        std::move(exec), std::move(comm), global_size,
+        std::unique_ptr<local_vector_type>{non_const_local_vector}));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<const Vector<ValueType>> Vector<ValueType>::create_const(
+    std::shared_ptr<const Executor> exec, mpi::communicator comm,
+    std::unique_ptr<const local_vector_type> local_vector)
+{
+    auto global_size =
+        compute_global_size(exec, comm, local_vector->get_size());
+    return Vector<ValueType>::create_const(
+        std::move(exec), std::move(comm), global_size, std::move(local_vector));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_config_of(
+    ptr_param<const Vector> other)
+{
+    // De-referencing `other` before calling the functions (instead of
+    // using operator `->`) is currently required to be compatible with
+    // CUDA 10.1.
+    // Otherwise, it results in a compile error.
+    return (*other).create_with_same_config();
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_type_of(
+    ptr_param<const Vector<ValueType>> other,
+    std::shared_ptr<const Executor> exec)
+{
+    return (*other).create_with_type_of_impl(exec, {}, {}, 0);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_type_of(
+    ptr_param<const Vector<ValueType>> other,
+    std::shared_ptr<const Executor> exec, const dim<2>& global_size,
+    const dim<2>& local_size, size_type stride)
+{
+    return (*other).create_with_type_of_impl(exec, global_size, local_size,
+                                             stride);
+}
+
+
+template <typename ValueType>
 template <typename LocalIndexType, typename GlobalIndexType>
-void Vector<ValueType>::read_distributed(
+void Vector<ValueType>::read_distributed_impl(
     const device_matrix_data<ValueType, GlobalIndexType>& data,
     const Partition<LocalIndexType, GlobalIndexType>* partition)
 {
@@ -145,16 +203,65 @@ void Vector<ValueType>::read_distributed(
 
 
 template <typename ValueType>
-template <typename LocalIndexType, typename GlobalIndexType>
 void Vector<ValueType>::read_distributed(
-    const matrix_data<ValueType, GlobalIndexType>& data,
-    const Partition<LocalIndexType, GlobalIndexType>* partition)
+    const device_matrix_data<ValueType, int64>& data,
+    ptr_param<const Partition<int64, int64>> partition)
+{
+    this->read_distributed_impl(data, partition.get());
+}
 
+
+template <typename ValueType>
+void Vector<ValueType>::read_distributed(
+    const device_matrix_data<ValueType, int64>& data,
+    ptr_param<const Partition<int32, int64>> partition)
+{
+    this->read_distributed_impl(data, partition.get());
+}
+
+
+template <typename ValueType>
+void Vector<ValueType>::read_distributed(
+    const device_matrix_data<ValueType, int32>& data,
+    ptr_param<const Partition<int32, int32>> partition)
+{
+    this->read_distributed_impl(data, partition.get());
+}
+
+
+template <typename ValueType>
+void Vector<ValueType>::read_distributed(
+    const matrix_data<ValueType, int64>& data,
+    ptr_param<const Partition<int64, int64>> partition)
 {
     this->read_distributed(
-        device_matrix_data<value_type, GlobalIndexType>::create_from_host(
+        device_matrix_data<value_type, int64>::create_from_host(
             this->get_executor(), data),
-        std::move(partition));
+        partition);
+}
+
+
+template <typename ValueType>
+void Vector<ValueType>::read_distributed(
+    const matrix_data<ValueType, int64>& data,
+    ptr_param<const Partition<int32, int64>> partition)
+{
+    this->read_distributed(
+        device_matrix_data<value_type, int64>::create_from_host(
+            this->get_executor(), data),
+        partition);
+}
+
+
+template <typename ValueType>
+void Vector<ValueType>::read_distributed(
+    const matrix_data<ValueType, int32>& data,
+    ptr_param<const Partition<int32, int32>> partition)
+{
+    this->read_distributed(
+        device_matrix_data<value_type, int32>::create_from_host(
+            this->get_executor(), data),
+        partition);
 }
 
 
@@ -223,13 +330,14 @@ Vector<ValueType>::make_complex() const
         this->get_executor(), this->get_communicator(), this->get_size(),
         this->get_local_vector()->get_size(),
         this->get_local_vector()->get_stride());
-    this->make_complex(result.get());
+    this->make_complex(result);
     return result;
 }
 
 
 template <typename ValueType>
-void Vector<ValueType>::make_complex(Vector::complex_type* result) const
+void Vector<ValueType>::make_complex(
+    ptr_param<Vector::complex_type> result) const
 {
     this->get_local_vector()->make_complex(&result->local_);
 }
@@ -243,13 +351,13 @@ Vector<ValueType>::get_real() const
                                     this->get_communicator(), this->get_size(),
                                     this->get_local_vector()->get_size(),
                                     this->get_local_vector()->get_stride());
-    this->get_real(result.get());
+    this->get_real(result);
     return result;
 }
 
 
 template <typename ValueType>
-void Vector<ValueType>::get_real(Vector::real_type* result) const
+void Vector<ValueType>::get_real(ptr_param<Vector::real_type> result) const
 {
     this->get_local_vector()->get_real(&result->local_);
 }
@@ -263,34 +371,35 @@ Vector<ValueType>::get_imag() const
                                     this->get_communicator(), this->get_size(),
                                     this->get_local_vector()->get_size(),
                                     this->get_local_vector()->get_stride());
-    this->get_imag(result.get());
+    this->get_imag(result);
     return result;
 }
 
 
 template <typename ValueType>
-void Vector<ValueType>::get_imag(Vector::real_type* result) const
+void Vector<ValueType>::get_imag(ptr_param<Vector::real_type> result) const
 {
     this->get_local_vector()->get_imag(&result->local_);
 }
 
 
 template <typename ValueType>
-void Vector<ValueType>::scale(const LinOp* alpha)
+void Vector<ValueType>::scale(ptr_param<const LinOp> alpha)
 {
     local_.scale(alpha);
 }
 
 
 template <typename ValueType>
-void Vector<ValueType>::inv_scale(const LinOp* alpha)
+void Vector<ValueType>::inv_scale(ptr_param<const LinOp> alpha)
 {
     local_.inv_scale(alpha);
 }
 
 
 template <typename ValueType>
-void Vector<ValueType>::add_scaled(const LinOp* alpha, const LinOp* b)
+void Vector<ValueType>::add_scaled(ptr_param<const LinOp> alpha,
+                                   ptr_param<const LinOp> b)
 {
     auto dense_b = as<Vector<ValueType>>(b);
     local_.add_scaled(alpha, dense_b->get_local_vector());
@@ -298,7 +407,8 @@ void Vector<ValueType>::add_scaled(const LinOp* alpha, const LinOp* b)
 
 
 template <typename ValueType>
-void Vector<ValueType>::sub_scaled(const LinOp* alpha, const LinOp* b)
+void Vector<ValueType>::sub_scaled(ptr_param<const LinOp> alpha,
+                                   ptr_param<const LinOp> b)
 {
     auto dense_b = as<Vector<ValueType>>(b);
     local_.sub_scaled(alpha, dense_b->get_local_vector());
@@ -306,7 +416,8 @@ void Vector<ValueType>::sub_scaled(const LinOp* alpha, const LinOp* b)
 
 
 template <typename ValueType>
-void Vector<ValueType>::compute_dot(const LinOp* b, LinOp* result) const
+void Vector<ValueType>::compute_dot(ptr_param<const LinOp> b,
+                                    ptr_param<LinOp> result) const
 {
     array<char> tmp{this->get_executor()};
     this->compute_dot(b, result, tmp);
@@ -314,7 +425,8 @@ void Vector<ValueType>::compute_dot(const LinOp* b, LinOp* result) const
 
 
 template <typename ValueType>
-void Vector<ValueType>::compute_dot(const LinOp* b, LinOp* result,
+void Vector<ValueType>::compute_dot(ptr_param<const LinOp> b,
+                                    ptr_param<LinOp> result,
                                     array<char>& tmp) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
@@ -325,8 +437,7 @@ void Vector<ValueType>::compute_dot(const LinOp* b, LinOp* result,
     this->get_local_vector()->compute_dot(as<Vector>(b)->get_local_vector(),
                                           dense_res.get(), tmp);
     exec->synchronize();
-    auto use_host_buffer = exec->get_master() != exec && !mpi::is_gpu_aware();
-    if (use_host_buffer) {
+    if (mpi::requires_host_buffer(exec, comm)) {
         host_reduction_buffer_.init(exec->get_master(), dense_res->get_size());
         host_reduction_buffer_->copy_from(dense_res.get());
         comm.all_reduce(exec->get_master(),
@@ -341,7 +452,8 @@ void Vector<ValueType>::compute_dot(const LinOp* b, LinOp* result,
 
 
 template <typename ValueType>
-void Vector<ValueType>::compute_conj_dot(const LinOp* b, LinOp* result) const
+void Vector<ValueType>::compute_conj_dot(ptr_param<const LinOp> b,
+                                         ptr_param<LinOp> result) const
 {
     array<char> tmp{this->get_executor()};
     this->compute_conj_dot(b, result, tmp);
@@ -349,7 +461,8 @@ void Vector<ValueType>::compute_conj_dot(const LinOp* b, LinOp* result) const
 
 
 template <typename ValueType>
-void Vector<ValueType>::compute_conj_dot(const LinOp* b, LinOp* result,
+void Vector<ValueType>::compute_conj_dot(ptr_param<const LinOp> b,
+                                         ptr_param<LinOp> result,
                                          array<char>& tmp) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
@@ -360,8 +473,7 @@ void Vector<ValueType>::compute_conj_dot(const LinOp* b, LinOp* result,
     this->get_local_vector()->compute_conj_dot(
         as<Vector>(b)->get_local_vector(), dense_res.get(), tmp);
     exec->synchronize();
-    auto use_host_buffer = exec->get_master() != exec && !mpi::is_gpu_aware();
-    if (use_host_buffer) {
+    if (mpi::requires_host_buffer(exec, comm)) {
         host_reduction_buffer_.init(exec->get_master(), dense_res->get_size());
         host_reduction_buffer_->copy_from(dense_res.get());
         comm.all_reduce(exec->get_master(),
@@ -376,7 +488,7 @@ void Vector<ValueType>::compute_conj_dot(const LinOp* b, LinOp* result,
 
 
 template <typename ValueType>
-void Vector<ValueType>::compute_norm2(LinOp* result) const
+void Vector<ValueType>::compute_norm2(ptr_param<LinOp> result) const
 {
     array<char> tmp{this->get_executor()};
     this->compute_norm2(result, tmp);
@@ -384,18 +496,38 @@ void Vector<ValueType>::compute_norm2(LinOp* result) const
 
 
 template <typename ValueType>
-void Vector<ValueType>::compute_norm2(LinOp* result, array<char>& tmp) const
+void Vector<ValueType>::compute_norm2(ptr_param<LinOp> result,
+                                      array<char>& tmp) const
+{
+    using NormVector = typename local_vector_type::absolute_type;
+    auto exec = this->get_executor();
+    const auto comm = this->get_communicator();
+    auto dense_res = make_temporary_clone(exec, as<NormVector>(result));
+    this->compute_squared_norm2(dense_res.get(), tmp);
+    exec->run(vector::make_compute_sqrt(dense_res.get()));
+}
+
+
+template <typename ValueType>
+void Vector<ValueType>::compute_norm1(ptr_param<LinOp> result) const
+{
+    array<char> tmp{this->get_executor()};
+    this->compute_norm1(result, tmp);
+}
+
+
+template <typename ValueType>
+void Vector<ValueType>::compute_norm1(ptr_param<LinOp> result,
+                                      array<char>& tmp) const
 {
     using NormVector = typename local_vector_type::absolute_type;
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto dense_res = make_temporary_clone(exec, as<NormVector>(result));
-    exec->run(vector::make_compute_squared_norm2(this->get_local_vector(),
-                                                 dense_res.get(), tmp));
+    this->get_local_vector()->compute_norm1(dense_res.get());
     exec->synchronize();
-    auto use_host_buffer = exec->get_master() != exec && !mpi::is_gpu_aware();
-    if (use_host_buffer) {
+    if (mpi::requires_host_buffer(exec, comm)) {
         host_norm_buffer_.init(exec->get_master(), dense_res->get_size());
         host_norm_buffer_->copy_from(dense_res.get());
         comm.all_reduce(exec->get_master(), host_norm_buffer_->get_values(),
@@ -405,30 +537,30 @@ void Vector<ValueType>::compute_norm2(LinOp* result, array<char>& tmp) const
         comm.all_reduce(exec, dense_res->get_values(),
                         static_cast<int>(this->get_size()[1]), MPI_SUM);
     }
-    exec->run(vector::make_compute_sqrt(dense_res.get()));
 }
 
 
 template <typename ValueType>
-void Vector<ValueType>::compute_norm1(LinOp* result) const
+void Vector<ValueType>::compute_squared_norm2(ptr_param<LinOp> result) const
 {
     array<char> tmp{this->get_executor()};
-    this->compute_norm1(result, tmp);
+    this->compute_squared_norm2(result, tmp);
 }
 
 
 template <typename ValueType>
-void Vector<ValueType>::compute_norm1(LinOp* result, array<char>& tmp) const
+void Vector<ValueType>::compute_squared_norm2(ptr_param<LinOp> result,
+                                              array<char>& tmp) const
 {
     using NormVector = typename local_vector_type::absolute_type;
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto dense_res = make_temporary_clone(exec, as<NormVector>(result));
-    this->get_local_vector()->compute_norm1(dense_res.get());
+    exec->run(vector::make_compute_squared_norm2(this->get_local_vector(),
+                                                 dense_res.get(), tmp));
     exec->synchronize();
-    auto use_host_buffer = exec->get_master() != exec && !mpi::is_gpu_aware();
-    if (use_host_buffer) {
+    if (mpi::requires_host_buffer(exec, comm)) {
         host_norm_buffer_.init(exec->get_master(), dense_res->get_size());
         host_norm_buffer_->copy_from(dense_res.get());
         comm.all_reduce(exec->get_master(), host_norm_buffer_->get_values(),
@@ -448,8 +580,8 @@ ValueType& Vector<ValueType>::at_local(size_type row, size_type col) noexcept
 }
 
 template <typename ValueType>
-ValueType Vector<ValueType>::at_local(size_type row, size_type col) const
-    noexcept
+ValueType Vector<ValueType>::at_local(size_type row,
+                                      size_type col) const noexcept
 {
     return local_.at(row, col);
 }
@@ -499,10 +631,9 @@ Vector<ValueType>::create_real_view() const
     const auto num_cols =
         is_complex<ValueType>() ? 2 * this->get_size()[1] : this->get_size()[1];
 
-    return real_type::create(this->get_executor(), this->get_communicator(),
-                             dim<2>{num_global_rows, num_cols},
-                             const_cast<typename real_type::local_vector_type*>(
-                                 local_.create_real_view().get()));
+    return real_type::create_const(
+        this->get_executor(), this->get_communicator(),
+        dim<2>{num_global_rows, num_cols}, local_.create_real_view());
 }
 
 
@@ -516,26 +647,32 @@ Vector<ValueType>::create_real_view()
 
     return real_type::create(this->get_executor(), this->get_communicator(),
                              dim<2>{num_global_rows, num_cols},
-                             local_.create_real_view().get());
+                             local_.create_real_view());
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_same_config()
+    const
+{
+    return Vector::create(
+        this->get_executor(), this->get_communicator(), this->get_size(),
+        this->get_local_vector()->get_size(), this->get_stride());
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_type_of_impl(
+    std::shared_ptr<const Executor> exec, const dim<2>& global_size,
+    const dim<2>& local_size, size_type stride) const
+{
+    return Vector::create(exec, this->get_communicator(), global_size,
+                          local_size, stride);
 }
 
 
 #define GKO_DECLARE_DISTRIBUTED_VECTOR(ValueType) class Vector<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DISTRIBUTED_VECTOR);
-
-
-#define GKO_DECLARE_DISTRIBUTED_VECTOR_READ_DISTRIBUTED(                       \
-    ValueType, LocalIndexType, GlobalIndexType)                                \
-    void Vector<ValueType>::read_distributed<LocalIndexType, GlobalIndexType>( \
-        const device_matrix_data<ValueType, GlobalIndexType>& data,            \
-        const Partition<LocalIndexType, GlobalIndexType>* partition);          \
-    template void                                                              \
-    Vector<ValueType>::read_distributed<LocalIndexType, GlobalIndexType>(      \
-        const matrix_data<ValueType, GlobalIndexType>& data,                   \
-        const Partition<LocalIndexType, GlobalIndexType>* partition)
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_DISTRIBUTED_VECTOR_READ_DISTRIBUTED);
 
 
 }  // namespace distributed

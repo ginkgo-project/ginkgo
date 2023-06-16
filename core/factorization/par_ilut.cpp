@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -267,9 +267,9 @@ void ParIlutState<ValueType, IndexType>::iterate()
     {
         auto l_nnz = l_new->get_num_stored_elements();
         auto u_nnz = u_new->get_num_stored_elements();
-        CooBuilder l_builder{l_coo.get()};
-        CooBuilder u_builder{u_coo.get()};
-        CsrBuilder u_csc_builder{u_new_csc.get()};
+        CooBuilder l_builder{l_coo};
+        CooBuilder u_builder{u_coo};
+        CsrBuilder u_csc_builder{u_new_csc};
         // resize arrays that will be filled
         l_builder.get_row_idx_array().resize_and_reset(l_nnz);
         u_builder.get_row_idx_array().resize_and_reset(u_nnz);

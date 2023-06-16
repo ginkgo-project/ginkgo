@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,13 +41,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/allocator.hpp"
-#include "core/components/fill_array_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
 #include "hip/base/types.hip.hpp"
-#include "hip/components/atomic.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
+#include "hip/components/syncfree.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
-#include "hip/components/volatile.hip.hpp"
 
 
 namespace gko {

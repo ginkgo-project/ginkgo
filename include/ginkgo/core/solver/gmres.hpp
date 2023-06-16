@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -54,7 +54,9 @@ namespace gko {
 namespace solver {
 
 
-constexpr size_type default_krylov_dim = 100u;
+[[deprecated]] constexpr size_type default_krylov_dim = 100u;
+
+constexpr size_type gmres_default_krylov_dim = 100u;
 
 
 /**
@@ -132,6 +134,11 @@ public:
          * Krylov dimension factory.
          */
         size_type GKO_FACTORY_PARAMETER_SCALAR(krylov_dim, 0u);
+
+        /**
+         * Flexible GMRES
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(flexible, false);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Gmres, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -139,8 +146,8 @@ public:
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_dense_impl(const matrix::Dense<ValueType>* b,
-                          matrix::Dense<ValueType>* x) const;
+    template <typename VectorType>
+    void apply_dense_impl(const VectorType* b, VectorType* x) const;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
@@ -158,7 +165,7 @@ protected:
           parameters_{factory->get_parameters()}
     {
         if (!parameters_.krylov_dim) {
-            parameters_.krylov_dim = default_krylov_dim;
+            parameters_.krylov_dim = gmres_default_krylov_dim;
         }
     }
 };
@@ -208,12 +215,14 @@ struct workspace_traits<Gmres<ValueType>> {
     constexpr static int minus_one = 12;
     // temporary norm vector of next_krylov to copy into hessenberg matrix
     constexpr static int next_krylov_norm_tmp = 13;
+    // preconditioned krylov basis multivector
+    constexpr static int preconditioned_krylov_bases = 14;
 
     // stopping status array
     constexpr static int stop = 0;
     // reduction tmp array
     constexpr static int tmp = 1;
-    // reduction tmp array
+    // final iteration number array
     constexpr static int final_iter_nums = 2;
 };
 

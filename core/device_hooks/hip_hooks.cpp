@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,8 +36,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/timer.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/version.hpp>
+#include <ginkgo/core/log/profiler_hook.hpp>
 
 
 namespace gko {
@@ -53,10 +55,10 @@ version version_info::get_hip_version() noexcept
 
 std::shared_ptr<HipExecutor> HipExecutor::create(
     int device_id, std::shared_ptr<Executor> master, bool device_reset,
-    allocation_mode alloc_mode)
+    allocation_mode alloc_mode, GKO_HIP_STREAM_STRUCT* stream)
 {
     return std::shared_ptr<HipExecutor>(new HipExecutor(
-        device_id, std::move(master), device_reset, alloc_mode));
+        device_id, std::move(master), device_reset, alloc_mode, stream));
 }
 
 
@@ -103,13 +105,6 @@ void HipExecutor::raw_copy_to(const DpcppExecutor*, size_type num_bytes,
 
 
 void HipExecutor::synchronize() const GKO_NOT_COMPILED(hip);
-
-
-void HipExecutor::run(const Operation& op) const
-{
-    op.run(
-        std::static_pointer_cast<const HipExecutor>(this->shared_from_this()));
-}
 
 
 scoped_device_id_guard HipExecutor::get_scoped_device_id_guard() const
@@ -160,6 +155,60 @@ scoped_device_id_guard::scoped_device_id_guard(const HipExecutor* exec,
     GKO_NOT_COMPILED(hip);
 
 
+hip_stream::hip_stream(int device_id) GKO_NOT_COMPILED(hip);
+
+
+hip_stream::~hip_stream() {}
+
+
+hip_stream::hip_stream(hip_stream&&) GKO_NOT_COMPILED(hip);
+
+
+GKO_HIP_STREAM_STRUCT* hip_stream::get() const GKO_NOT_COMPILED(hip);
+
+
+HipTimer::HipTimer(std::shared_ptr<const HipExecutor> exec)
+    GKO_NOT_COMPILED(hip);
+
+
+void HipTimer::init_time_point(time_point& time) GKO_NOT_COMPILED(hip);
+
+
+void HipTimer::record(time_point&) GKO_NOT_COMPILED(hip);
+
+
+void HipTimer::wait(time_point& time) GKO_NOT_COMPILED(hip);
+
+
+std::chrono::nanoseconds HipTimer::difference_async(const time_point& start,
+                                                    const time_point& stop)
+    GKO_NOT_COMPILED(hip);
+
+
+namespace kernels {
+namespace hip {
+
+
+void reset_device(int device_id) GKO_NOT_COMPILED(hip);
+
+
+void destroy_event(GKO_HIP_EVENT_STRUCT* event) GKO_NOT_COMPILED(hip);
+
+
+}  // namespace hip
+}  // namespace kernels
+
+
+namespace log {
+
+
+void begin_roctx(const char*, profile_event_category) GKO_NOT_COMPILED(hip);
+
+
+void end_roctx(const char*, profile_event_category) GKO_NOT_COMPILED(hip);
+
+
+}  // namespace log
 }  // namespace gko
 
 

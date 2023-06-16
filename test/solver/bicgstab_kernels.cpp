@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -95,7 +95,7 @@ protected:
             std::uniform_int_distribution<>(num_cols, num_cols),
             std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
         auto result = Mtx::create(ref, gko::dim<2>{num_rows, num_cols}, stride);
-        result->copy_from(tmp_mtx.get());
+        result->copy_from(tmp_mtx);
         return result;
     }
 
@@ -290,8 +290,8 @@ TEST_F(Bicgstab, BicgstabApplyOneRHSIsEquivalentToRef)
     auto d_b = gko::clone(exec, b);
     auto d_x = gko::clone(exec, x);
 
-    ref_solver->apply(b.get(), x.get());
-    exec_solver->apply(d_b.get(), d_x.get());
+    ref_solver->apply(b, x);
+    exec_solver->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 1000);
 }
@@ -308,8 +308,8 @@ TEST_F(Bicgstab, BicgstabApplyMultipleRHSIsEquivalentToRef)
     auto d_b = gko::clone(exec, b);
     auto d_x = gko::clone(exec, x);
 
-    ref_solver->apply(b.get(), x.get());
-    exec_solver->apply(d_b.get(), d_x.get());
+    ref_solver->apply(b, x);
+    exec_solver->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 2000);
 }

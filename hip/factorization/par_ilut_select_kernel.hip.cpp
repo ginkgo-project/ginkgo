@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -70,7 +70,8 @@ namespace par_ilut_factorization {
 
 
 template <typename ValueType, typename IndexType>
-void sampleselect_filter(const ValueType* values, IndexType size,
+void sampleselect_filter(std::shared_ptr<const DefaultExecutor> exec,
+                         const ValueType* values, IndexType size,
                          const unsigned char* oracles,
                          const IndexType* partial_counts, IndexType bucket,
                          remove_complex<ValueType>* out)
@@ -79,10 +80,10 @@ void sampleselect_filter(const ValueType* values, IndexType size,
     auto num_blocks =
         static_cast<IndexType>(ceildiv(num_threads_total, default_block_size));
     if (num_blocks > 0) {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::filter_bucket), num_blocks,
-                           default_block_size, 0, 0, as_hip_type(values), size,
-                           bucket, oracles, partial_counts, out,
-                           items_per_thread);
+        kernel::filter_bucket<<<num_blocks, default_block_size, 0,
+                                exec->get_stream()>>>(
+            as_device_type(values), size, bucket, oracles, partial_counts,
+            as_device_type(out), items_per_thread);
     }
 }
 
@@ -139,7 +140,7 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
     auto tmp21 = tmp2.get_data();
     auto tmp22 = tmp2.get_data() + bucket.size;
     // extract target bucket
-    sampleselect_filter(values, size, oracles, partial_counts, bucket.idx,
+    sampleselect_filter(exec, values, size, oracles, partial_counts, bucket.idx,
                         tmp22);
 
     // recursively select from smaller buckets
@@ -152,7 +153,7 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
         sampleselect_count(exec, tmp_in, bucket.size, tree, oracles,
                            partial_counts, total_counts);
         auto new_bucket = sampleselect_find_bucket(exec, total_counts, rank);
-        sampleselect_filter(tmp_in, bucket.size, oracles, partial_counts,
+        sampleselect_filter(exec, tmp_in, bucket.size, oracles, partial_counts,
                             bucket.idx, tmp_out);
 
         rank -= new_bucket.begin;
@@ -175,9 +176,9 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
 
     // base case
     auto out_ptr = reinterpret_cast<AbsType*>(tmp1.get_data());
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::basecase_select), 1,
-                       kernel::basecase_block_size, 0, 0, tmp22, bucket.size,
-                       rank, out_ptr);
+    kernel::basecase_select<<<1, kernel::basecase_block_size, 0,
+                              exec->get_stream()>>>(
+        as_device_type(tmp22), bucket.size, rank, as_device_type(out_ptr));
     threshold = exec->copy_val_to_host(out_ptr);
 }
 

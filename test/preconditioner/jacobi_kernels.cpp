@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -354,7 +354,7 @@ TEST_F(Jacobi, TransposedPreconditionerEquivalentToRefWithMPW)
 
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
-    d_bj->copy_from(bj.get());
+    d_bj->copy_from(bj);
 
     GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->transpose()),
                         gko::as<Bj>(bj->transpose()), 1e-14);
@@ -368,7 +368,7 @@ TEST_F(Jacobi, ConjTransposedPreconditionerEquivalentToRefWithMPW)
 
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
-    d_bj->copy_from(bj.get());
+    d_bj->copy_from(bj);
 
     GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->conj_transpose()),
                         gko::as<Bj>(bj->conj_transpose()), 1e-14);
@@ -381,8 +381,8 @@ TEST_F(Jacobi, ApplyEquivalentToRefWithBlockSize32)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    bj->apply(b.get(), x.get());
-    d_bj->apply(d_b.get(), d_x.get());
+    bj->apply(b, x);
+    d_bj->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
 }
@@ -398,8 +398,8 @@ TEST_F(Jacobi, ApplyEquivalentToRefWithBlockSize64)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    bj->apply(b.get(), x.get());
-    d_bj->apply(d_b.get(), d_x.get());
+    bj->apply(b, x);
+    d_bj->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
 }
@@ -413,8 +413,8 @@ TEST_F(Jacobi, ApplyEquivalentToRefWithDifferentBlockSize)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    bj->apply(b.get(), x.get());
-    d_bj->apply(d_b.get(), d_x.get());
+    bj->apply(b, x);
+    d_bj->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
 }
@@ -427,8 +427,8 @@ TEST_F(Jacobi, ApplyEquivalentToRef)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    bj->apply(b.get(), x.get());
-    d_bj->apply(d_b.get(), d_x.get());
+    bj->apply(b, x);
+    d_bj->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
 }
@@ -446,7 +446,7 @@ TEST_F(Jacobi, ScalarApplyEquivalentToRef)
     auto dense_smtx = gko::share(Vec::create(ref));
     dense_smtx->read(dense_data);
     auto smtx = gko::share(Mtx::create(ref));
-    smtx->copy_from(dense_smtx.get());
+    smtx->copy_from(dense_smtx);
     auto sb = gko::share(gko::test::generate_random_matrix<Vec>(
         dim, 3, std::uniform_int_distribution<>(1, 1),
         std::normal_distribution<>(0.0, 1.0), engine, ref));
@@ -455,16 +455,16 @@ TEST_F(Jacobi, ScalarApplyEquivalentToRef)
     auto d_smtx = gko::share(Mtx::create(exec));
     auto d_sb = gko::share(Vec::create(exec));
     auto d_sx = gko::share(Vec::create(exec, sb->get_size()));
-    d_smtx->copy_from(smtx.get());
-    d_sb->copy_from(sb.get());
+    d_smtx->copy_from(smtx);
+    d_sb->copy_from(sb);
 
     auto sj = Bj::build().with_max_block_size(1u).on(ref)->generate(smtx);
     auto d_sj = Bj::build().with_max_block_size(1u).on(exec)->generate(d_smtx);
 
-    sj->apply(sb.get(), sx.get());
-    d_sj->apply(d_sb.get(), d_sx.get());
+    sj->apply(sb, sx);
+    d_sj->apply(d_sb, d_sx);
 
-    GKO_ASSERT_MTX_NEAR(sx.get(), d_sx.get(), 1e-12);
+    GKO_ASSERT_MTX_NEAR(sx, d_sx, 1e-12);
 }
 
 
@@ -479,8 +479,8 @@ TEST_F(Jacobi, LinearCombinationApplyEquivalentToRef)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    bj->apply(alpha.get(), b.get(), beta.get(), x.get());
-    d_bj->apply(d_alpha.get(), d_b.get(), d_beta.get(), d_x.get());
+    bj->apply(alpha, b, beta, x);
+    d_bj->apply(d_alpha, d_b, d_beta, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
 }
@@ -498,7 +498,7 @@ TEST_F(Jacobi, ScalarLinearCombinationApplyEquivalentToRef)
     auto dense_smtx = gko::share(Vec::create(ref));
     dense_smtx->read(dense_data);
     auto smtx = gko::share(Mtx::create(ref));
-    smtx->copy_from(dense_smtx.get());
+    smtx->copy_from(dense_smtx);
     auto sb = gko::share(gko::test::generate_random_matrix<Vec>(
         dim, 3, std::uniform_int_distribution<>(1, 1),
         std::normal_distribution<>(0.0, 1.0), engine, ref, gko::dim<2>(dim, 3),
@@ -519,10 +519,10 @@ TEST_F(Jacobi, ScalarLinearCombinationApplyEquivalentToRef)
     auto sj = Bj::build().with_max_block_size(1u).on(ref)->generate(smtx);
     auto d_sj = Bj::build().with_max_block_size(1u).on(exec)->generate(d_smtx);
 
-    sj->apply(alpha.get(), sb.get(), beta.get(), sx.get());
-    d_sj->apply(d_alpha.get(), d_sb.get(), d_beta.get(), d_sx.get());
+    sj->apply(alpha, sb, beta, sx);
+    d_sj->apply(d_alpha, d_sb, d_beta, d_sx);
 
-    GKO_ASSERT_MTX_NEAR(sx.get(), d_sx.get(), 1e-12);
+    GKO_ASSERT_MTX_NEAR(sx, d_sx, 1e-12);
 }
 
 
@@ -533,8 +533,8 @@ TEST_F(Jacobi, ApplyToMultipleVectorsEquivalentToRef)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    bj->apply(b.get(), x.get());
-    d_bj->apply(d_b.get(), d_x.get());
+    bj->apply(b, x);
+    d_bj->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
 }
@@ -551,8 +551,8 @@ TEST_F(Jacobi, LinearCombinationApplyToMultipleVectorsEquivalentToRef)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    bj->apply(alpha.get(), b.get(), beta.get(), x.get());
-    d_bj->apply(d_alpha.get(), d_b.get(), d_beta.get(), d_x.get());
+    bj->apply(alpha, b, beta, x);
+    d_bj->apply(d_alpha, d_b, d_beta, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
 }
@@ -631,7 +631,7 @@ TEST_F(Jacobi, PreconditionerEquivalentToRefWithFullPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_bj, bj, 1e-13);
 }
 
 
@@ -644,7 +644,7 @@ TEST_F(Jacobi, PreconditionerEquivalentToRefWithReducedPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-7);
+    GKO_ASSERT_MTX_NEAR(d_bj, bj, 1e-7);
 }
 
 
@@ -657,7 +657,7 @@ TEST_F(Jacobi, PreconditionerEquivalentToRefWithCustomReducedPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-6);
+    GKO_ASSERT_MTX_NEAR(d_bj, bj, 1e-6);
 }
 
 
@@ -670,7 +670,7 @@ TEST_F(Jacobi, PreconditionerEquivalentToRefWithQuarteredPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-3);
+    GKO_ASSERT_MTX_NEAR(d_bj, bj, 1e-3);
 }
 
 
@@ -683,7 +683,7 @@ TEST_F(Jacobi, PreconditionerEquivalentToRefWithCustomQuarteredPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-1);
+    GKO_ASSERT_MTX_NEAR(d_bj, bj, 1e-1);
 }
 
 
@@ -696,7 +696,7 @@ TEST_F(Jacobi, PreconditionerEquivalentToRefWithAdaptivePrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-1);
+    GKO_ASSERT_MTX_NEAR(d_bj, bj, 1e-1);
 }
 
 
@@ -708,7 +708,7 @@ TEST_F(Jacobi, TransposedPreconditionerEquivalentToRefWithAdaptivePrecision)
 
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
-    d_bj->copy_from(bj.get());
+    d_bj->copy_from(bj);
 
     GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->transpose()),
                         gko::as<Bj>(bj->transpose()), 0);
@@ -723,7 +723,7 @@ TEST_F(Jacobi, ConjTransposedPreconditionerEquivalentToRefWithAdaptivePrecision)
 
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
-    d_bj->copy_from(bj.get());
+    d_bj->copy_from(bj);
 
     GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->conj_transpose()),
                         gko::as<Bj>(bj->conj_transpose()), 0);
@@ -738,8 +738,8 @@ TEST_F(Jacobi, ApplyEquivalentToRefWithFullPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    bj->apply(b.get(), x.get());
-    d_bj->apply(d_b.get(), d_x.get());
+    bj->apply(b, x);
+    d_bj->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
 }
@@ -753,8 +753,8 @@ TEST_F(Jacobi, ApplyEquivalentToRefWithReducedPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    bj->apply(b.get(), x.get());
-    d_bj->apply(d_b.get(), d_x.get());
+    bj->apply(b, x);
+    d_bj->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-6);
 }
@@ -768,8 +768,8 @@ TEST_F(Jacobi, ApplyEquivalentToRefWithCustomReducedPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    bj->apply(b.get(), x.get());
-    d_bj->apply(d_b.get(), d_x.get());
+    bj->apply(b, x);
+    d_bj->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-5);
 }
@@ -783,8 +783,8 @@ TEST_F(Jacobi, ApplyEquivalentToRefWithQuarteredPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    bj->apply(b.get(), x.get());
-    d_bj->apply(d_b.get(), d_x.get());
+    bj->apply(b, x);
+    d_bj->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-2);
 }
@@ -798,8 +798,8 @@ TEST_F(Jacobi, ApplyEquivalentToRefWithCustomReducedAndReducedPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    bj->apply(b.get(), x.get());
-    d_bj->apply(d_b.get(), d_x.get());
+    bj->apply(b, x);
+    d_bj->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-2);
 }
@@ -813,8 +813,8 @@ TEST_F(Jacobi, ApplyEquivalentToRefWithCustomQuarteredPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    bj->apply(b.get(), x.get());
-    d_bj->apply(d_b.get(), d_x.get());
+    bj->apply(b, x);
+    d_bj->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-6);
 }
@@ -828,8 +828,8 @@ TEST_F(Jacobi, ApplyEquivalentToRefWithAdaptivePrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    bj->apply(b.get(), x.get());
-    d_bj->apply(d_b.get(), d_x.get());
+    bj->apply(b, x);
+    d_bj->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-1);
 }
@@ -847,8 +847,8 @@ TEST_F(Jacobi, LinearCombinationApplyEquivalentToRefWithAdaptivePrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    bj->apply(b.get(), x.get());
-    d_bj->apply(d_b.get(), d_x.get());
+    bj->apply(b, x);
+    d_bj->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-6);
 }
@@ -862,8 +862,8 @@ TEST_F(Jacobi, ApplyToMultipleVectorsEquivalentToRefWithFullPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    bj->apply(b.get(), x.get());
-    d_bj->apply(d_b.get(), d_x.get());
+    bj->apply(b, x);
+    d_bj->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
 }
@@ -877,8 +877,8 @@ TEST_F(Jacobi, ApplyToMultipleVectorsEquivalentToRefWithReducedPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    bj->apply(b.get(), x.get());
-    d_bj->apply(d_b.get(), d_x.get());
+    bj->apply(b, x);
+    d_bj->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-6);
 }
@@ -892,8 +892,8 @@ TEST_F(Jacobi, ApplyToMultipleVectorsEquivalentToRefWithAdaptivePrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    bj->apply(b.get(), x.get());
-    d_bj->apply(d_b.get(), d_x.get());
+    bj->apply(b, x);
+    d_bj->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-1);
 }
@@ -913,8 +913,8 @@ TEST_F(
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    bj->apply(b.get(), x.get());
-    d_bj->apply(d_b.get(), d_x.get());
+    bj->apply(b, x);
+    d_bj->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-6);
 }

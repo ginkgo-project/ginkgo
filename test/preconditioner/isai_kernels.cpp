@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -88,20 +88,34 @@ protected:
             auto dense_mtx = gko::test::generate_random_matrix<Dense>(
                 n, n, nz_dist, val_dist, rand_engine, ref, gko::dim<2>{n, n});
             ensure_diagonal(dense_mtx.get());
-            mtx->copy_from(dense_mtx.get());
+            mtx->copy_from(dense_mtx);
         } else if (type == matrix_type::spd) {
             auto dense_mtx = gko::test::generate_random_band_matrix<Dense>(
                 n, row_limit / 4, row_limit / 4, val_dist, rand_engine, ref,
                 gko::dim<2>{n, n});
             auto transp = gko::as<Dense>(dense_mtx->transpose());
             auto spd_mtx = Dense::create(ref, gko::dim<2>{n, n});
-            dense_mtx->apply(transp.get(), spd_mtx.get());
-            mtx->copy_from(spd_mtx.get());
+            dense_mtx->apply(transp, spd_mtx);
+            mtx->copy_from(spd_mtx);
         } else {
             mtx = gko::test::generate_random_triangular_matrix<Csr>(
                 n, true, for_lower_tm, nz_dist, val_dist, rand_engine, ref,
                 gko::dim<2>{n, n});
         }
+        inverse = clone_allocations(mtx.get());
+
+        d_mtx = gko::clone(exec, mtx);
+        d_inverse = gko::clone(exec, inverse);
+    }
+
+    void initialize_tridiag_data(matrix_type type, gko::size_type n)
+    {
+        auto val_dist = std::uniform_real_distribution<value_type>(0., 1.);
+        mtx = Csr::create(ref);
+        auto dense_mtx = gko::test::generate_random_band_matrix<Dense>(
+            n, 1, 1, val_dist, rand_engine, ref);
+        ensure_diagonal(dense_mtx.get());
+        mtx->copy_from(dense_mtx);
         inverse = clone_allocations(mtx.get());
 
         d_mtx = gko::clone(exec, mtx);
@@ -477,7 +491,7 @@ TEST_F(Isai, IsaiScaleExcessSolutionIsEquivalentToRef)
     auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
     auto de_rhs = gko::clone(exec, e_rhs);
-    d_inverse->copy_from(lend(inverse));
+    d_inverse->copy_from(inverse);
 
     gko::kernels::reference::isai::scale_excess_solution(
         ref, a1.get_const_data(), e_rhs.get(), 0, num_rows);
@@ -524,7 +538,7 @@ TEST_F(Isai, IsaiScatterExcessSolutionLIsEquivalentToRef)
     auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
     auto de_rhs = gko::clone(exec, e_rhs);
-    d_inverse->copy_from(lend(inverse));
+    d_inverse->copy_from(inverse);
 
     gko::kernels::reference::isai::scatter_excess_solution(
         ref, a1.get_const_data(), e_rhs.get(), inverse.get(), 0, num_rows);
@@ -550,7 +564,7 @@ TEST_F(Isai, IsaiScatterExcessSolutionUIsEquivalentToRef)
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
     auto de_rhs = gko::clone(exec, e_rhs);
     // overwrite -1 values with inverse
-    d_inverse->copy_from(lend(inverse));
+    d_inverse->copy_from(inverse);
 
     gko::kernels::reference::isai::scatter_excess_solution(
         ref, a1.get_const_data(), e_rhs.get(), inverse.get(), 0, num_rows);
@@ -576,7 +590,7 @@ TEST_F(Isai, IsaiScatterExcessSolutionAIsEquivalentToRef)
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
     auto de_rhs = gko::clone(exec, e_rhs);
     // overwrite -1 values with inverse
-    d_inverse->copy_from(lend(inverse));
+    d_inverse->copy_from(inverse);
 
     gko::kernels::reference::isai::scatter_excess_solution(
         ref, a1.get_const_data(), e_rhs.get(), inverse.get(), 0, num_rows);
@@ -602,7 +616,7 @@ TEST_F(Isai, IsaiScatterExcessSolutionSpdIsEquivalentToRef)
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
     auto de_rhs = gko::clone(exec, e_rhs);
     // overwrite -1 values with inverse
-    d_inverse->copy_from(lend(inverse));
+    d_inverse->copy_from(inverse);
 
     gko::kernels::reference::isai::scatter_excess_solution(
         ref, a1.get_const_data(), e_rhs.get(), inverse.get(), 0, num_rows);
@@ -628,7 +642,7 @@ TEST_F(Isai, IsaiScatterPartialExcessSolutionIsEquivalentToRef)
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
     auto de_rhs = gko::clone(exec, e_rhs);
     // overwrite -1 values with inverse
-    d_inverse->copy_from(lend(inverse));
+    d_inverse->copy_from(inverse);
 
     gko::kernels::reference::isai::scatter_excess_solution(
         ref, a1.get_const_data(), e_rhs.get(), inverse.get(), 5u, 10u);
@@ -637,4 +651,47 @@ TEST_F(Isai, IsaiScatterPartialExcessSolutionIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, 0);
     ASSERT_GT(e_dim, 0);
+}
+
+
+TEST_F(Isai, IsaiGenerateGeneralWithSparsityPower8IsEquivalentToRef)
+{
+    using Isai =
+        gko::preconditioner::Isai<gko::preconditioner::isai_type::general,
+                                  value_type, index_type>;
+    initialize_tridiag_data(matrix_type::general, 65);
+
+    auto isai =
+        Isai::build().with_sparsity_power(8).on(ref)->generate(mtx->clone());
+    auto d_isai =
+        Isai::build().with_sparsity_power(8).on(exec)->generate(d_mtx->clone());
+
+    GKO_ASSERT_MTX_NEAR(isai->get_approximate_inverse(),
+                        d_isai->get_approximate_inverse(),
+                        5 * r<value_type>::value);
+}
+
+
+TEST_F(Isai, IsaiGenerateGeneralSparsityPowerNIsEquivalentToRef)
+{
+    using Isai =
+        gko::preconditioner::Isai<gko::preconditioner::isai_type::general,
+                                  value_type, index_type>;
+    initialize_tridiag_data(matrix_type::general, 65);
+
+    auto isai = Isai::build()
+                    .with_sparsity_power(static_cast<int>(mtx->get_size()[0]))
+                    .with_excess_solver_reduction(r<value_type>::value)
+                    .on(ref)
+                    ->generate(mtx->clone());
+    auto d_isai =
+        Isai::build()
+            .with_sparsity_power(static_cast<int>(d_mtx->get_size()[0]))
+            .with_excess_solver_reduction(r<value_type>::value)
+            .on(exec)
+            ->generate(d_mtx->clone());
+
+    GKO_ASSERT_MTX_NEAR(isai->get_approximate_inverse(),
+                        d_isai->get_approximate_inverse(),
+                        10 * r<value_type>::value);
 }

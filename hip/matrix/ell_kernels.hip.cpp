@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -116,7 +116,9 @@ namespace {
 
 template <int info, typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
-void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
+void abstract_spmv(syn::value_list<int, info>,
+                   std::shared_ptr<const DefaultExecutor> exec,
+                   int num_worker_per_row,
                    const matrix::Ell<MatrixValueType, IndexType>* a,
                    const matrix::Dense<InputValueType>* b,
                    matrix::Dense<OutputValueType>* c,
@@ -155,25 +157,24 @@ void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
 
     if (alpha == nullptr && beta == nullptr) {
         if (grid_size.x > 0 && grid_size.y > 0) {
-            hipLaunchKernelGGL(
-                HIP_KERNEL_NAME(kernel::spmv<num_thread_per_worker, atomic>),
-                grid_size, block_size, 0, 0, nrows, num_worker_per_row,
-                acc::as_hip_range(a_vals), a->get_const_col_idxs(), stride,
-                num_stored_elements_per_row, acc::as_hip_range(b_vals),
-                as_hip_type(c->get_values()), c->get_stride());
+            kernel::spmv<num_thread_per_worker, atomic>
+                <<<grid_size, block_size, 0, exec->get_stream()>>>(
+                    nrows, num_worker_per_row, acc::as_hip_range(a_vals),
+                    a->get_const_col_idxs(), stride,
+                    num_stored_elements_per_row, acc::as_hip_range(b_vals),
+                    as_device_type(c->get_values()), c->get_stride());
         }
     } else if (alpha != nullptr && beta != nullptr) {
         if (grid_size.x > 0 && grid_size.y > 0) {
             const auto alpha_val = acc::range<a_accessor>(
                 std::array<acc::size_type, 1>{1}, alpha->get_const_values());
-            hipLaunchKernelGGL(
-                HIP_KERNEL_NAME(kernel::spmv<num_thread_per_worker, atomic>),
-                grid_size, block_size, 0, 0, nrows, num_worker_per_row,
-                acc::as_hip_range(alpha_val), acc::as_hip_range(a_vals),
-                a->get_const_col_idxs(), stride, num_stored_elements_per_row,
-                acc::as_hip_range(b_vals),
-                as_hip_type(beta->get_const_values()),
-                as_hip_type(c->get_values()), c->get_stride());
+            kernel::spmv<num_thread_per_worker, atomic>
+                <<<grid_size, block_size, 0, exec->get_stream()>>>(
+                    nrows, num_worker_per_row, acc::as_hip_range(alpha_val),
+                    acc::as_hip_range(a_vals), a->get_const_col_idxs(), stride,
+                    num_stored_elements_per_row, acc::as_hip_range(b_vals),
+                    as_device_type(beta->get_const_values()),
+                    as_device_type(c->get_values()), c->get_stride());
         }
     } else {
         GKO_KERNEL_NOT_FOUND;
@@ -251,8 +252,8 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
     select_abstract_spmv(
         compiled_kernels(),
         [&info](int compiled_info) { return info == compiled_info; },
-        syn::value_list<int>(), syn::type_list<>(), num_worker_per_row, a, b,
-        c);
+        syn::value_list<int>(), syn::type_list<>(), exec, num_worker_per_row, a,
+        b, c);
 }
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
@@ -285,8 +286,8 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
     select_abstract_spmv(
         compiled_kernels(),
         [&info](int compiled_info) { return info == compiled_info; },
-        syn::value_list<int>(), syn::type_list<>(), num_worker_per_row, a, b, c,
-        alpha, beta);
+        syn::value_list<int>(), syn::type_list<>(), exec, num_worker_per_row, a,
+        b, c, alpha, beta);
 }
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(

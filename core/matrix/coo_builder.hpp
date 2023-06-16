@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -70,7 +70,9 @@ public:
     /**
      * Initializes a CooBuilder from an existing COO matrix.
      */
-    explicit CooBuilder(Coo<ValueType, IndexType>* matrix) : matrix_{matrix} {}
+    explicit CooBuilder(ptr_param<Coo<ValueType, IndexType>> matrix)
+        : matrix_{matrix.get()}
+    {}
 
     // make this type non-movable
     CooBuilder(const CooBuilder&) = delete;

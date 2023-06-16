@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -53,7 +53,7 @@ namespace formats {
 
 
 std::string available_format =
-    "coo, csr, ell, ell-mixed, sellp, hybrid, hybrid0, hybrid25, hybrid33, "
+    "coo, csr, ell, ell_mixed, sellp, hybrid, hybrid0, hybrid25, hybrid33, "
     "hybrid40, "
     "hybrid60, hybrid80, hybridlimit0, hybridlimit25, hybridlimit33, "
     "hybridminstorage"
@@ -84,7 +84,7 @@ std::string format_description =
     "csrs: Ginkgo's CSR implementation with sparselib strategy.\n"
     "ell: Ellpack format according to Bell and Garland: Efficient Sparse\n"
     "     Matrix-Vector Multiplication on CUDA.\n"
-    "ell-mixed: Mixed Precision Ellpack format according to Bell and Garland:\n"
+    "ell_mixed: Mixed Precision Ellpack format according to Bell and Garland:\n"
     "           Efficient Sparse Matrix-Vector Multiplication on CUDA.\n"
     "sellp: Sliced Ellpack uses a default block size of 32.\n"
     "hybrid: Hybrid uses ELL and COO to represent the matrix.\n"
@@ -158,50 +158,9 @@ namespace formats {
 // some shortcuts
 using hybrid = gko::matrix::Hybrid<etype, itype>;
 using csr = gko::matrix::Csr<etype, itype>;
-
-/**
- * Creates a Ginkgo matrix from the intermediate data representation format
- * gko::matrix_data.
- *
- * @param exec  the executor where the matrix will be put
- * @param data  the data represented in the intermediate representation format
- *
- * @tparam MatrixType  the Ginkgo matrix type (such as `gko::matrix::Csr<>`)
- *
- * @return a `unique_pointer` to the created matrix
- */
-template <typename MatrixType>
-std::unique_ptr<MatrixType> read_matrix_from_data(
-    std::shared_ptr<const gko::Executor> exec,
-    const gko::matrix_data<etype, itype>& data)
-{
-    auto mat = MatrixType::create(std::move(exec));
-    mat->read(data);
-    return mat;
-}
-
-
-/**
- * Creates a Ginkgo sparselib matrix from the intermediate data representation
- * format gko::matrix_data.
- *
- * @param exec  the executor where the matrix will be put
- * @param data  the data represented in the intermediate representation format
- *
- * @tparam MatrixTagType  the tag type for the matrix format, see
- *                        sparselib_linops.hpp
- *
- * @return a `unique_pointer` to the created matrix
- */
-template <typename MatrixTagType>
-std::unique_ptr<gko::LinOp> read_splib_matrix_from_data(
-    std::shared_ptr<const gko::Executor> exec,
-    const gko::matrix_data<etype, itype>& data)
-{
-    auto mat = create_sparselib_linop<MatrixTagType>(std::move(exec));
-    gko::as<gko::ReadableFromMatrixData<etype, itype>>(mat.get())->read(data);
-    return mat;
-}
+using coo = gko::matrix::Coo<etype, itype>;
+using ell = gko::matrix::Ell<etype, itype>;
+using ell_mixed = gko::matrix::Ell<gko::next_precision<etype>, itype>;
 
 
 /**
@@ -218,6 +177,9 @@ std::shared_ptr<csr::strategy_type> create_gpu_strategy(
         return std::make_shared<Strategy>(cuda->shared_from_this());
     } else if (auto hip = dynamic_cast<const gko::HipExecutor*>(exec.get())) {
         return std::make_shared<Strategy>(hip->shared_from_this());
+    } else if (auto dpcpp =
+                   dynamic_cast<const gko::DpcppExecutor*>(exec.get())) {
+        return std::make_shared<Strategy>(dpcpp->shared_from_this());
     } else {
         return std::make_shared<csr::classical>();
     }
@@ -248,127 +210,120 @@ void check_ell_admissibility(const gko::matrix_data<etype, itype>& data)
 }
 
 
-/**
- * Creates a Ginkgo matrix from the intermediate data representation format
- * gko::matrix_data with support for variable arguments.
- *
- * @param MATRIX_TYPE  the Ginkgo matrix type (such as `gko::matrix::Csr<>`)
- */
-#define READ_MATRIX(MATRIX_TYPE, ...)                                 \
-    [](std::shared_ptr<const gko::Executor> exec,                     \
-       const gko::matrix_data<etype, itype>& data)                    \
-        -> std::unique_ptr<MATRIX_TYPE> {                             \
-        auto mat = MATRIX_TYPE::create(std::move(exec), __VA_ARGS__); \
-        mat->read(data);                                              \
-        return mat;                                                   \
-    }
+template <typename MatrixType, typename... Args>
+auto create_matrix_type(Args&&... args)
+{
+    return [=](std::shared_ptr<const gko::Executor> exec)
+               -> std::unique_ptr<MatrixType> {
+        return MatrixType::create(std::move(exec), args...);
+    };
+}
+
+
+template <typename MatrixType, typename Strategy>
+auto create_matrix_type_with_gpu_strategy()
+{
+    return [&](std::shared_ptr<const gko::Executor> exec)
+               -> std::unique_ptr<MatrixType> {
+        return MatrixType::create(exec, create_gpu_strategy<Strategy>(exec));
+    };
+}
 
 
 // clang-format off
 const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
-                                std::shared_ptr<const gko::Executor>,
-                                const gko::matrix_data<etype, itype> &)>>
-    matrix_factory{
-        {"csr",
-         [](std::shared_ptr<const gko::Executor> exec,
-            const gko::matrix_data<etype, itype> &data) -> std::unique_ptr<csr> {
-            auto mat =
-                csr::create(exec, create_gpu_strategy<csr::automatical>(exec));
-            mat->read(data);
-            return mat;
-         }},
-        {"csri",
-         [](std::shared_ptr<const gko::Executor> exec,
-            const gko::matrix_data<etype, itype> &data) -> std::unique_ptr<csr> {
-             auto mat = csr::create(
-                 exec, create_gpu_strategy<csr::load_balance>(exec));
-             mat->read(data);
-             return mat;
-         }},
-        {"csrm", READ_MATRIX(csr, std::make_shared<csr::merge_path>())},
-        {"csrc", READ_MATRIX(csr, std::make_shared<csr::classical>())},
-        {"csrs", READ_MATRIX(csr, std::make_shared<csr::sparselib>())},
-        {"coo", read_matrix_from_data<gko::matrix::Coo<etype, itype>>},
-        {"ell", [](std::shared_ptr<const gko::Executor> exec,
-            const gko::matrix_data<etype, itype> &data) {
-             check_ell_admissibility(data);
-             auto mat = gko::matrix::Ell<etype, itype>::create(exec);
-             mat->read(data);
-             return mat;
-         }},
-        {"ell-mixed",
-         [](std::shared_ptr<const gko::Executor> exec,
-            const gko::matrix_data<etype, itype> &data) {
-             check_ell_admissibility(data);
-             gko::matrix_data<gko::next_precision<etype>, itype> conv_data;
-             conv_data.size = data.size;
-             conv_data.nonzeros.resize(data.nonzeros.size());
-             auto it = conv_data.nonzeros.begin();
-             for (auto &el : data.nonzeros) {
-                 it->row = el.row;
-                 it->column = el.column;
-                 it->value = el.value;
-                 ++it;
-             }
-             auto mat = gko::matrix::Ell<gko::next_precision<etype>, itype>::create(
-                 std::move(exec));
-             mat->read(conv_data);
-             return mat;
-         }},
+                                std::shared_ptr<const gko::Executor>)>>
+    matrix_type_factory{
+        {"csr", create_matrix_type_with_gpu_strategy<csr, csr::automatical>()},
+        {"csri", create_matrix_type_with_gpu_strategy<csr, csr::load_balance>()},
+        {"csrm", create_matrix_type<csr>(std::make_shared<csr::merge_path>())},
+        {"csrc", create_matrix_type<csr>(std::make_shared<csr::classical>())},
+        {"csrs", create_matrix_type<csr>(std::make_shared<csr::sparselib>())},
+        {"coo", create_matrix_type<coo>()},
+        {"ell", create_matrix_type<ell>()},
+        {"ell_mixed", create_matrix_type<ell_mixed>()},
 #ifdef HAS_CUDA
-        {"cusparse_csr", read_splib_matrix_from_data<cusparse_csr>},
-        {"cusparse_csrmp", read_splib_matrix_from_data<cusparse_csrmp>},
-        {"cusparse_csrmm", read_splib_matrix_from_data<cusparse_csrmm>},
-        {"cusparse_hybrid", read_splib_matrix_from_data<cusparse_hybrid>},
-        {"cusparse_coo", read_splib_matrix_from_data<cusparse_coo>},
-        {"cusparse_ell", read_splib_matrix_from_data<cusparse_ell>},
-        {"cusparse_csr", read_splib_matrix_from_data<cusparse_gcsr>},
-        {"cusparse_coo", read_splib_matrix_from_data<cusparse_gcoo>},
-        {"cusparse_csrex", read_splib_matrix_from_data<cusparse_csrex>},
-        {"cusparse_gcsr", read_splib_matrix_from_data<cusparse_gcsr>},
-        {"cusparse_gcsr2", read_splib_matrix_from_data<cusparse_gcsr2>},
-        {"cusparse_gcoo", read_splib_matrix_from_data<cusparse_gcoo>},
+        {"cusparse_csr", create_sparselib_linop<cusparse_csr>},
+        {"cusparse_csrmp", create_sparselib_linop<cusparse_csrmp>},
+        {"cusparse_csrmm", create_sparselib_linop<cusparse_csrmm>},
+        {"cusparse_hybrid", create_sparselib_linop<cusparse_hybrid>},
+        {"cusparse_coo", create_sparselib_linop<cusparse_coo>},
+        {"cusparse_ell", create_sparselib_linop<cusparse_ell>},
+        {"cusparse_csr", create_sparselib_linop<cusparse_gcsr>},
+        {"cusparse_coo", create_sparselib_linop<cusparse_gcoo>},
+        {"cusparse_csrex", create_sparselib_linop<cusparse_csrex>},
+        {"cusparse_gcsr", create_sparselib_linop<cusparse_gcsr>},
+        {"cusparse_gcsr2", create_sparselib_linop<cusparse_gcsr2>},
+        {"cusparse_gcoo", create_sparselib_linop<cusparse_gcoo>},
 #endif  // HAS_CUDA
 #ifdef HAS_HIP
-        {"hipsparse_csr", read_splib_matrix_from_data<hipsparse_csr>},
-        {"hipsparse_csrmm", read_splib_matrix_from_data<hipsparse_csrmm>},
-        {"hipsparse_hybrid", read_splib_matrix_from_data<hipsparse_hybrid>},
-        {"hipsparse_coo", read_splib_matrix_from_data<hipsparse_coo>},
-        {"hipsparse_ell", read_splib_matrix_from_data<hipsparse_ell>},
+        {"hipsparse_csr", create_sparselib_linop<hipsparse_csr>},
+        {"hipsparse_csrmm", create_sparselib_linop<hipsparse_csrmm>},
+        {"hipsparse_hybrid", create_sparselib_linop<hipsparse_hybrid>},
+        {"hipsparse_coo", create_sparselib_linop<hipsparse_coo>},
+        {"hipsparse_ell", create_sparselib_linop<hipsparse_ell>},
 #endif  // HAS_HIP
 #ifdef HAS_DPCPP
-        {"onemkl_csr", read_splib_matrix_from_data<onemkl_csr>},
-        {"onemkl_optimized_csr", read_splib_matrix_from_data<onemkl_optimized_csr>},
+        {"onemkl_csr", create_sparselib_linop<onemkl_csr>},
+        {"onemkl_optimized_csr", create_sparselib_linop<onemkl_optimized_csr>},
 #endif  // HAS_DPCPP
-        {"hybrid", read_matrix_from_data<hybrid>},
-        {"hybrid0",
-         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(0))},
-        {"hybrid25",
-         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(0.25))},
+        {"hybrid", create_matrix_type<hybrid>()},
+        {"hybrid0",create_matrix_type<hybrid>( std::make_shared<hybrid::imbalance_limit>(0))},
+        {"hybrid25",create_matrix_type<hybrid>( std::make_shared<hybrid::imbalance_limit>(0.25))},
         {"hybrid33",
-         READ_MATRIX(hybrid,
+         create_matrix_type<hybrid>(
                      std::make_shared<hybrid::imbalance_limit>(1.0 / 3.0))},
         {"hybrid40",
-         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(0.4))},
+         create_matrix_type<hybrid>( std::make_shared<hybrid::imbalance_limit>(0.4))},
         {"hybrid60",
-         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(0.6))},
+         create_matrix_type<hybrid>( std::make_shared<hybrid::imbalance_limit>(0.6))},
         {"hybrid80",
-         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(0.8))},
+         create_matrix_type<hybrid>( std::make_shared<hybrid::imbalance_limit>(0.8))},
         {"hybridlimit0",
-         READ_MATRIX(hybrid,
+         create_matrix_type<hybrid>(
                      std::make_shared<hybrid::imbalance_bounded_limit>(0))},
         {"hybridlimit25",
-         READ_MATRIX(hybrid,
+         create_matrix_type<hybrid>(
                      std::make_shared<hybrid::imbalance_bounded_limit>(0.25))},
         {"hybridlimit33",
-         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_bounded_limit>(
+         create_matrix_type<hybrid>( std::make_shared<hybrid::imbalance_bounded_limit>(
                                  1.0 / 3.0))},
         {"hybridminstorage",
-         READ_MATRIX(hybrid,
+         create_matrix_type<hybrid>(
                      std::make_shared<hybrid::minimal_storage_limit>())},
-        {"sellp", read_matrix_from_data<gko::matrix::Sellp<etype, itype>>}
+        {"sellp", create_matrix_type<gko::matrix::Sellp<etype, itype>>()}
 };
 // clang-format on
+
+
+std::unique_ptr<gko::LinOp> matrix_factory(
+    const std::string& format, std::shared_ptr<const gko::Executor> exec,
+    const gko::matrix_data<etype, itype>& data)
+{
+    auto mat = matrix_type_factory.at(format)(exec);
+    if (format == "ell" || format == "ell_mixed") {
+        check_ell_admissibility(data);
+    }
+    if (format == "ell_mixed") {
+        gko::matrix_data<gko::next_precision<etype>, itype> conv_data;
+        conv_data.size = data.size;
+        conv_data.nonzeros.resize(data.nonzeros.size());
+        auto it = conv_data.nonzeros.begin();
+        for (auto& el : data.nonzeros) {
+            it->row = el.row;
+            it->column = el.column;
+            it->value = el.value;
+            ++it;
+        }
+        gko::as<gko::ReadableFromMatrixData<gko::next_precision<etype>, itype>>(
+            mat.get())
+            ->read(conv_data);
+    } else {
+        gko::as<gko::ReadableFromMatrixData<etype, itype>>(mat.get())->read(
+            data);
+    }
+    return mat;
+}
 
 
 }  // namespace formats

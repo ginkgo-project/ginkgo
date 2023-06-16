@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,7 +29,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
-
 
 namespace kernel {
 
@@ -114,26 +113,23 @@ void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
             exec, num_ranges, num_parts, range_offsets, range_parts,
             range_sizes, tmp_part_ids, permutation);
 
-        auto tmp_part_id_ptr =
-            thrust::device_pointer_cast(tmp_part_ids.get_data());
-        auto range_sizes_ptr =
-            thrust::device_pointer_cast(range_sizes.get_data());
-        auto permutation_ptr =
-            thrust::device_pointer_cast(permutation.get_data());
+        auto tmp_part_id_ptr = tmp_part_ids.get_data();
+        auto range_sizes_ptr = range_sizes.get_data();
+        auto permutation_ptr = permutation.get_data();
         auto value_it = thrust::make_zip_iterator(
             thrust::make_tuple(range_sizes_ptr, permutation_ptr));
         // group range_sizes by part ID
-        thrust::stable_sort_by_key(thrust::device, tmp_part_id_ptr,
+        thrust::stable_sort_by_key(thrust_policy(exec), tmp_part_id_ptr,
                                    tmp_part_id_ptr + num_ranges, value_it);
         // compute inclusive prefix sum for each part
-        thrust::inclusive_scan_by_key(thrust::device, tmp_part_id_ptr,
+        thrust::inclusive_scan_by_key(thrust_policy(exec), tmp_part_id_ptr,
                                       tmp_part_id_ptr + num_ranges,
                                       range_sizes_ptr, range_sizes_ptr);
         // write back the results
         kernel::compute_part_sizes_and_starting_indices(
             exec, num_ranges, range_sizes, tmp_part_ids, permutation,
             starting_indices, part_sizes);
-        num_empty_parts = thrust::count(thrust::device, part_sizes,
+        num_empty_parts = thrust::count(thrust_policy(exec), part_sizes,
                                         part_sizes + num_parts, 0);
     } else {
         num_empty_parts = num_parts;

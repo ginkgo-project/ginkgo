@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,13 +41,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/allocator.hpp"
-#include "core/components/fill_array_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
 #include "cuda/base/types.hpp"
-#include "cuda/components/atomic.cuh"
 #include "cuda/components/cooperative_groups.cuh"
+#include "cuda/components/syncfree.cuh"
 #include "cuda/components/thread_ids.cuh"
-#include "cuda/components/volatile.cuh"
 
 
 namespace gko {

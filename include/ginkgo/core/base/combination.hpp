@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -71,8 +71,8 @@ public:
      *
      * @return a list of coefficients
      */
-    const std::vector<std::shared_ptr<const LinOp>>& get_coefficients() const
-        noexcept
+    const std::vector<std::shared_ptr<const LinOp>>& get_coefficients()
+        const noexcept
     {
         return coefficients_;
     }
@@ -82,8 +82,8 @@ public:
      *
      * @return a list of operators
      */
-    const std::vector<std::shared_ptr<const LinOp>>& get_operators() const
-        noexcept
+    const std::vector<std::shared_ptr<const LinOp>>& get_operators()
+        const noexcept
     {
         return operators_;
     }

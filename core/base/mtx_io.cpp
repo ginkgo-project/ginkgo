@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -405,7 +405,9 @@ private:
             matrix_data<ValueType, IndexType>& data) const override
         {
             data.nonzeros.emplace_back(row, col, entry);
-            data.nonzeros.emplace_back(col, row, -entry);
+            if (row != col) {
+                data.nonzeros.emplace_back(col, row, -entry);
+            }
         }
 
         /**
@@ -843,7 +845,8 @@ matrix_data<ValueType, IndexType> read_binary_convert(std::istream& is,
         throw GKO_STREAM_ERROR(
             "cannot read into this format, would assign complex to real");
     }
-    matrix_data<ValueType, IndexType> result(gko::dim<2>{num_rows, num_cols});
+    matrix_data<ValueType, IndexType> result(gko::dim<2>{
+        static_cast<size_type>(num_rows), static_cast<size_type>(num_cols)});
     result.nonzeros.resize(num_entries);
     constexpr auto entry_binary_size =
         sizeof(FileValueType) + 2 * sizeof(FileIndexType);

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -354,7 +354,7 @@ void compute_slice_sets(std::shared_ptr<const DefaultExecutor> exec,
         gko::dim<2>{num_slices, slice_size}, row_nnz, slice_size, stride_factor,
         num_rows);
     exec->copy(num_slices, slice_lengths, slice_sets);
-    components::prefix_sum(exec, slice_sets, num_slices + 1);
+    components::prefix_sum_nonnegative(exec, slice_sets, num_slices + 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(

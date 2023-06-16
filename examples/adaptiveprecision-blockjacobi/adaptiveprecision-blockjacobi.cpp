@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -101,27 +101,21 @@ int main(int argc, char* argv[])
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
     auto initres = gko::initialize<real_vec>({0.0}, exec);
-    A->apply(lend(one), lend(x), lend(neg_one), lend(b));
-    b->compute_norm2(lend(initres));
+    A->apply(one, x, neg_one, b);
+    b->compute_norm2(initres);
 
     // copy b again
-    b->copy_from(host_x.get());
-    const RealValueType reduction_factor = 1e-7;
-    auto iter_stop = gko::share(
-        gko::stop::Iteration::build().with_max_iters(10000u).on(exec));
-    auto tol_stop = gko::share(gko::stop::ResidualNorm<ValueType>::build()
-                                   .with_reduction_factor(reduction_factor)
-                                   .on(exec));
-
-    std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
-        gko::log::Convergence<ValueType>::create();
-    iter_stop->add_logger(logger);
-    tol_stop->add_logger(logger);
+    b->copy_from(host_x);
 
     // Create solver factory
+    const RealValueType reduction_factor = 1e-7;
     auto solver_gen =
         cg::build()
-            .with_criteria(iter_stop, tol_stop)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(10000u).on(exec),
+                gko::stop::ResidualNorm<ValueType>::build()
+                    .with_reduction_factor(reduction_factor)
+                    .on(exec))
             // Add preconditioner, these 2 lines are the only
             // difference from the simple solver example
             .with_preconditioner(bj::build()
@@ -131,30 +125,29 @@ int main(int argc, char* argv[])
                                      .on(exec))
             .on(exec);
     // Create solver
+    std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
+        gko::log::Convergence<ValueType>::create();
     solver_gen->add_logger(logger);
     auto solver = solver_gen->generate(A);
-
 
     // Solve system
     exec->synchronize();
     std::chrono::nanoseconds time(0);
     auto tic = std::chrono::steady_clock::now();
-    solver->apply(lend(b), lend(x));
+    solver->apply(b, x);
     auto toc = std::chrono::steady_clock::now();
     time += std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
 
-    // Calculate residual
-    auto res = gko::initialize<real_vec>({0.0}, exec);
-    A->apply(lend(one), lend(x), lend(neg_one), lend(b));
-    b->compute_norm2(lend(res));
+    // Get residual
+    auto res = gko::as<real_vec>(logger->get_residual_norm());
     auto impl_res = gko::as<real_vec>(logger->get_implicit_sq_resnorm());
 
     std::cout << "Initial residual norm sqrt(r^T r):\n";
-    write(std::cout, lend(initres));
+    write(std::cout, initres);
     std::cout << "Final residual norm sqrt(r^T r):\n";
-    write(std::cout, lend(res));
+    write(std::cout, res);
     std::cout << "Implicit residual norm squared (r^2):\n";
-    write(std::cout, lend(impl_res));
+    write(std::cout, impl_res);
 
     // Print solver statistics
     std::cout << "CG iteration count:     " << logger->get_num_iterations()

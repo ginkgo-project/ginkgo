@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -275,8 +275,8 @@ TEST_F(Idr, IdrIterationOneRHSIsEquivalentToRef)
     auto ref_solver = ref_idr_factory->generate(mtx);
     auto exec_solver = exec_idr_factory->generate(d_mtx);
 
-    ref_solver->apply(b.get(), x.get());
-    exec_solver->apply(d_b.get(), d_x.get());
+    ref_solver->apply(b, x);
+    exec_solver->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_b, b, rr<value_type>::value * 10);
     GKO_ASSERT_MTX_NEAR(d_x, x, rr<value_type>::value * 10);
@@ -303,8 +303,8 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceOneRHSIsEquivalentToRef)
     auto ref_solver = ref_idr_factory->generate(mtx);
     auto exec_solver = exec_idr_factory->generate(d_mtx);
 
-    ref_solver->apply(b.get(), x.get());
-    exec_solver->apply(d_b.get(), d_x.get());
+    ref_solver->apply(b, x);
+    exec_solver->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_b, b, rr<value_type>::value * 100);
     GKO_ASSERT_MTX_NEAR(d_x, x, rr<value_type>::value * 100);
@@ -317,8 +317,8 @@ TEST_F(Idr, IdrIterationMultipleRHSIsEquivalentToRef)
     auto exec_solver = exec_idr_factory->generate(d_mtx);
     auto ref_solver = ref_idr_factory->generate(mtx);
 
-    ref_solver->apply(b.get(), x.get());
-    exec_solver->apply(d_b.get(), d_x.get());
+    ref_solver->apply(b, x);
+    exec_solver->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_b, b, rr<value_type>::value * 500);
     GKO_ASSERT_MTX_NEAR(d_x, x, rr<value_type>::value * 500);
@@ -345,8 +345,8 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceMultipleRHSIsEquivalentToRef)
     auto exec_solver = exec_idr_factory->generate(d_mtx);
     auto ref_solver = ref_idr_factory->generate(mtx);
 
-    ref_solver->apply(b.get(), x.get());
-    exec_solver->apply(d_b.get(), d_x.get());
+    ref_solver->apply(b, x);
+    exec_solver->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_b, b, rr<value_type>::value * 100);
     GKO_ASSERT_MTX_NEAR(d_x, x, rr<value_type>::value * 100);

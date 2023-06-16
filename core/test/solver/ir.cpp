@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/log/profiler_hook.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -74,21 +75,10 @@ protected:
           solver(ir_factory->generate(mtx))
     {}
 
-    std::shared_ptr<const gko::Executor> exec;
+    std::shared_ptr<gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<typename Solver::Factory> ir_factory;
     std::unique_ptr<gko::LinOp> solver;
-
-    static void assert_same_matrices(const Mtx* m1, const Mtx* m2)
-    {
-        ASSERT_EQ(m1->get_size()[0], m2->get_size()[0]);
-        ASSERT_EQ(m1->get_size()[1], m2->get_size()[1]);
-        for (gko::size_type i = 0; i < m1->get_size()[0]; ++i) {
-            for (gko::size_type j = 0; j < m2->get_size()[1]; ++j) {
-                EXPECT_EQ(m1->at(i, j), m2->at(i, j));
-            }
-        }
-    }
 };
 
 TYPED_TEST_SUITE(Ir, gko::test::ValueTypes, TypenameNameGenerator);
@@ -116,12 +106,11 @@ TYPED_TEST(Ir, CanBeCopied)
     using Solver = typename TestFixture::Solver;
     auto copy = this->ir_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(this->solver.get());
+    copy->copy_from(this->solver);
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = static_cast<Solver*>(copy.get())->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
-                               this->mtx.get());
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
 }
 
 
@@ -131,12 +120,11 @@ TYPED_TEST(Ir, CanBeMoved)
     using Solver = typename TestFixture::Solver;
     auto copy = this->ir_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(std::move(this->solver));
+    copy->move_from(this->solver);
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = static_cast<Solver*>(copy.get())->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
-                               this->mtx.get());
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
 }
 
 
@@ -148,8 +136,7 @@ TYPED_TEST(Ir, CanBeCloned)
 
     ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
     auto clone_mtx = static_cast<Solver*>(clone.get())->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx*>(clone_mtx.get()),
-                               this->mtx.get());
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(clone_mtx), this->mtx, 0.0);
 }
 
 
@@ -469,6 +456,44 @@ TYPED_TEST(Ir, SmootherBuildWithFactory)
     ASSERT_NE(criteria.get(), nullptr);
     ASSERT_EQ(criteria->get_parameters().max_iters, 3);
     ASSERT_EQ(smoother_factory->get_parameters().solver.get(), factory.get());
+}
+
+
+struct TestSummaryWriter : gko::log::ProfilerHook::SummaryWriter {
+    void write(const std::vector<gko::log::ProfilerHook::summary_entry>& e,
+               std::chrono::nanoseconds overhead) override
+    {
+        int matched = 0;
+        for (const auto& data : e) {
+            if (data.name == "residual_norm::residual_norm") {
+                matched++;
+                // Contains make_residual_norm 3 times: The last 4-th iteration
+                // exits due to iteration limit.
+                EXPECT_EQ(data.count, 3);
+            }
+        }
+        // ensure matching once
+        EXPECT_EQ(matched, 1);
+    }
+};
+
+
+TYPED_TEST(Ir, RunResidualNormCheckCorrectTimes)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    using Mtx = typename TestFixture::Mtx;
+    auto b = gko::initialize<Mtx>({2, -1.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+    auto logger = gko::share(gko::log::ProfilerHook::create_summary(
+        std::make_shared<gko::CpuTimer>(),
+        std::make_unique<TestSummaryWriter>()));
+    this->exec->add_logger(logger);
+
+    // solver reaches the iteration limit
+    this->solver->apply(b, x);
+
+    // The assertions happen in the destructor of `logger`
 }
 
 

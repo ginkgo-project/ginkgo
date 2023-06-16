@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -151,17 +151,30 @@ public:
     void on_criterion_check_completed(
         const stop::Criterion* criterion, const size_type& num_iterations,
         const LinOp* residual, const LinOp* residual_norm,
-        const LinOp* solutino, const uint8& stopping_id,
+        const LinOp* solution, const uint8& stopping_id,
         const bool& set_finalized, const array<stopping_status>* status,
         const bool& one_changed, const bool& all_converged) const override;
 
     /* Internal solver events */
-    void on_iteration_complete(
-        const LinOp* solver, const size_type& num_iterations,
-        const LinOp* residual, const LinOp* solution = nullptr,
-        const LinOp* residual_norm = nullptr) const override;
+    void on_iteration_complete(const LinOp* solver, const LinOp* b,
+                               const LinOp* x, const size_type& num_iterations,
+                               const LinOp* residual,
+                               const LinOp* residual_norm,
+                               const LinOp* implicit_resnorm_sq,
+                               const array<stopping_status>* status,
+                               bool stopped) const override;
 
-    void on_iteration_complete(
+    [[deprecated(
+        "Please use the version with the additional stopping "
+        "information.")]] void
+    on_iteration_complete(const LinOp* solver, const size_type& num_iterations,
+                          const LinOp* residual, const LinOp* solution,
+                          const LinOp* residual_norm) const override;
+
+    [[deprecated(
+        "Please use the version with the additional stopping "
+        "information.")]] void
+    on_iteration_complete(
         const LinOp* solver, const size_type& num_iterations,
         const LinOp* residual, const LinOp* solution,
         const LinOp* residual_norm,

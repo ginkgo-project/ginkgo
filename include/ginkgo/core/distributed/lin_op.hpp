@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -75,27 +75,30 @@ public:
     using EnableDistributedPolymorphicObject<
         ConcreteLinOp, PolymorphicBase>::EnableDistributedPolymorphicObject;
 
-    const ConcreteLinOp* apply(const LinOp* b, LinOp* x) const
+    const ConcreteLinOp* apply(ptr_param<const LinOp> b,
+                               ptr_param<LinOp> x) const
     {
         PolymorphicBase::apply(b, x);
         return self();
     }
 
-    ConcreteLinOp* apply(const LinOp* b, LinOp* x)
+    ConcreteLinOp* apply(ptr_param<const LinOp> b, ptr_param<LinOp> x)
     {
         PolymorphicBase::apply(b, x);
         return self();
     }
 
-    const ConcreteLinOp* apply(const LinOp* alpha, const LinOp* b,
-                               const LinOp* beta, LinOp* x) const
+    const ConcreteLinOp* apply(ptr_param<const LinOp> alpha,
+                               ptr_param<const LinOp> b,
+                               ptr_param<const LinOp> beta,
+                               ptr_param<LinOp> x) const
     {
         PolymorphicBase::apply(alpha, b, beta, x);
         return self();
     }
 
-    ConcreteLinOp* apply(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                         LinOp* x)
+    ConcreteLinOp* apply(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
+                         ptr_param<const LinOp> beta, ptr_param<LinOp> x)
     {
         PolymorphicBase::apply(alpha, b, beta, x);
         return self();

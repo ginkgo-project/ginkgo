@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,8 +35,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/timer.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/version.hpp>
+#include <ginkgo/core/log/profiler_hook.hpp>
 
 
 namespace gko {
@@ -52,10 +54,10 @@ version version_info::get_cuda_version() noexcept
 
 std::shared_ptr<CudaExecutor> CudaExecutor::create(
     int device_id, std::shared_ptr<Executor> master, bool device_reset,
-    allocation_mode alloc_mode)
+    allocation_mode alloc_mode, CUstream_st* stream)
 {
     return std::shared_ptr<CudaExecutor>(new CudaExecutor(
-        device_id, std::move(master), device_reset, alloc_mode));
+        device_id, std::move(master), device_reset, alloc_mode, stream));
 }
 
 
@@ -108,13 +110,6 @@ scoped_device_id_guard CudaExecutor::get_scoped_device_id_guard() const
     GKO_NOT_COMPILED(cuda);
 
 
-void CudaExecutor::run(const Operation& op) const
-{
-    op.run(
-        std::static_pointer_cast<const CudaExecutor>(this->shared_from_this()));
-}
-
-
 std::string CudaError::get_error(int64)
 {
     return "ginkgo CUDA module is not compiled";
@@ -159,6 +154,64 @@ scoped_device_id_guard::scoped_device_id_guard(const CudaExecutor* exec,
     GKO_NOT_COMPILED(cuda);
 
 
+cuda_stream::cuda_stream(int device_id) GKO_NOT_COMPILED(cuda);
+
+
+cuda_stream::~cuda_stream() {}
+
+
+cuda_stream::cuda_stream(cuda_stream&&) GKO_NOT_COMPILED(cuda);
+
+
+CUstream_st* cuda_stream::get() const GKO_NOT_COMPILED(cuda);
+
+
+CudaTimer::CudaTimer(std::shared_ptr<const CudaExecutor> exec)
+    GKO_NOT_COMPILED(cuda);
+
+
+void CudaTimer::init_time_point(time_point& time) GKO_NOT_COMPILED(cuda);
+
+
+void CudaTimer::record(time_point&) GKO_NOT_COMPILED(cuda);
+
+
+void CudaTimer::wait(time_point& time) GKO_NOT_COMPILED(cuda);
+
+
+std::chrono::nanoseconds CudaTimer::difference_async(const time_point& start,
+                                                     const time_point& stop)
+    GKO_NOT_COMPILED(cuda);
+
+
+namespace kernels {
+namespace cuda {
+
+
+void reset_device(int device_id) GKO_NOT_COMPILED(cuda);
+
+
+void destroy_event(CUevent_st* event) GKO_NOT_COMPILED(cuda);
+
+
+}  // namespace cuda
+}  // namespace kernels
+
+
+namespace log {
+
+
+void init_nvtx() GKO_NOT_COMPILED(cuda);
+
+
+std::function<void(const char*, profile_event_category)> begin_nvtx_fn(
+    uint32_t color_rgb) GKO_NOT_COMPILED(cuda);
+
+
+void end_nvtx(const char*, profile_event_category) GKO_NOT_COMPILED(cuda);
+
+
+}  // namespace log
 }  // namespace gko
 
 

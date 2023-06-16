@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -94,16 +94,18 @@ void compute_l_u_factors(syn::value_list<int, subwarp_size>,
     auto block_size = default_block_size / subwarp_size;
     auto num_blocks = ceildiv(total_nnz, block_size);
     if (num_blocks > 0) {
-        kernel::sweep<subwarp_size><<<num_blocks, default_block_size>>>(
-            a->get_const_row_ptrs(), a->get_const_col_idxs(),
-            as_cuda_type(a->get_const_values()), l->get_const_row_ptrs(),
-            l_coo->get_const_row_idxs(), l->get_const_col_idxs(),
-            as_cuda_type(l->get_values()),
-            static_cast<IndexType>(l->get_num_stored_elements()),
-            u_coo->get_const_row_idxs(), u_coo->get_const_col_idxs(),
-            as_cuda_type(u->get_values()), u_csc->get_const_row_ptrs(),
-            u_csc->get_const_col_idxs(), as_cuda_type(u_csc->get_values()),
-            static_cast<IndexType>(u->get_num_stored_elements()));
+        kernel::sweep<subwarp_size>
+            <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+                a->get_const_row_ptrs(), a->get_const_col_idxs(),
+                as_device_type(a->get_const_values()), l->get_const_row_ptrs(),
+                l_coo->get_const_row_idxs(), l->get_const_col_idxs(),
+                as_device_type(l->get_values()),
+                static_cast<IndexType>(l->get_num_stored_elements()),
+                u_coo->get_const_row_idxs(), u_coo->get_const_col_idxs(),
+                as_device_type(u->get_values()), u_csc->get_const_row_ptrs(),
+                u_csc->get_const_col_idxs(),
+                as_device_type(u_csc->get_values()),
+                static_cast<IndexType>(u->get_num_stored_elements()));
     }
 }
 

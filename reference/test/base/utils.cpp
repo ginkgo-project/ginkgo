@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -88,7 +88,7 @@ TEST_F(ConvertToWithSorting, SortWithUniquePtr)
     auto result = gko::convert_to_with_sorting<Csr>(ref, unsorted_coo, false);
 
     ASSERT_TRUE(result->is_sorted_by_column_index());
-    GKO_ASSERT_MTX_NEAR(result.get(), mtx.get(), 0.);
+    GKO_ASSERT_MTX_NEAR(result, mtx, 0.);
 }
 
 
@@ -97,7 +97,7 @@ TEST_F(ConvertToWithSorting, DontSortWithUniquePtr)
     auto result = gko::convert_to_with_sorting<Csr>(ref, unsorted_csr, true);
 
     ASSERT_EQ(result.get(), unsorted_csr.get());
-    GKO_ASSERT_MTX_NEAR(result.get(), mtx.get(), 0.);
+    GKO_ASSERT_MTX_NEAR(result, mtx, 0.);
 }
 
 
@@ -108,7 +108,7 @@ TEST_F(ConvertToWithSorting, SortWithSharedPtr)
     auto result = gko::convert_to_with_sorting<Csr>(ref, shared, false);
 
     ASSERT_TRUE(result->is_sorted_by_column_index());
-    GKO_ASSERT_MTX_NEAR(result.get(), mtx.get(), 0.);
+    GKO_ASSERT_MTX_NEAR(result, mtx, 0.);
 }
 
 
@@ -119,7 +119,7 @@ TEST_F(ConvertToWithSorting, DontSortWithSharedPtr)
     auto result = gko::convert_to_with_sorting<Csr>(ref, shared, true);
 
     ASSERT_EQ(result.get(), shared.get());
-    GKO_ASSERT_MTX_NEAR(result.get(), mtx.get(), 0.);
+    GKO_ASSERT_MTX_NEAR(result, mtx, 0.);
 }
 
 
@@ -130,7 +130,7 @@ TEST_F(ConvertToWithSorting, SortWithSharedConstPtr)
     auto result = gko::convert_to_with_sorting<Csr>(ref, shared, false);
 
     ASSERT_TRUE(result->is_sorted_by_column_index());
-    GKO_ASSERT_MTX_NEAR(result.get(), mtx.get(), 0.);
+    GKO_ASSERT_MTX_NEAR(result, mtx, 0.);
 }
 
 
@@ -140,7 +140,7 @@ TEST_F(ConvertToWithSorting, DontSortWithSharedConstPtr)
 
     auto result = gko::convert_to_with_sorting<Csr>(ref, shared, true);
 
-    GKO_ASSERT_MTX_NEAR(result.get(), mtx.get(), 0.);
+    GKO_ASSERT_MTX_NEAR(result, mtx, 0.);
 }
 
 
@@ -150,7 +150,7 @@ TEST_F(ConvertToWithSorting, SortWithRawPtr)
         gko::convert_to_with_sorting<Csr>(ref, unsorted_coo.get(), false);
 
     ASSERT_TRUE(result->is_sorted_by_column_index());
-    GKO_ASSERT_MTX_NEAR(result.get(), mtx.get(), 0.);
+    GKO_ASSERT_MTX_NEAR(result, mtx, 0.);
 }
 
 
@@ -159,7 +159,7 @@ TEST_F(ConvertToWithSorting, DontSortWithRawPtr)
     auto result =
         gko::convert_to_with_sorting<Csr>(ref, unsorted_coo.get(), true);
 
-    GKO_ASSERT_MTX_NEAR(result.get(), mtx.get(), 0.);
+    GKO_ASSERT_MTX_NEAR(result, mtx, 0.);
 }
 
 
@@ -170,7 +170,7 @@ TEST_F(ConvertToWithSorting, SortWithConstRawPtr)
     auto result = gko::convert_to_with_sorting<Csr>(ref, cptr, false);
 
     ASSERT_TRUE(result->is_sorted_by_column_index());
-    GKO_ASSERT_MTX_NEAR(result.get(), mtx.get(), 0.);
+    GKO_ASSERT_MTX_NEAR(result, mtx, 0.);
 }
 
 
@@ -180,7 +180,7 @@ TEST_F(ConvertToWithSorting, DontSortWithConstRawPtr)
 
     auto result = gko::convert_to_with_sorting<Csr>(ref, cptr, true);
 
-    GKO_ASSERT_MTX_NEAR(result.get(), mtx.get(), 0.);
+    GKO_ASSERT_MTX_NEAR(result, mtx, 0.);
 }
 
 

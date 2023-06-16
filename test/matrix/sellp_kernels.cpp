@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -107,8 +107,8 @@ TEST_F(Sellp, SimpleApplyIsEquivalentToRef)
 {
     set_up_apply_matrix();
 
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
+    mtx->apply(y, expected);
+    dmtx->apply(dy, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -118,8 +118,8 @@ TEST_F(Sellp, AdvancedApplyIsEquivalentToRef)
 {
     set_up_apply_matrix();
 
-    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
-    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+    mtx->apply(alpha, y, beta, expected);
+    dmtx->apply(dalpha, dy, dbeta, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -129,8 +129,8 @@ TEST_F(Sellp, SimpleApplyWithSliceSizeAndStrideFactorIsEquivalentToRef)
 {
     set_up_apply_matrix(1, 32, 2);
 
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
+    mtx->apply(y, expected);
+    dmtx->apply(dy, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -140,8 +140,8 @@ TEST_F(Sellp, AdvancedApplyWithSliceSizeAndStrideFActorIsEquivalentToRef)
 {
     set_up_apply_matrix(1, 32, 2);
 
-    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
-    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+    mtx->apply(alpha, y, beta, expected);
+    dmtx->apply(dalpha, dy, dbeta, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -151,8 +151,8 @@ TEST_F(Sellp, SimpleApplyMultipleRHSIsEquivalentToRef)
 {
     set_up_apply_matrix(3);
 
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
+    mtx->apply(y, expected);
+    dmtx->apply(dy, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -162,8 +162,8 @@ TEST_F(Sellp, AdvancedApplyMultipleRHSIsEquivalentToRef)
 {
     set_up_apply_matrix(4);
 
-    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
-    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+    mtx->apply(alpha, y, beta, expected);
+    dmtx->apply(dalpha, dy, dbeta, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -174,8 +174,8 @@ TEST_F(Sellp,
 {
     set_up_apply_matrix(5, 2);
 
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
+    mtx->apply(y, expected);
+    dmtx->apply(dy, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -186,8 +186,8 @@ TEST_F(Sellp,
 {
     set_up_apply_matrix(6, 2);
 
-    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
-    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+    mtx->apply(alpha, y, beta, expected);
+    dmtx->apply(dalpha, dy, dbeta, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -201,8 +201,8 @@ TEST_F(Sellp, ApplyToComplexIsEquivalentToRef)
     auto complex_x = gen_mtx<ComplexVec>(532, 3);
     auto dcomplex_x = gko::clone(exec, complex_x);
 
-    mtx->apply(complex_b.get(), complex_x.get());
-    dmtx->apply(dcomplex_b.get(), dcomplex_x.get());
+    mtx->apply(complex_b, complex_x);
+    dmtx->apply(dcomplex_b, dcomplex_x);
 
     GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<value_type>::value);
 }
@@ -216,8 +216,8 @@ TEST_F(Sellp, AdvancedApplyToComplexIsEquivalentToRef)
     auto complex_x = gen_mtx<ComplexVec>(532, 3);
     auto dcomplex_x = gko::clone(exec, complex_x);
 
-    mtx->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
-    dmtx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());
+    mtx->apply(alpha, complex_b, beta, complex_x);
+    dmtx->apply(dalpha, dcomplex_b, dbeta, dcomplex_x);
 
     GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<value_type>::value);
 }
@@ -229,10 +229,10 @@ TEST_F(Sellp, ConvertToDenseIsEquivalentToRef)
     auto dense_mtx = gko::matrix::Dense<value_type>::create(ref);
     auto ddense_mtx = gko::matrix::Dense<value_type>::create(exec);
 
-    mtx->convert_to(dense_mtx.get());
-    dmtx->convert_to(ddense_mtx.get());
+    mtx->convert_to(dense_mtx);
+    dmtx->convert_to(ddense_mtx);
 
-    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 0);
+    GKO_ASSERT_MTX_NEAR(dense_mtx, ddense_mtx, 0);
 }
 
 
@@ -242,10 +242,10 @@ TEST_F(Sellp, ConvertToCsrIsEquivalentToRef)
     auto csr_mtx = gko::matrix::Csr<value_type>::create(ref);
     auto dcsr_mtx = gko::matrix::Csr<value_type>::create(exec);
 
-    mtx->convert_to(csr_mtx.get());
-    dmtx->convert_to(dcsr_mtx.get());
+    mtx->convert_to(csr_mtx);
+    dmtx->convert_to(dcsr_mtx);
 
-    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 0);
+    GKO_ASSERT_MTX_NEAR(csr_mtx, dcsr_mtx, 0);
 }
 
 
@@ -255,10 +255,10 @@ TEST_F(Sellp, ConvertEmptyToDenseIsEquivalentToRef)
     auto dense_mtx = gko::matrix::Dense<value_type>::create(ref);
     auto ddense_mtx = gko::matrix::Dense<value_type>::create(exec);
 
-    empty->convert_to(dense_mtx.get());
-    dempty->convert_to(ddense_mtx.get());
+    empty->convert_to(dense_mtx);
+    dempty->convert_to(ddense_mtx);
 
-    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 0);
+    GKO_ASSERT_MTX_NEAR(dense_mtx, ddense_mtx, 0);
 }
 
 
@@ -268,10 +268,10 @@ TEST_F(Sellp, ConvertEmptyToCsrIsEquivalentToRef)
     auto csr_mtx = gko::matrix::Csr<value_type>::create(ref);
     auto dcsr_mtx = gko::matrix::Csr<value_type>::create(exec);
 
-    empty->convert_to(csr_mtx.get());
-    dempty->convert_to(dcsr_mtx.get());
+    empty->convert_to(csr_mtx);
+    dempty->convert_to(dcsr_mtx);
 
-    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 0);
+    GKO_ASSERT_MTX_NEAR(csr_mtx, dcsr_mtx, 0);
 }
 
 
@@ -282,7 +282,7 @@ TEST_F(Sellp, ExtractDiagonalIsEquivalentToRef)
     auto diag = mtx->extract_diagonal();
     auto ddiag = dmtx->extract_diagonal();
 
-    GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
+    GKO_ASSERT_MTX_NEAR(diag, ddiag, 0);
 }
 
 
@@ -293,7 +293,7 @@ TEST_F(Sellp, ExtractDiagonalWithSliceSizeAndStrideFactorIsEquivalentToRef)
     auto diag = mtx->extract_diagonal();
     auto ddiag = dmtx->extract_diagonal();
 
-    GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
+    GKO_ASSERT_MTX_NEAR(diag, ddiag, 0);
 }
 
 

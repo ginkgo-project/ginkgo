@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,7 @@ int main()
                     .on(gpu))
             .on(gpu);
     // Solve system
-    solver->generate(give(A))->apply(lend(b), lend(x));
+    solver->generate(give(A))->apply(b, x);
     // Write result
-    write(std::cout, lend(x));
+    write(std::cout, x);
 }

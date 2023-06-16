@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,19 +34,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
-#include <chrono>
 #include <cstdlib>
 #include <exception>
-#include <fstream>
 #include <iomanip>
 #include <iostream>
 
 
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
+#include "benchmark/utils/generator.hpp"
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/preconditioners.hpp"
-#include "benchmark/utils/spmv_common.hpp"
+#include "benchmark/utils/spmv_validation.hpp"
 #include "benchmark/utils/timer.hpp"
 #include "benchmark/utils/types.hpp"
 
@@ -170,7 +169,7 @@ void run_preconditioner(const char* precond_name,
 
 
             for (auto _ : ic_apply.warmup_run()) {
-                precond->generate(system_matrix)->apply(lend(b), lend(x_clone));
+                precond->generate(system_matrix)->apply(b, x_clone);
             }
 
             std::unique_ptr<gko::LinOp> precond_op;
@@ -179,16 +178,18 @@ void run_preconditioner(const char* precond_name,
             }
 
             add_or_set_member(this_precond_data["generate"], "time",
-                              ic_gen.compute_average_time(), allocator);
+                              ic_gen.compute_time(FLAGS_timer_method),
+                              allocator);
             add_or_set_member(this_precond_data["generate"], "repetitions",
                               ic_gen.get_num_repetitions(), allocator);
 
             for (auto _ : ic_apply.run()) {
-                precond_op->apply(lend(b), lend(x_clone));
+                precond_op->apply(b, x_clone);
             }
 
             add_or_set_member(this_precond_data["apply"], "time",
-                              ic_apply.compute_average_time(), allocator);
+                              ic_apply.compute_time(FLAGS_timer_method),
+                              allocator);
             add_or_set_member(this_precond_data["apply"], "repetitions",
                               ic_apply.get_num_repetitions(), allocator);
         }
@@ -198,28 +199,40 @@ void run_preconditioner(const char* precond_name,
             auto x_clone = clone(x);
             auto precond = precond_factory.at(precond_name)(exec);
 
-            auto gen_logger =
-                std::make_shared<OperationLogger>(FLAGS_nested_names);
-            exec->add_logger(gen_logger);
             std::unique_ptr<gko::LinOp> precond_op;
-            for (auto i = 0u; i < ic_gen.get_num_repetitions(); ++i) {
-                precond_op = precond->generate(system_matrix);
+            {
+                auto gen_logger = create_operations_logger(
+                    FLAGS_gpu_timer, FLAGS_nested_names, exec,
+                    this_precond_data["generate"]["components"], allocator,
+                    ic_gen.get_num_repetitions());
+                exec->add_logger(gen_logger);
+                if (exec->get_master() != exec) {
+                    exec->get_master()->add_logger(gen_logger);
+                }
+                for (auto i = 0u; i < ic_gen.get_num_repetitions(); ++i) {
+                    precond_op = precond->generate(system_matrix);
+                }
+                if (exec->get_master() != exec) {
+                    exec->get_master()->remove_logger(gen_logger);
+                }
+                exec->remove_logger(gen_logger);
             }
-            exec->remove_logger(gko::lend(gen_logger));
 
-            gen_logger->write_data(this_precond_data["generate"]["components"],
-                                   allocator, ic_gen.get_num_repetitions());
-
-            auto apply_logger =
-                std::make_shared<OperationLogger>(FLAGS_nested_names);
+            auto apply_logger = create_operations_logger(
+                FLAGS_gpu_timer, FLAGS_nested_names, exec,
+                this_precond_data["apply"]["components"], allocator,
+                ic_apply.get_num_repetitions());
             exec->add_logger(apply_logger);
-            for (auto i = 0u; i < ic_apply.get_num_repetitions(); ++i) {
-                precond_op->apply(lend(b), lend(x_clone));
+            if (exec->get_master() != exec) {
+                exec->get_master()->add_logger(apply_logger);
             }
-            exec->remove_logger(gko::lend(apply_logger));
-
-            apply_logger->write_data(this_precond_data["apply"]["components"],
-                                     allocator, ic_apply.get_num_repetitions());
+            for (auto i = 0u; i < ic_apply.get_num_repetitions(); ++i) {
+                precond_op->apply(b, x_clone);
+            }
+            if (exec->get_master() != exec) {
+                exec->get_master()->remove_logger(apply_logger);
+            }
+            exec->remove_logger(apply_logger);
         }
 
         add_or_set_member(this_precond_data, "completed", true, allocator);
@@ -247,9 +260,7 @@ int main(int argc, char* argv[])
     FLAGS_formats = "csr";
     std::string header =
         "A benchmark for measuring preconditioner performance.\n";
-    std::string format = std::string() + "  [\n" +
-                         "    { \"filename\": \"my_file.mtx\"},\n" +
-                         "    { \"filename\": \"my_file2.mtx\"}\n" + "  ]\n\n";
+    std::string format = example_config;
     initialize_argument_parsing(&argc, &argv, header, format);
 
     std::string extra_information =
@@ -267,7 +278,7 @@ int main(int argc, char* argv[])
         std::exit(1);
     }
 
-    rapidjson::IStreamWrapper jcin(std::cin);
+    rapidjson::IStreamWrapper jcin(get_input_stream());
     rapidjson::Document test_cases;
     test_cases.ParseStream(jcin);
     if (!test_cases.IsArray()) {
@@ -275,6 +286,12 @@ int main(int argc, char* argv[])
     }
 
     auto& allocator = test_cases.GetAllocator();
+    auto profiler_hook = create_profiler_hook(exec);
+    if (profiler_hook) {
+        exec->add_logger(profiler_hook);
+    }
+    auto annotate = annotate_functor{profiler_hook};
+    DefaultSystemGenerator<> generator{};
 
     for (auto& test_case : test_cases.GetArray()) {
         try {
@@ -295,21 +312,30 @@ int main(int argc, char* argv[])
             }
             std::clog << "Running test case: " << test_case << std::endl;
 
-            std::ifstream mtx_fd(test_case["filename"].GetString());
-            auto data = gko::read_generic_raw<etype, itype>(mtx_fd);
+            // annotate the test case
+            auto test_case_range =
+                annotate(generator.describe_config(test_case));
+
+            auto data = generator.generate_matrix_data(test_case);
 
             auto system_matrix =
-                share(formats::matrix_factory.at(FLAGS_formats)(exec, data));
-            auto b = create_vector<etype>(exec, system_matrix->get_size()[0],
-                                          engine);
-            auto x = create_vector<etype>(exec, system_matrix->get_size()[0]);
+                share(formats::matrix_factory(FLAGS_formats, exec, data));
+            auto b = generator.create_multi_vector_random(
+                exec, system_matrix->get_size()[0]);
+            auto x = generator.create_multi_vector(
+                exec, system_matrix->get_size()[0], gko::zero<etype>());
 
             std::clog << "Matrix is of size (" << system_matrix->get_size()[0]
                       << ", " << system_matrix->get_size()[1] << ")"
                       << std::endl;
+            add_or_set_member(test_case, "size", data.size[0], allocator);
             for (const auto& precond_name : preconditioners) {
-                run_preconditioner(precond_name.c_str(), exec, system_matrix,
-                                   lend(b), lend(x), test_case, allocator);
+                {
+                    auto precond_range = annotate(precond_name.c_str());
+                    run_preconditioner(precond_name.c_str(), exec,
+                                       system_matrix, b.get(), x.get(),
+                                       test_case, allocator);
+                }
                 std::clog << "Current state:" << std::endl
                           << test_cases << std::endl;
                 backup_results(test_cases);
@@ -318,6 +344,9 @@ int main(int argc, char* argv[])
             std::cerr << "Error setting up preconditioner, what(): " << e.what()
                       << std::endl;
         }
+    }
+    if (profiler_hook) {
+        exec->remove_logger(profiler_hook);
     }
 
     std::cout << test_cases << std::endl;

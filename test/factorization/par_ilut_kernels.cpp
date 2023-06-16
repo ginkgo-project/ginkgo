@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -134,9 +134,9 @@ protected:
             mtx_l_ani = Csr::create(ref, mtx_ani->get_size());
             mtx_u_ani = Csr::create(ref, mtx_ani->get_size());
             gko::matrix::CsrBuilder<value_type, index_type> l_builder(
-                mtx_l_ani.get());
+                mtx_l_ani);
             gko::matrix::CsrBuilder<value_type, index_type> u_builder(
-                mtx_u_ani.get());
+                mtx_u_ani);
             gko::kernels::reference::factorization::initialize_row_ptrs_l_u(
                 ref, mtx_ani.get(), mtx_l_ani->get_row_ptrs(),
                 mtx_u_ani->get_row_ptrs());
@@ -155,10 +155,10 @@ protected:
             gko::kernels::reference::csr::transpose(ref, mtx_u_ani.get(),
                                                     mtx_ut_ani.get());
         }
-        dmtx_ani->copy_from(mtx_ani.get());
-        dmtx_l_ani->copy_from(mtx_l_ani.get());
-        dmtx_u_ani->copy_from(mtx_u_ani.get());
-        dmtx_ut_ani->copy_from(mtx_ut_ani.get());
+        dmtx_ani->copy_from(mtx_ani);
+        dmtx_l_ani->copy_from(mtx_l_ani);
+        dmtx_u_ani->copy_from(mtx_u_ani);
+        dmtx_ut_ani->copy_from(mtx_ut_ani);
     }
 
     template <typename Mtx>
@@ -410,9 +410,9 @@ TYPED_TEST(ParIlut, KernelAddCandidatesIsEquivalentToRef)
     using value_type = typename TestFixture::value_type;
     auto square_size = this->mtx_square->get_size();
     auto mtx_lu = Csr::create(this->ref, square_size);
-    this->mtx_l2->apply(this->mtx_u.get(), mtx_lu.get());
+    this->mtx_l2->apply(this->mtx_u, mtx_lu);
     auto dmtx_lu = Csr::create(this->exec, square_size);
-    dmtx_lu->copy_from(mtx_lu.get());
+    dmtx_lu->copy_from(mtx_lu);
     auto res_mtx_l = Csr::create(this->ref, square_size);
     auto res_mtx_u = Csr::create(this->ref, square_size);
     auto dres_mtx_l = Csr::create(this->exec, square_size);
@@ -439,12 +439,12 @@ TYPED_TEST(ParIlut, KernelComputeLUIsEquivalentToRef)
     auto square_size = this->mtx_ani->get_size();
     auto mtx_l_coo = Coo::create(this->ref, square_size);
     auto mtx_u_coo = Coo::create(this->ref, square_size);
-    this->mtx_l_ani->convert_to(mtx_l_coo.get());
-    this->mtx_u_ani->convert_to(mtx_u_coo.get());
+    this->mtx_l_ani->convert_to(mtx_l_coo);
+    this->mtx_u_ani->convert_to(mtx_u_coo);
     auto dmtx_l_coo = Coo::create(this->exec, square_size);
     auto dmtx_u_coo = Coo::create(this->exec, square_size);
-    dmtx_l_coo->copy_from(mtx_l_coo.get());
-    dmtx_u_coo->copy_from(mtx_u_coo.get());
+    dmtx_l_coo->copy_from(mtx_l_coo);
+    dmtx_u_coo->copy_from(mtx_u_coo);
 
     gko::kernels::reference::par_ilut_factorization::compute_l_u_factors(
         this->ref, this->mtx_ani.get(), this->mtx_l_ani.get(), mtx_l_coo.get(),

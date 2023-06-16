@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -122,7 +122,7 @@ void abstract_filter(std::shared_ptr<const DefaultExecutor> exec,
     }
 
     // build row pointers
-    components::prefix_sum(exec, new_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, new_row_ptrs, num_rows + 1);
 
     // second sweep: accumulate non-zeros
     auto new_nnz = new_row_ptrs[num_rows];
@@ -237,7 +237,7 @@ void threshold_filter_approx(std::shared_ptr<const DefaultExecutor> exec,
         histogram[bucket]++;
     }
     // determine splitter ranks: prefix sum over bucket counts
-    components::prefix_sum(exec, histogram, bucket_count + 1);
+    components::prefix_sum_nonnegative(exec, histogram, bucket_count + 1);
     // determine the bucket containing the threshold rank:
     // prefix_sum[bucket] <= rank < prefix_sum[bucket + 1]
     auto it = std::upper_bound(histogram, histogram + bucket_count + 1, rank);

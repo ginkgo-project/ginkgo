@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -100,8 +100,8 @@ void build_from_mapping(std::shared_ptr<const DefaultExecutor> exec,
             range_starting_index[i] = cur_part != prev_part ? 1 : 0;
         },
         mapping.get_num_elems(), mapping, range_starting_index);
-    components::prefix_sum(exec, range_starting_index.get_data(),
-                           mapping.get_num_elems() + 1);
+    components::prefix_sum_nonnegative(exec, range_starting_index.get_data(),
+                                       mapping.get_num_elems() + 1);
     run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto size, auto mapping,
@@ -140,7 +140,8 @@ void build_ranges_from_global_size(std::shared_ptr<const DefaultExecutor> exec,
             ranges[i] = size_per_part + (i < rest ? 1 : 0);
         },
         ranges.get_num_elems() - 1, size_per_part, rest, ranges.get_data());
-    components::prefix_sum(exec, ranges.get_data(), ranges.get_num_elems());
+    components::prefix_sum_nonnegative(exec, ranges.get_data(),
+                                       ranges.get_num_elems());
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_PARTITION_BUILD_FROM_GLOBAL_SIZE);

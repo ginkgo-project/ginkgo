@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -95,7 +95,7 @@ protected:
                            I<index_type>{0, 0, 2, 2, 2, 2, 3, 4, 4, 4});
     }
 
-    bool is_coo_matrix_sorted(Coo* mtx)
+    bool is_coo_matrix_sorted(gko::ptr_param<Coo> mtx)
     {
         auto rows = mtx->get_const_row_idxs();
         auto cols = mtx->get_const_col_idxs();
@@ -119,7 +119,7 @@ protected:
         return true;
     }
 
-    bool is_csr_matrix_sorted(Csr* mtx)
+    bool is_csr_matrix_sorted(gko::ptr_param<Csr> mtx)
     {
         auto size = mtx->get_size();
         auto rows = mtx->get_const_row_ptrs();
@@ -157,11 +157,11 @@ TYPED_TEST(UnsortMatrix, CsrWorks)
 {
     auto csr = this->get_sorted_csr();
     const auto ref_mtx = this->get_sorted_csr();
-    bool was_sorted = this->is_csr_matrix_sorted(gko::lend(csr));
+    bool was_sorted = this->is_csr_matrix_sorted(csr);
 
-    gko::test::unsort_matrix(gko::lend(csr), this->rand_engine);
+    gko::test::unsort_matrix(csr, this->rand_engine);
 
-    ASSERT_FALSE(this->is_csr_matrix_sorted(gko::lend(csr)));
+    ASSERT_FALSE(this->is_csr_matrix_sorted(csr));
     ASSERT_TRUE(was_sorted);
     GKO_ASSERT_MTX_NEAR(csr, ref_mtx, 0.);
 }
@@ -169,10 +169,9 @@ TYPED_TEST(UnsortMatrix, CsrWorks)
 
 TYPED_TEST(UnsortMatrix, CsrWorksWithEmpty)
 {
-    const bool was_sorted =
-        this->is_csr_matrix_sorted(gko::lend(this->csr_empty));
+    const bool was_sorted = this->is_csr_matrix_sorted(this->csr_empty);
 
-    gko::test::unsort_matrix(gko::lend(this->csr_empty), this->rand_engine);
+    gko::test::unsort_matrix(this->csr_empty, this->rand_engine);
 
     ASSERT_TRUE(was_sorted);
     ASSERT_EQ(this->csr_empty->get_num_stored_elements(), 0);
@@ -183,11 +182,11 @@ TYPED_TEST(UnsortMatrix, CooWorks)
 {
     auto coo = this->get_sorted_coo();
     const auto ref_mtx = this->get_sorted_coo();
-    const bool was_sorted = this->is_coo_matrix_sorted(gko::lend(coo));
+    const bool was_sorted = this->is_coo_matrix_sorted(coo);
 
-    gko::test::unsort_matrix(gko::lend(coo), this->rand_engine);
+    gko::test::unsort_matrix(coo, this->rand_engine);
 
-    ASSERT_FALSE(this->is_coo_matrix_sorted(gko::lend(coo)));
+    ASSERT_FALSE(this->is_coo_matrix_sorted(coo));
     ASSERT_TRUE(was_sorted);
     GKO_ASSERT_MTX_NEAR(coo, ref_mtx, 0.);
 }
@@ -195,10 +194,9 @@ TYPED_TEST(UnsortMatrix, CooWorks)
 
 TYPED_TEST(UnsortMatrix, CooWorksWithEmpty)
 {
-    const bool was_sorted =
-        this->is_coo_matrix_sorted(gko::lend(this->coo_empty));
+    const bool was_sorted = this->is_coo_matrix_sorted(this->coo_empty);
 
-    gko::test::unsort_matrix(gko::lend(this->coo_empty), this->rand_engine);
+    gko::test::unsort_matrix(this->coo_empty, this->rand_engine);
 
     ASSERT_TRUE(was_sorted);
     ASSERT_EQ(this->coo_empty->get_num_stored_elements(), 0);

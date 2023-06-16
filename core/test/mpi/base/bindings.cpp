@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -164,6 +164,7 @@ TYPED_TEST(MpiBindings, CanPutValuesWithLockAll)
                     win.put(this->ref, data.data(), 4, rank, 0, 4);
                 }
             }
+            win.flush_all();
             win.unlock_all();
         }
     }
@@ -197,6 +198,7 @@ TYPED_TEST(MpiBindings, CanNonBlockingPutValuesWithLockAll)
                 }
             }
             req.wait();
+            win.flush_all();
             win.unlock_all();
         }
     }
@@ -227,7 +229,7 @@ TYPED_TEST(MpiBindings, CanPutValuesWithExclusiveLock)
                 if (rank != my_rank) {
                     win.lock(rank, window::lock_type::exclusive);
                     win.put(this->ref, data.data(), 4, rank, 0, 4);
-                    win.flush(0);
+                    win.flush(rank);
                     win.unlock(rank);
                 }
             }
@@ -260,7 +262,7 @@ TYPED_TEST(MpiBindings, CanPutValuesWithSharedLock)
                 if (rank != my_rank) {
                     win.lock(rank);
                     win.put(this->ref, data.data(), 4, rank, 0, 4);
-                    win.flush(0);
+                    win.flush(rank);
                     win.unlock(rank);
                 }
             }

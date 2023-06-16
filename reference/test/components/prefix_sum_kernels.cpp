@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,11 +34,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <limits>
 #include <memory>
+#include <type_traits>
 #include <vector>
 
 
 #include <gtest/gtest.h>
+
+
+#include <ginkgo/core/base/exception.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -62,15 +67,57 @@ protected:
     std::vector<index_type> expected;
 };
 
-TYPED_TEST_SUITE(PrefixSum, gko::test::IndexTypes, TypenameNameGenerator);
+using PrefixSumIndexTypes =
+    ::testing::Types<gko::int32, gko::int64, gko::size_type>;
+
+TYPED_TEST_SUITE(PrefixSum, PrefixSumIndexTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(PrefixSum, Works)
 {
-    gko::kernels::reference::components::prefix_sum(
+    gko::kernels::reference::components::prefix_sum_nonnegative(
         this->exec, this->vals.data(), this->vals.size());
 
     ASSERT_EQ(this->vals, this->expected);
+}
+
+
+TYPED_TEST(PrefixSum, WorksCloseToOverflow)
+{
+    constexpr auto max = std::numeric_limits<TypeParam>::max() -
+                         std::is_unsigned<TypeParam>::value;
+    std::vector<TypeParam> vals{max - 1, 1, 0};
+    std::vector<TypeParam> expected{0, max - 1, max};
+
+    gko::kernels::reference::components::prefix_sum_nonnegative(
+        this->exec, vals.data(), vals.size());
+
+    ASSERT_EQ(vals, expected);
+}
+
+
+TYPED_TEST(PrefixSum, DoesntOverflowFromLastElement)
+{
+    constexpr auto max = std::numeric_limits<TypeParam>::max() -
+                         std::is_unsigned<TypeParam>::value;
+    std::vector<TypeParam> vals{2, max - 1};
+    std::vector<TypeParam> expected{0, 2};
+
+    gko::kernels::reference::components::prefix_sum_nonnegative(
+        this->exec, vals.data(), vals.size());
+
+    ASSERT_EQ(vals, expected);
+}
+
+
+TYPED_TEST(PrefixSum, ThrowsOnOverflow)
+{
+    constexpr auto max = std::numeric_limits<TypeParam>::max();
+    std::vector<TypeParam> vals{0, 152, max / 2, 25, 147, max / 2, 0, 1};
+
+    ASSERT_THROW(gko::kernels::reference::components::prefix_sum_nonnegative(
+                     this->exec, vals.data(), vals.size()),
+                 gko::OverflowError);
 }
 
 

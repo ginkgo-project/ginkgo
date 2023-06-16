@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -100,10 +100,10 @@ protected:
         restrict_op = Csr::create(ref, gko::dim<2>(c_dim, m), c_dim);
 
         d_restrict_op = Csr::create(exec);
-        d_restrict_op->copy_from(restrict_op.get());
+        d_restrict_op->copy_from(restrict_op);
         auto system_dense = gen_mtx(m, m);
         system_mtx = Csr::create(ref);
-        system_dense->convert_to(system_mtx.get());
+        system_dense->convert_to(system_mtx);
 
         d_system_mtx = gko::clone(exec, system_mtx);
     }
@@ -156,7 +156,7 @@ TEST_F(FixedCoarsening, GenerateMgLevelIsEquivalentToRef)
 TEST_F(FixedCoarsening, GenerateMgLevelIsEquivalentToRefOnUnsortedMatrix)
 {
     initialize_data(243);
-    gko::test::unsort_matrix(gko::lend(system_mtx), rand_engine);
+    gko::test::unsort_matrix(system_mtx, rand_engine);
     d_system_mtx = gko::clone(exec, system_mtx);
     auto mg_level_factory =
         gko::multigrid::FixedCoarsening<value_type, int>::build()

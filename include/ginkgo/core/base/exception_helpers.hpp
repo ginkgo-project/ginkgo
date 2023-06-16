@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -700,6 +700,16 @@ inline T ensure_allocated_impl(T ptr, const std::string& file, int line,
             throw ::gko::BadDimension(__FILE__, __LINE__, __func__, #_op,    \
                                       sz[0], sz[1], "expected scalar");      \
         }                                                                    \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+
+#define GKO_INVALID_STATE(_message)                                          \
+    {                                                                        \
+        throw ::gko::InvalidStateError(__FILE__, __LINE__, __func__,         \
+                                       _message);                            \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \

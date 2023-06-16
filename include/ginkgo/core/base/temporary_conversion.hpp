@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -176,7 +176,7 @@ struct conversion_helper {
             // so we can convert from this type to TargetType
             auto converted = conversion_target_helper<
                 std::remove_cv_t<TargetType>>::create_empty(cast_obj);
-            cast_obj->convert_to(converted.get());
+            cast_obj->convert_to(converted);
             // Make sure ConvertibleTo<TargetType> is available and symmetric
             static_assert(
                 std::is_base_of<ConvertibleTo<std::remove_cv_t<TargetType>>,
@@ -234,14 +234,14 @@ public:
      *                               try out for converting ptr to type T.
      */
     template <typename... ConversionCandidates>
-    static temporary_conversion create(lin_op_type* ptr)
+    static temporary_conversion create(ptr_param<lin_op_type> ptr)
     {
         T* cast_ptr{};
-        if ((cast_ptr = dynamic_cast<T*>(ptr))) {
+        if ((cast_ptr = dynamic_cast<T*>(ptr.get()))) {
             return handle_type{cast_ptr, null_deleter<T>{}};
         } else {
             return conversion_helper<ConversionCandidates...>::template convert<
-                T>(ptr);
+                T>(ptr.get());
         }
     }
 

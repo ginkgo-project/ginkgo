@@ -2,12 +2,9 @@ include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 
 
-set(GINKGO_INSTALL_INCLUDE_DIR "${CMAKE_INSTALL_INCLUDEDIR}")
-set(GINKGO_INSTALL_LIBRARY_DIR "${CMAKE_INSTALL_LIBDIR}")
-set(GINKGO_INSTALL_RUNTIME_DIR "${CMAKE_INSTALL_BINDIR}")
-set(GINKGO_INSTALL_PKGCONFIG_DIR "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
-set(GINKGO_INSTALL_CONFIG_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/Ginkgo")
-set(GINKGO_INSTALL_MODULE_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/Ginkgo/Modules")
+set(GINKGO_INSTALL_PKGCONFIG_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/pkgconfig")
+set(GINKGO_INSTALL_CONFIG_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/cmake/Ginkgo")
+set(GINKGO_INSTALL_MODULE_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/cmake/Ginkgo/Modules")
 
 # This function adds the correct RPATH properties to a Ginkgo target.
 #
@@ -55,16 +52,16 @@ function(ginkgo_install_library name)
         # dll is considered as runtime
         install(TARGETS "${name}"
             EXPORT Ginkgo
-            LIBRARY DESTINATION "${GINKGO_INSTALL_LIBRARY_DIR}"
-            ARCHIVE DESTINATION "${GINKGO_INSTALL_LIBRARY_DIR}"
-            RUNTIME DESTINATION "${GINKGO_INSTALL_RUNTIME_DIR}"
+            LIBRARY DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
+            ARCHIVE DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
+            RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}"
             )
     else ()
         # install .so and .a files
         install(TARGETS "${name}"
             EXPORT Ginkgo
-            LIBRARY DESTINATION "${GINKGO_INSTALL_LIBRARY_DIR}"
-            ARCHIVE DESTINATION "${GINKGO_INSTALL_LIBRARY_DIR}"
+            LIBRARY DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
+            ARCHIVE DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
         )
     endif ()
 endfunction()
@@ -77,15 +74,15 @@ function(ginkgo_install)
 
     # install the public header files
     install(DIRECTORY "${Ginkgo_SOURCE_DIR}/include/"
-        DESTINATION "${GINKGO_INSTALL_INCLUDE_DIR}"
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}"
         FILES_MATCHING PATTERN "*.hpp"
         )
     install(FILES "${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp"
-        DESTINATION "${GINKGO_INSTALL_INCLUDE_DIR}/ginkgo"
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/ginkgo"
         )
     if (GINKGO_HAVE_PAPI_SDE)
         install(FILES "${Ginkgo_SOURCE_DIR}/third_party/papi_sde/papi_sde_interface.h"
-            DESTINATION "${GINKGO_INSTALL_INCLUDE_DIR}/third_party/papi_sde"
+            DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/third_party/papi_sde"
             )
     endif()
 
@@ -93,14 +90,14 @@ function(ginkgo_install)
         get_filename_component(HWLOC_LIB_PATH ${HWLOC_LIBRARIES} DIRECTORY)
         file(GLOB HWLOC_LIBS "${HWLOC_LIB_PATH}/libhwloc*")
         install(FILES ${HWLOC_LIBS}
-            DESTINATION "${GINKGO_INSTALL_LIBRARY_DIR}"
+            DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
             )
         # We only use hwloc and not netloc
         install(DIRECTORY "${HWLOC_INCLUDE_DIRS}/hwloc"
-            DESTINATION "${GINKGO_INSTALL_INCLUDE_DIR}"
+            DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}"
             )
         install(FILES "${HWLOC_INCLUDE_DIRS}/hwloc.h"
-            DESTINATION "${GINKGO_INSTALL_INCLUDE_DIR}"
+            DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}"
             )
     endif()
 
@@ -126,6 +123,7 @@ function(ginkgo_install)
         "${Ginkgo_SOURCE_DIR}/cmake/GinkgoConfig.cmake.in"
         "${Ginkgo_BINARY_DIR}/GinkgoConfig.cmake"
         INSTALL_DESTINATION "${GINKGO_INSTALL_CONFIG_DIR}"
+        PATH_VARS CMAKE_INSTALL_FULL_INCLUDEDIR CMAKE_INSTALL_FULL_LIBDIR CMAKE_INSTALL_PREFIX GINKGO_INSTALL_MODULE_DIR
         )
     install(FILES
         "${Ginkgo_BINARY_DIR}/GinkgoConfig.cmake"

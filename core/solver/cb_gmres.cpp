@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -277,8 +277,7 @@ void CbGmres<ValueType>::apply_dense_impl(
                                             &stop_status, krylov_dim));
         // residual = dense_b
         // givens_sin = givens_cos = 0
-        this->get_system_matrix()->apply(neg_one_op.get(), dense_x,
-                                         one_op.get(), residual.get());
+        this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
         // residual = residual - Ax
 
         exec->run(cb_gmres::make_restart(
@@ -326,20 +325,24 @@ void CbGmres<ValueType>::apply_dense_impl(
 
         while (true) {
             ++total_iter;
-            this->template log<log::Logger::iteration_complete>(
-                this, total_iter, residual.get(), dense_x, residual_norm.get());
             // In the beginning, only force a fraction of the total iterations
             if (forced_iterations < forced_limit &&
                 forced_iterations < total_iter / forced_iteration_fraction) {
+                this->template log<log::Logger::iteration_complete>(
+                    this, dense_b, dense_x, total_iter, residual.get(),
+                    residual_norm.get(), nullptr, &stop_status, false);
                 ++forced_iterations;
             } else {
                 bool all_changed = stop_criterion->update()
                                        .num_iterations(total_iter)
-                                       .residual(residual.get())
-                                       .residual_norm(residual_norm.get())
+                                       .residual(residual)
+                                       .residual_norm(residual_norm)
                                        .solution(dense_x)
                                        .check(RelativeStoppingId, true,
                                               &stop_status, &one_changed);
+                this->template log<log::Logger::iteration_complete>(
+                    this, dense_b, dense_x, total_iter, residual.get(),
+                    residual_norm.get(), nullptr, &stop_status, all_changed);
                 if (one_changed || all_changed) {
                     host_stop_status = stop_status;
                     bool host_array_changed{false};
@@ -397,15 +400,15 @@ void CbGmres<ValueType>::apply_dense_impl(
                 // Solve upper triangular.
                 // y = hessenberg \ residual_norm_collection
 
-                this->get_preconditioner()->apply(before_preconditioner.get(),
-                                                  after_preconditioner.get());
-                dense_x->add_scaled(one_op.get(), after_preconditioner.get());
+                this->get_preconditioner()->apply(before_preconditioner,
+                                                  after_preconditioner);
+                dense_x->add_scaled(one_op, after_preconditioner);
                 // Solve x
                 // x = x + get_preconditioner() * krylov_bases * y
                 residual->copy_from(dense_b);
                 // residual = dense_b
-                this->get_system_matrix()->apply(neg_one_op.get(), dense_x,
-                                                 one_op.get(), residual.get());
+                this->get_system_matrix()->apply(neg_one_op, dense_x, one_op,
+                                                 residual);
                 // residual = residual - Ax
                 exec->run(cb_gmres::make_restart(
                     residual.get(), residual_norm.get(),
@@ -420,8 +423,8 @@ void CbGmres<ValueType>::apply_dense_impl(
                 restart_iter = 0;
             }
 
-            this->get_preconditioner()->apply(next_krylov_basis.get(),
-                                              preconditioned_vector.get());
+            this->get_preconditioner()->apply(next_krylov_basis,
+                                              preconditioned_vector);
             // preconditioned_vector = get_preconditioner() *
             // next_krylov_basis
 
@@ -433,8 +436,8 @@ void CbGmres<ValueType>::apply_dense_impl(
                 span{0, restart_iter + 2}, span{0, num_rhs});
 
             // Start of arnoldi
-            this->get_system_matrix()->apply(preconditioned_vector.get(),
-                                             next_krylov_basis.get());
+            this->get_system_matrix()->apply(preconditioned_vector,
+                                             next_krylov_basis);
             // next_krylov_basis = A * preconditioned_vector
             exec->run(cb_gmres::make_arnoldi(
                 next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
@@ -479,9 +482,9 @@ void CbGmres<ValueType>::apply_dense_impl(
             &final_iter_nums));
         // Solve upper triangular.
         // y = hessenberg \ residual_norm_collection
-        this->get_preconditioner()->apply(before_preconditioner.get(),
-                                          after_preconditioner.get());
-        dense_x->add_scaled(one_op.get(), after_preconditioner.get());
+        this->get_preconditioner()->apply(before_preconditioner,
+                                          after_preconditioner);
+        dense_x->add_scaled(one_op, after_preconditioner);
         // Solve x
         // x = x + get_preconditioner() * krylov_bases * y
     };  // End of apply_lambda
@@ -503,7 +506,7 @@ void CbGmres<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
             auto x_clone = dense_x->clone();
             this->apply_dense_impl(dense_b, x_clone.get());
             dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, x_clone.get());
+            dense_x->add_scaled(dense_alpha, x_clone);
         },
         alpha, b, beta, x);
 }

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -87,7 +87,7 @@ void sampleselect_count(std::shared_ptr<const DefaultExecutor> exec,
                              exec->get_queue(), partial_counts, total_counts,
                              num_blocks);
     // compute prefix sum over bucket counts
-    components::prefix_sum(exec, total_counts, bucket_count + 1);
+    components::prefix_sum_nonnegative(exec, total_counts, bucket_count + 1);
 }
 
 
@@ -109,7 +109,7 @@ sampleselect_bucket<IndexType> sampleselect_find_bucket(
     kernel::find_bucket(1, config::warp_size, 0, exec->get_queue(), prefix_sum,
                         rank);
     IndexType values[3]{};
-    exec->get_master()->copy_from(exec.get(), 3, prefix_sum, values);
+    exec->get_master()->copy_from(exec, 3, prefix_sum, values);
     return {values[0], values[1], values[2]};
 }
 

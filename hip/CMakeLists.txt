@@ -4,6 +4,7 @@ set(GINKGO_HIP_SOURCES
     base/executor.hip.cpp
     base/index_set_kernels.hip.cpp
     base/scoped_device_id.hip.cpp
+    base/timer.hip.cpp
     base/version.hip.cpp
     components/prefix_sum_kernels.hip.cpp
     distributed/matrix_kernels.hip.cpp
@@ -109,6 +110,9 @@ target_link_libraries(ginkgo_hip PUBLIC ginkgo_device)
 target_link_libraries(ginkgo_hip PRIVATE roc::hipblas roc::hipsparse hip::hiprand roc::rocrand)
 if (hipfft_FOUND)
     target_link_libraries(ginkgo_hip PRIVATE hip::hipfft)
+endif()
+if (GINKGO_HAVE_ROCTX)
+    target_link_libraries(ginkgo_hip PRIVATE roc::roctx)
 endif()
 
 target_compile_options(ginkgo_hip PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)

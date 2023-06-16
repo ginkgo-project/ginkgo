@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -76,9 +76,44 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // clang-format on
 
 
+/* What is the major version of dpcpp compiler */
+// clang-format off
+#define GINKGO_DPCPP_MAJOR_VERSION @GINKGO_DPCPP_MAJOR_VERSION@
+// clang-format on
+
+
 /* Is PAPI SDE available for Logging? */
 // clang-format off
 #define GKO_HAVE_PAPI_SDE @GINKGO_HAVE_PAPI_SDE@
+// clang-format on
+
+
+/* Is TAU available for Profiling? */
+// clang-format off
+#define GKO_HAVE_TAU @GINKGO_HAVE_TAU@
+// clang-format on
+
+
+/* Is VTune ITT available for Profiling? */
+// clang-format off
+#define GKO_HAVE_VTUNE @GINKGO_HAVE_VTUNE@
+// clang-format on
+
+
+/* Is METIS available for Reordering? */
+// clang-format off
+#define GKO_HAVE_METIS @GINKGO_HAVE_METIS@
+// clang-format on
+
+#if GKO_HAVE_METIS
+// clang-format off
+#define GKO_METIS_HEADER <@METIS_HEADER@>
+// clang-format on
+#endif
+
+/* Is ROCTX available for Profiling? */
+// clang-format off
+#define GKO_HAVE_ROCTX @GINKGO_HAVE_ROCTX@
 // clang-format on
 
 

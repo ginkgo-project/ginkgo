@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -193,7 +193,7 @@ TEST_F(DpcppExecutor, CopiesDataToCPU)
     auto* copy = dpcpp->alloc<int>(2);
     gko::array<bool> is_set(ref, 1);
 
-    dpcpp->copy_from(ref.get(), 2, orig, copy);
+    dpcpp->copy_from(ref, 2, orig, copy);
 
     is_set.set_executor(dpcpp);
     ASSERT_NO_THROW(dpcpp->synchronize());
@@ -221,7 +221,7 @@ TEST_F(DpcppExecutor, CopiesDataFromCPU)
         cgh.single_task([=]() { init_data(orig); });
     });
 
-    ref->copy_from(dpcpp.get(), 2, orig, copy);
+    ref->copy_from(dpcpp, 2, orig, copy);
 
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);
@@ -243,7 +243,7 @@ TEST_F(DpcppExecutor, CopiesDataFromDpcppToDpcpp)
     });
 
     auto copy_dpcpp2 = dpcpp2->alloc<int>(2);
-    dpcpp2->copy_from(dpcpp.get(), 2, orig, copy_dpcpp2);
+    dpcpp2->copy_from(dpcpp, 2, orig, copy_dpcpp2);
     // Check that the data is really on GPU
     is_set.set_executor(dpcpp2);
     ASSERT_NO_THROW(dpcpp2->get_queue()->submit([&](sycl::handler& cgh) {
@@ -254,7 +254,7 @@ TEST_F(DpcppExecutor, CopiesDataFromDpcppToDpcpp)
     ASSERT_EQ(*is_set.get_data(), true);
 
     // Put the results on OpenMP and run CPU side assertions
-    ref->copy_from(dpcpp2.get(), 2, copy_dpcpp2, copy);
+    ref->copy_from(dpcpp2, 2, copy_dpcpp2, copy);
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);
     dpcpp2->free(copy_dpcpp2);

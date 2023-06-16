@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -249,7 +249,7 @@ void Papi<ValueType>::on_criterion_check_completed(
         detail::vector_dispatch<ValueType>(residual, [&](const auto* dense_r) {
             auto tmp_res_norm = Vector::create(
                 residual->get_executor(), dim<2>{1, residual->get_size()[1]});
-            dense_r->compute_norm2(tmp_res_norm.get());
+            dense_r->compute_norm2(tmp_res_norm);
             residual_norm_d =
                 static_cast<double>(std::real(tmp_res_norm->at(0, 0)));
         });
@@ -273,14 +273,26 @@ void Papi<ValueType>::on_criterion_check_completed(
 
 
 template <typename ValueType>
+void Papi<ValueType>::on_iteration_complete(
+    const LinOp* solver, const LinOp* b, const LinOp* solution,
+    const size_type& num_iterations, const LinOp* residual,
+    const LinOp* residual_norm, const LinOp* implicit_resnorm_sq,
+    const array<stopping_status>* status, bool stopped) const
+{
+    iteration_complete.get_counter(solver) = num_iterations;
+}
+
+
+template <typename ValueType>
 void Papi<ValueType>::on_iteration_complete(const LinOp* solver,
                                             const size_type& num_iterations,
                                             const LinOp* residual,
                                             const LinOp* solution,
                                             const LinOp* residual_norm) const
 {
-    this->on_iteration_complete(solver, num_iterations, residual, solution,
-                                residual_norm, nullptr);
+    this->on_iteration_complete(solver, nullptr, solution, num_iterations,
+                                residual, residual_norm, nullptr, nullptr,
+                                false);
 }
 
 
@@ -290,7 +302,9 @@ void Papi<ValueType>::on_iteration_complete(
     const LinOp* solution, const LinOp* residual_norm,
     const LinOp* implicit_sq_residual_norm) const
 {
-    iteration_complete.get_counter(solver) = num_iterations;
+    this->on_iteration_complete(solver, nullptr, solution, num_iterations,
+                                residual, residual_norm,
+                                implicit_sq_residual_norm, nullptr, false);
 }
 
 

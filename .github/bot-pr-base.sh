@@ -5,7 +5,7 @@ source .github/bot-base.sh
 EXTENSION_REGEX='\.(cuh?|hpp|hpp\.inc?|cpp)$'
 FORMAT_HEADER_REGEX='^(benchmark|core|cuda|hip|include/ginkgo/core|omp|reference|dpcpp|common/unified|test)/'
 FORMAT_REGEX='^(common|examples)/'
-CLANG_FORMAT=clang-format-9
+CLANG_FORMAT=clang-format-14
 
 echo -n "Collecting information on triggering PR"
 PR_URL=$(jq -r .pull_request.url "$GITHUB_EVENT_PATH")
@@ -29,6 +29,8 @@ echo -n .
 PR_JSON=$(api_get $PR_URL)
 echo -n .
 PR_MERGED=$(echo "$PR_JSON" | jq -r .merged)
+echo -n .
+PR_NUMBER=$(echo "$PR_JSON" | jq -r .number)
 echo -n .
 ISSUE_URL=$(echo "$PR_JSON" | jq -er ".issue_url")
 echo -n .

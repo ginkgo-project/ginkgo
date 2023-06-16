@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -213,7 +213,7 @@ void build_local_nonlocal(
     }
     const auto num_non_local_cols = std::accumulate(
         recv_sizes_ptr, recv_sizes_ptr + num_parts, size_type{});
-    components::prefix_sum(exec, recv_sizes_ptr, num_parts);
+    components::prefix_sum_nonnegative(exec, recv_sizes_ptr, num_parts);
 
     // collect and renumber offdiagonal columns
     local_gather_idxs.resize_and_reset(num_non_local_cols);

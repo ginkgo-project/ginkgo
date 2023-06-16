@@ -7,11 +7,11 @@ concurrency:
   cancel-in-progress: true
 jobs:
   check-format:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     if: github.event.pull_request.author_association == 'COLLABORATOR' || github.event.pull_request.author_association == 'MEMBER' || github.event.pull_request.author_association == 'OWNER'
     steps:
       - name: Checkout the latest code (shallow clone)
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: develop
       - name: Check for formatting changes
@@ -20,7 +20,7 @@ jobs:
         run: cp .github/check-format.sh /tmp && /tmp/check-format.sh
       - name: Upload code formatting patch
         if: failure()
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: patch
           path: format.patch
@@ -31,12 +31,12 @@ jobs:
       CMAKE_FLAGS: -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=DEBUG -DGINKGO_BUILD_TESTS=OFF -DGINKGO_BUILD_EXAMPLES=OFF -DGINKGO_BUILD_BENCHMARKS=OFF -DGINKGO_BUILD_HWLOC=OFF -DGINKGO_BUILD_REFERENCE=OFF -DGINKGO_BUILD_OMP=OFF -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_HIP=OFF -DGINKGO_BUILD_DPCPP=OFF
     steps:
       - name: Checkout the new code (shallow clone)
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           path: new
           ref: ${{ github.event.pull_request.head.ref }}
       - name: Checkout the old code (shallow clone)
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           path: old
           ref: ${{ github.event.pull_request.base.ref }}
@@ -56,7 +56,19 @@ jobs:
         run: old/.github/abidiff.sh
       - name: Upload ABI diff
         if: failure()
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
             name: abi
             path: abi.diff
+  check-wiki-changelog:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.author_association == 'COLLABORATOR' || github.event.pull_request.author_association == 'MEMBER' || github.event.pull_request.author_association == 'OWNER'
+    steps:
+    - name: Checkout the latest code (shallow clone)
+      uses: actions/checkout@v3
+      with:
+        ref: develop
+    - name: Check if PR number exists in wiki/Changelog
+      env:
+        GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+      run: .github/check-wiki-changelog.sh

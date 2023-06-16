@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -77,7 +77,7 @@ protected:
         return gko::test::detail::get_rand_value<T>(distb, engine);
     }
 
-    void generate_sin(Dense* const x)
+    void generate_sin(gko::ptr_param<Dense> x)
     {
         value_type* const xarr = x->get_values();
         for (index_type i = 0; i < x->get_size()[0] * x->get_size()[1]; i++) {
@@ -140,7 +140,7 @@ TYPED_TEST(Fbcsr, TransposeIsEquivalentToRefSortedBS7)
     auto rsorted2 = gko::test::generate_random_fbcsr<value_type, index_type>(
         this->ref, rand_brows, rand_bcols, block_size, false, false,
         std::default_random_engine(43));
-    drand->copy_from(gko::lend(rsorted2));
+    drand->copy_from(rsorted2);
 
     auto trans = gko::as<Mtx>(rsorted2->transpose());
     auto dtrans = gko::as<Mtx>(drand->transpose());
@@ -158,14 +158,14 @@ TYPED_TEST(Fbcsr, SpmvIsEquivalentToRefSorted)
     auto drand = gko::clone(this->exec, this->rsorted);
     auto x =
         Dense::create(this->ref, gko::dim<2>(this->rsorted->get_size()[1], 1));
-    this->generate_sin(x.get());
+    this->generate_sin(x);
     auto dx = gko::clone(this->exec, x);
     auto prod =
         Dense::create(this->ref, gko::dim<2>(this->rsorted->get_size()[0], 1));
     auto dprod = Dense::create(this->exec, prod->get_size());
 
-    drand->apply(dx.get(), dprod.get());
-    this->rsorted->apply(x.get(), prod.get());
+    drand->apply(dx, dprod);
+    this->rsorted->apply(x, prod);
 
     const double tol = r<value_type>::value;
     GKO_ASSERT_MTX_NEAR(prod, dprod, 5 * tol);
@@ -180,14 +180,14 @@ TYPED_TEST(Fbcsr, SpmvMultiIsEquivalentToRefSorted)
     auto drand = gko::clone(this->exec, this->rsorted);
     auto x =
         Dense::create(this->ref, gko::dim<2>(this->rsorted->get_size()[1], 3));
-    this->generate_sin(x.get());
+    this->generate_sin(x);
     auto dx = gko::clone(this->exec, x);
     auto prod =
         Dense::create(this->ref, gko::dim<2>(this->rsorted->get_size()[0], 3));
     auto dprod = Dense::create(this->exec, prod->get_size());
 
-    drand->apply(dx.get(), dprod.get());
-    this->rsorted->apply(x.get(), prod.get());
+    drand->apply(dx, dprod);
+    this->rsorted->apply(x, prod);
 
     const double tol = r<value_type>::value;
     GKO_ASSERT_MTX_NEAR(prod, dprod, 5 * tol);
@@ -203,11 +203,11 @@ TYPED_TEST(Fbcsr, AdvancedSpmvIsEquivalentToRefSorted)
     auto drand = gko::clone(this->exec, this->rsorted);
     auto x =
         Dense::create(this->ref, gko::dim<2>(this->rsorted->get_size()[1], 1));
-    this->generate_sin(x.get());
+    this->generate_sin(x);
     auto dx = gko::clone(this->exec, x);
     auto prod =
         Dense::create(this->ref, gko::dim<2>(this->rsorted->get_size()[0], 1));
-    this->generate_sin(prod.get());
+    this->generate_sin(prod);
     auto dprod = gko::clone(this->exec, prod);
     auto alpha = Dense::create(this->ref, gko::dim<2>(1, 1));
     alpha->at(0, 0) = static_cast<real_type>(2.4) + this->get_random_value();
@@ -216,8 +216,8 @@ TYPED_TEST(Fbcsr, AdvancedSpmvIsEquivalentToRefSorted)
     auto dalpha = gko::clone(this->exec, alpha);
     auto dbeta = gko::clone(this->exec, beta);
 
-    drand->apply(dalpha.get(), dx.get(), dbeta.get(), dprod.get());
-    this->rsorted->apply(alpha.get(), x.get(), beta.get(), prod.get());
+    drand->apply(dalpha, dx, dbeta, dprod);
+    this->rsorted->apply(alpha, x, beta, prod);
 
     const double tol = r<value_type>::value;
     GKO_ASSERT_MTX_NEAR(prod, dprod, 5 * tol);
@@ -233,11 +233,11 @@ TYPED_TEST(Fbcsr, AdvancedSpmvMultiIsEquivalentToRefSorted)
     auto drand = gko::clone(this->exec, this->rsorted);
     auto x =
         Dense::create(this->ref, gko::dim<2>(this->rsorted->get_size()[1], 3));
-    this->generate_sin(x.get());
+    this->generate_sin(x);
     auto dx = gko::clone(this->exec, x);
     auto prod =
         Dense::create(this->ref, gko::dim<2>(this->rsorted->get_size()[0], 3));
-    this->generate_sin(prod.get());
+    this->generate_sin(prod);
     auto dprod = gko::clone(this->exec, prod);
     auto alpha = Dense::create(this->ref, gko::dim<2>(1, 1));
     alpha->at(0, 0) = static_cast<real_type>(2.4) + this->get_random_value();
@@ -246,8 +246,8 @@ TYPED_TEST(Fbcsr, AdvancedSpmvMultiIsEquivalentToRefSorted)
     auto dalpha = gko::clone(this->exec, alpha);
     auto dbeta = gko::clone(this->exec, beta);
 
-    drand->apply(dalpha.get(), dx.get(), dbeta.get(), dprod.get());
-    this->rsorted->apply(alpha.get(), x.get(), beta.get(), prod.get());
+    drand->apply(dalpha, dx, dbeta, dprod);
+    this->rsorted->apply(alpha, x, beta, prod);
 
     const double tol = r<value_type>::value;
     GKO_ASSERT_MTX_NEAR(prod, dprod, 5 * tol);

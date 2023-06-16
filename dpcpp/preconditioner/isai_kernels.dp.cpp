@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -160,18 +160,32 @@ __dpct_inline__ void generic_generate(
             auto m_row_begin = m_row_ptrs[col];
             auto m_row_size = m_row_ptrs[col + 1] - m_row_begin;
             // extract the dense submatrix consisting of the entries whose
-            // columns/rows match column indices from this row
+            // columns/rows match column indices from this row within the
+            // sparsity pattern of the original matrix (matches outside of that
+            // are zero)
             group_match<subwarp_size>(
                 m_col_idxs + m_row_begin, m_row_size, i_col_idxs + i_row_begin,
                 i_row_size, subwarp,
                 [&](IndexType, IndexType m_idx, IndexType i_idx,
                     config::lane_mask_type, bool valid) {
-                    rhs_one_idx += popcnt(subwarp.ballot(
-                        valid && m_col_idxs[m_row_begin + m_idx] < row &&
-                        col == row));
                     if (valid) {
                         dense_system(nz, i_idx) = m_values[m_row_begin + m_idx];
                     }
+                });
+            const auto i_transposed_row_begin = i_row_ptrs[col];
+            const auto i_transposed_row_size =
+                i_row_ptrs[col + 1] - i_transposed_row_begin;
+            // Loop over all matches that are within the sparsity pattern of
+            // the inverse to find the index of the one in the right-hand-side
+            group_match<subwarp_size>(
+                i_col_idxs + i_transposed_row_begin, i_transposed_row_size,
+                i_col_idxs + i_row_begin, i_row_size, subwarp,
+                [&](IndexType, IndexType m_idx, IndexType i_idx,
+                    config::lane_mask_type, bool valid) {
+                    rhs_one_idx += popcnt(subwarp.ballot(
+                        valid &&
+                        i_col_idxs[i_transposed_row_begin + m_idx] < row &&
+                        col == row));
                 });
         }
 
@@ -260,14 +274,14 @@ void generate_l_inverse(dim3 grid, dim3 block, size_type dynamic_shared_memory,
             storage_acc_ct1(cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=
-        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                            subwarp_size)]] {
-                generate_l_inverse<subwarp_size, subwarps_per_block>(
-                    num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs,
-                    i_col_idxs, i_values, excess_rhs_sizes, excess_nnz,
-                    item_ct1, storage_acc_ct1.get_pointer().get());
-            });
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1)
+                [[sycl::reqd_sub_group_size(subwarp_size)]] {
+                    generate_l_inverse<subwarp_size, subwarps_per_block>(
+                        num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs,
+                        i_col_idxs, i_values, excess_rhs_sizes, excess_nnz,
+                        item_ct1, storage_acc_ct1.get_pointer().get());
+                });
     });
 }
 
@@ -330,14 +344,14 @@ void generate_u_inverse(dim3 grid, dim3 block, size_type dynamic_shared_memory,
             storage_acc_ct1(cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=
-        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                            subwarp_size)]] {
-                generate_u_inverse<subwarp_size, subwarps_per_block>(
-                    num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs,
-                    i_col_idxs, i_values, excess_rhs_sizes, excess_nnz,
-                    item_ct1, storage_acc_ct1.get_pointer().get());
-            });
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1)
+                [[sycl::reqd_sub_group_size(subwarp_size)]] {
+                    generate_u_inverse<subwarp_size, subwarps_per_block>(
+                        num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs,
+                        i_col_idxs, i_values, excess_rhs_sizes, excess_nnz,
+                        item_ct1, storage_acc_ct1.get_pointer().get());
+                });
     });
 }
 
@@ -412,14 +426,14 @@ void generate_general_inverse(
             storage_acc_ct1(cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=
-        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                            subwarp_size)]] {
-                generate_general_inverse<subwarp_size, subwarps_per_block>(
-                    num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs,
-                    i_col_idxs, i_values, excess_rhs_sizes, excess_nnz, spd,
-                    item_ct1, storage_acc_ct1.get_pointer().get());
-            });
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1)
+                [[sycl::reqd_sub_group_size(subwarp_size)]] {
+                    generate_general_inverse<subwarp_size, subwarps_per_block>(
+                        num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs,
+                        i_col_idxs, i_values, excess_rhs_sizes, excess_nnz, spd,
+                        item_ct1, storage_acc_ct1.get_pointer().get());
+                });
     });
 }
 
@@ -512,15 +526,16 @@ void generate_excess_system(
     ValueType* excess_values, ValueType* excess_rhs, size_type e_start,
     size_type e_end)
 {
-    queue->parallel_for(
-        sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subwarp_size)]] {
-            generate_excess_system<subwarp_size>(
-                num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs,
-                i_col_idxs, excess_rhs_ptrs, excess_nz_ptrs, excess_row_ptrs,
-                excess_col_idxs, excess_values, excess_rhs, e_start, e_end,
-                item_ct1);
-        });
+    queue->parallel_for(sycl_nd_range(grid, block),
+                        [=](sycl::nd_item<3> item_ct1)
+                            [[sycl::reqd_sub_group_size(subwarp_size)]] {
+                                generate_excess_system<subwarp_size>(
+                                    num_rows, m_row_ptrs, m_col_idxs, m_values,
+                                    i_row_ptrs, i_col_idxs, excess_rhs_ptrs,
+                                    excess_nz_ptrs, excess_row_ptrs,
+                                    excess_col_idxs, excess_values, excess_rhs,
+                                    e_start, e_end, item_ct1);
+                            });
 }
 
 template <int subwarp_size, typename ValueType, typename IndexType>
@@ -562,12 +577,13 @@ void scale_excess_solution(dim3 grid, dim3 block,
                            ValueType* excess_solution, size_type e_start,
                            size_type e_end)
 {
-    queue->parallel_for(
-        sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subwarp_size)]] {
-            scale_excess_solution<subwarp_size>(
-                excess_block_ptrs, excess_solution, e_start, e_end, item_ct1);
-        });
+    queue->parallel_for(sycl_nd_range(grid, block),
+                        [=](sycl::nd_item<3> item_ct1)
+                            [[sycl::reqd_sub_group_size(subwarp_size)]] {
+                                scale_excess_solution<subwarp_size>(
+                                    excess_block_ptrs, excess_solution, e_start,
+                                    e_end, item_ct1);
+                            });
 }
 
 template <int subwarp_size, typename ValueType, typename IndexType>
@@ -611,13 +627,14 @@ void copy_excess_solution(dim3 grid, dim3 block,
                           const ValueType* excess_solution, ValueType* i_values,
                           size_type e_start, size_type e_end)
 {
-    queue->parallel_for(
-        sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subwarp_size)]] {
-            copy_excess_solution<subwarp_size>(
-                num_rows, i_row_ptrs, excess_rhs_ptrs, excess_solution,
-                i_values, e_start, e_end, item_ct1);
-        });
+    queue->parallel_for(sycl_nd_range(grid, block),
+                        [=](sycl::nd_item<3> item_ct1)
+                            [[sycl::reqd_sub_group_size(subwarp_size)]] {
+                                copy_excess_solution<subwarp_size>(
+                                    num_rows, i_row_ptrs, excess_rhs_ptrs,
+                                    excess_solution, i_values, e_start, e_end,
+                                    item_ct1);
+                            });
 }
 
 
@@ -652,8 +669,8 @@ void generate_tri_inverse(std::shared_ptr<const DefaultExecutor> exec,
                 inverse->get_values(), excess_rhs_ptrs, excess_nz_ptrs);
         }
     }
-    components::prefix_sum(exec, excess_rhs_ptrs, num_rows + 1);
-    components::prefix_sum(exec, excess_nz_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, excess_rhs_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, excess_nz_ptrs, num_rows + 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -679,8 +696,8 @@ void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
             inverse->get_col_idxs(), inverse->get_values(), excess_rhs_ptrs,
             excess_nz_ptrs, spd);
     }
-    components::prefix_sum(exec, excess_rhs_ptrs, num_rows + 1);
-    components::prefix_sum(exec, excess_nz_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, excess_rhs_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, excess_nz_ptrs, num_rows + 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

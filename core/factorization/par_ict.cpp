@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -238,7 +238,7 @@ void ParIctState<ValueType, IndexType>::iterate()
     // update L(COO), L'^H sizes and pointers
     {
         auto l_nnz = l_new->get_num_stored_elements();
-        CooBuilder l_builder{l_coo.get()};
+        CooBuilder l_builder{l_coo};
         // resize arrays that will be filled
         l_builder.get_row_idx_array().resize_and_reset(l_nnz);
         // update arrays that will be aliased
@@ -284,7 +284,7 @@ void ParIctState<ValueType, IndexType>::iterate()
     // convert L to L^H
     {
         auto l_nnz = l->get_num_stored_elements();
-        CsrBuilder lt_builder{lh.get()};
+        CsrBuilder lt_builder{lh};
         lt_builder.get_col_idx_array().resize_and_reset(l_nnz);
         lt_builder.get_value_array().resize_and_reset(l_nnz);
     }

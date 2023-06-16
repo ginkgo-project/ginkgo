@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -72,7 +72,8 @@ GKO_REGISTER_OPERATION(compute_coo_row_ptrs, hybrid::compute_coo_row_ptrs);
 GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 GKO_REGISTER_OPERATION(convert_to_csr, hybrid::convert_to_csr);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
-GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum);
+GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
+                       components::prefix_sum_nonnegative);
 GKO_REGISTER_OPERATION(inplace_absolute_array,
                        components::inplace_absolute_array);
 GKO_REGISTER_OPERATION(outplace_absolute_array,
@@ -163,8 +164,8 @@ template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::convert_to(
     Hybrid<next_precision<ValueType>, IndexType>* result) const
 {
-    this->ell_->convert_to(result->ell_.get());
-    this->coo_->convert_to(result->coo_.get());
+    this->ell_->convert_to(result->ell_);
+    this->coo_->convert_to(result->coo_);
     // TODO set strategy correctly
     // There is no way to correctly clone the strategy like in
     // Csr::convert_to
@@ -213,8 +214,8 @@ void Hybrid<ValueType, IndexType>::convert_to(
         array<IndexType> coo_row_ptrs{exec, num_rows + 1};
         exec->run(hybrid::make_ell_count_nonzeros_per_row(
             this->get_ell(), ell_row_ptrs.get_data()));
-        exec->run(
-            hybrid::make_prefix_sum(ell_row_ptrs.get_data(), num_rows + 1));
+        exec->run(hybrid::make_prefix_sum_nonnegative(ell_row_ptrs.get_data(),
+                                                      num_rows + 1));
         exec->run(hybrid::make_convert_idxs_to_ptrs(
             this->get_const_coo_row_idxs(), this->get_coo_num_stored_elements(),
             num_rows, coo_row_ptrs.get_data()));
@@ -340,8 +341,8 @@ Hybrid<ValueType, IndexType>::extract_diagonal() const
     auto diag = Diagonal<ValueType>::create(exec, diag_size);
     exec->run(hybrid::make_fill_array(diag->get_values(), diag->get_size()[0],
                                       zero<ValueType>()));
-    exec->run(hybrid::make_ell_extract_diagonal(this->get_ell(), lend(diag)));
-    exec->run(hybrid::make_coo_extract_diagonal(this->get_coo(), lend(diag)));
+    exec->run(hybrid::make_ell_extract_diagonal(this->get_ell(), diag.get()));
+    exec->run(hybrid::make_coo_extract_diagonal(this->get_coo(), diag.get()));
     return diag;
 }
 
@@ -367,8 +368,8 @@ Hybrid<ValueType, IndexType>::compute_absolute() const
     auto abs_hybrid = absolute_type::create(
         exec, this->get_size(), this->get_strategy<absolute_type>());
 
-    abs_hybrid->ell_->copy_from(ell_->compute_absolute());
-    abs_hybrid->coo_->copy_from(coo_->compute_absolute());
+    abs_hybrid->ell_->move_from(ell_->compute_absolute());
+    abs_hybrid->coo_->move_from(coo_->compute_absolute());
 
     return abs_hybrid;
 }

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -172,16 +172,19 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
      */
     while (true) {
         ++iter;
-        this->template log<log::Logger::iteration_complete>(
-            this, iter, r, dense_x, nullptr, rho);
         rr->compute_conj_dot(r, rho, reduction_tmp);
 
-        if (stop_criterion->update()
+        bool all_stopped =
+            stop_criterion->update()
                 .num_iterations(iter)
                 .residual(r)
                 .implicit_sq_residual_norm(rho)
                 .solution(dense_x)
-                .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
+                .check(RelativeStoppingId, true, &stop_status, &one_changed);
+        this->template log<log::Logger::iteration_complete>(
+            this, dense_b, dense_x, iter, r, nullptr, rho, &stop_status,
+            all_stopped);
+        if (all_stopped) {
             break;
         }
 
@@ -204,7 +207,7 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
             gko::detail::get_local(r), gko::detail::get_local(s),
             gko::detail::get_local(v), rho, alpha, beta, &stop_status));
 
-        auto all_converged =
+        all_stopped =
             stop_criterion->update()
                 .num_iterations(iter)
                 .residual(s)
@@ -216,7 +219,10 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
                                               gko::detail::get_local(y), alpha,
                                               &stop_status));
         }
-        if (all_converged) {
+        this->template log<log::Logger::iteration_complete>(
+            this, dense_b, dense_x, iter, r, nullptr, rho, &stop_status,
+            all_stopped);
+        if (all_stopped) {
             break;
         }
 
@@ -253,7 +259,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
             auto x_clone = dense_x->clone();
             this->apply_dense_impl(dense_b, x_clone.get());
             dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, x_clone.get());
+            dense_x->add_scaled(dense_alpha, x_clone);
         },
         alpha, b, beta, x);
 }

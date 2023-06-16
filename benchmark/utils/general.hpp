@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -58,8 +58,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rapidjson/prettywriter.h>
 
 
+#include "benchmark/utils/json.hpp"
 #include "benchmark/utils/timer.hpp"
 #include "benchmark/utils/types.hpp"
+#include "core/distributed/helpers.hpp"
 
 
 // Global command-line arguments
@@ -82,14 +84,29 @@ DEFINE_string(double_buffer, "",
               " buffering of backup files, in case of a"
               " crash when overwriting the backup");
 
+DEFINE_string(
+    input, "",
+    "If set, the value is used as the input for the benchmark (if set to a "
+    "json string ending with ]) or as input file path (otherwise).");
+
 DEFINE_bool(detailed, true,
             "If set, performs several runs to obtain more detailed results");
 
-DEFINE_bool(keep_errors, false,
+DEFINE_bool(keep_errors, true,
             "If set, writes exception messages during the execution into the "
             "JSON output");
 
 DEFINE_bool(nested_names, false, "If set, separately logs nested operations");
+
+DEFINE_bool(profile, false,
+            "If set, enables profiler mode: 1 repetition, 0 warmup "
+            "repetitions, detailed=false, profiler_hook=auto (if it is not "
+            "otherwise set)");
+
+DEFINE_string(
+    profiler_hook, "none",
+    "Which profiler annotation mode to use, if any. Options are "
+    "none, nvtx, roctx, vtune, tau, debug, auto (choose based on executor).");
 
 DEFINE_uint32(seed, 42, "Seed used for the random number generator");
 
@@ -114,9 +131,10 @@ DEFINE_uint32(max_repetitions, std::numeric_limits<unsigned int>::max(),
               "If 'repetitions = auto' is used, the maximal number of"
               " repetitions for a single benchmark.");
 
-DEFINE_double(repetition_growth_factor, 1.5,
-              "If 'repetitions = auto' is used, the factor with which the"
-              " repetitions between two timings increase.");
+DEFINE_double(
+    repetition_growth_factor, 1.5,
+    "The factor with which the repetitions between two timings increase. If it "
+    "is lower than or equal to 1, the timing region is always 1 repetition.");
 
 
 /**
@@ -137,12 +155,12 @@ void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
            "format,\n"
         << "  but with test cases extended to include an additional member "
            "\n"
-        << "  object for each solver run in the benchmark.\n"
+        << "  object for each benchmark run.\n"
         << "  If run with a --backup flag, an intermediate result is "
            "written \n"
         << "  to a file in the same format. The backup file can be used as "
            "\n"
-        << "  input \n to this test suite, and the benchmarking will \n"
+        << "  input to this test suite, and the benchmarking will \n"
         << "  continue from the point where the backup file was created.";
 
     gflags::SetUsageMessage(doc.str());
@@ -150,6 +168,14 @@ void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
     ver << gko::version_info::get();
     gflags::SetVersionString(ver.str());
     gflags::ParseCommandLineFlags(argc, argv, true);
+    if (FLAGS_profile) {
+        FLAGS_repetitions = "1";
+        FLAGS_warmup = 0;
+        FLAGS_detailed = false;
+        if (FLAGS_profiler_hook == "none") {
+            FLAGS_profiler_hook = "auto";
+        }
+    }
 }
 
 /**
@@ -178,21 +204,68 @@ void print_general_information(const std::string& extra)
 }
 
 
-/**
- * Creates a Ginkgo matrix from an input file.
- *
- * @param exec  the executor where the matrix will be put
- * @param options  should contain a `filename` option with the input file string
- *
- * @tparam MatrixType  the Ginkgo matrix type (such as `gko::matrix::Csr<>`)
- */
-template <typename MatrixType>
-std::unique_ptr<gko::LinOp> read_matrix(
-    std::shared_ptr<const gko::Executor> exec, const rapidjson::Value& options)
+std::shared_ptr<gko::log::ProfilerHook> create_profiler_hook(
+    std::shared_ptr<const gko::Executor> exec)
 {
-    return gko::read<MatrixType>(std::ifstream(options["filename"].GetString()),
-                                 std::move(exec));
+    using gko::log::ProfilerHook;
+    std::map<std::string, std::function<std::shared_ptr<ProfilerHook>()>>
+        hook_map{
+            {"none", [] { return std::shared_ptr<ProfilerHook>{}; }},
+            {"auto", [&] { return ProfilerHook::create_for_executor(exec); }},
+            {"nvtx", [] { return ProfilerHook::create_nvtx(); }},
+            {"roctx", [] { return ProfilerHook::create_roctx(); }},
+            {"tau", [] { return ProfilerHook::create_tau(); }},
+            {"vtune", [] { return ProfilerHook::create_vtune(); }},
+            {"debug", [] {
+                 return ProfilerHook::create_custom(
+                     [](const char* name, gko::log::profile_event_category) {
+                         std::clog << "DEBUG: begin " << name << '\n';
+                     },
+                     [](const char* name, gko::log::profile_event_category) {
+                         std::clog << "DEBUG: end   " << name << '\n';
+                     });
+             }}};
+    return hook_map.at(FLAGS_profiler_hook)();
 }
+
+
+struct owning_profiling_scope_guard {
+    std::string name;
+    gko::log::profiling_scope_guard guard;
+
+    owning_profiling_scope_guard() = default;
+
+    owning_profiling_scope_guard(std::string name_,
+                                 gko::log::ProfilerHook* profiler_hook)
+        : name(std::move(name_)), guard{profiler_hook->user_range(name.c_str())}
+    {}
+};
+
+
+struct annotate_functor {
+    owning_profiling_scope_guard operator()(std::string name) const
+    {
+        if (profiler_hook) {
+            return owning_profiling_scope_guard{std::move(name),
+                                                profiler_hook.get()};
+        }
+        return {};
+    }
+
+    gko::log::profiling_scope_guard operator()(const char* name) const
+    {
+        if (profiler_hook) {
+            return profiler_hook->user_range(name);
+        }
+        return {};
+    }
+
+    annotate_functor(std::shared_ptr<gko::log::ProfilerHook> profiler_hook)
+        : profiler_hook{std::move(profiler_hook)}
+    {}
+
+    std::shared_ptr<gko::log::ProfilerHook> profiler_hook;
+};
 
 
 // Returns a random number engine
@@ -200,59 +273,6 @@ std::default_random_engine& get_engine()
 {
     static std::default_random_engine engine(FLAGS_seed);
     return engine;
-}
-
-
-// helper for writing out rapidjson Values
-std::ostream& operator<<(std::ostream& os, const rapidjson::Value& value)
-{
-    rapidjson::OStreamWrapper jos(os);
-    rapidjson::PrettyWriter<rapidjson::OStreamWrapper, rapidjson::UTF8<>,
-                            rapidjson::UTF8<>, rapidjson::CrtAllocator,
-                            rapidjson::kWriteNanAndInfFlag>
-        writer(jos);
-    value.Accept(writer);
-    return os;
-}
-
-
-// helper for setting rapidjson object members
-template <typename T, typename NameType, typename Allocator>
-std::enable_if_t<
-    !std::is_same<typename std::decay<T>::type, gko::size_type>::value, void>
-add_or_set_member(rapidjson::Value& object, NameType&& name, T&& value,
-                  Allocator&& allocator)
-{
-    if (object.HasMember(name)) {
-        object[name] = std::forward<T>(value);
-    } else {
-        auto n = rapidjson::Value(name, allocator);
-        object.AddMember(n, std::forward<T>(value), allocator);
-    }
-}
-
-
-/**
-   @internal This is required to fix some MacOS problems (and possibly other
-   compilers). There is no explicit RapidJSON constructor for `std::size_t` so a
-   conversion to a known constructor is required to solve any ambiguity. See the
-   last comments of https://github.com/ginkgo-project/ginkgo/issues/270.
- */
-template <typename T, typename NameType, typename Allocator>
-std::enable_if_t<
-    std::is_same<typename std::decay<T>::type, gko::size_type>::value, void>
-add_or_set_member(rapidjson::Value& object, NameType&& name, T&& value,
-                  Allocator&& allocator)
-{
-    if (object.HasMember(name)) {
-        object[name] =
-            std::forward<std::uint64_t>(static_cast<std::uint64_t>(value));
-    } else {
-        auto n = rapidjson::Value(name, allocator);
-        object.AddMember(
-            n, std::forward<std::uint64_t>(static_cast<std::uint64_t>(value)),
-            allocator);
-    }
 }
 
 
@@ -266,6 +286,26 @@ std::vector<std::string> split(const std::string& s, char delimiter = ',')
         tokens.push_back(token);
     }
     return tokens;
+}
+
+
+// returns the stream to be used as input of the application
+std::istream& get_input_stream()
+{
+    static auto stream = []() -> std::unique_ptr<std::istream> {
+        std::string input_str(FLAGS_input);
+        if (input_str.empty()) {
+            return nullptr;
+        }
+        if (input_str.back() == ']') {
+            return std::make_unique<std::stringstream>(input_str);
+        }
+        return std::make_unique<std::ifstream>(input_str);
+    }();
+    if (stream) {
+        return *stream;
+    }
+    return std::cin;
 }
 
 
@@ -315,6 +355,50 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>(bool)>>
          }}};
 
 
+#if GINKGO_BUILD_MPI
+
+
+const std::map<std::string,
+               std::function<std::shared_ptr<gko::Executor>(MPI_Comm)>>
+    executor_factory_mpi{
+        {"reference",
+         [](MPI_Comm) { return gko::ReferenceExecutor::create(); }},
+        {"omp", [](MPI_Comm) { return gko::OmpExecutor::create(); }},
+        {"cuda",
+         [](MPI_Comm comm) {
+             FLAGS_device_id = gko::experimental::mpi::map_rank_to_device_id(
+                 comm, gko::CudaExecutor::get_num_devices());
+             return gko::CudaExecutor::create(
+                 FLAGS_device_id, gko::ReferenceExecutor::create(), false,
+                 gko::allocation_mode::device);
+         }},
+        {"hip",
+         [](MPI_Comm comm) {
+             FLAGS_device_id = gko::experimental::mpi::map_rank_to_device_id(
+                 comm, gko::HipExecutor::get_num_devices());
+             return gko::HipExecutor::create(
+                 FLAGS_device_id, gko::ReferenceExecutor::create(), true);
+         }},
+        {"dpcpp", [](MPI_Comm comm) {
+             if (gko::DpcppExecutor::get_num_devices("gpu")) {
+                 FLAGS_device_id =
+                     gko::experimental::mpi::map_rank_to_device_id(
+                         comm, gko::DpcppExecutor::get_num_devices("gpu"));
+             } else if (gko::DpcppExecutor::get_num_devices("cpu")) {
+                 FLAGS_device_id =
+                     gko::experimental::mpi::map_rank_to_device_id(
+                         comm, gko::DpcppExecutor::get_num_devices("cpu"));
+             } else {
+                 GKO_NOT_IMPLEMENTED;
+             }
+             return gko::DpcppExecutor::create(
+                 FLAGS_device_id, gko::ReferenceExecutor::create());
+         }}};
+
+
+#endif
+
+
 // returns the appropriate executor, as set by the executor flag
 std::shared_ptr<gko::Executor> get_executor(bool use_gpu_timer)
 {
@@ -341,7 +425,7 @@ create_matrix_sin(std::shared_ptr<const gko::Executor> exec, gko::dim<2> size)
         }
     }
     auto res = vec<ValueType>::create(exec);
-    h_res->move_to(res.get());
+    h_res->move_to(res);
     return res;
 }
 
@@ -361,58 +445,9 @@ create_matrix_sin(std::shared_ptr<const gko::Executor> exec, gko::dim<2> size)
         }
     }
     auto res = vec<ValueType>::create(exec);
-    h_res->move_to(res.get());
+    h_res->move_to(res);
     return res;
 }
-
-
-template <typename ValueType>
-std::unique_ptr<vec<ValueType>> create_matrix(
-    std::shared_ptr<const gko::Executor> exec, gko::dim<2> size,
-    ValueType value)
-{
-    auto res = vec<ValueType>::create(exec);
-    res->read(gko::matrix_data<ValueType, itype>(size, value));
-    return res;
-}
-
-
-// creates a random matrix
-template <typename ValueType, typename RandomEngine>
-std::unique_ptr<vec<ValueType>> create_matrix(
-    std::shared_ptr<const gko::Executor> exec, gko::dim<2> size,
-    RandomEngine& engine)
-{
-    auto res = vec<ValueType>::create(exec);
-    res->read(gko::matrix_data<ValueType, itype>(
-        size,
-        std::uniform_real_distribution<gko::remove_complex<ValueType>>(-1.0,
-                                                                       1.0),
-        engine));
-    return res;
-}
-
-
-// creates a zero vector
-template <typename ValueType>
-std::unique_ptr<vec<ValueType>> create_vector(
-    std::shared_ptr<const gko::Executor> exec, gko::size_type size)
-{
-    auto res = vec<ValueType>::create(exec);
-    res->read(gko::matrix_data<ValueType, itype>(gko::dim<2>{size, 1}));
-    return res;
-}
-
-
-// creates a random vector
-template <typename ValueType, typename RandomEngine>
-std::unique_ptr<vec<ValueType>> create_vector(
-    std::shared_ptr<const gko::Executor> exec, gko::size_type size,
-    RandomEngine& engine)
-{
-    return create_matrix<ValueType>(exec, gko::dim<2>{size, 1}, engine);
-}
-
 
 // utilities for computing norms and residuals
 template <typename ValueType>
@@ -422,21 +457,23 @@ ValueType get_norm(const vec<ValueType>* norm)
 }
 
 
-template <typename ValueType>
-gko::remove_complex<ValueType> compute_norm2(const vec<ValueType>* b)
+template <typename VectorType,
+          typename ValueType = typename VectorType::value_type>
+gko::remove_complex<ValueType> compute_norm2(const VectorType* b)
 {
     auto exec = b->get_executor();
     auto b_norm =
         gko::initialize<vec<gko::remove_complex<ValueType>>>({0.0}, exec);
-    b->compute_norm2(lend(b_norm));
-    return get_norm(lend(b_norm));
+    b->compute_norm2(b_norm);
+    return get_norm(b_norm.get());
 }
 
 
-template <typename ValueType>
+template <typename VectorType,
+          typename ValueType = typename VectorType::value_type>
 gko::remove_complex<ValueType> compute_direct_error(const gko::LinOp* solver,
-                                                    const vec<ValueType>* b,
-                                                    const vec<ValueType>* x)
+                                                    const VectorType* b,
+                                                    const VectorType* x)
 {
     auto ref_exec = gko::ReferenceExecutor::create();
     auto exec = solver->get_executor();
@@ -444,48 +481,50 @@ gko::remove_complex<ValueType> compute_direct_error(const gko::LinOp* solver,
     auto one = gko::initialize<vec<ValueType>>({1.0}, exec);
     auto neg_one = gko::initialize<vec<ValueType>>({-1.0}, exec);
     auto err = gko::clone(ref_exec, x);
-    ref_solver->apply(lend(one), lend(b), lend(neg_one), lend(err));
-    return compute_norm2(lend(err));
+    ref_solver->apply(one, b, neg_one, err);
+    return compute_norm2(err.get());
 }
 
 
-template <typename ValueType>
+template <typename VectorType,
+          typename ValueType = typename VectorType::value_type>
 gko::remove_complex<ValueType> compute_residual_norm(
-    const gko::LinOp* system_matrix, const vec<ValueType>* b,
-    const vec<ValueType>* x)
+    const gko::LinOp* system_matrix, const VectorType* b, const VectorType* x)
 {
     auto exec = system_matrix->get_executor();
     auto one = gko::initialize<vec<ValueType>>({1.0}, exec);
     auto neg_one = gko::initialize<vec<ValueType>>({-1.0}, exec);
     auto res = clone(b);
-    system_matrix->apply(lend(one), lend(x), lend(neg_one), lend(res));
-    return compute_norm2(lend(res));
+    system_matrix->apply(one, x, neg_one, res);
+    return compute_norm2(res.get());
 }
 
 
-template <typename ValueType>
+template <typename VectorType,
+          typename ValueType = typename VectorType::value_type>
 gko::remove_complex<ValueType> compute_max_relative_norm2(
-    vec<ValueType>* result, const vec<ValueType>* answer)
+    VectorType* result, const VectorType* answer)
 {
     using rc_vtype = gko::remove_complex<ValueType>;
     auto exec = answer->get_executor();
     auto answer_norm =
         vec<rc_vtype>::create(exec, gko::dim<2>{1, answer->get_size()[1]});
-    answer->compute_norm2(lend(answer_norm));
+    answer->compute_norm2(answer_norm);
     auto neg_one = gko::initialize<vec<ValueType>>({-1.0}, exec);
-    result->add_scaled(lend(neg_one), lend(answer));
+    result->add_scaled(neg_one, answer);
     auto absolute_norm =
         vec<rc_vtype>::create(exec, gko::dim<2>{1, answer->get_size()[1]});
-    result->compute_norm2(lend(absolute_norm));
+    result->compute_norm2(absolute_norm);
     auto host_answer_norm =
         clone(answer_norm->get_executor()->get_master(), answer_norm);
     auto host_absolute_norm =
         clone(absolute_norm->get_executor()->get_master(), absolute_norm);
     rc_vtype max_relative_norm2 = 0;
     for (gko::size_type i = 0; i < host_answer_norm->get_size()[1]; i++) {
-        max_relative_norm2 =
-            std::max(host_absolute_norm->at(0, i) / host_answer_norm->at(0, i),
-                     max_relative_norm2);
+        max_relative_norm2 = std::max(
+            gko::detail::get_local(host_absolute_norm.get())->at(0, i) /
+                gko::detail::get_local(host_answer_norm.get())->at(0, i),
+            max_relative_norm2);
     }
     return max_relative_norm2;
 }
@@ -598,10 +637,25 @@ public:
         return status_run_.managed_timer.timer;
     }
 
-    double compute_average_time() const
+    /**
+     * Compute the time from the given statistical method
+     *
+     * @param method  the statistical method. If the timer does not have the
+     *                same iteration as the IterationControl, it can only use
+     *                average from the IterationControl.
+     *
+     * @return the statistical time
+     */
+    double compute_time(const std::string& method = "average") const
     {
-        return status_run_.managed_timer.get_total_time() /
-               get_num_repetitions();
+        if (status_run_.managed_timer.timer->get_num_repetitions() ==
+            this->get_num_repetitions()) {
+            return status_run_.managed_timer.compute_time(method);
+        } else {
+            assert(method == "average");
+            return status_run_.managed_timer.get_total_time() /
+                   this->get_num_repetitions();
+        }
     }
 
     IndexType get_num_repetitions() const { return status_run_.cur_it; }
@@ -617,16 +671,21 @@ private:
                 timer->tic();
             }
         }
-        void toc()
+        void toc(unsigned int num = 1)
         {
             if (manage_timings) {
-                timer->toc();
+                timer->toc(num);
             }
         }
 
         void clear() { timer->clear(); }
 
         double get_total_time() const { return timer->get_total_time(); }
+
+        double compute_time(const std::string& method = "average") const
+        {
+            return timer->compute_time(method);
+        }
     };
 
     /**
@@ -681,10 +740,16 @@ private:
             {
                 cur_info->cur_it++;
                 if (cur_info->cur_it >= next_timing && !stopped) {
-                    cur_info->managed_timer.toc();
+                    cur_info->managed_timer.toc(
+                        static_cast<unsigned>(cur_info->cur_it - start_timing));
                     stopped = true;
                     next_timing = static_cast<IndexType>(std::ceil(
                         next_timing * FLAGS_repetition_growth_factor));
+                    // If repetition_growth_factor <= 1, next_timing will be
+                    // next iteration.
+                    if (next_timing <= cur_info->cur_it) {
+                        next_timing = cur_info->cur_it + 1;
+                    }
                 }
                 return *this;
             }
@@ -712,21 +777,24 @@ private:
                 if (!is_finished && stopped) {
                     stopped = false;
                     cur_info->managed_timer.tic();
+                    start_timing = cur_info->cur_it;
                 } else if (is_finished && !stopped) {
-                    cur_info->managed_timer.toc();
+                    cur_info->managed_timer.toc(
+                        static_cast<unsigned>(cur_info->cur_it - start_timing));
                     stopped = true;
                 }
                 return !is_finished;
             }
 
             status* cur_info;
-            IndexType next_timing = 1;  //!< next iteration to stop timing
+            IndexType next_timing = 1;   //!< next iteration to stop timing
+            IndexType start_timing = 0;  //!< iteration for starting timing
             bool stopped = true;
         };
 
         iterator begin() const { return iterator{info}; }
 
-        // not used, could potentially used in c++17 as a sentinel
+        // not used, could potentially be used in c++17 as a sentinel
         iterator end() const { return iterator{}; }
 
         status* info;

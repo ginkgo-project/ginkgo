@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -76,9 +76,9 @@ void set_all_statuses(std::shared_ptr<const CudaExecutor> exec,
     const auto grid_size = ceildiv(stop_status->get_num_elems(), block_size);
 
     if (grid_size > 0) {
-        set_all_statuses<<<grid_size, block_size, 0, 0>>>(
+        set_all_statuses<<<grid_size, block_size, 0, exec->get_stream()>>>(
             stop_status->get_num_elems(), stoppingId, setFinalized,
-            as_cuda_type(stop_status->get_data()));
+            as_device_type(stop_status->get_data()));
     }
 }
 

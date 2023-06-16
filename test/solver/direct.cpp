@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -155,8 +155,8 @@ TYPED_TEST(Direct, ApplyToSingleRhsIsEquivalentToRef)
     auto solver = this->factory->generate(this->mtx);
     auto dsolver = this->dfactory->generate(this->dmtx);
 
-    solver->apply(this->input.get(), this->output.get());
-    dsolver->apply(this->dinput.get(), this->doutput.get());
+    solver->apply(this->input, this->output);
+    dsolver->apply(this->dinput, this->doutput);
 
     GKO_ASSERT_MTX_NEAR(this->output, this->doutput,
                         100 * r<value_type>::value);
@@ -170,8 +170,8 @@ TYPED_TEST(Direct, ApplyToMultipleRhsIsEquivalentToRef)
     auto solver = this->factory->generate(this->mtx);
     auto dsolver = this->dfactory->generate(this->dmtx);
 
-    solver->apply(this->input.get(), this->output.get());
-    dsolver->apply(this->dinput.get(), this->doutput.get());
+    solver->apply(this->input, this->output);
+    dsolver->apply(this->dinput, this->doutput);
 
     GKO_ASSERT_MTX_NEAR(this->output, this->doutput,
                         100 * r<value_type>::value);
@@ -185,10 +185,8 @@ TYPED_TEST(Direct, AdvancedApplyToSingleRhsIsEquivalentToRef)
     auto solver = this->factory->generate(this->mtx);
     auto dsolver = this->dfactory->generate(this->dmtx);
 
-    solver->apply(this->alpha.get(), this->input.get(), this->beta.get(),
-                  this->output.get());
-    dsolver->apply(this->dalpha.get(), this->dinput.get(), this->dbeta.get(),
-                   this->doutput.get());
+    solver->apply(this->alpha, this->input, this->beta, this->output);
+    dsolver->apply(this->dalpha, this->dinput, this->dbeta, this->doutput);
 
     GKO_ASSERT_MTX_NEAR(this->output, this->doutput,
                         100 * r<value_type>::value);
@@ -202,10 +200,8 @@ TYPED_TEST(Direct, AdvancedApplyToMultipleRhsIsEquivalentToRef)
     auto solver = this->factory->generate(this->mtx);
     auto dsolver = this->dfactory->generate(this->dmtx);
 
-    solver->apply(this->alpha.get(), this->input.get(), this->beta.get(),
-                  this->output.get());
-    dsolver->apply(this->dalpha.get(), this->dinput.get(), this->dbeta.get(),
-                   this->doutput.get());
+    solver->apply(this->alpha, this->input, this->beta, this->output);
+    dsolver->apply(this->dalpha, this->dinput, this->dbeta, this->doutput);
 
     GKO_ASSERT_MTX_NEAR(this->output, this->doutput,
                         100 * r<value_type>::value);

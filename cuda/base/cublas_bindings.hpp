@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -259,12 +259,13 @@ GKO_BIND_CUBLAS_NORM2(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUBLAS_NORM2
 
 
-inline cublasHandle_t init()
+inline cublasHandle_t init(cudaStream_t stream)
 {
     cublasHandle_t handle;
     GKO_ASSERT_NO_CUBLAS_ERRORS(cublasCreate(&handle));
     GKO_ASSERT_NO_CUBLAS_ERRORS(
         cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_DEVICE));
+    GKO_ASSERT_NO_CUBLAS_ERRORS(cublasSetStream(handle, stream));
     return handle;
 }
 

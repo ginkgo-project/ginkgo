@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/workspace.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
+
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 5211, 4973, 4974)
+#endif
 
 
 namespace gko {
@@ -106,6 +116,12 @@ protected:
     virtual void apply_with_initial_guess(const LinOp* b, LinOp* x,
                                           initial_guess_mode guess) const = 0;
 
+    void apply_with_initial_guess(ptr_param<const LinOp> b, ptr_param<LinOp> x,
+                                  initial_guess_mode guess) const
+    {
+        apply_with_initial_guess(b.get(), x.get(), guess);
+    }
+
     /**
      * Performs the operation x = alpha * op(b) + beta * x with a initial guess
      * statement, where op is this linear operator and the initial guess
@@ -121,6 +137,17 @@ protected:
     virtual void apply_with_initial_guess(const LinOp* alpha, const LinOp* b,
                                           const LinOp* beta, LinOp* x,
                                           initial_guess_mode guess) const = 0;
+
+
+    void apply_with_initial_guess(ptr_param<const LinOp> alpha,
+                                  ptr_param<const LinOp> b,
+                                  ptr_param<const LinOp> beta,
+                                  ptr_param<LinOp> x,
+                                  initial_guess_mode guess) const
+    {
+        apply_with_initial_guess(alpha.get(), b.get(), beta.get(), x.get(),
+                                 guess);
+    }
 
     /**
      * Get the default initial guess
@@ -355,27 +382,31 @@ private:
 };
 
 
+namespace detail {
+
+
 /**
  * A LinOp implementing this interface stores a system matrix.
+ *
+ * @note This class will replace SolverBase in a future release
  *
  * @ingroup solver
  * @ingroup LinOp
  */
-template <typename MatrixType = LinOp>
-class SolverBase {
+class SolverBaseLinOp {
 public:
-    SolverBase(std::shared_ptr<const Executor> exec)
+    SolverBaseLinOp(std::shared_ptr<const Executor> exec)
         : workspace_{std::move(exec)}
     {}
 
-    virtual ~SolverBase() = default;
+    virtual ~SolverBaseLinOp() = default;
 
     /**
      * Returns the system matrix used by the solver.
      *
      * @return the system matrix operator used by the solver
      */
-    std::shared_ptr<const MatrixType> get_system_matrix() const
+    std::shared_ptr<const LinOp> get_system_matrix() const
     {
         return system_matrix_;
     }
@@ -405,7 +436,7 @@ public:
     virtual std::vector<int> get_workspace_vectors() const { return {}; }
 
 protected:
-    void set_system_matrix_base(std::shared_ptr<const MatrixType> system_matrix)
+    void set_system_matrix_base(std::shared_ptr<const LinOp> system_matrix)
     {
         system_matrix_ = std::move(system_matrix);
     }
@@ -449,6 +480,22 @@ protected:
             typeid(*vec), size, size[1]);
     }
 
+    template <typename LinOpType>
+    LinOpType* create_workspace_op_with_type_of(int vector_id,
+                                                const LinOpType* vec,
+                                                dim<2> global_size,
+                                                dim<2> local_size) const
+    {
+        return workspace_.template create_or_get_op<LinOpType>(
+            vector_id,
+            [&] {
+                return LinOpType::create_with_type_of(
+                    vec, workspace_.get_executor(), global_size, local_size,
+                    local_size[1]);
+            },
+            typeid(*vec), global_size, local_size[1]);
+    }
+
     template <typename ValueType>
     matrix::Dense<ValueType>* create_workspace_scalar(int vector_id,
                                                       size_type size) const
@@ -478,7 +525,41 @@ protected:
 private:
     mutable detail::workspace workspace_;
 
-    std::shared_ptr<const MatrixType> system_matrix_;
+    std::shared_ptr<const LinOp> system_matrix_;
+};
+
+
+}  // namespace detail
+
+
+template <typename MatrixType>
+class
+    // clang-format off
+    [[deprecated("This class will be replaced by the template-less detail::SolverBaseLinOp in a future release")]] SolverBase
+    // clang-format on
+    : public detail::SolverBaseLinOp
+{
+public:
+    using detail::SolverBaseLinOp::SolverBaseLinOp;
+
+    /**
+     * Returns the system matrix, with its concrete type, used by the
+     * solver.
+     *
+     * @return the system matrix operator, with its concrete type, used by
+     * the solver
+     */
+    std::shared_ptr<const MatrixType> get_system_matrix() const
+    {
+        return std::dynamic_pointer_cast<const MatrixType>(
+            SolverBaseLinOp::get_system_matrix());
+    }
+
+protected:
+    void set_system_matrix_base(std::shared_ptr<const MatrixType> system_matrix)
+    {
+        SolverBaseLinOp::set_system_matrix_base(std::move(system_matrix));
+    }
 };
 
 
@@ -782,4 +863,10 @@ private:
 }  // namespace gko
 
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 #endif  // GKO_PUBLIC_CORE_SOLVER_SOLVER_BASE_HPP_

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -72,11 +72,13 @@ struct is_supported<std::complex<double>> : std::true_type {};
 
 
 inline curandGenerator_t rand_generator(int64 seed,
-                                        curandRngType generator_type)
+                                        curandRngType generator_type,
+                                        cudaStream_t stream)
 {
     curandGenerator_t gen;
-    curandCreateGenerator(&gen, generator_type);
-    curandSetPseudoRandomGeneratorSeed(gen, seed);
+    GKO_ASSERT_NO_CURAND_ERRORS(curandCreateGenerator(&gen, generator_type));
+    GKO_ASSERT_NO_CURAND_ERRORS(curandSetStream(gen, stream));
+    GKO_ASSERT_NO_CURAND_ERRORS(curandSetPseudoRandomGeneratorSeed(gen, seed));
     return gen;
 }
 

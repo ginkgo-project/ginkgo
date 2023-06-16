@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -318,6 +318,12 @@ void non_existing_kernel() GKO_KERNEL_NOT_FOUND;
 TEST(KernelNotFound, ThrowsKernelNotFoundException)
 {
     ASSERT_THROW(non_existing_kernel(), gko::KernelNotFound);
+}
+
+
+TEST(InvalidState, ThrowsInvalidStateException)
+{
+    ASSERT_THROW(GKO_INVALID_STATE(""), gko::InvalidStateError);
 }
 
 

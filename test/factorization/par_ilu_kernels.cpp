@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -166,9 +166,9 @@ protected:
                     gko::size_type iterations = 0)
     {
         auto coo = Coo::create(ref);
-        mtx->convert_to(coo.get());
+        mtx->convert_to(coo);
         auto dcoo = Coo::create(exec);
-        dmtx->convert_to(dcoo.get());
+        dmtx->convert_to(dcoo);
         initialize_lu(l, u, dl, du);
         auto u_transpose_mtx = gko::as<Csr>(u->transpose());
         auto u_transpose_dmtx = gko::as<Csr>(du->transpose());

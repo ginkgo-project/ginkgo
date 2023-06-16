@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "common_gmres_kernels.hpp.inc"
+#include "common/cuda_hip/solver/common_gmres_kernels.hpp.inc"
 
 
 template <typename ValueType>
@@ -112,9 +112,9 @@ __global__ __launch_bounds__(block_size) void restart_2_kernel(
 
 
 __global__
-    __launch_bounds__(default_block_size) void increase_final_iteration_numbers_kernel(
-        size_type* __restrict__ final_iter_nums,
-        const stopping_status* __restrict__ stop_status, size_type total_number)
+__launch_bounds__(default_block_size) void increase_final_iteration_numbers_kernel(
+    size_type* __restrict__ final_iter_nums,
+    const stopping_status* __restrict__ stop_status, size_type total_number)
 {
     const auto global_id = thread::get_thread_id_flat();
     if (global_id < total_number) {
@@ -171,11 +171,11 @@ __global__ __launch_bounds__(default_dot_size) void multinorm2_kernel(
 
 template <typename ValueType>
 __global__
-    __launch_bounds__(default_dot_size) void multinorminf_without_stop_kernel(
-        size_type num_rows, size_type num_cols,
-        const ValueType* __restrict__ next_krylov_basis,
-        size_type stride_next_krylov,
-        remove_complex<ValueType>* __restrict__ norms, size_type stride_norms)
+__launch_bounds__(default_dot_size) void multinorminf_without_stop_kernel(
+    size_type num_rows, size_type num_cols,
+    const ValueType* __restrict__ next_krylov_basis,
+    size_type stride_next_krylov, remove_complex<ValueType>* __restrict__ norms,
+    size_type stride_norms)
 {
     using rc_vtype = remove_complex<ValueType>;
     const auto tidx = threadIdx.x;

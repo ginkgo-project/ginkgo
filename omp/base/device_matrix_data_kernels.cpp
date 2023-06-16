@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -130,7 +130,7 @@ void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec,
         }
         out_row_ptrs[row] = count_unique;
     }
-    components::prefix_sum(exec, out_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, out_row_ptrs, num_rows + 1);
     const auto out_size = static_cast<size_type>(out_row_ptrs[num_rows]);
     if (out_size < size) {
         array<ValueType> new_values{exec, out_size};

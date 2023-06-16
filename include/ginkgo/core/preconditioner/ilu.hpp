@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -269,17 +269,17 @@ protected:
             [&](auto dense_b, auto dense_x) {
                 this->set_cache_to(dense_b);
                 if (!ReverseApply) {
-                    l_solver_->apply(dense_b, cache_.intermediate.get());
+                    l_solver_->apply(dense_b, cache_.intermediate);
                     if (u_solver_->apply_uses_initial_guess()) {
-                        dense_x->copy_from(cache_.intermediate.get());
+                        dense_x->copy_from(cache_.intermediate);
                     }
-                    u_solver_->apply(cache_.intermediate.get(), dense_x);
+                    u_solver_->apply(cache_.intermediate, dense_x);
                 } else {
-                    u_solver_->apply(dense_b, cache_.intermediate.get());
+                    u_solver_->apply(dense_b, cache_.intermediate);
                     if (l_solver_->apply_uses_initial_guess()) {
-                        dense_x->copy_from(cache_.intermediate.get());
+                        dense_x->copy_from(cache_.intermediate);
                     }
-                    l_solver_->apply(cache_.intermediate.get(), dense_x);
+                    l_solver_->apply(cache_.intermediate, dense_x);
                 }
             },
             b, x);
@@ -292,12 +292,12 @@ protected:
             [&](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
                 this->set_cache_to(dense_b);
                 if (!ReverseApply) {
-                    l_solver_->apply(dense_b, cache_.intermediate.get());
-                    u_solver_->apply(dense_alpha, cache_.intermediate.get(),
+                    l_solver_->apply(dense_b, cache_.intermediate);
+                    u_solver_->apply(dense_alpha, cache_.intermediate,
                                      dense_beta, dense_x);
                 } else {
-                    u_solver_->apply(dense_b, cache_.intermediate.get());
-                    l_solver_->apply(dense_alpha, cache_.intermediate.get(),
+                    u_solver_->apply(dense_b, cache_.intermediate);
+                    l_solver_->apply(dense_alpha, cache_.intermediate,
                                      dense_beta, dense_x);
                 }
             },

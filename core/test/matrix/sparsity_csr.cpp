@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -77,7 +77,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Mtx> mtx;
 
-    void assert_equal_to_original_mtx(const Mtx* m)
+    void assert_equal_to_original_mtx(gko::ptr_param<const Mtx> m)
     {
         auto c = m->get_const_col_idxs();
         auto r = m->get_const_row_ptrs();
@@ -120,7 +120,7 @@ TYPED_TEST(SparsityCsr, KnowsItsSize)
 
 TYPED_TEST(SparsityCsr, ContainsCorrectData)
 {
-    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx);
 }
 
 
@@ -189,10 +189,10 @@ TYPED_TEST(SparsityCsr, CanBeCopied)
     using Mtx = typename TestFixture::Mtx;
     auto copy = Mtx::create(this->exec);
 
-    copy->copy_from(this->mtx.get());
+    copy->copy_from(this->mtx);
 
-    this->assert_equal_to_original_mtx(this->mtx.get());
-    this->assert_equal_to_original_mtx(copy.get());
+    this->assert_equal_to_original_mtx(this->mtx);
+    this->assert_equal_to_original_mtx(copy);
 }
 
 
@@ -201,9 +201,9 @@ TYPED_TEST(SparsityCsr, CanBeMoved)
     using Mtx = typename TestFixture::Mtx;
     auto copy = Mtx::create(this->exec);
 
-    copy->copy_from(std::move(this->mtx));
+    copy->move_from(this->mtx);
 
-    this->assert_equal_to_original_mtx(copy.get());
+    this->assert_equal_to_original_mtx(copy);
 }
 
 
@@ -212,7 +212,7 @@ TYPED_TEST(SparsityCsr, CanBeCloned)
     using Mtx = typename TestFixture::Mtx;
     auto clone = this->mtx->clone();
 
-    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx);
     this->assert_equal_to_original_mtx(dynamic_cast<Mtx*>(clone.get()));
 }
 
@@ -232,7 +232,7 @@ TYPED_TEST(SparsityCsr, CanBeReadFromMatrixData)
 
     m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
 
-    this->assert_equal_to_original_mtx(m.get());
+    this->assert_equal_to_original_mtx(m);
 }
 
 

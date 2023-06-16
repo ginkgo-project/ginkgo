@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/components/fill_array_kernels.hpp"
+#include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/lu_kernels.hpp"
 #include "core/factorization/symbolic.hpp"
 #include "core/matrix/csr_kernels.hpp"
@@ -56,6 +57,9 @@ GKO_REGISTER_OPERATION(build_lookup_offsets, csr::build_lookup_offsets);
 GKO_REGISTER_OPERATION(build_lookup, csr::build_lookup);
 GKO_REGISTER_OPERATION(initialize, lu_factorization::initialize);
 GKO_REGISTER_OPERATION(factorize, lu_factorization::factorize);
+GKO_REGISTER_HOST_OPERATION(symbolic_cholesky,
+                            gko::factorization::symbolic_cholesky);
+GKO_REGISTER_HOST_OPERATION(symbolic_lu, gko::factorization::symbolic_lu);
 
 
 }  // namespace
@@ -87,25 +91,26 @@ std::unique_ptr<LinOp> Lu<ValueType, IndexType>::generate_impl(
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
     const auto exec = this->get_executor();
-    // TODO deal with non Csr matrices
-    const auto mtx = as<matrix_type>(system_matrix);
+    const auto mtx = copy_and_convert_to<matrix_type>(exec, system_matrix);
     const auto num_rows = mtx->get_size()[0];
     std::unique_ptr<matrix_type> factors;
     if (!parameters_.symbolic_factorization) {
         if (parameters_.symmetric_sparsity) {
-            factors = gko::factorization::symbolic_cholesky(mtx.get());
+            std::unique_ptr<gko::factorization::elimination_forest<IndexType>>
+                forest;
+            exec->run(make_symbolic_cholesky(mtx.get(), true, factors, forest));
         } else {
-            GKO_NOT_SUPPORTED(mtx);
+            exec->run(make_symbolic_lu(mtx.get(), factors));
         }
     } else {
         const auto& symbolic = parameters_.symbolic_factorization;
         const auto factor_nnz = symbolic->get_num_nonzeros();
         factors = matrix_type::create(exec, mtx->get_size(), factor_nnz);
         const auto symbolic_exec = symbolic->get_executor();
-        exec->copy_from(symbolic_exec.get(), factor_nnz,
+        exec->copy_from(symbolic_exec, factor_nnz,
                         symbolic->get_const_col_idxs(),
                         factors->get_col_idxs());
-        exec->copy_from(symbolic_exec.get(), num_rows + 1,
+        exec->copy_from(symbolic_exec, num_rows + 1,
                         symbolic->get_const_row_ptrs(),
                         factors->get_row_ptrs());
         // update srow to be safe

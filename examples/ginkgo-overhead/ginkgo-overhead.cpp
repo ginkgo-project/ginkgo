@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
     auto tic = std::chrono::steady_clock::now();
 
     auto solver = cg_factory->generate(gko::give(A));
-    solver->apply(lend(x), lend(b));
+    solver->apply(x, b);
     exec->synchronize();
 
     auto tac = std::chrono::steady_clock::now();

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -243,7 +243,7 @@ std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_random_fbcsr(
                   std::normal_distribution<real_type>(0.0, 1.0),
                   std::move(engine), ref);
     if (unsort && rand_csr_ref->is_sorted_by_column_index()) {
-        unsort_matrix(rand_csr_ref.get(), engine);
+        unsort_matrix(rand_csr_ref, engine);
     }
     return generate_fbcsr_from_csr(ref, rand_csr_ref.get(), mat_blk_sz,
                                    diag_dominant, std::move(engine));

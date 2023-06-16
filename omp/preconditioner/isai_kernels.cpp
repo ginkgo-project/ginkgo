@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -148,18 +148,30 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
                     const auto col = i_cols[i_begin + i];
                     const auto m_begin = m_row_ptrs[col];
                     const auto m_size = m_row_ptrs[col + 1] - m_begin;
+                    // Loop over all matches that are within the sparsity
+                    // pattern of the original matrix
                     forall_matching(
                         m_cols + m_begin, m_size, i_cols + i_begin, i_size,
                         [&](IndexType, IndexType m_idx, IndexType i_idx) {
-                            if (m_cols[m_idx + m_begin] < row && col == row) {
-                                rhs_one_idx++;
-                            }
                             if (tri) {
                                 dense_system(i, i_idx) =
                                     m_vals[m_idx + m_begin];
                             } else {
                                 dense_system(i_idx, i) =
                                     m_vals[m_idx + m_begin];
+                            }
+                        });
+                    const auto i_col_begin = i_row_ptrs[col];
+                    const auto i_col_size = i_row_ptrs[col + 1] - i_col_begin;
+                    // Loop over all matches that are within the sparsity
+                    // pattern of the inverse
+                    forall_matching(
+                        i_cols + i_col_begin, i_col_size, i_cols + i_begin,
+                        i_size,
+                        [&](IndexType, IndexType m_idx, IndexType i_idx) {
+                            if (i_cols[m_idx + i_col_begin] < row &&
+                                col == row) {
+                                rhs_one_idx++;
                             }
                         });
                 }
@@ -198,8 +210,8 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
             }
         }
     }
-    components::prefix_sum(exec, excess_rhs_ptrs, num_rows + 1);
-    components::prefix_sum(exec, excess_nz_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, excess_rhs_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, excess_nz_ptrs, num_rows + 1);
 }
 
 

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,14 +42,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 
 
-#ifdef SYCL_LANGUAGE_VERSION
-#include <CL/sycl.hpp>
-#endif
-
-
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
+
+
+// Using SYCL_LANGUAGE_VERSION will lead the mismatch sycl namespace from 6.0.0
+// when using dpcpp compiler without dpcpp module
+#if GINKGO_DPCPP_MAJOR_VERSION
+#include <CL/sycl.hpp>
+#endif
 
 
 namespace gko {

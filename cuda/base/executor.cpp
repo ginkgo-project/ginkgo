@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,14 +34,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <iostream>
+#include <stdexcept>
+#include <thread>
 
 
 #include <cuda_runtime.h>
+#ifdef GKO_LEGACY_NVTX
+#include <nvToolsExt.h>
+#else
+#include <nvtx3/nvToolsExt.h>
+#endif
 
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/device.hpp>
+#include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/log/profiler_hook.hpp>
 
 
 #include "cuda/base/config.hpp"
@@ -58,11 +67,11 @@ namespace gko {
 
 std::shared_ptr<CudaExecutor> CudaExecutor::create(
     int device_id, std::shared_ptr<Executor> master, bool device_reset,
-    allocation_mode alloc_mode)
+    allocation_mode alloc_mode, cudaStream_t stream)
 {
     return std::shared_ptr<CudaExecutor>(
-        new CudaExecutor(device_id, std::move(master), device_reset,
-                         alloc_mode),
+        new CudaExecutor(device_id, std::move(master), device_reset, alloc_mode,
+                         stream),
         [device_id](CudaExecutor* exec) {
             auto device_reset = exec->get_device_reset();
             std::lock_guard<std::mutex> guard(
@@ -103,8 +112,10 @@ void OmpExecutor::raw_copy_to(const CudaExecutor* dest, size_type num_bytes,
 {
     if (num_bytes > 0) {
         detail::cuda_scoped_device_id_guard g(dest->get_device_id());
-        GKO_ASSERT_NO_CUDA_ERRORS(
-            cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyHostToDevice));
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyAsync(dest_ptr, src_ptr, num_bytes,
+                                                  cudaMemcpyHostToDevice,
+                                                  dest->get_stream()));
+        dest->synchronize();
     }
 }
 
@@ -155,8 +166,10 @@ void CudaExecutor::raw_copy_to(const OmpExecutor*, size_type num_bytes,
 {
     if (num_bytes > 0) {
         detail::cuda_scoped_device_id_guard g(this->get_device_id());
-        GKO_ASSERT_NO_CUDA_ERRORS(
-            cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyDeviceToHost));
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyAsync(dest_ptr, src_ptr, num_bytes,
+                                                  cudaMemcpyDeviceToHost,
+                                                  this->get_stream()));
+        this->synchronize();
     }
 }
 
@@ -167,9 +180,10 @@ void CudaExecutor::raw_copy_to(const HipExecutor* dest, size_type num_bytes,
 #if GINKGO_HIP_PLATFORM_NVCC == 1
     if (num_bytes > 0) {
         detail::cuda_scoped_device_id_guard g(this->get_device_id());
-        GKO_ASSERT_NO_CUDA_ERRORS(
-            cudaMemcpyPeer(dest_ptr, dest->get_device_id(), src_ptr,
-                           this->get_device_id(), num_bytes));
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeerAsync(
+            dest_ptr, dest->get_device_id(), src_ptr, this->get_device_id(),
+            num_bytes, this->get_stream()));
+        this->synchronize();
     }
 #else
     GKO_NOT_SUPPORTED(dest);
@@ -189,9 +203,10 @@ void CudaExecutor::raw_copy_to(const CudaExecutor* dest, size_type num_bytes,
 {
     if (num_bytes > 0) {
         detail::cuda_scoped_device_id_guard g(this->get_device_id());
-        GKO_ASSERT_NO_CUDA_ERRORS(
-            cudaMemcpyPeer(dest_ptr, dest->get_device_id(), src_ptr,
-                           this->get_device_id(), num_bytes));
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeerAsync(
+            dest_ptr, dest->get_device_id(), src_ptr, this->get_device_id(),
+            num_bytes, this->get_stream()));
+        this->synchronize();
     }
 }
 
@@ -199,23 +214,13 @@ void CudaExecutor::raw_copy_to(const CudaExecutor* dest, size_type num_bytes,
 void CudaExecutor::synchronize() const
 {
     detail::cuda_scoped_device_id_guard g(this->get_device_id());
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceSynchronize());
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaStreamSynchronize(this->get_stream()));
 }
 
 
 scoped_device_id_guard CudaExecutor::get_scoped_device_id_guard() const
 {
     return {this, this->get_device_id()};
-}
-
-
-void CudaExecutor::run(const Operation& op) const
-{
-    this->template log<log::Logger::operation_launched>(this, &op);
-    detail::cuda_scoped_device_id_guard g(this->get_device_id());
-    op.run(
-        std::static_pointer_cast<const CudaExecutor>(this->shared_from_this()));
-    this->template log<log::Logger::operation_completed>(this, &op);
 }
 
 
@@ -278,12 +283,14 @@ void CudaExecutor::init_handles()
         const auto id = this->get_device_id();
         detail::cuda_scoped_device_id_guard g(id);
         this->cublas_handle_ = handle_manager<cublasContext>(
-            kernels::cuda::cublas::init(), [id](cublasHandle_t handle) {
+            kernels::cuda::cublas::init(this->get_stream()),
+            [id](cublasHandle_t handle) {
                 detail::cuda_scoped_device_id_guard g(id);
                 kernels::cuda::cublas::destroy(handle);
             });
         this->cusparse_handle_ = handle_manager<cusparseContext>(
-            kernels::cuda::cusparse::init(), [id](cusparseHandle_t handle) {
+            kernels::cuda::cusparse::init(this->get_stream()),
+            [id](cusparseHandle_t handle) {
                 detail::cuda_scoped_device_id_guard g(id);
                 kernels::cuda::cusparse::destroy(handle);
             });
@@ -291,4 +298,98 @@ void CudaExecutor::init_handles()
 }
 
 
+cuda_stream::cuda_stream(int device_id) : stream_{}, device_id_(device_id)
+{
+    detail::cuda_scoped_device_id_guard g(device_id_);
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaStreamCreate(&stream_));
+}
+
+
+cuda_stream::~cuda_stream()
+{
+    if (stream_) {
+        detail::cuda_scoped_device_id_guard g(device_id_);
+        cudaStreamDestroy(stream_);
+    }
+}
+
+
+cuda_stream::cuda_stream(cuda_stream&& other)
+    : stream_{std::exchange(other.stream_, nullptr)},
+      device_id_(std::exchange(other.device_id_, -1))
+{}
+
+
+CUstream_st* cuda_stream::get() const { return stream_; }
+
+
+namespace log {
+
+
+// "GKO" in ASCII to avoid collision with other application's categories
+constexpr static uint32 category_magic_offset = 0x676B6FU;
+
+
+void init_nvtx()
+{
+#define NAMED_CATEGORY(_name)                                             \
+    nvtxNameCategory(static_cast<uint32>(profile_event_category::_name) + \
+                         category_magic_offset,                           \
+                     "gko::" #_name)
+    NAMED_CATEGORY(memory);
+    NAMED_CATEGORY(operation);
+    NAMED_CATEGORY(object);
+    NAMED_CATEGORY(linop);
+    NAMED_CATEGORY(factory);
+    NAMED_CATEGORY(solver);
+    NAMED_CATEGORY(criterion);
+    NAMED_CATEGORY(user);
+    NAMED_CATEGORY(internal);
+#undef NAMED_CATEGORY
+}
+
+
+std::function<void(const char*, profile_event_category)> begin_nvtx_fn(
+    uint32_t color_argb)
+{
+    return [color_argb](const char* name, profile_event_category category) {
+        nvtxEventAttributes_t attr{};
+        attr.version = NVTX_VERSION;
+        attr.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE;
+        attr.category = static_cast<uint32>(category) + category_magic_offset;
+        attr.colorType = NVTX_COLOR_ARGB;
+        attr.color = color_argb;
+        attr.payloadType = NVTX_PAYLOAD_UNKNOWN;
+        attr.messageType = NVTX_MESSAGE_TYPE_ASCII;
+        attr.message.ascii = name;
+        nvtxRangePushEx(&attr);
+    };
+}
+
+
+void end_nvtx(const char* name, profile_event_category) { nvtxRangePop(); }
+
+
+}  // namespace log
+
+
+namespace kernels {
+namespace cuda {
+
+
+void reset_device(int device_id)
+{
+    gko::detail::cuda_scoped_device_id_guard guard{device_id};
+    cudaDeviceReset();
+}
+
+
+void destroy_event(CUevent_st* event)
+{
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaEventDestroy(event));
+}
+
+
+}  // namespace cuda
+}  // namespace kernels
 }  // namespace gko

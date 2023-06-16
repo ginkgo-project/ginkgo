@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -327,6 +327,28 @@ TEST(MtxReader, ReadsSparseRealSkewSymetricMtx)
     ASSERT_EQ(v[1], tpl(0, 2, -3.0));
     ASSERT_EQ(v[2], tpl(1, 0, 2.0));
     ASSERT_EQ(v[3], tpl(2, 0, 3.0));
+}
+
+
+TEST(MtxReader, ReadsSparseRealSkewSymetricMtxWithExplicitDiagonal)
+{
+    using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix coordinate real skew-symmetric\n"
+        "3 3 3\n"
+        "1 1 0.0\n"
+        "2 1 2.0\n"
+        "3 1 3.0\n");
+
+    auto data = gko::read_raw<double, gko::int32>(iss);
+
+    ASSERT_EQ(data.size, gko::dim<2>(3, 3));
+    auto& v = data.nonzeros;
+    ASSERT_EQ(v[0], tpl(0, 0, 0.0));
+    ASSERT_EQ(v[1], tpl(0, 1, -2.0));
+    ASSERT_EQ(v[2], tpl(0, 2, -3.0));
+    ASSERT_EQ(v[3], tpl(1, 0, 2.0));
+    ASSERT_EQ(v[4], tpl(2, 0, 3.0));
 }
 
 
@@ -1010,7 +1032,7 @@ TYPED_TEST(RealDummyLinOpTest, WritesLinOpToStreamArray)
         iss, gko::ReferenceExecutor::create());
     std::ostringstream oss{};
 
-    write(oss, lend(lin_op), gko::layout_type::array);
+    write(oss, lin_op, gko::layout_type::array);
 
     ASSERT_EQ(oss.str(),
               "%%MatrixMarket matrix array real general\n"
@@ -1041,7 +1063,7 @@ TYPED_TEST(RealDummyLinOpTest, WritesLinOpToStreamCoordinate)
         iss, gko::ReferenceExecutor::create());
     std::ostringstream oss{};
 
-    write(oss, lend(lin_op), gko::layout_type::coordinate);
+    write(oss, lin_op, gko::layout_type::coordinate);
 
     ASSERT_EQ(oss.str(),
               "%%MatrixMarket matrix coordinate real general\n2 3 6\n1 1 1\n1 "
@@ -1065,12 +1087,16 @@ TYPED_TEST(RealDummyLinOpTest, WritesLinOpToStreamDefault)
     auto lin_op = gko::read<DummyLinOp<value_type, index_type>>(
         iss, gko::ReferenceExecutor::create());
     std::ostringstream oss{};
+    std::ostringstream oss_const{};
 
-    write(oss, lend(lin_op));
+    write(oss, lin_op);
+    write(oss_const, std::unique_ptr<const DummyLinOp<value_type, index_type>>{
+                         std::move(lin_op)});
 
     ASSERT_EQ(oss.str(),
               "%%MatrixMarket matrix coordinate real general\n2 3 6\n1 1 1\n1 "
               "2 3\n1 3 2\n2 1 0\n2 2 5\n2 3 0\n");
+    ASSERT_EQ(oss_const.str(), oss.str());
 }
 
 
@@ -1091,7 +1117,7 @@ TYPED_TEST(RealDummyLinOpTest, WritesAndReadsBinaryLinOpToStreamArray)
     auto lin_op = gko::read<DummyLinOp<value_type, index_type>>(iss, ref);
     std::ostringstream oss{};
 
-    gko::write_binary(oss, lend(lin_op));
+    gko::write_binary(oss, lin_op);
     std::istringstream iss2{oss.str()};
     auto lin_op2 =
         gko::read_binary<DummyLinOp<value_type, index_type>>(iss2, ref);
@@ -1129,7 +1155,7 @@ TYPED_TEST(DenseTest, WritesToStreamDefault)
         iss, gko::ReferenceExecutor::create());
     std::ostringstream oss{};
 
-    write(oss, lend(lin_op));
+    write(oss, lin_op);
 
     ASSERT_EQ(oss.str(),
               "%%MatrixMarket matrix array real general\n"
@@ -1262,7 +1288,7 @@ TYPED_TEST(ComplexDummyLinOpTest, WritesLinOpToStreamArray)
         iss, gko::ReferenceExecutor::create());
     std::ostringstream oss{};
 
-    write(oss, lend(lin_op), gko::layout_type::array);
+    write(oss, lin_op, gko::layout_type::array);
 
     ASSERT_EQ(oss.str(),
               "%%MatrixMarket matrix array complex general\n"
@@ -1293,7 +1319,7 @@ TYPED_TEST(ComplexDummyLinOpTest, WritesAndReadsBinaryLinOpToStreamArray)
     auto lin_op = gko::read<DummyLinOp<value_type, index_type>>(iss, ref);
     std::ostringstream oss{};
 
-    gko::write_binary(oss, lend(lin_op));
+    gko::write_binary(oss, lin_op);
     std::istringstream iss2{oss.str()};
     auto lin_op2 =
         gko::read_binary<DummyLinOp<value_type, index_type>>(iss2, ref);

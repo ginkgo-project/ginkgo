@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -96,6 +96,12 @@ class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
 public:
     using EnableLinOp<Coo>::convert_to;
     using EnableLinOp<Coo>::move_to;
+    using ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>::convert_to;
+    using ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>::move_to;
+    using ConvertibleTo<Csr<ValueType, IndexType>>::convert_to;
+    using ConvertibleTo<Csr<ValueType, IndexType>>::move_to;
+    using ConvertibleTo<Dense<ValueType>>::convert_to;
+    using ConvertibleTo<Dense<ValueType>>::move_to;
     using ReadableFromMatrixData<ValueType, IndexType>::read;
 
     using value_type = ValueType;
@@ -210,9 +216,9 @@ public:
      *
      * @return this
      */
-    LinOp* apply2(const LinOp* b, LinOp* x)
+    LinOp* apply2(ptr_param<const LinOp> b, ptr_param<LinOp> x)
     {
-        this->validate_application_parameters(b, x);
+        this->validate_application_parameters(b.get(), x.get());
         auto exec = this->get_executor();
         this->apply2_impl(make_temporary_clone(exec, b).get(),
                           make_temporary_clone(exec, x).get());
@@ -222,9 +228,9 @@ public:
     /**
      * @copydoc apply2(cost LinOp *, LinOp *)
      */
-    const LinOp* apply2(const LinOp* b, LinOp* x) const
+    const LinOp* apply2(ptr_param<const LinOp> b, ptr_param<LinOp> x) const
     {
-        this->validate_application_parameters(b, x);
+        this->validate_application_parameters(b.get(), x.get());
         auto exec = this->get_executor();
         this->apply2_impl(make_temporary_clone(exec, b).get(),
                           make_temporary_clone(exec, x).get());
@@ -240,9 +246,10 @@ public:
      *
      * @return this
      */
-    LinOp* apply2(const LinOp* alpha, const LinOp* b, LinOp* x)
+    LinOp* apply2(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
+                  ptr_param<LinOp> x)
     {
-        this->validate_application_parameters(b, x);
+        this->validate_application_parameters(b.get(), x.get());
         GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
         auto exec = this->get_executor();
         this->apply2_impl(make_temporary_clone(exec, alpha).get(),
@@ -254,9 +261,10 @@ public:
     /**
      * @copydoc apply2(const LinOp *, const LinOp *, LinOp *)
      */
-    const LinOp* apply2(const LinOp* alpha, const LinOp* b, LinOp* x) const
+    const LinOp* apply2(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
+                        ptr_param<LinOp> x) const
     {
-        this->validate_application_parameters(b, x);
+        this->validate_application_parameters(b.get(), x.get());
         GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
         auto exec = this->get_executor();
         this->apply2_impl(make_temporary_clone(exec, alpha).get(),

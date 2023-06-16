@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -68,29 +68,21 @@ namespace gko {
  * @tparam ValueType  the value type into whose associated matrix::Dense type to
  *                    convert the input LinOp.
  */
-template <typename ValueType>
-detail::temporary_conversion<matrix::Dense<ValueType>>
-make_temporary_conversion(LinOp* matrix)
+template <typename ValueType, typename Ptr>
+detail::temporary_conversion<std::conditional_t<
+    std::is_const<detail::pointee<Ptr>>::value, const matrix::Dense<ValueType>,
+    matrix::Dense<ValueType>>>
+make_temporary_conversion(Ptr&& matrix)
 {
-    auto result =
-        detail::temporary_conversion<matrix::Dense<ValueType>>::template create<
-            matrix::Dense<next_precision<ValueType>>>(matrix);
+    using Pointee = detail::pointee<Ptr>;
+    using Dense = matrix::Dense<ValueType>;
+    using NextDense = matrix::Dense<next_precision<ValueType>>;
+    using MaybeConstDense =
+        std::conditional_t<std::is_const<Pointee>::value, const Dense, Dense>;
+    auto result = detail::temporary_conversion<
+        MaybeConstDense>::template create<NextDense>(matrix);
     if (!result) {
-        GKO_NOT_SUPPORTED(matrix);
-    }
-    return result;
-}
-
-
-/** @copydoc make_temporary_conversion(LinOp*) */
-template <typename ValueType>
-detail::temporary_conversion<const matrix::Dense<ValueType>>
-make_temporary_conversion(const LinOp* matrix)
-{
-    auto result = detail::temporary_conversion<const matrix::Dense<ValueType>>::
-        template create<matrix::Dense<next_precision<ValueType>>>(matrix);
-    if (!result) {
-        GKO_NOT_SUPPORTED(matrix);
+        GKO_NOT_SUPPORTED(*matrix);
     }
     return result;
 }

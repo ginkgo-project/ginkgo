@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -294,8 +294,9 @@ void Record::on_iteration_complete(const LinOp* solver,
                                    const LinOp* residual, const LinOp* solution,
                                    const LinOp* residual_norm) const
 {
-    this->on_iteration_complete(solver, num_iterations, residual, solution,
-                                residual_norm, nullptr);
+    this->on_iteration_complete(solver, nullptr, solution, num_iterations,
+                                residual, residual_norm, nullptr, nullptr,
+                                false);
 }
 
 
@@ -305,11 +306,23 @@ void Record::on_iteration_complete(const LinOp* solver,
                                    const LinOp* residual_norm,
                                    const LinOp* implicit_sq_residual_norm) const
 {
+    this->on_iteration_complete(solver, nullptr, solution, num_iterations,
+                                residual, residual_norm,
+                                implicit_sq_residual_norm, nullptr, false);
+}
+
+
+void Record::on_iteration_complete(
+    const LinOp* solver, const LinOp* right_hand_side, const LinOp* solution,
+    const size_type& num_iterations, const LinOp* residual,
+    const LinOp* residual_norm, const LinOp* implicit_resnorm_sq,
+    const array<stopping_status>* status, bool stopped) const
+{
     append_deque(
         data_.iteration_completed,
         (std::unique_ptr<iteration_complete_data>(new iteration_complete_data{
-            solver, num_iterations, residual, solution, residual_norm,
-            implicit_sq_residual_norm})));
+            solver, right_hand_side, solution, num_iterations, residual,
+            residual_norm, implicit_resnorm_sq, status, stopped})));
 }
 
 

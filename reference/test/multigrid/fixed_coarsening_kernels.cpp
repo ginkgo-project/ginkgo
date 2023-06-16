@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -153,20 +153,6 @@ protected:
              {{0, 0, 5}, {0, 1, -3}, {1, 0, -3}, {1, 1, 5}, {2, 2, 5}}});
     }
 
-    static void assert_same_matrices(const Mtx* m1, const Mtx* m2)
-    {
-        ASSERT_EQ(m1->get_size()[0], m2->get_size()[0]);
-        ASSERT_EQ(m1->get_size()[1], m2->get_size()[1]);
-        ASSERT_EQ(m1->get_num_stored_elements(), m2->get_num_stored_elements());
-        for (gko::size_type i = 0; i < m1->get_size()[0] + 1; i++) {
-            ASSERT_EQ(m1->get_const_row_ptrs()[i], m2->get_const_row_ptrs()[i]);
-        }
-        for (gko::size_type i = 0; i < m1->get_num_stored_elements(); ++i) {
-            EXPECT_EQ(m1->get_const_values()[i], m2->get_const_values()[i]);
-            EXPECT_EQ(m1->get_const_col_idxs()[i], m2->get_const_col_idxs()[i]);
-        }
-    }
-
     static void assert_same_coarse_rows(const index_type* m1,
                                         const index_type* m2,
                                         gko::size_type len)
@@ -207,14 +193,12 @@ TYPED_TEST(FixedCoarsening, CanBeCopied)
     auto copy =
         this->fixed_coarsening_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(this->mg_level.get());
+    copy->copy_from(this->mg_level);
     auto copy_mtx = copy->get_system_matrix();
     auto copy_coarse = copy->get_coarse_op();
 
-    this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
-                               this->mtx.get());
-    this->assert_same_matrices(static_cast<const Mtx*>(copy_coarse.get()),
-                               this->coarse.get());
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_coarse), this->coarse, 0.0);
 }
 
 
@@ -225,14 +209,12 @@ TYPED_TEST(FixedCoarsening, CanBeMoved)
     auto copy =
         this->fixed_coarsening_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(std::move(this->mg_level));
+    copy->move_from(this->mg_level);
     auto copy_mtx = copy->get_system_matrix();
     auto copy_coarse = copy->get_coarse_op();
 
-    this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
-                               this->mtx.get());
-    this->assert_same_matrices(static_cast<const Mtx*>(copy_coarse.get()),
-                               this->coarse.get());
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_coarse), this->coarse, 0.0);
 }
 
 
@@ -244,10 +226,8 @@ TYPED_TEST(FixedCoarsening, CanBeCloned)
     auto clone_mtx = clone->get_system_matrix();
     auto clone_coarse = clone->get_coarse_op();
 
-    this->assert_same_matrices(static_cast<const Mtx*>(clone_mtx.get()),
-                               this->mtx.get());
-    this->assert_same_matrices(static_cast<const Mtx*>(clone_coarse.get()),
-                               this->coarse.get());
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(clone_mtx), this->mtx, 0.0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(clone_coarse), this->coarse, 0.0);
 }
 
 
@@ -269,9 +249,9 @@ TYPED_TEST(FixedCoarsening, CoarseFineRestrictApply)
     auto fixed_coarsening = this->fixed_coarsening_factory->generate(this->mtx);
     using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
-    auto x = Vec::create_with_config_of(gko::lend(this->coarse_b));
+    auto x = Vec::create_with_config_of(this->coarse_b);
 
-    fixed_coarsening->get_restrict_op()->apply(this->fine_b.get(), x.get());
+    fixed_coarsening->get_restrict_op()->apply(this->fine_b, x);
 
     GKO_ASSERT_MTX_NEAR(x, this->restrict_ans, r<value_type>::value);
 }
@@ -283,7 +263,7 @@ TYPED_TEST(FixedCoarsening, CoarseFineProlongApply)
     auto fixed_coarsening = this->fixed_coarsening_factory->generate(this->mtx);
     auto x = gko::clone(this->fine_x);
 
-    fixed_coarsening->get_prolong_op()->apply(this->coarse_b.get(), x.get());
+    fixed_coarsening->get_prolong_op()->apply(this->coarse_b, x);
 
     GKO_ASSERT_MTX_NEAR(x, this->prolong_applyans, r<value_type>::value);
 }
@@ -302,7 +282,7 @@ TYPED_TEST(FixedCoarsening, Apply)
          I<VT>({0.0, 0.0}), I<VT>({0.0, 0.0})},
         exec);
 
-    fixed_coarsening->apply(b.get(), x.get());
+    fixed_coarsening->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, answer, r<VT>::value);
 }
@@ -323,7 +303,7 @@ TYPED_TEST(FixedCoarsening, AdvancedApply)
          I<VT>({0.0, 0.0}), I<VT>({0.0, 4.0})},
         exec);
 
-    fixed_coarsening->apply(alpha.get(), b.get(), beta.get(), x.get());
+    fixed_coarsening->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, answer, r<VT>::value);
 }

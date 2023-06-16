@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <array>
+#include <atomic>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -54,6 +55,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+
+
+/** How Logger events are propagated to their Executor. */
+enum class log_propagation_mode {
+    /**
+     * Events only get reported at loggers attached to the triggering object.
+     * (Except for allocation/free, copy and Operations, since they happen at
+     * the Executor).
+     */
+    never,
+    /**
+     * Events get reported to loggers attached to the triggering object and
+     * propagating loggers (Logger::needs_propagation() return true) attached to
+     * its Executor.
+     */
+    automatic
+};
 
 
 /**
@@ -102,15 +120,32 @@ constexpr allocation_mode default_hip_alloc_mode =
 
 }  // namespace gko
 
+
+// after intel/llvm September'22 release, which uses major version 6, they
+// introduce another inline namespace _V1.
+#if GINKGO_DPCPP_MAJOR_VERSION >= 6
+namespace sycl {
+inline namespace _V1 {
+
+
+class queue;
+class event;
+
+
+}  // namespace _V1
+}  // namespace sycl
+#else  // GINKGO_DPCPP_MAJOR_VERSION < 6
 inline namespace cl {
 namespace sycl {
 
 
 class queue;
+class event;
 
 
 }  // namespace sycl
 }  // namespace cl
+#endif
 
 
 /**
@@ -141,9 +176,23 @@ struct cublasContext;
 
 struct cusparseContext;
 
+struct CUstream_st;
+
+struct CUevent_st;
+
 struct hipblasContext;
 
 struct hipsparseContext;
+
+#if GINKGO_HIP_PLATFORM_HCC
+struct ihipStream_t;
+struct ihipEvent_t;
+#define GKO_HIP_STREAM_STRUCT ihipStream_t
+#define GKO_HIP_EVENT_STRUCT ihipEvent_t
+#else
+#define GKO_HIP_STREAM_STRUCT CUstream_st
+#define GKO_HIP_EVENT_STRUCT CUevent_st
+#endif
 
 
 namespace gko {
@@ -314,7 +363,7 @@ namespace detail {
  * It is used to implement the @ref GKO_REGISTER_OPERATION macro.
  *
  * @tparam Closure  the type of the functor of taking parameters
- *                  (std::shared_ptr<const Executor>, int)
+ *                  (std::shared_ptr<const Executor>)
  */
 template <typename Closure>
 class RegisteredOperation : public Operation {
@@ -325,19 +374,11 @@ public:
      * @param name  the name to be used for this operation
      * @param op  a functor object which will be called with the executor.
      */
-    RegisteredOperation(const char* name, int num_params, Closure op)
-        : name_(name), num_params_(num_params), op_(std::move(op))
+    RegisteredOperation(const char* name, Closure op)
+        : name_(name), op_(std::move(op))
     {}
 
-    const char* get_name() const noexcept override
-    {
-        static auto name = [this] {
-            std::ostringstream oss;
-            oss << name_ << '#' << num_params_;
-            return oss.str();
-        }();
-        return name.c_str();
-    }
+    const char* get_name() const noexcept override { return name_; }
 
     void run(std::shared_ptr<const ReferenceExecutor> exec) const override
     {
@@ -366,16 +407,15 @@ public:
 
 private:
     const char* name_;
-    int num_params_;
     Closure op_;
 };
 
 
 template <typename Closure>
 RegisteredOperation<Closure> make_register_operation(const char* name,
-                                                     int num_params, Closure op)
+                                                     Closure op)
 {
-    return RegisteredOperation<Closure>{name, num_params, std::move(op)};
+    return RegisteredOperation<Closure>{name, std::move(op)};
 }
 
 
@@ -458,7 +498,7 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
     auto make_##_name(Args&&... args)                                          \
     {                                                                          \
         return ::gko::detail::make_register_operation(                         \
-            #_name, sizeof...(Args), [&args...](auto exec) {                   \
+            #_kernel, [&args...](auto exec) {                                  \
                 using exec_type = decltype(exec);                              \
                 if (std::is_same<                                              \
                         exec_type,                                             \
@@ -507,6 +547,56 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
     }                                                                          \
     static_assert(true,                                                        \
                   "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
+
+
+/**
+ * Binds a host-side kernel (independent of executor type) to an Operation.
+ *
+ * It also defines a helper function which creates the associated operation.
+ * Any input arguments passed to the helper function are forwarded to the
+ * kernel when the operation is executed.
+ * The kernel name is searched for in the namespace where this macro is called.
+ * Host operations are used to make computations that are not part of the device
+ * kernels visible to profiling loggers and benchmarks.
+ *
+ * @param _name  operation name
+ * @param _kernel  kernel which will be bound to the operation
+ *
+ * Example
+ * -------
+ *
+ * ```c++
+ * void host_kernel(int) {
+ *     // do some expensive computations
+ * }
+ *
+ * // Bind the kernels to the operation
+ * GKO_REGISTER_HOST_OPERATION(my_op, host_kernel);
+ *
+ * int main() {
+ *     // create executor
+ *     auto ref = ReferenceExecutor::create();
+ *
+ *     // create the operation
+ *     auto op = make_my_op(5); // x = 5
+ *
+ *     ref->run(op);  // run host kernel
+ * }
+ * ```
+ *
+ * @ingroup Executor
+ */
+#define GKO_REGISTER_HOST_OPERATION(_name, _kernel)                          \
+    template <typename... Args>                                              \
+    auto make_##_name(Args&&... args)                                        \
+    {                                                                        \
+        return ::gko::detail::make_register_operation(                       \
+            #_kernel,                                                        \
+            [&args...](auto) { _kernel(std::forward<Args>(args)...); });     \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
 
@@ -611,9 +701,9 @@ public:
 
     Executor() = default;
     Executor(Executor&) = delete;
-    Executor(Executor&&) = default;
+    Executor(Executor&&) = delete;
     Executor& operator=(Executor&) = delete;
-    Executor& operator=(Executor&&) = default;
+    Executor& operator=(Executor&&) = delete;
 
     /**
      * Runs the specified Operation using this Executor.
@@ -697,19 +787,19 @@ public:
      *                  where the data will be copied to
      */
     template <typename T>
-    void copy_from(const Executor* src_exec, size_type num_elems,
+    void copy_from(ptr_param<const Executor> src_exec, size_type num_elems,
                    const T* src_ptr, T* dest_ptr) const
     {
         const auto src_loc = reinterpret_cast<uintptr>(src_ptr);
         const auto dest_loc = reinterpret_cast<uintptr>(dest_ptr);
         this->template log<log::Logger::copy_started>(
-            src_exec, this, src_loc, dest_loc, num_elems * sizeof(T));
-        if (this != src_exec) {
+            src_exec.get(), this, src_loc, dest_loc, num_elems * sizeof(T));
+        if (this != src_exec.get()) {
             src_exec->template log<log::Logger::copy_started>(
-                src_exec, this, src_loc, dest_loc, num_elems * sizeof(T));
+                src_exec.get(), this, src_loc, dest_loc, num_elems * sizeof(T));
         }
         try {
-            this->raw_copy_from(src_exec, num_elems * sizeof(T), src_ptr,
+            this->raw_copy_from(src_exec.get(), num_elems * sizeof(T), src_ptr,
                                 dest_ptr);
         } catch (NotSupported&) {
 #if (GKO_VERBOSE_LEVEL >= 1) && !defined(NDEBUG)
@@ -719,7 +809,7 @@ public:
                       << std::endl;
 #endif
             auto src_master = src_exec->get_master().get();
-            if (num_elems > 0 && src_master != src_exec) {
+            if (num_elems > 0 && src_master != src_exec.get()) {
                 auto* master_ptr = src_exec->get_master()->alloc<T>(num_elems);
                 src_master->copy_from<T>(src_exec, num_elems, src_ptr,
                                          master_ptr);
@@ -728,10 +818,10 @@ public:
             }
         }
         this->template log<log::Logger::copy_completed>(
-            src_exec, this, src_loc, dest_loc, num_elems * sizeof(T));
-        if (this != src_exec) {
+            src_exec.get(), this, src_loc, dest_loc, num_elems * sizeof(T));
+        if (this != src_exec.get()) {
             src_exec->template log<log::Logger::copy_completed>(
-                src_exec, this, src_loc, dest_loc, num_elems * sizeof(T));
+                src_exec.get(), this, src_loc, dest_loc, num_elems * sizeof(T));
         }
     }
 
@@ -786,6 +876,59 @@ public:
     virtual void synchronize() const = 0;
 
     /**
+     * @copydoc Loggable::add_logger
+     * @note This specialization keeps track of whether any propagating loggers
+     *       were attached to the executor.
+     * @see Logger::needs_propagation()
+     */
+    void add_logger(std::shared_ptr<const log::Logger> logger) override
+    {
+        this->propagating_logger_refcount_.fetch_add(
+            logger->needs_propagation() ? 1 : 0);
+        this->EnableLogging<Executor>::add_logger(logger);
+    }
+
+    /**
+     * @copydoc Loggable::remove_logger
+     * @note This specialization keeps track of whether any propagating loggers
+     *       were attached to the executor.
+     * @see Logger::needs_propagation()
+     */
+    void remove_logger(const log::Logger* logger) override
+    {
+        this->propagating_logger_refcount_.fetch_sub(
+            logger->needs_propagation() ? 1 : 0);
+        this->EnableLogging<Executor>::remove_logger(logger);
+    }
+
+    using EnableLogging<Executor>::remove_logger;
+
+    /**
+     * Sets the logger event propagation mode for the executor.
+     * This controls whether events that happen at objects created on this
+     * executor will also be logged at propagating loggers attached to the
+     * executor.
+     * @see Logger::needs_propagation()
+     */
+    void set_log_propagation_mode(log_propagation_mode mode)
+    {
+        log_propagation_mode_ = mode;
+    }
+
+    /**
+     * Returns true iff events occurring at an object created on this executor
+     * should be logged at propagating loggers attached to this executor, and
+     * there is at least one such propagating logger.
+     * @see Logger::needs_propagation()
+     * @see Executor::set_log_propagation_mode(log_propagation_mode)
+     */
+    bool should_propagate_log() const
+    {
+        return this->propagating_logger_refcount_.load() > 0 &&
+               log_propagation_mode_ == log_propagation_mode::automatic;
+    }
+
+    /**
      * Verifies whether the executors share the same memory.
      *
      * @param other  the other Executor to compare against
@@ -837,7 +980,9 @@ protected:
          *       per core.
          *       In CUDA and HIP executors this is the number of warps
          *       per SM.
-         *       In DPCPP, this is currently undefined.
+         *       In DPCPP, this is currently number of hardware threads per eu.
+         *       If the device does not support, it will be set as 1.
+         *       (TODO: check)
          */
         int num_pu_per_cu = -1;
 
@@ -1015,6 +1160,10 @@ protected:
 
     exec_info exec_info_;
 
+    log_propagation_mode log_propagation_mode_{log_propagation_mode::automatic};
+
+    std::atomic<int> propagating_logger_refcount_{};
+
 private:
     /**
      * The LambdaOperation class wraps four functor objects into an
@@ -1053,6 +1202,11 @@ private:
         {}
 
         void run(std::shared_ptr<const OmpExecutor>) const override
+        {
+            op_omp_();
+        }
+
+        void run(std::shared_ptr<const ReferenceExecutor>) const override
         {
             op_omp_();
         }
@@ -1150,9 +1304,12 @@ class ExecutorBase : public Executor {
     friend class ReferenceExecutor;
 
 public:
+    using Executor::run;
+
     void run(const Operation& op) const override
     {
         this->template log<log::Logger::operation_launched>(this, &op);
+        auto scope_guard = get_scoped_device_id_guard();
         op.run(self()->shared_from_this());
         this->template log<log::Logger::operation_completed>(this, &op);
     }
@@ -1324,17 +1481,17 @@ public:
         return std::shared_ptr<ReferenceExecutor>(new ReferenceExecutor());
     }
 
+    scoped_device_id_guard get_scoped_device_id_guard() const override
+    {
+        return {this, 0};
+    }
+
     void run(const Operation& op) const override
     {
         this->template log<log::Logger::operation_launched>(this, &op);
         op.run(std::static_pointer_cast<const ReferenceExecutor>(
             this->shared_from_this()));
         this->template log<log::Logger::operation_completed>(this, &op);
-    }
-
-    scoped_device_id_guard get_scoped_device_id_guard() const override
-    {
-        return {this, 0};
     }
 
 protected:
@@ -1401,15 +1558,14 @@ public:
     static std::shared_ptr<CudaExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
         bool device_reset = false,
-        allocation_mode alloc_mode = default_cuda_alloc_mode);
+        allocation_mode alloc_mode = default_cuda_alloc_mode,
+        CUstream_st* stream = nullptr);
 
     std::shared_ptr<Executor> get_master() noexcept override;
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
 
     void synchronize() const override;
-
-    void run(const Operation& op) const override;
 
     scoped_device_id_guard get_scoped_device_id_guard() const override;
 
@@ -1509,6 +1665,14 @@ public:
      */
     int get_closest_numa() const { return this->get_exec_info().numa_node; }
 
+    /**
+     * Returns the CUDA stream used by this executor. Can be nullptr for the
+     * default stream.
+     *
+     * @return  the stream used to execute kernels and memory operations.
+     */
+    CUstream_st* get_stream() const { return stream_; }
+
 protected:
     void set_gpu_property();
 
@@ -1516,20 +1680,19 @@ protected:
 
     CudaExecutor(int device_id, std::shared_ptr<Executor> master,
                  bool device_reset = false,
-                 allocation_mode alloc_mode = default_cuda_alloc_mode)
+                 allocation_mode alloc_mode = default_cuda_alloc_mode,
+                 CUstream_st* stream = nullptr)
         : EnableDeviceReset{device_reset},
           master_(master),
-          alloc_mode_{alloc_mode}
+          alloc_mode_{alloc_mode},
+          stream_{stream}
     {
         this->get_exec_info().device_id = device_id;
         this->get_exec_info().num_computing_units = 0;
         this->get_exec_info().num_pu_per_cu = 0;
         this->CudaExecutor::populate_exec_info(
             machine_topology::get_instance());
-        if (this->get_exec_info().closest_pu_ids.size()) {
-            machine_topology::get_instance()->bind_to_pus(
-                this->get_closest_pus());
-        }
+
         // it only gets attribute from device, so it should not be affected by
         // DeviceReset.
         this->set_gpu_property();
@@ -1570,8 +1733,45 @@ private:
     using handle_manager = std::unique_ptr<T, std::function<void(T*)>>;
     handle_manager<cublasContext> cublas_handle_;
     handle_manager<cusparseContext> cusparse_handle_;
+    CUstream_st* stream_;
 
     allocation_mode alloc_mode_;
+};
+
+
+/**
+ * An RAII wrapper for a custom CUDA stream.
+ * The stream will be created on construction and destroyed when the lifetime of
+ * the wrapper ends.
+ */
+class cuda_stream {
+public:
+    /** Creates a new custom CUDA stream. */
+    cuda_stream(int device_id = 0);
+
+    /** Destroys the custom CUDA stream, if it wasn't moved-from already. */
+    ~cuda_stream();
+
+    cuda_stream(const cuda_stream&) = delete;
+
+    /** Move-constructs from an existing stream, which will be emptied. */
+    cuda_stream(cuda_stream&&);
+
+    cuda_stream& operator=(const cuda_stream&) = delete;
+
+    /** Move-assigns from an existing stream, which will be emptied. */
+    cuda_stream& operator=(cuda_stream&&) = delete;
+
+    /**
+     * Returns the native CUDA stream handle.
+     * In a moved-from cuda_stream, this will return nullptr.
+     */
+    CUstream_st* get() const;
+
+private:
+    CUstream_st* stream_;
+
+    int device_id_;
 };
 
 
@@ -1608,15 +1808,14 @@ public:
     static std::shared_ptr<HipExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
         bool device_reset = false,
-        allocation_mode alloc_mode = default_hip_alloc_mode);
+        allocation_mode alloc_mode = default_hip_alloc_mode,
+        GKO_HIP_STREAM_STRUCT* stream = nullptr);
 
     std::shared_ptr<Executor> get_master() noexcept override;
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
 
     void synchronize() const override;
-
-    void run(const Operation& op) const override;
 
     scoped_device_id_guard get_scoped_device_id_guard() const override;
 
@@ -1716,6 +1915,8 @@ public:
         return this->get_exec_info().closest_pu_ids;
     }
 
+    GKO_HIP_STREAM_STRUCT* get_stream() const { return stream_; }
+
 protected:
     void set_gpu_property();
 
@@ -1723,19 +1924,18 @@ protected:
 
     HipExecutor(int device_id, std::shared_ptr<Executor> master,
                 bool device_reset = false,
-                allocation_mode alloc_mode = default_hip_alloc_mode)
+                allocation_mode alloc_mode = default_hip_alloc_mode,
+                GKO_HIP_STREAM_STRUCT* stream = nullptr)
         : EnableDeviceReset{device_reset},
           master_(master),
-          alloc_mode_(alloc_mode)
+          alloc_mode_(alloc_mode),
+          stream_{stream}
     {
         this->get_exec_info().device_id = device_id;
         this->get_exec_info().num_computing_units = 0;
         this->get_exec_info().num_pu_per_cu = 0;
         this->HipExecutor::populate_exec_info(machine_topology::get_instance());
-        if (this->get_exec_info().closest_pu_ids.size()) {
-            machine_topology::get_instance()->bind_to_pus(
-                this->get_closest_pus());
-        }
+
         // it only gets attribute from device, so it should not be affected by
         // DeviceReset.
         this->set_gpu_property();
@@ -1778,6 +1978,43 @@ private:
     handle_manager<hipsparseContext> hipsparse_handle_;
 
     allocation_mode alloc_mode_;
+    GKO_HIP_STREAM_STRUCT* stream_;
+};
+
+
+/**
+ * An RAII wrapper for a custom HIP stream.
+ * The stream will be created on construction and destroyed when the lifetime of
+ * the wrapper ends.
+ */
+class hip_stream {
+public:
+    /** Creates a new custom HIP stream. */
+    hip_stream(int device_id = 0);
+
+    /** Destroys the custom HIP stream, if it wasn't moved-from already. */
+    ~hip_stream();
+
+    hip_stream(const hip_stream&) = delete;
+
+    /** Move-constructs from an existing stream, which will be emptied. */
+    hip_stream(hip_stream&&);
+
+    hip_stream& operator=(const hip_stream&) = delete;
+
+    /** Move-assigns from an existing stream, which will be emptied. */
+    hip_stream& operator=(hip_stream&&) = delete;
+
+    /**
+     * Returns the native HIP stream handle.
+     * In a moved-from hip_stream, this will return nullptr.
+     */
+    GKO_HIP_STREAM_STRUCT* get() const;
+
+private:
+    GKO_HIP_STREAM_STRUCT* stream_;
+
+    int device_id_;
 };
 
 
@@ -1819,8 +2056,6 @@ public:
 
     void synchronize() const override;
 
-    void run(const Operation& op) const override;
-
     scoped_device_id_guard get_scoped_device_id_guard() const override;
 
     /**
@@ -1833,7 +2068,7 @@ public:
         return this->get_exec_info().device_id;
     }
 
-    ::cl::sycl::queue* get_queue() const { return queue_.get(); }
+    sycl::queue* get_queue() const { return queue_.get(); }
 
     /**
      * Get the number of devices present on the system.
@@ -1862,6 +2097,15 @@ public:
     int get_num_computing_units() const noexcept
     {
         return this->get_exec_info().num_computing_units;
+    }
+
+    /**
+     * Get the number of subgroups of this executor.
+     */
+    int get_num_subgroups() const noexcept
+    {
+        return this->get_exec_info().num_computing_units *
+               this->get_exec_info().num_pu_per_cu;
     }
 
     /**
@@ -1944,7 +2188,7 @@ private:
 
     template <typename T>
     using queue_manager = std::unique_ptr<T, std::function<void(T*)>>;
-    queue_manager<::cl::sycl::queue> queue_;
+    queue_manager<sycl::queue> queue_;
 };
 
 

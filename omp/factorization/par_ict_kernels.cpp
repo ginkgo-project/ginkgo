@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -147,7 +147,7 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
         },
         [&](IndexType row, IndexType nnz) { l_new_row_ptrs[row] = nnz; });
 
-    components::prefix_sum(exec, l_new_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, l_new_row_ptrs, num_rows + 1);
 
     // resize arrays
     auto l_nnz = l_new_row_ptrs[num_rows];

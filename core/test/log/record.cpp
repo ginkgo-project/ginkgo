@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -220,7 +220,7 @@ TEST(Record, CatchesPolymorphicObjectCreateStarted)
 
     auto& data = logger->get().polymorphic_object_create_started.back();
     ASSERT_EQ(data->exec, exec.get());
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), po.get(), 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), po, 0);
     ASSERT_EQ(data->output.get(), nullptr);
 }
 
@@ -239,8 +239,8 @@ TEST(Record, CatchesPolymorphicObjectCreateCompleted)
 
     auto& data = logger->get().polymorphic_object_create_completed.back();
     ASSERT_EQ(data->exec, exec.get());
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), po.get(), 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), output.get(), 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), po, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), output, 0);
 }
 
 
@@ -258,8 +258,8 @@ TEST(Record, CatchesPolymorphicObjectCopyStarted)
 
     auto& data = logger->get().polymorphic_object_copy_started.back();
     ASSERT_EQ(data->exec, exec.get());
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), from.get(), 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), to.get(), 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), from, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), to, 0);
 }
 
 
@@ -278,8 +278,8 @@ TEST(Record, CatchesPolymorphicObjectCopyCompleted)
 
     auto& data = logger->get().polymorphic_object_copy_completed.back();
     ASSERT_EQ(data->exec, exec.get());
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), from.get(), 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), to.get(), 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), from, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), to, 0);
 }
 
 
@@ -297,8 +297,8 @@ TEST(Record, CatchesPolymorphicObjectMoveStarted)
 
     auto& data = logger->get().polymorphic_object_move_started.back();
     ASSERT_EQ(data->exec, exec.get());
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), from.get(), 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), to.get(), 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), from, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), to, 0);
 }
 
 
@@ -317,8 +317,8 @@ TEST(Record, CatchesPolymorphicObjectMoveCompleted)
 
     auto& data = logger->get().polymorphic_object_move_completed.back();
     ASSERT_EQ(data->exec, exec.get());
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), from.get(), 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), to.get(), 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), from, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), to, 0);
 }
 
 
@@ -336,7 +336,7 @@ TEST(Record, CatchesPolymorphicObjectDeleted)
 
     auto& data = logger->get().polymorphic_object_deleted.back();
     ASSERT_EQ(data->exec, exec.get());
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), po.get(), 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), po, 0);
     ASSERT_EQ(data->output, nullptr);
 }
 
@@ -573,25 +573,39 @@ TEST(Record, CatchesIterations)
                 gko::stop::Iteration::build().with_max_iters(3u).on(exec))
             .on(exec);
     auto solver = factory->generate(gko::initialize<Dense>({1.1}, exec));
+    auto right_hand_side = gko::initialize<Dense>({-5.5}, exec);
     auto residual = gko::initialize<Dense>({-4.4}, exec);
     auto solution = gko::initialize<Dense>({-2.2}, exec);
     auto residual_norm = gko::initialize<Dense>({-3.3}, exec);
     auto implicit_sq_residual_norm = gko::initialize<Dense>({-3.5}, exec);
-
+    constexpr gko::uint8 RelativeStoppingId{42};
+    gko::array<gko::stopping_status> stop_status(exec, 1);
+    stop_status.get_data()->reset();
+    stop_status.get_data()->converge(RelativeStoppingId);
 
     logger->on<gko::log::Logger::iteration_complete>(
-        solver.get(), num_iters, residual.get(), solution.get(),
-        residual_norm.get(), implicit_sq_residual_norm.get());
+        solver.get(), right_hand_side.get(), solution.get(), num_iters,
+        residual.get(), residual_norm.get(), implicit_sq_residual_norm.get(),
+        &stop_status, true);
 
+    stop_status.get_data()->reset();
+    stop_status.get_data()->stop(RelativeStoppingId);
     auto& data = logger->get().iteration_completed.back();
     ASSERT_NE(data->solver.get(), nullptr);
     ASSERT_EQ(data->num_iterations, num_iters);
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->residual.get()), residual, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->right_hand_side.get()),
+                        right_hand_side, 0);
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->solution.get()), solution, 0);
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->residual_norm.get()),
                         residual_norm, 0);
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->implicit_sq_residual_norm.get()),
                         implicit_sq_residual_norm, 0);
+    ASSERT_EQ(data->status.get_const_data()->has_stopped(), true);
+    ASSERT_EQ(data->status.get_const_data()->get_id(),
+              stop_status.get_const_data()->get_id());
+    ASSERT_EQ(data->status.get_const_data()->is_finalized(), true);
+    ASSERT_TRUE(data->all_stopped);
 }
 
 

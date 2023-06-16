@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -54,7 +54,8 @@ void run_kernel_solver(std::shared_ptr<const DefaultExecutor> exec,
     if (size[0] > 0 && size[1] > 0) {
         constexpr auto block_size = default_block_size;
         auto num_blocks = ceildiv(size[0] * size[1], block_size);
-        generic_kernel_2d_solver<<<num_blocks, block_size>>>(
+        generic_kernel_2d_solver<<<num_blocks, block_size, 0,
+                                   exec->get_stream()>>>(
             static_cast<int64>(size[0]), static_cast<int64>(size[1]),
             static_cast<int64>(default_stride), fn, map_to_device(args)...);
     }

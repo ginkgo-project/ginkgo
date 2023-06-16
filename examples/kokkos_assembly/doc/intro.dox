@@ -1,0 +1,23 @@
+<a name="Intro"></a>
+<h1>Introduction</h1>
+This example solves a 1D Poisson equation:
+
+@f[
+    u : [0, 1] \rightarrow R\\
+    u'' = f\\
+    u(0) = u0\\
+    u(1) = u1
+@f]
+
+using a finite difference method on an equidistant grid with `K` discretization
+points (`K` can be controlled with a command line parameter).
+
+The resulting CSR matrix is assembled using Kokkos kernels.
+This example show how to use Ginkgo data with Kokkos kernels.
+
+<h3> Notes </h3>
+
+If this example is built as part of Ginkgo, it is advised to configure Ginkgo with
+`-DGINKGO_WITH_CCACHE=OFF` to prevent incompabilities with Kokkos' compiler wrapper
+for `nvcc`.
+

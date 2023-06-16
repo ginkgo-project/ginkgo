@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -86,7 +86,7 @@ protected:
             mtx->get_size()[0], nrhs, dist, rng, this->exec);
         x_ref = x->clone();
         b = x->clone();
-        mtx->apply(x.get(), b.get());
+        mtx->apply(x, b);
     }
 
     std::default_random_engine rng;
@@ -107,7 +107,7 @@ TYPED_TEST(Direct, SolvesAni1SingleRhs)
     using value_type = typename TestFixture::value_type;
     this->setup(gko::matrices::location_ani1_mtx);
 
-    this->solver->apply(this->b.get(), this->x.get());
+    this->solver->apply(this->b, this->x);
 
     GKO_ASSERT_MTX_NEAR(this->x, this->x_ref, r<value_type>::value);
 }
@@ -119,7 +119,7 @@ TYPED_TEST(Direct, SolvesAni1AmdMultipleRhs)
     using value_type = typename TestFixture::value_type;
     this->setup(gko::matrices::location_ani1_amd_mtx, 3);
 
-    this->solver->apply(this->b.get(), this->x.get());
+    this->solver->apply(this->b, this->x);
 
     GKO_ASSERT_MTX_NEAR(this->x, this->x_ref, r<value_type>::value);
 }

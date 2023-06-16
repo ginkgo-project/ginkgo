@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -72,11 +72,13 @@ struct is_supported<std::complex<double>> : std::true_type {};
 
 
 inline hiprandGenerator_t rand_generator(int64 seed,
-                                         hiprandRngType generator_type)
+                                         hiprandRngType generator_type,
+                                         hipStream_t stream)
 {
     hiprandGenerator_t gen;
-    hiprandCreateGenerator(&gen, generator_type);
-    hiprandSetPseudoRandomGeneratorSeed(gen, seed);
+    GKO_ASSERT_NO_HIPRAND_ERRORS(hiprandCreateGenerator(&gen, generator_type));
+    GKO_ASSERT_NO_HIPRAND_ERRORS(
+        hiprandSetPseudoRandomGeneratorSeed(gen, seed));
     return gen;
 }
 

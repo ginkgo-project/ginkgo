@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -189,11 +189,10 @@ TYPED_TEST(Factorization, CreateCombinedLUWorks)
     ASSERT_EQ(fact->get_diagonal(), nullptr);
     ASSERT_EQ(fact->get_upper_factor(), nullptr);
     GKO_ASSERT_MTX_NEAR(fact->get_combined(), this->combined_mtx, 0.0);
-    ASSERT_THROW(fact->apply(this->input.get(), this->output.get()),
-                 gko::NotSupported);
-    ASSERT_THROW(fact->apply(this->alpha.get(), this->input.get(),
-                             this->beta.get(), this->output.get()),
-                 gko::NotSupported);
+    ASSERT_THROW(fact->apply(this->input, this->output), gko::NotSupported);
+    ASSERT_THROW(
+        fact->apply(this->alpha, this->input, this->beta, this->output),
+        gko::NotSupported);
 }
 
 
@@ -211,11 +210,10 @@ TYPED_TEST(Factorization, CreateCombinedLDUWorks)
     ASSERT_EQ(fact->get_diagonal(), nullptr);
     ASSERT_EQ(fact->get_upper_factor(), nullptr);
     GKO_ASSERT_MTX_NEAR(fact->get_combined(), this->combined_mtx, 0.0);
-    ASSERT_THROW(fact->apply(this->input.get(), this->output.get()),
-                 gko::NotSupported);
-    ASSERT_THROW(fact->apply(this->alpha.get(), this->input.get(),
-                             this->beta.get(), this->output.get()),
-                 gko::NotSupported);
+    ASSERT_THROW(fact->apply(this->input, this->output), gko::NotSupported);
+    ASSERT_THROW(
+        fact->apply(this->alpha, this->input, this->beta, this->output),
+        gko::NotSupported);
 }
 
 
@@ -234,11 +232,10 @@ TYPED_TEST(Factorization, CreateSymmCombinedCholeskyWorks)
     ASSERT_EQ(fact->get_diagonal(), nullptr);
     ASSERT_EQ(fact->get_upper_factor(), nullptr);
     GKO_ASSERT_MTX_NEAR(fact->get_combined(), this->combined_mtx, 0.0);
-    ASSERT_THROW(fact->apply(this->input.get(), this->output.get()),
-                 gko::NotSupported);
-    ASSERT_THROW(fact->apply(this->alpha.get(), this->input.get(),
-                             this->beta.get(), this->output.get()),
-                 gko::NotSupported);
+    ASSERT_THROW(fact->apply(this->input, this->output), gko::NotSupported);
+    ASSERT_THROW(
+        fact->apply(this->alpha, this->input, this->beta, this->output),
+        gko::NotSupported);
 }
 
 
@@ -257,11 +254,10 @@ TYPED_TEST(Factorization, CreateSymmCombinedLDLWorks)
     ASSERT_EQ(fact->get_diagonal(), nullptr);
     ASSERT_EQ(fact->get_upper_factor(), nullptr);
     GKO_ASSERT_MTX_NEAR(fact->get_combined(), this->combined_mtx, 0.0);
-    ASSERT_THROW(fact->apply(this->input.get(), this->output.get()),
-                 gko::NotSupported);
-    ASSERT_THROW(fact->apply(this->alpha.get(), this->input.get(),
-                             this->beta.get(), this->output.get()),
-                 gko::NotSupported);
+    ASSERT_THROW(fact->apply(this->input, this->output), gko::NotSupported);
+    ASSERT_THROW(
+        fact->apply(this->alpha, this->input, this->beta, this->output),
+        gko::NotSupported);
 }
 
 
@@ -273,10 +269,10 @@ TYPED_TEST(Factorization, ApplyFromCompositionWorks)
     auto fact = factorization_type::create_from_composition(comp->clone());
     auto ref_out = this->output->clone();
 
-    fact->apply(this->input.get(), this->output.get());
-    comp->apply(this->input.get(), ref_out.get());
+    fact->apply(this->input, this->output);
+    comp->apply(this->input, ref_out);
 
-    GKO_ASSERT_MTX_NEAR(this->output.get(), ref_out.get(), 0.0);
+    GKO_ASSERT_MTX_NEAR(this->output, ref_out, 0.0);
 }
 
 
@@ -289,10 +285,10 @@ TYPED_TEST(Factorization, ApplyFromCompositionWithDiagonalWorks)
     auto fact = factorization_type::create_from_composition(comp->clone());
     auto ref_out = this->output->clone();
 
-    fact->apply(this->input.get(), this->output.get());
-    comp->apply(this->input.get(), ref_out.get());
+    fact->apply(this->input, this->output);
+    comp->apply(this->input, ref_out);
 
-    GKO_ASSERT_MTX_NEAR(this->output.get(), ref_out.get(), 0.0);
+    GKO_ASSERT_MTX_NEAR(this->output, ref_out, 0.0);
 }
 
 
@@ -304,10 +300,10 @@ TYPED_TEST(Factorization, ApplyFromSymmCompositionWorks)
     auto fact = factorization_type::create_from_symm_composition(comp->clone());
     auto ref_out = this->output->clone();
 
-    fact->apply(this->input.get(), this->output.get());
-    comp->apply(this->input.get(), ref_out.get());
+    fact->apply(this->input, this->output);
+    comp->apply(this->input, ref_out);
 
-    GKO_ASSERT_MTX_NEAR(this->output.get(), ref_out.get(), 0.0);
+    GKO_ASSERT_MTX_NEAR(this->output, ref_out, 0.0);
 }
 
 
@@ -320,10 +316,10 @@ TYPED_TEST(Factorization, ApplyFromSymmCompositionWithDiagonalWorks)
     auto fact = factorization_type::create_from_symm_composition(comp->clone());
     auto ref_out = this->output->clone();
 
-    fact->apply(this->input.get(), this->output.get());
-    comp->apply(this->input.get(), ref_out.get());
+    fact->apply(this->input, this->output);
+    comp->apply(this->input, ref_out);
 
-    GKO_ASSERT_MTX_NEAR(this->output.get(), ref_out.get(), 0.0);
+    GKO_ASSERT_MTX_NEAR(this->output, ref_out, 0.0);
 }
 
 
@@ -335,12 +331,10 @@ TYPED_TEST(Factorization, AdvancedApplyFromCompositionWorks)
     auto fact = factorization_type::create_from_composition(comp->clone());
     auto ref_out = this->output->clone();
 
-    fact->apply(this->alpha.get(), this->input.get(), this->beta.get(),
-                this->output.get());
-    comp->apply(this->alpha.get(), this->input.get(), this->beta.get(),
-                ref_out.get());
+    fact->apply(this->alpha, this->input, this->beta, this->output);
+    comp->apply(this->alpha, this->input, this->beta, ref_out);
 
-    GKO_ASSERT_MTX_NEAR(this->output.get(), ref_out.get(), 0.0);
+    GKO_ASSERT_MTX_NEAR(this->output, ref_out, 0.0);
 }
 
 
@@ -353,12 +347,10 @@ TYPED_TEST(Factorization, AdvancedApplyFromCompositionWithDiagonalWorks)
     auto fact = factorization_type::create_from_composition(comp->clone());
     auto ref_out = this->output->clone();
 
-    fact->apply(this->alpha.get(), this->input.get(), this->beta.get(),
-                this->output.get());
-    comp->apply(this->alpha.get(), this->input.get(), this->beta.get(),
-                ref_out.get());
+    fact->apply(this->alpha, this->input, this->beta, this->output);
+    comp->apply(this->alpha, this->input, this->beta, ref_out);
 
-    GKO_ASSERT_MTX_NEAR(this->output.get(), ref_out.get(), 0.0);
+    GKO_ASSERT_MTX_NEAR(this->output, ref_out, 0.0);
 }
 
 
@@ -370,12 +362,10 @@ TYPED_TEST(Factorization, AdvancedApplyFromSymmCompositionWorks)
     auto fact = factorization_type::create_from_symm_composition(comp->clone());
     auto ref_out = this->output->clone();
 
-    fact->apply(this->alpha.get(), this->input.get(), this->beta.get(),
-                this->output.get());
-    comp->apply(this->alpha.get(), this->input.get(), this->beta.get(),
-                ref_out.get());
+    fact->apply(this->alpha, this->input, this->beta, this->output);
+    comp->apply(this->alpha, this->input, this->beta, ref_out);
 
-    GKO_ASSERT_MTX_NEAR(this->output.get(), ref_out.get(), 0.0);
+    GKO_ASSERT_MTX_NEAR(this->output, ref_out, 0.0);
 }
 
 
@@ -388,10 +378,8 @@ TYPED_TEST(Factorization, AdvancedApplyFromSymmCompositionWithDiagonalWorks)
     auto fact = factorization_type::create_from_symm_composition(comp->clone());
     auto ref_out = this->output->clone();
 
-    fact->apply(this->alpha.get(), this->input.get(), this->beta.get(),
-                this->output.get());
-    comp->apply(this->alpha.get(), this->input.get(), this->beta.get(),
-                ref_out.get());
+    fact->apply(this->alpha, this->input, this->beta, this->output);
+    comp->apply(this->alpha, this->input, this->beta, ref_out);
 
-    GKO_ASSERT_MTX_NEAR(this->output.get(), ref_out.get(), 0.0);
+    GKO_ASSERT_MTX_NEAR(this->output, ref_out, 0.0);
 }

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -68,7 +68,9 @@ public:
      * Criterion's check function. The pattern used is a Builder, except Updater
      * builds a function's arguments before calling the function itself, and
      * does not build an object. This allows calling a Criterion's check in the
-     * form of: stop_criterion->update() .num_iterations(num_iterations)
+     * form of: stop_criterion->update()
+     *   .num_iterations(num_iterations)
+     *   .ignore_residual_check(ignore_residual_check)
      *   .residual_norm(residual_norm)
      *   .implicit_sq_residual_norm(implicit_sq_residual_norm)
      *   .residual(residual)
@@ -114,13 +116,24 @@ public:
         return *this;                                \
     }                                                \
     mutable _type _name##_ {}
+#define GKO_UPDATER_REGISTER_PTR_PARAMETER(_type, _name) \
+    const Updater& _name(ptr_param<_type> value) const   \
+    {                                                    \
+        _name##_ = value.get();                          \
+        return *this;                                    \
+    }                                                    \
+    mutable _type* _name##_ {}
 
         GKO_UPDATER_REGISTER_PARAMETER(size_type, num_iterations);
-        GKO_UPDATER_REGISTER_PARAMETER(const LinOp*, residual);
-        GKO_UPDATER_REGISTER_PARAMETER(const LinOp*, residual_norm);
-        GKO_UPDATER_REGISTER_PARAMETER(const LinOp*, implicit_sq_residual_norm);
-        GKO_UPDATER_REGISTER_PARAMETER(const LinOp*, solution);
+        // ignore_residual_check default is false
+        GKO_UPDATER_REGISTER_PARAMETER(bool, ignore_residual_check);
+        GKO_UPDATER_REGISTER_PTR_PARAMETER(const LinOp, residual);
+        GKO_UPDATER_REGISTER_PTR_PARAMETER(const LinOp, residual_norm);
+        GKO_UPDATER_REGISTER_PTR_PARAMETER(const LinOp,
+                                           implicit_sq_residual_norm);
+        GKO_UPDATER_REGISTER_PTR_PARAMETER(const LinOp, solution);
 
+#undef GKO_UPDATER_REGISTER_PTR_PARAMETER
 #undef GKO_UPDATER_REGISTER_PARAMETER
 
     private:
@@ -144,7 +157,7 @@ public:
      * @param set_finalized  Controls if the current version should count as
      *                      finalized or not
      * @param stop_status  status of the stopping criterion
-     * @param one_changed  indicates if one vector's status changed
+     * @param one_changed  indicates if the status of a vector has changed
      * @param updater  the Updater object containing all the information
      *
      * @returns whether convergence was completely reached
@@ -179,7 +192,7 @@ protected:
      * @param set_finalized  Controls if the current version should count as
      *                      finalized or not
      * @param stop_status  status of the stopping criterion
-     * @param one_changed  indicates if one vector's status changed
+     * @param one_changed  indicates if the status of a vector has changed
      * @param updater  the Updater object containing all the information
      *
      * @returns whether convergence was completely reached

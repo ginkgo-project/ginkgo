@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -58,7 +58,7 @@ TYPED_TEST(MatricesNear, CanPassAnyMatrixType)
         {{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}, exec);
 
     auto csr_mtx = gko::matrix::Csr<TypeParam>::create(exec);
-    csr_mtx->copy_from(mtx.get());
+    csr_mtx->copy_from(mtx);
 
     GKO_EXPECT_MTX_NEAR(csr_mtx, mtx, 0.0);
     GKO_ASSERT_MTX_NEAR(csr_mtx, mtx, 0.0);

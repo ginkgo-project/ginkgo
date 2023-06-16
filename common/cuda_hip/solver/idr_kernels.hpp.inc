@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -52,9 +52,9 @@ __global__ __launch_bounds__(default_block_size) void initialize_m_kernel(
 
 template <size_type block_size, typename ValueType>
 __global__
-    __launch_bounds__(block_size) void orthonormalize_subspace_vectors_kernel(
-        size_type num_rows, size_type num_cols, ValueType* __restrict__ values,
-        size_type stride)
+__launch_bounds__(block_size) void orthonormalize_subspace_vectors_kernel(
+    size_type num_rows, size_type num_cols, ValueType* __restrict__ values,
+    size_type stride)
 {
     const auto tidx = thread::get_thread_id_flat();
 
@@ -108,12 +108,12 @@ __global__
 
 template <typename ValueType>
 __global__
-    __launch_bounds__(default_block_size) void solve_lower_triangular_kernel(
-        size_type subspace_dim, size_type nrhs,
-        const ValueType* __restrict__ m_values, size_type m_stride,
-        const ValueType* __restrict__ f_values, size_type f_stride,
-        ValueType* __restrict__ c_values, size_type c_stride,
-        const stopping_status* __restrict__ stop_status)
+__launch_bounds__(default_block_size) void solve_lower_triangular_kernel(
+    size_type subspace_dim, size_type nrhs,
+    const ValueType* __restrict__ m_values, size_type m_stride,
+    const ValueType* __restrict__ f_values, size_type f_stride,
+    ValueType* __restrict__ c_values, size_type c_stride,
+    const stopping_status* __restrict__ stop_status)
 {
     const auto global_id = thread::get_thread_id_flat();
 

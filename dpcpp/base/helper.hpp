@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -63,11 +63,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     {                                                                     \
         queue->submit([&](sycl::handler& cgh) {                           \
             cgh.parallel_for(                                             \
-                sycl_nd_range(grid, block), [=                            \
-            ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(     \
-                                                config::warp_size)]] {    \
-                    kernel_(args..., item_ct1);                           \
-                });                                                       \
+                sycl_nd_range(grid, block),                               \
+                [=](sycl::nd_item<3> item_ct1)                            \
+                    [[sycl::reqd_sub_group_size(config::warp_size)]] {    \
+                        kernel_(args..., item_ct1);                       \
+                    });                                                   \
         });                                                               \
     }
 
@@ -80,27 +80,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @param name_  the name of the host function with config
  * @param kernel_  the kernel name
  */
-#define GKO_ENABLE_DEFAULT_HOST_CONFIG(name_, kernel_)                    \
-    template <std::uint32_t encoded, typename... InferredArgs>            \
-    inline void name_(dim3 grid, dim3 block, gko::size_type,              \
-                      sycl::queue* queue, InferredArgs... args)           \
-    {                                                                     \
-        queue->submit([&](sycl::handler& cgh) {                           \
-            if constexpr (DCFG_1D::decode<1>(encoded) > 1) {              \
-                cgh.parallel_for(                                         \
-                    sycl_nd_range(grid, block), [=                        \
-                ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size( \
-                                                    DCFG_1D::decode<1>(   \
-                                                        encoded))]] {     \
-                        kernel_<encoded>(args..., item_ct1);              \
-                    });                                                   \
-            } else {                                                      \
-                cgh.parallel_for(sycl_nd_range(grid, block),              \
-                                 [=](sycl::nd_item<3> item_ct1) {         \
-                                     kernel_<encoded>(args..., item_ct1); \
-                                 });                                      \
-            }                                                             \
-        });                                                               \
+#define GKO_ENABLE_DEFAULT_HOST_CONFIG(name_, kernel_)                        \
+    template <std::uint32_t encoded, typename... InferredArgs>                \
+    inline void name_(dim3 grid, dim3 block, gko::size_type,                  \
+                      sycl::queue* queue, InferredArgs... args)               \
+    {                                                                         \
+        queue->submit([&](sycl::handler& cgh) {                               \
+            if constexpr (DCFG_1D::decode<1>(encoded) > 1) {                  \
+                cgh.parallel_for(sycl_nd_range(grid, block),                  \
+                                 [=](sycl::nd_item<3> item_ct1)               \
+                                     [[sycl::reqd_sub_group_size(             \
+                                         DCFG_1D::decode<1>(encoded))]] {     \
+                                         kernel_<encoded>(args..., item_ct1); \
+                                     });                                      \
+            } else {                                                          \
+                cgh.parallel_for(sycl_nd_range(grid, block),                  \
+                                 [=](sycl::nd_item<3> item_ct1) {             \
+                                     kernel_<encoded>(args..., item_ct1);     \
+                                 });                                          \
+            }                                                                 \
+        });                                                                   \
     }
 
 #define GKO_ENABLE_DEFAULT_HOST_CONFIG_TYPE(name_, kernel_)                 \

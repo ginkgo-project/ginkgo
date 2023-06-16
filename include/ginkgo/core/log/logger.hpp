@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -408,7 +408,7 @@ protected:
      * @param set_finalized  whether this finalizes the iteration
      * @param status  the stopping status of the right hand sides
      * @param one_changed  whether at least one right hand side converged or not
-     * @param all_converged  whether all right hand sides
+     * @param all_converged  whether all right hand sides are converged
      */
     virtual void on_criterion_check_completed(
         const stop::Criterion* criterion, const size_type& it, const LinOp* r,
@@ -422,23 +422,19 @@ protected:
                                            one_changed, all_converged);
     }
 
-    /**
-     * Register the `iteration_complete` event which logs every completed
-     * iterations.
-     *
-     * @param it  the current iteration count
-     * @param r  the residual
-     * @param x  the solution vector (optional)
-     * @param tau  the residual norm (optional)
-     *
-     * @note The on_iteration_complete function that this macro declares is
-     * deprecated. Please use the one with the additional implicit_tau_sq
-     * parameter as below.
-     */
-    GKO_LOGGER_REGISTER_EVENT(21, iteration_complete, const LinOp* solver,
-                              const size_type& it, const LinOp* r,
-                              const LinOp* x = nullptr,
-                              const LinOp* tau = nullptr)
+public:
+    static constexpr size_type iteration_complete{21};
+    static constexpr mask_type iteration_complete_mask{mask_type{1} << 21};
+
+    template <size_type Event, typename... Params>
+    std::enable_if_t<Event == 21 && (21 < event_count_max)> on(
+        Params&&... params) const
+    {
+        if (enabled_events_ & (mask_type{1} << 21)) {
+            this->on_iteration_complete(std::forward<Params>(params)...);
+        }
+    }
+
 protected:
     /**
      * Register the `iteration_complete` event which logs every completed
@@ -448,14 +444,98 @@ protected:
      * @param r  the residual
      * @param x  the solution vector (optional)
      * @param tau  the residual norm (optional)
-     * @param implicit_tau_sq  the implicit residual norm squared (optional)
+     *
+     * @warning This on_iteration_complete function that this macro declares is
+     * deprecated. Please use the version with the stopping information.
      */
-    virtual void on_iteration_complete(const LinOp* solver, const size_type& it,
-                                       const LinOp* r, const LinOp* x,
-                                       const LinOp* tau,
-                                       const LinOp* implicit_tau_sq) const
+    [[deprecated(
+        "Please use the version with the additional stopping "
+        "information.")]] virtual void
+    on_iteration_complete(const LinOp* solver, const size_type& it,
+                          const LinOp* r, const LinOp* x = nullptr,
+                          const LinOp* tau = nullptr) const
+    {}
+
+    /**
+     * Register the `iteration_complete` event which logs every completed
+     * iterations.
+     *
+     * @param it  the current iteration count
+     * @param r  the residual
+     * @param x  the solution vector (optional)
+     * @param tau  the residual norm (optional)
+     * @param implicit_tau_sq  the implicit residual norm squared (optional)
+     *
+     * @warning This on_iteration_complete function that this macro declares is
+     * deprecated. Please use the version with the stopping information.
+     */
+    [[deprecated(
+        "Please use the version with the additional stopping "
+        "information.")]] virtual void
+    on_iteration_complete(const LinOp* solver, const size_type& it,
+                          const LinOp* r, const LinOp* x, const LinOp* tau,
+                          const LinOp* implicit_tau_sq) const
     {
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 5211, 4973, 4974)
+#endif
         this->on_iteration_complete(solver, it, r, x, tau);
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+    }
+
+    /**
+     * Register the `iteration_complete` event which logs every completed
+     * iterations.
+     *
+     * @param solver  the solver executing the iteration
+     * @param b  the right-hand-side vector
+     * @param x  the solution vector
+     * @param it  the current iteration count
+     * @param r  the residual (optional)
+     * @param tau  the implicit residual norm squared (optional)
+     * @param implicit_tau_sq  the residual norm (optional)
+     * @param status  the stopping status of the right hand sides (optional)
+     * @param stopped  whether all right hand sides have stopped (invalid if
+     *                 status is not provided)
+     */
+    virtual void on_iteration_complete(const LinOp* solver, const LinOp* b,
+                                       const LinOp* x, const size_type& it,
+                                       const LinOp* r, const LinOp* tau,
+                                       const LinOp* implicit_tau_sq,
+                                       const array<stopping_status>* status,
+                                       bool stopped) const
+    {
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif  // defined(__GNUC__) || defined(__clang__)
+#ifdef __NVCOMPILER
+#pragma diag_suppress 1445
+#endif  // __NVCOMPILER
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 5211, 4973, 4974)
+#endif  // _MSC_VER
+        this->on_iteration_complete(solver, it, r, x, tau, implicit_tau_sq);
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif  // defined(__GNUC__) || defined(__clang__)
+#ifdef __NVCOMPILER
+#pragma diag_warning 1445
+#endif  // __NVCOMPILER
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif  // _MSC_VER
     }
 
 public:
@@ -531,6 +611,12 @@ public:
     static constexpr mask_type criterion_events_mask =
         criterion_check_started_mask | criterion_check_completed_mask;
 
+    /**
+     * Returns true if this logger, when attached to an Executor, needs to be
+     * forwarded all events from objects on this executor.
+     */
+    virtual bool needs_propagation() const { return false; }
+
     virtual ~Logger() = default;
 
 protected:
@@ -604,6 +690,11 @@ public:
      */
     virtual void remove_logger(const Logger* logger) = 0;
 
+    void remove_logger(ptr_param<const Logger> logger)
+    {
+        remove_logger(logger.get());
+    }
+
     /**
      * Returns the vector containing all loggers registered at this object.
      *
@@ -641,13 +732,18 @@ public:
     {
         auto idx =
             find_if(begin(loggers_), end(loggers_),
-                    [&logger](const auto& l) { return lend(l) == logger; });
+                    [&logger](const auto& l) { return l.get() == logger; });
         if (idx != end(loggers_)) {
             loggers_.erase(idx);
         } else {
             throw OutOfBoundsError(__FILE__, __LINE__, loggers_.size(),
                                    loggers_.size());
         }
+    }
+
+    void remove_logger(ptr_param<const Logger> logger)
+    {
+        remove_logger(logger.get());
     }
 
     const std::vector<std::shared_ptr<const Logger>>& get_loggers()
@@ -658,10 +754,48 @@ public:
 
     void clear_loggers() override { loggers_.clear(); }
 
+private:
+    /**
+     * @internal
+     * This struct is used to differentiate between objects that have an
+     * associated executor (PolymorphicObject) and ones that don't (Executor).
+     * For the ones with executor, it handles the event propagation via template
+     * specialization/SFINAE.
+     */
+    template <size_type Event, typename ConcreteLoggableT, typename = void>
+    struct propagate_log_helper {
+        template <typename... Args>
+        static void propagate_log(const ConcreteLoggableT*, Args&&...)
+        {}
+    };
+
+    template <size_type Event, typename ConcreteLoggableT>
+    struct propagate_log_helper<
+        Event, ConcreteLoggableT,
+        xstd::void_t<
+            decltype(std::declval<ConcreteLoggableT>().get_executor())>> {
+        template <typename... Args>
+        static void propagate_log(const ConcreteLoggableT* loggable,
+                                  Args&&... args)
+        {
+            const auto exec = loggable->get_executor();
+            if (exec->should_propagate_log()) {
+                for (auto& logger : exec->get_loggers()) {
+                    if (logger->needs_propagation()) {
+                        logger->template on<Event>(std::forward<Args>(args)...);
+                    }
+                }
+            }
+        }
+    };
+
 protected:
     template <size_type Event, typename... Params>
     void log(Params&&... params) const
     {
+        propagate_log_helper<Event, ConcreteLoggable>::propagate_log(
+            static_cast<const ConcreteLoggable*>(this),
+            std::forward<Params>(params)...);
         for (auto& logger : loggers_) {
             logger->template on<Event>(std::forward<Params>(params)...);
         }

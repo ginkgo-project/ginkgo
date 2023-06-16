@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -56,42 +56,40 @@ void ScaledReordered<ValueType, IndexType>::apply_impl(const LinOp* b,
 
             // Preprocess the input vectors before applying the inner operator.
             if (row_scaling_) {
-                row_scaling_->apply(cache_.inner_b.get(),
-                                    cache_.intermediate.get());
+                row_scaling_->apply(cache_.inner_b, cache_.intermediate);
                 std::swap(cache_.inner_b, cache_.intermediate);
             }
             // Col scaling for x is only necessary if the inner operator uses an
             // initial guess. Otherwise x is overwritten anyway.
             if (col_scaling_ && inner_operator_->apply_uses_initial_guess()) {
-                col_scaling_->inverse_apply(cache_.inner_x.get(),
-                                            cache_.intermediate.get());
+                col_scaling_->inverse_apply(cache_.inner_x,
+                                            cache_.intermediate);
                 std::swap(cache_.inner_x, cache_.intermediate);
             }
             if (permutation_array_.get_num_elems() > 0) {
                 cache_.inner_b->row_permute(&permutation_array_,
-                                            cache_.intermediate.get());
+                                            cache_.intermediate);
                 std::swap(cache_.inner_b, cache_.intermediate);
                 if (inner_operator_->apply_uses_initial_guess()) {
                     cache_.inner_x->row_permute(&permutation_array_,
-                                                cache_.intermediate.get());
+                                                cache_.intermediate);
                     std::swap(cache_.inner_x, cache_.intermediate);
                 }
             }
 
-            inner_operator_->apply(cache_.inner_b.get(), cache_.inner_x.get());
+            inner_operator_->apply(cache_.inner_b, cache_.inner_x);
 
             // Permute and scale the solution vector back.
             if (permutation_array_.get_num_elems() > 0) {
                 cache_.inner_x->inverse_row_permute(&permutation_array_,
-                                                    cache_.intermediate.get());
+                                                    cache_.intermediate);
                 std::swap(cache_.inner_x, cache_.intermediate);
             }
             if (col_scaling_) {
-                col_scaling_->apply(cache_.inner_x.get(),
-                                    cache_.intermediate.get());
+                col_scaling_->apply(cache_.inner_x, cache_.intermediate);
                 std::swap(cache_.inner_x, cache_.intermediate);
             }
-            dense_x->copy_from(cache_.inner_x.get());
+            dense_x->copy_from(cache_.inner_x);
         },
         b, x);
 }
@@ -108,7 +106,7 @@ void ScaledReordered<ValueType, IndexType>::apply_impl(const LinOp* alpha,
             auto x_clone = dense_x->clone();
             this->apply_impl(dense_b, x_clone.get());
             dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, x_clone.get());
+            dense_x->add_scaled(dense_alpha, x_clone);
         },
         alpha, b, beta, x);
 }

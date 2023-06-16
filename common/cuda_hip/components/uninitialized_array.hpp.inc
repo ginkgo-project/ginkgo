@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,7 +29,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
-
 
 /**
  * Stores an array with uninitialized contents.
@@ -70,8 +69,8 @@ public:
      *
      * @return a reference to the array entry at the given index.
      */
-    constexpr GKO_ATTRIBUTES const ValueType& operator[](size_type pos) const
-        noexcept
+    constexpr GKO_ATTRIBUTES const ValueType& operator[](
+        size_type pos) const noexcept
     {
         return reinterpret_cast<const ValueType*>(data_)[pos];
     }

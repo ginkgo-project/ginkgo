@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -61,15 +61,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 template <typename ValueLocalGlobalIndexType>
 class MatrixCreation : public CommonMpiTestFixture {
 protected:
-    using value_type =
-        typename std::tuple_element<0, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using local_index_type =
-        typename std::tuple_element<1, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using global_index_type =
-        typename std::tuple_element<2, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
+    using value_type = typename std::tuple_element<
+        0, decltype(ValueLocalGlobalIndexType())>::type;
+    using local_index_type = typename std::tuple_element<
+        1, decltype(ValueLocalGlobalIndexType())>::type;
+    using global_index_type = typename std::tuple_element<
+        2, decltype(ValueLocalGlobalIndexType())>::type;
     using dist_mtx_type =
         gko::experimental::distributed::Matrix<value_type, local_index_type,
                                                global_index_type>;
@@ -141,7 +138,7 @@ TYPED_TEST(MatrixCreation, ReadsDistributedGlobalData)
         {{0, 2}, {4, 0}}, {{5, 0}, {0, 7}}, {{9}}};
     auto rank = this->dist_mat->get_communicator().rank();
 
-    this->dist_mat->read_distributed(this->mat_input, this->row_part.get());
+    this->dist_mat->read_distributed(this->mat_input, this->row_part);
 
     GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
                         res_local[rank], 0);
@@ -159,8 +156,7 @@ TYPED_TEST(MatrixCreation, ReadsDistributedLocalData)
         {{0, 2}, {4, 0}}, {{5, 0}, {0, 7}}, {{9}}};
     auto rank = this->dist_mat->get_communicator().rank();
 
-    this->dist_mat->read_distributed(this->dist_input[rank],
-                                     this->row_part.get());
+    this->dist_mat->read_distributed(this->dist_input[rank], this->row_part);
 
     GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
                         res_local[rank], 0);
@@ -178,8 +174,8 @@ TYPED_TEST(MatrixCreation, ReadsDistributedWithColPartition)
         {{1, 0}, {3, 4}}, {{0, 0, 6}, {8, 7, 0}}, {{10, 9}}};
     auto rank = this->dist_mat->get_communicator().rank();
 
-    this->dist_mat->read_distributed(this->mat_input, this->row_part.get(),
-                                     this->col_part.get());
+    this->dist_mat->read_distributed(this->mat_input, this->row_part,
+                                     this->col_part);
 
     GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
                         res_local[rank], 0);
@@ -238,8 +234,7 @@ public:
              {2, 2, 6}, {3, 3, 8}, {3, 4, 7}, {4, 0, 9}, {4, 4, 10}}
             // clang-format on
         };
-        dist_mat->read_distributed(mat_input, this->row_part.get(),
-                                   this->col_part.get());
+        dist_mat->read_distributed(mat_input, this->row_part, this->col_part);
         csr_mat->read(mat_input);
 
         alpha = gko::test::generate_random_matrix<dense_vec_type>(
@@ -276,7 +271,7 @@ public:
             this->exec, gather_idxs.begin(), gather_idxs.end());
         auto gathered_local = dense->row_gather(&gather_idxs_view);
 
-        GKO_ASSERT_MTX_NEAR(dist->get_local_vector(), gathered_local.get(),
+        GKO_ASSERT_MTX_NEAR(dist->get_local_vector(), gathered_local,
                             r<value_type>::value);
     }
 
@@ -311,14 +306,14 @@ public:
         col_part_large =
             part_type::build_from_mapping(exec, col_mapping, num_parts);
 
-        dist_mat_large->read_distributed(mat_md, row_part_large.get(),
-                                         col_part_large.get());
+        dist_mat_large->read_distributed(mat_md, row_part_large,
+                                         col_part_large);
         csr_mat->read(mat_md);
 
-        x->read_distributed(vec_md, col_part_large.get());
+        x->read_distributed(vec_md, col_part_large);
         dense_x->read(vec_md);
 
-        y->read_distributed(vec_md, row_part_large.get());
+        y->read_distributed(vec_md, row_part_large);
         dense_y->read(vec_md);
     }
 
@@ -355,10 +350,10 @@ TYPED_TEST(Matrix, CanApplyToSingleVector)
         I<I<value_type>>{{1}, {2}, {3}, {4}, {5}}};
     I<I<value_type>> result[3] = {{{10}, {18}}, {{28}, {67}}, {{59}}};
     auto rank = this->comm.rank();
-    this->x->read_distributed(vec_md, this->col_part.get());
-    this->y->read_distributed(vec_md, this->row_part.get());
+    this->x->read_distributed(vec_md, this->col_part);
+    this->y->read_distributed(vec_md, this->row_part);
 
-    this->dist_mat->apply(this->x.get(), this->y.get());
+    this->dist_mat->apply(this->x, this->y);
 
     GKO_ASSERT_MTX_NEAR(this->y->get_local_vector(), result[rank], 0);
 }
@@ -373,10 +368,10 @@ TYPED_TEST(Matrix, CanApplyToMultipleVectors)
     I<I<value_type>> result[3] = {
         {{10, 110}, {18, 198}}, {{28, 308}, {67, 737}}, {{59, 649}}};
     auto rank = this->comm.rank();
-    this->x->read_distributed(vec_md, this->col_part.get());
-    this->y->read_distributed(vec_md, this->row_part.get());
+    this->x->read_distributed(vec_md, this->col_part);
+    this->y->read_distributed(vec_md, this->row_part);
 
-    this->dist_mat->apply(this->x.get(), this->y.get());
+    this->dist_mat->apply(this->x, this->y);
 
     GKO_ASSERT_MTX_NEAR(this->y->get_local_vector(), result[rank], 0);
 }
@@ -393,11 +388,10 @@ TYPED_TEST(Matrix, CanAdvancedApplyToSingleVector)
     auto rank = this->comm.rank();
     this->alpha = gko::initialize<dense_vec_type>({2.0}, this->exec);
     this->beta = gko::initialize<dense_vec_type>({-3.0}, this->exec);
-    this->x->read_distributed(vec_md, this->col_part.get());
-    this->y->read_distributed(vec_md, this->row_part.get());
+    this->x->read_distributed(vec_md, this->col_part);
+    this->y->read_distributed(vec_md, this->row_part);
 
-    this->dist_mat->apply(this->alpha.get(), this->x.get(), this->beta.get(),
-                          this->y.get());
+    this->dist_mat->apply(this->alpha, this->x, this->beta, this->y);
 
     GKO_ASSERT_MTX_NEAR(this->y->get_local_vector(), result[rank], 0);
 }
@@ -407,8 +401,8 @@ TYPED_TEST(Matrix, CanApplyToSingleVectorLarge)
 {
     this->init_large(100, 1);
 
-    this->dist_mat_large->apply(this->x.get(), this->y.get());
-    this->csr_mat->apply(this->dense_x.get(), this->dense_y.get());
+    this->dist_mat_large->apply(this->x, this->y);
+    this->csr_mat->apply(this->dense_x, this->dense_y);
 
     this->assert_local_vector_equal_to_global_vector(
         this->y.get(), this->dense_y.get(), this->row_part_large.get(),
@@ -420,8 +414,8 @@ TYPED_TEST(Matrix, CanApplyToMultipleVectorsLarge)
 {
     this->init_large(100, 17);
 
-    this->dist_mat_large->apply(this->x.get(), this->y.get());
-    this->csr_mat->apply(this->dense_x.get(), this->dense_y.get());
+    this->dist_mat_large->apply(this->x, this->y);
+    this->csr_mat->apply(this->dense_x, this->dense_y);
 
     this->assert_local_vector_equal_to_global_vector(
         this->y.get(), this->dense_y.get(), this->row_part_large.get(),
@@ -433,10 +427,8 @@ TYPED_TEST(Matrix, CanAdvancedApplyToMultipleVectorsLarge)
 {
     this->init_large(100, 17);
 
-    this->dist_mat_large->apply(this->alpha.get(), this->x.get(),
-                                this->beta.get(), this->y.get());
-    this->csr_mat->apply(this->alpha.get(), this->dense_x.get(),
-                         this->beta.get(), this->dense_y.get());
+    this->dist_mat_large->apply(this->alpha, this->x, this->beta, this->y);
+    this->csr_mat->apply(this->alpha, this->dense_x, this->beta, this->dense_y);
 
     this->assert_local_vector_equal_to_global_vector(
         this->y.get(), this->dense_y.get(), this->row_part_large.get(),
@@ -460,8 +452,8 @@ TYPED_TEST(Matrix, CanConvertToNextPrecision)
                         ? gko::remove_complex<T>{0}
                         : gko::remove_complex<T>{r<OtherT>::value};
 
-    this->dist_mat->convert_to(tmp.get());
-    tmp->convert_to(res.get());
+    this->dist_mat->convert_to(tmp);
+    tmp->convert_to(res);
 
     GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
                         gko::as<csr>(res->get_local_matrix()), residual);
@@ -487,8 +479,8 @@ TYPED_TEST(Matrix, CanMoveToNextPrecision)
                         ? gko::remove_complex<T>{0}
                         : gko::remove_complex<T>{r<OtherT>::value};
 
-    this->dist_mat->move_to(tmp.get());
-    tmp->convert_to(res.get());
+    this->dist_mat->move_to(tmp);
+    tmp->convert_to(res);
 
     GKO_ASSERT_MTX_NEAR(gko::as<csr>(clone_dist_mat->get_local_matrix()),
                         gko::as<csr>(res->get_local_matrix()), residual);
@@ -576,7 +568,7 @@ TEST_F(MatrixGpuAwareCheck, ApplyCopiesToHostOnlyIfNecessary)
 {
     auto transfer_count_before = logger->get_transfer_count();
 
-    mat->apply(x.get(), y.get());
+    mat->apply(x, y);
 
     ASSERT_EQ(logger->get_transfer_count() > transfer_count_before,
               needs_transfers(exec));
@@ -587,7 +579,7 @@ TEST_F(MatrixGpuAwareCheck, AdvancedApplyCopiesToHostOnlyIfNecessary)
 {
     auto transfer_count_before = logger->get_transfer_count();
 
-    mat->apply(alpha.get(), x.get(), beta.get(), y.get());
+    mat->apply(alpha, x, beta, y);
 
     ASSERT_EQ(logger->get_transfer_count() > transfer_count_before,
               needs_transfers(exec));

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -196,13 +196,13 @@ int main(int argc, char* argv[])
 
     // Create a PAPI logger and add it to relevant LinOps
     auto logger = gko::log::Papi<ValueType>::create(
-        exec, gko::log::Logger::linop_apply_completed_mask |
-                  gko::log::Logger::linop_advanced_apply_completed_mask);
+        gko::log::Logger::linop_apply_completed_mask |
+        gko::log::Logger::linop_advanced_apply_completed_mask);
     solver->add_logger(logger);
     A->add_logger(logger);
 
     // Solve system
-    solver->apply(lend(b), lend(x));
+    solver->apply(b, x);
 
 
     // Stop PAPI event gathering and print the counters
@@ -210,15 +210,15 @@ int main(int argc, char* argv[])
 
     // Print solution
     std::cout << "Solution (x): \n";
-    write(std::cout, lend(x));
+    write(std::cout, x);
 
     // Calculate residual
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
     auto res = gko::initialize<real_vec>({0.0}, exec);
-    A->apply(lend(one), lend(x), lend(neg_one), lend(b));
-    b->compute_norm2(lend(res));
+    A->apply(one, x, neg_one, b);
+    b->compute_norm2(res);
 
     std::cout << "Residual norm sqrt(r^T r): \n";
-    write(std::cout, lend(res));
+    write(std::cout, res);
 }

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -182,7 +182,7 @@ TYPED_TEST(Ic, GenerateDenseIdentity)
     using Dense = typename TestFixture::Dense;
     auto dense_id =
         gko::share(Dense::create(this->exec, this->identity->get_size()));
-    this->identity->convert_to(dense_id.get());
+    this->identity->convert_to(dense_id);
 
     auto fact = this->fact_fact->generate(dense_id);
 

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,8 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
-#include "benchmark/utils/loggers.hpp"
-#include "benchmark/utils/spmv_common.hpp"
+#include "benchmark/utils/generator.hpp"
+#include "benchmark/utils/spmv_validation.hpp"
 #include "benchmark/utils/timer.hpp"
 #include "benchmark/utils/types.hpp"
 
@@ -70,8 +70,7 @@ void convert_matrix(const gko::LinOp* matrix_from, const char* format_to,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
 
         gko::matrix_data<etype, itype> data{gko::dim<2>{1, 1}, 1};
-        auto matrix_to =
-            share(formats::matrix_factory.at(format_to)(exec, data));
+        auto matrix_to = share(formats::matrix_factory(format_to, exec, data));
 
         auto timer = get_timer(exec, FLAGS_gpu_timer);
         IterationControl ic{timer};
@@ -88,7 +87,7 @@ void convert_matrix(const gko::LinOp* matrix_from, const char* format_to,
             matrix_to->copy_from(matrix_from);
         }
         add_or_set_member(conversion_case[conversion_name], "time",
-                          ic.compute_average_time(), allocator);
+                          ic.compute_time(FLAGS_timer_method), allocator);
         add_or_set_member(conversion_case[conversion_name], "repetitions",
                           ic.get_num_repetitions(), allocator);
 
@@ -114,9 +113,7 @@ int main(int argc, char* argv[])
 {
     std::string header =
         "A benchmark for measuring performance of Ginkgo's conversions.\n";
-    std::string format_str =
-        std::string() + "  [\n" + "    { \"filename\": \"my_file.mtx\"},\n" +
-        "    { \"filename\": \"my_file2.mtx\"}\n" + "  ]\n\n";
+    std::string format_str = example_config;
     initialize_argument_parsing(&argc, &argv, header, format_str);
 
     std::string extra_information =
@@ -126,7 +123,7 @@ int main(int argc, char* argv[])
     auto exec = executor_factory.at(FLAGS_executor)(FLAGS_gpu_timer);
     auto formats = split(FLAGS_formats, ',');
 
-    rapidjson::IStreamWrapper jcin(std::cin);
+    rapidjson::IStreamWrapper jcin(get_input_stream());
     rapidjson::Document test_cases;
     test_cases.ParseStream(jcin);
     if (!test_cases.IsArray()) {
@@ -134,6 +131,13 @@ int main(int argc, char* argv[])
     }
 
     auto& allocator = test_cases.GetAllocator();
+    auto profiler_hook = create_profiler_hook(exec);
+    if (profiler_hook) {
+        exec->add_logger(profiler_hook);
+    }
+    auto annotate = annotate_functor{profiler_hook};
+
+    DefaultSystemGenerator<> generator{};
 
     for (auto& test_case : test_cases.GetArray()) {
         std::clog << "Benchmarking conversions. " << std::endl;
@@ -147,21 +151,28 @@ int main(int argc, char* argv[])
         auto& conversion_case = test_case["conversions"];
 
         std::clog << "Running test case: " << test_case << std::endl;
-        std::ifstream mtx_fd(test_case["filename"].GetString());
         gko::matrix_data<etype, itype> data;
         try {
-            data = gko::read_generic_raw<etype, itype>(mtx_fd);
+            data = generator.generate_matrix_data(test_case);
         } catch (std::exception& e) {
             std::cerr << "Error setting up matrix data, what(): " << e.what()
                       << std::endl;
+            if (FLAGS_keep_errors) {
+                rapidjson::Value msg_value;
+                msg_value.SetString(e.what(), allocator);
+                add_or_set_member(test_case, "error", msg_value, allocator);
+            }
             continue;
         }
         std::clog << "Matrix is of size (" << data.size[0] << ", "
                   << data.size[1] << ")" << std::endl;
+        add_or_set_member(test_case, "size", data.size[0], allocator);
+        // annotate the test case
+        auto test_case_range = annotate(generator.describe_config(test_case));
         for (const auto& format_from : formats) {
             try {
                 auto matrix_from =
-                    share(formats::matrix_factory.at(format_from)(exec, data));
+                    share(formats::matrix_factory(format_from, exec, data));
                 for (const auto& format_to : formats) {
                     if (format_from == format_to) {
                         continue;
@@ -173,16 +184,19 @@ int main(int argc, char* argv[])
                         conversion_case.HasMember(conversion_name.c_str())) {
                         continue;
                     }
-
-                    convert_matrix(matrix_from.get(), format_to.c_str(),
-                                   conversion_name.c_str(), exec, test_case,
-                                   allocator);
+                    {
+                        auto conversion_range =
+                            annotate(conversion_name.c_str());
+                        convert_matrix(matrix_from.get(), format_to.c_str(),
+                                       conversion_name.c_str(), exec, test_case,
+                                       allocator);
+                    }
                     std::clog << "Current state:" << std::endl
                               << test_cases << std::endl;
                 }
                 backup_results(test_cases);
             } catch (const gko::AllocationError& e) {
-                for (const auto& format : formats::matrix_factory) {
+                for (const auto& format : formats::matrix_type_factory) {
                     const auto format_to = std::get<0>(format);
                     auto conversion_name =
                         std::string(format_from) + "-" + format_to;
@@ -199,6 +213,9 @@ int main(int argc, char* argv[])
                           << e.what() << std::endl;
             }
         }
+    }
+    if (profiler_hook) {
+        exec->remove_logger(profiler_hook);
     }
 
     std::cout << test_cases << std::endl;

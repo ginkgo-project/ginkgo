@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -72,7 +72,7 @@ TYPED_TEST(Identity, AppliesToVector)
     auto x = gko::initialize<Vec>({3.0, -1.0, 2.0}, this->exec);
     auto b = gko::initialize<Vec>({2.0, 1.0, 5.0}, this->exec);
 
-    identity->apply(b.get(), x.get());
+    identity->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({2.0, 1.0, 5.0}), 0.0);
 }
@@ -88,7 +88,7 @@ TYPED_TEST(Identity, AppliesToMultipleVectors)
     auto b = gko::initialize<Vec>(
         3, {I<T>{2.0, 3.0}, I<T>{1.0, 2.0}, I<T>{5.0, -1.0}}, this->exec);
 
-    identity->apply(b.get(), x.get());
+    identity->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({{2.0, 3.0}, {1.0, 2.0}, {5.0, -1.0}}), 0.0);
 }
@@ -102,7 +102,7 @@ TYPED_TEST(Identity, AppliesToMixedVector)
     auto x = gko::initialize<MixedVec>({3.0, -1.0, 2.0}, this->exec);
     auto b = gko::initialize<MixedVec>({2.0, 1.0, 5.0}, this->exec);
 
-    identity->apply(b.get(), x.get());
+    identity->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({2.0, 1.0, 5.0}), 0.0);
 }
@@ -118,7 +118,7 @@ TYPED_TEST(Identity, AppliesLinearCombinationToVector)
     auto x = gko::initialize<Vec>({3.0, -1.0, 2.0}, this->exec);
     auto b = gko::initialize<Vec>({2.0, 1.0, 5.0}, this->exec);
 
-    identity->apply(alpha.get(), b.get(), beta.get(), x.get());
+    identity->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({7.0, 1.0, 12.0}), 0.0);
 }
@@ -134,7 +134,7 @@ TYPED_TEST(Identity, AppliesLinearCombinationToMixedVector)
     auto x = gko::initialize<MixedVec>({3.0, -1.0, 2.0}, this->exec);
     auto b = gko::initialize<MixedVec>({2.0, 1.0, 5.0}, this->exec);
 
-    identity->apply(alpha.get(), b.get(), beta.get(), x.get());
+    identity->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({7.0, 1.0, 12.0}), 0.0);
 }
@@ -153,7 +153,7 @@ TYPED_TEST(Identity, AppliesLinearCombinationToMultipleVectors)
     auto b = gko::initialize<Vec>(
         3, {I<T>{2.0, 3.0}, I<T>{1.0, 2.0}, I<T>{5.0, -1.0}}, this->exec);
 
-    identity->apply(alpha.get(), b.get(), beta.get(), x.get());
+    identity->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({{7.0, 6.5}, {1.0, 6.5}, {12.0, 1.5}}), 0.0);
 }
@@ -167,7 +167,7 @@ TYPED_TEST(Identity, AppliesToComplex)
     auto x = gko::initialize<ComplexVec>({3.0, -1.0, 2.0}, this->exec);
     auto b = gko::initialize<ComplexVec>({2.0, 1.0, 5.0}, this->exec);
 
-    identity->apply(b.get(), x.get());
+    identity->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({2.0, 1.0, 5.0}), 0.0);
 }
@@ -181,7 +181,7 @@ TYPED_TEST(Identity, AppliesToMixedComplex)
     auto x = gko::initialize<MixedComplexVec>({3.0, -1.0, 2.0}, this->exec);
     auto b = gko::initialize<MixedComplexVec>({2.0, 1.0, 5.0}, this->exec);
 
-    identity->apply(b.get(), x.get());
+    identity->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({2.0, 1.0, 5.0}), 0.0);
 }
@@ -198,7 +198,7 @@ TYPED_TEST(Identity, AppliesLinearCombinationToComplex)
     auto x = gko::initialize<ComplexVec>({3.0, -1.0, 2.0}, this->exec);
     auto b = gko::initialize<ComplexVec>({2.0, 1.0, 5.0}, this->exec);
 
-    identity->apply(alpha.get(), b.get(), beta.get(), x.get());
+    identity->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({7.0, 1.0, 12.0}), 0.0);
 }
@@ -215,7 +215,7 @@ TYPED_TEST(Identity, AppliesLinearCombinationToMixedComplex)
     auto x = gko::initialize<MixedComplexVec>({3.0, -1.0, 2.0}, this->exec);
     auto b = gko::initialize<MixedComplexVec>({2.0, 1.0, 5.0}, this->exec);
 
-    identity->apply(alpha.get(), b.get(), beta.get(), x.get());
+    identity->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({7.0, 1.0, 12.0}), 0.0);
 }

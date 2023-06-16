@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -57,18 +57,21 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType)  \
-    void spmv(std::shared_ptr<const DefaultExecutor> exec, \
-              const matrix::Csr<ValueType, IndexType>* a,  \
-              const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+#define GKO_DECLARE_CSR_SPMV_KERNEL(MatrixValueType, InputValueType, \
+                                    OutputValueType, IndexType)      \
+    void spmv(std::shared_ptr<const DefaultExecutor> exec,           \
+              const matrix::Csr<MatrixValueType, IndexType>* a,      \
+              const matrix::Dense<InputValueType>* b,                \
+              matrix::Dense<OutputValueType>* c)
 
-#define GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType)  \
-    void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec, \
-                       const matrix::Dense<ValueType>* alpha,       \
-                       const matrix::Csr<ValueType, IndexType>* a,  \
-                       const matrix::Dense<ValueType>* b,           \
-                       const matrix::Dense<ValueType>* beta,        \
-                       matrix::Dense<ValueType>* c)
+#define GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL(MatrixValueType, InputValueType, \
+                                             OutputValueType, IndexType)      \
+    void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,           \
+                       const matrix::Dense<MatrixValueType>* alpha,           \
+                       const matrix::Csr<MatrixValueType, IndexType>* a,      \
+                       const matrix::Dense<InputValueType>* b,                \
+                       const matrix::Dense<OutputValueType>* beta,            \
+                       matrix::Dense<OutputValueType>* c)
 
 #define GKO_DECLARE_CSR_SPGEMM_KERNEL(ValueType, IndexType)  \
     void spgemm(std::shared_ptr<const DefaultExecutor> exec, \
@@ -239,12 +242,24 @@ namespace kernels {
                       const IndexType* storage_offsets, int64* row_desc,      \
                       int32* storage)
 
+#define GKO_DECLARE_CSR_BENCHMARK_LOOKUP_KERNEL(IndexType)               \
+    void benchmark_lookup(std::shared_ptr<const DefaultExecutor> exec,   \
+                          const IndexType* row_ptrs,                     \
+                          const IndexType* col_idxs, size_type num_rows, \
+                          const IndexType* storage_offsets,              \
+                          const int64* row_desc, const int32* storage,   \
+                          IndexType sample_size, IndexType* result)
+
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                       \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType);                     \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType);            \
+    template <typename MatrixValueType, typename InputValueType,           \
+              typename OutputValueType, typename IndexType>                \
+    GKO_DECLARE_CSR_SPMV_KERNEL(MatrixValueType, InputValueType,           \
+                                OutputValueType, IndexType);               \
+    template <typename MatrixValueType, typename InputValueType,           \
+              typename OutputValueType, typename IndexType>                \
+    GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL(MatrixValueType, InputValueType,  \
+                                         OutputValueType, IndexType);      \
     template <typename ValueType, typename IndexType>                      \
     GKO_DECLARE_CSR_SPGEMM_KERNEL(ValueType, IndexType);                   \
     template <typename ValueType, typename IndexType>                      \
@@ -302,7 +317,9 @@ namespace kernels {
     template <typename IndexType>                                          \
     GKO_DECLARE_CSR_BUILD_LOOKUP_OFFSETS_KERNEL(IndexType);                \
     template <typename IndexType>                                          \
-    GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL(IndexType)
+    GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL(IndexType);                        \
+    template <typename IndexType>                                          \
+    GKO_DECLARE_CSR_BENCHMARK_LOOKUP_KERNEL(IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(csr, GKO_DECLARE_ALL_AS_TEMPLATES);

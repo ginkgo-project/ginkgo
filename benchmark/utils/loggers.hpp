@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,118 +45,83 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "benchmark/utils/general.hpp"
+#include "core/distributed/helpers.hpp"
 
 
-// A logger that accumulates the time of all operations
-struct OperationLogger : gko::log::Logger {
-    void on_allocation_started(const gko::Executor* exec,
-                               const gko::size_type&) const override
+struct JsonSummaryWriter : gko::log::ProfilerHook::SummaryWriter,
+                           gko::log::ProfilerHook::NestedSummaryWriter {
+    JsonSummaryWriter(rapidjson::Value& object,
+                      rapidjson::MemoryPoolAllocator<>& alloc,
+                      gko::uint32 repetitions)
+        : object{&object}, alloc{&alloc}, repetitions{repetitions}
+    {}
+
+    void write(
+        const std::vector<gko::log::ProfilerHook::summary_entry>& entries,
+        std::chrono::nanoseconds overhead) override
     {
-        this->start_operation(exec, "allocate");
-    }
-
-    void on_allocation_completed(const gko::Executor* exec,
-                                 const gko::size_type&,
-                                 const gko::uintptr&) const override
-    {
-        this->end_operation(exec, "allocate");
-    }
-
-    void on_free_started(const gko::Executor* exec,
-                         const gko::uintptr&) const override
-    {
-        this->start_operation(exec, "free");
-    }
-
-    void on_free_completed(const gko::Executor* exec,
-                           const gko::uintptr&) const override
-    {
-        this->end_operation(exec, "free");
-    }
-
-    void on_copy_started(const gko::Executor* from, const gko::Executor* to,
-                         const gko::uintptr&, const gko::uintptr&,
-                         const gko::size_type&) const override
-    {
-        from->synchronize();
-        this->start_operation(to, "copy");
-    }
-
-    void on_copy_completed(const gko::Executor* from, const gko::Executor* to,
-                           const gko::uintptr&, const gko::uintptr&,
-                           const gko::size_type&) const override
-    {
-        from->synchronize();
-        this->end_operation(to, "copy");
-    }
-
-    void on_operation_launched(const gko::Executor* exec,
-                               const gko::Operation* op) const override
-    {
-        this->start_operation(exec, op->get_name());
-    }
-
-    void on_operation_completed(const gko::Executor* exec,
-                                const gko::Operation* op) const override
-    {
-        this->end_operation(exec, op->get_name());
-    }
-
-    void write_data(rapidjson::Value& object,
-                    rapidjson::MemoryPoolAllocator<>& alloc,
-                    gko::uint32 repetitions)
-    {
-        const std::lock_guard<std::mutex> lock(mutex);
-        for (const auto& entry : total) {
-            add_or_set_member(
-                object, entry.first.c_str(),
-                std::chrono::duration<double>(entry.second).count() /
-                    repetitions,
-                alloc);
+        for (const auto& entry : entries) {
+            if (entry.name != "total") {
+                add_or_set_member(*object, entry.name.c_str(),
+                                  entry.exclusive.count() * 1e-9 / repetitions,
+                                  *alloc);
+            }
         }
+        add_or_set_member(*object, "overhead",
+                          overhead.count() * 1e-9 / repetitions, *alloc);
     }
 
-    OperationLogger(bool nested_name) : use_nested_name{nested_name} {}
-
-private:
-    void start_operation(const gko::Executor* exec,
-                         const std::string& name) const
+    void write_nested(const gko::log::ProfilerHook::nested_summary_entry& root,
+                      std::chrono::nanoseconds overhead) override
     {
-        exec->synchronize();
-        const std::lock_guard<std::mutex> lock(mutex);
-        auto nested_name = nested.empty() || !use_nested_name
-                               ? name
-                               : nested.back().first + "::" + name;
-        nested.emplace_back(nested_name, std::chrono::steady_clock::duration{});
-        start[nested_name] = std::chrono::steady_clock::now();
-    }
-
-    void end_operation(const gko::Executor* exec, const std::string& name) const
-    {
-        exec->synchronize();
-        const std::lock_guard<std::mutex> lock(mutex);
-        // if operations are properly nested, nested_name now ends with name
-        auto nested_name = nested.back().first;
-        const auto end = std::chrono::steady_clock::now();
-        const auto diff = end - start[nested_name];
-        // make sure timings for nested operations are not counted twice
-        total[nested_name] += diff - nested.back().second;
-        nested.pop_back();
-        if (!nested.empty()) {
-            nested.back().second += diff;
+        auto visit =
+            [this](auto visit,
+                   const gko::log::ProfilerHook::nested_summary_entry& node,
+                   std::string prefix) -> void {
+            auto exclusive = node.elapsed;
+            auto new_prefix = prefix + node.name + "::";
+            for (const auto& child : node.children) {
+                visit(visit, child, new_prefix);
+                exclusive -= child.elapsed;
+            }
+            add_or_set_member(*object, (prefix + node.name).c_str(),
+                              exclusive.count() * 1e-9 / repetitions, *alloc);
+        };
+        // we don't need to annotate the total
+        for (const auto& child : root.children) {
+            visit(visit, child, "");
         }
+        add_or_set_member(*object, "overhead",
+                          overhead.count() * 1e-9 / repetitions, *alloc);
     }
 
-    bool use_nested_name;
-    mutable std::mutex mutex;
-    mutable std::map<std::string, std::chrono::steady_clock::time_point> start;
-    mutable std::map<std::string, std::chrono::steady_clock::duration> total;
-    // the position i of this vector holds the total time spend on child
-    // operations on nesting level i
-    mutable std::vector<
-        std::pair<std::string, std::chrono::steady_clock::duration>>
-        nested;
+    rapidjson::Value* object;
+    rapidjson::MemoryPoolAllocator<>* alloc;
+    gko::uint32 repetitions;
 };
+
+
+inline std::shared_ptr<gko::log::ProfilerHook> create_operations_logger(
+    bool gpu_timer, bool nested, std::shared_ptr<gko::Executor> exec,
+    rapidjson::Value& object, rapidjson::MemoryPoolAllocator<>& alloc,
+    gko::uint32 repetitions)
+{
+    std::shared_ptr<gko::Timer> timer;
+    if (gpu_timer) {
+        timer = gko::Timer::create_for_executor(exec);
+    } else {
+        timer = std::make_unique<gko::CpuTimer>();
+    }
+    if (nested) {
+        return gko::log::ProfilerHook::create_nested_summary(
+            timer,
+            std::make_unique<JsonSummaryWriter>(object, alloc, repetitions));
+    } else {
+        return gko::log::ProfilerHook::create_summary(
+            timer,
+            std::make_unique<JsonSummaryWriter>(object, alloc, repetitions));
+    }
+}
 
 
 struct StorageLogger : gko::log::Logger {
@@ -186,6 +151,25 @@ struct StorageLogger : gko::log::Logger {
         add_or_set_member(output, "storage", total, allocator);
     }
 
+#if GINKGO_BUILD_MPI
+    void write_data(gko::experimental::mpi::communicator comm,
+                    rapidjson::Value& output,
+                    rapidjson::MemoryPoolAllocator<>& allocator)
+    {
+        const std::lock_guard<std::mutex> lock(mutex);
+        gko::size_type total{};
+        for (const auto& e : storage) {
+            total += e.second;
+        }
+        comm.reduce(gko::ReferenceExecutor::create(),
+                    comm.rank() == 0
+                        ? static_cast<gko::size_type*>(MPI_IN_PLACE)
+                        : &total,
+                    &total, 1, MPI_SUM, 0);
+        add_or_set_member(output, "storage", total, allocator);
+    }
+#endif
+
 private:
     mutable std::mutex mutex;
     mutable std::unordered_map<gko::uintptr, gko::size_type> storage;
@@ -197,21 +181,15 @@ template <typename ValueType>
 struct ResidualLogger : gko::log::Logger {
     using rc_vtype = gko::remove_complex<ValueType>;
 
-    // TODO2.0: Remove when deprecating simple overload
-    void on_iteration_complete(const gko::LinOp* solver,
-                               const gko::size_type& it,
-                               const gko::LinOp* residual,
+    void on_iteration_complete(const gko::LinOp*,
+                               const gko::LinOp* right_hand_side,
                                const gko::LinOp* solution,
-                               const gko::LinOp* residual_norm) const override
-    {
-        on_iteration_complete(solver, it, residual, solution, residual_norm,
-                              nullptr);
-    }
-
-    void on_iteration_complete(
-        const gko::LinOp*, const gko::size_type&, const gko::LinOp* residual,
-        const gko::LinOp* solution, const gko::LinOp* residual_norm,
-        const gko::LinOp* implicit_sq_residual_norm) const override
+                               const gko::size_type&,
+                               const gko::LinOp* residual,
+                               const gko::LinOp* residual_norm,
+                               const gko::LinOp* implicit_sq_residual_norm,
+                               const gko::array<gko::stopping_status>* status,
+                               bool all_stopped) const override
     {
         timestamps.PushBack(std::chrono::duration<double>(
                                 std::chrono::steady_clock::now() - start)
@@ -221,14 +199,21 @@ struct ResidualLogger : gko::log::Logger {
             rec_res_norms.PushBack(
                 get_norm(gko::as<vec<rc_vtype>>(residual_norm)), alloc);
         } else {
-            rec_res_norms.PushBack(
-                compute_norm2(gko::as<vec<ValueType>>(residual)), alloc);
+            gko::detail::vector_dispatch<rc_vtype>(
+                residual, [&](const auto v_residual) {
+                    rec_res_norms.PushBack(compute_norm2(v_residual), alloc);
+                });
         }
         if (solution) {
-            true_res_norms.PushBack(
-                compute_residual_norm(matrix, b,
-                                      gko::as<vec<ValueType>>(solution)),
-                alloc);
+            gko::detail::vector_dispatch<
+                rc_vtype>(solution, [&](auto v_solution) {
+                using concrete_type =
+                    std::remove_pointer_t<std::decay_t<decltype(v_solution)>>;
+                true_res_norms.PushBack(
+                    compute_residual_norm(matrix, gko::as<concrete_type>(b),
+                                          v_solution),
+                    alloc);
+            });
         } else {
             true_res_norms.PushBack(-1.0, alloc);
         }
@@ -243,15 +228,16 @@ struct ResidualLogger : gko::log::Logger {
         }
     }
 
-    ResidualLogger(const gko::LinOp* matrix, const vec<ValueType>* b,
+    ResidualLogger(gko::ptr_param<const gko::LinOp> matrix,
+                   gko::ptr_param<const gko::LinOp> b,
                    rapidjson::Value& rec_res_norms,
                    rapidjson::Value& true_res_norms,
                    rapidjson::Value& implicit_res_norms,
                    rapidjson::Value& timestamps,
                    rapidjson::MemoryPoolAllocator<>& alloc)
         : gko::log::Logger(gko::log::Logger::iteration_complete_mask),
-          matrix{matrix},
-          b{b},
+          matrix{matrix.get()},
+          b{b.get()},
           start{std::chrono::steady_clock::now()},
           rec_res_norms{rec_res_norms},
           true_res_norms{true_res_norms},
@@ -265,7 +251,7 @@ struct ResidualLogger : gko::log::Logger {
 
 private:
     const gko::LinOp* matrix;
-    const vec<ValueType>* b;
+    const gko::LinOp* b;
     std::chrono::steady_clock::time_point start;
     rapidjson::Value& rec_res_norms;
     rapidjson::Value& true_res_norms;
@@ -278,10 +264,13 @@ private:
 
 // Logs the number of iteration executed
 struct IterationLogger : gko::log::Logger {
-    void on_iteration_complete(const gko::LinOp*,
+    void on_iteration_complete(const gko::LinOp*, const gko::LinOp*,
+                               const gko::LinOp*,
                                const gko::size_type& num_iterations,
                                const gko::LinOp*, const gko::LinOp*,
-                               const gko::LinOp*) const override
+                               const gko::LinOp*,
+                               const gko::array<gko::stopping_status>*,
+                               bool) const override
     {
         this->num_iters = num_iterations;
     }

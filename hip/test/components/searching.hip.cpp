@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -62,14 +62,9 @@ using namespace gko::kernels::hip;
 using namespace gko::kernels::hip::group;
 
 
-class Searching : public ::testing::Test {
+class Searching : public HipTestFixture {
 protected:
-    Searching()
-        : ref(gko::ReferenceExecutor::create()),
-          hip(gko::HipExecutor::create(0, ref)),
-          result(ref, 1),
-          dresult(hip),
-          sizes(14203)
+    Searching() : result(ref, 1), dresult(exec), sizes(14203)
     {
         std::iota(sizes.begin(), sizes.end(), 0);
     }
@@ -79,17 +74,14 @@ protected:
     {
         *result.get_data() = true;
         dresult = result;
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel), num_blocks,
-                           config::warp_size, 0, 0, dresult.get_data(), offset,
-                           size);
+        kernel<<<num_blocks, config::warp_size, 0, exec->get_stream()>>>(
+            dresult.get_data(), offset, size);
         result = dresult;
         auto success = *result.get_const_data();
 
         ASSERT_TRUE(success);
     }
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::HipExecutor> hip;
     gko::array<bool> result;
     gko::array<bool> dresult;
     std::vector<int> sizes;

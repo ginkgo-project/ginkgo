@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -103,23 +103,23 @@ protected:
         square_mtx = gko::test::generate_random_fbcsr<real_type>(
             ref, num_brows, num_brows, blk_sz, false, false, rand_engine);
         dmtx = Mtx::create(omp);
-        dmtx->copy_from(mtx.get());
+        dmtx->copy_from(mtx);
         complex_dmtx = ComplexMtx::create(omp);
-        complex_dmtx->copy_from(complex_mtx.get());
+        complex_dmtx->copy_from(complex_mtx);
         square_dmtx = Mtx::create(omp);
-        square_dmtx->copy_from(square_mtx.get());
+        square_dmtx->copy_from(square_mtx);
         expected = gen_mtx<Vec>(num_brows * blk_sz, num_vectors, 1);
         y = gen_mtx<Vec>(num_bcols * blk_sz, num_vectors, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         dresult = Vec::create(omp);
-        dresult->copy_from(expected.get());
+        dresult->copy_from(expected);
         dy = Vec::create(omp);
-        dy->copy_from(y.get());
+        dy->copy_from(y);
         dalpha = Vec::create(omp);
-        dalpha->copy_from(alpha.get());
+        dalpha->copy_from(alpha);
         dbeta = Vec::create(omp);
-        dbeta->copy_from(beta.get());
+        dbeta->copy_from(beta);
     }
 
     struct matrix_pair {
@@ -134,7 +134,7 @@ protected:
             ref, num_brows, num_bcols, blk_sz, false, true, rand_engine);
 
         auto local_mtx_omp = Mtx::create(omp);
-        local_mtx_omp->copy_from(local_mtx_ref.get());
+        local_mtx_omp->copy_from(local_mtx_ref);
 
         return matrix_pair{std::move(local_mtx_ref), std::move(local_mtx_omp)};
     }
@@ -187,8 +187,8 @@ TEST_F(Fbcsr, SimpleApplyIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
+    mtx->apply(y, expected);
+    dmtx->apply(dy, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
@@ -198,8 +198,8 @@ TEST_F(Fbcsr, SimpleApplyToDenseMatrixIsEquivalentToRef)
 {
     set_up_apply_data(3);
 
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
+    mtx->apply(y, expected);
+    dmtx->apply(dy, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
@@ -210,8 +210,8 @@ TEST_F(Fbcsr, SimpleApplyToDenseMatrixIsEquivalentToRefUnsorted)
     set_up_apply_data(3);
     auto pair = gen_unsorted_mtx();
 
-    pair.ref->apply(y.get(), expected.get());
-    pair.omp->apply(dy.get(), dresult.get());
+    pair.ref->apply(y, expected);
+    pair.omp->apply(dy, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
@@ -221,8 +221,8 @@ TEST_F(Fbcsr, AdvancedApplyToDenseMatrixIsEquivalentToRef)
 {
     set_up_apply_data(3);
 
-    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
-    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+    mtx->apply(alpha, y, beta, expected);
+    dmtx->apply(dalpha, dy, dbeta, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
@@ -233,13 +233,13 @@ TEST_F(Fbcsr, ApplyToComplexIsEquivalentToRef)
     set_up_apply_data(3);
     auto complex_b = gen_mtx<ComplexVec>(num_bcols * blk_sz, 3, 1);
     auto dcomplex_b = ComplexVec::create(omp);
-    dcomplex_b->copy_from(complex_b.get());
+    dcomplex_b->copy_from(complex_b);
     auto complex_x = gen_mtx<ComplexVec>(num_brows * blk_sz, 3, 1);
     auto dcomplex_x = ComplexVec::create(omp);
-    dcomplex_x->copy_from(complex_x.get());
+    dcomplex_x->copy_from(complex_x);
 
-    mtx->apply(complex_b.get(), complex_x.get());
-    dmtx->apply(dcomplex_b.get(), dcomplex_x.get());
+    mtx->apply(complex_b, complex_x);
+    dmtx->apply(dcomplex_b, dcomplex_x);
 
     GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
 }
@@ -250,13 +250,13 @@ TEST_F(Fbcsr, AdvancedApplyToComplexIsEquivalentToRef)
     set_up_apply_data(3);
     auto complex_b = gen_mtx<ComplexVec>(num_bcols * blk_sz, 3, 1);
     auto dcomplex_b = ComplexVec::create(omp);
-    dcomplex_b->copy_from(complex_b.get());
+    dcomplex_b->copy_from(complex_b);
     auto complex_x = gen_mtx<ComplexVec>(num_brows * blk_sz, 3, 1);
     auto dcomplex_x = ComplexVec::create(omp);
-    dcomplex_x->copy_from(complex_x.get());
+    dcomplex_x->copy_from(complex_x);
 
-    mtx->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
-    dmtx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());
+    mtx->apply(alpha, complex_b, beta, complex_x);
+    dmtx->apply(dalpha, dcomplex_b, dbeta, dcomplex_x);
 
     GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
 }
@@ -339,7 +339,7 @@ TEST_F(Fbcsr, ExtractDiagonalIsEquivalentToRef)
     auto diag = mtx->extract_diagonal();
     auto ddiag = dmtx->extract_diagonal();
 
-    GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
+    GKO_ASSERT_MTX_NEAR(diag, ddiag, 0);
 }
 
 

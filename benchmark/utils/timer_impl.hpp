@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,10 +41,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 
 
+class MpiWrappedTimer;
+
+
 /**
  * Timer stores the timing information
  */
 class Timer {
+    friend MpiWrappedTimer;
+
 public:
     /**
      * Start the timer
@@ -58,13 +63,18 @@ public:
 
     /**
      * Finish the timer
+     *
+     * @param num  the number of repetitions for the timing range
      */
-    void toc()
+    void toc(unsigned int num = 1)
     {
         assert(tic_called_ == true);
-        auto sec = this->toc_impl();
+        assert(num > 0);
+        auto sec = this->toc_impl() / num;
         tic_called_ = false;
-        this->add_record(sec);
+        for (unsigned int i = 0; i < num; i++) {
+            this->add_record(sec);
+        }
     }
 
     /**
@@ -82,13 +92,32 @@ public:
     std::int64_t get_num_repetitions() const { return duration_sec_.size(); }
 
     /**
-     * Compute the average time of repetitions in seconds
+     * Compute the time from the given statistical method
      *
-     * @return the average time in seconds
+     * @param method  the statistical method
+     *
+     * @return the statistical time
      */
-    double compute_average_time() const
+    double compute_time(const std::string& method = "average") const
     {
-        return this->get_total_time() / this->get_num_repetitions();
+        if (method == "average") {
+            return this->get_total_time() / this->get_num_repetitions();
+        }
+        auto copy = duration_sec_;
+        std::sort(copy.begin(), copy.end());
+        if (method == "min") {
+            return copy.front();
+        } else if (method == "max") {
+            return copy.back();
+        } else if (method == "median") {
+            auto mid = copy.size() / 2;
+            if (copy.size() % 2) {
+                return (copy.at(mid) + copy.at(mid - 1)) / 2;
+            } else {
+                return copy.at(mid);
+            }
+        }
+        GKO_NOT_IMPLEMENTED;
     }
 
     /**
@@ -193,6 +222,71 @@ private:
     std::shared_ptr<const gko::Executor> exec_;
     std::chrono::time_point<std::chrono::steady_clock> start_;
 };
+
+
+#ifdef HAS_CUDA_TIMER
+std::shared_ptr<Timer> get_cuda_timer(
+    std::shared_ptr<const gko::CudaExecutor> exec);
+#endif  // HAS_CUDA_TIMER
+
+
+#ifdef HAS_HIP_TIMER
+std::shared_ptr<Timer> get_hip_timer(
+    std::shared_ptr<const gko::HipExecutor> exec);
+#endif  // HAS_HIP_TIMER
+
+
+#ifdef HAS_DPCPP_TIMER
+std::shared_ptr<Timer> get_dpcpp_timer(
+    std::shared_ptr<const gko::DpcppExecutor> exec);
+#endif  // HAS_DPCPP_TIMER
+
+
+#if HAS_MPI_TIMER
+/**
+ * Get the MPI timer. This timer will wrap a local timer and report the longest
+ * duration among all processes using a global reduction.
+ *
+ * @see get_timer
+ *
+ * @param exec  Executor associated to the timer
+ * @param comm  Communicator containing all involved processes
+ * @param use_gpu_timer  whether to use the gpu timer
+ */
+std::shared_ptr<Timer> get_mpi_timer(std::shared_ptr<const gko::Executor> exec,
+                                     gko::experimental::mpi::communicator comm,
+                                     bool use_gpu_timer);
+#endif  // HAS_MPI_TIMER
+
+
+inline std::shared_ptr<Timer> get_timer(
+    std::shared_ptr<const gko::Executor> exec, bool use_gpu_timer)
+{
+    if (use_gpu_timer) {
+#ifdef HAS_CUDA_TIMER
+        if (auto cuda =
+                std::dynamic_pointer_cast<const gko::CudaExecutor>(exec)) {
+            return get_cuda_timer(cuda);
+        }
+#endif  // HAS_CUDA_TIMER
+
+#ifdef HAS_HIP_TIMER
+        if (auto hip =
+                std::dynamic_pointer_cast<const gko::HipExecutor>(exec)) {
+            return get_hip_timer(hip);
+        }
+#endif  // HAS_HIP_TIMER
+
+#ifdef HAS_DPCPP_TIMER
+        if (auto dpcpp =
+                std::dynamic_pointer_cast<const gko::DpcppExecutor>(exec)) {
+            return get_dpcpp_timer(dpcpp);
+        }
+#endif  // HAS_DPCPP_TIMER
+    }
+    // No cuda/hip/dpcpp executor available or no gpu_timer used
+    return std::make_shared<CpuTimer>(exec);
+}
 
 
 #endif  // GKO_BENCHMARK_UTILS_TIMER_IMPL_HPP_

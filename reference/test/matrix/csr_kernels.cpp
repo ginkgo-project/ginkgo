@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -362,24 +362,57 @@ TYPED_TEST(Csr, AppliesToDenseVector)
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
     auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
 
-    this->mtx->apply(x.get(), y.get());
+    this->mtx->apply(x, y);
 
     EXPECT_EQ(y->at(0), T{13.0});
     EXPECT_EQ(y->at(1), T{5.0});
 }
 
 
-TYPED_TEST(Csr, AppliesToMixedDenseVector)
+TYPED_TEST(Csr, MixedAppliesToDenseVector1)
 {
-    using MixedVec = typename TestFixture::MixedVec;
-    using MixedT = typename MixedVec::value_type;
-    auto x = gko::initialize<MixedVec>({2.0, 1.0, 4.0}, this->exec);
-    auto y = MixedVec::create(this->exec, gko::dim<2>{2, 1});
+    // Both vectors have the same value type which differs from the matrix
+    using T = typename TestFixture::value_type;
+    using next_T = gko::next_precision<T>;
+    using Vec = typename gko::matrix::Dense<next_T>;
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
 
-    this->mtx->apply(x.get(), y.get());
+    this->mtx->apply(x, y);
 
-    EXPECT_EQ(y->at(0), MixedT{13.0});
-    EXPECT_EQ(y->at(1), MixedT{5.0});
+    GKO_ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
+}
+
+
+TYPED_TEST(Csr, MixedAppliesToDenseVector2)
+{
+    // Input vector has same value type as matrix
+    using T = typename TestFixture::value_type;
+    using next_T = gko::next_precision<T>;
+    using Vec1 = typename TestFixture::Vec;
+    using Vec2 = gko::matrix::Dense<next_T>;
+    auto x = gko::initialize<Vec1>({2.0, 1.0, 4.0}, this->exec);
+    auto y = Vec2::create(this->exec, gko::dim<2>{2, 1});
+
+    this->mtx->apply(x, y);
+
+    GKO_ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
+}
+
+
+TYPED_TEST(Csr, MixedAppliesToDenseVector3)
+{
+    // Output vector has same value type as matrix
+    using T = typename TestFixture::value_type;
+    using next_T = gko::next_precision<T>;
+    using Vec1 = typename TestFixture::Vec;
+    using Vec2 = gko::matrix::Dense<gko::next_precision<T>>;
+    auto x = gko::initialize<Vec2>({2.0, 1.0, 4.0}, this->exec);
+    auto y = Vec1::create(this->exec, gko::dim<2>{2, 1});
+
+    this->mtx->apply(x, y);
+
+    GKO_ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
 }
 
 
@@ -391,12 +424,86 @@ TYPED_TEST(Csr, AppliesToDenseMatrix)
         {I<T>{2.0, 3.0}, I<T>{1.0, -1.5}, I<T>{4.0, 2.5}}, this->exec);
     auto y = Vec::create(this->exec, gko::dim<2>{2});
 
-    this->mtx->apply(x.get(), y.get());
+    this->mtx->apply(x, y);
 
     EXPECT_EQ(y->at(0, 0), T{13.0});
     EXPECT_EQ(y->at(1, 0), T{5.0});
     EXPECT_EQ(y->at(0, 1), T{3.5});
     EXPECT_EQ(y->at(1, 1), T{-7.5});
+}
+
+
+TYPED_TEST(Csr, MixedAppliesToDenseMatrix1)
+{
+    // Both vectors have the same value type which differs from the matrix
+    using T = typename TestFixture::value_type;
+    using next_T = gko::next_precision<T>;
+    using Vec = gko::matrix::Dense<next_T>;
+    // clang-format off
+    auto x = gko::initialize<Vec>(
+        {I<next_T>{2.0, 3.0},
+         I<next_T>{1.0, -1.5},
+         I<next_T>{4.0, 2.5}}, this->exec);
+    // clang-format on
+    auto y = Vec::create(this->exec, gko::dim<2>{2});
+
+    this->mtx->apply(x, y);
+
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(y,
+                        l({{13.0,  3.5},
+                           { 5.0, -7.5}}), 0.0);
+    // clang-format on
+}
+
+
+TYPED_TEST(Csr, MixedAppliesToDenseMatrix2)
+{
+    // Input vector has same value type as matrix
+    using T = typename TestFixture::value_type;
+    using next_T = gko::next_precision<T>;
+    using Vec1 = typename TestFixture::Vec;
+    using Vec2 = gko::matrix::Dense<next_T>;
+    // clang-format off
+    auto x = gko::initialize<Vec1>(
+        {I<T>{2.0, 3.0},
+         I<T>{1.0, -1.5},
+         I<T>{4.0, 2.5}}, this->exec);
+    // clang-format on
+    auto y = Vec2::create(this->exec, gko::dim<2>{2});
+
+    this->mtx->apply(x, y);
+
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(y,
+                        l({{13.0,  3.5},
+                           { 5.0, -7.5}}), 0.0);
+    // clang-format on
+}
+
+
+TYPED_TEST(Csr, MixedAppliesToDenseMatrix3)
+{
+    // Output vector has same value type as matrix
+    using T = typename TestFixture::value_type;
+    using next_T = gko::next_precision<T>;
+    using Vec1 = typename TestFixture::Vec;
+    using Vec2 = gko::matrix::Dense<next_T>;
+    // clang-format off
+    auto x = gko::initialize<Vec2>(
+        {I<next_T>{2.0, 3.0},
+         I<next_T>{1.0, -1.5},
+         I<next_T>{4.0, 2.5}}, this->exec);
+    // clang-format on
+    auto y = Vec1::create(this->exec, gko::dim<2>{2});
+
+    this->mtx->apply(x, y);
+
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(y,
+                        l({{13.0,  3.5},
+                           { 5.0, -7.5}}), 0.0);
+    // clang-format on
 }
 
 
@@ -409,26 +516,63 @@ TYPED_TEST(Csr, AppliesLinearCombinationToDenseVector)
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
     auto y = gko::initialize<Vec>({1.0, 2.0}, this->exec);
 
-    this->mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+    this->mtx->apply(alpha, x, beta, y);
 
     EXPECT_EQ(y->at(0), T{-11.0});
     EXPECT_EQ(y->at(1), T{-1.0});
 }
 
 
-TYPED_TEST(Csr, AppliesLinearCombinationToMixedDenseVector)
+TYPED_TEST(Csr, MixedAppliesLinearCombinationToDenseVector1)
 {
-    using MixedVec = typename TestFixture::MixedVec;
-    using MixedT = typename MixedVec::value_type;
-    auto alpha = gko::initialize<MixedVec>({-1.0}, this->exec);
-    auto beta = gko::initialize<MixedVec>({2.0}, this->exec);
-    auto x = gko::initialize<MixedVec>({2.0, 1.0, 4.0}, this->exec);
-    auto y = gko::initialize<MixedVec>({1.0, 2.0}, this->exec);
+    // Both vectors have the same value type which differs from the matrix
+    using T = typename TestFixture::value_type;
+    using next_T = gko::next_precision<T>;
+    using Vec = gko::matrix::Dense<next_T>;
+    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec>({2.0}, this->exec);
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = gko::initialize<Vec>({1.0, 2.0}, this->exec);
 
-    this->mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+    this->mtx->apply(alpha, x, beta, y);
 
-    EXPECT_EQ(y->at(0), MixedT{-11.0});
-    EXPECT_EQ(y->at(1), MixedT{-1.0});
+    GKO_ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
+}
+
+
+TYPED_TEST(Csr, MixedAppliesLinearCombinationToDenseVector2)
+{
+    // Input vector has same value type as matrix
+    using T = typename TestFixture::value_type;
+    using next_T = gko::next_precision<T>;
+    using Vec1 = typename TestFixture::Vec;
+    using Vec2 = gko::matrix::Dense<next_T>;
+    auto alpha = gko::initialize<Vec1>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec2>({2.0}, this->exec);
+    auto x = gko::initialize<Vec1>({2.0, 1.0, 4.0}, this->exec);
+    auto y = gko::initialize<Vec2>({1.0, 2.0}, this->exec);
+
+    this->mtx->apply(alpha, x, beta, y);
+
+    GKO_ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
+}
+
+
+TYPED_TEST(Csr, MixedAppliesLinearCombinationToDenseVector3)
+{
+    // Output vector has same value type as matrix
+    using T = typename TestFixture::value_type;
+    using next_T = gko::next_precision<T>;
+    using Vec1 = typename TestFixture::Vec;
+    using Vec2 = gko::matrix::Dense<next_T>;
+    auto alpha = gko::initialize<Vec2>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec1>({2.0}, this->exec);
+    auto x = gko::initialize<Vec2>({2.0, 1.0, 4.0}, this->exec);
+    auto y = gko::initialize<Vec1>({1.0, 2.0}, this->exec);
+
+    this->mtx->apply(alpha, x, beta, y);
+
+    GKO_ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
 }
 
 
@@ -443,7 +587,7 @@ TYPED_TEST(Csr, AppliesLinearCombinationToDenseMatrix)
     auto y =
         gko::initialize<Vec>({I<T>{1.0, 0.5}, I<T>{2.0, -1.5}}, this->exec);
 
-    this->mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+    this->mtx->apply(alpha, x, beta, y);
 
     EXPECT_EQ(y->at(0, 0), T{-11.0});
     EXPECT_EQ(y->at(1, 0), T{-1.0});
@@ -452,10 +596,75 @@ TYPED_TEST(Csr, AppliesLinearCombinationToDenseMatrix)
 }
 
 
+TYPED_TEST(Csr, MixedAppliesLinearCombinationToDenseMatrix1)
+{
+    // Both vectors have the same value type which differs from the matrix
+    using T = typename TestFixture::value_type;
+    using next_T = gko::next_precision<T>;
+    using Vec = gko::matrix::Dense<next_T>;
+    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec>({2.0}, this->exec);
+    // clang-format off
+    auto x = gko::initialize<Vec>(
+        {I<next_T>{2.0, 3.0},
+         I<next_T>{1.0, -1.5},
+         I<next_T>{4.0, 2.5}}, this->exec);
+    auto y = gko::initialize<Vec>(
+        {I<next_T>{1.0, 0.5},
+         I<next_T>{2.0, -1.5}}, this->exec);
+    // clang-format on
+
+    this->mtx->apply(alpha, x, beta, y);
+
+    GKO_ASSERT_MTX_NEAR(y, l({{-11.0, -2.5}, {-1.0, 4.5}}), 0.0);
+}
+
+
+TYPED_TEST(Csr, MixedAppliesLinearCombinationToDenseMatrix2)
+{
+    // Input vector has same value type as matrix
+    using T = typename TestFixture::value_type;
+    using next_T = gko::next_precision<T>;
+    using Vec1 = typename TestFixture::Vec;
+    using Vec2 = gko::matrix::Dense<next_T>;
+    auto alpha = gko::initialize<Vec1>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec2>({2.0}, this->exec);
+    auto x = gko::initialize<Vec1>(
+        {I<T>{2.0, 3.0}, I<T>{1.0, -1.5}, I<T>{4.0, 2.5}}, this->exec);
+    auto y = gko::initialize<Vec2>({I<next_T>{1.0, 0.5}, I<next_T>{2.0, -1.5}},
+                                   this->exec);
+
+    this->mtx->apply(alpha, x, beta, y);
+
+    GKO_ASSERT_MTX_NEAR(y, l({{-11.0, -2.5}, {-1.0, 4.5}}), 0.0);
+}
+
+
+TYPED_TEST(Csr, MixedAppliesLinearCombinationToDenseMatrix3)
+{
+    // Output vector has same value type as matrix
+    using T = typename TestFixture::value_type;
+    using next_T = gko::next_precision<T>;
+    using Vec1 = typename TestFixture::Vec;
+    using Vec2 = gko::matrix::Dense<next_T>;
+    auto alpha = gko::initialize<Vec2>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec1>({2.0}, this->exec);
+    auto x = gko::initialize<Vec2>(
+        {I<next_T>{2.0, 3.0}, I<next_T>{1.0, -1.5}, I<next_T>{4.0, 2.5}},
+        this->exec);
+    auto y =
+        gko::initialize<Vec1>({I<T>{1.0, 0.5}, I<T>{2.0, -1.5}}, this->exec);
+
+    this->mtx->apply(alpha, x, beta, y);
+
+    GKO_ASSERT_MTX_NEAR(y, l({{-11.0, -2.5}, {-1.0, 4.5}}), 0.0);
+}
+
+
 TYPED_TEST(Csr, AppliesToCsrMatrix)
 {
     using T = typename TestFixture::value_type;
-    this->mtx->apply(this->mtx3_unsorted.get(), this->mtx2.get());
+    this->mtx->apply(this->mtx3_unsorted, this->mtx2);
 
     ASSERT_EQ(this->mtx2->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(this->mtx2->get_num_stored_elements(), 6);
@@ -490,8 +699,7 @@ TYPED_TEST(Csr, AppliesLinearCombinationToCsrMatrix)
     auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
     auto beta = gko::initialize<Vec>({2.0}, this->exec);
 
-    this->mtx->apply(alpha.get(), this->mtx3_unsorted.get(), beta.get(),
-                     this->mtx2.get());
+    this->mtx->apply(alpha, this->mtx3_unsorted, beta, this->mtx2);
 
     ASSERT_EQ(this->mtx2->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(this->mtx2->get_num_stored_elements(), 6);
@@ -543,7 +751,7 @@ TYPED_TEST(Csr, AppliesLinearCombinationToIdentityMatrix)
         this->exec);
     auto id = gko::matrix::Identity<T>::create(this->exec, a->get_size()[1]);
 
-    a->apply(gko::lend(alpha), gko::lend(id), gko::lend(beta), gko::lend(b));
+    a->apply(alpha, id, beta, b);
 
     GKO_ASSERT_MTX_NEAR(b, expect, r<T>::value);
     GKO_ASSERT_MTX_EQ_SPARSITY(b, expect);
@@ -557,7 +765,7 @@ TYPED_TEST(Csr, ApplyFailsOnWrongInnerDimension)
     auto x = Vec::create(this->exec, gko::dim<2>{2});
     auto y = Vec::create(this->exec, gko::dim<2>{2});
 
-    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx->apply(x, y), gko::DimensionMismatch);
 }
 
 
@@ -567,7 +775,7 @@ TYPED_TEST(Csr, ApplyFailsOnWrongNumberOfRows)
     auto x = Vec::create(this->exec, gko::dim<2>{3, 2});
     auto y = Vec::create(this->exec, gko::dim<2>{3, 2});
 
-    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx->apply(x, y), gko::DimensionMismatch);
 }
 
 
@@ -577,7 +785,7 @@ TYPED_TEST(Csr, ApplyFailsOnWrongNumberOfCols)
     auto x = Vec::create(this->exec, gko::dim<2>{3});
     auto y = Vec::create(this->exec, gko::dim<2>{2});
 
-    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx->apply(x, y), gko::DimensionMismatch);
 }
 
 
@@ -596,8 +804,8 @@ TYPED_TEST(Csr, ConvertsToPrecision)
                         : gko::remove_complex<ValueType>{r<OtherType>::value};
 
     // use mtx2 as mtx's strategy would involve creating a CudaExecutor
-    this->mtx2->convert_to(tmp.get());
-    tmp->convert_to(res.get());
+    this->mtx2->convert_to(tmp);
+    tmp->convert_to(res);
 
     GKO_ASSERT_MTX_NEAR(this->mtx2, res, residual);
     auto first_strategy = this->mtx2->get_strategy();
@@ -621,8 +829,8 @@ TYPED_TEST(Csr, MovesToPrecision)
                         : gko::remove_complex<ValueType>{r<OtherType>::value};
 
     // use mtx2 as mtx's strategy would involve creating a CudaExecutor
-    this->mtx2->move_to(tmp.get());
-    tmp->move_to(res.get());
+    this->mtx2->move_to(tmp);
+    tmp->move_to(res);
 
     GKO_ASSERT_MTX_NEAR(this->mtx2, res, residual);
     auto first_strategy = this->mtx2->get_strategy();
@@ -638,7 +846,7 @@ TYPED_TEST(Csr, ConvertsToDense)
     auto dense_other = gko::initialize<Dense>(
         4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}, this->exec);
 
-    this->mtx->convert_to(dense_mtx.get());
+    this->mtx->convert_to(dense_mtx);
 
     GKO_ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
 }
@@ -651,7 +859,7 @@ TYPED_TEST(Csr, MovesToDense)
     auto dense_other = gko::initialize<Dense>(
         4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}, this->exec);
 
-    this->mtx->move_to(dense_mtx.get());
+    this->mtx->move_to(dense_mtx);
 
     GKO_ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
 }
@@ -662,7 +870,7 @@ TYPED_TEST(Csr, ConvertsToCoo)
     using Coo = typename TestFixture::Coo;
     auto coo_mtx = Coo::create(this->mtx->get_executor());
 
-    this->mtx->convert_to(coo_mtx.get());
+    this->mtx->convert_to(coo_mtx);
 
     this->assert_equal_to_mtx(coo_mtx.get());
 }
@@ -673,7 +881,7 @@ TYPED_TEST(Csr, MovesToCoo)
     using Coo = typename TestFixture::Coo;
     auto coo_mtx = Coo::create(this->mtx->get_executor());
 
-    this->mtx->move_to(coo_mtx.get());
+    this->mtx->move_to(coo_mtx);
 
     this->assert_equal_to_mtx(coo_mtx.get());
 }
@@ -684,7 +892,7 @@ TYPED_TEST(Csr, ConvertsToSellp)
     using Sellp = typename TestFixture::Sellp;
     auto sellp_mtx = Sellp::create(this->mtx->get_executor());
 
-    this->mtx->convert_to(sellp_mtx.get());
+    this->mtx->convert_to(sellp_mtx);
 
     this->assert_equal_to_mtx(sellp_mtx.get());
 }
@@ -697,8 +905,8 @@ TYPED_TEST(Csr, MovesToSellp)
     auto sellp_mtx = Sellp::create(this->mtx->get_executor());
     auto csr_ref = Csr::create(this->mtx->get_executor());
 
-    csr_ref->copy_from(this->mtx.get());
-    csr_ref->move_to(sellp_mtx.get());
+    csr_ref->copy_from(this->mtx);
+    csr_ref->move_to(sellp_mtx);
 
     this->assert_equal_to_mtx(sellp_mtx.get());
 }
@@ -709,7 +917,7 @@ TYPED_TEST(Csr, ConvertsToSparsityCsr)
     using SparsityCsr = typename TestFixture::SparsityCsr;
     auto sparsity_mtx = SparsityCsr::create(this->mtx->get_executor());
 
-    this->mtx->convert_to(sparsity_mtx.get());
+    this->mtx->convert_to(sparsity_mtx);
 
     this->assert_equal_to_mtx(sparsity_mtx.get());
 }
@@ -722,8 +930,8 @@ TYPED_TEST(Csr, MovesToSparsityCsr)
     auto sparsity_mtx = SparsityCsr::create(this->mtx->get_executor());
     auto csr_ref = Csr::create(this->mtx->get_executor());
 
-    csr_ref->copy_from(this->mtx.get());
-    csr_ref->move_to(sparsity_mtx.get());
+    csr_ref->copy_from(this->mtx);
+    csr_ref->move_to(sparsity_mtx);
 
     this->assert_equal_to_mtx(sparsity_mtx.get());
 }
@@ -734,7 +942,7 @@ TYPED_TEST(Csr, ConvertsToHybridAutomatically)
     using Hybrid = typename TestFixture::Hybrid;
     auto hybrid_mtx = Hybrid::create(this->mtx->get_executor());
 
-    this->mtx->convert_to(hybrid_mtx.get());
+    this->mtx->convert_to(hybrid_mtx);
 
     this->assert_equal_to_mtx(hybrid_mtx.get());
 }
@@ -747,8 +955,8 @@ TYPED_TEST(Csr, MovesToHybridAutomatically)
     auto hybrid_mtx = Hybrid::create(this->mtx->get_executor());
     auto csr_ref = Csr::create(this->mtx->get_executor());
 
-    csr_ref->copy_from(this->mtx.get());
-    csr_ref->move_to(hybrid_mtx.get());
+    csr_ref->copy_from(this->mtx);
+    csr_ref->move_to(hybrid_mtx);
 
     this->assert_equal_to_mtx(hybrid_mtx.get());
 }
@@ -761,7 +969,7 @@ TYPED_TEST(Csr, ConvertsToHybridByColumn2)
         Hybrid::create(this->mtx2->get_executor(),
                        std::make_shared<typename Hybrid::column_limit>(2));
 
-    this->mtx2->convert_to(hybrid_mtx.get());
+    this->mtx2->convert_to(hybrid_mtx);
 
     this->assert_equal_to_mtx2(hybrid_mtx.get());
 }
@@ -776,8 +984,8 @@ TYPED_TEST(Csr, MovesToHybridByColumn2)
                        std::make_shared<typename Hybrid::column_limit>(2));
     auto csr_ref = Csr::create(this->mtx2->get_executor());
 
-    csr_ref->copy_from(this->mtx2.get());
-    csr_ref->move_to(hybrid_mtx.get());
+    csr_ref->copy_from(this->mtx2);
+    csr_ref->move_to(hybrid_mtx);
 
     this->assert_equal_to_mtx2(hybrid_mtx.get());
 }
@@ -794,7 +1002,7 @@ TYPED_TEST(Csr, ConvertsEmptyToPrecision)
     empty->get_row_ptrs()[0] = 0;
     auto res = Csr::create(this->exec);
 
-    empty->convert_to(res.get());
+    empty->convert_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_EQ(*res->get_const_row_ptrs(), 0);
@@ -813,7 +1021,7 @@ TYPED_TEST(Csr, MovesEmptyToPrecision)
     empty->get_row_ptrs()[0] = 0;
     auto res = Csr::create(this->exec);
 
-    empty->move_to(res.get());
+    empty->move_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_EQ(*res->get_const_row_ptrs(), 0);
@@ -829,7 +1037,7 @@ TYPED_TEST(Csr, ConvertsEmptyToDense)
     auto empty = Csr::create(this->exec);
     auto res = Dense::create(this->exec);
 
-    empty->convert_to(res.get());
+    empty->convert_to(res);
 
     ASSERT_FALSE(res->get_size());
 }
@@ -843,7 +1051,7 @@ TYPED_TEST(Csr, MovesEmptyToDense)
     auto empty = Csr::create(this->exec);
     auto res = Dense::create(this->exec);
 
-    empty->move_to(res.get());
+    empty->move_to(res);
 
     ASSERT_FALSE(res->get_size());
 }
@@ -858,7 +1066,7 @@ TYPED_TEST(Csr, ConvertsEmptyToCoo)
     auto empty = Csr::create(this->exec);
     auto res = Coo::create(this->exec);
 
-    empty->convert_to(res.get());
+    empty->convert_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_FALSE(res->get_size());
@@ -874,7 +1082,7 @@ TYPED_TEST(Csr, MovesEmptyToCoo)
     auto empty = Csr::create(this->exec);
     auto res = Coo::create(this->exec);
 
-    empty->move_to(res.get());
+    empty->move_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_FALSE(res->get_size());
@@ -890,7 +1098,7 @@ TYPED_TEST(Csr, ConvertsEmptyToEll)
     auto empty = Csr::create(this->exec);
     auto res = Ell::create(this->exec);
 
-    empty->convert_to(res.get());
+    empty->convert_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_FALSE(res->get_size());
@@ -906,7 +1114,7 @@ TYPED_TEST(Csr, MovesEmptyToEll)
     auto empty = Csr::create(this->exec);
     auto res = Ell::create(this->exec);
 
-    empty->move_to(res.get());
+    empty->move_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_FALSE(res->get_size());
@@ -922,7 +1130,7 @@ TYPED_TEST(Csr, ConvertsEmptyToSellp)
     auto empty = Csr::create(this->exec);
     auto res = Sellp::create(this->exec);
 
-    empty->convert_to(res.get());
+    empty->convert_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_EQ(*res->get_const_slice_sets(), 0);
@@ -939,7 +1147,7 @@ TYPED_TEST(Csr, MovesEmptyToSellp)
     auto empty = Csr::create(this->exec);
     auto res = Sellp::create(this->exec);
 
-    empty->move_to(res.get());
+    empty->move_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_EQ(*res->get_const_slice_sets(), 0);
@@ -957,7 +1165,7 @@ TYPED_TEST(Csr, ConvertsEmptyToSparsityCsr)
     empty->get_row_ptrs()[0] = 0;
     auto res = SparsityCsr::create(this->exec);
 
-    empty->convert_to(res.get());
+    empty->convert_to(res);
 
     ASSERT_EQ(res->get_num_nonzeros(), 0);
     ASSERT_EQ(*res->get_const_row_ptrs(), 0);
@@ -974,7 +1182,7 @@ TYPED_TEST(Csr, MovesEmptyToSparsityCsr)
     empty->get_row_ptrs()[0] = 0;
     auto res = SparsityCsr::create(this->exec);
 
-    empty->move_to(res.get());
+    empty->move_to(res);
 
     ASSERT_EQ(res->get_num_nonzeros(), 0);
     ASSERT_EQ(*res->get_const_row_ptrs(), 0);
@@ -990,7 +1198,7 @@ TYPED_TEST(Csr, ConvertsEmptyToHybrid)
     auto empty = Csr::create(this->exec);
     auto res = Hybrid::create(this->exec);
 
-    empty->convert_to(res.get());
+    empty->convert_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_FALSE(res->get_size());
@@ -1006,7 +1214,7 @@ TYPED_TEST(Csr, MovesEmptyToHybrid)
     auto empty = Csr::create(this->exec);
     auto res = Hybrid::create(this->exec);
 
-    empty->move_to(res.get());
+    empty->move_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_FALSE(res->get_size());
@@ -1021,7 +1229,7 @@ TYPED_TEST(Csr, ConvertsToEll)
     auto dense_mtx = Dense::create(this->mtx->get_executor());
     auto ref_dense_mtx = Dense::create(this->mtx->get_executor());
 
-    this->mtx->convert_to(ell_mtx.get());
+    this->mtx->convert_to(ell_mtx);
 
     this->assert_equal_to_mtx(ell_mtx.get());
 }
@@ -1035,7 +1243,7 @@ TYPED_TEST(Csr, MovesToEll)
     auto dense_mtx = Dense::create(this->mtx->get_executor());
     auto ref_dense_mtx = Dense::create(this->mtx->get_executor());
 
-    this->mtx->move_to(ell_mtx.get());
+    this->mtx->move_to(ell_mtx);
 
     this->assert_equal_to_mtx(ell_mtx.get());
 }
@@ -1387,7 +1595,7 @@ TYPED_TEST(Csr, AppliesToComplex)
     auto x = Vec::create(exec, gko::dim<2>{2,2});
     // clang-format on
 
-    this->mtx->apply(b.get(), x.get());
+    this->mtx->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,
@@ -1413,7 +1621,7 @@ TYPED_TEST(Csr, AppliesToMixedComplex)
     auto x = Vec::create(exec, gko::dim<2>{2,2});
     // clang-format on
 
-    this->mtx->apply(b.get(), x.get());
+    this->mtx->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,
@@ -1443,7 +1651,7 @@ TYPED_TEST(Csr, AdvancedAppliesToComplex)
     auto beta = gko::initialize<Dense>({2.0}, this->exec);
     // clang-format on
 
-    this->mtx->apply(alpha.get(), b.get(), beta.get(), x.get());
+    this->mtx->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,
@@ -1474,7 +1682,7 @@ TYPED_TEST(Csr, AdvancedAppliesToMixedComplex)
     auto beta = gko::initialize<MixedDense>({2.0}, this->exec);
     // clang-format on
 
-    this->mtx->apply(alpha.get(), b.get(), beta.get(), x.get());
+    this->mtx->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,
@@ -1492,7 +1700,7 @@ TYPED_TEST(Csr, ScalesData)
     auto alpha = gko::initialize<Dense>({I<T>{2.0}}, this->exec);
     auto to_scale = gko::clone(this->mtx2);
 
-    to_scale->scale(alpha.get());
+    to_scale->scale(alpha);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(to_scale, this->mtx2);
     EXPECT_EQ(to_scale->get_values()[0], T{2.0});
@@ -1511,7 +1719,7 @@ TYPED_TEST(Csr, InvScalesData)
     auto alpha = gko::initialize<Dense>({I<T>{2.0}}, this->exec);
     auto to_scale = gko::clone(this->mtx2);
 
-    to_scale->inv_scale(alpha.get());
+    to_scale->inv_scale(alpha);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(to_scale, this->mtx2);
     EXPECT_EQ(to_scale->get_values()[0], T{0.5});
@@ -1681,7 +1889,7 @@ TYPED_TEST(Csr, CanGetSubmatrix)
     auto ref =
         gko::initialize<Mtx>({I<T>{1.0, 3.0}, I<T>{0.0, 5.0}}, this->exec);
 
-    GKO_ASSERT_MTX_NEAR(sub_mat.get(), ref.get(), 0.0);
+    GKO_ASSERT_MTX_NEAR(sub_mat, ref, 0.0);
 }
 
 
@@ -1708,7 +1916,7 @@ TYPED_TEST(Csr, CanGetSubmatrix2)
         auto ref1 =
             gko::initialize<Mtx>({I<T>{1.0, 3.0}, I<T>{1.0, 0.0}}, this->exec);
 
-        GKO_EXPECT_MTX_NEAR(sub_mat1.get(), ref1.get(), 0.0);
+        GKO_EXPECT_MTX_NEAR(sub_mat1, ref1, 0.0);
     }
     {
         SCOPED_TRACE("Left boundary: Square 2x2");
@@ -1716,7 +1924,7 @@ TYPED_TEST(Csr, CanGetSubmatrix2)
         auto ref2 =
             gko::initialize<Mtx>({I<T>{0.0, 3.0}, I<T>{0.0, -1.0}}, this->exec);
 
-        GKO_EXPECT_MTX_NEAR(sub_mat2.get(), ref2.get(), 0.0);
+        GKO_EXPECT_MTX_NEAR(sub_mat2, ref2, 0.0);
     }
     {
         SCOPED_TRACE("Right boundary: Square 2x2");
@@ -1724,7 +1932,7 @@ TYPED_TEST(Csr, CanGetSubmatrix2)
         auto ref3 =
             gko::initialize<Mtx>({I<T>{0.0, 2.0}, I<T>{7.5, 3.0}}, this->exec);
 
-        GKO_EXPECT_MTX_NEAR(sub_mat3.get(), ref3.get(), 0.0);
+        GKO_EXPECT_MTX_NEAR(sub_mat3, ref3, 0.0);
     }
     {
         SCOPED_TRACE("Non-square 5x2");
@@ -1741,7 +1949,7 @@ TYPED_TEST(Csr, CanGetSubmatrix2)
              I<T>{0.0, 0.0}},
             this->exec);
 
-        GKO_EXPECT_MTX_NEAR(sub_mat4.get(), ref4.get(), 0.0);
+        GKO_EXPECT_MTX_NEAR(sub_mat4, ref4, 0.0);
     }
     {
         auto sub_mat5 = mat->create_submatrix(gko::span(0, 7), gko::span(0, 5));
@@ -1757,13 +1965,13 @@ TYPED_TEST(Csr, CanGetSubmatrix2)
             },
             this->exec);
 
-        GKO_EXPECT_MTX_NEAR(sub_mat5.get(), ref5.get(), 0.0);
+        GKO_EXPECT_MTX_NEAR(sub_mat5, ref5, 0.0);
     }
     {
         auto sub_mat7 = mat->create_submatrix(gko::span(0, 1), gko::span(0, 1));
         auto ref7 = gko::initialize<Mtx>({I<T>{1.0}}, this->exec);
 
-        GKO_EXPECT_MTX_NEAR(sub_mat7.get(), ref7.get(), 0.0);
+        GKO_EXPECT_MTX_NEAR(sub_mat7, ref7, 0.0);
     }
 }
 
@@ -1795,7 +2003,7 @@ TYPED_TEST(Csr, CanGetSubmatrixWithindex_set)
         auto sub_mat1 = mat->create_submatrix(row_set, col_set);
         auto ref1 = Mtx::create(this->exec);
 
-        GKO_EXPECT_MTX_NEAR(sub_mat1.get(), ref1.get(), 0.0);
+        GKO_EXPECT_MTX_NEAR(sub_mat1, ref1, 0.0);
     }
 
     {
@@ -1805,7 +2013,7 @@ TYPED_TEST(Csr, CanGetSubmatrixWithindex_set)
         auto sub_mat1 = mat->create_submatrix(row_set, col_set);
         auto ref1 = Mtx::create(this->exec);
 
-        GKO_EXPECT_MTX_NEAR(sub_mat1.get(), ref1.get(), 0.0);
+        GKO_EXPECT_MTX_NEAR(sub_mat1, ref1, 0.0);
     }
 
     {
@@ -1826,7 +2034,7 @@ TYPED_TEST(Csr, CanGetSubmatrixWithindex_set)
             },
             this->exec);
 
-        GKO_EXPECT_MTX_NEAR(sub_mat1.get(), ref1.get(), 0.0);
+        GKO_EXPECT_MTX_NEAR(sub_mat1, ref1, 0.0);
     }
 
     {
@@ -1837,7 +2045,7 @@ TYPED_TEST(Csr, CanGetSubmatrixWithindex_set)
         auto ref1 =
             gko::initialize<Mtx>({I<T>{1.0, 3.0}, I<T>{1.0, 0.0}}, this->exec);
 
-        GKO_EXPECT_MTX_NEAR(sub_mat1.get(), ref1.get(), 0.0);
+        GKO_EXPECT_MTX_NEAR(sub_mat1, ref1, 0.0);
     }
 
     {
@@ -1849,7 +2057,7 @@ TYPED_TEST(Csr, CanGetSubmatrixWithindex_set)
             {I<T>{0.0, 7.5}, I<T>{3.0, 0.0}, I<T>{-1.0, 0.0}, I<T>{0.0, 3.5}},
             this->exec);
 
-        GKO_EXPECT_MTX_NEAR(sub_mat1.get(), ref1.get(), 0.0);
+        GKO_EXPECT_MTX_NEAR(sub_mat1, ref1, 0.0);
     }
 
     {
@@ -1861,7 +2069,7 @@ TYPED_TEST(Csr, CanGetSubmatrixWithindex_set)
             {I<T>{1.0, 0.0, 7.5}, I<T>{0.0, -1.0, 0.0}, I<T>{1.0, 0.0, 3.5}},
             this->exec);
 
-        GKO_EXPECT_MTX_NEAR(sub_mat1.get(), ref1.get(), 0.0);
+        GKO_EXPECT_MTX_NEAR(sub_mat1, ref1, 0.0);
     }
 
     {
@@ -1877,7 +2085,7 @@ TYPED_TEST(Csr, CanGetSubmatrixWithindex_set)
                                           I<T>{0.0, 3.0, 7.5, 1.0}},  // 6
                                          this->exec);
 
-        GKO_EXPECT_MTX_NEAR(sub_mat1.get(), ref1.get(), 0.0);
+        GKO_EXPECT_MTX_NEAR(sub_mat1, ref1, 0.0);
     }
 
     {
@@ -1889,7 +2097,7 @@ TYPED_TEST(Csr, CanGetSubmatrixWithindex_set)
                                           I<T>{0.0, 3.0, 7.5, 1.0}},  // 6
                                          this->exec);
 
-        GKO_EXPECT_MTX_NEAR(sub_mat1.get(), ref1.get(), 0.0);
+        GKO_EXPECT_MTX_NEAR(sub_mat1, ref1, 0.0);
     }
 }
 

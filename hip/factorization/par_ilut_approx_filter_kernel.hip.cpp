@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -143,14 +143,13 @@ void threshold_filter_approx(syn::value_list<int, subwarp_size>,
     auto num_blocks = ceildiv(num_rows, block_size);
     auto new_row_ptrs = m_out->get_row_ptrs();
     if (num_blocks > 0) {
-        hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(kernel::bucket_filter_nnz<subwarp_size>),
-            num_blocks, default_block_size, 0, 0, old_row_ptrs, oracles,
-            num_rows, bucket, new_row_ptrs);
+        kernel::bucket_filter_nnz<subwarp_size>
+            <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+                old_row_ptrs, oracles, num_rows, bucket, new_row_ptrs);
     }
 
     // build row pointers
-    components::prefix_sum(exec, new_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, new_row_ptrs, num_rows + 1);
 
     // build matrix
     auto new_nnz = exec->copy_val_to_host(new_row_ptrs + num_rows);
@@ -171,11 +170,11 @@ void threshold_filter_approx(syn::value_list<int, subwarp_size>,
         new_row_idxs = m_out_coo->get_row_idxs();
     }
     if (num_blocks > 0) {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::bucket_filter<subwarp_size>),
-                           num_blocks, default_block_size, 0, 0, old_row_ptrs,
-                           old_col_idxs, as_hip_type(old_vals), oracles,
-                           num_rows, bucket, new_row_ptrs, new_row_idxs,
-                           new_col_idxs, as_hip_type(new_vals));
+        kernel::bucket_filter<subwarp_size>
+            <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+                old_row_ptrs, old_col_idxs, as_device_type(old_vals), oracles,
+                num_rows, bucket, new_row_ptrs, new_row_idxs, new_col_idxs,
+                as_device_type(new_vals));
     }
 }
 

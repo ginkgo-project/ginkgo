@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -61,7 +61,7 @@ namespace dpcpp {
 namespace sparsity_csr {
 
 
-constexpr int classical_overweight = 32;
+constexpr int classical_oversubscription = 32;
 constexpr int spmv_block_size = 128;
 
 
@@ -207,8 +207,8 @@ void classical_spmv(syn::value_list<int, subgroup_size>,
     using output_accessor =
         gko::acc::reduced_row_major<2, arithmetic_type, OutputValueType>;
     constexpr int threads_per_cu = 7;
-    const auto num_subgroup =
-        exec->get_num_computing_units() * threads_per_cu * classical_overweight;
+    const auto num_subgroup = exec->get_num_computing_units() * threads_per_cu *
+                              classical_oversubscription;
     const auto nsg_in_group = spmv_block_size / subgroup_size;
     const auto gridx =
         std::min(ceildiv(a->get_size()[0], spmv_block_size / subgroup_size),
@@ -288,35 +288,6 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
-                   const matrix::SparsityCsr<ValueType, IndexType>* input,
-                   matrix::Dense<ValueType>* output) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_CSR_FILL_IN_DENSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void count_num_diagonal_elements(
-    std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::SparsityCsr<ValueType, IndexType>* matrix,
-    size_type* num_diagonal_elements) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_CSR_COUNT_NUM_DIAGONAL_ELEMENTS_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void remove_diagonal_elements(
-    std::shared_ptr<const DpcppExecutor> exec, const IndexType* row_ptrs,
-    const IndexType* col_idxs,
-    matrix::SparsityCsr<ValueType, IndexType>* matrix) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_CSR_REMOVE_DIAGONAL_ELEMENTS_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

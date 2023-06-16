@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -60,6 +60,7 @@ void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
     auto size_per_thread =
         static_cast<size_type>(ceildiv(num_ranges, num_threads));
     vector<LocalIndexType> local_sizes(num_parts * num_threads, 0, {exec});
+    int tmp = num_empty_parts;
 #pragma omp parallel
     {
         auto thread_id = static_cast<size_type>(omp_get_thread_num());
@@ -77,7 +78,7 @@ void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
 #pragma omp barrier
         // exclusive prefix sum over local sizes
         // FIXME: PGI/NVHPC(22.7) doesn't like reduction with references
-#pragma omp for reduction(+ : num_empty_parts)
+#pragma omp for reduction(+ : tmp)
         for (comm_index_type part = 0; part < num_parts; ++part) {
             LocalIndexType size{};
             for (size_type thread = 0; thread < num_threads; ++thread) {
@@ -87,7 +88,7 @@ void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
                 size += local_size;
             }
             sizes[part] = size;
-            num_empty_parts += size == 0 ? 1 : 0;
+            tmp += size == 0 ? 1 : 0;
         }
         // add global baselines to local ranks
         for (auto range = thread_begin; range < thread_end; range++) {
@@ -95,6 +96,7 @@ void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
             ranks[range] += local_sizes[part + base];
         }
     }
+    num_empty_parts = tmp;
 }
 
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(

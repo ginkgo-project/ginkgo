@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -76,7 +76,7 @@ constexpr int default_block_size = 256;
 
 
 // subwarp sizes for all warp-parallel kernels (filter, add_candidates)
-using compiled_kernels = syn::value_list<int, 1, 8, 16, 32>;
+using compiled_kernels = syn::value_list<int, 1, 16, 32>;
 
 
 namespace kernel {
@@ -126,13 +126,14 @@ void ict_tri_spgeam_nnz(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                         const IndexType* a_col_idxs, IndexType* l_new_row_ptrs,
                         IndexType num_rows)
 {
-    queue->parallel_for(
-        sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subgroup_size)]] {
-            ict_tri_spgeam_nnz<subgroup_size>(
-                llh_row_ptrs, llh_col_idxs, a_row_ptrs, a_col_idxs,
-                l_new_row_ptrs, num_rows, item_ct1);
-        });
+    queue->parallel_for(sycl_nd_range(grid, block),
+                        [=](sycl::nd_item<3> item_ct1)
+                            [[sycl::reqd_sub_group_size(subgroup_size)]] {
+                                ict_tri_spgeam_nnz<subgroup_size>(
+                                    llh_row_ptrs, llh_col_idxs, a_row_ptrs,
+                                    a_col_idxs, l_new_row_ptrs, num_rows,
+                                    item_ct1);
+                            });
 }
 
 
@@ -311,14 +312,16 @@ void ict_tri_spgeam_init(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                          IndexType* l_new_col_idxs, ValueType* l_new_vals,
                          IndexType num_rows)
 {
-    queue->parallel_for(
-        sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subgroup_size)]] {
-            ict_tri_spgeam_init<subgroup_size>(
-                llh_row_ptrs, llh_col_idxs, llh_vals, a_row_ptrs, a_col_idxs,
-                a_vals, l_row_ptrs, l_col_idxs, l_vals, l_new_row_ptrs,
-                l_new_col_idxs, l_new_vals, num_rows, item_ct1);
-        });
+    queue->parallel_for(sycl_nd_range(grid, block),
+                        [=](sycl::nd_item<3> item_ct1)
+                            [[sycl::reqd_sub_group_size(subgroup_size)]] {
+                                ict_tri_spgeam_init<subgroup_size>(
+                                    llh_row_ptrs, llh_col_idxs, llh_vals,
+                                    a_row_ptrs, a_col_idxs, a_vals, l_row_ptrs,
+                                    l_col_idxs, l_vals, l_new_row_ptrs,
+                                    l_new_col_idxs, l_new_vals, num_rows,
+                                    item_ct1);
+                            });
 }
 
 
@@ -400,13 +403,14 @@ void ict_sweep(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                const IndexType* l_row_ptrs, const IndexType* l_row_idxs,
                const IndexType* l_col_idxs, ValueType* l_vals, IndexType l_nnz)
 {
-    queue->parallel_for(
-        sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subgroup_size)]] {
-            ict_sweep<subgroup_size>(a_row_ptrs, a_col_idxs, a_vals, l_row_ptrs,
-                                     l_row_idxs, l_col_idxs, l_vals, l_nnz,
-                                     item_ct1);
-        });
+    queue->parallel_for(sycl_nd_range(grid, block),
+                        [=](sycl::nd_item<3> item_ct1)
+                            [[sycl::reqd_sub_group_size(subgroup_size)]] {
+                                ict_sweep<subgroup_size>(
+                                    a_row_ptrs, a_col_idxs, a_vals, l_row_ptrs,
+                                    l_row_idxs, l_col_idxs, l_vals, l_nnz,
+                                    item_ct1);
+                            });
 }
 
 
@@ -444,7 +448,7 @@ void add_candidates(syn::value_list<int, subgroup_size>,
         llh_col_idxs, a_row_ptrs, a_col_idxs, l_new_row_ptrs, num_rows);
 
     // build row ptrs
-    components::prefix_sum(exec, l_new_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, l_new_row_ptrs, num_rows + 1);
 
     // resize output arrays
     auto l_new_nnz = exec->copy_val_to_host(l_new_row_ptrs + num_rows);

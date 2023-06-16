@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -108,3 +108,32 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_classical_spmv(
 
 
 }  // namespace kernel
+
+
+template <typename ValueType, typename IndexType>
+void transpose(std::shared_ptr<const DefaultExecutor> exec,
+               const matrix::SparsityCsr<ValueType, IndexType>* orig,
+               matrix::SparsityCsr<ValueType, IndexType>* trans)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SPARSITY_CSR_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void sort_by_column_index(std::shared_ptr<const DefaultExecutor> exec,
+                          matrix::SparsityCsr<ValueType, IndexType>* to_sort)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SPARSITY_CSR_SORT_BY_COLUMN_INDEX);
+
+
+template <typename ValueType, typename IndexType>
+void is_sorted_by_column_index(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::SparsityCsr<ValueType, IndexType>* to_check,
+    bool* is_sorted) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SPARSITY_CSR_IS_SORTED_BY_COLUMN_INDEX);

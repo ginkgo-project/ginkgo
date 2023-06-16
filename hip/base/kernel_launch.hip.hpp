@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -52,8 +52,8 @@ namespace hip {
 
 template <typename AccessorType>
 struct to_device_type_impl<gko::acc::range<AccessorType>&> {
-    using type = std::decay_t<decltype(
-        gko::acc::as_hip_range(std::declval<gko::acc::range<AccessorType>>()))>;
+    using type = std::decay_t<decltype(gko::acc::as_hip_range(
+        std::declval<gko::acc::range<AccessorType>>()))>;
     static type map_to_device(gko::acc::range<AccessorType>& range)
     {
         return gko::acc::as_hip_range(range);
@@ -62,8 +62,8 @@ struct to_device_type_impl<gko::acc::range<AccessorType>&> {
 
 template <typename AccessorType>
 struct to_device_type_impl<const gko::acc::range<AccessorType>&> {
-    using type = std::decay_t<decltype(
-        gko::acc::as_hip_range(std::declval<gko::acc::range<AccessorType>>()))>;
+    using type = std::decay_t<decltype(gko::acc::as_hip_range(
+        std::declval<gko::acc::range<AccessorType>>()))>;
     static type map_to_device(const gko::acc::range<AccessorType>& range)
     {
         return gko::acc::as_hip_range(range);

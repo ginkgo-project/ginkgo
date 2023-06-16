@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -51,23 +51,11 @@ DEFINE_bool(gpu_timer, false,
             "use gpu timer based on event. It is valid only when "
             "executor is cuda or hip");
 
-
-#ifdef HAS_CUDA_TIMER
-std::shared_ptr<Timer> get_cuda_timer(
-    std::shared_ptr<const gko::CudaExecutor> exec);
-#endif  // HAS_CUDA_TIMER
-
-
-#ifdef HAS_HIP_TIMER
-std::shared_ptr<Timer> get_hip_timer(
-    std::shared_ptr<const gko::HipExecutor> exec);
-#endif  // HAS_HIP_TIMER
-
-
-#ifdef HAS_DPCPP_TIMER
-std::shared_ptr<Timer> get_dpcpp_timer(
-    std::shared_ptr<const gko::DpcppExecutor> exec);
-#endif  // HAS_DPCPP_TIMER
+DEFINE_string(
+    timer_method, "average",
+    "The statistical method for output of timer. Available options: "
+    "average, median, min, max. Note. If repetition_growth_factor > 1, the "
+    "overhead operations may be different among repetitions");
 
 
 /**
@@ -78,32 +66,7 @@ std::shared_ptr<Timer> get_dpcpp_timer(
  * @param use_gpu_timer  whether to use the gpu timer
  */
 std::shared_ptr<Timer> get_timer(std::shared_ptr<const gko::Executor> exec,
-                                 bool use_gpu_timer)
-{
-    if (use_gpu_timer) {
-#ifdef HAS_CUDA_TIMER
-        if (auto cuda =
-                std::dynamic_pointer_cast<const gko::CudaExecutor>(exec)) {
-            return get_cuda_timer(cuda);
-        }
-#endif  // HAS_CUDA_TIMER
+                                 bool use_gpu_timer);
 
-#ifdef HAS_HIP_TIMER
-        if (auto hip =
-                std::dynamic_pointer_cast<const gko::HipExecutor>(exec)) {
-            return get_hip_timer(hip);
-        }
-#endif  // HAS_HIP_TIMER
-
-#ifdef HAS_DPCPP_TIMER
-        if (auto dpcpp =
-                std::dynamic_pointer_cast<const gko::DpcppExecutor>(exec)) {
-            return get_dpcpp_timer(dpcpp);
-        }
-#endif  // HAS_DPCPP_TIMER
-    }
-    // No cuda/hip/dpcpp executor available or no gpu_timer used
-    return std::make_shared<CpuTimer>(exec);
-}
 
 #endif  // GKO_BENCHMARK_UTILS_TIMER_HPP_

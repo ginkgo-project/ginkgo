@@ -7,7 +7,7 @@
 # Copyright 2012-2013 Mathieu Faverge
 # Copyright 2012      Cedric Castagnede
 # Copyright 2013-2020 Florent Pruvost
-# Copyright 2020-2022 Ginkgo Project
+# Copyright 2020-2023 Ginkgo Project
 #
 # Distributed under the OSI-approved BSD License (the "License");
 # see accompanying file MORSE-Copyright.txt for details.
@@ -71,40 +71,6 @@ macro(ginkgo_check_static_or_dynamic package libraries)
     endif()
 endmacro()
 
-function(HEX2DEC str res)
-    string(LENGTH "${str}" len)
-    if("${len}" EQUAL 1)
-        if("${str}" MATCHES "[0-9]")
-            set(${res} "${str}" PARENT_SCOPE)
-        elseif( "${str}" MATCHES "[aA]")
-            set(${res} 10 PARENT_SCOPE)
-        elseif( "${str}" MATCHES "[bB]")
-            set(${res} 11 PARENT_SCOPE)
-        elseif( "${str}" MATCHES "[cC]")
-            set(${res} 12 PARENT_SCOPE)
-        elseif( "${str}" MATCHES "[dD]")
-            set(${res} 13 PARENT_SCOPE)
-        elseif( "${str}" MATCHES "[eE]")
-            set(${res} 14 PARENT_SCOPE)
-        elseif( "${str}" MATCHES "[fF]")
-            set(${res} 15 PARENT_SCOPE)
-        else()
-            return()
-        endif()
-    else()
-        string(SUBSTRING "${str}" 0 1 str1)
-        string(SUBSTRING "${str}" 1 -1 str2)
-        hex2dec(${str1} res1)
-        hex2dec(${str2} res2)
-        math(EXPR val "16 * ${res1} + ${res2}")
-        set(${res} "${val}" PARENT_SCOPE)
-    endif()
-endfunction()
-
 macro(get_dec_from_hex hex dec)
-    if(${CMAKE_VERSION} VERSION_GREATER 3.13)
-        math(EXPR ${dec} ${hex} OUTPUT_FORMAT DECIMAL)
-    else()
-        hex2dec(${hex} ${dec})
-    endif()
+    math(EXPR ${dec} 0x${hex} OUTPUT_FORMAT DECIMAL)
 endmacro()

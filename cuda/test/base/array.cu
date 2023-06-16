@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,9 +43,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 template <typename T>
-class Array : public ::testing::Test {
+class Array : public CudaTestFixture {
 protected:
-    Array() : exec(gko::ReferenceExecutor::create()), x(exec, 2)
+    Array() : x(ref, 2)
     {
         x.get_data()[0] = 5;
         x.get_data()[1] = 2;
@@ -60,7 +60,6 @@ protected:
         EXPECT_EQ(a.get_const_data()[1], T{2});
     }
 
-    std::shared_ptr<gko::Executor> exec;
     gko::array<T> x;
 };
 
@@ -69,22 +68,18 @@ TYPED_TEST_SUITE(Array, gko::test::ValueAndIndexTypes, TypenameNameGenerator);
 
 TYPED_TEST(Array, CanCreateTemporaryCloneOnDifferentExecutor)
 {
-    auto cuda = gko::CudaExecutor::create(0, this->exec);
-
-    auto tmp_clone = make_temporary_clone(cuda, &this->x);
+    auto tmp_clone = make_temporary_clone(this->exec, &this->x);
 
     ASSERT_NE(tmp_clone.get(), &this->x);
-    tmp_clone->set_executor(this->exec);
+    tmp_clone->set_executor(this->ref);
     this->assert_equal_to_original_x(*tmp_clone.get());
 }
 
 
 TYPED_TEST(Array, CanCopyBackTemporaryCloneOnDifferentExecutor)
 {
-    auto cuda = gko::CudaExecutor::create(0, this->exec);
-
     {
-        auto tmp_clone = make_temporary_clone(cuda, &this->x);
+        auto tmp_clone = make_temporary_clone(this->exec, &this->x);
         // change x, so it no longer matches the original x
         // the copy-back will overwrite it again with the correct value
         this->x.get_data()[0] = 0;
@@ -97,13 +92,12 @@ TYPED_TEST(Array, CanCopyBackTemporaryCloneOnDifferentExecutor)
 TYPED_TEST(Array, CanBeReduced)
 {
     using T = TypeParam;
-    auto cuda = gko::CudaExecutor::create(0, this->exec);
-    auto arr = gko::array<TypeParam>(cuda, I<T>{4, 6});
-    auto out = gko::array<TypeParam>(cuda, I<T>{2});
+    auto arr = gko::array<TypeParam>(this->exec, I<T>{4, 6});
+    auto out = gko::array<TypeParam>(this->exec, I<T>{2});
 
     gko::reduce_add(arr, out);
 
-    out.set_executor(cuda->get_master());
+    out.set_executor(this->exec->get_master());
     ASSERT_EQ(out.get_data()[0], T{12});
 }
 
@@ -111,8 +105,7 @@ TYPED_TEST(Array, CanBeReduced)
 TYPED_TEST(Array, CanBeReduced2)
 {
     using T = TypeParam;
-    auto cuda = gko::CudaExecutor::create(0, this->exec);
-    auto arr = gko::array<TypeParam>(cuda, I<T>{4, 6});
+    auto arr = gko::array<TypeParam>(this->exec, I<T>{4, 6});
 
     auto out = gko::reduce_add(arr, T{3});
 

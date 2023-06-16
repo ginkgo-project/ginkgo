@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -125,7 +125,7 @@ TYPED_TEST(Dense, CopyRespectsStride)
     auto original_data = m2->get_values();
     original_data[1] = TypeParam{3.0};
 
-    m->convert_to(m2.get());
+    m->convert_to(m2);
 
     EXPECT_EQ(m2->at(0, 0), value_type{1.0});
     EXPECT_EQ(m2->get_stride(), 2);
@@ -142,7 +142,7 @@ TYPED_TEST(Dense, TemporaryOutputCloneWorks)
     auto m = gko::initialize<gko::matrix::Dense<TypeParam>>({1.0, 2.0}, other);
 
     {
-        auto clone = gko::make_temporary_output_clone(this->exec, m.get());
+        auto clone = gko::make_temporary_output_clone(this->exec, m);
         clone->at(0) = 4.0;
         clone->at(1) = 5.0;
 
@@ -209,7 +209,7 @@ TYPED_TEST(Dense, AppliesToDense)
     T in_stride{-1};
     this->mtx3->get_values()[3] = in_stride;
 
-    this->mtx2->apply(this->mtx1.get(), this->mtx3.get());
+    this->mtx2->apply(this->mtx1, this->mtx3);
 
     EXPECT_EQ(this->mtx3->at(0, 0), T{-0.5});
     EXPECT_EQ(this->mtx3->at(0, 1), T{-0.5});
@@ -227,10 +227,10 @@ TYPED_TEST(Dense, AppliesToMixedDense)
     using MixedT = typename MixedMtx::value_type;
     auto mmtx1 = MixedMtx::create(this->exec);
     auto mmtx3 = MixedMtx::create(this->exec);
-    this->mtx1->convert_to(mmtx1.get());
-    this->mtx3->convert_to(mmtx3.get());
+    this->mtx1->convert_to(mmtx1);
+    this->mtx3->convert_to(mmtx3);
 
-    this->mtx2->apply(mmtx1.get(), mmtx3.get());
+    this->mtx2->apply(mmtx1, mmtx3);
 
     EXPECT_EQ(mmtx3->at(0, 0), MixedT{-0.5});
     EXPECT_EQ(mmtx3->at(0, 1), MixedT{-0.5});
@@ -250,8 +250,7 @@ TYPED_TEST(Dense, AppliesLinearCombinationToDense)
     T in_stride{-1};
     this->mtx3->get_values()[3] = in_stride;
 
-    this->mtx2->apply(alpha.get(), this->mtx1.get(), beta.get(),
-                      this->mtx3.get());
+    this->mtx2->apply(alpha, this->mtx1, beta, this->mtx3);
 
     EXPECT_EQ(this->mtx3->at(0, 0), T{2.5});
     EXPECT_EQ(this->mtx3->at(0, 1), T{4.5});
@@ -269,12 +268,12 @@ TYPED_TEST(Dense, AppliesLinearCombinationToMixedDense)
     using MixedT = typename MixedMtx::value_type;
     auto mmtx1 = MixedMtx::create(this->exec);
     auto mmtx3 = MixedMtx::create(this->exec);
-    this->mtx1->convert_to(mmtx1.get());
-    this->mtx3->convert_to(mmtx3.get());
+    this->mtx1->convert_to(mmtx1);
+    this->mtx3->convert_to(mmtx3);
     auto alpha = gko::initialize<MixedMtx>({-1.0}, this->exec);
     auto beta = gko::initialize<MixedMtx>({2.0}, this->exec);
 
-    this->mtx2->apply(alpha.get(), mmtx1.get(), beta.get(), mmtx3.get());
+    this->mtx2->apply(alpha, mmtx1, beta, mmtx3);
 
     EXPECT_EQ(mmtx3->at(0, 0), MixedT{2.5});
     EXPECT_EQ(mmtx3->at(0, 1), MixedT{4.5});
@@ -290,8 +289,7 @@ TYPED_TEST(Dense, ApplyFailsOnWrongInnerDimension)
     using Mtx = typename TestFixture::Mtx;
     auto res = Mtx::create(this->exec, gko::dim<2>{2});
 
-    ASSERT_THROW(this->mtx2->apply(this->mtx1.get(), res.get()),
-                 gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx2->apply(this->mtx1, res), gko::DimensionMismatch);
 }
 
 
@@ -300,8 +298,7 @@ TYPED_TEST(Dense, ApplyFailsOnWrongNumberOfRows)
     using Mtx = typename TestFixture::Mtx;
     auto res = Mtx::create(this->exec, gko::dim<2>{3});
 
-    ASSERT_THROW(this->mtx1->apply(this->mtx2.get(), res.get()),
-                 gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx1->apply(this->mtx2, res), gko::DimensionMismatch);
 }
 
 
@@ -310,8 +307,7 @@ TYPED_TEST(Dense, ApplyFailsOnWrongNumberOfCols)
     using Mtx = typename TestFixture::Mtx;
     auto res = Mtx::create(this->exec, gko::dim<2>{2}, 3);
 
-    ASSERT_THROW(this->mtx1->apply(this->mtx2.get(), res.get()),
-                 gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx1->apply(this->mtx2, res), gko::DimensionMismatch);
 }
 
 
@@ -321,7 +317,7 @@ TYPED_TEST(Dense, ScalesData)
     using T = typename TestFixture::value_type;
     auto alpha = gko::initialize<Mtx>({I<T>{2.0, -2.0}}, this->exec);
 
-    this->mtx2->scale(alpha.get());
+    this->mtx2->scale(alpha);
 
     EXPECT_EQ(this->mtx2->at(0, 0), T{2.0});
     EXPECT_EQ(this->mtx2->at(0, 1), T{2.0});
@@ -337,7 +333,7 @@ TYPED_TEST(Dense, ScalesDataMixed)
     using T = typename TestFixture::value_type;
     auto alpha = gko::initialize<MixedMtx>({I<MixedT>{2.0, -2.0}}, this->exec);
 
-    this->mtx2->scale(alpha.get());
+    this->mtx2->scale(alpha);
 
     EXPECT_EQ(this->mtx2->at(0, 0), T{2.0});
     EXPECT_EQ(this->mtx2->at(0, 1), T{2.0});
@@ -352,7 +348,7 @@ TYPED_TEST(Dense, InvScalesData)
     using T = typename TestFixture::value_type;
     auto alpha = gko::initialize<Mtx>({I<T>{0.5, -0.5}}, this->exec);
 
-    this->mtx2->inv_scale(alpha.get());
+    this->mtx2->inv_scale(alpha);
 
     EXPECT_EQ(this->mtx2->at(0, 0), T{2.0});
     EXPECT_EQ(this->mtx2->at(0, 1), T{2.0});
@@ -367,7 +363,7 @@ TYPED_TEST(Dense, ScalesDataWithScalar)
     using T = typename TestFixture::value_type;
     auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
 
-    this->mtx2->scale(alpha.get());
+    this->mtx2->scale(alpha);
 
     EXPECT_EQ(this->mtx2->at(0, 0), T{2.0});
     EXPECT_EQ(this->mtx2->at(0, 1), T{-2.0});
@@ -382,7 +378,7 @@ TYPED_TEST(Dense, InvScalesDataWithScalar)
     using T = typename TestFixture::value_type;
     auto alpha = gko::initialize<Mtx>({0.5}, this->exec);
 
-    this->mtx2->inv_scale(alpha.get());
+    this->mtx2->inv_scale(alpha);
 
     EXPECT_EQ(this->mtx2->at(0, 0), T{2.0});
     EXPECT_EQ(this->mtx2->at(0, 1), T{-2.0});
@@ -399,7 +395,7 @@ TYPED_TEST(Dense, ScalesDataWithStride)
     T in_stride{-1};
     this->mtx1->get_values()[3] = in_stride;
 
-    this->mtx1->scale(alpha.get());
+    this->mtx1->scale(alpha);
 
     EXPECT_EQ(this->mtx1->at(0, 0), T{-1.0});
     EXPECT_EQ(this->mtx1->at(0, 1), T{2.0});
@@ -419,7 +415,7 @@ TYPED_TEST(Dense, AddsScaled)
     T in_stride{-1};
     this->mtx1->get_values()[3] = in_stride;
 
-    this->mtx1->add_scaled(alpha.get(), this->mtx3.get());
+    this->mtx1->add_scaled(alpha, this->mtx3);
 
     EXPECT_EQ(this->mtx1->at(0, 0), T{3.0});
     EXPECT_EQ(this->mtx1->at(0, 1), T{4.0});
@@ -436,12 +432,12 @@ TYPED_TEST(Dense, AddsScaledMixed)
     using MixedMtx = typename TestFixture::MixedMtx;
     using T = typename TestFixture::value_type;
     auto mmtx3 = MixedMtx::create(this->exec);
-    this->mtx3->convert_to(mmtx3.get());
+    this->mtx3->convert_to(mmtx3);
     auto alpha = gko::initialize<MixedMtx>({{2.0, 1.0, -2.0}}, this->exec);
     T in_stride{-1};
     this->mtx1->get_values()[3] = in_stride;
 
-    this->mtx1->add_scaled(alpha.get(), this->mtx3.get());
+    this->mtx1->add_scaled(alpha, this->mtx3);
 
     EXPECT_EQ(this->mtx1->at(0, 0), T{3.0});
     EXPECT_EQ(this->mtx1->at(0, 1), T{4.0});
@@ -461,7 +457,7 @@ TYPED_TEST(Dense, SubtractsScaled)
     T in_stride{-1};
     this->mtx1->get_values()[3] = in_stride;
 
-    this->mtx1->sub_scaled(alpha.get(), this->mtx3.get());
+    this->mtx1->sub_scaled(alpha, this->mtx3);
 
     EXPECT_EQ(this->mtx1->at(0, 0), T{3.0});
     EXPECT_EQ(this->mtx1->at(0, 1), T{4.0});
@@ -481,7 +477,7 @@ TYPED_TEST(Dense, AddsScaledWithScalar)
     T in_stride{-1};
     this->mtx1->get_values()[3] = in_stride;
 
-    this->mtx1->add_scaled(alpha.get(), this->mtx3.get());
+    this->mtx1->add_scaled(alpha, this->mtx3);
 
     EXPECT_EQ(this->mtx1->at(0, 0), T{3.0});
     EXPECT_EQ(this->mtx1->at(0, 1), T{6.0});
@@ -498,7 +494,7 @@ TYPED_TEST(Dense, AddScaledFailsOnWrongSizes)
     using Mtx = typename TestFixture::Mtx;
     auto alpha = Mtx::create(this->exec, gko::dim<2>{1, 2});
 
-    ASSERT_THROW(this->mtx1->add_scaled(alpha.get(), this->mtx2.get()),
+    ASSERT_THROW(this->mtx1->add_scaled(alpha, this->mtx2),
                  gko::DimensionMismatch);
 }
 
@@ -510,7 +506,7 @@ TYPED_TEST(Dense, AddsScaledDiag)
     auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
     auto diag = gko::matrix::Diagonal<T>::create(this->exec, 2, I<T>{3.0, 2.0});
 
-    this->mtx2->add_scaled(alpha.get(), diag.get());
+    this->mtx2->add_scaled(alpha, diag);
 
     ASSERT_EQ(this->mtx2->at(0, 0), T{7.0});
     ASSERT_EQ(this->mtx2->at(0, 1), T{-1.0});
@@ -526,7 +522,7 @@ TYPED_TEST(Dense, SubtractsScaledDiag)
     auto alpha = gko::initialize<Mtx>({-2.0}, this->exec);
     auto diag = gko::matrix::Diagonal<T>::create(this->exec, 2, I<T>{3.0, 2.0});
 
-    this->mtx2->sub_scaled(alpha.get(), diag.get());
+    this->mtx2->sub_scaled(alpha, diag);
 
     ASSERT_EQ(this->mtx2->at(0, 0), T{7.0});
     ASSERT_EQ(this->mtx2->at(0, 1), T{-1.0});
@@ -541,7 +537,7 @@ TYPED_TEST(Dense, ComputesDot)
     using T = typename TestFixture::value_type;
     auto result = Mtx::create(this->exec, gko::dim<2>{1, 3});
 
-    this->mtx1->compute_dot(this->mtx3.get(), result.get());
+    this->mtx1->compute_dot(this->mtx3, result);
 
     EXPECT_EQ(result->at(0, 0), T{1.75});
     EXPECT_EQ(result->at(0, 1), T{7.75});
@@ -554,10 +550,10 @@ TYPED_TEST(Dense, ComputesDotMixed)
     using MixedMtx = typename TestFixture::MixedMtx;
     using MixedT = typename MixedMtx::value_type;
     auto mmtx3 = MixedMtx::create(this->exec);
-    this->mtx3->convert_to(mmtx3.get());
+    this->mtx3->convert_to(mmtx3);
     auto result = MixedMtx::create(this->exec, gko::dim<2>{1, 3});
 
-    this->mtx1->compute_dot(this->mtx3.get(), result.get());
+    this->mtx1->compute_dot(this->mtx3, result);
 
     EXPECT_EQ(result->at(0, 0), MixedT{1.75});
     EXPECT_EQ(result->at(0, 1), MixedT{7.75});
@@ -571,7 +567,7 @@ TYPED_TEST(Dense, ComputesConjDot)
     using T = typename TestFixture::value_type;
     auto result = Mtx::create(this->exec, gko::dim<2>{1, 3});
 
-    this->mtx1->compute_conj_dot(this->mtx3.get(), result.get());
+    this->mtx1->compute_conj_dot(this->mtx3, result);
 
     EXPECT_EQ(result->at(0, 0), T{1.75});
     EXPECT_EQ(result->at(0, 1), T{7.75});
@@ -584,10 +580,10 @@ TYPED_TEST(Dense, ComputesConjDotMixed)
     using MixedMtx = typename TestFixture::MixedMtx;
     using MixedT = typename MixedMtx::value_type;
     auto mmtx3 = MixedMtx::create(this->exec);
-    this->mtx3->convert_to(mmtx3.get());
+    this->mtx3->convert_to(mmtx3);
     auto result = MixedMtx::create(this->exec, gko::dim<2>{1, 3});
 
-    this->mtx1->compute_conj_dot(this->mtx3.get(), result.get());
+    this->mtx1->compute_conj_dot(this->mtx3, result);
 
     EXPECT_EQ(result->at(0, 0), MixedT{1.75});
     EXPECT_EQ(result->at(0, 1), MixedT{7.75});
@@ -605,7 +601,7 @@ TYPED_TEST(Dense, ComputesNorm2)
         {I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}}, this->exec));
     auto result = NormVector::create(this->exec, gko::dim<2>{1, 2});
 
-    mtx->compute_norm2(result.get());
+    mtx->compute_norm2(result);
 
     EXPECT_EQ(result->at(0, 0), T_nc{3.0});
     EXPECT_EQ(result->at(0, 1), T_nc{5.0});
@@ -624,7 +620,7 @@ TYPED_TEST(Dense, ComputesNorm2Mixed)
         {I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}}, this->exec));
     auto result = MixedNormVector::create(this->exec, gko::dim<2>{1, 2});
 
-    mtx->compute_norm2(result.get());
+    mtx->compute_norm2(result);
 
     EXPECT_EQ(result->at(0, 0), MixedT_nc{3.0});
     EXPECT_EQ(result->at(0, 1), MixedT_nc{5.0});
@@ -678,7 +674,7 @@ TYPED_TEST(Dense, ComputesNorm1)
         this->exec));
     auto result = NormVector::create(this->exec, gko::dim<2>{1, 2});
 
-    mtx->compute_norm1(result.get());
+    mtx->compute_norm1(result);
 
     EXPECT_EQ(result->at(0, 0), T_nc{6.0});
     EXPECT_EQ(result->at(0, 1), T_nc{8.0});
@@ -697,7 +693,7 @@ TYPED_TEST(Dense, ComputesNorm1Mixed)
                                   this->exec));
     auto result = MixedNormVector::create(this->exec, gko::dim<2>{1, 2});
 
-    mtx->compute_norm1(result.get());
+    mtx->compute_norm1(result);
 
     EXPECT_EQ(result->at(0, 0), MixedT_nc{6.0});
     EXPECT_EQ(result->at(0, 1), MixedT_nc{8.0});
@@ -709,7 +705,7 @@ TYPED_TEST(Dense, ComputeDotFailsOnWrongInputSize)
     using Mtx = typename TestFixture::Mtx;
     auto result = Mtx::create(this->exec, gko::dim<2>{1, 3});
 
-    ASSERT_THROW(this->mtx1->compute_dot(this->mtx2.get(), result.get()),
+    ASSERT_THROW(this->mtx1->compute_dot(this->mtx2, result),
                  gko::DimensionMismatch);
 }
 
@@ -719,7 +715,7 @@ TYPED_TEST(Dense, ComputeDotFailsOnWrongResultSize)
     using Mtx = typename TestFixture::Mtx;
     auto result = Mtx::create(this->exec, gko::dim<2>{1, 2});
 
-    ASSERT_THROW(this->mtx1->compute_dot(this->mtx3.get(), result.get()),
+    ASSERT_THROW(this->mtx1->compute_dot(this->mtx3, result),
                  gko::DimensionMismatch);
 }
 
@@ -729,7 +725,7 @@ TYPED_TEST(Dense, ComputeConjDotFailsOnWrongInputSize)
     using Mtx = typename TestFixture::Mtx;
     auto result = Mtx::create(this->exec, gko::dim<2>{1, 3});
 
-    ASSERT_THROW(this->mtx1->compute_conj_dot(this->mtx2.get(), result.get()),
+    ASSERT_THROW(this->mtx1->compute_conj_dot(this->mtx2, result),
                  gko::DimensionMismatch);
 }
 
@@ -739,7 +735,7 @@ TYPED_TEST(Dense, ComputeConjDotFailsOnWrongResultSize)
     using Mtx = typename TestFixture::Mtx;
     auto result = Mtx::create(this->exec, gko::dim<2>{1, 2});
 
-    ASSERT_THROW(this->mtx1->compute_conj_dot(this->mtx3.get(), result.get()),
+    ASSERT_THROW(this->mtx1->compute_conj_dot(this->mtx3, result),
                  gko::DimensionMismatch);
 }
 
@@ -757,8 +753,8 @@ TYPED_TEST(Dense, ConvertsToPrecision)
                         ? gko::remove_complex<T>{0}
                         : gko::remove_complex<T>{r<OtherT>::value};
 
-    this->mtx1->convert_to(tmp.get());
-    tmp->convert_to(res.get());
+    this->mtx1->convert_to(tmp);
+    tmp->convert_to(res);
 
     GKO_ASSERT_MTX_NEAR(this->mtx1, res, residual);
 }
@@ -777,8 +773,8 @@ TYPED_TEST(Dense, MovesToPrecision)
                         ? gko::remove_complex<T>{0}
                         : gko::remove_complex<T>{r<OtherT>::value};
 
-    this->mtx1->move_to(tmp.get());
-    tmp->move_to(res.get());
+    this->mtx1->move_to(tmp);
+    tmp->move_to(res);
 
     GKO_ASSERT_MTX_NEAR(this->mtx1, res, residual);
 }
@@ -790,7 +786,7 @@ TYPED_TEST(Dense, ConvertsToCoo32)
     using Coo = typename gko::matrix::Coo<T, gko::int32>;
     auto coo_mtx = Coo::create(this->mtx4->get_executor());
 
-    this->mtx4->convert_to(coo_mtx.get());
+    this->mtx4->convert_to(coo_mtx);
     auto v = coo_mtx->get_const_values();
     auto c = coo_mtx->get_const_col_idxs();
     auto r = coo_mtx->get_const_row_idxs();
@@ -818,7 +814,7 @@ TYPED_TEST(Dense, MovesToCoo32)
     using Coo = typename gko::matrix::Coo<T, gko::int32>;
     auto coo_mtx = Coo::create(this->mtx4->get_executor());
 
-    this->mtx4->move_to(coo_mtx.get());
+    this->mtx4->move_to(coo_mtx);
     auto v = coo_mtx->get_const_values();
     auto c = coo_mtx->get_const_col_idxs();
     auto r = coo_mtx->get_const_row_idxs();
@@ -846,7 +842,7 @@ TYPED_TEST(Dense, ConvertsToCoo64)
     using Coo = typename gko::matrix::Coo<T, gko::int64>;
     auto coo_mtx = Coo::create(this->mtx4->get_executor());
 
-    this->mtx4->convert_to(coo_mtx.get());
+    this->mtx4->convert_to(coo_mtx);
     auto v = coo_mtx->get_const_values();
     auto c = coo_mtx->get_const_col_idxs();
     auto r = coo_mtx->get_const_row_idxs();
@@ -874,7 +870,7 @@ TYPED_TEST(Dense, MovesToCoo64)
     using Coo = typename gko::matrix::Coo<T, gko::int64>;
     auto coo_mtx = Coo::create(this->mtx4->get_executor());
 
-    this->mtx4->move_to(coo_mtx.get());
+    this->mtx4->move_to(coo_mtx);
     auto v = coo_mtx->get_const_values();
     auto c = coo_mtx->get_const_col_idxs();
     auto r = coo_mtx->get_const_row_idxs();
@@ -905,8 +901,8 @@ TYPED_TEST(Dense, ConvertsToCsr32)
     auto csr_mtx_c = Csr::create(this->mtx4->get_executor(), csr_s_classical);
     auto csr_mtx_m = Csr::create(this->mtx4->get_executor(), csr_s_merge);
 
-    this->mtx4->convert_to(csr_mtx_c.get());
-    this->mtx4->convert_to(csr_mtx_m.get());
+    this->mtx4->convert_to(csr_mtx_c);
+    this->mtx4->convert_to(csr_mtx_m);
 
     auto v = csr_mtx_c->get_const_values();
     auto c = csr_mtx_c->get_const_col_idxs();
@@ -925,7 +921,7 @@ TYPED_TEST(Dense, ConvertsToCsr32)
     EXPECT_EQ(v[2], T{2.0});
     EXPECT_EQ(v[3], T{5.0});
     ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
-    GKO_ASSERT_MTX_NEAR(csr_mtx_c.get(), csr_mtx_m.get(), 0.0);
+    GKO_ASSERT_MTX_NEAR(csr_mtx_c, csr_mtx_m, 0.0);
     ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
 }
 
@@ -940,8 +936,8 @@ TYPED_TEST(Dense, MovesToCsr32)
     auto csr_mtx_m = Csr::create(this->mtx4->get_executor(), csr_s_merge);
     auto mtx_clone = this->mtx4->clone();
 
-    this->mtx4->move_to(csr_mtx_c.get());
-    mtx_clone->move_to(csr_mtx_m.get());
+    this->mtx4->move_to(csr_mtx_c);
+    mtx_clone->move_to(csr_mtx_m);
 
     auto v = csr_mtx_c->get_const_values();
     auto c = csr_mtx_c->get_const_col_idxs();
@@ -960,7 +956,7 @@ TYPED_TEST(Dense, MovesToCsr32)
     EXPECT_EQ(v[2], T{2.0});
     EXPECT_EQ(v[3], T{5.0});
     ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
-    GKO_ASSERT_MTX_NEAR(csr_mtx_c.get(), csr_mtx_m.get(), 0.0);
+    GKO_ASSERT_MTX_NEAR(csr_mtx_c, csr_mtx_m, 0.0);
     ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
 }
 
@@ -974,8 +970,8 @@ TYPED_TEST(Dense, ConvertsToCsr64)
     auto csr_mtx_c = Csr::create(this->mtx4->get_executor(), csr_s_classical);
     auto csr_mtx_m = Csr::create(this->mtx4->get_executor(), csr_s_merge);
 
-    this->mtx4->convert_to(csr_mtx_c.get());
-    this->mtx4->convert_to(csr_mtx_m.get());
+    this->mtx4->convert_to(csr_mtx_c);
+    this->mtx4->convert_to(csr_mtx_m);
 
     auto v = csr_mtx_c->get_const_values();
     auto c = csr_mtx_c->get_const_col_idxs();
@@ -994,7 +990,7 @@ TYPED_TEST(Dense, ConvertsToCsr64)
     EXPECT_EQ(v[2], T{2.0});
     EXPECT_EQ(v[3], T{5.0});
     ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
-    GKO_ASSERT_MTX_NEAR(csr_mtx_c.get(), csr_mtx_m.get(), 0.0);
+    GKO_ASSERT_MTX_NEAR(csr_mtx_c, csr_mtx_m, 0.0);
     ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
 }
 
@@ -1009,8 +1005,8 @@ TYPED_TEST(Dense, MovesToCsr64)
     auto csr_mtx_m = Csr::create(this->mtx4->get_executor(), csr_s_merge);
     auto mtx_clone = this->mtx4->clone();
 
-    this->mtx4->move_to(csr_mtx_c.get());
-    mtx_clone->move_to(csr_mtx_m.get());
+    this->mtx4->move_to(csr_mtx_c);
+    mtx_clone->move_to(csr_mtx_m);
 
     auto v = csr_mtx_c->get_const_values();
     auto c = csr_mtx_c->get_const_col_idxs();
@@ -1029,7 +1025,7 @@ TYPED_TEST(Dense, MovesToCsr64)
     EXPECT_EQ(v[2], T{2.0});
     EXPECT_EQ(v[3], T{5.0});
     ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
-    GKO_ASSERT_MTX_NEAR(csr_mtx_c.get(), csr_mtx_m.get(), 0.0);
+    GKO_ASSERT_MTX_NEAR(csr_mtx_c, csr_mtx_m, 0.0);
     ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
 }
 
@@ -1040,7 +1036,7 @@ TYPED_TEST(Dense, ConvertsToSparsityCsr32)
     using SparsityCsr = typename gko::matrix::SparsityCsr<T, gko::int32>;
     auto sparsity_csr_mtx = SparsityCsr::create(this->mtx4->get_executor());
 
-    this->mtx4->convert_to(sparsity_csr_mtx.get());
+    this->mtx4->convert_to(sparsity_csr_mtx);
     auto v = sparsity_csr_mtx->get_const_value();
     auto c = sparsity_csr_mtx->get_const_col_idxs();
     auto r = sparsity_csr_mtx->get_const_row_ptrs();
@@ -1064,7 +1060,7 @@ TYPED_TEST(Dense, MovesToSparsityCsr32)
     using SparsityCsr = typename gko::matrix::SparsityCsr<T, gko::int32>;
     auto sparsity_csr_mtx = SparsityCsr::create(this->mtx4->get_executor());
 
-    this->mtx4->move_to(sparsity_csr_mtx.get());
+    this->mtx4->move_to(sparsity_csr_mtx);
     auto v = sparsity_csr_mtx->get_const_value();
     auto c = sparsity_csr_mtx->get_const_col_idxs();
     auto r = sparsity_csr_mtx->get_const_row_ptrs();
@@ -1088,7 +1084,7 @@ TYPED_TEST(Dense, ConvertsToSparsityCsr64)
     using SparsityCsr = typename gko::matrix::SparsityCsr<T, gko::int64>;
     auto sparsity_csr_mtx = SparsityCsr::create(this->mtx4->get_executor());
 
-    this->mtx4->convert_to(sparsity_csr_mtx.get());
+    this->mtx4->convert_to(sparsity_csr_mtx);
     auto v = sparsity_csr_mtx->get_const_value();
     auto c = sparsity_csr_mtx->get_const_col_idxs();
     auto r = sparsity_csr_mtx->get_const_row_ptrs();
@@ -1112,7 +1108,7 @@ TYPED_TEST(Dense, MovesToSparsityCsr64)
     using SparsityCsr = typename gko::matrix::SparsityCsr<T, gko::int64>;
     auto sparsity_csr_mtx = SparsityCsr::create(this->mtx4->get_executor());
 
-    this->mtx4->move_to(sparsity_csr_mtx.get());
+    this->mtx4->move_to(sparsity_csr_mtx);
     auto v = sparsity_csr_mtx->get_const_value();
     auto c = sparsity_csr_mtx->get_const_col_idxs();
     auto r = sparsity_csr_mtx->get_const_row_ptrs();
@@ -1136,7 +1132,7 @@ TYPED_TEST(Dense, ConvertsToEll32)
     using Ell = typename gko::matrix::Ell<T, gko::int32>;
     auto ell_mtx = Ell::create(this->mtx6->get_executor());
 
-    this->mtx6->convert_to(ell_mtx.get());
+    this->mtx6->convert_to(ell_mtx);
     auto v = ell_mtx->get_const_values();
     auto c = ell_mtx->get_const_col_idxs();
 
@@ -1161,7 +1157,7 @@ TYPED_TEST(Dense, MovesToEll32)
     using Ell = typename gko::matrix::Ell<T, gko::int32>;
     auto ell_mtx = Ell::create(this->mtx6->get_executor());
 
-    this->mtx6->move_to(ell_mtx.get());
+    this->mtx6->move_to(ell_mtx);
     auto v = ell_mtx->get_const_values();
     auto c = ell_mtx->get_const_col_idxs();
 
@@ -1186,7 +1182,7 @@ TYPED_TEST(Dense, ConvertsToEll64)
     using Ell = typename gko::matrix::Ell<T, gko::int64>;
     auto ell_mtx = Ell::create(this->mtx6->get_executor());
 
-    this->mtx6->convert_to(ell_mtx.get());
+    this->mtx6->convert_to(ell_mtx);
     auto v = ell_mtx->get_const_values();
     auto c = ell_mtx->get_const_col_idxs();
 
@@ -1211,7 +1207,7 @@ TYPED_TEST(Dense, MovesToEll64)
     using Ell = typename gko::matrix::Ell<T, gko::int64>;
     auto ell_mtx = Ell::create(this->mtx6->get_executor());
 
-    this->mtx6->move_to(ell_mtx.get());
+    this->mtx6->move_to(ell_mtx);
     auto v = ell_mtx->get_const_values();
     auto c = ell_mtx->get_const_col_idxs();
 
@@ -1237,7 +1233,7 @@ TYPED_TEST(Dense, ConvertsToEllWithStride)
     auto ell_mtx =
         Ell::create(this->mtx6->get_executor(), gko::dim<2>{2, 3}, 2, 3);
 
-    this->mtx6->convert_to(ell_mtx.get());
+    this->mtx6->convert_to(ell_mtx);
     auto v = ell_mtx->get_const_values();
     auto c = ell_mtx->get_const_col_idxs();
 
@@ -1267,7 +1263,7 @@ TYPED_TEST(Dense, MovesToEllWithStride)
     auto ell_mtx =
         Ell::create(this->mtx6->get_executor(), gko::dim<2>{2, 3}, 2, 3);
 
-    this->mtx6->move_to(ell_mtx.get());
+    this->mtx6->move_to(ell_mtx);
     auto v = ell_mtx->get_const_values();
     auto c = ell_mtx->get_const_col_idxs();
 
@@ -1296,7 +1292,7 @@ TYPED_TEST(Dense, MovesToHybridAutomatically32)
     using Hybrid = typename gko::matrix::Hybrid<T, gko::int32>;
     auto hybrid_mtx = Hybrid::create(this->mtx4->get_executor());
 
-    this->mtx4->move_to(hybrid_mtx.get());
+    this->mtx4->move_to(hybrid_mtx);
     auto v = hybrid_mtx->get_const_coo_values();
     auto c = hybrid_mtx->get_const_coo_col_idxs();
     auto r = hybrid_mtx->get_const_coo_row_idxs();
@@ -1329,7 +1325,7 @@ TYPED_TEST(Dense, ConvertsToHybridAutomatically32)
     using Hybrid = typename gko::matrix::Hybrid<T, gko::int32>;
     auto hybrid_mtx = Hybrid::create(this->mtx4->get_executor());
 
-    this->mtx4->convert_to(hybrid_mtx.get());
+    this->mtx4->convert_to(hybrid_mtx);
     auto v = hybrid_mtx->get_const_coo_values();
     auto c = hybrid_mtx->get_const_coo_col_idxs();
     auto r = hybrid_mtx->get_const_coo_row_idxs();
@@ -1362,7 +1358,7 @@ TYPED_TEST(Dense, MovesToHybridAutomatically64)
     using Hybrid = typename gko::matrix::Hybrid<T, gko::int64>;
     auto hybrid_mtx = Hybrid::create(this->mtx4->get_executor());
 
-    this->mtx4->move_to(hybrid_mtx.get());
+    this->mtx4->move_to(hybrid_mtx);
     auto v = hybrid_mtx->get_const_coo_values();
     auto c = hybrid_mtx->get_const_coo_col_idxs();
     auto r = hybrid_mtx->get_const_coo_row_idxs();
@@ -1395,7 +1391,7 @@ TYPED_TEST(Dense, ConvertsToHybridAutomatically64)
     using Hybrid = typename gko::matrix::Hybrid<T, gko::int64>;
     auto hybrid_mtx = Hybrid::create(this->mtx4->get_executor());
 
-    this->mtx4->convert_to(hybrid_mtx.get());
+    this->mtx4->convert_to(hybrid_mtx);
     auto v = hybrid_mtx->get_const_coo_values();
     auto c = hybrid_mtx->get_const_coo_col_idxs();
     auto r = hybrid_mtx->get_const_coo_row_idxs();
@@ -1429,7 +1425,7 @@ TYPED_TEST(Dense, MovesToHybridWithStrideAutomatically)
     auto hybrid_mtx =
         Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{2, 3}, 0, 3);
 
-    this->mtx4->move_to(hybrid_mtx.get());
+    this->mtx4->move_to(hybrid_mtx);
     auto v = hybrid_mtx->get_const_coo_values();
     auto c = hybrid_mtx->get_const_coo_col_idxs();
     auto r = hybrid_mtx->get_const_coo_row_idxs();
@@ -1463,7 +1459,7 @@ TYPED_TEST(Dense, ConvertsToHybridWithStrideAutomatically)
     auto hybrid_mtx =
         Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{2, 3}, 0, 3);
 
-    this->mtx4->convert_to(hybrid_mtx.get());
+    this->mtx4->convert_to(hybrid_mtx);
     auto v = hybrid_mtx->get_const_coo_values();
     auto c = hybrid_mtx->get_const_coo_col_idxs();
     auto r = hybrid_mtx->get_const_coo_row_idxs();
@@ -1498,7 +1494,7 @@ TYPED_TEST(Dense, MovesToHybridWithStrideAndCooLengthByColumns2)
         Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{2, 3}, 2, 3, 3,
                        std::make_shared<typename Hybrid::column_limit>(2));
 
-    this->mtx4->move_to(hybrid_mtx.get());
+    this->mtx4->move_to(hybrid_mtx);
     auto v = hybrid_mtx->get_const_ell_values();
     auto c = hybrid_mtx->get_const_ell_col_idxs();
     auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
@@ -1535,7 +1531,7 @@ TYPED_TEST(Dense, ConvertsToHybridWithStrideAndCooLengthByColumns2)
         Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{2, 3}, 2, 3, 3,
                        std::make_shared<typename Hybrid::column_limit>(2));
 
-    this->mtx4->convert_to(hybrid_mtx.get());
+    this->mtx4->convert_to(hybrid_mtx);
     auto v = hybrid_mtx->get_const_ell_values();
     auto c = hybrid_mtx->get_const_ell_col_idxs();
     auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
@@ -1572,7 +1568,7 @@ TYPED_TEST(Dense, MovesToHybridWithStrideByPercent40)
         Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{2, 3}, 1, 3,
                        std::make_shared<typename Hybrid::imbalance_limit>(0.4));
 
-    this->mtx4->move_to(hybrid_mtx.get());
+    this->mtx4->move_to(hybrid_mtx);
     auto v = hybrid_mtx->get_const_ell_values();
     auto c = hybrid_mtx->get_const_ell_col_idxs();
     auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
@@ -1609,7 +1605,7 @@ TYPED_TEST(Dense, ConvertsToHybridWithStrideByPercent40)
         Hybrid::create(this->mtx4->get_executor(), gko::dim<2>{2, 3}, 1, 3,
                        std::make_shared<typename Hybrid::imbalance_limit>(0.4));
 
-    this->mtx4->convert_to(hybrid_mtx.get());
+    this->mtx4->convert_to(hybrid_mtx);
     auto v = hybrid_mtx->get_const_ell_values();
     auto c = hybrid_mtx->get_const_ell_col_idxs();
     auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
@@ -1644,7 +1640,7 @@ TYPED_TEST(Dense, ConvertsToSellp32)
     using Sellp = typename gko::matrix::Sellp<T, gko::int32>;
     auto sellp_mtx = Sellp::create(this->mtx7->get_executor());
 
-    this->mtx7->convert_to(sellp_mtx.get());
+    this->mtx7->convert_to(sellp_mtx);
     auto v = sellp_mtx->get_const_values();
     auto c = sellp_mtx->get_const_col_idxs();
     auto s = sellp_mtx->get_const_slice_sets();
@@ -1681,7 +1677,7 @@ TYPED_TEST(Dense, MovesToSellp32)
     using Sellp = typename gko::matrix::Sellp<T, gko::int32>;
     auto sellp_mtx = Sellp::create(this->mtx7->get_executor());
 
-    this->mtx7->move_to(sellp_mtx.get());
+    this->mtx7->move_to(sellp_mtx);
     auto v = sellp_mtx->get_const_values();
     auto c = sellp_mtx->get_const_col_idxs();
     auto s = sellp_mtx->get_const_slice_sets();
@@ -1718,7 +1714,7 @@ TYPED_TEST(Dense, ConvertsToSellp64)
     using Sellp = typename gko::matrix::Sellp<T, gko::int64>;
     auto sellp_mtx = Sellp::create(this->mtx7->get_executor());
 
-    this->mtx7->convert_to(sellp_mtx.get());
+    this->mtx7->convert_to(sellp_mtx);
     auto v = sellp_mtx->get_const_values();
     auto c = sellp_mtx->get_const_col_idxs();
     auto s = sellp_mtx->get_const_slice_sets();
@@ -1755,7 +1751,7 @@ TYPED_TEST(Dense, MovesToSellp64)
     using Sellp = typename gko::matrix::Sellp<T, gko::int64>;
     auto sellp_mtx = Sellp::create(this->mtx7->get_executor());
 
-    this->mtx7->move_to(sellp_mtx.get());
+    this->mtx7->move_to(sellp_mtx);
     auto v = sellp_mtx->get_const_values();
     auto c = sellp_mtx->get_const_col_idxs();
     auto s = sellp_mtx->get_const_slice_sets();
@@ -1793,7 +1789,7 @@ TYPED_TEST(Dense, ConvertsToSellpWithSliceSizeAndStrideFactor)
     auto sellp_mtx =
         Sellp::create(this->mtx7->get_executor(), gko::dim<2>{}, 2, 2, 0);
 
-    this->mtx7->convert_to(sellp_mtx.get());
+    this->mtx7->convert_to(sellp_mtx);
     auto v = sellp_mtx->get_const_values();
     auto c = sellp_mtx->get_const_col_idxs();
     auto s = sellp_mtx->get_const_slice_sets();
@@ -1833,7 +1829,7 @@ TYPED_TEST(Dense, MovesToSellpWithSliceSizeAndStrideFactor)
     auto sellp_mtx =
         Sellp::create(this->mtx7->get_executor(), gko::dim<2>{}, 2, 2, 0);
 
-    this->mtx7->move_to(sellp_mtx.get());
+    this->mtx7->move_to(sellp_mtx);
     auto v = sellp_mtx->get_const_values();
     auto c = sellp_mtx->get_const_col_idxs();
     auto s = sellp_mtx->get_const_slice_sets();
@@ -1875,10 +1871,10 @@ TYPED_TEST(Dense, ConvertsToAndFromSellpWithMoreThanOneSlice)
 
     auto sellp_mtx = Sellp::create(this->exec);
     auto dense_mtx = Mtx::create(this->exec);
-    x->convert_to(sellp_mtx.get());
-    sellp_mtx->convert_to(dense_mtx.get());
+    x->convert_to(sellp_mtx);
+    sellp_mtx->convert_to(dense_mtx);
 
-    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), x.get(), 0.0);
+    GKO_ASSERT_MTX_NEAR(dense_mtx, x, 0.0);
 }
 
 
@@ -1891,7 +1887,7 @@ TYPED_TEST(Dense, ConvertsEmptyToPrecision)
     auto empty = OtherDense::create(this->exec);
     auto res = Dense::create(this->exec);
 
-    empty->convert_to(res.get());
+    empty->convert_to(res);
 
     ASSERT_FALSE(res->get_size());
 }
@@ -1906,7 +1902,7 @@ TYPED_TEST(Dense, MovesEmptyToPrecision)
     auto empty = OtherDense::create(this->exec);
     auto res = Dense::create(this->exec);
 
-    empty->move_to(res.get());
+    empty->move_to(res);
 
     ASSERT_FALSE(res->get_size());
 }
@@ -1920,7 +1916,7 @@ TYPED_TEST(Dense, ConvertsEmptyToCoo)
     auto empty = Dense::create(this->exec);
     auto res = Coo::create(this->exec);
 
-    empty->convert_to(res.get());
+    empty->convert_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_FALSE(res->get_size());
@@ -1935,7 +1931,7 @@ TYPED_TEST(Dense, MovesEmptyToCoo)
     auto empty = Dense::create(this->exec);
     auto res = Coo::create(this->exec);
 
-    empty->move_to(res.get());
+    empty->move_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_FALSE(res->get_size());
@@ -1950,7 +1946,7 @@ TYPED_TEST(Dense, ConvertsEmptyMatrixToCsr)
     auto empty = Dense::create(this->exec);
     auto res = Csr::create(this->exec);
 
-    empty->convert_to(res.get());
+    empty->convert_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_EQ(*res->get_const_row_ptrs(), 0);
@@ -1966,7 +1962,7 @@ TYPED_TEST(Dense, MovesEmptyMatrixToCsr)
     auto empty = Dense::create(this->exec);
     auto res = Csr::create(this->exec);
 
-    empty->move_to(res.get());
+    empty->move_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_EQ(*res->get_const_row_ptrs(), 0);
@@ -1982,7 +1978,7 @@ TYPED_TEST(Dense, ConvertsEmptyToSparsityCsr)
     auto empty = Dense::create(this->exec);
     auto res = SparsityCsr::create(this->exec);
 
-    empty->convert_to(res.get());
+    empty->convert_to(res);
 
     ASSERT_EQ(res->get_num_nonzeros(), 0);
     ASSERT_EQ(*res->get_const_row_ptrs(), 0);
@@ -1998,7 +1994,7 @@ TYPED_TEST(Dense, MovesEmptyToSparsityCsr)
     auto empty = Dense::create(this->exec);
     auto res = SparsityCsr::create(this->exec);
 
-    empty->move_to(res.get());
+    empty->move_to(res);
 
     ASSERT_EQ(res->get_num_nonzeros(), 0);
     ASSERT_EQ(*res->get_const_row_ptrs(), 0);
@@ -2014,7 +2010,7 @@ TYPED_TEST(Dense, ConvertsEmptyToEll)
     auto empty = Dense::create(this->exec);
     auto res = Ell::create(this->exec);
 
-    empty->convert_to(res.get());
+    empty->convert_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_FALSE(res->get_size());
@@ -2029,7 +2025,7 @@ TYPED_TEST(Dense, MovesEmptyToEll)
     auto empty = Dense::create(this->exec);
     auto res = Ell::create(this->exec);
 
-    empty->move_to(res.get());
+    empty->move_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_FALSE(res->get_size());
@@ -2044,7 +2040,7 @@ TYPED_TEST(Dense, ConvertsEmptyToHybrid)
     auto empty = Dense::create(this->exec);
     auto res = Hybrid::create(this->exec);
 
-    empty->convert_to(res.get());
+    empty->convert_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_FALSE(res->get_size());
@@ -2059,7 +2055,7 @@ TYPED_TEST(Dense, MovesEmptyToHybrid)
     auto empty = Dense::create(this->exec);
     auto res = Hybrid::create(this->exec);
 
-    empty->move_to(res.get());
+    empty->move_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_FALSE(res->get_size());
@@ -2074,7 +2070,7 @@ TYPED_TEST(Dense, ConvertsEmptyToSellp)
     auto empty = Dense::create(this->exec);
     auto res = Sellp::create(this->exec);
 
-    empty->convert_to(res.get());
+    empty->convert_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_EQ(*res->get_const_slice_sets(), 0);
@@ -2090,7 +2086,7 @@ TYPED_TEST(Dense, MovesEmptyToSellp)
     auto empty = Dense::create(this->exec);
     auto res = Sellp::create(this->exec);
 
-    empty->move_to(res.get());
+    empty->move_to(res);
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_EQ(*res->get_const_slice_sets(), 0);
@@ -2116,7 +2112,7 @@ TYPED_TEST(Dense, SquareMatrixIsTransposableIntoDense)
     using T = typename TestFixture::value_type;
     auto trans = Mtx::create(this->exec, this->mtx5->get_size());
 
-    this->mtx5->transpose(trans.get());
+    this->mtx5->transpose(trans);
 
     GKO_ASSERT_MTX_NEAR(
         trans, l<T>({{1.0, -2.0, 2.1}, {-1.0, 2.0, 3.4}, {-0.5, 4.5, 1.2}}),
@@ -2130,7 +2126,7 @@ TYPED_TEST(Dense, SquareSubmatrixIsTransposableIntoDense)
     using T = typename TestFixture::value_type;
     auto trans = Mtx::create(this->exec, gko::dim<2>{2, 2}, 4);
 
-    this->mtx5->create_submatrix({0, 2}, {0, 2})->transpose(trans.get());
+    this->mtx5->create_submatrix({0, 2}, {0, 2})->transpose(trans);
 
     GKO_ASSERT_MTX_NEAR(trans, l<T>({{1.0, -2.0}, {-1.0, 2.0}}), 0.0);
     ASSERT_EQ(trans->get_stride(), 4);
@@ -2141,7 +2137,7 @@ TYPED_TEST(Dense, SquareMatrixIsTransposableIntoDenseFailsForWrongDimensions)
 {
     using Mtx = typename TestFixture::Mtx;
 
-    ASSERT_THROW(this->mtx5->transpose(Mtx::create(this->exec).get()),
+    ASSERT_THROW(this->mtx5->transpose(Mtx::create(this->exec)),
                  gko::DimensionMismatch);
 }
 
@@ -2163,7 +2159,7 @@ TYPED_TEST(Dense, NonSquareMatrixIsTransposableIntoDense)
     auto trans =
         Mtx::create(this->exec, gko::transpose(this->mtx4->get_size()));
 
-    this->mtx4->transpose(trans.get());
+    this->mtx4->transpose(trans);
 
     GKO_ASSERT_MTX_NEAR(trans, l<T>({{1.0, 0.0}, {3.0, 5.0}, {2.0, 0.0}}), 0.0);
 }
@@ -2175,7 +2171,7 @@ TYPED_TEST(Dense, NonSquareSubmatrixIsTransposableIntoDense)
     using T = typename TestFixture::value_type;
     auto trans = Mtx::create(this->exec, gko::dim<2>{2, 1}, 5);
 
-    this->mtx4->create_submatrix({0, 1}, {0, 2})->transpose(trans.get());
+    this->mtx4->create_submatrix({0, 1}, {0, 2})->transpose(trans);
 
     GKO_ASSERT_MTX_NEAR(trans, l({1.0, 3.0}), 0.0);
     ASSERT_EQ(trans->get_stride(), 5);
@@ -2186,7 +2182,7 @@ TYPED_TEST(Dense, NonSquareMatrixIsTransposableIntoDenseFailsForWrongDimensions)
 {
     using Mtx = typename TestFixture::Mtx;
 
-    ASSERT_THROW(this->mtx4->transpose(Mtx::create(this->exec).get()),
+    ASSERT_THROW(this->mtx4->transpose(Mtx::create(this->exec)),
                  gko::DimensionMismatch);
 }
 
@@ -2213,7 +2209,7 @@ TYPED_TEST(Dense, SquareMatrixCanGatherRowsIntoDense)
     gko::array<gko::int32> permute_idxs{exec, {1, 0}};
     auto row_collection = Mtx::create(exec, gko::dim<2>{2, 3});
 
-    this->mtx5->row_gather(&permute_idxs, row_collection.get());
+    this->mtx5->row_gather(&permute_idxs, row_collection);
 
     GKO_ASSERT_MTX_NEAR(row_collection,
                         l<T>({{-2.0, 2.0, 4.5}, {1.0, -1.0, -0.5}}), 0.0);
@@ -2229,7 +2225,7 @@ TYPED_TEST(Dense, SquareSubmatrixCanGatherRowsIntoDense)
     auto row_collection = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
     this->mtx5->create_submatrix({0, 2}, {1, 3})
-        ->row_gather(&permute_idxs, row_collection.get());
+        ->row_gather(&permute_idxs, row_collection);
 
     GKO_ASSERT_MTX_NEAR(row_collection, l<T>({{2.0, 4.5}, {-1.0, -0.5}}), 0.0);
     ASSERT_EQ(row_collection->get_stride(), 4);
@@ -2245,7 +2241,7 @@ TYPED_TEST(Dense, NonSquareSubmatrixCanGatherRowsIntoMixedDense)
     gko::array<gko::int32> gather_index{exec, {1, 0, 1}};
     auto row_collection = MixedMtx::create(exec, gko::dim<2>{3, 3}, 4);
 
-    this->mtx4->row_gather(&gather_index, row_collection.get());
+    this->mtx4->row_gather(&gather_index, row_collection);
 
     GKO_ASSERT_MTX_NEAR(
         row_collection,
@@ -2267,8 +2263,7 @@ TYPED_TEST(Dense, NonSquareSubmatrixCanAdvancedGatherRowsIntoMixedDense)
     auto alpha = gko::initialize<MixedMtx>({1.0}, exec);
     auto beta = gko::initialize<Mtx>({2.0}, exec);
 
-    this->mtx4->row_gather(alpha.get(), &gather_index, beta.get(),
-                           row_collection.get());
+    this->mtx4->row_gather(alpha, &gather_index, beta, row_collection);
 
     GKO_ASSERT_MTX_NEAR(
         row_collection,
@@ -2285,7 +2280,7 @@ TYPED_TEST(Dense, SquareMatrixGatherRowsIntoDenseFailsForWrongDimensions)
     auto exec = this->mtx5->get_executor();
     gko::array<gko::int32> permute_idxs{exec, {1, 0}};
 
-    ASSERT_THROW(this->mtx5->row_gather(&permute_idxs, Mtx::create(exec).get()),
+    ASSERT_THROW(this->mtx5->row_gather(&permute_idxs, Mtx::create(exec)),
                  gko::DimensionMismatch);
 }
 
@@ -2312,7 +2307,7 @@ TYPED_TEST(Dense, SquareMatrixCanGatherRowsIntoDense64)
     gko::array<gko::int64> permute_idxs{exec, {1, 0}};
     auto row_collection = Mtx::create(exec, gko::dim<2>{2, 3});
 
-    this->mtx5->row_gather(&permute_idxs, row_collection.get());
+    this->mtx5->row_gather(&permute_idxs, row_collection);
 
     GKO_ASSERT_MTX_NEAR(row_collection,
                         l<T>({{-2.0, 2.0, 4.5}, {1.0, -1.0, -0.5}}), 0.0);
@@ -2328,7 +2323,7 @@ TYPED_TEST(Dense, SquareSubmatrixCanGatherRowsIntoDense64)
     auto row_collection = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
     this->mtx5->create_submatrix({0, 2}, {1, 3})
-        ->row_gather(&permute_idxs, row_collection.get());
+        ->row_gather(&permute_idxs, row_collection);
 
     GKO_ASSERT_MTX_NEAR(row_collection, l<T>({{2.0, 4.5}, {-1.0, -0.5}}), 0.0);
     ASSERT_EQ(row_collection->get_stride(), 4);
@@ -2344,7 +2339,7 @@ TYPED_TEST(Dense, NonSquareSubmatrixCanGatherRowsIntoMixedDense64)
     gko::array<gko::int64> gather_index{exec, {1, 0, 1}};
     auto row_collection = MixedMtx::create(exec, gko::dim<2>{3, 3}, 4);
 
-    this->mtx4->row_gather(&gather_index, row_collection.get());
+    this->mtx4->row_gather(&gather_index, row_collection);
 
     GKO_ASSERT_MTX_NEAR(
         row_collection,
@@ -2361,7 +2356,7 @@ TYPED_TEST(Dense, SquareMatrixGatherRowsIntoDenseFailsForWrongDimensions64)
     auto exec = this->mtx5->get_executor();
     gko::array<gko::int64> permute_idxs{exec, {1, 0}};
 
-    ASSERT_THROW(this->mtx5->row_gather(&permute_idxs, Mtx::create(exec).get()),
+    ASSERT_THROW(this->mtx5->row_gather(&permute_idxs, Mtx::create(exec)),
                  gko::DimensionMismatch);
 }
 
@@ -2391,7 +2386,7 @@ TYPED_TEST(Dense, SquareMatrixIsPermutableIntoDense)
     auto ref_permuted =
         gko::as<Mtx>(gko::as<Mtx>(this->mtx5->row_permute(&permute_idxs))
                          ->column_permute(&permute_idxs));
-    this->mtx5->permute(&permute_idxs, permuted.get());
+    this->mtx5->permute(&permute_idxs, permuted);
 
     GKO_ASSERT_MTX_NEAR(permuted, ref_permuted, 0.0);
 }
@@ -2408,7 +2403,7 @@ TYPED_TEST(Dense, SquareSubmatrixIsPermutableIntoDense)
     auto ref_permuted =
         gko::as<Mtx>(gko::as<Mtx>(mtx->row_permute(&permute_idxs))
                          ->column_permute(&permute_idxs));
-    mtx->permute(&permute_idxs, permuted.get());
+    mtx->permute(&permute_idxs, permuted);
 
     GKO_ASSERT_MTX_NEAR(permuted, ref_permuted, 0.0);
     ASSERT_EQ(permuted->get_stride(), 4);
@@ -2421,7 +2416,7 @@ TYPED_TEST(Dense, NonSquareMatrixPermuteIntoDenseFails)
     auto exec = this->mtx4->get_executor();
     gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
 
-    ASSERT_THROW(this->mtx4->permute(&permute_idxs, this->mtx4->clone().get()),
+    ASSERT_THROW(this->mtx4->permute(&permute_idxs, this->mtx4->clone()),
                  gko::DimensionMismatch);
 }
 
@@ -2432,7 +2427,7 @@ TYPED_TEST(Dense, SquareMatrixPermuteIntoDenseFailsForWrongPermutationSize)
     auto exec = this->mtx5->get_executor();
     gko::array<gko::int32> permute_idxs{exec, {1, 2}};
 
-    ASSERT_THROW(this->mtx5->permute(&permute_idxs, this->mtx5->clone().get()),
+    ASSERT_THROW(this->mtx5->permute(&permute_idxs, this->mtx5->clone()),
                  gko::ValueMismatch);
 }
 
@@ -2443,7 +2438,7 @@ TYPED_TEST(Dense, SquareMatrixPermuteIntoDenseFailsForWrongDimensions)
     auto exec = this->mtx5->get_executor();
     gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
 
-    ASSERT_THROW(this->mtx5->permute(&permute_idxs, Mtx::create(exec).get()),
+    ASSERT_THROW(this->mtx5->permute(&permute_idxs, Mtx::create(exec)),
                  gko::DimensionMismatch);
 }
 
@@ -2473,7 +2468,7 @@ TYPED_TEST(Dense, SquareMatrixIsInversePermutableIntoDense)
     auto ref_permuted = gko::as<Mtx>(
         gko::as<Mtx>(this->mtx5->inverse_row_permute(&permute_idxs))
             ->inverse_column_permute(&permute_idxs));
-    this->mtx5->inverse_permute(&permute_idxs, permuted.get());
+    this->mtx5->inverse_permute(&permute_idxs, permuted);
 
     GKO_ASSERT_MTX_NEAR(permuted, ref_permuted, 0.0);
 }
@@ -2490,7 +2485,7 @@ TYPED_TEST(Dense, SquareSubmatrixIsInversePermutableIntoDense)
     auto ref_permuted =
         gko::as<Mtx>(gko::as<Mtx>(mtx->inverse_row_permute(&permute_idxs))
                          ->inverse_column_permute(&permute_idxs));
-    mtx->inverse_permute(&permute_idxs, permuted.get());
+    mtx->inverse_permute(&permute_idxs, permuted);
 
     GKO_ASSERT_MTX_NEAR(permuted, ref_permuted, 0.0);
     ASSERT_EQ(permuted->get_stride(), 4);
@@ -2504,7 +2499,7 @@ TYPED_TEST(Dense, NonSquareMatrixInversePermuteIntoDenseFails)
     gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
 
     ASSERT_THROW(
-        this->mtx4->inverse_permute(&permute_idxs, this->mtx4->clone().get()),
+        this->mtx4->inverse_permute(&permute_idxs, this->mtx4->clone()),
         gko::DimensionMismatch);
 }
 
@@ -2517,7 +2512,7 @@ TYPED_TEST(Dense,
     gko::array<gko::int32> permute_idxs{exec, {0, 1}};
 
     ASSERT_THROW(
-        this->mtx5->inverse_permute(&permute_idxs, this->mtx5->clone().get()),
+        this->mtx5->inverse_permute(&permute_idxs, this->mtx5->clone()),
         gko::ValueMismatch);
 }
 
@@ -2528,9 +2523,8 @@ TYPED_TEST(Dense, SquareMatrixInversePermuteIntoDenseFailsForWrongDimensions)
     auto exec = this->mtx5->get_executor();
     gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
 
-    ASSERT_THROW(
-        this->mtx5->inverse_permute(&permute_idxs, Mtx::create(exec).get()),
-        gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx5->inverse_permute(&permute_idxs, Mtx::create(exec)),
+                 gko::DimensionMismatch);
 }
 
 
@@ -2559,7 +2553,7 @@ TYPED_TEST(Dense, SquareMatrixIsPermutableIntoDense64)
     auto ref_permuted =
         gko::as<Mtx>(gko::as<Mtx>(this->mtx5->row_permute(&permute_idxs))
                          ->column_permute(&permute_idxs));
-    this->mtx5->permute(&permute_idxs, permuted.get());
+    this->mtx5->permute(&permute_idxs, permuted);
 
     GKO_ASSERT_MTX_NEAR(permuted, ref_permuted, 0.0);
 }
@@ -2576,7 +2570,7 @@ TYPED_TEST(Dense, SquareSubmatrixIsPermutableIntoDense64)
     auto ref_permuted =
         gko::as<Mtx>(gko::as<Mtx>(mtx->row_permute(&permute_idxs))
                          ->column_permute(&permute_idxs));
-    mtx->permute(&permute_idxs, permuted.get());
+    mtx->permute(&permute_idxs, permuted);
 
     GKO_ASSERT_MTX_NEAR(permuted, ref_permuted, 0.0);
     ASSERT_EQ(permuted->get_stride(), 4);
@@ -2589,7 +2583,7 @@ TYPED_TEST(Dense, NonSquareMatrixPermuteIntoDenseFails64)
     auto exec = this->mtx4->get_executor();
     gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
 
-    ASSERT_THROW(this->mtx4->permute(&permute_idxs, this->mtx4->clone().get()),
+    ASSERT_THROW(this->mtx4->permute(&permute_idxs, this->mtx4->clone()),
                  gko::DimensionMismatch);
 }
 
@@ -2600,7 +2594,7 @@ TYPED_TEST(Dense, SquareMatrixPermuteIntoDenseFailsForWrongPermutationSize64)
     auto exec = this->mtx5->get_executor();
     gko::array<gko::int64> permute_idxs{exec, {1, 2}};
 
-    ASSERT_THROW(this->mtx5->permute(&permute_idxs, this->mtx5->clone().get()),
+    ASSERT_THROW(this->mtx5->permute(&permute_idxs, this->mtx5->clone()),
                  gko::ValueMismatch);
 }
 
@@ -2611,7 +2605,7 @@ TYPED_TEST(Dense, SquareMatrixPermuteIntoDenseFailsForWrongDimensions64)
     auto exec = this->mtx5->get_executor();
     gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
 
-    ASSERT_THROW(this->mtx5->permute(&permute_idxs, Mtx::create(exec).get()),
+    ASSERT_THROW(this->mtx5->permute(&permute_idxs, Mtx::create(exec)),
                  gko::DimensionMismatch);
 }
 
@@ -2641,7 +2635,7 @@ TYPED_TEST(Dense, SquareMatrixIsInversePermutableIntoDense64)
     auto ref_permuted = gko::as<Mtx>(
         gko::as<Mtx>(this->mtx5->inverse_row_permute(&permute_idxs))
             ->inverse_column_permute(&permute_idxs));
-    this->mtx5->inverse_permute(&permute_idxs, permuted.get());
+    this->mtx5->inverse_permute(&permute_idxs, permuted);
 
     GKO_ASSERT_MTX_NEAR(permuted, ref_permuted, 0.0);
 }
@@ -2658,7 +2652,7 @@ TYPED_TEST(Dense, SquareSubmatrixIsInversePermutableIntoDense64)
     auto ref_permuted =
         gko::as<Mtx>(gko::as<Mtx>(mtx->inverse_row_permute(&permute_idxs))
                          ->inverse_column_permute(&permute_idxs));
-    mtx->inverse_permute(&permute_idxs, permuted.get());
+    mtx->inverse_permute(&permute_idxs, permuted);
 
     GKO_ASSERT_MTX_NEAR(permuted, ref_permuted, 0.0);
     ASSERT_EQ(permuted->get_stride(), 4);
@@ -2672,7 +2666,7 @@ TYPED_TEST(Dense, NonSquareMatrixInversePermuteIntoDenseFails64)
     gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
 
     ASSERT_THROW(
-        this->mtx4->inverse_permute(&permute_idxs, this->mtx4->clone().get()),
+        this->mtx4->inverse_permute(&permute_idxs, this->mtx4->clone()),
         gko::DimensionMismatch);
 }
 
@@ -2685,7 +2679,7 @@ TYPED_TEST(Dense,
     gko::array<gko::int64> permute_idxs{exec, {1, 2}};
 
     ASSERT_THROW(
-        this->mtx5->inverse_permute(&permute_idxs, this->mtx5->clone().get()),
+        this->mtx5->inverse_permute(&permute_idxs, this->mtx5->clone()),
         gko::ValueMismatch);
 }
 
@@ -2696,9 +2690,8 @@ TYPED_TEST(Dense, SquareMatrixInversePermuteIntoDenseFailsForWrongDimensions64)
     auto exec = this->mtx5->get_executor();
     gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
 
-    ASSERT_THROW(
-        this->mtx5->inverse_permute(&permute_idxs, Mtx::create(exec).get()),
-        gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx5->inverse_permute(&permute_idxs, Mtx::create(exec)),
+                 gko::DimensionMismatch);
 }
 
 
@@ -2739,7 +2732,7 @@ TYPED_TEST(Dense, SquareMatrixIsRowPermutableIntoDense)
     gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
     auto row_permute = Mtx::create(exec, this->mtx5->get_size());
 
-    this->mtx5->row_permute(&permute_idxs, row_permute.get());
+    this->mtx5->row_permute(&permute_idxs, row_permute);
 
     GKO_ASSERT_MTX_NEAR(
         row_permute,
@@ -2756,7 +2749,7 @@ TYPED_TEST(Dense, SquareSubmatrixIsRowPermutableIntoDense)
     auto row_permute = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
     this->mtx5->create_submatrix({0, 2}, {0, 2})
-        ->row_permute(&permute_idxs, row_permute.get());
+        ->row_permute(&permute_idxs, row_permute);
 
     GKO_ASSERT_MTX_NEAR(row_permute, l<T>({{-2.0, 2.0}, {1.0, -1.0}}), 0.0);
     ASSERT_EQ(row_permute->get_stride(), 4);
@@ -2771,7 +2764,7 @@ TYPED_TEST(Dense, SquareMatrixRowPermuteIntoDenseFailsForWrongPermutationSize)
     gko::array<gko::int32> permute_idxs{exec, {1, 2}};
     auto row_permute = Mtx::create(exec, this->mtx5->get_size());
 
-    ASSERT_THROW(this->mtx5->row_permute(&permute_idxs, row_permute.get()),
+    ASSERT_THROW(this->mtx5->row_permute(&permute_idxs, row_permute),
                  gko::ValueMismatch);
 }
 
@@ -2783,9 +2776,8 @@ TYPED_TEST(Dense, SquareMatrixRowPermuteIntoDenseFailsForWrongDimensions)
     auto exec = this->mtx5->get_executor();
     gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
 
-    ASSERT_THROW(
-        this->mtx5->row_permute(&permute_idxs, Mtx::create(exec).get()),
-        gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx5->row_permute(&permute_idxs, Mtx::create(exec)),
+                 gko::DimensionMismatch);
 }
 
 
@@ -2826,7 +2818,7 @@ TYPED_TEST(Dense, SquareMatrixIsColPermutableIntoDense)
     gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
     auto c_permute = Mtx::create(exec, this->mtx5->get_size());
 
-    this->mtx5->column_permute(&permute_idxs, c_permute.get());
+    this->mtx5->column_permute(&permute_idxs, c_permute);
 
     GKO_ASSERT_MTX_NEAR(
         c_permute, l<T>({{-1.0, -0.5, 1.0}, {2.0, 4.5, -2.0}, {3.4, 1.2, 2.1}}),
@@ -2843,7 +2835,7 @@ TYPED_TEST(Dense, SquareSubmatrixIsColPermutableIntoDense)
     auto c_permute = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
     this->mtx5->create_submatrix({0, 2}, {0, 2})
-        ->column_permute(&permute_idxs, c_permute.get());
+        ->column_permute(&permute_idxs, c_permute);
 
     GKO_ASSERT_MTX_NEAR(c_permute, l<T>({{-1.0, 1.0}, {2.0, -2.0}}), 0.0);
     ASSERT_EQ(c_permute->get_stride(), 4);
@@ -2858,7 +2850,7 @@ TYPED_TEST(Dense, SquareMatrixColPermuteIntoDenseFailsForWrongPermutationSize)
     gko::array<gko::int32> permute_idxs{exec, {1, 2}};
     auto row_permute = Mtx::create(exec, this->mtx5->get_size());
 
-    ASSERT_THROW(this->mtx5->column_permute(&permute_idxs, row_permute.get()),
+    ASSERT_THROW(this->mtx5->column_permute(&permute_idxs, row_permute),
                  gko::ValueMismatch);
 }
 
@@ -2870,9 +2862,8 @@ TYPED_TEST(Dense, SquareMatrixColPermuteIntoDenseFailsForWrongDimensions)
     auto exec = this->mtx5->get_executor();
     gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
 
-    ASSERT_THROW(
-        this->mtx5->column_permute(&permute_idxs, Mtx::create(exec).get()),
-        gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx5->column_permute(&permute_idxs, Mtx::create(exec)),
+                 gko::DimensionMismatch);
 }
 
 
@@ -2915,7 +2906,7 @@ TYPED_TEST(Dense, SquareMatrixIsInverseRowPermutableIntoDense)
     gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
     auto row_permute = Mtx::create(exec, this->mtx5->get_size());
 
-    this->mtx5->inverse_row_permute(&permute_idxs, row_permute.get());
+    this->mtx5->inverse_row_permute(&permute_idxs, row_permute);
 
     GKO_ASSERT_MTX_NEAR(
         row_permute,
@@ -2932,7 +2923,7 @@ TYPED_TEST(Dense, SquareSubmatrixIsInverseRowPermutableIntoDense)
     auto row_permute = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
     this->mtx5->create_submatrix({0, 2}, {0, 2})
-        ->inverse_row_permute(&permute_idxs, row_permute.get());
+        ->inverse_row_permute(&permute_idxs, row_permute);
 
     GKO_ASSERT_MTX_NEAR(row_permute, l<T>({{-2.0, 2.0}, {1.0, -1.0}}), 0.0);
     ASSERT_EQ(row_permute->get_stride(), 4);
@@ -2948,9 +2939,8 @@ TYPED_TEST(Dense,
     gko::array<gko::int32> permute_idxs{exec, {1, 2}};
     auto row_permute = Mtx::create(exec, this->mtx5->get_size());
 
-    ASSERT_THROW(
-        this->mtx5->inverse_row_permute(&permute_idxs, row_permute.get()),
-        gko::ValueMismatch);
+    ASSERT_THROW(this->mtx5->inverse_row_permute(&permute_idxs, row_permute),
+                 gko::ValueMismatch);
 }
 
 
@@ -2962,7 +2952,7 @@ TYPED_TEST(Dense, SquareMatrixInverseRowPermuteIntoDenseFailsForWrongDimensions)
     gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
 
     ASSERT_THROW(
-        this->mtx5->inverse_row_permute(&permute_idxs, Mtx::create(exec).get()),
+        this->mtx5->inverse_row_permute(&permute_idxs, Mtx::create(exec)),
         gko::DimensionMismatch);
 }
 
@@ -3006,7 +2996,7 @@ TYPED_TEST(Dense, SquareMatrixIsInverseColPermutableIntoDense)
     gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
     auto c_permute = Mtx::create(exec, this->mtx5->get_size());
 
-    this->mtx5->inverse_column_permute(&permute_idxs, c_permute.get());
+    this->mtx5->inverse_column_permute(&permute_idxs, c_permute);
 
     GKO_ASSERT_MTX_NEAR(
         c_permute, l<T>({{-0.5, 1.0, -1.0}, {4.5, -2.0, 2.0}, {1.2, 2.1, 3.4}}),
@@ -3023,7 +3013,7 @@ TYPED_TEST(Dense, SquareSubmatrixIsInverseColPermutableIntoDense)
     auto c_permute = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
     this->mtx5->create_submatrix({0, 2}, {0, 2})
-        ->column_permute(&permute_idxs, c_permute.get());
+        ->column_permute(&permute_idxs, c_permute);
 
     GKO_ASSERT_MTX_NEAR(c_permute, l<T>({{-1.0, 1.0}, {2.0, -2.0}}), 0.0);
     ASSERT_EQ(c_permute->get_stride(), 4);
@@ -3039,9 +3029,8 @@ TYPED_TEST(Dense,
     gko::array<gko::int32> permute_idxs{exec, {1, 2}};
     auto row_permute = Mtx::create(exec, this->mtx5->get_size());
 
-    ASSERT_THROW(
-        this->mtx5->inverse_column_permute(&permute_idxs, row_permute.get()),
-        gko::ValueMismatch);
+    ASSERT_THROW(this->mtx5->inverse_column_permute(&permute_idxs, row_permute),
+                 gko::ValueMismatch);
 }
 
 
@@ -3052,9 +3041,9 @@ TYPED_TEST(Dense, SquareMatrixInverseColPermuteIntoDenseFailsForWrongDimensions)
     auto exec = this->mtx5->get_executor();
     gko::array<gko::int32> permute_idxs{exec, {1, 2, 0}};
 
-    ASSERT_THROW(this->mtx5->inverse_column_permute(&permute_idxs,
-                                                    Mtx::create(exec).get()),
-                 gko::DimensionMismatch);
+    ASSERT_THROW(
+        this->mtx5->inverse_column_permute(&permute_idxs, Mtx::create(exec)),
+        gko::DimensionMismatch);
 }
 
 
@@ -3095,7 +3084,7 @@ TYPED_TEST(Dense, SquareMatrixIsRowPermutableIntoDense64)
     gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
     auto row_permute = Mtx::create(exec, this->mtx5->get_size());
 
-    this->mtx5->row_permute(&permute_idxs, row_permute.get());
+    this->mtx5->row_permute(&permute_idxs, row_permute);
 
     GKO_ASSERT_MTX_NEAR(
         row_permute,
@@ -3112,7 +3101,7 @@ TYPED_TEST(Dense, SquareSubmatrixIsRowPermutableIntoDense64)
     auto row_permute = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
     this->mtx5->create_submatrix({0, 2}, {0, 2})
-        ->row_permute(&permute_idxs, row_permute.get());
+        ->row_permute(&permute_idxs, row_permute);
 
     GKO_ASSERT_MTX_NEAR(row_permute, l<T>({{-2.0, 2.0}, {1.0, -1.0}}), 0.0);
     ASSERT_EQ(row_permute->get_stride(), 4);
@@ -3127,7 +3116,7 @@ TYPED_TEST(Dense, SquareMatrixRowPermuteIntoDenseFailsForWrongPermutationSize64)
     gko::array<gko::int64> permute_idxs{exec, {1, 2}};
     auto row_permute = Mtx::create(exec, this->mtx5->get_size());
 
-    ASSERT_THROW(this->mtx5->row_permute(&permute_idxs, row_permute.get()),
+    ASSERT_THROW(this->mtx5->row_permute(&permute_idxs, row_permute),
                  gko::ValueMismatch);
 }
 
@@ -3139,9 +3128,8 @@ TYPED_TEST(Dense, SquareMatrixRowPermuteIntoDenseFailsForWrongDimensions64)
     auto exec = this->mtx5->get_executor();
     gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
 
-    ASSERT_THROW(
-        this->mtx5->row_permute(&permute_idxs, Mtx::create(exec).get()),
-        gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx5->row_permute(&permute_idxs, Mtx::create(exec)),
+                 gko::DimensionMismatch);
 }
 
 
@@ -3182,7 +3170,7 @@ TYPED_TEST(Dense, SquareMatrixIsColPermutableIntoDense64)
     gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
     auto c_permute = Mtx::create(exec, this->mtx5->get_size());
 
-    this->mtx5->column_permute(&permute_idxs, c_permute.get());
+    this->mtx5->column_permute(&permute_idxs, c_permute);
 
     GKO_ASSERT_MTX_NEAR(
         c_permute, l<T>({{-1.0, -0.5, 1.0}, {2.0, 4.5, -2.0}, {3.4, 1.2, 2.1}}),
@@ -3199,7 +3187,7 @@ TYPED_TEST(Dense, SquareSubmatrixIsColPermutableIntoDense64)
     auto c_permute = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
     this->mtx5->create_submatrix({0, 2}, {0, 2})
-        ->column_permute(&permute_idxs, c_permute.get());
+        ->column_permute(&permute_idxs, c_permute);
 
     GKO_ASSERT_MTX_NEAR(c_permute, l<T>({{-1.0, 1.0}, {2.0, -2.0}}), 0.0);
     ASSERT_EQ(c_permute->get_stride(), 4);
@@ -3214,7 +3202,7 @@ TYPED_TEST(Dense, SquareMatrixColPermuteIntoDenseFailsForWrongPermutationSize64)
     gko::array<gko::int64> permute_idxs{exec, {1, 2}};
     auto row_permute = Mtx::create(exec, this->mtx5->get_size());
 
-    ASSERT_THROW(this->mtx5->column_permute(&permute_idxs, row_permute.get()),
+    ASSERT_THROW(this->mtx5->column_permute(&permute_idxs, row_permute),
                  gko::ValueMismatch);
 }
 
@@ -3226,9 +3214,8 @@ TYPED_TEST(Dense, SquareMatrixColPermuteIntoDenseFailsForWrongDimensions64)
     auto exec = this->mtx5->get_executor();
     gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
 
-    ASSERT_THROW(
-        this->mtx5->column_permute(&permute_idxs, Mtx::create(exec).get()),
-        gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx5->column_permute(&permute_idxs, Mtx::create(exec)),
+                 gko::DimensionMismatch);
 }
 
 
@@ -3271,7 +3258,7 @@ TYPED_TEST(Dense, SquareMatrixIsInverseRowPermutableIntoDense64)
     gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
     auto row_permute = Mtx::create(exec, this->mtx5->get_size());
 
-    this->mtx5->inverse_row_permute(&permute_idxs, row_permute.get());
+    this->mtx5->inverse_row_permute(&permute_idxs, row_permute);
 
     GKO_ASSERT_MTX_NEAR(
         row_permute,
@@ -3288,7 +3275,7 @@ TYPED_TEST(Dense, SquareSubmatrixIsInverseRowPermutableIntoDense64)
     auto row_permute = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
     this->mtx5->create_submatrix({0, 2}, {0, 2})
-        ->inverse_row_permute(&permute_idxs, row_permute.get());
+        ->inverse_row_permute(&permute_idxs, row_permute);
 
     GKO_ASSERT_MTX_NEAR(row_permute, l<T>({{-2.0, 2.0}, {1.0, -1.0}}), 0.0);
     ASSERT_EQ(row_permute->get_stride(), 4);
@@ -3304,9 +3291,8 @@ TYPED_TEST(Dense,
     gko::array<gko::int64> permute_idxs{exec, {1, 2}};
     auto row_permute = Mtx::create(exec, this->mtx5->get_size());
 
-    ASSERT_THROW(
-        this->mtx5->inverse_row_permute(&permute_idxs, row_permute.get()),
-        gko::ValueMismatch);
+    ASSERT_THROW(this->mtx5->inverse_row_permute(&permute_idxs, row_permute),
+                 gko::ValueMismatch);
 }
 
 
@@ -3319,7 +3305,7 @@ TYPED_TEST(Dense,
     gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
 
     ASSERT_THROW(
-        this->mtx5->inverse_row_permute(&permute_idxs, Mtx::create(exec).get()),
+        this->mtx5->inverse_row_permute(&permute_idxs, Mtx::create(exec)),
         gko::DimensionMismatch);
 }
 
@@ -3363,7 +3349,7 @@ TYPED_TEST(Dense, SquareMatrixIsInverseColPermutableIntoDense64)
     gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
     auto c_permute = Mtx::create(exec, this->mtx5->get_size());
 
-    this->mtx5->inverse_column_permute(&permute_idxs, c_permute.get());
+    this->mtx5->inverse_column_permute(&permute_idxs, c_permute);
 
     GKO_ASSERT_MTX_NEAR(
         c_permute, l<T>({{-0.5, 1.0, -1.0}, {4.5, -2.0, 2.0}, {1.2, 2.1, 3.4}}),
@@ -3380,7 +3366,7 @@ TYPED_TEST(Dense, SquareSubmatrixIsInverseColPermutableIntoDense64)
     auto c_permute = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
     this->mtx5->create_submatrix({0, 2}, {0, 2})
-        ->column_permute(&permute_idxs, c_permute.get());
+        ->column_permute(&permute_idxs, c_permute);
 
     GKO_ASSERT_MTX_NEAR(c_permute, l<T>({{-1.0, 1.0}, {2.0, -2.0}}), 0.0);
     ASSERT_EQ(c_permute->get_stride(), 4);
@@ -3396,9 +3382,8 @@ TYPED_TEST(Dense,
     gko::array<gko::int64> permute_idxs{exec, {1, 2}};
     auto row_permute = Mtx::create(exec, this->mtx5->get_size());
 
-    ASSERT_THROW(
-        this->mtx5->inverse_column_permute(&permute_idxs, row_permute.get()),
-        gko::ValueMismatch);
+    ASSERT_THROW(this->mtx5->inverse_column_permute(&permute_idxs, row_permute),
+                 gko::ValueMismatch);
 }
 
 
@@ -3410,9 +3395,9 @@ TYPED_TEST(Dense,
     auto exec = this->mtx5->get_executor();
     gko::array<gko::int64> permute_idxs{exec, {1, 2, 0}};
 
-    ASSERT_THROW(this->mtx5->inverse_column_permute(&permute_idxs,
-                                                    Mtx::create(exec).get()),
-                 gko::DimensionMismatch);
+    ASSERT_THROW(
+        this->mtx5->inverse_column_permute(&permute_idxs, Mtx::create(exec)),
+        gko::DimensionMismatch);
 }
 
 
@@ -3461,7 +3446,7 @@ TYPED_TEST(Dense, ExtractsDiagonalFromSquareMatrixIntoDiagonal)
     using T = typename TestFixture::value_type;
     auto diag = gko::matrix::Diagonal<T>::create(this->exec, 3);
 
-    this->mtx5->extract_diagonal(diag.get());
+    this->mtx5->extract_diagonal(diag);
 
     ASSERT_EQ(diag->get_size()[0], 3);
     ASSERT_EQ(diag->get_size()[1], 3);
@@ -3476,7 +3461,7 @@ TYPED_TEST(Dense, ExtractsDiagonalFromTallSkinnyMatrixIntoDiagonal)
     using T = typename TestFixture::value_type;
     auto diag = gko::matrix::Diagonal<T>::create(this->exec, 2);
 
-    this->mtx4->extract_diagonal(diag.get());
+    this->mtx4->extract_diagonal(diag);
 
     ASSERT_EQ(diag->get_size()[0], 2);
     ASSERT_EQ(diag->get_size()[1], 2);
@@ -3490,7 +3475,7 @@ TYPED_TEST(Dense, ExtractsDiagonalFromShortFatMatrixIntoDiagonal)
     using T = typename TestFixture::value_type;
     auto diag = gko::matrix::Diagonal<T>::create(this->exec, 2);
 
-    this->mtx8->extract_diagonal(diag.get());
+    this->mtx8->extract_diagonal(diag);
 
     ASSERT_EQ(diag->get_size()[0], 2);
     ASSERT_EQ(diag->get_size()[1], 2);
@@ -3543,7 +3528,7 @@ TYPED_TEST(Dense, OutplaceAbsoluteIntoDense)
     auto abs_mtx =
         gko::remove_complex<Mtx>::create(this->exec, this->mtx5->get_size());
 
-    this->mtx5->compute_absolute(abs_mtx.get());
+    this->mtx5->compute_absolute(abs_mtx);
 
     GKO_ASSERT_MTX_NEAR(
         abs_mtx, l<T>({{1.0, 1.0, 0.5}, {2.0, 2.0, 4.5}, {2.1, 3.4, 1.2}}),
@@ -3571,7 +3556,7 @@ TYPED_TEST(Dense, OutplaceSubmatrixAbsoluteIntoDense)
     auto abs_mtx =
         gko::remove_complex<Mtx>::create(this->exec, gko::dim<2>{2, 2}, 4);
 
-    mtx->compute_absolute(abs_mtx.get());
+    mtx->compute_absolute(abs_mtx);
 
     GKO_ASSERT_MTX_NEAR(abs_mtx, l<T>({{1.0, 1.0}, {2.0, 2.0}}), 0);
     GKO_ASSERT_EQ(abs_mtx->get_stride(), 4);
@@ -3591,7 +3576,7 @@ TYPED_TEST(Dense, AppliesToComplex)
                              exec);
     auto x = Vec::create(exec, gko::dim<2>{2, 2});
 
-    this->mtx1->apply(b.get(), x.get());
+    this->mtx1->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,
@@ -3615,7 +3600,7 @@ TYPED_TEST(Dense, AppliesToMixedComplex)
         exec);
     auto x = Vec::create(exec, gko::dim<2>{2, 2});
 
-    this->mtx1->apply(b.get(), x.get());
+    this->mtx1->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,
@@ -3645,7 +3630,7 @@ TYPED_TEST(Dense, AdvancedAppliesToComplex)
     auto alpha = gko::initialize<Dense>({-1.0}, this->exec);
     auto beta = gko::initialize<Dense>({2.0}, this->exec);
 
-    this->mtx1->apply(alpha.get(), b.get(), beta.get(), x.get());
+    this->mtx1->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,
@@ -3676,7 +3661,7 @@ TYPED_TEST(Dense, AdvancedAppliesToMixedComplex)
     auto alpha = gko::initialize<MixedDense>({-1.0}, this->exec);
     auto beta = gko::initialize<MixedDense>({2.0}, this->exec);
 
-    this->mtx1->apply(alpha.get(), b.get(), beta.get(), x.get());
+    this->mtx1->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,
@@ -3704,7 +3689,7 @@ TYPED_TEST(Dense, MakeComplexIntoDense)
     auto exec = this->mtx5->get_executor();
 
     auto complex_mtx = ComplexMtx::create(exec, this->mtx5->get_size());
-    this->mtx5->make_complex(complex_mtx.get());
+    this->mtx5->make_complex(complex_mtx);
 
     GKO_ASSERT_MTX_NEAR(complex_mtx, this->mtx5, 0.0);
 }
@@ -3718,8 +3703,7 @@ TYPED_TEST(Dense, MakeComplexIntoDenseFailsForWrongDimensions)
 
     auto complex_mtx = ComplexMtx::create(exec);
 
-    ASSERT_THROW(this->mtx5->make_complex(complex_mtx.get()),
-                 gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx5->make_complex(complex_mtx), gko::DimensionMismatch);
 }
 
 
@@ -3740,7 +3724,7 @@ TYPED_TEST(Dense, GetRealIntoDense)
     auto exec = this->mtx5->get_executor();
 
     auto real_mtx = RealMtx::create(exec, this->mtx5->get_size());
-    this->mtx5->get_real(real_mtx.get());
+    this->mtx5->get_real(real_mtx);
 
     GKO_ASSERT_MTX_NEAR(real_mtx, this->mtx5, 0.0);
 }
@@ -3753,7 +3737,7 @@ TYPED_TEST(Dense, GetRealIntoDenseFailsForWrongDimensions)
     auto exec = this->mtx5->get_executor();
 
     auto real_mtx = RealMtx::create(exec);
-    ASSERT_THROW(this->mtx5->get_real(real_mtx.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx5->get_real(real_mtx), gko::DimensionMismatch);
 }
 
 
@@ -3776,7 +3760,7 @@ TYPED_TEST(Dense, GetImagIntoDense)
     auto exec = this->mtx5->get_executor();
 
     auto imag_mtx = RealMtx::create(exec, this->mtx5->get_size());
-    this->mtx5->get_imag(imag_mtx.get());
+    this->mtx5->get_imag(imag_mtx);
 
     GKO_ASSERT_MTX_NEAR(
         imag_mtx, l<T>({{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}),
@@ -3791,7 +3775,7 @@ TYPED_TEST(Dense, GetImagIntoDenseFailsForWrongDimensions)
     auto exec = this->mtx5->get_executor();
 
     auto imag_mtx = RealMtx::create(exec);
-    ASSERT_THROW(this->mtx5->get_imag(imag_mtx.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx5->get_imag(imag_mtx), gko::DimensionMismatch);
 }
 
 
@@ -3801,8 +3785,7 @@ TYPED_TEST(Dense, MakeTemporaryConversionDoesntConvertOnMatch)
     using T = typename TestFixture::value_type;
     auto alpha = gko::initialize<Mtx>({8.0}, this->exec);
 
-    ASSERT_EQ(gko::make_temporary_conversion<T>(alpha.get()).get(),
-              alpha.get());
+    ASSERT_EQ(gko::make_temporary_conversion<T>(alpha).get(), alpha.get());
 }
 
 
@@ -3814,7 +3797,7 @@ TYPED_TEST(Dense, MakeTemporaryConversionConvertsBack)
     auto alpha = gko::initialize<MixedMtx>({8.0}, this->exec);
 
     {
-        auto conversion = gko::make_temporary_conversion<T>(alpha.get());
+        auto conversion = gko::make_temporary_conversion<T>(alpha);
         conversion->at(0, 0) = T{7.0};
     }
 
@@ -3849,7 +3832,7 @@ TYPED_TEST(Dense, ScaleAddIdentityRectangular)
     auto b = gko::initialize<Vec>(
         {I<T>{2.0, 0.0}, I<T>{1.0, 2.5}, I<T>{0.0, -4.0}}, this->exec);
 
-    b->add_scaled_identity(alpha.get(), beta.get());
+    b->add_scaled_identity(alpha, beta);
 
     GKO_ASSERT_MTX_NEAR(b, l({{0.0, 0.0}, {-1.0, -0.5}, {0.0, 4.0}}), 0.0);
 }
@@ -3881,7 +3864,7 @@ TYPED_TEST(DenseComplex, ScalesWithRealScalar)
     auto alpha =
         gko::initialize<RealDense>({gko::remove_complex<T>{-2.0}}, exec);
 
-    mtx->scale(alpha.get());
+    mtx->scale(alpha);
 
     GKO_ASSERT_MTX_NEAR(mtx,
                         l<T>({{T{-2.0, -4.0}, T{2.0, -4.5}},
@@ -3904,7 +3887,7 @@ TYPED_TEST(DenseComplex, ScalesWithRealVector)
                                       exec);
     auto alpha = gko::initialize<RealDense>({{RealT{-2.0}, RealT{4.0}}}, exec);
 
-    mtx->scale(alpha.get());
+    mtx->scale(alpha);
 
     GKO_ASSERT_MTX_NEAR(mtx,
                         l<T>({{T{-2.0, -4.0}, T{-4.0, 9.0}},
@@ -3927,7 +3910,7 @@ TYPED_TEST(DenseComplex, InvScalesWithRealScalar)
     auto alpha =
         gko::initialize<RealDense>({gko::remove_complex<T>{-0.5}}, exec);
 
-    mtx->inv_scale(alpha.get());
+    mtx->inv_scale(alpha);
 
     GKO_ASSERT_MTX_NEAR(mtx,
                         l<T>({{T{-2.0, -4.0}, T{2.0, -4.5}},
@@ -3950,7 +3933,7 @@ TYPED_TEST(DenseComplex, InvScalesWithRealVector)
                                       exec);
     auto alpha = gko::initialize<RealDense>({{RealT{-0.5}, RealT{0.25}}}, exec);
 
-    mtx->inv_scale(alpha.get());
+    mtx->inv_scale(alpha);
 
     GKO_ASSERT_MTX_NEAR(mtx,
                         l<T>({{T{-2.0, -4.0}, T{-4.0, 9.0}},
@@ -3977,7 +3960,7 @@ TYPED_TEST(DenseComplex, AddsScaledWithRealScalar)
     auto alpha =
         gko::initialize<RealDense>({gko::remove_complex<T>{-2.0}}, exec);
 
-    mtx->add_scaled(alpha.get(), mtx2.get());
+    mtx->add_scaled(alpha, mtx2);
 
     GKO_ASSERT_MTX_NEAR(mtx,
                         l<T>({{T{-7.0, 4.0}, T{-11.0, -0.75}},
@@ -4004,7 +3987,7 @@ TYPED_TEST(DenseComplex, AddsScaledWithRealVector)
                                        exec);
     auto alpha = gko::initialize<RealDense>({{RealT{-2.0}, RealT{4.0}}}, exec);
 
-    mtx->add_scaled(alpha.get(), mtx2.get());
+    mtx->add_scaled(alpha, mtx2);
 
     GKO_ASSERT_MTX_NEAR(mtx,
                         l<T>({{T{-7.0, 4.0}, T{19.0, 8.25}},
@@ -4031,7 +4014,7 @@ TYPED_TEST(DenseComplex, SubtractsScaledWithRealScalar)
     auto alpha =
         gko::initialize<RealDense>({gko::remove_complex<T>{2.0}}, exec);
 
-    mtx->sub_scaled(alpha.get(), mtx2.get());
+    mtx->sub_scaled(alpha, mtx2);
 
     GKO_ASSERT_MTX_NEAR(mtx,
                         l<T>({{T{-7.0, 4.0}, T{-11.0, -0.75}},
@@ -4058,7 +4041,7 @@ TYPED_TEST(DenseComplex, SubtractsScaledWithRealVector)
                                        exec);
     auto alpha = gko::initialize<RealDense>({{RealT{2.0}, RealT{-4.0}}}, exec);
 
-    mtx->sub_scaled(alpha.get(), mtx2.get());
+    mtx->sub_scaled(alpha, mtx2);
 
     GKO_ASSERT_MTX_NEAR(mtx,
                         l<T>({{T{-7.0, 4.0}, T{19.0, 8.25}},
@@ -4098,7 +4081,7 @@ TYPED_TEST(DenseComplex, NonSquareMatrixIsConjugateTransposableIntoDense)
                                       exec);
     auto trans = Dense::create(exec, gko::transpose(mtx->get_size()));
 
-    mtx->conj_transpose(trans.get());
+    mtx->conj_transpose(trans);
 
     GKO_ASSERT_MTX_NEAR(trans,
                         l<T>({{T{1.0, -2.0}, T{-2.0, -1.5}, T{1.0, 0.0}},
@@ -4153,7 +4136,7 @@ TYPED_TEST(DenseComplex, OutplaceAbsoluteIntoDense)
                                     exec);
     auto abs_mtx = gko::remove_complex<Mtx>::create(exec, mtx->get_size());
 
-    mtx->compute_absolute(abs_mtx.get());
+    mtx->compute_absolute(abs_mtx);
 
     GKO_ASSERT_MTX_NEAR(
         abs_mtx, l<T>({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}),
@@ -4188,7 +4171,7 @@ TYPED_TEST(DenseComplex, MakeComplexIntoDense)
                                     exec);
 
     auto complex_mtx = Mtx::create(exec, mtx->get_size());
-    mtx->make_complex(complex_mtx.get());
+    mtx->make_complex(complex_mtx);
 
     GKO_ASSERT_MTX_NEAR(complex_mtx, mtx, 0.0);
 }
@@ -4224,7 +4207,7 @@ TYPED_TEST(DenseComplex, GetRealIntoDense)
                                     exec);
 
     auto real_mtx = RealMtx::create(exec, mtx->get_size());
-    mtx->get_real(real_mtx.get());
+    mtx->get_real(real_mtx);
 
     GKO_ASSERT_MTX_NEAR(
         real_mtx, l<T>({{1.0, 3.0, 0.0}, {-4.0, -1.0, 0.0}, {0.0, 0.0, 2.0}}),
@@ -4262,7 +4245,7 @@ TYPED_TEST(DenseComplex, GetImagIntoDense)
                                     exec);
 
     auto imag_mtx = RealMtx::create(exec, mtx->get_size());
-    mtx->get_imag(imag_mtx.get());
+    mtx->get_imag(imag_mtx);
 
     GKO_ASSERT_MTX_NEAR(
         imag_mtx, l<T>({{0.0, 4.0, 2.0}, {-3.0, 0.0, 0.0}, {0.0, -1.5, 0.0}}),
@@ -4281,7 +4264,7 @@ TYPED_TEST(DenseComplex, Dot)
         gko::initialize<Mtx>({T{1.0, -2.0}, T{5.0, 0.0}, T{0.0, -3.0}}, exec);
     auto result = gko::initialize<Mtx>({T{0.0, 0.0}}, exec);
 
-    a->compute_dot(b.get(), result.get());
+    a->compute_dot(b, result);
 
     GKO_ASSERT_MTX_NEAR(result, l({T{22.0, 15.0}}), 0.0);
 }
@@ -4298,7 +4281,7 @@ TYPED_TEST(DenseComplex, ConjDot)
         gko::initialize<Mtx>({T{1.0, -2.0}, T{5.0, 0.0}, T{0.0, -3.0}}, exec);
     auto result = gko::initialize<Mtx>({T{0.0, 0.0}}, exec);
 
-    a->compute_conj_dot(b.get(), result.get());
+    a->compute_conj_dot(b, result);
 
     GKO_ASSERT_MTX_NEAR(result, l({T{10.0, -25.0}}), 0.0);
 }

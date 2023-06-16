@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -144,11 +144,6 @@ int main(int argc, char* argv[])
                                    .with_reduction_factor(reduction_factor)
                                    .on(exec));
 
-    std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
-        gko::log::Convergence<ValueType>::create();
-    iter_stop->add_logger(logger);
-    tol_stop->add_logger(logger);
-
     // Use preconditioner inside GMRES solver factory
     // Generating a solver factory tied to a specific preconditioner makes sense
     // if there are several very similar systems to solve, and the same
@@ -162,15 +157,20 @@ int main(int argc, char* argv[])
     // Generate preconditioned solver for a specific target system
     auto ilu_gmres = ilu_gmres_factory->generate(A);
 
+    // Add logger
+    std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
+        gko::log::Convergence<ValueType>::create();
+    ilu_gmres->add_logger(logger);
+
     // Warmup run
-    ilu_gmres->apply(lend(b), lend(x));
+    ilu_gmres->apply(b, x);
 
     // Solve system 100 times and take the average time.
     std::chrono::nanoseconds time(0);
     for (int i = 0; i < 100; i++) {
-        x->copy_from(lend(clone_x));
+        x->copy_from(clone_x);
         auto tic = std::chrono::high_resolution_clock::now();
-        ilu_gmres->apply(lend(b), lend(x));
+        ilu_gmres->apply(b, x);
         auto toc = std::chrono::high_resolution_clock::now();
         time += std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
     }
@@ -179,19 +179,15 @@ int main(int argc, char* argv[])
 
     // Print solution
     std::cout << "Solution (x):\n";
-    write(std::cout, gko::lend(x));
+    write(std::cout, x);
 
-    // Calculate residual
-    auto one = gko::initialize<vec>({1.0}, exec);
-    auto neg_one = gko::initialize<vec>({-1.0}, exec);
-    auto res = gko::initialize<real_vec>({0.0}, exec);
-    A->apply(gko::lend(one), gko::lend(x), gko::lend(neg_one), gko::lend(b));
-    b->compute_norm2(gko::lend(res));
+    // Get residual
+    auto res = gko::as<vec>(logger->get_residual_norm());
 
     std::cout << "GMRES iteration count:     " << logger->get_num_iterations()
               << "\n";
     std::cout << "GMRES execution time [ms]: "
               << static_cast<double>(time.count()) / 100000000.0 << "\n";
     std::cout << "Residual norm sqrt(r^T r):\n";
-    write(std::cout, gko::lend(res));
+    write(std::cout, res);
 }

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -59,6 +59,59 @@ struct Base2 {
 
 
 struct MultipleDerived : Base, Base2 {};
+
+
+TEST(PointerParam, WorksForRawPointers)
+{
+    auto obj = std::make_unique<Derived>();
+    auto ptr = obj.get();
+
+    gko::ptr_param<Base> param(ptr);
+    gko::ptr_param<Derived> param2(ptr);
+
+    ASSERT_EQ(param.get(), static_cast<Base*>(ptr));
+    ASSERT_EQ(param2.get(), ptr);
+}
+
+
+TEST(PointerParam, WorksForSharedPointers)
+{
+    auto obj = std::make_shared<Derived>();
+    auto ptr = obj.get();
+
+    // no difference whether we use lvalue or rvalue
+    gko::ptr_param<Base> param1(obj);
+    gko::ptr_param<Base> param2(std::move(obj));
+    gko::ptr_param<Derived> param3(obj);
+    gko::ptr_param<Derived> param4(std::move(obj));
+
+    ASSERT_EQ(param1.get(), static_cast<Base*>(ptr));
+    ASSERT_EQ(param2.get(), static_cast<Base*>(ptr));
+    ASSERT_EQ(param3.get(), ptr);
+    ASSERT_EQ(param4.get(), ptr);
+    // shared_ptr was unmodified
+    ASSERT_EQ(obj.get(), ptr);
+}
+
+
+TEST(PointerParam, WorksForUniquePointers)
+{
+    auto obj = std::make_unique<Derived>();
+    auto ptr = obj.get();
+
+    // no difference whether we use lvalue or rvalue
+    gko::ptr_param<Base> param1(obj);
+    gko::ptr_param<Base> param2(std::move(obj));
+    gko::ptr_param<Derived> param3(obj);
+    gko::ptr_param<Derived> param4(std::move(obj));
+
+    ASSERT_EQ(param1.get(), static_cast<Base*>(ptr));
+    ASSERT_EQ(param2.get(), static_cast<Base*>(ptr));
+    ASSERT_EQ(param3.get(), ptr);
+    ASSERT_EQ(param4.get(), ptr);
+    // shared_ptr was unmodified
+    ASSERT_EQ(obj.get(), ptr);
+}
 
 
 struct ClonableDerived : Base {
@@ -219,39 +272,6 @@ TEST(Give, GivesUniquePointer)
 
     ::testing::StaticAssertTypeEq<decltype(given), std::unique_ptr<Derived>>();
     ASSERT_EQ(plain, given.get());
-}
-
-
-TEST(Lend, LendsUniquePointer)
-{
-    std::unique_ptr<Derived> p(new Derived());
-
-    auto lent = gko::lend(p);
-
-    ::testing::StaticAssertTypeEq<decltype(lent), Derived*>();
-    ASSERT_EQ(p.get(), lent);
-}
-
-
-TEST(Lend, LendsSharedPointer)
-{
-    std::shared_ptr<Derived> p(new Derived());
-
-    auto lent = gko::lend(p);
-
-    ::testing::StaticAssertTypeEq<decltype(lent), Derived*>();
-    ASSERT_EQ(p.get(), lent);
-}
-
-
-TEST(Lend, LendsPlainPointer)
-{
-    std::unique_ptr<Derived> p(new Derived());
-
-    auto lent = gko::lend(p.get());
-
-    ::testing::StaticAssertTypeEq<decltype(lent), Derived*>();
-    ASSERT_EQ(p.get(), lent);
 }
 
 
@@ -419,7 +439,7 @@ protected:
 TEST_F(TemporaryClone, DoesNotCopyToSameMemory)
 {
     auto other = gko::ReferenceExecutor::create();
-    auto clone = make_temporary_clone(other, gko::lend(obj));
+    auto clone = make_temporary_clone(other, obj);
 
     ASSERT_NE(clone.get()->get_executor(), other);
     ASSERT_EQ(obj->get_executor(), ref);
@@ -429,7 +449,7 @@ TEST_F(TemporaryClone, DoesNotCopyToSameMemory)
 TEST_F(TemporaryClone, OutputDoesNotCopyToSameMemory)
 {
     auto other = gko::ReferenceExecutor::create();
-    auto clone = make_temporary_output_clone(other, gko::lend(obj));
+    auto clone = make_temporary_output_clone(other, obj);
 
     ASSERT_NE(clone.get()->get_executor(), other);
     ASSERT_EQ(obj->get_executor(), ref);
@@ -440,7 +460,7 @@ TEST_F(TemporaryClone, CopiesBackAfterLeavingScope)
 {
     obj->data = 4;
     {
-        auto clone = make_temporary_clone(omp, gko::lend(obj));
+        auto clone = make_temporary_clone(omp, obj);
         clone.get()->data = 7;
 
         ASSERT_EQ(obj->data, 4);
@@ -454,7 +474,7 @@ TEST_F(TemporaryClone, OutputCopiesBackAfterLeavingScope)
 {
     obj->data = 4;
     {
-        auto clone = make_temporary_output_clone(omp, gko::lend(obj));
+        auto clone = make_temporary_output_clone(omp, obj);
         clone.get()->data = 7;
 
         ASSERT_EQ(obj->data, 4);
@@ -468,7 +488,7 @@ TEST_F(TemporaryClone, DoesntCopyBackConstAfterLeavingScope)
 {
     {
         auto clone = make_temporary_clone(
-            omp, static_cast<const DummyObject*>(gko::lend(obj)));
+            omp, static_cast<const DummyObject*>(obj.get()));
         obj->data = 7;
     }
 
@@ -479,7 +499,7 @@ TEST_F(TemporaryClone, DoesntCopyBackConstAfterLeavingScope)
 
 TEST_F(TemporaryClone, AvoidsCopyOnSameExecutor)
 {
-    auto clone = make_temporary_clone(ref, gko::lend(obj));
+    auto clone = make_temporary_clone(ref, obj);
 
     ASSERT_EQ(clone.get(), obj.get());
 }

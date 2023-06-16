@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -97,11 +97,11 @@ TYPED_TEST(UpperTrs, CanBeCopied)
     auto copy =
         Solver::build().on(this->exec)->generate(Mtx::create(this->exec));
 
-    copy->copy_from(gko::lend(this->upper_trs_solver));
+    copy->copy_from(this->upper_trs_solver);
     auto copy_mtx = copy->get_system_matrix();
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-    GKO_ASSERT_MTX_NEAR(copy_mtx.get(), this->csr_mtx.get(), 0);
+    GKO_ASSERT_MTX_NEAR(copy_mtx, this->csr_mtx, 0);
 }
 
 
@@ -110,11 +110,11 @@ TYPED_TEST(UpperTrs, CanBeMoved)
     using Mtx = typename TestFixture::Mtx;
     auto copy = this->upper_trs_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(std::move(this->upper_trs_solver));
+    copy->move_from(this->upper_trs_solver);
     auto copy_mtx = copy->get_system_matrix();
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-    GKO_ASSERT_MTX_NEAR(copy_mtx.get(), this->csr_mtx.get(), 0);
+    GKO_ASSERT_MTX_NEAR(copy_mtx, this->csr_mtx, 0);
 }
 
 
@@ -125,7 +125,7 @@ TYPED_TEST(UpperTrs, CanBeCloned)
     auto clone_mtx = clone->get_system_matrix();
 
     ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
-    GKO_ASSERT_MTX_NEAR(clone_mtx.get(), this->csr_mtx.get(), 0);
+    GKO_ASSERT_MTX_NEAR(clone_mtx, this->csr_mtx, 0);
 }
 
 

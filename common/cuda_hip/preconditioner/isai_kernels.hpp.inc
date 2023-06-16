@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -119,18 +119,32 @@ __forceinline__ __device__ void generic_generate(
             auto m_row_begin = m_row_ptrs[col];
             auto m_row_size = m_row_ptrs[col + 1] - m_row_begin;
             // extract the dense submatrix consisting of the entries whose
-            // columns/rows match column indices from this row
+            // columns/rows match column indices from this row within the
+            // sparsity pattern of the original matrix (matches outside of that
+            // are zero)
             group_match<subwarp_size>(
                 m_col_idxs + m_row_begin, m_row_size, i_col_idxs + i_row_begin,
                 i_row_size, subwarp,
                 [&](IndexType, IndexType m_idx, IndexType i_idx,
                     config::lane_mask_type, bool valid) {
-                    rhs_one_idx += popcnt(subwarp.ballot(
-                        valid && m_col_idxs[m_row_begin + m_idx] < row &&
-                        col == row));
                     if (valid) {
                         dense_system(nz, i_idx) = m_values[m_row_begin + m_idx];
                     }
+                });
+            const auto i_transposed_row_begin = i_row_ptrs[col];
+            const auto i_transposed_row_size =
+                i_row_ptrs[col + 1] - i_transposed_row_begin;
+            // Loop over all matches that are within the sparsity pattern of
+            // the inverse to find the index of the one in the right-hand-side
+            group_match<subwarp_size>(
+                i_col_idxs + i_transposed_row_begin, i_transposed_row_size,
+                i_col_idxs + i_row_begin, i_row_size, subwarp,
+                [&](IndexType, IndexType m_idx, IndexType i_idx,
+                    config::lane_mask_type, bool valid) {
+                    rhs_one_idx += popcnt(subwarp.ballot(
+                        valid &&
+                        i_col_idxs[i_transposed_row_begin + m_idx] < row &&
+                        col == row));
                 });
         }
 
@@ -427,3 +441,149 @@ __global__ __launch_bounds__(default_block_size) void copy_excess_solution(
 
 
 }  // namespace kernel
+
+
+template <typename ValueType, typename IndexType>
+void generate_tri_inverse(std::shared_ptr<const DefaultExecutor> exec,
+                          const matrix::Csr<ValueType, IndexType>* input,
+                          matrix::Csr<ValueType, IndexType>* inverse,
+                          IndexType* excess_rhs_ptrs, IndexType* excess_nz_ptrs,
+                          bool lower)
+{
+    const auto num_rows = input->get_size()[0];
+
+    const auto block = default_block_size;
+    const auto grid = ceildiv(num_rows, block / subwarp_size);
+    if (grid > 0) {
+        if (lower) {
+            kernel::generate_l_inverse<subwarp_size, subwarps_per_block>
+                <<<grid, block, 0, exec->get_stream()>>>(
+                    static_cast<IndexType>(num_rows),
+                    input->get_const_row_ptrs(), input->get_const_col_idxs(),
+                    as_device_type(input->get_const_values()),
+                    inverse->get_row_ptrs(), inverse->get_col_idxs(),
+                    as_device_type(inverse->get_values()), excess_rhs_ptrs,
+                    excess_nz_ptrs);
+        } else {
+            kernel::generate_u_inverse<subwarp_size, subwarps_per_block>
+                <<<grid, block, 0, exec->get_stream()>>>(
+                    static_cast<IndexType>(num_rows),
+                    input->get_const_row_ptrs(), input->get_const_col_idxs(),
+                    as_device_type(input->get_const_values()),
+                    inverse->get_row_ptrs(), inverse->get_col_idxs(),
+                    as_device_type(inverse->get_values()), excess_rhs_ptrs,
+                    excess_nz_ptrs);
+        }
+    }
+    components::prefix_sum_nonnegative(exec, excess_rhs_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, excess_nz_ptrs, num_rows + 1);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ISAI_GENERATE_TRI_INVERSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
+                              const matrix::Csr<ValueType, IndexType>* input,
+                              matrix::Csr<ValueType, IndexType>* inverse,
+                              IndexType* excess_rhs_ptrs,
+                              IndexType* excess_nz_ptrs, bool spd)
+{
+    const auto num_rows = input->get_size()[0];
+
+    const auto block = default_block_size;
+    const auto grid = ceildiv(num_rows, block / subwarp_size);
+    if (grid > 0) {
+        kernel::generate_general_inverse<subwarp_size, subwarps_per_block>
+            <<<grid, block, 0, exec->get_stream()>>>(
+                static_cast<IndexType>(num_rows), input->get_const_row_ptrs(),
+                input->get_const_col_idxs(),
+                as_device_type(input->get_const_values()),
+                inverse->get_row_ptrs(), inverse->get_col_idxs(),
+                as_device_type(inverse->get_values()), excess_rhs_ptrs,
+                excess_nz_ptrs, spd);
+    }
+    components::prefix_sum_nonnegative(exec, excess_rhs_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, excess_nz_ptrs, num_rows + 1);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ISAI_GENERATE_GENERAL_INVERSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void generate_excess_system(std::shared_ptr<const DefaultExecutor> exec,
+                            const matrix::Csr<ValueType, IndexType>* input,
+                            const matrix::Csr<ValueType, IndexType>* inverse,
+                            const IndexType* excess_rhs_ptrs,
+                            const IndexType* excess_nz_ptrs,
+                            matrix::Csr<ValueType, IndexType>* excess_system,
+                            matrix::Dense<ValueType>* excess_rhs,
+                            size_type e_start, size_type e_end)
+{
+    const auto num_rows = input->get_size()[0];
+
+    const auto block = default_block_size;
+    const auto grid = ceildiv(e_end - e_start, block / subwarp_size);
+    if (grid > 0) {
+        kernel::generate_excess_system<subwarp_size>
+            <<<grid, block, 0, exec->get_stream()>>>(
+                static_cast<IndexType>(num_rows), input->get_const_row_ptrs(),
+                input->get_const_col_idxs(),
+                as_device_type(input->get_const_values()),
+                inverse->get_const_row_ptrs(), inverse->get_const_col_idxs(),
+                excess_rhs_ptrs, excess_nz_ptrs, excess_system->get_row_ptrs(),
+                excess_system->get_col_idxs(),
+                as_device_type(excess_system->get_values()),
+                as_device_type(excess_rhs->get_values()), e_start, e_end);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ISAI_GENERATE_EXCESS_SYSTEM_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void scale_excess_solution(std::shared_ptr<const DefaultExecutor> exec,
+                           const IndexType* excess_block_ptrs,
+                           matrix::Dense<ValueType>* excess_solution,
+                           size_type e_start, size_type e_end)
+{
+    const auto block = default_block_size;
+    const auto grid = ceildiv(e_end - e_start, block / subwarp_size);
+    if (grid > 0) {
+        kernel::scale_excess_solution<subwarp_size>
+            <<<grid, block, 0, exec->get_stream()>>>(
+                excess_block_ptrs,
+                as_device_type(excess_solution->get_values()), e_start, e_end);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ISAI_SCALE_EXCESS_SOLUTION_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void scatter_excess_solution(std::shared_ptr<const DefaultExecutor> exec,
+                             const IndexType* excess_rhs_ptrs,
+                             const matrix::Dense<ValueType>* excess_solution,
+                             matrix::Csr<ValueType, IndexType>* inverse,
+                             size_type e_start, size_type e_end)
+{
+    const auto num_rows = inverse->get_size()[0];
+
+    const auto block = default_block_size;
+    const auto grid = ceildiv(e_end - e_start, block / subwarp_size);
+    if (grid > 0) {
+        kernel::copy_excess_solution<subwarp_size>
+            <<<grid, block, 0, exec->get_stream()>>>(
+                static_cast<IndexType>(num_rows), inverse->get_const_row_ptrs(),
+                excess_rhs_ptrs,
+                as_device_type(excess_solution->get_const_values()),
+                as_device_type(inverse->get_values()), e_start, e_end);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ISAI_SCATTER_EXCESS_SOLUTION_KERNEL);

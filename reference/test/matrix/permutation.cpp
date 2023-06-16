@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -83,9 +83,9 @@ TYPED_TEST(Permutation, AppliesRowPermutationToDense)
     auto perm = gko::matrix::Permutation<i_type>::create(
         this->exec, gko::dim<2>{2}, gko::make_array_view(this->exec, 2, rdata));
 
-    perm->apply(x.get(), y.get());
+    perm->apply(x, y);
     // clang-format off
-    GKO_ASSERT_MTX_NEAR(y.get(),
+    GKO_ASSERT_MTX_NEAR(y,
                         l({{4.0, 2.5},
                            {2.0, 3.0}}),
                         0.0);
@@ -110,9 +110,9 @@ TYPED_TEST(Permutation, AppliesColPermutationToDense)
         this->exec, gko::dim<2>{2}, gko::make_array_view(this->exec, 2, rdata),
         gko::matrix::column_permute);
 
-    perm->apply(x.get(), y.get());
+    perm->apply(x, y);
     // clang-format off
-    GKO_ASSERT_MTX_NEAR(y.get(),
+    GKO_ASSERT_MTX_NEAR(y,
                         l({{3.0, 2.0},
                            {2.5, 4.0}}),
                         0.0);
@@ -141,10 +141,10 @@ TYPED_TEST(Permutation, AppliesRowAndColPermutationToDense)
         this->exec, gko::dim<2>{2}, gko::make_array_view(this->exec, 2, cdata),
         gko::matrix::column_permute);
 
-    rperm->apply(x.get(), y1.get());
-    cperm->apply(y1.get(), y2.get());
+    rperm->apply(x, y1);
+    cperm->apply(y1, y2);
     // clang-format off
-    GKO_ASSERT_MTX_NEAR(y2.get(),
+    GKO_ASSERT_MTX_NEAR(y2,
                         l({{2.5, 4.0},
                            {3.0, 2.0}}),
                         0.0);
@@ -169,9 +169,9 @@ TYPED_TEST(Permutation, AppliesRowAndColPermutationToDenseWithOneArray)
         this->exec, gko::dim<2>{2}, gko::make_array_view(this->exec, 2, data),
         gko::matrix::row_permute | gko::matrix::column_permute);
 
-    perm->apply(x.get(), y1.get());
+    perm->apply(x, y1);
     // clang-format off
-    GKO_ASSERT_MTX_NEAR(y1.get(),
+    GKO_ASSERT_MTX_NEAR(y1,
                         l({{2.5, 4.0},
                            {3.0, 2.0}}),
                         0.0);
@@ -201,10 +201,10 @@ TYPED_TEST(Permutation, AppliesInverseRowAndColPermutationToDense)
         this->exec, gko::dim<2>{3}, gko::make_array_view(this->exec, 3, cdata),
         gko::matrix::inverse_permute | gko::matrix::column_permute);
 
-    rperm->apply(x.get(), y1.get());
-    cperm->apply(y1.get(), y2.get());
+    rperm->apply(x, y1);
+    cperm->apply(y1, y2);
     // clang-format off
-    GKO_ASSERT_MTX_NEAR(y2.get(),
+    GKO_ASSERT_MTX_NEAR(y2,
                         l({{2.5, 0.0, 4.0},
                            {0.0, 2.0, 3.0},
                            {0.0, 0.0, 1.0}}),
@@ -231,9 +231,9 @@ TYPED_TEST(Permutation, AppliesInverseRowAndColPermutationToDenseWithOneArray)
         gko::matrix::column_permute | gko::matrix::row_permute |
             gko::matrix::inverse_permute);
 
-    perm->apply(x.get(), y1.get());
+    perm->apply(x, y1);
     // clang-format off
-    GKO_ASSERT_MTX_NEAR(y1.get(),
+    GKO_ASSERT_MTX_NEAR(y1,
                         l({{2.5, 0.0, 4.0},
                            {0.0, 2.0, 3.0},
                            {0.0, 0.0, 1.0}}),
@@ -259,9 +259,9 @@ TYPED_TEST(Permutation, AppliesInverseRowPermutationToDense)
         this->exec, gko::dim<2>{3}, gko::make_array_view(this->exec, 3, rdata),
         gko::matrix::row_permute | gko::matrix::inverse_permute);
 
-    rperm->apply(x.get(), y.get());
+    rperm->apply(x, y);
     // clang-format off
-    GKO_ASSERT_MTX_NEAR(y.get(),
+    GKO_ASSERT_MTX_NEAR(y,
                         l({{0.0, 4.0, 2.5},
                            {2.0, 3.0, 0.0},
                            {0.0, 1.0, 0.0}}),
@@ -287,9 +287,9 @@ TYPED_TEST(Permutation, AppliesInverseColPermutationToDense)
         this->exec, gko::dim<2>{3}, gko::make_array_view(this->exec, 3, cdata),
         gko::matrix::inverse_permute | gko::matrix::column_permute);
 
-    cperm->apply(x.get(), y.get());
+    cperm->apply(x, y);
     // clang-format off
-    GKO_ASSERT_MTX_NEAR(y.get(),
+    GKO_ASSERT_MTX_NEAR(y,
                       l({{0.0, 2.0, 3.0},
                          {0.0, 0.0, 1.0},
                          {2.5, 0.0, 4.0}}),
@@ -315,9 +315,9 @@ TYPED_TEST(Permutation, AppliesRowPermutationToCsr)
     auto perm = gko::matrix::Permutation<i_type>::create(
         this->exec, gko::dim<2>{3}, gko::make_array_view(this->exec, 3, rdata));
 
-    perm->apply(x.get(), y.get());
+    perm->apply(x, y);
     // clang-format off
-    GKO_ASSERT_MTX_NEAR(y.get(),
+    GKO_ASSERT_MTX_NEAR(y,
                         l({{0.0, 1.0, 0.0},
                            {0.0, 4.0, 2.5},
                            {2.0, 3.0, 0.0}}),
@@ -344,9 +344,9 @@ TYPED_TEST(Permutation, AppliesColPermutationToCsr)
         this->exec, gko::dim<2>{3}, gko::make_array_view(this->exec, 3, cdata),
         gko::matrix::column_permute);
 
-    perm->apply(x.get(), y.get());
+    perm->apply(x, y);
     // clang-format off
-    GKO_ASSERT_MTX_NEAR(y.get(),
+    GKO_ASSERT_MTX_NEAR(y,
                       l({{3.0, 0.0, 2.0},
                          {1.0, 0.0, 0.0},
                          {4.0, 2.5, 0.0}}),
@@ -377,10 +377,10 @@ TYPED_TEST(Permutation, AppliesRowAndColPermutationToCsr)
         this->exec, gko::dim<2>{3}, gko::make_array_view(this->exec, 3, cdata),
         gko::matrix::column_permute);
 
-    rperm->apply(x.get(), y1.get());
-    cperm->apply(y1.get(), y2.get());
+    rperm->apply(x, y1);
+    cperm->apply(y1, y2);
     // clang-format off
-    GKO_ASSERT_MTX_NEAR(y2.get(),
+    GKO_ASSERT_MTX_NEAR(y2,
                       l({{1.0, 0.0, 0.0},
                          {4.0, 2.5, 0.0},
                          {3.0, 0.0, 2.0}}),
@@ -406,9 +406,9 @@ TYPED_TEST(Permutation, AppliesInverseRowPermutationToCsr)
         this->exec, gko::dim<2>{3}, gko::make_array_view(this->exec, 3, rdata),
         gko::matrix::row_permute | gko::matrix::inverse_permute);
 
-    rperm->apply(x.get(), y.get());
+    rperm->apply(x, y);
     // clang-format off
-    GKO_ASSERT_MTX_NEAR(y.get(),
+    GKO_ASSERT_MTX_NEAR(y,
                         l({{0.0, 4.0, 2.5},
                            {2.0, 3.0, 0.0},
                            {0.0, 1.0, 0.0}}),
@@ -434,9 +434,9 @@ TYPED_TEST(Permutation, AppliesInverseColPermutationToCsr)
         this->exec, gko::dim<2>{3}, gko::make_array_view(this->exec, 3, cdata),
         gko::matrix::inverse_permute | gko::matrix::column_permute);
 
-    cperm->apply(x.get(), y.get());
+    cperm->apply(x, y);
     // clang-format off
-    GKO_ASSERT_MTX_NEAR(y.get(),
+    GKO_ASSERT_MTX_NEAR(y,
                       l({{0.0, 2.0, 3.0},
                          {0.0, 0.0, 1.0},
                          {2.5, 0.0, 4.0}}),
@@ -467,10 +467,10 @@ TYPED_TEST(Permutation, AppliesInverseRowAndColPermutationToCsr)
         this->exec, gko::dim<2>{3}, gko::make_array_view(this->exec, 3, cdata),
         gko::matrix::inverse_permute | gko::matrix::column_permute);
 
-    rperm->apply(x.get(), y1.get());
-    cperm->apply(y1.get(), y2.get());
+    rperm->apply(x, y1);
+    cperm->apply(y1, y2);
     // clang-format off
-    GKO_ASSERT_MTX_NEAR(y2.get(),
+    GKO_ASSERT_MTX_NEAR(y2,
                         l({{2.5, 0.0, 4.0},
                            {0.0, 2.0, 3.0},
                            {0.0, 0.0, 1.0}}),

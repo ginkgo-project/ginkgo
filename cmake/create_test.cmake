@@ -14,7 +14,7 @@ function(ginkgo_create_gtest_mpi_main)
     target_sources(gtest_mpi_main
       PRIVATE
       ${PROJECT_SOURCE_DIR}/core/test/mpi/gtest/mpi_listener.cpp)
-    find_package(MPI REQUIRED)
+    find_package(MPI 3.1 COMPONENTS CXX REQUIRED)
     target_link_libraries(gtest_mpi_main PRIVATE GTest::GTest MPI::MPI_CXX)
 endfunction(ginkgo_create_gtest_mpi_main)
 
@@ -24,6 +24,9 @@ function(ginkgo_set_test_target_properties test_target_name)
     cmake_parse_arguments(PARSE_ARGV 1 set_properties "" "${gko_test_single_args}" "${gko_test_multi_args}")
     if (GINKGO_FAST_TESTS)
         target_compile_definitions(${test_target_name} PRIVATE GINKGO_FAST_TESTS)
+    endif()
+    if (GINKGO_TEST_NONDEFAULT_STREAM)
+        target_compile_definitions(${test_target_name} PRIVATE GKO_TEST_NONDEFAULT_STREAM)
     endif()
     if (GINKGO_COMPILING_DPCPP_TEST AND GINKGO_DPCPP_SINGLE_MODE)
         target_compile_definitions(${test_target_name} PRIVATE GINKGO_DPCPP_SINGLE_MODE=1)
@@ -67,6 +70,16 @@ function(ginkgo_add_test test_name test_target_name)
         add_test(NAME ${REL_BINARY_DIR}/${test_name}
                  COMMAND ${test_target_name}
                  WORKING_DIRECTORY "$<TARGET_FILE_DIR:ginkgo>")
+    endif()
+    set(test_preload)
+    if (GINKGO_TEST_NONDEFAULT_STREAM AND GINKGO_BUILD_CUDA)
+        set(test_preload $<TARGET_FILE:identify_stream_usage_cuda>:${test_preload})
+    endif()
+    if (GINKGO_TEST_NONDEFAULT_STREAM AND GINKGO_BUILD_HIP AND GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
+        set(test_preload $<TARGET_FILE:identify_stream_usage_hip>:${test_preload})
+    endif()
+    if(test_preload)
+        set_tests_properties(${REL_BINARY_DIR}/${test_name} PROPERTIES ENVIRONMENT LD_PRELOAD=${test_preload})
     endif()
 endfunction()
 
@@ -137,6 +150,9 @@ function(ginkgo_create_hip_test_internal test_name filename test_target_name add
     set(GINKGO_TEST_HIP_DEFINES -DGKO_COMPILING_HIP ${additional_flags})
     if (GINKGO_FAST_TESTS)
         list(APPEND GINKGO_TEST_HIP_DEFINES -DGINKGO_FAST_TESTS)
+    endif()
+    if (GINKGO_TEST_NONDEFAULT_STREAM)
+        list(APPEND GINKGO_TEST_HIP_DEFINES -DGKO_TEST_NONDEFAULT_STREAM)
     endif()
 
     # NOTE: With how HIP works, passing the flags `HIPCC_OPTIONS` etc. here

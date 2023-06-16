@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/unified/base/kernel_launch_reduction.hpp"
 #include "common/unified/base/kernel_launch_solver.hpp"
-#include "core/test/utils.hpp"
+#include "hip/test/utils.hip.hpp"
 
 
 using gko::dim;
@@ -87,20 +87,18 @@ struct to_device_type_impl<move_only_type&> {
 }  // namespace gko
 
 
-class KernelLaunch : public ::testing::Test {
+class KernelLaunch : public HipTestFixture {
 protected:
     KernelLaunch()
-        : exec(gko::HipExecutor::create(0, gko::ReferenceExecutor::create())),
-          zero_array(exec->get_master(), 16),
-          iota_array(exec->get_master(), 16),
-          iota_transp_array(exec->get_master(), 16),
+        : zero_array(ref, 16),
+          iota_array(ref, 16),
+          iota_transp_array(ref, 16),
           iota_dense(gko::matrix::Dense<>::create(exec, dim<2>{4, 4})),
           zero_dense(gko::matrix::Dense<>::create(exec, dim<2>{4, 4}, 6)),
           zero_dense2(gko::matrix::Dense<>::create(exec, dim<2>{4, 4}, 5)),
           vec_dense(gko::matrix::Dense<>::create(exec, dim<2>{1, 4}))
     {
-        auto ref_iota_dense =
-            gko::matrix::Dense<>::create(exec->get_master(), dim<2>{4, 4});
+        auto ref_iota_dense = gko::matrix::Dense<>::create(ref, dim<2>{4, 4});
         for (int i = 0; i < 16; i++) {
             zero_array.get_data()[i] = 0;
             iota_array.get_data()[i] = i;
@@ -109,13 +107,12 @@ protected:
         }
         zero_dense->fill(0.0);
         zero_dense2->fill(0.0);
-        iota_dense->copy_from(ref_iota_dense.get());
+        iota_dense->copy_from(ref_iota_dense);
         zero_array.set_executor(exec);
         iota_array.set_executor(exec);
         iota_transp_array.set_executor(exec);
     }
 
-    std::shared_ptr<gko::HipExecutor> exec;
     gko::array<int> zero_array;
     gko::array<int> iota_array;
     gko::array<int> iota_transp_array;

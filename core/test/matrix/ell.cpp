@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -74,7 +74,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Mtx> mtx;
 
-    void assert_equal_to_original_mtx(const Mtx* m)
+    void assert_equal_to_original_mtx(gko::ptr_param<const Mtx> m)
     {
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
@@ -123,7 +123,7 @@ TYPED_TEST(Ell, KnowsItsSize)
 
 TYPED_TEST(Ell, ContainsCorrectData)
 {
-    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx);
 }
 
 
@@ -175,11 +175,11 @@ TYPED_TEST(Ell, CanBeCopied)
     using Mtx = typename TestFixture::Mtx;
     auto copy = Mtx::create(this->exec);
 
-    copy->copy_from(this->mtx.get());
+    copy->copy_from(this->mtx);
 
-    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx);
     this->mtx->get_values()[1] = 5.0;
-    this->assert_equal_to_original_mtx(copy.get());
+    this->assert_equal_to_original_mtx(copy);
 }
 
 
@@ -188,9 +188,9 @@ TYPED_TEST(Ell, CanBeMoved)
     using Mtx = typename TestFixture::Mtx;
     auto copy = Mtx::create(this->exec);
 
-    copy->copy_from(std::move(this->mtx));
+    copy->move_from(this->mtx);
 
-    this->assert_equal_to_original_mtx(copy.get());
+    this->assert_equal_to_original_mtx(copy);
 }
 
 
@@ -199,7 +199,7 @@ TYPED_TEST(Ell, CanBeCloned)
     using Mtx = typename TestFixture::Mtx;
     auto clone = this->mtx->clone();
 
-    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx);
     this->mtx->get_values()[1] = 5.0;
     this->assert_equal_to_original_mtx(static_cast<Mtx*>(clone.get()));
 }
@@ -221,7 +221,7 @@ TYPED_TEST(Ell, CanBeReadFromMatrixData)
         {{2, 3},
          {{0, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 0, 0.0}, {1, 1, 5.0}}});
 
-    this->assert_equal_to_original_mtx(m.get());
+    this->assert_equal_to_original_mtx(m);
 }
 
 
@@ -259,5 +259,5 @@ TYPED_TEST(Ell, CanBeReadFromMatrixAssemblyData)
 
     m->read(data);
 
-    this->assert_equal_to_original_mtx(m.get());
+    this->assert_equal_to_original_mtx(m);
 }

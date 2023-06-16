@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -147,13 +147,13 @@ void compare_adjacent_rows(dim3 grid, dim3 block,
                            const IndexType* row_ptrs, const IndexType* col_idx,
                            bool* matching_next_row)
 {
-    queue->parallel_for(
-        sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                        config::warp_size)]] {
-            compare_adjacent_rows(num_rows, max_block_size, row_ptrs, col_idx,
-                                  matching_next_row, item_ct1);
-        });
+    queue->parallel_for(sycl_nd_range(grid, block),
+                        [=](sycl::nd_item<3> item_ct1)
+                            [[sycl::reqd_sub_group_size(config::warp_size)]] {
+                                compare_adjacent_rows(
+                                    num_rows, max_block_size, row_ptrs, col_idx,
+                                    matching_next_row, item_ct1);
+                            });
 }
 
 
@@ -277,14 +277,14 @@ void transpose_jacobi(
     preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
     const IndexType* block_ptrs, size_type num_blocks, ValueType* out_blocks)
 {
-    queue->parallel_for(
-        sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subwarp_size)]] {
-            transpose_jacobi<conjugate, max_block_size, subwarp_size,
-                             warps_per_block>(blocks, storage_scheme,
-                                              block_ptrs, num_blocks,
-                                              out_blocks, item_ct1);
-        });
+    queue->parallel_for(sycl_nd_range(grid, block),
+                        [=](sycl::nd_item<3> item_ct1)
+                            [[sycl::reqd_sub_group_size(subwarp_size)]] {
+                                transpose_jacobi<conjugate, max_block_size,
+                                                 subwarp_size, warps_per_block>(
+                                    blocks, storage_scheme, block_ptrs,
+                                    num_blocks, out_blocks, item_ct1);
+                            });
 }
 
 
@@ -337,13 +337,14 @@ void adaptive_transpose_jacobi(
     size_type num_blocks, ValueType* out_blocks)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subwarp_size)]] {
-            adaptive_transpose_jacobi<conjugate, max_block_size, subwarp_size,
-                                      warps_per_block>(
-                blocks, storage_scheme, block_precisions, block_ptrs,
-                num_blocks, out_blocks, item_ct1);
-        });
+        sycl_nd_range(grid, block),
+        [=](sycl::nd_item<3> item_ct1)
+            [[sycl::reqd_sub_group_size(subwarp_size)]] {
+                adaptive_transpose_jacobi<conjugate, max_block_size,
+                                          subwarp_size, warps_per_block>(
+                    blocks, storage_scheme, block_precisions, block_ptrs,
+                    num_blocks, out_blocks, item_ct1);
+            });
 }
 
 

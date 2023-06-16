@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_ALLOCATOR_HPP_
 
 
+#include <deque>
 #include <map>
 #include <memory>
 #include <set>
@@ -187,6 +188,10 @@ private:
 /** std::vector using an ExecutorAllocator. */
 template <typename T>
 using vector = std::vector<T, ExecutorAllocator<T>>;
+
+/** std::deque using an ExecutorAllocator. */
+template <typename T>
+using deque = std::deque<T, ExecutorAllocator<T>>;
 
 /** std::set using an ExecutorAllocator. */
 template <typename Key>

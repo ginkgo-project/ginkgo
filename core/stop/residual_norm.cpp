@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -140,11 +140,10 @@ ResidualNormBase<ValueType>::ResidualNormBase(
                 this->starting_tau_ =
                     NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
                 auto b_clone = share(args.b->clone());
-                args.system_matrix->apply(neg_one_.get(), args.x, one_.get(),
-                                          b_clone.get());
+                args.system_matrix->apply(neg_one_, args.x, one_, b_clone);
                 norm_dispatch<ValueType>(
                     [&](auto dense_r) {
-                        dense_r->compute_norm2(this->starting_tau_.get());
+                        dense_r->compute_norm2(this->starting_tau_);
                     },
                     b_clone.get());
             }
@@ -153,7 +152,7 @@ ResidualNormBase<ValueType>::ResidualNormBase(
                 exec, dim<2>{1, args.initial_residual->get_size()[1]});
             norm_dispatch<ValueType>(
                 [&](auto dense_r) {
-                    dense_r->compute_norm2(this->starting_tau_.get());
+                    dense_r->compute_norm2(this->starting_tau_);
                 },
                 args.initial_residual);
         }
@@ -166,9 +165,7 @@ ResidualNormBase<ValueType>::ResidualNormBase(
         this->starting_tau_ =
             NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
         norm_dispatch<ValueType>(
-            [&](auto dense_r) {
-                dense_r->compute_norm2(this->starting_tau_.get());
-            },
+            [&](auto dense_r) { dense_r->compute_norm2(this->starting_tau_); },
             args.b.get());
         break;
     }
@@ -184,8 +181,7 @@ ResidualNormBase<ValueType>::ResidualNormBase(
     default:
         GKO_NOT_SUPPORTED(nullptr);
     }
-    this->u_dense_tau_ =
-        NormVector::create_with_config_of(this->starting_tau_.get());
+    this->u_dense_tau_ = NormVector::create_with_config_of(this->starting_tau_);
 }
 
 
@@ -197,9 +193,13 @@ bool ResidualNormBase<ValueType>::check_impl(
     const NormVector* dense_tau;
     if (updater.residual_norm_ != nullptr) {
         dense_tau = as<NormVector>(updater.residual_norm_);
+    } else if (updater.ignore_residual_check_) {
+        // If solver already provide the residual norm, we will still store it.
+        // Otherwise, we skip the residual check.
+        return false;
     } else if (updater.residual_ != nullptr) {
         norm_dispatch<ValueType>(
-            [&](auto dense_r) { dense_r->compute_norm2(u_dense_tau_.get()); },
+            [&](auto dense_r) { dense_r->compute_norm2(u_dense_tau_); },
             updater.residual_);
         dense_tau = u_dense_tau_.get();
     } else if (updater.solution_ != nullptr && system_matrix_ != nullptr &&
@@ -208,9 +208,8 @@ bool ResidualNormBase<ValueType>::check_impl(
         norm_dispatch<ValueType>(
             [&](auto dense_b, auto dense_x) {
                 auto dense_r = dense_b->clone();
-                system_matrix_->apply(neg_one_.get(), dense_x, one_.get(),
-                                      dense_r.get());
-                dense_r->compute_norm2(u_dense_tau_.get());
+                system_matrix_->apply(neg_one_, dense_x, one_, dense_r);
+                dense_r->compute_norm2(u_dense_tau_);
             },
             b_.get(), updater.solution_);
         dense_tau = u_dense_tau_.get();

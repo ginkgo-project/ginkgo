@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -64,6 +64,7 @@ class Csr : public CommonTestFixture {
 protected:
     using Arr = gko::array<int>;
     using Vec = gko::matrix::Dense<value_type>;
+    using Vec2 = gko::matrix::Dense<gko::next_precision<value_type>>;
     using Mtx = gko::matrix::Csr<value_type>;
     using ComplexVec = gko::matrix::Dense<std::complex<value_type>>;
     using ComplexMtx = gko::matrix::Csr<std::complex<value_type>>;
@@ -97,9 +98,9 @@ protected:
     void set_up_mat_data()
     {
         mtx2 = Mtx::create(ref);
-        mtx2->copy_from(gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 5));
+        mtx2->move_from(gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 5));
         dmtx2 = Mtx::create(exec);
-        dmtx2->copy_from(mtx2.get());
+        dmtx2->copy_from(mtx2);
     }
 
     template <typename Mtx>
@@ -146,21 +147,31 @@ protected:
         std::shared_ptr<StrategyType> strategy;
         set_up_strategy<Mtx>(strategy);
         mtx = Mtx::create(ref, strategy);
-        mtx->copy_from(gen_mtx<Vec>(mtx_size[0], mtx_size[1], 1));
+        mtx->move_from(gen_mtx<Vec>(mtx_size[0], mtx_size[1], 1));
         square_mtx = Mtx::create(ref, strategy);
-        square_mtx->copy_from(gen_mtx<Vec>(mtx_size[0], mtx_size[0], 1));
+        square_mtx->move_from(gen_mtx<Vec>(mtx_size[0], mtx_size[0], 1));
         expected = gen_mtx<Vec>(mtx_size[0], num_vectors, 1);
+        expected2 = Vec2::create(ref);
+        expected2->copy_from(expected);
         y = gen_mtx<Vec>(mtx_size[1], num_vectors, 1);
+        y2 = Vec2::create(ref);
+        y2->copy_from(y);
         alpha = gko::initialize<Vec>({2.0}, ref);
+        alpha2 = gko::initialize<Vec2>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
+        beta2 = gko::initialize<Vec2>({-1.0}, ref);
         dmtx = Mtx::create(exec, strategy);
-        dmtx->copy_from(mtx.get());
+        dmtx->copy_from(mtx);
         square_dmtx = Mtx::create(exec, strategy);
-        square_dmtx->copy_from(square_mtx.get());
+        square_dmtx->copy_from(square_mtx);
         dresult = gko::clone(exec, expected);
+        dresult2 = gko::clone(exec, expected2);
         dy = gko::clone(exec, y);
+        dy2 = gko::clone(exec, y2);
         dalpha = gko::clone(exec, alpha);
+        dalpha2 = gko::clone(exec, alpha2);
         dbeta = gko::clone(exec, beta);
+        dbeta2 = gko::clone(exec, beta2);
 
         std::vector<int> tmp(mtx->get_size()[0], 0);
         auto rng = std::default_random_engine{};
@@ -179,16 +190,16 @@ protected:
         std::shared_ptr<StrategyType> strategy;
         set_up_strategy<ComplexMtx>(strategy);
         complex_mtx = ComplexMtx::create(ref, strategy);
-        complex_mtx->copy_from(
+        complex_mtx->move_from(
             gen_mtx<ComplexVec>(mtx_size[0], mtx_size[1], 1));
         complex_dmtx = ComplexMtx::create(exec, strategy);
-        complex_dmtx->copy_from(complex_mtx.get());
+        complex_dmtx->copy_from(complex_mtx);
     }
 
     void unsort_mtx()
     {
-        gko::test::unsort_matrix(mtx.get(), rand_engine);
-        dmtx->copy_from(mtx.get());
+        gko::test::unsort_matrix(mtx, rand_engine);
+        dmtx->copy_from(mtx);
     }
 
     const gko::dim<2> mtx_size;
@@ -199,18 +210,26 @@ protected:
     std::unique_ptr<ComplexMtx> complex_mtx;
     std::unique_ptr<Mtx> square_mtx;
     std::unique_ptr<Vec> expected;
+    std::unique_ptr<Vec2> expected2;
     std::unique_ptr<Vec> y;
+    std::unique_ptr<Vec2> y2;
     std::unique_ptr<Vec> alpha;
+    std::unique_ptr<Vec2> alpha2;
     std::unique_ptr<Vec> beta;
+    std::unique_ptr<Vec2> beta2;
 
     std::unique_ptr<Mtx> dmtx;
     std::unique_ptr<Mtx> dmtx2;
     std::unique_ptr<ComplexMtx> complex_dmtx;
     std::unique_ptr<Mtx> square_dmtx;
     std::unique_ptr<Vec> dresult;
+    std::unique_ptr<Vec2> dresult2;
     std::unique_ptr<Vec> dy;
+    std::unique_ptr<Vec2> dy2;
     std::unique_ptr<Vec> dalpha;
+    std::unique_ptr<Vec2> dalpha2;
     std::unique_ptr<Vec> dbeta;
+    std::unique_ptr<Vec2> dbeta2;
     std::unique_ptr<Arr> rpermute_idxs;
     std::unique_ptr<Arr> cpermute_idxs;
 };
@@ -229,8 +248,8 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithClassical)
 {
     set_up_apply_data<Mtx::classical>();
 
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
+    mtx->apply(y, expected);
+    dmtx->apply(dy, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -241,8 +260,8 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithClassicalUnsorted)
     set_up_apply_data<Mtx::classical>();
     unsort_mtx();
 
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
+    mtx->apply(y, expected);
+    dmtx->apply(dy, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -252,8 +271,8 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithClassical)
 {
     set_up_apply_data<Mtx::classical>();
 
-    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
-    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+    mtx->apply(alpha, y, beta, expected);
+    dmtx->apply(dalpha, dy, dbeta, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -263,8 +282,8 @@ TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefWithClassical)
 {
     set_up_apply_data<Mtx::classical>(3);
 
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
+    mtx->apply(y, expected);
+    dmtx->apply(dy, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -274,8 +293,8 @@ TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithClassical)
 {
     set_up_apply_data<Mtx::classical>(3);
 
-    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
-    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+    mtx->apply(alpha, y, beta, expected);
+    dmtx->apply(dalpha, dy, dbeta, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -289,8 +308,8 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithLoadBalance)
 {
     set_up_apply_data<Mtx::load_balance>();
 
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
+    mtx->apply(y, expected);
+    dmtx->apply(dy, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -301,8 +320,8 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithLoadBalanceUnsorted)
     set_up_apply_data<Mtx::load_balance>();
     unsort_mtx();
 
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
+    mtx->apply(y, expected);
+    dmtx->apply(dy, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -312,8 +331,8 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithLoadBalance)
 {
     set_up_apply_data<Mtx::load_balance>();
 
-    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
-    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+    mtx->apply(alpha, y, beta, expected);
+    dmtx->apply(dalpha, dy, dbeta, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -323,8 +342,8 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithSparselib)
 {
     set_up_apply_data<Mtx::sparselib>();
 
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
+    mtx->apply(y, expected);
+    dmtx->apply(dy, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -335,8 +354,8 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithSparselibUnsorted)
     set_up_apply_data<Mtx::sparselib>();
     unsort_mtx();
 
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
+    mtx->apply(y, expected);
+    dmtx->apply(dy, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -346,8 +365,8 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithSparselib)
 {
     set_up_apply_data<Mtx::sparselib>();
 
-    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
-    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+    mtx->apply(alpha, y, beta, expected);
+    dmtx->apply(dalpha, dy, dbeta, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -357,8 +376,8 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithMergePath)
 {
     set_up_apply_data<Mtx::merge_path>();
 
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
+    mtx->apply(y, expected);
+    dmtx->apply(dy, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -369,8 +388,8 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithMergePathUnsorted)
     set_up_apply_data<Mtx::merge_path>();
     unsort_mtx();
 
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
+    mtx->apply(y, expected);
+    dmtx->apply(dy, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -380,8 +399,8 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithMergePath)
 {
     set_up_apply_data<Mtx::merge_path>();
 
-    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
-    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+    mtx->apply(alpha, y, beta, expected);
+    dmtx->apply(dalpha, dy, dbeta, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -391,8 +410,8 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomatical)
 {
     set_up_apply_data<Mtx::automatical>();
 
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
+    mtx->apply(y, expected);
+    dmtx->apply(dy, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -403,8 +422,8 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomaticalUnsorted)
     set_up_apply_data<Mtx::automatical>();
     unsort_mtx();
 
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
+    mtx->apply(y, expected);
+    dmtx->apply(dy, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -414,8 +433,8 @@ TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefWithLoadBalance)
 {
     set_up_apply_data<Mtx::load_balance>(3);
 
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
+    mtx->apply(y, expected);
+    dmtx->apply(dy, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -425,8 +444,8 @@ TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithLoadBalance)
 {
     set_up_apply_data<Mtx::load_balance>(3);
 
-    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
-    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+    mtx->apply(alpha, y, beta, expected);
+    dmtx->apply(dalpha, dy, dbeta, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -436,8 +455,8 @@ TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefWithMergePath)
 {
     set_up_apply_data<Mtx::merge_path>(3);
 
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
+    mtx->apply(y, expected);
+    dmtx->apply(dy, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -447,8 +466,8 @@ TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithMergePath)
 {
     set_up_apply_data<Mtx::merge_path>(3);
 
-    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
-    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+    mtx->apply(alpha, y, beta, expected);
+    dmtx->apply(dalpha, dy, dbeta, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -490,8 +509,8 @@ TEST_F(Csr, AdvancedApplyToCsrMatrixIsEquivalentToRef)
     auto trans = mtx->transpose();
     auto d_trans = dmtx->transpose();
 
-    mtx->apply(alpha.get(), trans.get(), beta.get(), square_mtx.get());
-    dmtx->apply(dalpha.get(), d_trans.get(), dbeta.get(), square_dmtx.get());
+    mtx->apply(alpha, trans, beta, square_mtx);
+    dmtx->apply(dalpha, d_trans, dbeta, square_dmtx);
 
     GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, r<value_type>::value);
     GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
@@ -505,8 +524,8 @@ TEST_F(Csr, SimpleApplyToCsrMatrixIsEquivalentToRef)
     auto trans = mtx->transpose();
     auto d_trans = dmtx->transpose();
 
-    mtx->apply(trans.get(), square_mtx.get());
-    dmtx->apply(d_trans.get(), square_dmtx.get());
+    mtx->apply(trans, square_mtx);
+    dmtx->apply(d_trans, square_dmtx);
 
     GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, r<value_type>::value);
     GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
@@ -520,10 +539,10 @@ TEST_F(Csr, SimpleApplyToSparseCsrMatrixIsEquivalentToRef)
     auto mtx2 =
         gen_mtx<Mtx>(mtx->get_size()[1], square_mtx->get_size()[1], 0, 10);
     auto dmtx2 = Mtx::create(exec, mtx2->get_size());
-    dmtx2->copy_from(mtx2.get());
+    dmtx2->copy_from(mtx2);
 
-    mtx->apply(mtx2.get(), square_mtx.get());
-    dmtx->apply(dmtx2.get(), square_dmtx.get());
+    mtx->apply(mtx2, square_mtx);
+    dmtx->apply(dmtx2, square_dmtx);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
     GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, r<value_type>::value);
@@ -540,8 +559,8 @@ TEST_F(Csr, SimpleApplySparseToSparseCsrMatrixIsEquivalentToRef)
     auto dmtx1 = gko::clone(exec, mtx1);
     auto dmtx2 = gko::clone(exec, mtx2);
 
-    mtx1->apply(mtx2.get(), square_mtx.get());
-    dmtx1->apply(dmtx2.get(), square_dmtx.get());
+    mtx1->apply(mtx2, square_mtx);
+    dmtx1->apply(dmtx2, square_dmtx);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
     GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, r<value_type>::value);
@@ -559,10 +578,10 @@ TEST_F(Csr, SimpleApplyToEmptyCsrMatrixIsEquivalentToRef)
     auto mtx2 =
         gen_mtx<Mtx>(mtx->get_size()[1], square_mtx->get_size()[1], 0, 0);
     auto dmtx2 = Mtx::create(exec, mtx2->get_size());
-    dmtx2->copy_from(mtx2.get());
+    dmtx2->copy_from(mtx2);
 
-    mtx->apply(mtx2.get(), square_mtx.get());
-    dmtx->apply(dmtx2.get(), square_dmtx.get());
+    mtx->apply(mtx2, square_mtx);
+    dmtx->apply(dmtx2, square_dmtx);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
     GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, r<value_type>::value);
@@ -584,8 +603,8 @@ TEST_F(Csr, AdvancedApplyToIdentityMatrixIsEquivalentToRef)
     auto did =
         gko::matrix::Identity<Mtx::value_type>::create(exec, mtx_size[1]);
 
-    a->apply(alpha.get(), id.get(), beta.get(), b.get());
-    da->apply(dalpha.get(), did.get(), dbeta.get(), db.get());
+    a->apply(alpha, id, beta, b);
+    da->apply(dalpha, did, dbeta, db);
 
     GKO_ASSERT_MTX_NEAR(b, db, r<value_type>::value);
     GKO_ASSERT_MTX_EQ_SPARSITY(b, db);
@@ -601,8 +620,8 @@ TEST_F(Csr, ApplyToComplexIsEquivalentToRef)
     auto complex_x = gen_mtx<ComplexVec>(this->mtx_size[0], 3, 1);
     auto dcomplex_x = gko::clone(exec, complex_x);
 
-    mtx->apply(complex_b.get(), complex_x.get());
-    dmtx->apply(dcomplex_b.get(), dcomplex_x.get());
+    mtx->apply(complex_b, complex_x);
+    dmtx->apply(dcomplex_b, dcomplex_x);
 
     GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<value_type>::value);
 }
@@ -616,8 +635,8 @@ TEST_F(Csr, AdvancedApplyToComplexIsEquivalentToRef)
     auto complex_x = gen_mtx<ComplexVec>(this->mtx_size[0], 3, 1);
     auto dcomplex_x = gko::clone(exec, complex_x);
 
-    mtx->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
-    dmtx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());
+    mtx->apply(alpha, complex_b, beta, complex_x);
+    dmtx->apply(dalpha, dcomplex_b, dbeta, dcomplex_x);
 
     GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<value_type>::value);
 }
@@ -681,10 +700,10 @@ TEST_F(Csr, ConvertToDenseIsEquivalentToRef)
     auto dense_mtx = gko::matrix::Dense<value_type>::create(ref);
     auto ddense_mtx = gko::matrix::Dense<value_type>::create(exec);
 
-    mtx->convert_to(dense_mtx.get());
-    dmtx->convert_to(ddense_mtx.get());
+    mtx->convert_to(dense_mtx);
+    dmtx->convert_to(ddense_mtx);
 
-    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 0);
+    GKO_ASSERT_MTX_NEAR(dense_mtx, ddense_mtx, 0);
 }
 
 
@@ -694,10 +713,10 @@ TEST_F(Csr, MoveToDenseIsEquivalentToRef)
     auto dense_mtx = gko::matrix::Dense<value_type>::create(ref);
     auto ddense_mtx = gko::matrix::Dense<value_type>::create(exec);
 
-    mtx->move_to(dense_mtx.get());
-    dmtx->move_to(ddense_mtx.get());
+    mtx->move_to(dense_mtx);
+    dmtx->move_to(ddense_mtx);
 
-    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 0);
+    GKO_ASSERT_MTX_NEAR(dense_mtx, ddense_mtx, 0);
 }
 
 
@@ -707,10 +726,10 @@ TEST_F(Csr, ConvertToEllIsEquivalentToRef)
     auto ell_mtx = gko::matrix::Ell<value_type>::create(ref);
     auto dell_mtx = gko::matrix::Ell<value_type>::create(exec);
 
-    mtx->convert_to(ell_mtx.get());
-    dmtx->convert_to(dell_mtx.get());
+    mtx->convert_to(ell_mtx);
+    dmtx->convert_to(dell_mtx);
 
-    GKO_ASSERT_MTX_NEAR(ell_mtx.get(), dell_mtx.get(), 0);
+    GKO_ASSERT_MTX_NEAR(ell_mtx, dell_mtx, 0);
 }
 
 
@@ -720,10 +739,10 @@ TEST_F(Csr, MoveToEllIsEquivalentToRef)
     auto ell_mtx = gko::matrix::Ell<value_type>::create(ref);
     auto dell_mtx = gko::matrix::Ell<value_type>::create(exec);
 
-    mtx->move_to(ell_mtx.get());
-    dmtx->move_to(dell_mtx.get());
+    mtx->move_to(ell_mtx);
+    dmtx->move_to(dell_mtx);
 
-    GKO_ASSERT_MTX_NEAR(ell_mtx.get(), dell_mtx.get(), 0);
+    GKO_ASSERT_MTX_NEAR(ell_mtx, dell_mtx, 0);
 }
 
 
@@ -733,10 +752,10 @@ TEST_F(Csr, ConvertToSparsityCsrIsEquivalentToRef)
     auto sparsity_mtx = gko::matrix::SparsityCsr<value_type>::create(ref);
     auto d_sparsity_mtx = gko::matrix::SparsityCsr<value_type>::create(exec);
 
-    mtx->convert_to(sparsity_mtx.get());
-    dmtx->convert_to(d_sparsity_mtx.get());
+    mtx->convert_to(sparsity_mtx);
+    dmtx->convert_to(d_sparsity_mtx);
 
-    GKO_ASSERT_MTX_NEAR(sparsity_mtx.get(), d_sparsity_mtx.get(), 0);
+    GKO_ASSERT_MTX_NEAR(sparsity_mtx, d_sparsity_mtx, 0);
 }
 
 
@@ -746,10 +765,10 @@ TEST_F(Csr, MoveToSparsityCsrIsEquivalentToRef)
     auto sparsity_mtx = gko::matrix::SparsityCsr<value_type>::create(ref);
     auto d_sparsity_mtx = gko::matrix::SparsityCsr<value_type>::create(exec);
 
-    mtx->move_to(sparsity_mtx.get());
-    dmtx->move_to(d_sparsity_mtx.get());
+    mtx->move_to(sparsity_mtx);
+    dmtx->move_to(d_sparsity_mtx);
 
-    GKO_ASSERT_MTX_NEAR(sparsity_mtx.get(), d_sparsity_mtx.get(), 0);
+    GKO_ASSERT_MTX_NEAR(sparsity_mtx, d_sparsity_mtx, 0);
 }
 
 
@@ -759,10 +778,10 @@ TEST_F(Csr, ConvertToCooIsEquivalentToRef)
     auto coo_mtx = gko::matrix::Coo<value_type>::create(ref);
     auto dcoo_mtx = gko::matrix::Coo<value_type>::create(exec);
 
-    mtx->convert_to(coo_mtx.get());
-    dmtx->convert_to(dcoo_mtx.get());
+    mtx->convert_to(coo_mtx);
+    dmtx->convert_to(dcoo_mtx);
 
-    GKO_ASSERT_MTX_NEAR(coo_mtx.get(), dcoo_mtx.get(), 0);
+    GKO_ASSERT_MTX_NEAR(coo_mtx, dcoo_mtx, 0);
 }
 
 
@@ -772,10 +791,10 @@ TEST_F(Csr, MoveToCooIsEquivalentToRef)
     auto coo_mtx = gko::matrix::Coo<value_type>::create(ref);
     auto dcoo_mtx = gko::matrix::Coo<value_type>::create(exec);
 
-    mtx->move_to(coo_mtx.get());
-    dmtx->move_to(dcoo_mtx.get());
+    mtx->move_to(coo_mtx);
+    dmtx->move_to(dcoo_mtx);
 
-    GKO_ASSERT_MTX_NEAR(coo_mtx.get(), dcoo_mtx.get(), 0);
+    GKO_ASSERT_MTX_NEAR(coo_mtx, dcoo_mtx, 0);
 }
 
 
@@ -785,10 +804,10 @@ TEST_F(Csr, ConvertToSellpIsEquivalentToRef)
     auto sellp_mtx = gko::matrix::Sellp<value_type>::create(ref);
     auto dsellp_mtx = gko::matrix::Sellp<value_type>::create(exec);
 
-    mtx->convert_to(sellp_mtx.get());
-    dmtx->convert_to(dsellp_mtx.get());
+    mtx->convert_to(sellp_mtx);
+    dmtx->convert_to(dsellp_mtx);
 
-    GKO_ASSERT_MTX_NEAR(sellp_mtx.get(), dsellp_mtx.get(), 0);
+    GKO_ASSERT_MTX_NEAR(sellp_mtx, dsellp_mtx, 0);
 }
 
 
@@ -798,10 +817,10 @@ TEST_F(Csr, MoveToSellpIsEquivalentToRef)
     auto sellp_mtx = gko::matrix::Sellp<value_type>::create(ref);
     auto dsellp_mtx = gko::matrix::Sellp<value_type>::create(exec);
 
-    mtx->move_to(sellp_mtx.get());
-    dmtx->move_to(dsellp_mtx.get());
+    mtx->move_to(sellp_mtx);
+    dmtx->move_to(dsellp_mtx);
 
-    GKO_ASSERT_MTX_NEAR(sellp_mtx.get(), dsellp_mtx.get(), 0);
+    GKO_ASSERT_MTX_NEAR(sellp_mtx, dsellp_mtx, 0);
 }
 
 
@@ -810,7 +829,7 @@ TEST_F(Csr, ConvertsEmptyToSellp)
     auto dempty_mtx = Mtx::create(exec);
     auto dsellp_mtx = gko::matrix::Sellp<value_type>::create(exec);
 
-    dempty_mtx->convert_to(dsellp_mtx.get());
+    dempty_mtx->convert_to(dsellp_mtx);
 
     ASSERT_EQ(exec->copy_val_to_host(dsellp_mtx->get_const_slice_sets()), 0);
     ASSERT_FALSE(dsellp_mtx->get_size());
@@ -826,10 +845,10 @@ TEST_F(Csr, ConvertToHybridIsEquivalentToRef)
     auto dhybrid_mtx = Hybrid_type::create(
         exec, std::make_shared<Hybrid_type::column_limit>(2));
 
-    mtx->convert_to(hybrid_mtx.get());
-    dmtx->convert_to(dhybrid_mtx.get());
+    mtx->convert_to(hybrid_mtx);
+    dmtx->convert_to(dhybrid_mtx);
 
-    GKO_ASSERT_MTX_NEAR(hybrid_mtx.get(), dhybrid_mtx.get(), 0);
+    GKO_ASSERT_MTX_NEAR(hybrid_mtx, dhybrid_mtx, 0);
 }
 
 
@@ -842,10 +861,10 @@ TEST_F(Csr, MoveToHybridIsEquivalentToRef)
     auto dhybrid_mtx = Hybrid_type::create(
         exec, std::make_shared<Hybrid_type::column_limit>(2));
 
-    mtx->move_to(hybrid_mtx.get());
-    dmtx->move_to(dhybrid_mtx.get());
+    mtx->move_to(hybrid_mtx);
+    dmtx->move_to(dhybrid_mtx);
 
-    GKO_ASSERT_MTX_NEAR(hybrid_mtx.get(), dhybrid_mtx.get(), 0);
+    GKO_ASSERT_MTX_NEAR(hybrid_mtx, dhybrid_mtx, 0);
 }
 
 
@@ -959,10 +978,28 @@ TEST_F(Csr, RecognizeUnsortedMatrixIsEquivalentToRef)
 TEST_F(Csr, SortSortedMatrixIsEquivalentToRef)
 {
     set_up_apply_data<Mtx::classical>();
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
 
     mtx->sort_by_column_index();
     dmtx->sort_by_column_index();
 
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+    // Values must be unchanged, therefore, tolerance is `0`
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
+}
+
+
+TEST_F(Csr, SortSortedMatrixIsEquivalentToRef64)
+{
+    using Mtx64 = gko::matrix::Csr<value_type, gko::int64>;
+    auto mtx = gen_mtx<Mtx64>(123, 234, 0);
+    auto dmtx = gko::clone(exec, mtx);
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
     // Values must be unchanged, therefore, tolerance is `0`
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
 }
@@ -972,10 +1009,95 @@ TEST_F(Csr, SortUnsortedMatrixIsEquivalentToRef)
 {
     set_up_apply_data<Mtx::classical>();
     unsort_mtx();
+    ASSERT_FALSE(dmtx->is_sorted_by_column_index());
 
     mtx->sort_by_column_index();
     dmtx->sort_by_column_index();
 
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+    // Values must be unchanged, therefore, tolerance is `0`
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
+}
+
+
+TEST_F(Csr, SortUnsortedMatrixIsEquivalentToRef64)
+{
+    using Mtx64 = gko::matrix::Csr<value_type, gko::int64>;
+    auto mtx = gen_mtx<Mtx64>(123, 234, 0);
+    gko::test::unsort_matrix(mtx, rand_engine);
+    auto dmtx = gko::clone(exec, mtx);
+    ASSERT_FALSE(dmtx->is_sorted_by_column_index());
+
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+    // Values must be unchanged, therefore, tolerance is `0`
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
+}
+
+
+TEST_F(Csr, SortSortedComplexMatrixIsEquivalentToRef)
+{
+    using MtxComplex = gko::matrix::Csr<std::complex<value_type>, gko::int32>;
+    auto mtx = gen_mtx<MtxComplex>(123, 234, 0);
+    auto dmtx = gko::clone(exec, mtx);
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+    // Values must be unchanged, therefore, tolerance is `0`
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
+}
+
+
+TEST_F(Csr, SortSortedComplexMatrixIsEquivalentToRef64)
+{
+    using MtxComplex64 = gko::matrix::Csr<std::complex<value_type>, gko::int64>;
+    auto mtx = gen_mtx<MtxComplex64>(123, 234, 0);
+    auto dmtx = gko::clone(exec, mtx);
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+    // Values must be unchanged, therefore, tolerance is `0`
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
+}
+
+
+TEST_F(Csr, SortUnsortedComplexMatrixIsEquivalentToRef)
+{
+    using MtxComplex = gko::matrix::Csr<std::complex<value_type>, gko::int32>;
+    auto mtx = gen_mtx<MtxComplex>(123, 234, 0);
+    gko::test::unsort_matrix(mtx, rand_engine);
+    auto dmtx = gko::clone(exec, mtx);
+    ASSERT_FALSE(dmtx->is_sorted_by_column_index());
+
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+    // Values must be unchanged, therefore, tolerance is `0`
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
+}
+
+
+TEST_F(Csr, SortUnsortedComplexMatrixIsEquivalentToRef64)
+{
+    using MtxComplex64 = gko::matrix::Csr<std::complex<value_type>, gko::int64>;
+    auto mtx = gen_mtx<MtxComplex64>(123, 234, 0);
+    gko::test::unsort_matrix(mtx, rand_engine);
+    auto dmtx = gko::clone(exec, mtx);
+    ASSERT_FALSE(dmtx->is_sorted_by_column_index());
+
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
     // Values must be unchanged, therefore, tolerance is `0`
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
 }
@@ -988,7 +1110,7 @@ TEST_F(Csr, ExtractDiagonalIsEquivalentToRef)
     auto diag = mtx->extract_diagonal();
     auto ddiag = dmtx->extract_diagonal();
 
-    GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
+    GKO_ASSERT_MTX_NEAR(diag, ddiag, 0);
 }
 
 
@@ -1066,7 +1188,7 @@ TEST_F(Csr, ComputeSubmatrixIsEquivalentToRef)
     row_nnz.fill(gko::zero<int>());
     gko::kernels::reference::csr::calculate_nonzeros_per_row_in_span(
         this->ref, this->mtx2.get(), rspan, cspan, &row_nnz);
-    gko::kernels::reference::components::prefix_sum(
+    gko::kernels::reference::components::prefix_sum_nonnegative(
         this->ref, row_nnz.get_data(), row_nnz.get_num_elems());
     auto num_nnz = row_nnz.get_data()[rspan.length()];
     auto drow_nnz = gko::array<int>(this->exec, row_nnz);
@@ -1131,7 +1253,7 @@ TEST_F(Csr, ComputeSubmatrixFromIndexSetIsEquivalentToRef)
     row_nnz.fill(gko::zero<int>());
     gko::kernels::reference::csr::calculate_nonzeros_per_row_in_index_set(
         this->ref, this->mtx2.get(), rset, cset, row_nnz.get_data());
-    gko::kernels::reference::components::prefix_sum(
+    gko::kernels::reference::components::prefix_sum_nonnegative(
         this->ref, row_nnz.get_data(), row_nnz.get_num_elems());
     auto num_nnz = row_nnz.get_data()[rset.get_num_elems()];
     auto drow_nnz = gko::array<int>(this->exec, row_nnz);
@@ -1230,10 +1352,10 @@ TEST_F(Csr, AddScaledIdentityToNonSquare)
 {
     set_up_apply_data<Mtx::classical>();
     gko::utils::ensure_all_diagonal_entries(mtx.get());
-    dmtx->copy_from(mtx.get());
+    dmtx->copy_from(mtx);
 
-    mtx->add_scaled_identity(alpha.get(), beta.get());
-    dmtx->add_scaled_identity(dalpha.get(), dbeta.get());
+    mtx->add_scaled_identity(alpha, beta);
+    dmtx->add_scaled_identity(dalpha, dbeta);
 
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, r<value_type>::value);
 }

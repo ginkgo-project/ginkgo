@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -163,7 +163,8 @@ std::unique_ptr<LinOp> Ir<ValueType>::conj_transpose() const
 template <typename ValueType>
 void Ir<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
-    this->apply_with_initial_guess(b, x, this->get_default_initial_guess());
+    this->apply_with_initial_guess_impl(b, x,
+                                        this->get_default_initial_guess());
 }
 
 
@@ -221,39 +222,51 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
     int iter = -1;
     while (true) {
         ++iter;
-        this->template log<log::Logger::iteration_complete>(
-            this, iter, residual_ptr, dense_x);
 
         if (iter == 0) {
             // In iter 0, the iteration and residual are updated.
-            if (stop_criterion->update()
-                    .num_iterations(iter)
-                    .residual(residual_ptr)
-                    .solution(dense_x)
-                    .check(relative_stopping_id, true, &stop_status,
-                           &one_changed)) {
+            bool all_stopped = stop_criterion->update()
+                                   .num_iterations(iter)
+                                   .residual(residual_ptr)
+                                   .solution(dense_x)
+                                   .check(relative_stopping_id, true,
+                                          &stop_status, &one_changed);
+            this->template log<log::Logger::iteration_complete>(
+                this, dense_b, dense_x, iter, residual_ptr, nullptr, nullptr,
+                &stop_status, all_stopped);
+            if (all_stopped) {
                 break;
             }
         } else {
             // In the other iterations, the residual can be updated separately.
-            if (stop_criterion->update()
-                    .num_iterations(iter)
-                    .solution(dense_x)
-                    .check(relative_stopping_id, false, &stop_status,
-                           &one_changed)) {
+            bool all_stopped = stop_criterion->update()
+                                   .num_iterations(iter)
+                                   .solution(dense_x)
+                                   // we have the residual check later
+                                   .ignore_residual_check(true)
+                                   .check(relative_stopping_id, false,
+                                          &stop_status, &one_changed);
+            if (all_stopped) {
+                this->template log<log::Logger::iteration_complete>(
+                    this, dense_b, dense_x, iter, nullptr, nullptr, nullptr,
+                    &stop_status, all_stopped);
                 break;
             }
             residual_ptr = residual;
             // residual = b - A * x
             residual->copy_from(dense_b);
-            this->get_system_matrix()->apply(lend(neg_one_op), dense_x,
-                                             lend(one_op), lend(residual));
-            if (stop_criterion->update()
-                    .num_iterations(iter)
-                    .residual(residual_ptr)
-                    .solution(dense_x)
-                    .check(relative_stopping_id, true, &stop_status,
-                           &one_changed)) {
+            this->get_system_matrix()->apply(neg_one_op, dense_x, one_op,
+                                             residual);
+            all_stopped = stop_criterion->update()
+                              .num_iterations(iter)
+                              .residual(residual_ptr)
+                              .solution(dense_x)
+                              .check(relative_stopping_id, true, &stop_status,
+                                     &one_changed);
+            this->template log<log::Logger::iteration_complete>(
+                this, dense_b, dense_x, iter, residual_ptr, nullptr, nullptr,
+                &stop_status, all_stopped);
+            if (all_stopped) {
                 break;
             }
         }
@@ -266,11 +279,10 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
             solver_->apply(residual_ptr, inner_solution);
 
             // x = x + relaxation_factor * inner_solution
-            dense_x->add_scaled(relaxation_factor_.get(), inner_solution);
+            dense_x->add_scaled(relaxation_factor_, inner_solution);
         } else {
             // x = x + relaxation_factor * A \ residual
-            solver_->apply(relaxation_factor_.get(), residual_ptr, one_op,
-                           dense_x);
+            solver_->apply(relaxation_factor_, residual_ptr, one_op, dense_x);
         }
     }
 }
@@ -280,8 +292,8 @@ template <typename ValueType>
 void Ir<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                const LinOp* beta, LinOp* x) const
 {
-    this->apply_with_initial_guess(alpha, b, beta, x,
-                                   this->get_default_initial_guess());
+    this->apply_with_initial_guess_impl(alpha, b, beta, x,
+                                        this->get_default_initial_guess());
 }
 
 template <typename ValueType>
@@ -299,7 +311,7 @@ void Ir<ValueType>::apply_with_initial_guess_impl(
             auto x_clone = dense_x->clone();
             this->apply_dense_impl(dense_b, x_clone.get(), guess);
             dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, x_clone.get());
+            dense_x->add_scaled(dense_alpha, x_clone);
         },
         alpha, b, beta, x);
 }

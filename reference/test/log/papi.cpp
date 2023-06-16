@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -73,7 +73,7 @@ protected:
     const std::string init(const gko::log::Logger::mask_type& event,
                            const std::string& event_name, U* ptr)
     {
-        logger = gko::log::Papi<T>::create(exec, event);
+        logger = gko::log::Papi<T>::create(event);
         std::ostringstream os;
         os << "sde:::" << logger->get_handle_name() << "::" << event_name << "_"
            << reinterpret_cast<gko::uintptr>(ptr);

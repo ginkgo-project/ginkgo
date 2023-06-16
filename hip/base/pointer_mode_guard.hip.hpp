@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/std_extensions.hpp>
 
 
 namespace gko {
@@ -81,7 +82,7 @@ public:
     ~pointer_mode_guard() noexcept(false)
     {
         /* Ignore the error during stack unwinding for this call */
-        if (std::uncaught_exception()) {
+        if (xstd::uncaught_exception()) {
             hipblasSetPointerMode(reinterpret_cast<hipblasHandle_t>(l_handle),
                                   HIPBLAS_POINTER_MODE_DEVICE);
         } else {
@@ -131,7 +132,7 @@ public:
     ~pointer_mode_guard() noexcept(false)
     {
         /* Ignore the error during stack unwinding for this call */
-        if (std::uncaught_exception()) {
+        if (xstd::uncaught_exception()) {
             hipsparseSetPointerMode(
                 reinterpret_cast<hipsparseHandle_t>(l_handle),
                 HIPSPARSE_POINTER_MODE_DEVICE);

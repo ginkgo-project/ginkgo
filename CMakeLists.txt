@@ -9,13 +9,15 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
     cmake_policy(SET CMP0104 OLD)
 endif()
 
-project(Ginkgo LANGUAGES C CXX VERSION 1.5.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
+project(Ginkgo LANGUAGES C CXX VERSION 1.6.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
 set(Ginkgo_VERSION_TAG "master")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 
 # Determine which modules can be compiled
 include(cmake/hip_path.cmake)
 include(cmake/autodetect_executors.cmake)
+
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/Modules/")
 
 # Ginkgo configuration options
 option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" OFF)
@@ -31,6 +33,7 @@ option(GINKGO_BUILD_CUDA "Compile kernels for NVIDIA GPUs" ${GINKGO_HAS_CUDA})
 option(GINKGO_BUILD_HIP "Compile kernels for AMD or NVIDIA GPUs" ${GINKGO_HAS_HIP})
 option(GINKGO_BUILD_DOC "Generate documentation" OFF)
 option(GINKGO_FAST_TESTS "Reduces the input size for a few tests known to be time-intensive" OFF)
+option(GINKGO_TEST_NONDEFAULT_STREAM "Uses non-default streams in CUDA and HIP tests" OFF)
 option(GINKGO_MIXED_PRECISION "Instantiate true mixed-precision kernels (otherwise they will be conversion-based using implicit temporary storage)" OFF)
 option(GINKGO_SKIP_DEPENDENCY_UPDATE
     "Do not update dependencies each time the project is rebuilt" ON)
@@ -118,9 +121,11 @@ endif()
 
 # For now, PGI/NVHPC nvc++ compiler doesn't seem to support
 # `#pragma omp declare reduction`
-if (${CMAKE_CXX_COMPILER_ID} MATCHES "PGI|NVHPC")
-    message(STATUS "OpenMP: Switching to OFF because PGI/NVHPC nvc++ compiler lacks important features.")
-    set(GINKGO_BUILD_OMP OFF)
+#
+# The math with optimization level -O2 doesn't follow IEEE standard, so we
+# enable that back as well.
+if (CMAKE_CXX_COMPILER_ID MATCHES "PGI|NVHPC")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Kieee")
 endif()
 
 set(GINKGO_CIRCULAR_DEPS_FLAGS "-Wl,--no-undefined")
@@ -186,8 +191,6 @@ if(GINKGO_WITH_IWYU)
     find_program(GINKGO_IWYU_PATH iwyu)
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/Modules/")
-
 # Find important header files, store the definitions in
 # include/ginkgo/config.h.in For details, see
 # https://gitlab.kitware.com/cmake/community/wikis/doc/tutorials/How-To-Write-Platform-Checks
@@ -199,6 +202,30 @@ set(GINKGO_HAVE_PAPI_SDE 0)
 find_package(PAPI OPTIONAL_COMPONENTS sde)
 if(PAPI_sde_FOUND)
     set(GINKGO_HAVE_PAPI_SDE 1)
+endif()
+
+# Automatically find TAU
+set(GINKGO_HAVE_TAU 0)
+find_package(PerfStubs QUIET)
+if(PerfStubs_FOUND)
+    set(GINKGO_HAVE_TAU 1)
+endif()
+# Automatically find VTune
+set(GINKGO_HAVE_VTUNE 0)
+find_package(VTune)
+if(VTune_FOUND)
+    set(GINKGO_HAVE_VTUNE 1)
+endif()
+# Automatically find METIS
+set(GINKGO_HAVE_METIS 0)
+find_package(METIS)
+if(METIS_FOUND)
+    set(GINKGO_HAVE_METIS 1)
+endif()
+# Automatically detect ROCTX (see hip.cmake)
+set(GINKGO_HAVE_ROCTX 0)
+if(GINKGO_BUILD_HIP AND ROCTX_FOUND)
+    set(GINKGO_HAVE_ROCTX 1)
 endif()
 
 # Switch off HWLOC for Windows and MacOS
@@ -216,7 +243,7 @@ endif()
 set(GINKGO_HAVE_GPU_AWARE_MPI OFF)
 set(GINKGO_FORCE_SPMV_BLOCKING_COMM OFF)
 if(GINKGO_BUILD_MPI)
-    find_package(MPI REQUIRED)
+    find_package(MPI 3.1 COMPONENTS CXX REQUIRED)
     if(GINKGO_FORCE_GPU_AWARE_MPI)
         set(GINKGO_HAVE_GPU_AWARE_MPI ON)
     else()
@@ -224,8 +251,8 @@ if(GINKGO_BUILD_MPI)
     endif()
 
     try_run(uses_openmpi gko_result_unused
-        ${PROJECT_BINARY_DIR}
-        ${CMAKE_SOURCE_DIR}/cmake/openmpi_test.cpp
+        ${Ginkgo_BINARY_DIR}
+        ${Ginkgo_SOURCE_DIR}/cmake/openmpi_test.cpp
         LINK_LIBRARIES MPI::MPI_CXX
         RUN_OUTPUT_VARIABLE openmpi_version
         )
@@ -262,6 +289,12 @@ if(MSVC)
     endif()
 endif()
 
+if(GINKGO_BUILD_DPCPP)
+    ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_MAJOR_VERSION __LIBSYCL_MAJOR_VERSION)
+    ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_VERSION __SYCL_COMPILER_VERSION)
+else()
+    set(GINKGO_DPCPP_MAJOR_VERSION "0")
+endif()
 configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
     ${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp @ONLY)
 
@@ -320,9 +353,9 @@ if(NOT "${BASH}" STREQUAL "BASH-NOTFOUND" AND GINKGO_DEVEL_TOOLS)
     find_program(GIT git)
     if(NOT "${GIT}" STREQUAL "GIT-NOTFOUND")
         add_custom_target(format_header
-            COMMAND echo "format header on the modified code files except build/examples/third_party/ginkgo.hpp"
+            COMMAND echo "format header on the modified code files except build, examples, third_party, accessor/, dev_tools, ginkgo.hpp"
             COMMAND bash -c "git diff --name-only origin/master...HEAD | \
-                grep -Ev 'build|examples|third_party|ginkgo.hpp' | \
+                grep -Ev 'build|examples|third_party|accessor/|dev_tools|ginkgo.hpp' | \
                 grep -E '(\.hip)?\.(cu|hpp|cuh|cpp)$' | \
                 xargs -r -n1 ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/format_header.sh"
             WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR}
@@ -330,9 +363,9 @@ if(NOT "${BASH}" STREQUAL "BASH-NOTFOUND" AND GINKGO_DEVEL_TOOLS)
     endif()
     unset(GIT CACHE)
     add_custom_target(format_header_all
-        COMMAND echo "format header on all code files except build/examples/third_party/ginkgo.hpp"
+        COMMAND echo "format header on all code files except build, examples, third_party, accessor/, dev_tools, ginkgo.hpp"
         COMMAND bash -c "find * -type f | \
-                grep -Ev 'build|examples|third_party|ginkgo.hpp' | \
+                grep -Ev 'build|examples|third_party|accessor/|dev_tools|ginkgo.hpp' | \
                 grep -E '(\.hip)?\.(cu|hpp|cuh|cpp)$' | \
                 xargs -r -n1 ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/format_header.sh"
         WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR}
@@ -400,10 +433,10 @@ if(NOT "${CMAKE_GENERATOR_TOOLSET}" STREQUAL "")
 endif()
 add_custom_target(test_install
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} ${TOOLSET}
-    -H${GINKGO_TEST_INSTALL_SRC_DIR}
+    -S${GINKGO_TEST_INSTALL_SRC_DIR}
     -B${GINKGO_TEST_INSTALL_BIN_DIR}
     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-    -DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX}/${GINKGO_INSTALL_CONFIG_DIR}
+    -DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX}
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
     -DCMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}
@@ -423,7 +456,7 @@ add_custom_target(test_install
 
 add_custom_target(test_exportbuild
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} ${TOOLSET}
-    -H${GINKGO_TEST_EXPORTBUILD_SRC_DIR}
+    -S${GINKGO_TEST_EXPORTBUILD_SRC_DIR}
     -B${GINKGO_TEST_EXPORTBUILD_BIN_DIR}
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
@@ -441,7 +474,7 @@ add_custom_target(test_exportbuild
 
 add_custom_target(test_pkgconfig
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} ${TOOLSET}
-    -H${GINKGO_TEST_PKGCONFIG_SRC_DIR}
+    -S${GINKGO_TEST_PKGCONFIG_SRC_DIR}
     -B${GINKGO_TEST_PKGCONFIG_BIN_DIR}
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}

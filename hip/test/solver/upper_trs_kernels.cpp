@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -51,26 +51,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class UpperTrs : public ::testing::Test {
+class UpperTrs : public HipTestFixture {
 protected:
     using CsrMtx = gko::matrix::Csr<double, gko::int32>;
     using Mtx = gko::matrix::Dense<>;
 
     UpperTrs() : rand_engine(30) {}
-
-    void SetUp()
-    {
-        ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
-        ref = gko::ReferenceExecutor::create();
-        hip = gko::HipExecutor::create(0, ref);
-    }
-
-    void TearDown()
-    {
-        if (hip != nullptr) {
-            ASSERT_NO_THROW(hip->synchronize());
-        }
-    }
 
     std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
     {
@@ -93,13 +79,13 @@ protected:
         b = gen_mtx(m, n);
         x = gen_mtx(m, n);
         csr_mtx = CsrMtx::create(ref);
-        mtx->convert_to(csr_mtx.get());
-        d_csr_mtx = CsrMtx::create(hip);
-        d_x = gko::clone(hip, x);
-        d_csr_mtx->copy_from(csr_mtx.get());
+        mtx->convert_to(csr_mtx);
+        d_csr_mtx = CsrMtx::create(exec);
+        d_x = gko::clone(exec, x);
+        d_csr_mtx->copy_from(csr_mtx);
         b2 = Mtx::create(ref);
-        d_b2 = gko::clone(hip, b);
-        b2->copy_from(b.get());
+        d_b2 = gko::clone(exec, b);
+        b2->copy_from(b);
     }
 
     std::shared_ptr<Mtx> b;
@@ -111,8 +97,6 @@ protected:
     std::shared_ptr<Mtx> d_b2;
     std::shared_ptr<Mtx> d_x;
     std::shared_ptr<CsrMtx> d_csr_mtx;
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::HipExecutor> hip;
     std::default_random_engine rand_engine;
 };
 
@@ -121,7 +105,7 @@ TEST_F(UpperTrs, HipUpperTrsFlagCheckIsCorrect)
 {
     bool trans_flag = false;
     bool expected_flag = true;
-    gko::kernels::hip::upper_trs::should_perform_transpose(hip, trans_flag);
+    gko::kernels::hip::upper_trs::should_perform_transpose(exec, trans_flag);
 
     ASSERT_EQ(expected_flag, trans_flag);
 }
@@ -131,12 +115,12 @@ TEST_F(UpperTrs, HipSingleRhsApplyIsEquivalentToRef)
 {
     initialize_data(50, 1);
     auto upper_trs_factory = gko::solver::UpperTrs<>::build().on(ref);
-    auto d_upper_trs_factory = gko::solver::UpperTrs<>::build().on(hip);
+    auto d_upper_trs_factory = gko::solver::UpperTrs<>::build().on(exec);
     auto solver = upper_trs_factory->generate(csr_mtx);
     auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
 
-    solver->apply(b2.get(), x.get());
-    d_solver->apply(d_b2.get(), d_x.get());
+    solver->apply(b2, x);
+    d_solver->apply(d_b2, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
 }
@@ -148,12 +132,12 @@ TEST_F(UpperTrs, HipMultipleRhsApplyIsEquivalentToRef)
     auto upper_trs_factory =
         gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(ref);
     auto d_upper_trs_factory =
-        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(hip);
+        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(exec);
     auto solver = upper_trs_factory->generate(csr_mtx);
     auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
 
-    solver->apply(b2.get(), x.get());
-    d_solver->apply(d_b2.get(), d_x.get());
+    solver->apply(b2, x);
+    d_solver->apply(d_b2, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
 }

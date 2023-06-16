@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -173,12 +173,13 @@ void find_missing_diagonal_elements(
     bool* changes_required)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(SubwarpSize)]] {
-            find_missing_diagonal_elements<IsSorted, SubwarpSize>(
-                num_rows, num_cols, col_idxs, row_ptrs, elements_to_add_per_row,
-                changes_required, item_ct1);
-        });
+        sycl_nd_range(grid, block),
+        [=](sycl::nd_item<3> item_ct1)
+            [[sycl::reqd_sub_group_size(SubwarpSize)]] {
+                find_missing_diagonal_elements<IsSorted, SubwarpSize>(
+                    num_rows, num_cols, col_idxs, row_ptrs,
+                    elements_to_add_per_row, changes_required, item_ct1);
+            });
 }
 
 
@@ -272,13 +273,14 @@ void add_missing_diagonal_elements(
     ValueType* new_values, IndexType* new_col_idxs,
     const IndexType* row_ptrs_addition)
 {
-    queue->parallel_for(
-        sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(SubwarpSize)]] {
-            add_missing_diagonal_elements<SubwarpSize>(
-                num_rows, old_values, old_col_idxs, old_row_ptrs, new_values,
-                new_col_idxs, row_ptrs_addition, item_ct1);
-        });
+    queue->parallel_for(sycl_nd_range(grid, block),
+                        [=](sycl::nd_item<3> item_ct1)
+                            [[sycl::reqd_sub_group_size(SubwarpSize)]] {
+                                add_missing_diagonal_elements<SubwarpSize>(
+                                    num_rows, old_values, old_col_idxs,
+                                    old_row_ptrs, new_values, new_col_idxs,
+                                    row_ptrs_addition, item_ct1);
+                            });
 }
 
 
@@ -549,7 +551,7 @@ void add_diagonal_elements(std::shared_ptr<const DpcppExecutor> exec,
         return;
     }
 
-    components::prefix_sum(exec, dpcpp_row_ptrs_add, row_ptrs_size);
+    components::prefix_sum_nonnegative(exec, dpcpp_row_ptrs_add, row_ptrs_size);
     exec->synchronize();
 
     auto total_additions =
@@ -602,8 +604,8 @@ void initialize_row_ptrs_l_u(
                                   system_matrix->get_const_values(), l_row_ptrs,
                                   u_row_ptrs);
 
-    components::prefix_sum(exec, l_row_ptrs, num_rows + 1);
-    components::prefix_sum(exec, u_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, l_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, u_row_ptrs, num_rows + 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -653,7 +655,7 @@ void initialize_row_ptrs_l(
                                 system_matrix->get_const_col_idxs(),
                                 system_matrix->get_const_values(), l_row_ptrs);
 
-    components::prefix_sum(exec, l_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, l_row_ptrs, num_rows + 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

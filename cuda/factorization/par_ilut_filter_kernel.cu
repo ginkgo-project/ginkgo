@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -96,13 +96,13 @@ void threshold_filter(syn::value_list<int, subwarp_size>,
     auto new_row_ptrs = m_out->get_row_ptrs();
     if (num_blocks > 0) {
         kernel::threshold_filter_nnz<subwarp_size>
-            <<<num_blocks, default_block_size>>>(
-                old_row_ptrs, as_cuda_type(old_vals), num_rows, threshold,
-                new_row_ptrs, lower);
+            <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+                old_row_ptrs, as_device_type(old_vals), num_rows,
+                as_device_type(threshold), new_row_ptrs, lower);
     }
 
     // build row pointers
-    components::prefix_sum(exec, new_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, new_row_ptrs, num_rows + 1);
 
     // build matrix
     auto new_nnz = exec->copy_val_to_host(new_row_ptrs + num_rows);
@@ -124,10 +124,10 @@ void threshold_filter(syn::value_list<int, subwarp_size>,
     }
     if (num_blocks > 0) {
         kernel::threshold_filter<subwarp_size>
-            <<<num_blocks, default_block_size>>>(
-                old_row_ptrs, old_col_idxs, as_cuda_type(old_vals), num_rows,
-                threshold, new_row_ptrs, new_row_idxs, new_col_idxs,
-                as_cuda_type(new_vals), lower);
+            <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+                old_row_ptrs, old_col_idxs, as_device_type(old_vals), num_rows,
+                as_device_type(threshold), new_row_ptrs, new_row_idxs,
+                new_col_idxs, as_device_type(new_vals), lower);
     }
 }
 

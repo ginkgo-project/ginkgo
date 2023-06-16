@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/prefix_sum_kernels.hpp"
 
 
-#include "cuda/components/prefix_sum.cuh"
+#include <limits>
+
+
+#include <thrust/scan.h>
+
+
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/name_demangling.hpp>
+
+
+#include "cuda/base/thrust.cuh"
 
 
 namespace gko {
@@ -42,37 +53,7 @@ namespace cuda {
 namespace components {
 
 
-constexpr int prefix_sum_block_size = 512;
-
-
-template <typename IndexType>
-void prefix_sum(std::shared_ptr<const CudaExecutor> exec, IndexType* counts,
-                size_type num_entries)
-{
-    // prefix_sum should only be performed on a valid array
-    if (num_entries > 0) {
-        auto num_blocks = ceildiv(num_entries, prefix_sum_block_size);
-        array<IndexType> block_sum_array(exec, num_blocks - 1);
-        auto block_sums = block_sum_array.get_data();
-        if (num_blocks > 0) {
-            start_prefix_sum<prefix_sum_block_size>
-                <<<num_blocks, prefix_sum_block_size>>>(num_entries, counts,
-                                                        block_sums);
-        }
-        // add the total sum of the previous block only when the number of
-        // blocks is larger than 1.
-        if (num_blocks > 1) {
-            finalize_prefix_sum<prefix_sum_block_size>
-                <<<num_blocks, prefix_sum_block_size>>>(num_entries, counts,
-                                                        block_sums);
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
-
-// instantiate for size_type as well, as this is used in the Sellp format
-template GKO_DECLARE_PREFIX_SUM_KERNEL(size_type);
+#include "common/cuda_hip/components/prefix_sum_kernels.hpp.inc"
 
 
 }  // namespace components

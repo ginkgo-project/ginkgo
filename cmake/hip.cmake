@@ -85,6 +85,14 @@ if(NOT DEFINED HIP_CLANG_PATH)
     endif()
 endif()
 
+if(NOT DEFINED ROCTRACER_PATH)
+    if(DEFINED ENV{ROCTRACER_PATH})
+        set(ROCTRACER_PATH $ENV{ROCTRACER_PATH} CACHE PATH "Path to which ROCTRACER has been installed")
+    else()
+        set(ROCTRACER_PATH "${ROCM_PATH}/roctracer" CACHE PATH "Path to which ROCTRACER has been installed")
+    endif()
+endif()
+
 # Find HIPCC_CMAKE_LINKER_HELPER executable
 find_program(
     HIP_HIPCC_CMAKE_LINKER_HELPER
@@ -139,7 +147,8 @@ if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
 endif()
 
 ## Setup all CMAKE variables to find HIP and its dependencies
-list(APPEND CMAKE_MODULE_PATH "${HIP_PATH}/cmake")
+set(GINKGO_HIP_MODULE_PATH "${HIP_PATH}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${GINKGO_HIP_MODULE_PATH}")
 if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
     list(APPEND CMAKE_PREFIX_PATH "${HIP_PATH}/lib/cmake")
 endif()
@@ -166,6 +175,7 @@ find_package(hiprand REQUIRED)
 find_package(hipsparse REQUIRED)
 # At the moment, for hiprand to work also rocrand is required.
 find_package(rocrand REQUIRED)
+find_package(ROCTX)
 find_path(GINKGO_HIP_THRUST_PATH "thrust/complex.h"
     PATHS "${HIP_PATH}/../include"
     ENV HIP_THRUST_PATH)

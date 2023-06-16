@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -220,6 +220,26 @@ public:
                        (index_span{spans}.end - index_span{spans}.begin)...},
                    storage_ + compute_index((index_span{spans}.begin)...),
                    stride_};
+    }
+
+
+    /**
+     * Returns the storage address for the given indices. If the storage is
+     * const, a const address is returned, otherwise, an address is returned.
+     *
+     * @param indices  indices which value is supposed to access
+     *
+     * @returns  the const address if the accessor is const (if the storage type
+     *           is const), or an address if the accessor is non-const
+     */
+    template <typename... Indices>
+    constexpr GKO_ACC_ATTRIBUTES std::enable_if_t<
+        are_all_integral<Indices...>::value,
+        std::conditional_t<is_const, const storage_type * GKO_ACC_RESTRICT,
+                           storage_type * GKO_ACC_RESTRICT>>
+    get_storage_address(Indices&&... indices) const
+    {
+        return storage_ + compute_index(std::forward<Indices>(indices)...);
     }
 
     /**

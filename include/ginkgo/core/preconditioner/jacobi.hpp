@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -109,8 +109,8 @@ struct block_interleaved_storage_scheme {
      *        blocks is not known, for a special input `size_type{} - 1`
      *        the method returns `0` to avoid overallocation of memory.
      */
-    GKO_ATTRIBUTES size_type compute_storage_space(size_type num_blocks) const
-        noexcept
+    GKO_ATTRIBUTES size_type
+    compute_storage_space(size_type num_blocks) const noexcept
     {
         return (num_blocks + 1 == size_type{0})
                    ? size_type{0}
@@ -148,8 +148,8 @@ struct block_interleaved_storage_scheme {
      *
      * @return the offset of the block with ID `block_id`
      */
-    GKO_ATTRIBUTES IndexType get_global_block_offset(IndexType block_id) const
-        noexcept
+    GKO_ATTRIBUTES IndexType
+    get_global_block_offset(IndexType block_id) const noexcept
     {
         return this->get_group_offset(block_id) +
                this->get_block_offset(block_id);
@@ -220,6 +220,8 @@ class Jacobi : public EnableLinOp<Jacobi<ValueType, IndexType>>,
 public:
     using EnableLinOp<Jacobi>::convert_to;
     using EnableLinOp<Jacobi>::move_to;
+    using ConvertibleTo<matrix::Dense<ValueType>>::convert_to;
+    using ConvertibleTo<matrix::Dense<ValueType>>::move_to;
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
@@ -564,7 +566,7 @@ protected:
         parameters_.block_pointers.set_executor(this->get_executor());
         parameters_.storage_optimization.block_wise.set_executor(
             this->get_executor());
-        this->generate(lend(system_matrix), parameters_.skip_sorting);
+        this->generate(system_matrix.get(), parameters_.skip_sorting);
     }
 
     /**

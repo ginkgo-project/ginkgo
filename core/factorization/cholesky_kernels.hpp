@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -51,7 +51,7 @@ namespace kernels {
 
 
 #define GKO_DECLARE_CHOLESKY_SYMBOLIC_COUNT(ValueType, IndexType)        \
-    void cholesky_symbolic_count(                                        \
+    void symbolic_count(                                                 \
         std::shared_ptr<const DefaultExecutor> exec,                     \
         const matrix::Csr<ValueType, IndexType>* mtx,                    \
         const gko::factorization::elimination_forest<IndexType>& forest, \
@@ -59,7 +59,7 @@ namespace kernels {
 
 
 #define GKO_DECLARE_CHOLESKY_SYMBOLIC_FACTORIZE(ValueType, IndexType)    \
-    void cholesky_symbolic_factorize(                                    \
+    void symbolic_factorize(                                             \
         std::shared_ptr<const DefaultExecutor> exec,                     \
         const matrix::Csr<ValueType, IndexType>* mtx,                    \
         const gko::factorization::elimination_forest<IndexType>& forest, \
@@ -67,11 +67,44 @@ namespace kernels {
         const array<IndexType>& tmp_storage)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                           \
-    template <typename ValueType, typename IndexType>          \
-    GKO_DECLARE_CHOLESKY_SYMBOLIC_COUNT(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>          \
-    GKO_DECLARE_CHOLESKY_SYMBOLIC_FACTORIZE(ValueType, IndexType)
+#define GKO_DECLARE_CHOLESKY_FOREST_FROM_FACTOR(ValueType, IndexType) \
+    void forest_from_factor(                                          \
+        std::shared_ptr<const DefaultExecutor> exec,                  \
+        const matrix::Csr<ValueType, IndexType>* factors,             \
+        gko::factorization::elimination_forest<IndexType>& forest)
+
+
+#define GKO_DECLARE_CHOLESKY_INITIALIZE(ValueType, IndexType)                 \
+    void initialize(std::shared_ptr<const DefaultExecutor> exec,              \
+                    const matrix::Csr<ValueType, IndexType>* mtx,             \
+                    const IndexType* factor_lookup_offsets,                   \
+                    const int64* factor_lookup_descs,                         \
+                    const int32* factor_lookup_storage, IndexType* diag_idxs, \
+                    IndexType* transpose_idxs,                                \
+                    matrix::Csr<ValueType, IndexType>* factors)
+
+
+#define GKO_DECLARE_CHOLESKY_FACTORIZE(ValueType, IndexType)             \
+    void factorize(                                                      \
+        std::shared_ptr<const DefaultExecutor> exec,                     \
+        const IndexType* lookup_offsets, const int64* lookup_descs,      \
+        const int32* lookup_storage, const IndexType* diag_idxs,         \
+        const IndexType* transpose_idxs,                                 \
+        const gko::factorization::elimination_forest<IndexType>& forest, \
+        matrix::Csr<ValueType, IndexType>* factors, array<int>& tmp_storage)
+
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                               \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_CHOLESKY_SYMBOLIC_COUNT(ValueType, IndexType);     \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_CHOLESKY_SYMBOLIC_FACTORIZE(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_CHOLESKY_FOREST_FROM_FACTOR(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_CHOLESKY_INITIALIZE(ValueType, IndexType);         \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_CHOLESKY_FACTORIZE(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(cholesky, GKO_DECLARE_ALL_AS_TEMPLATES);

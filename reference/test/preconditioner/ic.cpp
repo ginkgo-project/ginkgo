@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -184,7 +184,7 @@ TYPED_TEST(Ic, CanBeCopied)
     auto copied =
         ic_prec_type::build().on(this->exec)->generate(lh_l_composition);
 
-    copied->copy_from(ic.get());
+    copied->copy_from(ic);
 
     ASSERT_EQ(before_l_solver, copied->get_l_solver());
     ASSERT_EQ(before_lh_solver, copied->get_lh_solver());
@@ -205,7 +205,7 @@ TYPED_TEST(Ic, CanBeMoved)
     auto moved =
         ic_prec_type::build().on(this->exec)->generate(lh_l_composition);
 
-    moved->copy_from(std::move(ic));
+    moved->move_from(ic);
 
     ASSERT_EQ(before_l_solver, moved->get_l_solver());
     ASSERT_EQ(before_lh_solver, moved->get_lh_solver());
@@ -268,7 +268,7 @@ TYPED_TEST(Ic, SolvesSingleRhs)
     auto preconditioner =
         ic_prec_type::build().on(this->exec)->generate(this->mtx);
 
-    preconditioner->apply(b.get(), x.get());
+    preconditioner->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({3.0, -2.0, 4.0}), this->tol);
 }
@@ -284,7 +284,7 @@ TYPED_TEST(Ic, SolvesSingleRhsMixed)
     auto preconditioner =
         ic_prec_type::build().on(this->exec)->generate(this->mtx);
 
-    preconditioner->apply(b.get(), x.get());
+    preconditioner->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({3.0, -2.0, 4.0}), this->tol);
 }
@@ -301,7 +301,7 @@ TYPED_TEST(Ic, SolvesSingleRhsComplex)
     auto preconditioner =
         ic_prec_type::build().on(this->exec)->generate(this->mtx);
 
-    preconditioner->apply(b.get(), x.get());
+    preconditioner->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({T{3.0, 6.0}, T{-2.0, -4.0}, T{4.0, 8.0}}),
                         this->tol);
@@ -320,7 +320,7 @@ TYPED_TEST(Ic, SolvesSingleRhsComplexMixed)
     auto preconditioner =
         ic_prec_type::build().on(this->exec)->generate(this->mtx);
 
-    preconditioner->apply(b.get(), x.get());
+    preconditioner->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({T{3.0, 6.0}, T{-2.0, -4.0}, T{4.0, 8.0}}),
                         this->tol);
@@ -338,7 +338,7 @@ TYPED_TEST(Ic, AdvancedSolvesSingleRhs)
     auto preconditioner =
         ic_prec_type::build().on(this->exec)->generate(this->mtx);
 
-    preconditioner->apply(alpha.get(), b.get(), beta.get(), x.get());
+    preconditioner->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({5.0, -6.0, 5.0}), this->tol);
 }
@@ -356,7 +356,7 @@ TYPED_TEST(Ic, AdvancedSolvesSingleRhsMixed)
     auto preconditioner =
         ic_prec_type::build().on(this->exec)->generate(this->mtx);
 
-    preconditioner->apply(alpha.get(), b.get(), beta.get(), x.get());
+    preconditioner->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({5.0, -6.0, 5.0}), this->tol);
 }
@@ -377,7 +377,7 @@ TYPED_TEST(Ic, AdvancedSolvesSingleRhsComplex)
     auto preconditioner =
         ic_prec_type::build().on(this->exec)->generate(this->mtx);
 
-    preconditioner->apply(alpha.get(), b.get(), beta.get(), x.get());
+    preconditioner->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({T{5.0, 10.0}, T{-6.0, -12.0}, T{5.0, 10.0}}),
                         this->tol);
@@ -400,7 +400,7 @@ TYPED_TEST(Ic, AdvancedSolvesSingleRhsComplexMixed)
     auto preconditioner =
         ic_prec_type::build().on(this->exec)->generate(this->mtx);
 
-    preconditioner->apply(alpha.get(), b.get(), beta.get(), x.get());
+    preconditioner->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({T{5.0, 10.0}, T{-6.0, -12.0}, T{5.0, 10.0}}),
                         this->tol);
@@ -417,7 +417,7 @@ TYPED_TEST(Ic, SolvesMultipleRhs)
     auto preconditioner =
         ic_prec_type::build().on(this->exec)->generate(this->mtx);
 
-    preconditioner->apply(b.get(), x.get());
+    preconditioner->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(
         x, l({{3.0, 6.0, 9.0}, {-2.0, -4.0, -6.0}, {4.0, 8.0, 12.0}}),

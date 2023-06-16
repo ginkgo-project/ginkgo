@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -50,9 +50,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
+#include "core/base/mixed_precision_types.hpp"
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
+#include "core/matrix/csr_accessor_helper.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
@@ -82,7 +84,7 @@ namespace csr {
 constexpr int default_block_size = 256;
 constexpr int warps_in_block = 4;
 constexpr int spmv_block_size = warps_in_block * config::warp_size;
-constexpr int classical_overweight = 32;
+constexpr int classical_oversubscription = 32;
 
 
 /**
@@ -91,7 +93,7 @@ constexpr int classical_overweight = 32;
  */
 using compiled_kernels = syn::value_list<int, 6>;
 
-using classical_kernels = syn::value_list<int, config::warp_size, 16, 8, 1>;
+using classical_kernels = syn::value_list<int, config::warp_size, 16, 1>;
 
 
 namespace kernel {
@@ -134,71 +136,69 @@ __dpct_inline__ bool block_segment_scan_reverse(
 template <bool overflow, typename IndexType>
 __dpct_inline__ void find_next_row(
     const IndexType num_rows, const IndexType data_size, const IndexType ind,
-    IndexType* __restrict__ row, IndexType* __restrict__ row_end,
-    const IndexType row_predict, const IndexType row_predict_end,
-    const IndexType* __restrict__ row_ptr)
+    IndexType& row, IndexType& row_end, const IndexType row_predict,
+    const IndexType row_predict_end, const IndexType* __restrict__ row_ptr)
 {
     if (!overflow || ind < data_size) {
-        if (ind >= *row_end) {
-            *row = row_predict;
-            *row_end = row_predict_end;
-            while (ind >= *row_end) {
-                *row_end = row_ptr[++*row + 1];
+        if (ind >= row_end) {
+            row = row_predict;
+            row_end = row_predict_end;
+            while (ind >= row_end) {
+                row_end = row_ptr[++row + 1];
             }
         }
 
     } else {
-        *row = num_rows - 1;
-        *row_end = data_size;
+        row = num_rows - 1;
+        row_end = data_size;
     }
 }
 
 
 template <unsigned subgroup_size, typename ValueType, typename IndexType,
-          typename Closure>
+          typename output_accessor, typename Closure>
 __dpct_inline__ void warp_atomic_add(
     const group::thread_block_tile<subgroup_size>& group, bool force_write,
-    ValueType* __restrict__ val, const IndexType row, ValueType* __restrict__ c,
-    const size_type c_stride, const IndexType column_id, Closure scale)
+    ValueType& val, const IndexType row, acc::range<output_accessor>& c,
+    const IndexType column_id, Closure scale)
 {
     // do a local scan to avoid atomic collisions
-    const bool need_write = segment_scan(group, row, val);
+    const bool need_write = segment_scan(group, row, &val);
     if (need_write && force_write) {
-        atomic_add(&(c[row * c_stride + column_id]), scale(*val));
+        atomic_add(c->get_storage_address(row, column_id), scale(val));
     }
     if (!need_write || force_write) {
-        *val = zero<ValueType>();
+        val = zero<ValueType>();
     }
 }
 
 
-template <bool last, unsigned subgroup_size, typename ValueType,
-          typename IndexType, typename Closure>
+template <bool last, unsigned subgroup_size, typename arithmetic_type,
+          typename matrix_accessor, typename IndexType, typename input_accessor,
+          typename output_accessor, typename Closure>
 __dpct_inline__ void process_window(
     const group::thread_block_tile<subgroup_size>& group,
     const IndexType num_rows, const IndexType data_size, const IndexType ind,
-    IndexType* __restrict__ row, IndexType* __restrict__ row_end,
-    IndexType* __restrict__ nrow, IndexType* __restrict__ nrow_end,
-    ValueType* __restrict__ temp_val, const ValueType* __restrict__ val,
+    IndexType& row, IndexType& row_end, IndexType& nrow, IndexType& nrow_end,
+    arithmetic_type& temp_val, acc::range<matrix_accessor> val,
     const IndexType* __restrict__ col_idxs,
-    const IndexType* __restrict__ row_ptrs, const ValueType* __restrict__ b,
-    const size_type b_stride, ValueType* __restrict__ c,
-    const size_type c_stride, const IndexType column_id, Closure scale)
+    const IndexType* __restrict__ row_ptrs, acc::range<input_accessor> b,
+    acc::range<output_accessor> c, const IndexType column_id, Closure scale)
 {
-    const IndexType curr_row = *row;
-    find_next_row<last>(num_rows, data_size, ind, row, row_end, *nrow,
-                        *nrow_end, row_ptrs);
+    const IndexType curr_row = row;
+    find_next_row<last>(num_rows, data_size, ind, row, row_end, nrow, nrow_end,
+                        row_ptrs);
     // segmented scan
-    if (group.any(curr_row != *row)) {
-        warp_atomic_add(group, curr_row != *row, temp_val, curr_row, c,
-                        c_stride, column_id, scale);
-        *nrow = group.shfl(*row, subgroup_size - 1);
-        *nrow_end = group.shfl(*row_end, subgroup_size - 1);
+    if (group.any(curr_row != row)) {
+        warp_atomic_add(group, curr_row != row, temp_val, curr_row, c,
+                        column_id, scale);
+        nrow = group.shfl(row, subgroup_size - 1);
+        nrow_end = group.shfl(row_end, subgroup_size - 1);
     }
 
     if (!last || ind < data_size) {
         const auto col = col_idxs[ind];
-        *temp_val += val[ind] * b[col * b_stride + column_id];
+        temp_val += val(ind) * b(col, column_id);
     }
 }
 
@@ -213,15 +213,16 @@ __dpct_inline__ IndexType get_warp_start_idx(const IndexType nwarps,
 }
 
 
-template <typename ValueType, typename IndexType, typename Closure>
+template <typename matrix_accessor, typename input_accessor,
+          typename output_accessor, typename IndexType, typename Closure>
 __dpct_inline__ void spmv_kernel(
     const IndexType nwarps, const IndexType num_rows,
-    const ValueType* __restrict__ val, const IndexType* __restrict__ col_idxs,
+    acc::range<matrix_accessor> val, const IndexType* __restrict__ col_idxs,
     const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ srow,
-    const ValueType* __restrict__ b, const size_type b_stride,
-    ValueType* __restrict__ c, const size_type c_stride, Closure scale,
+    acc::range<input_accessor> b, acc::range<output_accessor> c, Closure scale,
     sycl::nd_item<3> item_ct1)
 {
+    using arithmetic_type = typename output_accessor::arithmetic_type;
     const IndexType warp_idx =
         item_ct1.get_group(2) * warps_in_block + item_ct1.get_local_id(1);
     const IndexType column_id = item_ct1.get_group(1);
@@ -238,58 +239,70 @@ __dpct_inline__ void spmv_kernel(
     auto row_end = row_ptrs[row + 1];
     auto nrow = row;
     auto nrow_end = row_end;
-    ValueType temp_val = zero<ValueType>();
+    auto temp_val = zero<arithmetic_type>();
     IndexType ind = start + item_ct1.get_local_id(2);
-    find_next_row<true>(num_rows, data_size, ind, &row, &row_end, nrow,
-                        nrow_end, row_ptrs);
+    find_next_row<true>(num_rows, data_size, ind, row, row_end, nrow, nrow_end,
+                        row_ptrs);
     const IndexType ind_end = end - wsize;
     const auto tile_block =
         group::tiled_partition<wsize>(group::this_thread_block(item_ct1));
     for (; ind < ind_end; ind += wsize) {
-        process_window<false>(tile_block, num_rows, data_size, ind, &row,
-                              &row_end, &nrow, &nrow_end, &temp_val, val,
-                              col_idxs, row_ptrs, b, b_stride, c, c_stride,
-                              column_id, scale);
+        process_window<false>(tile_block, num_rows, data_size, ind, row,
+                              row_end, nrow, nrow_end, temp_val, val, col_idxs,
+                              row_ptrs, b, c, column_id, scale);
     }
-    process_window<true>(tile_block, num_rows, data_size, ind, &row, &row_end,
-                         &nrow, &nrow_end, &temp_val, val, col_idxs, row_ptrs,
-                         b, b_stride, c, c_stride, column_id, scale);
-    warp_atomic_add(tile_block, true, &temp_val, row, c, c_stride, column_id,
-                    scale);
+    process_window<true>(tile_block, num_rows, data_size, ind, row, row_end,
+                         nrow, nrow_end, temp_val, val, col_idxs, row_ptrs, b,
+                         c, column_id, scale);
+    warp_atomic_add(tile_block, true, temp_val, row, c, column_id, scale);
 }
 
 
-template <typename ValueType, typename IndexType>
+template <typename matrix_accessor, typename input_accessor,
+          typename output_accessor, typename IndexType>
 void abstract_spmv(const IndexType nwarps, const IndexType num_rows,
-                   const ValueType* __restrict__ val,
+                   acc::range<matrix_accessor> val,
                    const IndexType* __restrict__ col_idxs,
                    const IndexType* __restrict__ row_ptrs,
                    const IndexType* __restrict__ srow,
-                   const ValueType* __restrict__ b, const size_type b_stride,
-                   ValueType* __restrict__ c, const size_type c_stride,
+                   acc::range<input_accessor> b, acc::range<output_accessor> c,
                    sycl::nd_item<3> item_ct1)
 {
+    using arithmetic_type = typename output_accessor::arithmetic_type;
+    using output_type = typename output_accessor::storage_type;
     spmv_kernel(
-        nwarps, num_rows, val, col_idxs, row_ptrs, srow, b, b_stride, c,
-        c_stride, [](const ValueType& x) { return x; }, item_ct1);
+        nwarps, num_rows, val, col_idxs, row_ptrs, srow, b, c,
+        [](const arithmetic_type& x) {
+            // using atomic add to accumluate data, so it needs to be
+            // the output storage type
+            // TODO: Does it make sense to use atomicCAS when the
+            // arithmetic_type and output_type are different? It may
+            // allow the non floating point storage or more precise
+            // result.
+            return static_cast<output_type>(x);
+        },
+        item_ct1);
 }
 
-template <typename ValueType, typename IndexType>
-void abstract_spmv(const IndexType nwarps, const IndexType num_rows,
-                   const ValueType* __restrict__ alpha,
-                   const ValueType* __restrict__ val,
-                   const IndexType* __restrict__ col_idxs,
-                   const IndexType* __restrict__ row_ptrs,
-                   const IndexType* __restrict__ srow,
-                   const ValueType* __restrict__ b, const size_type b_stride,
-                   ValueType* __restrict__ c, const size_type c_stride,
-                   sycl::nd_item<3> item_ct1)
+
+template <typename matrix_accessor, typename input_accessor,
+          typename output_accessor, typename IndexType>
+void abstract_spmv(
+    const IndexType nwarps, const IndexType num_rows,
+    const typename matrix_accessor::storage_type* __restrict__ alpha,
+    acc::range<matrix_accessor> val, const IndexType* __restrict__ col_idxs,
+    const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ srow,
+    acc::range<input_accessor> b, acc::range<output_accessor> c,
+    sycl::nd_item<3> item_ct1)
 {
-    ValueType scale_factor = alpha[0];
+    using arithmetic_type = typename output_accessor::arithmetic_type;
+    using output_type = typename output_accessor::storage_type;
+    const arithmetic_type scale_factor = alpha[0];
     spmv_kernel(
-        nwarps, num_rows, val, col_idxs, row_ptrs, srow, b, b_stride, c,
-        c_stride,
-        [&scale_factor](const ValueType& x) { return scale_factor * x; },
+        nwarps, num_rows, val, col_idxs, row_ptrs, srow, b, c,
+        [&scale_factor](const arithmetic_type& x) {
+            return static_cast<output_type>(scale_factor * x);
+        },
         item_ct1);
 }
 
@@ -318,27 +331,27 @@ __dpct_inline__ void merge_path_search(
 }
 
 
-template <typename ValueType, typename IndexType, typename Alpha_op>
-void merge_path_reduce(const IndexType nwarps,
-                       const ValueType* __restrict__ last_val,
-                       const IndexType* __restrict__ last_row,
-                       ValueType* __restrict__ c, const size_type c_stride,
-                       Alpha_op alpha_op, sycl::nd_item<3> item_ct1,
-                       uninitialized_array<IndexType, spmv_block_size>& tmp_ind,
-                       uninitialized_array<ValueType, spmv_block_size>& tmp_val)
+template <typename arithmetic_type, typename IndexType,
+          typename output_accessor, typename Alpha_op>
+void merge_path_reduce(
+    const IndexType nwarps, const arithmetic_type* __restrict__ last_val,
+    const IndexType* __restrict__ last_row, acc::range<output_accessor> c,
+    Alpha_op alpha_op, sycl::nd_item<3> item_ct1,
+    uninitialized_array<IndexType, spmv_block_size>& tmp_ind,
+    uninitialized_array<arithmetic_type, spmv_block_size>& tmp_val)
 {
     const IndexType cache_lines = ceildivT<IndexType>(nwarps, spmv_block_size);
     const IndexType tid = item_ct1.get_local_id(2);
     const IndexType start = min(tid * cache_lines, nwarps);
     const IndexType end = min((tid + 1) * cache_lines, nwarps);
-    ValueType value = zero<ValueType>();
+    auto value = zero<arithmetic_type>();
     IndexType row = last_row[nwarps - 1];
     if (start < nwarps) {
         value = last_val[start];
         row = last_row[start];
         for (IndexType i = start + 1; i < end; i++) {
             if (last_row[i] != row) {
-                c[row * c_stride] += alpha_op(value);
+                c(row, 0) += alpha_op(value);
                 row = last_row[i];
                 value = last_val[i];
             } else {
@@ -351,30 +364,30 @@ void merge_path_reduce(const IndexType nwarps,
     tmp_val[item_ct1.get_local_id(2)] = value;
     tmp_ind[item_ct1.get_local_id(2)] = row;
     group::this_thread_block(item_ct1).sync();
-    bool last =
-        block_segment_scan_reverse(static_cast<IndexType*>(tmp_ind),
-                                   static_cast<ValueType*>(tmp_val), item_ct1);
+    bool last = block_segment_scan_reverse(
+        static_cast<IndexType*>(tmp_ind),
+        static_cast<arithmetic_type*>(tmp_val), item_ct1);
     group::this_thread_block(item_ct1).sync();
     if (last) {
-        c[row * c_stride] += alpha_op(tmp_val[item_ct1.get_local_id(2)]);
+        c(row, 0) += alpha_op(tmp_val[item_ct1.get_local_id(2)]);
     }
 }
 
 
-template <int items_per_thread, typename ValueType, typename IndexType,
+template <int items_per_thread, typename matrix_accessor,
+          typename input_accessor, typename output_accessor, typename IndexType,
           typename Alpha_op, typename Beta_op>
-void merge_path_spmv(const IndexType num_rows,
-                     const ValueType* __restrict__ val,
-                     const IndexType* __restrict__ col_idxs,
-                     const IndexType* __restrict__ row_ptrs,
-                     const IndexType* __restrict__ srow,
-                     const ValueType* __restrict__ b, const size_type b_stride,
-                     ValueType* __restrict__ c, const size_type c_stride,
-                     IndexType* __restrict__ row_out,
-                     ValueType* __restrict__ val_out, Alpha_op alpha_op,
-                     Beta_op beta_op, sycl::nd_item<3> item_ct1,
-                     IndexType* shared_row_ptrs)
+void merge_path_spmv(
+    const IndexType num_rows, acc::range<matrix_accessor> val,
+    const IndexType* __restrict__ col_idxs,
+    const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ srow,
+    acc::range<input_accessor> b, acc::range<output_accessor> c,
+    IndexType* __restrict__ row_out,
+    typename output_accessor::arithmetic_type* __restrict__ val_out,
+    Alpha_op alpha_op, Beta_op beta_op, sycl::nd_item<3> item_ct1,
+    IndexType* shared_row_ptrs)
 {
+    using arithmetic_type = typename output_accessor::arithmetic_type;
     const auto* row_end_ptrs = row_ptrs + 1;
     const auto nnz = row_ptrs[num_rows];
     const IndexType num_merge_items = num_rows + nnz;
@@ -409,26 +422,25 @@ void merge_path_spmv(const IndexType num_rows,
 
     IndexType ind = block_start_y + start_y;
     IndexType row_i = block_start_x + start_x;
-    ValueType value = zero<ValueType>();
+    auto value = zero<arithmetic_type>();
 #pragma unroll
     for (IndexType i = 0; i < items_per_thread; i++) {
         if (row_i < num_rows) {
             if (start_x == block_num_rows || ind < shared_row_ptrs[start_x]) {
-                value += val[ind] * b[col_idxs[ind] * b_stride];
+                value += val(ind) * b(col_idxs[ind], 0);
                 ind++;
             } else {
-                c[row_i * c_stride] =
-                    alpha_op(value) + beta_op(c[row_i * c_stride]);
+                c(row_i, 0) = alpha_op(value) + beta_op(c(row_i, 0));
                 start_x++;
                 row_i++;
-                value = zero<ValueType>();
+                value = zero<arithmetic_type>();
             }
         }
     }
     group::this_thread_block(item_ct1).sync();
     IndexType* tmp_ind = shared_row_ptrs;
-    ValueType* tmp_val =
-        reinterpret_cast<ValueType*>(shared_row_ptrs + spmv_block_size);
+    arithmetic_type* tmp_val =
+        reinterpret_cast<arithmetic_type*>(shared_row_ptrs + spmv_block_size);
     tmp_val[item_ct1.get_local_id(2)] = value;
     tmp_ind[item_ct1.get_local_id(2)] = row_i;
     group::this_thread_block(item_ct1).sync();
@@ -437,83 +449,36 @@ void merge_path_spmv(const IndexType num_rows,
         row_out[item_ct1.get_group(2)] = min(end_x, num_rows - 1);
         val_out[item_ct1.get_group(2)] = tmp_val[item_ct1.get_local_id(2)];
     } else if (last) {
-        c[row_i * c_stride] += alpha_op(tmp_val[item_ct1.get_local_id(2)]);
+        c(row_i, 0) += alpha_op(tmp_val[item_ct1.get_local_id(2)]);
     }
 }
 
-template <int items_per_thread, typename ValueType, typename IndexType>
+template <int items_per_thread, typename matrix_accessor,
+          typename input_accessor, typename output_accessor, typename IndexType>
 void abstract_merge_path_spmv(
-    const IndexType num_rows, const ValueType* __restrict__ val,
+    const IndexType num_rows, acc::range<matrix_accessor> val,
     const IndexType* __restrict__ col_idxs,
     const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ srow,
-    const ValueType* __restrict__ b, const size_type b_stride,
-    ValueType* __restrict__ c, const size_type c_stride,
-    IndexType* __restrict__ row_out, ValueType* __restrict__ val_out,
+    acc::range<input_accessor> b, acc::range<output_accessor> c,
+    IndexType* __restrict__ row_out,
+    typename output_accessor::arithmetic_type* __restrict__ val_out,
     sycl::nd_item<3> item_ct1, IndexType* shared_row_ptrs)
 {
+    using type = typename output_accessor::arithmetic_type;
     merge_path_spmv<items_per_thread>(
-        num_rows, val, col_idxs, row_ptrs, srow, b, b_stride, c, c_stride,
-        row_out, val_out, [](ValueType& x) { return x; },
-        [](ValueType& x) { return zero<ValueType>(); }, item_ct1,
-        shared_row_ptrs);
+        num_rows, val, col_idxs, row_ptrs, srow, b, c, row_out, val_out,
+        [](const type& x) { return x; },
+        [](const type& x) { return zero<type>(); }, item_ct1, shared_row_ptrs);
 }
 
-template <int items_per_thread, typename ValueType, typename IndexType>
-void abstract_merge_path_spmv(dim3 grid, dim3 block,
-                              size_type dynamic_shared_memory,
-                              sycl::queue* queue, const IndexType num_rows,
-                              const ValueType* val, const IndexType* col_idxs,
-                              const IndexType* row_ptrs, const IndexType* srow,
-                              const ValueType* b, const size_type b_stride,
-                              ValueType* c, const size_type c_stride,
-                              IndexType* row_out, ValueType* val_out)
-{
-    queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<IndexType, 1, sycl::access_mode::read_write,
-                       sycl::access::target::local>
-            shared_row_ptrs_acc_ct1(
-                sycl::range<1>(spmv_block_size * items_per_thread), cgh);
-
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                abstract_merge_path_spmv<items_per_thread>(
-                    num_rows, val, col_idxs, row_ptrs, srow, b, b_stride, c,
-                    c_stride, row_out, val_out, item_ct1,
-                    static_cast<IndexType*>(
-                        shared_row_ptrs_acc_ct1.get_pointer()));
-            });
-    });
-}
-
-
-template <int items_per_thread, typename ValueType, typename IndexType>
-void abstract_merge_path_spmv(
-    const IndexType num_rows, const ValueType* __restrict__ alpha,
-    const ValueType* __restrict__ val, const IndexType* __restrict__ col_idxs,
-    const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ srow,
-    const ValueType* __restrict__ b, const size_type b_stride,
-    const ValueType* __restrict__ beta, ValueType* __restrict__ c,
-    const size_type c_stride, IndexType* __restrict__ row_out,
-    ValueType* __restrict__ val_out, sycl::nd_item<3> item_ct1,
-    IndexType* shared_row_ptrs)
-{
-    const auto alpha_val = alpha[0];
-    const auto beta_val = beta[0];
-    merge_path_spmv<items_per_thread>(
-        num_rows, val, col_idxs, row_ptrs, srow, b, b_stride, c, c_stride,
-        row_out, val_out, [&alpha_val](ValueType& x) { return alpha_val * x; },
-        [&beta_val](ValueType& x) { return beta_val * x; }, item_ct1,
-        shared_row_ptrs);
-}
-
-template <int items_per_thread, typename ValueType, typename IndexType>
+template <int items_per_thread, typename matrix_accessor,
+          typename input_accessor, typename output_accessor, typename IndexType>
 void abstract_merge_path_spmv(
     dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
-    const IndexType num_rows, const ValueType* alpha, const ValueType* val,
+    const IndexType num_rows, acc::range<matrix_accessor> val,
     const IndexType* col_idxs, const IndexType* row_ptrs, const IndexType* srow,
-    const ValueType* b, const size_type b_stride, const ValueType* beta,
-    ValueType* c, const size_type c_stride, IndexType* row_out,
-    ValueType* val_out)
+    acc::range<input_accessor> b, acc::range<output_accessor> c,
+    IndexType* row_out, typename output_accessor::arithmetic_type* val_out)
 {
     queue->submit([&](sycl::handler& cgh) {
         sycl::accessor<IndexType, 1, sycl::access_mode::read_write,
@@ -521,113 +486,171 @@ void abstract_merge_path_spmv(
             shared_row_ptrs_acc_ct1(
                 sycl::range<1>(spmv_block_size * items_per_thread), cgh);
 
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1) {
+                             abstract_merge_path_spmv<items_per_thread>(
+                                 num_rows, val, col_idxs, row_ptrs, srow, b, c,
+                                 row_out, val_out, item_ct1,
+                                 static_cast<IndexType*>(
+                                     shared_row_ptrs_acc_ct1.get_pointer()));
+                         });
+    });
+}
+
+
+template <int items_per_thread, typename matrix_accessor,
+          typename input_accessor, typename output_accessor, typename IndexType>
+void abstract_merge_path_spmv(
+    const IndexType num_rows,
+    const typename matrix_accessor::storage_type* __restrict__ alpha,
+    acc::range<matrix_accessor> val, const IndexType* __restrict__ col_idxs,
+    const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ srow,
+    acc::range<input_accessor> b,
+    const typename output_accessor::storage_type* __restrict__ beta,
+    acc::range<output_accessor> c, IndexType* __restrict__ row_out,
+    typename output_accessor::arithmetic_type* __restrict__ val_out,
+    sycl::nd_item<3> item_ct1, IndexType* shared_row_ptrs)
+{
+    using type = typename output_accessor::arithmetic_type;
+    const type alpha_val = alpha[0];
+    const type beta_val = beta[0];
+    merge_path_spmv<items_per_thread>(
+        num_rows, val, col_idxs, row_ptrs, srow, b, c, row_out, val_out,
+        [&alpha_val](const type& x) { return alpha_val * x; },
+        [&beta_val](const type& x) { return beta_val * x; }, item_ct1,
+        shared_row_ptrs);
+}
+
+template <int items_per_thread, typename matrix_accessor,
+          typename input_accessor, typename output_accessor, typename IndexType>
+void abstract_merge_path_spmv(
+    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
+    const IndexType num_rows,
+    const typename matrix_accessor::storage_type* alpha,
+    acc::range<matrix_accessor> val, const IndexType* col_idxs,
+    const IndexType* row_ptrs, const IndexType* srow,
+    acc::range<input_accessor> b,
+    const typename output_accessor::storage_type* beta,
+    acc::range<output_accessor> c, IndexType* row_out,
+    typename output_accessor::arithmetic_type* val_out)
+{
+    queue->submit([&](sycl::handler& cgh) {
+        sycl::accessor<IndexType, 1, sycl::access_mode::read_write,
+                       sycl::access::target::local>
+            shared_row_ptrs_acc_ct1(
+                sycl::range<1>(spmv_block_size * items_per_thread), cgh);
+
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1) {
+                             abstract_merge_path_spmv<items_per_thread>(
+                                 num_rows, alpha, val, col_idxs, row_ptrs, srow,
+                                 b, beta, c, row_out, val_out, item_ct1,
+                                 static_cast<IndexType*>(
+                                     shared_row_ptrs_acc_ct1.get_pointer()));
+                         });
+    });
+}
+
+
+template <typename arithmetic_type, typename IndexType,
+          typename output_accessor>
+void abstract_reduce(
+    const IndexType nwarps, const arithmetic_type* __restrict__ last_val,
+    const IndexType* __restrict__ last_row, acc::range<output_accessor> c,
+    sycl::nd_item<3> item_ct1,
+    uninitialized_array<IndexType, spmv_block_size>& tmp_ind,
+    uninitialized_array<arithmetic_type, spmv_block_size>& tmp_val)
+{
+    merge_path_reduce(
+        nwarps, last_val, last_row, c,
+        [](const arithmetic_type& x) { return x; }, item_ct1, tmp_ind, tmp_val);
+}
+
+template <typename arithmetic_type, typename IndexType,
+          typename output_accessor>
+void abstract_reduce(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                     sycl::queue* queue, const IndexType nwarps,
+                     const arithmetic_type* __restrict__ last_val,
+                     const IndexType* __restrict__ last_row,
+                     acc::range<output_accessor> c)
+{
+    queue->submit([&](sycl::handler& cgh) {
+        sycl::accessor<uninitialized_array<IndexType, spmv_block_size>, 0,
+                       sycl::access_mode::read_write,
+                       sycl::access::target::local>
+            tmp_ind_acc_ct1(cgh);
+        sycl::accessor<uninitialized_array<arithmetic_type, spmv_block_size>, 0,
+                       sycl::access_mode::read_write,
+                       sycl::access::target::local>
+            tmp_val_acc_ct1(cgh);
+
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                abstract_merge_path_spmv<items_per_thread>(
-                    num_rows, alpha, val, col_idxs, row_ptrs, srow, b, b_stride,
-                    beta, c, c_stride, row_out, val_out, item_ct1,
-                    static_cast<IndexType*>(
-                        shared_row_ptrs_acc_ct1.get_pointer()));
+                abstract_reduce(nwarps, last_val, last_row, c, item_ct1,
+                                *tmp_ind_acc_ct1.get_pointer(),
+                                *tmp_val_acc_ct1.get_pointer());
             });
     });
 }
 
 
-template <typename ValueType, typename IndexType>
-void abstract_reduce(const IndexType nwarps,
-                     const ValueType* __restrict__ last_val,
-                     const IndexType* __restrict__ last_row,
-                     ValueType* __restrict__ c, const size_type c_stride,
-                     sycl::nd_item<3> item_ct1,
-                     uninitialized_array<IndexType, spmv_block_size>& tmp_ind,
-                     uninitialized_array<ValueType, spmv_block_size>& tmp_val)
+template <typename arithmetic_type, typename MatrixValueType,
+          typename IndexType, typename output_accessor>
+void abstract_reduce(
+    const IndexType nwarps, const arithmetic_type* __restrict__ last_val,
+    const IndexType* __restrict__ last_row,
+    const MatrixValueType* __restrict__ alpha, acc::range<output_accessor> c,
+    sycl::nd_item<3> item_ct1,
+    uninitialized_array<IndexType, spmv_block_size>& tmp_ind,
+    uninitialized_array<arithmetic_type, spmv_block_size>& tmp_val)
 {
+    const arithmetic_type alpha_val = alpha[0];
     merge_path_reduce(
-        nwarps, last_val, last_row, c, c_stride, [](ValueType& x) { return x; },
+        nwarps, last_val, last_row, c,
+        [&alpha_val](const arithmetic_type& x) { return alpha_val * x; },
         item_ct1, tmp_ind, tmp_val);
 }
 
-template <typename ValueType, typename IndexType>
+template <typename arithmetic_type, typename MatrixValueType,
+          typename IndexType, typename output_accessor>
 void abstract_reduce(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                      sycl::queue* queue, const IndexType nwarps,
-                     const ValueType* last_val, const IndexType* last_row,
-                     ValueType* c, const size_type c_stride)
+                     const arithmetic_type* last_val, const IndexType* last_row,
+                     const MatrixValueType* alpha,
+                     acc::range<output_accessor> c)
 {
     queue->submit([&](sycl::handler& cgh) {
         sycl::accessor<uninitialized_array<IndexType, spmv_block_size>, 0,
                        sycl::access_mode::read_write,
                        sycl::access::target::local>
             tmp_ind_acc_ct1(cgh);
-        sycl::accessor<uninitialized_array<ValueType, spmv_block_size>, 0,
+        sycl::accessor<uninitialized_array<arithmetic_type, spmv_block_size>, 0,
                        sycl::access_mode::read_write,
                        sycl::access::target::local>
             tmp_val_acc_ct1(cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                abstract_reduce(nwarps, last_val, last_row, c, c_stride,
-                                item_ct1, *tmp_ind_acc_ct1.get_pointer(),
+                abstract_reduce(nwarps, last_val, last_row, alpha, c, item_ct1,
+                                *tmp_ind_acc_ct1.get_pointer(),
                                 *tmp_val_acc_ct1.get_pointer());
             });
     });
 }
 
 
-template <typename ValueType, typename IndexType>
-void abstract_reduce(const IndexType nwarps,
-                     const ValueType* __restrict__ last_val,
-                     const IndexType* __restrict__ last_row,
-                     const ValueType* __restrict__ alpha,
-                     ValueType* __restrict__ c, const size_type c_stride,
-                     sycl::nd_item<3> item_ct1,
-                     uninitialized_array<IndexType, spmv_block_size>& tmp_ind,
-                     uninitialized_array<ValueType, spmv_block_size>& tmp_val)
-{
-    const auto alpha_val = alpha[0];
-    merge_path_reduce(
-        nwarps, last_val, last_row, c, c_stride,
-        [&alpha_val](ValueType& x) { return alpha_val * x; }, item_ct1, tmp_ind,
-        tmp_val);
-}
-
-template <typename ValueType, typename IndexType>
-void abstract_reduce(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                     sycl::queue* queue, const IndexType nwarps,
-                     const ValueType* last_val, const IndexType* last_row,
-                     const ValueType* alpha, ValueType* c,
-                     const size_type c_stride)
-{
-    queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<uninitialized_array<IndexType, spmv_block_size>, 0,
-                       sycl::access_mode::read_write,
-                       sycl::access::target::local>
-            tmp_ind_acc_ct1(cgh);
-        sycl::accessor<uninitialized_array<ValueType, spmv_block_size>, 0,
-                       sycl::access_mode::read_write,
-                       sycl::access::target::local>
-            tmp_val_acc_ct1(cgh);
-
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                abstract_reduce(nwarps, last_val, last_row, alpha, c, c_stride,
-                                item_ct1, *tmp_ind_acc_ct1.get_pointer(),
-                                *tmp_val_acc_ct1.get_pointer());
-            });
-    });
-}
-
-
-template <size_type subgroup_size, typename ValueType, typename IndexType,
+template <size_type subgroup_size, typename matrix_accessor,
+          typename input_accessor, typename output_accessor, typename IndexType,
           typename Closure>
 void device_classical_spmv(const size_type num_rows,
-                           const ValueType* __restrict__ val,
+                           acc::range<matrix_accessor> val,
                            const IndexType* __restrict__ col_idxs,
                            const IndexType* __restrict__ row_ptrs,
-                           const ValueType* __restrict__ b,
-                           const size_type b_stride, ValueType* __restrict__ c,
-                           const size_type c_stride, Closure scale,
+                           acc::range<input_accessor> b,
+                           acc::range<output_accessor> c, Closure scale,
                            sycl::nd_item<3> item_ct1)
 {
+    using arithmetic_type = typename output_accessor::arithmetic_type;
     auto subgroup_tile = group::tiled_partition<subgroup_size>(
         group::this_thread_block(item_ct1));
     const auto subrow = thread::get_subwarp_num_flat<subgroup_size>(item_ct1);
@@ -636,109 +659,112 @@ void device_classical_spmv(const size_type num_rows,
     auto row = thread::get_subwarp_id_flat<subgroup_size>(item_ct1);
     for (; row < num_rows; row += subrow) {
         const auto ind_end = row_ptrs[row + 1];
-        ValueType temp_val = zero<ValueType>();
+        auto temp_val = zero<arithmetic_type>();
         for (auto ind = row_ptrs[row] + subid; ind < ind_end;
              ind += subgroup_size) {
-            temp_val += val[ind] * b[col_idxs[ind] * b_stride + column_id];
+            temp_val += val(ind) * b(col_idxs[ind], column_id);
         }
         auto subgroup_result = ::gko::kernels::dpcpp::reduce(
             subgroup_tile, temp_val,
-            [](const ValueType& a, const ValueType& b) { return a + b; });
+            [](const arithmetic_type& a, const arithmetic_type& b) {
+                return a + b;
+            });
         // TODO: check the barrier
         subgroup_tile.sync();
         if (subid == 0) {
-            c[row * c_stride + column_id] =
-                scale(subgroup_result, c[row * c_stride + column_id]);
+            c(row, column_id) = scale(subgroup_result, c(row, column_id));
         }
     }
 }
 
 
-template <size_type subgroup_size, typename ValueType, typename IndexType>
-void abstract_classical_spmv(
-    const size_type num_rows, const ValueType* __restrict__ val,
-    const IndexType* __restrict__ col_idxs,
-    const IndexType* __restrict__ row_ptrs, const ValueType* __restrict__ b,
-    const size_type b_stride, ValueType* __restrict__ c,
-    const size_type c_stride, sycl::nd_item<3> item_ct1)
+template <size_type subgroup_size, typename matrix_accessor,
+          typename input_accessor, typename output_accessor, typename IndexType>
+void abstract_classical_spmv(const size_type num_rows,
+                             acc::range<matrix_accessor> val,
+                             const IndexType* __restrict__ col_idxs,
+                             const IndexType* __restrict__ row_ptrs,
+                             acc::range<input_accessor> b,
+                             acc::range<output_accessor> c,
+                             sycl::nd_item<3> item_ct1)
 {
+    using type = typename output_accessor::arithmetic_type;
     device_classical_spmv<subgroup_size>(
-        num_rows, val, col_idxs, row_ptrs, b, b_stride, c, c_stride,
-        [](const ValueType& x, const ValueType& y) { return x; }, item_ct1);
+        num_rows, val, col_idxs, row_ptrs, b, c,
+        [](const type& x, const type& y) { return x; }, item_ct1);
 }
 
-template <size_type subgroup_size, typename ValueType, typename IndexType>
-void abstract_classical_spmv(dim3 grid, dim3 block,
-                             size_type dynamic_shared_memory,
-                             sycl::queue* queue, const size_type num_rows,
-                             const ValueType* val, const IndexType* col_idxs,
-                             const IndexType* row_ptrs, const ValueType* b,
-                             const size_type b_stride, ValueType* c,
-                             const size_type c_stride)
+template <size_type subgroup_size, typename matrix_accessor,
+          typename input_accessor, typename output_accessor, typename IndexType>
+void abstract_classical_spmv(
+    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
+    const size_type num_rows, acc::range<matrix_accessor> val,
+    const IndexType* col_idxs, const IndexType* row_ptrs,
+    acc::range<input_accessor> b, acc::range<output_accessor> c)
 {
     if (subgroup_size > 1) {
         queue->submit([&](sycl::handler& cgh) {
-            cgh.parallel_for(
-                sycl_nd_range(grid, block), [=
-            ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                                subgroup_size)]] {
-                    abstract_classical_spmv<subgroup_size>(
-                        num_rows, val, col_idxs, row_ptrs, b, b_stride, c,
-                        c_stride, item_ct1);
-                });
+            cgh.parallel_for(sycl_nd_range(grid, block),
+                             [=](sycl::nd_item<3> item_ct1)
+                                 [[sycl::reqd_sub_group_size(subgroup_size)]] {
+                                     abstract_classical_spmv<subgroup_size>(
+                                         num_rows, val, col_idxs, row_ptrs, b,
+                                         c, item_ct1);
+                                 });
         });
     } else {
         queue->submit([&](sycl::handler& cgh) {
-            cgh.parallel_for(sycl_nd_range(grid, block),
-                             [=](sycl::nd_item<3> item_ct1) {
-                                 abstract_classical_spmv<subgroup_size>(
-                                     num_rows, val, col_idxs, row_ptrs, b,
-                                     b_stride, c, c_stride, item_ct1);
-                             });
+            cgh.parallel_for(
+                sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                    abstract_classical_spmv<subgroup_size>(
+                        num_rows, val, col_idxs, row_ptrs, b, c, item_ct1);
+                });
         });
     }
 }
 
 
-template <size_type subgroup_size, typename ValueType, typename IndexType>
+template <size_type subgroup_size, typename matrix_accessor,
+          typename input_accessor, typename output_accessor, typename IndexType>
 void abstract_classical_spmv(
-    const size_type num_rows, const ValueType* __restrict__ alpha,
-    const ValueType* __restrict__ val, const IndexType* __restrict__ col_idxs,
-    const IndexType* __restrict__ row_ptrs, const ValueType* __restrict__ b,
-    const size_type b_stride, const ValueType* __restrict__ beta,
-    ValueType* __restrict__ c, const size_type c_stride,
-    sycl::nd_item<3> item_ct1)
+    const size_type num_rows,
+    const typename matrix_accessor::storage_type* __restrict__ alpha,
+    acc::range<matrix_accessor> val, const IndexType* __restrict__ col_idxs,
+    const IndexType* __restrict__ row_ptrs, acc::range<input_accessor> b,
+    const typename output_accessor::storage_type* __restrict__ beta,
+    acc::range<output_accessor> c, sycl::nd_item<3> item_ct1)
 {
-    const auto alpha_val = alpha[0];
-    const auto beta_val = beta[0];
+    using type = typename output_accessor::arithmetic_type;
+    const type alpha_val = alpha[0];
+    const type beta_val = beta[0];
     device_classical_spmv<subgroup_size>(
-        num_rows, val, col_idxs, row_ptrs, b, b_stride, c, c_stride,
-        [&alpha_val, &beta_val](const ValueType& x, const ValueType& y) {
+        num_rows, val, col_idxs, row_ptrs, b, c,
+        [&alpha_val, &beta_val](const type& x, const type& y) {
             return alpha_val * x + beta_val * y;
         },
         item_ct1);
 }
 
-template <size_type subgroup_size, typename ValueType, typename IndexType>
-void abstract_classical_spmv(dim3 grid, dim3 block,
-                             size_type dynamic_shared_memory,
-                             sycl::queue* queue, const size_type num_rows,
-                             const ValueType* alpha, const ValueType* val,
-                             const IndexType* col_idxs,
-                             const IndexType* row_ptrs, const ValueType* b,
-                             const size_type b_stride, const ValueType* beta,
-                             ValueType* c, const size_type c_stride)
+template <size_type subgroup_size, typename matrix_accessor,
+          typename input_accessor, typename output_accessor, typename IndexType>
+void abstract_classical_spmv(
+    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
+    const size_type num_rows,
+    const typename matrix_accessor::storage_type* alpha,
+    acc::range<matrix_accessor> val, const IndexType* col_idxs,
+    const IndexType* row_ptrs, acc::range<input_accessor> b,
+    const typename output_accessor::storage_type* beta,
+    acc::range<output_accessor> c)
 {
     if (subgroup_size > 1) {
         queue->submit([&](sycl::handler& cgh) {
-            cgh.parallel_for(
-                sycl_nd_range(grid, block), [=
-            ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                                subgroup_size)]] {
-                    abstract_classical_spmv<subgroup_size>(
-                        num_rows, alpha, val, col_idxs, row_ptrs, b, b_stride,
-                        beta, c, c_stride, item_ct1);
-                });
+            cgh.parallel_for(sycl_nd_range(grid, block),
+                             [=](sycl::nd_item<3> item_ct1)
+                                 [[sycl::reqd_sub_group_size(subgroup_size)]] {
+                                     abstract_classical_spmv<subgroup_size>(
+                                         num_rows, alpha, val, col_idxs,
+                                         row_ptrs, b, beta, c, item_ct1);
+                                 });
         });
     } else {
         queue->submit([&](sycl::handler& cgh) {
@@ -746,7 +772,7 @@ void abstract_classical_spmv(dim3 grid, dim3 block,
                              [=](sycl::nd_item<3> item_ct1) {
                                  abstract_classical_spmv<subgroup_size>(
                                      num_rows, alpha, val, col_idxs, row_ptrs,
-                                     b, b_stride, beta, c, c_stride, item_ct1);
+                                     b, beta, c, item_ct1);
                              });
         });
     }
@@ -1029,53 +1055,67 @@ void inv_symm_permute_kernel(dim3 grid, dim3 block,
 namespace host_kernel {
 
 
-template <int items_per_thread, typename ValueType, typename IndexType>
+template <int items_per_thread, typename MatrixValueType,
+          typename InputValueType, typename OutputValueType, typename IndexType>
 void merge_path_spmv(syn::value_list<int, items_per_thread>,
                      std::shared_ptr<const DpcppExecutor> exec,
-                     const matrix::Csr<ValueType, IndexType>* a,
-                     const matrix::Dense<ValueType>* b,
-                     matrix::Dense<ValueType>* c,
-                     const matrix::Dense<ValueType>* alpha = nullptr,
-                     const matrix::Dense<ValueType>* beta = nullptr)
+                     const matrix::Csr<MatrixValueType, IndexType>* a,
+                     const matrix::Dense<InputValueType>* b,
+                     matrix::Dense<OutputValueType>* c,
+                     const matrix::Dense<MatrixValueType>* alpha = nullptr,
+                     const matrix::Dense<OutputValueType>* beta = nullptr)
 {
+    using arithmetic_type =
+        highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     const IndexType total = a->get_size()[0] + a->get_num_stored_elements();
     const IndexType grid_num =
         ceildiv(total, spmv_block_size * items_per_thread);
-    const dim3 grid(grid_num);
-    const dim3 block(spmv_block_size);
+    const dim3 grid = grid_num;
+    const dim3 block = spmv_block_size;
+    // TODO: workspace?
     array<IndexType> row_out(exec, grid_num);
-    array<ValueType> val_out(exec, grid_num);
+    // TODO: should we store the value in arithmetic_type or output_type?
+    array<arithmetic_type> val_out(exec, grid_num);
+
+    const auto a_vals =
+        acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
 
     for (IndexType column_id = 0; column_id < b->get_size()[1]; column_id++) {
+        const auto column_span =
+            acc::index_span(static_cast<acc::size_type>(column_id),
+                            static_cast<acc::size_type>(column_id + 1));
+        const auto b_vals =
+            acc::helper::build_const_rrm_accessor<arithmetic_type>(b,
+                                                                   column_span);
+        auto c_vals =
+            acc::helper::build_rrm_accessor<arithmetic_type>(c, column_span);
         if (alpha == nullptr && beta == nullptr) {
-            const auto b_vals = b->get_const_values() + column_id;
-            auto c_vals = c->get_values() + column_id;
-            kernel::abstract_merge_path_spmv<items_per_thread>(
-                grid, block, 0, exec->get_queue(),
-                static_cast<IndexType>(a->get_size()[0]), a->get_const_values(),
-                a->get_const_col_idxs(), a->get_const_row_ptrs(),
-                a->get_const_srow(), b_vals, b->get_stride(), c_vals,
-                c->get_stride(), row_out.get_data(), val_out.get_data());
-            kernel::abstract_reduce(1, spmv_block_size, 0, exec->get_queue(),
-                                    grid_num, val_out.get_data(),
-                                    row_out.get_data(), c_vals,
-                                    c->get_stride());
+            if (grid_num > 0) {
+                csr::kernel::abstract_merge_path_spmv<items_per_thread>(
+                    grid, block, 0, exec->get_queue(),
+                    static_cast<IndexType>(a->get_size()[0]), a_vals,
+                    a->get_const_col_idxs(), a->get_const_row_ptrs(),
+                    a->get_const_srow(), b_vals, c_vals, row_out.get_data(),
+                    val_out.get_data());
+            }
+            csr::kernel::abstract_reduce(
+                1, spmv_block_size, 0, exec->get_queue(), grid_num,
+                val_out.get_data(), row_out.get_data(), c_vals);
 
         } else if (alpha != nullptr && beta != nullptr) {
-            const auto b_vals = b->get_const_values() + column_id;
-            auto c_vals = c->get_values() + column_id;
-            kernel::abstract_merge_path_spmv<items_per_thread>(
-                grid, block, 0, exec->get_queue(),
-                static_cast<IndexType>(a->get_size()[0]),
-                alpha->get_const_values(), a->get_const_values(),
-                a->get_const_col_idxs(), a->get_const_row_ptrs(),
-                a->get_const_srow(), b_vals, b->get_stride(),
-                beta->get_const_values(), c_vals, c->get_stride(),
-                row_out.get_data(), val_out.get_data());
-            kernel::abstract_reduce(
-                1, spmv_block_size, 0, exec->get_queue(), grid_num,
-                val_out.get_data(), row_out.get_data(),
-                alpha->get_const_values(), c_vals, c->get_stride());
+            if (grid_num > 0) {
+                csr::kernel::abstract_merge_path_spmv<items_per_thread>(
+                    grid, block, 0, exec->get_queue(),
+                    static_cast<IndexType>(a->get_size()[0]),
+                    alpha->get_const_values(), a_vals, a->get_const_col_idxs(),
+                    a->get_const_row_ptrs(), a->get_const_srow(), b_vals,
+                    beta->get_const_values(), c_vals, row_out.get_data(),
+                    val_out.get_data());
+            }
+            csr::kernel::abstract_reduce(1, spmv_block_size, 0,
+                                         exec->get_queue(), grid_num,
+                                         val_out.get_data(), row_out.get_data(),
+                                         alpha->get_const_values(), c_vals);
         } else {
             GKO_KERNEL_NOT_FOUND;
         }
@@ -1099,18 +1139,21 @@ int compute_items_per_thread(std::shared_ptr<const DpcppExecutor> exec)
 }
 
 
-template <int subgroup_size, typename ValueType, typename IndexType>
+template <int subgroup_size, typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
 void classical_spmv(syn::value_list<int, subgroup_size>,
                     std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* a,
-                    const matrix::Dense<ValueType>* b,
-                    matrix::Dense<ValueType>* c,
-                    const matrix::Dense<ValueType>* alpha = nullptr,
-                    const matrix::Dense<ValueType>* beta = nullptr)
+                    const matrix::Csr<MatrixValueType, IndexType>* a,
+                    const matrix::Dense<InputValueType>* b,
+                    matrix::Dense<OutputValueType>* c,
+                    const matrix::Dense<MatrixValueType>* alpha = nullptr,
+                    const matrix::Dense<OutputValueType>* beta = nullptr)
 {
-    constexpr int threads_per_cu = 7;
+    using arithmetic_type =
+        highest_precision<InputValueType, OutputValueType, MatrixValueType>;
+
     const auto num_subgroup =
-        exec->get_num_computing_units() * threads_per_cu * classical_overweight;
+        exec->get_num_subgroups() * classical_oversubscription;
     const auto nsg_in_group = spmv_block_size / subgroup_size;
     const auto gridx =
         std::min(ceildiv(a->get_size()[0], spmv_block_size / subgroup_size),
@@ -1118,19 +1161,26 @@ void classical_spmv(syn::value_list<int, subgroup_size>,
     const dim3 grid(gridx, b->get_size()[1]);
     const dim3 block(spmv_block_size);
 
+    const auto a_vals =
+        acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
+    const auto b_vals =
+        acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
+    auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
     if (alpha == nullptr && beta == nullptr) {
-        kernel::abstract_classical_spmv<subgroup_size>(
-            grid, block, 0, exec->get_queue(), a->get_size()[0],
-            a->get_const_values(), a->get_const_col_idxs(),
-            a->get_const_row_ptrs(), b->get_const_values(), b->get_stride(),
-            c->get_values(), c->get_stride());
+        if (grid.x > 0 && grid.y > 0) {
+            kernel::abstract_classical_spmv<subgroup_size>(
+                grid, block, 0, exec->get_queue(), a->get_size()[0], a_vals,
+                a->get_const_col_idxs(), a->get_const_row_ptrs(), b_vals,
+                c_vals);
+        }
     } else if (alpha != nullptr && beta != nullptr) {
-        kernel::abstract_classical_spmv<subgroup_size>(
-            grid, block, 0, exec->get_queue(), a->get_size()[0],
-            alpha->get_const_values(), a->get_const_values(),
-            a->get_const_col_idxs(), a->get_const_row_ptrs(),
-            b->get_const_values(), b->get_stride(), beta->get_const_values(),
-            c->get_values(), c->get_stride());
+        if (grid.x > 0 && grid.y > 0) {
+            kernel::abstract_classical_spmv<subgroup_size>(
+                grid, block, 0, exec->get_queue(), a->get_size()[0],
+                alpha->get_const_values(), a_vals, a->get_const_col_idxs(),
+                a->get_const_row_ptrs(), b_vals, beta->get_const_values(),
+                c_vals);
+        }
     } else {
         GKO_KERNEL_NOT_FOUND;
     }
@@ -1139,13 +1189,137 @@ void classical_spmv(syn::value_list<int, subgroup_size>,
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_classical_spmv, classical_spmv);
 
 
-}  // namespace host_kernel
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
+void load_balance_spmv(std::shared_ptr<const DpcppExecutor> exec,
+                       const matrix::Csr<MatrixValueType, IndexType>* a,
+                       const matrix::Dense<InputValueType>* b,
+                       matrix::Dense<OutputValueType>* c,
+                       const matrix::Dense<MatrixValueType>* alpha = nullptr,
+                       const matrix::Dense<OutputValueType>* beta = nullptr)
+{
+    using arithmetic_type =
+        highest_precision<InputValueType, OutputValueType, MatrixValueType>;
+
+    if (beta) {
+        dense::scale(exec, beta, c);
+    } else {
+        dense::fill(exec, c, zero<OutputValueType>());
+    }
+    const IndexType nwarps = a->get_num_srow_elements();
+    if (nwarps > 0) {
+        const dim3 csr_block(config::warp_size, warps_in_block, 1);
+        const dim3 csr_grid(ceildiv(nwarps, warps_in_block), b->get_size()[1]);
+        const auto a_vals =
+            acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
+        const auto b_vals =
+            acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
+        auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
+        if (alpha) {
+            if (csr_grid.x > 0 && csr_grid.y > 0) {
+                csr::kernel::abstract_spmv(
+                    csr_grid, csr_block, 0, exec->get_queue(), nwarps,
+                    static_cast<IndexType>(a->get_size()[0]),
+                    alpha->get_const_values(), a_vals, a->get_const_col_idxs(),
+                    a->get_const_row_ptrs(), a->get_const_srow(), b_vals,
+                    c_vals);
+            }
+        } else {
+            if (csr_grid.x > 0 && csr_grid.y > 0) {
+                csr::kernel::abstract_spmv(
+                    csr_grid, csr_block, 0, exec->get_queue(), nwarps,
+                    static_cast<IndexType>(a->get_size()[0]), a_vals,
+                    a->get_const_col_idxs(), a->get_const_row_ptrs(),
+                    a->get_const_srow(), b_vals, c_vals);
+            }
+        }
+    }
+}
 
 
 template <typename ValueType, typename IndexType>
+bool try_general_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
+                                const ValueType host_alpha,
+                                const matrix::Csr<ValueType, IndexType>* a,
+                                const matrix::Dense<ValueType>* b,
+                                const ValueType host_beta,
+                                matrix::Dense<ValueType>* c)
+{
+    bool try_sparselib = !is_complex<ValueType>();
+    if (try_sparselib) {
+        oneapi::mkl::sparse::matrix_handle_t mat_handle;
+        oneapi::mkl::sparse::init_matrix_handle(&mat_handle);
+        oneapi::mkl::sparse::set_csr_data(
+            mat_handle, IndexType(a->get_size()[0]),
+            IndexType(a->get_size()[1]), oneapi::mkl::index_base::zero,
+            const_cast<IndexType*>(a->get_const_row_ptrs()),
+            const_cast<IndexType*>(a->get_const_col_idxs()),
+            const_cast<ValueType*>(a->get_const_values()));
+        if (b->get_size()[1] == 1 && b->get_stride() == 1) {
+            oneapi::mkl::sparse::gemv(
+                *exec->get_queue(), oneapi::mkl::transpose::nontrans,
+                host_alpha, mat_handle,
+                const_cast<ValueType*>(b->get_const_values()), host_beta,
+                c->get_values());
+        } else {
+            oneapi::mkl::sparse::gemm(
+                *exec->get_queue(), oneapi::mkl::layout::row_major,
+                oneapi::mkl::transpose::nontrans,
+                oneapi::mkl::transpose::nontrans, host_alpha, mat_handle,
+                const_cast<ValueType*>(b->get_const_values()), b->get_size()[1],
+                b->get_stride(), host_beta, c->get_values(), c->get_stride());
+        }
+        oneapi::mkl::sparse::release_matrix_handle(&mat_handle);
+    }
+    return try_sparselib;
+}
+
+
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType,
+          typename = std::enable_if_t<
+              !std::is_same<MatrixValueType, InputValueType>::value ||
+              !std::is_same<MatrixValueType, OutputValueType>::value>>
+bool try_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
+                        const matrix::Csr<MatrixValueType, IndexType>* a,
+                        const matrix::Dense<InputValueType>* b,
+                        matrix::Dense<OutputValueType>* c,
+                        const matrix::Dense<MatrixValueType>* alpha = nullptr,
+                        const matrix::Dense<OutputValueType>* beta = nullptr)
+{
+    // TODO: support sparselib mixed
+    return false;
+}
+
+template <typename ValueType, typename IndexType>
+bool try_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
+                        const matrix::Csr<ValueType, IndexType>* a,
+                        const matrix::Dense<ValueType>* b,
+                        matrix::Dense<ValueType>* c,
+                        const matrix::Dense<ValueType>* alpha = nullptr,
+                        const matrix::Dense<ValueType>* beta = nullptr)
+{
+    // onemkl only supports host scalar
+    if (alpha) {
+        return try_general_sparselib_spmv(
+            exec, exec->copy_val_to_host(alpha->get_const_values()), a, b,
+            exec->copy_val_to_host(beta->get_const_values()), c);
+    } else {
+        return try_general_sparselib_spmv(exec, one<ValueType>(), a, b,
+                                          zero<ValueType>(), c);
+    }
+}
+
+
+}  // namespace host_kernel
+
+
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const DpcppExecutor> exec,
-          const matrix::Csr<ValueType, IndexType>* a,
-          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+          const matrix::Csr<MatrixValueType, IndexType>* a,
+          const matrix::Dense<InputValueType>* b,
+          matrix::Dense<OutputValueType>* c)
 {
     if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
         // empty output: nothing to do
@@ -1153,97 +1327,68 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
     }
     if (b->get_size()[0] == 0 || a->get_num_stored_elements() == 0) {
         // empty input: zero output
-        dense::fill(exec, c, zero<ValueType>());
+        dense::fill(exec, c, zero<OutputValueType>());
         return;
     }
     if (a->get_strategy()->get_name() == "load_balance") {
-        dense::fill(exec, c, zero<ValueType>());
-        const IndexType nwarps = a->get_num_srow_elements();
-        if (nwarps > 0) {
-            const dim3 csr_block(config::warp_size, warps_in_block, 1);
-            const dim3 csr_grid(ceildiv(nwarps, warps_in_block),
-                                b->get_size()[1]);
-            kernel::abstract_spmv(
-                csr_grid, csr_block, 0, exec->get_queue(), nwarps,
-                static_cast<IndexType>(a->get_size()[0]), a->get_const_values(),
-                a->get_const_col_idxs(), a->get_const_row_ptrs(),
-                a->get_const_srow(), b->get_const_values(), b->get_stride(),
-                c->get_values(), c->get_stride());
-        }
+        host_kernel::load_balance_spmv(exec, a, b, c);
     } else if (a->get_strategy()->get_name() == "merge_path") {
+        using arithmetic_type =
+            highest_precision<InputValueType, OutputValueType, MatrixValueType>;
         int items_per_thread =
-            host_kernel::compute_items_per_thread<ValueType, IndexType>(exec);
+            host_kernel::compute_items_per_thread<arithmetic_type, IndexType>(
+                exec);
         host_kernel::select_merge_path_spmv(
             compiled_kernels(),
             [&items_per_thread](int compiled_info) {
                 return items_per_thread == compiled_info;
             },
             syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
-    } else if (a->get_strategy()->get_name() == "classical") {
-        IndexType max_length_per_row = 0;
-        using Tcsr = matrix::Csr<ValueType, IndexType>;
-        if (auto strategy =
-                std::dynamic_pointer_cast<const typename Tcsr::classical>(
-                    a->get_strategy())) {
-            max_length_per_row = strategy->get_max_length_per_row();
-        } else if (auto strategy = std::dynamic_pointer_cast<
-                       const typename Tcsr::automatical>(a->get_strategy())) {
-            max_length_per_row = strategy->get_max_length_per_row();
-        } else {
-            GKO_NOT_SUPPORTED(a->get_strategy());
-        }
-        max_length_per_row = std::max<size_type>(max_length_per_row, 1);
-        host_kernel::select_classical_spmv(
-            classical_kernels(),
-            [&max_length_per_row](int compiled_info) {
-                return max_length_per_row >= compiled_info;
-            },
-            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
-    } else if (a->get_strategy()->get_name() == "sparselib" ||
-               a->get_strategy()->get_name() == "cusparse") {
-        if (!is_complex<ValueType>()) {
-            oneapi::mkl::sparse::matrix_handle_t mat_handle;
-            oneapi::mkl::sparse::init_matrix_handle(&mat_handle);
-            oneapi::mkl::sparse::set_csr_data(
-                mat_handle, IndexType(a->get_size()[0]),
-                IndexType(a->get_size()[1]), oneapi::mkl::index_base::zero,
-                const_cast<IndexType*>(a->get_const_row_ptrs()),
-                const_cast<IndexType*>(a->get_const_col_idxs()),
-                const_cast<ValueType*>(a->get_const_values()));
-            if (b->get_size()[1] == 1 && b->get_stride() == 1) {
-                oneapi::mkl::sparse::gemv(
-                    *exec->get_queue(), oneapi::mkl::transpose::nontrans,
-                    one<ValueType>(), mat_handle,
-                    const_cast<ValueType*>(b->get_const_values()),
-                    zero<ValueType>(), c->get_values());
-            } else {
-                oneapi::mkl::sparse::gemm(
-                    *exec->get_queue(), oneapi::mkl::layout::row_major,
-                    oneapi::mkl::transpose::nontrans,
-                    oneapi::mkl::transpose::nontrans, one<ValueType>(),
-                    mat_handle, const_cast<ValueType*>(b->get_const_values()),
-                    b->get_size()[1], b->get_stride(), zero<ValueType>(),
-                    c->get_values(), c->get_stride());
-            }
-            oneapi::mkl::sparse::release_matrix_handle(&mat_handle);
-        } else {
-            GKO_NOT_IMPLEMENTED;
-        }
     } else {
-        GKO_NOT_IMPLEMENTED;
+        bool use_classical = true;
+        if (a->get_strategy()->get_name() == "sparselib" ||
+            a->get_strategy()->get_name() == "cusparse") {
+            use_classical = !host_kernel::try_sparselib_spmv(exec, a, b, c);
+        }
+        if (use_classical) {
+            IndexType max_length_per_row = 0;
+            using Tcsr = matrix::Csr<MatrixValueType, IndexType>;
+            if (auto strategy =
+                    std::dynamic_pointer_cast<const typename Tcsr::classical>(
+                        a->get_strategy())) {
+                max_length_per_row = strategy->get_max_length_per_row();
+            } else if (auto strategy = std::dynamic_pointer_cast<
+                           const typename Tcsr::automatical>(
+                           a->get_strategy())) {
+                max_length_per_row = strategy->get_max_length_per_row();
+            } else {
+                // as a fall-back: use average row length, at least 1
+                max_length_per_row = a->get_num_stored_elements() /
+                                     std::max<size_type>(a->get_size()[0], 1);
+            }
+            max_length_per_row = std::max<size_type>(max_length_per_row, 1);
+            host_kernel::select_classical_spmv(
+                classical_kernels(),
+                [&max_length_per_row](int compiled_info) {
+                    return max_length_per_row >= compiled_info;
+                },
+                syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
+        }
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPMV_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_SPMV_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
-                   const matrix::Dense<ValueType>* alpha,
-                   const matrix::Csr<ValueType, IndexType>* a,
-                   const matrix::Dense<ValueType>* b,
-                   const matrix::Dense<ValueType>* beta,
-                   matrix::Dense<ValueType>* c)
+                   const matrix::Dense<MatrixValueType>* alpha,
+                   const matrix::Csr<MatrixValueType, IndexType>* a,
+                   const matrix::Dense<InputValueType>* b,
+                   const matrix::Dense<OutputValueType>* beta,
+                   matrix::Dense<OutputValueType>* c)
 {
     if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
         // empty output: nothing to do
@@ -1255,79 +1400,13 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
         return;
     }
     if (a->get_strategy()->get_name() == "load_balance") {
-        dense::scale(exec, beta, c);
-
-        const IndexType nwarps = a->get_num_srow_elements();
-
-        if (nwarps > 0) {
-            const dim3 csr_block(config::warp_size, warps_in_block, 1);
-            const dim3 csr_grid(ceildiv(nwarps, warps_in_block),
-                                b->get_size()[1]);
-            kernel::abstract_spmv(
-                csr_grid, csr_block, 0, exec->get_queue(), nwarps,
-                static_cast<IndexType>(a->get_size()[0]),
-                alpha->get_const_values(), a->get_const_values(),
-                a->get_const_col_idxs(), a->get_const_row_ptrs(),
-                a->get_const_srow(), b->get_const_values(), b->get_stride(),
-                c->get_values(), c->get_stride());
-        }
-    } else if (a->get_strategy()->get_name() == "sparselib" ||
-               a->get_strategy()->get_name() == "cusparse") {
-        if (!is_complex<ValueType>()) {
-            oneapi::mkl::sparse::matrix_handle_t mat_handle;
-            oneapi::mkl::sparse::init_matrix_handle(&mat_handle);
-            oneapi::mkl::sparse::set_csr_data(
-                mat_handle, IndexType(a->get_size()[0]),
-                IndexType(a->get_size()[1]), oneapi::mkl::index_base::zero,
-                const_cast<IndexType*>(a->get_const_row_ptrs()),
-                const_cast<IndexType*>(a->get_const_col_idxs()),
-                const_cast<ValueType*>(a->get_const_values()));
-            if (b->get_size()[1] == 1 && b->get_stride() == 1) {
-                oneapi::mkl::sparse::gemv(
-                    *exec->get_queue(), oneapi::mkl::transpose::nontrans,
-                    exec->copy_val_to_host(alpha->get_const_values()),
-                    mat_handle, const_cast<ValueType*>(b->get_const_values()),
-                    exec->copy_val_to_host(beta->get_const_values()),
-                    c->get_values());
-            } else {
-                oneapi::mkl::sparse::gemm(
-                    *exec->get_queue(), oneapi::mkl::layout::row_major,
-                    oneapi::mkl::transpose::nontrans,
-                    oneapi::mkl::transpose::nontrans,
-                    exec->copy_val_to_host(alpha->get_const_values()),
-                    mat_handle, const_cast<ValueType*>(b->get_const_values()),
-                    b->get_size()[1], b->get_stride(),
-                    exec->copy_val_to_host(beta->get_const_values()),
-                    c->get_values(), c->get_stride());
-            }
-            oneapi::mkl::sparse::release_matrix_handle(&mat_handle);
-        } else {
-            GKO_NOT_IMPLEMENTED;
-        }
-    } else if (a->get_strategy()->get_name() == "classical") {
-        IndexType max_length_per_row = 0;
-        using Tcsr = matrix::Csr<ValueType, IndexType>;
-        if (auto strategy =
-                std::dynamic_pointer_cast<const typename Tcsr::classical>(
-                    a->get_strategy())) {
-            max_length_per_row = strategy->get_max_length_per_row();
-        } else if (auto strategy = std::dynamic_pointer_cast<
-                       const typename Tcsr::automatical>(a->get_strategy())) {
-            max_length_per_row = strategy->get_max_length_per_row();
-        } else {
-            GKO_NOT_SUPPORTED(a->get_strategy());
-        }
-        max_length_per_row = std::max<size_type>(max_length_per_row, 1);
-        host_kernel::select_classical_spmv(
-            classical_kernels(),
-            [&max_length_per_row](int compiled_info) {
-                return max_length_per_row >= compiled_info;
-            },
-            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c, alpha,
-            beta);
+        host_kernel::load_balance_spmv(exec, a, b, c, alpha, beta);
     } else if (a->get_strategy()->get_name() == "merge_path") {
+        using arithmetic_type =
+            highest_precision<InputValueType, OutputValueType, MatrixValueType>;
         int items_per_thread =
-            host_kernel::compute_items_per_thread<ValueType, IndexType>(exec);
+            host_kernel::compute_items_per_thread<arithmetic_type, IndexType>(
+                exec);
         host_kernel::select_merge_path_spmv(
             compiled_kernels(),
             [&items_per_thread](int compiled_info) {
@@ -1336,11 +1415,41 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
             syn::value_list<int>(), syn::type_list<>(), exec, a, b, c, alpha,
             beta);
     } else {
-        GKO_NOT_IMPLEMENTED;
+        bool use_classical = true;
+        if (a->get_strategy()->get_name() == "sparselib" ||
+            a->get_strategy()->get_name() == "cusparse") {
+            use_classical =
+                !host_kernel::try_sparselib_spmv(exec, a, b, c, alpha, beta);
+        }
+        if (use_classical) {
+            IndexType max_length_per_row = 0;
+            using Tcsr = matrix::Csr<MatrixValueType, IndexType>;
+            if (auto strategy =
+                    std::dynamic_pointer_cast<const typename Tcsr::classical>(
+                        a->get_strategy())) {
+                max_length_per_row = strategy->get_max_length_per_row();
+            } else if (auto strategy = std::dynamic_pointer_cast<
+                           const typename Tcsr::automatical>(
+                           a->get_strategy())) {
+                max_length_per_row = strategy->get_max_length_per_row();
+            } else {
+                // as a fall-back: use average row length, at least 1
+                max_length_per_row = a->get_num_stored_elements() /
+                                     std::max<size_type>(a->get_size()[0], 1);
+            }
+            max_length_per_row = std::max<size_type>(max_length_per_row, 1);
+            host_kernel::select_classical_spmv(
+                classical_kernels(),
+                [&max_length_per_row](int compiled_info) {
+                    return max_length_per_row >= compiled_info;
+                },
+                syn::value_list<int>(), syn::type_list<>(), exec, a, b, c,
+                alpha, beta);
+        }
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
 
 
@@ -1698,7 +1807,7 @@ void spgemm(std::shared_ptr<const DpcppExecutor> exec,
     });
 
     // build row pointers
-    components::prefix_sum(exec, c_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, c_row_ptrs, num_rows + 1);
 
     // second sweep: accumulate non-zeros
     const auto new_nnz = exec->copy_val_to_host(c_row_ptrs + num_rows);
@@ -1796,7 +1905,7 @@ void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
     });
 
     // build row pointers
-    components::prefix_sum(exec, c_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, c_row_ptrs, num_rows + 1);
 
     // second sweep: accumulate non-zeros
     const auto new_nnz = exec->copy_val_to_host(c_row_ptrs + num_rows);
@@ -1907,7 +2016,7 @@ void spgeam(std::shared_ptr<const DpcppExecutor> exec,
         });
     });
 
-    components::prefix_sum(exec, c_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, c_row_ptrs, num_rows + 1);
 
     // second sweep: accumulate non-zeros
     const auto new_nnz = exec->copy_val_to_host(c_row_ptrs + num_rows);
@@ -2017,7 +2126,7 @@ void generic_transpose(std::shared_ptr<const DpcppExecutor> exec,
         });
     });
 
-    components::prefix_sum(exec, tmp_counts, num_cols + 1);
+    components::prefix_sum_nonnegative(exec, tmp_counts, num_cols + 1);
     exec->copy(num_cols + 1, tmp_counts, out_row_ptrs);
 
     queue->submit([&](sycl::handler& cgh) {
@@ -2072,7 +2181,8 @@ void inv_symm_permute(std::shared_ptr<const DpcppExecutor> exec,
     inv_row_ptr_permute_kernel(
         count_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
         perm, orig->get_const_row_ptrs(), permuted->get_row_ptrs());
-    components::prefix_sum(exec, permuted->get_row_ptrs(), num_rows + 1);
+    components::prefix_sum_nonnegative(exec, permuted->get_row_ptrs(),
+                                       num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
     inv_symm_permute_kernel<config::warp_size>(
@@ -2097,7 +2207,8 @@ void row_permute(std::shared_ptr<const DpcppExecutor> exec,
     row_ptr_permute_kernel(
         count_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
         perm, orig->get_const_row_ptrs(), row_permuted->get_row_ptrs());
-    components::prefix_sum(exec, row_permuted->get_row_ptrs(), num_rows + 1);
+    components::prefix_sum_nonnegative(exec, row_permuted->get_row_ptrs(),
+                                       num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
     row_permute_kernel<config::warp_size>(
@@ -2122,7 +2233,8 @@ void inverse_row_permute(std::shared_ptr<const DpcppExecutor> exec,
     inv_row_ptr_permute_kernel(
         count_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
         perm, orig->get_const_row_ptrs(), row_permuted->get_row_ptrs());
-    components::prefix_sum(exec, row_permuted->get_row_ptrs(), num_rows + 1);
+    components::prefix_sum_nonnegative(exec, row_permuted->get_row_ptrs(),
+                                       num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
     inv_row_permute_kernel<config::warp_size>(

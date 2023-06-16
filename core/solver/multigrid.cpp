@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,9 +43,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
+#include <ginkgo/core/factorization/lu.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/solver/direct.hpp>
+#include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
+#include <ginkgo/core/stop/residual_norm.hpp>
 
 
 #include "core/base/dispatch_helper.hpp"
@@ -137,6 +142,15 @@ void handle_list(
     std::complex<double> relaxation_factor)
 {
     auto list_size = smoother_list.size();
+    auto gen_default_smoother = [&] {
+        auto exec = matrix->get_executor();
+        return share(build_smoother(preconditioner::Jacobi<ValueType>::build()
+                                        .with_max_block_size(1u)
+                                        .on(exec),
+                                    iteration,
+                                    casting<ValueType>(relaxation_factor))
+                         ->generate(matrix));
+    };
     if (list_size != 0) {
         auto temp_index = list_size == 1 ? 0 : index;
         GKO_ENSURE_IN_BOUNDS(temp_index, list_size);
@@ -145,17 +159,10 @@ void handle_list(
             smoother.emplace_back(nullptr);
         } else {
             auto solver = item->generate(matrix);
-            if (solver->apply_uses_initial_guess() == true) {
-                smoother.emplace_back(give(solver));
-            } else {
-                auto ir = build_smoother<ValueType>(
-                    give(solver), iteration,
-                    casting<ValueType>(relaxation_factor));
-                smoother.emplace_back(give(ir->generate(matrix)));
-            }
+            smoother.emplace_back(give(solver));
         }
     } else {
-        smoother.emplace_back(nullptr);
+        smoother.emplace_back(gen_default_smoother());
     }
 }
 
@@ -428,10 +435,10 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     // TODO: if already computes the residual outside, the first level may not
     // need this residual computation when no presmoother in the first level.
     r->copy_from(b);  // n * b
-    matrix->apply(neg_one, x, one, r.get());
+    matrix->apply(neg_one, x, one, r);
 
     // first cycle
-    mg_level->get_restrict_op()->apply(r.get(), g.get());
+    mg_level->get_restrict_op()->apply(r, g);
     // next level
     if (level + 1 == total_level) {
         // the coarsest solver use the last level valuetype
@@ -462,7 +469,7 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
         }
     }
     // prolong
-    mg_level->get_prolong_op()->apply(next_one, e.get(), next_one, x);
+    mg_level->get_prolong_op()->apply(next_one, e, next_one, x);
 
     // end or origin previous
     bool use_post = has_property(mode, cycle_mode::end_of_cycle) ||
@@ -498,7 +505,7 @@ void Multigrid::generate()
     // Always generate smoother with size = level.
     while (level < parameters_.max_levels &&
            num_rows > parameters_.min_coarse_rows) {
-        auto index = level_selector_(level, lend(matrix));
+        auto index = level_selector_(level, matrix.get());
         GKO_ENSURE_IN_BOUNDS(index, parameters_.mg_level.size());
         auto mg_level_factory = parameters_.mg_level.at(index);
         // coarse generate
@@ -554,17 +561,51 @@ void Multigrid::generate()
             using value_type =
                 typename std::decay_t<decltype(*mg_level)>::value_type;
             auto exec = this->get_executor();
+            // default coarse grid solver, direct LU
+            // TODO: maybe remove fixed index type
+            auto gen_default_solver = [&]() -> std::unique_ptr<LinOp> {
+                // TODO: unify when dpcpp supports direct solver
+                if (dynamic_cast<const DpcppExecutor*>(exec.get())) {
+                    using absolute_value_type = remove_complex<value_type>;
+                    return solver::Gmres<value_type>::build()
+                        .with_criteria(
+                            stop::Iteration::build()
+                                .with_max_iters(matrix->get_size()[0])
+                                .on(exec),
+                            stop::ResidualNorm<value_type>::build()
+                                .with_reduction_factor(
+                                    std::numeric_limits<
+                                        absolute_value_type>::epsilon() *
+                                    absolute_value_type{10})
+                                .on(exec))
+                        .with_krylov_dim(
+                            std::min(size_type(100), matrix->get_size()[0]))
+                        .with_preconditioner(
+                            preconditioner::Jacobi<value_type>::build()
+                                .with_max_block_size(1u)
+                                .on(exec))
+                        .on(exec)
+                        ->generate(matrix);
+                } else {
+                    return experimental::solver::Direct<value_type,
+                                                        int32>::build()
+                        .with_factorization(
+                            experimental::factorization::Lu<value_type,
+                                                            int32>::build()
+                                .on(exec))
+                        .on(exec)
+                        ->generate(matrix);
+                }
+            };
             if (parameters_.coarsest_solver.size() == 0) {
-                coarsest_solver_ = matrix::Identity<value_type>::create(
-                    exec, matrix->get_size()[0]);
+                coarsest_solver_ = gen_default_solver();
             } else {
-                auto temp_index = solver_selector_(level, lend(matrix));
+                auto temp_index = solver_selector_(level, matrix.get());
                 GKO_ENSURE_IN_BOUNDS(temp_index,
                                      parameters_.coarsest_solver.size());
                 auto solver = parameters_.coarsest_solver.at(temp_index);
                 if (solver == nullptr) {
-                    coarsest_solver_ = matrix::Identity<value_type>::create(
-                        exec, matrix->get_size()[0]);
+                    coarsest_solver_ = gen_default_solver();
                 } else {
                     coarsest_solver_ = solver->generate(matrix);
                 }
@@ -576,7 +617,8 @@ void Multigrid::generate()
 
 void Multigrid::apply_impl(const LinOp* b, LinOp* x) const
 {
-    this->apply_with_initial_guess(b, x, this->get_default_initial_guess());
+    this->apply_with_initial_guess_impl(b, x,
+                                        this->get_default_initial_guess());
 }
 
 
@@ -607,8 +649,8 @@ void Multigrid::apply_with_initial_guess_impl(const LinOp* b, LinOp* x,
 void Multigrid::apply_impl(const LinOp* alpha, const LinOp* b,
                            const LinOp* beta, LinOp* x) const
 {
-    this->apply_with_initial_guess(alpha, b, beta, x,
-                                   this->get_default_initial_guess());
+    this->apply_with_initial_guess_impl(alpha, b, beta, x,
+                                        this->get_default_initial_guess());
 }
 
 
@@ -632,7 +674,7 @@ void Multigrid::apply_with_initial_guess_impl(const LinOp* alpha,
                 auto x_clone = dense_x->clone();
                 this->apply_dense_impl(dense_b, x_clone.get(), guess);
                 dense_x->scale(dense_beta);
-                dense_x->add_scaled(dense_alpha, x_clone.get());
+                dense_x->add_scaled(dense_alpha, x_clone);
             },
             alpha, b, beta, x);
     };
@@ -674,9 +716,8 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
 
         while (true) {
             ++iter;
-            this->template log<log::Logger::iteration_complete>(this, iter,
-                                                                nullptr, x);
-            if (stop_criterion->update()
+            bool all_stopped =
+                stop_criterion->update()
                     .num_iterations(iter)
                     // TODO: combine the out-of-cycle residual computation
                     // currently, the residual will computed additionally in
@@ -684,7 +725,11 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
                     // residual check.
                     .solution(x)
                     .check(RelativeStoppingId, true, &stop_status,
-                           &one_changed)) {
+                           &one_changed);
+            this->template log<log::Logger::iteration_complete>(
+                this, b, x, iter, nullptr, nullptr, nullptr, &stop_status,
+                all_stopped);
+            if (all_stopped) {
                 break;
             }
             auto mode = multigrid::cycle_mode::first_of_cycle |
@@ -754,6 +799,52 @@ void Multigrid::create_state() const
         cache_.state = std::make_unique<multigrid::detail::MultigridState>();
     }
 }
+
+
+Multigrid::Multigrid(const Multigrid::Factory* factory,
+                     std::shared_ptr<const LinOp> system_matrix)
+    : EnableLinOp<Multigrid>(factory->get_executor(),
+                             transpose(system_matrix->get_size())),
+      EnableSolverBase<Multigrid>{std::move(system_matrix)},
+      EnableIterativeBase<Multigrid>{
+          stop::combine(factory->get_parameters().criteria)},
+      parameters_{factory->get_parameters()}
+{
+    if (!parameters_.level_selector) {
+        if (parameters_.mg_level.size() == 1) {
+            level_selector_ = [](const size_type, const LinOp*) {
+                return size_type{0};
+            };
+        } else if (parameters_.mg_level.size() > 1) {
+            level_selector_ = [](const size_type level, const LinOp*) {
+                return level;
+            };
+        }
+    } else {
+        level_selector_ = parameters_.level_selector;
+    }
+    if (!parameters_.solver_selector) {
+        if (parameters_.coarsest_solver.size() >= 1) {
+            solver_selector_ = [](const size_type, const LinOp*) {
+                return size_type{0};
+            };
+        }
+    } else {
+        solver_selector_ = parameters_.solver_selector;
+    }
+
+    this->validate();
+    this->set_default_initial_guess(parameters_.default_initial_guess);
+    if (this->get_system_matrix()->get_size()[0] != 0) {
+        // generate on the existed matrix
+        this->generate();
+    }
+}
+
+
+Multigrid::Multigrid(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<Multigrid>(exec)
+{}
 
 
 int workspace_traits<Multigrid>::num_arrays(const Solver&) { return 1; }

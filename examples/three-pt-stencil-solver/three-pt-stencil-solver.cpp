@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -228,7 +228,7 @@ void solve_system(const std::string& executor_string,
     auto solver = solver_gen->generate(gko::give(matrix));
 
     // Solve system
-    solver->apply(gko::lend(b), gko::lend(x));
+    solver->apply(b, x);
 }
 
 

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -99,6 +99,8 @@ class Vector
 public:
     using EnableDistributedLinOp<Vector>::convert_to;
     using EnableDistributedLinOp<Vector>::move_to;
+    using ConvertibleTo<Vector<next_precision<ValueType>>>::convert_to;
+    using ConvertibleTo<Vector<next_precision<ValueType>>>::move_to;
 
     using value_type = ValueType;
     using absolute_type = remove_complex<Vector>;
@@ -112,14 +114,39 @@ public:
      *
      * @param other  The other vector whose configuration needs to copied.
      */
-    static std::unique_ptr<Vector> create_with_config_of(const Vector* other)
-    {
-        // De-referencing `other` before calling the functions (instead of
-        // using operator `->`) is currently required to be compatible with
-        // CUDA 10.1.
-        // Otherwise, it results in a compile error.
-        return (*other).create_with_same_config();
-    }
+    static std::unique_ptr<Vector> create_with_config_of(
+        ptr_param<const Vector> other);
+
+
+    /**
+     * Creates an empty Vector with the same type as another Vector, but on a
+     * different executor.
+     *
+     * @param other  The other multi-vector whose type we target.
+     * @param exec  The executor of the new multi-vector.
+     *
+     * @note  The new multi-vector uses the same communicator as other.
+     *
+     * @returns an empty Vector with the type of other.
+     */
+    static std::unique_ptr<Vector> create_with_type_of(
+        ptr_param<const Vector> other, std::shared_ptr<const Executor> exec);
+
+    /**
+     * Creates an Vector with the same type as another Vector, but on a
+     * different executor and with a different size.
+     *
+     * @param other  The other multi-vector whose type we target.
+     * @param exec  The executor of the new multi-vector.
+     * @param global_size  The global size of the multi-vector.
+     * @param local_size  The local size of the multi-vector.
+     * @param stride  The stride of the new multi-vector.
+     *
+     * @returns a Vector of specified size with the type of other.
+     */
+    static std::unique_ptr<Vector> create_with_type_of(
+        ptr_param<const Vector> other, std::shared_ptr<const Executor> exec,
+        const dim<2>& global_size, const dim<2>& local_size, size_type stride);
 
     /**
      * Reads a vector from the device_matrix_data structure and a global row
@@ -135,10 +162,14 @@ public:
      * @param data  The device_matrix_data structure
      * @param partition  The global row partition
      */
-    template <typename LocalIndexType, typename GlobalIndexType>
-    void read_distributed(
-        const device_matrix_data<ValueType, GlobalIndexType>& data,
-        const Partition<LocalIndexType, GlobalIndexType>* partition);
+    void read_distributed(const device_matrix_data<ValueType, int64>& data,
+                          ptr_param<const Partition<int64, int64>> partition);
+
+    void read_distributed(const device_matrix_data<ValueType, int64>& data,
+                          ptr_param<const Partition<int32, int64>> partition);
+
+    void read_distributed(const device_matrix_data<ValueType, int32>& data,
+                          ptr_param<const Partition<int32, int32>> partition);
 
     /**
      * Reads a vector from the matrix_data structure and a global row
@@ -149,10 +180,14 @@ public:
      * @note For efficiency it is advised to use the device_matrix_data
      * overload.
      */
-    template <typename LocalIndexType, typename GlobalIndexType>
-    void read_distributed(
-        const matrix_data<ValueType, GlobalIndexType>& data,
-        const Partition<LocalIndexType, GlobalIndexType>* partition);
+    void read_distributed(const matrix_data<ValueType, int64>& data,
+                          ptr_param<const Partition<int64, int64>> partition);
+
+    void read_distributed(const matrix_data<ValueType, int64>& data,
+                          ptr_param<const Partition<int32, int64>> partition);
+
+    void read_distributed(const matrix_data<ValueType, int32>& data,
+                          ptr_param<const Partition<int32, int32>> partition);
 
     void convert_to(Vector<next_precision<ValueType>>* result) const override;
 
@@ -173,7 +208,7 @@ public:
      * If the original vectors were real, the imaginary part of the result will
      * be zero.
      */
-    void make_complex(complex_type* result) const;
+    void make_complex(ptr_param<complex_type> result) const;
 
     /**
      * Creates new real vectors and extracts the real part of the original
@@ -184,7 +219,7 @@ public:
     /**
      * Extracts the real part of the original vectors into given real vectors.
      */
-    void get_real(real_type* result) const;
+    void get_real(ptr_param<real_type> result) const;
 
     /**
      * Creates new real vectors and extracts the imaginary part of the
@@ -196,7 +231,7 @@ public:
      * Extracts the imaginary part of the original vectors into given real
      * vectors.
      */
-    void get_imag(real_type* result) const;
+    void get_imag(ptr_param<real_type> result) const;
 
     /**
      * Fill the distributed vectors with a given value.
@@ -214,7 +249,7 @@ public:
      *               element of alpha (the number of columns of alpha has to
      *               match the number of vectors).
      */
-    void scale(const LinOp* alpha);
+    void scale(ptr_param<const LinOp> alpha);
 
     /**
      * Scales the vectors with the inverse of a scalar.
@@ -225,7 +260,7 @@ public:
      *               of the i-th element of alpha (the number of columns of
      *               alpha has to match the number of vectors).
      */
-    void inv_scale(const LinOp* alpha);
+    void inv_scale(ptr_param<const LinOp> alpha);
 
     /**
      * Adds `b` scaled by `alpha` to the vectors (aka: BLAS axpy).
@@ -236,7 +271,7 @@ public:
      * columns of alpha has to match the number of vectors).
      * @param b  a (multi-)vector of the same dimension as this
      */
-    void add_scaled(const LinOp* alpha, const LinOp* b);
+    void add_scaled(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b);
 
     /**
      * Subtracts `b` scaled by `alpha` from the vectors (aka: BLAS axpy).
@@ -246,7 +281,7 @@ public:
      * vector of b is scaled with the i-th element of alpha (the number of c
      * @param b  a (multi-)vector of the same dimension as this
      */
-    void sub_scaled(const LinOp* alpha, const LinOp* b);
+    void sub_scaled(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b);
 
     /**
      * Computes the column-wise dot product of this (multi-)vector and `b` using
@@ -257,7 +292,7 @@ public:
      *                (the number of column in result must match the number
      *                of columns of this)
      */
-    void compute_dot(const LinOp* b, LinOp* result) const;
+    void compute_dot(ptr_param<const LinOp> b, ptr_param<LinOp> result) const;
 
     /**
      * Computes the column-wise dot product of this (multi-)vector and `b` using
@@ -271,7 +306,8 @@ public:
      *             reduction computation. It may be resized and/or reset to the
      *             correct executor.
      */
-    void compute_dot(const LinOp* b, LinOp* result, array<char>& tmp) const;
+    void compute_dot(ptr_param<const LinOp> b, ptr_param<LinOp> result,
+                     array<char>& tmp) const;
 
     /**
      * Computes the column-wise dot product of this (multi-)vector and `conj(b)`
@@ -282,7 +318,8 @@ public:
      *                (the number of column in result must match the number
      *                of columns of this)
      */
-    void compute_conj_dot(const LinOp* b, LinOp* result) const;
+    void compute_conj_dot(ptr_param<const LinOp> b,
+                          ptr_param<LinOp> result) const;
 
     /**
      * Computes the column-wise dot product of this (multi-)vector and `conj(b)`
@@ -296,10 +333,33 @@ public:
      *             reduction computation. It may be resized and/or reset to the
      *             correct executor.
      */
-    void compute_conj_dot(const LinOp* b, LinOp* result,
+    void compute_conj_dot(ptr_param<const LinOp> b, ptr_param<LinOp> result,
                           array<char>& tmp) const;
 
     /**
+     * Computes the square of the column-wise Euclidian ($L^2$) norm of this
+     * (multi-)vector using a global reduction.
+     *
+     * @param result  a Dense row vector, used to store the norm
+     *                (the number of columns in the vector must match the number
+     *                of columns of this)
+     */
+    void compute_squared_norm2(ptr_param<LinOp> result) const;
+
+    /**
+     * Computes the square of the column-wise Euclidian ($L^2$) norm of this
+     * (multi-)vector using a global reduction.
+     *
+     * @param result  a Dense row vector, used to store the norm
+     *                (the number of columns in the vector must match the
+     *                number of columns of this)
+     * @param tmp  the temporary storage to use for partial sums during the
+     *             reduction computation. It may be resized and/or reset to the
+     *             correct executor.
+     */
+    void compute_squared_norm2(ptr_param<LinOp> result, array<char>& tmp) const;
+
+    /**
      * Computes the Euclidian (L^2) norm of this (multi-)vector using a global
      * reduction.
      *
@@ -307,7 +367,7 @@ public:
      *                (the number of columns in result must match the number
      *                of columns of this)
      */
-    void compute_norm2(LinOp* result) const;
+    void compute_norm2(ptr_param<LinOp> result) const;
 
     /**
      * Computes the Euclidian (L^2) norm of this (multi-)vector using a global
@@ -320,7 +380,7 @@ public:
      *             reduction computation. It may be resized and/or reset to the
      *             correct executor.
      */
-    void compute_norm2(LinOp* result, array<char>& tmp) const;
+    void compute_norm2(ptr_param<LinOp> result, array<char>& tmp) const;
 
     /**
      * Computes the column-wise (L^1) norm of this (multi-)vector.
@@ -329,7 +389,7 @@ public:
      *                (the number of columns in result must match the number
      *                of columns of this)
      */
-    void compute_norm1(LinOp* result) const;
+    void compute_norm1(ptr_param<LinOp> result) const;
 
     /**
      * Computes the column-wise (L^1) norm of this (multi-)vector using a global
@@ -342,7 +402,7 @@ public:
      *             reduction computation. It may be resized and/or reset to the
      *             correct executor.
      */
-    void compute_norm1(LinOp* result, array<char>& tmp) const;
+    void compute_norm1(ptr_param<LinOp> result, array<char>& tmp) const;
 
     /**
      * Returns a single element of the multi-vector.
@@ -421,6 +481,35 @@ public:
 
     size_type get_stride() const noexcept { return local_.get_stride(); }
 
+    /**
+     * Creates a constant (immutable) distributed Vector from a constant local
+     * vector.
+     *
+     * @param exec  Executor associated with this vector
+     * @param comm  Communicator associated with this vector
+     * @param global_size  The global size of the vector
+     * @param local_vector  The underlying local vector, of which a view is
+     *                      created
+     */
+    static std::unique_ptr<const Vector> create_const(
+        std::shared_ptr<const Executor> exec, mpi::communicator comm,
+        dim<2> global_size,
+        std::unique_ptr<const local_vector_type> local_vector);
+
+    /**
+     * Creates a constant (immutable) distributed Vector from a constant local
+     * vector. The global size will be deduced from the local sizes, which will
+     * incur a collective communication.
+     *
+     * @param exec  Executor associated with this vector
+     * @param comm  Communicator associated with this vector
+     * @param local_vector  The underlying local vector, of which a view is
+     *                      created
+     */
+    static std::unique_ptr<const Vector> create_const(
+        std::shared_ptr<const Executor> exec, mpi::communicator comm,
+        std::unique_ptr<const local_vector_type> local_vector);
+
 protected:
     /**
      * Creates an empty distributed vector with a specified size
@@ -451,8 +540,10 @@ protected:
      * Creates a distributed vector from local vectors with a specified size.
      *
      * @note  The data form the local_vector will be moved into the new
-     *        distributed vector. This means, access to local_vector
-     *        will be invalid after this call.
+     *        distributed vector. You could either move in a std::unique_ptr
+     *        directly, copy a local vector with gko::clone, or create a
+     *        unique non-owining view of a given local vector with
+     *        gko::make_dense_view.
      *
      * @param exec  Executor associated with this vector
      * @param comm  Communicator associated with this vector
@@ -461,7 +552,7 @@ protected:
      *                      into this
      */
     Vector(std::shared_ptr<const Executor> exec, mpi::communicator comm,
-           dim<2> global_size, local_vector_type* local_vector);
+           dim<2> global_size, std::unique_ptr<local_vector_type> local_vector);
 
     /**
      * Creates a distributed vector from local vectors. The global size will
@@ -469,18 +560,25 @@ protected:
      * communication.
      *
      * @note  The data form the local_vector will be moved into the new
-     *        distributed vector. This means, access to local_vector
-     *        will be invalid after this call.
+     *        distributed vector. You could either move in a std::unique_ptr
+     *        directly, copy a local vector with gko::clone, or create a
+     *        unique non-owining view of a given local vector with
+     *        gko::make_dense_view.
      *
      * @param exec  Executor associated with this vector
      * @param comm  Communicator associated with this vector
      * @param local_vector  The underlying local vector, the data will be moved
-     *                      into this
+     *                      into this.
      */
     Vector(std::shared_ptr<const Executor> exec, mpi::communicator comm,
-           local_vector_type* local_vector);
+           std::unique_ptr<local_vector_type> local_vector);
 
     void resize(dim<2> global_size, dim<2> local_size);
+
+    template <typename LocalIndexType, typename GlobalIndexType>
+    void read_distributed_impl(
+        const device_matrix_data<ValueType, GlobalIndexType>& data,
+        const Partition<LocalIndexType, GlobalIndexType>* partition);
 
     void apply_impl(const LinOp*, LinOp*) const override;
 
@@ -493,12 +591,23 @@ protected:
      *
      * @returns a Vector with the same size and stride as the caller.
      */
-    std::unique_ptr<Vector> create_with_same_config() const
-    {
-        return Vector::create(
-            this->get_executor(), this->get_communicator(), this->get_size(),
-            this->get_local_vector()->get_size(), this->get_stride());
-    }
+    virtual std::unique_ptr<Vector> create_with_same_config() const;
+
+    /**
+     * Creates a Vector with the same type as the callers multi-vector.
+     *
+     * @note The new vector will use the same communicator as the caller.
+     *
+     * @param exec  the executor of the new vector.
+     * @param global_size  global_size of the vector.
+     * @param local_size  the size of the local Dense vector.
+     * @param stride  the stride of the local Dense vector.
+     *
+     * @returns a Vector with the same type as the caller.
+     */
+    virtual std::unique_ptr<Vector> create_with_type_of_impl(
+        std::shared_ptr<const Executor> exec, const dim<2>& global_size,
+        const dim<2>& local_size, size_type stride) const;
 
 private:
     local_vector_type local_;

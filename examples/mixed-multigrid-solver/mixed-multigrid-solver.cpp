@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2023, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -101,18 +101,18 @@ int main(int argc, char* argv[])
     }
     auto x = vec::create(exec);
     auto b = vec::create(exec);
-    x->copy_from(host_x.get());
-    b->copy_from(host_b.get());
+    x->copy_from(host_x);
+    b->copy_from(host_b);
 
     // Calculate initial residual by overwriting b
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
     auto initres = gko::initialize<vec>({0.0}, exec);
-    A->apply(lend(one), lend(x), lend(neg_one), lend(b));
-    b->compute_norm2(lend(initres));
+    A->apply(one, x, neg_one, b);
+    b->compute_norm2(initres);
 
     // copy b again
-    b->copy_from(host_b.get());
+    b->copy_from(host_b);
 
     // Prepare the stopping criteria
     const gko::remove_complex<ValueType> tolerance = 1e-12;
@@ -122,11 +122,6 @@ int main(int argc, char* argv[])
                                    .with_baseline(gko::stop::mode::absolute)
                                    .with_reduction_factor(tolerance)
                                    .on(exec));
-
-    std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
-        gko::log::Convergence<ValueType>::create();
-    iter_stop->add_logger(logger);
-    tol_stop->add_logger(logger);
 
     // Create smoother factory (ir with bj)
     auto smoother_gen = gko::share(
@@ -206,25 +201,30 @@ int main(int argc, char* argv[])
     gen_time +=
         std::chrono::duration_cast<std::chrono::nanoseconds>(gen_toc - gen_tic);
 
+    // Add logger
+    std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
+        gko::log::Convergence<ValueType>::create();
+    solver->add_logger(logger);
 
     // Solve system
     exec->synchronize();
     std::chrono::nanoseconds time(0);
     auto tic = std::chrono::steady_clock::now();
-    solver->apply(lend(b), lend(x));
+    solver->apply(b, x);
     exec->synchronize();
     auto toc = std::chrono::steady_clock::now();
     time += std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
 
-    // Calculate residual
+    // Calculate residual explicitly, because the residual is not
+    // available inside of the multigrid solver
     auto res = gko::initialize<vec>({0.0}, exec);
-    A->apply(lend(one), lend(x), lend(neg_one), lend(b));
-    b->compute_norm2(lend(res));
+    A->apply(one, x, neg_one, b);
+    b->compute_norm2(res);
 
     std::cout << "Initial residual norm sqrt(r^T r): \n";
-    write(std::cout, lend(initres));
+    write(std::cout, initres);
     std::cout << "Final residual norm sqrt(r^T r): \n";
-    write(std::cout, lend(res));
+    write(std::cout, res);
 
     // Print solver statistics
     std::cout << "Multigrid iteration count:     "
