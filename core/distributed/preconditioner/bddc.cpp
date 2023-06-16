@@ -729,6 +729,13 @@ void Bddc<ValueType, IndexType>::schur_complement_solve()
 
     schur_complement_solver_->apply(rhs.get(), lhs.get());
 
+    std::string phi_name = "PHI_" + std::to_string(comm.rank()) + ".mtx";
+    std::ofstream phi_out{phi_name};
+    gko::write(phi_out, lhs);
+    std::string rhs_name = "RHS_" + std::to_string(comm.rank()) + ".mtx";
+    std::ofstream rhs_out{rhs_name};
+    gko::write(rhs_out, rhs);
+
     phi_ = clone(exec, lhs->create_submatrix(span{0, local_rows_.size()},
                                              span(0, n_cols), n_cols));
     phi_t_ = as<matrix::Dense<ValueType>>(phi_->transpose());
@@ -1083,16 +1090,42 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
     auto comm = global_system_matrix_->get_communicator();
 
     auto part = global_system_matrix_->get_row_partition();
+
     restrict_residual(dense_b);
 
     coarsen_residual();
     coarse_solver_->apply(coarse_residual_.get(), coarse_solution_.get());
+
+    auto one = gko::initialize<gko::matrix::Dense<value_type>>({1.0}, exec);
+    auto neg_one =
+        gko::initialize<gko::matrix::Dense<value_type>>({-1.0}, exec);
+    auto cr = gko::clone(coarse_residual_);
+    global_coarse_matrix_->apply(neg_one, coarse_solution_, one, cr);
+    auto coarse_res_norm = gko::initialize<gko::matrix::Dense<value_type>>(
+        {0.0}, exec->get_master());
+    cr->compute_norm2(coarse_res_norm.get());
+    std::cout << "RANK " << comm.rank()
+              << " COARSE: " << coarse_res_norm->at(0, 0) << std::endl;
 
     prolong_coarse_solution();
 
     local_solution_large_->fill(zero<ValueType>());
     local_solver_->apply(local_residual_large_.get(),
                          local_solution_large_.get());
+
+    auto lr = gko::clone(local_residual_large_);
+    local_system_matrix_->apply(neg_one, local_solution_large_, one, lr);
+    auto local_res_norm = gko::initialize<gko::matrix::Dense<value_type>>(
+        {0.0}, exec->get_master());
+    lr->compute_norm2(local_res_norm.get());
+    std::cout << "RANK " << comm.rank()
+              << " LOCAL: " << local_res_norm->at(0, 0) << std::endl;
+    std::string sol_name = "LOCAL_" + std::to_string(comm.rank()) + ".mtx";
+    std::ofstream sol_stream{sol_name};
+    gko::write(sol_stream, local_solution_large_);
+    std::string res_name = "RES_" + std::to_string(comm.rank()) + ".mtx";
+    std::ofstream res_stream{res_name};
+    gko::write(res_stream, local_residual_large_);
 
     exec->run(bddc::make_finalize1(local_coarse_solution_.get(), weights_.get(),
                                    recv_buffer_to_global_, non_local_to_local_,
@@ -1136,12 +1169,29 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
                                                   inner_residual_.get()));
         inner_solution_->fill(zero<ValueType>());
         inner_solver_->apply(inner_residual_.get(), inner_solution_.get());
+
+        auto ir = gko::clone(inner_residual_);
+        inner_system_matrix_->apply(neg_one, inner_solution_, one, ir);
+        auto inner_res_norm = gko::initialize<gko::matrix::Dense<value_type>>(
+            {0.0}, exec->get_master());
+        ir->compute_norm2(inner_res_norm.get());
+        std::cout << "RANK " << comm.rank()
+                  << " INNER: " << inner_res_norm->at(0, 0) << std::endl;
+
         auto local_vals =
             as<experimental::distributed::Vector<ValueType>>(dense_x)
                 ->get_local_values();
         exec->run(bddc::make_static_condensation2(inner_solution_.get(),
                                                   local_to_inner_, local_vals));
     }
+
+    /*auto nsp = gko::clone(dense_x);
+    nsp->fill(gko::one<ValueType>());
+    auto neg = gko::initialize<gko::matrix::Dense<value_type>>({-1.0}, exec);
+    auto dot = gko::initialize<gko::matrix::Dense<value_type>>({-1.0}, exec);
+    nsp->compute_dot(dense_x, dot);
+    dot->scale(neg);
+    dense_x->add_scaled(dot, nsp);*/
 }
 
 
@@ -1206,6 +1256,10 @@ void Bddc<ValueType, IndexType>::generate()
         initialize<matrix::Dense<ValueType>>({-one<ValueType>()}, exec);
     host_residual_ = matrix::Dense<ValueType>::create(host);
     nonlocal_ = matrix::Dense<ValueType>::create(exec);
+
+    std::string local_name = "RANK_" + std::to_string(comm.rank()) + ".mtx";
+    std::ofstream local_stream{local_name};
+    gko::write(local_stream, local_system_matrix_);
 }
 
 

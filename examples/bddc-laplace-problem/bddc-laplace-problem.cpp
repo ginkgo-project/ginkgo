@@ -552,8 +552,6 @@ int main(int argc, char* argv[])
                 .with_preconditioner(
                     bddc::build()
                         .with_static_condensation(static_condensation == 1)
-                        .with_coarse_solve(coarse_solve == 1)
-                        .with_local_solve(local_solve == 1)
                         .with_interface_dofs(interface_dofs)
                         .with_interface_dof_ranks(interface_dof_ranks)
                         .with_local_solver_factory(local_factory)

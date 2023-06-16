@@ -168,10 +168,10 @@ protected:
         if (parameters_.reordering) {
             auto reordering = gko::as<gko::reorder::Mc64<ValueType, IndexType>>(
                 parameters_.reordering->generate(system_matrix_));
-            row_scaling_ = reordering->get_row_scaling();
-            col_scaling_ = reordering->get_col_scaling();
-            row_scaling_->apply(system_matrix_, system_matrix_);
-            col_scaling_->rapply(system_matrix_, system_matrix_);
+            // row_scaling_ = reordering->get_row_scaling();
+            // col_scaling_ = reordering->get_col_scaling();
+            // row_scaling_->apply(system_matrix_, system_matrix_);
+            // col_scaling_->rapply(system_matrix_, system_matrix_);
             row_permutation_array_ = reordering->get_permutation_array();
             system_matrix_ = as<Permutable<index_type>>(system_matrix_)
                                  ->row_permute(&row_permutation_array_);
