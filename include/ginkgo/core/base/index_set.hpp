@@ -156,9 +156,12 @@ public:
           num_stored_indices_{1}
     {
         GKO_ASSERT(index_space_size_ > 0);
+        array<IndexType> full_indices{exec_->get_master(), indices.length()};
+        for (int i = 0; i < indices.length(); ++i) {
+            full_indices.get_data()[i] = i + indices.begin;
+        }
         this->populate_subsets(
-            array<IndexType>(this->get_executor(),
-                             {indices.begin, indices.end - 1}),
+            array<IndexType>(this->get_executor(), std::move(full_indices)),
             true);
     }
 
@@ -293,6 +296,7 @@ public:
      * Return the actual number of indices stored in the index set
      *
      * @return  number of indices stored in the index set
+     * actually number of intervals???
      */
     index_type get_num_elems() const { return this->num_stored_indices_; };
 
