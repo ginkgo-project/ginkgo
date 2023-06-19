@@ -29,14 +29,46 @@ overloaded(Ts...) -> overloaded<Ts...>;
 
 enum class transformation { set, add };
 
+/**
+ * actually this should be a partition of unity
+ * @tparam IndexType
+ */
 template <typename IndexType>
 struct overlapping_partition {
     using index_type = IndexType;
     using mask_type = uint8;
 
     struct overlap_indices {
-        using blocked = index_set<index_type>;  // can't handle multiple target
-                                                // ids with same index subset
+        struct blocked {
+            blocked(std::vector<span> intervals)
+                : intervals(std::move(intervals)),
+                  num_local_indices(std::accumulate(
+                      this->intervals.begin(), this->intervals.end(), 0,
+                      [](const auto& a, const auto& b) {
+                          return a + b.length();
+                      })),
+                  size(std::max_element(this->intervals.begin(),
+                                        this->intervals.end(),
+                                        [](const auto& a, const auto& b) {
+                                            return a.end < b.end;
+                                        })
+                           ->end)
+            {}
+
+            index_type get_size() const { return size; }
+            index_type get_num_local_indices() const
+            {
+                return num_local_indices;
+            }
+
+            size_type get_num_subsets() const { return intervals.size(); }
+
+            std::vector<span> intervals;  // a single span per target id
+            size_type num_local_indices;
+            index_type size;
+        };
+
+        // ids with same index subset
         using interleaved = std::vector<index_set<index_type>>;
 
         array<comm_index_type> target_ids;
@@ -155,6 +187,10 @@ struct overlapping_partition {
             std::move(target_id), std::move(group_size));
     }
 
+    /**
+     * does the order of target id imply the received order of the blocked
+     * indices?
+     */
     static std::shared_ptr<overlapping_partition> build_from_grouped_recv2(
         std::shared_ptr<const Executor> exec, size_type local_size,
         std::pair<std::vector<index_set<index_type>>, array<comm_index_type>>
@@ -172,15 +208,22 @@ struct overlapping_partition {
                            ->get_size());
         index_set<index_type> local_idxs(exec, gko::span{0, local_size});
 
+        // need to compute partial sum
         auto recv_size = reduce_add(group_size);
         // need to create a subset for each target id
-        index_set<index_type> recv_idxs(
-            exec, gko::span{local_size, local_size + recv_size});
+        // brute force creating index sets until better constructor is available
+        std::vector<span> intervals;
+        auto offset = local_size;
+        for (int gid = 0; gid < group_size.get_num_elems(); ++gid) {
+            auto current_size = group_size.get_const_data()[gid];
+            intervals.emplace_back(offset, offset + current_size);
+            offset += current_size;
+        }
 
         return std::shared_ptr<overlapping_partition>{new overlapping_partition{
             std::move(local_idxs),
             {std::move(send_idxs.second), std::move(send_idxs.first)},
-            {std::move(target_id), std::move(recv_idxs)}}};
+            {std::move(target_id), std::move(intervals)}}};
     }
 
     static std::shared_ptr<overlapping_partition> build_from_arbitrary();
@@ -360,15 +403,11 @@ struct overlapping_vector
                 overloaded{
                     [&](const typename partition_type::overlap_indices::blocked&
                             idxs) {
-                        auto a = make_array_view(host_exec, offsets.size(),
-                                                 offsets.data());
-                        auto b =
-                            gko::detail::array_const_cast(make_const_array_view(
-                                exec, idxs.get_num_subsets() + 1,
-                                idxs.get_superset_indices()));
-                        a = b;
-                        std::adjacent_difference(offsets.begin(), offsets.end(),
-                                                 sizes.begin());
+                        for (int i = 0; i < idxs.intervals.size(); ++i) {
+                            sizes[i + 1] = idxs.intervals[i].length();
+                        }
+                        std::partial_sum(sizes.begin(), sizes.end(),
+                                         offsets.begin());
                     },
                     [&](const typename partition_type::overlap_indices::
                             interleaved& idxs) {
