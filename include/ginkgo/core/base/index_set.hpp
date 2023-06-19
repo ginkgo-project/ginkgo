@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
@@ -146,6 +147,19 @@ public:
     {
         GKO_ASSERT(index_space_size_ >= indices.get_num_elems());
         this->populate_subsets(indices, is_sorted);
+    }
+
+
+    index_set(std::shared_ptr<const Executor> exec, const span& indices)
+        : exec_(std::move(exec)),
+          index_space_size_(indices.end),
+          num_stored_indices_{1}
+    {
+        GKO_ASSERT(index_space_size_ > 0);
+        this->populate_subsets(
+            array<IndexType>(this->get_executor(),
+                             {indices.begin, indices.end - 1}),
+            true);
     }
 
     /**
@@ -281,6 +295,13 @@ public:
      * @return  number of indices stored in the index set
      */
     index_type get_num_elems() const { return this->num_stored_indices_; };
+
+
+    index_type get_num_local_indices() const
+    {
+        return exec_->copy_val_to_host(
+            superset_cumulative_indices_.get_const_data() + get_num_subsets());
+    }
 
     /**
      * Return the global index given a local index.
