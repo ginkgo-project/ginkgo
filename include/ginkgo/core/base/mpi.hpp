@@ -52,6 +52,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <mpi.h>
 
+#include <thread>
+
 
 namespace gko {
 namespace experimental {
@@ -87,10 +89,13 @@ inline constexpr bool is_gpu_aware()
 int map_rank_to_device_id(MPI_Comm comm, int num_devices);
 
 
-#define GKO_REGISTER_MPI_TYPE(input_type, mpi_type)         \
-    template <>                                             \
-    struct type_impl<input_type> {                          \
-        static MPI_Datatype get_type() { return mpi_type; } \
+#define GKO_REGISTER_MPI_TYPE(input_type, mpi_type) \
+    template <>                                     \
+    struct type_impl<input_type> {                  \
+        static MPI_Datatype get_type()              \
+        {                                           \
+            return mpi_type;                        \
+        }                                           \
     }
 
 /**
@@ -419,6 +424,15 @@ inline std::vector<status> wait_all(std::vector<request>& req)
     return stat;
 }
 
+struct progress_thread {
+    explicit progress_thread(MPI_Comm comm);
+
+    ~progress_thread();
+
+    MPI_Comm comm;
+    bool stopped;
+    std::thread t;
+};
 
 /**
  * A thin wrapper of MPI_Comm that supports most MPI calls.
@@ -447,7 +461,9 @@ public:
      * memory
      */
     communicator(const MPI_Comm& comm, bool force_host_buffer = false)
-        : comm_(), force_host_buffer_(force_host_buffer)
+        : comm_(),
+          force_host_buffer_(force_host_buffer),
+          pt_(std::make_shared<progress_thread>(comm))
     {
         this->comm_.reset(new MPI_Comm(comm));
     }
@@ -465,6 +481,7 @@ public:
         MPI_Comm comm_out;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_split(comm, color, key, &comm_out));
         this->comm_.reset(new MPI_Comm(comm_out), comm_deleter{});
+        this->pt_ = std::make_shared<progress_thread>(comm_out);
     }
 
     /**
@@ -481,6 +498,7 @@ public:
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Comm_split(comm.get(), color, key, &comm_out));
         this->comm_.reset(new MPI_Comm(comm_out), comm_deleter{});
+        this->pt_ = std::make_shared<progress_thread>(comm_out);
     }
 
     /**
@@ -1472,6 +1490,7 @@ public:
 private:
     std::shared_ptr<MPI_Comm> comm_;
     bool force_host_buffer_;
+    std::shared_ptr<progress_thread> pt_;
 
     int get_my_rank() const
     {

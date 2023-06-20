@@ -40,11 +40,32 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <mpi.h>
+#include <thread>
 
 
 namespace gko {
 namespace experimental {
 namespace mpi {
+
+
+progress_thread::progress_thread(MPI_Comm comm)
+    : comm(comm), stopped(false), t([this] {
+          using namespace std::chrono_literals;
+          int flag;
+          while (!this->stopped) {
+              MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, this->comm, &flag,
+                         MPI_STATUS_IGNORE);
+              std::this_thread::sleep_for(1ms);
+          }
+      })
+{}
+
+
+progress_thread::~progress_thread()
+{
+    stopped = true;
+    t.join();
+}
 
 
 int map_rank_to_device_id(MPI_Comm comm, const int num_devices)
