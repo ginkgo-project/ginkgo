@@ -710,7 +710,7 @@ GKO_ENABLE_UNARY_RANGE_OPERATION(bitwise_not, operator~,
 // common unary functions
 GKO_ENABLE_UNARY_RANGE_OPERATION(zero_operation, zero,
                                  accessor::detail::zero_operation);
-GKO_ENABLE_UNARY_RANGE_OPERATION(one_operation, one,
+GKO_ENABLE_UNARY_RANGE_OPERATION(one_operaton, one,
                                  accessor::detail::one_operation);
 GKO_ENABLE_UNARY_RANGE_OPERATION(abs_operation, abs,
                                  accessor::detail::abs_operation);
