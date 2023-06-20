@@ -330,6 +330,7 @@ void is_sorted_by_column_index(
     std::shared_ptr<const DpcppExecutor> exec,
     const matrix::SparsityCsr<ValueType, IndexType>* to_check, bool* is_sorted)
 {
+    *is_sorted = true;
     auto cpu_array = make_array_view(exec->get_master(), 1, is_sorted);
     auto gpu_array = array<bool>{exec, cpu_array};
     const auto num_rows = to_check->get_size()[0];
