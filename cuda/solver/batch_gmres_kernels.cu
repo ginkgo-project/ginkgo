@@ -158,7 +158,9 @@ public:
         using real_type = gko::remove_complex<value_type>;
         const size_type nbatch = a.num_batch;
         const auto restart = opts_.restart_num;
-        const int shared_gap = ((a.num_rows - 1) / 8 + 1) * 8;
+        constexpr int align_multiple = 8;
+        const int shared_gap =
+            ((a.num_rows - 1) / align_multiple + 1) * align_multiple;
         gko::kernels::cuda::configure_shared_memory_banks<value_type>();
 
         const int shmem_per_blk =

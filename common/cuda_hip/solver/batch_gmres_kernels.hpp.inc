@@ -273,25 +273,19 @@ __global__ void apply_kernel(
         extern __shared__ char local_mem_sh[];
         const int gmem_offset =
             ibatch * sconf.gmem_stride_bytes / sizeof(ValueType);
-        ValueType* prec_work_sh;
-        if (sconf.prec_shared) {
-            prec_work_sh = reinterpret_cast<ValueType*>(local_mem_sh);
-        } else {
-            prec_work_sh = workspace + gmem_offset;
-        }
 
         ValueType* r_sh;
         ValueType* z_sh;
         ValueType* w_sh;
         ValueType* x_sh;
         ValueType* helper_sh;
+        ValueType* prec_work_sh;
+        const auto prec_storage = PrecType::dynamic_work_size(nrows, a.num_nnz);
 
-        if (sconf.n_shared >= 1 && sconf.prec_shared) {
-            r_sh = prec_work_sh + PrecType::dynamic_work_size(nrows, a.num_nnz);
-        } else if (sconf.n_shared == 0 && sconf.prec_shared) {
-            r_sh = workspace + gmem_offset;
+        if (sconf.n_shared >= 1) {
+            r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
         } else {
-            r_sh = prec_work_sh + PrecType::dynamic_work_size(nrows, a.num_nnz);
+            r_sh = workspace + gmem_offset;
         }
         if (sconf.n_shared == 1) {
             z_sh = workspace + gmem_offset;
@@ -314,17 +308,28 @@ __global__ void apply_kernel(
             helper_sh = x_sh + sconf.padded_vec_len;
         }
 
+        if (sconf.n_shared == 5 && !sconf.prec_shared) {
+            prec_work_sh = workspace + gmem_offset;
+        } else {
+            prec_work_sh = helper_sh + sconf.padded_vec_len;
+        }
+
         ValueType* cs_sh;
         ValueType* sn_sh;  // = cs_sh + restart;
         ValueType* y_sh;   // = sn_sh + restart;
         ValueType* s_sh;   // = y_sh + restart;
-        if (sconf.n_shared == 5 && sconf.rot_shared) {
-            cs_sh = helper_sh + sconf.padded_vec_len;
+        // if (sconf.n_shared > 4 && sconf.rot_shared) {
+        //     cs_sh = helper_sh + sconf.padded_vec_len;
+        //     sn_sh = cs_sh + restart;
+        //     y_sh = sn_sh + restart;
+        //     s_sh = y_sh + restart;
+        if (sconf.n_shared == 5 && sconf.prec_shared && !sconf.rot_shared) {
+            cs_sh = workspace + gmem_offset;
             sn_sh = cs_sh + restart;
             y_sh = sn_sh + restart;
             s_sh = y_sh + restart;
         } else {
-            cs_sh = workspace + gmem_offset;
+            cs_sh = prec_work_sh + prec_storage;
             sn_sh = cs_sh + restart;
             y_sh = sn_sh + restart;
             s_sh = y_sh + restart;
@@ -340,10 +345,10 @@ __global__ void apply_kernel(
         // const gko::batch_dense::BatchEntry<ValueType> V_shared_entry{
         //     V_sh, static_cast<size_type>(nrhs), nrows * (restart + 1), nrhs};
         ValueType* V_sh;
-        if (sconf.n_shared == 5 && sconf.subspace_shared) {
-            V_sh = s_sh + (restart + 1);
-        } else {
+        if (sconf.n_shared == 5 && sconf.rot_shared && !sconf.subspace_shared) {
             V_sh = workspace + gmem_offset;
+        } else {
+            V_sh = s_sh + (restart + 1);
         }
 
         // Hessenberg matrix
@@ -355,10 +360,11 @@ __global__ void apply_kernel(
         // actual storage as the storage order is row-major) to get entry (i,j)
         // for rhs: rhs_k , H_entry.stride*i + j*nrhs  + rhs_k
         ValueType* H_sh;
-        if (sconf.n_shared == 5 && sconf.hess_shared) {
-            H_sh = V_sh + nrows * (restart + 1);
-        } else {
+        if (sconf.n_shared == 5 && sconf.subspace_shared &&
+            !sconf.hess_shared) {
             H_sh = workspace + gmem_offset;
+        } else {
+            H_sh = V_sh + nrows * (restart + 1);
         }
 
 
