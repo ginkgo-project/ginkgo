@@ -214,7 +214,7 @@ StorageConfig compute_shared_storage(const int shared_mem_per_blk,
                                        ? num_priority_vecs
                                        : initial_vecs_available;
     sconf.n_shared += priority_available;
-    sconf.n_global -= sconf.n_shared;
+    sconf.n_global -= priority_available;
     // for simplicity, we don't allocate anything else in shared
     //  if all the spmv vectors were not.
     if (priority_available < num_priority_vecs) {
@@ -230,10 +230,6 @@ StorageConfig compute_shared_storage(const int shared_mem_per_blk,
     sconf.n_shared = min(sconf.n_shared, 5);
     sconf.n_global -= sconf.n_shared;
     sconf.n_global = max(sconf.n_global, 0);
-    if (rem_shared >= prec_storage) {
-        sconf.prec_shared = true;
-        rem_shared -= prec_storage;
-    }
     if (rem_shared >= rot_storage && sconf.prec_shared == true) {
         sconf.rot_shared = true;
         rem_shared -= rot_storage;
