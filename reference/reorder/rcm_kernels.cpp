@@ -111,7 +111,7 @@ std::pair<IndexType, size_type> rls_contender_and_height(
     // The last levels size is required to compute the contender.
     IndexType last_level_size = 0;
 
-    // While there are still nodes whose neighbours haven't been inspected.
+    // While there are still nodes whose neighbors haven't been inspected.
     while (rls_index < rls_offset) {
         auto parent = rls_p[rls_index];
         --current_level_countdown;
@@ -255,12 +255,12 @@ void get_permutation(std::shared_ptr<const ReferenceExecutor> exec,
             ++tail_offset;
         }
 
-        // Get the neighbours of the next vertex,
+        // Get the neighbors of the next vertex,
         // check if they have already been visited,
         // if no, insert them to sort.
         auto prev_head_offset = head_offset;
 
-        // Get the next vertex neighbours.
+        // Get the next vertex neighbors.
         auto row_start = row_ptrs[next_vertex];
         auto row_end = row_ptrs[next_vertex + 1];
         for (auto neighbor_idx = row_start; neighbor_idx < row_end;
@@ -276,7 +276,7 @@ void get_permutation(std::shared_ptr<const ReferenceExecutor> exec,
             }
         }
 
-        // Sort all just-added neighbours by degree.
+        // Sort all just-added neighbors by degree.
         std::sort(
             linear_queue_p + prev_head_offset, linear_queue_p + head_offset,
             [&](IndexType i, IndexType j) { return degrees[i] < degrees[j]; });
