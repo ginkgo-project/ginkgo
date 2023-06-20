@@ -88,7 +88,8 @@ int get_num_threads_per_block(std::shared_ptr<const HipExecutor> exec,
     hipDeviceGetAttribute(&max_regs_blk, hipDeviceAttributeMaxRegistersPerBlock,
                           exec->get_device_id());
     const int max_threads_regs = (max_regs_blk / num_regs_used_per_thread);
-    const int max_threads = std::min(max_threads_regs, device_max_threads);
+    int max_threads = std::min(max_threads_regs, device_max_threads);
+    max_threads = max_threads <= 1024 ? max_threads : 1024;
     return std::min(nwarps * static_cast<int>(config::warp_size), max_threads);
 }
 
@@ -119,7 +120,8 @@ public:
         const int shared_gap = ((a.num_rows - 1) / 8 + 1) * 8;
 
         const auto matrix_storage = a.get_entry_storage();
-        const int shmem_per_blk = exec_->get_max_shared_memory_per_block();
+        const int shmem_per_blk =
+            0;  // exec_->get_max_shared_memory_per_block();
         const int block_size =
             get_num_threads_per_block<BatchMatrixType>(exec_, a.num_rows);
         assert(block_size >= 2 * config::warp_size);

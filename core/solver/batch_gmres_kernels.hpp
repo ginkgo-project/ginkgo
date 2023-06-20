@@ -133,7 +133,7 @@ void set_gmem_stride_bytes(StorageConfig& sconf, const int nrows,
                            const int subspace_storage_bytes,
                            const int hess_storage_bytes)
 {
-    int gmem_stride = sconf.n_global * multi_vector_size_bytes;
+    int gmem_stride = (sconf.n_global + 10) * multi_vector_size_bytes;
     if (!sconf.rot_shared) {
         gmem_stride += rot_storage_bytes;
     }
@@ -202,7 +202,7 @@ StorageConfig compute_shared_storage(const int shared_mem_per_blk,
     const int hess_storage = restart * (restart + 1) * sizeof(ValueType);
     const int rot_storage = (3 * restart + (restart + 1)) * sizeof(ValueType);
     int rem_shared = shared_mem_per_blk;
-    StorageConfig sconf{false, false, false, false, 0, 5, 0, num_rows};
+    StorageConfig sconf{false, false, false, false, 0, 6, 0, num_rows};
     if (rem_shared <= 0) {
         set_gmem_stride_bytes<align_bytes, ValueType>(
             sconf, num_rows, num_rhs, restart, vec_size, rot_storage,
@@ -214,7 +214,7 @@ StorageConfig compute_shared_storage(const int shared_mem_per_blk,
                                        ? num_priority_vecs
                                        : initial_vecs_available;
     sconf.n_shared += priority_available;
-    sconf.n_global -= priority_available;
+    sconf.n_global -= sconf.n_shared;
     // for simplicity, we don't allocate anything else in shared
     //  if all the spmv vectors were not.
     if (priority_available < num_priority_vecs) {
@@ -224,25 +224,25 @@ StorageConfig compute_shared_storage(const int shared_mem_per_blk,
         return sconf;
     }
     rem_shared -= priority_available * vec_size * sizeof(ValueType);
-    if (rem_shared >= prec_storage) {
-        sconf.prec_shared = true;
-        rem_shared -= prec_storage;
-    }
     const int shared_other_vecs =
         rem_shared / vec_size >= 0 ? rem_shared / vec_size : 0;
     sconf.n_shared += shared_other_vecs;
     sconf.n_shared = min(sconf.n_shared, 5);
-    sconf.n_global -= shared_other_vecs;
+    sconf.n_global -= sconf.n_shared;
     sconf.n_global = max(sconf.n_global, 0);
-    if (rem_shared >= rot_storage) {
+    if (rem_shared >= prec_storage) {
+        sconf.prec_shared = true;
+        rem_shared -= prec_storage;
+    }
+    if (rem_shared >= rot_storage && sconf.prec_shared == true) {
         sconf.rot_shared = true;
         rem_shared -= rot_storage;
     }
-    if (rem_shared >= subspace_storage) {
+    if (rem_shared >= subspace_storage && sconf.rot_shared == true) {
         sconf.subspace_shared = true;
         rem_shared -= subspace_storage;
     }
-    if (rem_shared >= hess_storage) {
+    if (rem_shared >= hess_storage && sconf.subspace_shared == true) {
         sconf.hess_shared = true;
         rem_shared -= hess_storage;
     }
