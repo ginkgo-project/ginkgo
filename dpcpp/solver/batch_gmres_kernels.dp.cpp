@@ -152,9 +152,9 @@ public:
             device.get_info<sycl::info::device::local_mem_size>();
         const auto matrix_size = a.get_entry_storage();
         size_type shmem_per_blk =
-            slm_size - group_size * sizeof(ValueType) -
-            3 * sizeof(real_type);  // for shared-norms and
-        // reduce_over_group
+            slm_size - 1024 * sizeof(float)  // 1024 float is max slm needed for
+                                             // reduce_over_group in 1 Xe-core
+            - 3 * sizeof(real_type);         // for shared-norms
 
         const size_t prec_size =
             PrecType::dynamic_work_size(shared_gap, a.num_nnz);
@@ -180,15 +180,17 @@ public:
             launch_apply_kernel<StopType, 16, 1, 1>(
                 sconf, logger, prec, a, b.values, x.values, workspace_data,
                 group_size, shared_size);
-        else if (nrows <= 256 && sconf.n_global == 0)
-            launch_apply_kernel<StopType, 32, 1, 1>(
-                sconf, logger, prec, a, b.values, x.values, workspace_data,
-                group_size, shared_size);
-        else if (sconf.n_global == 0)
-            launch_apply_kernel<StopType, 32, 1, 0>(
-                sconf, logger, prec, a, b.values, x.values, workspace_data,
-                group_size, shared_size);
-        else
+        else if (sconf.n_global == 0 && sconf.rot_shared && sconf.prec_shared &&
+                 sconf.subspace_shared && sconf.hess_shared) {
+            if (nrows <= 256)
+                launch_apply_kernel<StopType, 32, 1, 1>(
+                    sconf, logger, prec, a, b.values, x.values, workspace_data,
+                    group_size, shared_size);
+            else
+                launch_apply_kernel<StopType, 32, 1, 0>(
+                    sconf, logger, prec, a, b.values, x.values, workspace_data,
+                    group_size, shared_size);
+        } else
             launch_apply_kernel<StopType, 32, 0, 0>(
                 sconf, logger, prec, a, b.values, x.values, workspace_data,
                 group_size, shared_size);

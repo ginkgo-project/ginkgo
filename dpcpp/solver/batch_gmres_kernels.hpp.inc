@@ -32,11 +32,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace {
 
-
-//          using tile_t = int[AUX_MAX_SEGMENT];
-//        tile_t &swork =
-//        *sycl::ext::oneapi::group_local_memory_for_overwrite<tile_t>(wrk_grp);
-
 template <const bool sg_kernel_all, typename BatchMatrixType_entry,
           typename PrecType, typename ValueType>
 __dpct_inline__ void initialize(
@@ -204,13 +199,9 @@ __dpct_inline__ void arnoldi(const BatchMatrixType_entry& a_global_entry,
             for (int li = tid; li < num_rows; li += group_size) {
                 w_shared_entry[li] -= h_k_i_sh[0] * v_k_sh[li];
             }
-            item_ct1.barrier(sycl::access::fence_space::local_space);
+            item_ct1.barrier(sycl::access::fence_space::local_space);  // TODO
         }
-        if (sg_id == 0) {
-            compute_norm2_sg_kernel(num_rows, w_shared_entry, tmp_norm,
-                                    item_ct1);
-        }
-        item_ct1.barrier(sycl::access::fence_space::local_space);
+        compute_norm2_kernel(num_rows, w_shared_entry, tmp_norm, item_ct1);
     }
 
     if (tid == sg_size) {
@@ -247,12 +238,7 @@ __dpct_inline__ void generate_and_apply_plane_rot_fused(
     ValueType* const __restrict__ s_i, ValueType* const __restrict__ s_i_plus_1,
     sycl::nd_item<3> item_ct1)
 {
-    auto sg = item_ct1.get_sub_group();
-    const auto sg_id = sg.get_group_id();
-    const auto tid = item_ct1.get_local_linear_id();
-    const auto group_size = item_ct1.get_local_range().size();
-
-    if (tid == 0) {
+    if (item_ct1.get_local_linear_id() == 0) {
         if (H_i_plus_1_i[0] == zero<ValueType>()) {
             cs_i[0] = one<ValueType>();
             sn_i[0] = zero<ValueType>();
@@ -289,7 +275,6 @@ __dpct_inline__ void update_x(
     ValueType* const __restrict__ y_shared_entry, sycl::nd_item<3> item_ct1)
 {
     auto sg = item_ct1.get_sub_group();
-    const auto sg_id = sg.get_group_id();
     const auto tid = item_ct1.get_local_linear_id();
     const auto group_size = item_ct1.get_local_range().size();
 
@@ -351,11 +336,14 @@ __dpct_inline__ void apply_kernel(
     ValueType* w_sh;
     ValueType* x_sh;
     ValueType* helper_sh;
+    // Rotation storage
     ValueType* cs_sh;
     ValueType* sn_sh;
     ValueType* y_sh;
     ValueType* s_sh;
+    // hess_storage
     ValueType* H_sh;
+    // subspace_storage
     ValueType* V_sh;
 
     if constexpr (vecs_shared_all) {
@@ -420,10 +408,13 @@ __dpct_inline__ void apply_kernel(
         } else {
             V_sh = workspace + gmem_offset;
         }
-        if (sconf.n_shared == 5 && sconf.hess_shared) {
-            H_sh = V_sh + nrows * (restart + 1);
-        } else {
-            H_sh = workspace + gmem_offset;
+        if (sconf.n_shared == 5) {
+            if (sconf.hess_shared && sconf.subspace_shared)
+                H_sh = V_sh + nrows * (restart + 1);
+            else if (sconf.hess_shared && !sconf.subspace_shared)
+                H_sh = s_sh + restart;
+            else
+                H_sh = workspace + gmem_offset;
         }
     }
 
