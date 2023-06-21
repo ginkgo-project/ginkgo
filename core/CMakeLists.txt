@@ -107,6 +107,10 @@ add_library(Ginkgo::ginkgo ALIAS ginkgo)
 target_link_libraries(ginkgo
     PUBLIC ginkgo_device ginkgo_omp ginkgo_cuda ginkgo_reference ginkgo_hip ginkgo_dpcpp)
 
+find_package(Threads REQUIRED)
+target_link_libraries(ginkgo
+        PUBLIC Threads::Threads)
+
 # The PAPI dependency needs to be exposed to the user.
 set(GKO_RPATH_ADDITIONS "")
 
