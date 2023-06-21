@@ -614,6 +614,18 @@ struct implement_binary_operation<operation_kind::range_by_scalar,
 
 }  // namespace detail
 
+#define GKO_DEPRECATED_UNARY_RANGE_OPERATION(_operation_deprecated_name,     \
+                                             _operation_name)                \
+    namespace accessor {                                                     \
+    template <typename Operand>                                              \
+    struct [[deprecated(                                                     \
+        "Please use " #_operation_name)]] _operation_deprecated_name         \
+        : _operation_name<Operand> {};                                       \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
 
 #define GKO_ENABLE_UNARY_RANGE_OPERATION(_operation_name, _operator_name, \
                                          _operator)                       \
@@ -708,9 +720,10 @@ GKO_ENABLE_UNARY_RANGE_OPERATION(bitwise_not, operator~,
                                  accessor::detail::bitwise_not);
 
 // common unary functions
+
 GKO_ENABLE_UNARY_RANGE_OPERATION(zero_operation, zero,
                                  accessor::detail::zero_operation);
-GKO_ENABLE_UNARY_RANGE_OPERATION(one_operaton, one,
+GKO_ENABLE_UNARY_RANGE_OPERATION(one_operation, one,
                                  accessor::detail::one_operation);
 GKO_ENABLE_UNARY_RANGE_OPERATION(abs_operation, abs,
                                  accessor::detail::abs_operation);
@@ -722,6 +735,14 @@ GKO_ENABLE_UNARY_RANGE_OPERATION(conj_operation, conj,
                                  accessor::detail::conj_operation);
 GKO_ENABLE_UNARY_RANGE_OPERATION(squared_norm_operation, squared_norm,
                                  accessor::detail::squared_norm_operation);
+
+GKO_DEPRECATED_UNARY_RANGE_OPERATION(one_operaton, one_operation);
+GKO_DEPRECATED_UNARY_RANGE_OPERATION(abs_operaton, abs_operation);
+GKO_DEPRECATED_UNARY_RANGE_OPERATION(real_operaton, real_operation);
+GKO_DEPRECATED_UNARY_RANGE_OPERATION(imag_operaton, imag_operation);
+GKO_DEPRECATED_UNARY_RANGE_OPERATION(conj_operaton, conj_operation);
+GKO_DEPRECATED_UNARY_RANGE_OPERATION(squared_norm_operaton,
+                                     squared_norm_operation);
 
 namespace accessor {
 
@@ -766,6 +787,7 @@ struct transpose_operation {
 GKO_BIND_UNARY_RANGE_OPERATION_TO_OPERATOR(transpose_operation, transpose);
 
 
+#undef GKO_DEPRECATED_UNARY_RANGE_OPERATION
 #undef GKO_DEFINE_SIMPLE_UNARY_OPERATION
 #undef GKO_ENABLE_UNARY_RANGE_OPERATION
 
@@ -840,6 +862,9 @@ GKO_BIND_UNARY_RANGE_OPERATION_TO_OPERATOR(transpose_operation, transpose);
                   "This assert is used to counter the false positive extra "  \
                   "semi-colon warnings")
 
+
+#define GKO_DEPRECATED_SIMPLE_BINARY_OPERATION(_deprecated_name, _name) \
+    struct [[deprecated("Please use " #_name)]] _deprecated_name : _name {};
 
 #define GKO_DEFINE_SIMPLE_BINARY_OPERATION(_name, ...)                         \
     struct _name {                                                             \
@@ -919,6 +944,8 @@ GKO_DEFINE_SIMPLE_BINARY_OPERATION(right_shift, first >> second);
 GKO_DEFINE_SIMPLE_BINARY_OPERATION(max_operation, max(first, second));
 GKO_DEFINE_SIMPLE_BINARY_OPERATION(min_operation, min(first, second));
 
+GKO_DEPRECATED_SIMPLE_BINARY_OPERATION(max_operaton, max_operation);
+GKO_DEPRECATED_SIMPLE_BINARY_OPERATION(min_operaton, min_operation);
 }  // namespace detail
 }  // namespace accessor
 
