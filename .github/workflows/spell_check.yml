@@ -1,5 +1,7 @@
 name: Test GitHub Action
-on: [pull_request]
+on:
+  pull_request:
+    types: [opened, synchronize]
 
 jobs:
   run:
