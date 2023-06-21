@@ -261,7 +261,7 @@ public:
      *                  @thread_type
      */
     environment(int& argc, char**& argv,
-                const thread_type thread_t = thread_type::serialized)
+                const thread_type thread_t = thread_type::multiple)
     {
         this->required_thread_support_ = static_cast<int>(thread_t);
         GKO_ASSERT_NO_MPI_ERRORS(
@@ -461,11 +461,10 @@ public:
      * memory
      */
     communicator(const MPI_Comm& comm, bool force_host_buffer = false)
-        : comm_(),
-          force_host_buffer_(force_host_buffer),
-          pt_(std::make_shared<progress_thread>(comm))
+        : comm_(), force_host_buffer_(force_host_buffer)
     {
-        this->comm_.reset(new MPI_Comm(comm));
+        comm_.reset(new MPI_Comm(comm));
+        add_progress_thread();
     }
 
     /**
@@ -480,8 +479,8 @@ public:
     {
         MPI_Comm comm_out;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_split(comm, color, key, &comm_out));
-        this->comm_.reset(new MPI_Comm(comm_out), comm_deleter{});
-        this->pt_ = std::make_shared<progress_thread>(comm_out);
+        comm_.reset(new MPI_Comm(comm_out), comm_deleter{});
+        add_progress_thread();
     }
 
     /**
@@ -497,8 +496,8 @@ public:
         MPI_Comm comm_out;
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Comm_split(comm.get(), color, key, &comm_out));
-        this->comm_.reset(new MPI_Comm(comm_out), comm_deleter{});
-        this->pt_ = std::make_shared<progress_thread>(comm_out);
+        comm_.reset(new MPI_Comm(comm_out), comm_deleter{});
+        add_progress_thread();
     }
 
     /**
@@ -1522,6 +1521,16 @@ private:
         int flag;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_compare(get(), other, &flag));
         return flag == MPI_IDENT;
+    }
+
+    void add_progress_thread()
+    {
+        int provided_thread_support = 0;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Query_thread(&provided_thread_support));
+        if (static_cast<thread_type>(provided_thread_support) ==
+            thread_type::multiple) {
+            pt_ = std::make_shared<progress_thread>(this->get());
+        }
     }
 };
 
