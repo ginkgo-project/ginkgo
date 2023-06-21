@@ -55,7 +55,7 @@ progress_thread::progress_thread(MPI_Comm comm)
           while (!this->stopped) {
               MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, this->comm, &flag,
                          MPI_STATUS_IGNORE);
-              std::this_thread::sleep_for(1ms);
+              std::this_thread::sleep_for(10us);
           }
       })
 {}
