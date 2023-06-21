@@ -133,7 +133,8 @@ Parameters for a benchmark case are:
     std::string format = example_config;
     initialize_argument_parsing(&argc, &argv, header, format);
 
-    std::string extra_information = "The operations are " + FLAGS_operations;
+    std::string extra_information =
+        "The operations are " + FLAGS_operations + "\n";
     print_general_information(extra_information);
     auto exec = executor_factory.at(FLAGS_executor)(FLAGS_gpu_timer);
 

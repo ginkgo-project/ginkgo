@@ -615,7 +615,7 @@ build/dpcpp/2022-1/cpu/release/static:
     BUILD_DPCPP: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "ON"
-    ONEAPI_DEVICE_SELECTOR: "*:cpu"
+    SYCL_DEVICE_TYPE: "CPU"
     SLURM_PARTITION: "cpu"
     SLURM_TIME: "2:00:00"
     # This job is not in exclusive mode
