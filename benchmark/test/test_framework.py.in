@@ -35,8 +35,8 @@ def sanitize_json_key_value(key: str, value, sanitize_all: bool):
 
     Strings with a key in empty_string_paths will be emptied
     Numbers with a key in denumberify_paths will be set to 1.0
-
     """
+
     if key in empty_string_paths and isinstance(value, str):
         return ""
     if key in denumberify_paths and isinstance(value, float):
@@ -48,11 +48,14 @@ def sanitize_json_key_value(key: str, value, sanitize_all: bool):
     return sanitize_json(value, sanitize_all)
 
 
-def sanitize_json(parsed_input, sanitize_all=False):
+def sanitize_json(parsed_input, sanitize_all: bool = False):
     """Removes non-deterministic parts of a parsed JSON input.
 
     If sanitize_all is set to True, all nested float values will be set to 0.
-    Otherwise, the sanitation"""
+    Otherwise, only JSON object entries will be sanitized
+    using sanitize_json_key_value.
+    """
+
     if isinstance(parsed_input, dict):
         return {
             key: sanitize_json_key_value(key, value, sanitize_all)
@@ -73,7 +76,8 @@ def sanitize_json_in_text(lines: list[str]) -> list[str]:
     (recognized by a single [, {, } or ] in an otherwise empty line).
     The JSON output will be parsed and sanitized through sanitize_json(...)
     and pretty-printed to replace the original JSON input.
-    The function returns the resulting output"""
+    The function returns the resulting output.
+    """
 
     json_begins = [i for i, l in enumerate(lines) if l in ["[", "{"]]
     json_ends = [i + 1 for i, l in enumerate(lines) if l in ["]", "}"]]
@@ -116,6 +120,7 @@ def determinize_text(
     if it can be parsed correctly.
     The output is guaranteed to end with an empty line.
     """
+
     lines = input.splitlines()
     output_lines = []
     patterns = [re.compile(pattern) for pattern in ignore_patterns]

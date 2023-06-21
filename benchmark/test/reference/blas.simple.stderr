@@ -3,7 +3,8 @@ This is Ginkgo 1.7.0 (develop)
 Running on reference(0)
 Running with 2 warm iterations and 10 running iterations
 The random seed for right hand sides is 42
-The operations are copy,axpy,scalRunning test case
+The operations are copy,axpy,scal
+Running test case
 {
     "n": 100,
     "blas": {}

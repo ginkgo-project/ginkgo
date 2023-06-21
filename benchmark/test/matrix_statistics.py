@@ -19,7 +19,7 @@ test_framework.compare_output(
 
 # input file
 test_framework.compare_output(
-    ["-input", '[{"size": 100, "stencil": "7pt"}]'],
+    ["-input", str(test_framework.sourcepath / "input.mtx.json")],
     expected_stdout="matrix_statistics.simple.stdout",
     expected_stderr="matrix_statistics.simple.stderr",
 )
