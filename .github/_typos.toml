@@ -13,5 +13,11 @@ agregate = "agregate" # since that script name is already in ginkgo-data repo
 [default.extend-identifiers]
 set_complex_subpsace = "set_complex_subpsace" # remove when deprecated function is gone
 HSA_HEADER = "HSA_HEADER"
+conj_operaton = "conj_operaton" # considered interface break in range.hpp
+imag_operaton = "imag_operaton" # considered interface break in range.hpp
+real_operaton = "real_operaton" # considered interface break in range.hpp
 one_operaton = "one_operaton" # considered interface break in range.hpp
-
+abs_operaton = "abs_operaton" # considered interface break in range.hpp
+max_operaton = "max_operaton" # considered interface break in range.hpp
+min_operaton = "min_operaton" # considered interface break in range.hpp
+squared_norm_operaton = "squared_norm_operaton" # considered interface break in range.hpp
