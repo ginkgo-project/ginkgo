@@ -145,8 +145,8 @@ public:
 
         const int shared_gap = ((nrows - 1) / 8 + 1) * 8;
         auto device = exec_->get_queue()->get_device();
-        auto group_size = 512;
-        // device.get_info<sycl::info::device::max_work_group_size>();
+        auto group_size =
+            device.get_info<sycl::info::device::max_work_group_size>();
         if (group_size > nrows) group_size = get_larger_power(nrows);
 
         size_type slm_size =
@@ -183,7 +183,7 @@ public:
         auto prec_shared_bool = sconf.prec_shared;
 
         // Template for calling launch_apply_kernel:
-        // < StopType, SIMD_LEN, n_shared, prec_shared, sg_kernel_all >
+        // < StopType, SIMD_LEN, n_shared, prec_shared_bool, sg_kernel_all >
         if (nrows <= 32 && prec_shared_bool)
             launch_apply_kernel<StopType, 16, 11, 1, 1>(
                 sconf, logger, prec, a, b.values, x.values, workspace_data,
