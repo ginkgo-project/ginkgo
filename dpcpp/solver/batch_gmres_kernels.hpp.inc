@@ -306,13 +306,13 @@ __dpct_inline__ void update_x(
 }  // unnamed namespace
 
 
-template <typename StopType, const bool vecs_shared_all,
+template <typename StopType, const int n_shared, const bool prec_shared_bool,
           const bool sg_kernel_all, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
 __dpct_inline__ void apply_kernel(
     const gko::kernels::batch_gmres::StorageConfig sconf, const int max_iter,
     const gko::remove_complex<ValueType> tol, const int restart, LogType logger,
-    PrecType prec_shared, const BatchMatrixType a_global_entry,
+    PrecType prec, const BatchMatrixType a_global_entry,
     const ValueType* const __restrict__ b_global_entry,
     ValueType* const __restrict__ x_global_entry, const int nrows,
     const int nnz, ValueType* local_mem_sh, sycl::nd_item<3> item_ct1,
@@ -320,7 +320,7 @@ __dpct_inline__ void apply_kernel(
 {
     using real_type = typename gko::remove_complex<ValueType>;
 
-    sycl::group group = item_ct1.get_group();
+    auto group = item_ct1.get_group();
     auto sg = item_ct1.get_sub_group();
     const auto sg_id = sg.get_group_id();
     const auto tid = item_ct1.get_local_linear_id();
@@ -346,77 +346,70 @@ __dpct_inline__ void apply_kernel(
     // subspace_storage
     ValueType* V_sh;
 
-    if constexpr (vecs_shared_all) {
-        prec_work_sh = local_mem_sh;
-        r_sh = prec_work_sh + PrecType::dynamic_work_size(nrows, nnz);
+    if constexpr (n_shared >= 1)
+        r_sh = local_mem_sh;
+    else
+        r_sh = workspace + gmem_offset;
+    //
+    if constexpr (n_shared == 1)
+        z_sh = workspace + gmem_offset;
+    else
         z_sh = r_sh + sconf.padded_vec_len;
+    //
+    if constexpr (n_shared == 2)
+        w_sh = workspace + gmem_offset;
+    else
         w_sh = z_sh + sconf.padded_vec_len;
+    //
+    if constexpr (n_shared == 3)
+        x_sh = workspace + gmem_offset;
+    else
         x_sh = w_sh + sconf.padded_vec_len;
+    //
+    if constexpr (n_shared == 4)
+        helper_sh = workspace + gmem_offset;
+    else
         helper_sh = x_sh + sconf.padded_vec_len;
+    //
+    if constexpr (n_shared == 5)
+        cs_sh = workspace + gmem_offset;
+    else
         cs_sh = helper_sh + sconf.padded_vec_len;
+    //
+    if constexpr (n_shared == 6)
+        sn_sh = workspace + gmem_offset;
+    else
         sn_sh = cs_sh + restart;
+    //
+    if constexpr (n_shared == 7)
+        y_sh = workspace + gmem_offset;
+    else
         y_sh = sn_sh + restart;
+    //
+    if constexpr (n_shared == 8)
+        s_sh = workspace + gmem_offset;
+    else
         s_sh = y_sh + restart;
-        V_sh = s_sh + (restart + 1);
-        H_sh = V_sh + nrows * (restart + 1);
-    } else {
-        if (sconf.prec_shared) {
-            prec_work_sh = local_mem_sh;
-        } else {
-            prec_work_sh = workspace + gmem_offset;
-        }
-        if (sconf.n_shared >= 1 && sconf.prec_shared) {
-            r_sh = prec_work_sh + PrecType::dynamic_work_size(nrows, nnz);
-        } else if (sconf.n_shared == 0 && sconf.prec_shared) {
-            r_sh = workspace + gmem_offset;
-        } else {
-            r_sh = prec_work_sh + PrecType::dynamic_work_size(nrows, nnz);
-        }
-        if (sconf.n_shared == 1) {
-            z_sh = workspace + gmem_offset;
-        } else {
-            z_sh = r_sh + sconf.padded_vec_len;
-        }
-        if (sconf.n_shared == 2) {
-            w_sh = workspace + gmem_offset;
-        } else {
-            w_sh = z_sh + sconf.padded_vec_len;
-        }
-        if (sconf.n_shared == 3) {
-            x_sh = workspace + gmem_offset;
-        } else {
-            x_sh = w_sh + sconf.padded_vec_len;
-        }
-        if (sconf.n_shared == 4) {
-            helper_sh = workspace + gmem_offset;
-        } else {
-            helper_sh = x_sh + sconf.padded_vec_len;
-        }
-        if (sconf.n_shared == 5 && sconf.rot_shared) {
-            cs_sh = helper_sh + sconf.padded_vec_len;
-            sn_sh = cs_sh + restart;
-            y_sh = sn_sh + restart;
-            s_sh = y_sh + restart;
-        } else {
-            cs_sh = workspace + gmem_offset;
-            sn_sh = cs_sh + restart;
-            y_sh = sn_sh + restart;
-            s_sh = y_sh + restart;
-        }
-        if (sconf.n_shared == 5 && sconf.subspace_shared) {
-            V_sh = s_sh + (restart + 1);
-        } else {
-            V_sh = workspace + gmem_offset;
-        }
-        if (sconf.n_shared == 5) {
-            if (sconf.hess_shared && sconf.subspace_shared)
-                H_sh = V_sh + nrows * (restart + 1);
-            else if (sconf.hess_shared && !sconf.subspace_shared)
-                H_sh = s_sh + restart;
-            else
-                H_sh = workspace + gmem_offset;
-        }
-    }
+    //
+    if constexpr (n_shared == 9)
+        H_sh = workspace + gmem_offset;
+    else
+        H_sh = s_sh + restart + 1;
+    //
+    if constexpr (n_shared == 10)
+        V_sh = workspace + gmem_offset;
+    else
+        V_sh = H_sh + restart * (restart + 1);
+    //
+    if constexpr (prec_shared_bool && n_shared == 9)
+        prec_work_sh = s_sh + restart + 1;
+    else if constexpr (prec_shared_bool && n_shared == 10)
+        prec_work_sh = H_sh + restart * (restart + 1);
+    else if constexpr (!prec_shared_bool && n_shared == 10)
+        prec_work_sh = workspace + gmem_offset;
+    else
+        prec_work_sh = V_sh + nrows * (restart + 1);
+
 
     real_type* norms_rhs_sh;
     real_type* norms_res_sh;
@@ -439,7 +432,7 @@ __dpct_inline__ void apply_kernel(
     // Stride of Hessenberg matrix
     const auto h_stride = static_cast<size_type>(restart);
 
-    prec_shared.generate(ibatch, a_global_entry, prec_work_sh, item_ct1);
+    prec.generate(ibatch, a_global_entry, prec_work_sh, item_ct1);
 
     // initialization
     // compute b norms
@@ -448,8 +441,8 @@ __dpct_inline__ void apply_kernel(
     // compute residual norms
     // initialize V, H, cs, sn with zeroes
     initialize<sg_kernel_all>(restart, a_global_entry, b_global_entry,
-                              x_global_entry, x_sh, r_sh, prec_shared, z_sh,
-                              V_sh, H_sh, cs_sh, sn_sh, norms_rhs_sh[0],
+                              x_global_entry, x_sh, r_sh, prec, z_sh, V_sh,
+                              H_sh, cs_sh, sn_sh, norms_rhs_sh[0],
                               norms_res_sh[0], item_ct1);
     item_ct1.barrier(sycl::access::fence_space::local_space);
 
@@ -485,7 +478,7 @@ __dpct_inline__ void apply_kernel(
             // Hessenburg(i+1, i) = norm(w)
             // KrylovBasis_i+1 = w / Hessenburg(i+1,i)
             arnoldi<sg_kernel_all>(a_global_entry, inner_iter, V_sh, H_sh,
-                                   h_stride, w_sh, helper_sh, prec_shared,
+                                   h_stride, w_sh, helper_sh, prec,
                                    norms_tmp_sh[0], item_ct1);
             item_ct1.barrier(sycl::access::fence_space::local_space);
 
@@ -561,7 +554,7 @@ __dpct_inline__ void apply_kernel(
         } else
             compute_norm2_kernel(nrows, r_sh, norms_res_sh[0], item_ct1);
 
-        prec_shared.apply(nrows, r_sh, z_sh, item_ct1);
+        prec.apply(nrows, r_sh, z_sh, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::local_space);
     }
 
