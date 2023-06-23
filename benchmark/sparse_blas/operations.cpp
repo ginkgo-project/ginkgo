@@ -695,11 +695,111 @@ private:
 };
 
 
+class ReorderRcmOperation : public BenchmarkOperation {
+    using reorder_type = gko::reorder::Rcm<etype, itype>;
+
+public:
+    explicit ReorderRcmOperation(const Mtx* mtx)
+        : mtx_{mtx->clone()},
+          factory_{reorder_type::build().on(mtx->get_executor())}
+    {}
+
+    std::pair<bool, double> validate() const override
+    {
+        // validating RCM correctness is hard, let's leave it out for now
+        return {true, 0.0};
+    }
+
+    gko::size_type get_flops() const override { return 0; }
+
+    gko::size_type get_memory() const override { return 0; }
+
+    void prepare() override {}
+
+    void run() override { reorder_ = factory_->generate(mtx_); }
+
+private:
+    std::shared_ptr<Mtx> mtx_;
+    std::unique_ptr<reorder_type::Factory> factory_;
+    std::unique_ptr<reorder_type> reorder_;
+};
+
+
+#if GKO_HAVE_METIS
+
+
+class ReorderNestedDissectionOperation : public BenchmarkOperation {
+    using factory_type =
+        gko::experimental::reorder::NestedDissection<etype, itype>;
+    using reorder_type = gko::matrix::Permutation<itype>;
+
+public:
+    explicit ReorderNestedDissectionOperation(const Mtx* mtx)
+        : mtx_{mtx->clone()},
+          factory_{factory_type::build().on(mtx->get_executor())}
+    {}
+
+    std::pair<bool, double> validate() const override
+    {
+        // validating ND correctness is hard, let's leave it out for now
+        return {true, 0.0};
+    }
+
+    gko::size_type get_flops() const override { return 0; }
+
+    gko::size_type get_memory() const override { return 0; }
+
+    void prepare() override {}
+
+    void run() override { reorder_ = factory_->generate(mtx_); }
+
+private:
+    std::shared_ptr<Mtx> mtx_;
+    std::unique_ptr<factory_type> factory_;
+    std::unique_ptr<reorder_type> reorder_;
+};
+
+
+#endif
+
+
+class ReorderApproxMinDegOperation : public BenchmarkOperation {
+    using factory_type = gko::experimental::reorder::Amd<itype>;
+    using reorder_type = gko::matrix::Permutation<itype>;
+
+public:
+    explicit ReorderApproxMinDegOperation(const Mtx* mtx)
+        : mtx_{mtx->clone()},
+          factory_{factory_type::build().on(mtx->get_executor())}
+    {}
+
+    std::pair<bool, double> validate() const override
+    {
+        // validating AMD correctness is hard, let's leave it out for now
+        return {true, 0.0};
+    }
+
+    gko::size_type get_flops() const override { return 0; }
+
+    gko::size_type get_memory() const override { return 0; }
+
+    void prepare() override {}
+
+    void run() override { reorder_ = factory_->generate(mtx_); }
+
+private:
+    std::shared_ptr<Mtx> mtx_;
+    std::unique_ptr<factory_type> factory_;
+    std::unique_ptr<reorder_type> reorder_;
+};
+
+
 const std::map<std::string,
                std::function<std::unique_ptr<BenchmarkOperation>(const Mtx*)>>
-    operation_map{
-        {"spgemm",
-         [](const Mtx* mtx) { return std::make_unique<SpgemmOperation>(mtx); }},
+    operation_map
+{
+    {"spgemm",
+     [](const Mtx* mtx) { return std::make_unique<SpgemmOperation>(mtx); }},
         {"spgeam",
          [](const Mtx* mtx) { return std::make_unique<SpgeamOperation>(mtx); }},
         {"transpose",
@@ -726,9 +826,25 @@ const std::map<std::string,
          [](const Mtx* mtx) {
              return std::make_unique<SymbolicCholeskyOperation>(mtx, false);
          }},
-        {"symbolic_cholesky_symmetric", [](const Mtx* mtx) {
+        {"symbolic_cholesky_symmetric",
+         [](const Mtx* mtx) {
              return std::make_unique<SymbolicCholeskyOperation>(mtx, true);
-         }}};
+         }},
+        {"reorder_rcm",
+         [](const Mtx* mtx) {
+             return std::make_unique<ReorderRcmOperation>(mtx);
+         }},
+        {"reorder_amd", [](const Mtx* mtx) {
+             return std::make_unique<ReorderApproxMinDegOperation>(mtx);
+         }},
+#if GKO_HAVE_METIS
+    {
+        "reorder_nd", [](const Mtx* mtx) {
+            return std::make_unique<ReorderNestedDissectionOperation>(mtx);
+        }
+    }
+#endif
+};
 
 
 std::unique_ptr<BenchmarkOperation> get_operation(std::string name,
