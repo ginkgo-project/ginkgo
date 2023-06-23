@@ -57,11 +57,17 @@ const auto benchmark_name = "sparse_blas";
 
 using mat_data = gko::matrix_data<etype, itype>;
 
-DEFINE_string(
-    operations, "spgemm,spgeam,transpose",
+const char* operations_string =
     "Comma-separated list of operations to be benchmarked. Can be "
     "spgemm, spgeam, transpose, sort, is_sorted, generate_lookup, "
-    "lookup, symbolic_lu, symbolic_cholesky, symbolic_cholesky_symmetric");
+    "lookup, symbolic_lu, symbolic_cholesky, "
+    "symbolic_cholesky_symmetric, reorder_rcm, "
+#if GKO_HAVE_METIS
+    "reorder_nd, "
+#endif
+    "reorder_amd";
+
+DEFINE_string(operations, "spgemm,spgeam,transpose", operations_string);
 
 DEFINE_bool(validate, false,
             "Check for correct sparsity pattern and compute the L2 norm "
