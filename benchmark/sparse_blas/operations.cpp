@@ -796,10 +796,9 @@ private:
 
 const std::map<std::string,
                std::function<std::unique_ptr<BenchmarkOperation>(const Mtx*)>>
-    operation_map
-{
-    {"spgemm",
-     [](const Mtx* mtx) { return std::make_unique<SpgemmOperation>(mtx); }},
+    operation_map{
+        {"spgemm",
+         [](const Mtx* mtx) { return std::make_unique<SpgemmOperation>(mtx); }},
         {"spgeam",
          [](const Mtx* mtx) { return std::make_unique<SpgeamOperation>(mtx); }},
         {"transpose",
@@ -834,17 +833,18 @@ const std::map<std::string,
          [](const Mtx* mtx) {
              return std::make_unique<ReorderRcmOperation>(mtx);
          }},
-        {"reorder_amd", [](const Mtx* mtx) {
+        {"reorder_amd",
+         [](const Mtx* mtx) {
              return std::make_unique<ReorderApproxMinDegOperation>(mtx);
          }},
+        {"reorder_nd",
+         [](const Mtx* mtx) -> std::unique_ptr<BenchmarkOperation> {
 #if GKO_HAVE_METIS
-    {
-        "reorder_nd", [](const Mtx* mtx) {
-            return std::make_unique<ReorderNestedDissectionOperation>(mtx);
-        }
-    }
+             return std::make_unique<ReorderNestedDissectionOperation>(mtx);
+#else
+             GKO_NOT_COMPILED(METIS);
 #endif
-};
+         }}};
 
 
 std::unique_ptr<BenchmarkOperation> get_operation(std::string name,
