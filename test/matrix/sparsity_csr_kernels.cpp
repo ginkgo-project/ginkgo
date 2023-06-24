@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
 #include "core/test/utils/matrix_generator.hpp"
+#include "core/test/utils/unsort_matrix.hpp"
 #include "test/utils/executor.hpp"
 
 
@@ -59,6 +60,7 @@ namespace {
 class SparsityCsr : public CommonTestFixture {
 protected:
     using Mtx = gko::matrix::SparsityCsr<value_type, index_type>;
+    using Mtx64 = gko::matrix::SparsityCsr<value_type, gko::int64>;
 
     SparsityCsr() : rng{9312}
     {
@@ -142,6 +144,101 @@ TEST_F(SparsityCsr, ConvertToDenseIsEquivalentToRef)
     dmtx->convert_to(dout_dense);
 
     GKO_ASSERT_MTX_NEAR(out_dense, dout_dense, 0.0);
+}
+
+
+TEST_F(SparsityCsr, SortSortedMatrixIsEquivalentToRef)
+{
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    auto cols_view =
+        gko::make_array_view(ref, mtx->get_num_nonzeros(), mtx->get_col_idxs());
+    auto dcols_view = gko::make_array_view(exec, dmtx->get_num_nonzeros(),
+                                           dmtx->get_col_idxs());
+    GKO_ASSERT_ARRAY_EQ(cols_view, dcols_view);
+}
+
+
+TEST_F(SparsityCsr, SortSortedMatrix64IsEquivalentToRef)
+{
+    auto mtx64 = Mtx64::create(ref);
+    auto dmtx64 = Mtx64::create(exec);
+    gko::matrix_data<value_type, index_type> data;
+    gko::matrix_data<value_type, gko::int64> data64;
+    mtx->sort_by_column_index();
+    mtx->write(data);
+    data64.size = data.size;
+    for (auto entry : data.nonzeros) {
+        data64.nonzeros.emplace_back(entry.row, entry.column, entry.value);
+    }
+    mtx64->read(data64);
+    dmtx64->read(data64);
+
+    mtx64->sort_by_column_index();
+    dmtx64->sort_by_column_index();
+
+    auto cols_view = gko::make_array_view(ref, mtx64->get_num_nonzeros(),
+                                          mtx64->get_col_idxs());
+    auto dcols_view = gko::make_array_view(exec, dmtx64->get_num_nonzeros(),
+                                           dmtx64->get_col_idxs());
+    GKO_ASSERT_ARRAY_EQ(cols_view, dcols_view);
+}
+
+
+TEST_F(SparsityCsr, SortUnsortedMatrixIsEquivalentToRef)
+{
+    gko::test::unsort_matrix(mtx, rng);
+    dmtx->copy_from(mtx);
+
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    auto cols_view =
+        gko::make_array_view(ref, mtx->get_num_nonzeros(), mtx->get_col_idxs());
+    auto dcols_view = gko::make_array_view(exec, dmtx->get_num_nonzeros(),
+                                           dmtx->get_col_idxs());
+    GKO_ASSERT_ARRAY_EQ(cols_view, dcols_view);
+}
+
+
+TEST_F(SparsityCsr, SortUnsortedMatrix64IsEquivalentToRef)
+{
+    gko::test::unsort_matrix(mtx, rng);
+    auto mtx64 = Mtx64::create(ref);
+    auto dmtx64 = Mtx64::create(exec);
+    gko::matrix_data<value_type, index_type> data;
+    gko::matrix_data<value_type, gko::int64> data64;
+    mtx->write(data);
+    data64.size = data.size;
+    for (auto entry : data.nonzeros) {
+        data64.nonzeros.emplace_back(entry.row, entry.column, entry.value);
+    }
+    mtx64->read(data64);
+    dmtx64->read(data64);
+
+    mtx64->sort_by_column_index();
+    dmtx64->sort_by_column_index();
+
+    auto cols_view = gko::make_array_view(ref, mtx64->get_num_nonzeros(),
+                                          mtx64->get_col_idxs());
+    auto dcols_view = gko::make_array_view(exec, dmtx64->get_num_nonzeros(),
+                                           dmtx64->get_col_idxs());
+    GKO_ASSERT_ARRAY_EQ(cols_view, dcols_view);
+}
+
+
+TEST_F(SparsityCsr, RecognizesUnsortedMatrix)
+{
+    gko::test::unsort_matrix(dmtx, rng);
+
+    ASSERT_FALSE(dmtx->is_sorted_by_column_index());
+}
+
+
+TEST_F(SparsityCsr, RecognizesSortedMatrix)
+{
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
 }
 
 
