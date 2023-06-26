@@ -514,6 +514,29 @@ public:
 };
 
 
+/**
+ * Overloaded idiom for use with std::visit.
+ *
+ * Typical use case:
+ * ```c++
+ * std::variant<int, float> v;
+ * std::visit(overloaded{
+ *   [](int) { cout << "int";},
+ *   [](float) { cout << "float";};
+ *   }, v);
+ * ```
+ * Return values are also supported. Note that it is critical to use curly-brace
+ * initializer for overloaded.
+ */
+template <class... Ts>
+struct overloaded : Ts... {
+    using Ts::operator()...;
+};
+// explicit deduction guide (not needed as of C++20)
+template <class... Ts>
+overloaded(Ts...) -> overloaded<Ts...>;
+
+
 }  // namespace gko
 
 
