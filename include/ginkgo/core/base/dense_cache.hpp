@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_BASE_DENSE_CACHE_HPP_
 
 
+#include <any>
 #include <memory>
 
 
@@ -86,7 +87,8 @@ struct DenseCache {
      * @param template_vec  Defines the configuration (executor, size, stride)
      *                      of the buffered vector.
      */
-    void init_from(const matrix::Dense<ValueType>* template_vec) const;
+    void init_from(const matrix::Dense<ValueType>* template_vec,
+                   gko::array<char>* storage = {}) const;
 
     /**
      * Initializes the buffered vector, if
@@ -97,7 +99,8 @@ struct DenseCache {
      * @param exec  Executor of the buffered vector.
      * @param size  Size of the buffered vector.
      */
-    void init(std::shared_ptr<const Executor> exec, dim<2> size) const;
+    void init(std::shared_ptr<const Executor> exec, dim<2> size,
+              gko::array<char>* storage = {}) const;
 
     /**
      * Reference access to the underlying vector.
@@ -118,6 +121,72 @@ struct DenseCache {
     matrix::Dense<ValueType>* get() const { return vec.get(); }
 };
 
+
+struct AnyDenseCache {
+    AnyDenseCache() = default;
+    ~AnyDenseCache() = default;
+    AnyDenseCache(const AnyDenseCache&) {}
+    AnyDenseCache(AnyDenseCache&&) noexcept {}
+    AnyDenseCache& operator=(const AnyDenseCache&) { return *this; }
+    AnyDenseCache& operator=(AnyDenseCache&&) noexcept { return *this; }
+    mutable std::any vec{};
+
+
+    /**
+     * Initializes the buffered vector with the same configuration as the
+     * template vector, if
+     * - the current vector is null,
+     * - the sizes of the buffered and template vector differ,
+     * - the executor of the buffered and template vector differ.
+     *
+     * @note This does not copy any data from the template vector.
+     *
+     * @param template_vec  Defines the configuration (executor, size, stride)
+     *                      of the buffered vector.
+     */
+    template <typename ValueType>
+    void init_from(const matrix::Dense<ValueType>* template_vec) const
+    {
+        auto concrete = get<ValueType>();
+        if (concrete && concrete->get_size() == template_vec->get_size() &&
+            concrete->get_executor() == template_vec->get_executor()) {
+            return;
+        }
+        vec = std::move(
+            *matrix::Dense<ValueType>::create_with_config_of(template_vec));
+    }
+
+    /**
+     * Initializes the buffered vector, if
+     * - the current vector is null,
+     * - the sizes differ,
+     * - the executor differs.
+     *
+     * @param exec  Executor of the buffered vector.
+     * @param size  Size of the buffered vector.
+     */
+    template <typename ValueType>
+    void init(std::shared_ptr<const Executor> exec, dim<2> size) const
+    {
+        auto concrete = get<ValueType>();
+        if (concrete && concrete->get_size() == size &&
+            concrete->get_executor() == exec) {
+            return;
+        }
+        vec = std::move(*matrix::Dense<ValueType>::create(exec, size));
+    }
+
+    /**
+     * Pointer access to the underlying vector.
+     * @return  Pointer to the stored vector. Returns nullptr if the stored
+     * object has a different value type.
+     */
+    template <typename ValueType>
+    matrix::Dense<ValueType>* get() const
+    {
+        return std::any_cast<matrix::Dense<ValueType>>(&vec);
+    }
+};
 
 }  // namespace detail
 }  // namespace gko
