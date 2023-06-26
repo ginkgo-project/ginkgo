@@ -66,7 +66,7 @@ namespace gko::experimental::distributed {
  *
  * @tparam IndexType  the type of the indices.
  */
-template <typename IndexType>
+template <typename IndexType = int32>
 class overlap_indices {
 public:
     using index_type = IndexType;
@@ -83,6 +83,14 @@ public:
               num_local_indices(std::accumulate(
                   this->intervals.begin(), this->intervals.end(), 0,
                   [](const auto& a, const auto& b) { return a + b.length(); })),
+              begin(this->intervals.empty()
+                        ? std::numeric_limits<index_type>::max()
+                        : std::min_element(this->intervals.begin(),
+                                           this->intervals.end(),
+                                           [](const auto& a, const auto& b) {
+                                               return a.begin < b.begin;
+                                           })
+                              ->end),
               size(this->intervals.empty()
                        ? 0
                        : std::max_element(this->intervals.begin(),
@@ -95,9 +103,12 @@ public:
             // need to test that for [a_i, b_i) b_i == a_i+1, i = 1,...,n
         }
 
+        const std::vector<span>& get_intervals() const { return intervals; }
+
     private:
         std::vector<span> intervals;  // a single span per target id
         size_type num_local_indices;
+        index_type begin;
         index_type size;
     };
 
@@ -125,6 +136,11 @@ public:
                                           })
                              ->get_size())
         {}
+
+        const std::vector<index_set<index_type>>& get_sets() const
+        {
+            return sets;
+        }
 
     private:
         std::vector<index_set<index_type>>
@@ -159,6 +175,19 @@ public:
             idxs_);
     }
 
+    index_type get_begin() const
+    {
+        return std::visit(
+            overloaded{[this](const blocked& block) {
+                           return std::min(block.begin, static_cast<index_type>(
+                                                            local_idxs_.end));
+                       },
+                       [](const interleaved& interleaved) {
+                           return static_cast<index_type>(0);
+                       }},
+            idxs_);
+    };
+
     const array<comm_index_type> get_target_ids() const { return target_ids_; }
 
     const std::variant<blocked, interleaved>& get_idxs() const { return idxs_; }
@@ -192,7 +221,7 @@ private:
  *
  * @tparam IndexType  the type of the indices. (int64 is not fully supported)
  */
-template <typename IndexType>
+template <typename IndexType = int32>
 class overlapping_partition {
 public:
     using index_type = IndexType;
