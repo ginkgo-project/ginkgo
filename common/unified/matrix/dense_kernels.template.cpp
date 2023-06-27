@@ -456,6 +456,35 @@ void advanced_row_gather(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 
+template <typename ValueType, typename OutputType, typename IndexType>
+void row_scatter(std::shared_ptr<const DefaultExecutor> exec,
+                 const array<IndexType>* row_idxs,
+                 const matrix::Dense<ValueType>* orig,
+                 matrix::Dense<OutputType>* target)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto col, auto orig, auto rows, auto gathered) {
+            gathered(rows[row], col) = orig(row, col);
+        },
+        dim<2>{row_idxs->get_num_elems(), orig->get_size()[1]}, orig, *row_idxs,
+        target);
+}
+
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
+    GKO_DECLARE_DENSE_ROW_SCATTER_KERNEL);
+
+
+template <typename ValueType, typename OutputType, typename IndexType>
+void row_scatter(std::shared_ptr<const DefaultExecutor> exec,
+                 const index_set<IndexType>* row_idxs,
+                 const matrix::Dense<ValueType>* orig,
+                 matrix::Dense<OutputType>* target) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
+    GKO_DECLARE_DENSE_ROW_SCATTER_INDEX_SET_KERNEL);
+
+
 template <typename ValueType, typename IndexType>
 void col_permute(std::shared_ptr<const DefaultExecutor> exec,
                  const IndexType* permutation_indices,
