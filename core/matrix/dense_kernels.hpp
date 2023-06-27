@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,7 @@
 
 #include <memory>
 
+#include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -294,6 +295,18 @@ namespace kernels {
         const matrix::Dense<_vtype>* orig, const matrix::Dense<_vtype>* beta, \
         matrix::Dense<_otype>* row_collection)
 
+#define GKO_DECLARE_DENSE_ROW_SCATTER_KERNEL(_vtype, _otype, _itype) \
+    void row_scatter(std::shared_ptr<const DefaultExecutor> exec,    \
+                     const array<_itype>* gather_indices,            \
+                     const matrix::Dense<_vtype>* orig,              \
+                     matrix::Dense<_otype>* target)
+
+#define GKO_DECLARE_DENSE_ROW_SCATTER_INDEX_SET_KERNEL(_vtype, _otype, _itype) \
+    void row_scatter(std::shared_ptr<const DefaultExecutor> exec,              \
+                     const index_set<_itype>* gather_indices,                  \
+                     const matrix::Dense<_vtype>* orig,                        \
+                     matrix::Dense<_otype>* target)
+
 #define GKO_DECLARE_DENSE_COL_PERMUTE_KERNEL(_vtype, _itype)      \
     void col_permute(std::shared_ptr<const DefaultExecutor> exec, \
                      const _itype* permutation_indices,           \
@@ -432,6 +445,11 @@ namespace kernels {
     template <typename ValueType, typename OutputType, typename IndexType>    \
     GKO_DECLARE_DENSE_ADVANCED_ROW_GATHER_KERNEL(ValueType, OutputType,       \
                                                  IndexType);                  \
+    template <typename ValueType, typename OutputType, typename IndexType>    \
+    GKO_DECLARE_DENSE_ROW_SCATTER_KERNEL(ValueType, OutputType, IndexType);   \
+    template <typename ValueType, typename OutputType, typename IndexType>    \
+    GKO_DECLARE_DENSE_ROW_SCATTER_INDEX_SET_KERNEL(ValueType, OutputType,     \
+                                                   IndexType);                \
     template <typename ValueType, typename IndexType>                         \
     GKO_DECLARE_DENSE_COL_PERMUTE_KERNEL(ValueType, IndexType);               \
     template <typename ValueType, typename IndexType>                         \

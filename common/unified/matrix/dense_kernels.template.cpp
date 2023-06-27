@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -454,6 +454,26 @@ void advanced_row_gather(std::shared_ptr<const DefaultExecutor> exec,
         row_collection->get_size(), alpha->get_const_values(), orig, row_idxs,
         beta->get_const_values(), row_collection);
 }
+
+
+template <typename ValueType, typename OutputType, typename IndexType>
+void row_scatter(std::shared_ptr<const DefaultExecutor> exec,
+                 const array<IndexType>* row_idxs,
+                 const matrix::Dense<ValueType>* orig,
+                 matrix::Dense<OutputType>* target)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto col, auto orig, auto rows,
+                      auto scattered) {
+            scattered(rows[row], col) = orig(row, col);
+        },
+        dim<2>{row_idxs->get_num_elems(), orig->get_size()[1]}, orig, *row_idxs,
+        target);
+}
+
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
+    GKO_DECLARE_DENSE_ROW_SCATTER_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
