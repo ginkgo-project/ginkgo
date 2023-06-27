@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -74,6 +74,7 @@ GKO_REGISTER_OPERATION(nonsymm_permute, dense::nonsymm_permute);
 GKO_REGISTER_OPERATION(inv_nonsymm_permute, dense::inv_nonsymm_permute);
 GKO_REGISTER_OPERATION(row_gather, dense::row_gather);
 GKO_REGISTER_OPERATION(advanced_row_gather, dense::advanced_row_gather);
+GKO_REGISTER_OPERATION(row_scatter, dense::row_scatter);
 GKO_REGISTER_OPERATION(col_permute, dense::col_permute);
 GKO_REGISTER_OPERATION(inverse_row_permute, dense::inv_row_permute);
 GKO_REGISTER_OPERATION(inverse_col_permute, dense::inv_col_permute);
@@ -1311,6 +1312,41 @@ void Dense<ValueType>::row_gather_impl(const Dense<ValueType>* alpha,
 
 
 template <typename ValueType>
+template <typename OutputType, typename IndexType>
+void Dense<ValueType>::row_scatter_impl(const array<IndexType>* row_idxs,
+                                        Dense<OutputType>* target) const
+{
+    auto exec = this->get_executor();
+    dim<2> expected_dim{row_idxs->get_num_elems(), this->get_size()[1]};
+    GKO_ASSERT_EQUAL_DIMENSIONS(expected_dim, this);
+    GKO_ASSERT_EQUAL_COLS(this, target);
+    // @todo check that indices are inbounds for target
+
+    exec->run(dense::make_row_scatter(
+        make_temporary_clone(exec, row_idxs).get(), this,
+        make_temporary_clone(exec, target).get()));
+}
+
+
+template <typename ValueType>
+template <typename OutputType, typename IndexType>
+void Dense<ValueType>::row_scatter_impl(const index_set<IndexType>* row_idxs,
+                                        Dense<OutputType>* target) const
+{
+    auto exec = this->get_executor();
+    dim<2> expected_dim{static_cast<size_type>(row_idxs->get_num_elems()),
+                        this->get_size()[1]};
+    GKO_ASSERT_EQUAL_DIMENSIONS(expected_dim, this);
+    GKO_ASSERT_EQUAL_COLS(this, target);
+    // @todo check that indices are inbounds for target
+
+    exec->run(dense::make_row_scatter(
+        make_temporary_clone(exec, row_idxs).get(), this,
+        make_temporary_clone(exec, target).get()));
+}
+
+
+template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::permute(
     const array<int32>* permutation_indices) const
 {
@@ -1610,6 +1646,28 @@ void Dense<ValueType>::row_gather(ptr_param<const LinOp> alpha,
                                   dense_beta.get(), dense);
         },
         out.get());
+}
+
+
+template <typename ValueType>
+template <typename IndexType>
+void Dense<ValueType>::row_scatter(const array<IndexType>* row_idxs,
+                                   ptr_param<LinOp> row_collection) const
+{
+    gather_mixed_real_complex<ValueType>(
+        [&](auto dense) { this->row_scatter_impl(row_idxs, dense); },
+        row_collection.get());
+}
+
+
+template <typename ValueType>
+template <typename IndexType>
+void Dense<ValueType>::row_scatter(const index_set<IndexType>* row_idxs,
+                                   ptr_param<LinOp> row_collection) const
+{
+    gather_mixed_real_complex<ValueType>(
+        [&](auto dense) { this->row_scatter_impl(row_idxs, dense); },
+        row_collection.get());
 }
 
 
@@ -2057,6 +2115,18 @@ Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
 
 #define GKO_DECLARE_DENSE_MATRIX(_type) class Dense<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_MATRIX);
+
+#define GKO_DECLARE_DENSE_ROW_SCATTER_ARRAY(_vtype, _itype)        \
+    void Dense<_vtype>::row_scatter(const array<_itype>* row_idxs, \
+                                    ptr_param<LinOp> row_collection) const
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_ROW_SCATTER_ARRAY);
+
+#define GKO_DECLARE_DENSE_ROW_SCATTER_INDEX_SET(_vtype, _itype)        \
+    void Dense<_vtype>::row_scatter(const index_set<_itype>* row_idxs, \
+                                    ptr_param<LinOp> row_collection) const
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_ROW_SCATTER_INDEX_SET);
 
 
 }  // namespace matrix
