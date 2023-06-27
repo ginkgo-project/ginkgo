@@ -125,6 +125,7 @@ protected:
         x = gen_mtx<Mtx>(65, 25);
         y = gen_mtx<Mtx>(25, 35);
         c_x = gen_mtx<ComplexMtx>(65, 25);
+        u = gen_mtx<Mtx>(7, 25);
         alpha = gko::initialize<Mtx>({2.0}, ref);
         beta = gko::initialize<Mtx>({-1.0}, ref);
         result = gen_mtx<Mtx>(65, 35);
@@ -132,6 +133,7 @@ protected:
         dx = gko::clone(exec, x);
         dy = gko::clone(exec, y);
         dc_x = gko::clone(exec, c_x);
+        du = gko::clone(exec, u);
         dresult = gko::clone(exec, result);
         dalpha = gko::clone(exec, alpha);
         dbeta = gko::clone(exec, beta);
@@ -144,7 +146,7 @@ protected:
         std::vector<int> tmp2(x->get_size()[1], 0);
         std::iota(tmp2.begin(), tmp2.end(), 0);
         std::shuffle(tmp2.begin(), tmp2.end(), rng);
-        std::vector<int> tmp3(x->get_size()[0] / 10);
+        std::vector<int> tmp3(u->get_size()[0]);
         std::uniform_int_distribution<int> row_dist(0, x->get_size()[0] - 1);
         for (auto& i : tmp3) {
             i = row_dist(rng);
@@ -172,6 +174,7 @@ protected:
     std::unique_ptr<ComplexMtx> c_y;
     std::unique_ptr<ComplexMtx> c_alpha;
     std::unique_ptr<Mtx> y;
+    std::unique_ptr<Mtx> u;
     std::unique_ptr<Mtx> alpha;
     std::unique_ptr<Mtx> beta;
     std::unique_ptr<Mtx> result;
@@ -181,6 +184,7 @@ protected:
     std::unique_ptr<ComplexMtx> dc_y;
     std::unique_ptr<ComplexMtx> dc_alpha;
     std::unique_ptr<Mtx> dy;
+    std::unique_ptr<Mtx> du;
     std::unique_ptr<Mtx> dalpha;
     std::unique_ptr<Mtx> dbeta;
     std::unique_ptr<Mtx> dresult;
@@ -1275,6 +1279,28 @@ TEST_F(Dense, CanAdvancedGatherRowsIntoMixedDenseCrossExecutor)
     sub_dx->row_gather(alpha, rgather_idxs.get(), beta, dr_gather);
 
     GKO_ASSERT_MTX_NEAR(r_gather, dr_gather, 0);
+}
+
+
+TEST_F(Dense, CanScatterRowsIntoDense)
+{
+    set_up_apply_data();
+
+    u->row_scatter(rgather_idxs.get(), x);
+    du->row_scatter(rgather_idxs.get(), dx);
+
+    GKO_ASSERT_MTX_NEAR(x, dx, 0);
+}
+
+
+TEST_F(Dense, CanScatterRowsIntoDenseCrossExecutor)
+{
+    set_up_apply_data();
+
+    u->row_scatter(rgather_idxs.get(), x);
+    u->row_scatter(rgather_idxs.get(), dx);
+
+    GKO_ASSERT_MTX_NEAR(x, dx, 0);
 }
 
 

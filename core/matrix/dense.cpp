@@ -97,6 +97,7 @@ GKO_REGISTER_OPERATION(symm_permute, dense::symm_permute);
 GKO_REGISTER_OPERATION(inv_symm_permute, dense::inv_symm_permute);
 GKO_REGISTER_OPERATION(row_gather, dense::row_gather);
 GKO_REGISTER_OPERATION(advanced_row_gather, dense::advanced_row_gather);
+GKO_REGISTER_OPERATION(row_scatter, dense::row_scatter);
 GKO_REGISTER_OPERATION(column_permute, dense::column_permute);
 GKO_REGISTER_OPERATION(inverse_row_permute, dense::inverse_row_permute);
 GKO_REGISTER_OPERATION(inverse_column_permute, dense::inverse_column_permute);
@@ -1159,6 +1160,30 @@ void Dense<ValueType>::row_gather_impl(const Dense<ValueType>* alpha,
 
 
 template <typename ValueType>
+template <typename OutputType, typename IndexType>
+void Dense<ValueType>::row_scatter_impl(const array<IndexType>* row_idxs,
+                                        Dense<OutputType>* target) const
+{
+    auto exec = this->get_executor();
+    dim<2> expected_dim{row_idxs->get_num_elems(), this->get_size()[1]};
+    GKO_ASSERT_EQUAL_DIMENSIONS(expected_dim, this);
+    GKO_ASSERT_EQUAL_COLS(this, target);
+    // @todo check that indices are inbounds for target
+
+    exec->run(dense::make_row_scatter(
+        make_temporary_clone(exec, row_idxs).get(), this,
+        make_temporary_clone(exec, target).get()));
+}
+
+
+template <typename ValueType>
+template <typename OutputType, typename IndexType>
+void Dense<ValueType>::row_scatter_impl(const index_set<IndexType>* row_idxs,
+                                        Dense<OutputType>* target) const
+    GKO_NOT_IMPLEMENTED;
+
+
+template <typename ValueType>
 template <typename IndexType>
 void Dense<ValueType>::column_permute_impl(
     const array<IndexType>* permutation_indices, Dense<ValueType>* output) const
@@ -1407,6 +1432,26 @@ void Dense<ValueType>::row_gather(ptr_param<const LinOp> alpha,
                                   dense_beta.get(), dense);
         },
         out.get());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::row_scatter(const array<int32>* row_idxs,
+                                   ptr_param<LinOp> row_collection) const
+{
+    gather_mixed_real_complex<ValueType>(
+        [&](auto dense) { this->row_scatter_impl(row_idxs, dense); },
+        row_collection.get());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::row_scatter(const array<int64>* row_idxs,
+                                   ptr_param<LinOp> row_collection) const
+{
+    gather_mixed_real_complex<ValueType>(
+        [&](auto dense) { this->row_scatter_impl(row_idxs, dense); },
+        row_collection.get());
 }
 
 

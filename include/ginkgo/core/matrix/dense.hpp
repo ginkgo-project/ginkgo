@@ -60,6 +60,10 @@ class Vector;
 }  // namespace experimental
 
 
+template <typename IndexType>
+class index_set;
+
+
 namespace matrix {
 
 
@@ -538,6 +542,12 @@ public:
                     const array<int64>* gather_indices,
                     ptr_param<const LinOp> beta,
                     ptr_param<LinOp> row_collection) const;
+
+    void row_scatter(const array<int64>* scatter_indices,
+                     ptr_param<LinOp> target) const;
+
+    void row_scatter(const array<int32>* scatter_indices,
+                     ptr_param<LinOp> target) const;
 
     std::unique_ptr<LinOp> column_permute(
         const array<int32>* permutation_indices) const override;
@@ -1275,6 +1285,14 @@ protected:
                          const array<IndexType>* row_idxs,
                          const Dense<ValueType>* beta,
                          Dense<OutputType>* row_collection) const;
+
+    template <typename OutputType, typename IndexType>
+    void row_scatter_impl(const array<IndexType>* row_idxs,
+                          Dense<OutputType>* target) const;
+
+    template <typename OutputType, typename IndexType>
+    void row_scatter_impl(const index_set<IndexType>* row_idxs,
+                          Dense<OutputType>* target) const;
 
     template <typename IndexType>
     void column_permute_impl(const array<IndexType>* permutation,

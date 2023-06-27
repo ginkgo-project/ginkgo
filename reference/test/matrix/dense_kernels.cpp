@@ -2361,6 +2361,59 @@ TYPED_TEST(Dense, SquareMatrixGatherRowsIntoDenseFailsForWrongDimensions64)
 }
 
 
+TYPED_TEST(Dense, MatrixCanScatterRowsIntoDense)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto exec = this->mtx5->get_executor();
+    auto row_collection =
+        gko::initialize<Mtx>({{3.0, 2.7, 6.5}, {0.7, 1.1, 4.0}}, exec);
+    gko::array<gko::int32> permute_idxs{exec, {2, 0}};
+
+    row_collection->row_scatter(&permute_idxs, this->mtx5);
+
+    GKO_ASSERT_MTX_NEAR(
+        this->mtx5, l<T>({{0.7, 1.1, 4.0}, {-2.0, 2.0, 4.5}, {3.0, 2.7, 6.5}}),
+        0.0);
+}
+
+
+TYPED_TEST(Dense, MatrixCanScatterRowsIntoDenseSubmatrix)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto exec = this->mtx5->get_executor();
+    auto row_collection = gko::initialize<Mtx>(I<I<T>>{{3.0, 2.7}}, exec);
+    gko::array<gko::int32> permute_idxs{exec, {0}};
+
+    row_collection->row_scatter(&permute_idxs,
+                                this->mtx5->create_submatrix({2}, {1, 3}));
+
+    GKO_ASSERT_MTX_NEAR(
+        this->mtx5,
+        l<T>({{1.0, -1.0, -0.5}, {-2.0, 2.0, 4.5}, {2.1, 3.0, 2.7}}), 0.0);
+}
+
+
+TYPED_TEST(Dense, MatrixScatterRowsFailsWithWrongDimensions)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto exec = this->mtx5->get_executor();
+    auto row_collection1 =
+        gko::initialize<Mtx>(I<I<T>>{{3.0, 2.7}, {0.7, 1.1}}, exec);
+    auto row_collection2 =
+        gko::initialize<Mtx>({{3.0, 2.7, 6.5}, {0.7, 1.1, 4.0}}, exec);
+    gko::array<gko::int32> permute_idxs1{exec, {2, 0}};
+    gko::array<gko::int32> permute_idxs2{exec, {1}};
+
+    ASSERT_THROW(row_collection1->row_scatter(&permute_idxs1, this->mtx5),
+                 gko::DimensionMismatch);
+    ASSERT_THROW(row_collection2->row_scatter(&permute_idxs2, this->mtx5),
+                 gko::DimensionMismatch);
+}
+
+
 TYPED_TEST(Dense, SquareMatrixIsPermutable)
 {
     using Mtx = typename TestFixture::Mtx;
