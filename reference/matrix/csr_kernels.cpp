@@ -442,8 +442,8 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
     if (result->use_element_compression()) {
         // For element compression objects
         IndexType block_size = result->get_block_size();
-        IndexType* rows_data = result->get_rows();
-        size_type* offsets_data = result->get_offsets();
+        IndexType* start_rows = result->get_start_rows();
+        size_type* block_offsets = result->get_block_offsets();
         uint8* compressed_data = result->get_compressed_data();
 
         const IndexType* row_ptrs = source->get_const_row_ptrs();
@@ -453,7 +453,7 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         const IndexType num_stored_elements = source->get_num_stored_elements();
         matrix::bccoo::compr_idxs<IndexType> idxs;
         if (num_stored_elements > 0) {
-            offsets_data[0] = 0;
+            block_offsets[0] = 0;
         }
         for (IndexType i = 0; i < num_rows; i++) {
             for (IndexType j = row_ptrs[i]; j < row_ptrs[i + 1]; j++) {
@@ -461,19 +461,19 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                 const IndexType col = col_idxs[j];
                 const ValueType val = values[j];
                 // Writing (row,col,val) to result
-                matrix::bccoo::put_detect_newblock(compressed_data, rows_data,
+                matrix::bccoo::put_detect_newblock(compressed_data, start_rows,
                                                    row - idxs.row, idxs);
                 IndexType col_src_res =
                     matrix::bccoo::put_position_newrow_mat_data(
                         row, col, compressed_data, idxs);
                 matrix::bccoo::put_next_position_value(
                     compressed_data, col - idxs.col, val, idxs);
-                matrix::bccoo::put_detect_endblock(offsets_data, block_size,
+                matrix::bccoo::put_detect_endblock(block_offsets, block_size,
                                                    idxs);
             }
         }
         if (idxs.nblk > 0) {
-            offsets_data[idxs.blk + 1] = idxs.shf;
+            block_offsets[idxs.blk + 1] = idxs.shf;
         }
     } else {
         // For block compression objects
@@ -483,10 +483,10 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         auto num_rows = source->get_size()[0];
         auto num_cols = source->get_size()[1];
 
-        auto* rows_data = result->get_rows();
-        auto* cols_data = result->get_cols();
-        auto* types_data = result->get_types();
-        auto* offsets_data = result->get_offsets();
+        auto* start_rows = result->get_start_rows();
+        auto* start_cols = result->get_start_cols();
+        auto* compression_types = result->get_compression_types();
+        auto* block_offsets = result->get_block_offsets();
         auto* compressed_data = result->get_compressed_data();
 
         auto num_stored_elements = result->get_num_stored_elements();
@@ -502,7 +502,7 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         array<ValueType> vals_blk(exec, block_size);
 
         if (num_stored_elements > 0) {
-            offsets_data[0] = 0;
+            block_offsets[0] = 0;
         }
         for (IndexType i = 0; i < num_rows; i++) {
             for (IndexType j = row_ptrs[i]; j < row_ptrs[i + 1]; j++) {
@@ -521,10 +521,10 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                     type_blk = matrix::bccoo::write_compressed_data_blk_type(
                         idxs, blk_idxs, rows_blk, cols_blk, vals_blk,
                         compressed_data);
-                    rows_data[idxs.blk] = blk_idxs.row_frst;
-                    cols_data[idxs.blk] = blk_idxs.col_frst;
-                    types_data[idxs.blk] = type_blk;
-                    offsets_data[++idxs.blk] = idxs.shf;
+                    start_rows[idxs.blk] = blk_idxs.row_frst;
+                    start_cols[idxs.blk] = blk_idxs.col_frst;
+                    compression_types[idxs.blk] = type_blk;
+                    block_offsets[++idxs.blk] = idxs.shf;
                     idxs.nblk = 0;
                     blk_idxs = {};
                 }
@@ -534,10 +534,10 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
             // Writing block on result
             type_blk = matrix::bccoo::write_compressed_data_blk_type(
                 idxs, blk_idxs, rows_blk, cols_blk, vals_blk, compressed_data);
-            rows_data[idxs.blk] = blk_idxs.row_frst;
-            cols_data[idxs.blk] = blk_idxs.col_frst;
-            types_data[idxs.blk] = type_blk;
-            offsets_data[++idxs.blk] = idxs.shf;
+            start_rows[idxs.blk] = blk_idxs.row_frst;
+            start_cols[idxs.blk] = blk_idxs.col_frst;
+            compression_types[idxs.blk] = type_blk;
+            block_offsets[++idxs.blk] = idxs.shf;
             idxs.nblk = 0;
             blk_idxs = {};
         }

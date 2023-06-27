@@ -89,8 +89,8 @@ protected:
 
     void assert_equal_to_original_mtx_elm(const Mtx* m)
     {
-        auto rows_data = m->get_const_rows();
-        auto offsets_data = m->get_const_offsets();
+        auto start_rows = m->get_const_start_rows();
+        auto block_offsets = m->get_const_block_offsets();
         auto compressed_data = m->get_const_compressed_data();
 
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
@@ -101,15 +101,15 @@ protected:
         index_type row = {};
         gko::size_type offset = {};
         for (index_type i = 0; i < m->get_num_blocks(); i++) {
-            EXPECT_EQ(rows_data[i], row);
-            EXPECT_EQ(offsets_data[i], offset);
+            EXPECT_EQ(start_rows[i], row);
+            EXPECT_EQ(block_offsets[i], offset);
             auto elms = std::min(block_size, 4 - i * block_size);
             row += ((block_size == 1) && (i == 2)) || (block_size == 3);
             offset += (1 + sizeof(value_type)) * elms +
                       (((block_size == 2) || (block_size >= 4)) &&
                        (i + block_size > 2));
         }
-        EXPECT_EQ(offsets_data[m->get_num_blocks()], offset);
+        EXPECT_EQ(block_offsets[m->get_num_blocks()], offset);
 
         index_type ind = {};
 
@@ -149,10 +149,10 @@ protected:
 
     void assert_equal_to_original_mtx_blk(const Mtx* m)
     {
-        auto rows_data = m->get_const_rows();
-        auto cols_data = m->get_const_cols();
-        auto types_data = m->get_const_types();
-        auto offsets_data = m->get_const_offsets();
+        auto start_rows = m->get_const_start_rows();
+        auto start_cols = m->get_const_start_cols();
+        auto compression_types = m->get_const_compression_types();
+        auto block_offsets = m->get_const_block_offsets();
         auto compressed_data = m->get_const_compressed_data();
 
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
@@ -172,10 +172,10 @@ protected:
                     (i + block_size > 2))
                        ? (type_mask_cols_8bits | type_mask_rows_multiple)
                        : type_mask_cols_8bits;
-            EXPECT_EQ(rows_data[i], row);
-            EXPECT_EQ(cols_data[i], col);
-            EXPECT_EQ(types_data[i], type);
-            EXPECT_EQ(offsets_data[i], offset);
+            EXPECT_EQ(start_rows[i], row);
+            EXPECT_EQ(start_cols[i], col);
+            EXPECT_EQ(compression_types[i], type);
+            EXPECT_EQ(block_offsets[i], offset);
             offset += (1 + sizeof(value_type)) * elms +
                       (((block_size == 2) || (block_size >= 4)) &&
                        (i + block_size > 2)) *
@@ -339,10 +339,10 @@ protected:
         ASSERT_EQ(m->get_block_size(), 0);
         ASSERT_EQ(m->get_num_blocks(), 0);
         ASSERT_EQ(m->get_num_bytes(), 0);
-        ASSERT_EQ(m->get_const_rows(), nullptr);
-        ASSERT_EQ(m->get_const_cols(), nullptr);
-        ASSERT_EQ(m->get_const_types(), nullptr);
-        ASSERT_EQ(m->get_const_offsets(), nullptr);
+        ASSERT_EQ(m->get_const_start_rows(), nullptr);
+        ASSERT_EQ(m->get_const_start_cols(), nullptr);
+        ASSERT_EQ(m->get_const_compression_types(), nullptr);
+        ASSERT_EQ(m->get_const_block_offsets(), nullptr);
         ASSERT_EQ(m->get_const_compressed_data(), nullptr);
     }
 
@@ -353,10 +353,10 @@ protected:
         ASSERT_EQ(m->get_num_stored_elements(), 0);
         ASSERT_EQ(m->get_num_blocks(), 0);
         ASSERT_EQ(m->get_num_bytes(), 0);
-        ASSERT_EQ(m->get_const_rows(), nullptr);
-        ASSERT_EQ(m->get_const_cols(), nullptr);
-        ASSERT_EQ(m->get_const_types(), nullptr);
-        ASSERT_EQ(m->get_const_offsets(), nullptr);
+        ASSERT_EQ(m->get_const_start_rows(), nullptr);
+        ASSERT_EQ(m->get_const_start_cols(), nullptr);
+        ASSERT_EQ(m->get_const_compression_types(), nullptr);
+        ASSERT_EQ(m->get_const_block_offsets(), nullptr);
         ASSERT_EQ(m->get_const_compressed_data(), nullptr);
     }
 
@@ -367,10 +367,10 @@ protected:
         ASSERT_EQ(m->get_num_stored_elements(), 0);
         ASSERT_EQ(m->get_num_blocks(), 0);
         ASSERT_EQ(m->get_num_bytes(), 0);
-        ASSERT_EQ(m->get_const_rows(), nullptr);
-        ASSERT_EQ(m->get_const_cols(), nullptr);
-        ASSERT_EQ(m->get_const_types(), nullptr);
-        ASSERT_EQ(m->get_const_offsets(), nullptr);
+        ASSERT_EQ(m->get_const_start_rows(), nullptr);
+        ASSERT_EQ(m->get_const_start_cols(), nullptr);
+        ASSERT_EQ(m->get_const_compression_types(), nullptr);
+        ASSERT_EQ(m->get_const_block_offsets(), nullptr);
         ASSERT_EQ(m->get_const_compressed_data(), nullptr);
     }
 };
@@ -442,8 +442,8 @@ TYPED_TEST(Bccoo, CanBeCreatedFromExistingDataElm)
     const gko::size_type num_bytes = 6 + 4 * sizeof(value_type);
     index_type ind = {};
     gko::uint8 compressed_data[num_bytes] = {};
-    gko::size_type offsets[] = {0, num_bytes};
-    index_type rows[] = {0};
+    gko::size_type block_offsets[] = {0, num_bytes};
+    index_type start_rows[] = {0};
     // Fill the vectors
     compressed_data[ind++] = 0x00;
     set_value_compressed_data<value_type>(compressed_data, ind, 1.0);
@@ -463,13 +463,13 @@ TYPED_TEST(Bccoo, CanBeCreatedFromExistingDataElm)
     auto mtx_elm = gko::matrix::Bccoo<value_type, index_type>::create(
         this->exec, gko::dim<2>{3, 2},
         gko::array<gko::uint8>::view(this->exec, num_bytes, compressed_data),
-        gko::array<gko::size_type>::view(this->exec, 2, offsets),
-        gko::array<index_type>::view(this->exec, 1, rows), 4, block_size);
+        gko::array<gko::size_type>::view(this->exec, 2, block_offsets),
+        gko::array<index_type>::view(this->exec, 1, start_rows), 4, block_size);
 
     ASSERT_EQ(mtx_elm->get_num_stored_elements(), 4);
     ASSERT_EQ(mtx_elm->get_block_size(), block_size);
-    ASSERT_EQ(mtx_elm->get_const_offsets(), offsets);
-    ASSERT_EQ(mtx_elm->get_const_rows(), rows);
+    ASSERT_EQ(mtx_elm->get_const_block_offsets(), block_offsets);
+    ASSERT_EQ(mtx_elm->get_const_start_rows(), start_rows);
 }
 
 
@@ -483,10 +483,10 @@ TYPED_TEST(Bccoo, CanBeCreatedFromExistingDataBlk)
     const gko::size_type num_bytes = 4 + 4 + 4 * sizeof(value_type);
     index_type ind = {};
     gko::uint8 compressed_data[num_bytes] = {};
-    gko::size_type offsets[] = {0, num_bytes};
-    gko::uint8 types[] = {3};
-    index_type cols[] = {0};
-    index_type rows[] = {0};
+    gko::size_type block_offsets[] = {0, num_bytes};
+    gko::uint8 compression_types[] = {3};
+    index_type start_cols[] = {0};
+    index_type start_rows[] = {0};
     // Fill the rows
     compressed_data[ind++] = 0x00;
     compressed_data[ind++] = 0x00;
@@ -510,17 +510,17 @@ TYPED_TEST(Bccoo, CanBeCreatedFromExistingDataBlk)
     auto mtx_blk = gko::matrix::Bccoo<value_type, index_type>::create(
         this->exec, gko::dim<2>{3, 2},
         gko::array<gko::uint8>::view(this->exec, num_bytes, compressed_data),
-        gko::array<gko::size_type>::view(this->exec, 2, offsets),
-        gko::array<gko::uint8>::view(this->exec, 1, types),
-        gko::array<index_type>::view(this->exec, 1, cols),
-        gko::array<index_type>::view(this->exec, 1, rows), 4, block_size);
+        gko::array<gko::size_type>::view(this->exec, 2, block_offsets),
+        gko::array<gko::uint8>::view(this->exec, 1, compression_types),
+        gko::array<index_type>::view(this->exec, 1, start_cols),
+        gko::array<index_type>::view(this->exec, 1, start_rows), 4, block_size);
 
     ASSERT_EQ(mtx_blk->get_num_stored_elements(), 4);
     ASSERT_EQ(mtx_blk->get_block_size(), block_size);
-    ASSERT_EQ(mtx_blk->get_const_offsets(), offsets);
-    ASSERT_EQ(mtx_blk->get_const_types(), types);
-    ASSERT_EQ(mtx_blk->get_const_cols(), cols);
-    ASSERT_EQ(mtx_blk->get_const_rows(), rows);
+    ASSERT_EQ(mtx_blk->get_const_block_offsets(), block_offsets);
+    ASSERT_EQ(mtx_blk->get_const_compression_types(), compression_types);
+    ASSERT_EQ(mtx_blk->get_const_start_cols(), start_cols);
+    ASSERT_EQ(mtx_blk->get_const_start_rows(), start_rows);
 }
 
 

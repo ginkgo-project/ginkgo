@@ -323,8 +323,8 @@ protected:
 
     void assert_equal_to_mtx_elm(const Bccoo* m)
     {
-        auto rows_data = m->get_const_rows();
-        auto offsets_data = m->get_const_offsets();
+        auto start_rows = m->get_const_start_rows();
+        auto block_offsets = m->get_const_block_offsets();
         auto compressed_data = m->get_const_compressed_data();
 
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
@@ -335,15 +335,15 @@ protected:
         index_type row = {};
         index_type offset = {};
         for (index_type i = 0; i < m->get_num_blocks(); i++) {
-            EXPECT_EQ(rows_data[i], row);
-            EXPECT_EQ(offsets_data[i], offset);
+            EXPECT_EQ(start_rows[i], row);
+            EXPECT_EQ(block_offsets[i], offset);
             auto elms = std::min(block_size, 4 - i * block_size);
             row += ((block_size == 1) && (i == 2)) || (block_size == 3);
             offset += (1 + sizeof(value_type)) * elms +
                       (((block_size == 2) || (block_size >= 4)) &&
                        (i + block_size > 2));
         }
-        EXPECT_EQ(offsets_data[m->get_num_blocks()], offset);
+        EXPECT_EQ(block_offsets[m->get_num_blocks()], offset);
 
         index_type ind = {};
 
@@ -387,10 +387,10 @@ protected:
 
     void assert_equal_to_mtx_blk(const Bccoo* m)
     {
-        auto rows_data = m->get_const_rows();
-        auto cols_data = m->get_const_cols();
-        auto types_data = m->get_const_types();
-        auto offsets_data = m->get_const_offsets();
+        auto start_rows = m->get_const_start_rows();
+        auto start_cols = m->get_const_start_cols();
+        auto compression_types = m->get_const_compression_types();
+        auto block_offsets = m->get_const_block_offsets();
         auto compressed_data = m->get_const_compressed_data();
 
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
@@ -416,10 +416,10 @@ protected:
                        ? (gko::matrix::bccoo::type_mask_cols_8bits |
                           gko::matrix::bccoo::type_mask_rows_multiple)
                        : gko::matrix::bccoo::type_mask_cols_8bits;
-            EXPECT_EQ(rows_data[i], row);
-            EXPECT_EQ(cols_data[i], col);
-            EXPECT_EQ(types_data[i], type);
-            EXPECT_EQ(offsets_data[i], offset);
+            EXPECT_EQ(start_rows[i], row);
+            EXPECT_EQ(start_cols[i], col);
+            EXPECT_EQ(compression_types[i], type);
+            EXPECT_EQ(block_offsets[i], offset);
             offset += (1 + sizeof(value_type)) * elms +
                       (((block_size == 2) || (block_size >= 4)) &&
                        (i + block_size > 2)) *

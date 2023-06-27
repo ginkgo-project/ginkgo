@@ -130,8 +130,8 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
             // Each block is computed separately
 #pragma omp for
             for (IndexType blk = 0; blk < num_blks; blk++) {
-                const IndexType* rows_data = a->get_const_rows();
-                const size_type* offsets_data = a->get_const_offsets();
+                const IndexType* start_rows = a->get_const_start_rows();
+                const size_type* block_offsets = a->get_const_block_offsets();
                 const uint8* compressed_data = a->get_const_compressed_data();
                 const IndexType block_size = a->get_block_size();
                 bool new_elm = false;
@@ -144,9 +144,9 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                     sum_v[j] = zero<ValueType>();
                 }
 
-                compr_idxs<IndexType> idxs(blk, offsets_data[blk],
-                                           rows_data[blk]);
-                while (idxs.shf < offsets_data[blk + 1]) {
+                compr_idxs<IndexType> idxs(blk, block_offsets[blk],
+                                           start_rows[blk]);
+                while (idxs.shf < block_offsets[blk + 1]) {
                     row_old = idxs.row;
                     uint8 ind = get_position_newrow(compressed_data, idxs);
                     get_next_position_value(compressed_data, ind, idxs, val);
@@ -182,10 +182,11 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
             // Each block is computed separately
 #pragma omp for
             for (IndexType blk = 0; blk < num_blks; blk++) {
-                const IndexType* rows_data = a->get_const_rows();
-                const IndexType* cols_data = a->get_const_cols();
-                const uint8* types_data = a->get_const_types();
-                const size_type* offsets_data = a->get_const_offsets();
+                const IndexType* start_rows = a->get_const_start_rows();
+                const IndexType* start_cols = a->get_const_start_cols();
+                const uint8* compression_types =
+                    a->get_const_compression_types();
+                const size_type* block_offsets = a->get_const_block_offsets();
                 const uint8* compressed_data = a->get_const_compressed_data();
 
                 const IndexType block_size = a->get_block_size();
@@ -200,11 +201,11 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
 
                 const IndexType block_size_local = std::min(
                     block_size, num_stored_elements - blk * block_size);
-                const uint8 type_blk = types_data[blk];
-                compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
-                compr_blk_idxs<IndexType> blk_idxs(rows_data, cols_data,
+                const uint8 type_blk = compression_types[blk];
+                compr_idxs<IndexType> idxs(blk, block_offsets[blk]);
+                compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
                                                    block_size_local, idxs,
-                                                   types_data[idxs.blk]);
+                                                   compression_types[idxs.blk]);
                 if (blk_idxs.is_multi_row()) {
                     if (blk_idxs.is_row_16bits()) {
                         if (blk_idxs.is_column_8bits()) {
@@ -276,8 +277,8 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
             // Each block is computed separately
 #pragma omp for
             for (IndexType blk = 0; blk < num_blks; blk++) {
-                const IndexType* rows_data = a->get_const_rows();
-                const size_type* offsets_data = a->get_const_offsets();
+                const IndexType* start_rows = a->get_const_start_rows();
+                const size_type* block_offsets = a->get_const_block_offsets();
                 const uint8* compressed_data = a->get_const_compressed_data();
                 const IndexType num_cols = b->get_size()[1];
                 const IndexType block_size = a->get_block_size();
@@ -292,9 +293,9 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                     sum_v[j] = zero<ValueType>();
                 }
 
-                compr_idxs<IndexType> idxs(blk, offsets_data[blk],
-                                           rows_data[blk]);
-                while (idxs.shf < offsets_data[blk + 1]) {
+                compr_idxs<IndexType> idxs(blk, block_offsets[blk],
+                                           start_rows[blk]);
+                while (idxs.shf < block_offsets[blk + 1]) {
                     row_old = idxs.row;
                     uint8 ind = get_position_newrow(compressed_data, idxs);
                     get_next_position_value(compressed_data, ind, idxs, val);
@@ -329,10 +330,11 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
             // Each block is computed separately
 #pragma omp for
             for (IndexType blk = 0; blk < num_blks; blk++) {
-                const IndexType* rows_data = a->get_const_rows();
-                const IndexType* cols_data = a->get_const_cols();
-                const uint8* types_data = a->get_const_types();
-                const size_type* offsets_data = a->get_const_offsets();
+                const IndexType* start_rows = a->get_const_start_rows();
+                const IndexType* start_cols = a->get_const_start_cols();
+                const uint8* compression_types =
+                    a->get_const_compression_types();
+                const size_type* block_offsets = a->get_const_block_offsets();
                 const uint8* compressed_data = a->get_const_compressed_data();
 
                 const IndexType block_size = a->get_block_size();
@@ -348,11 +350,11 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
 
                 const IndexType block_size_local = std::min(
                     block_size, num_stored_elements - blk * block_size);
-                const uint8 type_blk = types_data[blk];
-                compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
-                compr_blk_idxs<IndexType> blk_idxs(rows_data, cols_data,
+                const uint8 type_blk = compression_types[blk];
+                compr_idxs<IndexType> idxs(blk, block_offsets[blk]);
+                compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
                                                    block_size_local, idxs,
-                                                   types_data[idxs.blk]);
+                                                   compression_types[idxs.blk]);
                 if (blk_idxs.is_multi_row()) {
                     if (blk_idxs.is_row_16bits()) {
                         if (blk_idxs.is_column_8bits()) {
@@ -470,7 +472,7 @@ void convert_to_next_precision(
         }
     } else {
         if (source->get_num_stored_elements() > 0) {
-            result->get_offsets()[0] = 0;
+            result->get_block_offsets()[0] = 0;
         }
         if (source->use_element_compression()) {
             // For element compression objects
@@ -478,17 +480,19 @@ void convert_to_next_precision(
             // Each block is computed separately
 #pragma omp parallel for default(shared)
             for (IndexType blk_src = 0; blk_src < num_blk_src; blk_src++) {
-                const IndexType* rows_data_src = source->get_const_rows();
-                const size_type* offsets_data_src = source->get_const_offsets();
-                IndexType* rows_data_res = result->get_rows();
-                size_type* offsets_data_res = result->get_offsets();
+                const IndexType* start_rows_src =
+                    source->get_const_start_rows();
+                const size_type* block_offsets_src =
+                    source->get_const_block_offsets();
+                IndexType* start_rows_res = result->get_start_rows();
+                size_type* block_offsets_res = result->get_block_offsets();
                 const IndexType block_size_src = source->get_block_size();
                 const IndexType block_size_local =
                     std::min(block_size_src, num_stored_elements_src -
                                                  blk_src * block_size_src);
-                rows_data_res[blk_src] = rows_data_src[blk_src];
-                offsets_data_res[blk_src + 1] =
-                    offsets_data_src[blk_src + 1] +
+                start_rows_res[blk_src] = start_rows_src[blk_src];
+                block_offsets_res[blk_src + 1] =
+                    block_offsets_src[blk_src + 1] +
                     ((blk_src + 1) * block_size_src *
                      sizeof(next_precision<ValueType>)) -
                     ((blk_src + 1) * block_size_src * sizeof(ValueType));
@@ -497,31 +501,33 @@ void convert_to_next_precision(
             // Each block is computed separately
 #pragma omp parallel for default(shared)
             for (IndexType blk_src = 0; blk_src < num_blk_src; blk_src++) {
-                const IndexType* rows_data_src = source->get_const_rows();
-                const size_type* offsets_data_src = source->get_const_offsets();
+                const IndexType* start_rows_src =
+                    source->get_const_start_rows();
+                const size_type* block_offsets_src =
+                    source->get_const_block_offsets();
                 const uint8* compressed_data_src =
                     source->get_const_compressed_data();
                 const IndexType block_size_src = source->get_block_size();
                 const size_type num_bytes_src = source->get_num_bytes();
                 ValueType val_src;
                 compr_idxs<IndexType> idxs_src(blk_src,
-                                               offsets_data_src[blk_src],
-                                               offsets_data_src[blk_src]);
+                                               block_offsets_src[blk_src],
+                                               start_rows_src[blk_src]);
 
-                IndexType* rows_data_res = result->get_rows();
-                size_type* offsets_data_res = result->get_offsets();
+                IndexType* start_rows_res = result->get_start_rows();
+                size_type* block_offsets_res = result->get_block_offsets();
                 uint8* compressed_data_res = result->get_compressed_data();
                 const IndexType block_size_res = result->get_block_size();
                 const size_type num_bytes_res = result->get_num_bytes();
                 const IndexType blk_res = blk_src;
                 next_precision<ValueType> val_res;
                 compr_idxs<IndexType> idxs_res(blk_res,
-                                               offsets_data_res[blk_res],
-                                               offsets_data_res[blk_res]);
-                while (idxs_src.shf < offsets_data_src[blk_src + 1]) {
+                                               block_offsets_res[blk_res],
+                                               start_rows_res[blk_res]);
+                while (idxs_src.shf < block_offsets_src[blk_src + 1]) {
                     uint8 ind_src = get_position_newrow_put(
                         compressed_data_src, idxs_src, compressed_data_res,
-                        rows_data_res, idxs_res);
+                        start_rows_res, idxs_res);
                     get_next_position_value(compressed_data_src, ind_src,
                                             idxs_src, val_src);
                     val_res = (val_src);
@@ -536,23 +542,27 @@ void convert_to_next_precision(
             // Each block is computed separately
 #pragma omp parallel for default(shared)
             for (IndexType blk_src = 0; blk_src < num_blk_src; blk_src++) {
-                const IndexType* rows_data_src = source->get_const_rows();
-                const IndexType* cols_data_src = source->get_const_cols();
-                const uint8* types_data_src = source->get_const_types();
-                const size_type* offsets_data_src = source->get_const_offsets();
-                IndexType* rows_data_res = result->get_rows();
-                IndexType* cols_data_res = result->get_cols();
-                uint8* types_data_res = result->get_types();
-                size_type* offsets_data_res = result->get_offsets();
+                const IndexType* start_rows_src =
+                    source->get_const_start_rows();
+                const IndexType* start_cols_src =
+                    source->get_const_start_cols();
+                const uint8* compression_types_src =
+                    source->get_const_compression_types();
+                const size_type* block_offsets_src =
+                    source->get_const_block_offsets();
+                IndexType* start_rows_res = result->get_start_rows();
+                IndexType* start_cols_res = result->get_start_cols();
+                uint8* compression_types_res = result->get_compression_types();
+                size_type* block_offsets_res = result->get_block_offsets();
                 const IndexType block_size_src = source->get_block_size();
                 const IndexType block_size_local =
                     std::min(block_size_src, num_stored_elements_src -
                                                  blk_src * block_size_src);
-                rows_data_res[blk_src] = rows_data_src[blk_src];
-                cols_data_res[blk_src] = cols_data_src[blk_src];
-                types_data_res[blk_src] = types_data_src[blk_src];
-                offsets_data_res[blk_src + 1] =
-                    offsets_data_src[blk_src + 1] +
+                start_rows_res[blk_src] = start_rows_src[blk_src];
+                start_cols_res[blk_src] = start_cols_src[blk_src];
+                compression_types_res[blk_src] = compression_types_src[blk_src];
+                block_offsets_res[blk_src + 1] =
+                    block_offsets_src[blk_src + 1] +
                     ((blk_src + 1) * block_size_src *
                      sizeof(next_precision<ValueType>)) -
                     ((blk_src + 1) * block_size_src * sizeof(ValueType));
@@ -561,10 +571,14 @@ void convert_to_next_precision(
             // Each block is computed separately
 #pragma omp parallel for default(shared)
             for (IndexType blk_src = 0; blk_src < num_blk_src; blk_src++) {
-                const IndexType* rows_data_src = source->get_const_rows();
-                const IndexType* cols_data_src = source->get_const_cols();
-                const uint8* types_data_src = source->get_const_types();
-                const size_type* offsets_data_src = source->get_const_offsets();
+                const IndexType* start_rows_src =
+                    source->get_const_start_rows();
+                const IndexType* start_cols_src =
+                    source->get_const_start_cols();
+                const uint8* compression_types_src =
+                    source->get_const_compression_types();
+                const size_type* block_offsets_src =
+                    source->get_const_block_offsets();
                 const uint8* compressed_data_src =
                     source->get_const_compressed_data();
                 const IndexType block_size_src = source->get_block_size();
@@ -574,25 +588,25 @@ void convert_to_next_precision(
                                                  blk_src * block_size_src);
                 ValueType val_src;
                 compr_idxs<IndexType> idxs_src(blk_src,
-                                               offsets_data_src[blk_src]);
+                                               block_offsets_src[blk_src]);
                 compr_blk_idxs<IndexType> blk_idxs_src(
-                    rows_data_src, cols_data_src, block_size_local_src,
-                    idxs_src, types_data_src[idxs_src.blk]);
+                    start_rows_src, start_cols_src, block_size_local_src,
+                    idxs_src, compression_types_src[idxs_src.blk]);
 
-                IndexType* rows_data_res = result->get_rows();
-                IndexType* cols_data_res = result->get_cols();
-                uint8* types_data_res = result->get_types();
-                size_type* offsets_data_res = result->get_offsets();
+                IndexType* start_rows_res = result->get_start_rows();
+                IndexType* start_cols_res = result->get_start_cols();
+                uint8* compression_types_res = result->get_compression_types();
+                size_type* block_offsets_res = result->get_block_offsets();
                 uint8* compressed_data_res = result->get_compressed_data();
                 const IndexType block_size_res = result->get_block_size();
                 const size_type num_bytes_res = result->get_num_bytes();
                 const IndexType block_size_local_res = block_size_local_src;
                 next_precision<ValueType> val_res;
                 compr_idxs<IndexType> idxs_res(blk_src,
-                                               offsets_data_res[blk_src]);
+                                               block_offsets_res[blk_src]);
                 compr_blk_idxs<IndexType> blk_idxs_res(
-                    rows_data_res, cols_data_res, block_size_local_res,
-                    idxs_res, types_data_res[idxs_res.blk]);
+                    start_rows_res, start_cols_res, block_size_local_res,
+                    idxs_res, compression_types_res[idxs_res.blk]);
 
                 write_compressed_data_blk<IndexType, ValueType,
                                           next_precision<ValueType>>(
@@ -621,17 +635,18 @@ void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
         // Each block is computed separately
 #pragma omp parallel for default(shared)
         for (IndexType blk = 0; blk < num_blks; blk++) {
-            const IndexType* rows_data = source->get_const_rows();
-            const size_type* offsets_data = source->get_const_offsets();
+            const IndexType* start_rows = source->get_const_start_rows();
+            const size_type* block_offsets = source->get_const_block_offsets();
             const uint8* compressed_data = source->get_const_compressed_data();
             IndexType* row_idxs = result->get_row_idxs();
             IndexType* col_idxs = result->get_col_idxs();
             ValueType* values = result->get_values();
             const IndexType block_size = source->get_block_size();
-            compr_idxs<IndexType> idxs(blk, offsets_data[blk], rows_data[blk]);
+            compr_idxs<IndexType> idxs(blk, block_offsets[blk],
+                                       start_rows[blk]);
             IndexType i = block_size * blk;
             ValueType val;
-            while (idxs.shf < offsets_data[blk + 1]) {
+            while (idxs.shf < block_offsets[blk + 1]) {
                 uint8 ind = get_position_newrow(compressed_data, idxs);
                 get_next_position_value(compressed_data, ind, idxs, val);
                 row_idxs[i] = idxs.row;
@@ -645,10 +660,11 @@ void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
         // Each block is computed separately
 #pragma omp parallel for default(shared)
         for (IndexType blk = 0; blk < num_blks; blk++) {
-            const IndexType* rows_data = source->get_const_rows();
-            const IndexType* cols_data = source->get_const_cols();
-            const uint8* types_data = source->get_const_types();
-            const size_type* offsets_data = source->get_const_offsets();
+            const IndexType* start_rows = source->get_const_start_rows();
+            const IndexType* start_cols = source->get_const_start_cols();
+            const uint8* compression_types =
+                source->get_const_compression_types();
+            const size_type* block_offsets = source->get_const_block_offsets();
             const uint8* compressed_data = source->get_const_compressed_data();
 
             IndexType* row_idxs = result->get_row_idxs();
@@ -664,10 +680,10 @@ void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
             IndexType pos = block_size * blk;
 
             ValueType val;
-            compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
-            compr_blk_idxs<IndexType> blk_idxs(rows_data, cols_data,
+            compr_idxs<IndexType> idxs(blk, block_offsets[blk]);
+            compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
                                                block_size_local, idxs,
-                                               types_data[idxs.blk]);
+                                               compression_types[idxs.blk]);
             for (IndexType i = 0; i < block_size_local; i++) {
                 get_block_position_value<IndexType, ValueType>(
                     compressed_data, blk_idxs, idxs, val);
@@ -692,8 +708,8 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
     const IndexType num_blks = source->get_num_blocks();
     const IndexType num_rows = source->get_size()[0];
     const IndexType num_cols = source->get_size()[1];
-    array<IndexType> rows_array(exec, nnz);
-    IndexType* row_idxs = rows_array.get_data();
+    array<IndexType> row_idxs_array(exec, nnz);
+    IndexType* row_idxs = row_idxs_array.get_data();
 
     // convert to Coo first and then convert row idx to ptr for Csr.
     if (source->use_element_compression()) {
@@ -701,16 +717,17 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
         // Each block is computed separately
 #pragma omp parallel for default(shared)
         for (IndexType blk = 0; blk < num_blks; blk++) {
-            const IndexType* rows_data = source->get_const_rows();
-            const size_type* offsets_data = source->get_const_offsets();
+            const IndexType* start_rows = source->get_const_start_rows();
+            const size_type* block_offsets = source->get_const_block_offsets();
             const uint8* compressed_data = source->get_const_compressed_data();
             IndexType* col_idxs = result->get_col_idxs();
             ValueType* values = result->get_values();
             const IndexType block_size = source->get_block_size();
-            compr_idxs<IndexType> idxs(blk, offsets_data[blk], rows_data[blk]);
+            compr_idxs<IndexType> idxs(blk, block_offsets[blk],
+                                       start_rows[blk]);
             IndexType i = block_size * blk;
             ValueType val;
-            while (idxs.shf < offsets_data[blk + 1]) {
+            while (idxs.shf < block_offsets[blk + 1]) {
                 uint8 ind = get_position_newrow(compressed_data, idxs);
                 get_next_position_value(compressed_data, ind, idxs, val);
                 row_idxs[i] = idxs.row;
@@ -724,10 +741,11 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
         // Each block is computed separately
 #pragma omp parallel for default(shared)
         for (IndexType blk = 0; blk < num_blks; blk++) {
-            const IndexType* rows_data = source->get_const_rows();
-            const IndexType* cols_data = source->get_const_cols();
-            const uint8* types_data = source->get_const_types();
-            const size_type* offsets_data = source->get_const_offsets();
+            const IndexType* start_rows = source->get_const_start_rows();
+            const IndexType* start_cols = source->get_const_start_cols();
+            const uint8* compression_types =
+                source->get_const_compression_types();
+            const size_type* block_offsets = source->get_const_block_offsets();
             const uint8* compressed_data = source->get_const_compressed_data();
 
             IndexType* col_idxs = result->get_col_idxs();
@@ -742,10 +760,10 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
             IndexType pos = block_size * blk;
 
             ValueType val;
-            compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
-            compr_blk_idxs<IndexType> blk_idxs(rows_data, cols_data,
+            compr_idxs<IndexType> idxs(blk, block_offsets[blk]);
+            compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
                                                block_size_local, idxs,
-                                               types_data[idxs.blk]);
+                                               compression_types[idxs.blk]);
             for (IndexType i = 0; i < block_size_local; i++) {
                 get_block_position_value<IndexType, ValueType>(
                     compressed_data, blk_idxs, idxs, val);
@@ -780,13 +798,14 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
         // Each block is computed separately
 #pragma omp parallel for default(shared)
         for (IndexType blk = 0; blk < num_blks; blk++) {
-            const IndexType* rows_data = source->get_const_rows();
-            const size_type* offsets_data = source->get_const_offsets();
+            const IndexType* start_rows = source->get_const_start_rows();
+            const size_type* block_offsets = source->get_const_block_offsets();
             const uint8* compressed_data = source->get_const_compressed_data();
             const IndexType block_size = source->get_block_size();
-            compr_idxs<IndexType> idxs(blk, offsets_data[blk], rows_data[blk]);
+            compr_idxs<IndexType> idxs(blk, block_offsets[blk],
+                                       start_rows[blk]);
             ValueType val;
-            while (idxs.shf < offsets_data[blk + 1]) {
+            while (idxs.shf < block_offsets[blk + 1]) {
                 uint8 ind = get_position_newrow(compressed_data, idxs);
                 get_next_position_value(compressed_data, ind, idxs, val);
                 result->at(idxs.row, idxs.col) += val;
@@ -797,10 +816,11 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
         // Each block is computed separately
 #pragma omp parallel for default(shared)
         for (IndexType blk = 0; blk < num_blks; blk++) {
-            const IndexType* rows_data = source->get_const_rows();
-            const IndexType* cols_data = source->get_const_cols();
-            const uint8* types_data = source->get_const_types();
-            const size_type* offsets_data = source->get_const_offsets();
+            const IndexType* start_rows = source->get_const_start_rows();
+            const IndexType* start_cols = source->get_const_start_cols();
+            const uint8* compression_types =
+                source->get_const_compression_types();
+            const size_type* block_offsets = source->get_const_block_offsets();
             const uint8* compressed_data = source->get_const_compressed_data();
 
             const IndexType block_size = source->get_block_size();
@@ -812,10 +832,10 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
             IndexType pos = block_size * blk;
 
             ValueType val;
-            compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
-            compr_blk_idxs<IndexType> blk_idxs(rows_data, cols_data,
+            compr_idxs<IndexType> idxs(blk, block_offsets[blk]);
+            compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
                                                block_size_local, idxs,
-                                               types_data[idxs.blk]);
+                                               compression_types[idxs.blk]);
             for (IndexType i = 0; i < block_size_local; i++) {
                 get_block_position_value<IndexType, ValueType>(
                     compressed_data, blk_idxs, idxs, val);
@@ -849,13 +869,14 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
         // Each block is computed separately
 #pragma omp parallel for default(shared)
         for (IndexType blk = 0; blk < num_blks; blk++) {
-            const IndexType* rows_data = orig->get_const_rows();
-            const size_type* offsets_data = orig->get_const_offsets();
+            const IndexType* start_rows = orig->get_const_start_rows();
+            const size_type* block_offsets = orig->get_const_block_offsets();
             const uint8* compressed_data = orig->get_const_compressed_data();
             const IndexType block_size = orig->get_block_size();
-            compr_idxs<IndexType> idxs(blk, offsets_data[blk], rows_data[blk]);
+            compr_idxs<IndexType> idxs(blk, block_offsets[blk],
+                                       start_rows[blk]);
             ValueType val;
-            while (idxs.shf < offsets_data[blk + 1]) {
+            while (idxs.shf < block_offsets[blk + 1]) {
                 uint8 ind = get_position_newrow(compressed_data, idxs);
                 get_next_position_value(compressed_data, ind, idxs, val);
                 if (idxs.row == idxs.col) {
@@ -868,10 +889,11 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
         // Each block is computed separately
 #pragma omp parallel for default(shared)
         for (IndexType blk = 0; blk < num_blks; blk++) {
-            const IndexType* rows_data = orig->get_const_rows();
-            const IndexType* cols_data = orig->get_const_cols();
-            const uint8* types_data = orig->get_const_types();
-            const size_type* offsets_data = orig->get_const_offsets();
+            const IndexType* start_rows = orig->get_const_start_rows();
+            const IndexType* start_cols = orig->get_const_start_cols();
+            const uint8* compression_types =
+                orig->get_const_compression_types();
+            const size_type* block_offsets = orig->get_const_block_offsets();
             const uint8* compressed_data = orig->get_const_compressed_data();
 
             const IndexType block_size = orig->get_block_size();
@@ -883,10 +905,10 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
             IndexType pos = block_size * blk;
 
             ValueType val;
-            compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
-            compr_blk_idxs<IndexType> blk_idxs(rows_data, cols_data,
+            compr_idxs<IndexType> idxs(blk, block_offsets[blk]);
+            compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
                                                block_size_local, idxs,
-                                               types_data[idxs.blk]);
+                                               compression_types[idxs.blk]);
             for (IndexType i = 0; i < block_size_local; i++) {
                 get_block_position_value<IndexType, ValueType>(
                     compressed_data, blk_idxs, idxs, val);
@@ -913,13 +935,14 @@ void compute_absolute_inplace(std::shared_ptr<const OmpExecutor> exec,
         // Each block is computed separately
 #pragma omp parallel for default(shared)
         for (IndexType blk = 0; blk < num_blks; blk++) {
-            const IndexType* rows_data = matrix->get_const_rows();
-            const size_type* offsets_data = matrix->get_const_offsets();
+            const IndexType* start_rows = matrix->get_const_start_rows();
+            const size_type* block_offsets = matrix->get_const_block_offsets();
             uint8* compressed_data = matrix->get_compressed_data();
             const IndexType block_size = matrix->get_block_size();
-            compr_idxs<IndexType> idxs(blk, offsets_data[blk], rows_data[blk]);
+            compr_idxs<IndexType> idxs(blk, block_offsets[blk],
+                                       start_rows[blk]);
             ValueType val;
-            while (idxs.shf < offsets_data[blk + 1]) {
+            while (idxs.shf < block_offsets[blk + 1]) {
                 uint8 ind = get_position_newrow(compressed_data, idxs);
                 get_next_position_value_put(
                     compressed_data, ind, idxs, val,
@@ -931,10 +954,11 @@ void compute_absolute_inplace(std::shared_ptr<const OmpExecutor> exec,
         // Each block is computed separately
 #pragma omp parallel for default(shared)
         for (IndexType blk = 0; blk < num_blks; blk++) {
-            const IndexType* rows_data = matrix->get_const_rows();
-            const IndexType* cols_data = matrix->get_const_cols();
-            const uint8* types_data = matrix->get_const_types();
-            const size_type* offsets_data = matrix->get_const_offsets();
+            const IndexType* start_rows = matrix->get_const_start_rows();
+            const IndexType* start_cols = matrix->get_const_start_cols();
+            const uint8* compression_types =
+                matrix->get_const_compression_types();
+            const size_type* block_offsets = matrix->get_const_block_offsets();
             uint8* compressed_data = matrix->get_compressed_data();
 
             const IndexType block_size = matrix->get_block_size();
@@ -945,10 +969,10 @@ void compute_absolute_inplace(std::shared_ptr<const OmpExecutor> exec,
                 std::min(block_size, num_stored_elements - blk * block_size);
             IndexType pos = block_size * blk;
 
-            compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
-            compr_blk_idxs<IndexType> blk_idxs(rows_data, cols_data,
+            compr_idxs<IndexType> idxs(blk, block_offsets[blk]);
+            compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
                                                block_size_local, idxs,
-                                               types_data[idxs.blk]);
+                                               compression_types[idxs.blk]);
             for (IndexType i = 0; i < block_size_local; i++) {
                 if (true) {
                     ValueType val;
@@ -988,7 +1012,7 @@ void compute_absolute(
         }
     } else {
         if (source->get_num_stored_elements() > 0) {
-            result->get_offsets()[0] = 0;
+            result->get_block_offsets()[0] = 0;
         }
         if (source->use_element_compression()) {
             // For element compression objects
@@ -996,40 +1020,46 @@ void compute_absolute(
             // Each block is computed separately
 #pragma omp parallel for default(shared)
             for (IndexType blk_src = 0; blk_src < num_blk_src; blk_src++) {
-                const IndexType* rows_data_src = source->get_const_rows();
-                const size_type* offsets_data_src = source->get_const_offsets();
-                IndexType* rows_data_res = result->get_rows();
-                size_type* offsets_data_res = result->get_offsets();
-                rows_data_res[blk_src] = rows_data_src[blk_src];
-                offsets_data_res[blk_src + 1] = offsets_data_src[blk_src + 1];
+                const IndexType* start_rows_src =
+                    source->get_const_start_rows();
+                const size_type* block_offsets_src =
+                    source->get_const_block_offsets();
+                IndexType* start_rows_res = result->get_start_rows();
+                size_type* block_offsets_res = result->get_block_offsets();
+                start_rows_res[blk_src] = start_rows_src[blk_src];
+                block_offsets_res[blk_src + 1] = block_offsets_src[blk_src + 1];
             }
             // Finally, the compressed data vector is copied
             // Each block is computed separately
 #pragma omp parallel for default(shared)
             for (IndexType blk_src = 0; blk_src < num_blk_src; blk_src++) {
-                const IndexType* rows_data_src = source->get_const_rows();
-                const size_type* offsets_data_src = source->get_const_offsets();
+                const IndexType* start_rows_src =
+                    source->get_const_start_rows();
+                const size_type* block_offsets_src =
+                    source->get_const_block_offsets();
                 const uint8* compressed_data_src =
                     source->get_const_compressed_data();
                 const IndexType block_size_src = source->get_block_size();
                 const size_type num_bytes_src = source->get_num_bytes();
-                compr_idxs<IndexType> idxs_src(
-                    blk_src, offsets_data_src[blk_src], rows_data_src[blk_src]);
+                compr_idxs<IndexType> idxs_src(blk_src,
+                                               block_offsets_src[blk_src],
+                                               start_rows_src[blk_src]);
                 ValueType val_src;
 
-                IndexType* rows_data_res = result->get_rows();
-                size_type* offsets_data_res = result->get_offsets();
+                IndexType* start_rows_res = result->get_start_rows();
+                size_type* block_offsets_res = result->get_block_offsets();
                 uint8* compressed_data_res = result->get_compressed_data();
                 const IndexType block_size_res = result->get_block_size();
                 const size_type num_bytes_res = result->get_num_bytes();
-                compr_idxs<IndexType> idxs_res(
-                    blk_src, offsets_data_res[blk_src], rows_data_res[blk_src]);
+                compr_idxs<IndexType> idxs_res(blk_src,
+                                               block_offsets_res[blk_src],
+                                               start_rows_res[blk_src]);
                 remove_complex<ValueType> val_res;
 
-                while (idxs_src.shf < offsets_data_src[blk_src + 1]) {
+                while (idxs_src.shf < block_offsets_src[blk_src + 1]) {
                     uint8 ind_src = get_position_newrow_put(
                         compressed_data_src, idxs_src, compressed_data_res,
-                        rows_data_res, idxs_res);
+                        start_rows_res, idxs_res);
                     get_next_position_value(compressed_data_src, ind_src,
                                             idxs_src, val_src);
                     val_res = abs(val_src);
@@ -1046,23 +1076,27 @@ void compute_absolute(
             // Each block is computed separately
 #pragma omp parallel for default(shared)
             for (IndexType blk_src = 0; blk_src < num_blk_src; blk_src++) {
-                const IndexType* rows_data_src = source->get_const_rows();
-                const IndexType* cols_data_src = source->get_const_cols();
-                const uint8* types_data_src = source->get_const_types();
-                const size_type* offsets_data_src = source->get_const_offsets();
-                IndexType* rows_data_res = result->get_rows();
-                IndexType* cols_data_res = result->get_cols();
-                uint8* types_data_res = result->get_types();
-                size_type* offsets_data_res = result->get_offsets();
+                const IndexType* start_rows_src =
+                    source->get_const_start_rows();
+                const IndexType* start_cols_src =
+                    source->get_const_start_cols();
+                const uint8* compression_types_src =
+                    source->get_const_compression_types();
+                const size_type* block_offsets_src =
+                    source->get_const_block_offsets();
+                IndexType* start_rows_res = result->get_start_rows();
+                IndexType* start_cols_res = result->get_start_cols();
+                uint8* compression_types_res = result->get_compression_types();
+                size_type* block_offsets_res = result->get_block_offsets();
                 const IndexType block_size_src = source->get_block_size();
                 const IndexType block_size_local =
                     std::min(block_size_src, num_stored_elements_src -
                                                  blk_src * block_size_src);
-                rows_data_res[blk_src] = rows_data_src[blk_src];
-                cols_data_res[blk_src] = cols_data_src[blk_src];
-                types_data_res[blk_src] = types_data_src[blk_src];
-                offsets_data_res[blk_src + 1] =
-                    offsets_data_src[blk_src + 1] +
+                start_rows_res[blk_src] = start_rows_src[blk_src];
+                start_cols_res[blk_src] = start_cols_src[blk_src];
+                compression_types_res[blk_src] = compression_types_src[blk_src];
+                block_offsets_res[blk_src + 1] =
+                    block_offsets_src[blk_src + 1] +
                     (block_size_local * sizeof(remove_complex<ValueType>)) -
                     (block_size_local * sizeof(ValueType));
             }
@@ -1070,10 +1104,14 @@ void compute_absolute(
             // Each block is computed separately
 #pragma omp parallel for default(shared)
             for (IndexType blk_src = 0; blk_src < num_blk_src; blk_src++) {
-                const IndexType* rows_data_src = source->get_const_rows();
-                const IndexType* cols_data_src = source->get_const_cols();
-                const uint8* types_data_src = source->get_const_types();
-                const size_type* offsets_data_src = source->get_const_offsets();
+                const IndexType* start_rows_src =
+                    source->get_const_start_rows();
+                const IndexType* start_cols_src =
+                    source->get_const_start_cols();
+                const uint8* compression_types_src =
+                    source->get_const_compression_types();
+                const size_type* block_offsets_src =
+                    source->get_const_block_offsets();
                 const uint8* compressed_data_src =
                     source->get_const_compressed_data();
                 IndexType block_size_src = source->get_block_size();
@@ -1083,25 +1121,25 @@ void compute_absolute(
                                                  blk_src * block_size_src);
                 ValueType val_src;
                 compr_idxs<IndexType> idxs_src(blk_src,
-                                               offsets_data_src[blk_src]);
+                                               block_offsets_src[blk_src]);
                 compr_blk_idxs<IndexType> blk_idxs_src(
-                    rows_data_src, cols_data_src, block_size_local_src,
-                    idxs_src, types_data_src[idxs_src.blk]);
+                    start_rows_src, start_cols_src, block_size_local_src,
+                    idxs_src, compression_types_src[idxs_src.blk]);
 
-                IndexType* rows_data_res = result->get_rows();
-                IndexType* cols_data_res = result->get_cols();
-                uint8* types_data_res = result->get_types();
-                size_type* offsets_data_res = result->get_offsets();
+                IndexType* start_rows_res = result->get_start_rows();
+                IndexType* start_cols_res = result->get_start_cols();
+                uint8* compression_types_res = result->get_compression_types();
+                size_type* block_offsets_res = result->get_block_offsets();
                 uint8* compressed_data_res = result->get_compressed_data();
                 const IndexType block_size_res = result->get_block_size();
                 const size_type num_bytes_res = result->get_num_bytes();
                 const IndexType block_size_local_res = block_size_local_src;
                 remove_complex<ValueType> val_res;
                 compr_idxs<IndexType> idxs_res(blk_src,
-                                               offsets_data_res[blk_src]);
+                                               block_offsets_res[blk_src]);
                 compr_blk_idxs<IndexType> blk_idxs_res(
-                    rows_data_res, cols_data_res, block_size_local_res,
-                    idxs_res, types_data_res[idxs_res.blk]);
+                    start_rows_res, start_cols_res, block_size_local_res,
+                    idxs_res, compression_types_res[idxs_res.blk]);
                 write_compressed_data_blk<IndexType, ValueType,
                                           remove_complex<ValueType>>(
                     idxs_src, blk_idxs_src, block_size_local_src,

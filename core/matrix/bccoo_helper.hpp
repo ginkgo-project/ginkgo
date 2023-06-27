@@ -195,45 +195,45 @@ inline void put_next_position_value(uint8* compressed_data,
 
 // Detects if a new block appearing when a Bccoo is read, adapting idxs
 template <typename IndexType>
-inline void get_detect_newblock(const IndexType* rows_data,
-                                const size_type* offsets_data,
+inline void get_detect_newblock(const IndexType* start_rows,
+                                const size_type* block_offsets,
                                 compr_idxs<IndexType>& idxs)
 {
     if (idxs.nblk == 0) {
-        idxs.row = rows_data[idxs.blk];
+        idxs.row = start_rows[idxs.blk];
         idxs.col = 0;
-        idxs.shf = offsets_data[idxs.blk];
+        idxs.shf = block_offsets[idxs.blk];
     }
 }
 
 
 // Detects if a new block appearing when a Bccoo is written, adapting idxs
-// If true, rows_data is updated
+// If true, start_rows is updated
 template <typename IndexType>
-inline void put_detect_newblock(IndexType* rows_data,
+inline void put_detect_newblock(IndexType* start_rows,
                                 const IndexType row_src_res,
                                 compr_idxs<IndexType>& idxs)
 {
     if (idxs.nblk == 0) {
         idxs.row += row_src_res;
         idxs.col = 0;
-        rows_data[idxs.blk] = idxs.row;
+        start_rows[idxs.blk] = idxs.row;
     }
 }
 
 
 // Detects if a new block appearing when a Bccoo is written, adapting idxs
-// If true, rows_data is updated
+// If true, start_rows is updated
 // If a new row within a block is detected, compressed_data is updated
 template <typename IndexType>
-inline void put_detect_newblock(uint8* compressed_data, IndexType* rows_data,
+inline void put_detect_newblock(uint8* compressed_data, IndexType* start_rows,
                                 const size_type row_src_res,
                                 compr_idxs<IndexType>& idxs)
 {
     if (idxs.nblk == 0) {
         idxs.row += row_src_res;
         idxs.col = 0;
-        rows_data[idxs.blk] = idxs.row;
+        start_rows[idxs.blk] = idxs.row;
     } else if (row_src_res != 0) {  // new row
         idxs.row += row_src_res;
         idxs.col = 0;
@@ -263,18 +263,18 @@ inline void cnt_detect_newblock(const IndexType row_src_res,
 // Detects if a new block appearing when a Bccoo is read, adapting idxs
 // If true and a new row is also detected, rows_ptrs is updated
 template <typename IndexType>
-inline void get_detect_newblock_csr(const IndexType* rows_data,
-                                    const size_type* offsets_data,
+inline void get_detect_newblock_csr(const IndexType* start_rows,
+                                    const size_type* block_offsets,
                                     IndexType* row_ptrs, IndexType pos,
                                     compr_idxs<IndexType>& idxs)
 {
     if (idxs.nblk == 0) {
-        if (idxs.row != rows_data[idxs.blk]) {
-            idxs.row = rows_data[idxs.blk];
+        if (idxs.row != start_rows[idxs.blk]) {
+            idxs.row = start_rows[idxs.blk];
             row_ptrs[idxs.row] = pos;
         }
         idxs.col = 0;
-        idxs.shf = offsets_data[idxs.blk];
+        idxs.shf = block_offsets[idxs.blk];
     }
 }
 
@@ -331,13 +331,13 @@ inline uint8 get_position_newrow_csr(const uint8* compressed_data,
 
 
 // Detects the position of the next position, updating idxs_src and returning
-// ind_src Also writes in compressed_data_res and rows_data_res, updating
+// ind_src Also writes in compressed_data_res and start_rows_res, updating
 // idxs_res
 template <typename IndexType>
 inline uint8 get_position_newrow_put(const uint8* compressed_data_src,
                                      compr_idxs<IndexType>& idxs_src,
                                      uint8* compressed_data_res,
-                                     IndexType* rows_data_res,
+                                     IndexType* start_rows_res,
                                      compr_idxs<IndexType>& idxs_res)
 {
     uint8 ind_src =
@@ -351,7 +351,7 @@ inline uint8 get_position_newrow_put(const uint8* compressed_data_src,
         idxs_res.row++;
         idxs_res.col = 0;
         if (idxs_res.nblk == 0) {
-            rows_data_res[idxs_res.blk] = idxs_res.row;
+            start_rows_res[idxs_res.blk] = idxs_res.row;
         } else {
             set_value_compressed_data_and_increment<uint8>(
                 compressed_data_res, idxs_res.shf, cst_mark_end_row);
@@ -391,16 +391,16 @@ inline void get_detect_endblock(const IndexType block_size,
 }
 
 
-// Detects if a block is complete, updating idxs and writing in offsets_data
+// Detects if a block is complete, updating idxs and writing in block_offsets
 template <typename IndexType>
-inline void put_detect_endblock(size_type* offsets_data,
+inline void put_detect_endblock(size_type* block_offsets,
                                 const IndexType block_size,
                                 compr_idxs<IndexType>& idxs)
 {
     if (idxs.nblk == block_size) {
         idxs.nblk = 0;
         idxs.blk++;
-        offsets_data[idxs.blk] = idxs.shf;
+        block_offsets[idxs.blk] = idxs.shf;
     }
 }
 

@@ -204,18 +204,18 @@ public:
      *
      * @return the minimum row indices of the first element of each block.
      */
-    index_type* get_rows() noexcept { return rows_.get_data(); }
+    index_type* get_start_rows() noexcept { return start_rows_.get_data(); }
 
     /**
-     * @copydoc Bccoo::get_rows()
+     * @copydoc Bccoo::get_start_rows()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type* get_const_rows() const noexcept
+    const index_type* get_const_start_rows() const noexcept
     {
-        return rows_.get_const_data();
+        return start_rows_.get_const_data();
     }
 
     /**
@@ -225,18 +225,18 @@ public:
      * @return the minimum col indices of the first element of each block.
      * Only for block compression.
      */
-    index_type* get_cols() noexcept { return cols_.get_data(); }
+    index_type* get_start_cols() noexcept { return start_cols_.get_data(); }
 
     /**
-     * @copydoc Bccoo::get_cols()
+     * @copydoc Bccoo::get_start_cols()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant
      *       version, so always prefer this version.
      */
-    const index_type* get_const_cols() const noexcept
+    const index_type* get_const_start_cols() const noexcept
     {
-        return cols_.get_const_data();
+        return start_cols_.get_const_data();
     }
 
     /**
@@ -246,18 +246,21 @@ public:
      * @return the type indices of the first element of each block.
      * Only for block compression.
      */
-    uint8* get_types() noexcept { return types_.get_data(); }
+    uint8* get_compression_types() noexcept
+    {
+        return compression_types_.get_data();
+    }
 
     /**
-     * @copydoc Bccoo::get_types()
+     * @copydoc Bccoo::get_compression_types()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant
      *       version, so always prefer this version.
      */
-    const uint8* get_const_types() const noexcept
+    const uint8* get_const_compression_types() const noexcept
     {
-        return types_.get_const_data();
+        return compression_types_.get_const_data();
     }
 
     /**
@@ -265,18 +268,21 @@ public:
      *
      * @return the offsets related to the first entry of each block.
      */
-    size_type* get_offsets() noexcept { return offsets_.get_data(); }
+    size_type* get_block_offsets() noexcept
+    {
+        return block_offsets_.get_data();
+    }
 
     /**
-     * @copydoc Bccoo::get_offsets()
+     * @copydoc Bccoo::get_block_offsets()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const size_type* get_const_offsets() const noexcept
+    const size_type* get_const_block_offsets() const noexcept
     {
-        return offsets_.get_const_data();
+        return block_offsets_.get_const_data();
     }
 
     /**
@@ -323,7 +329,10 @@ public:
      *
      * @return the number of blocks used in the definition of the matrix.
      */
-    index_type get_num_blocks() const noexcept { return rows_.get_num_elems(); }
+    index_type get_num_blocks() const noexcept
+    {
+        return start_rows_.get_num_elems();
+    }
 
     /**
      * Returns the number of bytes of compressed_data vector used in the
@@ -459,10 +468,10 @@ protected:
      */
     Bccoo(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Bccoo>(exec, dim<2>{}),
-          rows_(exec, 0),
-          cols_(exec, 0),
-          types_(exec, 0),
-          offsets_(exec, 0),
+          start_rows_(exec, 0),
+          start_cols_(exec, 0),
+          compression_types_(exec, 0),
+          block_offsets_(exec, 0),
           compressed_data_(exec, 0),
           num_nonzeros_{0},
           block_size_{0},
@@ -477,10 +486,10 @@ protected:
     Bccoo(std::shared_ptr<const Executor> exec, index_type block_size,
           bccoo::compression compression)
         : EnableLinOp<Bccoo>(exec, dim<2>{}),
-          rows_(exec, 0),
-          cols_(exec, 0),
-          types_(exec, 0),
-          offsets_(exec, 0),
+          start_rows_(exec, 0),
+          start_cols_(exec, 0),
+          compression_types_(exec, 0),
+          block_offsets_(exec, 0),
           compressed_data_(exec, 0),
           num_nonzeros_{0},
           block_size_{block_size},
@@ -501,19 +510,20 @@ protected:
           index_type num_nonzeros, index_type block_size, size_type num_bytes,
           bccoo::compression compression)
         : EnableLinOp<Bccoo>(exec, size),
-          rows_(exec,
-                (block_size == 0) ? 0 : ceildiv(num_nonzeros, block_size)),
-          cols_(exec, ((compression == bccoo::compression::element) ||
-                       (block_size == 0))
-                          ? 0
-                          : ceildiv(num_nonzeros, block_size)),
-          types_(exec, ((compression == bccoo::compression::element) ||
-                        (block_size == 0))
-                           ? 0
-                           : ceildiv(num_nonzeros, block_size)),
-          offsets_(exec, (block_size == 0)
-                             ? 0
-                             : ceildiv(num_nonzeros, block_size) + 1),
+          start_rows_(
+              exec, (block_size == 0) ? 0 : ceildiv(num_nonzeros, block_size)),
+          start_cols_(exec, ((compression == bccoo::compression::element) ||
+                             (block_size == 0))
+                                ? 0
+                                : ceildiv(num_nonzeros, block_size)),
+          compression_types_(exec,
+                             ((compression == bccoo::compression::element) ||
+                              (block_size == 0))
+                                 ? 0
+                                 : ceildiv(num_nonzeros, block_size)),
+          block_offsets_(exec, (block_size == 0)
+                                   ? 0
+                                   : ceildiv(num_nonzeros, block_size) + 1),
           compressed_data_(exec, num_bytes),
           num_nonzeros_{num_nonzeros},
           block_size_{block_size},
@@ -522,81 +532,87 @@ protected:
 
     /**
      * Creates an element compression variant of the BCCOO matrix from
-     * already allocated (and initialized) rows, offsets and compressed_data
-     * arrays.
+     * already allocated (and initialized) start_rows, block_offsets and
+     * compressed_data arrays.
      *
      * @param exec  executor associated to the matrix
      * @param size  size of the matrix
      * @param compressed_data  array of matrix indexes and matrix values
-     * @param offsets          array of positions of the first entry of each
-     *block in compressed_data array
-     * @param rows  array of row index of the first entry of each block in
+     * @param block_offsets array of positions of the first entry of each
+     *														block
+     *in compressed_data array
+     * @param start_rows  array of row index of the first entry of each block in
      *              compressed_data array
      * @param num_nonzeros    number of nonzeros
      * @param block_size      number of nonzeros in each block
      *
-     * @note If one of `compressed_data`, `offsets` or `rows` is not an rvalue,
-     *			 not an array of uint8, IndexType or IndexType,
-     *respectively, or is on the wrong executor, an internal copy of that array
-     *will be created, and the original array compressed_data will not be used
-     *in the matrix.
+     * @note If one of `compressed_data`, `block_offsets` or `start_rows` is not
+     *			 an rvalue, not an array of uint8, IndexType or
+     *IndexType, respectively, or is on the wrong executor, an internal copy of
+     *that array will be created, and the original array compressed_data will
+     *not be used in the matrix.
      */
     Bccoo(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          array<uint8> compressed_data, array<size_type> offsets,
-          array<IndexType> rows, index_type num_nonzeros, index_type block_size)
+          array<uint8> compressed_data, array<size_type> block_offsets,
+          array<IndexType> start_rows, index_type num_nonzeros,
+          index_type block_size)
         : EnableLinOp<Bccoo>(exec, size),
           compressed_data_{exec, std::move(compressed_data)},
-          offsets_{exec, std::move(offsets)},
-          rows_{exec, std::move(rows)},
+          block_offsets_{exec, std::move(block_offsets)},
+          start_rows_{exec, std::move(start_rows)},
           num_nonzeros_{num_nonzeros},
           block_size_{block_size},
           compression_{bccoo::compression::element}
     {
-        GKO_ASSERT_EQ(rows_.get_num_elems() + 1, offsets_.get_num_elems());
+        GKO_ASSERT_EQ(start_rows_.get_num_elems() + 1,
+                      block_offsets_.get_num_elems());
     }
 
     /**
      * Creates a block compression variant of the BCCOO matrix from already
-     * allocated (and initialized) rows, cols, types, offsets and
-     * compressed_data arrays.
+     * allocated (and initialized) start_rows, start_cols, compression_types,
+     * block_offsets and compressed_data arrays.
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param compressed_data   array of matrix indexes and matrix values
-     * @param offsets array of positions of the first entry of each block in
+     * @param block_offsets array of positions of the first entry of each block
+     * in compressed_data array
+     * @param compression_types   array of compression type for each block in
      *                compressed_data array
-     * @param types   array of compression type for each block in
+     * @param start_cols    array of minimum column indices for each block in
      *                compressed_data array
-     * @param cols    array of minimum column indices for each block in
-     *                compressed_data array
-     * @param rows    array of minimum row indices for each block in
+     * @param start_rows    array of minimum row indices for each block in
      *                compressed_data array
      * @param num_nonzeros  number of nonzeros
      * @param block_size    number of nonzeros in each block
      *
-     * @note If one of `compressed_data`, `offsets`, `types`, `cols` or `rows`
-     * is not an rvalue, not an array of uint8, IndexType, uint8, IndexType or
-     * IndexType, respectively, or is on the wrong executor, an internal copy of
-     * that array will be created, and the original array will not be used in
-     * the matrix.
+     * @note If one of `compressed_data`, `block_offsets`, `compression_types`,
+     *       `start_cols` or `start_rows` is not an rvalue, not an array of
+     * uint8, IndexType, uint8, IndexType or IndexType, respectively, or is on
+     * the wrong executor, an internal copy of that array will be created, and
+     * the original array will not be used in the matrix.
      */
     Bccoo(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          array<uint8> compressed_data, array<size_type> offsets,
-          array<uint8> types, array<IndexType> cols, array<IndexType> rows,
-          index_type num_nonzeros, index_type block_size)
+          array<uint8> compressed_data, array<size_type> block_offsets,
+          array<uint8> compression_types, array<IndexType> start_cols,
+          array<IndexType> start_rows, index_type num_nonzeros,
+          index_type block_size)
         : EnableLinOp<Bccoo>(exec, size),
           compressed_data_{exec, std::move(compressed_data)},
-          offsets_{exec, std::move(offsets)},
-          types_{exec, std::move(types)},
-          cols_{exec, std::move(cols)},
-          rows_{exec, std::move(rows)},
+          block_offsets_{exec, std::move(block_offsets)},
+          compression_types_{exec, std::move(compression_types)},
+          start_cols_{exec, std::move(start_cols)},
+          start_rows_{exec, std::move(start_rows)},
           num_nonzeros_{num_nonzeros},
           block_size_{block_size},
           compression_{bccoo::compression::block}
     {
-        GKO_ASSERT_EQ(rows_.get_num_elems() + 1, offsets_.get_num_elems());
-        GKO_ASSERT_EQ(rows_.get_num_elems(), cols_.get_num_elems());
-        GKO_ASSERT_EQ(rows_.get_num_elems(), types_.get_num_elems());
+        GKO_ASSERT_EQ(start_rows_.get_num_elems() + 1,
+                      block_offsets_.get_num_elems());
+        GKO_ASSERT_EQ(start_rows_.get_num_elems(), start_cols_.get_num_elems());
+        GKO_ASSERT_EQ(start_rows_.get_num_elems(),
+                      compression_types_.get_num_elems());
     }
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
@@ -609,10 +625,10 @@ protected:
     void apply2_impl(const LinOp* alpha, const LinOp* b, LinOp* x) const;
 
 private:
-    array<index_type> rows_;
-    array<index_type> cols_;
-    array<uint8> types_;
-    array<size_type> offsets_;
+    array<index_type> start_rows_;
+    array<index_type> start_cols_;
+    array<uint8> compression_types_;
+    array<size_type> block_offsets_;
     array<uint8> compressed_data_;
     index_type block_size_;
     index_type num_nonzeros_;

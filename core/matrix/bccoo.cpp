@@ -447,20 +447,20 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
 
     if (compress == bccoo::compression::element) {
         // Creation of some components of Bccoo
-        array<IndexType> rows(exec_master, num_blocks);
-        array<size_type> offsets(exec_master, num_blocks + 1);
+        array<IndexType> start_rows_arr(exec_master, num_blocks);
+        array<size_type> block_offsets_arr(exec_master, num_blocks + 1);
 
         // Computation of mem_size (idxs.shf)
-        IndexType* rows_data = rows.get_data();
-        size_type* offsets_data = offsets.get_data();
+        IndexType* start_rows = start_rows_arr.get_data();
+        size_type* block_offsets = block_offsets_arr.get_data();
         bccoo::compr_idxs<IndexType> idxs;
-        offsets_data[0] = 0;
+        block_offsets[0] = 0;
         for (const auto& elem : data.nonzeros) {
-            bccoo::put_detect_newblock(rows_data, elem.row - idxs.row, idxs);
+            bccoo::put_detect_newblock(start_rows, elem.row - idxs.row, idxs);
             IndexType col_src_res = bccoo::cnt_position_newrow_mat_data(
                 elem.row, elem.column, idxs);
             bccoo::cnt_next_position_value(col_src_res, elem.value, idxs);
-            bccoo::put_detect_endblock(offsets_data, block_size, idxs);
+            bccoo::put_detect_endblock(block_offsets, block_size, idxs);
         }
 
         // Creation of compressed data
@@ -469,35 +469,36 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
 
         // Fill in compressed data
         idxs = {};
-        offsets_data[0] = 0;
+        block_offsets[0] = 0;
         for (const auto& elem : data.nonzeros) {
-            bccoo::put_detect_newblock(rows_data, elem.row - idxs.row, idxs);
+            bccoo::put_detect_newblock(start_rows, elem.row - idxs.row, idxs);
             IndexType col_src_res = bccoo::put_position_newrow_mat_data(
                 elem.row, elem.column, compressed_data, idxs);
             bccoo::put_next_position_value(compressed_data, col_src_res,
                                            elem.value, idxs);
-            bccoo::put_detect_endblock(offsets_data, block_size, idxs);
+            bccoo::put_detect_endblock(block_offsets, block_size, idxs);
         }
         if (idxs.nblk > 0) {
-            offsets_data[idxs.blk + 1] = idxs.shf;
+            block_offsets[idxs.blk + 1] = idxs.shf;
         }
 
         // Creation of the Bccoo object
-        auto tmp = Bccoo::create(
-            exec_master, data.size, std::move(compressed_data_arr),
-            std::move(offsets), std::move(rows), nnz, block_size);
+        auto tmp = Bccoo::create(exec_master, data.size,
+                                 std::move(compressed_data_arr),
+                                 std::move(block_offsets_arr),
+                                 std::move(start_rows_arr), nnz, block_size);
         this->move_from(tmp);
     } else {
         // Creation of some components of Bccoo
-        array<IndexType> rows(exec_master, num_blocks);
-        array<IndexType> cols(exec_master, num_blocks);
-        array<uint8> types(exec_master, num_blocks);
-        array<size_type> offsets(exec_master, num_blocks + 1);
+        array<IndexType> start_rows_arr(exec_master, num_blocks);
+        array<IndexType> start_cols_arr(exec_master, num_blocks);
+        array<uint8> compression_types_arr(exec_master, num_blocks);
+        array<size_type> block_offsets_arr(exec_master, num_blocks + 1);
 
-        IndexType* rows_data = rows.get_data();
-        IndexType* cols_data = cols.get_data();
-        uint8* types_data = types.get_data();
-        size_type* offsets_data = offsets.get_data();
+        IndexType* start_rows = start_rows_arr.get_data();
+        IndexType* start_cols = start_cols_arr.get_data();
+        uint8* compression_types = compression_types_arr.get_data();
+        size_type* block_offsets = block_offsets_arr.get_data();
 
         // Computation of mem_size (idxs.shf)
         bccoo::compr_idxs<IndexType> idxs;
@@ -535,7 +536,7 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
         // Fill in compressed data
         idxs = {};
         blk_idxs = {};
-        offsets_data[0] = 0;
+        block_offsets[0] = 0;
         for (const auto& elem : data.nonzeros) {
             bccoo::proc_block_indices<IndexType>(elem.row, elem.column, idxs,
                                                  blk_idxs);
@@ -547,10 +548,10 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
                 type_blk = bccoo::write_compressed_data_blk_type(
                     idxs, blk_idxs, rows_blk, cols_blk, vals_blk,
                     compressed_data);
-                rows_data[idxs.blk] = blk_idxs.row_frst;
-                cols_data[idxs.blk] = blk_idxs.col_frst;
-                types_data[idxs.blk] = type_blk;
-                offsets_data[idxs.blk + 1] = idxs.shf;
+                start_rows[idxs.blk] = blk_idxs.row_frst;
+                start_cols[idxs.blk] = blk_idxs.col_frst;
+                compression_types[idxs.blk] = type_blk;
+                block_offsets[idxs.blk + 1] = idxs.shf;
 
                 idxs.blk++;
                 idxs.nblk = 0;
@@ -559,10 +560,10 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
         if (idxs.nblk > 0) {
             type_blk = bccoo::write_compressed_data_blk_type(
                 idxs, blk_idxs, rows_blk, cols_blk, vals_blk, compressed_data);
-            rows_data[idxs.blk] = blk_idxs.row_frst;
-            cols_data[idxs.blk] = blk_idxs.col_frst;
-            types_data[idxs.blk] = type_blk;
-            offsets_data[idxs.blk + 1] = idxs.shf;
+            start_rows[idxs.blk] = blk_idxs.row_frst;
+            start_cols[idxs.blk] = blk_idxs.col_frst;
+            compression_types[idxs.blk] = type_blk;
+            block_offsets[idxs.blk + 1] = idxs.shf;
 
             idxs.blk++;
             idxs.nblk = 0;
@@ -571,8 +572,9 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
         // Creation of the Bccoo object
         auto tmp = Bccoo::create(
             exec_master, data.size, std::move(compressed_data_arr),
-            std::move(offsets), std::move(types), std::move(cols),
-            std::move(rows), nnz, block_size);
+            std::move(block_offsets_arr), std::move(compression_types_arr),
+            std::move(start_cols_arr), std::move(start_rows_arr), nnz,
+            block_size);
         this->move_from(tmp);
     }
 }
@@ -596,10 +598,10 @@ void Bccoo<ValueType, IndexType>::write(mat_data& data) const
     }
 
     // Getting data from the object to be written
-    const IndexType* rows_data = tmp->get_const_rows();
-    const IndexType* cols_data = tmp->get_const_cols();
-    const uint8* types_data = tmp->get_const_types();
-    const size_type* offsets_data = tmp->get_const_offsets();
+    const IndexType* start_rows = tmp->get_const_start_rows();
+    const IndexType* start_cols = tmp->get_const_start_cols();
+    const uint8* compression_types = tmp->get_const_compression_types();
+    const size_type* block_offsets = tmp->get_const_block_offsets();
     const uint8* compressed_data = tmp->get_const_compressed_data();
 
     const IndexType num_stored_elements = tmp->get_num_stored_elements();
@@ -613,7 +615,7 @@ void Bccoo<ValueType, IndexType>::write(mat_data& data) const
             bccoo::compr_idxs<IndexType> idxs;
             ValueType val;
             for (IndexType i = 0; i < num_stored_elements; i++) {
-                bccoo::get_detect_newblock(rows_data, offsets_data, idxs);
+                bccoo::get_detect_newblock(start_rows, block_offsets, idxs);
                 uint8 ind = bccoo::get_position_newrow(compressed_data, idxs);
                 // Reading (row,col,val) from source
                 bccoo::get_next_position_value(compressed_data, ind, idxs, val);
@@ -628,8 +630,8 @@ void Bccoo<ValueType, IndexType>::write(mat_data& data) const
                 IndexType block_size_local =
                     std::min(block_size, num_stored_elements - i);
                 bccoo::compr_blk_idxs<IndexType> blk_idxs(
-                    rows_data, cols_data, block_size_local, idxs,
-                    types_data[idxs.blk]);
+                    start_rows, start_cols, block_size_local, idxs,
+                    compression_types[idxs.blk]);
                 for (IndexType j = 0; j < block_size_local; j++) {
                     // Reading (row,col,val) from source
                     bccoo::get_block_position_value<IndexType, ValueType>(

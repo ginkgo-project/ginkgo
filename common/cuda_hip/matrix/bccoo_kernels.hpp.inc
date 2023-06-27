@@ -41,10 +41,10 @@ namespace kernel {
  * @param block_size  the number of nonzeros in each block
  * @param num_lines  the maximum round of each warp
  * @param compressed_data  the array where the data are
- * @param offsets_data  the array where the offset of each block is
- * @param types_data  the array where the type of each block is
- * @param cols_data  the array where the initial column of each block is
- * @param rows_data  the array where the initial row of each block is
+ * @param block_offsets  the array where the offset of each block is
+ * @param compression_types  the array where the type of each block is
+ * @param start_cols  the array where the initial column of each block is
+ * @param start_rows  the array where the initial row of each block is
  * @param b  the input dense vector
  * @param b_stride  the stride of the input dense vector
  * @param c  the output dense vector
@@ -62,10 +62,10 @@ __device__ void spmv_kernel(const IndexType nnz, const IndexType num_blks,
                             const IndexType block_size,
                             const IndexType num_lines,
                             const uint8* __restrict__ compressed_data,
-                            const size_type* __restrict__ offsets_data,
-                            const uint8* __restrict__ types_data,
-                            const IndexType* __restrict__ cols_data,
-                            const IndexType* __restrict__ rows_data,
+                            const size_type* __restrict__ block_offsets,
+                            const uint8* __restrict__ compression_types,
+                            const IndexType* __restrict__ start_cols,
+                            const IndexType* __restrict__ start_rows,
                             const ValueType* __restrict__ b,
                             const IndexType b_stride, ValueType* __restrict__ c,
                             const IndexType c_stride, Closure scale)
@@ -85,9 +85,10 @@ __device__ void spmv_kernel(const IndexType nnz, const IndexType num_blks,
 
         IndexType block_size_local =
             std::min(block_size, nnz - block_size * blk);
-        compr_idxs<IndexType> idxs(blk, offsets_data[blk], rows_data[blk]);
-        compr_blk_idxs<IndexType> blk_idxs(
-            rows_data, cols_data, block_size_local, idxs, types_data[blk]);
+        compr_idxs<IndexType> idxs(blk, block_offsets[blk], start_rows[blk]);
+        compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
+                                           block_size_local, idxs,
+                                           compression_types[blk]);
         if (blk_idxs.is_multi_row()) {
             if (blk_idxs.is_row_16bits()) {
                 if (blk_idxs.is_column_8bits()) {
@@ -186,10 +187,10 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
  * @param block_size  the number of nonzeros in each block
  * @param num_lines  the maximum round of each warp
  * @param compressed_data  the array where the data are
- * @param offsets_data  the array where the offset of each block is
- * @param types_data  the array where the type of each block is
- * @param cols_data  the array where the initial column of each block is
- * @param rows_data  the array where the initial row of each block is
+ * @param block_offsets  the array where the offset of each block is
+ * @param compression_types  the array where the type of each block is
+ * @param start_cols  the array where the initial column of each block is
+ * @param start_rows  the array where the initial row of each block is
  * @param diag  the output dense vector
  *
  * @tparam subwarp_size   size of the subwarp
@@ -201,10 +202,10 @@ template <int subwarp_size = config::warp_size, typename ValueType,
 __global__ __launch_bounds__(spmv_block_size) void abstract_extract(
     const IndexType nnz, const IndexType num_blks, const IndexType block_size,
     const IndexType num_lines, const uint8* __restrict__ compressed_data,
-    const size_type* __restrict__ offsets_data,
-    const uint8* __restrict__ types_data,
-    const IndexType* __restrict__ cols_data,
-    const IndexType* __restrict__ rows_data, ValueType* __restrict__ diag)
+    const size_type* __restrict__ block_offsets,
+    const uint8* __restrict__ compression_types,
+    const IndexType* __restrict__ start_cols,
+    const IndexType* __restrict__ start_rows, ValueType* __restrict__ diag)
 {
     const IndexType column_id = blockIdx.y;
     const IndexType start_blk = blockIdx.x;
@@ -216,9 +217,10 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_extract(
     for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
         IndexType block_size_local =
             std::min(block_size, nnz - block_size * blk);
-        compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
-        compr_blk_idxs<IndexType> blk_idxs(
-            rows_data, cols_data, block_size_local, idxs, types_data[blk]);
+        compr_idxs<IndexType> idxs(blk, block_offsets[blk]);
+        compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
+                                           block_size_local, idxs,
+                                           compression_types[blk]);
         if (blk_idxs.is_multi_row()) {
             if (blk_idxs.is_row_16bits()) {
                 if (blk_idxs.is_column_8bits()) {
@@ -276,10 +278,10 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_extract(
  * @param block_size  the number of nonzeros in each block
  * @param num_lines  the maximum round of each warp
  * @param compressed_data  the array where the data are
- * @param offsets_data  the array where the offset of each block is
- * @param types_data  the array where the type of each block is
- * @param cols_data  the array where the initial column of each block is
- * @param rows_data  the array where the initial row of each block is
+ * @param block_offsets  the array where the offset of each block is
+ * @param compression_types  the array where the type of each block is
+ * @param start_cols  the array where the initial column of each block is
+ * @param start_rows  the array where the initial row of each block is
  *
  * @tparam subwarp_size   size of the subwarp
  * @tparam ValueType  type of values stored in the matrix
@@ -290,10 +292,10 @@ template <int subwarp_size = config::warp_size, typename ValueType,
 __global__ __launch_bounds__(spmv_block_size) void abstract_absolute_inplace(
     const IndexType nnz, const IndexType num_blks, const IndexType block_size,
     const IndexType num_lines, uint8* __restrict__ compressed_data,
-    const size_type* __restrict__ offsets_data,
-    const uint8* __restrict__ types_data,
-    const IndexType* __restrict__ cols_data,
-    const IndexType* __restrict__ rows_data)
+    const size_type* __restrict__ block_offsets,
+    const uint8* __restrict__ compression_types,
+    const IndexType* __restrict__ start_cols,
+    const IndexType* __restrict__ start_rows)
 {
     const IndexType column_id = blockIdx.y;
     const IndexType start_blk = blockIdx.x;
@@ -305,9 +307,10 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_absolute_inplace(
     for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
         IndexType block_size_local =
             std::min(block_size, nnz - block_size * blk);
-        compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
-        compr_blk_idxs<IndexType> blk_idxs(
-            rows_data, cols_data, block_size_local, idxs, types_data[blk]);
+        compr_idxs<IndexType> idxs(blk, block_offsets[blk]);
+        compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
+                                           block_size_local, idxs,
+                                           compression_types[blk]);
         loop_block_absolute<IndexType, ValueType>(
             compressed_data, blk_idxs, start_in_blk, jump_in_blk,
             block_size_local, [](ValueType x) { return abs(x); });
@@ -323,23 +326,26 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_absolute_inplace(
  * @param block_size  the number of nonzeros in each block
  * @param num_lines  the maximum round of each warp
  * @param compressed_data_src  the array where the data of source are
- * @param offsets_data_src  the array where the offset of each block of source
+ * @param block_offsets_src  the array where the offset of each block of
+ * 																	source
  * is
- * @param types_data_src  the array where the sorce type of each block of source
+ * @param compression_types_src  the array where the type of each block of
+ * 																	source
  * is
- * @param cols_data_src  the array where the initial column of each block of
+ * @param start_cols_src  the array where the initial column of each block of
  * source is
- * @param rows_data_src  the array where the initial row of each block of source
- * is
+ * @param start_rows_src  the array where the initial row of each block of
+ * source is
  * @param compressed_data_res  the array where the data of result are
- * @param offsets_data_res  the array where the offset of each block of result
+ * @param block_offsets_res  the array where the offset of each block of result
  * is
- * @param types_data_res  the array where the sorce type of each block of result
- * is
- * @param cols_data_res  the array where the initial column of each block of
+ * @param compression_types_res  the array where the sorce type of each block
+ * 																	of
  * result is
- * @param rows_data_res  the array where the initial row of each block of result
- * is
+ * @param start_cols_res  the array where the initial column of each block of
+ * result is
+ * @param start_rows_res  the array where the initial row of each block of
+ * result is
  *
  * @tparam subwarp_size   size of the subwarp
  * @tparam ValueType  type of values stored in the matrix
@@ -350,14 +356,15 @@ template <int subwarp_size = config::warp_size, typename ValueType,
 __global__ __launch_bounds__(spmv_block_size) void abstract_absolute(
     const IndexType nnz, const IndexType num_blks, const IndexType block_size,
     const IndexType num_lines, const uint8* __restrict__ compressed_data_src,
-    const size_type* __restrict__ offsets_data_src,
-    const uint8* __restrict__ types_data_src,
-    const IndexType* __restrict__ cols_data_src,
-    const IndexType* __restrict__ rows_data_src,
+    const size_type* __restrict__ block_offsets_src,
+    const uint8* __restrict__ compression_types_src,
+    const IndexType* __restrict__ start_cols_src,
+    const IndexType* __restrict__ start_rows_src,
     uint8* __restrict__ compressed_data_res,
-    size_type* __restrict__ offsets_data_res,
-    uint8* __restrict__ types_data_res, IndexType* __restrict__ cols_data_res,
-    IndexType* __restrict__ rows_data_res)
+    size_type* __restrict__ block_offsets_res,
+    uint8* __restrict__ compression_types_res,
+    IndexType* __restrict__ start_cols_res,
+    IndexType* __restrict__ start_rows_res)
 {
     const IndexType column_id = blockIdx.y;
     const IndexType start_blk = blockIdx.x;
@@ -369,33 +376,33 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_absolute(
     auto comp_abs = [](ValueType x) { return abs(x); };
 
     if (start_blk == 0 && start_in_blk == 0) {
-        offsets_data_res[0] = 0;
+        block_offsets_res[0] = 0;
     }
     for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
         IndexType block_size_local =
             std::min(block_size, nnz - block_size * blk);
 
-        compr_idxs<IndexType> idxs_src(blk, offsets_data_src[blk]);
-        compr_blk_idxs<IndexType> blk_idxs_src(rows_data_src, cols_data_src,
+        compr_idxs<IndexType> idxs_src(blk, block_offsets_src[blk]);
+        compr_blk_idxs<IndexType> blk_idxs_src(start_rows_src, start_cols_src,
                                                block_size_local, idxs_src,
-                                               types_data_src[blk]);
+                                               compression_types_src[blk]);
 
-        rows_data_res[blk] = rows_data_src[blk];
-        cols_data_res[blk] = cols_data_src[blk];
-        types_data_res[blk] = types_data_src[blk];
-        size_type offsets_data_res_blk =
-            offsets_data_src[blk] -
+        start_rows_res[blk] = start_rows_src[blk];
+        start_cols_res[blk] = start_cols_src[blk];
+        compression_types_res[blk] = compression_types_src[blk];
+        size_type block_offsets_res_blk =
+            block_offsets_src[blk] -
             ((blk == 0)
                  ? 0
                  : (blk - 1) * block_size *
                        (sizeof(ValueType) - sizeof(remove_complex<ValueType>)));
 
-        compr_idxs<IndexType> idxs_res(blk, offsets_data_res_blk);
-        compr_blk_idxs<IndexType> blk_idxs_res(rows_data_res, cols_data_res,
+        compr_idxs<IndexType> idxs_res(blk, block_offsets_res_blk);
+        compr_blk_idxs<IndexType> blk_idxs_res(start_rows_res, start_cols_res,
                                                block_size_local, idxs_res,
-                                               types_data_res[blk]);
+                                               compression_types_res[blk]);
         if (start_in_blk == 0) {
-            offsets_data_res[blk + 1] =
+            block_offsets_res[blk + 1] =
                 blk_idxs_res.shf_val +
                 block_size_local * sizeof(remove_complex<ValueType>);
         }
@@ -480,10 +487,10 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_absolute(
  * @param block_size  the number of nonzeros in each block
  * @param num_lines  the maximum round of each warp
  * @param compressed_data  the array where the data are
- * @param offsets_data  the array where the offset of each block is
- * @param types_data  the array where the type of each block is
- * @param cols_data  the array where the initial column of each block is
- * @param rows_data  the array where the initial row of each block is
+ * @param block_offsets  the array where the offset of each block is
+ * @param compression_types  the array where the type of each block is
+ * @param start_cols  the array where the initial column of each block is
+ * @param start_rows  the array where the initial row of each block is
  * @param diag  the output dense vector
  *
  * @tparam subwarp_size   size of the subwarp
@@ -495,10 +502,10 @@ template <int subwarp_size = config::warp_size, typename ValueType,
 __global__ __launch_bounds__(default_block_size) void abstract_fill_in_coo(
     const IndexType nnz, const IndexType num_blks, const IndexType block_size,
     const IndexType num_lines, const uint8* __restrict__ compressed_data,
-    const size_type* __restrict__ offsets_data,
-    const uint8* __restrict__ types_data,
-    const IndexType* __restrict__ cols_data,
-    const IndexType* __restrict__ rows_data, IndexType* __restrict__ rows_idxs,
+    const size_type* __restrict__ block_offsets,
+    const uint8* __restrict__ compression_types,
+    const IndexType* __restrict__ start_cols,
+    const IndexType* __restrict__ start_rows, IndexType* __restrict__ rows_idxs,
     IndexType* __restrict__ cols_idxs, ValueType* __restrict__ values)
 {
     const IndexType column_id = blockIdx.y;
@@ -511,9 +518,10 @@ __global__ __launch_bounds__(default_block_size) void abstract_fill_in_coo(
     for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
         IndexType block_size_local =
             std::min(block_size, nnz - block_size * blk);
-        compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
-        compr_blk_idxs<IndexType> blk_idxs(
-            rows_data, cols_data, block_size_local, idxs, types_data[blk]);
+        compr_idxs<IndexType> idxs(blk, block_offsets[blk]);
+        compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
+                                           block_size_local, idxs,
+                                           compression_types[blk]);
         if (blk_idxs.is_multi_row()) {
             if (blk_idxs.is_row_16bits()) {
                 if (blk_idxs.is_column_8bits()) {
@@ -577,10 +585,10 @@ __global__ __launch_bounds__(default_block_size) void abstract_fill_in_coo(
  * @param block_size  the number of nonzeros in each block
  * @param num_lines  the maximum round of each warp
  * @param compressed_data  the array where the data are
- * @param offsets_data  the array where the offset of each block is
- * @param types_data  the array where the type of each block is
- * @param cols_data  the array where the initial column of each block is
- * @param rows_data  the array where the initial row of each block is
+ * @param block_offsets  the array where the offset of each block is
+ * @param compression_types  the array where the type of each block is
+ * @param start_cols  the array where the initial column of each block is
+ * @param start_rows  the array where the initial row of each block is
  * @param diag  the output dense vector
  *
  * @tparam subwarp_size   size of the subwarp
@@ -592,10 +600,10 @@ template <int subwarp_size = config::warp_size, typename ValueType,
 __global__ __launch_bounds__(default_block_size) void abstract_fill_in_dense(
     const IndexType nnz, const IndexType num_blks, const IndexType block_size,
     const IndexType num_lines, const uint8* __restrict__ compressed_data,
-    const size_type* __restrict__ offsets_data,
-    const uint8* __restrict__ types_data,
-    const IndexType* __restrict__ cols_data,
-    const IndexType* __restrict__ rows_data, IndexType stride,
+    const size_type* __restrict__ block_offsets,
+    const uint8* __restrict__ compression_types,
+    const IndexType* __restrict__ start_cols,
+    const IndexType* __restrict__ start_rows, IndexType stride,
     ValueType* __restrict__ result)
 {
     const IndexType column_id = blockIdx.y;
@@ -608,9 +616,10 @@ __global__ __launch_bounds__(default_block_size) void abstract_fill_in_dense(
     for (IndexType blk = start_blk; blk < num_blks; blk += jump_blk) {
         IndexType block_size_local =
             std::min(block_size, nnz - block_size * blk);
-        compr_idxs<IndexType> idxs(blk, offsets_data[blk]);
-        compr_blk_idxs<IndexType> blk_idxs(
-            rows_data, cols_data, block_size_local, idxs, types_data[blk]);
+        compr_idxs<IndexType> idxs(blk, block_offsets[blk]);
+        compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
+                                           block_size_local, idxs,
+                                           compression_types[blk]);
         if (blk_idxs.is_multi_row()) {
             if (blk_idxs.is_row_16bits()) {
                 if (blk_idxs.is_column_8bits()) {

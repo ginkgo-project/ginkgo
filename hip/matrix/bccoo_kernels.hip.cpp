@@ -159,10 +159,10 @@ void spmv2(std::shared_ptr<const HipExecutor> exec,
             kernel::abstract_spmv<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
                 as_hip_type(a->get_const_compressed_data()),
-                as_hip_type(a->get_const_offsets()),
-                as_hip_type(a->get_const_types()),
-                as_hip_type(a->get_const_cols()),
-                as_hip_type(a->get_const_rows()),
+                as_hip_type(a->get_const_block_offsets()),
+                as_hip_type(a->get_const_compression_types()),
+                as_hip_type(a->get_const_start_cols()),
+                as_hip_type(a->get_const_start_rows()),
                 as_hip_type(b->get_const_values()),
                 static_cast<IndexType>(b->get_stride()),
                 as_hip_type(c->get_values()),
@@ -204,10 +204,10 @@ void advanced_spmv2(std::shared_ptr<const HipExecutor> exec,
                 nnz, num_blocks_matrix, block_size, num_lines,
                 as_hip_type(alpha->get_const_values()),
                 as_hip_type(a->get_const_compressed_data()),
-                as_hip_type(a->get_const_offsets()),
-                as_hip_type(a->get_const_types()),
-                as_hip_type(a->get_const_cols()),
-                as_hip_type(a->get_const_rows()),
+                as_hip_type(a->get_const_block_offsets()),
+                as_hip_type(a->get_const_compression_types()),
+                as_hip_type(a->get_const_start_cols()),
+                as_hip_type(a->get_const_start_rows()),
                 as_hip_type(b->get_const_values()),
                 static_cast<IndexType>(b->get_stride()),
                 as_hip_type(c->get_values()),
@@ -281,10 +281,10 @@ void convert_to_coo(std::shared_ptr<const HipExecutor> exec,
             kernel::abstract_fill_in_coo<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
                 as_hip_type(source->get_const_compressed_data()),
-                as_hip_type(source->get_const_offsets()),
-                as_hip_type(source->get_const_types()),
-                as_hip_type(source->get_const_cols()),
-                as_hip_type(source->get_const_rows()),
+                as_hip_type(source->get_const_block_offsets()),
+                as_hip_type(source->get_const_compression_types()),
+                as_hip_type(source->get_const_start_cols()),
+                as_hip_type(source->get_const_start_rows()),
                 as_hip_type(result->get_row_idxs()),
                 as_hip_type(result->get_col_idxs()),
                 as_hip_type(result->get_values()));
@@ -329,10 +329,10 @@ void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
             kernel::abstract_fill_in_coo<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
                 as_hip_type(source->get_const_compressed_data()),
-                as_hip_type(source->get_const_offsets()),
-                as_hip_type(source->get_const_types()),
-                as_hip_type(source->get_const_cols()),
-                as_hip_type(source->get_const_rows()),
+                as_hip_type(source->get_const_block_offsets()),
+                as_hip_type(source->get_const_compression_types()),
+                as_hip_type(source->get_const_start_cols()),
+                as_hip_type(source->get_const_start_rows()),
                 as_hip_type(row_idxs.get_data()),
                 as_hip_type(result->get_col_idxs()),
                 as_hip_type(result->get_values()));
@@ -382,10 +382,10 @@ void convert_to_dense(std::shared_ptr<const HipExecutor> exec,
             kernel::abstract_fill_in_dense<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
                 as_hip_type(source->get_const_compressed_data()),
-                as_hip_type(source->get_const_offsets()),
-                as_hip_type(source->get_const_types()),
-                as_hip_type(source->get_const_cols()),
-                as_hip_type(source->get_const_rows()), stride,
+                as_hip_type(source->get_const_block_offsets()),
+                as_hip_type(source->get_const_compression_types()),
+                as_hip_type(source->get_const_start_cols()),
+                as_hip_type(source->get_const_start_rows()), stride,
                 as_hip_type(result->get_values()));
         } else {
             GKO_NOT_SUPPORTED(source);
@@ -420,10 +420,10 @@ void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
             kernel::abstract_extract<<<bccoo_grid, bccoo_block>>>(
                 nnz, num_blocks_matrix, block_size, num_lines,
                 as_hip_type(orig->get_const_compressed_data()),
-                as_hip_type(orig->get_const_offsets()),
-                as_hip_type(orig->get_const_types()),
-                as_hip_type(orig->get_const_cols()),
-                as_hip_type(orig->get_const_rows()),
+                as_hip_type(orig->get_const_block_offsets()),
+                as_hip_type(orig->get_const_compression_types()),
+                as_hip_type(orig->get_const_start_cols()),
+                as_hip_type(orig->get_const_start_rows()),
                 as_hip_type(diag->get_values()));
         } else {
             GKO_NOT_SUPPORTED(orig);
@@ -459,10 +459,10 @@ void compute_absolute_inplace(std::shared_ptr<const HipExecutor> exec,
                 <<<bccoo_grid, bccoo_block>>>(
                     nnz, num_blocks_matrix, block_size, num_lines,
                     as_hip_type(matrix->get_compressed_data()),
-                    as_hip_type(matrix->get_const_offsets()),
-                    as_hip_type(matrix->get_const_types()),
-                    as_hip_type(matrix->get_const_cols()),
-                    as_hip_type(matrix->get_const_rows()));
+                    as_hip_type(matrix->get_const_block_offsets()),
+                    as_hip_type(matrix->get_const_compression_types()),
+                    as_hip_type(matrix->get_const_start_cols()),
+                    as_hip_type(matrix->get_const_start_rows()));
         } else {
             GKO_NOT_SUPPORTED(matrix);
         }
@@ -499,15 +499,15 @@ void compute_absolute(
                 <<<bccoo_grid, bccoo_block>>>(
                     nnz, num_blocks_matrix, block_size, num_lines,
                     as_hip_type(source->get_const_compressed_data()),
-                    as_hip_type(source->get_const_offsets()),
-                    as_hip_type(source->get_const_types()),
-                    as_hip_type(source->get_const_cols()),
-                    as_hip_type(source->get_const_rows()),
+                    as_hip_type(source->get_const_block_offsets()),
+                    as_hip_type(source->get_const_compression_types()),
+                    as_hip_type(source->get_const_start_cols()),
+                    as_hip_type(source->get_const_start_rows()),
                     as_hip_type(result->get_compressed_data()),
-                    as_hip_type(result->get_offsets()),
-                    as_hip_type(result->get_types()),
-                    as_hip_type(result->get_cols()),
-                    as_hip_type(result->get_rows()));
+                    as_hip_type(result->get_block_offsets()),
+                    as_hip_type(result->get_compression_types()),
+                    as_hip_type(result->get_start_cols()),
+                    as_hip_type(result->get_start_rows()));
         } else {
             GKO_NOT_SUPPORTED(source);
         }
