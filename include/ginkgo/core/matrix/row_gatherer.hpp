@@ -60,9 +60,9 @@ namespace matrix {
  * @tparam IndexType  precision of rowgatherer array indices.
  *
  * @note This format is used mainly to allow for an abstraction of the
- * rowgatherer and provides the user with an apply method which
- * calls the respective Dense rowgatherer operation. As such it only stores an
- * array of the rowgatherer indices.
+ * row gathering and provides the user with an apply method which
+ * calls the respective Dense::row_gather operation. As such it only stores an
+ * array of the row gathering indices.
  *
  * @ingroup rowgatherer
  * @ingroup matrix
@@ -110,7 +110,7 @@ public:
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         gko::detail::const_array_view<IndexType>&& row_idxs)
     {
-        // cast const-ness away, but return a const object afterwards,
+        // cast const-ness away, but return a const object afterward,
         // so we can ensure that no modifications take place.
         return std::unique_ptr<const RowGatherer>(new RowGatherer{
             exec, size, gko::detail::array_const_cast(std::move(row_idxs))});
@@ -143,8 +143,8 @@ protected:
      * @tparam IndicesArray  type of array of indices
      *
      * @param exec  Executor associated to the matrix
-     * @param size  size of the rowgatherer array.
-     * @param row_idxs array of rowgatherer array
+     * @param size  size of the row gather array.
+     * @param row_idxs array of row gather array
      *
      * @note If `row_idxs` is not an rvalue, not an array of
      * IndexType, or is on the wrong executor, an internal copy will be created,
