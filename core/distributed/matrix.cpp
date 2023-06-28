@@ -177,7 +177,7 @@ void Matrix<ValueType, LocalIndexType,
     MPI_Comm graph;
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Dist_graph_create(
         comm.get(), 1, &source, &degree, destinations.data(), weight.data(),
-        MPI_INFO_NULL, false, &graph));
+        MPI_INFO_NULL, true, &graph));
     neighbor_comm_ = mpi::communicator{graph}.duplicate();
 
     comm_index_type num_in_neighbors;
@@ -197,19 +197,22 @@ void Matrix<ValueType, LocalIndexType,
         out_weight.data()));
 
     // compress communication info
-    std::vector<comm_index_type> comp_send_sizes(num_out_neighbors);
     std::vector<comm_index_type> comp_send_offsets(num_out_neighbors + 1);
-    std::vector<comm_index_type> comp_recv_sizes(num_in_neighbors);
     std::vector<comm_index_type> comp_recv_offsets(num_in_neighbors + 1);
+    std::vector<comm_index_type> comp_send_sizes(num_out_neighbors);
+    std::vector<comm_index_type> comp_recv_sizes(num_in_neighbors);
+
+    std::vector<comm_index_type> old_rank(comm.size(), source);
+    neighbor_comm_->all_to_all(this->get_executor(), old_rank.data(), 1);
 
     for (int r = 0; r < in_neighbors.size(); ++r) {
-        comp_recv_offsets[r] = recv_offsets_[in_neighbors[r]];
-        comp_recv_sizes[r] = recv_sizes_[in_neighbors[r]];
+        comp_recv_offsets[r] = recv_offsets_[old_rank[in_neighbors[r]]];
+        comp_recv_sizes[r] = recv_sizes_[old_rank[in_neighbors[r]]];
     }
     comp_recv_offsets.back() = recv_offsets_.back();
     for (int r = 0; r < out_neighbors.size(); ++r) {
-        comp_send_offsets[r] = send_offsets_[out_neighbors[r]];
-        comp_send_sizes[r] = send_sizes_[in_neighbors[r]];
+        comp_send_offsets[r] = send_offsets_[old_rank[out_neighbors[r]]];
+        comp_send_sizes[r] = send_sizes_[old_rank[out_neighbors[r]]];
     }
     comp_send_offsets.back() = send_offsets_.back();
 
