@@ -20,6 +20,7 @@
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "core/base/mixed_precision_types.hpp"
 #include "core/base/utils.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "hip/base/config.hip.hpp"
@@ -28,6 +29,7 @@
 #include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/intrinsics.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
+#include "hip/components/searching.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 #include "hip/components/uninitialized_array.hip.hpp"
 
