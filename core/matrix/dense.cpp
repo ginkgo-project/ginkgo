@@ -1180,7 +1180,18 @@ template <typename ValueType>
 template <typename OutputType, typename IndexType>
 void Dense<ValueType>::row_scatter_impl(const index_set<IndexType>* row_idxs,
                                         Dense<OutputType>* target) const
-    GKO_NOT_IMPLEMENTED;
+{
+    auto exec = this->get_executor();
+    dim<2> expected_dim{static_cast<size_type>(row_idxs->get_num_elems()),
+                        this->get_size()[1]};
+    GKO_ASSERT_EQUAL_DIMENSIONS(expected_dim, this);
+    GKO_ASSERT_EQUAL_COLS(this, target);
+    // @todo check that indices are inbounds for target
+
+    exec->run(dense::make_row_scatter(
+        make_temporary_clone(exec, row_idxs).get(), this,
+        make_temporary_clone(exec, target).get()));
+}
 
 
 template <typename ValueType>
@@ -1447,6 +1458,26 @@ void Dense<ValueType>::row_scatter(const array<int32>* row_idxs,
 
 template <typename ValueType>
 void Dense<ValueType>::row_scatter(const array<int64>* row_idxs,
+                                   ptr_param<LinOp> row_collection) const
+{
+    gather_mixed_real_complex<ValueType>(
+        [&](auto dense) { this->row_scatter_impl(row_idxs, dense); },
+        row_collection.get());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::row_scatter(const index_set<int32>* row_idxs,
+                                   ptr_param<LinOp> row_collection) const
+{
+    gather_mixed_real_complex<ValueType>(
+        [&](auto dense) { this->row_scatter_impl(row_idxs, dense); },
+        row_collection.get());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::row_scatter(const index_set<int64>* row_idxs,
                                    ptr_param<LinOp> row_collection) const
 {
     gather_mixed_real_complex<ValueType>(

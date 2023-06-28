@@ -2414,6 +2414,33 @@ TYPED_TEST(Dense, MatrixScatterRowsFailsWithWrongDimensions)
 }
 
 
+TYPED_TEST(Dense, MatrixCanScatterRowsUsingIndexSetIntoDense)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto exec = this->mtx5->get_executor();
+    auto mtx = gko::initialize<Mtx>({{2.2, 6.9, 7.8},
+                                     {4.7, 1.3, 7.6},
+                                     {9.2, 8.6, 4.5},
+                                     {8.1, 9.4, 6.8},
+                                     {9.6, 7.1, 2.5}},
+                                    exec);
+    auto row_collection = gko::initialize<Mtx>(
+        {{3.0, 2.7, 6.5}, {0.7, 1.1, 4.0}, {3.4, 3.8, 7.8}}, exec);
+    gko::index_set<gko::int32> permute_idxs{exec, {1, 0, 4}};
+
+    row_collection->row_scatter(&permute_idxs, mtx);
+
+    GKO_ASSERT_MTX_NEAR(mtx,
+                        l<T>({{3.0, 2.7, 6.5},
+                              {0.7, 1.1, 4.0},
+                              {9.2, 8.6, 4.5},
+                              {8.1, 9.4, 6.8},
+                              {3.4, 3.8, 7.8}}),
+                        0.0);
+}
+
+
 TYPED_TEST(Dense, SquareMatrixIsPermutable)
 {
     using Mtx = typename TestFixture::Mtx;

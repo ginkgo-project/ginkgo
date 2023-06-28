@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "core/base/mixed_precision_types.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
@@ -599,6 +600,16 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CONJ_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType, typename OutputType, typename IndexType>
+void row_scatter(std::shared_ptr<const DefaultExecutor> exec,
+                 const index_set<IndexType>* row_idxs,
+                 const matrix::Dense<ValueType>* orig,
+                 matrix::Dense<OutputType>* target) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
+    GKO_DECLARE_DENSE_ROW_SCATTER_INDEX_SET_KERNEL);
 
 
 }  // namespace dense

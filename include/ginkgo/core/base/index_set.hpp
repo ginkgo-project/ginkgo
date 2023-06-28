@@ -447,6 +447,33 @@ private:
 };
 
 
+namespace detail {
+
+
+template <typename T>
+struct temporary_clone_helper<index_set<T>> {
+    static std::unique_ptr<index_set<T>> create(
+        std::shared_ptr<const Executor> exec, index_set<T>* ptr, bool copy_data)
+    {
+        if (copy_data) {
+            return std::make_unique<index_set<T>>(std::move(exec), *ptr);
+        } else {
+            GKO_NOT_IMPLEMENTED;
+        }
+    }
+};
+
+template <typename T>
+struct temporary_clone_helper<const index_set<T>> {
+    static std::unique_ptr<const index_set<T>> create(
+        std::shared_ptr<const Executor> exec, const index_set<T>* ptr, bool)
+    {
+        return std::make_unique<const index_set<T>>(std::move(exec), *ptr);
+    }
+};
+}  // namespace detail
+
+
 }  // namespace gko
 
 

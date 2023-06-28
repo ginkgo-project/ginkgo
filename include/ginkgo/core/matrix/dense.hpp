@@ -549,6 +549,12 @@ public:
     void row_scatter(const array<int32>* scatter_indices,
                      ptr_param<LinOp> target) const;
 
+    void row_scatter(const index_set<int64>* scatter_indices,
+                     ptr_param<LinOp> target) const;
+
+    void row_scatter(const index_set<int32>* scatter_indices,
+                     ptr_param<LinOp> target) const;
+
     std::unique_ptr<LinOp> column_permute(
         const array<int32>* permutation_indices) const override;
 
