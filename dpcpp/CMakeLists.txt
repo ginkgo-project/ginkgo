@@ -6,22 +6,21 @@ set(GINKGO_DPL_ROOT "${DPL_ROOT}" PARENT_SCOPE)
 add_library(ginkgo_dpcpp $<TARGET_OBJECTS:ginkgo_dpcpp_device> "")
 target_sources(ginkgo_dpcpp
     PRIVATE
-    ${GKO_UNIFIED_COMMON_SOURCES}
     base/device_matrix_data_kernels.dp.cpp
     base/executor.dp.cpp
     base/helper.dp.cpp
     base/index_set_kernels.dp.cpp
     base/scoped_device_id.dp.cpp
+    base/timer.dp.cpp
     base/version.dp.cpp
     components/prefix_sum_kernels.dp.cpp
     distributed/matrix_kernels.dp.cpp
     distributed/partition_kernels.dp.cpp
     distributed/vector_kernels.dp.cpp
     factorization/cholesky_kernels.dp.cpp
-    factorization/factorization_kernels.dp.cpp
-    factorization/factorization_kernels.dp.cpp
     factorization/ic_kernels.dp.cpp
     factorization/ilu_kernels.dp.cpp
+    factorization/factorization_kernels.dp.cpp
     factorization/lu_kernels.dp.cpp
     factorization/par_ic_kernels.dp.cpp
     factorization/par_ict_kernels.dp.cpp
@@ -32,47 +31,31 @@ target_sources(ginkgo_dpcpp
     factorization/par_ilut_select_kernel.dp.cpp
     factorization/par_ilut_spgeam_kernel.dp.cpp
     factorization/par_ilut_sweep_kernel.dp.cpp
-    matrix/batch_csr_kernels.dp.cpp
-    matrix/batch_dense_kernels.dp.cpp
-    matrix/batch_dense_kernels.dp.cpp
-    matrix/batch_diagonal_kernels.dp.cpp
-    matrix/batch_ell_kernels.dp.cpp
     matrix/coo_kernels.dp.cpp
     matrix/csr_kernels.dp.cpp
+    matrix/fbcsr_kernels.dp.cpp
     matrix/dense_kernels.dp.cpp
     matrix/diagonal_kernels.dp.cpp
     matrix/ell_kernels.dp.cpp
-    matrix/fbcsr_kernels.dp.cpp
     matrix/fft_kernels.dp.cpp
     matrix/sellp_kernels.dp.cpp
     matrix/sparsity_csr_kernels.dp.cpp
     multigrid/pgm_kernels.dp.cpp
-    preconditioner/batch_identity_kernels.dp.cpp
-    preconditioner/batch_ilu_isai_kernels.dp.cpp
-    preconditioner/batch_ilu_kernels.dp.cpp
-    preconditioner/batch_isai_kernels.dp.cpp
-    preconditioner/batch_jacobi_kernels.dp.cpp
     preconditioner/isai_kernels.dp.cpp
     preconditioner/jacobi_advanced_apply_kernel.dp.cpp
     preconditioner/jacobi_generate_kernel.dp.cpp
     preconditioner/jacobi_kernels.dp.cpp
     preconditioner/jacobi_simple_apply_kernel.dp.cpp
     reorder/rcm_kernels.dp.cpp
-    solver/batch_bicgstab_kernels.dp.cpp
-    solver/batch_cg_kernels.dp.cpp
-    solver/batch_direct_kernels.dp.cpp
-    solver/batch_gmres_kernels.dp.cpp
-    solver/batch_idr_kernels.dp.cpp
-    solver/batch_lower_trs_kernels.dp.cpp
-    solver/batch_richardson_kernels.dp.cpp
-    solver/batch_upper_trs_kernels.dp.cpp
     solver/cb_gmres_kernels.dp.cpp
     solver/idr_kernels.dp.cpp
     solver/lower_trs_kernels.dp.cpp
     solver/multigrid_kernels.dp.cpp
     solver/upper_trs_kernels.dp.cpp
     stop/criterion_kernels.dp.cpp
-    stop/residual_norm_kernels.dp.cpp)
+    stop/residual_norm_kernels.dp.cpp
+    ${GKO_UNIFIED_COMMON_SOURCES}
+    )
 
 # TODO: adjust it when dpcpp jacobi supports more block size
 set(GKO_DPCPP_JACOBI_BLOCK_SIZES 32)
@@ -99,8 +82,10 @@ configure_file(preconditioner/jacobi_common.hpp.in preconditioner/jacobi_common.
 ginkgo_compile_features(ginkgo_dpcpp)
 target_compile_definitions(ginkgo_dpcpp PRIVATE GKO_COMPILING_DPCPP _ONEDPL_COMPILE_KERNEL=0)
 
+set(GINKGO_DPCPP_FLAGS "-fsycl")
 set(GINKGO_DPCPP_FLAGS ${GINKGO_DPCPP_FLAGS} PARENT_SCOPE)
 target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_DPCPP_FLAGS}")
+target_link_options(ginkgo_dpcpp PRIVATE "${GINKGO_DPCPP_FLAGS}")
 target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_COMPILER_FLAGS}")
 # Note: add MKL as PRIVATE not PUBLIC (MKL example shows) to avoid propagating
 # find_package(MKL) everywhere when linking ginkgo (see the MKL example
