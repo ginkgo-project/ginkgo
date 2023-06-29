@@ -56,7 +56,7 @@ set(GINKGO_VERBOSE_LEVEL "1" CACHE STRING
 if(MSVC)
     set(GINKGO_COMPILER_FLAGS "" CACHE STRING
         "Set the required CXX compiler flags, mainly used for warnings. Current default is ``")
-elseif(GINKGO_BUILD_DPCPP OR CMAKE_CXX_COMPILER MATCHES "dpcpp")
+elseif(GINKGO_BUILD_DPCPP OR CMAKE_CXX_COMPILER MATCHES "dpcpp|icpx")
     # For now always use `-ffp-model=precise` with DPC++. This can be removed when
     # the floating point issues are fixed.
     set(GINKGO_COMPILER_FLAGS "-Wpedantic;-ffp-model=precise" CACHE STRING
@@ -128,14 +128,6 @@ endif()
 # enable that back as well.
 if (CMAKE_CXX_COMPILER_ID MATCHES "PGI|NVHPC")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Kieee")
-endif()
-
-#Batch Ginkgo options:
-option(GINKGO_CUDA_BATCH_GMRES_USE_NO_SHMEM "Use no shared memory in the batch gmres solver kernels (Might be necessary for large matrices)" OFF)
-if(GINKGO_CUDA_BATCH_GMRES_USE_NO_SHMEM)
-    set(GINKGO_CUDA_BATCH_GMRES_HAVE_NO_SHMEM 1)
-else()
-    set(GINKGO_CUDA_BATCH_GMRES_HAVE_NO_SHMEM 0)
 endif()
 
 set(GINKGO_CIRCULAR_DEPS_FLAGS "-Wl,--no-undefined")
@@ -306,23 +298,13 @@ if(MSVC)
 endif()
 
 if(GINKGO_BUILD_DPCPP)
-    if(CMAKE_CXX_COMPILER MATCHES "icpx")
-        set(GINKGO_DPCPP_MAJOR_VERSION "6")
-        set(GINKGO_DPCPP_VERSION "6")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl")
-        # AoT
-        # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsycl -fsycl-targets=spir64 -Xsycl-target-backend '-device 12.60.7' -fsycl-max-parallel-link-jobs=8 -fsycl-unnamed-lambda")
-    else()
-        ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_MAJOR_VERSION __LIBSYCL_MAJOR_VERSION)
-        ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_VERSION __SYCL_COMPILER_VERSION)
-    endif()
+    ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_MAJOR_VERSION __LIBSYCL_MAJOR_VERSION)
+    ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_VERSION __SYCL_COMPILER_VERSION)
+    get_filename_component(GINKGO_SYCL_DIR ${CMAKE_CXX_COMPILER} DIRECTORY)
+    set(SYCL_INCLUDE_PATH "${GINKGO_SYCL_DIR}/../include;${GINKGO_SYCL_DIR}/../include/sycl")
 else()
     set(GINKGO_DPCPP_MAJOR_VERSION "0")
 endif()
-
-configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/batch_config.hpp.in
-    ${Ginkgo_BINARY_DIR}/include/ginkgo/batch_config.hpp @ONLY)
-
 configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
     ${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp @ONLY)
 
