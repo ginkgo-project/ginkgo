@@ -213,9 +213,9 @@ __dpct_inline__ void update_x_middle(const int num_rows, const ValueType& alpha,
 }  // namespace
 
 
-template <typename StopType, const bool vecs_shared_all,
-          const bool sg_kernel_all, typename PrecType, typename LogType,
-          typename BatchMatrixType, typename ValueType>
+template <typename StopType, const int n_shared_total, const bool sg_kernel_all,
+          typename PrecType, typename LogType, typename BatchMatrixType,
+          typename ValueType>
 void apply_kernel(const gko::kernels::batch_bicgstab::StorageConfig sconf,
                   const int max_iter, const gko::remove_complex<ValueType> tol,
                   LogType logger, PrecType prec_shared,
@@ -285,69 +285,57 @@ void apply_kernel(const gko::kernels::batch_bicgstab::StorageConfig sconf,
     ValueType* x_sh;
     ValueType* prec_work_sh;
 
-    if constexpr (vecs_shared_all) {
+    if constexpr (n_shared_total >= 1) {
         p_hat_sh = slm_values;
-        s_hat_sh = p_hat_sh + sconf.padded_vec_len;
-        v_sh = s_hat_sh + sconf.padded_vec_len;
-        t_sh = v_sh + sconf.padded_vec_len;
-        prec_work_sh = t_sh + sconf.padded_vec_len;
-        p_sh = prec_work_sh + PrecType::dynamic_work_size(nrows, nnz);
-        s_sh = p_sh + sconf.padded_vec_len;
-        r_sh = s_sh + sconf.padded_vec_len;
-        r_hat_sh = r_sh + sconf.padded_vec_len;
-        x_sh = r_hat_sh + sconf.padded_vec_len;
     } else {
-        if (sconf.n_shared >= 1) {
-            p_hat_sh = slm_values;
-        } else {
-            p_hat_sh = workspace + gmem_offset;
-        }
-        if (sconf.n_shared == 1) {
-            s_hat_sh = workspace + gmem_offset;
-        } else {
-            s_hat_sh = p_hat_sh + sconf.padded_vec_len;
-        }
-        if (sconf.n_shared == 2) {
-            v_sh = workspace + gmem_offset;
-        } else {
-            v_sh = s_hat_sh + sconf.padded_vec_len;
-        }
-        if (sconf.n_shared == 3) {
-            t_sh = workspace + gmem_offset;
-        } else {
-            t_sh = v_sh + sconf.padded_vec_len;
-        }
-        if (!sconf.prec_shared && sconf.n_shared == 4) {
-            prec_work_sh = workspace + gmem_offset;
-        } else {
-            prec_work_sh = t_sh + sconf.padded_vec_len;
-        }
-        if (sconf.n_shared == 4 && sconf.prec_shared) {
-            p_sh = workspace + gmem_offset;
-        } else {
-            p_sh = prec_work_sh + PrecType::dynamic_work_size(nrows, nnz);
-        }
-        if (sconf.n_shared == 5) {
-            s_sh = workspace + gmem_offset;
-        } else {
-            s_sh = p_sh + sconf.padded_vec_len;
-        }
-        if (sconf.n_shared == 6) {
-            r_sh = workspace + gmem_offset;
-        } else {
-            r_sh = s_sh + sconf.padded_vec_len;
-        }
-        if (sconf.n_shared == 7) {
-            r_hat_sh = workspace + gmem_offset;
-        } else {
-            r_hat_sh = r_sh + sconf.padded_vec_len;
-        }
-        if (sconf.n_shared == 8) {
-            x_sh = workspace + gmem_offset;
-        } else {
-            x_sh = r_hat_sh + sconf.padded_vec_len;
-        }
+        p_hat_sh = workspace + gmem_offset;
     }
+    if constexpr (n_shared_total == 1) {
+        s_hat_sh = workspace + gmem_offset;
+    } else {
+        s_hat_sh = p_hat_sh + sconf.padded_vec_len;
+    }
+    if constexpr (n_shared_total == 2) {
+        v_sh = workspace + gmem_offset;
+    } else {
+        v_sh = s_hat_sh + sconf.padded_vec_len;
+    }
+    if constexpr (n_shared_total == 3) {
+        t_sh = workspace + gmem_offset;
+    } else {
+        t_sh = v_sh + sconf.padded_vec_len;
+    }
+    if constexpr (n_shared_total == 4) {
+        p_sh = workspace + gmem_offset;
+    } else {
+        p_sh = t_sh + sconf.padded_vec_len;
+    }
+    if constexpr (n_shared_total == 5) {
+        s_sh = workspace + gmem_offset;
+    } else {
+        s_sh = p_sh + sconf.padded_vec_len;
+    }
+    if constexpr (n_shared_total == 6) {
+        r_sh = workspace + gmem_offset;
+    } else {
+        r_sh = s_sh + sconf.padded_vec_len;
+    }
+    if constexpr (n_shared_total == 7) {
+        r_hat_sh = workspace + gmem_offset;
+    } else {
+        r_hat_sh = r_sh + sconf.padded_vec_len;
+    }
+    if constexpr (n_shared_total == 8) {
+        x_sh = workspace + gmem_offset;
+    } else {
+        x_sh = r_hat_sh + sconf.padded_vec_len;
+    }
+    if constexpr (n_shared_total == 9) {
+        prec_work_sh = workspace + gmem_offset;
+    } else {
+        prec_work_sh = x_sh + sconf.padded_vec_len;
+    }
+
     // generate preconditioner
     prec_shared.generate(ibatch, A_global_entry, prec_work_sh, item_ct1);
 

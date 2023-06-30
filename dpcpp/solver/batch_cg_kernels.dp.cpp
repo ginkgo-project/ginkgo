@@ -76,7 +76,7 @@ public:
         : exec_{exec}, opts_{opts}
     {}
 
-    template <typename StopType, const int simd_len, const bool vecs_shared_all,
+    template <typename StopType, const int simd_len, const int n_shared_total,
               const bool sg_kernel_all, typename PrecType, typename LogType,
               typename BatchMatrixType>
     __dpct_inline__ void launch_apply_kernel(
@@ -113,7 +113,7 @@ public:
                     ValueType* const x_global_entry =
                         gko::batch::batch_entry_ptr(x_values, 1, nrows,
                                                     batch_id);
-                    apply_kernel<StopType, vecs_shared_all, sg_kernel_all>(
+                    apply_kernel<StopType, n_shared_total, sg_kernel_all>(
                         sconf, max_iters, res_tol, logger, prec, a_global_entry,
                         b_global_entry, x_global_entry, nrows, a.num_nnz,
                         static_cast<ValueType*>(slm_values.get_pointer()),
@@ -136,7 +136,7 @@ public:
         auto device = exec_->get_queue()->get_device();
         int group_size =
             device.get_info<sycl::info::device::max_work_group_size>();
-        if (group_size > 2 * nrows) group_size = get_larger_power(nrows);
+        if (group_size > nrows) group_size = get_larger_power(nrows);
 
         size_type shmem_per_blk =
             device.get_info<sycl::info::device::local_mem_size>() -
@@ -155,24 +155,52 @@ public:
         auto workspace = gko::Array<ValueType>(
             exec_, sconf.gmem_stride_bytes * a.num_batch / sizeof(ValueType));
 
+        int n_shared_total = sconf.n_shared + int(sconf.prec_shared);
+
         ValueType* const workspace_data = workspace.get_data();
 
-        if (nrows <= 32)
-            launch_apply_kernel<StopType, 16, 1, 1>(
+        if (nrows <= 32 && n_shared_total == 6)
+            launch_apply_kernel<StopType, 16, 6, 1>(
                 sconf, logger, prec, a, b.values, x.values, workspace_data,
                 group_size, shared_size);
-        else if (nrows <= 256 && sconf.n_global == 0)
-            launch_apply_kernel<StopType, 32, 1, 1>(
+        else if (nrows <= 256 && n_shared_total == 6)
+            launch_apply_kernel<StopType, 32, 6, 1>(
                 sconf, logger, prec, a, b.values, x.values, workspace_data,
                 group_size, shared_size);
-        else if (sconf.n_global == 0)
-            launch_apply_kernel<StopType, 32, 1, 0>(
-                sconf, logger, prec, a, b.values, x.values, workspace_data,
-                group_size, shared_size);
-        else
-            launch_apply_kernel<StopType, 32, 0, 0>(
-                sconf, logger, prec, a, b.values, x.values, workspace_data,
-                group_size, shared_size);
+        else {
+            switch (n_shared_total) {
+            case 1:
+                launch_apply_kernel<StopType, 32, 1, 0>(
+                    sconf, logger, prec, a, b.values, x.values, workspace_data,
+                    group_size, shared_size);
+                break;
+            case 2:
+                launch_apply_kernel<StopType, 32, 2, 0>(
+                    sconf, logger, prec, a, b.values, x.values, workspace_data,
+                    group_size, shared_size);
+                break;
+            case 3:
+                launch_apply_kernel<StopType, 32, 3, 0>(
+                    sconf, logger, prec, a, b.values, x.values, workspace_data,
+                    group_size, shared_size);
+                break;
+            case 4:
+                launch_apply_kernel<StopType, 32, 4, 0>(
+                    sconf, logger, prec, a, b.values, x.values, workspace_data,
+                    group_size, shared_size);
+                break;
+            case 5:
+                launch_apply_kernel<StopType, 32, 5, 0>(
+                    sconf, logger, prec, a, b.values, x.values, workspace_data,
+                    group_size, shared_size);
+                break;
+            case 6:
+                launch_apply_kernel<StopType, 32, 6, 0>(
+                    sconf, logger, prec, a, b.values, x.values, workspace_data,
+                    group_size, shared_size);
+                break;
+            }
+        }
     }
 
 private:

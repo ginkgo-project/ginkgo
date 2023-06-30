@@ -138,9 +138,9 @@ __dpct_inline__ void update_x_and_r(
 }  // namespace
 
 
-template <typename StopType, const bool vecs_shared_all,
-          const bool sg_kernel_all, typename PrecType, typename LogType,
-          typename BatchMatrixType, typename ValueType>
+template <typename StopType, const int n_shared_total, const bool sg_kernel_all,
+          typename PrecType, typename LogType, typename BatchMatrixType,
+          typename ValueType>
 __dpct_inline__ void apply_kernel(
     const gko::kernels::batch_cg::StorageConfig sconf, const int max_iter,
     const gko::remove_complex<ValueType> tol, LogType logger,
@@ -199,44 +199,36 @@ __dpct_inline__ void apply_kernel(
     ValueType* Ap_sh;
     ValueType* x_sh;
     ValueType* prec_work_sh;
-    if constexpr (vecs_shared_all) {
+
+    if constexpr (n_shared_total >= 1) {
         r_sh = slm_values;
-        z_sh = r_sh + sconf.padded_vec_len;
-        p_sh = z_sh + sconf.padded_vec_len;
-        Ap_sh = p_sh + sconf.padded_vec_len;
-        prec_work_sh = Ap_sh + sconf.padded_vec_len;
-        x_sh = prec_work_sh + PrecType::dynamic_work_size(nrows, nnz);
     } else {
-        if (sconf.n_shared >= 1) {
-            r_sh = slm_values;
-        } else {
-            r_sh = workspace + gmem_offset;
-        }
-        if (sconf.n_shared == 1) {
-            z_sh = workspace + gmem_offset;
-        } else {
-            z_sh = r_sh + sconf.padded_vec_len;
-        }
-        if (sconf.n_shared == 2) {
-            p_sh = workspace + gmem_offset;
-        } else {
-            p_sh = z_sh + sconf.padded_vec_len;
-        }
-        if (sconf.n_shared == 3) {
-            Ap_sh = workspace + gmem_offset;
-        } else {
-            Ap_sh = p_sh + sconf.padded_vec_len;
-        }
-        if (!sconf.prec_shared && sconf.n_shared == 4) {
-            prec_work_sh = workspace + gmem_offset;
-        } else {
-            prec_work_sh = Ap_sh + sconf.padded_vec_len;
-        }
-        if (sconf.n_shared == 4 && sconf.prec_shared) {
-            x_sh = workspace + gmem_offset;
-        } else {
-            x_sh = prec_work_sh + PrecType::dynamic_work_size(nrows, nnz);
-        }
+        r_sh = workspace + gmem_offset;
+    }
+    if constexpr (n_shared_total == 1) {
+        z_sh = workspace + gmem_offset;
+    } else {
+        z_sh = r_sh + sconf.padded_vec_len;
+    }
+    if constexpr (n_shared_total == 2) {
+        p_sh = workspace + gmem_offset;
+    } else {
+        p_sh = z_sh + sconf.padded_vec_len;
+    }
+    if constexpr (n_shared_total == 3) {
+        Ap_sh = workspace + gmem_offset;
+    } else {
+        Ap_sh = p_sh + sconf.padded_vec_len;
+    }
+    if constexpr (n_shared_total == 4) {
+        x_sh = workspace + gmem_offset;
+    } else {
+        x_sh = Ap_sh + sconf.padded_vec_len;
+    }
+    if constexpr (n_shared_total == 5) {
+        prec_work_sh = workspace + gmem_offset;
+    } else {
+        prec_work_sh = x_sh + sconf.padded_vec_len;
     }
 
     // generate preconditioner
