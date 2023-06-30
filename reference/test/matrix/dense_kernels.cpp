@@ -2441,6 +2441,23 @@ TYPED_TEST(Dense, MatrixCanScatterRowsUsingIndexSetIntoDense)
 }
 
 
+TYPED_TEST(Dense, MatrixGatherScatterIsIdentity)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto exec = this->mtx5->get_executor();
+    auto mtx = this->template gen_mtx<Mtx>(23, 4);
+    gko::array<gko::int32> idxs{exec, {3, 6, 11, 9, 22, 8}};
+
+    auto gather = mtx->row_gather(&idxs);
+    mtx->fill(-gko::one<T>());
+    gather->row_scatter(&idxs, mtx);
+    auto result = mtx->row_gather(&idxs);
+
+    GKO_ASSERT_MTX_NEAR(gather, result, 0.0);
+}
+
+
 TYPED_TEST(Dense, SquareMatrixIsPermutable)
 {
     using Mtx = typename TestFixture::Mtx;
