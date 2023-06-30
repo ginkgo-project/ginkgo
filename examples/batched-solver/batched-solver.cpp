@@ -54,7 +54,8 @@ using index_type = int;
 using size_type = gko::size_type;
 using vec_type = gko::matrix::BatchDense<value_type>;
 using real_vec_type = gko::matrix::BatchDense<real_type>;
-using mtx_type = gko::matrix::BatchCsr<value_type, index_type>;
+using mtx_csr_t = gko::matrix::BatchCsr<value_type, index_type>;
+using mtx_ell_t = gko::matrix::BatchEll<value_type, index_type>;
 using bicgstab = gko::solver::BatchBicgstab<value_type>;
 using cg = gko::solver::BatchCg<value_type>;
 using gmres = gko::solver::BatchGmres<value_type>;
@@ -154,7 +155,7 @@ int main(int argc, char* argv[])
         argc >= 6 ? (std::string(argv[5]) == "time") : false;
     const bool print_residuals =
         argc >= 7 ? (std::string(argv[6]) == "residuals") : false;
-    const int num_reps = argc >= 8 ? std::atoi(argv[7]) : 10;
+    const int num_reps = argc >= 8 ? std::atoi(argv[7]) : 20;
     const int gmres_restart = argc >= 9 ? std::atoi(argv[8]) : 10;
     // @sect3{Generate data}
     // The "application" generates the batch of linear systems on the device
@@ -173,15 +174,29 @@ int main(int argc, char* argv[])
     //  out of them.
     // Ginkgo expects the nonzero values for all the small matrices to be
     //  allocated contiguously, one matrix after the other.
+    //
+    // Batch_Csr
     auto vals_view = gko::array<value_type>::const_view(
         exec, num_systems * appl_sys.nnz, appl_sys.all_values);
     auto rowptrs_view = gko::array<index_type>::const_view(exec, num_rows + 1,
                                                            appl_sys.row_ptrs);
     auto colidxs_view = gko::array<index_type>::const_view(exec, appl_sys.nnz,
                                                            appl_sys.col_idxs);
-    auto A = gko::share(mtx_type::create_const(
+    auto A = gko::share(mtx_csr_t::create_const(
         exec, batch_mat_size, std::move(vals_view), std::move(colidxs_view),
         std::move(rowptrs_view)));
+
+    //  Batch_Ell
+    // auto vals_view = gko::array<value_type>::const_view(
+    //     exec, num_systems * appl_sys.nnz, appl_sys.all_values);
+    // auto colidxs_view = gko::array<index_type>::const_view(exec,
+    // appl_sys.nnz,
+    //                                                        appl_sys.col_idxs);
+    // auto A = gko::share(mtx_ell_t::create_const(
+    //     exec, batch_mat_size, gko::batch_stride{num_systems, appl_sys.nnz},
+    //     gko::batch_stride{num_systems, appl_sys.nnz}, std::move(vals_view),
+    //     std::move(colidxs_view)));
+
     // @sect3{RHS and solution vectors}
     // batch_stride object specifies the access stride within the individual
     //  matrices (vectors) in the batch. In this case, we specify a stride of 1
