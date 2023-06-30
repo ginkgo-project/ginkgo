@@ -38,6 +38,7 @@ target_sources(ginkgo
     log/vtune.cpp
     log/record.cpp
     log/stream.cpp
+    matrix/batch_vector.cpp
     matrix/coo.cpp
     matrix/csr.cpp
     matrix/dense.cpp
