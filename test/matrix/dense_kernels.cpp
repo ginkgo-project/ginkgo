@@ -131,12 +131,9 @@ protected:
         for (auto& i : tmp3) {
             i = row_dist(rng);
         }
-        std::vector<int> tmp4(tmp3.size());
-        std::uniform_int_distribution<int> sub_row_dist(0,
-                                                        sub_rows.length() - 1);
-        for (auto& i : tmp4) {
-            i = sub_row_dist(rng);
-        }
+        std::vector<int> tmp4(sub_rows.length());
+        std::iota(tmp4.begin(), tmp4.end(), 0);
+        std::shuffle(tmp4.begin(), tmp4.end(), rng);
         for (auto& s : scale_factors) {
             s = scale_dist(rng);
         }
@@ -149,8 +146,10 @@ protected:
             std::unique_ptr<Arr>(new Arr{ref, tmp2.begin(), tmp2.end()});
         rgather_idxs =
             std::unique_ptr<Arr>(new Arr{ref, tmp3.begin(), tmp3.end()});
-        rgather_idxs_sub =
-            std::unique_ptr<Arr>(new Arr{ref, tmp4.begin(), tmp4.end()});
+        rscatter_idxs = std::unique_ptr<Arr>(
+            new Arr{ref, tmp2.begin(), tmp2.begin() + u->get_size()[0]});
+        rscatter_idxs_sub = std::unique_ptr<Arr>(
+            new Arr{ref, tmp2.begin(), tmp2.begin() + u->get_size()[0]});
         rpermutation = Permutation::create(ref, *rpermute_idxs);
         cpermutation = Permutation::create(ref, *cpermute_idxs);
         rspermutation = ScaledPermutation::create(
@@ -202,10 +201,11 @@ protected:
     std::unique_ptr<ScaledPermutation> rspermutation;
     std::unique_ptr<ScaledPermutation> cspermutation;
     std::unique_ptr<Arr> rgather_idxs;
-    std::unique_ptr<Arr> rgather_idxs_sub;
+    std::unique_ptr<Arr> rscatter_idxs;
+    std::unique_ptr<Arr> rscatter_idxs_sub;
 
     gko::span sub_rows{5, 43};
-    gko::span sub_col{3, 19};
+    gko::span sub_cols{3, 19};
 };
 
 
@@ -1484,8 +1484,8 @@ TEST_F(Dense, CanScatterRowsIntoDense)
 {
     set_up_apply_data();
 
-    u->row_scatter(rgather_idxs.get(), x);
-    du->row_scatter(rgather_idxs.get(), dx);
+    u->row_scatter(rscatter_idxs.get(), x);
+    du->row_scatter(rscatter_idxs.get(), dx);
 
     GKO_ASSERT_MTX_NEAR(x, dx, 0);
 }
@@ -1494,15 +1494,15 @@ TEST_F(Dense, CanScatterRowsIntoDense)
 TEST_F(Dense, CanScatterRowsIntoDenseSubmatrix)
 {
     set_up_apply_data();
+    auto sx = x->create_submatrix(sub_rows, sub_cols);
+    auto dsx = dx->create_submatrix(sub_rows, sub_cols);
 
-    u->create_submatrix({0, u->get_size()[0]}, {0, sub_col.length()})
-        ->row_scatter(rgather_idxs_sub.get(),
-                      x->create_submatrix(sub_rows, sub_col));
-    du->create_submatrix({0, du->get_size()[0]}, {0, sub_col.length()})
-        ->row_scatter(rgather_idxs_sub.get(),
-                      dx->create_submatrix(sub_rows, sub_col));
+    u->create_submatrix({0, u->get_size()[0]}, sub_cols)
+        ->row_scatter(rscatter_idxs_sub.get(), sx);
+    du->create_submatrix({0, du->get_size()[0]}, sub_cols)
+        ->row_scatter(rscatter_idxs_sub.get(), dsx);
 
-    GKO_ASSERT_MTX_NEAR(x, dx, 0);
+    GKO_ASSERT_MTX_NEAR(sx, dsx, 0);
 }
 
 
@@ -1516,18 +1516,31 @@ TEST_F(Dense, CanScatterRowsIntoDenseCrossExecutor)
     GKO_ASSERT_MTX_NEAR(x, dx, 0);
 }
 
-//
-// TEST_F(Dense, CanScatterRowsIntoDenseUsingIndexSet)
-//{
-//    set_up_apply_data();
-//    auto rindices = std::make_unique<gko::index_set<index_type>>(
-//        ref, x->get_size()[0], *rgather_idxs);
-//
-//    u->row_scatter(rindices.get(), x);
-//    du->row_scatter(rindices.get(), dx);
-//
-//    GKO_ASSERT_MTX_NEAR(x, dx, 0);
-//}
+
+ TEST_F(Dense, CanScatterRowsIntoDenseUsingIndexSet)
+{
+    set_up_apply_data();
+    auto rindices = std::make_unique<gko::index_set<index_type>>(
+        ref, x->get_size()[0], *rscatter_idxs);
+
+    u->row_scatter(rindices.get(), x);
+    du->row_scatter(rindices.get(), dx);
+
+    GKO_ASSERT_MTX_NEAR(x, dx, 0);
+}
+
+
+TEST_F(Dense, GatherScatterIsIdentity)
+{
+    set_up_apply_data();
+
+    auto gather = dx->row_gather(rgather_idxs.get());
+    dx->fill(-gko::one<value_type>());
+    gather->row_scatter(rgather_idxs.get(), dx);
+    auto result = dx->row_gather(rgather_idxs.get());
+
+    GKO_ASSERT_MTX_NEAR(gather, result, 0);
+}
 
 
 TEST_F(Dense, IsPermutable)
