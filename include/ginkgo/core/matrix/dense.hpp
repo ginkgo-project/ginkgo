@@ -543,15 +543,43 @@ public:
                     ptr_param<const LinOp> beta,
                     ptr_param<LinOp> row_collection) const;
 
+    /**
+     * Copies this matrix into the given rows of the target matrix.
+     *
+     * @param scatter_indices  row indices of the target matrix. It must
+     *                         have the same number of indices as rows in
+     *                         this matrix.
+     * @param target  matrix where the scattered rows are stored, i.e.
+     *                `target(scatter_indices[i], j) = this(i, j)`
+     *
+     * @warning scatter_indices may not contain duplicates, unless if
+     *          for indices `i, j` with `scatter_indices[i] ==
+     * scatter_indices[j]` the rows `i, j` of this matrix are identical.
+     */
     void row_scatter(const array<int64>* scatter_indices,
                      ptr_param<LinOp> target) const;
 
+    /**
+     * @copydoc row_scatter(const array<int64>*, ptr_param<LinOp>) const
+     */
     void row_scatter(const array<int32>* scatter_indices,
                      ptr_param<LinOp> target) const;
 
+    /**
+     * Copies this matrix into the given rows of the target matrix.
+     *
+     * @param scatter_indices  row indices of the target matrix. It must
+     *                         have the same number of indices as rows in
+     *                         this matrix.
+     * @param target  matrix where the scattered rows are stored, i.e.
+     *                `target(scatter_indices[i], j) = this(i, j)`
+     */
     void row_scatter(const index_set<int64>* scatter_indices,
                      ptr_param<LinOp> target) const;
 
+    /**
+     * @copydoc row_scatter(const index_set<int64>*, ptr_param<LinOp>) const
+     */
     void row_scatter(const index_set<int32>* scatter_indices,
                      ptr_param<LinOp> target) const;
 
