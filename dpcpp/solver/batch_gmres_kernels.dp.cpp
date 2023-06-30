@@ -154,9 +154,9 @@ public:
         const auto matrix_size = a.get_entry_storage();
         size_type shmem_per_blk =
             slm_size -
-            1024 * sizeof(ValueType)  // 1024 float is max slm needed for
-                                      // reduce_over_group in 1 Xe-core
-            - 3 * sizeof(real_type);  // for shared-norms
+            group_size * sizeof(ValueType)  // 1024 float is max slm needed for
+                                            // reduce_over_group in 1 Xe-core
+            - 3 * sizeof(real_type);        // for shared-norms
 
         const size_t prec_size =
             PrecType::dynamic_work_size(shared_gap, a.num_nnz);

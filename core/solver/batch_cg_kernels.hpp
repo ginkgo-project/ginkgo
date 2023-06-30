@@ -158,7 +158,6 @@ StorageConfig compute_shared_storage(const int shared_mem_per_blk,
 {
     using real_type = remove_complex<ValueType>;
     const int vec_size = num_rows * num_rhs * sizeof(ValueType);
-    const int num_priority_vecs = 5;
     const int prec_storage =
         Prectype::dynamic_work_size(num_rows, num_nz) * sizeof(ValueType);
     int rem_shared = shared_mem_per_blk;
@@ -169,28 +168,20 @@ StorageConfig compute_shared_storage(const int shared_mem_per_blk,
         return sconf;
     }
     const int initial_vecs_available = rem_shared / vec_size;
-    const int priority_available = initial_vecs_available >= num_priority_vecs
-                                       ? num_priority_vecs
-                                       : initial_vecs_available;
-    sconf.n_shared += priority_available;
-    sconf.n_global -= priority_available;
-    // for simplicity, we don't allocate anything else in shared
-    //  if all the spmv vectors were not.
-    if (priority_available < num_priority_vecs) {
+    const int num_vecs_shared = min(initial_vecs_available, num_cg_vecs);
+    sconf.n_shared += num_vecs_shared;
+    sconf.n_global -= num_vecs_shared;
+
+    if (sconf.n_global > 0) {
         set_gmem_stride_bytes<align_bytes>(sconf, vec_size, prec_storage);
         return sconf;
     }
-    rem_shared -= priority_available * vec_size;
+    rem_shared -= num_vecs_shared * vec_size;
     if (rem_shared >= prec_storage) {
         sconf.prec_shared = true;
         rem_shared -= prec_storage;
     }
-    const int shared_other_vecs =
-        rem_shared / vec_size >= 0 ? rem_shared / vec_size : 0;
-    sconf.n_shared += shared_other_vecs;
-    sconf.n_shared = min(sconf.n_shared, num_cg_vecs);
-    sconf.n_global -= shared_other_vecs;
-    sconf.n_global = max(sconf.n_global, 0);
+
     set_gmem_stride_bytes<align_bytes>(sconf, vec_size, prec_storage);
     return sconf;
 }
