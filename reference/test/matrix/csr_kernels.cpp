@@ -321,7 +321,7 @@ protected:
         EXPECT_EQ(v[3], value_type{5.0});
     }
 
-    void assert_equal_to_mtx_elm(const Bccoo* m)
+    void assert_equal_to_mtx_ind(const Bccoo* m)
     {
         auto start_rows = m->get_const_start_rows();
         auto block_offsets = m->get_const_block_offsets();
@@ -385,7 +385,7 @@ protected:
         ind += sizeof(value_type);
     }
 
-    void assert_equal_to_mtx_blk(const Bccoo* m)
+    void assert_equal_to_mtx_grp(const Bccoo* m)
     {
         auto start_rows = m->get_const_start_rows();
         auto start_cols = m->get_const_start_cols();
@@ -903,55 +903,55 @@ TYPED_TEST(Csr, MovesToDense)
 }
 
 
-TYPED_TEST(Csr, ConvertsToBccooElm)
+TYPED_TEST(Csr, ConvertsToBccooInd)
 {
     using Bccoo = typename TestFixture::Bccoo;
-    auto bccoo_mtx_elm =
+    auto bccoo_mtx_ind =
         Bccoo::create(this->mtx->get_executor(), BCCOO_BLOCK_SIZE_TESTED,
-                      gko::matrix::bccoo::compression::element);
+                      gko::matrix::bccoo::compression::individual);
 
-    this->mtx->convert_to(bccoo_mtx_elm.get());
+    this->mtx->convert_to(bccoo_mtx_ind.get());
 
-    this->assert_equal_to_mtx_elm(bccoo_mtx_elm.get());
+    this->assert_equal_to_mtx_ind(bccoo_mtx_ind.get());
 }
 
 
-TYPED_TEST(Csr, ConvertsToBccooBlk)
+TYPED_TEST(Csr, ConvertsToBccooGrp)
 {
     using Bccoo = typename TestFixture::Bccoo;
-    auto bccoo_mtx_blk =
+    auto bccoo_mtx_grp =
         Bccoo::create(this->mtx->get_executor(), BCCOO_BLOCK_SIZE_TESTED,
-                      gko::matrix::bccoo::compression::block);
+                      gko::matrix::bccoo::compression::group);
 
-    this->mtx->convert_to(bccoo_mtx_blk.get());
+    this->mtx->convert_to(bccoo_mtx_grp.get());
 
-    this->assert_equal_to_mtx_blk(bccoo_mtx_blk.get());
+    this->assert_equal_to_mtx_grp(bccoo_mtx_grp.get());
 }
 
 
-TYPED_TEST(Csr, MovesToBccooElm)
+TYPED_TEST(Csr, MovesToBccooInd)
 {
     using Bccoo = typename TestFixture::Bccoo;
-    auto bccoo_mtx_elm =
+    auto bccoo_mtx_ind =
         Bccoo::create(this->mtx->get_executor(), BCCOO_BLOCK_SIZE_TESTED,
-                      gko::matrix::bccoo::compression::element);
+                      gko::matrix::bccoo::compression::individual);
 
-    this->mtx->move_to(bccoo_mtx_elm.get());
+    this->mtx->move_to(bccoo_mtx_ind.get());
 
-    this->assert_equal_to_mtx_elm(bccoo_mtx_elm.get());
+    this->assert_equal_to_mtx_ind(bccoo_mtx_ind.get());
 }
 
 
-TYPED_TEST(Csr, MovesToBccooBlk)
+TYPED_TEST(Csr, MovesToBccooGrp)
 {
     using Bccoo = typename TestFixture::Bccoo;
-    auto bccoo_mtx_blk =
+    auto bccoo_mtx_grp =
         Bccoo::create(this->mtx->get_executor(), BCCOO_BLOCK_SIZE_TESTED,
-                      gko::matrix::bccoo::compression::block);
+                      gko::matrix::bccoo::compression::group);
 
-    this->mtx->move_to(bccoo_mtx_blk.get());
+    this->mtx->move_to(bccoo_mtx_grp.get());
 
-    this->assert_equal_to_mtx_blk(bccoo_mtx_blk.get());
+    this->assert_equal_to_mtx_grp(bccoo_mtx_grp.get());
 }
 
 

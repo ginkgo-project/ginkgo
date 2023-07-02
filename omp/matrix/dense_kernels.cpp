@@ -181,8 +181,8 @@ void mem_size_bccoo(std::shared_ptr<const OmpExecutor> exec,
                     size_type* result)
 {
     // This is the same code as in reference executor
-    if (compress == matrix::bccoo::compression::element) {
-        // For element compression objects
+    if (compress == matrix::bccoo::compression::individual) {
+        // For individual compression objects
         auto num_rows = source->get_size()[0];
         auto num_cols = source->get_size()[1];
         // TODO: Compute num_nonzeros and return
@@ -203,36 +203,36 @@ void mem_size_bccoo(std::shared_ptr<const OmpExecutor> exec,
         }
         *result = idxs.shf;
     } else {
-        // For block compression objects
+        // For group compression objects
         auto num_rows = source->get_size()[0];
         auto num_cols = source->get_size()[1];
         // TODO: Compute num_nonzeros and return
         matrix::bccoo::compr_idxs<size_type> idxs;
-        matrix::bccoo::compr_blk_idxs<size_type> blk_idxs;
+        matrix::bccoo::compr_grp_idxs<size_type> grp_idxs;
         for (size_type row = 0; row < num_rows; ++row) {
             for (size_type col = 0; col < num_cols; ++col) {
                 if (source->at(row, col) != zero<ValueType>()) {
-                    matrix::bccoo::proc_block_indices<size_type>(row, col, idxs,
-                                                                 blk_idxs);
+                    matrix::bccoo::proc_group_keys<size_type>(row, col, idxs,
+                                                              grp_idxs);
                     idxs.nblk++;
                     if (idxs.nblk == block_size) {
                         // Counting bytes to write block on result
-                        matrix::bccoo::cnt_block_indices<size_type, ValueType>(
-                            block_size, blk_idxs, idxs);
+                        matrix::bccoo::cnt_group_keys<size_type, ValueType>(
+                            block_size, grp_idxs, idxs);
                         idxs.blk++;
                         idxs.nblk = 0;
-                        blk_idxs = {};
+                        grp_idxs = {};
                     }
                 }
             }
         }
         if (idxs.nblk > 0) {
             // Counting bytes to write block on result
-            matrix::bccoo::cnt_block_indices<size_type, ValueType>(
-                idxs.nblk, blk_idxs, idxs);
+            matrix::bccoo::cnt_group_keys<size_type, ValueType>(idxs.nblk,
+                                                                grp_idxs, idxs);
             idxs.blk++;
             idxs.nblk = 0;
-            blk_idxs = {};
+            grp_idxs = {};
         }
         *result = idxs.shf;
     }
@@ -247,8 +247,8 @@ void convert_to_bccoo(std::shared_ptr<const OmpExecutor> exec,
                       matrix::Bccoo<ValueType, IndexType>* result)
 {
     // This is the same code as in reference executor
-    if (result->use_element_compression()) {
-        // For element compression objects
+    if (result->use_individual_compression()) {
+        // For individual compression objects
         IndexType block_size = result->get_block_size();
         IndexType* start_rows = result->get_start_rows();
         size_type* block_offsets = result->get_block_offsets();
@@ -284,7 +284,7 @@ void convert_to_bccoo(std::shared_ptr<const OmpExecutor> exec,
             block_offsets[idxs.blk + 1] = idxs.shf;
         }
     } else {
-        // For block compression objects
+        // For group compression objects
         auto num_rows = source->get_size()[0];
         auto num_cols = source->get_size()[1];
 
@@ -298,13 +298,13 @@ void convert_to_bccoo(std::shared_ptr<const OmpExecutor> exec,
         auto block_size = result->get_block_size();
 
         matrix::bccoo::compr_idxs<IndexType> idxs;
-        matrix::bccoo::compr_blk_idxs<IndexType> blk_idxs;
-        uint8 type_blk = {};
+        matrix::bccoo::compr_grp_idxs<IndexType> grp_idxs;
+        uint8 type_grp = {};
         ValueType val;
 
-        array<IndexType> rows_blk(exec, block_size);
-        array<IndexType> cols_blk(exec, block_size);
-        array<ValueType> vals_blk(exec, block_size);
+        array<IndexType> rows_grp(exec, block_size);
+        array<IndexType> cols_grp(exec, block_size);
+        array<ValueType> vals_grp(exec, block_size);
 
         if (num_stored_elements > 0) {
             block_offsets[0] = 0;
@@ -312,39 +312,39 @@ void convert_to_bccoo(std::shared_ptr<const OmpExecutor> exec,
         for (IndexType row = 0; row < num_rows; ++row) {
             for (IndexType col = 0; col < num_cols; ++col) {
                 if (source->at(row, col) != zero<ValueType>()) {
-                    // Analyzing the impact of (row,col,val) in the block
-                    matrix::bccoo::proc_block_indices<IndexType>(row, col, idxs,
-                                                                 blk_idxs);
-                    rows_blk.get_data()[idxs.nblk] = row;
-                    cols_blk.get_data()[idxs.nblk] = col;
-                    vals_blk.get_data()[idxs.nblk] = source->at(row, col);
+                    // Analyzing the impact of (row,col,val) in the group
+                    matrix::bccoo::proc_group_keys<IndexType>(row, col, idxs,
+                                                              grp_idxs);
+                    rows_grp.get_data()[idxs.nblk] = row;
+                    cols_grp.get_data()[idxs.nblk] = col;
+                    vals_grp.get_data()[idxs.nblk] = source->at(row, col);
                     idxs.nblk++;
                     if (idxs.nblk == block_size) {
-                        // Writing block on result
-                        type_blk =
-                            matrix::bccoo::write_compressed_data_blk_type(
-                                idxs, blk_idxs, rows_blk, cols_blk, vals_blk,
+                        // Writing group on result
+                        type_grp =
+                            matrix::bccoo::write_compressed_data_grp_type(
+                                idxs, grp_idxs, rows_grp, cols_grp, vals_grp,
                                 compressed_data);
-                        start_rows[idxs.blk] = blk_idxs.row_frst;
-                        start_cols[idxs.blk] = blk_idxs.col_frst;
-                        compression_types[idxs.blk] = type_blk;
+                        start_rows[idxs.blk] = grp_idxs.row_frst;
+                        start_cols[idxs.blk] = grp_idxs.col_frst;
+                        compression_types[idxs.blk] = type_grp;
                         block_offsets[++idxs.blk] = idxs.shf;
                         idxs.nblk = 0;
-                        blk_idxs = {};
+                        grp_idxs = {};
                     }
                 }
             }
         }
         if (idxs.nblk > 0) {
-            // Writing block on result
-            type_blk = matrix::bccoo::write_compressed_data_blk_type(
-                idxs, blk_idxs, rows_blk, cols_blk, vals_blk, compressed_data);
-            start_rows[idxs.blk] = blk_idxs.row_frst;
-            start_cols[idxs.blk] = blk_idxs.col_frst;
-            compression_types[idxs.blk] = type_blk;
+            // Writing group on result
+            type_grp = matrix::bccoo::write_compressed_data_grp_type(
+                idxs, grp_idxs, rows_grp, cols_grp, vals_grp, compressed_data);
+            start_rows[idxs.blk] = grp_idxs.row_frst;
+            start_cols[idxs.blk] = grp_idxs.col_frst;
+            compression_types[idxs.blk] = type_grp;
             block_offsets[++idxs.blk] = idxs.shf;
             idxs.nblk = 0;
-            blk_idxs = {};
+            grp_idxs = {};
         }
     }
 }

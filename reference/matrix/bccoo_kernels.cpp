@@ -79,7 +79,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_GET_DEFAULT_BLOCK_SIZE_KERNEL);
 void get_default_compression(std::shared_ptr<const ReferenceExecutor> exec,
                              compression* compression)
 {
-    *compression = matrix::bccoo::compression::element;
+    *compression = matrix::bccoo::compression::individual;
 }
 
 
@@ -127,13 +127,13 @@ void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
     compr_idxs<IndexType> idxs;
     ValueType val;
 
-    if (a->use_element_compression()) {
-        // For element compression objects
+    if (a->use_individual_compression()) {
+        // For individual compression objects
         for (IndexType i = 0; i < num_stored_elements; i++) {
             // Reading (row,col,val) from matrix
             get_detect_newblock<IndexType>(start_rows, block_offsets, idxs);
-            uint8 ind = get_position_newrow(compressed_data, idxs);
-            get_next_position_value(compressed_data, ind, idxs, val);
+            uint8 key = get_position_newrow(compressed_data, idxs);
+            get_next_position_value(compressed_data, key, idxs, val);
             get_detect_endblock(block_size, idxs);
             // Writing (row,col,val) to result
             for (IndexType j = 0; j < num_cols; j++) {
@@ -141,27 +141,27 @@ void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
             }
         }
     } else {
-        // For block compression objects
+        // For group compression objects
         auto* start_cols = a->get_const_start_cols();
         auto* compression_types = a->get_const_compression_types();
 
         for (IndexType i = 0; i < num_stored_elements; i += block_size) {
             IndexType block_size_local =
                 std::min(block_size, num_stored_elements - i);
-            compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
+            compr_grp_idxs<IndexType> grp_idxs(start_rows, start_cols,
                                                block_size_local, idxs,
                                                compression_types[idxs.blk]);
             for (IndexType j = 0; j < block_size_local; j++) {
                 // Reading (row,col,val) from matrix
-                get_block_position_value<IndexType, ValueType>(
-                    compressed_data, blk_idxs, idxs, val);
+                get_group_position_value<IndexType, ValueType>(
+                    compressed_data, grp_idxs, idxs, val);
                 // Processing (row,col,val)
                 for (IndexType k = 0; k < num_cols; k++) {
                     c->at(idxs.row, k) += val * b->at(idxs.col, k);
                 }
             }
             idxs.blk++;
-            idxs.shf = blk_idxs.shf_val;
+            idxs.shf = grp_idxs.shf_val;
         }
     }
 }
@@ -188,13 +188,13 @@ void advanced_spmv2(std::shared_ptr<const ReferenceExecutor> exec,
     compr_idxs<IndexType> idxs;
     ValueType val;
 
-    if (a->use_element_compression()) {
-        // For element compression objects
+    if (a->use_individual_compression()) {
+        // For individual compression objects
         for (IndexType i = 0; i < num_stored_elements; i++) {
             // Reading (row,col,val) from matrix
             get_detect_newblock<IndexType>(start_rows, block_offsets, idxs);
-            uint8 ind = get_position_newrow(compressed_data, idxs);
-            get_next_position_value(compressed_data, ind, idxs, val);
+            uint8 key = get_position_newrow(compressed_data, idxs);
+            get_next_position_value(compressed_data, key, idxs, val);
             get_detect_endblock(block_size, idxs);
             // Writing (row,col,val) to result
             for (IndexType j = 0; j < num_cols; j++) {
@@ -202,27 +202,27 @@ void advanced_spmv2(std::shared_ptr<const ReferenceExecutor> exec,
             }
         }
     } else {
-        // For block compression objects
+        // For group compression objects
         auto* start_cols = a->get_const_start_cols();
         auto* compression_types = a->get_const_compression_types();
 
         for (IndexType i = 0; i < num_stored_elements; i += block_size) {
             IndexType block_size_local =
                 std::min(block_size, num_stored_elements - i);
-            compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
+            compr_grp_idxs<IndexType> grp_idxs(start_rows, start_cols,
                                                block_size_local, idxs,
                                                compression_types[idxs.blk]);
             for (IndexType j = 0; j < block_size_local; j++) {
                 // Reading (row,col,val) from matrix
-                get_block_position_value<IndexType, ValueType>(
-                    compressed_data, blk_idxs, idxs, val);
+                get_group_position_value<IndexType, ValueType>(
+                    compressed_data, grp_idxs, idxs, val);
                 // Processing (row,col,val)
                 for (IndexType k = 0; k < num_cols; k++) {
                     c->at(idxs.row, k) += alpha_val * val * b->at(idxs.col, k);
                 }
             }
             idxs.blk++;
-            idxs.shf = blk_idxs.shf_val;
+            idxs.shf = grp_idxs.shf_val;
         }
     }
 }
@@ -242,15 +242,15 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
     if ((source->get_block_size() == block_size_res) &&
         (source->get_compression() == compress_res)) {
         *mem_size = source->get_num_bytes();
-    } else if ((source->use_element_compression()) &&
+    } else if ((source->use_individual_compression()) &&
                (compress_res == source->get_compression())) {
-        mem_size_bccoo_elm_elm(exec, source, block_size_res, mem_size);
-    } else if (source->use_element_compression()) {
-        mem_size_bccoo_elm_blk(exec, source, block_size_res, mem_size);
-    } else if (compress_res == compression::element) {
-        mem_size_bccoo_blk_elm(exec, source, block_size_res, mem_size);
+        mem_size_bccoo_ind_ind(exec, source, block_size_res, mem_size);
+    } else if (source->use_individual_compression()) {
+        mem_size_bccoo_ind_grp(exec, source, block_size_res, mem_size);
+    } else if (compress_res == compression::individual) {
+        mem_size_bccoo_grp_ind(exec, source, block_size_res, mem_size);
     } else {
-        mem_size_bccoo_blk_blk(exec, source, block_size_res, mem_size);
+        mem_size_bccoo_grp_grp(exec, source, block_size_res, mem_size);
     }
 }
 
@@ -270,16 +270,16 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
     if ((source->get_block_size() == result->get_block_size()) &&
         (source->get_compression() == result->get_compression())) {
         convert_to_bccoo_copy(exec, source, result);
-    } else if ((source->use_element_compression()) &&
-               (result->use_element_compression())) {
-        convert_to_bccoo_elm_elm(exec, source, result,
+    } else if ((source->use_individual_compression()) &&
+               (result->use_individual_compression())) {
+        convert_to_bccoo_ind_ind(exec, source, result,
                                  [](ValueType val) { return val; });
-    } else if (source->use_element_compression()) {
-        convert_to_bccoo_elm_blk(exec, source, result);
-    } else if (compress_res == compression::element) {
-        convert_to_bccoo_blk_elm(exec, source, result);
+    } else if (source->use_individual_compression()) {
+        convert_to_bccoo_ind_grp(exec, source, result);
+    } else if (compress_res == compression::individual) {
+        convert_to_bccoo_grp_ind(exec, source, result);
     } else {
-        convert_to_bccoo_blk_blk(exec, source, result,
+        convert_to_bccoo_grp_grp(exec, source, result,
                                  [](ValueType val) { return val; });
     }
 }
@@ -297,16 +297,16 @@ void convert_to_next_precision(
     auto compress_res = result->get_compression();
     // In this case, a raw copy is never applied because the sizes of the
     // values in source and result are different
-    if ((source->use_element_compression()) &&
-        (result->use_element_compression())) {
-        convert_to_bccoo_elm_elm(exec, source, result,
+    if ((source->use_individual_compression()) &&
+        (result->use_individual_compression())) {
+        convert_to_bccoo_ind_ind(exec, source, result,
                                  [](ValueType val) { return val; });
-    } else if (source->use_element_compression()) {
-        convert_to_bccoo_elm_blk(exec, source, result);
-    } else if (compress_res == compression::element) {
-        convert_to_bccoo_blk_elm(exec, source, result);
+    } else if (source->use_individual_compression()) {
+        convert_to_bccoo_ind_grp(exec, source, result);
+    } else if (compress_res == compression::individual) {
+        convert_to_bccoo_grp_ind(exec, source, result);
     } else {
-        convert_to_bccoo_blk_blk(exec, source, result,
+        convert_to_bccoo_grp_grp(exec, source, result,
                                  [](ValueType val) { return val; });
     }
 }
@@ -334,13 +334,13 @@ void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
     auto col_idxs = result->get_col_idxs();
     auto values = result->get_values();
 
-    if (source->use_element_compression()) {
-        // For element compression objects
+    if (source->use_individual_compression()) {
+        // For individual compression objects
         for (IndexType i = 0; i < num_stored_elements; i++) {
             // Reading (row,col,val) from source
             get_detect_newblock<IndexType>(start_rows, block_offsets, idxs);
-            uint8 ind = get_position_newrow(compressed_data, idxs);
-            get_next_position_value(compressed_data, ind, idxs, val);
+            uint8 key = get_position_newrow(compressed_data, idxs);
+            get_next_position_value(compressed_data, key, idxs, val);
             get_detect_endblock(block_size, idxs);
             // Writing (row,col,val) to result
             row_idxs[i] = idxs.row;
@@ -348,27 +348,27 @@ void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
             values[i] = val;
         }
     } else {
-        // For block compression objects
+        // For group compression objects
         auto* start_cols = source->get_const_start_cols();
         auto* compression_types = source->get_const_compression_types();
 
         for (IndexType i = 0; i < num_stored_elements; i += block_size) {
             IndexType block_size_local =
                 std::min(block_size, num_stored_elements - i);
-            compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
+            compr_grp_idxs<IndexType> grp_idxs(start_rows, start_cols,
                                                block_size_local, idxs,
                                                compression_types[idxs.blk]);
             for (IndexType j = 0; j < block_size_local; j++) {
                 // Reading (row,col,val) from source
-                get_block_position_value<IndexType, ValueType>(
-                    compressed_data, blk_idxs, idxs, val);
+                get_group_position_value<IndexType, ValueType>(
+                    compressed_data, grp_idxs, idxs, val);
                 // Writing (row,col,val) to result
                 row_idxs[i + j] = idxs.row;
                 col_idxs[i + j] = idxs.col;
                 values[i + j] = val;
             }
             idxs.blk++;
-            idxs.shf = blk_idxs.shf_val;
+            idxs.shf = grp_idxs.shf_val;
         }
     }
 }
@@ -397,22 +397,22 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
     auto values = result->get_values();
 
     row_ptrs[0] = 0;
-    if (source->use_element_compression()) {
-        // For element compression objects
+    if (source->use_individual_compression()) {
+        // For individual compression objects
         for (IndexType i = 0; i < num_stored_elements; i++) {
             // Reading (row,col,val) from source
             get_detect_newblock_csr<IndexType>(start_rows, block_offsets,
                                                row_ptrs, i, idxs);
-            uint8 ind =
+            uint8 key =
                 get_position_newrow_csr(compressed_data, row_ptrs, i, idxs);
-            get_next_position_value(compressed_data, ind, idxs, val);
+            get_next_position_value(compressed_data, key, idxs, val);
             get_detect_endblock(block_size, idxs);
             // Writing (row,col,val) to result
             col_idxs[i] = idxs.col;
             values[i] = val;
         }
     } else {
-        // For block compression objects
+        // For group compression objects
         auto* start_cols = source->get_const_start_cols();
         auto* compression_types = source->get_const_compression_types();
 
@@ -421,13 +421,13 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
         for (IndexType i = 0; i < num_stored_elements; i += block_size) {
             IndexType block_size_local =
                 std::min(block_size, num_stored_elements - i);
-            compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
+            compr_grp_idxs<IndexType> grp_idxs(start_rows, start_cols,
                                                block_size_local, idxs,
                                                compression_types[idxs.blk]);
             for (IndexType j = 0; j < block_size_local; j++) {
                 // Reading (row,col,val) from source
-                get_block_position_value<IndexType, ValueType>(
-                    compressed_data, blk_idxs, idxs, val);
+                get_group_position_value<IndexType, ValueType>(
+                    compressed_data, grp_idxs, idxs, val);
                 // Writing (row,col,val) to result
                 if (row_prv < idxs.row) {
                     row_ptrs[idxs.row] = i + j;
@@ -437,7 +437,7 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
                 row_prv = idxs.row;
             }
             idxs.blk++;
-            idxs.shf = blk_idxs.shf_val;
+            idxs.shf = grp_idxs.shf_val;
         }
     }
     if (num_stored_elements > 0) {
@@ -474,37 +474,37 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
         }
     }
 
-    if (source->use_element_compression()) {
-        // For element compression objects
+    if (source->use_individual_compression()) {
+        // For individual compression objects
         for (IndexType i = 0; i < num_stored_elements; i++) {
             // Reading (row,col,val) from source
             get_detect_newblock<IndexType>(start_rows, block_offsets, idxs);
-            uint8 ind = get_position_newrow(compressed_data, idxs);
-            get_next_position_value(compressed_data, ind, idxs, val);
+            uint8 key = get_position_newrow(compressed_data, idxs);
+            get_next_position_value(compressed_data, key, idxs, val);
             get_detect_endblock(block_size, idxs);
             // Writing (row,col,val) to result
             result->at(idxs.row, idxs.col) += val;
         }
     } else {
-        // For block compression objects
+        // For group compression objects
         auto* start_cols = source->get_const_start_cols();
         auto* compression_types = source->get_const_compression_types();
 
         for (IndexType i = 0; i < num_stored_elements; i += block_size) {
             IndexType block_size_local =
                 std::min(block_size, num_stored_elements - i);
-            compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
+            compr_grp_idxs<IndexType> grp_idxs(start_rows, start_cols,
                                                block_size_local, idxs,
                                                compression_types[idxs.blk]);
             for (IndexType j = 0; j < block_size_local; j++) {
                 // Reading (row,col,val) from source
-                get_block_position_value<IndexType, ValueType>(
-                    compressed_data, blk_idxs, idxs, val);
+                get_group_position_value<IndexType, ValueType>(
+                    compressed_data, grp_idxs, idxs, val);
                 // Writing (row,col,val) to result
                 result->at(idxs.row, idxs.col) += val;
             }
             idxs.blk++;
-            idxs.shf = blk_idxs.shf_val;
+            idxs.shf = grp_idxs.shf_val;
         }
     }
 }
@@ -535,13 +535,13 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
         diag_values[row] = zero<ValueType>();
     }
 
-    if (orig->use_element_compression()) {
-        // For element compression objects
+    if (orig->use_individual_compression()) {
+        // For individual compression objects
         for (IndexType i = 0; i < num_stored_elements; i++) {
             // Reading (row,col,val) from orig
             get_detect_newblock<IndexType>(start_rows, block_offsets, idxs);
-            uint8 ind = get_position_newrow(compressed_data, idxs);
-            get_next_position_value(compressed_data, ind, idxs, val);
+            uint8 key = get_position_newrow(compressed_data, idxs);
+            get_next_position_value(compressed_data, key, idxs, val);
             get_detect_endblock(block_size, idxs);
             // Writing (row,col,val) to diag
             if (idxs.row == idxs.col) {
@@ -549,27 +549,27 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
             }
         }
     } else {
-        // For block compression objects
+        // For group compression objects
         auto* start_cols = orig->get_const_start_cols();
         auto* compression_types = orig->get_const_compression_types();
 
         for (IndexType i = 0; i < num_stored_elements; i += block_size) {
             IndexType block_size_local =
                 std::min(block_size, num_stored_elements - i);
-            compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
+            compr_grp_idxs<IndexType> grp_idxs(start_rows, start_cols,
                                                block_size_local, idxs,
                                                compression_types[idxs.blk]);
             for (IndexType j = 0; j < block_size_local; j++) {
                 // Reading (row,col,val) from orig
-                get_block_position_value<IndexType, ValueType>(
-                    compressed_data, blk_idxs, idxs, val);
+                get_group_position_value<IndexType, ValueType>(
+                    compressed_data, grp_idxs, idxs, val);
                 // Writing (row,col,val) to diag
                 if (idxs.row == idxs.col) {
                     diag_values[idxs.row] = val;
                 }
             }
             idxs.blk++;
-            idxs.shf = blk_idxs.shf_val;
+            idxs.shf = grp_idxs.shf_val;
         }
     }
 }
@@ -592,35 +592,35 @@ void compute_absolute_inplace(std::shared_ptr<const ReferenceExecutor> exec,
     compr_idxs<IndexType> idxs;
     ValueType val;
 
-    if (matrix->use_element_compression()) {
-        // For element compression objects
+    if (matrix->use_individual_compression()) {
+        // For individual compression objects
         for (IndexType i = 0; i < num_stored_elements; i++) {
             // Reading/Writing (row,col,val) from/to matrix
             get_detect_newblock<IndexType>(start_rows, block_offsets, idxs);
-            uint8 ind = get_position_newrow(compressed_data, idxs);
-            get_next_position_value_put(compressed_data, ind, idxs, val,
+            uint8 key = get_position_newrow(compressed_data, idxs);
+            get_next_position_value_put(compressed_data, key, idxs, val,
                                         [](ValueType val) { return abs(val); });
             get_detect_endblock(block_size, idxs);
         }
     } else {
-        // For block compression objects
+        // For group compression objects
         auto* start_cols = matrix->get_const_start_cols();
         auto* compression_types = matrix->get_const_compression_types();
 
         for (IndexType i = 0; i < num_stored_elements; i += block_size) {
             IndexType block_size_local =
                 std::min(block_size, num_stored_elements - i);
-            compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
+            compr_grp_idxs<IndexType> grp_idxs(start_rows, start_cols,
                                                block_size_local, idxs,
                                                compression_types[idxs.blk]);
             for (IndexType j = 0; j < block_size_local; j++) {
                 // Reading/Writing (row,col,val) from/to matrix
-                get_block_position_value_put<IndexType, ValueType>(
-                    compressed_data, blk_idxs, idxs, val,
+                get_group_position_value_put<IndexType, ValueType>(
+                    compressed_data, grp_idxs, idxs, val,
                     [](ValueType val) { return abs(val); });
             }
             idxs.blk++;
-            idxs.shf = blk_idxs.shf_val;
+            idxs.shf = grp_idxs.shf_val;
         }
     }
 }
@@ -636,11 +636,11 @@ void compute_absolute(
     remove_complex<matrix::Bccoo<ValueType, IndexType>>* result)
 {
     // Only conversions between objects with the same compression are allowed
-    if (source->use_element_compression()) {
-        convert_to_bccoo_elm_elm(exec, source, result,
+    if (source->use_individual_compression()) {
+        convert_to_bccoo_ind_ind(exec, source, result,
                                  [](ValueType val) { return abs(val); });
     } else {
-        convert_to_bccoo_blk_blk(exec, source, result,
+        convert_to_bccoo_grp_grp(exec, source, result,
                                  [](ValueType val) { return abs(val); });
     }
 }

@@ -60,31 +60,31 @@ namespace bccoo {
 
 
 /*
- *  Routines for managing block compression objects
+ *  Routines for managing group compression objects
  */
 
 
 template <typename IndexTypeCol, typename IndexType, typename ValueType>
-inline void loop_block_single_row(const uint8* compressed_data,
+inline void loop_group_single_row(const uint8* compressed_data,
                                   IndexType block_size_local,
                                   const matrix::Dense<ValueType>* b,
                                   matrix::Dense<ValueType>* c,
                                   compr_idxs<IndexType>& idxs,
-                                  compr_blk_idxs<IndexType>& blk_idxs,
+                                  compr_grp_idxs<IndexType>& grp_idxs,
                                   ValueType* sumV)
 {
     auto num_cols = b->get_size()[1];
-    auto row = blk_idxs.row_frst;
+    auto row = grp_idxs.row_frst;
     bool new_elm = false;
     ValueType val;
 
     for (IndexType i = 0; i < block_size_local; i++) {
-        idxs.col = blk_idxs.col_frst + get_value_compressed_data<IndexTypeCol>(
-                                           compressed_data, blk_idxs.shf_col);
-        blk_idxs.shf_col += sizeof(IndexTypeCol);
+        idxs.col = grp_idxs.col_frst + get_value_compressed_data<IndexTypeCol>(
+                                           compressed_data, grp_idxs.shf_col);
+        grp_idxs.shf_col += sizeof(IndexTypeCol);
         val = get_value_compressed_data<ValueType>(compressed_data,
-                                                   blk_idxs.shf_val);
-        blk_idxs.shf_val += sizeof(ValueType);
+                                                   grp_idxs.shf_val);
+        grp_idxs.shf_val += sizeof(ValueType);
         for (IndexType j = 0; j < num_cols; j++) {
             sumV[j] += val * b->at(idxs.col, j);
         }
@@ -100,24 +100,24 @@ inline void loop_block_single_row(const uint8* compressed_data,
 
 
 template <typename IndexTypeCol, typename IndexType, typename ValueType>
-inline void loop_block_single_row(
+inline void loop_group_single_row(
     const uint8* compressed_data, IndexType block_size_local,
     const ValueType alpha_val, const matrix::Dense<ValueType>* b,
     matrix::Dense<ValueType>* c, compr_idxs<IndexType>& idxs,
-    compr_blk_idxs<IndexType>& blk_idxs, ValueType* sumV)
+    compr_grp_idxs<IndexType>& grp_idxs, ValueType* sumV)
 {
     auto num_cols = b->get_size()[1];
-    auto row = blk_idxs.row_frst;
+    auto row = grp_idxs.row_frst;
     bool new_elm = false;
     ValueType val;
 
     for (IndexType i = 0; i < block_size_local; i++) {
-        idxs.col = blk_idxs.col_frst + get_value_compressed_data<IndexTypeCol>(
-                                           compressed_data, blk_idxs.shf_col);
-        blk_idxs.shf_col += sizeof(IndexTypeCol);
+        idxs.col = grp_idxs.col_frst + get_value_compressed_data<IndexTypeCol>(
+                                           compressed_data, grp_idxs.shf_col);
+        grp_idxs.shf_col += sizeof(IndexTypeCol);
         val = get_value_compressed_data<ValueType>(compressed_data,
-                                                   blk_idxs.shf_val);
-        blk_idxs.shf_val += sizeof(ValueType);
+                                                   grp_idxs.shf_val);
+        grp_idxs.shf_val += sizeof(ValueType);
         for (IndexType j = 0; j < num_cols; j++) {
             sumV[j] += val * b->at(idxs.col, j);
         }
@@ -134,29 +134,29 @@ inline void loop_block_single_row(
 
 template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
           typename ValueType>
-inline void loop_block_multi_row(const uint8* compressed_data,
+inline void loop_group_multi_row(const uint8* compressed_data,
                                  IndexType block_size_local,
                                  const matrix::Dense<ValueType>* b,
                                  matrix::Dense<ValueType>* c,
                                  compr_idxs<IndexType>& idxs,
-                                 compr_blk_idxs<IndexType>& blk_idxs,
+                                 compr_grp_idxs<IndexType>& grp_idxs,
                                  ValueType* sumV)
 {
     auto num_cols = b->get_size()[1];
-    auto row_old = blk_idxs.row_frst;
+    auto row_old = grp_idxs.row_frst;
     bool new_elm = false;
     ValueType val;
 
     for (IndexType i = 0; i < block_size_local; i++) {
-        idxs.row = blk_idxs.row_frst + get_value_compressed_data<IndexTypeRow>(
-                                           compressed_data, blk_idxs.shf_row);
-        blk_idxs.shf_row += sizeof(IndexTypeRow);
-        idxs.col = blk_idxs.col_frst + get_value_compressed_data<IndexTypeCol>(
-                                           compressed_data, blk_idxs.shf_col);
-        blk_idxs.shf_col += sizeof(IndexTypeCol);
+        idxs.row = grp_idxs.row_frst + get_value_compressed_data<IndexTypeRow>(
+                                           compressed_data, grp_idxs.shf_row);
+        grp_idxs.shf_row += sizeof(IndexTypeRow);
+        idxs.col = grp_idxs.col_frst + get_value_compressed_data<IndexTypeCol>(
+                                           compressed_data, grp_idxs.shf_col);
+        grp_idxs.shf_col += sizeof(IndexTypeCol);
         val = get_value_compressed_data<ValueType>(compressed_data,
-                                                   blk_idxs.shf_val);
-        blk_idxs.shf_val += sizeof(ValueType);
+                                                   grp_idxs.shf_val);
+        grp_idxs.shf_val += sizeof(ValueType);
         if (row_old != idxs.row) {
             // When a new row ia achieved, the computed values
             // have to be accumulated to c
@@ -185,27 +185,27 @@ inline void loop_block_multi_row(const uint8* compressed_data,
 
 template <typename IndexTypeRow, typename IndexTypeCol, typename IndexType,
           typename ValueType>
-inline void loop_block_multi_row(
+inline void loop_group_multi_row(
     const uint8* compressed_data, IndexType block_size_local,
     const ValueType alpha_val, const matrix::Dense<ValueType>* b,
     matrix::Dense<ValueType>* c, compr_idxs<IndexType>& idxs,
-    compr_blk_idxs<IndexType>& blk_idxs, ValueType* sumV)
+    compr_grp_idxs<IndexType>& grp_idxs, ValueType* sumV)
 {
     auto num_cols = b->get_size()[1];
-    auto row_old = blk_idxs.row_frst;
+    auto row_old = grp_idxs.row_frst;
     bool new_elm = false;
     ValueType val;
 
     for (IndexType i = 0; i < block_size_local; i++) {
-        idxs.row = blk_idxs.row_frst + get_value_compressed_data<IndexTypeRow>(
-                                           compressed_data, blk_idxs.shf_row);
-        blk_idxs.shf_row += sizeof(IndexTypeRow);
-        idxs.col = blk_idxs.col_frst + get_value_compressed_data<IndexTypeCol>(
-                                           compressed_data, blk_idxs.shf_col);
-        blk_idxs.shf_col += sizeof(IndexTypeCol);
+        idxs.row = grp_idxs.row_frst + get_value_compressed_data<IndexTypeRow>(
+                                           compressed_data, grp_idxs.shf_row);
+        grp_idxs.shf_row += sizeof(IndexTypeRow);
+        idxs.col = grp_idxs.col_frst + get_value_compressed_data<IndexTypeCol>(
+                                           compressed_data, grp_idxs.shf_col);
+        grp_idxs.shf_col += sizeof(IndexTypeCol);
         val = get_value_compressed_data<ValueType>(compressed_data,
-                                                   blk_idxs.shf_val);
-        blk_idxs.shf_val += sizeof(ValueType);
+                                                   grp_idxs.shf_val);
+        grp_idxs.shf_val += sizeof(ValueType);
         if (row_old != idxs.row) {
             // When a new row ia achieved, the computed values
             // have to be accumulated to c

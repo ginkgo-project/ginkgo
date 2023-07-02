@@ -83,7 +83,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_GET_DEFAULT_BLOCK_SIZE_KERNEL);
 void get_default_compression(std::shared_ptr<const OmpExecutor> exec,
                              compression* compression)
 {
-    *compression = matrix::bccoo::compression::element;
+    *compression = matrix::bccoo::compression::individual;
 }
 
 
@@ -121,8 +121,8 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
            const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
     IndexType num_blks = a->get_num_blocks();
-    if (a->use_element_compression()) {
-        // For element compression objects
+    if (a->use_individual_compression()) {
+        // For individual compression objects
 #pragma omp parallel default(shared)
         {
             IndexType num_cols = b->get_size()[1];
@@ -148,8 +148,8 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                                            start_rows[blk]);
                 while (idxs.shf < block_offsets[blk + 1]) {
                     row_old = idxs.row;
-                    uint8 ind = get_position_newrow(compressed_data, idxs);
-                    get_next_position_value(compressed_data, ind, idxs, val);
+                    uint8 key = get_position_newrow(compressed_data, idxs);
+                    get_next_position_value(compressed_data, key, idxs, val);
                     if (row_old != idxs.row) {
                         // When a new row ia achieved, the computed values
                         // have to be accumulated to c
@@ -174,7 +174,7 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
             }
         }
     } else {
-        // For block compression objects
+        // For group compression objects
 #pragma omp parallel default(shared)
         {
             IndexType num_cols = b->get_size()[1];
@@ -201,54 +201,54 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
 
                 const IndexType block_size_local = std::min(
                     block_size, num_stored_elements - blk * block_size);
-                const uint8 type_blk = compression_types[blk];
+                const uint8 type_grp = compression_types[blk];
                 compr_idxs<IndexType> idxs(blk, block_offsets[blk]);
-                compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
+                compr_grp_idxs<IndexType> grp_idxs(start_rows, start_cols,
                                                    block_size_local, idxs,
                                                    compression_types[idxs.blk]);
-                if (blk_idxs.is_multi_row()) {
-                    if (blk_idxs.is_row_16bits()) {
-                        if (blk_idxs.is_column_8bits()) {
-                            loop_block_multi_row<uint16, uint8, IndexType>(
+                if (grp_idxs.is_multi_row()) {
+                    if (grp_idxs.is_row_16bits()) {
+                        if (grp_idxs.is_column_8bits()) {
+                            loop_group_multi_row<uint16, uint8, IndexType>(
                                 compressed_data, block_size_local, b, c, idxs,
-                                blk_idxs, sum_v);
-                        } else if (blk_idxs.is_column_16bits()) {
-                            loop_block_multi_row<uint16, uint16, IndexType>(
+                                grp_idxs, sum_v);
+                        } else if (grp_idxs.is_column_16bits()) {
+                            loop_group_multi_row<uint16, uint16, IndexType>(
                                 compressed_data, block_size_local, b, c, idxs,
-                                blk_idxs, sum_v);
+                                grp_idxs, sum_v);
                         } else {
-                            loop_block_multi_row<uint16, uint32, IndexType>(
+                            loop_group_multi_row<uint16, uint32, IndexType>(
                                 compressed_data, block_size_local, b, c, idxs,
-                                blk_idxs, sum_v);
+                                grp_idxs, sum_v);
                         }
                     } else {
-                        if (blk_idxs.is_column_8bits()) {
-                            loop_block_multi_row<uint8, uint8, IndexType>(
+                        if (grp_idxs.is_column_8bits()) {
+                            loop_group_multi_row<uint8, uint8, IndexType>(
                                 compressed_data, block_size_local, b, c, idxs,
-                                blk_idxs, sum_v);
-                        } else if (blk_idxs.is_column_16bits()) {
-                            loop_block_multi_row<uint8, uint16, IndexType>(
+                                grp_idxs, sum_v);
+                        } else if (grp_idxs.is_column_16bits()) {
+                            loop_group_multi_row<uint8, uint16, IndexType>(
                                 compressed_data, block_size_local, b, c, idxs,
-                                blk_idxs, sum_v);
+                                grp_idxs, sum_v);
                         } else {
-                            loop_block_multi_row<uint8, uint32, IndexType>(
+                            loop_group_multi_row<uint8, uint32, IndexType>(
                                 compressed_data, block_size_local, b, c, idxs,
-                                blk_idxs, sum_v);
+                                grp_idxs, sum_v);
                         }
                     }
                 } else {
-                    if (blk_idxs.is_column_8bits()) {
-                        loop_block_single_row<uint8, IndexType>(
+                    if (grp_idxs.is_column_8bits()) {
+                        loop_group_single_row<uint8, IndexType>(
                             compressed_data, block_size_local, b, c, idxs,
-                            blk_idxs, sum_v);
-                    } else if (blk_idxs.is_column_16bits()) {
-                        loop_block_single_row<uint16, IndexType>(
+                            grp_idxs, sum_v);
+                    } else if (grp_idxs.is_column_16bits()) {
+                        loop_group_single_row<uint16, IndexType>(
                             compressed_data, block_size_local, b, c, idxs,
-                            blk_idxs, sum_v);
+                            grp_idxs, sum_v);
                     } else {
-                        loop_block_single_row<uint32, IndexType>(
+                        loop_group_single_row<uint32, IndexType>(
                             compressed_data, block_size_local, b, c, idxs,
-                            blk_idxs, sum_v);
+                            grp_idxs, sum_v);
                     }
                 }
             }
@@ -268,8 +268,8 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
 {
     const IndexType num_blks = a->get_num_blocks();
 
-    if (a->use_element_compression()) {
-        // For element compression objects
+    if (a->use_individual_compression()) {
+        // For individual compression objects
 #pragma omp parallel default(shared)
         {
             const IndexType num_cols = b->get_size()[1];
@@ -297,8 +297,8 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                                            start_rows[blk]);
                 while (idxs.shf < block_offsets[blk + 1]) {
                     row_old = idxs.row;
-                    uint8 ind = get_position_newrow(compressed_data, idxs);
-                    get_next_position_value(compressed_data, ind, idxs, val);
+                    uint8 key = get_position_newrow(compressed_data, idxs);
+                    get_next_position_value(compressed_data, key, idxs, val);
                     if (row_old != idxs.row) {
                         // When a new row ia achieved, the computed values
                         // have to be accumulated to c
@@ -327,7 +327,7 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
         {
             const IndexType num_cols = b->get_size()[1];
             array<ValueType> sum_v_array(exec, num_cols);
-            // Each block is computed separately
+            // Each group is computed separately
 #pragma omp for
             for (IndexType blk = 0; blk < num_blks; blk++) {
                 const IndexType* start_rows = a->get_const_start_rows();
@@ -350,54 +350,54 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
 
                 const IndexType block_size_local = std::min(
                     block_size, num_stored_elements - blk * block_size);
-                const uint8 type_blk = compression_types[blk];
+                const uint8 type_grp = compression_types[blk];
                 compr_idxs<IndexType> idxs(blk, block_offsets[blk]);
-                compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
+                compr_grp_idxs<IndexType> grp_idxs(start_rows, start_cols,
                                                    block_size_local, idxs,
                                                    compression_types[idxs.blk]);
-                if (blk_idxs.is_multi_row()) {
-                    if (blk_idxs.is_row_16bits()) {
-                        if (blk_idxs.is_column_8bits()) {
-                            loop_block_multi_row<uint16, uint8, IndexType>(
+                if (grp_idxs.is_multi_row()) {
+                    if (grp_idxs.is_row_16bits()) {
+                        if (grp_idxs.is_column_8bits()) {
+                            loop_group_multi_row<uint16, uint8, IndexType>(
                                 compressed_data, block_size_local, alpha_val, b,
-                                c, idxs, blk_idxs, sum_v);
-                        } else if (blk_idxs.is_column_16bits()) {
-                            loop_block_multi_row<uint16, uint16, IndexType>(
+                                c, idxs, grp_idxs, sum_v);
+                        } else if (grp_idxs.is_column_16bits()) {
+                            loop_group_multi_row<uint16, uint16, IndexType>(
                                 compressed_data, block_size_local, alpha_val, b,
-                                c, idxs, blk_idxs, sum_v);
+                                c, idxs, grp_idxs, sum_v);
                         } else {
-                            loop_block_multi_row<uint16, uint32, IndexType>(
+                            loop_group_multi_row<uint16, uint32, IndexType>(
                                 compressed_data, block_size_local, alpha_val, b,
-                                c, idxs, blk_idxs, sum_v);
+                                c, idxs, grp_idxs, sum_v);
                         }
                     } else {
-                        if (blk_idxs.is_column_8bits()) {
-                            loop_block_multi_row<uint8, uint8, IndexType>(
+                        if (grp_idxs.is_column_8bits()) {
+                            loop_group_multi_row<uint8, uint8, IndexType>(
                                 compressed_data, block_size_local, alpha_val, b,
-                                c, idxs, blk_idxs, sum_v);
-                        } else if (blk_idxs.is_column_16bits()) {
-                            loop_block_multi_row<uint8, uint16, IndexType>(
+                                c, idxs, grp_idxs, sum_v);
+                        } else if (grp_idxs.is_column_16bits()) {
+                            loop_group_multi_row<uint8, uint16, IndexType>(
                                 compressed_data, block_size_local, alpha_val, b,
-                                c, idxs, blk_idxs, sum_v);
+                                c, idxs, grp_idxs, sum_v);
                         } else {
-                            loop_block_multi_row<uint8, uint32, IndexType>(
+                            loop_group_multi_row<uint8, uint32, IndexType>(
                                 compressed_data, block_size_local, alpha_val, b,
-                                c, idxs, blk_idxs, sum_v);
+                                c, idxs, grp_idxs, sum_v);
                         }
                     }
                 } else {
-                    if (blk_idxs.is_column_8bits()) {
-                        loop_block_single_row<uint8, IndexType>(
+                    if (grp_idxs.is_column_8bits()) {
+                        loop_group_single_row<uint8, IndexType>(
                             compressed_data, block_size_local, alpha_val, b, c,
-                            idxs, blk_idxs, sum_v);
-                    } else if (blk_idxs.is_column_16bits()) {
-                        loop_block_single_row<uint16, IndexType>(
+                            idxs, grp_idxs, sum_v);
+                    } else if (grp_idxs.is_column_16bits()) {
+                        loop_group_single_row<uint16, IndexType>(
                             compressed_data, block_size_local, alpha_val, b, c,
-                            idxs, blk_idxs, sum_v);
+                            idxs, grp_idxs, sum_v);
                     } else {
-                        loop_block_single_row<uint32, IndexType>(
+                        loop_group_single_row<uint32, IndexType>(
                             compressed_data, block_size_local, alpha_val, b, c,
-                            idxs, blk_idxs, sum_v);
+                            idxs, grp_idxs, sum_v);
                     }
                 }
             }
@@ -419,15 +419,15 @@ void mem_size_bccoo(std::shared_ptr<const OmpExecutor> exec,
     if ((source->get_block_size() == block_size_res) &&
         (source->get_compression() == compress_res)) {
         *mem_size = source->get_num_bytes();
-    } else if ((source->use_element_compression()) &&
+    } else if ((source->use_individual_compression()) &&
                (compress_res == source->get_compression())) {
-        mem_size_bccoo_elm_elm(exec, source, block_size_res, mem_size);
-    } else if (source->use_element_compression()) {
-        mem_size_bccoo_elm_blk(exec, source, block_size_res, mem_size);
-    } else if (compress_res == compression::element) {
-        mem_size_bccoo_blk_elm(exec, source, block_size_res, mem_size);
+        mem_size_bccoo_ind_ind(exec, source, block_size_res, mem_size);
+    } else if (source->use_individual_compression()) {
+        mem_size_bccoo_ind_grp(exec, source, block_size_res, mem_size);
+    } else if (compress_res == compression::individual) {
+        mem_size_bccoo_grp_ind(exec, source, block_size_res, mem_size);
     } else {
-        mem_size_bccoo_blk_blk(exec, source, block_size_res, mem_size);
+        mem_size_bccoo_grp_grp(exec, source, block_size_res, mem_size);
     }
 }
 
@@ -458,24 +458,24 @@ void convert_to_next_precision(
     if ((source->get_block_size() != result->get_block_size()) ||
         (source->get_compression() != result->get_compression())) {
         auto compress_res = result->get_compression();
-        if ((source->use_element_compression()) &&
-            (result->use_element_compression())) {
-            convert_to_bccoo_elm_elm(exec, source, result,
+        if ((source->use_individual_compression()) &&
+            (result->use_individual_compression())) {
+            convert_to_bccoo_ind_ind(exec, source, result,
                                      [](ValueType val) { return val; });
-        } else if (source->use_element_compression()) {
-            convert_to_bccoo_elm_blk(exec, source, result);
-        } else if (compress_res == compression::element) {
-            convert_to_bccoo_blk_elm(exec, source, result);
+        } else if (source->use_individual_compression()) {
+            convert_to_bccoo_ind_grp(exec, source, result);
+        } else if (compress_res == compression::individual) {
+            convert_to_bccoo_grp_ind(exec, source, result);
         } else {
-            convert_to_bccoo_blk_blk(exec, source, result,
+            convert_to_bccoo_grp_grp(exec, source, result,
                                      [](ValueType val) { return val; });
         }
     } else {
         if (source->get_num_stored_elements() > 0) {
             result->get_block_offsets()[0] = 0;
         }
-        if (source->use_element_compression()) {
-            // For element compression objects
+        if (source->use_individual_compression()) {
+            // For individual compression objects
             // First, the non compressed data vectors are copied
             // Each block is computed separately
 #pragma omp parallel for default(shared)
@@ -525,10 +525,10 @@ void convert_to_next_precision(
                                                block_offsets_res[blk_res],
                                                start_rows_res[blk_res]);
                 while (idxs_src.shf < block_offsets_src[blk_src + 1]) {
-                    uint8 ind_src = get_position_newrow_put(
+                    uint8 key_src = get_position_newrow_put(
                         compressed_data_src, idxs_src, compressed_data_res,
                         start_rows_res, idxs_res);
-                    get_next_position_value(compressed_data_src, ind_src,
+                    get_next_position_value(compressed_data_src, key_src,
                                             idxs_src, val_src);
                     val_res = (val_src);
                     put_next_position_value(compressed_data_res,
@@ -537,9 +537,9 @@ void convert_to_next_precision(
                 }
             }
         } else {
-            // For block compression objects
+            // For group compression objects
             // First, the non compressed data vectors are copied
-            // Each block is computed separately
+            // Each group is computed separately
 #pragma omp parallel for default(shared)
             for (IndexType blk_src = 0; blk_src < num_blk_src; blk_src++) {
                 const IndexType* start_rows_src =
@@ -568,7 +568,7 @@ void convert_to_next_precision(
                     ((blk_src + 1) * block_size_src * sizeof(ValueType));
             }
             // Finally, the compressed data vector is copied
-            // Each block is computed separately
+            // Each group is computed separately
 #pragma omp parallel for default(shared)
             for (IndexType blk_src = 0; blk_src < num_blk_src; blk_src++) {
                 const IndexType* start_rows_src =
@@ -589,7 +589,7 @@ void convert_to_next_precision(
                 ValueType val_src;
                 compr_idxs<IndexType> idxs_src(blk_src,
                                                block_offsets_src[blk_src]);
-                compr_blk_idxs<IndexType> blk_idxs_src(
+                compr_grp_idxs<IndexType> grp_idxs_src(
                     start_rows_src, start_cols_src, block_size_local_src,
                     idxs_src, compression_types_src[idxs_src.blk]);
 
@@ -604,14 +604,14 @@ void convert_to_next_precision(
                 next_precision<ValueType> val_res;
                 compr_idxs<IndexType> idxs_res(blk_src,
                                                block_offsets_res[blk_src]);
-                compr_blk_idxs<IndexType> blk_idxs_res(
+                compr_grp_idxs<IndexType> grp_idxs_res(
                     start_rows_res, start_cols_res, block_size_local_res,
                     idxs_res, compression_types_res[idxs_res.blk]);
 
-                write_compressed_data_blk<IndexType, ValueType,
+                write_compressed_data_grp<IndexType, ValueType,
                                           next_precision<ValueType>>(
-                    idxs_src, blk_idxs_src, block_size_local_src,
-                    compressed_data_src, idxs_res, blk_idxs_res,
+                    idxs_src, grp_idxs_src, block_size_local_src,
+                    compressed_data_src, idxs_res, grp_idxs_res,
                     block_size_local_res, compressed_data_res,
                     [](ValueType val) { return (val); });
             }
@@ -630,8 +630,8 @@ void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
 {
     IndexType num_blks = source->get_num_blocks();
 
-    if (source->use_element_compression()) {
-        // For element compression objects
+    if (source->use_individual_compression()) {
+        // For individual compression objects
         // Each block is computed separately
 #pragma omp parallel for default(shared)
         for (IndexType blk = 0; blk < num_blks; blk++) {
@@ -647,8 +647,8 @@ void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
             IndexType i = block_size * blk;
             ValueType val;
             while (idxs.shf < block_offsets[blk + 1]) {
-                uint8 ind = get_position_newrow(compressed_data, idxs);
-                get_next_position_value(compressed_data, ind, idxs, val);
+                uint8 key = get_position_newrow(compressed_data, idxs);
+                get_next_position_value(compressed_data, key, idxs, val);
                 row_idxs[i] = idxs.row;
                 col_idxs[i] = idxs.col;
                 values[i] = val;
@@ -656,8 +656,8 @@ void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
             }
         }
     } else {
-        // For block compression objects
-        // Each block is computed separately
+        // For group compression objects
+        // Each group is computed separately
 #pragma omp parallel for default(shared)
         for (IndexType blk = 0; blk < num_blks; blk++) {
             const IndexType* start_rows = source->get_const_start_rows();
@@ -681,12 +681,12 @@ void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
 
             ValueType val;
             compr_idxs<IndexType> idxs(blk, block_offsets[blk]);
-            compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
+            compr_grp_idxs<IndexType> grp_idxs(start_rows, start_cols,
                                                block_size_local, idxs,
                                                compression_types[idxs.blk]);
             for (IndexType i = 0; i < block_size_local; i++) {
-                get_block_position_value<IndexType, ValueType>(
-                    compressed_data, blk_idxs, idxs, val);
+                get_group_position_value<IndexType, ValueType>(
+                    compressed_data, grp_idxs, idxs, val);
                 row_idxs[pos + i] = idxs.row;
                 col_idxs[pos + i] = idxs.col;
                 values[pos + i] = val;
@@ -712,8 +712,8 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
     IndexType* row_idxs = row_idxs_array.get_data();
 
     // convert to Coo first and then convert row idx to ptr for Csr.
-    if (source->use_element_compression()) {
-        // For element compression objects
+    if (source->use_individual_compression()) {
+        // For individual compression objects
         // Each block is computed separately
 #pragma omp parallel for default(shared)
         for (IndexType blk = 0; blk < num_blks; blk++) {
@@ -728,8 +728,8 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
             IndexType i = block_size * blk;
             ValueType val;
             while (idxs.shf < block_offsets[blk + 1]) {
-                uint8 ind = get_position_newrow(compressed_data, idxs);
-                get_next_position_value(compressed_data, ind, idxs, val);
+                uint8 key = get_position_newrow(compressed_data, idxs);
+                get_next_position_value(compressed_data, key, idxs, val);
                 row_idxs[i] = idxs.row;
                 col_idxs[i] = idxs.col;
                 values[i] = val;
@@ -737,8 +737,8 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
             }
         }
     } else {
-        // For block compression objects
-        // Each block is computed separately
+        // For group compression objects
+        // Each group is computed separately
 #pragma omp parallel for default(shared)
         for (IndexType blk = 0; blk < num_blks; blk++) {
             const IndexType* start_rows = source->get_const_start_rows();
@@ -761,12 +761,12 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
 
             ValueType val;
             compr_idxs<IndexType> idxs(blk, block_offsets[blk]);
-            compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
+            compr_grp_idxs<IndexType> grp_idxs(start_rows, start_cols,
                                                block_size_local, idxs,
                                                compression_types[idxs.blk]);
             for (IndexType i = 0; i < block_size_local; i++) {
-                get_block_position_value<IndexType, ValueType>(
-                    compressed_data, blk_idxs, idxs, val);
+                get_group_position_value<IndexType, ValueType>(
+                    compressed_data, grp_idxs, idxs, val);
                 row_idxs[pos + i] = idxs.row;
                 col_idxs[pos + i] = idxs.col;
                 values[pos + i] = val;
@@ -793,8 +793,8 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
     // First, result is initialized to zero
     dense::fill(exec, result, zero<ValueType>());
 
-    if (source->use_element_compression()) {
-        // For element compression objects
+    if (source->use_individual_compression()) {
+        // For individual compression objects
         // Each block is computed separately
 #pragma omp parallel for default(shared)
         for (IndexType blk = 0; blk < num_blks; blk++) {
@@ -806,14 +806,14 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
                                        start_rows[blk]);
             ValueType val;
             while (idxs.shf < block_offsets[blk + 1]) {
-                uint8 ind = get_position_newrow(compressed_data, idxs);
-                get_next_position_value(compressed_data, ind, idxs, val);
+                uint8 key = get_position_newrow(compressed_data, idxs);
+                get_next_position_value(compressed_data, key, idxs, val);
                 result->at(idxs.row, idxs.col) += val;
             }
         }
     } else {
-        // For block compression objects
-        // Each block is computed separately
+        // For group compression objects
+        // Each group is computed separately
 #pragma omp parallel for default(shared)
         for (IndexType blk = 0; blk < num_blks; blk++) {
             const IndexType* start_rows = source->get_const_start_rows();
@@ -833,12 +833,12 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
 
             ValueType val;
             compr_idxs<IndexType> idxs(blk, block_offsets[blk]);
-            compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
+            compr_grp_idxs<IndexType> grp_idxs(start_rows, start_cols,
                                                block_size_local, idxs,
                                                compression_types[idxs.blk]);
             for (IndexType i = 0; i < block_size_local; i++) {
-                get_block_position_value<IndexType, ValueType>(
-                    compressed_data, blk_idxs, idxs, val);
+                get_group_position_value<IndexType, ValueType>(
+                    compressed_data, grp_idxs, idxs, val);
                 result->at(idxs.row, idxs.col) += val;
             }
         }
@@ -864,8 +864,8 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
         diag_values[row] = zero<ValueType>();
     }
 
-    if (orig->use_element_compression()) {
-        // For element compression objects
+    if (orig->use_individual_compression()) {
+        // For individual compression objects
         // Each block is computed separately
 #pragma omp parallel for default(shared)
         for (IndexType blk = 0; blk < num_blks; blk++) {
@@ -877,16 +877,16 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
                                        start_rows[blk]);
             ValueType val;
             while (idxs.shf < block_offsets[blk + 1]) {
-                uint8 ind = get_position_newrow(compressed_data, idxs);
-                get_next_position_value(compressed_data, ind, idxs, val);
+                uint8 key = get_position_newrow(compressed_data, idxs);
+                get_next_position_value(compressed_data, key, idxs, val);
                 if (idxs.row == idxs.col) {
                     diag_values[idxs.row] = val;
                 }
             }
         }
     } else {
-        // For block compression objects
-        // Each block is computed separately
+        // For group compression objects
+        // Each group is computed separately
 #pragma omp parallel for default(shared)
         for (IndexType blk = 0; blk < num_blks; blk++) {
             const IndexType* start_rows = orig->get_const_start_rows();
@@ -906,12 +906,12 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
 
             ValueType val;
             compr_idxs<IndexType> idxs(blk, block_offsets[blk]);
-            compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
+            compr_grp_idxs<IndexType> grp_idxs(start_rows, start_cols,
                                                block_size_local, idxs,
                                                compression_types[idxs.blk]);
             for (IndexType i = 0; i < block_size_local; i++) {
-                get_block_position_value<IndexType, ValueType>(
-                    compressed_data, blk_idxs, idxs, val);
+                get_group_position_value<IndexType, ValueType>(
+                    compressed_data, grp_idxs, idxs, val);
                 if (idxs.row == idxs.col) {
                     diag_values[idxs.row] = val;
                 }
@@ -930,8 +930,8 @@ void compute_absolute_inplace(std::shared_ptr<const OmpExecutor> exec,
 {
     IndexType num_blks = matrix->get_num_blocks();
 
-    if (matrix->use_element_compression()) {
-        // For element compression objects
+    if (matrix->use_individual_compression()) {
+        // For individual compression objects
         // Each block is computed separately
 #pragma omp parallel for default(shared)
         for (IndexType blk = 0; blk < num_blks; blk++) {
@@ -943,15 +943,15 @@ void compute_absolute_inplace(std::shared_ptr<const OmpExecutor> exec,
                                        start_rows[blk]);
             ValueType val;
             while (idxs.shf < block_offsets[blk + 1]) {
-                uint8 ind = get_position_newrow(compressed_data, idxs);
+                uint8 key = get_position_newrow(compressed_data, idxs);
                 get_next_position_value_put(
-                    compressed_data, ind, idxs, val,
+                    compressed_data, key, idxs, val,
                     [](ValueType val) { return abs(val); });
             }
         }
     } else {
-        // For block compression objects
-        // Each block is computed separately
+        // For group compression objects
+        // Each group is computed separately
 #pragma omp parallel for default(shared)
         for (IndexType blk = 0; blk < num_blks; blk++) {
             const IndexType* start_rows = matrix->get_const_start_rows();
@@ -970,18 +970,18 @@ void compute_absolute_inplace(std::shared_ptr<const OmpExecutor> exec,
             IndexType pos = block_size * blk;
 
             compr_idxs<IndexType> idxs(blk, block_offsets[blk]);
-            compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
+            compr_grp_idxs<IndexType> grp_idxs(start_rows, start_cols,
                                                block_size_local, idxs,
                                                compression_types[idxs.blk]);
             for (IndexType i = 0; i < block_size_local; i++) {
                 if (true) {
                     ValueType val;
                     val = get_value_compressed_data<ValueType>(
-                        compressed_data, blk_idxs.shf_val);
+                        compressed_data, grp_idxs.shf_val);
                     val = abs(val);
                     set_value_compressed_data<ValueType>(compressed_data,
-                                                         blk_idxs.shf_val, val);
-                    blk_idxs.shf_val += sizeof(ValueType);
+                                                         grp_idxs.shf_val, val);
+                    grp_idxs.shf_val += sizeof(ValueType);
                 }
             }
         }
@@ -1003,19 +1003,19 @@ void compute_absolute(
     // and result, the code is exactly equal to the reference executor
     if ((source->get_block_size() != result->get_block_size()) ||
         (source->get_compression() != result->get_compression())) {
-        if (source->use_element_compression()) {
-            convert_to_bccoo_elm_elm(exec, source, result,
+        if (source->use_individual_compression()) {
+            convert_to_bccoo_ind_ind(exec, source, result,
                                      [](ValueType val) { return abs(val); });
         } else {
-            convert_to_bccoo_blk_blk(exec, source, result,
+            convert_to_bccoo_grp_grp(exec, source, result,
                                      [](ValueType val) { return abs(val); });
         }
     } else {
         if (source->get_num_stored_elements() > 0) {
             result->get_block_offsets()[0] = 0;
         }
-        if (source->use_element_compression()) {
-            // For element compression objects
+        if (source->use_individual_compression()) {
+            // For individual compression objects
             // First, the non compressed data vectors are copied
             // Each block is computed separately
 #pragma omp parallel for default(shared)
@@ -1057,10 +1057,10 @@ void compute_absolute(
                 remove_complex<ValueType> val_res;
 
                 while (idxs_src.shf < block_offsets_src[blk_src + 1]) {
-                    uint8 ind_src = get_position_newrow_put(
+                    uint8 key_src = get_position_newrow_put(
                         compressed_data_src, idxs_src, compressed_data_res,
                         start_rows_res, idxs_res);
-                    get_next_position_value(compressed_data_src, ind_src,
+                    get_next_position_value(compressed_data_src, key_src,
                                             idxs_src, val_src);
                     val_res = abs(val_src);
                     put_next_position_value(compressed_data_res,
@@ -1069,11 +1069,11 @@ void compute_absolute(
                 }
             }
         } else {
-            // For block compression objects
+            // For group compression objects
             IndexType num_stored_elements_src =
                 source->get_num_stored_elements();
             // First, the non compressed data vectors are copied
-            // Each block is computed separately
+            // Each group is computed separately
 #pragma omp parallel for default(shared)
             for (IndexType blk_src = 0; blk_src < num_blk_src; blk_src++) {
                 const IndexType* start_rows_src =
@@ -1101,7 +1101,7 @@ void compute_absolute(
                     (block_size_local * sizeof(ValueType));
             }
             // Finally, the compressed data vector is copied
-            // Each block is computed separately
+            // Each group is computed separately
 #pragma omp parallel for default(shared)
             for (IndexType blk_src = 0; blk_src < num_blk_src; blk_src++) {
                 const IndexType* start_rows_src =
@@ -1122,7 +1122,7 @@ void compute_absolute(
                 ValueType val_src;
                 compr_idxs<IndexType> idxs_src(blk_src,
                                                block_offsets_src[blk_src]);
-                compr_blk_idxs<IndexType> blk_idxs_src(
+                compr_grp_idxs<IndexType> grp_idxs_src(
                     start_rows_src, start_cols_src, block_size_local_src,
                     idxs_src, compression_types_src[idxs_src.blk]);
 
@@ -1137,13 +1137,13 @@ void compute_absolute(
                 remove_complex<ValueType> val_res;
                 compr_idxs<IndexType> idxs_res(blk_src,
                                                block_offsets_res[blk_src]);
-                compr_blk_idxs<IndexType> blk_idxs_res(
+                compr_grp_idxs<IndexType> grp_idxs_res(
                     start_rows_res, start_cols_res, block_size_local_res,
                     idxs_res, compression_types_res[idxs_res.blk]);
-                write_compressed_data_blk<IndexType, ValueType,
+                write_compressed_data_grp<IndexType, ValueType,
                                           remove_complex<ValueType>>(
-                    idxs_src, blk_idxs_src, block_size_local_src,
-                    compressed_data_src, idxs_res, blk_idxs_res,
+                    idxs_src, grp_idxs_src, block_size_local_src,
+                    compressed_data_src, idxs_res, grp_idxs_res,
                     block_size_local_res, compressed_data_res,
                     [](ValueType val) { return abs(val); });
             }

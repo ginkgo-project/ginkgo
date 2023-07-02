@@ -101,15 +101,15 @@ inline void cnt_next_position_value(const IndexType col_src_res,
 }
 
 
-// From compressed_data and ind, adapts idxs and gets idxs.col
+// From compressed_data and key, adapts idxs and gets idxs.col
 template <typename IndexType>
-inline void get_next_position(const uint8* compressed_data, const uint8 ind,
+inline void get_next_position(const uint8* compressed_data, const uint8 key,
                               compr_idxs<IndexType>& idxs)
 {
-    if (ind < cst_mark_size_medium_row) {
-        idxs.col += ind;
+    if (key < cst_mark_size_medium_row) {
+        idxs.col += key;
         idxs.shf++;
-    } else if (ind == cst_mark_size_medium_row) {
+    } else if (key == cst_mark_size_medium_row) {
         idxs.shf++;
         idxs.col += get_value_compressed_data_and_increment<uint16>(
             compressed_data, idxs.shf);
@@ -121,28 +121,28 @@ inline void get_next_position(const uint8* compressed_data, const uint8 ind,
 }
 
 
-// From compressed_data and ind, adapts idxs and gets idxs.col and val
+// From compressed_data and key, adapts idxs and gets idxs.col and val
 template <typename IndexType, typename ValueType>
 inline void get_next_position_value(const uint8* compressed_data,
-                                    const uint8 ind,
+                                    const uint8 key,
                                     compr_idxs<IndexType>& idxs, ValueType& val)
 {
-    get_next_position(compressed_data, ind, idxs);
+    get_next_position(compressed_data, key, idxs);
     val = get_value_compressed_data_and_increment<ValueType>(compressed_data,
                                                              idxs.shf);
     idxs.nblk++;
 }
 
 
-// From compressed_data and ind, adapts idxs and gets idxs.col and val
-// Then applies finalize_op on val, writing it on compressed_data and returning
-// it
+// From compressed_data and key, adapts idxs and gets idxs.col and val
+// Then applies finalize_op on val, writing it on compressed_data and
+// returning it
 template <typename IndexType, typename ValueType, typename Callable>
-inline void get_next_position_value_put(uint8* compressed_data, const uint8 ind,
+inline void get_next_position_value_put(uint8* compressed_data, const uint8 key,
                                         compr_idxs<IndexType>& idxs,
                                         ValueType& val, Callable finalize_op)
 {
-    get_next_position(compressed_data, ind, idxs);
+    get_next_position(compressed_data, key, idxs);
     val = get_value_compressed_data<ValueType>(compressed_data, idxs.shf);
     val = finalize_op(val);
     set_value_compressed_data_and_increment<ValueType>(compressed_data,
@@ -237,8 +237,10 @@ inline void put_detect_newblock(uint8* compressed_data, IndexType* start_rows,
     } else if (row_src_res != 0) {  // new row
         idxs.row += row_src_res;
         idxs.col = 0;
-        set_value_compressed_data_and_increment<uint8>(
-            compressed_data, idxs.shf, cst_mark_end_row);
+        for (size_type i = 0; i < row_src_res; i++) {
+            set_value_compressed_data_and_increment<uint8>(
+                compressed_data, idxs.shf, cst_mark_end_row);
+        }
     }
 }
 
@@ -295,43 +297,43 @@ inline IndexType cnt_position_newrow_mat_data(const IndexType row_mat_data,
 }
 
 
-// Detects the position of the next position, updating idxs and returning ind
+// Detects the position of the next position, updating idxs and returning key
 template <typename IndexType>
 inline uint8 get_position_newrow(const uint8* compressed_data,
                                  compr_idxs<IndexType>& idxs)
 {
-    uint8 ind = get_value_compressed_data<uint8>(compressed_data, idxs.shf);
-    while (ind == cst_mark_end_row) {
+    uint8 key = get_value_compressed_data<uint8>(compressed_data, idxs.shf);
+    while (key == cst_mark_end_row) {
         idxs.row++;
         idxs.shf++;
         idxs.col = 0;
-        ind = get_value_compressed_data<uint8>(compressed_data, idxs.shf);
+        key = get_value_compressed_data<uint8>(compressed_data, idxs.shf);
     }
-    return ind;
+    return key;
 }
 
 
-// Detects the position of the next position, updating idxs and returning ind
+// Detects the position of the next position, updating idxs and returning key
 // Also writes row_ptrs per each new row
 template <typename IndexType>
 inline uint8 get_position_newrow_csr(const uint8* compressed_data,
                                      IndexType* row_ptrs, IndexType pos,
                                      compr_idxs<IndexType>& idxs)
 {
-    uint8 ind = get_value_compressed_data<uint8>(compressed_data, idxs.shf);
-    while (ind == cst_mark_end_row) {
+    uint8 key = get_value_compressed_data<uint8>(compressed_data, idxs.shf);
+    while (key == cst_mark_end_row) {
         idxs.row++;
         idxs.col = 0;
         row_ptrs[idxs.row] = pos;
         idxs.shf++;
-        ind = get_value_compressed_data<uint8>(compressed_data, idxs.shf);
+        key = get_value_compressed_data<uint8>(compressed_data, idxs.shf);
     }
-    return ind;
+    return key;
 }
 
 
 // Detects the position of the next position, updating idxs_src and returning
-// ind_src Also writes in compressed_data_res and start_rows_res, updating
+// key_src Also writes in compressed_data_res and start_rows_res, updating
 // idxs_res
 template <typename IndexType>
 inline uint8 get_position_newrow_put(const uint8* compressed_data_src,
@@ -340,13 +342,13 @@ inline uint8 get_position_newrow_put(const uint8* compressed_data_src,
                                      IndexType* start_rows_res,
                                      compr_idxs<IndexType>& idxs_res)
 {
-    uint8 ind_src =
+    uint8 key_src =
         get_value_compressed_data<uint8>(compressed_data_src, idxs_src.shf);
-    while (ind_src == cst_mark_end_row) {
+    while (key_src == cst_mark_end_row) {
         idxs_src.row++;
         idxs_src.col = 0;
         idxs_src.shf++;
-        ind_src =
+        key_src =
             get_value_compressed_data<uint8>(compressed_data_src, idxs_src.shf);
         idxs_res.row++;
         idxs_res.col = 0;
@@ -357,7 +359,7 @@ inline uint8 get_position_newrow_put(const uint8* compressed_data_src,
                 compressed_data_res, idxs_res.shf, cst_mark_end_row);
         }
     }
-    return ind_src;
+    return key_src;
 }
 
 
@@ -418,53 +420,53 @@ inline void cnt_detect_endblock(const IndexType block_size,
 
 
 /*
- *  Methods for managing block compression objects
+ *  Methods for managing group compression objects
  */
 
 
-// Updates blk_idxs, assuming that (row,col) is added
+// Updates grp_idxs, assuming that (row,col) is added
 template <typename IndexType>
-inline void proc_block_indices(const IndexType row, const IndexType col,
-                               const compr_idxs<IndexType>& idxs,
-                               compr_blk_idxs<IndexType>& blk_idxs)
+inline void proc_group_keys(const IndexType row, const IndexType col,
+                            const compr_idxs<IndexType>& idxs,
+                            compr_grp_idxs<IndexType>& grp_idxs)
 {
     if (idxs.nblk == 0) {
-        blk_idxs = {};
-        blk_idxs.row_frst = row;
-        blk_idxs.col_frst = col;
+        grp_idxs = {};
+        grp_idxs.row_frst = row;
+        grp_idxs.col_frst = col;
     }
-    if (row != blk_idxs.row_frst) {
-        blk_idxs.rows_cols |= type_mask_rows_multiple;
-        if (row > (blk_idxs.row_frst + blk_idxs.row_diff)) {
-            blk_idxs.row_diff = row - blk_idxs.row_frst;
+    if (row != grp_idxs.row_frst) {
+        grp_idxs.rows_cols |= type_mask_rows_multiple;
+        if (row > (grp_idxs.row_frst + grp_idxs.row_diff)) {
+            grp_idxs.row_diff = row - grp_idxs.row_frst;
         }
     }
-    if (col < blk_idxs.col_frst) {
-        blk_idxs.col_diff += (blk_idxs.col_frst - col);
-        blk_idxs.col_frst = col;
-    } else if (col > (blk_idxs.col_frst + blk_idxs.col_diff)) {
-        blk_idxs.col_diff = col - blk_idxs.col_frst;
+    if (col < grp_idxs.col_frst) {
+        grp_idxs.col_diff += (grp_idxs.col_frst - col);
+        grp_idxs.col_frst = col;
+    } else if (col > (grp_idxs.col_frst + grp_idxs.col_diff)) {
+        grp_idxs.col_diff = col - grp_idxs.col_frst;
     }
 }
 
 
-// Adapts idxs according to values in blk_idxs
+// Adapts idxs according to values in grp_idxs
 template <typename IndexType, typename ValueType>
-inline void cnt_block_indices(const IndexType block_size,
-                              const compr_blk_idxs<IndexType>& blk_idxs,
-                              compr_idxs<IndexType>& idxs)
+inline void cnt_group_keys(const IndexType block_size,
+                           const compr_grp_idxs<IndexType>& grp_idxs,
+                           compr_idxs<IndexType>& idxs)
 {
-    if (blk_idxs.row_diff > 0) {
-        idxs.shf += ((blk_idxs.row_diff > cst_max_size_small_idxs_row)
+    if (grp_idxs.row_diff > 0) {
+        idxs.shf += ((grp_idxs.row_diff > cst_max_size_small_idxs_row)
                          ? sizeof(uint16)
                          : sizeof(uint8)) *
                     block_size;
     }
-    if (blk_idxs.col_diff <= cst_max_col_diff_small) {
+    if (grp_idxs.col_diff <= cst_max_col_diff_small) {
         idxs.shf += block_size * sizeof(uint8);
-    } else if (blk_idxs.col_diff <= cst_max_col_diff_medium) {
+    } else if (grp_idxs.col_diff <= cst_max_col_diff_medium) {
         idxs.shf += block_size * sizeof(uint16);
-    } else if (blk_idxs.col_diff <= cst_max_col_diff_large) {
+    } else if (grp_idxs.col_diff <= cst_max_col_diff_large) {
         idxs.shf += block_size * sizeof(uint32);
     } else {
         GKO_NOT_IMPLEMENTED;
@@ -473,124 +475,124 @@ inline void cnt_block_indices(const IndexType block_size,
 }
 
 
-// Adapts idxs and blk_idxs, returning val from compressed_data
+// Adapts idxs and grp_idxs, returning val from compressed_data
 template <typename IndexType, typename ValueType>
-inline void get_block_position_value(const uint8* compressed_data,
-                                     compr_blk_idxs<IndexType>& blk_idxs,
+inline void get_group_position_value(const uint8* compressed_data,
+                                     compr_grp_idxs<IndexType>& grp_idxs,
                                      compr_idxs<IndexType>& idxs,
                                      ValueType& val)
 {
-    idxs.row = blk_idxs.row_frst;
-    idxs.col = blk_idxs.col_frst;
-    if (blk_idxs.is_multi_row()) {
-        if (blk_idxs.is_row_16bits()) {
+    idxs.row = grp_idxs.row_frst;
+    idxs.col = grp_idxs.col_frst;
+    if (grp_idxs.is_multi_row()) {
+        if (grp_idxs.is_row_16bits()) {
             idxs.row += get_value_compressed_data_and_increment<uint16>(
-                compressed_data, blk_idxs.shf_row);
+                compressed_data, grp_idxs.shf_row);
         } else {
             idxs.row += get_value_compressed_data_and_increment<uint8>(
-                compressed_data, blk_idxs.shf_row);
+                compressed_data, grp_idxs.shf_row);
         }
     }
-    if (blk_idxs.is_column_8bits()) {
+    if (grp_idxs.is_column_8bits()) {
         idxs.col += get_value_compressed_data_and_increment<uint8>(
-            compressed_data, blk_idxs.shf_col);
-    } else if (blk_idxs.is_column_16bits()) {
+            compressed_data, grp_idxs.shf_col);
+    } else if (grp_idxs.is_column_16bits()) {
         idxs.col += get_value_compressed_data_and_increment<uint16>(
-            compressed_data, blk_idxs.shf_col);
+            compressed_data, grp_idxs.shf_col);
     } else {
         idxs.col += get_value_compressed_data_and_increment<uint32>(
-            compressed_data, blk_idxs.shf_col);
+            compressed_data, grp_idxs.shf_col);
     }
     val = get_value_compressed_data_and_increment<ValueType>(compressed_data,
-                                                             blk_idxs.shf_val);
+                                                             grp_idxs.shf_val);
 }
 
 
-// Adapts idxs and blk_idxs, getting val from compressed_data
+// Adapts idxs and grp_idxs, getting val from compressed_data
 // Then applies finalize_op on val, writing it on compressed_data and returning
 // it
 template <typename IndexType, typename ValueType, typename Callable>
-inline void get_block_position_value_put(uint8* compressed_data,
-                                         compr_blk_idxs<IndexType>& blk_idxs,
+inline void get_group_position_value_put(uint8* compressed_data,
+                                         compr_grp_idxs<IndexType>& grp_idxs,
                                          compr_idxs<IndexType>& idxs,
                                          ValueType& val, Callable finalize_op)
 {
-    idxs.row = blk_idxs.row_frst;
-    idxs.col = blk_idxs.col_frst;
-    if (blk_idxs.is_multi_row()) {
-        if (blk_idxs.is_row_16bits()) {
+    idxs.row = grp_idxs.row_frst;
+    idxs.col = grp_idxs.col_frst;
+    if (grp_idxs.is_multi_row()) {
+        if (grp_idxs.is_row_16bits()) {
             idxs.row += get_value_compressed_data_and_increment<uint16>(
-                compressed_data, blk_idxs.shf_row);
+                compressed_data, grp_idxs.shf_row);
         } else {
             idxs.row += get_value_compressed_data_and_increment<uint8>(
-                compressed_data, blk_idxs.shf_row);
+                compressed_data, grp_idxs.shf_row);
         }
     }
-    if (blk_idxs.is_column_8bits()) {
+    if (grp_idxs.is_column_8bits()) {
         idxs.col += get_value_compressed_data_and_increment<uint8>(
-            compressed_data, blk_idxs.shf_col);
-    } else if (blk_idxs.is_column_16bits()) {
+            compressed_data, grp_idxs.shf_col);
+    } else if (grp_idxs.is_column_16bits()) {
         idxs.col += get_value_compressed_data_and_increment<uint16>(
-            compressed_data, blk_idxs.shf_col);
+            compressed_data, grp_idxs.shf_col);
     } else {
         idxs.col += get_value_compressed_data_and_increment<uint32>(
-            compressed_data, blk_idxs.shf_col);
+            compressed_data, grp_idxs.shf_col);
     }
     val =
-        get_value_compressed_data<ValueType>(compressed_data, blk_idxs.shf_val);
+        get_value_compressed_data<ValueType>(compressed_data, grp_idxs.shf_val);
     val = finalize_op(val);
     set_value_compressed_data_and_increment<ValueType>(compressed_data,
-                                                       blk_idxs.shf_val, val);
+                                                       grp_idxs.shf_val, val);
 }
 
 
-// Writes (rows_blk, cols_blk, vals_blk) on compressed_data, updating idxs and
-// blk_idxs and returning type in which the formats are described
+// Writes (rows_grp, cols_grp, vals_grp) on compressed_data, updating idxs and
+// grp_idxs and returning type in which the formats are described
 template <typename IndexType, typename ValueType>
-inline uint8 write_compressed_data_blk_type(
-    compr_idxs<IndexType>& idxs, const compr_blk_idxs<IndexType>& blk_idxs,
-    const array<IndexType>& rows_blk, const array<IndexType>& cols_blk,
-    const array<ValueType>& vals_blk, uint8* compressed_data)
+inline uint8 write_compressed_data_grp_type(
+    compr_idxs<IndexType>& idxs, const compr_grp_idxs<IndexType>& grp_idxs,
+    const array<IndexType>& rows_grp, const array<IndexType>& cols_grp,
+    const array<ValueType>& vals_grp, uint8* compressed_data)
 {
-    uint8 type_blk = {};
+    uint8 type_grp = {};
 
-    // Counting bytes to write block on result
-    if (blk_idxs.is_multi_row()) {
-        if (blk_idxs.row_diff > cst_max_size_small_idxs_row) {
+    // Counting bytes to write group on result
+    if (grp_idxs.is_multi_row()) {
+        if (grp_idxs.row_diff > cst_max_size_small_idxs_row) {
             for (IndexType j = 0; j < idxs.nblk; j++) {
                 uint16 row_diff =
-                    rows_blk.get_const_data()[j] - blk_idxs.row_frst;
+                    rows_grp.get_const_data()[j] - grp_idxs.row_frst;
                 set_value_compressed_data_and_increment<uint16>(
                     compressed_data, idxs.shf, row_diff);
             }
-            type_blk |= type_mask_rows_16bits;
+            type_grp |= type_mask_rows_16bits;
         } else {
             for (IndexType j = 0; j < idxs.nblk; j++) {
                 uint8 row_diff =
-                    rows_blk.get_const_data()[j] - blk_idxs.row_frst;
+                    rows_grp.get_const_data()[j] - grp_idxs.row_frst;
                 set_value_compressed_data_and_increment<uint8>(
                     compressed_data, idxs.shf, row_diff);
             }
         }
-        type_blk |= type_mask_rows_multiple;
+        type_grp |= type_mask_rows_multiple;
     }
-    if (blk_idxs.col_diff <= cst_max_col_diff_small) {
+    if (grp_idxs.col_diff <= cst_max_col_diff_small) {
         for (IndexType j = 0; j < idxs.nblk; j++) {
-            uint8 col_diff = cols_blk.get_const_data()[j] - blk_idxs.col_frst;
+            uint8 col_diff = cols_grp.get_const_data()[j] - grp_idxs.col_frst;
             set_value_compressed_data_and_increment<uint8>(compressed_data,
                                                            idxs.shf, col_diff);
         }
-        type_blk |= type_mask_cols_8bits;
-    } else if (blk_idxs.col_diff <= cst_max_col_diff_medium) {
+        type_grp |= type_mask_cols_8bits;
+    } else if (grp_idxs.col_diff <= cst_max_col_diff_medium) {
         for (IndexType j = 0; j < idxs.nblk; j++) {
-            uint16 col_diff = cols_blk.get_const_data()[j] - blk_idxs.col_frst;
+            uint16 col_diff = cols_grp.get_const_data()[j] - grp_idxs.col_frst;
             set_value_compressed_data_and_increment<uint16>(compressed_data,
                                                             idxs.shf, col_diff);
         }
-        type_blk |= type_mask_cols_16bits;
-    } else if (blk_idxs.col_diff <= cst_max_col_diff_large) {
+        type_grp |= type_mask_cols_16bits;
+    } else if (grp_idxs.col_diff <= cst_max_col_diff_large) {
         for (IndexType j = 0; j < idxs.nblk; j++) {
-            uint32 col_diff = cols_blk.get_const_data()[j] - blk_idxs.col_frst;
+            uint32 col_diff = cols_grp.get_const_data()[j] - grp_idxs.col_frst;
             set_value_compressed_data_and_increment<uint32>(compressed_data,
                                                             idxs.shf, col_diff);
         }
@@ -598,34 +600,33 @@ inline uint8 write_compressed_data_blk_type(
         GKO_NOT_IMPLEMENTED;
     }
     for (IndexType j = 0; j < idxs.nblk; j++) {
-        ValueType val = vals_blk.get_const_data()[j];
+        ValueType val = vals_grp.get_const_data()[j];
         set_value_compressed_data_and_increment<ValueType>(compressed_data,
                                                            idxs.shf, val);
     }
 
-    return type_blk;
+    return type_grp;
 }
 
 
-// Copy [rows_blk, cols_blk, vals_blk] from compressed_data_src to
-// compressed_data_res,
-//		but applying finalize_op() on vals_blk.
-// The corresponding idxs and blk_idxs are updated
+// Copy [rows_grp, cols_grp, vals_grp] from compressed_data_src to
+// 		compressed_data_res, but applying finalize_op() on vals_grp.
+// The corresponding idxs and grp_idxs are updated
 template <typename IndexType, typename ValueType_src, typename ValueType_res,
           typename Callable>
-inline void write_compressed_data_blk(
+inline void write_compressed_data_grp(
     compr_idxs<IndexType>& idxs_src,
-    const compr_blk_idxs<IndexType>& blk_idxs_src,
+    const compr_grp_idxs<IndexType>& grp_idxs_src,
     const IndexType block_size_local_src, const uint8* compressed_data_src,
     compr_idxs<IndexType>& idxs_res,
-    const compr_blk_idxs<IndexType>& blk_idxs_res,
+    const compr_grp_idxs<IndexType>& grp_idxs_res,
     const IndexType block_size_local_res, uint8* compressed_data_res,
     Callable finalize_op)
 {
     ValueType_src val_src;
     ValueType_res val_res;
-    if (blk_idxs_src.is_multi_row()) {
-        if (blk_idxs_src.is_row_16bits()) {
+    if (grp_idxs_src.is_multi_row()) {
+        if (grp_idxs_src.is_row_16bits()) {
             copy_array_compressed_data_and_increment<uint16>(
                 compressed_data_res, idxs_res.shf, compressed_data_src,
                 idxs_src.shf, block_size_local_src);
@@ -635,11 +636,11 @@ inline void write_compressed_data_blk(
                 idxs_src.shf, block_size_local_src);
         }
     }
-    if (blk_idxs_src.is_column_8bits()) {
+    if (grp_idxs_src.is_column_8bits()) {
         copy_array_compressed_data_and_increment<uint8>(
             compressed_data_res, idxs_res.shf, compressed_data_src,
             idxs_src.shf, block_size_local_src);
-    } else if (blk_idxs_src.is_column_16bits()) {
+    } else if (grp_idxs_src.is_column_16bits()) {
         copy_array_compressed_data_and_increment<uint16>(
             compressed_data_res, idxs_res.shf, compressed_data_src,
             idxs_src.shf, block_size_local_src);

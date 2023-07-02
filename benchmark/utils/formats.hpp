@@ -53,10 +53,10 @@ namespace formats {
 
 
 std::string available_format =
-    "bccoo, bccoo_elm, bccoo_elm_32, bccoo_elm_64, bccoo_elm_128, "
-    "bccoo_elm_256, bccoo_elm_512, bccoo_elm_1024, "
-    "bccoo_blk, bccoo_blk_32, bccoo_blk_64, bccoo_blk_128, "
-    "bccoo_blk_256, bccoo_blk_512, bccoo_blk_1024, "
+    "bccoo, bccoo_ind, bccoo_ind_32, bccoo_ind_64, bccoo_ind_128, "
+    "bccoo_ind_256, bccoo_ind_512, bccoo_ind_1024, "
+    "bccoo_grp, bccoo_grp_32, bccoo_grp_64, bccoo_grp_128, "
+    "bccoo_grp_256, bccoo_grp_512, bccoo_grp_1024, "
     "coo, csr, ell, ell_mixed, sellp, hybrid, hybrid0, hybrid25, hybrid33, "
     "hybrid40, "
     "hybrid60, hybrid80, hybridlimit0, hybridlimit25, hybridlimit33, "
@@ -78,33 +78,33 @@ std::string available_format =
 std::string format_description =
     "bccoo: Balanced and compressed coo, using default compression "
     "       and block_size for each executor. \n"
-    "bccoo_elm: Balanced and compressed coo, using element compression "
+    "bccoo_ind: Balanced and compressed coo, using element compression "
     "       and default block_size for each executor. \n"
-    "bccoo_elm_32: Balanced and compressed coo, using element compression "
+    "bccoo_ind_32: Balanced and compressed coo, using element compression "
     "       and block_size equal to 32. \n"
-    "bccoo_elm_64: Balanced and compressed coo, using element compression "
+    "bccoo_ind_64: Balanced and compressed coo, using element compression "
     "       and block_size equal to 64. \n"
-    "bccoo_elm_128: Balanced and compressed coo, using element compression "
+    "bccoo_ind_128: Balanced and compressed coo, using element compression "
     "       and block_size equal to 128. \n"
-    "bccoo_elm_256: Balanced and compressed coo, using element compression "
+    "bccoo_ind_256: Balanced and compressed coo, using element compression "
     "       and block_size equal to 256. \n"
-    "bccoo_elm_512: Balanced and compressed coo, using element compression "
+    "bccoo_ind_512: Balanced and compressed coo, using element compression "
     "       and block_size equal to 512. \n"
-    "bccoo_elm_1024: Balanced and compressed coo, using element compression "
+    "bccoo_ind_1024: Balanced and compressed coo, using element compression "
     "       and block_size equal to 1024. \n"
-    "bccoo_blk: Balanced and compressed coo, using block compression "
+    "bccoo_grp: Balanced and compressed coo, using block compression "
     "       and default block_size for each executor. \n"
-    "bccoo_blk_32: Balanced and compressed coo, using block compression "
+    "bccoo_grp_32: Balanced and compressed coo, using block compression "
     "       and block_size equal to 32. \n"
-    "bccoo_blk_64: Balanced and compressed coo, using block compression "
+    "bccoo_grp_64: Balanced and compressed coo, using block compression "
     "       and block_size equal to 64. \n"
-    "bccoo_blk_128: Balanced and compressed coo, using block compression "
+    "bccoo_grp_128: Balanced and compressed coo, using block compression "
     "       and block_size equal to 128. \n"
-    "bccoo_blk_256: Balanced and compressed coo, using block compression "
+    "bccoo_grp_256: Balanced and compressed coo, using block compression "
     "       and block_size equal to 256. \n"
-    "bccoo_blk_512: Balanced and compressed coo, using block compression "
+    "bccoo_grp_512: Balanced and compressed coo, using block compression "
     "       and block_size equal to 512. \n"
-    "bccoo_blk_1024: Balanced and compressed coo, using block compression "
+    "bccoo_grp_1024: Balanced and compressed coo, using block compression "
     "       and block_size equal to 1024. \n"
     "coo: Coordinate storage. The GPU kernels use the load-balancing "
     "approach\n"
@@ -270,20 +270,20 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
                                 std::shared_ptr<const gko::Executor>)>>
     matrix_type_factory{
         {"bccoo", create_matrix_type<bccoo>()},
-        {"bccoo_elm", create_matrix_type<bccoo>(0, gko::matrix::bccoo::compression::element)},
-        {"bccoo_elm_32", create_matrix_type<bccoo>(32, gko::matrix::bccoo::compression::element)},
-        {"bccoo_elm_64", create_matrix_type<bccoo>(64, gko::matrix::bccoo::compression::element)},
-        {"bccoo_elm_128", create_matrix_type<bccoo>(128, gko::matrix::bccoo::compression::element)},
-        {"bccoo_elm_256", create_matrix_type<bccoo>(256, gko::matrix::bccoo::compression::element)},
-        {"bccoo_elm_512", create_matrix_type<bccoo>(512, gko::matrix::bccoo::compression::element)},
-        {"bccoo_elm_1024", create_matrix_type<bccoo>(1024, gko::matrix::bccoo::compression::element)},
-        {"bccoo_blk", create_matrix_type<bccoo>(0, gko::matrix::bccoo::compression::block)},
-        {"bccoo_blk_32", create_matrix_type<bccoo>(32, gko::matrix::bccoo::compression::block)},
-        {"bccoo_blk_64", create_matrix_type<bccoo>(64, gko::matrix::bccoo::compression::block)},
-        {"bccoo_blk_128", create_matrix_type<bccoo>(128, gko::matrix::bccoo::compression::block)},
-        {"bccoo_blk_256", create_matrix_type<bccoo>(256, gko::matrix::bccoo::compression::block)},
-        {"bccoo_blk_512", create_matrix_type<bccoo>(512, gko::matrix::bccoo::compression::block)},
-        {"bccoo_blk_1024", create_matrix_type<bccoo>(1024, gko::matrix::bccoo::compression::block)},
+        {"bccoo_ind", create_matrix_type<bccoo>(0, gko::matrix::bccoo::compression::individual)},
+        {"bccoo_ind_32", create_matrix_type<bccoo>(32, gko::matrix::bccoo::compression::individual)},
+        {"bccoo_ind_64", create_matrix_type<bccoo>(64, gko::matrix::bccoo::compression::individual)},
+        {"bccoo_ind_128", create_matrix_type<bccoo>(128, gko::matrix::bccoo::compression::individual)},
+        {"bccoo_ind_256", create_matrix_type<bccoo>(256, gko::matrix::bccoo::compression::individual)},
+        {"bccoo_ind_512", create_matrix_type<bccoo>(512, gko::matrix::bccoo::compression::individual)},
+        {"bccoo_ind_1024", create_matrix_type<bccoo>(1024, gko::matrix::bccoo::compression::individual)},
+        {"bccoo_grp", create_matrix_type<bccoo>(0, gko::matrix::bccoo::compression::group)},
+        {"bccoo_grp_32", create_matrix_type<bccoo>(32, gko::matrix::bccoo::compression::group)},
+        {"bccoo_grp_64", create_matrix_type<bccoo>(64, gko::matrix::bccoo::compression::group)},
+        {"bccoo_grp_128", create_matrix_type<bccoo>(128, gko::matrix::bccoo::compression::group)},
+        {"bccoo_grp_256", create_matrix_type<bccoo>(256, gko::matrix::bccoo::compression::group)},
+        {"bccoo_grp_512", create_matrix_type<bccoo>(512, gko::matrix::bccoo::compression::group)},
+        {"bccoo_grp_1024", create_matrix_type<bccoo>(1024, gko::matrix::bccoo::compression::group)},
         {"csr", create_matrix_type_with_gpu_strategy<csr, csr::automatical>()},
         {"csri", create_matrix_type_with_gpu_strategy<csr, csr::load_balance>()},
         {"csrm", create_matrix_type<csr>(std::make_shared<csr::merge_path>())},

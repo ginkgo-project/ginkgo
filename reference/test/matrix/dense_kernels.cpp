@@ -786,28 +786,28 @@ TYPED_TEST(Dense, MovesToPrecision)
 }
 
 
-TYPED_TEST(Dense, ConvertsToBccooElm32)
+TYPED_TEST(Dense, ConvertsToBccooInd32)
 {
     using T = typename TestFixture::value_type;
     using Bccoo = typename gko::matrix::Bccoo<T, gko::int32>;
-    auto bccoo_mtx_elm = Bccoo::create(
+    auto bccoo_mtx_ind = Bccoo::create(
         this->mtx4->get_executor(), gko::int32{BCCOO_BLOCK_SIZE_TESTED},
-        gko::matrix::bccoo::compression::element);
+        gko::matrix::bccoo::compression::individual);
 
-    this->mtx4->convert_to(bccoo_mtx_elm.get());
+    this->mtx4->convert_to(bccoo_mtx_ind.get());
 
-    auto start_rows = bccoo_mtx_elm->get_const_start_rows();
-    auto block_offsets = bccoo_mtx_elm->get_const_block_offsets();
-    auto compressed_data = bccoo_mtx_elm->get_const_compressed_data();
-    gko::size_type block_size = bccoo_mtx_elm->get_block_size();
+    auto start_rows = bccoo_mtx_ind->get_const_start_rows();
+    auto block_offsets = bccoo_mtx_ind->get_const_block_offsets();
+    auto compressed_data = bccoo_mtx_ind->get_const_compressed_data();
+    gko::size_type block_size = bccoo_mtx_ind->get_block_size();
     gko::int32 ind = {};
 
-    ASSERT_EQ(bccoo_mtx_elm->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(bccoo_mtx_elm->get_num_stored_elements(), 4);
+    ASSERT_EQ(bccoo_mtx_ind->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(bccoo_mtx_ind->get_num_stored_elements(), 4);
 
     gko::int32 row = {};
     gko::int32 offset = {};
-    for (gko::int32 i = 0; i < bccoo_mtx_elm->get_num_blocks(); i++) {
+    for (gko::int32 i = 0; i < bccoo_mtx_ind->get_num_blocks(); i++) {
         EXPECT_EQ(start_rows[i], row);
         EXPECT_EQ(block_offsets[i], offset);
         auto elms = std::min(block_size, 4 - i * block_size);
@@ -816,7 +816,7 @@ TYPED_TEST(Dense, ConvertsToBccooElm32)
             (1 + sizeof(T)) * elms +
             (((block_size == 2) || (block_size >= 4)) && (i + block_size > 2));
     }
-    EXPECT_EQ(block_offsets[bccoo_mtx_elm->get_num_blocks()], offset);
+    EXPECT_EQ(block_offsets[bccoo_mtx_ind->get_num_blocks()], offset);
 
     EXPECT_EQ(compressed_data[ind], 0x00);
     ind++;
@@ -857,32 +857,32 @@ TYPED_TEST(Dense, ConvertsToBccooElm32)
 }
 
 
-TYPED_TEST(Dense, ConvertsToBccooBlk32)
+TYPED_TEST(Dense, ConvertsToBccooGrp32)
 {
     using T = typename TestFixture::value_type;
     using Bccoo = typename gko::matrix::Bccoo<T, gko::int32>;
-    auto bccoo_mtx_blk = Bccoo::create(this->mtx4->get_executor(),
+    auto bccoo_mtx_grp = Bccoo::create(this->mtx4->get_executor(),
                                        gko::int32{BCCOO_BLOCK_SIZE_TESTED},
-                                       gko::matrix::bccoo::compression::block);
+                                       gko::matrix::bccoo::compression::group);
 
-    this->mtx4->convert_to(bccoo_mtx_blk.get());
+    this->mtx4->convert_to(bccoo_mtx_grp.get());
 
-    auto start_rows = bccoo_mtx_blk->get_const_start_rows();
-    auto start_cols = bccoo_mtx_blk->get_const_start_cols();
-    auto compression_types = bccoo_mtx_blk->get_const_compression_types();
-    auto block_offsets = bccoo_mtx_blk->get_const_block_offsets();
-    auto compressed_data = bccoo_mtx_blk->get_const_compressed_data();
-    gko::size_type block_size = bccoo_mtx_blk->get_block_size();
+    auto start_rows = bccoo_mtx_grp->get_const_start_rows();
+    auto start_cols = bccoo_mtx_grp->get_const_start_cols();
+    auto compression_types = bccoo_mtx_grp->get_const_compression_types();
+    auto block_offsets = bccoo_mtx_grp->get_const_block_offsets();
+    auto compressed_data = bccoo_mtx_grp->get_const_compressed_data();
+    gko::size_type block_size = bccoo_mtx_grp->get_block_size();
     gko::int32 ind = {};
 
-    ASSERT_EQ(bccoo_mtx_blk->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(bccoo_mtx_blk->get_num_stored_elements(), 4);
+    ASSERT_EQ(bccoo_mtx_grp->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(bccoo_mtx_grp->get_num_stored_elements(), 4);
 
     gko::int32 row = {};
     gko::int32 col = {};
     gko::uint8 type = ((block_size >= 4) ? 3 : 2);
     gko::int32 offset = {};
-    for (gko::int32 i = 0; i < bccoo_mtx_blk->get_num_blocks(); i++) {
+    for (gko::int32 i = 0; i < bccoo_mtx_grp->get_num_blocks(); i++) {
         auto elms = std::min(block_size, 4 - i * block_size);
         row = ((i > 0) && (i + block_size) == 4) ? 1 : 0;
         col = i % 3 + i / 3;
@@ -1037,28 +1037,28 @@ TYPED_TEST(Dense, ConvertsToBccooBlk32)
 }
 
 
-TYPED_TEST(Dense, MovesToBccooElm32)
+TYPED_TEST(Dense, MovesToBccooInd32)
 {
     using T = typename TestFixture::value_type;
     using Bccoo = typename gko::matrix::Bccoo<T, gko::int32>;
-    auto bccoo_mtx_elm = Bccoo::create(
+    auto bccoo_mtx_ind = Bccoo::create(
         this->mtx4->get_executor(), gko::int32{BCCOO_BLOCK_SIZE_TESTED},
-        gko::matrix::bccoo::compression::element);
+        gko::matrix::bccoo::compression::individual);
 
-    this->mtx4->move_to(bccoo_mtx_elm.get());
+    this->mtx4->move_to(bccoo_mtx_ind.get());
 
-    auto start_rows = bccoo_mtx_elm->get_const_start_rows();
-    auto block_offsets = bccoo_mtx_elm->get_const_block_offsets();
-    auto compressed_data = bccoo_mtx_elm->get_const_compressed_data();
-    gko::size_type block_size = bccoo_mtx_elm->get_block_size();
+    auto start_rows = bccoo_mtx_ind->get_const_start_rows();
+    auto block_offsets = bccoo_mtx_ind->get_const_block_offsets();
+    auto compressed_data = bccoo_mtx_ind->get_const_compressed_data();
+    gko::size_type block_size = bccoo_mtx_ind->get_block_size();
     gko::int32 ind = {};
 
-    ASSERT_EQ(bccoo_mtx_elm->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(bccoo_mtx_elm->get_num_stored_elements(), 4);
+    ASSERT_EQ(bccoo_mtx_ind->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(bccoo_mtx_ind->get_num_stored_elements(), 4);
 
     gko::int32 row = {};
     gko::int32 offset = {};
-    for (gko::int32 i = 0; i < bccoo_mtx_elm->get_num_blocks(); i++) {
+    for (gko::int32 i = 0; i < bccoo_mtx_ind->get_num_blocks(); i++) {
         EXPECT_EQ(start_rows[i], row);
         EXPECT_EQ(block_offsets[i], offset);
         auto elms = std::min(block_size, 4 - i * block_size);
@@ -1067,7 +1067,7 @@ TYPED_TEST(Dense, MovesToBccooElm32)
             (1 + sizeof(T)) * elms +
             (((block_size == 2) || (block_size >= 4)) && (i + block_size > 2));
     }
-    EXPECT_EQ(block_offsets[bccoo_mtx_elm->get_num_blocks()], offset);
+    EXPECT_EQ(block_offsets[bccoo_mtx_ind->get_num_blocks()], offset);
 
     EXPECT_EQ(compressed_data[ind], 0x00);
     ind++;
@@ -1108,32 +1108,32 @@ TYPED_TEST(Dense, MovesToBccooElm32)
 }
 
 
-TYPED_TEST(Dense, MovesToBccooBlk32)
+TYPED_TEST(Dense, MovesToBccooGrp32)
 {
     using T = typename TestFixture::value_type;
     using Bccoo = typename gko::matrix::Bccoo<T, gko::int32>;
-    auto bccoo_mtx_blk = Bccoo::create(this->mtx4->get_executor(),
+    auto bccoo_mtx_grp = Bccoo::create(this->mtx4->get_executor(),
                                        gko::int32{BCCOO_BLOCK_SIZE_TESTED},
-                                       gko::matrix::bccoo::compression::block);
+                                       gko::matrix::bccoo::compression::group);
 
-    this->mtx4->move_to(bccoo_mtx_blk.get());
+    this->mtx4->move_to(bccoo_mtx_grp.get());
 
-    auto start_rows = bccoo_mtx_blk->get_const_start_rows();
-    auto start_cols = bccoo_mtx_blk->get_const_start_cols();
-    auto compression_types = bccoo_mtx_blk->get_const_compression_types();
-    auto block_offsets = bccoo_mtx_blk->get_const_block_offsets();
-    auto compressed_data = bccoo_mtx_blk->get_const_compressed_data();
-    gko::size_type block_size = bccoo_mtx_blk->get_block_size();
+    auto start_rows = bccoo_mtx_grp->get_const_start_rows();
+    auto start_cols = bccoo_mtx_grp->get_const_start_cols();
+    auto compression_types = bccoo_mtx_grp->get_const_compression_types();
+    auto block_offsets = bccoo_mtx_grp->get_const_block_offsets();
+    auto compressed_data = bccoo_mtx_grp->get_const_compressed_data();
+    gko::size_type block_size = bccoo_mtx_grp->get_block_size();
     gko::int32 ind = {};
 
-    ASSERT_EQ(bccoo_mtx_blk->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(bccoo_mtx_blk->get_num_stored_elements(), 4);
+    ASSERT_EQ(bccoo_mtx_grp->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(bccoo_mtx_grp->get_num_stored_elements(), 4);
 
     gko::int32 row = {};
     gko::int32 col = {};
     gko::uint8 type = ((block_size >= 4) ? 3 : 2);
     gko::int32 offset = {};
-    for (gko::int32 i = 0; i < bccoo_mtx_blk->get_num_blocks(); i++) {
+    for (gko::int32 i = 0; i < bccoo_mtx_grp->get_num_blocks(); i++) {
         auto elms = std::min(block_size, 4 - i * block_size);
         row = ((i > 0) && (i + block_size) == 4) ? 1 : 0;
         col = i % 3 + i / 3;
@@ -1288,28 +1288,28 @@ TYPED_TEST(Dense, MovesToBccooBlk32)
 }
 
 
-TYPED_TEST(Dense, ConvertsToBccooElm64)
+TYPED_TEST(Dense, ConvertsToBccooInd64)
 {
     using T = typename TestFixture::value_type;
     using Bccoo = typename gko::matrix::Bccoo<T, gko::int64>;
-    auto bccoo_mtx_elm = Bccoo::create(
+    auto bccoo_mtx_ind = Bccoo::create(
         this->mtx4->get_executor(), gko::int64{BCCOO_BLOCK_SIZE_TESTED},
-        gko::matrix::bccoo::compression::element);
+        gko::matrix::bccoo::compression::individual);
 
-    this->mtx4->convert_to(bccoo_mtx_elm.get());
+    this->mtx4->convert_to(bccoo_mtx_ind.get());
 
-    auto start_rows = bccoo_mtx_elm->get_const_start_rows();
-    auto block_offsets = bccoo_mtx_elm->get_const_block_offsets();
-    auto compressed_data = bccoo_mtx_elm->get_const_compressed_data();
-    gko::size_type block_size = bccoo_mtx_elm->get_block_size();
+    auto start_rows = bccoo_mtx_ind->get_const_start_rows();
+    auto block_offsets = bccoo_mtx_ind->get_const_block_offsets();
+    auto compressed_data = bccoo_mtx_ind->get_const_compressed_data();
+    gko::size_type block_size = bccoo_mtx_ind->get_block_size();
     gko::int64 ind = {};
 
-    ASSERT_EQ(bccoo_mtx_elm->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(bccoo_mtx_elm->get_num_stored_elements(), 4);
+    ASSERT_EQ(bccoo_mtx_ind->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(bccoo_mtx_ind->get_num_stored_elements(), 4);
 
     gko::int64 row = {};
     gko::int64 offset = {};
-    for (gko::int64 i = 0; i < bccoo_mtx_elm->get_num_blocks(); i++) {
+    for (gko::int64 i = 0; i < bccoo_mtx_ind->get_num_blocks(); i++) {
         EXPECT_EQ(start_rows[i], row);
         EXPECT_EQ(block_offsets[i], offset);
         auto elms = std::min(block_size, 4 - i * block_size);
@@ -1318,7 +1318,7 @@ TYPED_TEST(Dense, ConvertsToBccooElm64)
             (1 + sizeof(T)) * elms +
             (((block_size == 2) || (block_size >= 4)) && (i + block_size > 2));
     }
-    EXPECT_EQ(block_offsets[bccoo_mtx_elm->get_num_blocks()], offset);
+    EXPECT_EQ(block_offsets[bccoo_mtx_ind->get_num_blocks()], offset);
 
     EXPECT_EQ(compressed_data[ind], 0x00);
     ind++;
@@ -1359,32 +1359,32 @@ TYPED_TEST(Dense, ConvertsToBccooElm64)
 }
 
 
-TYPED_TEST(Dense, ConvertsToBccooBlk64)
+TYPED_TEST(Dense, ConvertsToBccooGrp64)
 {
     using T = typename TestFixture::value_type;
     using Bccoo = typename gko::matrix::Bccoo<T, gko::int64>;
-    auto bccoo_mtx_blk = Bccoo::create(this->mtx4->get_executor(),
+    auto bccoo_mtx_grp = Bccoo::create(this->mtx4->get_executor(),
                                        gko::int64{BCCOO_BLOCK_SIZE_TESTED},
-                                       gko::matrix::bccoo::compression::block);
+                                       gko::matrix::bccoo::compression::group);
 
-    this->mtx4->convert_to(bccoo_mtx_blk.get());
+    this->mtx4->convert_to(bccoo_mtx_grp.get());
 
-    auto start_rows = bccoo_mtx_blk->get_const_start_rows();
-    auto start_cols = bccoo_mtx_blk->get_const_start_cols();
-    auto compression_types = bccoo_mtx_blk->get_const_compression_types();
-    auto block_offsets = bccoo_mtx_blk->get_const_block_offsets();
-    auto compressed_data = bccoo_mtx_blk->get_const_compressed_data();
-    gko::size_type block_size = bccoo_mtx_blk->get_block_size();
+    auto start_rows = bccoo_mtx_grp->get_const_start_rows();
+    auto start_cols = bccoo_mtx_grp->get_const_start_cols();
+    auto compression_types = bccoo_mtx_grp->get_const_compression_types();
+    auto block_offsets = bccoo_mtx_grp->get_const_block_offsets();
+    auto compressed_data = bccoo_mtx_grp->get_const_compressed_data();
+    gko::size_type block_size = bccoo_mtx_grp->get_block_size();
     gko::int64 ind = {};
 
-    ASSERT_EQ(bccoo_mtx_blk->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(bccoo_mtx_blk->get_num_stored_elements(), 4);
+    ASSERT_EQ(bccoo_mtx_grp->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(bccoo_mtx_grp->get_num_stored_elements(), 4);
 
     gko::int64 row = {};
     gko::int64 col = {};
     gko::uint8 type = ((block_size >= 4) ? 3 : 2);
     gko::int64 offset = {};
-    for (gko::int64 i = 0; i < bccoo_mtx_blk->get_num_blocks(); i++) {
+    for (gko::int64 i = 0; i < bccoo_mtx_grp->get_num_blocks(); i++) {
         auto elms = std::min(block_size, 4 - i * block_size);
         row = ((i > 0) && (i + block_size) == 4) ? 1 : 0;
         col = i % 3 + i / 3;
@@ -1539,29 +1539,29 @@ TYPED_TEST(Dense, ConvertsToBccooBlk64)
 }
 
 
-TYPED_TEST(Dense, MovesToBccooElm64)
+TYPED_TEST(Dense, MovesToBccooInd64)
 {
     using T = typename TestFixture::value_type;
     using Bccoo = typename gko::matrix::Bccoo<T, gko::int64>;
-    auto bccoo_mtx_elm = Bccoo::create(
+    auto bccoo_mtx_ind = Bccoo::create(
         this->mtx4->get_executor(), gko::int64{BCCOO_BLOCK_SIZE_TESTED},
-        gko::matrix::bccoo::compression::element);
+        gko::matrix::bccoo::compression::individual);
 
-    this->mtx4->move_to(bccoo_mtx_elm.get());
+    this->mtx4->move_to(bccoo_mtx_ind.get());
 
-    auto start_rows = bccoo_mtx_elm->get_const_start_rows();
-    auto block_offsets = bccoo_mtx_elm->get_const_block_offsets();
-    auto compressed_data = bccoo_mtx_elm->get_const_compressed_data();
-    gko::size_type block_size = bccoo_mtx_elm->get_block_size();
+    auto start_rows = bccoo_mtx_ind->get_const_start_rows();
+    auto block_offsets = bccoo_mtx_ind->get_const_block_offsets();
+    auto compressed_data = bccoo_mtx_ind->get_const_compressed_data();
+    gko::size_type block_size = bccoo_mtx_ind->get_block_size();
 
     gko::int64 ind = {};
 
-    ASSERT_EQ(bccoo_mtx_elm->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(bccoo_mtx_elm->get_num_stored_elements(), 4);
+    ASSERT_EQ(bccoo_mtx_ind->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(bccoo_mtx_ind->get_num_stored_elements(), 4);
 
     gko::int64 row = {};
     gko::int64 offset = {};
-    for (gko::int64 i = 0; i < bccoo_mtx_elm->get_num_blocks(); i++) {
+    for (gko::int64 i = 0; i < bccoo_mtx_ind->get_num_blocks(); i++) {
         EXPECT_EQ(start_rows[i], row);
         EXPECT_EQ(block_offsets[i], offset);
         auto elms = std::min(block_size, 4 - i * block_size);
@@ -1570,7 +1570,7 @@ TYPED_TEST(Dense, MovesToBccooElm64)
             (1 + sizeof(T)) * elms +
             (((block_size == 2) || (block_size >= 4)) && (i + block_size > 2));
     }
-    EXPECT_EQ(block_offsets[bccoo_mtx_elm->get_num_blocks()], offset);
+    EXPECT_EQ(block_offsets[bccoo_mtx_ind->get_num_blocks()], offset);
 
     EXPECT_EQ(compressed_data[ind], 0x00);
     ind++;
@@ -1611,32 +1611,32 @@ TYPED_TEST(Dense, MovesToBccooElm64)
 }
 
 
-TYPED_TEST(Dense, MovesToBccooBlk64)
+TYPED_TEST(Dense, MovesToBccooGrp64)
 {
     using T = typename TestFixture::value_type;
     using Bccoo = typename gko::matrix::Bccoo<T, gko::int64>;
-    auto bccoo_mtx_blk = Bccoo::create(this->mtx4->get_executor(),
+    auto bccoo_mtx_grp = Bccoo::create(this->mtx4->get_executor(),
                                        gko::int64{BCCOO_BLOCK_SIZE_TESTED},
-                                       gko::matrix::bccoo::compression::block);
+                                       gko::matrix::bccoo::compression::group);
 
-    this->mtx4->move_to(bccoo_mtx_blk.get());
+    this->mtx4->move_to(bccoo_mtx_grp.get());
 
-    auto start_rows = bccoo_mtx_blk->get_const_start_rows();
-    auto start_cols = bccoo_mtx_blk->get_const_start_cols();
-    auto compression_types = bccoo_mtx_blk->get_const_compression_types();
-    auto block_offsets = bccoo_mtx_blk->get_const_block_offsets();
-    auto compressed_data = bccoo_mtx_blk->get_const_compressed_data();
-    gko::size_type block_size = bccoo_mtx_blk->get_block_size();
+    auto start_rows = bccoo_mtx_grp->get_const_start_rows();
+    auto start_cols = bccoo_mtx_grp->get_const_start_cols();
+    auto compression_types = bccoo_mtx_grp->get_const_compression_types();
+    auto block_offsets = bccoo_mtx_grp->get_const_block_offsets();
+    auto compressed_data = bccoo_mtx_grp->get_const_compressed_data();
+    gko::size_type block_size = bccoo_mtx_grp->get_block_size();
     gko::int64 ind = {};
 
-    ASSERT_EQ(bccoo_mtx_blk->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(bccoo_mtx_blk->get_num_stored_elements(), 4);
+    ASSERT_EQ(bccoo_mtx_grp->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(bccoo_mtx_grp->get_num_stored_elements(), 4);
 
     gko::int64 row = {};
     gko::int64 col = {};
     gko::uint8 type = ((block_size >= 4) ? 3 : 2);
     gko::int64 offset = {};
-    for (gko::int64 i = 0; i < bccoo_mtx_blk->get_num_blocks(); i++) {
+    for (gko::int64 i = 0; i < bccoo_mtx_grp->get_num_blocks(); i++) {
         auto elms = std::min(block_size, 4 - i * block_size);
         row = ((i > 0) && (i + block_size) == 4) ? 1 : 0;
         col = i % 3 + i / 3;

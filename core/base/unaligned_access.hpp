@@ -131,7 +131,8 @@ T get_value_compressed_data(const void* ptr, size_type dspl)
  * @param dspl   the offset (in bytes)
  * @param pos    the component position of the vector
  *
- * @return the value in the m-th byte of ptr, which is adjusting to T class.
+ * @return the value of type T at pos-th component of array<T> starting
+ *         at byte dspl from ptr.
  */
 template <typename T>
 T get_value_compressed_data(const void* ptr, const size_type dspl,

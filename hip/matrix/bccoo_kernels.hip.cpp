@@ -82,7 +82,7 @@ using namespace matrix::bccoo;
 
 
 constexpr int default_block_size = 512;
-constexpr int warps_in_block = 4;
+constexpr int warps_ingroupk = 4;
 constexpr int spmv_block_size = warps_in_block * config::warp_size;
 
 
@@ -103,7 +103,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_GET_DEFAULT_BLOCK_SIZE_KERNEL);
 void get_default_compression(std::shared_ptr<const HipExecutor> exec,
                              compression* compression)
 {
-    *compression = matrix::bccoo::compression::block;
+    *compression = matrix::bccoo::compression::group;
 }
 
 
@@ -149,7 +149,7 @@ void spmv2(std::shared_ptr<const HipExecutor> exec,
 
     if (nwarps > 0) {
         // If there is work to compute
-        if (a->use_block_compression()) {
+        if (a->use_group_compression()) {
             IndexType num_blocks_grid = std::min(
                 num_blocks_matrix,
                 static_cast<IndexType>(ceildiv(nwarps, warps_in_block)));
@@ -193,7 +193,7 @@ void advanced_spmv2(std::shared_ptr<const HipExecutor> exec,
 
     if (nwarps > 0) {
         // If there is work to compute
-        if (a->use_block_compression()) {
+        if (a->use_group_compression()) {
             IndexType num_blocks_grid = std::min(
                 num_blocks_matrix,
                 static_cast<IndexType>(ceildiv(nwarps, warps_in_block)));
@@ -271,7 +271,7 @@ void convert_to_coo(std::shared_ptr<const HipExecutor> exec,
 
     if (nwarps > 0) {
         // If there is work to compute
-        if (source->use_block_compression()) {
+        if (source->use_group_compression()) {
             IndexType num_blocks_grid = std::min(
                 num_blocks_matrix,
                 static_cast<IndexType>(ceildiv(nwarps, warps_in_block)));
@@ -319,7 +319,7 @@ void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
 
     if (nwarps > 0) {
         // If there is work to compute
-        if (source->use_block_compression()) {
+        if (source->use_group_compression()) {
             IndexType num_blocks_grid = std::min(
                 num_blocks_matrix,
                 static_cast<IndexType>(ceildiv(nwarps, warps_in_block)));
@@ -372,7 +372,7 @@ void convert_to_dense(std::shared_ptr<const HipExecutor> exec,
 
     if (nwarps > 0) {
         // If there is work to compute
-        if (source->use_block_compression()) {
+        if (source->use_group_compression()) {
             IndexType num_blocks_grid = std::min(
                 num_blocks_matrix,
                 static_cast<IndexType>(ceildiv(nwarps, warps_in_block)));
@@ -410,7 +410,7 @@ void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
 
     if (nwarps > 0) {
         // If there is work to compute
-        if (orig->use_block_compression()) {
+        if (orig->use_group_compression()) {
             IndexType num_blocks_grid = std::min(
                 num_blocks_matrix,
                 static_cast<IndexType>(ceildiv(nwarps, warps_in_block)));
@@ -447,7 +447,7 @@ void compute_absolute_inplace(std::shared_ptr<const HipExecutor> exec,
 
     if (nwarps > 0) {
         // If there is work to compute
-        if (matrix->use_block_compression()) {
+        if (matrix->use_group_compression()) {
             IndexType num_blocks_grid = std::min(
                 num_blocks_matrix,
                 static_cast<IndexType>(ceildiv(nwarps, warps_in_block)));
@@ -487,7 +487,7 @@ void compute_absolute(
 
     if (nwarps > 0) {
         // If there is work to compute
-        if (source->use_block_compression()) {
+        if (source->use_group_compression()) {
             IndexType num_blocks_grid = std::min(
                 num_blocks_matrix,
                 static_cast<IndexType>(ceildiv(nwarps, warps_in_block)));

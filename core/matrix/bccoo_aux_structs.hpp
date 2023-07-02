@@ -84,10 +84,10 @@ struct compr_idxs {
 
 
 /**
- *  Specific struct to manage block compression bccoo objects
+ *  Specific struct to manage group compression bccoo objects
  */
 template <typename IndexType>
-struct compr_blk_idxs {
+struct compr_grp_idxs {
     IndexType row_frst;  // minimum row index in a block
     IndexType col_frst;  // minimum column index in a block
     IndexType row_diff;  // maximum difference between row indices in a block
@@ -98,7 +98,7 @@ struct compr_blk_idxs {
     uint8 rows_cols;    // combination of several bool conditions: multi_row,
                         // row_16_bits, column_16_bits, column_8_bits
 
-    GKO_ATTRIBUTES compr_blk_idxs()
+    GKO_ATTRIBUTES compr_grp_idxs()
         : row_frst(0),
           col_frst(0),
           row_diff(0),
@@ -109,17 +109,17 @@ struct compr_blk_idxs {
           rows_cols(0)
     {}
 
-    GKO_ATTRIBUTES compr_blk_idxs(const IndexType* rows_data,
+    GKO_ATTRIBUTES compr_grp_idxs(const IndexType* rows_data,
                                   const IndexType* cols_data,
                                   const size_type block_size,
                                   const compr_idxs<IndexType>& idxs,
-                                  const uint8 type_blk)
+                                  const uint8 type_grp)
         : row_frst(rows_data[idxs.blk]),
           col_frst(cols_data[idxs.blk]),
           row_diff(0),
           col_diff(0),
           shf_row(idxs.shf),
-          rows_cols(type_blk & type_mask_rows_cols)
+          rows_cols(type_grp & type_mask_rows_cols)
     {
         shf_col =
             idxs.shf +

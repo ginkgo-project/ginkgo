@@ -86,17 +86,17 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    void set_up_apply_data_blk(int num_vectors = 1)
+    void set_up_apply_data_grp(int num_vectors = 1)
     {
-        mtx_blk = Mtx::create(ref, 0, gko::matrix::bccoo::compression::block);
-        mtx_blk->move_from(gen_mtx(532, 231));
+        mtx_grp = Mtx::create(ref, 0, gko::matrix::bccoo::compression::group);
+        mtx_grp->move_from(gen_mtx(532, 231));
         expected = gen_mtx(532, num_vectors);
         y = gen_mtx(231, num_vectors);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
-        dmtx_blk =
-            Mtx::create(cuda, 128, gko::matrix::bccoo::compression::block);
-        dmtx_blk->copy_from(mtx_blk.get());
+        dmtx_grp =
+            Mtx::create(cuda, 128, gko::matrix::bccoo::compression::group);
+        dmtx_grp->copy_from(mtx_grp.get());
         dresult = Vec::create(cuda);
         dresult->copy_from(expected.get());
         dy = Vec::create(cuda);
@@ -112,13 +112,13 @@ protected:
 
     std::default_random_engine rand_engine;
 
-    std::unique_ptr<Mtx> mtx_blk;
+    std::unique_ptr<Mtx> mtx_grp;
     std::unique_ptr<Vec> expected;
     std::unique_ptr<Vec> y;
     std::unique_ptr<Vec> alpha;
     std::unique_ptr<Vec> beta;
 
-    std::unique_ptr<Mtx> dmtx_blk;
+    std::unique_ptr<Mtx> dmtx_grp;
     std::unique_ptr<Vec> dresult;
     std::unique_ptr<Vec> dy;
     std::unique_ptr<Vec> dalpha;
@@ -128,10 +128,10 @@ protected:
 
 TEST_F(Bccoo, SimpleApplyIsEquivalentToRef)
 {
-    set_up_apply_data_blk();
+    set_up_apply_data_grp();
 
-    mtx_blk->apply(y.get(), expected.get());
-    dmtx_blk->apply(dy.get(), dresult.get());
+    mtx_grp->apply(y.get(), expected.get());
+    dmtx_grp->apply(dy.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
@@ -139,10 +139,10 @@ TEST_F(Bccoo, SimpleApplyIsEquivalentToRef)
 
 TEST_F(Bccoo, AdvancedApplyIsEquivalentToRef)
 {
-    set_up_apply_data_blk();
+    set_up_apply_data_grp();
 
-    mtx_blk->apply(alpha.get(), y.get(), beta.get(), expected.get());
-    dmtx_blk->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+    mtx_grp->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx_grp->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
@@ -150,10 +150,10 @@ TEST_F(Bccoo, AdvancedApplyIsEquivalentToRef)
 
 TEST_F(Bccoo, SimpleApplyAddIsEquivalentToRef)
 {
-    set_up_apply_data_blk();
+    set_up_apply_data_grp();
 
-    mtx_blk->apply2(y.get(), expected.get());
-    dmtx_blk->apply2(dy.get(), dresult.get());
+    mtx_grp->apply2(y.get(), expected.get());
+    dmtx_grp->apply2(dy.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
@@ -161,10 +161,10 @@ TEST_F(Bccoo, SimpleApplyAddIsEquivalentToRef)
 
 TEST_F(Bccoo, AdvancedApplyAddIsEquivalentToRef)
 {
-    set_up_apply_data_blk();
+    set_up_apply_data_grp();
 
-    mtx_blk->apply2(alpha.get(), y.get(), expected.get());
-    dmtx_blk->apply2(dalpha.get(), dy.get(), dresult.get());
+    mtx_grp->apply2(alpha.get(), y.get(), expected.get());
+    dmtx_grp->apply2(dalpha.get(), dy.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
@@ -172,10 +172,10 @@ TEST_F(Bccoo, AdvancedApplyAddIsEquivalentToRef)
 
 TEST_F(Bccoo, SimpleApplyToDenseMatrixIsEquivalentToRef)
 {
-    set_up_apply_data_blk(3);
+    set_up_apply_data_grp(3);
 
-    mtx_blk->apply(y.get(), expected.get());
-    dmtx_blk->apply(dy.get(), dresult.get());
+    mtx_grp->apply(y.get(), expected.get());
+    dmtx_grp->apply(dy.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
@@ -183,10 +183,10 @@ TEST_F(Bccoo, SimpleApplyToDenseMatrixIsEquivalentToRef)
 
 TEST_F(Bccoo, AdvancedApplyToDenseMatrixIsEquivalentToRef)
 {
-    set_up_apply_data_blk(3);
+    set_up_apply_data_grp(3);
 
-    mtx_blk->apply(alpha.get(), y.get(), beta.get(), expected.get());
-    dmtx_blk->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+    mtx_grp->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx_grp->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
@@ -194,10 +194,10 @@ TEST_F(Bccoo, AdvancedApplyToDenseMatrixIsEquivalentToRef)
 
 TEST_F(Bccoo, SimpleApplyAddToDenseMatrixIsEquivalentToRef)
 {
-    set_up_apply_data_blk(3);
+    set_up_apply_data_grp(3);
 
-    mtx_blk->apply2(y.get(), expected.get());
-    dmtx_blk->apply2(dy.get(), dresult.get());
+    mtx_grp->apply2(y.get(), expected.get());
+    dmtx_grp->apply2(dy.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
@@ -205,10 +205,10 @@ TEST_F(Bccoo, SimpleApplyAddToDenseMatrixIsEquivalentToRef)
 
 TEST_F(Bccoo, SimpleApplyAddToLargeDenseMatrixIsEquivalentToRef)
 {
-    set_up_apply_data_blk(33);
+    set_up_apply_data_grp(33);
 
-    mtx_blk->apply2(y.get(), expected.get());
-    dmtx_blk->apply2(dy.get(), dresult.get());
+    mtx_grp->apply2(y.get(), expected.get());
+    dmtx_grp->apply2(dy.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
@@ -216,10 +216,10 @@ TEST_F(Bccoo, SimpleApplyAddToLargeDenseMatrixIsEquivalentToRef)
 
 TEST_F(Bccoo, AdvancedApplyAddToDenseMatrixIsEquivalentToRef)
 {
-    set_up_apply_data_blk(3);
+    set_up_apply_data_grp(3);
 
-    mtx_blk->apply2(alpha.get(), y.get(), expected.get());
-    dmtx_blk->apply2(dalpha.get(), dy.get(), dresult.get());
+    mtx_grp->apply2(alpha.get(), y.get(), expected.get());
+    dmtx_grp->apply2(dalpha.get(), dy.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
@@ -227,10 +227,10 @@ TEST_F(Bccoo, AdvancedApplyAddToDenseMatrixIsEquivalentToRef)
 
 TEST_F(Bccoo, AdvancedApplyAddToLargeDenseMatrixIsEquivalentToRef)
 {
-    set_up_apply_data_blk(33);
+    set_up_apply_data_grp(33);
 
-    mtx_blk->apply2(y.get(), expected.get());
-    dmtx_blk->apply2(dy.get(), dresult.get());
+    mtx_grp->apply2(y.get(), expected.get());
+    dmtx_grp->apply2(dy.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
@@ -238,14 +238,14 @@ TEST_F(Bccoo, AdvancedApplyAddToLargeDenseMatrixIsEquivalentToRef)
 
 TEST_F(Bccoo, ApplyToComplexIsEquivalentToRef)
 {
-    set_up_apply_data_blk();
+    set_up_apply_data_grp();
     auto complex_b = gen_mtx<ComplexVec>(231, 3);
     auto dcomplex_b = gko::clone(cuda, complex_b);
     auto complex_x = gen_mtx<ComplexVec>(532, 3);
     auto dcomplex_x = gko::clone(cuda, complex_x);
 
-    mtx_blk->apply(complex_b.get(), complex_x.get());
-    dmtx_blk->apply(dcomplex_b.get(), dcomplex_x.get());
+    mtx_grp->apply(complex_b.get(), complex_x.get());
+    dmtx_grp->apply(dcomplex_b.get(), dcomplex_x.get());
 
     GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
 }
@@ -253,14 +253,14 @@ TEST_F(Bccoo, ApplyToComplexIsEquivalentToRef)
 
 TEST_F(Bccoo, AdvancedApplyToComplexIsEquivalentToRef)
 {
-    set_up_apply_data_blk();
+    set_up_apply_data_grp();
     auto complex_b = gen_mtx<ComplexVec>(231, 3);
     auto dcomplex_b = gko::clone(cuda, complex_b);
     auto complex_x = gen_mtx<ComplexVec>(532, 3);
     auto dcomplex_x = gko::clone(cuda, complex_x);
 
-    mtx_blk->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
-    dmtx_blk->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(),
+    mtx_grp->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
+    dmtx_grp->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(),
                     dcomplex_x.get());
 
     GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
@@ -269,14 +269,14 @@ TEST_F(Bccoo, AdvancedApplyToComplexIsEquivalentToRef)
 
 TEST_F(Bccoo, ApplyAddToComplexIsEquivalentToRef)
 {
-    set_up_apply_data_blk();
+    set_up_apply_data_grp();
     auto complex_b = gen_mtx<ComplexVec>(231, 3);
     auto dcomplex_b = gko::clone(cuda, complex_b);
     auto complex_x = gen_mtx<ComplexVec>(532, 3);
     auto dcomplex_x = gko::clone(cuda, complex_x);
 
-    mtx_blk->apply2(alpha.get(), complex_b.get(), complex_x.get());
-    dmtx_blk->apply2(dalpha.get(), dcomplex_b.get(), dcomplex_x.get());
+    mtx_grp->apply2(alpha.get(), complex_b.get(), complex_x.get());
+    dmtx_grp->apply2(dalpha.get(), dcomplex_b.get(), dcomplex_x.get());
 
     GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
 }
@@ -284,55 +284,55 @@ TEST_F(Bccoo, ApplyAddToComplexIsEquivalentToRef)
 
 TEST_F(Bccoo, ConvertToDenseIsEquivalentToRef)
 {
-    set_up_apply_data_blk();
-    auto dense_mtx_blk = gko::matrix::Dense<>::create(ref);
-    auto ddense_mtx_blk = gko::matrix::Dense<>::create(cuda);
+    set_up_apply_data_grp();
+    auto dense_mtx_grp = gko::matrix::Dense<>::create(ref);
+    auto ddense_mtx_grp = gko::matrix::Dense<>::create(cuda);
 
-    mtx_blk->convert_to(dense_mtx_blk.get());
-    dmtx_blk->convert_to(ddense_mtx_blk.get());
+    mtx_grp->convert_to(dense_mtx_grp.get());
+    dmtx_grp->convert_to(ddense_mtx_grp.get());
 
-    GKO_ASSERT_MTX_NEAR(dense_mtx_blk.get(), ddense_mtx_blk.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(dense_mtx_grp.get(), ddense_mtx_grp.get(), 1e-14);
 }
 
 
 TEST_F(Bccoo, ConvertToCooIsEquivalentToRef)
 {
-    set_up_apply_data_blk();
+    set_up_apply_data_grp();
 
-    auto dense_mtx_blk = gko::matrix::Dense<>::create(ref);
-    auto coo_mtx_blk = gko::matrix::Coo<>::create(ref);
-    auto dcoo_mtx_blk = gko::matrix::Coo<>::create(cuda);
+    auto dense_mtx_grp = gko::matrix::Dense<>::create(ref);
+    auto coo_mtx_grp = gko::matrix::Coo<>::create(ref);
+    auto dcoo_mtx_grp = gko::matrix::Coo<>::create(cuda);
 
-    mtx_blk->convert_to(dense_mtx_blk.get());
-    dense_mtx_blk->convert_to(coo_mtx_blk.get());
-    dmtx_blk->convert_to(dcoo_mtx_blk.get());
+    mtx_grp->convert_to(dense_mtx_grp.get());
+    dense_mtx_grp->convert_to(coo_mtx_grp.get());
+    dmtx_grp->convert_to(dcoo_mtx_grp.get());
 
-    GKO_ASSERT_MTX_NEAR(coo_mtx_blk.get(), dcoo_mtx_blk.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(coo_mtx_grp.get(), dcoo_mtx_grp.get(), 1e-14);
 }
 
 
 TEST_F(Bccoo, ConvertToCsrIsEquivalentToRef)
 {
-    set_up_apply_data_blk();
+    set_up_apply_data_grp();
 
-    auto dense_mtx_blk = gko::matrix::Dense<>::create(ref);
-    auto csr_mtx_blk = gko::matrix::Csr<>::create(ref);
-    auto dcsr_mtx_blk = gko::matrix::Csr<>::create(cuda);
+    auto dense_mtx_grp = gko::matrix::Dense<>::create(ref);
+    auto csr_mtx_grp = gko::matrix::Csr<>::create(ref);
+    auto dcsr_mtx_grp = gko::matrix::Csr<>::create(cuda);
 
-    mtx_blk->convert_to(dense_mtx_blk.get());
-    dense_mtx_blk->convert_to(csr_mtx_blk.get());
-    dmtx_blk->convert_to(dcsr_mtx_blk.get());
+    mtx_grp->convert_to(dense_mtx_grp.get());
+    dense_mtx_grp->convert_to(csr_mtx_grp.get());
+    dmtx_grp->convert_to(dcsr_mtx_grp.get());
 
-    GKO_ASSERT_MTX_NEAR(csr_mtx_blk.get(), dcsr_mtx_blk.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(csr_mtx_grp.get(), dcsr_mtx_grp.get(), 1e-14);
 }
 
 
 TEST_F(Bccoo, ExtractDiagonalIsEquivalentToRef)
 {
-    set_up_apply_data_blk();
+    set_up_apply_data_grp();
 
-    auto diag = mtx_blk->extract_diagonal();
-    auto ddiag = dmtx_blk->extract_diagonal();
+    auto diag = mtx_grp->extract_diagonal();
+    auto ddiag = dmtx_grp->extract_diagonal();
 
     GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
 }
@@ -340,23 +340,23 @@ TEST_F(Bccoo, ExtractDiagonalIsEquivalentToRef)
 
 TEST_F(Bccoo, InplaceAbsoluteMatrixIsEquivalentToRef)
 {
-    set_up_apply_data_blk();
+    set_up_apply_data_grp();
 
-    mtx_blk->compute_absolute_inplace();
-    dmtx_blk->compute_absolute_inplace();
+    mtx_grp->compute_absolute_inplace();
+    dmtx_grp->compute_absolute_inplace();
 
-    GKO_ASSERT_MTX_NEAR(mtx_blk, dmtx_blk, 1e-14);
+    GKO_ASSERT_MTX_NEAR(mtx_grp, dmtx_grp, 1e-14);
 }
 
 
 TEST_F(Bccoo, OutplaceAbsoluteMatrixIsEquivalentToRef)
 {
-    set_up_apply_data_blk();
+    set_up_apply_data_grp();
 
-    auto abs_mtx_blk = mtx_blk->compute_absolute();
-    auto dabs_mtx_blk = dmtx_blk->compute_absolute();
+    auto abs_mtx_grp = mtx_grp->compute_absolute();
+    auto dabs_mtx_grp = dmtx_grp->compute_absolute();
 
-    GKO_ASSERT_MTX_NEAR(abs_mtx_blk, dabs_mtx_blk, 1e-14);
+    GKO_ASSERT_MTX_NEAR(abs_mtx_grp, dabs_mtx_grp, 1e-14);
 }
 
 

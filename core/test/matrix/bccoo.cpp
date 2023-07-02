@@ -62,19 +62,20 @@ protected:
 
     Bccoo()
         : exec(gko::ReferenceExecutor::create()),
-          mtx_elm(gko::matrix::Bccoo<value_type, index_type>::create(
-              exec, index_type{BCCOO_BLOCK_SIZE_TESTED}, compression::element)),
-          mtx_blk(gko::matrix::Bccoo<value_type, index_type>::create(
-              exec, index_type{BCCOO_BLOCK_SIZE_TESTED}, compression::block))
+          mtx_ind(gko::matrix::Bccoo<value_type, index_type>::create(
+              exec, index_type{BCCOO_BLOCK_SIZE_TESTED},
+              compression::individual)),
+          mtx_grp(gko::matrix::Bccoo<value_type, index_type>::create(
+              exec, index_type{BCCOO_BLOCK_SIZE_TESTED}, compression::group))
     {
-        mtx_elm->read({{2, 3},
+        mtx_ind->read({{2, 3},
                        {
                            {0, 0, 1.0},
                            {0, 1, 3.0},
                            {0, 2, 2.0},
                            {1, 1, 5.0},
                        }});
-        mtx_blk->read({{2, 3},
+        mtx_grp->read({{2, 3},
                        {
                            {0, 0, 1.0},
                            {0, 1, 3.0},
@@ -84,10 +85,10 @@ protected:
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<Mtx> mtx_elm;
-    std::unique_ptr<Mtx> mtx_blk;
+    std::unique_ptr<Mtx> mtx_ind;
+    std::unique_ptr<Mtx> mtx_grp;
 
-    void assert_equal_to_original_mtx_elm(const Mtx* m)
+    void assert_equal_to_original_mtx_ind(const Mtx* m)
     {
         auto start_rows = m->get_const_start_rows();
         auto block_offsets = m->get_const_block_offsets();
@@ -147,7 +148,7 @@ protected:
         ind += sizeof(value_type);
     }
 
-    void assert_equal_to_original_mtx_blk(const Mtx* m)
+    void assert_equal_to_original_mtx_grp(const Mtx* m)
     {
         auto start_rows = m->get_const_start_rows();
         auto start_cols = m->get_const_start_cols();
@@ -346,10 +347,10 @@ protected:
         ASSERT_EQ(m->get_const_compressed_data(), nullptr);
     }
 
-    void assert_empty_elm(const Mtx* m)
+    void assert_empty_ind(const Mtx* m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
-        ASSERT_EQ(m->get_compression(), compression::element);
+        ASSERT_EQ(m->get_compression(), compression::individual);
         ASSERT_EQ(m->get_num_stored_elements(), 0);
         ASSERT_EQ(m->get_num_blocks(), 0);
         ASSERT_EQ(m->get_num_bytes(), 0);
@@ -360,10 +361,10 @@ protected:
         ASSERT_EQ(m->get_const_compressed_data(), nullptr);
     }
 
-    void assert_empty_blk(const Mtx* m)
+    void assert_empty_grp(const Mtx* m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
-        ASSERT_EQ(m->get_compression(), compression::block);
+        ASSERT_EQ(m->get_compression(), compression::group);
         ASSERT_EQ(m->get_num_stored_elements(), 0);
         ASSERT_EQ(m->get_num_blocks(), 0);
         ASSERT_EQ(m->get_num_bytes(), 0);
@@ -378,61 +379,61 @@ protected:
 TYPED_TEST_SUITE(Bccoo, gko::test::ValueIndexTypes);
 
 
-TYPED_TEST(Bccoo, KnowsItsSizeElm)
+TYPED_TEST(Bccoo, KnowsItsSizeInd)
 {
-    ASSERT_EQ(this->mtx_elm->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(this->mtx_elm->get_num_stored_elements(), 4);
+    ASSERT_EQ(this->mtx_ind->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(this->mtx_ind->get_num_stored_elements(), 4);
 }
 
 
-TYPED_TEST(Bccoo, KnowsItsSizeBlk)
+TYPED_TEST(Bccoo, KnowsItsSizeGrp)
 {
-    ASSERT_EQ(this->mtx_blk->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(this->mtx_blk->get_num_stored_elements(), 4);
+    ASSERT_EQ(this->mtx_grp->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(this->mtx_grp->get_num_stored_elements(), 4);
 }
 
 
-TYPED_TEST(Bccoo, ContainsCorrectDataElm)
+TYPED_TEST(Bccoo, ContainsCorrectDataInd)
 {
-    this->assert_equal_to_original_mtx_elm(this->mtx_elm.get());
+    this->assert_equal_to_original_mtx_ind(this->mtx_ind.get());
 }
 
 
-TYPED_TEST(Bccoo, ContainsCorrectDataBlk)
+TYPED_TEST(Bccoo, ContainsCorrectDataGrp)
 {
-    this->assert_equal_to_original_mtx_blk(this->mtx_blk.get());
+    this->assert_equal_to_original_mtx_grp(this->mtx_grp.get());
 }
 
 
 TYPED_TEST(Bccoo, CanBeEmpty)
 {
     using Mtx = typename TestFixture::Mtx;
-    auto mtx_elm = Mtx::create(this->exec);
+    auto mtx_ind = Mtx::create(this->exec);
 
-    this->assert_empty(mtx_elm.get());
+    this->assert_empty(mtx_ind.get());
 }
 
 
-TYPED_TEST(Bccoo, CanBeEmptyElm)
+TYPED_TEST(Bccoo, CanBeEmptyInd)
 {
     using Mtx = typename TestFixture::Mtx;
-    auto mtx_elm =
-        Mtx::create(this->exec, BCCOO_BLOCK_SIZE_TESTED, compression::element);
+    auto mtx_ind = Mtx::create(this->exec, BCCOO_BLOCK_SIZE_TESTED,
+                               compression::individual);
 
-    this->assert_empty_elm(mtx_elm.get());
+    this->assert_empty_ind(mtx_ind.get());
 }
 
 
-TYPED_TEST(Bccoo, CanBeEmptyBlk)
+TYPED_TEST(Bccoo, CanBeEmptyGrp)
 {
     using Mtx = typename TestFixture::Mtx;
-    auto mtx_blk =
-        Mtx::create(this->exec, BCCOO_BLOCK_SIZE_TESTED, compression::block);
+    auto mtx_grp =
+        Mtx::create(this->exec, BCCOO_BLOCK_SIZE_TESTED, compression::group);
 
-    this->assert_empty_blk(mtx_blk.get());
+    this->assert_empty_grp(mtx_grp.get());
 }
 
-TYPED_TEST(Bccoo, CanBeCreatedFromExistingDataElm)
+TYPED_TEST(Bccoo, CanBeCreatedFromExistingDataInd)
 {
     // Name the involved datatypes
     using value_type = typename TestFixture::value_type;
@@ -460,20 +461,20 @@ TYPED_TEST(Bccoo, CanBeCreatedFromExistingDataElm)
     set_value_compressed_data<value_type>(compressed_data, ind, 4.0);
     ind += sizeof(value_type);
 
-    auto mtx_elm = gko::matrix::Bccoo<value_type, index_type>::create(
+    auto mtx_ind = gko::matrix::Bccoo<value_type, index_type>::create(
         this->exec, gko::dim<2>{3, 2},
         gko::array<gko::uint8>::view(this->exec, num_bytes, compressed_data),
         gko::array<gko::size_type>::view(this->exec, 2, block_offsets),
         gko::array<index_type>::view(this->exec, 1, start_rows), 4, block_size);
 
-    ASSERT_EQ(mtx_elm->get_num_stored_elements(), 4);
-    ASSERT_EQ(mtx_elm->get_block_size(), block_size);
-    ASSERT_EQ(mtx_elm->get_const_block_offsets(), block_offsets);
-    ASSERT_EQ(mtx_elm->get_const_start_rows(), start_rows);
+    ASSERT_EQ(mtx_ind->get_num_stored_elements(), 4);
+    ASSERT_EQ(mtx_ind->get_block_size(), block_size);
+    ASSERT_EQ(mtx_ind->get_const_block_offsets(), block_offsets);
+    ASSERT_EQ(mtx_ind->get_const_start_rows(), start_rows);
 }
 
 
-TYPED_TEST(Bccoo, CanBeCreatedFromExistingDataBlk)
+TYPED_TEST(Bccoo, CanBeCreatedFromExistingDataGrp)
 {
     // Name the involved datatypes
     using value_type = typename TestFixture::value_type;
@@ -507,7 +508,7 @@ TYPED_TEST(Bccoo, CanBeCreatedFromExistingDataBlk)
     set_value_compressed_data<value_type>(compressed_data, ind, 4.0);
     ind += sizeof(value_type);
 
-    auto mtx_blk = gko::matrix::Bccoo<value_type, index_type>::create(
+    auto mtx_grp = gko::matrix::Bccoo<value_type, index_type>::create(
         this->exec, gko::dim<2>{3, 2},
         gko::array<gko::uint8>::view(this->exec, num_bytes, compressed_data),
         gko::array<gko::size_type>::view(this->exec, 2, block_offsets),
@@ -515,163 +516,163 @@ TYPED_TEST(Bccoo, CanBeCreatedFromExistingDataBlk)
         gko::array<index_type>::view(this->exec, 1, start_cols),
         gko::array<index_type>::view(this->exec, 1, start_rows), 4, block_size);
 
-    ASSERT_EQ(mtx_blk->get_num_stored_elements(), 4);
-    ASSERT_EQ(mtx_blk->get_block_size(), block_size);
-    ASSERT_EQ(mtx_blk->get_const_block_offsets(), block_offsets);
-    ASSERT_EQ(mtx_blk->get_const_compression_types(), compression_types);
-    ASSERT_EQ(mtx_blk->get_const_start_cols(), start_cols);
-    ASSERT_EQ(mtx_blk->get_const_start_rows(), start_rows);
+    ASSERT_EQ(mtx_grp->get_num_stored_elements(), 4);
+    ASSERT_EQ(mtx_grp->get_block_size(), block_size);
+    ASSERT_EQ(mtx_grp->get_const_block_offsets(), block_offsets);
+    ASSERT_EQ(mtx_grp->get_const_compression_types(), compression_types);
+    ASSERT_EQ(mtx_grp->get_const_start_cols(), start_cols);
+    ASSERT_EQ(mtx_grp->get_const_start_rows(), start_rows);
 }
 
 
-TYPED_TEST(Bccoo, CanBeCopiedElmElm)
+TYPED_TEST(Bccoo, CanBeCopiedIndInd)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto copy = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_COPIED},
-                            compression::element);
+                            compression::individual);
 
-    copy->copy_from(this->mtx_elm.get());
+    copy->copy_from(this->mtx_ind.get());
 
-    this->assert_equal_to_original_mtx_elm(this->mtx_elm.get());
-    set_value_compressed_data<value_type>(this->mtx_elm->get_compressed_data(),
+    this->assert_equal_to_original_mtx_ind(this->mtx_ind.get());
+    set_value_compressed_data<value_type>(this->mtx_ind->get_compressed_data(),
                                           2 + sizeof(value_type), 5.0);
-    this->assert_equal_to_original_mtx_elm(copy.get());
+    this->assert_equal_to_original_mtx_ind(copy.get());
 }
 
 
-TYPED_TEST(Bccoo, CanBeCopiedElmBlk)
+TYPED_TEST(Bccoo, CanBeCopiedIndGrp)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto copy = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_COPIED},
-                            compression::block);
+                            compression::group);
 
-    copy->copy_from(this->mtx_elm.get());
+    copy->copy_from(this->mtx_ind.get());
 
-    this->assert_equal_to_original_mtx_elm(this->mtx_elm.get());
-    set_value_compressed_data<value_type>(this->mtx_elm->get_compressed_data(),
+    this->assert_equal_to_original_mtx_ind(this->mtx_ind.get());
+    set_value_compressed_data<value_type>(this->mtx_ind->get_compressed_data(),
                                           2 + sizeof(value_type), 5.0);
-    this->assert_equal_to_original_mtx_blk(copy.get());
+    this->assert_equal_to_original_mtx_grp(copy.get());
 }
 
 
-TYPED_TEST(Bccoo, CanBeCopiedBlkElm)
+TYPED_TEST(Bccoo, CanBeCopiedGrpInd)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto copy = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_COPIED},
-                            compression::element);
+                            compression::individual);
 
-    copy->copy_from(this->mtx_blk.get());
+    copy->copy_from(this->mtx_grp.get());
 
-    this->assert_equal_to_original_mtx_blk(this->mtx_blk.get());
+    this->assert_equal_to_original_mtx_grp(this->mtx_grp.get());
     set_value_compressed_data<value_type>(
-        this->mtx_blk->get_compressed_data(),
-        this->mtx_blk->get_num_bytes() - sizeof(value_type), 5.0);
-    this->assert_equal_to_original_mtx_elm(copy.get());
+        this->mtx_grp->get_compressed_data(),
+        this->mtx_grp->get_num_bytes() - sizeof(value_type), 5.0);
+    this->assert_equal_to_original_mtx_ind(copy.get());
 }
 
 
-TYPED_TEST(Bccoo, CanBeCopiedBlkBlk)
+TYPED_TEST(Bccoo, CanBeCopiedGrpGrp)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto copy = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_COPIED},
-                            compression::block);
+                            compression::group);
 
-    copy->copy_from(this->mtx_blk.get());
+    copy->copy_from(this->mtx_grp.get());
 
-    this->assert_equal_to_original_mtx_blk(this->mtx_blk.get());
+    this->assert_equal_to_original_mtx_grp(this->mtx_grp.get());
     set_value_compressed_data<value_type>(
-        this->mtx_blk->get_compressed_data(),
-        this->mtx_blk->get_num_bytes() - sizeof(value_type), 5.0);
-    this->assert_equal_to_original_mtx_blk(copy.get());
+        this->mtx_grp->get_compressed_data(),
+        this->mtx_grp->get_num_bytes() - sizeof(value_type), 5.0);
+    this->assert_equal_to_original_mtx_grp(copy.get());
 }
 
 
-TYPED_TEST(Bccoo, CanBeMovedElm)
+TYPED_TEST(Bccoo, CanBeMovedInd)
 {
     using Mtx = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
     auto copy = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_COPIED},
-                            compression::element);
+                            compression::individual);
 
-    copy->move_from(this->mtx_elm);
+    copy->move_from(this->mtx_ind);
 
-    this->assert_equal_to_original_mtx_elm(copy.get());
+    this->assert_equal_to_original_mtx_ind(copy.get());
 }
 
 
-TYPED_TEST(Bccoo, CanBeMovedBlk)
+TYPED_TEST(Bccoo, CanBeMovedGrp)
 {
     using Mtx = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
     auto copy = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_COPIED},
-                            compression::block);
+                            compression::group);
 
-    copy->move_from(this->mtx_blk);
+    copy->move_from(this->mtx_grp);
 
-    this->assert_equal_to_original_mtx_blk(copy.get());
+    this->assert_equal_to_original_mtx_grp(copy.get());
 }
 
 
-TYPED_TEST(Bccoo, CanBeClonedElm)
+TYPED_TEST(Bccoo, CanBeClonedInd)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
 
-    auto clone = this->mtx_elm->clone();
+    auto clone = this->mtx_ind->clone();
 
-    this->assert_equal_to_original_mtx_elm(this->mtx_elm.get());
+    this->assert_equal_to_original_mtx_ind(this->mtx_ind.get());
 
-    set_value_compressed_data<value_type>(this->mtx_blk->get_compressed_data(),
+    set_value_compressed_data<value_type>(this->mtx_grp->get_compressed_data(),
                                           2 + sizeof(value_type), 5.0);
-    this->assert_equal_to_original_mtx_elm(dynamic_cast<Mtx*>(clone.get()));
+    this->assert_equal_to_original_mtx_ind(dynamic_cast<Mtx*>(clone.get()));
 }
 
 
-TYPED_TEST(Bccoo, CanBeClonedBlk)
+TYPED_TEST(Bccoo, CanBeClonedGrp)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
-    auto clone = this->mtx_blk->clone();
+    auto clone = this->mtx_grp->clone();
 
-    this->assert_equal_to_original_mtx_blk(this->mtx_blk.get());
+    this->assert_equal_to_original_mtx_grp(this->mtx_grp.get());
 
     set_value_compressed_data<value_type>(
-        this->mtx_blk->get_compressed_data(),
-        this->mtx_blk->get_num_bytes() - sizeof(value_type), 5.0);
-    this->assert_equal_to_original_mtx_blk(dynamic_cast<Mtx*>(clone.get()));
+        this->mtx_grp->get_compressed_data(),
+        this->mtx_grp->get_num_bytes() - sizeof(value_type), 5.0);
+    this->assert_equal_to_original_mtx_grp(dynamic_cast<Mtx*>(clone.get()));
 }
 
 
-TYPED_TEST(Bccoo, CanBeClearedElm)
+TYPED_TEST(Bccoo, CanBeClearedInd)
 {
-    this->mtx_elm->clear();
+    this->mtx_ind->clear();
 
-    this->assert_empty(this->mtx_elm.get());
+    this->assert_empty(this->mtx_ind.get());
 }
 
 
-TYPED_TEST(Bccoo, CanBeClearedBlk)
+TYPED_TEST(Bccoo, CanBeClearedGrp)
 {
-    this->mtx_blk->clear();
+    this->mtx_grp->clear();
 
-    this->assert_empty(this->mtx_blk.get());
+    this->assert_empty(this->mtx_grp.get());
 }
 
 
-TYPED_TEST(Bccoo, CanBeReadFromMatrixDataElm)
+TYPED_TEST(Bccoo, CanBeReadFromMatrixDataInd)
 {
     using Mtx = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
     auto m = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_TESTED},
-                         compression::element);
+                         compression::individual);
 
     m->read({{2, 3},
              {
@@ -681,16 +682,16 @@ TYPED_TEST(Bccoo, CanBeReadFromMatrixDataElm)
                  {1, 1, 5.0},
              }});
 
-    this->assert_equal_to_original_mtx_elm(m.get());
+    this->assert_equal_to_original_mtx_ind(m.get());
 }
 
 
-TYPED_TEST(Bccoo, CanBeReadFromMatrixDataBlk)
+TYPED_TEST(Bccoo, CanBeReadFromMatrixDataGrp)
 {
     using Mtx = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
     auto m = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_TESTED},
-                         compression::block);
+                         compression::group);
 
     m->read({{2, 3},
              {
@@ -700,17 +701,17 @@ TYPED_TEST(Bccoo, CanBeReadFromMatrixDataBlk)
                  {1, 1, 5.0},
              }});
 
-    this->assert_equal_to_original_mtx_blk(m.get());
+    this->assert_equal_to_original_mtx_grp(m.get());
 }
 
 
-TYPED_TEST(Bccoo, CanBeReadFromMatrixAssemblyDataElm)
+TYPED_TEST(Bccoo, CanBeReadFromMatrixAssemblyDataInd)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto m = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_TESTED},
-                         compression::element);
+                         compression::individual);
     gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
@@ -719,17 +720,17 @@ TYPED_TEST(Bccoo, CanBeReadFromMatrixAssemblyDataElm)
 
     m->read(data);
 
-    this->assert_equal_to_original_mtx_elm(m.get());
+    this->assert_equal_to_original_mtx_ind(m.get());
 }
 
 
-TYPED_TEST(Bccoo, CanBeReadFromMatrixAssemblyDataBlk)
+TYPED_TEST(Bccoo, CanBeReadFromMatrixAssemblyDataGrp)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto m = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_TESTED},
-                         compression::block);
+                         compression::group);
     gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
@@ -738,11 +739,11 @@ TYPED_TEST(Bccoo, CanBeReadFromMatrixAssemblyDataBlk)
 
     m->read(data);
 
-    this->assert_equal_to_original_mtx_blk(m.get());
+    this->assert_equal_to_original_mtx_grp(m.get());
 }
 
 
-TYPED_TEST(Bccoo, GeneratesCorrectMatrixDataElm)
+TYPED_TEST(Bccoo, GeneratesCorrectMatrixDataInd)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -750,7 +751,7 @@ TYPED_TEST(Bccoo, GeneratesCorrectMatrixDataElm)
     using tpl = typename gko::matrix_data<value_type, index_type>::nonzero_type;
     gko::matrix_data<value_type, index_type> data;
 
-    this->mtx_elm->write(data);
+    this->mtx_ind->write(data);
 
     ASSERT_EQ(data.size, gko::dim<2>(2, 3));
     ASSERT_EQ(data.nonzeros.size(), 4);
@@ -761,7 +762,7 @@ TYPED_TEST(Bccoo, GeneratesCorrectMatrixDataElm)
 }
 
 
-TYPED_TEST(Bccoo, GeneratesCorrectMatrixDataBlk)
+TYPED_TEST(Bccoo, GeneratesCorrectMatrixDataGrp)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -769,7 +770,7 @@ TYPED_TEST(Bccoo, GeneratesCorrectMatrixDataBlk)
     using tpl = typename gko::matrix_data<value_type, index_type>::nonzero_type;
     gko::matrix_data<value_type, index_type> data;
 
-    this->mtx_blk->write(data);
+    this->mtx_grp->write(data);
 
     ASSERT_EQ(data.size, gko::dim<2>(2, 3));
     ASSERT_EQ(data.nonzeros.size(), 4);

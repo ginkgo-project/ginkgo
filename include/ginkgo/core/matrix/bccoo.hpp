@@ -63,7 +63,7 @@ class Dense;
 namespace bccoo {
 
 
-enum class compression { def_value, element, block };
+enum class compression { def_value, individual, group };
 
 
 }
@@ -71,15 +71,15 @@ enum class compression { def_value, element, block };
 
 /**
  * BCCOO is a matrix format which only stores nonzero coeffficients
- * using an element or block compression.
+ * using an individual or group compression.
  *
  * In both cases, the object stores blocks of consecutive elements.
- * The use of element compression allows that a specific compression
+ * The use of individual compression allows that a specific compression
  * criteria was applied to each element of a block, whereas
- * the block compression forces that all elements in a block use
+ * the group compression forces that all elements in a block use
  * the same criteria, which can lead to a lower compression ratio.
  *
- * In the element compression, the elements are sorted first by row
+ * In the individual compression, the elements are sorted first by row
  * and then column indexes. Then, tuples of (lev_compress, column, value)
  * are stored in a 1D array of bytes. For each tuple, lev_compress
  * determinates how the colums indexes will be stored, directly or
@@ -91,21 +91,21 @@ enum class compression { def_value, element, block };
  * whereas the second one indicates the row index of the first tuple
  * in the block.
  *
- * In the block compression, the elements are also sorted by row
+ * In the group compression, the elements are also sorted by row
  * and column indexes, but in this case, the 1D array of bytes contains
  * up to three vectors, whose size is equal to the block size, related,
  * respectively, to the row indices, column indices and values. The row
  * index vector is ommited if all elements of the block are in the same row.
  * Both types of indices always refer to the difference to the corresponding
  * minimum index in the block, which are stored in other 1D vectors.
- * The row indexes always occupy 1 byte, whereas different compression
+ * The row indexes can occupy 1 or 2 bytes, whereas more compression
  * alternatives can be used for the column indices.
- * In fact, there are four additional vectors joint with the 1D array of bytes,
+ * Moreover, there are four additional vectors joint with the 1D array of bytes,
  * containing, respectively, the starting point of each block in the array of
  * bytes, the minimum of the row indexes in the block, the mininum of the column
  * indexes in the block, and one byte per block including its main features,
- * such as if it is s multirow block and the compression level of the column
- * indices.
+ * such as if it is s multirow block and the compression level of the row and
+ * column indices.
  *
  * Read the next papers for more details:
  *   https://doi.org/10.1007/978-3-030-71593-9_7
@@ -220,10 +220,10 @@ public:
 
     /**
      * Returns the minimum col indices of the first element of each block.
-     * Only for block compression.
+     * Only for group compression.
      *
      * @return the minimum col indices of the first element of each block.
-     * Only for block compression.
+     * Only for group compression.
      */
     index_type* get_start_cols() noexcept { return start_cols_.get_data(); }
 
@@ -240,11 +240,11 @@ public:
     }
 
     /**
-     * Returns the type indices of the first element of each block.
-     * Only for block compression.
+     * Returns a vector of bytes describing the compression features of
+     * each block. Only for group compression.
      *
-     * @return the type indices of the first element of each block.
-     * Only for block compression.
+     * @return a vector of bytes describing the compression features of
+     * each block. Only for group compression.
      */
     uint8* get_compression_types() noexcept
     {
@@ -347,9 +347,9 @@ public:
     }
 
     /**
-     * Returns the compression used in the definition of the matrix.
+     * Returns the compression variant used in the definition of the matrix.
      *
-     * @return the compression used in the definition of the matrix.
+     * @return the compression variant used in the definition of the matrix.
      */
     bccoo::compression get_compression() const noexcept { return compression_; }
 
@@ -364,23 +364,23 @@ public:
     }
 
     /**
-     * Returns if the element compression is used
+     * Returns if the individual compression is used
      *
-     * @returns if the element compression is used
+     * @returns if the individual compression is used
      */
-    bool use_element_compression() const noexcept
+    bool use_individual_compression() const noexcept
     {
-        return compression_ == bccoo::compression::element;
+        return compression_ == bccoo::compression::individual;
     }
 
     /**
-     * Returns if the block compression is used
+     * Returns if the group compression is used
      *
-     * @returns if the block compression is used
+     * @returns if the group compression is used
      */
-    bool use_block_compression() const noexcept
+    bool use_group_compression() const noexcept
     {
-        return compression_ == bccoo::compression::block;
+        return compression_ == bccoo::compression::group;
     }
 
     /**
@@ -512,12 +512,12 @@ protected:
         : EnableLinOp<Bccoo>(exec, size),
           start_rows_(
               exec, (block_size == 0) ? 0 : ceildiv(num_nonzeros, block_size)),
-          start_cols_(exec, ((compression == bccoo::compression::element) ||
+          start_cols_(exec, ((compression == bccoo::compression::individual) ||
                              (block_size == 0))
                                 ? 0
                                 : ceildiv(num_nonzeros, block_size)),
           compression_types_(exec,
-                             ((compression == bccoo::compression::element) ||
+                             ((compression == bccoo::compression::individual) ||
                               (block_size == 0))
                                  ? 0
                                  : ceildiv(num_nonzeros, block_size)),
@@ -528,29 +528,31 @@ protected:
           num_nonzeros_{num_nonzeros},
           block_size_{block_size},
           compression_{compression}
-    {}
+    {
+        GKO_ASSERT(compression != bccoo::compression::def_value);
+    }
 
     /**
-     * Creates an element compression variant of the BCCOO matrix from
+     * Creates an individual compression variant of the BCCOO matrix from
      * already allocated (and initialized) start_rows, block_offsets and
      * compressed_data arrays.
      *
      * @param exec  executor associated to the matrix
      * @param size  size of the matrix
      * @param compressed_data  array of matrix indexes and matrix values
-     * @param block_offsets array of positions of the first entry of each
-     *														block
+     * @param block_offsets  array of positions of the first entry of each
+     *												block
      *in compressed_data array
      * @param start_rows  array of row index of the first entry of each block in
      *              compressed_data array
-     * @param num_nonzeros    number of nonzeros
-     * @param block_size      number of nonzeros in each block
+     * @param num_nonzeros  number of nonzeros
+     * @param block_size  number of nonzeros in each block
      *
      * @note If one of `compressed_data`, `block_offsets` or `start_rows` is not
      *			 an rvalue, not an array of uint8, IndexType or
-     *IndexType, respectively, or is on the wrong executor, an internal copy of
-     *that array will be created, and the original array compressed_data will
-     *not be used in the matrix.
+     *			 IndexType, respectively, or is on the wrong executor,
+     *an internal copy of that array will be created, and the original array
+     * 			 compressed_data will not be used in the matrix.
      */
     Bccoo(std::shared_ptr<const Executor> exec, const dim<2>& size,
           array<uint8> compressed_data, array<size_type> block_offsets,
@@ -562,36 +564,38 @@ protected:
           start_rows_{exec, std::move(start_rows)},
           num_nonzeros_{num_nonzeros},
           block_size_{block_size},
-          compression_{bccoo::compression::element}
+          compression_{bccoo::compression::individual}
     {
         GKO_ASSERT_EQ(start_rows_.get_num_elems() + 1,
                       block_offsets_.get_num_elems());
     }
 
     /**
-     * Creates a block compression variant of the BCCOO matrix from already
+     * Creates a group compression variant of the BCCOO matrix from already
      * allocated (and initialized) start_rows, start_cols, compression_types,
      * block_offsets and compressed_data arrays.
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
-     * @param compressed_data   array of matrix indexes and matrix values
+     * @param compressed_data  array of matrix indexes and matrix values
      * @param block_offsets array of positions of the first entry of each block
-     * in compressed_data array
-     * @param compression_types   array of compression type for each block in
-     *                compressed_data array
-     * @param start_cols    array of minimum column indices for each block in
-     *                compressed_data array
-     * @param start_rows    array of minimum row indices for each block in
-     *                compressed_data array
+     * 												in
+     * compressed_data array
+     * @param compression_types  array of compression type for each block in
+     *                						compressed_data
+     * array
+     * @param start_cols  array of minimum column indices for each block in
+     *                			compressed_data array
+     * @param start_rows  array of minimum row indices for each block in
+     *                			compressed_data array
      * @param num_nonzeros  number of nonzeros
-     * @param block_size    number of nonzeros in each block
+     * @param block_size  number of nonzeros in each block
      *
      * @note If one of `compressed_data`, `block_offsets`, `compression_types`,
      *       `start_cols` or `start_rows` is not an rvalue, not an array of
-     * uint8, IndexType, uint8, IndexType or IndexType, respectively, or is on
-     * the wrong executor, an internal copy of that array will be created, and
-     * the original array will not be used in the matrix.
+     * 			 uint8, IndexType, uint8, IndexType or IndexType,
+     * respectively, or is on the wrong executor, an internal copy of that array
+     * will be created, and the original array will not be used in the matrix.
      */
     Bccoo(std::shared_ptr<const Executor> exec, const dim<2>& size,
           array<uint8> compressed_data, array<size_type> block_offsets,
@@ -606,7 +610,7 @@ protected:
           start_rows_{exec, std::move(start_rows)},
           num_nonzeros_{num_nonzeros},
           block_size_{block_size},
-          compression_{bccoo::compression::block}
+          compression_{bccoo::compression::group}
     {
         GKO_ASSERT_EQ(start_rows_.get_num_elems() + 1,
                       block_offsets_.get_num_elems());

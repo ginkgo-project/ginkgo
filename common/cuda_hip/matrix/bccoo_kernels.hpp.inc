@@ -86,60 +86,60 @@ __device__ void spmv_kernel(const IndexType nnz, const IndexType num_blks,
         IndexType block_size_local =
             std::min(block_size, nnz - block_size * blk);
         compr_idxs<IndexType> idxs(blk, block_offsets[blk], start_rows[blk]);
-        compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
+        compr_grp_idxs<IndexType> grp_idxs(start_rows, start_cols,
                                            block_size_local, idxs,
                                            compression_types[blk]);
-        if (blk_idxs.is_multi_row()) {
-            if (blk_idxs.is_row_16bits()) {
-                if (blk_idxs.is_column_8bits()) {
-                    loop_block_multi_row_spmv<uint16, uint8, IndexType>(
+        if (grp_idxs.is_multi_row()) {
+            if (grp_idxs.is_row_16bits()) {
+                if (grp_idxs.is_column_8bits()) {
+                    loop_group_multi_row_spmv<uint16, uint8, IndexType>(
                         compressed_data, block_size_local, b, b_stride,
-                        column_id, c, c_stride, idxs, blk_idxs, start_in_blk,
+                        column_id, c, c_stride, idxs, grp_idxs, start_in_blk,
                         jump_in_blk, scale);
-                } else if (blk_idxs.is_column_16bits()) {
-                    loop_block_multi_row_spmv<uint16, uint16, IndexType>(
+                } else if (grp_idxs.is_column_16bits()) {
+                    loop_group_multi_row_spmv<uint16, uint16, IndexType>(
                         compressed_data, block_size_local, b, b_stride,
-                        column_id, c, c_stride, idxs, blk_idxs, start_in_blk,
+                        column_id, c, c_stride, idxs, grp_idxs, start_in_blk,
                         jump_in_blk, scale);
                 } else {
-                    loop_block_multi_row_spmv<uint16, uint32, IndexType>(
+                    loop_group_multi_row_spmv<uint16, uint32, IndexType>(
                         compressed_data, block_size_local, b, b_stride,
-                        column_id, c, c_stride, idxs, blk_idxs, start_in_blk,
+                        column_id, c, c_stride, idxs, grp_idxs, start_in_blk,
                         jump_in_blk, scale);
                 }
             } else {
-                if (blk_idxs.is_column_8bits()) {
-                    loop_block_multi_row_spmv<uint8, uint8, IndexType>(
+                if (grp_idxs.is_column_8bits()) {
+                    loop_group_multi_row_spmv<uint8, uint8, IndexType>(
                         compressed_data, block_size_local, b, b_stride,
-                        column_id, c, c_stride, idxs, blk_idxs, start_in_blk,
+                        column_id, c, c_stride, idxs, grp_idxs, start_in_blk,
                         jump_in_blk, scale);
-                } else if (blk_idxs.is_column_16bits()) {
-                    loop_block_multi_row_spmv<uint8, uint16, IndexType>(
+                } else if (grp_idxs.is_column_16bits()) {
+                    loop_group_multi_row_spmv<uint8, uint16, IndexType>(
                         compressed_data, block_size_local, b, b_stride,
-                        column_id, c, c_stride, idxs, blk_idxs, start_in_blk,
+                        column_id, c, c_stride, idxs, grp_idxs, start_in_blk,
                         jump_in_blk, scale);
                 } else {
-                    loop_block_multi_row_spmv<uint8, uint32, IndexType>(
+                    loop_group_multi_row_spmv<uint8, uint32, IndexType>(
                         compressed_data, block_size_local, b, b_stride,
-                        column_id, c, c_stride, idxs, blk_idxs, start_in_blk,
+                        column_id, c, c_stride, idxs, grp_idxs, start_in_blk,
                         jump_in_blk, scale);
                 }
             }
         } else {
-            if (blk_idxs.is_column_8bits()) {
-                loop_block_single_row_spmv<uint8>(
+            if (grp_idxs.is_column_8bits()) {
+                loop_group_single_row_spmv<uint8>(
                     compressed_data, block_size_local, b, b_stride, column_id,
-                    c, c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
+                    c, c_stride, idxs, grp_idxs, start_in_blk, jump_in_blk,
                     scale);
-            } else if (blk_idxs.is_column_16bits()) {
-                loop_block_single_row_spmv<uint16>(
+            } else if (grp_idxs.is_column_16bits()) {
+                loop_group_single_row_spmv<uint16>(
                     compressed_data, block_size_local, b, b_stride, column_id,
-                    c, c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
+                    c, c_stride, idxs, grp_idxs, start_in_blk, jump_in_blk,
                     scale);
             } else {
-                loop_block_single_row_spmv<uint32>(
+                loop_group_single_row_spmv<uint32>(
                     compressed_data, block_size_local, b, b_stride, column_id,
-                    c, c_stride, idxs, blk_idxs, start_in_blk, jump_in_blk,
+                    c, c_stride, idxs, grp_idxs, start_in_blk, jump_in_blk,
                     scale);
             }
         }
@@ -218,50 +218,50 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_extract(
         IndexType block_size_local =
             std::min(block_size, nnz - block_size * blk);
         compr_idxs<IndexType> idxs(blk, block_offsets[blk]);
-        compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
+        compr_grp_idxs<IndexType> grp_idxs(start_rows, start_cols,
                                            block_size_local, idxs,
                                            compression_types[blk]);
-        if (blk_idxs.is_multi_row()) {
-            if (blk_idxs.is_row_16bits()) {
-                if (blk_idxs.is_column_8bits()) {
-                    loop_block_multi_row_extract<uint16, uint8>(
-                        compressed_data, blk_idxs, start_in_blk, jump_in_blk,
+        if (grp_idxs.is_multi_row()) {
+            if (grp_idxs.is_row_16bits()) {
+                if (grp_idxs.is_column_8bits()) {
+                    loop_group_multi_row_extract<uint16, uint8>(
+                        compressed_data, grp_idxs, start_in_blk, jump_in_blk,
                         block_size_local, diag);
-                } else if (blk_idxs.is_column_16bits()) {
-                    loop_block_multi_row_extract<uint16, uint16>(
-                        compressed_data, blk_idxs, start_in_blk, jump_in_blk,
+                } else if (grp_idxs.is_column_16bits()) {
+                    loop_group_multi_row_extract<uint16, uint16>(
+                        compressed_data, grp_idxs, start_in_blk, jump_in_blk,
                         block_size_local, diag);
                 } else {
-                    loop_block_multi_row_extract<uint16, uint32>(
-                        compressed_data, blk_idxs, start_in_blk, jump_in_blk,
+                    loop_group_multi_row_extract<uint16, uint32>(
+                        compressed_data, grp_idxs, start_in_blk, jump_in_blk,
                         block_size_local, diag);
                 }
             } else {
-                if (blk_idxs.is_column_8bits()) {
-                    loop_block_multi_row_extract<uint8, uint8>(
-                        compressed_data, blk_idxs, start_in_blk, jump_in_blk,
+                if (grp_idxs.is_column_8bits()) {
+                    loop_group_multi_row_extract<uint8, uint8>(
+                        compressed_data, grp_idxs, start_in_blk, jump_in_blk,
                         block_size_local, diag);
-                } else if (blk_idxs.is_column_16bits()) {
-                    loop_block_multi_row_extract<uint8, uint16>(
-                        compressed_data, blk_idxs, start_in_blk, jump_in_blk,
+                } else if (grp_idxs.is_column_16bits()) {
+                    loop_group_multi_row_extract<uint8, uint16>(
+                        compressed_data, grp_idxs, start_in_blk, jump_in_blk,
                         block_size_local, diag);
                 } else {
-                    loop_block_multi_row_extract<uint8, uint32>(
-                        compressed_data, blk_idxs, start_in_blk, jump_in_blk,
+                    loop_group_multi_row_extract<uint8, uint32>(
+                        compressed_data, grp_idxs, start_in_blk, jump_in_blk,
                         block_size_local, diag);
                 }
             }
         } else {
-            if (blk_idxs.is_column_8bits()) {
-                loop_block_single_row_extract<uint8>(compressed_data, blk_idxs,
+            if (grp_idxs.is_column_8bits()) {
+                loop_group_single_row_extract<uint8>(compressed_data, grp_idxs,
                                                      start_in_blk, jump_in_blk,
                                                      block_size_local, diag);
-            } else if (blk_idxs.is_column_16bits()) {
-                loop_block_single_row_extract<uint16>(compressed_data, blk_idxs,
+            } else if (grp_idxs.is_column_16bits()) {
+                loop_group_single_row_extract<uint16>(compressed_data, grp_idxs,
                                                       start_in_blk, jump_in_blk,
                                                       block_size_local, diag);
             } else {
-                loop_block_single_row_extract<uint32>(compressed_data, blk_idxs,
+                loop_group_single_row_extract<uint32>(compressed_data, grp_idxs,
                                                       start_in_blk, jump_in_blk,
                                                       block_size_local, diag);
             }
@@ -308,11 +308,11 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_absolute_inplace(
         IndexType block_size_local =
             std::min(block_size, nnz - block_size * blk);
         compr_idxs<IndexType> idxs(blk, block_offsets[blk]);
-        compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
+        compr_grp_idxs<IndexType> grp_idxs(start_rows, start_cols,
                                            block_size_local, idxs,
                                            compression_types[blk]);
-        loop_block_absolute<IndexType, ValueType>(
-            compressed_data, blk_idxs, start_in_blk, jump_in_blk,
+        loop_group_absolute<IndexType, ValueType>(
+            compressed_data, grp_idxs, start_in_blk, jump_in_blk,
             block_size_local, [](ValueType x) { return abs(x); });
     }
 }
@@ -383,7 +383,7 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_absolute(
             std::min(block_size, nnz - block_size * blk);
 
         compr_idxs<IndexType> idxs_src(blk, block_offsets_src[blk]);
-        compr_blk_idxs<IndexType> blk_idxs_src(start_rows_src, start_cols_src,
+        compr_grp_idxs<IndexType> grp_idxs_src(start_rows_src, start_cols_src,
                                                block_size_local, idxs_src,
                                                compression_types_src[blk]);
 
@@ -398,81 +398,81 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_absolute(
                        (sizeof(ValueType) - sizeof(remove_complex<ValueType>)));
 
         compr_idxs<IndexType> idxs_res(blk, block_offsets_res_blk);
-        compr_blk_idxs<IndexType> blk_idxs_res(start_rows_res, start_cols_res,
+        compr_grp_idxs<IndexType> grp_idxs_res(start_rows_res, start_cols_res,
                                                block_size_local, idxs_res,
                                                compression_types_res[blk]);
         if (start_in_blk == 0) {
             block_offsets_res[blk + 1] =
-                blk_idxs_res.shf_val +
+                grp_idxs_res.shf_val +
                 block_size_local * sizeof(remove_complex<ValueType>);
         }
-        if (blk_idxs_src.is_multi_row()) {
-            if (blk_idxs_src.is_row_16bits()) {
-                if (blk_idxs_src.is_column_8bits()) {
-                    loop_block_multi_row_absolute<uint16, uint8, IndexType,
+        if (grp_idxs_src.is_multi_row()) {
+            if (grp_idxs_src.is_row_16bits()) {
+                if (grp_idxs_src.is_column_8bits()) {
+                    loop_group_multi_row_absolute<uint16, uint8, IndexType,
                                                   ValueType,
                                                   remove_complex<ValueType>>(
-                        compressed_data_src, blk_idxs_src, start_in_blk,
+                        compressed_data_src, grp_idxs_src, start_in_blk,
                         jump_in_blk, block_size_local, compressed_data_res,
-                        blk_idxs_res, comp_abs);
-                } else if (blk_idxs_src.is_column_16bits()) {
-                    loop_block_multi_row_absolute<uint16, uint16, IndexType,
+                        grp_idxs_res, comp_abs);
+                } else if (grp_idxs_src.is_column_16bits()) {
+                    loop_group_multi_row_absolute<uint16, uint16, IndexType,
                                                   ValueType,
                                                   remove_complex<ValueType>>(
-                        compressed_data_src, blk_idxs_src, start_in_blk,
+                        compressed_data_src, grp_idxs_src, start_in_blk,
                         jump_in_blk, block_size_local, compressed_data_res,
-                        blk_idxs_res, comp_abs);
+                        grp_idxs_res, comp_abs);
                 } else {
-                    loop_block_multi_row_absolute<uint16, uint32, IndexType,
+                    loop_group_multi_row_absolute<uint16, uint32, IndexType,
                                                   ValueType,
                                                   remove_complex<ValueType>>(
-                        compressed_data_src, blk_idxs_src, start_in_blk,
+                        compressed_data_src, grp_idxs_src, start_in_blk,
                         jump_in_blk, block_size_local, compressed_data_res,
-                        blk_idxs_res, comp_abs);
+                        grp_idxs_res, comp_abs);
                 }
             } else {
-                if (blk_idxs_src.is_column_8bits()) {
-                    loop_block_multi_row_absolute<uint8, uint8, IndexType,
+                if (grp_idxs_src.is_column_8bits()) {
+                    loop_group_multi_row_absolute<uint8, uint8, IndexType,
                                                   ValueType,
                                                   remove_complex<ValueType>>(
-                        compressed_data_src, blk_idxs_src, start_in_blk,
+                        compressed_data_src, grp_idxs_src, start_in_blk,
                         jump_in_blk, block_size_local, compressed_data_res,
-                        blk_idxs_res, comp_abs);
-                } else if (blk_idxs_src.is_column_16bits()) {
-                    loop_block_multi_row_absolute<uint8, uint16, IndexType,
+                        grp_idxs_res, comp_abs);
+                } else if (grp_idxs_src.is_column_16bits()) {
+                    loop_group_multi_row_absolute<uint8, uint16, IndexType,
                                                   ValueType,
                                                   remove_complex<ValueType>>(
-                        compressed_data_src, blk_idxs_src, start_in_blk,
+                        compressed_data_src, grp_idxs_src, start_in_blk,
                         jump_in_blk, block_size_local, compressed_data_res,
-                        blk_idxs_res, comp_abs);
+                        grp_idxs_res, comp_abs);
                 } else {
-                    loop_block_multi_row_absolute<uint8, uint32, IndexType,
+                    loop_group_multi_row_absolute<uint8, uint32, IndexType,
                                                   ValueType,
                                                   remove_complex<ValueType>>(
-                        compressed_data_src, blk_idxs_src, start_in_blk,
+                        compressed_data_src, grp_idxs_src, start_in_blk,
                         jump_in_blk, block_size_local, compressed_data_res,
-                        blk_idxs_res, comp_abs);
+                        grp_idxs_res, comp_abs);
                 }
             }
         } else {
-            if (blk_idxs_src.is_column_8bits()) {
-                loop_block_single_row_absolute<uint8, IndexType, ValueType,
+            if (grp_idxs_src.is_column_8bits()) {
+                loop_group_single_row_absolute<uint8, IndexType, ValueType,
                                                remove_complex<ValueType>>(
-                    compressed_data_src, blk_idxs_src, start_in_blk,
+                    compressed_data_src, grp_idxs_src, start_in_blk,
                     jump_in_blk, block_size_local, compressed_data_res,
-                    blk_idxs_res, comp_abs);
-            } else if (blk_idxs_src.is_column_16bits()) {
-                loop_block_single_row_absolute<uint16, IndexType, ValueType,
+                    grp_idxs_res, comp_abs);
+            } else if (grp_idxs_src.is_column_16bits()) {
+                loop_group_single_row_absolute<uint16, IndexType, ValueType,
                                                remove_complex<ValueType>>(
-                    compressed_data_src, blk_idxs_src, start_in_blk,
+                    compressed_data_src, grp_idxs_src, start_in_blk,
                     jump_in_blk, block_size_local, compressed_data_res,
-                    blk_idxs_res, comp_abs);
+                    grp_idxs_res, comp_abs);
             } else {
-                loop_block_single_row_absolute<uint32, IndexType, ValueType,
+                loop_group_single_row_absolute<uint32, IndexType, ValueType,
                                                remove_complex<ValueType>>(
-                    compressed_data_src, blk_idxs_src, start_in_blk,
+                    compressed_data_src, grp_idxs_src, start_in_blk,
                     jump_in_blk, block_size_local, compressed_data_res,
-                    blk_idxs_res, comp_abs);
+                    grp_idxs_res, comp_abs);
             }
         }
     }
@@ -519,57 +519,57 @@ __global__ __launch_bounds__(default_block_size) void abstract_fill_in_coo(
         IndexType block_size_local =
             std::min(block_size, nnz - block_size * blk);
         compr_idxs<IndexType> idxs(blk, block_offsets[blk]);
-        compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
+        compr_grp_idxs<IndexType> grp_idxs(start_rows, start_cols,
                                            block_size_local, idxs,
                                            compression_types[blk]);
-        if (blk_idxs.is_multi_row()) {
-            if (blk_idxs.is_row_16bits()) {
-                if (blk_idxs.is_column_8bits()) {
-                    loop_block_multi_row_fill_in_coo<uint16, uint8>(
-                        compressed_data, blk, blk_idxs, start_in_blk,
+        if (grp_idxs.is_multi_row()) {
+            if (grp_idxs.is_row_16bits()) {
+                if (grp_idxs.is_column_8bits()) {
+                    loop_group_multi_row_fill_in_coo<uint16, uint8>(
+                        compressed_data, blk, grp_idxs, start_in_blk,
                         jump_in_blk, block_size, block_size_local, rows_idxs,
                         cols_idxs, values);
-                } else if (blk_idxs.is_column_16bits()) {
-                    loop_block_multi_row_fill_in_coo<uint16, uint16>(
-                        compressed_data, blk, blk_idxs, start_in_blk,
+                } else if (grp_idxs.is_column_16bits()) {
+                    loop_group_multi_row_fill_in_coo<uint16, uint16>(
+                        compressed_data, blk, grp_idxs, start_in_blk,
                         jump_in_blk, block_size, block_size_local, rows_idxs,
                         cols_idxs, values);
                 } else {
-                    loop_block_multi_row_fill_in_coo<uint16, uint32>(
-                        compressed_data, blk, blk_idxs, start_in_blk,
+                    loop_group_multi_row_fill_in_coo<uint16, uint32>(
+                        compressed_data, blk, grp_idxs, start_in_blk,
                         jump_in_blk, block_size, block_size_local, rows_idxs,
                         cols_idxs, values);
                 }
             } else {
-                if (blk_idxs.is_column_8bits()) {
-                    loop_block_multi_row_fill_in_coo<uint8, uint8>(
-                        compressed_data, blk, blk_idxs, start_in_blk,
+                if (grp_idxs.is_column_8bits()) {
+                    loop_group_multi_row_fill_in_coo<uint8, uint8>(
+                        compressed_data, blk, grp_idxs, start_in_blk,
                         jump_in_blk, block_size, block_size_local, rows_idxs,
                         cols_idxs, values);
-                } else if (blk_idxs.is_column_16bits()) {
-                    loop_block_multi_row_fill_in_coo<uint8, uint16>(
-                        compressed_data, blk, blk_idxs, start_in_blk,
+                } else if (grp_idxs.is_column_16bits()) {
+                    loop_group_multi_row_fill_in_coo<uint8, uint16>(
+                        compressed_data, blk, grp_idxs, start_in_blk,
                         jump_in_blk, block_size, block_size_local, rows_idxs,
                         cols_idxs, values);
                 } else {
-                    loop_block_multi_row_fill_in_coo<uint8, uint32>(
-                        compressed_data, blk, blk_idxs, start_in_blk,
+                    loop_group_multi_row_fill_in_coo<uint8, uint32>(
+                        compressed_data, blk, grp_idxs, start_in_blk,
                         jump_in_blk, block_size, block_size_local, rows_idxs,
                         cols_idxs, values);
                 }
             }
         } else {
-            if (blk_idxs.is_column_8bits()) {
-                loop_block_single_row_fill_in_coo<uint8>(
-                    compressed_data, blk, blk_idxs, start_in_blk, jump_in_blk,
+            if (grp_idxs.is_column_8bits()) {
+                loop_group_single_row_fill_in_coo<uint8>(
+                    compressed_data, blk, grp_idxs, start_in_blk, jump_in_blk,
                     block_size, block_size_local, rows_idxs, cols_idxs, values);
-            } else if (blk_idxs.is_column_16bits()) {
-                loop_block_single_row_fill_in_coo<uint16>(
-                    compressed_data, blk, blk_idxs, start_in_blk, jump_in_blk,
+            } else if (grp_idxs.is_column_16bits()) {
+                loop_group_single_row_fill_in_coo<uint16>(
+                    compressed_data, blk, grp_idxs, start_in_blk, jump_in_blk,
                     block_size, block_size_local, rows_idxs, cols_idxs, values);
             } else {
-                loop_block_single_row_fill_in_coo<uint32>(
-                    compressed_data, blk, blk_idxs, start_in_blk, jump_in_blk,
+                loop_group_single_row_fill_in_coo<uint32>(
+                    compressed_data, blk, grp_idxs, start_in_blk, jump_in_blk,
                     block_size, block_size_local, rows_idxs, cols_idxs, values);
             }
         }
@@ -617,51 +617,51 @@ __global__ __launch_bounds__(default_block_size) void abstract_fill_in_dense(
         IndexType block_size_local =
             std::min(block_size, nnz - block_size * blk);
         compr_idxs<IndexType> idxs(blk, block_offsets[blk]);
-        compr_blk_idxs<IndexType> blk_idxs(start_rows, start_cols,
+        compr_grp_idxs<IndexType> grp_idxs(start_rows, start_cols,
                                            block_size_local, idxs,
                                            compression_types[blk]);
-        if (blk_idxs.is_multi_row()) {
-            if (blk_idxs.is_row_16bits()) {
-                if (blk_idxs.is_column_8bits()) {
-                    loop_block_multi_row_fill_in_dense<uint16, uint8>(
-                        compressed_data, blk_idxs, start_in_blk, jump_in_blk,
+        if (grp_idxs.is_multi_row()) {
+            if (grp_idxs.is_row_16bits()) {
+                if (grp_idxs.is_column_8bits()) {
+                    loop_group_multi_row_fill_in_dense<uint16, uint8>(
+                        compressed_data, grp_idxs, start_in_blk, jump_in_blk,
                         block_size_local, stride, result);
-                } else if (blk_idxs.is_column_16bits()) {
-                    loop_block_multi_row_fill_in_dense<uint16, uint16>(
-                        compressed_data, blk_idxs, start_in_blk, jump_in_blk,
+                } else if (grp_idxs.is_column_16bits()) {
+                    loop_group_multi_row_fill_in_dense<uint16, uint16>(
+                        compressed_data, grp_idxs, start_in_blk, jump_in_blk,
                         block_size_local, stride, result);
                 } else {
-                    loop_block_multi_row_fill_in_dense<uint16, uint32>(
-                        compressed_data, blk_idxs, start_in_blk, jump_in_blk,
+                    loop_group_multi_row_fill_in_dense<uint16, uint32>(
+                        compressed_data, grp_idxs, start_in_blk, jump_in_blk,
                         block_size_local, stride, result);
                 }
             } else {
-                if (blk_idxs.is_column_8bits()) {
-                    loop_block_multi_row_fill_in_dense<uint8, uint8>(
-                        compressed_data, blk_idxs, start_in_blk, jump_in_blk,
+                if (grp_idxs.is_column_8bits()) {
+                    loop_group_multi_row_fill_in_dense<uint8, uint8>(
+                        compressed_data, grp_idxs, start_in_blk, jump_in_blk,
                         block_size_local, stride, result);
-                } else if (blk_idxs.is_column_16bits()) {
-                    loop_block_multi_row_fill_in_dense<uint8, uint16>(
-                        compressed_data, blk_idxs, start_in_blk, jump_in_blk,
+                } else if (grp_idxs.is_column_16bits()) {
+                    loop_group_multi_row_fill_in_dense<uint8, uint16>(
+                        compressed_data, grp_idxs, start_in_blk, jump_in_blk,
                         block_size_local, stride, result);
                 } else {
-                    loop_block_multi_row_fill_in_dense<uint8, uint32>(
-                        compressed_data, blk_idxs, start_in_blk, jump_in_blk,
+                    loop_group_multi_row_fill_in_dense<uint8, uint32>(
+                        compressed_data, grp_idxs, start_in_blk, jump_in_blk,
                         block_size_local, stride, result);
                 }
             }
         } else {
-            if (blk_idxs.is_column_8bits()) {
-                loop_block_single_row_fill_in_dense<uint8>(
-                    compressed_data, blk_idxs, start_in_blk, jump_in_blk,
+            if (grp_idxs.is_column_8bits()) {
+                loop_group_single_row_fill_in_dense<uint8>(
+                    compressed_data, grp_idxs, start_in_blk, jump_in_blk,
                     block_size_local, stride, result);
-            } else if (blk_idxs.is_column_16bits()) {
-                loop_block_single_row_fill_in_dense<uint16>(
-                    compressed_data, blk_idxs, start_in_blk, jump_in_blk,
+            } else if (grp_idxs.is_column_16bits()) {
+                loop_group_single_row_fill_in_dense<uint16>(
+                    compressed_data, grp_idxs, start_in_blk, jump_in_blk,
                     block_size_local, stride, result);
             } else {
-                loop_block_single_row_fill_in_dense<uint32>(
-                    compressed_data, blk_idxs, start_in_blk, jump_in_blk,
+                loop_group_single_row_fill_in_dense<uint32>(
+                    compressed_data, grp_idxs, start_in_blk, jump_in_blk,
                     block_size_local, stride, result);
             }
         }
