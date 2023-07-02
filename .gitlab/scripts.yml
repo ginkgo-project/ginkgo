@@ -4,6 +4,8 @@
     - export OMP_NUM_THREADS=${NUM_CORES}
     - export CCACHE_DIR=${CCACHE_DIR}
     - export CCACHE_MAXSIZE=${CCACHE_MAXSIZE}
+    - unset SYCL_DEVICE_FILTER
+    - sycl-ls
 
 .before_script_git_template:
   before_script:
