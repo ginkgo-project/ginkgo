@@ -64,6 +64,15 @@ RUN (echo "deb https://apt.repos.intel.com/oneapi all main" > /etc/apt/sources.l
 RUN cd /usr/ && wget -O cmake.tar.gz https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-x86_64.tar.gz && \
     tar xzf cmake.tar.gz --strip-components 1 && rm cmake.tar.gz
 
+RUN cd /tmp && wget https://github.com/intel/intel-graphics-compiler/releases/download/igc-1.0.13822.6/intel-igc-core_1.0.13822.6_amd64.deb && \
+    wget https://github.com/intel/intel-graphics-compiler/releases/download/igc-1.0.13822.6/intel-igc-opencl_1.0.13822.6_amd64.deb && \
+    wget https://github.com/intel/compute-runtime/releases/download/23.17.26241.22/intel-level-zero-gpu-dbgsym_1.3.26241.22_amd64.ddeb && \
+    wget https://github.com/intel/compute-runtime/releases/download/23.17.26241.22/intel-level-zero-gpu_1.3.26241.22_amd64.deb && \
+    wget https://github.com/intel/compute-runtime/releases/download/23.17.26241.22/intel-opencl-icd-dbgsym_23.17.26241.22_amd64.ddeb && \
+    wget https://github.com/intel/compute-runtime/releases/download/23.17.26241.22/intel-opencl-icd_23.17.26241.22_amd64.deb && \
+    wget https://github.com/intel/compute-runtime/releases/download/23.17.26241.22/libigdgmm12_22.3.0_amd64.deb && \
+    dpkg -i *.deb *.ddeb && rm *.deb *.ddeb
+
 SHELL ["/bin/bash", "-c"]
 
 WORKDIR /

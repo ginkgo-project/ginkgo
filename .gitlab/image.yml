@@ -100,3 +100,8 @@
   tags:
     - private_ci
     - intel-dgpu
+
+.use_gko-unified:
+  image: ginkgodev/unified:latest
+  tags:
+    - unified
