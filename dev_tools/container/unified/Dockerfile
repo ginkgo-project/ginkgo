@@ -1,16 +1,16 @@
 FROM ginkgodev/base:latest
 
-RUN git clone --depth=1 -c feature.manyFiles=true https://github.com/spack/spack.git && \
-    echo '. /spack/share/spack/setup-env.sh; spack env activate ginkgo; export CC=gcc CXX=g++ CUDACXX=`spack location -i cuda`/bin/nvcc' >> /etc/bash.bashrc
-
-ENV PATH="${PATH}:/spack/bin"
+RUN git clone --depth=1 -c feature.manyFiles=true https://github.com/spack/spack.git /spack
     
-RUN spack compiler find && \
-    spack external find --not-buildable opencv openssh perl llvm cmake ninja && \
-    spack env create ginkgo && spack bootstrap now && spack gpg create buildcache build@cache
+RUN /spack/bin/spack compiler find && \
+    /spack/bin/spack external find --not-buildable opencv openssh perl llvm cmake ninja && \
+    /spack/bin/spack env create ginkgo && \
+    /spack/bin/spack bootstrap now && \
+    /spack/bin/spack gpg create buildcache build@cache
 
 COPY spack.yaml /spack/var/spack/environments/ginkgo/spack.yaml
 COPY packages.yaml /spack/etc/spack/packages.yaml
+COPY entrypoint.sh /usr/bin/
 
 ENV CMAKE_GENERATOR=Ninja CMAKE_EXPORT_COMPILE_COMMANDS=ON 
 ENV OMPI_ALLOW_RUN_AS_ROOT=1 OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
@@ -28,3 +28,5 @@ RUN --mount=type=cache,target=/cache \
 
 # remove the generated key to prevent malicious package injection
 RUN rm -rf /spack/opt/spack/gpg
+
+ENTRYPOINT ["/usr/bin/entrypoint.sh"]
