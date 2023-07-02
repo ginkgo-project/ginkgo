@@ -690,6 +690,7 @@ build/unified/nompi/release/shared:
     BUILD_TYPE: "Release"
     DPCPP_SINGLE_MODE: "ON"
     SYCL_DEVICE_FILTER: "Level_Zero:GPU"
+    EXTRA_CMAKE_FLAGS: "-DOpenMP_CXX_FLAGS=-qopenmp -DOpenMP_CXX_LIB_NAMES=libiomp5 -DOpenMP_libiomp5_LIBRARY=/opt/intel/oneapi/compiler/latest/linux/compiler/lib/intel64_lin/libiomp5.so"
 
 ## Job with important warnings as error
 #warnings:
