@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_CORE_MATRIX_BATCH_DENSE_HPP_
-#define GKO_PUBLIC_CORE_MATRIX_BATCH_DENSE_HPP_
+#ifndef GKO_PUBLIC_CORE_MATRIX_BATCH_VECTOR_HPP_
+#define GKO_PUBLIC_CORE_MATRIX_BATCH_VECTOR_HPP_
 
 
 #include <initializer_list>
@@ -39,7 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/batch_lin_op.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
@@ -52,17 +51,9 @@ namespace gko {
 namespace matrix {
 
 
-template <typename ValueType>
-class BatchDiagonal;
-
-
-template <typename ValueType, typename IndexType>
-class BatchCsr;
-
-
 /**
- * BatchDense is a batch matrix format which explicitly stores all values of the
- * matrix in each of the batches.
+ * BatchVector is a batch matrix format which explicitly stores all values of
+ * the vector in each of the batches.
  *
  * The values in each of the batches are stored in row-major format (values
  * belonging to the same row appear consecutive in the memory). Optionally, rows
@@ -72,51 +63,44 @@ class BatchCsr;
  *
  * @note While this format is not very useful for storing sparse matrices, it
  *       is often suitable to store vectors, and sets of vectors.
- * @ingroup batch_dense
+ * @ingroup batch_vector
  * @ingroup mat_formats
  * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
-class BatchDense : public EnableBatchLinOp<BatchDense<ValueType>>,
-                   public EnableCreateMethod<BatchDense<ValueType>>,
-                   public ConvertibleTo<BatchDense<next_precision<ValueType>>>,
-                   public ConvertibleTo<BatchCsr<ValueType, int32>>,
-                   public ConvertibleTo<BatchDiagonal<ValueType>>,
-                   public BatchReadableFromMatrixData<ValueType, int32>,
-                   public BatchReadableFromMatrixData<ValueType, int64>,
-                   public BatchWritableToMatrixData<ValueType, int32>,
-                   public BatchWritableToMatrixData<ValueType, int64>,
-                   public BatchTransposable,
-                   public BatchScaledIdentityAddable {
-    friend class EnableCreateMethod<BatchDense>;
-    friend class EnablePolymorphicObject<BatchDense, BatchLinOp>;
-    friend class BatchDense<to_complex<ValueType>>;
+class BatchVector
+    : public EnableAbstractPolymorphicObject<BatchVector<ValueType>>,
+      public EnableCreateMethod<BatchVector<ValueType>>,
+      public ConvertibleTo<BatchVector<next_precision<ValueType>>>,
+      public BatchReadableFromMatrixData<ValueType, int32>,
+      public BatchReadableFromMatrixData<ValueType, int64>,
+      public BatchWritableToMatrixData<ValueType, int32>,
+      public BatchWritableToMatrixData<ValueType, int64> {
+    friend class EnableCreateMethod<BatchVector>;
+    friend class BatchVector<to_complex<ValueType>>;
 
 public:
-    using EnableBatchLinOp<BatchDense>::convert_to;
-    using EnableBatchLinOp<BatchDense>::move_to;
     using BatchReadableFromMatrixData<ValueType, int32>::read;
     using BatchReadableFromMatrixData<ValueType, int64>::read;
 
     using value_type = ValueType;
     using index_type = int32;
-    using transposed_type = BatchDense<ValueType>;
     using unbatch_type = Dense<ValueType>;
     using mat_data = gko::matrix_data<ValueType, int64>;
     using mat_data32 = gko::matrix_data<ValueType, int32>;
-    using absolute_type = remove_complex<BatchDense>;
-    using complex_type = to_complex<BatchDense>;
+    using absolute_type = remove_complex<BatchVector>;
+    using complex_type = to_complex<BatchVector>;
 
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
 
     /**
-     * Creates a BatchDense matrix with the configuration of another BatchDense
-     * matrix.
+     * Creates a BatchVector matrix with the configuration of another
+     * BatchVector matrix.
      *
      * @param other  The other matrix whose configuration needs to copied.
      */
-    static std::unique_ptr<BatchDense> create_with_config_of(
-        const BatchDense* other)
+    static std::unique_ptr<BatchVector> create_with_config_of(
+        const BatchVector* other)
     {
         // De-referencing `other` before calling the functions (instead of
         // using operator `->`) is currently required to be compatible with
@@ -125,20 +109,12 @@ public:
         return (*other).create_with_same_config();
     }
 
-    friend class BatchDense<next_precision<ValueType>>;
+    friend class BatchVector<next_precision<ValueType>>;
 
     void convert_to(
-        BatchDense<next_precision<ValueType>>* result) const override;
+        BatchVector<next_precision<ValueType>>* result) const override;
 
-    void move_to(BatchDense<next_precision<ValueType>>* result) override;
-
-    void convert_to(BatchCsr<ValueType, index_type>* result) const override;
-
-    void move_to(BatchCsr<ValueType, index_type>* result) override;
-
-    void convert_to(BatchDiagonal<ValueType>* result) const override;
-
-    void move_to(BatchDiagonal<ValueType>* result) override;
+    void move_to(BatchVector<next_precision<ValueType>>* result) override;
 
     void read(const std::vector<mat_data>& data) override;
 
@@ -147,10 +123,6 @@ public:
     void write(std::vector<mat_data>& data) const override;
 
     void write(std::vector<mat_data32>& data) const override;
-
-    std::unique_ptr<BatchLinOp> transpose() const override;
-
-    std::unique_ptr<BatchLinOp> conj_transpose() const override;
 
     /**
      * Unbatches the batched dense and creates a std::vector of Dense matrices
@@ -174,14 +146,14 @@ public:
     }
 
     /**
-     * Returns a pointer to the array of values of the matrix.
+     * Returns a pointer to the array of values of the vector.
      *
      * @return the pointer to the array of values
      */
     value_type* get_values() noexcept { return values_.get_data(); }
 
     /**
-     * Returns a pointer to the array of values of the matrix.
+     * Returns a pointer to the array of values of the vector.
      *
      * @return the pointer to the array of values
      */
@@ -219,17 +191,10 @@ public:
     }
 
     /**
-     * Returns the batch_stride of the matrix.
-     *
-     * @return the batch_stride of the matrix.
-     */
-    const batch_stride& get_stride() const noexcept { return stride_; }
-
-    /**
      * Returns the number of elements explicitly stored in the batch matrix,
      * cumulative across all the batches.
      *
-     * @return the number of elements explicitly stored in the matrix,
+     * @return the number of elements explicitly stored in the vector,
      *         cumulative across all the batches
      */
     size_type get_num_stored_elements() const noexcept
@@ -243,7 +208,7 @@ public:
      *
      * @param batch  the batch index to be queried
      *
-     * @return the number of elements explicitly stored in the matrix
+     * @return the number of elements explicitly stored in the vector
      */
     size_type get_num_stored_elements(size_type batch) const noexcept
     {
@@ -259,7 +224,7 @@ public:
      * @param row  the row of the requested element
      * @param col  the column of the requested element
      *
-     * @note  the method has to be called on the same Executor the matrix is
+     * @note  the method has to be called on the same Executor the vector is
      *        stored at (e.g. trying to call this method on a GPU matrix from
      *        the OMP results in a runtime error)
      */
@@ -270,7 +235,7 @@ public:
     }
 
     /**
-     * @copydoc BatchDense::at(size_type, size_type, size_type)
+     * @copydoc BatchVector::at(size_type, size_type, size_type)
      */
     value_type at(size_type batch, size_type row, size_type col) const noexcept
     {
@@ -281,7 +246,7 @@ public:
     /**
      * Returns a single element for a particular batch entry.
      *
-     * Useful for iterating across all elements of the matrix.
+     * Useful for iterating across all elements of the vector.
      * However, it is less efficient than the two-parameter variant of this
      * method.
      *
@@ -289,7 +254,7 @@ public:
      * @param idx  a linear index of the requested element
      *             (ignoring the stride)
      *
-     * @note  the method has to be called on the same Executor the matrix is
+     * @note  the method has to be called on the same Executor the vector is
      *        stored at (e.g. trying to call this method on a GPU matrix from
      *        the OMP results in a runtime error)
      */
@@ -299,7 +264,7 @@ public:
     }
 
     /**
-     * @copydoc BatchDense::at(size_type, size_type, size_type)
+     * @copydoc BatchVector::at(size_type, size_type, size_type)
      */
     ValueType at(size_type batch, size_type idx) const noexcept
     {
@@ -307,11 +272,11 @@ public:
     }
 
     /**
-     * Scales the matrix with a scalar (aka: BLAS scal).
+     * Scales the vector with a scalar (aka: BLAS scal).
      *
-     * @param alpha  If alpha is 1x1 BatchDense matrix, the entire matrix (all
-     * batches) is scaled by alpha. If it is a BatchDense row vector of values,
-     * then i-th column of the matrix is scaled with the i-th element of alpha
+     * @param alpha  If alpha is 1x1 BatchVector matrix, the entire matrix (all
+     * batches) is scaled by alpha. If it is a BatchVector row vector of values,
+     * then i-th column of the vector is scaled with the i-th element of alpha
      * (the number of columns of alpha has to match the number of columns of the
      * matrix).
      */
@@ -322,12 +287,12 @@ public:
     }
 
     /**
-     * Adds `b` scaled by `alpha` to the matrix (aka: BLAS axpy).
+     * Adds `b` scaled by `alpha` to the vector (aka: BLAS axpy).
      *
-     * @param alpha  If alpha is 1x1 BatchDense matrix, the entire matrix is
-     * scaled by alpha. If it is a BatchDense row vector of values, then i-th
-     * column of the matrix is scaled with the i-th element of alpha (the number
-     * of columns of alpha has to match the number of columns of the matrix).
+     * @param alpha  If alpha is 1x1 BatchVector matrix, the entire matrix is
+     * scaled by alpha. If it is a BatchVector row vector of values, then i-th
+     * column of the vector is scaled with the i-th element of alpha (the number
+     * of columns of alpha has to match the number of columns of the vector).
      * @param b  a matrix of the same dimension as this
      */
     void add_scaled(const BatchLinOp* alpha, const BatchLinOp* b)
@@ -338,11 +303,11 @@ public:
     }
 
     /**
-     * Adds `a` scaled by `alpha` to the matrix scaled by `beta`:
+     * Adds `a` scaled by `alpha` to the vector scaled by `beta`:
      * this <- alpha * a + beta * this.
      *
-     * @param alpha  If alpha is 1x1 BatchDense matrix, the entire matrix a is
-     *               scaled by alpha. If it is a BatchDense row vector of
+     * @param alpha  If alpha is 1x1 BatchVector matrix, the entire matrix a is
+     *               scaled by alpha. If it is a BatchVector row vector of
      *               values, then i-th column of a is scaled with the i-th
      *               element of alpha (the number of columns of alpha has to
      *               match the number of columns of a).
@@ -355,11 +320,11 @@ public:
 
     /**
      * Computes the column-wise dot product of each matrix in this batch and its
-     * corresponding entry in `b`. If the matrix has complex value_type, then
+     * corresponding entry in `b`. If the vector has complex value_type, then
      * the conjugate of this is taken.
      *
-     * @param b  a BatchDense matrix of same dimension as this
-     * @param result  a BatchDense row vector, used to store the dot product
+     * @param b  a BatchVector matrix of same dimension as this
+     * @param result  a BatchVector row vector, used to store the dot product
      *                (the number of column in the vector must match the number
      *                of columns of this)
      */
@@ -373,7 +338,7 @@ public:
     /**
      * Computes the Euclidean (L^2) norm of each matrix in this batch.
      *
-     * @param result  a BatchDense row vector, used to store the norm
+     * @param result  a BatchVector row vector, used to store the norm
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
@@ -386,22 +351,22 @@ public:
     /**
      * Creates a constant (immutable) batch dense matrix from a constant array.
      *
-     * @param exec  the executor to create the matrix on
-     * @param size  the dimensions of the matrix
-     * @param values  the value array of the matrix
-     * @param stride  the row-stride of the matrix
+     * @param exec  the executor to create the vector on
+     * @param size  the dimensions of the vector
+     * @param values  the value array of the vector
+     * @param stride  the row-stride of the vector
      * @returns A smart pointer to the constant matrix wrapping the input array
-     *          (if it resides on the same executor as the matrix) or a copy of
+     *          (if it resides on the same executor as the vector) or a copy of
      *          the array on the correct executor.
      */
-    static std::unique_ptr<const BatchDense> create_const(
+    static std::unique_ptr<const BatchVector> create_const(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
         gko::detail::const_array_view<ValueType>&& values,
         const batch_stride& strides)
     {
         // cast const-ness away, but return a const object afterwards,
         // so we can ensure that no modifications take place.
-        return std::unique_ptr<const BatchDense>(new BatchDense{
+        return std::unique_ptr<const BatchVector>(new BatchVector{
             exec, sizes, gko::detail::array_const_cast(std::move(values)),
             strides});
     }
@@ -489,30 +454,31 @@ private:
 
 protected:
     /**
-     * Creates an uninitialized BatchDense matrix of the specified size.
+     * Creates an uninitialized BatchVector matrix of the specified size.
      *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
+     * @param exec  Executor associated to the vector
+     * @param size  size of the vector
      */
-    BatchDense(std::shared_ptr<const Executor> exec,
-               const batch_dim<2>& size = batch_dim<2>{})
-        : BatchDense(std::move(exec), size,
-                     size.get_num_batch_entries() > 0 ? extract_nth_dim(1, size)
-                                                      : batch_stride{})
+    BatchVector(std::shared_ptr<const Executor> exec,
+                const batch_dim<2>& size = batch_dim<2>{})
+        : BatchVector(std::move(exec), size,
+                      size.get_num_batch_entries() > 0
+                          ? extract_nth_dim(1, size)
+                          : batch_stride{})
     {}
 
     /**
-     * Creates an uninitialized BatchDense matrix of the specified size.
+     * Creates an uninitialized BatchVector matrix of the specified size.
      *
-     * @param exec  Executor associated to the matrix
+     * @param exec  Executor associated to the vector
      * @param size  size of the batch matrices in a batch_dim object
      * @param stride  stride of the rows (i.e. offset between the first
      *                  elements of two consecutive rows, expressed as the
      *                  number of matrix elements)
      */
-    BatchDense(std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
-               const batch_stride& stride)
-        : EnableBatchLinOp<BatchDense>(exec, size),
+    BatchVector(std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+                const batch_stride& stride)
+        : EnableBatchLinOp<BatchVector>(exec, size),
           values_(exec, compute_batch_mem(size, stride)),
           stride_(stride)
     {
@@ -521,12 +487,12 @@ protected:
     }
 
     /**
-     * Creates a BatchDense matrix from an already allocated (and initialized)
+     * Creates a BatchVector matrix from an already allocated (and initialized)
      * array.
      *
      * @tparam ValuesArray  type of array of values
      *
-     * @param exec  Executor associated to the matrix
+     * @param exec  Executor associated to the vector
      * @param size  sizes of the batch matrices in a batch_dim object
      * @param values  array of matrix values
      * @param strides  stride of the rows (i.e. offset between the first
@@ -535,12 +501,12 @@ protected:
      *
      * @note If `values` is not an rvalue, not an array of ValueType, or is on
      *       the wrong executor, an internal copy will be created, and the
-     *       original array data will not be used in the matrix.
+     *       original array data will not be used in the vector.
      */
     template <typename ValuesArray>
-    BatchDense(std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
-               ValuesArray&& values, const batch_stride& stride)
-        : EnableBatchLinOp<BatchDense>(exec, size),
+    BatchVector(std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+                ValuesArray&& values, const batch_stride& stride)
+        : EnableBatchLinOp<BatchVector>(exec, size),
           values_{exec, std::forward<ValuesArray>(values)},
           stride_{stride},
           num_elems_per_batch_cumul_(
@@ -557,14 +523,14 @@ protected:
     }
 
     /**
-     * Creates a BatchDense matrix from a vector of matrices
+     * Creates a BatchVector matrix from a vector of matrices
      *
-     * @param exec  Executor associated to the matrix
+     * @param exec  Executor associated to the vector
      * @param matrices  The matrices that need to be batched.
      */
-    BatchDense(std::shared_ptr<const Executor> exec,
-               const std::vector<Dense<ValueType>*>& matrices)
-        : EnableBatchLinOp<BatchDense>(exec, get_sizes_from_mtxs(matrices)),
+    BatchVector(std::shared_ptr<const Executor> exec,
+                const std::vector<Dense<ValueType>*>& matrices)
+        : EnableBatchLinOp<BatchVector>(exec, get_sizes_from_mtxs(matrices)),
           stride_{get_strides_from_mtxs(matrices)},
           values_(exec, compute_batch_mem(this->get_size(), stride_))
     {
@@ -581,15 +547,16 @@ protected:
     }
 
     /**
-     * Creates a BatchDense matrix by duplicating BatchDense matrix
+     * Creates a BatchVector matrix by duplicating BatchVector matrix
      *
-     * @param exec  Executor associated to the matrix
+     * @param exec  Executor associated to the vector
      * @param num_duplications  The number of times to duplicate
-     * @param input  The matrix to be duplicated.
+     * @param input  the vector to be duplicated.
      */
-    BatchDense(std::shared_ptr<const Executor> exec, size_type num_duplications,
-               const BatchDense<value_type>* input)
-        : EnableBatchLinOp<BatchDense>(
+    BatchVector(std::shared_ptr<const Executor> exec,
+                size_type num_duplications,
+                const BatchVector<value_type>* input)
+        : EnableBatchLinOp<BatchVector>(
               exec, gko::batch_dim<2>(
                         input->get_num_batch_entries() * num_duplications,
                         input->get_size().at(0))),
@@ -611,15 +578,15 @@ protected:
     }
 
     /**
-     * Creates a BatchDense matrix by duplicating Dense matrix
+     * Creates a BatchVector matrix by duplicating Dense matrix
      *
-     * @param exec  Executor associated to the matrix
+     * @param exec  Executor associated to the vector
      * @param num_duplications  The number of times to duplicate
-     * @param input  The matrix to be duplicated.
+     * @param input  the vector to be duplicated.
      */
-    BatchDense(std::shared_ptr<const Executor> exec, size_type num_duplications,
-               const Dense<value_type>* input)
-        : EnableBatchLinOp<BatchDense>(
+    BatchVector(std::shared_ptr<const Executor> exec,
+                size_type num_duplications, const Dense<value_type>* input)
+        : EnableBatchLinOp<BatchVector>(
               exec, gko::batch_dim<2>(num_duplications, input->get_size())),
           stride_{gko::batch_stride(num_duplications, input->get_stride())},
           values_(exec, compute_batch_mem(this->get_size(), stride_))
@@ -637,30 +604,30 @@ protected:
     }
 
     /**
-     * Creates a BatchDense matrix with the same configuration as the callers
+     * Creates a BatchVector matrix with the same configuration as the callers
      * matrix.
      *
-     * @returns a BatchDense matrix with the same configuration as the caller.
+     * @returns a BatchVector matrix with the same configuration as the caller.
      */
-    virtual std::unique_ptr<BatchDense> create_with_same_config() const
+    virtual std::unique_ptr<BatchVector> create_with_same_config() const
     {
-        return BatchDense::create(this->get_executor(), this->get_size(),
-                                  this->get_stride());
+        return BatchVector::create(this->get_executor(), this->get_size(),
+                                   this->get_stride());
     }
 
     /**
      * @copydoc scale(const BatchLinOp *)
      *
-     * @note  Other implementations of batch_dense should override this function
-     *        instead of scale(const BatchLinOp *alpha).
+     * @note  Other implementations of batch_vector should override this
+     * function instead of scale(const BatchLinOp *alpha).
      */
     virtual void scale_impl(const BatchLinOp* alpha);
 
     /**
      * @copydoc add_scaled(const BatchLinOp *, const BatchLinOp *)
      *
-     * @note  Other implementations of batch_dense should override this function
-     *        instead of add_scale(const BatchLinOp *alpha, const BatchLinOp
+     * @note  Other implementations of batch_vector should override this
+     * function instead of add_scale(const BatchLinOp *alpha, const BatchLinOp
      * *b).
      */
     virtual void add_scaled_impl(const BatchLinOp* alpha, const BatchLinOp* b);
@@ -668,8 +635,8 @@ protected:
     /**
      * @copydoc compute_dot(const BatchLinOp *, BatchLinOp *) const
      *
-     * @note  Other implementations of batch_dense should override this function
-     *        instead of compute_dot(const BatchLinOp *b, BatchLinOp *result).
+     * @note  Other implementations of batch_vector should override this
+     * function instead of compute_dot(const BatchLinOp *b, BatchLinOp *result).
      */
     virtual void compute_dot_impl(const BatchLinOp* b,
                                   BatchLinOp* result) const;
@@ -677,15 +644,10 @@ protected:
     /**
      * @copydoc compute_norm2(BatchLinOp *) const
      *
-     * @note  Other implementations of batch_dense should override this function
-     *        instead of compute_norm2(BatchLinOp *result).
+     * @note  Other implementations of batch_vector should override this
+     * function instead of compute_norm2(BatchLinOp *result).
      */
     virtual void compute_norm2_impl(BatchLinOp* result) const;
-
-    void apply_impl(const BatchLinOp* b, BatchLinOp* x) const override;
-
-    void apply_impl(const BatchLinOp* alpha, const BatchLinOp* b,
-                    const BatchLinOp* beta, BatchLinOp* x) const override;
 
     size_type linearize_index(size_type batch, size_type row,
                               size_type col) const noexcept
@@ -704,9 +666,6 @@ private:
     batch_stride stride_;
     array<size_type> num_elems_per_batch_cumul_;
     array<value_type> values_;
-
-    void add_scaled_identity_impl(const BatchLinOp* a,
-                                  const BatchLinOp* b) override;
 };
 
 
@@ -717,7 +676,7 @@ private:
  * Creates and initializes a batch of column-vectors.
  *
  * This function first creates a temporary Dense matrix, fills it with passed in
- * values, and then converts the matrix to the requested type.
+ * values, and then converts the vector to the requested type.
  *
  * @tparam Matrix  matrix type to initialize
  *                 (Dense has to implement the ConvertibleTo<Matrix> interface)
@@ -741,7 +700,7 @@ std::unique_ptr<Matrix> batch_initialize(
         vals,
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
 {
-    using batch_dense = matrix::BatchDense<typename Matrix::value_type>;
+    using batch_vector = matrix::BatchVector<typename Matrix::value_type>;
     size_type num_batch_entries = vals.size();
     std::vector<size_type> num_rows(num_batch_entries);
     std::vector<dim<2>> sizes(num_batch_entries);
@@ -753,7 +712,7 @@ std::unique_ptr<Matrix> batch_initialize(
     }
     auto b_size = batch_dim<2>(sizes);
     auto b_stride = batch_stride(stride);
-    auto tmp = batch_dense::create(exec->get_master(), b_size, b_stride);
+    auto tmp = batch_vector::create(exec->get_master(), b_size, b_stride);
     size_type batch = 0;
     for (const auto& b : vals) {
         size_type idx = 0;
@@ -772,7 +731,7 @@ std::unique_ptr<Matrix> batch_initialize(
  * Creates and initializes a batch of column-vectors.
  *
  * This function first creates a temporary Dense matrix, fills it with passed in
- * values, and then converts the matrix to the requested type. The stride of
+ * values, and then converts the vector to the requested type. The stride of
  * the intermediate Dense matrix is set to 1.
  *
  * @tparam Matrix  matrix type to initialize
@@ -805,7 +764,7 @@ std::unique_ptr<Matrix> batch_initialize(
  * Creates and initializes a batch of matrices.
  *
  * This function first creates a temporary Dense matrix, fills it with passed in
- * values, and then converts the matrix to the requested type.
+ * values, and then converts the vector to the requested type.
  *
  * @tparam Matrix  matrix type to initialize
  *                 (Dense has to implement the ConvertibleTo<Matrix> interface)
@@ -813,8 +772,8 @@ std::unique_ptr<Matrix> batch_initialize(
  *                (not including the implied Executor as the first argument)
  *
  * @param stride  row stride for the temporary Dense matrix
- * @param vals  values used to initialize the matrix
- * @param exec  Executor associated to the matrix
+ * @param vals  values used to initialize the vector
+ * @param exec  Executor associated to the vector
  * @param create_args  additional arguments passed to Matrix::create, not
  *                     including the Executor, which is passed as the first
  *                     argument
@@ -830,7 +789,7 @@ std::unique_ptr<Matrix> batch_initialize(
         vals,
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
 {
-    using batch_dense = matrix::BatchDense<typename Matrix::value_type>;
+    using batch_vector = matrix::BatchVector<typename Matrix::value_type>;
     size_type num_batch_entries = vals.size();
     std::vector<size_type> num_rows(num_batch_entries);
     std::vector<size_type> num_cols(num_batch_entries);
@@ -844,7 +803,7 @@ std::unique_ptr<Matrix> batch_initialize(
     }
     auto b_size = batch_dim<2>(sizes);
     auto b_stride = batch_stride(stride);
-    auto tmp = batch_dense::create(exec->get_master(), b_size, b_stride);
+    auto tmp = batch_vector::create(exec->get_master(), b_size, b_stride);
     size_type batch = 0;
     for (const auto& b : vals) {
         size_type ridx = 0;
@@ -868,7 +827,7 @@ std::unique_ptr<Matrix> batch_initialize(
  * Creates and initializes a batch of matrices.
  *
  * This function first creates a temporary Dense matrix, fills it with passed in
- * values, and then converts the matrix to the requested type. The stride of
+ * values, and then converts the vector to the requested type. The stride of
  * the intermediate Dense matrix is set to the number of columns of the
  * initializer list.
  *
@@ -877,8 +836,8 @@ std::unique_ptr<Matrix> batch_initialize(
  * @tparam TArgs  argument types for Matrix::create method
  *                (not including the implied Executor as the first argument)
  *
- * @param vals  values used to initialize the matrix
- * @param exec  Executor associated to the matrix
+ * @param vals  values used to initialize the vector
+ * @param exec  Executor associated to the vector
  * @param create_args  additional arguments passed to Matrix::create, not
  *                     including the Executor, which is passed as the first
  *                     argument
@@ -909,7 +868,7 @@ std::unique_ptr<Matrix> batch_initialize(
  * input column vector.
  *
  * This function first creates a temporary batch dense matrix, fills it with
- * passed in values, and then converts the matrix to the requested type.
+ * passed in values, and then converts the vector to the requested type.
  *
  * @tparam Matrix  matrix type to initialize
  *                 (Dense has to implement the ConvertibleTo<Matrix>
@@ -935,7 +894,7 @@ std::unique_ptr<Matrix> batch_initialize(
     std::initializer_list<typename Matrix::value_type> vals,
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
 {
-    using batch_dense = matrix::BatchDense<typename Matrix::value_type>;
+    using batch_vector = matrix::BatchVector<typename Matrix::value_type>;
     std::vector<size_type> num_rows(num_vectors);
     std::vector<dim<2>> sizes(num_vectors);
     for (size_type b = 0; b < num_vectors; ++b) {
@@ -944,7 +903,7 @@ std::unique_ptr<Matrix> batch_initialize(
     }
     auto b_size = batch_dim<2>(sizes);
     auto b_stride = batch_stride(stride);
-    auto tmp = batch_dense::create(exec->get_master(), b_size, b_stride);
+    auto tmp = batch_vector::create(exec->get_master(), b_size, b_stride);
     for (size_type batch = 0; batch < num_vectors; batch++) {
         size_type idx = 0;
         for (const auto& elem : vals) {
@@ -962,7 +921,7 @@ std::unique_ptr<Matrix> batch_initialize(
  * Creates and initializes a column-vector from copies of a given vector.
  *
  * This function first creates a temporary Dense matrix, fills it with passed
- * in values, and then converts the matrix to the requested type. The stride of
+ * in values, and then converts the vector to the requested type. The stride of
  * the intermediate Dense matrix is set to 1.
  *
  * @tparam Matrix  matrix type to initialize
@@ -997,7 +956,7 @@ std::unique_ptr<Matrix> batch_initialize(
  * Creates and initializes a matrix from copies of a given matrix.
  *
  * This function first creates a temporary batch dense matrix, fills it with
- * passed in values, and then converts the matrix to the requested type.
+ * passed in values, and then converts the vector to the requested type.
  *
  * @tparam Matrix  matrix type to initialize
  *                 (Dense has to implement the ConvertibleTo<Matrix> interface)
@@ -1023,7 +982,7 @@ std::unique_ptr<Matrix> batch_initialize(
         vals,
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
 {
-    using batch_dense = matrix::BatchDense<typename Matrix::value_type>;
+    using batch_vector = matrix::BatchVector<typename Matrix::value_type>;
     std::vector<dim<2>> sizes(num_matrices);
     const size_type num_rows = vals.size();
     for (size_type b = 0; b < num_matrices; ++b) {
@@ -1033,7 +992,7 @@ std::unique_ptr<Matrix> batch_initialize(
             GKO_ASSERT(blockit->size() == num_cols);
         }
     }
-    auto tmp = batch_dense::create(exec->get_master(), sizes, stride);
+    auto tmp = batch_vector::create(exec->get_master(), sizes, stride);
     for (size_type batch = 0; batch < num_matrices; batch++) {
         size_type ridx = 0;
         for (const auto& row : vals) {
@@ -1054,7 +1013,7 @@ std::unique_ptr<Matrix> batch_initialize(
  * Creates and initializes a matrix from copies of a given matrix.
  *
  * This function first creates a temporary Dense matrix, fills it with passed in
- * values, and then converts the matrix to the requested type. The stride of
+ * values, and then converts the vector to the requested type. The stride of
  * the intermediate Dense matrix is set to 1.
  *
  * @tparam Matrix  matrix type to initialize
@@ -1090,4 +1049,4 @@ std::unique_ptr<Matrix> batch_initialize(
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_CORE_MATRIX_BATCH_DENSE_HPP_
+#endif  // GKO_PUBLIC_CORE_MATRIX_BATCH_VECTOR_HPP_
