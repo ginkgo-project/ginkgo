@@ -66,6 +66,8 @@ option(GINKGO_FORCE_GPU_AWARE_MPI "Assert that the MPI library is GPU aware. Thi
      catastrophically in case the MPI implementation is not GPU Aware, and GPU aware functionality has been forced" OFF)
 set(GINKGO_CI_TEST_OMP_PARALLELISM "4" CACHE STRING
     "The number of OpenMP threads to use for a test binary during CTest resource file-constrained test.")
+option(GINKGO_EXTENSION_KOKKOS "Enables the Kokkos extension in Ginkgo. A Kokkos installation is required in the ON case." OFF)
+option(GINKGO_EXTENSION_KOKKOS_CHECK_TYPE_ALIGNMENT "Enables mapping to Kokkos types to check the alignment of the source and target type." ON)
 gko_rename_cache(GINKGO_COMPILER_FLAGS CMAKE_CXX_FLAGS BOOL "Flags used by the CXX compiler during all build types.")
 gko_rename_cache(GINKGO_CUDA_COMPILER_FLAGS CMAKE_CUDA_FLAGS BOOL "Flags used by the CUDA compiler during all build types.")
 
@@ -308,6 +310,8 @@ if(GINKGO_BUILD_TESTS)
 endif()
 
 # Non core directories and targets
+add_subdirectory(extensions)
+
 if(GINKGO_BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
