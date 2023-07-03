@@ -82,6 +82,9 @@ set(GINKGO_HAVE_HWLOC @GINKGO_HAVE_HWLOC@)
 
 set(GINKGO_HAVE_ROCTX @GINKGO_HAVE_ROCTX@)
 
+# Ginkgo extensions
+set(GINKGO_EXTENSION_KOKKOS @GINKGO_EXTENSION_KOKKOS@)
+
 # Ginkgo compiler information
 set(GINKGO_CXX_COMPILER "@CMAKE_CXX_COMPILER@")
 set(GINKGO_CXX_COMPILER_SHORT "@CMAKE_CXX_COMPILER_ID@:@CMAKE_CXX_COMPILER_VERSION@")
@@ -194,6 +197,10 @@ endif()
 
 if((NOT GINKGO_BUILD_SHARED_LIBS) AND GINKGO_HAVE_TAU)
     find_dependency(PerfStubs)
+endif()
+
+if(GINKGO_EXTENSION_KOKKOS)
+    find_dependency(Kokkos 4.1)
 endif()
 
 # Check that the same compilers as for Ginkgo are used
