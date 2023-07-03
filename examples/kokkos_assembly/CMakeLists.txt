@@ -5,6 +5,9 @@ project(kokkos-assembly CXX)
 if(NOT GINKGO_BUILD_EXAMPLES)
     find_package(Ginkgo 1.8.0 REQUIRED)
 endif()
+if(NOT GINKGO_EXTENSION_KOKKOS)
+    message(FATAL_ERROR "The Kokkos examples requires that GINKGO_EXTENSION_KOKKOS=ON is set.")
+endif()
 
 find_package(Kokkos REQUIRED)
 
