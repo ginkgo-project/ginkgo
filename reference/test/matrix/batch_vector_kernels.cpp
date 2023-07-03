@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/matrix/batch_dense.hpp>
+#include <ginkgo/core/matrix/batch_vector.hpp>
 
 
 #include <complex>
@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/matrix/batch_dense_kernels.hpp"
+#include "core/matrix/batch_vector_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -58,15 +58,15 @@ namespace {
 
 
 template <typename T>
-class BatchDense : public ::testing::Test {
+class BatchVector : public ::testing::Test {
 protected:
     using value_type = T;
     using size_type = gko::size_type;
-    using Mtx = gko::matrix::BatchDense<value_type>;
+    using Mtx = gko::matrix::BatchVector<value_type>;
     using DenseMtx = gko::matrix::Dense<value_type>;
     using ComplexMtx = gko::to_complex<Mtx>;
     using RealMtx = gko::remove_complex<Mtx>;
-    BatchDense()
+    BatchVector()
         : exec(gko::ReferenceExecutor::create()),
           mtx_0(gko::batch_initialize<Mtx>(
               {{I<T>({1.0, -1.0, 1.5}), I<T>({-2.0, 2.0, 3.0})},
@@ -138,10 +138,10 @@ protected:
 };
 
 
-TYPED_TEST_SUITE(BatchDense, gko::test::ValueTypes);
+TYPED_TEST_SUITE(BatchVector, gko::test::ValueTypes);
 
 
-TYPED_TEST(BatchDense, AppliesToBatchDense)
+TYPED_TEST(BatchVector, AppliesToBatchVector)
 {
     using T = typename TestFixture::value_type;
     this->mtx_1->apply(this->mtx_2.get(), this->mtx_3.get());
@@ -155,7 +155,7 @@ TYPED_TEST(BatchDense, AppliesToBatchDense)
 }
 
 
-TYPED_TEST(BatchDense, AppliesLinearCombinationToBatchDense)
+TYPED_TEST(BatchVector, AppliesLinearCombinationToBatchVector)
 {
     using Mtx = typename TestFixture::Mtx;
     using DenseMtx = typename TestFixture::DenseMtx;
@@ -180,7 +180,7 @@ TYPED_TEST(BatchDense, AppliesLinearCombinationToBatchDense)
 }
 
 
-TYPED_TEST(BatchDense, ApplyFailsOnWrongInnerDimension)
+TYPED_TEST(BatchVector, ApplyFailsOnWrongInnerDimension)
 {
     using Mtx = typename TestFixture::Mtx;
     auto res = Mtx::create(
@@ -191,7 +191,7 @@ TYPED_TEST(BatchDense, ApplyFailsOnWrongInnerDimension)
 }
 
 
-TYPED_TEST(BatchDense, ApplyFailsForNonUniformBatches)
+TYPED_TEST(BatchVector, ApplyFailsForNonUniformBatches)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
@@ -212,7 +212,7 @@ TYPED_TEST(BatchDense, ApplyFailsForNonUniformBatches)
 }
 
 
-TYPED_TEST(BatchDense, ApplyFailsOnWrongNumberOfRows)
+TYPED_TEST(BatchVector, ApplyFailsOnWrongNumberOfRows)
 {
     using Mtx = typename TestFixture::Mtx;
     auto res = Mtx::create(
@@ -223,7 +223,7 @@ TYPED_TEST(BatchDense, ApplyFailsOnWrongNumberOfRows)
 }
 
 
-TYPED_TEST(BatchDense, ApplyFailsOnWrongNumberOfCols)
+TYPED_TEST(BatchVector, ApplyFailsOnWrongNumberOfCols)
 {
     using Mtx = typename TestFixture::Mtx;
     auto res = Mtx::create(
@@ -237,7 +237,7 @@ TYPED_TEST(BatchDense, ApplyFailsOnWrongNumberOfCols)
 }
 
 
-TYPED_TEST(BatchDense, ScalesData)
+TYPED_TEST(BatchVector, ScalesData)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
@@ -257,7 +257,7 @@ TYPED_TEST(BatchDense, ScalesData)
 }
 
 
-TYPED_TEST(BatchDense, ScalesDataWithScalar)
+TYPED_TEST(BatchVector, ScalesDataWithScalar)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
@@ -275,7 +275,7 @@ TYPED_TEST(BatchDense, ScalesDataWithScalar)
 }
 
 
-TYPED_TEST(BatchDense, ScalesDataWithStride)
+TYPED_TEST(BatchVector, ScalesDataWithStride)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
@@ -294,7 +294,7 @@ TYPED_TEST(BatchDense, ScalesDataWithStride)
 }
 
 
-TYPED_TEST(BatchDense, AddsScaled)
+TYPED_TEST(BatchVector, AddsScaled)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
@@ -313,7 +313,7 @@ TYPED_TEST(BatchDense, AddsScaled)
 }
 
 
-TYPED_TEST(BatchDense, AddsScale)
+TYPED_TEST(BatchVector, AddsScale)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
@@ -337,7 +337,7 @@ TYPED_TEST(BatchDense, AddsScale)
 }
 
 
-TYPED_TEST(BatchDense, ConvergenceAddScaled)
+TYPED_TEST(BatchVector, ConvergenceAddScaled)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
@@ -350,7 +350,7 @@ TYPED_TEST(BatchDense, ConvergenceAddScaled)
     const int num_rhs = 3;
     const gko::uint32 converged = 0xfffffffd | (0 - (1 << num_rhs));
 
-    gko::kernels::reference::batch_dense::convergence_add_scaled(
+    gko::kernels::reference::batch_vector::convergence_add_scaled(
         this->exec, alpha.get(), this->mtx_0.get(), this->mtx_1.get(),
         converged);
 
@@ -378,7 +378,7 @@ TYPED_TEST(BatchDense, ConvergenceAddScaled)
 }
 
 
-TYPED_TEST(BatchDense, AddsScaledWithScalar)
+TYPED_TEST(BatchVector, AddsScaledWithScalar)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
@@ -396,7 +396,7 @@ TYPED_TEST(BatchDense, AddsScaledWithScalar)
 }
 
 
-TYPED_TEST(BatchDense, AddsScaleWithScalar)
+TYPED_TEST(BatchVector, AddsScaleWithScalar)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
@@ -418,7 +418,7 @@ TYPED_TEST(BatchDense, AddsScaleWithScalar)
 }
 
 
-TYPED_TEST(BatchDense, AddScaleWithScalarViaApply)
+TYPED_TEST(BatchVector, AddScaleWithScalarViaApply)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
@@ -441,7 +441,7 @@ TYPED_TEST(BatchDense, AddScaleWithScalarViaApply)
 }
 
 
-TYPED_TEST(BatchDense, ConvergenceAddScaledWithScalar)
+TYPED_TEST(BatchVector, ConvergenceAddScaledWithScalar)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
@@ -453,7 +453,7 @@ TYPED_TEST(BatchDense, ConvergenceAddScaledWithScalar)
     const int num_rhs = 3;
     const gko::uint32 converged = 0xfffffffd | (0 - (1 << num_rhs));
 
-    gko::kernels::reference::batch_dense::convergence_add_scaled(
+    gko::kernels::reference::batch_vector::convergence_add_scaled(
         this->exec, alpha.get(), this->mtx_0.get(), this->mtx_1.get(),
         converged);
 
@@ -481,7 +481,7 @@ TYPED_TEST(BatchDense, ConvergenceAddScaledWithScalar)
 }
 
 
-TYPED_TEST(BatchDense, AddScaledFailsOnWrongSizes)
+TYPED_TEST(BatchVector, AddScaledFailsOnWrongSizes)
 {
     using Mtx = typename TestFixture::Mtx;
     auto alpha =
@@ -492,7 +492,7 @@ TYPED_TEST(BatchDense, AddScaledFailsOnWrongSizes)
 }
 
 
-TYPED_TEST(BatchDense, AddScaleFailsOnWrongSizes)
+TYPED_TEST(BatchVector, AddScaleFailsOnWrongSizes)
 {
     using Mtx = typename TestFixture::Mtx;
     auto alpha = gko::batch_initialize<Mtx>({{2.0}, {-2.0}}, this->exec);
@@ -504,7 +504,7 @@ TYPED_TEST(BatchDense, AddScaleFailsOnWrongSizes)
 }
 
 
-TYPED_TEST(BatchDense, AddScaleFailsOnWrongScalarSizes)
+TYPED_TEST(BatchVector, AddScaleFailsOnWrongScalarSizes)
 {
     using Mtx = typename TestFixture::Mtx;
     auto alpha = gko::batch_initialize<Mtx>(
@@ -517,7 +517,7 @@ TYPED_TEST(BatchDense, AddScaleFailsOnWrongScalarSizes)
 }
 
 
-TYPED_TEST(BatchDense, ComputesDot)
+TYPED_TEST(BatchVector, ComputesDot)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
@@ -536,7 +536,7 @@ TYPED_TEST(BatchDense, ComputesDot)
 }
 
 
-TYPED_TEST(BatchDense, ConvergenceComputeDot)
+TYPED_TEST(BatchVector, ConvergenceComputeDot)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
@@ -555,7 +555,7 @@ TYPED_TEST(BatchDense, ConvergenceComputeDot)
     const int num_rhs = 3;
     const gko::uint32 converged = 0xfffffffd | (0 - (1 << num_rhs));
 
-    gko::kernels::reference::batch_dense::convergence_compute_dot(
+    gko::kernels::reference::batch_vector::convergence_compute_dot(
         this->exec, this->mtx_0.get(), this->mtx_1.get(), result.get(),
         converged);
 
@@ -577,12 +577,12 @@ TYPED_TEST(BatchDense, ConvergenceComputeDot)
 }
 
 
-TYPED_TEST(BatchDense, ComputesNorm2)
+TYPED_TEST(BatchVector, ComputesNorm2)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     using T_nc = gko::remove_complex<T>;
-    using NormVector = gko::matrix::BatchDense<T_nc>;
+    using NormVector = gko::matrix::BatchVector<T_nc>;
     auto mtx(gko::batch_initialize<Mtx>(
         {{I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}},
          {I<T>{-4.0, 2.0}, I<T>{-3.0, -2.0}, I<T>{0.0, 1.0}}},
@@ -601,12 +601,12 @@ TYPED_TEST(BatchDense, ComputesNorm2)
 }
 
 
-TYPED_TEST(BatchDense, ConvergenceComputeNorm2)
+TYPED_TEST(BatchVector, ConvergenceComputeNorm2)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     using T_nc = gko::remove_complex<T>;
-    using NormVector = gko::matrix::BatchDense<T_nc>;
+    using NormVector = gko::matrix::BatchVector<T_nc>;
     auto mtx(gko::batch_initialize<Mtx>(
         {{I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}},
          {I<T>{-4.0, 2.0}, I<T>{-3.0, -2.0}, I<T>{0.0, 1.0}}},
@@ -628,7 +628,7 @@ TYPED_TEST(BatchDense, ConvergenceComputeNorm2)
     const int num_rhs = 2;
     const gko::uint32 converged = 0xfffffffd | (0 - (1 << num_rhs));
 
-    gko::kernels::reference::batch_dense::convergence_compute_norm2(
+    gko::kernels::reference::batch_vector::convergence_compute_norm2(
         this->exec, mtx.get(), result.get(), converged);
 
     EXPECT_EQ(result->at(0, 0, 0), result_clone->at(0, 0, 0));
@@ -639,7 +639,7 @@ TYPED_TEST(BatchDense, ConvergenceComputeNorm2)
 }
 
 
-TYPED_TEST(BatchDense, ComputDotFailsOnWrongInputSize)
+TYPED_TEST(BatchVector, ComputDotFailsOnWrongInputSize)
 {
     using Mtx = typename TestFixture::Mtx;
     auto result =
@@ -651,7 +651,7 @@ TYPED_TEST(BatchDense, ComputDotFailsOnWrongInputSize)
 }
 
 
-TYPED_TEST(BatchDense, ComputDotFailsOnWrongResultSize)
+TYPED_TEST(BatchVector, ComputDotFailsOnWrongResultSize)
 {
     using Mtx = typename TestFixture::Mtx;
     auto result =
@@ -667,22 +667,22 @@ TYPED_TEST(BatchDense, ComputDotFailsOnWrongResultSize)
 }
 
 
-TYPED_TEST(BatchDense, CopiesData)
+TYPED_TEST(BatchVector, CopiesData)
 {
-    gko::kernels::reference::batch_dense::copy(this->exec, this->mtx_0.get(),
-                                               this->mtx_1.get());
+    gko::kernels::reference::batch_vector::copy(this->exec, this->mtx_0.get(),
+                                                this->mtx_1.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(this->mtx_1.get(), this->mtx_0.get(), 0.);
 }
 
 
-TYPED_TEST(BatchDense, ConvergenceCopyData)
+TYPED_TEST(BatchVector, ConvergenceCopyData)
 {
     auto umtx_0 = this->mtx_0->unbatch();
 
     const int num_rhs = 3;
     const gko::uint32 converged = 0xfffffffd | (0 - (1 << num_rhs));
-    gko::kernels::reference::batch_dense::convergence_copy(
+    gko::kernels::reference::batch_vector::convergence_copy(
         this->exec, this->mtx_0.get(), this->mtx_1.get(), converged);
 
     auto mtx_10_clone = gko::clone(this->mtx_10);
@@ -706,7 +706,7 @@ TYPED_TEST(BatchDense, ConvergenceCopyData)
 }
 
 
-TYPED_TEST(BatchDense, BatchScale)
+TYPED_TEST(BatchVector, BatchScale)
 {
     using T = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
@@ -722,8 +722,8 @@ TYPED_TEST(BatchDense, BatchScale)
     auto rght(gko::batch_diagonal_initialize(
         I<I<T>>{I<T>{-0.5, -2.0}, I<T>{2.0, 0.25}}, this->exec));
 
-    gko::kernels::reference::batch_dense::batch_scale(this->exec, left.get(),
-                                                      rght.get(), mtx.get());
+    gko::kernels::reference::batch_vector::batch_scale(this->exec, left.get(),
+                                                       rght.get(), mtx.get());
 
     EXPECT_EQ(mtx->at(0, 0, 0), T{-0.5});
     EXPECT_EQ(mtx->at(0, 1, 0), T{-2.0});
@@ -741,14 +741,14 @@ TYPED_TEST(BatchDense, BatchScale)
 }
 
 
-TYPED_TEST(BatchDense, ConvertsToPrecision)
+TYPED_TEST(BatchVector, ConvertsToPrecision)
 {
-    using BatchDense = typename TestFixture::Mtx;
+    using BatchVector = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     using OtherT = typename gko::next_precision<T>;
-    using OtherBatchDense = typename gko::matrix::BatchDense<OtherT>;
-    auto tmp = OtherBatchDense::create(this->exec);
-    auto res = BatchDense::create(this->exec);
+    using OtherBatchVector = typename gko::matrix::BatchVector<OtherT>;
+    auto tmp = OtherBatchVector::create(this->exec);
+    auto res = BatchVector::create(this->exec);
     // If OtherT is more precise: 0, otherwise r
     auto residual = r<OtherT>::value < r<T>::value
                         ? gko::remove_complex<T>{0}
@@ -764,14 +764,14 @@ TYPED_TEST(BatchDense, ConvertsToPrecision)
 }
 
 
-TYPED_TEST(BatchDense, MovesToPrecision)
+TYPED_TEST(BatchVector, MovesToPrecision)
 {
-    using BatchDense = typename TestFixture::Mtx;
+    using BatchVector = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     using OtherT = typename gko::next_precision<T>;
-    using OtherBatchDense = typename gko::matrix::BatchDense<OtherT>;
-    auto tmp = OtherBatchDense::create(this->exec);
-    auto res = BatchDense::create(this->exec);
+    using OtherBatchVector = typename gko::matrix::BatchVector<OtherT>;
+    auto tmp = OtherBatchVector::create(this->exec);
+    auto res = BatchVector::create(this->exec);
     // If OtherT is more precise: 0, otherwise r
     auto residual = r<OtherT>::value < r<T>::value
                         ? gko::remove_complex<T>{0}
@@ -787,7 +787,7 @@ TYPED_TEST(BatchDense, MovesToPrecision)
 }
 
 
-TYPED_TEST(BatchDense, ConvertsToCsr32)
+TYPED_TEST(BatchVector, ConvertsToCsr32)
 {
     using T = typename TestFixture::value_type;
     using BatchCsr = typename gko::matrix::BatchCsr<T, gko::int32>;
@@ -824,7 +824,7 @@ TYPED_TEST(BatchDense, ConvertsToCsr32)
 }
 
 
-TYPED_TEST(BatchDense, MovesToCsr32)
+TYPED_TEST(BatchVector, MovesToCsr32)
 {
     using T = typename TestFixture::value_type;
     using BatchCsr = typename gko::matrix::BatchCsr<T, gko::int32>;
@@ -861,14 +861,14 @@ TYPED_TEST(BatchDense, MovesToCsr32)
 }
 
 
-TYPED_TEST(BatchDense, ConvertsEmptyToPrecision)
+TYPED_TEST(BatchVector, ConvertsEmptyToPrecision)
 {
-    using BatchDense = typename TestFixture::Mtx;
+    using BatchVector = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     using OtherT = typename gko::next_precision<T>;
-    using OtherBatchDense = typename gko::matrix::BatchDense<OtherT>;
-    auto empty = OtherBatchDense::create(this->exec);
-    auto res = BatchDense::create(this->exec);
+    using OtherBatchVector = typename gko::matrix::BatchVector<OtherT>;
+    auto empty = OtherBatchVector::create(this->exec);
+    auto res = BatchVector::create(this->exec);
 
     empty->convert_to(res.get());
 
@@ -876,14 +876,14 @@ TYPED_TEST(BatchDense, ConvertsEmptyToPrecision)
 }
 
 
-TYPED_TEST(BatchDense, MovesEmptyToPrecision)
+TYPED_TEST(BatchVector, MovesEmptyToPrecision)
 {
-    using BatchDense = typename TestFixture::Mtx;
+    using BatchVector = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     using OtherT = typename gko::next_precision<T>;
-    using OtherBatchDense = typename gko::matrix::BatchDense<OtherT>;
-    auto empty = OtherBatchDense::create(this->exec);
-    auto res = BatchDense::create(this->exec);
+    using OtherBatchVector = typename gko::matrix::BatchVector<OtherT>;
+    auto empty = OtherBatchVector::create(this->exec);
+    auto res = BatchVector::create(this->exec);
 
     empty->move_to(res.get());
 
@@ -891,12 +891,12 @@ TYPED_TEST(BatchDense, MovesEmptyToPrecision)
 }
 
 
-TYPED_TEST(BatchDense, ConvertsEmptyMatrixToCsr)
+TYPED_TEST(BatchVector, ConvertsEmptyMatrixToCsr)
 {
-    using BatchDense = typename TestFixture::Mtx;
+    using BatchVector = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     using BatchCsr = typename gko::matrix::BatchCsr<T, gko::int32>;
-    auto empty = BatchDense::create(this->exec);
+    auto empty = BatchVector::create(this->exec);
     auto res = BatchCsr::create(this->exec);
 
     empty->convert_to(res.get());
@@ -907,12 +907,12 @@ TYPED_TEST(BatchDense, ConvertsEmptyMatrixToCsr)
 }
 
 
-TYPED_TEST(BatchDense, MovesEmptyMatrixToCsr)
+TYPED_TEST(BatchVector, MovesEmptyMatrixToCsr)
 {
-    using BatchDense = typename TestFixture::Mtx;
+    using BatchVector = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     using BatchCsr = typename gko::matrix::BatchCsr<T, gko::int32>;
-    auto empty = BatchDense::create(this->exec);
+    auto empty = BatchVector::create(this->exec);
     auto res = BatchCsr::create(this->exec);
 
     empty->move_to(res.get());
@@ -923,7 +923,7 @@ TYPED_TEST(BatchDense, MovesEmptyMatrixToCsr)
 }
 
 
-TYPED_TEST(BatchDense, ConvertsToBatchDiagonal)
+TYPED_TEST(BatchVector, ConvertsToBatchDiagonal)
 {
     using BDense = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
@@ -946,7 +946,7 @@ TYPED_TEST(BatchDense, ConvertsToBatchDiagonal)
 }
 
 
-TYPED_TEST(BatchDense, MovesToBatchDiagonal)
+TYPED_TEST(BatchVector, MovesToBatchDiagonal)
 {
     using BDense = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
@@ -967,13 +967,13 @@ TYPED_TEST(BatchDense, MovesToBatchDiagonal)
 }
 
 
-TYPED_TEST(BatchDense, SquareMatrixIsTransposable)
+TYPED_TEST(BatchVector, SquareMatrixIsTransposable)
 {
     using Mtx = typename TestFixture::Mtx;
     auto trans = this->mtx_4->transpose();
-    auto trans_as_batch_dense = static_cast<Mtx*>(trans.get());
+    auto trans_as_batch_vector = static_cast<Mtx*>(trans.get());
 
-    auto utb = trans_as_batch_dense->unbatch();
+    auto utb = trans_as_batch_vector->unbatch();
     GKO_ASSERT_MTX_NEAR(utb[0].get(),
                         l({{1.0, 6.0, 6.0}, {1.5, 1.0, 1.0}, {3.0, 5.0, 5.5}}),
                         r<TypeParam>::value);
@@ -983,13 +983,13 @@ TYPED_TEST(BatchDense, SquareMatrixIsTransposable)
 }
 
 
-TYPED_TEST(BatchDense, NonSquareMatrixIsTransposable)
+TYPED_TEST(BatchVector, NonSquareMatrixIsTransposable)
 {
     using Mtx = typename TestFixture::Mtx;
     auto trans = this->mtx_5->transpose();
-    auto trans_as_batch_dense = static_cast<Mtx*>(trans.get());
+    auto trans_as_batch_vector = static_cast<Mtx*>(trans.get());
 
-    auto utb = trans_as_batch_dense->unbatch();
+    auto utb = trans_as_batch_vector->unbatch();
     GKO_ASSERT_MTX_NEAR(utb[0].get(), l({{1.0, 6.0, 7.0}, {1.5, 1.0, -4.5}}),
                         r<TypeParam>::value);
     GKO_ASSERT_MTX_NEAR(utb[1].get(), l({{2.0, 1.0, 4.0}, {-2.0, 3.0, 3.0}}),
@@ -997,7 +997,7 @@ TYPED_TEST(BatchDense, NonSquareMatrixIsTransposable)
 }
 
 
-TYPED_TEST(BatchDense, SquareMatrixAddScaledIdentity)
+TYPED_TEST(BatchVector, SquareMatrixAddScaledIdentity)
 {
     using T = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
