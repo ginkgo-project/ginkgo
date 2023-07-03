@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/device_matrix_data.hpp>
+#include <ginkgo/core/base/native_type.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -57,188 +58,110 @@ namespace kokkos {
 namespace detail {
 
 
-template <typename T, typename MemorySpace>
+template <typename T>
 struct native_type {
     using type = T;
 };
 
 
-template <typename T, typename MemorySpace>
-struct native_type<std::complex<T>, MemorySpace> {
+template <typename T>
+struct native_type<std::complex<T>> {
     using type = Kokkos::complex<T>;
 };
 
-template <typename T, typename MemorySpace>
-struct native_type<const std::complex<T>, MemorySpace> {
+template <typename T>
+struct native_type<const std::complex<T>> {
     using type = const Kokkos::complex<T>;
-};
-
-
-template <typename ValueType, typename MemorySpace>
-struct array {
-    array(ValueType* data, size_type size) : view(data, size) {}
-
-    template <typename T,
-              std::enable_if_t<!std::is_const_v<ValueType> &&
-                                   std::is_same_v<const T, ValueType>,
-                               bool> = true>
-    array(gko::array<T>& arr) : view(arr.get_data(), arr.get_num_elems())
-    {
-        ensure_compatibility(arr, MemorySpace{});
-    }
-
-    template <typename T,
-              std::enable_if_t<std::is_const_v<ValueType> &&
-                                   std::is_same_v<const T, ValueType>,
-                               bool> = true>
-    array(const gko::array<T>& arr)
-        : view(arr.get_const_data(), arr.get_num_elems())
-    {
-        ensure_compatibility(arr, MemorySpace{});
-    }
-
-    template <typename I>
-    KOKKOS_INLINE_FUNCTION decltype(auto) operator()(const I& i) const
-    {
-        return view(i);
-    }
-
-    Kokkos::View<typename native_type<ValueType, MemorySpace>::type*,
-                 MemorySpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>>
-        view;
-};
-
-
-template <typename ValueType, typename MemorySpace>
-struct native_type<gko::array<ValueType>, MemorySpace> {
-    using type = array<ValueType, MemorySpace>;
-};
-
-
-template <typename ValueType, typename MemorySpace>
-struct native_type<const gko::array<ValueType>, MemorySpace> {
-    using type = array<const ValueType, MemorySpace>;
-};
-
-
-template <typename ValueType, typename MemorySpace>
-struct dense {
-    template <typename T, std::enable_if_t<!std::is_const_v<ValueType> &&
-                                               std::is_same_v<T, ValueType>,
-                                           bool> = true>
-    dense(gko::matrix::Dense<T>& mtx)
-        : values(mtx.get_values(),
-                 Kokkos::LayoutStride{mtx.get_size()[0], mtx.get_stride(),
-                                      mtx.get_size()[1], 1})
-    {
-        ensure_compatibility(mtx, MemorySpace{});
-    }
-
-    template <typename T,
-              std::enable_if_t<std::is_const_v<ValueType> &&
-                                   std::is_same_v<const T, ValueType>,
-                               bool> = true>
-    dense(const gko::matrix::Dense<T>& mtx)
-        : values(mtx.get_const_values(),
-                 Kokkos::LayoutStride{mtx.get_size()[0], mtx.get_stride(),
-                                      mtx.get_size()[1], 1})
-    {
-        ensure_compatibility(mtx, MemorySpace{});
-    }
-
-    template <typename I1, typename I2>
-    KOKKOS_INLINE_FUNCTION decltype(auto) operator()(const I1& i1,
-                                                     const I2& i2) const
-    {
-        return values(i1, i2);
-    }
-
-    Kokkos::View<typename native_type<ValueType, MemorySpace>::type**,
-                 Kokkos::LayoutStride, MemorySpace,
-                 Kokkos::MemoryTraits<Kokkos::Unmanaged>>
-        values;
-};
-
-template <typename ValueType, typename MemorySpace>
-struct native_type<gko::matrix::Dense<ValueType>, MemorySpace> {
-    using type = dense<ValueType, MemorySpace>;
-};
-
-template <typename ValueType, typename MemorySpace>
-struct native_type<const gko::matrix::Dense<ValueType>, MemorySpace> {
-    using type = dense<const ValueType, MemorySpace>;
-};
-
-
-template <typename ValueType, typename IndexType, typename MemorySpace>
-struct native_type<gko::device_matrix_data<ValueType, IndexType>, MemorySpace> {
-    struct type {
-        type(gko::device_matrix_data<ValueType, IndexType>& md)
-            : row_idxs(md.get_row_idxs(), md.get_num_elems()),
-              col_idxs(md.get_col_idxs(), md.get_num_elems()),
-              values(md.get_values(), md.get_num_elems())
-        {
-            ensure_compatibility(md, MemorySpace{});
-        }
-
-        typename native_type<gko::array<IndexType>, MemorySpace>::type row_idxs;
-        typename native_type<gko::array<IndexType>, MemorySpace>::type col_idxs;
-        typename native_type<gko::array<ValueType>, MemorySpace>::type values;
-    };
 };
 
 
 }  // namespace detail
 
-template <typename T, typename MemorySpace>
-using native_type = typename detail::native_type<T, MemorySpace>::type;
 
+template <typename T, typename MS>
+struct array_mapper {
+    using type = Kokkos::View<typename detail::native_type<T>::type*, MS,
+                              Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
+
+    template <typename U,
+              std::enable_if_t<std::is_same<U, std::remove_cv_t<T>>::value &&
+                                   !std::is_const<T>::value,
+                               int> = 0>
+    static type map(gko::array<U>& arr)
+    {
+        return type{arr.get_data(), arr.get_num_elems()};
+    }
+
+    template <typename U,
+              std::enable_if_t<std::is_same<U, std::remove_cv_t<T>>::value &&
+                                   std::is_const<T>::value,
+                               int> = 0>
+    static type map(const gko::array<U>& arr)
+    {
+        return type{arr.get_const_data(), arr.get_num_elems()};
+    }
+
+    static type map(gko::array<T>&& arr)
+    {
+        return type{arr.get_data(), arr.get_num_elems()};
+    }
+};
+
+
+template <typename T, typename MS>
+struct dense_mapper {
+    using type = Kokkos::View<typename detail::native_type<T>::type**,
+                              Kokkos::LayoutStride, MS,
+                              Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
+
+    template <typename U,
+              std::enable_if_t<std::is_same<U, std::remove_cv_t<T>>::value &&
+                                   !std::is_const<T>::value,
+                               int> = 0>
+    static type map(gko::matrix::Dense<U>& mtx)
+    {
+        return type{mtx.get_values(),
+                    Kokkos::LayoutStride{mtx.get_size()[0], mtx.get_stride(),
+                                         mtx.get_size()[1], 1}};
+    }
+
+    template <typename U,
+              std::enable_if_t<std::is_same<U, std::remove_cv_t<T>>::value &&
+                                   std::is_const<T>::value,
+                               int> = 0>
+    static type map(const gko::matrix::Dense<U>& mtx)
+    {
+        return type{mtx.get_const_values(),
+                    Kokkos::LayoutStride{mtx.get_size()[0], mtx.get_stride(),
+                                         mtx.get_size()[1], 1}};
+    }
+
+    static type map(gko::matrix::Dense<std::remove_cv_t<T>>&& mtx)
+    {
+        return type{mtx.get_values(),
+                    Kokkos::LayoutStride{mtx.get_size()[0], mtx.get_stride(),
+                                         mtx.get_size()[1], 1}};
+    }
+};
+
+
+template <typename MemorySpace>
+using native_type = gko::native<array_mapper, dense_mapper, MemorySpace>;
 
 template <typename T,
           typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
-native_type<T, MemorySpace> map_data(std::unique_ptr<T>& data,
-                                     MemorySpace ms = {})
+typename native_type<MemorySpace>::template type<T> map_data(
+    T* data, MemorySpace ms = {})
 {
-    return {*data};
+    return native_type<MemorySpace>::map(*data);
 }
 
 template <typename T,
           typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
-native_type<const T, MemorySpace> map_data(const std::unique_ptr<T>& data,
-                                           MemorySpace ms = {})
-{
-    return {*data};
-}
-
-template <typename T,
-          typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
-native_type<T, MemorySpace> map_data(std::shared_ptr<T>& data,
-                                     MemorySpace ms = {})
-{
-    return {*data};
-}
-
-template <typename T,
-          typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
-native_type<const T, MemorySpace> map_data(const std::shared_ptr<T>& data,
-                                           MemorySpace ms = {})
-{
-    return {*data};
-}
-
-template <typename T,
-          typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
-native_type<T, MemorySpace> map_data(T* data, MemorySpace ms = {})
-{
-    return {*data};
-}
-
-template <typename T,
-          typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
-native_type<std::remove_reference_t<T>, MemorySpace> map_data(
+typename native_type<MemorySpace>::template type<T> map_data(
     T&& data, MemorySpace ms = {})
 {
-    return {std::forward<T>(data)};
+    return native_type<MemorySpace>::map(std::forward<T>(data));
 }
 
 
