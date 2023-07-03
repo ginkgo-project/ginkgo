@@ -192,12 +192,11 @@ ginkgo_print_generic_header(${minimal_log} "  Components:")
 ginkgo_print_generic_header(${detailed_log} "  Components:")
 ginkgo_print_variable(${minimal_log} "GINKGO_BUILD_PAPI_SDE")
 ginkgo_print_variable(${detailed_log} "GINKGO_BUILD_PAPI_SDE")
-if(TARGET PAPI::PAPI)
+if (TARGET PAPI::PAPI)
     ginkgo_print_variable(${detailed_log} "PAPI_VERSION")
     ginkgo_print_variable(${detailed_log} "PAPI_INCLUDE_DIR")
     ginkgo_print_flags(${detailed_log} "PAPI_LIBRARY")
-endif()
-
+endif ()
 ginkgo_print_variable(${minimal_log} "GINKGO_BUILD_HWLOC")
 ginkgo_print_variable(${detailed_log} "GINKGO_BUILD_HWLOC")
 if(TARGET hwloc)
@@ -205,13 +204,22 @@ if(TARGET hwloc)
     ginkgo_print_variable(${detailed_log} "HWLOC_LIBRARIES")
     ginkgo_print_variable(${detailed_log} "HWLOC_INCLUDE_DIRS")
 endif()
+ginkgo_print_module_footer(${detailed_log} "")
+
+ginkgo_print_generic_header(${minimal_log} "  Extensions:")
+ginkgo_print_generic_header(${detailed_log} "  Extensions:")
+ginkgo_print_variable(${minimal_log} "GINKGO_EXTENSION_KOKKOS")
+ginkgo_print_variable(${detailed_log} "GINKGO_EXTENSION_KOKKOS")
+ginkgo_print_variable(${detailed_log} "Kokkos_VERSION")
+ginkgo_print_variable(${detailed_log} "Kokkos_ROOT")
+ginkgo_print_variable(${detailed_log} "Kokkos_INCLUDE_DIRS")
 
 _minimal(
-    "
+        "
 --\n--  Detailed information (More compiler flags, module configuration) can be found in detailed.log
 --   ")
 _both(
-    "\n--\n--  Now, run  cmake --build .  to compile Ginkgo!\n"
-    )
+        "\n--\n--  Now, run  cmake --build .  to compile Ginkgo!\n"
+)
 _both("--
 ---------------------------------------------------------------------------------------------------------\n")

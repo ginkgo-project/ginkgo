@@ -95,6 +95,7 @@ option(GINKGO_FORCE_GPU_AWARE_MPI "Assert that the MPI library is GPU aware. Thi
      catastrophically in case the MPI implementation is not GPU Aware, and GPU aware functionality has been forced" OFF)
 set(GINKGO_CI_TEST_OMP_PARALLELISM "4" CACHE STRING
     "The number of OpenMP threads to use for a test binary during CTest resource file-constrained test.")
+option(GINKGO_EXTENSION_KOKKOS "Enables the Kokkos extension in Ginkgo. A Kokkos installation is required in the ON case." OFF)
 
 # load executor-specific configuration
 if(GINKGO_BUILD_CUDA)
