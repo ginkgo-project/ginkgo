@@ -188,6 +188,27 @@ GKO_ATTRIBUTES constexpr GKO_INLINE
            equal_dimensions<CurrentDimension + 1>(first, second);
 }
 
+/**
+ * Helper that stores the first type of a parameter pack, if its length is
+ * greater 0.
+ */
+template <class...>
+struct head;
+
+/**
+ * @copydoc head
+ */
+template <class First, class... Rest>
+struct head<First, Rest...> {
+    using type = First;
+};
+
+/**
+ * @copydoc head
+ */
+template <class... T>
+using head_t = typename head<T...>::type;
+
 
 }  // namespace detail
 
@@ -327,7 +348,12 @@ public:
      *
      * @param params  parameters forwarded to Accessor constructor.
      */
-    template <typename... AccessorParams>
+    template <
+        typename... AccessorParams,
+        typename = std::enable_if_t<
+            sizeof...(AccessorParams) != 1 ||
+            !std::is_same<
+                range, std::decay<detail::head_t<AccessorParams...>>>::value>>
     GKO_ATTRIBUTES constexpr explicit range(AccessorParams&&... params)
         : accessor_{std::forward<AccessorParams>(params)...}
     {}
