@@ -688,10 +688,11 @@ void row_scatter(std::shared_ptr<const DefaultExecutor> exec,
         constexpr auto block_size = default_block_size;
         auto num_blocks = ceildiv(size[0] * size[1], block_size);
         kernel::row_scatter<<<num_blocks, block_size, 0, exec->get_stream()>>>(
-            row_idxs->get_num_subsets(), row_idxs->get_subsets_begin(),
-            row_idxs->get_superset_indices(), size[0], size[1],
-            orig->get_stride(), orig->get_const_values(), target->get_stride(),
-            target->get_values());
+            row_idxs->get_num_subsets(),
+            as_device_type(row_idxs->get_subsets_begin()),
+            as_device_type(row_idxs->get_superset_indices()), size[0], size[1],
+            orig->get_stride(), as_device_type(orig->get_const_values()),
+            target->get_stride(), as_device_type(target->get_values()));
     }
 }
 
