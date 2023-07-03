@@ -66,6 +66,8 @@ option(GINKGO_FORCE_GPU_AWARE_MPI "Assert that the MPI library is GPU aware. Thi
      catastrophically in case the MPI implementation is not GPU Aware, and GPU aware functionality has been forced" OFF)
 set(GINKGO_CI_TEST_OMP_PARALLELISM "4" CACHE STRING
     "The number of OpenMP threads to use for a test binary during CTest resource file-constrained test.")
+option(GINKGO_EXTENSION_KOKKOS "Enables the Kokkos extension in Ginkgo. A Kokkos installation is required in the ON case." OFF)
+option(GINKGO_EXTENSION_KOKKOS_CHECK_TYPE_ALIGNMENT "Enables mapping to Kokkos types to check the alignment of the source and target type." ON)
 gko_rename_cache(GINKGO_COMPILER_FLAGS CMAKE_CXX_FLAGS BOOL "Flags used by the CXX compiler during all build types.")
 gko_rename_cache(GINKGO_CUDA_COMPILER_FLAGS CMAKE_CUDA_FLAGS BOOL "Flags used by the CUDA compiler during all build types.")
 
@@ -112,7 +114,10 @@ set(GINKGO_CIRCULAR_DEPS_FLAGS "-Wl,--no-undefined")
 if(GINKGO_WITH_CCACHE)
     find_program(CCACHE_PROGRAM ccache)
     if(CCACHE_PROGRAM)
-        set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+        # Use a generator expression to allow targets overriding the compiler launcher.
+        # This is used for example in the Kokkos extension, since Kokkos has it's own
+        # compiler wrapper.
+        set(CMAKE_CXX_COMPILER_LAUNCHER "$<$<NOT:$<BOOL:$<TARGET_PROPERTY:GKO_SKIP_CXX_COMPILER_LAUNCHER>>>:${CCACHE_PROGRAM}>")
         if(GINKGO_BUILD_CUDA)
             set(CMAKE_CUDA_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
         endif()
