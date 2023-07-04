@@ -79,6 +79,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/distributed/overlapping_partition.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/polymorphic_object.hpp>
+#include <ginkgo/core/distributed/sparse_communicator.hpp>
 
 #include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
 
