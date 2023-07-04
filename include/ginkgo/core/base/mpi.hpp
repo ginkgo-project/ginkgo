@@ -341,17 +341,110 @@ private:
 };
 
 
+namespace detail {
+
+
+/**
+ * from https://stackoverflow.com/a/52358928
+ * @tparam T
+ */
+template <typename T>
+class move_only_function : public std::function<T> {
+    template <typename Fn, typename En = void>
+    struct wrapper;
+
+    // specialization for CopyConstructible Fn
+    template <typename Fn>
+    struct wrapper<Fn,
+                   std::enable_if_t<std::is_copy_constructible<Fn>::value>> {
+        Fn fn;
+
+        template <typename... Args>
+        auto operator()(Args&&... args)
+        {
+            return fn(std::forward<Args>(args)...);
+        }
+    };
+
+    // specialization for MoveConstructible-only Fn
+    template <typename Fn>
+    struct wrapper<Fn,
+                   std::enable_if_t<!std::is_copy_constructible<Fn>::value &&
+                                    std::is_move_constructible<Fn>::value>> {
+        Fn fn;
+
+        wrapper(Fn&& fn) : fn(std::forward<Fn>(fn)) {}
+
+        wrapper(wrapper&&) = default;
+        wrapper& operator=(wrapper&&) = default;
+
+        // these two functions are instantiated by std::function
+        // and are never called
+        wrapper(const wrapper& rhs) : fn(const_cast<Fn&&>(rhs.fn))
+        {
+            GKO_INVALID_STATE(
+                "Internal error: tried to copy move-only function");
+        }
+
+        // hack to initialize fn for non-DefaultContructible types
+        wrapper& operator=(wrapper&)
+        {
+            GKO_INVALID_STATE(
+                "Internal error: tried to copy move-only function");
+        }
+
+        template <typename... Args>
+        auto operator()(Args&&... args)
+        {
+            return fn(std::forward<Args>(args)...);
+        }
+    };
+
+    using base = std::function<T>;
+
+public:
+    move_only_function() noexcept = default;
+    move_only_function(std::nullptr_t) noexcept : base(nullptr) {}
+
+    template <typename Fn>
+    move_only_function(Fn&& f) : base(wrapper<Fn>{std::forward<Fn>(f)})
+    {}
+
+    move_only_function(move_only_function&&) = default;
+    move_only_function& operator=(move_only_function&&) = default;
+
+    move_only_function& operator=(std::nullptr_t)
+    {
+        base::operator=(nullptr);
+        return *this;
+    }
+
+    template <typename Fn>
+    move_only_function& operator=(Fn&& f)
+    {
+        base::operator=(wrapper<Fn>{std::forward<Fn>(f)});
+        return *this;
+    }
+
+    using base::operator();
+};
+
+
+}  // namespace detail
+
 /**
  * The request class is a light, move-only wrapper around the MPI_Request
  * handle.
  */
 class request {
 public:
+    using callback = detail::move_only_function<void(request*)>;
+
     /**
      * The default constructor. It creates a null MPI_Request of
      * MPI_REQUEST_NULL type.
      */
-    request() : req_(MPI_REQUEST_NULL) {}
+    request(callback cb = {}) : req_(MPI_REQUEST_NULL), cb_(std::move(cb)) {}
 
     request(const request&) = delete;
 
@@ -394,12 +487,14 @@ public:
     {
         status status;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Wait(&req_, status.get()));
+        cb_(this);
         return status;
     }
 
 
 private:
     MPI_Request req_;
+    callback cb_;
 };
 
 
