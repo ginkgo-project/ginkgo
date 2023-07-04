@@ -59,6 +59,7 @@
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/partition_helpers.hpp>
 #include <ginkgo/core/distributed/polymorphic_object.hpp>
+#include <ginkgo/core/distributed/sparse_communicator.hpp>
 
 #include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
 
