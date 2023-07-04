@@ -58,14 +58,9 @@ namespace detail {
  * @tparam ExecType  One of the Ginkgo executor types.
  */
 template <typename MemorySpace, typename ExecType>
-struct compatible_space : std::false_type {};
-
-template <typename ExecType>
-struct compatible_space<Kokkos::SharedSpace, ExecType> : std::true_type {};
-
-template <typename ExecType>
-struct compatible_space<Kokkos::SharedHostPinnedSpace, ExecType>
-    : std::true_type {};
+struct compatible_space
+    : std::integral_constant<bool, Kokkos::has_shared_space ||
+                                       Kokkos::has_shared_host_pinned_space> {};
 
 template <>
 struct compatible_space<Kokkos::HostSpace, gko::ReferenceExecutor>
