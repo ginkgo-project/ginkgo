@@ -141,7 +141,7 @@ struct interleaved_deleter {
                             host_ptr->at(i + offset, col);
                     }
                 }
-                offset += cur_idxs.get_num_local_indices();
+                offset += cur_idxs.get_num_elems();
             }
         }
         delete ptr;
@@ -209,7 +209,8 @@ struct blocked_deleter {
 class sparse_communicator
     : public std::enable_shared_from_this<sparse_communicator> {
 public:
-    using partition_type = overlapping_partition<int32>;
+    using partition_i32_type = overlapping_partition<int32>;
+    using partition_i64_type = overlapping_partition<int64>;
     using overlap_idxs_type = overlap_indices<int32>;
 
     static std::shared_ptr<sparse_communicator> create(
@@ -249,10 +250,14 @@ public:
         std::shared_ptr<matrix::Dense<ValueType>> local_vector,
         transformation mode) const
     {
-        return communicate_impl_(default_comm_.get(), part_->get_send_indices(),
-                                 send_sizes_, send_offsets_,
-                                 part_->get_recv_indices(), recv_sizes_,
-                                 recv_offsets_, local_vector, mode);
+        return std::visit(
+            [&, this](const auto& part) {
+                return communicate_impl_(
+                    inverse_comm_.get(), part->get_send_indices(), recv_sizes_,
+                    recv_offsets_, part->get_recv_indices(), send_sizes_,
+                    send_offsets_, local_vector, mode);
+            },
+            part_);
     }
 
     /**
@@ -269,24 +274,32 @@ public:
         std::shared_ptr<matrix::Dense<ValueType>> local_vector,
         transformation mode) const
     {
-        return communicate_impl_(inverse_comm_.get(), part_->get_recv_indices(),
-                                 recv_sizes_, recv_offsets_,
-                                 part_->get_send_indices(), send_sizes_,
-                                 send_offsets_, local_vector, mode);
+        return std::visit(
+            [&, this](const auto& part) {
+                return communicate_impl_(
+                    inverse_comm_.get(), part->get_recv_indices(), recv_sizes_,
+                    recv_offsets_, part->get_send_indices(), send_sizes_,
+                    send_offsets_, local_vector, mode);
+            },
+            part_);
     }
 
-    std::shared_ptr<const partition_type> get_partition() const
+    template <typename IndexType>
+    std::shared_ptr<const overlapping_partition<IndexType>> get_partition()
+        const
     {
-        return part_;
+        return std::get<
+            std::shared_ptr<const overlapping_partition<IndexType>>>(part_);
     }
 
 private:
     /**
      * Creates sparse communicator from overlapping_partition
      */
+    template <typename IndexType>
     sparse_communicator(
         mpi::communicator comm,
-        std::shared_ptr<const overlapping_partition<int32>> part)
+        std::shared_ptr<const overlapping_partition<IndexType>> part)
         : default_comm_(create_neighborhood_comm(
               comm, part->get_recv_indices().get_target_ids(),
               part->get_send_indices().get_target_ids())),
@@ -299,43 +312,51 @@ private:
           recv_sizes_(comm.size()),
           recv_offsets_(comm.size() + 1)
     {
-        auto exec = part_->get_executor();  // should be exec of part_
+        auto exec =
+            std::visit([](const auto& part) { return part->get_executor(); },
+                       part_);  // should be exec of part_
         auto host_exec = exec->get_master();
         auto fill_size_offsets = [&](std::vector<int>& sizes,
                                      std::vector<int>& offsets,
                                      const auto& overlap) {
+            using overlap_t = std::decay<decltype(overlap)>;
             std::visit(
-                overloaded{
-                    [&](const typename overlap_idxs_type::blocked& idxs) {
-                        auto& intervals = idxs.get_intervals();
-                        for (int i = 0; i < intervals.size(); ++i) {
-                            sizes[i] = intervals[i].length();
-                        }
-                        std::partial_sum(sizes.begin(), sizes.end(),
-                                         offsets.begin() + 1);
-                    },
-                    [&](const typename overlap_idxs_type::interleaved& idxs) {
-                        auto& sets = idxs.get_sets();
-                        for (int i = 0; i < sets.size(); ++i) {
-                            sizes[i] = sets[i].get_num_local_indices();
-                        }
-                        std::partial_sum(sizes.begin(), sizes.end(),
-                                         offsets.begin() + 1);
-                    }},
+                overloaded{[&](const typename overlap_t::blocked& idxs) {
+                               auto& intervals = idxs.get_intervals();
+                               for (int i = 0; i < intervals.size(); ++i) {
+                                   sizes[i] = intervals[i].length();
+                               }
+                               std::partial_sum(sizes.begin(), sizes.end(),
+                                                offsets.begin() + 1);
+                           },
+                           [&](const typename overlap_t::interleaved& idxs) {
+                               auto& sets = idxs.get_sets();
+                               for (int i = 0; i < sets.size(); ++i) {
+                                   sizes[i] = sets[i].get_num_elems();
+                               }
+                               std::partial_sum(sizes.begin(), sizes.end(),
+                                                offsets.begin() + 1);
+                           }},
                 overlap.get_idxs());
         };
-        fill_size_offsets(recv_sizes_, recv_offsets_,
-                          part_->get_recv_indices());
-        fill_size_offsets(send_sizes_, send_offsets_,
-                          part_->get_send_indices());
+        fill_size_offsets(
+            recv_sizes_, recv_offsets_,
+            std::visit(
+                [](const auto& part) { return part->get_recv_indices(); },
+                part_));
+        fill_size_offsets(
+            send_sizes_, send_offsets_,
+            std::visit(
+                [](const auto& part) { return part->get_recv_indices(); },
+                part_));
     }
 
-    template <typename ValueType>
+    template <typename ValueType, typename IndexType>
     mpi::request communicate_impl_(
-        MPI_Comm comm, const overlap_idxs_type& send_idxs,
+        MPI_Comm comm, const overlap_indices<IndexType>& send_idxs,
         const std::vector<comm_index_type>& send_sizes,
         const std::vector<comm_index_type>& send_offsets,
-        const overlap_idxs_type& recv_idxs,
+        const overlap_indices<IndexType>& recv_idxs,
         const std::vector<comm_index_type>& recv_sizes,
         const std::vector<comm_index_type>& recv_offsets,
         std::shared_ptr<matrix::Dense<ValueType>> local_vector,
@@ -359,7 +380,6 @@ private:
         };
 
         std::unique_lock<std::mutex> guard(cache_mutex);
-
         if (!one_buffer_.get<ValueType>()) {
             one_buffer_.init<ValueType>(exec, {1, 1});
             one_buffer_.get<ValueType>()->fill(one<ValueType>());
@@ -450,7 +470,9 @@ private:
     mpi::communicator default_comm_;
     mpi::communicator inverse_comm_;
 
-    std::shared_ptr<const partition_type> part_;
+    std::variant<std::shared_ptr<const partition_i32_type>,
+                 std::shared_ptr<const partition_i64_type>>
+        part_;
 
     std::vector<comm_index_type> send_sizes_;
     std::vector<comm_index_type> send_offsets_;
@@ -460,9 +482,9 @@ private:
     // @todo can only handle one communication at a time, need to figure out how
     //       to handle multiple
     mutable std::mutex cache_mutex;
-    gko::detail::DenseCache2 recv_buffer_;
-    gko::detail::DenseCache2 send_buffer_;
-    gko::detail::DenseCache2 one_buffer_;
+    gko::detail::AnyDenseCache recv_buffer_;
+    gko::detail::AnyDenseCache send_buffer_;
+    gko::detail::AnyDenseCache one_buffer_;
 };
 
 
