@@ -94,6 +94,7 @@ if(GINKGO_BUILD_MPI)
         mpi/exception.cpp
         distributed/matrix.cpp
         distributed/vector.cpp
+        distributed/sparse_communicator.cpp
         distributed/preconditioner/schwarz.cpp)
 endif()
 
