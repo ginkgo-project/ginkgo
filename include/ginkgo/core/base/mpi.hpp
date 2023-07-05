@@ -346,7 +346,8 @@ namespace detail {
 
 /**
  * from https://stackoverflow.com/a/52358928
- * @tparam T
+ *
+ * Can be replaced in C++23 by std::move_only_function
  */
 template <typename T>
 class move_only_function : public std::function<T> {
