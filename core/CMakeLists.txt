@@ -106,6 +106,7 @@ if(GINKGO_BUILD_MPI)
         distributed/matrix.cpp
         distributed/partition_helpers.cpp
         distributed/vector.cpp
+        distributed/sparse_communicator.cpp
         distributed/preconditioner/schwarz.cpp)
 endif()
 
