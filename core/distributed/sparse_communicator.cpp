@@ -83,6 +83,101 @@ mpi::communicator create_neighborhood_comm(
 }
 
 
+/**
+ * Deleter that writes back received values correctly.
+ */
+template <typename ValueType, typename IndexType>
+struct interleaved_deleter {
+    using vector_type = gko::matrix::Dense<ValueType>;
+
+    void operator()(vector_type* ptr)
+    {
+        if (original.expired()) {
+            GKO_INVALID_STATE(
+                "Original communication object has been deleted. Please make "
+                "sure that the input vector for the sparse communication has a "
+                "longer lifetime than the mpi::request.");
+        }
+        auto shared_original = original.lock();
+        if (mode == transformation::set) {
+            // normal scatter
+        }
+        if (mode == transformation::add) {
+            // scatter with add
+            auto host_exec = ptr->get_executor()->get_master();
+            auto host_ptr = make_temporary_clone(host_exec, ptr);
+            auto offset = 0;
+            for (auto cur_idxs : idxs->get_sets()) {
+                auto full_idxs = cur_idxs.to_global_indices();
+                full_idxs.set_executor(host_exec);
+                for (int i = 0; i < full_idxs.get_num_elems(); ++i) {
+                    auto row = full_idxs.get_const_data()[i];
+                    for (int col = 0; col < ptr->get_size()[1]; ++col) {
+                        shared_original->at(row, col) +=
+                            host_ptr->at(i + offset, col);
+                    }
+                }
+                offset += cur_idxs.get_num_elems();
+            }
+        }
+        delete ptr;
+    }
+
+    interleaved_deleter(
+        std::shared_ptr<vector_type> original,
+        const typename overlap_indices<IndexType>::interleaved* idxs,
+        transformation mode, matrix::Dense<ValueType>* one)
+        : original(std::move(original)), idxs(idxs), mode(mode), one(one)
+    {}
+
+    std::weak_ptr<vector_type> original;
+    const typename overlap_indices<IndexType>::interleaved* idxs;
+    transformation mode;
+    matrix::Dense<ValueType>* one;
+};
+
+
+/**
+ * Deleter that writes back received values correctly.
+ * Does nothing if `transformation == set`.
+ */
+template <typename ValueType, typename IndexType>
+struct blocked_deleter {
+    using vector_type = gko::matrix::Dense<ValueType>;
+
+    void operator()(vector_type* ptr)
+    {
+        if (original.expired()) {
+            GKO_INVALID_STATE(
+                "Original communication object has been deleted. Please make "
+                "sure that the input vector for the sparse communication has a "
+                "longer lifetime than the mpi::request.");
+        }
+        if (mode == transformation::set) {
+            // do nothing
+        }
+        if (mode == transformation::add) {
+            // need to put the 1.0 into outside storage for reuse
+            // maybe store block-idxs directly and use shortcut?
+            auto shared_original = original.lock();
+            idxs->get_submatrix(shared_original.get())->add_scaled(one, ptr);
+        }
+        delete ptr;
+    }
+
+    blocked_deleter(std::shared_ptr<vector_type> original,
+                    const typename overlap_indices<IndexType>::blocked* idxs,
+                    transformation mode, matrix::Dense<ValueType>* one)
+        : original(std::move(original)), idxs(idxs), mode(mode), one(one)
+    {}
+
+    std::weak_ptr<vector_type> original;
+    const typename overlap_indices<IndexType>::blocked* idxs;
+    transformation mode;
+    matrix::Dense<ValueType>* one;
+};
+
+
 template <typename ValueType>
 mpi::request sparse_communicator::communicate(
     std::shared_ptr<matrix::Dense<ValueType>> local_vector,
@@ -97,6 +192,15 @@ mpi::request sparse_communicator::communicate(
         },
         part_);
 }
+
+#define GKO_DECLARE_COMMUNICATE(ValueType)                      \
+    mpi::request sparse_communicator::communicate(              \
+        std::shared_ptr<matrix::Dense<ValueType>> local_vector, \
+        gko::experimental::distributed::transformation mode) const
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_COMMUNICATE);
+
+#undef GKO_DECLARE_COMMUNICATE
 
 
 template <typename ValueType>
@@ -113,6 +217,15 @@ mpi::request sparse_communicator::communicate_inverse(
         },
         part_);
 }
+
+#define GKO_DECLARE_COMMUNICATE_INVERSE(ValueType)              \
+    mpi::request sparse_communicator::communicate_inverse(      \
+        std::shared_ptr<matrix::Dense<ValueType>> local_vector, \
+        gko::experimental::distributed::transformation mode) const
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_COMMUNICATE_INVERSE);
+
+#undef GKO_DECLARE_COMMUNICATE_INVERSE
 
 
 template <typename IndexType>
@@ -158,6 +271,15 @@ sparse_communicator::sparse_communicator(
     fill_size_offsets(send_sizes_, send_offsets_, part->get_send_indices());
     part_ = std::move(part);
 }
+
+#define GKO_DECLARE_SPARSE_COMMUNICATOR(IndexType) \
+    sparse_communicator::sparse_communicator(      \
+        mpi::communicator comm,                    \
+        std::shared_ptr<const overlapping_partition<IndexType>> part)
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_SPARSE_COMMUNICATOR);
+
+#undef GKO_DECLARE_SPARSE_COMMUNICATOR
 
 
 template <typename ValueType, typename IndexType>
@@ -286,7 +408,10 @@ mpi::request sparse_communicator::communicate_impl_(
         const std::vector<comm_index_type>& recv_offsets,                      \
         std::shared_ptr<matrix::Dense<ValueType>> local_vector,                \
         transformation mode) const
+
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COMMUNICATE_IMPL);
+
+#undef GKO_DECLARE_COMMUNICATE_IMPL
 
 
 }  // namespace distributed
