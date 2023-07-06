@@ -98,7 +98,6 @@ build/cuda92/nompi/gcc/all/release/shared:
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
-    CUDA_ARCH: 61
 
 # cuda 10.1 and friends
 # Build CUDA NVIDIA without omp
@@ -169,7 +168,6 @@ build/cuda101/nompi/clang/all/release/static:
 #    MPI_AS_ROOT: "ON"
 #    BUILD_HIP: "OFF"
 #    BUILD_TYPE: "Release"
-#    CUDA_ARCH: 61
 
 
 #build/clang-cuda101/nompi/clang/cuda/debug/static:
@@ -187,7 +185,6 @@ build/cuda101/nompi/clang/all/release/static:
 #    BUILD_TYPE: "Debug"
 #    FAST_TESTS: "ON"
 #    BUILD_SHARED_LIBS: "OFF"
-#    CUDA_ARCH: 61
 
 
 # cuda 10.2 and friends
@@ -358,7 +355,6 @@ build/cuda114/nompi/gcc/cuda/debug/shared:
     CXX_FLAGS: "-Wno-error=maybe-uninitialized"
     # disable spurious unused argument warning
     EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
-    CUDA_ARCH: 61
 
 
 # nvhpc and friends
@@ -381,7 +377,6 @@ build/nvhpc233/cuda120/nompi/nvcpp/release/static:
     CXX_FLAGS: "--diag_suppress=useless_using_declaration,declared_but_not_referenced"
     # disable spurious unused argument warning
     EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
-    CUDA_ARCH: 61
 
 build/nvhpc227/cuda117/nompi/nvcpp/debug/shared:
   extends:
@@ -401,7 +396,6 @@ build/nvhpc227/cuda117/nompi/nvcpp/debug/shared:
     CXX_FLAGS: "--diag_suppress=useless_using_declaration,declared_but_not_referenced"
     # disable spurious unused argument warning
     EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
-    CUDA_ARCH: 61
 
 # ROCm 4.5 and friends
 build/amd/nompi/gcc/rocm45/release/shared:
