@@ -1,6 +1,7 @@
 add_library(ginkgo_reference $<TARGET_OBJECTS:ginkgo_reference_device> "")
 target_sources(ginkgo_reference
     PRIVATE
+    base/batch_multi_vector_kernels.cpp
     base/device_matrix_data_kernels.cpp
     base/index_set_kernels.cpp
     base/scoped_device_id.cpp
@@ -23,7 +24,6 @@ target_sources(ginkgo_reference
     factorization/par_ict_kernels.cpp
     factorization/par_ilu_kernels.cpp
     factorization/par_ilut_kernels.cpp
-    matrix/batch_vector_kernels.cpp
     matrix/coo_kernels.cpp
     matrix/csr_kernels.cpp
     matrix/dense_kernels.cpp

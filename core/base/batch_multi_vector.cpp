@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/matrix/batch_vector.hpp>
+#include <ginkgo/core/base/batch_multi_vector.hpp>
 
 
 #include <algorithm>
@@ -45,28 +45,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 
 
-#include "core/matrix/batch_vector_kernels.hpp"
+#include "core/base/batch_multi_vector_kernels.hpp"
 
 
 namespace gko {
 namespace matrix {
-namespace batch_vector {
+namespace batch_multi_vector {
 
 
-GKO_REGISTER_OPERATION(scale, batch_vector::scale);
-GKO_REGISTER_OPERATION(add_scaled, batch_vector::add_scaled);
-GKO_REGISTER_OPERATION(compute_dot, batch_vector::compute_dot);
-GKO_REGISTER_OPERATION(compute_norm2, batch_vector::compute_norm2);
-GKO_REGISTER_OPERATION(copy, batch_vector::copy);
+GKO_REGISTER_OPERATION(scale, batch_multi_vector::scale);
+GKO_REGISTER_OPERATION(add_scaled, batch_multi_vector::add_scaled);
+GKO_REGISTER_OPERATION(compute_dot, batch_multi_vector::compute_dot);
+GKO_REGISTER_OPERATION(compute_norm2, batch_multi_vector::compute_norm2);
+GKO_REGISTER_OPERATION(copy, batch_multi_vector::copy);
 
 
-}  // namespace batch_vector
+}  // namespace batch_multi_vector
 
 
 template <typename ValueType>
-void BatchVector<ValueType>::scale_impl(const BatchLinOp* alpha)
+void BatchMultiVector<ValueType>::scale_impl(const BatchLinOp* alpha)
 {
-    auto batch_alpha = as<BatchVector<ValueType>>(alpha);
+    auto batch_alpha = as<BatchMultiVector<ValueType>>(alpha);
     GKO_ASSERT_BATCH_EQUAL_ROWS(
         batch_alpha, batch_dim<2>(this->get_num_batch_entries(), dim<2>(1, 1)));
     for (size_type b = 0; b < batch_alpha->get_num_batch_entries(); ++b) {
@@ -76,16 +76,16 @@ void BatchVector<ValueType>::scale_impl(const BatchLinOp* alpha)
         }
     }
     auto exec = this->get_executor();
-    exec->run(batch_vector::make_scale(batch_alpha, this));
+    exec->run(batch_multi_vector::make_scale(batch_alpha, this));
 }
 
 
 template <typename ValueType>
-void BatchVector<ValueType>::add_scaled_impl(const BatchLinOp* alpha,
-                                             const BatchLinOp* b)
+void BatchMultiVector<ValueType>::add_scaled_impl(const BatchLinOp* alpha,
+                                                  const BatchLinOp* b)
 {
-    auto batch_alpha = as<BatchVector<ValueType>>(alpha);
-    auto batch_b = as<BatchVector<ValueType>>(b);
+    auto batch_alpha = as<BatchMultiVector<ValueType>>(alpha);
+    auto batch_b = as<BatchMultiVector<ValueType>>(b);
     GKO_ASSERT_BATCH_EQUAL_ROWS(
         batch_alpha, batch_dim<2>(this->get_num_batch_entries(), dim<2>(1, 1)));
     for (size_type b = 0; b < batch_alpha->get_num_batch_entries(); ++b) {
@@ -97,7 +97,7 @@ void BatchVector<ValueType>::add_scaled_impl(const BatchLinOp* alpha,
     GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(this, batch_b);
     auto exec = this->get_executor();
 
-    exec->run(batch_vector::make_add_scaled(batch_alpha, batch_b, this));
+    exec->run(batch_multi_vector::make_add_scaled(batch_alpha, batch_b, this));
 }
 
 
@@ -112,35 +112,36 @@ inline const batch_dim<2> get_col_sizes(const batch_dim<2>& sizes)
 
 
 template <typename ValueType>
-void BatchVector<ValueType>::compute_dot_impl(const BatchLinOp* b,
-                                              BatchLinOp* result) const
+void BatchMultiVector<ValueType>::compute_dot_impl(const BatchLinOp* b,
+                                                   BatchLinOp* result) const
 {
-    auto batch_result = as<BatchVector<ValueType>>(result);
-    auto batch_b = as<BatchVector<ValueType>>(b);
+    auto batch_result = as<BatchMultiVector<ValueType>>(result);
+    auto batch_b = as<BatchMultiVector<ValueType>>(b);
     GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(this, batch_b);
     GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(batch_result,
                                       get_col_sizes(this->get_size()));
     auto exec = this->get_executor();
-    exec->run(batch_vector::make_compute_dot(this, batch_b, batch_result));
+    exec->run(
+        batch_multi_vector::make_compute_dot(this, batch_b, batch_result));
 }
 
 
 template <typename ValueType>
-void BatchVector<ValueType>::compute_norm2_impl(BatchLinOp* result) const
+void BatchMultiVector<ValueType>::compute_norm2_impl(BatchLinOp* result) const
 {
-    using NormVector = BatchVector<remove_complex<ValueType>>;
+    using NormVector = BatchMultiVector<remove_complex<ValueType>>;
     auto batch_result = as<NormVector>(result);
     GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(batch_result,
                                       get_col_sizes(this->get_size()));
     auto exec = this->get_executor();
-    exec->run(batch_vector::make_compute_norm2(as<BatchVector<ValueType>>(this),
-                                               batch_result));
+    exec->run(batch_multi_vector::make_compute_norm2(
+        as<BatchMultiVector<ValueType>>(this), batch_result));
 }
 
 
 template <typename ValueType>
-void BatchVector<ValueType>::convert_to(
-    BatchVector<next_precision<ValueType>>* result) const
+void BatchMultiVector<ValueType>::convert_to(
+    BatchMultiVector<next_precision<ValueType>>* result) const
 {
     result->values_ = this->values_;
     result->stride_ = this->stride_;
@@ -150,8 +151,8 @@ void BatchVector<ValueType>::convert_to(
 
 
 template <typename ValueType>
-void BatchVector<ValueType>::move_to(
-    BatchVector<next_precision<ValueType>>* result)
+void BatchMultiVector<ValueType>::move_to(
+    BatchMultiVector<next_precision<ValueType>>* result)
 {
     this->convert_to(result);
 }
@@ -189,14 +190,14 @@ inline void read_impl(MatrixType* mtx, const std::vector<MatrixData>& data)
 
 
 template <typename ValueType>
-void BatchVector<ValueType>::read(const std::vector<mat_data>& data)
+void BatchMultiVector<ValueType>::read(const std::vector<mat_data>& data)
 {
     read_impl(this, data);
 }
 
 
 template <typename ValueType>
-void BatchVector<ValueType>::read(const std::vector<mat_data32>& data)
+void BatchMultiVector<ValueType>::read(const std::vector<mat_data32>& data)
 {
     read_impl(this, data);
 }
@@ -231,21 +232,22 @@ inline void write_impl(const MatrixType* mtx, std::vector<MatrixData>& data)
 
 
 template <typename ValueType>
-void BatchVector<ValueType>::write(std::vector<mat_data>& data) const
+void BatchMultiVector<ValueType>::write(std::vector<mat_data>& data) const
 {
     write_impl(this, data);
 }
 
 
 template <typename ValueType>
-void BatchVector<ValueType>::write(std::vector<mat_data32>& data) const
+void BatchMultiVector<ValueType>::write(std::vector<mat_data32>& data) const
 {
     write_impl(this, data);
 }
 
 
-#define GKO_DECLARE_BATCH_VECTOR_MATRIX(_type) class BatchVector<_type>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_VECTOR_MATRIX);
+#define GKO_DECLARE_BATCH_MULTI_VECTOR_MATRIX(_type) \
+    class BatchMultiVector<_type>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_MULTI_VECTOR_MATRIX);
 
 
 }  // namespace matrix

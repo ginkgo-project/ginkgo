@@ -4,6 +4,7 @@ add_library(ginkgo "")
 target_sources(ginkgo
     PRIVATE
     base/array.cpp
+    base/batch_multi_vector.cpp
     base/combination.cpp
     base/composition.cpp
     base/dense_cache.cpp
@@ -38,7 +39,6 @@ target_sources(ginkgo
     log/vtune.cpp
     log/record.cpp
     log/stream.cpp
-    matrix/batch_vector.cpp
     matrix/coo.cpp
     matrix/csr.cpp
     matrix/dense.cpp

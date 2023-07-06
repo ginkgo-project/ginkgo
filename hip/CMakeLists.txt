@@ -4,6 +4,7 @@ add_instantiation_files(. matrix/fbcsr_kernels.instantiate.hip.cpp FBCSR_INSTANT
 # we don't split up the dense kernels into distinct compilations
 list(APPEND GKO_UNIFIED_COMMON_SOURCES ${PROJECT_SOURCE_DIR}/common/unified/matrix/dense_kernels.instantiate.cpp)
 set(GINKGO_HIP_SOURCES
+    base/batch_multi_vector_kernels.hip.cpp
     base/device.hip.cpp
     base/device_matrix_data_kernels.hip.cpp
     base/exception.hip.cpp
@@ -33,7 +34,6 @@ set(GINKGO_HIP_SOURCES
     factorization/par_ilut_select_kernel.hip.cpp
     factorization/par_ilut_spgeam_kernel.hip.cpp
     factorization/par_ilut_sweep_kernel.hip.cpp
-    matrix/batch_vector_kernels.hip.cpp
     matrix/coo_kernels.hip.cpp
     ${CSR_INSTANTIATE}
     matrix/dense_kernels.hip.cpp

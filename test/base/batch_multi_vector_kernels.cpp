@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/batch_vector_kernels.hpp"
+#include "core/base/batch_multi_vector_kernels.hpp"
 
 
 #include <random>
@@ -40,9 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/batch_vector.hpp>
-#include <ginkgo/core/matrix/batch_diagonal.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -53,14 +52,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_COMPILING_DPCPP
 
 
-class BatchVector : public CommonTestFixture {
+class BatchMultiVector : public CommonTestFixture {
 protected:
     using vtype = double;
-    using Mtx = gko::matrix::BatchVector<vtype>;
-    using NormVector = gko::matrix::BatchVector<gko::remove_complex<vtype>>;
-    using ComplexMtx = gko::matrix::BatchVector<std::complex<vtype>>;
+    using Mtx = gko::BatchMultiVector<vtype>;
+    using NormVector = gko::BatchMultiVector<gko::remove_complex<vtype>>;
+    using ComplexMtx = gko::BatchMultiVector<std::complex<vtype>>;
 
-    BatchVector() : rand_engine(15) {}
+    BatchMultiVector() : rand_engine(15) {}
 
     template <typename MtxType>
     std::unique_ptr<MtxType> gen_mtx(const size_t batchsize, int num_rows,
@@ -145,7 +144,7 @@ protected:
 };
 
 
-TEST_F(BatchVector, SingleVectorAppyIsEquivalentToRef)
+TEST_F(BatchMultiVector, SingleVectorAppyIsEquivalentToRef)
 {
     set_up_apply_data(1);
 
@@ -156,7 +155,7 @@ TEST_F(BatchVector, SingleVectorAppyIsEquivalentToRef)
 }
 
 
-TEST_F(BatchVector, SingleVectorAdvancedAppyIsEquivalentToRef)
+TEST_F(BatchMultiVector, SingleVectorAdvancedAppyIsEquivalentToRef)
 {
     set_up_apply_data(1);
 
@@ -167,7 +166,7 @@ TEST_F(BatchVector, SingleVectorAdvancedAppyIsEquivalentToRef)
 }
 
 
-TEST_F(BatchVector, SingleVectorAddScaledIsEquivalentToRef)
+TEST_F(BatchMultiVector, SingleVectorAddScaledIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
@@ -178,7 +177,7 @@ TEST_F(BatchVector, SingleVectorAddScaledIsEquivalentToRef)
 }
 
 
-TEST_F(BatchVector, SingleVectorAddScaleIsEquivalentToRef)
+TEST_F(BatchMultiVector, SingleVectorAddScaleIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
@@ -189,7 +188,7 @@ TEST_F(BatchVector, SingleVectorAddScaleIsEquivalentToRef)
 }
 
 
-TEST_F(BatchVector, MultipleVectorAddScaledIsEquivalentToRef)
+TEST_F(BatchMultiVector, MultipleVectorAddScaledIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
@@ -200,7 +199,7 @@ TEST_F(BatchVector, MultipleVectorAddScaledIsEquivalentToRef)
 }
 
 
-TEST_F(BatchVector, MultipleVectorAddScaleIsEquivalentToRef)
+TEST_F(BatchMultiVector, MultipleVectorAddScaleIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
@@ -211,7 +210,7 @@ TEST_F(BatchVector, MultipleVectorAddScaleIsEquivalentToRef)
 }
 
 
-TEST_F(BatchVector, MultipleVectorAddScaledWithDifferentAlphaIsEquivalentToRef)
+TEST_F(BatchMultiVector, MultipleVectorAddScaledWithDifferentAlphaIsEquivalentToRef)
 {
     set_up_vector_data(20, true);
 
@@ -222,7 +221,7 @@ TEST_F(BatchVector, MultipleVectorAddScaledWithDifferentAlphaIsEquivalentToRef)
 }
 
 
-TEST_F(BatchVector, MultipleVectorAddScaleWithDifferentScalarsIsEquivalentToRef)
+TEST_F(BatchMultiVector, MultipleVectorAddScaleWithDifferentScalarsIsEquivalentToRef)
 {
     set_up_vector_data(20, true);
 
@@ -233,7 +232,7 @@ TEST_F(BatchVector, MultipleVectorAddScaleWithDifferentScalarsIsEquivalentToRef)
 }
 
 
-TEST_F(BatchVector, SingleVectorScaleIsEquivalentToRef)
+TEST_F(BatchMultiVector, SingleVectorScaleIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
@@ -244,7 +243,7 @@ TEST_F(BatchVector, SingleVectorScaleIsEquivalentToRef)
 }
 
 
-TEST_F(BatchVector, MultipleVectorScaleIsEquivalentToRef)
+TEST_F(BatchMultiVector, MultipleVectorScaleIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
@@ -255,7 +254,7 @@ TEST_F(BatchVector, MultipleVectorScaleIsEquivalentToRef)
 }
 
 
-TEST_F(BatchVector, MultipleVectorScaleWithDifferentAlphaIsEquivalentToRef)
+TEST_F(BatchMultiVector, MultipleVectorScaleWithDifferentAlphaIsEquivalentToRef)
 {
     set_up_vector_data(20, true);
 
@@ -266,7 +265,7 @@ TEST_F(BatchVector, MultipleVectorScaleWithDifferentAlphaIsEquivalentToRef)
 }
 
 
-TEST_F(BatchVector, ComputeNorm2SingleIsEquivalentToRef)
+TEST_F(BatchMultiVector, ComputeNorm2SingleIsEquivalentToRef)
 {
     set_up_vector_data(1);
     auto norm_size =
@@ -281,7 +280,7 @@ TEST_F(BatchVector, ComputeNorm2SingleIsEquivalentToRef)
 }
 
 
-TEST_F(BatchVector, ComputeNorm2IsEquivalentToRef)
+TEST_F(BatchMultiVector, ComputeNorm2IsEquivalentToRef)
 {
     set_up_vector_data(20);
     auto norm_size =
@@ -296,7 +295,7 @@ TEST_F(BatchVector, ComputeNorm2IsEquivalentToRef)
 }
 
 
-TEST_F(BatchVector, ComputeDotIsEquivalentToRef)
+TEST_F(BatchMultiVector, ComputeDotIsEquivalentToRef)
 {
     set_up_vector_data(20);
     auto dot_size =
@@ -311,7 +310,7 @@ TEST_F(BatchVector, ComputeDotIsEquivalentToRef)
 }
 
 
-TEST_F(BatchVector, ComputeDotSingleIsEquivalentToRef)
+TEST_F(BatchMultiVector, ComputeDotSingleIsEquivalentToRef)
 {
     set_up_vector_data(1);
     auto dot_size =
@@ -326,31 +325,31 @@ TEST_F(BatchVector, ComputeDotSingleIsEquivalentToRef)
 }
 
 
-TEST_F(BatchVector, CopySingleIsEquivalentToRef)
+TEST_F(BatchMultiVector, CopySingleIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
-    gko::kernels::reference::batch_vector::copy(this->ref, x.get(), y.get());
-    gko::kernels::EXEC_NAMESPACE::batch_vector::copy(this->exec, dx.get(),
-                                                    dy.get());
+    gko::kernels::reference::batch_multi_vector::copy(this->ref, x.get(), y.get());
+    gko::kernels::EXEC_NAMESPACE::batch_multi_vector::copy(this->exec, dx.get(),
+                                                     dy.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dy, y, 0.0);
 }
 
 
-TEST_F(BatchVector, CopyIsEquivalentToRef)
+TEST_F(BatchMultiVector, CopyIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
-    gko::kernels::reference::batch_vector::copy(this->ref, x.get(), y.get());
-    gko::kernels::EXEC_NAMESPACE::batch_vector::copy(this->exec, dx.get(),
-                                                    dy.get());
+    gko::kernels::reference::batch_multi_vector::copy(this->ref, x.get(), y.get());
+    gko::kernels::EXEC_NAMESPACE::batch_multi_vector::copy(this->exec, dx.get(),
+                                                     dy.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dy, y, 0.0);
 }
 
 
-TEST_F(BatchVector, BatchScaleIsEquivalentToRef)
+TEST_F(BatchMultiVector, BatchScaleIsEquivalentToRef)
 {
     using BDiag = gko::matrix::BatchDiagonal<vtype>;
     const int num_rhs = 20;
@@ -365,16 +364,16 @@ TEST_F(BatchVector, BatchScaleIsEquivalentToRef)
     auto drght = BDiag::create(this->exec);
     drght->copy_from(rght.get());
 
-    gko::kernels::reference::batch_vector::batch_scale(this->ref, left.get(),
-                                                      rght.get(), x.get());
-    gko::kernels::EXEC_NAMESPACE::batch_vector::batch_scale(
+    gko::kernels::reference::batch_multi_vector::batch_scale(this->ref, left.get(),
+                                                       rght.get(), x.get());
+    gko::kernels::EXEC_NAMESPACE::batch_multi_vector::batch_scale(
         this->exec, dleft.get(), drght.get(), dx.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
 }
 
 
-TEST_F(BatchVector, TransposeIsEquivalentToRef)
+TEST_F(BatchMultiVector, TransposeIsEquivalentToRef)
 {
     const int nrows = 11;
     const int ncols = 6;
@@ -392,7 +391,7 @@ TEST_F(BatchVector, TransposeIsEquivalentToRef)
 }
 
 
-TEST_F(BatchVector, ConjugateTransposeIsEquivalentToRef)
+TEST_F(BatchMultiVector, ConjugateTransposeIsEquivalentToRef)
 {
     const int nrows = 11;
     const int ncols = 6;
@@ -410,7 +409,7 @@ TEST_F(BatchVector, ConjugateTransposeIsEquivalentToRef)
 }
 
 
-TEST_F(BatchVector, AddScaledIdentityNonSquareIsEquivalentToReference)
+TEST_F(BatchMultiVector, AddScaledIdentityNonSquareIsEquivalentToReference)
 {
     set_up_apply_data();
     const gko::size_type batchsize = 10;

@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_CORE_MATRIX_BATCH_VECTOR_HPP_
-#define GKO_PUBLIC_CORE_MATRIX_BATCH_VECTOR_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_BATCH_MULTI_VECTOR_HPP_
+#define GKO_PUBLIC_CORE_BASE_BATCH_MULTI_VECTOR_HPP_
 
 
 #include <initializer_list>
@@ -48,12 +48,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
-namespace matrix {
-
 
 /**
- * BatchVector is a batch matrix format which explicitly stores all values of
- * the vector in each of the batches.
+ * BatchMultiVector is a batch matrix format which explicitly stores all values
+ * of the vector in each of the batches.
  *
  * The values in each of the batches are stored in row-major format (values
  * belonging to the same row appear consecutive in the memory). Optionally, rows
@@ -63,21 +61,21 @@ namespace matrix {
  *
  * @note While this format is not very useful for storing sparse matrices, it
  *       is often suitable to store vectors, and sets of vectors.
- * @ingroup batch_vector
+ * @ingroup batch_multi_vector
  * @ingroup mat_formats
  * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
-class BatchVector
-    : public EnableAbstractPolymorphicObject<BatchVector<ValueType>>,
-      public EnableCreateMethod<BatchVector<ValueType>>,
-      public ConvertibleTo<BatchVector<next_precision<ValueType>>>,
+class BatchMultiVector
+    : public EnableAbstractPolymorphicObject<BatchMultiVector<ValueType>>,
+      public EnableCreateMethod<BatchMultiVector<ValueType>>,
+      public ConvertibleTo<BatchMultiVector<next_precision<ValueType>>>,
       public BatchReadableFromMatrixData<ValueType, int32>,
       public BatchReadableFromMatrixData<ValueType, int64>,
       public BatchWritableToMatrixData<ValueType, int32>,
       public BatchWritableToMatrixData<ValueType, int64> {
-    friend class EnableCreateMethod<BatchVector>;
-    friend class BatchVector<to_complex<ValueType>>;
+    friend class EnableCreateMethod<BatchMultiVector>;
+    friend class BatchMultiVector<to_complex<ValueType>>;
 
 public:
     using BatchReadableFromMatrixData<ValueType, int32>::read;
@@ -88,19 +86,19 @@ public:
     using unbatch_type = Dense<ValueType>;
     using mat_data = gko::matrix_data<ValueType, int64>;
     using mat_data32 = gko::matrix_data<ValueType, int32>;
-    using absolute_type = remove_complex<BatchVector>;
-    using complex_type = to_complex<BatchVector>;
+    using absolute_type = remove_complex<BatchMultiVector>;
+    using complex_type = to_complex<BatchMultiVector>;
 
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
 
     /**
-     * Creates a BatchVector matrix with the configuration of another
-     * BatchVector matrix.
+     * Creates a BatchMultiVector matrix with the configuration of another
+     * BatchMultiVector matrix.
      *
      * @param other  The other matrix whose configuration needs to copied.
      */
-    static std::unique_ptr<BatchVector> create_with_config_of(
-        const BatchVector* other)
+    static std::unique_ptr<BatchMultiVector> create_with_config_of(
+        const BatchMultiVector* other)
     {
         // De-referencing `other` before calling the functions (instead of
         // using operator `->`) is currently required to be compatible with
@@ -109,12 +107,12 @@ public:
         return (*other).create_with_same_config();
     }
 
-    friend class BatchVector<next_precision<ValueType>>;
+    friend class BatchMultiVector<next_precision<ValueType>>;
 
     void convert_to(
-        BatchVector<next_precision<ValueType>>* result) const override;
+        BatchMultiVector<next_precision<ValueType>>* result) const override;
 
-    void move_to(BatchVector<next_precision<ValueType>>* result) override;
+    void move_to(BatchMultiVector<next_precision<ValueType>>* result) override;
 
     void read(const std::vector<mat_data>& data) override;
 
@@ -235,7 +233,7 @@ public:
     }
 
     /**
-     * @copydoc BatchVector::at(size_type, size_type, size_type)
+     * @copydoc BatchMultiVector::at(size_type, size_type, size_type)
      */
     value_type at(size_type batch, size_type row, size_type col) const noexcept
     {
@@ -264,7 +262,7 @@ public:
     }
 
     /**
-     * @copydoc BatchVector::at(size_type, size_type, size_type)
+     * @copydoc BatchMultiVector::at(size_type, size_type, size_type)
      */
     ValueType at(size_type batch, size_type idx) const noexcept
     {
@@ -274,11 +272,11 @@ public:
     /**
      * Scales the vector with a scalar (aka: BLAS scal).
      *
-     * @param alpha  If alpha is 1x1 BatchVector matrix, the entire matrix (all
-     * batches) is scaled by alpha. If it is a BatchVector row vector of values,
-     * then i-th column of the vector is scaled with the i-th element of alpha
-     * (the number of columns of alpha has to match the number of columns of the
-     * matrix).
+     * @param alpha  If alpha is 1x1 BatchMultiVector matrix, the entire matrix
+     * (all batches) is scaled by alpha. If it is a BatchMultiVector row vector
+     * of values, then i-th column of the vector is scaled with the i-th element
+     * of alpha (the number of columns of alpha has to match the number of
+     * columns of the matrix).
      */
     void scale(const BatchLinOp* alpha)
     {
@@ -289,10 +287,11 @@ public:
     /**
      * Adds `b` scaled by `alpha` to the vector (aka: BLAS axpy).
      *
-     * @param alpha  If alpha is 1x1 BatchVector matrix, the entire matrix is
-     * scaled by alpha. If it is a BatchVector row vector of values, then i-th
-     * column of the vector is scaled with the i-th element of alpha (the number
-     * of columns of alpha has to match the number of columns of the vector).
+     * @param alpha  If alpha is 1x1 BatchMultiVector matrix, the entire matrix
+     * is scaled by alpha. If it is a BatchMultiVector row vector of values,
+     * then i-th column of the vector is scaled with the i-th element of alpha
+     * (the number of columns of alpha has to match the number of columns of the
+     * vector).
      * @param b  a matrix of the same dimension as this
      */
     void add_scaled(const BatchLinOp* alpha, const BatchLinOp* b)
@@ -306,11 +305,10 @@ public:
      * Adds `a` scaled by `alpha` to the vector scaled by `beta`:
      * this <- alpha * a + beta * this.
      *
-     * @param alpha  If alpha is 1x1 BatchVector matrix, the entire matrix a is
-     *               scaled by alpha. If it is a BatchVector row vector of
-     *               values, then i-th column of a is scaled with the i-th
-     *               element of alpha (the number of columns of alpha has to
-     *               match the number of columns of a).
+     * @param alpha  If alpha is 1x1 BatchMultiVector matrix, the entire matrix
+     * a is scaled by alpha. If it is a BatchMultiVector row vector of values,
+     * then i-th column of a is scaled with the i-th element of alpha (the
+     * number of columns of alpha has to match the number of columns of a).
      * @param a  a matrix of the same dimension as this.
      * @param beta  Scalar(s), of the same size as alpha, to multiply this
      * matrix.
@@ -323,10 +321,10 @@ public:
      * corresponding entry in `b`. If the vector has complex value_type, then
      * the conjugate of this is taken.
      *
-     * @param b  a BatchVector matrix of same dimension as this
-     * @param result  a BatchVector row vector, used to store the dot product
-     *                (the number of column in the vector must match the number
-     *                of columns of this)
+     * @param b  a BatchMultiVector matrix of same dimension as this
+     * @param result  a BatchMultiVector row vector, used to store the dot
+     * product (the number of column in the vector must match the number of
+     * columns of this)
      */
     void compute_dot(const BatchLinOp* b, BatchLinOp* result) const
     {
@@ -338,7 +336,7 @@ public:
     /**
      * Computes the Euclidean (L^2) norm of each matrix in this batch.
      *
-     * @param result  a BatchVector row vector, used to store the norm
+     * @param result  a BatchMultiVector row vector, used to store the norm
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
@@ -359,14 +357,14 @@ public:
      *          (if it resides on the same executor as the vector) or a copy of
      *          the array on the correct executor.
      */
-    static std::unique_ptr<const BatchVector> create_const(
+    static std::unique_ptr<const BatchMultiVector> create_const(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
         gko::detail::const_array_view<ValueType>&& values,
         const batch_stride& strides)
     {
         // cast const-ness away, but return a const object afterwards,
         // so we can ensure that no modifications take place.
-        return std::unique_ptr<const BatchVector>(new BatchVector{
+        return std::unique_ptr<const BatchMultiVector>(new BatchMultiVector{
             exec, sizes, gko::detail::array_const_cast(std::move(values)),
             strides});
     }
@@ -454,21 +452,21 @@ private:
 
 protected:
     /**
-     * Creates an uninitialized BatchVector matrix of the specified size.
+     * Creates an uninitialized BatchMultiVector matrix of the specified size.
      *
      * @param exec  Executor associated to the vector
      * @param size  size of the vector
      */
-    BatchVector(std::shared_ptr<const Executor> exec,
-                const batch_dim<2>& size = batch_dim<2>{})
-        : BatchVector(std::move(exec), size,
-                      size.get_num_batch_entries() > 0
-                          ? extract_nth_dim(1, size)
-                          : batch_stride{})
+    BatchMultiVector(std::shared_ptr<const Executor> exec,
+                     const batch_dim<2>& size = batch_dim<2>{})
+        : BatchMultiVector(std::move(exec), size,
+                           size.get_num_batch_entries() > 0
+                               ? extract_nth_dim(1, size)
+                               : batch_stride{})
     {}
 
     /**
-     * Creates an uninitialized BatchVector matrix of the specified size.
+     * Creates an uninitialized BatchMultiVector matrix of the specified size.
      *
      * @param exec  Executor associated to the vector
      * @param size  size of the batch matrices in a batch_dim object
@@ -476,9 +474,9 @@ protected:
      *                  elements of two consecutive rows, expressed as the
      *                  number of matrix elements)
      */
-    BatchVector(std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
-                const batch_stride& stride)
-        : EnableBatchLinOp<BatchVector>(exec, size),
+    BatchMultiVector(std::shared_ptr<const Executor> exec,
+                     const batch_dim<2>& size, const batch_stride& stride)
+        : EnableBatchLinOp<BatchMultiVector>(exec, size),
           values_(exec, compute_batch_mem(size, stride)),
           stride_(stride)
     {
@@ -487,8 +485,8 @@ protected:
     }
 
     /**
-     * Creates a BatchVector matrix from an already allocated (and initialized)
-     * array.
+     * Creates a BatchMultiVector matrix from an already allocated (and
+     * initialized) array.
      *
      * @tparam ValuesArray  type of array of values
      *
@@ -504,9 +502,10 @@ protected:
      *       original array data will not be used in the vector.
      */
     template <typename ValuesArray>
-    BatchVector(std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
-                ValuesArray&& values, const batch_stride& stride)
-        : EnableBatchLinOp<BatchVector>(exec, size),
+    BatchMultiVector(std::shared_ptr<const Executor> exec,
+                     const batch_dim<2>& size, ValuesArray&& values,
+                     const batch_stride& stride)
+        : EnableBatchLinOp<BatchMultiVector>(exec, size),
           values_{exec, std::forward<ValuesArray>(values)},
           stride_{stride},
           num_elems_per_batch_cumul_(
@@ -523,14 +522,15 @@ protected:
     }
 
     /**
-     * Creates a BatchVector matrix from a vector of matrices
+     * Creates a BatchMultiVector matrix from a vector of matrices
      *
      * @param exec  Executor associated to the vector
      * @param matrices  The matrices that need to be batched.
      */
-    BatchVector(std::shared_ptr<const Executor> exec,
-                const std::vector<Dense<ValueType>*>& matrices)
-        : EnableBatchLinOp<BatchVector>(exec, get_sizes_from_mtxs(matrices)),
+    BatchMultiVector(std::shared_ptr<const Executor> exec,
+                     const std::vector<Dense<ValueType>*>& matrices)
+        : EnableBatchLinOp<BatchMultiVector>(exec,
+                                             get_sizes_from_mtxs(matrices)),
           stride_{get_strides_from_mtxs(matrices)},
           values_(exec, compute_batch_mem(this->get_size(), stride_))
     {
@@ -547,16 +547,16 @@ protected:
     }
 
     /**
-     * Creates a BatchVector matrix by duplicating BatchVector matrix
+     * Creates a BatchMultiVector matrix by duplicating BatchMultiVector matrix
      *
      * @param exec  Executor associated to the vector
      * @param num_duplications  The number of times to duplicate
      * @param input  the vector to be duplicated.
      */
-    BatchVector(std::shared_ptr<const Executor> exec,
-                size_type num_duplications,
-                const BatchVector<value_type>* input)
-        : EnableBatchLinOp<BatchVector>(
+    BatchMultiVector(std::shared_ptr<const Executor> exec,
+                     size_type num_duplications,
+                     const BatchMultiVector<value_type>* input)
+        : EnableBatchLinOp<BatchMultiVector>(
               exec, gko::batch_dim<2>(
                         input->get_num_batch_entries() * num_duplications,
                         input->get_size().at(0))),
@@ -578,15 +578,15 @@ protected:
     }
 
     /**
-     * Creates a BatchVector matrix by duplicating Dense matrix
+     * Creates a BatchMultiVector matrix by duplicating Dense matrix
      *
      * @param exec  Executor associated to the vector
      * @param num_duplications  The number of times to duplicate
      * @param input  the vector to be duplicated.
      */
-    BatchVector(std::shared_ptr<const Executor> exec,
-                size_type num_duplications, const Dense<value_type>* input)
-        : EnableBatchLinOp<BatchVector>(
+    BatchMultiVector(std::shared_ptr<const Executor> exec,
+                     size_type num_duplications, const Dense<value_type>* input)
+        : EnableBatchLinOp<BatchMultiVector>(
               exec, gko::batch_dim<2>(num_duplications, input->get_size())),
           stride_{gko::batch_stride(num_duplications, input->get_stride())},
           values_(exec, compute_batch_mem(this->get_size(), stride_))
@@ -604,21 +604,22 @@ protected:
     }
 
     /**
-     * Creates a BatchVector matrix with the same configuration as the callers
-     * matrix.
+     * Creates a BatchMultiVector matrix with the same configuration as the
+     * callers matrix.
      *
-     * @returns a BatchVector matrix with the same configuration as the caller.
+     * @returns a BatchMultiVector matrix with the same configuration as the
+     * caller.
      */
-    virtual std::unique_ptr<BatchVector> create_with_same_config() const
+    virtual std::unique_ptr<BatchMultiVector> create_with_same_config() const
     {
-        return BatchVector::create(this->get_executor(), this->get_size(),
-                                   this->get_stride());
+        return BatchMultiVector::create(this->get_executor(), this->get_size(),
+                                        this->get_stride());
     }
 
     /**
      * @copydoc scale(const BatchLinOp *)
      *
-     * @note  Other implementations of batch_vector should override this
+     * @note  Other implementations of batch_multi_vector should override this
      * function instead of scale(const BatchLinOp *alpha).
      */
     virtual void scale_impl(const BatchLinOp* alpha);
@@ -626,7 +627,7 @@ protected:
     /**
      * @copydoc add_scaled(const BatchLinOp *, const BatchLinOp *)
      *
-     * @note  Other implementations of batch_vector should override this
+     * @note  Other implementations of batch_multi_vector should override this
      * function instead of add_scale(const BatchLinOp *alpha, const BatchLinOp
      * *b).
      */
@@ -635,7 +636,7 @@ protected:
     /**
      * @copydoc compute_dot(const BatchLinOp *, BatchLinOp *) const
      *
-     * @note  Other implementations of batch_vector should override this
+     * @note  Other implementations of batch_multi_vector should override this
      * function instead of compute_dot(const BatchLinOp *b, BatchLinOp *result).
      */
     virtual void compute_dot_impl(const BatchLinOp* b,
@@ -644,7 +645,7 @@ protected:
     /**
      * @copydoc compute_norm2(BatchLinOp *) const
      *
-     * @note  Other implementations of batch_vector should override this
+     * @note  Other implementations of batch_multi_vector should override this
      * function instead of compute_norm2(BatchLinOp *result).
      */
     virtual void compute_norm2_impl(BatchLinOp* result) const;
@@ -667,9 +668,6 @@ private:
     array<size_type> num_elems_per_batch_cumul_;
     array<value_type> values_;
 };
-
-
-}  // namespace matrix
 
 
 /**
@@ -700,7 +698,7 @@ std::unique_ptr<Matrix> batch_initialize(
         vals,
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
 {
-    using batch_vector = matrix::BatchVector<typename Matrix::value_type>;
+    using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
     size_type num_batch_entries = vals.size();
     std::vector<size_type> num_rows(num_batch_entries);
     std::vector<dim<2>> sizes(num_batch_entries);
@@ -712,7 +710,7 @@ std::unique_ptr<Matrix> batch_initialize(
     }
     auto b_size = batch_dim<2>(sizes);
     auto b_stride = batch_stride(stride);
-    auto tmp = batch_vector::create(exec->get_master(), b_size, b_stride);
+    auto tmp = batch_multi_vector::create(exec->get_master(), b_size, b_stride);
     size_type batch = 0;
     for (const auto& b : vals) {
         size_type idx = 0;
@@ -789,7 +787,7 @@ std::unique_ptr<Matrix> batch_initialize(
         vals,
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
 {
-    using batch_vector = matrix::BatchVector<typename Matrix::value_type>;
+    using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
     size_type num_batch_entries = vals.size();
     std::vector<size_type> num_rows(num_batch_entries);
     std::vector<size_type> num_cols(num_batch_entries);
@@ -803,7 +801,7 @@ std::unique_ptr<Matrix> batch_initialize(
     }
     auto b_size = batch_dim<2>(sizes);
     auto b_stride = batch_stride(stride);
-    auto tmp = batch_vector::create(exec->get_master(), b_size, b_stride);
+    auto tmp = batch_multi_vector::create(exec->get_master(), b_size, b_stride);
     size_type batch = 0;
     for (const auto& b : vals) {
         size_type ridx = 0;
@@ -894,7 +892,7 @@ std::unique_ptr<Matrix> batch_initialize(
     std::initializer_list<typename Matrix::value_type> vals,
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
 {
-    using batch_vector = matrix::BatchVector<typename Matrix::value_type>;
+    using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
     std::vector<size_type> num_rows(num_vectors);
     std::vector<dim<2>> sizes(num_vectors);
     for (size_type b = 0; b < num_vectors; ++b) {
@@ -903,7 +901,7 @@ std::unique_ptr<Matrix> batch_initialize(
     }
     auto b_size = batch_dim<2>(sizes);
     auto b_stride = batch_stride(stride);
-    auto tmp = batch_vector::create(exec->get_master(), b_size, b_stride);
+    auto tmp = batch_multi_vector::create(exec->get_master(), b_size, b_stride);
     for (size_type batch = 0; batch < num_vectors; batch++) {
         size_type idx = 0;
         for (const auto& elem : vals) {
@@ -982,7 +980,7 @@ std::unique_ptr<Matrix> batch_initialize(
         vals,
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
 {
-    using batch_vector = matrix::BatchVector<typename Matrix::value_type>;
+    using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
     std::vector<dim<2>> sizes(num_matrices);
     const size_type num_rows = vals.size();
     for (size_type b = 0; b < num_matrices; ++b) {
@@ -992,7 +990,7 @@ std::unique_ptr<Matrix> batch_initialize(
             GKO_ASSERT(blockit->size() == num_cols);
         }
     }
-    auto tmp = batch_vector::create(exec->get_master(), sizes, stride);
+    auto tmp = batch_multi_vector::create(exec->get_master(), sizes, stride);
     for (size_type batch = 0; batch < num_matrices; batch++) {
         size_type ridx = 0;
         for (const auto& row : vals) {
@@ -1049,4 +1047,4 @@ std::unique_ptr<Matrix> batch_initialize(
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_CORE_MATRIX_BATCH_VECTOR_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_BATCH_MULTI_VECTOR_HPP_

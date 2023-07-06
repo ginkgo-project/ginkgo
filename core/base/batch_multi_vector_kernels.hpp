@@ -30,11 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_MATRIX_BATCH_VECTOR_KERNELS_HPP_
-#define GKO_CORE_MATRIX_BATCH_VECTOR_KERNELS_HPP_
+#ifndef GKO_CORE_MATRIX_BATCH_MULTI_VECTOR_KERNELS_HPP_
+#define GKO_CORE_MATRIX_BATCH_MULTI_VECTOR_KERNELS_HPP_
 
 
-#include <ginkgo/core/matrix/batch_vector.hpp>
+#include <ginkgo/core/base/batch_multi_vector.hpp>
 
 
 #include <ginkgo/core/base/math.hpp>
@@ -46,48 +46,48 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_BATCH_VECTOR_SCALE_KERNEL(_type)        \
+#define GKO_DECLARE_BATCH_MULTI_VECTOR_SCALE_KERNEL(_type)  \
     void scale(std::shared_ptr<const DefaultExecutor> exec, \
-               const matrix::BatchVector<_type>* alpha,     \
-               matrix::BatchVector<_type>* x)
+               const BatchMultiVector<_type>* alpha,        \
+               BatchMultiVector<_type>* x)
 
-#define GKO_DECLARE_BATCH_VECTOR_ADD_SCALED_KERNEL(_type)        \
+#define GKO_DECLARE_BATCH_MULTI_VECTOR_ADD_SCALED_KERNEL(_type)  \
     void add_scaled(std::shared_ptr<const DefaultExecutor> exec, \
-                    const matrix::BatchVector<_type>* alpha,     \
-                    const matrix::BatchVector<_type>* x,         \
-                    matrix::BatchVector<_type>* y)
+                    const BatchMultiVector<_type>* alpha,        \
+                    const BatchMultiVector<_type>* x,            \
+                    BatchMultiVector<_type>* y)
 
-#define GKO_DECLARE_BATCH_VECTOR_COMPUTE_DOT_KERNEL(_type)        \
+#define GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_DOT_KERNEL(_type)  \
     void compute_dot(std::shared_ptr<const DefaultExecutor> exec, \
-                     const matrix::BatchVector<_type>* x,         \
-                     const matrix::BatchVector<_type>* y,         \
-                     matrix::BatchVector<_type>* result)
+                     const BatchMultiVector<_type>* x,            \
+                     const BatchMultiVector<_type>* y,            \
+                     BatchMultiVector<_type>* result)
 
-#define GKO_DECLARE_BATCH_VECTOR_COMPUTE_NORM2_KERNEL(_type)        \
+#define GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_NORM2_KERNEL(_type)  \
     void compute_norm2(std::shared_ptr<const DefaultExecutor> exec, \
-                       const matrix::BatchVector<_type>* x,         \
-                       matrix::BatchVector<remove_complex<_type>>* result)
+                       const BatchMultiVector<_type>* x,            \
+                       BatchMultiVector<remove_complex<_type>>* result)
 
-#define GKO_DECLARE_BATCH_VECTOR_COPY_KERNEL(_type)        \
+#define GKO_DECLARE_BATCH_MULTI_VECTOR_COPY_KERNEL(_type)  \
     void copy(std::shared_ptr<const DefaultExecutor> exec, \
-              const matrix::BatchVector<_type>* x,         \
-              matrix::BatchVector<_type>* result)
+              const BatchMultiVector<_type>* x,            \
+              BatchMultiVector<_type>* result)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                          \
-    template <typename ValueType>                             \
-    GKO_DECLARE_BATCH_VECTOR_SCALE_KERNEL(ValueType);         \
-    template <typename ValueType>                             \
-    GKO_DECLARE_BATCH_VECTOR_ADD_SCALED_KERNEL(ValueType);    \
-    template <typename ValueType>                             \
-    GKO_DECLARE_BATCH_VECTOR_COMPUTE_DOT_KERNEL(ValueType);   \
-    template <typename ValueType>                             \
-    GKO_DECLARE_BATCH_VECTOR_COMPUTE_NORM2_KERNEL(ValueType); \
-    template <typename ValueType>                             \
-    GKO_DECLARE_BATCH_VECTOR_COPY_KERNEL(ValueType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                \
+    template <typename ValueType>                                   \
+    GKO_DECLARE_BATCH_MULTI_VECTOR_SCALE_KERNEL(ValueType);         \
+    template <typename ValueType>                                   \
+    GKO_DECLARE_BATCH_MULTI_VECTOR_ADD_SCALED_KERNEL(ValueType);    \
+    template <typename ValueType>                                   \
+    GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_DOT_KERNEL(ValueType);   \
+    template <typename ValueType>                                   \
+    GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_NORM2_KERNEL(ValueType); \
+    template <typename ValueType>                                   \
+    GKO_DECLARE_BATCH_MULTI_VECTOR_COPY_KERNEL(ValueType)
 
 
-GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(batch_vector,
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(batch_multi_vector,
                                         GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
@@ -98,4 +98,4 @@ GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(batch_vector,
 }  // namespace gko
 
 
-#endif  // GKO_CORE_MATRIX_BATCH_VECTOR_KERNELS_HPP_
+#endif  // GKO_CORE_MATRIX_BATCH_MULTI_VECTOR_KERNELS_HPP_

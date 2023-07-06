@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/batch_vector_kernels.hpp"
+#include "core/base/batch_multi_vector_kernels.hpp"
 
 
 #include <algorithm>
@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/range_accessors.hpp>
 
 
-#include "core/matrix/batch_struct.hpp"
+#include "core/base/batch_struct.hpp"
 #include "reference/matrix/batch_struct.hpp"
 
 
@@ -49,20 +49,20 @@ namespace gko {
 namespace kernels {
 namespace reference {
 /**
- * @brief The BatchVector matrix format namespace.
- * @ref BatchVector
- * @ingroup batch_vector
+ * @brief The BatchMultiVector matrix format namespace.
+ * @ref BatchMultiVector
+ * @ingroup batch_multi_vector
  */
-namespace batch_vector {
+namespace batch_multi_vector {
 
 
-#include "reference/matrix/batch_vector_kernels.hpp.inc"
+#include "reference/matrix/batch_multi_vector_kernels.hpp.inc"
 
 
 template <typename ValueType>
 void scale(std::shared_ptr<const DefaultExecutor> exec,
-           const matrix::BatchVector<ValueType>* alpha,
-           matrix::BatchVector<ValueType>* x)
+           const BatchMultiVector<ValueType>* alpha,
+           BatchMultiVector<ValueType>* x)
 {
     const auto x_ub = host::get_batch_struct(x);
     const auto alpha_ub = host::get_batch_struct(alpha);
@@ -73,14 +73,15 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_VECTOR_SCALE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_MULTI_VECTOR_SCALE_KERNEL);
 
 
 template <typename ValueType>
 void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
-                const matrix::BatchVector<ValueType>* alpha,
-                const matrix::BatchVector<ValueType>* x,
-                matrix::BatchVector<ValueType>* y)
+                const BatchMultiVector<ValueType>* alpha,
+                const BatchMultiVector<ValueType>* x,
+                BatchMultiVector<ValueType>* y)
 {
     const auto x_ub = host::get_batch_struct(x);
     const auto y_ub = host::get_batch_struct(y);
@@ -93,14 +94,15 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_VECTOR_ADD_SCALED_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_MULTI_VECTOR_ADD_SCALED_KERNEL);
 
 
 template <typename ValueType>
 void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
-                 const matrix::BatchVector<ValueType>* x,
-                 const matrix::BatchVector<ValueType>* y,
-                 matrix::BatchVector<ValueType>* result)
+                 const BatchMultiVector<ValueType>* x,
+                 const BatchMultiVector<ValueType>* y,
+                 BatchMultiVector<ValueType>* result)
 {
     const auto x_ub = host::get_batch_struct(x);
     const auto y_ub = host::get_batch_struct(y);
@@ -115,13 +117,13 @@ void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BATCH_VECTOR_COMPUTE_DOT_KERNEL);
+    GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_DOT_KERNEL);
 
 
 template <typename ValueType>
 void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
-                   const matrix::BatchVector<ValueType>* x,
-                   matrix::BatchVector<remove_complex<ValueType>>* result)
+                   const BatchMultiVector<ValueType>* x,
+                   BatchMultiVector<remove_complex<ValueType>>* result)
 {
     const auto x_ub = host::get_batch_struct(x);
     const auto res_ub = host::get_batch_struct(result);
@@ -134,13 +136,13 @@ void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BATCH_VECTOR_COMPUTE_NORM2_KERNEL);
+    GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_NORM2_KERNEL);
 
 
 template <typename ValueType>
 void copy(std::shared_ptr<const DefaultExecutor> exec,
-          const matrix::BatchVector<ValueType>* x,
-          matrix::BatchVector<ValueType>* result)
+          const BatchMultiVector<ValueType>* x,
+          BatchMultiVector<ValueType>* result)
 {
     const auto x_ub = host::get_batch_struct(x);
     const auto result_ub = host::get_batch_struct(result);
@@ -151,10 +153,10 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_VECTOR_COPY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_MULTI_VECTOR_COPY_KERNEL);
 
 
-}  // namespace batch_vector
+}  // namespace batch_multi_vector
 }  // namespace reference
 }  // namespace kernels
 }  // namespace gko

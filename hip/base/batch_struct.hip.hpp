@@ -30,30 +30,30 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CUDA_MATRIX_BATCH_STRUCT_HPP_
-#define GKO_CUDA_MATRIX_BATCH_STRUCT_HPP_
+#ifndef GKO_HIP_MATRIX_BATCH_STRUCT_HIP_HPP_
+#define GKO_HIP_MATRIX_BATCH_STRUCT_HIP_HPP_
 
 
-#include "core/matrix/batch_struct.hpp"
+#include "core/base/batch_struct.hpp"
 
 
+#include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/batch_vector.hpp>
 
 
-#include "cuda/base/config.hpp"
-#include "cuda/base/types.hpp"
+#include "hip/base/config.hip.hpp"
+#include "hip/base/types.hip.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace cuda {
+namespace hip {
 
 
 /** @file batch_struct.hpp
  *
  * Helper functions to generate a batch struct from a batch LinOp,
- * while also shallow-casting to the requried CUDA scalar type.
+ * while also shallow-casting to the requried Hip scalar type.
  *
  * A specialization is needed for every format of every kind of linear algebra
  * object. These are intended to be called on the host.
@@ -64,11 +64,11 @@ namespace cuda {
  * Generates an immutable uniform batch struct from a batch of dense matrices.
  */
 template <typename ValueType>
-inline gko::batch_vector::UniformBatch<const cuda_type<ValueType>>
-get_batch_struct(const matrix::BatchVector<ValueType>* const op)
+inline gko::batch_multi_vector::UniformBatch<const hip_type<ValueType>>
+get_batch_struct(const BatchMultiVector<ValueType>* const op)
 {
     return {
-        as_cuda_type(op->get_const_values()),
+        as_hip_type(op->get_const_values()),
         op->get_num_batch_entries(),
         op->get_stride().at(0),
         static_cast<int>(op->get_size().at(0)[0]),
@@ -80,11 +80,11 @@ get_batch_struct(const matrix::BatchVector<ValueType>* const op)
  * Generates a uniform batch struct from a batch of dense matrices.
  */
 template <typename ValueType>
-inline gko::batch_vector::UniformBatch<cuda_type<ValueType>> get_batch_struct(
-    matrix::BatchVector<ValueType>* const op)
+inline gko::batch_multi_vector::UniformBatch<hip_type<ValueType>>
+get_batch_struct(BatchMultiVector<ValueType>* const op)
 {
     return {
-        as_cuda_type(op->get_values()),
+        as_hip_type(op->get_values()),
         op->get_num_batch_entries(),
         op->get_stride().at(0),
         static_cast<int>(op->get_size().at(0)[0]),
@@ -98,11 +98,11 @@ inline gko::batch_vector::UniformBatch<cuda_type<ValueType>> get_batch_struct(
  * that may be null.
  */
 template <typename ValueType>
-inline gko::batch_vector::UniformBatch<const cuda_type<ValueType>>
-maybe_null_batch_struct(const matrix::BatchVector<ValueType>* const op)
+inline gko::batch_multi_vector::UniformBatch<const hip_type<ValueType>>
+maybe_null_batch_struct(const BatchMultiVector<ValueType>* const op)
 {
     if (op) {
-        return {as_cuda_type(op->get_const_values()),
+        return {as_hip_type(op->get_const_values()),
                 op->get_num_batch_entries(), op->get_stride().at(0),
                 static_cast<int>(op->get_size().at(0)[0]),
                 static_cast<int>(op->get_size().at(0)[1])};
@@ -112,7 +112,9 @@ maybe_null_batch_struct(const matrix::BatchVector<ValueType>* const op)
 }
 
 
-}  // namespace cuda
+}  // namespace hip
 }  // namespace kernels
 }  // namespace gko
-#endif  // GKO_CUDA_MATRIX_BATCH_STRUCT_HPP_
+
+
+#endif  // GKO_HIP_MATRIX_BATCH_STRUCT_HIP_HPP_

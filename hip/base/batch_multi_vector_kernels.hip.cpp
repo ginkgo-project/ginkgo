@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/batch_vector_kernels.hpp"
+#include "core/base/batch_multi_vector_kernels.hpp"
 
 
 #include <hip/hip_runtime.h>
@@ -40,7 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/range_accessors.hpp>
 
 
-#include "core/matrix/batch_struct.hpp"
+#include "core/base/batch_struct.hpp"
+#include "hip/base/batch_struct.hip.hpp"
 #include "hip/base/config.hip.hpp"
 #include "hip/base/hipblas_bindings.hip.hpp"
 #include "hip/base/pointer_mode_guard.hip.hpp"
@@ -48,31 +49,30 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/components/reduction.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 #include "hip/components/uninitialized_array.hip.hpp"
-#include "hip/matrix/batch_struct.hip.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace hip {
 /**
- * @brief The BatchVector matrix format namespace.
+ * @brief The BatchMultiVector matrix format namespace.
  *
- * @ingroup batch_vector
+ * @ingroup batch_multi_vector
  */
-namespace batch_vector {
+namespace batch_multi_vector {
 
 
 constexpr auto default_block_size = 256;
 constexpr int sm_multiplier = 4;
 
 
-#include "common/cuda_hip/matrix/batch_vector_kernels.hpp.inc"
+#include "common/cuda_hip/base/batch_multi_vector_kernels.hpp.inc"
 
 
 template <typename ValueType>
 void scale(std::shared_ptr<const HipExecutor> exec,
-           const matrix::BatchVector<ValueType>* const alpha,
-           matrix::BatchVector<ValueType>* const x)
+           const BatchMultiVector<ValueType>* const alpha,
+           BatchMultiVector<ValueType>* const x)
 {
     const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
     const auto alpha_ub = get_batch_struct(alpha);
@@ -81,14 +81,15 @@ void scale(std::shared_ptr<const HipExecutor> exec,
                        alpha_ub, x_ub);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_VECTOR_SCALE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_MULTI_VECTOR_SCALE_KERNEL);
 
 
 template <typename ValueType>
 void add_scaled(std::shared_ptr<const HipExecutor> exec,
-                const matrix::BatchVector<ValueType>* const alpha,
-                const matrix::BatchVector<ValueType>* const x,
-                matrix::BatchVector<ValueType>* const y)
+                const BatchMultiVector<ValueType>* const alpha,
+                const BatchMultiVector<ValueType>* const x,
+                BatchMultiVector<ValueType>* const y)
 {
     const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
     const size_type nrhs = x->get_size().at(0)[1];
@@ -109,14 +110,15 @@ void add_scaled(std::shared_ptr<const HipExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_VECTOR_ADD_SCALED_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_MULTI_VECTOR_ADD_SCALED_KERNEL);
 
 
 template <typename ValueType>
 void compute_dot(std::shared_ptr<const HipExecutor> exec,
-                 const matrix::BatchVector<ValueType>* x,
-                 const matrix::BatchVector<ValueType>* y,
-                 matrix::BatchVector<ValueType>* result)
+                 const BatchMultiVector<ValueType>* x,
+                 const BatchMultiVector<ValueType>* y,
+                 BatchMultiVector<ValueType>* result)
 {
     const auto num_blocks = x->get_num_batch_entries();
     const auto num_rhs = x->get_size().at()[1];
@@ -138,13 +140,13 @@ void compute_dot(std::shared_ptr<const HipExecutor> exec,
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BATCH_VECTOR_COMPUTE_DOT_KERNEL);
+    GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_DOT_KERNEL);
 
 
 template <typename ValueType>
 void compute_norm2(std::shared_ptr<const HipExecutor> exec,
-                   const matrix::BatchVector<ValueType>* const x,
-                   matrix::BatchVector<remove_complex<ValueType>>* const result)
+                   const BatchMultiVector<ValueType>* const x,
+                   BatchMultiVector<remove_complex<ValueType>>* const result)
 {
     const auto num_blocks = x->get_num_batch_entries();
     const auto num_rhs = x->get_size().at()[1];
@@ -163,13 +165,13 @@ void compute_norm2(std::shared_ptr<const HipExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BATCH_VECTOR_COMPUTE_NORM2_KERNEL);
+    GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_NORM2_KERNEL);
 
 
 template <typename ValueType>
 void copy(std::shared_ptr<const DefaultExecutor> exec,
-          const matrix::BatchVector<ValueType>* x,
-          matrix::BatchVector<ValueType>* result)
+          const BatchMultiVector<ValueType>* x,
+          BatchMultiVector<ValueType>* result)
 {
     const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
     const auto result_ub = get_batch_struct(result);
@@ -178,10 +180,10 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
                        x_ub, result_ub);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_VECTOR_COPY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_MULTI_VECTOR_COPY_KERNEL);
 
 
-}  // namespace batch_vector
+}  // namespace batch_multi_vector
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko
