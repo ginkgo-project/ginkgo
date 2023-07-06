@@ -53,34 +53,6 @@ version version_info::get_dpcpp_version() noexcept
 }
 
 
-DpcppAllocatorBase::DpcppAllocatorBase(sycl::queue*) GKO_NOT_COMPILED(dpcpp);
-
-
-void* DpcppAllocatorBase::allocate(size_type num_bytes) const
-    GKO_NOT_COMPILED(dpcpp);
-
-
-void DpcppAllocatorBase::deallocate(void* ptr) const GKO_NOT_COMPILED(dpcpp);
-
-
-void* DpcppAllocator::allocate_impl(sycl::queue* queue,
-                                    size_type num_bytes) const
-    GKO_NOT_COMPILED(dpcpp);
-
-
-void DpcppAllocator::deallocate_impl(sycl::queue* queue, void* ptr) const
-    GKO_NOT_COMPILED(dpcpp);
-
-
-void* DpcppUnifiedAllocator::allocate_impl(sycl::queue* queue,
-                                           size_type num_bytes) const
-    GKO_NOT_COMPILED(dpcpp);
-
-
-void DpcppUnifiedAllocator::deallocate_impl(sycl::queue* queue, void* ptr) const
-    GKO_NOT_COMPILED(dpcpp);
-
-
 std::shared_ptr<DpcppExecutor> DpcppExecutor::create(
     int device_id, std::shared_ptr<Executor> master, std::string device_type,
     dpcpp_queue_property property)

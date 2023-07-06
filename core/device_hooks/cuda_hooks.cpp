@@ -54,43 +54,55 @@ version version_info::get_cuda_version() noexcept
 }
 
 
-void* CudaAllocator::allocate(size_type num_bytes) const GKO_NOT_COMPILED(cuda);
+void* CudaAllocator::allocate(size_type num_bytes) GKO_NOT_COMPILED(cuda);
 
 
-void CudaAllocator::deallocate(void* dev_ptr) const GKO_NOT_COMPILED(cuda);
+void CudaAllocator::deallocate(void* dev_ptr) GKO_NOT_COMPILED(cuda);
 
 
 CudaAsyncAllocator::CudaAsyncAllocator(CUstream_st* stream)
     GKO_NOT_COMPILED(cuda);
 
 
-void* CudaAsyncAllocator::allocate(size_type num_bytes) const
+void* CudaAsyncAllocator::allocate(size_type num_bytes) GKO_NOT_COMPILED(cuda);
+
+
+void CudaAsyncAllocator::deallocate(void* dev_ptr) GKO_NOT_COMPILED(cuda);
+
+
+bool CudaAsyncAllocator::check_environment(int device_id,
+                                           CUstream_st* stream) const
     GKO_NOT_COMPILED(cuda);
-
-
-void CudaAsyncAllocator::deallocate(void* dev_ptr) const GKO_NOT_COMPILED(cuda);
 
 
 CudaUnifiedAllocator::CudaUnifiedAllocator(int device_id, unsigned int flags)
     GKO_NOT_COMPILED(cuda);
 
 
-void* CudaUnifiedAllocator::allocate(size_type num_bytes) const
+void* CudaUnifiedAllocator::allocate(size_type num_bytes)
     GKO_NOT_COMPILED(cuda);
 
 
-void CudaUnifiedAllocator::deallocate(void* dev_ptr) const
+void CudaUnifiedAllocator::deallocate(void* dev_ptr) GKO_NOT_COMPILED(cuda);
+
+
+bool CudaUnifiedAllocator::check_environment(int device_id,
+                                             CUstream_st* stream) const
     GKO_NOT_COMPILED(cuda);
 
 
 CudaHostAllocator::CudaHostAllocator(int device_id) GKO_NOT_COMPILED(cuda);
 
 
-void* CudaHostAllocator::allocate(size_type num_bytes) const
+void* CudaHostAllocator::allocate(size_type num_bytes) GKO_NOT_COMPILED(cuda);
+
+
+void CudaHostAllocator::deallocate(void* dev_ptr) GKO_NOT_COMPILED(cuda);
+
+
+bool CudaHostAllocator::check_environment(int device_id,
+                                          CUstream_st* stream) const
     GKO_NOT_COMPILED(cuda);
-
-
-void CudaHostAllocator::deallocate(void* dev_ptr) const GKO_NOT_COMPILED(cuda);
 
 
 std::shared_ptr<CudaExecutor> CudaExecutor::create(

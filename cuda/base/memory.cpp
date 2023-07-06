@@ -82,7 +82,7 @@ namespace gko {
 #endif
 
 
-void* CudaAllocator::allocate(size_type num_bytes) const
+void* CudaAllocator::allocate(size_type num_bytes)
 {
     void* ptr{};
     GKO_ASSERT_NO_CUDA_ALLOCATION_ERRORS(cudaMalloc(&ptr, num_bytes),
@@ -91,7 +91,7 @@ void* CudaAllocator::allocate(size_type num_bytes) const
 }
 
 
-void CudaAllocator::deallocate(void* ptr) const
+void CudaAllocator::deallocate(void* ptr)
 {
     GKO_EXIT_ON_CUDA_ERROR(cudaFree(ptr));
 }
@@ -103,7 +103,7 @@ void CudaAllocator::deallocate(void* ptr) const
 CudaAsyncAllocator::CudaAsyncAllocator(cudaStream_t stream) : stream_{stream} {}
 
 
-void* CudaAsyncAllocator::allocate(size_type num_bytes) const
+void* CudaAsyncAllocator::allocate(size_type num_bytes)
 {
     void* ptr{};
     GKO_ASSERT_NO_CUDA_ALLOCATION_ERRORS(
@@ -112,7 +112,7 @@ void* CudaAsyncAllocator::allocate(size_type num_bytes) const
 }
 
 
-void CudaAsyncAllocator::deallocate(void* ptr) const
+void CudaAsyncAllocator::deallocate(void* ptr)
 {
     GKO_EXIT_ON_CUDA_ERROR(cudaFreeAsync(ptr, stream_));
 }
@@ -121,10 +121,10 @@ void CudaAsyncAllocator::deallocate(void* ptr) const
 #else  // Fall back to regular allocation
 
 
-CudaAsyncAllocator::CudaAsyncAllocator(cudaStream_t stream) : stream_{} {}
+CudaAsyncAllocator::CudaAsyncAllocator(cudaStream_t stream) : stream_{stream} {}
 
 
-void* CudaAsyncAllocator::allocate(size_type num_bytes) const
+void* CudaAsyncAllocator::allocate(size_type num_bytes)
 {
     void* ptr{};
     GKO_ASSERT_NO_CUDA_ALLOCATION_ERRORS(cudaMalloc(&ptr, num_bytes),
@@ -133,13 +133,20 @@ void* CudaAsyncAllocator::allocate(size_type num_bytes) const
 }
 
 
-void CudaAsyncAllocator::deallocate(void* ptr) const
+void CudaAsyncAllocator::deallocate(void* ptr)
 {
     GKO_EXIT_ON_CUDA_ERROR(cudaFree(ptr));
 }
 
 
 #endif
+
+
+bool CudaAsyncAllocator::check_environment(int device_id,
+                                           CUstream_st* stream) const
+{
+    return stream == stream_;
+}
 
 
 CudaUnifiedAllocator::CudaUnifiedAllocator(int device_id)
@@ -152,7 +159,7 @@ CudaUnifiedAllocator::CudaUnifiedAllocator(int device_id, unsigned int flags)
 {}
 
 
-void* CudaUnifiedAllocator::allocate(size_type num_bytes) const
+void* CudaUnifiedAllocator::allocate(size_type num_bytes)
 {
     // we need to set the device ID in case this gets used in a host executor
     detail::cuda_scoped_device_id_guard g(device_id_);
@@ -163,7 +170,7 @@ void* CudaUnifiedAllocator::allocate(size_type num_bytes) const
 }
 
 
-void CudaUnifiedAllocator::deallocate(void* ptr) const
+void CudaUnifiedAllocator::deallocate(void* ptr)
 {
     // we need to set the device ID in case this gets used in a host executor
     detail::cuda_scoped_device_id_guard g(device_id_);
@@ -171,10 +178,17 @@ void CudaUnifiedAllocator::deallocate(void* ptr) const
 }
 
 
+bool CudaUnifiedAllocator::check_environment(int device_id,
+                                             CUstream_st* stream) const
+{
+    return device_id == device_id_;
+}
+
+
 CudaHostAllocator::CudaHostAllocator(int device_id) : device_id_{device_id} {}
 
 
-void* CudaHostAllocator::allocate(size_type num_bytes) const
+void* CudaHostAllocator::allocate(size_type num_bytes)
 {
     // we need to set the device ID in case this gets used in a host executor
     detail::cuda_scoped_device_id_guard g(device_id_);
@@ -185,11 +199,18 @@ void* CudaHostAllocator::allocate(size_type num_bytes) const
 }
 
 
-void CudaHostAllocator::deallocate(void* ptr) const
+void CudaHostAllocator::deallocate(void* ptr)
 {
     // we need to set the device ID in case this gets used in a host executor
     detail::cuda_scoped_device_id_guard g(device_id_);
     GKO_EXIT_ON_CUDA_ERROR(cudaFreeHost(ptr));
+}
+
+
+bool CudaHostAllocator::check_environment(int device_id,
+                                          CUstream_st* stream) const
+{
+    return device_id == device_id_;
 }
 
 

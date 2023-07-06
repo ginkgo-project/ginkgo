@@ -10,7 +10,6 @@ target_sources(ginkgo_dpcpp
     base/executor.dp.cpp
     base/helper.dp.cpp
     base/index_set_kernels.dp.cpp
-    base/memory.dp.cpp
     base/scoped_device_id.dp.cpp
     base/timer.dp.cpp
     base/version.dp.cpp

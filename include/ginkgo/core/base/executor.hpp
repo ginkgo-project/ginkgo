@@ -1717,10 +1717,13 @@ public:
      * @param alloc_mode  the allocation mode that the executor should operate
      *                    on. See @allocation_mode for more details
      */
-    [[deprecated("")]] static std::shared_ptr<HipExecutor> create(
-        int device_id, std::shared_ptr<Executor> master, bool device_reset,
-        allocation_mode alloc_mode = default_hip_alloc_mode,
-        GKO_HIP_STREAM_STRUCT* stream = nullptr);
+    [[deprecated(
+        "device_reset is deprecated entirely, call hipDeviceReset directly. "
+        "alloc_mode was replaced by the Allocator type "
+        "hierarchy.")]] static std::shared_ptr<HipExecutor>
+    create(int device_id, std::shared_ptr<Executor> master, bool device_reset,
+           allocation_mode alloc_mode = default_hip_alloc_mode,
+           GKO_HIP_STREAM_STRUCT* stream = nullptr);
 
     static std::shared_ptr<HipExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
@@ -1913,28 +1916,6 @@ public:
         int device_id, std::shared_ptr<Executor> master,
         std::string device_type = "all",
         dpcpp_queue_property property = dpcpp_queue_property::in_order);
-
-    /**
-     * Creates a new DpcppExecutor from an existing SYCL queue.
-     *
-     * @param queue  the DPCPP device id of this device
-     * @param master  an executor on the host that is used to invoke the device
-     *                kernels
-     */
-    static std::shared_ptr<DpcppExecutor> create(
-        sycl::queue* queue, std::shared_ptr<Executor> master);
-
-    /**
-     * Creates a new DpcppExecutor from an existing SYCL queue.
-     *
-     * @param queue  the DPCPP device id of this device
-     * @param master  an executor on the host that is used to invoke the device
-     *                kernels
-     * @param alloc  the allocator used for memory allocation
-     */
-    static std::shared_ptr<DpcppExecutor> create(
-        sycl::queue* queue, std::shared_ptr<Executor> master,
-        std::shared_ptr<DpcppAllocatorBase> alloc);
 
     std::shared_ptr<Executor> get_master() noexcept override;
 
