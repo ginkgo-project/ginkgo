@@ -194,8 +194,8 @@ void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
     } else {
         queue->submit([&](sycl::handler& cgh) {
             generic_kernel_reduction_1d<DeviceConfig>(
-                cgh, static_cast<int64>(size), num_workgroups, fn, op, finalize,
-                identity, result, args...);
+                cgh, static_cast<int64>(size), 1, fn, op, finalize, identity,
+                result, args...);
         });
     }
 }
@@ -240,9 +240,9 @@ void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
         });
     } else {
         queue->submit([&](sycl::handler& cgh) {
-            generic_kernel_reduction_2d<DeviceConfig>(
-                cgh, rows, cols, num_workgroups, fn, op, finalize, identity,
-                result, args...);
+            generic_kernel_reduction_2d<DeviceConfig>(cgh, rows, cols, 1, fn,
+                                                      op, finalize, identity,
+                                                      result, args...);
         });
     }
 }
