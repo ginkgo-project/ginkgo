@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_MATRIX_BATCH_STRUCT_HPP_
-#define GKO_CORE_MATRIX_BATCH_STRUCT_HPP_
+#ifndef GKO_CORE_BASE_BATCH_STRUCT_HPP_
+#define GKO_CORE_BASE_BATCH_STRUCT_HPP_
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
-namespace batch_vector {
+namespace batch_multi_vector {
 
 
 /**
@@ -77,23 +77,23 @@ struct UniformBatch {
 };
 
 
-}  // namespace batch_vector
+}  // namespace batch_multi_vector
 
 
 namespace batch {
 
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE gko::batch_vector::BatchEntry<const ValueType>
-to_const(const gko::batch_vector::BatchEntry<ValueType>& b)
+GKO_ATTRIBUTES GKO_INLINE gko::batch_multi_vector::BatchEntry<const ValueType>
+to_const(const gko::batch_multi_vector::BatchEntry<ValueType>& b)
 {
     return {b.values, b.stride, b.num_rows, b.num_rhs};
 }
 
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE gko::batch_vector::UniformBatch<const ValueType>
-to_const(const gko::batch_vector::UniformBatch<ValueType>& ub)
+GKO_ATTRIBUTES GKO_INLINE gko::batch_multi_vector::UniformBatch<const ValueType>
+to_const(const gko::batch_multi_vector::UniformBatch<ValueType>& ub)
 {
     return {ub.values, ub.num_batch, ub.stride, ub.num_rows, ub.num_rhs};
 }
@@ -109,8 +109,8 @@ to_const(const gko::batch_vector::UniformBatch<ValueType>& ub)
  * @param batch_idx  The position of the desired object in the batch
  */
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE batch_vector::BatchEntry<ValueType> batch_entry(
-    const batch_vector::UniformBatch<ValueType>& batch,
+GKO_ATTRIBUTES GKO_INLINE batch_multi_vector::BatchEntry<ValueType> batch_entry(
+    const batch_multi_vector::UniformBatch<ValueType>& batch,
     const size_type batch_idx)
 {
     return {batch.values + batch_idx * batch.stride * batch.num_rows,
@@ -118,7 +118,7 @@ GKO_ATTRIBUTES GKO_INLINE batch_vector::BatchEntry<ValueType> batch_entry(
 }
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE batch_vector::BatchEntry<ValueType> batch_entry(
+GKO_ATTRIBUTES GKO_INLINE batch_multi_vector::BatchEntry<ValueType> batch_entry(
     ValueType* const batch_values, const size_type stride, const int num_rows,
     const int num_rhs, const size_type batch_idx)
 {
@@ -140,4 +140,4 @@ GKO_ATTRIBUTES GKO_INLINE ValueType* batch_entry_ptr(
 
 }  // namespace gko
 
-#endif  // GKO_CORE_MATRIX_BATCH_STRUCT_HPP_
+#endif  // GKO_CORE_BASE_BATCH_STRUCT_HPP_

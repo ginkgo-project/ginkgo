@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/matrix/batch_vector.hpp>
+#include <ginkgo/core/base/batch_multi_vector.hpp>
 
 
 #include <gtest/gtest.h>
@@ -45,14 +45,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 template <typename T>
-class BatchVector : public ::testing::Test {
+class BatchMultiVector : public ::testing::Test {
 protected:
     using value_type = T;
     using DenseMtx = gko::matrix::Dense<value_type>;
     using size_type = gko::size_type;
-    BatchVector()
+    BatchMultiVector()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::batch_initialize<gko::matrix::BatchVector<value_type>>(
+          mtx(gko::batch_initialize<gko::BatchMultiVector<value_type>>(
               std::vector<size_type>{4, 3},
               {{{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}},
                {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}},
@@ -61,7 +61,7 @@ protected:
 
 
     static void assert_equal_to_original_mtx(
-        gko::matrix::BatchVector<value_type>* m)
+        gko::BatchMultiVector<value_type>* m)
     {
         ASSERT_EQ(m->get_num_batch_entries(), 2);
         ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 3));
@@ -85,37 +85,37 @@ protected:
         ASSERT_EQ(m->at(1, 1, 2), value_type{3.0});
     }
 
-    static void assert_empty(gko::matrix::BatchVector<value_type>* m)
+    static void assert_empty(gko::BatchMultiVector<value_type>* m)
     {
         ASSERT_EQ(m->get_num_batch_entries(), 0);
         ASSERT_EQ(m->get_num_stored_elements(), 0);
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<gko::matrix::BatchVector<value_type>> mtx;
+    std::unique_ptr<gko::BatchMultiVector<value_type>> mtx;
 };
 
-TYPED_TEST_SUITE(BatchVector, gko::test::ValueTypes);
+TYPED_TEST_SUITE(BatchMultiVector, gko::test::ValueTypes);
 
 
-TYPED_TEST(BatchVector, CanBeEmpty)
+TYPED_TEST(BatchMultiVector, CanBeEmpty)
 {
-    auto empty = gko::matrix::BatchVector<TypeParam>::create(this->exec);
+    auto empty = gko::BatchMultiVector<TypeParam>::create(this->exec);
     this->assert_empty(empty.get());
 }
 
 
-TYPED_TEST(BatchVector, ReturnsNullValuesArrayWhenEmpty)
+TYPED_TEST(BatchMultiVector, ReturnsNullValuesArrayWhenEmpty)
 {
-    auto empty = gko::matrix::BatchVector<TypeParam>::create(this->exec);
+    auto empty = gko::BatchMultiVector<TypeParam>::create(this->exec);
     ASSERT_EQ(empty->get_const_values(), nullptr);
 }
 
 
-TYPED_TEST(BatchVector, CanBeConstructedWithSize)
+TYPED_TEST(BatchMultiVector, CanBeConstructedWithSize)
 {
     using size_type = gko::size_type;
-    auto m = gko::matrix::BatchVector<TypeParam>::create(
+    auto m = gko::BatchMultiVector<TypeParam>::create(
         this->exec,
         std::vector<gko::dim<2>>{gko::dim<2>{2, 4}, gko::dim<2>{2, 3}});
 
@@ -130,10 +130,10 @@ TYPED_TEST(BatchVector, CanBeConstructedWithSize)
 }
 
 
-TYPED_TEST(BatchVector, CanBeConstructedWithSizeAndStride)
+TYPED_TEST(BatchMultiVector, CanBeConstructedWithSizeAndStride)
 {
     using size_type = gko::size_type;
-    auto m = gko::matrix::BatchVector<TypeParam>::create(
+    auto m = gko::BatchMultiVector<TypeParam>::create(
         this->exec, std::vector<gko::dim<2>>{gko::dim<2>{2, 3}},
         std::vector<size_type>{4});
 
@@ -143,7 +143,7 @@ TYPED_TEST(BatchVector, CanBeConstructedWithSizeAndStride)
 }
 
 
-TYPED_TEST(BatchVector, CanBeConstructedFromExistingData)
+TYPED_TEST(BatchMultiVector, CanBeConstructedFromExistingData)
 {
     using value_type = typename TestFixture::value_type;
     using size_type = gko::size_type;
@@ -155,7 +155,7 @@ TYPED_TEST(BatchVector, CanBeConstructedFromExistingData)
        5.0, 6.0, -3.0};
     // clang-format on
 
-    auto m = gko::matrix::BatchVector<TypeParam>::create(
+    auto m = gko::BatchMultiVector<TypeParam>::create(
         this->exec,
         std::vector<gko::dim<2>>{gko::dim<2>{2, 2}, gko::dim<2>{2, 2}},
         gko::array<value_type>::view(this->exec, 12, data),
@@ -169,7 +169,7 @@ TYPED_TEST(BatchVector, CanBeConstructedFromExistingData)
 }
 
 
-TYPED_TEST(BatchVector, CanBeConstructedFromExistingConstData)
+TYPED_TEST(BatchMultiVector, CanBeConstructedFromExistingConstData)
 {
     using value_type = typename TestFixture::value_type;
     using size_type = gko::size_type;
@@ -181,7 +181,7 @@ TYPED_TEST(BatchVector, CanBeConstructedFromExistingConstData)
        5.0, 6.0, -3.0};
     // clang-format on
 
-    auto m = gko::matrix::BatchVector<TypeParam>::create_const(
+    auto m = gko::BatchMultiVector<TypeParam>::create_const(
         this->exec,
         std::vector<gko::dim<2>>{gko::dim<2>{2, 2}, gko::dim<2>{2, 2}},
         gko::array<value_type>::const_view(this->exec, 12, data),
@@ -195,7 +195,7 @@ TYPED_TEST(BatchVector, CanBeConstructedFromExistingConstData)
 }
 
 
-TYPED_TEST(BatchVector, CanBeConstructedFromBatchVectorMatrices)
+TYPED_TEST(BatchMultiVector, CanBeConstructedFromBatchMultiVectorMatrices)
 {
     using value_type = typename TestFixture::value_type;
     using DenseMtx = typename TestFixture::DenseMtx;
@@ -205,19 +205,18 @@ TYPED_TEST(BatchVector, CanBeConstructedFromBatchVectorMatrices)
     auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
                                           this->exec);
 
-    auto m = gko::matrix::BatchVector<TypeParam>::create(
+    auto m = gko::BatchMultiVector<TypeParam>::create(
         this->exec, std::vector<DenseMtx*>{mat1.get(), mat2.get()});
-    auto m_ref = gko::matrix::BatchVector<TypeParam>::create(
+    auto m_ref = gko::BatchMultiVector<TypeParam>::create(
         this->exec, std::vector<DenseMtx*>{mat1.get(), mat2.get(), mat1.get(),
                                            mat2.get(), mat1.get(), mat2.get()});
-    auto m2 =
-        gko::matrix::BatchVector<TypeParam>::create(this->exec, 3, m.get());
+    auto m2 = gko::BatchMultiVector<TypeParam>::create(this->exec, 3, m.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(m2.get(), m_ref.get(), 1e-14);
 }
 
 
-TYPED_TEST(BatchVector, CanBeConstructedFromDenseMatricesByDuplication)
+TYPED_TEST(BatchMultiVector, CanBeConstructedFromDenseMatricesByDuplication)
 {
     using value_type = typename TestFixture::value_type;
     using DenseMtx = typename TestFixture::DenseMtx;
@@ -227,16 +226,16 @@ TYPED_TEST(BatchVector, CanBeConstructedFromDenseMatricesByDuplication)
     auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
                                           this->exec);
 
-    auto bat_m = gko::matrix::BatchVector<TypeParam>::create(
+    auto bat_m = gko::BatchMultiVector<TypeParam>::create(
         this->exec, std::vector<DenseMtx*>{mat1.get(), mat1.get(), mat1.get()});
     auto m =
-        gko::matrix::BatchVector<TypeParam>::create(this->exec, 3, mat1.get());
+        gko::BatchMultiVector<TypeParam>::create(this->exec, 3, mat1.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(bat_m.get(), m.get(), 1e-14);
 }
 
 
-TYPED_TEST(BatchVector, CanBeConstructedFromDenseMatrices)
+TYPED_TEST(BatchMultiVector, CanBeConstructedFromDenseMatrices)
 {
     using value_type = typename TestFixture::value_type;
     using DenseMtx = typename TestFixture::DenseMtx;
@@ -246,14 +245,14 @@ TYPED_TEST(BatchVector, CanBeConstructedFromDenseMatrices)
     auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
                                           this->exec);
 
-    auto m = gko::matrix::BatchVector<TypeParam>::create(
+    auto m = gko::BatchMultiVector<TypeParam>::create(
         this->exec, std::vector<DenseMtx*>{mat1.get(), mat2.get()});
 
     this->assert_equal_to_original_mtx(m.get());
 }
 
 
-TYPED_TEST(BatchVector, CanBeUnbatchedIntoDenseMatrices)
+TYPED_TEST(BatchMultiVector, CanBeUnbatchedIntoDenseMatrices)
 {
     using value_type = typename TestFixture::value_type;
     using DenseMtx = typename TestFixture::DenseMtx;
@@ -271,16 +270,16 @@ TYPED_TEST(BatchVector, CanBeUnbatchedIntoDenseMatrices)
 }
 
 
-TYPED_TEST(BatchVector, KnowsItsSizeAndValues)
+TYPED_TEST(BatchMultiVector, KnowsItsSizeAndValues)
 {
     this->assert_equal_to_original_mtx(this->mtx.get());
 }
 
 
-TYPED_TEST(BatchVector, CanBeListConstructed)
+TYPED_TEST(BatchMultiVector, CanBeListConstructed)
 {
     using value_type = typename TestFixture::value_type;
-    auto m = gko::batch_initialize<gko::matrix::BatchVector<TypeParam>>(
+    auto m = gko::batch_initialize<gko::BatchMultiVector<TypeParam>>(
         {{1.0, 2.0}, {1.0, 3.0}}, this->exec);
 
     ASSERT_EQ(m->get_num_batch_entries(), 2);
@@ -294,10 +293,10 @@ TYPED_TEST(BatchVector, CanBeListConstructed)
 }
 
 
-TYPED_TEST(BatchVector, CanBeListConstructedWithstride)
+TYPED_TEST(BatchMultiVector, CanBeListConstructedWithstride)
 {
     using value_type = typename TestFixture::value_type;
-    auto m = gko::batch_initialize<gko::matrix::BatchVector<TypeParam>>(
+    auto m = gko::batch_initialize<gko::BatchMultiVector<TypeParam>>(
         std::vector<gko::size_type>{2}, {{1.0, 2.0}}, this->exec);
     ASSERT_EQ(m->get_num_batch_entries(), 1);
     ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 1));
@@ -307,10 +306,10 @@ TYPED_TEST(BatchVector, CanBeListConstructedWithstride)
 }
 
 
-TYPED_TEST(BatchVector, CanBeListConstructedByCopies)
+TYPED_TEST(BatchMultiVector, CanBeListConstructedByCopies)
 {
     using value_type = typename TestFixture::value_type;
-    auto m = gko::batch_initialize<gko::matrix::BatchVector<TypeParam>>(
+    auto m = gko::batch_initialize<gko::BatchMultiVector<TypeParam>>(
         2, I<value_type>({1.0, 2.0}), this->exec);
     ASSERT_EQ(m->get_num_batch_entries(), 2);
     ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 1));
@@ -323,11 +322,11 @@ TYPED_TEST(BatchVector, CanBeListConstructedByCopies)
 }
 
 
-TYPED_TEST(BatchVector, CanBeDoubleListConstructed)
+TYPED_TEST(BatchMultiVector, CanBeDoubleListConstructed)
 {
     using value_type = typename TestFixture::value_type;
     using T = value_type;
-    auto m = gko::batch_initialize<gko::matrix::BatchVector<TypeParam>>(
+    auto m = gko::batch_initialize<gko::BatchMultiVector<TypeParam>>(
         {{I<T>{1.0, 1.0, 0.0}, I<T>{2.0, 4.0, 3.0}, I<T>{3.0, 6.0, 1.0}},
          {I<T>{1.0, 2.0}, I<T>{3.0, 4.0}, I<T>{5.0, 6.0}}},
         this->exec);
@@ -352,11 +351,11 @@ TYPED_TEST(BatchVector, CanBeDoubleListConstructed)
 }
 
 
-TYPED_TEST(BatchVector, CanBeDoubleListConstructedWithstride)
+TYPED_TEST(BatchMultiVector, CanBeDoubleListConstructedWithstride)
 {
     using value_type = typename TestFixture::value_type;
     using T = value_type;
-    auto m = gko::batch_initialize<gko::matrix::BatchVector<TypeParam>>(
+    auto m = gko::batch_initialize<gko::BatchMultiVector<TypeParam>>(
         {4, 3},
         {{I<T>{1.0, 1.0, 0.0}, I<T>{2.0, 4.0, 3.0}, I<T>{3.0, 6.0, 1.0}},
          {I<T>{1.0, 2.0}, I<T>{3.0, 4.0}, I<T>{5.0, 6.0}}},
@@ -382,9 +381,9 @@ TYPED_TEST(BatchVector, CanBeDoubleListConstructedWithstride)
 }
 
 
-TYPED_TEST(BatchVector, CanBeCopied)
+TYPED_TEST(BatchMultiVector, CanBeCopied)
 {
-    auto mtx_copy = gko::matrix::BatchVector<TypeParam>::create(this->exec);
+    auto mtx_copy = gko::BatchMultiVector<TypeParam>::create(this->exec);
     mtx_copy->copy_from(this->mtx.get());
     this->assert_equal_to_original_mtx(this->mtx.get());
     this->mtx->at(0, 0, 0) = 7;
@@ -393,15 +392,15 @@ TYPED_TEST(BatchVector, CanBeCopied)
 }
 
 
-TYPED_TEST(BatchVector, CanBeMoved)
+TYPED_TEST(BatchMultiVector, CanBeMoved)
 {
-    auto mtx_copy = gko::matrix::BatchVector<TypeParam>::create(this->exec);
+    auto mtx_copy = gko::BatchMultiVector<TypeParam>::create(this->exec);
     mtx_copy->copy_from(std::move(this->mtx));
     this->assert_equal_to_original_mtx(mtx_copy.get());
 }
 
 
-TYPED_TEST(BatchVector, CanBeCloned)
+TYPED_TEST(BatchMultiVector, CanBeCloned)
 {
     auto mtx_clone = this->mtx->clone();
     this->assert_equal_to_original_mtx(
@@ -409,17 +408,17 @@ TYPED_TEST(BatchVector, CanBeCloned)
 }
 
 
-TYPED_TEST(BatchVector, CanBeCleared)
+TYPED_TEST(BatchMultiVector, CanBeCleared)
 {
     this->mtx->clear();
     this->assert_empty(this->mtx.get());
 }
 
 
-TYPED_TEST(BatchVector, CanBeReadFromMatrixData)
+TYPED_TEST(BatchMultiVector, CanBeReadFromMatrixData)
 {
     using value_type = typename TestFixture::value_type;
-    auto m = gko::matrix::BatchVector<TypeParam>::create(this->exec);
+    auto m = gko::BatchMultiVector<TypeParam>::create(this->exec);
     // clang-format off
     m->read({gko::matrix_data<TypeParam>{{2, 3},
                                          {{0, 0, 1.0},
@@ -453,7 +452,7 @@ TYPED_TEST(BatchVector, CanBeReadFromMatrixData)
 }
 
 
-TYPED_TEST(BatchVector, GeneratesCorrectMatrixData)
+TYPED_TEST(BatchMultiVector, GeneratesCorrectMatrixData)
 {
     using value_type = typename TestFixture::value_type;
     using tpl = typename gko::matrix_data<TypeParam>::nonzero_type;
@@ -480,10 +479,10 @@ TYPED_TEST(BatchVector, GeneratesCorrectMatrixData)
 }
 
 
-TYPED_TEST(BatchVector, CanBeReadFromMatrixAssemblyData)
+TYPED_TEST(BatchMultiVector, CanBeReadFromMatrixAssemblyData)
 {
     using value_type = typename TestFixture::value_type;
-    auto m = gko::matrix::BatchVector<TypeParam>::create(this->exec);
+    auto m = gko::BatchMultiVector<TypeParam>::create(this->exec);
     gko::matrix_assembly_data<TypeParam> data1(gko::dim<2>{2, 3});
     data1.set_value(0, 0, 1.0);
     data1.set_value(0, 1, 3.0);
