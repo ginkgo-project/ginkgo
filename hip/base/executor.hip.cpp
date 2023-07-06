@@ -60,9 +60,8 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
     int device_id, std::shared_ptr<Executor> master, bool device_reset,
     allocation_mode alloc_mode, hipStream_t stream)
 {
-    return std::shared_ptr<HipExecutor>(
-        new HipExecutor(device_id, std::move(master),
-                        std::make_shared<HipAllocator>(), stream));
+    return create(device_id, std::move(master),
+                  std::make_shared<HipAllocator>(), stream);
 }
 
 
@@ -70,6 +69,10 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
     int device_id, std::shared_ptr<Executor> master,
     std::shared_ptr<HipAllocatorBase> alloc, hipStream_t stream)
 {
+    if (!alloc->check_environment(device_id, stream)) {
+        throw Error{__FILE__, __LINE__,
+                    "Allocator uses incorrect stream or device ID."};
+    }
     return std::shared_ptr<HipExecutor>(new HipExecutor(
         device_id, std::move(master), std::move(alloc), stream));
 }

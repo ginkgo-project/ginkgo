@@ -49,9 +49,9 @@ class Allocator {
 public:
     virtual ~Allocator() = default;
 
-    virtual void* allocate(size_type num_bytes) const = 0;
+    virtual void* allocate(size_type num_bytes) = 0;
 
-    virtual void deallocate(void* ptr) const = 0;
+    virtual void deallocate(void* ptr) = 0;
 };
 
 
@@ -65,34 +65,49 @@ class CpuAllocatorBase : public Allocator {};
 /**
  * Implement this interface to provide an allocator for CudaExecutor.
  */
-class CudaAllocatorBase : public Allocator {};
+class CudaAllocatorBase : public Allocator {
+    friend class CudaExecutor;
+
+protected:
+    /**
+     * Checks if the allocator can be used safely with the provided device ID
+     * and stream. The check is necessary to ensure safe usage of stream-ordered
+     * allocators and unified shared memory allocators.
+     *
+     * @param device_id the device ID the allocator will be used in.
+     * @param stream the stream the allocator will be used with.
+     * @return true if and only if the allocator can be used by CudaExecutor in
+     *         the given environment.
+     */
+    virtual bool check_environment(int device_id, CUstream_st* stream) const
+    {
+        return true;
+    }
+};
 
 
 /**
  * Implement this interface to provide an allocator for HipExecutor.
  */
-class HipAllocatorBase : public Allocator {};
-
-
-/**
- * Implement this interface to provide an allocator for DpcppExecutor.
- */
-class DpcppAllocatorBase : public Allocator {
-public:
-    DpcppAllocatorBase(sycl::queue* queue);
-
-    void* allocate(size_type num_bytes) const final;
-
-    void deallocate(void* ptr) const final;
+class HipAllocatorBase : public Allocator {
+    friend class HipExecutor;
 
 protected:
-    virtual void* allocate_impl(sycl::queue* queue,
-                                size_type num_bytes) const = 0;
-
-    virtual void deallocate_impl(sycl::queue* queue, void* ptr) const = 0;
-
-private:
-    sycl::queue* queue_;
+    /**
+     * Checks if the allocator can be used safely with the provided device ID
+     * and stream. The check is necessary to ensure safe usage of stream-ordered
+     * allocators and unified shared memory allocators.
+     *
+     * @param device_id the device ID the allocator will be used in.
+     * @param stream the stream the allocator will be used with.
+     * @return true if and only if the allocator can be used by CudaExecutor in
+     *         the given environment.
+     */
+    virtual bool check_environment(int device_id,
+                                   GKO_HIP_STREAM_STRUCT* stream) const
+    {
+        return true;
+    }
 };
 
 
@@ -101,9 +116,9 @@ private:
  */
 class CpuAllocator : public CpuAllocatorBase {
 public:
-    void* allocate(size_type num_bytes) const override;
+    void* allocate(size_type num_bytes) override;
 
-    void deallocate(void* ptr) const override;
+    void deallocate(void* ptr) override;
 };
 
 
@@ -112,9 +127,9 @@ public:
  */
 class CudaAllocator : public CudaAllocatorBase {
 public:
-    void* allocate(size_type num_bytes) const override;
+    void* allocate(size_type num_bytes) override;
 
-    void deallocate(void* ptr) const override;
+    void deallocate(void* ptr) override;
 };
 
 
@@ -123,11 +138,13 @@ public:
  */
 class CudaAsyncAllocator : public CudaAllocatorBase {
 public:
-    void* allocate(size_type num_bytes) const override;
+    void* allocate(size_type num_bytes) override;
 
-    void deallocate(void* ptr) const override;
+    void deallocate(void* ptr) override;
 
     CudaAsyncAllocator(CUstream_st* stream);
+
+    bool check_environment(int device_id, CUstream_st* stream) const override;
 
 private:
     CUstream_st* stream_;
@@ -139,13 +156,16 @@ private:
  */
 class CudaUnifiedAllocator : public CudaAllocatorBase, public CpuAllocatorBase {
 public:
-    void* allocate(size_type num_bytes) const override;
+    void* allocate(size_type num_bytes) override;
 
-    void deallocate(void* ptr) const override;
+    void deallocate(void* ptr) override;
 
     CudaUnifiedAllocator(int device_id);
 
     CudaUnifiedAllocator(int device_id, unsigned int flags);
+
+protected:
+    bool check_environment(int device_id, CUstream_st* stream) const override;
 
 private:
     int device_id_;
@@ -154,15 +174,18 @@ private:
 
 
 /*
- * Allocator using cudaMallocHost.
+ * Allocator using cudaHostMalloc.
  */
 class CudaHostAllocator : public CudaAllocatorBase, public CpuAllocatorBase {
 public:
-    void* allocate(size_type num_bytes) const override;
+    void* allocate(size_type num_bytes) override;
 
-    void deallocate(void* ptr) const override;
+    void deallocate(void* ptr) override;
 
     CudaHostAllocator(int device_id);
+
+protected:
+    bool check_environment(int device_id, CUstream_st* stream) const override;
 
 private:
     int device_id_;
@@ -174,38 +197,72 @@ private:
  */
 class HipAllocator : public HipAllocatorBase {
 public:
-    void* allocate(size_type num_bytes) const override;
+    void* allocate(size_type num_bytes) override;
 
-    void deallocate(void* ptr) const override;
+    void deallocate(void* ptr) override;
 };
 
 
 /*
- * Allocator using sycl::malloc_device.
+ * Allocator using hipMallocAsync.
  */
-class DpcppAllocator : public DpcppAllocatorBase {
+class HipAsyncAllocator : public HipAllocatorBase {
 public:
-    using DpcppAllocatorBase::DpcppAllocatorBase;
+    void* allocate(size_type num_bytes) override;
+
+    void deallocate(void* ptr) override;
+
+    HipAsyncAllocator(GKO_HIP_STREAM_STRUCT* stream);
 
 protected:
-    void* allocate_impl(sycl::queue* queue, size_type num_bytes) const override;
+    bool check_environment(int device_id,
+                           GKO_HIP_STREAM_STRUCT* stream) const override;
 
-    void deallocate_impl(sycl::queue* queue, void* ptr) const override;
+private:
+    GKO_HIP_STREAM_STRUCT* stream_;
 };
 
 
 /*
- * Allocator using sycl::malloc_shared.
+ * Allocator using hipMallocManaged
  */
-class DpcppUnifiedAllocator : public DpcppAllocatorBase,
-                              public CpuAllocatorBase {
+class HipUnifiedAllocator : public HipAllocatorBase, public CpuAllocatorBase {
 public:
-    using DpcppAllocatorBase::DpcppAllocatorBase;
+    void* allocate(size_type num_bytes) override;
+
+    void deallocate(void* ptr) override;
+
+    HipUnifiedAllocator(int device_id);
+
+    HipUnifiedAllocator(int device_id, unsigned int flags);
 
 protected:
-    void* allocate_impl(sycl::queue* queue, size_type num_bytes) const override;
+    bool check_environment(int device_id,
+                           GKO_HIP_STREAM_STRUCT* stream) const override;
 
-    void deallocate_impl(sycl::queue* queue, void* ptr) const override;
+private:
+    int device_id_;
+    unsigned int flags_;
+};
+
+
+/*
+ * Allocator using hipHostAlloc.
+ */
+class HipHostAllocator : public HipAllocatorBase, public CpuAllocatorBase {
+public:
+    void* allocate(size_type num_bytes) override;
+
+    void deallocate(void* ptr) override;
+
+    HipHostAllocator(int device_id);
+
+protected:
+    bool check_environment(int device_id,
+                           GKO_HIP_STREAM_STRUCT* stream) const override;
+
+private:
+    int device_id_;
 };
 
 

@@ -39,6 +39,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include "hip/base/scoped_device_id.hip.hpp"
+
+
 namespace gko {
 
 
@@ -79,7 +82,7 @@ namespace gko {
 #endif
 
 
-void* HipAllocator::allocate(size_type num_bytes) const
+void* HipAllocator::allocate(size_type num_bytes)
 {
     void* dev_ptr{};
     GKO_ASSERT_NO_HIP_ALLOCATION_ERRORS(hipMalloc(&dev_ptr, num_bytes),
@@ -88,9 +91,125 @@ void* HipAllocator::allocate(size_type num_bytes) const
 }
 
 
-void HipAllocator::deallocate(void* dev_ptr) const
+void HipAllocator::deallocate(void* dev_ptr)
 {
     GKO_EXIT_ON_HIP_ERROR(hipFree(dev_ptr));
+}
+
+
+#if HIP_VERSION_MAJOR >= 5
+
+
+HipAsyncAllocator::HipAsyncAllocator(hipStream_t stream) : stream_{stream} {}
+
+
+void* HipAsyncAllocator::allocate(size_type num_bytes)
+{
+    void* ptr{};
+    GKO_ASSERT_NO_HIP_ALLOCATION_ERRORS(
+        hipMallocAsync(&ptr, num_bytes, stream_), num_bytes);
+    return ptr;
+}
+
+
+void HipAsyncAllocator::deallocate(void* ptr)
+{
+    GKO_EXIT_ON_HIP_ERROR(hipFreeAsync(ptr, stream_));
+}
+
+
+#else  // Fall back to regular allocation
+
+
+HipAsyncAllocator::HipAsyncAllocator(hipStream_t stream) : stream_{stream} {}
+
+
+void* HipAsyncAllocator::allocate(size_type num_bytes)
+{
+    void* ptr{};
+    GKO_ASSERT_NO_HIP_ALLOCATION_ERRORS(hipMalloc(&ptr, num_bytes), num_bytes);
+    return ptr;
+}
+
+
+void HipAsyncAllocator::deallocate(void* ptr)
+{
+    GKO_EXIT_ON_HIP_ERROR(hipFree(ptr));
+}
+
+
+#endif
+
+
+bool HipAsyncAllocator::check_environment(int device_id,
+                                          hipStream_t stream) const
+{
+    return stream == stream_;
+}
+
+
+HipUnifiedAllocator::HipUnifiedAllocator(int device_id)
+    : HipUnifiedAllocator{device_id, hipMemAttachGlobal}
+{}
+
+
+HipUnifiedAllocator::HipUnifiedAllocator(int device_id, unsigned int flags)
+    : device_id_{device_id}, flags_{flags}
+{}
+
+
+void* HipUnifiedAllocator::allocate(size_type num_bytes)
+{
+    // we need to set the device ID in case this gets used in a host executor
+    detail::hip_scoped_device_id_guard g(device_id_);
+    void* ptr{};
+    GKO_ASSERT_NO_HIP_ALLOCATION_ERRORS(
+        hipMallocManaged(&ptr, num_bytes, flags_), num_bytes);
+    return ptr;
+}
+
+
+void HipUnifiedAllocator::deallocate(void* ptr)
+{
+    // we need to set the device ID in case this gets used in a host executor
+    detail::hip_scoped_device_id_guard g(device_id_);
+    GKO_EXIT_ON_HIP_ERROR(hipFree(ptr));
+}
+
+
+bool HipUnifiedAllocator::check_environment(int device_id,
+                                            hipStream_t stream) const
+{
+    return device_id == device_id_;
+}
+
+
+HipHostAllocator::HipHostAllocator(int device_id) : device_id_{device_id} {}
+
+
+void* HipHostAllocator::allocate(size_type num_bytes)
+{
+    // we need to set the device ID in case this gets used in a host executor
+    detail::hip_scoped_device_id_guard g(device_id_);
+    void* ptr{};
+    GKO_ASSERT_NO_HIP_ALLOCATION_ERRORS(hipHostMalloc(&ptr, num_bytes),
+                                        num_bytes);
+    return ptr;
+}
+
+
+void HipHostAllocator::deallocate(void* ptr)
+{
+    // we need to set the device ID in case this gets used in a host executor
+    detail::hip_scoped_device_id_guard g(device_id_);
+    GKO_EXIT_ON_HIP_ERROR(hipFreeHost(ptr));
+}
+
+
+bool HipHostAllocator::check_environment(int device_id,
+                                         hipStream_t stream) const
+{
+    return device_id == device_id_;
 }
 
 

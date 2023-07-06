@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-void* CpuAllocator::allocate(size_type num_bytes) const
+void* CpuAllocator::allocate(size_type num_bytes)
 {
     auto ptr = ::operator new (num_bytes, std::nothrow_t{});
     GKO_ENSURE_ALLOCATED(ptr, "cpu", num_bytes);
@@ -50,7 +50,7 @@ void* CpuAllocator::allocate(size_type num_bytes) const
 }
 
 
-void CpuAllocator::deallocate(void* ptr) const
+void CpuAllocator::deallocate(void* ptr)
 {
     ::operator delete (ptr, std::nothrow_t{});
 }

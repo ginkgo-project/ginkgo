@@ -386,7 +386,7 @@ TEST(Executor, CanVerifyMemory)
 
 
 struct MockAllocator : gko::CpuAllocator {
-    void deallocate(void* ptr) const noexcept override
+    void deallocate(void* ptr) noexcept override
     {
         called_free = true;
         CpuAllocator::deallocate(ptr);

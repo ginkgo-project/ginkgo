@@ -80,9 +80,8 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
     int device_id, std::shared_ptr<Executor> master, bool device_reset,
     allocation_mode alloc_mode, cudaStream_t stream)
 {
-    return std::shared_ptr<CudaExecutor>(
-        new CudaExecutor(device_id, std::move(master),
-                         allocator_from_mode(device_id, alloc_mode), stream));
+    return create(device_id, master, allocator_from_mode(device_id, alloc_mode),
+                  stream);
 }
 
 
@@ -90,6 +89,10 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
     int device_id, std::shared_ptr<Executor> master,
     std::shared_ptr<CudaAllocatorBase> alloc, cudaStream_t stream)
 {
+    if (!alloc->check_environment(device_id, stream)) {
+        throw Error{__FILE__, __LINE__,
+                    "Allocator uses incorrect stream or device ID."};
+    }
     return std::shared_ptr<CudaExecutor>(new CudaExecutor(
         device_id, std::move(master), std::move(alloc), stream));
 }

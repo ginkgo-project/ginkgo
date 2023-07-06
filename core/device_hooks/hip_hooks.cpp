@@ -55,10 +55,54 @@ version version_info::get_hip_version() noexcept
 }
 
 
-void* HipAllocator::allocate(size_type num_bytes) const GKO_NOT_COMPILED(hip);
+void* HipAllocator::allocate(size_type num_bytes) GKO_NOT_COMPILED(hip);
 
 
-void HipAllocator::deallocate(void* dev_ptr) const GKO_NOT_COMPILED(hip);
+void HipAllocator::deallocate(void* dev_ptr) GKO_NOT_COMPILED(hip);
+
+
+HipAsyncAllocator::HipAsyncAllocator(GKO_HIP_STREAM_STRUCT* stream)
+    GKO_NOT_COMPILED(hip);
+
+
+void* HipAsyncAllocator::allocate(size_type num_bytes) GKO_NOT_COMPILED(hip);
+
+
+void HipAsyncAllocator::deallocate(void* dev_ptr) GKO_NOT_COMPILED(hip);
+
+
+bool HipAsyncAllocator::check_environment(int device_id,
+                                          GKO_HIP_STREAM_STRUCT* stream) const
+    GKO_NOT_COMPILED(hip);
+
+
+HipUnifiedAllocator::HipUnifiedAllocator(int device_id, unsigned int flags)
+    GKO_NOT_COMPILED(hip);
+
+
+void* HipUnifiedAllocator::allocate(size_type num_bytes) GKO_NOT_COMPILED(hip);
+
+
+void HipUnifiedAllocator::deallocate(void* dev_ptr) GKO_NOT_COMPILED(hip);
+
+
+bool HipUnifiedAllocator::check_environment(int device_id,
+                                            GKO_HIP_STREAM_STRUCT* stream) const
+    GKO_NOT_COMPILED(hip);
+
+
+HipHostAllocator::HipHostAllocator(int device_id) GKO_NOT_COMPILED(hip);
+
+
+void* HipHostAllocator::allocate(size_type num_bytes) GKO_NOT_COMPILED(hip);
+
+
+void HipHostAllocator::deallocate(void* dev_ptr) GKO_NOT_COMPILED(hip);
+
+
+bool HipHostAllocator::check_environment(int device_id,
+                                         GKO_HIP_STREAM_STRUCT* stream) const
+    GKO_NOT_COMPILED(hip);
 
 
 std::shared_ptr<HipExecutor> HipExecutor::create(
@@ -76,8 +120,7 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
     std::shared_ptr<HipAllocatorBase> alloc, GKO_HIP_STREAM_STRUCT* stream)
 {
     return std::shared_ptr<HipExecutor>(
-        new HipExecutor(device_id, std::move(master),
-                        std::make_shared<HipAllocator>(), stream));
+        new HipExecutor(device_id, std::move(master), alloc, stream));
 }
 
 
