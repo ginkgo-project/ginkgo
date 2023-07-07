@@ -46,7 +46,7 @@ namespace partition_helpers {
 template <typename GlobalIndexType>
 void check_consecutive_ranges(std::shared_ptr<const DefaultExecutor> exec,
                               const array<GlobalIndexType>& range_start_ends,
-                              bool* result)
+                              bool& result)
 {
     array<uint32> result_uint32{exec, 1};
     auto num_ranges = range_start_ends.get_num_elems() / 2;
@@ -64,10 +64,10 @@ void check_consecutive_ranges(std::shared_ptr<const DefaultExecutor> exec,
             [] GKO_KERNEL(auto x) { return x; }, static_cast<uint32>(true),
             result_uint32.get_data(), num_ranges - 1,
             range_start_ends.get_const_data() + 1);
-        *result =
+        result =
             static_cast<bool>(exec->copy_val_to_host(result_uint32.get_data()));
     } else {
-        *result = true;
+        result = true;
     }
 }
 

@@ -68,7 +68,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 template <typename GlobalIndexType>
 void check_consecutive_ranges(std::shared_ptr<const DefaultExecutor> exec,
                               const array<GlobalIndexType>& range_start_ends,
-                              bool* result)
+                              bool& result)
 {
     auto num_parts = range_start_ends.get_num_elems() / 2;
     auto start_it =
@@ -80,11 +80,11 @@ void check_consecutive_ranges(std::shared_ptr<const DefaultExecutor> exec,
     auto range_it = detail::make_zip_iterator(start_it, end_it);
 
     if (num_parts) {
-        *result = std::all_of(
+        result = std::all_of(
             range_it, range_it + num_parts - 1,
             [](const auto& r) { return std::get<0>(r) == std::get<1>(r); });
     } else {
-        *result = true;
+        result = true;
     }
 }
 

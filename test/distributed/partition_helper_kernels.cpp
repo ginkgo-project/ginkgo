@@ -175,7 +175,7 @@ TYPED_TEST(PartitionHelpers, CanCheckConsecutiveRanges)
     bool result = false;
 
     gko::kernels::EXEC_NAMESPACE::partition_helpers::check_consecutive_ranges(
-        this->exec, offsets, &result);
+        this->exec, offsets, result);
 
     ASSERT_TRUE(result);
 }
@@ -191,7 +191,7 @@ TYPED_TEST(PartitionHelpers, CanCheckNonConsecutiveRanges)
     bool result = true;
 
     gko::kernels::EXEC_NAMESPACE::partition_helpers::check_consecutive_ranges(
-        this->exec, start_ends, &result);
+        this->exec, start_ends, result);
 
     ASSERT_FALSE(result);
 }
@@ -204,7 +204,7 @@ TYPED_TEST(PartitionHelpers, CanCheckConsecutiveRangesWithSingleRange)
     bool result = false;
 
     gko::kernels::EXEC_NAMESPACE::partition_helpers::check_consecutive_ranges(
-        this->exec, start_ends, &result);
+        this->exec, start_ends, result);
 
     ASSERT_TRUE(result);
 }
@@ -217,7 +217,7 @@ TYPED_TEST(PartitionHelpers, CanCheckConsecutiveRangesWithSingleElement)
     bool result = false;
 
     gko::kernels::EXEC_NAMESPACE::partition_helpers::check_consecutive_ranges(
-        this->exec, start_ends, &result);
+        this->exec, start_ends, result);
 
     ASSERT_TRUE(result);
 }
