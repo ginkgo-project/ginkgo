@@ -8,6 +8,7 @@ ginkgo_create_hip_test(kernel_launch)
 # correct flags for kernel_launch.hpp are set in GINKGO_HIPCC_OPTIONS
 ginkgo_create_hip_test(lin_op)
 ginkgo_create_hip_test(math)
+ginkgo_create_hip_test(memory)
 # Only hcc needs the libraries. nvcc only requires the headers.
 if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
     ginkgo_create_hip_test(exception_helpers ADDITIONAL_LIBRARIES roc::hipblas roc::hipsparse hip::hiprand roc::rocrand)

@@ -368,16 +368,15 @@ const std::map<std::string,
          [](MPI_Comm comm) {
              FLAGS_device_id = gko::experimental::mpi::map_rank_to_device_id(
                  comm, gko::CudaExecutor::get_num_devices());
-             return gko::CudaExecutor::create(
-                 FLAGS_device_id, gko::ReferenceExecutor::create(), false,
-                 gko::allocation_mode::device);
+             return gko::CudaExecutor::create(FLAGS_device_id,
+                                              gko::ReferenceExecutor::create());
          }},
         {"hip",
          [](MPI_Comm comm) {
              FLAGS_device_id = gko::experimental::mpi::map_rank_to_device_id(
                  comm, gko::HipExecutor::get_num_devices());
-             return gko::HipExecutor::create(
-                 FLAGS_device_id, gko::ReferenceExecutor::create(), true);
+             return gko::HipExecutor::create(FLAGS_device_id,
+                                             gko::ReferenceExecutor::create());
          }},
         {"dpcpp", [](MPI_Comm comm) {
              if (gko::DpcppExecutor::get_num_devices("gpu")) {
