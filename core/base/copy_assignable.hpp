@@ -74,9 +74,9 @@ public:
         }
     }
 
-    copy_assignable(const T& obj) : obj_{new(buf)(T)(obj)} {}
+    copy_assignable(const T& obj) : obj_{new (buf)(T)(obj)} {}
 
-    copy_assignable(T&& obj) : obj_{new(buf)(T)(std::move(obj))} {}
+    copy_assignable(T&& obj) : obj_{new (buf)(T)(std::move(obj))} {}
 
     copy_assignable& operator=(const copy_assignable& other)
     {
@@ -110,16 +110,16 @@ public:
     template <typename... Args>
     decltype(auto) operator()(Args&&... args) const
     {
-        return obj_[0](std::forward<Args>(args)...);
+        return (*obj_)(std::forward<Args>(args)...);
     }
 
-    T const& get() const { return obj_[0]; }
+    T const& get() const { return *obj_; }
 
-    T& get() { return obj_[0]; }
+    T& get() { return *obj_; }
 
 private:
     //!< Store wrapped object on the stack, should use std::optional in c++17
-    T* obj_;
+    T* obj_{};
     alignas(T) unsigned char buf[sizeof(T)];
 };
 

@@ -107,7 +107,7 @@ TYPED_TEST(PartitionHelpers, CanCheckConsecutiveRanges)
     bool result = false;
 
     gko::kernels::reference::partition_helpers::check_consecutive_ranges(
-        this->ref, range_start_ends, &result);
+        this->ref, range_start_ends, result);
 
     ASSERT_TRUE(result);
 }
@@ -121,7 +121,7 @@ TYPED_TEST(PartitionHelpers, CanCheckNonConsecutiveRanges)
     bool result = true;
 
     gko::kernels::reference::partition_helpers::check_consecutive_ranges(
-        this->ref, range_start_ends, &result);
+        this->ref, range_start_ends, result);
 
     ASSERT_FALSE(result);
 }
