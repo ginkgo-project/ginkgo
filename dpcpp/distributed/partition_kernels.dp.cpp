@@ -32,7 +32,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // force-top: on
 #include <oneapi/dpl/algorithm>
-#include <oneapi/dpl/execution>
 #include <oneapi/dpl/iterator>
 // force-top: off
 
@@ -42,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "dpcpp/base/onedpl.hpp"
 
 
 namespace gko {
@@ -72,7 +72,7 @@ void setup_sizes_ids_permutation(
             permutation[i] = static_cast<GlobalIndexType>(i);
         },
         num_ranges, num_ranges, num_parts, range_offsets, range_parts,
-        range_sizes.get_data(), part_ids.get_data(), permutation.get_data());
+        range_sizes, part_ids, permutation);
 }
 
 
@@ -102,8 +102,8 @@ void compute_part_sizes_and_starting_indices(
                 prev_part == cur_part ? grouped_starting_indices[i - 1]
                                       : LocalIndexType{};
         },
-        num_ranges, range_sizes.get_const_data(), part_ids.get_const_data(),
-        permutation.get_const_data(), starting_indices, part_sizes);
+        num_ranges, range_sizes, part_ids, permutation, starting_indices,
+        part_sizes);
 }
 
 
@@ -120,8 +120,7 @@ void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
                             LocalIndexType* part_sizes)
 {
     if (num_ranges > 0) {
-        auto policy =
-            oneapi::dpl::execution::make_device_policy(*exec->get_queue());
+        auto policy = onedpl_policy(exec);
 
         Array<LocalIndexType> range_sizes{exec, num_ranges};
         // num_parts sentinel at the end

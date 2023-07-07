@@ -33,7 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // force-top: on
 // oneDPL needs to be first to avoid issues with libstdc++ TBB impl
 #include <oneapi/dpl/algorithm>
-#include <oneapi/dpl/execution>
 // force-top: off
 
 
@@ -41,6 +40,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+
+
+#include "dpcpp/base/onedpl.hpp"
 
 
 namespace gko {
@@ -56,8 +58,7 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
 {
     using nonzero_type = matrix_data_entry<ValueType, IndexType>;
     auto size = values.get_num_elems();
-    auto policy =
-        oneapi::dpl::execution::make_device_policy(*exec->get_queue());
+    auto policy = onedpl_policy(exec);
     auto nnz = std::count_if(
         policy, values.get_const_data(), values.get_const_data() + size,
         [](ValueType val) { return is_nonzero<ValueType>(val); });
@@ -96,8 +97,7 @@ void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec, size_type,
     if (size == 0) {
         return;
     }
-    auto policy =
-        oneapi::dpl::execution::make_device_policy(*exec->get_queue());
+    auto policy = onedpl_policy(exec);
     auto in_loc_it = oneapi::dpl::make_zip_iterator(row_idxs.get_const_data(),
                                                     col_idxs.get_const_data());
     auto adj_in_loc_it =
@@ -136,8 +136,7 @@ template <typename ValueType, typename IndexType>
 void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
                     device_matrix_data<ValueType, IndexType>& data)
 {
-    auto policy =
-        oneapi::dpl::execution::make_device_policy(*exec->get_queue());
+    auto policy = onedpl_policy(exec);
     auto input_it = oneapi::dpl::make_zip_iterator(
         data.get_row_idxs(), data.get_col_idxs(), data.get_values());
     std::sort(policy, input_it, input_it + data.get_num_elems(),
