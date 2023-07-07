@@ -4,7 +4,7 @@ build_stage:
     - .is_interruptible
   script:
     - echo "something"
-    - sleep 30s
+    - sleep 10s
     - echo "woke up"
   tags:
     - private_ci
