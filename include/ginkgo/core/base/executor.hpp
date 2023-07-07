@@ -1307,14 +1307,38 @@ public:
      *
      * @param device_reset  whether to allow a device reset or not
      */
-    void set_device_reset(bool device_reset) {}
+    [[deprecated(
+        "device_reset is no longer supported, call "
+        "cudaDeviceReset/hipDeviceReset manually")]] void
+    set_device_reset(bool device_reset)
+    {}
 
     /**
      * Returns the current status of the device reset boolean for this executor.
      *
      * @return the current status of the device reset boolean for this executor.
      */
-    bool get_device_reset() { return false; }
+    [[deprecated(
+        "device_reset is no longer supported, call "
+        "cudaDeviceReset/hipDeviceReset manually")]] bool
+    get_device_reset()
+    {
+        return false;
+    }
+
+protected:
+    /**
+     * Instantiate an EnableDeviceReset class
+     *
+     * @param device_reset  the starting device_reset status. Defaults to false.
+     */
+    EnableDeviceReset() {}
+
+    [[deprecated(
+        "device_reset is no longer supported, call "
+        "cudaDeviceReset/hipDeviceReset manually")]] EnableDeviceReset(bool
+                                                                           device_reset)
+    {}
 };
 
 

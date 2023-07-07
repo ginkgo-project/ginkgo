@@ -50,7 +50,11 @@ public:
     /** Creates an empty stream wrapper, representing the default stream. */
     cuda_stream();
 
-    /** Creates a new custom CUDA stream. */
+    /**
+     * Creates a new custom CUDA stream on the given device.
+     *
+     * @param device_id  the device ID to create the stream on.
+     */
     cuda_stream(int device_id);
 
     /** Destroys the custom CUDA stream, if it isn't empty. */
@@ -89,7 +93,11 @@ public:
     /** Creates an empty stream wrapper, representing the default stream. */
     hip_stream();
 
-    /** Creates a new custom HIP stream. */
+    /**
+     * Creates a new custom HIP stream on the given device.
+     *
+     * @param device_id  the device ID to create the stream on.
+     */
     hip_stream(int device_id);
 
     /** Destroys the custom HIP stream, if it isn't empty. */

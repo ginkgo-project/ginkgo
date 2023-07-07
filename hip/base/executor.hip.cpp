@@ -56,12 +56,30 @@ namespace gko {
 #include "common/cuda_hip/base/executor.hpp.inc"
 
 
+std::unique_ptr<HipAllocatorBase> allocator_from_mode(int device_id,
+                                                      allocation_mode mode)
+{
+    switch (mode) {
+    case allocation_mode::device:
+        return std::make_unique<HipAllocator>();
+    case allocation_mode::unified_global:
+        return std::make_unique<HipUnifiedAllocator>(device_id,
+                                                     hipMemAttachGlobal);
+    case allocation_mode::unified_host:
+        return std::make_unique<HipUnifiedAllocator>(device_id,
+                                                     hipMemAttachHost);
+    default:
+        GKO_NOT_SUPPORTED(mode);
+    }
+}
+
+
 std::shared_ptr<HipExecutor> HipExecutor::create(
     int device_id, std::shared_ptr<Executor> master, bool device_reset,
     allocation_mode alloc_mode, hipStream_t stream)
 {
     return create(device_id, std::move(master),
-                  std::make_shared<HipAllocator>(), stream);
+                  allocator_from_mode(device_id, alloc_mode), stream);
 }
 
 

@@ -67,9 +67,11 @@ std::unique_ptr<CudaAllocatorBase> allocator_from_mode(int device_id,
     case allocation_mode::device:
         return std::make_unique<CudaAllocator>();
     case allocation_mode::unified_global:
-        return std::make_unique<CudaUnifiedAllocator>(device_id);
+        return std::make_unique<CudaUnifiedAllocator>(device_id,
+                                                      cudaMemAttachGlobal);
     case allocation_mode::unified_host:
-        return std::make_unique<CudaUnifiedAllocator>(device_id);
+        return std::make_unique<CudaUnifiedAllocator>(device_id,
+                                                      cudaMemAttachHost);
     default:
         GKO_NOT_SUPPORTED(mode);
     }
