@@ -56,12 +56,14 @@ void begin_roctx(const char* name, profile_event_category)
     roctxRangePush(name);
 }
 
+
 void end_roctx(const char*, profile_event_category) { roctxRangePop(); }
 
 #else
 
 void begin_roctx(const char* name, profile_event_category)
     GKO_NOT_COMPILED(roctx);
+
 
 void end_roctx(const char*, profile_event_category) GKO_NOT_COMPILED(roctx);
 

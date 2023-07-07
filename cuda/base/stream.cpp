@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-cuda_stream::cuda_stream() : stream_{}, device_id_{-1} {}
+cuda_stream::cuda_stream() : stream_{nullptr}, device_id_{} {}
 
 
 cuda_stream::cuda_stream(int device_id) : stream_{}, device_id_(device_id)
@@ -66,7 +66,7 @@ cuda_stream::~cuda_stream()
 
 cuda_stream::cuda_stream(cuda_stream&& other)
     : stream_{std::exchange(other.stream_, nullptr)},
-      device_id_(std::exchange(other.device_id_, -1))
+      device_id_(std::exchange(other.device_id_, 0))
 {}
 
 
