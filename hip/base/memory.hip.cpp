@@ -202,7 +202,7 @@ void HipHostAllocator::deallocate(void* ptr)
 {
     // we need to set the device ID in case this gets used in a host executor
     detail::hip_scoped_device_id_guard g(device_id_);
-    GKO_EXIT_ON_HIP_ERROR(hipFreeHost(ptr));
+    GKO_EXIT_ON_HIP_ERROR(hipHostFree(ptr));
 }
 
 
