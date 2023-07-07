@@ -338,16 +338,15 @@ void run1d_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
 
     {
         SCOPED_TRACE("Size 0");
-        run_reduction(int64{1}, size_type{0});
+        run_reduction(int64{0}, size_type{0});
 
-        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), int64{1});
+        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), int64{0});
     }
 
     {
         SCOPED_TRACE("Size 100000");
         run_reduction(int64{0}, size_type{100000});
 
-        // 2 * sum i=0...99999 (i+1)
         ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()),
                   int64{10000100000});
     }
@@ -394,7 +393,6 @@ void run2d_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
         SCOPED_TRACE("Dim 0x0");
         run_reduction(int64{0}, gko::dim<2>{0, 0});
 
-        // 4 * sum i=0...999 sum j=0...99 of (i+1)*(j+1)
         ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), int64{0});
     }
 
@@ -402,7 +400,6 @@ void run2d_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
         SCOPED_TRACE("Dim 0x10");
         run_reduction(int64{0}, gko::dim<2>{0, 10});
 
-        // 4 * sum i=0...999 sum j=0...99 of (i+1)*(j+1)
         ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), int64{0});
     }
 
@@ -410,7 +407,6 @@ void run2d_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
         SCOPED_TRACE("Dim 10x0");
         run_reduction(int64{0}, gko::dim<2>{10, 0});
 
-        // 4 * sum i=0...999 sum j=0...99 of (i+1)*(j+1)
         ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), int64{0});
     }
 
