@@ -1,0 +1,6 @@
+build_stage:
+  stage: build
+  extends:
+    - .is_interruptible
+  script:
+    - echo "something"
