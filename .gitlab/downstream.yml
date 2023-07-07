@@ -4,3 +4,6 @@ build_stage:
     - .is_interruptible
   script:
     - echo "something"
+  tags:
+    - private_ci
+    - status-jobs

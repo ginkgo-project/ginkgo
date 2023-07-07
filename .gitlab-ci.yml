@@ -54,6 +54,9 @@ pre_trigger:
   artifacts:
     paths:
       - interruptible.yml
+  tags:
+    - private_ci
+    - status-jobs
 
 
 trigger_interruptible:
