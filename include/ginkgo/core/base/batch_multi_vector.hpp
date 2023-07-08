@@ -84,8 +84,8 @@ public:
     using unbatch_type = Dense<ValueType>;
     using mat_data = gko::matrix_data<ValueType, int64>;
     using mat_data32 = gko::matrix_data<ValueType, int32>;
-    using absolute_type = remove_complex<BatchMultiVector>;
-    using complex_type = to_complex<BatchMultiVector>;
+    using absolute_type = remove_complex<BatchMultiVector<ValueType>>;
+    using complex_type = to_complex<BatchMultiVector<ValueType>>;
 
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
 
@@ -286,7 +286,7 @@ public:
      * of alpha (the number of columns of alpha has to match the number of
      * columns of the matrix).
      */
-    void scale(const BatchMultiVector* alpha)
+    void scale(const BatchMultiVector<ValueType>* alpha)
     {
         auto exec = this->get_executor();
         this->scale_impl(make_temporary_clone(exec, alpha).get());
@@ -302,7 +302,8 @@ public:
      * vector).
      * @param b  a matrix of the same dimension as this
      */
-    void add_scaled(const BatchMultiVector* alpha, const BatchMultiVector* b)
+    void add_scaled(const BatchMultiVector<ValueType>* alpha,
+                    const BatchMultiVector<ValueType>* b)
     {
         auto exec = this->get_executor();
         this->add_scaled_impl(make_temporary_clone(exec, alpha).get(),
@@ -321,8 +322,9 @@ public:
      * @param beta  Scalar(s), of the same size as alpha, to multiply this
      * matrix.
      */
-    void add_scale(const BatchMultiVector* alpha, const BatchMultiVector* a,
-                   const BatchMultiVector* beta);
+    void add_scale(const BatchMultiVector<ValueType>* alpha,
+                   const BatchMultiVector<ValueType>* a,
+                   const BatchMultiVector<ValueType>* beta);
 
     /**
      * Computes the column-wise dot product of each matrix in this batch and its
@@ -334,7 +336,8 @@ public:
      * product (the number of column in the vector must match the number of
      * columns of this)
      */
-    void compute_dot(const BatchMultiVector* b, BatchMultiVector* result) const
+    void compute_dot(const BatchMultiVector<ValueType>* b,
+                     BatchMultiVector<ValueType>* result) const
     {
         auto exec = this->get_executor();
         this->compute_dot_impl(make_temporary_clone(exec, b).get(),
@@ -348,7 +351,7 @@ public:
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
-    void compute_norm2(BatchMultiVector* result) const
+    void compute_norm2(BatchMultiVector<ValueType>* result) const
     {
         auto exec = this->get_executor();
         this->compute_norm2_impl(make_temporary_clone(exec, result).get());
@@ -365,7 +368,7 @@ public:
      *          (if it resides on the same executor as the vector) or a copy of
      *          the array on the correct executor.
      */
-    static std::unique_ptr<const BatchMultiVector> create_const(
+    static std::unique_ptr<const BatchMultiVector<ValueType>> create_const(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
         gko::detail::const_array_view<ValueType>&& values)
     {
@@ -374,6 +377,43 @@ public:
         return std::unique_ptr<const BatchMultiVector>(new BatchMultiVector{
             exec, sizes, gko::detail::array_const_cast(std::move(values))});
     }
+
+    /**
+     * Copy-assigns a BatchMultiVector. Preserves the executor and copies the
+     * size.
+     */
+    BatchMultiVector& operator=(const BatchMultiVector&) = default;
+
+    /**
+     * Move-assigns a BatchMultiVector. Preserves the executor and moves the
+     * size. The moved-from object has size 0x0 afterwards, but its executor is
+     * unchanged.
+     */
+    BatchMultiVector& operator=(BatchMultiVector&& other)
+    {
+        if (this != &other) {
+            EnableAbstractPolymorphicObject<BatchMultiVector>::operator=(
+                std::move(other));
+            this->set_size(other.get_size());
+            other.set_size({});
+        }
+        return *this;
+    }
+
+    /**
+     * Copy-constructs a BatchMultiVector. Inherits executor and size from the
+     * input.
+     */
+    BatchMultiVector(const BatchMultiVector&) = default;
+
+    /**
+     * Move-constructs a BatchMultiVector. Inherits executor and size from the
+     * input, which will have size 0x0 and unchanged executor afterwards.
+     */
+    BatchMultiVector(BatchMultiVector&& other)
+        : EnableAbstractPolymorphicObject<BatchMultiVector>(std::move(other)),
+          batch_size_{std::exchange(other.batch_size_, batch_dim<2>{})}
+    {}
 
 private:
     inline batch_dim<2> compute_batch_size(
@@ -393,6 +433,13 @@ private:
 
 protected:
     /**
+     * Sets the size of the BatchMultiVector.
+     *
+     * @param value  the new size of the operator
+     */
+    void set_size(const batch_dim<2>& value) noexcept { batch_size_ = value; }
+
+    /**
      * Creates an uninitialized BatchMultiVector matrix of the specified size.
      *
      * @param exec  Executor associated to the vector
@@ -400,9 +447,9 @@ protected:
      */
     BatchMultiVector(std::shared_ptr<const Executor> exec,
                      const batch_dim<2>& size = batch_dim<2>{})
-        : batch_size_(size),
-          values_(exec, compute_num_elems(size)),
-          exec(std::move(exec))
+        : EnableAbstractPolymorphicObject<BatchMultiVector>(exec),
+          batch_size_(size),
+          values_(exec, compute_num_elems(size))
     {}
 
     /**
@@ -425,9 +472,9 @@ protected:
     template <typename ValuesArray>
     BatchMultiVector(std::shared_ptr<const Executor> exec,
                      const batch_dim<2>& size, ValuesArray&& values)
-        : batch_size_(size),
-          values_{exec, std::forward<ValuesArray>(values)},
-          exec_(std::move(exec))
+        : EnableAbstractPolymorphicObject<BatchMultiVector>(exec),
+          batch_size_(size),
+          values_{exec, std::forward<ValuesArray>(values)}
     {
         // Ensure that the values array has the correct size
         auto num_elems = compute_num_elems(size);
@@ -442,9 +489,9 @@ protected:
      */
     BatchMultiVector(std::shared_ptr<const Executor> exec,
                      const std::vector<Dense<ValueType>*>& matrices)
-        : batch_size_{compute_batch_size(matrices)},
-          values(exec, compute_num_elems(batch_size_)),
-          exec(std::move(exec))
+        : EnableAbstractPolymorphicObject<BatchMultiVector>(exec),
+          batch_size_{compute_batch_size(matrices)},
+          values(exec, compute_num_elems(batch_size_))
     {
         for (size_type i = 0; i < this->get_num_batch_entries(); ++i) {
             auto local_exec = matrices[i]->get_executor();
@@ -518,7 +565,7 @@ protected:
      * @note  Other implementations of batch_multi_vector should override this
      * function instead of scale(const BatchMultiVector *alpha).
      */
-    virtual void scale_impl(const BatchMultiVector* alpha);
+    virtual void scale_impl(const BatchMultiVector<ValueType>* alpha);
 
     /**
      * @copydoc add_scaled(const BatchMultiVector *, const BatchMultiVector *)
@@ -527,8 +574,8 @@ protected:
      * function instead of add_scale(const BatchMultiVector *alpha, const
      * BatchMultiVector *b).
      */
-    virtual void add_scaled_impl(const BatchMultiVector* alpha,
-                                 const BatchMultiVector* b);
+    virtual void add_scaled_impl(const BatchMultiVector<ValueType>* alpha,
+                                 const BatchMultiVector<ValueType>* b);
 
     /**
      * @copydoc compute_dot(const BatchMultiVector *, BatchMultiVector *) const
@@ -537,8 +584,8 @@ protected:
      * function instead of compute_dot(const BatchMultiVector *b,
      * BatchMultiVector *result).
      */
-    virtual void compute_dot_impl(const BatchMultiVector* b,
-                                  BatchMultiVector* result) const;
+    virtual void compute_dot_impl(const BatchMultiVector<ValueType>* b,
+                                  BatchMultiVector<ValueType>* result) const;
 
     /**
      * @copydoc compute_norm2(BatchMultiVector *) const
@@ -546,7 +593,7 @@ protected:
      * @note  Other implementations of batch_multi_vector should override this
      * function instead of compute_norm2(BatchMultiVector *result).
      */
-    virtual void compute_norm2_impl(BatchMultiVector* result) const;
+    virtual void compute_norm2_impl(BatchMultiVector<ValueType>* result) const;
 
     size_type linearize_index(size_type batch, size_type row,
                               size_type col) const noexcept
@@ -564,7 +611,6 @@ protected:
 private:
     batch_dim<2> batch_size_;
     array<value_type> values_;
-    std::shared_ptr<const Executor> exec;
 };
 
 
@@ -579,7 +625,6 @@ private:
  * @tparam TArgs  argument types for Matrix::create method
  *                (not including the implied Executor as the first argument)
  *
- * @param stride  row stride for the temporary Dense matrix
  * @param vals  values used to initialize the batch vector
  * @param exec  Executor associated to the vector
  * @param create_args  additional arguments passed to Matrix::create, not
@@ -591,24 +636,21 @@ private:
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> batch_initialize(
-    std::vector<size_type> stride,
     std::initializer_list<std::initializer_list<typename Matrix::value_type>>
         vals,
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
 {
     using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
-    size_type num_batch_entries = vals.size();
-    std::vector<size_type> num_rows(num_batch_entries);
-    std::vector<dim<2>> sizes(num_batch_entries);
+    size_type common_num_rows = vals_begin->size();
+    size_type common_size = dim<2>(common_num_rows, 1);
+    dim<2> common_size;
     auto vals_begin = begin(vals);
     for (size_type b = 0; b < num_batch_entries; ++b) {
-        num_rows[b] = vals_begin->size();
-        sizes[b] = dim<2>(num_rows[b], 1);
+        GKO_ASSERT_EQ(common_num_rows, vals_begin->size());
         vals_begin++;
     }
-    auto b_size = batch_dim<2>(sizes);
-    auto b_stride = batch_stride(stride);
-    auto tmp = batch_multi_vector::create(exec->get_master(), b_size, b_stride);
+    auto b_size = batch_dim<2>(num_batch_entries, common_size);
+    auto tmp = batch_multi_vector::create(exec->get_master(), b_size);
     size_type batch = 0;
     for (const auto& b : vals) {
         size_type idx = 0;
@@ -623,38 +665,6 @@ std::unique_ptr<Matrix> batch_initialize(
     return mtx;
 }
 
-/**
- * Creates and initializes a batch of column-vectors.
- *
- * This function first creates a temporary Dense matrix, fills it with passed in
- * values, and then converts the vector to the requested type. The stride of
- * the intermediate Dense matrix is set to 1.
- *
- * @tparam Matrix  matrix type to initialize
- *                 (Dense has to implement the ConvertibleTo<Matrix> interface)
- * @tparam TArgs  argument types for Matrix::create method
- *                (not including the implied Executor as the first argument)
- *
- * @param vals  values used to initialize the vector
- * @param exec  Executor associated to the vector
- * @param create_args  additional arguments passed to Matrix::create, not
- *                     including the Executor, which is passed as the first
- *                     argument
- *
- * @ingroup BatchMultiVector
- * @ingroup mat_formats
- */
-template <typename Matrix, typename... TArgs>
-std::unique_ptr<Matrix> batch_initialize(
-    std::initializer_list<std::initializer_list<typename Matrix::value_type>>
-        vals,
-    std::shared_ptr<const Executor> exec, TArgs&&... create_args)
-{
-    return batch_initialize<Matrix>(std::vector<size_type>(vals.size(), 1),
-                                    vals, std::move(exec),
-                                    std::forward<TArgs>(create_args)...);
-}
-
 
 /**
  * Creates and initializes a batch of matrices.
@@ -667,7 +677,6 @@ std::unique_ptr<Matrix> batch_initialize(
  * @tparam TArgs  argument types for Matrix::create method
  *                (not including the implied Executor as the first argument)
  *
- * @param stride  row stride for the temporary Dense matrix
  * @param vals  values used to initialize the vector
  * @param exec  Executor associated to the vector
  * @param create_args  additional arguments passed to Matrix::create, not
@@ -679,7 +688,6 @@ std::unique_ptr<Matrix> batch_initialize(
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> batch_initialize(
-    std::vector<size_type> stride,
     std::initializer_list<std::initializer_list<
         std::initializer_list<typename Matrix::value_type>>>
         vals,
@@ -687,19 +695,20 @@ std::unique_ptr<Matrix> batch_initialize(
 {
     using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
     size_type num_batch_entries = vals.size();
-    std::vector<size_type> num_rows(num_batch_entries);
-    std::vector<size_type> num_cols(num_batch_entries);
-    std::vector<dim<2>> sizes(num_batch_entries);
+
+    auto vals_begin = begin(vals);
+    size_type common_num_rows = vals_begin->size();
+    size_type common_num_cols = begin(vals_begin)->size();
+    auto common_size = dim<2>(common_num_rows, common_num_cols);
     size_type ind = 0;
     for (const auto& b : vals) {
-        num_rows[ind] = b.size();
-        num_cols[ind] = num_rows[ind] > 0 ? begin(b)->size() : 1;
-        sizes[ind] = dim<2>(num_rows[ind], num_cols[ind]);
-        ++ind;
+        auto num_rows = b.size();
+        auto num_cols = begin(b)->size();
+        auto b_size = dim<2>(num_rows, num_cols);
+        GKO_ASSERT_EQ(b_size, common_size);
     }
-    auto b_size = batch_dim<2>(sizes);
-    auto b_stride = batch_stride(stride);
-    auto tmp = batch_multi_vector::create(exec->get_master(), b_size, b_stride);
+    auto b_size = batch_dim<2>(num_batch_entries, common_size);
+    auto tmp = batch_multi_vector::create(exec->get_master(), b_size);
     size_type batch = 0;
     for (const auto& b : vals) {
         size_type ridx = 0;
@@ -720,46 +729,6 @@ std::unique_ptr<Matrix> batch_initialize(
 
 
 /**
- * Creates and initializes a batch of matrices.
- *
- * This function first creates a temporary Dense matrix, fills it with passed in
- * values, and then converts the vector to the requested type. The stride of
- * the intermediate Dense matrix is set to the number of columns of the
- * initializer list.
- *
- * @tparam Matrix  matrix type to initialize
- *                 (Dense has to implement the ConvertibleTo<Matrix> interface)
- * @tparam TArgs  argument types for Matrix::create method
- *                (not including the implied Executor as the first argument)
- *
- * @param vals  values used to initialize the vector
- * @param exec  Executor associated to the vector
- * @param create_args  additional arguments passed to Matrix::create, not
- *                     including the Executor, which is passed as the first
- *                     argument
- *
- * @ingroup BatchMultiVector
- * @ingroup mat_formats
- */
-template <typename Matrix, typename... TArgs>
-std::unique_ptr<Matrix> batch_initialize(
-    std::initializer_list<std::initializer_list<
-        std::initializer_list<typename Matrix::value_type>>>
-        vals,
-    std::shared_ptr<const Executor> exec, TArgs&&... create_args)
-{
-    auto strides = std::vector<size_type>(vals.size(), 0);
-    size_type ind = 0;
-    for (const auto& b : vals) {
-        strides[ind] = begin(b)->size();
-        ++ind;
-    }
-    return batch_initialize<Matrix>(strides, vals, std::move(exec),
-                                    std::forward<TArgs>(create_args)...);
-}
-
-
-/**
  * Creates and initializes a batch column-vector by making copies of the single
  * input column vector.
  *
@@ -772,63 +741,9 @@ std::unique_ptr<Matrix> batch_initialize(
  * @tparam TArgs  argument types for Matrix::create method
  *                (not including the implied Executor as the first argument)
  *
- * @param stride  row strides for the temporary batch dense matrix
  * @param num_vectors  The number of times the input vector is copied into
  *                     the final output
  * @param vals  values used to initialize each vector in the temp. batch
- * @param exec  Executor associated to the vector
- * @param create_args  additional arguments passed to Matrix::create, not
- *                     including the Executor, which is passed as the first
- *                     argument
- *
- * @ingroup BatchMultiVector
- * @ingroup mat_formats
- */
-template <typename Matrix, typename... TArgs>
-std::unique_ptr<Matrix> batch_initialize(
-    std::vector<size_type> stride, const size_type num_vectors,
-    std::initializer_list<typename Matrix::value_type> vals,
-    std::shared_ptr<const Executor> exec, TArgs&&... create_args)
-{
-    using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
-    std::vector<size_type> num_rows(num_vectors);
-    std::vector<dim<2>> sizes(num_vectors);
-    for (size_type b = 0; b < num_vectors; ++b) {
-        num_rows[b] = vals.size();
-        sizes[b] = dim<2>(vals.size(), 1);
-    }
-    auto b_size = batch_dim<2>(sizes);
-    auto b_stride = batch_stride(stride);
-    auto tmp = batch_multi_vector::create(exec->get_master(), b_size, b_stride);
-    for (size_type batch = 0; batch < num_vectors; batch++) {
-        size_type idx = 0;
-        for (const auto& elem : vals) {
-            tmp->at(batch, idx) = elem;
-            ++idx;
-        }
-    }
-    auto mtx = Matrix::create(exec, std::forward<TArgs>(create_args)...);
-    tmp->move_to(mtx.get());
-    return mtx;
-}
-
-
-/**
- * Creates and initializes a column-vector from copies of a given vector.
- *
- * This function first creates a temporary Dense matrix, fills it with passed
- * in values, and then converts the vector to the requested type. The stride of
- * the intermediate Dense matrix is set to 1.
- *
- * @tparam Matrix  matrix type to initialize
- *                 (Dense has to implement the ConvertibleTo<Matrix>
- *                  interface)
- * @tparam TArgs  argument types for Matrix::create method
- *                (not including the implied Executor as the first argument)
- *
- * @param num_vectors  The number of times the input vector is copied into
- *                     the final output
- * @param vals  values used to initialize the vector
  * @param exec  Executor associated to the vector
  * @param create_args  additional arguments passed to Matrix::create, not
  *                     including the Executor, which is passed as the first
@@ -843,10 +758,22 @@ std::unique_ptr<Matrix> batch_initialize(
     std::initializer_list<typename Matrix::value_type> vals,
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
 {
-    return batch_initialize<Matrix>(std::vector<size_type>(num_vectors, 1),
-                                    num_vectors, vals, std::move(exec),
-                                    std::forward<TArgs>(create_args)...);
+    using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
+    size_type num_batch_entries = num_vectors;
+    auto b_size = batch_dim<2>(num_batch_entries, dim<2>(vals.size(), 1));
+    auto tmp = batch_multi_vector::create(exec->get_master(), b_size);
+    for (size_type batch = 0; batch < num_vectors; batch++) {
+        size_type idx = 0;
+        for (const auto& elem : vals) {
+            tmp->at(batch, idx) = elem;
+            ++idx;
+        }
+    }
+    auto mtx = Matrix::create(exec, std::forward<TArgs>(create_args)...);
+    tmp->move_to(mtx.get());
+    return mtx;
 }
+
 
 /**
  * Creates and initializes a matrix from copies of a given matrix.
@@ -873,22 +800,15 @@ std::unique_ptr<Matrix> batch_initialize(
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> batch_initialize(
-    std::vector<size_type> stride, const size_type num_matrices,
+    const size_type num_matrices,
     std::initializer_list<std::initializer_list<typename Matrix::value_type>>
         vals,
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
 {
     using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
-    std::vector<dim<2>> sizes(num_matrices);
-    const size_type num_rows = vals.size();
-    for (size_type b = 0; b < num_matrices; ++b) {
-        const size_type num_cols = begin(vals)->size();
-        sizes[b] = dim<2>(num_rows, num_cols);
-        for (auto blockit = begin(vals); blockit != end(vals); ++blockit) {
-            GKO_ASSERT(blockit->size() == num_cols);
-        }
-    }
-    auto tmp = batch_multi_vector::create(exec->get_master(), sizes, stride);
+    auto common_size = dim<2>(vals.size(), begin(vals)->size());
+    batch_dim<2> b_size(num_matrices, common_size);
+    auto tmp = batch_multi_vector::create(exec->get_master(), b_size);
     for (size_type batch = 0; batch < num_matrices; batch++) {
         size_type ridx = 0;
         for (const auto& row : vals) {
@@ -903,42 +823,6 @@ std::unique_ptr<Matrix> batch_initialize(
     auto mtx = Matrix::create(exec, std::forward<TArgs>(create_args)...);
     tmp->move_to(mtx.get());
     return mtx;
-}
-
-/**
- * Creates and initializes a matrix from copies of a given matrix.
- *
- * This function first creates a temporary Dense matrix, fills it with passed in
- * values, and then converts the vector to the requested type. The stride of
- * the intermediate Dense matrix is set to 1.
- *
- * @tparam Matrix  matrix type to initialize
- *                 (Dense has to implement the ConvertibleTo<Matrix> interface)
- * @tparam TArgs  argument types for Matrix::create method
- *                (not including the implied Executor as the first argument)
- *
- * @param num_vectors  The number of times the input vector is copied into
- *                     the final output
- * @param vals  values used to initialize the vector
- * @param exec  Executor associated to the vector
- * @param create_args  additional arguments passed to Matrix::create, not
- *                     including the Executor, which is passed as the first
- *                     argument
- *
- * @ingroup LinOp
- * @ingroup mat_formats
- */
-template <typename Matrix, typename... TArgs>
-std::unique_ptr<Matrix> batch_initialize(
-    const size_type num_matrices,
-    std::initializer_list<std::initializer_list<typename Matrix::value_type>>
-        vals,
-    std::shared_ptr<const Executor> exec, TArgs&&... create_args)
-{
-    auto strides = std::vector<size_type>(num_matrices, begin(vals)->size());
-    return batch_initialize<Matrix>(strides, num_matrices, vals,
-                                    std::move(exec),
-                                    std::forward<TArgs>(create_args)...);
 }
 
 
