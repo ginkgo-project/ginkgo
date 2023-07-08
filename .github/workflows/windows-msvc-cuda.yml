@@ -59,3 +59,9 @@ jobs:
         cd build
         cmake -DGINKGO_BUILD_CUDA=ON -DGINKGO_BUILD_OMP=OFF -DGINKGO_MIXED_PRECISION=${{ matrix.config.mixed }} -DGINKGO_CUDA_ARCHITECTURES=60 ..
         cmake --build . -j4 --config Release
+    - name: Upload code formatting patch
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: export
+        path: build/core/CMakeFiles/ginkgo.dir/exports.def
