@@ -24,7 +24,14 @@ include:
 build/windows/release/shared:
   stage: build
   script:
-    - echo $env:CI_JOB_NAME
-    - echo $pwd
+    - mkdir build
+    - mkdir install
+    - cd build
+    - cmake -DBUILD_SHARED_LIBS=ON -DGINKGO_BUILD_CUDA=OFF -DCMAKE_INSTALL_PREFIX=../install ..
+    - cmake --build . --config Release -j16
+    - ctest . -C Release --output-on-failure
+    - $env:PATH+=";../install"
+    - cmake --install . --config Release
+    - cmake --build . --target test_install --config Release
   tags:
     - windows
