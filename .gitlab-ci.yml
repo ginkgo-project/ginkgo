@@ -26,7 +26,7 @@ build/windows/release/shared:
   script:
     - mkdir build
     - mkdir install
-    - cmake -B build -DBUILD_SHARED_LIBS=ON -DGINKGO_BUILD_CUDA=OFF "-DCMAKE_INSTALL_PREFIX=$pwd\install" ..
+    - cmake -B build -DBUILD_SHARED_LIBS=ON -DGINKGO_BUILD_CUDA=OFF "-DCMAKE_INSTALL_PREFIX=$pwd\install" .
     - cmake --build build --config Release -j16
     - ctest build -C Release --output-on-failure
     - $env:PATH+=";$pwd/install"
