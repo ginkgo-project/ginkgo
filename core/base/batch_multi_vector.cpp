@@ -148,14 +148,15 @@ void BatchMultiVector<ValueType>::move_to(
 template <typename MatrixType, typename MatrixData>
 inline void read_impl(MatrixType* mtx, const std::vector<MatrixData>& data)
 {
-    auto batch_sizes = std::vector<dim<2>>(data.size());
+    auto common_size = data[0].size;
+    auto batch_size = batch_dim<2>(data.size(), common_size);
     size_type ind = 0;
     for (const auto& b : data) {
-        batch_sizes[ind] = b.size;
-        ++ind;
+        b_size = b.size;
+        GKO_ASSERT_EQ(common_size, b_size);
     }
-    auto tmp = MatrixType::create(mtx->get_executor()->get_master(),
-                                  batch_dim<2>(batch_sizes));
+    auto tmp =
+        MatrixType::create(mtx->get_executor()->get_master(), batch_size);
     for (size_type b = 0; b < data.size(); ++b) {
         size_type ind = 0;
         for (size_type row = 0; row < data[b].size[0]; ++row) {
@@ -204,7 +205,7 @@ inline void write_impl(const MatrixType* mtx, std::vector<MatrixData>& data)
 
     data = std::vector<MatrixData>(mtx->get_num_batch_entries());
     for (size_type b = 0; b < mtx->get_num_batch_entries(); ++b) {
-        data[b] = {mtx->get_size().at(b), {}};
+        data[b] = {mtx->get_common_size(), {}};
         for (size_type row = 0; row < data[b].size[0]; ++row) {
             for (size_type col = 0; col < data[b].size[1]; ++col) {
                 if (tmp->at(b, row, col) !=
