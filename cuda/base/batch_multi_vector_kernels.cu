@@ -67,7 +67,7 @@ constexpr int sm_multiplier = 4;
 
 
 template <typename ValueType>
-void scale(std::shared_ptr<const CudaExecutor> exec,
+void scale(std::shared_ptr<const DefaultExecutor> exec,
            const BatchMultiVector<ValueType>* const alpha,
            BatchMultiVector<ValueType>* const x)
 {
@@ -82,16 +82,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void add_scaled(std::shared_ptr<const CudaExecutor> exec,
+void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
                 const BatchMultiVector<ValueType>* const alpha,
                 const BatchMultiVector<ValueType>* const x,
                 BatchMultiVector<ValueType>* const y)
 {
     const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
-    const size_type nrhs = x->get_size().at(0)[1];
+    const size_type nrhs = x->get_common_size()[1];
     if (nrhs == 1) {
         const auto num_batch = x->get_num_batch_entries();
-        const auto num_rows = x->get_size().at(0)[0];
+        const auto num_rows = x->get_common_size()[0];
         single_add_scaled<<<num_blocks, default_block_size>>>(
             num_batch, num_rows, as_cuda_type(alpha->get_const_values()),
             as_cuda_type(x->get_const_values()), as_cuda_type(y->get_values()));
@@ -108,15 +108,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void compute_dot(std::shared_ptr<const CudaExecutor> exec,
+void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
                  const BatchMultiVector<ValueType>* x,
                  const BatchMultiVector<ValueType>* y,
                  BatchMultiVector<ValueType>* result)
 {
     const auto num_blocks = x->get_num_batch_entries();
-    const auto num_rhs = x->get_size().at()[1];
+    const auto num_rhs = x->get_common_size()[1];
     if (num_rhs == 1) {
-        const auto num_rows = x->get_size().at()[0];
+        const auto num_rows = x->get_common_size()[0];
         single_compute_dot_product<<<num_blocks, default_block_size>>>(
             num_blocks, num_rows, as_cuda_type(x->get_const_values()),
             as_cuda_type(y->get_const_values()),
@@ -135,14 +135,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void compute_norm2(std::shared_ptr<const CudaExecutor> exec,
+void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
                    const BatchMultiVector<ValueType>* const x,
                    BatchMultiVector<remove_complex<ValueType>>* const result)
 {
     const auto num_blocks = x->get_num_batch_entries();
-    const auto num_rhs = x->get_size().at()[1];
+    const auto num_rhs = x->get_common_size()[1];
     if (num_rhs == 1) {
-        const auto num_rows = x->get_size().at()[0];
+        const auto num_rows = x->get_common_size()[0];
         single_compute_norm2<<<num_blocks, default_block_size>>>(
             num_blocks, num_rows, as_cuda_type(x->get_const_values()),
             as_cuda_type(result->get_values()));

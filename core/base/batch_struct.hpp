@@ -65,15 +65,16 @@ struct UniformBatch {
     using value_type = ValueType;
     using entry_type = BatchEntry<ValueType>;
 
-    ValueType* values;    ///< Concatenated values of all matrices in the batch
-    size_type num_batch;  ///< Number of matrices in the batch
-    size_type stride;     ///< Common stride of each dense matrix
-    int num_rows;         ///< Common number of rows in each matrix
-    int num_rhs;          ///< Common number of columns of each matrix
-    int num_nnz;          ///< Common number of non-zeros of each matrix, ie.,
-                          ///< the number or rows times the number of columns
+    ValueType* values;
+    size_type num_batch_entries;
+    size_type stride;
+    int num_rows;
+    int num_rhs;
 
-    size_type get_entry_storage() const { return num_nnz * sizeof(value_type); }
+    size_type get_entry_storage() const
+    {
+        return num_rows * stride * sizeof(value_type);
+    }
 };
 
 
@@ -95,14 +96,15 @@ template <typename ValueType>
 GKO_ATTRIBUTES GKO_INLINE gko::batch_multi_vector::UniformBatch<const ValueType>
 to_const(const gko::batch_multi_vector::UniformBatch<ValueType>& ub)
 {
-    return {ub.values, ub.num_batch, ub.stride, ub.num_rows, ub.num_rhs};
+    return {ub.values, ub.num_batch_entries, ub.stride, ub.num_rows,
+            ub.num_rhs};
 }
 
 
 /**
  * Extract one object (matrix, vector etc.) from a batch of objects
  *
- * This overload is for batch dense matrices.
+ * This overload is for batch multi-vectors.
  * These overloads are intended to be called from within a kernel.
  *
  * @param batch  The batch of objects to extract from
@@ -136,8 +138,7 @@ GKO_ATTRIBUTES GKO_INLINE ValueType* batch_entry_ptr(
 
 
 }  // namespace batch
-
-
 }  // namespace gko
+
 
 #endif  // GKO_CORE_BASE_BATCH_STRUCT_HPP_

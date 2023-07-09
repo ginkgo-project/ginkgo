@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/batch_struct.hpp"
-#include "reference/matrix/batch_struct.hpp"
+#include "reference/base/batch_struct.hpp"
 
 
 namespace gko {
@@ -56,7 +56,7 @@ namespace reference {
 namespace batch_multi_vector {
 
 
-#include "reference/matrix/batch_multi_vector_kernels.hpp.inc"
+#include "reference/base/batch_multi_vector_kernels.hpp.inc"
 
 
 template <typename ValueType>

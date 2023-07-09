@@ -70,10 +70,10 @@ get_batch_struct(const BatchMultiVector<ValueType>* const op)
     return {
         as_hip_type(op->get_const_values()),
         op->get_num_batch_entries(),
-        op->get_stride().at(0),
-        static_cast<int>(op->get_size().at(0)[0]),
-        static_cast<int>(op->get_size().at(0)[1]),
-        static_cast<int>(op->get_size().at(0)[0] * op->get_size().at(0)[1])};
+        op->get_common_size()[1],
+        static_cast<int>(op->get_common_size()[0]),
+        static_cast<int>(op->get_common_size()[1]),
+        static_cast<int>(op->get_common_size()[0] * op->get_common_size()[1])};
 }
 
 /**
@@ -86,10 +86,10 @@ get_batch_struct(BatchMultiVector<ValueType>* const op)
     return {
         as_hip_type(op->get_values()),
         op->get_num_batch_entries(),
-        op->get_stride().at(0),
-        static_cast<int>(op->get_size().at(0)[0]),
-        static_cast<int>(op->get_size().at(0)[1]),
-        static_cast<int>(op->get_size().at(0)[0] * op->get_size().at(0)[1])};
+        op->get_common_size()[1],
+        static_cast<int>(op->get_common_size()[0]),
+        static_cast<int>(op->get_common_size()[1]),
+        static_cast<int>(op->get_common_size()[0] * op->get_common_size()[1])};
 }
 
 
@@ -103,9 +103,9 @@ maybe_null_batch_struct(const BatchMultiVector<ValueType>* const op)
 {
     if (op) {
         return {as_hip_type(op->get_const_values()),
-                op->get_num_batch_entries(), op->get_stride().at(0),
-                static_cast<int>(op->get_size().at(0)[0]),
-                static_cast<int>(op->get_size().at(0)[1])};
+                op->get_num_batch_entries(), op->get_common_size()[1],
+                static_cast<int>(op->get_common_size()[0]),
+                static_cast<int>(op->get_common_size()[1])};
     } else {
         return {nullptr, 0, 0, 0, 0};
     }
