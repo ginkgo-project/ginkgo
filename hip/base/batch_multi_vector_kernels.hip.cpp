@@ -70,7 +70,7 @@ constexpr int sm_multiplier = 4;
 
 
 template <typename ValueType>
-void scale(std::shared_ptr<const HipExecutor> exec,
+void scale(std::shared_ptr<const DefaultExecutor> exec,
            const BatchMultiVector<ValueType>* const alpha,
            BatchMultiVector<ValueType>* const x)
 {
@@ -86,16 +86,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void add_scaled(std::shared_ptr<const HipExecutor> exec,
+void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
                 const BatchMultiVector<ValueType>* const alpha,
                 const BatchMultiVector<ValueType>* const x,
                 BatchMultiVector<ValueType>* const y)
 {
     const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
-    const size_type nrhs = x->get_size().at(0)[1];
+    const size_type nrhs = x->get_common_size()[1];
     if (nrhs == 1) {
         const auto num_batch = x->get_num_batch_entries();
-        const auto num_rows = x->get_size().at(0)[0];
+        const auto num_rows = x->get_common_size()[0];
         hipLaunchKernelGGL(
             single_add_scaled, dim3(num_blocks), dim3(default_block_size), 0, 0,
             num_batch, num_rows, as_hip_type(alpha->get_const_values()),
@@ -115,15 +115,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void compute_dot(std::shared_ptr<const HipExecutor> exec,
+void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
                  const BatchMultiVector<ValueType>* x,
                  const BatchMultiVector<ValueType>* y,
                  BatchMultiVector<ValueType>* result)
 {
     const auto num_blocks = x->get_num_batch_entries();
-    const auto num_rhs = x->get_size().at()[1];
+    const auto num_rhs = x->get_common_size()[1];
     if (num_rhs == 1) {
-        const auto num_rows = x->get_size().at()[0];
+        const auto num_rows = x->get_common_size()[0];
         hipLaunchKernelGGL(single_compute_dot_product, dim3(num_blocks),
                            dim3(default_block_size), 0, 0, num_blocks, num_rows,
                            as_hip_type(x->get_const_values()),
@@ -144,14 +144,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void compute_norm2(std::shared_ptr<const HipExecutor> exec,
+void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
                    const BatchMultiVector<ValueType>* const x,
                    BatchMultiVector<remove_complex<ValueType>>* const result)
 {
     const auto num_blocks = x->get_num_batch_entries();
-    const auto num_rhs = x->get_size().at()[1];
+    const auto num_rhs = x->get_common_size()[1];
     if (num_rhs == 1) {
-        const auto num_rows = x->get_size().at()[0];
+        const auto num_rows = x->get_common_size()[0];
         hipLaunchKernelGGL(single_compute_norm2, dim3(num_blocks),
                            dim3(default_block_size), 0, 0, num_blocks, num_rows,
                            as_hip_type(x->get_const_values()),

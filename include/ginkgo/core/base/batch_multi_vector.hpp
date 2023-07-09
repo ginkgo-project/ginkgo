@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/batch_lin_op_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
@@ -461,9 +462,6 @@ protected:
      * @param exec  Executor associated to the vector
      * @param size  sizes of the batch matrices in a batch_dim object
      * @param values  array of matrix values
-     * @param strides  stride of the rows (i.e. offset between the first
-     *                  elements of two consecutive rows, expressed as the
-     *                  number of matrix elements)
      *
      * @note If `values` is not an rvalue, not an array of ValueType, or is on
      *       the wrong executor, an internal copy will be created, and the

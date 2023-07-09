@@ -8,6 +8,7 @@ add_instantiation_files(${PROJECT_SOURCE_DIR}/common/unified matrix/dense_kernel
 add_library(ginkgo_dpcpp $<TARGET_OBJECTS:ginkgo_dpcpp_device> "")
 target_sources(ginkgo_dpcpp
     PRIVATE
+    base/batch_multi_vector_kernels.dp.cpp
     base/device_matrix_data_kernels.dp.cpp
     base/executor.dp.cpp
     base/helper.dp.cpp

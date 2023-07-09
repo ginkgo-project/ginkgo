@@ -60,7 +60,7 @@ namespace batch_multi_vector {
 
 
 template <typename ValueType>
-void scale(std::shared_ptr<const OmpExecutor> exec,
+void scale(std::shared_ptr<const DefaultExecutor> exec,
            const BatchMultiVector<ValueType>* const alpha,
            BatchMultiVector<ValueType>* const x)
 {
@@ -79,7 +79,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void add_scaled(std::shared_ptr<const OmpExecutor> exec,
+void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
                 const BatchMultiVector<ValueType>* const alpha,
                 const BatchMultiVector<ValueType>* const x,
                 BatchMultiVector<ValueType>* const y)
@@ -101,7 +101,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void compute_dot(std::shared_ptr<const OmpExecutor> exec,
+void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
                  const BatchMultiVector<ValueType>* const x,
                  const BatchMultiVector<ValueType>* const y,
                  BatchMultiVector<ValueType>* const result)
@@ -124,7 +124,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void compute_norm2(std::shared_ptr<const OmpExecutor> exec,
+void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
                    const BatchMultiVector<ValueType>* const x,
                    BatchMultiVector<remove_complex<ValueType>>* const result)
 {
