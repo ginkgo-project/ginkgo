@@ -47,11 +47,12 @@ get_github_tags:
 pre_trigger:
   stage: sync
   script:
-    - >
-      interruptible='true'
+    - interruptible='true'
+    - |
       if [[ $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH == "ci-trigger-test" ]]; then
         interruptible='false'
       fi
+    - >
       echo ".is_interruptible:
         interruptible: ${interruptible}
         variables:
