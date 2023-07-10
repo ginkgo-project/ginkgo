@@ -121,7 +121,13 @@ void CudaAsyncAllocator::deallocate(void* ptr)
 #else  // Fall back to regular allocation
 
 
-CudaAsyncAllocator::CudaAsyncAllocator(cudaStream_t stream) : stream_{stream} {}
+CudaAsyncAllocator::CudaAsyncAllocator(cudaStream_t stream) : stream_{stream}
+{
+#if GKO_VERBOSE_LEVEL >= 1
+    std::cerr << "This version of CUDA does not support cudaMallocAsync, "
+                 "please use CudaAllocator instead of CudaAsyncAllocator.\n";
+#endif
+}
 
 
 void* CudaAsyncAllocator::allocate(size_type num_bytes)
