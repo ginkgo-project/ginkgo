@@ -98,7 +98,7 @@ protected:
           stream(0),
           other_stream(gko::HipExecutor::get_num_devices() - 1),
 #endif
-          omp(gko::OmpExecutor::create()),
+          ref(gko::ReferenceExecutor::create()),
           hip(nullptr),
           hip2(nullptr),
           hip3(nullptr)
@@ -109,17 +109,17 @@ protected:
         ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
 #ifdef GKO_TEST_NONDEFAULT_STREAM
         hip = gko::HipExecutor::create(
-            0, omp, std::make_shared<gko::HipAllocator>(), stream.get());
+            0, ref, std::make_shared<gko::HipAllocator>(), stream.get());
         hip2 = gko::HipExecutor::create(
-            gko::HipExecutor::get_num_devices() - 1, omp,
+            gko::HipExecutor::get_num_devices() - 1, ref,
             std::make_shared<gko::HipAllocator>(), other_stream.get());
         hip3 = gko::HipExecutor::create(
-            0, omp, std::make_shared<gko::HipAllocator>(), stream.get());
+            0, ref, std::make_shared<gko::HipAllocator>(), stream.get());
 #else
-        hip = gko::HipExecutor::create(0, omp);
+        hip = gko::HipExecutor::create(0, ref);
         hip2 = gko::HipExecutor::create(gko::HipExecutor::get_num_devices() - 1,
-                                        omp);
-        hip3 = gko::HipExecutor::create(0, omp,
+                                        ref);
+        hip3 = gko::HipExecutor::create(0, ref,
                                         std::make_shared<gko::HipAllocator>());
 #endif
     }
@@ -136,7 +136,7 @@ protected:
     gko::hip_stream stream;
     gko::hip_stream other_stream;
 #endif
-    std::shared_ptr<gko::Executor> omp;
+    std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::HipExecutor> hip;
     std::shared_ptr<gko::HipExecutor> hip2;
     std::shared_ptr<gko::HipExecutor> hip3;
@@ -145,8 +145,8 @@ protected:
 
 TEST_F(HipExecutor, CanInstantiateTwoExecutorsOnOneDevice)
 {
-    auto hip = gko::HipExecutor::create(0, omp);
-    auto hip2 = gko::HipExecutor::create(0, omp);
+    auto hip = gko::HipExecutor::create(0, ref);
+    auto hip2 = gko::HipExecutor::create(0, ref);
 
     // We want automatic deinitialization to not create any error
 }
@@ -204,7 +204,7 @@ TEST_F(HipExecutor, CopiesDataToHip)
     int orig[] = {3, 8};
     auto* copy = hip->alloc<int>(2);
 
-    hip->copy_from(omp, 2, orig, copy);
+    hip->copy_from(ref, 2, orig, copy);
 
     check_data<<<1, 1, 0, hip->get_stream()>>>(copy);
     ASSERT_NO_THROW(hip->synchronize());
@@ -232,7 +232,7 @@ TEST_F(HipExecutor, CanAllocateOnUnifiedMemory)
     int orig[] = {3, 8};
     auto* copy = hip3->alloc<int>(2);
 
-    hip3->copy_from(omp, 2, orig, copy);
+    hip3->copy_from(ref, 2, orig, copy);
 
     check_data<<<1, 1, 0, hip3->get_stream()>>>(copy);
     ASSERT_NO_THROW(hip3->synchronize());
@@ -257,7 +257,7 @@ TEST_F(HipExecutor, CopiesDataFromHip)
     auto orig = hip->alloc<int>(2);
     init_data<<<1, 1, 0, hip->get_stream()>>>(orig);
 
-    omp->copy_from(hip, 2, orig, copy);
+    ref->copy_from(hip, 2, orig, copy);
 
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);
@@ -310,7 +310,7 @@ TEST_F(HipExecutor, CopiesDataFromHipToHip)
     hip2->run(ExampleOperation(value));
     ASSERT_EQ(value, hip2->get_device_id());
     // Put the results on OpenMP and run CPU side assertions
-    omp->copy_from(hip2, 2, copy_hip2, copy);
+    ref->copy_from(hip2, 2, copy_hip2, copy);
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);
     hip2->free(copy_hip2);
