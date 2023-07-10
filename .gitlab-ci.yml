@@ -819,6 +819,7 @@ sonarqube_cov:
 # Deploy documentation to github-pages
 gh-pages:
   stage: deploy
+  interruptible: false
   extends:
     - .default_variables
     - .deploy_condition
@@ -922,6 +923,7 @@ cudamemcheck:
 
 new-issue-on-failure:
   stage: on-failure
+  interruptible: false
   extends:
     - .default_variables
     - .use_status-job-settings
