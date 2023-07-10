@@ -38,7 +38,7 @@ get_github_tags:
     - PR_ID=$(curl -s "https://api.github.com/search/issues?q=sha:${CI_COMMIT_SHA}"
       | jq '.items[0].number')
     - export GH_TAGS="1:ST:run-full-test 1:ST:ready-for-review"
-    - echo "GH_TAGS=${GH_TAGS}" > tags.env
+    - echo 'GH_TAGS="${GH_TAGS}"' > tags.env
   artifacts:
     reports:
       dotenv: tags.env
@@ -48,10 +48,14 @@ pre_trigger:
   stage: sync
   script:
     - >
+      interruptible='true'
+      if [[ $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH == "ci-trigger-test" ]]; then
+        interruptible='false'
+      fi
       echo ".is_interruptible:
-        interruptible: true
+        interruptible: ${interruptible}
         variables:
-          SET_INTERRUPTIBLE: 'TRUE'
+          SET_INTERRUPTIBLE: \"${interruptible}\"
       " > interruptible.yml
   artifacts:
     paths:
