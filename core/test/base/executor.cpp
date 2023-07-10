@@ -248,17 +248,17 @@ TEST(ReferenceExecutor, IsItsOwnMaster)
 
 TEST(CudaExecutor, KnowsItsMaster)
 {
-    auto omp = gko::OmpExecutor::create();
-    exec_ptr cuda = gko::CudaExecutor::create(0, omp);
+    auto ref = gko::ReferenceExecutor::create();
+    exec_ptr cuda = gko::CudaExecutor::create(0, ref);
 
-    ASSERT_EQ(omp, cuda->get_master());
+    ASSERT_EQ(ref, cuda->get_master());
 }
 
 
 TEST(CudaExecutor, KnowsItsDeviceId)
 {
-    auto omp = gko::OmpExecutor::create();
-    auto cuda = gko::CudaExecutor::create(0, omp);
+    auto ref = gko::ReferenceExecutor::create();
+    auto cuda = gko::CudaExecutor::create(0, ref);
 
     ASSERT_EQ(0, cuda->get_device_id());
 }
@@ -266,17 +266,17 @@ TEST(CudaExecutor, KnowsItsDeviceId)
 
 TEST(HipExecutor, KnowsItsMaster)
 {
-    auto omp = gko::OmpExecutor::create();
-    exec_ptr hip = gko::HipExecutor::create(0, omp);
+    auto ref = gko::ReferenceExecutor::create();
+    exec_ptr hip = gko::HipExecutor::create(0, ref);
 
-    ASSERT_EQ(omp, hip->get_master());
+    ASSERT_EQ(ref, hip->get_master());
 }
 
 
 TEST(HipExecutor, KnowsItsDeviceId)
 {
-    auto omp = gko::OmpExecutor::create();
-    auto hip = gko::HipExecutor::create(0, omp);
+    auto ref = gko::ReferenceExecutor::create();
+    auto hip = gko::HipExecutor::create(0, ref);
 
     ASSERT_EQ(0, hip->get_device_id());
 }
@@ -284,17 +284,17 @@ TEST(HipExecutor, KnowsItsDeviceId)
 
 TEST(DpcppExecutor, KnowsItsMaster)
 {
-    auto omp = gko::OmpExecutor::create();
-    exec_ptr dpcpp = gko::DpcppExecutor::create(0, omp);
+    auto ref = gko::ReferenceExecutor::create();
+    exec_ptr dpcpp = gko::DpcppExecutor::create(0, ref);
 
-    ASSERT_EQ(omp, dpcpp->get_master());
+    ASSERT_EQ(ref, dpcpp->get_master());
 }
 
 
 TEST(DpcppExecutor, KnowsItsDeviceId)
 {
-    auto omp = gko::OmpExecutor::create();
-    auto dpcpp = gko::DpcppExecutor::create(0, omp);
+    auto ref = gko::ReferenceExecutor::create();
+    auto dpcpp = gko::DpcppExecutor::create(0, ref);
 
     ASSERT_EQ(0, dpcpp->get_device_id());
 }
@@ -304,13 +304,13 @@ TEST(Executor, CanVerifyMemory)
 {
     auto ref = gko::ReferenceExecutor::create();
     auto omp = gko::OmpExecutor::create();
-    auto hip = gko::HipExecutor::create(0, omp);
-    auto cuda = gko::CudaExecutor::create(0, omp);
+    auto hip = gko::HipExecutor::create(0, ref);
+    auto cuda = gko::CudaExecutor::create(0, ref);
     auto omp2 = gko::OmpExecutor::create();
-    auto hip2 = gko::HipExecutor::create(0, omp);
-    auto cuda2 = gko::CudaExecutor::create(0, omp);
-    auto hip_1 = gko::HipExecutor::create(1, omp);
-    auto cuda_1 = gko::CudaExecutor::create(1, omp);
+    auto hip2 = gko::HipExecutor::create(0, ref);
+    auto cuda2 = gko::CudaExecutor::create(0, ref);
+    auto hip_1 = gko::HipExecutor::create(1, ref);
+    auto cuda_1 = gko::CudaExecutor::create(1, ref);
     std::shared_ptr<gko::DpcppExecutor> host_dpcpp;
     std::shared_ptr<gko::DpcppExecutor> cpu_dpcpp;
     std::shared_ptr<gko::DpcppExecutor> gpu_dpcpp;
@@ -318,16 +318,16 @@ TEST(Executor, CanVerifyMemory)
     std::shared_ptr<gko::DpcppExecutor> cpu_dpcpp_dup;
     std::shared_ptr<gko::DpcppExecutor> gpu_dpcpp_dup;
     if (gko::DpcppExecutor::get_num_devices("host")) {
-        host_dpcpp = gko::DpcppExecutor::create(0, omp, "host");
-        host_dpcpp_dup = gko::DpcppExecutor::create(0, omp, "host");
+        host_dpcpp = gko::DpcppExecutor::create(0, ref, "host");
+        host_dpcpp_dup = gko::DpcppExecutor::create(0, ref, "host");
     }
     if (gko::DpcppExecutor::get_num_devices("cpu")) {
-        cpu_dpcpp = gko::DpcppExecutor::create(0, omp, "cpu");
-        cpu_dpcpp_dup = gko::DpcppExecutor::create(0, omp, "cpu");
+        cpu_dpcpp = gko::DpcppExecutor::create(0, ref, "cpu");
+        cpu_dpcpp_dup = gko::DpcppExecutor::create(0, ref, "cpu");
     }
     if (gko::DpcppExecutor::get_num_devices("gpu")) {
-        gpu_dpcpp = gko::DpcppExecutor::create(0, omp, "gpu");
-        gpu_dpcpp_dup = gko::DpcppExecutor::create(0, omp, "gpu");
+        gpu_dpcpp = gko::DpcppExecutor::create(0, ref, "gpu");
+        gpu_dpcpp_dup = gko::DpcppExecutor::create(0, ref, "gpu");
     }
 
     ASSERT_EQ(false, ref->memory_accessible(omp));

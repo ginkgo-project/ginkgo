@@ -60,15 +60,15 @@ namespace {
 class CudaExecutor : public ::testing::Test {
 protected:
     CudaExecutor()
-        : omp(gko::OmpExecutor::create()), cuda(nullptr), cuda2(nullptr)
+        : ref(gko::ReferenceExecutor::create()), cuda(nullptr), cuda2(nullptr)
     {}
 
     void SetUp()
     {
         ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
-        cuda = gko::CudaExecutor::create(0, omp);
+        cuda = gko::CudaExecutor::create(0, ref);
         cuda2 = gko::CudaExecutor::create(
-            gko::CudaExecutor::get_num_devices() - 1, omp);
+            gko::CudaExecutor::get_num_devices() - 1, ref);
     }
 
     void TearDown()
@@ -79,7 +79,7 @@ protected:
         }
     }
 
-    std::shared_ptr<gko::Executor> omp;
+    std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::CudaExecutor> cuda;
     std::shared_ptr<const gko::CudaExecutor> cuda2;
 };
@@ -102,7 +102,7 @@ inline int get_core_os_id(int log_id)
 
 TEST_F(CudaExecutor, CanBindToSinglePu)
 {
-    cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+    cuda = gko::CudaExecutor::create(0, gko::ReferenceExecutor::create());
 
     const int bind_pu = 1;
     gko::machine_topology::get_instance()->bind_to_pu(bind_pu);
@@ -114,7 +114,7 @@ TEST_F(CudaExecutor, CanBindToSinglePu)
 
 TEST_F(CudaExecutor, CanBindToPus)
 {
-    cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+    cuda = gko::CudaExecutor::create(0, gko::ReferenceExecutor::create());
 
     std::vector<int> bind_pus = {1, 3};
     gko::machine_topology::get_instance()->bind_to_pus(bind_pus);
@@ -126,7 +126,7 @@ TEST_F(CudaExecutor, CanBindToPus)
 
 TEST_F(CudaExecutor, CanBindToCores)
 {
-    cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+    cuda = gko::CudaExecutor::create(0, gko::ReferenceExecutor::create());
 
     std::vector<int> bind_cores = {1, 3};
     gko::machine_topology::get_instance()->bind_to_cores(bind_cores);
@@ -138,7 +138,7 @@ TEST_F(CudaExecutor, CanBindToCores)
 
 TEST_F(CudaExecutor, ClosestCpusIsPopulated)
 {
-    cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+    cuda = gko::CudaExecutor::create(0, gko::ReferenceExecutor::create());
     auto close_cpus = cuda->get_closest_pus();
     if (close_cpus.size() == 0) {
         GTEST_SKIP();
@@ -150,7 +150,7 @@ TEST_F(CudaExecutor, ClosestCpusIsPopulated)
 
 TEST_F(CudaExecutor, KnowsItsNuma)
 {
-    cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+    cuda = gko::CudaExecutor::create(0, gko::ReferenceExecutor::create());
     auto numa0 = cuda->get_closest_numa();
     auto close_cpus = cuda->get_closest_pus();
     if (close_cpus.size() == 0) {
