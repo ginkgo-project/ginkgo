@@ -1,14 +1,14 @@
 stages:
   - sync
   - trigger_pipeline
+  - check
   - build
   - test
 
 include:
-  - local: '.gitlab/image.yml'
-  - local: '.gitlab/rules.yml'
-  - local: '.gitlab/scripts.yml'
-  - local: '.gitlab/variables.yml'
+  - local: '.gitlab/add-interrupt.yml'
+    rules:
+      - if: $CI_COMMIT_BRANCH != "master" && $CI_COMMIT_BRANCH != "ci-trigger-test"
 
 sync:
   stage: sync
@@ -43,40 +43,13 @@ get_github_tags:
     reports:
       dotenv: tags.env
 
-
-pre_trigger:
-  stage: sync
+build_stage:
+  stage: build
   script:
-    - interruptible='true'
-    - |
-      if [[ $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH == "ci-trigger-test" ]]; then
-        interruptible='false'
-      fi
-    - >
-      echo ".is_interruptible:
-        interruptible: ${interruptible}
-        variables:
-          SET_INTERRUPTIBLE: \"${interruptible}\"
-      " > interruptible.yml
-  artifacts:
-    paths:
-      - interruptible.yml
-    expire_in: 1 hour
+    - echo "something"
+    - echo "${INTERRUPT}"
+    - sleep 10s
+    - echo "woke up"
   tags:
     - private_ci
     - status-jobs
-
-
-trigger_interruptible:
-  stage: trigger_pipeline
-  needs:
-    - pre_trigger
-  trigger:
-    include:
-      - local: '/.gitlab/downstream.yml'
-      - artifact: interruptible.yml
-        job: pre_trigger
-    strategy: depend
-    forward:
-      yaml_variables: true
-      pipeline_variables: true
