@@ -12,6 +12,7 @@ include:
 
 sync:
   stage: sync
+  image: ginkgohub/cpu:openmpi-gnu9-llvm8
   tags:
     - private_ci
     - status-jobs
@@ -31,6 +32,7 @@ sync:
 
 get_github_tags:
   stage: sync
+  image: ginkgohub/cpu:openmpi-gnu9-llvm8
   tags:
     - private_ci
     - status-jobs
@@ -45,6 +47,7 @@ get_github_tags:
 
 build_stage:
   stage: build
+  image: ginkgohub/cpu:openmpi-gnu9-llvm8
   script:
     - echo "something"
     - echo "${INTERRUPT}"
