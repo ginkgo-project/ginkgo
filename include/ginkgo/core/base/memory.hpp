@@ -76,6 +76,7 @@ protected:
      *
      * @param device_id the device ID the allocator will be used in.
      * @param stream the stream the allocator will be used with.
+     *
      * @return true if and only if the allocator can be used by CudaExecutor in
      *         the given environment.
      */
@@ -100,7 +101,8 @@ protected:
      *
      * @param device_id the device ID the allocator will be used in.
      * @param stream the stream the allocator will be used with.
-     * @return true if and only if the allocator can be used by CudaExecutor in
+     *
+     * @return true if and only if the allocator can be used by HipExecutor in
      *         the given environment.
      */
     virtual bool check_environment(int device_id,
