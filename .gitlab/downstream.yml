@@ -4,6 +4,7 @@ build_stage:
     - .is_interruptible
   script:
     - echo "something"
+    - echo "${SET_INTERRUPTIBLE}"
     - sleep 10s
     - echo "woke up"
   tags:

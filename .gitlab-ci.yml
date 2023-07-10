@@ -50,10 +50,13 @@ pre_trigger:
     - >
       echo ".is_interruptible:
         interruptible: true
+        variables:
+          SET_INTERRUPTIBLE: 'TRUE'
       " > interruptible.yml
   artifacts:
     paths:
       - interruptible.yml
+    expire_in: 1 hour
   tags:
     - private_ci
     - status-jobs
