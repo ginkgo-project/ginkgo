@@ -12,10 +12,9 @@ include:
 
 sync:
   stage: sync
-  extends:
-    - .default_variables
-    - .before_script_git_template
-    - .use_status-job-settings
+  tags:
+    - private_ci
+    - status-jobs
   variables:
     GIT_STRATEGY: none
     PRIVATE_REPO: git@gitlab.com:ginkgo-project/ginkgo.git
@@ -32,8 +31,9 @@ sync:
 
 get_github_tags:
   stage: sync
-  extends:
-    - .use_status-job-settings
+  tags:
+    - private_ci
+    - status-jobs
   script:
     - PR_ID=$(curl -s "https://api.github.com/search/issues?q=sha:${CI_COMMIT_SHA}"
       | jq '.items[0].number')
