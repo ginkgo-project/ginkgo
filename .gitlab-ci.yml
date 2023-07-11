@@ -19,6 +19,13 @@ include:
   - local: '.gitlab/rules.yml'
   - local: '.gitlab/scripts.yml'
   - local: '.gitlab/variables.yml'
+  # This is a workaround to conditionally make the branch pipelines
+  # interruptible, because the flag does not directly support rules [1].
+  #
+  # [1] https://gitlab.com/gitlab-org/gitlab/-/issues/194023#note_1225906002
+  - local: '.gitlab/add-interrupt.yml'
+    rules:
+      - if: $CI_COMMIT_BRANCH != "master" && $CI_COMMIT_BRANCH != "develop" && CI_COMMIT_TAG !~ /^v\d+\.\d+\.\d+/
 
 sync:
   stage: sync
@@ -812,6 +819,7 @@ sonarqube_cov:
 # Deploy documentation to github-pages
 gh-pages:
   stage: deploy
+  interruptible: false
   extends:
     - .default_variables
     - .deploy_condition
@@ -915,6 +923,7 @@ cudamemcheck:
 
 new-issue-on-failure:
   stage: on-failure
+  interruptible: false
   extends:
     - .default_variables
     - .use_status-job-settings
