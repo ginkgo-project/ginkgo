@@ -39,7 +39,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/batch_dim.hpp>
 #include <ginkgo/core/base/batch_lin_op_helpers.hpp>
+#include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
@@ -82,7 +84,7 @@ public:
 
     using value_type = ValueType;
     using index_type = int32;
-    using unbatch_type = Dense<ValueType>;
+    using unbatch_type = matrix::Dense<ValueType>;
     using mat_data = gko::matrix_data<ValueType, int64>;
     using mat_data32 = gko::matrix_data<ValueType, int32>;
     using absolute_type = remove_complex<BatchMultiVector<ValueType>>;
@@ -147,14 +149,14 @@ public:
      *
      * @return the batch size
      */
-    batch_dim<2> get_size() { return batch_size_; }
+    batch_dim<2> get_size() const { return batch_size_; }
 
     /**
      * Returns the number of batch entries.
      *
      * @return the number of batch entries
      */
-    size_type get_num_batch_entries()
+    size_type get_num_batch_entries() const
     {
         return batch_size_.get_num_batch_entries();
     }
@@ -164,7 +166,7 @@ public:
      *
      * @return the common size stored
      */
-    dim<2> get_common_size() { return batch_size_.get_common_size(); }
+    dim<2> get_common_size() const { return batch_size_.get_common_size(); }
 
     /**
      * Returns a pointer to the array of values of the vector.
@@ -418,13 +420,13 @@ public:
 
 private:
     inline batch_dim<2> compute_batch_size(
-        const std::vector<Dense<ValueType>*>& matrices)
+        const std::vector<matrix::Dense<ValueType>*>& matrices)
     {
         auto common_size = matrices[0]->get_size();
         for (int i = 1; i < matrices.size(); ++i) {
             GKO_ASSERT_EQ(common_size, matrices[i]->get_size());
         }
-        return batch_dim<2>{num_entries, common_size};
+        return batch_dim<2>{matrices.size(), common_size};
     }
 
     inline size_type compute_num_elems(const batch_dim<2>& size)
@@ -486,10 +488,10 @@ protected:
      * @param matrices  The matrices that need to be batched.
      */
     BatchMultiVector(std::shared_ptr<const Executor> exec,
-                     const std::vector<Dense<ValueType>*>& matrices)
+                     const std::vector<matrix::Dense<ValueType>*>& matrices)
         : EnableAbstractPolymorphicObject<BatchMultiVector>(exec),
           batch_size_{compute_batch_size(matrices)},
-          values(exec, compute_num_elems(batch_size_))
+          values_(exec, compute_num_elems(batch_size_))
     {
         for (size_type i = 0; i < this->get_num_batch_entries(); ++i) {
             auto local_exec = matrices[i]->get_executor();
@@ -510,7 +512,7 @@ protected:
     BatchMultiVector(std::shared_ptr<const Executor> exec,
                      size_type num_duplications,
                      const BatchMultiVector<value_type>* input)
-        : EnableBatchMultiVector<BatchMultiVector>(
+        : BatchMultiVector(
               exec, gko::batch_dim<2>(
                         input->get_num_batch_entries() * num_duplications,
                         input->get_common_size()))
@@ -532,8 +534,9 @@ protected:
      * @param input  the vector to be duplicated.
      */
     BatchMultiVector(std::shared_ptr<const Executor> exec,
-                     size_type num_duplications, const Dense<value_type>* input)
-        : EnableBatchMultiVector<BatchMultiVector>(
+                     size_type num_duplications,
+                     const matrix::Dense<value_type>* input)
+        : BatchMultiVector(
               exec, gko::batch_dim<2>(num_duplications, input->get_size()))
     {
         size_type offset = 0;
@@ -639,10 +642,10 @@ std::unique_ptr<Matrix> batch_initialize(
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
 {
     using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
-    size_type common_num_rows = vals_begin->size();
-    size_type common_size = dim<2>(common_num_rows, 1);
-    dim<2> common_size;
+    size_type num_batch_entries = vals.size();
     auto vals_begin = begin(vals);
+    size_type common_num_rows = vals_begin->size();
+    auto common_size = dim<2>(common_num_rows, 1);
     for (size_type b = 0; b < num_batch_entries; ++b) {
         GKO_ASSERT_EQ(common_num_rows, vals_begin->size());
         vals_begin++;
@@ -693,7 +696,6 @@ std::unique_ptr<Matrix> batch_initialize(
 {
     using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
     size_type num_batch_entries = vals.size();
-
     auto vals_begin = begin(vals);
     size_type common_num_rows = vals_begin->size();
     size_type common_num_cols = begin(vals_begin)->size();
