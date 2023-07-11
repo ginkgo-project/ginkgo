@@ -67,13 +67,10 @@ template <typename ValueType>
 inline gko::batch_multi_vector::UniformBatch<const hip_type<ValueType>>
 get_batch_struct(const BatchMultiVector<ValueType>* const op)
 {
-    return {
-        as_hip_type(op->get_const_values()),
-        op->get_num_batch_entries(),
-        op->get_common_size()[1],
-        static_cast<int>(op->get_common_size()[0]),
-        static_cast<int>(op->get_common_size()[1]),
-        static_cast<int>(op->get_common_size()[0] * op->get_common_size()[1])};
+    return {as_hip_type(op->get_const_values()), op->get_num_batch_entries(),
+            op->get_common_size()[1],
+            static_cast<int>(op->get_common_size()[0]),
+            static_cast<int>(op->get_common_size()[1])};
 }
 
 /**
@@ -83,13 +80,10 @@ template <typename ValueType>
 inline gko::batch_multi_vector::UniformBatch<hip_type<ValueType>>
 get_batch_struct(BatchMultiVector<ValueType>* const op)
 {
-    return {
-        as_hip_type(op->get_values()),
-        op->get_num_batch_entries(),
-        op->get_common_size()[1],
-        static_cast<int>(op->get_common_size()[0]),
-        static_cast<int>(op->get_common_size()[1]),
-        static_cast<int>(op->get_common_size()[0] * op->get_common_size()[1])};
+    return {as_hip_type(op->get_values()), op->get_num_batch_entries(),
+            op->get_common_size()[1],
+            static_cast<int>(op->get_common_size()[0]),
+            static_cast<int>(op->get_common_size()[1])};
 }
 
 
