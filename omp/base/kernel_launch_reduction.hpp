@@ -327,7 +327,7 @@ void run_kernel_col_reduction_sized_impl(
         const auto reduction_size =
             ceildiv(reduction_kernel_oversubscription * num_threads, cols);
         const auto rows_per_thread = ceildiv(rows, reduction_size);
-        const auto required_storage = sizeof(ValueType) * rows * reduction_size;
+        const auto required_storage = sizeof(ValueType) * cols * reduction_size;
         if (tmp.get_num_elems() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
