@@ -188,35 +188,34 @@ public:
             ((a.num_rows - 1) / align_multiple + 1) * align_multiple;
         gko::kernels::cuda::configure_shared_memory_banks<value_type>();
 
-
-        // const int shmem_per_blk = 0;
+        const int shmem_per_blk = 0;
         // get_max_dynamic_shared_memory<StopType, PrecType, LogType,
         //                               BatchMatrixType, value_type>(exec_,
         //                                                            0);
-        cudaDeviceProp prop;
-        cudaGetDeviceProperties(&prop, 0);
-        const int shmem_per_blk = prop.sharedMemPerBlock;
-        int block_size = prop.maxThreadsPerBlock;
 
-        if (block_size > a.num_rows) block_size = get_larger_power(a.num_rows);
-
-        // const int block_size =
-        //     get_num_threads_per_block<StopType, PrecType, LogType,
-        //                               BatchMatrixType, value_type>(exec_,
-        //                                                            a.num_rows);
+        const int block_size = 128;
+        // get_num_threads_per_block<StopType, PrecType, LogType,
+        //                           BatchMatrixType, value_type>(exec_,
+        //                                                        a.num_rows);
         assert(block_size >= 2 * config::warp_size);
 
         const size_t prec_size =
-            PrecType::dynamic_work_size(shared_gap, a.num_nnz) *
-            sizeof(value_type);
+            PrecType::dynamic_work_size(shared_gap, a.num_nnz);
         const size_t subspace_size = a.num_rows * (restart + 1);
-        const size_t hess_size = restart * (restart + 1);
+        const size_t hess_size = restart * (restart + 2);
         const auto sconf =
             gko::kernels::batch_gmres::compute_shared_storage<PrecType,
                                                               value_type>(
                 shmem_per_blk, shared_gap, a.num_nnz, b.num_rhs, restart);
         int num_main_vecs_shared = min(sconf.n_shared, 5);
         int num_rot_vecs_shared = min(sconf.n_shared - num_main_vecs_shared, 4);
+
+        std::cout << "HERE  " << num_main_vecs_shared << " "
+                  << num_rot_vecs_shared << std::endl;
+        std::cout << "HERE  " << sconf.hess_shared << " "
+                  << sconf.subspace_shared << " " << sconf.prec_shared
+                  << std::endl;
+        std::cout << sconf.gmem_stride_bytes << std::endl;
 
         const size_t shared_size =
             (num_main_vecs_shared * shared_gap +
@@ -256,6 +255,11 @@ public:
             }
         } else {
             switch (n_shared) {
+            case 0:
+                launch_apply_kernel<StopType, 0, 0>(
+                    sconf, logger, prec, a, b.values, x.values, workspace_data,
+                    block_size, shared_size);
+                break;
             case 1:
                 launch_apply_kernel<StopType, 1, 0>(
                     sconf, logger, prec, a, b.values, x.values, workspace_data,

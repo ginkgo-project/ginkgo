@@ -301,16 +301,16 @@ __global__ void apply_kernel(
     //     V_sh, static_cast<size_type>(nrhs), nrows * (restart + 1), nrhs};
     ValueType* V_sh;
 
-    extern __shared__ char local_mem_sh[];
+    // extern __shared__ char local_mem_sh[];
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
         const int gmem_offset =
             ibatch * sconf.gmem_stride_bytes / sizeof(ValueType);
 
-        if constexpr (n_shared >= 1)
-            r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
-        else
-            r_sh = workspace + gmem_offset;
+        // if constexpr (n_shared >= 1)
+        //     r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
+        // else
+        r_sh = workspace + gmem_offset;
         //
         if constexpr (n_shared == 1)
             z_sh = workspace + gmem_offset;
@@ -350,7 +350,7 @@ __global__ void apply_kernel(
         if constexpr (n_shared == 8)
             s_sh = workspace + gmem_offset;
         else
-            s_sh = y_sh + restart;
+            s_sh = y_sh + restart + 1;
         //
         if constexpr (n_shared == 9)
             H_sh = workspace + gmem_offset;
@@ -365,8 +365,8 @@ __global__ void apply_kernel(
         if constexpr (prec_shared_bool && n_shared == 9)
             prec_work_sh = s_sh + restart + 1;
         else if constexpr (prec_shared_bool && n_shared == 10)
-            prec_work_sh = H_sh + restart * (restart + 1);
-        else if constexpr (!prec_shared_bool && n_shared == 10)
+            prec_work_sh = H_sh + restart * (restart + 2);
+        else if constexpr (!prec_shared_bool && n_shared == 11)
             prec_work_sh = workspace + gmem_offset;
         else
             prec_work_sh = V_sh + nrows * (restart + 1);
