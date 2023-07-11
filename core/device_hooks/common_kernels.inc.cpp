@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 
 
+#include "core/base/batch_multi_vector_kernels.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
 #include "core/base/index_set_kernels.hpp"
 #include "core/base/mixed_precision_types.hpp"
