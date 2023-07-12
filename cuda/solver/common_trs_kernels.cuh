@@ -55,9 +55,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/pointer_mode_guard.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
+#include "cuda/components/memory.cuh"
 #include "cuda/components/thread_ids.cuh"
 #include "cuda/components/uninitialized_array.hpp"
-#include "cuda/components/volatile.cuh"
 
 
 namespace gko {
@@ -426,30 +426,31 @@ __global__ void sptrsv_naive_caching_kernel(
                                              : dependency * nrhs + rhs;
         const bool shmem_possible =
             (dependency_gid / default_block_size) == self_shmem_id;
+        ValueType val{};
         if (shmem_possible) {
             const auto dependency_shid = dependency_gid % default_block_size;
-            x_p = &x_s[dependency_shid];
+            while (is_nan(val = load_relaxed_shared(x_s + dependency_shid))) {
+            }
+        } else {
+            while (
+                is_nan(val = load_relaxed(x + dependency * x_stride + rhs))) {
+            }
         }
 
-        ValueType x = *x_p;
-        while (is_nan(x)) {
-            x = load(x_p, 0);
-        }
-
-        sum += x * vals[i];
+        sum += val * vals[i];
     }
 
     // The first entry past the triangular part will be the diagonal
     const auto diag = unit_diag ? one<ValueType>() : vals[i];
     const auto r = (b[row * b_stride + rhs] - sum) / diag;
 
-    store(x_s, self_shid, r);
-    x[row * x_stride + rhs] = r;
+    store_relaxed_shared(x_s + self_shid, r);
+    store_relaxed(x + row * x_stride + rhs, r);
 
     // This check to ensure no infinite loops happen.
     if (is_nan(r)) {
-        store(x_s, self_shid, zero<ValueType>());
-        x[row * x_stride + rhs] = zero<ValueType>();
+        store_relaxed(x_s + self_shid, zero<ValueType>());
+        store_relaxed(x + row * x_stride + rhs, zero<ValueType>());
         *nan_produced = true;
     }
 }
@@ -488,12 +489,12 @@ __global__ void sptrsv_naive_legacy_kernel(
     auto j = row_begin;
     auto col = colidxs[j];
     while (j != row_end) {
-        auto x_val = load(x, col * x_stride + rhs);
+        auto x_val = load_relaxed(x + col * x_stride + rhs);
         while (!is_nan(x_val)) {
             sum += vals[j] * x_val;
             j += row_step;
             col = colidxs[j];
-            x_val = load(x, col * x_stride + rhs);
+            x_val = load_relaxed(x + col * x_stride + rhs);
         }
         // to avoid the kernel hanging on matrices without diagonal,
         // we bail out if we are past the triangle, even if it's not
@@ -503,12 +504,12 @@ __global__ void sptrsv_naive_legacy_kernel(
             // assert(row == col);
             auto diag = unit_diag ? one<ValueType>() : vals[j];
             const auto r = (b[row * b_stride + rhs] - sum) / diag;
-            store(x, row * x_stride + rhs, r);
+            store_relaxed(x + row * x_stride + rhs, r);
             // after we encountered the diagonal, we are done
             // this also skips entries outside the triangle
             j = row_end;
             if (is_nan(r)) {
-                store(x, row * x_stride + rhs, zero<ValueType>());
+                store_relaxed(x + row * x_stride + rhs, zero<ValueType>());
                 *nan_produced = true;
             }
         }
