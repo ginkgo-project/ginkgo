@@ -44,6 +44,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include "core/test/gtest/environments.hpp"
+
+
 #if GINKGO_COMMON_SINGLE_MODE
 #define SKIP_IF_SINGLE_MODE GTEST_SKIP() << "Skip due to single mode"
 #else
@@ -77,7 +80,7 @@ inline void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
             throw std::runtime_error{"No suitable CUDA devices"};
         }
         exec = gko::CudaExecutor::create(
-            0, ref, std::make_shared<gko::CudaAllocator>(), stream);
+            ResourceEnvironment::rs.id, ref, std::make_shared<gko::CudaAllocator>(), stream);
     }
 }
 
@@ -90,7 +93,8 @@ inline void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
         throw std::runtime_error{"No suitable HIP devices"};
     }
     exec = gko::HipExecutor::create(
-        0, ref, std::make_shared<gko::HipAllocator>(), stream);
+        ResourceEnvironment::rs.id, ref, std::make_shared<
+                                    gko::HipAllocator>(), stream);
 }
 
 
@@ -98,9 +102,11 @@ inline void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
                           std::shared_ptr<gko::DpcppExecutor>& exec)
 {
     if (gko::DpcppExecutor::get_num_devices("gpu") > 0) {
-        exec = gko::DpcppExecutor::create(0, ref, "gpu");
+        exec =
+            gko::DpcppExecutor::create(ResourceEnvironment::rs.id, ref, "gpu");
     } else if (gko::DpcppExecutor::get_num_devices("cpu") > 0) {
-        exec = gko::DpcppExecutor::create(0, ref, "cpu");
+        exec =
+            gko::DpcppExecutor::create(ResourceEnvironment::rs.id, ref, "cpu");
     } else {
         throw std::runtime_error{"No suitable DPC++ devices"};
     }
@@ -120,7 +126,7 @@ public:
         :
 #if defined(GKO_TEST_NONDEFAULT_STREAM) && \
     (defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP))
-          stream{0},
+          stream(ResourceEnvironment::rs.id),
 #endif
           ref{gko::ReferenceExecutor::create()}
     {

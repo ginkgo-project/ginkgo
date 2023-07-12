@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/mpi.hpp>
 
 
 #include <memory>
@@ -43,73 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <ginkgo/core/base/mpi.hpp>
-#include <ginkgo/core/base/stream.hpp>
-
-
-inline void init_executor(std::shared_ptr<gko::ReferenceExecutor>,
-                          std::shared_ptr<gko::ReferenceExecutor>& exec)
-{
-    exec = gko::ReferenceExecutor::create();
-}
-
-
-inline void init_executor(std::shared_ptr<gko::ReferenceExecutor>,
-                          std::shared_ptr<gko::OmpExecutor>& exec)
-{
-    exec = gko::OmpExecutor::create();
-}
-
-
-inline void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                          std::shared_ptr<gko::CudaExecutor>& exec,
-                          CUstream_st* stream = nullptr)
-{
-    {
-        if (gko::CudaExecutor::get_num_devices() == 0) {
-            throw std::runtime_error{"No suitable CUDA devices"};
-        }
-        exec = gko::CudaExecutor::create(
-            gko::experimental::mpi::map_rank_to_device_id(
-                MPI_COMM_WORLD, gko::CudaExecutor::get_num_devices()),
-            ref, std::make_shared<gko::CudaAllocator>(), stream);
-    }
-}
-
-
-inline void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                          std::shared_ptr<gko::HipExecutor>& exec,
-                          GKO_HIP_STREAM_STRUCT* stream = nullptr)
-{
-    if (gko::HipExecutor::get_num_devices() == 0) {
-        throw std::runtime_error{"No suitable HIP devices"};
-    }
-    exec = gko::HipExecutor::create(
-        gko::experimental::mpi::map_rank_to_device_id(
-            MPI_COMM_WORLD, gko::HipExecutor::get_num_devices()),
-        ref, std::make_shared<gko::HipAllocator>(), stream);
-}
-
-
-inline void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                          std::shared_ptr<gko::DpcppExecutor>& exec)
-{
-    auto num_gpu_devices = gko::DpcppExecutor::get_num_devices("gpu");
-    auto num_cpu_devices = gko::DpcppExecutor::get_num_devices("cpu");
-    if (num_gpu_devices > 0) {
-        exec = gko::DpcppExecutor::create(
-            gko::experimental::mpi::map_rank_to_device_id(MPI_COMM_WORLD,
-                                                          num_gpu_devices),
-            ref, "gpu");
-    } else if (num_cpu_devices > 0) {
-        exec = gko::DpcppExecutor::create(
-            gko::experimental::mpi::map_rank_to_device_id(MPI_COMM_WORLD,
-                                                          num_cpu_devices),
-            ref, "cpu");
-    } else {
-        throw std::runtime_error{"No suitable DPC++ devices"};
-    }
-}
+#include "test/utils/executor.hpp"
 
 
 class CommonMpiTestFixture : public ::testing::Test {
@@ -125,9 +60,7 @@ public:
         : comm(MPI_COMM_WORLD),
 #if defined(GKO_TEST_NONDEFAULT_STREAM) && \
     (defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP))
-
-          stream(gko::experimental::mpi::map_rank_to_device_id(
-              comm.get(), gko::EXEC_TYPE::get_num_devices())),
+          stream(ResourceEnvironment::rs.id),
 #endif
           ref{gko::ReferenceExecutor::create()}
     {
