@@ -90,14 +90,14 @@ protected:
 
     void set_up_apply_data_grp(int num_vectors = 1)
     {
-        mtx_grp = Mtx::create(ref, 0, gko::matrix::bccoo::compression::block);
+        mtx_grp = Mtx::create(ref, 0, gko::matrix::bccoo::compression::group);
         mtx_grp->move_from(gen_mtx(532, 231));
         expected = gen_mtx(532, num_vectors);
         y = gen_mtx(231, num_vectors);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx_grp =
-            Mtx::create(dpcpp, 128, gko::matrix::bccoo::compression::block);
+            Mtx::create(dpcpp, 128, gko::matrix::bccoo::compression::group);
         dmtx_grp->copy_from(mtx_grp.get());
         dresult = Vec::create(dpcpp);
         dresult->copy_from(expected.get());

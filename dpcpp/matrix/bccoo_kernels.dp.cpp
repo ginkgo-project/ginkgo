@@ -555,8 +555,8 @@ void abstract_absolute(const ValueType val, const IndexType nnz,
                 loop_group_single_row_absolute<uint32, IndexType, ValueType,
                                                remove_complex<ValueType>>(
                     compressed_data_src, grp_idxs_src, start_in_blk,
-                    jump_in_blk, block_size_local,
-                    compressed_datcompressed_data_idxs_res, comp_abs);
+                    jump_in_blk, block_size_local, compressed_data_res,
+                    grp_idxs_res, comp_abs);
             }
         }
     }
