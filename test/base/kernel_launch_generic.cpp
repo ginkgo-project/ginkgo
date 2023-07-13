@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/unified/base/kernel_launch.hpp"
 
 
+#include <algorithm>
 #include <memory>
 #include <type_traits>
 
@@ -364,6 +365,39 @@ void run1d_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
 TEST_F(KernelLaunch, Reduction1D) { run1d_reduction(exec); }
 
 
+void run1d_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
+                            std::vector<size_type> sizes)
+{
+    gko::array<int64> output{exec, 1};
+    gko::array<char> temp(exec);
+    for (const auto& size : sizes) {
+        temp.clear();
+        gko::kernels::EXEC_NAMESPACE::run_kernel_reduction_cached(
+            exec,
+            [] GKO_KERNEL(auto i) {
+                static_assert(is_same<decltype(i), int64>::value, "index");
+                return i + 1;
+            },
+            [] GKO_KERNEL(auto i, auto j) { return std::max(i, j); },
+            [] GKO_KERNEL(auto j) { return j; }, int64{}, output.get_data(),
+            size, temp);
+
+        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()),
+                  static_cast<int64>(size));
+        // The temporary storage (used for partial sums) must be smaller than
+        // the input array
+        ASSERT_LT(temp.get_num_elems() / sizeof(int64), size);
+    }
+}
+
+TEST_F(KernelLaunch, Reduction1DCached)
+{
+    // Note: Start with at least 200 elements in case the machine has a lot of
+    //       cores
+    run1d_reduction_cached(exec, {1000, 1000000, 1234567, 7654321});
+}
+
+
 void run2d_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
 {
     gko::array<int64> output{exec, {-1l}};
@@ -432,6 +466,47 @@ void run2d_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
 TEST_F(KernelLaunch, Reduction2D) { run2d_reduction(exec); }
 
 
+void run2d_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
+                            std::vector<gko::dim<2>> dims)
+{
+    gko::array<int64> output{exec, 1};
+    gko::array<char> temp(exec);
+    for (const auto& dim : dims) {
+        temp.clear();
+        gko::kernels::EXEC_NAMESPACE::run_kernel_reduction_cached(
+            exec,
+            [] GKO_KERNEL(auto i, auto j) {
+                static_assert(is_same<decltype(i), int64>::value, "index");
+                static_assert(is_same<decltype(j), int64>::value, "index");
+                return i + j + 2;
+            },
+            [] GKO_KERNEL(auto i, auto j) { return std::max(i, j); },
+            [] GKO_KERNEL(auto j) { return j; }, int64{}, output.get_data(),
+            dim, temp);
+
+        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()),
+                  static_cast<int64>(dim[0] + dim[1]));
+        // The temporary storage (used for partial sums) must be smaller than
+        // the input array
+        ASSERT_LT(temp.get_num_elems() / sizeof(int64), dim[0] * dim[1]);
+    }
+}
+
+TEST_F(KernelLaunch, Reduction2DCached)
+{
+    // Note: Start with at least 200 elements in case the machine has a lot of
+    //       cores
+    run2d_reduction_cached(exec, {{20, 10},
+                                  {10, 3000},
+                                  {1000, 5},
+                                  {30, 50},
+                                  {1, 100000},
+                                  {100000, 1},
+                                  {500000, 20},
+                                  {20, 500000}});
+}
+
+
 void run2d_row_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
 {
     for (auto num_rows : {0, 100, 1000, 10000}) {
@@ -479,6 +554,53 @@ void run2d_row_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
 }
 
 TEST_F(KernelLaunch, ReductionRow2D) { run2d_row_reduction(exec); }
+
+
+void run2d_row_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
+                                std::vector<gko::dim<2>> dims)
+{
+    // This assumes at most 256 OpenMP Threads
+    constexpr int64_t max_tmp_elems = 4 * 256;
+    const size_type result_stride = 1;
+    gko::array<char> temp(exec);
+    for (const auto& dim : dims) {
+        gko::array<int64> host_ref{exec->get_master(), dim[0]};
+        gko::array<int64> output{exec, host_ref};
+        temp.clear();
+        for (int64 i = 0; i < host_ref.get_num_elems(); ++i) {
+            host_ref.get_data()[i] = dim[1] + i + 1;
+        }
+
+        gko::kernels::EXEC_NAMESPACE::run_kernel_row_reduction_cached(
+            exec,
+            [] GKO_KERNEL(auto i, auto j) {
+                static_assert(is_same<decltype(i), int64>::value, "index");
+                static_assert(is_same<decltype(j), int64>::value, "index");
+                return i + j + 2;
+            },
+            [] GKO_KERNEL(auto i, auto j) { return std::max(i, j); },
+            [] GKO_KERNEL(auto j) { return j; }, int64{}, output.get_data(),
+            result_stride, dim, temp);
+
+        GKO_ASSERT_ARRAY_EQ(host_ref, output);
+        ASSERT_LT(temp.get_num_elems() / sizeof(int64),
+                  max_tmp_elems * max_tmp_elems);
+    }
+}
+
+TEST_F(KernelLaunch, ReductionRowCached)
+{
+    // Note: Start with at least 200 elements in case the machine has a lot of
+    //       cores
+    run2d_row_reduction_cached(exec, {{20, 10},
+                                      {10, 3000},
+                                      {1000, 5},
+                                      {30, 50},
+                                      {1, 100000},
+                                      {100000, 1},
+                                      {500000, 20},
+                                      {20, 500000}});
+}
 
 
 void run2d_col_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
@@ -530,3 +652,49 @@ void run2d_col_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
 }
 
 TEST_F(KernelLaunch, ReductionCol2D) { run2d_col_reduction(exec); }
+
+
+void run2d_col_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
+                                std::vector<gko::dim<2>> dims)
+{
+    gko::array<char> temp(exec);
+    for (const auto& dim : dims) {
+        gko::array<int64> host_ref{exec->get_master(), dim[1]};
+        gko::array<int64> output{exec, host_ref};
+        temp.clear();
+        for (int64 i = 0; i < host_ref.get_num_elems(); ++i) {
+            host_ref.get_data()[i] = dim[0] + i + 1;
+        }
+
+        gko::kernels::EXEC_NAMESPACE::run_kernel_col_reduction_cached(
+            exec,
+            [] GKO_KERNEL(auto i, auto j) {
+                static_assert(is_same<decltype(i), int64>::value, "index");
+                static_assert(is_same<decltype(j), int64>::value, "index");
+                return i + j + 2;
+            },
+            [] GKO_KERNEL(auto i, auto j) { return std::max(i, j); },
+            [] GKO_KERNEL(auto j) { return j; }, int64{}, output.get_data(),
+            dim, temp);
+
+        GKO_ASSERT_ARRAY_EQ(host_ref, output);
+        // This assumes at most 256 OpenMP Threads
+        const size_type temp_elem_limit =
+            std::max(size_type{4 * 256}, dim[0] * dim[1]);
+        ASSERT_LT(temp.get_num_elems() / sizeof(int64), temp_elem_limit);
+    }
+}
+
+TEST_F(KernelLaunch, ReductionColCached)
+{
+    // Note: Start with at least 200 elements in case the machine has a lot of
+    //       cores
+    run2d_col_reduction_cached(exec, {{20, 10},
+                                      {10, 3000},
+                                      {1000, 5},
+                                      {30, 50},
+                                      {1, 100000},
+                                      {100000, 1},
+                                      {500000, 20},
+                                      {20, 500000}});
+}
