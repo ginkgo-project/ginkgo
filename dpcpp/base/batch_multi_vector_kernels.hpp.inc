@@ -30,24 +30,29 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-/**
- * Copies the values of vector into another.
- *
- * @param num_rows  Length of vector.
- * @param in  Vector to copy from.
- * @param out  Vector to copy into.
- */
+
 template <typename ValueType>
-__dpct_inline__ void copy_kernel(const int num_rows,
-                                 const ValueType* const __restrict__ in,
-                                 ValueType* const __restrict__ out,
-                                 sycl::nd_item<3> item_ct1)
+__dpct_inline__ void scale_kernel(
+    const gko::batch_dense::BatchEntry<const ValueType>& alpha,
+    const gko::batch_dense::BatchEntry<ValueType>& x,
+    sycl::nd_item<3>& item_ct1)
 {
-    for (int iz = item_ct1.get_local_linear_id(); iz < num_rows;
-         iz += item_ct1.get_local_range().size()) {
-        out[iz] = in[iz];
+    const int max_li = x.num_rows * x.num_rhs;
+    for (int li = item_ct1.get_local_linear_id(); li < max_li;
+         li += item_ct1.get_local_range().size()) {
+        const int row = li / x.num_rhs;
+        const int col = li % x.num_rhs;
+
+        if (alpha.num_rhs == 1) {
+            x.values[row * x.stride + col] =
+                alpha.values[0] * x.values[row * x.stride + col];
+        } else {
+            x.values[row * x.stride + col] =
+                alpha.values[col] * x.values[row * x.stride + col];
+        }
     }
 }
+
 
 /**
  * Adds a scaled vector to another.
@@ -70,34 +75,25 @@ __dpct_inline__ void add_scaled_kernel(const int num_rows,
     }
 }
 
-/**
- * Computes the 2-norm of a vector in global or shared memory.
- *
- * @param x  A row-major vector (only 1 column).
- * @param result  Norm value.
- */
+
 template <typename ValueType>
-__dpct_inline__ void compute_norm2_sg_kernel(
+__dpct_inline__ void compute_dot_product_kernel(
     const int num_rows, const ValueType* const __restrict__ x,
-    gko::remove_complex<ValueType>& result, sycl::nd_item<3> item_ct1)
+    const ValueType* const __restrict__ y, ValueType& result,
+    sycl::nd_item<3> item_ct1)
 {
-    const auto sg = item_ct1.get_sub_group();
-    const auto sg_size = sg.get_local_range().size();
-    const auto sg_tid = sg.get_local_id();
+    const auto group = item_ct1.get_group();
+    const auto group_size = item_ct1.get_local_range().size();
+    const auto tid = item_ct1.get_local_linear_id();
 
-    using real_type = typename gko::remove_complex<ValueType>;
-    real_type val = zero<real_type>();
+    ValueType val = zero<ValueType>();
 
-    for (int r = sg_tid; r < num_rows; r += sg_size) {
-        val += squared_norm(x[r]);
+    for (int r = tid; r < num_rows; r += group_size) {
+        val += conj(x[r]) * y[r];
     }
-
-    val = sycl::reduce_over_group(sg, val, sycl::plus<>());
-
-    if (sg_tid == 0) {
-        result = sqrt(val);
-    }
+    result = sycl::reduce_over_group(group, val, sycl::plus<>());
 }
+
 
 template <typename ValueType>
 __dpct_inline__ void compute_norm2_kernel(
@@ -122,47 +118,20 @@ __dpct_inline__ void compute_norm2_kernel(
 
 
 /**
- * Computes the dot product of some column vectors in global or shared memory.
+ * Copies the values of vector into another.
  *
- * @param result  Holds dot product value for vector in x and y.
+ * @param num_rows  Length of vector.
+ * @param in  Vector to copy from.
+ * @param out  Vector to copy into.
  */
 template <typename ValueType>
-__dpct_inline__ void compute_dot_product_sg_kernel(
-    const int num_rows, const ValueType* const __restrict__ x,
-    const ValueType* const __restrict__ y, ValueType& result,
-    sycl::nd_item<3> item_ct1)
+__dpct_inline__ void copy_kernel(const int num_rows,
+                                 const ValueType* const __restrict__ in,
+                                 ValueType* const __restrict__ out,
+                                 sycl::nd_item<3> item_ct1)
 {
-    const auto sg = item_ct1.get_sub_group();
-    const auto sg_size = sg.get_local_range().size();
-    const auto sg_tid = sg.get_local_id();
-
-    ValueType val = zero<ValueType>();
-
-    for (int r = sg_tid; r < num_rows; r += sg_size) {
-        val += conj(x[r]) * y[r];
+    for (int iz = item_ct1.get_local_linear_id(); iz < num_rows;
+         iz += item_ct1.get_local_range().size()) {
+        out[iz] = in[iz];
     }
-
-    val = sycl::reduce_over_group(sg, val, sycl::plus<>());
-
-    if (sg_tid == 0) {
-        result = val;
-    }
-}
-
-template <typename ValueType>
-__dpct_inline__ void compute_dot_product_kernel(
-    const int num_rows, const ValueType* const __restrict__ x,
-    const ValueType* const __restrict__ y, ValueType& result,
-    sycl::nd_item<3> item_ct1)
-{
-    const auto group = item_ct1.get_group();
-    const auto group_size = item_ct1.get_local_range().size();
-    const auto tid = item_ct1.get_local_linear_id();
-
-    ValueType val = zero<ValueType>();
-
-    for (int r = tid; r < num_rows; r += group_size) {
-        val += conj(x[r]) * y[r];
-    }
-    result = sycl::reduce_over_group(group, val, sycl::plus<>());
 }

@@ -83,7 +83,7 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
                 auto group_id = group.get_group_linear_id();
                 const auto alpha_b = batch::batch_entry(alpha_ub, group_id);
                 const auto x_b = batch::batch_entry(x_ub, group_id);
-                single_scale_kernel(alpha_b, x_b, item_ct1);
+                scale_kernel(alpha_b, x_b, item_ct1);
             });
     });
 }
