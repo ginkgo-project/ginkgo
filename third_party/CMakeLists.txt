@@ -7,7 +7,7 @@ if(GINKGO_BUILD_HWLOC AND (NOT HWLOC_FOUND))
     add_subdirectory(hwloc)
 endif()
 
-if(GINKGO_BUILD_PAPI_SDE AND (NOT PAPI_FOUND))
+if(GINKGO_WITH_PAPI_SDE AND (NOT PAPI_FOUND))
     add_subdirectory(papi_sde)
 endif()
 
