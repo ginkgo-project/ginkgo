@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
 
@@ -49,7 +50,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
-namespace matrix {
 namespace batch_multi_vector {
 
 
@@ -67,12 +67,14 @@ template <typename ValueType>
 void BatchMultiVector<ValueType>::scale_impl(
     const BatchMultiVector<ValueType>* alpha)
 {
-    GKO_ASSERT_BATCH_EQUAL_ROWS(
-        alpha, batch_dim<2>(this->get_num_batch_entries(), dim<2>(1, 1)));
+    GKO_ASSERT_EQ(alpha->get_num_batch_entries(),
+                  this->get_num_batch_entries());
+    GKO_ASSERT_EQUAL_ROWS(alpha->get_common_size(), dim<2>(1, 1));
     for (size_type b = 0; b < alpha->get_num_batch_entries(); ++b) {
         if (alpha->get_common_size()[1] != 1) {
             // different alpha for each column
-            GKO_ASSERT_BATCH_EQUAL_COLS(this, alpha);
+            GKO_ASSERT_EQUAL_COLS(this->get_common_size(),
+                                  alpha->get_common_size());
         }
     }
     this->get_executor()->run(batch_multi_vector::make_scale(alpha, this));
@@ -84,15 +86,18 @@ void BatchMultiVector<ValueType>::add_scaled_impl(
     const BatchMultiVector<ValueType>* alpha,
     const BatchMultiVector<ValueType>* b)
 {
-    GKO_ASSERT_BATCH_EQUAL_ROWS(
-        alpha, batch_dim<2>(this->get_num_batch_entries(), dim<2>(1, 1)));
+    GKO_ASSERT_EQ(alpha->get_num_batch_entries(),
+                  this->get_num_batch_entries());
+    GKO_ASSERT_EQUAL_ROWS(alpha->get_common_size(), dim<2>(1, 1));
     for (size_type b = 0; b < alpha->get_num_batch_entries(); ++b) {
         if (alpha->get_common_size()[1] != 1) {
             // different alpha for each column
-            GKO_ASSERT_BATCH_EQUAL_COLS(this, alpha);
+            GKO_ASSERT_EQUAL_COLS(this->get_common_size(),
+                                  alpha->get_common_size());
         }
     }
-    GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(this, b);
+    GKO_ASSERT_EQ(b->get_num_batch_entries(), this->get_num_batch_entries());
+    GKO_ASSERT_EQUAL_DIMENSIONS(this->get_common_size(), b->get_common_size());
 
     this->get_executor()->run(
         batch_multi_vector::make_add_scaled(alpha, b, this));
@@ -101,7 +106,8 @@ void BatchMultiVector<ValueType>::add_scaled_impl(
 
 inline const batch_dim<2> get_col_sizes(const batch_dim<2>& sizes)
 {
-    return batch_dim<2>(sizes.get_num_batch_entries(), dim<2>(1, sizes[1]));
+    return batch_dim<2>(sizes.get_num_batch_entries(),
+                        dim<2>(1, sizes.get_common_size()[1]));
 }
 
 
@@ -110,9 +116,13 @@ void BatchMultiVector<ValueType>::compute_dot_impl(
     const BatchMultiVector<ValueType>* b,
     BatchMultiVector<ValueType>* result) const
 {
-    GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(this, b);
-    GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(batch_result,
-                                      get_col_sizes(this->get_size()));
+    GKO_ASSERT_EQ(b->get_num_batch_entries(), this->get_num_batch_entries());
+    GKO_ASSERT_EQUAL_DIMENSIONS(this->get_common_size(), b->get_common_size());
+    GKO_ASSERT_EQ(this->get_num_batch_entries(),
+                  result->get_num_batch_entries());
+    GKO_ASSERT_EQUAL_DIMENSIONS(
+        result->get_common_size(),
+        get_col_sizes(this->get_size()).get_common_size());
     this->get_executor()->run(
         batch_multi_vector::make_compute_dot(this, b, result));
 }
@@ -122,7 +132,11 @@ template <typename ValueType>
 void BatchMultiVector<ValueType>::compute_norm2_impl(
     BatchMultiVector<remove_complex<ValueType>>* result) const
 {
-    GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(result, get_col_sizes(this->get_size()));
+    GKO_ASSERT_EQ(this->get_num_batch_entries(),
+                  result->get_num_batch_entries());
+    GKO_ASSERT_EQUAL_DIMENSIONS(
+        result->get_common_size(),
+        get_col_sizes(this->get_size()).get_common_size());
     this->get_executor()->run(batch_multi_vector::make_compute_norm2(
         as<BatchMultiVector<ValueType>>(this), result));
 }
@@ -152,8 +166,8 @@ inline void read_impl(MatrixType* mtx, const std::vector<MatrixData>& data)
     auto batch_size = batch_dim<2>(data.size(), common_size);
     size_type ind = 0;
     for (const auto& b : data) {
-        b_size = b.size;
-        GKO_ASSERT_EQ(common_size, b_size);
+        auto b_size = b.size;
+        GKO_ASSERT_EQUAL_DIMENSIONS(common_size, b_size);
     }
     auto tmp =
         MatrixType::create(mtx->get_executor()->get_master(), batch_size);
@@ -194,7 +208,8 @@ void BatchMultiVector<ValueType>::read(const std::vector<mat_data32>& data)
 template <typename MatrixType, typename MatrixData>
 inline void write_impl(const MatrixType* mtx, std::vector<MatrixData>& data)
 {
-    std::unique_ptr<const BatchMultiVector<ValueType>> op{};
+    std::unique_ptr<const BatchMultiVector<typename MatrixData::value_type>>
+        op{};
     const MatrixType* tmp{};
     if (mtx->get_executor()->get_master() != mtx->get_executor()) {
         op = mtx->clone(mtx->get_executor()->get_master());
@@ -236,9 +251,6 @@ void BatchMultiVector<ValueType>::write(std::vector<mat_data32>& data) const
 #define GKO_DECLARE_BATCH_MULTI_VECTOR_MATRIX(_type) \
     class BatchMultiVector<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_MULTI_VECTOR_MATRIX);
-
-
-}  // namespace matrix
 
 
 }  // namespace gko

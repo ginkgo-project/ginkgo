@@ -68,7 +68,8 @@ namespace gko {
  */
 template <typename ValueType = default_precision>
 class BatchMultiVector
-    : public EnableAbstractPolymorphicObject<BatchMultiVector<ValueType>>,
+    : public EnablePolymorphicObject<BatchMultiVector<ValueType>>,
+      public EnablePolymorphicAssignment<BatchMultiVector<ValueType>>,
       public EnableCreateMethod<BatchMultiVector<ValueType>>,
       public ConvertibleTo<BatchMultiVector<next_precision<ValueType>>>,
       public BatchReadableFromMatrixData<ValueType, int32>,
@@ -76,11 +77,15 @@ class BatchMultiVector
       public BatchWritableToMatrixData<ValueType, int32>,
       public BatchWritableToMatrixData<ValueType, int64> {
     friend class EnableCreateMethod<BatchMultiVector>;
+    friend class EnablePolymorphicObject<BatchMultiVector>;
     friend class BatchMultiVector<to_complex<ValueType>>;
 
 public:
     using BatchReadableFromMatrixData<ValueType, int32>::read;
     using BatchReadableFromMatrixData<ValueType, int64>::read;
+    using EnablePolymorphicObject<BatchMultiVector>::EnablePolymorphicObject;
+    using EnablePolymorphicAssignment<BatchMultiVector>::convert_to;
+    using EnablePolymorphicAssignment<BatchMultiVector>::move_to;
 
     using value_type = ValueType;
     using index_type = int32;
@@ -354,7 +359,8 @@ public:
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
-    void compute_norm2(BatchMultiVector<ValueType>* result) const
+    void compute_norm2(
+        BatchMultiVector<remove_complex<ValueType>>* result) const
     {
         auto exec = this->get_executor();
         this->compute_norm2_impl(make_temporary_clone(exec, result).get());
@@ -395,10 +401,10 @@ public:
     BatchMultiVector& operator=(BatchMultiVector&& other)
     {
         if (this != &other) {
-            EnableAbstractPolymorphicObject<BatchMultiVector>::operator=(
+            EnablePolymorphicObject<BatchMultiVector>::operator=(
                 std::move(other));
             this->set_size(other.get_size());
-            other.set_size({});
+            other.set_size(batch_dim<2>{});
         }
         return *this;
     }
@@ -414,7 +420,7 @@ public:
      * input, which will have size 0x0 and unchanged executor afterwards.
      */
     BatchMultiVector(BatchMultiVector&& other)
-        : EnableAbstractPolymorphicObject<BatchMultiVector>(std::move(other)),
+        : EnablePolymorphicObject<BatchMultiVector>(std::move(other)),
           batch_size_{std::exchange(other.batch_size_, batch_dim<2>{})}
     {}
 
@@ -424,7 +430,7 @@ private:
     {
         auto common_size = matrices[0]->get_size();
         for (int i = 1; i < matrices.size(); ++i) {
-            GKO_ASSERT_EQ(common_size, matrices[i]->get_size());
+            GKO_ASSERT_EQUAL_DIMENSIONS(common_size, matrices[i]->get_size());
         }
         return batch_dim<2>{matrices.size(), common_size};
     }
@@ -450,7 +456,7 @@ protected:
      */
     BatchMultiVector(std::shared_ptr<const Executor> exec,
                      const batch_dim<2>& size = batch_dim<2>{})
-        : EnableAbstractPolymorphicObject<BatchMultiVector>(exec),
+        : EnablePolymorphicObject<BatchMultiVector>(exec),
           batch_size_(size),
           values_(exec, compute_num_elems(size))
     {}
@@ -472,7 +478,7 @@ protected:
     template <typename ValuesArray>
     BatchMultiVector(std::shared_ptr<const Executor> exec,
                      const batch_dim<2>& size, ValuesArray&& values)
-        : EnableAbstractPolymorphicObject<BatchMultiVector>(exec),
+        : EnablePolymorphicObject<BatchMultiVector>(exec),
           batch_size_(size),
           values_{exec, std::forward<ValuesArray>(values)}
     {
@@ -489,7 +495,7 @@ protected:
      */
     BatchMultiVector(std::shared_ptr<const Executor> exec,
                      const std::vector<matrix::Dense<ValueType>*>& matrices)
-        : EnableAbstractPolymorphicObject<BatchMultiVector>(exec),
+        : EnablePolymorphicObject<BatchMultiVector>(exec),
           batch_size_{compute_batch_size(matrices)},
           values_(exec, compute_num_elems(batch_size_))
     {
@@ -594,7 +600,8 @@ protected:
      * @note  Other implementations of batch_multi_vector should override this
      * function instead of compute_norm2(BatchMultiVector *result).
      */
-    virtual void compute_norm2_impl(BatchMultiVector<ValueType>* result) const;
+    virtual void compute_norm2_impl(
+        BatchMultiVector<remove_complex<ValueType>>* result) const;
 
     size_type linearize_index(size_type batch, size_type row,
                               size_type col) const noexcept
