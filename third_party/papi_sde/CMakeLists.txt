@@ -1,9 +1,9 @@
 message(STATUS "Configuring and building PAPI-SDE")
 set(TPL_PAPI_PATH "${PROJECT_BINARY_DIR}/third_party/papi_sde/src")
 ginkgo_load_and_configure_package(papi_external
-    "https://bitbucket.org/terry_cojean/papi/get/77cdd0ba8db98d86c1459dd5f55013aba242d5d5.tar.gz"
-    "SHA1=540c18a14eeafb83cd60cbbf0a96706111dbff3b"
-    "${TPL_PAPI_PATH}/src"
+    "https://github.com/icl-utk-edu/papi/archive/d2dd17a07a3c175fbb26ce5528671e3a7e00b80f.tar.gz"
+    "SHA1=55019037c47aff216ff831b4191e7147f6932464"
+    "${TPL_PAPI_PATH}/build"
     "./configure" "--prefix=${TPL_PAPI_PATH}/install"
         "--with-components=sde" "--with-libsde=yes" "--with-tests=no"
         "--with-static-lib=no" "--with-shared-lib=yes"
