@@ -705,14 +705,14 @@ std::unique_ptr<Matrix> batch_initialize(
     size_type num_batch_entries = vals.size();
     auto vals_begin = begin(vals);
     size_type common_num_rows = vals_begin->size();
-    size_type common_num_cols = begin(vals_begin)->size();
+    size_type common_num_cols = vals_begin->begin()->size();
     auto common_size = dim<2>(common_num_rows, common_num_cols);
     size_type ind = 0;
     for (const auto& b : vals) {
         auto num_rows = b.size();
         auto num_cols = begin(b)->size();
         auto b_size = dim<2>(num_rows, num_cols);
-        GKO_ASSERT_EQ(b_size, common_size);
+        GKO_ASSERT_EQUAL_DIMENSIONS(b_size, common_size);
     }
     auto b_size = batch_dim<2>(num_batch_entries, common_size);
     auto tmp = batch_multi_vector::create(exec->get_master(), b_size);

@@ -53,7 +53,6 @@ protected:
     BatchMultiVector()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::batch_initialize<gko::BatchMultiVector<value_type>>(
-              std::vector<size_type>{4, 3},
               {{{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}},
                {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}},
               exec))
@@ -64,13 +63,7 @@ protected:
         gko::BatchMultiVector<value_type>* m)
     {
         ASSERT_EQ(m->get_num_batch_entries(), 2);
-        ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 3));
-        ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 3));
-        ASSERT_EQ(m->get_stride().at(0), 4);
-        ASSERT_EQ(m->get_stride().at(1), 3);
-        ASSERT_EQ(m->get_num_stored_elements(), (2 * 4) + (2 * 3));
-        ASSERT_EQ(m->get_num_stored_elements(0), 2 * 4);
-        ASSERT_EQ(m->get_num_stored_elements(1), 2 * 3);
+        ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 3));
         EXPECT_EQ(m->at(0, 0, 0), value_type{-1.0});
         EXPECT_EQ(m->at(0, 0, 1), value_type{2.0});
         EXPECT_EQ(m->at(0, 0, 2), value_type{3.0});
@@ -88,7 +81,7 @@ protected:
     static void assert_empty(gko::BatchMultiVector<value_type>* m)
     {
         ASSERT_EQ(m->get_num_batch_entries(), 0);
-        ASSERT_EQ(m->get_num_stored_elements(), 0);
+        ASSERT_EQ(m->get_common_size(), {});
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -116,30 +109,10 @@ TYPED_TEST(BatchMultiVector, CanBeConstructedWithSize)
 {
     using size_type = gko::size_type;
     auto m = gko::BatchMultiVector<TypeParam>::create(
-        this->exec,
-        std::vector<gko::dim<2>>{gko::dim<2>{2, 4}, gko::dim<2>{2, 3}});
+        this->exec, gko::batch_dim<2>(2, gko::dim<2>(2, 4)));
 
     ASSERT_EQ(m->get_num_batch_entries(), 2);
-    ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 4));
-    ASSERT_EQ(m->get_size().at(1), gko::dim<2>(2, 3));
-    EXPECT_EQ(m->get_stride().at(0), 4);
-    EXPECT_EQ(m->get_stride().at(1), 3);
-    ASSERT_EQ(m->get_num_stored_elements(), 14);
-    ASSERT_EQ(m->get_num_stored_elements(0), 8);
-    ASSERT_EQ(m->get_num_stored_elements(1), 6);
-}
-
-
-TYPED_TEST(BatchMultiVector, CanBeConstructedWithSizeAndStride)
-{
-    using size_type = gko::size_type;
-    auto m = gko::BatchMultiVector<TypeParam>::create(
-        this->exec, std::vector<gko::dim<2>>{gko::dim<2>{2, 3}},
-        std::vector<size_type>{4});
-
-    ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 3));
-    EXPECT_EQ(m->get_stride().at(0), 4);
-    ASSERT_EQ(m->get_num_stored_elements(), 8);
+    ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 4));
 }
 
 
@@ -156,16 +129,14 @@ TYPED_TEST(BatchMultiVector, CanBeConstructedFromExistingData)
     // clang-format on
 
     auto m = gko::BatchMultiVector<TypeParam>::create(
-        this->exec,
-        std::vector<gko::dim<2>>{gko::dim<2>{2, 2}, gko::dim<2>{2, 2}},
-        gko::array<value_type>::view(this->exec, 12, data),
-        std::vector<size_type>{3, 3});
+        this->exec, gko::batch_dim<2>(2, gko::dim<2>(2, 2)),
+        gko::array<value_type>::view(this->exec, 4, data));
 
     ASSERT_EQ(m->get_const_values(), data);
-    ASSERT_EQ(m->at(0, 0, 1), value_type{2.0});
-    ASSERT_EQ(m->at(0, 1, 2), value_type{-1.0});
-    ASSERT_EQ(m->at(1, 0, 1), value_type{5.0});
-    ASSERT_EQ(m->at(1, 1, 2), value_type{-3.0});
+    ASSERT_EQ(m->at(0, 0, 1), value_type{1.0});
+    ASSERT_EQ(m->at(0, 1, 2), value_type{2.0});
+    ASSERT_EQ(m->at(1, 0, 1), value_type{-1.0});
+    ASSERT_EQ(m->at(1, 1, 2), value_type{3.0});
 }
 
 
@@ -184,14 +155,13 @@ TYPED_TEST(BatchMultiVector, CanBeConstructedFromExistingConstData)
     auto m = gko::BatchMultiVector<TypeParam>::create_const(
         this->exec,
         std::vector<gko::dim<2>>{gko::dim<2>{2, 2}, gko::dim<2>{2, 2}},
-        gko::array<value_type>::const_view(this->exec, 12, data),
-        std::vector<size_type>{3, 3});
+        gko::array<value_type>::const_view(this->exec, 4, data));
 
     ASSERT_EQ(m->get_const_values(), data);
-    ASSERT_EQ(m->at(0, 0, 1), value_type{2.0});
-    ASSERT_EQ(m->at(0, 1, 2), value_type{-1.0});
-    ASSERT_EQ(m->at(1, 0, 1), value_type{5.0});
-    ASSERT_EQ(m->at(1, 1, 2), value_type{-3.0});
+    ASSERT_EQ(m->at(0, 0, 1), value_type{1.0});
+    ASSERT_EQ(m->at(0, 1, 2), value_type{2.0});
+    ASSERT_EQ(m->at(1, 0, 1), value_type{-1.0});
+    ASSERT_EQ(m->at(1, 1, 2), value_type{3.0});
 }
 
 
@@ -200,8 +170,8 @@ TYPED_TEST(BatchMultiVector, CanBeConstructedFromBatchMultiVectorMatrices)
     using value_type = typename TestFixture::value_type;
     using DenseMtx = typename TestFixture::DenseMtx;
     using size_type = gko::size_type;
-    auto mat1 = gko::initialize<DenseMtx>(
-        3, {{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}}, this->exec);
+    auto mat1 = gko::initialize<DenseMtx>({{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}},
+                                          this->exec);
     auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
                                           this->exec);
 
@@ -221,8 +191,8 @@ TYPED_TEST(BatchMultiVector, CanBeConstructedFromDenseMatricesByDuplication)
     using value_type = typename TestFixture::value_type;
     using DenseMtx = typename TestFixture::DenseMtx;
     using size_type = gko::size_type;
-    auto mat1 = gko::initialize<DenseMtx>(
-        4, {{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}}, this->exec);
+    auto mat1 = gko::initialize<DenseMtx>({{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}},
+                                          this->exec);
     auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
                                           this->exec);
 
@@ -240,8 +210,8 @@ TYPED_TEST(BatchMultiVector, CanBeConstructedFromDenseMatrices)
     using value_type = typename TestFixture::value_type;
     using DenseMtx = typename TestFixture::DenseMtx;
     using size_type = gko::size_type;
-    auto mat1 = gko::initialize<DenseMtx>(
-        4, {{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}}, this->exec);
+    auto mat1 = gko::initialize<DenseMtx>({{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}},
+                                          this->exec);
     auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
                                           this->exec);
 
@@ -257,8 +227,8 @@ TYPED_TEST(BatchMultiVector, CanBeUnbatchedIntoDenseMatrices)
     using value_type = typename TestFixture::value_type;
     using DenseMtx = typename TestFixture::DenseMtx;
     using size_type = gko::size_type;
-    auto mat1 = gko::initialize<DenseMtx>(
-        4, {{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}}, this->exec);
+    auto mat1 = gko::initialize<DenseMtx>({{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}},
+                                          this->exec);
     auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
                                           this->exec);
 
@@ -283,26 +253,11 @@ TYPED_TEST(BatchMultiVector, CanBeListConstructed)
         {{1.0, 2.0}, {1.0, 3.0}}, this->exec);
 
     ASSERT_EQ(m->get_num_batch_entries(), 2);
-    ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 1));
-    ASSERT_EQ(m->get_size().at(1), gko::dim<2>(2, 1));
-    ASSERT_EQ(m->get_num_stored_elements(), 4);
+    ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 1));
     EXPECT_EQ(m->at(0, 0), value_type{1});
     EXPECT_EQ(m->at(0, 1), value_type{2});
     EXPECT_EQ(m->at(1, 0), value_type{1});
     EXPECT_EQ(m->at(1, 1), value_type{3});
-}
-
-
-TYPED_TEST(BatchMultiVector, CanBeListConstructedWithstride)
-{
-    using value_type = typename TestFixture::value_type;
-    auto m = gko::batch_initialize<gko::BatchMultiVector<TypeParam>>(
-        std::vector<gko::size_type>{2}, {{1.0, 2.0}}, this->exec);
-    ASSERT_EQ(m->get_num_batch_entries(), 1);
-    ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 1));
-    ASSERT_EQ(m->get_num_stored_elements(), 4);
-    EXPECT_EQ(m->at(0, 0), value_type{1.0});
-    EXPECT_EQ(m->at(0, 1), value_type{2.0});
 }
 
 
@@ -312,9 +267,7 @@ TYPED_TEST(BatchMultiVector, CanBeListConstructedByCopies)
     auto m = gko::batch_initialize<gko::BatchMultiVector<TypeParam>>(
         2, I<value_type>({1.0, 2.0}), this->exec);
     ASSERT_EQ(m->get_num_batch_entries(), 2);
-    ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 1));
-    ASSERT_EQ(m->get_size().at(1), gko::dim<2>(2, 1));
-    ASSERT_EQ(m->get_num_stored_elements(), 4);
+    ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 1));
     EXPECT_EQ(m->at(0, 0, 0), value_type{1.0});
     EXPECT_EQ(m->at(0, 0, 1), value_type{2.0});
     EXPECT_EQ(m->at(1, 0, 0), value_type{1.0});
@@ -328,16 +281,10 @@ TYPED_TEST(BatchMultiVector, CanBeDoubleListConstructed)
     using T = value_type;
     auto m = gko::batch_initialize<gko::BatchMultiVector<TypeParam>>(
         {{I<T>{1.0, 1.0, 0.0}, I<T>{2.0, 4.0, 3.0}, I<T>{3.0, 6.0, 1.0}},
-         {I<T>{1.0, 2.0}, I<T>{3.0, 4.0}, I<T>{5.0, 6.0}}},
+         {I<T>{1.0, 2.0, -1.0}, I<T>{3.0, 4.0, -2.0}, I<T>{5.0, 6.0, -3.0}}},
         this->exec);
 
-    ASSERT_EQ(m->get_size().at(0), gko::dim<2>(3, 3));
-    ASSERT_EQ(m->get_size().at(1), gko::dim<2>(3, 2));
-    ASSERT_EQ(m->get_stride().at(0), 3);
-    ASSERT_EQ(m->get_stride().at(1), 2);
-    EXPECT_EQ(m->get_num_stored_elements(), 15);
-    ASSERT_EQ(m->get_num_stored_elements(0), 9);
-    ASSERT_EQ(m->get_num_stored_elements(1), 6);
+    ASSERT_EQ(m->get_common_size(), gko::dim<2>(3, 3));
     EXPECT_EQ(m->at(0, 0), value_type{1.0});
     EXPECT_EQ(m->at(0, 1), value_type{1.0});
     EXPECT_EQ(m->at(0, 2), value_type{0.0});
@@ -345,39 +292,9 @@ TYPED_TEST(BatchMultiVector, CanBeDoubleListConstructed)
     EXPECT_EQ(m->at(0, 4), value_type{4.0});
     EXPECT_EQ(m->at(1, 0), value_type{1.0});
     EXPECT_EQ(m->at(1, 1), value_type{2.0});
-    EXPECT_EQ(m->at(1, 2), value_type{3.0});
-    ASSERT_EQ(m->at(1, 3), value_type{4.0});
-    EXPECT_EQ(m->at(1, 4), value_type{5.0});
-}
-
-
-TYPED_TEST(BatchMultiVector, CanBeDoubleListConstructedWithstride)
-{
-    using value_type = typename TestFixture::value_type;
-    using T = value_type;
-    auto m = gko::batch_initialize<gko::BatchMultiVector<TypeParam>>(
-        {4, 3},
-        {{I<T>{1.0, 1.0, 0.0}, I<T>{2.0, 4.0, 3.0}, I<T>{3.0, 6.0, 1.0}},
-         {I<T>{1.0, 2.0}, I<T>{3.0, 4.0}, I<T>{5.0, 6.0}}},
-        this->exec);
-
-    ASSERT_EQ(m->get_size().at(0), gko::dim<2>(3, 3));
-    ASSERT_EQ(m->get_size().at(1), gko::dim<2>(3, 2));
-    ASSERT_EQ(m->get_stride().at(0), 4);
-    ASSERT_EQ(m->get_stride().at(1), 3);
-    EXPECT_EQ(m->get_num_stored_elements(), 21);
-    ASSERT_EQ(m->get_num_stored_elements(0), 12);
-    ASSERT_EQ(m->get_num_stored_elements(1), 9);
-    EXPECT_EQ(m->at(0, 0), value_type{1.0});
-    EXPECT_EQ(m->at(0, 1), value_type{1.0});
-    EXPECT_EQ(m->at(0, 2), value_type{0.0});
-    ASSERT_EQ(m->at(0, 3), value_type{2.0});
-    EXPECT_EQ(m->at(0, 4), value_type{4.0});
-    EXPECT_EQ(m->at(1, 0), value_type{1.0});
-    EXPECT_EQ(m->at(1, 1), value_type{2.0});
-    EXPECT_EQ(m->at(1, 2), value_type{3.0});
-    ASSERT_EQ(m->at(1, 3), value_type{4.0});
-    EXPECT_EQ(m->at(1, 4), value_type{5.0});
+    EXPECT_EQ(m->at(1, 2), value_type{-1.0});
+    ASSERT_EQ(m->at(1, 3), value_type{3.0});
+    EXPECT_EQ(m->at(1, 4), value_type{4.0});
 }
 
 
@@ -420,13 +337,11 @@ TYPED_TEST(BatchMultiVector, CanBeReadFromMatrixData)
     using value_type = typename TestFixture::value_type;
     auto m = gko::BatchMultiVector<TypeParam>::create(this->exec);
     // clang-format off
-    m->read({gko::matrix_data<TypeParam>{{2, 3},
+    m->read({gko::matrix_data<TypeParam>{{2, 2},
                                          {{0, 0, 1.0},
                                           {0, 1, 3.0},
-                                          {0, 2, 2.0},
                                           {1, 0, 0.0},
-                                          {1, 1, 5.0},
-                                          {1, 2, 0.0}}},
+                                          {1, 1, 5.0}}},
              gko::matrix_data<TypeParam>{{2, 2},
                                          {{0, 0, -1.0},
                                           {0, 1, 0.5},
@@ -434,17 +349,11 @@ TYPED_TEST(BatchMultiVector, CanBeReadFromMatrixData)
                                           {1, 1, 9.0}}}});
     // clang-format on
 
-    ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 3));
-    ASSERT_EQ(m->get_size().at(1), gko::dim<2>(2, 2));
-    ASSERT_EQ(m->get_num_stored_elements(), 10);
-    ASSERT_EQ(m->get_num_stored_elements(0), 6);
-    ASSERT_EQ(m->get_num_stored_elements(1), 4);
+    ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 2));
     EXPECT_EQ(m->at(0, 0, 0), value_type{1.0});
     EXPECT_EQ(m->at(0, 1, 0), value_type{0.0});
     EXPECT_EQ(m->at(0, 0, 1), value_type{3.0});
     EXPECT_EQ(m->at(0, 1, 1), value_type{5.0});
-    EXPECT_EQ(m->at(0, 0, 2), value_type{2.0});
-    EXPECT_EQ(m->at(0, 1, 2), value_type{0.0});
     EXPECT_EQ(m->at(1, 0, 0), value_type{-1.0});
     EXPECT_EQ(m->at(1, 0, 1), value_type{0.5});
     EXPECT_EQ(m->at(1, 1, 0), value_type{0.0});
@@ -483,31 +392,27 @@ TYPED_TEST(BatchMultiVector, CanBeReadFromMatrixAssemblyData)
 {
     using value_type = typename TestFixture::value_type;
     auto m = gko::BatchMultiVector<TypeParam>::create(this->exec);
-    gko::matrix_assembly_data<TypeParam> data1(gko::dim<2>{2, 3});
+    gko::matrix_assembly_data<TypeParam> data1(gko::dim<2>{2, 2});
     data1.set_value(0, 0, 1.0);
     data1.set_value(0, 1, 3.0);
-    data1.set_value(0, 2, 2.0);
     data1.set_value(1, 0, 0.0);
     data1.set_value(1, 1, 5.0);
-    data1.set_value(1, 2, 0.0);
     gko::matrix_assembly_data<TypeParam> data2(gko::dim<2>{2, 1});
     data2.set_value(0, 0, 2.0);
+    data2.set_value(0, 1, 1.0);
     data2.set_value(1, 0, 5.0);
+    data2.set_value(1, 1, 4.0);
     auto data = std::vector<gko::matrix_assembly_data<TypeParam>>{data1, data2};
 
     m->read(data);
 
-    ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 3));
-    ASSERT_EQ(m->get_size().at(1), gko::dim<2>(2, 1));
-    ASSERT_EQ(m->get_num_stored_elements(), 8);
-    ASSERT_EQ(m->get_num_stored_elements(0), 6);
-    ASSERT_EQ(m->get_num_stored_elements(1), 2);
+    ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 2));
     EXPECT_EQ(m->at(0, 0, 0), value_type{1.0});
     EXPECT_EQ(m->at(0, 1, 0), value_type{0.0});
     EXPECT_EQ(m->at(0, 0, 1), value_type{3.0});
     EXPECT_EQ(m->at(0, 1, 1), value_type{5.0});
-    EXPECT_EQ(m->at(0, 0, 2), value_type{2.0});
-    ASSERT_EQ(m->at(0, 1, 2), value_type{0.0});
     EXPECT_EQ(m->at(1, 0, 0), value_type{2.0});
     EXPECT_EQ(m->at(1, 1, 0), value_type{5.0});
+    EXPECT_EQ(m->at(1, 0, 1), value_type{1.0});
+    EXPECT_EQ(m->at(1, 1, 1), value_type{4.0});
 }
