@@ -69,7 +69,7 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
     for (size_type batch = 0; batch < x->get_num_batch_entries(); ++batch) {
         const auto alpha_b = gko::batch::batch_entry(alpha_ub, batch);
         const auto x_b = gko::batch::batch_entry(x_ub, batch);
-        scale(alpha_b, x_b);
+        scale_kernel(alpha_b, x_b);
     }
 }
 
@@ -90,7 +90,7 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
         const auto alpha_b = gko::batch::batch_entry(alpha_ub, batch);
         const auto x_b = gko::batch::batch_entry(x_ub, batch);
         const auto y_b = gko::batch::batch_entry(y_ub, batch);
-        add_scaled(alpha_b, x_b, y_b);
+        add_scaled_kernel(alpha_b, x_b, y_b);
     }
 }
 
@@ -112,7 +112,7 @@ void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
         const auto res_b = gko::batch::batch_entry(res_ub, batch);
         const auto x_b = gko::batch::batch_entry(x_ub, batch);
         const auto y_b = gko::batch::batch_entry(y_ub, batch);
-        compute_dot_product(x_b, y_b, res_b);
+        compute_dot_product_kernel(x_b, y_b, res_b);
     }
 }
 
@@ -131,7 +131,7 @@ void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
          ++batch) {
         const auto res_b = gko::batch::batch_entry(res_ub, batch);
         const auto x_b = gko::batch::batch_entry(x_ub, batch);
-        compute_norm2(x_b, res_b);
+        compute_norm2_kernel(x_b, res_b);
     }
 }
 
@@ -149,7 +149,7 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
     for (size_type batch = 0; batch < x->get_num_batch_entries(); ++batch) {
         const auto result_b = gko::batch::batch_entry(result_ub, batch);
         const auto x_b = gko::batch::batch_entry(x_ub, batch);
-        copy(x_b, result_b);
+        copy_kernel(x_b, result_b);
     }
 }
 

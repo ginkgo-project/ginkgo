@@ -32,7 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 template <typename ValueType>
-inline void scale(
+inline void scale_kernel(
     const gko::batch_multi_vector::BatchEntry<const ValueType>& alpha,
     const gko::batch_multi_vector::BatchEntry<ValueType>& x)
 {
@@ -53,7 +53,7 @@ inline void scale(
 
 
 template <typename ValueType>
-inline void add_scaled(
+inline void add_scaled_kernel(
     const gko::batch_multi_vector::BatchEntry<const ValueType>& alpha,
     const gko::batch_multi_vector::BatchEntry<const ValueType>& x,
     const gko::batch_multi_vector::BatchEntry<ValueType>& y)
@@ -77,7 +77,26 @@ inline void add_scaled(
 
 
 template <typename ValueType>
-inline void compute_norm2(
+inline void compute_dot_product_kernel(
+    const gko::batch_multi_vector::BatchEntry<const ValueType>& x,
+    const gko::batch_multi_vector::BatchEntry<const ValueType>& y,
+    const gko::batch_multi_vector::BatchEntry<ValueType>& result)
+{
+    for (int c = 0; c < result.num_rhs; c++) {
+        result.values[c] = gko::zero<ValueType>();
+    }
+
+    for (int r = 0; r < x.num_rows; r++) {
+        for (int c = 0; c < x.num_rhs; c++) {
+            result.values[c] +=
+                conj(x.values[r * x.stride + c]) * y.values[r * y.stride + c];
+        }
+    }
+}
+
+
+template <typename ValueType>
+inline void compute_norm2_kernel(
     const gko::batch_multi_vector::BatchEntry<const ValueType>& x,
     const gko::batch_multi_vector::BatchEntry<gko::remove_complex<ValueType>>&
         result)
@@ -103,31 +122,13 @@ inline void compute_norm2(
  * and stride set.
  */
 template <typename ValueType>
-inline void copy(const gko::batch_multi_vector::BatchEntry<const ValueType>& in,
-                 const gko::batch_multi_vector::BatchEntry<ValueType>& out)
+inline void copy_kernel(
+    const gko::batch_multi_vector::BatchEntry<const ValueType>& in,
+    const gko::batch_multi_vector::BatchEntry<ValueType>& out)
 {
     for (int iz = 0; iz < in.num_rows * in.num_rhs; iz++) {
         const int i = iz / in.num_rhs;
         const int j = iz % in.num_rhs;
         out.values[i * out.stride + j] = in.values[i * in.stride + j];
-    }
-}
-
-
-template <typename ValueType>
-inline void compute_dot_product(
-    const gko::batch_multi_vector::BatchEntry<const ValueType>& x,
-    const gko::batch_multi_vector::BatchEntry<const ValueType>& y,
-    const gko::batch_multi_vector::BatchEntry<ValueType>& result)
-{
-    for (int c = 0; c < result.num_rhs; c++) {
-        result.values[c] = gko::zero<ValueType>();
-    }
-
-    for (int r = 0; r < x.num_rows; r++) {
-        for (int c = 0; c < x.num_rhs; c++) {
-            result.values[c] +=
-                conj(x.values[r * x.stride + c]) * y.values[r * y.stride + c];
-        }
     }
 }
