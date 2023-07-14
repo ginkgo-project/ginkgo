@@ -141,102 +141,6 @@ protected:
 TYPED_TEST_SUITE(BatchMultiVector, gko::test::ValueTypes);
 
 
-TYPED_TEST(BatchMultiVector, AppliesToBatchMultiVector)
-{
-    using T = typename TestFixture::value_type;
-    this->mtx_1->apply(this->mtx_2.get(), this->mtx_3.get());
-    this->mtx_10->apply(this->mtx_20.get(), this->mtx_30.get());
-    this->mtx_11->apply(this->mtx_21.get(), this->mtx_31.get());
-
-
-    auto res = this->mtx_3->unbatch();
-    GKO_ASSERT_MTX_NEAR(res[0].get(), this->mtx_30.get(), 0.);
-    GKO_ASSERT_MTX_NEAR(res[1].get(), this->mtx_31.get(), 0.);
-}
-
-
-TYPED_TEST(BatchMultiVector, AppliesLinearCombinationToBatchMultiVector)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using DenseMtx = typename TestFixture::DenseMtx;
-    using T = typename TestFixture::value_type;
-    auto alpha = gko::batch_initialize<Mtx>({{1.5}, {-1.0}}, this->exec);
-    auto beta = gko::batch_initialize<Mtx>({{2.5}, {-4.0}}, this->exec);
-    auto alpha0 = gko::initialize<DenseMtx>({1.5}, this->exec);
-    auto alpha1 = gko::initialize<DenseMtx>({-1.0}, this->exec);
-    auto beta0 = gko::initialize<DenseMtx>({2.5}, this->exec);
-    auto beta1 = gko::initialize<DenseMtx>({-4.0}, this->exec);
-
-    this->mtx_1->apply(alpha.get(), this->mtx_2.get(), beta.get(),
-                       this->mtx_3.get());
-    this->mtx_10->apply(alpha0.get(), this->mtx_20.get(), beta0.get(),
-                        this->mtx_30.get());
-    this->mtx_11->apply(alpha1.get(), this->mtx_21.get(), beta1.get(),
-                        this->mtx_31.get());
-
-    auto res = this->mtx_3->unbatch();
-    GKO_ASSERT_MTX_NEAR(res[0].get(), this->mtx_30.get(), 0.);
-    GKO_ASSERT_MTX_NEAR(res[1].get(), this->mtx_31.get(), 0.);
-}
-
-
-TYPED_TEST(BatchMultiVector, ApplyFailsOnWrongInnerDimension)
-{
-    using Mtx = typename TestFixture::Mtx;
-    auto res = Mtx::create(
-        this->exec, std::vector<gko::dim<2>>{gko::dim<2>{2}, gko::dim<2>{2}});
-
-    ASSERT_THROW(this->mtx_2->apply(this->mtx_1.get(), res.get()),
-                 gko::DimensionMismatch);
-}
-
-
-TYPED_TEST(BatchMultiVector, ApplyFailsForNonUniformBatches)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto mat1 = gko::batch_initialize<Mtx>(
-        std::vector<gko::size_type>{4, 4},
-        {{I<T>({1.0, -1.0}), I<T>({1.0, -1.0}), I<T>({2.0, -0.5})},
-         {{1.0, 2.5, 3.0}, {1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}},
-        this->exec);
-    auto mat2 = gko::batch_initialize<Mtx>(
-        std::vector<gko::size_type>{4, 4},
-        {{{1.0, -1.0, 2.2}, {-2.0, 2.0, -0.5}},
-         {{1.0, 2.5, -3.0}, {1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}},
-        this->exec);
-    auto res = Mtx::create(
-        this->exec, std::vector<gko::dim<2>>{gko::dim<2>{2}, gko::dim<2>{3}});
-
-    ASSERT_THROW(mat2->apply(mat1.get(), res.get()), gko::NotImplemented);
-}
-
-
-TYPED_TEST(BatchMultiVector, ApplyFailsOnWrongNumberOfRows)
-{
-    using Mtx = typename TestFixture::Mtx;
-    auto res = Mtx::create(
-        this->exec, std::vector<gko::dim<2>>{gko::dim<2>{3}, gko::dim<2>{3}});
-
-    ASSERT_THROW(this->mtx_1->apply(this->mtx_2.get(), res.get()),
-                 gko::DimensionMismatch);
-}
-
-
-TYPED_TEST(BatchMultiVector, ApplyFailsOnWrongNumberOfCols)
-{
-    using Mtx = typename TestFixture::Mtx;
-    auto res = Mtx::create(
-        this->exec,
-        std::vector<gko::dim<2>>{gko::dim<2>{2, 1}, gko::dim<2>{2, 1}},
-        std::vector<gko::size_type>{3, 3});
-
-
-    ASSERT_THROW(this->mtx_1->apply(this->mtx_2.get(), res.get()),
-                 gko::DimensionMismatch);
-}
-
-
 TYPED_TEST(BatchMultiVector, ScalesData)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -313,71 +217,6 @@ TYPED_TEST(BatchMultiVector, AddsScaled)
 }
 
 
-TYPED_TEST(BatchMultiVector, AddsScale)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto alpha = gko::batch_initialize<Mtx>(
-        {{{2.0, -2.0, 1.5}}, {{2.0, -2.0, 3.0}}}, this->exec);
-    auto beta = gko::batch_initialize<Mtx>(
-        {{{-1.0, 3.0, 0.5}}, {{1.5, 0.5, -4.0}}}, this->exec);
-
-    auto ualpha = alpha->unbatch();
-    auto ubeta = beta->unbatch();
-
-    this->mtx_1->add_scale(alpha.get(), this->mtx_0.get(), beta.get());
-    this->mtx_10->add_scale(ualpha[0].get(), this->mtx_00.get(),
-                            ubeta[0].get());
-    this->mtx_11->add_scale(ualpha[1].get(), this->mtx_01.get(),
-                            ubeta[1].get());
-
-    auto res = this->mtx_1->unbatch();
-    GKO_ASSERT_MTX_NEAR(res[0].get(), this->mtx_10.get(), 0.);
-    GKO_ASSERT_MTX_NEAR(res[1].get(), this->mtx_11.get(), 0.);
-}
-
-
-TYPED_TEST(BatchMultiVector, ConvergenceAddScaled)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto alpha = gko::batch_initialize<Mtx>(
-        {{{2.0, -2.0, 1.5}}, {{2.0, -2.0, 3.0}}}, this->exec);
-
-    auto ualpha = alpha->unbatch();
-
-
-    const int num_rhs = 3;
-    const gko::uint32 converged = 0xfffffffd | (0 - (1 << num_rhs));
-
-    gko::kernels::reference::batch_multi_vector::convergence_add_scaled(
-        this->exec, alpha.get(), this->mtx_0.get(), this->mtx_1.get(),
-        converged);
-
-    auto mtx_10_clone = gko::clone(this->mtx_10);
-    auto mtx_11_clone = gko::clone(this->mtx_11);
-
-    this->mtx_10->add_scaled(ualpha[0].get(), this->mtx_00.get());
-    this->mtx_11->add_scaled(ualpha[1].get(), this->mtx_01.get());
-
-    auto res = this->mtx_1->unbatch();
-
-    EXPECT_EQ(res[0]->at(0, 0), mtx_10_clone->at(0, 0));
-    EXPECT_EQ(res[0]->at(1, 0), mtx_10_clone->at(1, 0));
-    EXPECT_EQ(res[0]->at(0, 1), this->mtx_10->at(0, 1));
-    EXPECT_EQ(res[0]->at(1, 1), this->mtx_10->at(1, 1));
-    EXPECT_EQ(res[0]->at(0, 2), mtx_10_clone->at(0, 2));
-    EXPECT_EQ(res[0]->at(1, 2), mtx_10_clone->at(1, 2));
-
-    EXPECT_EQ(res[1]->at(0, 0), mtx_11_clone->at(0, 0));
-    EXPECT_EQ(res[1]->at(1, 0), mtx_11_clone->at(1, 0));
-    EXPECT_EQ(res[1]->at(0, 1), this->mtx_11->at(0, 1));
-    EXPECT_EQ(res[1]->at(1, 1), this->mtx_11->at(1, 1));
-    EXPECT_EQ(res[1]->at(0, 2), mtx_11_clone->at(0, 2));
-    EXPECT_EQ(res[1]->at(1, 2), mtx_11_clone->at(1, 2));
-}
-
-
 TYPED_TEST(BatchMultiVector, AddsScaledWithScalar)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -396,91 +235,6 @@ TYPED_TEST(BatchMultiVector, AddsScaledWithScalar)
 }
 
 
-TYPED_TEST(BatchMultiVector, AddsScaleWithScalar)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto alpha = gko::batch_initialize<Mtx>({{2.0}, {-2.0}}, this->exec);
-    auto beta = gko::batch_initialize<Mtx>({{-0.5}, {3.0}}, this->exec);
-
-    auto ualpha = alpha->unbatch();
-    auto ubeta = beta->unbatch();
-
-    this->mtx_1->add_scale(alpha.get(), this->mtx_0.get(), beta.get());
-    this->mtx_10->add_scale(ualpha[0].get(), this->mtx_00.get(),
-                            ubeta[0].get());
-    this->mtx_11->add_scale(ualpha[1].get(), this->mtx_01.get(),
-                            ubeta[1].get());
-
-    auto res = this->mtx_1->unbatch();
-    GKO_ASSERT_MTX_NEAR(res[0].get(), this->mtx_10.get(), 0.);
-    GKO_ASSERT_MTX_NEAR(res[1].get(), this->mtx_11.get(), 0.);
-}
-
-
-TYPED_TEST(BatchMultiVector, AddScaleWithScalarViaApply)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto alpha = gko::batch_initialize<Mtx>({{2.0}, {-2.0}}, this->exec);
-    auto beta = gko::batch_initialize<Mtx>({{-0.5}, {3.0}}, this->exec);
-    auto id = gko::matrix::BatchIdentity<T>::create(
-        this->exec, gko::batch_dim<2>(2, gko::dim<2>(3, 3)));
-    auto ualpha = alpha->unbatch();
-    auto ubeta = beta->unbatch();
-
-    this->mtx_0->apply(alpha.get(), id.get(), beta.get(), this->mtx_1.get());
-    this->mtx_10->add_scale(ualpha[0].get(), this->mtx_00.get(),
-                            ubeta[0].get());
-    this->mtx_11->add_scale(ualpha[1].get(), this->mtx_01.get(),
-                            ubeta[1].get());
-
-    auto res = this->mtx_1->unbatch();
-    GKO_ASSERT_MTX_NEAR(res[0].get(), this->mtx_10.get(), 0.);
-    GKO_ASSERT_MTX_NEAR(res[1].get(), this->mtx_11.get(), 0.);
-}
-
-
-TYPED_TEST(BatchMultiVector, ConvergenceAddScaledWithScalar)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto alpha = gko::batch_initialize<Mtx>({{2.0}, {-2.0}}, this->exec);
-
-    auto ualpha = alpha->unbatch();
-
-
-    const int num_rhs = 3;
-    const gko::uint32 converged = 0xfffffffd | (0 - (1 << num_rhs));
-
-    gko::kernels::reference::batch_multi_vector::convergence_add_scaled(
-        this->exec, alpha.get(), this->mtx_0.get(), this->mtx_1.get(),
-        converged);
-
-    auto mtx_10_clone = gko::clone(this->mtx_10);
-    auto mtx_11_clone = gko::clone(this->mtx_11);
-
-    this->mtx_10->add_scaled(ualpha[0].get(), this->mtx_00.get());
-    this->mtx_11->add_scaled(ualpha[1].get(), this->mtx_01.get());
-
-    auto res = this->mtx_1->unbatch();
-
-    EXPECT_EQ(res[0]->at(0, 0), mtx_10_clone->at(0, 0));
-    EXPECT_EQ(res[0]->at(1, 0), mtx_10_clone->at(1, 0));
-    EXPECT_EQ(res[0]->at(0, 1), this->mtx_10->at(0, 1));
-    EXPECT_EQ(res[0]->at(1, 1), this->mtx_10->at(1, 1));
-    EXPECT_EQ(res[0]->at(0, 2), mtx_10_clone->at(0, 2));
-    EXPECT_EQ(res[0]->at(1, 2), mtx_10_clone->at(1, 2));
-
-    EXPECT_EQ(res[1]->at(0, 0), mtx_11_clone->at(0, 0));
-    EXPECT_EQ(res[1]->at(1, 0), mtx_11_clone->at(1, 0));
-    EXPECT_EQ(res[1]->at(0, 1), this->mtx_11->at(0, 1));
-    EXPECT_EQ(res[1]->at(1, 1), this->mtx_11->at(1, 1));
-    EXPECT_EQ(res[1]->at(0, 2), mtx_11_clone->at(0, 2));
-    EXPECT_EQ(res[1]->at(1, 2), mtx_11_clone->at(1, 2));
-}
-
-
 TYPED_TEST(BatchMultiVector, AddScaledFailsOnWrongSizes)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -489,18 +243,6 @@ TYPED_TEST(BatchMultiVector, AddScaledFailsOnWrongSizes)
 
     ASSERT_THROW(this->mtx_1->add_scaled(alpha.get(), this->mtx_2.get()),
                  gko::DimensionMismatch);
-}
-
-
-TYPED_TEST(BatchMultiVector, AddScaleFailsOnWrongSizes)
-{
-    using Mtx = typename TestFixture::Mtx;
-    auto alpha = gko::batch_initialize<Mtx>({{2.0}, {-2.0}}, this->exec);
-    auto beta = gko::batch_initialize<Mtx>({{2.0}, {3.0}}, this->exec);
-
-    ASSERT_THROW(
-        this->mtx_1->add_scale(alpha.get(), this->mtx_2.get(), beta.get()),
-        gko::DimensionMismatch);
 }
 
 
@@ -536,109 +278,6 @@ TYPED_TEST(BatchMultiVector, ComputesDot)
 }
 
 
-TYPED_TEST(BatchMultiVector, ConvergenceComputeDot)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto result =
-        Mtx::create(this->exec, gko::batch_dim<2>(2, gko::dim<2>{1, 3}));
-
-    for (int ibatch = 0; ibatch < result->get_size().get_batch_sizes().size();
-         ibatch++) {
-        for (int icol = 0; icol < result->get_size().at()[1]; icol++) {
-            result->at(ibatch, 0, icol) = gko::zero<T>();
-        }
-    }
-
-    auto ures = result->unbatch();
-
-    const int num_rhs = 3;
-    const gko::uint32 converged = 0xfffffffd | (0 - (1 << num_rhs));
-
-    gko::kernels::reference::batch_multi_vector::convergence_compute_dot(
-        this->exec, this->mtx_0.get(), this->mtx_1.get(), result.get(),
-        converged);
-
-    auto ures_00_clone = gko::clone(ures[0]);
-    auto ures_01_clone = gko::clone(ures[1]);
-
-    this->mtx_00->compute_dot(this->mtx_10.get(), ures[0].get());
-    this->mtx_01->compute_dot(this->mtx_11.get(), ures[1].get());
-
-    auto res = result->unbatch();
-
-    EXPECT_EQ(res[0]->at(0, 0), ures_00_clone->at(0, 0));
-    EXPECT_EQ(res[0]->at(0, 1), ures[0]->at(0, 1));
-    EXPECT_EQ(res[0]->at(0, 2), ures_00_clone->at(0, 2));
-
-    EXPECT_EQ(res[1]->at(0, 0), ures_01_clone->at(0, 0));
-    EXPECT_EQ(res[1]->at(0, 1), ures[1]->at(0, 1));
-    EXPECT_EQ(res[1]->at(0, 2), ures_01_clone->at(0, 2));
-}
-
-
-TYPED_TEST(BatchMultiVector, ComputesNorm2)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    using T_nc = gko::remove_complex<T>;
-    using NormVector = gko::BatchMultiVector<T_nc>;
-    auto mtx(gko::batch_initialize<Mtx>(
-        {{I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}},
-         {I<T>{-4.0, 2.0}, I<T>{-3.0, -2.0}, I<T>{0.0, 1.0}}},
-        this->exec));
-    auto batch_size = gko::batch_dim<2>(
-        std::vector<gko::dim<2>>{gko::dim<2>{1, 2}, gko::dim<2>{1, 2}});
-    auto result =
-        NormVector::create(this->exec, batch_size, gko::batch_stride(2, 2));
-
-    mtx->compute_norm2(result.get());
-
-    EXPECT_EQ(result->at(0, 0, 0), T_nc{3.0});
-    EXPECT_EQ(result->at(0, 0, 1), T_nc{5.0});
-    EXPECT_EQ(result->at(1, 0, 0), T_nc{5.0});
-    EXPECT_EQ(result->at(1, 0, 1), T_nc{3.0});
-}
-
-
-TYPED_TEST(BatchMultiVector, ConvergenceComputeNorm2)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    using T_nc = gko::remove_complex<T>;
-    using NormVector = gko::BatchMultiVector<T_nc>;
-    auto mtx(gko::batch_initialize<Mtx>(
-        {{I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}},
-         {I<T>{-4.0, 2.0}, I<T>{-3.0, -2.0}, I<T>{0.0, 1.0}}},
-        this->exec));
-    auto batch_size = gko::batch_dim<2>(
-        std::vector<gko::dim<2>>{gko::dim<2>{1, 2}, gko::dim<2>{1, 2}});
-    auto result =
-        NormVector::create(this->exec, batch_size, gko::batch_stride(2, 2));
-
-    for (int ibatch = 0; ibatch < result->get_size().get_batch_sizes().size();
-         ibatch++) {
-        for (int icol = 0; icol < result->get_size().at()[1]; icol++) {
-            result->at(ibatch, 0, icol) = gko::zero<T_nc>();
-        }
-    }
-
-    auto result_clone = gko::clone(result);
-
-    const int num_rhs = 2;
-    const gko::uint32 converged = 0xfffffffd | (0 - (1 << num_rhs));
-
-    gko::kernels::reference::batch_multi_vector::convergence_compute_norm2(
-        this->exec, mtx.get(), result.get(), converged);
-
-    EXPECT_EQ(result->at(0, 0, 0), result_clone->at(0, 0, 0));
-    EXPECT_EQ(result->at(0, 0, 1), T_nc{5.0});
-
-    EXPECT_EQ(result->at(1, 0, 0), result_clone->at(1, 0, 0));
-    EXPECT_EQ(result->at(1, 0, 1), T_nc{3.0});
-}
-
-
 TYPED_TEST(BatchMultiVector, ComputDotFailsOnWrongInputSize)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -667,77 +306,36 @@ TYPED_TEST(BatchMultiVector, ComputDotFailsOnWrongResultSize)
 }
 
 
+TYPED_TEST(BatchMultiVector, ComputesNorm2)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using T_nc = gko::remove_complex<T>;
+    using NormVector = gko::BatchMultiVector<T_nc>;
+    auto mtx(gko::batch_initialize<Mtx>(
+        {{I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}},
+         {I<T>{-4.0, 2.0}, I<T>{-3.0, -2.0}, I<T>{0.0, 1.0}}},
+        this->exec));
+    auto batch_size = gko::batch_dim<2>(
+        std::vector<gko::dim<2>>{gko::dim<2>{1, 2}, gko::dim<2>{1, 2}});
+    auto result =
+        NormVector::create(this->exec, batch_size, gko::batch_stride(2, 2));
+
+    mtx->compute_norm2(result.get());
+
+    EXPECT_EQ(result->at(0, 0, 0), T_nc{3.0});
+    EXPECT_EQ(result->at(0, 0, 1), T_nc{5.0});
+    EXPECT_EQ(result->at(1, 0, 0), T_nc{5.0});
+    EXPECT_EQ(result->at(1, 0, 1), T_nc{3.0});
+}
+
+
 TYPED_TEST(BatchMultiVector, CopiesData)
 {
     gko::kernels::reference::batch_multi_vector::copy(
         this->exec, this->mtx_0.get(), this->mtx_1.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(this->mtx_1.get(), this->mtx_0.get(), 0.);
-}
-
-
-TYPED_TEST(BatchMultiVector, ConvergenceCopyData)
-{
-    auto umtx_0 = this->mtx_0->unbatch();
-
-    const int num_rhs = 3;
-    const gko::uint32 converged = 0xfffffffd | (0 - (1 << num_rhs));
-    gko::kernels::reference::batch_multi_vector::convergence_copy(
-        this->exec, this->mtx_0.get(), this->mtx_1.get(), converged);
-
-    auto mtx_10_clone = gko::clone(this->mtx_10);
-    auto mtx_11_clone = gko::clone(this->mtx_11);
-
-    auto res = this->mtx_1->unbatch();
-
-    EXPECT_EQ(res[0]->at(0, 0), mtx_10_clone->at(0, 0));
-    EXPECT_EQ(res[0]->at(1, 0), mtx_10_clone->at(1, 0));
-    EXPECT_EQ(res[0]->at(0, 1), this->mtx_0->at(0, 0, 1));
-    EXPECT_EQ(res[0]->at(1, 1), this->mtx_0->at(0, 1, 1));
-    EXPECT_EQ(res[0]->at(0, 2), mtx_10_clone->at(0, 2));
-    EXPECT_EQ(res[0]->at(1, 2), mtx_10_clone->at(1, 2));
-
-    EXPECT_EQ(res[1]->at(0, 0), mtx_11_clone->at(0, 0));
-    EXPECT_EQ(res[1]->at(1, 0), mtx_11_clone->at(1, 0));
-    EXPECT_EQ(res[1]->at(0, 1), this->mtx_0->at(1, 0, 1));
-    EXPECT_EQ(res[1]->at(1, 1), this->mtx_0->at(1, 1, 1));
-    EXPECT_EQ(res[1]->at(0, 2), mtx_11_clone->at(0, 2));
-    EXPECT_EQ(res[1]->at(1, 2), mtx_11_clone->at(1, 2));
-}
-
-
-TYPED_TEST(BatchMultiVector, BatchScale)
-{
-    using T = typename TestFixture::value_type;
-    using Mtx = typename TestFixture::Mtx;
-    using BDiag = gko::matrix::BatchDiagonal<T>;
-
-    auto mtx(gko::batch_initialize<Mtx>(
-        {{I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}},
-         {I<T>{-4.0, 2.0}, I<T>{-3.0, -2.0}, I<T>{0.0, 1.0}}},
-        this->exec));
-
-    auto left(gko::batch_diagonal_initialize(
-        I<I<T>>{I<T>{1.0, 2.0, 3.0}, I<T>{-1.0, -2.0, -3.0}}, this->exec));
-    auto rght(gko::batch_diagonal_initialize(
-        I<I<T>>{I<T>{-0.5, -2.0}, I<T>{2.0, 0.25}}, this->exec));
-
-    gko::kernels::reference::batch_multi_vector::batch_scale(
-        this->exec, left.get(), rght.get(), mtx.get());
-
-    EXPECT_EQ(mtx->at(0, 0, 0), T{-0.5});
-    EXPECT_EQ(mtx->at(0, 1, 0), T{-2.0});
-    EXPECT_EQ(mtx->at(0, 2, 0), T{-3.0});
-    EXPECT_EQ(mtx->at(0, 0, 1), T{0.0});
-    EXPECT_EQ(mtx->at(0, 1, 1), T{-12.0});
-    EXPECT_EQ(mtx->at(0, 2, 1), T{-24.0});
-
-    EXPECT_EQ(mtx->at(1, 0, 0), T{8.0});
-    EXPECT_EQ(mtx->at(1, 1, 0), T{12.0});
-    EXPECT_EQ(mtx->at(1, 2, 0), T{0.0});
-    EXPECT_EQ(mtx->at(1, 0, 1), T{-0.5});
-    EXPECT_EQ(mtx->at(1, 1, 1), T{1.0});
-    EXPECT_EQ(mtx->at(1, 2, 1), T{-0.75});
 }
 
 
@@ -787,80 +385,6 @@ TYPED_TEST(BatchMultiVector, MovesToPrecision)
 }
 
 
-TYPED_TEST(BatchMultiVector, ConvertsToCsr32)
-{
-    using T = typename TestFixture::value_type;
-    using BatchCsr = typename gko::matrix::BatchCsr<T, gko::int32>;
-    auto batch_csr_mtx = BatchCsr::create(this->mtx_6->get_executor());
-
-    this->mtx_6->convert_to(batch_csr_mtx.get());
-
-    auto v = batch_csr_mtx->get_const_values();
-    auto c = batch_csr_mtx->get_const_col_idxs();
-    auto r = batch_csr_mtx->get_const_row_ptrs();
-    ASSERT_EQ(batch_csr_mtx->get_num_batch_entries(), 2);
-    ASSERT_EQ(batch_csr_mtx->get_size().at(0), gko::dim<2>(3, 3));
-    ASSERT_EQ(batch_csr_mtx->get_size().at(1), gko::dim<2>(3, 3));
-    ASSERT_EQ(batch_csr_mtx->get_num_stored_elements(), 10);
-    EXPECT_EQ(r[0], 0);
-    EXPECT_EQ(r[1], 2);
-    EXPECT_EQ(r[2], 3);
-    EXPECT_EQ(r[3], 5);
-    EXPECT_EQ(c[0], 0);
-    EXPECT_EQ(c[1], 2);
-    EXPECT_EQ(c[2], 1);
-    EXPECT_EQ(c[3], 1);
-    EXPECT_EQ(c[4], 2);
-    EXPECT_EQ(v[0], T{1.0});
-    EXPECT_EQ(v[1], T{3.0});
-    EXPECT_EQ(v[2], T{3.0});
-    EXPECT_EQ(v[3], T{1.0});
-    EXPECT_EQ(v[4], T{5.0});
-    EXPECT_EQ(v[5], T{2.0});
-    EXPECT_EQ(v[6], T{5.0});
-    EXPECT_EQ(v[7], T{1.0});
-    EXPECT_EQ(v[8], T{-1.0});
-    EXPECT_EQ(v[9], T{8.0});
-}
-
-
-TYPED_TEST(BatchMultiVector, MovesToCsr32)
-{
-    using T = typename TestFixture::value_type;
-    using BatchCsr = typename gko::matrix::BatchCsr<T, gko::int32>;
-    auto batch_csr_mtx = BatchCsr::create(this->mtx_6->get_executor());
-
-    this->mtx_6->move_to(batch_csr_mtx.get());
-
-    auto v = batch_csr_mtx->get_const_values();
-    auto c = batch_csr_mtx->get_const_col_idxs();
-    auto r = batch_csr_mtx->get_const_row_ptrs();
-    ASSERT_EQ(batch_csr_mtx->get_num_batch_entries(), 2);
-    ASSERT_EQ(batch_csr_mtx->get_size().at(0), gko::dim<2>(3, 3));
-    ASSERT_EQ(batch_csr_mtx->get_size().at(1), gko::dim<2>(3, 3));
-    ASSERT_EQ(batch_csr_mtx->get_num_stored_elements(), 10);
-    EXPECT_EQ(r[0], 0);
-    EXPECT_EQ(r[1], 2);
-    EXPECT_EQ(r[2], 3);
-    EXPECT_EQ(r[3], 5);
-    EXPECT_EQ(c[0], 0);
-    EXPECT_EQ(c[1], 2);
-    EXPECT_EQ(c[2], 1);
-    EXPECT_EQ(c[3], 1);
-    EXPECT_EQ(c[4], 2);
-    EXPECT_EQ(v[0], T{1.0});
-    EXPECT_EQ(v[1], T{3.0});
-    EXPECT_EQ(v[2], T{3.0});
-    EXPECT_EQ(v[3], T{1.0});
-    EXPECT_EQ(v[4], T{5.0});
-    EXPECT_EQ(v[5], T{2.0});
-    EXPECT_EQ(v[6], T{5.0});
-    EXPECT_EQ(v[7], T{1.0});
-    EXPECT_EQ(v[8], T{-1.0});
-    EXPECT_EQ(v[9], T{8.0});
-}
-
-
 TYPED_TEST(BatchMultiVector, ConvertsEmptyToPrecision)
 {
     using BatchMultiVector = typename TestFixture::Mtx;
@@ -888,135 +412,6 @@ TYPED_TEST(BatchMultiVector, MovesEmptyToPrecision)
     empty->move_to(res.get());
 
     ASSERT_FALSE(res->get_num_batch_entries());
-}
-
-
-TYPED_TEST(BatchMultiVector, ConvertsEmptyMatrixToCsr)
-{
-    using BatchMultiVector = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    using BatchCsr = typename gko::matrix::BatchCsr<T, gko::int32>;
-    auto empty = BatchMultiVector::create(this->exec);
-    auto res = BatchCsr::create(this->exec);
-
-    empty->convert_to(res.get());
-
-    ASSERT_EQ(res->get_num_stored_elements(), 0);
-    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
-    ASSERT_FALSE(res->get_num_batch_entries());
-}
-
-
-TYPED_TEST(BatchMultiVector, MovesEmptyMatrixToCsr)
-{
-    using BatchMultiVector = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    using BatchCsr = typename gko::matrix::BatchCsr<T, gko::int32>;
-    auto empty = BatchMultiVector::create(this->exec);
-    auto res = BatchCsr::create(this->exec);
-
-    empty->move_to(res.get());
-
-    ASSERT_EQ(res->get_num_stored_elements(), 0);
-    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
-    ASSERT_FALSE(res->get_num_batch_entries());
-}
-
-
-TYPED_TEST(BatchMultiVector, ConvertsToBatchDiagonal)
-{
-    using BDense = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    using BDiag = gko::matrix::BatchDiagonal<T>;
-    auto vec = gko::batch_initialize<BDense>(
-        {I<T>({2.0, 3.0, -1.0}), I<T>({1.0, -2.0, 8.0})}, this->exec);
-    auto diag = BDiag::create(this->exec);
-
-    vec->convert_to(diag.get());
-
-    auto check_sz = gko::batch_dim<2>{2, gko::dim<2>{3}};
-    ASSERT_EQ(diag->get_size(), check_sz);
-    auto diag_vals = diag->get_const_values();
-    ASSERT_EQ(diag_vals[0], T{2.0});
-    ASSERT_EQ(diag_vals[1], T{3.0});
-    ASSERT_EQ(diag_vals[2], T{-1.0});
-    ASSERT_EQ(diag_vals[3], T{1.0});
-    ASSERT_EQ(diag_vals[4], T{-2.0});
-    ASSERT_EQ(diag_vals[5], T{8.0});
-}
-
-
-TYPED_TEST(BatchMultiVector, MovesToBatchDiagonal)
-{
-    using BDense = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    using BDiag = gko::matrix::BatchDiagonal<T>;
-    auto vec = gko::batch_initialize<BDense>(
-        {I<T>({2.0, 3.0, -1.0}), I<T>({1.0, -2.0, 8.0})}, this->exec);
-    auto vec_ptr = vec->get_const_values();
-    auto diag = BDiag::create(this->exec);
-
-    vec->move_to(diag.get());
-
-    auto check_sz = gko::batch_dim<2>{2, gko::dim<2>{3}};
-    ASSERT_EQ(diag->get_size(), check_sz);
-    auto diag_vals = diag->get_const_values();
-    ASSERT_EQ(diag_vals, vec_ptr);
-    ASSERT_NE(diag_vals, vec->get_const_values());
-    ASSERT_EQ(vec->get_num_batch_entries(), 0);
-}
-
-
-TYPED_TEST(BatchMultiVector, SquareMatrixIsTransposable)
-{
-    using Mtx = typename TestFixture::Mtx;
-    auto trans = this->mtx_4->transpose();
-    auto trans_as_batch_multi_vector = static_cast<Mtx*>(trans.get());
-
-    auto utb = trans_as_batch_multi_vector->unbatch();
-    GKO_ASSERT_MTX_NEAR(utb[0].get(),
-                        l({{1.0, 6.0, 6.0}, {1.5, 1.0, 1.0}, {3.0, 5.0, 5.5}}),
-                        r<TypeParam>::value);
-    GKO_ASSERT_MTX_NEAR(
-        utb[1].get(), l({{2.0, 4.0, -1.25}, {-2.0, 3.0, 3.0}, {1.5, 2.2, 0.5}}),
-        r<TypeParam>::value);
-}
-
-
-TYPED_TEST(BatchMultiVector, NonSquareMatrixIsTransposable)
-{
-    using Mtx = typename TestFixture::Mtx;
-    auto trans = this->mtx_5->transpose();
-    auto trans_as_batch_multi_vector = static_cast<Mtx*>(trans.get());
-
-    auto utb = trans_as_batch_multi_vector->unbatch();
-    GKO_ASSERT_MTX_NEAR(utb[0].get(), l({{1.0, 6.0, 7.0}, {1.5, 1.0, -4.5}}),
-                        r<TypeParam>::value);
-    GKO_ASSERT_MTX_NEAR(utb[1].get(), l({{2.0, 1.0, 4.0}, {-2.0, 3.0, 3.0}}),
-                        r<TypeParam>::value);
-}
-
-
-TYPED_TEST(BatchMultiVector, SquareMatrixAddScaledIdentity)
-{
-    using T = typename TestFixture::value_type;
-    using Mtx = typename TestFixture::Mtx;
-    auto mtx = gko::batch_initialize<Mtx>(
-        {{I<T>({1.0, -1.0, 1.5}), I<T>({-2.0, 0.0, 3.0}),
-          I<T>({1.2, -0.5, 1.0})},
-         {{1.0, -2.0, -0.5}, {1.0, -2.5, 4.0}, {3.0, 0.0, -1.5}}},
-        this->exec);
-    auto alpha = gko::batch_initialize<Mtx>({{2.0}, {-2.0}}, this->exec);
-    auto beta = gko::batch_initialize<Mtx>({{3.0}, {-1.0}}, this->exec);
-    auto sol_mtx = gko::batch_initialize<Mtx>(
-        {{I<T>({5.0, -3.0, 4.5}), I<T>({-6.0, 2.0, 9.0}),
-          I<T>({3.6, -1.5, 5.0})},
-         {{-3.0, 2.0, 0.5}, {-1.0, 0.5, -4.0}, {-3.0, 0.0, -0.5}}},
-        this->exec);
-
-    mtx->add_scaled_identity(alpha.get(), beta.get());
-
-    GKO_ASSERT_BATCH_MTX_NEAR(mtx, sol_mtx, r<T>::value);
 }
 
 
