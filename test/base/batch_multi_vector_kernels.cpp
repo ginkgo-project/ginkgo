@@ -49,9 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-#ifndef GKO_COMPILING_DPCPP
-
-
 class BatchMultiVector : public CommonTestFixture {
 protected:
     using vtype = double;
@@ -144,45 +141,12 @@ protected:
 };
 
 
-TEST_F(BatchMultiVector, SingleVectorAppyIsEquivalentToRef)
-{
-    set_up_apply_data(1);
-
-    x->apply(y.get(), expected.get());
-    dx->apply(dy.get(), dresult.get());
-
-    GKO_ASSERT_BATCH_MTX_NEAR(dresult, expected, 1e-14);
-}
-
-
-TEST_F(BatchMultiVector, SingleVectorAdvancedAppyIsEquivalentToRef)
-{
-    set_up_apply_data(1);
-
-    x->apply(alpha.get(), y.get(), beta.get(), expected.get());
-    dx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
-
-    GKO_ASSERT_BATCH_MTX_NEAR(dresult, expected, 1e-14);
-}
-
-
 TEST_F(BatchMultiVector, SingleVectorAddScaledIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
     x->add_scaled(alpha.get(), y.get());
     dx->add_scaled(dalpha.get(), dy.get());
-
-    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
-}
-
-
-TEST_F(BatchMultiVector, SingleVectorAddScaleIsEquivalentToRef)
-{
-    set_up_vector_data(1);
-
-    x->add_scale(alpha.get(), y.get(), beta.get());
-    dx->add_scale(dalpha.get(), dy.get(), dbeta.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
 }
@@ -199,34 +163,13 @@ TEST_F(BatchMultiVector, MultipleVectorAddScaledIsEquivalentToRef)
 }
 
 
-TEST_F(BatchMultiVector, MultipleVectorAddScaleIsEquivalentToRef)
-{
-    set_up_vector_data(20);
-
-    x->add_scale(alpha.get(), y.get(), beta.get());
-    dx->add_scale(dalpha.get(), dy.get(), dbeta.get());
-
-    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
-}
-
-
-TEST_F(BatchMultiVector, MultipleVectorAddScaledWithDifferentAlphaIsEquivalentToRef)
+TEST_F(BatchMultiVector,
+       MultipleVectorAddScaledWithDifferentAlphaIsEquivalentToRef)
 {
     set_up_vector_data(20, true);
 
     x->add_scaled(alpha.get(), y.get());
     dx->add_scaled(dalpha.get(), dy.get());
-
-    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
-}
-
-
-TEST_F(BatchMultiVector, MultipleVectorAddScaleWithDifferentScalarsIsEquivalentToRef)
-{
-    set_up_vector_data(20, true);
-
-    x->add_scale(alpha.get(), y.get(), beta.get());
-    dx->add_scale(dalpha.get(), dy.get(), dbeta.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
 }
@@ -329,9 +272,10 @@ TEST_F(BatchMultiVector, CopySingleIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
-    gko::kernels::reference::batch_multi_vector::copy(this->ref, x.get(), y.get());
+    gko::kernels::reference::batch_multi_vector::copy(this->ref, x.get(),
+                                                      y.get());
     gko::kernels::EXEC_NAMESPACE::batch_multi_vector::copy(this->exec, dx.get(),
-                                                     dy.get());
+                                                           dy.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dy, y, 0.0);
 }
@@ -341,92 +285,10 @@ TEST_F(BatchMultiVector, CopyIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
-    gko::kernels::reference::batch_multi_vector::copy(this->ref, x.get(), y.get());
+    gko::kernels::reference::batch_multi_vector::copy(this->ref, x.get(),
+                                                      y.get());
     gko::kernels::EXEC_NAMESPACE::batch_multi_vector::copy(this->exec, dx.get(),
-                                                     dy.get());
+                                                           dy.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dy, y, 0.0);
 }
-
-
-TEST_F(BatchMultiVector, BatchScaleIsEquivalentToRef)
-{
-    using BDiag = gko::matrix::BatchDiagonal<vtype>;
-    const int num_rhs = 20;
-    set_up_vector_data(num_rhs);
-
-    const int num_rows_in_mat = x->get_size().at(0)[0];
-    const auto left =
-        gen_mtx<BDiag>(batch_size, num_rows_in_mat, num_rows_in_mat);
-    const auto rght = gen_mtx<BDiag>(batch_size, num_rhs, num_rhs);
-    auto dleft = BDiag::create(this->exec);
-    dleft->copy_from(left.get());
-    auto drght = BDiag::create(this->exec);
-    drght->copy_from(rght.get());
-
-    gko::kernels::reference::batch_multi_vector::batch_scale(this->ref, left.get(),
-                                                       rght.get(), x.get());
-    gko::kernels::EXEC_NAMESPACE::batch_multi_vector::batch_scale(
-        this->exec, dleft.get(), drght.get(), dx.get());
-
-    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
-}
-
-
-TEST_F(BatchMultiVector, TransposeIsEquivalentToRef)
-{
-    const int nrows = 11;
-    const int ncols = 6;
-    const size_t nbatch = 5;
-    const auto orig = gen_mtx<Mtx>(nbatch, nrows, ncols);
-    auto corig = Mtx::create(exec);
-    corig->copy_from(orig.get());
-
-    auto trans = orig->transpose();
-    auto ctrans = corig->transpose();
-
-    auto dtrans = static_cast<const Mtx*>(trans.get());
-    auto dctrans = static_cast<const Mtx*>(ctrans.get());
-    GKO_ASSERT_BATCH_MTX_NEAR(dtrans, dctrans, 0.0);
-}
-
-
-TEST_F(BatchMultiVector, ConjugateTransposeIsEquivalentToRef)
-{
-    const int nrows = 11;
-    const int ncols = 6;
-    const size_t nbatch = 5;
-    const auto orig = gen_mtx<Mtx>(nbatch, nrows, ncols);
-    auto corig = Mtx::create(exec);
-    corig->copy_from(orig.get());
-
-    auto trans = orig->conj_transpose();
-    auto ctrans = corig->conj_transpose();
-
-    auto dtrans = static_cast<const Mtx*>(trans.get());
-    auto dctrans = static_cast<const Mtx*>(ctrans.get());
-    GKO_ASSERT_BATCH_MTX_NEAR(dtrans, dctrans, 0.0);
-}
-
-
-TEST_F(BatchMultiVector, AddScaledIdentityNonSquareIsEquivalentToReference)
-{
-    set_up_apply_data();
-    const gko::size_type batchsize = 10;
-    const gko::size_type num_rows = 62;
-    const gko::size_type num_cols = 51;
-    auto rmtx = gko::test::generate_uniform_batch_random_matrix<Mtx>(
-        batchsize, num_rows, num_cols,
-        std::uniform_int_distribution<>(num_cols, num_cols),
-        std::normal_distribution<>(-1.0, 1.0), rand_engine, true, ref);
-    auto dmtx = Mtx::create(exec);
-    dmtx->copy_from(rmtx.get());
-
-    rmtx->add_scaled_identity(alpha.get(), beta.get());
-    dmtx->add_scaled_identity(dalpha.get(), dbeta.get());
-
-    GKO_ASSERT_BATCH_MTX_NEAR(rmtx, dmtx, 1e-15)
-}
-
-
-#endif
