@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.17 FATAL_ERROR)
 add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
 include(${PROJECT_SOURCE_DIR}/cmake/template_instantiation.cmake)
 add_instantiation_files(. matrix/csr_kernels.instantiate.cu CSR_INSTANTIATE)
