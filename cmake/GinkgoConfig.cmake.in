@@ -176,6 +176,7 @@ endif()
 # For details, see https://gitlab.kitware.com/cmake/cmake/issues/18614
 if((NOT GINKGO_BUILD_SHARED_LIBS) AND GINKGO_BUILD_CUDA)
     enable_language(CUDA)
+    find_package(CUDAToolkit REQUIRED)
     find_package(NVTX REQUIRED)
 endif()
 
