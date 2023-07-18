@@ -45,12 +45,25 @@ target_sources(ginkgo_dpcpp
     preconditioner/jacobi_generate_kernel.dp.cpp
     preconditioner/jacobi_kernels.dp.cpp
     preconditioner/jacobi_simple_apply_kernel.dp.cpp
+    preconditioner/batch_identity_kernels.dp.cpp
+    preconditioner/batch_ilu_isai_kernels.dp.cpp
+    preconditioner/batch_ilu_kernels.dp.cpp
+    preconditioner/batch_isai_kernels.dp.cpp
+    preconditioner/batch_jacobi_kernels.dp.cpp
     reorder/rcm_kernels.dp.cpp
     solver/cb_gmres_kernels.dp.cpp
     solver/idr_kernels.dp.cpp
     solver/lower_trs_kernels.dp.cpp
     solver/multigrid_kernels.dp.cpp
     solver/upper_trs_kernels.dp.cpp
+    solver/batch_bicgstab_kernels.dp.cpp
+    solver/batch_cg_kernels.dp.cpp
+    solver/batch_direct_kernels.dp.cpp
+    solver/batch_gmres_kernels.dp.cpp
+    solver/batch_idr_kernels.dp.cpp
+    solver/batch_lower_trs_kernels.dp.cpp
+    solver/batch_richardson_kernels.dp.cpp
+    solver/batch_upper_trs_kernels.dp.cpp
     stop/criterion_kernels.dp.cpp
     stop/residual_norm_kernels.dp.cpp
     ${GKO_UNIFIED_COMMON_SOURCES}
@@ -81,10 +94,8 @@ configure_file(preconditioner/jacobi_common.hpp.in preconditioner/jacobi_common.
 ginkgo_compile_features(ginkgo_dpcpp)
 target_compile_definitions(ginkgo_dpcpp PRIVATE GKO_COMPILING_DPCPP _ONEDPL_COMPILE_KERNEL=0)
 
-set(GINKGO_DPCPP_FLAGS "-fsycl")
 set(GINKGO_DPCPP_FLAGS ${GINKGO_DPCPP_FLAGS} PARENT_SCOPE)
 target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_DPCPP_FLAGS}")
-target_link_options(ginkgo_dpcpp PRIVATE "${GINKGO_DPCPP_FLAGS}")
 target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_COMPILER_FLAGS}")
 # Note: add MKL as PRIVATE not PUBLIC (MKL example shows) to avoid propagating
 # find_package(MKL) everywhere when linking ginkgo (see the MKL example
