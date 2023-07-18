@@ -301,16 +301,16 @@ __global__ void apply_kernel(
     //     V_sh, static_cast<size_type>(nrhs), nrows * (restart + 1), nrhs};
     ValueType* V_sh;
 
-    // extern __shared__ char local_mem_sh[];
+    extern __shared__ char local_mem_sh[];
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
         const int gmem_offset =
             ibatch * sconf.gmem_stride_bytes / sizeof(ValueType);
 
-        // if constexpr (n_shared >= 1)
-        //     r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
-        // else
-        r_sh = workspace + gmem_offset;
+        if constexpr (n_shared >= 1)
+            r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
+        else
+            r_sh = workspace + gmem_offset;
         //
         if constexpr (n_shared == 1)
             z_sh = workspace + gmem_offset;
