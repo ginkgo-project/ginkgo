@@ -56,7 +56,7 @@ set(GINKGO_VERBOSE_LEVEL "1" CACHE STRING
 if(MSVC)
     set(GINKGO_COMPILER_FLAGS "" CACHE STRING
         "Set the required CXX compiler flags, mainly used for warnings. Current default is ``")
-elseif(GINKGO_BUILD_DPCPP OR CMAKE_CXX_COMPILER MATCHES "dpcpp|icpx")
+elseif(GINKGO_BUILD_DPCPP OR CMAKE_CXX_COMPILER MATCHES "dpcpp")
     # For now always use `-ffp-model=precise` with DPC++. This can be removed when
     # the floating point issues are fixed.
     set(GINKGO_COMPILER_FLAGS "-Wpedantic;-ffp-model=precise" CACHE STRING
@@ -123,11 +123,17 @@ endif()
 
 # For now, PGI/NVHPC nvc++ compiler doesn't seem to support
 # `#pragma omp declare reduction`
-#
-# The math with optimization level -O2 doesn't follow IEEE standard, so we
-# enable that back as well.
-if (CMAKE_CXX_COMPILER_ID MATCHES "PGI|NVHPC")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Kieee")
+if (${CMAKE_CXX_COMPILER_ID} MATCHES "PGI|NVHPC")
+    message(STATUS "OpenMP: Switching to OFF because PGI/NVHPC nvc++ compiler lacks important features.")
+    set(GINKGO_BUILD_OMP OFF)
+endif()
+
+#Batch Ginkgo options:
+option(GINKGO_CUDA_BATCH_GMRES_USE_NO_SHMEM "Use no shared memory in the batch gmres solver kernels (Might be necessary for large matrices)" OFF)
+if(GINKGO_CUDA_BATCH_GMRES_USE_NO_SHMEM)
+    set(GINKGO_CUDA_BATCH_GMRES_HAVE_NO_SHMEM 1)
+else()
+    set(GINKGO_CUDA_BATCH_GMRES_HAVE_NO_SHMEM 0)
 endif()
 
 set(GINKGO_CIRCULAR_DEPS_FLAGS "-Wl,--no-undefined")
@@ -210,12 +216,6 @@ set(GINKGO_HAVE_VTUNE 0)
 find_package(VTune)
 if(VTune_FOUND)
     set(GINKGO_HAVE_VTUNE 1)
-endif()
-# Automatically find METIS
-set(GINKGO_HAVE_METIS 0)
-find_package(METIS)
-if(METIS_FOUND)
-    set(GINKGO_HAVE_METIS 1)
 endif()
 # Automatically detect ROCTX (see hip.cmake)
 set(GINKGO_HAVE_ROCTX 0)
@@ -302,15 +302,19 @@ if(GINKGO_BUILD_DPCPP)
         set(GINKGO_DPCPP_MAJOR_VERSION "6")
         set(GINKGO_DPCPP_VERSION "6")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl")
-    elseif(CMAKE_CXX_COMPILER MATCHES "dpcpp")
+        # AoT
+        # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsycl -fsycl-targets=spir64 -Xsycl-target-backend '-device 12.60.7' -fsycl-max-parallel-link-jobs=8 -fsycl-unnamed-lambda")
+    else()
         ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_MAJOR_VERSION __LIBSYCL_MAJOR_VERSION)
         ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_VERSION __SYCL_COMPILER_VERSION)
     endif()
-    get_filename_component(GINKGO_SYCL_DIR ${CMAKE_CXX_COMPILER} DIRECTORY)
-    set(SYCL_INCLUDE_PATH "${GINKGO_SYCL_DIR}/../include;${GINKGO_SYCL_DIR}/../include/sycl")
 else()
     set(GINKGO_DPCPP_MAJOR_VERSION "0")
 endif()
+
+configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/batch_config.hpp.in
+    ${Ginkgo_BINARY_DIR}/include/ginkgo/batch_config.hpp @ONLY)
+
 configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
     ${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp @ONLY)
 
@@ -449,10 +453,10 @@ if(NOT "${CMAKE_GENERATOR_TOOLSET}" STREQUAL "")
 endif()
 add_custom_target(test_install
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} ${TOOLSET}
-    -S${GINKGO_TEST_INSTALL_SRC_DIR}
+    -H${GINKGO_TEST_INSTALL_SRC_DIR}
     -B${GINKGO_TEST_INSTALL_BIN_DIR}
     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-    -DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX}
+    -DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX}/${GINKGO_INSTALL_CONFIG_DIR}
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
     -DCMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}
@@ -472,7 +476,7 @@ add_custom_target(test_install
 
 add_custom_target(test_exportbuild
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} ${TOOLSET}
-    -S${GINKGO_TEST_EXPORTBUILD_SRC_DIR}
+    -H${GINKGO_TEST_EXPORTBUILD_SRC_DIR}
     -B${GINKGO_TEST_EXPORTBUILD_BIN_DIR}
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
@@ -490,7 +494,7 @@ add_custom_target(test_exportbuild
 
 add_custom_target(test_pkgconfig
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} ${TOOLSET}
-    -S${GINKGO_TEST_PKGCONFIG_SRC_DIR}
+    -H${GINKGO_TEST_PKGCONFIG_SRC_DIR}
     -B${GINKGO_TEST_PKGCONFIG_BIN_DIR}
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
