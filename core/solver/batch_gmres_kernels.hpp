@@ -211,7 +211,7 @@ StorageConfig compute_shared_storage(const int shared_mem_per_blk,
     if (rem_shared <= 0) {
         set_gmem_stride_bytes<align_bytes, ValueType>(
             sconf, num_rmain_vecs * mvecs_size_byte,
-            num_rrot_vecs * mvecs_size_byte, prec_storage, subspace_storage,
+            num_rrot_vecs * rvecs_size_byte, prec_storage, subspace_storage,
             hess_storage);
         return sconf;
     }

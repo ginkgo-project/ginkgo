@@ -161,7 +161,7 @@ public:
         const size_t prec_size =
             PrecType::dynamic_work_size(shared_gap, a.num_nnz);
         const size_t subspace_size = a.num_rows * (restart + 1);
-        const size_t hess_size = restart * (restart + 1);
+        const size_t hess_size = restart * (restart + 2);
         const auto sconf =
             gko::kernels::batch_gmres::compute_shared_storage<PrecType,
                                                               value_type>(
@@ -228,6 +228,11 @@ public:
             }
         } else {
             switch (n_shared) {
+            case 0:
+                launch_apply_kernel<StopType, 32, 0, 0, 0>(
+                    sconf, logger, prec, a, b.values, x.values, workspace_data,
+                    group_size, shared_size);
+                break;
             case 1:
                 launch_apply_kernel<StopType, 32, 1, 0, 0>(
                     sconf, logger, prec, a, b.values, x.values, workspace_data,
