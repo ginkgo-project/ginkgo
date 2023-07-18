@@ -169,6 +169,8 @@ public:
         int num_main_vecs_shared = min(sconf.n_shared, 5);
         int num_rot_vecs_shared = min(sconf.n_shared - num_main_vecs_shared, 4);
 
+        if (num_rot_vecs_shared < 0) num_rot_vecs_shared == 0;
+
         const size_t shared_size = num_main_vecs_shared * shared_gap +
                                    num_rot_vecs_shared * (restart + 1) +
                                    (sconf.hess_shared ? hess_size : 0) +
