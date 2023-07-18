@@ -389,7 +389,7 @@ __dpct_inline__ void apply_kernel(
     if constexpr (n_shared == 8)
         s_sh = workspace + gmem_offset;
     else
-        s_sh = y_sh + restart;
+        s_sh = y_sh + restart + 1;
     //
     if constexpr (n_shared == 9)
         H_sh = workspace + gmem_offset;
@@ -399,12 +399,12 @@ __dpct_inline__ void apply_kernel(
     if constexpr (n_shared == 10)
         V_sh = workspace + gmem_offset;
     else
-        V_sh = H_sh + restart * (restart + 1);
+        V_sh = H_sh + restart * (restart + 2);
     //
     if constexpr (prec_shared_bool && n_shared == 9)
         prec_work_sh = s_sh + restart + 1;
     else if constexpr (prec_shared_bool && n_shared == 10)
-        prec_work_sh = H_sh + restart * (restart + 1);
+        prec_work_sh = H_sh + restart * (restart + 2);
     else if constexpr (!prec_shared_bool && n_shared == 10)
         prec_work_sh = workspace + gmem_offset;
     else
