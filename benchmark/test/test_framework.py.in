@@ -2,7 +2,7 @@
 import subprocess
 import difflib
 import json
-import typing
+from typing import List, Tuple
 import re
 import pathlib
 import sys
@@ -69,7 +69,7 @@ def sanitize_json(parsed_input, sanitize_all: bool = False):
         return parsed_input
 
 
-def sanitize_json_in_text(lines: list[str]) -> list[str]:
+def sanitize_json_in_text(lines: List[str]) -> List[str]:
     """Sanitizes all occurrences of JSON content inside text input.
 
     Takes a list of text lines and detects any pretty-printed JSON output inside
@@ -99,7 +99,8 @@ def sanitize_json_in_text(lines: list[str]) -> list[str]:
         for begin, end, do_sanitize in combined_pairs
     ]
     reconstructed = [
-        json.dumps(sanitize_json(json.loads(t)), indent=4) if do_sanitize else t
+        json.dumps(sanitize_json(json.loads(t)),
+                   indent=4) if do_sanitize else t
         for t, do_sanitize in texts
     ]
     return "\n".join(reconstructed).split("\n")
@@ -107,9 +108,9 @@ def sanitize_json_in_text(lines: list[str]) -> list[str]:
 
 def determinize_text(
     input: str,
-    ignore_patterns: list[str],
-    replace_patterns: list[(str, str)],
-) -> list[str]:
+    ignore_patterns: List[str],
+    replace_patterns: List[Tuple[str, str]],
+) -> List[str]:
     """Sanitizes the given input string.
 
     Every input line matching an entry from ignore_patterns will be removed.
@@ -143,11 +144,11 @@ def determinize_text(
 
 
 def compare_output_impl(
-    args: list[str],
+    args: List[str],
     expected_stdout: str,
     expected_stderr: str,
     stdin: str,
-    launcher_flags: list[str],
+    launcher_flags: List[str],
 ):
     args = [sys.argv[1]] + args
     expected_stdout = str(sourcepath / "reference" / expected_stdout)
@@ -214,7 +215,8 @@ def compare_output_impl(
         print("FAIL: stdout differs")
         print(
             "\n".join(
-                difflib.unified_diff(expected_stdout_processed, result_stdout_processed)
+                difflib.unified_diff(
+                    expected_stdout_processed, result_stdout_processed)
             )
         )
         failed = True
@@ -222,7 +224,8 @@ def compare_output_impl(
         print("FAIL: stderr differs")
         print(
             "\n".join(
-                difflib.unified_diff(expected_stderr_processed, result_stderr_processed)
+                difflib.unified_diff(
+                    expected_stderr_processed, result_stderr_processed)
             )
         )
         failed = True
@@ -232,7 +235,7 @@ def compare_output_impl(
 
 
 def compare_output(
-    args: list[str], expected_stdout: str, expected_stderr: str, stdin: str = ""
+    args: List[str], expected_stdout: str, expected_stderr: str, stdin: str = ""
 ):
     compare_output_impl(
         args,
