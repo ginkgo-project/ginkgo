@@ -60,8 +60,8 @@ namespace gko {
 #include "common/cuda_hip/base/executor.hpp.inc"
 
 
-std::unique_ptr<CudaAllocatorBase> allocator_from_mode(int device_id,
-                                                       allocation_mode mode)
+std::unique_ptr<CudaAllocatorBase> cuda_allocator_from_mode(
+    int device_id, allocation_mode mode)
 {
     switch (mode) {
     case allocation_mode::device:
@@ -82,8 +82,8 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
     int device_id, std::shared_ptr<Executor> master, bool device_reset,
     allocation_mode alloc_mode, cudaStream_t stream)
 {
-    return create(device_id, master, allocator_from_mode(device_id, alloc_mode),
-                  stream);
+    return create(device_id, master,
+                  cuda_allocator_from_mode(device_id, alloc_mode), stream);
 }
 
 

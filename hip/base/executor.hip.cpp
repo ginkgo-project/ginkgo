@@ -56,8 +56,8 @@ namespace gko {
 #include "common/cuda_hip/base/executor.hpp.inc"
 
 
-std::unique_ptr<HipAllocatorBase> allocator_from_mode(int device_id,
-                                                      allocation_mode mode)
+std::unique_ptr<HipAllocatorBase> hip_allocator_from_mode(int device_id,
+                                                          allocation_mode mode)
 {
     switch (mode) {
     case allocation_mode::device:
@@ -79,7 +79,7 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
     allocation_mode alloc_mode, hipStream_t stream)
 {
     return create(device_id, std::move(master),
-                  allocator_from_mode(device_id, alloc_mode), stream);
+                  hip_allocator_from_mode(device_id, alloc_mode), stream);
 }
 
 
