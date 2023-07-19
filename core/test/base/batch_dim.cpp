@@ -85,6 +85,16 @@ TEST(BatchDim, NotEqualWorks)
 }
 
 
+TEST(BatchDim, CanGetCumulativeOffsets)
+{
+    auto d = gko::batch_dim<2>(3, gko::dim<2>(4, 2));
+
+    ASSERT_EQ(d.get_cumulative_offset(0), 0);
+    ASSERT_EQ(d.get_cumulative_offset(1), 8);
+    ASSERT_EQ(d.get_cumulative_offset(2), 16);
+}
+
+
 TEST(BatchDim, TransposesBatchDimensions)
 {
     ASSERT_EQ(gko::transpose(gko::batch_dim<2>(2, gko::dim<2>{4, 2})),
