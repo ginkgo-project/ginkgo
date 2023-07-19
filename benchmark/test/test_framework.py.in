@@ -129,8 +129,8 @@ def determinize_text(
         for pattern, replacement in replace_patterns:
             line = re.sub(pattern, replacement, line)
         keep = True
-        for pattern in patterns:
-            if re.match(pattern, line):
+        for compiled_pattern in patterns:
+            if re.match(compiled_pattern, line):
                 keep = False
                 break
         if keep:
