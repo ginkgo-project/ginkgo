@@ -114,13 +114,14 @@ protected:
             gko::HipExecutor::get_num_devices() - 1, ref,
             std::make_shared<gko::HipAllocator>(), other_stream.get());
         hip3 = gko::HipExecutor::create(
-            0, ref, std::make_shared<gko::HipAllocator>(), stream.get());
+            0, ref, std::make_shared<gko::HipUnifiedAllocator>(0),
+            stream.get());
 #else
         hip = gko::HipExecutor::create(0, ref);
         hip2 = gko::HipExecutor::create(gko::HipExecutor::get_num_devices() - 1,
                                         ref);
-        hip3 = gko::HipExecutor::create(0, ref,
-                                        std::make_shared<gko::HipAllocator>());
+        hip3 = gko::HipExecutor::create(
+            0, ref, std::make_shared<gko::HipUnifiedAllocator>(0));
 #endif
     }
 
