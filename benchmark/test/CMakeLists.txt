@@ -22,8 +22,5 @@ add_benchmark_test(solver)
 add_benchmark_test(sparse_blas)
 add_benchmark_test(spmv)
 if (GINKGO_BUILD_MPI)
-    # the distributed tests are still failing due to unstable output
-    #add_benchmark_test(multi_vector_distributed)
-    #add_benchmark_test(spmv_distributed)
     add_benchmark_test(solver_distributed)
 endif()
