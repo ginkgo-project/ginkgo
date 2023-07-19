@@ -62,6 +62,7 @@ protected:
     static void assert_equal_to_original_mtx(
         gko::BatchMultiVector<value_type>* m)
     {
+        EXPECT_EQ(m->get_values()[0], value_type{-1.0});
         ASSERT_EQ(m->get_num_batch_entries(), 2);
         ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 3));
         EXPECT_EQ(m->at(0, 0, 0), value_type{-1.0});
@@ -81,7 +82,7 @@ protected:
     static void assert_empty(gko::BatchMultiVector<value_type>* m)
     {
         ASSERT_EQ(m->get_num_batch_entries(), 0);
-        ASSERT_EQ(m->get_common_size(), {});
+        ASSERT_EQ(m->get_common_size(), gko::dim<2>{});
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -102,6 +103,46 @@ TYPED_TEST(BatchMultiVector, ReturnsNullValuesArrayWhenEmpty)
 {
     auto empty = gko::BatchMultiVector<TypeParam>::create(this->exec);
     ASSERT_EQ(empty->get_const_values(), nullptr);
+}
+
+
+TYPED_TEST(BatchMultiVector, KnowsItsSizeAndValues)
+{
+    this->assert_equal_to_original_mtx(this->mtx.get());
+}
+
+
+TYPED_TEST(BatchMultiVector, CanBeCopied)
+{
+    auto mtx_copy = gko::BatchMultiVector<TypeParam>::create(this->exec);
+    mtx_copy->copy_from(this->mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->mtx->at(0, 0, 0) = 7;
+    this->mtx->at(0, 1) = 7;
+    this->assert_equal_to_original_mtx(mtx_copy.get());
+}
+
+
+TYPED_TEST(BatchMultiVector, CanBeMoved)
+{
+    auto mtx_copy = gko::BatchMultiVector<TypeParam>::create(this->exec);
+    this->mtx->move_to(mtx_copy.get());
+    this->assert_equal_to_original_mtx(mtx_copy.get());
+}
+
+
+TYPED_TEST(BatchMultiVector, CanBeCloned)
+{
+    auto mtx_clone = this->mtx->clone();
+    this->assert_equal_to_original_mtx(
+        dynamic_cast<decltype(this->mtx.get())>(mtx_clone.get()));
+}
+
+
+TYPED_TEST(BatchMultiVector, CanBeCleared)
+{
+    this->mtx->clear();
+    this->assert_empty(this->mtx.get());
 }
 
 
@@ -130,13 +171,17 @@ TYPED_TEST(BatchMultiVector, CanBeConstructedFromExistingData)
 
     auto m = gko::BatchMultiVector<TypeParam>::create(
         this->exec, gko::batch_dim<2>(2, gko::dim<2>(2, 2)),
-        gko::array<value_type>::view(this->exec, 4, data));
+        gko::array<value_type>::view(this->exec, 8, data));
 
     ASSERT_EQ(m->get_const_values(), data);
-    ASSERT_EQ(m->at(0, 0, 1), value_type{1.0});
-    ASSERT_EQ(m->at(0, 1, 2), value_type{2.0});
+    ASSERT_EQ(m->at(0, 0, 0), value_type{1.0});
+    ASSERT_EQ(m->at(0, 0, 1), value_type{2.0});
+    ASSERT_EQ(m->at(0, 1, 0), value_type{-1.0});
+    ASSERT_EQ(m->at(0, 1, 1), value_type{3.0});
+    ASSERT_EQ(m->at(1, 0, 0), value_type{4.0});
     ASSERT_EQ(m->at(1, 0, 1), value_type{-1.0});
-    ASSERT_EQ(m->at(1, 1, 2), value_type{3.0});
+    ASSERT_EQ(m->at(1, 1, 0), value_type{3.0});
+    ASSERT_EQ(m->at(1, 1, 1), value_type{5.0});
 }
 
 
@@ -153,15 +198,18 @@ TYPED_TEST(BatchMultiVector, CanBeConstructedFromExistingConstData)
     // clang-format on
 
     auto m = gko::BatchMultiVector<TypeParam>::create_const(
-        this->exec,
-        std::vector<gko::dim<2>>{gko::dim<2>{2, 2}, gko::dim<2>{2, 2}},
-        gko::array<value_type>::const_view(this->exec, 4, data));
+        this->exec, gko::batch_dim<2>(2, gko::dim<2>(2, 2)),
+        gko::array<value_type>::const_view(this->exec, 8, data));
 
     ASSERT_EQ(m->get_const_values(), data);
-    ASSERT_EQ(m->at(0, 0, 1), value_type{1.0});
-    ASSERT_EQ(m->at(0, 1, 2), value_type{2.0});
+    ASSERT_EQ(m->at(0, 0, 0), value_type{1.0});
+    ASSERT_EQ(m->at(0, 0, 1), value_type{2.0});
+    ASSERT_EQ(m->at(0, 1, 0), value_type{-1.0});
+    ASSERT_EQ(m->at(0, 1, 1), value_type{3.0});
+    ASSERT_EQ(m->at(1, 0, 0), value_type{4.0});
     ASSERT_EQ(m->at(1, 0, 1), value_type{-1.0});
-    ASSERT_EQ(m->at(1, 1, 2), value_type{3.0});
+    ASSERT_EQ(m->at(1, 1, 0), value_type{3.0});
+    ASSERT_EQ(m->at(1, 1, 1), value_type{5.0});
 }
 
 
@@ -222,30 +270,6 @@ TYPED_TEST(BatchMultiVector, CanBeConstructedFromDenseMatrices)
 }
 
 
-TYPED_TEST(BatchMultiVector, CanBeUnbatchedIntoDenseMatrices)
-{
-    using value_type = typename TestFixture::value_type;
-    using DenseMtx = typename TestFixture::DenseMtx;
-    using size_type = gko::size_type;
-    auto mat1 = gko::initialize<DenseMtx>({{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}},
-                                          this->exec);
-    auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
-                                          this->exec);
-
-    auto dense_mats = this->mtx->unbatch();
-
-
-    GKO_ASSERT_MTX_NEAR(dense_mats[0].get(), mat1.get(), 0.);
-    GKO_ASSERT_MTX_NEAR(dense_mats[1].get(), mat2.get(), 0.);
-}
-
-
-TYPED_TEST(BatchMultiVector, KnowsItsSizeAndValues)
-{
-    this->assert_equal_to_original_mtx(this->mtx.get());
-}
-
-
 TYPED_TEST(BatchMultiVector, CanBeListConstructed)
 {
     using value_type = typename TestFixture::value_type;
@@ -266,6 +290,7 @@ TYPED_TEST(BatchMultiVector, CanBeListConstructedByCopies)
     using value_type = typename TestFixture::value_type;
     auto m = gko::batch_initialize<gko::BatchMultiVector<TypeParam>>(
         2, I<value_type>({1.0, 2.0}), this->exec);
+
     ASSERT_EQ(m->get_num_batch_entries(), 2);
     ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 1));
     EXPECT_EQ(m->at(0, 0, 0), value_type{1.0});
@@ -298,37 +323,20 @@ TYPED_TEST(BatchMultiVector, CanBeDoubleListConstructed)
 }
 
 
-TYPED_TEST(BatchMultiVector, CanBeCopied)
+TYPED_TEST(BatchMultiVector, CanBeUnbatchedIntoDenseMatrices)
 {
-    auto mtx_copy = gko::BatchMultiVector<TypeParam>::create(this->exec);
-    mtx_copy->copy_from(this->mtx.get());
-    this->assert_equal_to_original_mtx(this->mtx.get());
-    this->mtx->at(0, 0, 0) = 7;
-    this->mtx->at(0, 1) = 7;
-    this->assert_equal_to_original_mtx(mtx_copy.get());
-}
+    using value_type = typename TestFixture::value_type;
+    using DenseMtx = typename TestFixture::DenseMtx;
+    using size_type = gko::size_type;
+    auto mat1 = gko::initialize<DenseMtx>({{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}},
+                                          this->exec);
+    auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
+                                          this->exec);
 
+    auto dense_mats = this->mtx->unbatch();
 
-TYPED_TEST(BatchMultiVector, CanBeMoved)
-{
-    auto mtx_copy = gko::BatchMultiVector<TypeParam>::create(this->exec);
-    mtx_copy->copy_from(std::move(this->mtx));
-    this->assert_equal_to_original_mtx(mtx_copy.get());
-}
-
-
-TYPED_TEST(BatchMultiVector, CanBeCloned)
-{
-    auto mtx_clone = this->mtx->clone();
-    this->assert_equal_to_original_mtx(
-        dynamic_cast<decltype(this->mtx.get())>(mtx_clone.get()));
-}
-
-
-TYPED_TEST(BatchMultiVector, CanBeCleared)
-{
-    this->mtx->clear();
-    this->assert_empty(this->mtx.get());
+    GKO_ASSERT_MTX_NEAR(dense_mats[0].get(), mat1.get(), 0.);
+    GKO_ASSERT_MTX_NEAR(dense_mats[1].get(), mat2.get(), 0.);
 }
 
 

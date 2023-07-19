@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/test/utils.hpp"
-#include "core/test/utils/batch.hpp"
+#include "core/test/utils/batch_helpers.hpp"
 #include "test/utils/executor.hpp"
 
 

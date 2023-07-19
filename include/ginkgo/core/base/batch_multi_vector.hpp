@@ -138,8 +138,7 @@ public:
         auto exec = this->get_executor();
         auto unbatch_mats = std::vector<std::unique_ptr<unbatch_type>>{};
         for (size_type b = 0; b < this->get_num_batch_entries(); ++b) {
-            auto mat = unbatch_type::create(exec, this->get_common_size(),
-                                            this->get_common_size()[1]);
+            auto mat = unbatch_type::create(exec, this->get_common_size());
             exec->copy_from(exec.get(), mat->get_num_stored_elements(),
                             this->get_const_values() +
                                 this->get_size().get_cumulative_offset(b),
@@ -484,7 +483,7 @@ protected:
     {
         // Ensure that the values array has the correct size
         auto num_elems = compute_num_elems(size);
-        GKO_ENSURE_IN_BOUNDS(num_elems, values_.get_num_elems());
+        GKO_ENSURE_IN_BOUNDS(num_elems, values_.get_num_elems() + 1);
     }
 
     /**
@@ -669,7 +668,7 @@ std::unique_ptr<Matrix> batch_initialize(
         ++batch;
     }
     auto mtx = Matrix::create(exec, std::forward<TArgs>(create_args)...);
-    tmp->move_to(mtx.get());
+    tmp->move_to(mtx);
     return mtx;
 }
 
@@ -703,17 +702,25 @@ std::unique_ptr<Matrix> batch_initialize(
 {
     using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
     size_type num_batch_entries = vals.size();
-    auto vals_begin = begin(vals);
-    size_type common_num_rows = vals_begin->size();
-    size_type common_num_cols = vals_begin->begin()->size();
-    auto common_size = dim<2>(common_num_rows, common_num_cols);
     size_type ind = 0;
+    size_type num_rows = 0;
+    size_type num_cols = 0;
+    gko::dim<2> common_size{};
+    size_type idx = 0;
     for (const auto& b : vals) {
-        auto num_rows = b.size();
-        auto num_cols = begin(b)->size();
+        num_rows = b.size();
+        num_cols = begin(b)->size();
+        if (idx == 0) {
+            common_size = dim<2>(num_rows, num_cols);
+        }
         auto b_size = dim<2>(num_rows, num_cols);
         GKO_ASSERT_EQUAL_DIMENSIONS(b_size, common_size);
+        ++idx;
     }
+
+    size_type common_num_rows = num_rows;
+    size_type common_num_cols = num_cols;
+    common_size = dim<2>(common_num_rows, common_num_cols);
     auto b_size = batch_dim<2>(num_batch_entries, common_size);
     auto tmp = batch_multi_vector::create(exec->get_master(), b_size);
     size_type batch = 0;
@@ -730,7 +737,7 @@ std::unique_ptr<Matrix> batch_initialize(
         ++batch;
     }
     auto mtx = Matrix::create(exec, std::forward<TArgs>(create_args)...);
-    tmp->move_to(mtx.get());
+    tmp->move_to(mtx);
     return mtx;
 }
 
@@ -777,7 +784,7 @@ std::unique_ptr<Matrix> batch_initialize(
         }
     }
     auto mtx = Matrix::create(exec, std::forward<TArgs>(create_args)...);
-    tmp->move_to(mtx.get());
+    tmp->move_to(mtx);
     return mtx;
 }
 
@@ -828,7 +835,7 @@ std::unique_ptr<Matrix> batch_initialize(
         }
     }
     auto mtx = Matrix::create(exec, std::forward<TArgs>(create_args)...);
-    tmp->move_to(mtx.get());
+    tmp->move_to(mtx);
     return mtx;
 }
 
