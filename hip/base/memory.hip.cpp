@@ -97,7 +97,7 @@ void HipAllocator::deallocate(void* dev_ptr)
 }
 
 
-#if HIP_VERSION_MAJOR >= 5
+#if HIP_VERSION >= 50200000
 
 
 HipAsyncAllocator::HipAsyncAllocator(hipStream_t stream) : stream_{stream} {}
@@ -121,7 +121,13 @@ void HipAsyncAllocator::deallocate(void* ptr)
 #else  // Fall back to regular allocation
 
 
-HipAsyncAllocator::HipAsyncAllocator(hipStream_t stream) : stream_{stream} {}
+HipAsyncAllocator::HipAsyncAllocator(hipStream_t stream) : stream_{stream}
+{
+#if GKO_VERBOSE_LEVEL >= 1
+    std::cerr << "This version of HIP does not support hipMallocAsync, "
+                 "please use HipAllocator instead of HipAsyncAllocator.\n";
+#endif
+}
 
 
 void* HipAsyncAllocator::allocate(size_type num_bytes)
