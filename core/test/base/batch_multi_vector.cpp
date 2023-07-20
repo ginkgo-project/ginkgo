@@ -60,9 +60,10 @@ protected:
 
 
     static void assert_equal_to_original_mtx(
-        gko::BatchMultiVector<value_type>* m)
+        const gko::BatchMultiVector<value_type>* m)
     {
-        EXPECT_EQ(m->get_values()[0], value_type{-1.0});
+        ASSERT_NE(m->get_const_values(), nullptr);
+        EXPECT_EQ(m->get_const_values()[0], value_type{-1.0});
         ASSERT_EQ(m->get_num_batch_entries(), 2);
         ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 3));
         EXPECT_EQ(m->at(0, 0, 0), value_type{-1.0});
@@ -108,6 +109,7 @@ TYPED_TEST(BatchMultiVector, ReturnsNullValuesArrayWhenEmpty)
 
 TYPED_TEST(BatchMultiVector, KnowsItsSizeAndValues)
 {
+    ASSERT_NE(this->mtx->get_const_values(), nullptr);
     this->assert_equal_to_original_mtx(this->mtx.get());
 }
 
