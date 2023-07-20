@@ -104,7 +104,7 @@ public:
      * @param other  The other matrix whose configuration needs to copied.
      */
     static std::unique_ptr<BatchMultiVector> create_with_config_of(
-        const BatchMultiVector* other)
+        ptr_param<const BatchMultiVector> other)
     {
         // De-referencing `other` before calling the functions (instead of
         // using operator `->`) is currently required to be compatible with
@@ -292,7 +292,7 @@ public:
      * of alpha (the number of columns of alpha has to match the number of
      * columns of the matrix).
      */
-    void scale(const BatchMultiVector<ValueType>* alpha)
+    void scale(ptr_param<const BatchMultiVector<ValueType>> alpha)
     {
         auto exec = this->get_executor();
         this->scale_impl(make_temporary_clone(exec, alpha).get());
@@ -308,8 +308,8 @@ public:
      * vector).
      * @param b  a matrix of the same dimension as this
      */
-    void add_scaled(const BatchMultiVector<ValueType>* alpha,
-                    const BatchMultiVector<ValueType>* b)
+    void add_scaled(ptr_param<const BatchMultiVector<ValueType>> alpha,
+                    ptr_param<const BatchMultiVector<ValueType>> b)
     {
         auto exec = this->get_executor();
         this->add_scaled_impl(make_temporary_clone(exec, alpha).get(),
@@ -328,9 +328,9 @@ public:
      * @param beta  Scalar(s), of the same size as alpha, to multiply this
      * matrix.
      */
-    void add_scale(const BatchMultiVector<ValueType>* alpha,
-                   const BatchMultiVector<ValueType>* a,
-                   const BatchMultiVector<ValueType>* beta);
+    void add_scale(ptr_param<const BatchMultiVector<ValueType>> alpha,
+                   ptr_param<const BatchMultiVector<ValueType>> a,
+                   ptr_param<const BatchMultiVector<ValueType>> beta);
 
     /**
      * Computes the column-wise dot product of each matrix in this batch and its
@@ -342,8 +342,8 @@ public:
      * product (the number of column in the vector must match the number of
      * columns of this)
      */
-    void compute_dot(const BatchMultiVector<ValueType>* b,
-                     BatchMultiVector<ValueType>* result) const
+    void compute_dot(ptr_param<const BatchMultiVector<ValueType>> b,
+                     ptr_param<BatchMultiVector<ValueType>> result) const
     {
         auto exec = this->get_executor();
         this->compute_dot_impl(make_temporary_clone(exec, b).get(),
@@ -358,7 +358,7 @@ public:
      *                of columns of this)
      */
     void compute_norm2(
-        BatchMultiVector<remove_complex<ValueType>>* result) const
+        ptr_param<BatchMultiVector<remove_complex<ValueType>>> result) const
     {
         auto exec = this->get_executor();
         this->compute_norm2_impl(make_temporary_clone(exec, result).get());
