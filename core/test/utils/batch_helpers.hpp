@@ -79,8 +79,8 @@ std::unique_ptr<MatrixType> generate_uniform_batch_random_matrix(
     using index_type = typename MatrixType::index_type;
 
     // generate sparsity pattern
-    matrix_data<value_type, index_type> sdata{gko::dim<2>{num_rows, num_cols},
-                                              {}};
+    matrix_data<value_type, index_type> in_data{gko::dim<2>{num_rows, num_cols},
+                                                {}};
 
     for (size_type row = 0; row < num_rows; ++row) {
         // randomly generate number of nonzeros in this row
@@ -106,33 +106,34 @@ std::unique_ptr<MatrixType> generate_uniform_batch_random_matrix(
             }
         }
 
-        std::for_each(
-            std::begin(col_idx), std::begin(col_idx) + nnz_in_row,
-            [&](size_type col) { sdata.nonzeros.emplace_back(row, col, 1.0); });
+        std::for_each(std::begin(col_idx), std::begin(col_idx) + nnz_in_row,
+                      [&](size_type col) {
+                          in_data.nonzeros.emplace_back(row, col, 1.0);
+                      });
     }
 
-    std::vector<matrix_data<value_type, index_type>> batchmtx;
-    batchmtx.reserve(batch_size);
+    std::vector<matrix_data<value_type, index_type>> batch_mtx;
+    batch_mtx.reserve(batch_size);
 
-    for (size_t ibatch = 0; ibatch < batch_size; ibatch++) {
-        matrix_data<value_type, index_type> data = sdata;
-        for (size_type iz = 0; iz < data.nonzeros.size(); ++iz) {
-            value_type valnz =
+    for (int batch = 0; batch < batch_size; batch++) {
+        matrix_data<value_type, index_type> data = in_data;
+        for (size_type nnz = 0; nnz < data.nonzeros.size(); ++nnz) {
+            value_type val =
                 gko::detail::get_rand_value<value_type>(value_dist, engine);
-            if (data.nonzeros[iz].column == data.nonzeros[iz].row &&
-                valnz == zero<value_type>()) {
-                valnz = 1.0;
+            if (data.nonzeros[nnz].column == data.nonzeros[nnz].row &&
+                val == zero<value_type>()) {
+                val = 1.0;
             }
-            data.nonzeros[iz].value = valnz;
+            data.nonzeros[nnz].value = val;
         }
 
         data.ensure_row_major_order();
-        batchmtx.emplace_back(std::move(data));
+        batch_mtx.emplace_back(std::move(data));
     }
 
     // convert to the correct matrix type
     auto result = MatrixType::create(exec, std::forward<MatrixArgs>(args)...);
-    result->read(batchmtx);
+    result->read(batch_mtx);
     return result;
 }
 
