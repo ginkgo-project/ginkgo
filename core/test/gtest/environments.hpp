@@ -8,24 +8,13 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
-std::vector<std::string> split(const std::string& s, char delimiter = ',')
-{
-    std::istringstream iss(s);
-    std::vector<std::string> tokens;
-    std::string token;
-    while (std::getline(iss, token, delimiter)) {
-        tokens.push_back(token);
-    }
-    return tokens;
-}
-
-
 struct resource {
     int id;
     int slots;
 };
 
-resource parse_single_resource(const std::string& resource_string)
+
+inline resource parse_single_resource(const std::string& resource_string)
 {
     std::regex re(R"(id\:(\d+),slots\:(\d+))");
     std::smatch match;
@@ -37,19 +26,8 @@ resource parse_single_resource(const std::string& resource_string)
     return resource{std::stoi(match[1]), std::stoi(match[2])};
 }
 
-std::vector<resource> parse_all_resources(const std::string& resource_string)
-{
-    auto resource_strings = split(resource_string, ';');
 
-    std::vector<resource> resources;
-    for (const auto& rs : resource_strings) {
-        resources.push_back(parse_single_resource(rs));
-    }
-    return resources;
-}
-
-
-std::vector<resource> get_ctest_resources()
+inline std::vector<resource> get_ctest_resources()
 {
     auto rs_count_env = std::getenv("CTEST_RESOURCE_GROUP_COUNT");
 
@@ -59,17 +37,19 @@ std::vector<resource> get_ctest_resources()
 
     auto rs_count = std::stoi(rs_count_env);
 
-    if (rs_count > 1) {
-        GKO_INVALID_STATE("Can handle only one resource group.");
+    std::vector<resource> resources;
+
+    for (int i = 0; i < rs_count; ++i) {
+        std::string rs_group_env = "CTEST_RESOURCE_GROUP_" + std::to_string(i);
+        std::string rs_type = std::getenv(rs_group_env.c_str());
+        std::transform(rs_type.begin(), rs_type.end(), rs_type.begin(),
+                       [](auto c) { return std::toupper(c); });
+        std::string rs_env =
+            std::getenv((rs_group_env + "_" + rs_type).c_str());
+        resources.push_back(parse_single_resource(rs_env));
     }
 
-    std::string rs_type = std::getenv("CTEST_RESOURCE_GROUP_0");
-    std::transform(rs_type.begin(), rs_type.end(), rs_type.begin(),
-                   [](auto c) { return std::toupper(c); });
-    std::string rs_env =
-        std::getenv(std::string("CTEST_RESOURCE_GROUP_0_" + rs_type).c_str());
-    std::cerr << rs_env << std::endl;
-    return parse_all_resources(rs_env);
+    return resources;
 }
 
 
