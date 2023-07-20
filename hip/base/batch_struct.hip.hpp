@@ -30,17 +30,15 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_HIP_MATRIX_BATCH_STRUCT_HIP_HPP_
-#define GKO_HIP_MATRIX_BATCH_STRUCT_HIP_HPP_
-
-
-#include "core/base/batch_struct.hpp"
+#ifndef GKO_HIP_BASE_BATCH_STRUCT_HIP_HPP_
+#define GKO_HIP_BASE_BATCH_STRUCT_HIP_HPP_
 
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/math.hpp>
 
 
+#include "core/base/batch_struct.hpp"
 #include "hip/base/config.hip.hpp"
 #include "hip/base/types.hip.hpp"
 
@@ -111,4 +109,4 @@ maybe_null_batch_struct(const BatchMultiVector<ValueType>* const op)
 }  // namespace gko
 
 
-#endif  // GKO_HIP_MATRIX_BATCH_STRUCT_HIP_HPP_
+#endif  // GKO_HIP_BASE_BATCH_STRUCT_HIP_HPP_

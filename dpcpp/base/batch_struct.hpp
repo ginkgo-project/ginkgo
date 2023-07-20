@@ -34,13 +34,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_DPCPP_BASE_BATCH_STRUCT_HPP_
 
 
-#include "core/base/batch_struct.hpp"
-
-
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/batch_multi_vector.hpp>
 
 
+#include "core/base/batch_struct.hpp"
 #include "dpcpp/base/config.hpp"
 
 
@@ -111,4 +109,4 @@ maybe_null_batch_struct(const BatchMultiVector<ValueType>* const op)
 }  // namespace gko
 
 
-#endif  // GKO_DPCPP_MATRIX_BATCH_STRUCT_HPP_
+#endif  // GKO_DPCPP_BASE_BATCH_STRUCT_HPP_
