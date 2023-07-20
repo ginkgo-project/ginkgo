@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
+#include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -57,13 +58,10 @@ namespace gko {
  * of the vector in each of the batches.
  *
  * The values in each of the batches are stored in row-major format (values
- * belonging to the same row appear consecutive in the memory). Optionally, rows
- * can be padded for better memory access.
+ * belonging to the same row appear consecutive in the memory).
  *
  * @tparam ValueType  precision of matrix elements
  *
- * @note While this format is not very useful for storing sparse matrices, it
- *       is often suitable to store vectors, and sets of vectors.
  * @ingroup batch_multi_vector
  */
 template <typename ValueType = default_precision>
@@ -83,9 +81,11 @@ class BatchMultiVector
 public:
     using BatchReadableFromMatrixData<ValueType, int32>::read;
     using BatchReadableFromMatrixData<ValueType, int64>::read;
-    using EnablePolymorphicObject<BatchMultiVector>::EnablePolymorphicObject;
     using EnablePolymorphicAssignment<BatchMultiVector>::convert_to;
     using EnablePolymorphicAssignment<BatchMultiVector>::move_to;
+    using ConvertibleTo<
+        BatchMultiVector<next_precision<ValueType>>>::convert_to;
+    using ConvertibleTo<BatchMultiVector<next_precision<ValueType>>>::move_to;
 
     using value_type = ValueType;
     using index_type = int32;
@@ -187,7 +187,6 @@ public:
     value_type* get_values(size_type batch) noexcept
     {
         GKO_ASSERT(batch < this->get_num_batch_entries());
-        // TODO Verify
         return values_.get_data() +
                this->get_size().get_cumulative_offset(batch);
     }
@@ -385,43 +384,6 @@ public:
         return std::unique_ptr<const BatchMultiVector>(new BatchMultiVector{
             exec, sizes, gko::detail::array_const_cast(std::move(values))});
     }
-
-    /**
-     * Copy-assigns a BatchMultiVector. Preserves the executor and copies the
-     * size.
-     */
-    BatchMultiVector& operator=(const BatchMultiVector&) = default;
-
-    /**
-     * Move-assigns a BatchMultiVector. Preserves the executor and moves the
-     * size. The moved-from object has size 0x0 afterwards, but its executor is
-     * unchanged.
-     */
-    BatchMultiVector& operator=(BatchMultiVector&& other)
-    {
-        if (this != &other) {
-            EnablePolymorphicObject<BatchMultiVector>::operator=(
-                std::move(other));
-            this->set_size(other.get_size());
-            other.set_size(batch_dim<2>{});
-        }
-        return *this;
-    }
-
-    /**
-     * Copy-constructs a BatchMultiVector. Inherits executor and size from the
-     * input.
-     */
-    BatchMultiVector(const BatchMultiVector&) = default;
-
-    /**
-     * Move-constructs a BatchMultiVector. Inherits executor and size from the
-     * input, which will have size 0x0 and unchanged executor afterwards.
-     */
-    BatchMultiVector(BatchMultiVector&& other)
-        : EnablePolymorphicObject<BatchMultiVector>(std::move(other)),
-          batch_size_{std::exchange(other.batch_size_, batch_dim<2>{})}
-    {}
 
 private:
     inline batch_dim<2> compute_batch_size(
@@ -737,7 +699,7 @@ std::unique_ptr<Matrix> batch_initialize(
         ++batch;
     }
     auto mtx = Matrix::create(exec, std::forward<TArgs>(create_args)...);
-    tmp->move_to(mtx);
+    mtx->copy_from(tmp.get());
     return mtx;
 }
 
