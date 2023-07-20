@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/fbcsr.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
+#include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -1203,6 +1204,16 @@ void Dense<ValueType>::inverse_column_permute_impl(
 }
 
 
+template <typename IndexType>
+static gko::array<IndexType> create_permutation_view(
+    const matrix::Permutation<IndexType>* permutation)
+{
+    return make_array_view(
+        permutation->get_executor(), permutation->get_permutation_size(),
+        const_cast<IndexType*>(permutation->get_const_permutation()));
+}
+
+
 template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::permute(
     const array<int32>* permutation_indices) const
@@ -1236,6 +1247,24 @@ void Dense<ValueType>::permute(const array<int64>* permutation_indices,
                                ptr_param<Dense<ValueType>> output) const
 {
     this->permute_impl(permutation_indices, output.get());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::permute(ptr_param<const Permutation<int32>> permutation,
+                               ptr_param<Dense<ValueType>> output) const
+{
+    auto array = create_permutation_view(permutation.get());
+    this->permute_impl(&array, output.get());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::permute(ptr_param<const Permutation<int64>> permutation,
+                               ptr_param<Dense<ValueType>> output) const
+{
+    auto array = create_permutation_view(permutation.get());
+    this->permute_impl(&array, output.get());
 }
 
 
@@ -1276,6 +1305,26 @@ void Dense<ValueType>::inverse_permute(const array<int64>* permutation_indices,
 
 
 template <typename ValueType>
+void Dense<ValueType>::inverse_permute(
+    ptr_param<const Permutation<int32>> permutation,
+    ptr_param<Dense<ValueType>> output) const
+{
+    auto array = create_permutation_view(permutation.get());
+    this->inverse_permute_impl(&array, output.get());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::inverse_permute(
+    ptr_param<const Permutation<int64>> permutation,
+    ptr_param<Dense<ValueType>> output) const
+{
+    auto array = create_permutation_view(permutation.get());
+    this->inverse_permute_impl(&array, output.get());
+}
+
+
+template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::row_permute(
     const array<int32>* permutation_indices) const
 {
@@ -1308,6 +1357,26 @@ void Dense<ValueType>::row_permute(const array<int64>* permutation_indices,
                                    ptr_param<Dense<ValueType>> output) const
 {
     this->row_permute_impl(permutation_indices, output.get());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::row_permute(
+    ptr_param<const Permutation<int32>> permutation,
+    ptr_param<Dense<ValueType>> output) const
+{
+    auto array = create_permutation_view(permutation.get());
+    this->row_permute_impl(&array, output.get());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::row_permute(
+    ptr_param<const Permutation<int64>> permutation,
+    ptr_param<Dense<ValueType>> output) const
+{
+    auto array = create_permutation_view(permutation.get());
+    this->row_permute_impl(&array, output.get());
 }
 
 
@@ -1447,6 +1516,26 @@ void Dense<ValueType>::column_permute(const array<int64>* permutation_indices,
 
 
 template <typename ValueType>
+void Dense<ValueType>::column_permute(
+    ptr_param<const Permutation<int32>> permutation,
+    ptr_param<Dense<ValueType>> output) const
+{
+    auto array = create_permutation_view(permutation.get());
+    this->column_permute_impl(&array, output.get());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::column_permute(
+    ptr_param<const Permutation<int64>> permutation,
+    ptr_param<Dense<ValueType>> output) const
+{
+    auto array = create_permutation_view(permutation.get());
+    this->column_permute_impl(&array, output.get());
+}
+
+
+template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::inverse_row_permute(
     const array<int32>* permutation_indices) const
 {
@@ -1485,6 +1574,26 @@ void Dense<ValueType>::inverse_row_permute(
 
 
 template <typename ValueType>
+void Dense<ValueType>::inverse_row_permute(
+    ptr_param<const Permutation<int32>> permutation,
+    ptr_param<Dense<ValueType>> output) const
+{
+    auto array = create_permutation_view(permutation.get());
+    this->inverse_row_permute_impl(&array, output.get());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::inverse_row_permute(
+    ptr_param<const Permutation<int64>> permutation,
+    ptr_param<Dense<ValueType>> output) const
+{
+    auto array = create_permutation_view(permutation.get());
+    this->inverse_row_permute_impl(&array, output.get());
+}
+
+
+template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::inverse_column_permute(
     const array<int32>* permutation_indices) const
 {
@@ -1519,6 +1628,26 @@ void Dense<ValueType>::inverse_column_permute(
     ptr_param<Dense<ValueType>> output) const
 {
     this->inverse_column_permute_impl(permutation_indices, output.get());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::inverse_column_permute(
+    ptr_param<const Permutation<int32>> permutation,
+    ptr_param<Dense<ValueType>> output) const
+{
+    auto array = create_permutation_view(permutation.get());
+    this->inverse_column_permute_impl(&array, output.get());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::inverse_column_permute(
+    ptr_param<const Permutation<int64>> permutation,
+    ptr_param<Dense<ValueType>> output) const
+{
+    auto array = create_permutation_view(permutation.get());
+    this->inverse_column_permute_impl(&array, output.get());
 }
 
 

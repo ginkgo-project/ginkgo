@@ -77,11 +77,14 @@ static constexpr mask_type inverse_permute = mask_type{1 << 3};
  */
 template <typename IndexType = int32>
 class Permutation : public EnableLinOp<Permutation<IndexType>>,
-                    public EnableCreateMethod<Permutation<IndexType>> {
+                    public EnableCreateMethod<Permutation<IndexType>>,
+                    public WritableToMatrixData<float, IndexType>,
+                    public WritableToMatrixData<double, IndexType> {
     friend class EnableCreateMethod<Permutation>;
     friend class EnablePolymorphicObject<Permutation, LinOp>;
 
 public:
+    using value_type = double;
     using index_type = IndexType;
 
     /**
@@ -155,6 +158,10 @@ public:
             enabled_permute});
     }
 
+    void write(gko::matrix_data<float, index_type>& data) const override;
+
+    void write(gko::matrix_data<double, index_type>& data) const override;
+
 protected:
     /**
      * Creates an uninitialized Permutation arrays on the specified executor.
@@ -176,10 +183,10 @@ protected:
                 const mask_type& enabled_permute = row_permute)
         : EnableLinOp<Permutation>(exec, size),
           permutation_(exec, size[0]),
-          row_size_(size[0]),
-          col_size_(size[1]),
           enabled_permute_(enabled_permute)
-    {}
+    {
+        GKO_ASSERT_IS_SQUARE_MATRIX(size);
+    }
 
     /**
      * Creates a Permutation matrix from an already allocated (and initialized)
@@ -202,10 +209,9 @@ protected:
                 const mask_type& enabled_permute = row_permute)
         : EnableLinOp<Permutation>(exec, size),
           permutation_{exec, std::forward<IndicesArray>(permutation_indices)},
-          row_size_(size[0]),
-          col_size_(size[1]),
           enabled_permute_(enabled_permute)
     {
+        GKO_ASSERT_IS_SQUARE_MATRIX(size);
         if (enabled_permute_ & row_permute) {
             GKO_ASSERT_EQ(size[0], permutation_.get_num_elems());
         }
@@ -214,52 +220,16 @@ protected:
         }
     }
 
-    void apply_impl(const LinOp* in, LinOp* out) const
-    {
-        auto perm = as<Permutable<index_type>>(in);
-        std::unique_ptr<gko::LinOp> tmp{};
-        if (enabled_permute_ & inverse_permute) {
-            if (enabled_permute_ & row_permute) {
-                tmp = perm->inverse_row_permute(&permutation_);
-            }
-            if (enabled_permute_ & column_permute) {
-                if (enabled_permute_ & row_permute) {
-                    tmp = as<Permutable<index_type>>(tmp.get())
-                              ->inverse_column_permute(&permutation_);
-                } else {
-                    tmp = perm->inverse_column_permute(&permutation_);
-                }
-            }
-        } else {
-            if (enabled_permute_ & row_permute) {
-                tmp = perm->row_permute(&permutation_);
-            }
-            if (enabled_permute_ & column_permute) {
-                if (enabled_permute_ & row_permute) {
-                    tmp = as<Permutable<index_type>>(tmp.get())->column_permute(
-                        &permutation_);
-                } else {
-                    tmp = perm->column_permute(&permutation_);
-                }
-            }
-        }
-        out->move_from(tmp);
-    }
-
+    void apply_impl(const LinOp* in, LinOp* out) const override;
 
     void apply_impl(const LinOp*, const LinOp* in, const LinOp*,
-                    LinOp* out) const
-    {
-        // Ignores alpha and beta and just performs a normal permutation as an
-        // advanced apply does not really make sense here.
-        this->apply_impl(in, out);
-    }
+                    LinOp* out) const override;
 
+    template <typename ValueType>
+    void write_impl(gko::matrix_data<ValueType, index_type>& data) const;
 
 private:
     array<index_type> permutation_;
-    size_type row_size_;
-    size_type col_size_;
     mask_type enabled_permute_;
 };
 

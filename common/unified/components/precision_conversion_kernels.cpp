@@ -48,11 +48,15 @@ void convert_precision(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto idx, auto in, auto out) { out[idx] = in[idx]; },
+        [] GKO_KERNEL(auto idx, auto in, auto out) {
+            out[idx] = static_cast<device_type<TargetType>>(in[idx]);
+        },
         size, in, out);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_CONVERT_PRECISION_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TO_INDEX_CONVERSION(
+    GKO_DECLARE_CONVERT_PRECISION_KERNEL);
 
 
 }  // namespace components

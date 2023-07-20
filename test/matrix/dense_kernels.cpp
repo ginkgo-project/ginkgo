@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
+#include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -67,9 +68,12 @@ protected:
     using MixedMtx = gko::matrix::Dense<mixed_type>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<value_type>>;
     using Arr = gko::array<index_type>;
+    using Arr64 = gko::array<gko::int64>;
     using ComplexMtx = gko::matrix::Dense<std::complex<value_type>>;
     using Diagonal = gko::matrix::Diagonal<value_type>;
     using MixedComplexMtx = gko::matrix::Dense<std::complex<mixed_type>>;
+    using Perm = gko::matrix::Permutation<gko::int32>;
+    using Perm64 = gko::matrix::Permutation<gko::int64>;
 
     Dense() : rand_engine(15) {}
 
@@ -155,6 +159,20 @@ protected:
             std::unique_ptr<Arr>(new Arr{ref, tmp2.begin(), tmp2.end()});
         rgather_idxs =
             std::unique_ptr<Arr>(new Arr{ref, tmp3.begin(), tmp3.end()});
+        rpermute = Perm::create(ref, gko::dim<2>{tmp.size(), tmp.size()},
+                                Arr{*rpermute_idxs});
+        cpermute = Perm::create(ref, gko::dim<2>{tmp2.size(), tmp2.size()},
+                                Arr{*cpermute_idxs});
+        rpermute_idxs64 =
+            std::unique_ptr<Arr64>(new Arr64{ref, tmp.begin(), tmp.end()});
+        cpermute_idxs64 =
+            std::unique_ptr<Arr64>(new Arr64{ref, tmp2.begin(), tmp2.end()});
+        rgather_idxs64 =
+            std::unique_ptr<Arr64>(new Arr64{ref, tmp3.begin(), tmp3.end()});
+        rpermute64 = Perm64::create(ref, gko::dim<2>{tmp.size(), tmp.size()},
+                                    Arr64{*rpermute_idxs64});
+        cpermute64 = Perm64::create(ref, gko::dim<2>{tmp2.size(), tmp2.size()},
+                                    Arr64{*cpermute_idxs64});
     }
 
     template <typename ConvertedType, typename InputType>
@@ -188,6 +206,13 @@ protected:
     std::unique_ptr<Arr> rpermute_idxs;
     std::unique_ptr<Arr> cpermute_idxs;
     std::unique_ptr<Arr> rgather_idxs;
+    std::unique_ptr<Perm> rpermute;
+    std::unique_ptr<Perm> cpermute;
+    std::unique_ptr<Arr64> rpermute_idxs64;
+    std::unique_ptr<Arr64> cpermute_idxs64;
+    std::unique_ptr<Arr64> rgather_idxs64;
+    std::unique_ptr<Perm64> rpermute64;
+    std::unique_ptr<Perm64> cpermute64;
 };
 
 
@@ -1290,6 +1315,42 @@ TEST_F(Dense, IsPermutable)
 }
 
 
+TEST_F(Dense, IsPermutable64)
+{
+    set_up_apply_data();
+
+    auto permuted = square->permute(rpermute_idxs64.get());
+    auto dpermuted = dsquare->permute(rpermute_idxs64.get());
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(permuted.get()),
+                        static_cast<Mtx*>(dpermuted.get()), 0);
+}
+
+
+TEST_F(Dense, IsPermutableFromMatrix)
+{
+    set_up_apply_data();
+
+    auto permuted = square->permute(rpermute);
+    auto dpermuted = dsquare->permute(rpermute);
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(permuted.get()),
+                        static_cast<Mtx*>(dpermuted.get()), 0);
+}
+
+
+TEST_F(Dense, IsPermutableFromMatrix64)
+{
+    set_up_apply_data();
+
+    auto permuted = square->permute(rpermute64);
+    auto dpermuted = dsquare->permute(rpermute64);
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(permuted.get()),
+                        static_cast<Mtx*>(dpermuted.get()), 0);
+}
+
+
 TEST_F(Dense, IsPermutableIntoDenseCrossExecutor)
 {
     set_up_apply_data();
@@ -1305,12 +1366,89 @@ TEST_F(Dense, IsPermutableIntoDenseCrossExecutor)
 }
 
 
+TEST_F(Dense, IsPermutableIntoDenseCrossExecutor64)
+{
+    set_up_apply_data();
+    auto permuted = Mtx::create(ref, square->get_size());
+    // test make_temporary_clone and non-default stride
+    auto dpermuted =
+        Mtx::create(ref, square->get_size(), square->get_size()[1] + 2);
+
+    square->permute(rpermute_idxs64.get(), permuted);
+    dsquare->permute(rpermute_idxs64.get(), dpermuted);
+
+    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+}
+
+
+TEST_F(Dense, IsPermutableIntoDenseFromMatrix)
+{
+    set_up_apply_data();
+    auto permuted = Mtx::create(ref, square->get_size());
+    auto dpermuted = Mtx::create(exec, square->get_size());
+
+    square->permute(rpermute, permuted);
+    dsquare->permute(rpermute, dpermuted);
+
+    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+}
+
+
+TEST_F(Dense, IsPermutableIntoDenseFromMatrix64)
+{
+    set_up_apply_data();
+    auto permuted = Mtx::create(ref, square->get_size());
+    auto dpermuted = Mtx::create(exec, square->get_size());
+
+    square->permute(rpermute64, permuted);
+    dsquare->permute(rpermute64, dpermuted);
+
+    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+}
+
+
 TEST_F(Dense, IsInversePermutable)
 {
     set_up_apply_data();
 
     auto permuted = square->inverse_permute(rpermute_idxs.get());
     auto dpermuted = dsquare->inverse_permute(rpermute_idxs.get());
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(permuted.get()),
+                        static_cast<Mtx*>(dpermuted.get()), 0);
+}
+
+
+TEST_F(Dense, IsInversePermutable64)
+{
+    set_up_apply_data();
+
+    auto permuted = square->inverse_permute(rpermute_idxs64.get());
+    auto dpermuted = dsquare->inverse_permute(rpermute_idxs64.get());
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(permuted.get()),
+                        static_cast<Mtx*>(dpermuted.get()), 0);
+}
+
+
+TEST_F(Dense, IsInversePermutableFromMatrix)
+{
+    set_up_apply_data();
+
+    auto permuted = square->inverse_permute(rpermute);
+    auto dpermuted = dsquare->inverse_permute(rpermute);
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(permuted.get()),
+                        static_cast<Mtx*>(dpermuted.get()), 0);
+}
+
+
+TEST_F(Dense, IsInversePermutableFromMatrix64)
+{
+    set_up_apply_data();
+
+    auto permuted = square->inverse_permute(rpermute64);
+    auto dpermuted = dsquare->inverse_permute(rpermute64);
 
     GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(permuted.get()),
                         static_cast<Mtx*>(dpermuted.get()), 0);
@@ -1332,12 +1470,89 @@ TEST_F(Dense, IsInversePermutableIntoDenseCrossExecutor)
 }
 
 
+TEST_F(Dense, IsInversePermutableIntoDenseCrossExecutor64)
+{
+    set_up_apply_data();
+    auto permuted = Mtx::create(ref, square->get_size());
+    // test make_temporary_clone and non-default stride
+    auto dpermuted =
+        Mtx::create(ref, square->get_size(), square->get_size()[1] + 2);
+
+    square->inverse_permute(rpermute_idxs64.get(), permuted);
+    dsquare->inverse_permute(rpermute_idxs64.get(), dpermuted);
+
+    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+}
+
+
+TEST_F(Dense, IsInversePermutableIntoDenseFromMatrix)
+{
+    set_up_apply_data();
+    auto permuted = Mtx::create(ref, square->get_size());
+    auto dpermuted = Mtx::create(exec, square->get_size());
+
+    square->inverse_permute(rpermute, permuted);
+    dsquare->inverse_permute(rpermute, dpermuted);
+
+    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+}
+
+
+TEST_F(Dense, IsInversePermutableIntoDenseFromMatrix64)
+{
+    set_up_apply_data();
+    auto permuted = Mtx::create(ref, square->get_size());
+    auto dpermuted = Mtx::create(exec, square->get_size());
+
+    square->inverse_permute(rpermute64, permuted);
+    dsquare->inverse_permute(rpermute64, dpermuted);
+
+    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+}
+
+
 TEST_F(Dense, IsRowPermutable)
 {
     set_up_apply_data();
 
     auto r_permute = x->row_permute(rpermute_idxs.get());
     auto dr_permute = dx->row_permute(rpermute_idxs.get());
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(r_permute.get()),
+                        static_cast<Mtx*>(dr_permute.get()), 0);
+}
+
+
+TEST_F(Dense, IsRowPermutable64)
+{
+    set_up_apply_data();
+
+    auto r_permute = x->row_permute(rpermute_idxs64.get());
+    auto dr_permute = dx->row_permute(rpermute_idxs64.get());
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(r_permute.get()),
+                        static_cast<Mtx*>(dr_permute.get()), 0);
+}
+
+
+TEST_F(Dense, IsRowPermutableFromMatrix)
+{
+    set_up_apply_data();
+
+    auto r_permute = x->row_permute(rpermute);
+    auto dr_permute = dx->row_permute(rpermute);
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(r_permute.get()),
+                        static_cast<Mtx*>(dr_permute.get()), 0);
+}
+
+
+TEST_F(Dense, IsRowPermutableFromMatrix64)
+{
+    set_up_apply_data();
+
+    auto r_permute = x->row_permute(rpermute64);
+    auto dr_permute = dx->row_permute(rpermute64);
 
     GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(r_permute.get()),
                         static_cast<Mtx*>(dr_permute.get()), 0);
@@ -1358,12 +1573,88 @@ TEST_F(Dense, IsRowPermutableIntoDenseCrossExecutor)
 }
 
 
+TEST_F(Dense, IsRowPermutableIntoDenseCrossExecutor64)
+{
+    set_up_apply_data();
+    auto permuted = Mtx::create(ref, x->get_size());
+    // test make_temporary_clone and non-default stride
+    auto dpermuted = Mtx::create(ref, x->get_size(), x->get_size()[1] + 2);
+
+    x->row_permute(rpermute_idxs64.get(), permuted);
+    dx->row_permute(rpermute_idxs64.get(), dpermuted);
+
+    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+}
+
+
+TEST_F(Dense, IsRowPermutableIntoDenseFromMatrix)
+{
+    set_up_apply_data();
+    auto permuted = Mtx::create(ref, x->get_size());
+    auto dpermuted = Mtx::create(exec, x->get_size());
+
+    x->row_permute(rpermute, permuted);
+    dx->row_permute(rpermute, dpermuted);
+
+    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+}
+
+
+TEST_F(Dense, IsRowPermutableIntoDenseFromMatrix64)
+{
+    set_up_apply_data();
+    auto permuted = Mtx::create(ref, x->get_size());
+    auto dpermuted = Mtx::create(exec, x->get_size());
+
+    x->row_permute(rpermute64, permuted);
+    dx->row_permute(rpermute64, dpermuted);
+
+    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+}
+
+
 TEST_F(Dense, IsColPermutable)
 {
     set_up_apply_data();
 
     auto c_permute = x->column_permute(cpermute_idxs.get());
     auto dc_permute = dx->column_permute(cpermute_idxs.get());
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(c_permute.get()),
+                        static_cast<Mtx*>(dc_permute.get()), 0);
+}
+
+
+TEST_F(Dense, IsColPermutable64)
+{
+    set_up_apply_data();
+
+    auto c_permute = x->column_permute(cpermute_idxs64.get());
+    auto dc_permute = dx->column_permute(cpermute_idxs64.get());
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(c_permute.get()),
+                        static_cast<Mtx*>(dc_permute.get()), 0);
+}
+
+
+TEST_F(Dense, IsColPermutableFromMatrix)
+{
+    set_up_apply_data();
+
+    auto c_permute = x->column_permute(cpermute);
+    auto dc_permute = dx->column_permute(cpermute);
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(c_permute.get()),
+                        static_cast<Mtx*>(dc_permute.get()), 0);
+}
+
+
+TEST_F(Dense, IsColPermutableFromMatrix64)
+{
+    set_up_apply_data();
+
+    auto c_permute = x->column_permute(cpermute64);
+    auto dc_permute = dx->column_permute(cpermute64);
 
     GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(c_permute.get()),
                         static_cast<Mtx*>(dc_permute.get()), 0);
@@ -1384,12 +1675,88 @@ TEST_F(Dense, IsColPermutableIntoDenseCrossExecutor)
 }
 
 
+TEST_F(Dense, IsColPermutableIntoDenseCrossExecutor64)
+{
+    set_up_apply_data();
+    auto permuted = Mtx::create(ref, x->get_size());
+    // test make_temporary_clone and non-default stride
+    auto dpermuted = Mtx::create(ref, x->get_size(), x->get_size()[1] + 2);
+
+    x->column_permute(cpermute_idxs64.get(), permuted);
+    dx->column_permute(cpermute_idxs64.get(), dpermuted);
+
+    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+}
+
+
+TEST_F(Dense, IsColPermutableIntoDenseFromMatrix)
+{
+    set_up_apply_data();
+    auto permuted = Mtx::create(ref, x->get_size());
+    auto dpermuted = Mtx::create(exec, x->get_size());
+
+    x->column_permute(cpermute, permuted);
+    dx->column_permute(cpermute, dpermuted);
+
+    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+}
+
+
+TEST_F(Dense, IsColPermutableIntoDenseFromMatrix64)
+{
+    set_up_apply_data();
+    auto permuted = Mtx::create(ref, x->get_size());
+    auto dpermuted = Mtx::create(exec, x->get_size());
+
+    x->column_permute(cpermute64, permuted);
+    dx->column_permute(cpermute64, dpermuted);
+
+    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+}
+
+
 TEST_F(Dense, IsInverseRowPermutable)
 {
     set_up_apply_data();
 
     auto inverse_r_permute = x->inverse_row_permute(rpermute_idxs.get());
     auto d_inverse_r_permute = dx->inverse_row_permute(rpermute_idxs.get());
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(inverse_r_permute.get()),
+                        static_cast<Mtx*>(d_inverse_r_permute.get()), 0);
+}
+
+
+TEST_F(Dense, IsInverseRowPermutable64)
+{
+    set_up_apply_data();
+
+    auto inverse_r_permute = x->inverse_row_permute(rpermute_idxs64.get());
+    auto d_inverse_r_permute = dx->inverse_row_permute(rpermute_idxs64.get());
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(inverse_r_permute.get()),
+                        static_cast<Mtx*>(d_inverse_r_permute.get()), 0);
+}
+
+
+TEST_F(Dense, IsInverseRowPermutableFromMatrix)
+{
+    set_up_apply_data();
+
+    auto inverse_r_permute = x->inverse_row_permute(rpermute);
+    auto d_inverse_r_permute = dx->inverse_row_permute(rpermute);
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(inverse_r_permute.get()),
+                        static_cast<Mtx*>(d_inverse_r_permute.get()), 0);
+}
+
+
+TEST_F(Dense, IsInverseRowPermutableFromMatrix64)
+{
+    set_up_apply_data();
+
+    auto inverse_r_permute = x->inverse_row_permute(rpermute64);
+    auto d_inverse_r_permute = dx->inverse_row_permute(rpermute64);
 
     GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(inverse_r_permute.get()),
                         static_cast<Mtx*>(d_inverse_r_permute.get()), 0);
@@ -1410,12 +1777,89 @@ TEST_F(Dense, IsInverseRowPermutableIntoDenseCrossExecutor)
 }
 
 
+TEST_F(Dense, IsInverseRowPermutableIntoDenseCrossExecutor64)
+{
+    set_up_apply_data();
+    auto permuted = Mtx::create(ref, x->get_size());
+    // test make_temporary_clone and non-default stride
+    auto dpermuted = Mtx::create(ref, x->get_size(), x->get_size()[1] + 2);
+
+    x->inverse_row_permute(rpermute_idxs64.get(), permuted);
+    dx->inverse_row_permute(rpermute_idxs64.get(), dpermuted);
+
+    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+}
+
+
+TEST_F(Dense, IsInverseRowPermutableIntoDenseFromMatrix)
+{
+    set_up_apply_data();
+    auto permuted = Mtx::create(ref, x->get_size());
+    auto dpermuted = Mtx::create(exec, x->get_size());
+
+    x->inverse_row_permute(rpermute, permuted);
+    dx->inverse_row_permute(rpermute, dpermuted);
+
+    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+}
+
+
+TEST_F(Dense, IsInverseRowPermutableIntoDenseFromMatrix64)
+{
+    set_up_apply_data();
+    auto permuted = Mtx::create(ref, x->get_size());
+    auto dpermuted = Mtx::create(exec, x->get_size());
+
+    x->inverse_row_permute(rpermute64, permuted);
+    dx->inverse_row_permute(rpermute64, dpermuted);
+
+    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+}
+
+
 TEST_F(Dense, IsInverseColPermutable)
 {
     set_up_apply_data();
 
     auto inverse_c_permute = x->inverse_column_permute(cpermute_idxs.get());
     auto d_inverse_c_permute = dx->inverse_column_permute(cpermute_idxs.get());
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(inverse_c_permute.get()),
+                        static_cast<Mtx*>(d_inverse_c_permute.get()), 0);
+}
+
+
+TEST_F(Dense, IsInverseColPermutable64)
+{
+    set_up_apply_data();
+
+    auto inverse_c_permute = x->inverse_column_permute(cpermute_idxs64.get());
+    auto d_inverse_c_permute =
+        dx->inverse_column_permute(cpermute_idxs64.get());
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(inverse_c_permute.get()),
+                        static_cast<Mtx*>(d_inverse_c_permute.get()), 0);
+}
+
+
+TEST_F(Dense, IsInverseColPermutableFromMatrix)
+{
+    set_up_apply_data();
+
+    auto inverse_c_permute = x->inverse_column_permute(cpermute);
+    auto d_inverse_c_permute = dx->inverse_column_permute(cpermute);
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(inverse_c_permute.get()),
+                        static_cast<Mtx*>(d_inverse_c_permute.get()), 0);
+}
+
+
+TEST_F(Dense, IsInverseColPermutableFromMatrix64)
+{
+    set_up_apply_data();
+
+    auto inverse_c_permute = x->inverse_column_permute(cpermute64);
+    auto d_inverse_c_permute = dx->inverse_column_permute(cpermute64);
 
     GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(inverse_c_permute.get()),
                         static_cast<Mtx*>(d_inverse_c_permute.get()), 0);
@@ -1431,6 +1875,46 @@ TEST_F(Dense, IsInverseColPermutableIntoDenseCrossExecutor)
 
     x->inverse_column_permute(cpermute_idxs.get(), permuted);
     dx->inverse_column_permute(cpermute_idxs.get(), dpermuted);
+
+    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+}
+
+
+TEST_F(Dense, IsInverseColPermutableIntoDenseCrossExecutor64)
+{
+    set_up_apply_data();
+    auto permuted = Mtx::create(ref, x->get_size());
+    // test make_temporary_clone and non-default stride
+    auto dpermuted = Mtx::create(ref, x->get_size(), x->get_size()[1] + 2);
+
+    x->inverse_column_permute(cpermute_idxs64.get(), permuted);
+    dx->inverse_column_permute(cpermute_idxs64.get(), dpermuted);
+
+    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+}
+
+
+TEST_F(Dense, IsInverseColPermutableIntoDenseFromMatrix)
+{
+    set_up_apply_data();
+    auto permuted = Mtx::create(ref, x->get_size());
+    auto dpermuted = Mtx::create(exec, x->get_size());
+
+    x->inverse_column_permute(cpermute, permuted);
+    dx->inverse_column_permute(cpermute, dpermuted);
+
+    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+}
+
+
+TEST_F(Dense, IsInverseColPermutableIntoDenseFromMatrix64)
+{
+    set_up_apply_data();
+    auto permuted = Mtx::create(ref, x->get_size());
+    auto dpermuted = Mtx::create(exec, x->get_size());
+
+    x->inverse_column_permute(cpermute64, permuted);
+    dx->inverse_column_permute(cpermute64, dpermuted);
 
     GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
 }

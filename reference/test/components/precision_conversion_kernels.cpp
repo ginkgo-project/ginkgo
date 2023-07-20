@@ -147,4 +147,50 @@ TEST_F(PrecisionConversion, ConvertsComplex)
 }
 
 
+TEST_F(PrecisionConversion, ConvertsFloatToInt)
+{
+    gko::array<float> numbers{ref, {100, 101, 102, 104, 123}};
+    gko::array<gko::int32> inumbers{ref};
+
+    inumbers = numbers;
+
+    GKO_ASSERT_ARRAY_EQ(inumbers, I<gko::int32>({100, 101, 102, 104, 123}));
+}
+
+
+TEST_F(PrecisionConversion, ConvertsFloatToInt64)
+{
+    gko::array<float> numbers{ref, {100, 101, 102, 104, 123}};
+    gko::array<gko::int64> inumbers{ref};
+
+    inumbers = numbers;
+
+    GKO_ASSERT_ARRAY_EQ(inumbers, I<gko::int64>({100, 101, 102, 104, 123}));
+}
+
+
+TEST_F(PrecisionConversion, ConvertsDoubleToInt)
+{
+    gko::array<double> numbers{ref, {100, 101, 102, 104, 123, (1 << 25) + 1}};
+    gko::array<gko::int32> inumbers{ref};
+
+    inumbers = numbers;
+
+    GKO_ASSERT_ARRAY_EQ(
+        inumbers, I<gko::int32>({100, 101, 102, 104, 123, (1 << 25) + 1}));
+}
+
+
+TEST_F(PrecisionConversion, ConvertsDoubleToInt64)
+{
+    gko::array<double> numbers{ref, {100, 101, 102, 104, 123, (1 << 25) + 1}};
+    gko::array<gko::int64> inumbers{ref};
+
+    inumbers = numbers;
+
+    GKO_ASSERT_ARRAY_EQ(
+        inumbers, I<gko::int64>({100, 101, 102, 104, 123, (1 << 25) + 1}));
+}
+
+
 }  // namespace

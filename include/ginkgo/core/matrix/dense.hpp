@@ -401,6 +401,19 @@ public:
      */
     void fill(const ValueType value);
 
+    using Permutable<int32>::permute;
+    using Permutable<int64>::permute;
+    using Permutable<int32>::row_permute;
+    using Permutable<int64>::row_permute;
+    using Permutable<int32>::column_permute;
+    using Permutable<int64>::column_permute;
+    using Permutable<int32>::inverse_permute;
+    using Permutable<int64>::inverse_permute;
+    using Permutable<int32>::inverse_row_permute;
+    using Permutable<int64>::inverse_row_permute;
+    using Permutable<int32>::inverse_column_permute;
+    using Permutable<int64>::inverse_column_permute;
+
     std::unique_ptr<LinOp> permute(
         const array<int32>* permutation_indices) const override;
 
@@ -419,10 +432,16 @@ public:
     void permute(const array<int32>* permutation_indices,
                  ptr_param<Dense> output) const;
 
-    /**
-     * @copydoc Dense::permute(const array<int32>*, Dense*)
-     */
+    /** @copydoc Dense::permute(const array<int32>*, Dense*) */
     void permute(const array<int64>* permutation_indices,
+                 ptr_param<Dense> output) const;
+
+    /** @copydoc Dense::permute(const array<int32>*, Dense*) */
+    void permute(ptr_param<const Permutation<int32>> permutation,
+                 ptr_param<Dense> output) const;
+
+    /** @copydoc Dense::permute(const array<int32>*, Dense*) */
+    void permute(ptr_param<const Permutation<int64>> permutation,
                  ptr_param<Dense> output) const;
 
     std::unique_ptr<LinOp> inverse_permute(
@@ -444,10 +463,16 @@ public:
     void inverse_permute(const array<int32>* permutation_indices,
                          ptr_param<Dense> output) const;
 
-    /**
-     * @copydoc Dense::inverse_permute(const array<int32>*, Dense*)
-     */
+    /** @copydoc Dense::inverse_permute(const array<int32>*, Dense*) */
     void inverse_permute(const array<int64>* permutation_indices,
+                         ptr_param<Dense> output) const;
+
+    /** @copydoc Dense::inverse_permute(const array<int32>*, Dense*) */
+    void inverse_permute(ptr_param<const Permutation<int32>> permutation,
+                         ptr_param<Dense> output) const;
+
+    /** @copydoc Dense::inverse_permute(const array<int32>*, Dense*) */
+    void inverse_permute(ptr_param<const Permutation<int64>> permutation,
                          ptr_param<Dense> output) const;
 
     std::unique_ptr<LinOp> row_permute(
@@ -468,10 +493,16 @@ public:
     void row_permute(const array<int32>* permutation_indices,
                      ptr_param<Dense> output) const;
 
-    /**
-     * @copydoc Dense::row_permute(const array<int32>*, Dense*)
-     */
+    /** @copydoc Dense::row_permute(const array<int32>*, Dense*) */
     void row_permute(const array<int64>* permutation_indices,
+                     ptr_param<Dense> output) const;
+
+    /** @copydoc Dense::row_permute(const array<int32>*, Dense*) */
+    void row_permute(ptr_param<const Permutation<int32>> permutation,
+                     ptr_param<Dense> output) const;
+
+    /** @copydoc Dense::row_permute(const array<int32>*, Dense*) */
+    void row_permute(ptr_param<const Permutation<int64>> permutation,
                      ptr_param<Dense> output) const;
 
     /**
@@ -557,10 +588,16 @@ public:
     void column_permute(const array<int32>* permutation_indices,
                         ptr_param<Dense> output) const;
 
-    /**
-     * @copydoc Dense::column_permute(const array<int32>*, Dense*)
-     */
+    /** @copydoc Dense::column_permute(const array<int32>*, Dense*) */
     void column_permute(const array<int64>* permutation_indices,
+                        ptr_param<Dense> output) const;
+
+    /** @copydoc Dense::column_permute(const array<int32>*, Dense*) */
+    void column_permute(ptr_param<const Permutation<int32>> permutation,
+                        ptr_param<Dense> output) const;
+
+    /** @copydoc Dense::column_permute(const array<int32>*, Dense*) */
+    void column_permute(ptr_param<const Permutation<int64>> permutation,
                         ptr_param<Dense> output) const;
 
     std::unique_ptr<LinOp> inverse_row_permute(
@@ -581,10 +618,16 @@ public:
     void inverse_row_permute(const array<int32>* permutation_indices,
                              ptr_param<Dense> output) const;
 
-    /**
-     * @copydoc Dense::inverse_row_permute(const array<int32>*, Dense*)
-     */
+    /** @copydoc Dense::inverse_row_permute(const array<int32>*, Dense*) */
     void inverse_row_permute(const array<int64>* permutation_indices,
+                             ptr_param<Dense> output) const;
+
+    /** @copydoc Dense::inverse_row_permute(const array<int32>*, Dense*) */
+    void inverse_row_permute(ptr_param<const Permutation<int32>> permutation,
+                             ptr_param<Dense> output) const;
+
+    /** @copydoc Dense::inverse_row_permute(const array<int32>*, Dense*) */
+    void inverse_row_permute(ptr_param<const Permutation<int64>> permutation,
                              ptr_param<Dense> output) const;
 
     std::unique_ptr<LinOp> inverse_column_permute(
@@ -605,10 +648,16 @@ public:
     void inverse_column_permute(const array<int32>* permutation_indices,
                                 ptr_param<Dense> output) const;
 
-    /**
-     * @copydoc Dense::inverse_column_permute(const array<int32>*, Dense*)
-     */
+    /** @copydoc Dense::inverse_column_permute(const array<int32>*, Dense*) */
     void inverse_column_permute(const array<int64>* permutation_indices,
+                                ptr_param<Dense> output) const;
+
+    /** @copydoc Dense::inverse_column_permute(const array<int32>*, Dense*) */
+    void inverse_column_permute(ptr_param<const Permutation<int32>> permutation,
+                                ptr_param<Dense> output) const;
+
+    /** @copydoc Dense::inverse_column_permute(const array<int32>*, Dense*) */
+    void inverse_column_permute(ptr_param<const Permutation<int64>> permutation,
                                 ptr_param<Dense> output) const;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;

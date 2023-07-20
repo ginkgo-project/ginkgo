@@ -74,6 +74,9 @@ class Fbcsr;
 template <typename ValueType, typename IndexType>
 class CsrBuilder;
 
+template <typename IndexType>
+class Permutation;
+
 
 namespace detail {
 
@@ -763,6 +766,21 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
+    /**
+     * Computes the transposed matrix as well as a permutation matrix that
+     * permutes the value array of this matrix into the value array of the
+     * transposed matrix.
+     */
+    std::pair<std::unique_ptr<Csr>, std::unique_ptr<Permutation<IndexType>>>
+    transpose_reuse() const;
+
+    using Permutable<IndexType>::permute;
+    using Permutable<IndexType>::row_permute;
+    using Permutable<IndexType>::column_permute;
+    using Permutable<IndexType>::inverse_permute;
+    using Permutable<IndexType>::inverse_row_permute;
+    using Permutable<IndexType>::inverse_column_permute;
+
     std::unique_ptr<LinOp> permute(
         const array<IndexType>* permutation_indices) const override;
 
@@ -780,6 +798,29 @@ public:
 
     std::unique_ptr<LinOp> inverse_column_permute(
         const array<IndexType>* inverse_permutation_indices) const override;
+
+    std::pair<std::unique_ptr<Csr>, std::unique_ptr<Permutation<IndexType>>>
+    permute_reuse(ptr_param<const Permutation<IndexType>> permutation) const;
+
+    std::pair<std::unique_ptr<Csr>, std::unique_ptr<Permutation<IndexType>>>
+    inverse_permute_reuse(
+        ptr_param<const Permutation<IndexType>> permutation) const;
+
+    std::pair<std::unique_ptr<Csr>, std::unique_ptr<Permutation<IndexType>>>
+    row_permute_reuse(
+        ptr_param<const Permutation<IndexType>> permutation) const;
+
+    std::pair<std::unique_ptr<Csr>, std::unique_ptr<Permutation<IndexType>>>
+    column_permute_reuse(
+        ptr_param<const Permutation<IndexType>> permutation) const;
+
+    std::pair<std::unique_ptr<Csr>, std::unique_ptr<Permutation<IndexType>>>
+    inverse_row_permute_reuse(
+        ptr_param<const Permutation<IndexType>> permutation) const;
+
+    std::pair<std::unique_ptr<Csr>, std::unique_ptr<Permutation<IndexType>>>
+    inverse_column_permute_reuse(
+        ptr_param<const Permutation<IndexType>> permutation) const;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
@@ -818,6 +859,18 @@ public:
     {
         return values_.get_const_data();
     }
+
+    /**
+     * Creates a Dense view of the value array of this matrix as a column
+     * vector of dimensions nnz x 1.
+     */
+    std::unique_ptr<Dense<ValueType>> create_value_view();
+
+    /**
+     * Creates a const Dense view of the value array of this matrix as a column
+     * vector of dimensions nnz x 1.
+     */
+    std::unique_ptr<const Dense<ValueType>> create_const_value_view() const;
 
     /**
      * Returns the column indexes of the matrix.

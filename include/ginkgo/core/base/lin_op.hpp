@@ -60,6 +60,10 @@ template <typename ValueType>
 class Diagonal;
 
 
+template <typename IndexType>
+class Permutation;
+
+
 }  // namespace matrix
 
 
@@ -513,6 +517,30 @@ template <typename IndexType>
 class Permutable {
 public:
     virtual ~Permutable() = default;
+
+    /** @copydoc permute(const array<IndexType>*) */
+    std::unique_ptr<LinOp> permute(
+        ptr_param<const matrix::Permutation<IndexType>> permutation) const;
+
+    /** @copydoc row_permute(const array<IndexType>*) */
+    std::unique_ptr<LinOp> row_permute(
+        ptr_param<const matrix::Permutation<IndexType>> permutation) const;
+
+    /** @copydoc column_permute(const array<IndexType>*) */
+    std::unique_ptr<LinOp> column_permute(
+        ptr_param<const matrix::Permutation<IndexType>> permutation) const;
+
+    /** @copydoc inverse_permute(const array<IndexType>*) */
+    std::unique_ptr<LinOp> inverse_permute(
+        ptr_param<const matrix::Permutation<IndexType>> permutation) const;
+
+    /** @copydoc inverse_row_permute(const array<IndexType>*) */
+    std::unique_ptr<LinOp> inverse_row_permute(
+        ptr_param<const matrix::Permutation<IndexType>> permutation) const;
+
+    /** @copydoc inverse_column_permute(const array<IndexType>*) */
+    std::unique_ptr<LinOp> inverse_column_permute(
+        ptr_param<const matrix::Permutation<IndexType>> permutation) const;
 
     /**
      * Returns a LinOp representing the symmetric row and column permutation of

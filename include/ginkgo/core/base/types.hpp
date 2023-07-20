@@ -646,6 +646,15 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     template _macro(std::complex<float>, std::complex<float>);    \
     template <>                                                   \
     _macro(std::complex<double>, std::complex<double>) GKO_NOT_IMPLEMENTED
+
+
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_TO_INDEX_CONVERSION(_macro) \
+    template _macro(float, int32);                                 \
+    template _macro(float, int64);                                 \
+    template <>                                                    \
+    _macro(double, int32) GKO_NOT_IMPLEMENTED;                     \
+    template <>                                                    \
+    _macro(double, int64) GKO_NOT_IMPLEMENTED
 #else
 /**
  * Instantiates a template for each value type conversion pair compiled by
@@ -678,6 +687,24 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     template _macro(double, double);                              \
     template _macro(std::complex<float>, std::complex<float>);    \
     template _macro(std::complex<double>, std::complex<double>)
+
+
+/**
+ * Instantiates a template for each conversion from a float type to an integer
+ * type compiled by Ginkgo.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take two arguments `src` and `dst`, which
+ *                are replaced by the source and destination value type.
+ */
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_TO_INDEX_CONVERSION(_macro) \
+    template _macro(float, int32);                                 \
+    template _macro(float, int64);                                 \
+    template _macro(double, int32);                                \
+    template _macro(double, int64)
+
+
 #endif
 
 
