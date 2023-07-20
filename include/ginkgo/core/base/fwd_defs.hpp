@@ -30,38 +30,61 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/executor.hpp>
+#ifndef GKO_PUBLIC_CORE_BASE_FWD_DEFS_HPP_
+#define GKO_PUBLIC_CORE_BASE_FWD_DEFS_HPP_
 
 
-namespace gko {
+#include <ginkgo/config.hpp>
 
 
-std::shared_ptr<Executor> CudaExecutor::get_master() noexcept
-{
-    return master_;
-}
+struct cublasContext;
 
+struct cusparseContext;
 
-std::shared_ptr<const Executor> CudaExecutor::get_master() const noexcept
-{
-    return master_;
-}
+struct CUstream_st;
 
+struct CUevent_st;
 
-bool CudaExecutor::verify_memory_to(const CudaExecutor* dest_exec) const
-{
-    return this->get_device_id() == dest_exec->get_device_id();
-}
+struct hipblasContext;
 
+struct hipsparseContext;
 
-bool CudaExecutor::verify_memory_to(const HipExecutor* dest_exec) const
-{
-#if GINKGO_HIP_PLATFORM_NVCC
-    return this->get_device_id() == dest_exec->get_device_id();
+#if GINKGO_HIP_PLATFORM_HCC
+struct ihipStream_t;
+struct ihipEvent_t;
+#define GKO_HIP_STREAM_STRUCT ihipStream_t
+#define GKO_HIP_EVENT_STRUCT ihipEvent_t
 #else
-    return false;
+#define GKO_HIP_STREAM_STRUCT CUstream_st
+#define GKO_HIP_EVENT_STRUCT CUevent_st
 #endif
-}
 
 
-}  // namespace gko
+// after intel/llvm September'22 release, which uses major version 6, they
+// introduce another inline namespace _V1.
+#if GINKGO_DPCPP_MAJOR_VERSION >= 6
+namespace sycl {
+inline namespace _V1 {
+
+
+class queue;
+class event;
+
+
+}  // namespace _V1
+}  // namespace sycl
+#else  // GINKGO_DPCPP_MAJOR_VERSION < 6
+inline namespace cl {
+namespace sycl {
+
+
+class queue;
+class event;
+
+
+}  // namespace sycl
+}  // namespace cl
+#endif
+
+
+#endif  // GKO_PUBLIC_CORE_BASE_FWD_DEFS_HPP_

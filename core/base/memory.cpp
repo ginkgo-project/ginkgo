@@ -30,37 +30,29 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/memory.hpp>
+
+
+#include <new>
+
+
+#include <ginkgo/core/base/exception_helpers.hpp>
 
 
 namespace gko {
 
 
-std::shared_ptr<Executor> CudaExecutor::get_master() noexcept
+void* CpuAllocator::allocate(size_type num_bytes)
 {
-    return master_;
+    auto ptr = ::operator new (num_bytes, std::nothrow_t{});
+    GKO_ENSURE_ALLOCATED(ptr, "cpu", num_bytes);
+    return ptr;
 }
 
 
-std::shared_ptr<const Executor> CudaExecutor::get_master() const noexcept
+void CpuAllocator::deallocate(void* ptr)
 {
-    return master_;
-}
-
-
-bool CudaExecutor::verify_memory_to(const CudaExecutor* dest_exec) const
-{
-    return this->get_device_id() == dest_exec->get_device_id();
-}
-
-
-bool CudaExecutor::verify_memory_to(const HipExecutor* dest_exec) const
-{
-#if GINKGO_HIP_PLATFORM_NVCC
-    return this->get_device_id() == dest_exec->get_device_id();
-#else
-    return false;
-#endif
+    ::operator delete (ptr, std::nothrow_t{});
 }
 
 

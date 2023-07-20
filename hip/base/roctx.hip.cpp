@@ -30,58 +30,45 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/executor.hpp>
+#include <hip/hip_runtime.h>
 
 
-#include <thread>
+#include <ginkgo/config.hpp>
 
 
-#include <gtest/gtest.h>
+#if GINKGO_HIP_PLATFORM_HCC && GKO_HAVE_ROCTX
+#include <roctx.h>
+#endif
 
 
-namespace {
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/log/profiler_hook.hpp>
 
 
-#define GTEST_ASSERT_NO_EXIT(statement) \
-    ASSERT_EXIT({ {statement} exit(0); }, ::testing::ExitedWithCode(0), "")
+namespace gko {
+namespace log {
 
 
-TEST(DeviceReset, HipCuda)
+#if GINKGO_HIP_PLATFORM_HCC && GKO_HAVE_ROCTX
+
+void begin_roctx(const char* name, profile_event_category)
 {
-    GTEST_ASSERT_NO_EXIT({
-        auto ref = gko::ReferenceExecutor::create();
-        auto hip = gko::HipExecutor::create(0, ref, true);
-        auto cuda = gko::CudaExecutor::create(0, ref, true);
-    });
+    roctxRangePush(name);
 }
 
 
-TEST(DeviceReset, CudaHip)
-{
-    GTEST_ASSERT_NO_EXIT({
-        auto ref = gko::ReferenceExecutor::create();
-        auto cuda = gko::CudaExecutor::create(0, ref, true);
-        auto hip = gko::HipExecutor::create(0, ref, true);
-    });
-}
+void end_roctx(const char*, profile_event_category) { roctxRangePop(); }
+
+#else
+
+void begin_roctx(const char* name, profile_event_category)
+    GKO_NOT_COMPILED(roctx);
 
 
-void func()
-{
-    auto ref = gko::ReferenceExecutor::create();
-    auto exec = gko::HipExecutor::create(0, ref, true);
-}
+void end_roctx(const char*, profile_event_category) GKO_NOT_COMPILED(roctx);
+
+#endif
 
 
-TEST(DeviceReset, HipHip)
-{
-    GTEST_ASSERT_NO_EXIT({
-        std::thread t1(func);
-        std::thread t2(func);
-        t1.join();
-        t2.join();
-    });
-}
-
-
-}  // namespace
+}  // namespace log
+}  // namespace gko

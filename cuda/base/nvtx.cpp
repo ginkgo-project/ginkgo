@@ -30,38 +30,69 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/executor.hpp>
+#include <cuda_runtime.h>
+
+
+#include <ginkgo/config.hpp>
+
+
+#ifdef GKO_LEGACY_NVTX
+#include <nvToolsExt.h>
+#else
+#include <nvtx3/nvToolsExt.h>
+#endif
+
+
+#include <ginkgo/core/log/profiler_hook.hpp>
 
 
 namespace gko {
+namespace log {
 
 
-std::shared_ptr<Executor> CudaExecutor::get_master() noexcept
+// "GKO" in ASCII to avoid collision with other application's categories
+constexpr static uint32 category_magic_offset = 0x676B6FU;
+
+
+void init_nvtx()
 {
-    return master_;
+#define NAMED_CATEGORY(_name)                                             \
+    nvtxNameCategory(static_cast<uint32>(profile_event_category::_name) + \
+                         category_magic_offset,                           \
+                     "gko::" #_name)
+    NAMED_CATEGORY(memory);
+    NAMED_CATEGORY(operation);
+    NAMED_CATEGORY(object);
+    NAMED_CATEGORY(linop);
+    NAMED_CATEGORY(factory);
+    NAMED_CATEGORY(solver);
+    NAMED_CATEGORY(criterion);
+    NAMED_CATEGORY(user);
+    NAMED_CATEGORY(internal);
+#undef NAMED_CATEGORY
 }
 
 
-std::shared_ptr<const Executor> CudaExecutor::get_master() const noexcept
+std::function<void(const char*, profile_event_category)> begin_nvtx_fn(
+    uint32_t color_argb)
 {
-    return master_;
+    return [color_argb](const char* name, profile_event_category category) {
+        nvtxEventAttributes_t attr{};
+        attr.version = NVTX_VERSION;
+        attr.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE;
+        attr.category = static_cast<uint32>(category) + category_magic_offset;
+        attr.colorType = NVTX_COLOR_ARGB;
+        attr.color = color_argb;
+        attr.payloadType = NVTX_PAYLOAD_UNKNOWN;
+        attr.messageType = NVTX_MESSAGE_TYPE_ASCII;
+        attr.message.ascii = name;
+        nvtxRangePushEx(&attr);
+    };
 }
 
 
-bool CudaExecutor::verify_memory_to(const CudaExecutor* dest_exec) const
-{
-    return this->get_device_id() == dest_exec->get_device_id();
-}
+void end_nvtx(const char* name, profile_event_category) { nvtxRangePop(); }
 
 
-bool CudaExecutor::verify_memory_to(const HipExecutor* dest_exec) const
-{
-#if GINKGO_HIP_PLATFORM_NVCC
-    return this->get_device_id() == dest_exec->get_device_id();
-#else
-    return false;
-#endif
-}
-
-
+}  // namespace log
 }  // namespace gko

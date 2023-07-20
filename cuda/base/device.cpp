@@ -30,58 +30,34 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/executor.hpp>
+#include <cuda_runtime.h>
 
 
-#include <thread>
+#include <ginkgo/core/base/exception_helpers.hpp>
 
 
-#include <gtest/gtest.h>
+#include "cuda/base/device.hpp"
+#include "cuda/base/scoped_device_id.hpp"
 
 
-namespace {
+namespace gko {
+namespace kernels {
+namespace cuda {
 
 
-#define GTEST_ASSERT_NO_EXIT(statement) \
-    ASSERT_EXIT({ {statement} exit(0); }, ::testing::ExitedWithCode(0), "")
-
-
-TEST(DeviceReset, HipCuda)
+void reset_device(int device_id)
 {
-    GTEST_ASSERT_NO_EXIT({
-        auto ref = gko::ReferenceExecutor::create();
-        auto hip = gko::HipExecutor::create(0, ref, true);
-        auto cuda = gko::CudaExecutor::create(0, ref, true);
-    });
+    gko::detail::cuda_scoped_device_id_guard guard{device_id};
+    cudaDeviceReset();
 }
 
 
-TEST(DeviceReset, CudaHip)
+void destroy_event(CUevent_st* event)
 {
-    GTEST_ASSERT_NO_EXIT({
-        auto ref = gko::ReferenceExecutor::create();
-        auto cuda = gko::CudaExecutor::create(0, ref, true);
-        auto hip = gko::HipExecutor::create(0, ref, true);
-    });
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaEventDestroy(event));
 }
 
 
-void func()
-{
-    auto ref = gko::ReferenceExecutor::create();
-    auto exec = gko::CudaExecutor::create(0, ref, true);
-}
-
-
-TEST(DeviceReset, CudaCuda)
-{
-    GTEST_ASSERT_NO_EXIT({
-        std::thread t1(func);
-        std::thread t2(func);
-        t1.join();
-        t2.join();
-    });
-}
-
-
-}  // namespace
+}  // namespace cuda
+}  // namespace kernels
+}  // namespace gko

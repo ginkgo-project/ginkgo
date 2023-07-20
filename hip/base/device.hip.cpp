@@ -30,38 +30,38 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/device.hpp>
+
+
+#include <hip/hip_runtime.h>
+
+
+#include <ginkgo/config.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/stream.hpp>
+
+
+#include "hip/base/scoped_device_id.hip.hpp"
 
 
 namespace gko {
+namespace kernels {
+namespace hip {
 
 
-std::shared_ptr<Executor> CudaExecutor::get_master() noexcept
+void reset_device(int device_id)
 {
-    return master_;
+    gko::detail::hip_scoped_device_id_guard guard{device_id};
+    hipDeviceReset();
 }
 
 
-std::shared_ptr<const Executor> CudaExecutor::get_master() const noexcept
+void destroy_event(GKO_HIP_EVENT_STRUCT* event)
 {
-    return master_;
+    GKO_ASSERT_NO_HIP_ERRORS(hipEventDestroy(event));
 }
 
 
-bool CudaExecutor::verify_memory_to(const CudaExecutor* dest_exec) const
-{
-    return this->get_device_id() == dest_exec->get_device_id();
-}
-
-
-bool CudaExecutor::verify_memory_to(const HipExecutor* dest_exec) const
-{
-#if GINKGO_HIP_PLATFORM_NVCC
-    return this->get_device_id() == dest_exec->get_device_id();
-#else
-    return false;
-#endif
-}
-
-
+}  // namespace hip
+}  // namespace kernels
 }  // namespace gko

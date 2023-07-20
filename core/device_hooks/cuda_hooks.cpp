@@ -35,6 +35,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/memory.hpp>
+#include <ginkgo/core/base/stream.hpp>
 #include <ginkgo/core/base/timer.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/version.hpp>
@@ -52,12 +54,73 @@ version version_info::get_cuda_version() noexcept
 }
 
 
+void* CudaAllocator::allocate(size_type num_bytes) GKO_NOT_COMPILED(cuda);
+
+
+void CudaAllocator::deallocate(void* dev_ptr) GKO_NOT_COMPILED(cuda);
+
+
+CudaAsyncAllocator::CudaAsyncAllocator(CUstream_st* stream)
+    GKO_NOT_COMPILED(cuda);
+
+
+void* CudaAsyncAllocator::allocate(size_type num_bytes) GKO_NOT_COMPILED(cuda);
+
+
+void CudaAsyncAllocator::deallocate(void* dev_ptr) GKO_NOT_COMPILED(cuda);
+
+
+bool CudaAsyncAllocator::check_environment(int device_id,
+                                           CUstream_st* stream) const
+    GKO_NOT_COMPILED(cuda);
+
+
+CudaUnifiedAllocator::CudaUnifiedAllocator(int device_id, unsigned int flags)
+    GKO_NOT_COMPILED(cuda);
+
+
+void* CudaUnifiedAllocator::allocate(size_type num_bytes)
+    GKO_NOT_COMPILED(cuda);
+
+
+void CudaUnifiedAllocator::deallocate(void* dev_ptr) GKO_NOT_COMPILED(cuda);
+
+
+bool CudaUnifiedAllocator::check_environment(int device_id,
+                                             CUstream_st* stream) const
+    GKO_NOT_COMPILED(cuda);
+
+
+CudaHostAllocator::CudaHostAllocator(int device_id) GKO_NOT_COMPILED(cuda);
+
+
+void* CudaHostAllocator::allocate(size_type num_bytes) GKO_NOT_COMPILED(cuda);
+
+
+void CudaHostAllocator::deallocate(void* dev_ptr) GKO_NOT_COMPILED(cuda);
+
+
+bool CudaHostAllocator::check_environment(int device_id,
+                                          CUstream_st* stream) const
+    GKO_NOT_COMPILED(cuda);
+
+
 std::shared_ptr<CudaExecutor> CudaExecutor::create(
     int device_id, std::shared_ptr<Executor> master, bool device_reset,
     allocation_mode alloc_mode, CUstream_st* stream)
 {
+    return std::shared_ptr<CudaExecutor>(
+        new CudaExecutor(device_id, std::move(master),
+                         std::make_shared<CudaAllocator>(), stream));
+}
+
+
+std::shared_ptr<CudaExecutor> CudaExecutor::create(
+    int device_id, std::shared_ptr<Executor> master,
+    std::shared_ptr<CudaAllocatorBase> alloc, CUstream_st* stream)
+{
     return std::shared_ptr<CudaExecutor>(new CudaExecutor(
-        device_id, std::move(master), device_reset, alloc_mode, stream));
+        device_id, std::move(master), std::move(alloc), stream));
 }
 
 
@@ -152,6 +215,9 @@ void CudaExecutor::init_handles() {}
 scoped_device_id_guard::scoped_device_id_guard(const CudaExecutor* exec,
                                                int device_id)
     GKO_NOT_COMPILED(cuda);
+
+
+cuda_stream::cuda_stream() GKO_NOT_COMPILED(cuda);
 
 
 cuda_stream::cuda_stream(int device_id) GKO_NOT_COMPILED(cuda);

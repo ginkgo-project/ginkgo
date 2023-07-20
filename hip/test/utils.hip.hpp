@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/stream.hpp>
 
 
 #include "hip/base/device.hpp"
@@ -60,8 +61,9 @@ protected:
     HipTestFixture()
         : ref(gko::ReferenceExecutor::create()),
 #ifdef GKO_TEST_NONDEFAULT_STREAM
+          stream(0),
           exec(gko::HipExecutor::create(
-              0, ref, false, gko::default_hip_alloc_mode, stream.get()))
+              0, ref, std::make_shared<gko::HipAllocator>(), stream.get()))
 #else
           exec(gko::HipExecutor::create(0, ref))
 #endif
