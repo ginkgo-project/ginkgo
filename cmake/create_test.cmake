@@ -1,4 +1,5 @@
-set(gko_test_single_args "MPI_SIZE")
+set(gko_test_resource_args "RESOURCE_LOCAL_CORES;RESOURCE_PERCENT;RESOURCE_TYPE")
+set(gko_test_single_args "MPI_SIZE;${gko_test_resource_args}")
 set(gko_test_multi_args "DISABLE_EXECUTORS;ADDITIONAL_LIBRARIES;ADDITIONAL_INCLUDES")
 
 ## Replaces / by _ to create valid target names from relative paths
@@ -38,7 +39,7 @@ function(ginkgo_set_test_target_properties test_target_name)
     endif()
     if (GINKGO_COMPILING_DPCPP_TEST AND GINKGO_DPCPP_SINGLE_MODE)
         target_compile_definitions(${test_target_name} PRIVATE GINKGO_DPCPP_SINGLE_MODE=1)
-    endif ()
+    endif()
     if(GINKGO_CHECK_CIRCULAR_DEPS)
       target_link_libraries(${test_target_name} PRIVATE "${GINKGO_CIRCULAR_DEPS_FLAGS}")
     endif()
@@ -63,37 +64,37 @@ function(ginkgo_add_resource_requirement test_name)
         return()
     endif()
 
-    if (NOT add_rr_TYPE)
+    if (NOT add_rr_RESOURCE_TYPE)
         message(FATAL_ERROR "Need to provide resource type used by test.")
     endif ()
 
-    if(add_rr_TYPE STREQUAL "ref")
+    if(add_rr_RESOURCE_TYPE STREQUAL "ref")
         set(single_resource "cpus:1")
-    elseif(add_rr_TYPE STREQUAL "cpu")
-        if(NOT add_rr_CORES)
-            set(add_rr_CORES 4)  # perhaps get this from environment variable?
+    elseif(add_rr_RESOURCE_TYPE STREQUAL "cpu")
+        if(NOT add_rr_RESOURCE_LOCAL_CORES)
+            set(add_rr_RESOURCE_LOCAL_CORES 4)  # perhaps get this from environment variable?
         endif()
-        if(NOT add_rr_CORES MATCHES "^[0-9]+")
-            message(FATAL_ERROR "Resource specification is invalid: CORE=${add_rr_CORES}")
+        if(NOT add_rr_RESOURCE_LOCAL_CORES MATCHES "^[0-9]+")
+            message(FATAL_ERROR "Resource specification is invalid: RESOURCE_LOCAL_CORE=${add_rr_RESOURCE_LOCAL_CORES}")
         endif()
 
-        set(single_resource "cpus:${add_rr_CORES}")
-    elseif(add_rr_TYPE STREQUAL "gpu")
-        if(NOT add_rr_PERCENTAGE)
-            set(add_rr_PERCENTAGE 50)
+        set(single_resource "cpus:${add_rr_RESOURCE_LOCAL_CORES}")
+    elseif(add_rr_RESOURCE_TYPE STREQUAL "gpu")
+        if(NOT add_rr_RESOURCE_PERCENTAGE)
+            set(add_rr_RESOURCE_PERCENTAGE 50)
         endif()
         if(add_rr_MPI_SIZE GREATER 1)
-            set(add_rr_PERCENTAGE 100)
+            set(add_rr_RESOURCE_PERCENTAGE 100)
         endif()
-        if(NOT add_rr_PERCENTAGE MATCHES "^[0-9]([0-9][0-9]?)?"
-           OR add_rr_PERCENTAGE LESS 0
-           OR add_rr_PERCENTAGE GREATER 100)
-            message(FATAL_ERROR "Resource specification is invalid: PERCENTAGE=${add_rr_PERCENTAGE}")
+        if(NOT add_rr_RESOURCE_PERCENTAGE MATCHES "^[0-9]([0-9][0-9]?)?"
+           OR add_rr_RESOURCE_PERCENTAGE LESS 0
+           OR add_rr_RESOURCE_PERCENTAGE GREATER 100)
+            message(FATAL_ERROR "Resource specification is invalid: RESOURCE_PERCENTAGE=${add_rr_RESOURCE_PERCENTAGE}")
         endif()
 
-        set(single_resource "gpus:${add_rr_PERCENTAGE}")
+        set(single_resource "gpus:${add_rr_RESOURCE_PERCENTAGE}")
     else()
-        message(FATAL_ERROR "Unrecognized resource type ${add_rr_TYPE}, allowed are: ref, cpu, gpu.")
+        message(FATAL_ERROR "Unrecognized resource type ${add_rr_RESOURCE_TYPE}, allowed are: ref, cpu, gpu.")
     endif()
 
     if(NOT add_rr_MPI_SIZE)
@@ -128,6 +129,9 @@ function(ginkgo_add_test test_name test_target_name)
                  COMMAND ${test_target_name}
                  WORKING_DIRECTORY "$<TARGET_FILE_DIR:ginkgo>")
     endif()
+
+    ginkgo_add_resource_requirement(${REL_BINARY_DIR}/${test_name} ${ARGN})
+
     set(test_preload)
     if (GINKGO_TEST_NONDEFAULT_STREAM AND GINKGO_BUILD_CUDA)
         set(test_preload $<TARGET_FILE:identify_stream_usage_cuda>:${test_preload})
@@ -146,7 +150,7 @@ function(ginkgo_create_test test_name)
     add_executable(${test_target_name} ${test_name}.cpp)
     target_link_libraries(${test_target_name} PRIVATE ${create_test_ADDITIONAL_LIBRARIES})
     ginkgo_set_test_target_properties(${test_target_name} ${ARGN})
-    ginkgo_add_test(${test_name} ${test_target_name} ${ARGN})
+    ginkgo_add_test(${test_name} ${test_target_name} ${ARGN} RESOURCE_TYPE ref)
 endfunction(ginkgo_create_test)
 
 ## Test compiled with dpcpp
@@ -157,7 +161,7 @@ function(ginkgo_create_dpcpp_test test_name)
     target_compile_options(${test_target_name} PRIVATE ${GINKGO_DPCPP_FLAGS})
     target_link_options(${test_target_name} PRIVATE -fsycl-device-code-split=per_kernel)
     ginkgo_set_test_target_properties(${test_target_name} ${ARGN})
-    ginkgo_add_test(${test_name} ${test_target_name} ${ARGN})
+    ginkgo_add_test(${test_name} ${test_target_name} ${ARGN} RESOURCE_TYPE gpu)
     # Note: MKL_ENV is empty on linux. Maybe need to apply MKL_ENV to all test.
     if (MKL_ENV)
         set_tests_properties(${test_target_name} PROPERTIES ENVIRONMENT "${MKL_ENV}")
@@ -176,7 +180,6 @@ function(ginkgo_create_cuda_test_internal test_name filename test_target_name)
     target_compile_definitions(${test_target_name} PRIVATE GKO_COMPILING_CUDA)
     target_compile_options(${test_target_name}
         PRIVATE
-            $<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_ARCH_FLAGS}>
             $<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_COMPILER_FLAGS}>)
     if(MSVC)
         target_compile_options(${test_target_name}
@@ -192,7 +195,7 @@ function(ginkgo_create_cuda_test_internal test_name filename test_target_name)
         set_target_properties(${test_target_name} PROPERTIES CUDA_ARCHITECTURES OFF)
     endif()
     ginkgo_set_test_target_properties(${test_target_name} ${ARGN})
-    ginkgo_add_test(${test_name} ${test_target_name} ${ARGN})
+    ginkgo_add_test(${test_name} ${test_target_name} ${ARGN} RESOURCE_TYPE gpu)
 endfunction(ginkgo_create_cuda_test_internal)
 
 ## Test compiled with HIP
@@ -248,8 +251,24 @@ function(ginkgo_create_hip_test_internal test_name filename test_target_name add
         ${HIPSPARSE_INCLUDE_DIRS}
         )
     ginkgo_set_test_target_properties(${test_target_name} ${ARGN})
-    ginkgo_add_test(${test_name} ${test_target_name} ${ARGN})
+    ginkgo_add_test(${test_name} ${test_target_name} ${ARGN} RESOURCE_TYPE gpu)
 endfunction(ginkgo_create_hip_test_internal)
+
+
+## Test compiled with OpenMP
+function(ginkgo_create_omp_test test_name)
+    ginkgo_build_test_name(${test_name} test_target_name)
+    ginkgo_create_omp_test_internal(${test_name} ${test_name}.cpp ${test_target_name} "" ${ARGN})
+endfunction()
+
+function(ginkgo_create_omp_test_internal test_name filename test_target_name)
+    ginkgo_build_test_name(${test_name} test_target_name)
+    add_executable(${test_target_name} ${test_name}.cpp)
+    target_compile_definitions(${test_target_name} PRIVATE GKO_COMPILING_OMP)
+    target_link_libraries(${test_target_name} PRIVATE OpenMP::OpenMP_CXX)
+    ginkgo_set_test_target_properties(${test_target_name} ${ARGN})
+    ginkgo_add_test(${test_name} ${test_target_name} ${ARGN} RESOURCE_TYPE cpu)
+endfunction()
 
 ## Common test compiled with the host compiler, one target for each enabled backend
 function(ginkgo_create_common_test test_name)
@@ -272,11 +291,25 @@ function(ginkgo_create_common_test_internal test_name exec_type exec)
     if(exec IN_LIST common_test_DISABLE_EXECUTORS)
         return()
     endif()
+    if (exec STREQUAL reference)
+        set(test_resource_type ref)
+    elseif (exec STREQUAL omp)
+        set(test_resource_type cpu)
+    else ()
+        set(test_resource_type gpu)
+    endif ()
     ginkgo_build_test_name(${test_name} test_target_name)
     string(TOUPPER ${exec} exec_upper)
+
     # set up actual test
     set(test_target_name ${test_target_name}_${exec})
     add_executable(${test_target_name} ${test_name}.cpp)
+
+    # also need to add runtime libraries for other backends
+    if (exec STREQUAL omp)
+        target_link_libraries(${test_target_name} PRIVATE OpenMP::OpenMP_CXX)
+    endif ()
+
     target_compile_definitions(${test_target_name} PRIVATE EXEC_TYPE=${exec_type} EXEC_NAMESPACE=${exec} GKO_COMPILING_${exec_upper})
     target_link_libraries(${test_target_name} PRIVATE ${common_test_ADDITIONAL_LIBRARIES})
     # use float for DPC++ if necessary
@@ -285,7 +318,7 @@ function(ginkgo_create_common_test_internal test_name exec_type exec)
         target_compile_definitions(${test_target_name} PRIVATE GINKGO_DPCPP_SINGLE_MODE=1)
     endif()
     ginkgo_set_test_target_properties(${test_target_name} ${ARGN})
-    ginkgo_add_test(${test_name}_${exec} ${test_target_name} ${ARGN})
+    ginkgo_add_test(${test_name}_${exec} ${test_target_name} ${ARGN} RESOURCE_TYPE ${test_resource_type})
 endfunction(ginkgo_create_common_test_internal)
 
 ## Common test compiled with the device compiler, one target for each enabled backend
