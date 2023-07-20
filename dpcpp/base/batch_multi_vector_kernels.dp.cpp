@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <dpcpp/matrix/batch_struct.hpp>
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -42,7 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/components/prefix_sum_kernels.hpp"
-#include "dpcpp/matrix/batch_struct.hpp"
 
 
 namespace gko {

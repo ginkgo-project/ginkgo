@@ -30,13 +30,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <ginkgo/core/base/batch_dim.hpp>
+
+
 #include <memory>
 
 
 #include <gtest/gtest.h>
-
-
-#include <ginkgo/core/base/batch_dim.hpp>
 
 
 TEST(BatchDim, ConstructsCorrectUniformObject)
