@@ -407,7 +407,7 @@ TYPED_TEST(BatchMultiVector, CanBeReadFromMatrixAssemblyData)
     data1.set_value(0, 1, 3.0);
     data1.set_value(1, 0, 0.0);
     data1.set_value(1, 1, 5.0);
-    gko::matrix_assembly_data<TypeParam> data2(gko::dim<2>{2, 1});
+    gko::matrix_assembly_data<TypeParam> data2(gko::dim<2>{2, 2});
     data2.set_value(0, 0, 2.0);
     data2.set_value(0, 1, 1.0);
     data2.set_value(1, 0, 5.0);

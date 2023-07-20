@@ -664,25 +664,17 @@ std::unique_ptr<Matrix> batch_initialize(
 {
     using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
     size_type num_batch_entries = vals.size();
-    size_type ind = 0;
-    size_type num_rows = 0;
-    size_type num_cols = 0;
-    gko::dim<2> common_size{};
-    size_type idx = 0;
+    auto vals_begin = begin(vals);
+    size_type common_num_rows = vals_begin->size();
+    size_type common_num_cols = vals_begin->begin()->size();
+    auto common_size = dim<2>(common_num_rows, common_num_cols);
     for (const auto& b : vals) {
-        num_rows = b.size();
-        num_cols = begin(b)->size();
-        if (idx == 0) {
-            common_size = dim<2>(num_rows, num_cols);
-        }
+        auto num_rows = b.size();
+        auto num_cols = begin(b)->size();
         auto b_size = dim<2>(num_rows, num_cols);
         GKO_ASSERT_EQUAL_DIMENSIONS(b_size, common_size);
-        ++idx;
     }
 
-    size_type common_num_rows = num_rows;
-    size_type common_num_cols = num_cols;
-    common_size = dim<2>(common_num_rows, common_num_cols);
     auto b_size = batch_dim<2>(num_batch_entries, common_size);
     auto tmp = batch_multi_vector::create(exec->get_master(), b_size);
     size_type batch = 0;
@@ -699,7 +691,7 @@ std::unique_ptr<Matrix> batch_initialize(
         ++batch;
     }
     auto mtx = Matrix::create(exec, std::forward<TArgs>(create_args)...);
-    mtx->copy_from(tmp.get());
+    tmp->move_to(mtx);
     return mtx;
 }
 

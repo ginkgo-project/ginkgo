@@ -41,9 +41,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <ginkgo/core/base/batch_csr.hpp>
-#include <ginkgo/core/base/batch_diagonal.hpp>
-#include <ginkgo/core/base/batch_identity.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -52,9 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/batch_multi_vector_kernels.hpp"
 #include "core/test/utils.hpp"
-
-
-namespace {
 
 
 template <typename T>
@@ -77,26 +71,22 @@ protected:
           mtx_01(gko::initialize<DenseMtx>(
               {I<T>({1.0, -2.0, -0.5}), I<T>({1.0, -2.5, 4.0})}, exec)),
           mtx_1(
-              gko::batch_initialize<Mtx>(std::vector<size_type>{4, 4},
-                                         {{{1.0, -1.0, 2.2}, {-2.0, 2.0, -0.5}},
+              gko::batch_initialize<Mtx>({{{1.0, -1.0, 2.2}, {-2.0, 2.0, -0.5}},
                                           {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}},
                                          exec)),
           mtx_10(gko::initialize<DenseMtx>(
               {I<T>({1.0, -1.0, 2.2}), I<T>({-2.0, 2.0, -0.5})}, exec)),
-          mtx_11(gko::initialize<DenseMtx>(
-              4, {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}, exec)),
+          mtx_11(gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
+                                           exec)),
           mtx_2(gko::batch_initialize<Mtx>(
-              std::vector<size_type>{2, 2},
               {{{1.0, 1.5}, {6.0, 1.0}, {-0.25, 1.0}},
                {I<T>({2.0, -2.0}), I<T>({1.0, 3.0}), I<T>({4.0, 3.0})}},
               exec)),
           mtx_20(gko::initialize<DenseMtx>(
-              4, {I<T>({1.0, 1.5}), I<T>({6.0, 1.0}), I<T>({-0.25, 1.0})},
-              exec)),
+              {I<T>({1.0, 1.5}), I<T>({6.0, 1.0}), I<T>({-0.25, 1.0})}, exec)),
           mtx_21(gko::initialize<DenseMtx>(
               {I<T>({2.0, -2.0}), I<T>({1.0, 3.0}), I<T>({4.0, 3.0})}, exec)),
           mtx_3(gko::batch_initialize<Mtx>(
-              std::vector<size_type>{4, 4},
               {{I<T>({1.0, 1.5}), I<T>({6.0, 1.0})}, {{2.0, -2.0}, {1.0, 3.0}}},
               exec)),
           mtx_30(gko::initialize<DenseMtx>({I<T>({1.0, 1.5}), I<T>({6.0, 1.0})},
@@ -146,7 +136,6 @@ TYPED_TEST(BatchMultiVector, ScalesData)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto alpha = gko::batch_initialize<Mtx>(
-        std::vector<gko::size_type>{3, 3},
         {{{2.0, -2.0, 1.5}}, {{3.0, -1.0, 0.25}}}, this->exec);
 
     auto ualpha = alpha->unbatch();
@@ -238,24 +227,11 @@ TYPED_TEST(BatchMultiVector, AddsScaledWithScalar)
 TYPED_TEST(BatchMultiVector, AddScaledFailsOnWrongSizes)
 {
     using Mtx = typename TestFixture::Mtx;
-    auto alpha =
-        gko::batch_initialize<Mtx>({{2.0, 3.0, 4.0, 5.0}, {-2.0}}, this->exec);
+    auto alpha = gko::batch_initialize<Mtx>(
+        {{2.0, 3.0, 4.0, 5.0}, {-2.0, 2.0, 4.0, 5.0}}, this->exec);
 
     ASSERT_THROW(this->mtx_1->add_scaled(alpha.get(), this->mtx_2.get()),
                  gko::DimensionMismatch);
-}
-
-
-TYPED_TEST(BatchMultiVector, AddScaleFailsOnWrongScalarSizes)
-{
-    using Mtx = typename TestFixture::Mtx;
-    auto alpha = gko::batch_initialize<Mtx>(
-        {{{2.0, -2.0, 1.5}}, {{2.0, -2.0, 3.0}}}, this->exec);
-    auto beta = gko::batch_initialize<Mtx>({{3.0}, {1.5}}, this->exec);
-
-    ASSERT_THROW(
-        this->mtx_1->add_scale(alpha.get(), this->mtx_0.get(), beta.get()),
-        gko::DimensionMismatch);
 }
 
 
@@ -282,8 +258,7 @@ TYPED_TEST(BatchMultiVector, ComputDotFailsOnWrongInputSize)
 {
     using Mtx = typename TestFixture::Mtx;
     auto result =
-        Mtx::create(this->exec, gko::batch_dim<2>(std::vector<gko::dim<2>>{
-                                    gko::dim<2>{1, 2}, gko::dim<2>{1, 3}}));
+        Mtx::create(this->exec, gko::batch_dim<2>(2, gko::dim<2>{1, 3}));
 
     ASSERT_THROW(this->mtx_1->compute_dot(this->mtx_2.get(), result.get()),
                  gko::DimensionMismatch);
@@ -294,8 +269,7 @@ TYPED_TEST(BatchMultiVector, ComputDotFailsOnWrongResultSize)
 {
     using Mtx = typename TestFixture::Mtx;
     auto result =
-        Mtx::create(this->exec, gko::batch_dim<2>(std::vector<gko::dim<2>>{
-                                    gko::dim<2>{1, 2}, gko::dim<2>{1, 2}}));
+        Mtx::create(this->exec, gko::batch_dim<2>(2, gko::dim<2>{1, 2}));
     auto result2 =
         Mtx::create(this->exec, gko::batch_dim<2>(2, gko::dim<2>{1, 2}));
 
@@ -316,10 +290,8 @@ TYPED_TEST(BatchMultiVector, ComputesNorm2)
         {{I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}},
          {I<T>{-4.0, 2.0}, I<T>{-3.0, -2.0}, I<T>{0.0, 1.0}}},
         this->exec));
-    auto batch_size = gko::batch_dim<2>(
-        std::vector<gko::dim<2>>{gko::dim<2>{1, 2}, gko::dim<2>{1, 2}});
-    auto result =
-        NormVector::create(this->exec, batch_size, gko::batch_stride(2, 2));
+    auto batch_size = gko::batch_dim<2>(2, gko::dim<2>{1, 2});
+    auto result = NormVector::create(this->exec, batch_size);
 
     mtx->compute_norm2(result.get());
 
@@ -413,6 +385,3 @@ TYPED_TEST(BatchMultiVector, MovesEmptyToPrecision)
 
     ASSERT_FALSE(res->get_num_batch_entries());
 }
-
-
-}  // namespace
