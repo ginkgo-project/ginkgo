@@ -59,16 +59,6 @@ function(ginkgo_set_test_target_properties test_target_name)
     target_link_libraries(${test_target_name} PRIVATE ginkgo GTest::GTest ${set_properties_ADDITIONAL_LIBRARIES})
 endfunction()
 
-function(ginkgo_add_cpu_resource_requirement_internal test_name local_cores mpi_size)
-    if (mpi_size)
-        math(EXPR cores "${mpi_size} * ${local_cores}")
-    else ()
-        set(cores ${local_cores})
-    endif ()
-    set_property(TEST ${test_name} PROPERTY
-            RESOURCE_GROUPS "cpus:${cores}")
-endfunction()
-
 function(ginkgo_add_resource_requirement test_name)
     cmake_parse_arguments(PARSE_ARGV 1 add_rr "${gko_test_option_args}" "${gko_test_single_args}" "")
     if(add_rr_NO_RESOURCES)
@@ -111,12 +101,9 @@ function(ginkgo_add_resource_requirement test_name)
     if(NOT add_rr_MPI_SIZE)
         set(add_rr_MPI_SIZE 1)
     endif()
-    foreach(unused RANGE ${MPI_SIZE})
-        list(APPEND resources "${single_resource}")
-    endforeach()
     set_property(TEST ${test_name}
                  PROPERTY
-                 RESOURCE_GROUPS ${resources})
+                 RESOURCE_GROUPS "${add_rr_MPI_SIZE},${single_resource}")
 endfunction()
 
 
