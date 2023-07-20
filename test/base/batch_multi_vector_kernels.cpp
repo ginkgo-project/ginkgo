@@ -59,11 +59,11 @@ protected:
     BatchMultiVector() : rand_engine(15) {}
 
     template <typename MtxType>
-    std::unique_ptr<MtxType> gen_mtx(const size_t batchsize, int num_rows,
+    std::unique_ptr<MtxType> gen_mtx(const size_t batch_size, int num_rows,
                                      int num_cols)
     {
         return gko::test::generate_uniform_batch_random_matrix<MtxType>(
-            batchsize, num_rows, num_cols,
+            batch_size, num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, false, ref);
     }
@@ -89,9 +89,9 @@ protected:
         dalpha->copy_from(alpha.get());
         dbeta = gko::clone(exec, beta.get());
         expected = Mtx::create(
-            ref, gko::batch_dim<>(batch_size, gko::dim<2>{1, num_vecs}));
+            ref, gko::batch_dim<2>(batch_size, gko::dim<2>{1, num_vecs}));
         dresult = Mtx::create(
-            exec, gko::batch_dim<>(batch_size, gko::dim<2>{1, num_vecs}));
+            exec, gko::batch_dim<2>(batch_size, gko::dim<2>{1, num_vecs}));
     }
 
     void set_up_apply_data(const int p = 1)
@@ -103,8 +103,8 @@ protected:
         expected = gen_mtx<Mtx>(batch_size, m, p);
         alpha = gko::batch_initialize<Mtx>(batch_size, {2.0}, ref);
         beta = gko::batch_initialize<Mtx>(batch_size, {-1.0}, ref);
-        square = gen_mtx<Mtx>(batch_size, x->get_size().at()[0],
-                              x->get_size().at()[0]);
+        square = gen_mtx<Mtx>(batch_size, x->get_common_size()[0],
+                              x->get_common_size()[0]);
         dx = Mtx::create(exec);
         dx->copy_from(x.get());
         dc_x = ComplexMtx::create(exec);
@@ -212,7 +212,7 @@ TEST_F(BatchMultiVector, ComputeNorm2SingleIsEquivalentToRef)
 {
     set_up_vector_data(1);
     auto norm_size =
-        gko::batch_dim<>(batch_size, gko::dim<2>{1, x->get_size().at()[1]});
+        gko::batch_dim<2>(batch_size, gko::dim<2>{1, x->get_common_size()[1]});
     auto norm_expected = NormVector::create(this->ref, norm_size);
     auto dnorm = NormVector::create(this->exec, norm_size);
 
@@ -227,7 +227,7 @@ TEST_F(BatchMultiVector, ComputeNorm2IsEquivalentToRef)
 {
     set_up_vector_data(20);
     auto norm_size =
-        gko::batch_dim<>(batch_size, gko::dim<2>{1, x->get_size().at()[1]});
+        gko::batch_dim<2>(batch_size, gko::dim<2>{1, x->get_common_size()[1]});
     auto norm_expected = NormVector::create(this->ref, norm_size);
     auto dnorm = NormVector::create(this->exec, norm_size);
 
@@ -242,7 +242,7 @@ TEST_F(BatchMultiVector, ComputeDotIsEquivalentToRef)
 {
     set_up_vector_data(20);
     auto dot_size =
-        gko::batch_dim<>(batch_size, gko::dim<2>{1, x->get_size().at()[1]});
+        gko::batch_dim<2>(batch_size, gko::dim<2>{1, x->get_common_size()[1]});
     auto dot_expected = Mtx::create(this->ref, dot_size);
     auto ddot = Mtx::create(this->exec, dot_size);
 
@@ -257,7 +257,7 @@ TEST_F(BatchMultiVector, ComputeDotSingleIsEquivalentToRef)
 {
     set_up_vector_data(1);
     auto dot_size =
-        gko::batch_dim<>(batch_size, gko::dim<2>{1, x->get_size().at()[1]});
+        gko::batch_dim<2>(batch_size, gko::dim<2>{1, x->get_common_size()[1]});
     auto dot_expected = Mtx::create(this->ref, dot_size);
     auto ddot = Mtx::create(this->exec, dot_size);
 
