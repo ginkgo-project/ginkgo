@@ -57,6 +57,54 @@ function(ginkgo_set_test_target_properties test_target_name)
     target_link_libraries(${test_target_name} PRIVATE ginkgo GTest::GTest ${set_properties_ADDITIONAL_LIBRARIES})
 endfunction()
 
+function(ginkgo_add_resource_requirement test_name)
+    cmake_parse_arguments(PARSE_ARGV 1 add_rr "${gko_test_option_args}" "${gko_test_single_args}" "")
+    if(add_rr_NO_RESOURCES)
+        return()
+    endif()
+
+    if (NOT add_rr_TYPE)
+        message(FATAL_ERROR "Need to provide resource type used by test.")
+    endif ()
+
+    if(add_rr_TYPE STREQUAL "ref")
+        set(single_resource "cpus:1")
+    elseif(add_rr_TYPE STREQUAL "cpu")
+        if(NOT add_rr_CORES)
+            set(add_rr_CORES 4)  # perhaps get this from environment variable?
+        endif()
+        if(NOT add_rr_CORES MATCHES "^[0-9]+")
+            message(FATAL_ERROR "Resource specification is invalid: CORE=${add_rr_CORES}")
+        endif()
+
+        set(single_resource "cpus:${add_rr_CORES}")
+    elseif(add_rr_TYPE STREQUAL "gpu")
+        if(NOT add_rr_PERCENTAGE)
+            set(add_rr_PERCENTAGE 50)
+        endif()
+        if(add_rr_MPI_SIZE GREATER 1)
+            set(add_rr_PERCENTAGE 100)
+        endif()
+        if(NOT add_rr_PERCENTAGE MATCHES "^[0-9]([0-9][0-9]?)?"
+           OR add_rr_PERCENTAGE LESS 0
+           OR add_rr_PERCENTAGE GREATER 100)
+            message(FATAL_ERROR "Resource specification is invalid: PERCENTAGE=${add_rr_PERCENTAGE}")
+        endif()
+
+        set(single_resource "gpus:${add_rr_PERCENTAGE}")
+    else()
+        message(FATAL_ERROR "Unrecognized resource type ${add_rr_TYPE}, allowed are: ref, cpu, gpu.")
+    endif()
+
+    if(NOT add_rr_MPI_SIZE)
+        set(add_rr_MPI_SIZE 1)
+    endif()
+    set_property(TEST ${test_name}
+                 PROPERTY
+                 RESOURCE_GROUPS "${add_rr_MPI_SIZE},${single_resource}")
+endfunction()
+
+
 ## Adds a test to the list executed by ctest and sets its output binary name
 ## Possible additional arguments:
 ## - `MPI_SIZE size` causes the tests to be run with `size` MPI processes.
