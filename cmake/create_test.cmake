@@ -43,20 +43,18 @@ function(ginkgo_set_test_target_properties test_target_name)
       target_link_libraries(${test_target_name} PRIVATE "${GINKGO_CIRCULAR_DEPS_FLAGS}")
     endif()
     if(set_properties_MPI_SIZE)
-      if(NOT TARGET ginkgo_gtest_mpi_main)
-        ginkgo_create_gtest_mpi_main()
-      endif()
-      set(gtest_main ginkgo_gtest_mpi_main MPI::MPI_CXX)
+      target_sources(${test_target_name}
+                PRIVATE
+                ${PROJECT_SOURCE_DIR}/core/test/gtest/ginkgo_mpi_main.cpp)
     else()
-      if(NOT TARGET ginkgo_gtest_main)
-        ginkgo_create_gtest_main()
-      endif()
-      set(gtest_main ginkgo_gtest_main)
+      target_sources(${test_target_name}
+                PRIVATE
+                ${PROJECT_SOURCE_DIR}/core/test/gtest/ginkgo_main.cpp)
     endif()
     target_compile_features(${test_target_name} PUBLIC cxx_std_14)
     target_compile_options(${test_target_name} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
     target_include_directories(${test_target_name} PRIVATE ${Ginkgo_BINARY_DIR} ${set_properties_ADDITIONAL_INCLUDES})
-    target_link_libraries(${test_target_name} PRIVATE ginkgo ${gtest_main} GTest::GTest ${set_properties_ADDITIONAL_LIBRARIES})
+    target_link_libraries(${test_target_name} PRIVATE ginkgo GTest::GTest ${set_properties_ADDITIONAL_LIBRARIES})
 endfunction()
 
 ## Adds a test to the list executed by ctest and sets its output binary name
