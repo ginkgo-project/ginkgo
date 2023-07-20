@@ -146,7 +146,8 @@ void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
             add_or_set_member(test_case["spmv"][format_name], "error",
                               msg_value, allocator);
         }
-        std::cerr << "Error when processing test case " << test_case << "\n"
+        std::cerr << "Error when processing test case\n"
+                  << test_case << "\n"
                   << "what(): " << e.what() << std::endl;
     }
 }
@@ -184,7 +185,7 @@ void run_spmv_benchmark(std::shared_ptr<gko::Executor> exec,
                 continue;
             }
             if (do_print) {
-                std::clog << "Running test case: " << test_case << std::endl;
+                std::clog << "Running test case\n" << test_case << std::endl;
             }
             // annotate the test case
             auto test_case_range =

@@ -162,13 +162,14 @@ protected:
         std::shared_ptr<dist_vec_type> dist_vec,
         std::shared_ptr<local_vec_type> local_vec)
     {
+        auto host_row_part = row_part->clone(ref);
         auto l_dist_vec = dist_vec->get_local_vector();
         auto vec_view = local_vec_type::create_const(
             exec, l_dist_vec->get_size(),
             gko::array<value_type>::const_view(
                 exec, l_dist_vec->get_size()[0],
                 local_vec->get_const_values() +
-                    row_part->get_range_bounds()[comm.rank()]),
+                    host_row_part->get_range_bounds()[comm.rank()]),
             l_dist_vec->get_size()[1]);
         GKO_ASSERT_MTX_NEAR(l_dist_vec, vec_view.get(), r<value_type>::value);
     }

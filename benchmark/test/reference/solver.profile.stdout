@@ -1,0 +1,31 @@
+
+[
+    {
+        "size": 125,
+        "stencil": "7pt",
+        "optimal": {
+            "spmv": "csr"
+        },
+        "solver": {
+            "cg": {
+                "recurrent_residuals": [],
+                "true_residuals": [],
+                "implicit_residuals": [],
+                "iteration_timestamps": [],
+                "rhs_norm": 1.0,
+                "generate": {
+                    "components": {},
+                    "time": 1.0
+                },
+                "apply": {
+                    "components": {},
+                    "iterations": 7,
+                    "time": 1.0
+                },
+                "residual_norm": 1.0,
+                "repetitions": 1,
+                "completed": true
+            }
+        }
+    }
+]

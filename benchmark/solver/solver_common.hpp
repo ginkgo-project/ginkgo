@@ -587,7 +587,8 @@ void solve_system(const std::string& solver_name,
             add_or_set_member(test_case["solver"][precond_solver_name], "error",
                               msg_value, allocator);
         }
-        std::cerr << "Error when processing test case " << test_case << "\n"
+        std::cerr << "Error when processing test case\n"
+                  << test_case << "\n"
                   << "what(): " << e.what() << std::endl;
     }
 }
@@ -638,7 +639,7 @@ void run_solver_benchmarks(std::shared_ptr<gko::Executor> exec,
                 annotate(system_generator.describe_config(test_case));
 
             if (do_print) {
-                std::clog << "Running test case: " << test_case << std::endl;
+                std::clog << "Running test case\n" << test_case << std::endl;
             }
 
             using Vec = typename SystemGenerator::Vec;

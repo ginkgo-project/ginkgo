@@ -1,0 +1,97 @@
+
+[
+    {
+        "size": 125,
+        "stencil": "7pt",
+        "conversions": {
+            "coo-csr": {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            },
+            "coo-ell": {
+                "completed": false,
+                "error": ""
+            },
+            "coo-sellp": {
+                "completed": false,
+                "error": ""
+            },
+            "coo-hybrid": {
+                "completed": false,
+                "error": ""
+            },
+            "csr-coo": {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            },
+            "csr-ell": {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            },
+            "csr-sellp": {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            },
+            "csr-hybrid": {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            },
+            "ell-coo": {
+                "completed": false,
+                "error": ""
+            },
+            "ell-csr": {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            },
+            "ell-sellp": {
+                "completed": false,
+                "error": ""
+            },
+            "ell-hybrid": {
+                "completed": false,
+                "error": ""
+            },
+            "sellp-coo": {
+                "completed": false,
+                "error": ""
+            },
+            "sellp-csr": {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            },
+            "sellp-ell": {
+                "completed": false,
+                "error": ""
+            },
+            "sellp-hybrid": {
+                "completed": false,
+                "error": ""
+            },
+            "hybrid-coo": {
+                "completed": false,
+                "error": ""
+            },
+            "hybrid-csr": {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            },
+            "hybrid-ell": {
+                "completed": false,
+                "error": ""
+            },
+            "hybrid-sellp": {
+                "completed": false,
+                "error": ""
+            }
+        }
+    }
+]
