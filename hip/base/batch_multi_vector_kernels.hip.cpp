@@ -66,93 +66,10 @@ constexpr auto default_block_size = 256;
 constexpr int sm_multiplier = 4;
 
 
+// NOTE: DO NOT CHANGE THE ORDERING OF THE INCLUDES
 #include "common/cuda_hip/base/batch_multi_vector_kernels.hpp.inc"
 
-
-template <typename ValueType>
-void scale(std::shared_ptr<const DefaultExecutor> exec,
-           const BatchMultiVector<ValueType>* const alpha,
-           BatchMultiVector<ValueType>* const x)
-{
-    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
-    const auto alpha_ub = get_batch_struct(alpha);
-    const auto x_ub = get_batch_struct(x);
-    hipLaunchKernelGGL(scale_kernel, dim3(num_blocks), dim3(default_block_size),
-                       0, 0, alpha_ub, x_ub);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BATCH_MULTI_VECTOR_SCALE_KERNEL);
-
-
-template <typename ValueType>
-void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
-                const BatchMultiVector<ValueType>* const alpha,
-                const BatchMultiVector<ValueType>* const x,
-                BatchMultiVector<ValueType>* const y)
-{
-    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
-    const size_type nrhs = x->get_common_size()[1];
-    const auto alpha_ub = get_batch_struct(alpha);
-    const auto x_ub = get_batch_struct(x);
-    const auto y_ub = get_batch_struct(y);
-    hipLaunchKernelGGL(add_scaled_kernel, dim3(num_blocks),
-                       dim3(default_block_size), 0, 0, alpha_ub, x_ub, y_ub);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BATCH_MULTI_VECTOR_ADD_SCALED_KERNEL);
-
-
-template <typename ValueType>
-void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
-                 const BatchMultiVector<ValueType>* x,
-                 const BatchMultiVector<ValueType>* y,
-                 BatchMultiVector<ValueType>* result)
-{
-    const auto num_blocks = x->get_num_batch_entries();
-    const auto num_rhs = x->get_common_size()[1];
-    const auto x_ub = get_batch_struct(x);
-    const auto y_ub = get_batch_struct(y);
-    const auto res_ub = get_batch_struct(result);
-    hipLaunchKernelGGL(compute_dot_product_kernel, dim3(num_blocks),
-                       dim3(default_block_size), 0, 0, x_ub, y_ub, res_ub);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_DOT_KERNEL);
-
-
-template <typename ValueType>
-void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
-                   const BatchMultiVector<ValueType>* const x,
-                   BatchMultiVector<remove_complex<ValueType>>* const result)
-{
-    const auto num_blocks = x->get_num_batch_entries();
-    const auto num_rhs = x->get_common_size()[1];
-    const auto x_ub = get_batch_struct(x);
-    const auto res_ub = get_batch_struct(result);
-    hipLaunchKernelGGL(compute_norm2_kernel, dim3(num_blocks),
-                       dim3(default_block_size), 0, 0, x_ub, res_ub);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_NORM2_KERNEL);
-
-
-template <typename ValueType>
-void copy(std::shared_ptr<const DefaultExecutor> exec,
-          const BatchMultiVector<ValueType>* x,
-          BatchMultiVector<ValueType>* result)
-{
-    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
-    const auto result_ub = get_batch_struct(result);
-    const auto x_ub = get_batch_struct(x);
-    hipLaunchKernelGGL(copy_kernel, dim3(num_blocks), dim3(default_block_size),
-                       0, 0, x_ub, result_ub);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_MULTI_VECTOR_COPY_KERNEL);
+#include "common/cuda_hip/base/batch_multi_vector_kernel_launcher.hpp.inc"
 
 
 }  // namespace batch_multi_vector
