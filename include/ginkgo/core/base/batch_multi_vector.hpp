@@ -522,7 +522,7 @@ protected:
      * @returns a BatchMultiVector matrix with the same configuration as the
      * caller.
      */
-    virtual std::unique_ptr<BatchMultiVector> create_with_same_config() const
+    std::unique_ptr<BatchMultiVector> create_with_same_config() const
     {
         return BatchMultiVector::create(this->get_executor(), this->get_size());
     }
@@ -533,7 +533,7 @@ protected:
      * @note  Other implementations of batch_multi_vector should override this
      * function instead of scale(const BatchMultiVector *alpha).
      */
-    virtual void scale_impl(const BatchMultiVector<ValueType>* alpha);
+    void scale_impl(const BatchMultiVector<ValueType>* alpha);
 
     /**
      * @copydoc add_scaled(const BatchMultiVector *, const BatchMultiVector *)
@@ -542,8 +542,8 @@ protected:
      * function instead of add_scale(const BatchMultiVector *alpha, const
      * BatchMultiVector *b).
      */
-    virtual void add_scaled_impl(const BatchMultiVector<ValueType>* alpha,
-                                 const BatchMultiVector<ValueType>* b);
+    void add_scaled_impl(const BatchMultiVector<ValueType>* alpha,
+                         const BatchMultiVector<ValueType>* b);
 
     /**
      * @copydoc compute_dot(const BatchMultiVector *, BatchMultiVector *) const
@@ -552,8 +552,8 @@ protected:
      * function instead of compute_dot(const BatchMultiVector *b,
      * BatchMultiVector *result).
      */
-    virtual void compute_dot_impl(const BatchMultiVector<ValueType>* b,
-                                  BatchMultiVector<ValueType>* result) const;
+    void compute_dot_impl(const BatchMultiVector<ValueType>* b,
+                          BatchMultiVector<ValueType>* result) const;
 
     /**
      * @copydoc compute_norm2(BatchMultiVector *) const
@@ -561,7 +561,7 @@ protected:
      * @note  Other implementations of batch_multi_vector should override this
      * function instead of compute_norm2(BatchMultiVector *result).
      */
-    virtual void compute_norm2_impl(
+    void compute_norm2_impl(
         BatchMultiVector<remove_complex<ValueType>>* result) const;
 
     size_type linearize_index(size_type batch, size_type row,
@@ -611,12 +611,12 @@ std::unique_ptr<Matrix> batch_initialize(
 {
     using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
     size_type num_batch_entries = vals.size();
+    GKO_ASSERT(num_batch_entries > 0);
     auto vals_begin = begin(vals);
     size_type common_num_rows = vals_begin->size();
     auto common_size = dim<2>(common_num_rows, 1);
-    for (size_type b = 0; b < num_batch_entries; ++b) {
-        GKO_ASSERT_EQ(common_num_rows, vals_begin->size());
-        vals_begin++;
+    for (auto& val : vals) {
+        GKO_ASSERT_EQ(common_num_rows, val.size());
     }
     auto b_size = batch_dim<2>(num_batch_entries, common_size);
     auto tmp = batch_multi_vector::create(exec->get_master(), b_size);
@@ -664,6 +664,7 @@ std::unique_ptr<Matrix> batch_initialize(
 {
     using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
     size_type num_batch_entries = vals.size();
+    GKO_ASSERT(num_batch_entries > 0);
     auto vals_begin = begin(vals);
     size_type common_num_rows = vals_begin->size();
     size_type common_num_cols = vals_begin->begin()->size();
@@ -728,6 +729,7 @@ std::unique_ptr<Matrix> batch_initialize(
 {
     using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
     size_type num_batch_entries = num_vectors;
+    GKO_ASSERT(num_batch_entries > 0);
     auto b_size = batch_dim<2>(num_batch_entries, dim<2>(vals.size(), 1));
     auto tmp = batch_multi_vector::create(exec->get_master(), b_size);
     for (size_type batch = 0; batch < num_vectors; batch++) {
@@ -768,16 +770,17 @@ std::unique_ptr<Matrix> batch_initialize(
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> batch_initialize(
-    const size_type num_matrices,
+    const size_type num_batch_entries,
     std::initializer_list<std::initializer_list<typename Matrix::value_type>>
         vals,
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
 {
     using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
+    GKO_ASSERT(num_batch_entries > 0);
     auto common_size = dim<2>(vals.size(), begin(vals)->size());
-    batch_dim<2> b_size(num_matrices, common_size);
+    batch_dim<2> b_size(num_batch_entries, common_size);
     auto tmp = batch_multi_vector::create(exec->get_master(), b_size);
-    for (size_type batch = 0; batch < num_matrices; batch++) {
+    for (size_type batch = 0; batch < num_batch_entries; batch++) {
         size_type ridx = 0;
         for (const auto& row : vals) {
             size_type cidx = 0;
