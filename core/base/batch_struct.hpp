@@ -47,7 +47,7 @@ namespace batch_multi_vector {
  * Encapsulates one matrix from a batch of dense matrices (vectors).
  */
 template <typename ValueType>
-struct BatchEntry {
+struct batch_entry {
     using value_type = ValueType;
     ValueType* values;
     size_type stride;
@@ -61,9 +61,9 @@ struct BatchEntry {
  * It is uniform in the sense that all matrices in the batch have common sizes.
  */
 template <typename ValueType>
-struct UniformBatch {
+struct uniform_batch {
     using value_type = ValueType;
-    using entry_type = BatchEntry<ValueType>;
+    using entry_type = batch_entry<ValueType>;
 
     ValueType* values;
     size_type num_batch_entries;
@@ -85,16 +85,17 @@ namespace batch {
 
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE gko::batch_multi_vector::BatchEntry<const ValueType>
-to_const(const gko::batch_multi_vector::BatchEntry<ValueType>& b)
+GKO_ATTRIBUTES GKO_INLINE gko::batch_multi_vector::batch_entry<const ValueType>
+to_const(const gko::batch_multi_vector::batch_entry<ValueType>& b)
 {
     return {b.values, b.stride, b.num_rows, b.num_rhs};
 }
 
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE gko::batch_multi_vector::UniformBatch<const ValueType>
-to_const(const gko::batch_multi_vector::UniformBatch<ValueType>& ub)
+GKO_ATTRIBUTES GKO_INLINE
+    gko::batch_multi_vector::uniform_batch<const ValueType>
+    to_const(const gko::batch_multi_vector::uniform_batch<ValueType>& ub)
 {
     return {ub.values, ub.num_batch_entries, ub.stride, ub.num_rows,
             ub.num_rhs};
@@ -111,29 +112,21 @@ to_const(const gko::batch_multi_vector::UniformBatch<ValueType>& ub)
  * @param batch_idx  The position of the desired object in the batch
  */
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE batch_multi_vector::BatchEntry<ValueType> batch_entry(
-    const batch_multi_vector::UniformBatch<ValueType>& batch,
-    const size_type batch_idx)
+GKO_ATTRIBUTES GKO_INLINE batch_multi_vector::batch_entry<ValueType>
+batch_entry(const batch_multi_vector::uniform_batch<ValueType>& batch,
+            const size_type batch_idx)
 {
     return {batch.values + batch_idx * batch.stride * batch.num_rows,
             batch.stride, batch.num_rows, batch.num_rhs};
 }
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE batch_multi_vector::BatchEntry<ValueType> batch_entry(
-    ValueType* const batch_values, const size_type stride, const int num_rows,
-    const int num_rhs, const size_type batch_idx)
+GKO_ATTRIBUTES GKO_INLINE batch_multi_vector::batch_entry<ValueType>
+batch_entry(ValueType* const batch_values, const size_type stride,
+            const int num_rows, const int num_rhs, const size_type batch_idx)
 {
     return {batch_values + batch_idx * stride * num_rows, stride, num_rows,
             num_rhs};
-}
-
-template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE ValueType* batch_entry_ptr(
-    ValueType* const batch_start, const size_type stride, const int num_rows,
-    const size_type batch_idx)
-{
-    return batch_start + batch_idx * stride * num_rows;
 }
 
 

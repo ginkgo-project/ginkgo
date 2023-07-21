@@ -62,7 +62,7 @@ namespace hip {
  * Generates an immutable uniform batch struct from a batch of dense matrices.
  */
 template <typename ValueType>
-inline gko::batch_multi_vector::UniformBatch<const hip_type<ValueType>>
+inline gko::batch_multi_vector::uniform_batch<const hip_type<ValueType>>
 get_batch_struct(const BatchMultiVector<ValueType>* const op)
 {
     return {as_hip_type(op->get_const_values()), op->get_num_batch_entries(),
@@ -75,7 +75,7 @@ get_batch_struct(const BatchMultiVector<ValueType>* const op)
  * Generates a uniform batch struct from a batch of dense matrices.
  */
 template <typename ValueType>
-inline gko::batch_multi_vector::UniformBatch<hip_type<ValueType>>
+inline gko::batch_multi_vector::uniform_batch<hip_type<ValueType>>
 get_batch_struct(BatchMultiVector<ValueType>* const op)
 {
     return {as_hip_type(op->get_values()), op->get_num_batch_entries(),
@@ -90,7 +90,7 @@ get_batch_struct(BatchMultiVector<ValueType>* const op)
  * that may be null.
  */
 template <typename ValueType>
-inline gko::batch_multi_vector::UniformBatch<const hip_type<ValueType>>
+inline gko::batch_multi_vector::uniform_batch<const hip_type<ValueType>>
 maybe_null_batch_struct(const BatchMultiVector<ValueType>* const op)
 {
     if (op) {

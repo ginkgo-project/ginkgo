@@ -32,8 +32,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 template <typename ValueType>
 __dpct_inline__ void scale_kernel(
-    const gko::batch_multi_vector::BatchEntry<const ValueType>& alpha,
-    const gko::batch_multi_vector::BatchEntry<ValueType>& x,
+    const gko::batch_multi_vector::batch_entry<const ValueType>& alpha,
+    const gko::batch_multi_vector::batch_entry<ValueType>& x,
     sycl::nd_item<3>& item_ct1)
 {
     const int max_li = x.num_rows * x.num_rhs;
@@ -55,9 +55,9 @@ __dpct_inline__ void scale_kernel(
 
 template <typename ValueType>
 __dpct_inline__ void add_scaled_kernel(
-    const gko::batch_multi_vector::BatchEntry<const ValueType>& alpha,
-    const gko::batch_multi_vector::BatchEntry<const ValueType>& x,
-    const gko::batch_multi_vector::BatchEntry<ValueType>& y,
+    const gko::batch_multi_vector::batch_entry<const ValueType>& alpha,
+    const gko::batch_multi_vector::batch_entry<const ValueType>& x,
+    const gko::batch_multi_vector::batch_entry<ValueType>& y,
     sycl::nd_item<3>& item_ct1)
 {
     const int max_li = x.num_rows * x.num_rhs;
@@ -79,9 +79,9 @@ __dpct_inline__ void add_scaled_kernel(
 
 template <typename ValueType>
 __dpct_inline__ void compute_dot_product_kernel(
-    const gko::batch_multi_vector::BatchEntry<const ValueType>& x,
-    const gko::batch_multi_vector::BatchEntry<const ValueType>& y,
-    const gko::batch_multi_vector::BatchEntry<ValueType>& result,
+    const gko::batch_multi_vector::batch_entry<const ValueType>& x,
+    const gko::batch_multi_vector::batch_entry<const ValueType>& y,
+    const gko::batch_multi_vector::batch_entry<ValueType>& result,
     sycl::nd_item<3>& item_ct1)
 {
     const auto sg = item_ct1.get_sub_group();
@@ -108,8 +108,8 @@ __dpct_inline__ void compute_dot_product_kernel(
 
 template <typename ValueType>
 __dpct_inline__ void compute_norm2_kernel(
-    const gko::batch_multi_vector::BatchEntry<const ValueType>& x,
-    const gko::batch_multi_vector::BatchEntry<remove_complex<ValueType>>&
+    const gko::batch_multi_vector::batch_entry<const ValueType>& x,
+    const gko::batch_multi_vector::batch_entry<remove_complex<ValueType>>&
         result,
     sycl::nd_item<3>& item_ct1)
 {
@@ -134,8 +134,8 @@ __dpct_inline__ void compute_norm2_kernel(
 
 template <typename ValueType>
 __dpct_inline__ void copy_kernel(
-    const gko::batch_multi_vector::BatchEntry<const ValueType>& in,
-    const gko::batch_multi_vector::BatchEntry<ValueType>& out,
+    const gko::batch_multi_vector::batch_entry<const ValueType>& in,
+    const gko::batch_multi_vector::batch_entry<ValueType>& out,
     sycl::nd_item<3>& item_ct1)
 {
     for (int iz = item_ct1.get_local_linear_id(); iz < in.num_rows * in.num_rhs;

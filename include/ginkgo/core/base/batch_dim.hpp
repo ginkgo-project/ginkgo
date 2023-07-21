@@ -77,13 +77,13 @@ struct batch_dim {
     /**
      * Get the cumulative storage size offset
      *
-     * @param b the batch id
+     * @param batch_id the batch id
      *
      * @return the cumulative offset
      */
-    size_type get_cumulative_offset(size_type b) const
+    size_type get_cumulative_offset(size_type batch_id) const
     {
-        return b * common_size_[0] * common_size_[1];
+        return batch_id * common_size_[0] * common_size_[1];
     }
 
     /**
@@ -99,6 +99,25 @@ struct batch_dim {
         return x.num_batch_entries_ == y.num_batch_entries_ &&
                x.common_size_ == y.common_size_;
     }
+
+
+    /**
+     * Checks if two batch dim objects are different.
+     *
+     * @tparam Dimensionality  number of dimensions of the dim objects
+     * @tparam DimensionType  datatype used to represent each dimension
+     *
+     * @param x  first object
+     * @param y  second object
+     *
+     * @return `!(x == y)`
+     */
+    friend bool operator!=(const batch_dim<Dimensionality, DimensionType>& x,
+                           const batch_dim<Dimensionality, DimensionType>& y)
+    {
+        return !(x == y);
+    }
+
 
     /**
      * Creates a batch_dim object which stores a uniform size for all batch
@@ -119,25 +138,6 @@ private:
     size_type num_batch_entries_{};
     dim<dimensionality, dimension_type> common_size_{};
 };
-
-
-/**
- * Checks if two batch dim objects are different.
- *
- * @tparam Dimensionality  number of dimensions of the dim objects
- * @tparam DimensionType  datatype used to represent each dimension
- *
- * @param x  first object
- * @param y  second object
- *
- * @return `!(x == y)`
- */
-template <size_type Dimensionality, typename DimensionType>
-inline bool operator!=(const batch_dim<Dimensionality, DimensionType>& x,
-                       const batch_dim<Dimensionality, DimensionType>& y)
-{
-    return !(x == y);
-}
 
 
 /**

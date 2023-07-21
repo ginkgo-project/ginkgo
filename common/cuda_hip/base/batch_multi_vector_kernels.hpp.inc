@@ -35,85 +35,75 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Scales the vectors in global or shared memory with a factor of alpha (alpha
  * is in global memory or shared memory)
  */
-template <typename ValueType>
+template <typename ValueType, typename Mapping>
 __device__ __forceinline__ void scale(
-    const gko::batch_multi_vector::BatchEntry<const ValueType>& alpha,
-    const gko::batch_multi_vector::BatchEntry<ValueType>& x)
+    const gko::batch_multi_vector::batch_entry<const ValueType>& alpha,
+    const gko::batch_multi_vector::batch_entry<ValueType>& x, Mapping map)
 {
     const int max_li = x.num_rows * x.num_rhs;
     for (int li = threadIdx.x; li < max_li; li += blockDim.x) {
         const int row = li / x.num_rhs;
         const int col = li % x.num_rhs;
 
-        if (alpha.num_rhs == 1) {
-            x.values[row * x.stride + col] =
-                alpha.values[0] * x.values[row * x.stride + col];
-        } else {
-            x.values[row * x.stride + col] =
-                alpha.values[col] * x.values[row * x.stride + col];
-        }
+        x.values[row * x.stride + col] =
+            alpha.values[map(col)] * x.values[row * x.stride + col];
     }
 }
 
-template <typename ValueType>
+template <typename ValueType, typename Mapping>
 __global__
-__launch_bounds__(default_block_size, sm_multiplier) void scale_kernel(
-    const gko::batch_multi_vector::UniformBatch<const ValueType> alpha,
-    const gko::batch_multi_vector::UniformBatch<ValueType> x)
+    __launch_bounds__(default_block_size, sm_multiplier) void scale_kernel(
+        const gko::batch_multi_vector::uniform_batch<const ValueType> alpha,
+        const gko::batch_multi_vector::uniform_batch<ValueType> x, Mapping map)
 {
     for (size_type ibatch = blockIdx.x; ibatch < x.num_batch_entries;
          ibatch += gridDim.x) {
         const auto alpha_b = gko::batch::batch_entry(alpha, ibatch);
         const auto x_b = gko::batch::batch_entry(x, ibatch);
-        scale(alpha_b, x_b);
+        scale(alpha_b, x_b, map);
     }
 }
 
 
-template <typename ValueType>
+template <typename ValueType, typename Mapping>
 __device__ __forceinline__ void add_scaled(
-    const gko::batch_multi_vector::BatchEntry<const ValueType>& alpha,
-    const gko::batch_multi_vector::BatchEntry<const ValueType>& x,
-    const gko::batch_multi_vector::BatchEntry<ValueType>& y)
+    const gko::batch_multi_vector::batch_entry<const ValueType>& alpha,
+    const gko::batch_multi_vector::batch_entry<const ValueType>& x,
+    const gko::batch_multi_vector::batch_entry<ValueType>& y, Mapping map)
 {
     const int max_li = x.num_rows * x.num_rhs;
     for (int li = threadIdx.x; li < max_li; li += blockDim.x) {
         const int row = li / x.num_rhs;
         const int col = li % x.num_rhs;
 
-        if (alpha.num_rhs == 1) {
-            y.values[row * y.stride + col] +=
-                alpha.values[0] * x.values[row * x.stride + col];
-        } else {
-            y.values[row * y.stride + col] +=
-                alpha.values[col] * x.values[row * x.stride + col];
-        }
+        y.values[row * y.stride + col] +=
+            alpha.values[map(col)] * x.values[row * x.stride + col];
     }
 }
 
-template <typename ValueType>
+template <typename ValueType, typename Mapping>
 __global__
-__launch_bounds__(default_block_size, sm_multiplier) void add_scaled_kernel(
-    const gko::batch_multi_vector::UniformBatch<const ValueType> alpha,
-    const gko::batch_multi_vector::UniformBatch<const ValueType> x,
-    const gko::batch_multi_vector::UniformBatch<ValueType> y)
+    __launch_bounds__(default_block_size, sm_multiplier) void add_scaled_kernel(
+        const gko::batch_multi_vector::uniform_batch<const ValueType> alpha,
+        const gko::batch_multi_vector::uniform_batch<const ValueType> x,
+        const gko::batch_multi_vector::uniform_batch<ValueType> y, Mapping map)
 {
     for (size_type ibatch = blockIdx.x; ibatch < x.num_batch_entries;
          ibatch += gridDim.x) {
         const auto alpha_b = gko::batch::batch_entry(alpha, ibatch);
         const auto x_b = gko::batch::batch_entry(x, ibatch);
         const auto y_b = gko::batch::batch_entry(y, ibatch);
-        add_scaled(alpha_b, x_b, y_b);
+        add_scaled(alpha_b, x_b, y_b, map);
     }
 }
 
 
 template <typename ValueType>
 __device__ __forceinline__ void one_dot(
-    const gko::batch_multi_vector::BatchEntry<const ValueType>& x,
-    const gko::batch_multi_vector::BatchEntry<const ValueType>& y,
+    const gko::batch_multi_vector::batch_entry<const ValueType>& x,
+    const gko::batch_multi_vector::batch_entry<const ValueType>& y,
     const int rhs_index,
-    const gko::batch_multi_vector::BatchEntry<ValueType>& result,
+    const gko::batch_multi_vector::batch_entry<ValueType>& result,
     group::thread_block_tile<config::warp_size>& subwarp_grp)
 {
     ValueType val = zero<ValueType>();
@@ -143,9 +133,9 @@ __device__ __forceinline__ void one_dot(
  */
 template <typename ValueType>
 __device__ __forceinline__ void compute_dot_product(
-    const gko::batch_multi_vector::BatchEntry<const ValueType>& x,
-    const gko::batch_multi_vector::BatchEntry<const ValueType>& y,
-    const gko::batch_multi_vector::BatchEntry<ValueType>& result)
+    const gko::batch_multi_vector::batch_entry<const ValueType>& x,
+    const gko::batch_multi_vector::batch_entry<const ValueType>& y,
+    const gko::batch_multi_vector::batch_entry<ValueType>& result)
 {
     constexpr auto tile_size = config::warp_size;
     auto thread_block = group::this_thread_block();
@@ -165,17 +155,17 @@ __global__ __launch_bounds__(
     default_block_size,
     sm_multiplier) void compute_dot_product_kernel(const gko::
                                                        batch_multi_vector::
-                                                           UniformBatch<
+                                                           uniform_batch<
                                                                const ValueType>
                                                                x,
                                                    const gko::
                                                        batch_multi_vector::
-                                                           UniformBatch<
+                                                           uniform_batch<
                                                                const ValueType>
                                                                y,
                                                    const gko::
                                                        batch_multi_vector::
-                                                           UniformBatch<
+                                                           uniform_batch<
                                                                ValueType>
                                                                result)
 {
@@ -191,9 +181,9 @@ __global__ __launch_bounds__(
 
 template <typename ValueType>
 __device__ __forceinline__ void one_norm2(
-    const gko::batch_multi_vector::BatchEntry<const ValueType>& x,
+    const gko::batch_multi_vector::batch_entry<const ValueType>& x,
     const int rhs_index,
-    const gko::batch_multi_vector::BatchEntry<remove_complex<ValueType>>&
+    const gko::batch_multi_vector::batch_entry<remove_complex<ValueType>>&
         result,
     group::thread_block_tile<config::warp_size>& subwarp_grp)
 {
@@ -225,8 +215,8 @@ __device__ __forceinline__ void one_norm2(
  */
 template <typename ValueType>
 __device__ __forceinline__ void compute_norm2(
-    const gko::batch_multi_vector::BatchEntry<const ValueType>& x,
-    const gko::batch_multi_vector::BatchEntry<remove_complex<ValueType>>&
+    const gko::batch_multi_vector::batch_entry<const ValueType>& x,
+    const gko::batch_multi_vector::batch_entry<remove_complex<ValueType>>&
         result)
 {
     constexpr auto tile_size = config::warp_size;
@@ -243,11 +233,15 @@ __device__ __forceinline__ void compute_norm2(
 
 
 template <typename ValueType>
-__global__
-__launch_bounds__(default_block_size, sm_multiplier) void compute_norm2_kernel(
-    const gko::batch_multi_vector::UniformBatch<const ValueType> x,
-    const gko::batch_multi_vector::UniformBatch<remove_complex<ValueType>>
-        result)
+__global__ __launch_bounds__(
+    default_block_size,
+    sm_multiplier) void compute_norm2_kernel(const gko::batch_multi_vector::
+                                                 uniform_batch<const ValueType>
+                                                     x,
+                                             const gko::batch_multi_vector::
+                                                 uniform_batch<
+                                                     remove_complex<ValueType>>
+                                                     result)
 {
     for (size_type ibatch = blockIdx.x; ibatch < x.num_batch_entries;
          ibatch += gridDim.x) {
@@ -266,8 +260,8 @@ __launch_bounds__(default_block_size, sm_multiplier) void compute_norm2_kernel(
  */
 template <typename ValueType>
 __device__ __forceinline__ void copy(
-    const gko::batch_multi_vector::BatchEntry<const ValueType>& in,
-    const gko::batch_multi_vector::BatchEntry<ValueType>& out)
+    const gko::batch_multi_vector::batch_entry<const ValueType>& in,
+    const gko::batch_multi_vector::batch_entry<ValueType>& out)
 {
     for (int iz = threadIdx.x; iz < in.num_rows * in.num_rhs;
          iz += blockDim.x) {
@@ -280,9 +274,9 @@ __device__ __forceinline__ void copy(
 
 template <typename ValueType>
 __global__
-__launch_bounds__(default_block_size, sm_multiplier) void copy_kernel(
-    const gko::batch_multi_vector::UniformBatch<const ValueType> src,
-    const gko::batch_multi_vector::UniformBatch<ValueType> dst)
+    __launch_bounds__(default_block_size, sm_multiplier) void copy_kernel(
+        const gko::batch_multi_vector::uniform_batch<const ValueType> src,
+        const gko::batch_multi_vector::uniform_batch<ValueType> dst)
 {
     for (size_type ibatch = blockIdx.x; ibatch < src.num_batch_entries;
          ibatch += gridDim.x) {

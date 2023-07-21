@@ -36,11 +36,16 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
            const BatchMultiVector<ValueType>* const alpha,
            BatchMultiVector<ValueType>* const x)
 {
-    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
+    const auto num_blocks = x->get_num_batch_entries();
     const auto alpha_ub = get_batch_struct(alpha);
     const auto x_ub = get_batch_struct(x);
-    scale_kernel<<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
-        alpha_ub, x_ub);
+    if (alpha->get_common_size()[1] == 1) {
+        scale_kernel<<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+            alpha_ub, x_ub, [] __device__(int col) { return 0; });
+    } else {
+        scale_kernel<<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+            alpha_ub, x_ub, [] __device__(int col) { return col; });
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -53,13 +58,20 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
                 const BatchMultiVector<ValueType>* const x,
                 BatchMultiVector<ValueType>* const y)
 {
-    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
+    const auto num_blocks = x->get_num_batch_entries();
     const size_type nrhs = x->get_common_size()[1];
     const auto alpha_ub = get_batch_struct(alpha);
     const auto x_ub = get_batch_struct(x);
     const auto y_ub = get_batch_struct(y);
-    add_scaled_kernel<<<num_blocks, default_block_size, 0,
-                        exec->get_stream()>>>(alpha_ub, x_ub, y_ub);
+    if (alpha->get_common_size()[1] == 1) {
+        add_scaled_kernel<<<num_blocks, default_block_size, 0,
+                            exec->get_stream()>>>(
+            alpha_ub, x_ub, y_ub, [] __device__(int col) { return 0; });
+    } else {
+        add_scaled_kernel<<<num_blocks, default_block_size, 0,
+                            exec->get_stream()>>>(
+            alpha_ub, x_ub, y_ub, [] __device__(int col) { return col; });
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -107,7 +119,7 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
           const BatchMultiVector<ValueType>* x,
           BatchMultiVector<ValueType>* result)
 {
-    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
+    const auto num_blocks = x->get_num_batch_entries();
     const auto result_ub = get_batch_struct(result);
     const auto x_ub = get_batch_struct(x);
     copy_kernel<<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
