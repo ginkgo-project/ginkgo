@@ -40,12 +40,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "core/base/allocator.hpp"
 #include "core/base/iterator_factory.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/lu_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
+#include "omp/components/atomic.hpp"
 
 
 namespace gko {
@@ -248,34 +250,42 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
     const auto row_ptrs = factors->get_const_row_ptrs();
     const auto cols = factors->get_const_col_idxs();
     const auto vals = factors->get_values();
+    vector<int> ready(num_rows, {exec});
+#pragma omp parallel for schedule(monotonic : auto)
     for (size_type row = 0; row < num_rows; row++) {
         const auto row_begin = row_ptrs[row];
         const auto row_diag = diag_idxs[row];
+        const auto row_end = row_ptrs[row + 1];
         matrix::csr::device_sparsity_lookup<IndexType> lookup{
             row_ptrs, cols, lookup_offsets, lookup_storage, lookup_descs, row};
+        // for each lower triangular entry: eliminate with corresponding column
         for (auto lower_nz = row_begin; lower_nz < row_diag; lower_nz++) {
             const auto dep = cols[lower_nz];
             const auto dep_diag_idx = diag_idxs[dep];
             const auto dep_diag = vals[dep_diag_idx];
             const auto dep_end = row_ptrs[dep + 1];
-            const auto scale = vals[lower_nz] / dep_diag;
+            while (!load_acquire(ready[dep])) {
+            }
+            const auto scale = vals[lower_nz];
             vals[lower_nz] = scale;
-            for (auto dep_nz = dep_diag_idx + 1; dep_nz < dep_end; dep_nz++) {
-                const auto col = cols[dep_nz];
-                if (col < row) {
-                    const auto val = vals[dep_nz];
-                    const auto nz = row_begin + lookup.lookup_unsafe(col);
-                    vals[nz] -= scale * val;
+            for (auto upper_nz = dep_diag_idx; upper_nz < dep_end; upper_nz++) {
+                const auto upper_col = cols[upper_nz];
+                if (upper_col >= row) {
+                    const auto upper_val = vals[upper_nz];
+                    const auto output_pos =
+                        row_begin + lookup.lookup_unsafe(upper_col);
+                    vals[output_pos] -= scale * upper_val;
                 }
             }
         }
-        ValueType diag = vals[row_diag];
-        for (auto lower_nz = row_begin; lower_nz < row_diag; lower_nz++) {
-            diag -= squared_norm(vals[lower_nz]);
+        const auto diag_val = sqrt(vals[row_diag]);
+        for (auto upper_nz = row_diag + 1; upper_nz < row_end; upper_nz++) {
+            vals[upper_nz] /= diag_val;
             // copy the lower triangular entries to the transpose
-            vals[transpose_idxs[lower_nz]] = conj(vals[lower_nz]);
+            vals[transpose_idxs[upper_nz]] = conj(vals[upper_nz]);
         }
-        vals[row_diag] = sqrt(diag);
+        vals[row_diag] = diag_val;
+        store_release(ready[row], true);
     }
 }
 

@@ -175,10 +175,10 @@ __global__ __launch_bounds__(default_block_size) void factorize(
     // for each lower triangular entry: eliminate with corresponding column
     for (auto lower_nz = row_begin; lower_nz < row_diag; lower_nz++) {
         const auto dep = cols[lower_nz];
-        scheduler.wait(dep);
-        const auto scale = vals[lower_nz];
         const auto diag_idx = diag_idxs[dep];
         const auto dep_end = row_ptrs[dep + 1];
+        scheduler.wait(dep);
+        const auto scale = vals[lower_nz];
         // subtract column dep from current column
         for (auto upper_nz = diag_idx + lane; upper_nz < dep_end;
              upper_nz += config::warp_size) {
@@ -191,7 +191,7 @@ __global__ __launch_bounds__(default_block_size) void factorize(
             }
         }
     }
-    auto diag_val = sqrt(vals[row_diag]);
+    const auto diag_val = sqrt(vals[row_diag]);
     for (auto upper_nz = row_diag + 1 + lane; upper_nz < row_end;
          upper_nz += config::warp_size) {
         vals[upper_nz] /= diag_val;
