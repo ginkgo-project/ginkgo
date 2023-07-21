@@ -32,8 +32,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 template <typename ValueType>
 __dpct_inline__ void scale_kernel(
-    const gko::batch_dense::BatchEntry<const ValueType>& alpha,
-    const gko::batch_dense::BatchEntry<ValueType>& x,
+    const gko::batch_multi_vector::BatchEntry<const ValueType>& alpha,
+    const gko::batch_multi_vector::BatchEntry<ValueType>& x,
     sycl::nd_item<3>& item_ct1)
 {
     const int max_li = x.num_rows * x.num_rhs;
@@ -53,84 +53,95 @@ __dpct_inline__ void scale_kernel(
 }
 
 
-/**
- * Adds a scaled vector to another.
- *
- * @param num_rows  Common length of both vectors.
- * @param alpha  Scaling factor.
- * @param[in] x  Vector to scale and add.
- * @param[in,out] y  Vector to add to.
- */
 template <typename ValueType>
-__dpct_inline__ void add_scaled_kernel(const int num_rows,
-                                       const ValueType alpha,
-                                       const ValueType* const __restrict__ x,
-                                       ValueType* const __restrict__ y,
-                                       sycl::nd_item<3> item_ct1)
+__dpct_inline__ void add_scaled_kernel(
+    const gko::batch_multi_vector::BatchEntry<const ValueType>& alpha,
+    const gko::batch_multi_vector::BatchEntry<const ValueType>& x,
+    const gko::batch_multi_vector::BatchEntry<ValueType>& y,
+    sycl::nd_item<3>& item_ct1)
 {
-    for (int li = item_ct1.get_local_linear_id(); li < num_rows;
-         li += item_ct1.get_local_range().size()) {
-        y[li] += alpha * x[li];
+    const int max_li = x.num_rows * x.num_rhs;
+    for (int li = item_ct1.get_local_id(2); li < max_li;
+         li += item_ct1.get_local_range(2)) {
+        const int row = li / x.num_rhs;
+        const int col = li % x.num_rhs;
+
+        if (alpha.num_rhs == 1) {
+            y.values[row * y.stride + col] +=
+                alpha.values[0] * x.values[row * x.stride + col];
+        } else {
+            y.values[row * y.stride + col] +=
+                alpha.values[col] * x.values[row * x.stride + col];
+        }
     }
 }
 
 
 template <typename ValueType>
 __dpct_inline__ void compute_dot_product_kernel(
-    const int num_rows, const ValueType* const __restrict__ x,
-    const ValueType* const __restrict__ y, ValueType& result,
-    sycl::nd_item<3> item_ct1)
+    const gko::batch_multi_vector::BatchEntry<const ValueType>& x,
+    const gko::batch_multi_vector::BatchEntry<const ValueType>& y,
+    const gko::batch_multi_vector::BatchEntry<ValueType>& result,
+    sycl::nd_item<3>& item_ct1)
 {
-    const auto group = item_ct1.get_group();
-    const auto group_size = item_ct1.get_local_range().size();
-    const auto tid = item_ct1.get_local_linear_id();
+    const auto sg = item_ct1.get_sub_group();
+    const int sg_id = sg.get_group_id();
+    const int sg_size = sg.get_local_range().size();
+    const int num_sg = sg.get_group_range().size();
 
-    ValueType val = zero<ValueType>();
+    for (int rhs_index = sg_id; rhs_index < x.num_rhs; rhs_index += num_sg) {
+        ValueType val = zero<ValueType>();
 
-    for (int r = tid; r < num_rows; r += group_size) {
-        val += conj(x[r]) * y[r];
+        for (int r = sg.get_local_id(); r < x.num_rows; r += sg_size) {
+            val += conj(x.values[r * x.stride + rhs_index]) *
+                   y.values[r * y.stride + rhs_index];
+        }
+
+        val = sycl::reduce_over_group(sg, val, sycl::plus<>());
+
+        if (sg.get_local_id() == 0) {
+            result.values[rhs_index] = val;
+        }
     }
-    result = sycl::reduce_over_group(group, val, sycl::plus<>());
 }
 
 
 template <typename ValueType>
 __dpct_inline__ void compute_norm2_kernel(
-    const int num_rows, const ValueType* const __restrict__ x,
-    gko::remove_complex<ValueType>& result, sycl::nd_item<3> item_ct1)
+    const gko::batch_multi_vector::BatchEntry<const ValueType>& x,
+    const gko::batch_multi_vector::BatchEntry<remove_complex<ValueType>>&
+        result,
+    sycl::nd_item<3>& item_ct1)
 {
-    const auto group = item_ct1.get_group();
-    const auto group_size = item_ct1.get_local_range().size();
-    const auto tid = item_ct1.get_local_linear_id();
+    const auto sg = item_ct1.get_sub_group();
+    const int sg_id = sg.get_group_id();
+    const int sg_size = sg.get_local_range().size();
+    const int num_sg = sg.get_group_range().size();
 
     using real_type = typename gko::remove_complex<ValueType>;
-    real_type val = zero<real_type>();
+    for (int rhs_index = sg_id; rhs_index < x.num_rhs; rhs_index += num_sg) {
+        real_type val = zero<real_type>();
 
-    for (int r = tid; r < num_rows; r += group_size) {
-        val += squared_norm(x[r]);
+        for (int r = sg.get_local_id(); r < x.num_rows; r += sg_size)
+            val += squared_norm(x.values[r * x.stride + rhs_index]);
+
+        val = sycl::reduce_over_group(sg, val, sycl::plus<>());
+
+        if (sg.get_local_id() == 0) result.values[rhs_index] = sqrt(val);
     }
-
-    val = sycl::reduce_over_group(group, val, sycl::plus<>());
-
-    result = sqrt(val);
 }
 
 
-/**
- * Copies the values of vector into another.
- *
- * @param num_rows  Length of vector.
- * @param in  Vector to copy from.
- * @param out  Vector to copy into.
- */
 template <typename ValueType>
-__dpct_inline__ void copy_kernel(const int num_rows,
-                                 const ValueType* const __restrict__ in,
-                                 ValueType* const __restrict__ out,
-                                 sycl::nd_item<3> item_ct1)
+__dpct_inline__ void copy_kernel(
+    const gko::batch_multi_vector::BatchEntry<const ValueType>& in,
+    const gko::batch_multi_vector::BatchEntry<ValueType>& out,
+    sycl::nd_item<3>& item_ct1)
 {
-    for (int iz = item_ct1.get_local_linear_id(); iz < num_rows;
+    for (int iz = item_ct1.get_local_linear_id(); iz < in.num_rows * in.num_rhs;
          iz += item_ct1.get_local_range().size()) {
-        out[iz] = in[iz];
+        const int i = iz / in.num_rhs;
+        const int j = iz % in.num_rhs;
+        out.values[i * out.stride + j] = in.values[i * in.stride + j];
     }
 }

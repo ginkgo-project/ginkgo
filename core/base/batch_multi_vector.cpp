@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace batch_multi_vector {
+namespace {
 
 
 GKO_REGISTER_OPERATION(scale, batch_multi_vector::scale);
@@ -60,6 +61,7 @@ GKO_REGISTER_OPERATION(compute_norm2, batch_multi_vector::compute_norm2);
 GKO_REGISTER_OPERATION(copy, batch_multi_vector::copy);
 
 
+}  // namespace
 }  // namespace batch_multi_vector
 
 
@@ -248,9 +250,8 @@ void BatchMultiVector<ValueType>::write(std::vector<mat_data32>& data) const
 }
 
 
-#define GKO_DECLARE_BATCH_MULTI_VECTOR_MATRIX(_type) \
-    class BatchMultiVector<_type>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_MULTI_VECTOR_MATRIX);
+#define GKO_DECLARE_BATCH_MULTI_VECTOR(_type) class BatchMultiVector<_type>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_MULTI_VECTOR);
 
 
 }  // namespace gko

@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 
 
+#include <memory>
 #include <random>
 
 
@@ -45,16 +46,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/batch_multi_vector_kernels.hpp"
 #include "core/test/utils.hpp"
+#include "core/test/utils/assertions.hpp"
 #include "core/test/utils/batch_helpers.hpp"
 #include "test/utils/executor.hpp"
 
 
 class BatchMultiVector : public CommonTestFixture {
 protected:
-    using vtype = double;
-    using Mtx = gko::BatchMultiVector<vtype>;
-    using NormVector = gko::BatchMultiVector<gko::remove_complex<vtype>>;
-    using ComplexMtx = gko::BatchMultiVector<std::complex<vtype>>;
+    using Mtx = gko::BatchMultiVector<value_type>;
+    using NormVector = gko::BatchMultiVector<gko::remove_complex<value_type>>;
+    using ComplexMtx = gko::BatchMultiVector<std::complex<value_type>>;
 
     BatchMultiVector() : rand_engine(15) {}
 
@@ -148,7 +149,7 @@ TEST_F(BatchMultiVector, SingleVectorAddScaledIsEquivalentToRef)
     x->add_scaled(alpha.get(), y.get());
     dx->add_scaled(dalpha.get(), dy.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, r<value_type>::value);
 }
 
 
@@ -159,7 +160,7 @@ TEST_F(BatchMultiVector, MultipleVectorAddScaledIsEquivalentToRef)
     x->add_scaled(alpha.get(), y.get());
     dx->add_scaled(dalpha.get(), dy.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 5 * r<value_type>::value);
 }
 
 
@@ -171,7 +172,7 @@ TEST_F(BatchMultiVector,
     x->add_scaled(alpha.get(), y.get());
     dx->add_scaled(dalpha.get(), dy.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 5 * r<value_type>::value);
 }
 
 
@@ -182,7 +183,7 @@ TEST_F(BatchMultiVector, SingleVectorScaleIsEquivalentToRef)
     x->scale(alpha.get());
     dx->scale(dalpha.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 5 * r<value_type>::value);
 }
 
 
@@ -193,7 +194,7 @@ TEST_F(BatchMultiVector, MultipleVectorScaleIsEquivalentToRef)
     x->scale(alpha.get());
     dx->scale(dalpha.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 5 * r<value_type>::value);
 }
 
 
@@ -204,7 +205,7 @@ TEST_F(BatchMultiVector, MultipleVectorScaleWithDifferentAlphaIsEquivalentToRef)
     x->scale(alpha.get());
     dx->scale(dalpha.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 5 * r<value_type>::value);
 }
 
 
@@ -219,7 +220,7 @@ TEST_F(BatchMultiVector, ComputeNorm2SingleIsEquivalentToRef)
     x->compute_norm2(norm_expected.get());
     dx->compute_norm2(dnorm.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(norm_expected, dnorm, 1e-14);
+    GKO_ASSERT_BATCH_MTX_NEAR(norm_expected, dnorm, 5 * r<value_type>::value);
 }
 
 
@@ -234,7 +235,7 @@ TEST_F(BatchMultiVector, ComputeNorm2IsEquivalentToRef)
     x->compute_norm2(norm_expected.get());
     dx->compute_norm2(dnorm.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(norm_expected, dnorm, 1e-14);
+    GKO_ASSERT_BATCH_MTX_NEAR(norm_expected, dnorm, 5 * r<value_type>::value);
 }
 
 
@@ -249,7 +250,7 @@ TEST_F(BatchMultiVector, ComputeDotIsEquivalentToRef)
     x->compute_dot(y.get(), dot_expected.get());
     dx->compute_dot(dy.get(), ddot.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(dot_expected, ddot, 1e-14);
+    GKO_ASSERT_BATCH_MTX_NEAR(dot_expected, ddot, 5 * r<value_type>::value);
 }
 
 
@@ -264,7 +265,7 @@ TEST_F(BatchMultiVector, ComputeDotSingleIsEquivalentToRef)
     x->compute_dot(y.get(), dot_expected.get());
     dx->compute_dot(dy.get(), ddot.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(dot_expected, ddot, 1e-14);
+    GKO_ASSERT_BATCH_MTX_NEAR(dot_expected, ddot, 5 * r<value_type>::value);
 }
 
 

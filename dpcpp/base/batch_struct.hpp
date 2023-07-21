@@ -34,8 +34,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_DPCPP_BASE_BATCH_STRUCT_HPP_
 
 
+#include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/batch_multi_vector.hpp>
 
 
 #include "core/base/batch_struct.hpp"
