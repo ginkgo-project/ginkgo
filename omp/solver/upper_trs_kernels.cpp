@@ -115,7 +115,7 @@ void solve(std::shared_ptr<const OmpExecutor> exec,
                 auto col = col_idxs[k];
                 if (col > row) {
                     ValueType xval{};
-                    while (is_nan(xval = atomic_load(x->at(col, j)))) {
+                    while (is_nan(xval = load_relaxed(x->at(col, j)))) {
                     }
                     val -= vals[k] * xval;
                 }
@@ -129,7 +129,7 @@ void solve(std::shared_ptr<const OmpExecutor> exec,
             if (is_nan(val)) {
                 val = zero<ValueType>();
             }
-            atomic_store(x->at(row, j), val);
+            store_relaxed(x->at(row, j), val);
         }
     }
 }

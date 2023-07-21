@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/allocator.hpp"
 #include "core/matrix/csr_lookup.hpp"
+#include "omp/components/atomic.hpp"
 
 
 namespace gko {
@@ -113,10 +114,7 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
             row_ptrs, cols, lookup_offsets, lookup_storage, lookup_descs, row};
         for (auto lower_nz = row_begin; lower_nz < row_diag; lower_nz++) {
             const auto dep = cols[lower_nz];
-            bool ready_flag{};
-            while (!ready_flag) {
-#pragma omp atomic read acquire
-                ready_flag = ready[dep];
+            while (!load_acquire(ready[dep])) {
             }
             const auto dep_diag_idx = diag_idxs[dep];
             const auto dep_diag = vals[dep_diag_idx];
@@ -130,8 +128,7 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
                 vals[nz] -= scale * val;
             }
         }
-#pragma omp atomic write release
-        ready[row] = true;
+        store_release(ready[row], true);
     }
 }
 

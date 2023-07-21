@@ -70,7 +70,7 @@ void atomic_add(ValueType& out, ValueType val)
 
 template <typename ValueType,
           std::enable_if_t<!is_complex<ValueType>()>* = nullptr>
-ValueType atomic_load(const ValueType& val)
+ValueType load_relaxed(const ValueType& val)
 {
     ValueType out{};
 #pragma omp atomic read relaxed
@@ -80,7 +80,7 @@ ValueType atomic_load(const ValueType& val)
 
 template <typename ValueType,
           std::enable_if_t<is_complex<ValueType>()>* = nullptr>
-ValueType atomic_load(const ValueType& val)
+ValueType load_relaxed(const ValueType& val)
 {
     remove_complex<ValueType> r{};
     remove_complex<ValueType> i{};
@@ -97,7 +97,7 @@ ValueType atomic_load(const ValueType& val)
 
 template <typename ValueType,
           std::enable_if_t<!is_complex<ValueType>()>* = nullptr>
-void atomic_store(ValueType& out, ValueType val)
+void store_relaxed(ValueType& out, ValueType val)
 {
 #pragma omp atomic write relaxed
     out = val;
@@ -105,7 +105,7 @@ void atomic_store(ValueType& out, ValueType val)
 
 template <typename ValueType,
           std::enable_if_t<is_complex<ValueType>()>* = nullptr>
-void atomic_store(ValueType& out, ValueType val)
+void store_relaxed(ValueType& out, ValueType val)
 {
     // The C++ standard explicitly allows casting complex<double>* to double*
     // [complex.numbers.general]
@@ -114,6 +114,24 @@ void atomic_store(ValueType& out, ValueType val)
     values[0] = real(val);
 #pragma omp atomic write relaxed
     values[1] = imag(val);
+}
+
+
+template <typename ValueType>
+ValueType load_acquire(const ValueType& val)
+{
+    ValueType out{};
+#pragma omp atomic read acquire
+    out = val;
+    return out;
+}
+
+
+template <typename ValueType, typename ValueType2>
+void store_release(ValueType& out, ValueType2 val)
+{
+#pragma omp atomic write release
+    out = ValueType(val);
 }
 
 
