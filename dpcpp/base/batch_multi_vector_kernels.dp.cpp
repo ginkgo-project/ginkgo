@@ -169,6 +169,41 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
+void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec,
+                      const BatchMultiVector<ValueType>* const x,
+                      const BatchMultiVector<ValueType>* const y,
+                      BatchMultiVector<ValueType>* const result)
+{
+    const auto x_ub = get_batch_struct(x);
+    const auto y_ub = get_batch_struct(y);
+    const auto res_ub = get_batch_struct(result);
+
+    const auto num_batches = x_ub.num_batch_entries;
+    auto device = exec->get_queue()->get_device();
+    auto group_size =
+        device.get_info<sycl::info::device::max_work_group_size>();
+
+    const dim3 block(group_size);
+    const dim3 grid(num_batches);
+
+    (exec->get_queue())->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                auto group = item_ct1.get_group();
+                auto group_id = group.get_group_linear_id();
+                const auto x_b = batch::batch_entry(x_ub, group_id);
+                const auto y_b = batch::batch_entry(y_ub, group_id);
+                const auto res_b = batch::batch_entry(res_ub, group_id);
+                compute_conj_dot_product_kernel(x_b, y_b, res_b, item_ct1);
+            });
+    });
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_CONJ_DOT_KERNEL);
+
+
+template <typename ValueType>
 void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
                    const BatchMultiVector<ValueType>* const x,
                    BatchMultiVector<remove_complex<ValueType>>* const result)

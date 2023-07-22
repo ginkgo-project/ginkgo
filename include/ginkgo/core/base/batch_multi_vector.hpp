@@ -334,8 +334,7 @@ public:
 
     /**
      * Computes the column-wise dot product of each matrix in this batch and its
-     * corresponding entry in `b`. If the vector has complex value_type, then
-     * the conjugate of this is taken.
+     * corresponding entry in `b`.
      *
      * @param b  a BatchMultiVector matrix of same dimension as this
      * @param result  a BatchMultiVector row vector, used to store the dot
@@ -348,6 +347,24 @@ public:
         auto exec = this->get_executor();
         this->compute_dot_impl(make_temporary_clone(exec, b).get(),
                                make_temporary_clone(exec, result).get());
+    }
+
+    /**
+     * Computes the column-wise conjugate dot product of each matrix in this
+     * batch and its corresponding entry in `b`. If the vector has complex
+     * value_type, then the conjugate of this is taken.
+     *
+     * @param b  a BatchMultiVector matrix of same dimension as this
+     * @param result  a BatchMultiVector row vector, used to store the dot
+     * product (the number of column in the vector must match the number of
+     * columns of this)
+     */
+    void compute_conj_dot(ptr_param<const BatchMultiVector<ValueType>> b,
+                          ptr_param<BatchMultiVector<ValueType>> result) const
+    {
+        auto exec = this->get_executor();
+        this->compute_conj_dot_impl(make_temporary_clone(exec, b).get(),
+                                    make_temporary_clone(exec, result).get());
     }
 
     /**
@@ -529,37 +546,30 @@ protected:
 
     /**
      * @copydoc scale(const BatchMultiVector *)
-     *
-     * @note  Other implementations of batch_multi_vector should override this
-     * function instead of scale(const BatchMultiVector *alpha).
      */
     void scale_impl(const BatchMultiVector<ValueType>* alpha);
 
     /**
      * @copydoc add_scaled(const BatchMultiVector *, const BatchMultiVector *)
-     *
-     * @note  Other implementations of batch_multi_vector should override this
-     * function instead of add_scale(const BatchMultiVector *alpha, const
-     * BatchMultiVector *b).
      */
     void add_scaled_impl(const BatchMultiVector<ValueType>* alpha,
                          const BatchMultiVector<ValueType>* b);
 
     /**
      * @copydoc compute_dot(const BatchMultiVector *, BatchMultiVector *) const
-     *
-     * @note  Other implementations of batch_multi_vector should override this
-     * function instead of compute_dot(const BatchMultiVector *b,
-     * BatchMultiVector *result).
      */
     void compute_dot_impl(const BatchMultiVector<ValueType>* b,
                           BatchMultiVector<ValueType>* result) const;
 
     /**
+     * @copydoc compute_conj_dot(const BatchMultiVector *, BatchMultiVector *)
+     * const
+     */
+    void compute_conj_dot_impl(const BatchMultiVector<ValueType>* b,
+                               BatchMultiVector<ValueType>* result) const;
+
+    /**
      * @copydoc compute_norm2(BatchMultiVector *) const
-     *
-     * @note  Other implementations of batch_multi_vector should override this
-     * function instead of compute_norm2(BatchMultiVector *result).
      */
     void compute_norm2_impl(
         BatchMultiVector<remove_complex<ValueType>>* result) const;

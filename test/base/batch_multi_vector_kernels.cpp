@@ -269,6 +269,36 @@ TEST_F(BatchMultiVector, ComputeDotSingleIsEquivalentToRef)
 }
 
 
+TEST_F(BatchMultiVector, ComputeConjDotIsEquivalentToRef)
+{
+    set_up_vector_data(20);
+    auto dot_size =
+        gko::batch_dim<2>(batch_size, gko::dim<2>{1, x->get_common_size()[1]});
+    auto dot_expected = Mtx::create(this->ref, dot_size);
+    auto ddot = Mtx::create(this->exec, dot_size);
+
+    x->compute_conj_dot(y.get(), dot_expected.get());
+    dx->compute_conj_dot(dy.get(), ddot.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dot_expected, ddot, 5 * r<value_type>::value);
+}
+
+
+TEST_F(BatchMultiVector, ComputeConjDotSingleIsEquivalentToRef)
+{
+    set_up_vector_data(1);
+    auto dot_size =
+        gko::batch_dim<2>(batch_size, gko::dim<2>{1, x->get_common_size()[1]});
+    auto dot_expected = Mtx::create(this->ref, dot_size);
+    auto ddot = Mtx::create(this->exec, dot_size);
+
+    x->compute_conj_dot(y.get(), dot_expected.get());
+    dx->compute_conj_dot(dy.get(), ddot.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dot_expected, ddot, 5 * r<value_type>::value);
+}
+
+
 TEST_F(BatchMultiVector, CopySingleIsEquivalentToRef)
 {
     set_up_vector_data(1);
