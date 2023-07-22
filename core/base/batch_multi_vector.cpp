@@ -57,6 +57,7 @@ namespace {
 GKO_REGISTER_OPERATION(scale, batch_multi_vector::scale);
 GKO_REGISTER_OPERATION(add_scaled, batch_multi_vector::add_scaled);
 GKO_REGISTER_OPERATION(compute_dot, batch_multi_vector::compute_dot);
+GKO_REGISTER_OPERATION(compute_conj_dot, batch_multi_vector::compute_conj_dot);
 GKO_REGISTER_OPERATION(compute_norm2, batch_multi_vector::compute_norm2);
 GKO_REGISTER_OPERATION(copy, batch_multi_vector::copy);
 
@@ -106,6 +107,23 @@ inline const batch_dim<2> get_col_sizes(const batch_dim<2>& sizes)
 {
     return batch_dim<2>(sizes.get_num_batch_entries(),
                         dim<2>(1, sizes.get_common_size()[1]));
+}
+
+
+template <typename ValueType>
+void BatchMultiVector<ValueType>::compute_conj_dot_impl(
+    const BatchMultiVector<ValueType>* b,
+    BatchMultiVector<ValueType>* result) const
+{
+    GKO_ASSERT_EQ(b->get_num_batch_entries(), this->get_num_batch_entries());
+    GKO_ASSERT_EQUAL_DIMENSIONS(this->get_common_size(), b->get_common_size());
+    GKO_ASSERT_EQ(this->get_num_batch_entries(),
+                  result->get_num_batch_entries());
+    GKO_ASSERT_EQUAL_DIMENSIONS(
+        result->get_common_size(),
+        get_col_sizes(this->get_size()).get_common_size());
+    this->get_executor()->run(
+        batch_multi_vector::make_compute_conj_dot(this, b, result));
 }
 
 

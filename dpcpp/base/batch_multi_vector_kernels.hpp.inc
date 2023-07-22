@@ -93,6 +93,35 @@ __dpct_inline__ void compute_dot_product_kernel(
         ValueType val = zero<ValueType>();
 
         for (int r = sg.get_local_id(); r < x.num_rows; r += sg_size) {
+            val += x.values[r * x.stride + rhs_index] *
+                   y.values[r * y.stride + rhs_index];
+        }
+
+        val = sycl::reduce_over_group(sg, val, sycl::plus<>());
+
+        if (sg.get_local_id() == 0) {
+            result.values[rhs_index] = val;
+        }
+    }
+}
+
+
+template <typename ValueType>
+__dpct_inline__ void compute_conj_dot_product_kernel(
+    const gko::batch_multi_vector::batch_entry<const ValueType>& x,
+    const gko::batch_multi_vector::batch_entry<const ValueType>& y,
+    const gko::batch_multi_vector::batch_entry<ValueType>& result,
+    sycl::nd_item<3>& item_ct1)
+{
+    const auto sg = item_ct1.get_sub_group();
+    const int sg_id = sg.get_group_id();
+    const int sg_size = sg.get_local_range().size();
+    const int num_sg = sg.get_group_range().size();
+
+    for (int rhs_index = sg_id; rhs_index < x.num_rhs; rhs_index += num_sg) {
+        ValueType val = zero<ValueType>();
+
+        for (int r = sg.get_local_id(); r < x.num_rows; r += sg_size) {
             val += conj(x.values[r * x.stride + rhs_index]) *
                    y.values[r * y.stride + rhs_index];
         }

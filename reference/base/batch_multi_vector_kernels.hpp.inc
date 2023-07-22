@@ -88,6 +88,25 @@ inline void compute_dot_product_kernel(
     for (int r = 0; r < x.num_rows; r++) {
         for (int c = 0; c < x.num_rhs; c++) {
             result.values[c] +=
+                x.values[r * x.stride + c] * y.values[r * y.stride + c];
+        }
+    }
+}
+
+
+template <typename ValueType>
+inline void compute_conj_dot_product_kernel(
+    const gko::batch_multi_vector::batch_entry<const ValueType>& x,
+    const gko::batch_multi_vector::batch_entry<const ValueType>& y,
+    const gko::batch_multi_vector::batch_entry<ValueType>& result)
+{
+    for (int c = 0; c < result.num_rhs; c++) {
+        result.values[c] = gko::zero<ValueType>();
+    }
+
+    for (int r = 0; r < x.num_rows; r++) {
+        for (int c = 0; c < x.num_rhs; c++) {
+            result.values[c] +=
                 conj(x.values[r * x.stride + c]) * y.values[r * y.stride + c];
         }
     }

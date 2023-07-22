@@ -98,6 +98,25 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
+void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec,
+                      const BatchMultiVector<ValueType>* x,
+                      const BatchMultiVector<ValueType>* y,
+                      BatchMultiVector<ValueType>* result)
+{
+    const auto num_blocks = x->get_num_batch_entries();
+    const auto num_rhs = x->get_common_size()[1];
+    const auto x_ub = get_batch_struct(x);
+    const auto y_ub = get_batch_struct(y);
+    const auto res_ub = get_batch_struct(result);
+    compute_conj_dot_product_kernel<<<num_blocks, default_block_size, 0,
+                                      exec->get_stream()>>>(x_ub, y_ub, res_ub);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_CONJ_DOT_KERNEL);
+
+
+template <typename ValueType>
 void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
                    const BatchMultiVector<ValueType>* const x,
                    BatchMultiVector<remove_complex<ValueType>>* const result)

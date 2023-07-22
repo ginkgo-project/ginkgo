@@ -66,6 +66,12 @@ namespace kernels {
                      const BatchMultiVector<_type>* y,            \
                      BatchMultiVector<_type>* result)
 
+#define GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_CONJ_DOT_KERNEL(_type)  \
+    void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec, \
+                          const BatchMultiVector<_type>* x,            \
+                          const BatchMultiVector<_type>* y,            \
+                          BatchMultiVector<_type>* result)
+
 #define GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_NORM2_KERNEL(_type)  \
     void compute_norm2(std::shared_ptr<const DefaultExecutor> exec, \
                        const BatchMultiVector<_type>* x,            \
@@ -77,16 +83,18 @@ namespace kernels {
               BatchMultiVector<_type>* result)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                \
-    template <typename ValueType>                                   \
-    GKO_DECLARE_BATCH_MULTI_VECTOR_SCALE_KERNEL(ValueType);         \
-    template <typename ValueType>                                   \
-    GKO_DECLARE_BATCH_MULTI_VECTOR_ADD_SCALED_KERNEL(ValueType);    \
-    template <typename ValueType>                                   \
-    GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_DOT_KERNEL(ValueType);   \
-    template <typename ValueType>                                   \
-    GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_NORM2_KERNEL(ValueType); \
-    template <typename ValueType>                                   \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                   \
+    template <typename ValueType>                                      \
+    GKO_DECLARE_BATCH_MULTI_VECTOR_SCALE_KERNEL(ValueType);            \
+    template <typename ValueType>                                      \
+    GKO_DECLARE_BATCH_MULTI_VECTOR_ADD_SCALED_KERNEL(ValueType);       \
+    template <typename ValueType>                                      \
+    GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_DOT_KERNEL(ValueType);      \
+    template <typename ValueType>                                      \
+    GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_CONJ_DOT_KERNEL(ValueType); \
+    template <typename ValueType>                                      \
+    GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_NORM2_KERNEL(ValueType);    \
+    template <typename ValueType>                                      \
     GKO_DECLARE_BATCH_MULTI_VECTOR_COPY_KERNEL(ValueType)
 
 
