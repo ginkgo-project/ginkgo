@@ -33,7 +33,17 @@ inline std::vector<resource> get_ctest_resources()
     std::cerr << "CTEST_RESOURCE_GROUP_COUNT=" << rs_count_env << std::endl;
 
     if (!rs_count_env) {
+#ifdef GKO_COMPILING_OMP
+        resource rs{};
+#pragma omp parallel
+#pragma omp single
+        {
+            rs = resource{0, omp_get_num_threads()};
+        }
+        return {rs};
+#else
         return {{0, 1}};
+#endif
     }
 
     auto rs_count = std::stoi(rs_count_env);
