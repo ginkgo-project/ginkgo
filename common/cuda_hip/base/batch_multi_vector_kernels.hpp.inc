@@ -56,10 +56,10 @@ __global__
         const gko::batch_multi_vector::uniform_batch<const ValueType> alpha,
         const gko::batch_multi_vector::uniform_batch<ValueType> x, Mapping map)
 {
-    for (size_type ibatch = blockIdx.x; ibatch < x.num_batch_entries;
-         ibatch += gridDim.x) {
-        const auto alpha_b = gko::batch::batch_entry(alpha, ibatch);
-        const auto x_b = gko::batch::batch_entry(x, ibatch);
+    for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_entries;
+         batch_id += gridDim.x) {
+        const auto alpha_b = gko::batch::batch_entry(alpha, batch_id);
+        const auto x_b = gko::batch::batch_entry(x, batch_id);
         scale(alpha_b, x_b, map);
     }
 }
@@ -88,191 +88,109 @@ __global__
         const gko::batch_multi_vector::uniform_batch<const ValueType> x,
         const gko::batch_multi_vector::uniform_batch<ValueType> y, Mapping map)
 {
-    for (size_type ibatch = blockIdx.x; ibatch < x.num_batch_entries;
-         ibatch += gridDim.x) {
-        const auto alpha_b = gko::batch::batch_entry(alpha, ibatch);
-        const auto x_b = gko::batch::batch_entry(x, ibatch);
-        const auto y_b = gko::batch::batch_entry(y, ibatch);
+    for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_entries;
+         batch_id += gridDim.x) {
+        const auto alpha_b = gko::batch::batch_entry(alpha, batch_id);
+        const auto x_b = gko::batch::batch_entry(x, batch_id);
+        const auto y_b = gko::batch::batch_entry(y, batch_id);
         add_scaled(alpha_b, x_b, y_b, map);
     }
 }
 
 
-template <typename ValueType>
-__device__ __forceinline__ void one_dot(
+template <typename Group, typename ValueType, typename Mapping>
+__device__ __forceinline__ void gen_one_dot(
     const gko::batch_multi_vector::batch_entry<const ValueType>& x,
     const gko::batch_multi_vector::batch_entry<const ValueType>& y,
     const int rhs_index,
     const gko::batch_multi_vector::batch_entry<ValueType>& result,
-    group::thread_block_tile<config::warp_size>& subwarp_grp)
+    Group subgroup, Mapping conj_map)
 {
     ValueType val = zero<ValueType>();
 
-    for (int r = subwarp_grp.thread_rank(); r < x.num_rows;
-         r += subwarp_grp.size()) {
-        val += x.values[r * x.stride + rhs_index] *
+    for (int r = subgroup.thread_rank(); r < x.num_rows; r += subgroup.size()) {
+        val += conj_map(x.values[r * x.stride + rhs_index]) *
                y.values[r * y.stride + rhs_index];
     }
 
-    // subwarp_grp level reduction
-#pragma unroll
-    for (int j = config::warp_size / 2; j > 0; j /= 2) {
-        val += subwarp_grp.shfl_down(val, j);
-    }
+    // subgroup level reduction
+    val = reduce(subgroup, val, thrust::plus<ValueType>{});
 
-    if (subwarp_grp.thread_rank() == 0) {
+    if (subgroup.thread_rank() == 0) {
         result.values[rhs_index] = val;
     }
 }
 
 
-template <typename ValueType>
-__device__ __forceinline__ void one_conj_dot(
+template <typename ValueType, typename Mapping>
+__device__ __forceinline__ void compute_gen_dot_product(
     const gko::batch_multi_vector::batch_entry<const ValueType>& x,
     const gko::batch_multi_vector::batch_entry<const ValueType>& y,
-    const int rhs_index,
     const gko::batch_multi_vector::batch_entry<ValueType>& result,
-    group::thread_block_tile<config::warp_size>& subwarp_grp)
-{
-    ValueType val = zero<ValueType>();
-
-    for (int r = subwarp_grp.thread_rank(); r < x.num_rows;
-         r += subwarp_grp.size()) {
-        val += conj(x.values[r * x.stride + rhs_index]) *
-               y.values[r * y.stride + rhs_index];
-    }
-
-    // subwarp_grp level reduction
-#pragma unroll
-    for (int j = config::warp_size / 2; j > 0; j /= 2) {
-        val += subwarp_grp.shfl_down(val, j);
-    }
-
-    if (subwarp_grp.thread_rank() == 0) {
-        result.values[rhs_index] = val;
-    }
-}
-
-
-template <typename ValueType>
-__device__ __forceinline__ void compute_dot_product(
-    const gko::batch_multi_vector::batch_entry<const ValueType>& x,
-    const gko::batch_multi_vector::batch_entry<const ValueType>& y,
-    const gko::batch_multi_vector::batch_entry<ValueType>& result)
+    Mapping conj_map)
 {
     constexpr auto tile_size = config::warp_size;
     auto thread_block = group::this_thread_block();
-    auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
-    const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
-    const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
+    auto subgroup = group::tiled_partition<tile_size>(thread_block);
+    const auto subgroup_id = static_cast<int>(threadIdx.x / tile_size);
+    const int num_subgroups_per_block = ceildiv(blockDim.x, tile_size);
 
-    for (int rhs_index = subwarp_grp_id; rhs_index < x.num_rhs;
-         rhs_index += num_subwarp_grps_per_block) {
-        one_dot(x, y, rhs_index, result, subwarp_grp);
+    for (int rhs_index = subgroup_id; rhs_index < x.num_rhs;
+         rhs_index += num_subgroups_per_block) {
+        gen_one_dot(x, y, rhs_index, result, subgroup, conj_map);
     }
 }
 
 
-template <typename ValueType>
-__device__ __forceinline__ void compute_conj_dot_product(
-    const gko::batch_multi_vector::batch_entry<const ValueType>& x,
-    const gko::batch_multi_vector::batch_entry<const ValueType>& y,
-    const gko::batch_multi_vector::batch_entry<ValueType>& result)
-{
-    constexpr auto tile_size = config::warp_size;
-    auto thread_block = group::this_thread_block();
-    auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
-    const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
-    const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
-
-    for (int rhs_index = subwarp_grp_id; rhs_index < x.num_rhs;
-         rhs_index += num_subwarp_grps_per_block) {
-        one_conj_dot(x, y, rhs_index, result, subwarp_grp);
-    }
-}
-
-
-template <typename ValueType>
+template <typename ValueType, typename Mapping>
 __global__ __launch_bounds__(
     default_block_size,
-    sm_multiplier) void compute_dot_product_kernel(const gko::
-                                                       batch_multi_vector::
-                                                           uniform_batch<
-                                                               const ValueType>
-                                                               x,
-                                                   const gko::
-                                                       batch_multi_vector::
-                                                           uniform_batch<
-                                                               const ValueType>
-                                                               y,
-                                                   const gko::
-                                                       batch_multi_vector::
-                                                           uniform_batch<
-                                                               ValueType>
-                                                               result)
+    sm_multiplier) void compute_gen_dot_product_kernel(const gko::
+                                                           batch_multi_vector::
+                                                               uniform_batch<
+                                                                   const ValueType>
+                                                                   x,
+                                                       const gko::
+                                                           batch_multi_vector::
+                                                               uniform_batch<
+                                                                   const ValueType>
+                                                                   y,
+                                                       const gko::
+                                                           batch_multi_vector::
+                                                               uniform_batch<
+                                                                   ValueType>
+                                                                   result,
+                                                       Mapping map)
 {
-    for (size_type ibatch = blockIdx.x; ibatch < x.num_batch_entries;
-         ibatch += gridDim.x) {
-        const auto x_b = gko::batch::batch_entry(x, ibatch);
-        const auto y_b = gko::batch::batch_entry(y, ibatch);
-        const auto r_b = gko::batch::batch_entry(result, ibatch);
-        compute_dot_product(x_b, y_b, r_b);
+    for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_entries;
+         batch_id += gridDim.x) {
+        const auto x_b = gko::batch::batch_entry(x, batch_id);
+        const auto y_b = gko::batch::batch_entry(y, batch_id);
+        const auto r_b = gko::batch::batch_entry(result, batch_id);
+        compute_gen_dot_product(x_b, y_b, r_b, map);
     }
 }
 
 
-template <typename ValueType>
-__global__ __launch_bounds__(
-    default_block_size,
-    sm_multiplier) void compute_conj_dot_product_kernel(const gko::
-                                                            batch_multi_vector::
-                                                                uniform_batch<
-                                                                    const ValueType>
-                                                                    x,
-                                                        const gko::
-                                                            batch_multi_vector::
-                                                                uniform_batch<
-                                                                    const ValueType>
-                                                                    y,
-                                                        const gko::
-                                                            batch_multi_vector::
-                                                                uniform_batch<
-                                                                    ValueType>
-                                                                    result)
-{
-    for (size_type ibatch = blockIdx.x; ibatch < x.num_batch_entries;
-         ibatch += gridDim.x) {
-        const auto x_b = gko::batch::batch_entry(x, ibatch);
-        const auto y_b = gko::batch::batch_entry(y, ibatch);
-        const auto r_b = gko::batch::batch_entry(result, ibatch);
-        compute_conj_dot_product(x_b, y_b, r_b);
-    }
-}
-
-
-template <typename ValueType>
+template <typename Group, typename ValueType>
 __device__ __forceinline__ void one_norm2(
     const gko::batch_multi_vector::batch_entry<const ValueType>& x,
     const int rhs_index,
     const gko::batch_multi_vector::batch_entry<remove_complex<ValueType>>&
         result,
-    group::thread_block_tile<config::warp_size>& subwarp_grp)
+    Group subgroup)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     real_type val = zero<real_type>();
 
-    for (int r = subwarp_grp.thread_rank(); r < x.num_rows;
-         r += subwarp_grp.size()) {
+    for (int r = subgroup.thread_rank(); r < x.num_rows; r += subgroup.size()) {
         val += squared_norm(x.values[r * x.stride + rhs_index]);
     }
 
-    // subwarp_grp level reduction
-#pragma unroll
-    for (int j = config::warp_size / 2; j > 0; j /= 2) {
-        val += subwarp_grp.shfl_down(val, j);
-    }
+    // subgroup level reduction
+    val = reduce(subgroup, val, thrust::plus<remove_complex<ValueType>>{});
 
-    if (subwarp_grp.thread_rank() == 0) {
+    if (subgroup.thread_rank() == 0) {
         result.values[rhs_index] = sqrt(val);
     }
 }
@@ -292,13 +210,13 @@ __device__ __forceinline__ void compute_norm2(
 {
     constexpr auto tile_size = config::warp_size;
     auto thread_block = group::this_thread_block();
-    auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
-    const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
-    const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
+    auto subgroup = group::tiled_partition<tile_size>(thread_block);
+    const auto subgroup_id = static_cast<int>(threadIdx.x / tile_size);
+    const int num_subgroups_per_block = ceildiv(blockDim.x, tile_size);
 
-    for (int rhs_index = subwarp_grp_id; rhs_index < x.num_rhs;
-         rhs_index += num_subwarp_grps_per_block) {
-        one_norm2(x, rhs_index, result, subwarp_grp);
+    for (int rhs_index = subgroup_id; rhs_index < x.num_rhs;
+         rhs_index += num_subgroups_per_block) {
+        one_norm2(x, rhs_index, result, subgroup);
     }
 }
 
@@ -314,10 +232,10 @@ __global__ __launch_bounds__(
                                                      remove_complex<ValueType>>
                                                      result)
 {
-    for (size_type ibatch = blockIdx.x; ibatch < x.num_batch_entries;
-         ibatch += gridDim.x) {
-        const auto x_b = gko::batch::batch_entry(x, ibatch);
-        const auto r_b = gko::batch::batch_entry(result, ibatch);
+    for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_entries;
+         batch_id += gridDim.x) {
+        const auto x_b = gko::batch::batch_entry(x, batch_id);
+        const auto r_b = gko::batch::batch_entry(result, batch_id);
         compute_norm2(x_b, r_b);
     }
 }
@@ -349,10 +267,10 @@ __global__
         const gko::batch_multi_vector::uniform_batch<const ValueType> src,
         const gko::batch_multi_vector::uniform_batch<ValueType> dst)
 {
-    for (size_type ibatch = blockIdx.x; ibatch < src.num_batch_entries;
-         ibatch += gridDim.x) {
-        const auto dst_b = gko::batch::batch_entry(dst, ibatch);
-        const auto src_b = gko::batch::batch_entry(src, ibatch);
+    for (size_type batch_id = blockIdx.x; batch_id < src.num_batch_entries;
+         batch_id += gridDim.x) {
+        const auto dst_b = gko::batch::batch_entry(dst, batch_id);
+        const auto src_b = gko::batch::batch_entry(src, batch_id);
         copy(src_b, dst_b);
     }
 }

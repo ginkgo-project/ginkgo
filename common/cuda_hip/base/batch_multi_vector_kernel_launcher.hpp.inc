@@ -89,8 +89,9 @@ void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
     const auto x_ub = get_batch_struct(x);
     const auto y_ub = get_batch_struct(y);
     const auto res_ub = get_batch_struct(result);
-    compute_dot_product_kernel<<<num_blocks, default_block_size, 0,
-                                 exec->get_stream()>>>(x_ub, y_ub, res_ub);
+    compute_gen_dot_product_kernel<<<num_blocks, default_block_size, 0,
+                                     exec->get_stream()>>>(
+        x_ub, y_ub, res_ub, [] __device__(auto val) { return val; });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -108,8 +109,9 @@ void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec,
     const auto x_ub = get_batch_struct(x);
     const auto y_ub = get_batch_struct(y);
     const auto res_ub = get_batch_struct(result);
-    compute_conj_dot_product_kernel<<<num_blocks, default_block_size, 0,
-                                      exec->get_stream()>>>(x_ub, y_ub, res_ub);
+    compute_gen_dot_product_kernel<<<num_blocks, default_block_size, 0,
+                                     exec->get_stream()>>>(
+        x_ub, y_ub, res_ub, [] __device__(auto val) { return conj(val); });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
