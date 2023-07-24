@@ -5,6 +5,21 @@
 #include <regex>
 
 
+#ifdef GKO_COMPILING_OMP
+#include <omp.h>
+#endif
+
+
+#ifdef GKO_COMPILING_CUDA
+#include "cuda/base/device.hpp"
+#endif
+
+
+#ifdef GKO_COMPILING_HIP
+#include "hip/base/device.hpp"
+#endif
+
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
@@ -32,7 +47,9 @@ inline std::vector<resource> get_ctest_resources()
     auto rs_count_env = std::getenv("CTEST_RESOURCE_GROUP_COUNT");
     std::cerr << "CTEST_RESOURCE_GROUP_COUNT=" << rs_count_env << std::endl;
 
-    if (!rs_count_env) {
+    auto rs_count = rs_count_env ? std::stoi(rs_count_env) : 0;
+
+    if (rs_count == 0) {
 #ifdef GKO_COMPILING_OMP
         resource rs{};
 #pragma omp parallel
@@ -45,8 +62,6 @@ inline std::vector<resource> get_ctest_resources()
         return {{0, 1}};
 #endif
     }
-
-    auto rs_count = std::stoi(rs_count_env);
 
     std::vector<resource> resources;
 
@@ -81,8 +96,6 @@ public:
 
 #ifdef GKO_COMPILING_OMP
 
-#include <omp.h>
-
 class OmpEnvironment : public ::testing::Environment {
 public:
     void SetUp() override
@@ -101,8 +114,6 @@ class OmpEnvironment : public ::testing::Environment {};
 
 #ifdef GKO_COMPILING_CUDA
 
-#include "cuda/base/device.hpp"
-
 class CudaEnvironment : public ::testing::Environment {
 public:
     void TearDown() override
@@ -119,8 +130,6 @@ class CudaEnvironment : public ::testing::Environment {};
 
 
 #ifdef GKO_COMPILING_HIP
-
-#include "hip/base/device.hpp"
 
 class HipEnvironment : public ::testing::Environment {
 public:
