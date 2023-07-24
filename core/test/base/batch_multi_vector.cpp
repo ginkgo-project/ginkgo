@@ -325,6 +325,25 @@ TYPED_TEST(BatchMultiVector, CanBeDoubleListConstructed)
 }
 
 
+TYPED_TEST(BatchMultiVector, CanBeFilledWithValue)
+{
+    using value_type = typename TestFixture::value_type;
+    auto m = gko::BatchMultiVector<TypeParam>::create(
+        this->exec, gko::batch_dim<2>(2, gko::dim<2>(3, 1)));
+
+    m->fill(value_type(2.0));
+
+    ASSERT_EQ(m->get_num_batch_entries(), 2);
+    ASSERT_EQ(m->get_common_size(), gko::dim<2>(3, 1));
+    EXPECT_EQ(m->at(0, 0, 0), value_type{2.0});
+    EXPECT_EQ(m->at(0, 0, 1), value_type{2.0});
+    EXPECT_EQ(m->at(0, 0, 2), value_type{2.0});
+    EXPECT_EQ(m->at(1, 0, 0), value_type{2.0});
+    EXPECT_EQ(m->at(1, 0, 1), value_type{2.0});
+    EXPECT_EQ(m->at(1, 0, 2), value_type{2.0});
+}
+
+
 TYPED_TEST(BatchMultiVector, CanBeUnbatchedIntoDenseMatrices)
 {
     using value_type = typename TestFixture::value_type;

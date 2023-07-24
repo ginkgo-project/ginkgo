@@ -402,6 +402,17 @@ public:
             exec, sizes, gko::detail::array_const_cast(std::move(values))});
     }
 
+    /**
+     * Fills the input BatchMultiVector with a given value
+     *
+     * @param value  the value to be filled
+     */
+    void fill(ValueType value)
+    {
+        GKO_ASSERT(this->values_.get_num_elems() > 0);
+        this->values_.fill(value);
+    }
+
 private:
     inline batch_dim<2> compute_batch_size(
         const std::vector<matrix::Dense<ValueType>*>& matrices)
