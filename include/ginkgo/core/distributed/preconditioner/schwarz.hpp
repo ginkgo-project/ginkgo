@@ -112,7 +112,7 @@ protected:
     /**
      * Creates a Schwarz preconditioner from a matrix using a Schwarz::Factory.
      *
-     * @param factory  the factory to use to create the preconditoner
+     * @param factory  the factory to use to create the preconditioner
      * @param system_matrix  the matrix this preconditioner should be created
      *                       from
      */
@@ -126,7 +126,7 @@ protected:
     }
 
     /**
-     * Generates the preconditoner.
+     * Generates the preconditioner.
      */
     void generate(std::shared_ptr<const LinOp> system_matrix);
 

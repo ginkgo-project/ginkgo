@@ -3,7 +3,7 @@
 # convert_source.sh converts cuda (and c++ code) to dpcpp code with ginkgo design.
 
 # Usage:
-# EnvironementSet ./dev_tools/oneapi/convert_source.sh <the_file_in_cuda>
+# EnvironmentSet ./dev_tools/oneapi/convert_source.sh <the_file_in_cuda>
 # <the_file_in_cuda> can be .hpp/.cpp/.cu/.cuh
 
 # the following are parameters set by environment variables
@@ -18,7 +18,7 @@
 #   ROOT_BUILD_DIR: the complete path for build folder. The default is "${ROOT_DIR}/${BUILD_DIR}"
 #   GTEST_HEADER_DIR: the gtest header folder. The default is "${ROOT_BUILD_DIR}/_deps/googletest-src/googletest/include"
 #   CLANG_FORMAT: the clang-format exec. The default is "clang-format"
-#   VERBOSE: if it is set as 1, script will ouput the path information
+#   VERBOSE: if it is set as 1, script will output the path information
 CURRENT_DIR="$( pwd )"
 cd "$( dirname "${BASH_SOURCE[0]}" )"
 SCRIPT_DIR="$( pwd )"
@@ -33,7 +33,7 @@ GTEST_HEADER_DIR="${GTEST_HEADER_DIR:="${ROOT_BUILD_DIR}/_deps/googletest-src/go
 CLANG_FORMAT=${CLANG_FORMAT:="clang-format"}
 if [[ "${VERBOSE}" == 1 ]]; then
     echo "#####################"
-    echo "# Enviroment Setting:"
+    echo "# Environment Setting:"
     echo "CURRENT_DIR ${CURRENT_DIR}"
     echo "SCRIPT_DIR ${SCRIPT_DIR}"
     echo "ROOT_DIR ${ROOT_DIR}"
@@ -262,7 +262,7 @@ rm "${OUTPUT_FOLDER}/${OUTPUT_FILE}"
 rm "${OUTPUT_FOLDER}/${OUTPUT_FILE}.dp.cpp"
 
 # Call DPCT
-echo "# Call DPCT on the previosly generated file."
+echo "# Call DPCT on the previously generated file."
 echo "############################################"
 dpct --extra-arg="-std=c++14" --extra-arg="-I ${ROOT_DIR}" --extra-arg="-I ${ROOT_DIR}/include" --extra-arg="-I ${ROOT_BUILD_DIR}/include" --extra-arg="-I ${ROOT_DIR}/dev_tools/oneapi" --extra-arg="-I ${GTEST_HEADER_DIR}" --cuda-include-path="${CUDA_HEADER_DIR}" --format-range=none ${OUTPUT_FILE} --suppress-warnings=1049 --out-root=${OUTPUT_FOLDER}
 echo "############################################"

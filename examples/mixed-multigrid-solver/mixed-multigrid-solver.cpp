@@ -232,7 +232,7 @@ int main(int argc, char* argv[])
               << static_cast<double>(gen_time.count()) / 1000000.0 << std::endl;
     std::cout << "Multigrid execution time [ms]: "
               << static_cast<double>(time.count()) / 1000000.0 << std::endl;
-    std::cout << "Multigrid execution time per iteraion[ms]: "
+    std::cout << "Multigrid execution time per iteration[ms]: "
               << static_cast<double>(time.count()) / 1000000.0 /
                      logger->get_num_iterations()
               << std::endl;

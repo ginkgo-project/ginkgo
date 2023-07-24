@@ -4,7 +4,7 @@
 #
 # Runs our tests through CTest, with support for Coverage or memory checking.
 #
-# This script provides a full CTest run whith result submission to Ginkgo's
+# This script provides a full CTest run with result submission to Ginkgo's
 # CDash dashboard. The supported runs are:
 # + With or without coverage, requires the gcov tool.
 # + With or without address sanitizers.

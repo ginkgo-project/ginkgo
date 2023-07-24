@@ -212,7 +212,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *   <tr valign="top">
  *       <td>@ref heat_equation</td>
  *       <td> Solving a 2D heat equation and showing matrix assembly, vector
- *            initalization and solver setup in a more complex setting with
+ *            initialization and solver setup in a more complex setting with
  *            output visualization.
  *       </td></tr>
  *

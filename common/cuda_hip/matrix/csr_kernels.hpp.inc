@@ -606,7 +606,7 @@ __global__ __launch_bounds__(default_block_size) void spgeam(
             }
             // advance by the number of merged elements
             // in theory, we would need to mask by `valid`, but this
-            // would only be false somwhere in the last iteration, where
+            // would only be false somewhere in the last iteration, where
             // we don't need the value of c_begin afterwards, anyways.
             c_begin += popcnt(~prev_equal_mask & lanemask_full);
             return true;

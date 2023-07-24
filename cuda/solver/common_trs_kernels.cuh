@@ -445,7 +445,7 @@ __global__ void sptrsv_naive_caching_kernel(
     store(x_s, self_shid, r);
     x[row * x_stride + rhs] = r;
 
-    // This check to ensure no infinte loops happen.
+    // This check to ensure no infinite loops happen.
     if (is_nan(r)) {
         store(x_s, self_shid, zero<ValueType>());
         x[row * x_stride + rhs] = zero<ValueType>();

@@ -85,8 +85,8 @@ enum class log_propagation_mode {
  * host through the Unified memory model.
  *
  * `unified_host` allocates memory on the
- * host and it is not available on devices which do not have concurrent acesses
- * switched on, but this access can be explictly switched on, when necessary.
+ * host and it is not available on devices which do not have concurrent accesses
+ * switched on, but this access can be explicitly switched on, when necessary.
  */
 enum class allocation_mode { device, unified_global, unified_host };
 
@@ -1606,7 +1606,7 @@ public:
     }
 
     /**
-     * Get the major verion of compute capability.
+     * Get the major version of compute capability.
      */
     int get_major_version() const noexcept
     {
@@ -1614,7 +1614,7 @@ public:
     }
 
     /**
-     * Get the minor verion of compute capability.
+     * Get the minor version of compute capability.
      */
     int get_minor_version() const noexcept
     {
@@ -1793,7 +1793,7 @@ public:
     }
 
     /**
-     * Get the major verion of compute capability.
+     * Get the major version of compute capability.
      */
     int get_major_version() const noexcept
     {
@@ -1801,7 +1801,7 @@ public:
     }
 
     /**
-     * Get the minor verion of compute capability.
+     * Get the minor version of compute capability.
      */
     int get_minor_version() const noexcept
     {

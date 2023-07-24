@@ -51,9 +51,9 @@ int main(int argc, char* argv[])
     // done with the following helper construct that uses RAII to automate the
     // initialization and finalization.
     const gko::experimental::mpi::environment env(argc, argv);
-    // @sect3{Type Definitiions}
+    // @sect3{Type Definitions}
     // Define the needed types. In a parallel program we need to differentiate
-    // beweeen global and local indices, thus we have two index types.
+    // between global and local indices, thus we have two index types.
     using GlobalIndexType = gko::int64;
     using LocalIndexType = gko::int32;
     // The underlying value type.

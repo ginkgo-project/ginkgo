@@ -59,8 +59,9 @@ namespace gko {
  * @note Most of the public methods of this class should not be overridden
  *       directly, and are thus not virtual. Instead, there are equivalent
  *       protected methods (ending in <method_name>_impl) that should be
- *       overriden instead. This allows polymorphic objects to implement default
- *       behavior around virtual methods (parameter checking, type casting).
+ *       overridden instead. This allows polymorphic objects to implement
+ *       default behavior around virtual methods (parameter checking, type
+ *       casting).
  *
  * @see EnablePolymorphicObject if you wish to implement a concrete polymorphic
  *      object and have sensible defaults generated automatically.
@@ -657,7 +658,7 @@ std::shared_ptr<const R> copy_and_convert_to(
  * The mixin changes parameter and return types of appropriate public methods of
  * PolymorphicObject in the same way EnableAbstractPolymorphicObject does.
  * In addition, it also provides default implementations of PolymorphicObject's
- * vritual methods by using the _executor default constructor_ and the
+ * virtual methods by using the _executor default constructor_ and the
  * assignment operator of ConcreteObject. Consequently, the following is a
  * minimal example of PolymorphicObject:
  *

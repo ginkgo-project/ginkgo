@@ -931,7 +931,7 @@ protected:
  * template parameters to enable a subclass of LinOpFactory.
  *
  * @tparam ConcreteFactory  the concrete factory which is being implemented
- *                          [CRTP parmeter]
+ *                          [CRTP parameter]
  * @tparam ConcreteLinOp  the concrete LinOp type which this factory produces,
  *                        needs to have a constructor which takes a
  *                        const ConcreteFactory *, and an

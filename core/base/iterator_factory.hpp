@@ -84,7 +84,7 @@ class zip_iterator_reference
     template <std::size_t... idxs>
     value_type cast_impl(std::index_sequence<idxs...>) const
     {
-        // gcc 5 throws error as using unintialized array
+        // gcc 5 throws error as using uninitialized array
         // std::tuple<int, char> t = { 1, '2' }; is not allowed.
         // converting to 'std::tuple<...>' from initializer list would use
         // explicit constructor

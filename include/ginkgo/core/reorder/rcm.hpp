@@ -77,7 +77,7 @@ enum class starting_strategy { minimum_degree, pseudo_peripheral };
  *
  * There are two "starting strategies" currently available: minimum degree and
  * pseudo-peripheral. These strategies control how a starting vertex for a
- * connected component is choosen, which is then renumbered as first vertex in
+ * connected component is chosen, which is then renumbered as first vertex in
  * the component, starting the algorithm from there.
  * In general, the bandwidths obtained by choosing a pseudo-peripheral vertex
  * are slightly smaller than those obtained from choosing a vertex of minimum

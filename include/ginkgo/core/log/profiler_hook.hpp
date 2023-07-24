@@ -298,7 +298,7 @@ public:
         std::vector<nested_summary_entry> children{};
     };
 
-    /** Recieves the results from ProfilerHook::create_summary(). */
+    /** Receives the results from ProfilerHook::create_summary(). */
     class SummaryWriter {
     public:
         virtual ~SummaryWriter() = default;
@@ -313,7 +313,7 @@ public:
                            std::chrono::nanoseconds overhead) = 0;
     };
 
-    /** Recieves the results from ProfilerHook::create_nested_summary(). */
+    /** Receives the results from ProfilerHook::create_nested_summary(). */
     class NestedSummaryWriter {
     public:
         virtual ~NestedSummaryWriter() = default;

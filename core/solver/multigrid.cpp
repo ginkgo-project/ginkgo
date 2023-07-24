@@ -182,8 +182,8 @@ namespace multigrid {
 
 
 /**
- * The enum class is to combine the cycle infomation  It's legal to use a binary
- * or(|) operation to combine several properties.
+ * The enum class is to combine the cycle information  It's legal to use a
+ * binary or(|) operation to combine several properties.
  */
 enum class cycle_mode {
     /**
@@ -197,7 +197,7 @@ enum class cycle_mode {
     first_of_cycle = 2,
 
     /**
-     * current procees is the end one of the cycle
+     * current process is the end one of the cycle
      */
     end_of_cycle = 4
 };

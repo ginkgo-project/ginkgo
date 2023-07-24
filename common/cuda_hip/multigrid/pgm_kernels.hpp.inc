@@ -51,9 +51,9 @@ void sort_row_major(std::shared_ptr<const DefaultExecutor> exec, size_type nnz,
     using device_value_type = device_member_type<ValueType>;
     auto vals_it = reinterpret_cast<device_value_type*>(vals);
     auto it = thrust::make_zip_iterator(thrust::make_tuple(row_idxs, col_idxs));
-    // Because reduce_by_key is not determinstic, so we do not need
+    // Because reduce_by_key is not deterministic, so we do not need
     // stable_sort_by_key
-    // TODO: If we have determinstic reduce_by_key, it should be
+    // TODO: If we have deterministic reduce_by_key, it should be
     // stable_sort_by_key
     thrust::sort_by_key(thrust_policy(exec), it, it + nnz, vals_it);
 }

@@ -113,7 +113,7 @@ using ReorderingBaseFactory =
  * template parameters to enable a subclass of ReorderingBaseFactory.
  *
  * @tparam ConcreteFactory  the concrete factory which is being implemented
- *                          [CRTP parmeter]
+ *                          [CRTP parameter]
  * @tparam ConcreteReorderingBase  the concrete ReorderingBase type which this
  * factory produces, needs to have a constructor which takes a const
  * ConcreteFactory *, and a const ReorderingBaseArgs * as parameters.

@@ -1,0 +1,16 @@
+name: Test GitHub Action
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  run:
+    name: Spell Check with Typos
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Check for typos
+      uses: crate-ci/typos@master
+      with:
+        config: .github/_typos.toml
+

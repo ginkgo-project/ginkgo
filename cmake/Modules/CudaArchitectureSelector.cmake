@@ -119,7 +119,7 @@
 # identifiers in this list will be removed from the list specified by the
 # ``ARCHITECTURES`` list. A warning will be printed for each removed entry.
 # The list also supports aggregates ``All``, ``Auto`` and GPU generation names
-# wich have the same meaning as in the ``ARCHITECTURES'' specification list.
+# which have the same meaning as in the ``ARCHITECTURES'' specification list.
 
 
 if(NOT DEFINED CMAKE_CUDA_COMPILER)

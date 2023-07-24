@@ -96,7 +96,7 @@ protected:
     {
         index_type* c = m->get_col_idxs();
         index_type* r = m->get_row_ptrs();
-        // It keeps an explict zero
+        // It keeps an explicit zero
         /*
          *  1    1   1
          * {0}   1   0

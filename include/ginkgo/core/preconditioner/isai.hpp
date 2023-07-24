@@ -233,7 +233,7 @@ protected:
     /**
      * Creates an Isai preconditioner from a matrix using an Isai::Factory.
      *
-     * @param factory  the factory to use to create the preconditoner
+     * @param factory  the factory to use to create the preconditioner
      * @param system_matrix  the matrix for which an ISAI is to be computed
      */
     explicit Isai(const Factory* factory,

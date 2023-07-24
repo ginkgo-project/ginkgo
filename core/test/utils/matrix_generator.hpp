@@ -553,7 +553,7 @@ std::unique_ptr<MatrixType> generate_tridiag_matrix(
 /**
  * This computes an inverse of an tridiagonal Toeplitz matrix.
  *
- * The compuation is based on the formula is from
+ * The computation is based on the formula is from
  * https://en.wikipedia.org/wiki/Tridiagonal_matrix#Inversion
  *
  * @param size  the (square) size of the resulting matrix

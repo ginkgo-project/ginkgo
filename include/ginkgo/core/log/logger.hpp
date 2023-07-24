@@ -111,10 +111,10 @@ public:
      * call only if the user activates this event through the mask. If the
      * event is activated, we rely on polymorphism and the virtual method
      * `on_##_event_name()` to either call the Logger class's function,
-     * which does nothing, or the overriden version in the derived class if
+     * which does nothing, or the overridden version in the derived class if
      * any. Therefore, to support a new event in any Logger (i.e. class
      * which derive from this class), the function `on_##_event_name()`
-     * should be overriden and implemented.
+     * should be overridden and implemented.
      *
      * @param _id  the unique id of the event
      *
