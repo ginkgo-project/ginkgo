@@ -969,6 +969,9 @@ void gtsv2StridedBatched_buffer_size(
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
+#if defined(hipsparseVersionMajor) && defined(hipsparseVersionMinor) && \
+    ((hipsparseVersionMajor > 1) ||                                     \
+     (hipsparseVersionMajor == 1 && hipsparseVersionMinor >= 4))
 GKO_BIND_HIPSPARSE_GTSV2_STRIDED_BATCH_BUFFER_SIZE(
     float, hipsparseSgtsv2StridedBatch_bufferSizeExt);
 GKO_BIND_HIPSPARSE_GTSV2_STRIDED_BATCH_BUFFER_SIZE(
@@ -977,6 +980,7 @@ GKO_BIND_HIPSPARSE_GTSV2_STRIDED_BATCH_BUFFER_SIZE(
     std::complex<float>, hipsparseCgtsv2StridedBatch_bufferSizeExt);
 GKO_BIND_HIPSPARSE_GTSV2_STRIDED_BATCH_BUFFER_SIZE(
     std::complex<double>, hipsparseZgtsv2StridedBatch_bufferSizeExt);
+#endif  // hipsparse version >= 1.4
 
 #undef GKO_BIND_HIPSPARSE_GTSV2_STRIDED_BATCH_BUFFER_SIZE
 

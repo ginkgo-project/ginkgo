@@ -192,6 +192,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            const enum gko::solver::batch_tridiag_solve_approach approach,
            double& preprocess_time)
 {
+#if (CUDA_VERSION > 11040)
     const auto nbatch = tridiag_mat->get_num_batch_entries();
     const auto nrows = static_cast<int>(tridiag_mat->get_size().at(0)[0]);
     const auto nrhs = static_cast<int>(rhs->get_size().at(0)[1]);
@@ -272,6 +273,9 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
             tridiag_mat->get_const_super_diagonal(), x->get_values(), nbatch,
             nrows, buffer.get_data());
     }
+#else
+    GKO_NOT_IMPLEMENTED;
+#endif
 }
 
 
