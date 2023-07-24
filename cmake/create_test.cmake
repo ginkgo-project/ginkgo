@@ -1,4 +1,4 @@
-set(gko_test_resource_args "RESOURCE_LOCAL_CORES;RESOURCE_PERCENT;RESOURCE_TYPE")
+set(gko_test_resource_args "RESOURCE_LOCAL_CORES;RESOURCE_PERCENTAGE;RESOURCE_TYPE")
 set(gko_test_single_args "MPI_SIZE;${gko_test_resource_args}")
 set(gko_test_multi_args "DISABLE_EXECUTORS;ADDITIONAL_LIBRARIES;ADDITIONAL_INCLUDES")
 
