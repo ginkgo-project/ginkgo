@@ -58,18 +58,17 @@ public:
 
     CommonMpiTestFixture()
         : comm(MPI_COMM_WORLD),
-#if defined(GKO_TEST_NONDEFAULT_STREAM) && \
-    (defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP))
+#if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP)
           stream(ResourceEnvironment::rs.id),
 #endif
           ref{gko::ReferenceExecutor::create()}
     {
-#if defined(GKO_TEST_NONDEFAULT_STREAM) && \
-    (defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP))
+#if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP)
         init_executor(ref, exec, stream.get());
 #else
         init_executor(ref, exec);
 #endif
+        guard = exec->get_scoped_device_id_guard();
     }
 
     void TearDown() final
@@ -81,17 +80,15 @@ public:
 
     gko::experimental::mpi::communicator comm;
 
-#ifdef GKO_TEST_NONDEFAULT_STREAM
 #ifdef GKO_COMPILING_CUDA
     gko::cuda_stream stream;
 #endif
 #ifdef GKO_COMPILING_HIP
     gko::hip_stream stream;
 #endif
-#endif
-
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::EXEC_TYPE> exec;
+    gko::scoped_device_id_guard guard;
 };
 
 

@@ -134,6 +134,7 @@ public:
 #else
         init_executor(ref, exec);
 #endif
+        guard = exec->get_scoped_device_id_guard();
     }
 
     void TearDown() final
@@ -151,6 +152,7 @@ public:
 #endif
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::EXEC_TYPE> exec;
+    gko::scoped_device_id_guard guard;
 };
 
 
