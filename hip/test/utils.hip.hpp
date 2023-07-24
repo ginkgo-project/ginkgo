@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/stream.hpp>
 
 
+#include "core/test/gtest/environments.hpp"
 #include "hip/base/device.hpp"
 
 
@@ -51,13 +52,11 @@ class HipTestFixture : public ::testing::Test {
 protected:
     HipTestFixture()
         : ref(gko::ReferenceExecutor::create()),
-#ifdef GKO_TEST_NONDEFAULT_STREAM
-          stream(0),
-          exec(gko::HipExecutor::create(
-              0, ref, std::make_shared<gko::HipAllocator>(), stream.get()))
-#else
-          exec(gko::HipExecutor::create(0, ref))
-#endif
+          stream(ResourceEnvironment::rs.id),
+          exec(gko::HipExecutor::create(ResourceEnvironment::rs.id, ref, std::make_shared<
+                                        gko::HipAllocator>(),
+                                        stream.get())),
+          guard(exec->get_scoped_device_id_guard())
     {}
 
     void TearDown()
@@ -68,11 +67,10 @@ protected:
         }
     }
 
-#ifdef GKO_TEST_NONDEFAULT_STREAM
     gko::hip_stream stream;
-#endif
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::HipExecutor> exec;
+    gko::scoped_device_id_guard guard;
 };
 
 
