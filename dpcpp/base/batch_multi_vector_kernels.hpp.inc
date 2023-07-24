@@ -30,11 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-template <typename ValueType>
+template <typename ValueType, typename Mapping>
 __dpct_inline__ void scale_kernel(
     const gko::batch_multi_vector::batch_entry<const ValueType>& alpha,
     const gko::batch_multi_vector::batch_entry<ValueType>& x,
-    sycl::nd_item<3>& item_ct1)
+    sycl::nd_item<3>& item_ct1, Mapping map)
 {
     const int max_li = x.num_rows * x.num_rhs;
     for (int li = item_ct1.get_local_linear_id(); li < max_li;
@@ -42,23 +42,18 @@ __dpct_inline__ void scale_kernel(
         const int row = li / x.num_rhs;
         const int col = li % x.num_rhs;
 
-        if (alpha.num_rhs == 1) {
-            x.values[row * x.stride + col] =
-                alpha.values[0] * x.values[row * x.stride + col];
-        } else {
-            x.values[row * x.stride + col] =
-                alpha.values[col] * x.values[row * x.stride + col];
-        }
+        x.values[row * x.stride + col] =
+            alpha.values[map(col)] * x.values[row * x.stride + col];
     }
 }
 
 
-template <typename ValueType>
+template <typename ValueType, typename Mapping>
 __dpct_inline__ void add_scaled_kernel(
     const gko::batch_multi_vector::batch_entry<const ValueType>& alpha,
     const gko::batch_multi_vector::batch_entry<const ValueType>& x,
     const gko::batch_multi_vector::batch_entry<ValueType>& y,
-    sycl::nd_item<3>& item_ct1)
+    sycl::nd_item<3>& item_ct1, Mapping map)
 {
     const int max_li = x.num_rows * x.num_rhs;
     for (int li = item_ct1.get_local_id(2); li < max_li;
@@ -66,69 +61,41 @@ __dpct_inline__ void add_scaled_kernel(
         const int row = li / x.num_rhs;
         const int col = li % x.num_rhs;
 
-        if (alpha.num_rhs == 1) {
-            y.values[row * y.stride + col] +=
-                alpha.values[0] * x.values[row * x.stride + col];
-        } else {
-            y.values[row * y.stride + col] +=
-                alpha.values[col] * x.values[row * x.stride + col];
-        }
+        y.values[row * y.stride + col] +=
+            alpha.values[map(col)] * x.values[row * x.stride + col];
     }
 }
 
 
-template <typename ValueType>
-__dpct_inline__ void compute_dot_product_kernel(
+template <typename ValueType, typename Mapping>
+__dpct_inline__ void compute_gen_dot_product_kernel(
     const gko::batch_multi_vector::batch_entry<const ValueType>& x,
     const gko::batch_multi_vector::batch_entry<const ValueType>& y,
     const gko::batch_multi_vector::batch_entry<ValueType>& result,
-    sycl::nd_item<3>& item_ct1)
+    sycl::nd_item<3>& item_ct1, Mapping conj_map)
 {
-    const auto sg = item_ct1.get_sub_group();
-    const int sg_id = sg.get_group_id();
-    const int sg_size = sg.get_local_range().size();
-    const int num_sg = sg.get_group_range().size();
+    constexpr auto tile_size = config::warp_size;
+    const auto subgroup = item_ct1.get_sub_group();
+    const int subgroup_id = subgroup.get_group_id();
+    const int subgroup_size = subgroup.get_local_range().size();
+    const int num_subgroups = subgroup.get_group_range().size();
+    auto subg =
+        group::tiled_partition<tile_size>(group::this_thread_block(item_ct1));
 
-    for (int rhs_index = sg_id; rhs_index < x.num_rhs; rhs_index += num_sg) {
+    for (int rhs_index = subgroup_id; rhs_index < x.num_rhs;
+         rhs_index += num_subgroups) {
         ValueType val = zero<ValueType>();
 
-        for (int r = sg.get_local_id(); r < x.num_rows; r += sg_size) {
-            val += x.values[r * x.stride + rhs_index] *
+        for (int r = subgroup.get_local_id(); r < x.num_rows;
+             r += subgroup_size) {
+            val += conj_map(x.values[r * x.stride + rhs_index]) *
                    y.values[r * y.stride + rhs_index];
         }
 
-        val = sycl::reduce_over_group(sg, val, sycl::plus<>());
+        val = ::gko::kernels::dpcpp::reduce(
+            subg, val, [](ValueType a, ValueType b) { return a + b; });
 
-        if (sg.get_local_id() == 0) {
-            result.values[rhs_index] = val;
-        }
-    }
-}
-
-
-template <typename ValueType>
-__dpct_inline__ void compute_conj_dot_product_kernel(
-    const gko::batch_multi_vector::batch_entry<const ValueType>& x,
-    const gko::batch_multi_vector::batch_entry<const ValueType>& y,
-    const gko::batch_multi_vector::batch_entry<ValueType>& result,
-    sycl::nd_item<3>& item_ct1)
-{
-    const auto sg = item_ct1.get_sub_group();
-    const int sg_id = sg.get_group_id();
-    const int sg_size = sg.get_local_range().size();
-    const int num_sg = sg.get_group_range().size();
-
-    for (int rhs_index = sg_id; rhs_index < x.num_rhs; rhs_index += num_sg) {
-        ValueType val = zero<ValueType>();
-
-        for (int r = sg.get_local_id(); r < x.num_rows; r += sg_size) {
-            val += conj(x.values[r * x.stride + rhs_index]) *
-                   y.values[r * y.stride + rhs_index];
-        }
-
-        val = sycl::reduce_over_group(sg, val, sycl::plus<>());
-
-        if (sg.get_local_id() == 0) {
+        if (subgroup.get_local_id() == 0) {
             result.values[rhs_index] = val;
         }
     }
@@ -142,21 +109,29 @@ __dpct_inline__ void compute_norm2_kernel(
         result,
     sycl::nd_item<3>& item_ct1)
 {
-    const auto sg = item_ct1.get_sub_group();
-    const int sg_id = sg.get_group_id();
-    const int sg_size = sg.get_local_range().size();
-    const int num_sg = sg.get_group_range().size();
+    constexpr auto tile_size = config::warp_size;
+    const auto subgroup = item_ct1.get_sub_group();
+    const int subgroup_id = subgroup.get_group_id();
+    const int subgroup_size = subgroup.get_local_range().size();
+    const int num_subgroups = subgroup.get_group_range().size();
+    auto subg =
+        group::tiled_partition<tile_size>(group::this_thread_block(item_ct1));
 
     using real_type = typename gko::remove_complex<ValueType>;
-    for (int rhs_index = sg_id; rhs_index < x.num_rhs; rhs_index += num_sg) {
+    for (int rhs_index = subgroup_id; rhs_index < x.num_rhs;
+         rhs_index += num_subgroups) {
         real_type val = zero<real_type>();
 
-        for (int r = sg.get_local_id(); r < x.num_rows; r += sg_size)
+        for (int r = subgroup.get_local_id(); r < x.num_rows;
+             r += subgroup_size)
             val += squared_norm(x.values[r * x.stride + rhs_index]);
 
-        val = sycl::reduce_over_group(sg, val, sycl::plus<>());
+        val = ::gko::kernels::dpcpp::reduce(
+            subg, val, [](real_type a, real_type b) { return a + b; });
 
-        if (sg.get_local_id() == 0) result.values[rhs_index] = sqrt(val);
+        if (subgroup.get_local_id() == 0) {
+            result.values[rhs_index] = sqrt(val);
+        }
     }
 }
 
