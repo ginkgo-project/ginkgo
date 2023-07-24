@@ -30,6 +30,7 @@ inline resource parse_single_resource(const std::string& resource_string)
 inline std::vector<resource> get_ctest_resources()
 {
     auto rs_count_env = std::getenv("CTEST_RESOURCE_GROUP_COUNT");
+    std::cerr << "CTEST_RESOURCE_GROUP_COUNT=" << rs_count_env << std::endl;
 
     if (!rs_count_env) {
         return {{0, 1}};
@@ -42,10 +43,14 @@ inline std::vector<resource> get_ctest_resources()
     for (int i = 0; i < rs_count; ++i) {
         std::string rs_group_env = "CTEST_RESOURCE_GROUP_" + std::to_string(i);
         std::string rs_type = std::getenv(rs_group_env.c_str());
+        std::cerr << rs_group_env << "=" << rs_type << std::endl;
+
         std::transform(rs_type.begin(), rs_type.end(), rs_type.begin(),
                        [](auto c) { return std::toupper(c); });
-        std::string rs_env =
-            std::getenv((rs_group_env + "_" + rs_type).c_str());
+        std::string rs_current_group = rs_group_env + "_" + rs_type;
+        std::string rs_env = std::getenv(rs_current_group.c_str());
+        std::cerr << rs_current_group << "=" << rs_env << std::endl;
+
         resources.push_back(parse_single_resource(rs_env));
     }
 
