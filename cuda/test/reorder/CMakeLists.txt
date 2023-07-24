@@ -1,1 +1,1 @@
-ginkgo_create_test(rcm_kernels)
+ginkgo_create_cuda_test(rcm_kernels)
