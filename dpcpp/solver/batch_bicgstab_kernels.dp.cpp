@@ -180,6 +180,11 @@ public:
                 group_size, shared_size);
         else {
             switch (n_shared_total) {
+            case 0:
+                launch_apply_kernel<StopType, 32, 0, 0>(
+                    sconf, logger, prec, a, b.values, x.values, workspace_data,
+                    group_size, shared_size);
+                break;
             case 1:
                 launch_apply_kernel<StopType, 32, 1, 0>(
                     sconf, logger, prec, a, b.values, x.values, workspace_data,
