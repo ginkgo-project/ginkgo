@@ -864,7 +864,7 @@ GKO_BIND_UNARY_RANGE_OPERATION_TO_OPERATOR(transpose_operation, transpose);
 
 
 #define GKO_DEPRECATED_SIMPLE_BINARY_OPERATION(_deprecated_name, _name) \
-    struct [[deprecated("Please use " #_name)]] _deprecated_name : _name{};
+    struct [[deprecated("Please use " #_name)]] _deprecated_name : _name {}
 
 #define GKO_DEFINE_SIMPLE_BINARY_OPERATION(_name, ...)                         \
     struct _name {                                                             \

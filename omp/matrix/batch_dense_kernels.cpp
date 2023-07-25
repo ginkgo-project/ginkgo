@@ -320,7 +320,7 @@ void convert_to_batch_csr(std::shared_ptr<const DefaultExecutor> exec,
         row_ptrs[row] = row_nnz;
     }
 
-    components::prefix_sum(exec, row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, row_ptrs, num_rows + 1);
 
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; ++row) {

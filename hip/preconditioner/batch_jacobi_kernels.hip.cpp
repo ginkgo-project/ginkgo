@@ -190,7 +190,8 @@ void compute_cumulative_block_storage(
 
     GKO_HIP_LAST_IF_ERROR_THROW;
 
-    components::prefix_sum(exec, blocks_cumulative_storage, num_blocks + 1);
+    components::prefix_sum_nonnegative(exec, blocks_cumulative_storage,
+                                       num_blocks + 1);
 }
 
 template void compute_cumulative_block_storage<int>(

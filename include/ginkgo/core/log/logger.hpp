@@ -467,6 +467,7 @@ public:                                                              \
         const uint8& stopping_id, const bool& set_finalized,
         const array<stopping_status>* status, const bool& one_changed,
         const bool& all_converged)
+
 protected:
     /**
      * stop::Criterion's check completed event. Parameters are the Criterion,
@@ -483,7 +484,7 @@ protected:
      * @param set_finalized  whether this finalizes the iteration
      * @param status  the stopping status of the right hand sides
      * @param one_changed  whether at least one right hand side converged or not
-     * @param all_converged  whether all right hand sides
+     * @param all_converged  whether all right hand sides are converged
      */
     virtual void on_criterion_check_completed(
         const stop::Criterion* criterion, const size_type& it, const LinOp* r,
@@ -497,23 +498,19 @@ protected:
                                            one_changed, all_converged);
     }
 
-    /**
-     * Register the `iteration_complete` event which logs every completed
-     * iterations.
-     *
-     * @param it  the current iteration count
-     * @param r  the residual
-     * @param x  the solution vector (optional)
-     * @param tau  the residual norm (optional)
-     *
-     * @note The on_iteration_complete function that this macro declares is
-     * deprecated. Please use the one with the additional implicit_tau_sq
-     * parameter as below.
-     */
-    GKO_LOGGER_REGISTER_EVENT(27, iteration_complete, const LinOp* solver,
-                              const size_type& it, const LinOp* r,
-                              const LinOp* x = nullptr,
-                              const LinOp* tau = nullptr)
+public:
+    static constexpr size_type iteration_complete{27};
+    static constexpr mask_type iteration_complete_mask{mask_type{1} << 27};
+
+    template <size_type Event, typename... Params>
+    std::enable_if_t<Event == 27 && (27 < event_count_max)> on(
+        Params&&... params) const
+    {
+        if (enabled_events_ & (mask_type{1} << 27)) {
+            this->on_iteration_complete(std::forward<Params>(params)...);
+        }
+    }
+
 protected:
     /**
      * Register the `iteration_complete` event which logs every completed
@@ -523,16 +520,101 @@ protected:
      * @param r  the residual
      * @param x  the solution vector (optional)
      * @param tau  the residual norm (optional)
-     * @param implicit_tau_sq  the implicit residual norm squared (optional)
+     *
+     * @warning This on_iteration_complete function that this macro declares is
+     * deprecated. Please use the version with the stopping information.
      */
-    virtual void on_iteration_complete(const LinOp* solver, const size_type& it,
-                                       const LinOp* r, const LinOp* x,
-                                       const LinOp* tau,
-                                       const LinOp* implicit_tau_sq) const
+    [
+        [deprecated("Please use the version with the additional stopping "
+                    "information.")]] virtual void
+    on_iteration_complete(const LinOp* solver, const size_type& it,
+                          const LinOp* r, const LinOp* x = nullptr,
+                          const LinOp* tau = nullptr) const
+    {}
+
+    /**
+     * Register the `iteration_complete` event which logs every completed
+     * iterations.
+     *
+     * @param it  the current iteration count
+     * @param r  the residual
+     * @param x  the solution vector (optional)
+     * @param tau  the residual norm (optional)
+     * @param implicit_tau_sq  the implicit residual norm squared (optional)
+     *
+     * @warning This on_iteration_complete function that this macro declares is
+     * deprecated. Please use the version with the stopping information.
+     */
+    [
+        [deprecated("Please use the version with the additional stopping "
+                    "information.")]] virtual void
+    on_iteration_complete(const LinOp* solver, const size_type& it,
+                          const LinOp* r, const LinOp* x, const LinOp* tau,
+                          const LinOp* implicit_tau_sq) const
     {
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 5211, 4973, 4974)
+#endif
         this->on_iteration_complete(solver, it, r, x, tau);
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
     }
 
+    /**
+     * Register the `iteration_complete` event which logs every completed
+     * iterations.
+     *
+     * @param solver  the solver executing the iteration
+     * @param b  the right-hand-side vector
+     * @param x  the solution vector
+     * @param it  the current iteration count
+     * @param r  the residual (optional)
+     * @param tau  the implicit residual norm squared (optional)
+     * @param implicit_tau_sq  the residual norm (optional)
+     * @param status  the stopping status of the right hand sides (optional)
+     * @param stopped  whether all right hand sides have stopped (invalid if
+     *                 status is not provided)
+     */
+    virtual void on_iteration_complete(const LinOp* solver, const LinOp* b,
+                                       const LinOp* x, const size_type& it,
+                                       const LinOp* r, const LinOp* tau,
+                                       const LinOp* implicit_tau_sq,
+                                       const array<stopping_status>* status,
+                                       bool stopped) const
+    {
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif  // defined(__GNUC__) || defined(__clang__)
+#ifdef __NVCOMPILER
+#pragma diag_suppress 1445
+#endif  // __NVCOMPILER
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 5211, 4973, 4974)
+#endif  // _MSC_VER
+        this->on_iteration_complete(solver, it, r, x, tau, implicit_tau_sq);
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif  // defined(__GNUC__) || defined(__clang__)
+#ifdef __NVCOMPILER
+#pragma diag_warning 1445
+#endif  // __NVCOMPILER
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif  // _MSC_VER
+    }
+
+public:
     /**
      * Logs basic convergence information for every linear system in
      * a batch solver.
@@ -547,7 +629,6 @@ protected:
     GKO_LOGGER_REGISTER_EVENT(28, batch_solver_completed, const array<int>& its,
                               const BatchLinOp* res_norms)
 
-public:
     /**
      * PolymorphicObject's move started event.
      *
@@ -781,8 +862,8 @@ private:
     template <size_type Event, typename ConcreteLoggableT>
     struct propagate_log_helper<
         Event, ConcreteLoggableT,
-        xstd::void_t<
-            decltype(std::declval<ConcreteLoggableT>().get_executor())>> {
+        xstd::void_t<decltype(
+            std::declval<ConcreteLoggableT>().get_executor())>> {
         template <typename... Args>
         static void propagate_log(const ConcreteLoggableT* loggable,
                                   Args&&... args)
