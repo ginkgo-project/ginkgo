@@ -75,12 +75,12 @@ __dpct_inline__ void compute_gen_dot_product_kernel(
     sycl::nd_item<3>& item_ct1, Mapping conj_map)
 {
     constexpr auto tile_size = config::warp_size;
-    const auto subgroup = item_ct1.get_sub_group();
+    auto subg =
+        group::tiled_partition<tile_size>(group::this_thread_block(item_ct1));
+    const auto subgroup = static_cast<sycl::sub_group>(subg);
     const int subgroup_id = subgroup.get_group_id();
     const int subgroup_size = subgroup.get_local_range().size();
     const int num_subgroups = subgroup.get_group_range().size();
-    auto subg =
-        group::tiled_partition<tile_size>(group::this_thread_block(item_ct1));
 
     for (int rhs_index = subgroup_id; rhs_index < x.num_rhs;
          rhs_index += num_subgroups) {
@@ -110,12 +110,12 @@ __dpct_inline__ void compute_norm2_kernel(
     sycl::nd_item<3>& item_ct1)
 {
     constexpr auto tile_size = config::warp_size;
-    const auto subgroup = item_ct1.get_sub_group();
+    auto subg =
+        group::tiled_partition<tile_size>(group::this_thread_block(item_ct1));
+    const auto subgroup = static_cast<sycl::sub_group>(subg);
     const int subgroup_id = subgroup.get_group_id();
     const int subgroup_size = subgroup.get_local_range().size();
     const int num_subgroups = subgroup.get_group_range().size();
-    auto subg =
-        group::tiled_partition<tile_size>(group::this_thread_block(item_ct1));
 
     using real_type = typename gko::remove_complex<ValueType>;
     for (int rhs_index = subgroup_id; rhs_index < x.num_rhs;
