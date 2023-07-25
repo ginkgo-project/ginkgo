@@ -56,6 +56,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       recv_offsets_(comm.size() + 1),
       recv_sizes_(comm.size()),
       gather_idxs_{exec},
+      recv_gather_idxs_{exec},
       non_local_to_global_{exec},
       one_scalar_{},
       local_mtx_{local_matrix_template->clone(exec)},
@@ -83,6 +84,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       recv_offsets_(comm.size() + 1),
       recv_sizes_(comm.size()),
       gather_idxs_{exec},
+      recv_gather_idxs_{exec},
       non_local_to_global_{exec},
       one_scalar_{}
 {
@@ -107,6 +109,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       recv_offsets_(comm.size() + 1),
       recv_sizes_(comm.size()),
       gather_idxs_{exec},
+      recv_gather_idxs_{exec},
       non_local_to_global_{exec},
       one_scalar_{}
 {
@@ -379,7 +382,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
             local_mtx_->apply(dense_b->get_local_vector(), local_x);
             req.wait();
 
-            if (!non_local_mtx_) {
+            if (non_local_mtx_) {
                 auto exec = this->get_executor();
                 auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
                 if (use_host_buffer) {
@@ -415,7 +418,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                               local_beta, local_x);
             req.wait();
 
-            if (!non_local_mtx_) {
+            if (non_local_mtx_) {
                 auto exec = this->get_executor();
                 auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
                 if (use_host_buffer) {
