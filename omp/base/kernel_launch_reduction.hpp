@@ -62,8 +62,9 @@ void run_kernel_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
                                ValueType* result, size_type size,
                                array<char>& tmp, MappedKernelArgs... args)
 {
-    const auto num_threads = static_cast<int64>(omp_get_max_threads());
     const auto ssize = static_cast<int64>(size);
+    // Limit the number of threads to the number of columns
+    const auto num_threads = std::min<int64>(omp_get_max_threads(), ssize);
     const auto work_per_thread = ceildiv(ssize, num_threads);
     const auto required_storage = sizeof(ValueType) * num_threads;
     if (tmp.get_num_elems() < required_storage) {
@@ -82,8 +83,8 @@ void run_kernel_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
         }
         partial[thread_id] = local_partial;
     }
-    *result =
-        finalize(std::accumulate(partial, partial + num_threads, identity, op));
+    *result = finalize(std::accumulate(
+        partial, partial + required_storage / sizeof(ValueType), identity, op));
 }
 
 
@@ -99,7 +100,8 @@ void run_kernel_reduction_sized_impl(syn::value_list<int, remainder_cols>,
 {
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
-    const auto num_threads = static_cast<int64>(omp_get_max_threads());
+    // Limit the number of threads to the number of columns
+    const auto num_threads = std::min<int64>(omp_get_max_threads(), rows);
     const auto work_per_thread = ceildiv(rows, num_threads);
     const auto required_storage = sizeof(ValueType) * num_threads;
     if (tmp.get_num_elems() < required_storage) {
@@ -109,7 +111,7 @@ void run_kernel_reduction_sized_impl(syn::value_list<int, remainder_cols>,
     static_assert(remainder_cols < block_size, "remainder too large");
     const auto rounded_cols = cols / block_size * block_size;
     GKO_ASSERT(rounded_cols + remainder_cols == cols);
-#pragma omp parallel
+#pragma omp parallel num_threads(num_threads)
     {
         const auto thread_id = omp_get_thread_num();
         const auto begin = thread_id * work_per_thread;
@@ -147,8 +149,8 @@ void run_kernel_reduction_sized_impl(syn::value_list<int, remainder_cols>,
         }
         partial[thread_id] = local_partial;
     }
-    *result =
-        finalize(std::accumulate(partial, partial + num_threads, identity, op));
+    *result = finalize(std::accumulate(
+        partial, partial + required_storage / sizeof(ValueType), identity, op));
 }
 
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_run_kernel_reduction_sized,
@@ -210,12 +212,12 @@ void run_kernel_row_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
     constexpr int block_size = 8;
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
-    const auto num_threads = static_cast<int64>(omp_get_max_threads());
+    const auto available_threads = static_cast<int64>(omp_get_max_threads());
     if (rows <= 0) {
         return;
     }
     // enough work to keep all threads busy or only very small reduction sizes
-    if (rows >= reduction_kernel_oversubscription * num_threads ||
+    if (rows >= reduction_kernel_oversubscription * available_threads ||
         cols < rows) {
 #pragma omp parallel for
         for (int64 row = 0; row < rows; row++) {
@@ -229,8 +231,11 @@ void run_kernel_row_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
         }
     } else {
         // small number of rows and large reduction sizes: do partial sum first
+        const auto num_threads = std::min<int64>(available_threads, cols);
         const auto work_per_thread = ceildiv(cols, num_threads);
-        const auto required_storage = sizeof(ValueType) * rows * num_threads;
+        const auto temp_elems_per_row = num_threads;
+        const auto required_storage =
+            sizeof(ValueType) * rows * temp_elems_per_row;
         if (tmp.get_num_elems() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
@@ -247,7 +252,7 @@ void run_kernel_row_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
                         return fn(row, col, args...);
                     }());
                 }
-                partial[row * num_threads + thread_id] = local_partial;
+                partial[row * temp_elems_per_row + thread_id] = local_partial;
             }
         }
         // then accumulate the partial sums and write to result
@@ -255,10 +260,11 @@ void run_kernel_row_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
         for (int64 row = 0; row < rows; row++) {
             [&] {
                 auto local_partial = identity;
-                for (int64 thread_id = 0; thread_id < num_threads;
+                for (int64 thread_id = 0; thread_id < temp_elems_per_row;
                      thread_id++) {
-                    local_partial = op(local_partial,
-                                       partial[row * num_threads + thread_id]);
+                    local_partial =
+                        op(local_partial,
+                           partial[row * temp_elems_per_row + thread_id]);
                 }
                 result[row * result_stride] = finalize(local_partial);
             }();
@@ -302,12 +308,12 @@ void run_kernel_col_reduction_sized_impl(
 {
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
-    const auto num_threads = static_cast<int64>(omp_get_max_threads());
+    const auto available_threads = static_cast<int64>(omp_get_max_threads());
     static_assert(remainder_cols < block_size, "remainder too large");
     GKO_ASSERT(cols % block_size == remainder_cols);
     const auto num_col_blocks = ceildiv(cols, block_size);
     // enough work to keep all threads busy or only very small reduction sizes
-    if (cols >= reduction_kernel_oversubscription * num_threads ||
+    if (cols >= reduction_kernel_oversubscription * available_threads ||
         rows < cols) {
 #pragma omp parallel for
         for (int64 col_block = 0; col_block < num_col_blocks; col_block++) {
@@ -324,8 +330,11 @@ void run_kernel_col_reduction_sized_impl(
         }
     } else {
         // number of blocks that need to be reduced afterwards
-        const auto reduction_size =
-            ceildiv(reduction_kernel_oversubscription * num_threads, cols);
+        // This reduction_size definition ensures we don't use more temporary
+        // storage than the input vector
+        const auto reduction_size = std::min(
+            rows, ceildiv(reduction_kernel_oversubscription * available_threads,
+                          cols));
         const auto rows_per_thread = ceildiv(rows, reduction_size);
         const auto required_storage = sizeof(ValueType) * cols * reduction_size;
         if (tmp.get_num_elems() < required_storage) {

@@ -382,15 +382,13 @@ void run1d_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
                   static_cast<int64>(size));
         // The temporary storage (used for partial sums) must be smaller than
         // the input array
-        ASSERT_LT(temp.get_num_elems() / sizeof(int64), size);
+        ASSERT_LE(temp.get_num_elems() / sizeof(int64), size);
     }
 }
 
 TEST_F(KernelLaunch, Reduction1DCached)
 {
-    // Note: Start with at least 200 elements in case the machine has a lot of
-    //       cores
-    run1d_reduction_cached(exec, {1000, 1000000, 1234567, 7654321});
+    run1d_reduction_cached(exec, {10, 1000, 1000000, 1234567, 7654321});
 }
 
 
@@ -465,7 +463,6 @@ TEST_F(KernelLaunch, Reduction2D) { run2d_reduction(exec); }
 void run2d_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
                             std::vector<gko::dim<2>> dims)
 {
-    constexpr size_type min_allowed_tmp_elems = 4 * 256;
     gko::array<int64> output{exec, 1};
     gko::array<char> temp(exec);
     for (const auto& dim : dims) {
@@ -479,10 +476,8 @@ void run2d_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
         ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()),
                   static_cast<int64>(dim[0] + dim[1]));
         // The temporary storage (used for partial sums) must be smaller than
-        // the input array (or smaller than a set minimum)
-        const size_type max_tmp_elems =
-            std::max(dim[0] * dim[1], min_allowed_tmp_elems);
-        ASSERT_LT(temp.get_num_elems() / sizeof(int64), max_tmp_elems);
+        // the input array
+        ASSERT_LE(temp.get_num_elems() / sizeof(int64), dim[0] * dim[1]);
     }
 }
 
@@ -555,9 +550,6 @@ TEST_F(KernelLaunch, ReductionRow2D) { run2d_row_reduction(exec); }
 void run2d_row_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
                                 std::vector<gko::dim<2>> dims)
 {
-    // The 2D row reduction potentially needs a lot of memory for small input
-    // sizes
-    constexpr size_type min_allowed_tmp_elems = 4 * 256 * 4 * 256;
     const size_type result_stride = 1;
     gko::array<char> temp(exec);
     for (const auto& dim : dims) {
@@ -576,10 +568,8 @@ void run2d_row_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
 
         GKO_ASSERT_ARRAY_EQ(host_ref, output);
         // The temporary storage (used for partial sums) must be smaller than
-        // the input array (or smaller than a set minimum)
-        const size_type max_tmp_elems =
-            std::max(dim[0] * dim[1], min_allowed_tmp_elems);
-        ASSERT_LT(temp.get_num_elems() / sizeof(int64), max_tmp_elems);
+        // the input array
+        ASSERT_LE(temp.get_num_elems() / sizeof(int64), dim[0] * dim[1]);
     }
 }
 
@@ -654,7 +644,6 @@ TEST_F(KernelLaunch, ReductionCol2D) { run2d_col_reduction(exec); }
 void run2d_col_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
                                 std::vector<gko::dim<2>> dims)
 {
-    constexpr size_type min_allowed_tmp_elems = 4 * 256;
     gko::array<char> temp(exec);
     for (const auto& dim : dims) {
         gko::array<int64> host_ref{exec->get_master(), dim[1]};
@@ -671,9 +660,7 @@ void run2d_col_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
             dim, temp);
 
         GKO_ASSERT_ARRAY_EQ(host_ref, output);
-        const size_type temp_elem_limit =
-            std::max(min_allowed_tmp_elems, dim[0] * dim[1]);
-        ASSERT_LT(temp.get_num_elems() / sizeof(int64), temp_elem_limit);
+        ASSERT_LE(temp.get_num_elems() / sizeof(int64), dim[0] * dim[1]);
     }
 }
 
