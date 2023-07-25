@@ -134,7 +134,7 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
 
 template <typename ValueType, typename IndexType>
 std::tuple<std::shared_ptr<LinOp>, std::shared_ptr<LinOp>,
-           std::shared_ptr<LinOp>, std::shared_ptr<LinOp>>
+           std::shared_ptr<LinOp>>
 Pgm<ValueType, IndexType>::generate_local(
     std::shared_ptr<const LinOp> local_matrix)
 {

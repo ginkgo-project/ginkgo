@@ -79,6 +79,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       recv_offsets_(comm.size() + 1),
       recv_sizes_(comm.size()),
       gather_idxs_{exec},
+      recv_gather_idxs_{exec},
       non_local_to_global_{exec},
       one_scalar_{},
       non_local_mtx_(::gko::matrix::Coo<ValueType, LocalIndexType>::create(
@@ -105,6 +106,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       recv_offsets_(comm.size() + 1),
       recv_sizes_(comm.size()),
       gather_idxs_{exec},
+      recv_gather_idxs_{exec},
       non_local_to_global_{exec},
       one_scalar_{}
 {
