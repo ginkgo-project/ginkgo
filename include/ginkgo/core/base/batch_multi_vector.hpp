@@ -104,14 +104,7 @@ public:
      * @param other  The other matrix whose configuration needs to copied.
      */
     static std::unique_ptr<BatchMultiVector> create_with_config_of(
-        ptr_param<const BatchMultiVector> other)
-    {
-        // De-referencing `other` before calling the functions (instead of
-        // using operator `->`) is currently required to be compatible with
-        // CUDA 10.1.
-        // Otherwise, it results in a compile error.
-        return (*other).create_with_same_config();
-    }
+        ptr_param<const BatchMultiVector> other);
 
     friend class BatchMultiVector<next_precision<ValueType>>;
 
@@ -133,20 +126,7 @@ public:
      *
      * @return  a std::vector containing the Dense matrices.
      */
-    std::vector<std::unique_ptr<unbatch_type>> unbatch() const
-    {
-        auto exec = this->get_executor();
-        auto unbatch_mats = std::vector<std::unique_ptr<unbatch_type>>{};
-        for (size_type b = 0; b < this->get_num_batch_entries(); ++b) {
-            auto mat = unbatch_type::create(exec, this->get_common_size());
-            exec->copy_from(exec.get(), mat->get_num_stored_elements(),
-                            this->get_const_values() +
-                                this->get_size().get_cumulative_offset(b),
-                            mat->get_values());
-            unbatch_mats.emplace_back(std::move(mat));
-        }
-        return unbatch_mats;
-    }
+    std::vector<std::unique_ptr<unbatch_type>> unbatch() const;
 
     /**
      * Returns the batch size.
@@ -292,11 +272,7 @@ public:
      * of alpha (the number of columns of alpha has to match the number of
      * columns of the matrix).
      */
-    void scale(ptr_param<const BatchMultiVector<ValueType>> alpha)
-    {
-        auto exec = this->get_executor();
-        this->scale_impl(make_temporary_clone(exec, alpha).get());
-    }
+    void scale(ptr_param<const BatchMultiVector<ValueType>> alpha);
 
     /**
      * Adds `b` scaled by `alpha` to the vector (aka: BLAS axpy).
@@ -309,28 +285,7 @@ public:
      * @param b  a matrix of the same dimension as this
      */
     void add_scaled(ptr_param<const BatchMultiVector<ValueType>> alpha,
-                    ptr_param<const BatchMultiVector<ValueType>> b)
-    {
-        auto exec = this->get_executor();
-        this->add_scaled_impl(make_temporary_clone(exec, alpha).get(),
-                              make_temporary_clone(exec, b).get());
-    }
-
-    /**
-     * Adds `a` scaled by `alpha` to the vector scaled by `beta`:
-     * this <- alpha * a + beta * this.
-     *
-     * @param alpha  If alpha is 1x1 BatchMultiVector matrix, the entire matrix
-     * a is scaled by alpha. If it is a BatchMultiVector row vector of values,
-     * then i-th column of a is scaled with the i-th element of alpha (the
-     * number of columns of alpha has to match the number of columns of a).
-     * @param a  a matrix of the same dimension as this.
-     * @param beta  Scalar(s), of the same size as alpha, to multiply this
-     * matrix.
-     */
-    void add_scale(ptr_param<const BatchMultiVector<ValueType>> alpha,
-                   ptr_param<const BatchMultiVector<ValueType>> a,
-                   ptr_param<const BatchMultiVector<ValueType>> beta);
+                    ptr_param<const BatchMultiVector<ValueType>> b);
 
     /**
      * Computes the column-wise dot product of each matrix in this batch and its
@@ -342,12 +297,7 @@ public:
      * columns of this)
      */
     void compute_dot(ptr_param<const BatchMultiVector<ValueType>> b,
-                     ptr_param<BatchMultiVector<ValueType>> result) const
-    {
-        auto exec = this->get_executor();
-        this->compute_dot_impl(make_temporary_clone(exec, b).get(),
-                               make_temporary_clone(exec, result).get());
-    }
+                     ptr_param<BatchMultiVector<ValueType>> result) const;
 
     /**
      * Computes the column-wise conjugate dot product of each matrix in this
@@ -360,12 +310,7 @@ public:
      * columns of this)
      */
     void compute_conj_dot(ptr_param<const BatchMultiVector<ValueType>> b,
-                          ptr_param<BatchMultiVector<ValueType>> result) const
-    {
-        auto exec = this->get_executor();
-        this->compute_conj_dot_impl(make_temporary_clone(exec, b).get(),
-                                    make_temporary_clone(exec, result).get());
-    }
+                          ptr_param<BatchMultiVector<ValueType>> result) const;
 
     /**
      * Computes the Euclidean (L^2) norm of each matrix in this batch.
@@ -375,11 +320,7 @@ public:
      *                of columns of this)
      */
     void compute_norm2(
-        ptr_param<BatchMultiVector<remove_complex<ValueType>>> result) const
-    {
-        auto exec = this->get_executor();
-        this->compute_norm2_impl(make_temporary_clone(exec, result).get());
-    }
+        ptr_param<BatchMultiVector<remove_complex<ValueType>>> result) const;
 
     /**
      * Creates a constant (immutable) batch dense matrix from a constant array.
@@ -394,24 +335,14 @@ public:
      */
     static std::unique_ptr<const BatchMultiVector<ValueType>> create_const(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
-        gko::detail::const_array_view<ValueType>&& values)
-    {
-        // cast const-ness away, but return a const object afterwards,
-        // so we can ensure that no modifications take place.
-        return std::unique_ptr<const BatchMultiVector>(new BatchMultiVector{
-            exec, sizes, gko::detail::array_const_cast(std::move(values))});
-    }
+        gko::detail::const_array_view<ValueType>&& values);
 
     /**
      * Fills the input BatchMultiVector with a given value
      *
      * @param value  the value to be filled
      */
-    void fill(ValueType value)
-    {
-        GKO_ASSERT(this->values_.get_num_elems() > 0);
-        this->values_.fill(value);
-    }
+    void fill(ValueType value);
 
 private:
     inline batch_dim<2> compute_batch_size(
@@ -429,13 +360,14 @@ private:
         return size.get_cumulative_offset(size.get_num_batch_entries());
     }
 
+
 protected:
     /**
      * Sets the size of the BatchMultiVector.
      *
      * @param value  the new size of the operator
      */
-    void set_size(const batch_dim<2>& value) noexcept { batch_size_ = value; }
+    void set_size(const batch_dim<2>& value) noexcept;
 
     /**
      * Creates an uninitialized BatchMultiVector matrix of the specified size.
@@ -445,7 +377,7 @@ protected:
      */
     BatchMultiVector(std::shared_ptr<const Executor> exec,
                      const batch_dim<2>& size = batch_dim<2>{})
-        : EnablePolymorphicObject<BatchMultiVector>(exec),
+        : EnablePolymorphicObject<BatchMultiVector<ValueType>>(exec),
           batch_size_(size),
           values_(exec, compute_num_elems(size))
     {}
@@ -467,7 +399,7 @@ protected:
     template <typename ValuesArray>
     BatchMultiVector(std::shared_ptr<const Executor> exec,
                      const batch_dim<2>& size, ValuesArray&& values)
-        : EnablePolymorphicObject<BatchMultiVector>(exec),
+        : EnablePolymorphicObject<BatchMultiVector<ValueType>>(exec),
           batch_size_(size),
           values_{exec, std::forward<ValuesArray>(values)}
     {
@@ -484,7 +416,7 @@ protected:
      */
     BatchMultiVector(std::shared_ptr<const Executor> exec,
                      const std::vector<matrix::Dense<ValueType>*>& matrices)
-        : EnablePolymorphicObject<BatchMultiVector>(exec),
+        : EnablePolymorphicObject<BatchMultiVector<ValueType>>(exec),
           batch_size_{compute_batch_size(matrices)},
           values_(exec, compute_num_elems(batch_size_))
     {
@@ -507,7 +439,7 @@ protected:
     BatchMultiVector(std::shared_ptr<const Executor> exec,
                      size_type num_duplications,
                      const BatchMultiVector<value_type>* input)
-        : BatchMultiVector(
+        : BatchMultiVector<ValueType>(
               exec, gko::batch_dim<2>(
                         input->get_num_batch_entries() * num_duplications,
                         input->get_common_size()))
@@ -531,7 +463,7 @@ protected:
     BatchMultiVector(std::shared_ptr<const Executor> exec,
                      size_type num_duplications,
                      const matrix::Dense<value_type>* input)
-        : BatchMultiVector(
+        : BatchMultiVector<ValueType>(
               exec, gko::batch_dim<2>(num_duplications, input->get_size()))
     {
         size_type offset = 0;
@@ -550,40 +482,7 @@ protected:
      * @returns a BatchMultiVector matrix with the same configuration as the
      * caller.
      */
-    std::unique_ptr<BatchMultiVector> create_with_same_config() const
-    {
-        return BatchMultiVector::create(this->get_executor(), this->get_size());
-    }
-
-    /**
-     * @copydoc scale(const BatchMultiVector *)
-     */
-    void scale_impl(const BatchMultiVector<ValueType>* alpha);
-
-    /**
-     * @copydoc add_scaled(const BatchMultiVector *, const BatchMultiVector *)
-     */
-    void add_scaled_impl(const BatchMultiVector<ValueType>* alpha,
-                         const BatchMultiVector<ValueType>* b);
-
-    /**
-     * @copydoc compute_dot(const BatchMultiVector *, BatchMultiVector *) const
-     */
-    void compute_dot_impl(const BatchMultiVector<ValueType>* b,
-                          BatchMultiVector<ValueType>* result) const;
-
-    /**
-     * @copydoc compute_conj_dot(const BatchMultiVector *, BatchMultiVector *)
-     * const
-     */
-    void compute_conj_dot_impl(const BatchMultiVector<ValueType>* b,
-                               BatchMultiVector<ValueType>* result) const;
-
-    /**
-     * @copydoc compute_norm2(BatchMultiVector *) const
-     */
-    void compute_norm2_impl(
-        BatchMultiVector<remove_complex<ValueType>>* result) const;
+    std::unique_ptr<BatchMultiVector> create_with_same_config() const;
 
     size_type linearize_index(size_type batch, size_type row,
                               size_type col) const noexcept

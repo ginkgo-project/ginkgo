@@ -67,8 +67,77 @@ GKO_REGISTER_OPERATION(copy, batch_multi_vector::copy);
 
 
 template <typename ValueType>
-void BatchMultiVector<ValueType>::scale_impl(
-    const BatchMultiVector<ValueType>* alpha)
+std::unique_ptr<BatchMultiVector<ValueType>>
+BatchMultiVector<ValueType>::create_with_config_of(
+    ptr_param<const BatchMultiVector> other)
+{
+    // De-referencing `other` before calling the functions (instead of
+    // using operator `->`) is currently required to be compatible with
+    // CUDA 10.1.
+    // Otherwise, it results in a compile error.
+    return (*other).create_with_same_config();
+}
+
+
+template <typename ValueType>
+std::vector<std::unique_ptr<matrix::Dense<ValueType>>>
+BatchMultiVector<ValueType>::unbatch() const
+{
+    using unbatch_type = matrix::Dense<ValueType>;
+    auto exec = this->get_executor();
+    auto unbatch_mats = std::vector<std::unique_ptr<unbatch_type>>{};
+    for (size_type b = 0; b < this->get_num_batch_entries(); ++b) {
+        auto mat = unbatch_type::create(exec, this->get_common_size());
+        exec->copy_from(exec.get(), mat->get_num_stored_elements(),
+                        this->get_const_values() +
+                            this->get_size().get_cumulative_offset(b),
+                        mat->get_values());
+        unbatch_mats.emplace_back(std::move(mat));
+    }
+    return unbatch_mats;
+}
+
+
+template <typename ValueType>
+std::unique_ptr<const BatchMultiVector<ValueType>>
+BatchMultiVector<ValueType>::create_const(
+    std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
+    gko::detail::const_array_view<ValueType>&& values)
+{
+    // cast const-ness away, but return a const object afterwards,
+    // so we can ensure that no modifications take place.
+    return std::unique_ptr<const BatchMultiVector>(new BatchMultiVector{
+        exec, sizes, gko::detail::array_const_cast(std::move(values))});
+}
+
+
+template <typename ValueType>
+void BatchMultiVector<ValueType>::fill(ValueType value)
+{
+    GKO_ASSERT(this->values_.get_num_elems() > 0);
+    this->values_.fill(value);
+}
+
+
+template <typename ValueType>
+void BatchMultiVector<ValueType>::set_size(const batch_dim<2>& value) noexcept
+{
+    batch_size_ = value;
+}
+
+
+template <typename ValueType>
+std::unique_ptr<BatchMultiVector<ValueType>>
+BatchMultiVector<ValueType>::create_with_same_config() const
+{
+    return BatchMultiVector<ValueType>::create(this->get_executor(),
+                                               this->get_size());
+}
+
+
+template <typename ValueType>
+void BatchMultiVector<ValueType>::scale(
+    ptr_param<const BatchMultiVector<ValueType>> alpha)
 {
     GKO_ASSERT_EQ(alpha->get_num_batch_entries(),
                   this->get_num_batch_entries());
@@ -78,14 +147,16 @@ void BatchMultiVector<ValueType>::scale_impl(
         GKO_ASSERT_EQUAL_COLS(this->get_common_size(),
                               alpha->get_common_size());
     }
-    this->get_executor()->run(batch_multi_vector::make_scale(alpha, this));
+    auto exec = this->get_executor();
+    exec->run(batch_multi_vector::make_scale(
+        make_temporary_clone(exec, alpha).get(), this));
 }
 
 
 template <typename ValueType>
-void BatchMultiVector<ValueType>::add_scaled_impl(
-    const BatchMultiVector<ValueType>* alpha,
-    const BatchMultiVector<ValueType>* b)
+void BatchMultiVector<ValueType>::add_scaled(
+    ptr_param<const BatchMultiVector<ValueType>> alpha,
+    ptr_param<const BatchMultiVector<ValueType>> b)
 {
     GKO_ASSERT_EQ(alpha->get_num_batch_entries(),
                   this->get_num_batch_entries());
@@ -98,8 +169,10 @@ void BatchMultiVector<ValueType>::add_scaled_impl(
     GKO_ASSERT_EQ(b->get_num_batch_entries(), this->get_num_batch_entries());
     GKO_ASSERT_EQUAL_DIMENSIONS(this->get_common_size(), b->get_common_size());
 
-    this->get_executor()->run(
-        batch_multi_vector::make_add_scaled(alpha, b, this));
+    auto exec = this->get_executor();
+    exec->run(batch_multi_vector::make_add_scaled(
+        make_temporary_clone(exec, alpha).get(),
+        make_temporary_clone(exec, b).get(), this));
 }
 
 
@@ -111,9 +184,9 @@ inline const batch_dim<2> get_col_sizes(const batch_dim<2>& sizes)
 
 
 template <typename ValueType>
-void BatchMultiVector<ValueType>::compute_conj_dot_impl(
-    const BatchMultiVector<ValueType>* b,
-    BatchMultiVector<ValueType>* result) const
+void BatchMultiVector<ValueType>::compute_conj_dot(
+    ptr_param<const BatchMultiVector<ValueType>> b,
+    ptr_param<BatchMultiVector<ValueType>> result) const
 {
     GKO_ASSERT_EQ(b->get_num_batch_entries(), this->get_num_batch_entries());
     GKO_ASSERT_EQUAL_DIMENSIONS(this->get_common_size(), b->get_common_size());
@@ -122,15 +195,17 @@ void BatchMultiVector<ValueType>::compute_conj_dot_impl(
     GKO_ASSERT_EQUAL_DIMENSIONS(
         result->get_common_size(),
         get_col_sizes(this->get_size()).get_common_size());
-    this->get_executor()->run(
-        batch_multi_vector::make_compute_conj_dot(this, b, result));
+    auto exec = this->get_executor();
+    exec->run(batch_multi_vector::make_compute_conj_dot(
+        this, make_temporary_clone(exec, b).get(),
+        make_temporary_output_clone(exec, result).get()));
 }
 
 
 template <typename ValueType>
-void BatchMultiVector<ValueType>::compute_dot_impl(
-    const BatchMultiVector<ValueType>* b,
-    BatchMultiVector<ValueType>* result) const
+void BatchMultiVector<ValueType>::compute_dot(
+    ptr_param<const BatchMultiVector<ValueType>> b,
+    ptr_param<BatchMultiVector<ValueType>> result) const
 {
     GKO_ASSERT_EQ(b->get_num_batch_entries(), this->get_num_batch_entries());
     GKO_ASSERT_EQUAL_DIMENSIONS(this->get_common_size(), b->get_common_size());
@@ -139,22 +214,26 @@ void BatchMultiVector<ValueType>::compute_dot_impl(
     GKO_ASSERT_EQUAL_DIMENSIONS(
         result->get_common_size(),
         get_col_sizes(this->get_size()).get_common_size());
-    this->get_executor()->run(
-        batch_multi_vector::make_compute_dot(this, b, result));
+    auto exec = this->get_executor();
+    exec->run(batch_multi_vector::make_compute_dot(
+        this, make_temporary_clone(exec, b).get(),
+        make_temporary_output_clone(exec, result).get()));
 }
 
 
 template <typename ValueType>
-void BatchMultiVector<ValueType>::compute_norm2_impl(
-    BatchMultiVector<remove_complex<ValueType>>* result) const
+void BatchMultiVector<ValueType>::compute_norm2(
+    ptr_param<BatchMultiVector<remove_complex<ValueType>>> result) const
 {
     GKO_ASSERT_EQ(this->get_num_batch_entries(),
                   result->get_num_batch_entries());
     GKO_ASSERT_EQUAL_DIMENSIONS(
         result->get_common_size(),
         get_col_sizes(this->get_size()).get_common_size());
-    this->get_executor()->run(batch_multi_vector::make_compute_norm2(
-        as<BatchMultiVector<ValueType>>(this), result));
+
+    auto exec = this->get_executor();
+    exec->run(batch_multi_vector::make_compute_norm2(
+        this, make_temporary_output_clone(exec, result).get()));
 }
 
 
