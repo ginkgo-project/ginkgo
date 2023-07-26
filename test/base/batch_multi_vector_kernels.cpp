@@ -82,44 +82,14 @@ protected:
             alpha = gko::batch_initialize<Mtx>(batch_size, {2.0}, ref);
             beta = gko::batch_initialize<Mtx>(batch_size, {-0.5}, ref);
         }
-        dx = Mtx::create(exec);
-        dx->copy_from(x.get());
-        dy = Mtx::create(exec);
-        dy->copy_from(y.get());
-        dalpha = Mtx::create(exec);
-        dalpha->copy_from(alpha.get());
-        dbeta = gko::clone(exec, beta.get());
+        dx = gko::clone(exec, x);
+        dy = gko::clone(exec, y);
+        dalpha = gko::clone(exec, alpha);
+        dbeta = gko::clone(exec, beta);
         expected = Mtx::create(
             ref, gko::batch_dim<2>(batch_size, gko::dim<2>{1, num_vecs}));
         dresult = Mtx::create(
             exec, gko::batch_dim<2>(batch_size, gko::dim<2>{1, num_vecs}));
-    }
-
-    void set_up_apply_data(const int p = 1)
-    {
-        const int m = 35, n = 15;
-        x = gen_mtx<Mtx>(batch_size, m, n);
-        c_x = gen_mtx<ComplexMtx>(batch_size, m, n);
-        y = gen_mtx<Mtx>(batch_size, n, p);
-        expected = gen_mtx<Mtx>(batch_size, m, p);
-        alpha = gko::batch_initialize<Mtx>(batch_size, {2.0}, ref);
-        beta = gko::batch_initialize<Mtx>(batch_size, {-1.0}, ref);
-        square = gen_mtx<Mtx>(batch_size, x->get_common_size()[0],
-                              x->get_common_size()[0]);
-        dx = Mtx::create(exec);
-        dx->copy_from(x.get());
-        dc_x = ComplexMtx::create(exec);
-        dc_x->copy_from(c_x.get());
-        dy = Mtx::create(exec);
-        dy->copy_from(y.get());
-        dresult = Mtx::create(exec);
-        dresult->copy_from(expected.get());
-        dalpha = Mtx::create(exec);
-        dalpha->copy_from(alpha.get());
-        dbeta = Mtx::create(exec);
-        dbeta->copy_from(beta.get());
-        dsquare = Mtx::create(exec);
-        dsquare->copy_from(square.get());
     }
 
     std::ranlux48 rand_engine;

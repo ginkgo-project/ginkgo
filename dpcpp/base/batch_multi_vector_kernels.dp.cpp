@@ -86,7 +86,7 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
 
     // Launch a kernel that has nbatches blocks, each block has max group size
     if (alpha->get_common_size()[1] == 1) {
-        (exec->get_queue())->submit([&](sycl::handler& cgh) {
+        exec->get_queue()->submit([&](sycl::handler& cgh) {
             cgh.parallel_for(
                 sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                     auto group = item_ct1.get_group();
@@ -98,7 +98,7 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
                 });
         });
     } else {
-        (exec->get_queue())->submit([&](sycl::handler& cgh) {
+        exec->get_queue()->submit([&](sycl::handler& cgh) {
             cgh.parallel_for(
                 sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                     auto group = item_ct1.get_group();
@@ -136,7 +136,7 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
     const auto x_ub = get_batch_struct(x);
     const auto y_ub = get_batch_struct(y);
     if (alpha->get_common_size()[1] == 1) {
-        (exec->get_queue())->submit([&](sycl::handler& cgh) {
+        exec->get_queue()->submit([&](sycl::handler& cgh) {
             cgh.parallel_for(
                 sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                     auto group = item_ct1.get_group();
@@ -149,7 +149,7 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
                 });
         });
     } else {
-        (exec->get_queue())->submit([&](sycl::handler& cgh) {
+        exec->get_queue()->submit([&](sycl::handler& cgh) {
             cgh.parallel_for(
                 sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                     auto group = item_ct1.get_group();
@@ -187,7 +187,7 @@ void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
     const dim3 grid(num_batches);
 
     // TODO: Remove reqd_sub_group size and use sycl::reduce_over_group
-    (exec->get_queue())->submit([&](sycl::handler& cgh) {
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=
         ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
@@ -225,7 +225,7 @@ void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec,
     const dim3 block(group_size);
     const dim3 grid(num_batches);
 
-    (exec->get_queue())->submit([&](sycl::handler& cgh) {
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=
         ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
@@ -262,7 +262,7 @@ void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
     const dim3 block(group_size);
     const dim3 grid(num_batches);
 
-    (exec->get_queue())->submit([&](sycl::handler& cgh) {
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=
         ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
@@ -296,7 +296,7 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
     const dim3 block(group_size);
     const dim3 grid(num_batches);
 
-    (exec->get_queue())->submit([&](sycl::handler& cgh) {
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 auto group = item_ct1.get_group();

@@ -323,21 +323,18 @@ template <typename MatrixData1, typename MatrixData2>
     const MatrixData2& second, double tolerance)
 {
     std::vector<double> err;
-    std::vector<bool> err_flag;
     for (size_type b = 0; b < first.size(); ++b) {
-        auto num_rows = first[b].size[0];
-        auto num_cols = first[b].size[1];
-        if (num_rows != second[b].size[0] || num_cols != second[b].size[1]) {
+        if (first.size() != second.size()) {
             return ::testing::AssertionFailure()
                    << "Expected matrices of equal size\n\t" << first_expression
-                   << " is of size [" << num_rows << " x " << num_cols
-                   << "]\n\t" << second_expression << " is of size ["
-                   << second[b].size[0] << " x " << second[b].size[1] << "]"
+                   << " is of size [" << first[b].size[0] << " x "
+                   << first[b].size[1] << "]\n\t" << second_expression
+                   << " is of size [" << second[b].size[0] << " x "
+                   << second[b].size[1] << "]"
                    << " for batch " << b;
         }
 
         err.push_back(detail::get_relative_error(first[b], second[b]));
-        err_flag.push_back(err.back() <= tolerance);
     }
 
     auto bat = std::find_if(err.begin(), err.end(),

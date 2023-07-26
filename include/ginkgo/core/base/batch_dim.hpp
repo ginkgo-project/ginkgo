@@ -102,7 +102,7 @@ struct batch_dim {
 
 
     /**
-     * Checks if two batch dim objects are different.
+     * Checks if two batch_dim objects are different.
      *
      * @tparam Dimensionality  number of dimensions of the dim objects
      * @tparam DimensionType  datatype used to represent each dimension
@@ -123,7 +123,7 @@ struct batch_dim {
      * Creates a batch_dim object which stores a uniform size for all batch
      * entries.
      *
-     * @param num_batch_entries  number of batch entries to be stored
+     * @param num_batch_entries  the number of batch entries to be stored
      * @param common_size  the common size of all the batch entries stored
      *
      * @note  Use this constructor when uniform batches need to be stored.

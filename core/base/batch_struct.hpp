@@ -44,21 +44,20 @@ namespace batch_multi_vector {
 
 
 /**
- * Encapsulates one matrix from a batch of dense matrices (vectors).
+ * Encapsulates one matrix from a batch of multi-vectors.
  */
 template <typename ValueType>
 struct batch_entry {
     using value_type = ValueType;
     ValueType* values;
-    size_type stride;
+    int stride;
     int num_rows;
     int num_rhs;
 };
 
+
 /**
- * A 'simple' structure to store a global uniform batch of dense matrices.
- *
- * It is uniform in the sense that all matrices in the batch have common sizes.
+ * A 'simple' structure to store a global uniform batch of multi-vectors.
  */
 template <typename ValueType>
 struct uniform_batch {
@@ -67,7 +66,7 @@ struct uniform_batch {
 
     ValueType* values;
     size_type num_batch_entries;
-    size_type stride;
+    int stride;
     int num_rows;
     int num_rhs;
 
@@ -122,8 +121,8 @@ batch_entry(const batch_multi_vector::uniform_batch<ValueType>& batch,
 
 template <typename ValueType>
 GKO_ATTRIBUTES GKO_INLINE batch_multi_vector::batch_entry<ValueType>
-batch_entry(ValueType* const batch_values, const size_type stride,
-            const int num_rows, const int num_rhs, const size_type batch_idx)
+batch_entry(ValueType* const batch_values, const int stride, const int num_rows,
+            const int num_rhs, const size_type batch_idx)
 {
     return {batch_values + batch_idx * stride * num_rows, stride, num_rows,
             num_rhs};
