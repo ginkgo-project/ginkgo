@@ -59,7 +59,7 @@ namespace cuda {
 
 
 /**
- * Generates an immutable uniform batch struct from a batch of dense matrices.
+ * Generates an immutable uniform batch struct from a batch of multi-vectors.
  */
 template <typename ValueType>
 inline gko::batch_multi_vector::uniform_batch<const cuda_type<ValueType>>
@@ -72,7 +72,7 @@ get_batch_struct(const BatchMultiVector<ValueType>* const op)
 }
 
 /**
- * Generates a uniform batch struct from a batch of dense matrices.
+ * Generates a uniform batch struct from a batch of multi-vectors.
  */
 template <typename ValueType>
 inline gko::batch_multi_vector::uniform_batch<cuda_type<ValueType>>
@@ -82,25 +82,6 @@ get_batch_struct(BatchMultiVector<ValueType>* const op)
             op->get_common_size()[1],
             static_cast<int>(op->get_common_size()[0]),
             static_cast<int>(op->get_common_size()[1])};
-}
-
-
-/**
- * Generates an immutable uniform batch struct from a batch of dense matrices
- * that may be null.
- */
-template <typename ValueType>
-inline gko::batch_multi_vector::uniform_batch<const cuda_type<ValueType>>
-maybe_null_batch_struct(const BatchMultiVector<ValueType>* const op)
-{
-    if (op) {
-        return {as_cuda_type(op->get_const_values()),
-                op->get_num_batch_entries(), op->get_common_size()[1],
-                static_cast<int>(op->get_common_size()[0]),
-                static_cast<int>(op->get_common_size()[1])};
-    } else {
-        return {nullptr, 0, 0, 0, 0};
-    }
 }
 
 

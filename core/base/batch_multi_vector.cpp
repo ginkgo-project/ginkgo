@@ -257,7 +257,8 @@ void BatchMultiVector<ValueType>::move_to(
 template <typename MatrixType, typename MatrixData>
 void read_impl(MatrixType* mtx, const std::vector<MatrixData>& data)
 {
-    GKO_ASSERT(data.size() > 0);
+    GKO_THROW_IF_INVALID(data.size() > 0, "Input data is empty");
+
     auto common_size = data[0].size;
     auto batch_size = batch_dim<2>(data.size(), common_size);
     for (const auto& b : data) {
