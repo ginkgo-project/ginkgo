@@ -67,14 +67,16 @@ namespace batch_multi_vector {
 constexpr auto default_block_size = 256;
 constexpr int sm_multiplier = 4;
 
+// clang-format off
+
 // NOTE: DO NOT CHANGE THE ORDERING OF THE INCLUDES
-// force-top: on
+
 #include "common/cuda_hip/base/batch_multi_vector_kernels.hpp.inc"
-// force-top: off
 
 
 #include "common/cuda_hip/base/batch_multi_vector_kernel_launcher.hpp.inc"
 
+// clang-format on
 
 }  // namespace batch_multi_vector
 }  // namespace cuda

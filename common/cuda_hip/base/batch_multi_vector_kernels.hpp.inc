@@ -31,10 +31,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-/**
- * Scales the vectors in global or shared memory with a factor of alpha (alpha
- * is in global memory or shared memory)
- */
 template <typename ValueType, typename Mapping>
 __device__ __forceinline__ void scale(
     const gko::batch_multi_vector::batch_entry<const ValueType>& alpha,
@@ -52,9 +48,9 @@ __device__ __forceinline__ void scale(
 
 template <typename ValueType, typename Mapping>
 __global__
-__launch_bounds__(default_block_size, sm_multiplier) void scale_kernel(
-    const gko::batch_multi_vector::uniform_batch<const ValueType> alpha,
-    const gko::batch_multi_vector::uniform_batch<ValueType> x, Mapping map)
+    __launch_bounds__(default_block_size, sm_multiplier) void scale_kernel(
+        const gko::batch_multi_vector::uniform_batch<const ValueType> alpha,
+        const gko::batch_multi_vector::uniform_batch<ValueType> x, Mapping map)
 {
     for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_entries;
          batch_id += gridDim.x) {
@@ -83,10 +79,10 @@ __device__ __forceinline__ void add_scaled(
 
 template <typename ValueType, typename Mapping>
 __global__
-__launch_bounds__(default_block_size, sm_multiplier) void add_scaled_kernel(
-    const gko::batch_multi_vector::uniform_batch<const ValueType> alpha,
-    const gko::batch_multi_vector::uniform_batch<const ValueType> x,
-    const gko::batch_multi_vector::uniform_batch<ValueType> y, Mapping map)
+    __launch_bounds__(default_block_size, sm_multiplier) void add_scaled_kernel(
+        const gko::batch_multi_vector::uniform_batch<const ValueType> alpha,
+        const gko::batch_multi_vector::uniform_batch<const ValueType> x,
+        const gko::batch_multi_vector::uniform_batch<ValueType> y, Mapping map)
 {
     for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_entries;
          batch_id += gridDim.x) {
@@ -222,11 +218,15 @@ __device__ __forceinline__ void compute_norm2(
 
 
 template <typename ValueType>
-__global__
-__launch_bounds__(default_block_size, sm_multiplier) void compute_norm2_kernel(
-    const gko::batch_multi_vector::uniform_batch<const ValueType> x,
-    const gko::batch_multi_vector::uniform_batch<remove_complex<ValueType>>
-        result)
+__global__ __launch_bounds__(
+    default_block_size,
+    sm_multiplier) void compute_norm2_kernel(const gko::batch_multi_vector::
+                                                 uniform_batch<const ValueType>
+                                                     x,
+                                             const gko::batch_multi_vector::
+                                                 uniform_batch<
+                                                     remove_complex<ValueType>>
+                                                     result)
 {
     for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_entries;
          batch_id += gridDim.x) {
@@ -259,9 +259,9 @@ __device__ __forceinline__ void copy(
 
 template <typename ValueType>
 __global__
-__launch_bounds__(default_block_size, sm_multiplier) void copy_kernel(
-    const gko::batch_multi_vector::uniform_batch<const ValueType> src,
-    const gko::batch_multi_vector::uniform_batch<ValueType> dst)
+    __launch_bounds__(default_block_size, sm_multiplier) void copy_kernel(
+        const gko::batch_multi_vector::uniform_batch<const ValueType> src,
+        const gko::batch_multi_vector::uniform_batch<ValueType> dst)
 {
     for (size_type batch_id = blockIdx.x; batch_id < src.num_batch_entries;
          batch_id += gridDim.x) {

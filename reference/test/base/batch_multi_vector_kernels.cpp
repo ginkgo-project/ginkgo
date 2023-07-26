@@ -127,7 +127,6 @@ protected:
     std::ranlux48 rand_engine;
 };
 
-
 TYPED_TEST_SUITE(BatchMultiVector, gko::test::ValueTypes);
 
 
@@ -137,7 +136,6 @@ TYPED_TEST(BatchMultiVector, ScalesData)
     using T = typename TestFixture::value_type;
     auto alpha = gko::batch_initialize<Mtx>(
         {{{2.0, -2.0, 1.5}}, {{3.0, -1.0, 0.25}}}, this->exec);
-
     auto ualpha = alpha->unbatch();
 
     this->mtx_0->scale(alpha.get());
@@ -155,7 +153,6 @@ TYPED_TEST(BatchMultiVector, ScalesDataWithScalar)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto alpha = gko::batch_initialize<Mtx>({{2.0}, {-2.0}}, this->exec);
-
     auto ualpha = alpha->unbatch();
 
     this->mtx_1->scale(alpha.get());
@@ -174,7 +171,6 @@ TYPED_TEST(BatchMultiVector, ScalesDataWithStride)
     using T = typename TestFixture::value_type;
     auto alpha = gko::batch_initialize<Mtx>(
         {{{2.0, -2.0, -1.5}}, {{2.0, -2.0, 3.0}}}, this->exec);
-
     auto ualpha = alpha->unbatch();
 
     this->mtx_1->scale(alpha.get());
@@ -193,7 +189,6 @@ TYPED_TEST(BatchMultiVector, AddsScaled)
     using T = typename TestFixture::value_type;
     auto alpha = gko::batch_initialize<Mtx>(
         {{{2.0, -2.0, 1.5}}, {{2.0, -2.0, 3.0}}}, this->exec);
-
     auto ualpha = alpha->unbatch();
 
     this->mtx_1->add_scaled(alpha.get(), this->mtx_0.get());
@@ -211,7 +206,6 @@ TYPED_TEST(BatchMultiVector, AddsScaledWithScalar)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto alpha = gko::batch_initialize<Mtx>({{2.0}, {-2.0}}, this->exec);
-
     auto ualpha = alpha->unbatch();
 
     this->mtx_1->add_scaled(alpha.get(), this->mtx_0.get());
@@ -241,7 +235,6 @@ TYPED_TEST(BatchMultiVector, ComputesDot)
     using T = typename TestFixture::value_type;
     auto result =
         Mtx::create(this->exec, gko::batch_dim<2>(2, gko::dim<2>{1, 3}));
-
     auto ures = result->unbatch();
 
     this->mtx_0->compute_dot(this->mtx_1.get(), result.get());
@@ -286,7 +279,6 @@ TYPED_TEST(BatchMultiVector, ComputesConjDot)
     using T = typename TestFixture::value_type;
     auto result =
         Mtx::create(this->exec, gko::batch_dim<2>(2, gko::dim<2>{1, 3}));
-
     auto ures = result->unbatch();
 
     this->mtx_0->compute_conj_dot(this->mtx_1.get(), result.get());
