@@ -58,7 +58,7 @@ namespace dpcpp {
 
 
 /**
- * Generates an immutable uniform batch struct from a batch of dense matrices.
+ * Generates an immutable uniform batch struct from a batch of multi-vectors.
  */
 template <typename ValueType>
 inline gko::batch_multi_vector::uniform_batch<const ValueType> get_batch_struct(
@@ -72,7 +72,7 @@ inline gko::batch_multi_vector::uniform_batch<const ValueType> get_batch_struct(
 
 
 /**
- * Generates a uniform batch struct from a batch of dense matrices.
+ * Generates a uniform batch struct from a batch of multi-vectors.
  */
 template <typename ValueType>
 inline gko::batch_multi_vector::uniform_batch<ValueType> get_batch_struct(
@@ -82,25 +82,6 @@ inline gko::batch_multi_vector::uniform_batch<ValueType> get_batch_struct(
             op->get_common_size()[1],
             static_cast<int>(op->get_common_size()[0]),
             static_cast<int>(op->get_common_size()[1])};
-}
-
-
-/**
- * Generates an immutable uniform batch struct from a batch of dense matrices
- * that may be null.
- */
-template <typename ValueType>
-inline gko::batch_multi_vector::uniform_batch<const ValueType>
-maybe_null_batch_struct(const BatchMultiVector<ValueType>* const op)
-{
-    if (op) {
-        return {op->get_const_values(), op->get_num_batch_entries(),
-                op->get_common_size()[1],
-                static_cast<int>(op->get_common_size()[0]),
-                static_cast<int>(op->get_common_size()[1])};
-    } else {
-        return {nullptr, 0, 0, 0, 0};
-    }
 }
 
 

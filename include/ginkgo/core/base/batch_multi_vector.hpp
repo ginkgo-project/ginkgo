@@ -571,9 +571,9 @@ std::unique_ptr<Matrix> batch_initialize(
 {
     using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
     size_type num_batch_entries = vals.size();
-    GKO_ASSERT(num_batch_entries > 0);
+    GKO_THROW_IF_INVALID(num_batch_entries > 0, "Input data is empty");
     auto vals_begin = begin(vals);
-    size_type common_num_rows = vals_begin->size();
+    size_type common_num_rows = vals_begin ? vals_begin->size() : 0;
     auto common_size = dim<2>(common_num_rows, 1);
     for (auto& val : vals) {
         GKO_ASSERT_EQ(common_num_rows, val.size());
@@ -624,7 +624,7 @@ std::unique_ptr<Matrix> batch_initialize(
 {
     using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
     size_type num_batch_entries = vals.size();
-    GKO_ASSERT(num_batch_entries > 0);
+    GKO_THROW_IF_INVALID(num_batch_entries > 0, "Input data is empty");
     auto vals_begin = begin(vals);
     size_type common_num_rows = vals_begin ? vals_begin->size() : 0;
     size_type common_num_cols =
@@ -689,9 +689,10 @@ std::unique_ptr<Matrix> batch_initialize(
 {
     using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
     size_type num_batch_entries = num_vectors;
-    GKO_ASSERT(num_batch_entries > 0);
-    auto b_size =
-        batch_dim<2>(num_batch_entries, dim<2>(vals ? vals.size() : 0, 1));
+    GKO_THROW_IF_INVALID(num_batch_entries > 0 && vals.size() > 0,
+                         "Input data is empty");
+    auto b_size = batch_dim<2>(num_batch_entries,
+                               dim<2>(begin(vals) ? vals.size() : 0, 1));
     auto tmp = batch_multi_vector::create(exec->get_master(), b_size);
     for (size_type batch = 0; batch < num_vectors; batch++) {
         size_type idx = 0;
@@ -736,9 +737,10 @@ std::unique_ptr<Matrix> batch_initialize(
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
 {
     using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
-    GKO_ASSERT(num_batch_entries > 0);
-    auto common_size =
-        dim<2>(vals ? vals.size() : 0, vals ? begin(vals)->size() : 0);
+    GKO_THROW_IF_INVALID(num_batch_entries > 0 && vals.size() > 0,
+                         "Input data is empty");
+    auto common_size = dim<2>(begin(vals) ? vals.size() : 0,
+                              begin(vals) ? begin(vals)->size() : 0);
     batch_dim<2> b_size(num_batch_entries, common_size);
     auto tmp = batch_multi_vector::create(exec->get_master(), b_size);
     for (size_type batch = 0; batch < num_batch_entries; batch++) {
