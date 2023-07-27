@@ -213,8 +213,7 @@ int main()
     // core/base/batch_dim.hpp
     {
         using type1 = int;
-        auto common_size = gko::dim<2>{4, 2};
-        auto test = gko::batch_dim<2, type1>{2, common_size};
+        auto test = gko::batch_dim<2, type1>{};
     }
 
     // core/base/batch_multi_vector.hpp

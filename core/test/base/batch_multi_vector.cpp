@@ -108,6 +108,14 @@ TYPED_TEST(BatchMultiVector, KnowsItsSizeAndValues)
 }
 
 
+TYPED_TEST(BatchMultiVector, CanGetValuesForEntry)
+{
+    using value_type = typename TestFixture::value_type;
+
+    ASSERT_EQ(this->mtx->get_values_for_entry(1)[0], value_type{1.0});
+}
+
+
 TYPED_TEST(BatchMultiVector, CanBeCopied)
 {
     auto mtx_copy = gko::BatchMultiVector<TypeParam>::create(this->exec);
