@@ -236,6 +236,8 @@ public:
 
         // Template for calling launch_apply_kernel:
         // < StopType, n_shared, prec_shared_bool>
+        // FIXME
+        /*
         if (prec_shared_bool) {
             switch (n_shared) {
             case 11:
@@ -318,6 +320,7 @@ public:
                 break;
             }
         }
+    */
         GKO_CUDA_LAST_IF_ERROR_THROW;
     }
 
