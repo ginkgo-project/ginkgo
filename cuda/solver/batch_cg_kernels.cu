@@ -70,10 +70,6 @@ namespace batch_cg {
 #include "common/cuda_hip/matrix/batch_vector_kernels.hpp.inc"
 #include "common/cuda_hip/solver/batch_cg_kernels.hpp.inc"
 
-int get_larger_power(int value, int guess = 64)
-{
-    return guess >= value ? guess : get_larger_power(value, guess << 1);
-}
 
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>

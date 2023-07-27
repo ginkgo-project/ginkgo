@@ -73,10 +73,6 @@ namespace batch_bicgstab {
 #include "common/cuda_hip/solver/batch_bicgstab_kernels.hpp.inc"
 
 
-int get_larger_power(int value, int guess = 64)
-{
-    return guess >= value ? guess : get_larger_power(value, guess << 1);
-}
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
 int get_num_threads_per_block(std::shared_ptr<const CudaExecutor> exec,
@@ -190,8 +186,8 @@ public:
 
         const int shmem_per_blk =
             get_max_dynamic_shared_memory<StopType, PrecType, LogType,
-                                          BatchMatrixType, value_type>(
-                exec_, matrix_storage);
+                                          BatchMatrixType, value_type>(exec_,
+                                                                       0);
         const int block_size =
             get_num_threads_per_block<StopType, PrecType, LogType,
                                       BatchMatrixType, value_type>(exec_,
