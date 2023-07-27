@@ -247,7 +247,7 @@ def compare_output(
 def compare_output_distributed(
     args, expected_stdout, expected_stderr, num_procs, stdin=""
 ):
-    compare_output(
+    compare_output_impl(
         args,
         expected_stdout,
         expected_stderr,

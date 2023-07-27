@@ -4,12 +4,7 @@ Running on reference(0)
 Running with 0 warm iterations and 1 running iterations
 The random seed for right hand sides is 42
 The operations are transpose
-Running test case
-{
-    "size": 100,
-    "stencil": "7pt",
-    "sparse_blas": {}
-}
+Running test case stencil(100,7pt)
 Matrix is of size (125, 125), 725
 DEBUG: begin allocate
 DEBUG: end   allocate

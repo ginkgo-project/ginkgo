@@ -1,0 +1,23 @@
+
+[
+    {
+        "size": 100,
+        "stencil": "7pt",
+        "comm_pattern": "stencil",
+        "spmv": {
+            "csr-csr": {
+                "storage": 6420,
+                "max_relative_norm2": 1.0,
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            }
+        },
+        "rows": 81,
+        "cols": 81,
+        "nonzeros": 144,
+        "optimal": {
+            "spmv": "csr-csr"
+        }
+    }
+]

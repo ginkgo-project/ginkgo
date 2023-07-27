@@ -245,45 +245,6 @@ std::shared_ptr<gko::log::ProfilerHook> create_profiler_hook(
 }
 
 
-struct owning_profiling_scope_guard {
-    std::string name;
-    gko::log::profiling_scope_guard guard;
-
-    owning_profiling_scope_guard() = default;
-
-    owning_profiling_scope_guard(std::string name_,
-                                 gko::log::ProfilerHook* profiler_hook)
-        : name(std::move(name_)), guard{profiler_hook->user_range(name.c_str())}
-    {}
-};
-
-
-struct annotate_functor {
-    owning_profiling_scope_guard operator()(std::string name) const
-    {
-        if (profiler_hook) {
-            return owning_profiling_scope_guard{std::move(name),
-                                                profiler_hook.get()};
-        }
-        return {};
-    }
-
-    gko::log::profiling_scope_guard operator()(const char* name) const
-    {
-        if (profiler_hook) {
-            return profiler_hook->user_range(name);
-        }
-        return {};
-    }
-
-    annotate_functor(std::shared_ptr<gko::log::ProfilerHook> profiler_hook)
-        : profiler_hook{std::move(profiler_hook)}
-    {}
-
-    std::shared_ptr<gko::log::ProfilerHook> profiler_hook;
-};
-
-
 // Returns a random number engine
 std::default_random_engine& get_engine()
 {

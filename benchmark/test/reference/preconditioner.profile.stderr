@@ -4,12 +4,7 @@ Running on reference(0)
 Running with 0 warm iterations and 1 running iterations
 The random seed for right hand sides is 42
 Running with preconditioners: none
-Running test case
-{
-    "size": 100,
-    "stencil": "7pt",
-    "preconditioner": {}
-}
+Running test case stencil(100,7pt)
 DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin components::fill_array

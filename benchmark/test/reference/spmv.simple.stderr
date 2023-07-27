@@ -5,11 +5,6 @@ Running with 2 warm iterations and 10 running iterations
 The random seed for right hand sides is 42
 The formats are coo
 The number of right hand sides is 1
-Running test case
-{
-    "size": 100,
-    "stencil": "7pt",
-    "spmv": {}
-}
+Running test case stencil(100,7pt)
 Matrix is of size (125, 125), 725
 	Running spmv: coo
