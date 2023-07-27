@@ -20,6 +20,7 @@ set(EXAMPLES_EXEC_LIST
 set(EXAMPLES_LIST
     ${EXAMPLES_EXEC_LIST}
     custom-stopping-criterion
+    batched-tridiagonal-solver
     batched-solver
     batched-solver-from-files
     ginkgo-overhead
