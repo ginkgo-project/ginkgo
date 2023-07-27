@@ -6,9 +6,6 @@ The random seed for right hand sides is 42
 The formats are coo,csr
 Running test case stencil(100,7pt)
 Matrix is of size (125, 125), 725
-DEBUG: begin stencil(100,7pt)
-	Running conversion: coo-read
-DEBUG: begin coo-read
 DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin allocate
@@ -17,6 +14,21 @@ DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin components::aos_to_soa
 DEBUG: end   components::aos_to_soa
+DEBUG: begin stencil(100,7pt)
+	Running conversion: coo-read
+DEBUG: begin coo-read
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin copy
+DEBUG: end   copy
 DEBUG: begin free
 DEBUG: end   free
 DEBUG: begin free
@@ -28,12 +40,16 @@ DEBUG: end   coo-read
 DEBUG: begin coo-csr
 DEBUG: begin allocate
 DEBUG: end   allocate
+DEBUG: begin copy
+DEBUG: end   copy
 DEBUG: begin allocate
 DEBUG: end   allocate
+DEBUG: begin copy
+DEBUG: end   copy
 DEBUG: begin allocate
 DEBUG: end   allocate
-DEBUG: begin components::aos_to_soa
-DEBUG: end   components::aos_to_soa
+DEBUG: begin copy
+DEBUG: end   copy
 DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin components::fill_array
@@ -75,12 +91,16 @@ DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
 DEBUG: begin allocate
 DEBUG: end   allocate
+DEBUG: begin copy
+DEBUG: end   copy
 DEBUG: begin allocate
 DEBUG: end   allocate
+DEBUG: begin copy
+DEBUG: end   copy
 DEBUG: begin allocate
 DEBUG: end   allocate
-DEBUG: begin components::aos_to_soa
-DEBUG: end   components::aos_to_soa
+DEBUG: begin copy
+DEBUG: end   copy
 DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin free
@@ -104,12 +124,16 @@ DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
 DEBUG: begin allocate
 DEBUG: end   allocate
+DEBUG: begin copy
+DEBUG: end   copy
 DEBUG: begin allocate
 DEBUG: end   allocate
+DEBUG: begin copy
+DEBUG: end   copy
 DEBUG: begin allocate
 DEBUG: end   allocate
-DEBUG: begin components::aos_to_soa
-DEBUG: end   components::aos_to_soa
+DEBUG: begin copy
+DEBUG: end   copy
 DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin free
@@ -146,3 +170,9 @@ DEBUG: begin free
 DEBUG: end   free
 DEBUG: end   csr-coo
 DEBUG: end   stencil(100,7pt)
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free

@@ -60,7 +60,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using Generator = DefaultSystemGenerator<>;
 
 
-struct ConversionBenchmark : Benchmark<gko::matrix_data<etype, itype>> {
+struct ConversionBenchmark : Benchmark<gko::device_matrix_data<etype, itype>> {
     std::string name;
     std::vector<std::string> operations;
 
@@ -112,8 +112,8 @@ struct ConversionBenchmark : Benchmark<gko::matrix_data<etype, itype>> {
         return Generator::describe_config(test_case);
     }
 
-    gko::matrix_data<etype, itype> setup(std::shared_ptr<gko::Executor> exec,
-                                         json& test_case) const override
+    gko::device_matrix_data<etype, itype> setup(
+        std::shared_ptr<gko::Executor> exec, json& test_case) const override
     {
         gko::matrix_data<etype, itype> data;
         data = Generator::generate_matrix_data(test_case);
@@ -122,12 +122,13 @@ struct ConversionBenchmark : Benchmark<gko::matrix_data<etype, itype>> {
         test_case["rows"] = data.size[0];
         test_case["cols"] = data.size[1];
         test_case["nonzeros"] = data.nonzeros.size();
-        return data;
+        return gko::device_matrix_data<etype, itype>::create_from_host(exec,
+                                                                       data);
     }
 
 
     void run(std::shared_ptr<gko::Executor> exec, std::shared_ptr<Timer> timer,
-             gko::matrix_data<etype, itype>& data,
+             gko::device_matrix_data<etype, itype>& data,
              const std::string& operation_name,
              json& operation_case) const override
     {
