@@ -37,8 +37,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/generator.hpp"
+#include "benchmark/utils/iteration_control.hpp"
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/preconditioners.hpp"
+#include "benchmark/utils/runner.hpp"
 
 
 #ifdef GINKGO_BENCHMARK_ENABLE_TUNING
@@ -107,7 +109,7 @@ DEFINE_bool(overhead, false,
             "If set, uses dummy data to benchmark Ginkgo overhead");
 
 
-std::string example_config = R"(
+std::string solver_example_config = R"(
   [
     {"filename": "my_file.mtx", "optimal": {"spmv": "ell-csr"},
      "rhs": "my_file_rhs.mtx"},
@@ -117,28 +119,6 @@ std::string example_config = R"(
      "optimal": {"spmv": "csr-coo"}}
   ]
 )";
-
-
-// input validation
-[[noreturn]] void print_config_error_and_exit()
-{
-    std::cerr << "Input has to be a JSON array of solver configurations:\n"
-              << example_config << std::endl;
-    std::exit(1);
-}
-
-
-void validate_option_object(const rapidjson::Value& value)
-{
-    if (!value.IsObject() ||
-        !((value.HasMember("size") && value.HasMember("stencil") &&
-           value["size"].IsInt64() && value["stencil"].IsString()) ||
-          (value.HasMember("filename") && value["filename"].IsString())) ||
-        (!value.HasMember("optimal") && !value["optimal"].HasMember("spmv") &&
-         !value["optimal"]["spmv"].IsString())) {
-        print_config_error_and_exit();
-    }
-}
 
 
 std::shared_ptr<const gko::stop::CriterionFactory> create_criterion(
@@ -284,21 +264,17 @@ std::unique_ptr<gko::LinOpFactory> generate_solver(
 }
 
 
-void write_precond_info(const gko::LinOp* precond,
-                        rapidjson::Value& precond_info,
-                        rapidjson::MemoryPoolAllocator<>& allocator)
+void write_precond_info(const gko::LinOp* precond, json& precond_info)
 {
     if (const auto jacobi =
             dynamic_cast<const gko::preconditioner::Jacobi<etype>*>(precond)) {
         // extract block sizes
         const auto bdata =
             jacobi->get_parameters().block_pointers.get_const_data();
-        add_or_set_member(precond_info, "block_sizes",
-                          rapidjson::Value(rapidjson::kArrayType), allocator);
+        precond_info["block_sizes"] = json::array();
         const auto nblocks = jacobi->get_num_blocks();
         for (auto i = decltype(nblocks){0}; i < nblocks; ++i) {
-            precond_info["block_sizes"].PushBack(bdata[i + 1] - bdata[i],
-                                                 allocator);
+            precond_info["block_sizes"].push_back(bdata[i + 1] - bdata[i]);
         }
 
         // extract block precisions
@@ -306,24 +282,19 @@ void write_precond_info(const gko::LinOp* precond,
             jacobi->get_parameters()
                 .storage_optimization.block_wise.get_const_data();
         if (pdata) {
-            add_or_set_member(precond_info, "block_precisions",
-                              rapidjson::Value(rapidjson::kArrayType),
-                              allocator);
+            precond_info["block_precisions"] = json::array();
             for (auto i = decltype(nblocks){0}; i < nblocks; ++i) {
-                precond_info["block_precisions"].PushBack(
-                    static_cast<int>(pdata[i]), allocator);
+                precond_info["block_precisions"].push_back(
+                    static_cast<int>(pdata[i]));
             }
         }
 
         // extract condition numbers
         const auto cdata = jacobi->get_conditioning();
         if (cdata) {
-            add_or_set_member(precond_info, "block_conditioning",
-                              rapidjson::Value(rapidjson::kArrayType),
-                              allocator);
+            precond_info["block_conditioning"] = json::array();
             for (auto i = decltype(nblocks){0}; i < nblocks; ++i) {
-                precond_info["block_conditioning"].PushBack(cdata[i],
-                                                            allocator);
+                precond_info["block_conditioning"].push_back(cdata[i]);
             }
         }
     }
@@ -335,10 +306,10 @@ struct SolverGenerator : DefaultSystemGenerator<> {
 
     std::unique_ptr<Vec> generate_rhs(std::shared_ptr<const gko::Executor> exec,
                                       const gko::LinOp* system_matrix,
-                                      rapidjson::Value& config) const
+                                      json& config) const
     {
-        if (config.HasMember("rhs")) {
-            std::ifstream rhs_fd{config["rhs"].GetString()};
+        if (config.contains("rhs")) {
+            std::ifstream rhs_fd{config["rhs"].get<std::string>()};
             return gko::read<Vec>(rhs_fd, std::move(exec));
         } else {
             gko::dim<2> vec_size{system_matrix->get_size()[0], FLAGS_nrhs};
@@ -399,45 +370,112 @@ struct SolverGenerator : DefaultSystemGenerator<> {
 };
 
 
-template <typename VectorType>
-void solve_system(const std::string& solver_name,
-                  const std::string& precond_name,
-                  const char* precond_solver_name,
-                  std::shared_ptr<gko::Executor> exec,
-                  std::shared_ptr<Timer> timer,
-                  std::shared_ptr<const gko::LinOp> system_matrix,
-                  const VectorType* b, const VectorType* x,
-                  rapidjson::Value& test_case,
-                  rapidjson::MemoryPoolAllocator<>& allocator)
-{
-    try {
-        auto& solver_case = test_case["solver"];
-        if (!FLAGS_overwrite && solver_case.HasMember(precond_solver_name)) {
-            return;
+template <typename Generator>
+struct solver_benchmark_state {
+    using Vec = typename Generator::Vec;
+    std::shared_ptr<gko::LinOp> system_matrix;
+    std::unique_ptr<Vec> b;
+    std::unique_ptr<Vec> x;
+};
+
+
+template <typename Generator>
+struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
+    std::string name;
+    std::vector<std::string> precond_solvers;
+    std::map<std::string, std::pair<std::string, std::string>> decoder;
+    Generator generator;
+
+    SolverBenchmark(Generator generator) : name{"solver"}, generator{generator}
+    {
+        auto solvers = split(FLAGS_solvers, ',');
+        auto preconds = split(FLAGS_preconditioners, ',');
+        for (const auto& s : solvers) {
+            for (const auto& p : preconds) {
+                precond_solvers.push_back(s + (p == "none" ? "" : "-" + p));
+                decoder[precond_solvers.back()] = {s, p};
+            }
+        }
+    }
+
+    const std::string& get_name() const override { return name; }
+
+    const std::vector<std::string>& get_operations() const override
+    {
+        return precond_solvers;
+    }
+
+    bool should_print() const override { return true; }
+
+    std::string get_example_config() const override
+    {
+        return solver_example_config;
+    }
+
+    bool validate_config(const json& value) const override
+    {
+        return ((value.contains("size") && value.contains("stencil") &&
+                 value["size"].is_number_integer() &&
+                 value["stencil"].is_string()) ||
+                (value.contains("filename") &&
+                 value["filename"].is_string())) &&
+               (value.contains("optimal") &&
+                value["optimal"].contains("spmv") &&
+                value["optimal"]["spmv"].is_string());
+    }
+
+    std::string describe_config(const json& test_case) const override
+    {
+        return Generator::describe_config(test_case);
+    }
+
+    solver_benchmark_state<Generator> setup(std::shared_ptr<gko::Executor> exec,
+                                            json& test_case) const override
+    {
+        solver_benchmark_state<Generator> state;
+
+        if (FLAGS_overhead) {
+            state.system_matrix = generator.initialize({1.0}, exec);
+            state.b = generator.initialize(
+                {std::numeric_limits<rc_etype>::quiet_NaN()}, exec);
+            state.x = generator.initialize({0.0}, exec);
+        } else {
+            state.system_matrix =
+                generator.generate_matrix_with_optimal_format(exec, test_case);
+            state.b = generator.generate_rhs(exec, state.system_matrix.get(),
+                                             test_case);
+            state.x = generator.generate_initial_guess(
+                exec, state.system_matrix.get(), state.b.get());
         }
 
-        add_or_set_member(solver_case, precond_solver_name,
-                          rapidjson::Value(rapidjson::kObjectType), allocator);
-        auto& solver_json = solver_case[precond_solver_name];
-        add_or_set_member(solver_json, "recurrent_residuals",
-                          rapidjson::Value(rapidjson::kArrayType), allocator);
-        add_or_set_member(solver_json, "true_residuals",
-                          rapidjson::Value(rapidjson::kArrayType), allocator);
-        add_or_set_member(solver_json, "implicit_residuals",
-                          rapidjson::Value(rapidjson::kArrayType), allocator);
-        add_or_set_member(solver_json, "iteration_timestamps",
-                          rapidjson::Value(rapidjson::kArrayType), allocator);
-        if (b->get_size()[1] == 1 && !FLAGS_overhead) {
-            auto rhs_norm = compute_norm2(b);
-            add_or_set_member(solver_json, "rhs_norm", rhs_norm, allocator);
+        std::clog << "Matrix is of size (" << state.system_matrix->get_size()[0]
+                  << ", " << state.system_matrix->get_size()[1] << ")"
+                  << std::endl;
+        test_case["rows"] = state.system_matrix->get_size()[0];
+        test_case["cols"] = state.system_matrix->get_size()[1];
+        return state;
+    }
+
+
+    void run(std::shared_ptr<gko::Executor> exec, std::shared_ptr<Timer> timer,
+             solver_benchmark_state<Generator>& state,
+             const std::string& encoded_solver_name,
+             json& solver_case) const override
+    {
+        const auto decoded_pair = decoder.at(encoded_solver_name);
+        auto& solver_name = decoded_pair.first;
+        auto& precond_name = decoded_pair.second;
+        solver_case["recurrent_residuals"] = json::array();
+        solver_case["true_residuals"] = json::array();
+        solver_case["implicit_residuals"] = json::array();
+        solver_case["iteration_timestamps"] = json::array();
+        if (state.b->get_size()[1] == 1 && !FLAGS_overhead) {
+            auto rhs_norm = compute_norm2(state.b.get());
+            solver_case["rhs_norm"] = rhs_norm;
         }
         for (auto stage : {"generate", "apply"}) {
-            add_or_set_member(solver_json, stage,
-                              rapidjson::Value(rapidjson::kObjectType),
-                              allocator);
-            add_or_set_member(solver_json[stage], "components",
-                              rapidjson::Value(rapidjson::kObjectType),
-                              allocator);
+            solver_case[stage] = json::object();
+            solver_case[stage]["components"] = json::object();
         }
 
         IterationControl ic{timer};
@@ -445,24 +483,24 @@ void solve_system(const std::string& solver_name,
         // warm run
         std::shared_ptr<gko::LinOp> solver;
         for (auto _ : ic.warmup_run()) {
-            auto x_clone = clone(x);
+            auto x_clone = clone(state.x);
             auto precond = precond_factory.at(precond_name)(exec);
             solver = generate_solver(exec, give(precond), solver_name,
                                      FLAGS_warmup_max_iters)
-                         ->generate(system_matrix);
-            solver->apply(b, x_clone);
+                         ->generate(state.system_matrix);
+            solver->apply(state.b, x_clone);
             exec->synchronize();
         }
 
         // detail run
         if (FLAGS_detailed && !FLAGS_overhead) {
             // slow run, get the time of each functions
-            auto x_clone = clone(x);
+            auto x_clone = clone(state.x);
 
             {
                 auto gen_logger = create_operations_logger(
                     FLAGS_gpu_timer, FLAGS_nested_names, exec,
-                    solver_json["generate"]["components"], allocator, 1);
+                    solver_case["generate"]["components"], 1);
                 exec->add_logger(gen_logger);
                 if (exec != exec->get_master()) {
                     exec->get_master()->add_logger(gen_logger);
@@ -471,7 +509,7 @@ void solve_system(const std::string& solver_name,
                 auto precond = precond_factory.at(precond_name)(exec);
                 solver = generate_solver(exec, give(precond), solver_name,
                                          FLAGS_max_iters)
-                             ->generate(system_matrix);
+                             ->generate(state.system_matrix);
 
                 exec->remove_logger(gen_logger);
                 if (exec != exec->get_master()) {
@@ -481,25 +519,22 @@ void solve_system(const std::string& solver_name,
 
             if (auto prec =
                     dynamic_cast<const gko::Preconditionable*>(solver.get())) {
-                add_or_set_member(solver_json, "preconditioner",
-                                  rapidjson::Value(rapidjson::kObjectType),
-                                  allocator);
+                solver_case["preconditioner"] = json::object();
                 write_precond_info(
                     clone(exec->get_master(), prec->get_preconditioner()).get(),
-                    solver_json["preconditioner"], allocator);
+                    solver_case["preconditioner"]);
             }
 
             {
                 auto apply_logger = create_operations_logger(
                     FLAGS_gpu_timer, FLAGS_nested_names, exec,
-                    solver_json["apply"]["components"], allocator, 1);
+                    solver_case["apply"]["components"], 1);
                 exec->add_logger(apply_logger);
                 if (exec != exec->get_master()) {
                     exec->get_master()->add_logger(apply_logger);
                 }
 
-
-                solver->apply(b, x_clone);
+                solver->apply(state.b, x_clone);
 
                 exec->remove_logger(apply_logger);
                 if (exec != exec->get_master()) {
@@ -508,17 +543,18 @@ void solve_system(const std::string& solver_name,
             }
 
             // slow run, gets the recurrent and true residuals of each iteration
-            if (b->get_size()[1] == 1) {
-                x_clone = clone(x);
+            if (state.b->get_size()[1] == 1) {
+                x_clone = clone(state.x);
                 auto res_logger = std::make_shared<ResidualLogger<etype>>(
-                    system_matrix, b, solver_json["recurrent_residuals"],
-                    solver_json["true_residuals"],
-                    solver_json["implicit_residuals"],
-                    solver_json["iteration_timestamps"], allocator);
+                    state.system_matrix, state.b,
+                    solver_case["recurrent_residuals"],
+                    solver_case["true_residuals"],
+                    solver_case["implicit_residuals"],
+                    solver_case["iteration_timestamps"]);
                 solver->add_logger(res_logger);
-                solver->apply(b, x_clone);
+                solver->apply(state.b, x_clone);
                 if (!res_logger->has_implicit_res_norms()) {
-                    solver_json.RemoveMember("implicit_residuals");
+                    solver_case.erase("implicit_residuals");
                 }
             }
             exec->synchronize();
@@ -528,16 +564,16 @@ void solve_system(const std::string& solver_name,
         auto it_logger = std::make_shared<IterationLogger>();
         auto generate_timer = get_timer(exec, FLAGS_gpu_timer);
         auto apply_timer = ic.get_timer();
-        auto x_clone = clone(x);
+        auto x_clone = clone(state.x);
         for (auto status : ic.run(false)) {
-            x_clone = clone(x);
+            x_clone = clone(state.x);
 
             exec->synchronize();
             generate_timer->tic();
             auto precond = precond_factory.at(precond_name)(exec);
             solver = generate_solver(exec, give(precond), solver_name,
                                      FLAGS_max_iters)
-                         ->generate(system_matrix);
+                         ->generate(state.system_matrix);
             generate_timer->toc();
 
             exec->synchronize();
@@ -545,165 +581,33 @@ void solve_system(const std::string& solver_name,
                 solver->add_logger(it_logger);
             }
             apply_timer->tic();
-            solver->apply(b, x_clone);
+            solver->apply(state.b, x_clone);
             apply_timer->toc();
             if (ic.get_num_repetitions() == 0) {
                 solver->remove_logger(it_logger);
             }
         }
-        it_logger->write_data(solver_json["apply"], allocator);
+        it_logger->write_data(solver_case["apply"]);
 
-        if (b->get_size()[1] == 1 && !FLAGS_overhead) {
+        if (state.b->get_size()[1] == 1 && !FLAGS_overhead) {
             // a solver is considered direct if it didn't log any iterations
-            if (solver_json["apply"].HasMember("iterations") &&
-                solver_json["apply"]["iterations"].GetInt() == 0) {
-                auto error =
-                    compute_direct_error(solver.get(), b, x_clone.get());
-                add_or_set_member(solver_json, "forward_error", error,
-                                  allocator);
+            if (solver_case["apply"].contains("iterations") &&
+                solver_case["apply"]["iterations"].get<gko::int64>() == 0) {
+                auto error = compute_direct_error(solver.get(), state.b.get(),
+                                                  x_clone.get());
+                solver_case["forward_error"] = error;
             }
-            auto residual =
-                compute_residual_norm(system_matrix.get(), b, x_clone.get());
-            add_or_set_member(solver_json, "residual_norm", residual,
-                              allocator);
+            auto residual = compute_residual_norm(state.system_matrix.get(),
+                                                  state.b.get(), x_clone.get());
+            solver_case["residual_norm"] = residual;
         }
-        add_or_set_member(solver_json["generate"], "time",
-                          generate_timer->compute_time(FLAGS_timer_method),
-                          allocator);
-        add_or_set_member(solver_json["apply"], "time",
-                          apply_timer->compute_time(FLAGS_timer_method),
-                          allocator);
-        add_or_set_member(solver_json, "repetitions",
-                          apply_timer->get_num_repetitions(), allocator);
-
-        // compute and write benchmark data
-        add_or_set_member(solver_json, "completed", true, allocator);
-    } catch (const std::exception& e) {
-        add_or_set_member(test_case["solver"][precond_solver_name], "completed",
-                          false, allocator);
-        if (FLAGS_keep_errors) {
-            rapidjson::Value msg_value;
-            msg_value.SetString(e.what(), allocator);
-            add_or_set_member(test_case["solver"][precond_solver_name], "error",
-                              msg_value, allocator);
-        }
-        std::cerr << "Error when processing test case\n"
-                  << test_case << "\n"
-                  << "what(): " << e.what() << std::endl;
+        solver_case["generate"]["time"] =
+            generate_timer->compute_time(FLAGS_timer_method);
+        solver_case["apply"]["time"] =
+            apply_timer->compute_time(FLAGS_timer_method);
+        solver_case["repetitions"] = apply_timer->get_num_repetitions();
     }
-}
-
-
-template <typename SystemGenerator>
-void run_solver_benchmarks(std::shared_ptr<gko::Executor> exec,
-                           std::shared_ptr<Timer> timer,
-                           rapidjson::Document& test_cases,
-                           const SystemGenerator& system_generator,
-                           bool do_print)
-{
-    auto solvers = split(FLAGS_solvers, ',');
-    auto preconds = split(FLAGS_preconditioners, ',');
-    std::vector<std::string> precond_solvers;
-    for (const auto& s : solvers) {
-        for (const auto& p : preconds) {
-            precond_solvers.push_back(s + (p == "none" ? "" : "-" + p));
-        }
-    }
-
-    auto& allocator = test_cases.GetAllocator();
-    auto profiler_hook = create_profiler_hook(exec);
-    if (profiler_hook) {
-        exec->add_logger(profiler_hook);
-    }
-    auto annotate = annotate_functor{profiler_hook};
-
-    for (auto& test_case : test_cases.GetArray()) {
-        try {
-            // set up benchmark
-            validate_option_object(test_case);
-            if (!test_case.HasMember("solver")) {
-                test_case.AddMember("solver",
-                                    rapidjson::Value(rapidjson::kObjectType),
-                                    allocator);
-            }
-            auto& solver_case = test_case["solver"];
-            if (!FLAGS_overwrite &&
-                all_of(begin(precond_solvers), end(precond_solvers),
-                       [&solver_case](const std::string& s) {
-                           return solver_case.HasMember(s.c_str());
-                       })) {
-                continue;
-            }
-            // annotate the test case
-            auto test_case_range =
-                annotate(system_generator.describe_config(test_case));
-
-            if (do_print) {
-                std::clog << "Running test case\n" << test_case << std::endl;
-            }
-
-            using Vec = typename SystemGenerator::Vec;
-            std::shared_ptr<gko::LinOp> system_matrix;
-            std::unique_ptr<Vec> b;
-            std::unique_ptr<Vec> x;
-            if (FLAGS_overhead) {
-                system_matrix = system_generator.initialize({1.0}, exec);
-                b = system_generator.initialize(
-                    {std::numeric_limits<rc_etype>::quiet_NaN()}, exec);
-                x = system_generator.initialize({0.0}, exec);
-            } else {
-                system_matrix =
-                    system_generator.generate_matrix_with_optimal_format(
-                        exec, test_case);
-                b = system_generator.generate_rhs(exec, system_matrix.get(),
-                                                  test_case);
-                x = system_generator.generate_initial_guess(
-                    exec, system_matrix.get(), b.get());
-            }
-
-            if (do_print) {
-                std::clog << "Matrix is of size ("
-                          << system_matrix->get_size()[0] << ", "
-                          << system_matrix->get_size()[1] << ")" << std::endl;
-            }
-            add_or_set_member(test_case, "size", system_matrix->get_size()[0],
-                              allocator);
-            auto precond_solver_name = begin(precond_solvers);
-            for (const auto& solver_name : solvers) {
-                auto solver_range = annotate(solver_name.c_str());
-                for (const auto& precond_name : preconds) {
-                    if (do_print) {
-                        std::clog
-                            << "\tRunning solver: " << *precond_solver_name
-                            << std::endl;
-                    }
-                    {
-                        auto precond_range = annotate(precond_name.c_str());
-                        solve_system(solver_name, precond_name,
-                                     precond_solver_name->c_str(), exec, timer,
-                                     system_matrix, b.get(), x.get(), test_case,
-                                     allocator);
-                    }
-                    if (do_print) {
-                        backup_results(test_cases);
-                    }
-                    ++precond_solver_name;
-                }
-            }
-        } catch (const std::exception& e) {
-            std::cerr << "Error setting up solver, what(): " << e.what()
-                      << std::endl;
-            if (FLAGS_keep_errors) {
-                rapidjson::Value msg_value;
-                msg_value.SetString(e.what(), allocator);
-                add_or_set_member(test_case, "error", msg_value, allocator);
-            }
-        }
-    }
-    if (profiler_hook) {
-        exec->remove_logger(profiler_hook);
-    }
-}
+};
 
 
 #endif  // GINKGO_BENCHMARK_SOLVER_SOLVER_COMMON_HPP

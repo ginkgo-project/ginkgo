@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
     FLAGS_min_repetitions = 1;
     std::string header =
         "A benchmark for measuring performance of Ginkgo's solvers.\n";
-    std::string format = example_config + R"(
+    std::string format = solver_example_config + R"(
   "optimal":"spmv" can be one of the recognized spmv formats
 )";
     std::string additional_json = R"(,"optimal":{"spmv":"csr"})";
@@ -72,29 +72,24 @@ int main(int argc, char* argv[])
         "Running " + FLAGS_solvers + " with " +
         std::to_string(FLAGS_max_iters) + " iterations and residual goal of " +
         ss_rel_res_goal.str() + "\nThe number of right hand sides is " +
-        std::to_string(FLAGS_nrhs) + "\n";
+        std::to_string(FLAGS_nrhs);
     print_general_information(extra_information);
 
     auto exec = get_executor(FLAGS_gpu_timer);
 
-    rapidjson::Document test_cases;
+    json test_cases;
     if (!FLAGS_overhead) {
-        rapidjson::IStreamWrapper jcin(get_input_stream());
-        test_cases.ParseStream(jcin);
+        test_cases = json::parse(get_input_stream());
     } else {
         // Fake test case to run once
         auto overhead_json = std::string() +
                              " [{\"filename\": \"overhead.mtx\", \"optimal\": "
                              "{ \"spmv\": \"csr\"}}]";
-        test_cases.Parse(overhead_json.c_str());
+        test_cases = json::parse(overhead_json);
     }
 
-    if (!test_cases.IsArray()) {
-        print_config_error_and_exit();
-    }
+    run_test_cases(SolverBenchmark<SolverGenerator>{SolverGenerator{}}, exec,
+                   get_timer(exec, FLAGS_gpu_timer), test_cases);
 
-    run_solver_benchmarks(exec, get_timer(exec, FLAGS_gpu_timer), test_cases,
-                          SolverGenerator{}, true);
-
-    std::cout << test_cases << std::endl;
+    std::cout << std::setw(4) << test_cases << std::endl;
 }

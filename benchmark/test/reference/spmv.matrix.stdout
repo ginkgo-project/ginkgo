@@ -11,8 +11,9 @@
                 "completed": true
             }
         },
-        "size": 36,
-        "nnz": 208,
+        "rows": 36,
+        "cols": 36,
+        "nonzeros": 208,
         "optimal": {
             "spmv": "coo"
         }
