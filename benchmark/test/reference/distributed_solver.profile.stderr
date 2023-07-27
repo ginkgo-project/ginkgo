@@ -5,16 +5,7 @@ Running with 0 warm iterations and 1 running iterations
 The random seed for right hand sides is 42
 Running cg with 1000 iterations and residual goal of 1.000000e-06
 The number of right hand sides is 1
-Running test case
-{
-    "size": 100,
-    "stencil": "7pt",
-    "comm_pattern": "stencil",
-    "optimal": {
-        "spmv": "csr-csr"
-    },
-    "solver": {}
-}
+Running test case stencil(100,7pt,stencil)
 DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin partition::build_ranges_from_global_size

@@ -153,13 +153,13 @@ void run_test_cases(const Benchmark<State>& benchmark,
             if (!test_case.contains(benchmark.get_name())) {
                 test_case[benchmark.get_name()] = json::object();
             }
+            auto test_case_desc = benchmark.describe_config(test_case);
             if (benchmark.should_print()) {
-                std::clog << "Running test case\n"
-                          << std::setw(4) << test_case << std::endl;
+                std::clog << "Running test case " << test_case_desc
+                          << std::endl;
             }
             auto test_case_state = benchmark.setup(exec, test_case);
-            auto test_case_str = benchmark.describe_config(test_case);
-            auto test_case_range = annotate(test_case_str.c_str());
+            auto test_case_range = annotate(test_case_desc.c_str());
             auto& benchmark_case = test_case[benchmark.get_name()];
             for (const auto& operation_name : benchmark.get_operations()) {
                 if (benchmark_case.contains(operation_name) &&
@@ -183,7 +183,7 @@ void run_test_cases(const Benchmark<State>& benchmark,
                         gko::name_demangling::get_dynamic_type(e);
                     operation_case["error"] = e.what();
                     std::cerr << "Error when processing test case\n"
-                              << std::setw(4) << test_case << "\n"
+                              << test_case_desc << "\n"
                               << "what(): " << e.what() << std::endl;
                 }
 

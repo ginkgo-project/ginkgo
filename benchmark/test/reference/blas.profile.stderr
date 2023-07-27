@@ -4,11 +4,7 @@ Running on reference(0)
 Running with 0 warm iterations and 1 running iterations
 The random seed for right hand sides is 42
 The operations are copy,axpy,scal
-Running test case
-{
-    "n": 100,
-    "blas": {}
-}
+Running test case n = 100 
 DEBUG: begin n = 100 
 	Running blas: copy
 DEBUG: begin copy
