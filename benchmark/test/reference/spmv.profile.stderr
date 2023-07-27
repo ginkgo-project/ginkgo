@@ -11,54 +11,49 @@ Running test case
     "stencil": "7pt",
     "spmv": {}
 }
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin components::aos_to_soa
+DEBUG: end   components::aos_to_soa
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::fill
+DEBUG: end   dense::fill
+DEBUG: begin dense::fill_in_matrix_data
+DEBUG: end   dense::fill_in_matrix_data
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin components::aos_to_soa
+DEBUG: end   components::aos_to_soa
+DEBUG: begin allocate
+DEBUG: end   allocate
+DEBUG: begin dense::fill
+DEBUG: end   dense::fill
+DEBUG: begin dense::fill_in_matrix_data
+DEBUG: end   dense::fill_in_matrix_data
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+Matrix is of size (125, 125), 725
 DEBUG: begin stencil(100,7pt)
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin components::aos_to_soa
-DEBUG: end   components::aos_to_soa
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin dense::fill
-DEBUG: end   dense::fill
-DEBUG: begin dense::fill_in_matrix_data
-DEBUG: end   dense::fill_in_matrix_data
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin components::aos_to_soa
-DEBUG: end   components::aos_to_soa
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin dense::fill
-DEBUG: end   dense::fill
-DEBUG: begin dense::fill_in_matrix_data
-DEBUG: end   dense::fill_in_matrix_data
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-Matrix is of size (125, 125)
-DEBUG: begin copy(<typename>)
-DEBUG: begin allocate
-DEBUG: end   allocate
-DEBUG: begin dense::copy
-DEBUG: end   dense::copy
-DEBUG: end   copy(<typename>)
+	Running spmv: coo
 DEBUG: begin coo
 DEBUG: begin allocate
 DEBUG: end   allocate
@@ -87,27 +82,8 @@ DEBUG: end   free
 DEBUG: begin free
 DEBUG: end   free
 DEBUG: end   coo
-Current state:
-[
-    {
-        "size": 125,
-        "stencil": "7pt",
-        "spmv": {
-            "coo": {
-                "storage": 11600,
-                "time": 1.0,
-                "repetitions": 1,
-                "completed": true
-            }
-        },
-        "nnz": 725,
-        "optimal": {}
-    }
-]
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
 DEBUG: end   stencil(100,7pt)
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free

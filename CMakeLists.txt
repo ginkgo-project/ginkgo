@@ -256,7 +256,7 @@ if(GINKGO_BUILD_TESTS)
 endif()
 if(GINKGO_BUILD_BENCHMARKS)
     find_package(gflags 2.2.2 QUIET)
-    find_package(RapidJSON 1.1.0 QUIET)
+    find_package(nlohmann_json 3.9.1 QUIET)
 endif()
 
 # System provided, third party libraries (not bundled!)

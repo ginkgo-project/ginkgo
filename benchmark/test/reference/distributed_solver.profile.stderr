@@ -5,7 +5,6 @@ Running with 0 warm iterations and 1 running iterations
 The random seed for right hand sides is 42
 Running cg with 1000 iterations and residual goal of 1.000000e-06
 The number of right hand sides is 1
-DEBUG: begin stencil(100,7pt,stencil)
 Running test case
 {
     "size": 100,
@@ -213,9 +212,9 @@ DEBUG: begin dense::copy
 DEBUG: end   dense::copy
 DEBUG: end   copy(<typename>)
 Matrix is of size (125, 125)
-DEBUG: begin cg
+DEBUG: begin stencil(100,7pt,stencil)
 	Running solver: cg
-DEBUG: begin none
+DEBUG: begin cg
 DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin dense::compute_squared_norm2
@@ -670,20 +669,19 @@ DEBUG: begin free
 DEBUG: end   free
 DEBUG: begin free
 DEBUG: end   free
-DEBUG: end   none
 DEBUG: end   cg
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
 DEBUG: end   stencil(100,7pt,stencil)
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free

@@ -10,6 +10,7 @@ Running test case
     "blas": {}
 }
 DEBUG: begin n = 100 
+	Running blas: copy
 DEBUG: begin copy
 DEBUG: begin allocate
 DEBUG: end   allocate
@@ -24,21 +25,7 @@ DEBUG: end   free
 DEBUG: begin free
 DEBUG: end   free
 DEBUG: end   copy
-Current state:
-[
-    {
-        "n": 100,
-        "blas": {
-            "copy": {
-                "time": 1.0,
-                "flops": 1.0,
-                "bandwidth": 1.0,
-                "repetitions": 1,
-                "completed": true
-            }
-        }
-    }
-]
+	Running blas: axpy
 DEBUG: begin axpy
 DEBUG: begin allocate
 DEBUG: end   allocate
@@ -61,28 +48,7 @@ DEBUG: end   free
 DEBUG: begin free
 DEBUG: end   free
 DEBUG: end   axpy
-Current state:
-[
-    {
-        "n": 100,
-        "blas": {
-            "copy": {
-                "time": 1.0,
-                "flops": 1.0,
-                "bandwidth": 1.0,
-                "repetitions": 1,
-                "completed": true
-            },
-            "axpy": {
-                "time": 1.0,
-                "flops": 1.0,
-                "bandwidth": 1.0,
-                "repetitions": 1,
-                "completed": true
-            }
-        }
-    }
-]
+	Running blas: scal
 DEBUG: begin scal
 DEBUG: begin allocate
 DEBUG: end   allocate
@@ -99,33 +65,4 @@ DEBUG: end   free
 DEBUG: begin free
 DEBUG: end   free
 DEBUG: end   scal
-Current state:
-[
-    {
-        "n": 100,
-        "blas": {
-            "copy": {
-                "time": 1.0,
-                "flops": 1.0,
-                "bandwidth": 1.0,
-                "repetitions": 1,
-                "completed": true
-            },
-            "axpy": {
-                "time": 1.0,
-                "flops": 1.0,
-                "bandwidth": 1.0,
-                "repetitions": 1,
-                "completed": true
-            },
-            "scal": {
-                "time": 1.0,
-                "flops": 1.0,
-                "bandwidth": 1.0,
-                "repetitions": 1,
-                "completed": true
-            }
-        }
-    }
-]
 DEBUG: end   n = 100 

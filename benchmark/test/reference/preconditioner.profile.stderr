@@ -10,7 +10,6 @@ Running test case
     "stencil": "7pt",
     "preconditioner": {}
 }
-DEBUG: begin stencil(100,7pt)
 DEBUG: begin allocate
 DEBUG: end   allocate
 DEBUG: begin components::fill_array
@@ -59,7 +58,9 @@ DEBUG: begin dense::fill
 DEBUG: end   dense::fill
 DEBUG: begin dense::fill_in_matrix_data
 DEBUG: end   dense::fill_in_matrix_data
-Matrix is of size (125, 125)
+Matrix is of size (125, 125), 725
+DEBUG: begin stencil(100,7pt)
+	Running preconditioner: none
 DEBUG: begin none
 DEBUG: begin copy(<typename>)
 DEBUG: begin allocate
@@ -78,36 +79,14 @@ DEBUG: end   apply(<typename>)
 DEBUG: begin free
 DEBUG: end   free
 DEBUG: end   none
-Current state:
-[
-    {
-        "size": 125,
-        "stencil": "7pt",
-        "preconditioner": {
-            "none": {
-                "generate": {
-                    "components": {},
-                    "time": 1.0,
-                    "repetitions": 1
-                },
-                "apply": {
-                    "components": {},
-                    "time": 1.0,
-                    "repetitions": 1
-                },
-                "completed": true
-            }
-        }
-    }
-]
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
-DEBUG: begin free
-DEBUG: end   free
 DEBUG: end   stencil(100,7pt)
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free
+DEBUG: begin free
+DEBUG: end   free

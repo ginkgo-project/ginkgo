@@ -57,7 +57,7 @@ endfunction()
 # All remaining arguments will be treated as source files
 function(ginkgo_add_single_benchmark_executable name use_lib_linops macro_def type)
     add_executable("${name}" ${ARGN})
-    target_link_libraries("${name}" ginkgo gflags rapidjson)
+    target_link_libraries("${name}" ginkgo gflags nlohmann_json::nlohmann_json)
     # always include the device timer
     if (GINKGO_BUILD_CUDA)
         target_compile_definitions("${name}" PRIVATE HAS_CUDA_TIMER=1)
@@ -149,7 +149,7 @@ if (GINKGO_BUILD_MPI)
 endif()
 
 add_subdirectory(blas)
-add_subdirectory(conversions)
+add_subdirectory(conversion)
 add_subdirectory(matrix_generator)
 add_subdirectory(matrix_statistics)
 add_subdirectory(preconditioner)

@@ -1,7 +1,7 @@
 
 [
     {
-        "size": 125,
+        "size": 100,
         "stencil": "7pt",
         "preconditioner": {
             "none": {
@@ -17,6 +17,9 @@
                 },
                 "completed": true
             }
-        }
+        },
+        "rows": 125,
+        "cols": 125,
+        "nonzeros": 725
     }
 ]

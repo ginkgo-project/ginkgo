@@ -1,10 +1,20 @@
 
 [
     {
-        "size": 125,
+        "size": 100,
         "stencil": "7pt",
-        "conversions": {
+        "conversion": {
+            "coo-read": {
+                "time": 1.0,
+                "repetitions": 1,
+                "completed": true
+            },
             "coo-csr": {
+                "time": 1.0,
+                "repetitions": 1,
+                "completed": true
+            },
+            "csr-read": {
                 "time": 1.0,
                 "repetitions": 1,
                 "completed": true
@@ -14,6 +24,9 @@
                 "repetitions": 1,
                 "completed": true
             }
-        }
+        },
+        "rows": 125,
+        "cols": 125,
+        "nonzeros": 725
     }
 ]

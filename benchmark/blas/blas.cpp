@@ -130,26 +130,17 @@ Parameters for a benchmark case are:
     stride_B: stride for B matrix in gemm (optional, default m)
     stride_C: stride for C matrix in gemm (optional, default m)
 )";
-    std::string format = example_config;
+    std::string format = Generator::get_example_config();
     initialize_argument_parsing(&argc, &argv, header, format);
 
-    std::string extra_information =
-        "The operations are " + FLAGS_operations + "\n";
+    std::string extra_information = "The operations are " + FLAGS_operations;
     print_general_information(extra_information);
     auto exec = executor_factory.at(FLAGS_executor)(FLAGS_gpu_timer);
 
-    rapidjson::IStreamWrapper jcin(get_input_stream());
-    rapidjson::Document test_cases;
-    test_cases.ParseStream(jcin);
-    if (!test_cases.IsArray()) {
-        std::cerr
-            << "Input has to be a JSON array of benchmark configurations:\n"
-            << format;
-        std::exit(1);
-    }
+    auto test_cases = json::parse(get_input_stream());
 
-    run_blas_benchmarks(exec, get_timer(exec, FLAGS_gpu_timer), operation_map,
-                        test_cases, true);
+    run_test_cases(BlasBenchmark{operation_map}, exec,
+                   get_timer(exec, FLAGS_gpu_timer), test_cases);
 
-    std::cout << test_cases << std::endl;
+    std::cout << std::setw(4) << test_cases << std::endl;
 }

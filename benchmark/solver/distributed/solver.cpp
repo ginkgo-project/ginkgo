@@ -52,7 +52,7 @@ struct Generator : public DistributedDefaultSystemGenerator<SolverGenerator> {
 
     std::unique_ptr<Vec> generate_rhs(std::shared_ptr<const gko::Executor> exec,
                                       const gko::LinOp* system_matrix,
-                                      rapidjson::Value& config) const
+                                      json& config) const
     {
         return Vec::create(
             exec, comm, gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},
@@ -82,9 +82,13 @@ int main(int argc, char* argv[])
     FLAGS_repetitions = "1";
     FLAGS_min_repetitions = 1;
 
+    const auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
+    const auto rank = comm.rank();
+    const auto do_print = rank == 0;
+
     std::string header =
         "A benchmark for measuring Ginkgo's distributed solvers\n";
-    std::string format = example_config + R"(
+    std::string format = solver_example_config + R"(
   The matrix will either be read from an input file if the filename parameter
   is given, or generated as a stencil matrix.
   If the filename parameter is given, all processes will read the file and
@@ -100,10 +104,7 @@ int main(int argc, char* argv[])
 )";
     std::string additional_json = R"(,"optimal":{"spmv":"csr-csr"})";
     initialize_argument_parsing_matrix(&argc, &argv, header, format,
-                                       additional_json);
-
-    const auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
-    const auto rank = comm.rank();
+                                       additional_json, do_print);
 
     auto exec = executor_factory_mpi.at(FLAGS_executor)(comm.get());
 
@@ -114,8 +115,8 @@ int main(int argc, char* argv[])
         "Running " + FLAGS_solvers + " with " +
         std::to_string(FLAGS_max_iters) + " iterations and residual goal of " +
         ss_rel_res_goal.str() + "\nThe number of right hand sides is " +
-        std::to_string(FLAGS_nrhs) + "\n";
-    if (rank == 0) {
+        std::to_string(FLAGS_nrhs);
+    if (do_print) {
         print_general_information(extra_information);
     }
 
@@ -136,17 +137,12 @@ int main(int argc, char* argv[])
   "optimal": {"spmv": "csr-csr"}]
 )"
                        : broadcast_json_input(get_input_stream(), comm);
-    rapidjson::Document test_cases;
-    test_cases.Parse(json_input.c_str());
+    auto test_cases = json::parse(json_input);
 
-    if (!test_cases.IsArray()) {
-        print_config_error_and_exit();
-    }
+    run_test_cases(SolverBenchmark<Generator>{Generator{comm}}, exec,
+                   get_mpi_timer(exec, comm, FLAGS_gpu_timer), test_cases);
 
-    run_solver_benchmarks(exec, get_mpi_timer(exec, comm, FLAGS_gpu_timer),
-                          test_cases, Generator(comm), rank == 0);
-
-    if (rank == 0) {
-        std::cout << test_cases << std::endl;
+    if (do_print) {
+        std::cout << std::setw(4) << test_cases << std::endl;
     }
 }

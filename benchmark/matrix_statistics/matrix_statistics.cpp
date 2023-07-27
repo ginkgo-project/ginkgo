@@ -38,9 +38,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 
+#include <ginkgo/core/base/executor.hpp>
+
+
 #include "benchmark/utils/general_matrix.hpp"
 #include "benchmark/utils/generator.hpp"
-#include "benchmark/utils/spmv_validation.hpp"
+#include "benchmark/utils/runner.hpp"
 #include "benchmark/utils/types.hpp"
 
 
@@ -51,9 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // See en.wikipedia.org/wiki/Five-number_summary
 // Quartile computation uses Method 3 from en.wikipedia.org/wiki/Quartile
-void compute_summary(const std::vector<gko::size_type>& dist,
-                     rapidjson::Value& out,
-                     rapidjson::MemoryPoolAllocator<>& allocator)
+void compute_summary(const std::vector<gko::size_type>& dist, json& out)
 {
     const auto q = dist.size() / 4;
     const auto r = dist.size() % 4;
@@ -72,23 +73,14 @@ void compute_summary(const std::vector<gko::size_type>& dist,
     };
     // clang-format on
 
-    add_or_set_member(out, "min", dist[0], allocator);
-    add_or_set_member(
-        out, "q1",
-        coefs[r][0] * static_cast<double>(dist[positions[r][0]]) +
-            coefs[r][1] * static_cast<double>(dist[positions[r][1]]),
-        allocator);
-    add_or_set_member(
-        out, "median",
-        coefs[r][2] * static_cast<double>(dist[positions[r][2]]) +
-            coefs[r][3] * static_cast<double>(dist[positions[r][3]]),
-        allocator);
-    add_or_set_member(
-        out, "q3",
-        coefs[r][4] * static_cast<double>(dist[positions[r][4]]) +
-            coefs[r][5] * static_cast<double>(dist[positions[r][5]]),
-        allocator);
-    add_or_set_member(out, "max", dist[dist.size() - 1], allocator);
+    out["min"] = dist.front();
+    out["q1"] = coefs[r][0] * static_cast<double>(dist[positions[r][0]]) +
+                coefs[r][1] * static_cast<double>(dist[positions[r][1]]);
+    out["median"] = coefs[r][2] * static_cast<double>(dist[positions[r][2]]) +
+                    coefs[r][3] * static_cast<double>(dist[positions[r][3]]);
+    out["q3"] = coefs[r][4] * static_cast<double>(dist[positions[r][4]]) +
+                coefs[r][5] * static_cast<double>(dist[positions[r][5]]);
+    out["max"] = dist.back();
 }
 
 
@@ -108,39 +100,30 @@ double compute_moment(int degree, const std::vector<gko::size_type>& dist,
 
 
 // See en.wikipedia.org/wiki/Moment_(mathematics)
-void compute_moments(const std::vector<gko::size_type>& dist,
-                     rapidjson::Value& out,
-                     rapidjson::MemoryPoolAllocator<>& allocator)
+void compute_moments(const std::vector<gko::size_type>& dist, json& out)
 {
     const auto mean = compute_moment(1, dist);
-    add_or_set_member(out, "mean", mean, allocator);
+    out["mean"] = mean;
     const auto variance = compute_moment(2, dist, mean);
-    add_or_set_member(out, "variance", variance, allocator);
+    out["variance"] = variance;
     const auto dev = std::sqrt(variance);
-    add_or_set_member(out, "skewness", compute_moment(3, dist, mean, dev),
-                      allocator);
-    add_or_set_member(out, "kurtosis", compute_moment(4, dist, mean, dev),
-                      allocator);
-    add_or_set_member(out, "hyperskewness", compute_moment(5, dist, mean, dev),
-                      allocator);
-    add_or_set_member(out, "hyperflatness", compute_moment(6, dist, mean, dev),
-                      allocator);
+    out["skewness"] = compute_moment(3, dist, mean, dev);
+    out["kurtosis"] = compute_moment(4, dist, mean, dev);
+    out["hyperskewness"] = compute_moment(5, dist, mean, dev);
+    out["hyperflatness"] = compute_moment(6, dist, mean, dev);
 }
 
 
-template <typename Allocator>
 void compute_distribution_properties(const std::vector<gko::size_type>& dist,
-                                     rapidjson::Value& out,
-                                     Allocator& allocator)
+                                     json& out)
 {
-    compute_summary(dist, out, allocator);
-    compute_moments(dist, out, allocator);
+    compute_summary(dist, out);
+    compute_moments(dist, out);
 }
 
 
-template <typename Allocator>
 void extract_matrix_statistics(gko::matrix_data<etype, gko::int64>& data,
-                               rapidjson::Value& problem, Allocator& allocator)
+                               json& problem)
 {
     std::vector<gko::size_type> row_dist(data.size[0]);
     std::vector<gko::size_type> col_dist(data.size[1]);
@@ -149,22 +132,73 @@ void extract_matrix_statistics(gko::matrix_data<etype, gko::int64>& data,
         ++col_dist[v.column];
     }
 
-    add_or_set_member(problem, "rows", data.size[0], allocator);
-    add_or_set_member(problem, "columns", data.size[1], allocator);
-    add_or_set_member(problem, "nonzeros", data.nonzeros.size(), allocator);
+    problem["rows"] = data.size[0];
+    problem["columns"] = data.size[1];
+    problem["nonzeros"] = data.nonzeros.size();
 
     std::sort(begin(row_dist), end(row_dist));
-    add_or_set_member(problem, "row_distribution",
-                      rapidjson::Value(rapidjson::kObjectType), allocator);
-    compute_distribution_properties(row_dist, problem["row_distribution"],
-                                    allocator);
+    problem["row_distribution"] = json::object();
+    compute_distribution_properties(row_dist, problem["row_distribution"]);
 
     std::sort(begin(col_dist), end(col_dist));
-    add_or_set_member(problem, "col_distribution",
-                      rapidjson::Value(rapidjson::kObjectType), allocator);
-    compute_distribution_properties(col_dist, problem["col_distribution"],
-                                    allocator);
+    problem["col_distribution"] = json::object();
+    compute_distribution_properties(col_dist, problem["col_distribution"]);
 }
+
+
+using Generator = DefaultSystemGenerator<etype, gko::int64>;
+
+
+struct MatrixStatistics : Benchmark<int> {
+    std::string name;
+    std::vector<std::string> empty;
+
+    MatrixStatistics() : name{"problem"} {}
+
+    const std::string& get_name() const override { return name; }
+
+    const std::vector<std::string>& get_operations() const override
+    {
+        return empty;
+    }
+
+    bool should_print() const override { return true; }
+
+    std::string get_example_config() const override
+    {
+        return Generator::get_example_config();
+    }
+
+    bool validate_config(const json& test_case) const override
+    {
+        return Generator::validate_config(test_case);
+    }
+
+    std::string describe_config(const json& test_case) const override
+    {
+        return Generator::describe_config(test_case);
+    }
+
+    int setup(std::shared_ptr<gko::Executor> exec,
+              json& test_case) const override
+    {
+        auto data = Generator::generate_matrix_data(test_case);
+        std::clog << "Matrix is of size (" << data.size[0] << ", "
+                  << data.size[1] << "), " << data.nonzeros.size() << std::endl;
+        test_case["rows"] = data.size[0];
+        test_case["cols"] = data.size[1];
+        test_case["nonzeros"] = data.nonzeros.size();
+
+        extract_matrix_statistics(data, test_case["problem"]);
+        return 0;
+    }
+
+
+    void run(std::shared_ptr<gko::Executor> exec, std::shared_ptr<Timer> timer,
+             int& data, const std::string& operation_name,
+             json& operation_case) const override
+    {}
+};
 
 
 int main(int argc, char* argv[])
@@ -172,49 +206,16 @@ int main(int argc, char* argv[])
     std::string header =
         "A utility that collects additional statistical properties of the "
         "matrix.\n";
-    std::string format = example_config;
+    std::string format = Generator::get_example_config();
     initialize_argument_parsing_matrix(&argc, &argv, header, format);
 
     std::clog << gko::version_info::get() << std::endl;
 
-    rapidjson::IStreamWrapper jcin(get_input_stream());
-    rapidjson::Document test_cases;
-    test_cases.ParseStream(jcin);
-    if (!test_cases.IsArray()) {
-        print_config_error_and_exit();
-    }
+    auto test_cases = json::parse(get_input_stream());
+    auto exec = gko::ReferenceExecutor::create();
 
-    auto& allocator = test_cases.GetAllocator();
+    run_test_cases(MatrixStatistics{}, exec, get_timer(exec, false),
+                   test_cases);
 
-    for (auto& test_case : test_cases.GetArray()) {
-        try {
-            // set up benchmark
-            validate_option_object(test_case);
-            if (!test_case.HasMember("problem")) {
-                test_case.AddMember("problem",
-                                    rapidjson::Value(rapidjson::kObjectType),
-                                    allocator);
-            }
-            auto& problem = test_case["problem"];
-
-            std::clog << "Running test case\n" << test_case << std::endl;
-
-            auto matrix =
-                DefaultSystemGenerator<etype, gko::int64>::generate_matrix_data(
-                    test_case);
-
-            std::clog << "Matrix is of size (" << matrix.size[0] << ", "
-                      << matrix.size[1] << ")" << std::endl;
-            add_or_set_member(test_case, "size", matrix.size[0], allocator);
-
-            extract_matrix_statistics(matrix, test_case["problem"], allocator);
-
-            backup_results(test_cases);
-        } catch (const std::exception& e) {
-            std::cerr << "Error extracting statistics, what(): " << e.what()
-                      << std::endl;
-        }
-    }
-
-    std::cout << test_cases << std::endl;
+    std::cout << std::setw(4) << test_cases << std::endl;
 }

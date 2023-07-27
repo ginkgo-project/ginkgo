@@ -10,22 +10,5 @@ Running test case
     "filename": "",
     "spmv": {}
 }
-Matrix is of size (36, 36)
-Current state:
-[
-    {
-        "filename": "",
-        "spmv": {
-            "coo": {
-                "storage": 3328,
-                "max_relative_norm2": 1.0,
-                "time": 1.0,
-                "repetitions": 10,
-                "completed": true
-            }
-        },
-        "size": 36,
-        "nnz": 208,
-        "optimal": {}
-    }
-]
+Matrix is of size (36, 36), 208
+	Running spmv: coo
