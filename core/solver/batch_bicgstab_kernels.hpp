@@ -181,6 +181,10 @@ StorageConfig compute_shared_storage(const int shared_mem_per_blk,
     const int num_vecs_shared = min(initial_vecs_available, num_main_vecs);
     sconf.n_shared += num_vecs_shared;
     sconf.n_global -= num_vecs_shared;
+    if (sconf.n_global > 0) {
+        set_gmem_stride_bytes<align_bytes>(sconf, vec_size, prec_storage);
+        return sconf;
+    }
     rem_shared -= num_vecs_shared * vec_size;
     if (rem_shared >= prec_storage) {
         sconf.prec_shared = true;
