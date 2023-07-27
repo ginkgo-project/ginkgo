@@ -479,8 +479,8 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
             std::shared_ptr<const gko::BatchLinOp> b_clone = clone(b);
 
             auto gen_logger = create_operations_logger(
-                FLAGS_nested_names, solver_json["generate"]["components"],
-                allocator, 1);
+                FLAGS_gpu_timer, FLAGS_nested_names, exec,
+                solver_json["generate"]["components"], allocator, 1);
             exec->add_logger(gen_logger);
             auto solver = generate_solver(exec, sol_name, prec_fact, scaling_op)
                               ->generate(mat_clone);
@@ -489,8 +489,8 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
             //                        allocator, 1);
 
             auto apply_logger = create_operations_logger(
-                FLAGS_nested_names, solver_json["apply"]["components"],
-                allocator, 1);
+                FLAGS_gpu_timer, FLAGS_nested_names, exec,
+                solver_json["apply"]["components"], allocator, 1);
             exec->add_logger(apply_logger);
 
             solver->apply(lend(b_clone), lend(x_clone));
@@ -615,9 +615,11 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
             }
         }
         add_or_set_member(solver_json["generate"], "time",
-                          generate_timer->compute_average_time(), allocator);
+                          generate_timer->compute_time(FLAGS_timer_method),
+                          allocator);
         add_or_set_member(solver_json["apply"], "time",
-                          apply_timer->compute_average_time(), allocator);
+                          apply_timer->compute_time(FLAGS_timer_method),
+                          allocator);
 
         // compute and write benchmark data
         add_or_set_member(solver_json, "completed", true, allocator);
