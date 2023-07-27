@@ -171,18 +171,13 @@ public:
     dim<2> get_common_size() const { return batch_size_.get_common_size(); }
 
     /**
-     * Returns a pointer to the array of values of the multi-vector for a
-     * specific batch entry.
-     *
-     * @param batch_id  the id of the batch entry.
+     * Returns a pointer to the array of values of the multi-vector
      *
      * @return the pointer to the array of values
      */
     value_type* get_values(size_type batch_id = 0) noexcept
     {
-        GKO_ASSERT(batch_id < this->get_num_batch_entries());
-        return values_.get_data() +
-               this->get_size().get_cumulative_offset(batch_id);
+        return values_.get_data();
     }
 
     /**
@@ -192,7 +187,35 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_values(size_type batch_id = 0) const noexcept
+    const value_type* get_const_values() const noexcept
+    {
+        return values_.get_const_data();
+    }
+
+    /**
+     * Returns a pointer to the array of values of the multi-vector for a
+     * specific batch entry.
+     *
+     * @param batch_id  the id of the batch entry.
+     *
+     * @return the pointer to the array of values
+     */
+    value_type* get_values_for_entry(size_type batch_id) noexcept
+    {
+        GKO_ASSERT(batch_id < this->get_num_batch_entries());
+        return values_.get_data() +
+               this->get_size().get_cumulative_offset(batch_id);
+    }
+
+    /**
+     * @copydoc get_values_at_entry(size_type)
+     *
+     * @note This is the constant version of the function, which can be
+     *       significantly more memory efficient than the non-constant version,
+     *       so always prefer this version.
+     */
+    const value_type* get_const_values_for_entry(
+        size_type batch_id) const noexcept
     {
         GKO_ASSERT(batch_id < this->get_num_batch_entries());
         return values_.get_const_data() +
