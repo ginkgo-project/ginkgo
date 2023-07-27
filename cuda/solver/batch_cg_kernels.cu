@@ -70,6 +70,10 @@ namespace batch_cg {
 #include "common/cuda_hip/matrix/batch_vector_kernels.hpp.inc"
 #include "common/cuda_hip/solver/batch_cg_kernels.hpp.inc"
 
+int get_larger_power(int value, int guess = 64)
+{
+    return guess >= value ? guess : get_larger_power(value, guess << 1);
+}
 
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
@@ -85,16 +89,16 @@ int get_num_threads_per_block(std::shared_ptr<const CudaExecutor> exec,
         ((std::max(num_rows, min_block_size)) / config::warp_size) *
         config::warp_size;
     cudaFuncAttributes funcattr;
-    cudaFuncGetAttributes(
-        &funcattr,
-        apply_kernel<StopType, PrecType, LogType, BatchMatrixType, ValueType>);
+    cudaFuncGetAttributes(&funcattr,
+                          apply_kernel<StopType, 5, true, PrecType, LogType,
+                                       BatchMatrixType, ValueType>);
     const int num_regs_used = funcattr.numRegs;
     int max_regs_blk = 0;
     cudaDeviceGetAttribute(&max_regs_blk, cudaDevAttrMaxRegistersPerBlock,
                            exec->get_device_id());
     const int max_threads_regs =
         ((max_regs_blk /
-          static_cast<int>((static_cast<double>(num_regs_used) * 1.1))) /
+          static_cast<int>((static_cast<double>(num_regs_used)))) /
          config::warp_size) *
         config::warp_size;
     int max_threads = std::min(max_threads_regs, device_max_threads);
@@ -121,12 +125,13 @@ int get_max_dynamic_shared_memory(std::shared_ptr<const CudaExecutor> exec,
     }
     // std::cerr << " Max shared pc required = " << max_shared_pc << std::endl;
     GKO_ASSERT_NO_CUDA_ERRORS(cudaFuncSetAttribute(
-        apply_kernel<StopType, PrecType, LogType, BatchMatrixType, ValueType>,
+        apply_kernel<StopType, 5, 1, PrecType, LogType, BatchMatrixType,
+                     ValueType>,
         cudaFuncAttributePreferredSharedMemoryCarveout, max_shared_pc - 1));
     cudaFuncAttributes funcattr;
-    cudaFuncGetAttributes(
-        &funcattr,
-        apply_kernel<StopType, PrecType, LogType, BatchMatrixType, ValueType>);
+    cudaFuncGetAttributes(&funcattr,
+                          apply_kernel<StopType, 5, 1, PrecType, LogType,
+                                       BatchMatrixType, ValueType>);
     // std::cerr << " Max dyn. shared memory for batch bcgs = ",
     //        << funcattr.maxDynamicSharedSizeBytes << std::endl;
     return funcattr.maxDynamicSharedSizeBytes;
@@ -147,6 +152,24 @@ public:
         : exec_{exec}, opts_{opts}
     {}
 
+    template <typename StopType, const int n_shared,
+              const bool prec_shared_bool, typename PrecType, typename LogType,
+              typename BatchMatrixType>
+    void launch_apply_kernel(const gko::kernels::batch_cg::StorageConfig& sconf,
+                             LogType& logger, PrecType& prec,
+                             const BatchMatrixType& a,
+                             const value_type* const __restrict__ b_values,
+                             value_type* const __restrict__ x_values,
+                             value_type* const __restrict__ workspace_data,
+                             const int& block_size,
+                             const size_t& shared_size) const
+    {
+        apply_kernel<StopType, n_shared, prec_shared_bool>
+            <<<a.num_batch, block_size, shared_size>>>(
+                sconf, opts_.max_its, opts_.residual_tol, logger, prec, a,
+                b_values, x_values, workspace_data);
+    }
+
     template <typename BatchMatrixType, typename PrecType, typename StopType,
               typename LogType>
     void call_kernel(LogType logger, const BatchMatrixType& a, PrecType prec,
@@ -159,7 +182,6 @@ public:
         const int shared_gap =
             ((a.num_rows - 1) / align_multiple + 1) * align_multiple;
         gko::kernels::cuda::configure_shared_memory_banks<value_type>();
-
         const int shmem_per_blk =
             get_max_dynamic_shared_memory<StopType, PrecType, LogType,
                                           BatchMatrixType, value_type>(exec_,
@@ -185,26 +207,45 @@ public:
             exec_, sconf.gmem_stride_bytes * nbatch / sizeof(value_type));
         assert(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
 
-        // std::cerr << " CG: vectors in shared memory = " << sconf.n_shared
-        //           << "\n";
-        // if (sconf.prec_shared) {
-        //     std::cerr << " CG: precondiioner is in shared memory.\n";
-        // }
-        // std::cerr << " CG: vectors in global memory = " << sconf.n_global
-        //           << "\n CUDA: number of threads per warp = "
-        //           << config::warp_size
-        //           << "\n CG: number of threads per block = " << block_size
-        //           << "\n";
+        value_type* const workspace_data = workspace.get_data();
 
-        if (sconf.n_global == 0) {
-            assert(sconf.gmem_stride_bytes == 0);
-            small_apply_kernel<StopType><<<nbatch, block_size, shared_size>>>(
-                sconf, opts_.max_its, opts_.residual_tol, logger, prec, a,
-                b.values, x.values);
-        } else {
-            apply_kernel<StopType><<<nbatch, block_size, shared_size>>>(
-                sconf, opts_.max_its, opts_.residual_tol, logger, prec, a,
-                b.values, x.values, workspace.get_data());
+        if (sconf.prec_shared)
+            launch_apply_kernel<StopType, 5, 1>(
+                sconf, logger, prec, a, b.values, x.values, workspace_data,
+                block_size, shared_size);
+        else {
+            switch (sconf.n_shared) {
+            case 0:
+                launch_apply_kernel<StopType, 0, 0>(
+                    sconf, logger, prec, a, b.values, x.values, workspace_data,
+                    block_size, shared_size);
+                break;
+            case 1:
+                launch_apply_kernel<StopType, 1, 0>(
+                    sconf, logger, prec, a, b.values, x.values, workspace_data,
+                    block_size, shared_size);
+                break;
+            case 2:
+                launch_apply_kernel<StopType, 2, 0>(
+                    sconf, logger, prec, a, b.values, x.values, workspace_data,
+                    block_size, shared_size);
+                break;
+            case 3:
+                launch_apply_kernel<StopType, 3, 0>(
+                    sconf, logger, prec, a, b.values, x.values, workspace_data,
+                    block_size, shared_size);
+                break;
+            case 4:
+                launch_apply_kernel<StopType, 4, 0>(
+                    sconf, logger, prec, a, b.values, x.values, workspace_data,
+                    block_size, shared_size);
+                break;
+            case 5:
+                launch_apply_kernel<StopType, 5, 0>(
+                    sconf, logger, prec, a, b.values, x.values, workspace_data,
+                    block_size, shared_size);
+                break;
+            }
         }
 
         GKO_CUDA_LAST_IF_ERROR_THROW;
