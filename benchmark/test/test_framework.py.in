@@ -22,13 +22,26 @@ denumberify_paths = [
     "rhs_norm",
     "max_relative_norm2",
 ]
-empty_string_paths = ["error", "filename"]
+detypenameify_key_starts = ["generate(", "apply(", "advanced_apply(", "copy(", "check("]
+empty_string_paths = ["filename"]
 empty_array_paths = [
     "recurrent_residuals",
     "true_residuals",
     "implicit_residuals",
     "iteration_timestamps",
 ]
+
+
+def sanitize_json_key(key: str):
+    """Applies sanitation to a single key.
+
+    Strings that start with a name in detypenameify_key_starts will be truncated
+    """
+
+    for start in detypenameify_key_starts:
+        if key.startswith(start):
+            return start + "<typename>)"
+    return key
 
 
 def sanitize_json_key_value(key: str, value, sanitize_all: bool):
@@ -59,7 +72,7 @@ def sanitize_json(parsed_input, sanitize_all: bool = False):
 
     if isinstance(parsed_input, dict):
         return {
-            key: sanitize_json_key_value(key, value, sanitize_all)
+            sanitize_json_key(key): sanitize_json_key_value(key, value, sanitize_all)
             for key, value in parsed_input.items()
         }
     elif isinstance(parsed_input, list):
@@ -70,40 +83,15 @@ def sanitize_json(parsed_input, sanitize_all: bool = False):
         return parsed_input
 
 
-def sanitize_json_in_text(lines: List[str]) -> List[str]:
-    """Sanitizes all occurrences of JSON content inside text input.
+def determinize_json_text(input: str) -> List[str]:
+    """Sanitizes the given input JSON string.
 
-    Takes a list of text lines and detects any pretty-printed JSON output inside
-    (recognized by a single [, {, } or ] in an otherwise empty line).
-    The JSON output will be parsed and sanitized through sanitize_json(...)
+    The JSON values will be parsed and sanitized through sanitize_json(...)
     and pretty-printed to replace the original JSON input.
-    The function returns the resulting output.
     """
 
-    json_begins = [i for i, l in enumerate(lines) if l in ["[", "{"]]
-    json_ends = [i + 1 for i, l in enumerate(lines) if l in ["]", "}"]]
-    json_pairs = list(zip(json_begins, json_ends))
-    if len(json_pairs) == 0:
-        return lines
-    assert all(begin < end for begin, end in json_pairs)
-    nonjson_pairs = (
-        [(0, json_begins[0])]
-        + list(zip(json_ends[:-1], json_begins[1:]))
-        + [(json_ends[-1], len(lines))]
-    )
-    combined_pairs = sorted(
-        [(begin, end, False) for begin, end in nonjson_pairs]
-        + [(begin, end, True) for begin, end in json_pairs]
-    )
-    texts = [
-        ("\n".join(lines[begin:end]), do_sanitize)
-        for begin, end, do_sanitize in combined_pairs
-    ]
-    reconstructed = [
-        json.dumps(sanitize_json(json.loads(t)), indent=4) if do_sanitize else t
-        for t, do_sanitize in texts
-    ]
-    return "\n".join(reconstructed).split("\n")
+    result = json.dumps(sanitize_json(json.loads(input)), indent=4)
+    return result.splitlines()
 
 
 def determinize_text(
@@ -116,9 +104,6 @@ def determinize_text(
     Every input line matching an entry from ignore_patterns will be removed.
     Every line matching the first string in an entry from replace_patterns
     will be replaced by the second string.
-    Finally, the text will be passed to sanitize_json_in_text, which removes
-    nondeterministic parts from JSON objects/arrays in the input,
-    if it can be parsed correctly.
     The output is guaranteed to end with an empty line.
     """
 
@@ -137,10 +122,7 @@ def determinize_text(
             output_lines.append(line)
     if len(output_lines) == 0 or output_lines[-1] != "":
         output_lines.append("")
-    try:
-        return sanitize_json_in_text(output_lines)
-    except json.decoder.JSONDecodeError:
-        return output_lines
+    return output_lines
 
 
 def compare_output_impl(
@@ -173,13 +155,7 @@ def compare_output_impl(
     ]
     if generate:
         open(expected_stdout, "w").write(
-            "\n".join(
-                determinize_text(
-                    result.stdout.decode(),
-                    ignore_patterns=[],
-                    replace_patterns=typename_patterns,
-                )
-            )
+            "\n".join(determinize_json_text(result.stdout.decode()))
         )
         open(expected_stderr, "w").write(
             "\n".join(
@@ -192,19 +168,13 @@ def compare_output_impl(
         )
         print("GENERATED")
         return
-    result_stdout_processed = determinize_text(
-        result.stdout.decode(), ignore_patterns=[], replace_patterns=typename_patterns
-    )
+    result_stdout_processed = determinize_json_text(result.stdout.decode())
     result_stderr_processed = determinize_text(
         result.stderr.decode(),
         ignore_patterns=version_patterns,
         replace_patterns=typename_patterns,
     )
-    expected_stdout_processed = determinize_text(
-        open(expected_stdout).read(),
-        ignore_patterns=[],
-        replace_patterns=typename_patterns,
-    )
+    expected_stdout_processed = determinize_json_text(open(expected_stdout).read())
     expected_stderr_processed = determinize_text(
         open(expected_stderr).read(),
         ignore_patterns=version_patterns,
