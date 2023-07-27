@@ -397,6 +397,33 @@ TYPED_TEST(BatchMultiVector, CanBeReadFromMatrixData)
 }
 
 
+TYPED_TEST(BatchMultiVector, CanBeReadFromSparseMatrixData)
+{
+    using value_type = typename TestFixture::value_type;
+    auto m = gko::BatchMultiVector<TypeParam>::create(this->exec);
+    // clang-format off
+    m->read({gko::matrix_data<TypeParam>{{2, 2},
+                                         {{0, 0, 1.0},
+                                          {0, 1, 3.0},
+                                          {1, 1, 5.0}}},
+             gko::matrix_data<TypeParam>{{2, 2},
+                                         {{0, 0, -1.0},
+                                          {0, 1, 0.5},
+                                          {1, 1, 9.0}}}});
+    // clang-format on
+
+    ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 2));
+    EXPECT_EQ(m->at(0, 0, 0), value_type{1.0});
+    EXPECT_EQ(m->at(0, 0, 1), value_type{3.0});
+    EXPECT_EQ(m->at(0, 1, 0), value_type{0.0});
+    EXPECT_EQ(m->at(0, 1, 1), value_type{5.0});
+    EXPECT_EQ(m->at(1, 0, 0), value_type{-1.0});
+    EXPECT_EQ(m->at(1, 0, 1), value_type{0.5});
+    EXPECT_EQ(m->at(1, 1, 0), value_type{0.0});
+    EXPECT_EQ(m->at(1, 1, 1), value_type{9.0});
+}
+
+
 TYPED_TEST(BatchMultiVector, GeneratesCorrectMatrixData)
 {
     using value_type = typename TestFixture::value_type;
@@ -421,34 +448,4 @@ TYPED_TEST(BatchMultiVector, GeneratesCorrectMatrixData)
     EXPECT_EQ(data[1].nonzeros[3], tpl(1, 0, value_type{1.0}));
     EXPECT_EQ(data[1].nonzeros[4], tpl(1, 1, value_type{2.0}));
     EXPECT_EQ(data[1].nonzeros[5], tpl(1, 2, value_type{3.0}));
-}
-
-
-TYPED_TEST(BatchMultiVector, CanBeReadFromMatrixAssemblyData)
-{
-    using value_type = typename TestFixture::value_type;
-    auto m = gko::BatchMultiVector<TypeParam>::create(this->exec);
-    gko::matrix_assembly_data<TypeParam> data1(gko::dim<2>{2, 2});
-    data1.set_value(0, 0, 1.0);
-    data1.set_value(0, 1, 3.0);
-    data1.set_value(1, 0, 0.0);
-    data1.set_value(1, 1, 5.0);
-    gko::matrix_assembly_data<TypeParam> data2(gko::dim<2>{2, 2});
-    data2.set_value(0, 0, 2.0);
-    data2.set_value(0, 1, 1.0);
-    data2.set_value(1, 0, 5.0);
-    data2.set_value(1, 1, 4.0);
-    auto data = std::vector<gko::matrix_assembly_data<TypeParam>>{data1, data2};
-
-    m->read(data);
-
-    ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 2));
-    EXPECT_EQ(m->at(0, 0, 0), value_type{1.0});
-    EXPECT_EQ(m->at(0, 1, 0), value_type{0.0});
-    EXPECT_EQ(m->at(0, 0, 1), value_type{3.0});
-    EXPECT_EQ(m->at(0, 1, 1), value_type{5.0});
-    EXPECT_EQ(m->at(1, 0, 0), value_type{2.0});
-    EXPECT_EQ(m->at(1, 1, 0), value_type{5.0});
-    EXPECT_EQ(m->at(1, 0, 1), value_type{1.0});
-    EXPECT_EQ(m->at(1, 1, 1), value_type{4.0});
 }

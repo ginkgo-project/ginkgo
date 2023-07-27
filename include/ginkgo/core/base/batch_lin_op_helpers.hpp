@@ -75,24 +75,6 @@ public:
      */
     virtual void read(
         const std::vector<matrix_data<ValueType, IndexType>>& data) = 0;
-
-    /**
-     * Reads a matrix from a std::vector of matrix_assembly_data objects.
-     *
-     * @param data  the std::vector of matrix_assembly_data objects
-     */
-    void read(const std::vector<matrix_assembly_data<ValueType, IndexType>>&
-                  assembly_data)
-    {
-        auto mat_data = std::vector<matrix_data<ValueType, IndexType>>(
-            assembly_data.size());
-        size_type ind = 0;
-        for (const auto& i : assembly_data) {
-            mat_data[ind] = i.get_ordered_data();
-            ++ind;
-        }
-        this->read(mat_data);
-    }
 };
 
 

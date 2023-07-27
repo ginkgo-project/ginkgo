@@ -269,12 +269,8 @@ void read_impl(MatrixType* mtx, const std::vector<MatrixData>& data)
         MatrixType::create(mtx->get_executor()->get_master(), batch_size);
     tmp->fill(zero<typename MatrixType::value_type>());
     for (size_type b = 0; b < data.size(); ++b) {
-        size_type ind = 0;
-        for (size_type row = 0; row < data[b].size[0]; ++row) {
-            for (size_type col = 0; col < data[b].size[1]; ++col) {
-                tmp->at(b, row, col) = data[b].nonzeros[ind].value;
-                ++ind;
-            }
+        for (const auto& elem : data[b].nonzeros) {
+            tmp->at(b, elem.row, elem.column) = elem.value;
         }
     }
     tmp->move_to(mtx);
