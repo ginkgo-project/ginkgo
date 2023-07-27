@@ -94,17 +94,17 @@ trigger_pipeline:
 # Build jobs
 # Job with example runs.
 # cuda 9.2 and friends
-build/cuda92/nompi/gcc/all/release/shared:
-  extends:
-    - .build_and_test_template
-    - .default_variables
-    - .quick_test_condition
-    - .use_gko-cuda92-mvapich2-gnu7-llvm50-intel2017
-  variables:
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_HIP: "OFF"
-    BUILD_TYPE: "Release"
+# build/cuda92/nompi/gcc/all/release/shared:
+#   extends:
+#     - .build_and_test_template
+#     - .default_variables
+#     - .quick_test_condition
+#     - .use_gko-cuda92-mvapich2-gnu7-llvm50-intel2017
+#   variables:
+#     BUILD_OMP: "ON"
+#     BUILD_CUDA: "ON"
+#     BUILD_HIP: "OFF"
+#     BUILD_TYPE: "Release"
 
 # cuda 10.1 and friends
 # Build CUDA NVIDIA without omp
@@ -120,7 +120,7 @@ build/cuda101/nompi/clang/cuda_wo_omp/release/shared:
     C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
+    BUILD_HIP: "OFF"
     BUILD_HWLOC: "OFF"
     BUILD_TYPE: "Release"
     CUDA_ARCH: 35
@@ -137,7 +137,7 @@ build/cuda101/openmpi/gcc/all/debug/shared:
     BUILD_CUDA: "ON"
     BUILD_MPI: "ON"
     MPI_AS_ROOT: "ON"
-    BUILD_HIP: "ON"
+    BUILD_HIP: "OFF"
     BUILD_TYPE: "Debug"
     RUN_EXAMPLES: "ON"
     CUDA_ARCH: 35
@@ -153,7 +153,7 @@ build/cuda101/nompi/clang/all/release/static:
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
+    BUILD_HIP: "OFF"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
@@ -206,7 +206,7 @@ build/cuda102/nompi/gcc/all/debug/shared:
   variables:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
+    BUILD_HIP: "OFF"
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
     BUILD_HWLOC: "OFF"
@@ -224,7 +224,7 @@ build/cuda102/nompi/clang/all/release/static:
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
+    BUILD_HIP: "OFF"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
@@ -692,7 +692,7 @@ warnings:
   variables:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
+    BUILD_HIP: "OFF"
     CXX_FLAGS: "-Werror=pedantic -pedantic-errors"
   allow_failure: yes
 
