@@ -50,6 +50,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
+#ifndef GKO_COMPILING_DPCPP
+
+
 namespace {
 
 
@@ -172,9 +175,7 @@ TEST_F(BatchCg, CoreSolvesSystemJacobi)
             .with_default_max_iterations(100)
             .with_default_residual_tol(1e-6f)
             .with_preconditioner(
-                gko::preconditioner::BatchJacobi<value_type>::build()
-                    .with_max_block_size(1u)
-                    .on(exec))
+                gko::preconditioner::BatchJacobi<value_type>::build().on(exec))
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .on(exec);
     const int nrhs_1 = 1;
@@ -280,9 +281,8 @@ TEST_F(BatchCg, CanSolveCsrSystemWithoutScaling)
             .with_default_max_iterations(maxits)
             .with_default_residual_tol(tol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-            .with_preconditioner(gko::preconditioner::BatchJacobi<T>::build()
-                                     .with_max_block_size(1u)
-                                     .on(exec))
+            .with_preconditioner(
+                gko::preconditioner::BatchJacobi<T>::build().on(exec))
             .on(exec);
     const int nrows = 28;
     const size_t nbatch = 3;
@@ -292,5 +292,47 @@ TEST_F(BatchCg, CanSolveCsrSystemWithoutScaling)
                                        batchcg_factory.get(), 10);
 }
 
+TEST_F(BatchCg, SolvesLargeCsrSystemEquivalentToReference)
+{
+    using value_type = double;
+    using real_type = double;
+    using mtx_type = gko::matrix::BatchCsr<value_type, int>;
+    using solver_type = gko::solver::BatchCg<value_type>;
+    const float solver_restol = 1e-4;
+    auto r_sys = gko::test::generate_solvable_batch_system<mtx_type>(
+        ref, 2, 990, 1, false);
+    auto r_jac_factory = gko::share(
+    gko::preconditioner::BatchJacobi<value_type>::build()
+    .with_max_block_size(1u)
+    .on(ref));
+    auto d_jac_factory = gko::share(
+    gko::preconditioner::BatchJacobi<value_type>::build()
+    .with_max_block_size(1u)
+    .on(exec));
+    auto r_factory =
+        solver_type::build()
+            .with_default_max_iterations(500)
+            .with_default_residual_tol(solver_restol)
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .with_preconditioner(r_jac_factory)
+            .on(ref);
+    auto d_factory =
+        solver_type::build()
+            .with_default_max_iterations(500)
+            .with_default_residual_tol(solver_restol)
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .with_preconditioner(d_jac_factory)
+            .on(exec);
+    const double iter_tol = 0.01;
+    const double res_tol = 1e-9;
+    const double sol_tol = 10 * solver_restol;
+
+    gko::test::compare_with_reference<value_type, solver_type>(
+        exec, r_sys, r_factory.get(), d_factory.get(), iter_tol, res_tol,
+        sol_tol);
+}
 
 }  // namespace
+
+
+#endif
