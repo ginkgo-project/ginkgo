@@ -120,6 +120,14 @@ struct batch_dim {
 
 
     /**
+     * The default empty constructor
+     */
+    batch_dim()
+        : common_size_(dim<dimensionality, dimension_type>{}),
+          num_batch_entries_(0)
+    {}
+
+    /**
      * Creates a batch_dim object which stores a uniform size for all batch
      * entries.
      *
@@ -128,9 +136,8 @@ struct batch_dim {
      *
      * @note  Use this constructor when uniform batches need to be stored.
      */
-    explicit batch_dim(const size_type num_batch_entries = 0,
-                       const dim<dimensionality, dimension_type>& common_size =
-                           dim<dimensionality, dimension_type>{})
+    explicit batch_dim(const size_type num_batch_entries,
+                       const dim<dimensionality, dimension_type>& common_size)
         : common_size_(common_size), num_batch_entries_(num_batch_entries)
     {}
 
@@ -154,7 +161,7 @@ inline batch_dim<2, DimensionType> transpose(
     const batch_dim<2, DimensionType>& input)
 {
     return batch_dim<2, DimensionType>(input.get_num_batch_entries(),
-                                       gko::transpose(input.get_common_size()));
+                                       transpose(input.get_common_size()));
 }
 
 

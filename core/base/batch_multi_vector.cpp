@@ -65,6 +65,85 @@ GKO_REGISTER_OPERATION(copy, batch_multi_vector::copy);
 }  // namespace
 }  // namespace batch_multi_vector
 
+namespace detail {
+
+
+template <typename ValueType>
+batch_dim<2> compute_batch_size(
+    const std::vector<matrix::Dense<ValueType>*>& matrices)
+{
+    auto common_size = matrices[0]->get_size();
+    for (size_type i = 1; i < matrices.size(); ++i) {
+        GKO_ASSERT_EQUAL_DIMENSIONS(common_size, matrices[i]->get_size());
+    }
+    return batch_dim<2>{matrices.size(), common_size};
+}
+
+
+}  // namespace detail
+
+
+template <typename ValueType>
+BatchMultiVector<ValueType>::BatchMultiVector(
+    std::shared_ptr<const Executor> exec, const batch_dim<2>& size)
+    : EnablePolymorphicObject<BatchMultiVector<ValueType>>(exec),
+      batch_size_(size),
+      values_(exec, compute_num_elems(size))
+{}
+
+
+template <typename ValueType>
+BatchMultiVector<ValueType>::BatchMultiVector(
+    std::shared_ptr<const Executor> exec,
+    const std::vector<matrix::Dense<ValueType>*>& matrices)
+    : EnablePolymorphicObject<BatchMultiVector<ValueType>>(exec),
+      batch_size_{detail::compute_batch_size(matrices)},
+      values_(exec, compute_num_elems(batch_size_))
+{
+    for (size_type i = 0; i < this->get_num_batch_entries(); ++i) {
+        auto local_exec = matrices[i]->get_executor();
+        exec->copy_from(
+            local_exec.get(), matrices[i]->get_num_stored_elements(),
+            matrices[i]->get_const_values(),
+            this->get_values() + this->get_size().get_cumulative_offset(i));
+    }
+}
+
+
+template <typename ValueType>
+BatchMultiVector<ValueType>::BatchMultiVector(
+    std::shared_ptr<const Executor> exec, size_type num_duplications,
+    const matrix::Dense<value_type>* input)
+    : BatchMultiVector<ValueType>(
+          exec, batch_dim<2>(num_duplications, input->get_size()))
+{
+    size_type offset = 0;
+    for (size_type i = 0; i < num_duplications; ++i) {
+        exec->copy_from(input->get_executor().get(),
+                        input->get_num_stored_elements(),
+                        input->get_const_values(), this->get_values() + offset);
+        offset += input->get_num_stored_elements();
+    }
+}
+
+
+template <typename ValueType>
+BatchMultiVector<ValueType>::BatchMultiVector(
+    std::shared_ptr<const Executor> exec, size_type num_duplications,
+    const BatchMultiVector<value_type>* input)
+    : BatchMultiVector<ValueType>(
+          exec, batch_dim<2>(input->get_num_batch_entries() * num_duplications,
+                             input->get_common_size()))
+{
+    size_type offset = 0;
+    for (size_type i = 0; i < num_duplications; ++i) {
+        exec->copy_from(input->get_executor().get(),
+                        input->get_num_stored_elements(),
+                        input->get_const_values(), this->get_values() + offset);
+        offset += input->get_num_stored_elements();
+    }
+}
+
 
 template <typename ValueType>
 std::unique_ptr<BatchMultiVector<ValueType>>
@@ -102,12 +181,12 @@ template <typename ValueType>
 std::unique_ptr<const BatchMultiVector<ValueType>>
 BatchMultiVector<ValueType>::create_const(
     std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
-    gko::detail::const_array_view<ValueType>&& values)
+    detail::const_array_view<ValueType>&& values)
 {
     // cast const-ness away, but return a const object afterwards,
     // so we can ensure that no modifications take place.
     return std::unique_ptr<const BatchMultiVector>(new BatchMultiVector{
-        exec, sizes, gko::detail::array_const_cast(std::move(values))});
+        exec, sizes, detail::array_const_cast(std::move(values))});
 }
 
 
@@ -285,7 +364,7 @@ void BatchMultiVector<ValueType>::read(const std::vector<mat_data>& data)
 
 
 template <typename ValueType>
-void BatchMultiVector<ValueType>::read(const std::vector<mat_data32>& data)
+void BatchMultiVector<ValueType>::read(const std::vector<mat_data64>& data)
 {
     read_impl(this, data);
 }
@@ -320,7 +399,7 @@ void BatchMultiVector<ValueType>::write(std::vector<mat_data>& data) const
 
 
 template <typename ValueType>
-void BatchMultiVector<ValueType>::write(std::vector<mat_data32>& data) const
+void BatchMultiVector<ValueType>::write(std::vector<mat_data64>& data) const
 {
     write_impl(this, data);
 }
