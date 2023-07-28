@@ -59,7 +59,6 @@ protected:
     using Mtx = gko::BatchMultiVector<value_type>;
     using DenseMtx = gko::matrix::Dense<value_type>;
     using ComplexMtx = gko::to_complex<Mtx>;
-    using RealMtx = gko::remove_complex<Mtx>;
     BatchMultiVector()
         : exec(gko::ReferenceExecutor::create()),
           mtx_0(gko::batch_initialize<Mtx>(
@@ -124,7 +123,7 @@ protected:
     std::unique_ptr<Mtx> mtx_5;
     std::unique_ptr<Mtx> mtx_6;
 
-    std::ranlux48 rand_engine;
+    std::default_random_engine rand_engine;
 };
 
 TYPED_TEST_SUITE(BatchMultiVector, gko::test::ValueTypes);
@@ -165,7 +164,7 @@ TYPED_TEST(BatchMultiVector, ScalesDataWithScalar)
 }
 
 
-TYPED_TEST(BatchMultiVector, ScalesDataWithStride)
+TYPED_TEST(BatchMultiVector, ScalesDataWithMultipleScalars)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
@@ -261,14 +260,11 @@ TYPED_TEST(BatchMultiVector, ComputeDotFailsOnWrongInputSize)
 TYPED_TEST(BatchMultiVector, ComputeDotFailsOnWrongResultSize)
 {
     using Mtx = typename TestFixture::Mtx;
+
     auto result =
-        Mtx::create(this->exec, gko::batch_dim<2>(2, gko::dim<2>{1, 2}));
-    auto result2 =
         Mtx::create(this->exec, gko::batch_dim<2>(2, gko::dim<2>{1, 2}));
 
     ASSERT_THROW(this->mtx_0->compute_dot(this->mtx_1.get(), result.get()),
-                 gko::DimensionMismatch);
-    ASSERT_THROW(this->mtx_0->compute_dot(this->mtx_1.get(), result2.get()),
                  gko::DimensionMismatch);
 }
 
@@ -305,16 +301,12 @@ TYPED_TEST(BatchMultiVector, ComputeConjDotFailsOnWrongInputSize)
 TYPED_TEST(BatchMultiVector, ComputeConjDotFailsOnWrongResultSize)
 {
     using Mtx = typename TestFixture::Mtx;
+
     auto result =
-        Mtx::create(this->exec, gko::batch_dim<2>(2, gko::dim<2>{1, 2}));
-    auto result2 =
         Mtx::create(this->exec, gko::batch_dim<2>(2, gko::dim<2>{1, 2}));
 
     ASSERT_THROW(this->mtx_0->compute_conj_dot(this->mtx_1.get(), result.get()),
                  gko::DimensionMismatch);
-    ASSERT_THROW(
-        this->mtx_0->compute_conj_dot(this->mtx_1.get(), result2.get()),
-        gko::DimensionMismatch);
 }
 
 

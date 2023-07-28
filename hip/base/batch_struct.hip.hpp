@@ -51,7 +51,7 @@ namespace hip {
 /** @file batch_struct.hpp
  *
  * Helper functions to generate a batch struct from a batch LinOp,
- * while also shallow-casting to the requried Hip scalar type.
+ * while also shallow-casting to the required Hip scalar type.
  *
  * A specialization is needed for every format of every kind of linear algebra
  * object. These are intended to be called on the host.

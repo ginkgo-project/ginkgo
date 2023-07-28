@@ -89,6 +89,7 @@ class BatchMultiVector
     friend class EnableCreateMethod<BatchMultiVector>;
     friend class EnablePolymorphicObject<BatchMultiVector>;
     friend class BatchMultiVector<to_complex<ValueType>>;
+    friend class BatchMultiVector<next_precision<ValueType>>;
 
 public:
     using BatchReadableFromMatrixData<ValueType, int32>::read;
@@ -102,12 +103,10 @@ public:
     using value_type = ValueType;
     using index_type = int32;
     using unbatch_type = matrix::Dense<ValueType>;
-    using mat_data = gko::matrix_data<ValueType, int64>;
-    using mat_data32 = gko::matrix_data<ValueType, int32>;
+    using mat_data = matrix_data<ValueType, int32>;
+    using mat_data64 = matrix_data<ValueType, int64>;
     using absolute_type = remove_complex<BatchMultiVector<ValueType>>;
     using complex_type = to_complex<BatchMultiVector<ValueType>>;
-
-    using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
 
     /**
      * Creates a BatchMultiVector with the configuration of another
@@ -118,8 +117,6 @@ public:
     static std::unique_ptr<BatchMultiVector> create_with_config_of(
         ptr_param<const BatchMultiVector> other);
 
-    friend class BatchMultiVector<next_precision<ValueType>>;
-
     void convert_to(
         BatchMultiVector<next_precision<ValueType>>* result) const override;
 
@@ -127,11 +124,11 @@ public:
 
     void read(const std::vector<mat_data>& data) override;
 
-    void read(const std::vector<mat_data32>& data) override;
+    void read(const std::vector<mat_data64>& data) override;
 
     void write(std::vector<mat_data>& data) const override;
 
-    void write(std::vector<mat_data32>& data) const override;
+    void write(std::vector<mat_data64>& data) const override;
 
     /**
      * Unbatches the batched multi-vector and creates a std::vector of Dense
@@ -175,13 +172,10 @@ public:
      *
      * @return the pointer to the array of values
      */
-    value_type* get_values(size_type batch_id = 0) noexcept
-    {
-        return values_.get_data();
-    }
+    value_type* get_values() noexcept { return values_.get_data(); }
 
     /**
-     * @copydoc get_values(size_type)
+     * @copydoc get_values()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
@@ -224,10 +218,10 @@ public:
 
     /**
      * Returns the number of elements explicitly stored in the batch matrix,
-     * cumulative across all the batches.
+     * cumulative across all the batch entries.
      *
      * @return the number of elements explicitly stored in the vector,
-     *         cumulative across all the batches
+     *         cumulative across all the batch entries
      */
     size_type get_num_stored_elements() const noexcept
     {
@@ -235,7 +229,7 @@ public:
     }
 
     /**
-     * Returns a single element for a particular batch.
+     * Returns a single element for a particular batch entry.
      *
      * @param batch  the batch index to be queried
      * @param row  the row of the requested element
@@ -267,24 +261,24 @@ public:
      * However, it is less efficient than the two-parameter variant of this
      * method.
      *
-     * @param batch  the batch index to be queried
+     * @param batch_id  the batch entry index to be queried
      * @param idx  a linear index of the requested element
      *
      * @note  the method has to be called on the same Executor the vector is
      *        stored at (e.g. trying to call this method on a GPU multi-vector
      *        from the OMP results in a runtime error)
      */
-    ValueType& at(size_type batch, size_type idx) noexcept
+    ValueType& at(size_type batch_id, size_type idx) noexcept
     {
-        return values_.get_data()[linearize_index(batch, idx)];
+        return values_.get_data()[linearize_index(batch_id, idx)];
     }
 
     /**
      * @copydoc BatchMultiVector::at(size_type, size_type, size_type)
      */
-    ValueType at(size_type batch, size_type idx) const noexcept
+    ValueType at(size_type batch_id, size_type idx) const noexcept
     {
-        return values_.get_const_data()[linearize_index(batch, idx)];
+        return values_.get_const_data()[linearize_index(batch_id, idx)];
     }
 
     /**
@@ -374,21 +368,10 @@ public:
     void fill(ValueType value);
 
 private:
-    inline batch_dim<2> compute_batch_size(
-        const std::vector<matrix::Dense<ValueType>*>& matrices)
-    {
-        auto common_size = matrices[0]->get_size();
-        for (int i = 1; i < matrices.size(); ++i) {
-            GKO_ASSERT_EQUAL_DIMENSIONS(common_size, matrices[i]->get_size());
-        }
-        return batch_dim<2>{matrices.size(), common_size};
-    }
-
     inline size_type compute_num_elems(const batch_dim<2>& size)
     {
         return size.get_cumulative_offset(size.get_num_batch_entries());
     }
-
 
 protected:
     /**
@@ -403,14 +386,10 @@ protected:
      * size.
      *
      * @param exec  Executor associated to the vector
-     * @param size  size of the vector
+     * @param size  size of the batch multi vector
      */
     BatchMultiVector(std::shared_ptr<const Executor> exec,
-                     const batch_dim<2>& size = batch_dim<2>{})
-        : EnablePolymorphicObject<BatchMultiVector<ValueType>>(exec),
-          batch_size_(size),
-          values_(exec, compute_num_elems(size))
-    {}
+                     const batch_dim<2>& size = batch_dim<2>{});
 
     /**
      * Creates a BatchMultiVector from an already allocated (and
@@ -446,24 +425,12 @@ protected:
      *
      * @note This is a utility function that can serve as a first step to port
      * to batched data-structures and solvers. Even if the matrices are in
-     * device memory, this method can have siginificant overhead, as new
+     * device memory, this method can have significant overhead, as new
      * allocations and deep copies are necessary and hence this constructor must
      * not be used in performance sensitive applications
      */
     BatchMultiVector(std::shared_ptr<const Executor> exec,
-                     const std::vector<matrix::Dense<ValueType>*>& matrices)
-        : EnablePolymorphicObject<BatchMultiVector<ValueType>>(exec),
-          batch_size_{compute_batch_size(matrices)},
-          values_(exec, compute_num_elems(batch_size_))
-    {
-        for (size_type i = 0; i < this->get_num_batch_entries(); ++i) {
-            auto local_exec = matrices[i]->get_executor();
-            exec->copy_from(
-                local_exec.get(), matrices[i]->get_num_stored_elements(),
-                matrices[i]->get_const_values(),
-                this->get_values() + this->get_size().get_cumulative_offset(i));
-        }
-    }
+                     const std::vector<matrix::Dense<ValueType>*>& matrices);
 
     /**
      * Creates a BatchMultiVector matrix by duplicating BatchMultiVector object
@@ -474,26 +441,13 @@ protected:
      *
      * @note This is a utility function that can serve as a first step to port
      * to batched data-structures and solvers. Even if the matrices are in
-     * device memory, this method can have siginificant overhead, as new
+     * device memory, this method can have significant overhead, as new
      * allocations and deep copies are necessary and hence this constructor must
      * not be used in performance sensitive applications.
      */
     BatchMultiVector(std::shared_ptr<const Executor> exec,
                      size_type num_duplications,
-                     const BatchMultiVector<value_type>* input)
-        : BatchMultiVector<ValueType>(
-              exec, gko::batch_dim<2>(
-                        input->get_num_batch_entries() * num_duplications,
-                        input->get_common_size()))
-    {
-        size_type offset = 0;
-        for (size_type i = 0; i < num_duplications; ++i) {
-            exec->copy_from(
-                input->get_executor().get(), input->get_num_stored_elements(),
-                input->get_const_values(), this->get_values() + offset);
-            offset += input->get_num_stored_elements();
-        }
-    }
+                     const BatchMultiVector<value_type>* input);
 
     /**
      * Creates a BatchMultiVector matrix by a duplicating a matrix::Dense object
@@ -504,18 +458,7 @@ protected:
      */
     BatchMultiVector(std::shared_ptr<const Executor> exec,
                      size_type num_duplications,
-                     const matrix::Dense<value_type>* input)
-        : BatchMultiVector<ValueType>(
-              exec, gko::batch_dim<2>(num_duplications, input->get_size()))
-    {
-        size_type offset = 0;
-        for (size_type i = 0; i < num_duplications; ++i) {
-            exec->copy_from(
-                input->get_executor().get(), input->get_num_stored_elements(),
-                input->get_const_values(), this->get_values() + offset);
-            offset += input->get_num_stored_elements();
-        }
-    }
+                     const matrix::Dense<value_type>* input);
 
     /**
      * Creates a BatchMultiVector with the same configuration as the

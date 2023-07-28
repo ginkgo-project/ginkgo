@@ -40,7 +40,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 
 
@@ -60,11 +59,11 @@ protected:
     BatchMultiVector() : rand_engine(15) {}
 
     template <typename MtxType>
-    std::unique_ptr<MtxType> gen_mtx(const size_t batch_size, int num_rows,
-                                     int num_cols)
+    std::unique_ptr<MtxType> gen_mtx(const size_t num_batch_entries,
+                                     int num_rows, int num_cols)
     {
         return gko::test::generate_uniform_batch_random_matrix<MtxType>(
-            batch_size, num_rows, num_cols,
+            num_batch_entries, num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, false, ref);
     }
@@ -75,6 +74,8 @@ protected:
         const int num_rows = 252;
         x = gen_mtx<Mtx>(batch_size, num_rows, num_vecs);
         y = gen_mtx<Mtx>(batch_size, num_rows, num_vecs);
+        c_x = gen_mtx<ComplexMtx>(batch_size, num_rows, num_vecs);
+        c_y = gen_mtx<ComplexMtx>(batch_size, num_rows, num_vecs);
         if (different_alpha) {
             alpha = gen_mtx<Mtx>(batch_size, 1, num_vecs);
             beta = gen_mtx<Mtx>(batch_size, 1, num_vecs);
@@ -84,6 +85,8 @@ protected:
         }
         dx = gko::clone(exec, x);
         dy = gko::clone(exec, y);
+        dc_x = gko::clone(exec, c_x);
+        dc_y = gko::clone(exec, c_y);
         dalpha = gko::clone(exec, alpha);
         dbeta = gko::clone(exec, beta);
         expected = Mtx::create(
@@ -92,11 +95,12 @@ protected:
             exec, gko::batch_dim<2>(batch_size, gko::dim<2>{1, num_vecs}));
     }
 
-    std::ranlux48 rand_engine;
+    std::default_random_engine rand_engine;
 
     const size_t batch_size = 11;
     std::unique_ptr<Mtx> x;
     std::unique_ptr<ComplexMtx> c_x;
+    std::unique_ptr<ComplexMtx> c_y;
     std::unique_ptr<Mtx> y;
     std::unique_ptr<Mtx> alpha;
     std::unique_ptr<Mtx> beta;
@@ -105,6 +109,7 @@ protected:
     std::unique_ptr<Mtx> dresult;
     std::unique_ptr<Mtx> dx;
     std::unique_ptr<ComplexMtx> dc_x;
+    std::unique_ptr<ComplexMtx> dc_y;
     std::unique_ptr<Mtx> dy;
     std::unique_ptr<Mtx> dalpha;
     std::unique_ptr<Mtx> dbeta;
@@ -216,11 +221,16 @@ TEST_F(BatchMultiVector, ComputeDotIsEquivalentToRef)
         gko::batch_dim<2>(batch_size, gko::dim<2>{1, x->get_common_size()[1]});
     auto dot_expected = Mtx::create(this->ref, dot_size);
     auto ddot = Mtx::create(this->exec, dot_size);
+    auto cdot_expected = ComplexMtx::create(this->ref, dot_size);
+    auto dc_dot = ComplexMtx::create(this->exec, dot_size);
 
     x->compute_dot(y.get(), dot_expected.get());
     dx->compute_dot(dy.get(), ddot.get());
+    c_x->compute_dot(c_y.get(), cdot_expected.get());
+    dc_x->compute_dot(dc_y.get(), dc_dot.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dot_expected, ddot, 5 * r<value_type>::value);
+    GKO_ASSERT_BATCH_MTX_NEAR(cdot_expected, dc_dot, 5 * r<value_type>::value);
 }
 
 
@@ -246,11 +256,16 @@ TEST_F(BatchMultiVector, ComputeConjDotIsEquivalentToRef)
         gko::batch_dim<2>(batch_size, gko::dim<2>{1, x->get_common_size()[1]});
     auto dot_expected = Mtx::create(this->ref, dot_size);
     auto ddot = Mtx::create(this->exec, dot_size);
+    auto cdot_expected = ComplexMtx::create(this->ref, dot_size);
+    auto dc_dot = ComplexMtx::create(this->exec, dot_size);
 
     x->compute_conj_dot(y.get(), dot_expected.get());
     dx->compute_conj_dot(dy.get(), ddot.get());
+    c_x->compute_conj_dot(c_y.get(), cdot_expected.get());
+    dc_x->compute_conj_dot(dc_y.get(), dc_dot.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dot_expected, ddot, 5 * r<value_type>::value);
+    GKO_ASSERT_BATCH_MTX_NEAR(cdot_expected, dc_dot, 5 * r<value_type>::value);
 }
 
 

@@ -66,7 +66,7 @@ namespace batch_multi_vector {
 
 
 constexpr auto default_block_size = 256;
-constexpr int sm_multiplier = 4;
+constexpr int sm_oversubscription = 4;
 
 
 // clang-format off
