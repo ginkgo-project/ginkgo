@@ -54,6 +54,7 @@ using size_type = gko::size_type;
 using vec_type = gko::matrix::BatchDense<value_type>;
 using real_vec_type = gko::matrix::BatchDense<real_type>;
 using mtx_type = gko::matrix::BatchTridiagonal<value_type>;
+using batch_csr = gko::matrix::BatchCsr<value_type, index_type>;
 using batch_tridiag_solver = gko::solver::BatchTridiagonalSolver<value_type>;
 
 
@@ -94,7 +95,6 @@ ApplSysData appl_generate_system(const int num_rows,
 int main(int argc, char* argv[])
 {
     // Print the ginkgo version information.
-    std::cout << gko::version_info::get() << std::endl;
 
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
         std::cerr << "Usage: " << argv[0]
@@ -142,23 +142,26 @@ int main(int argc, char* argv[])
 
     const size_type num_systems = argc >= 3 ? std::atoi(argv[2]) : 2;
     const int num_rows = argc >= 4 ? std::atoi(argv[3]) : 32;  // per system
-    const std::string in_strat = argc >= 5 ? argv[4] : "recursive_app1";
+    const std::string in_strat = argc >= 5 ? argv[4] : "1row";
+    const int number_recursive_steps = argc >= 6 ? std::atoi(argv[5]) : 2;
+    const int tile_size = argc >= 7 ? std::atoi(argv[6]) : 16;
     const bool print_time =
-        argc >= 6 ? (std::string(argv[5]) == "time") : false;
+        argc >= 8 ? (std::string(argv[7]) == "time") : false;
     const bool print_residuals =
-        argc >= 7 ? (std::string(argv[6]) == "residuals") : false;
-    const int num_reps = argc >= 8 ? std::atoi(argv[7]) : 20;
+        argc >= 9 ? (std::string(argv[8]) == "residuals") : false;
+    const int num_reps = argc >= 10 ? std::atoi(argv[9]) : 20;
 
-    const int number_recursive_steps = argc >= 9 ? std::atoi(argv[8]) : 2;
-    const int subwarp_size = argc >= 10 ? std::atoi(argv[9]) : 16;
 
+    if (!print_time) {
+        std::cout << gko::version_info::get() << std::endl;
+    }
     // Approach
     enum gko::solver::batch_tridiag_solve_approach approach;
-    if (in_strat == std::string("recursive_app1")) {
+    if (in_strat == std::string("1row")) {
         approach = gko::solver::batch_tridiag_solve_approach::recursive_app1;
-    } else if (in_strat == std::string("recursive_app2")) {
+    } else if (in_strat == std::string("2row")) {
         approach = gko::solver::batch_tridiag_solve_approach::recursive_app2;
-    } else if (in_strat == std::string("vendor_provided")) {
+    } else if (in_strat == std::string("vendor")) {
         approach = gko::solver::batch_tridiag_solve_approach::vendor_provided;
     }
 
@@ -195,7 +198,7 @@ int main(int argc, char* argv[])
     auto solver_gen = batch_tridiag_solver::build()
                           .with_batch_tridiagonal_solution_approach(approach)
                           .with_num_recursive_steps(number_recursive_steps)
-                          .with_tile_size(subwarp_size)
+                          .with_tile_size(tile_size)
                           .on(exec);
 
     // @sect3{Generate and solve}
@@ -204,43 +207,56 @@ int main(int argc, char* argv[])
 
     const int leave_first = 5;
 
+    auto x_clone = gko::clone(x);
     for (int i = 0; i < leave_first; i++) {
         // Solve the batch system
         solver->apply(lend(b), lend(x));
     }
 
+    x_clone->copy_from(x.get());
     exec->synchronize();
     solver->initialize_preprocess_time(0.0);
-    auto start = std::chrono::high_resolution_clock::now();
 
+    double apply_time = 0.0;
     for (int i = 0; i < num_reps; i++) {
+        x_clone->copy_from(x.get());
         // Solve the batch system
-        solver->apply(lend(b), lend(x));
+        std::chrono::steady_clock::time_point start =
+            std::chrono::steady_clock::now();
+        solver->apply(lend(b), lend(x_clone));
+        exec->synchronize();
+        std::chrono::steady_clock::time_point stop =
+            std::chrono::steady_clock::now();
+        auto duration =
+            std::chrono::duration_cast<std::chrono::duration<double>>(stop -
+                                                                      start);
+        apply_time += duration.count();
     }
 
-    exec->synchronize();
-    auto stop = std::chrono::high_resolution_clock::now();
+    x->copy_from(x_clone.get());
 
-    auto duration =
-        std::chrono::duration_cast<std::chrono::duration<double>>(stop - start);
-    auto apply_time = duration.count();
-
-    auto b_norm = gko::batch_initialize<real_vec_type>(num_systems, {0.0},
-                                                       exec->get_master());
-    b->compute_norm2(lend(b_norm));
-    // we need constants on the device
-    auto one = gko::batch_initialize<vec_type>(num_systems, {1.0}, exec);
-    auto neg_one = gko::batch_initialize<vec_type>(num_systems, {-1.0}, exec);
-    // allocate and compute the residual
-    auto res = vec_type::create(exec, batch_vec_size);
-    res->copy_from(lend(b));
-
-    A->apply(lend(one), lend(x), lend(neg_one), lend(res));
-    // allocate and compute residual norm
-    auto res_norm = gko::batch_initialize<real_vec_type>(num_systems, {0.0},
-                                                         exec->get_master());
-    res->compute_norm2(lend(res_norm));
     if (print_residuals) {
+        auto b_norm = gko::batch_initialize<real_vec_type>(num_systems, {0.0},
+                                                           exec->get_master());
+        b->compute_norm2(lend(b_norm));
+        // we need constants on the device
+        auto one = gko::batch_initialize<vec_type>(num_systems, {1.0}, exec);
+        auto neg_one =
+            gko::batch_initialize<vec_type>(num_systems, {-1.0}, exec);
+        // allocate and compute the residual
+        auto res = vec_type::create(exec, batch_vec_size);
+        res->copy_from(lend(b));
+        auto mat_data =
+            std::vector<gko::matrix_data<value_type, index_type>>{num_systems};
+        A->write(mat_data);
+        auto A_csr = batch_csr::create(exec, batch_mat_size);
+        A_csr->read(mat_data);
+
+        A_csr->apply(lend(one), lend(x), lend(neg_one), lend(res));
+        // allocate and compute residual norm
+        auto res_norm = gko::batch_initialize<real_vec_type>(
+            num_systems, {0.0}, exec->get_master());
+        res->compute_norm2(lend(res_norm));
         std::cout << "Residual norm sqrt(r^T r):\n";
         // "unbatch" converts a batch object into a vector of objects of the
         //   corresponding single type, eg. BatchDense --> vector<Dense>.
@@ -259,7 +275,16 @@ int main(int argc, char* argv[])
         }
     }
     if (print_time) {
-        std::cout << apply_time / num_reps << std::endl;
+        if (approach ==
+            gko::solver::batch_tridiag_solve_approach::vendor_provided) {
+            auto p_time = (solver->get_preprocess_time() / 1000);
+            apply_time -= p_time;
+            std::cout << apply_time / num_reps << "," << p_time / num_reps
+                      << std::endl;
+        } else {
+            std::cout << apply_time / num_reps << "," << 0.0 << std::endl;
+        }
+
     } else {
         std::cout << "Solver type: " << in_strat
                   << "\nMatrix size: " << A->get_size().at(0)
@@ -268,11 +293,11 @@ int main(int argc, char* argv[])
                   << " seconds." << std::endl;
         if (approach ==
             gko::solver::batch_tridiag_solve_approach::vendor_provided) {
-            apply_time -= (solver->get_preprocess_time() * 1000);
-            std::cout << "Preprocess time"
-                      << solver->get_preprocess_time() * 1000
-                      << "secs\nThe solve time (without pre-processing)"
-                      << apply_time / num_reps << " secs " << std::endl;
+            auto p_time = (solver->get_preprocess_time() / 1000);
+            apply_time -= p_time;
+            std::cout << "Preprocess time: " << p_time / num_reps
+                      << " seconds. \nThe solve time (without pre-processing): "
+                      << apply_time / num_reps << " seconds." << std::endl;
         }
     }
 
