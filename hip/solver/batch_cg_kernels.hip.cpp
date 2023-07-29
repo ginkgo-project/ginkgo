@@ -151,15 +151,16 @@ public:
         //           << "\n";
 
         if (sconf.gmem_stride_bytes == 0) {
-            hipLaunchKernelGGL(small_apply_kernel<StopType>, dim3(nbatch),
-                               dim3(block_size), shared_size, 0, sconf,
-                               opts_.max_its, opts_.residual_tol, logger, prec,
-                               a, b.values, x.values);
+            hipLaunchKernelGGL(
+                small_apply_kernel<StopType>, dim3(nbatch), dim3(block_size),
+                shared_size, exec_->get_stream(), sconf, opts_.max_its,
+                opts_.residual_tol, logger, prec, a, b.values, x.values);
         } else {
             hipLaunchKernelGGL(apply_kernel<StopType>, dim3(nbatch),
-                               dim3(block_size), shared_size, 0, sconf,
-                               opts_.max_its, opts_.residual_tol, logger, prec,
-                               a, b.values, x.values, workspace.get_data());
+                               dim3(block_size), shared_size,
+                               exec_->get_stream(), sconf, opts_.max_its,
+                               opts_.residual_tol, logger, prec, a, b.values,
+                               x.values, workspace.get_data());
         }
 
         GKO_HIP_LAST_IF_ERROR_THROW;

@@ -76,7 +76,8 @@ void extract_dense_linear_sys_pattern(
 
     hipLaunchKernelGGL(
         extract_dense_linear_sys_pattern_kernel<default_subwarp_size>, grid,
-        block, 0, 0, nrows, first_sys_csr->get_const_row_ptrs(),
+        block, 0, exec->get_stream(), nrows,
+        first_sys_csr->get_const_row_ptrs(),
         first_sys_csr->get_const_col_idxs(),
         first_approx_inv->get_const_row_ptrs(),
         first_approx_inv->get_const_col_idxs(), dense_mat_pattern, rhs_one_idxs,
@@ -114,7 +115,7 @@ void fill_values_dense_mat_and_solve(
 
     hipLaunchKernelGGL(
         fill_values_dense_mat_and_solve_kernel<default_subwarp_size>, grid,
-        block, 0, 0, nbatch, nrows, A_nnz,
+        block, 0, exec->get_stream(), nbatch, nrows, A_nnz,
         as_hip_type(sys_csr->get_const_values()), aiA_nnz,
         inv->get_const_row_ptrs(), as_hip_type(inv->get_values()),
         dense_mat_pattern, rhs_one_idxs, sizes, input_matrix_type_isai);
@@ -146,8 +147,8 @@ void apply_isai(std::shared_ptr<const DefaultExecutor> exec,
             num_rows,
             static_cast<int>(sys_mat->get_num_stored_elements() / nbatch)) *
             sizeof(ValueType),
-        0, prec, nbatch, num_rows, as_hip_type(r->get_const_values()),
-        as_hip_type(z->get_values()));
+        exec->get_stream(), prec, nbatch, num_rows,
+        as_hip_type(r->get_const_values()), as_hip_type(z->get_values()));
 
     GKO_HIP_LAST_IF_ERROR_THROW;
 }
@@ -170,8 +171,8 @@ void extract_csr_sys_pattern(
     dim3 grid(ceildiv(size, default_block_size));
 
     hipLaunchKernelGGL(
-        extract_csr_sys_pattern_kernel<ValueType>, grid, block, 0, 0,
-        lin_sys_row, first_approx_inv->get_const_row_ptrs(),
+        extract_csr_sys_pattern_kernel<ValueType>, grid, block, 0,
+        exec->get_stream(), lin_sys_row, first_approx_inv->get_const_row_ptrs(),
         first_approx_inv->get_const_col_idxs(),
         first_sys_csr->get_const_row_ptrs(),
         first_sys_csr->get_const_col_idxs(), csr_pattern->get_const_row_ptrs(),
@@ -199,8 +200,9 @@ void fill_batch_csr_sys_with_values(
     dim3 block(default_block_size);
     dim3 grid(ceildiv(nbatch * csr_nnz, default_block_size));
 
-    hipLaunchKernelGGL(fill_batch_csr_system_kernel, grid, block, 0, 0, nbatch,
-                       csr_nnz, csr_pattern->get_const_values(), sys_nnz,
+    hipLaunchKernelGGL(fill_batch_csr_system_kernel, grid, block, 0,
+                       exec->get_stream(), nbatch, csr_nnz,
+                       csr_pattern->get_const_values(), sys_nnz,
                        as_hip_type(sys_csr->get_const_values()),
                        as_hip_type(batch_csr_mats->get_values()));
 
@@ -224,8 +226,9 @@ void initialize_b_and_x_vectors(std::shared_ptr<const DefaultExecutor> exec,
     dim3 block(default_block_size);
     dim3 grid(ceildiv(nbatch * size, default_block_size));
 
-    hipLaunchKernelGGL(initialize_b_and_x_vectors_kernel, grid, block, 0, 0,
-                       nbatch, size, rhs_one_idx, as_hip_type(b->get_values()),
+    hipLaunchKernelGGL(initialize_b_and_x_vectors_kernel, grid, block, 0,
+                       exec->get_stream(), nbatch, size, rhs_one_idx,
+                       as_hip_type(b->get_values()),
                        as_hip_type(x->get_values()));
 
     GKO_HIP_LAST_IF_ERROR_THROW;
@@ -248,7 +251,7 @@ void write_large_sys_solution_to_inverse(
     dim3 grid(ceildiv(nbatch * size, default_block_size));
 
     hipLaunchKernelGGL(write_large_sys_solution_to_inverse_kernel, grid, block,
-                       0, 0, nbatch, lin_sys_row, size,
+                       0, exec->get_stream(), nbatch, lin_sys_row, size,
                        as_hip_type(x->get_const_values()),
                        approx_inv->get_num_stored_elements() / nbatch,
                        approx_inv->get_const_row_ptrs(),
