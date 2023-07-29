@@ -197,13 +197,15 @@ public:
 
         if (sconf.n_global == 0 && sconf.rot_shared && sconf.prec_shared &&
             sconf.subspace_shared && sconf.hess_shared) {
-            small_apply_kernel<StopType><<<nbatch, block_size, shared_size>>>(
-                sconf, opts_.max_its, opts_.residual_tol, opts_.restart_num,
-                logger, prec, a, b.values, x.values);
+            small_apply_kernel<StopType>
+                <<<nbatch, block_size, shared_size, exec_->get_stream()>>>(
+                    sconf, opts_.max_its, opts_.residual_tol, opts_.restart_num,
+                    logger, prec, a, b.values, x.values);
         } else {
-            apply_kernel<StopType><<<nbatch, block_size, shared_size>>>(
-                sconf, opts_.max_its, opts_.residual_tol, opts_.restart_num,
-                logger, prec, a, b.values, x.values, workspace.get_data());
+            apply_kernel<StopType>
+                <<<nbatch, block_size, shared_size, exec_->get_stream()>>>(
+                    sconf, opts_.max_its, opts_.residual_tol, opts_.restart_num,
+                    logger, prec, a, b.values, x.values, workspace.get_data());
         }
 
         GKO_CUDA_LAST_IF_ERROR_THROW;

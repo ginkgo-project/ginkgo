@@ -74,7 +74,8 @@ void batch_identity_apply(std::shared_ptr<const gko::CudaExecutor> exec,
     const int shared_size = BatchIdentity<ValueType>::dynamic_work_size(
                                 a_ub.num_rows, a_ub.num_nnz) *
                             sizeof(ValueType);
-    batch_identity<<<nbatch, default_block_size, shared_size>>>(
+    batch_identity<<<nbatch, default_block_size, shared_size,
+                     exec->get_stream()>>>(
         BatchIdentity<cuda_type<ValueType>>(), a_ub, b_ub, x_ub);
 }
 

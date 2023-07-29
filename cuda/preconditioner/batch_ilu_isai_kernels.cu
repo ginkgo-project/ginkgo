@@ -98,9 +98,10 @@ void apply_ilu_isai(
         prec_type::dynamic_work_size(
             num_rows,
             static_cast<int>(sys_mat->get_num_stored_elements() / nbatch)) *
-            sizeof(ValueType)>>>(prec, nbatch, num_rows,
-                                 as_cuda_type(r->get_const_values()),
-                                 as_cuda_type(z->get_values()));
+            sizeof(ValueType),
+        exec->get_stream()>>>(prec, nbatch, num_rows,
+                              as_cuda_type(r->get_const_values()),
+                              as_cuda_type(z->get_values()));
 }
 
 

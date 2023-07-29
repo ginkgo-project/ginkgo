@@ -74,7 +74,8 @@ void compute_ilu0_factorization(
     const int dynamic_shared_mem_bytes = 2 * num_rows * sizeof(ValueType);
 
     generate_exact_ilu0_kernel<<<nbatch, default_block_size,
-                                 dynamic_shared_mem_bytes>>>(
+                                 dynamic_shared_mem_bytes,
+                                 exec->get_stream()>>>(
         nbatch, num_rows, nnz, diag_locs, mat_fact->get_const_row_ptrs(),
         mat_fact->get_const_col_idxs(), as_cuda_type(mat_fact->get_values()));
 
@@ -101,7 +102,7 @@ void compute_parilu0_factorization(
     const int dynamic_shared_mem_bytes = nnz * sizeof(ValueType);
 
     generate_parilu0_kernel<<<nbatch, default_block_size,
-                              dynamic_shared_mem_bytes>>>(
+                              dynamic_shared_mem_bytes, exec->get_stream()>>>(
         nbatch, num_rows, nnz, dependencies, nz_ptrs, parilu_num_sweeps,
         as_cuda_type(sys_mat->get_const_values()),
         as_cuda_type(mat_fact->get_values()));
@@ -136,9 +137,10 @@ void apply_ilu(
                           num_rows,
                           static_cast<int>(
                               sys_matrix->get_num_stored_elements() / nbatch)) *
-                          sizeof(ValueType)>>>(
-        prec, nbatch, num_rows, as_cuda_type(r->get_const_values()),
-        as_cuda_type(z->get_values()));
+                          sizeof(ValueType),
+                      exec->get_stream()>>>(prec, nbatch, num_rows,
+                                            as_cuda_type(r->get_const_values()),
+                                            as_cuda_type(z->get_values()));
 }
 
 
@@ -158,7 +160,8 @@ void generate_common_pattern_to_fill_l_and_u(
     const size_type num_blocks =
         ceildiv(num_warps, ceildiv(default_block_size, config::warp_size));
 
-    generate_common_pattern_to_fill_L_and_U<<<num_blocks, default_block_size>>>(
+    generate_common_pattern_to_fill_L_and_U<<<num_blocks, default_block_size, 0,
+                                              exec->get_stream()>>>(
         static_cast<int>(num_rows), first_sys_mat->get_const_row_ptrs(),
         first_sys_mat->get_const_col_idxs(), l_row_ptrs, u_row_ptrs,
         l_col_holders, u_col_holders);
@@ -191,7 +194,7 @@ void initialize_batch_l_and_batch_u(
     const size_type grid_fill_LU =
         ceildiv(greater_nnz * nbatch, default_block_size);
 
-    fill_L_and_U<<<grid_fill_LU, default_block_size>>>(
+    fill_L_and_U<<<grid_fill_LU, default_block_size, 0, exec->get_stream()>>>(
         nbatch, num_rows, nnz, sys_mat->get_const_col_idxs(),
         as_cuda_type(sys_mat->get_const_values()), l_nnz,
         l_factor->get_col_idxs(), as_cuda_type(l_factor->get_values()),
