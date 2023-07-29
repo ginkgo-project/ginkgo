@@ -76,7 +76,7 @@ void apply(std::shared_ptr<const HipExecutor> exec,
     const auto nrhs = static_cast<int>(x->get_size().at()[1]);
     const int num_blocks = b->get_num_batch_entries();
     hipLaunchKernelGGL(uniform_batch_diag_apply, num_blocks, default_block_size,
-                       0, 0, num_blocks, nrows, ncols,
+                       0, exec->get_stream(), num_blocks, nrows, ncols,
                        as_hip_type(diag->get_const_values()), nrhs, b_stride,
                        as_hip_type(b->get_const_values()), x_stride,
                        as_hip_type(x->get_values()));
@@ -97,8 +97,8 @@ void apply_in_place(std::shared_ptr<const HipExecutor> exec,
     const auto nbatch = b->get_num_batch_entries();
     const int num_blocks = b->get_num_batch_entries();
     hipLaunchKernelGGL(uniform_batch_diag_apply_inplace, num_blocks,
-                       default_block_size, 0, 0, nrows, stride, nrhs, nbatch,
-                       as_hip_type(diag->get_const_values()),
+                       default_block_size, 0, exec->get_stream(), nrows, stride,
+                       nrhs, nbatch, as_hip_type(diag->get_const_values()),
                        as_hip_type(b->get_values()));
 }
 

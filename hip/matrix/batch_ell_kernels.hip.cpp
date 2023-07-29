@@ -91,8 +91,8 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
     const auto a_ub = get_batch_struct(a);
     const auto b_ub = get_batch_struct(b);
     const auto c_ub = get_batch_struct(c);
-    hipLaunchKernelGGL(spmv, dim3(num_blocks), dim3(default_block_size), 0, 0,
-                       a_ub, b_ub, c_ub);
+    hipLaunchKernelGGL(spmv, dim3(num_blocks), dim3(default_block_size), 0,
+                       exec->get_stream(), a_ub, b_ub, c_ub);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -114,8 +114,8 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
     const auto alpha_ub = get_batch_struct(alpha);
     const auto beta_ub = get_batch_struct(beta);
     hipLaunchKernelGGL(advanced_spmv, dim3(num_blocks),
-                       dim3(default_block_size), 0, 0, alpha_ub, a_ub, b_ub,
-                       beta_ub, c_ub);
+                       dim3(default_block_size), 0, exec->get_stream(),
+                       alpha_ub, a_ub, b_ub, beta_ub, c_ub);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -264,8 +264,8 @@ void check_diagonal_entries_exist(
     const auto max_nnz_per_row =
         static_cast<int>(mtx->get_num_stored_elements_per_row().at(0));
     array<bool> d_result(exec, 1);
-    hipLaunchKernelGGL(check_diagonal_entries, 1, default_block_size, 0, 0,
-                       nmin, row_stride, max_nnz_per_row,
+    hipLaunchKernelGGL(check_diagonal_entries, 1, default_block_size, 0,
+                       exec->get_stream(), nmin, row_stride, max_nnz_per_row,
                        mtx->get_const_col_idxs(), d_result.get_data());
     has_all_diags = exec->copy_val_to_host(d_result.get_const_data());
 }
@@ -289,9 +289,9 @@ void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
         static_cast<int>(mtx->get_num_stored_elements_per_row().at(0));
     const size_type astride = a->get_stride().at();
     const size_type bstride = b->get_stride().at();
-    hipLaunchKernelGGL(add_scaled_identity, nbatch, default_block_size, 0, 0,
-                       nbatch, nrows, nnz, row_stride, max_nnz_per_row,
-                       mtx->get_const_col_idxs(),
+    hipLaunchKernelGGL(add_scaled_identity, nbatch, default_block_size, 0,
+                       exec->get_stream(), nbatch, nrows, nnz, row_stride,
+                       max_nnz_per_row, mtx->get_const_col_idxs(),
                        as_hip_type(mtx->get_values()), astride,
                        as_hip_type(a->get_const_values()), bstride,
                        as_hip_type(b->get_const_values()));
