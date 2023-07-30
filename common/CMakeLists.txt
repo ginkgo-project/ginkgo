@@ -10,6 +10,14 @@ set(UNIFIED_SOURCES
     matrix/coo_kernels.cpp
     matrix/csr_kernels.cpp
     matrix/dense_kernels.cpp
+    matrix/dense_kernels_conv.cpp
+    matrix/dense_kernels_conv_ell.cpp
+    matrix/dense_kernels_conv_sellp.cpp
+    matrix/dense_kernels_dot.cpp
+    matrix/dense_kernels_dot_conj.cpp
+    matrix/dense_kernels_norm1.cpp
+    matrix/dense_kernels_norm2.cpp
+    matrix/dense_kernels_norm2_sq.cpp
     matrix/ell_kernels.cpp
     matrix/hybrid_kernels.cpp
     matrix/sellp_kernels.cpp
