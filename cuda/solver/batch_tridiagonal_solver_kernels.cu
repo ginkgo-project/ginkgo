@@ -208,8 +208,8 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
 
         select_recursive_app1_helper(
             batch_recursive_tridiagonal_solver_cuda_compiled_subwarp_sizes(),
-            [&](int compiled_tile_size) {
-                return user_given_tile_size == compiled_tile_size;
+            [&](int compiled_subwarp_size) {
+                return user_given_tile_size == compiled_subwarp_size;
             },
             syn::value_list<int>(), syn::type_list<>(), number_recursive_steps,
             nbatch, nrows, nrhs, tridiag_mat->get_const_sub_diagonal(),
@@ -227,8 +227,8 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
 
         select_recursive_app2_helper(
             batch_recursive_tridiagonal_solver_cuda_compiled_subwarp_sizes(),
-            [&](int compiled_tile_size) {
-                return user_given_tile_size == compiled_tile_size;
+            [&](int compiled_subwarp_size) {
+                return user_given_tile_size == 2 * compiled_subwarp_size;
             },
             syn::value_list<int>(), syn::type_list<>(), number_recursive_steps,
             nbatch, nrows, nrhs, tridiag_mat->get_const_sub_diagonal(),

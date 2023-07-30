@@ -31,6 +31,8 @@ matplotlib.rc('legend',fontsize=8) # using a size in points
 
 executor=sys.argv[1]
 
+suffix='_131072b_'
+
 if executor == 'cuda':
     rec='2'
     tile='16'
@@ -50,10 +52,13 @@ opts = { \
 def collect_solver_data(solver, executor, legend_array):
     """
     """
-    data = np.genfromtxt('data/' + executor + '_batch_' + solver +'_' +rec + 'rec_' + tile + 'tile' + '.csv', delimiter=',',
-                              skip_header=1, names=['batch_size', 'nrows',
-                                                    'time','p_time'])
-    df = pd.DataFrame(data, columns=['batch_size', 'nrows', 'time','p_time'])
+    #fname='data/' + executor + '_batch_' + solver +'_' +rec + 'rec_' + tile + 'tile' + '.csv'
+    fname = 'data/' + executor + '_batch_' + solver + suffix + '.csv'
+    data = np.genfromtxt(fname, delimiter=',',
+                              skip_header=1, names=['nrows', 'nrec','tile_size',
+                                                    'time','p_time'],filling_values = 0,invalid_raise=False)
+    df = pd.DataFrame(data, columns=['nrows', 'nrec','tile_size', 'time','p_time'])
+    #
     if executor == 'omp':
         exec_string = 'omp(76)'
     elif executor == 'cuda':
@@ -77,26 +82,17 @@ def collect_solver_data(solver, executor, legend_array):
 
 legend_array = list()
 
-cuda_df1 = collect_solver_data('1row', executor, legend_array)
-cuda_df2 = collect_solver_data('2row', executor, legend_array)
-cuda_df3 = collect_solver_data('vendor', executor, legend_array)
+df1 = collect_solver_data('1row', executor, legend_array)
+# df2 = collect_solver_data('2row', executor, legend_array)
+# df3 = collect_solver_data('vendor', executor, legend_array)
 
-row_list=[16, 64, 128, 512, 1024]
-batch_list=[16, 64, 128, 256, 1024, 2048, 4096, 16384, 65536]
+print(df1)
 
-cuda_df1 = cuda_df1[~cuda_df1["batch_size"].isin(batch_list)]
-cuda_df1 = cuda_df1[~cuda_df1["nrows"].isin(row_list)]
-cuda_df2 = cuda_df2[~cuda_df2["batch_size"].isin(batch_list)]
-cuda_df2 = cuda_df2[~cuda_df2["nrows"].isin(row_list)]
-cuda_df3 = cuda_df3[~cuda_df3["batch_size"].isin(batch_list)]
-cuda_df3 = cuda_df3[~cuda_df3["nrows"].isin(row_list)]
-
-
-speedup_df = cuda_df3
-speedup_df['vendor-time'] = cuda_df3['time']
-speedup_df['vendor-total-time'] = cuda_df3['p_time']+ cuda_df3['time']
-speedup_df['ginkgo1-time'] = cuda_df1['time']
-speedup_df['ginkgo2-time'] = cuda_df2['time']
+speedup_df = df3
+speedup_df['vendor-time'] = df3['time']
+speedup_df['vendor-total-time'] = df3['p_time']+ df3['time']
+speedup_df['ginkgo1-time'] = df1['time']
+speedup_df['ginkgo2-time'] = df2['time']
 # pd.merge([idf, edf])
 speedup_df['speedup-total'] = speedup_df['vendor-total-time']/speedup_df['ginkgo1-time']
 speedup_df['speedup1'] = speedup_df['vendor-time']/speedup_df['ginkgo1-time']
@@ -163,14 +159,14 @@ df.plot(kind='bar', rot=45, xlabel='Num batch entries', ylabel='Speedup')
 
 
 # speedup_df.group.plot(y="speedup-total", x='batch_size',kind='bar')
-# cuda_df1.set_index("batch_size", inplace=True)
-# cuda_df1.groupby("nrows")["time"].plot(legend=False, xlabel="Num batch entries",
+# df1.set_index("batch_size", inplace=True)
+# df1.groupby("nrows")["time"].plot(legend=False, xlabel="Num batch entries",
 #                                       marker="x", markersize=5, ylabel="Time(s)")
-# cuda_df2.set_index("batch_size", inplace=True)
-# cuda_df2.groupby("nrows")["time"].plot(legend=False, xlabel="Num batch entries",
+# df2.set_index("batch_size", inplace=True)
+# df2.groupby("nrows")["time"].plot(legend=False, xlabel="Num batch entries",
 #                                      marker="o", markersize=5, ylabel="Time(s)")
-# cuda_df3.set_index("batch_size", inplace=True)
-# cuda_df3.groupby("nrows")["time"].plot(legend=False, xlabel="Num batch entries",
+# df3.set_index("batch_size", inplace=True)
+# df3.groupby("nrows")["time"].plot(legend=False, xlabel="Num batch entries",
 #                                      marker="v", markersize=5, ylabel="Time(s)")
 plt.gcf().set_size_inches(width * factor, height * factor)
 plt.tight_layout()

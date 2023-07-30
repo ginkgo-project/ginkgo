@@ -29,8 +29,18 @@ height = 5.90666
 matplotlib.rcParams['figure.figsize'] = (width, height)  # Use the values from \printsizes
 matplotlib.rc('legend',fontsize=8) # using a size in points
 
-rec='2'
-tile='16'
+executor=sys.argv[0]
+
+if executor == 'cuda':
+    rec='2'
+    tile='16'
+elif executor == 'hip':
+    rec='2'
+    tile='16'
+else:
+    executor = 'cuda'
+    rec='2'
+    tile='16'
 
 opts = { \
          "marklist" : ['o', 'x', 'v', '+', '^'],
@@ -71,9 +81,9 @@ def collect_solver_data(solver, executor, legend_array):
 
 legend_array = list()
 
-cuda_df1 = collect_solver_data('1row', 'cuda', legend_array)
-cuda_df2 = collect_solver_data('2row', 'cuda', legend_array)
-cuda_df3 = collect_solver_data('vendor', 'cuda', legend_array)
+cuda_df1 = collect_solver_data('1row', executor, legend_array)
+cuda_df2 = collect_solver_data('2row', executor, legend_array)
+cuda_df3 = collect_solver_data('vendor', executor, legend_array)
 
 row_list=[64, 128, 512]
 batch_list=[16, 64, 128, 256, 1024, 2048, 4096, 16384, 65536]

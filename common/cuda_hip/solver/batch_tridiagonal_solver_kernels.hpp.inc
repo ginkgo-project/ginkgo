@@ -227,11 +227,11 @@ __device__ __forceinline__ void backward_substitution(
 
 template <int subwarp_size, typename ValueType>
 __global__
-__launch_bounds__(default_block_size) void recursive_kernel_approach_1(
-    const int num_recursive_steps, const size_type nbatch, const int nrows,
-    const ValueType* const __restrict__ a,
-    const ValueType* const __restrict__ b, ValueType* const __restrict__ c,
-    ValueType* const __restrict__ d, ValueType* const __restrict__ x)
+    __launch_bounds__(default_block_size) void recursive_kernel_approach_1(
+        const int num_recursive_steps, const size_type nbatch, const int nrows,
+        const ValueType* const __restrict__ a,
+        const ValueType* const __restrict__ b, ValueType* const __restrict__ c,
+        ValueType* const __restrict__ d, ValueType* const __restrict__ x)
 {
     auto subwarpgrp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
@@ -251,17 +251,8 @@ __launch_bounds__(default_block_size) void recursive_kernel_approach_1(
         const bool is_last_tile_similar = ((nrows % tile_size) == 0);
         const int final_group_size = pow(2, num_recursive_steps);
 
-        if (final_group_size > tile_size) {
-            printf(
-                "\n Number of WM steps and subwarp size should satisfy the "
-                "inequality: pow(2, WM_steps) <=  tile_size, where tile_size = "
-                "subwarp_size");
-            assert(false);
-        }
-
         ValueType c_last_row_of_prev_group = zero<ValueType>();
         ValueType d_last_row_of_prev_group = zero<ValueType>();
-
 
         for (int tile_id = 0; tile_id < num_tiles; tile_id++) {
             const int row_idx_st_tile = tile_id * tile_size;  // inclusive
@@ -731,11 +722,11 @@ __device__ __forceinline__ void backward_substitution(
 
 template <typename ValueType, int subwarp_size>
 __global__
-__launch_bounds__(default_block_size) void recursive_kernel_approach_2(
-    const int num_recursive_steps, const size_type nbatch, const int nrows,
-    const ValueType* const __restrict__ a,
-    const ValueType* const __restrict__ b, ValueType* const __restrict__ c,
-    ValueType* const __restrict__ d, ValueType* const __restrict__ x)
+    __launch_bounds__(default_block_size) void recursive_kernel_approach_2(
+        const int num_recursive_steps, const size_type nbatch, const int nrows,
+        const ValueType* const __restrict__ a,
+        const ValueType* const __restrict__ b, ValueType* const __restrict__ c,
+        ValueType* const __restrict__ d, ValueType* const __restrict__ x)
 {
     using Valuetype2 = recursive_approach2::ValueType2<ValueType>;
 
@@ -756,18 +747,9 @@ __launch_bounds__(default_block_size) void recursive_kernel_approach_2(
         const auto num_tiles = ceildiv(nrows, tile_size);
         const bool is_last_tile_similar = ((nrows % tile_size) == 0);
         const int final_group_size = pow(2, num_recursive_steps);
-        if (tile_size < final_group_size) {
-            printf(
-                "\n Number of WM steps ans subwarp size should satisfy the "
-                "inequality: pow(2, WM_steps) <= tile_size, where tile_size = "
-                "2 "
-                "* subwarp_size");
-            assert(false);
-        }
 
         ValueType c_last_row_of_prev_group = zero<ValueType>();
         ValueType d_last_row_of_prev_group = zero<ValueType>();
-
 
         for (int tile_id = 0; tile_id < num_tiles; tile_id++) {
             const int row_idx_st_tile = tile_id * tile_size;  // inclusive

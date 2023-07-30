@@ -109,6 +109,19 @@ void BatchTridiagonalSolver<ValueType>::apply_impl(const BatchLinOp* b,
     using Vector = matrix::BatchDense<ValueType>;
     using real_type = remove_complex<ValueType>;
 
+    auto app = this->parameters_.batch_tridiagonal_solution_approach;
+    const auto tile_size = this->parameters_.tile_size;
+
+    if (app == batch_tridiag_solve_approach::recursive_app1) {
+        const int final_group_size =
+            pow(2, this->parameters_.num_recursive_steps);
+        if (final_group_size > tile_size) GKO_NOT_IMPLEMENTED;
+    } else if (app == batch_tridiag_solve_approach::recursive_app2) {
+        const int final_group_size =
+            pow(2, this->parameters_.num_recursive_steps);
+        if (final_group_size > 2 * tile_size) GKO_NOT_IMPLEMENTED;
+    }
+
     if (!this->system_matrix_->get_size().stores_equal_sizes()) {
         GKO_NOT_IMPLEMENTED;
     }
