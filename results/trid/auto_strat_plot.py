@@ -31,14 +31,6 @@ matplotlib.rc('legend',fontsize=8) # using a size in points
 
 executor=sys.argv[1]
 
-suffix='_131072b_'
-
-if executor == 'cuda':
-    rec='2'
-    tile='16'
-elif executor == 'hip':
-    rec='4'
-    tile='32'
 
 opts = { \
          "marklist" : ['o', 'x', 'v', '+', '^', '+'],
@@ -49,13 +41,12 @@ opts = { \
          "markedgewidth" : 1 \
          }
 
-col_names=['nrows', 'nrec','tile_size', 'time','p_time']
+col_names=['batch_size', 'nrows', 'time','p_time']
 
 def collect_solver_data(solver, executor, legend_array):
     """
     """
-    #fname='data/' + executor + '_batch_' + solver +'_' +rec + 'rec_' + tile + 'tile' + '.csv'
-    fname = 'data/' + executor + '_batch_' + solver + suffix + '.csv'
+    fname = 'data/' + executor + '_batch_' + solver + '.csv'
     data = np.genfromtxt(fname, delimiter=',',
                               skip_header=1, names=col_names
                          ,filling_values = 0,invalid_raise=False)
@@ -90,10 +81,6 @@ df1 = collect_solver_data(strat_type, executor, legend_array)
 # df3 = collect_solver_data('vendor', executor, legend_array)
 #
 #
-mat_size=int(sys.argv[3])
-
-df1 = pd.DataFrame(df1.loc[df1.nrows==mat_size].values, columns=col_names)
-
 print(df1)
 
 # fig, ax = plt.subplots()
@@ -110,8 +97,8 @@ print(df1)
 # df.plot(kind='bar', rot=45, xlabel='Num batch entries', ylabel='Speedup')
 
 # speedup_df.group.plot(y="speedup-total", x='batch_size',kind='bar')
-df1.set_index("tile_size", inplace=True)
-df1.groupby("nrec")["time"].plot(legend=True, xlabel="Tile size",
+df1.set_index("batch_size", inplace=True)
+df1.groupby("nrows")["time"].plot(legend=True, xlabel="Num batch entries",
                                       marker="x", markersize=5, ylabel="Time(s)")
 # df2.set_index("batch_size", inplace=True)
 # df2.groupby("nrows")["time"].plot(legend=False, xlabel="Num batch entries",
@@ -124,7 +111,7 @@ plt.tight_layout()
 # plt.axhline(y=1, color='k', linestyle='--')
 # plt.grid(True, linestyle='--', linewidth=0.3)
 plt.yscale("log")
-# plt.xscale("log")
+plt.xscale("log")
 #plt.legend(legend_array)
 #
 # f = lambda m,c: plt.plot([],[],marker=m, color=c, ls="none")[0]
@@ -137,7 +124,7 @@ plt.yscale("log")
 
 plt.grid(True)
 
-fname = 'tridiag_' + str(mat_size) + strat_type + executor + '.pdf'
+fname = 'tridiag_' + strat_type + executor + '.pdf'
 
 plt.savefig(fname)
 # shutil.copy('./'+fname, '/home/pratik/Documents/10MyPapers/2022-thesis/images/batched-solvers/'+fname)

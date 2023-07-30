@@ -112,6 +112,21 @@ void BatchTridiagonalSolver<ValueType>::apply_impl(const BatchLinOp* b,
     auto app = this->parameters_.batch_tridiagonal_solution_approach;
     const auto tile_size = this->parameters_.tile_size;
 
+    if (this->parameters_.batch_tridiagonal_solution_approach ==
+        batch_tridiag_solve_approach::auto_selection) {
+        this->parameters_.batch_tridiagonal_solution_approach =
+            batch_tridiag_solve_approach::recursive_app2;
+        this->parameters_.tile_size = std::min(
+            static_cast<int>(b->get_size().at(0)[0]),
+            2 * this->get_executor()->get_exec_info().max_subgroup_size);
+        this->parameters_.num_recursive_steps = 1;
+        while (pow(2, this->parameters_.num_recursive_steps) <
+               2 * this->parameters_.tile_size) {
+            this->parameters_.num_recursive_steps++;
+        }
+        this->parameters_.num_recursive_steps--;
+    }
+
     if (app == batch_tridiag_solve_approach::recursive_app1) {
         const int final_group_size =
             pow(2, this->parameters_.num_recursive_steps);

@@ -163,6 +163,8 @@ int main(int argc, char* argv[])
         approach = gko::solver::batch_tridiag_solve_approach::recursive_app2;
     } else if (in_strat == std::string("vendor")) {
         approach = gko::solver::batch_tridiag_solve_approach::vendor_provided;
+    } else if (in_strat == std::string("auto")) {
+        approach = gko::solver::batch_tridiag_solve_approach::auto_selection;
     }
 
     // @sect3{Read batch from files}

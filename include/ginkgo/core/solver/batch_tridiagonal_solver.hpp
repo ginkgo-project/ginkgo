@@ -62,6 +62,7 @@ namespace solver {
  *
  */
 enum class batch_tridiag_solve_approach {
+    auto_selection,
     recursive_app1,
     recursive_app2,
     vendor_provided
@@ -169,7 +170,7 @@ public:
          */
         batch_tridiag_solve_approach GKO_FACTORY_PARAMETER_SCALAR(
             batch_tridiagonal_solution_approach,
-            batch_tridiag_solve_approach::recursive_app1);
+            batch_tridiag_solve_approach::auto_selection);
 
         /**
          * Number of WM steps in the WM-pGE algorithm.

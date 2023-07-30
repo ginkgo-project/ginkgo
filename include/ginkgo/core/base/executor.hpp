@@ -1016,6 +1016,7 @@ protected:
         std::vector<int> closest_pu_ids{};
     };
 
+public:
     /**
      * Gets the exec info struct
      *
@@ -1023,6 +1024,7 @@ protected:
      */
     const exec_info& get_exec_info() const { return this->exec_info_; }
 
+protected:
     /**
      * Allocates raw memory in this Executor.
      *

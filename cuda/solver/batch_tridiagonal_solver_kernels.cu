@@ -215,7 +215,6 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
             nbatch, nrows, nrhs, tridiag_mat->get_const_sub_diagonal(),
             tridiag_mat->get_const_main_diagonal(), tridiag_mat_superdiags,
             rhs_vals, x->get_values(), approach);
-
     } else if (approach ==
                gko::solver::batch_tridiag_solve_approach::recursive_app2) {
         ValueType* tridiag_mat_superdiags;
