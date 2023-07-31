@@ -80,7 +80,8 @@ inline void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
             throw std::runtime_error{"No suitable CUDA devices"};
         }
         exec = gko::CudaExecutor::create(
-            ResourceEnvironment::rs.id, ref, std::make_shared<gko::CudaAllocator>(), stream);
+            ResourceEnvironment::cuda_device_id,
+                                         ref, std::make_shared<gko::CudaAllocator>(), stream);
     }
 }
 
@@ -93,7 +94,7 @@ inline void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
         throw std::runtime_error{"No suitable HIP devices"};
     }
     exec = gko::HipExecutor::create(
-        ResourceEnvironment::rs.id, ref, std::make_shared<
+        ResourceEnvironment::hip_device_id, ref, std::make_shared<
                                     gko::HipAllocator>(), stream);
 }
 
@@ -102,11 +103,10 @@ inline void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
                           std::shared_ptr<gko::DpcppExecutor>& exec)
 {
     if (gko::DpcppExecutor::get_num_devices("gpu") > 0) {
-        exec =
-            gko::DpcppExecutor::create(ResourceEnvironment::rs.id, ref, "gpu");
+        exec = gko::DpcppExecutor::create(ResourceEnvironment::sycl_device_id,
+                                          ref, "gpu");
     } else if (gko::DpcppExecutor::get_num_devices("cpu") > 0) {
-        exec =
-            gko::DpcppExecutor::create(ResourceEnvironment::rs.id, ref, "cpu");
+        exec = gko::DpcppExecutor::create(0, ref, "cpu");
     } else {
         throw std::runtime_error{"No suitable DPC++ devices"};
     }
@@ -124,8 +124,11 @@ public:
 
     CommonTestFixture()
         :
-#if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP)
-          stream(ResourceEnvironment::rs.id),
+#ifdef GKO_COMPILING_CUDA
+          stream(ResourceEnvironment::cuda_device_id),
+#endif
+#ifdef GKO_COMPILING_HIP
+          stream(ResourceEnvironment::hip_device_id),
 #endif
           ref{gko::ReferenceExecutor::create()}
     {
