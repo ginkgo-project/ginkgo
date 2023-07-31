@@ -238,9 +238,6 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
         });
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_FILL_IN_MATRIX_DATA_KERNEL);
-
 
 namespace kernel {
 
@@ -323,9 +320,6 @@ void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_FILL_IN_DENSE_KERNEL);
-
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(const std::shared_ptr<const DefaultExecutor> exec,
@@ -344,9 +338,6 @@ void convert_to_csr(const std::shared_ptr<const DefaultExecutor> exec,
             source->get_num_block_rows(), source->get_block_size());
     }
 }
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_CONVERT_TO_CSR_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -372,23 +363,14 @@ void is_sorted_by_column_index(
     *is_sorted = exec->copy_val_to_host(gpu_array.get_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_IS_SORTED_BY_COLUMN_INDEX);
-
 
 template <typename ValueType, typename IndexType>
 void sort_by_column_index(const std::shared_ptr<const DefaultExecutor> exec,
                           matrix::Fbcsr<ValueType, IndexType>* const to_sort)
     GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_SORT_BY_COLUMN_INDEX);
-
 
 template <typename ValueType, typename IndexType>
 void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Fbcsr<ValueType, IndexType>* orig,
                       matrix::Diagonal<ValueType>* diag) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_EXTRACT_DIAGONAL);

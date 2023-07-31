@@ -1,4 +1,6 @@
 add_library(ginkgo_omp $<TARGET_OBJECTS:ginkgo_omp_device> "")
+# we don't split up the dense kernels into distinct compliations
+list(APPEND GKO_UNIFIED_COMMON_SOURCES ${PROJECT_SOURCE_DIR}/common/unified/matrix/dense_kernels.instantiate.cpp)
 target_sources(ginkgo_omp
     PRIVATE
     base/device_matrix_data_kernels.cpp
@@ -39,7 +41,6 @@ target_sources(ginkgo_omp
     stop/criterion_kernels.cpp
     stop/residual_norm_kernels.cpp
     ${GKO_UNIFIED_COMMON_SOURCES}
-    ${PROJECT_SOURCE_DIR}/common/unified/matrix/dense_kernels.instantiate.cpp
     )
 
 ginkgo_compile_features(ginkgo_omp)
