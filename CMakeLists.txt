@@ -304,7 +304,6 @@ configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
 # propagated to the other parts of Ginkgo in case of building as static libraries
 add_subdirectory(devices)        # Basic device functionalities. Always compiled.
 add_subdirectory(common)         # Import list of unified kernel source files
-set_source_files_properties(${GKO_UNIFIED_COMMON_INSTANTIATE_SOURCES} PROPERTIES GENERATED 1)
 message("${GKO_UNIFIED_COMMON_INSTANTIATE_SOURCES}")
 if(GINKGO_BUILD_CUDA)
     add_subdirectory(cuda)       # High-performance kernels for NVIDIA GPUs

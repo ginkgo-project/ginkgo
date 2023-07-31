@@ -1,8 +1,11 @@
-cmake_minimum_required(VERSION 3.13)
-function(add_instantiation_files source_file output_files_var)
-    file(READ "${source_file}" file_contents)
+function(add_instantiation_files source_dir source_file output_files_var)
+    # read full file into variable
+    set(source_path "${source_dir}/${source_file}")
+    file(READ "${source_path}" file_contents)
+    # escape semicolons and use them for line separation
     string(REPLACE ";" "<semicolon>" file_contents "${file_contents}")
     string(REGEX REPLACE "[\r\n]" ";" file_contents "${file_contents}")
+    # find location of // begin|split|end comments
     set(begin_location)
     set(end_location)
     set(split_locations)
@@ -24,6 +27,7 @@ function(add_instantiation_files source_file output_files_var)
     if (begin_location GREATER_EQUAL end_location)
         message(FATAL_ERROR "Incorrect begin/end order")
     endif()
+    # determine which lines belong to the header and footer
     set(range_begins ${begin_location} ${split_locations})
     set(range_ends ${split_locations} ${end_location})
     list(LENGTH begin_locations range_count)
@@ -34,27 +38,31 @@ function(add_instantiation_files source_file output_files_var)
     list(SUBLIST file_contents 0 ${length_header} header)
     list(SUBLIST file_contents ${end_location_past} ${length_footer} footer)
     set(output_files)
+    # for each range between // begin|split|end pairs
     foreach(range RANGE 0 ${range_count_minus_one})
-        set(filename "${source_file}.${range}.cpp")
-        list(APPEND output_files "${filename}")
+        # create an output filename
+        string(REGEX REPLACE "(\.hip\.cpp|\.dp\.cpp|\.cpp|\.cu)$" ".${range}\\1" target_file "${source_file}")
+        set(target_path "${CMAKE_CURRENT_BINARY_DIR}/${target_file}")
+        list(APPEND output_files "${target_path}")
+        # extract the range between the comments
         list(GET range_begins ${range} begin)
         list(GET range_ends ${range} end)
         math(EXPR begin "${begin} + 1")
         math(EXPR length "${end} - ${begin}")
         list(SUBLIST file_contents ${begin} ${length} content)
+        # concatenate header, content and footer and turn semicolons into newlines
         string(REPLACE ";" "\n" content "${header};${content};${footer}")
+        # and escaped semicolons into regular semicolons again
         string(REPLACE "<semicolon>" ";" content "${content}")
         # create a .tmp file, but only copy it over if source file changed
         # this way, we don't rebuild unnecessarily
-        file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/${filename}.tmp" "${content}")
+        file(WRITE "${target_path}.tmp" "${content}")
         add_custom_command(
-            OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${filename}"
-            COMMAND ${CMAKE_COMMAND}
-            -E copy "${CMAKE_CURRENT_BINARY_DIR}/${filename}.tmp"
-                    "${CMAKE_CURRENT_BINARY_DIR}/${filename}"
-            MAIN_DEPENDENCY "${source_file}")
+            OUTPUT "${target_path}"
+            COMMAND ${CMAKE_COMMAND} -E copy "${target_path}.tmp" "${target_path}"
+            MAIN_DEPENDENCY "${source_path}")
     endforeach()
-    # lazy workaround to make cmake generation depend on the source file
-    configure_file("${source_file}", "${source_file}.tmp" COPYONLY)
+    # make sure cmake gets called when the source file was updated
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${source_path}")
     set(${output_files_var} ${output_files} PARENT_SCOPE)
 endfunction()
