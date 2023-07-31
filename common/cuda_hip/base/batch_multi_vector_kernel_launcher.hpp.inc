@@ -36,7 +36,7 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
            const BatchMultiVector<ValueType>* const alpha,
            BatchMultiVector<ValueType>* const x)
 {
-    const auto num_blocks = x->get_num_batch_entries();
+    const auto num_blocks = x->get_num_batch_items();
     const auto alpha_ub = get_batch_struct(alpha);
     const auto x_ub = get_batch_struct(x);
     if (alpha->get_common_size()[1] == 1) {
@@ -58,7 +58,7 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
                 const BatchMultiVector<ValueType>* const x,
                 BatchMultiVector<ValueType>* const y)
 {
-    const auto num_blocks = x->get_num_batch_entries();
+    const auto num_blocks = x->get_num_batch_items();
     const size_type nrhs = x->get_common_size()[1];
     const auto alpha_ub = get_batch_struct(alpha);
     const auto x_ub = get_batch_struct(x);
@@ -84,7 +84,7 @@ void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
                  const BatchMultiVector<ValueType>* y,
                  BatchMultiVector<ValueType>* result)
 {
-    const auto num_blocks = x->get_num_batch_entries();
+    const auto num_blocks = x->get_num_batch_items();
     const auto num_rhs = x->get_common_size()[1];
     const auto x_ub = get_batch_struct(x);
     const auto y_ub = get_batch_struct(y);
@@ -104,7 +104,7 @@ void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec,
                       const BatchMultiVector<ValueType>* y,
                       BatchMultiVector<ValueType>* result)
 {
-    const auto num_blocks = x->get_num_batch_entries();
+    const auto num_blocks = x->get_num_batch_items();
     const auto num_rhs = x->get_common_size()[1];
     const auto x_ub = get_batch_struct(x);
     const auto y_ub = get_batch_struct(y);
@@ -123,7 +123,7 @@ void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
                    const BatchMultiVector<ValueType>* const x,
                    BatchMultiVector<remove_complex<ValueType>>* const result)
 {
-    const auto num_blocks = x->get_num_batch_entries();
+    const auto num_blocks = x->get_num_batch_items();
     const auto num_rhs = x->get_common_size()[1];
     const auto x_ub = get_batch_struct(x);
     const auto res_ub = get_batch_struct(result);
@@ -140,7 +140,7 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
           const BatchMultiVector<ValueType>* x,
           BatchMultiVector<ValueType>* result)
 {
-    const auto num_blocks = x->get_num_batch_entries();
+    const auto num_blocks = x->get_num_batch_items();
     const auto result_ub = get_batch_struct(result);
     const auto x_ub = get_batch_struct(x);
     copy_kernel<<<num_blocks, default_block_size, 0, exec->get_stream()>>>(

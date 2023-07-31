@@ -76,7 +76,7 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
     const auto alpha_ub = get_batch_struct(alpha);
     const auto x_ub = get_batch_struct(x);
 
-    const auto num_batches = x_ub.num_batch_entries;
+    const auto num_batches = x_ub.num_batch_items;
     auto device = exec->get_queue()->get_device();
     auto group_size =
         device.get_info<sycl::info::device::max_work_group_size>();
@@ -91,8 +91,8 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
                 sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                     auto group = item_ct1.get_group();
                     auto group_id = group.get_group_linear_id();
-                    const auto alpha_b = batch::batch_entry(alpha_ub, group_id);
-                    const auto x_b = batch::batch_entry(x_ub, group_id);
+                    const auto alpha_b = batch::batch_item(alpha_ub, group_id);
+                    const auto x_b = batch::batch_item(x_ub, group_id);
                     scale_kernel(alpha_b, x_b, item_ct1,
                                  [](int col) { return 0; });
                 });
@@ -103,8 +103,8 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
                 sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                     auto group = item_ct1.get_group();
                     auto group_id = group.get_group_linear_id();
-                    const auto alpha_b = batch::batch_entry(alpha_ub, group_id);
-                    const auto x_b = batch::batch_entry(x_ub, group_id);
+                    const auto alpha_b = batch::batch_item(alpha_ub, group_id);
+                    const auto x_b = batch::batch_item(x_ub, group_id);
                     scale_kernel(alpha_b, x_b, item_ct1,
                                  [](int col) { return col; });
                 });
@@ -125,7 +125,7 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
     const size_type num_rows = x->get_common_size()[0];
     const size_type num_cols = x->get_common_size()[1];
 
-    const auto num_batches = x->get_num_batch_entries();
+    const auto num_batches = x->get_num_batch_items();
     auto device = exec->get_queue()->get_device();
     auto group_size =
         device.get_info<sycl::info::device::max_work_group_size>();
@@ -141,9 +141,9 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
                 sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                     auto group = item_ct1.get_group();
                     auto group_id = group.get_group_linear_id();
-                    const auto alpha_b = batch::batch_entry(alpha_ub, group_id);
-                    const auto x_b = batch::batch_entry(x_ub, group_id);
-                    const auto y_b = batch::batch_entry(y_ub, group_id);
+                    const auto alpha_b = batch::batch_item(alpha_ub, group_id);
+                    const auto x_b = batch::batch_item(x_ub, group_id);
+                    const auto y_b = batch::batch_item(y_ub, group_id);
                     add_scaled_kernel(alpha_b, x_b, y_b, item_ct1,
                                       [](auto col) { return 0; });
                 });
@@ -154,9 +154,9 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
                 sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                     auto group = item_ct1.get_group();
                     auto group_id = group.get_group_linear_id();
-                    const auto alpha_b = batch::batch_entry(alpha_ub, group_id);
-                    const auto x_b = batch::batch_entry(x_ub, group_id);
-                    const auto y_b = batch::batch_entry(y_ub, group_id);
+                    const auto alpha_b = batch::batch_item(alpha_ub, group_id);
+                    const auto x_b = batch::batch_item(x_ub, group_id);
+                    const auto y_b = batch::batch_item(y_ub, group_id);
                     add_scaled_kernel(alpha_b, x_b, y_b, item_ct1,
                                       [](auto col) { return col; });
                 });
@@ -178,7 +178,7 @@ void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
     const auto y_ub = get_batch_struct(y);
     const auto res_ub = get_batch_struct(result);
 
-    const auto num_batches = x_ub.num_batch_entries;
+    const auto num_batches = x_ub.num_batch_items;
     auto device = exec->get_queue()->get_device();
     auto group_size =
         device.get_info<sycl::info::device::max_work_group_size>();
@@ -189,18 +189,17 @@ void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
     // TODO: Remove reqd_sub_group size and use sycl::reduce_over_group
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(config::warp_size)]] {
-                    auto group = item_ct1.get_group();
-                    auto group_id = group.get_group_linear_id();
-                    const auto x_b = batch::batch_entry(x_ub, group_id);
-                    const auto y_b = batch::batch_entry(y_ub, group_id);
-                    const auto res_b = batch::batch_entry(res_ub, group_id);
-                    compute_gen_dot_product_kernel(
-                        x_b, y_b, res_b, item_ct1,
-                        [](auto val) { return val; });
-                });
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            config::warp_size)]] {
+                auto group = item_ct1.get_group();
+                auto group_id = group.get_group_linear_id();
+                const auto x_b = batch::batch_item(x_ub, group_id);
+                const auto y_b = batch::batch_item(y_ub, group_id);
+                const auto res_b = batch::batch_item(res_ub, group_id);
+                compute_gen_dot_product_kernel(x_b, y_b, res_b, item_ct1,
+                                               [](auto val) { return val; });
+            });
     });
 }
 
@@ -218,7 +217,7 @@ void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec,
     const auto y_ub = get_batch_struct(y);
     const auto res_ub = get_batch_struct(result);
 
-    const auto num_batches = x_ub.num_batch_entries;
+    const auto num_batches = x_ub.num_batch_items;
     auto device = exec->get_queue()->get_device();
     auto group_size =
         device.get_info<sycl::info::device::max_work_group_size>();
@@ -228,18 +227,18 @@ void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec,
 
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(config::warp_size)]] {
-                    auto group = item_ct1.get_group();
-                    auto group_id = group.get_group_linear_id();
-                    const auto x_b = batch::batch_entry(x_ub, group_id);
-                    const auto y_b = batch::batch_entry(y_ub, group_id);
-                    const auto res_b = batch::batch_entry(res_ub, group_id);
-                    compute_gen_dot_product_kernel(
-                        x_b, y_b, res_b, item_ct1,
-                        [](auto val) { return conj(val); });
-                });
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            config::warp_size)]] {
+                auto group = item_ct1.get_group();
+                auto group_id = group.get_group_linear_id();
+                const auto x_b = batch::batch_item(x_ub, group_id);
+                const auto y_b = batch::batch_item(y_ub, group_id);
+                const auto res_b = batch::batch_item(res_ub, group_id);
+                compute_gen_dot_product_kernel(
+                    x_b, y_b, res_b, item_ct1,
+                    [](auto val) { return conj(val); });
+            });
     });
 }
 
@@ -255,7 +254,7 @@ void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
     const auto x_ub = get_batch_struct(x);
     const auto res_ub = get_batch_struct(result);
 
-    const auto num_batches = x_ub.num_batch_entries;
+    const auto num_batches = x_ub.num_batch_items;
     auto device = exec->get_queue()->get_device();
     auto group_size =
         device.get_info<sycl::info::device::max_work_group_size>();
@@ -265,15 +264,15 @@ void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
 
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(config::warp_size)]] {
-                    auto group = item_ct1.get_group();
-                    auto group_id = group.get_group_linear_id();
-                    const auto x_b = batch::batch_entry(x_ub, group_id);
-                    const auto res_b = batch::batch_entry(res_ub, group_id);
-                    compute_norm2_kernel(x_b, res_b, item_ct1);
-                });
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            config::warp_size)]] {
+                auto group = item_ct1.get_group();
+                auto group_id = group.get_group_linear_id();
+                const auto x_b = batch::batch_item(x_ub, group_id);
+                const auto res_b = batch::batch_item(res_ub, group_id);
+                compute_norm2_kernel(x_b, res_b, item_ct1);
+            });
     });
 }
 
@@ -289,7 +288,7 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
     const auto x_ub = get_batch_struct(x);
     const auto result_ub = get_batch_struct(result);
 
-    const auto num_batches = x_ub.num_batch_entries;
+    const auto num_batches = x_ub.num_batch_items;
     auto device = exec->get_queue()->get_device();
     auto group_size =
         device.get_info<sycl::info::device::max_work_group_size>();
@@ -302,8 +301,8 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 auto group = item_ct1.get_group();
                 auto group_id = group.get_group_linear_id();
-                const auto x_b = batch::batch_entry(x_ub, group_id);
-                const auto result_b = batch::batch_entry(result_ub, group_id);
+                const auto x_b = batch::batch_item(x_ub, group_id);
+                const auto result_b = batch::batch_item(result_ub, group_id);
                 copy_kernel(x_b, result_b, item_ct1);
             });
     });

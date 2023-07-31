@@ -33,8 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 template <typename ValueType, typename Mapping>
 __device__ __forceinline__ void scale(
-    const gko::batch_multi_vector::batch_entry<const ValueType>& alpha,
-    const gko::batch_multi_vector::batch_entry<ValueType>& x, Mapping map)
+    const gko::batch_multi_vector::batch_item<const ValueType>& alpha,
+    const gko::batch_multi_vector::batch_item<ValueType>& x, Mapping map)
 {
     const int max_li = x.num_rows * x.num_rhs;
     for (int li = threadIdx.x; li < max_li; li += blockDim.x) {
@@ -57,10 +57,10 @@ __global__ __launch_bounds__(
                                                    x,
                                            Mapping map)
 {
-    for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_entries;
+    for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_items;
          batch_id += gridDim.x) {
-        const auto alpha_b = gko::batch::batch_entry(alpha, batch_id);
-        const auto x_b = gko::batch::batch_entry(x, batch_id);
+        const auto alpha_b = gko::batch::batch_item(alpha, batch_id);
+        const auto x_b = gko::batch::batch_item(x, batch_id);
         scale(alpha_b, x_b, map);
     }
 }
@@ -68,9 +68,9 @@ __global__ __launch_bounds__(
 
 template <typename ValueType, typename Mapping>
 __device__ __forceinline__ void add_scaled(
-    const gko::batch_multi_vector::batch_entry<const ValueType>& alpha,
-    const gko::batch_multi_vector::batch_entry<const ValueType>& x,
-    const gko::batch_multi_vector::batch_entry<ValueType>& y, Mapping map)
+    const gko::batch_multi_vector::batch_item<const ValueType>& alpha,
+    const gko::batch_multi_vector::batch_item<const ValueType>& x,
+    const gko::batch_multi_vector::batch_item<ValueType>& y, Mapping map)
 {
     const int max_li = x.num_rows * x.num_rhs;
     for (int li = threadIdx.x; li < max_li; li += blockDim.x) {
@@ -98,11 +98,11 @@ __global__ __launch_bounds__(
                                                         y,
                                                 Mapping map)
 {
-    for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_entries;
+    for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_items;
          batch_id += gridDim.x) {
-        const auto alpha_b = gko::batch::batch_entry(alpha, batch_id);
-        const auto x_b = gko::batch::batch_entry(x, batch_id);
-        const auto y_b = gko::batch::batch_entry(y, batch_id);
+        const auto alpha_b = gko::batch::batch_item(alpha, batch_id);
+        const auto x_b = gko::batch::batch_item(x, batch_id);
+        const auto y_b = gko::batch::batch_item(y, batch_id);
         add_scaled(alpha_b, x_b, y_b, map);
     }
 }
@@ -110,10 +110,10 @@ __global__ __launch_bounds__(
 
 template <typename Group, typename ValueType, typename Mapping>
 __device__ __forceinline__ void gen_one_dot(
-    const gko::batch_multi_vector::batch_entry<const ValueType>& x,
-    const gko::batch_multi_vector::batch_entry<const ValueType>& y,
+    const gko::batch_multi_vector::batch_item<const ValueType>& x,
+    const gko::batch_multi_vector::batch_item<const ValueType>& y,
     const int rhs_index,
-    const gko::batch_multi_vector::batch_entry<ValueType>& result,
+    const gko::batch_multi_vector::batch_item<ValueType>& result,
     Group subgroup, Mapping conj_map)
 {
     ValueType val = zero<ValueType>();
@@ -134,9 +134,9 @@ __device__ __forceinline__ void gen_one_dot(
 
 template <typename ValueType, typename Mapping>
 __device__ __forceinline__ void compute_gen_dot_product(
-    const gko::batch_multi_vector::batch_entry<const ValueType>& x,
-    const gko::batch_multi_vector::batch_entry<const ValueType>& y,
-    const gko::batch_multi_vector::batch_entry<ValueType>& result,
+    const gko::batch_multi_vector::batch_item<const ValueType>& x,
+    const gko::batch_multi_vector::batch_item<const ValueType>& y,
+    const gko::batch_multi_vector::batch_item<ValueType>& result,
     Mapping conj_map)
 {
     constexpr auto tile_size = config::warp_size;
@@ -160,11 +160,11 @@ __global__
         const gko::batch_multi_vector::uniform_batch<ValueType> result,
         Mapping map)
 {
-    for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_entries;
+    for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_items;
          batch_id += gridDim.x) {
-        const auto x_b = gko::batch::batch_entry(x, batch_id);
-        const auto y_b = gko::batch::batch_entry(y, batch_id);
-        const auto r_b = gko::batch::batch_entry(result, batch_id);
+        const auto x_b = gko::batch::batch_item(x, batch_id);
+        const auto y_b = gko::batch::batch_item(y, batch_id);
+        const auto r_b = gko::batch::batch_item(result, batch_id);
         compute_gen_dot_product(x_b, y_b, r_b, map);
     }
 }
@@ -172,9 +172,9 @@ __global__
 
 template <typename Group, typename ValueType>
 __device__ __forceinline__ void one_norm2(
-    const gko::batch_multi_vector::batch_entry<const ValueType>& x,
+    const gko::batch_multi_vector::batch_item<const ValueType>& x,
     const int rhs_index,
-    const gko::batch_multi_vector::batch_entry<remove_complex<ValueType>>&
+    const gko::batch_multi_vector::batch_item<remove_complex<ValueType>>&
         result,
     Group subgroup)
 {
@@ -202,8 +202,8 @@ __device__ __forceinline__ void one_norm2(
  */
 template <typename ValueType>
 __device__ __forceinline__ void compute_norm2(
-    const gko::batch_multi_vector::batch_entry<const ValueType>& x,
-    const gko::batch_multi_vector::batch_entry<remove_complex<ValueType>>&
+    const gko::batch_multi_vector::batch_item<const ValueType>& x,
+    const gko::batch_multi_vector::batch_item<remove_complex<ValueType>>&
         result)
 {
     constexpr auto tile_size = config::warp_size;
@@ -234,10 +234,10 @@ __global__ __launch_bounds__(
                                                                    ValueType>>
                                                                result)
 {
-    for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_entries;
+    for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_items;
          batch_id += gridDim.x) {
-        const auto x_b = gko::batch::batch_entry(x, batch_id);
-        const auto r_b = gko::batch::batch_entry(result, batch_id);
+        const auto x_b = gko::batch::batch_item(x, batch_id);
+        const auto r_b = gko::batch::batch_item(result, batch_id);
         compute_norm2(x_b, r_b);
     }
 }
@@ -251,8 +251,8 @@ __global__ __launch_bounds__(
  */
 template <typename ValueType>
 __device__ __forceinline__ void copy(
-    const gko::batch_multi_vector::batch_entry<const ValueType>& in,
-    const gko::batch_multi_vector::batch_entry<ValueType>& out)
+    const gko::batch_multi_vector::batch_item<const ValueType>& in,
+    const gko::batch_multi_vector::batch_item<ValueType>& out)
 {
     for (int iz = threadIdx.x; iz < in.num_rows * in.num_rhs;
          iz += blockDim.x) {
@@ -269,10 +269,10 @@ __global__
         const gko::batch_multi_vector::uniform_batch<const ValueType> src,
         const gko::batch_multi_vector::uniform_batch<ValueType> dst)
 {
-    for (size_type batch_id = blockIdx.x; batch_id < src.num_batch_entries;
+    for (size_type batch_id = blockIdx.x; batch_id < src.num_batch_items;
          batch_id += gridDim.x) {
-        const auto dst_b = gko::batch::batch_entry(dst, batch_id);
-        const auto src_b = gko::batch::batch_entry(src, batch_id);
+        const auto dst_b = gko::batch::batch_item(dst, batch_id);
+        const auto src_b = gko::batch::batch_item(src, batch_id);
         copy(src_b, dst_b);
     }
 }
