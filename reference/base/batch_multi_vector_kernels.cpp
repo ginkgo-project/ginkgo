@@ -66,9 +66,9 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto x_ub = host::get_batch_struct(x);
     const auto alpha_ub = host::get_batch_struct(alpha);
-    for (size_type batch = 0; batch < x->get_num_batch_entries(); ++batch) {
-        const auto alpha_b = gko::batch::batch_entry(alpha_ub, batch);
-        const auto x_b = gko::batch::batch_entry(x_ub, batch);
+    for (size_type batch = 0; batch < x->get_num_batch_items(); ++batch) {
+        const auto alpha_b = gko::batch::batch_item(alpha_ub, batch);
+        const auto x_b = gko::batch::batch_item(x_ub, batch);
         scale_kernel(alpha_b, x_b);
     }
 }
@@ -86,10 +86,10 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
     const auto x_ub = host::get_batch_struct(x);
     const auto y_ub = host::get_batch_struct(y);
     const auto alpha_ub = host::get_batch_struct(alpha);
-    for (size_type batch = 0; batch < y->get_num_batch_entries(); ++batch) {
-        const auto alpha_b = gko::batch::batch_entry(alpha_ub, batch);
-        const auto x_b = gko::batch::batch_entry(x_ub, batch);
-        const auto y_b = gko::batch::batch_entry(y_ub, batch);
+    for (size_type batch = 0; batch < y->get_num_batch_items(); ++batch) {
+        const auto alpha_b = gko::batch::batch_item(alpha_ub, batch);
+        const auto x_b = gko::batch::batch_item(x_ub, batch);
+        const auto y_b = gko::batch::batch_item(y_ub, batch);
         add_scaled_kernel(alpha_b, x_b, y_b);
     }
 }
@@ -107,11 +107,10 @@ void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
     const auto x_ub = host::get_batch_struct(x);
     const auto y_ub = host::get_batch_struct(y);
     const auto res_ub = host::get_batch_struct(result);
-    for (size_type batch = 0; batch < result->get_num_batch_entries();
-         ++batch) {
-        const auto res_b = gko::batch::batch_entry(res_ub, batch);
-        const auto x_b = gko::batch::batch_entry(x_ub, batch);
-        const auto y_b = gko::batch::batch_entry(y_ub, batch);
+    for (size_type batch = 0; batch < result->get_num_batch_items(); ++batch) {
+        const auto res_b = gko::batch::batch_item(res_ub, batch);
+        const auto x_b = gko::batch::batch_item(x_ub, batch);
+        const auto y_b = gko::batch::batch_item(y_ub, batch);
         compute_dot_product_kernel(x_b, y_b, res_b);
     }
 }
@@ -129,11 +128,10 @@ void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec,
     const auto x_ub = host::get_batch_struct(x);
     const auto y_ub = host::get_batch_struct(y);
     const auto res_ub = host::get_batch_struct(result);
-    for (size_type batch = 0; batch < result->get_num_batch_entries();
-         ++batch) {
-        const auto res_b = gko::batch::batch_entry(res_ub, batch);
-        const auto x_b = gko::batch::batch_entry(x_ub, batch);
-        const auto y_b = gko::batch::batch_entry(y_ub, batch);
+    for (size_type batch = 0; batch < result->get_num_batch_items(); ++batch) {
+        const auto res_b = gko::batch::batch_item(res_ub, batch);
+        const auto x_b = gko::batch::batch_item(x_ub, batch);
+        const auto y_b = gko::batch::batch_item(y_ub, batch);
         compute_conj_dot_product_kernel(x_b, y_b, res_b);
     }
 }
@@ -149,10 +147,9 @@ void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto x_ub = host::get_batch_struct(x);
     const auto res_ub = host::get_batch_struct(result);
-    for (size_type batch = 0; batch < result->get_num_batch_entries();
-         ++batch) {
-        const auto res_b = gko::batch::batch_entry(res_ub, batch);
-        const auto x_b = gko::batch::batch_entry(x_ub, batch);
+    for (size_type batch = 0; batch < result->get_num_batch_items(); ++batch) {
+        const auto res_b = gko::batch::batch_item(res_ub, batch);
+        const auto x_b = gko::batch::batch_item(x_ub, batch);
         compute_norm2_kernel(x_b, res_b);
     }
 }
@@ -168,9 +165,9 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto x_ub = host::get_batch_struct(x);
     const auto result_ub = host::get_batch_struct(result);
-    for (size_type batch = 0; batch < x->get_num_batch_entries(); ++batch) {
-        const auto result_b = gko::batch::batch_entry(result_ub, batch);
-        const auto x_b = gko::batch::batch_entry(x_ub, batch);
+    for (size_type batch = 0; batch < x->get_num_batch_items(); ++batch) {
+        const auto result_b = gko::batch::batch_item(result_ub, batch);
+        const auto x_b = gko::batch::batch_item(x_ub, batch);
         copy_kernel(x_b, result_b);
     }
 }

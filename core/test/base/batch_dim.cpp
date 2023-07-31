@@ -43,7 +43,7 @@ TEST(BatchDim, ConstructsCorrectUniformObject)
 {
     gko::batch_dim<2> d{4, gko::dim<2>(5)};
 
-    ASSERT_EQ(d.get_num_batch_entries(), 4);
+    ASSERT_EQ(d.get_num_batch_items(), 4);
     ASSERT_EQ(d.get_common_size(), gko::dim<2>(5));
 }
 
@@ -52,7 +52,7 @@ TEST(BatchDim, ConstructsNullObject)
 {
     gko::batch_dim<2> d{};
 
-    ASSERT_EQ(d.get_num_batch_entries(), 0);
+    ASSERT_EQ(d.get_num_batch_items(), 0);
     ASSERT_EQ(d.get_common_size(), gko::dim<2>{});
 }
 

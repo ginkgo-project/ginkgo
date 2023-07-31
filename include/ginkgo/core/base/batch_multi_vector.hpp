@@ -55,7 +55,7 @@ namespace gko {
 
 /**
  * BatchMultiVector stores multiple vectors in a batched fashion and is useful
- * for batched operations. For example, if you want to store two batch entries
+ * for batched operations. For example, if you want to store two batch items
  * with multi-vectors of size (3 x 2) given below:
  *
  * [1 2 ; 3 4
@@ -66,10 +66,10 @@ namespace gko {
  * [1 2 1 2 1 2 3 4 3 4 3 4].
  *
  * Access functions @at can help access individual
- * entries if necessary.
+ * item if necessary.
  *
- * The values of the batches are stored consecutively and in each batch, the
- * vectors are stored in a row-major fashion.
+ * The values of the different batch items are stored consecutively and in each
+ * batch item, the multi-vectors are stored in a row-major fashion.
  *
  * @tparam ValueType  precision of multi-vector elements
  *
@@ -151,17 +151,17 @@ public:
     batch_dim<2> get_size() const { return batch_size_; }
 
     /**
-     * Returns the number of batch entries.
+     * Returns the number of batch items.
      *
-     * @return the number of batch entries
+     * @return the number of batch items
      */
-    size_type get_num_batch_entries() const
+    size_type get_num_batch_items() const
     {
-        return batch_size_.get_num_batch_entries();
+        return batch_size_.get_num_batch_items();
     }
 
     /**
-     * Returns the common size of the batch entries.
+     * Returns the common size of the batch items.
      *
      * @return the common size stored
      */
@@ -188,40 +188,40 @@ public:
 
     /**
      * Returns a pointer to the array of values of the multi-vector for a
-     * specific batch entry.
+     * specific batch item.
      *
-     * @param batch_id  the id of the batch entry.
+     * @param batch_id  the id of the batch item.
      *
      * @return the pointer to the array of values
      */
-    value_type* get_values_for_entry(size_type batch_id) noexcept
+    value_type* get_values_for_item(size_type batch_id) noexcept
     {
-        GKO_ASSERT(batch_id < this->get_num_batch_entries());
+        GKO_ASSERT(batch_id < this->get_num_batch_items());
         return values_.get_data() +
                this->get_size().get_cumulative_offset(batch_id);
     }
 
     /**
-     * @copydoc get_values_at_entry(size_type)
+     * @copydoc get_values_for_item(size_type)
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_values_for_entry(
+    const value_type* get_const_values_for_item(
         size_type batch_id) const noexcept
     {
-        GKO_ASSERT(batch_id < this->get_num_batch_entries());
+        GKO_ASSERT(batch_id < this->get_num_batch_items());
         return values_.get_const_data() +
                this->get_size().get_cumulative_offset(batch_id);
     }
 
     /**
      * Returns the number of elements explicitly stored in the batch matrix,
-     * cumulative across all the batch entries.
+     * cumulative across all the batch items.
      *
      * @return the number of elements explicitly stored in the vector,
-     *         cumulative across all the batch entries
+     *         cumulative across all the batch items
      */
     size_type get_num_stored_elements() const noexcept
     {
@@ -229,9 +229,9 @@ public:
     }
 
     /**
-     * Returns a single element for a particular batch entry.
+     * Returns a single element for a particular batch item.
      *
-     * @param batch  the batch index to be queried
+     * @param batch_id  the batch item index to be queried
      * @param row  the row of the requested element
      * @param col  the column of the requested element
      *
@@ -239,29 +239,29 @@ public:
      *        stored at (e.g. trying to call this method on a GPU multi-vector
      *        from the OMP results in a runtime error)
      */
-    value_type& at(size_type batch, size_type row, size_type col)
+    value_type& at(size_type batch_id, size_type row, size_type col)
     {
-        GKO_ASSERT(batch < this->get_num_batch_entries());
-        return values_.get_data()[linearize_index(batch, row, col)];
+        GKO_ASSERT(batch_id < this->get_num_batch_items());
+        return values_.get_data()[linearize_index(batch_id, row, col)];
     }
 
     /**
      * @copydoc BatchMultiVector::at(size_type, size_type, size_type)
      */
-    value_type at(size_type batch, size_type row, size_type col) const
+    value_type at(size_type batch_id, size_type row, size_type col) const
     {
-        GKO_ASSERT(batch < this->get_num_batch_entries());
-        return values_.get_const_data()[linearize_index(batch, row, col)];
+        GKO_ASSERT(batch_id < this->get_num_batch_items());
+        return values_.get_const_data()[linearize_index(batch_id, row, col)];
     }
 
     /**
-     * Returns a single element for a particular batch entry.
+     * Returns a single element for a particular batch item.
      *
      * Useful for iterating across all elements of the vector.
      * However, it is less efficient than the two-parameter variant of this
      * method.
      *
-     * @param batch_id  the batch entry index to be queried
+     * @param batch_id  the batch item index to be queried
      * @param idx  a linear index of the requested element
      *
      * @note  the method has to be called on the same Executor the vector is
@@ -370,7 +370,7 @@ public:
 private:
     inline size_type compute_num_elems(const batch_dim<2>& size)
     {
-        return size.get_cumulative_offset(size.get_num_batch_entries());
+        return size.get_cumulative_offset(size.get_num_batch_items());
     }
 
 protected:
@@ -516,15 +516,15 @@ std::unique_ptr<Matrix> batch_initialize(
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
 {
     using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
-    size_type num_batch_entries = vals.size();
-    GKO_THROW_IF_INVALID(num_batch_entries > 0, "Input data is empty");
+    size_type num_batch_items = vals.size();
+    GKO_THROW_IF_INVALID(num_batch_items > 0, "Input data is empty");
     auto vals_begin = begin(vals);
     size_type common_num_rows = vals_begin ? vals_begin->size() : 0;
     auto common_size = dim<2>(common_num_rows, 1);
     for (auto& val : vals) {
         GKO_ASSERT_EQ(common_num_rows, val.size());
     }
-    auto b_size = batch_dim<2>(num_batch_entries, common_size);
+    auto b_size = batch_dim<2>(num_batch_items, common_size);
     auto tmp = batch_multi_vector::create(exec->get_master(), b_size);
     size_type batch = 0;
     for (const auto& b : vals) {
@@ -569,8 +569,8 @@ std::unique_ptr<Matrix> batch_initialize(
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
 {
     using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
-    size_type num_batch_entries = vals.size();
-    GKO_THROW_IF_INVALID(num_batch_entries > 0, "Input data is empty");
+    size_type num_batch_items = vals.size();
+    GKO_THROW_IF_INVALID(num_batch_items > 0, "Input data is empty");
     auto vals_begin = begin(vals);
     size_type common_num_rows = vals_begin ? vals_begin->size() : 0;
     size_type common_num_cols =
@@ -583,7 +583,7 @@ std::unique_ptr<Matrix> batch_initialize(
         GKO_ASSERT_EQUAL_DIMENSIONS(b_size, common_size);
     }
 
-    auto b_size = batch_dim<2>(num_batch_entries, common_size);
+    auto b_size = batch_dim<2>(num_batch_items, common_size);
     auto tmp = batch_multi_vector::create(exec->get_master(), b_size);
     size_type batch = 0;
     for (const auto& b : vals) {
@@ -634,11 +634,11 @@ std::unique_ptr<Matrix> batch_initialize(
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
 {
     using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
-    size_type num_batch_entries = num_vectors;
-    GKO_THROW_IF_INVALID(num_batch_entries > 0 && vals.size() > 0,
+    size_type num_batch_items = num_vectors;
+    GKO_THROW_IF_INVALID(num_batch_items > 0 && vals.size() > 0,
                          "Input data is empty");
-    auto b_size = batch_dim<2>(num_batch_entries,
-                               dim<2>(begin(vals) ? vals.size() : 0, 1));
+    auto b_size =
+        batch_dim<2>(num_batch_items, dim<2>(begin(vals) ? vals.size() : 0, 1));
     auto tmp = batch_multi_vector::create(exec->get_master(), b_size);
     for (size_type batch = 0; batch < num_vectors; batch++) {
         size_type idx = 0;
@@ -665,7 +665,7 @@ std::unique_ptr<Matrix> batch_initialize(
  * @tparam TArgs  argument types for Matrix::create method
  *                (not including the implied Executor as the first argument)
  *
- * @param num_batch_entries The number of times the input matrix is duplicated
+ * @param num_batch_items The number of times the input matrix is duplicated
  * @param vals  values used to initialize each vector in the temp. batch
  * @param exec  Executor associated to the vector
  * @param create_args  additional arguments passed to Matrix::create, not
@@ -677,19 +677,19 @@ std::unique_ptr<Matrix> batch_initialize(
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> batch_initialize(
-    const size_type num_batch_entries,
+    const size_type num_batch_items,
     std::initializer_list<std::initializer_list<typename Matrix::value_type>>
         vals,
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
 {
     using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
-    GKO_THROW_IF_INVALID(num_batch_entries > 0 && vals.size() > 0,
+    GKO_THROW_IF_INVALID(num_batch_items > 0 && vals.size() > 0,
                          "Input data is empty");
     auto common_size = dim<2>(begin(vals) ? vals.size() : 0,
                               begin(vals) ? begin(vals)->size() : 0);
-    batch_dim<2> b_size(num_batch_entries, common_size);
+    batch_dim<2> b_size(num_batch_items, common_size);
     auto tmp = batch_multi_vector::create(exec->get_master(), b_size);
-    for (size_type batch = 0; batch < num_batch_entries; batch++) {
+    for (size_type batch = 0; batch < num_batch_items; batch++) {
         size_type ridx = 0;
         for (const auto& row : vals) {
             size_type cidx = 0;

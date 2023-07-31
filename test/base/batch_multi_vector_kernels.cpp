@@ -59,11 +59,11 @@ protected:
     BatchMultiVector() : rand_engine(15) {}
 
     template <typename MtxType>
-    std::unique_ptr<MtxType> gen_mtx(const size_t num_batch_entries,
+    std::unique_ptr<MtxType> gen_mtx(const size_t num_batch_items,
                                      int num_rows, int num_cols)
     {
         return gko::test::generate_uniform_batch_random_matrix<MtxType>(
-            num_batch_entries, num_rows, num_cols,
+            num_batch_items, num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, false, ref);
     }

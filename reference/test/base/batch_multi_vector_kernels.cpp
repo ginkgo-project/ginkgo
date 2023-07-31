@@ -398,7 +398,7 @@ TYPED_TEST(BatchMultiVector, ConvertsEmptyToPrecision)
 
     empty->convert_to(res.get());
 
-    ASSERT_FALSE(res->get_num_batch_entries());
+    ASSERT_FALSE(res->get_num_batch_items());
 }
 
 
@@ -413,5 +413,5 @@ TYPED_TEST(BatchMultiVector, MovesEmptyToPrecision)
 
     empty->move_to(res.get());
 
-    ASSERT_FALSE(res->get_num_batch_entries());
+    ASSERT_FALSE(res->get_num_batch_items());
 }

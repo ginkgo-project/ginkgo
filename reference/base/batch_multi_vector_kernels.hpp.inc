@@ -32,8 +32,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 template <typename ValueType>
 inline void scale_kernel(
-    const gko::batch_multi_vector::batch_entry<const ValueType>& alpha,
-    const gko::batch_multi_vector::batch_entry<ValueType>& x)
+    const gko::batch_multi_vector::batch_item<const ValueType>& alpha,
+    const gko::batch_multi_vector::batch_item<ValueType>& x)
 {
     if (alpha.num_rhs == 1) {
         for (int i = 0; i < x.num_rows; ++i) {
@@ -53,9 +53,9 @@ inline void scale_kernel(
 
 template <typename ValueType>
 inline void add_scaled_kernel(
-    const gko::batch_multi_vector::batch_entry<const ValueType>& alpha,
-    const gko::batch_multi_vector::batch_entry<const ValueType>& x,
-    const gko::batch_multi_vector::batch_entry<ValueType>& y)
+    const gko::batch_multi_vector::batch_item<const ValueType>& alpha,
+    const gko::batch_multi_vector::batch_item<const ValueType>& x,
+    const gko::batch_multi_vector::batch_item<ValueType>& y)
 {
     if (alpha.num_rhs == 1) {
         for (int i = 0; i < x.num_rows; ++i) {
@@ -77,9 +77,9 @@ inline void add_scaled_kernel(
 
 template <typename ValueType>
 inline void compute_dot_product_kernel(
-    const gko::batch_multi_vector::batch_entry<const ValueType>& x,
-    const gko::batch_multi_vector::batch_entry<const ValueType>& y,
-    const gko::batch_multi_vector::batch_entry<ValueType>& result)
+    const gko::batch_multi_vector::batch_item<const ValueType>& x,
+    const gko::batch_multi_vector::batch_item<const ValueType>& y,
+    const gko::batch_multi_vector::batch_item<ValueType>& result)
 {
     for (int c = 0; c < result.num_rhs; c++) {
         result.values[c] = gko::zero<ValueType>();
@@ -96,9 +96,9 @@ inline void compute_dot_product_kernel(
 
 template <typename ValueType>
 inline void compute_conj_dot_product_kernel(
-    const gko::batch_multi_vector::batch_entry<const ValueType>& x,
-    const gko::batch_multi_vector::batch_entry<const ValueType>& y,
-    const gko::batch_multi_vector::batch_entry<ValueType>& result)
+    const gko::batch_multi_vector::batch_item<const ValueType>& x,
+    const gko::batch_multi_vector::batch_item<const ValueType>& y,
+    const gko::batch_multi_vector::batch_item<ValueType>& result)
 {
     for (int c = 0; c < result.num_rhs; c++) {
         result.values[c] = gko::zero<ValueType>();
@@ -115,8 +115,8 @@ inline void compute_conj_dot_product_kernel(
 
 template <typename ValueType>
 inline void compute_norm2_kernel(
-    const gko::batch_multi_vector::batch_entry<const ValueType>& x,
-    const gko::batch_multi_vector::batch_entry<gko::remove_complex<ValueType>>&
+    const gko::batch_multi_vector::batch_item<const ValueType>& x,
+    const gko::batch_multi_vector::batch_item<gko::remove_complex<ValueType>>&
         result)
 {
     for (int j = 0; j < x.num_rhs; ++j) {
@@ -141,8 +141,8 @@ inline void compute_norm2_kernel(
  */
 template <typename ValueType>
 inline void copy_kernel(
-    const gko::batch_multi_vector::batch_entry<const ValueType>& in,
-    const gko::batch_multi_vector::batch_entry<ValueType>& out)
+    const gko::batch_multi_vector::batch_item<const ValueType>& in,
+    const gko::batch_multi_vector::batch_item<ValueType>& out)
 {
     for (int iz = 0; iz < in.num_rows * in.num_rhs; iz++) {
         const int i = iz / in.num_rhs;

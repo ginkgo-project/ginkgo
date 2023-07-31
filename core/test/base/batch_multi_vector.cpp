@@ -64,7 +64,7 @@ protected:
     {
         ASSERT_NE(m->get_const_values(), nullptr);
         EXPECT_EQ(m->get_const_values()[0], value_type{-1.0});
-        ASSERT_EQ(m->get_num_batch_entries(), 2);
+        ASSERT_EQ(m->get_num_batch_items(), 2);
         ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 3));
         EXPECT_EQ(m->at(0, 0, 0), value_type{-1.0});
         EXPECT_EQ(m->at(0, 0, 1), value_type{2.0});
@@ -82,7 +82,7 @@ protected:
 
     static void assert_empty(gko::BatchMultiVector<value_type>* m)
     {
-        ASSERT_EQ(m->get_num_batch_entries(), 0);
+        ASSERT_EQ(m->get_num_batch_items(), 0);
         ASSERT_EQ(m->get_common_size(), gko::dim<2>{});
         ASSERT_EQ(m->get_const_values(), nullptr);
     }
@@ -114,7 +114,7 @@ TYPED_TEST(BatchMultiVector, CanGetValuesForEntry)
 {
     using value_type = typename TestFixture::value_type;
 
-    ASSERT_EQ(this->mtx->get_values_for_entry(1)[0], value_type{1.0});
+    ASSERT_EQ(this->mtx->get_values_for_item(1)[0], value_type{1.0});
 }
 
 
@@ -165,7 +165,7 @@ TYPED_TEST(BatchMultiVector, CanBeConstructedWithSize)
     auto m = gko::BatchMultiVector<TypeParam>::create(
         this->exec, gko::batch_dim<2>(2, gko::dim<2>(2, 4)));
 
-    ASSERT_EQ(m->get_num_batch_entries(), 2);
+    ASSERT_EQ(m->get_num_batch_items(), 2);
     ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 4));
 }
 
@@ -294,7 +294,7 @@ TYPED_TEST(BatchMultiVector, CanBeListConstructed)
     auto m = gko::batch_initialize<gko::BatchMultiVector<TypeParam>>(
         {{1.0, 2.0}, {1.0, 3.0}}, this->exec);
 
-    ASSERT_EQ(m->get_num_batch_entries(), 2);
+    ASSERT_EQ(m->get_num_batch_items(), 2);
     ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 1));
     EXPECT_EQ(m->at(0, 0), value_type{1});
     EXPECT_EQ(m->at(0, 1), value_type{2});
@@ -310,7 +310,7 @@ TYPED_TEST(BatchMultiVector, CanBeListConstructedByCopies)
     auto m = gko::batch_initialize<gko::BatchMultiVector<TypeParam>>(
         2, I<value_type>({1.0, 2.0}), this->exec);
 
-    ASSERT_EQ(m->get_num_batch_entries(), 2);
+    ASSERT_EQ(m->get_num_batch_items(), 2);
     ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 1));
     EXPECT_EQ(m->at(0, 0, 0), value_type{1.0});
     EXPECT_EQ(m->at(0, 0, 1), value_type{2.0});
@@ -351,7 +351,7 @@ TYPED_TEST(BatchMultiVector, CanBeFilledWithValue)
 
     m->fill(value_type(2.0));
 
-    ASSERT_EQ(m->get_num_batch_entries(), 2);
+    ASSERT_EQ(m->get_num_batch_items(), 2);
     ASSERT_EQ(m->get_common_size(), gko::dim<2>(3, 1));
     EXPECT_EQ(m->at(0, 0, 0), value_type{2.0});
     EXPECT_EQ(m->at(0, 0, 1), value_type{2.0});

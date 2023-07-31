@@ -58,14 +58,14 @@ struct batch_dim {
     using dimension_type = DimensionType;
 
     /**
-     * Get the number of batch entries stored
+     * Get the number of batch items stored
      *
-     * @return num_batch_entries
+     * @return num_batch_items
      */
-    size_type get_num_batch_entries() const { return num_batch_entries_; }
+    size_type get_num_batch_items() const { return num_batch_items_; }
 
     /**
-     * Get the common size of the batches
+     * Get the common size of the batch items
      *
      * @return common_size
      */
@@ -96,7 +96,7 @@ struct batch_dim {
      */
     friend bool operator==(const batch_dim& x, const batch_dim& y)
     {
-        return x.num_batch_entries_ == y.num_batch_entries_ &&
+        return x.num_batch_items_ == y.num_batch_items_ &&
                x.common_size_ == y.common_size_;
     }
 
@@ -120,29 +120,29 @@ struct batch_dim {
 
 
     /**
-     * The default empty constructor
+     * The default constructor
      */
     batch_dim()
         : common_size_(dim<dimensionality, dimension_type>{}),
-          num_batch_entries_(0)
+          num_batch_items_(0)
     {}
 
     /**
      * Creates a batch_dim object which stores a uniform size for all batch
      * entries.
      *
-     * @param num_batch_entries  the number of batch entries to be stored
-     * @param common_size  the common size of all the batch entries stored
+     * @param num_batch_items  the number of batch items to be stored
+     * @param common_size  the common size of all the batch items stored
      *
      * @note  Use this constructor when uniform batches need to be stored.
      */
-    explicit batch_dim(const size_type num_batch_entries,
+    explicit batch_dim(const size_type num_batch_items,
                        const dim<dimensionality, dimension_type>& common_size)
-        : common_size_(common_size), num_batch_entries_(num_batch_entries)
+        : common_size_(common_size), num_batch_items_(num_batch_items)
     {}
 
 private:
-    size_type num_batch_entries_{};
+    size_type num_batch_items_{};
     dim<dimensionality, dimension_type> common_size_{};
 };
 
@@ -160,7 +160,7 @@ template <typename DimensionType>
 inline batch_dim<2, DimensionType> transpose(
     const batch_dim<2, DimensionType>& input)
 {
-    return batch_dim<2, DimensionType>(input.get_num_batch_entries(),
+    return batch_dim<2, DimensionType>(input.get_num_batch_items(),
                                        transpose(input.get_common_size()));
 }
 
