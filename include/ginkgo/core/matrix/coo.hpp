@@ -307,6 +307,14 @@ protected:
      * @param size  size of the matrix
      * @param num_nonzeros  number of nonzeros
      */
+#if GINKGO_BUILD_DOXYGEN
+public:
+    static std::unique_ptr<Coo> create(std::shared_ptr<const Executor> exec,
+                                       const dim<2>& size,
+                                       size_type num_nonzeros);
+
+protected:
+#endif
     Coo(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{},
         size_type num_nonzeros = {})
         : EnableLinOp<Coo>(exec, size),
