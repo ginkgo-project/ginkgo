@@ -219,7 +219,7 @@ int main()
     // core/base/batch_multi_vector.hpp
     {
         using type1 = float;
-        using batch_multi_vector_type = gko::BatchMultiVector<type1>;
+        using batch_multi_vector_type = gko::batch::MultiVector<type1>;
         auto test = batch_multi_vector_type::create(exec);
     }
 

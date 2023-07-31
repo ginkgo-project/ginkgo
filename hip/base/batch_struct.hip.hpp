@@ -62,8 +62,8 @@ namespace hip {
  * Generates an immutable uniform batch struct from a batch of multi-vectors.
  */
 template <typename ValueType>
-inline gko::batch_multi_vector::uniform_batch<const hip_type<ValueType>>
-get_batch_struct(const BatchMultiVector<ValueType>* const op)
+inline batch::multi_vector::uniform_batch<const hip_type<ValueType>>
+get_batch_struct(const batch::MultiVector<ValueType>* const op)
 {
     return {as_hip_type(op->get_const_values()), op->get_num_batch_items(),
             static_cast<int>(op->get_common_size()[1]),
@@ -75,8 +75,8 @@ get_batch_struct(const BatchMultiVector<ValueType>* const op)
  * Generates a uniform batch struct from a batch of multi-vectors.
  */
 template <typename ValueType>
-inline gko::batch_multi_vector::uniform_batch<hip_type<ValueType>>
-get_batch_struct(BatchMultiVector<ValueType>* const op)
+inline batch::multi_vector::uniform_batch<hip_type<ValueType>> get_batch_struct(
+    batch::MultiVector<ValueType>* const op)
 {
     return {as_hip_type(op->get_values()), op->get_num_batch_items(),
             static_cast<int>(op->get_common_size()[1]),

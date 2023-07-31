@@ -50,7 +50,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
-namespace batch_multi_vector {
+namespace batch {
+namespace multi_vector {
 namespace {
 
 
@@ -63,7 +64,8 @@ GKO_REGISTER_OPERATION(copy, batch_multi_vector::copy);
 
 
 }  // namespace
-}  // namespace batch_multi_vector
+}  // namespace multi_vector
+
 
 namespace detail {
 
@@ -84,19 +86,19 @@ batch_dim<2> compute_batch_size(
 
 
 template <typename ValueType>
-BatchMultiVector<ValueType>::BatchMultiVector(
-    std::shared_ptr<const Executor> exec, const batch_dim<2>& size)
-    : EnablePolymorphicObject<BatchMultiVector<ValueType>>(exec),
+MultiVector<ValueType>::MultiVector(std::shared_ptr<const Executor> exec,
+                                    const batch_dim<2>& size)
+    : EnablePolymorphicObject<MultiVector<ValueType>>(exec),
       batch_size_(size),
       values_(exec, compute_num_elems(size))
 {}
 
 
 template <typename ValueType>
-BatchMultiVector<ValueType>::BatchMultiVector(
+MultiVector<ValueType>::MultiVector(
     std::shared_ptr<const Executor> exec,
     const std::vector<matrix::Dense<ValueType>*>& matrices)
-    : EnablePolymorphicObject<BatchMultiVector<ValueType>>(exec),
+    : EnablePolymorphicObject<MultiVector<ValueType>>(exec),
       batch_size_{detail::compute_batch_size(matrices)},
       values_(exec, compute_num_elems(batch_size_))
 {
@@ -111,11 +113,11 @@ BatchMultiVector<ValueType>::BatchMultiVector(
 
 
 template <typename ValueType>
-BatchMultiVector<ValueType>::BatchMultiVector(
-    std::shared_ptr<const Executor> exec, size_type num_duplications,
-    const matrix::Dense<value_type>* input)
-    : BatchMultiVector<ValueType>(
-          exec, batch_dim<2>(num_duplications, input->get_size()))
+MultiVector<ValueType>::MultiVector(std::shared_ptr<const Executor> exec,
+                                    size_type num_duplications,
+                                    const matrix::Dense<value_type>* input)
+    : MultiVector<ValueType>(exec,
+                             batch_dim<2>(num_duplications, input->get_size()))
 {
     size_type offset = 0;
     for (size_type i = 0; i < num_duplications; ++i) {
@@ -128,10 +130,10 @@ BatchMultiVector<ValueType>::BatchMultiVector(
 
 
 template <typename ValueType>
-BatchMultiVector<ValueType>::BatchMultiVector(
-    std::shared_ptr<const Executor> exec, size_type num_duplications,
-    const BatchMultiVector<value_type>* input)
-    : BatchMultiVector<ValueType>(
+MultiVector<ValueType>::MultiVector(std::shared_ptr<const Executor> exec,
+                                    size_type num_duplications,
+                                    const MultiVector<value_type>* input)
+    : MultiVector<ValueType>(
           exec, batch_dim<2>(input->get_num_batch_items() * num_duplications,
                              input->get_common_size()))
 {
@@ -146,9 +148,9 @@ BatchMultiVector<ValueType>::BatchMultiVector(
 
 
 template <typename ValueType>
-std::unique_ptr<BatchMultiVector<ValueType>>
-BatchMultiVector<ValueType>::create_with_config_of(
-    ptr_param<const BatchMultiVector> other)
+std::unique_ptr<MultiVector<ValueType>>
+MultiVector<ValueType>::create_with_config_of(
+    ptr_param<const MultiVector> other)
 {
     // De-referencing `other` before calling the functions (instead of
     // using operator `->`) is currently required to be compatible with
@@ -160,7 +162,7 @@ BatchMultiVector<ValueType>::create_with_config_of(
 
 template <typename ValueType>
 std::vector<std::unique_ptr<matrix::Dense<ValueType>>>
-BatchMultiVector<ValueType>::unbatch() const
+MultiVector<ValueType>::unbatch() const
 {
     using unbatch_type = matrix::Dense<ValueType>;
     auto exec = this->get_executor();
@@ -178,20 +180,20 @@ BatchMultiVector<ValueType>::unbatch() const
 
 
 template <typename ValueType>
-std::unique_ptr<const BatchMultiVector<ValueType>>
-BatchMultiVector<ValueType>::create_const(
+std::unique_ptr<const MultiVector<ValueType>>
+MultiVector<ValueType>::create_const(
     std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
-    detail::const_array_view<ValueType>&& values)
+    gko::detail::const_array_view<ValueType>&& values)
 {
     // cast const-ness away, but return a const object afterwards,
     // so we can ensure that no modifications take place.
-    return std::unique_ptr<const BatchMultiVector>(new BatchMultiVector{
-        exec, sizes, detail::array_const_cast(std::move(values))});
+    return std::unique_ptr<const MultiVector>(new MultiVector{
+        exec, sizes, gko::detail::array_const_cast(std::move(values))});
 }
 
 
 template <typename ValueType>
-void BatchMultiVector<ValueType>::fill(ValueType value)
+void MultiVector<ValueType>::fill(ValueType value)
 {
     GKO_ASSERT(this->values_.get_num_elems() > 0);
     this->values_.fill(value);
@@ -199,24 +201,24 @@ void BatchMultiVector<ValueType>::fill(ValueType value)
 
 
 template <typename ValueType>
-void BatchMultiVector<ValueType>::set_size(const batch_dim<2>& value) noexcept
+void MultiVector<ValueType>::set_size(const batch_dim<2>& value) noexcept
 {
     batch_size_ = value;
 }
 
 
 template <typename ValueType>
-std::unique_ptr<BatchMultiVector<ValueType>>
-BatchMultiVector<ValueType>::create_with_same_config() const
+std::unique_ptr<MultiVector<ValueType>>
+MultiVector<ValueType>::create_with_same_config() const
 {
-    return BatchMultiVector<ValueType>::create(this->get_executor(),
-                                               this->get_size());
+    return MultiVector<ValueType>::create(this->get_executor(),
+                                          this->get_size());
 }
 
 
 template <typename ValueType>
-void BatchMultiVector<ValueType>::scale(
-    ptr_param<const BatchMultiVector<ValueType>> alpha)
+void MultiVector<ValueType>::scale(
+    ptr_param<const MultiVector<ValueType>> alpha)
 {
     GKO_ASSERT_EQ(alpha->get_num_batch_items(), this->get_num_batch_items());
     GKO_ASSERT_EQUAL_ROWS(alpha->get_common_size(), dim<2>(1, 1));
@@ -226,15 +228,15 @@ void BatchMultiVector<ValueType>::scale(
                               alpha->get_common_size());
     }
     auto exec = this->get_executor();
-    exec->run(batch_multi_vector::make_scale(
-        make_temporary_clone(exec, alpha).get(), this));
+    exec->run(multi_vector::make_scale(make_temporary_clone(exec, alpha).get(),
+                                       this));
 }
 
 
 template <typename ValueType>
-void BatchMultiVector<ValueType>::add_scaled(
-    ptr_param<const BatchMultiVector<ValueType>> alpha,
-    ptr_param<const BatchMultiVector<ValueType>> b)
+void MultiVector<ValueType>::add_scaled(
+    ptr_param<const MultiVector<ValueType>> alpha,
+    ptr_param<const MultiVector<ValueType>> b)
 {
     GKO_ASSERT_EQ(alpha->get_num_batch_items(), this->get_num_batch_items());
     GKO_ASSERT_EQUAL_ROWS(alpha->get_common_size(), dim<2>(1, 1));
@@ -247,7 +249,7 @@ void BatchMultiVector<ValueType>::add_scaled(
     GKO_ASSERT_EQUAL_DIMENSIONS(this->get_common_size(), b->get_common_size());
 
     auto exec = this->get_executor();
-    exec->run(batch_multi_vector::make_add_scaled(
+    exec->run(multi_vector::make_add_scaled(
         make_temporary_clone(exec, alpha).get(),
         make_temporary_clone(exec, b).get(), this));
 }
@@ -261,9 +263,9 @@ inline const batch_dim<2> get_col_sizes(const batch_dim<2>& sizes)
 
 
 template <typename ValueType>
-void BatchMultiVector<ValueType>::compute_conj_dot(
-    ptr_param<const BatchMultiVector<ValueType>> b,
-    ptr_param<BatchMultiVector<ValueType>> result) const
+void MultiVector<ValueType>::compute_conj_dot(
+    ptr_param<const MultiVector<ValueType>> b,
+    ptr_param<MultiVector<ValueType>> result) const
 {
     GKO_ASSERT_EQ(b->get_num_batch_items(), this->get_num_batch_items());
     GKO_ASSERT_EQUAL_DIMENSIONS(this->get_common_size(), b->get_common_size());
@@ -272,16 +274,16 @@ void BatchMultiVector<ValueType>::compute_conj_dot(
         result->get_common_size(),
         get_col_sizes(this->get_size()).get_common_size());
     auto exec = this->get_executor();
-    exec->run(batch_multi_vector::make_compute_conj_dot(
+    exec->run(multi_vector::make_compute_conj_dot(
         this, make_temporary_clone(exec, b).get(),
         make_temporary_output_clone(exec, result).get()));
 }
 
 
 template <typename ValueType>
-void BatchMultiVector<ValueType>::compute_dot(
-    ptr_param<const BatchMultiVector<ValueType>> b,
-    ptr_param<BatchMultiVector<ValueType>> result) const
+void MultiVector<ValueType>::compute_dot(
+    ptr_param<const MultiVector<ValueType>> b,
+    ptr_param<MultiVector<ValueType>> result) const
 {
     GKO_ASSERT_EQ(b->get_num_batch_items(), this->get_num_batch_items());
     GKO_ASSERT_EQUAL_DIMENSIONS(this->get_common_size(), b->get_common_size());
@@ -290,15 +292,15 @@ void BatchMultiVector<ValueType>::compute_dot(
         result->get_common_size(),
         get_col_sizes(this->get_size()).get_common_size());
     auto exec = this->get_executor();
-    exec->run(batch_multi_vector::make_compute_dot(
+    exec->run(multi_vector::make_compute_dot(
         this, make_temporary_clone(exec, b).get(),
         make_temporary_output_clone(exec, result).get()));
 }
 
 
 template <typename ValueType>
-void BatchMultiVector<ValueType>::compute_norm2(
-    ptr_param<BatchMultiVector<remove_complex<ValueType>>> result) const
+void MultiVector<ValueType>::compute_norm2(
+    ptr_param<MultiVector<remove_complex<ValueType>>> result) const
 {
     GKO_ASSERT_EQ(this->get_num_batch_items(), result->get_num_batch_items());
     GKO_ASSERT_EQUAL_DIMENSIONS(
@@ -306,14 +308,14 @@ void BatchMultiVector<ValueType>::compute_norm2(
         get_col_sizes(this->get_size()).get_common_size());
 
     auto exec = this->get_executor();
-    exec->run(batch_multi_vector::make_compute_norm2(
+    exec->run(multi_vector::make_compute_norm2(
         this, make_temporary_output_clone(exec, result).get()));
 }
 
 
 template <typename ValueType>
-void BatchMultiVector<ValueType>::convert_to(
-    BatchMultiVector<next_precision<ValueType>>* result) const
+void MultiVector<ValueType>::convert_to(
+    MultiVector<next_precision<ValueType>>* result) const
 {
     result->values_ = this->values_;
     result->set_size(this->get_size());
@@ -321,8 +323,8 @@ void BatchMultiVector<ValueType>::convert_to(
 
 
 template <typename ValueType>
-void BatchMultiVector<ValueType>::move_to(
-    BatchMultiVector<next_precision<ValueType>>* result)
+void MultiVector<ValueType>::move_to(
+    MultiVector<next_precision<ValueType>>* result)
 {
     this->convert_to(result);
 }
@@ -352,14 +354,14 @@ void read_impl(MatrixType* mtx, const std::vector<MatrixData>& data)
 
 
 template <typename ValueType>
-void BatchMultiVector<ValueType>::read(const std::vector<mat_data>& data)
+void MultiVector<ValueType>::read(const std::vector<mat_data>& data)
 {
     read_impl(this, data);
 }
 
 
 template <typename ValueType>
-void BatchMultiVector<ValueType>::read(const std::vector<mat_data64>& data)
+void MultiVector<ValueType>::read(const std::vector<mat_data64>& data)
 {
     read_impl(this, data);
 }
@@ -387,21 +389,22 @@ void write_impl(const MatrixType* mtx, std::vector<MatrixData>& data)
 
 
 template <typename ValueType>
-void BatchMultiVector<ValueType>::write(std::vector<mat_data>& data) const
+void MultiVector<ValueType>::write(std::vector<mat_data>& data) const
 {
     write_impl(this, data);
 }
 
 
 template <typename ValueType>
-void BatchMultiVector<ValueType>::write(std::vector<mat_data64>& data) const
+void MultiVector<ValueType>::write(std::vector<mat_data64>& data) const
 {
     write_impl(this, data);
 }
 
 
-#define GKO_DECLARE_BATCH_MULTI_VECTOR(_type) class BatchMultiVector<_type>
+#define GKO_DECLARE_BATCH_MULTI_VECTOR(_type) class MultiVector<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_MULTI_VECTOR);
 
 
+}  // namespace batch
 }  // namespace gko

@@ -51,36 +51,36 @@ namespace kernels {
 
 #define GKO_DECLARE_BATCH_MULTI_VECTOR_SCALE_KERNEL(_type)  \
     void scale(std::shared_ptr<const DefaultExecutor> exec, \
-               const BatchMultiVector<_type>* alpha,        \
-               BatchMultiVector<_type>* x)
+               const batch::MultiVector<_type>* alpha,      \
+               batch::MultiVector<_type>* x)
 
 #define GKO_DECLARE_BATCH_MULTI_VECTOR_ADD_SCALED_KERNEL(_type)  \
     void add_scaled(std::shared_ptr<const DefaultExecutor> exec, \
-                    const BatchMultiVector<_type>* alpha,        \
-                    const BatchMultiVector<_type>* x,            \
-                    BatchMultiVector<_type>* y)
+                    const batch::MultiVector<_type>* alpha,      \
+                    const batch::MultiVector<_type>* x,          \
+                    batch::MultiVector<_type>* y)
 
 #define GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_DOT_KERNEL(_type)  \
     void compute_dot(std::shared_ptr<const DefaultExecutor> exec, \
-                     const BatchMultiVector<_type>* x,            \
-                     const BatchMultiVector<_type>* y,            \
-                     BatchMultiVector<_type>* result)
+                     const batch::MultiVector<_type>* x,          \
+                     const batch::MultiVector<_type>* y,          \
+                     batch::MultiVector<_type>* result)
 
 #define GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_CONJ_DOT_KERNEL(_type)  \
     void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec, \
-                          const BatchMultiVector<_type>* x,            \
-                          const BatchMultiVector<_type>* y,            \
-                          BatchMultiVector<_type>* result)
+                          const batch::MultiVector<_type>* x,          \
+                          const batch::MultiVector<_type>* y,          \
+                          batch::MultiVector<_type>* result)
 
 #define GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_NORM2_KERNEL(_type)  \
     void compute_norm2(std::shared_ptr<const DefaultExecutor> exec, \
-                       const BatchMultiVector<_type>* x,            \
-                       BatchMultiVector<remove_complex<_type>>* result)
+                       const batch::MultiVector<_type>* x,          \
+                       batch::MultiVector<remove_complex<_type>>* result)
 
 #define GKO_DECLARE_BATCH_MULTI_VECTOR_COPY_KERNEL(_type)  \
     void copy(std::shared_ptr<const DefaultExecutor> exec, \
-              const BatchMultiVector<_type>* x,            \
-              BatchMultiVector<_type>* result)
+              const batch::MultiVector<_type>* x,          \
+              batch::MultiVector<_type>* result)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                   \
