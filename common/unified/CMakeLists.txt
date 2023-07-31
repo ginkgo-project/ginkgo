@@ -1,5 +1,3 @@
-include(../../cmake/template_instantiation.cmake)
-add_instantiation_files(matrix/dense_kernels.instantiate.cpp UNIFIED_INSTANTIATE_SOURCES)
 set(UNIFIED_SOURCES
     base/device_matrix_data_kernels.cpp
     base/index_set_kernels.cpp
@@ -29,6 +27,4 @@ set(UNIFIED_SOURCES
     solver/ir_kernels.cpp
     )
 list(TRANSFORM UNIFIED_SOURCES PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
-list(TRANSFORM UNIFIED_INSTANTIATE_SOURCES PREPEND ${CMAKE_CURRENT_BINARY_DIR}/)
 set(GKO_UNIFIED_COMMON_SOURCES ${UNIFIED_SOURCES} PARENT_SCOPE)
-set(GKO_UNIFIED_COMMON_INSTANTIATE_SOURCES ${UNIFIED_INSTANTIATE_SOURCES} PARENT_SCOPE)

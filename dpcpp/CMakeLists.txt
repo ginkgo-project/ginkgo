@@ -3,6 +3,8 @@ set(GINKGO_MKL_ROOT "${MKL_ROOT}" PARENT_SCOPE)
 find_package(oneDPL REQUIRED HINTS "$ENV{DPL_ROOT}")
 set(GINKGO_DPL_ROOT "${DPL_ROOT}" PARENT_SCOPE)
 
+include(${PROJECT_SOURCE_DIR}/cmake/template_instantiation.cmake)
+add_instantiation_files(${PROJECT_SOURCE_DIR}/common/unified matrix/dense_kernels.instantiate.cpp DENSE_INSTANTIATE)
 add_library(ginkgo_dpcpp $<TARGET_OBJECTS:ginkgo_dpcpp_device> "")
 target_sources(ginkgo_dpcpp
     PRIVATE
@@ -55,6 +57,7 @@ target_sources(ginkgo_dpcpp
     stop/criterion_kernels.dp.cpp
     stop/residual_norm_kernels.dp.cpp
     ${GKO_UNIFIED_COMMON_SOURCES}
+    ${DENSE_INSTANTIATE}
     )
 
 # TODO: adjust it when dpcpp jacobi supports more block size
