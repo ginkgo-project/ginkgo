@@ -1,4 +1,9 @@
 add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
+include(${PROJECT_SOURCE_DIR}/cmake/template_instantiation.cmake)
+add_instantiation_files(. matrix/csr_kernels.instantiate.cu CSR_INSTANTIATE)
+add_instantiation_files(. matrix/fbcsr_kernels.instantiate.cu FBCSR_INSTANTIATE)
+# we don't split up the dense kernels into distinct compliations
+list(APPEND GKO_UNIFIED_COMMON_SOURCES ${PROJECT_SOURCE_DIR}/common/unified/matrix/dense_kernels.instantiate.cpp)
 target_sources(ginkgo_cuda
     PRIVATE
     base/device.cpp
@@ -31,11 +36,11 @@ target_sources(ginkgo_cuda
     factorization/par_ilut_spgeam_kernel.cu
     factorization/par_ilut_sweep_kernel.cu
     matrix/coo_kernels.cu
-    matrix/csr_kernels.cu
+    ${CSR_INSTANTIATE}
     matrix/dense_kernels.cu
     matrix/diagonal_kernels.cu
     matrix/ell_kernels.cu
-    matrix/fbcsr_kernels.cu
+    ${FBCSR_INSTANTIATE}
     matrix/fft_kernels.cu
     matrix/sellp_kernels.cu
     matrix/sparsity_csr_kernels.cu

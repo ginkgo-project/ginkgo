@@ -937,9 +937,6 @@ void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
         });
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CONVERT_TO_FBCSR_KERNEL);
-
 
 namespace kernel {
 
@@ -1121,8 +1118,6 @@ void build_lookup(std::shared_ptr<const DefaultExecutor> exec,
             row_ptrs, col_idxs, num_rows, allowed, storage_offsets, row_desc,
             storage);
 }
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

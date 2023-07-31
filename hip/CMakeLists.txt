@@ -1,3 +1,8 @@
+include(${PROJECT_SOURCE_DIR}/cmake/template_instantiation.cmake)
+add_instantiation_files(. matrix/csr_kernels.instantiate.hip.cpp CSR_INSTANTIATE)
+add_instantiation_files(. matrix/fbcsr_kernels.instantiate.hip.cpp FBCSR_INSTANTIATE)
+# we don't split up the dense kernels into distinct compliations
+list(APPEND GKO_UNIFIED_COMMON_SOURCES ${PROJECT_SOURCE_DIR}/common/unified/matrix/dense_kernels.instantiate.cpp)
 set(GINKGO_HIP_SOURCES
     base/device.hip.cpp
     base/device_matrix_data_kernels.hip.cpp
@@ -29,11 +34,11 @@ set(GINKGO_HIP_SOURCES
     factorization/par_ilut_spgeam_kernel.hip.cpp
     factorization/par_ilut_sweep_kernel.hip.cpp
     matrix/coo_kernels.hip.cpp
-    matrix/csr_kernels.hip.cpp
+    ${CSR_INSTANTIATE}
     matrix/dense_kernels.hip.cpp
     matrix/diagonal_kernels.hip.cpp
     matrix/ell_kernels.hip.cpp
-    matrix/fbcsr_kernels.hip.cpp
+    ${FBCSR_INSTANTIATE}
     matrix/sellp_kernels.hip.cpp
     matrix/sparsity_csr_kernels.hip.cpp
     multigrid/pgm_kernels.hip.cpp

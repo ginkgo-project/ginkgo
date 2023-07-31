@@ -533,9 +533,6 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_SPMV_KERNEL);
-
 
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
@@ -597,9 +594,6 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
         }
     }
 }
-
-GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -723,8 +717,6 @@ void spgemm(std::shared_ptr<const CudaExecutor> exec,
     cusparse::destroy(spgemm_descr);
 #endif  // CUDA_VERSION >= 11000
 }
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEMM_KERNEL);
 
 
 namespace {
@@ -920,9 +912,6 @@ void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
 #endif  // CUDA_VERSION >= 11000
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_ADVANCED_SPGEMM_KERNEL);
-
 
 template <typename ValueType, typename IndexType>
 void spgeam(std::shared_ptr<const DefaultExecutor> exec,
@@ -948,8 +937,6 @@ void spgeam(std::shared_ptr<const DefaultExecutor> exec,
         b->get_const_col_idxs(), b->get_const_values(), c);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
-
 
 template <typename ValueType, typename IndexType>
 void fill_in_dense(std::shared_ptr<const CudaExecutor> exec,
@@ -971,9 +958,6 @@ void fill_in_dense(std::shared_ptr<const CudaExecutor> exec,
             as_device_type(vals), stride, as_device_type(result->get_values()));
     }
 }
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_FILL_IN_DENSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -1023,8 +1007,6 @@ void transpose(std::shared_ptr<const CudaExecutor> exec,
         fallback_transpose(exec, orig, trans);
     }
 }
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -1083,9 +1065,6 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL);
-
 
 template <typename ValueType, typename IndexType>
 void inv_symm_permute(std::shared_ptr<const CudaExecutor> exec,
@@ -1115,9 +1094,6 @@ void inv_symm_permute(std::shared_ptr<const CudaExecutor> exec,
                 as_device_type(permuted->get_values()));
     }
 }
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_INV_SYMM_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -1149,9 +1125,6 @@ void row_permute(std::shared_ptr<const CudaExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_ROW_PERMUTE_KERNEL);
-
 
 template <typename ValueType, typename IndexType>
 void inverse_row_permute(std::shared_ptr<const CudaExecutor> exec,
@@ -1182,9 +1155,6 @@ void inverse_row_permute(std::shared_ptr<const CudaExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_INVERSE_ROW_PERMUTE_KERNEL);
-
 
 template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row_in_span(
@@ -1203,9 +1173,6 @@ void calculate_nonzeros_per_row_in_span(
             as_device_type(col_idxs), as_device_type(row_nnz->get_data()));
     }
 }
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_SPAN_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -1233,9 +1200,6 @@ void compute_submatrix(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_KERNEL);
-
 
 template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row_in_index_set(
@@ -1245,9 +1209,6 @@ void calculate_nonzeros_per_row_in_index_set(
     const gko::index_set<IndexType>& col_index_set,
     IndexType* row_nnz) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_INDEX_SET_KERNEL);
-
 
 template <typename ValueType, typename IndexType>
 void compute_submatrix_from_index_set(
@@ -1256,9 +1217,6 @@ void compute_submatrix_from_index_set(
     const gko::index_set<IndexType>& row_index_set,
     const gko::index_set<IndexType>& col_index_set,
     matrix::Csr<ValueType, IndexType>* result) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_FROM_INDEX_SET_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -1312,9 +1270,6 @@ void sort_by_column_index(std::shared_ptr<const CudaExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_SORT_BY_COLUMN_INDEX);
-
 
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
@@ -1335,9 +1290,6 @@ void is_sorted_by_column_index(
     }
     cpu_array = gpu_array;
 }
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_IS_SORTED_BY_COLUMN_INDEX);
 
 
 template <typename ValueType, typename IndexType>
@@ -1364,8 +1316,6 @@ void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTRACT_DIAGONAL);
-
 
 template <typename ValueType, typename IndexType>
 void check_diagonal_entries_exist(
@@ -1389,9 +1339,6 @@ void check_diagonal_entries_exist(
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CHECK_DIAGONAL_ENTRIES_EXIST);
-
 
 template <typename ValueType, typename IndexType>
 void add_scaled_identity(std::shared_ptr<const CudaExecutor> exec,
@@ -1412,9 +1359,6 @@ void add_scaled_identity(std::shared_ptr<const CudaExecutor> exec,
         mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
         as_device_type(mtx->get_values()));
 }
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_ADD_SCALED_IDENTITY_KERNEL);
 
 
 }  // namespace csr
