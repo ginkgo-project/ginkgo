@@ -74,11 +74,13 @@ def collect_solver_data(solver, executor, legend_array):
 
 legend_array = list()
 
-df1 = collect_solver_data('auto', executor, legend_array)
+strat_type=sys.argv[2]
+
+df1 = collect_solver_data(strat_type, executor, legend_array)
 df3 = collect_solver_data('vendor', executor, legend_array)
 
 row_list=[]
-batch_list=[16, 64, 256, 1024, 2048, 4096, 16384, 65536]
+batch_list=[16, 64, 256, 1024, 2048, 4096, 16384]
 
 df1 = df1[~df1["batch_size"].isin(batch_list)]
 df1 = df1[~df1["nrows"].isin(row_list)]
@@ -95,55 +97,82 @@ speedup_df['speedup-total'] = speedup_df['vendor-total-time']/speedup_df['ginkgo
 speedup_df['speedup1'] = speedup_df['vendor-time']/speedup_df['ginkgo1-time']
 # print(speedup_df)
 
-batch_sizes=[32,512,8192 ,32768, 1317092]
+batch_sizes=[32768,65536,131072,262144,524288]
 # batch_sizes = [str(r) for r in batch_sizes]
 
 print(speedup_df)
 
-strat_type='speedup1'
+strat_sp_type='speedup1'
 # print(speedup_df.loc[speedup_df.batch_size==32 ,strat_type].values)
-r16 = [speedup_df.loc[speedup_df.batch_size==32 ,strat_type].values[0],
-       speedup_df.loc[speedup_df.batch_size==512 ,strat_type].values[0],
-       speedup_df.loc[speedup_df.batch_size==8192 ,strat_type].values[0],
-       speedup_df.loc[speedup_df.batch_size==32768 ,strat_type].values[0],
-       speedup_df.loc[speedup_df.batch_size==131072,strat_type].values[0],
+#
+
+def extract_rows(df, batch_list,strat,idx):
+    """
+    """
+    data = [df.loc[df.batch_size==batch_sizes[0] ,strat].values[idx],
+       df.loc[df.batch_size==batch_sizes[1] ,strat].values[idx],
+       df.loc[df.batch_size==batch_sizes[2] ,strat].values[idx],
+       df.loc[df.batch_size==batch_sizes[3] ,strat].values[idx],
+       df.loc[df.batch_size==batch_sizes[4],strat].values[idx],
        ]
-r32 = [speedup_df.loc[speedup_df.batch_size==32 ,strat_type].values[1],
-       speedup_df.loc[speedup_df.batch_size==512 ,strat_type].values[1],
-       speedup_df.loc[speedup_df.batch_size==8192 ,strat_type].values[1],
-       speedup_df.loc[speedup_df.batch_size==32768 ,strat_type].values[1],
-       speedup_df.loc[speedup_df.batch_size==131072,strat_type].values[1],
-       ]
-r64 = [speedup_df.loc[speedup_df.batch_size==32 ,strat_type].values[2],
-       speedup_df.loc[speedup_df.batch_size==512 ,strat_type].values[2],
-       speedup_df.loc[speedup_df.batch_size==8192,strat_type].values[2],
-       speedup_df.loc[speedup_df.batch_size==32768,strat_type].values[2],
-       speedup_df.loc[speedup_df.batch_size==131072,strat_type].values[2]]
-r128 = [speedup_df.loc[speedup_df.batch_size==32 ,strat_type].values[3],
-       speedup_df.loc[speedup_df.batch_size==512 ,strat_type].values[3],
-       speedup_df.loc[speedup_df.batch_size==8192,strat_type].values[3],
-       speedup_df.loc[speedup_df.batch_size==32768,strat_type].values[3],
-       speedup_df.loc[speedup_df.batch_size==131072,strat_type].values[3]]
-r256 = [speedup_df.loc[speedup_df.batch_size==32 ,strat_type].values[4],
-       speedup_df.loc[speedup_df.batch_size==512 ,strat_type].values[4],
-       speedup_df.loc[speedup_df.batch_size==8192,strat_type].values[4],
-       speedup_df.loc[speedup_df.batch_size==32768,strat_type].values[4],
-       speedup_df.loc[speedup_df.batch_size==131072,strat_type].values[4]]
-r512 = [speedup_df.loc[speedup_df.batch_size==32 ,strat_type].values[5],
-       speedup_df.loc[speedup_df.batch_size==512 ,strat_type].values[5],
-       speedup_df.loc[speedup_df.batch_size==8192,strat_type].values[5],
-       speedup_df.loc[speedup_df.batch_size==32768,strat_type].values[5],
-       speedup_df.loc[speedup_df.batch_size==131072,strat_type].values[5]]
-r1024 = [speedup_df.loc[speedup_df.batch_size==32 ,strat_type].values[6],
-       speedup_df.loc[speedup_df.batch_size==512 ,strat_type].values[6],
-       speedup_df.loc[speedup_df.batch_size==8192,strat_type].values[6],
-       speedup_df.loc[speedup_df.batch_size==32768,strat_type].values[6],
-       speedup_df.loc[speedup_df.batch_size==131072,strat_type].values[6]]
-r2048 = [speedup_df.loc[speedup_df.batch_size==32 ,strat_type].values[7],
-       speedup_df.loc[speedup_df.batch_size==512 ,strat_type].values[7],
-       speedup_df.loc[speedup_df.batch_size==8192,strat_type].values[7],
-       speedup_df.loc[speedup_df.batch_size==32768,strat_type].values[7],
-       speedup_df.loc[speedup_df.batch_size==131072,strat_type].values[7]]
+
+    return data
+
+
+r16=extract_rows(speedup_df,batch_sizes,strat_sp_type,0)
+r32=extract_rows(speedup_df,batch_sizes,strat_sp_type,1)
+r64=extract_rows(speedup_df,batch_sizes,strat_sp_type,2)
+r128=extract_rows(speedup_df,batch_sizes,strat_sp_type,3)
+r256=extract_rows(speedup_df,batch_sizes,strat_sp_type,4)
+r512=extract_rows(speedup_df,batch_sizes,strat_sp_type,5)
+r1024=extract_rows(speedup_df,batch_sizes,strat_sp_type,6)
+r2048=extract_rows(speedup_df,batch_sizes,strat_sp_type,7)
+
+
+# print(speedup_df.loc[speedup_df.batch_size==batch_sizes[1] ,strat_sp_type].values)
+
+# r16 = [speedup_df.loc[speedup_df.batch_size==batch_sizes[0] ,strat_sp_type].values[0],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[1] ,strat_sp_type].values[0],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[2] ,strat_sp_type].values[0],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[3] ,strat_sp_type].values[0],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[4],strat_sp_type].values[0],
+#        ]
+# r32 = [speedup_df.loc[speedup_df.batch_size==batch_sizes[0],strat_sp_type].values[1],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[1],strat_sp_type].values[1],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[2],strat_sp_type].values[1],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[3],strat_sp_type].values[1],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[4],strat_sp_type].values[1],
+#        ]
+# r64 = [speedup_df.loc[speedup_df.batch_size==batch_sizes[0],strat_sp_type].values[2],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[1],strat_sp_type].values[2],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[2],strat_sp_type].values[2],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[3],strat_sp_type].values[2],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[4],strat_sp_type].values[2]]
+# r128 = [speedup_df.loc[speedup_df.batch_size==batch_sizes[0],strat_sp_type].values[3],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[1],strat_sp_type].values[3],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[2],strat_sp_type].values[3],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[3],strat_sp_type].values[3],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[4],strat_sp_type].values[3]]
+# r256 = [speedup_df.loc[speedup_df.batch_size==batch_sizes[0],strat_sp_type].values[4],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[1],strat_sp_type].values[4],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[2],strat_sp_type].values[4],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[3],strat_sp_type].values[4],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[4],strat_sp_type].values[4]]
+# r512 = [speedup_df.loc[speedup_df.batch_size==batch_sizes[0],strat_sp_type].values[5],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[1],strat_sp_type].values[5],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[2],strat_sp_type].values[5],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[3],strat_sp_type].values[5],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[4],strat_sp_type].values[5]]
+# r1024 = [speedup_df.loc[speedup_df.batch_size==batch_sizes[0],strat_sp_type].values[6],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[1],strat_sp_type].values[6],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[2],strat_sp_type].values[6],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[3],strat_sp_type].values[6],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[4],strat_sp_type].values[6]]
+# r2048 = [speedup_df.loc[speedup_df.batch_size==batch_sizes[0],strat_sp_type].values[7],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[1],strat_sp_type].values[7],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[2],strat_sp_type].values[7],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[3],strat_sp_type].values[7],
+#        speedup_df.loc[speedup_df.batch_size==batch_sizes[4],strat_sp_type].values[7]]
 
 df = pd.DataFrame(data={'16': r16,'32': r32,'64': r64, '128': r128,
                         '256': r256,'512': r512, '1024': r1024,'2048': r2048}, index=batch_sizes)
@@ -209,7 +238,7 @@ plt.grid(True, linestyle='--', linewidth=0.3)
 
 plt.grid(True)
 
-fname = 'tridiag_speedup_' + strat_type + executor + '.pdf'
+fname = 'large_tridiag_sp_' + strat_type + executor + '.pdf'
 
 plt.savefig(fname)
 # shutil.copy('./'+fname, '/home/pratik/Documents/10MyPapers/2022-thesis/images/batched-solvers/'+fname)

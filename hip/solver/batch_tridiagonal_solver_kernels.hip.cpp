@@ -51,15 +51,15 @@ namespace kernels {
 namespace hip {
 namespace batch_tridiagonal_solver {
 
-#define GKO_HIP_WMpGE_BATCH_TRIDIAGONAL_SUBWARP_SIZES_CODE \
+#define GKO_HIP_REC_PGE_BATCH_TRIDIAGONAL_SUBWARP_SIZES_CODE \
     1, 2, 4, 8, 16, 32, 64
 
 using batch_recursive_tridiagonal_solver_hip_compiled_subwarp_sizes =
-    syn::value_list<int, GKO_HIP_WMpGE_BATCH_TRIDIAGONAL_SUBWARP_SIZES_CODE>;
+    syn::value_list<int, GKO_HIP_REC_PGE_BATCH_TRIDIAGONAL_SUBWARP_SIZES_CODE>;
 
 namespace {
 
-constexpr int default_block_size = 128;
+constexpr int default_block_size = 1024;
 
 #include "common/cuda_hip/solver/batch_tridiagonal_solver_kernels.hpp.inc"
 
@@ -68,28 +68,31 @@ constexpr int default_block_size = 128;
 namespace {
 
 template <int compiled_tile_size, typename ValueType>
-void recursive_app1_helper(
-    syn::value_list<int, compiled_tile_size>, const int number_recursive_steps,
-    const size_type nbatch, const int nrows, const int nrhs,
-    const ValueType* const tridiag_mat_subdiags,
-    const ValueType* const tridiag_mat_maindiags,
-    ValueType* const tridiag_mat_superdiags, ValueType* const rhs,
-    ValueType* const x,
-    const enum gko::solver::batch_tridiag_solve_approach approach)
+void recursive_app1_helper(syn::value_list<int, compiled_tile_size>,
+                           std::shared_ptr<const DefaultExecutor> exec,
+                           const int number_recursive_steps,
+                           const size_type nbatch, const int nrows,
+                           const int nrhs,
+                           const ValueType* const tridiag_mat_subdiags,
+                           const ValueType* const tridiag_mat_maindiags,
+                           ValueType* const tridiag_mat_superdiags,
+                           ValueType* const rhs, ValueType* const x)
 {
     constexpr auto subwarp_size = compiled_tile_size;
-    dim3 block(default_block_size);
-    dim3 grid(ceildiv(nbatch * subwarp_size, default_block_size));
+    const int block_size = std::min(nrows, default_block_size);
+    const auto grid_size = ceildiv(nbatch * subwarp_size, block_size);
 
     const int shared_size =
         gko::kernels::batch_tridiagonal_solver::local_memory_requirement<
             ValueType>(nrows, nrhs);
 
-    hipLaunchKernelGGL(
-        recursive_kernel_approach_1<subwarp_size>, grid, block, shared_size, 0,
-        number_recursive_steps, nbatch, nrows,
-        as_hip_type(tridiag_mat_subdiags), as_hip_type(tridiag_mat_maindiags),
-        as_hip_type(tridiag_mat_superdiags), as_hip_type(rhs), as_hip_type(x));
+    recursive_kernel_approach_1<subwarp_size>
+        <<<grid_size, block_size, shared_size, exec->get_stream()>>>(
+            number_recursive_steps, nbatch, nrows,
+            as_hip_type(tridiag_mat_subdiags),
+            as_hip_type(tridiag_mat_maindiags),
+            as_hip_type(tridiag_mat_superdiags), as_hip_type(rhs),
+            as_hip_type(x));
 
 
     GKO_HIP_LAST_IF_ERROR_THROW;
@@ -99,18 +102,19 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_recursive_app1_helper,
                                     recursive_app1_helper);
 
 template <int compiled_tile_size, typename ValueType>
-void recursive_app2_helper(
-    syn::value_list<int, compiled_tile_size>, const int number_recursive_steps,
-    const size_type nbatch, const int nrows, const int nrhs,
-    const ValueType* const tridiag_mat_subdiags,
-    const ValueType* const tridiag_mat_maindiags,
-    ValueType* const tridiag_mat_superdiags, ValueType* const rhs,
-    ValueType* const x,
-    const enum gko::solver::batch_tridiag_solve_approach approach)
+void recursive_app2_helper(syn::value_list<int, compiled_tile_size>,
+                           std::shared_ptr<const DefaultExecutor> exec,
+                           const int number_recursive_steps,
+                           const size_type nbatch, const int nrows,
+                           const int nrhs,
+                           const ValueType* const tridiag_mat_subdiags,
+                           const ValueType* const tridiag_mat_maindiags,
+                           ValueType* const tridiag_mat_superdiags,
+                           ValueType* const rhs, ValueType* const x)
 {
     constexpr auto subwarp_size = compiled_tile_size;
-    dim3 block(default_block_size);
-    dim3 grid(ceildiv(nbatch * subwarp_size, default_block_size));
+    const int block_size = std::min(nrows, default_block_size);
+    const auto grid_size = ceildiv(nbatch * subwarp_size, block_size);
 
     const int shared_size =
         gko::kernels::batch_tridiagonal_solver::local_memory_requirement<
@@ -118,25 +122,27 @@ void recursive_app2_helper(
 
     using HipValueType = typename gko::kernels::hip::hip_type<ValueType>;
 
-    hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(
-            recursive_kernel_approach_2<HipValueType, subwarp_size>),
-        grid, block, shared_size, 0, number_recursive_steps, nbatch, nrows,
-        as_hip_type(tridiag_mat_subdiags), as_hip_type(tridiag_mat_maindiags),
-        as_hip_type(tridiag_mat_superdiags), as_hip_type(rhs), as_hip_type(x));
+    recursive_kernel_approach_2<HipValueType, subwarp_size>
+        <<<grid_size, block_size, shared_size, exec->get_stream()>>>(
+            number_recursive_steps, nbatch, nrows,
+            as_hip_type(tridiag_mat_subdiags),
+            as_hip_type(tridiag_mat_maindiags),
+            as_hip_type(tridiag_mat_superdiags), as_hip_type(rhs),
+            as_hip_type(x));
 
     GKO_HIP_LAST_IF_ERROR_THROW;
 }
 
 template <int compiled_tile_size, typename T>
-void recursive_app2_helper(
-    syn::value_list<int, compiled_tile_size>, const int number_recursive_steps,
-    const size_type nbatch, const int nrows, const int nrhs,
-    const std::complex<T>* const tridiag_mat_subdiags,
-    const std::complex<T>* const tridiag_mat_maindiags,
-    std::complex<T>* const tridiag_mat_superdiags, std::complex<T>* const rhs,
-    std::complex<T>* const x,
-    const enum gko::solver::batch_tridiag_solve_approach approach)
+void recursive_app2_helper(syn::value_list<int, compiled_tile_size>,
+                           std::shared_ptr<const DefaultExecutor> exec,
+                           const int number_recursive_steps,
+                           const size_type nbatch, const int nrows,
+                           const int nrhs,
+                           const std::complex<T>* const tridiag_mat_subdiags,
+                           const std::complex<T>* const tridiag_mat_maindiags,
+                           std::complex<T>* const tridiag_mat_superdiags,
+                           std::complex<T>* const rhs, std::complex<T>* const x)
 {
     throw std::runtime_error(
         "wm_pge approach 2 does not yet work with complex data types");
@@ -202,10 +208,11 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
             [&](int compiled_subwarp_size) {
                 return user_given_tile_size == compiled_subwarp_size;
             },
-            syn::value_list<int>(), syn::type_list<>(), number_recursive_steps,
-            nbatch, nrows, nrhs, tridiag_mat->get_const_sub_diagonal(),
+            syn::value_list<int>(), syn::type_list<>(), exec,
+            number_recursive_steps, nbatch, nrows, nrhs,
+            tridiag_mat->get_const_sub_diagonal(),
             tridiag_mat->get_const_main_diagonal(), tridiag_mat_superdiags,
-            rhs_vals, x->get_values(), approach);
+            rhs_vals, x->get_values());
 
     } else if (approach ==
                gko::solver::batch_tridiag_solve_approach::recursive_app2) {
@@ -221,10 +228,11 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
             [&](int compiled_subwarp_size) {
                 return user_given_tile_size == 2 * compiled_subwarp_size;
             },
-            syn::value_list<int>(), syn::type_list<>(), number_recursive_steps,
-            nbatch, nrows, nrhs, tridiag_mat->get_const_sub_diagonal(),
+            syn::value_list<int>(), syn::type_list<>(), exec,
+            number_recursive_steps, nbatch, nrows, nrhs,
+            tridiag_mat->get_const_sub_diagonal(),
             tridiag_mat->get_const_main_diagonal(), tridiag_mat_superdiags,
-            rhs_vals, x->get_values(), approach);
+            rhs_vals, x->get_values());
 
     } else if (approach ==
                gko::solver::batch_tridiag_solve_approach::vendor_provided) {
