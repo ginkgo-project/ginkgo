@@ -52,8 +52,8 @@ class HipTestFixture : public ::testing::Test {
 protected:
     HipTestFixture()
         : ref(gko::ReferenceExecutor::create()),
-          stream(ResourceEnvironment::rs.id),
-          exec(gko::HipExecutor::create(ResourceEnvironment::rs.id, ref, std::make_shared<
+          stream(ResourceEnvironment::hip_device_id),
+          exec(gko::HipExecutor::create(ResourceEnvironment::hip_device_id, ref, std::make_shared<
                                         gko::HipAllocator>(),
                                         stream.get())),
           guard(exec->get_scoped_device_id_guard())
