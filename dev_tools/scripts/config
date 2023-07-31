@@ -24,6 +24,8 @@
     - FixInclude: "core/factorization/par_ict_kernels.hpp"
 - "(cuda|hip|dpcpp)/preconditioner/jacobi_"
     - FixInclude: "core/preconditioner/jacobi_kernels.hpp"
+- "common/unified/matrix/dense_kernels_"
+    - FixInclude: "core/matrix/dense_kernels.hpp"
 - "(cuda|hip|dpcpp|omp)/base/kernel_launch\."
     - FixInclude: "common/unified/base/kernel_launch.hpp"
 - "(cuda|hip|dpcpp|omp)/test/base/kernel_launch\."

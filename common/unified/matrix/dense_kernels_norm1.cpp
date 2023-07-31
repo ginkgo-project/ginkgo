@@ -49,6 +49,7 @@ namespace GKO_DEVICE_NAMESPACE {
  */
 namespace dense {
 
+
 template <typename ValueType>
 void compute_norm1(std::shared_ptr<const DefaultExecutor> exec,
                    const matrix::Dense<ValueType>* x,
