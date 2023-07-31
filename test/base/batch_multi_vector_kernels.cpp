@@ -50,13 +50,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-class BatchMultiVector : public CommonTestFixture {
+class MultiVector : public CommonTestFixture {
 protected:
-    using Mtx = gko::BatchMultiVector<value_type>;
-    using NormVector = gko::BatchMultiVector<gko::remove_complex<value_type>>;
-    using ComplexMtx = gko::BatchMultiVector<std::complex<value_type>>;
+    using Mtx = gko::batch::MultiVector<value_type>;
+    using NormVector = gko::batch::MultiVector<gko::remove_complex<value_type>>;
+    using ComplexMtx = gko::batch::MultiVector<std::complex<value_type>>;
 
-    BatchMultiVector() : rand_engine(15) {}
+    MultiVector() : rand_engine(15) {}
 
     template <typename MtxType>
     std::unique_ptr<MtxType> gen_mtx(const size_t num_batch_items,
@@ -80,8 +80,8 @@ protected:
             alpha = gen_mtx<Mtx>(batch_size, 1, num_vecs);
             beta = gen_mtx<Mtx>(batch_size, 1, num_vecs);
         } else {
-            alpha = gko::batch_initialize<Mtx>(batch_size, {2.0}, ref);
-            beta = gko::batch_initialize<Mtx>(batch_size, {-0.5}, ref);
+            alpha = gko::batch::initialize<Mtx>(batch_size, {2.0}, ref);
+            beta = gko::batch::initialize<Mtx>(batch_size, {-0.5}, ref);
         }
         dx = gko::clone(exec, x);
         dy = gko::clone(exec, y);
@@ -117,7 +117,7 @@ protected:
 };
 
 
-TEST_F(BatchMultiVector, SingleVectorAddScaledIsEquivalentToRef)
+TEST_F(MultiVector, SingleVectorAddScaledIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
@@ -128,7 +128,7 @@ TEST_F(BatchMultiVector, SingleVectorAddScaledIsEquivalentToRef)
 }
 
 
-TEST_F(BatchMultiVector, MultipleVectorAddScaledIsEquivalentToRef)
+TEST_F(MultiVector, MultipleVectorAddScaledIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
@@ -139,7 +139,7 @@ TEST_F(BatchMultiVector, MultipleVectorAddScaledIsEquivalentToRef)
 }
 
 
-TEST_F(BatchMultiVector,
+TEST_F(MultiVector,
        MultipleVectorAddScaledWithDifferentAlphaIsEquivalentToRef)
 {
     set_up_vector_data(20, true);
@@ -151,7 +151,7 @@ TEST_F(BatchMultiVector,
 }
 
 
-TEST_F(BatchMultiVector, SingleVectorScaleIsEquivalentToRef)
+TEST_F(MultiVector, SingleVectorScaleIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
@@ -162,7 +162,7 @@ TEST_F(BatchMultiVector, SingleVectorScaleIsEquivalentToRef)
 }
 
 
-TEST_F(BatchMultiVector, MultipleVectorScaleIsEquivalentToRef)
+TEST_F(MultiVector, MultipleVectorScaleIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
@@ -173,7 +173,7 @@ TEST_F(BatchMultiVector, MultipleVectorScaleIsEquivalentToRef)
 }
 
 
-TEST_F(BatchMultiVector, MultipleVectorScaleWithDifferentAlphaIsEquivalentToRef)
+TEST_F(MultiVector, MultipleVectorScaleWithDifferentAlphaIsEquivalentToRef)
 {
     set_up_vector_data(20, true);
 
@@ -184,7 +184,7 @@ TEST_F(BatchMultiVector, MultipleVectorScaleWithDifferentAlphaIsEquivalentToRef)
 }
 
 
-TEST_F(BatchMultiVector, ComputeNorm2SingleIsEquivalentToRef)
+TEST_F(MultiVector, ComputeNorm2SingleIsEquivalentToRef)
 {
     set_up_vector_data(1);
     auto norm_size =
@@ -199,7 +199,7 @@ TEST_F(BatchMultiVector, ComputeNorm2SingleIsEquivalentToRef)
 }
 
 
-TEST_F(BatchMultiVector, ComputeNorm2IsEquivalentToRef)
+TEST_F(MultiVector, ComputeNorm2IsEquivalentToRef)
 {
     set_up_vector_data(20);
     auto norm_size =
@@ -214,7 +214,7 @@ TEST_F(BatchMultiVector, ComputeNorm2IsEquivalentToRef)
 }
 
 
-TEST_F(BatchMultiVector, ComputeDotIsEquivalentToRef)
+TEST_F(MultiVector, ComputeDotIsEquivalentToRef)
 {
     set_up_vector_data(20);
     auto dot_size =
@@ -234,7 +234,7 @@ TEST_F(BatchMultiVector, ComputeDotIsEquivalentToRef)
 }
 
 
-TEST_F(BatchMultiVector, ComputeDotSingleIsEquivalentToRef)
+TEST_F(MultiVector, ComputeDotSingleIsEquivalentToRef)
 {
     set_up_vector_data(1);
     auto dot_size =
@@ -249,7 +249,7 @@ TEST_F(BatchMultiVector, ComputeDotSingleIsEquivalentToRef)
 }
 
 
-TEST_F(BatchMultiVector, ComputeConjDotIsEquivalentToRef)
+TEST_F(MultiVector, ComputeConjDotIsEquivalentToRef)
 {
     set_up_vector_data(20);
     auto dot_size =
@@ -269,7 +269,7 @@ TEST_F(BatchMultiVector, ComputeConjDotIsEquivalentToRef)
 }
 
 
-TEST_F(BatchMultiVector, ComputeConjDotSingleIsEquivalentToRef)
+TEST_F(MultiVector, ComputeConjDotSingleIsEquivalentToRef)
 {
     set_up_vector_data(1);
     auto dot_size =
@@ -284,7 +284,7 @@ TEST_F(BatchMultiVector, ComputeConjDotSingleIsEquivalentToRef)
 }
 
 
-TEST_F(BatchMultiVector, CopySingleIsEquivalentToRef)
+TEST_F(MultiVector, CopySingleIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
@@ -297,7 +297,7 @@ TEST_F(BatchMultiVector, CopySingleIsEquivalentToRef)
 }
 
 
-TEST_F(BatchMultiVector, CopyIsEquivalentToRef)
+TEST_F(MultiVector, CopyIsEquivalentToRef)
 {
     set_up_vector_data(20);
 

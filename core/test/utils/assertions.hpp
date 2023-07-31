@@ -752,7 +752,7 @@ template <typename Mat1, typename T>
     std::initializer_list<std::initializer_list<T>> second, double tolerance)
 {
     auto second_mtx =
-        batch_initialize<BatchMultiVector<detail::remove_container<T>>>(
+        batch::initialize<batch::MultiVector<detail::remove_container<T>>>(
             second, first->get_executor()->get_master());
     return batch_matrices_near(
         first_expression, detail::remove_list_wrapper(second_expression),

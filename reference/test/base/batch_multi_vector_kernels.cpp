@@ -52,16 +52,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 template <typename T>
-class BatchMultiVector : public ::testing::Test {
+class MultiVector : public ::testing::Test {
 protected:
     using value_type = T;
     using size_type = gko::size_type;
-    using Mtx = gko::BatchMultiVector<value_type>;
+    using Mtx = gko::batch::MultiVector<value_type>;
     using DenseMtx = gko::matrix::Dense<value_type>;
     using ComplexMtx = gko::to_complex<Mtx>;
-    BatchMultiVector()
+    MultiVector()
         : exec(gko::ReferenceExecutor::create()),
-          mtx_0(gko::batch_initialize<Mtx>(
+          mtx_0(gko::batch::initialize<Mtx>(
               {{I<T>({1.0, -1.0, 1.5}), I<T>({-2.0, 2.0, 3.0})},
                {{1.0, -2.0, -0.5}, {1.0, -2.5, 4.0}}},
               exec)),
@@ -69,15 +69,15 @@ protected:
               {I<T>({1.0, -1.0, 1.5}), I<T>({-2.0, 2.0, 3.0})}, exec)),
           mtx_01(gko::initialize<DenseMtx>(
               {I<T>({1.0, -2.0, -0.5}), I<T>({1.0, -2.5, 4.0})}, exec)),
-          mtx_1(
-              gko::batch_initialize<Mtx>({{{1.0, -1.0, 2.2}, {-2.0, 2.0, -0.5}},
-                                          {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}},
-                                         exec)),
+          mtx_1(gko::batch::initialize<Mtx>(
+              {{{1.0, -1.0, 2.2}, {-2.0, 2.0, -0.5}},
+               {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}},
+              exec)),
           mtx_10(gko::initialize<DenseMtx>(
               {I<T>({1.0, -1.0, 2.2}), I<T>({-2.0, 2.0, -0.5})}, exec)),
           mtx_11(gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
                                            exec)),
-          mtx_2(gko::batch_initialize<Mtx>(
+          mtx_2(gko::batch::initialize<Mtx>(
               {{{1.0, 1.5}, {6.0, 1.0}, {-0.25, 1.0}},
                {I<T>({2.0, -2.0}), I<T>({1.0, 3.0}), I<T>({4.0, 3.0})}},
               exec)),
@@ -85,22 +85,22 @@ protected:
               {I<T>({1.0, 1.5}), I<T>({6.0, 1.0}), I<T>({-0.25, 1.0})}, exec)),
           mtx_21(gko::initialize<DenseMtx>(
               {I<T>({2.0, -2.0}), I<T>({1.0, 3.0}), I<T>({4.0, 3.0})}, exec)),
-          mtx_3(gko::batch_initialize<Mtx>(
+          mtx_3(gko::batch::initialize<Mtx>(
               {{I<T>({1.0, 1.5}), I<T>({6.0, 1.0})}, {{2.0, -2.0}, {1.0, 3.0}}},
               exec)),
           mtx_30(gko::initialize<DenseMtx>({I<T>({1.0, 1.5}), I<T>({6.0, 1.0})},
                                            exec)),
           mtx_31(gko::initialize<DenseMtx>(
               {I<T>({2.0, -2.0}), I<T>({1.0, 3.0})}, exec)),
-          mtx_4(gko::batch_initialize<Mtx>(
+          mtx_4(gko::batch::initialize<Mtx>(
               {{{1.0, 1.5, 3.0}, {6.0, 1.0, 5.0}, {6.0, 1.0, 5.5}},
                {{2.0, -2.0, 1.5}, {4.0, 3.0, 2.2}, {-1.25, 3.0, 0.5}}},
               exec)),
-          mtx_5(gko::batch_initialize<Mtx>(
+          mtx_5(gko::batch::initialize<Mtx>(
               {{{1.0, 1.5}, {6.0, 1.0}, {7.0, -4.5}},
                {I<T>({2.0, -2.0}), I<T>({1.0, 3.0}), I<T>({4.0, 3.0})}},
               exec)),
-          mtx_6(gko::batch_initialize<Mtx>(
+          mtx_6(gko::batch::initialize<Mtx>(
               {{{1.0, 0.0, 3.0}, {0.0, 3.0, 0.0}, {0.0, 1.0, 5.0}},
                {{2.0, 0.0, 5.0}, {0.0, 1.0, 0.0}, {0.0, -1.0, 8.0}}},
               exec))
@@ -126,14 +126,14 @@ protected:
     std::default_random_engine rand_engine;
 };
 
-TYPED_TEST_SUITE(BatchMultiVector, gko::test::ValueTypes);
+TYPED_TEST_SUITE(MultiVector, gko::test::ValueTypes);
 
 
-TYPED_TEST(BatchMultiVector, ScalesData)
+TYPED_TEST(MultiVector, ScalesData)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    auto alpha = gko::batch_initialize<Mtx>(
+    auto alpha = gko::batch::initialize<Mtx>(
         {{{2.0, -2.0, 1.5}}, {{3.0, -1.0, 0.25}}}, this->exec);
     auto ualpha = alpha->unbatch();
 
@@ -147,11 +147,11 @@ TYPED_TEST(BatchMultiVector, ScalesData)
 }
 
 
-TYPED_TEST(BatchMultiVector, ScalesDataWithScalar)
+TYPED_TEST(MultiVector, ScalesDataWithScalar)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    auto alpha = gko::batch_initialize<Mtx>({{2.0}, {-2.0}}, this->exec);
+    auto alpha = gko::batch::initialize<Mtx>({{2.0}, {-2.0}}, this->exec);
     auto ualpha = alpha->unbatch();
 
     this->mtx_1->scale(alpha.get());
@@ -164,11 +164,11 @@ TYPED_TEST(BatchMultiVector, ScalesDataWithScalar)
 }
 
 
-TYPED_TEST(BatchMultiVector, ScalesDataWithMultipleScalars)
+TYPED_TEST(MultiVector, ScalesDataWithMultipleScalars)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    auto alpha = gko::batch_initialize<Mtx>(
+    auto alpha = gko::batch::initialize<Mtx>(
         {{{2.0, -2.0, -1.5}}, {{2.0, -2.0, 3.0}}}, this->exec);
     auto ualpha = alpha->unbatch();
 
@@ -182,11 +182,11 @@ TYPED_TEST(BatchMultiVector, ScalesDataWithMultipleScalars)
 }
 
 
-TYPED_TEST(BatchMultiVector, AddsScaled)
+TYPED_TEST(MultiVector, AddsScaled)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    auto alpha = gko::batch_initialize<Mtx>(
+    auto alpha = gko::batch::initialize<Mtx>(
         {{{2.0, -2.0, 1.5}}, {{2.0, -2.0, 3.0}}}, this->exec);
     auto ualpha = alpha->unbatch();
 
@@ -200,11 +200,11 @@ TYPED_TEST(BatchMultiVector, AddsScaled)
 }
 
 
-TYPED_TEST(BatchMultiVector, AddsScaledWithScalar)
+TYPED_TEST(MultiVector, AddsScaledWithScalar)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    auto alpha = gko::batch_initialize<Mtx>({{2.0}, {-2.0}}, this->exec);
+    auto alpha = gko::batch::initialize<Mtx>({{2.0}, {-2.0}}, this->exec);
     auto ualpha = alpha->unbatch();
 
     this->mtx_1->add_scaled(alpha.get(), this->mtx_0.get());
@@ -217,10 +217,10 @@ TYPED_TEST(BatchMultiVector, AddsScaledWithScalar)
 }
 
 
-TYPED_TEST(BatchMultiVector, AddScaledFailsOnWrongSizes)
+TYPED_TEST(MultiVector, AddScaledFailsOnWrongSizes)
 {
     using Mtx = typename TestFixture::Mtx;
-    auto alpha = gko::batch_initialize<Mtx>(
+    auto alpha = gko::batch::initialize<Mtx>(
         {{2.0, 3.0, 4.0, 5.0}, {-2.0, 2.0, 4.0, 5.0}}, this->exec);
 
     ASSERT_THROW(this->mtx_1->add_scaled(alpha.get(), this->mtx_2.get()),
@@ -228,7 +228,7 @@ TYPED_TEST(BatchMultiVector, AddScaledFailsOnWrongSizes)
 }
 
 
-TYPED_TEST(BatchMultiVector, ComputesDot)
+TYPED_TEST(MultiVector, ComputesDot)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
@@ -246,7 +246,7 @@ TYPED_TEST(BatchMultiVector, ComputesDot)
 }
 
 
-TYPED_TEST(BatchMultiVector, ComputeDotFailsOnWrongInputSize)
+TYPED_TEST(MultiVector, ComputeDotFailsOnWrongInputSize)
 {
     using Mtx = typename TestFixture::Mtx;
     auto result =
@@ -257,7 +257,7 @@ TYPED_TEST(BatchMultiVector, ComputeDotFailsOnWrongInputSize)
 }
 
 
-TYPED_TEST(BatchMultiVector, ComputeDotFailsOnWrongResultSize)
+TYPED_TEST(MultiVector, ComputeDotFailsOnWrongResultSize)
 {
     using Mtx = typename TestFixture::Mtx;
 
@@ -269,7 +269,7 @@ TYPED_TEST(BatchMultiVector, ComputeDotFailsOnWrongResultSize)
 }
 
 
-TYPED_TEST(BatchMultiVector, ComputesConjDot)
+TYPED_TEST(MultiVector, ComputesConjDot)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
@@ -287,7 +287,7 @@ TYPED_TEST(BatchMultiVector, ComputesConjDot)
 }
 
 
-TYPED_TEST(BatchMultiVector, ComputeConjDotFailsOnWrongInputSize)
+TYPED_TEST(MultiVector, ComputeConjDotFailsOnWrongInputSize)
 {
     using Mtx = typename TestFixture::Mtx;
     auto result =
@@ -298,7 +298,7 @@ TYPED_TEST(BatchMultiVector, ComputeConjDotFailsOnWrongInputSize)
 }
 
 
-TYPED_TEST(BatchMultiVector, ComputeConjDotFailsOnWrongResultSize)
+TYPED_TEST(MultiVector, ComputeConjDotFailsOnWrongResultSize)
 {
     using Mtx = typename TestFixture::Mtx;
 
@@ -310,13 +310,13 @@ TYPED_TEST(BatchMultiVector, ComputeConjDotFailsOnWrongResultSize)
 }
 
 
-TYPED_TEST(BatchMultiVector, ComputesNorm2)
+TYPED_TEST(MultiVector, ComputesNorm2)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     using T_nc = gko::remove_complex<T>;
-    using NormVector = gko::BatchMultiVector<T_nc>;
-    auto mtx(gko::batch_initialize<Mtx>(
+    using NormVector = gko::batch::MultiVector<T_nc>;
+    auto mtx(gko::batch::initialize<Mtx>(
         {{I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}},
          {I<T>{-4.0, 2.0}, I<T>{-3.0, -2.0}, I<T>{0.0, 1.0}}},
         this->exec));
@@ -332,7 +332,7 @@ TYPED_TEST(BatchMultiVector, ComputesNorm2)
 }
 
 
-TYPED_TEST(BatchMultiVector, CopiesData)
+TYPED_TEST(MultiVector, CopiesData)
 {
     gko::kernels::reference::batch_multi_vector::copy(
         this->exec, this->mtx_0.get(), this->mtx_1.get());
@@ -341,14 +341,14 @@ TYPED_TEST(BatchMultiVector, CopiesData)
 }
 
 
-TYPED_TEST(BatchMultiVector, ConvertsToPrecision)
+TYPED_TEST(MultiVector, ConvertsToPrecision)
 {
-    using BatchMultiVector = typename TestFixture::Mtx;
+    using MultiVector = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     using OtherT = typename gko::next_precision<T>;
-    using OtherBatchMultiVector = typename gko::BatchMultiVector<OtherT>;
-    auto tmp = OtherBatchMultiVector::create(this->exec);
-    auto res = BatchMultiVector::create(this->exec);
+    using OtherMultiVector = typename gko::batch::MultiVector<OtherT>;
+    auto tmp = OtherMultiVector::create(this->exec);
+    auto res = MultiVector::create(this->exec);
     // If OtherT is more precise: 0, otherwise r
     auto residual = r<OtherT>::value < r<T>::value
                         ? gko::remove_complex<T>{0}
@@ -364,14 +364,14 @@ TYPED_TEST(BatchMultiVector, ConvertsToPrecision)
 }
 
 
-TYPED_TEST(BatchMultiVector, MovesToPrecision)
+TYPED_TEST(MultiVector, MovesToPrecision)
 {
-    using BatchMultiVector = typename TestFixture::Mtx;
+    using MultiVector = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     using OtherT = typename gko::next_precision<T>;
-    using OtherBatchMultiVector = typename gko::BatchMultiVector<OtherT>;
-    auto tmp = OtherBatchMultiVector::create(this->exec);
-    auto res = BatchMultiVector::create(this->exec);
+    using OtherMultiVector = typename gko::batch::MultiVector<OtherT>;
+    auto tmp = OtherMultiVector::create(this->exec);
+    auto res = MultiVector::create(this->exec);
     // If OtherT is more precise: 0, otherwise r
     auto residual = r<OtherT>::value < r<T>::value
                         ? gko::remove_complex<T>{0}
@@ -387,14 +387,14 @@ TYPED_TEST(BatchMultiVector, MovesToPrecision)
 }
 
 
-TYPED_TEST(BatchMultiVector, ConvertsEmptyToPrecision)
+TYPED_TEST(MultiVector, ConvertsEmptyToPrecision)
 {
-    using BatchMultiVector = typename TestFixture::Mtx;
+    using MultiVector = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     using OtherT = typename gko::next_precision<T>;
-    using OtherBatchMultiVector = typename gko::BatchMultiVector<OtherT>;
-    auto empty = OtherBatchMultiVector::create(this->exec);
-    auto res = BatchMultiVector::create(this->exec);
+    using OtherMultiVector = typename gko::batch::MultiVector<OtherT>;
+    auto empty = OtherMultiVector::create(this->exec);
+    auto res = MultiVector::create(this->exec);
 
     empty->convert_to(res.get());
 
@@ -402,14 +402,14 @@ TYPED_TEST(BatchMultiVector, ConvertsEmptyToPrecision)
 }
 
 
-TYPED_TEST(BatchMultiVector, MovesEmptyToPrecision)
+TYPED_TEST(MultiVector, MovesEmptyToPrecision)
 {
-    using BatchMultiVector = typename TestFixture::Mtx;
+    using MultiVector = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     using OtherT = typename gko::next_precision<T>;
-    using OtherBatchMultiVector = typename gko::BatchMultiVector<OtherT>;
-    auto empty = OtherBatchMultiVector::create(this->exec);
-    auto res = BatchMultiVector::create(this->exec);
+    using OtherMultiVector = typename gko::batch::MultiVector<OtherT>;
+    auto empty = OtherMultiVector::create(this->exec);
+    auto res = MultiVector::create(this->exec);
 
     empty->move_to(res.get());
 

@@ -40,7 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
-namespace batch_multi_vector {
+namespace batch {
+namespace multi_vector {
 
 
 /**
@@ -77,24 +78,20 @@ struct uniform_batch {
 };
 
 
-}  // namespace batch_multi_vector
-
-
-namespace batch {
+}  // namespace multi_vector
 
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE gko::batch_multi_vector::batch_item<const ValueType>
-to_const(const gko::batch_multi_vector::batch_item<ValueType>& b)
+GKO_ATTRIBUTES GKO_INLINE multi_vector::batch_item<const ValueType> to_const(
+    const multi_vector::batch_item<ValueType>& b)
 {
     return {b.values, b.stride, b.num_rows, b.num_rhs};
 }
 
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE
-    gko::batch_multi_vector::uniform_batch<const ValueType>
-    to_const(const gko::batch_multi_vector::uniform_batch<ValueType>& ub)
+GKO_ATTRIBUTES GKO_INLINE multi_vector::uniform_batch<const ValueType> to_const(
+    const multi_vector::uniform_batch<ValueType>& ub)
 {
     return {ub.values, ub.num_batch_items, ub.stride, ub.num_rows, ub.num_rhs};
 }
@@ -110,8 +107,8 @@ GKO_ATTRIBUTES GKO_INLINE
  * @param batch_idx  The position of the desired object in the batch
  */
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE batch_multi_vector::batch_item<ValueType> batch_item(
-    const batch_multi_vector::uniform_batch<ValueType>& batch,
+GKO_ATTRIBUTES GKO_INLINE multi_vector::batch_item<ValueType> batch_item(
+    const multi_vector::uniform_batch<ValueType>& batch,
     const size_type batch_idx)
 {
     return {batch.values + batch_idx * batch.stride * batch.num_rows,
@@ -119,7 +116,7 @@ GKO_ATTRIBUTES GKO_INLINE batch_multi_vector::batch_item<ValueType> batch_item(
 }
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE batch_multi_vector::batch_item<ValueType> batch_item(
+GKO_ATTRIBUTES GKO_INLINE multi_vector::batch_item<ValueType> batch_item(
     ValueType* const batch_values, const int stride, const int num_rows,
     const int num_rhs, const size_type batch_idx)
 {

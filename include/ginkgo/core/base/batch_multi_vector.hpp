@@ -52,9 +52,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace batch {
 
 /**
- * BatchMultiVector stores multiple vectors in a batched fashion and is useful
+ * MultiVector stores multiple vectors in a batched fashion and is useful
  * for batched operations. For example, if you want to store two batch items
  * with multi-vectors of size (3 x 2) given below:
  *
@@ -77,50 +78,49 @@ namespace gko {
  * @ingroup batched
  */
 template <typename ValueType = default_precision>
-class BatchMultiVector
-    : public EnablePolymorphicObject<BatchMultiVector<ValueType>>,
-      public EnablePolymorphicAssignment<BatchMultiVector<ValueType>>,
-      public EnableCreateMethod<BatchMultiVector<ValueType>>,
-      public ConvertibleTo<BatchMultiVector<next_precision<ValueType>>>,
+class MultiVector
+    : public EnablePolymorphicObject<MultiVector<ValueType>>,
+      public EnablePolymorphicAssignment<MultiVector<ValueType>>,
+      public EnableCreateMethod<MultiVector<ValueType>>,
+      public ConvertibleTo<MultiVector<next_precision<ValueType>>>,
       public BatchReadableFromMatrixData<ValueType, int32>,
       public BatchReadableFromMatrixData<ValueType, int64>,
       public BatchWritableToMatrixData<ValueType, int32>,
       public BatchWritableToMatrixData<ValueType, int64> {
-    friend class EnableCreateMethod<BatchMultiVector>;
-    friend class EnablePolymorphicObject<BatchMultiVector>;
-    friend class BatchMultiVector<to_complex<ValueType>>;
-    friend class BatchMultiVector<next_precision<ValueType>>;
+    friend class EnableCreateMethod<MultiVector>;
+    friend class EnablePolymorphicObject<MultiVector>;
+    friend class MultiVector<to_complex<ValueType>>;
+    friend class MultiVector<next_precision<ValueType>>;
 
 public:
     using BatchReadableFromMatrixData<ValueType, int32>::read;
     using BatchReadableFromMatrixData<ValueType, int64>::read;
-    using EnablePolymorphicAssignment<BatchMultiVector>::convert_to;
-    using EnablePolymorphicAssignment<BatchMultiVector>::move_to;
-    using ConvertibleTo<
-        BatchMultiVector<next_precision<ValueType>>>::convert_to;
-    using ConvertibleTo<BatchMultiVector<next_precision<ValueType>>>::move_to;
+    using EnablePolymorphicAssignment<MultiVector>::convert_to;
+    using EnablePolymorphicAssignment<MultiVector>::move_to;
+    using ConvertibleTo<MultiVector<next_precision<ValueType>>>::convert_to;
+    using ConvertibleTo<MultiVector<next_precision<ValueType>>>::move_to;
 
     using value_type = ValueType;
     using index_type = int32;
     using unbatch_type = matrix::Dense<ValueType>;
     using mat_data = matrix_data<ValueType, int32>;
     using mat_data64 = matrix_data<ValueType, int64>;
-    using absolute_type = remove_complex<BatchMultiVector<ValueType>>;
-    using complex_type = to_complex<BatchMultiVector<ValueType>>;
+    using absolute_type = remove_complex<MultiVector<ValueType>>;
+    using complex_type = to_complex<MultiVector<ValueType>>;
 
     /**
-     * Creates a BatchMultiVector with the configuration of another
-     * BatchMultiVector.
+     * Creates a MultiVector with the configuration of another
+     * MultiVector.
      *
      * @param other  The other multi-vector whose configuration needs to copied.
      */
-    static std::unique_ptr<BatchMultiVector> create_with_config_of(
-        ptr_param<const BatchMultiVector> other);
+    static std::unique_ptr<MultiVector> create_with_config_of(
+        ptr_param<const MultiVector> other);
 
     void convert_to(
-        BatchMultiVector<next_precision<ValueType>>* result) const override;
+        MultiVector<next_precision<ValueType>>* result) const override;
 
-    void move_to(BatchMultiVector<next_precision<ValueType>>* result) override;
+    void move_to(MultiVector<next_precision<ValueType>>* result) override;
 
     void read(const std::vector<mat_data>& data) override;
 
@@ -246,7 +246,7 @@ public:
     }
 
     /**
-     * @copydoc BatchMultiVector::at(size_type, size_type, size_type)
+     * @copydoc MultiVector::at(size_type, size_type, size_type)
      */
     value_type at(size_type batch_id, size_type row, size_type col) const
     {
@@ -274,7 +274,7 @@ public:
     }
 
     /**
-     * @copydoc BatchMultiVector::at(size_type, size_type, size_type)
+     * @copydoc MultiVector::at(size_type, size_type, size_type)
      */
     ValueType at(size_type batch_id, size_type idx) const noexcept
     {
@@ -286,13 +286,13 @@ public:
      *
      * @param alpha  the scalar
      *
-     * @note If alpha is 1x1 BatchMultiVector matrix, the entire multi-vector
-     *      (all batches) is scaled by alpha. If it is a BatchMultiVector row
+     * @note If alpha is 1x1 MultiVector matrix, the entire multi-vector
+     *      (all batches) is scaled by alpha. If it is a MultiVector row
      *      vector of values, then i-th column of the vector is scaled with the
      *      i-th element of alpha (the number of columns of alpha has to match
      *      the number of columns of the multi-vector).
      */
-    void scale(ptr_param<const BatchMultiVector<ValueType>> alpha);
+    void scale(ptr_param<const MultiVector<ValueType>> alpha);
 
     /**
      * Adds `b` scaled by `alpha` to the vector (aka: BLAS axpy).
@@ -300,48 +300,48 @@ public:
      * @param alpha  the scalar
      * @param b  a multi-vector of the same dimension as this
      *
-     * @note If alpha is 1x1 BatchMultiVector matrix, the entire multi-vector
-     *      (all batches) is scaled by alpha. If it is a BatchMultiVector row
+     * @note If alpha is 1x1 MultiVector matrix, the entire multi-vector
+     *      (all batches) is scaled by alpha. If it is a MultiVector row
      *      vector of values, then i-th column of the vector is scaled with the
      *      i-th element of alpha (the number of columns of alpha has to match
      *      the number of columns of the multi-vector).
      */
-    void add_scaled(ptr_param<const BatchMultiVector<ValueType>> alpha,
-                    ptr_param<const BatchMultiVector<ValueType>> b);
+    void add_scaled(ptr_param<const MultiVector<ValueType>> alpha,
+                    ptr_param<const MultiVector<ValueType>> b);
 
     /**
      * Computes the column-wise dot product of each multi-vector in this batch
      * and its corresponding entry in `b`.
      *
-     * @param b  a BatchMultiVector of same dimension as this
-     * @param result  a BatchMultiVector row vector, used to store the dot
+     * @param b  a MultiVector of same dimension as this
+     * @param result  a MultiVector row vector, used to store the dot
      * product
      */
-    void compute_dot(ptr_param<const BatchMultiVector<ValueType>> b,
-                     ptr_param<BatchMultiVector<ValueType>> result) const;
+    void compute_dot(ptr_param<const MultiVector<ValueType>> b,
+                     ptr_param<MultiVector<ValueType>> result) const;
 
     /**
      * Computes the column-wise conjugate dot product of each multi-vector in
      * this batch and its corresponding entry in `b`. If the vector has complex
      * value_type, then the conjugate of this is taken.
      *
-     * @param b  a BatchMultiVector of same dimension as this
-     * @param result  a BatchMultiVector row vector, used to store the dot
+     * @param b  a MultiVector of same dimension as this
+     * @param result  a MultiVector row vector, used to store the dot
      *                product (the number of column in the vector must match the
      *                number of columns of this)
      */
-    void compute_conj_dot(ptr_param<const BatchMultiVector<ValueType>> b,
-                          ptr_param<BatchMultiVector<ValueType>> result) const;
+    void compute_conj_dot(ptr_param<const MultiVector<ValueType>> b,
+                          ptr_param<MultiVector<ValueType>> result) const;
 
     /**
      * Computes the Euclidean (L^2) norm of each multi-vector in this batch.
      *
-     * @param result  a BatchMultiVector, used to store the norm
+     * @param result  a MultiVector, used to store the norm
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
     void compute_norm2(
-        ptr_param<BatchMultiVector<remove_complex<ValueType>>> result) const;
+        ptr_param<MultiVector<remove_complex<ValueType>>> result) const;
 
     /**
      * Creates a constant (immutable) batch multi-vector from a constant
@@ -356,12 +356,12 @@ public:
      * array (if it resides on the same executor as the vector) or a copy of the
      * array on the correct executor.
      */
-    static std::unique_ptr<const BatchMultiVector<ValueType>> create_const(
+    static std::unique_ptr<const MultiVector<ValueType>> create_const(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
         gko::detail::const_array_view<ValueType>&& values);
 
     /**
-     * Fills the input BatchMultiVector with a given value
+     * Fills the input MultiVector with a given value
      *
      * @param value  the value to be filled
      */
@@ -375,7 +375,7 @@ private:
 
 protected:
     /**
-     * Sets the size of the BatchMultiVector.
+     * Sets the size of the MultiVector.
      *
      * @param value  the new size of the operator
      */
@@ -388,11 +388,11 @@ protected:
      * @param exec  Executor associated to the vector
      * @param size  size of the batch multi vector
      */
-    BatchMultiVector(std::shared_ptr<const Executor> exec,
-                     const batch_dim<2>& size = batch_dim<2>{});
+    MultiVector(std::shared_ptr<const Executor> exec,
+                const batch_dim<2>& size = batch_dim<2>{});
 
     /**
-     * Creates a BatchMultiVector from an already allocated (and
+     * Creates a MultiVector from an already allocated (and
      * initialized) array.
      *
      * @tparam ValuesArray  type of array of values
@@ -406,9 +406,9 @@ protected:
      *       original array data will not be used in the vector.
      */
     template <typename ValuesArray>
-    BatchMultiVector(std::shared_ptr<const Executor> exec,
-                     const batch_dim<2>& size, ValuesArray&& values)
-        : EnablePolymorphicObject<BatchMultiVector<ValueType>>(exec),
+    MultiVector(std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+                ValuesArray&& values)
+        : EnablePolymorphicObject<MultiVector<ValueType>>(exec),
           batch_size_(size),
           values_{exec, std::forward<ValuesArray>(values)}
     {
@@ -418,7 +418,7 @@ protected:
     }
 
     /**
-     * Creates a BatchMultiVector from a vector of matrices
+     * Creates a MultiVector from a vector of matrices
      *
      * @param exec  Executor associated to the vector
      * @param matrices  The matrix::Dense objects that need to be batched.
@@ -429,11 +429,11 @@ protected:
      * allocations and deep copies are necessary and hence this constructor must
      * not be used in performance sensitive applications
      */
-    BatchMultiVector(std::shared_ptr<const Executor> exec,
-                     const std::vector<matrix::Dense<ValueType>*>& matrices);
+    MultiVector(std::shared_ptr<const Executor> exec,
+                const std::vector<matrix::Dense<ValueType>*>& matrices);
 
     /**
-     * Creates a BatchMultiVector matrix by duplicating BatchMultiVector object
+     * Creates a MultiVector matrix by duplicating MultiVector object
      *
      * @param exec  Executor associated to the vector
      * @param num_duplications  The number of times to duplicate
@@ -445,29 +445,29 @@ protected:
      * allocations and deep copies are necessary and hence this constructor must
      * not be used in performance sensitive applications.
      */
-    BatchMultiVector(std::shared_ptr<const Executor> exec,
-                     size_type num_duplications,
-                     const BatchMultiVector<value_type>* input);
+    MultiVector(std::shared_ptr<const Executor> exec,
+                size_type num_duplications,
+                const MultiVector<value_type>* input);
 
     /**
-     * Creates a BatchMultiVector matrix by a duplicating a matrix::Dense object
+     * Creates a MultiVector matrix by a duplicating a matrix::Dense object
      *
      * @param exec  Executor associated to the vector
      * @param num_duplications  The number of times to duplicate
      * @param input  the matrix to be duplicated.
      */
-    BatchMultiVector(std::shared_ptr<const Executor> exec,
-                     size_type num_duplications,
-                     const matrix::Dense<value_type>* input);
+    MultiVector(std::shared_ptr<const Executor> exec,
+                size_type num_duplications,
+                const matrix::Dense<value_type>* input);
 
     /**
-     * Creates a BatchMultiVector with the same configuration as the
+     * Creates a MultiVector with the same configuration as the
      * callers object.
      *
-     * @returns a BatchMultiVector with the same configuration as the
+     * @returns a MultiVector with the same configuration as the
      * caller.
      */
-    std::unique_ptr<BatchMultiVector> create_with_same_config() const;
+    std::unique_ptr<MultiVector> create_with_same_config() const;
 
     size_type linearize_index(size_type batch, size_type row,
                               size_type col) const noexcept
@@ -491,11 +491,11 @@ private:
 /**
  * Creates and initializes a batch of single column-vectors.
  *
- * This function first creates a temporary BatchMultiVector, fills it with
+ * This function first creates a temporary MultiVector, fills it with
  * passed in values, and then converts the vector to the requested type.
  *
  * @tparam Matrix  matrix type to initialize
- *                 (BatchMultiVector has to implement the ConvertibleTo<Matrix>
+ *                 (MultiVector has to implement the ConvertibleTo<Matrix>
  *                 interface)
  * @tparam TArgs  argument types for Matrix::create method
  *                (not including the implied Executor as the first argument)
@@ -506,16 +506,16 @@ private:
  *                     including the Executor, which is passed as the first
  *                     argument
  *
- * @ingroup BatchMultiVector
+ * @ingroup MultiVector
  * @ingroup mat_formats
  */
 template <typename Matrix, typename... TArgs>
-std::unique_ptr<Matrix> batch_initialize(
+std::unique_ptr<Matrix> initialize(
     std::initializer_list<std::initializer_list<typename Matrix::value_type>>
         vals,
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
 {
-    using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
+    using batch_multi_vector = MultiVector<typename Matrix::value_type>;
     size_type num_batch_items = vals.size();
     GKO_THROW_IF_INVALID(num_batch_items > 0, "Input data is empty");
     auto vals_begin = begin(vals);
@@ -544,7 +544,7 @@ std::unique_ptr<Matrix> batch_initialize(
 /**
  * Creates and initializes a batch of multi-vectors.
  *
- * This function first creates a temporary BatchMultiVector, fills it with
+ * This function first creates a temporary MultiVector, fills it with
  * passed in values, and then converts the vector to the requested type.
  *
  * @tparam Matrix  matrix type to initialize
@@ -558,17 +558,17 @@ std::unique_ptr<Matrix> batch_initialize(
  *                     including the Executor, which is passed as the first
  *                     argument
  *
- * @ingroup BatchMultiVector
+ * @ingroup MultiVector
  * @ingroup mat_formats
  */
 template <typename Matrix, typename... TArgs>
-std::unique_ptr<Matrix> batch_initialize(
+std::unique_ptr<Matrix> initialize(
     std::initializer_list<std::initializer_list<
         std::initializer_list<typename Matrix::value_type>>>
         vals,
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
 {
-    using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
+    using batch_multi_vector = MultiVector<typename Matrix::value_type>;
     size_type num_batch_items = vals.size();
     GKO_THROW_IF_INVALID(num_batch_items > 0, "Input data is empty");
     auto vals_begin = begin(vals);
@@ -612,7 +612,7 @@ std::unique_ptr<Matrix> batch_initialize(
  * passed in values, and then converts the vector to the requested type.
  *
  * @tparam Matrix  matrix type to initialize
- *                 (BatchMultiVector has to implement the ConvertibleTo<Matrix>
+ *                 (MultiVector has to implement the ConvertibleTo<Matrix>
  *                  interface)
  * @tparam TArgs  argument types for Matrix::create method
  *                (not including the implied Executor as the first argument)
@@ -624,16 +624,16 @@ std::unique_ptr<Matrix> batch_initialize(
  *                     including the Executor, which is passed as the first
  *                     argument
  *
- * @ingroup BatchMultiVector
+ * @ingroup MultiVector
  * @ingroup mat_formats
  */
 template <typename Matrix, typename... TArgs>
-std::unique_ptr<Matrix> batch_initialize(
+std::unique_ptr<Matrix> initialize(
     const size_type num_vectors,
     std::initializer_list<typename Matrix::value_type> vals,
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
 {
-    using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
+    using batch_multi_vector = MultiVector<typename Matrix::value_type>;
     size_type num_batch_items = num_vectors;
     GKO_THROW_IF_INVALID(num_batch_items > 0 && vals.size() > 0,
                          "Input data is empty");
@@ -660,7 +660,7 @@ std::unique_ptr<Matrix> batch_initialize(
  * passed in values, and then converts the vector to the requested type.
  *
  * @tparam Matrix  matrix type to initialize
- *                 (BatchMultiVector has to implement the ConvertibleTo<Matrix>
+ *                 (MultiVector has to implement the ConvertibleTo<Matrix>
  *                  interface)
  * @tparam TArgs  argument types for Matrix::create method
  *                (not including the implied Executor as the first argument)
@@ -676,13 +676,13 @@ std::unique_ptr<Matrix> batch_initialize(
  * @ingroup mat_formats
  */
 template <typename Matrix, typename... TArgs>
-std::unique_ptr<Matrix> batch_initialize(
+std::unique_ptr<Matrix> initialize(
     const size_type num_batch_items,
     std::initializer_list<std::initializer_list<typename Matrix::value_type>>
         vals,
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
 {
-    using batch_multi_vector = BatchMultiVector<typename Matrix::value_type>;
+    using batch_multi_vector = MultiVector<typename Matrix::value_type>;
     GKO_THROW_IF_INVALID(num_batch_items > 0 && vals.size() > 0,
                          "Input data is empty");
     auto common_size = dim<2>(begin(vals) ? vals.size() : 0,
@@ -706,6 +706,7 @@ std::unique_ptr<Matrix> batch_initialize(
 }
 
 
+}  // namespace batch
 }  // namespace gko
 
 

@@ -58,7 +58,7 @@ namespace gko {
 namespace kernels {
 namespace hip {
 /**
- * @brief The BatchMultiVector matrix format namespace.
+ * @brief The MultiVector matrix format namespace.
  *
  * @ingroup batch_multi_vector
  */
