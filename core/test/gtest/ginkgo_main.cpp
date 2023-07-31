@@ -3,16 +3,18 @@
 
 #include "core/test/gtest/environments.hpp"
 
-resource ResourceEnvironment::rs = {};
+
+int ResourceEnvironment::omp_threads = 0;
+int ResourceEnvironment::cuda_device_id = 0;
+int ResourceEnvironment::hip_device_id = 0;
+int ResourceEnvironment::sycl_device_id = 0;
+
 
 int main(int argc, char** argv)
 {
     ::testing::InitGoogleTest(&argc, argv);
 
-    auto resources = get_ctest_resources();
-
-    ::testing::AddGlobalTestEnvironment(
-        new ResourceEnvironment(resources.front()));
+    ::testing::AddGlobalTestEnvironment(new ResourceEnvironment);
     ::testing::AddGlobalTestEnvironment(new CudaEnvironment);
     ::testing::AddGlobalTestEnvironment(new HipEnvironment);
     ::testing::AddGlobalTestEnvironment(new OmpEnvironment);

@@ -52,10 +52,10 @@ class CudaTestFixture : public ::testing::Test {
 protected:
     CudaTestFixture()
         : ref(gko::ReferenceExecutor::create()),
-          stream(ResourceEnvironment::rs.id),
-          exec(gko::CudaExecutor::create(ResourceEnvironment::rs.id, ref, std::make_shared<
-                                         gko::CudaAllocator>(),
-                                         stream.get())),
+          stream(ResourceEnvironment::cuda_device_id),
+          exec(gko::CudaExecutor::create(
+              ResourceEnvironment::cuda_device_id, ref, std::make_shared<
+              gko::CudaAllocator>(), stream.get())),
           guard(exec->get_scoped_device_id_guard())
     {}
 

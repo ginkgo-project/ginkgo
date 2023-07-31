@@ -58,8 +58,11 @@ public:
 
     CommonMpiTestFixture()
         : comm(MPI_COMM_WORLD),
-#if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP)
-          stream(ResourceEnvironment::rs.id),
+#ifdef GKO_COMPILING_CUDA
+          stream(ResourceEnvironment::cuda_device_id),
+#endif
+#ifdef GKO_COMPILING_HIP
+          stream(ResourceEnvironment::hip_device_id),
 #endif
           ref{gko::ReferenceExecutor::create()}
     {

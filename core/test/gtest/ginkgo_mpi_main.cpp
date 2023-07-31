@@ -375,7 +375,11 @@ private:
 }  // namespace GTestMPIListener
 
 
-resource ResourceEnvironment::rs = {};
+int ResourceEnvironment::omp_threads = 0;
+int ResourceEnvironment::cuda_device_id = 0;
+int ResourceEnvironment::hip_device_id = 0;
+int ResourceEnvironment::sycl_device_id = 0;
+
 
 int main(int argc, char** argv)
 {
@@ -384,13 +388,12 @@ int main(int argc, char** argv)
     MPI_Init(&argc, &argv);
     MPI_Comm comm(MPI_COMM_WORLD);
     int rank;
+    int size;
     MPI_Comm_rank(comm, &rank);
-
-    auto resources = get_ctest_resources();
+    MPI_Comm_size(comm, &size);
 
     testing::AddGlobalTestEnvironment(new GTestMPIListener::MPIEnvironment);
-    ::testing::AddGlobalTestEnvironment(
-        new ResourceEnvironment(resources[rank]));
+    ::testing::AddGlobalTestEnvironment(new ResourceEnvironment(rank, size));
     ::testing::AddGlobalTestEnvironment(new CudaEnvironment);
     ::testing::AddGlobalTestEnvironment(new HipEnvironment);
     ::testing::AddGlobalTestEnvironment(new OmpEnvironment);
