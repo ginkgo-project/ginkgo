@@ -39,6 +39,7 @@ target_sources(ginkgo_omp
     stop/criterion_kernels.cpp
     stop/residual_norm_kernels.cpp
     ${GKO_UNIFIED_COMMON_SOURCES}
+    ${GKO_UNIFIED_COMMON_INSTANTIATE_SOURCES}
     )
 
 ginkgo_compile_features(ginkgo_omp)

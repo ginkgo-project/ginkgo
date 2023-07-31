@@ -1,0 +1,34 @@
+include(../../cmake/template_instantiation.cmake)
+add_instantiation_files(matrix/dense_kernels.instantiate.cpp UNIFIED_INSTANTIATE_SOURCES)
+set(UNIFIED_SOURCES
+    base/device_matrix_data_kernels.cpp
+    base/index_set_kernels.cpp
+    components/absolute_array_kernels.cpp
+    components/fill_array_kernels.cpp
+    components/format_conversion_kernels.cpp
+    components/precision_conversion_kernels.cpp
+    components/reduce_array_kernels.cpp
+    distributed/partition_kernels.cpp
+    matrix/coo_kernels.cpp
+    matrix/csr_kernels.cpp
+    matrix/ell_kernels.cpp
+    matrix/hybrid_kernels.cpp
+    matrix/sellp_kernels.cpp
+    matrix/sparsity_csr_kernels.cpp
+    matrix/diagonal_kernels.cpp
+    multigrid/pgm_kernels.cpp
+    preconditioner/jacobi_kernels.cpp
+    solver/bicg_kernels.cpp
+    solver/bicgstab_kernels.cpp
+    solver/cg_kernels.cpp
+    solver/cgs_kernels.cpp
+    solver/common_gmres_kernels.cpp
+    solver/fcg_kernels.cpp
+    solver/gcr_kernels.cpp
+    solver/gmres_kernels.cpp
+    solver/ir_kernels.cpp
+    )
+list(TRANSFORM UNIFIED_SOURCES PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
+list(TRANSFORM UNIFIED_INSTANTIATE_SOURCES PREPEND ${CMAKE_CURRENT_BINARY_DIR}/)
+set(GKO_UNIFIED_COMMON_SOURCES ${UNIFIED_SOURCES} PARENT_SCOPE)
+set(GKO_UNIFIED_COMMON_INSTANTIATE_SOURCES ${UNIFIED_INSTANTIATE_SOURCES} PARENT_SCOPE)
