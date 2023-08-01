@@ -1,5 +1,5 @@
 add_library(ginkgo_omp $<TARGET_OBJECTS:ginkgo_omp_device> "")
-# we don't split up the dense kernels into distinct compliations
+# we don't split up the dense kernels into distinct compilations
 list(APPEND GKO_UNIFIED_COMMON_SOURCES ${PROJECT_SOURCE_DIR}/common/unified/matrix/dense_kernels.instantiate.cpp)
 target_sources(ginkgo_omp
     PRIVATE
