@@ -131,6 +131,24 @@ public:
     void write(std::vector<mat_data64>& data) const override;
 
     /**
+     * Creates a mutable view (of matrix::Dense type) of one item of the Batch
+     * MultiVector object. Does not perform any deep copies, but only returns a
+     * view of the data.
+     *
+     * @param item_id  The index of the batch item
+     *
+     * @return  a matrix::Dense object with the data from the batch item at the
+     *          given index.
+     */
+    std::unique_ptr<unbatch_type> create_view_for_item(size_type item_id);
+
+    /**
+     * @copydoc create_view_for_item(size_type)
+     */
+    std::unique_ptr<const unbatch_type> create_const_view_for_item(
+        size_type item_id) const;
+
+    /**
      * Unbatches the batched multi-vector and creates a std::vector of Dense
      * matrices
      *
@@ -208,8 +226,8 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_values_for_item(
-        size_type batch_id) const noexcept
+    const value_type* get_const_values_for_item(size_type batch_id) const
+        noexcept
     {
         GKO_ASSERT(batch_id < this->get_num_batch_items());
         return values_.get_const_data() +
