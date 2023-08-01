@@ -59,8 +59,8 @@ protected:
     MultiVector() : rand_engine(15) {}
 
     template <typename MtxType>
-    std::unique_ptr<MtxType> gen_mtx(const size_t num_batch_items,
-                                     int num_rows, int num_cols)
+    std::unique_ptr<MtxType> gen_mtx(const size_t num_batch_items, int num_rows,
+                                     int num_cols)
     {
         return gko::test::generate_uniform_batch_random_matrix<MtxType>(
             num_batch_items, num_rows, num_cols,
@@ -139,8 +139,7 @@ TEST_F(MultiVector, MultipleVectorAddScaledIsEquivalentToRef)
 }
 
 
-TEST_F(MultiVector,
-       MultipleVectorAddScaledWithDifferentAlphaIsEquivalentToRef)
+TEST_F(MultiVector, MultipleVectorAddScaledWithDifferentAlphaIsEquivalentToRef)
 {
     set_up_vector_data(20, true);
 
