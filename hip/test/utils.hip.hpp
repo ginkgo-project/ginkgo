@@ -47,15 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class HipEnvironment : public ::testing::Environment {
-public:
-    void TearDown() override { gko::kernels::hip::reset_device(0); }
-};
-
-testing::Environment* hip_env =
-    testing::AddGlobalTestEnvironment(new HipEnvironment);
-
-
 class HipTestFixture : public ::testing::Test {
 protected:
     HipTestFixture()

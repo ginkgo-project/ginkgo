@@ -5,20 +5,28 @@ set(gko_test_option_args "NO_RESOURCES")
 
 ## Replaces / by _ to create valid target names from relative paths
 function(ginkgo_build_test_name test_name target_name)
-    file(RELATIVE_PATH REL_BINARY_DIR
-            ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
-    string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
-    set(${target_name} ${TEST_TARGET_NAME} PARENT_SCOPE)
-endfunction(ginkgo_build_test_name)
+  file(RELATIVE_PATH REL_BINARY_DIR
+       ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+  string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
+  set(${target_name} ${TEST_TARGET_NAME} PARENT_SCOPE)
+endfunction()
+
+function(ginkgo_create_gtest_main)
+  add_library(ginkgo_gtest_main "")
+  target_sources(ginkgo_gtest_main
+                 PRIVATE
+                 ${PROJECT_SOURCE_DIR}/core/test/gtest/ginkgo_main.cpp)
+  target_link_libraries(ginkgo_gtest_main PRIVATE GTest::GTest Ginkgo::ginkgo)
+endfunction()
 
 function(ginkgo_create_gtest_mpi_main)
-    add_library(gtest_mpi_main "")
-    target_sources(gtest_mpi_main
-            PRIVATE
-            ${PROJECT_SOURCE_DIR}/core/test/mpi/gtest/mpi_listener.cpp)
-    find_package(MPI 3.1 COMPONENTS CXX REQUIRED)
-    target_link_libraries(gtest_mpi_main PRIVATE GTest::GTest MPI::MPI_CXX)
-endfunction(ginkgo_create_gtest_mpi_main)
+  add_library(ginkgo_gtest_mpi_main "")
+  target_sources(ginkgo_gtest_mpi_main
+                 PRIVATE
+                 ${PROJECT_SOURCE_DIR}/core/test/gtest/ginkgo_mpi_main.cpp)
+  find_package(MPI 3.1 COMPONENTS CXX REQUIRED)
+  target_link_libraries(ginkgo_gtest_mpi_main PRIVATE GTest::GTest MPI::MPI_CXX Ginkgo::ginkgo)
+endfunction()
 
 ## Set up shared target properties and handle ADDITIONAL_LIBRARIES/ADDITIONAL_INCLUDES
 ## `MPI_SIZE size` causes the tests to be run with `size` MPI processes.
@@ -33,17 +41,20 @@ function(ginkgo_set_test_target_properties test_target_name)
     if (GINKGO_COMPILING_DPCPP_TEST AND GINKGO_DPCPP_SINGLE_MODE)
         target_compile_definitions(${test_target_name} PRIVATE GINKGO_DPCPP_SINGLE_MODE=1)
     endif ()
-    if (GINKGO_CHECK_CIRCULAR_DEPS)
-        target_link_libraries(${test_target_name} PRIVATE "${GINKGO_CIRCULAR_DEPS_FLAGS}")
-    endif ()
-    if (set_properties_MPI_SIZE)
-        if (NOT TARGET gtest_mpi_main)
-            ginkgo_create_gtest_mpi_main()
-        endif ()
-        set(gtest_main gtest_mpi_main MPI::MPI_CXX)
-    else ()
-        set(gtest_main GTest::Main)
-    endif ()
+    if(GINKGO_CHECK_CIRCULAR_DEPS)
+      target_link_libraries(${test_target_name} PRIVATE "${GINKGO_CIRCULAR_DEPS_FLAGS}")
+    endif()
+    if(set_properties_MPI_SIZE)
+      if(NOT TARGET ginkgo_gtest_mpi_main)
+        ginkgo_create_gtest_mpi_main()
+      endif()
+      set(gtest_main ginkgo_gtest_mpi_main MPI::MPI_CXX)
+    else()
+      if(NOT TARGET ginkgo_gtest_main)
+        ginkgo_create_gtest_main()
+      endif()
+      set(gtest_main ginkgo_gtest_main)
+    endif()
     target_compile_features(${test_target_name} PUBLIC cxx_std_14)
     target_compile_options(${test_target_name} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
     target_include_directories(${test_target_name} PRIVATE ${Ginkgo_BINARY_DIR} ${set_properties_ADDITIONAL_INCLUDES})

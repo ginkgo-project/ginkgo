@@ -47,15 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class CudaEnvironment : public ::testing::Environment {
-public:
-    void TearDown() override { gko::kernels::cuda::reset_device(0); }
-};
-
-testing::Environment* cuda_env =
-    testing::AddGlobalTestEnvironment(new CudaEnvironment);
-
-
 class CudaTestFixture : public ::testing::Test {
 protected:
     CudaTestFixture()

@@ -51,6 +51,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include "core/test/gtest/environments.hpp"
+
+
 namespace GTestMPIListener {
 
 // This class sets up the global test environment, which is needed
@@ -378,6 +381,8 @@ int main(int argc, char** argv)
     ::testing::InitGoogleTest(&argc, argv);
     MPI_Init(&argc, &argv);
     ::testing::AddGlobalTestEnvironment(new GTestMPIListener::MPIEnvironment);
+    ::testing::AddGlobalTestEnvironment(new CudaEnvironment);
+    ::testing::AddGlobalTestEnvironment(new HipEnvironment);
     ::testing::TestEventListeners& listeners =
         ::testing::UnitTest::GetInstance()->listeners();
     ::testing::TestEventListener* l =
