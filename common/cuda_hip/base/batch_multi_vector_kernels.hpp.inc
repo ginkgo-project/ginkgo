@@ -47,15 +47,10 @@ __device__ __forceinline__ void scale(
 }
 
 template <typename ValueType, typename Mapping>
-__global__ __launch_bounds__(
-    default_block_size,
-    sm_oversubscription) void scale_kernel(const gko::batch::multi_vector::
-                                               uniform_batch<const ValueType>
-                                                   alpha,
-                                           const gko::batch::multi_vector::
-                                               uniform_batch<ValueType>
-                                                   x,
-                                           Mapping map)
+__global__
+__launch_bounds__(default_block_size, sm_oversubscription) void scale_kernel(
+    const gko::batch::multi_vector::uniform_batch<const ValueType> alpha,
+    const gko::batch::multi_vector::uniform_batch<ValueType> x, Mapping map)
 {
     for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_items;
          batch_id += gridDim.x) {
@@ -154,11 +149,11 @@ __device__ __forceinline__ void compute_gen_dot_product(
 
 template <typename ValueType, typename Mapping>
 __global__
-    __launch_bounds__(default_block_size, sm_oversubscription) void compute_gen_dot_product_kernel(
-        const gko::batch::multi_vector::uniform_batch<const ValueType> x,
-        const gko::batch::multi_vector::uniform_batch<const ValueType> y,
-        const gko::batch::multi_vector::uniform_batch<ValueType> result,
-        Mapping map)
+__launch_bounds__(default_block_size, sm_oversubscription) void compute_gen_dot_product_kernel(
+    const gko::batch::multi_vector::uniform_batch<const ValueType> x,
+    const gko::batch::multi_vector::uniform_batch<const ValueType> y,
+    const gko::batch::multi_vector::uniform_batch<ValueType> result,
+    Mapping map)
 {
     for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_items;
          batch_id += gridDim.x) {
@@ -265,9 +260,9 @@ __device__ __forceinline__ void copy(
 
 template <typename ValueType>
 __global__
-    __launch_bounds__(default_block_size, sm_oversubscription) void copy_kernel(
-        const gko::batch::multi_vector::uniform_batch<const ValueType> src,
-        const gko::batch::multi_vector::uniform_batch<ValueType> dst)
+__launch_bounds__(default_block_size, sm_oversubscription) void copy_kernel(
+    const gko::batch::multi_vector::uniform_batch<const ValueType> src,
+    const gko::batch::multi_vector::uniform_batch<ValueType> dst)
 {
     for (size_type batch_id = blockIdx.x; batch_id < src.num_batch_items;
          batch_id += gridDim.x) {
