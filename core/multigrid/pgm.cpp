@@ -51,6 +51,7 @@ GKO_REGISTER_OPERATION(compute_coarse_coo, pgm::compute_coarse_coo);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
+GKO_REGISTER_OPERATION(gather_index, pgm::gather_index);
 
 
 }  // anonymous namespace
@@ -243,11 +244,9 @@ void communicate(
     auto total_recv_size = recv_offsets.back();
 
     array<IndexType> send_agg(exec, total_send_size);
-    for (size_type i = 0; i < send_agg.get_num_elems(); ++i) {
-        send_agg.get_data()[i] =
-            local_agg.get_const_data()[gather_idxs.get_const_data()[i]];
-    }
-    // make_row_gather(exec, gather_idxs, agg, send_agg);
+    exec->run(pgm::make_gather_index(
+        send_agg.get_num_elems(), local_agg.get_const_data(),
+        gather_idxs.get_const_data(), send_agg.get_data()));
 
     auto use_host_buffer = experimental::mpi::requires_host_buffer(exec, comm);
     array<IndexType> host_recv_buffer(exec->get_master());
@@ -259,7 +258,6 @@ void communicate(
                                       send_agg.get_data(),
                                       host_send_buffer.get_data());
     }
-
     auto type = experimental::mpi::type_impl<IndexType>::get_type();
 
     const auto send_ptr = use_host_buffer ? host_send_buffer.get_const_data()
@@ -299,7 +297,7 @@ void Pgm<ValueType, IndexType>::generate()
         communicate(matrix, agg_, non_local_agg);
         // generate non_local_col_map
         non_local_agg.set_executor(exec->get_master());
-        array<IndexType> non_local_col_map(exec, non_local_size);
+        array<IndexType> non_local_col_map(exec->get_master(), non_local_size);
         array<IndexType> part_id(exec->get_master(), non_local_size);
         array<IndexType> index(exec->get_master(), non_local_size);
         auto recv_offsets = matrix->get_recv_offsets();
@@ -369,6 +367,7 @@ void Pgm<ValueType, IndexType>::generate()
             // keep the same precision data in fine_op
             // this->set_fine_op(non_local_csr_shared_ptr);
         }
+        non_local_col_map.set_executor(exec);
         auto result_non_local_csr = generate_coarse(
             exec, non_local_csr,
             static_cast<IndexType>(std::get<1>(result)->get_size()[0]), agg_,
