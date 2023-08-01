@@ -137,6 +137,8 @@ public:
 #else
         init_executor(ref, exec);
 #endif
+        // set device-id test-wide since some test call device
+        // kernels directly
         guard = exec->get_scoped_device_id_guard();
     }
 

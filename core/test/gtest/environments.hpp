@@ -102,25 +102,22 @@ public:
         if (auto rs_cuda_env = get_ctest_group("cudagpu", rank)) {
             auto resource = parse_ctest_resources(rs_cuda_env);
             cuda_device_id = resource.id;
-            if (rank == 0) {
-                std::cerr << "CUDA device " << cuda_device_id << std::endl;
-            }
+            std::cerr << "Rank " << rank << ": CUDA device " << cuda_device_id
+                      << std::endl;
         }
         // HIP GPUs
         if (auto rs_hip_env = get_ctest_group("hipgpu", rank)) {
             auto resource = parse_ctest_resources(rs_hip_env);
             hip_device_id = resource.id;
-            if (rank == 0) {
-                std::cerr << "HIP device " << hip_device_id << std::endl;
-            }
+            std::cerr << "Rank " << rank << ": HIP device " << cuda_device_id
+                      << std::endl;
         }
         // SYCL GPUs (no other devices!)
         if (auto rs_sycl_env = get_ctest_group("syclgpu", rank)) {
             auto resource = parse_ctest_resources(rs_sycl_env);
             sycl_device_id = resource.id;
-            if (rank == 0) {
-                std::cerr << "SYCL device " << sycl_device_id << std::endl;
-            }
+            std::cerr << "Rank " << rank << ": SYCL device " << cuda_device_id
+                      << std::endl;
         }
     }
 
