@@ -1,2 +1,2 @@
 add_executable(resource_file_generator resource_file_generator.cpp)
-target_link_libraries(resource_file_generator Ginkgo::ginkgo )
+target_link_libraries(resource_file_generator Ginkgo::ginkgo)
