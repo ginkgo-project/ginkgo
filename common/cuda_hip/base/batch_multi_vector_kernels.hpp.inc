@@ -59,8 +59,8 @@ __global__ __launch_bounds__(
 {
     for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_items;
          batch_id += gridDim.x) {
-        const auto alpha_b = gko::batch::batch_item(alpha, batch_id);
-        const auto x_b = gko::batch::batch_item(x, batch_id);
+        const auto alpha_b = gko::batch::extract_batch_item(alpha, batch_id);
+        const auto x_b = gko::batch::extract_batch_item(x, batch_id);
         scale(alpha_b, x_b, map);
     }
 }
@@ -100,9 +100,9 @@ __global__ __launch_bounds__(
 {
     for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_items;
          batch_id += gridDim.x) {
-        const auto alpha_b = gko::batch::batch_item(alpha, batch_id);
-        const auto x_b = gko::batch::batch_item(x, batch_id);
-        const auto y_b = gko::batch::batch_item(y, batch_id);
+        const auto alpha_b = gko::batch::extract_batch_item(alpha, batch_id);
+        const auto x_b = gko::batch::extract_batch_item(x, batch_id);
+        const auto y_b = gko::batch::extract_batch_item(y, batch_id);
         add_scaled(alpha_b, x_b, y_b, map);
     }
 }
@@ -162,9 +162,9 @@ __global__
 {
     for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_items;
          batch_id += gridDim.x) {
-        const auto x_b = gko::batch::batch_item(x, batch_id);
-        const auto y_b = gko::batch::batch_item(y, batch_id);
-        const auto r_b = gko::batch::batch_item(result, batch_id);
+        const auto x_b = gko::batch::extract_batch_item(x, batch_id);
+        const auto y_b = gko::batch::extract_batch_item(y, batch_id);
+        const auto r_b = gko::batch::extract_batch_item(result, batch_id);
         compute_gen_dot_product(x_b, y_b, r_b, map);
     }
 }
@@ -236,8 +236,8 @@ __global__ __launch_bounds__(
 {
     for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_items;
          batch_id += gridDim.x) {
-        const auto x_b = gko::batch::batch_item(x, batch_id);
-        const auto r_b = gko::batch::batch_item(result, batch_id);
+        const auto x_b = gko::batch::extract_batch_item(x, batch_id);
+        const auto r_b = gko::batch::extract_batch_item(result, batch_id);
         compute_norm2(x_b, r_b);
     }
 }
@@ -271,8 +271,8 @@ __global__
 {
     for (size_type batch_id = blockIdx.x; batch_id < src.num_batch_items;
          batch_id += gridDim.x) {
-        const auto dst_b = gko::batch::batch_item(dst, batch_id);
-        const auto src_b = gko::batch::batch_item(src, batch_id);
+        const auto dst_b = gko::batch::extract_batch_item(dst, batch_id);
+        const auto src_b = gko::batch::extract_batch_item(src, batch_id);
         copy(src_b, dst_b);
     }
 }

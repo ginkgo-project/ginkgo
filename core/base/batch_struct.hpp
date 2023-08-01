@@ -107,18 +107,19 @@ GKO_ATTRIBUTES GKO_INLINE multi_vector::uniform_batch<const ValueType> to_const(
  * @param batch_idx  The position of the desired object in the batch
  */
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE multi_vector::batch_item<ValueType> batch_item(
-    const multi_vector::uniform_batch<ValueType>& batch,
-    const size_type batch_idx)
+GKO_ATTRIBUTES GKO_INLINE multi_vector::batch_item<ValueType>
+extract_batch_item(const multi_vector::uniform_batch<ValueType>& batch,
+                   const size_type batch_idx)
 {
     return {batch.values + batch_idx * batch.stride * batch.num_rows,
             batch.stride, batch.num_rows, batch.num_rhs};
 }
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE multi_vector::batch_item<ValueType> batch_item(
-    ValueType* const batch_values, const int stride, const int num_rows,
-    const int num_rhs, const size_type batch_idx)
+GKO_ATTRIBUTES GKO_INLINE multi_vector::batch_item<ValueType>
+extract_batch_item(ValueType* const batch_values, const int stride,
+                   const int num_rows, const int num_rhs,
+                   const size_type batch_idx)
 {
     return {batch_values + batch_idx * stride * num_rows, stride, num_rows,
             num_rhs};
