@@ -86,6 +86,38 @@ batch_dim<2> compute_batch_size(
 
 
 template <typename ValueType>
+std::unique_ptr<matrix::Dense<ValueType>>
+MultiVector<ValueType>::create_view_for_item(size_type item_id)
+{
+    auto exec = this->get_executor();
+    auto num_rows = this->get_common_size()[0];
+    auto stride = this->get_common_size()[1];
+    auto mat = unbatch_type::create(
+        exec, this->get_common_size(),
+        make_array_view(exec, num_rows * stride,
+                        this->get_values_for_item(item_id)),
+        stride);
+    return mat;
+}
+
+
+template <typename ValueType>
+std::unique_ptr<const matrix::Dense<ValueType>>
+MultiVector<ValueType>::create_const_view_for_item(size_type item_id) const
+{
+    auto exec = this->get_executor();
+    auto num_rows = this->get_common_size()[0];
+    auto stride = this->get_common_size()[1];
+    auto mat = unbatch_type::create_const(
+        exec, this->get_common_size(),
+        make_const_array_view(exec, num_rows * stride,
+                              this->get_const_values_for_item(item_id)),
+        stride);
+    return mat;
+}
+
+
+template <typename ValueType>
 MultiVector<ValueType>::MultiVector(std::shared_ptr<const Executor> exec,
                                     const batch_dim<2>& size)
     : EnablePolymorphicObject<MultiVector<ValueType>>(exec),
@@ -164,18 +196,13 @@ template <typename ValueType>
 std::vector<std::unique_ptr<matrix::Dense<ValueType>>>
 MultiVector<ValueType>::unbatch() const
 {
-    using unbatch_type = matrix::Dense<ValueType>;
     auto exec = this->get_executor();
-    auto unbatch_mats = std::vector<std::unique_ptr<unbatch_type>>{};
+    auto unbatched_mats = std::vector<std::unique_ptr<unbatch_type>>{};
     for (size_type b = 0; b < this->get_num_batch_items(); ++b) {
-        auto mat = unbatch_type::create(exec, this->get_common_size());
-        exec->copy_from(exec.get(), mat->get_num_stored_elements(),
-                        this->get_const_values() +
-                            this->get_size().get_cumulative_offset(b),
-                        mat->get_values());
-        unbatch_mats.emplace_back(std::move(mat));
+        unbatched_mats.emplace_back(
+            this->create_const_view_for_item(b)->clone());
     }
-    return unbatch_mats;
+    return unbatched_mats;
 }
 
 
@@ -336,19 +363,15 @@ void read_impl(MatrixType* mtx, const std::vector<MatrixData>& data)
     GKO_THROW_IF_INVALID(data.size() > 0, "Input data is empty");
 
     auto common_size = data[0].size;
-    auto batch_size = batch_dim<2>(data.size(), common_size);
-    for (const auto& b : data) {
-        auto b_size = b.size;
-        GKO_ASSERT_EQUAL_DIMENSIONS(common_size, b_size);
-    }
+    auto num_batch_items = data.size();
+    auto batch_size = batch_dim<2>(num_batch_items, common_size);
     auto tmp =
         MatrixType::create(mtx->get_executor()->get_master(), batch_size);
-    tmp->fill(zero<typename MatrixType::value_type>());
-    for (size_type b = 0; b < data.size(); ++b) {
-        for (const auto& elem : data[b].nonzeros) {
-            tmp->at(b, elem.row, elem.column) = elem.value;
-        }
+    for (size_type b = 0; b < num_batch_items; ++b) {
+        assert(data[b].size == common_size);
+        tmp->create_view_for_item(b)->read(data[b]);
     }
+
     tmp->move_to(mtx);
 }
 
@@ -370,20 +393,10 @@ void MultiVector<ValueType>::read(const std::vector<mat_data64>& data)
 template <typename MatrixType, typename MatrixData>
 void write_impl(const MatrixType* mtx, std::vector<MatrixData>& data)
 {
-    auto tmp = make_temporary_clone(mtx->get_executor()->get_master(), mtx);
-
     data = std::vector<MatrixData>(mtx->get_num_batch_items());
     for (size_type b = 0; b < mtx->get_num_batch_items(); ++b) {
         data[b] = {mtx->get_common_size(), {}};
-        for (size_type row = 0; row < data[b].size[0]; ++row) {
-            for (size_type col = 0; col < data[b].size[1]; ++col) {
-                if (tmp->at(b, row, col) !=
-                    zero<typename MatrixType::value_type>()) {
-                    data[b].nonzeros.emplace_back(row, col,
-                                                  tmp->at(b, row, col));
-                }
-            }
-        }
+        mtx->create_const_view_for_item(b)->write(data[b]);
     }
 }
 
