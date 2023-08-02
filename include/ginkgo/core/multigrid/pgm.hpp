@@ -164,7 +164,8 @@ protected:
 
     std::tuple<std::shared_ptr<LinOp>, std::shared_ptr<LinOp>,
                std::shared_ptr<LinOp>>
-    generate_local(std::shared_ptr<const LinOp> local_matrix);
+    generate_local(
+        std::shared_ptr<const matrix::Csr<ValueType, IndexType>> local_matrix);
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};

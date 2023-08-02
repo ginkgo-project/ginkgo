@@ -111,8 +111,17 @@ protected:
 
     std::shared_ptr<dist_mtx_type> dist_mat;
 };
-using One = ::testing::Types<std::tuple<float, gko::int32, gko::int32>>;
-TYPED_TEST_SUITE(Pgm, One, TupleTypenameNameGenerator);
+// using One = ::testing::Types<std::tuple<float, gko::int32, gko::int32>>;
+using More =
+    ::testing::Types<std::tuple<float, gko::int32, gko::int32>,
+                     std::tuple<float, gko::int64, gko::int64>,
+                     std::tuple<std::complex<float>, gko::int64, gko::int64>,
+                     std::tuple<std::complex<float>, gko::int64, gko::int64>,
+                     std::tuple<double, gko::int32, gko::int32>,
+                     std::tuple<double, gko::int64, gko::int64>,
+                     std::tuple<std::complex<double>, gko::int64, gko::int64>,
+                     std::tuple<std::complex<double>, gko::int64, gko::int64>>;
+TYPED_TEST_SUITE(Pgm, gko::test::ValueLocalGlobalIndexTypes, TupleTypenameNameGenerator);
 
 
 TYPED_TEST(Pgm, CanGenerateFromDistributedMatrix)
