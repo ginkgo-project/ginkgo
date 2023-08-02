@@ -5,6 +5,9 @@
 #include <regex>
 
 
+#include <gtest/gtest.h>
+
+
 #ifdef GKO_COMPILING_OMP
 #include <omp.h>
 #endif
