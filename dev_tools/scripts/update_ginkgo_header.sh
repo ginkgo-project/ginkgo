@@ -43,7 +43,8 @@ fi
 # Requires detected files (including the path) to not contain newlines
 if ! find "${TOP_HEADER_FOLDER}" -name '*.hpp' -type f -print | \
         grep -v 'residual_norm_reduction.hpp' | \
-        grep -v 'solver/.*_trs.hpp' > "${HEADER_LIST}"; then
+        grep -v 'solver/.*_trs.hpp' | \
+        grep -v 'ginkgo/extensions' > "${HEADER_LIST}"; then
     echo "${WARNING_PREFIX} "'The `find` command returned with an error!' 1>&2
     rm "${RM_PARAMETER}" "${HEADER_LIST}"
     exit 0

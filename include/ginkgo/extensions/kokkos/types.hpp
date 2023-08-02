@@ -61,17 +61,17 @@ namespace detail {
  * @tparam T  An arithmetic type.
  */
 template <typename T>
-struct native_type {
+struct native_value_type {
     using type = T;
 };
 
 template <typename T>
-struct native_type<std::complex<T>> {
+struct native_value_type<std::complex<T>> {
     using type = Kokkos::complex<T>;
 };
 
 template <typename T>
-struct native_type<const std::complex<T>> {
+struct native_value_type<const std::complex<T>> {
     using type = const Kokkos::complex<T>;
 };
 
@@ -88,7 +88,7 @@ template <typename MemorySpace>
 struct array_mapper {
     template <typename ValueType>
     using type =
-        Kokkos::View<typename detail::native_type<ValueType>::type*,
+        Kokkos::View<typename detail::native_value_type<ValueType>::type*,
                      MemorySpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
 
     template <typename ValueType>
@@ -123,9 +123,10 @@ struct array_mapper {
 template <typename MemorySpace>
 struct dense_mapper {
     template <typename ValueType>
-    using type = Kokkos::View<typename detail::native_type<ValueType>::type**,
-                              Kokkos::LayoutStride, MemorySpace,
-                              Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
+    using type =
+        Kokkos::View<typename detail::native_value_type<ValueType>::type**,
+                     Kokkos::LayoutStride, MemorySpace,
+                     Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
 
     template <typename ValueType>
     static type<ValueType> map(gko::matrix::Dense<ValueType>& mtx)
@@ -161,7 +162,7 @@ struct dense_mapper {
 
 //!< specialization of gko::native for Kokkos
 template <typename MemorySpace>
-using native_type =
+using kokkos_type =
     gko::native<array_mapper<MemorySpace>, dense_mapper<MemorySpace>>;
 
 
@@ -170,14 +171,16 @@ using native_type =
  *
  * @tparam T  The Ginkgo type.
  * @tparam MemorySpace  The Kokkos memory space that will be used
+ *
  * @param data  The Ginkgo object.
+ *
  * @return  A wrapper for the Ginkgo object that is compatible with Kokkos
  */
 template <typename T,
           typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
-auto map_data(T* data, MemorySpace = {})
+inline auto map_data(T* data, MemorySpace = {})
 {
-    return native_type<MemorySpace>::map(*data);
+    return kokkos_type<MemorySpace>::map(*data);
 }
 
 /**
@@ -185,9 +188,29 @@ auto map_data(T* data, MemorySpace = {})
  */
 template <typename T,
           typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
-auto map_data(T&& data, MemorySpace = {})
+inline auto map_data(std::unique_ptr<T>& data, MemorySpace = {})
 {
-    return native_type<MemorySpace>::map(std::forward<T>(data));
+    return kokkos_type<MemorySpace>::map(*data);
+}
+
+/**
+ * @copydoc map_data(T*, MemorySpace)
+ */
+template <typename T,
+          typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
+inline auto map_data(std::shared_ptr<T>& data, MemorySpace = {})
+{
+    return kokkos_type<MemorySpace>::map(*data);
+}
+
+/**
+ * @copydoc map_data(T*, MemorySpace)
+ */
+template <typename T,
+          typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
+inline auto map_data(T&& data, MemorySpace = {})
+{
+    return kokkos_type<MemorySpace>::map(std::forward<T>(data));
 }
 
 

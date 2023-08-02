@@ -48,6 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+
+
 /**
  * @brief This namespace contains views on the internal data of selected
  *        Ginkgo types.
@@ -55,6 +57,7 @@ namespace gko {
  * @ingroup layout
  */
 namespace layout {
+
 
 /**
  * A view of gko::device_matrix_data.
@@ -270,5 +273,7 @@ public:
     }
 };
 
+
 }  // namespace gko
+
 #endif  // GKO_PUBLIC_CORE_BASE_NATIVE_TYPE_HPP_

@@ -67,11 +67,12 @@ struct compatible_space<Kokkos::HostSpace, gko::ReferenceExecutor>
     : std::true_type {};
 
 template <typename MemorySpace>
-struct compatible_space<MemorySpace, gko::ReferenceExecutor>
-    : std::integral_constant<
-          bool, Kokkos::SpaceAccessibility<Kokkos::HostSpace,
-                                           MemorySpace>::accesible>::value {};
-
+struct compatible_space<MemorySpace, gko::ReferenceExecutor> {
+    // need manual implementation of std::integral_constant because,
+    // while compiling for cuda, somehow bool is replaced by __nv_bool
+    static constexpr bool value =
+        Kokkos::SpaceAccessibility<Kokkos::HostSpace, MemorySpace>::accessible;
+};
 #ifdef KOKKOS_ENABLE_OPENMP
 template <typename MemorySpace>
 struct compatible_space<MemorySpace, gko::OmpExecutor>
@@ -79,36 +80,28 @@ struct compatible_space<MemorySpace, gko::OmpExecutor>
 #endif
 
 #ifdef KOKKOS_ENABLE_CUDA
-template <>
-struct compatible_space<Kokkos::CudaSpace, gko::CudaExecutor> : std::true_type {
+template <typename MemorySpace>
+struct compatible_space<MemorySpace, gko::CudaExecutor> {
+    static constexpr bool value =
+        Kokkos::SpaceAccessibility<Kokkos::Cuda, MemorySpace>::accessible;
 };
-
-template <>
-struct compatible_space<Kokkos::CudaHostPinnedSpace, gko::CudaExecutor>
-    : std::true_type {};
-
-template <>
-struct compatible_space<Kokkos::CudaUVMSpace, gko::CudaExecutor>
-    : std::true_type {};
 #endif
 
 #ifdef KOKKOS_ENABLE_HIP
-template <>
-struct compatible_space<Kokkos::HIPSpace, gko::HipExecutor> : std::true_type {};
-
-template <>
-struct compatible_space<Kokkos::HIPHostPinnedSpace, gko::HipExecutor>
-    : std::true_type {};
-
-template <>
-struct compatible_space<Kokkos::HIPManagedSpace, gko::HipExecutor>
-    : std::true_type {};
+template <typename MemorySpace>
+struct compatible_space<MemorySpace, gko::HipExecutor> {
+    static constexpr bool value =
+        Kokkos::SpaceAccessibility<Kokkos::HIP, MemorySpace>::accessible;
+};
 #endif
 
 #ifdef KOKKOS_ENABLE_SYCL
-template <>
-struct compatible_space<Kokkos::SYCLSpace, gko::DpcppExecutor>
-    : std::true_type {};
+template <typename MemorySpace>
+struct compatible_space<MemorySpace, gko::DpcppExecutor> {
+    static constexpr bool value =
+        Kokkos::SpaceAccessibility<Kokkos::Experimental::SYCL,
+                                   MemorySpace>::accessible;
+};
 #endif
 
 
@@ -121,7 +114,7 @@ struct compatible_space<Kokkos::SYCLSpace, gko::DpcppExecutor>
  * @return  true if the memory space is accessible by the executor
  */
 template <typename MemorySpace, typename ExecType>
-bool check_compatibility(MemorySpace, const ExecType*)
+inline bool check_compatibility(MemorySpace, std::shared_ptr<const ExecType>)
 {
     return detail::compatible_space<MemorySpace, ExecType>::value;
 }
@@ -137,21 +130,23 @@ bool check_compatibility(MemorySpace, const ExecType*)
  */
 
 template <typename MemorySpace>
-bool check_compatibility(MemorySpace, const gko::Executor* exec)
+inline bool check_compatibility(MemorySpace,
+                                std::shared_ptr<const gko::Executor> exec)
 {
-    if (auto p = dynamic_cast<const gko::ReferenceExecutor*>(exec)) {
+    if (auto p =
+            std::dynamic_pointer_cast<const gko::ReferenceExecutor>(exec)) {
         return check_compatibility(MemorySpace{}, p);
     }
-    if (auto p = dynamic_cast<const gko::OmpExecutor*>(exec)) {
+    if (auto p = std::dynamic_pointer_cast<const gko::OmpExecutor>(exec)) {
         return check_compatibility(MemorySpace{}, p);
     }
-    if (auto p = dynamic_cast<const gko::CudaExecutor*>(exec)) {
+    if (auto p = std::dynamic_pointer_cast<const gko::CudaExecutor>(exec)) {
         return check_compatibility(MemorySpace{}, p);
     }
-    if (auto p = dynamic_cast<const gko::HipExecutor*>(exec)) {
+    if (auto p = std::dynamic_pointer_cast<const gko::HipExecutor>(exec)) {
         return check_compatibility(MemorySpace{}, p);
     }
-    if (auto p = dynamic_cast<const gko::DpcppExecutor*>(exec)) {
+    if (auto p = std::dynamic_pointer_cast<const gko::DpcppExecutor>(exec)) {
         return check_compatibility(MemorySpace{}, p);
     }
     GKO_NOT_IMPLEMENTED;
@@ -170,9 +165,9 @@ bool check_compatibility(MemorySpace, const gko::Executor* exec)
  * @param space  The Kokkos memory space to compare agains.
  */
 template <typename MemorySpace, typename T>
-void ensure_compatibility(T&& obj, MemorySpace space)
+inline void ensure_compatibility(T&& obj, MemorySpace space)
 {
-    if (!check_compatibility(space, obj.get_executor().get())) {
+    if (!check_compatibility(space, obj.get_executor())) {
         throw gko::Error(__FILE__, __LINE__,
                          "Executor type and memory space are incompatible");
     }
@@ -189,17 +184,17 @@ void ensure_compatibility(T&& obj, MemorySpace space)
  *
  * @return  An executor of type either ReferenceExecutor or OmpExecutor.
  */
-std::shared_ptr<Executor> create_default_host_executor()
+inline std::shared_ptr<Executor> create_default_host_executor()
 {
 #ifdef KOKKOS_ENABLE_SERIAL
-    if (std::is_same<Kokkos::DefaultHostExecutionSpace,
-                     Kokkos::Serial>::value) {
+    if constexpr (std::is_same_v<Kokkos::DefaultHostExecutionSpace,
+                                 Kokkos::Serial>) {
         return ReferenceExecutor::create();
     }
 #endif
 #ifdef KOKKOS_ENABLE_OPENMP
-    if (std::is_same<Kokkos::DefaultHostExecutionSpace,
-                     Kokkos::OpenMP>::value) {
+    if constexpr (std::is_same_v<Kokkos::DefaultHostExecutionSpace,
+                                 Kokkos::OpenMP>) {
         return OmpExecutor::create();
     }
 #endif
@@ -224,33 +219,66 @@ std::shared_ptr<Executor> create_default_host_executor()
  *
  * @return  An executor matching the type of the ExecSpace.
  */
-template <typename ExecSpace>
-std::shared_ptr<Executor> create_executor(ExecSpace)
+template <typename ExecSpace,
+          typename MemorySpace = typename ExecSpace::memory_space>
+inline std::shared_ptr<Executor> create_executor(ExecSpace, MemorySpace = {})
 {
+    static_assert(
+        Kokkos::SpaceAccessibility<ExecSpace, MemorySpace>::accessible);
 #ifdef KOKKOS_ENABLE_SERIAL
-    if (std::is_same<ExecSpace, Kokkos::Serial>::value) {
+    if constexpr (std::is_same_v<ExecSpace, Kokkos::Serial>) {
         return ReferenceExecutor::create();
     }
 #endif
 #ifdef KOKKOS_ENABLE_OPENMP
-    if (std::is_same<ExecSpace, Kokkos::OpenMP>::value) {
+    if constexpr (std::is_same_v<ExecSpace, Kokkos::OpenMP>) {
         return OmpExecutor::create();
     }
 #endif
 #ifdef KOKKOS_ENABLE_CUDA
-    if (std::is_same<ExecSpace, Kokkos::Cuda>::value) {
-        return CudaExecutor::create(Kokkos::device_id(),
-                                    create_default_host_executor());
+    if constexpr (std::is_same_v<ExecSpace, Kokkos::Cuda>) {
+        if constexpr (std::is_same_v<MemorySpace, Kokkos::CudaSpace>) {
+            return CudaExecutor::create(Kokkos::device_id(),
+                                        create_default_host_executor(),
+                                        std::make_shared<gko::CudaAllocator>());
+        }
+        if constexpr (std::is_same_v<MemorySpace, Kokkos::CudaUVMSpace>) {
+            return CudaExecutor::create(
+                Kokkos::device_id(), create_default_host_executor(),
+                std::make_shared<gko::CudaUnifiedAllocator>(
+                    Kokkos::device_id()));
+        }
+        if constexpr (std::is_same_v<MemorySpace,
+                                     Kokkos::CudaHostPinnedSpace>) {
+            return CudaExecutor::create(
+                Kokkos::device_id(), create_default_host_executor(),
+                std::make_shared<gko::CudaHostAllocator>(Kokkos::device_id()));
+        }
     }
 #endif
 #ifdef KOKKOS_ENABLE_HIP
-    if (std::is_same<ExecSpace, Kokkos::HIP>::value) {
-        return HipExecutor::create(Kokkos::device_id(),
-                                   create_default_host_executor());
+    if constexpr (std::is_same_v<ExecSpace, Kokkos::HIP>) {
+        if constexpr (std::is_same_v<MemorySpace, Kokkos::HIPSpace>) {
+            return HipExecutor::create(Kokkos::device_id(),
+                                       create_default_host_executor(),
+                                       std::make_shared<gko::HipAllocator>());
+        }
+        if constexpr (std::is_same_v<MemorySpace, Kokkos::HIPManagedSpace>) {
+            return HipExecutor::create(
+                Kokkos::device_id(), create_default_host_executor(),
+                std::make_shared<gko::HipUnifiedAllocator>(
+                    Kokkos::device_id()));
+        }
+        if constexpr (std::is_same_v<MemorySpace, Kokkos::HIPHostPinnedSpace>) {
+            return HipExecutor::create(
+                Kokkos::device_id(), create_default_host_executor(),
+                std::make_shared<gko::HipHostAllocator>(Kokkos::device_id()));
+        }
     }
 #endif
 #ifdef KOKKOS_ENABLE_SYCL
-    if (std::is_same<ExecSpace, Kokkos::Experimental::SYCL>::value) {
+    if constexpr (std::is_same_v<ExecSpace, Kokkos::Experimental::SYCL>) {
+        // for now Ginkgo doesn't support different allocators for SYCL
         return DpcppExecutor::create(Kokkos::device_id(),
                                      create_default_host_executor());
     }
@@ -264,7 +292,7 @@ std::shared_ptr<Executor> create_executor(ExecSpace)
  *
  * @return  An executor matching the type of Kokkos::DefaultExecutionSpace.
  */
-std::shared_ptr<Executor> create_default_executor()
+inline std::shared_ptr<Executor> create_default_executor()
 {
     return create_executor(Kokkos::DefaultExecutionSpace{});
 }
