@@ -733,7 +733,7 @@ inline T ensure_allocated_impl(T ptr, const std::string& file, int line,
  */
 #define GKO_THROW_IF_INVALID(_condition, _message)                           \
     {                                                                        \
-        if (!_condition) {                                                   \
+        if (!(_condition)) {                                                 \
             throw ::gko::InvalidStateError(__FILE__, __LINE__, __func__,     \
                                            _message);                        \
         }                                                                    \
