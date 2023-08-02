@@ -55,6 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/batch_utilities.hpp"
 #include "core/base/extended_float.hpp"
 
 
@@ -714,15 +715,11 @@ template <typename Mat1, typename Mat2>
     const Mat2* second, double tolerance)
 {
     auto exec = first->get_executor()->get_master();
-    std::vector<
-        matrix_data<typename Mat1::value_type, typename Mat1::index_type>>
-        first_data;
-    std::vector<
-        matrix_data<typename Mat2::value_type, typename Mat2::index_type>>
-        second_data;
+    using value_type1 = typename Mat1::value_type;
+    using value_type2 = typename Mat2::value_type;
 
-    first->write(first_data);
-    second->write(second_data);
+    auto first_data = gko::batch::multivector::write<value_type1, int>(first);
+    auto second_data = gko::batch::multivector::write<value_type2, int>(second);
 
     if (first_data.size() != second_data.size()) {
         return ::testing::AssertionFailure()

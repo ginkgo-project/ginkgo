@@ -127,59 +127,6 @@ MultiVector<ValueType>::MultiVector(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType>
-MultiVector<ValueType>::MultiVector(
-    std::shared_ptr<const Executor> exec,
-    const std::vector<matrix::Dense<ValueType>*>& matrices)
-    : EnablePolymorphicObject<MultiVector<ValueType>>(exec),
-      batch_size_{detail::compute_batch_size(matrices)},
-      values_(exec, compute_num_elems(batch_size_))
-{
-    for (size_type i = 0; i < this->get_num_batch_items(); ++i) {
-        auto local_exec = matrices[i]->get_executor();
-        exec->copy_from(
-            local_exec.get(), matrices[i]->get_num_stored_elements(),
-            matrices[i]->get_const_values(),
-            this->get_values() + this->get_size().get_cumulative_offset(i));
-    }
-}
-
-
-template <typename ValueType>
-MultiVector<ValueType>::MultiVector(std::shared_ptr<const Executor> exec,
-                                    size_type num_duplications,
-                                    const matrix::Dense<value_type>* input)
-    : MultiVector<ValueType>(exec,
-                             batch_dim<2>(num_duplications, input->get_size()))
-{
-    size_type offset = 0;
-    for (size_type i = 0; i < num_duplications; ++i) {
-        exec->copy_from(input->get_executor().get(),
-                        input->get_num_stored_elements(),
-                        input->get_const_values(), this->get_values() + offset);
-        offset += input->get_num_stored_elements();
-    }
-}
-
-
-template <typename ValueType>
-MultiVector<ValueType>::MultiVector(std::shared_ptr<const Executor> exec,
-                                    size_type num_duplications,
-                                    const MultiVector<value_type>* input)
-    : MultiVector<ValueType>(
-          exec, batch_dim<2>(input->get_num_batch_items() * num_duplications,
-                             input->get_common_size()))
-{
-    size_type offset = 0;
-    for (size_type i = 0; i < num_duplications; ++i) {
-        exec->copy_from(input->get_executor().get(),
-                        input->get_num_stored_elements(),
-                        input->get_const_values(), this->get_values() + offset);
-        offset += input->get_num_stored_elements();
-    }
-}
-
-
-template <typename ValueType>
 std::unique_ptr<MultiVector<ValueType>>
 MultiVector<ValueType>::create_with_config_of(
     ptr_param<const MultiVector> other)
@@ -189,20 +136,6 @@ MultiVector<ValueType>::create_with_config_of(
     // CUDA 10.1.
     // Otherwise, it results in a compile error.
     return (*other).create_with_same_config();
-}
-
-
-template <typename ValueType>
-std::vector<std::unique_ptr<matrix::Dense<ValueType>>>
-MultiVector<ValueType>::unbatch() const
-{
-    auto exec = this->get_executor();
-    auto unbatched_mats = std::vector<std::unique_ptr<unbatch_type>>{};
-    for (size_type b = 0; b < this->get_num_batch_items(); ++b) {
-        unbatched_mats.emplace_back(
-            this->create_const_view_for_item(b)->clone());
-    }
-    return unbatched_mats;
 }
 
 
@@ -354,64 +287,6 @@ void MultiVector<ValueType>::move_to(
     MultiVector<next_precision<ValueType>>* result)
 {
     this->convert_to(result);
-}
-
-
-template <typename MatrixType, typename MatrixData>
-void read_impl(MatrixType* mtx, const std::vector<MatrixData>& data)
-{
-    GKO_THROW_IF_INVALID(data.size() > 0, "Input data is empty");
-
-    auto common_size = data[0].size;
-    auto num_batch_items = data.size();
-    auto batch_size = batch_dim<2>(num_batch_items, common_size);
-    auto tmp =
-        MatrixType::create(mtx->get_executor()->get_master(), batch_size);
-    for (size_type b = 0; b < num_batch_items; ++b) {
-        assert(data[b].size == common_size);
-        tmp->create_view_for_item(b)->read(data[b]);
-    }
-
-    tmp->move_to(mtx);
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::read(const std::vector<mat_data>& data)
-{
-    read_impl(this, data);
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::read(const std::vector<mat_data64>& data)
-{
-    read_impl(this, data);
-}
-
-
-template <typename MatrixType, typename MatrixData>
-void write_impl(const MatrixType* mtx, std::vector<MatrixData>& data)
-{
-    data = std::vector<MatrixData>(mtx->get_num_batch_items());
-    for (size_type b = 0; b < mtx->get_num_batch_items(); ++b) {
-        data[b] = {mtx->get_common_size(), {}};
-        mtx->create_const_view_for_item(b)->write(data[b]);
-    }
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::write(std::vector<mat_data>& data) const
-{
-    write_impl(this, data);
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::write(std::vector<mat_data64>& data) const
-{
-    write_impl(this, data);
 }
 
 
