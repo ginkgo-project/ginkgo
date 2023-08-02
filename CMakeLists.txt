@@ -82,6 +82,7 @@ set(GINKGO_HIP_CLANG_COMPILER_FLAGS "" CACHE STRING
 set(GINKGO_HIP_AMDGPU "" CACHE STRING
     "The amdgpu_target(s) variable passed to hipcc. The default is none (auto).")
 option(GINKGO_SPLIT_TEMPLATE_INSTANTIATIONS "Split template instantiations for slow-to-compile files. This improves parallel build performance" ON)
+mark_as_advanced(GINKGO_SPLIT_TEMPLATE_INSTANTIATIONS)
 option(GINKGO_JACOBI_FULL_OPTIMIZATIONS "Use all the optimizations for the CUDA Jacobi algorithm" OFF)
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
 if(MSVC OR WIN32 OR CYGWIN OR APPLE)
