@@ -11,5 +11,5 @@ endif()
 
 find_package(Kokkos REQUIRED)
 
-add_executable(kokkos-assembly kokkos_assembly.cpp)
+add_executable(kokkos-assembly kokkos-assembly.cpp)
 target_link_libraries(kokkos-assembly Ginkgo::ginkgo Kokkos::kokkos)
