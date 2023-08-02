@@ -51,6 +51,7 @@
 - "common/unified/.*.cpp"
     - PathIgnore: "2"
     - PathPrefix: "core"
+    - CoreSuffix: "\.template"
 - "core/test/base/(extended_float|iterator_factory)"
     - RemoveTest: "true"
 - "core/test/base/allocator"
@@ -96,3 +97,4 @@
 - ".*"
     - PathPrefix: "core"
     - PathIgnore: "1"
+    - CoreSuffix: "\.template"
