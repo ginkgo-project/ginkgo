@@ -34,14 +34,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_BATCH_UTILITIES_HPP_
 
 
-#include <ginkgo/core/base/batch_multi_vector.hpp>
-
-
 #include <algorithm>
 #include <type_traits>
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
