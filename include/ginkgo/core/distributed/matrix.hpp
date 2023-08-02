@@ -139,6 +139,8 @@ public:
     virtual std::shared_ptr<const LinOp> get_local_matrix() const = 0;
     virtual array<IndexType> get_gather_idxs() const = 0;
     virtual array<IndexType> get_recv_gather_idxs() const = 0;
+    // TODO: use type tag?
+    virtual bool is_using_index(size_t index_size) const = 0;
 };
 
 /**
@@ -431,6 +433,11 @@ public:
     {
         return recv_gather_idxs_;
     }
+
+    bool is_using_index(size_t index_size) const override
+    {
+        return sizeof(GlobalIndexType) == index_size;
+    };
 
     /**
      * Creates an empty distributed matrix.
