@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/batch_multi_vector_kernels.hpp"
+#include "core/base/batch_utilities.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
 #include "core/test/utils/batch_helpers.hpp"
@@ -59,13 +60,14 @@ protected:
     MultiVector() : rand_engine(15) {}
 
     template <typename MtxType>
-    std::unique_ptr<MtxType> gen_mtx(const size_t num_batch_items, int num_rows,
-                                     int num_cols)
+    std::unique_ptr<MtxType> gen_mtx(const gko::size_type num_batch_items,
+                                     gko::size_type num_rows,
+                                     gko::size_type num_cols)
     {
-        return gko::test::generate_uniform_batch_random_matrix<MtxType>(
+        return gko::test::generate_random_batch_matrix<MtxType>(
             num_batch_items, num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, false, ref);
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
     void set_up_vector_data(gko::size_type num_vecs,

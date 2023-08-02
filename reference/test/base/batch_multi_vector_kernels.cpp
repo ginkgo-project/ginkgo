@@ -48,7 +48,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/batch_multi_vector_kernels.hpp"
+#include "core/base/batch_utilities.hpp"
 #include "core/test/utils.hpp"
+#include "core/test/utils/batch_helpers.hpp"
 
 
 template <typename T>
@@ -135,13 +137,13 @@ TYPED_TEST(MultiVector, ScalesData)
     using T = typename TestFixture::value_type;
     auto alpha = gko::batch::initialize<Mtx>(
         {{{2.0, -2.0, 1.5}}, {{3.0, -1.0, 0.25}}}, this->exec);
-    auto ualpha = alpha->unbatch();
+    auto ualpha = gko::batch::multivector::unbatch(alpha.get());
 
     this->mtx_0->scale(alpha.get());
     this->mtx_00->scale(ualpha[0].get());
     this->mtx_01->scale(ualpha[1].get());
 
-    auto res = this->mtx_0->unbatch();
+    auto res = gko::batch::multivector::unbatch(this->mtx_0.get());
     GKO_ASSERT_MTX_NEAR(res[0].get(), this->mtx_00.get(), 0.);
     GKO_ASSERT_MTX_NEAR(res[1].get(), this->mtx_01.get(), 0.);
 }
@@ -152,13 +154,13 @@ TYPED_TEST(MultiVector, ScalesDataWithScalar)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto alpha = gko::batch::initialize<Mtx>({{2.0}, {-2.0}}, this->exec);
-    auto ualpha = alpha->unbatch();
+    auto ualpha = gko::batch::multivector::unbatch(alpha.get());
 
     this->mtx_1->scale(alpha.get());
     this->mtx_10->scale(ualpha[0].get());
     this->mtx_11->scale(ualpha[1].get());
 
-    auto res = this->mtx_1->unbatch();
+    auto res = gko::batch::multivector::unbatch(this->mtx_1.get());
     GKO_ASSERT_MTX_NEAR(res[0].get(), this->mtx_10.get(), 0.);
     GKO_ASSERT_MTX_NEAR(res[1].get(), this->mtx_11.get(), 0.);
 }
@@ -170,13 +172,13 @@ TYPED_TEST(MultiVector, ScalesDataWithMultipleScalars)
     using T = typename TestFixture::value_type;
     auto alpha = gko::batch::initialize<Mtx>(
         {{{2.0, -2.0, -1.5}}, {{2.0, -2.0, 3.0}}}, this->exec);
-    auto ualpha = alpha->unbatch();
+    auto ualpha = gko::batch::multivector::unbatch(alpha.get());
 
     this->mtx_1->scale(alpha.get());
     this->mtx_10->scale(ualpha[0].get());
     this->mtx_11->scale(ualpha[1].get());
 
-    auto res = this->mtx_1->unbatch();
+    auto res = gko::batch::multivector::unbatch(this->mtx_1.get());
     GKO_ASSERT_MTX_NEAR(res[0].get(), this->mtx_10.get(), 0.);
     GKO_ASSERT_MTX_NEAR(res[1].get(), this->mtx_11.get(), 0.);
 }
@@ -188,13 +190,13 @@ TYPED_TEST(MultiVector, AddsScaled)
     using T = typename TestFixture::value_type;
     auto alpha = gko::batch::initialize<Mtx>(
         {{{2.0, -2.0, 1.5}}, {{2.0, -2.0, 3.0}}}, this->exec);
-    auto ualpha = alpha->unbatch();
+    auto ualpha = gko::batch::multivector::unbatch(alpha.get());
 
     this->mtx_1->add_scaled(alpha.get(), this->mtx_0.get());
     this->mtx_10->add_scaled(ualpha[0].get(), this->mtx_00.get());
     this->mtx_11->add_scaled(ualpha[1].get(), this->mtx_01.get());
 
-    auto res = this->mtx_1->unbatch();
+    auto res = gko::batch::multivector::unbatch(this->mtx_1.get());
     GKO_ASSERT_MTX_NEAR(res[0].get(), this->mtx_10.get(), 0.);
     GKO_ASSERT_MTX_NEAR(res[1].get(), this->mtx_11.get(), 0.);
 }
@@ -205,13 +207,13 @@ TYPED_TEST(MultiVector, AddsScaledWithScalar)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto alpha = gko::batch::initialize<Mtx>({{2.0}, {-2.0}}, this->exec);
-    auto ualpha = alpha->unbatch();
+    auto ualpha = gko::batch::multivector::unbatch(alpha.get());
 
     this->mtx_1->add_scaled(alpha.get(), this->mtx_0.get());
     this->mtx_10->add_scaled(ualpha[0].get(), this->mtx_00.get());
     this->mtx_11->add_scaled(ualpha[1].get(), this->mtx_01.get());
 
-    auto res = this->mtx_1->unbatch();
+    auto res = gko::batch::multivector::unbatch(this->mtx_1.get());
     GKO_ASSERT_MTX_NEAR(res[0].get(), this->mtx_10.get(), 0.);
     GKO_ASSERT_MTX_NEAR(res[1].get(), this->mtx_11.get(), 0.);
 }
@@ -234,13 +236,13 @@ TYPED_TEST(MultiVector, ComputesDot)
     using T = typename TestFixture::value_type;
     auto result =
         Mtx::create(this->exec, gko::batch_dim<2>(2, gko::dim<2>{1, 3}));
-    auto ures = result->unbatch();
+    auto ures = gko::batch::multivector::unbatch(result.get());
 
     this->mtx_0->compute_dot(this->mtx_1.get(), result.get());
     this->mtx_00->compute_dot(this->mtx_10.get(), ures[0].get());
     this->mtx_01->compute_dot(this->mtx_11.get(), ures[1].get());
 
-    auto res = result->unbatch();
+    auto res = gko::batch::multivector::unbatch(result.get());
     GKO_ASSERT_MTX_NEAR(res[0].get(), ures[0].get(), 0.);
     GKO_ASSERT_MTX_NEAR(res[1].get(), ures[1].get(), 0.);
 }
@@ -275,13 +277,13 @@ TYPED_TEST(MultiVector, ComputesConjDot)
     using T = typename TestFixture::value_type;
     auto result =
         Mtx::create(this->exec, gko::batch_dim<2>(2, gko::dim<2>{1, 3}));
-    auto ures = result->unbatch();
+    auto ures = gko::batch::multivector::unbatch(result.get());
 
     this->mtx_0->compute_conj_dot(this->mtx_1.get(), result.get());
     this->mtx_00->compute_conj_dot(this->mtx_10.get(), ures[0].get());
     this->mtx_01->compute_conj_dot(this->mtx_11.get(), ures[1].get());
 
-    auto res = result->unbatch();
+    auto res = gko::batch::multivector::unbatch(result.get());
     GKO_ASSERT_MTX_NEAR(res[0].get(), ures[0].get(), 0.);
     GKO_ASSERT_MTX_NEAR(res[1].get(), ures[1].get(), 0.);
 }
@@ -357,8 +359,8 @@ TYPED_TEST(MultiVector, ConvertsToPrecision)
     this->mtx_1->convert_to(tmp.get());
     tmp->convert_to(res.get());
 
-    auto ures = res->unbatch();
-    auto umtx = this->mtx_1->unbatch();
+    auto ures = gko::batch::multivector::unbatch(res.get());
+    auto umtx = gko::batch::multivector::unbatch(this->mtx_1.get());
     GKO_ASSERT_MTX_NEAR(umtx[0].get(), ures[0].get(), residual);
     GKO_ASSERT_MTX_NEAR(umtx[1].get(), ures[1].get(), residual);
 }
@@ -380,8 +382,8 @@ TYPED_TEST(MultiVector, MovesToPrecision)
     this->mtx_1->move_to(tmp.get());
     tmp->move_to(res.get());
 
-    auto ures = res->unbatch();
-    auto umtx = this->mtx_1->unbatch();
+    auto ures = gko::batch::multivector::unbatch(res.get());
+    auto umtx = gko::batch::multivector::unbatch(this->mtx_1.get());
     GKO_ASSERT_MTX_NEAR(umtx[0].get(), ures[0].get(), residual);
     GKO_ASSERT_MTX_NEAR(umtx[1].get(), ures[1].get(), residual);
 }

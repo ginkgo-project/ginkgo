@@ -41,7 +41,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/batch_utilities.hpp"
 #include "core/test/utils.hpp"
+#include "core/test/utils/batch_helpers.hpp"
 
 
 template <typename T>
@@ -250,7 +252,7 @@ TYPED_TEST(MultiVector, CanBeConstructedFromDenseMatrices)
     auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
                                           this->exec);
 
-    auto m = gko::batch::MultiVector<TypeParam>::create(
+    auto m = gko::batch::multivector::create_from_dense(
         this->exec, std::vector<DenseMtx*>{mat1.get(), mat2.get()});
 
     this->assert_equal_to_original_mtx(m.get());
@@ -267,16 +269,16 @@ TYPED_TEST(MultiVector, CanBeConstructedFromDenseMatricesByDuplication)
     auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
                                           this->exec);
 
-    auto bat_m = gko::batch::MultiVector<TypeParam>::create(
+    auto bat_m = gko::batch::multivector::create_from_dense(
         this->exec, std::vector<DenseMtx*>{mat1.get(), mat1.get(), mat1.get()});
     auto m =
-        gko::batch::MultiVector<TypeParam>::create(this->exec, 3, mat1.get());
+        gko::batch::multivector::create_from_dense(this->exec, 3, mat1.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(bat_m.get(), m.get(), 1e-14);
 }
 
 
-TYPED_TEST(MultiVector, CanBeConstructedFromMultiVectorMatrices)
+TYPED_TEST(MultiVector, CanBeConstructedByDuplicatingMultiVectors)
 {
     using value_type = typename TestFixture::value_type;
     using DenseMtx = typename TestFixture::DenseMtx;
@@ -285,14 +287,14 @@ TYPED_TEST(MultiVector, CanBeConstructedFromMultiVectorMatrices)
                                           this->exec);
     auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
                                           this->exec);
-    auto m = gko::batch::MultiVector<TypeParam>::create(
+    auto m = gko::batch::multivector::create_from_dense(
         this->exec, std::vector<DenseMtx*>{mat1.get(), mat2.get()});
-    auto m_ref = gko::batch::MultiVector<TypeParam>::create(
+    auto m_ref = gko::batch::multivector::create_from_dense(
         this->exec, std::vector<DenseMtx*>{mat1.get(), mat2.get(), mat1.get(),
                                            mat2.get(), mat1.get(), mat2.get()});
 
     auto m2 =
-        gko::batch::MultiVector<TypeParam>::create(this->exec, 3, m.get());
+        gko::batch::multivector::duplicate<value_type>(this->exec, 3, m.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(m2.get(), m_ref.get(), 1e-14);
 }
@@ -383,7 +385,7 @@ TYPED_TEST(MultiVector, CanBeUnbatchedIntoDenseMatrices)
     auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
                                           this->exec);
 
-    auto dense_mats = this->mtx->unbatch();
+    auto dense_mats = gko::batch::multivector::unbatch(this->mtx.get());
 
     ASSERT_EQ(dense_mats.size(), 2);
     GKO_ASSERT_MTX_NEAR(dense_mats[0].get(), mat1.get(), 0.);
@@ -394,22 +396,19 @@ TYPED_TEST(MultiVector, CanBeUnbatchedIntoDenseMatrices)
 TYPED_TEST(MultiVector, CanBeReadFromMatrixData)
 {
     using value_type = typename TestFixture::value_type;
-    auto m = gko::batch::MultiVector<TypeParam>::create(this->exec);
-    // clang-format off
-    m->read({gko::matrix_data<TypeParam>{{2, 2},
-                                         {{0, 0, 1.0},
-                                          {0, 1, 3.0},
-                                          {1, 0, 0.0},
-                                          {1, 1, 5.0}}},
-             gko::matrix_data<TypeParam>{{2, 2},
-                                         {{0, 0, -1.0},
-                                          {0, 1, 0.5},
-                                          {1, 0, 0.0},
-                                          {1, 1, 9.0}}}});
-    // clang-format on
+    using index_type = int;
+
+    auto vec_data = std::vector<gko::matrix_data<value_type, index_type>>{};
+    vec_data.emplace_back(gko::matrix_data<value_type, index_type>(
+        {2, 2}, {{0, 0, 1.0}, {0, 1, 3.0}, {1, 0, 0.0}, {1, 1, 5.0}}));
+    vec_data.emplace_back(gko::matrix_data<value_type, index_type>(
+        {2, 2}, {{0, 0, -1.0}, {0, 1, 0.5}, {1, 0, 0.0}, {1, 1, 9.0}}));
+
+    auto m = gko::batch::multivector::read<value_type, index_type>(this->exec,
+                                                                   vec_data);
+    EXPECT_EQ(m->at(0, 0, 0), value_type{1.0});
 
     ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 2));
-    EXPECT_EQ(m->at(0, 0, 0), value_type{1.0});
     EXPECT_EQ(m->at(0, 0, 1), value_type{3.0});
     EXPECT_EQ(m->at(0, 1, 0), value_type{0.0});
     EXPECT_EQ(m->at(0, 1, 1), value_type{5.0});
@@ -423,18 +422,15 @@ TYPED_TEST(MultiVector, CanBeReadFromMatrixData)
 TYPED_TEST(MultiVector, CanBeReadFromSparseMatrixData)
 {
     using value_type = typename TestFixture::value_type;
-    auto m = gko::batch::MultiVector<TypeParam>::create(this->exec);
+    using index_type = int;
+    auto vec_data = std::vector<gko::matrix_data<value_type, index_type>>{};
+    vec_data.emplace_back(gko::matrix_data<value_type, index_type>(
+        {2, 2}, {{0, 0, 1.0}, {0, 1, 3.0}, {1, 1, 5.0}}));
+    vec_data.emplace_back(gko::matrix_data<value_type, index_type>(
+        {2, 2}, {{0, 0, -1.0}, {0, 1, 0.5}, {1, 1, 9.0}}));
 
-    // clang-format off
-    m->read({gko::matrix_data<TypeParam>{{2, 2},
-                                         {{0, 0, 1.0},
-                                          {0, 1, 3.0},
-                                          {1, 1, 5.0}}},
-             gko::matrix_data<TypeParam>{{2, 2},
-                                         {{0, 0, -1.0},
-                                          {0, 1, 0.5},
-                                          {1, 1, 9.0}}}});
-    // clang-format on
+    auto m = gko::batch::multivector::read<value_type, index_type>(this->exec,
+                                                                   vec_data);
 
     ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 2));
     EXPECT_EQ(m->at(0, 0, 0), value_type{1.0});
@@ -451,10 +447,11 @@ TYPED_TEST(MultiVector, CanBeReadFromSparseMatrixData)
 TYPED_TEST(MultiVector, GeneratesCorrectMatrixData)
 {
     using value_type = typename TestFixture::value_type;
+    using index_type = int;
     using tpl = typename gko::matrix_data<TypeParam>::nonzero_type;
-    std::vector<gko::matrix_data<TypeParam>> data;
 
-    this->mtx->write(data);
+    auto data =
+        gko::batch::multivector::write<value_type, index_type>(this->mtx.get());
 
     ASSERT_EQ(data[0].size, gko::dim<2>(2, 3));
     ASSERT_EQ(data[0].nonzeros.size(), 6);

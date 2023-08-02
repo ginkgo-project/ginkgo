@@ -40,7 +40,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/batch_dim.hpp>
-#include <ginkgo/core/base/batch_lin_op_helpers.hpp>
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
@@ -82,19 +81,13 @@ class MultiVector
     : public EnablePolymorphicObject<MultiVector<ValueType>>,
       public EnablePolymorphicAssignment<MultiVector<ValueType>>,
       public EnableCreateMethod<MultiVector<ValueType>>,
-      public ConvertibleTo<MultiVector<next_precision<ValueType>>>,
-      public BatchReadableFromMatrixData<ValueType, int32>,
-      public BatchReadableFromMatrixData<ValueType, int64>,
-      public BatchWritableToMatrixData<ValueType, int32>,
-      public BatchWritableToMatrixData<ValueType, int64> {
+      public ConvertibleTo<MultiVector<next_precision<ValueType>>> {
     friend class EnableCreateMethod<MultiVector>;
     friend class EnablePolymorphicObject<MultiVector>;
     friend class MultiVector<to_complex<ValueType>>;
     friend class MultiVector<next_precision<ValueType>>;
 
 public:
-    using BatchReadableFromMatrixData<ValueType, int32>::read;
-    using BatchReadableFromMatrixData<ValueType, int64>::read;
     using EnablePolymorphicAssignment<MultiVector>::convert_to;
     using EnablePolymorphicAssignment<MultiVector>::move_to;
     using ConvertibleTo<MultiVector<next_precision<ValueType>>>::convert_to;
@@ -103,8 +96,6 @@ public:
     using value_type = ValueType;
     using index_type = int32;
     using unbatch_type = matrix::Dense<ValueType>;
-    using mat_data = matrix_data<ValueType, int32>;
-    using mat_data64 = matrix_data<ValueType, int64>;
     using absolute_type = remove_complex<MultiVector<ValueType>>;
     using complex_type = to_complex<MultiVector<ValueType>>;
 
@@ -121,14 +112,6 @@ public:
         MultiVector<next_precision<ValueType>>* result) const override;
 
     void move_to(MultiVector<next_precision<ValueType>>* result) override;
-
-    void read(const std::vector<mat_data>& data) override;
-
-    void read(const std::vector<mat_data64>& data) override;
-
-    void write(std::vector<mat_data>& data) const override;
-
-    void write(std::vector<mat_data64>& data) const override;
 
     /**
      * Creates a mutable view (of matrix::Dense type) of one item of the Batch
@@ -147,19 +130,6 @@ public:
      */
     std::unique_ptr<const unbatch_type> create_const_view_for_item(
         size_type item_id) const;
-
-    /**
-     * Unbatches the batched multi-vector and creates a std::vector of Dense
-     * matrices
-     *
-     * @note This is an expensive operation as new memory needs to be allocated
-     * and the data from the batched multi-vector needs to copied to the
-     * individual matrices. This is mainly intended as a utility function
-     * for debugging and testing purposes.
-     *
-     * @return  a std::vector containing the matrix::Dense objects.
-     */
-    std::vector<std::unique_ptr<unbatch_type>> unbatch() const;
 
     /**
      * Returns the batch size.
@@ -434,49 +404,6 @@ protected:
         auto num_elems = compute_num_elems(size);
         GKO_ENSURE_IN_BOUNDS(num_elems, values_.get_num_elems() + 1);
     }
-
-    /**
-     * Creates a MultiVector from a vector of matrices
-     *
-     * @param exec  Executor associated to the vector
-     * @param matrices  The matrix::Dense objects that need to be batched.
-     *
-     * @note This is a utility function that can serve as a first step to port
-     * to batched data-structures and solvers. Even if the matrices are in
-     * device memory, this method can have significant overhead, as new
-     * allocations and deep copies are necessary and hence this constructor must
-     * not be used in performance sensitive applications
-     */
-    MultiVector(std::shared_ptr<const Executor> exec,
-                const std::vector<matrix::Dense<ValueType>*>& matrices);
-
-    /**
-     * Creates a MultiVector matrix by duplicating MultiVector object
-     *
-     * @param exec  Executor associated to the vector
-     * @param num_duplications  The number of times to duplicate
-     * @param input  the vector to be duplicated.
-     *
-     * @note This is a utility function that can serve as a first step to port
-     * to batched data-structures and solvers. Even if the matrices are in
-     * device memory, this method can have significant overhead, as new
-     * allocations and deep copies are necessary and hence this constructor must
-     * not be used in performance sensitive applications.
-     */
-    MultiVector(std::shared_ptr<const Executor> exec,
-                size_type num_duplications,
-                const MultiVector<value_type>* input);
-
-    /**
-     * Creates a MultiVector matrix by a duplicating a matrix::Dense object
-     *
-     * @param exec  Executor associated to the vector
-     * @param num_duplications  The number of times to duplicate
-     * @param input  the matrix to be duplicated.
-     */
-    MultiVector(std::shared_ptr<const Executor> exec,
-                size_type num_duplications,
-                const matrix::Dense<value_type>* input);
 
     /**
      * Creates a MultiVector with the same configuration as the
