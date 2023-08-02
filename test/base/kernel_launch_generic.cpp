@@ -382,7 +382,7 @@ void run1d_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
                   static_cast<int64>(size));
         // The temporary storage (used for partial sums) must be smaller than
         // the input array
-        ASSERT_LE(temp.get_num_elems() / sizeof(int64), size);
+        ASSERT_LE(temp.get_num_elems(), size * sizeof(int64));
     }
 }
 
@@ -477,7 +477,7 @@ void run2d_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
                   static_cast<int64>(dim[0] + dim[1]));
         // The temporary storage (used for partial sums) must be smaller than
         // the input array
-        ASSERT_LE(temp.get_num_elems() / sizeof(int64), dim[0] * dim[1]);
+        ASSERT_LE(temp.get_num_elems(), dim[0] * dim[1] * sizeof(int64));
     }
 }
 
@@ -569,7 +569,7 @@ void run2d_row_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
         GKO_ASSERT_ARRAY_EQ(host_ref, output);
         // The temporary storage (used for partial sums) must be smaller than
         // the input array
-        ASSERT_LE(temp.get_num_elems() / sizeof(int64), dim[0] * dim[1]);
+        ASSERT_LE(temp.get_num_elems(), dim[0] * dim[1] * sizeof(int64));
     }
 }
 
@@ -660,7 +660,7 @@ void run2d_col_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
             dim, temp);
 
         GKO_ASSERT_ARRAY_EQ(host_ref, output);
-        ASSERT_LE(temp.get_num_elems() / sizeof(int64), dim[0] * dim[1]);
+        ASSERT_LE(temp.get_num_elems(), dim[0] * dim[1] * sizeof(int64));
     }
 }
 
