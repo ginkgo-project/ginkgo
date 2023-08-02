@@ -63,7 +63,6 @@ set(GINKGO_JACOBI_FULL_OPTIMIZATIONS @GINKGO_JACOBI_FULL_OPTIMIZATIONS@)
 
 set(GINKGO_CUDA_ARCHITECTURES "@GINKGO_CUDA_ARCHITECTURES@")
 set(GINKGO_CUDA_DEFAULT_HOST_COMPILER @GINKGO_CUDA_DEFAULT_HOST_COMPILER@)
-set(GINKGO_CUDA_HOST_COMPILER "@CMAKE_CUDA_HOST_COMPILER@")
 set(GINKGO_CUDA_ARCH_FLAGS "@GINKGO_CUDA_ARCH_FLAGS@")
 
 set(GINKGO_HIP_COMPILER_FLAGS "@GINKGO_HIP_COMPILER_FLAGS@")
@@ -91,6 +90,14 @@ set(GINKGO_HAVE_HWLOC @GINKGO_HAVE_HWLOC@)
 
 set(GINKGO_HAVE_ROCTX @GINKGO_HAVE_ROCTX@)
 
+# Ginkgo compiler information
+set(GINKGO_CXX_COMPILER "@CMAKE_CXX_COMPILER@")
+set(GINKGO_CXX_COMPILER_SHORT "@CMAKE_CXX_COMPILER_ID@:@CMAKE_CXX_COMPILER_VERSION@")
+set(GINKGO_CUDA_COMPILER "@CMAKE_CUDA_COMPILER@")
+set(GINKGO_CUDA_COMPILER_SHORT "@CMAKE_CUDA_COMPILER_ID@:@CMAKE_CUDA_COMPILER_VERSION@")
+set(GINKGO_CUDA_HOST_COMPILER "@CMAKE_CUDA_HOST_COMPILER@")
+set(GINKGO_CUDA_HOST_COMPILER_SHORT "")  # dummy value to stay consistent
+
 # Ginkgo installation configuration
 set(GINKGO_INSTALL_PREFIX "@PACKAGE_CMAKE_INSTALL_PREFIX@")
 set(GINKGO_INSTALL_INCLUDE_DIR "@PACKAGE_CMAKE_INSTALL_FULL_INCLUDEDIR@")
@@ -106,7 +113,6 @@ if(GINKGO_BUILD_HIP)
     list(APPEND CMAKE_MODULE_PATH "@GINKGO_HIP_MODULE_PATH@")
 endif()
 list(APPEND CMAKE_PREFIX_PATH "${GINKGO_INSTALL_PREFIX}")
-
 
 set(GINKGO_INTERFACE_LINK_LIBRARIES "@GINKGO_INTERFACE_LINK_LIBRARIES@")
 set(GINKGO_INTERFACE_LINK_FLAGS "@GINKGO_INTERFACE_LINK_FLAGS@")
@@ -205,6 +211,22 @@ endif()
 
 if((NOT GINKGO_BUILD_SHARED_LIBS) AND GINKGO_HAVE_TAU)
     find_package(PerfStubs REQUIRED)
+endif()
+
+# Check that the same compilers as for Ginkgo are used
+function(_ginkgo_check_compiler lang)
+    if(NOT ${CMAKE_${lang}_COMPILER} STREQUAL ${GINKGO_${lang}_COMPILER})
+        set(_compiler_short "${CMAKE_${lang}_COMPILER_ID}:${CMAKE_${lang}_COMPILER_VERSION}")
+        if(NOT _compiler_short STREQUAL "${GINKGO_${lang}_COMPILER_SHORT}")
+            message(WARNING "The currently used ${lang} compiler: ${CMAKE_${lang}_COMPILER} does not match the compiler used to "
+                            "build Ginkgo: ${GINKGO_${lang}_COMPILER}. It is encouraged to use the same compiler as Ginkgo to prevent ABI mismatch.")
+        endif()
+    endif()
+endfunction()
+_ginkgo_check_compiler(CXX)
+if(GINKGO_BUILD_CUDA)
+    _ginkgo_check_compiler(CUDA)
+    _ginkgo_check_compiler(CUDA_HOST)
 endif()
 
 include(${CMAKE_CURRENT_LIST_DIR}/GinkgoTargets.cmake)
