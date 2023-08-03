@@ -48,6 +48,7 @@ std::vector<std::string> split(const std::string& s, char delimiter = ',')
     return tokens;
 }
 
+
 std::string create_json(const std::string& resources)
 {
     std::string json;
@@ -73,7 +74,7 @@ std::string create_json(const std::string& resources)
 
 int main()
 {
-    auto num_cpu_threads = std::max(std::thread::hardware_concurrency(), 1u);
+    auto num_cpu_threads = gko::OmpExecutor::get_num_omp_threads();
     auto num_cuda_gpus = gko::CudaExecutor::get_num_devices();
     auto num_hip_gpus = gko::HipExecutor::get_num_devices();
     auto num_sycl_gpus = gko::DpcppExecutor::get_num_devices("gpu");
