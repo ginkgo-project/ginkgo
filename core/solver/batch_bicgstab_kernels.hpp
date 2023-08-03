@@ -186,7 +186,7 @@ StorageConfig compute_shared_storage(const int shared_mem_per_blk,
         return sconf;
     }
     rem_shared -= num_vecs_shared * vec_size;
-    if (rem_shared >= prec_storage) {
+    if (rem_shared >= prec_storage && prec_storage > 0) {
         sconf.prec_shared = true;
         rem_shared -= prec_storage;
     }
