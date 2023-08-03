@@ -3,6 +3,7 @@ target_sources(ginkgo_omp
     PRIVATE
     ${GKO_UNIFIED_COMMON_SOURCES}
     base/device_matrix_data_kernels.cpp
+               base/executor.cpp
     base/index_set_kernels.cpp
     base/scoped_device_id.cpp
     base/version.cpp

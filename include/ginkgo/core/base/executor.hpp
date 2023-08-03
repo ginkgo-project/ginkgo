@@ -1403,6 +1403,8 @@ public:
         return this->get_exec_info().num_pu_per_cu;
     }
 
+    static int get_num_omp_threads();
+
     scoped_device_id_guard get_scoped_device_id_guard() const override;
 
 protected:
