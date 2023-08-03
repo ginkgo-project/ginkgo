@@ -53,8 +53,8 @@ protected:
     HipTestFixture()
         : ref(gko::ReferenceExecutor::create()),
           stream(ResourceEnvironment::hip_device_id),
-          exec(gko::HipExecutor::create(ResourceEnvironment::hip_device_id, ref, std::make_shared<
-                                        gko::HipAllocator>(),
+          exec(gko::HipExecutor::create(ResourceEnvironment::hip_device_id, ref,
+                                        std::make_shared<gko::HipAllocator>(),
                                         stream.get())),
           guard(exec->get_scoped_device_id_guard())
     {}

@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/stream.hpp>
 
 
 #include <memory>
@@ -43,6 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <gtest/gtest.h>
+
+
+#include <ginkgo/core/base/stream.hpp>
 
 
 #include "core/test/gtest/environments.hpp"
@@ -81,8 +83,8 @@ inline void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
             throw std::runtime_error{"No suitable CUDA devices"};
         }
         exec = gko::CudaExecutor::create(
-            ResourceEnvironment::cuda_device_id,
-                                         ref, std::make_shared<gko::CudaAllocator>(), stream);
+            ResourceEnvironment::cuda_device_id, ref,
+            std::make_shared<gko::CudaAllocator>(), stream);
     }
 }
 
@@ -94,9 +96,9 @@ inline void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
     if (gko::HipExecutor::get_num_devices() == 0) {
         throw std::runtime_error{"No suitable HIP devices"};
     }
-    exec = gko::HipExecutor::create(
-        ResourceEnvironment::hip_device_id, ref, std::make_shared<
-                                    gko::HipAllocator>(), stream);
+    exec =
+        gko::HipExecutor::create(ResourceEnvironment::hip_device_id, ref,
+                                 std::make_shared<gko::HipAllocator>(), stream);
 }
 
 

@@ -35,13 +35,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/mpi.hpp>
 
 
 #include <memory>
 
 
 #include <gtest/gtest.h>
+
+
+#include <ginkgo/core/base/mpi.hpp>
 
 
 #include "test/utils/executor.hpp"
