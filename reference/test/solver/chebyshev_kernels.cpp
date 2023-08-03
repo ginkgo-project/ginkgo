@@ -49,6 +49,71 @@ protected:
 
 TYPED_TEST_SUITE(Chebyshev, gko::test::ValueTypes, TypenameNameGenerator);
 
+
+TYPED_TEST(Chebyshev, CheckDefaultNumAlphaBetaWithoutIteration)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    auto upper = value_type{1.1};
+    auto lower = value_type{0.9};
+    auto factory =
+        Solver::build()
+            .with_criteria(gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value)
+                               .on(this->exec))
+            .with_foci(lower, upper)
+            .on(this->exec);
+    auto solver = factory->generate(this->mtx);
+    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    auto alpha = gko::as<gko::matrix::Dense<value_type>>(
+        solver->get_workspace_op(gko::solver::workspace_traits<Solver>::alpha));
+    auto beta = gko::as<gko::matrix::Dense<value_type>>(
+        solver->get_workspace_op(gko::solver::workspace_traits<Solver>::beta));
+    // if the stop criterion does not contain iteration limit, it will use the
+    // default value.
+    ASSERT_EQ(alpha->get_size(), (gko::dim<2>{1, 4}));
+    ASSERT_EQ(beta->get_size(), (gko::dim<2>{1, 4}));
+}
+
+
+TYPED_TEST(Chebyshev, CheckDefaultNumAlphaBetaWithLessIteration)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    auto upper = value_type{1.1};
+    auto lower = value_type{0.9};
+    auto factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::ResidualNorm<value_type>::build()
+                    .with_reduction_factor(r<value_type>::value)
+                    .on(this->exec),
+                gko::stop::Iteration::build().with_max_iters(1u).on(this->exec))
+            .with_foci(lower, upper)
+            .on(this->exec);
+    auto solver = factory->generate(this->mtx);
+    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    auto alpha = gko::as<gko::matrix::Dense<value_type>>(
+        solver->get_workspace_op(gko::solver::workspace_traits<Solver>::alpha));
+    auto beta = gko::as<gko::matrix::Dense<value_type>>(
+        solver->get_workspace_op(gko::solver::workspace_traits<Solver>::beta));
+    // if the iteration limit less than the default value, it will use the
+    // default value.
+    ASSERT_EQ(alpha->get_size(), (gko::dim<2>{1, 4}));
+    ASSERT_EQ(beta->get_size(), (gko::dim<2>{1, 4}));
+}
+
+
 TYPED_TEST(Chebyshev, CheckStoredAlphaBeta)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -61,7 +126,6 @@ TYPED_TEST(Chebyshev, CheckStoredAlphaBeta)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(6u).on(this->exec))
             .with_foci(lower, upper)
-            .with_num_keep(3)
             .on(this->exec);
     auto solver = factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
@@ -73,8 +137,9 @@ TYPED_TEST(Chebyshev, CheckStoredAlphaBeta)
         solver->get_workspace_op(gko::solver::workspace_traits<Solver>::alpha));
     auto beta = gko::as<gko::matrix::Dense<value_type>>(
         solver->get_workspace_op(gko::solver::workspace_traits<Solver>::beta));
-    ASSERT_EQ(alpha->get_size(), (gko::dim<2>{1, 4}));
-    ASSERT_EQ(beta->get_size(), (gko::dim<2>{1, 4}));
+    // the iteration is more than default
+    ASSERT_EQ(alpha->get_size(), (gko::dim<2>{1, 7}));
+    ASSERT_EQ(beta->get_size(), (gko::dim<2>{1, 7}));
     // check the num_keep alpha, beta
     auto d = (upper + lower) / value_type{2};
     auto c = (upper - lower) / value_type{2};
@@ -88,6 +153,80 @@ TYPED_TEST(Chebyshev, CheckStoredAlphaBeta)
                                   (c * alpha->at(0, 1) / value_type{2}));
     EXPECT_EQ(alpha->at(0, 2),
               value_type{1} / (d - beta->at(0, 2) / alpha->at(0, 1)));
+}
+
+
+TYPED_TEST(Chebyshev, NumAlphaBetaFromChangingCriterion)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    auto upper = value_type{1.1};
+    auto lower = value_type{0.9};
+    auto factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::ResidualNorm<value_type>::build()
+                    .with_reduction_factor(r<value_type>::value)
+                    .on(this->exec),
+                gko::stop::Iteration::build().with_max_iters(6u).on(this->exec))
+            .with_foci(lower, upper)
+            .on(this->exec);
+    auto solver = factory->generate(this->mtx);
+    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    // same as previous test, but it works with combined factory
+    solver->apply(b.get(), x.get());
+
+    auto alpha = gko::as<gko::matrix::Dense<value_type>>(
+        solver->get_workspace_op(gko::solver::workspace_traits<Solver>::alpha));
+    auto beta = gko::as<gko::matrix::Dense<value_type>>(
+        solver->get_workspace_op(gko::solver::workspace_traits<Solver>::beta));
+    // if the iteration limit is less than the default value, it will use the
+    // default value.
+    ASSERT_EQ(alpha->get_size(), (gko::dim<2>{1, 7}));
+    ASSERT_EQ(beta->get_size(), (gko::dim<2>{1, 7}));
+    {
+        // Set less iteration limit
+        solver->set_stop_criterion_factory(
+            gko::stop::Iteration::build().with_max_iters(4u).on(this->exec));
+
+        solver->apply(b.get(), x.get());
+
+        auto alpha_tmp =
+            gko::as<gko::matrix::Dense<value_type>>(solver->get_workspace_op(
+                gko::solver::workspace_traits<Solver>::alpha));
+        auto beta_tmp =
+            gko::as<gko::matrix::Dense<value_type>>(solver->get_workspace_op(
+                gko::solver::workspace_traits<Solver>::beta));
+        // if the iteration limit is less than the previous one, it keeps the
+        // storage.
+        ASSERT_EQ(alpha_tmp->get_size(), (gko::dim<2>{1, 7}));
+        ASSERT_EQ(beta_tmp->get_size(), (gko::dim<2>{1, 7}));
+        ASSERT_EQ(alpha_tmp->get_const_values(), alpha->get_const_values());
+        ASSERT_EQ(beta_tmp->get_const_values(), beta->get_const_values());
+    }
+    {
+        // Set more iteration limit
+        solver->set_stop_criterion_factory(
+            gko::stop::Iteration::build().with_max_iters(10u).on(this->exec));
+
+        solver->apply(b.get(), x.get());
+
+        auto alpha_tmp =
+            gko::as<gko::matrix::Dense<value_type>>(solver->get_workspace_op(
+                gko::solver::workspace_traits<Solver>::alpha));
+        auto beta_tmp =
+            gko::as<gko::matrix::Dense<value_type>>(solver->get_workspace_op(
+                gko::solver::workspace_traits<Solver>::beta));
+        // if the iteration limit is less than the previous one, it keeps the
+        // storage.
+        ASSERT_EQ(alpha_tmp->get_size(), (gko::dim<2>{1, 11}));
+        ASSERT_EQ(beta_tmp->get_size(), (gko::dim<2>{1, 11}));
+        ASSERT_NE(alpha_tmp->get_const_values(), alpha->get_const_values());
+        ASSERT_NE(beta_tmp->get_const_values(), beta->get_const_values());
+    }
 }
 
 
