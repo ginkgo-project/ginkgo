@@ -52,9 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-#ifndef GKO_COMPILING_DPCPP
-
-
 class BatchBicgstab : public CommonTestFixture {
 protected:
     using real_type = gko::remove_complex<value_type>;
@@ -418,6 +415,3 @@ TEST_F(BatchBicgstab, SolvesLargeEllSystemEquivalentToReference)
         exec, r_sys, r_factory.get(), d_factory.get(), iter_tol, res_tol,
         sol_tol);
 }
-
-
-#endif
