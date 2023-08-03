@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <chrono>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <map>
 #include <string>
@@ -258,7 +259,7 @@ int main(int argc, char* argv[])
     solver->add_logger(logger);
     auto x_clone = gko::clone(x);
 
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 5; ++i) {
         x_clone->copy_from(x.get());
         solver->apply(lend(b), lend(x_clone));
     }
@@ -326,21 +327,26 @@ int main(int argc, char* argv[])
         }
     }
     if (print_time) {
-        std::cout << A->get_size().at(0)[0] << ","
-                  << A->get_num_stored_elements() / num_total_systems << ","
-                  << apply_time / num_reps << ","
-                  << ((in_solver == "direct")
-                          ? 0
-                          : logger->get_num_iterations().get_const_data()[0])
-                  << ","
-                  << ((in_solver == "direct")
-                          ? 0.0
-                          : logger->get_residual_norm()->at(0, 0, 0))
-                  << std::endl;
+        auto apply_time_avrg = apply_time / num_reps * 1000;
+        std::cout << std::fixed << std::setprecision(2);
+        std::cout << apply_time_avrg << std::endl;
+        // std::cout << A->get_size().at(0)[0] << ","
+        //           << A->get_num_stored_elements() / num_total_systems << ","
+        //           << apply_time / num_reps << ","
+        //           << ((in_solver == "direct")
+        //                   ? 0
+        //                   : logger->get_num_iterations().get_const_data()[0])
+        //           << ","
+        //           << ((in_solver == "direct")
+        //                   ? 0.0
+        //                   : logger->get_residual_norm()->at(0, 0, 0))
+        //           << std::endl;
     } else {
         std::cout << "Solver type: " << in_solver
                   << "\nMatrix size: " << A->get_size().at(0)
                   << "\nNum batch entries: " << A->get_num_batch_entries()
+                  << "\nNum nnz / matrix: "
+                  << A->get_num_stored_elements() / num_total_systems
                   << "\nEntire solve took: " << apply_time / num_reps
                   << " seconds." << std::endl;
     }
