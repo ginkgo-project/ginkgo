@@ -323,6 +323,17 @@ namespace dpcpp {
 void destroy_event(sycl::event* event) { delete event; }
 
 
+std::string get_device_name(int device_id)
+{
+    auto devices = ::gko::detail::get_devices("gpu");
+    if (devices.empty()) {
+        return "CPU";
+    }
+
+    return devices[device_id].get_info<sycl::info::device::name>();
+}
+
+
 }  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
