@@ -155,7 +155,7 @@ int main(int argc, char* argv[])
         argc >= 6 ? (std::string(argv[5]) == "time") : false;
     const bool print_residuals =
         argc >= 7 ? (std::string(argv[6]) == "residuals") : false;
-    const int num_reps = argc >= 8 ? std::atoi(argv[7]) : 5;
+    const int num_reps = argc >= 8 ? std::atoi(argv[7]) : 20;
     const int gmres_restart = argc >= 9 ? std::atoi(argv[8]) : 10;
     // @sect3{Generate data}
     // The "application" generates the batch of linear systems on the device
@@ -289,7 +289,7 @@ int main(int argc, char* argv[])
     // Solve the batch system
     // Warmup
     auto x_clone = gko::clone(x);
-    for (int i = 0; i < 1; ++i) {
+    for (int i = 0; i < 5; ++i) {
         x_clone->copy_from(x.get());
         solver->apply(lend(b), lend(x_clone));
     }
