@@ -53,10 +53,12 @@ namespace solver {
 
 
 /**
- * Chebyshev iteration is an iterative method that uses another coarse
- * method to approximate the error of the current solution via the current
+ * Chebyshev iteration is an iterative method that uses another inner
+ * solver to approximate the error of the current solution via the current
  * residual. It has another term for the difference of solution. Moreover, this
- * method requires knowledge about the spectrum of the matrix.
+ * method requires knowledge about the spectrum of the matrix. This
+ * implementation follows the algorithm in "Templates for the Solution of Linear
+ * Systems: Building Blocks for Iterative Methods, 2nd Edition".
  *
  * ```
  * solution = initial_guess
@@ -156,7 +158,8 @@ public:
             GKO_FACTORY_PARAMETER_VECTOR(criteria, nullptr);
 
         /**
-         * Inner solver factory.
+         * Inner solver factory. If not provided this will result in a
+         * non-preconditioned Chebyshev iteration.
          */
         std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
             solver, nullptr);
@@ -181,11 +184,6 @@ public:
          */
         initial_guess_mode GKO_FACTORY_PARAMETER_SCALAR(
             default_initial_guess, initial_guess_mode::provided);
-
-        /**
-         * The number of scalar to keep
-         */
-        int GKO_FACTORY_PARAMETER_SCALAR(num_keep, 2);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Chebyshev, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -215,38 +213,16 @@ protected:
     {}
 
     explicit Chebyshev(const Factory* factory,
-                       std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Chebyshev>(factory->get_executor(),
-                                 gko::transpose(system_matrix->get_size())),
-          EnableSolverBase<Chebyshev>{std::move(system_matrix)},
-          EnableIterativeBase<Chebyshev>{
-              stop::combine(factory->get_parameters().criteria)},
-          parameters_{factory->get_parameters()}
-    {
-        if (parameters_.generated_solver) {
-            this->set_solver(parameters_.generated_solver);
-        } else if (parameters_.solver) {
-            this->set_solver(
-                parameters_.solver->generate(this->get_system_matrix()));
-        } else {
-            this->set_solver(matrix::Identity<ValueType>::create(
-                this->get_executor(), this->get_size()));
-        }
-        this->set_default_initial_guess(parameters_.default_initial_guess);
-        center_ =
-            (std::get<0>(parameters_.foci) + std::get<1>(parameters_.foci)) /
-            ValueType{2};
-        // the absolute value of foci_direction is the focal direction
-        foci_direction_ =
-            (std::get<1>(parameters_.foci) - std::get<0>(parameters_.foci)) /
-            ValueType{2};
-        // if changing the lower/upper eig, need to reset it to zero
-        num_generated_ = 0;
-    }
+                       std::shared_ptr<const LinOp> system_matrix);
 
 private:
     std::shared_ptr<const LinOp> solver_{};
-    mutable int num_generated_;
+    // num_generated_scalar_ is to track the number of generated scalar alpha
+    // and beta.
+    mutable size_type num_generated_scalar_;
+    // num_max_generation_ is the number of keeping the generated scalar in
+    // workspace.
+    mutable size_type num_max_generation_;
     ValueType center_;
     ValueType foci_direction_;
 };
