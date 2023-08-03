@@ -100,7 +100,7 @@
     - awk '!/^#/ { print ($2 - $1)/1000 " " $4 }' .ninja_log | sort -nr
     - |
         (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
-    - ctest -V --timeout 6000
+    - ctest --output-on-failure --timeout 6000 ${CTEST_EXTRA_ARGS}
     - ninja test_install
     - pushd test/test_install
     - ninja install
@@ -152,7 +152,7 @@
     - cd ${CI_JOB_NAME/test/build}
     - |
         (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
-    - ctest -V --timeout 6000
+    - ctest --output-on-failure --timeout 6000 ${CTEST_EXTRA_ARGS}
     - ninja test_install
     - pushd test/test_install
     - ninja install
