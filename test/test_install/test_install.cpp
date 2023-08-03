@@ -210,6 +210,19 @@ int main()
         array_type test;
     }
 
+    // core/base/batch_dim.hpp
+    {
+        using type1 = int;
+        auto test = gko::batch_dim<2, type1>{};
+    }
+
+    // core/base/batch_multi_vector.hpp
+    {
+        using type1 = float;
+        using batch_multi_vector_type = gko::batch::MultiVector<type1>;
+        auto test = batch_multi_vector_type::create(exec);
+    }
+
     // core/base/combination.hpp
     {
         using type1 = int;

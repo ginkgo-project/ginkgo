@@ -706,10 +706,37 @@ inline T ensure_allocated_impl(T ptr, const std::string& file, int line,
                   "semi-colon warnings")
 
 
+/**
+ * Throws an InvalidStateError with a user-specified message
+ *
+ * @param _message  message to be displayed.
+ *
+ * @throw  InvalidStateError.
+ */
 #define GKO_INVALID_STATE(_message)                                          \
     {                                                                        \
         throw ::gko::InvalidStateError(__FILE__, __LINE__, __func__,         \
                                        _message);                            \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+
+/**
+ * Throws an InvalidStateError if condition is not satisfied
+ *
+ * @param _condition  the condition to check.
+ * @param _message  message to be displayed.
+ *
+ * @throw  InvalidStateError.
+ */
+#define GKO_THROW_IF_INVALID(_condition, _message)                           \
+    {                                                                        \
+        if (!(_condition)) {                                                 \
+            throw ::gko::InvalidStateError(__FILE__, __LINE__, __func__,     \
+                                           _message);                        \
+        }                                                                    \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \

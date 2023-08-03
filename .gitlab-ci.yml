@@ -613,6 +613,7 @@ build/dpcpp/2022-1/cpu/release/static:
     C_COMPILER: "gcc"
     CXX_COMPILER: "dpcpp"
     BUILD_DPCPP: "ON"
+    GKO_COMPILER_FLAGS: "-ffp-model=precise"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "ON"
     SYCL_DEVICE_FILTER: "*:cpu"
@@ -631,6 +632,7 @@ build/dpcpp/igpu/release/shared:
     C_COMPILER: "gcc"
     CXX_COMPILER: "dpcpp"
     BUILD_DPCPP: "ON"
+    GKO_COMPILER_FLAGS: "-ffp-model=precise"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "ON"
     DPCPP_SINGLE_MODE: "ON"
@@ -647,6 +649,7 @@ build/dpcpp/igpu/release/shared:
 #     C_COMPILER: "gcc"
 #     CXX_COMPILER: "dpcpp"
 #     BUILD_DPCPP: "ON"
+#     GKO_COMPILER_FLAGS: "-ffp-model=precise"
 #     BUILD_TYPE: "Debug"
 #     BUILD_SHARED_LIBS: "ON"
 #     DPCPP_SINGLE_MODE: "ON"
@@ -663,6 +666,7 @@ build/dpcpp/dgpu/release/static:
     C_COMPILER: "gcc"
     CXX_COMPILER: "dpcpp"
     BUILD_DPCPP: "ON"
+    GKO_COMPILER_FLAGS: "-ffp-model=precise"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OF"
     DPCPP_SINGLE_MODE: "ON"
@@ -678,6 +682,7 @@ build/dpcpp/level_zero_dgpu/release/shared:
     C_COMPILER: "gcc"
     CXX_COMPILER: "dpcpp"
     BUILD_DPCPP: "ON"
+    GKO_COMPILER_FLAGS: "-ffp-model=precise"
     BUILD_TYPE: "Release"
     DPCPP_SINGLE_MODE: "ON"
     ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
@@ -695,6 +700,7 @@ warnings:
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
     CXX_FLAGS: "-Werror=pedantic -pedantic-errors"
+    GKO_COMPILER_FLAGS: "-Wpedantic"
   allow_failure: yes
 
 # Ensure kernel modules do not depend on core

@@ -3,6 +3,7 @@ add_library(ginkgo_omp $<TARGET_OBJECTS:ginkgo_omp_device> "")
 list(APPEND GKO_UNIFIED_COMMON_SOURCES ${PROJECT_SOURCE_DIR}/common/unified/matrix/dense_kernels.instantiate.cpp)
 target_sources(ginkgo_omp
     PRIVATE
+    base/batch_multi_vector_kernels.cpp
     base/device_matrix_data_kernels.cpp
     base/index_set_kernels.cpp
     base/scoped_device_id.cpp

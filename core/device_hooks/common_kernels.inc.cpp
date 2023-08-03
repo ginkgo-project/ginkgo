@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 
 
+#include "core/base/batch_multi_vector_kernels.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
 #include "core/base/index_set_kernels.hpp"
 #include "core/base/mixed_precision_types.hpp"
@@ -270,6 +271,20 @@ GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_BUILD_LOCAL_NONLOCAL);
 
 
 }  // namespace distributed_matrix
+
+
+namespace batch_multi_vector {
+
+
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_MULTI_VECTOR_SCALE_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_MULTI_VECTOR_ADD_SCALED_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_DOT_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_CONJ_DOT_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_NORM2_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_MULTI_VECTOR_COPY_KERNEL);
+
+
+}  // namespace batch_multi_vector
 
 
 namespace dense {
