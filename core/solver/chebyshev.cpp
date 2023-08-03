@@ -27,6 +27,37 @@ GKO_REGISTER_OPERATION(initialize, ir::initialize);
 
 
 template <typename ValueType>
+Chebyshev<ValueType>::Chebyshev(const Factory* factory,
+                                std::shared_ptr<const LinOp> system_matrix)
+    : EnableLinOp<Chebyshev>(factory->get_executor(),
+                             gko::transpose(system_matrix->get_size())),
+      EnableSolverBase<Chebyshev>{std::move(system_matrix)},
+      EnableIterativeBase<Chebyshev>{
+          stop::combine(factory->get_parameters().criteria)},
+      parameters_{factory->get_parameters()}
+{
+    if (parameters_.generated_solver) {
+        this->set_solver(parameters_.generated_solver);
+    } else if (parameters_.solver) {
+        this->set_solver(
+            parameters_.solver->generate(this->get_system_matrix()));
+    } else {
+        this->set_solver(matrix::Identity<ValueType>::create(
+            this->get_executor(), this->get_size()));
+    }
+    this->set_default_initial_guess(parameters_.default_initial_guess);
+    center_ = (std::get<0>(parameters_.foci) + std::get<1>(parameters_.foci)) /
+              ValueType{2};
+    foci_direction_ =
+        (std::get<1>(parameters_.foci) - std::get<0>(parameters_.foci)) /
+        ValueType{2};
+    // if changing the lower/upper eig, need to reset it to zero
+    num_generated_scalar_ = 0;
+    num_max_generation_ = 3;
+}
+
+
+template <typename ValueType>
 void Chebyshev<ValueType>::set_solver(std::shared_ptr<const LinOp> new_solver)
 {
     auto exec = this->get_executor();
@@ -154,12 +185,29 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
     GKO_SOLVER_VECTOR(residual, dense_b);
     GKO_SOLVER_VECTOR(inner_solution, dense_b);
     GKO_SOLVER_VECTOR(update_solution, dense_b);
+
     // Use the scalar first
-    auto num_keep = this->get_parameters().num_keep;
+    // get the iteration information from stopping criterion.
+    if (auto combined =
+            std::dynamic_pointer_cast<const gko::stop::Combined::Factory>(
+                this->get_stop_criterion_factory())) {
+        for (const auto& factory : combined->get_parameters().criteria) {
+            if (auto iter_stop = std::dynamic_pointer_cast<
+                    const gko::stop::Iteration::Factory>(factory)) {
+                num_max_generation_ = std::max(
+                    num_max_generation_, iter_stop->get_parameters().max_iters);
+            }
+        }
+    } else if (auto iter_stop = std::dynamic_pointer_cast<
+                   const gko::stop::Iteration::Factory>(
+                   this->get_stop_criterion_factory())) {
+        num_max_generation_ = std::max(num_max_generation_,
+                                       iter_stop->get_parameters().max_iters);
+    }
     auto alpha = this->template create_workspace_scalar<ValueType>(
-        GKO_SOLVER_TRAITS::alpha, num_keep + 1);
+        GKO_SOLVER_TRAITS::alpha, num_max_generation_ + 1);
     auto beta = this->template create_workspace_scalar<ValueType>(
-        GKO_SOLVER_TRAITS::beta, num_keep + 1);
+        GKO_SOLVER_TRAITS::beta, num_max_generation_ + 1);
 
     GKO_SOLVER_ONE_MINUS_ONE();
 
@@ -187,26 +235,33 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
     int iter = -1;
     while (true) {
         ++iter;
-        this->template log<log::Logger::iteration_complete>(
-            this, iter, residual_ptr, dense_x);
-
         if (iter == 0) {
             // In iter 0, the iteration and residual are updated.
-            if (stop_criterion->update()
-                    .num_iterations(iter)
-                    .residual(residual_ptr)
-                    .solution(dense_x)
-                    .check(relative_stopping_id, true, &stop_status,
-                           &one_changed)) {
+            bool all_stopped = stop_criterion->update()
+                                   .num_iterations(iter)
+                                   .residual(residual_ptr)
+                                   .solution(dense_x)
+                                   .check(relative_stopping_id, true,
+                                          &stop_status, &one_changed);
+            this->template log<log::Logger::iteration_complete>(
+                this, dense_b, dense_x, iter, residual_ptr, nullptr, nullptr,
+                &stop_status, all_stopped);
+            if (all_stopped) {
                 break;
             }
         } else {
             // In the other iterations, the residual can be updated separately.
-            if (stop_criterion->update()
-                    .num_iterations(iter)
-                    .solution(dense_x)
-                    .check(relative_stopping_id, false, &stop_status,
-                           &one_changed)) {
+            bool all_stopped = stop_criterion->update()
+                                   .num_iterations(iter)
+                                   .solution(dense_x)
+                                   // we have the residual check later
+                                   .ignore_residual_check(true)
+                                   .check(relative_stopping_id, false,
+                                          &stop_status, &one_changed);
+            if (all_stopped) {
+                this->template log<log::Logger::iteration_complete>(
+                    this, dense_b, dense_x, iter, nullptr, nullptr, nullptr,
+                    &stop_status, all_stopped);
                 break;
             }
             residual_ptr = residual;
@@ -214,12 +269,16 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
             residual->copy_from(dense_b);
             this->get_system_matrix()->apply(neg_one_op, dense_x, one_op,
                                              residual);
-            if (stop_criterion->update()
-                    .num_iterations(iter)
-                    .residual(residual_ptr)
-                    .solution(dense_x)
-                    .check(relative_stopping_id, true, &stop_status,
-                           &one_changed)) {
+            all_stopped = stop_criterion->update()
+                              .num_iterations(iter)
+                              .residual(residual_ptr)
+                              .solution(dense_x)
+                              .check(relative_stopping_id, true, &stop_status,
+                                     &one_changed);
+            this->template log<log::Logger::iteration_complete>(
+                this, dense_b, dense_x, iter, residual_ptr, nullptr, nullptr,
+                &stop_status, all_stopped);
+            if (all_stopped) {
                 break;
             }
         }
@@ -231,17 +290,18 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
             inner_solution->copy_from(residual_ptr);
         }
         solver_->apply(residual_ptr, inner_solution);
-        size_type index = (iter >= num_keep) ? num_keep : iter;
+        size_type index =
+            (iter >= num_max_generation_) ? num_max_generation_ : iter;
         auto alpha_scalar =
             alpha->create_submatrix(span{0, 1}, span{index, index + 1});
         auto beta_scalar =
             beta->create_submatrix(span{0, 1}, span{index, index + 1});
         if (iter == 0) {
-            if (num_generated_ < num_keep) {
+            if (num_generated_scalar_ < num_max_generation_) {
                 alpha_scalar->fill(alpha_ref);
                 // unused beta for first iteration, but fill zero
                 beta_scalar->fill(zero<ValueType>());
-                num_generated_++;
+                num_generated_scalar_++;
             }
             // x = x + alpha * inner_solution
             dense_x->add_scaled(alpha_scalar.get(), inner_solution);
@@ -255,12 +315,13 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
         }
         alpha_ref = ValueType{1.0} / (center_ - beta_ref / alpha_ref);
         // The last one is always the updated one
-        if (num_generated_ < num_keep || iter >= num_keep) {
+        if (num_generated_scalar_ < num_max_generation_ ||
+            iter >= num_max_generation_) {
             alpha_scalar->fill(alpha_ref);
             beta_scalar->fill(beta_ref);
         }
-        if (num_generated_ < num_keep) {
-            num_generated_++;
+        if (num_generated_scalar_ < num_max_generation_) {
+            num_generated_scalar_++;
         }
         // z = z + beta * p
         // p = z
