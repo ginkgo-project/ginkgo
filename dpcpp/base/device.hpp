@@ -46,6 +46,9 @@ namespace dpcpp {
 void destroy_event(sycl::event* event);
 
 
+std::string get_device_name(int device_id);
+
+
 }  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
