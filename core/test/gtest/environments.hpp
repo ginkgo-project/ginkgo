@@ -167,13 +167,12 @@ public:
     void SetUp() override
     {
         if (ResourceEnvironment::omp_threads > 0) {
-            omp_set_num_threads(num_threads);
+            omp_set_num_threads(ResourceEnvironment::omp_threads);
         }
 #pragma omp parallel
 #pragma single
         std::cerr << "Rank " << rank_ << ": OMP threads "
-                  << omp_get_num_threads();
-        << std::endl;
+                  << omp_get_num_threads() << std::endl;
     }
 
 private:
