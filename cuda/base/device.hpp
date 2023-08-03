@@ -50,6 +50,10 @@ void reset_device(int device_id);
 void destroy_event(CUevent_st* event);
 
 
+/** returns cudaDeviceProp.name for the given device */
+std::string get_device_name(int device_id);
+
+
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

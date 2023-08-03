@@ -394,9 +394,10 @@ int main(int argc, char** argv)
 
     testing::AddGlobalTestEnvironment(new GTestMPIListener::MPIEnvironment);
     ::testing::AddGlobalTestEnvironment(new ResourceEnvironment(rank, size));
-    ::testing::AddGlobalTestEnvironment(new CudaEnvironment);
-    ::testing::AddGlobalTestEnvironment(new HipEnvironment);
-    ::testing::AddGlobalTestEnvironment(new OmpEnvironment);
+    ::testing::AddGlobalTestEnvironment(new CudaEnvironment(rank));
+    ::testing::AddGlobalTestEnvironment(new HipEnvironment(rank));
+    ::testing::AddGlobalTestEnvironment(new SyclEnvironment(rank));
+    ::testing::AddGlobalTestEnvironment(new OmpEnvironment(rank));
 
     ::testing::TestEventListeners& listeners =
         ::testing::UnitTest::GetInstance()->listeners();

@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GINKGO_ENVIRONMENTS_HPP
-#define GINKGO_ENVIRONMENTS_HPP
+#ifndef GKO_CORE_TEST_GTEST_ENVIRONMENTS_HPP_
+#define GKO_CORE_TEST_GTEST_ENVIRONMENTS_HPP_
 
 #include <algorithm>
 #include <regex>
@@ -52,6 +52,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef GKO_COMPILING_HIP
 #include "hip/base/device.hpp"
+#endif
+
+
+#if GKO_COMPILING_DPCPP
+#include "dpcpp/base/device.hpp"
 #endif
 
 
@@ -111,8 +116,11 @@ public:
         auto rs_count_env = std::getenv("CTEST_RESOURCE_GROUP_COUNT");
         auto rs_count = rs_count_env ? std::stoi(rs_count_env) : 0;
         if (rs_count == 0) {
-            std::cerr << "Running without CTest ctest_resource configuration"
-                      << std::endl;
+            if (rank == 0) {
+                std::cerr
+                    << "Running without CTest ctest_resource configuration"
+                    << std::endl;
+            }
             return;
         }
         if (rs_count != size) {
@@ -121,38 +129,25 @@ public:
         }
 
         // parse CTest ctest_resource group descriptions
-        if (rank == 0) {
-            std::cerr << "Running with CTest ctest_resource configuration:"
-                      << std::endl;
-        }
         // OpenMP CPU threads
         if (auto rs_omp_env = get_ctest_group("cpu", rank)) {
             auto resource = parse_ctest_resources(rs_omp_env);
             omp_threads = resource.slots;
-            if (rank == 0) {
-                std::cerr << omp_threads << " CPU threads" << std::endl;
-            }
         }
         // CUDA GPUs
         if (auto rs_cuda_env = get_ctest_group("cudagpu", rank)) {
             auto resource = parse_ctest_resources(rs_cuda_env);
             cuda_device_id = resource.id;
-            std::cerr << "Rank " << rank << ": CUDA device " << cuda_device_id
-                      << std::endl;
         }
         // HIP GPUs
         if (auto rs_hip_env = get_ctest_group("hipgpu", rank)) {
             auto resource = parse_ctest_resources(rs_hip_env);
             hip_device_id = resource.id;
-            std::cerr << "Rank " << rank << ": HIP device " << cuda_device_id
-                      << std::endl;
         }
         // SYCL GPUs (no other devices!)
         if (auto rs_sycl_env = get_ctest_group("syclgpu", rank)) {
             auto resource = parse_ctest_resources(rs_sycl_env);
             sycl_device_id = resource.id;
-            std::cerr << "Rank " << rank << ": SYCL device " << cuda_device_id
-                      << std::endl;
         }
     }
 
@@ -167,18 +162,31 @@ public:
 
 class OmpEnvironment : public ::testing::Environment {
 public:
+    explicit OmpEnvironment(int rank) : rank_(rank) {}
+
     void SetUp() override
     {
         if (ResourceEnvironment::omp_threads > 0) {
-            omp_set_num_threads(ResourceEnvironment::omp_threads);
+            omp_set_num_threads(num_threads);
         }
+#pragma omp parallel
+#pragma single
+        std::cerr << "Rank " << rank_ << ": OMP threads "
+                  << omp_get_num_threads();
+        << std::endl;
     }
+
+private:
+    int rank_;
 };
 
 #else
 
 
-class OmpEnvironment : public ::testing::Environment {};
+class OmpEnvironment : public ::testing::Environment {
+public:
+    explicit OmpEnvironment(int){};
+};
 
 #endif
 
@@ -187,15 +195,31 @@ class OmpEnvironment : public ::testing::Environment {};
 
 class CudaEnvironment : public ::testing::Environment {
 public:
+    explicit CudaEnvironment(int rank) : rank_(rank) {}
+
+    void SetUp() override
+    {
+        auto device_id = ResourceEnvironment::cuda_device_id;
+        std::cerr << "Rank " << rank_ << ": CUDA device "
+                  << gko::kernels::cuda::get_device_name(device_id) << " ID "
+                  << device_id << std::endl;
+    }
+
     void TearDown() override
     {
         gko::kernels::cuda::reset_device(ResourceEnvironment::cuda_device_id);
     }
+
+private:
+    int rank_;
 };
 
 #else
 
-class CudaEnvironment : public ::testing::Environment {};
+class CudaEnvironment : public ::testing::Environment {
+public:
+    explicit CudaEnvironment(int){};
+};
 
 #endif
 
@@ -204,17 +228,61 @@ class CudaEnvironment : public ::testing::Environment {};
 
 class HipEnvironment : public ::testing::Environment {
 public:
+    explicit HipEnvironment(int rank) : rank_(rank) {}
+
+    void SetUp() override
+    {
+        auto device_id = ResourceEnvironment::hip_device_id;
+        std::cerr << "Rank " << rank_ << ": HIP device "
+                  << gko::kernels::hip::get_device_name(device_id) << " ID "
+                  << device_id << std::endl;
+    }
+
     void TearDown() override
     {
         gko::kernels::hip::reset_device(ResourceEnvironment::hip_device_id);
     }
+
+private:
+    int rank_;
 };
 
 #else
 
-class HipEnvironment : public ::testing::Environment {};
+class HipEnvironment : public ::testing::Environment {
+public:
+    explicit HipEnvironment(int){};
+};
 
 #endif
 
 
-#endif  // GINKGO_ENVIRONMENTS_HPP
+#ifdef GKO_COMPILING_DPCPP
+
+class SyclEnvironment : public ::testing::Environment {
+public:
+    explicit SyclEnvironment(int rank) : rank_(rank) {}
+
+    void SetUp() override
+    {
+        auto device_id = ResourceEnvironment::sycl_device_id;
+        std::cerr << "Rank " << rank_ << ": SYCL device "
+                  << gko::kernels::dpcpp::get_device_name(device_id) << " ID "
+                  << device_id << std::endl;
+    }
+
+private:
+    int rank_;
+};
+
+#else
+
+class SyclEnvironment : public ::testing::Environment {
+public:
+    explicit SyclEnvironment(int){};
+};
+
+#endif
+
+
+#endif  // GKO_CORE_TEST_GTEST_ENVIRONMENTS_HPP_

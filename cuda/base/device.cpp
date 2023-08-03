@@ -58,6 +58,14 @@ void destroy_event(CUevent_st* event)
 }
 
 
+std::string get_device_name(int device_id)
+{
+    cudaDeviceProp prop;
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDeviceProperties(&prop, device_id));
+    return {prop.name};
+}
+
+
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

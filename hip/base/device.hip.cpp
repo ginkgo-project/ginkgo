@@ -62,6 +62,14 @@ void destroy_event(GKO_HIP_EVENT_STRUCT* event)
 }
 
 
+std::string get_device_name(int device_id)
+{
+    hipDeviceProp_t prop;
+    GKO_ASSERT_NO_HIP_ERRORS(hipGetDeviceProperties(&prop, device_id));
+    return {prop.name};
+}
+
+
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko
