@@ -58,6 +58,13 @@ class PolymorphicObject;
 class Operation;
 class stopping_status;
 
+
+namespace batch {
+class BatchLinOp;
+class BatchLinOpFactory;
+}  // namespace batch
+
+
 /**
  * @brief The Stopping criterion namespace.
  * @ref stop
@@ -448,9 +455,9 @@ protected:
      * @warning This on_iteration_complete function that this macro declares is
      * deprecated. Please use the version with the stopping information.
      */
-    [[deprecated(
-        "Please use the version with the additional stopping "
-        "information.")]] virtual void
+    [
+        [deprecated("Please use the version with the additional stopping "
+                    "information.")]] virtual void
     on_iteration_complete(const LinOp* solver, const size_type& it,
                           const LinOp* r, const LinOp* x = nullptr,
                           const LinOp* tau = nullptr) const
@@ -469,9 +476,9 @@ protected:
      * @warning This on_iteration_complete function that this macro declares is
      * deprecated. Please use the version with the stopping information.
      */
-    [[deprecated(
-        "Please use the version with the additional stopping "
-        "information.")]] virtual void
+    [
+        [deprecated("Please use the version with the additional stopping "
+                    "information.")]] virtual void
     on_iteration_complete(const LinOp* solver, const size_type& it,
                           const LinOp* r, const LinOp* x, const LinOp* tau,
                           const LinOp* implicit_tau_sq) const
@@ -563,6 +570,86 @@ public:
                               const PolymorphicObject* input,
                               const PolymorphicObject* output)
 
+    /**
+     * BatchLinOp's apply started event.
+     *
+     * @param A  the system matrix
+     * @param b  the input vector(s)
+     * @param x  the output vector(s)
+     */
+    GKO_LOGGER_REGISTER_EVENT(24, batch_linop_apply_started,
+                              const batch::BatchLinOp* A,
+                              const batch::BatchLinOp* b,
+                              const batch::BatchLinOp* x)
+
+    /**
+     * BatchLinOp's apply completed event.
+     *
+     * @param A  the system matrix
+     * @param b  the input vector(s)
+     * @param x  the output vector(s)
+     */
+    GKO_LOGGER_REGISTER_EVENT(25, batch_linop_apply_completed,
+                              const batch::BatchLinOp* A,
+                              const batch::BatchLinOp* b,
+                              const batch::BatchLinOp* x)
+
+    /**
+     * BatchLinOp's advanced apply started event.
+     *
+     * @param A  the system matrix
+     * @param alpha  scaling of the result of op(b)
+     * @param b  the input vector(s)
+     * @param beta  scaling of the input x
+     * @param x  the output vector(s)
+     */
+    GKO_LOGGER_REGISTER_EVENT(26, batch_linop_advanced_apply_started,
+                              const batch::BatchLinOp* A,
+                              const batch::BatchLinOp* alpha,
+                              const batch::BatchLinOp* b,
+                              const batch::BatchLinOp* beta,
+                              const batch::BatchLinOp* x)
+
+    /**
+     * BatchLinOp's advanced apply completed event.
+     *
+     * @param A  the system matrix
+     * @param alpha  scaling of the result of op(b)
+     * @param b  the input vector(s)
+     * @param beta  scaling of the input x
+     * @param x  the output vector(s)
+     */
+    GKO_LOGGER_REGISTER_EVENT(27, batch_linop_advanced_apply_completed,
+                              const batch::BatchLinOp* A,
+                              const batch::BatchLinOp* alpha,
+                              const batch::BatchLinOp* b,
+                              const batch::BatchLinOp* beta,
+                              const batch::BatchLinOp* x)
+
+    /**
+     * BatchLinOp Factory's generate started event.
+     *
+     * @param factory  the factory used
+     * @param input  the BatchLinOp object used as input for the generation
+     * (usually a system matrix)
+     */
+    GKO_LOGGER_REGISTER_EVENT(28, batch_linop_factory_generate_started,
+                              const batch::BatchLinOpFactory* factory,
+                              const batch::BatchLinOp* input)
+
+    /**
+     * BatchLinOp Factory's generate completed event.
+     *
+     * @param factory  the factory used
+     * @param input  the BatchLinOp object used as input for the generation
+     * (usually a system matrix)
+     * @param output  the generated BatchLinOp object
+     */
+    GKO_LOGGER_REGISTER_EVENT(29, batch_linop_factory_generate_completed,
+                              const batch::BatchLinOpFactory* factory,
+                              const batch::BatchLinOp* input,
+                              const batch::BatchLinOp* output)
+
 #undef GKO_LOGGER_REGISTER_EVENT
 
     /**
@@ -604,6 +691,21 @@ public:
     static constexpr mask_type linop_factory_events_mask =
         linop_factory_generate_started_mask |
         linop_factory_generate_completed_mask;
+
+    /**
+     * Bitset Mask which activates all batch linop events
+     */
+    static constexpr mask_type batch_linop_events_mask =
+        batch_linop_apply_started_mask | batch_linop_apply_completed_mask |
+        batch_linop_advanced_apply_started_mask |
+        batch_linop_advanced_apply_completed_mask;
+
+    /**
+     * Bitset Mask which activates all batch linop factory events
+     */
+    static constexpr mask_type batch_linop_factory_events_mask =
+        batch_linop_factory_generate_started_mask |
+        batch_linop_factory_generate_completed_mask;
 
     /**
      * Bitset Mask which activates all criterion events
@@ -772,8 +874,8 @@ private:
     template <size_type Event, typename ConcreteLoggableT>
     struct propagate_log_helper<
         Event, ConcreteLoggableT,
-        xstd::void_t<
-            decltype(std::declval<ConcreteLoggableT>().get_executor())>> {
+        xstd::void_t<decltype(
+            std::declval<ConcreteLoggableT>().get_executor())>> {
         template <typename... Args>
         static void propagate_log(const ConcreteLoggableT* loggable,
                                   Args&&... args)
