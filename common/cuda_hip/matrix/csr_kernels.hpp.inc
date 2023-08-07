@@ -872,11 +872,7 @@ void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
     }
     auto in_rows = in_row_idxs.get_data();
     auto in_cols = in_col_idxs.get_data();
-    // workaround for CUDA 9.2 Thrust: Their complex<> implementation is broken
-    // due to overly generic assignment operator and constructor leading to
-    // ambiguities. So we need to use our own fake_complex type
-    auto in_vals =
-        reinterpret_cast<device_member_type<ValueType>*>(in_values.get_data());
+    auto in_vals = as_device_type(in_values.get_data());
     auto in_loc_it =
         thrust::make_zip_iterator(thrust::make_tuple(in_rows, in_cols));
     thrust::sort_by_key(thrust_policy(exec), in_loc_it, in_loc_it + nnz,
@@ -924,17 +920,17 @@ void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
     // fill in values
     components::fill_array(exec, block_value_array.get_data(),
                            num_blocks * bs * bs, zero<ValueType>());
-    thrust::for_each_n(
-        thrust_policy(exec), iota, num_blocks,
-        [block_ptrs, nnz, num_blocks, bs, in_rows, in_cols, in_vals,
-         values] __device__(size_type i) {
-            const auto block_begin = block_ptrs[i];
-            const auto block_end = i < num_blocks - 1 ? block_ptrs[i + 1] : nnz;
-            for (auto nz = block_begin; nz < block_end; nz++) {
-                values[i * bs * bs + (in_cols[nz] % bs) * bs +
-                       (in_rows[nz] % bs)] = fake_complex_unpack(in_vals[nz]);
-            }
-        });
+    thrust::for_each_n(thrust_policy(exec), iota, num_blocks,
+                       [block_ptrs, nnz, num_blocks, bs, in_rows, in_cols,
+                        in_vals, values] __device__(size_type i) {
+                           const auto block_begin = block_ptrs[i];
+                           const auto block_end =
+                               i < num_blocks - 1 ? block_ptrs[i + 1] : nnz;
+                           for (auto nz = block_begin; nz < block_end; nz++) {
+                               values[i * bs * bs + (in_cols[nz] % bs) * bs +
+                                      (in_rows[nz] % bs)] = in_vals[nz];
+                           }
+                       });
 }
 
 
@@ -1130,13 +1126,10 @@ void fallback_transpose(std::shared_ptr<const DefaultExecutor> exec,
     const auto nnz = output->get_num_stored_elements();
     const auto in_row_ptrs = input->get_const_row_ptrs();
     const auto in_col_idxs = input->get_const_col_idxs();
-    // workaround for CUDA 9.2 Thrust unconstrained constructor issues
-    const auto in_vals = reinterpret_cast<const device_member_type<ValueType>*>(
-        input->get_const_values());
+    const auto in_vals = as_device_type(input->get_const_values());
     const auto out_row_ptrs = output->get_row_ptrs();
     const auto out_col_idxs = output->get_col_idxs();
-    const auto out_vals =
-        reinterpret_cast<device_member_type<ValueType>*>(output->get_values());
+    const auto out_vals = as_device_type(output->get_values());
     array<IndexType> out_row_idxs{exec, nnz};
     components::convert_ptrs_to_idxs(exec, in_row_ptrs, in_num_rows,
                                      out_col_idxs);
@@ -1156,8 +1149,7 @@ void fallback_sort(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto row_ptrs = to_sort->get_const_row_ptrs();
     const auto col_idxs = to_sort->get_col_idxs();
-    const auto vals =
-        reinterpret_cast<device_member_type<ValueType>*>(to_sort->get_values());
+    const auto vals = as_device_type(to_sort->get_values());
     const auto nnz = to_sort->get_num_stored_elements();
     const auto num_rows = to_sort->get_size()[0];
     array<IndexType> row_idx_array(exec, nnz);

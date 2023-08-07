@@ -124,13 +124,9 @@ DEFINE_OVERLOAD(cudaLaunchCooperativeKernel,
                     size_t sharedMem, cudaStream_t stream),
                 ARG(func, gridDim, blockDim, args, sharedMem, stream));
 
-#if CUDA_VERSION >= 10000
-
 DEFINE_OVERLOAD(cudaLaunchHostFunc,
                 ARG(cudaStream_t stream, cudaHostFn_t fn, void* userData),
                 ARG(stream, fn, userData));
-
-#endif
 
 // Memory transfer APIS:
 // https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__MEMORY.html#group__CUDART__MEMORY

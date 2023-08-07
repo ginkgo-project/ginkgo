@@ -45,11 +45,7 @@ template <typename ValueType, typename IndexType>
 void sort_row_major(std::shared_ptr<const DefaultExecutor> exec, size_type nnz,
                     IndexType* row_idxs, IndexType* col_idxs, ValueType* vals)
 {
-    // workaround for CUDA 9.2 Thrust: Their complex<> implementation is broken
-    // due to overly generic assignment operator and constructor leading to
-    // ambiguities. So we need to use our own fake_complex type
-    using device_value_type = device_member_type<ValueType>;
-    auto vals_it = reinterpret_cast<device_value_type*>(vals);
+    auto vals_it = as_device_type(vals);
     auto it = thrust::make_zip_iterator(thrust::make_tuple(row_idxs, col_idxs));
     // Because reduce_by_key is not deterministic, so we do not need
     // stable_sort_by_key
@@ -67,16 +63,11 @@ void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
                         const IndexType* col_idxs, const ValueType* vals,
                         matrix::Coo<ValueType, IndexType>* coarse_coo)
 {
-    // workaround for CUDA 9.2 Thrust: Their complex<> implementation is broken
-    // due to overly generic assignment operator and constructor leading to
-    // ambiguities. So we need to use our own fake_complex type
-    using device_value_type = device_member_type<ValueType>;
-    auto vals_it = reinterpret_cast<const device_value_type*>(vals);
+    auto vals_it = as_device_type(vals);
     auto key_it =
         thrust::make_zip_iterator(thrust::make_tuple(row_idxs, col_idxs));
 
-    auto coarse_vals_it =
-        reinterpret_cast<device_value_type*>(coarse_coo->get_values());
+    auto coarse_vals_it = as_device_type(coarse_coo->get_values());
     auto coarse_key_it = thrust::make_zip_iterator(thrust::make_tuple(
         coarse_coo->get_row_idxs(), coarse_coo->get_col_idxs()));
 
