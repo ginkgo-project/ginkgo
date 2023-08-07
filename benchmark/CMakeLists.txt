@@ -21,8 +21,6 @@ function(ginkgo_benchmark_cusparse_linops type def)
     # make the dependency public to catch issues
     target_compile_definitions(cusparse_linops_${type} PUBLIC ${def})
     target_link_libraries(cusparse_linops_${type} Ginkgo::ginkgo CUDA::cudart CUDA::cublas CUDA::cusparse)
-    target_include_directories(cusparse_linops_${type} SYSTEM PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
-    target_compile_definitions(cusparse_linops_${type} PRIVATE ALLOWMP=1)
 endfunction()
 
 function(ginkgo_benchmark_hipsparse_linops type def)

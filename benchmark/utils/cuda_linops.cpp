@@ -438,9 +438,7 @@ protected:
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE),
           buffer_(exec)
     {
-#ifdef ALLOWMP
         algmode_ = CUSPARSE_ALG_MERGE_PATH;
-#endif  // ALLOWMP
     }
 
 private:
