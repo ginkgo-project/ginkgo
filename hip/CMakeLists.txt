@@ -142,7 +142,7 @@ if(GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
     endif()
     target_link_libraries(ginkgo_hip PUBLIC ${HIP_LIBAMDHIP64_LIBRARIES})
 elseif(GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
-    find_package(CUDA 9.2 REQUIRED)
+    find_package(CUDA 10.1 REQUIRED)
     target_link_libraries(ginkgo_hip PUBLIC ${CUDA_LIBRARIES})
 endif()
 
