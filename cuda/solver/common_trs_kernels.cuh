@@ -198,7 +198,7 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
 };
 
 
-#elif (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
+#else
 
 template <typename ValueType, typename IndexType>
 struct CudaSolveStruct : gko::solver::SolveStruct {

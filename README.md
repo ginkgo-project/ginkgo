@@ -47,7 +47,7 @@ For Ginkgo core library:
 
 The Ginkgo CUDA module has the following __additional__ requirements:
 
-*   _CUDA 9.2+_ or _NVHPC Package 22.7+_
+*   _CUDA 10.1+_ or _NVHPC Package 22.7+_
 *   Any host compiler restrictions your version of CUDA may impose also apply
     here. For the newest CUDA version, this information can be found in the
     [CUDA installation guide for Linux](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html)
@@ -58,7 +58,7 @@ The Ginkgo HIP module has the following __additional__ requirements:
 * _ROCm 4.5+_
 *    the HIP, hipBLAS, hipSPARSE, hip/rocRAND and rocThrust packages compiled with either:
     * _AMD_ backend (using the `clang` compiler)
-    * _9.2 <= CUDA < 11_ backend
+    * _10.1 <= CUDA < 11_ backend
 * if the hipFFT package is available, it is used to implement the FFT LinOps.
 
 The Ginkgo DPC++ module has the following __additional__ requirements:
@@ -90,7 +90,7 @@ following:
 
 The Ginkgo CUDA module has the following __additional__ requirements:
 
-*   _CUDA 9.2+_
+*   _CUDA 10.1+_
 *   _Microsoft Visual Studio_
 *   Any host compiler restrictions your version of CUDA may impose also apply
     here. For the newest CUDA version, this information can be found in the

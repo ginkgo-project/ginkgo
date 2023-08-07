@@ -172,11 +172,7 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
     }
     auto in_rows = data.get_row_idxs();
     auto in_cols = data.get_col_idxs();
-    // workaround for CUDA 9.2 Thrust: Their complex<> implementation is broken
-    // due to overly generic assignment operator and constructor leading to
-    // ambiguities. So we need to use our own fake_complex type
-    auto in_vals =
-        reinterpret_cast<device_member_type<ValueType>*>(data.get_values());
+    auto in_vals = as_device_type(data.get_values());
     auto in_loc_it =
         thrust::make_zip_iterator(thrust::make_tuple(in_rows, in_cols));
     thrust::sort_by_key(thrust_policy(exec), in_loc_it, in_loc_it + nnz,
@@ -232,8 +228,7 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
             const auto block_end = i < num_blocks - 1 ? block_ptrs[i + 1] : nnz;
             for (auto nz = block_begin; nz < block_end; nz++) {
                 block_values[i * bs * bs + (in_cols[nz] % bs) * bs +
-                             (in_rows[nz] % bs)] =
-                    fake_complex_unpack(in_vals[nz]);
+                             (in_rows[nz] % bs)] = in_vals[nz];
             }
         });
 }

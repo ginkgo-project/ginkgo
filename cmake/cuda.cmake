@@ -85,12 +85,3 @@ if(CMAKE_CUDA_HOST_COMPILER AND NOT CMAKE_CXX_COMPILER STREQUAL CMAKE_CUDA_HOST_
         "The CUDA host compiler is ${CMAKE_CUDA_HOST_COMPILER}.")
 endif()
 
-if (CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA" AND CMAKE_CUDA_COMPILER_VERSION
-    MATCHES "9.2" AND CMAKE_CUDA_HOST_COMPILER MATCHES ".*clang.*" )
-    ginkgo_extract_clang_version(${CMAKE_CUDA_HOST_COMPILER} GINKGO_CUDA_HOST_CLANG_VERSION)
-
-    if (GINKGO_CUDA_HOST_CLANG_VERSION MATCHES "5\.0.*")
-        message(FATAL_ERROR "There is a bug between nvcc 9.2 and clang 5.0 which create a compiling issue."
-            "Consider using a different CUDA host compiler or CUDA version.")
-    endif()
-endif()

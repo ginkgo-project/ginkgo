@@ -24,12 +24,6 @@
     - cpu
     - controller
 
-.use_gko-cuda92-mvapich2-gnu7-llvm50-intel2017:
-  image: ginkgohub/cuda:92-mvapich2-gnu7-llvm50-intel2017
-  tags:
-    - private_ci
-    - nvidia-gpu
-
 .use_gko-cuda101-openmpi-gnu8-llvm7-intel2019:
   image: ginkgohub/cuda:101-openmpi-gnu8-llvm7-intel2019
   tags:

@@ -154,8 +154,8 @@ void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
             for (auto i = row_begin; i < row_begin + slice_length; i++) {
                 cols[out_idx] =
                     i < row_end ? in_cols[i] : invalid_index<IndexType>();
-                values[out_idx] = i < row_end ? unpack_member(in_values[i])
-                                              : zero(values[out_idx]);
+                values[out_idx] =
+                    i < row_end ? in_values[i] : zero(values[out_idx]);
                 out_idx += slice_size;
             }
         },
@@ -185,8 +185,8 @@ void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,
             for (auto i = row_begin; i < row_begin + ell_length; i++) {
                 cols[out_idx] =
                     i < row_end ? in_cols[i] : invalid_index<IndexType>();
-                values[out_idx] = i < row_end ? unpack_member(in_values[i])
-                                              : zero(values[out_idx]);
+                values[out_idx] =
+                    i < row_end ? in_values[i] : zero(values[out_idx]);
                 out_idx += ell_stride;
             }
         },

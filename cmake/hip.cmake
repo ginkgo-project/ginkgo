@@ -22,11 +22,6 @@ if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.21)
     set(CMAKE_HIP_ARCHITECTURES OFF)
 endif()
 
-if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}"
-    AND GINKGO_BUILD_CUDA AND CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 9.2)
-    message(FATAL_ERROR "Ginkgo HIP backend requires CUDA >= 9.2.")
-endif()
-
 if(NOT DEFINED ROCM_PATH)
     if(DEFINED ENV{ROCM_PATH})
         set(ROCM_PATH $ENV{ROCM_PATH} CACHE PATH "Path to which ROCM has been installed")
@@ -197,16 +192,6 @@ if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
     # Remove false positive CUDA warnings when calling one<T>() and zero<T>()
     list(APPEND GINKGO_HIP_NVCC_ADDITIONAL_FLAGS --expt-relaxed-constexpr --expt-extended-lambda)
 
-    if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}"
-            AND CMAKE_CUDA_COMPILER_VERSION MATCHES "9.2"
-            AND CMAKE_CUDA_HOST_COMPILER MATCHES ".*clang.*" )
-        ginkgo_extract_clang_version(${CMAKE_CUDA_HOST_COMPILER} GINKGO_CUDA_HOST_CLANG_VERSION)
-
-        if (GINKGO_CUDA_HOST_CLANG_VERSION MATCHES "5\.0.*")
-            message(FATAL_ERROR "There is a bug between nvcc 9.2 and clang 5.0 which create a compiling issue."
-                "Consider using a different CUDA host compiler or CUDA version.")
-        endif()
-    endif()
     # select GPU architecture    
     include(cmake/Modules/CudaArchitectureSelector.cmake)
     cas_variable_cuda_architectures(GINKGO_HIP_NVCC_ARCH
