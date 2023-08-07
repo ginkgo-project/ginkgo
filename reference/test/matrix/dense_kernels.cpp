@@ -2756,6 +2756,21 @@ TYPED_TEST(DenseWithIndexType, MatrixScatterRowsFailsWithWrongDimensions)
 }
 
 
+TYPED_TEST(DenseWithIndexType, MatrixScatterRowsFailsWithInvalidState)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto exec = this->mtx5->get_executor();
+    auto row_collection =
+        gko::initialize<Mtx>({{3.0, 2.7, 6.5}, {0.7, 1.1, 4.0}}, exec);
+    gko::array<index_type> permute_idxs{exec, {200, 0}};
+
+    ASSERT_THROW(row_collection->row_scatter(&permute_idxs, this->mtx5),
+                 gko::InvalidStateError);
+}
+
+
 TYPED_TEST(DenseWithIndexType, MatrixCanScatterRowsUsingIndexSetIntoDense)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -2781,6 +2796,28 @@ TYPED_TEST(DenseWithIndexType, MatrixCanScatterRowsUsingIndexSetIntoDense)
                               {8.1, 9.4, 6.8},
                               {3.4, 3.8, 7.8}}),
                         0.0);
+}
+
+
+TYPED_TEST(DenseWithIndexType,
+           MatrixScatterRowsUsingIndexSetFailsWithInvalidState)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto exec = this->mtx5->get_executor();
+    auto mtx = gko::initialize<Mtx>({{2.2, 6.9, 7.8},
+                                     {4.7, 1.3, 7.6},
+                                     {9.2, 8.6, 4.5},
+                                     {8.1, 9.4, 6.8},
+                                     {9.6, 7.1, 2.5}},
+                                    exec);
+    auto row_collection = gko::initialize<Mtx>(
+        {{3.0, 2.7, 6.5}, {0.7, 1.1, 4.0}, {3.4, 3.8, 7.8}}, exec);
+    gko::index_set<index_type> permute_idxs{exec, {1, 0, 44}};
+
+    ASSERT_THROW(row_collection->row_scatter(&permute_idxs, mtx),
+                 gko::InvalidStateError);
 }
 
 

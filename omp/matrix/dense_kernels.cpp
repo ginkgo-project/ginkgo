@@ -470,16 +470,26 @@ template <typename ValueType, typename OutputType, typename IndexType>
 void row_scatter(std::shared_ptr<const DefaultExecutor> exec,
                  const index_set<IndexType>* row_idxs,
                  const matrix::Dense<ValueType>* orig,
-                 matrix::Dense<OutputType>* target)
+                 matrix::Dense<OutputType>* target, bool& invalid_access)
 {
     auto set_begins = row_idxs->get_subsets_begin();
     auto set_ends = row_idxs->get_subsets_end();
     auto set_offsets = row_idxs->get_superset_indices();
-#pragma omp parallel for
+    invalid_access = false;
+#pragma omp parallel for shared(invalid_access)
     for (size_type set = 0; set < row_idxs->get_num_subsets(); ++set) {
+        if (invalid_access) {
+            continue;
+        }
         for (int target_row = set_begins[set]; target_row < set_ends[set];
              ++target_row) {
+            if (invalid_access || target_row >= target->get_size()[0]) {
+                invalid_access = true;
+                break;
+            }
+
             auto orig_row = target_row - set_begins[set] + set_offsets[set];
+
             for (size_type j = 0; j < orig->get_size()[1]; ++j) {
                 target->at(target_row, j) = orig->at(orig_row, j);
             }

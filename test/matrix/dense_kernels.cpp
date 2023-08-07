@@ -1303,6 +1303,16 @@ TEST_F(Dense, CanScatterRowsIntoDense)
 }
 
 
+TEST_F(Dense, CanScatterRowsIntoDenseFailsWithInvalidState)
+{
+    set_up_apply_data();
+    gko::array<index_type> out_of_bounds(ref, du->get_size()[0]);
+    out_of_bounds.get_data()[0] = dx->get_size()[0] * 40;
+
+    ASSERT_THROW(du->row_scatter(&out_of_bounds, dx), gko::InvalidStateError);
+}
+
+
 TEST_F(Dense, CanScatterRowsIntoDenseSubmatrix)
 {
     set_up_apply_data();
@@ -1340,6 +1350,22 @@ TEST_F(Dense, CanScatterRowsIntoDenseUsingIndexSet)
 
     GKO_ASSERT_MTX_NEAR(x, dx, 0);
 }
+
+
+#ifdef NDEBUG
+// this test can only be run if C asserts are disabled. Otherwise,
+// an assert in the constructor of index_set may fail.
+TEST_F(Dense, CanScatterRowsIntoDenseUsingIndexSetFailsWithInvalidState)
+{
+    set_up_apply_data();
+    gko::array<index_type> out_of_bounds(ref, du->get_size()[0]);
+    out_of_bounds.get_data()[0] = dx->get_size()[0] * 40;
+    auto rindices = std::make_unique<gko::index_set<index_type>>(
+        ref, x->get_size()[0], out_of_bounds);
+
+    ASSERT_THROW(du->row_scatter(&out_of_bounds, dx), gko::InvalidStateError);
+}
+#endif
 
 
 TEST_F(Dense, GatherScatterIsIdentity)

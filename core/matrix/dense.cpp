@@ -1311,38 +1311,39 @@ void Dense<ValueType>::row_gather_impl(const Dense<ValueType>* alpha,
 }
 
 
-template <typename ValueType>
-template <typename OutputType, typename IndexType>
-void Dense<ValueType>::row_scatter_impl(const array<IndexType>* row_idxs,
-                                        Dense<OutputType>* target) const
+template <typename IndexType>
+size_type get_size(const array<IndexType>* arr)
 {
-    auto exec = this->get_executor();
-    dim<2> expected_dim{row_idxs->get_num_elems(), this->get_size()[1]};
-    GKO_ASSERT_EQUAL_DIMENSIONS(expected_dim, this);
-    GKO_ASSERT_EQUAL_COLS(this, target);
-    // @todo check that indices are inbounds for target
+    return arr->get_size();
+}
 
-    exec->run(dense::make_row_scatter(
-        make_temporary_clone(exec, row_idxs).get(), this,
-        make_temporary_clone(exec, target).get()));
+template <typename IndexType>
+size_type get_size(const index_set<IndexType>* is)
+{
+    return is->get_num_elems();
 }
 
 
-template <typename ValueType>
-template <typename OutputType, typename IndexType>
-void Dense<ValueType>::row_scatter_impl(const index_set<IndexType>* row_idxs,
-                                        Dense<OutputType>* target) const
+template <typename ValueType, typename OutputType, typename IndexContainer>
+void row_scatter_impl(const IndexContainer* row_idxs,
+                      const Dense<ValueType>* orig, Dense<OutputType>* target)
 {
-    auto exec = this->get_executor();
-    dim<2> expected_dim{static_cast<size_type>(row_idxs->get_num_elems()),
-                        this->get_size()[1]};
-    GKO_ASSERT_EQUAL_DIMENSIONS(expected_dim, this);
-    GKO_ASSERT_EQUAL_COLS(this, target);
-    // @todo check that indices are inbounds for target
+    auto exec = orig->get_executor();
+    dim<2> expected_dim{static_cast<size_type>(get_size(row_idxs)),
+                        orig->get_size()[1]};
+    GKO_ASSERT_EQUAL_DIMENSIONS(expected_dim, orig);
+    GKO_ASSERT_EQUAL_COLS(orig, target);
+
+    bool invalid_access = false;
 
     exec->run(dense::make_row_scatter(
-        make_temporary_clone(exec, row_idxs).get(), this,
-        make_temporary_clone(exec, target).get()));
+        make_temporary_clone(exec, row_idxs).get(), orig,
+        make_temporary_clone(exec, target).get(), invalid_access));
+
+    if (invalid_access) {
+        GKO_INVALID_STATE(
+            "Out-of-bounds access detected during kernel execution.");
+    }
 }
 
 
@@ -1655,7 +1656,7 @@ void Dense<ValueType>::row_scatter(const array<IndexType>* row_idxs,
                                    ptr_param<LinOp> row_collection) const
 {
     gather_mixed_real_complex<ValueType>(
-        [&](auto dense) { this->row_scatter_impl(row_idxs, dense); },
+        [&](auto dense) { row_scatter_impl(row_idxs, this, dense); },
         row_collection.get());
 }
 
@@ -1666,7 +1667,7 @@ void Dense<ValueType>::row_scatter(const index_set<IndexType>* row_idxs,
                                    ptr_param<LinOp> row_collection) const
 {
     gather_mixed_real_complex<ValueType>(
-        [&](auto dense) { this->row_scatter_impl(row_idxs, dense); },
+        [&](auto dense) { row_scatter_impl(row_idxs, this, dense); },
         row_collection.get());
 }
 
