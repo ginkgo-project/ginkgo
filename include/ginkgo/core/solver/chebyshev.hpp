@@ -35,7 +35,7 @@ namespace solver {
  * solution = initial_guess
  * while not converged:
  *     residual = b - A solution
- *     error = solver(A, residual)
+ *     error = preconditioner(A) * residual
  *     solution = solution + alpha_i * error + beta_i * (solution_i -
  * solution_{i-1})
  * ```
@@ -47,11 +47,12 @@ namespace solver {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Chebyshev : public EnableLinOp<Chebyshev<ValueType>>,
-                  public EnableSolverBase<Chebyshev<ValueType>>,
-                  public EnableIterativeBase<Chebyshev<ValueType>>,
-                  public EnableApplyWithInitialGuess<Chebyshev<ValueType>>,
-                  public Transposable {
+class Chebyshev
+    : public EnableLinOp<Chebyshev<ValueType>>,
+      public EnablePreconditionedIterativeSolver<ValueType,
+                                                 Chebyshev<ValueType>>,
+      public EnableApplyWithInitialGuess<Chebyshev<ValueType>>,
+      public Transposable {
     friend class EnableLinOp<Chebyshev>;
     friend class EnablePolymorphicObject<Chebyshev, LinOp>;
     friend class EnableApplyWithInitialGuess<Chebyshev>;
@@ -74,20 +75,6 @@ public:
         return this->get_default_initial_guess() ==
                initial_guess_mode::provided;
     }
-
-    /**
-     * Returns the solver operator used as the inner solver.
-     *
-     * @return the solver operator used as the inner solver
-     */
-    std::shared_ptr<const LinOp> get_solver() const { return solver_; }
-
-    /**
-     * Sets the solver operator used as the inner solver.
-     *
-     * @param new_solver  the new inner solver
-     */
-    void set_solver(std::shared_ptr<const LinOp> new_solver);
 
     /**
      * Copy-assigns a Chebyshev solver. Preserves the executor, shallow-copies
@@ -129,18 +116,18 @@ public:
             GKO_FACTORY_PARAMETER_VECTOR(criteria, nullptr);
 
         /**
-         * Inner solver (preconditioner) factory. If not provided this will
+         * Preconditioner factory. If not provided this will
          * result in a non-preconditioned Chebyshev iteration.
          */
         std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
-            solver, nullptr);
+            preconditioner, nullptr);
 
         /**
-         * Already generated solver. If one is provided, the factory `solver`
-         * will be ignored.
+         * Already generated preconditioner. If one is provided, the factory
+         * `preconditioner` will be ignored.
          */
         std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(
-            generated_solver, nullptr);
+            generated_preconditioner, nullptr);
 
         /**
          * The pair of foci of ellipse, which covers the eigenvalues of

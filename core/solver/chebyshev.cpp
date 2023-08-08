@@ -32,20 +32,10 @@ Chebyshev<ValueType>::Chebyshev(const Factory* factory,
                                 std::shared_ptr<const LinOp> system_matrix)
     : EnableLinOp<Chebyshev>(factory->get_executor(),
                              gko::transpose(system_matrix->get_size())),
-      EnableSolverBase<Chebyshev>{std::move(system_matrix)},
-      EnableIterativeBase<Chebyshev>{
-          stop::combine(factory->get_parameters().criteria)},
+      EnablePreconditionedIterativeSolver<ValueType, Chebyshev<ValueType>>{
+          std::move(system_matrix), factory->get_parameters()},
       parameters_{factory->get_parameters()}
 {
-    if (parameters_.generated_solver) {
-        this->set_solver(parameters_.generated_solver);
-    } else if (parameters_.solver) {
-        this->set_solver(
-            parameters_.solver->generate(this->get_system_matrix()));
-    } else {
-        this->set_solver(matrix::Identity<ValueType>::create(
-            this->get_executor(), this->get_size()));
-    }
     this->set_default_initial_guess(parameters_.default_initial_guess);
     center_ = (std::get<0>(parameters_.foci) + std::get<1>(parameters_.foci)) /
               ValueType{2};
@@ -59,29 +49,16 @@ Chebyshev<ValueType>::Chebyshev(const Factory* factory,
 
 
 template <typename ValueType>
-void Chebyshev<ValueType>::set_solver(std::shared_ptr<const LinOp> new_solver)
-{
-    auto exec = this->get_executor();
-    if (new_solver) {
-        GKO_ASSERT_EQUAL_DIMENSIONS(new_solver, this);
-        GKO_ASSERT_IS_SQUARE_MATRIX(new_solver);
-        if (new_solver->get_executor() != exec) {
-            new_solver = gko::clone(exec, new_solver);
-        }
-    }
-    solver_ = new_solver;
-}
-
-
-template <typename ValueType>
 Chebyshev<ValueType>& Chebyshev<ValueType>::operator=(const Chebyshev& other)
 {
     if (&other != this) {
         EnableLinOp<Chebyshev>::operator=(other);
-        EnableSolverBase<Chebyshev>::operator=(other);
-        EnableIterativeBase<Chebyshev>::operator=(other);
+        EnablePreconditionedIterativeSolver<
+            ValueType, Chebyshev<ValueType>>::operator=(other);
         this->parameters_ = other.parameters_;
-        this->set_solver(other.get_solver());
+        // the workspace is not copied.
+        this->num_generated_scalar_ = 0;
+        this->num_max_generation_ = 3;
     }
     return *this;
 }
@@ -92,11 +69,11 @@ Chebyshev<ValueType>& Chebyshev<ValueType>::operator=(Chebyshev&& other)
 {
     if (&other != this) {
         EnableLinOp<Chebyshev>::operator=(std::move(other));
-        EnableSolverBase<Chebyshev>::operator=(std::move(other));
-        EnableIterativeBase<Chebyshev>::operator=(std::move(other));
-        this->parameters_ = std::exchange(other.parameters_, parameters_type{});
-        this->set_solver(other.get_solver());
-        other.set_solver(nullptr);
+        EnablePreconditionedIterativeSolver<
+            ValueType, Chebyshev<ValueType>>::operator=(std::move(other));
+        // the workspace is not moved.
+        this->num_generated_scalar_ = 0;
+        this->num_max_generation_ = 3;
     }
     return *this;
 }
@@ -122,8 +99,8 @@ template <typename ValueType>
 std::unique_ptr<LinOp> Chebyshev<ValueType>::transpose() const
 {
     return build()
-        .with_generated_solver(
-            share(as<Transposable>(this->get_solver())->transpose()))
+        .with_generated_preconditioner(
+            share(as<Transposable>(this->get_preconditioner())->transpose()))
         .with_criteria(this->get_stop_criterion_factory())
         .with_foci(parameters_.foci)
         .on(this->get_executor())
@@ -136,8 +113,8 @@ template <typename ValueType>
 std::unique_ptr<LinOp> Chebyshev<ValueType>::conj_transpose() const
 {
     return build()
-        .with_generated_solver(
-            share(as<Transposable>(this->get_solver())->conj_transpose()))
+        .with_generated_preconditioner(share(
+            as<Transposable>(this->get_preconditioner())->conj_transpose()))
         .with_criteria(this->get_stop_criterion_factory())
         .with_foci(conj(std::get<0>(parameters_.foci)),
                    conj(std::get<1>(parameters_.foci)))
@@ -252,13 +229,13 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
             break;
         }
 
-        if (solver_->apply_uses_initial_guess()) {
+        if (this->get_preconditioner()->apply_uses_initial_guess()) {
             // Use the inner solver to solve
             // A * inner_solution = residual
             // with residual as initial guess.
             inner_solution->copy_from(residual_ptr);
         }
-        solver_->apply(residual_ptr, inner_solution);
+        this->get_preconditioner()->apply(residual_ptr, inner_solution);
         size_type index =
             (iter >= num_max_generation_) ? num_max_generation_ : iter;
         auto alpha_scalar =
