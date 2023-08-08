@@ -114,8 +114,6 @@ set(GKO_RPATH_ADDITIONS "")
 
 if(GINKGO_HAVE_PAPI_SDE)
     target_link_libraries(ginkgo PUBLIC PAPI::PAPI_SDE)
-    get_filename_component(GKO_PAPI_LIBDIR "${PAPI_SDE_LIBRARIES}" DIRECTORY)
-    list(APPEND GKO_RPATH_ADDITIONS "${GKO_PAPI_LIBDIR}")
 endif()
 
 if(GINKGO_HAVE_TAU)
