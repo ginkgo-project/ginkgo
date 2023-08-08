@@ -71,7 +71,8 @@ protected:
         }
     }
 
-    void TearDown() {
+    void TearDown()
+    {
         logger = nullptr;
         PAPI_destroy_eventset(&eventset);
         PAPI_shutdown();

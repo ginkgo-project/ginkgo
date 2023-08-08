@@ -44,8 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <map>
 #include <mutex>
-
-
 #include <sde_lib.h>
 
 
@@ -210,7 +208,7 @@ public:
     create(std::shared_ptr<const gko::Executor>,
            const Logger::mask_type& enabled_events = Logger::all_events_mask)
     {
-        return std::shared_ptr<Papi>(new Papi(enabled_events), [](auto logger){
+        return std::shared_ptr<Papi>(new Papi(enabled_events), [](auto logger) {
             papi_sde_shutdown(logger->get_handle());
             delete logger;
         });
@@ -224,11 +222,10 @@ public:
     static std::shared_ptr<Papi> create(
         const Logger::mask_type& enabled_events = Logger::all_events_mask)
     {
-        return std::shared_ptr<Papi>(new Papi(enabled_events), [](auto logger){
+        return std::shared_ptr<Papi>(new Papi(enabled_events), [](auto logger) {
             papi_sde_shutdown(logger->get_handle());
             delete logger;
-        }
-);
+        });
     }
 
     /**
