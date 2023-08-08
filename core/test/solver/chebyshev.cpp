@@ -162,10 +162,7 @@ TYPED_TEST(Chebyshev, CanSetInnerSolverInFactory)
     auto chebyshev_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec),
-                gko::stop::ResidualNorm<value_type>::build()
-                    .with_reduction_factor(r<value_type>::value)
-                    .on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
             .with_solver(
                 Solver::build()
                     .with_criteria(
