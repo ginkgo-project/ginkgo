@@ -129,8 +129,8 @@ public:
             GKO_FACTORY_PARAMETER_VECTOR(criteria, nullptr);
 
         /**
-         * Inner solver factory. If not provided this will result in a
-         * non-preconditioned Chebyshev iteration.
+         * Inner solver (preconditioner) factory. If not provided this will
+         * result in a non-preconditioned Chebyshev iteration.
          */
         std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
             solver, nullptr);
@@ -143,8 +143,9 @@ public:
             generated_solver, nullptr);
 
         /**
-         * The pair of foci of ellipse. It is usually be {lower bound of eigval,
-         * upper bound of eigval} for real matrices.
+         * The pair of foci of ellipse, which covers the eigenvalues of
+         * preconditioned system. It is usually be {lower bound of eigval, upper
+         * bound of eigval} of preconditioned real matrices.
          */
         std::pair<value_type, value_type> GKO_FACTORY_PARAMETER_VECTOR(
             foci, value_type{0}, value_type{1});
