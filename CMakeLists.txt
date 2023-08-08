@@ -255,7 +255,6 @@ if(GINKGO_BUILD_MPI)
 endif()
 
 # Try to find the third party packages before using our subdirectories
-include(cmake/package_helpers.cmake)
 if(GINKGO_BUILD_TESTS)
     find_package(GTest 1.10.0) # No need for QUIET as CMake ships FindGTest
 endif()
