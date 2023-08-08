@@ -878,11 +878,11 @@ struct enable_iterative_solver_factory_parameters
      * used by the iterative solver in a fluent interface.
      */
     template <typename... Args>
-    Parameters& with_criteria(Args... value)
+    Parameters& with_criteria(Args&&... value)
     {
         this->criterion_generators = {
             deferred_factory_parameter<stop::CriterionFactory>{
-                std::move(value)}...};
+                std::forward<Args>(value)}...};
         return *self();
     }
 

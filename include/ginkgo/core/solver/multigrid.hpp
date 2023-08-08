@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 
 
+#include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
@@ -224,8 +225,16 @@ public:
         /**
          * MultigridLevel Factory list
          */
-        std::vector<std::shared_ptr<const gko::LinOpFactory>>
-            GKO_FACTORY_PARAMETER_VECTOR(mg_level, nullptr);
+        std::vector<std::shared_ptr<const LinOpFactory>> mg_level{nullptr};
+
+        template <typename... Args>
+        parameters_type& with_mg_level(Args&&... level)
+        {
+            this->mg_level_generator = {
+                deferred_factory_parameter<LinOpFactory>{
+                    std::forward<Args>(level)}...};
+            return *this;
+        }
 
         /**
          * Custom selector size_type (size_type level, const LinOp* fine_matrix)
@@ -256,6 +265,7 @@ public:
         std::function<size_type(const size_type, const LinOp*)>
             GKO_FACTORY_PARAMETER_SCALAR(level_selector, nullptr);
 
+        using smoother_list = std::vector<std::shared_ptr<const LinOpFactory>>;
         /**
          * Pre-smooth Factory list.
          * Its size must be 0, 1 or be the same as mg_level's.
@@ -270,17 +280,14 @@ public:
          * If any element in the vector is a `nullptr` then the smoother
          * application at the corresponding level is skipped.
          */
-        using smoother_list = std::vector<std::shared_ptr<const LinOpFactory>>;
-        smoother_list GKO_FACTORY_PARAMETER_VECTOR(pre_smoother,
-                                                   smoother_list{});
+        smoother_list pre_smoother{};
 
         /**
          * Post-smooth Factory list.
          * It is similar to Pre-smooth Factory list. It is ignored if
          * the factory parameter post_uses_pre is set to true.
          */
-        smoother_list GKO_FACTORY_PARAMETER_VECTOR(post_smoother,
-                                                   smoother_list{});
+        smoother_list post_smoother{};
 
         /**
          * Mid-smooth Factory list. If it contains available elements, multigrid
@@ -289,8 +296,34 @@ public:
          * Pre-smooth Factory list. It is ignored if the factory parameter
          * mid_case is not mid.
          */
-        smoother_list GKO_FACTORY_PARAMETER_VECTOR(mid_smoother,
-                                                   smoother_list{});
+        smoother_list mid_smoother{};
+
+        template <typename... Args>
+        parameters_type& with_pre_smoother(Args&&... smoother)
+        {
+            this->pre_smoother_generator = {
+                deferred_factory_parameter<LinOpFactory>{
+                    std::forward<Args>(smoother)}...};
+            return *this;
+        }
+
+        template <typename... Args>
+        parameters_type& with_post_smoother(Args&&... smoother)
+        {
+            this->post_smoother_generator = {
+                deferred_factory_parameter<LinOpFactory>{
+                    std::forward<Args>(smoother)}...};
+            return *this;
+        }
+
+        template <typename... Args>
+        parameters_type& with_mid_smoother(Args&&... smoother)
+        {
+            this->mid_smoother_generator = {
+                deferred_factory_parameter<LinOpFactory>{
+                    std::forward<Args>(smoother)}...};
+            return *this;
+        }
 
         /**
          * Whether post-smoothing-related calls use corresponding
@@ -330,8 +363,17 @@ public:
          * If not set, then a direct LU solver will be used as solver on the
          * coarsest level.
          */
-        std::vector<std::shared_ptr<const LinOpFactory>>
-            GKO_FACTORY_PARAMETER_VECTOR(coarsest_solver, nullptr);
+        std::vector<std::shared_ptr<const LinOpFactory>> coarsest_solver{
+            nullptr};
+
+        template <typename... Args>
+        parameters_type& with_coarsest_solver(Args&&... solver)
+        {
+            this->coarsest_solver_generator = {
+                deferred_factory_parameter<LinOpFactory>{
+                    std::forward<Args>(solver)}...};
+            return *this;
+        }
 
         /**
          * Custom coarsest_solver selector
@@ -403,6 +445,59 @@ public:
          */
         initial_guess_mode GKO_FACTORY_PARAMETER_SCALAR(
             default_initial_guess, initial_guess_mode::zero);
+
+        std::unique_ptr<Factory> on(std::shared_ptr<const Executor> exec) const
+        {
+            auto copy = *this;
+            if (!copy.mg_level_generator.empty()) {
+                copy.mg_level.clear();
+                for (auto& generator : copy.mg_level_generator) {
+                    copy.mg_level.push_back(generator.on(exec));
+                }
+            }
+            if (!copy.pre_smoother_generator.empty()) {
+                copy.pre_smoother.clear();
+                for (auto& generator : copy.pre_smoother_generator) {
+                    copy.pre_smoother.push_back(generator ? generator.on(exec)
+                                                          : nullptr);
+                }
+            }
+            if (!copy.mid_smoother_generator.empty()) {
+                copy.mid_smoother.clear();
+                for (auto& generator : copy.mid_smoother_generator) {
+                    copy.mid_smoother.push_back(generator ? generator.on(exec)
+                                                          : nullptr);
+                }
+            }
+            if (!copy.post_smoother_generator.empty()) {
+                copy.post_smoother.clear();
+                for (auto& generator : copy.post_smoother_generator) {
+                    copy.post_smoother.push_back(generator ? generator.on(exec)
+                                                           : nullptr);
+                }
+            }
+            if (!copy.coarsest_solver_generator.empty()) {
+                copy.coarsest_solver.clear();
+                for (auto& generator : copy.coarsest_solver_generator) {
+                    copy.coarsest_solver.push_back(
+                        generator ? generator.on(exec) : nullptr);
+                }
+            }
+            return copy.enable_iterative_solver_factory_parameters<
+                parameters_type, Factory>::on(exec);
+        }
+
+    private:
+        std::vector<deferred_factory_parameter<LinOpFactory>>
+            mg_level_generator;
+        std::vector<deferred_factory_parameter<LinOpFactory>>
+            pre_smoother_generator;
+        std::vector<deferred_factory_parameter<LinOpFactory>>
+            mid_smoother_generator;
+        std::vector<deferred_factory_parameter<LinOpFactory>>
+            post_smoother_generator;
+        std::vector<deferred_factory_parameter<LinOpFactory>>
+            coarsest_solver_generator;
     };
     GKO_ENABLE_LIN_OP_FACTORY(Multigrid, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
