@@ -340,7 +340,7 @@ TYPED_TEST(Chebyshev, SolvesTriangularSystemWithIterativeInnerSolver)
     using value_type = typename TestFixture::value_type;
 
     const gko::remove_complex<value_type> inner_reduction_factor = 1e-2;
-    auto inner_solver_factory = gko::share(
+    auto precond_factory = gko::share(
         gko::solver::Gmres<value_type>::build()
             .with_criteria(gko::stop::ResidualNorm<value_type>::build()
                                .with_reduction_factor(inner_reduction_factor)
@@ -354,7 +354,7 @@ TYPED_TEST(Chebyshev, SolvesTriangularSystemWithIterativeInnerSolver)
                            gko::stop::ResidualNorm<value_type>::build()
                                .with_reduction_factor(r<value_type>::value)
                                .on(this->exec))
-            .with_solver(inner_solver_factory)
+            .with_preconditioner(precond_factory)
             .with_foci(value_type{0.9}, value_type{1.1})
             .on(this->exec);
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
