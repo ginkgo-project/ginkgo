@@ -104,9 +104,9 @@ TYPED_TEST(Chebyshev, ChebyshevFactoryCreatesCorrectSolver)
 {
     using Solver = typename TestFixture::Solver;
     ASSERT_EQ(this->solver->get_size(), gko::dim<2>(3, 3));
-    auto cg_solver = static_cast<Solver*>(this->solver.get());
-    ASSERT_NE(cg_solver->get_system_matrix(), nullptr);
-    ASSERT_EQ(cg_solver->get_system_matrix(), this->mtx);
+    auto solver = static_cast<Solver*>(this->solver.get());
+    ASSERT_NE(solver->get_system_matrix(), nullptr);
+    ASSERT_EQ(solver->get_system_matrix(), this->mtx);
 }
 
 
@@ -196,7 +196,7 @@ TYPED_TEST(Chebyshev, CanSetInnerSolverInFactory)
         Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
-            .with_solver(
+            .with_preconditioner(
                 Solver::build()
                     .with_criteria(
                         gko::stop::Iteration::build().with_max_iters(3u).on(
@@ -204,12 +204,12 @@ TYPED_TEST(Chebyshev, CanSetInnerSolverInFactory)
                     .on(this->exec))
             .on(this->exec);
     auto solver = chebyshev_factory->generate(this->mtx);
-    auto inner_solver = dynamic_cast<const Solver*>(
-        static_cast<Solver*>(solver.get())->get_solver().get());
+    auto preconditioner = dynamic_cast<const Solver*>(
+        static_cast<Solver*>(solver.get())->get_preconditioner().get());
 
-    ASSERT_NE(inner_solver, nullptr);
-    ASSERT_EQ(inner_solver->get_size(), gko::dim<2>(3, 3));
-    ASSERT_EQ(inner_solver->get_system_matrix(), this->mtx);
+    ASSERT_NE(preconditioner, nullptr);
+    ASSERT_EQ(preconditioner->get_size(), gko::dim<2>(3, 3));
+    ASSERT_EQ(preconditioner->get_system_matrix(), this->mtx);
 }
 
 
@@ -227,13 +227,13 @@ TYPED_TEST(Chebyshev, CanSetGeneratedInnerSolverInFactory)
         Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
-            .with_generated_solver(chebyshev_solver)
+            .with_generated_preconditioner(chebyshev_solver)
             .on(this->exec);
     auto solver = chebyshev_factory->generate(this->mtx);
-    auto inner_solver = solver->get_solver();
+    auto preconditioner = solver->get_preconditioner();
 
-    ASSERT_NE(inner_solver.get(), nullptr);
-    ASSERT_EQ(inner_solver.get(), chebyshev_solver.get());
+    ASSERT_NE(preconditioner.get(), nullptr);
+    ASSERT_EQ(preconditioner.get(), chebyshev_solver.get());
 }
 
 
@@ -279,7 +279,7 @@ TYPED_TEST(Chebyshev, ThrowsOnWrongInnerSolverInFactory)
         Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
-            .with_generated_solver(chebyshev_solver)
+            .with_generated_preconditioner(chebyshev_solver)
             .on(this->exec);
 
     ASSERT_THROW(chebyshev_factory->generate(this->mtx),
@@ -303,11 +303,11 @@ TYPED_TEST(Chebyshev, CanSetInnerSolver)
                 gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
             .on(this->exec);
     auto solver = chebyshev_factory->generate(this->mtx);
-    solver->set_solver(chebyshev_solver);
-    auto inner_solver = solver->get_solver();
+    solver->set_preconditioner(chebyshev_solver);
+    auto preconditioner = solver->get_preconditioner();
 
-    ASSERT_NE(inner_solver.get(), nullptr);
-    ASSERT_EQ(inner_solver.get(), chebyshev_solver.get());
+    ASSERT_NE(preconditioner.get(), nullptr);
+    ASSERT_EQ(preconditioner.get(), chebyshev_solver.get());
 }
 
 
@@ -353,7 +353,8 @@ TYPED_TEST(Chebyshev, ThrowOnWrongInnerSolverSet)
             .on(this->exec);
     auto solver = chebyshev_factory->generate(this->mtx);
 
-    ASSERT_THROW(solver->set_solver(chebyshev_solver), gko::DimensionMismatch);
+    ASSERT_THROW(solver->set_preconditioner(chebyshev_solver),
+                 gko::DimensionMismatch);
 }
 
 
