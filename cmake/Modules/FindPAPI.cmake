@@ -57,6 +57,7 @@ if(NOT PAPI_LIBRARY)
     select_library_configurations(PAPI)
 endif()
 
+set(WORK_DIR "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/FindPAPI")
 if(PAPI_INCLUDE_DIR)
     if(EXISTS "${PAPI_INCLUDE_DIR}/papi.h")
         file(STRINGS "${PAPI_INCLUDE_DIR}/papi.h" papi_version_str REGEX "^#define[\t ]+PAPI_VERSION[\t ]+.*")
@@ -70,7 +71,9 @@ if(PAPI_INCLUDE_DIR)
         # find the components
         enable_language(C)
         foreach(component IN LISTS PAPI_FIND_COMPONENTS)
-            file(WRITE "${PROJECT_BINARY_DIR}/papi_${component}_detect.c"
+            set(SRC_FILE "${WORK_DIR}/papi_${component}_detect.c")
+            set(BIN_FILE "${WORK_DIR}/papi_${component}_detect.bin")
+            file(WRITE "${SRC_FILE}"
                 "
                 #include <papi.h>
                 int main() {
@@ -78,17 +81,18 @@ if(PAPI_INCLUDE_DIR)
                  retval = PAPI_library_init(PAPI_VER_CURRENT);
                    if (retval != PAPI_VER_CURRENT && retval > 0)
                     return -1;
-                   if (PAPI_get_component_index(\"${component}\") < 0)
+                   if (PAPI_get_component_index(\"${component}\") == PAPI_ENOCMP)
                     return 0;
                    return 1;
                 }"
                 )
             try_run(PAPI_${component}_FOUND
                 gko_result_unused
-                "${PROJECT_BINARY_DIR}"
-                "${PROJECT_BINARY_DIR}/papi_${component}_detect.c"
+                "${WORK_DIR}"
+                "${SRC_FILE}"
                 CMAKE_FLAGS -DINCLUDE_DIRECTORIES=${PAPI_INCLUDE_DIR}
                 LINK_LIBRARIES ${PAPI_LIBRARY}
+                COPY_FILE ${BIN_FILE}
                 )
 
             if (NOT PAPI_${component}_FOUND EQUAL 1)
@@ -104,6 +108,33 @@ find_package_handle_standard_args(PAPI
                                   REQUIRED_VARS PAPI_LIBRARY PAPI_INCLUDE_DIR
                                   VERSION_VAR PAPI_VERSION_STRING
                                   HANDLE_COMPONENTS)
+
+if(PAPI_sde_FOUND)
+    # PAPI SDE is another library and header, let's try to find them
+    find_path(PAPI_SDE_INCLUDE_DIR NAMES sde_lib.h)
+    mark_as_advanced(PAPI_SDE_INCLUDE_DIR)
+
+    if(NOT PAPI_SDE_LIBRARY)
+        find_library(PAPI_SDE_LIBRARY_RELEASE NAMES
+            sde
+        )
+        mark_as_advanced(PAPI_SDE_LIBRARY_RELEASE)
+
+        find_library(PAPI_SDE_LIBRARY_DEBUG NAMES
+            sded
+            sde-d
+        )
+        mark_as_advanced(PAPI_SDE_LIBRARY_DEBUG)
+
+        include(SelectLibraryConfigurations)
+        select_library_configurations(PAPI_SDE)
+    endif()
+
+    # FIXME: with CMake>=3.17, use NAME_MISMATCHED to get rid of the warning
+    find_package_handle_standard_args(PAPI_SDE
+        REQUIRED_VARS PAPI_SDE_LIBRARY PAPI_SDE_INCLUDE_DIR
+        VERSION_VAR PAPI_VERSION_STRING)
+endif()
 
 if(PAPI_FOUND)
     set(PAPI_LIBRARIES ${PAPI_LIBRARY})
@@ -139,6 +170,44 @@ if(PAPI_FOUND)
                 INTERFACE_LINK_LIBRARIES_DEBUG "${PAPI_LIBRARY_DEBUG}"
                 IMPORTED_LOCATION_DEBUG "${PAPI_LIBRARY_DEBUG}")
             unset(PAPI_LIBRARY_DEBUG)
+        endif()
+    endif()
+endif()
+
+if (PAPI_SDE_FOUND AND NOT TARGET PAPI::PAPI_SDE)
+    set(PAPI_SDE_LIBRARIES ${PAPI_SDE_LIBRARY})
+    set(PAPI_SDE_INCLUDE_DIRS ${PAPI_SDE_INCLUDE_DIR})
+    unset(PAPI_SDE_LIBRARY)
+    unset(PAPI_SDE_INCLUDE_DIR)
+
+    if(NOT TARGET PAPI::PAPI_SDE)
+        add_library(PAPI::PAPI_SDE UNKNOWN IMPORTED)
+        set_target_properties(PAPI::PAPI_SDE PROPERTIES
+            INTERFACE_INCLUDE_DIRECTORIES "${PAPI_SDE_INCLUDE_DIRS}")
+
+        if(EXISTS "${PAPI_SDE_LIBRARIES}")
+            set_target_properties(PAPI::PAPI_SDE PROPERTIES
+                IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+                INTERFACE_LINK_LIBRARIES "${PAPI_SDE_LIBRARIES}"
+                IMPORTED_LOCATION "${PAPI_SDE_LIBRARIES}")
+        endif()
+        if(PAPI_SDE_LIBRARY_RELEASE)
+            set_property(TARGET PAPI::PAPI_SDE APPEND PROPERTY
+                IMPORTED_CONFIGURATIONS RELEASE)
+            set_target_properties(PAPI::PAPI_SDE PROPERTIES
+                IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+                INTERFACE_LINK_LIBRARIES_RELEASE "${PAPI_SDE_LIBRARY_RELEASE}"
+                IMPORTED_LOCATION_RELEASE "${PAPI_SDE_LIBRARY_RELEASE}")
+            unset(PAPI_SDE_LIBRARY_RELEASE)
+        endif()
+        if(PAPI_SDE_LIBRARY_DEBUG)
+            set_property(TARGET PAPI::PAPI_SDE APPEND PROPERTY
+                IMPORTED_CONFIGURATIONS DEBUG)
+            set_target_properties(PAPI::PAPI_SDE PROPERTIES
+                IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+                INTERFACE_LINK_LIBRARIES_DEBUG "${PAPI_SDE_LIBRARY_DEBUG}"
+                IMPORTED_LOCATION_DEBUG "${PAPI_SDE_LIBRARY_DEBUG}")
+            unset(PAPI_SDE_LIBRARY_DEBUG)
         endif()
     endif()
 endif()
