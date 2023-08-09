@@ -119,7 +119,6 @@ function(ginkgo_create_cuda_test_internal test_name filename test_target_name)
     target_compile_definitions(${test_target_name} PRIVATE GKO_COMPILING_CUDA)
     target_compile_options(${test_target_name}
         PRIVATE
-            $<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_ARCH_FLAGS}>
             $<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_COMPILER_FLAGS}>)
     if(MSVC)
         target_compile_options(${test_target_name}
