@@ -17,6 +17,7 @@ target_sources(ginkgo
     base/perturbation.cpp
     base/timer.cpp
     base/version.cpp
+    config/config.cpp
     config/property_tree.cpp
     distributed/partition.cpp
     factorization/cholesky.cpp
