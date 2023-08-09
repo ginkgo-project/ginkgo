@@ -55,7 +55,8 @@ void restrict_residual1(std::shared_ptr<const DefaultExecutor> exec,
 
     for (auto i = 0; i < global_residual->get_size()[0]; i++) {
         local_residual->at(local_to_local_data[i], 0) =
-            w[local_to_local_data[i]] * global_residual->at(i, 0);
+            global_residual->at(i, 0);
+        // w[local_to_local_data[i]] * global_residual->at(i, 0);
     }
 
     for (auto i = 0; i < local_to_send_buffer.get_num_elems(); i++) {

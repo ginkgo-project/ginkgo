@@ -421,9 +421,9 @@ int main(int argc, char* argv[])
     auto A_host = gko::share(dist_mtx::create(exec->get_master(), comm));
     auto x_host = dist_vec::create(exec->get_master(), comm);
     auto b_host = dist_vec::create(exec->get_master(), comm);
-    A_host->read_distributed(A_data_, partition.get(), true);
-    b_host->read_distributed(b_data, partition.get());
-    x_host->read_distributed(x_data, partition.get());
+    A_host->read_distributed(A_data_, partition, true);
+    b_host->read_distributed(b_data, partition);
+    x_host->read_distributed(x_data, partition);
     // After reading, the matrix and vector can be moved to the chosen executor,
     // since the distributed matrix supports SpMV also on devices.
     auto A = gko::share(dist_mtx::create(exec, comm));
@@ -468,6 +468,23 @@ int main(int argc, char* argv[])
                                                   LocalIndexType>::build()
                     .with_factorization(gko::experimental::factorization::Lu<
                                             ValueType, LocalIndexType>::build()
+                                            //.with_symmetric_sparsity(true)
+                                            .on(exec))
+                    .on(exec))
+            .with_reordering(
+                gko::reorder::Mc64<ValueType, LocalIndexType>::build().on(exec))
+            .with_reordering_linop(
+                gko::experimental::reorder::Amd<LocalIndexType>::build().on(
+                    exec))
+            .on(exec));
+    auto mixed_direct_factory = gko::share(
+        gko::experimental::reorder::ScaledReordered<ValueType,
+                                                    LocalIndexType>::build()
+            .with_inner_operator(
+                gko::experimental::solver::Direct<float,
+                                                  LocalIndexType>::build()
+                    .with_factorization(gko::experimental::factorization::Lu<
+                                            float, LocalIndexType>::build()
                                             //.with_symmetric_sparsity(true)
                                             .on(exec))
                     .on(exec))
@@ -532,14 +549,14 @@ int main(int argc, char* argv[])
         cg::build()
             .with_criteria(
                 gko::stop::Iteration::build()
-                    .with_max_iters(max_it)  // comm.size() * comm.size())
+                    .with_max_iters(100u)  // comm.size() * comm.size())
                     .on(exec),
                 gko::stop::ResidualNorm<ValueType>::build()
                     .with_reduction_factor(tol)
                     .on(exec))
             .on(exec));
 
-    auto local_factory = (direct == 1) ? direct_factory : gmres_factory;
+    auto local_factory = direct_factory;
     std::shared_ptr<gko::LinOp> Ainv;
     if (preconditioned == 0) {
         Ainv = gko::share(gko::solver::Cg<ValueType>::build()
@@ -548,15 +565,15 @@ int main(int argc, char* argv[])
                               ->generate(A));
     } else {
         Ainv = gko::share(
-            gko::solver::Cg<ValueType>::build()
+            gko::solver::Gmres<ValueType>::build()
                 .with_preconditioner(
                     bddc::build()
                         .with_static_condensation(static_condensation == 1)
                         .with_interface_dofs(interface_dofs)
                         .with_interface_dof_ranks(interface_dof_ranks)
-                        .with_local_solver_factory(local_factory)
-                        .with_schur_complement_solver_factory(local_factory)
-                        .with_inner_solver_factory(local_factory)
+                        .with_local_solver_factory(direct_factory)
+                        .with_schur_complement_solver_factory(direct_factory)
+                        .with_inner_solver_factory(direct_factory)
                         .with_coarse_solver_factory(
                             cg_factory)  // gmres_factory)
                         .on(exec))
@@ -577,7 +594,7 @@ int main(int argc, char* argv[])
 
     // Apply the distributed solver, this is the same as in the non-distributed
     // case.
-    Ainv->apply(gko::lend(b), gko::lend(x));
+    Ainv->apply(b, x);
 
     // Take timings.
     comm.synchronize();
@@ -591,7 +608,7 @@ int main(int argc, char* argv[])
     for (auto i = 0; i < reps; i++) {
         x->fill(gko::zero<ValueType>());
         ValueType t_start = gko::experimental::mpi::get_walltime();
-        Ainv->apply(gko::lend(b), gko::lend(x));
+        Ainv->apply(b, x);
         comm.synchronize();
         ValueType t_end = gko::experimental::mpi::get_walltime();
         t_apply += t_end - t_start;
@@ -612,9 +629,9 @@ int main(int argc, char* argv[])
     x_host->add_scaled(minus_one, x);
     x_host->compute_norm2(err_norm);
 
-    // std::string res_name = "err_" + std::to_string(comm.rank()) + ".mtx";
-    // std::ofstream res_out{res_name};
-    // gko::write(res_out, x_host->get_local_vector());
+    std::string res_name = "err_" + std::to_string(comm.rank()) + ".mtx";
+    std::ofstream res_out{res_name};
+    gko::write(res_out, x_host->get_local_vector());
 
     // Take timings.
     comm.synchronize();

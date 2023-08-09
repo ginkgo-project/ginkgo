@@ -122,6 +122,8 @@ public:
          */
         std::shared_ptr<const matrix::Diagonal<value_type>>
             GKO_FACTORY_PARAMETER_SCALAR(col_scaling, nullptr);
+
+        bool GKO_FACTORY_PARAMETER_SCALAR(mixed, false);
     };
     GKO_ENABLE_LIN_OP_FACTORY(ScaledReordered, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -197,6 +199,8 @@ protected:
             inner_operator_ = gko::matrix::Identity<value_type>::create(
                 exec, this->get_size());
         }
+
+        cache_.mixed = parameters_.mixed;
     }
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
@@ -226,6 +230,17 @@ protected:
                 matrix::Dense<value_type>::create(this->get_executor(), size);
             cache_.intermediate =
                 matrix::Dense<value_type>::create(this->get_executor(), size);
+            if (cache_.mixed) {
+                cache_.mixed_b =
+                    matrix::Dense<next_precision<value_type>>::create(
+                        this->get_executor(), size);
+                cache_.mixed_x =
+                    matrix::Dense<next_precision<value_type>>::create(
+                        this->get_executor(), size);
+                cache_.mixed_intermediate =
+                    matrix::Dense<next_precision<value_type>>::create(
+                        this->get_executor(), size);
+            }
         }
         cache_.inner_b->copy_from(b);
         if (inner_operator_->apply_uses_initial_guess()) {
@@ -267,6 +282,11 @@ private:
         std::unique_ptr<matrix::Dense<value_type>> inner_b{};
         std::unique_ptr<matrix::Dense<value_type>> inner_x{};
         std::unique_ptr<matrix::Dense<value_type>> intermediate{};
+        std::unique_ptr<matrix::Dense<next_precision<value_type>>> mixed_b{};
+        std::unique_ptr<matrix::Dense<next_precision<value_type>>> mixed_x{};
+        std::unique_ptr<matrix::Dense<next_precision<value_type>>>
+            mixed_intermediate{};
+        bool mixed;
     } cache_;
 };
 

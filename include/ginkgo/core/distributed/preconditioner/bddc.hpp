@@ -201,6 +201,8 @@ protected:
 
     void generate_coarse_system();
 
+    void generate_weights();
+
     void restrict_residual(const LinOp* global_residual) const;
 
     void coarsen_residual() const;

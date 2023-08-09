@@ -43,8 +43,8 @@ __global__ __launch_bounds__(default_block_size) void restrict_residual(
 
     if (global_idx < num_global_rows) {
         const auto local_idx = global_to_local[global_idx];
-        local_residual[local_idx] =
-            weights[local_idx] * global_residual[global_idx];
+        local_residual[local_idx] = global_residual[global_idx];
+        // weights[local_idx] * global_residual[global_idx];
     }
 }
 

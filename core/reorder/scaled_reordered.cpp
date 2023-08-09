@@ -87,7 +87,16 @@ void ScaledReordered<ValueType, IndexType>::apply_impl(const LinOp* b,
                 }
             }
 
-            inner_operator_->apply(cache_.inner_b, cache_.inner_x);
+            if (cache_.mixed) {
+                cache_.mixed_b->copy_from(cache_.inner_b);
+                if (inner_operator_->apply_uses_initial_guess()) {
+                    cache_.mixed_x->copy_from(cache_.inner_x);
+                }
+                inner_operator_->apply(cache_.mixed_b, cache_.mixed_x);
+                cache_.inner_x->copy_from(cache_.mixed_x);
+            } else {
+                inner_operator_->apply(cache_.inner_b, cache_.inner_x);
+            }
 
             // Permute and scale the solution vector back.
             if (permutation_array_.get_num_elems() > 0) {

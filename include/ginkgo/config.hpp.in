@@ -107,7 +107,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if GKO_HAVE_METIS
 // clang-format off
-#define GKO_METIS_HEADER <@METIS_HEADER@>
+#define GKO_METIS_HEADER </ccs/home/fgoebel/install/include/metis.h>
 // clang-format on
 #endif
 
