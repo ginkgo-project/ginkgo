@@ -19,6 +19,7 @@ target_sources(ginkgo
     base/segmented_array.cpp
     base/timer.cpp
     base/version.cpp
+    config/config.cpp
     config/property_tree.cpp
     distributed/index_map.cpp
     distributed/partition.cpp
