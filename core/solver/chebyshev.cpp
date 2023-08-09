@@ -195,6 +195,7 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
     GKO_SOLVER_VECTOR(inner_solution, dense_b);
     GKO_SOLVER_VECTOR(update_solution, dense_b);
 
+    auto old_num_max_generation = num_max_generation_;
     // Use the scalar first
     // get the iteration information from stopping criterion.
     if (auto combined =
@@ -212,6 +213,10 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
                    this->get_stop_criterion_factory())) {
         num_max_generation_ = std::max(num_max_generation_,
                                        iter_stop->get_parameters().max_iters);
+    }
+    // Regenerate the vector if we realloc the memory.
+    if (old_num_max_generation != num_max_generation_) {
+        num_generated_scalar_ = 0;
     }
     auto alpha = this->template create_workspace_scalar<ValueType>(
         GKO_SOLVER_TRAITS::alpha, num_max_generation_ + 1);
