@@ -12,6 +12,8 @@
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
 
 
 #include "core/distributed/helpers.hpp"
@@ -20,6 +22,39 @@
 
 
 namespace gko {
+namespace config {
+
+
+template <>
+std::unique_ptr<gko::LinOpFactory>
+build_from_config<static_cast<int>(gko::config::LinOpFactoryType::Cg)>(
+    const gko::config::Config& config, std::shared_ptr<const Executor>& exec,
+    const gko::config::registry& context)
+{
+    // TODO: select the type, always using double as demo.
+    // extract the following to another function (or build_from_config) to make
+    // this function only select type
+    auto factory = gko::solver::Cg<double>::build_from_config(config, context);
+    // handle parameter requires exec
+    // criteria and preconditioner are almost in each solver -> to another
+    // function.
+    factory.with_criteria(
+        gko::stop::Iteration::build().with_max_iters(1u).on(exec));
+    {
+        auto str = config.find("preconditioner");
+        if (str != config.end()) {
+            // assume we have the config for nest object
+            factory.with_preconditioner(build_from_config(
+                Config{{"Type", str->second}}, exec, context));
+        }
+    }
+    return std::move(factory.on(exec));
+}
+
+
+}  // namespace config
+
+
 namespace solver {
 namespace cg {
 namespace {
