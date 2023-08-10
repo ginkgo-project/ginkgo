@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.18)
 project(custom-matrix-format CXX CUDA)
 
 # We only need to find Ginkgo if we build this example stand-alone
