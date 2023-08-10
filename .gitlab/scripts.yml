@@ -52,6 +52,7 @@
         -DGINKGO_DPCPP_SINGLE_MODE=${DPCPP_SINGLE_MODE}
         -DGINKGO_EXPORT_BUILD_DIR=${EXPORT_BUILD_DIR}
     - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT} install
+    - awk '!/^#/ { print ($2 - $1)/1000 " " $4 }' .ninja_log | sort -nr
     - if [ "${EXPORT_BUILD_DIR}" == "ON" ]; then ninja test_exportbuild; fi
     - LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH ninja test_pkgconfig
   dependencies: []
@@ -94,6 +95,7 @@
         -DGINKGO_RUN_EXAMPLES=${RUN_EXAMPLES}
         -DGINKGO_EXPORT_BUILD_DIR=${EXPORT_BUILD_DIR}
     - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT} install
+    - awk '!/^#/ { print ($2 - $1)/1000 " " $4 }' .ninja_log | sort -nr
     - |
         (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
     - ctest -V --timeout 6000
