@@ -55,13 +55,13 @@ enum LinOpFactoryType : int { Cg = 0 };
 // IT selection, we do not need it in public.
 template <int flag>
 std::unique_ptr<gko::LinOpFactory> build_from_config(
-    const gko::config::Config& config, std::shared_ptr<const Executor>& exec,
-    const gko::config::registry& context);
+    const gko::config::Config& config, const gko::config::registry& context,
+    std::shared_ptr<const Executor>& exec);
 
 // The main function
 std::unique_ptr<gko::LinOpFactory> build_from_config(
-    const gko::config::Config& config, std::shared_ptr<const Executor>& exec,
-    const gko::config::registry& context);
+    const gko::config::Config& config, const gko::config::registry& context,
+    std::shared_ptr<const Executor>& exec);
 
 
 BuildFromConfigMap generate_config_map();
