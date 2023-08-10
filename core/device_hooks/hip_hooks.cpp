@@ -76,6 +76,9 @@ bool HipAsyncAllocator::check_environment(int device_id,
     GKO_NOT_COMPILED(hip);
 
 
+HipUnifiedAllocator::HipUnifiedAllocator(int device_id) GKO_NOT_COMPILED(hip);
+
+
 HipUnifiedAllocator::HipUnifiedAllocator(int device_id, unsigned int flags)
     GKO_NOT_COMPILED(hip);
 
