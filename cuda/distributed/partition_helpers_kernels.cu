@@ -39,6 +39,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thrust/sort.h>
 
 
+#include "cuda/base/thrust.cuh"
+
+
 namespace gko {
 namespace kernels {
 namespace cuda {
