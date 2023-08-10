@@ -53,7 +53,7 @@ using LinOpFactoryMap =
 using Config = std::map<std::string, std::string>;
 class registry;
 using BuildFunctionType = std::function<std::unique_ptr<gko::LinOpFactory>(
-    const Config&, std::shared_ptr<const Executor>&, const registry&)>;
+    const Config&, const registry&, std::shared_ptr<const Executor>&)>;
 using BuildFromConfigMap = std::map<std::string, BuildFunctionType>;
 
 /**
