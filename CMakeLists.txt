@@ -191,10 +191,11 @@ check_include_file_cxx(cxxabi.h GKO_HAVE_CXXABI_H)
 
 # Automatically find PAPI and search for the required 'sde' component
 set(GINKGO_HAVE_PAPI_SDE 0)
-find_package(PAPI OPTIONAL_COMPONENTS sde)
-if(PAPI_sde_FOUND)
-    set(GINKGO_HAVE_PAPI_SDE 1)
-endif()
+# PAPI is temporarily disabled
+#find_package(PAPI OPTIONAL_COMPONENTS sde)
+#if(PAPI_sde_FOUND)
+#    set(GINKGO_HAVE_PAPI_SDE 1)
+#endif()
 
 # Automatically find TAU
 set(GINKGO_HAVE_TAU 0)
