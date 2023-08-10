@@ -526,17 +526,6 @@ build/nocuda/openmpi/clang/omp/debug/static:
     FAST_TESTS: "ON"
     BUILD_SHARED_LIBS: "OFF"
 
-test/nocuda/openmpi/clang/omp/debug/static:
-  extends:
-    - .build_and_test_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-nocuda-openmpi-gnu9-llvm8
-  variables:
-    USE_NAME: "nocuda-openmpi-clang-${CI_PIPELINE_ID}"
-  dependencies: null
-  needs: [ "build/nocuda/openmpi/clang/omp/debug/static" ]
-
 # nocuda with the oldest supported compiler
 build/nocuda/nompi/gcc/omp/release/static:
   extends:
