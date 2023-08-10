@@ -42,18 +42,18 @@ namespace config {
 
 BuildFromConfigMap generate_config_map()
 {
-    return {{"Cg", build_from_config<static_cast<int>(LinOpFactoryType::Cg)>}};
+    return {{"Cg", build_from_config<LinOpFactoryType::Cg>}};
 }
 
 
 std::unique_ptr<gko::LinOpFactory> build_from_config(
-    const gko::config::Config& config, std::shared_ptr<const Executor>& exec,
-    const gko::config::registry& context)
+    const gko::config::Config& config, const gko::config::registry& context,
+    std::shared_ptr<const Executor>& exec)
 {
     auto type = config.find("Type");
     if (type != config.end()) {
         auto func = context.get_build_map().at(type->second);
-        return func(config, exec, context);
+        return func(config, context, exec);
     }
     return nullptr;
 }
