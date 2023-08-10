@@ -1,13 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
-
-# Use *_ROOT environment variables for find_package calls
-cmake_policy(SET CMP0074 NEW)
-
-# Let CAS handle the CUDA architecture flags (for now)
-# Windows still gives CMP0104 warning if putting it in cuda.
-if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
-    cmake_policy(SET CMP0104 OLD)
-endif()
+cmake_minimum_required(VERSION 3.16)
 
 project(Ginkgo LANGUAGES C CXX VERSION 1.7.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
 set(Ginkgo_VERSION_TAG "develop")
@@ -69,7 +60,6 @@ set(GINKGO_CUDA_COMPILER_FLAGS "" CACHE STRING
     "Set the required NVCC compiler flags, mainly used for warnings. Current default is an empty string")
 set(GINKGO_CUDA_ARCHITECTURES "Auto" CACHE STRING
     "A list of target NVIDIA GPU architectures. See README.md for more detail.")
-option(GINKGO_CUDA_DEFAULT_HOST_COMPILER "Tell Ginkgo to not automatically set the CUDA host compiler" OFF)
 # the details of fine/coarse grain memory and unsafe atomic are available https://docs.olcf.ornl.gov/systems/crusher_quick_start_guide.html#floating-point-fp-atomic-operations-and-coarse-fine-grained-memory-allocations
 option(GINKGO_HIP_AMD_UNSAFE_ATOMIC "Compiler uses unsafe floating point atomic (only for AMD GPU and ROCM >= 5). Default is ON because we use hipMalloc, which is always on coarse grain. Must turn off when allocating memory on fine grain" ON)
 set(GINKGO_HIP_COMPILER_FLAGS "" CACHE STRING
@@ -201,10 +191,11 @@ check_include_file_cxx(cxxabi.h GKO_HAVE_CXXABI_H)
 
 # Automatically find PAPI and search for the required 'sde' component
 set(GINKGO_HAVE_PAPI_SDE 0)
-find_package(PAPI OPTIONAL_COMPONENTS sde)
-if(PAPI_sde_FOUND)
-    set(GINKGO_HAVE_PAPI_SDE 1)
-endif()
+# PAPI is temporarily disabled
+#find_package(PAPI OPTIONAL_COMPONENTS sde)
+#if(PAPI_sde_FOUND)
+#    set(GINKGO_HAVE_PAPI_SDE 1)
+#endif()
 
 # Automatically find TAU
 set(GINKGO_HAVE_TAU 0)

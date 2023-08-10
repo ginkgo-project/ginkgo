@@ -1,3 +1,4 @@
+cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
 add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
 include(${PROJECT_SOURCE_DIR}/cmake/template_instantiation.cmake)
 add_instantiation_files(. matrix/csr_kernels.instantiate.cu CSR_INSTANTIATE)
@@ -114,26 +115,16 @@ target_compile_options(ginkgo_cuda PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_C
 target_compile_options(ginkgo_cuda PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
 ginkgo_compile_features(ginkgo_cuda)
 target_compile_definitions(ginkgo_cuda PRIVATE GKO_COMPILING_CUDA)
-target_include_directories(ginkgo_cuda
-    SYSTEM PRIVATE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 
 # include path for generated headers like jacobi_common.hpp
 target_include_directories(ginkgo_cuda
     PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/..)
-target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE} ${CURAND} ${CUFFT} nvtx::nvtx)
+target_link_libraries(ginkgo_cuda PRIVATE CUDA::cudart CUDA::cublas CUDA::cusparse CUDA::curand CUDA::cufft nvtx::nvtx)
 # NVTX3 is header-only and requires dlopen/dlclose in static builds
 target_link_libraries(ginkgo_cuda PUBLIC ginkgo_device ${CMAKE_DL_LIBS})
-target_compile_options(ginkgo_cuda
-        PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_ARCH_FLAGS}>")
-# we handle CUDA architecture flags for now, disable CMake handling
-if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
-    set_target_properties(ginkgo_cuda PROPERTIES CUDA_ARCHITECTURES OFF)
-endif()
-list(GET CUDA_RUNTIME_LIBS 0 CUDA_FIRST_LIB)
-get_filename_component(GKO_CUDA_LIBDIR "${CUDA_FIRST_LIB}" DIRECTORY)
 
 ginkgo_default_includes(ginkgo_cuda)
-ginkgo_install_library(ginkgo_cuda "${GKO_CUDA_LIBDIR}")
+ginkgo_install_library(ginkgo_cuda)
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
     ginkgo_check_headers(ginkgo_cuda GKO_COMPILING_CUDA)

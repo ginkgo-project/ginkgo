@@ -65,6 +65,15 @@
 # The command has the same result as ``cas_target_cuda_architectures``. It does 
 # not add the compiler flags to the target, but stores the compiler flags in 
 # the variable (string).
+# 
+#   cas_variable_cmake_cuda_architectures(
+#    [<variable>]               # variable for storing architecture list
+#    [<spec>]                   # list of architecture specifications
+#   )
+#
+# The command prepares an architecture list supported by the CMake
+# ``CUDA_ARCHITECTURES`` target property and ``CMAKE_CUDA_ARCHITECTURES``
+# variable. The architecture specification 
 #
 # 
 # ``ARCHITECTURES`` specification list
@@ -403,4 +412,35 @@ endfunction()
 function(cas_variable_cuda_architectures variable)
     cas_get_compiler_flags(flags ${ARGN})
     set(${variable} "${flags}" PARENT_SCOPE)
+endfunction()
+
+
+function(cas_variable_cmake_cuda_architectures variable)
+    cas_get_supported_architectures(supported_archs)
+    if("${ARGN}" STREQUAL "All")
+        set(archs "${supported_archs}")
+    elseif("${ARGN}" STREQUAL "Auto")
+        cas_get_onboard_architectures(onboard_archs)
+        if (onboard_archs)
+            set(archs "${onboard_archs}")
+        else()
+            set(archs "${supported_archs}")
+        endif()
+    else()
+        set(archs)
+        foreach(arch IN LISTS ARGN)
+            if(arch MATCHES "${cas_spec_regex}")
+                if(CMAKE_MATCH_1)
+                    list(APPEND archs ${CMAKE_MATCH_1}-real)
+                endif()
+                if(CMAKE_MATCH_3)
+                    list(APPEND archs ${CMAKE_MATCH_3}-virtual)
+                endif()
+            else()
+                cas_get_architectures_by_name("${arch}" arch)
+                list(APPEND archs ${arch})
+            endif()
+        endforeach()
+    endif()
+    set("${variable}" "${archs}" PARENT_SCOPE)
 endfunction()
