@@ -47,7 +47,7 @@ For Ginkgo core library:
 
 The Ginkgo CUDA module has the following __additional__ requirements:
 
-*   _cmake 3.18+_
+*   _cmake 3.18+_ (If CUDA was installed through the NVIDIA HPC Toolkit, we require _cmake 3.22+_)
 *   _CUDA 10.1+_ or _NVHPC Package 22.7+_
 *   Any host compiler restrictions your version of CUDA may impose also apply
     here. For the newest CUDA version, this information can be found in the
