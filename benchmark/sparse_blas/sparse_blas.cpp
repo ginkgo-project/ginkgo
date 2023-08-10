@@ -127,9 +127,12 @@ void apply_sparse_blas(const char* operation_name,
                               allocator);
             auto gen_logger = create_operations_logger(
                 FLAGS_gpu_timer, FLAGS_nested_names, exec,
-                test_case[operation_name]["components"], allocator, 1);
+                test_case[operation_name]["components"], allocator,
+                repetitions);
             exec->add_logger(gen_logger);
-            op->run();
+            for (unsigned i = 0; i < repetitions; i++) {
+                op->run();
+            }
             exec->remove_logger(gen_logger);
         }
         op->write_stats(test_case[operation_name], allocator);
