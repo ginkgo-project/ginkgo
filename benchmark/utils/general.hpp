@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ostream>
 #include <random>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -58,6 +59,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rapidjson/prettywriter.h>
 
 
+#include <ginkgo/core/base/memory.hpp>
+
+
 #include "benchmark/utils/json.hpp"
 #include "benchmark/utils/timer.hpp"
 #include "benchmark/utils/types.hpp"
@@ -68,6 +72,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 DEFINE_string(executor, "reference",
               "The executor used to run the benchmarks, one of: reference, "
               "omp, cuda, hip");
+
+DEFINE_string(allocator, "default",
+              "The allocator used in the executor. Only relevant for CUDA and "
+              "HIP executors, one of: default, async, host, unified");
 
 DEFINE_uint32(device_id, 0, "ID of the device where to run the code");
 
@@ -329,6 +337,40 @@ void backup_results(rapidjson::Document& results)
 }
 
 
+inline std::shared_ptr<gko::CudaAllocatorBase> create_cuda_allocator()
+{
+    std::string flag{FLAGS_allocator};
+    if (flag == "default") {
+        return std::make_shared<gko::CudaAllocator>();
+    } else if (flag == "async") {
+        return std::make_shared<gko::CudaAsyncAllocator>(nullptr);
+    } else if (flag == "unified") {
+        return std::make_shared<gko::CudaUnifiedAllocator>(FLAGS_device_id);
+    } else if (flag == "host") {
+        return std::make_shared<gko::CudaHostAllocator>(FLAGS_device_id);
+    } else {
+        throw std::runtime_error{"Unknown allocator type " + flag};
+    }
+}
+
+
+inline std::shared_ptr<gko::HipAllocatorBase> create_hip_allocator()
+{
+    std::string flag{FLAGS_allocator};
+    if (flag == "default") {
+        return std::make_shared<gko::HipAllocator>();
+    } else if (flag == "async") {
+        return std::make_shared<gko::HipAsyncAllocator>(nullptr);
+    } else if (flag == "unified") {
+        return std::make_shared<gko::HipUnifiedAllocator>(FLAGS_device_id);
+    } else if (flag == "host") {
+        return std::make_shared<gko::HipHostAllocator>(FLAGS_device_id);
+    } else {
+        throw std::runtime_error{"Unknown allocator type " + flag};
+    }
+}
+
+
 // executor mapping
 const std::map<std::string, std::function<std::shared_ptr<gko::Executor>(bool)>>
     executor_factory{
@@ -337,12 +379,14 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>(bool)>>
         {"cuda",
          [](bool) {
              return gko::CudaExecutor::create(FLAGS_device_id,
-                                              gko::OmpExecutor::create());
+                                              gko::OmpExecutor::create(),
+                                              create_cuda_allocator());
          }},
         {"hip",
          [](bool) {
              return gko::HipExecutor::create(FLAGS_device_id,
-                                             gko::OmpExecutor::create());
+                                             gko::OmpExecutor::create(),
+                                             create_hip_allocator());
          }},
         {"dpcpp", [](bool use_gpu_timer) {
              auto property = dpcpp_queue_property::in_order;
@@ -369,14 +413,16 @@ const std::map<std::string,
              FLAGS_device_id = gko::experimental::mpi::map_rank_to_device_id(
                  comm, gko::CudaExecutor::get_num_devices());
              return gko::CudaExecutor::create(FLAGS_device_id,
-                                              gko::ReferenceExecutor::create());
+                                              gko::ReferenceExecutor::create(),
+                                              create_cuda_allocator());
          }},
         {"hip",
          [](MPI_Comm comm) {
              FLAGS_device_id = gko::experimental::mpi::map_rank_to_device_id(
                  comm, gko::HipExecutor::get_num_devices());
              return gko::HipExecutor::create(FLAGS_device_id,
-                                             gko::ReferenceExecutor::create());
+                                             gko::ReferenceExecutor::create(),
+                                             create_hip_allocator());
          }},
         {"dpcpp", [](MPI_Comm comm) {
              if (gko::DpcppExecutor::get_num_devices("gpu")) {
