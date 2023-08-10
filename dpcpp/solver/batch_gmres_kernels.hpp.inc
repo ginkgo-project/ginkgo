@@ -306,10 +306,9 @@ __dpct_inline__ void update_x(
 }  // unnamed namespace
 
 
-template <typename StopType, const int n_shared_not_use,
-          const bool prec_shared_bool, const bool sg_kernel_all,
-          typename PrecType, typename LogType, typename BatchMatrixType,
-          typename ValueType>
+template <typename StopType, const int n_shared, const bool prec_shared_bool,
+          const bool sg_kernel_all, typename PrecType, typename LogType,
+          typename BatchMatrixType, typename ValueType>
 __dpct_inline__ void apply_kernel(
     const gko::kernels::batch_gmres::StorageConfig sconf, const int max_iter,
     const gko::remove_complex<ValueType> tol, const int restart, LogType logger,
@@ -347,69 +346,66 @@ __dpct_inline__ void apply_kernel(
     // subspace_storage
     ValueType* V_sh;
 
-    int n_shared =
-        sconf.n_shared + int(sconf.hess_shared) + int(sconf.subspace_shared);
-
-    if (n_shared >= 1)
+    if constexpr (n_shared >= 1)
         r_sh = local_mem_sh;
     else
         r_sh = workspace + gmem_offset;
     //
-    if (n_shared == 1)
+    if constexpr (n_shared == 1)
         z_sh = workspace + gmem_offset;
     else
         z_sh = r_sh + sconf.padded_vec_len;
     //
-    if (n_shared == 2)
+    if constexpr (n_shared == 2)
         w_sh = workspace + gmem_offset;
     else
         w_sh = z_sh + sconf.padded_vec_len;
     //
-    if (n_shared == 3)
+    if constexpr (n_shared == 3)
         x_sh = workspace + gmem_offset;
     else
         x_sh = w_sh + sconf.padded_vec_len;
     //
-    if (n_shared == 4)
+    if constexpr (n_shared == 4)
         helper_sh = workspace + gmem_offset;
     else
         helper_sh = x_sh + sconf.padded_vec_len;
     //
-    if (n_shared == 5)
+    if constexpr (n_shared == 5)
         cs_sh = workspace + gmem_offset;
     else
         cs_sh = helper_sh + sconf.padded_vec_len;
     //
-    if (n_shared == 6)
+    if constexpr (n_shared == 6)
         sn_sh = workspace + gmem_offset;
     else
         sn_sh = cs_sh + restart;
     //
-    if (n_shared == 7)
+    if constexpr (n_shared == 7)
         y_sh = workspace + gmem_offset;
     else
         y_sh = sn_sh + restart;
     //
-    if (n_shared == 8)
+    if constexpr (n_shared == 8)
         s_sh = workspace + gmem_offset;
     else
         s_sh = y_sh + restart + 1;
     //
-    if (n_shared == 9)
+    if constexpr (n_shared == 9)
         H_sh = workspace + gmem_offset;
     else
         H_sh = s_sh + restart + 1;
     //
-    if (n_shared == 10)
+    if constexpr (n_shared == 10)
         V_sh = workspace + gmem_offset;
     else
         V_sh = H_sh + restart * (restart + 2);
     //
-    if (prec_shared_bool && n_shared == 9)
+    if constexpr (prec_shared_bool && n_shared == 9)
         prec_work_sh = s_sh + restart + 1;
-    else if (prec_shared_bool && n_shared == 10)
+    else if constexpr (prec_shared_bool && n_shared == 10)
         prec_work_sh = H_sh + restart * (restart + 2);
-    else if (!prec_shared_bool && n_shared == 10)
+    else if constexpr (!prec_shared_bool && n_shared == 10)
         prec_work_sh = workspace + gmem_offset;
     else
         prec_work_sh = V_sh + nrows * (restart + 1);

@@ -182,26 +182,12 @@ public:
         assert(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
 
         ValueType* const workspace_data = workspace.get_data();
-        // int n_shared = sconf.n_shared + int(sconf.hess_shared) +
-        //                int(sconf.subspace_shared);
+        int n_shared = sconf.n_shared + int(sconf.hess_shared) +
+                       int(sconf.subspace_shared);
         auto prec_shared_bool = sconf.prec_shared;
 
         // Template for calling launch_apply_kernel:
         // < StopType, SIMD_LEN, n_shared, prec_shared_bool, sg_kernel_all >
-        if (nrows <= 128 && prec_shared_bool)
-            launch_apply_kernel<StopType, 32, 11, 1, 1>(
-                sconf, logger, prec, a, b.values, x.values, workspace_data,
-                group_size, shared_size);
-        else if (prec_shared_bool)
-            launch_apply_kernel<StopType, 32, 11, 1, 0>(
-                sconf, logger, prec, a, b.values, x.values, workspace_data,
-                group_size, shared_size);
-        else
-            launch_apply_kernel<StopType, 32, 11, 0, 0>(
-                sconf, logger, prec, a, b.values, x.values, workspace_data,
-                group_size, shared_size);
-
-        /*
         if (nrows <= 32 && prec_shared_bool)
             launch_apply_kernel<StopType, 16, 11, 1, 1>(
                 sconf, logger, prec, a, b.values, x.values, workspace_data,
@@ -306,7 +292,6 @@ public:
                 break;
             }
         }
-    */
     }
 
 private:

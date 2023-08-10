@@ -63,9 +63,10 @@ namespace batch_cg {
 template <typename T>
 using BatchCgOptions = gko::kernels::batch_cg::BatchCgOptions<T>;
 
-int get_larger_power(int value, int guess = 32)
+__dpct_inline__ int get_larger_power(int value, int simd_len = 32)
 {
-    return guess >= value ? guess : get_larger_power(value, guess << 1);
+    int num_sg = (value + simd_len - 1) / simd_len;
+    return (num_sg * simd_len);
 }
 
 template <typename ValueType>
