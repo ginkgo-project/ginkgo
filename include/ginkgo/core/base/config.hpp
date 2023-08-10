@@ -125,48 +125,47 @@ struct encode_type_config<concrete_type<ValueType>, concrete_type<IndexType>,
 };
 
 
+template <typename T, typename ValueType, typename IndexType,
+          typename GlobalIndexType>
+auto dispatch(const property_tree& pt, const context& ctx,
+              const type_config& cfg)
+{
+    return T::template configure<ValueType, IndexType, GlobalIndexType>(pt,
+                                                                        ctx);
+}
+
+
+template <typename T, typename... Types>
+auto visitor(const property_tree& pt, const context& ctx,
+             const type_config& cfg)
+{
+    return [&](auto var) {
+        using type = std::decay_t<decltype(var)>;
+        return dispatch<T, Types..., type>(pt, ctx, cfg);
+    };
+}
+
+
 template <typename T, typename ValueType, typename IndexType>
 auto dispatch(const property_tree& pt, const context& ctx,
               const type_config& cfg)
 {
-    if (std::holds_alternative<int>(cfg.index_type)) {
-        return T::template configure<ValueType, IndexType, int>(pt, ctx);
-    }
-    if (std::holds_alternative<long>(cfg.index_type)) {
-        return T::template configure<ValueType, IndexType, int>(pt, ctx);
-    }
-
-    throw std::runtime_error("unsupported global index type");
+    return std::visit(visitor<T, ValueType, IndexType>(pt, ctx, cfg),
+                      cfg.global_index_type);
 }
-
 
 template <typename T, typename ValueType>
 auto dispatch(const property_tree& pt, const context& ctx,
               const type_config& cfg)
 {
-    if (std::holds_alternative<int>(cfg.index_type)) {
-        return dispatch<T, double, int>(pt, ctx, cfg);
-    }
-    if (std::holds_alternative<long>(cfg.index_type)) {
-        return dispatch<T, double, long>(pt, ctx, cfg);
-    }
-
-    throw std::runtime_error("unsupported value type");
+    return std::visit(visitor<T, ValueType>(pt, ctx, cfg), cfg.index_type);
 }
-
 
 template <typename T>
 auto dispatch(const property_tree& pt, const context& ctx,
               const type_config& cfg)
 {
-    if (std::holds_alternative<double>(cfg.value_type)) {
-        return dispatch<T, double>(pt, ctx, cfg);
-    }
-    if (std::holds_alternative<float>(cfg.value_type)) {
-        return dispatch<T, float>(pt, ctx, cfg);
-    }
-
-    throw std::runtime_error("unsupported value type");
+    return std::visit(visitor<T>(pt, ctx, cfg), cfg.value_type);
 }
 
 
