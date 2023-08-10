@@ -39,6 +39,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thrust/sort.h>
 
 
+#include "hip/base/thrust.hip.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace hip {
