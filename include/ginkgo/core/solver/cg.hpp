@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/config.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -115,6 +116,14 @@ public:
     };
     GKO_ENABLE_LIN_OP_FACTORY(Cg, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
+
+    template <typename IndexType = int32, typename GlobalIndexType = int64>
+    static std::shared_ptr<LinOpFactory> configure(const property_tree& pt,
+                                                   const context& ctx)
+    {
+        return config::Cg::configure<ValueType, IndexType, GlobalIndexType>(
+            pt, ctx);
+    }
 
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;
