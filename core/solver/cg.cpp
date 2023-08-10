@@ -28,27 +28,27 @@ namespace config {
 template <>
 std::unique_ptr<gko::LinOpFactory>
 build_from_config<static_cast<int>(gko::config::LinOpFactoryType::Cg)>(
-    const gko::config::Config& config, std::shared_ptr<const Executor>& exec,
-    const gko::config::registry& context)
+    const gko::config::Config& config, const gko::config::registry& context,
+    std::shared_ptr<const Executor>& exec)
 {
     // TODO: select the type, always using double as demo.
     // extract the following to another function (or build_from_config) to make
     // this function only select type
-    auto factory = gko::solver::Cg<double>::build_from_config(config, context);
-    // handle parameter requires exec
-    // criteria and preconditioner are almost in each solver -> to another
-    // function.
-    factory.with_criteria(
-        gko::stop::Iteration::build().with_max_iters(1u).on(exec));
+    std::string val_str = "double";  // get from default pack
     {
-        auto str = config.find("preconditioner");
-        if (str != config.end()) {
-            // assume we have the config for nest object
-            factory.with_preconditioner(build_from_config(
-                Config{{"Type", str->second}}, exec, context));
+        auto it = config.find("ValueType");
+        if (it != config.end()) {
+            val_str = it->second;
         }
     }
-    return std::move(factory.on(exec));
+    if (val_str == "double") {
+        return gko::solver::Cg<double>::build_from_config(config, context,
+                                                          exec);
+    } else if (val_str == "float") {
+        return gko::solver::Cg<float>::build_from_config(config, context, exec);
+    }
+
+    return nullptr;
 }
 
 
@@ -67,6 +67,38 @@ GKO_REGISTER_OPERATION(step_2, cg::step_2);
 
 }  // anonymous namespace
 }  // namespace cg
+
+template <typename ValueType>
+std::unique_ptr<typename Cg<ValueType>::Factory>
+Cg<ValueType>::build_from_config(const gko::config::Config& config,
+                                 const gko::config::registry& context,
+                                 std::shared_ptr<const Executor> exec)
+{
+    auto factory = Factory::create();
+    {
+        auto str = config.find("generated_preconditioner");
+        if (str != config.end()) {
+            auto linop = context.search_data<gko::LinOp>(str->second);
+            factory.with_generated_preconditioner(linop);
+        }
+    }
+    // handle parameter requires exec
+    // criteria and preconditioner are almost in each solver -> to another
+    // function.
+    factory.with_criteria(
+        gko::stop::Iteration::build().with_max_iters(1u).on(exec));
+    {
+        auto str = config.find("preconditioner");
+        if (str != config.end()) {
+            // assume we have the config for nest object
+            factory.with_preconditioner(gko::config::build_from_config(
+                gko::config::Config{{"Type", str->second}}, context, exec));
+        }
+    }
+    // can also handle preconditioner, criterion here if they are in
+    // context.
+    return factory.on(exec);
+}
 
 
 template <typename ValueType>

@@ -83,8 +83,8 @@ TYPED_TEST(Config, GenerateObject)
     auto config_map = gko::config::generate_config_map();
     auto reg = gko::config::registry(config_map);
 
-    auto obj = gko::config::build_from_config<0>(gko::config::Config{},
-                                                 this->exec, reg);
+    auto obj = gko::config::build_from_config<0>(gko::config::Config{}, reg,
+                                                 this->exec);
 
     ASSERT_NE(dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get()),
               nullptr);
@@ -98,8 +98,8 @@ TYPED_TEST(Config, GenerateObjectWithData)
     reg.emplace("precond", this->mtx);
 
     auto obj = gko::config::build_from_config<0>(
-        gko::config::Config{{"generated_preconditioner", "precond"}},
-        this->exec, reg);
+        gko::config::Config{{"generated_preconditioner", "precond"}}, reg,
+        this->exec);
 
     ASSERT_NE(dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get()),
               nullptr);
@@ -116,7 +116,7 @@ TYPED_TEST(Config, GenerateObjectWithPreconditioner)
     auto reg = gko::config::registry(config_map);
 
     auto obj = gko::config::build_from_config<0>(
-        gko::config::Config{{"preconditioner", "Cg"}}, this->exec, reg);
+        gko::config::Config{{"preconditioner", "Cg"}}, reg, this->exec);
 
     ASSERT_NE(dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get()),
               nullptr);
@@ -132,8 +132,8 @@ TYPED_TEST(Config, GenerateObjectWithCustomBuild)
     auto config_map = gko::config::generate_config_map();
 
     config_map["Custom"] = [](const gko::config::Config& config,
-                              std::shared_ptr<const gko::Executor>& exec,
-                              const gko::config::registry& context) {
+                              const gko::config::registry& context,
+                              std::shared_ptr<const gko::Executor>& exec) {
         return gko::solver::Bicg<double>::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(2u).on(exec))
@@ -142,7 +142,7 @@ TYPED_TEST(Config, GenerateObjectWithCustomBuild)
     auto reg = gko::config::registry(config_map);
 
     auto obj = gko::config::build_from_config<0>(
-        gko::config::Config{{"preconditioner", "Custom"}}, this->exec, reg);
+        gko::config::Config{{"preconditioner", "Custom"}}, reg, this->exec);
 
     ASSERT_NE(dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get()),
               nullptr);
