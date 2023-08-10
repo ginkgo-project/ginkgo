@@ -186,7 +186,7 @@ void set_gmem_stride_bytes(StorageConfig& sconf,
  * @param num_rhs  Number of right-hand-sides in the vectors.
  * @return  A struct containing allocation information specific to GMRES.
  */
-template <typename Prectype, typename ValueType, int align_bytes = 32>
+template <typename Prectype, typename ValueType, int align_bytes = 8>
 StorageConfig compute_shared_storage(const int shared_mem_per_blk,
                                      const int num_rows, const int num_nz,
                                      const int num_rhs, const int restart)
@@ -252,7 +252,7 @@ StorageConfig compute_shared_storage(const int shared_mem_per_blk,
         sconf.subspace_shared = true;
         rem_shared -= subspace_storage;
     }
-    if (rem_shared >= prec_storage && prec_storage > 0) {
+    if (rem_shared >= prec_storage) {
         sconf.prec_shared = true;
         rem_shared -= prec_storage;
     }
