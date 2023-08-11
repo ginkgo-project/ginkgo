@@ -1,3 +1,35 @@
+/*******************************<GINKGO LICENSE>******************************
+Copyright (c) 2017-2023, the Ginkgo authors
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+******************************<GINKGO LICENSE>*******************************/
+
 #ifndef GINKGO_CONFIG_HPP
 #define GINKGO_CONFIG_HPP
 
@@ -39,21 +71,21 @@ struct concrete_type {
 template <typename DefaultValueType, typename DefaultIndexType,
           typename DefaultGlobalIndexType>
 struct encode_type_config {
-    type_config apply(const property_tree& cfg)
+    static type_config apply(const property_tree& cfg)
     {
         if (cfg.name != "value_type") {
             return encode_type_config<concrete_type<DefaultValueType>,
-                                      DefaultIndexType, DefaultGlobalIndexType>(
-                cfg);
+                                      DefaultIndexType,
+                                      DefaultGlobalIndexType>::apply(cfg);
         }
 
         if (cfg.value == "double") {
             return encode_type_config<concrete_type<double>, DefaultIndexType,
-                                      DefaultGlobalIndexType>(cfg);
+                                      DefaultGlobalIndexType>::apply(cfg);
         }
         if (cfg.value == "float") {
             return encode_type_config<concrete_type<float>, DefaultIndexType,
-                                      DefaultGlobalIndexType>(cfg);
+                                      DefaultGlobalIndexType>::apply(cfg);
         }
 
         throw std::runtime_error("unsupported value type");
@@ -64,23 +96,23 @@ template <typename ValueType, typename DefaultIndexType,
           typename DefaultGlobalIndexType>
 struct encode_type_config<concrete_type<ValueType>, DefaultIndexType,
                           DefaultGlobalIndexType> {
-    type_config apply(const property_tree& cfg)
+    static type_config apply(const property_tree& cfg)
     {
         if (cfg.name != "index_type") {
             return encode_type_config<concrete_type<ValueType>,
                                       concrete_type<DefaultIndexType>,
-                                      DefaultGlobalIndexType>(cfg);
+                                      DefaultGlobalIndexType>::apply(cfg);
         }
 
         if (cfg.value == "int32") {
             return encode_type_config<concrete_type<ValueType>,
                                       concrete_type<int32>,
-                                      DefaultGlobalIndexType>(cfg);
+                                      DefaultGlobalIndexType>::apply(cfg);
         }
         if (cfg.value == "int64") {
             return encode_type_config<concrete_type<ValueType>,
                                       concrete_type<int64>,
-                                      DefaultGlobalIndexType>(cfg);
+                                      DefaultGlobalIndexType>::apply(cfg);
         }
 
         throw std::runtime_error("unsupported index type");
@@ -91,24 +123,23 @@ template <typename ValueType, typename IndexType,
           typename DefaultGlobalIndexType>
 struct encode_type_config<concrete_type<ValueType>, concrete_type<IndexType>,
                           DefaultGlobalIndexType> {
-    type_config apply(const property_tree& cfg)
+    static type_config apply(const property_tree& cfg)
     {
         if (cfg.name != "global_index_type") {
-            return encode_type_config<concrete_type<ValueType>,
-                                      concrete_type<IndexType>,
-                                      concrete_type<DefaultGlobalIndexType>>(
-                cfg);
+            return encode_type_config<
+                concrete_type<ValueType>, concrete_type<IndexType>,
+                concrete_type<DefaultGlobalIndexType>>::apply(cfg);
         }
 
         if (cfg.value == "int32") {
             return encode_type_config<concrete_type<ValueType>,
                                       concrete_type<IndexType>,
-                                      concrete_type<int32>>(cfg);
+                                      concrete_type<int32>>::apply(cfg);
         }
         if (cfg.value == "int64") {
             return encode_type_config<concrete_type<ValueType>,
                                       concrete_type<IndexType>,
-                                      concrete_type<int32>>(cfg);
+                                      concrete_type<int32>>::apply(cfg);
         }
 
         throw std::runtime_error("unsupported index type");
@@ -118,7 +149,7 @@ struct encode_type_config<concrete_type<ValueType>, concrete_type<IndexType>,
 template <typename ValueType, typename IndexType, typename GlobalIndexType>
 struct encode_type_config<concrete_type<ValueType>, concrete_type<IndexType>,
                           concrete_type<GlobalIndexType>> {
-    type_config apply(const property_tree&)
+    static type_config apply(const property_tree&)
     {
         return {ValueType{}, IndexType{}, GlobalIndexType{}};
     }
