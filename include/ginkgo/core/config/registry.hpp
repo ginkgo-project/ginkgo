@@ -34,9 +34,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_CONFIG_REGISTRY_HPP_
 
 
+#include <complex>
 #include <map>
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 
 #include <ginkgo/core/base/lin_op.hpp>
@@ -51,10 +53,13 @@ using LinOpMap = std::unordered_map<std::string, std::shared_ptr<LinOp>>;
 using LinOpFactoryMap =
     std::unordered_map<std::string, std::shared_ptr<LinOpFactory>>;
 using Config = std::map<std::string, std::string>;
+using TypeDescriptor = std::pair<std::string, std::string>;
 class registry;
 using BuildFunctionType = std::function<std::unique_ptr<gko::LinOpFactory>(
-    const Config&, const registry&, std::shared_ptr<const Executor>&)>;
+    const Config&, const registry&, std::shared_ptr<const Executor>&,
+    TypeDescriptor)>;
 using BuildFromConfigMap = std::map<std::string, BuildFunctionType>;
+
 
 /**
  * map_type gives the map type according to the base type of given type.
@@ -183,6 +188,22 @@ inline const LinOpFactoryMap& registry::get_map_impl<LinOpFactoryMap>() const
     return linopfactory_map_;
 }
 
+
+template <typename T>
+struct type_string {
+    static std::string str() { return "N"; };
+};
+
+#define TYPE_STRING_OVERLOAD(_type, _str)         \
+    template <>                                   \
+    struct type_string<_type> {                   \
+        static std::string str() { return _str; } \
+    }
+
+TYPE_STRING_OVERLOAD(double, "double");
+TYPE_STRING_OVERLOAD(float, "float");
+TYPE_STRING_OVERLOAD(std::complex<double>, "complex<double>");
+TYPE_STRING_OVERLOAD(std::complex<float>, "complex<float>");
 
 }  // namespace config
 }  // namespace gko

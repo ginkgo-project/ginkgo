@@ -53,7 +53,7 @@ class Cg : public EnableLinOp<Cg<ValueType>>,
     friend std::unique_ptr<LinOpFactory> gko::config::build_from_config<
         static_cast<int>(gko::config::LinOpFactoryType::Cg)>(
         const gko::config::Config&, const gko::config::registry&,
-        std::shared_ptr<const Executor>&);
+        std::shared_ptr<const Executor>&, gko::config::TypeDescriptor);
 
 public:
     using value_type = ValueType;
@@ -82,7 +82,9 @@ public:
 protected:
     static std::unique_ptr<Factory> build_from_config(
         const gko::config::Config& config, const gko::config::registry& context,
-        std::shared_ptr<const Executor> exec);
+        std::shared_ptr<const Executor> exec,
+        gko::config::TypeDescriptor td_for_child = {
+            gko::config::type_string<ValueType>::str(), ""});
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
