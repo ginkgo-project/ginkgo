@@ -48,12 +48,12 @@ BuildFromConfigMap generate_config_map()
 
 std::unique_ptr<gko::LinOpFactory> build_from_config(
     const gko::config::Config& config, const gko::config::registry& context,
-    std::shared_ptr<const Executor>& exec)
+    std::shared_ptr<const Executor>& exec, TypeDescriptor td)
 {
     auto type = config.find("Type");
     if (type != config.end()) {
         auto func = context.get_build_map().at(type->second);
-        return func(config, context, exec);
+        return func(config, context, exec, td);
     }
     return nullptr;
 }

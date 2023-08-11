@@ -29,23 +29,33 @@ template <>
 std::unique_ptr<gko::LinOpFactory>
 build_from_config<static_cast<int>(gko::config::LinOpFactoryType::Cg)>(
     const gko::config::Config& config, const gko::config::registry& context,
-    std::shared_ptr<const Executor>& exec)
+    std::shared_ptr<const Executor>& exec, gko::config::TypeDescriptor td)
 {
     // TODO: select the type, always using double as demo.
     // extract the following to another function (or build_from_config) to make
     // this function only select type
-    std::string val_str = "double";  // get from default pack
+    std::string val_str = td.first;  // get from default pack
     {
         auto it = config.find("ValueType");
         if (it != config.end()) {
             val_str = it->second;
         }
+        // propagate the type
+        td.first = val_str;
     }
+    // the following can be handled by auto selection. maybe reuse the macro?
     if (val_str == "double") {
-        return gko::solver::Cg<double>::build_from_config(config, context,
-                                                          exec);
+        return gko::solver::Cg<double>::build_from_config(config, context, exec,
+                                                          td);
     } else if (val_str == "float") {
-        return gko::solver::Cg<float>::build_from_config(config, context, exec);
+        return gko::solver::Cg<float>::build_from_config(config, context, exec,
+                                                         td);
+    } else if (val_str == "complex<double>") {
+        return gko::solver::Cg<std::complex<double>>::build_from_config(
+            config, context, exec, td);
+    } else if (val_str == "complex<float>") {
+        return gko::solver::Cg<std::complex<float>>::build_from_config(
+            config, context, exec, td);
     }
 
     return nullptr;
@@ -72,7 +82,8 @@ template <typename ValueType>
 std::unique_ptr<typename Cg<ValueType>::Factory>
 Cg<ValueType>::build_from_config(const gko::config::Config& config,
                                  const gko::config::registry& context,
-                                 std::shared_ptr<const Executor> exec)
+                                 std::shared_ptr<const Executor> exec,
+                                 gko::config::TypeDescriptor td_for_child)
 {
     auto factory = Factory::create();
     {
@@ -92,7 +103,8 @@ Cg<ValueType>::build_from_config(const gko::config::Config& config,
         if (str != config.end()) {
             // assume we have the config for nest object
             factory.with_preconditioner(gko::config::build_from_config(
-                gko::config::Config{{"Type", str->second}}, context, exec));
+                gko::config::Config{{"Type", str->second}}, context, exec,
+                td_for_child));
         }
     }
     // can also handle preconditioner, criterion here if they are in
