@@ -50,10 +50,18 @@ class Cg : public EnableLinOp<Cg<ValueType>>,
            public Transposable {
     friend class EnableLinOp<Cg>;
     friend class EnablePolymorphicObject<Cg, LinOp>;
-    friend std::unique_ptr<LinOpFactory> gko::config::build_from_config<
-        static_cast<int>(gko::config::LinOpFactoryType::Cg)>(
-        const gko::config::Config&, const gko::config::registry&,
-        std::shared_ptr<const Executor>&, gko::config::TypeDescriptor);
+
+    template <template <class...> class Base, typename... Types>
+    friend std::unique_ptr<LinOpFactory> gko::config::dispatch(
+        std::string str, const gko::config::Config& config,
+        const gko::config::registry& context,
+        std::shared_ptr<const Executor>& exec,
+        const gko::config::TypeDescriptor& td);
+
+    // friend std::unique_ptr<LinOpFactory> gko::config::build_from_config<
+    //     static_cast<int>(gko::config::LinOpFactoryType::Cg)>(
+    //     const gko::config::Config&, const gko::config::registry&,
+    //     std::shared_ptr<const Executor>&, gko::config::TypeDescriptor);
 
 public:
     using value_type = ValueType;
