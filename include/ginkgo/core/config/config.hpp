@@ -52,16 +52,16 @@ enum LinOpFactoryType : int { Cg = 0 };
 
 
 // It is only an intermediate step. If we do not provide the SolverType with VT,
-// IT selection, we do not need it in public.
+// IT selection, it can be in detail namespace.
 template <int flag>
 std::unique_ptr<gko::LinOpFactory> build_from_config(
     const gko::config::Config& config, const gko::config::registry& context,
-    std::shared_ptr<const Executor>& exec);
+    std::shared_ptr<const Executor>& exec, TypeDescriptor td = {"", ""});
 
 // The main function
 std::unique_ptr<gko::LinOpFactory> build_from_config(
     const gko::config::Config& config, const gko::config::registry& context,
-    std::shared_ptr<const Executor>& exec);
+    std::shared_ptr<const Executor>& exec, TypeDescriptor td = {"", ""});
 
 
 BuildFromConfigMap generate_config_map();
