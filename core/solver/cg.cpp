@@ -16,6 +16,8 @@
 #include <ginkgo/core/stop/iteration.hpp>
 
 
+#include "core/config/config.hpp"
+#include "core/config/dispatch.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/cg_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
@@ -31,34 +33,9 @@ build_from_config<static_cast<int>(gko::config::LinOpFactoryType::Cg)>(
     const gko::config::Config& config, const gko::config::registry& context,
     std::shared_ptr<const Executor>& exec, gko::config::TypeDescriptor td)
 {
-    // TODO: select the type, always using double as demo.
-    // extract the following to another function (or build_from_config) to make
-    // this function only select type
-    std::string val_str = td.first;  // get from default pack
-    {
-        auto it = config.find("ValueType");
-        if (it != config.end()) {
-            val_str = it->second;
-        }
-        // propagate the type
-        td.first = val_str;
-    }
-    // the following can be handled by auto selection. maybe reuse the macro?
-    if (val_str == "double") {
-        return gko::solver::Cg<double>::build_from_config(config, context, exec,
-                                                          td);
-    } else if (val_str == "float") {
-        return gko::solver::Cg<float>::build_from_config(config, context, exec,
-                                                         td);
-    } else if (val_str == "complex<double>") {
-        return gko::solver::Cg<std::complex<double>>::build_from_config(
-            config, context, exec, td);
-    } else if (val_str == "complex<float>") {
-        return gko::solver::Cg<std::complex<float>>::build_from_config(
-            config, context, exec, td);
-    }
-
-    return nullptr;
+    auto updated = update_type(config, td);
+    return dispatch<solver::Cg>(updated.first, config, context, exec, updated,
+                                value_type_list());
 }
 
 
@@ -78,6 +55,7 @@ GKO_REGISTER_OPERATION(step_2, cg::step_2);
 }  // anonymous namespace
 }  // namespace cg
 
+
 template <typename ValueType>
 std::unique_ptr<typename Cg<ValueType>::Factory>
 Cg<ValueType>::build_from_config(const gko::config::Config& config,
@@ -86,13 +64,8 @@ Cg<ValueType>::build_from_config(const gko::config::Config& config,
                                  gko::config::TypeDescriptor td_for_child)
 {
     auto factory = Factory::create();
-    {
-        auto str = config.find("generated_preconditioner");
-        if (str != config.end()) {
-            auto linop = context.search_data<gko::LinOp>(str->second);
-            factory.with_generated_preconditioner(linop);
-        }
-    }
+    SET_POINTER(factory, const LinOp, generated_preconditioner, config, context,
+                exec, td_for_child);
     // handle parameter requires exec
     // criteria and preconditioner are almost in each solver -> to another
     // function.
