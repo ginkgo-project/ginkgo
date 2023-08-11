@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/memory.hpp>
 
 
+#include <cuda.h>
 #include <cuda_runtime.h>
 
 

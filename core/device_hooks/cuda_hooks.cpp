@@ -75,6 +75,10 @@ bool CudaAsyncAllocator::check_environment(int device_id,
     GKO_NOT_COMPILED(cuda);
 
 
+CudaUnifiedAllocator::CudaUnifiedAllocator(int device_id)
+    GKO_NOT_COMPILED(cuda);
+
+
 CudaUnifiedAllocator::CudaUnifiedAllocator(int device_id, unsigned int flags)
     GKO_NOT_COMPILED(cuda);
 
