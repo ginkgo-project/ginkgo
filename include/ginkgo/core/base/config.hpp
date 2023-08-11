@@ -47,6 +47,12 @@ struct Configurator;
 
 
 struct property_tree {
+    template <typename T>
+    std::optional<T> get(std::string name) const
+    {
+        return {};
+    }
+
     std::string name;
     std::string value;
 };
@@ -60,6 +66,13 @@ struct type_config {
     std::variant<double, float> value_type;
     std::variant<int, long> index_type;
     std::variant<int, long> global_index_type;
+};
+
+template <typename ValueType, typename IndexType, typename GlobalIndexType>
+struct compile_type_config {
+    using value_type = ValueType;
+    using index_type = IndexType;
+    using global_index_type = GlobalIndexType;
 };
 
 template <typename T>
@@ -244,6 +257,58 @@ std::shared_ptr<LinOpFactory> parse(const property_tree& pt, const context& ctx)
     return configurator_map[pt.value]->configure(pt, ctx, type_config);
 }
 
+
+template <typename T>
+struct parse_helper {
+    template <typename ValueType, typename IndexType, typename GlobalIndexType,
+              typename Index>
+    static T apply(Index index, const property_tree& pt, const context&)
+    {
+        pt.get<T>(index).value();
+    }
+};
+
+template <typename T>
+struct parse_helper<std::vector<T>> {
+    template <typename ValueType, typename IndexType, typename GlobalIndexType,
+              typename Index>
+    static std::vector<T> apply(Index index, const property_tree& pt,
+                                const context& ctx)
+    {
+        std::vector<T> result;
+        auto properties = pt.get<std::vector<property_tree>>(index);
+        for (int i = 0; i < properties.size(); ++i) {
+            result.emplace_back(
+                parse_helper<T>::template apply<ValueType, IndexType,
+                                                GlobalIndexType>(i, pt, ctx));
+        }
+        return result;
+    }
+};
+
+
+template <>
+struct parse_helper<std::shared_ptr<LinOpFactory>> {
+    template <typename ValueType, typename IndexType, typename GlobalIndexType,
+              typename Index>
+    static std::shared_ptr<LinOpFactory> apply(Index index,
+                                               const property_tree& pt,
+                                               const context& ctx)
+    {
+        return parse(pt.get<property_tree>(index).value(), ctx);
+    }
+};
+
+template <>
+struct parse_helper<std::shared_ptr<LinOp>> {
+    template <typename ValueType, typename IndexType, typename GlobalIndexType,
+              typename Index>
+    static std::shared_ptr<LinOp> apply(Index index, const property_tree& pt,
+                                        const context& ctx)
+    {
+        return ctx.custom_map.at(index);
+    }
+};
 
 }  // namespace gko
 
