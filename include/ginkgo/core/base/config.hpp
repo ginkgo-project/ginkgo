@@ -63,9 +63,9 @@ struct context {
 
 
 struct type_config {
-    std::variant<double, float> value_type;
-    std::variant<int, long> index_type;
-    std::variant<int, long> global_index_type;
+    std::variant<double, float> value_type = double{};
+    std::variant<int32, int64> index_type = int32{};
+    std::variant<int32, int64> global_index_type = int64{};
 };
 
 template <typename ValueType, typename IndexType, typename GlobalIndexType>
@@ -75,98 +75,48 @@ struct compile_type_config {
     using global_index_type = GlobalIndexType;
 };
 
-template <typename T>
-struct concrete_type {
-    using type = T;
-};
 
-
-template <typename DefaultValueType, typename DefaultIndexType,
-          typename DefaultGlobalIndexType>
-struct encode_type_config {
-    static type_config apply(const property_tree& cfg)
-    {
-        if (cfg.name != "value_type") {
-            return encode_type_config<concrete_type<DefaultValueType>,
-                                      DefaultIndexType,
-                                      DefaultGlobalIndexType>::apply(cfg);
-        }
-
-        if (cfg.value == "double") {
-            return encode_type_config<concrete_type<double>, DefaultIndexType,
-                                      DefaultGlobalIndexType>::apply(cfg);
-        }
-        if (cfg.value == "float") {
-            return encode_type_config<concrete_type<float>, DefaultIndexType,
-                                      DefaultGlobalIndexType>::apply(cfg);
-        }
-
-        throw std::runtime_error("unsupported value type");
+template <typename DefaultType>
+std::variant<float, double> encode_value_type(const property_tree& pt)
+{
+    if (pt.name != "global_index_type") {
+        return DefaultType{};
     }
-};
 
-template <typename ValueType, typename DefaultIndexType,
-          typename DefaultGlobalIndexType>
-struct encode_type_config<concrete_type<ValueType>, DefaultIndexType,
-                          DefaultGlobalIndexType> {
-    static type_config apply(const property_tree& cfg)
-    {
-        if (cfg.name != "index_type") {
-            return encode_type_config<concrete_type<ValueType>,
-                                      concrete_type<DefaultIndexType>,
-                                      DefaultGlobalIndexType>::apply(cfg);
-        }
-
-        if (cfg.value == "int32") {
-            return encode_type_config<concrete_type<ValueType>,
-                                      concrete_type<int32>,
-                                      DefaultGlobalIndexType>::apply(cfg);
-        }
-        if (cfg.value == "int64") {
-            return encode_type_config<concrete_type<ValueType>,
-                                      concrete_type<int64>,
-                                      DefaultGlobalIndexType>::apply(cfg);
-        }
-
-        throw std::runtime_error("unsupported index type");
+    if (pt.value == "float") {
+        return float{};
     }
-};
-
-template <typename ValueType, typename IndexType,
-          typename DefaultGlobalIndexType>
-struct encode_type_config<concrete_type<ValueType>, concrete_type<IndexType>,
-                          DefaultGlobalIndexType> {
-    static type_config apply(const property_tree& cfg)
-    {
-        if (cfg.name != "global_index_type") {
-            return encode_type_config<
-                concrete_type<ValueType>, concrete_type<IndexType>,
-                concrete_type<DefaultGlobalIndexType>>::apply(cfg);
-        }
-
-        if (cfg.value == "int32") {
-            return encode_type_config<concrete_type<ValueType>,
-                                      concrete_type<IndexType>,
-                                      concrete_type<int32>>::apply(cfg);
-        }
-        if (cfg.value == "int64") {
-            return encode_type_config<concrete_type<ValueType>,
-                                      concrete_type<IndexType>,
-                                      concrete_type<int32>>::apply(cfg);
-        }
-
-        throw std::runtime_error("unsupported index type");
+    if (pt.value == "double") {
+        return double{};
     }
-};
+
+    throw std::runtime_error("unsupported value type");
+}
+
+template <typename DefaultType>
+std::variant<int32, int64> encode_index_type(const property_tree& pt)
+{
+    if (pt.name != "global_index_type") {
+        return DefaultType{};
+    }
+
+    if (pt.value == "int32") {
+        return int32{};
+    }
+    if (pt.value == "int64") {
+        return int64{};
+    }
+
+    throw std::runtime_error("unsupported value type");
+}
+
 
 template <typename ValueType, typename IndexType, typename GlobalIndexType>
-struct encode_type_config<concrete_type<ValueType>, concrete_type<IndexType>,
-                          concrete_type<GlobalIndexType>> {
-    static type_config apply(const property_tree&)
-    {
-        return {ValueType{}, IndexType{}, GlobalIndexType{}};
-    }
-};
+type_config encode_type_config(const property_tree& pt)
+{
+    return {encode_value_type<ValueType>(pt), encode_index_type<IndexType>(pt),
+            encode_index_type<GlobalIndexType>(pt)};
+}
 
 
 template <typename T, typename ValueType, typename IndexType,
@@ -213,27 +163,20 @@ auto dispatch(const property_tree& pt, const context& ctx,
 }
 
 
-struct Configurator {
-    virtual std::shared_ptr<LinOpFactory> configure(const property_tree& pt,
-                                                    const context& ctx,
-                                                    const type_config& cfg) = 0;
-};
+using configure_fn = std::function<std::shared_ptr<LinOpFactory>(
+    const property_tree&, const context&, const type_config&)>;
+
 
 template <typename T>
-struct EnableConfigurator : Configurator {
-    std::shared_ptr<LinOpFactory> configure(const property_tree& pt,
-                                            const context& ctx,
-                                            const type_config& cfg) override
-    {
-        return dispatch<T>(pt, ctx, cfg);
-    }
-};
-
+configure_fn create_default_configure_fn()
+{
+    return [](const property_tree& pt, const context& ctx,
+              const type_config& cfg) { return dispatch<T>(pt, ctx, cfg); };
+}
 
 namespace config {
-struct Cg : EnableConfigurator<Cg> {
-    template <typename ValueType = double, typename IndexType = int,
-              typename GlobalIndexType = long>
+struct Cg {
+    template <typename ValueType, typename IndexType, typename GlobalIndexType>
     static std::shared_ptr<LinOpFactory> configure(const property_tree& pt,
                                                    const context& ctx)
     {
@@ -278,11 +221,8 @@ template <typename ValueType = default_precision, typename IndexType = int32,
           typename GlobalIndexType = int64>
 std::shared_ptr<LinOpFactory> parse(const property_tree& pt, const context& ctx)
 {
-    std::map<std::string, std::shared_ptr<Configurator>> configurator_map = {
-        {"cg", std::make_shared<config::Cg>()}};
-
     auto type_config =
-        encode_type_config<ValueType, IndexType, GlobalIndexType>::apply(pt);
+        encode_type_config<ValueType, IndexType, GlobalIndexType>(pt);
     return parse(pt, ctx, type_config);
 }
 
