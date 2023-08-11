@@ -63,10 +63,11 @@ struct context {
 
 
 struct type_config {
-    std::variant<double, float> value_type = double{};
-    std::variant<int32, int64> index_type = int32{};
-    std::variant<int32, int64> global_index_type = int64{};
+    std::variant<std::monostate, double, float> value_type = {};
+    std::variant<std::monostate, int32, int64> index_type = {};
+    std::variant<std::monostate, int32, int64> global_index_type = {};
 };
+
 
 template <typename ValueType, typename IndexType, typename GlobalIndexType>
 struct compile_type_config {
@@ -77,7 +78,8 @@ struct compile_type_config {
 
 
 template <typename DefaultType>
-std::variant<float, double> encode_value_type(const property_tree& pt)
+std::variant<std::monostate, double, float> encode_value_type(
+    const property_tree& pt)
 {
     if (pt.name != "global_index_type") {
         return DefaultType{};
@@ -94,7 +96,8 @@ std::variant<float, double> encode_value_type(const property_tree& pt)
 }
 
 template <typename DefaultType>
-std::variant<int32, int64> encode_index_type(const property_tree& pt)
+std::variant<std::monostate, int32, int64> encode_index_type(
+    const property_tree& pt)
 {
     if (pt.name != "global_index_type") {
         return DefaultType{};
@@ -114,9 +117,15 @@ std::variant<int32, int64> encode_index_type(const property_tree& pt)
 template <typename ValueType, typename IndexType, typename GlobalIndexType>
 type_config encode_type_config(const property_tree& pt)
 {
-    return {encode_value_type<ValueType>(pt), encode_index_type<IndexType>(pt),
-            encode_index_type<GlobalIndexType>(pt)};
+    type_config tc;
+    tc.value_type = encode_value_type<ValueType>(pt);
+    tc.index_type = encode_index_type<IndexType>(pt);
+    tc.global_index_type = encode_index_type<GlobalIndexType>(pt);
+    return tc;
 }
+
+
+type_config default_type_config() { return {double{}, int32{}, int64{}}; }
 
 
 template <typename T, typename ValueType, typename IndexType,
@@ -208,8 +217,9 @@ struct Isai {
 }  // namespace config
 
 
-std::shared_ptr<LinOpFactory> parse(const property_tree& pt, const context& ctx,
-                                    const type_config& tcfg = {})
+std::shared_ptr<LinOpFactory> parse(
+    const property_tree& pt, const context& ctx,
+    const type_config& tcfg = default_type_config())
 {
     std::map<std::string, configure_fn> configurator_map = {
         {"cg", create_default_configure_fn<config::Cg>()}};
