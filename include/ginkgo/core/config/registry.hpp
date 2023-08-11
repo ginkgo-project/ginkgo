@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/stop/criterion.hpp>
 
 
 namespace gko {
@@ -52,6 +53,8 @@ namespace config {
 using LinOpMap = std::unordered_map<std::string, std::shared_ptr<LinOp>>;
 using LinOpFactoryMap =
     std::unordered_map<std::string, std::shared_ptr<LinOpFactory>>;
+using CriterionFactoryMap =
+    std::unordered_map<std::string, std::shared_ptr<stop::CriterionFactory>>;
 using Config = std::map<std::string, std::string>;
 using TypeDescriptor = std::pair<std::string, std::string>;
 class registry;
@@ -81,6 +84,12 @@ template <typename T>
 struct map_type<T, typename std::enable_if<
                        std::is_convertible<T*, LinOpFactory*>::value>::type> {
     using type = LinOpFactoryMap;
+};
+
+template <typename T>
+struct map_type<T, typename std::enable_if<std::is_convertible<
+                       T*, stop::CriterionFactory*>::value>::type> {
+    using type = CriterionFactoryMap;
 };
 
 
@@ -160,6 +169,7 @@ protected:
 private:
     LinOpMap linop_map_;
     LinOpFactoryMap linopfactory_map_;
+    CriterionFactoryMap criterionfactory_map_;
     BuildFromConfigMap build_map_;
 };
 
@@ -177,6 +187,12 @@ inline LinOpFactoryMap& registry::get_map_impl<LinOpFactoryMap>()
 }
 
 template <>
+inline CriterionFactoryMap& registry::get_map_impl<CriterionFactoryMap>()
+{
+    return criterionfactory_map_;
+}
+
+template <>
 inline const LinOpMap& registry::get_map_impl<LinOpMap>() const
 {
     return linop_map_;
@@ -186,6 +202,13 @@ template <>
 inline const LinOpFactoryMap& registry::get_map_impl<LinOpFactoryMap>() const
 {
     return linopfactory_map_;
+}
+
+template <>
+inline const CriterionFactoryMap& registry::get_map_impl<CriterionFactoryMap>()
+    const
+{
+    return criterionfactory_map_;
 }
 
 
@@ -204,6 +227,7 @@ TYPE_STRING_OVERLOAD(double, "double");
 TYPE_STRING_OVERLOAD(float, "float");
 TYPE_STRING_OVERLOAD(std::complex<double>, "complex<double>");
 TYPE_STRING_OVERLOAD(std::complex<float>, "complex<float>");
+
 
 }  // namespace config
 }  // namespace gko

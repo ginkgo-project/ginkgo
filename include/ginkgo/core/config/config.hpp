@@ -58,10 +58,20 @@ std::unique_ptr<gko::LinOpFactory> build_from_config(
     const gko::config::Config& config, const gko::config::registry& context,
     std::shared_ptr<const Executor>& exec, TypeDescriptor td = {"", ""});
 
+
 // The main function
 std::unique_ptr<gko::LinOpFactory> build_from_config(
     const gko::config::Config& config, const gko::config::registry& context,
     std::shared_ptr<const Executor>& exec, TypeDescriptor td = {"", ""});
+
+
+// dispatch function
+template <template <class...> class Base, typename... Types>
+std::unique_ptr<LinOpFactory> dispatch(std::string str,
+                                       const gko::config::Config& config,
+                                       const gko::config::registry& context,
+                                       std::shared_ptr<const Executor>& exec,
+                                       const gko::config::TypeDescriptor& td);
 
 
 BuildFromConfigMap generate_config_map();
