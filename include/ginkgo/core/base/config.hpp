@@ -241,8 +241,38 @@ struct Cg : EnableConfigurator<Cg> {
         return nullptr;
     }
 };
+
+enum isai_type {};
+struct Isai {
+    template <typename ValueType, typename IndexType, typename GlobalIndexType,
+              isai_type IsaiType>
+    static std::shared_ptr<LinOpFactory> configure(const property_tree& pt,
+                                                   const context& ctx)
+    {
+        // actual implementation
+        return nullptr;
+    }
+
+    template <typename ValueType, typename IndexType, typename GlobalIndexType>
+    static std::shared_ptr<LinOpFactory> configure(const property_tree& pt,
+                                                   const context& ctx)
+    {
+        // dispatch isai_type
+        // actual implementation
+        return nullptr;
+    }
+};
 }  // namespace config
 
+
+std::shared_ptr<LinOpFactory> parse(const property_tree& pt, const context& ctx,
+                                    const type_config& tcfg = {})
+{
+    std::map<std::string, configure_fn> configurator_map = {
+        {"cg", create_default_configure_fn<config::Cg>()}};
+
+    return configurator_map[pt.value](pt, ctx, tcfg);
+}
 
 template <typename ValueType = default_precision, typename IndexType = int32,
           typename GlobalIndexType = int64>
@@ -253,8 +283,7 @@ std::shared_ptr<LinOpFactory> parse(const property_tree& pt, const context& ctx)
 
     auto type_config =
         encode_type_config<ValueType, IndexType, GlobalIndexType>::apply(pt);
-
-    return configurator_map[pt.value]->configure(pt, ctx, type_config);
+    return parse(pt, ctx, type_config);
 }
 
 
