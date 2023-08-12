@@ -1,0 +1,4 @@
+gkoext_file_config_create_test(template_helper)
+gkoext_file_config_create_test(type_pack)
+gkoext_file_config_create_test(type_resolving)
+gkoext_file_config_create_test(type_string)

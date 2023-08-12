@@ -1070,6 +1070,9 @@ public:                                                                      \
                                                _parameters_name##_type>(     \
                   std::move(exec), parameters)                               \
         {}                                                                   \
+                                                                             \
+    public:                                                                  \
+        using base_type = _lin_op;                                           \
     };                                                                       \
     friend ::gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,          \
                                             _parameters_name##_type>;        \
