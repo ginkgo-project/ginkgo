@@ -8,6 +8,7 @@ function(gkoext_pt_create_test test_name)
     target_include_directories("${TEST_TARGET_NAME}"
         PRIVATE
         "${CMAKE_SOURCE_DIR}/extension/property_tree/include"
+        "${CMAKE_SOURCE_DIR}/extension/property_tree"
         )
     set_target_properties(${TEST_TARGET_NAME} PROPERTIES
         OUTPUT_NAME ${test_name})
