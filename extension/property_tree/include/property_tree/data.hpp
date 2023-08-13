@@ -76,12 +76,12 @@ public:
     /**
      * Constructor for bool
      */
-    data_s(bool bb) : tag_(tag_type::bool_t) { bool_ = bb; }
+    data_s(bool bb) : tag_(tag_type::bool_t) { u_.bool_ = bb; }
 
     /**
      * Constructor for integer
      */
-    data_s(long long int ii) : tag_(tag_type::int_t) { int_ = ii; }
+    data_s(long long int ii) : tag_(tag_type::int_t) { u_.int_ = ii; }
 
     /**
      * Constructor for integer with all integer type
@@ -104,7 +104,7 @@ public:
     /**
      * Constructor for double
      */
-    data_s(double dd) : tag_(tag_type::double_t) { double_ = dd; };
+    data_s(double dd) : tag_(tag_type::double_t) { u_.double_ = dd; };
 
     /**
      * Constructor for float
@@ -118,19 +118,19 @@ public:
     {
         switch (data.tag_) {
         case tag_type::empty_t:
-            stream << "empty";
+            stream << "<empty>";
             break;
         case tag_type::bool_t:
-            stream << (data.bool_ ? "true" : "false");
+            stream << (data.u_.bool_ ? "true" : "false");
             break;
         case tag_type::int_t:
-            stream << data.int_;
+            stream << data.u_.int_;
             break;
         case tag_type::str_t:
-            stream << data.str_;
+            stream << "\"" << data.str_ << "\"";
             break;
         case tag_type::double_t:
-            stream << data.double_;
+            stream << data.u_.double_;
             break;
         }
         return stream;
@@ -139,16 +139,18 @@ public:
 private:
     tag_type tag_;
     std::string str_;
-    long long int int_;
-    double double_;
-    bool bool_;
+    union {
+        long long int int_;
+        double double_;
+        bool bool_;
+    } u_;
 };
 
 template <>
 long long int data_s::get<long long int>() const
 {
     assert(tag_ == data_s::tag_type::int_t);
-    return int_;
+    return u_.int_;
 }
 
 template <>
@@ -162,14 +164,14 @@ template <>
 double data_s::get<double>() const
 {
     assert(tag_ == data_s::tag_type::double_t);
-    return double_;
+    return u_.double_;
 }
 
 template <>
 bool data_s::get<bool>() const
 {
     assert(tag_ == data_s::tag_type::bool_t);
-    return bool_;
+    return u_.bool_;
 }
 
 
