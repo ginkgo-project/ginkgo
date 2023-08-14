@@ -104,7 +104,7 @@ TEST(PropertyTree, print)
         "  p0: 1.23\n"
         "  p1: 1\n"
         "  p2: {\n"
-        "    p0: test\n"
+        "    p0: \"test\"\n"
         "  }\n"
         "  p3: [\n"
         "    1\n"

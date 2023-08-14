@@ -60,7 +60,7 @@ TEST(StringParser, ReadInput2)
     std::string str = "--base Csr --dim 3,4";
     std::istringstream iss(
         "root: {\n"
-        "  base: Csr\n"
+        "  base: \"Csr\"\n"
         "  dim: [\n"
         "    3\n"
         "    4\n"
@@ -84,15 +84,15 @@ TEST(JsonParser, ReadInput3)
     std::istringstream iss(
         "root: {\n"
         "  A: {\n"
-        "    base: Csr<V,I>\n"
+        "    base: \"Csr<V,I>\"\n"
         "    dim: [\n"
         "      3\n"
         "      4\n"
         "    ]\n"
-        "    executor: B\n"
+        "    executor: \"B\"\n"
         "  }\n"
         "  B: {\n"
-        "    base: ReferenceExecutor\n"
+        "    base: \"ReferenceExecutor\"\n"
         "  }\n"
         "  C: {\n"
         "    float: 1.23\n"
