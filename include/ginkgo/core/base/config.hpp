@@ -63,9 +63,9 @@ struct context {
 
 
 struct type_config {
-    std::variant<std::monostate, double, float> value_type = {};
-    std::variant<std::monostate, int32, int64> index_type = {};
-    std::variant<std::monostate, int32, int64> global_index_type = {};
+    std::variant<float, double> value_type = double{};
+    std::variant<int32, int64> index_type = int32{};
+    std::variant<int32, int64> global_index_type = int64{};
 };
 
 
@@ -92,16 +92,19 @@ std::variant<Alternatives...> encode_type(
         return DefaultType{};
     }
 
-    std::variant<std::monostate, Alternatives...> return_variant{};
+    std::variant<Alternatives...> return_variant{};
 
+    bool found_alternative = false;
     auto fill_variant = [&](const auto& alt) {
         if (pt.value == alt.name) {
             return_variant = alt.get();
+            found_alternative = true;
         }
     };
     (fill_variant(alternatives), ...);
 
-    if (std::holds_alternative<std::monostate>(return_variant)) {
+    // maybe check for multiple alternatives with same name
+    if (!found_alternative) {
         throw std::runtime_error("unsupported type for " + name);
     }
 
@@ -114,8 +117,8 @@ type_config encode_type_config(const property_tree& pt)
 {
     type_config tc;
     tc.value_type = encode_type<ValueType>(pt, "value_type",
-                                           alternative("float64", double{}),
-                                           alternative("float32", float{}));
+                                           alternative("float32", float{}),
+                                           alternative("float64", double{}));
     tc.index_type =
         encode_type<IndexType>(pt, "index_type", alternative("int32", int32{}),
                                alternative("int64", int64{}));
@@ -202,6 +205,7 @@ std::shared_ptr<LinOpFactory> parse(
     const type_config& tcfg = default_type_config())
 {
     std::map<std::string, configure_fn> configurator_map;
+    auto type_config = encode_type_config<double, int32, int64>(pt);
 
     return configurator_map[pt.value](pt, ctx, tcfg);
 }
