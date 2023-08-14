@@ -94,25 +94,15 @@ public:
         /**
          * Local solver factory.
          */
-        std::shared_ptr<const LinOpFactory> local_solver{};
-
-        parameters_type& with_local_solver(
-            deferred_factory_parameter<LinOpFactory> solver)
-        {
-            this->local_solver_generator = std::move(solver);
-            return *this;
-        }
+        GKO_DEFERRED_FACTORY_PARAMETER(local_solver, LinOpFactory);
 
         std::unique_ptr<Factory> on(std::shared_ptr<const Executor> exec) const
         {
             auto copy = *this;
-            copy.local_solver = local_solver_generator.on(exec);
+            copy.local_solver = local_solver_generator_.on(exec);
             return copy.enable_parameters_type<parameters_type, Factory>::on(
                 exec);
         }
-
-    private:
-        deferred_factory_parameter<LinOpFactory> local_solver_generator;
     };
     GKO_ENABLE_LIN_OP_FACTORY(Schwarz, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
