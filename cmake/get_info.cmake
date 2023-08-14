@@ -190,16 +190,21 @@ ginkgo_print_module_footer(${detailed_log} "")
 
 ginkgo_print_generic_header(${minimal_log} "  Components:")
 ginkgo_print_generic_header(${detailed_log} "  Components:")
-if(PAPI_sde_FOUND)
+ginkgo_print_variable(${minimal_log} "GINKGO_BUILD_PAPI_SDE")
+ginkgo_print_variable(${detailed_log} "GINKGO_BUILD_PAPI_SDE")
+if(TARGET PAPI::PAPI)
     ginkgo_print_variable(${detailed_log} "PAPI_VERSION")
     ginkgo_print_variable(${detailed_log} "PAPI_INCLUDE_DIR")
     ginkgo_print_flags(${detailed_log} "PAPI_LIBRARY")
 endif()
+
 ginkgo_print_variable(${minimal_log} "GINKGO_BUILD_HWLOC")
 ginkgo_print_variable(${detailed_log} "GINKGO_BUILD_HWLOC")
-ginkgo_print_variable(${detailed_log} "HWLOC_VERSION")
-ginkgo_print_variable(${detailed_log} "HWLOC_LIBRARIES")
-ginkgo_print_variable(${detailed_log} "HWLOC_INCLUDE_DIRS")
+if(TARGET hwloc)
+    ginkgo_print_variable(${detailed_log} "HWLOC_VERSION")
+    ginkgo_print_variable(${detailed_log} "HWLOC_LIBRARIES")
+    ginkgo_print_variable(${detailed_log} "HWLOC_INCLUDE_DIRS")
+endif()
 
 _minimal(
     "

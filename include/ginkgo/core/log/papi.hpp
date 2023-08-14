@@ -44,16 +44,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <map>
 #include <mutex>
-
-
-#include <papi.h>
+#include <sde_lib.h>
 
 
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/log/logger.hpp>
-
-
-#include "third_party/papi_sde/papi_sde_interface.h"
 
 
 namespace gko {
@@ -213,7 +208,10 @@ public:
     create(std::shared_ptr<const gko::Executor>,
            const Logger::mask_type& enabled_events = Logger::all_events_mask)
     {
-        return std::shared_ptr<Papi>(new Papi(enabled_events));
+        return std::shared_ptr<Papi>(new Papi(enabled_events), [](auto logger) {
+            papi_sde_shutdown(logger->get_handle());
+            delete logger;
+        });
     }
 
     /**
@@ -224,7 +222,10 @@ public:
     static std::shared_ptr<Papi> create(
         const Logger::mask_type& enabled_events = Logger::all_events_mask)
     {
-        return std::shared_ptr<Papi>(new Papi(enabled_events));
+        return std::shared_ptr<Papi>(new Papi(enabled_events), [](auto logger) {
+            papi_sde_shutdown(logger->get_handle());
+            delete logger;
+        });
     }
 
     /**
@@ -234,6 +235,13 @@ public:
      * @return the unique name of this logger
      */
     const std::string get_handle_name() const { return name; }
+
+    /**
+     * Returns the corresponding papi_handle_t for this logger
+     *
+     * @return the corresponding papi_handle_t for this logger
+     */
+    const papi_handle_t get_handle() const { return papi_handle; }
 
 protected:
     [[deprecated("use single-parameter constructor")]] explicit Papi(
@@ -265,12 +273,10 @@ private:
 
         ~papi_queue()
         {
-            if (PAPI_is_initialized()) {
-                for (auto e : data) {
-                    std::ostringstream oss;
-                    oss << counter_name << "::" << e.first;
-                    papi_sde_unregister_counter(*handle, oss.str().c_str());
-                }
+            for (auto e : data) {
+                std::ostringstream oss;
+                oss << counter_name << "::" << e.first;
+                papi_sde_unregister_counter(*handle, oss.str().c_str());
             }
             data.clear();
         }

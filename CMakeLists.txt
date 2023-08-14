@@ -9,6 +9,7 @@ include(cmake/hip_path.cmake)
 include(cmake/autodetect_executors.cmake)
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/Modules/")
+include(cmake/autodetect_system_libs.cmake)
 
 # Ginkgo configuration options
 option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" OFF)
@@ -77,8 +78,9 @@ option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
 if(MSVC OR WIN32 OR CYGWIN OR APPLE)
     option(GINKGO_BUILD_HWLOC "Build Ginkgo with HWLOC. Default is OFF. Ginkgo does not support HWLOC on Windows/MacOS" OFF)
 else()
-    option(GINKGO_BUILD_HWLOC "Build Ginkgo with HWLOC. Default is ON. If a system HWLOC is not found, then we try to build it ourselves. Switch this OFF to disable HWLOC." ON)
+    option(GINKGO_BUILD_HWLOC "Build Ginkgo with HWLOC. Enabled if a system installation is found." ${HWLOC_FOUND})
 endif()
+option(GINKGO_BUILD_PAPI_SDE "Build Ginkgo with PAPI SDE. Enabled if a system installation is found." ${PAPI_SDE_FOUND})
 option(GINKGO_DPCPP_SINGLE_MODE "Do not compile double kernels for the DPC++ backend." OFF)
 option(GINKGO_INSTALL_RPATH "Set the RPATH when installing its libraries." ON)
 option(GINKGO_INSTALL_RPATH_ORIGIN "Add $ORIGIN (Linux) or @loader_path (MacOS) to the installation RPATH." ON)
@@ -189,14 +191,6 @@ endif()
 include(CheckIncludeFileCXX)
 check_include_file_cxx(cxxabi.h GKO_HAVE_CXXABI_H)
 
-# Automatically find PAPI and search for the required 'sde' component
-set(GINKGO_HAVE_PAPI_SDE 0)
-# PAPI is temporarily disabled
-#find_package(PAPI OPTIONAL_COMPONENTS sde)
-#if(PAPI_sde_FOUND)
-#    set(GINKGO_HAVE_PAPI_SDE 1)
-#endif()
-
 # Automatically find TAU
 set(GINKGO_HAVE_TAU 0)
 find_package(PerfStubs QUIET)
@@ -225,12 +219,6 @@ endif()
 if(GINKGO_BUILD_HWLOC AND (MSVC OR WIN32 OR CYGWIN OR APPLE))
     set(GINKGO_BUILD_HWLOC OFF CACHE BOOL "Build Ginkgo with HWLOC. Default is OFF. Ginkgo does not support HWLOC on Windows/MacOS" FORCE)
     message(WARNING "Ginkgo does not support HWLOC on Windows/MacOS, switch GINKGO_BUILD_HWLOC to OFF")
-endif()
-if(GINKGO_BUILD_HWLOC)
-    set(GINKGO_HAVE_HWLOC 1)
-else()
-    set(GINKGO_HAVE_HWLOC 0)
-    message(STATUS "HWLOC is being forcibly switched off")
 endif()
 
 set(GINKGO_HAVE_GPU_AWARE_MPI OFF)
@@ -261,7 +249,6 @@ if(GINKGO_BUILD_MPI)
 endif()
 
 # Try to find the third party packages before using our subdirectories
-include(cmake/package_helpers.cmake)
 if(GINKGO_BUILD_TESTS)
     find_package(GTest 1.10.0) # No need for QUIET as CMake ships FindGTest
 endif()
@@ -269,9 +256,31 @@ if(GINKGO_BUILD_BENCHMARKS)
     find_package(gflags 2.2.2 QUIET)
     find_package(RapidJSON 1.1.0 QUIET)
 endif()
+
+# System provided, third party libraries (not bundled!)
+set(GINKGO_HAVE_HWLOC 0)
 if(GINKGO_BUILD_HWLOC)
-    find_package(HWLOC 2.1) # No need for QUIET as we ship FindHWLOC
+    find_package(HWLOC 2.1)
+    if (HWLOC_FOUND)
+        set(GINKGO_HAVE_HWLOC 1)
+    else()
+        message(WARNING "HWLOC could not be found. HWLOC support will be disabled.")
+        set(GINKGO_BUILD_HWLOC OFF CACHE BOOL "HWLOC support was disabled because a system package could not be found." FORCE)
+    endif()
 endif()
+
+set(GINKGO_HAVE_PAPI_SDE 0)
+if(GINKGO_BUILD_PAPI_SDE)
+    find_package(PAPI 7.0.1.0 COMPONENTS sde)
+    if (PAPI_SDE_FOUND)
+        set(GINKGO_HAVE_PAPI_SDE 1)
+    else()
+        message(WARNING "PAPI (SDE) could not be found. PAPI_SDE support will be disabled.")
+        set(GINKGO_BUILD_PAPI_SDE OFF CACHE BOOL "PAPI_SDE support was disabled because a system package could not be found." FORCE)
+    endif()
+endif()
+
+# Bundled third party libraries
 add_subdirectory(third_party)    # Third-party tools and libraries
 
 if(MSVC)
