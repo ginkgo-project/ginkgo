@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.16)
 project(Ginkgo LANGUAGES C CXX VERSION 1.7.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
 set(Ginkgo_VERSION_TAG "develop")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
+# Cuda and Hip also look for Threads. Set it before any find_package to ensure the Threads setting is not changed.
+set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 # Determine which modules can be compiled
 include(cmake/hip_path.cmake)
@@ -98,7 +100,7 @@ endif()
 if(GINKGO_BUILD_OMP)
     find_package(OpenMP 3.0 REQUIRED)
 endif()
-set(THREADS_PREFER_PTHREAD_FLAG ON)
+
 find_package(Threads REQUIRED)
 include(cmake/build_type_helpers.cmake)
 
