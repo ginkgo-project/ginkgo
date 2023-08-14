@@ -81,7 +81,7 @@ public:
     T get() const
     {
         assert(status_ == status_t::object);
-        return data_.template get<T>();
+        return gko::extension::get<T>(data_);
     }
 
     // Get the data of node's content via path (. as separator)

@@ -68,13 +68,13 @@ TEST(JsonParser, ReadInput2)
         "{'base': 'Csr', 'dim': [3, 4], 'exec': {'base': 'ReferenceExecutor'}}";
     std::istringstream iss(
         "root: {\n"
-        "  base: Csr\n"
+        "  base: \"Csr\"\n"
         "  dim: [\n"
         "    3\n"
         "    4\n"
         "  ]\n"
         "  exec: {\n"
-        "    base: ReferenceExecutor\n"
+        "    base: \"ReferenceExecutor\"\n"
         "  }\n"
         "}\n");
     auto str = convert_quote(json);
@@ -97,10 +97,10 @@ TEST(JsonParser, ReadInput3)
     std::istringstream iss(
         "root: [\n"
         "  {\n"
-        "    name: A\n"
+        "    name: \"A\"\n"
         "  }\n"
         "  {\n"
-        "    name: B\n"
+        "    name: \"B\"\n"
         "  }\n"
         "]\n");
     auto str = convert_quote(json);

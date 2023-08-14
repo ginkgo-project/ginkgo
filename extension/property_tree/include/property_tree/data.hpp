@@ -34,40 +34,66 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_EXT_PROPERTY_TREE_DATA_HPP_
 
 
-#include <deque>
 #include <exception>
-#include <list>
 #include <string>
 #include <type_traits>
+#include <typeinfo>
 
 
 namespace gko {
 namespace extension {
 
 
+/** @file data.hpp
+ * It implements the base type for property tree. It only handles std::string,
+ * double, long long int, bool, monostate(empty). Because it can be handled by
+ * std::variant in C++17 directly, this file tries to use the same function
+ * signature such that we can replace data_s without breaking public interface
+ * when we decide to use C++17.
+ */
+
+class data_s;
+
+// For empty state usage
+struct monostate {};
+
+/**
+ * Check whether data_s holds type T data.
+ *
+ * @tparam T  type for checking
+ *
+ * @param d  the data_s data
+ *
+ * @return true if and only if data_s holds type T
+ */
+template <typename T>
+bool holds_alternative(const data_s& d);
+
+/**
+ * Get the data with type T of data_s. If T is in the type list but not the type
+ * held by data_s, it throws runtime error.
+ *
+ * @tparam T  type for checking
+ *
+ * @param d  the data_s data
+ *
+ * @return data with type T if data_s holds
+ */
+template <typename T>
+T get(const data_s& d);
+
+/**
+ * The base data type for property tree. It only handles std::string,
+ * double, long long int, bool, monostate(empty).
+ */
 class data_s {
-public:
-    enum tag_type { str_t, int_t, double_t, bool_t, empty_t };
-
-    template <tag_type>
-    struct tag {
-        using type = void;
-    };
-
-    /**
-     * Get the data with Type T
-     */
     template <typename T>
-    T get() const
-    {
-        throw std::runtime_error("Not Supported");
-    }
+    friend T get(const data_s& d);
 
-    template <tag_type T>
-    typename tag<T>::type get() const;
+    template <typename T>
+    friend bool holds_alternative(const data_s& d);
 
-    tag_type get_tag() const { return tag_; }
-
+public:
     /**
      * Default Constructor
      */
@@ -84,10 +110,13 @@ public:
     data_s(long long int ii) : tag_(tag_type::int_t) { u_.int_ = ii; }
 
     /**
-     * Constructor for integer with all integer type
+     * Constructor for integer with all integer type except for unsigned long
+     * long int
      */
-    template <typename T, typename = typename std::enable_if<
-                              std::is_integral<T>::value>::type>
+    template <typename T,
+              typename = typename std::enable_if<
+                  std::is_integral<T>::value &&
+                  !std::is_same<T, unsigned long long int>::value>::type>
     data_s(T ii) : data_s(static_cast<long long int>(ii))
     {}
 
@@ -111,30 +140,27 @@ public:
      */
     data_s(float dd) : data_s(static_cast<double>(dd)) {}
 
+protected:
+    enum tag_type { str_t, int_t, double_t, bool_t, empty_t };
+
+    template <tag_type>
+    struct tag {
+        using type = void;
+    };
+
     /**
-     * Overloading stream operator<<
+     * Get the data with Type T
      */
-    friend std::ostream& operator<<(std::ostream& stream, const data_s& data)
+    template <typename T>
+    T get() const
     {
-        switch (data.tag_) {
-        case tag_type::empty_t:
-            stream << "<empty>";
-            break;
-        case tag_type::bool_t:
-            stream << (data.u_.bool_ ? "true" : "false");
-            break;
-        case tag_type::int_t:
-            stream << data.u_.int_;
-            break;
-        case tag_type::str_t:
-            stream << "\"" << data.str_ << "\"";
-            break;
-        case tag_type::double_t:
-            stream << data.u_.double_;
-            break;
-        }
-        return stream;
+        throw std::runtime_error("Not Supported");
     }
+
+    template <tag_type T>
+    typename tag<T>::type get() const;
+
+    tag_type get_tag() const { return tag_; }
 
 private:
     tag_type tag_;
@@ -196,8 +222,47 @@ struct data_s::tag<data_s::tag_type::str_t> {
 };
 
 
+template <typename T>
+T get(const data_s& d)
+{
+    static_assert(std::is_same<T, std::string>::value ||
+                      std::is_same<T, long long int>::value ||
+                      std::is_same<T, double>::value ||
+                      std::is_same<T, bool>::value ||
+                      std::is_same<T, monostate>::value,
+                  "Not supported data type");
+    if (holds_alternative<T>(d)) {
+        return d.get<T>();
+    }
+    throw std::runtime_error(std::string("data does not holds the type ") +
+                             typeid(T).name());
+}
+
+
+template <typename T>
+bool holds_alternative(const data_s& d)
+{
+    static_assert(std::is_same<T, std::string>::value ||
+                      std::is_same<T, long long int>::value ||
+                      std::is_same<T, double>::value ||
+                      std::is_same<T, bool>::value ||
+                      std::is_same<T, monostate>::value,
+                  "Not supported data type");
+    if (std::is_same<T, std::string>::value) {
+        return d.get_tag() == data_s::tag_type::str_t;
+    } else if (std::is_same<T, long long int>::value) {
+        return d.get_tag() == data_s::tag_type::int_t;
+    } else if (std::is_same<T, double>::value) {
+        return d.get_tag() == data_s::tag_type::double_t;
+    } else if (std::is_same<T, bool>::value) {
+        return d.get_tag() == data_s::tag_type::bool_t;
+    } else if (std::is_same<T, monostate>::value) {
+        return d.get_tag() == data_s::tag_type::empty_t;
+    }
+}
+
+
 }  // namespace extension
 }  // namespace gko
-
 
 #endif  // GKO_PUBLIC_EXT_PROPERTY_TREE_DATA_HPP_
