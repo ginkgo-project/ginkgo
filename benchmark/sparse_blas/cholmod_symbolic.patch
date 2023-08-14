@@ -1,0 +1,318 @@
+diff --git a/CHOLMOD/Cholesky/t_cholmod_rowfac.c b/CHOLMOD/Cholesky/t_cholmod_rowfac.c
+index 1f1758f48..de5241d5d 100644
+--- a/CHOLMOD/Cholesky/t_cholmod_rowfac.c
++++ b/CHOLMOD/Cholesky/t_cholmod_rowfac.c
+@@ -41,11 +41,6 @@ static int TEMPLATE (cholmod_rowfac)
+     cholmod_common *Common
+ )
+ {
+-    double yx [2], lx [2], fx [2], dk [1], di [1], fl = 0 ;
+-#ifdef ZOMPLEX
+-    double yz [1], lz [1], fz [1] ;
+-#endif
+-    double *Ax, *Az, *Lx, *Lz, *Wx, *Wz, *Fx, *Fz ;
+     Int *Ap, *Anz, *Ai, *Lp, *Lnz, *Li, *Lnext, *Flag, *Stack, *Fp, *Fi, *Fnz,
+ 	*Iwork ;
+     Int i, p, k, t, pf, pfend, top, s, mark, pend, n, lnz, is_ll, multadds,
+@@ -70,8 +65,6 @@ static int TEMPLATE (cholmod_rowfac)
+ 	/* symmetric upper case: F is not needed.  It may be NULL */
+ 	Fp = NULL ;
+ 	Fi = NULL ;
+-	Fx = NULL ;
+-	Fz = NULL ;
+ 	Fnz = NULL ;
+ 	Fpacked = TRUE ;
+     }
+@@ -80,16 +73,12 @@ static int TEMPLATE (cholmod_rowfac)
+ 	/* unsymmetric case: F is required. */
+ 	Fp = F->p ;
+ 	Fi = F->i ;
+-	Fx = F->x ;
+-	Fz = F->z ;
+ 	Fnz = F->nz ;
+ 	Fpacked = F->packed ;
+     }
+ 
+     Ap = A->p ;		/* size A->ncol+1, column pointers of A */
+     Ai = A->i ;		/* size nz = Ap [A->ncol], row indices of A */
+-    Ax = A->x ;		/* size nz, numeric values of A */
+-    Az = A->z ;
+     Anz = A->nz ;
+     packed = A->packed ;
+     sorted = A->sorted ;
+@@ -141,8 +130,6 @@ static int TEMPLATE (cholmod_rowfac)
+     Lnz = L->nz ;	/* size n */
+     Lnext = L->next ;	/* size n+2 */
+     Li = L->i ;		/* size L->nzmax, can change in size */
+-    Lx = L->x ;		/* size L->nzmax or 2*L->nzmax, can change in size */
+-    Lz = L->z ;		/* size L->nzmax for zomplex case, can change in size */
+     nzmax = L->nzmax ;
+     ASSERT (Lnz != NULL && Li != NULL && Lx != NULL) ;
+ 
+@@ -153,9 +140,6 @@ static int TEMPLATE (cholmod_rowfac)
+     Iwork = Common->Iwork ;
+     Stack = Iwork ;		/* size n (i/i/l) */
+     Flag = Common->Flag ;	/* size n, Flag [i] < mark must hold */
+-    Wx = Common->Xwork ;	/* size n if real, 2*n if complex or 
+-				 * zomplex.  Xwork [i] == 0 must hold. */
+-    Wz = Wx + n ;		/* size n for zomplex case only */
+     mark = Common->mark ;
+     ASSERT ((Int) Common->xworksize >= (L->xtype == CHOLMOD_REAL ? 1:2)*n) ;
+ 
+@@ -193,7 +177,7 @@ static int TEMPLATE (cholmod_rowfac)
+ 	    p = Ap [k] ;
+ 	    pend = (packed) ? (Ap [k+1]) : (p + Anz [k]) ;
+ 	    /* W [i] = Ax [i] ; scatter column of A */
+-#define SCATTER ASSIGN(Wx,Wz,i, Ax,Az,p)
++#define SCATTER
+ 	    SUBTREE ;
+ #undef SCATTER
+ 	}
+@@ -207,19 +191,13 @@ static int TEMPLATE (cholmod_rowfac)
+ 		/* get nonzero entry F (t,k) */
+ 		t = Fi [pf] ;
+ 		/* fk = Fx [pf] */
+-		ASSIGN (fx, fz, 0, Fx, Fz, pf) ;
+ 		p = Ap [t] ;
+ 		pend = (packed) ? (Ap [t+1]) : (p + Anz [t]) ;
+ 		multadds = 0 ;
+ 		/* W [i] += Ax [p] * fx ; scatter column of A*A' */
+-#define SCATTER MULTADD (Wx,Wz,i, Ax,Az,p, fx,fz,0) ; multadds++  ;
++#define SCATTER multadds++  ;
+ 		SUBTREE ;
+ #undef SCATTER
+-#ifdef REAL
+-		fl += 2 * ((double) multadds) ;
+-#else
+-		fl += 8 * ((double) multadds) ;
+-#endif
+ 	    }
+ 	}
+ 
+@@ -251,7 +229,6 @@ static int TEMPLATE (cholmod_rowfac)
+                 i = Stack [s] ;
+                 if (mask [i] >= maskmark)
+ 		{
+-		    CLEAR (Wx,Wz,i) ;	/* set W(i) to zero */
+ 		}
+             }
+ 
+@@ -282,95 +259,31 @@ static int TEMPLATE (cholmod_rowfac)
+ 	 */
+ 
+ 	/* dk = W [k] + beta */
+-	ADD_REAL (dk,0, Wx,k, beta,0) ;
+ 
+-#ifndef REAL
+-	/* In the unsymmetric case, the imaginary part of W[k] must be real,
+-	 * since F is assumed to be the complex conjugate transpose of A.  In
+-	 * the symmetric case, W[k] is the diagonal of A.  If the imaginary part
+-	 * of W[k] is nonzero, then the Cholesky factorization cannot be
+-	 * computed; A is not positive definite */
+-	dk_imaginary = (stype > 0) ? (IMAG_IS_NONZERO (Wx,Wz,k)) : FALSE ;
+-#endif
+ 
+-	/* W [k] = 0.0 ; */
+-	CLEAR (Wx,Wz,k) ;
+ 
+ 	for (s = top ; s < n ; s++)
+ 	{
+ 	    /* get i for each nonzero entry L(k,i) */
+ 	    i = Stack [s] ;
+ 
+-	    /* y = W [i] ; */
+-	    ASSIGN (yx,yz,0, Wx,Wz,i) ;
+-
+-	    /* W [i] = 0.0 ; */
+-	    CLEAR (Wx,Wz,i) ;
+-
+ 	    lnz = Lnz [i] ;
+ 	    p = Lp [i] ;
+ 	    ASSERT (lnz > 0 && Li [p] == i) ;
+ 	    pend = p + lnz ;
+ 
+-	    /* di = Lx [p] ; the diagonal entry L or D(i,i), which is real */
+-	    ASSIGN_REAL (di,0, Lx,p) ;
+ 
+-	    if (i >= (Int) L->minor || IS_ZERO (di [0]))
++	    if (i >= (Int) L->minor)
+ 	    {
+ 		/* For the LL' factorization, L(i,i) is zero.  For the LDL',
+ 		 * D(i,i) is zero.  Skip column i of L, and set L(k,i) = 0. */
+-		CLEAR (lx,lz,0) ;
+ 		p = pend ;
+ 	    }
+ 	    else if (is_ll)
+ 	    {
+-#ifdef REAL
+-		fl += 2 * ((double) (pend - p - 1)) + 3 ;
+-#else
+-		fl += 8 * ((double) (pend - p - 1)) + 6 ;
+-#endif
+-		/* forward solve using L (i:(k-1),i) */
+-		/* divide by L(i,i), which must be real and nonzero */
+-		/* y /= di [0] */
+-		DIV_REAL (yx,yz,0, yx,yz,0, di,0) ;
+-		for (p++ ; p < pend ; p++)
+-		{
+-		    /* W [Li [p]] -= Lx [p] * y ; */
+-		    MULTSUB (Wx,Wz,Li[p], Lx,Lz,p, yx,yz,0) ;
+-		}
+-		/* do not scale L; compute dot product for L(k,k) */
+-		/* L(k,i) = conj(y) ; */
+-		ASSIGN_CONJ (lx,lz,0, yx,yz,0) ;
+-		/* d -= conj(y) * y ; */
+-		LLDOT (dk,0, yx,yz,0) ;
+ 	    }
+ 	    else
+ 	    {
+-#ifdef REAL
+-		fl += 2 * ((double) (pend - p - 1)) + 3 ;
+-#else
+-		fl += 8 * ((double) (pend - p - 1)) + 6 ;
+-#endif
+-		/* forward solve using D (i,i) and L ((i+1):(k-1),i) */
+-		for (p++ ; p < pend ; p++)
+-		{
+-		    /* W [Li [p]] -= Lx [p] * y ; */
+-		    MULTSUB (Wx,Wz,Li[p], Lx,Lz,p, yx,yz,0) ;
+-		}
+-		/* Scale L (k,0:k-1) for LDL' factorization, compute D (k,k)*/
+-#ifdef REAL
+-		/* L(k,i) = y/d */
+-		lx [0] = yx [0] / di [0] ;
+-		/* d -= L(k,i) * y */
+-		dk [0] -= lx [0] * yx [0] ;
+-#else
+-		/* L(k,i) = conj(y) ; */
+-		ASSIGN_CONJ (lx,lz,0, yx,yz,0) ;
+-		/* L(k,i) /= di ; */
+-		DIV_REAL (lx,lz,0, lx,lz,0, di,0) ;
+-		/* d -= conj(y) * y / di */
+-		LDLDOT (dk,0, yx,yz,0, di,0) ;
+-#endif
+ 	    }
+ 
+ 	    /* determine if column i of L can hold the new L(k,i) entry */
+@@ -383,23 +296,17 @@ static int TEMPLATE (cholmod_rowfac)
+ 		    /* out of memory, L is now simplicial symbolic */
+ 		    for (i = 0 ; i < n ; i++)
+ 		    {
+-			/* W [i] = 0 ; */
+-			CLEAR (Wx,Wz,i) ;
+ 		    }
+ 		    ASSERT (CHOLMOD(dump_work) (TRUE, TRUE, n, Common)) ;
+ 		    return (FALSE) ;
+ 		}
+-		Li = L->i ;		/* L->i, L->x, L->z may have moved */
+-		Lx = L->x ;
+-		Lz = L->z ;
++		Li = L->i ;
+ 		p = Lp [i] + lnz ;	/* contents of L->p changed */
+ 		ASSERT (p < Lp [Lnext [i]]) ;
+ 	    }
+ 
+ 	    /* store L (k,i) in the column form matrix of L */
+ 	    Li [p] = k ;
+-	    /* Lx [p] = L(k,i) ; */
+-	    ASSIGN (Lx,Lz,p, lx,lz,0) ;
+ 	    Lnz [i]++ ;
+ 	}
+ 
+@@ -412,41 +319,23 @@ static int TEMPLATE (cholmod_rowfac)
+ 
+ 	if (k >= (Int) L->minor)
+ 	{
+-	    /* the matrix is already not positive definite */
+-	    dk [0] = 0 ;
+ 	}
+ 	else if (use_dbound)
+ 	{
+-	    /* modify the diagonal to force LL' or LDL' to exist */
+-	    dk [0] = CHOLMOD(dbound) (is_ll ? fabs (dk [0]) : dk [0], Common) ;
+ 	}
+-	else if ((is_ll ? (IS_LE_ZERO (dk [0])) : (IS_ZERO (dk [0])))
+-#ifndef REAL
+-		|| dk_imaginary
+-#endif
+-		)
++	else if (0)
++
+ 	{
+-	    /* the matrix has just been found to be not positive definite */
+-	    dk [0] = 0 ;
+-	    L->minor = k ;
+-	    ERROR (CHOLMOD_NOT_POSDEF, "not positive definite") ;
+ 	}
+ 
+ 	if (is_ll)
+ 	{
+-	    /* this is counted as one flop, below */
+-	    dk [0] = sqrt (dk [0]) ;
+ 	}
+ 
+-	/* Lx [p] = D(k,k) = d ; real part only */
+-	ASSIGN_REAL (Lx,p, dk,0) ;
+-	CLEAR_IMAG (Lx,Lz,p) ;
+     }
+ 
+ #undef NEXT
+ 
+-    if (is_ll) fl += MAX ((Int) kend - (Int) kstart, 0) ;   /* count sqrt's */
+-    Common->rowfacfl = fl ;
+ 
+     DEBUG (CHOLMOD(dump_factor) (L, "final cholmod_rowfac", Common)) ;
+     ASSERT (CHOLMOD(dump_work) (TRUE, TRUE, n, Common)) ;
+diff --git a/Makefile b/Makefile
+index 2cc6e3a29..7ce8dd932 100644
+--- a/Makefile
++++ b/Makefile
+@@ -45,24 +45,11 @@ library:
+ # compile; "make install" only in  SuiteSparse/lib and SuiteSparse/include
+ local:
+ 	( cd SuiteSparse_config && $(MAKE) local )
+-	( cd Mongoose && $(MAKE) local )
+ 	( cd AMD && $(MAKE) local )
+-	( cd BTF && $(MAKE) local )
+ 	( cd CAMD && $(MAKE) local )
+ 	( cd CCOLAMD && $(MAKE) local )
+ 	( cd COLAMD && $(MAKE) local )
+ 	( cd CHOLMOD && $(MAKE) local )
+-	( cd CSparse && $(MAKE) )  # CSparse is compiled but not installed
+-	( cd CXSparse && $(MAKE) local )
+-	( cd LDL && $(MAKE) local )
+-	( cd KLU && $(MAKE) local )
+-	( cd UMFPACK && $(MAKE) local )
+-	( cd RBio && $(MAKE) local )
+-	( cd SuiteSparse_GPURuntime && $(MAKE) local )
+-	( cd GPUQREngine && $(MAKE) local )
+-	( cd SPQR && $(MAKE) local )
+-	( cd GraphBLAS && $(MAKE) local )
+-	( cd SPEX && $(MAKE) local )
+ 
+ # compile; "sudo make install" will install only in /usr/local
+ # (or whatever your CMAKE_INSTALL_PREFIX is)
+@@ -90,23 +75,11 @@ global:
+ # install all packages.  Location depends on prior "make", "make global" etc
+ install:
+ 	( cd SuiteSparse_config && $(MAKE) install )
+-	( cd Mongoose  && $(MAKE) install )
+ 	( cd AMD && $(MAKE) install )
+-	( cd BTF && $(MAKE) install )
+ 	( cd CAMD && $(MAKE) install )
+ 	( cd CCOLAMD && $(MAKE) install )
+ 	( cd COLAMD && $(MAKE) install )
+ 	( cd CHOLMOD && $(MAKE) install )
+-	( cd CXSparse && $(MAKE) install ) # CXSparse is installed instead
+-	( cd LDL && $(MAKE) install )
+-	( cd KLU && $(MAKE) install )
+-	( cd UMFPACK && $(MAKE) install )
+-	( cd RBio && $(MAKE) install )
+-	( cd SuiteSparse_GPURuntime && $(MAKE) install )
+-	( cd GPUQREngine && $(MAKE) install )
+-	( cd SPQR && $(MAKE) install )
+-	( cd GraphBLAS && $(MAKE) install )
+-	( cd SPEX && $(MAKE) install )
+ 
+ # uninstall all packages
+ uninstall:

@@ -794,6 +794,98 @@ private:
 };
 
 
+#include <cholmod.h>
+
+
+class CHOLMODOperation : public BenchmarkOperation {
+public:
+    explicit CHOLMODOperation(const Mtx* mtx)
+        : host_mtx_{mtx->clone(mtx->get_executor()->get_master())}
+    {
+        cholmod_start(&common_);
+        cholmod_mtx_.nrow = host_mtx_->get_size()[0];
+        cholmod_mtx_.ncol = host_mtx_->get_size()[1];
+        cholmod_mtx_.nzmax = host_mtx_->get_num_stored_elements();
+        cholmod_mtx_.p = host_mtx_->get_row_ptrs();
+        cholmod_mtx_.i = host_mtx_->get_col_idxs();
+        cholmod_mtx_.nz = nullptr;
+        cholmod_mtx_.x = host_mtx_->get_values();
+        cholmod_mtx_.z = nullptr;
+        cholmod_mtx_.stype = 1;
+        cholmod_mtx_.itype = CHOLMOD_INT;
+        cholmod_mtx_.xtype = CHOLMOD_REAL;
+        cholmod_mtx_.dtype =
+            std::is_same<etype, float>::value ? CHOLMOD_SINGLE : CHOLMOD_DOUBLE;
+        cholmod_mtx_.sorted = 1;
+        cholmod_mtx_.packed = 1;
+        common_.nmethods = 1;
+        common_.method[0].ordering = CHOLMOD_NATURAL;
+        factor_ = nullptr;
+    }
+
+    ~CHOLMODOperation()
+    {
+        if (factor_) {
+            cholmod_free_factor(&factor_, &common_);
+        }
+        cholmod_finish(&common_);
+    }
+
+    std::pair<bool, double> validate() const override
+    {
+        const auto exec = host_mtx_->get_executor();
+        const auto size = host_mtx_->get_size()[0];
+        const auto row_ptrs = (int*)factor_->p;
+        const auto col_idxs = (int*)factor_->i;
+        const auto vals = (etype*)factor_->x;
+        const auto permute_array =
+            gko::make_array_view(exec, size, (int*)factor_->Perm);
+        const auto nnz = row_ptrs[size];
+        const auto result = Mtx::create(
+            exec, host_mtx_->get_size(), gko::make_array_view(exec, nnz, vals),
+            gko::make_array_view(exec, nnz, col_idxs),
+            gko::make_array_view(exec, size + 1, row_ptrs),
+            std::make_shared<Mtx::classical>());
+        const auto symm_result = result->clone();
+        const auto lt_factor = gko::as<Mtx>(symm_result->transpose());
+        const auto scalar = gko::initialize<gko::matrix::Dense<etype>>(
+            {gko::one<etype>()}, exec);
+        const auto id = gko::matrix::Identity<etype>::create(exec, size);
+        lt_factor->apply(scalar, id, scalar, symm_result);
+        // the matrix was post-ordered by CHOLMOD, so we need to permute
+        const auto symm_result_permuted =
+            gko::as<Mtx>(symm_result->inverse_permute(&permute_array));
+        return std::make_pair(validate_symbolic_factorization(
+                                  host_mtx_.get(), symm_result_permuted.get()),
+                              0.0);
+    }
+
+    gko::size_type get_flops() const override { return 0; }
+
+    gko::size_type get_memory() const override { return 0; }
+
+    void run() override
+    {
+        if (factor_) {
+            cholmod_free_factor(&factor_, &common_);
+        }
+        factor_ = cholmod_analyze(&cholmod_mtx_, &common_);
+        factor_->is_super = 0;
+        cholmod_factorize(&cholmod_mtx_, factor_, &common_);
+    }
+
+    void write_stats(rapidjson::Value& object,
+                     rapidjson::MemoryPoolAllocator<>& allocator) override
+    {}
+
+private:
+    cholmod_common common_;
+    cholmod_factor* factor_;
+    cholmod_sparse cholmod_mtx_;
+    std::shared_ptr<Mtx> host_mtx_;
+};
+
+
 const std::map<std::string,
                std::function<std::unique_ptr<BenchmarkOperation>(const Mtx*)>>
     operation_map{
@@ -824,6 +916,10 @@ const std::map<std::string,
         {"symbolic_cholesky",
          [](const Mtx* mtx) {
              return std::make_unique<SymbolicCholeskyOperation>(mtx, false);
+         }},
+        {"cholmod",
+         [](const Mtx* mtx) {
+             return std::make_unique<CHOLMODOperation>(mtx);
          }},
         {"symbolic_cholesky_symmetric",
          [](const Mtx* mtx) {
