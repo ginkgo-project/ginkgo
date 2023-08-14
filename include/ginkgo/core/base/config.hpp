@@ -150,13 +150,8 @@ std::shared_ptr<LinOpFactory> dispatch(
     return std::visit(
         [&](auto var) {
             using type = std::decay_t<decltype(var)>;
-            if constexpr (!std::is_same_v<type, std::monostate>) {
-                return dispatch<Base, ParsedTypes..., type>(
-                    pt, ctx, cfg, std::forward<Variants>(vs)...);
-            } else {
-                // maybe throw
-                return std::shared_ptr<LinOpFactory>{};
-            }
+            return dispatch<Base, ParsedTypes..., type>(
+                pt, ctx, cfg, std::forward<Variants>(vs)...);
         },
         v);
 }
