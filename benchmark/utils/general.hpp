@@ -95,7 +95,9 @@ DEFINE_string(double_buffer, "",
 DEFINE_string(
     input, "",
     "If set, the value is used as the input for the benchmark (if set to a "
-    "json string ending with ]) or as input file path (otherwise).");
+    "json string ending with ]), as the \"filename\" of a generated JSON input "
+    "(if the variable points to a MatrixMarket or Ginkgo binary matrix file) "
+    "or as JSON input file path (otherwise).");
 
 DEFINE_bool(detailed, true,
             "If set, performs several runs to obtain more detailed results");
@@ -297,6 +299,12 @@ std::vector<std::string> split(const std::string& s, char delimiter = ',')
 }
 
 
+// allow matrix files as -input value
+bool matrix_input = true;
+// additional JSON to append to the input_str if the input file is a matrix file
+std::string matrix_input_additional_json = "";
+
+
 // returns the stream to be used as input of the application
 std::istream& get_input_stream()
 {
@@ -307,6 +315,15 @@ std::istream& get_input_stream()
         }
         if (input_str.back() == ']') {
             return std::make_unique<std::stringstream>(input_str);
+        }
+        if (matrix_input) {
+            auto first_char = std::ifstream{input_str}.peek();
+            // if the input looks like a MatrixMarket or Ginkgo binary file
+            if (first_char == '%' || first_char == 'G') {
+                input_str = "[{\"filename\":\"" + input_str + "\"" +
+                            matrix_input_additional_json + "}]";
+                return std::make_unique<std::stringstream>(input_str);
+            }
         }
         return std::make_unique<std::ifstream>(input_str);
     }();

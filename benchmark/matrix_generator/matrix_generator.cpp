@@ -127,6 +127,8 @@ int main(int argc, char* argv[])
     std::string header =
         "A utility that generates various types of "
         "matrices.\n";
+    // this benchmark doesn't use input matrices
+    matrix_input = false;
     initialize_argument_parsing(&argc, &argv, header, input_format);
 
     std::clog << gko::version_info::get() << std::endl;
