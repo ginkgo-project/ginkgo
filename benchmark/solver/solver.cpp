@@ -61,6 +61,8 @@ int main(int argc, char* argv[])
     std::string format = example_config + R"(
   "optimal":"spmv" can be one of the recognized spmv formats
 )";
+    // this benchmark needs an additional "optimal" object in the input
+    matrix_input_additional_json = ",\"optimal\":{\"spmv\":\"csr\"}";
     initialize_argument_parsing(&argc, &argv, header, format);
 
     std::stringstream ss_rel_res_goal;
