@@ -69,48 +69,43 @@ struct type_config {
 };
 
 
-template <typename ValueType, typename IndexType, typename GlobalIndexType>
-struct compile_type_config {
-    using value_type = ValueType;
-    using index_type = IndexType;
-    using global_index_type = GlobalIndexType;
+template <typename T>
+struct alternative_type {
+    std::string name;
+    T get() const { return {}; }
 };
 
 
-template <typename DefaultType>
-std::variant<std::monostate, double, float> encode_value_type(
-    const property_tree& pt)
+template <typename T>
+auto alternative(const std::string& name, T)
 {
-    if (pt.name != "global_index_type") {
-        return DefaultType{};
-    }
-
-    if (pt.value == "float") {
-        return float{};
-    }
-    if (pt.value == "double") {
-        return double{};
-    }
-
-    throw std::runtime_error("unsupported value type");
+    return alternative_type<T>{name};
 }
 
-template <typename DefaultType>
-std::variant<std::monostate, int32, int64> encode_index_type(
-    const property_tree& pt)
+
+template <typename DefaultType, typename... Alternatives>
+std::variant<std::monostate, Alternatives...> encode_type(
+    const property_tree& pt, const std::string& name,
+    const alternative_type<Alternatives>&... alternatives)
 {
-    if (pt.name != "global_index_type") {
+    if (pt.name != name) {
         return DefaultType{};
     }
 
-    if (pt.value == "int32") {
-        return int32{};
-    }
-    if (pt.value == "int64") {
-        return int64{};
+    std::variant<std::monostate, Alternatives...> return_variant{};
+
+    auto fill_variant = [&](const auto& alt) {
+        if (pt.value == alt.name) {
+            return_variant = alt.get();
+        }
+    };
+    (fill_variant(alternatives), ...);
+
+    if (std::holds_alternative<std::monostate>(return_variant)) {
+        throw std::runtime_error("unsupported type for " + name);
     }
 
-    throw std::runtime_error("unsupported value type");
+    return return_variant;
 }
 
 
@@ -118,9 +113,15 @@ template <typename ValueType, typename IndexType, typename GlobalIndexType>
 type_config encode_type_config(const property_tree& pt)
 {
     type_config tc;
-    tc.value_type = encode_value_type<ValueType>(pt);
-    tc.index_type = encode_index_type<IndexType>(pt);
-    tc.global_index_type = encode_index_type<GlobalIndexType>(pt);
+    tc.value_type = encode_type<ValueType>(pt, "value_type",
+                                           alternative("float64", double{}),
+                                           alternative("float32", float{}));
+    tc.index_type =
+        encode_type<IndexType>(pt, "index_type", alternative("int32", int32{}),
+                               alternative("int64", int64{}));
+    tc.global_index_type = encode_type<IndexType>(
+        pt, "global_index_type", alternative("int32", int32{}),
+        alternative("int64", int64{}));
     return tc;
 }
 
