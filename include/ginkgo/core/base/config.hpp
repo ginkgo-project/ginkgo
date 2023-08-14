@@ -84,7 +84,7 @@ auto alternative(const std::string& name, T)
 
 
 template <typename DefaultType, typename... Alternatives>
-std::variant<std::monostate, Alternatives...> encode_type(
+std::variant<Alternatives...> encode_type(
     const property_tree& pt, const std::string& name,
     const alternative_type<Alternatives>&... alternatives)
 {
@@ -129,47 +129,33 @@ type_config encode_type_config(const property_tree& pt)
 type_config default_type_config() { return {double{}, int32{}, int64{}}; }
 
 
-template <typename T, typename ValueType, typename IndexType,
-          typename GlobalIndexType>
-auto dispatch(const property_tree& pt, const context& ctx,
-              const type_config& cfg)
+template <template <class...> class Base, typename... Types>
+std::shared_ptr<LinOpFactory> dispatch(const property_tree& pt,
+                                       const context& ctx,
+                                       const type_config& cfg)
 {
-    return T::template configure<ValueType, IndexType, GlobalIndexType>(pt,
-                                                                        ctx);
+    return Base<Types...>::configure(pt, ctx, cfg);
 }
 
 
-template <typename T, typename... Types>
-auto visitor(const property_tree& pt, const context& ctx,
-             const type_config& cfg)
+template <template <class...> class Base, typename... ParsedTypes,
+          typename... Types, typename... Variants>
+std::shared_ptr<LinOpFactory> dispatch(
+    const property_tree& pt, const context& ctx, const type_config& cfg,
+    const std::variant<std::monostate, Types...>& v, Variants&&... vs)
 {
-    return [&](auto var) {
-        using type = std::decay_t<decltype(var)>;
-        return dispatch<T, Types..., type>(pt, ctx, cfg);
-    };
-}
-
-
-template <typename T, typename ValueType, typename IndexType>
-auto dispatch(const property_tree& pt, const context& ctx,
-              const type_config& cfg)
-{
-    return std::visit(visitor<T, ValueType, IndexType>(pt, ctx, cfg),
-                      cfg.global_index_type);
-}
-
-template <typename T, typename ValueType>
-auto dispatch(const property_tree& pt, const context& ctx,
-              const type_config& cfg)
-{
-    return std::visit(visitor<T, ValueType>(pt, ctx, cfg), cfg.index_type);
-}
-
-template <typename T>
-auto dispatch(const property_tree& pt, const context& ctx,
-              const type_config& cfg)
-{
-    return std::visit(visitor<T>(pt, ctx, cfg), cfg.value_type);
+    return std::visit(
+        [&](auto var) {
+            using type = std::decay_t<decltype(var)>;
+            if constexpr (!std::is_same_v<type, std::monostate>) {
+                return dispatch<Base, ParsedTypes..., type>(
+                    pt, ctx, cfg, std::forward<Variants>(vs)...);
+            } else {
+                // maybe throw
+                return std::shared_ptr<LinOpFactory>{};
+            }
+        },
+        v);
 }
 
 
@@ -177,24 +163,17 @@ using configure_fn = std::function<std::shared_ptr<LinOpFactory>(
     const property_tree&, const context&, const type_config&)>;
 
 
-template <typename T>
-configure_fn create_default_configure_fn()
+template <typename T, typename... Variants>
+configure_fn create_default_configure_fn(Variants&&... vs)
 {
-    return [](const property_tree& pt, const context& ctx,
-              const type_config& cfg) { return dispatch<T>(pt, ctx, cfg); };
+    return [=](const property_tree& pt, const context& ctx,
+               const type_config& cfg) {
+        return dispatch<T>(pt, ctx, cfg, vs...);
+    };
 }
 
-namespace config {
-struct Cg {
-    template <typename ValueType, typename IndexType, typename GlobalIndexType>
-    static std::shared_ptr<LinOpFactory> configure(const property_tree& pt,
-                                                   const context& ctx)
-    {
-        // actual implementation
-        return nullptr;
-    }
-};
 
+namespace config {
 enum isai_type {};
 struct Isai {
     template <typename ValueType, typename IndexType, typename GlobalIndexType,
@@ -222,8 +201,7 @@ std::shared_ptr<LinOpFactory> parse(
     const property_tree& pt, const context& ctx,
     const type_config& tcfg = default_type_config())
 {
-    std::map<std::string, configure_fn> configurator_map = {
-        {"cg", create_default_configure_fn<config::Cg>()}};
+    std::map<std::string, configure_fn> configurator_map;
 
     return configurator_map[pt.value](pt, ctx, tcfg);
 }

@@ -117,13 +117,10 @@ public:
     GKO_ENABLE_LIN_OP_FACTORY(Cg, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
-    template <typename IndexType = int32, typename GlobalIndexType = int64>
     static std::shared_ptr<LinOpFactory> configure(const property_tree& pt,
-                                                   const context& ctx)
-    {
-        return config::Cg::configure<ValueType, IndexType, GlobalIndexType>(
-            pt, ctx);
-    }
+                                                   const context& ctx,
+                                                   const type_config& cfg)
+    {}
 
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;
@@ -194,6 +191,20 @@ struct workspace_traits<Cg<ValueType>> {
 
 
 }  // namespace solver
+
+
+namespace config {
+
+struct Cg {
+    static std::shared_ptr<LinOpFactory> configure(const property_tree& pt,
+                                                   const context& ctx,
+                                                   const type_config& cfg)
+    {
+        return dispatch<solver::Cg>(pt, ctx, cfg, cfg.value_type);
+    }
+};
+
+}  // namespace config
 }  // namespace gko
 
 
