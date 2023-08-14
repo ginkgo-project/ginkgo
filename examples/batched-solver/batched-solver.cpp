@@ -304,7 +304,7 @@ int main(int argc, char* argv[])
             std::chrono::steady_clock::now();
         auto time_span =
             std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
-        // std::cout << time_span.count() << std::endl;
+        std::cout << time_span.count() << std::endl;
         apply_time += time_span.count();
     }
     x->copy_from(x_clone.get());
