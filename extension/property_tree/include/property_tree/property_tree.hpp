@@ -34,11 +34,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_EXT_PROPERTY_TREE_PROPERTY_TREE_HPP_
 
 
-#include <deque>
 #include <exception>
 #include <list>
 #include <string>
 #include <type_traits>
+#include <vector>
 
 
 #include <property_tree/data.hpp>
@@ -48,6 +48,10 @@ namespace gko {
 namespace extension {
 
 
+/**
+ * pnode_s is to describe the "name": empty(inital state), array, object, or
+ * object_list.
+ */
 template <typename data_type>
 class pnode_s {
 public:
@@ -92,7 +96,7 @@ public:
     }
 
     // Get the list of children. It's only available for const
-    const std::deque<pnode_s<data_type>>& get_child_list() const
+    const std::vector<pnode_s<data_type>>& get_child_list() const
     {
         assert(children_.size() > 0);
         return children_;
@@ -124,6 +128,13 @@ public:
 
     // Check the status
     bool is(status_t s) const { return this->get_status() == s; }
+
+    bool contains(std::string key) const
+    {
+        assert(status_ == status_t::object_list);
+        auto it = children_.find(key);
+        return (it != children_.end());
+    }
 
     int get_size() const { return children_.size(); }
 
@@ -212,8 +223,8 @@ private:
     }
 
     std::string name_;
-    std::deque<pnode_s<data_type>> children_;
-    std::map<key_type, int> key_map_;
+    std::vector<pnode_s<data_type>> children_;  // for object_list or array
+    std::map<key_type, int> key_map_;           // mapping string to index
     data_type data_;
     status_t status_;
 };
