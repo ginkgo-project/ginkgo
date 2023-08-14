@@ -87,36 +87,7 @@ public:
         gko::size_type GKO_FACTORY_PARAMETER_SCALAR(num_rhs, 1u);
 
         /** The factorization factory to use for generating the factors. */
-        std::shared_ptr<const LinOpFactory> factorization;
-
-        /**
-         *
-         */
-        parameters_type& with_factorization(
-            std::shared_ptr<const LinOpFactory> factorization)
-        {
-            this->factorization_generator =
-                [factorization](std::shared_ptr<const Executor>)
-                -> std::shared_ptr<const LinOpFactory> {
-                return factorization;
-            };
-            return *this;
-        }
-
-        template <
-            typename FactorizationParameters,
-            typename = decltype(std::declval<FactorizationParameters>().on(
-                std::shared_ptr<const Executor>{}))>
-        parameters_type& with_factorization(
-            FactorizationParameters factorization_parameters)
-        {
-            this->factorization_generator =
-                [factorization_parameters](std::shared_ptr<const Executor> exec)
-                -> std::shared_ptr<const LinOpFactory> {
-                return factorization_parameters.on(exec);
-            };
-            return *this;
-        }
+        GKO_DEFERRED_FACTORY_PARAMETER(factorization, LinOpFactory);
 
         /**
          *
@@ -124,15 +95,10 @@ public:
         std::unique_ptr<Factory> on(std::shared_ptr<const Executor> exec) const
         {
             auto parameters_copy = *this;
-            parameters_copy.factorization = factorization_generator(exec);
+            parameters_copy.factorization = factorization_generator_.on(exec);
             return parameters_copy
                 .enable_parameters_type<parameters_type, Factory>::on(exec);
         }
-
-    private:
-        std::function<std::shared_ptr<const LinOpFactory>(
-            std::shared_ptr<const Executor>)>
-            factorization_generator;
     };
     GKO_ENABLE_LIN_OP_FACTORY(Direct, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

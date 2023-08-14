@@ -274,13 +274,26 @@ protected:
 };
 
 
+/**
+ * Represents a factory parameter of factory type that can either initialized by
+ * a pre-existing factory or by passing in a factory_parameters object whose
+ * `.on(exec)` will be called to instantiate a factory.
+ *
+ * @tparam FactoryType  the type of factory that can be instantiated from this
+ * object.
+ */
 template <typename FactoryType>
 class deferred_factory_parameter {
 public:
     deferred_factory_parameter() = default;
 
+    /** Creates an empty deferred factory parameter. */
     deferred_factory_parameter(std::nullptr_t) {}
 
+    /**
+     * Creates a deferred factory parameter from a preexisting factory with
+     * shared ownership.
+     */
     template <typename ConcreteFactoryType,
               std::enable_if_t<std::is_base_of<
                   FactoryType,
@@ -292,6 +305,10 @@ public:
                 std::shared_ptr<const Executor>) { return factory; };
     }
 
+    /**
+     * Creates a deferred factory parameter by taking ownership of a
+     * preexisting factory with unique ownership.
+     */
     template <typename ConcreteFactoryType, typename Deleter,
               std::enable_if_t<std::is_base_of<
                   FactoryType,
@@ -304,6 +321,11 @@ public:
                 std::shared_ptr<const Executor>) { return factory; };
     }
 
+    /**
+     * Creates a deferred factory parameter object from a
+     * factory_parameters-like object. To instantiate the actual factory, the
+     * parameter's `.on(exec)` function will be called.
+     */
     template <typename ParametersType,
               typename = decltype(std::declval<ParametersType>().on(
                   std::shared_ptr<const Executor>{}))>
@@ -315,6 +337,7 @@ public:
         };
     }
 
+    /** Instantiates the deferred parameter into an actual factory. */
     std::shared_ptr<const FactoryType> on(
         std::shared_ptr<const Executor> exec) const
     {
@@ -324,6 +347,7 @@ public:
         return generator_(exec);
     }
 
+    /** Returns true iff the parameter contains a factory. */
     explicit operator bool() const { return bool(generator_); }
 
 private:
@@ -331,6 +355,185 @@ private:
         std::shared_ptr<const Executor>)>
         generator_;
 };
+
+
+/**
+ * Defines a build method for the factory, simplifying its construction by
+ * removing the repetitive typing of factory's name.
+ *
+ * @param _factory_name  the factory for which to define the method
+ *
+ * @ingroup LinOp
+ */
+#define GKO_ENABLE_BUILD_METHOD(_factory_name)                               \
+    static auto build()->decltype(_factory_name::create())                   \
+    {                                                                        \
+        return _factory_name::create();                                      \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+
+#if !(defined(__CUDACC__) || defined(__HIPCC__))
+/**
+ * Creates a factory parameter in the factory parameters structure.
+ *
+ * @param _name  name of the parameter
+ * @param __VA_ARGS__  default value of the parameter
+ *
+ * @see GKO_ENABLE_LIN_OP_FACTORY for more details, and usage example
+ *
+ * @deprecated Use GKO_FACTORY_PARAMETER_SCALAR or GKO_FACTORY_PARAMETER_VECTOR
+ *
+ * @ingroup LinOp
+ */
+#define GKO_FACTORY_PARAMETER(_name, ...)                                    \
+    mutable _name{__VA_ARGS__};                                              \
+                                                                             \
+    template <typename... Args>                                              \
+    auto with_##_name(Args&&... _value)->std::decay_t<decltype(*this)>&      \
+    {                                                                        \
+        using type = decltype(this->_name);                                  \
+        this->_name = type{std::forward<Args>(_value)...};                   \
+        return *this;                                                        \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+/**
+ * Creates a scalar factory parameter in the factory parameters structure.
+ *
+ * Scalar in this context means that the constructor for this type only takes
+ * a single parameter.
+ *
+ * @param _name  name of the parameter
+ * @param _default  default value of the parameter
+ *
+ * @see GKO_ENABLE_LIN_OP_FACTORY for more details, and usage example
+ *
+ * @ingroup LinOp
+ */
+#define GKO_FACTORY_PARAMETER_SCALAR(_name, _default) \
+    GKO_FACTORY_PARAMETER(_name, _default)
+
+/**
+ * Creates a vector factory parameter in the factory parameters structure.
+ *
+ * Vector in this context means that the constructor for this type takes
+ * multiple parameters.
+ *
+ * @param _name  name of the parameter
+ * @param _default  default value of the parameter
+ *
+ * @see GKO_ENABLE_LIN_OP_FACTORY for more details, and usage example
+ *
+ * @ingroup LinOp
+ */
+#define GKO_FACTORY_PARAMETER_VECTOR(_name, ...) \
+    GKO_FACTORY_PARAMETER(_name, __VA_ARGS__)
+#else  // defined(__CUDACC__) || defined(__HIPCC__)
+// A workaround for the NVCC compiler - parameter pack expansion does not work
+// properly, because while the assignment to a scalar value is translated by
+// cudafe into a C-style cast, the parameter pack expansion is not removed and
+// `Args&&... args` is still kept as a parameter pack.
+#define GKO_FACTORY_PARAMETER(_name, ...)                                    \
+    mutable _name{__VA_ARGS__};                                              \
+                                                                             \
+    template <typename... Args>                                              \
+    auto with_##_name(Args&&... _value)->std::decay_t<decltype(*this)>&      \
+    {                                                                        \
+        GKO_NOT_IMPLEMENTED;                                                 \
+        return *this;                                                        \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+#define GKO_FACTORY_PARAMETER_SCALAR(_name, _default)                        \
+    mutable _name{_default};                                                 \
+                                                                             \
+    template <typename Arg>                                                  \
+    auto with_##_name(Arg&& _value)->std::decay_t<decltype(*this)>&          \
+    {                                                                        \
+        using type = decltype(this->_name);                                  \
+        this->_name = type{std::forward<Arg>(_value)};                       \
+        return *this;                                                        \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+#define GKO_FACTORY_PARAMETER_VECTOR(_name, ...)                             \
+    mutable _name{__VA_ARGS__};                                              \
+                                                                             \
+    template <typename... Args>                                              \
+    auto with_##_name(Args&&... _value)->std::decay_t<decltype(*this)>&      \
+    {                                                                        \
+        using type = decltype(this->_name);                                  \
+        this->_name = type{std::forward<Args>(_value)...};                   \
+        return *this;                                                        \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+#endif  // defined(__CUDACC__) || defined(__HIPCC__)
+
+/**
+ * Creates a factory parameter of factory type. The parameter can either be set
+ * directly, or its creation can be deferred until the executor is set in the
+ * `.on(exec)` function call, by using a deferred_factory_parameter.
+ *
+ * @param _name  name of the parameter
+ * @param _type  pointee type of the parameter, e.g. LinOpFactory
+ *
+ */
+#define GKO_DEFERRED_FACTORY_PARAMETER(_name, _type)                         \
+public:                                                                      \
+    std::shared_ptr<const _type> _name{};                                    \
+    parameters_type& with_##_name(deferred_factory_parameter<_type> factory) \
+    {                                                                        \
+        this->_name##_generator_ = std::move(factory);                       \
+        return *this;                                                        \
+    }                                                                        \
+                                                                             \
+private:                                                                     \
+    deferred_factory_parameter<_type> _name##_generator_;                    \
+                                                                             \
+public:                                                                      \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+/**
+ * Creates a factory parameter representing a vector of factories type. The
+ * parameter can either be set directly, or its creation can be deferred until
+ * the executor is set in the
+ * `.on(exec)` function call, by using a vector of deferred_factory_parameters.
+ *
+ * @param _name  name of the parameter
+ * @param _type  pointee type of the vector entries, e.g. LinOpFactory
+ *
+ */
+#define GKO_DEFERRED_FACTORY_VECTOR_PARAMETER(_name, _type)                  \
+public:                                                                      \
+    std::vector<std::shared_ptr<const _type>> _name{};                       \
+    template <typename... Args>                                              \
+    parameters_type& with_##_name(Args&&... factories)                       \
+    {                                                                        \
+        this->_name##_generator_ = {deferred_factory_parameter<_type>{       \
+            std::forward<Args>(factories)}...};                              \
+        return *this;                                                        \
+    }                                                                        \
+                                                                             \
+private:                                                                     \
+    std::vector<deferred_factory_parameter<_type>> _name##_generator_;       \
+                                                                             \
+public:                                                                      \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 }  // namespace gko

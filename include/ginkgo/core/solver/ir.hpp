@@ -184,13 +184,14 @@ public:
         /**
          * Inner solver factory.
          */
-        std::shared_ptr<const LinOpFactory> solver{};
+        GKO_DEFERRED_FACTORY_PARAMETER(solver, LinOpFactory);
 
         /**
          * Already generated solver. If one is provided, the factory `solver`
          * will be ignored.
          */
-        std::shared_ptr<const LinOp> generated_solver{};
+        std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(
+            generated_solver, nullptr);
 
         /**
          * Relaxation factor for Richardson iteration
@@ -208,38 +209,15 @@ public:
         /**
          *
          */
-        parameters_type& with_solver(
-            deferred_factory_parameter<LinOpFactory> solver)
-        {
-            this->solver_generator = std::move(solver);
-            return *this;
-        }
-
-        /**
-         *
-         */
-        parameters_type& with_generated_solver(
-            std::shared_ptr<const LinOp> generated_solver)
-        {
-            this->generated_solver = std::move(generated_solver);
-            return *this;
-        }
-
-        /**
-         *
-         */
         std::unique_ptr<Factory> on(std::shared_ptr<const Executor> exec) const
         {
             auto parameters_copy = *this;
-            if (solver_generator) {
-                parameters_copy.solver = solver_generator.on(exec);
+            if (solver_generator_) {
+                parameters_copy.solver = solver_generator_.on(exec);
             }
             return parameters_copy.enable_iterative_solver_factory_parameters<
                 parameters_type, Factory>::on(exec);
         }
-
-    private:
-        deferred_factory_parameter<LinOpFactory> solver_generator;
     };
     GKO_ENABLE_LIN_OP_FACTORY(Ir, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
