@@ -98,6 +98,8 @@ int main(int argc, char* argv[])
   "<local_format>-<non_local_format>", where both "local_format" and
   "non_local_format" can be any of the recognized spmv formats.
 )";
+    // this benchmark needs an additional "optimal" object in the input
+    matrix_input_additional_json = ",\"optimal\":{\"spmv\":\"csr-csr\"}";
     initialize_argument_parsing(&argc, &argv, header, format);
 
     const auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
