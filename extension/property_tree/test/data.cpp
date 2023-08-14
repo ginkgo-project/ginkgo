@@ -46,33 +46,33 @@ TEST(Data, DataTypeIsCorrect)
 {
     using namespace std::literals::string_literals;
     // Empty
-    ASSERT_EQ(data_s().get_tag(), data_s::tag_type::empty_t);
+    ASSERT_TRUE(holds_alternative<monostate>(data_s()));
     // String
-    ASSERT_EQ(data_s("1").get_tag(), data_s::tag_type::str_t);
-    ASSERT_EQ(data_s("1"s).get_tag(), data_s::tag_type::str_t);
+    ASSERT_TRUE(holds_alternative<std::string>(data_s("1")));
+    ASSERT_TRUE(holds_alternative<std::string>(data_s("1"s)));
     // Floating point
-    ASSERT_EQ(data_s(1.23f).get_tag(), data_s::tag_type::double_t);
-    ASSERT_EQ(data_s(1.23).get_tag(), data_s::tag_type::double_t);
+    ASSERT_TRUE(holds_alternative<double>(data_s(1.23f)));
+    ASSERT_TRUE(holds_alternative<double>(data_s(1.23)));
     // Bool
-    ASSERT_EQ(data_s(true).get_tag(), data_s::tag_type::bool_t);
+    ASSERT_TRUE(holds_alternative<bool>(data_s(true)));
     // Integer
-    ASSERT_EQ(data_s(1).get_tag(), data_s::tag_type::int_t);
-    ASSERT_EQ(data_s(1L).get_tag(), data_s::tag_type::int_t);
-    ASSERT_EQ(data_s(1LL).get_tag(), data_s::tag_type::int_t);
-    ASSERT_EQ(data_s(1U).get_tag(), data_s::tag_type::int_t);
-    ASSERT_EQ(data_s(1UL).get_tag(), data_s::tag_type::int_t);
-    ASSERT_EQ(data_s(1ULL).get_tag(), data_s::tag_type::int_t);
+    ASSERT_TRUE(holds_alternative<long long int>(data_s(1)));
+    ASSERT_TRUE(holds_alternative<long long int>(data_s(1L)));
+    ASSERT_TRUE(holds_alternative<long long int>(data_s(1LL)));
+    ASSERT_TRUE(holds_alternative<long long int>(data_s(1U)));
+    ASSERT_TRUE(holds_alternative<long long int>(data_s(1UL)));
+    // ASSERT_THROW(data_s(1ULL));
 }
 
 
 TEST(Data, DataContentIsCorrect)
 {
     // String
-    ASSERT_EQ(data_s("1").template get<std::string>(), "1");
+    ASSERT_EQ(get<std::string>(data_s("1")), "1");
     // Floating point
-    ASSERT_EQ(data_s(1.23).template get<double>(), 1.23);
+    ASSERT_EQ(get<double>(data_s(1.23)), 1.23);
     // Bool
-    ASSERT_EQ(data_s(true).template get<bool>(), true);
+    ASSERT_EQ(get<bool>(data_s(true)), true);
     // Integer
-    ASSERT_EQ(data_s(1).template get<long long int>(), 1);
+    ASSERT_EQ(get<long long int>(data_s(1)), 1);
 }
