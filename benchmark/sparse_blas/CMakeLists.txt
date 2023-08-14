@@ -10,9 +10,8 @@ ExternalProject_Add(SuiteSparse
     BUILD_COMMAND make local
     INSTALL_COMMAND make install
     )
+set_target_properties(SuiteSparse PROPERTIES EXCLUDE_FROM_ALL TRUE)
 ExternalProject_Get_property(SuiteSparse SOURCE_DIR)
-add_dependencies(sparse_blas_single SuiteSparse)
-add_dependencies(sparse_blas SuiteSparse)
 target_link_libraries(sparse_blas_single ${SOURCE_DIR}/lib/libcholmod.so)
 target_include_directories(sparse_blas_single PRIVATE "${SOURCE_DIR}/include")
 target_link_libraries(sparse_blas ${SOURCE_DIR}/lib/libcholmod.so)

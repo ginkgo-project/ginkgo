@@ -1,5 +1,5 @@
 diff --git a/CHOLMOD/Cholesky/t_cholmod_rowfac.c b/CHOLMOD/Cholesky/t_cholmod_rowfac.c
-index 1f1758f48..de5241d5d 100644
+index 1f1758f48..74369006a 100644
 --- a/CHOLMOD/Cholesky/t_cholmod_rowfac.c
 +++ b/CHOLMOD/Cholesky/t_cholmod_rowfac.c
 @@ -41,11 +41,6 @@ static int TEMPLATE (cholmod_rowfac)
@@ -40,15 +40,18 @@ index 1f1758f48..de5241d5d 100644
      Anz = A->nz ;
      packed = A->packed ;
      sorted = A->sorted ;
-@@ -141,8 +130,6 @@ static int TEMPLATE (cholmod_rowfac)
+@@ -141,10 +130,8 @@ static int TEMPLATE (cholmod_rowfac)
      Lnz = L->nz ;	/* size n */
      Lnext = L->next ;	/* size n+2 */
      Li = L->i ;		/* size L->nzmax, can change in size */
 -    Lx = L->x ;		/* size L->nzmax or 2*L->nzmax, can change in size */
 -    Lz = L->z ;		/* size L->nzmax for zomplex case, can change in size */
      nzmax = L->nzmax ;
-     ASSERT (Lnz != NULL && Li != NULL && Lx != NULL) ;
+-    ASSERT (Lnz != NULL && Li != NULL && Lx != NULL) ;
++    ASSERT (Lnz != NULL && Li != NULL) ;
  
+     /* ---------------------------------------------------------------------- */
+     /* get workspace */
 @@ -153,9 +140,6 @@ static int TEMPLATE (cholmod_rowfac)
      Iwork = Common->Iwork ;
      Stack = Iwork ;		/* size n (i/i/l) */
@@ -89,15 +92,36 @@ index 1f1758f48..de5241d5d 100644
  	    }
  	}
  
-@@ -251,7 +229,6 @@ static int TEMPLATE (cholmod_rowfac)
-                 i = Stack [s] ;
-                 if (mask [i] >= maskmark)
- 		{
+@@ -233,28 +211,10 @@ static int TEMPLATE (cholmod_rowfac)
+         /* remove the dead element of Wx */
+         if (mask != NULL)
+         {
+-
+-#if 0
+-	    /* older version */
+-            for (p = n; p > top;)
+-            {
+-                i = Stack [--p] ;
+-                if ( mask [i] >= 0 )
+-		{
 -		    CLEAR (Wx,Wz,i) ;	/* set W(i) to zero */
- 		}
+-		}
+-            }
+-#endif
+-
+             for (s = top ; s < n ; s++)
+             {
+                 i = Stack [s] ;
+-                if (mask [i] >= maskmark)
+-		{
+-		    CLEAR (Wx,Wz,i) ;	/* set W(i) to zero */
+-		}
              }
+-
+         }
+ #endif
  
-@@ -282,95 +259,31 @@ static int TEMPLATE (cholmod_rowfac)
+@@ -282,96 +242,19 @@ static int TEMPLATE (cholmod_rowfac)
  	 */
  
  	/* dk = W [k] + beta */
@@ -111,7 +135,7 @@ index 1f1758f48..de5241d5d 100644
 -	 * computed; A is not positive definite */
 -	dk_imaginary = (stype > 0) ? (IMAG_IS_NONZERO (Wx,Wz,k)) : FALSE ;
 -#endif
- 
+-
 -	/* W [k] = 0.0 ; */
 -	CLEAR (Wx,Wz,k) ;
  
@@ -133,17 +157,16 @@ index 1f1758f48..de5241d5d 100644
  
 -	    /* di = Lx [p] ; the diagonal entry L or D(i,i), which is real */
 -	    ASSIGN_REAL (di,0, Lx,p) ;
- 
+-
 -	    if (i >= (Int) L->minor || IS_ZERO (di [0]))
-+	    if (i >= (Int) L->minor)
- 	    {
- 		/* For the LL' factorization, L(i,i) is zero.  For the LDL',
- 		 * D(i,i) is zero.  Skip column i of L, and set L(k,i) = 0. */
+-	    {
+-		/* For the LL' factorization, L(i,i) is zero.  For the LDL',
+-		 * D(i,i) is zero.  Skip column i of L, and set L(k,i) = 0. */
 -		CLEAR (lx,lz,0) ;
  		p = pend ;
- 	    }
- 	    else if (is_ll)
- 	    {
+-	    }
+-	    else if (is_ll)
+-	    {
 -#ifdef REAL
 -		fl += 2 * ((double) (pend - p - 1)) + 3 ;
 -#else
@@ -163,9 +186,9 @@ index 1f1758f48..de5241d5d 100644
 -		ASSIGN_CONJ (lx,lz,0, yx,yz,0) ;
 -		/* d -= conj(y) * y ; */
 -		LLDOT (dk,0, yx,yz,0) ;
- 	    }
- 	    else
- 	    {
+-	    }
+-	    else
+-	    {
 -#ifdef REAL
 -		fl += 2 * ((double) (pend - p - 1)) + 3 ;
 -#else
@@ -191,10 +214,11 @@ index 1f1758f48..de5241d5d 100644
 -		/* d -= conj(y) * y / di */
 -		LDLDOT (dk,0, yx,yz,0, di,0) ;
 -#endif
- 	    }
+-	    }
  
  	    /* determine if column i of L can hold the new L(k,i) entry */
-@@ -383,23 +296,17 @@ static int TEMPLATE (cholmod_rowfac)
+ 	    if (p >= Lp [Lnext [i]])
+@@ -383,15 +266,11 @@ static int TEMPLATE (cholmod_rowfac)
  		    /* out of memory, L is now simplicial symbolic */
  		    for (i = 0 ; i < n ; i++)
  		    {
@@ -204,53 +228,53 @@ index 1f1758f48..de5241d5d 100644
  		    ASSERT (CHOLMOD(dump_work) (TRUE, TRUE, n, Common)) ;
  		    return (FALSE) ;
  		}
--		Li = L->i ;		/* L->i, L->x, L->z may have moved */
+ 		Li = L->i ;		/* L->i, L->x, L->z may have moved */
 -		Lx = L->x ;
 -		Lz = L->z ;
-+		Li = L->i ;
  		p = Lp [i] + lnz ;	/* contents of L->p changed */
  		ASSERT (p < Lp [Lnext [i]]) ;
  	    }
- 
+@@ -399,7 +278,6 @@ static int TEMPLATE (cholmod_rowfac)
  	    /* store L (k,i) in the column form matrix of L */
  	    Li [p] = k ;
--	    /* Lx [p] = L(k,i) ; */
+ 	    /* Lx [p] = L(k,i) ; */
 -	    ASSIGN (Lx,Lz,p, lx,lz,0) ;
  	    Lnz [i]++ ;
  	}
  
-@@ -412,41 +319,23 @@ static int TEMPLATE (cholmod_rowfac)
+@@ -409,45 +287,10 @@ static int TEMPLATE (cholmod_rowfac)
  
- 	if (k >= (Int) L->minor)
- 	{
+ 	p = Lp [k] ;
+ 	Li [p] = k ;
+-
+-	if (k >= (Int) L->minor)
+-	{
 -	    /* the matrix is already not positive definite */
 -	    dk [0] = 0 ;
- 	}
- 	else if (use_dbound)
- 	{
+-	}
+-	else if (use_dbound)
+-	{
 -	    /* modify the diagonal to force LL' or LDL' to exist */
 -	    dk [0] = CHOLMOD(dbound) (is_ll ? fabs (dk [0]) : dk [0], Common) ;
- 	}
+-	}
 -	else if ((is_ll ? (IS_LE_ZERO (dk [0])) : (IS_ZERO (dk [0])))
 -#ifndef REAL
 -		|| dk_imaginary
 -#endif
 -		)
-+	else if (0)
-+
- 	{
+-	{
 -	    /* the matrix has just been found to be not positive definite */
 -	    dk [0] = 0 ;
 -	    L->minor = k ;
 -	    ERROR (CHOLMOD_NOT_POSDEF, "not positive definite") ;
- 	}
- 
- 	if (is_ll)
- 	{
+-	}
+-
+-	if (is_ll)
+-	{
 -	    /* this is counted as one flop, below */
 -	    dk [0] = sqrt (dk [0]) ;
- 	}
- 
+-	}
+-
 -	/* Lx [p] = D(k,k) = d ; real part only */
 -	ASSIGN_REAL (Lx,p, dk,0) ;
 -	CLEAR_IMAG (Lx,Lz,p) ;
@@ -260,11 +284,12 @@ index 1f1758f48..de5241d5d 100644
  
 -    if (is_ll) fl += MAX ((Int) kend - (Int) kstart, 0) ;   /* count sqrt's */
 -    Common->rowfacfl = fl ;
- 
+-
      DEBUG (CHOLMOD(dump_factor) (L, "final cholmod_rowfac", Common)) ;
      ASSERT (CHOLMOD(dump_work) (TRUE, TRUE, n, Common)) ;
+     return (TRUE) ;
 diff --git a/Makefile b/Makefile
-index 2cc6e3a29..7ce8dd932 100644
+index 2cc6e3a29..79292e5b2 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -45,24 +45,11 @@ library:
@@ -292,7 +317,7 @@ index 2cc6e3a29..7ce8dd932 100644
  
  # compile; "sudo make install" will install only in /usr/local
  # (or whatever your CMAKE_INSTALL_PREFIX is)
-@@ -90,23 +75,11 @@ global:
+@@ -90,23 +77,11 @@ global:
  # install all packages.  Location depends on prior "make", "make global" etc
  install:
  	( cd SuiteSparse_config && $(MAKE) install )
