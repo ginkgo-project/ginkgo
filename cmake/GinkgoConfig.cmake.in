@@ -139,6 +139,9 @@ set(GINKGO_HAVE_VTUNE "@GINKGO_HAVE_VTUNE@")
 set(GINKGO_HAVE_METIS "@GINKGO_HAVE_METIS@")
 set(VTune_PATH "@VTune_PATH@")
 
+# ensure Threads settings 
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+
 # NOTE: we do not export benchmarks, examples, tests or devel tools
 #     so `third_party` libraries are currently unneeded.
 

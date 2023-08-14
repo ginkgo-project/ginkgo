@@ -75,7 +75,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #else
 
 #define GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_TYPE_SPLIT1(_macro, ...) \
-    template _macro(float, float, float, __VA_ARGS__);
+    template _macro(float, float, float, __VA_ARGS__)
 
 #define GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_TYPE_SPLIT2(_macro, ...) \
     template _macro(double, double, double, __VA_ARGS__)
