@@ -1,0 +1,22 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: Ginkgo
+Upstream-Contact: the Ginkgo authors <>
+Source: https://ginkgo-project.github.io/
+
+# No license on matrix-market filex
+Files: *.mtx */WHERE_ARE_THE_MATRICES
+Copyright: The Ginkgo authors
+License: CC0-1.0
+
+# No license on example docs
+
+Files: */builds-on */intro.dox */kind */results.dox */short-intro */tooltip
+Copyright: The Ginkgo authors
+License: CC0-1.0
+
+
+# Sample paragraph, commented out:
+#
+# Files: src/*
+# Copyright: $YEAR $NAME <$CONTACT>
+# License: ...
