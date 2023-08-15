@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_EXT_PROPERTY_TREE_DATA_HPP_
-#define GKO_PUBLIC_EXT_PROPERTY_TREE_DATA_HPP_
+#ifndef GKO_PUBLIC_CORE_CONFIG_DATA_HPP_
+#define GKO_PUBLIC_CORE_CONFIG_DATA_HPP_
 
 
 #include <exception>
@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
-namespace extension {
+namespace config {
 
 
 /** @file data.hpp
@@ -67,7 +67,7 @@ struct monostate {};
  * @return true if and only if data holds type T
  */
 template <typename T>
-bool holds_alternative(const data& d);
+inline bool holds_alternative(const data& d);
 
 /**
  * Get the data with type T of data. If T is in the type list but not the type
@@ -80,7 +80,7 @@ bool holds_alternative(const data& d);
  * @return data with type T if data holds
  */
 template <typename T>
-T get(const data& d);
+inline T get(const data& d);
 
 /**
  * The base data type for property tree. It only handles std::string,
@@ -152,15 +152,15 @@ protected:
      * Get the data with Type T
      */
     template <typename T>
-    T get() const
+    inline T get() const
     {
         throw std::runtime_error("Not Supported");
     }
 
     template <tag_type T>
-    typename tag<T>::type get() const;
+    inline typename tag<T>::type get() const;
 
-    tag_type get_tag() const { return tag_; }
+    inline tag_type get_tag() const { return tag_; }
 
 private:
     tag_type tag_;
@@ -173,28 +173,28 @@ private:
 };
 
 template <>
-long long int data::get<long long int>() const
+inline long long int data::get<long long int>() const
 {
     assert(tag_ == data::tag_type::int_t);
     return u_.int_;
 }
 
 template <>
-std::string data::get<std::string>() const
+inline std::string data::get<std::string>() const
 {
     assert(tag_ == data::tag_type::str_t);
     return str_;
 }
 
 template <>
-double data::get<double>() const
+inline double data::get<double>() const
 {
     assert(tag_ == data::tag_type::double_t);
     return u_.double_;
 }
 
 template <>
-bool data::get<bool>() const
+inline bool data::get<bool>() const
 {
     assert(tag_ == data::tag_type::bool_t);
     return u_.bool_;
@@ -223,7 +223,7 @@ struct data::tag<data::tag_type::str_t> {
 
 
 template <typename T>
-T get(const data& d)
+inline T get(const data& d)
 {
     static_assert(std::is_same<T, std::string>::value ||
                       std::is_same<T, long long int>::value ||
@@ -240,7 +240,7 @@ T get(const data& d)
 
 
 template <typename T>
-bool holds_alternative(const data& d)
+inline bool holds_alternative(const data& d)
 {
     static_assert(std::is_same<T, std::string>::value ||
                       std::is_same<T, long long int>::value ||
@@ -262,7 +262,7 @@ bool holds_alternative(const data& d)
 }
 
 
-}  // namespace extension
+}  // namespace config
 }  // namespace gko
 
-#endif  // GKO_PUBLIC_EXT_PROPERTY_TREE_DATA_HPP_
+#endif  // GKO_PUBLIC_CORE_CONFIG_DATA_HPP_
