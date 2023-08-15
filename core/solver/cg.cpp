@@ -27,6 +27,34 @@ namespace gko {
 namespace config {
 
 
+// It can also be directly in solver::Cg (or in proteced part) if we also allow
+// the executor as input there.
+template <typename ValueType>
+class CgConfigurer {
+public:
+    static std::unique_ptr<typename solver::Cg<ValueType>::Factory>
+    build_from_config(const gko::config::Config& config,
+                      const gko::config::registry& context,
+                      std::shared_ptr<const Executor> exec,
+                      gko::config::TypeDescriptor td_for_child)
+    {
+        auto factory = solver::Cg<ValueType>::Factory::create();
+        SET_POINTER(factory, const LinOp, generated_preconditioner, config,
+                    context, exec, td_for_child);
+        // handle parameter requires exec
+        // criteria and preconditioner are almost in each solver -> to another
+        // function.
+        factory.with_criteria(
+            gko::stop::Iteration::build().with_max_iters(1u).on(exec));
+        SET_POINTER(factory, const LinOpFactory, preconditioner, config,
+                    context, exec, td_for_child);
+        // can also handle preconditioner, criterion here if they are in
+        // context.
+        return factory.on(exec);
+    }
+};
+
+
 template <>
 std::unique_ptr<gko::LinOpFactory>
 build_from_config<static_cast<int>(gko::config::LinOpFactoryType::Cg)>(
@@ -34,8 +62,8 @@ build_from_config<static_cast<int>(gko::config::LinOpFactoryType::Cg)>(
     std::shared_ptr<const Executor>& exec, gko::config::TypeDescriptor td)
 {
     auto updated = update_type(config, td);
-    return dispatch<solver::Cg>(updated.first, config, context, exec, updated,
-                                value_type_list());
+    return dispatch<CgConfigurer>(updated.first, config, context, exec, updated,
+                                  value_type_list());
 }
 
 
@@ -54,29 +82,6 @@ GKO_REGISTER_OPERATION(step_2, cg::step_2);
 
 }  // anonymous namespace
 }  // namespace cg
-
-
-template <typename ValueType>
-std::unique_ptr<typename Cg<ValueType>::Factory>
-Cg<ValueType>::build_from_config(const gko::config::Config& config,
-                                 const gko::config::registry& context,
-                                 std::shared_ptr<const Executor> exec,
-                                 gko::config::TypeDescriptor td_for_child)
-{
-    auto factory = Factory::create();
-    SET_POINTER(factory, const LinOp, generated_preconditioner, config, context,
-                exec, td_for_child);
-    // handle parameter requires exec
-    // criteria and preconditioner are almost in each solver -> to another
-    // function.
-    factory.with_criteria(
-        gko::stop::Iteration::build().with_max_iters(1u).on(exec));
-    SET_POINTER(factory, const LinOpFactory, preconditioner, config, context,
-                exec, td_for_child);
-    // can also handle preconditioner, criterion here if they are in
-    // context.
-    return factory.on(exec);
-}
 
 
 template <typename ValueType>
