@@ -51,7 +51,8 @@ std::unique_ptr<gko::LinOpFactory> build_from_config(
     std::shared_ptr<const Executor>& exec, TypeDescriptor td)
 {
     if (config.contains("Type")) {
-        auto func = context.get_build_map().at(config.get<std::string>("Type"));
+        auto func = context.get_build_map().at(
+            config.at("Type").get_data<std::string>());
         return func(config, context, exec, td);
     }
     return nullptr;
