@@ -56,10 +56,10 @@ inline TypeDescriptor update_type(const Config& config,
     TypeDescriptor updated = td;
 
     if (config.contains("ValueType")) {
-        updated.first = config.get<std::string>("ValueType");
+        updated.first = config.at("ValueType").get_data<std::string>();
     }
     if (config.contains("IndexType")) {
-        updated.second = config.get<std::string>("IndexType");
+        updated.second = config.at("IndexType").get_data<std::string>();
     }
     return updated;
 }
@@ -74,7 +74,7 @@ inline std::shared_ptr<T> get_pointer(const item& item, const registry& context,
 {
     std::shared_ptr<T> ptr;
     using T_non_const = std::remove_const_t<T>;
-    ptr = context.search_data<T_non_const>(item.get<std::string>());
+    ptr = context.search_data<T_non_const>(item.get_data<std::string>());
     assert(ptr.get() != nullptr);
     return std::move(ptr);
 }
@@ -86,8 +86,8 @@ inline std::shared_ptr<const LinOpFactory> get_pointer<const LinOpFactory>(
 {
     std::shared_ptr<const LinOpFactory> ptr;
     if (item.is(pnode::status_t::object)) {
-        ptr = context.search_data<LinOpFactory>(item.get<std::string>());
-    } else if (item.is(pnode::status_t::object_list)) {
+        ptr = context.search_data<LinOpFactory>(item.get_data<std::string>());
+    } else if (item.is(pnode::status_t::list)) {
         ptr = build_from_config(item, context, exec, td);
     }
     // handle object is item
@@ -103,7 +103,8 @@ get_pointer<const stop::CriterionFactory>(const item& item,
                                           TypeDescriptor td)
 {
     std::shared_ptr<const stop::CriterionFactory> ptr;
-    ptr = context.search_data<stop::CriterionFactory>(item.get<std::string>());
+    ptr = context.search_data<stop::CriterionFactory>(
+        item.get_data<std::string>());
     // handle object is item
     assert(ptr.get() != nullptr);
     return std::move(ptr);
@@ -127,7 +128,7 @@ inline std::vector<std::shared_ptr<T>> get_pointer_vector(
     {                                                                          \
         if (_config.contains(#_param_name)) {                                  \
             _factory.with_##_param_name(gko::config::get_pointer<_param_type>( \
-                _config.get_child(#_param_name), _context, _exec, _td));       \
+                _config.at(#_param_name), _context, _exec, _td));              \
         }                                                                      \
     }                                                                          \
     static_assert(true,                                                        \
