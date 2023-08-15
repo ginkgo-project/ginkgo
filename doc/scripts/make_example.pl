@@ -1,7 +1,7 @@
-# Copyright (C) 2013 - 2019 by the deal.II authors
-# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+# SPDX-FileCopyrightText: 2013 - 2019 by the deal.II authors
 #
-# SPDX-License-Identifier: BSD-3-Clause
+# SPDX-License-Identifier: LGPL-2.1-or-later
+
 
 if ($#ARGV != 2) {
   print "\nUsage: make_example.pl example cmake_source_dir cmake_binary_dir\n";

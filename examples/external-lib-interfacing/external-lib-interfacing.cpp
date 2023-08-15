@@ -1,7 +1,8 @@
+// SPDX-FileCopyrightText: 2013 - 2019 by the deal.II authors
 // Copyright (C) 2000 - 2018 by the deal.II authors
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
 //
-// SPDX-License-Identifier: BSD-3-Clause
+// SPDX-License-Identifier: LGPL-2.1-or-later AND BSD-3-Clause
+
 
 /* ---------------------------------------------------------------------
  *
