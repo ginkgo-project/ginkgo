@@ -9,6 +9,8 @@ function(gkoext_pt_create_test test_name)
         PRIVATE
         "${CMAKE_SOURCE_DIR}/extension/property_tree/include"
         "${CMAKE_SOURCE_DIR}/extension/property_tree"
+        "${CMAKE_SOURCE_DIR}/include"
+        "${CMAKE_SOURCE_DIR}"
         )
     set_target_properties(${TEST_TARGET_NAME} PROPERTIES
         OUTPUT_NAME ${test_name})
