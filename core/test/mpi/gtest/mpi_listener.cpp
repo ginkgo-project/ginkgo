@@ -6,6 +6,18 @@
  * SPDX-License-Identifier: (Apache-2.0 OR MIT)
  *
  *******************************************************************************/
+//
+/******************************************************************************
+ *
+ * An example from Google Test was copied with minor modifications. The
+ * license of Google Test is below.
+ *
+ * SPDX-FileCopyrightText: 2005, Google Inc.  All rights reserved.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ *******************************************************************************/
+
 
 #include <cassert>
 #include <sstream>
