@@ -36,22 +36,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <property_tree/property_tree.hpp>
+#include <ginkgo/core/config/property_tree.hpp>
 #include <property_tree/string_parser.hpp>
 
 
-#include "test/utils.hpp"
+#include "core/test/config/utils.hpp"
 
 
 using namespace gko::extension;
 
+
 TEST(StringParser, ReadInput)
 {
     std::string str = "--base ReferenceExecutor";
-    pnode ptree;
+    gko::config::pnode ptree;
     string_parser(ptree, split_string(str));
-    ASSERT_EQ(ptree.get_size(), 1);
-    ASSERT_EQ(ptree.get<std::string>("base"), "ReferenceExecutor");
+    ASSERT_EQ(ptree.at("base").get_data<std::string>(), "ReferenceExecutor");
 }
 
 
@@ -59,18 +59,18 @@ TEST(StringParser, ReadInput2)
 {
     std::string str = "--base Csr --dim 3,4";
     std::istringstream iss(
-        "root: {\n"
+        "{\n"
         "  base: \"Csr\"\n"
         "  dim: [\n"
         "    3\n"
         "    4\n"
         "  ]\n"
         "}\n");
-    pnode ptree;
+    gko::config::pnode ptree;
 
     string_parser(ptree, split_string(str));
     std::ostringstream oss{};
-    print(oss, ptree);
+    gko::config::print(oss, ptree);
 
     ASSERT_EQ(oss.str(), iss.str());
 }
@@ -81,8 +81,9 @@ TEST(JsonParser, ReadInput3)
     std::string str =
         "--A --A-base Csr<V,I> --A-dim 3,4 --A-executor B --B --B-base "
         "ReferenceExecutor --C --C-float 1.23 --C-int -123 --C-bool true";
+    // Note. the json does not gurantee the ordering in the list.
     std::istringstream iss(
-        "root: {\n"
+        "{\n"
         "  A: {\n"
         "    base: \"Csr<V,I>\"\n"
         "    dim: [\n"
@@ -95,16 +96,16 @@ TEST(JsonParser, ReadInput3)
         "    base: \"ReferenceExecutor\"\n"
         "  }\n"
         "  C: {\n"
+        "    bool: true\n"
         "    float: 1.23\n"
         "    int: -123\n"
-        "    bool: true\n"
         "  }\n"
         "}\n");
-    pnode ptree;
+    gko::config::pnode ptree;
 
     string_parser(ptree, split_string(str));
     std::ostringstream oss{};
-    print(oss, ptree);
+    gko::config::print(oss, ptree);
 
     ASSERT_EQ(oss.str(), iss.str());
 }

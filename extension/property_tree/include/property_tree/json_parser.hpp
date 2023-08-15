@@ -44,38 +44,36 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rapidjson/istreamwrapper.h>
 
 
-#include <property_tree/data.hpp>
-#include <property_tree/property_tree.hpp>
+#include <ginkgo/core/config/property_tree.hpp>
 
 
 namespace gko {
 namespace extension {
 
 
-void json_parser(pnode& ptree, rapidjson::Value& dom)
+void json_parser(gko::config::pnode& ptree, rapidjson::Value& dom)
 {
     if (dom.IsArray()) {
         auto array = dom.GetArray();
         int num = array.Size();
-        ptree.allocate_array(num);
+        ptree.get_array().resize(num);
         for (int i = 0; i < num; i++) {
-            json_parser(ptree.get_child(i), array[i]);
+            json_parser(ptree.at(i), array[i]);
         }
     } else if (dom.IsObject()) {
+        auto& list = ptree.get_list();
         for (auto& m : dom.GetObject()) {
-            ptree.allocate(m.name.GetString());
-            json_parser(ptree.get_child(m.name.GetString()),
-                        dom[m.name.GetString()]);
+            json_parser(list[m.name.GetString()], dom[m.name.GetString()]);
         }
     } else {
         if (dom.IsInt64()) {
-            ptree.set(static_cast<long long int>(dom.GetInt64()));
+            ptree = gko::config::pnode{dom.GetInt64()};
         } else if (dom.IsBool()) {
-            ptree.set(dom.GetBool());
+            ptree = gko::config::pnode{dom.GetBool()};
         } else if (dom.IsDouble()) {
-            ptree.set(dom.GetDouble());
+            ptree = gko::config::pnode{dom.GetDouble()};
         } else {
-            ptree.set(std::string(dom.GetString()));
+            ptree = gko::config::pnode{std::string(dom.GetString())};
         }
     }
 }
