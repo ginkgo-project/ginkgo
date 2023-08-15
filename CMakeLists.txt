@@ -335,16 +335,6 @@ if(GINKGO_BUILD_BENCHMARKS)
     add_subdirectory(benchmark)
 endif()
 
-if(GINKGO_DEVEL_TOOLS)
-    add_custom_target(add_license
-        COMMAND ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/add_license.sh
-        WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR})
-    # if git-cmake-format can not build format target, do not add the dependencies
-    if(TARGET format)
-        add_dependencies(format add_license)
-    endif()
-endif()
-
 # MacOS needs to install bash, gnu-sed, findutils and coreutils
 # format_header needs clang-format 6.0.0+
 find_program(BASH bash)
