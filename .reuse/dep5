@@ -1,22 +1,20 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: Ginkgo
-Upstream-Contact: the Ginkgo authors <>
+Upstream-Contact: The Ginkgo authors <https://github.com/ginkgo-project/ginkgo/wiki#contact-us>
 Source: https://ginkgo-project.github.io/
 
-# No license on matrix-market filex
-Files: *.mtx */WHERE_ARE_THE_MATRICES
-Copyright: The Ginkgo authors
-License: CC0-1.0
+# See https://sparse.tamu.edu/about for licensing of SuiteSparse matrices
+Files: examples/*/*.mtx test/test_install/data/*.mtx
+Copyright: Tim Davis, Yifan Hu, and Scott Kolodziej <davis@tamu.edu>
+License: CC-BY-4.0
+Source: https://sparse.tamu.edu/
 
 # No license on example docs
-
-Files: */builds-on */intro.dox */kind */results.dox */short-intro */tooltip
+Files: */builds-on */intro.dox */kind */results.dox */short-intro */tooltip */WHERE_ARE_THE_MATRICES
 Copyright: The Ginkgo authors
 License: CC0-1.0
 
-
-# Sample paragraph, commented out:
-#
-# Files: src/*
-# Copyright: $YEAR $NAME <$CONTACT>
-# License: ...
+# Build artefacts for benchmark testing
+Files: */*.stderr */*.stdout
+Copyright: The Ginkgo authors
+License: CC0-1.0
