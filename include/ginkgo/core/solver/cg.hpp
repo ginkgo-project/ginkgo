@@ -14,8 +14,6 @@
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/config/config.hpp>
-#include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
@@ -51,18 +49,6 @@ class Cg : public EnableLinOp<Cg<ValueType>>,
     friend class EnableLinOp<Cg>;
     friend class EnablePolymorphicObject<Cg, LinOp>;
 
-    template <template <class...> class Base, typename... Types>
-    friend std::unique_ptr<LinOpFactory> gko::config::dispatch(
-        std::string str, const gko::config::Config& config,
-        const gko::config::registry& context,
-        std::shared_ptr<const Executor>& exec,
-        const gko::config::TypeDescriptor& td);
-
-    // friend std::unique_ptr<LinOpFactory> gko::config::build_from_config<
-    //     static_cast<int>(gko::config::LinOpFactoryType::Cg)>(
-    //     const gko::config::Config&, const gko::config::registry&,
-    //     std::shared_ptr<const Executor>&, gko::config::TypeDescriptor);
-
 public:
     using value_type = ValueType;
     using transposed_type = Cg<ValueType>;
@@ -88,12 +74,6 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    static std::unique_ptr<Factory> build_from_config(
-        const gko::config::Config& config, const gko::config::registry& context,
-        std::shared_ptr<const Executor> exec,
-        gko::config::TypeDescriptor td_for_child = {
-            gko::config::type_string<ValueType>::str(), ""});
-
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
     template <typename VectorType>

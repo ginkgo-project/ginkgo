@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
@@ -134,6 +135,25 @@ inline std::vector<std::shared_ptr<T>> get_pointer_vector(
     static_assert(true,                                                        \
                   "This assert is used to counter the false positive extra "   \
                   "semi-colon warnings")
+
+
+// If we do not put the build_from_config in the class directly, the following
+// can also be in internal header.
+template <typename T>
+struct type_string {
+    static std::string str() { return "N"; };
+};
+
+#define TYPE_STRING_OVERLOAD(_type, _str)         \
+    template <>                                   \
+    struct type_string<_type> {                   \
+        static std::string str() { return _str; } \
+    }
+
+TYPE_STRING_OVERLOAD(double, "double");
+TYPE_STRING_OVERLOAD(float, "float");
+TYPE_STRING_OVERLOAD(std::complex<double>, "complex<double>");
+TYPE_STRING_OVERLOAD(std::complex<float>, "complex<float>");
 
 
 }  // namespace config
