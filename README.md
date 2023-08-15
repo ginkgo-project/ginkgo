@@ -15,7 +15,7 @@ SPDX-License-Identifier: BSD-3-Clause
 
 [![CDash dashboard](https://img.shields.io/badge/CDash-Access-blue.svg)](https://my.cdash.org/index.php?project=Ginkgo+Project)
 [![Documentation](https://img.shields.io/badge/Documentation-latest-blue.svg)](https://ginkgo-project.github.io/ginkgo-generated-documentation/doc/develop/)
-[![License](https://img.shields.io/github/license/ginkgo-project/ginkgo.svg)](./LICENSE)
+[![License](https://img.shields.io/github/license/ginkgo-project/ginkgo.svg)](./LICENSES/BSD-3-Clause.txt)
 [![c++ standard](https://img.shields.io/badge/c%2B%2B-14-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.02260/status.svg)](https://doi.org/10.21105/joss.02260)
 
@@ -161,7 +161,7 @@ external contributors like in the example below.
 
 #### Contributors
 I hereby place all my contributions in this codebase under a BSD-3-Clause
-license, as specified in the repository's [LICENSE](./LICENSE) file.
+license, as specified in the repository's [LICENSE](./LICENSE.md) file.
 
 Name Surname <email@domain> Institution(s)
 
@@ -182,12 +182,12 @@ or to contact any of the main [contributors](contributors.md).
 
 ### Licensing
 
-Ginkgo is available under the [3-clause BSD license](LICENSE). All contributions
+Ginkgo is available under the [3-clause BSD license](LICENSE.md). All contributions
 to the project are added under this license.
 
 Depending on the configuration options used when building Ginkgo, third party
 software may be pulled as additional dependencies, which have their own
-licensing conditions. Refer to [ABOUT-LICENSING.md](ABOUT-LICENSING.md) for
+licensing conditions. Refer to [LICENSE.md](LICENSE.md) for
 details.
 
 Citing Ginkgo
