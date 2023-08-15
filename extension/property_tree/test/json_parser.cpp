@@ -37,11 +37,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rapidjson/document.h>
 
 
+#include <ginkgo/core/config/property_tree.hpp>
 #include <property_tree/json_parser.hpp>
-#include <property_tree/property_tree.hpp>
 
 
-#include "test/utils.hpp"
+#include "core/test/config/utils.hpp"
 
 
 using namespace gko::extension;
@@ -55,10 +55,9 @@ TEST(JsonParser, ReadInput)
     rapidjson::StringStream s(json);
     rapidjson::Document d;
     d.ParseStream(s);
-    pnode ptree;
+    gko::config::pnode ptree;
     json_parser(ptree, d);
-    ASSERT_EQ(ptree.get_size(), 1);
-    ASSERT_EQ(ptree.get<std::string>("base"), "ReferenceExecutor");
+    ASSERT_EQ(ptree.at("base").get_data<std::string>(), "ReferenceExecutor");
 }
 
 
@@ -67,7 +66,7 @@ TEST(JsonParser, ReadInput2)
     const char json[] =
         "{'base': 'Csr', 'dim': [3, 4], 'exec': {'base': 'ReferenceExecutor'}}";
     std::istringstream iss(
-        "root: {\n"
+        "{\n"
         "  base: \"Csr\"\n"
         "  dim: [\n"
         "    3\n"
@@ -81,11 +80,11 @@ TEST(JsonParser, ReadInput2)
     rapidjson::StringStream s(str.c_str());
     rapidjson::Document d;
     d.ParseStream(s);
-    pnode ptree;
+    gko::config::pnode ptree;
 
     json_parser(ptree, d);
     std::ostringstream oss{};
-    print(oss, ptree);
+    gko::config::print(oss, ptree);
 
     ASSERT_EQ(oss.str(), iss.str());
 }
@@ -95,7 +94,7 @@ TEST(JsonParser, ReadInput3)
 {
     const char json[] = "[{'name': 'A'}, {'name': 'B'}]";
     std::istringstream iss(
-        "root: [\n"
+        "[\n"
         "  {\n"
         "    name: \"A\"\n"
         "  }\n"
@@ -107,11 +106,11 @@ TEST(JsonParser, ReadInput3)
     rapidjson::StringStream s(str.c_str());
     rapidjson::Document d;
     d.ParseStream(s);
-    pnode ptree;
+    gko::config::pnode ptree;
 
     json_parser(ptree, d);
     std::ostringstream oss{};
-    print(oss, ptree);
+    gko::config::print(oss, ptree);
 
     ASSERT_EQ(oss.str(), iss.str());
 }
