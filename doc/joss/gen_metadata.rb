@@ -1,5 +1,9 @@
 #!/usr/bin/ruby
 
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 # For an OO language, this is distinctly procedural. Should probably fix that.
 require 'json'
 
