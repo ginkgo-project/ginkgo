@@ -1,11 +1,10 @@
-# Copyright 2012      Cedric Castagnede
-# Copyright 2012-2013 Emmanuel Agullo
-# Copyright 2012-2013 Mathieu Faverge
-# Copyright 2013-2020 Florent Pruvost
-# Copyright 2020-2023 Ginkgo Project
-# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+# SPDX-FileCopyrightText: 2012      Cedric Castagnede
+# SPDX-FileCopyrightText: 2012-2013 Emmanuel Agullo
+# SPDX-FileCopyrightText: 2012-2013 Mathieu Faverge
+# SPDX-FileCopyrightText: 2013-2020 Florent Pruvost
+# SPDX-FileCopyrightText: 2020-2023 Ginkgo Project
 #
-# SPDX-License-Identifier: BSD-3-Clause
+# SPDX-License-Identifier: (LicenseRef-MORSE-License AND BSD-3-Clause)
 
 include(CheckStructHasMember)
 include(CheckCSourceCompiles)
