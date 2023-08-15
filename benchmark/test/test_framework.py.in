@@ -7,6 +7,12 @@ import re
 import pathlib
 import sys
 
+
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
+
 sourcepath = pathlib.Path("@CMAKE_CURRENT_SOURCE_DIR@")
 binpath = pathlib.Path("@PROJECT_BINARY_DIR@")
 generate = False

@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+
+SPDX-License-Identifier: BSD-3-Clause
+-->
+
 I hereby place all my contributions in this codebase under a BSD-3-Clause
 license, as specified in the repository's LICENSE file.
 

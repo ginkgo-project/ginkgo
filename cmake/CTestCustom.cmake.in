@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 list(APPEND CTEST_CUSTOM_COVERAGE_EXCLUDE
   # Exclude list set by cmake
   @CUSTOM_COVERAGE_EXCLUDE@
