@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/config/property_tree.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
 
@@ -55,7 +56,7 @@ using LinOpFactoryMap =
     std::unordered_map<std::string, std::shared_ptr<LinOpFactory>>;
 using CriterionFactoryMap =
     std::unordered_map<std::string, std::shared_ptr<stop::CriterionFactory>>;
-using Config = std::map<std::string, std::string>;
+using Config = pnode;
 using TypeDescriptor = std::pair<std::string, std::string>;
 class registry;
 using BuildFunctionType = std::function<std::unique_ptr<gko::LinOpFactory>(

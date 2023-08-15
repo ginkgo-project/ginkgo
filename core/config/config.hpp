@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
+
 namespace gko {
 namespace config {
 
@@ -53,19 +54,18 @@ inline TypeDescriptor update_type(const Config& config,
                                   const TypeDescriptor& td)
 {
     TypeDescriptor updated = td;
-    auto it = config.find("ValueType");
-    if (it != config.end()) {
-        updated.first = it->second;
+
+    if (config.contains("ValueType")) {
+        updated.first = config.get<std::string>("ValueType");
     }
-    it = config.find("IndexType");
-    if (it != config.end()) {
-        updated.second = it->second;
+    if (config.contains("IndexType")) {
+        updated.second = config.get<std::string>("IndexType");
     }
     return updated;
 }
 
 
-using item = std::string;
+using item = pnode;
 
 template <typename T>
 inline std::shared_ptr<T> get_pointer(const item& item, const registry& context,
@@ -74,7 +74,7 @@ inline std::shared_ptr<T> get_pointer(const item& item, const registry& context,
 {
     std::shared_ptr<T> ptr;
     using T_non_const = std::remove_const_t<T>;
-    ptr = context.search_data<T_non_const>(item);
+    ptr = context.search_data<T_non_const>(item.get<std::string>());
     assert(ptr.get() != nullptr);
     return std::move(ptr);
 }
@@ -85,12 +85,15 @@ inline std::shared_ptr<const LinOpFactory> get_pointer<const LinOpFactory>(
     std::shared_ptr<const Executor> exec, TypeDescriptor td)
 {
     std::shared_ptr<const LinOpFactory> ptr;
-    ptr = context.search_data<LinOpFactory>(item);
+    if (item.is(pnode::status_t::object)) {
+        ptr = context.search_data<LinOpFactory>(item.get<std::string>());
+    } else if (item.is(pnode::status_t::object_list)) {
+        ptr = build_from_config(item, context, exec, td);
+    }
     // handle object is item
     assert(ptr.get() != nullptr);
     return std::move(ptr);
 }
-
 
 template <>
 inline std::shared_ptr<const stop::CriterionFactory>
@@ -100,7 +103,7 @@ get_pointer<const stop::CriterionFactory>(const item& item,
                                           TypeDescriptor td)
 {
     std::shared_ptr<const stop::CriterionFactory> ptr;
-    ptr = context.search_data<stop::CriterionFactory>(item);
+    ptr = context.search_data<stop::CriterionFactory>(item.get<std::string>());
     // handle object is item
     assert(ptr.get() != nullptr);
     return std::move(ptr);
@@ -118,13 +121,13 @@ inline std::vector<std::shared_ptr<T>> get_pointer_vector(
     return res;
 }
 
+
 #define SET_POINTER(_factory, _param_type, _param_name, _config, _context,     \
                     _exec, _td)                                                \
     {                                                                          \
-        auto it = _config.find(#_param_name);                                  \
-        if (it != _config.end()) {                                             \
+        if (_config.contains(#_param_name)) {                                  \
             _factory.with_##_param_name(gko::config::get_pointer<_param_type>( \
-                it->second, _context, _exec, _td));                            \
+                _config.get_child(#_param_name), _context, _exec, _td));       \
         }                                                                      \
     }                                                                          \
     static_assert(true,                                                        \
