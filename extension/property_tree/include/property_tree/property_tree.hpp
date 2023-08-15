@@ -49,21 +49,21 @@ namespace extension {
 
 
 /**
- * pnode_s is to describe the "name": empty(inital state), array, object, or
+ * pnode is to describe the "name": empty(inital state), array, object, or
  * object_list.
  */
-template <typename data_type>
-class pnode_s {
+class pnode {
 public:
     using key_type = std::string;
+    using data_type = data;
 
     enum status_t { empty, array, object, object_list };
 
-    pnode_s(const std::string& name = "root")
+    pnode(const std::string& name = "root")
         : name_(name), status_(status_t::empty)
     {}
 
-    pnode_s(const std::string& name, const data_type& data)
+    pnode(const std::string& name, const data_type& data)
         : name_(name), status_(status_t::object), data_(data)
     {}
 
@@ -96,14 +96,14 @@ public:
     }
 
     // Get the list of children. It's only available for const
-    const std::vector<pnode_s<data_type>>& get_child_list() const
+    const std::vector<pnode<data_type>>& get_child_list() const
     {
         assert(children_.size() > 0);
         return children_;
     }
 
     // Get the child by given path (. as separator)
-    pnode_s<data_type>& get_child(const std::string& path)
+    pnode<data_type>& get_child(const std::string& path)
     {
         auto sep = path.find(".");
         if (sep == std::string::npos) {
@@ -113,7 +113,7 @@ public:
             .get_child(path.substr(sep + 1));
     }
 
-    const pnode_s<data_type>& get_child(const std::string& path) const
+    const pnode<data_type>& get_child(const std::string& path) const
     {
         auto sep = path.find(".");
         if (sep == std::string::npos) {
@@ -124,7 +124,7 @@ public:
     }
 
     // Get the index i children
-    pnode_s<data_type>& get_child(int i) { return children_.at(i); }
+    pnode<data_type>& get_child(int i) { return children_.at(i); }
 
     // Check the status
     bool is(status_t s) const { return this->get_status() == s; }
@@ -208,7 +208,7 @@ private:
         if (!p.second) {
             throw std::runtime_error("Have the same key");
         }
-        children_.emplace_back(pnode_s{name, data});
+        children_.emplace_back(pnode{name, data});
     }
 
     // insert empty
@@ -219,17 +219,15 @@ private:
         if (!p.second) {
             throw std::runtime_error("Have the same key");
         }
-        children_.emplace_back(pnode_s{name});
+        children_.emplace_back(pnode{name});
     }
 
     std::string name_;
-    std::vector<pnode_s<data_type>> children_;  // for object_list or array
-    std::map<key_type, int> key_map_;           // mapping string to index
+    std::vector<pnode<data_type>> children_;  // for object_list or array
+    std::map<key_type, int> key_map_;         // mapping string to index
     data_type data_;
     status_t status_;
 };
-
-using pnode = pnode_s<data_s>;
 
 
 }  // namespace extension

@@ -46,33 +46,33 @@ TEST(Data, DataTypeIsCorrect)
 {
     using namespace std::literals::string_literals;
     // Empty
-    ASSERT_TRUE(holds_alternative<monostate>(data_s()));
+    ASSERT_TRUE(holds_alternative<monostate>(data()));
     // String
-    ASSERT_TRUE(holds_alternative<std::string>(data_s("1")));
-    ASSERT_TRUE(holds_alternative<std::string>(data_s("1"s)));
+    ASSERT_TRUE(holds_alternative<std::string>(data("1")));
+    ASSERT_TRUE(holds_alternative<std::string>(data("1"s)));
     // Floating point
-    ASSERT_TRUE(holds_alternative<double>(data_s(1.23f)));
-    ASSERT_TRUE(holds_alternative<double>(data_s(1.23)));
+    ASSERT_TRUE(holds_alternative<double>(data(1.23f)));
+    ASSERT_TRUE(holds_alternative<double>(data(1.23)));
     // Bool
-    ASSERT_TRUE(holds_alternative<bool>(data_s(true)));
+    ASSERT_TRUE(holds_alternative<bool>(data(true)));
     // Integer
-    ASSERT_TRUE(holds_alternative<long long int>(data_s(1)));
-    ASSERT_TRUE(holds_alternative<long long int>(data_s(1L)));
-    ASSERT_TRUE(holds_alternative<long long int>(data_s(1LL)));
-    ASSERT_TRUE(holds_alternative<long long int>(data_s(1U)));
-    ASSERT_TRUE(holds_alternative<long long int>(data_s(1UL)));
-    // ASSERT_THROW(data_s(1ULL));
+    ASSERT_TRUE(holds_alternative<long long int>(data(1)));
+    ASSERT_TRUE(holds_alternative<long long int>(data(1L)));
+    ASSERT_TRUE(holds_alternative<long long int>(data(1LL)));
+    ASSERT_TRUE(holds_alternative<long long int>(data(1U)));
+    ASSERT_TRUE(holds_alternative<long long int>(data(1UL)));
+    // ASSERT_THROW(data(1ULL));
 }
 
 
 TEST(Data, DataContentIsCorrect)
 {
     // String
-    ASSERT_EQ(get<std::string>(data_s("1")), "1");
+    ASSERT_EQ(get<std::string>(data("1")), "1");
     // Floating point
-    ASSERT_EQ(get<double>(data_s(1.23)), 1.23);
+    ASSERT_EQ(get<double>(data(1.23)), 1.23);
     // Bool
-    ASSERT_EQ(get<bool>(data_s(true)), true);
+    ASSERT_EQ(get<bool>(data(true)), true);
     // Integer
-    ASSERT_EQ(get<long long int>(data_s(1)), 1);
+    ASSERT_EQ(get<long long int>(data(1)), 1);
 }
