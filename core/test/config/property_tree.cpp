@@ -36,13 +36,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <property_tree/property_tree.hpp>
+#include <ginkgo/core/config/property_tree.hpp>
 
 
-#include "test/utils.hpp"
+#include "core/test/config/utils.hpp"
 
 
-using namespace gko::extension;
+using namespace gko::config;
 
 
 TEST(PropertyTree, CreateEmpty)

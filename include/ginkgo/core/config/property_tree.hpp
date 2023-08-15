@@ -30,22 +30,23 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_EXT_PROPERTY_TREE_PROPERTY_TREE_HPP_
-#define GKO_PUBLIC_EXT_PROPERTY_TREE_PROPERTY_TREE_HPP_
+#ifndef GKO_PUBLIC_CORE_CONFIG_PROPERTY_TREE_HPP_
+#define GKO_PUBLIC_CORE_CONFIG_PROPERTY_TREE_HPP_
 
 
 #include <exception>
 #include <list>
+#include <map>
 #include <string>
 #include <type_traits>
 #include <vector>
 
 
-#include <property_tree/data.hpp>
+#include <ginkgo/core/config/data.hpp>
 
 
 namespace gko {
-namespace extension {
+namespace config {
 
 
 /**
@@ -85,7 +86,7 @@ public:
     T get() const
     {
         assert(status_ == status_t::object);
-        return gko::extension::get<T>(data_);
+        return gko::config::get<T>(data_);
     }
 
     // Get the data of node's content via path (. as separator)
@@ -230,8 +231,8 @@ private:
 };
 
 
-}  // namespace extension
+}  // namespace config
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_EXT_PROPERTY_TREE_PROPERTY_TREE_HPP_
+#endif  // GKO_PUBLIC_CORE_CONFIG_PROPERTY_TREE_HPP_
