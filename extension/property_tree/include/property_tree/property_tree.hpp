@@ -96,14 +96,14 @@ public:
     }
 
     // Get the list of children. It's only available for const
-    const std::vector<pnode<data_type>>& get_child_list() const
+    const std::vector<pnode>& get_child_list() const
     {
         assert(children_.size() > 0);
         return children_;
     }
 
     // Get the child by given path (. as separator)
-    pnode<data_type>& get_child(const std::string& path)
+    pnode& get_child(const std::string& path)
     {
         auto sep = path.find(".");
         if (sep == std::string::npos) {
@@ -113,7 +113,7 @@ public:
             .get_child(path.substr(sep + 1));
     }
 
-    const pnode<data_type>& get_child(const std::string& path) const
+    const pnode& get_child(const std::string& path) const
     {
         auto sep = path.find(".");
         if (sep == std::string::npos) {
@@ -124,7 +124,7 @@ public:
     }
 
     // Get the index i children
-    pnode<data_type>& get_child(int i) { return children_.at(i); }
+    pnode& get_child(int i) { return children_.at(i); }
 
     // Check the status
     bool is(status_t s) const { return this->get_status() == s; }
@@ -132,8 +132,8 @@ public:
     bool contains(std::string key) const
     {
         assert(status_ == status_t::object_list);
-        auto it = children_.find(key);
-        return (it != children_.end());
+        auto it = key_map_.find(key);
+        return (it != key_map_.end());
     }
 
     int get_size() const { return children_.size(); }
@@ -223,8 +223,8 @@ private:
     }
 
     std::string name_;
-    std::vector<pnode<data_type>> children_;  // for object_list or array
-    std::map<key_type, int> key_map_;         // mapping string to index
+    std::vector<pnode> children_;      // for object_list or array
+    std::map<key_type, int> key_map_;  // mapping string to index
     data_type data_;
     status_t status_;
 };
