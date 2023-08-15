@@ -4,7 +4,7 @@
 
 // AMD, Copyright (c) 1996-2022, Timothy A. Davis, Patrick R. Amestoy, and
 // Iain S. Duff.  All Rights Reserved.
-// SPDX-License-Identifier: BSD-3-clause
+// SPDX-License-Identifier: BSD-3-Clause
 
 //------------------------------------------------------------------------------
 
@@ -546,7 +546,7 @@ void AMD_2
  * p1:          Pe [i] for some variable i (start of element list)
  * p2:          Pe [i] + Elen [i] -  1 for some variable i
  * p3:          index of first supervariable in clean list
- * p4:		
+ * p4:
  * pdst:        destination pointer, for compression
  * pend:        end of memory to compress
  * pj:          pointer into an element or variable

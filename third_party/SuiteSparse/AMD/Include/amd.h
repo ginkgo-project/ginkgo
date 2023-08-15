@@ -4,7 +4,7 @@
 
 // AMD, Copyright (c) 1996-2022, Timothy A. Davis, Patrick R. Amestoy, and
 // Iain S. Duff.  All Rights Reserved.
-// SPDX-License-Identifier: BSD-3-clause
+// SPDX-License-Identifier: BSD-3-Clause
 
 //------------------------------------------------------------------------------
 
@@ -82,7 +82,7 @@ int amd_l_order  /* see above for description */
  * terms of time and memory usage.  If this condition does not hold, a copy
  * of the matrix is created (where these conditions do hold), and the copy is
  * ordered.
- * 
+ *
  * Row indices must be in the range 0 to
  * n-1.  Ap [0] must be zero, and thus nz = Ap [n] is the number of nonzeros
  * in A.  The array Ap is of size n+1, and the array Ai is of size nz = Ap [n].
@@ -149,7 +149,7 @@ int amd_l_order  /* see above for description */
  * The Info array provides statistics about the ordering on output.  If it is
  * not present, the statistics are not returned.  This is not an error
  * condition.
- * 
+ *
  *      Info [AMD_STATUS]:  the return value of AMD, either AMD_OK,
  *          AMD_OK_BUT_JUMBLED, AMD_OUT_OF_MEMORY, or AMD_INVALID.
  *
@@ -210,7 +210,7 @@ int amd_l_order  /* see above for description */
  *
  *      Info [14..19] are not used in the current version, but may be used in
  *          future versions.
- */    
+ */
 
 /* ------------------------------------------------------------------------- */
 /* direct interface to AMD */
@@ -233,7 +233,7 @@ void amd_2
     int32_t iwlen,
     int32_t pfree,
     int32_t Nv [ ],
-    int32_t Next [ ], 
+    int32_t Next [ ],
     int32_t Last [ ],
     int32_t Head [ ],
     int32_t Elen [ ],
@@ -252,7 +252,7 @@ void amd_l2
     int64_t iwlen,
     int64_t pfree,
     int64_t Nv [ ],
-    int64_t Next [ ], 
+    int64_t Next [ ],
     int64_t Last [ ],
     int64_t Head [ ],
     int64_t Elen [ ],
@@ -320,7 +320,7 @@ void amd_l_info     (double Info [ ]) ;
 /* contents of Info */
 #define AMD_STATUS 0           /* return value of amd_order and amd_l_order */
 #define AMD_N 1                /* A is n-by-n */
-#define AMD_NZ 2      /* number of nonzeros in A */ 
+#define AMD_NZ 2      /* number of nonzeros in A */
 #define AMD_SYMMETRY 3         /* symmetry of pattern (1 is sym., 0 is unsym.) */
 #define AMD_NZDIAG 4           /* # of entries on diagonal */
 #define AMD_NZ_A_PLUS_AT 5  /* nz in A+A' */

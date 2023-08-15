@@ -4,11 +4,10 @@
 
 // AMD, Copyright (c) 1996-2022, Timothy A. Davis, Patrick R. Amestoy, and
 // Iain S. Duff.  All Rights Reserved.
-// SPDX-License-Identifier: BSD-3-clause
+// SPDX-License-Identifier: BSD-3-Clause
 
 //------------------------------------------------------------------------------
 
 
 #define DLONG
 #include "amd_defaults.c"
-
