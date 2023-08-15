@@ -71,15 +71,8 @@ Cg<ValueType>::build_from_config(const gko::config::Config& config,
     // function.
     factory.with_criteria(
         gko::stop::Iteration::build().with_max_iters(1u).on(exec));
-    {
-        auto str = config.find("preconditioner");
-        if (str != config.end()) {
-            // assume we have the config for nest object
-            factory.with_preconditioner(gko::config::build_from_config(
-                gko::config::Config{{"Type", str->second}}, context, exec,
-                td_for_child));
-        }
-    }
+    SET_POINTER(factory, const LinOpFactory, preconditioner, config, context,
+                exec, td_for_child);
     // can also handle preconditioner, criterion here if they are in
     // context.
     return factory.on(exec);
