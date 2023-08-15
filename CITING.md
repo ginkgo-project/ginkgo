@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+
+SPDX-License-Identifier: BSD-3-Clause
+-->
+
 # Citing Ginkgo                                           {#citing_ginkgo}
 
 The main Ginkgo paper describing Ginkgo's purpose, design and interface is

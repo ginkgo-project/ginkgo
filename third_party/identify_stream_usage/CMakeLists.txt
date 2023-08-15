@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 cmake_minimum_required(VERSION 3.17)
 
 project(identify_stream_usage LANGUAGES CXX)

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 add_library(ginkgo_reference $<TARGET_OBJECTS:ginkgo_reference_device> "")
 target_sources(ginkgo_reference
     PRIVATE

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 .use_status-job-settings:
   image: ginkgohub/cpu:openmpi-gnu9-llvm8
   tags:

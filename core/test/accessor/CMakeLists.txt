@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 # Creates a test that only adds `Ginkgo_SOURCE_DIR` to the include directories
 # to make sure the accessors are truly independent of Ginkgo and can be used
 # as a header-only library.

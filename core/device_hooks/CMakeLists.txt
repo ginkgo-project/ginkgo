@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 if(NOT GINKGO_BUILD_CUDA)
     add_library(ginkgo_cuda
         $<TARGET_OBJECTS:ginkgo_cuda_device>

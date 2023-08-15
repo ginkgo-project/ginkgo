@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 # The way rules work are explained in https://docs.gitlab.com/ee/ci/yaml/#rules
 # As a summary: Rules are evaluated when the pipeline is created, and evaluated
 # in order until the first match. When a match is found, the job is either

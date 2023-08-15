@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 # configures the file <in> into the variable <variable>
 function(ginkgo_configure_to_string in variable)
     set(fin "${in}")

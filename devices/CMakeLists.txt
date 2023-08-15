@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 function(ginkgo_add_object_library name)
     add_library(${name} OBJECT ${ARGN})
     ginkgo_compile_features(${name})

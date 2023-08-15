@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 # For each external package, check if they are already available, otherwise use ours
 if(GINKGO_BUILD_TESTS AND (NOT GTest_FOUND))
     add_subdirectory(gtest)

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 if (GINKGO_CHECK_CIRCULAR_DEPS)
     add_library(ginkgo_public_api INTERFACE) # dummy target
     target_link_libraries(ginkgo_public_api INTERFACE hwloc)

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 add_executable(matrix matrix.cpp)
 add_executable(matrix_complex matrix.cpp)
 target_compile_definitions(matrix_complex PRIVATE GKO_TOOL_COMPLEX)

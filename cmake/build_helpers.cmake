@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 set(GINKGO_LIBRARY_PATH "${PROJECT_BINARY_DIR}/lib")
 
 function(ginkgo_default_includes name)

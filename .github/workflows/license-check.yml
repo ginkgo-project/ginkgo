@@ -1,5 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
 # SPDX-FileCopyrightText: 2022 Free Software Foundation Europe e.V. <https://fsfe.org>
 #
+# SPDX-License-Identifier: BSD-3-Clause
 # SPDX-License-Identifier: CC0-1.0
 
 name: REUSE Compliance Check

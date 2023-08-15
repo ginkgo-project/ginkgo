@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+
+SPDX-License-Identifier: BSD-3-Clause
+-->
+
 # Changelog
 
 This file may not always be up to date in particular for the unreleased

@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 # convert_source.sh converts cuda (and c++ code) to dpcpp code with ginkgo design.
 
 # Usage:

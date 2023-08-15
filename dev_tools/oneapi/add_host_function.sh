@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 # add_host_function adds a host function to wrap the cuda kernel call with template and parameter configuration.
 #
 # For example

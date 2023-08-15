@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 # These packages are required, to install them, use the package manager or open
 # an R session and type:
 # install.packages("jsonlite", "tidyr", "ggplot2", "scales")

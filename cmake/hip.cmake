@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 if(DEFINED ENV{HIP_PLATFORM})
     set(GINKGO_HIP_PLATFORM "$ENV{HIP_PLATFORM}")
 elseif(GINKGO_HIPCONFIG_PATH)

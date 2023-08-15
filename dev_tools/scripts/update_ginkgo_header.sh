@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 # Note: This script is supposed to support the developer and not to hinder
 #       the development process by setting more restrictions.
 #       This is the reason why every exit code is 0, otherwise, the whole

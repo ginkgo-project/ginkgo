@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 set(CTEST_PROJECT_NAME "Ginkgo Project")
 set(CTEST_NIGHTLY_START_TIME "01:00:00 UTC")
 

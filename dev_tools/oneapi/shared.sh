@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 # Checks if $1 is self contained code, that is it does not have an open and
 # unclosed code portion (<>()[]), e.g. `my_struct->my_func(xxx,` should fail.
 check_closed() {

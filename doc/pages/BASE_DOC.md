@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+
+SPDX-License-Identifier: BSD-3-Clause
+-->
+
 ### Modules
 
 The Ginkgo library can be grouped into [modules](modules.html) and these modules form the basic building blocks of Ginkgo. The modules can be summarized as follows:

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 SET(detailed_log "${PROJECT_BINARY_DIR}/detailed.log")
 SET(minimal_log  "${PROJECT_BINARY_DIR}/minimal.log")
 FILE(REMOVE ${detailed_log} ${minimal_log})

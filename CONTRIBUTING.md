@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+
+SPDX-License-Identifier: BSD-3-Clause
+-->
+
 # Contributing guidelines                         {#contributing_guidelines}
 
 We are glad that you are interested in contributing to Ginkgo. Please have a

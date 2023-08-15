@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 cp .github/bot-pr-format-base.sh /tmp
 source /tmp/bot-pr-format-base.sh
 

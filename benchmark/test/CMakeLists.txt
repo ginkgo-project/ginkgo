@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 function(add_benchmark_test test_name)
     configure_file(${test_name}.py ${test_name}.py COPYONLY)

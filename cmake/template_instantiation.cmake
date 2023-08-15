@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 function(add_instantiation_files source_dir source_file output_files_var)
     # if instantiation is disabled, compile the file directly
     if(NOT GINKGO_SPLIT_TEMPLATE_INSTANTIATIONS)

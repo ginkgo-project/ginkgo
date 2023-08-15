@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 # TODO: we may use file(GENERATE ... TARGET ...) to generate config file based on the target property
 #       when we bump the CMake minimum version to 3.15/3.19
 function(filter_generator_expressions INPUT OUTPUT)

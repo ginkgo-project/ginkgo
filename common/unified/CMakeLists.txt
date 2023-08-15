@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 set(UNIFIED_SOURCES
     base/device_matrix_data_kernels.cpp
     base/index_set_kernels.cpp

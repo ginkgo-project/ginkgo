@@ -1,4 +1,9 @@
 #!/bin/bash
+
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 echo "Please only commit to Ginkgo when GINKGO_DEVEL_TOOLS is enabled in CMake."
 echo "This can be set in your initial invocation of CMake by using"
 echo " -DGINKGO_DEVEL_TOOLS=ON or by editing the CMakeCache.txt file."

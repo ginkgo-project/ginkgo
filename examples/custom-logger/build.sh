@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 # set up script
 if [ $# -ne 1 ]; then
     echo -e "Usage: $0 GINKGO_BUILD_DIRECTORY"

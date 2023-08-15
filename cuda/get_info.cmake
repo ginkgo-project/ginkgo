@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 ginkgo_print_module_header(${detailed_log} "CUDA")
 ginkgo_print_variable(${detailed_log} "CMAKE_CUDA_ARCHITECTURES")
 ginkgo_print_variable(${detailed_log} "GINKGO_CUDA_COMPILER_FLAGS")

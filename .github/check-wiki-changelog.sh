@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 source .github/bot-pr-base.sh
 
 echo "Checking whether the PR contains the 1:ST:no-changelog-entry label"

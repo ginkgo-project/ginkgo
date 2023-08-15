@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 source .github/bot-base.sh
 
 EXTENSION_REGEX='\.(cuh?|hpp|hpp\.inc?|cpp)$'

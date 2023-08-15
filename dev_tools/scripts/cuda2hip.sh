@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 HIPIFY=/opt/rocm/hip/bin/hipify-perl
 # For some reasons, hipify from apt does not add HIP_KERNEL_NAME.
 

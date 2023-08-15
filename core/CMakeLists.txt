@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 add_subdirectory(device_hooks) # placeholders for disabled modules
 
 add_library(ginkgo "")

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 if(GINKGO_BUILD_EXTLIB_EXAMPLE)
     # This is just an example of the CMakeLists.txt file that can be used after the
     # correct version of deal.ii has been installed.

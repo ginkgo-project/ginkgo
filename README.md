@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+
+SPDX-License-Identifier: BSD-3-Clause
+-->
+
 ![Ginkgo](/assets/logo.png)
 
 [![Build status](https://gitlab.com/ginkgo-project/ginkgo-public-ci/badges/develop/pipeline.svg)](https://github.com/ginkgo-project/ginkgo/commits/develop)
@@ -171,7 +177,7 @@ If you have any question, bug to report or would like to propose a new feature,
 feel free to [create an
 issue on GitHub](https://github.com/ginkgo-project/ginkgo/issues/new). Another possibility
 is to send an email to [Ginkgo's main email address](mailto:ginkgo.library@gmail.com)
-or to contact any of the main [contributors](contributors.txt).
+or to contact any of the main [contributors](contributors.md).
 
 
 ### Licensing

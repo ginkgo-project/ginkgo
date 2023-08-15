@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 if (NOT CMAKE_BUILD_TYPE STREQUAL "Release")
     message(WARNING
         "Ginkgo is not being built in \"Release\" mode, benchmark performance "

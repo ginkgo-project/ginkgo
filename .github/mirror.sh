@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 BRANCH_NAME=${BRANCH_NAME##*/}
 
 git remote add fork "git@github.com:${GITHUB_REPO}.git"

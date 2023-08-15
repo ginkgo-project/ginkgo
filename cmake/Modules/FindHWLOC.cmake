@@ -1,37 +1,12 @@
-###
-#
-# @copyright (c) 2012-2020 Inria. All rights reserved.
-# @copyright (c) 2012-2014 Bordeaux INP, CNRS (LaBRI UMR 5800), Inria, Univ. Bordeaux. All rights reserved.
-#
+# Copyright 2012      Cedric Castagnede
 # Copyright 2012-2013 Emmanuel Agullo
 # Copyright 2012-2013 Mathieu Faverge
-# Copyright 2012      Cedric Castagnede
 # Copyright 2013-2020 Florent Pruvost
 # Copyright 2020-2023 Ginkgo Project
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
 #
-# Distributed under the OSI-approved BSD License (the "License");
-# see accompanying file MORSE-Copyright.txt for details.
-#
-# This software is distributed WITHOUT ANY WARRANTY; without even the
-# implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-# See the License for more information.
-#=============================================================================
-# (To distribute this file outside of Morse, substitute the full
-#  License text for the above reference.)
-#
-# Modified for Ginkgo (See ABOUT-LICENSING.md for additional details).
-#
-###
-#
-# - Find HWLOC include dirs and libraries
-# Use this module by invoking find_package with the form:
-#  find_package(HWLOC
-#               [REQUIRED] [VERSION]) # Fail with error if hwloc is not found
-#
-# This module defines the following :prop_tgt:`IMPORTED` target:
-#   ``hwloc``
-#
-#=============================================================================
+# SPDX-License-Identifier: BSD-3-Clause
+
 include(CheckStructHasMember)
 include(CheckCSourceCompiles)
 

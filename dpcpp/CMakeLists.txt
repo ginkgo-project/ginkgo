@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 find_package(MKL CONFIG REQUIRED HINTS "$ENV{MKLROOT}")
 set(GINKGO_MKL_ROOT "${MKL_ROOT}" PARENT_SCOPE)
 find_package(oneDPL REQUIRED HINTS "$ENV{DPL_ROOT}")

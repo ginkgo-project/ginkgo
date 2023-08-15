@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 ginkgo_print_module_header(${detailed_log} "HIP")
 ginkgo_print_foreach_variable(${detailed_log}
     "GINKGO_HIPCONFIG_PATH;GINKGO_HIP_AMDGPU"

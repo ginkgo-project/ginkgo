@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 .before_script_template:
   before_script:
     - export NUM_CORES=${CI_PARALLELISM}

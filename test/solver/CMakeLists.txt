@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 ginkgo_create_common_test(bicg_kernels)
 ginkgo_create_common_test(bicgstab_kernels)
 ginkgo_create_common_test(cb_gmres_kernels)

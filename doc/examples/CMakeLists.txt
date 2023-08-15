@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 # Collect all of the directory names for the examples programs
 FILE(GLOB _ginkgo_examples
     ${PROJECT_SOURCE_DIR}/examples/*

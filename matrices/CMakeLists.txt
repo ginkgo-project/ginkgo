@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 configure_file("${Ginkgo_SOURCE_DIR}/matrices/config.hpp.in"
     "${Ginkgo_BINARY_DIR}/matrices/config.hpp" @ONLY)
 

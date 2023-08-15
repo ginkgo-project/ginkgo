@@ -1,3 +1,10 @@
+<!--
+SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+
+SPDX-License-Identifier: BSD-3-Clause
+SPDX-License-Identifier: CC-BY-4.0
+-->
+
 # Ginkgo visual design guidelines
 
 Ginkgo uses the following color palette based on our logo:
