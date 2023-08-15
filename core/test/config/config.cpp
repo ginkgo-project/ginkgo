@@ -48,8 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 
+#include "core/test/config/utils.hpp"
 #include "core/test/utils.hpp"
-
 
 namespace {
 
@@ -83,8 +83,9 @@ TYPED_TEST(Config, GenerateObjectWithoutDefault)
     auto config_map = gko::config::generate_config_map();
     auto reg = gko::config::registry(config_map);
 
-    auto obj = gko::config::build_from_config<0>(
-        gko::config::Config{{"ValueType", "double"}}, reg, this->exec);
+    gko::config::pnode p;
+    p.insert("ValueType", "double");
+    auto obj = gko::config::build_from_config<0>(p, reg, this->exec);
 
     ASSERT_NE(dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get()),
               nullptr);
@@ -97,9 +98,11 @@ TYPED_TEST(Config, GenerateObjectWithData)
     auto reg = gko::config::registry(config_map);
     reg.emplace("precond", this->mtx);
 
-    auto obj = gko::config::build_from_config<0>(
-        gko::config::Config{{"generated_preconditioner", "precond"}}, reg,
-        this->exec, {"float", ""});
+    gko::config::pnode p;
+    p.insert("generated_preconditioner", "precond");
+    print(std::cout, p);
+    auto obj =
+        gko::config::build_from_config<0>(p, reg, this->exec, {"float", ""});
 
     ASSERT_NE(dynamic_cast<gko::solver::Cg<float>::Factory*>(obj.get()),
               nullptr);
@@ -134,9 +137,14 @@ TYPED_TEST(Config, GenerateObjectWithPreconditioner)
     auto config_map = gko::config::generate_config_map();
     auto reg = gko::config::registry(config_map);
 
-    auto obj = gko::config::build_from_config<0>(
-        gko::config::Config{{"ValueType", "double"}, {"preconditioner", "Cg"}},
-        reg, this->exec);
+    gko::config::pnode p;
+    p.insert("ValueType", "double");
+    p.allocate("preconditioner");
+    p.get_child("preconditioner").insert("Type", "Cg");
+    // p_prec.insert("Type", "Cg");
+    print(std::cout, p);
+    // print(std::cout, p_prec);
+    auto obj = gko::config::build_from_config<0>(p, reg, this->exec);
 
     ASSERT_NE(dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get()),
               nullptr);
@@ -162,9 +170,11 @@ TYPED_TEST(Config, GenerateObjectWithCustomBuild)
     };
     auto reg = gko::config::registry(config_map);
 
-    auto obj = gko::config::build_from_config<0>(
-        gko::config::Config{{"preconditioner", "Custom"}}, reg, this->exec,
-        {"double", ""});
+    gko::config::pnode p;
+    p.allocate("preconditioner");
+    p.get_child("preconditioner").insert("Type", "Custom");
+    auto obj =
+        gko::config::build_from_config<0>(p, reg, this->exec, {"double", ""});
 
     ASSERT_NE(dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get()),
               nullptr);
