@@ -34,9 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_CONFIG_PROPERTY_TREE_HPP_
 
 
+#include <cassert>
 #include <exception>
-#include <list>
 #include <map>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -50,189 +51,119 @@ namespace config {
 
 
 /**
- * pnode is to describe the "name": empty(inital state), array, object, or
- * object_list.
+ * pnode is to describe the property tree
  */
 class pnode {
 public:
     using key_type = std::string;
     using data_type = data;
 
-    enum status_t { empty, array, object, object_list };
+    enum status_t { empty, array, object, list };
 
-    pnode(const std::string& name = "root")
-        : name_(name), status_(status_t::empty)
+    pnode() : status_(status_t::empty) {}
+
+    pnode(const data_type& d) : status_(status_t::object), data_(d) {}
+
+    pnode(const std::vector<pnode>& array)
+        : status_(status_t::array), array_(array)
     {}
 
-    pnode(const std::string& name, const data_type& data)
-        : name_(name), status_(status_t::object), data_(data)
+    pnode(const std::map<key_type, pnode>& list)
+        : status_(status_t::list), list_(list)
     {}
 
     // Get the content of node
-    data_type get() const
+    data_type& get_data()
     {
         assert(status_ == status_t::object);
         return data_;
     }
 
-    // Get the content of node via path (. as separator)
-    data_type get(const std::string& path) const
+    const data_type& get_data() const
     {
-        return this->get_child(path).get();
+        assert(status_ == status_t::object);
+        return data_;
+    }
+
+    std::vector<pnode>& get_array()
+    {
+        assert(status_ == status_t::array || status_ == status_t::empty);
+        status_ = status_t::array;
+        return array_;
+    }
+
+    const std::vector<pnode>& get_array() const
+    {
+        assert(status_ == status_t::array);
+        return array_;
+    }
+
+    std::map<key_type, pnode>& get_list()
+    {
+        assert(status_ == status_t::list || status_ == status_t::empty);
+        status_ = status_t::list;
+        return list_;
+    }
+
+    const std::map<key_type, pnode>& get_list() const
+    {
+        assert(status_ == status_t::list);
+        return list_;
     }
 
     // Get the data of node's content
     template <typename T>
-    T get() const
+    T get_data() const
     {
         assert(status_ == status_t::object);
         return gko::config::get<T>(data_);
     }
 
-    // Get the data of node's content via path (. as separator)
-    template <typename T>
-    T get(const std::string& path) const
+    pnode& at(const std::string& path)
     {
-        return this->get_child(path).template get<T>();
+        assert(status_ == status_t::list);
+        return list_.at(path);
     }
 
-    // Get the list of children. It's only available for const
-    const std::vector<pnode>& get_child_list() const
+    const pnode& at(const std::string& path) const
     {
-        assert(children_.size() > 0);
-        return children_;
+        assert(status_ == status_t::list);
+        return list_.at(path);
     }
 
-    // Get the child by given path (. as separator)
-    pnode& get_child(const std::string& path)
+    pnode& at(int i)
     {
-        auto sep = path.find(".");
-        if (sep == std::string::npos) {
-            return children_.at(key_map_.at(path));
-        }
-        return children_.at(key_map_.at(path.substr(0, sep)))
-            .get_child(path.substr(sep + 1));
+        assert(status_ == status_t::array);
+        return array_.at(i);
     }
 
-    const pnode& get_child(const std::string& path) const
+    const pnode& at(int i) const
     {
-        auto sep = path.find(".");
-        if (sep == std::string::npos) {
-            return children_.at(key_map_.at(path));
-        }
-        return children_.at(key_map_.at(path.substr(0, sep)))
-            .get_child(path.substr(sep + 1));
+        assert(status_ == status_t::array);
+        return array_.at(i);
     }
-
-    // Get the index i children
-    pnode& get_child(int i) { return children_.at(i); }
 
     // Check the status
     bool is(status_t s) const { return this->get_status() == s; }
 
     bool contains(std::string key) const
     {
-        assert(status_ == status_t::object_list);
-        auto it = key_map_.find(key);
-        return (it != key_map_.end());
+        assert(status_ == status_t::list);
+        auto it = list_.find(key);
+        return (it != list_.end());
     }
-
-    int get_size() const { return children_.size(); }
 
     status_t get_status() const { return status_; }
 
-    std::string get_name() const { return name_; }
-
-    // Only allow change the status from empty
-    void update_status(status_t status)
-    {
-        if (status_ != status_t::empty && status_ != status) {
-            throw std::runtime_error("Can not change the status");
-        }
-        if (status == status_t::empty) {
-            throw std::runtime_error("Can not clear");
-        }
-        status_ = status;
-    }
-
-    void set(const data_type& data)
-    {
-        update_status(status_t::object);
-        data_ = data;
-    }
-
-    void insert(const std::string& name, const data_type& data)
-    {
-        this->update_status(status_t::object_list);
-        this->insert_item(name, data);
-    }
-
-    // insert for array
-    void insert(const data_type& data)
-    {
-        this->update_status(status_t::array);
-        int size = key_map_.size();
-        std::string name = "array_" + std::to_string(size);
-        this->insert_item(name, data);
-    }
-
-    void insert(std::initializer_list<data_type> data)
-    {
-        this->update_status(status_t::array);
-        for (auto item : data) {
-            this->insert(item);
-        }
-    }
-
-    void allocate(const std::string& name)
-    {
-        this->update_status(status_t::object_list);
-        this->insert_item(name);
-    }
-
-    void allocate_array(int num)
-    {
-        this->update_status(status_t::array);
-        auto size = children_.size();
-        for (int i = 0; i < num; i++) {
-            std::string name = "array_" + std::to_string(size + i);
-            this->insert_item(name);
-        }
-    }
-
 private:
-    // It's for insert item, please check the status before it
-    void insert_item(const std::string& name, const data_type& data)
-    {
-        int size = key_map_.size();
-        auto p = key_map_.emplace(name, size);
-        if (!p.second) {
-            throw std::runtime_error("Have the same key");
-        }
-        children_.emplace_back(pnode{name, data});
-    }
-
-    // insert empty
-    void insert_item(const std::string& name)
-    {
-        int size = key_map_.size();
-        auto p = key_map_.emplace(name, size);
-        if (!p.second) {
-            throw std::runtime_error("Have the same key");
-        }
-        children_.emplace_back(pnode{name});
-    }
-
-    std::string name_;
-    std::vector<pnode> children_;      // for object_list or array
-    std::map<key_type, int> key_map_;  // mapping string to index
-    data_type data_;
+    std::vector<pnode> array_;        // for array
+    std::map<key_type, pnode> list_;  // for list
+    data_type data_;                  // for value
     status_t status_;
 };
 
 
 }  // namespace config
 }  // namespace gko
-
 
 #endif  // GKO_PUBLIC_CORE_CONFIG_PROPERTY_TREE_HPP_

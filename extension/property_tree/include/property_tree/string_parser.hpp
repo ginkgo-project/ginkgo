@@ -40,8 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 
-#include <property_tree/data.hpp>
-#include <property_tree/property_tree.hpp>
+#include <ginkgo/core/config/property_tree.hpp>
 
 
 namespace gko {
@@ -65,7 +64,8 @@ std::vector<std::string> split_string(std::string str, char key = ' ')
     return std::move(vec);
 }
 
-void string_parser(pnode& ptree, const std::vector<std::string>& str)
+void string_parser(gko::config::pnode& ptree,
+                   const std::vector<std::string>& str)
 {
     // non nested structure in command line
     // --A declare the object name
@@ -95,47 +95,46 @@ void string_parser(pnode& ptree, const std::vector<std::string>& str)
         auto end = result.find("-");
         return result.substr(0, end);
     };
-    auto set_content = [](auto set_content, pnode& ptree,
+    auto set_content = [](auto set_content, gko::config::pnode& ptree,
                           const std::string& input) -> void {
         if (input.find("<") != std::string::npos) {
             // avoid the class contain ,
-            ptree.set(input);
+            ptree = gko::config::pnode{input};
             return;
         }
         if (input.find(",") != std::string::npos) {
             auto vec = split_string(input, ',');
-            ptree.allocate_array(static_cast<int>(vec.size()));
+            ptree.get_array().resize(vec.size());
             for (int i = 0; i < vec.size(); i++) {
-                set_content(set_content, ptree.get_child(i), vec[i]);
+                set_content(set_content, ptree.at(i), vec[i]);
             }
             return;
         }
         if (input == "true" || input == "false") {
-            ptree.set(input == "true");
+            ptree = gko::config::pnode{input == "true"};
         } else if (input.find(".") != std::string::npos) {
-            ptree.set(std::stod(input));
+            ptree = gko::config::pnode{std::stod(input)};
         } else if (input.find_first_not_of("+-0123456789") ==
                    std::string::npos) {
-            ptree.set(std::stoll(input));
+            ptree = gko::config::pnode{std::stoll(input)};
         } else {
-            ptree.set(input);
+            ptree = gko::config::pnode{input};
         }
     };
     std::string parent = "";
-    pnode* pnode_ref = &ptree;
+    gko::config::pnode* pnode_ref = &ptree;
     int i = 0;
     while (i < str.size()) {
         // name description
         if (str[i + 1].find("--") != std::string::npos) {
             parent = get_parent(str[i]);
-            ptree.allocate(parent);
-            pnode_ref = &(ptree.get_child(parent));
+            pnode_ref = &(ptree.get_list()[parent]);
             i++;
             continue;
         }
         auto property = get_property(parent, str[i]);
-        pnode_ref->allocate(property);
-        set_content(set_content, pnode_ref->get_child(property), str[i + 1]);
+
+        set_content(set_content, pnode_ref->get_list()[property], str[i + 1]);
         i += 2;
     }
 }

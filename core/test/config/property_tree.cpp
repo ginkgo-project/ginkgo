@@ -30,13 +30,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <ginkgo/core/config/property_tree.hpp>
+
+
 #include <memory>
 
 
 #include <gtest/gtest.h>
-
-
-#include <ginkgo/core/config/property_tree.hpp>
 
 
 #include "core/test/config/utils.hpp"
@@ -50,68 +50,59 @@ TEST(PropertyTree, CreateEmpty)
     pnode root;
 
     ASSERT_EQ(root.get_status(), pnode::status_t::empty);
-    ASSERT_EQ(root.get_name(), "root");
-    ASSERT_EQ(root.get_size(), 0);
 }
 
 
 TEST(PropertyTree, CreateData)
 {
-    // char -> bool
-    pnode root("test", std::string("test_name"));
+    pnode root("test_name");
 
     ASSERT_EQ(root.get_status(), pnode::status_t::object);
-    ASSERT_EQ(root.get_name(), "test");
-    ASSERT_EQ(root.get<std::string>(), "test_name");
+    ASSERT_EQ(root.get_data<std::string>(), "test_name");
 }
 
 
-TEST(PropertyTree, InsertData)
+TEST(PropertyTree, CreateList)
 {
-    pnode root;
-    root.insert("p0", 1.0);
-    root.insert("p1", 1ll);
-    root.allocate("p2");
-    auto& child = root.get_child("p2");
-    child.insert("p0", std::string("test"));
+    pnode root({{"p0", pnode{1.0}},
+                {"p1", pnode{1ll}},
+                {"p2", pnode{{{"p0", pnode{"test"}}}}}});
 
-    ASSERT_EQ(root.get_status(), pnode::status_t::object_list);
-    ASSERT_EQ(root.get_size(), 3);
-    ASSERT_EQ(root.get<double>("p0"), 1.0);
-    ASSERT_EQ(root.get<long long int>("p1"), 1);
-    // ASSERT_EQ(root.get_child_list().at("p2").get_child().size(), 1);
-    ASSERT_EQ(root.get_child("p2").get_size(), 1);
-    ASSERT_EQ(root.get<std::string>("p2.p0"), "test");
+    ASSERT_EQ(root.get_status(), pnode::status_t::list);
+    ASSERT_EQ(root.at("p0").get_data<double>(), 1.0);
+    ASSERT_EQ(root.at("p1").get_data<long long int>(), 1);
+    ASSERT_EQ(root.at("p2").get_status(), pnode::status_t::list);
+    ASSERT_EQ(root.at("p2").at("p0").get_data<std::string>(), "test");
+}
+
+
+TEST(PropertyTree, CreateArray)
+{
+    pnode root({pnode{"123"}, pnode{"456"}, pnode{"789"}});
+    // pnode root(std::initializer_list<pnode>{{"123", "456"}});
+
+    ASSERT_EQ(root.get_status(), pnode::status_t::array);
+    ASSERT_EQ(root.at(0).get_data<std::string>(), "123");
+    ASSERT_EQ(root.at(1).get_data<std::string>(), "456");
 }
 
 
 TEST(PropertyTree, print)
 {
     pnode root;
-    root.insert("p0", 1.23);
-    root.insert("p1", 1ll);
-    root.allocate("p2");
-    auto& child2 = root.get_child("p2");
-    child2.insert("p0", std::string("test"));
-    root.allocate("p3");
-    auto& child3 = root.get_child("p3");
-    child3.allocate_array(3);
-    child3.get_child(0).set(1ll);
-    child3.get_child(1).set(2ll);
-    root.allocate("p4");
+    root = pnode{{{"p0", pnode{1.23}}, {"p1", pnode{1ll}}}};
+    root.get_list()["p2"] = pnode{{pnode{1}, pnode{2}, pnode{}}};
+    root.get_list()["p3"] = {};
     std::istringstream iss(
-        "root: {\n"
+        "{\n"
         "  p0: 1.23\n"
         "  p1: 1\n"
-        "  p2: {\n"
-        "    p0: \"test\"\n"
-        "  }\n"
-        "  p3: [\n"
+        "  p2: [\n"
         "    1\n"
         "    2\n"
         "    empty_node\n"
         "  ]\n"
-        "  p4: empty_node\n"
+        "  p3: empty_node\n"
         "}\n");
     std::ostringstream oss{};
     print(oss, root);
