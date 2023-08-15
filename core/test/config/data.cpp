@@ -36,10 +36,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <property_tree/data.hpp>
+#include <ginkgo/core/config/data.hpp>
 
 
-using namespace gko::extension;
+using namespace gko::config;
 
 
 TEST(Data, DataTypeIsCorrect)

@@ -30,17 +30,18 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_EXTENSION_PROPERTY_TREE_TEST_UTILS_HPP_
-#define GKO_EXTENSION_PROPERTY_TREE_TEST_UTILS_HPP_
+#ifndef GKO_CORE_TEST_CONFIG_UTILS_HPP_
+#define GKO_CORE_TEST_CONFIG_UTILS_HPP_
 
 
 #include <ostream>
 
 
-#include <property_tree/property_tree.hpp>
+#include <ginkgo/core/config/data.hpp>
+#include <ginkgo/core/config/property_tree.hpp>
 
 namespace gko {
-namespace extension {
+namespace config {
 
 std::ostream& operator<<(std::ostream& stream, const data& d)
 {
@@ -86,7 +87,7 @@ void print(std::ostream& stream, const pnode& tree, int offset = 0,
     }
 }
 
-}  // namespace extension
+}  // namespace config
 }  // namespace gko
 
-#endif  // GKO_EXTENSION_PROPERTY_TREE_TEST_UTILS_HPP_
+#endif  // GKO_CORE_TEST_CONFIG_UTILS_HPP_
