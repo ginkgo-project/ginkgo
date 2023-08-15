@@ -48,66 +48,66 @@ namespace extension {
  * It implements the base type for property tree. It only handles std::string,
  * double, long long int, bool, monostate(empty). Because it can be handled by
  * std::variant in C++17 directly, this file tries to use the same function
- * signature such that we can replace data_s without breaking public interface
+ * signature such that we can replace data without breaking public interface
  * when we decide to use C++17.
  */
 
-class data_s;
+class data;
 
 // For empty state usage
 struct monostate {};
 
 /**
- * Check whether data_s holds type T data.
+ * Check whether data holds type T data.
  *
  * @tparam T  type for checking
  *
- * @param d  the data_s data
+ * @param d  the data data
  *
- * @return true if and only if data_s holds type T
+ * @return true if and only if data holds type T
  */
 template <typename T>
-bool holds_alternative(const data_s& d);
+bool holds_alternative(const data& d);
 
 /**
- * Get the data with type T of data_s. If T is in the type list but not the type
- * held by data_s, it throws runtime error.
+ * Get the data with type T of data. If T is in the type list but not the type
+ * held by data, it throws runtime error.
  *
  * @tparam T  type for checking
  *
- * @param d  the data_s data
+ * @param d  the data data
  *
- * @return data with type T if data_s holds
+ * @return data with type T if data holds
  */
 template <typename T>
-T get(const data_s& d);
+T get(const data& d);
 
 /**
  * The base data type for property tree. It only handles std::string,
  * double, long long int, bool, monostate(empty).
  */
-class data_s {
+class data {
     template <typename T>
-    friend T get(const data_s& d);
+    friend T get(const data& d);
 
     template <typename T>
-    friend bool holds_alternative(const data_s& d);
+    friend bool holds_alternative(const data& d);
 
 public:
     /**
      * Default Constructor
      */
-    data_s() : tag_(tag_type::empty_t) {}
+    data() : tag_(tag_type::empty_t) {}
 
     /**
      * Constructor for bool
      */
-    data_s(bool bb) : tag_(tag_type::bool_t) { u_.bool_ = bb; }
+    data(bool bb) : tag_(tag_type::bool_t) { u_.bool_ = bb; }
 
     /**
      * Constructor for integer
      */
-    data_s(long long int ii) : tag_(tag_type::int_t) { u_.int_ = ii; }
+    data(long long int ii) : tag_(tag_type::int_t) { u_.int_ = ii; }
 
     /**
      * Constructor for integer with all integer type except for unsigned long
@@ -117,28 +117,28 @@ public:
               typename = typename std::enable_if<
                   std::is_integral<T>::value &&
                   !std::is_same<T, unsigned long long int>::value>::type>
-    data_s(T ii) : data_s(static_cast<long long int>(ii))
+    data(T ii) : data(static_cast<long long int>(ii))
     {}
 
     /**
      * Constructor for string
      */
-    data_s(const std::string& str) : tag_(tag_type::str_t) { str_ = str; };
+    data(const std::string& str) : tag_(tag_type::str_t) { str_ = str; };
 
     /**
      * Constructor for char (otherwise, it will use bool)
      */
-    data_s(const char* s) : data_s(std::string(s)) {}
+    data(const char* s) : data(std::string(s)) {}
 
     /**
      * Constructor for double
      */
-    data_s(double dd) : tag_(tag_type::double_t) { u_.double_ = dd; };
+    data(double dd) : tag_(tag_type::double_t) { u_.double_ = dd; };
 
     /**
      * Constructor for float
      */
-    data_s(float dd) : data_s(static_cast<double>(dd)) {}
+    data(float dd) : data(static_cast<double>(dd)) {}
 
 protected:
     enum tag_type { str_t, int_t, double_t, bool_t, empty_t };
@@ -173,57 +173,57 @@ private:
 };
 
 template <>
-long long int data_s::get<long long int>() const
+long long int data::get<long long int>() const
 {
-    assert(tag_ == data_s::tag_type::int_t);
+    assert(tag_ == data::tag_type::int_t);
     return u_.int_;
 }
 
 template <>
-std::string data_s::get<std::string>() const
+std::string data::get<std::string>() const
 {
-    assert(tag_ == data_s::tag_type::str_t);
+    assert(tag_ == data::tag_type::str_t);
     return str_;
 }
 
 template <>
-double data_s::get<double>() const
+double data::get<double>() const
 {
-    assert(tag_ == data_s::tag_type::double_t);
+    assert(tag_ == data::tag_type::double_t);
     return u_.double_;
 }
 
 template <>
-bool data_s::get<bool>() const
+bool data::get<bool>() const
 {
-    assert(tag_ == data_s::tag_type::bool_t);
+    assert(tag_ == data::tag_type::bool_t);
     return u_.bool_;
 }
 
 
 template <>
-struct data_s::tag<data_s::tag_type::bool_t> {
+struct data::tag<data::tag_type::bool_t> {
     using type = bool;
 };
 
 template <>
-struct data_s::tag<data_s::tag_type::int_t> {
+struct data::tag<data::tag_type::int_t> {
     using type = long long int;
 };
 
 template <>
-struct data_s::tag<data_s::tag_type::double_t> {
+struct data::tag<data::tag_type::double_t> {
     using type = double;
 };
 
 template <>
-struct data_s::tag<data_s::tag_type::str_t> {
+struct data::tag<data::tag_type::str_t> {
     using type = std::string;
 };
 
 
 template <typename T>
-T get(const data_s& d)
+T get(const data& d)
 {
     static_assert(std::is_same<T, std::string>::value ||
                       std::is_same<T, long long int>::value ||
@@ -240,7 +240,7 @@ T get(const data_s& d)
 
 
 template <typename T>
-bool holds_alternative(const data_s& d)
+bool holds_alternative(const data& d)
 {
     static_assert(std::is_same<T, std::string>::value ||
                       std::is_same<T, long long int>::value ||
@@ -249,15 +249,15 @@ bool holds_alternative(const data_s& d)
                       std::is_same<T, monostate>::value,
                   "Not supported data type");
     if (std::is_same<T, std::string>::value) {
-        return d.get_tag() == data_s::tag_type::str_t;
+        return d.get_tag() == data::tag_type::str_t;
     } else if (std::is_same<T, long long int>::value) {
-        return d.get_tag() == data_s::tag_type::int_t;
+        return d.get_tag() == data::tag_type::int_t;
     } else if (std::is_same<T, double>::value) {
-        return d.get_tag() == data_s::tag_type::double_t;
+        return d.get_tag() == data::tag_type::double_t;
     } else if (std::is_same<T, bool>::value) {
-        return d.get_tag() == data_s::tag_type::bool_t;
+        return d.get_tag() == data::tag_type::bool_t;
     } else if (std::is_same<T, monostate>::value) {
-        return d.get_tag() == data_s::tag_type::empty_t;
+        return d.get_tag() == data::tag_type::empty_t;
     }
 }
 

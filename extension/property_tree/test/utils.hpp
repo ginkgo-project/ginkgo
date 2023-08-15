@@ -9,17 +9,17 @@
 namespace gko {
 namespace extension {
 
-std::ostream& operator<<(std::ostream& stream, const data_s& data)
+std::ostream& operator<<(std::ostream& stream, const data& d)
 {
-    if (holds_alternative<std::string>(data)) {
-        stream << '"' << get<std::string>(data) << '"';
-    } else if (holds_alternative<long long int>(data)) {
-        stream << get<long long int>(data);
-    } else if (holds_alternative<double>(data)) {
-        stream << get<double>(data);
-    } else if (holds_alternative<bool>(data)) {
-        stream << (get<bool>(data) ? "true" : "false");
-    } else if (holds_alternative<monostate>(data)) {
+    if (holds_alternative<std::string>(d)) {
+        stream << '"' << get<std::string>(d) << '"';
+    } else if (holds_alternative<long long int>(d)) {
+        stream << get<long long int>(d);
+    } else if (holds_alternative<double>(d)) {
+        stream << get<double>(d);
+    } else if (holds_alternative<bool>(d)) {
+        stream << (get<bool>(d) ? "true" : "false");
+    } else if (holds_alternative<monostate>(d)) {
         stream << "<empty>";
     }
     return stream;
