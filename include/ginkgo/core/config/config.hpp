@@ -55,17 +55,17 @@ enum LinOpFactoryType : int { Cg = 0 };
 // IT selection, it can be in detail namespace or hide it by structure
 template <int flag>
 std::unique_ptr<gko::LinOpFactory> build_from_config(
-    const gko::config::Config& config, const gko::config::registry& context,
-    std::shared_ptr<const Executor>& exec, TypeDescriptor td = {"", ""});
+    const pnode& config, const registry& context,
+    std::shared_ptr<const Executor>& exec, type_descriptor td = {"", ""});
 
 
 // The main function
 std::unique_ptr<gko::LinOpFactory> build_from_config(
-    const gko::config::Config& config, const gko::config::registry& context,
-    std::shared_ptr<const Executor>& exec, TypeDescriptor td = {"", ""});
+    const pnode& config, const registry& context,
+    std::shared_ptr<const Executor>& exec, type_descriptor td = {"", ""});
 
 
-BuildFromConfigMap generate_config_map();
+buildfromconfig_map generate_config_map();
 
 
 }  // namespace config
