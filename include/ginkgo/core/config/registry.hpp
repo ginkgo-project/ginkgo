@@ -43,12 +43,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/config/property_tree.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
 
 namespace gko {
 namespace config {
+
+
+class registry;
 
 
 using LinOpMap = std::unordered_map<std::string, std::shared_ptr<LinOp>>;
@@ -58,7 +62,6 @@ using CriterionFactoryMap =
     std::unordered_map<std::string, std::shared_ptr<stop::CriterionFactory>>;
 using Config = pnode;
 using TypeDescriptor = std::pair<std::string, std::string>;
-class registry;
 using BuildFunctionType = std::function<std::unique_ptr<gko::LinOpFactory>(
     const Config&, const registry&, std::shared_ptr<const Executor>&,
     TypeDescriptor)>;
@@ -107,9 +110,10 @@ public:
      * @param data  the shared pointer of the object
      */
     template <typename T>
-    void emplace(std::string key, std::shared_ptr<T> data)
+    bool emplace(std::string key, std::shared_ptr<T> data)
     {
-        this->get_map<T>().emplace(key, data);
+        auto it = this->get_map<T>().emplace(key, data);
+        return it.second;
     }
 
     /**
@@ -124,16 +128,12 @@ public:
     template <typename T>
     std::shared_ptr<T> search_data(std::string key) const
     {
-        auto idx = this->get_map<T>().find(key);
-        if (idx != this->get_map<T>().end()) {
-            return std::dynamic_pointer_cast<T>(idx->second);
-        }
-        // or throw the error
-        return nullptr;
+        return gko::as<T>(this->get_map<T>().at(key));
     }
 
     const BuildFromConfigMap& get_build_map() const { return build_map_; }
 
+protected:
     /**
      * get_map gets the member map
      *
@@ -153,7 +153,6 @@ public:
         return this->get_map_impl<typename map_type<T>::type>();
     }
 
-protected:
     /**
      * get_map_impl is the implementation of get_map
      *
