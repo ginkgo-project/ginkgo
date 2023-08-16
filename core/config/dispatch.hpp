@@ -53,16 +53,15 @@ namespace config {
 /**
  * This function is to dispatch the type from runtime parameter.
  * The concrete class need to have static member function
- * build_from_config(Config, registry, std::shared_ptr<const Executor>,
- * TypeDescriptor)
+ * build_from_config(pnode, registry, std::shared_ptr<const Executor>,
+ * type_descriptor)
  */
 template <typename ReturnType, template <class...> class Base,
           typename... Types>
-std::unique_ptr<ReturnType> dispatch(std::string str,
-                                     const gko::config::Config& config,
-                                     const gko::config::registry& context,
+std::unique_ptr<ReturnType> dispatch(std::string str, const pnode& config,
+                                     const registry& context,
                                      std::shared_ptr<const Executor>& exec,
-                                     const gko::config::TypeDescriptor& td)
+                                     const type_descriptor& td)
 {
     return Base<Types...>::build_from_config(config, context, exec, td);
 }
@@ -70,11 +69,10 @@ std::unique_ptr<ReturnType> dispatch(std::string str,
 // When the dispatch does not find match from the given list.
 template <typename ReturnType, template <class...> class Base,
           typename... Types, typename... List>
-std::unique_ptr<ReturnType> dispatch(std::string str,
-                                     const gko::config::Config& config,
-                                     const gko::config::registry& context,
+std::unique_ptr<ReturnType> dispatch(std::string str, const pnode& config,
+                                     const registry& context,
                                      std::shared_ptr<const Executor>& exec,
-                                     const gko::config::TypeDescriptor& td,
+                                     const type_descriptor& td,
                                      syn::type_list<>, List... list)
 {
     throw std::runtime_error("Not Found");
@@ -91,11 +89,10 @@ std::unique_ptr<ReturnType> dispatch(std::string str,
  */
 template <typename ReturnType, template <class...> class Base,
           typename... Types, typename S, typename... T, typename... List>
-std::unique_ptr<ReturnType> dispatch(std::string str,
-                                     const gko::config::Config& config,
-                                     const gko::config::registry& context,
+std::unique_ptr<ReturnType> dispatch(std::string str, const pnode& config,
+                                     const registry& context,
                                      std::shared_ptr<const Executor>& exec,
-                                     const gko::config::TypeDescriptor& td,
+                                     const type_descriptor& td,
                                      syn::type_list<S, T...>, List... list)
 {
     auto pos = str.find(",");

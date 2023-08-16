@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/time.hpp>
 
+
 #include "core/test/utils.hpp"
 
 
@@ -64,7 +65,7 @@ protected:
           func{[](const gko::config::pnode& config,
                   const gko::config::registry& context,
                   std::shared_ptr<const gko::Executor>& exec,
-                  gko::config::TypeDescriptor td_for_child) {
+                  gko::config::type_descriptor td_for_child) {
               return gko::solver::Cg<float>::build().on(exec);
           }},
           reg{{{"func", func}}}
@@ -76,7 +77,7 @@ protected:
     std::shared_ptr<typename Stop::Factory> stop_factory;
     std::function<std::unique_ptr<gko::LinOpFactory>(
         const gko::config::pnode&, const gko::config::registry&,
-        std::shared_ptr<const gko::Executor>&, gko::config::TypeDescriptor)>
+        std::shared_ptr<const gko::Executor>&, gko::config::type_descriptor)>
         func;
     gko::config::registry reg;
 };
