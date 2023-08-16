@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "benchmark/utils/formats.hpp"
-#include "benchmark/utils/general.hpp"
+#include "benchmark/utils/general_matrix.hpp"
 #include "benchmark/utils/generator.hpp"
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/preconditioners.hpp"
@@ -262,7 +262,7 @@ int main(int argc, char* argv[])
     std::string header =
         "A benchmark for measuring preconditioner performance.\n";
     std::string format = example_config;
-    initialize_argument_parsing(&argc, &argv, header, format);
+    initialize_argument_parsing_matrix(&argc, &argv, header, format);
 
     std::string extra_information =
         "Running with preconditioners: " + FLAGS_preconditioners + "\n";

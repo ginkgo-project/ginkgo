@@ -131,8 +131,6 @@ Parameters for a benchmark case are:
     stride_C: stride for C matrix in gemm (optional, default m)
 )";
     std::string format = example_config;
-    // this benchmark doesn't use input matrices
-    matrix_input = false;
     initialize_argument_parsing(&argc, &argv, header, format);
 
     std::string extra_information =

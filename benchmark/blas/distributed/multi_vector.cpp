@@ -61,8 +61,6 @@ Parameters for a benchmark case are:
     stride_y: stride for in/out vector y (optional, default r)
 )";
     std::string format = example_config;
-    // this benchmark doesn't use input matrices
-    matrix_input = false;
     initialize_argument_parsing(&argc, &argv, header, format);
 
     const auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
