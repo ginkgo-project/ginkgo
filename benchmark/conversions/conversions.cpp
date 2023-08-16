@@ -44,7 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "benchmark/utils/formats.hpp"
-#include "benchmark/utils/general.hpp"
+#include "benchmark/utils/general_matrix.hpp"
 #include "benchmark/utils/generator.hpp"
 #include "benchmark/utils/spmv_validation.hpp"
 #include "benchmark/utils/timer.hpp"
@@ -115,7 +115,7 @@ int main(int argc, char* argv[])
     std::string header =
         "A benchmark for measuring performance of Ginkgo's conversions.\n";
     std::string format_str = example_config;
-    initialize_argument_parsing(&argc, &argv, header, format_str);
+    initialize_argument_parsing_matrix(&argc, &argv, header, format_str);
 
     std::string extra_information =
         std::string() + "The formats are " + FLAGS_formats + "\n";

@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "benchmark/spmv/spmv_common.hpp"
 #include "benchmark/utils/formats.hpp"
-#include "benchmark/utils/general.hpp"
+#include "benchmark/utils/general_matrix.hpp"
 #include "benchmark/utils/generator.hpp"
 #include "benchmark/utils/spmv_validation.hpp"
 
@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
     std::string header =
         "A benchmark for measuring performance of Ginkgo's spmv.\n";
     std::string format = example_config;
-    initialize_argument_parsing(&argc, &argv, header, format);
+    initialize_argument_parsing_matrix(&argc, &argv, header, format);
 
     std::string extra_information = "The formats are " + FLAGS_formats +
                                     "\nThe number of right hand sides is " +

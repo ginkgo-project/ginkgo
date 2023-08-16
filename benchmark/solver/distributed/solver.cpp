@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "benchmark/solver/solver_common.hpp"
-#include "benchmark/utils/general.hpp"
+#include "benchmark/utils/general_matrix.hpp"
 #include "benchmark/utils/generator.hpp"
 
 
@@ -98,9 +98,9 @@ int main(int argc, char* argv[])
   "<local_format>-<non_local_format>", where both "local_format" and
   "non_local_format" can be any of the recognized spmv formats.
 )";
-    // this benchmark needs an additional "optimal" object in the input
-    matrix_input_additional_json = ",\"optimal\":{\"spmv\":\"csr-csr\"}";
-    initialize_argument_parsing(&argc, &argv, header, format);
+    std::string additional_json = ",\"optimal\":{\"spmv\":\"csr-csr\"}";
+    initialize_argument_parsing_matrix(&argc, &argv, header, format,
+                                       additional_json);
 
     const auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
     const auto rank = comm.rank();
