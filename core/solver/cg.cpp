@@ -38,14 +38,14 @@ public:
                       std::shared_ptr<const Executor> exec,
                       gko::config::TypeDescriptor td_for_child)
     {
-        auto factory = solver::Cg<ValueType>::Factory::create();
+        auto factory = solver::Cg<ValueType>::build();
         SET_POINTER(factory, const LinOp, generated_preconditioner, config,
                     context, exec, td_for_child);
         // handle parameter requires exec
         // criteria and preconditioner are almost in each solver -> to another
         // function.
-        factory.with_criteria(
-            gko::stop::Iteration::build().with_max_iters(1u).on(exec));
+        SET_POINTER_VECTOR(factory, const stop::CriterionFactory, criteria,
+                           config, context, exec, td_for_child);
         SET_POINTER(factory, const LinOpFactory, preconditioner, config,
                     context, exec, td_for_child);
         // can also handle preconditioner, criterion here if they are in
@@ -62,8 +62,8 @@ build_from_config<static_cast<int>(gko::config::LinOpFactoryType::Cg)>(
     std::shared_ptr<const Executor>& exec, gko::config::TypeDescriptor td)
 {
     auto updated = update_type(config, td);
-    return dispatch<CgConfigurer>(updated.first, config, context, exec, updated,
-                                  value_type_list());
+    return dispatch<gko::LinOpFactory, CgConfigurer>(
+        updated.first, config, context, exec, updated, value_type_list());
 }
 
 

@@ -56,24 +56,26 @@ namespace config {
  * build_from_config(Config, registry, std::shared_ptr<const Executor>,
  * TypeDescriptor)
  */
-template <template <class...> class Base, typename... Types>
-std::unique_ptr<LinOpFactory> dispatch(std::string str,
-                                       const gko::config::Config& config,
-                                       const gko::config::registry& context,
-                                       std::shared_ptr<const Executor>& exec,
-                                       const gko::config::TypeDescriptor& td)
+template <typename ReturnType, template <class...> class Base,
+          typename... Types>
+std::unique_ptr<ReturnType> dispatch(std::string str,
+                                     const gko::config::Config& config,
+                                     const gko::config::registry& context,
+                                     std::shared_ptr<const Executor>& exec,
+                                     const gko::config::TypeDescriptor& td)
 {
     return Base<Types...>::build_from_config(config, context, exec, td);
 }
 
 // When the dispatch does not find match from the given list.
-template <template <class...> class Base, typename... Types, typename... List>
-std::unique_ptr<LinOpFactory> dispatch(std::string str,
-                                       const gko::config::Config& config,
-                                       const gko::config::registry& context,
-                                       std::shared_ptr<const Executor>& exec,
-                                       const gko::config::TypeDescriptor& td,
-                                       syn::type_list<>, List... list)
+template <typename ReturnType, template <class...> class Base,
+          typename... Types, typename... List>
+std::unique_ptr<ReturnType> dispatch(std::string str,
+                                     const gko::config::Config& config,
+                                     const gko::config::registry& context,
+                                     std::shared_ptr<const Executor>& exec,
+                                     const gko::config::TypeDescriptor& td,
+                                     syn::type_list<>, List... list)
 {
     throw std::runtime_error("Not Found");
 }
@@ -87,24 +89,24 @@ std::unique_ptr<LinOpFactory> dispatch(std::string str,
  * @param type_list  the type list for checking
  * @param list...  the type list for the rest type
  */
-template <template <class...> class Base, typename... Types, typename S,
-          typename... T, typename... List>
-std::unique_ptr<LinOpFactory> dispatch(std::string str,
-                                       const gko::config::Config& config,
-                                       const gko::config::registry& context,
-                                       std::shared_ptr<const Executor>& exec,
-                                       const gko::config::TypeDescriptor& td,
-                                       syn::type_list<S, T...>, List... list)
+template <typename ReturnType, template <class...> class Base,
+          typename... Types, typename S, typename... T, typename... List>
+std::unique_ptr<ReturnType> dispatch(std::string str,
+                                     const gko::config::Config& config,
+                                     const gko::config::registry& context,
+                                     std::shared_ptr<const Executor>& exec,
+                                     const gko::config::TypeDescriptor& td,
+                                     syn::type_list<S, T...>, List... list)
 {
     auto pos = str.find(",");
     auto item = str.substr(0, pos);
     auto res = (pos == std::string::npos) ? "" : str.substr(pos + 1);
     if (item == type_string<S>::str()) {
-        return dispatch<Base, Types..., S>(res, config, context, exec, td,
-                                           list...);
+        return dispatch<ReturnType, Base, Types..., S>(res, config, context,
+                                                       exec, td, list...);
     } else {
-        return dispatch<Base, Types...>(str, config, context, exec, td,
-                                        syn::type_list<T...>(), list...);
+        return dispatch<ReturnType, Base, Types...>(
+            str, config, context, exec, td, syn::type_list<T...>(), list...);
     }
 }
 
