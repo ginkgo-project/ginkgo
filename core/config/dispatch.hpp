@@ -43,6 +43,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/synthesizer/containers.hpp>
 
 
+#include "core/config/config.hpp"
+
+
 namespace gko {
 namespace config {
 
