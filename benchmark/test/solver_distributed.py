@@ -27,6 +27,13 @@ test_framework.compare_output(
     expected_stderr="distributed_solver.simple.stderr",
 )
 
+# input matrix file
+test_framework.compare_output(
+    ["-input_matrix", str(test_framework.matrixpath)],
+    expected_stdout="distributed_solver.matrix.stdout",
+    expected_stderr="distributed_solver.matrix.stderr",
+)
+
 # profiler annotations
 test_framework.compare_output(
     [

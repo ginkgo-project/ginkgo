@@ -9,6 +9,7 @@ import sys
 
 sourcepath = pathlib.Path("@CMAKE_CURRENT_SOURCE_DIR@")
 binpath = pathlib.Path("@PROJECT_BINARY_DIR@")
+matrixpath = pathlib.Path("../../matrices/test/ani1.mtx")
 generate = False
 if len(sys.argv) > 2 and sys.argv[2] == "--generate":
     generate = True
@@ -99,8 +100,7 @@ def sanitize_json_in_text(lines: List[str]) -> List[str]:
         for begin, end, do_sanitize in combined_pairs
     ]
     reconstructed = [
-        json.dumps(sanitize_json(json.loads(t)),
-                   indent=4) if do_sanitize else t
+        json.dumps(sanitize_json(json.loads(t)), indent=4) if do_sanitize else t
         for t, do_sanitize in texts
     ]
     return "\n".join(reconstructed).split("\n")
@@ -135,7 +135,7 @@ def determinize_text(
                 break
         if keep:
             output_lines.append(line)
-    if output_lines[-1] != "":
+    if len(output_lines) == 0 or output_lines[-1] != "":
         output_lines.append("")
     try:
         return sanitize_json_in_text(output_lines)
@@ -215,8 +215,7 @@ def compare_output_impl(
         print("FAIL: stdout differs")
         print(
             "\n".join(
-                difflib.unified_diff(
-                    expected_stdout_processed, result_stdout_processed)
+                difflib.unified_diff(expected_stdout_processed, result_stdout_processed)
             )
         )
         failed = True
@@ -224,8 +223,7 @@ def compare_output_impl(
         print("FAIL: stderr differs")
         print(
             "\n".join(
-                difflib.unified_diff(
-                    expected_stderr_processed, result_stderr_processed)
+                difflib.unified_diff(expected_stderr_processed, result_stderr_processed)
             )
         )
         failed = True

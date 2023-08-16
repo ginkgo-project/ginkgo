@@ -29,6 +29,18 @@ test_framework.compare_output(
     expected_stderr="sparse_blas.simple.stderr",
 )
 
+# input matrix file
+test_framework.compare_output(
+    [
+        "-operations",
+        "transpose",
+        "-input_matrix",
+        str(test_framework.matrixpath),
+    ],
+    expected_stdout="sparse_blas.matrix.stdout",
+    expected_stderr="sparse_blas.matrix.stderr",
+)
+
 # profiler annotations (transpose has the smallest number of allocations)
 test_framework.compare_output(
     [

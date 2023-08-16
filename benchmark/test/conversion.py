@@ -29,6 +29,18 @@ test_framework.compare_output(
     expected_stderr="conversion.simple.stderr",
 )
 
+# input matrixfile
+test_framework.compare_output(
+    [
+        "-input_matrix",
+        str(test_framework.matrixpath),
+        "-formats",
+        "coo,csr",
+    ],
+    expected_stdout="conversion.matrix.stdout",
+    expected_stderr="conversion.matrix.stderr",
+)
+
 # check that all conversions work
 test_framework.compare_output(
     [
