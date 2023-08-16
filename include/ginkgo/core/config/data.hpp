@@ -34,7 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_CONFIG_DATA_HPP_
 
 
+#include <cassert>
 #include <exception>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <typeinfo>
