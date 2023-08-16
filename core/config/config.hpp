@@ -97,19 +97,11 @@ inline std::shared_ptr<const LinOpFactory> get_pointer<const LinOpFactory>(
 }
 
 template <>
-inline std::shared_ptr<const stop::CriterionFactory>
+std::shared_ptr<const stop::CriterionFactory>
 get_pointer<const stop::CriterionFactory>(const item& item,
                                           const registry& context,
                                           std::shared_ptr<const Executor> exec,
-                                          TypeDescriptor td)
-{
-    std::shared_ptr<const stop::CriterionFactory> ptr;
-    ptr = context.search_data<stop::CriterionFactory>(
-        item.get_data<std::string>());
-    // handle object is item
-    assert(ptr.get() != nullptr);
-    return std::move(ptr);
-}
+                                          TypeDescriptor td);
 
 
 template <typename T>
@@ -119,8 +111,33 @@ inline std::vector<std::shared_ptr<T>> get_pointer_vector(
 {
     std::vector<std::shared_ptr<T>> res;
     // for loop in item
-    res.push_back(get_pointer<T>(item, context, exec, td));
+    if (item.is(pnode::status_t::array)) {
+        for (const auto& it : item.get_array()) {
+            res.push_back(get_pointer<T>(it, context, exec, td));
+        }
+    } else {
+        // only one item can be passed without array
+        res.push_back(get_pointer<T>(item, context, exec, td));
+    }
+
     return res;
+}
+
+template <>
+std::vector<std::shared_ptr<const stop::CriterionFactory>>
+get_pointer_vector<const stop::CriterionFactory>(
+    const item& item, const registry& context,
+    std::shared_ptr<const Executor> exec, TypeDescriptor td);
+
+
+template <typename IndexType, typename = typename std::enable_if<
+                                  std::is_integral<IndexType>::value>::type>
+inline IndexType get_value(const item& item)
+{
+    auto val = item.get_data<long long int>();
+    assert(val <= std::numeric_limits<IndexType>::max() &&
+           val >= std::numeric_limits<IndexType>::min());
+    return static_cast<IndexType>(val);
 }
 
 
@@ -134,6 +151,32 @@ inline std::vector<std::shared_ptr<T>> get_pointer_vector(
     }                                                                          \
     static_assert(true,                                                        \
                   "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
+
+
+#define SET_POINTER_VECTOR(_factory, _param_type, _param_name, _config,      \
+                           _context, _exec, _td)                             \
+    {                                                                        \
+        if (_config.contains(#_param_name)) {                                \
+            _factory.with_##_param_name(                                     \
+                gko::config::get_pointer_vector<_param_type>(                \
+                    _config.at(#_param_name), _context, _exec, _td));        \
+        }                                                                    \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+
+#define SET_VALUE(_factory, _param_type, _param_name, _config)               \
+    {                                                                        \
+        if (_config.contains(#_param_name)) {                                \
+            _factory.with_##_param_name(gko::config::get_value<_param_type>( \
+                _config.at(#_param_name)));                                  \
+        }                                                                    \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
 
