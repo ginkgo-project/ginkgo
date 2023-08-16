@@ -33,10 +33,9 @@ template <typename ValueType>
 class CgConfigurer {
 public:
     static std::unique_ptr<typename solver::Cg<ValueType>::Factory>
-    build_from_config(const gko::config::Config& config,
-                      const gko::config::registry& context,
+    build_from_config(const pnode& config, const registry& context,
                       std::shared_ptr<const Executor> exec,
-                      gko::config::TypeDescriptor td_for_child)
+                      type_descriptor td_for_child)
     {
         auto factory = solver::Cg<ValueType>::build();
         SET_POINTER(factory, const LinOp, generated_preconditioner, config,
@@ -57,9 +56,9 @@ public:
 
 template <>
 std::unique_ptr<gko::LinOpFactory>
-build_from_config<static_cast<int>(gko::config::LinOpFactoryType::Cg)>(
-    const gko::config::Config& config, const gko::config::registry& context,
-    std::shared_ptr<const Executor>& exec, gko::config::TypeDescriptor td)
+build_from_config<static_cast<int>(LinOpFactoryType::Cg)>(
+    const pnode& config, const registry& context,
+    std::shared_ptr<const Executor>& exec, gko::config::type_descriptor td)
 {
     auto updated = update_type(config, td);
     return dispatch<gko::LinOpFactory, CgConfigurer>(

@@ -40,15 +40,15 @@ namespace gko {
 namespace config {
 
 
-BuildFromConfigMap generate_config_map()
+buildfromconfig_map generate_config_map()
 {
     return {{"Cg", build_from_config<LinOpFactoryType::Cg>}};
 }
 
 
 std::unique_ptr<gko::LinOpFactory> build_from_config(
-    const gko::config::Config& config, const gko::config::registry& context,
-    std::shared_ptr<const Executor>& exec, TypeDescriptor td)
+    const pnode& config, const registry& context,
+    std::shared_ptr<const Executor>& exec, type_descriptor td)
 {
     if (config.contains("Type")) {
         auto func = context.get_build_map().at(

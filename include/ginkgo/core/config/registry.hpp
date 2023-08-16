@@ -55,17 +55,17 @@ namespace config {
 class registry;
 
 
-using LinOpMap = std::unordered_map<std::string, std::shared_ptr<LinOp>>;
-using LinOpFactoryMap =
+using linop_map = std::unordered_map<std::string, std::shared_ptr<LinOp>>;
+using linopfactory_map =
     std::unordered_map<std::string, std::shared_ptr<LinOpFactory>>;
-using CriterionFactoryMap =
+using criterionfactory_map =
     std::unordered_map<std::string, std::shared_ptr<stop::CriterionFactory>>;
-using Config = pnode;
-using TypeDescriptor = std::pair<std::string, std::string>;
-using BuildFunctionType = std::function<std::unique_ptr<gko::LinOpFactory>(
-    const Config&, const registry&, std::shared_ptr<const Executor>&,
-    TypeDescriptor)>;
-using BuildFromConfigMap = std::map<std::string, BuildFunctionType>;
+using type_descriptor = std::pair<std::string, std::string>;
+using buildfromconfig_map =
+    std::map<std::string,
+             std::function<std::unique_ptr<gko::LinOpFactory>(
+                 const pnode&, const registry&,
+                 std::shared_ptr<const Executor>&, type_descriptor)>>;
 
 
 /**
@@ -81,25 +81,25 @@ struct map_type {
 template <typename T>
 struct map_type<
     T, typename std::enable_if<std::is_convertible<T*, LinOp*>::value>::type> {
-    using type = LinOpMap;
+    using type = linop_map;
 };
 
 template <typename T>
 struct map_type<T, typename std::enable_if<
                        std::is_convertible<T*, LinOpFactory*>::value>::type> {
-    using type = LinOpFactoryMap;
+    using type = linopfactory_map;
 };
 
 template <typename T>
 struct map_type<T, typename std::enable_if<std::is_convertible<
                        T*, stop::CriterionFactory*>::value>::type> {
-    using type = CriterionFactoryMap;
+    using type = criterionfactory_map;
 };
 
 
 class registry {
 public:
-    registry(BuildFromConfigMap build_map) : build_map_(build_map) {}
+    registry(buildfromconfig_map build_map) : build_map_(build_map) {}
 
     /**
      * insert_data stores the data with the key.
@@ -131,7 +131,7 @@ public:
         return gko::as<T>(this->get_map<T>().at(key));
     }
 
-    const BuildFromConfigMap& get_build_map() const { return build_map_; }
+    const buildfromconfig_map& get_build_map() const { return build_map_; }
 
 protected:
     /**
@@ -167,46 +167,46 @@ protected:
     const T& get_map_impl() const;
 
 private:
-    LinOpMap linop_map_;
-    LinOpFactoryMap linopfactory_map_;
-    CriterionFactoryMap criterionfactory_map_;
-    BuildFromConfigMap build_map_;
+    linop_map linop_map_;
+    linopfactory_map linopfactory_map_;
+    criterionfactory_map criterionfactory_map_;
+    buildfromconfig_map build_map_;
 };
 
 
 template <>
-inline LinOpMap& registry::get_map_impl<LinOpMap>()
+inline linop_map& registry::get_map_impl<linop_map>()
 {
     return linop_map_;
 }
 
 template <>
-inline LinOpFactoryMap& registry::get_map_impl<LinOpFactoryMap>()
+inline linopfactory_map& registry::get_map_impl<linopfactory_map>()
 {
     return linopfactory_map_;
 }
 
 template <>
-inline CriterionFactoryMap& registry::get_map_impl<CriterionFactoryMap>()
+inline criterionfactory_map& registry::get_map_impl<criterionfactory_map>()
 {
     return criterionfactory_map_;
 }
 
 template <>
-inline const LinOpMap& registry::get_map_impl<LinOpMap>() const
+inline const linop_map& registry::get_map_impl<linop_map>() const
 {
     return linop_map_;
 }
 
 template <>
-inline const LinOpFactoryMap& registry::get_map_impl<LinOpFactoryMap>() const
+inline const linopfactory_map& registry::get_map_impl<linopfactory_map>() const
 {
     return linopfactory_map_;
 }
 
 template <>
-inline const CriterionFactoryMap& registry::get_map_impl<CriterionFactoryMap>()
-    const
+inline const criterionfactory_map&
+registry::get_map_impl<criterionfactory_map>() const
 {
     return criterionfactory_map_;
 }
