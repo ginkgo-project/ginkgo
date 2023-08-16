@@ -1,0 +1,38 @@
+
+[
+    {
+        "filename": "../../matrices/test/ani1.mtx",
+        "problem": {
+            "rows": 36,
+            "columns": 36,
+            "nonzeros": 208,
+            "row_distribution": {
+                "min": 4,
+                "q1": 4.5,
+                "median": 6.0,
+                "q3": 7.0,
+                "max": 9,
+                "mean": 5.777777777777778,
+                "variance": 2.061728395061728,
+                "skewness": 0.3366362745126052,
+                "kurtosis": 2.0507009932231366,
+                "hyperskewness": 1.9165991338199193,
+                "hyperflatness": 6.0545648993883665
+            },
+            "col_distribution": {
+                "min": 4,
+                "q1": 4.5,
+                "median": 6.0,
+                "q3": 7.0,
+                "max": 9,
+                "mean": 5.777777777777778,
+                "variance": 2.061728395061728,
+                "skewness": 0.3366362745126052,
+                "kurtosis": 2.0507009932231366,
+                "hyperskewness": 1.9165991338199193,
+                "hyperflatness": 6.0545648993883665
+            }
+        },
+        "size": 36
+    }
+]

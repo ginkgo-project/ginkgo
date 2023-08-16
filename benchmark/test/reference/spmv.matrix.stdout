@@ -1,0 +1,20 @@
+
+[
+    {
+        "filename": "../../matrices/test/ani1.mtx",
+        "spmv": {
+            "coo": {
+                "storage": 3328,
+                "max_relative_norm2": 1.0,
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            }
+        },
+        "size": 36,
+        "nnz": 208,
+        "optimal": {
+            "spmv": "coo"
+        }
+    }
+]

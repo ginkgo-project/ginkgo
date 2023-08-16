@@ -1,0 +1,42 @@
+This is Ginkgo 1.7.0 (develop)
+    running with core module 1.7.0 (develop)
+Running on reference(0)
+Running with 2 warm iterations and 10 running iterations
+The random seed for right hand sides is 42
+Running with preconditioners: none
+Running test case
+{
+    "filename": "../../matrices/test/ani1.mtx",
+    "preconditioner": {}
+}
+Matrix is of size (36, 36)
+Current state:
+[
+    {
+        "filename": "../../matrices/test/ani1.mtx",
+        "preconditioner": {
+            "none": {
+                "generate": {
+                    "components": {
+                        "generate(<typename>)": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10
+                },
+                "apply": {
+                    "components": {
+                        "apply(<typename>)": 1.0,
+                        "copy(<typename>)": 1.0,
+                        "dense::copy": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10
+                },
+                "completed": true
+            }
+        },
+        "size": 36
+    }
+]

@@ -24,6 +24,13 @@ test_framework.compare_output(
     expected_stderr="preconditioner.simple.stderr",
 )
 
+# input matrix file
+test_framework.compare_output(
+    ["-input_matrix", str(test_framework.matrixpath)],
+    expected_stdout="preconditioner.matrix.stdout",
+    expected_stderr="preconditioner.matrix.stderr",
+)
+
 # profiler annotations
 test_framework.compare_output(
     [
