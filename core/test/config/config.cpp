@@ -54,6 +54,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
+using gko::config::pnode;
+
+
 template <typename T>
 class Config : public ::testing::Test {
 protected:
@@ -62,17 +65,16 @@ protected:
     Config()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
-              {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec))
+              {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
+          stop_config({{"Type", pnode{"Iteration"}}, {"max_iters", pnode{1}}})
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
+    pnode stop_config;
 };
 
 TYPED_TEST_SUITE(Config, gko::test::ValueTypes, TypenameNameGenerator);
-
-
-using gko::config::pnode;
 
 
 TYPED_TEST(Config, GenerateMap)
@@ -86,7 +88,7 @@ TYPED_TEST(Config, GenerateObjectWithoutDefault)
     auto config_map = gko::config::generate_config_map();
     auto reg = gko::config::registry(config_map);
 
-    pnode p{{{"ValueType", pnode{"double"}}}};
+    pnode p{{{"ValueType", pnode{"double"}}, {"criteria", this->stop_config}}};
     auto obj = gko::config::build_from_config<0>(p, reg, this->exec);
 
     ASSERT_NE(dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get()),
@@ -100,7 +102,8 @@ TYPED_TEST(Config, GenerateObjectWithData)
     auto reg = gko::config::registry(config_map);
     reg.emplace("precond", this->mtx);
 
-    pnode p{{{"generated_preconditioner", pnode{"precond"}}}};
+    pnode p{{{"generated_preconditioner", pnode{"precond"}},
+             {"criteria", this->stop_config}}};
     auto obj =
         gko::config::build_from_config<0>(p, reg, this->exec, {"float", ""});
 
@@ -118,8 +121,9 @@ TYPED_TEST(Config, GenerateObjectWithPreconditioner)
     auto config_map = gko::config::generate_config_map();
     auto reg = gko::config::registry(config_map);
 
-    pnode p{{{"ValueType", pnode{"double"}}}};
-    p.get_list()["preconditioner"] = pnode{{{"Type", pnode{"Cg"}}}};
+    pnode p{{{"ValueType", pnode{"double"}}, {"criteria", this->stop_config}}};
+    p.get_list()["preconditioner"] =
+        pnode{{{"Type", pnode{"Cg"}}, {"criteria", this->stop_config}}};
     auto obj = gko::config::build_from_config<0>(p, reg, this->exec);
 
     ASSERT_NE(dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get()),
@@ -146,7 +150,7 @@ TYPED_TEST(Config, GenerateObjectWithCustomBuild)
     };
     auto reg = gko::config::registry(config_map);
 
-    pnode p{{{"ValueType", pnode{"double"}}}};
+    pnode p{{{"ValueType", pnode{"double"}}, {"criteria", this->stop_config}}};
     p.get_list()["preconditioner"] = pnode{{{"Type", pnode{"Custom"}}}};
     auto obj =
         gko::config::build_from_config<0>(p, reg, this->exec, {"double", ""});
