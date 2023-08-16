@@ -139,10 +139,10 @@ TYPED_TEST(Config, GenerateObjectWithCustomBuild)
 {
     auto config_map = gko::config::generate_config_map();
 
-    config_map["Custom"] = [](const gko::config::Config& config,
+    config_map["Custom"] = [](const gko::config::pnode& config,
                               const gko::config::registry& context,
                               std::shared_ptr<const gko::Executor>& exec,
-                              gko::config::TypeDescriptor td_for_child) {
+                              gko::config::type_descriptor td_for_child) {
         return gko::solver::Bicg<double>::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(2u).on(exec))
