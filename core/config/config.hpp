@@ -34,11 +34,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_CONFIG_CONFIG_HPP_
 
 
+#include <ginkgo/core/config/config.hpp>
+
+
 #include <string>
 
 
 #include <ginkgo/core/base/lin_op.hpp>
-#include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
@@ -51,10 +53,10 @@ namespace config {
  *
  * @note It might update the unused type for the current class.
  */
-inline TypeDescriptor update_type(const Config& config,
-                                  const TypeDescriptor& td)
+inline type_descriptor update_type(const pnode& config,
+                                   const type_descriptor& td)
 {
-    TypeDescriptor updated = td;
+    type_descriptor updated = td;
 
     if (config.contains("ValueType")) {
         updated.first = config.at("ValueType").get_data<std::string>();
@@ -66,58 +68,57 @@ inline TypeDescriptor update_type(const Config& config,
 }
 
 
-using item = pnode;
-
 template <typename T>
-inline std::shared_ptr<T> get_pointer(const item& item, const registry& context,
+inline std::shared_ptr<T> get_pointer(const pnode& config,
+                                      const registry& context,
                                       std::shared_ptr<const Executor> exec,
-                                      TypeDescriptor td)
+                                      type_descriptor td)
 {
     std::shared_ptr<T> ptr;
     using T_non_const = std::remove_const_t<T>;
-    ptr = context.search_data<T_non_const>(item.get_data<std::string>());
+    ptr = context.search_data<T_non_const>(config.get_data<std::string>());
     assert(ptr.get() != nullptr);
     return std::move(ptr);
 }
 
 template <>
 inline std::shared_ptr<const LinOpFactory> get_pointer<const LinOpFactory>(
-    const item& item, const registry& context,
-    std::shared_ptr<const Executor> exec, TypeDescriptor td)
+    const pnode& config, const registry& context,
+    std::shared_ptr<const Executor> exec, type_descriptor td)
 {
     std::shared_ptr<const LinOpFactory> ptr;
-    if (item.is(pnode::status_t::object)) {
-        ptr = context.search_data<LinOpFactory>(item.get_data<std::string>());
-    } else if (item.is(pnode::status_t::list)) {
-        ptr = build_from_config(item, context, exec, td);
+    if (config.is(pnode::status_t::object)) {
+        ptr = context.search_data<LinOpFactory>(config.get_data<std::string>());
+    } else if (config.is(pnode::status_t::list)) {
+        ptr = build_from_config(config, context, exec, td);
     }
-    // handle object is item
+    // handle object is config
     assert(ptr.get() != nullptr);
     return std::move(ptr);
 }
 
 template <>
 std::shared_ptr<const stop::CriterionFactory>
-get_pointer<const stop::CriterionFactory>(const item& item,
+get_pointer<const stop::CriterionFactory>(const pnode& config,
                                           const registry& context,
                                           std::shared_ptr<const Executor> exec,
-                                          TypeDescriptor td);
+                                          type_descriptor td);
 
 
 template <typename T>
 inline std::vector<std::shared_ptr<T>> get_pointer_vector(
-    const item& item, const registry& context,
-    std::shared_ptr<const Executor> exec, TypeDescriptor td)
+    const pnode& config, const registry& context,
+    std::shared_ptr<const Executor> exec, type_descriptor td)
 {
     std::vector<std::shared_ptr<T>> res;
-    // for loop in item
-    if (item.is(pnode::status_t::array)) {
-        for (const auto& it : item.get_array()) {
+    // for loop in config
+    if (config.is(pnode::status_t::array)) {
+        for (const auto& it : config.get_array()) {
             res.push_back(get_pointer<T>(it, context, exec, td));
         }
     } else {
-        // only one item can be passed without array
-        res.push_back(get_pointer<T>(item, context, exec, td));
+        // only one config can be passed without array
+        res.push_back(get_pointer<T>(config, context, exec, td));
     }
 
     return res;
@@ -126,15 +127,15 @@ inline std::vector<std::shared_ptr<T>> get_pointer_vector(
 template <>
 std::vector<std::shared_ptr<const stop::CriterionFactory>>
 get_pointer_vector<const stop::CriterionFactory>(
-    const item& item, const registry& context,
-    std::shared_ptr<const Executor> exec, TypeDescriptor td);
+    const pnode& config, const registry& context,
+    std::shared_ptr<const Executor> exec, type_descriptor td);
 
 
 template <typename IndexType, typename = typename std::enable_if<
                                   std::is_integral<IndexType>::value>::type>
-inline IndexType get_value(const item& item)
+inline IndexType get_value(const pnode& config)
 {
-    auto val = item.get_data<long long int>();
+    auto val = config.get_data<long long int>();
     assert(val <= std::numeric_limits<IndexType>::max() &&
            val >= std::numeric_limits<IndexType>::min());
     return static_cast<IndexType>(val);
