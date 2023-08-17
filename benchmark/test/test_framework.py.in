@@ -153,6 +153,7 @@ def compare_output_impl(
     typename_patterns = [
         ("(apply|generate|check|copy|move)\([^())]*\)", "\\1(<typename>)"),
         ("what\\(\\): .*", "what(): <removed>"),
+        (re.escape(str(matrixpath)), "<filename>"),
     ]
     if generate:
         open(expected_stdout, "w").write(

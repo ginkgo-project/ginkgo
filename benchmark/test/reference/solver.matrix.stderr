@@ -5,13 +5,6 @@ Running with 2 warm iterations and 1 running iterations
 The random seed for right hand sides is 42
 Running cg with 1000 iterations and residual goal of 1.000000e-06
 The number of right hand sides is 1
-Running test case
-{
-    "filename": "",
-    "optimal": {
-        "spmv": "csr"
-    },
-    "solver": {}
-}
+Running test case <filename>
 Matrix is of size (36, 36)
 	Running solver: cg
