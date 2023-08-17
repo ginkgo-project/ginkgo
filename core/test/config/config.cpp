@@ -48,16 +48,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 
+#include "core/config/config.hpp"
 #include "core/test/config/utils.hpp"
 #include "core/test/utils.hpp"
+
 
 namespace {
 
 
-using gko::config::pnode;
+using namespace gko::config;
 
 
-template <typename T>
 class Config : public ::testing::Test {
 protected:
     using value_type = double;
@@ -74,38 +75,32 @@ protected:
     pnode stop_config;
 };
 
-TYPED_TEST_SUITE(Config, gko::test::ValueTypes, TypenameNameGenerator);
+
+TEST_F(Config, GenerateMap) { ASSERT_NO_THROW(generate_config_map()); }
 
 
-TYPED_TEST(Config, GenerateMap)
+TEST_F(Config, GenerateObjectWithoutDefault)
 {
-    ASSERT_NO_THROW(gko::config::generate_config_map());
-}
-
-
-TYPED_TEST(Config, GenerateObjectWithoutDefault)
-{
-    auto config_map = gko::config::generate_config_map();
-    auto reg = gko::config::registry(config_map);
+    auto config_map = generate_config_map();
+    auto reg = registry(config_map);
 
     pnode p{{{"ValueType", pnode{"double"}}, {"criteria", this->stop_config}}};
-    auto obj = gko::config::build_from_config<0>(p, reg, this->exec);
+    auto obj = build_from_config<0>(p, reg, this->exec);
 
     ASSERT_NE(dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get()),
               nullptr);
 }
 
 
-TYPED_TEST(Config, GenerateObjectWithData)
+TEST_F(Config, GenerateObjectWithData)
 {
-    auto config_map = gko::config::generate_config_map();
-    auto reg = gko::config::registry(config_map);
+    auto config_map = generate_config_map();
+    auto reg = registry(config_map);
     reg.emplace("precond", this->mtx);
 
     pnode p{{{"generated_preconditioner", pnode{"precond"}},
              {"criteria", this->stop_config}}};
-    auto obj =
-        gko::config::build_from_config<0>(p, reg, this->exec, {"float", ""});
+    auto obj = build_from_config<0>(p, reg, this->exec, {"float", ""});
 
     ASSERT_NE(dynamic_cast<gko::solver::Cg<float>::Factory*>(obj.get()),
               nullptr);
@@ -116,15 +111,15 @@ TYPED_TEST(Config, GenerateObjectWithData)
 }
 
 
-TYPED_TEST(Config, GenerateObjectWithPreconditioner)
+TEST_F(Config, GenerateObjectWithPreconditioner)
 {
-    auto config_map = gko::config::generate_config_map();
-    auto reg = gko::config::registry(config_map);
+    auto config_map = generate_config_map();
+    auto reg = registry(config_map);
 
     pnode p{{{"ValueType", pnode{"double"}}, {"criteria", this->stop_config}}};
     p.get_list()["preconditioner"] =
         pnode{{{"Type", pnode{"Cg"}}, {"criteria", this->stop_config}}};
-    auto obj = gko::config::build_from_config<0>(p, reg, this->exec);
+    auto obj = build_from_config<0>(p, reg, this->exec);
 
     ASSERT_NE(dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get()),
               nullptr);
@@ -135,25 +130,23 @@ TYPED_TEST(Config, GenerateObjectWithPreconditioner)
 }
 
 
-TYPED_TEST(Config, GenerateObjectWithCustomBuild)
+TEST_F(Config, GenerateObjectWithCustomBuild)
 {
-    auto config_map = gko::config::generate_config_map();
+    auto config_map = generate_config_map();
 
-    config_map["Custom"] = [](const gko::config::pnode& config,
-                              const gko::config::registry& context,
+    config_map["Custom"] = [](const pnode& config, const registry& context,
                               std::shared_ptr<const gko::Executor>& exec,
-                              gko::config::type_descriptor td_for_child) {
+                              type_descriptor td_for_child) {
         return gko::solver::Bicg<double>::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(2u).on(exec))
             .on(exec);
     };
-    auto reg = gko::config::registry(config_map);
+    auto reg = registry(config_map);
 
     pnode p{{{"ValueType", pnode{"double"}}, {"criteria", this->stop_config}}};
     p.get_list()["preconditioner"] = pnode{{{"Type", pnode{"Custom"}}}};
-    auto obj =
-        gko::config::build_from_config<0>(p, reg, this->exec, {"double", ""});
+    auto obj = build_from_config<0>(p, reg, this->exec, {"double", ""});
 
     ASSERT_NE(dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get()),
               nullptr);
@@ -162,6 +155,63 @@ TYPED_TEST(Config, GenerateObjectWithCustomBuild)
                       ->get_parameters()
                       .preconditioner.get()),
               nullptr);
+}
+
+
+TEST(GetValue, IndexType)
+{
+    long long int value = 123;
+    pnode config{value};
+
+    ASSERT_EQ(get_value<int>(config), value);
+    ASSERT_EQ(get_value<long>(config), value);
+    ASSERT_EQ(get_value<unsigned>(config), value);
+    ASSERT_EQ(get_value<long long int>(config), value);
+    ASSERT_EQ(typeid(get_value<int>(config)), typeid(int));
+    ASSERT_EQ(typeid(get_value<long>(config)), typeid(long));
+    ASSERT_EQ(typeid(get_value<unsigned>(config)), typeid(unsigned));
+    ASSERT_EQ(typeid(get_value<long long int>(config)), typeid(long long int));
+}
+
+
+TEST(GetValue, RealType)
+{
+    double value = 1.0;
+    pnode config{value};
+
+    ASSERT_EQ(get_value<float>(config), value);
+    ASSERT_EQ(get_value<double>(config), value);
+    ASSERT_EQ(typeid(get_value<float>(config)), typeid(float));
+    ASSERT_EQ(typeid(get_value<double>(config)), typeid(double));
+}
+
+
+TEST(GetValue, ComplexType)
+{
+    double real = 1.0;
+    double imag = -1.0;
+    pnode config{real};
+    pnode array_config;
+    array_config.get_array() = {pnode{real}, pnode{imag}};
+
+    // Only one value
+    ASSERT_EQ(get_value<std::complex<float>>(config),
+              std::complex<float>(real));
+    ASSERT_EQ(get_value<std::complex<double>>(config),
+              std::complex<double>(real));
+    ASSERT_EQ(typeid(get_value<std::complex<float>>(config)),
+              typeid(std::complex<float>));
+    ASSERT_EQ(typeid(get_value<std::complex<double>>(config)),
+              typeid(std::complex<double>));
+    // Two value [real, imag]
+    ASSERT_EQ(get_value<std::complex<float>>(array_config),
+              std::complex<float>(real, imag));
+    ASSERT_EQ(get_value<std::complex<double>>(array_config),
+              std::complex<double>(real, imag));
+    ASSERT_EQ(typeid(get_value<std::complex<float>>(array_config)),
+              typeid(std::complex<float>));
+    ASSERT_EQ(typeid(get_value<std::complex<double>>(array_config)),
+              typeid(std::complex<double>));
 }
 
 
