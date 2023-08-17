@@ -146,8 +146,9 @@ def compare_output_impl(
             " ".join(["'{}'".format(arg) for arg in launcher_flags + args])
         )
     )
-    version_patterns = [
-        "    the .* module is",
+    ignore_patterns = [
+        "    the .* module is",  # version numbers
+        "DEBUG: (begin|end  ) (allocate|free)",  # allocations
     ]
     typename_patterns = [
         ("(apply|generate|check|copy|move)\([^())]*\)", "\\1(<typename>)"),
@@ -161,7 +162,7 @@ def compare_output_impl(
             "\n".join(
                 determinize_text(
                     result.stderr.decode(),
-                    ignore_patterns=version_patterns,
+                    ignore_patterns=ignore_patterns,
                     replace_patterns=typename_patterns,
                 )
             )
@@ -171,13 +172,13 @@ def compare_output_impl(
     result_stdout_processed = determinize_json_text(result.stdout.decode())
     result_stderr_processed = determinize_text(
         result.stderr.decode(),
-        ignore_patterns=version_patterns,
+        ignore_patterns=ignore_patterns,
         replace_patterns=typename_patterns,
     )
     expected_stdout_processed = determinize_json_text(open(expected_stdout).read())
     expected_stderr_processed = determinize_text(
         open(expected_stderr).read(),
-        ignore_patterns=version_patterns,
+        ignore_patterns=ignore_patterns,
         replace_patterns=typename_patterns,
     )
     failed = False
