@@ -38,9 +38,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <string>
+#include <type_traits>
 
 
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
@@ -131,14 +134,41 @@ get_pointer_vector<const stop::CriterionFactory>(
     std::shared_ptr<const Executor> exec, type_descriptor td);
 
 
-template <typename IndexType, typename = typename std::enable_if<
-                                  std::is_integral<IndexType>::value>::type>
-inline IndexType get_value(const pnode& config)
+template <typename IndexType>
+inline
+    typename std::enable_if<std::is_integral<IndexType>::value, IndexType>::type
+    get_value(const pnode& config)
 {
     auto val = config.get_data<long long int>();
     assert(val <= std::numeric_limits<IndexType>::max() &&
            val >= std::numeric_limits<IndexType>::min());
     return static_cast<IndexType>(val);
+}
+
+template <typename ValueType>
+inline typename std::enable_if<std::is_floating_point<ValueType>::value,
+                               ValueType>::type
+get_value(const pnode& config)
+{
+    auto val = config.get_data<double>();
+    assert(val <= std::numeric_limits<ValueType>::max() &&
+           val >= -std::numeric_limits<ValueType>::max());
+    return static_cast<ValueType>(val);
+}
+
+template <typename ValueType>
+inline typename std::enable_if<gko::is_complex_s<ValueType>::value,
+                               ValueType>::type
+get_value(const pnode& config)
+{
+    using real_type = gko::remove_complex<ValueType>;
+    if (config.is(pnode::status_t::object)) {
+        return static_cast<ValueType>(get_value<real_type>(config));
+    } else if (config.is(pnode::status_t::array)) {
+        return ValueType{get_value<real_type>(config.at(0)),
+                         get_value<real_type>(config.at(1))};
+    }
+    GKO_INVALID_STATE("Can not get complex value");
 }
 
 
