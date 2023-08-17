@@ -98,7 +98,7 @@ int main(int argc, char* argv[])
   "<local_format>-<non_local_format>", where both "local_format" and
   "non_local_format" can be any of the recognized spmv formats.
 )";
-    std::string additional_json = ",\"optimal\":{\"spmv\":\"csr-csr\"}";
+    std::string additional_json = R"(,"optimal":{"spmv":"csr-csr"})";
     initialize_argument_parsing_matrix(&argc, &argv, header, format,
                                        additional_json);
 

@@ -62,7 +62,12 @@ void initialize_argument_parsing_matrix(
     initialize_argument_parsing(argc, argv, header, format);
     std::string input_matrix_str{FLAGS_input_matrix};
     if (!input_matrix_str.empty()) {
-        auto input_json = "[{\"filename\":\"" + input_matrix_str + "\"" +
+        if (input_stream) {
+            std::cerr
+                << "-input and -input_matrix cannot be used simultaneously\n";
+            std::exit(1);
+        }
+        auto input_json = R"([{"filename":")" + input_matrix_str + "\"" +
                           additional_matrix_file_json + "}]";
         input_stream = std::make_unique<std::stringstream>(input_json);
     }
