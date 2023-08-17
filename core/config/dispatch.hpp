@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/synthesizer/containers.hpp>
@@ -75,7 +76,7 @@ std::unique_ptr<ReturnType> dispatch(std::string str, const pnode& config,
                                      const type_descriptor& td,
                                      syn::type_list<>, List... list)
 {
-    throw std::runtime_error("Not Found");
+    GKO_INVALID_STATE("Can not figure out the actual type");
 }
 
 /**
