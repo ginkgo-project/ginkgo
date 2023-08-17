@@ -1,0 +1,19 @@
+
+[
+    {
+        "filename": "",
+        "conversions": {
+            "coo-csr": {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            },
+            "csr-coo": {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            }
+        },
+        "size": 36
+    }
+]

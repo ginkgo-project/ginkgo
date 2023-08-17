@@ -145,6 +145,9 @@ DEFINE_double(
     "is lower than or equal to 1, the timing region is always 1 repetition.");
 
 
+std::unique_ptr<std::istream> input_stream;
+
+
 /**
  * Parses arguments through gflags and initialize a documentation string.
  *
@@ -182,6 +185,14 @@ void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
         FLAGS_detailed = false;
         if (FLAGS_profiler_hook == "none") {
             FLAGS_profiler_hook = "auto";
+        }
+    }
+    std::string input_str(FLAGS_input);
+    if (!input_str.empty()) {
+        if (input_str.back() == ']') {
+            input_stream = std::make_unique<std::stringstream>(input_str);
+        } else {
+            input_stream = std::make_unique<std::ifstream>(input_str);
         }
     }
 }
@@ -300,18 +311,8 @@ std::vector<std::string> split(const std::string& s, char delimiter = ',')
 // returns the stream to be used as input of the application
 std::istream& get_input_stream()
 {
-    static auto stream = []() -> std::unique_ptr<std::istream> {
-        std::string input_str(FLAGS_input);
-        if (input_str.empty()) {
-            return nullptr;
-        }
-        if (input_str.back() == ']') {
-            return std::make_unique<std::stringstream>(input_str);
-        }
-        return std::make_unique<std::ifstream>(input_str);
-    }();
-    if (stream) {
-        return *stream;
+    if (input_stream) {
+        return *input_stream;
     }
     return std::cin;
 }

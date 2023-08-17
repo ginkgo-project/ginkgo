@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "benchmark/solver/solver_common.hpp"
-#include "benchmark/utils/general.hpp"
+#include "benchmark/utils/general_matrix.hpp"
 #include "benchmark/utils/generator.hpp"
 
 
@@ -61,7 +61,9 @@ int main(int argc, char* argv[])
     std::string format = example_config + R"(
   "optimal":"spmv" can be one of the recognized spmv formats
 )";
-    initialize_argument_parsing(&argc, &argv, header, format);
+    std::string additional_json = R"(,"optimal":{"spmv":"csr"})";
+    initialize_argument_parsing_matrix(&argc, &argv, header, format,
+                                       additional_json);
 
     std::stringstream ss_rel_res_goal;
     ss_rel_res_goal << std::scientific << FLAGS_rel_res_goal;

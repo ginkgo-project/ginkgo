@@ -1,0 +1,17 @@
+This is Ginkgo 1.7.0 (develop)
+    running with core module 1.7.0 (develop)
+Running on reference(0)
+Running with 2 warm iterations and 1 running iterations
+The random seed for right hand sides is 42
+Running cg with 1000 iterations and residual goal of 1.000000e-06
+The number of right hand sides is 1
+Running test case
+{
+    "filename": "",
+    "optimal": {
+        "spmv": "csr-csr"
+    },
+    "solver": {}
+}
+Matrix is of size (36, 36)
+	Running solver: cg
