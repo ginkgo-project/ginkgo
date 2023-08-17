@@ -7,14 +7,14 @@ The formats are coo
 The number of right hand sides is 1
 Running test case
 {
-    "filename": "../../matrices/test/ani1.mtx",
+    "filename": "",
     "spmv": {}
 }
 Matrix is of size (36, 36)
 Current state:
 [
     {
-        "filename": "../../matrices/test/ani1.mtx",
+        "filename": "",
         "spmv": {
             "coo": {
                 "storage": 3328,

@@ -6,14 +6,14 @@ The random seed for right hand sides is 42
 Running with preconditioners: none
 Running test case
 {
-    "filename": "../../matrices/test/ani1.mtx",
+    "filename": "",
     "preconditioner": {}
 }
 Matrix is of size (36, 36)
 Current state:
 [
     {
-        "filename": "../../matrices/test/ani1.mtx",
+        "filename": "",
         "preconditioner": {
             "none": {
                 "generate": {

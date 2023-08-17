@@ -7,7 +7,7 @@ Running cg with 1000 iterations and residual goal of 1.000000e-06
 The number of right hand sides is 1
 Running test case
 {
-    "filename": "../../matrices/test/ani1.mtx",
+    "filename": "",
     "optimal": {
         "spmv": "csr-csr"
     },

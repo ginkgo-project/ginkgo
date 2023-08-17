@@ -7,14 +7,14 @@ The formats are coo,csr
 Benchmarking conversions. 
 Running test case
 {
-    "filename": "../../matrices/test/ani1.mtx",
+    "filename": "",
     "conversions": {}
 }
 Matrix is of size (36, 36)
 Current state:
 [
     {
-        "filename": "../../matrices/test/ani1.mtx",
+        "filename": "",
         "conversions": {
             "coo-csr": {
                 "time": 1.0,
@@ -28,7 +28,7 @@ Current state:
 Current state:
 [
     {
-        "filename": "../../matrices/test/ani1.mtx",
+        "filename": "",
         "conversions": {
             "coo-csr": {
                 "time": 1.0,

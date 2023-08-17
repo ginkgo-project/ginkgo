@@ -1,7 +1,7 @@
 
 [
     {
-        "filename": "../../matrices/test/ani1.mtx",
+        "filename": "",
         "conversions": {
             "coo-csr": {
                 "time": 1.0,

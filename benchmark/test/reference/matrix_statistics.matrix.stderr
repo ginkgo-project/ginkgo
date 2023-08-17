@@ -2,7 +2,7 @@ This is Ginkgo 1.7.0 (develop)
     running with core module 1.7.0 (develop)
 Running test case
 {
-    "filename": "../../matrices/test/ani1.mtx",
+    "filename": "",
     "problem": {}
 }
 Matrix is of size (36, 36)
