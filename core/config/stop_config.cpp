@@ -30,6 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
@@ -40,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/config/config.hpp"
 #include "core/config/dispatch.hpp"
+
 
 namespace gko {
 namespace config {
@@ -74,6 +76,7 @@ stop::mode get_mode(const std::string& str)
     } else if (str == "rhs_norm") {
         return stop::mode::rhs_norm;
     }
+    GKO_INVALID_STATE("Not valid " + str);
 }
 
 
