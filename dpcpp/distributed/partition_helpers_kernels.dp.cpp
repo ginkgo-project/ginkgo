@@ -46,7 +46,14 @@ namespace dpcpp {
 namespace partition_helpers {
 
 struct stride {
-    // Some version requires [] while some requires (), so I added both
+#if ONEDPL_VERSION_MAJOR >= 2022 && ONEDPL_VERSION_MINOR >= 1
+    template <typename Index>
+    Index operator()(const Index& i) const
+    {
+        return i * 2;
+    }
+#else
+    // Some older version require [] while some require (), so I added both
     template <typename Index>
     Index operator[](const Index& i) const
     {
@@ -56,8 +63,9 @@ struct stride {
     template <typename Index>
     Index operator()(const Index& i) const
     {
-        return operator[](i);
+        return i * 2;
     }
+#endif
 };
 
 template <typename GlobalIndexType>
