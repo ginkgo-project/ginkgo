@@ -38,11 +38,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/config.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
@@ -117,10 +117,9 @@ public:
     GKO_ENABLE_LIN_OP_FACTORY(Cg, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
-    static std::shared_ptr<LinOpFactory> configure(const property_tree& pt,
-                                                   const context& ctx,
-                                                   const type_config& cfg)
-    {}
+    static std::shared_ptr<LinOpFactory> configure(
+        std::shared_ptr<const Executor> exec, const config::property_tree& pt,
+        const config::context& ctx, const config::type_config& cfg);
 
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;
@@ -191,20 +190,6 @@ struct workspace_traits<Cg<ValueType>> {
 
 
 }  // namespace solver
-
-
-namespace config {
-
-struct Cg {
-    static std::shared_ptr<LinOpFactory> configure(const property_tree& pt,
-                                                   const context& ctx,
-                                                   const type_config& cfg)
-    {
-        return dispatch<solver::Cg>(pt, ctx, cfg, cfg.value_type);
-    }
-};
-
-}  // namespace config
 }  // namespace gko
 
 

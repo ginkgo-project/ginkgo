@@ -49,6 +49,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace config {
 
+class pnode;
+
+extern const pnode empty_pn;
 
 /**
  * pnode is to describe the property tree
@@ -128,7 +131,11 @@ public:
     const pnode& at(const std::string& path) const
     {
         assert(status_ == status_t::list);
-        return list_.at(path);
+        if (auto it = list_.find(path); it == list_.end()) {
+            return empty_pn;
+        } else {
+            return it->second;
+        }
     }
 
     pnode& at(int i)
@@ -155,6 +162,8 @@ public:
 
     status_t get_status() const { return status_; }
 
+    bool is_empty() const { return status_ == empty; }
+
 private:
     std::vector<pnode> array_;        // for array
     std::map<key_type, pnode> list_;  // for list
@@ -162,6 +171,8 @@ private:
     status_t status_;
 };
 
+
+using property_tree = config::pnode;
 
 }  // namespace config
 }  // namespace gko

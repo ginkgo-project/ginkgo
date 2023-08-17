@@ -43,7 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/combination.hpp>
 #include <ginkgo/core/base/composition.hpp>
-#include <ginkgo/core/base/config.hpp>
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/device.hpp>
 #include <ginkgo/core/base/device_matrix_data.hpp>
@@ -78,6 +77,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/base/version.hpp>
+#include <ginkgo/core/config/config.hpp>
 
 #include <ginkgo/core/config/data.hpp>
 #include <ginkgo/core/config/property_tree.hpp>

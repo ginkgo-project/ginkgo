@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 
 
+#include "core/config/parse_impl.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/cg_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
@@ -60,6 +61,24 @@ GKO_REGISTER_OPERATION(step_2, cg::step_2);
 
 }  // anonymous namespace
 }  // namespace cg
+
+
+template <typename ValueType>
+std::shared_ptr<LinOpFactory> Cg<ValueType>::configure(
+    std::shared_ptr<const Executor> exec, const config::property_tree& pt,
+    const config::context& ctx, const config::type_config& cfg)
+{
+    auto params = Cg::build();
+    if (auto child = pt.at("preconditioner"); !child.is_empty()) {
+        params.with_preconditioner(
+            config::parse_helper<LinOpFactory>::apply(exec, child, ctx, cfg));
+    }
+    if (auto child = pt.at("generated_preconditioner"); !child.is_empty()) {
+        params.with_generated_preconditioner(
+            config::parse_helper<LinOp>::apply(exec, child, ctx, cfg));
+    }
+    return params.on(exec);
+}
 
 
 template <typename ValueType>
