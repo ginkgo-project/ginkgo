@@ -90,8 +90,7 @@ public:
                       gko::config::type_descriptor td_for_child)
     {
         auto factory = stop::ResidualNorm<ValueType>::build();
-        // SET_VALUE(factory, remove_complex<ValueType>, reduction_factor,
-        // config);
+        SET_VALUE(factory, remove_complex<ValueType>, reduction_factor, config);
         if (config.contains("baseline")) {
             factory.with_baseline(
                 get_mode(config.at("baseline").get_data<std::string>()));
@@ -122,8 +121,7 @@ public:
                       gko::config::type_descriptor td_for_child)
     {
         auto factory = stop::ImplicitResidualNorm<ValueType>::build();
-        // SET_VALUE(factory, remove_complex<ValueType>, reduction_factor,
-        // config);
+        SET_VALUE(factory, remove_complex<ValueType>, reduction_factor, config);
         if (config.contains("baseline")) {
             factory.with_baseline(
                 get_mode(config.at("baseline").get_data<std::string>()));
