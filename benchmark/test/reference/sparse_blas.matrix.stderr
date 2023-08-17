@@ -4,10 +4,6 @@ Running on reference(0)
 Running with 2 warm iterations and 10 running iterations
 The random seed for right hand sides is 42
 The operations are transpose
-Running test case
-{
-    "filename": "",
-    "sparse_blas": {}
-}
+Running test case <filename>
 Matrix is of size (36, 36), 208
 	Running sparse_blas: transpose
