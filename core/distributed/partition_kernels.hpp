@@ -49,10 +49,11 @@ namespace kernels {
                       const array<comm_index_type>& mapping,       \
                       size_type& num_ranges)
 
-#define GKO_PARTITION_BUILD_FROM_CONTIGUOUS(GlobalIndexType)                \
-    void build_from_contiguous(std::shared_ptr<const DefaultExecutor> exec, \
-                               const array<GlobalIndexType>& ranges,        \
-                               GlobalIndexType* range_bounds,               \
+#define GKO_PARTITION_BUILD_FROM_CONTIGUOUS(GlobalIndexType)                  \
+    void build_from_contiguous(std::shared_ptr<const DefaultExecutor> exec,   \
+                               const array<GlobalIndexType>& ranges,          \
+                               const array<comm_index_type>& part_id_mapping, \
+                               GlobalIndexType* range_bounds,                 \
                                comm_index_type* part_ids)
 
 #define GKO_PARTITION_BUILD_FROM_MAPPING(GlobalIndexType)                \

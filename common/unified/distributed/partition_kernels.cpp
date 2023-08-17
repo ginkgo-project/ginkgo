@@ -66,19 +66,22 @@ void count_ranges(std::shared_ptr<const DefaultExecutor> exec,
 template <typename GlobalIndexType>
 void build_from_contiguous(std::shared_ptr<const DefaultExecutor> exec,
                            const array<GlobalIndexType>& ranges,
+                           const array<comm_index_type>& part_id_mapping,
                            GlobalIndexType* range_bounds,
                            comm_index_type* part_ids)
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto ranges, auto bounds, auto ids) {
+        [] GKO_KERNEL(auto i, auto ranges, auto mapping, auto bounds, auto ids,
+                      bool uses_mapping) {
             if (i == 0) {
                 bounds[0] = 0;
             }
             bounds[i + 1] = ranges[i + 1];
-            ids[i] = i;
+            ids[i] = uses_mapping ? mapping[i] : i;
         },
-        ranges.get_num_elems() - 1, ranges, range_bounds, part_ids);
+        ranges.get_num_elems() - 1, ranges, part_id_mapping, range_bounds,
+        part_ids, part_id_mapping.get_num_elems() > 0);
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_PARTITION_BUILD_FROM_CONTIGUOUS);

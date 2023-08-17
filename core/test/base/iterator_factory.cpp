@@ -67,13 +67,13 @@ namespace {
 
 
 template <typename ValueIndexType>
-class IteratorFactory : public ::testing::Test {
+class ZipIterator : public ::testing::Test {
 protected:
     using value_type =
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    IteratorFactory()
+    ZipIterator()
         : reversed_index{100, 50, 10, 9, 8, 7, 5, 5, 4, 3, 2, 1, 0, -1, -2},
           ordered_index{-2, -1, 0, 1, 2, 3, 4, 5, 5, 7, 8, 9, 10, 50, 100},
           reversed_value{15., 14., 13., 12., 11., 10., 9., 7.,
@@ -109,11 +109,11 @@ protected:
     const std::vector<value_type> ordered_value;
 };
 
-TYPED_TEST_SUITE(IteratorFactory, gko::test::ValueIndexTypes,
+TYPED_TEST_SUITE(ZipIterator, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 
-TYPED_TEST(IteratorFactory, EmptyIterator)
+TYPED_TEST(ZipIterator, EmptyIterator)
 {
     using index_type = typename TestFixture::index_type;
     using value_type = typename TestFixture::value_type;
@@ -125,7 +125,7 @@ TYPED_TEST(IteratorFactory, EmptyIterator)
 }
 
 
-TYPED_TEST(IteratorFactory, SortingReversedWithIterator)
+TYPED_TEST(ZipIterator, SortingReversedWithIterator)
 {
     using index_type = typename TestFixture::index_type;
     using value_type = typename TestFixture::value_type;
@@ -140,7 +140,7 @@ TYPED_TEST(IteratorFactory, SortingReversedWithIterator)
 }
 
 
-TYPED_TEST(IteratorFactory, SortingAlreadySortedWithIterator)
+TYPED_TEST(ZipIterator, SortingAlreadySortedWithIterator)
 {
     using index_type = typename TestFixture::index_type;
     using value_type = typename TestFixture::value_type;
@@ -155,7 +155,7 @@ TYPED_TEST(IteratorFactory, SortingAlreadySortedWithIterator)
 }
 
 
-TYPED_TEST(IteratorFactory, IteratorReferenceOperatorSmaller)
+TYPED_TEST(ZipIterator, IteratorReferenceOperatorSmaller)
 {
     using index_type = typename TestFixture::index_type;
     using value_type = typename TestFixture::value_type;
@@ -170,7 +170,7 @@ TYPED_TEST(IteratorFactory, IteratorReferenceOperatorSmaller)
 }
 
 
-TYPED_TEST(IteratorFactory, IteratorReferenceOperatorSmaller2)
+TYPED_TEST(ZipIterator, IteratorReferenceOperatorSmaller2)
 {
     using index_type = typename TestFixture::index_type;
     using value_type = typename TestFixture::value_type;
@@ -185,7 +185,7 @@ TYPED_TEST(IteratorFactory, IteratorReferenceOperatorSmaller2)
 }
 
 
-TYPED_TEST(IteratorFactory, IncreasingIterator)
+TYPED_TEST(ZipIterator, IncreasingIterator)
 {
     using index_type = typename TestFixture::index_type;
     using value_type = typename TestFixture::value_type;
@@ -262,7 +262,7 @@ bool check_assertion_exit_code(int exit_code)
 }
 
 
-TYPED_TEST(IteratorFactory, IncompatibleIteratorDeathTest)
+TYPED_TEST(ZipIterator, IncompatibleIteratorDeathTest)
 {
     using index_type = typename TestFixture::index_type;
     using value_type = typename TestFixture::value_type;
@@ -286,7 +286,7 @@ TYPED_TEST(IteratorFactory, IncompatibleIteratorDeathTest)
 #endif
 
 
-TYPED_TEST(IteratorFactory, DecreasingIterator)
+TYPED_TEST(ZipIterator, DecreasingIterator)
 {
     using index_type = typename TestFixture::index_type;
     using value_type = typename TestFixture::value_type;
@@ -316,7 +316,7 @@ TYPED_TEST(IteratorFactory, DecreasingIterator)
 }
 
 
-TYPED_TEST(IteratorFactory, CorrectDereferencing)
+TYPED_TEST(ZipIterator, CorrectDereferencing)
 {
     using index_type_it = typename TestFixture::index_type;
     using value_type_it = typename TestFixture::value_type;
@@ -337,7 +337,7 @@ TYPED_TEST(IteratorFactory, CorrectDereferencing)
 }
 
 
-TYPED_TEST(IteratorFactory, CorrectSwapping)
+TYPED_TEST(ZipIterator, CorrectSwapping)
 {
     using index_type = typename TestFixture::index_type;
     using value_type = typename TestFixture::value_type;
@@ -361,7 +361,7 @@ TYPED_TEST(IteratorFactory, CorrectSwapping)
 }
 
 
-TYPED_TEST(IteratorFactory, CorrectHandWrittenSwapping)
+TYPED_TEST(ZipIterator, CorrectHandWrittenSwapping)
 {
     using index_type = typename TestFixture::index_type;
     using value_type = typename TestFixture::value_type;
@@ -385,6 +385,157 @@ TYPED_TEST(IteratorFactory, CorrectHandWrittenSwapping)
         ASSERT_TRUE(vec1[i] == this->reversed_index[i]);
         ASSERT_TRUE(vec2[i] == this->ordered_value[i]);
     }
+}
+
+
+template <typename ValueType>
+class PermuteIterator : public ::testing::Test {
+protected:
+    using value_type = ValueType;
+};
+
+TYPED_TEST_SUITE(PermuteIterator, gko::test::ValueAndIndexTypes,
+                 TypenameNameGenerator);
+
+
+TYPED_TEST(PermuteIterator, EmptyIterator)
+{
+    auto test_iter = gko::detail::make_permute_iterator<TypeParam*>(
+        nullptr, [](int i) { return i; });
+
+    ASSERT_NO_THROW(std::sort(test_iter, test_iter));
+}
+
+
+TYPED_TEST(PermuteIterator, SortingWithIdentityPermutation)
+{
+    std::vector<TypeParam> vec{6, 2, 5, 2, 4};
+    std::vector<TypeParam> sorted{2, 2, 4, 5, 6};
+    auto test_iter = gko::detail::make_permute_iterator(
+        vec.begin(), [](int i) { return i; });
+
+    std::sort(test_iter, test_iter + vec.size());
+
+    ASSERT_EQ(vec, sorted);
+}
+
+
+TYPED_TEST(PermuteIterator, SortingWithReversePermutation)
+{
+    std::vector<TypeParam> vec{6, 2, 5, 2, 4};
+    std::vector<TypeParam> sorted{6, 5, 4, 2, 2};
+    auto test_iter = gko::detail::make_permute_iterator(
+        vec.begin(),
+        [size = vec.size()](int i) { return static_cast<int>(size) - 1 - i; });
+
+    std::sort(test_iter, test_iter + vec.size());
+
+    ASSERT_EQ(vec, sorted);
+}
+
+
+TYPED_TEST(PermuteIterator, SortingWithStridedPermutation)
+{
+    std::vector<TypeParam> vec{6, 8, 2, 9, 5, 1, 2, 7, 4, 0};
+    std::vector<TypeParam> sorted{2, 8, 2, 9, 4, 1, 5, 7, 6, 0};
+    auto test_iter = gko::detail::make_permute_iterator(
+        vec.begin(), [](int i) { return 2 * i; });
+
+    std::sort(test_iter, test_iter + vec.size() / 2);
+
+    ASSERT_EQ(vec, sorted);
+}
+
+
+TYPED_TEST(PermuteIterator, IncreasingIterator)
+{
+    std::vector<TypeParam> vec{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    auto perm = [size = vec.size()](int i) {
+        return static_cast<int>(size) - 1 - i;
+    };
+
+    auto test_iter = gko::detail::make_permute_iterator(vec.begin(), perm);
+    auto begin = test_iter;
+    auto plus_2 = begin + 2;
+    auto plus_2_rev = 2 + begin;
+    auto plus_minus_2 = plus_2 - 2;
+    auto increment_pre_2 = begin;
+    ++increment_pre_2;
+    ++increment_pre_2;
+    auto increment_post_2 = begin;
+    increment_post_2++;
+    increment_post_2++;
+    auto increment_pre_test = begin;
+    auto increment_post_test = begin;
+
+    // check results for equality
+    ASSERT_TRUE(begin == plus_minus_2);
+    ASSERT_TRUE(plus_2 == increment_pre_2);
+    ASSERT_TRUE(plus_2_rev == increment_pre_2);
+    ASSERT_TRUE(increment_pre_2 == increment_post_2);
+    ASSERT_TRUE(begin == increment_post_test++);
+    ASSERT_TRUE(begin + 1 == ++increment_pre_test);
+    ASSERT_TRUE(*plus_2 == vec[perm(2)]);
+    // check other comparison operators and difference
+    std::vector<gko::detail::permute_iterator<
+        typename std::vector<TypeParam>::iterator, decltype(perm)>>
+        its{begin,
+            plus_2,
+            plus_2_rev,
+            plus_minus_2,
+            increment_pre_2,
+            increment_post_2,
+            increment_pre_test,
+            increment_post_test,
+            begin + 5,
+            begin + 9};
+    std::sort(its.begin(), its.end());
+    std::vector<int> dists;
+    std::vector<int> ref_dists{0, 1, 0, 1, 0, 0, 0, 3, 4};
+    for (int i = 0; i < its.size() - 1; i++) {
+        SCOPED_TRACE(i);
+        dists.push_back(its[i + 1] - its[i]);
+        auto equal = dists.back() > 0;
+        ASSERT_EQ(its[i + 1] > its[i], equal);
+        ASSERT_EQ(its[i] < its[i + 1], equal);
+        ASSERT_EQ(its[i] != its[i + 1], equal);
+        ASSERT_EQ(its[i] == its[i + 1], !equal);
+        ASSERT_EQ(its[i] >= its[i + 1], !equal);
+        ASSERT_EQ(its[i + 1] <= its[i], !equal);
+        ASSERT_TRUE(its[i + 1] >= its[i]);
+        ASSERT_TRUE(its[i] <= its[i + 1]);
+    }
+    ASSERT_EQ(dists, ref_dists);
+}
+
+
+TYPED_TEST(PermuteIterator, DecreasingIterator)
+{
+    std::vector<TypeParam> vec{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    auto perm = [size = vec.size()](int i) {
+        return static_cast<int>(size) - 1 - i;
+    };
+
+    auto test_iter = gko::detail::make_permute_iterator(vec.begin(), perm);
+
+    auto iter = test_iter + 5;
+    auto minus_2 = iter - 2;
+    auto minus_plus_2 = minus_2 + 2;
+    auto decrement_pre_2 = iter;
+    --decrement_pre_2;
+    --decrement_pre_2;
+    auto decrement_post_2 = iter;
+    decrement_post_2--;
+    decrement_post_2--;
+    auto decrement_pre_test = iter;
+    auto decrement_post_test = iter;
+
+    ASSERT_TRUE(iter == minus_plus_2);
+    ASSERT_TRUE(minus_2 == decrement_pre_2);
+    ASSERT_TRUE(decrement_pre_2 == decrement_post_2);
+    ASSERT_TRUE(iter == decrement_post_test--);
+    ASSERT_TRUE(iter - 1 == --decrement_pre_test);
+    ASSERT_TRUE(*minus_2 == vec[perm(3)]);
 }
 
 

@@ -42,6 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 
 
+#include "core/base/copy_assignable.hpp"
+
+
 namespace gko {
 namespace detail {
 
@@ -363,6 +366,133 @@ void swap(zip_iterator_reference<Iterators...> a,
     auto tmp = a.copy();
     a = b;
     b = tmp;
+}
+
+
+/**
+ * Random access iterator that uses a function to transform the index.
+ *
+ * For a function `fn` and an underlying iterator `it`, accessing the
+ * permute_iterator at index `i` will result in accessing `it[fn(i)]`.
+ *
+ * @tparam IteratorType  Underlying iterator, has to be random access.
+ * @tparam PermuteFn  A function `difference_type -> difference_type` that
+ *                    transforms any given index. It doesn't have to be a strict
+ *                    permutation of indices (i.e. not bijective).
+ */
+template <typename IteratorType, typename PermuteFn>
+class permute_iterator {
+public:
+    using difference_type = std::ptrdiff_t;
+    using value_type = typename std::iterator_traits<IteratorType>::value_type;
+    using pointer = typename std::iterator_traits<IteratorType>::pointer;
+    using reference = typename std::iterator_traits<IteratorType>::reference;
+    using iterator_category = std::random_access_iterator_tag;
+
+    permute_iterator() = default;
+
+    explicit permute_iterator(IteratorType it, PermuteFn perm)
+        : it_{std::move(it)}, idx_{}, perm_{std::move(perm)}
+    {}
+
+    permute_iterator& operator+=(difference_type i)
+    {
+        idx_ += i;
+        return *this;
+    }
+
+    permute_iterator& operator-=(difference_type i) { return *this += -i; }
+
+    permute_iterator& operator++() { return *this += 1; }
+
+    permute_iterator operator++(int)
+    {
+        auto tmp = *this;
+        ++(*this);
+        return tmp;
+    }
+
+    permute_iterator& operator--() { return *this -= 1; }
+
+    permute_iterator operator--(int)
+    {
+        auto tmp = *this;
+        --(*this);
+        return tmp;
+    }
+
+    permute_iterator operator+(difference_type i) const
+    {
+        auto tmp = *this;
+        tmp += i;
+        return tmp;
+    }
+
+    friend permute_iterator operator+(difference_type i,
+                                      const permute_iterator& iter)
+    {
+        return iter + i;
+    }
+
+    permute_iterator operator-(difference_type i) const
+    {
+        auto tmp = *this;
+        tmp -= i;
+        return tmp;
+    }
+
+    difference_type operator-(const permute_iterator& other) const
+    {
+        return idx_ - other.idx_;
+    }
+
+    reference operator*() const { return it_[perm_(idx_)]; }
+
+    reference operator[](difference_type i) const { return *(*this + i); }
+
+    bool operator==(const permute_iterator& other) const
+    {
+        return idx_ == other.idx_;
+    }
+
+    bool operator!=(const permute_iterator& other) const
+    {
+        return !(*this == other);
+    }
+
+    bool operator<(const permute_iterator& other) const
+    {
+        return idx_ < other.idx_;
+    }
+
+    bool operator<=(const permute_iterator& other) const
+    {
+        return idx_ <= other.idx_;
+    }
+
+    bool operator>(const permute_iterator& other) const
+    {
+        return !(*this <= other);
+    }
+
+    bool operator>=(const permute_iterator& other) const
+    {
+        return !(*this < other);
+    }
+
+private:
+    IteratorType it_;
+    difference_type idx_;
+    copy_assignable<PermuteFn> perm_;
+};
+
+
+template <typename IteratorType, typename PermutationFn>
+permute_iterator<IteratorType, PermutationFn> make_permute_iterator(
+    IteratorType it, PermutationFn perm)
+{
+    return permute_iterator<IteratorType, PermutationFn>{std::move(it),
+                                                         std::move(perm)};
 }
 
 
