@@ -3,10 +3,7 @@ if(GINKGO_BUILD_TESTS AND (NOT GTest_FOUND))
     add_subdirectory(gtest)
 endif()
 
-if(GINKGO_DEVEL_TOOLS)
-    set(GCF_IGNORE_LIST "third_party" CACHE STRING "Ignore directories for GCF")
-    add_subdirectory(git-cmake-format)
-else()
+if(NOT GINKGO_DEVEL_TOOLS)
     add_subdirectory(dummy-hook)
 endif()
 
