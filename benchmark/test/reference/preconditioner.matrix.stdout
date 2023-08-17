@@ -1,7 +1,7 @@
 
 [
     {
-        "filename": "../../matrices/test/ani1.mtx",
+        "filename": "",
         "preconditioner": {
             "none": {
                 "generate": {

@@ -1,7 +1,7 @@
 
 [
     {
-        "filename": "../../matrices/test/ani1.mtx",
+        "filename": "",
         "spmv": {
             "coo": {
                 "storage": 3328,

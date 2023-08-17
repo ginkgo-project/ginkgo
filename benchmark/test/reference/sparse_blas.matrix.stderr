@@ -5,14 +5,14 @@ Running with 2 warm iterations and 10 running iterations
 The random seed for right hand sides is 42
 The operations are transposeRunning test case
 {
-    "filename": "../../matrices/test/ani1.mtx",
+    "filename": "",
     "sparse_blas": {}
 }
 Matrix is of size (36, 36), 208
 Current state:
 [
     {
-        "filename": "../../matrices/test/ani1.mtx",
+        "filename": "",
         "sparse_blas": {
             "transpose": {
                 "time": 1.0,
