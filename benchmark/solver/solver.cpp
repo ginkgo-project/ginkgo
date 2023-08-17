@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
     std::string format = example_config + R"(
   "optimal":"spmv" can be one of the recognized spmv formats
 )";
-    std::string additional_json = ",\"optimal\":{\"spmv\":\"csr\"}";
+    std::string additional_json = R"(,"optimal":{"spmv":"csr"})";
     initialize_argument_parsing_matrix(&argc, &argv, header, format,
                                        additional_json);
 
