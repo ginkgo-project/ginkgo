@@ -36,6 +36,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 
 
+#include <ginkgo/core/base/exception_helpers.hpp>
+
+
 namespace gko {
 namespace config {
 
@@ -55,7 +58,7 @@ std::unique_ptr<gko::LinOpFactory> build_from_config(
             config.at("Type").get_data<std::string>());
         return func(config, context, exec, td);
     }
-    return nullptr;
+    GKO_INVALID_STATE("Should contain Type property");
 }
 
 
