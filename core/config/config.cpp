@@ -18,7 +18,11 @@ namespace config {
 
 buildfromconfig_map generate_config_map()
 {
-    return {{"Cg", build_from_config<LinOpFactoryType::Cg>}};
+    return {{"Cg", build_from_config<LinOpFactoryType::Cg>},
+            {"Bicg", build_from_config<LinOpFactoryType::Bicg>},
+            {"Bicgstab", build_from_config<LinOpFactoryType::Bicgstab>},
+            {"Cgs", build_from_config<LinOpFactoryType::Cgs>},
+            {"Fcg", build_from_config<LinOpFactoryType::Fcg>}};
 }
 
 
