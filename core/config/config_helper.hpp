@@ -30,7 +30,7 @@ namespace config {
  * LinOpFactoryType enum is to avoid forward declaration, linopfactory header,
  * two template versions of parse
  */
-enum class LinOpFactoryType : int { Cg = 0 };
+enum class LinOpFactoryType : int { Cg = 0, Bicg, Bicgstab, Fcg, Cgs };
 
 
 /**
