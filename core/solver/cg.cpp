@@ -12,12 +12,8 @@
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
-#include <ginkgo/core/config/config.hpp>
-#include <ginkgo/core/stop/iteration.hpp>
 
 
-#include "core/config/config.hpp"
-#include "core/config/dispatch.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/cg_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
