@@ -90,6 +90,7 @@ DEBUG: begin copy(<typename>)
 DEBUG: begin dense::copy
 DEBUG: end   dense::copy
 DEBUG: end   copy(<typename>)
+DEBUG: begin repetition
 DEBUG: begin copy(<typename>)
 DEBUG: begin dense::copy
 DEBUG: end   dense::copy
@@ -420,6 +421,7 @@ DEBUG: end   check(<typename>)
 DEBUG: end   check(<typename>)
 DEBUG: end   iteration
 DEBUG: end   apply(<typename>)
+DEBUG: end   repetition
 DEBUG: begin copy(<typename>)
 DEBUG: begin dense::copy
 DEBUG: end   dense::copy

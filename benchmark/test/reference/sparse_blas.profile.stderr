@@ -15,9 +15,11 @@ DEBUG: end   components::convert_idxs_to_ptrs
 DEBUG: begin stencil(100,7pt)
 	Running sparse_blas: transpose
 DEBUG: begin transpose
+DEBUG: begin repetition
 DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
 DEBUG: begin csr::transpose
 DEBUG: end   csr::transpose
+DEBUG: end   repetition
 DEBUG: end   transpose
 DEBUG: end   stencil(100,7pt)
