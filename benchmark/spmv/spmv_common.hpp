@@ -130,7 +130,7 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
     }
 
     void run(std::shared_ptr<gko::Executor> exec, std::shared_ptr<Timer> timer,
-             spmv_benchmark_state<Generator>& state,
+             annotate_functor annotate, spmv_benchmark_state<Generator>& state,
              const std::string& format_name, json& format_case) const override
     {
         auto system_matrix = generator.generate_matrix_with_format(
@@ -149,11 +149,14 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
 
         IterationControl ic{timer};
         // warm run
-        for (auto _ : ic.warmup_run()) {
-            auto x_clone = clone(state.x);
-            exec->synchronize();
-            system_matrix->apply(state.b, x_clone);
-            exec->synchronize();
+        {
+            auto range = annotate("warmup", FLAGS_warmup > 0);
+            for (auto _ : ic.warmup_run()) {
+                auto x_clone = clone(state.x);
+                exec->synchronize();
+                system_matrix->apply(state.b, x_clone);
+                exec->synchronize();
+            }
         }
 
         // tuning run
@@ -192,6 +195,7 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
         // timed run
         auto x_clone = clone(state.x);
         for (auto _ : ic.run()) {
+            auto range = annotate("repetition");
             system_matrix->apply(state.b, x_clone);
         }
         format_case["time"] = ic.compute_time(FLAGS_timer_method);

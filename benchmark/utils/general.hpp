@@ -245,6 +245,32 @@ std::shared_ptr<gko::log::ProfilerHook> create_profiler_hook(
 }
 
 
+struct annotate_functor {
+    gko::log::profiling_scope_guard operator()(const char* name) const
+    {
+        if (profiler_hook) {
+            return profiler_hook->user_range(name);
+        }
+        return {};
+    }
+
+    gko::log::profiling_scope_guard operator()(const char* name,
+                                               bool should_annotate) const
+    {
+        if (profiler_hook && should_annotate) {
+            return profiler_hook->user_range(name);
+        }
+        return {};
+    }
+
+    annotate_functor(std::shared_ptr<gko::log::ProfilerHook> profiler_hook)
+        : profiler_hook{std::move(profiler_hook)}
+    {}
+
+    std::shared_ptr<gko::log::ProfilerHook> profiler_hook;
+};
+
+
 // Returns a random number engine
 std::default_random_engine& get_engine()
 {

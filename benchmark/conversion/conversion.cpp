@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "benchmark/utils/formats.hpp"
+#include "benchmark/utils/general.hpp"
 #include "benchmark/utils/general_matrix.hpp"
 #include "benchmark/utils/generator.hpp"
 #include "benchmark/utils/iteration_control.hpp"
@@ -128,6 +129,7 @@ struct ConversionBenchmark : Benchmark<gko::device_matrix_data<etype, itype>> {
 
 
     void run(std::shared_ptr<gko::Executor> exec, std::shared_ptr<Timer> timer,
+             annotate_functor annotate,
              gko::device_matrix_data<etype, itype>& data,
              const std::string& operation_name,
              json& operation_case) const override
@@ -142,13 +144,17 @@ struct ConversionBenchmark : Benchmark<gko::device_matrix_data<etype, itype>> {
         IterationControl ic{timer};
         if (to_name == "read") {
             // warm run
-            for (auto _ : ic.warmup_run()) {
-                exec->synchronize();
-                readable->read(data);
-                exec->synchronize();
+            {
+                auto range = annotate("warmup", FLAGS_warmup > 0);
+                for (auto _ : ic.warmup_run()) {
+                    exec->synchronize();
+                    readable->read(data);
+                    exec->synchronize();
+                }
             }
             // timed run
             for (auto _ : ic.run()) {
+                auto range = annotate("repetition");
                 readable->read(data);
             }
         } else {
@@ -156,13 +162,17 @@ struct ConversionBenchmark : Benchmark<gko::device_matrix_data<etype, itype>> {
             auto mtx_to = formats::matrix_type_factory.at(to_name)(exec);
 
             // warm run
-            for (auto _ : ic.warmup_run()) {
-                exec->synchronize();
-                mtx_to->copy_from(mtx_from);
-                exec->synchronize();
+            {
+                auto range = annotate("warmup", FLAGS_warmup > 0);
+                for (auto _ : ic.warmup_run()) {
+                    exec->synchronize();
+                    mtx_to->copy_from(mtx_from);
+                    exec->synchronize();
+                }
             }
             // timed run
             for (auto _ : ic.run()) {
+                auto range = annotate("repetition");
                 mtx_to->copy_from(mtx_from);
             }
         }
