@@ -22,7 +22,8 @@ denumberify_paths = [
     "rhs_norm",
     "max_relative_norm2",
 ]
-detypenameify_key_starts = ["generate(", "apply(", "advanced_apply(", "copy(", "check("]
+detypenameify_key_starts = [
+    "generate(", "apply(", "advanced_apply(", "copy(", "check("]
 empty_string_paths = ["filename"]
 empty_array_paths = [
     "recurrent_residuals",
@@ -44,7 +45,7 @@ def sanitize_json_key(key: str):
     return key
 
 
-def sanitize_json_key_value(key: str, value, sanitize_all: bool):
+def sanitize_json_value(key: str, value, sanitize_all: bool):
     """Applies sanitation to a single key-value pair.
 
     Strings with a key in empty_string_paths will be emptied
@@ -72,7 +73,7 @@ def sanitize_json(parsed_input, sanitize_all: bool = False):
 
     if isinstance(parsed_input, dict):
         return {
-            sanitize_json_key(key): sanitize_json_key_value(key, value, sanitize_all)
+            sanitize_json_key(key): sanitize_json_value(key, value, sanitize_all)
             for key, value in parsed_input.items()
         }
     elif isinstance(parsed_input, list):
@@ -83,7 +84,7 @@ def sanitize_json(parsed_input, sanitize_all: bool = False):
         return parsed_input
 
 
-def determinize_json_text(input: str) -> List[str]:
+def sanitize_json_text(input: str) -> List[str]:
     """Sanitizes the given input JSON string.
 
     The JSON values will be parsed and sanitized through sanitize_json(...)
@@ -94,7 +95,7 @@ def determinize_json_text(input: str) -> List[str]:
     return result.splitlines()
 
 
-def determinize_text(
+def sanitize_text(
     input: str,
     ignore_patterns: List[str],
     replace_patterns: List[Tuple[str, str]],
@@ -157,11 +158,11 @@ def compare_output_impl(
     ]
     if generate:
         open(expected_stdout, "w").write(
-            "\n".join(determinize_json_text(result.stdout.decode()))
+            "\n".join(sanitize_json_text(result.stdout.decode()))
         )
         open(expected_stderr, "w").write(
             "\n".join(
-                determinize_text(
+                sanitize_text(
                     result.stderr.decode(),
                     ignore_patterns=ignore_patterns,
                     replace_patterns=typename_patterns,
@@ -170,14 +171,15 @@ def compare_output_impl(
         )
         print("GENERATED")
         return
-    result_stdout_processed = determinize_json_text(result.stdout.decode())
-    result_stderr_processed = determinize_text(
+    result_stdout_processed = sanitize_json_text(result.stdout.decode())
+    result_stderr_processed = sanitize_text(
         result.stderr.decode(),
         ignore_patterns=ignore_patterns,
         replace_patterns=typename_patterns,
     )
-    expected_stdout_processed = determinize_json_text(open(expected_stdout).read())
-    expected_stderr_processed = determinize_text(
+    expected_stdout_processed = sanitize_json_text(
+        open(expected_stdout).read())
+    expected_stderr_processed = sanitize_text(
         open(expected_stderr).read(),
         ignore_patterns=ignore_patterns,
         replace_patterns=typename_patterns,
@@ -187,7 +189,8 @@ def compare_output_impl(
         print("FAIL: stdout differs")
         print(
             "\n".join(
-                difflib.unified_diff(expected_stdout_processed, result_stdout_processed)
+                difflib.unified_diff(
+                    expected_stdout_processed, result_stdout_processed)
             )
         )
         failed = True
@@ -195,7 +198,8 @@ def compare_output_impl(
         print("FAIL: stderr differs")
         print(
             "\n".join(
-                difflib.unified_diff(expected_stderr_processed, result_stderr_processed)
+                difflib.unified_diff(
+                    expected_stderr_processed, result_stderr_processed)
             )
         )
         failed = True
