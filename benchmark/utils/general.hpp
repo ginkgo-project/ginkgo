@@ -216,7 +216,7 @@ void print_general_information(const std::string& extra)
     }
     std::clog << "The random seed for right hand sides is " << FLAGS_seed
               << '\n'
-              << extra << '\n';
+              << extra << std::endl;
 }
 
 

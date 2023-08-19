@@ -149,7 +149,10 @@ void extract_matrix_statistics(gko::matrix_data<etype, gko::int64>& data,
 using Generator = DefaultSystemGenerator<etype, gko::int64>;
 
 
-struct MatrixStatistics : Benchmark<int> {
+struct empty_state {};
+
+
+struct MatrixStatistics : Benchmark<empty_state> {
     std::string name;
     std::vector<std::string> empty;
 
