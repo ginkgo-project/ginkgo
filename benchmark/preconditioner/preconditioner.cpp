@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "benchmark/utils/formats.hpp"
+#include "benchmark/utils/general.hpp"
 #include "benchmark/utils/general_matrix.hpp"
 #include "benchmark/utils/generator.hpp"
 #include "benchmark/utils/iteration_control.hpp"
@@ -199,7 +200,7 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
 
 
     void run(std::shared_ptr<gko::Executor> exec, std::shared_ptr<Timer> timer,
-             preconditioner_benchmark_state& state,
+             annotate_functor annotate, preconditioner_benchmark_state& state,
              const std::string& encoded_precond_name,
              json& precond_case) const override
     {
@@ -219,12 +220,17 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
 
             auto precond = precond_factory.at(decoded_precond_name)(exec);
 
-            for (auto _ : ic_apply.warmup_run()) {
-                precond->generate(state.system_matrix)->apply(state.b, x_clone);
+            {
+                auto range = annotate("warmup", FLAGS_warmup > 0);
+                for (auto _ : ic_apply.warmup_run()) {
+                    precond->generate(state.system_matrix)
+                        ->apply(state.b, x_clone);
+                }
             }
 
             std::unique_ptr<gko::LinOp> precond_op;
             for (auto _ : ic_gen.run()) {
+                auto range = annotate("repetition generate");
                 precond_op = precond->generate(state.system_matrix);
             }
 
@@ -234,6 +240,7 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
                 ic_gen.get_num_repetitions();
 
             for (auto _ : ic_apply.run()) {
+                auto range = annotate("repetition apply");
                 precond_op->apply(state.b, x_clone);
             }
 

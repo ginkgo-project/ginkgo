@@ -182,8 +182,8 @@ struct MatrixStatistics : Benchmark<empty_state> {
         return Generator::describe_config(test_case);
     }
 
-    int setup(std::shared_ptr<gko::Executor> exec,
-              json& test_case) const override
+    empty_state setup(std::shared_ptr<gko::Executor> exec,
+                      json& test_case) const override
     {
         auto data = Generator::generate_matrix_data(test_case);
         std::clog << "Matrix is of size (" << data.size[0] << ", "
@@ -193,12 +193,13 @@ struct MatrixStatistics : Benchmark<empty_state> {
         test_case["nonzeros"] = data.nonzeros.size();
 
         extract_matrix_statistics(data, test_case["problem"]);
-        return 0;
+        return {};
     }
 
 
     void run(std::shared_ptr<gko::Executor> exec, std::shared_ptr<Timer> timer,
-             int& data, const std::string& operation_name,
+             annotate_functor annotate, empty_state& data,
+             const std::string& operation_name,
              json& operation_case) const override
     {}
 };

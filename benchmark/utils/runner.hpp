@@ -102,8 +102,8 @@ struct Benchmark {
 
     /** Runs a single operation of the benchmark */
     virtual void run(std::shared_ptr<gko::Executor> exec,
-                     std::shared_ptr<Timer> timer, State& state,
-                     const std::string& operation,
+                     std::shared_ptr<Timer> timer, annotate_functor annotate,
+                     State& state, const std::string& operation,
                      json& operation_case) const = 0;
 
     /** Post-process test case info. */
@@ -139,13 +139,7 @@ void run_test_cases(const Benchmark<State>& benchmark,
     if (profiler_hook) {
         exec->add_logger(profiler_hook);
     }
-    auto annotate =
-        [profiler_hook](const char* name) -> gko::log::profiling_scope_guard {
-        if (profiler_hook) {
-            return profiler_hook->user_range(name);
-        }
-        return {};
-    };
+    auto annotate = annotate_functor(profiler_hook);
 
     for (auto& test_case : test_cases) {
         try {
@@ -174,8 +168,8 @@ void run_test_cases(const Benchmark<State>& benchmark,
                 auto& operation_case = benchmark_case[operation_name];
                 try {
                     auto operation_range = annotate(operation_name.c_str());
-                    benchmark.run(exec, timer, test_case_state, operation_name,
-                                  operation_case);
+                    benchmark.run(exec, timer, annotate, test_case_state,
+                                  operation_name, operation_case);
                     operation_case["completed"] = true;
                 } catch (const std::exception& e) {
                     operation_case["completed"] = false;

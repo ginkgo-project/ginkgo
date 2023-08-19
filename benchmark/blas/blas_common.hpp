@@ -489,7 +489,8 @@ struct BlasBenchmark : Benchmark<dimensions> {
 
 
     void run(std::shared_ptr<gko::Executor> exec, std::shared_ptr<Timer> timer,
-             dimensions& dims, const std::string& operation_name,
+             annotate_functor annotate, dimensions& dims,
+             const std::string& operation_name,
              json& operation_case) const override
     {
         auto op = operation_map.at(operation_name)(exec, dims);
@@ -497,16 +498,20 @@ struct BlasBenchmark : Benchmark<dimensions> {
         IterationControl ic(timer);
 
         // warm run
-        for (auto _ : ic.warmup_run()) {
-            op->prepare();
-            exec->synchronize();
-            op->run();
-            exec->synchronize();
+        {
+            auto range = annotate("warmup", FLAGS_warmup > 0);
+            for (auto _ : ic.warmup_run()) {
+                op->prepare();
+                exec->synchronize();
+                op->run();
+                exec->synchronize();
+            }
         }
 
         // timed run
         op->prepare();
         for (auto _ : ic.run()) {
+            auto range = annotate("repetition");
             op->run();
         }
         const auto runtime = ic.compute_time(FLAGS_timer_method);
