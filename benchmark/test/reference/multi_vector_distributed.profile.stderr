@@ -46,8 +46,10 @@ DEBUG: begin copy
 DEBUG: end   copy
 DEBUG: begin dense::fill
 DEBUG: end   dense::fill
+DEBUG: begin repetition
 DEBUG: begin dense::copy
 DEBUG: end   dense::copy
+DEBUG: end   repetition
 DEBUG: end   copy
 	Running blas: axpy
 DEBUG: begin axpy
@@ -93,8 +95,10 @@ DEBUG: begin dense::fill
 DEBUG: end   dense::fill
 DEBUG: begin dense::fill
 DEBUG: end   dense::fill
+DEBUG: begin repetition
 DEBUG: begin dense::add_scaled
 DEBUG: end   dense::add_scaled
+DEBUG: end   repetition
 DEBUG: end   axpy
 	Running blas: scal
 DEBUG: begin scal
@@ -120,7 +124,9 @@ DEBUG: begin dense::fill
 DEBUG: end   dense::fill
 DEBUG: begin dense::fill
 DEBUG: end   dense::fill
+DEBUG: begin repetition
 DEBUG: begin dense::scale
 DEBUG: end   dense::scale
+DEBUG: end   repetition
 DEBUG: end   scal
 DEBUG: end   n = 100 

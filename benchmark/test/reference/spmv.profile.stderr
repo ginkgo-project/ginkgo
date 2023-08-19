@@ -28,9 +28,11 @@ DEBUG: begin copy(<typename>)
 DEBUG: begin dense::copy
 DEBUG: end   dense::copy
 DEBUG: end   copy(<typename>)
+DEBUG: begin repetition
 DEBUG: begin apply(<typename>)
 DEBUG: begin coo::spmv
 DEBUG: end   coo::spmv
 DEBUG: end   apply(<typename>)
+DEBUG: end   repetition
 DEBUG: end   coo
 DEBUG: end   stencil(100,7pt)

@@ -31,13 +31,17 @@ DEBUG: begin copy(<typename>)
 DEBUG: begin dense::copy
 DEBUG: end   dense::copy
 DEBUG: end   copy(<typename>)
+DEBUG: begin repetition generate
 DEBUG: begin generate(<typename>)
 DEBUG: end   generate(<typename>)
+DEBUG: end   repetition generate
+DEBUG: begin repetition apply
 DEBUG: begin apply(<typename>)
 DEBUG: begin copy(<typename>)
 DEBUG: begin dense::copy
 DEBUG: end   dense::copy
 DEBUG: end   copy(<typename>)
 DEBUG: end   apply(<typename>)
+DEBUG: end   repetition apply
 DEBUG: end   none
 DEBUG: end   stencil(100,7pt)

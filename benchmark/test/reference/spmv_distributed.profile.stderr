@@ -122,6 +122,7 @@ DEBUG: begin copy(<typename>)
 DEBUG: begin dense::copy
 DEBUG: end   dense::copy
 DEBUG: end   copy(<typename>)
+DEBUG: begin repetition
 DEBUG: begin apply(<typename>)
 DEBUG: begin dense::row_gather
 DEBUG: end   dense::row_gather
@@ -134,5 +135,6 @@ DEBUG: begin csr::advanced_spmv
 DEBUG: end   csr::advanced_spmv
 DEBUG: end   advanced_apply(<typename>)
 DEBUG: end   apply(<typename>)
+DEBUG: end   repetition
 DEBUG: end   csr-csr
 DEBUG: end   stencil(100,7pt,stencil)
