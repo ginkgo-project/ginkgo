@@ -21,7 +21,21 @@ namespace gko {
 namespace config {
 
 
-enum LinOpFactoryType : int { Cg = 0, Bicg, Bicgstab, Fcg, Cgs };
+enum LinOpFactoryType : int {
+    Cg = 0,
+    Bicg,
+    Bicgstab,
+    Fcg,
+    Cgs,
+    Ir,
+    Idr,
+    Gcr,
+    Gmres,
+    CbGmres,
+    Direct,
+    LowerTrs,
+    UpperTrs
+};
 
 
 // It is only an intermediate step. If we do not provide the SolverType with VT,

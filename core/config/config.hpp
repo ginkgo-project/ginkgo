@@ -16,6 +16,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
@@ -110,10 +111,19 @@ inline std::vector<deferred_factory_parameter<T>> get_factory_vector(
 //     std::shared_ptr<const Executor> exec, type_descriptor td);
 
 
+template <typename ValueType>
+inline typename std::enable_if<std::is_same<ValueType, bool>::value, bool>::type
+get_value(const pnode& config)
+{
+    auto val = config.get_data<bool>();
+    return val;
+}
+
 template <typename IndexType>
-inline
-    typename std::enable_if<std::is_integral<IndexType>::value, IndexType>::type
-    get_value(const pnode& config)
+inline typename std::enable_if<std::is_integral<IndexType>::value &&
+                                   !std::is_same<IndexType, bool>::value,
+                               IndexType>::type
+get_value(const pnode& config)
 {
     auto val = config.get_data<long long int>();
     assert(val <= std::numeric_limits<IndexType>::max() &&
@@ -145,6 +155,23 @@ get_value(const pnode& config)
                          get_value<real_type>(config.at(1))};
     }
     GKO_INVALID_STATE("Can not get complex value");
+}
+
+template <typename ValueType>
+inline typename std::enable_if<
+    std::is_same<ValueType, solver::initial_guess_mode>::value,
+    solver::initial_guess_mode>::type
+get_value(const pnode& config)
+{
+    auto val = config.get_data<std::string>();
+    if (val == "zero") {
+        return solver::initial_guess_mode::zero;
+    } else if (val == "rhs") {
+        return solver::initial_guess_mode::rhs;
+    } else if (val == "provided") {
+        return solver::initial_guess_mode::provided;
+    }
+    GKO_INVALID_STATE("Wrong value for initial_guess_mode");
 }
 
 
@@ -216,6 +243,8 @@ TYPE_STRING_OVERLOAD(double, "double");
 TYPE_STRING_OVERLOAD(float, "float");
 TYPE_STRING_OVERLOAD(std::complex<double>, "complex<double>");
 TYPE_STRING_OVERLOAD(std::complex<float>, "complex<float>");
+TYPE_STRING_OVERLOAD(gko::int32, "int");
+TYPE_STRING_OVERLOAD(gko::int64, "int64");
 
 
 }  // namespace config
