@@ -9,10 +9,6 @@ function(ginkgo_default_includes name)
             $<BUILD_INTERFACE:${Ginkgo_SOURCE_DIR}>
             $<INSTALL_INTERFACE:include>
         )
-    if(DEFINED SYCL_INCLUDE_PATH)
-        # avoid -fsycl in all place
-        target_include_directories("${name}" PUBLIC ${SYCL_INCLUDE_PATH})
-    endif()
     if(GINKGO_HAVE_HWLOC)
       target_include_directories("${name}"
         PUBLIC

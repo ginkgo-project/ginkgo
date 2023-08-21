@@ -6,7 +6,6 @@ on:
       - 'master'
       - 'develop'
       - 'release/**'
-      - 'icpx_compilation'
     tags:
       - '**'
   pull_request:

@@ -141,7 +141,7 @@ if (GINKGO_BUILD_DPCPP)
     ginkgo_benchmark_onemkl_linops(c GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION)
     add_library(dpcpp_timer utils/dpcpp_timer.dp.cpp)
     target_compile_options(dpcpp_timer PRIVATE ${GINKGO_DPCPP_FLAGS})
-    target_link_options(dpcpp_timer PRIVATE ${GINKGO_DPCPP_FLAGS})
+    gko_add_sycl_to_target(TARGET dpcpp_timer SOURCES utils/dpcpp_timer.dp.cpp)
     target_link_libraries(dpcpp_timer ginkgo)
 endif()
 
