@@ -42,9 +42,10 @@ Ginkgo adds the following additional switches to control what is being built:
 *   `-DGINKGO_BUILD_CUDA={ON, OFF}` builds optimized cuda versions of the kernels
     (requires CUDA), default is `ON` if a CUDA compiler could be detected,
     `OFF` otherwise.
-*   `-DGINKGO_BUILD_DPCPP={ON, OFF}` builds optimized DPC++ versions of the
-    kernels (requires `CMAKE_CXX_COMPILER` to be set to the `dpcpp` compiler).
-    The default is `ON` if `CMAKE_CXX_COMPILER` is a DPC++ compiler, `OFF`
+*   `-DGINKGO_BUILD_DPCPP={ON, OFF}` is deprecated. Please use `GINKGO_BUILD_SYCL` instead.
+*   `-DGINKGO_BUILD_SYCL={ON, OFF}` builds optimized SYCL versions of the
+    kernels (requires `CMAKE_CXX_COMPILER` to be set to the `dpcpp` or `icpx` compiler).
+    The default is `ON` if `CMAKE_CXX_COMPILER` is a SYCL compiler, `OFF`
     otherwise.
 *   `-DGINKGO_BUILD_HIP={ON, OFF}` builds optimized HIP versions of the kernels
     (requires HIP), default is `ON` if an installation of HIP could be detected,
