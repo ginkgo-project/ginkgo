@@ -581,7 +581,7 @@ build/nocuda-nomixed/nompi/clang/omp/debug/static:
     BUILD_SHARED_LIBS: "OFF"
     MIXED_PRECISION: "OFF"
 
-build/dpcpp/2022-1/cpu/release/static:
+build/dpcpp/2022-1/cpu/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
@@ -659,6 +659,21 @@ build/dpcpp/level_zero_dgpu/release/shared:
   variables:
     C_COMPILER: "gcc"
     CXX_COMPILER: "dpcpp"
+    BUILD_DPCPP: "ON"
+    GKO_COMPILER_FLAGS: "-ffp-model=precise"
+    BUILD_TYPE: "Release"
+    DPCPP_SINGLE_MODE: "ON"
+    ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
+
+build/icpx/level_zero_dgpu/release/shared:
+  extends:
+    - .build_and_test_template
+    - .default_variables
+    - .quick_test_condition
+    - .use_gko-oneapi-dgpu
+  variables:
+    C_COMPILER: "icx"
+    CXX_COMPILER: "icpx"
     BUILD_DPCPP: "ON"
     GKO_COMPILER_FLAGS: "-ffp-model=precise"
     BUILD_TYPE: "Release"
