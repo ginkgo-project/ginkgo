@@ -30,7 +30,21 @@ namespace config {
  * LinOpFactoryType enum is to avoid forward declaration, linopfactory header,
  * two template versions of parse
  */
-enum class LinOpFactoryType : int { Cg = 0, Bicg, Bicgstab, Fcg, Cgs };
+enum class LinOpFactoryType : int {
+    Cg = 0,
+    Bicg,
+    Bicgstab,
+    Fcg,
+    Cgs,
+    Ir,
+    Idr,
+    Gcr,
+    Gmres,
+    CbGmres,
+    Direct,
+    LowerTrs,
+    UpperTrs
+};
 
 
 /**
@@ -110,6 +124,20 @@ inline std::vector<deferred_factory_parameter<T>> parse_or_get_factory_vector(
 /**
  * get_value gets the corresponding type value from config.
  *
+ * This is specialization for bool type
+ */
+template <typename ValueType>
+inline typename std::enable_if<std::is_same<ValueType, bool>::value, bool>::type
+get_value(const pnode& config)
+{
+    auto val = config.get_data<bool>();
+    return val;
+}
+
+
+/**
+ * get_value gets the corresponding type value from config.
+ *
  * This is specialization for integral type
  */
 template <typename IndexType>
@@ -170,6 +198,29 @@ get_value(const pnode& config)
         return ValueType{real, imag};
     }
     GKO_INVALID_STATE("Can not get complex value");
+}
+
+
+/**
+ * get_value gets the corresponding type value from config.
+ *
+ * This is specialization for initial_guess_mode
+ */
+template <typename ValueType>
+inline typename std::enable_if<
+    std::is_same<ValueType, solver::initial_guess_mode>::value,
+    solver::initial_guess_mode>::type
+get_value(const pnode& config)
+{
+    auto val = config.get_data<std::string>();
+    if (val == "zero") {
+        return solver::initial_guess_mode::zero;
+    } else if (val == "rhs") {
+        return solver::initial_guess_mode::rhs;
+    } else if (val == "provided") {
+        return solver::initial_guess_mode::provided;
+    }
+    GKO_INVALID_STATE("Wrong value for initial_guess_mode");
 }
 
 
