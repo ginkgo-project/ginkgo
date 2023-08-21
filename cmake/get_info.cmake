@@ -127,7 +127,7 @@ foreach(log_type ${log_types})
     ginkgo_print_module_footer(${${log_type}} "User configuration:")
     ginkgo_print_module_footer(${${log_type}} "  Enabled modules:")
     ginkgo_print_foreach_variable(${${log_type}}
-        "GINKGO_BUILD_OMP;GINKGO_BUILD_MPI;GINKGO_BUILD_REFERENCE;GINKGO_BUILD_CUDA;GINKGO_BUILD_HIP;GINKGO_BUILD_DPCPP")
+        "GINKGO_BUILD_OMP;GINKGO_BUILD_MPI;GINKGO_BUILD_REFERENCE;GINKGO_BUILD_CUDA;GINKGO_BUILD_HIP;GINKGO_BUILD_SYCL")
     ginkgo_print_module_footer(${${log_type}} "  Enabled features:")
     ginkgo_print_foreach_variable(${${log_type}}
         "GINKGO_MIXED_PRECISION;GINKGO_HAVE_GPU_AWARE_MPI")
@@ -167,7 +167,7 @@ IF(GINKGO_BUILD_HIP)
     include(hip/get_info.cmake)
 ENDIF()
 
-IF(GINKGO_BUILD_DPCPP)
+IF(GINKGO_BUILD_SYCL)
     include(dpcpp/get_info.cmake)
 ENDIF()
 
