@@ -58,30 +58,33 @@ public:
     using key_type = std::string;
     using data_type = data;
 
-    enum status_t { empty, array, object, list };
+    enum class status_t { empty, array, data, map };
 
     pnode() : status_(status_t::empty) {}
 
-    pnode(const data_type& d) : status_(status_t::object), data_(d) {}
+    pnode(const data_type& d) : status_(status_t::data), data_(d) {}
 
     pnode(const std::vector<pnode>& array)
         : status_(status_t::array), array_(array)
     {}
 
     pnode(const std::map<key_type, pnode>& list)
-        : status_(status_t::list), list_(list)
+        : status_(status_t::map), list_(list)
     {}
+
+    // bool conversion. It's true if and only if it contains data.
+    operator bool() const noexcept { return status_ != status_t::empty; }
 
     // Get the content of node
     data_type& get_data()
     {
-        assert(status_ == status_t::object);
+        assert(status_ == status_t::data);
         return data_;
     }
 
     const data_type& get_data() const
     {
-        assert(status_ == status_t::object);
+        assert(status_ == status_t::data);
         return data_;
     }
 
@@ -98,16 +101,16 @@ public:
         return array_;
     }
 
-    std::map<key_type, pnode>& get_list()
+    std::map<key_type, pnode>& get_map()
     {
-        assert(status_ == status_t::list || status_ == status_t::empty);
-        status_ = status_t::list;
+        assert(status_ == status_t::map || status_ == status_t::empty);
+        status_ = status_t::map;
         return list_;
     }
 
-    const std::map<key_type, pnode>& get_list() const
+    const std::map<key_type, pnode>& get_map() const
     {
-        assert(status_ == status_t::list);
+        assert(status_ == status_t::map);
         return list_;
     }
 
@@ -115,20 +118,31 @@ public:
     template <typename T>
     T get_data() const
     {
-        assert(status_ == status_t::object);
+        assert(status_ == status_t::data);
         return gko::config::get<T>(data_);
     }
 
     pnode& at(const std::string& path)
     {
-        assert(status_ == status_t::list);
+        assert(status_ == status_t::map);
         return list_.at(path);
     }
 
     const pnode& at(const std::string& path) const
     {
-        assert(status_ == status_t::list);
+        assert(status_ == status_t::map);
         return list_.at(path);
+    }
+
+    // Return the objec if it is found. Otherwise, return empty object.
+    const pnode& get(const std::string& path) const
+    {
+        assert(status_ == status_t::map);
+        if (this->contains(path)) {
+            return list_.at(path);
+        } else {
+            return pnode::empty_pn;
+        }
     }
 
     pnode& at(int i)
@@ -148,7 +162,7 @@ public:
 
     bool contains(std::string key) const
     {
-        assert(status_ == status_t::list);
+        assert(status_ == status_t::map);
         auto it = list_.find(key);
         return (it != list_.end());
     }
@@ -160,6 +174,7 @@ private:
     std::map<key_type, pnode> list_;  // for list
     data_type data_;                  // for value
     status_t status_;
+    const static pnode empty_pn;
 };
 
 
