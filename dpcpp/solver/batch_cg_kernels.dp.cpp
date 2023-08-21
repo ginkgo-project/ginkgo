@@ -63,7 +63,7 @@ namespace batch_cg {
 template <typename T>
 using BatchCgOptions = gko::kernels::batch_cg::BatchCgOptions<T>;
 
-__dpct_inline__ int get_larger_power(int value, int simd_len = 32)
+__dpct_inline__ int get_group_size(int value, int simd_len = 32)
 {
     int num_sg = (value + simd_len - 1) / simd_len;
     return (num_sg * simd_len);
@@ -137,7 +137,7 @@ public:
         auto device = exec_->get_queue()->get_device();
         int group_size =
             device.get_info<sycl::info::device::max_work_group_size>();
-        if (group_size > nrows) group_size = get_larger_power(nrows);
+        if (group_size > nrows) group_size = get_group_size(nrows);
 
         size_type shmem_per_blk =
             device.get_info<sycl::info::device::local_mem_size>() -
@@ -161,47 +161,47 @@ public:
         ValueType* const workspace_data = workspace.get_data();
 
         if (nrows <= 32 && n_shared_total == 6)
-            launch_apply_kernel<StopType, 16, 6, 1>(
+            launch_apply_kernel<StopType, 16, 6, true>(
                 sconf, logger, prec, a, b.values, x.values, workspace_data,
                 group_size, shared_size);
         else if (nrows <= 256 && n_shared_total == 6)
-            launch_apply_kernel<StopType, 32, 6, 1>(
+            launch_apply_kernel<StopType, 32, 6, true>(
                 sconf, logger, prec, a, b.values, x.values, workspace_data,
                 group_size, shared_size);
         else {
             switch (n_shared_total) {
             case 0:
-                launch_apply_kernel<StopType, 32, 0, 0>(
+                launch_apply_kernel<StopType, 32, 0, false>(
                     sconf, logger, prec, a, b.values, x.values, workspace_data,
                     group_size, shared_size);
                 break;
             case 1:
-                launch_apply_kernel<StopType, 32, 1, 0>(
+                launch_apply_kernel<StopType, 32, 1, false>(
                     sconf, logger, prec, a, b.values, x.values, workspace_data,
                     group_size, shared_size);
                 break;
             case 2:
-                launch_apply_kernel<StopType, 32, 2, 0>(
+                launch_apply_kernel<StopType, 32, 2, false>(
                     sconf, logger, prec, a, b.values, x.values, workspace_data,
                     group_size, shared_size);
                 break;
             case 3:
-                launch_apply_kernel<StopType, 32, 3, 0>(
+                launch_apply_kernel<StopType, 32, 3, false>(
                     sconf, logger, prec, a, b.values, x.values, workspace_data,
                     group_size, shared_size);
                 break;
             case 4:
-                launch_apply_kernel<StopType, 32, 4, 0>(
+                launch_apply_kernel<StopType, 32, 4, false>(
                     sconf, logger, prec, a, b.values, x.values, workspace_data,
                     group_size, shared_size);
                 break;
             case 5:
-                launch_apply_kernel<StopType, 32, 5, 0>(
+                launch_apply_kernel<StopType, 32, 5, false>(
                     sconf, logger, prec, a, b.values, x.values, workspace_data,
                     group_size, shared_size);
                 break;
             case 6:
-                launch_apply_kernel<StopType, 32, 6, 0>(
+                launch_apply_kernel<StopType, 32, 6, false>(
                     sconf, logger, prec, a, b.values, x.values, workspace_data,
                     group_size, shared_size);
                 break;
