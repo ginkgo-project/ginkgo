@@ -30,13 +30,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <ginkgo/core/config/data.hpp>
+
+
 #include <memory>
 
 
 #include <gtest/gtest.h>
-
-
-#include <ginkgo/core/config/data.hpp>
 
 
 using namespace gko::config;
@@ -61,7 +61,6 @@ TEST(Data, DataTypeIsCorrect)
     ASSERT_TRUE(holds_alternative<long long int>(data(1LL)));
     ASSERT_TRUE(holds_alternative<long long int>(data(1U)));
     ASSERT_TRUE(holds_alternative<long long int>(data(1UL)));
-    // ASSERT_THROW(data(1ULL));
 }
 
 

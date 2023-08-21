@@ -128,13 +128,13 @@ void string_parser(gko::config::pnode& ptree,
         // name description
         if (str[i + 1].find("--") != std::string::npos) {
             parent = get_parent(str[i]);
-            pnode_ref = &(ptree.get_list()[parent]);
+            pnode_ref = &(ptree.get_map()[parent]);
             i++;
             continue;
         }
         auto property = get_property(parent, str[i]);
 
-        set_content(set_content, pnode_ref->get_list()[property], str[i + 1]);
+        set_content(set_content, pnode_ref->get_map()[property], str[i + 1]);
         i += 2;
     }
 }

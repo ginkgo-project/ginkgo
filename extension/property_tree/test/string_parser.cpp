@@ -81,7 +81,7 @@ TEST(JsonParser, ReadInput3)
     std::string str =
         "--A --A-base Csr<V,I> --A-dim 3,4 --A-executor B --B --B-base "
         "ReferenceExecutor --C --C-float 1.23 --C-int -123 --C-bool true";
-    // Note. the json does not gurantee the ordering in the list.
+    // Note. the json does not guarantee the ordering in the list.
     std::istringstream iss(
         "{\n"
         "  A: {\n"
