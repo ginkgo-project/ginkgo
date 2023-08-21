@@ -61,7 +61,7 @@ void json_parser(gko::config::pnode& ptree, rapidjson::Value& dom)
             json_parser(ptree.at(i), array[i]);
         }
     } else if (dom.IsObject()) {
-        auto& list = ptree.get_list();
+        auto& list = ptree.get_map();
         for (auto& m : dom.GetObject()) {
             json_parser(list[m.name.GetString()], dom[m.name.GetString()]);
         }
