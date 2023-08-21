@@ -64,7 +64,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * <ol>
  *   <li> <code>-DGINKGO_BUILD_CUDA=ON</code> option for NVIDIA GPUs.
  *   <li> <code>-DGINKGO_BUILD_HIP=ON</code> option for AMD or NVIDIA GPUs.
- *   <li> <code>-DGINKGO_BUILD_DPCPP=ON</code> option for Intel GPUs (and
+ *   <li> <code>-DGINKGO_BUILD_SYCL=ON</code> option for Intel GPUs (and
  *        possibly any other platform).
  * </ol>
  *

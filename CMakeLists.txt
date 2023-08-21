@@ -13,6 +13,9 @@ include(cmake/autodetect_executors.cmake)
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/Modules/")
 include(cmake/autodetect_system_libs.cmake)
 
+# rename helper
+include(cmake/rename.cmake)
+
 # Ginkgo configuration options
 option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" OFF)
 option(GINKGO_BUILD_TESTS "Generate build files for unit tests" ON)
@@ -21,8 +24,9 @@ option(GINKGO_BUILD_BENCHMARKS "Build Ginkgo's benchmarks" ON)
 option(GINKGO_BUILD_REFERENCE "Compile reference CPU kernels" ON)
 option(GINKGO_BUILD_OMP "Compile OpenMP kernels for CPU" ${GINKGO_HAS_OMP})
 option(GINKGO_BUILD_MPI "Compile the MPI module" ${GINKGO_HAS_MPI})
-option(GINKGO_BUILD_DPCPP
-    "Compile DPC++ kernels for Intel GPUs or other DPC++ enabled hardware" ${GINKGO_HAS_DPCPP})
+gko_rename_cache(GINKGO_BUILD_DPCPP GINKGO_BUILD_SYCL BOOL)
+option(GINKGO_BUILD_SYCL
+    "Compile SYCL kernels for Intel GPUs or other SYCL enabled hardware" ${GINKGO_HAS_SYCL})
 option(GINKGO_BUILD_CUDA "Compile kernels for NVIDIA GPUs" ${GINKGO_HAS_CUDA})
 option(GINKGO_BUILD_HIP "Compile kernels for AMD or NVIDIA GPUs" ${GINKGO_HAS_HIP})
 option(GINKGO_BUILD_DOC "Generate documentation" OFF)
@@ -50,7 +54,7 @@ set(GINKGO_VERBOSE_LEVEL "1" CACHE STRING
 if(MSVC)
     set(GINKGO_COMPILER_FLAGS "" CACHE STRING
         "Set the required CXX compiler flags, mainly used for warnings. Current default is ``")
-elseif(GINKGO_BUILD_DPCPP OR CMAKE_CXX_COMPILER MATCHES "dpcpp|icpx")
+elseif(GINKGO_BUILD_SYCL OR CMAKE_CXX_COMPILER MATCHES "dpcpp|icpx")
     # For now always use `-ffp-model=precise` with DPC++. This can be removed when
     # the floating point issues are fixed.
     set(GINKGO_COMPILER_FLAGS "-Wpedantic;-ffp-model=precise" CACHE STRING
@@ -99,7 +103,7 @@ endif()
 if(GINKGO_BUILD_HIP)
     include(cmake/hip.cmake)
 endif()
-if(GINKGO_BUILD_DPCPP)
+if(GINKGO_BUILD_SYCL)
     include(cmake/sycl.cmake)
 endif()
 if(GINKGO_BUILD_OMP)
@@ -298,7 +302,7 @@ if(MSVC)
     endif()
 endif()
 
-if(GINKGO_BUILD_DPCPP)
+if(GINKGO_BUILD_SYCL)
     ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_MAJOR_VERSION __LIBSYCL_MAJOR_VERSION)
     ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_VERSION __SYCL_COMPILER_VERSION)
 else()
@@ -321,7 +325,7 @@ endif()
 if(GINKGO_BUILD_HIP)
     add_subdirectory(hip)        # High-performance kernels for AMD or NVIDIA GPUs
 endif()
-if(GINKGO_BUILD_DPCPP)
+if(GINKGO_BUILD_SYCL)
     add_subdirectory(dpcpp)        # High-performance DPC++ kernels
 endif()
 if(GINKGO_BUILD_OMP)

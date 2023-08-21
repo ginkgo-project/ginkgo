@@ -8,7 +8,7 @@ if(NOT GINKGO_BUILD_CUDA)
     ginkgo_install_library(ginkgo_cuda)
 endif()
 
-if (NOT GINKGO_BUILD_DPCPP)
+if (NOT GINKGO_BUILD_SYCL)
     add_library(ginkgo_dpcpp
         $<TARGET_OBJECTS:ginkgo_dpcpp_device>
         dpcpp_hooks.cpp)

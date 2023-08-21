@@ -1,7 +1,7 @@
 set(GINKGO_HAS_OMP OFF)
 set(GINKGO_HAS_MPI OFF)
 set(GINKGO_HAS_CUDA OFF)
-set(GINKGO_HAS_DPCPP OFF)
+set(GINKGO_HAS_SYCL OFF)
 set(GINKGO_HAS_HIP OFF)
 
 include(CheckLanguage)
@@ -37,7 +37,7 @@ if (NOT DEFINED GINKGO_BUILD_HIP)
     endif()
 endif()
 
-if (NOT DEFINED GINKGO_BUILD_DPCPP)
+if (NOT DEFINED GINKGO_BUILD_DPCPP AND NOT DEFINED GINKGO_BUILD_SYCL)
     try_compile(GKO_CAN_COMPILE_DPCPP ${PROJECT_BINARY_DIR}/dpcpp
         SOURCES ${PROJECT_SOURCE_DIR}/dpcpp/test_dpcpp.dp.cpp
         # try_compile will pass the project CMAKE_CXX_FLAGS so passing -DCMAKE_CXX_FLAGS does not affect it.
@@ -47,6 +47,6 @@ if (NOT DEFINED GINKGO_BUILD_DPCPP)
         CXX_STANDARD 17)
     if (GKO_CAN_COMPILE_DPCPP)
         message(STATUS "Enabling DPCPP executor")
-        set(GINKGO_HAS_DPCPP ON)
+        set(GINKGO_HAS_SYCL ON)
     endif()
 endif()
