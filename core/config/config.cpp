@@ -18,11 +18,21 @@ namespace config {
 
 buildfromconfig_map generate_config_map()
 {
-    return {{"Cg", build_from_config<LinOpFactoryType::Cg>},
-            {"Bicg", build_from_config<LinOpFactoryType::Bicg>},
-            {"Bicgstab", build_from_config<LinOpFactoryType::Bicgstab>},
-            {"Cgs", build_from_config<LinOpFactoryType::Cgs>},
-            {"Fcg", build_from_config<LinOpFactoryType::Fcg>}};
+    return {
+        {"Cg", build_from_config<LinOpFactoryType::Cg>},
+        {"Bicg", build_from_config<LinOpFactoryType::Bicg>},
+        {"Bicgstab", build_from_config<LinOpFactoryType::Bicgstab>},
+        {"Cgs", build_from_config<LinOpFactoryType::Cgs>},
+        {"Fcg", build_from_config<LinOpFactoryType::Fcg>},
+        {"Ir", build_from_config<LinOpFactoryType::Ir>},
+        {"Idr", build_from_config<LinOpFactoryType::Idr>},
+        {"Gcr", build_from_config<LinOpFactoryType::Gcr>},
+        {"Gmres", build_from_config<LinOpFactoryType::Gmres>},
+        {"CbGmres", build_from_config<LinOpFactoryType::CbGmres>},
+        {"Direct", build_from_config<LinOpFactoryType::Direct>},
+        {"LowerTrs", build_from_config<LinOpFactoryType::LowerTrs>},
+        {"UpperTrs", build_from_config<LinOpFactoryType::UpperTrs>},
+    };
 }
 
 
