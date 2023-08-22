@@ -61,11 +61,11 @@ inline type_descriptor update_type(const pnode& config,
 {
     type_descriptor updated = td;
 
-    if (config.contains("ValueType")) {
-        updated.first = config.at("ValueType").get_data<std::string>();
+    if (auto& obj = config.get("ValueType")) {
+        updated.first = obj.get_data<std::string>();
     }
-    if (config.contains("IndexType")) {
-        updated.second = config.at("IndexType").get_data<std::string>();
+    if (auto& obj = config.get("IndexType")) {
+        updated.second = obj.get_data<std::string>();
     }
     return updated;
 }
@@ -90,9 +90,9 @@ inline std::shared_ptr<const LinOpFactory> get_pointer<const LinOpFactory>(
     std::shared_ptr<const Executor> exec, type_descriptor td)
 {
     std::shared_ptr<const LinOpFactory> ptr;
-    if (config.is(pnode::status_t::object)) {
+    if (config.is(pnode::status_t::data)) {
         ptr = context.search_data<LinOpFactory>(config.get_data<std::string>());
-    } else if (config.is(pnode::status_t::list)) {
+    } else if (config.is(pnode::status_t::map)) {
         ptr = build_from_config(config, context, exec, td);
     }
     // handle object is config
@@ -162,7 +162,7 @@ inline typename std::enable_if<gko::is_complex_s<ValueType>::value,
 get_value(const pnode& config)
 {
     using real_type = gko::remove_complex<ValueType>;
-    if (config.is(pnode::status_t::object)) {
+    if (config.is(pnode::status_t::data)) {
         return static_cast<ValueType>(get_value<real_type>(config));
     } else if (config.is(pnode::status_t::array)) {
         return ValueType{get_value<real_type>(config.at(0)),
@@ -175,9 +175,9 @@ get_value(const pnode& config)
 #define SET_POINTER(_factory, _param_type, _param_name, _config, _context,     \
                     _exec, _td)                                                \
     {                                                                          \
-        if (_config.contains(#_param_name)) {                                  \
+        if (auto& obj = _config.get(#_param_name)) {                           \
             _factory.with_##_param_name(gko::config::get_pointer<_param_type>( \
-                _config.at(#_param_name), _context, _exec, _td));              \
+                obj, _context, _exec, _td));                                   \
         }                                                                      \
     }                                                                          \
     static_assert(true,                                                        \
@@ -188,10 +188,10 @@ get_value(const pnode& config)
 #define SET_POINTER_VECTOR(_factory, _param_type, _param_name, _config,      \
                            _context, _exec, _td)                             \
     {                                                                        \
-        if (_config.contains(#_param_name)) {                                \
+        if (auto& obj = _config.get(#_param_name)) {                         \
             _factory.with_##_param_name(                                     \
-                gko::config::get_pointer_vector<_param_type>(                \
-                    _config.at(#_param_name), _context, _exec, _td));        \
+                gko::config::get_pointer_vector<_param_type>(obj, _context,  \
+                                                             _exec, _td));   \
         }                                                                    \
     }                                                                        \
     static_assert(true,                                                      \
@@ -201,9 +201,9 @@ get_value(const pnode& config)
 
 #define SET_VALUE(_factory, _param_type, _param_name, _config)               \
     {                                                                        \
-        if (_config.contains(#_param_name)) {                                \
-            _factory.with_##_param_name(gko::config::get_value<_param_type>( \
-                _config.at(#_param_name)));                                  \
+        if (auto& obj = _config.get(#_param_name)) {                         \
+            _factory.with_##_param_name(                                     \
+                gko::config::get_value<_param_type>(obj));                   \
         }                                                                    \
     }                                                                        \
     static_assert(true,                                                      \

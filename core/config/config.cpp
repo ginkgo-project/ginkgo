@@ -53,9 +53,8 @@ std::unique_ptr<gko::LinOpFactory> build_from_config(
     const pnode& config, const registry& context,
     std::shared_ptr<const Executor>& exec, type_descriptor td)
 {
-    if (config.contains("Type")) {
-        auto func = context.get_build_map().at(
-            config.at("Type").get_data<std::string>());
+    if (auto& obj = config.get("Type")) {
+        auto func = context.get_build_map().at(obj.get_data<std::string>());
         return func(config, context, exec, td);
     }
     GKO_INVALID_STATE("Should contain Type property");
