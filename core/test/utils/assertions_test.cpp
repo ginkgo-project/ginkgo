@@ -151,7 +151,7 @@ protected:
     using Sparse = gko::matrix::BatchCsr<>;
 
     template <typename Type, std::size_t size>
-    gko::array<Type> make_view(std::array<Type, size> &array)
+    gko::array<Type> make_view(std::array<Type, size>& array)
     {
         return gko::array<Type>::view(exec, size, array.data());
     }

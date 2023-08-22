@@ -303,14 +303,14 @@ TEST_F(BatchBicgstab, SolvesLargeCsrSystemEquivalentToReference)
     const float solver_restol = 1e-4;
     auto r_sys = gko::test::generate_solvable_batch_system<mtx_type>(
         ref, 2, 990, 1, false);
-    auto r_jac_factory = gko::share(
-    gko::preconditioner::BatchJacobi<value_type>::build()
-    .with_max_block_size(1u)
-    .on(ref));
-    auto d_jac_factory = gko::share(
-    gko::preconditioner::BatchJacobi<value_type>::build()
-    .with_max_block_size(1u)
-    .on(exec));
+    auto r_jac_factory =
+        gko::share(gko::preconditioner::BatchJacobi<value_type>::build()
+                       .with_max_block_size(1u)
+                       .on(ref));
+    auto d_jac_factory =
+        gko::share(gko::preconditioner::BatchJacobi<value_type>::build()
+                       .with_max_block_size(1u)
+                       .on(exec));
     auto r_factory =
         solver_type::build()
             .with_default_max_iterations(500)

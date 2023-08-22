@@ -184,12 +184,12 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier) void spmv(
 
 template <typename ValueType>
 __global__
-    __launch_bounds__(default_block_size, sm_multiplier) void advanced_spmv(
-        const batch_dense::UniformBatch<const ValueType> alpha,
-        const gko::batch_ell::UniformBatch<const ValueType> a,
-        const batch_dense::UniformBatch<const ValueType> b,
-        const batch_dense::UniformBatch<const ValueType> beta,
-        const batch_dense::UniformBatch<ValueType> c)
+__launch_bounds__(default_block_size, sm_multiplier) void advanced_spmv(
+    const batch_dense::UniformBatch<const ValueType> alpha,
+    const gko::batch_ell::UniformBatch<const ValueType> a,
+    const batch_dense::UniformBatch<const ValueType> b,
+    const batch_dense::UniformBatch<const ValueType> beta,
+    const batch_dense::UniformBatch<ValueType> c)
 {
     for (size_type ibatch = blockIdx.x; ibatch < a.num_batch;
          ibatch += gridDim.x) {

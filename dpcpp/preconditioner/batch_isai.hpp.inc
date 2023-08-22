@@ -30,9 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 #ifndef GKO_DPCPP_PRECONDITIONER_BATCH_ISAI_HPP_INC_
 #define GKO_DPCPP_PRECONDITIONER_BATCH_ISAI_HPP_INC_
+
 
 namespace {
 #include "dpcpp/matrix/batch_csr_kernels.hpp.inc"
@@ -130,4 +130,4 @@ __dpct_inline__ void batch_isai_apply(batch_isai<ValueType> prec,
     item_ct1.barrier(sycl::access::fence_space::local_space);
 }
 
-#endif
+#endif  // GKO_DPCPP_PRECONDITIONER_BATCH_ISAI_HPP_INC_

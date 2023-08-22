@@ -44,10 +44,10 @@ __global__ void compute_block_storage_kernel(
 }
 
 __global__
-    __launch_bounds__(default_block_size) void find_row_is_part_of_which_block_kernel(
-        const gko::size_type num_blocks,
-        const int* const __restrict__ block_pointers,
-        int* const __restrict__ row_part_of_which_block_info)
+__launch_bounds__(default_block_size) void find_row_is_part_of_which_block_kernel(
+    const gko::size_type num_blocks,
+    const int* const __restrict__ block_pointers,
+    int* const __restrict__ row_part_of_which_block_info)
 {
     const auto gid = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -63,16 +63,15 @@ __global__
 
 
 __global__
-    __launch_bounds__(default_block_size) void extract_common_block_pattern_kernel(
-        const int nrows, const int* const __restrict__ sys_row_ptrs,
-        const int* const __restrict__ sys_col_idxs,
-        const gko::size_type num_blocks,
-        const gko::preconditioner::batched_jacobi_blocks_storage_scheme<int>
-            storage_scheme,
-        const int* const __restrict__ blocks_cumulative_storage,
-        const int* const __restrict__ block_pointers,
-        const int* const __restrict__ row_in_which_block_info,
-        int* const blocks_pattern)
+__launch_bounds__(default_block_size) void extract_common_block_pattern_kernel(
+    const int nrows, const int* const __restrict__ sys_row_ptrs,
+    const int* const __restrict__ sys_col_idxs, const gko::size_type num_blocks,
+    const gko::preconditioner::batched_jacobi_blocks_storage_scheme<int>
+        storage_scheme,
+    const int* const __restrict__ blocks_cumulative_storage,
+    const int* const __restrict__ block_pointers,
+    const int* const __restrict__ row_in_which_block_info,
+    int* const blocks_pattern)
 {
     constexpr auto tile_size =
         config::warp_size;  // use full warp for coalesced memory accesses
@@ -192,14 +191,14 @@ __device__ __forceinline__ void invert_dense_block(Group subwarp_grp,
 
 template <int subwarp_size, typename ValueType>
 __global__
-    __launch_bounds__(default_block_size) void compute_block_jacobi_kernel(
-        const gko::size_type nbatch, const int nnz,
-        const ValueType* const A_vals, const gko::size_type num_blocks,
-        const gko::preconditioner::batched_jacobi_blocks_storage_scheme<int>
-            storage_scheme,
-        const int* const __restrict__ blocks_cumulative_storage,
-        const int* const __restrict__ block_pointers,
-        const int* const blocks_pattern, ValueType* const blocks)
+__launch_bounds__(default_block_size) void compute_block_jacobi_kernel(
+    const gko::size_type nbatch, const int nnz, const ValueType* const A_vals,
+    const gko::size_type num_blocks,
+    const gko::preconditioner::batched_jacobi_blocks_storage_scheme<int>
+        storage_scheme,
+    const int* const __restrict__ blocks_cumulative_storage,
+    const int* const __restrict__ block_pointers,
+    const int* const blocks_pattern, ValueType* const blocks)
 {
     auto thread_block = group::this_thread_block();
     auto subwarp_grp = group::tiled_partition<subwarp_size>(thread_block);
@@ -285,15 +284,15 @@ __global__
 
 template <int subwarp_size, typename ValueType>
 __global__
-    __launch_bounds__(default_block_size) void transpose_block_jacobi_kernel(
-        const size_type nbatch, const int nrows, const size_type num_blocks,
-        const int* const __restrict__ block_pointers,
-        const ValueType* const blocks_array,
-        const gko::preconditioner::batched_jacobi_blocks_storage_scheme<int>
-            storage_scheme,
-        const int* const __restrict__ blocks_cumulative_storage,
-        const int* const row_part_of_which_block_info,
-        ValueType* const out_blocks_array, const bool to_conjugate)
+__launch_bounds__(default_block_size) void transpose_block_jacobi_kernel(
+    const size_type nbatch, const int nrows, const size_type num_blocks,
+    const int* const __restrict__ block_pointers,
+    const ValueType* const blocks_array,
+    const gko::preconditioner::batched_jacobi_blocks_storage_scheme<int>
+        storage_scheme,
+    const int* const __restrict__ blocks_cumulative_storage,
+    const int* const row_part_of_which_block_info,
+    ValueType* const out_blocks_array, const bool to_conjugate)
 {
     auto thread_block = group::this_thread_block();
     auto subwarp_grp = group::tiled_partition<subwarp_size>(thread_block);

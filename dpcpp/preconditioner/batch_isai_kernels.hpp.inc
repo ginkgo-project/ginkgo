@@ -30,7 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 template <int subwarp_size>
 __dpct_inline__ void extract_dense_linear_sys_pattern_kernel(
     const int nrows, const int* const __restrict__ A_row_ptrs,

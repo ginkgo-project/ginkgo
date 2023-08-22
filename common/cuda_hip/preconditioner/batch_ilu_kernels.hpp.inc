@@ -112,12 +112,12 @@ __device__ __forceinline__ void modify_rows_below_curr_row(
 
 template <typename ValueType>
 __global__
-    __launch_bounds__(default_block_size) void generate_exact_ilu0_kernel(
-        const size_type batch_size, const int nrows, const int nnz,
-        const int* const __restrict__ diag_ptrs,
-        const int* const __restrict__ mat_row_ptrs,
-        const int* const __restrict__ mat_col_idxs,
-        ValueType* const __restrict__ mat_values)
+__launch_bounds__(default_block_size) void generate_exact_ilu0_kernel(
+    const size_type batch_size, const int nrows, const int nnz,
+    const int* const __restrict__ diag_ptrs,
+    const int* const __restrict__ mat_row_ptrs,
+    const int* const __restrict__ mat_col_idxs,
+    ValueType* const __restrict__ mat_values)
 {
     for (size_type batch_id = blockIdx.x; batch_id < batch_size;
          batch_id += gridDim.x) {
@@ -211,13 +211,13 @@ __global__ __launch_bounds__(default_block_size) void generate_parilu0_kernel(
 }
 
 __global__
-    __launch_bounds__(default_block_size) void generate_common_pattern_to_fill_L_and_U(
-        const int nrows, const int* const __restrict__ row_ptrs,
-        const int* const __restrict__ col_idxs,
-        const int* const __restrict__ row_ptrs_L,
-        const int* const __restrict__ row_ptrs_U,
-        int* const __restrict__ L_col_holders,
-        int* const __restrict__ U_col_holders)
+__launch_bounds__(default_block_size) void generate_common_pattern_to_fill_L_and_U(
+    const int nrows, const int* const __restrict__ row_ptrs,
+    const int* const __restrict__ col_idxs,
+    const int* const __restrict__ row_ptrs_L,
+    const int* const __restrict__ row_ptrs_U,
+    int* const __restrict__ L_col_holders,
+    int* const __restrict__ U_col_holders)
 {
     constexpr int warp_size = config::warp_size;
     auto tile_grp =
