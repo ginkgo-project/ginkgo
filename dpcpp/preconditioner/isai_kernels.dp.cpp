@@ -267,10 +267,10 @@ void generate_l_inverse(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                         IndexType* excess_rhs_sizes, IndexType* excess_nnz)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<
+        sycl::local_accessor<
             uninitialized_array<ValueType, subwarp_size * subwarp_size *
                                                subwarps_per_block>,
-            0, sycl::access_mode::read_write, sycl::access::target::local>
+            0>
             storage_acc_ct1(cgh);
 
         cgh.parallel_for(
@@ -337,10 +337,10 @@ void generate_u_inverse(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                         IndexType* excess_rhs_sizes, IndexType* excess_nnz)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<
+        sycl::local_accessor<
             uninitialized_array<ValueType, subwarp_size * subwarp_size *
                                                subwarps_per_block>,
-            0, sycl::access_mode::read_write, sycl::access::target::local>
+            0>
             storage_acc_ct1(cgh);
 
         cgh.parallel_for(
@@ -419,10 +419,10 @@ void generate_general_inverse(
     bool spd)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<
+        sycl::local_accessor<
             uninitialized_array<ValueType, subwarp_size * subwarp_size *
                                                subwarps_per_block>,
-            0, sycl::access_mode::read_write, sycl::access::target::local>
+            0>
             storage_acc_ct1(cgh);
 
         cgh.parallel_for(

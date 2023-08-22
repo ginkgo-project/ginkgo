@@ -69,8 +69,7 @@ void generic_kernel_reduction_1d(sycl::handler& cgh, int64 size,
     constexpr auto wg_size = DeviceConfig::block_size;
     constexpr auto sg_size = DeviceConfig::subgroup_size;
     constexpr auto num_partials = wg_size / sg_size;
-    sycl::accessor<uninitialized_array<ValueType, num_partials>, 0,
-                   sycl::access_mode::read_write, sycl::access::target::local>
+    sycl::local_accessor<uninitialized_array<ValueType, num_partials>, 0>
         subgroup_partial_acc(cgh);
     const auto range = sycl_nd_range(dim3(num_workgroups), dim3(wg_size));
     const auto global_size = num_workgroups * wg_size;
@@ -118,8 +117,7 @@ void generic_kernel_reduction_2d(sycl::handler& cgh, int64 rows, int64 cols,
     constexpr auto wg_size = DeviceConfig::block_size;
     constexpr auto sg_size = DeviceConfig::subgroup_size;
     constexpr auto num_partials = wg_size / sg_size;
-    sycl::accessor<uninitialized_array<ValueType, num_partials>, 0,
-                   sycl::access_mode::read_write, sycl::access::target::local>
+    sycl::local_accessor<uninitialized_array<ValueType, num_partials>, 0>
         subgroup_partial_acc(cgh);
     const auto range = sycl_nd_range(dim3(num_workgroups), dim3(wg_size));
     const auto global_size = num_workgroups * wg_size;
@@ -369,8 +367,7 @@ void generic_kernel_col_reduction_2d_small(
     constexpr auto subgroups_per_workgroup = wg_size / sg_size;
     // stores the subwarp_size partial sums from each warp, grouped by warp
     constexpr auto shared_storage = subgroups_per_workgroup * ssg_size;
-    sycl::accessor<uninitialized_array<ValueType, shared_storage>, 0,
-                   sycl::access_mode::read_write, sycl::access::target::local>
+    sycl::local_accessor<uninitialized_array<ValueType, shared_storage>, 0>
         block_partial_acc(cgh);
     const auto range = sycl_nd_range(dim3(row_blocks), dim3(wg_size));
     cgh.parallel_for(
@@ -442,8 +439,7 @@ void generic_kernel_col_reduction_2d_blocked(
     constexpr auto sg_size = cfg::subgroup_size;
     const auto range =
         sycl_nd_range(dim3(row_blocks, col_blocks), dim3(wg_size));
-    sycl::accessor<uninitialized_array<ValueType, wg_size>, 0,
-                   sycl::access_mode::read_write, sycl::access::target::local>
+    sycl::local_accessor<uninitialized_array<ValueType, wg_size>, 0>
         block_partial_acc(cgh);
     cgh.parallel_for(
         range, [=](sycl::nd_item<3> id) [[sycl::reqd_sub_group_size(sg_size)]] {

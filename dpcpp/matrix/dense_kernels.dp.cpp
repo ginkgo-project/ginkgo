@@ -130,9 +130,8 @@ void transpose(sycl::queue* queue, const matrix::Dense<ValueType>* orig,
     dim3 block(sg_size, sg_size);
 
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<uninitialized_array<ValueType, sg_size*(sg_size + 1)>, 0,
-                       sycl::access_mode::read_write,
-                       sycl::access::target::local>
+        sycl::local_accessor<
+            uninitialized_array<ValueType, sg_size*(sg_size + 1)>, 0>
             space_acc_ct1(cgh);
         // Can not pass the member to device function directly
         auto in = orig->get_const_values();
@@ -175,9 +174,8 @@ void conj_transpose(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 {
     constexpr auto sg_size = DeviceConfig::subgroup_size;
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<uninitialized_array<ValueType, sg_size*(sg_size + 1)>, 0,
-                       sycl::access_mode::read_write,
-                       sycl::access::target::local>
+        sycl::local_accessor<
+            uninitialized_array<ValueType, sg_size*(sg_size + 1)>, 0>
             space_acc_ct1(cgh);
 
         cgh.parallel_for(

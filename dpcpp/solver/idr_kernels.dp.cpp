@@ -171,9 +171,7 @@ void orthonormalize_subspace_vectors_kernel(
     size_type num_rows, size_type num_cols, ValueType* values, size_type stride)
 {
     stream->submit([&](sycl::handler& cgh) {
-        sycl::accessor<uninitialized_array<ValueType, block_size>, 0,
-                       sycl::access_mode::read_write,
-                       sycl::access::target::local>
+        sycl::local_accessor<uninitialized_array<ValueType, block_size>, 0>
             reduction_helper_array_acc_ct1(cgh);
 
         cgh.parallel_for(
@@ -388,10 +386,10 @@ void multidot_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                      const stopping_status* stop_status)
 {
     stream->submit([&](sycl::handler& cgh) {
-        sycl::accessor<uninitialized_array<ValueType, default_dot_dim*(
-                                                          default_dot_dim + 1)>,
-                       0, sycl::access_mode::read_write,
-                       sycl::access::target::local>
+        sycl::local_accessor<
+            uninitialized_array<ValueType,
+                                default_dot_dim*(default_dot_dim + 1)>,
+            0>
             reduction_helper_array_acc_ct1(cgh);
 
         cgh.parallel_for(

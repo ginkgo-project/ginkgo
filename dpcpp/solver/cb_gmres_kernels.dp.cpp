@@ -268,10 +268,10 @@ void multinorm2_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                        const stopping_status* stop_status)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<
+        sycl::local_accessor<
             uninitialized_array<remove_complex<ValueType>,
                                 default_dot_dim*(default_dot_dim + 1)>,
-            0, sycl::access_mode::read_write, sycl::access::target::local>
+            0>
             reduction_helper_array_acc_ct1(cgh);
 
         cgh.parallel_for(
@@ -345,10 +345,10 @@ void multinorminf_without_stop_kernel(
     size_type stride_norms)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<
+        sycl::local_accessor<
             uninitialized_array<remove_complex<ValueType>,
                                 default_dot_dim*(default_dot_dim + 1)>,
-            0, sycl::access_mode::read_write, sycl::access::target::local>
+            0>
             reduction_helper_array_acc_ct1(cgh);
 
         cgh.parallel_for(
@@ -447,11 +447,11 @@ void multinorm2_inf_kernel(
     remove_complex<ValueType>* norms2, const stopping_status* stop_status)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<
+        sycl::local_accessor<
             uninitialized_array<remove_complex<ValueType>,
                                 (1 + compute_inf) *
                                     default_dot_dim*(default_dot_dim + 1)>,
-            0, sycl::access_mode::read_write, sycl::access::target::local>
+            0>
             reduction_helper_array_acc_ct1(cgh);
 
         cgh.parallel_for(
@@ -541,9 +541,8 @@ void multidot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                      const stopping_status* stop_status)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<uninitialized_array<ValueType, dot_dim * dot_dim>, 0,
-                       sycl::access_mode::read_write,
-                       sycl::access::target::local>
+        sycl::local_accessor<uninitialized_array<ValueType, dot_dim * dot_dim>,
+                             0>
             reduction_helper_array_acc_ct1(cgh);
 
         cgh.parallel_for(
@@ -623,9 +622,7 @@ void singledot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                       const stopping_status* stop_status)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<uninitialized_array<ValueType, block_size>, 0,
-                       sycl::access_mode::read_write,
-                       sycl::access::target::local>
+        sycl::local_accessor<uninitialized_array<ValueType, block_size>, 0>
             reduction_helper_array_acc_ct1(cgh);
 
         cgh.parallel_for(

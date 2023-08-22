@@ -159,9 +159,8 @@ void generate(
     const IndexType* block_ptrs, size_type num_blocks)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<
-            uninitialized_array<ValueType, max_block_size * warps_per_block>, 0,
-            sycl::access_mode::read_write, sycl::access::target::local>
+        sycl::local_accessor<
+            uninitialized_array<ValueType, max_block_size * warps_per_block>, 0>
             workspace_acc_ct1(cgh);
 
         cgh.parallel_for(
@@ -344,9 +343,8 @@ void adaptive_generate(
     size_type num_blocks)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<
-            uninitialized_array<ValueType, max_block_size * warps_per_block>, 0,
-            sycl::access_mode::read_write, sycl::access::target::local>
+        sycl::local_accessor<
+            uninitialized_array<ValueType, max_block_size * warps_per_block>, 0>
             workspace_acc_ct1(cgh);
 
         cgh.parallel_for(sycl_nd_range(grid, block),

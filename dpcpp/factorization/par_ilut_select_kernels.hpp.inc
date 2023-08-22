@@ -91,18 +91,16 @@ void build_searchtree(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                       IndexType size, remove_complex<ValueType>* tree_output)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<remove_complex<ValueType>, 1,
-                       sycl::access_mode::read_write,
-                       sycl::access::target::local>
-            sh_samples_acc_ct1(sycl::range<1>(1024 /*sample_size*/), cgh);
+        sycl::local_accessor<remove_complex<ValueType>, 1> sh_samples_acc_ct1(
+            sycl::range<1>(1024 /*sample_size*/), cgh);
 
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=
-        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                            config::warp_size)]] {
-                build_searchtree(input, size, tree_output, item_ct1,
-                                 sh_samples_acc_ct1.get_pointer());
-            });
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1)
+                             [[sycl::reqd_sub_group_size(config::warp_size)]] {
+                                 build_searchtree(
+                                     input, size, tree_output, item_ct1,
+                                     sh_samples_acc_ct1.get_pointer());
+                             });
     });
 }
 
@@ -173,13 +171,10 @@ void count_buckets(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                    unsigned char* oracles, int items_per_thread)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<remove_complex<ValueType>, 1,
-                       sycl::access_mode::read_write,
-                       sycl::access::target::local>
-            sh_tree_acc_ct1(sycl::range<1>(255 /*searchtree_inner_size*/), cgh);
-        sycl::accessor<IndexType, 1, sycl::access_mode::read_write,
-                       sycl::access::target::local>
-            sh_counter_acc_ct1(sycl::range<1>(256 /*searchtree_width*/), cgh);
+        sycl::local_accessor<remove_complex<ValueType>, 1> sh_tree_acc_ct1(
+            sycl::range<1>(255 /*searchtree_inner_size*/), cgh);
+        sycl::local_accessor<IndexType, 1> sh_counter_acc_ct1(
+            sycl::range<1>(256 /*searchtree_width*/), cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
@@ -277,19 +272,19 @@ void block_prefix_sum(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                       IndexType* totals, IndexType num_blocks)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<IndexType, 1, sycl::access_mode::read_write,
-                       sycl::access::target::local>
-            warp_sums_acc_ct1(sycl::range<1>(default_block_size /
-                                             config::warp_size /*num_warps*/),
-                              cgh);
+        sycl::local_accessor<IndexType, 1> warp_sums_acc_ct1(
+            sycl::range<1>(default_block_size /
+                           config::warp_size /*num_warps*/),
+            cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=
-        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                            config::warp_size)]] {
-                block_prefix_sum(counters, totals, num_blocks, item_ct1,
-                                 (IndexType*)warp_sums_acc_ct1.get_pointer());
-            });
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1)
+                [[sycl::reqd_sub_group_size(config::warp_size)]] {
+                    block_prefix_sum(
+                        counters, totals, num_blocks, item_ct1,
+                        (IndexType*)warp_sums_acc_ct1.get_pointer());
+                });
     });
 }
 
@@ -343,9 +338,7 @@ void filter_bucket(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                    remove_complex<ValueType>* output, int items_per_thread)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<IndexType, 0, sycl::access_mode::read_write,
-                       sycl::access::target::local>
-            counter_acc_ct1(cgh);
+        sycl::local_accessor<IndexType, 0> counter_acc_ct1(cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
@@ -386,17 +379,16 @@ void basecase_select(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                      IndexType rank, ValueType* out)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
-                       sycl::access::target::local>
-            sh_local_acc_ct1(sycl::range<1>(1024 /*basecase_size*/), cgh);
+        sycl::local_accessor<ValueType, 1> sh_local_acc_ct1(
+            sycl::range<1>(1024 /*basecase_size*/), cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=
-        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                            config::warp_size)]] {
-                basecase_select(input, size, rank, out, item_ct1,
-                                (ValueType*)sh_local_acc_ct1.get_pointer());
-            });
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1)
+                [[sycl::reqd_sub_group_size(config::warp_size)]] {
+                    basecase_select(input, size, rank, out, item_ct1,
+                                    (ValueType*)sh_local_acc_ct1.get_pointer());
+                });
     });
 }
 
@@ -431,12 +423,11 @@ template <typename IndexType>
 void find_bucket(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                  sycl::queue* queue, IndexType* prefix_sum, IndexType rank)
 {
-    queue->parallel_for(
-        sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                        config::warp_size)]] {
-            find_bucket(prefix_sum, rank, item_ct1);
-        });
+    queue->parallel_for(sycl_nd_range(grid, block),
+                        [=](sycl::nd_item<3> item_ct1)
+                            [[sycl::reqd_sub_group_size(config::warp_size)]] {
+                                find_bucket(prefix_sum, rank, item_ct1);
+                            });
 }
 
 

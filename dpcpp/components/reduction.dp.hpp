@@ -219,9 +219,8 @@ void reduce_add_array(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                       const ValueType* source, ValueType* result)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<uninitialized_array<ValueType, DeviceConfig::block_size>,
-                       0, sycl::access::mode::read_write,
-                       sycl::access::target::local>
+        sycl::local_accessor<
+            uninitialized_array<ValueType, DeviceConfig::block_size>, 0>
             block_sum_acc_ct1(cgh);
 
         cgh.parallel_for(

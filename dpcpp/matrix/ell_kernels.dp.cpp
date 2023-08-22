@@ -213,10 +213,10 @@ void spmv(dim3 grid, dim3 block, size_type dynamic_shared_memory,
           OutputValueType* c, const size_type c_stride)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<
+        sycl::local_accessor<
             uninitialized_array<OutputValueType,
                                 default_block_size / num_thread_per_worker>,
-            0, sycl::access_mode::read_write, sycl::access::target::local>
+            0>
             storage_acc_ct1(cgh);
 
         cgh.parallel_for(sycl_nd_range(grid, block),
@@ -280,10 +280,10 @@ void spmv(dim3 grid, dim3 block, size_type dynamic_shared_memory,
           OutputValueType* c, const size_type c_stride)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<
+        sycl::local_accessor<
             uninitialized_array<OutputValueType,
                                 default_block_size / num_thread_per_worker>,
-            0, sycl::access_mode::read_write, sycl::access::target::local>
+            0>
             storage_acc_ct1(cgh);
 
         cgh.parallel_for(

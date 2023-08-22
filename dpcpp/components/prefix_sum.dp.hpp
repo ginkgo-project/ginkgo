@@ -189,9 +189,8 @@ void start_prefix_sum(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                       ValueType* elements, ValueType* block_sum)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<uninitialized_array<ValueType, DeviceConfig::block_size>,
-                       0, sycl::access::mode::read_write,
-                       sycl::access::target::local>
+        sycl::local_accessor<
+            uninitialized_array<ValueType, DeviceConfig::block_size>, 0>
             prefix_helper_acc_ct1(cgh);
 
         cgh.parallel_for(sycl_nd_range(grid, block),
