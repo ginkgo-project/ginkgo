@@ -161,7 +161,7 @@ struct CsrWithDefaultStrategy : CsrBase {
 
 
 #if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP) || \
-    defined(GKO_COMPILING_DPCPP)
+    defined(GKO_COMPILING_SYCL)
 
 
 struct CsrWithClassicalStrategy : CsrBase {
@@ -864,7 +864,7 @@ protected:
 using MatrixTypes = ::testing::Types<
     DenseWithDefaultStride, DenseWithCustomStride, Coo, CsrWithDefaultStrategy,
 #if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP) || \
-    defined(GKO_COMPILING_DPCPP)
+    defined(GKO_COMPILING_SYCL)
     CsrWithClassicalStrategy, CsrWithMergePathStrategy,
     CsrWithSparselibStrategy, CsrWithLoadBalanceStrategy,
     CsrWithAutomaticalStrategy,

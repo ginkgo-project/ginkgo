@@ -1,2 +1,2 @@
-ginkgo_create_common_test(jacobi_kernels DISABLE_EXECUTORS dpcpp)
+ginkgo_create_common_test(jacobi_kernels DISABLE_EXECUTORS sycl)
 ginkgo_create_common_test(isai_kernels)

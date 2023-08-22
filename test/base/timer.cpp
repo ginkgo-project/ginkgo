@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 class Timer : public CommonTestFixture {
-#ifdef GKO_COMPILING_DPCPP
+#ifdef GKO_COMPILING_SYCL
 public:
     Timer()
     {

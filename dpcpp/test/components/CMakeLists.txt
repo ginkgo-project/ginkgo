@@ -1,1 +1,1 @@
-ginkgo_create_dpcpp_test(cooperative_groups)
+ginkgo_create_sycl_test(cooperative_groups)

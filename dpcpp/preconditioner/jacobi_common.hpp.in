@@ -47,16 +47,16 @@ namespace jacobi {
  * kernels should be compiled.
  */
 // clang-format off
-#cmakedefine GKO_DPCPP_JACOBI_BLOCK_SIZES_CODE @GKO_DPCPP_JACOBI_BLOCK_SIZES_CODE@
+#cmakedefine GKO_SYCL_JACOBI_BLOCK_SIZES_CODE @GKO_SYCL_JACOBI_BLOCK_SIZES_CODE@
 // clang-format on
 // make things easier for IDEs
-#ifndef GKO_DPCPP_JACOBI_BLOCK_SIZES_CODE
-#define GKO_DPCPP_JACOBI_BLOCK_SIZES_CODE 1
+#ifndef GKO_SYCL_JACOBI_BLOCK_SIZES_CODE
+#define GKO_SYCL_JACOBI_BLOCK_SIZES_CODE 1
 #endif
 
 
 using compiled_kernels =
-    syn::value_list<int, GKO_DPCPP_JACOBI_BLOCK_SIZES_CODE>;
+    syn::value_list<int, GKO_SYCL_JACOBI_BLOCK_SIZES_CODE>;
 
 
 constexpr int get_larger_power(int value, int guess = 1)

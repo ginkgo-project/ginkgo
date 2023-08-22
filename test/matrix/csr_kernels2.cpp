@@ -1311,7 +1311,7 @@ TEST_F(Csr, CreateSubMatrixIsEquivalentToRef)
 }
 
 
-#ifndef GKO_COMPILING_DPCPP
+#ifndef GKO_COMPILING_SYCL
 
 
 TEST_F(Csr, CanDetectMissingDiagonalEntry)
@@ -1361,4 +1361,4 @@ TEST_F(Csr, AddScaledIdentityToNonSquare)
 }
 
 
-#endif  // GKO_COMPILING_DPCPP
+#endif  // GKO_COMPILING_SYCL

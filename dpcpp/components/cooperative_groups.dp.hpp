@@ -480,7 +480,7 @@ __dpct_inline__ grid_group this_grid(::sycl::nd_item<3>& group)
 
 
 // Enable group can directly use group function
-#if GINKGO_DPCPP_MAJOR_VERSION < 6
+#if GINKGO_SYCL_MAJOR_VERSION < 6
 inline namespace cl {
 #endif
 namespace sycl {
@@ -509,7 +509,7 @@ struct group_scope<
 }  // namespace spirv
 }  // namespace detail
 }  // namespace sycl
-#if GINKGO_DPCPP_MAJOR_VERSION < 6
+#if GINKGO_SYCL_MAJOR_VERSION < 6
 }  // namespace cl
 #endif
 

@@ -59,7 +59,7 @@ namespace {
 class Jacobi : public ::testing::Test {
 protected:
     using index_type = int32_t;
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_SYCL_SINGLE_MODE
     using value_type = float;
 #else
     using value_type = double;
@@ -618,12 +618,12 @@ TEST_F(Jacobi, AvoidsPrecisionsThatOverflow)
     auto prec =
         h_bj->get_parameters().storage_optimization.block_wise.get_const_data();
     ASSERT_EQ(prec[0], gko::precision_reduction(0, 2));
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_SYCL_SINGLE_MODE
     // In single value, precision_reduction(1, 1) == precision_reduction(2, 0)
     ASSERT_EQ(prec[1], gko::precision_reduction(2, 0));
 #else
     ASSERT_EQ(prec[1], gko::precision_reduction(1, 1));
-#endif  // GINKGO_DPCPP_SINGLE_MODE
+#endif  // GINKGO_SYCL_SINGLE_MODE
 }
 
 

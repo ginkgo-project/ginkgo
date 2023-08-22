@@ -2443,7 +2443,7 @@ void csr_lookup_build_hash(IndexType row_len, IndexType available_storage,
 {
     // we need at least one unfilled entry to avoid infinite loops on search
     GKO_ASSERT(row_len < available_storage);
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_SYCL_SINGLE_MODE
     constexpr float inv_golden_ratio = 0.61803398875f;
 #else
     constexpr double inv_golden_ratio = 0.61803398875;

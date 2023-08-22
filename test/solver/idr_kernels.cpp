@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#ifdef GKO_COMPILING_DPCPP
+#ifdef GKO_COMPILING_SYCL
 #include <CL/sycl.hpp>
 #endif
 
@@ -270,7 +270,7 @@ TEST_F(Idr, IdrComputeOmegaIsEquivalentToRef)
 
 TEST_F(Idr, IdrIterationOneRHSIsEquivalentToRef)
 {
-#ifdef GKO_COMPILING_DPCPP
+#ifdef GKO_COMPILING_SYCL
     if (exec->get_queue()->get_device().is_gpu()) {
         GTEST_SKIP() << "skip the test because oneMKL GEMM on gpu may give NaN "
                         "(under investigation)";

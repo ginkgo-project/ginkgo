@@ -89,7 +89,7 @@ struct to_device_type_impl<move_only_type&> {
 
 class KernelLaunch : public ::testing::Test {
 protected:
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_SYCL_SINGLE_MODE
     using value_type = float;
 #else
     using value_type = double;

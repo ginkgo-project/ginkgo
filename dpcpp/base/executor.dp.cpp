@@ -276,7 +276,7 @@ void SyclExecutor::set_device_property(sycl_queue_property property)
         device.get_info<::sycl::info::device::max_work_group_size>());
 // They change the max_work_item_size with template parameter Dimension after
 // major version 6 and adding the default = 3 is not in the same release.
-#if GINKGO_DPCPP_MAJOR_VERSION >= 6
+#if GINKGO_SYCL_MAJOR_VERSION >= 6
     auto max_workitem_sizes =
         device.get_info<::sycl::info::device::max_work_item_sizes<3>>();
 #else
@@ -293,7 +293,7 @@ void SyclExecutor::set_device_property(sycl_queue_property property)
 
     // Get the hardware threads per eu
     if (device.has(sycl::aspect::ext_intel_gpu_hw_threads_per_eu)) {
-#if GINKGO_DPCPP_MAJOR_VERSION >= 6
+#if GINKGO_SYCL_MAJOR_VERSION >= 6
         this->get_exec_info().num_pu_per_cu = device.get_info<
             ::sycl::ext::intel::info::device::gpu_hw_threads_per_eu>();
 #else

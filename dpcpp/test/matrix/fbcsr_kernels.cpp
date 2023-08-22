@@ -45,11 +45,11 @@ namespace {
 
 class Fbcsr : public ::testing::Test {
 protected:
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_SYCL_SINGLE_MODE
     using vtype = float;
 #else
     using vtype = double;
-#endif  // GINKGO_DPCPP_SINGLE_MODE
+#endif  // GINKGO_SYCL_SINGLE_MODE
     using Mtx = gko::matrix::Fbcsr<vtype>;
 
     void SetUp()

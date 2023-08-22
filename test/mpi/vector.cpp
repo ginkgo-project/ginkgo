@@ -131,7 +131,7 @@ TYPED_TEST_SUITE(VectorCreation, gko::test::ValueLocalGlobalIndexTypes,
                  TupleTypenameNameGenerator);
 
 
-#ifndef GKO_COMPILING_DPCPP
+#ifndef GKO_COMPILING_SYCL
 
 
 TYPED_TEST(VectorCreation, CanReadGlobalMatrixData)

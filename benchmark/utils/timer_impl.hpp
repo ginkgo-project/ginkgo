@@ -236,10 +236,10 @@ std::shared_ptr<Timer> get_hip_timer(
 #endif  // HAS_HIP_TIMER
 
 
-#ifdef HAS_DPCPP_TIMER
+#ifdef HAS_SYCL_TIMER
 std::shared_ptr<Timer> get_sycl_timer(
     std::shared_ptr<const gko::SyclExecutor> exec);
-#endif  // HAS_DPCPP_TIMER
+#endif  // HAS_SYCL_TIMER
 
 
 #if HAS_MPI_TIMER
@@ -277,12 +277,12 @@ inline std::shared_ptr<Timer> get_timer(
         }
 #endif  // HAS_HIP_TIMER
 
-#ifdef HAS_DPCPP_TIMER
+#ifdef HAS_SYCL_TIMER
         if (auto sycl =
                 std::dynamic_pointer_cast<const gko::SyclExecutor>(exec)) {
             return get_sycl_timer(sycl);
         }
-#endif  // HAS_DPCPP_TIMER
+#endif  // HAS_SYCL_TIMER
     }
     // No cuda/hip/sycl executor available or no gpu_timer used
     return std::make_shared<CpuTimer>(exec);

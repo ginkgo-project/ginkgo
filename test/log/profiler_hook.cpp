@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 class ProfilerHook : public CommonTestFixture {
-#ifdef GKO_COMPILING_DPCPP
+#ifdef GKO_COMPILING_SYCL
 public:
     ProfilerHook()
     {
