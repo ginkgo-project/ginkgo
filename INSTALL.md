@@ -31,7 +31,7 @@ Ginkgo adds the following additional switches to control what is being built:
 *   `-DGINKGO_FAST_TESTS={ON, OFF}` reduces the input sizes for a few slow tests
     to speed them up, default is `OFF`.
 *   `-DGINKGO_BUILD_BENCHMARKS={ON, OFF}` builds Ginkgo's benchmarks
-    (will download gflags and rapidjson), default is `ON`.
+    (will download gflags and nlohmann-json), default is `ON`.
 *   `-DGINKGO_BUILD_EXAMPLES={ON, OFF}` builds Ginkgo's examples, default is `ON`
 *   `-DGINKGO_BUILD_EXTLIB_EXAMPLE={ON, OFF}` builds the interfacing example
     with deal.II, default is `OFF`.
@@ -205,7 +205,7 @@ packages can be turned off by disabling the relevant options.
   Test](https://github.com/google/googletest);
 + GINKGO_BUILD_BENCHMARKS=ON: For argument management we use
   [gflags](https://github.com/gflags/gflags) and for JSON parsing we use
-  [RapidJSON](https://github.com/Tencent/rapidjson);
+  [nlohmann-json](https://github.com/nlohmann/json);
 + GINKGO_DEVEL_TOOLS=ON:
   [git-cmake-format](https://github.com/gflegar/git-cmake-format) is our CMake
   helper for code formatting.
@@ -224,7 +224,7 @@ packages can be turned off by disabling the relevant options.
 Ginkgo attempts to use pre-installed versions of these package if they match
 version requirements using `find_package`. Otherwise, the configuration step
 will download the files for each of the packages `GTest`, `gflags`,
-`RapidJSON` and `hwloc` and build them internally.
+`nlohmann-json` and `hwloc` and build them internally.
 
 Note that, if the external packages were not installed to the default location,
 the CMake option `-DCMAKE_PREFIX_PATH=<path-list>` needs to be set to the
