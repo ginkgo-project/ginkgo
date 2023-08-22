@@ -90,20 +90,18 @@ int get_num_threads_per_block(std::shared_ptr<const CudaExecutor> exec,
         config::warp_size;
     cudaFuncAttributes funcattr;
     cudaFuncGetAttributes(&funcattr,
-                          apply_kernel<StopType, 0, 0, PrecType, LogType,
+                          apply_kernel<StopType, 11, true, PrecType, LogType,
                                        BatchMatrixType, ValueType>);
     const int num_regs_used = funcattr.numRegs;
     int max_regs_blk = 0;
     cudaDeviceGetAttribute(&max_regs_blk, cudaDevAttrMaxRegistersPerBlock,
                            exec->get_device_id());
-    // FIXME: Using magic number, 1.1
     const int max_threads_regs =
-        ((max_regs_blk /
-          static_cast<int>((static_cast<double>(num_regs_used) * 1.1))) /
-         config::warp_size) *
+        ((max_regs_blk / num_regs_used) / config::warp_size) *
         config::warp_size;
     int max_threads = std::min(max_threads_regs, device_max_threads);
     max_threads = max_threads <= 1024 ? max_threads : 1024;
+    // TODO
     return std::min(nwarps * static_cast<int>(config::warp_size), max_threads);
 }
 
@@ -117,27 +115,16 @@ int get_max_dynamic_shared_memory(std::shared_ptr<const CudaExecutor> exec,
     cudaDeviceGetAttribute(&shmem_per_sm,
                            cudaDevAttrMaxSharedMemoryPerMultiprocessor,
                            exec->get_device_id());
-    // std::cerr << " Max shared mem per SM = " << shmem_per_sm << std::endl;
-    // int max_shared_pc =
-    //     100 - static_cast<int>(static_cast<double>(required_cache_storage) /
-    //                            shmem_per_sm * 100);
-    // if (max_shared_pc <= 0) {
-    //     max_shared_pc = 1;
-    // }
-    // // std::cerr << " Max shared pc required = " << max_shared_pc <<
-    // std::endl; GKO_ASSERT_NO_CUDA_ERRORS(cudaFuncSetAttribute(
-    //     apply_kernel<StopType, 11, 1, PrecType, LogType, BatchMatrixType,
-    //     ValueType>, cudaFuncAttributePreferredSharedMemoryCarveout,
-    //     max_shared_pc - 1));
-    // cudaFuncAttributes funcattr;
-    // cudaFuncGetAttributes(
-    //     &funcattr,
-    //     apply_kernel<StopType, 11, 1, PrecType, LogType, BatchMatrixType,
-    //     ValueType>);
-    // std::cerr << " Max dyn. shared memory for batch bcgs = ",
-    //        << funcattr.maxDynamicSharedSizeBytes << std::endl;
-    // return funcattr.maxDynamicSharedSizeBytes;
-    return shmem_per_sm;
+
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaFuncSetAttribute(
+        apply_kernel<StopType, 11, true, PrecType, LogType, BatchMatrixType,
+                     ValueType>,
+        cudaFuncAttributePreferredSharedMemoryCarveout, 99 /*%*/));
+    cudaFuncAttributes funcattr;
+    cudaFuncGetAttributes(&funcattr,
+                          apply_kernel<StopType, 11, true, PrecType, LogType,
+                                       BatchMatrixType, ValueType>);
+    return funcattr.maxDynamicSharedSizeBytes;
 }
 
 
@@ -183,20 +170,21 @@ public:
         using real_type = gko::remove_complex<value_type>;
         const size_type nbatch = a.num_batch;
         const auto restart = opts_.restart_num;
-        constexpr int align_multiple = 8;
+        constexpr int align_multiple = 2;
         const int shared_gap =
-            ((a.num_rows - 1) / align_multiple + 1) * align_multiple;
+            ((a.num_rows + align_multiple - 1) / align_multiple) *
+            align_multiple;
         gko::kernels::cuda::configure_shared_memory_banks<value_type>();
 
-        const int shmem_per_blk = 0;
-        // get_max_dynamic_shared_memory<StopType, PrecType, LogType,
-        //                               BatchMatrixType, value_type>(exec_,
-        //                                                            0);
+        const int shmem_per_blk =
+            get_max_dynamic_shared_memory<StopType, PrecType, LogType,
+                                          BatchMatrixType, value_type>(exec_,
+                                                                       0);
 
-        const int block_size = 128;
-        // get_num_threads_per_block<StopType, PrecType, LogType,
-        //                           BatchMatrixType, value_type>(exec_,
-        //                                                        a.num_rows);
+        const int block_size =
+            get_num_threads_per_block<StopType, PrecType, LogType,
+                                      BatchMatrixType, value_type>(exec_,
+                                                                   a.num_rows);
         assert(block_size >= 2 * config::warp_size);
 
         const size_t prec_size =
@@ -211,13 +199,6 @@ public:
         int num_rot_vecs_shared = min(sconf.n_shared - num_main_vecs_shared, 4);
         if (num_rot_vecs_shared < 0) num_rot_vecs_shared = 0;
 
-        // std::cout << "HERE  " << num_main_vecs_shared << " "
-        //           << num_rot_vecs_shared << std::endl;
-        // std::cout << "HERE  " << sconf.hess_shared << " "
-        //           << sconf.subspace_shared << " " << sconf.prec_shared
-        //           << std::endl;
-        // std::cout << sconf.gmem_stride_bytes << std::endl;
-
         const size_t shared_size =
             (num_main_vecs_shared * shared_gap +
              num_rot_vecs_shared * (restart + 1) +
@@ -225,6 +206,7 @@ public:
              (sconf.subspace_shared ? subspace_size : 0) +
              (sconf.hess_shared ? hess_size : 0)) *
             sizeof(value_type);
+
         auto workspace = gko::array<value_type>(
             exec_, sconf.gmem_stride_bytes * nbatch / sizeof(value_type));
         assert(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
@@ -236,22 +218,20 @@ public:
 
         // Template for calling launch_apply_kernel:
         // < StopType, n_shared, prec_shared_bool>
-        // FIXME
-        /*
         if (prec_shared_bool) {
             switch (n_shared) {
             case 11:
-                launch_apply_kernel<StopType, 11, 1>(
+                launch_apply_kernel<StopType, 11, true>(
                     sconf, logger, prec, a, b.values, x.values, workspace_data,
                     block_size, shared_size);
                 break;
             case 10:
-                launch_apply_kernel<StopType, 10, 1>(
+                launch_apply_kernel<StopType, 10, true>(
                     sconf, logger, prec, a, b.values, x.values, workspace_data,
                     block_size, shared_size);
                 break;
             case 9:
-                launch_apply_kernel<StopType, 9, 1>(
+                launch_apply_kernel<StopType, 9, true>(
                     sconf, logger, prec, a, b.values, x.values, workspace_data,
                     block_size, shared_size);
                 break;
@@ -259,68 +239,67 @@ public:
         } else {
             switch (n_shared) {
             case 0:
-                launch_apply_kernel<StopType, 0, 0>(
+                launch_apply_kernel<StopType, 0, false>(
                     sconf, logger, prec, a, b.values, x.values, workspace_data,
                     block_size, shared_size);
                 break;
             case 1:
-                launch_apply_kernel<StopType, 1, 0>(
+                launch_apply_kernel<StopType, 1, false>(
                     sconf, logger, prec, a, b.values, x.values, workspace_data,
                     block_size, shared_size);
                 break;
             case 2:
-                launch_apply_kernel<StopType, 2, 0>(
+                launch_apply_kernel<StopType, 2, false>(
                     sconf, logger, prec, a, b.values, x.values, workspace_data,
                     block_size, shared_size);
                 break;
             case 3:
-                launch_apply_kernel<StopType, 3, 0>(
+                launch_apply_kernel<StopType, 3, false>(
                     sconf, logger, prec, a, b.values, x.values, workspace_data,
                     block_size, shared_size);
                 break;
             case 4:
-                launch_apply_kernel<StopType, 4, 0>(
+                launch_apply_kernel<StopType, 4, false>(
                     sconf, logger, prec, a, b.values, x.values, workspace_data,
                     block_size, shared_size);
                 break;
             case 5:
-                launch_apply_kernel<StopType, 5, 0>(
+                launch_apply_kernel<StopType, 5, false>(
                     sconf, logger, prec, a, b.values, x.values, workspace_data,
                     block_size, shared_size);
                 break;
             case 6:
-                launch_apply_kernel<StopType, 6, 0>(
+                launch_apply_kernel<StopType, 6, false>(
                     sconf, logger, prec, a, b.values, x.values, workspace_data,
                     block_size, shared_size);
                 break;
             case 7:
-                launch_apply_kernel<StopType, 7, 0>(
+                launch_apply_kernel<StopType, 7, false>(
                     sconf, logger, prec, a, b.values, x.values, workspace_data,
                     block_size, shared_size);
                 break;
             case 8:
-                launch_apply_kernel<StopType, 8, 0>(
+                launch_apply_kernel<StopType, 8, false>(
                     sconf, logger, prec, a, b.values, x.values, workspace_data,
                     block_size, shared_size);
                 break;
             case 9:
-                launch_apply_kernel<StopType, 9, 0>(
+                launch_apply_kernel<StopType, 9, false>(
                     sconf, logger, prec, a, b.values, x.values, workspace_data,
                     block_size, shared_size);
                 break;
             case 10:
-                launch_apply_kernel<StopType, 10, 0>(
+                launch_apply_kernel<StopType, 10, false>(
                     sconf, logger, prec, a, b.values, x.values, workspace_data,
                     block_size, shared_size);
                 break;
             case 11:
-                launch_apply_kernel<StopType, 11, 0>(
+                launch_apply_kernel<StopType, 11, false>(
                     sconf, logger, prec, a, b.values, x.values, workspace_data,
                     block_size, shared_size);
                 break;
             }
         }
-    */
         GKO_CUDA_LAST_IF_ERROR_THROW;
     }
 
