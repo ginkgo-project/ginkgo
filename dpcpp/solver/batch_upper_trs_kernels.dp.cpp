@@ -32,6 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/batch_upper_trs_kernels.hpp"
 
+
 #include "core/matrix/batch_struct.hpp"
 // #include "core/solver/batch_dispatch.hpp"
 #include "dpcpp/base/config.hpp"
@@ -49,7 +50,6 @@ namespace batch_upper_trs {
 #include "dpcpp/matrix/batch_csr_kernels.hpp.inc"
 #include "dpcpp/matrix/batch_dense_kernels.hpp.inc"
 #include "dpcpp/matrix/batch_ell_kernels.hpp.inc"
-
 #include "dpcpp/solver/batch_upper_trs_kernels.hpp.inc"
 
 template <typename BatchMatrixType, typename ValueType>

@@ -272,8 +272,8 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
 
 
 template <isai_type IsaiType, typename ValueType, typename IndexType>
-Isai<IsaiType, ValueType, IndexType>& Isai<IsaiType, ValueType, IndexType>::
-operator=(const Isai& other)
+Isai<IsaiType, ValueType, IndexType>&
+Isai<IsaiType, ValueType, IndexType>::operator=(const Isai& other)
 {
     if (&other != this) {
         EnableLinOp<Isai>::operator=(other);
@@ -290,8 +290,8 @@ operator=(const Isai& other)
 
 
 template <isai_type IsaiType, typename ValueType, typename IndexType>
-Isai<IsaiType, ValueType, IndexType>& Isai<IsaiType, ValueType, IndexType>::
-operator=(Isai&& other)
+Isai<IsaiType, ValueType, IndexType>&
+Isai<IsaiType, ValueType, IndexType>::operator=(Isai&& other)
 {
     if (&other != this) {
         EnableLinOp<Isai>::operator=(std::move(other));

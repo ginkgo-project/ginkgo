@@ -37,9 +37,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <type_traits>
 
+
 #include <CL/sycl.hpp>
 #include <oneapi/mkl.hpp>
-#include "oneapi/mkl/rng/device.hpp"
+#include <oneapi/mkl/rng/device.hpp>
+
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 

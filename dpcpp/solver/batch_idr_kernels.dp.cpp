@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/math.hpp>
 
+
 #include "core/matrix/batch_struct.hpp"
 #include "core/solver/batch_dispatch.hpp"
 #include "dpcpp/base/config.hpp"
