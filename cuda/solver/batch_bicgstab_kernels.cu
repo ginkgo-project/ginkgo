@@ -94,7 +94,6 @@ int get_num_threads_per_block(std::shared_ptr<const CudaExecutor> exec,
     int max_regs_blk = 0;
     cudaDeviceGetAttribute(&max_regs_blk, cudaDevAttrMaxRegistersPerBlock,
                            exec->get_device_id());
-    // FIXME: Using magic number, 1.1
     const int max_threads_regs =
         ((max_regs_blk /
           static_cast<int>((static_cast<double>(num_regs_used)))) /
@@ -115,24 +114,14 @@ int get_max_dynamic_shared_memory(std::shared_ptr<const CudaExecutor> exec,
     cudaDeviceGetAttribute(&shmem_per_sm,
                            cudaDevAttrMaxSharedMemoryPerMultiprocessor,
                            exec->get_device_id());
-    // std::cerr << " Max shared mem per SM = " << shmem_per_sm << std::endl;
-    int max_shared_pc =
-        100 - static_cast<int>(static_cast<double>(required_cache_storage) /
-                               shmem_per_sm * 100);
-    if (max_shared_pc <= 0) {
-        max_shared_pc = 1;
-    }
-    // std::cerr << " Max shared pc required = " << max_shared_pc << std::endl;
     GKO_ASSERT_NO_CUDA_ERRORS(cudaFuncSetAttribute(
         apply_kernel<StopType, 9, true, PrecType, LogType, BatchMatrixType,
                      ValueType>,
-        cudaFuncAttributePreferredSharedMemoryCarveout, max_shared_pc - 1));
+        cudaFuncAttributePreferredSharedMemoryCarveout, 99 /*%*/));
     cudaFuncAttributes funcattr;
     cudaFuncGetAttributes(&funcattr,
                           apply_kernel<StopType, 9, true, PrecType, LogType,
                                        BatchMatrixType, ValueType>);
-    // std::cerr << " Max dyn. shared memory for batch bcgs = ",
-    //        << funcattr.maxDynamicSharedSizeBytes << std::endl;
     return funcattr.maxDynamicSharedSizeBytes;
 }
 
@@ -168,9 +157,6 @@ public:
                 sconf, opts_.max_its, opts_.residual_tol, logger, prec, a,
                 b_values, x_values, workspace_data);
     }
-    //     apply_kernel<StopType><<<nbatch, block_size, shared_size>>>(
-    //         sconf, opts_.max_its, opts_.residual_tol, logger, prec, a,
-    //         b.values, x.values, workspace.get_data());
     template <typename BatchMatrixType, typename PrecType, typename StopType,
               typename LogType>
     void call_kernel(LogType logger, const BatchMatrixType& a, PrecType prec,
@@ -179,7 +165,10 @@ public:
     {
         using real_type = gko::remove_complex<value_type>;
         const size_type nbatch = a.num_batch;
-        const int shared_gap = ((a.num_rows - 1) / 8 + 1) * 8;
+        constexpr int align_multiple = 2;
+        const int shared_gap =
+            ((a.num_rows + align_multiple - 1) / align_multiple) *
+            align_multiple;
         gko::kernels::cuda::configure_shared_memory_banks<value_type>();
 
         const auto matrix_storage = a.get_entry_storage();

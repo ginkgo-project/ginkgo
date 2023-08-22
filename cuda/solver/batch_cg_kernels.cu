@@ -112,24 +112,14 @@ int get_max_dynamic_shared_memory(std::shared_ptr<const CudaExecutor> exec,
     cudaDeviceGetAttribute(&shmem_per_sm,
                            cudaDevAttrMaxSharedMemoryPerMultiprocessor,
                            exec->get_device_id());
-    // std::cerr << " Max shared mem per SM = " << shmem_per_sm << std::endl;
-    int max_shared_pc =
-        100 - static_cast<int>(static_cast<double>(required_cache_storage) /
-                               shmem_per_sm * 100);
-    if (max_shared_pc <= 0) {
-        max_shared_pc = 1;
-    }
-    // std::cerr << " Max shared pc required = " << max_shared_pc << std::endl;
     GKO_ASSERT_NO_CUDA_ERRORS(cudaFuncSetAttribute(
         apply_kernel<StopType, 5, 1, PrecType, LogType, BatchMatrixType,
                      ValueType>,
-        cudaFuncAttributePreferredSharedMemoryCarveout, max_shared_pc - 1));
+        cudaFuncAttributePreferredSharedMemoryCarveout, 99 /*%*/));
     cudaFuncAttributes funcattr;
     cudaFuncGetAttributes(&funcattr,
                           apply_kernel<StopType, 5, 1, PrecType, LogType,
                                        BatchMatrixType, ValueType>);
-    // std::cerr << " Max dyn. shared memory for batch bcgs = ",
-    //        << funcattr.maxDynamicSharedSizeBytes << std::endl;
     return funcattr.maxDynamicSharedSizeBytes;
 }
 
@@ -174,9 +164,10 @@ public:
     {
         using real_type = gko::remove_complex<value_type>;
         const size_type nbatch = a.num_batch;
-        constexpr int align_multiple = 8;
+        constexpr int align_multiple = 2;
         const int shared_gap =
-            ((a.num_rows - 1) / align_multiple + 1) * align_multiple;
+            ((a.num_rows + align_multiple - 1) / align_multiple) *
+            align_multiple;
         gko::kernels::cuda::configure_shared_memory_banks<value_type>();
         const int shmem_per_blk =
             get_max_dynamic_shared_memory<StopType, PrecType, LogType,
