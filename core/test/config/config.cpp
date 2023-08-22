@@ -117,7 +117,7 @@ TEST_F(Config, GenerateObjectWithPreconditioner)
     auto reg = registry(config_map);
 
     pnode p{{{"ValueType", pnode{"double"}}, {"criteria", this->stop_config}}};
-    p.get_list()["preconditioner"] =
+    p.get_map()["preconditioner"] =
         pnode{{{"Type", pnode{"Cg"}}, {"criteria", this->stop_config}}};
     auto obj = build_from_config<0>(p, reg, this->exec);
 
@@ -145,7 +145,8 @@ TEST_F(Config, GenerateObjectWithCustomBuild)
     auto reg = registry(config_map);
 
     pnode p{{{"ValueType", pnode{"double"}}, {"criteria", this->stop_config}}};
-    p.get_list()["preconditioner"] = pnode{{{"Type", pnode{"Custom"}}}};
+    p.get_map()["preconditioner"] =
+        pnode{std::map<std::string, pnode>{{"Type", pnode{"Custom"}}}};
     auto obj = build_from_config<0>(p, reg, this->exec, {"double", ""});
 
     ASSERT_NE(dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get()),
