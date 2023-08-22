@@ -76,7 +76,7 @@ void spmv_kernel(size_type num_rows, size_type num_right_hand_sides,
                  const ValueType* __restrict__ a,
                  const IndexType* __restrict__ cols,
                  const ValueType* __restrict__ b, ValueType* __restrict__ c,
-                 sycl::nd_item<3> item_ct1)
+                 ::sycl::nd_item<3> item_ct1)
 {
     const auto row = thread::get_thread_id_flat(item_ct1);
     const auto slice_id = row / slice_size;
@@ -99,16 +99,14 @@ GKO_ENABLE_DEFAULT_HOST(spmv_kernel, spmv_kernel);
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spmv_kernel(size_type num_rows, size_type num_right_hand_sides,
-                          size_type b_stride, size_type c_stride,
-                          size_type slice_size,
-                          const size_type* __restrict__ slice_sets,
-                          const ValueType* __restrict__ alpha,
-                          const ValueType* __restrict__ a,
-                          const IndexType* __restrict__ cols,
-                          const ValueType* __restrict__ b,
-                          const ValueType* __restrict__ beta,
-                          ValueType* __restrict__ c, sycl::nd_item<3> item_ct1)
+void advanced_spmv_kernel(
+    size_type num_rows, size_type num_right_hand_sides, size_type b_stride,
+    size_type c_stride, size_type slice_size,
+    const size_type* __restrict__ slice_sets,
+    const ValueType* __restrict__ alpha, const ValueType* __restrict__ a,
+    const IndexType* __restrict__ cols, const ValueType* __restrict__ b,
+    const ValueType* __restrict__ beta, ValueType* __restrict__ c,
+    ::sycl::nd_item<3> item_ct1)
 {
     const auto row = thread::get_thread_id_flat(item_ct1);
     const auto slice_id = row / slice_size;

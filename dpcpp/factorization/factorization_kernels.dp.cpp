@@ -120,7 +120,7 @@ void find_missing_diagonal_elements(
     const IndexType* __restrict__ col_idxs,
     const IndexType* __restrict__ row_ptrs,
     IndexType* __restrict__ elements_to_add_per_row,
-    bool* __restrict__ changes_required, sycl::nd_item<3> item_ct1)
+    bool* __restrict__ changes_required, ::sycl::nd_item<3> item_ct1)
 {
     const auto total_subwarp_count =
         thread::get_subwarp_num_flat<SubwarpSize, IndexType>(item_ct1);
@@ -167,14 +167,14 @@ void find_missing_diagonal_elements(
 
 template <bool IsSorted, int SubwarpSize, typename IndexType>
 void find_missing_diagonal_elements(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
-    IndexType num_rows, IndexType num_cols, const IndexType* col_idxs,
-    const IndexType* row_ptrs, IndexType* elements_to_add_per_row,
-    bool* changes_required)
+    dim3 grid, dim3 block, size_type dynamic_shared_memory,
+    ::sycl::queue* queue, IndexType num_rows, IndexType num_cols,
+    const IndexType* col_idxs, const IndexType* row_ptrs,
+    IndexType* elements_to_add_per_row, bool* changes_required)
 {
     queue->parallel_for(
         sycl_nd_range(grid, block),
-        [=](sycl::nd_item<3> item_ct1)
+        [=](::sycl::nd_item<3> item_ct1)
             [[sycl::reqd_sub_group_size(SubwarpSize)]] {
                 find_missing_diagonal_elements<IsSorted, SubwarpSize>(
                     num_rows, num_cols, col_idxs, row_ptrs,
@@ -191,7 +191,8 @@ void add_missing_diagonal_elements(
     const IndexType* __restrict__ old_col_idxs,
     const IndexType* __restrict__ old_row_ptrs,
     ValueType* __restrict__ new_values, IndexType* __restrict__ new_col_idxs,
-    const IndexType* __restrict__ row_ptrs_addition, sycl::nd_item<3> item_ct1)
+    const IndexType* __restrict__ row_ptrs_addition,
+    ::sycl::nd_item<3> item_ct1)
 {
     // Precaution in case not enough threads were created
     const auto total_subwarp_count =
@@ -267,14 +268,14 @@ void add_missing_diagonal_elements(
 
 template <int SubwarpSize, typename ValueType, typename IndexType>
 void add_missing_diagonal_elements(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
-    IndexType num_rows, const ValueType* old_values,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory,
+    ::sycl::queue* queue, IndexType num_rows, const ValueType* old_values,
     const IndexType* old_col_idxs, const IndexType* old_row_ptrs,
     ValueType* new_values, IndexType* new_col_idxs,
     const IndexType* row_ptrs_addition)
 {
     queue->parallel_for(sycl_nd_range(grid, block),
-                        [=](sycl::nd_item<3> item_ct1)
+                        [=](::sycl::nd_item<3> item_ct1)
                             [[sycl::reqd_sub_group_size(SubwarpSize)]] {
                                 add_missing_diagonal_elements<SubwarpSize>(
                                     num_rows, old_values, old_col_idxs,
@@ -287,7 +288,7 @@ void add_missing_diagonal_elements(
 template <typename IndexType>
 void update_row_ptrs(IndexType num_rows, IndexType* __restrict__ row_ptrs,
                      IndexType* __restrict__ row_ptr_addition,
-                     sycl::nd_item<3> item_ct1)
+                     ::sycl::nd_item<3> item_ct1)
 {
     const auto total_thread_count =
         thread::get_thread_num_flat<IndexType>(item_ct1);
@@ -300,11 +301,11 @@ void update_row_ptrs(IndexType num_rows, IndexType* __restrict__ row_ptrs,
 
 template <typename IndexType>
 void update_row_ptrs(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                     sycl::queue* queue, IndexType num_rows,
+                     ::sycl::queue* queue, IndexType num_rows,
                      IndexType* row_ptrs, IndexType* row_ptr_addition)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+        sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
             update_row_ptrs(num_rows, row_ptrs, row_ptr_addition, item_ct1);
         });
 }
@@ -317,7 +318,7 @@ void count_nnz_per_l_u_row(size_type num_rows,
                            const ValueType* __restrict__ values,
                            IndexType* __restrict__ l_nnz_row,
                            IndexType* __restrict__ u_nnz_row,
-                           sycl::nd_item<3> item_ct1)
+                           ::sycl::nd_item<3> item_ct1)
 {
     const auto row = thread::get_thread_id_flat<IndexType>(item_ct1);
     if (row < num_rows) {
@@ -337,13 +338,14 @@ void count_nnz_per_l_u_row(size_type num_rows,
 
 template <typename ValueType, typename IndexType>
 void count_nnz_per_l_u_row(dim3 grid, dim3 block,
-                           size_type dynamic_shared_memory, sycl::queue* queue,
-                           size_type num_rows, const IndexType* row_ptrs,
-                           const IndexType* col_idxs, const ValueType* values,
-                           IndexType* l_nnz_row, IndexType* u_nnz_row)
+                           size_type dynamic_shared_memory,
+                           ::sycl::queue* queue, size_type num_rows,
+                           const IndexType* row_ptrs, const IndexType* col_idxs,
+                           const ValueType* values, IndexType* l_nnz_row,
+                           IndexType* u_nnz_row)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+        sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
             count_nnz_per_l_u_row(num_rows, row_ptrs, col_idxs, values,
                                   l_nnz_row, u_nnz_row, item_ct1);
         });
@@ -359,7 +361,8 @@ void initialize_l_u(size_type num_rows, const IndexType* __restrict__ row_ptrs,
                     ValueType* __restrict__ l_values,
                     const IndexType* __restrict__ u_row_ptrs,
                     IndexType* __restrict__ u_col_idxs,
-                    ValueType* __restrict__ u_values, sycl::nd_item<3> item_ct1)
+                    ValueType* __restrict__ u_values,
+                    ::sycl::nd_item<3> item_ct1)
 {
     const auto row = thread::get_thread_id_flat<IndexType>(item_ct1);
     if (row < num_rows) {
@@ -397,7 +400,7 @@ void initialize_l_u(size_type num_rows, const IndexType* __restrict__ row_ptrs,
 
 template <typename ValueType, typename IndexType>
 void initialize_l_u(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                    sycl::queue* queue, size_type num_rows,
+                    ::sycl::queue* queue, size_type num_rows,
                     const IndexType* row_ptrs, const IndexType* col_idxs,
                     const ValueType* values, const IndexType* l_row_ptrs,
                     IndexType* l_col_idxs, ValueType* l_values,
@@ -405,7 +408,7 @@ void initialize_l_u(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                     ValueType* u_values)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+        sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
             initialize_l_u(num_rows, row_ptrs, col_idxs, values, l_row_ptrs,
                            l_col_idxs, l_values, u_row_ptrs, u_col_idxs,
                            u_values, item_ct1);
@@ -419,7 +422,7 @@ void count_nnz_per_l_row(size_type num_rows,
                          const IndexType* __restrict__ col_idxs,
                          const ValueType* __restrict__ values,
                          IndexType* __restrict__ l_nnz_row,
-                         sycl::nd_item<3> item_ct1)
+                         ::sycl::nd_item<3> item_ct1)
 {
     const auto row = thread::get_thread_id_flat<IndexType>(item_ct1);
     if (row < num_rows) {
@@ -436,12 +439,12 @@ void count_nnz_per_l_row(size_type num_rows,
 
 template <typename ValueType, typename IndexType>
 void count_nnz_per_l_row(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                         sycl::queue* queue, size_type num_rows,
+                         ::sycl::queue* queue, size_type num_rows,
                          const IndexType* row_ptrs, const IndexType* col_idxs,
                          const ValueType* values, IndexType* l_nnz_row)
 {
     queue->parallel_for(sycl_nd_range(grid, block),
-                        [=](sycl::nd_item<3> item_ct1) {
+                        [=](::sycl::nd_item<3> item_ct1) {
                             count_nnz_per_l_row(num_rows, row_ptrs, col_idxs,
                                                 values, l_nnz_row, item_ct1);
                         });
@@ -455,7 +458,7 @@ void initialize_l(size_type num_rows, const IndexType* __restrict__ row_ptrs,
                   const IndexType* __restrict__ l_row_ptrs,
                   IndexType* __restrict__ l_col_idxs,
                   ValueType* __restrict__ l_values, bool use_sqrt,
-                  sycl::nd_item<3> item_ct1)
+                  ::sycl::nd_item<3> item_ct1)
 {
     const auto row = thread::get_thread_id_flat<IndexType>(item_ct1);
     if (row < num_rows) {
@@ -491,13 +494,13 @@ void initialize_l(size_type num_rows, const IndexType* __restrict__ row_ptrs,
 
 template <typename ValueType, typename IndexType>
 void initialize_l(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                  sycl::queue* queue, size_type num_rows,
+                  ::sycl::queue* queue, size_type num_rows,
                   const IndexType* row_ptrs, const IndexType* col_idxs,
                   const ValueType* values, const IndexType* l_row_ptrs,
                   IndexType* l_col_idxs, ValueType* l_values, bool use_sqrt)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+        sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
             initialize_l(num_rows, row_ptrs, col_idxs, values, l_row_ptrs,
                          l_col_idxs, l_values, use_sqrt, item_ct1);
         });

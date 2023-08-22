@@ -53,12 +53,12 @@ namespace detail {
 
 const std::vector<sycl::device> get_devices(std::string device_type)
 {
-    std::map<std::string, sycl::info::device_type> device_type_map{
-        {"accelerator", sycl::info::device_type::accelerator},
-        {"all", sycl::info::device_type::all},
-        {"cpu", sycl::info::device_type::cpu},
-        {"host", sycl::info::device_type::host},
-        {"gpu", sycl::info::device_type::gpu}};
+    std::map<std::string, ::sycl::info::device_type> device_type_map{
+        {"accelerator", ::sycl::info::device_type::accelerator},
+        {"all", ::sycl::info::device_type::all},
+        {"cpu", ::sycl::info::device_type::cpu},
+        {"host", ::sycl::info::device_type::host},
+        {"gpu", ::sycl::info::device_type::gpu}};
     std::for_each(device_type.begin(), device_type.end(),
                   [](char& c) { c = std::tolower(c); });
     return sycl::device::get_devices(device_type_map.at(device_type));
@@ -224,7 +224,7 @@ bool SyclExecutor::verify_memory_to(const SyclExecutor* dest_exec) const
 namespace detail {
 
 
-void delete_queue(sycl::queue* queue)
+void delete_queue(::sycl::queue* queue)
 {
     queue->wait();
     delete queue;
@@ -257,7 +257,7 @@ void SyclExecutor::set_device_property(sycl_queue_property property)
     if (!device.is_host()) {
         try {
             auto subgroup_sizes =
-                device.get_info<sycl::info::device::sub_group_sizes>();
+                device.get_info<::sycl::info::device::sub_group_sizes>();
             for (auto& i : subgroup_sizes) {
                 this->get_exec_info().subgroup_sizes.push_back(i);
             }
@@ -266,26 +266,26 @@ void SyclExecutor::set_device_property(sycl_queue_property property)
         }
     }
     this->get_exec_info().num_computing_units = static_cast<int>(
-        device.get_info<sycl::info::device::max_compute_units>());
+        device.get_info<::sycl::info::device::max_compute_units>());
     const auto subgroup_sizes = this->get_exec_info().subgroup_sizes;
     if (subgroup_sizes.size()) {
         this->get_exec_info().max_subgroup_size = static_cast<int>(
             *std::max_element(subgroup_sizes.begin(), subgroup_sizes.end()));
     }
     this->get_exec_info().max_workgroup_size = static_cast<int>(
-        device.get_info<sycl::info::device::max_work_group_size>());
+        device.get_info<::sycl::info::device::max_work_group_size>());
 // They change the max_work_item_size with template parameter Dimension after
 // major version 6 and adding the default = 3 is not in the same release.
 #if GINKGO_DPCPP_MAJOR_VERSION >= 6
     auto max_workitem_sizes =
-        device.get_info<sycl::info::device::max_work_item_sizes<3>>();
+        device.get_info<::sycl::info::device::max_work_item_sizes<3>>();
 #else
     auto max_workitem_sizes =
-        device.get_info<sycl::info::device::max_work_item_sizes>();
+        device.get_info<::sycl::info::device::max_work_item_sizes>();
 #endif
-    // Get the max dimension of a sycl::id object
+    // Get the max dimension of a ::sycl::id object
     auto max_work_item_dimensions =
-        device.get_info<sycl::info::device::max_work_item_dimensions>();
+        device.get_info<::sycl::info::device::max_work_item_dimensions>();
     for (uint32 i = 0; i < max_work_item_dimensions; i++) {
         this->get_exec_info().max_workitem_sizes.push_back(
             max_workitem_sizes[i]);
@@ -295,10 +295,10 @@ void SyclExecutor::set_device_property(sycl_queue_property property)
     if (device.has(sycl::aspect::ext_intel_gpu_hw_threads_per_eu)) {
 #if GINKGO_DPCPP_MAJOR_VERSION >= 6
         this->get_exec_info().num_pu_per_cu = device.get_info<
-            sycl::ext::intel::info::device::gpu_hw_threads_per_eu>();
+            ::sycl::ext::intel::info::device::gpu_hw_threads_per_eu>();
 #else
         this->get_exec_info().num_pu_per_cu = device.get_info<
-            sycl::info::device::ext_intel_gpu_hw_threads_per_eu>();
+            ::sycl::info::device::ext_intel_gpu_hw_threads_per_eu>();
 #endif
     } else {
         // To make the usage still valid.
@@ -311,8 +311,10 @@ void SyclExecutor::set_device_property(sycl_queue_property property)
     // `wait()` would be needed after every call to a DPC++ function or kernel.
     // For example, without `in_order`, doing a copy, a kernel, and a copy, will
     // not necessarily happen in that order by default, which we need to avoid.
-    auto* queue = new sycl::queue{device, detail::get_property_list(property)};
-    queue_ = std::move(queue_manager<sycl::queue>{queue, detail::delete_queue});
+    auto* queue =
+        new ::sycl::queue{device, detail::get_property_list(property)};
+    queue_ =
+        std::move(queue_manager<::sycl::queue>{queue, detail::delete_queue});
 }
 
 
@@ -320,7 +322,7 @@ namespace kernels {
 namespace sycl {
 
 
-void destroy_event(sycl::event* event) { delete event; }
+void destroy_event(::sycl::event* event) { delete event; }
 
 
 }  // namespace sycl

@@ -71,7 +71,7 @@ void advanced_apply(
     const IndexType* __restrict__ block_ptrs, size_type num_blocks,
     const ValueType* __restrict__ alpha, const ValueType* __restrict__ b,
     int32 b_stride, ValueType* __restrict__ x, int32 x_stride,
-    sycl::nd_item<3> item_ct1)
+    ::sycl::nd_item<3> item_ct1)
 {
     const auto block_id =
         thread::get_subwarp_id<subwarp_size, warps_per_block>(item_ct1);
@@ -98,15 +98,15 @@ void advanced_apply(
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
 void advanced_apply(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
-    const ValueType* blocks,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory,
+    ::sycl::queue* queue, const ValueType* blocks,
     preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
     const IndexType* block_ptrs, size_type num_blocks, const ValueType* alpha,
     const ValueType* b, int32 b_stride, ValueType* x, int32 x_stride)
 {
     queue->parallel_for(
         sycl_nd_range(grid, block),
-        [=](sycl::nd_item<3> item_ct1)
+        [=](::sycl::nd_item<3> item_ct1)
             [[sycl::reqd_sub_group_size(subwarp_size)]] {
                 advanced_apply<max_block_size, subwarp_size, warps_per_block>(
                     blocks, storage_scheme, block_ptrs, num_blocks, alpha, b,
@@ -124,7 +124,7 @@ void advanced_adaptive_apply(
     const IndexType* __restrict__ block_ptrs, size_type num_blocks,
     const ValueType* __restrict__ alpha, const ValueType* __restrict__ b,
     int32 b_stride, ValueType* __restrict__ x, int32 x_stride,
-    sycl::nd_item<3> item_ct1)
+    ::sycl::nd_item<3> item_ct1)
 {
     const auto block_id =
         thread::get_subwarp_id<subwarp_size, warps_per_block>(item_ct1);
@@ -156,8 +156,8 @@ void advanced_adaptive_apply(
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
 void advanced_adaptive_apply(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
-    const ValueType* blocks,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory,
+    ::sycl::queue* queue, const ValueType* blocks,
     preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
     const precision_reduction* block_precisions, const IndexType* block_ptrs,
     size_type num_blocks, const ValueType* alpha, const ValueType* b,
@@ -165,7 +165,7 @@ void advanced_adaptive_apply(
 {
     queue->parallel_for(
         sycl_nd_range(grid, block),
-        [=](sycl::nd_item<3> item_ct1)
+        [=](::sycl::nd_item<3> item_ct1)
             [[sycl::reqd_sub_group_size(subwarp_size)]] {
                 advanced_adaptive_apply<max_block_size, subwarp_size,
                                         warps_per_block>(

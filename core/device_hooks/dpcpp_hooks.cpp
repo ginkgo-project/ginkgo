@@ -149,7 +149,7 @@ namespace kernels {
 namespace sycl {
 
 
-void destroy_event(sycl::event* event) GKO_NOT_COMPILED(sycl);
+void destroy_event(::sycl::event* event) GKO_NOT_COMPILED(sycl);
 
 
 }  // namespace sycl

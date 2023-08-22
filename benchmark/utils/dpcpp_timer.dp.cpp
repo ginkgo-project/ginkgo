@@ -74,30 +74,29 @@ protected:
     {
         exec_->synchronize();
         // Currently, gko::SyclExecutor always use default stream.
-        start_ = exec_->get_queue()->submit([&](sycl::handler& cgh) {
-            cgh.parallel_for(1, [=](sycl::id<1> id) {});
+        start_ = exec_->get_queue()->submit([&](::sycl::handler& cgh) {
+            cgh.parallel_for(1, [=](::sycl::id<1> id) {});
         });
     }
 
     double toc_impl() override
     {
-        auto stop = exec_->get_queue()->submit([&](sycl::handler& cgh) {
-            cgh.parallel_for(1, [=](sycl::id<1> id) {});
+        auto stop = exec_->get_queue()->submit([&](::sycl::handler& cgh) {
+            cgh.parallel_for(1, [=](::sycl::id<1> id) {});
         });
         stop.wait_and_throw();
         // get the start time of stop
         auto stop_time = stop.get_profiling_info<
-            sycl::info::event_profiling::command_start>();
+            ::sycl::info::event_profiling::command_start>();
         // get the end time of start
-        auto start_time =
-            start_
-                .get_profiling_info<sycl::info::event_profiling::command_end>();
+        auto start_time = start_.get_profiling_info<
+            ::sycl::info::event_profiling::command_end>();
         return (stop_time - start_time) / double{1.0e9};
     }
 
 private:
     std::shared_ptr<const gko::SyclExecutor> exec_;
-    sycl::event start_;
+    ::sycl::event start_;
     int id_;
 };
 

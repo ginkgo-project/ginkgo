@@ -123,7 +123,7 @@ void generate(
     const ValueType* __restrict__ values, ValueType* __restrict__ block_data,
     preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
     const IndexType* __restrict__ block_ptrs, size_type num_blocks,
-    sycl::nd_item<3> item_ct1,
+    ::sycl::nd_item<3> item_ct1,
     uninitialized_array<ValueType, max_block_size * warps_per_block>* workspace)
 {
     const auto block_id =
@@ -152,21 +152,21 @@ void generate(
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
 void generate(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
-    size_type num_rows, const IndexType* row_ptrs, const IndexType* col_idxs,
-    const ValueType* values, ValueType* block_data,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory,
+    ::sycl::queue* queue, size_type num_rows, const IndexType* row_ptrs,
+    const IndexType* col_idxs, const ValueType* values, ValueType* block_data,
     preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
     const IndexType* block_ptrs, size_type num_blocks)
 {
-    queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<
+    queue->submit([&](::sycl::handler& cgh) {
+        ::sycl::accessor<
             uninitialized_array<ValueType, max_block_size * warps_per_block>, 0,
-            sycl::access_mode::read_write, sycl::access::target::local>
+            ::sycl::access_mode::read_write, ::sycl::access::target::local>
             workspace_acc_ct1(cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
+            [=](::sycl::nd_item<3> item_ct1)
                 [[sycl::reqd_sub_group_size(subwarp_size)]] {
                     generate<max_block_size, subwarp_size, warps_per_block>(
                         num_rows, row_ptrs, col_idxs, values, block_data,
@@ -239,7 +239,7 @@ void adaptive_generate(
     remove_complex<ValueType>* __restrict__ conditioning,
     precision_reduction* __restrict__ block_precisions,
     const IndexType* __restrict__ block_ptrs, size_type num_blocks,
-    sycl::nd_item<3> item_ct1,
+    ::sycl::nd_item<3> item_ct1,
     uninitialized_array<ValueType, max_block_size * warps_per_block>* workspace)
 {
     // extract blocks
@@ -334,23 +334,23 @@ void adaptive_generate(
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
 void adaptive_generate(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
-    size_type num_rows, const IndexType* row_ptrs, const IndexType* col_idxs,
-    const ValueType* values, remove_complex<ValueType> accuracy,
-    ValueType* block_data,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory,
+    ::sycl::queue* queue, size_type num_rows, const IndexType* row_ptrs,
+    const IndexType* col_idxs, const ValueType* values,
+    remove_complex<ValueType> accuracy, ValueType* block_data,
     preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
     remove_complex<ValueType>* conditioning,
     precision_reduction* block_precisions, const IndexType* block_ptrs,
     size_type num_blocks)
 {
-    queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<
+    queue->submit([&](::sycl::handler& cgh) {
+        ::sycl::accessor<
             uninitialized_array<ValueType, max_block_size * warps_per_block>, 0,
-            sycl::access_mode::read_write, sycl::access::target::local>
+            ::sycl::access_mode::read_write, ::sycl::access::target::local>
             workspace_acc_ct1(cgh);
 
         cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1)
+                         [=](::sycl::nd_item<3> item_ct1)
                              [[sycl::reqd_sub_group_size(subwarp_size)]] {
                                  adaptive_generate<max_block_size, subwarp_size,
                                                    warps_per_block>(

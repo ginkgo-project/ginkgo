@@ -68,7 +68,7 @@ namespace thread {
  * @note Assumes that grid dimensions are in cuda standard format:
  *       `(block_group_size, first_grid_dimension, second grid_dimension)`
  */
-__dpct_inline__ size_type get_block_group_id(sycl::nd_item<3> item_ct1)
+__dpct_inline__ size_type get_block_group_id(::sycl::nd_item<3> item_ct1)
 {
     return static_cast<size_type>(item_ct1.get_group(0)) *
                item_ct1.get_group_range(1) +
@@ -85,7 +85,7 @@ __dpct_inline__ size_type get_block_group_id(sycl::nd_item<3> item_ct1)
  * @note Assumes that grid dimensions are in cuda standard format:
  *       `(block_group_size, first_grid_dimension, second grid_dimension)`
  */
-__dpct_inline__ size_type get_block_id(sycl::nd_item<3> item_ct1)
+__dpct_inline__ size_type get_block_id(::sycl::nd_item<3> item_ct1)
 {
     return get_block_group_id(item_ct1) * item_ct1.get_group_range(2) +
            item_ct1.get_group(2);
@@ -105,7 +105,7 @@ __dpct_inline__ size_type get_block_id(sycl::nd_item<3> item_ct1)
  *       `(subwarp_size, config::warp_size / subwarp_size, block_size /
  *         config::warp_size)`
  */
-__dpct_inline__ size_type get_local_warp_id(sycl::nd_item<3> item_ct1)
+__dpct_inline__ size_type get_local_warp_id(::sycl::nd_item<3> item_ct1)
 {
     return static_cast<size_type>(item_ct1.get_local_id(0));
 }
@@ -127,7 +127,7 @@ __dpct_inline__ size_type get_local_warp_id(sycl::nd_item<3> item_ct1)
  *         config::warp_size)`
  */
 template <int subwarp_size>
-__dpct_inline__ size_type get_local_subwarp_id(sycl::nd_item<3> item_ct1)
+__dpct_inline__ size_type get_local_subwarp_id(::sycl::nd_item<3> item_ct1)
 {
     // sycl does not have subwarp.
     constexpr auto subwarps_per_warp = subwarp_size / subwarp_size;
@@ -151,7 +151,7 @@ __dpct_inline__ size_type get_local_subwarp_id(sycl::nd_item<3> item_ct1)
  *         config::warp_size)`
  */
 template <int subwarp_size>
-__dpct_inline__ size_type get_local_thread_id(sycl::nd_item<3> item_ct1)
+__dpct_inline__ size_type get_local_thread_id(::sycl::nd_item<3> item_ct1)
 {
     return get_local_subwarp_id<subwarp_size>(item_ct1) * subwarp_size +
            item_ct1.get_local_id(2);
@@ -175,7 +175,7 @@ __dpct_inline__ size_type get_local_thread_id(sycl::nd_item<3> item_ct1)
  *       respectively.
  */
 template <int warps_per_block>
-__dpct_inline__ size_type get_warp_id(sycl::nd_item<3> item_ct1)
+__dpct_inline__ size_type get_warp_id(::sycl::nd_item<3> item_ct1)
 {
     return get_block_id(item_ct1) * warps_per_block +
            get_local_warp_id(item_ct1);
@@ -199,7 +199,7 @@ __dpct_inline__ size_type get_warp_id(sycl::nd_item<3> item_ct1)
  *       respectively.
  */
 template <int subwarp_size, int warps_per_block>
-__dpct_inline__ size_type get_subwarp_id(sycl::nd_item<3> item_ct1)
+__dpct_inline__ size_type get_subwarp_id(::sycl::nd_item<3> item_ct1)
 {
     // sycl does not have subwarp
     constexpr auto subwarps_per_warp = subwarp_size / subwarp_size;
@@ -225,7 +225,7 @@ __dpct_inline__ size_type get_subwarp_id(sycl::nd_item<3> item_ct1)
  *       respectively.
  */
 template <int subwarp_size, int warps_per_block>
-__dpct_inline__ size_type get_thread_id(sycl::nd_item<3> item_ct1)
+__dpct_inline__ size_type get_thread_id(::sycl::nd_item<3> item_ct1)
 {
     return get_subwarp_id<subwarp_size, warps_per_block>(item_ct1) *
                subwarp_size +
@@ -245,7 +245,7 @@ __dpct_inline__ size_type get_thread_id(sycl::nd_item<3> item_ct1)
  * @tparam IndexType  the index type
  */
 template <typename IndexType = size_type>
-__dpct_inline__ IndexType get_thread_id_flat(sycl::nd_item<3> item_ct1)
+__dpct_inline__ IndexType get_thread_id_flat(::sycl::nd_item<3> item_ct1)
 {
     return item_ct1.get_local_id(2) +
            static_cast<IndexType>(item_ct1.get_local_range().get(2)) *
@@ -265,7 +265,7 @@ __dpct_inline__ IndexType get_thread_id_flat(sycl::nd_item<3> item_ct1)
  * @tparam IndexType  the index type
  */
 template <typename IndexType = size_type>
-__dpct_inline__ IndexType get_thread_num_flat(sycl::nd_item<3> item_ct1)
+__dpct_inline__ IndexType get_thread_num_flat(::sycl::nd_item<3> item_ct1)
 {
     return item_ct1.get_local_range().get(2) *
            static_cast<IndexType>(item_ct1.get_group_range(2));
@@ -285,7 +285,7 @@ __dpct_inline__ IndexType get_thread_num_flat(sycl::nd_item<3> item_ct1)
  * @tparam IndexType  the index type
  */
 template <int subwarp_size, typename IndexType = size_type>
-__dpct_inline__ IndexType get_subwarp_id_flat(sycl::nd_item<3> item_ct1)
+__dpct_inline__ IndexType get_subwarp_id_flat(::sycl::nd_item<3> item_ct1)
 {
     static_assert(!(subwarp_size & (subwarp_size - 1)),
                   "subwarp_size must be a power of two");
@@ -309,7 +309,7 @@ __dpct_inline__ IndexType get_subwarp_id_flat(sycl::nd_item<3> item_ct1)
  * @tparam IndexType  the index type
  */
 template <int subwarp_size, typename IndexType = size_type>
-__dpct_inline__ IndexType get_subwarp_num_flat(sycl::nd_item<3> item_ct1)
+__dpct_inline__ IndexType get_subwarp_num_flat(::sycl::nd_item<3> item_ct1)
 {
     static_assert(!(subwarp_size & (subwarp_size - 1)),
                   "subwarp_size must be a power of two");

@@ -113,7 +113,7 @@ protected:
 
 // kernel implementation
 template <typename DeviceConfig>
-void cg_shuffle(bool* s, sycl::nd_item<3> item_ct1)
+void cg_shuffle(bool* s, ::sycl::nd_item<3> item_ct1)
 {
     constexpr auto sg_size = DeviceConfig::subgroup_size;
     auto group =
@@ -130,13 +130,13 @@ void cg_shuffle(bool* s, sycl::nd_item<3> item_ct1)
 // group all kernel things together
 template <typename DeviceConfig>
 void cg_shuffle_host(dim3 grid, dim3 block,
-                     gko::size_type dynamic_shared_memory, sycl::queue* queue,
+                     gko::size_type dynamic_shared_memory, ::sycl::queue* queue,
                      bool* s)
 {
-    queue->submit([&](sycl::handler& cgh) {
+    queue->submit([&](::sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+            [=](::sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
                 DeviceConfig::subgroup_size)]] __WG_BOUND__(DeviceConfig::
                                                                 block_size) {
                 cg_shuffle<DeviceConfig>(s, item_ct1);
@@ -151,7 +151,7 @@ GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TOTYPE(cg_shuffle_config,
 // the call
 void cg_shuffle_config_call(std::uint32_t desired_cfg, dim3 grid, dim3 block,
                             gko::size_type dynamic_shared_memory,
-                            sycl::queue* queue, bool* s)
+                            ::sycl::queue* queue, bool* s)
 {
     cg_shuffle_config(
         default_config_list,
@@ -169,7 +169,7 @@ TEST_P(CooperativeGroups, Shuffle)
 
 
 template <typename DeviceConfig>
-void cg_all(bool* s, sycl::nd_item<3> item_ct1)
+void cg_all(bool* s, ::sycl::nd_item<3> item_ct1)
 {
     constexpr auto sg_size = DeviceConfig::subgroup_size;
     auto group =
@@ -190,7 +190,7 @@ TEST_P(CooperativeGroups, All) { test_all_subgroup(cg_all_call<bool*>); }
 
 
 template <typename DeviceConfig>
-void cg_any(bool* s, sycl::nd_item<3> item_ct1)
+void cg_any(bool* s, ::sycl::nd_item<3> item_ct1)
 {
     constexpr auto sg_size = DeviceConfig::subgroup_size;
     auto group =
@@ -210,7 +210,7 @@ TEST_P(CooperativeGroups, Any) { test_all_subgroup(cg_any_call<bool*>); }
 
 
 template <typename cfg>
-void cg_ballot(bool* s, sycl::nd_item<3> item_ct1)
+void cg_ballot(bool* s, ::sycl::nd_item<3> item_ct1)
 {
     constexpr auto sg_size = cfg::subgroup_size;
     auto group =

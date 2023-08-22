@@ -115,7 +115,8 @@ TEST_F(SyclExecutor, CanGetExecInfo)
 
 TEST_F(SyclExecutor, KnowsNumberOfDevicesOfTypeAll)
 {
-    auto count = sycl::device::get_devices(sycl::info::device_type::all).size();
+    auto count =
+        sycl::device::get_devices(::sycl::info::device_type::all).size();
 
     auto num_devices = gko::SyclExecutor::get_num_devices("all");
 
@@ -125,7 +126,8 @@ TEST_F(SyclExecutor, KnowsNumberOfDevicesOfTypeAll)
 
 TEST_F(SyclExecutor, KnowsNumberOfDevicesOfTypeCPU)
 {
-    auto count = sycl::device::get_devices(sycl::info::device_type::cpu).size();
+    auto count =
+        sycl::device::get_devices(::sycl::info::device_type::cpu).size();
 
     auto num_devices = gko::SyclExecutor::get_num_devices("cpu");
 
@@ -135,7 +137,8 @@ TEST_F(SyclExecutor, KnowsNumberOfDevicesOfTypeCPU)
 
 TEST_F(SyclExecutor, KnowsNumberOfDevicesOfTypeGPU)
 {
-    auto count = sycl::device::get_devices(sycl::info::device_type::gpu).size();
+    auto count =
+        sycl::device::get_devices(::sycl::info::device_type::gpu).size();
 
     auto num_devices = gko::SyclExecutor::get_num_devices("gpu");
 
@@ -146,7 +149,8 @@ TEST_F(SyclExecutor, KnowsNumberOfDevicesOfTypeGPU)
 TEST_F(SyclExecutor, KnowsNumberOfDevicesOfTypeAccelerator)
 {
     auto count =
-        sycl::device::get_devices(sycl::info::device_type::accelerator).size();
+        sycl::device::get_devices(::sycl::info::device_type::accelerator)
+            .size();
 
     auto num_devices = gko::SyclExecutor::get_num_devices("accelerator");
 
@@ -197,7 +201,7 @@ TEST_F(SyclExecutor, CopiesDataToCPU)
 
     is_set.set_executor(sycl);
     ASSERT_NO_THROW(sycl->synchronize());
-    ASSERT_NO_THROW(sycl->get_queue()->submit([&](sycl::handler& cgh) {
+    ASSERT_NO_THROW(sycl->get_queue()->submit([&](::sycl::handler& cgh) {
         auto* is_set_ptr = is_set.get_data();
         cgh.single_task([=]() { check_data(copy, is_set_ptr); });
     }));
@@ -217,7 +221,7 @@ TEST_F(SyclExecutor, CopiesDataFromCPU)
 {
     int copy[2];
     auto orig = sycl->alloc<int>(2);
-    sycl->get_queue()->submit([&](sycl::handler& cgh) {
+    sycl->get_queue()->submit([&](::sycl::handler& cgh) {
         cgh.single_task([=]() { init_data(orig); });
     });
 
@@ -238,7 +242,7 @@ TEST_F(SyclExecutor, CopiesDataFromSyclToSycl)
     int copy[2];
     gko::array<bool> is_set(ref, 1);
     auto orig = sycl->alloc<int>(2);
-    sycl->get_queue()->submit([&](sycl::handler& cgh) {
+    sycl->get_queue()->submit([&](::sycl::handler& cgh) {
         cgh.single_task([=]() { init_data(orig); });
     });
 
@@ -246,7 +250,7 @@ TEST_F(SyclExecutor, CopiesDataFromSyclToSycl)
     sycl2->copy_from(sycl, 2, orig, copy_sycl2);
     // Check that the data is really on GPU
     is_set.set_executor(sycl2);
-    ASSERT_NO_THROW(sycl2->get_queue()->submit([&](sycl::handler& cgh) {
+    ASSERT_NO_THROW(sycl2->get_queue()->submit([&](::sycl::handler& cgh) {
         auto* is_set_ptr = is_set.get_data();
         cgh.single_task([=]() { check_data(copy_sycl2, is_set_ptr); });
     }));
@@ -278,9 +282,9 @@ TEST_F(SyclExecutor, FreeAfterKernel)
         gko::array<float> y(sycl, length);
         auto x_val = x.get_data();
         auto y_val = y.get_data();
-        sycl->get_queue()->submit([&](sycl::handler& cgh) {
-            cgh.parallel_for(sycl::range<1>{length},
-                             [=](sycl::id<1> i) { y_val[i] += x_val[i]; });
+        sycl->get_queue()->submit([&](::sycl::handler& cgh) {
+            cgh.parallel_for(::sycl::range<1>{length},
+                             [=](::sycl::id<1> i) { y_val[i] += x_val[i]; });
         });
     }
     // to ensure everything on queue is finished.

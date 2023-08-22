@@ -132,7 +132,7 @@ __dpct_inline__ void subwarp_prefix_sum(ValueType element,
 template <typename DeviceConfig, typename ValueType>
 void start_prefix_sum(
     size_type num_elements, ValueType* __restrict__ elements,
-    ValueType* __restrict__ block_sum, sycl::nd_item<3> item_ct1,
+    ValueType* __restrict__ block_sum, ::sycl::nd_item<3> item_ct1,
     uninitialized_array<ValueType, DeviceConfig::block_size>& prefix_helper)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
@@ -185,17 +185,17 @@ void start_prefix_sum(
 
 template <typename DeviceConfig, typename ValueType>
 void start_prefix_sum(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                      sycl::queue* queue, size_type num_elements,
+                      ::sycl::queue* queue, size_type num_elements,
                       ValueType* elements, ValueType* block_sum)
 {
-    queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<uninitialized_array<ValueType, DeviceConfig::block_size>,
-                       0, sycl::access::mode::read_write,
-                       sycl::access::target::local>
+    queue->submit([&](::sycl::handler& cgh) {
+        ::sycl::accessor<
+            uninitialized_array<ValueType, DeviceConfig::block_size>, 0,
+            ::sycl::access::mode::read_write, ::sycl::access::target::local>
             prefix_helper_acc_ct1(cgh);
 
         cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
+                         [=](::sycl::nd_item<3> item_ct1) {
                              start_prefix_sum<DeviceConfig>(
                                  num_elements, elements, block_sum, item_ct1,
                                  *prefix_helper_acc_ct1.get_pointer());
@@ -222,7 +222,7 @@ template <typename DeviceConfig, typename ValueType>
 void finalize_prefix_sum(size_type num_elements,
                          ValueType* __restrict__ elements,
                          const ValueType* __restrict__ block_sum,
-                         sycl::nd_item<3> item_ct1)
+                         ::sycl::nd_item<3> item_ct1)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
 
@@ -237,12 +237,12 @@ void finalize_prefix_sum(size_type num_elements,
 
 template <typename DeviceConfig, typename ValueType>
 void finalize_prefix_sum(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                         sycl::queue* queue, size_type num_elements,
+                         ::sycl::queue* queue, size_type num_elements,
                          ValueType* elements, const ValueType* block_sum)
 {
-    queue->submit([&](sycl::handler& cgh) {
+    queue->submit([&](::sycl::handler& cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
+                         [=](::sycl::nd_item<3> item_ct1) {
                              finalize_prefix_sum<DeviceConfig>(
                                  num_elements, elements, block_sum, item_ct1);
                          });

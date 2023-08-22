@@ -87,7 +87,7 @@ template <std::uint32_t sg_size, typename ValueType, typename Closure>
 void transpose(const size_type nrows, const size_type ncols,
                const ValueType* __restrict__ in, const size_type in_stride,
                ValueType* __restrict__ out, const size_type out_stride,
-               Closure op, sycl::nd_item<3> item_ct1,
+               Closure op, ::sycl::nd_item<3> item_ct1,
                uninitialized_array<ValueType, sg_size*(sg_size + 1)>& space)
 {
     auto local_x = item_ct1.get_local_id(2);
@@ -98,7 +98,7 @@ void transpose(const size_type nrows, const size_type ncols,
         space[local_y * (sg_size + 1) + local_x] = op(in[y * in_stride + x]);
     }
 
-    item_ct1.barrier(sycl::access::fence_space::local_space);
+    item_ct1.barrier(::sycl::access::fence_space::local_space);
     x = item_ct1.get_group(1) * sg_size + local_x;
     y = item_ct1.get_group(2) * sg_size + local_y;
     if (y < ncols && x < nrows) {
@@ -111,7 +111,7 @@ void transpose(
     const size_type nrows, const size_type ncols,
     const ValueType* __restrict__ in, const size_type in_stride,
     ValueType* __restrict__ out, const size_type out_stride,
-    sycl::nd_item<3> item_ct1,
+    ::sycl::nd_item<3> item_ct1,
     uninitialized_array<ValueType, DeviceConfig::subgroup_size*(
                                        DeviceConfig::subgroup_size + 1)>& space)
 {
@@ -121,7 +121,7 @@ void transpose(
 }
 
 template <typename DeviceConfig, typename ValueType>
-void transpose(sycl::queue* queue, const matrix::Dense<ValueType>* orig,
+void transpose(::sycl::queue* queue, const matrix::Dense<ValueType>* orig,
                matrix::Dense<ValueType>* trans)
 {
     auto size = orig->get_size();
@@ -129,10 +129,10 @@ void transpose(sycl::queue* queue, const matrix::Dense<ValueType>* orig,
     dim3 grid(ceildiv(size[1], sg_size), ceildiv(size[0], sg_size));
     dim3 block(sg_size, sg_size);
 
-    queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<uninitialized_array<ValueType, sg_size*(sg_size + 1)>, 0,
-                       sycl::access_mode::read_write,
-                       sycl::access::target::local>
+    queue->submit([&](::sycl::handler& cgh) {
+        ::sycl::accessor<uninitialized_array<ValueType, sg_size*(sg_size + 1)>,
+                         0, ::sycl::access_mode::read_write,
+                         ::sycl::access::target::local>
             space_acc_ct1(cgh);
         // Can not pass the member to device function directly
         auto in = orig->get_const_values();
@@ -140,7 +140,7 @@ void transpose(sycl::queue* queue, const matrix::Dense<ValueType>* orig,
         auto out = trans->get_values();
         auto out_stride = trans->get_stride();
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
                 transpose<DeviceConfig>(size[0], size[1], in, in_stride, out,
                                         out_stride, item_ct1,
                                         *space_acc_ct1.get_pointer());
@@ -157,7 +157,7 @@ void conj_transpose(
     const size_type nrows, const size_type ncols,
     const ValueType* __restrict__ in, const size_type in_stride,
     ValueType* __restrict__ out, const size_type out_stride,
-    sycl::nd_item<3> item_ct1,
+    ::sycl::nd_item<3> item_ct1,
     uninitialized_array<ValueType, DeviceConfig::subgroup_size*(
                                        DeviceConfig::subgroup_size + 1)>& space)
 {
@@ -168,21 +168,21 @@ void conj_transpose(
 
 template <typename DeviceConfig, typename ValueType>
 void conj_transpose(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                    sycl::queue* queue, const size_type nrows,
+                    ::sycl::queue* queue, const size_type nrows,
                     const size_type ncols, const ValueType* in,
                     const size_type in_stride, ValueType* out,
                     const size_type out_stride)
 {
     constexpr auto sg_size = DeviceConfig::subgroup_size;
-    queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<uninitialized_array<ValueType, sg_size*(sg_size + 1)>, 0,
-                       sycl::access_mode::read_write,
-                       sycl::access::target::local>
+    queue->submit([&](::sycl::handler& cgh) {
+        ::sycl::accessor<uninitialized_array<ValueType, sg_size*(sg_size + 1)>,
+                         0, ::sycl::access_mode::read_write,
+                         ::sycl::access::target::local>
             space_acc_ct1(cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1) __WG_BOUND__(sg_size, sg_size) {
+            [=](::sycl::nd_item<3> item_ct1) __WG_BOUND__(sg_size, sg_size) {
                 conj_transpose<DeviceConfig>(nrows, ncols, in, in_stride, out,
                                              out_stride, item_ct1,
                                              *space_acc_ct1.get_pointer());
@@ -308,8 +308,8 @@ void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
     auto cols = result->get_col_idxs();
     auto vals = result->get_values();
 
-    exec->get_queue()->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(num_rows, [=](sycl::item<1> item) {
+    exec->get_queue()->submit([&](::sycl::handler& cgh) {
+        cgh.parallel_for(num_rows, [=](::sycl::item<1> item) {
             const auto row = static_cast<size_type>(item[0]);
             auto write_to = row_ptrs[row];
 
@@ -343,8 +343,8 @@ void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
     auto cols = result->get_col_idxs();
     auto vals = result->get_values();
 
-    exec->get_queue()->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(num_rows, [=](sycl::item<1> item) {
+    exec->get_queue()->submit([&](::sycl::handler& cgh) {
+        cgh.parallel_for(num_rows, [=](::sycl::item<1> item) {
             const auto row = static_cast<size_type>(item[0]);
             auto write_to = row_ptrs[row];
 
@@ -378,8 +378,8 @@ void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,
     auto vals = result->get_values();
     const auto stride = result->get_stride();
 
-    exec->get_queue()->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(num_rows, [=](sycl::item<1> item) {
+    exec->get_queue()->submit([&](::sycl::handler& cgh) {
+        cgh.parallel_for(num_rows, [=](::sycl::item<1> item) {
             const auto row = static_cast<size_type>(item[0]);
             size_type col_idx = 0;
             for (size_type col = 0; col < num_cols; col++) {
@@ -440,8 +440,8 @@ void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
     auto coo_cols = result->get_coo_col_idxs();
     auto coo_vals = result->get_coo_values();
 
-    exec->get_queue()->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(num_rows, [=](sycl::item<1> item) {
+    exec->get_queue()->submit([&](::sycl::handler& cgh) {
+        cgh.parallel_for(num_rows, [=](::sycl::item<1> item) {
             const auto row = static_cast<size_type>(item[0]);
             size_type ell_count = 0;
             size_type col = 0;
@@ -493,8 +493,8 @@ void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
     auto vals = result->get_values();
     auto col_idxs = result->get_col_idxs();
 
-    exec->get_queue()->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(num_rows, [=](sycl::item<1> item) {
+    exec->get_queue()->submit([&](::sycl::handler& cgh) {
+        cgh.parallel_for(num_rows, [=](::sycl::item<1> item) {
             const auto row = static_cast<size_type>(item[0]);
             const auto local_row = row % slice_size;
             const auto slice = row / slice_size;
@@ -534,8 +534,8 @@ void convert_to_sparsity_csr(std::shared_ptr<const DefaultExecutor> exec,
     const auto row_ptrs = result->get_const_row_ptrs();
     auto cols = result->get_col_idxs();
 
-    exec->get_queue()->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(num_rows, [=](sycl::item<1> item) {
+    exec->get_queue()->submit([&](::sycl::handler& cgh) {
+        cgh.parallel_for(num_rows, [=](::sycl::item<1> item) {
             const auto row = static_cast<size_type>(item[0]);
             auto write_to = row_ptrs[row];
 
@@ -566,7 +566,7 @@ void transpose(std::shared_ptr<const DefaultExecutor> exec,
             return validate(queue, cfg.block_size, sg_size) &&
                    sg_size * (sg_size + 1) * sizeof(ValueType) <=
                        queue->get_device()
-                           .get_info<sycl::info::device::local_mem_size>();
+                           .get_info<::sycl::info::device::local_mem_size>();
         },
         queue, orig, trans);
 }
@@ -588,7 +588,7 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
             return validate(queue, DCFG_1D::decode<0>(cfg), sg_size) &&
                    sg_size * (sg_size + 1) * sizeof(ValueType) <=
                        queue->get_device()
-                           .get_info<sycl::info::device::local_mem_size>();
+                           .get_info<::sycl::info::device::local_mem_size>();
         });
     const auto sg_size = DCFG_1D::decode<1>(cfg);
     dim3 grid(ceildiv(size[1], sg_size), ceildiv(size[0], sg_size));

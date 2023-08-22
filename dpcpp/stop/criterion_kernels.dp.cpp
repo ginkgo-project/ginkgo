@@ -56,8 +56,8 @@ void set_all_statuses(std::shared_ptr<const SyclExecutor> exec,
 {
     auto size = stop_status->get_num_elems();
     stopping_status* __restrict__ stop_status_ptr = stop_status->get_data();
-    exec->get_queue()->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl::range<1>{size}, [=](sycl::id<1> idx_id) {
+    exec->get_queue()->submit([&](::sycl::handler& cgh) {
+        cgh.parallel_for(::sycl::range<1>{size}, [=](::sycl::id<1> idx_id) {
             const auto idx = idx_id[0];
             stop_status_ptr[idx].stop(stoppingId, setFinalized);
         });

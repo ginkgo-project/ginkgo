@@ -79,16 +79,16 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_batches = x_ub.num_batch_items;
     auto device = exec->get_queue()->get_device();
     auto group_size =
-        device.get_info<sycl::info::device::max_work_group_size>();
+        device.get_info<::sycl::info::device::max_work_group_size>();
 
     const dim3 block(group_size);
     const dim3 grid(num_batches);
 
     // Launch a kernel that has nbatches blocks, each block has max group size
     if (alpha->get_common_size()[1] == 1) {
-        exec->get_queue()->submit([&](sycl::handler& cgh) {
+        exec->get_queue()->submit([&](::sycl::handler& cgh) {
             cgh.parallel_for(
-                sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
                     auto group = item_ct1.get_group();
                     auto group_id = group.get_group_linear_id();
                     const auto alpha_b =
@@ -99,9 +99,9 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
                 });
         });
     } else {
-        exec->get_queue()->submit([&](sycl::handler& cgh) {
+        exec->get_queue()->submit([&](::sycl::handler& cgh) {
             cgh.parallel_for(
-                sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
                     auto group = item_ct1.get_group();
                     auto group_id = group.get_group_linear_id();
                     const auto alpha_b =
@@ -130,7 +130,7 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_batches = x->get_num_batch_items();
     auto device = exec->get_queue()->get_device();
     auto group_size =
-        device.get_info<sycl::info::device::max_work_group_size>();
+        device.get_info<::sycl::info::device::max_work_group_size>();
 
     const dim3 block(group_size);
     const dim3 grid(num_batches);
@@ -138,9 +138,9 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
     const auto x_ub = get_batch_struct(x);
     const auto y_ub = get_batch_struct(y);
     if (alpha->get_common_size()[1] == 1) {
-        exec->get_queue()->submit([&](sycl::handler& cgh) {
+        exec->get_queue()->submit([&](::sycl::handler& cgh) {
             cgh.parallel_for(
-                sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
                     auto group = item_ct1.get_group();
                     auto group_id = group.get_group_linear_id();
                     const auto alpha_b =
@@ -152,9 +152,9 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
                 });
         });
     } else {
-        exec->get_queue()->submit([&](sycl::handler& cgh) {
+        exec->get_queue()->submit([&](::sycl::handler& cgh) {
             cgh.parallel_for(
-                sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
                     auto group = item_ct1.get_group();
                     auto group_id = group.get_group_linear_id();
                     const auto alpha_b =
@@ -185,16 +185,16 @@ void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_batches = x_ub.num_batch_items;
     auto device = exec->get_queue()->get_device();
     auto group_size =
-        device.get_info<sycl::info::device::max_work_group_size>();
+        device.get_info<::sycl::info::device::max_work_group_size>();
 
     const dim3 block(group_size);
     const dim3 grid(num_batches);
 
     // TODO: Remove reqd_sub_group size and use sycl::reduce_over_group
-    exec->get_queue()->submit([&](sycl::handler& cgh) {
+    exec->get_queue()->submit([&](::sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+            [=](::sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
                 config::warp_size)]] {
                 auto group = item_ct1.get_group();
                 auto group_id = group.get_group_linear_id();
@@ -224,15 +224,15 @@ void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_batches = x_ub.num_batch_items;
     auto device = exec->get_queue()->get_device();
     auto group_size =
-        device.get_info<sycl::info::device::max_work_group_size>();
+        device.get_info<::sycl::info::device::max_work_group_size>();
 
     const dim3 block(group_size);
     const dim3 grid(num_batches);
 
-    exec->get_queue()->submit([&](sycl::handler& cgh) {
+    exec->get_queue()->submit([&](::sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
+            [=](::sycl::nd_item<3> item_ct1)
                 [[sycl::reqd_sub_group_size(config::warp_size)]] {
                     auto group = item_ct1.get_group();
                     auto group_id = group.get_group_linear_id();
@@ -262,14 +262,14 @@ void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_batches = x_ub.num_batch_items;
     auto device = exec->get_queue()->get_device();
     auto group_size =
-        device.get_info<sycl::info::device::max_work_group_size>();
+        device.get_info<::sycl::info::device::max_work_group_size>();
 
     const dim3 block(group_size);
     const dim3 grid(num_batches);
 
-    exec->get_queue()->submit([&](sycl::handler& cgh) {
+    exec->get_queue()->submit([&](::sycl::handler& cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1)
+                         [=](::sycl::nd_item<3> item_ct1)
                              [[sycl::reqd_sub_group_size(config::warp_size)]] {
                                  auto group = item_ct1.get_group();
                                  auto group_id = group.get_group_linear_id();
@@ -297,14 +297,14 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_batches = x_ub.num_batch_items;
     auto device = exec->get_queue()->get_device();
     auto group_size =
-        device.get_info<sycl::info::device::max_work_group_size>();
+        device.get_info<::sycl::info::device::max_work_group_size>();
 
     const dim3 block(group_size);
     const dim3 grid(num_batches);
 
-    exec->get_queue()->submit([&](sycl::handler& cgh) {
+    exec->get_queue()->submit([&](::sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
                 auto group = item_ct1.get_group();
                 auto group_id = group.get_group_linear_id();
                 const auto x_b = batch::extract_batch_item(x_ub, group_id);

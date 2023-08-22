@@ -36,6 +36,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 int main()
 {
     // Use the queue property `in_order` which is DPC++ only
-    sycl::queue myQueue{sycl::property::queue::in_order{}};
+    ::sycl::queue myQueue{sycl::property::queue::in_order{}};
     return 0;
 }

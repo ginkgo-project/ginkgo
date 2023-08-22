@@ -60,7 +60,7 @@ static constexpr auto dcfg_1d_list_simple_reduction = dcfg_1d_list_t();
 template <typename DeviceConfig, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
-void generic_kernel_reduction_1d(sycl::handler& cgh, int64 size,
+void generic_kernel_reduction_1d(::sycl::handler& cgh, int64 size,
                                  int64 num_workgroups, KernelFunction fn,
                                  ReductionOp op, FinalizeOp finalize,
                                  ValueType identity, ValueType* storage,
@@ -69,15 +69,16 @@ void generic_kernel_reduction_1d(sycl::handler& cgh, int64 size,
     constexpr auto wg_size = DeviceConfig::block_size;
     constexpr auto sg_size = DeviceConfig::subgroup_size;
     constexpr auto num_partials = wg_size / sg_size;
-    sycl::accessor<uninitialized_array<ValueType, num_partials>, 0,
-                   sycl::access_mode::read_write, sycl::access::target::local>
+    ::sycl::accessor<uninitialized_array<ValueType, num_partials>, 0,
+                     ::sycl::access_mode::read_write,
+                     ::sycl::access::target::local>
         subgroup_partial_acc(cgh);
     const auto range = sycl_nd_range(dim3(num_workgroups), dim3(wg_size));
     const auto global_size = num_workgroups * wg_size;
 
     cgh.parallel_for(
         range,
-        [=](sycl::nd_item<3> idx) [[sycl::reqd_sub_group_size(sg_size)]] {
+        [=](::sycl::nd_item<3> idx) [[sycl::reqd_sub_group_size(sg_size)]] {
             auto subgroup_partial = &(*subgroup_partial_acc.get_pointer())[0];
             const auto tidx = thread::get_thread_id_flat<int64>(idx);
             const auto local_tidx = static_cast<int64>(tidx % wg_size);
@@ -91,7 +92,7 @@ void generic_kernel_reduction_1d(sycl::handler& cgh, int64 size,
             if (subgroup.thread_rank() == 0) {
                 subgroup_partial[local_tidx / sg_size] = partial;
             }
-            idx.barrier(sycl::access::fence_space::local_space);
+            idx.barrier(::sycl::access::fence_space::local_space);
             if (local_tidx < sg_size) {
                 partial = identity;
                 for (int64 i = local_tidx; i < num_partials; i += sg_size) {
@@ -109,7 +110,7 @@ void generic_kernel_reduction_1d(sycl::handler& cgh, int64 size,
 template <typename DeviceConfig, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
-void generic_kernel_reduction_2d(sycl::handler& cgh, int64 rows, int64 cols,
+void generic_kernel_reduction_2d(::sycl::handler& cgh, int64 rows, int64 cols,
                                  int64 num_workgroups, KernelFunction fn,
                                  ReductionOp op, FinalizeOp finalize,
                                  ValueType identity, ValueType* storage,
@@ -118,15 +119,16 @@ void generic_kernel_reduction_2d(sycl::handler& cgh, int64 rows, int64 cols,
     constexpr auto wg_size = DeviceConfig::block_size;
     constexpr auto sg_size = DeviceConfig::subgroup_size;
     constexpr auto num_partials = wg_size / sg_size;
-    sycl::accessor<uninitialized_array<ValueType, num_partials>, 0,
-                   sycl::access_mode::read_write, sycl::access::target::local>
+    ::sycl::accessor<uninitialized_array<ValueType, num_partials>, 0,
+                     ::sycl::access_mode::read_write,
+                     ::sycl::access::target::local>
         subgroup_partial_acc(cgh);
     const auto range = sycl_nd_range(dim3(num_workgroups), dim3(wg_size));
     const auto global_size = num_workgroups * wg_size;
 
     cgh.parallel_for(
         range,
-        [=](sycl::nd_item<3> idx) [[sycl::reqd_sub_group_size(sg_size)]] {
+        [=](::sycl::nd_item<3> idx) [[sycl::reqd_sub_group_size(sg_size)]] {
             auto subgroup_partial = &(*subgroup_partial_acc.get_pointer())[0];
             const auto tidx = thread::get_thread_id_flat<int64>(idx);
             const auto local_tidx = static_cast<int64>(tidx % wg_size);
@@ -142,7 +144,7 @@ void generic_kernel_reduction_2d(sycl::handler& cgh, int64 rows, int64 cols,
             if (subgroup.thread_rank() == 0) {
                 subgroup_partial[local_tidx / sg_size] = partial;
             }
-            idx.barrier(sycl::access::fence_space::local_space);
+            idx.barrier(::sycl::access::fence_space::local_space);
             if (local_tidx < sg_size) {
                 partial = identity;
                 for (int64 i = local_tidx; i < num_partials; i += sg_size) {
@@ -178,13 +180,13 @@ void run_kernel_reduction_impl(std::shared_ptr<const SyclExecutor> exec,
         if (tmp.get_num_elems() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
-        queue->submit([&](sycl::handler& cgh) {
+        queue->submit([&](::sycl::handler& cgh) {
             generic_kernel_reduction_1d<DeviceConfig>(
                 cgh, static_cast<int64>(size), num_workgroups, fn, op,
                 [](auto v) { return v; }, identity,
                 reinterpret_cast<ValueType*>(tmp.get_data()), args...);
         });
-        queue->submit([&](sycl::handler& cgh) {
+        queue->submit([&](::sycl::handler& cgh) {
             generic_kernel_reduction_1d<DeviceConfig>(
                 cgh, static_cast<int64>(num_workgroups), 1,
                 [](auto i, auto v) { return v[i]; }, op, finalize, identity,
@@ -192,7 +194,7 @@ void run_kernel_reduction_impl(std::shared_ptr<const SyclExecutor> exec,
                 reinterpret_cast<const ValueType*>(tmp.get_const_data()));
         });
     } else {
-        queue->submit([&](sycl::handler& cgh) {
+        queue->submit([&](::sycl::handler& cgh) {
             generic_kernel_reduction_1d<DeviceConfig>(
                 cgh, static_cast<int64>(size), 1, fn, op, finalize, identity,
                 result, args...);
@@ -225,13 +227,13 @@ void run_kernel_reduction_impl(std::shared_ptr<const SyclExecutor> exec,
         if (tmp.get_num_elems() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
-        queue->submit([&](sycl::handler& cgh) {
+        queue->submit([&](::sycl::handler& cgh) {
             generic_kernel_reduction_2d<DeviceConfig>(
                 cgh, rows, cols, num_workgroups, fn, op,
                 [](auto v) { return v; }, identity,
                 reinterpret_cast<ValueType*>(tmp.get_data()), args...);
         });
-        queue->submit([&](sycl::handler& cgh) {
+        queue->submit([&](::sycl::handler& cgh) {
             generic_kernel_reduction_1d<DeviceConfig>(
                 cgh, static_cast<int64>(num_workgroups), 1,
                 [](auto i, auto v) { return v[i]; }, op, finalize, identity,
@@ -239,7 +241,7 @@ void run_kernel_reduction_impl(std::shared_ptr<const SyclExecutor> exec,
                 reinterpret_cast<const ValueType*>(tmp.get_const_data()));
         });
     } else {
-        queue->submit([&](sycl::handler& cgh) {
+        queue->submit([&](::sycl::handler& cgh) {
             generic_kernel_reduction_2d<DeviceConfig>(cgh, rows, cols, 1, fn,
                                                       op, finalize, identity,
                                                       result, args...);
@@ -315,10 +317,10 @@ void generic_kernel_row_reduction_2d(syn::value_list<int, ssg_size>,
     static_assert(ssg_size <= sg_size, "ssg must be smaller than sg");
     const auto num_workgroups = ceildiv(rows * col_blocks * ssg_size, wg_size);
     const auto range = sycl_nd_range(dim3(num_workgroups), dim3(wg_size));
-    exec->get_queue()->submit([&](sycl::handler& cgh) {
+    exec->get_queue()->submit([&](::sycl::handler& cgh) {
         cgh.parallel_for(
             range,
-            [=](sycl::nd_item<3> id) [[sycl::reqd_sub_group_size(sg_size)]] {
+            [=](::sycl::nd_item<3> id) [[sycl::reqd_sub_group_size(sg_size)]] {
                 const auto idx =
                     thread::get_subwarp_id_flat<ssg_size, int64>(id);
                 const auto row = idx % rows;
@@ -359,7 +361,7 @@ template <typename cfg, int ssg_size, typename ValueType,
           typename KernelFunction, typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
 void generic_kernel_col_reduction_2d_small(
-    sycl::handler& cgh, int64 rows, int64 cols, int64 row_blocks,
+    ::sycl::handler& cgh, int64 rows, int64 cols, int64 row_blocks,
     KernelFunction fn, ReductionOp op, FinalizeOp finalize, ValueType identity,
     ValueType* result, MappedKernelArgs... args)
 {
@@ -369,12 +371,14 @@ void generic_kernel_col_reduction_2d_small(
     constexpr auto subgroups_per_workgroup = wg_size / sg_size;
     // stores the subwarp_size partial sums from each warp, grouped by warp
     constexpr auto shared_storage = subgroups_per_workgroup * ssg_size;
-    sycl::accessor<uninitialized_array<ValueType, shared_storage>, 0,
-                   sycl::access_mode::read_write, sycl::access::target::local>
+    ::sycl::accessor<uninitialized_array<ValueType, shared_storage>, 0,
+                     ::sycl::access_mode::read_write,
+                     ::sycl::access::target::local>
         block_partial_acc(cgh);
     const auto range = sycl_nd_range(dim3(row_blocks), dim3(wg_size));
     cgh.parallel_for(
-        range, [=](sycl::nd_item<3> id) [[sycl::reqd_sub_group_size(sg_size)]] {
+        range,
+        [=](::sycl::nd_item<3> id) [[sycl::reqd_sub_group_size(sg_size)]] {
             auto block_partial = &(*block_partial_acc.get_pointer())[0];
             const auto ssg_id =
                 thread::get_subwarp_id_flat<ssg_size, int64>(id);
@@ -434,7 +438,7 @@ template <typename cfg, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
 void generic_kernel_col_reduction_2d_blocked(
-    sycl::handler& cgh, int64 rows, int64 cols, int64 row_blocks,
+    ::sycl::handler& cgh, int64 rows, int64 cols, int64 row_blocks,
     int64 col_blocks, KernelFunction fn, ReductionOp op, FinalizeOp finalize,
     ValueType identity, ValueType* result, MappedKernelArgs... args)
 {
@@ -442,11 +446,13 @@ void generic_kernel_col_reduction_2d_blocked(
     constexpr auto sg_size = cfg::subgroup_size;
     const auto range =
         sycl_nd_range(dim3(row_blocks, col_blocks), dim3(wg_size));
-    sycl::accessor<uninitialized_array<ValueType, wg_size>, 0,
-                   sycl::access_mode::read_write, sycl::access::target::local>
+    ::sycl::accessor<uninitialized_array<ValueType, wg_size>, 0,
+                     ::sycl::access_mode::read_write,
+                     ::sycl::access::target::local>
         block_partial_acc(cgh);
     cgh.parallel_for(
-        range, [=](sycl::nd_item<3> id) [[sycl::reqd_sub_group_size(sg_size)]] {
+        range,
+        [=](::sycl::nd_item<3> id) [[sycl::reqd_sub_group_size(sg_size)]] {
             const auto sg_id = thread::get_subwarp_id_flat<sg_size, int64>(id);
             const auto sg_num =
                 thread::get_subwarp_num_flat<sg_size, int64>(id);
@@ -483,12 +489,12 @@ void generic_kernel_col_reduction_2d_blocked(
 
 template <typename ValueType, typename ReductionOp, typename FinalizeOp>
 void generic_kernel_reduction_finalize_2d(
-    sycl::handler& cgh, int64 num_results, int64 num_blocks, ReductionOp op,
+    ::sycl::handler& cgh, int64 num_results, int64 num_blocks, ReductionOp op,
     FinalizeOp finalize, ValueType identity, const ValueType* input,
     int64 result_stride, ValueType* result)
 {
-    cgh.parallel_for(sycl::range<1>{static_cast<std::size_t>(num_results)},
-                     [=](sycl::id<1> id) {
+    cgh.parallel_for(::sycl::range<1>{static_cast<std::size_t>(num_results)},
+                     [=](::sycl::id<1> id) {
                          auto partial = identity;
                          for (int64 block = 0; block < num_blocks; block++) {
                              partial = op(partial,
@@ -519,7 +525,7 @@ void run_generic_col_reduction_small(syn::value_list<int, ssg_size>,
         std::min<int64>(ceildiv(rows * ssg_size, wg_size), max_workgroups);
     auto queue = exec->get_queue();
     if (row_blocks <= 1) {
-        queue->submit([&](sycl::handler& cgh) {
+        queue->submit([&](::sycl::handler& cgh) {
             generic_kernel_col_reduction_2d_small<cfg, ssg_size>(
                 cgh, rows, cols, 1, fn, op, finalize, identity, result,
                 args...);
@@ -529,13 +535,13 @@ void run_generic_col_reduction_small(syn::value_list<int, ssg_size>,
         if (tmp.get_num_elems() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
-        queue->submit([&](sycl::handler& cgh) {
+        queue->submit([&](::sycl::handler& cgh) {
             generic_kernel_col_reduction_2d_small<cfg, ssg_size>(
                 cgh, rows, cols, row_blocks, fn, op, [](auto v) { return v; },
                 identity, reinterpret_cast<ValueType*>(tmp.get_data()),
                 args...);
         });
-        queue->submit([&](sycl::handler& cgh) {
+        queue->submit([&](::sycl::handler& cgh) {
             generic_kernel_reduction_finalize_2d(
                 cgh, cols, row_blocks, op, finalize, identity,
                 reinterpret_cast<const ValueType*>(tmp.get_const_data()), 1,
@@ -579,7 +585,7 @@ void run_kernel_row_reduction_stage1(std::shared_ptr<const SyclExecutor> exec,
             syn::value_list<int, sg_size>{}, exec, rows, cols, col_blocks, fn,
             op, [](auto v) { return v; }, identity,
             reinterpret_cast<ValueType*>(tmp.get_data()), 1, args...);
-        queue->submit([&](sycl::handler& cgh) {
+        queue->submit([&](::sycl::handler& cgh) {
             generic_kernel_reduction_finalize_2d(
                 cgh, rows, col_blocks, op, finalize, identity,
                 reinterpret_cast<const ValueType*>(tmp.get_const_data()),
@@ -638,7 +644,7 @@ void run_kernel_col_reduction_stage1(std::shared_ptr<const SyclExecutor> exec,
             col_blocks);
         auto queue = exec->get_queue();
         if (row_blocks <= 1) {
-            queue->submit([&](sycl::handler& cgh) {
+            queue->submit([&](::sycl::handler& cgh) {
                 generic_kernel_col_reduction_2d_blocked<cfg>(
                     cgh, rows, cols, 1, col_blocks, fn, op, finalize, identity,
                     result, args...);
@@ -648,13 +654,13 @@ void run_kernel_col_reduction_stage1(std::shared_ptr<const SyclExecutor> exec,
             if (tmp.get_num_elems() < required_storage) {
                 tmp.resize_and_reset(required_storage);
             }
-            queue->submit([&](sycl::handler& cgh) {
+            queue->submit([&](::sycl::handler& cgh) {
                 generic_kernel_col_reduction_2d_blocked<cfg>(
                     cgh, rows, cols, row_blocks, col_blocks, fn, op,
                     [](auto v) { return v; }, identity,
                     reinterpret_cast<ValueType*>(tmp.get_data()), args...);
             });
-            queue->submit([&](sycl::handler& cgh) {
+            queue->submit([&](::sycl::handler& cgh) {
                 generic_kernel_reduction_finalize_2d(
                     cgh, cols, row_blocks, op, finalize, identity,
                     reinterpret_cast<const ValueType*>(tmp.get_const_data()), 1,

@@ -43,7 +43,7 @@ namespace sycl {
 
 
 /** calls delete on the given event. */
-void destroy_event(sycl::event* event);
+void destroy_event(::sycl::event* event);
 
 
 }  // namespace sycl

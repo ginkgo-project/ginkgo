@@ -56,7 +56,7 @@ SyclTimer::SyclTimer(std::shared_ptr<const SyclExecutor> exec)
 void SyclTimer::init_time_point(time_point& time)
 {
     time.type_ = time_point::type::sycl;
-    time.data_.sycl_event = new sycl::event{};
+    time.data_.sycl_event = new ::sycl::event{};
 }
 
 
@@ -64,8 +64,8 @@ void SyclTimer::record(time_point& time)
 {
     GKO_ASSERT(time.type_ == time_point::type::sycl);
     *time.data_.sycl_event =
-        exec_->get_queue()->submit([&](sycl::handler& cgh) {
-            cgh.parallel_for(1, [=](sycl::id<1> id) {});
+        exec_->get_queue()->submit([&](::sycl::handler& cgh) {
+            cgh.parallel_for(1, [=](::sycl::id<1> id) {});
         });
 }
 
@@ -83,12 +83,11 @@ std::chrono::nanoseconds SyclTimer::difference_async(const time_point& start,
     GKO_ASSERT(start.type_ == time_point::type::sycl);
     GKO_ASSERT(stop.type_ == time_point::type::sycl);
     stop.data_.sycl_event->wait_and_throw();
-    auto stop_time =
-        stop.data_.sycl_event
-            ->get_profiling_info<sycl::info::event_profiling::command_start>();
+    auto stop_time = stop.data_.sycl_event->get_profiling_info<
+        ::sycl::info::event_profiling::command_start>();
     auto start_time =
         start.data_.sycl_event
-            ->get_profiling_info<sycl::info::event_profiling::command_end>();
+            ->get_profiling_info<::sycl::info::event_profiling::command_end>();
     return std::chrono::nanoseconds{static_cast<int64>(stop_time - start_time)};
 }
 

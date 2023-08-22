@@ -72,7 +72,7 @@ constexpr int default_grid_size = 32 * 32 * 128;
 void duplicate_array(const precision_reduction* __restrict__ source,
                      size_type source_size,
                      precision_reduction* __restrict__ dest,
-                     size_type dest_size, sycl::nd_item<3> item_ct1)
+                     size_type dest_size, ::sycl::nd_item<3> item_ct1)
 {
     auto grid = group::this_grid(item_ct1);
     if (grid.thread_rank() >= dest_size) {
@@ -84,12 +84,12 @@ void duplicate_array(const precision_reduction* __restrict__ source,
 }
 
 void duplicate_array(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                     sycl::queue* queue, const precision_reduction* source,
+                     ::sycl::queue* queue, const precision_reduction* source,
                      size_type source_size, precision_reduction* dest,
                      size_type dest_size)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+        sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
             duplicate_array(source, source_size, dest, dest_size, item_ct1);
         });
 }
@@ -100,7 +100,7 @@ void compare_adjacent_rows(size_type num_rows, int32 max_block_size,
                            const IndexType* __restrict__ row_ptrs,
                            const IndexType* __restrict__ col_idx,
                            bool* __restrict__ matching_next_row,
-                           sycl::nd_item<3> item_ct1)
+                           ::sycl::nd_item<3> item_ct1)
 {
     const auto warp = group::tiled_partition<config::warp_size>(
         group::this_thread_block(item_ct1));
@@ -142,13 +142,13 @@ void compare_adjacent_rows(size_type num_rows, int32 max_block_size,
 
 template <typename IndexType>
 void compare_adjacent_rows(dim3 grid, dim3 block,
-                           size_type dynamic_shared_memory, sycl::queue* queue,
-                           size_type num_rows, int32 max_block_size,
-                           const IndexType* row_ptrs, const IndexType* col_idx,
-                           bool* matching_next_row)
+                           size_type dynamic_shared_memory,
+                           ::sycl::queue* queue, size_type num_rows,
+                           int32 max_block_size, const IndexType* row_ptrs,
+                           const IndexType* col_idx, bool* matching_next_row)
 {
     queue->parallel_for(sycl_nd_range(grid, block),
-                        [=](sycl::nd_item<3> item_ct1)
+                        [=](::sycl::nd_item<3> item_ct1)
                             [[sycl::reqd_sub_group_size(config::warp_size)]] {
                                 compare_adjacent_rows(
                                     num_rows, max_block_size, row_ptrs, col_idx,
@@ -184,13 +184,16 @@ void generate_natural_block_pointer(size_type num_rows, int32 max_block_size,
 }
 
 template <typename IndexType>
-void generate_natural_block_pointer(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
-    size_type num_rows, int32 max_block_size, const bool* matching_next_row,
-    IndexType* block_ptrs, size_type* num_blocks_arr)
+void generate_natural_block_pointer(dim3 grid, dim3 block,
+                                    size_type dynamic_shared_memory,
+                                    ::sycl::queue* queue, size_type num_rows,
+                                    int32 max_block_size,
+                                    const bool* matching_next_row,
+                                    IndexType* block_ptrs,
+                                    size_type* num_blocks_arr)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+        sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
             generate_natural_block_pointer(num_rows, max_block_size,
                                            matching_next_row, block_ptrs,
                                            num_blocks_arr);
@@ -225,15 +228,13 @@ void agglomerate_supervariables_kernel(int32 max_block_size,
 }
 
 template <typename IndexType>
-void agglomerate_supervariables_kernel(dim3 grid, dim3 block,
-                                       size_type dynamic_shared_memory,
-                                       sycl::queue* queue, int32 max_block_size,
-                                       size_type num_natural_blocks,
-                                       IndexType* block_ptrs,
-                                       size_type* num_blocks_arr)
+void agglomerate_supervariables_kernel(
+    dim3 grid, dim3 block, size_type dynamic_shared_memory,
+    ::sycl::queue* queue, int32 max_block_size, size_type num_natural_blocks,
+    IndexType* block_ptrs, size_type* num_blocks_arr)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+        sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
             agglomerate_supervariables_kernel(
                 max_block_size, num_natural_blocks, block_ptrs, num_blocks_arr);
         });
@@ -246,7 +247,7 @@ void transpose_jacobi(
     const ValueType* __restrict__ blocks,
     preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
     const IndexType* __restrict__ block_ptrs, size_type num_blocks,
-    ValueType* __restrict__ out_blocks, sycl::nd_item<3> item_ct1)
+    ValueType* __restrict__ out_blocks, ::sycl::nd_item<3> item_ct1)
 {
     const auto block_id =
         thread::get_subwarp_id<subwarp_size, warps_per_block>(item_ct1);
@@ -272,13 +273,13 @@ void transpose_jacobi(
 template <bool conjugate, int max_block_size, int subwarp_size,
           int warps_per_block, typename ValueType, typename IndexType>
 void transpose_jacobi(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
-    const ValueType* blocks,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory,
+    ::sycl::queue* queue, const ValueType* blocks,
     preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
     const IndexType* block_ptrs, size_type num_blocks, ValueType* out_blocks)
 {
     queue->parallel_for(sycl_nd_range(grid, block),
-                        [=](sycl::nd_item<3> item_ct1)
+                        [=](::sycl::nd_item<3> item_ct1)
                             [[sycl::reqd_sub_group_size(subwarp_size)]] {
                                 transpose_jacobi<conjugate, max_block_size,
                                                  subwarp_size, warps_per_block>(
@@ -295,7 +296,7 @@ void adaptive_transpose_jacobi(
     preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
     const precision_reduction* __restrict__ block_precisions,
     const IndexType* __restrict__ block_ptrs, size_type num_blocks,
-    ValueType* __restrict__ out_blocks, sycl::nd_item<3> item_ct1)
+    ValueType* __restrict__ out_blocks, ::sycl::nd_item<3> item_ct1)
 {
     const auto block_id =
         thread::get_subwarp_id<subwarp_size, warps_per_block>(item_ct1);
@@ -330,15 +331,15 @@ void adaptive_transpose_jacobi(
 template <bool conjugate, int max_block_size, int subwarp_size,
           int warps_per_block, typename ValueType, typename IndexType>
 void adaptive_transpose_jacobi(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
-    const ValueType* blocks,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory,
+    ::sycl::queue* queue, const ValueType* blocks,
     preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
     const precision_reduction* block_precisions, const IndexType* block_ptrs,
     size_type num_blocks, ValueType* out_blocks)
 {
     queue->parallel_for(
         sycl_nd_range(grid, block),
-        [=](sycl::nd_item<3> item_ct1)
+        [=](::sycl::nd_item<3> item_ct1)
             [[sycl::reqd_sub_group_size(subwarp_size)]] {
                 adaptive_transpose_jacobi<conjugate, max_block_size,
                                           subwarp_size, warps_per_block>(

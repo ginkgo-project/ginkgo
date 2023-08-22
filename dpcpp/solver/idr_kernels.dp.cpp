@@ -75,7 +75,7 @@ template <typename ValueType>
 void initialize_m_kernel(size_type subspace_dim, size_type nrhs,
                          ValueType* __restrict__ m_values, size_type m_stride,
                          stopping_status* __restrict__ stop_status,
-                         sycl::nd_item<3> item_ct1)
+                         ::sycl::nd_item<3> item_ct1)
 {
     const auto global_id = thread::get_thread_id_flat(item_ct1);
     const auto row = global_id / m_stride;
@@ -93,16 +93,16 @@ void initialize_m_kernel(size_type subspace_dim, size_type nrhs,
 
 template <typename ValueType>
 void initialize_m_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                         sycl::queue* stream, size_type subspace_dim,
+                         ::sycl::queue* stream, size_type subspace_dim,
                          size_type nrhs, ValueType* m_values,
                          size_type m_stride, stopping_status* stop_status)
 {
     if (nrhs == 0) {
         return;
     }
-    stream->submit([&](sycl::handler& cgh) {
+    stream->submit([&](::sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
                 initialize_m_kernel(subspace_dim, nrhs, m_values, m_stride,
                                     stop_status, item_ct1);
             });
@@ -113,7 +113,7 @@ void initialize_m_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
 template <size_type block_size, typename ValueType>
 void orthonormalize_subspace_vectors_kernel(
     size_type num_rows, size_type num_cols, ValueType* __restrict__ values,
-    size_type stride, sycl::nd_item<3> item_ct1,
+    size_type stride, ::sycl::nd_item<3> item_ct1,
     uninitialized_array<ValueType, block_size>& reduction_helper_array)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
@@ -131,12 +131,12 @@ void orthonormalize_subspace_vectors_kernel(
             }
 
             // Ensure already finish reading this shared memory
-            item_ct1.barrier(sycl::access::fence_space::local_space);
+            item_ct1.barrier(::sycl::access::fence_space::local_space);
             reduction_helper[tidx] = dot;
             ::gko::kernels::sycl::reduce(
                 group::this_thread_block(item_ct1), reduction_helper,
                 [](const ValueType& a, const ValueType& b) { return a + b; });
-            item_ct1.barrier(sycl::access::fence_space::local_space);
+            item_ct1.barrier(::sycl::access::fence_space::local_space);
 
             dot = reduction_helper[0];
             for (size_type j = tidx; j < num_cols; j += block_size) {
@@ -150,13 +150,13 @@ void orthonormalize_subspace_vectors_kernel(
         }
 
         // Ensure already finish reading this shared memory
-        item_ct1.barrier(sycl::access::fence_space::local_space);
+        item_ct1.barrier(::sycl::access::fence_space::local_space);
         reduction_helper_real[tidx] = norm;
         ::gko::kernels::sycl::reduce(
             group::this_thread_block(item_ct1), reduction_helper_real,
             [](const remove_complex<ValueType>& a,
                const remove_complex<ValueType>& b) { return a + b; });
-        item_ct1.barrier(sycl::access::fence_space::local_space);
+        item_ct1.barrier(::sycl::access::fence_space::local_space);
 
         norm = std::sqrt(reduction_helper_real[0]);
         for (size_type j = tidx; j < num_cols; j += block_size) {
@@ -167,18 +167,18 @@ void orthonormalize_subspace_vectors_kernel(
 
 template <size_type block_size, typename ValueType>
 void orthonormalize_subspace_vectors_kernel(
-    dim3 grid, dim3 block, size_t dynamic_shared_memory, sycl::queue* stream,
+    dim3 grid, dim3 block, size_t dynamic_shared_memory, ::sycl::queue* stream,
     size_type num_rows, size_type num_cols, ValueType* values, size_type stride)
 {
-    stream->submit([&](sycl::handler& cgh) {
-        sycl::accessor<uninitialized_array<ValueType, block_size>, 0,
-                       sycl::access_mode::read_write,
-                       sycl::access::target::local>
+    stream->submit([&](::sycl::handler& cgh) {
+        ::sycl::accessor<uninitialized_array<ValueType, block_size>, 0,
+                         ::sycl::access_mode::read_write,
+                         ::sycl::access::target::local>
             reduction_helper_array_acc_ct1(cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
+            [=](::sycl::nd_item<3> item_ct1)
                 [[sycl::reqd_sub_group_size(config::warp_size)]] {
                     orthonormalize_subspace_vectors_kernel<block_size>(
                         num_rows, num_cols, values, stride, item_ct1,
@@ -194,7 +194,8 @@ void solve_lower_triangular_kernel(
     const ValueType* __restrict__ m_values, size_type m_stride,
     const ValueType* __restrict__ f_values, size_type f_stride,
     ValueType* __restrict__ c_values, size_type c_stride,
-    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1)
+    const stopping_status* __restrict__ stop_status,
+    ::sycl::nd_item<3> item_ct1)
 {
     const auto global_id = thread::get_thread_id_flat(item_ct1);
 
@@ -217,14 +218,14 @@ void solve_lower_triangular_kernel(
 
 template <typename ValueType>
 void solve_lower_triangular_kernel(
-    dim3 grid, dim3 block, size_t dynamic_shared_memory, sycl::queue* stream,
+    dim3 grid, dim3 block, size_t dynamic_shared_memory, ::sycl::queue* stream,
     size_type subspace_dim, size_type nrhs, const ValueType* m_values,
     size_type m_stride, const ValueType* f_values, size_type f_stride,
     ValueType* c_values, size_type c_stride, const stopping_status* stop_status)
 {
-    stream->submit([&](sycl::handler& cgh) {
+    stream->submit([&](::sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
                 solve_lower_triangular_kernel(
                     subspace_dim, nrhs, m_values, m_stride, f_values, f_stride,
                     c_values, c_stride, stop_status, item_ct1);
@@ -242,7 +243,7 @@ void step_1_kernel(size_type k, size_type num_rows, size_type subspace_dim,
                    const ValueType* __restrict__ g_values, size_type g_stride,
                    ValueType* __restrict__ v_values, size_type v_stride,
                    const stopping_status* __restrict__ stop_status,
-                   sycl::nd_item<3> item_ct1)
+                   ::sycl::nd_item<3> item_ct1)
 {
     const auto global_id = thread::get_thread_id_flat(item_ct1);
     const auto row = global_id / nrhs;
@@ -264,7 +265,7 @@ void step_1_kernel(size_type k, size_type num_rows, size_type subspace_dim,
 
 template <typename ValueType>
 void step_1_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                   sycl::queue* stream, size_type k, size_type num_rows,
+                   ::sycl::queue* stream, size_type k, size_type num_rows,
                    size_type subspace_dim, size_type nrhs,
                    const ValueType* residual_values, size_type residual_stride,
                    const ValueType* c_values, size_type c_stride,
@@ -275,9 +276,9 @@ void step_1_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
     if (nrhs == 0) {
         return;
     }
-    stream->submit([&](sycl::handler& cgh) {
+    stream->submit([&](::sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
                 step_1_kernel(k, num_rows, subspace_dim, nrhs, residual_values,
                               residual_stride, c_values, c_stride, g_values,
                               g_stride, v_values, v_stride, stop_status,
@@ -294,7 +295,7 @@ void step_2_kernel(size_type k, size_type num_rows, size_type subspace_dim,
                    const ValueType* __restrict__ c_values, size_type c_stride,
                    ValueType* __restrict__ u_values, size_type u_stride,
                    const stopping_status* __restrict__ stop_status,
-                   sycl::nd_item<3> item_ct1)
+                   ::sycl::nd_item<3> item_ct1)
 {
     const auto global_id = thread::get_thread_id_flat(item_ct1);
     const auto row = global_id / nrhs;
@@ -316,7 +317,7 @@ void step_2_kernel(size_type k, size_type num_rows, size_type subspace_dim,
 
 template <typename ValueType>
 void step_2_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                   sycl::queue* stream, size_type k, size_type num_rows,
+                   ::sycl::queue* stream, size_type k, size_type num_rows,
                    size_type subspace_dim, size_type nrhs,
                    const ValueType* omega_values, const ValueType* v_values,
                    size_type v_stride, const ValueType* c_values,
@@ -326,9 +327,9 @@ void step_2_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
     if (nrhs == 0) {
         return;
     }
-    stream->submit([&](sycl::handler& cgh) {
+    stream->submit([&](::sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
                 step_2_kernel(k, num_rows, subspace_dim, nrhs, omega_values,
                               v_values, v_stride, c_values, c_stride, u_values,
                               u_stride, stop_status, item_ct1);
@@ -342,7 +343,8 @@ void multidot_kernel(
     size_type num_rows, size_type nrhs, const ValueType* __restrict__ p_i,
     const ValueType* __restrict__ g_k, size_type g_k_stride,
     ValueType* __restrict__ alpha,
-    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1,
+    const stopping_status* __restrict__ stop_status,
+    ::sycl::nd_item<3> item_ct1,
     uninitialized_array<ValueType, default_dot_dim*(default_dot_dim + 1)>&
         reduction_helper_array)
 {
@@ -367,7 +369,7 @@ void multidot_kernel(
         }
     }
     reduction_helper[tidx * (default_dot_dim + 1) + tidy] = local_res;
-    item_ct1.barrier(sycl::access::fence_space::local_space);
+    item_ct1.barrier(::sycl::access::fence_space::local_space);
     local_res = reduction_helper[tidy * (default_dot_dim + 1) + tidx];
     const auto tile_block = group::tiled_partition<default_dot_dim>(
         group::this_thread_block(item_ct1));
@@ -382,21 +384,21 @@ void multidot_kernel(
 
 template <typename ValueType>
 void multidot_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                     sycl::queue* stream, size_type num_rows, size_type nrhs,
+                     ::sycl::queue* stream, size_type num_rows, size_type nrhs,
                      const ValueType* p_i, const ValueType* g_k,
                      size_type g_k_stride, ValueType* alpha,
                      const stopping_status* stop_status)
 {
-    stream->submit([&](sycl::handler& cgh) {
-        sycl::accessor<uninitialized_array<ValueType, default_dot_dim*(
-                                                          default_dot_dim + 1)>,
-                       0, sycl::access_mode::read_write,
-                       sycl::access::target::local>
+    stream->submit([&](::sycl::handler& cgh) {
+        ::sycl::accessor<uninitialized_array<
+                             ValueType, default_dot_dim*(default_dot_dim + 1)>,
+                         0, ::sycl::access_mode::read_write,
+                         ::sycl::access::target::local>
             reduction_helper_array_acc_ct1(cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
+            [=](::sycl::nd_item<3> item_ct1)
                 [[sycl::reqd_sub_group_size(default_dot_dim)]] {
                     multidot_kernel(
                         num_rows, nrhs, p_i, g_k, g_k_stride, alpha,
@@ -414,7 +416,8 @@ void update_g_k_and_u_kernel(
     size_type m_stride, const ValueType* __restrict__ g_values,
     size_type g_stride, ValueType* __restrict__ g_k_values,
     size_type g_k_stride, ValueType* __restrict__ u_values, size_type u_stride,
-    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1)
+    const stopping_status* __restrict__ stop_status,
+    ::sycl::nd_item<3> item_ct1)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
     const auto row = tidx / g_k_stride;
@@ -434,22 +437,20 @@ void update_g_k_and_u_kernel(
 }
 
 template <size_type block_size, typename ValueType>
-void update_g_k_and_u_kernel(dim3 grid, dim3 block,
-                             size_t dynamic_shared_memory, sycl::queue* stream,
-                             size_type k, size_type i, size_type size,
-                             size_type nrhs, const ValueType* alpha,
-                             const ValueType* m_values, size_type m_stride,
-                             const ValueType* g_values, size_type g_stride,
-                             ValueType* g_k_values, size_type g_k_stride,
-                             ValueType* u_values, size_type u_stride,
-                             const stopping_status* stop_status)
+void update_g_k_and_u_kernel(
+    dim3 grid, dim3 block, size_t dynamic_shared_memory, ::sycl::queue* stream,
+    size_type k, size_type i, size_type size, size_type nrhs,
+    const ValueType* alpha, const ValueType* m_values, size_type m_stride,
+    const ValueType* g_values, size_type g_stride, ValueType* g_k_values,
+    size_type g_k_stride, ValueType* u_values, size_type u_stride,
+    const stopping_status* stop_status)
 {
     if (g_k_stride == 0) {
         return;
     }
-    stream->submit([&](sycl::handler& cgh) {
+    stream->submit([&](::sycl::handler& cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
+                         [=](::sycl::nd_item<3> item_ct1) {
                              update_g_k_and_u_kernel<block_size>(
                                  k, i, size, nrhs, alpha, m_values, m_stride,
                                  g_values, g_stride, g_k_values, g_k_stride,
@@ -465,7 +466,7 @@ void update_g_kernel(size_type k, size_type size, size_type nrhs,
                      size_type g_k_stride, ValueType* __restrict__ g_values,
                      size_type g_stride,
                      const stopping_status* __restrict__ stop_status,
-                     sycl::nd_item<3> item_ct1)
+                     ::sycl::nd_item<3> item_ct1)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
     const auto row = tidx / g_k_stride;
@@ -483,7 +484,7 @@ void update_g_kernel(size_type k, size_type size, size_type nrhs,
 
 template <size_type block_size, typename ValueType>
 void update_g_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                     sycl::queue* stream, size_type k, size_type size,
+                     ::sycl::queue* stream, size_type k, size_type size,
                      size_type nrhs, const ValueType* g_k_values,
                      size_type g_k_stride, ValueType* g_values,
                      size_type g_stride, const stopping_status* stop_status)
@@ -491,9 +492,9 @@ void update_g_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
     if (g_k_stride == 0) {
         return;
     }
-    stream->submit([&](sycl::handler& cgh) {
+    stream->submit([&](::sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
                 update_g_kernel<block_size>(k, size, nrhs, g_k_values,
                                             g_k_stride, g_values, g_stride,
                                             stop_status, item_ct1);
@@ -511,7 +512,8 @@ void update_x_r_and_f_kernel(
     ValueType* __restrict__ f_values, size_type f_stride,
     ValueType* __restrict__ r_values, size_type r_stride,
     ValueType* __restrict__ x_values, size_type x_stride,
-    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1)
+    const stopping_status* __restrict__ stop_status,
+    ::sycl::nd_item<3> item_ct1)
 {
     const auto global_id = thread::get_thread_id_flat(item_ct1);
     const auto row = global_id / x_stride;
@@ -538,7 +540,7 @@ void update_x_r_and_f_kernel(
 
 template <typename ValueType>
 void update_x_r_and_f_kernel(
-    dim3 grid, dim3 block, size_t dynamic_shared_memory, sycl::queue* stream,
+    dim3 grid, dim3 block, size_t dynamic_shared_memory, ::sycl::queue* stream,
     size_type k, size_type size, size_type subspace_dim, size_type nrhs,
     const ValueType* m_values, size_type m_stride, const ValueType* g_values,
     size_type g_stride, const ValueType* u_values, size_type u_stride,
@@ -546,9 +548,9 @@ void update_x_r_and_f_kernel(
     size_type r_stride, ValueType* x_values, size_type x_stride,
     const stopping_status* stop_status)
 {
-    stream->submit([&](sycl::handler& cgh) {
+    stream->submit([&](::sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
                 update_x_r_and_f_kernel(
                     k, size, subspace_dim, nrhs, m_values, m_stride, g_values,
                     g_stride, u_values, u_stride, f_values, f_stride, r_values,
@@ -564,7 +566,8 @@ void compute_omega_kernel(
     const ValueType* __restrict__ tht,
     const remove_complex<ValueType>* __restrict__ residual_norm,
     ValueType* __restrict__ omega,
-    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1)
+    const stopping_status* __restrict__ stop_status,
+    ::sycl::nd_item<3> item_ct1)
 {
     const auto global_id = thread::get_thread_id_flat(item_ct1);
 
@@ -586,15 +589,15 @@ void compute_omega_kernel(
 
 template <typename ValueType>
 void compute_omega_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                          sycl::queue* stream, size_type nrhs,
+                          ::sycl::queue* stream, size_type nrhs,
                           const remove_complex<ValueType> kappa,
                           const ValueType* tht,
                           const remove_complex<ValueType>* residual_norm,
                           ValueType* omega, const stopping_status* stop_status)
 {
-    stream->submit([&](sycl::handler& cgh) {
+    stream->submit([&](::sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
                 compute_omega_kernel(nrhs, kappa, tht, residual_norm, omega,
                                      stop_status, item_ct1);
             });
@@ -632,8 +635,8 @@ void initialize_subspace_vectors(std::shared_ptr<const SyclExecutor> exec,
         auto n =
             subspace_vectors->get_size()[0] * subspace_vectors->get_stride();
         n = is_complex<ValueType>() ? 2 * n : n;
-        exec->get_queue()->submit([&](sycl::handler& cgh) {
-            cgh.parallel_for(sycl::range<1>(n), [=](sycl::item<1> idx) {
+        exec->get_queue()->submit([&](::sycl::handler& cgh) {
+            cgh.parallel_for(::sycl::range<1>(n), [=](::sycl::item<1> idx) {
                 std::uint64_t offset = idx.get_linear_id();
                 oneapi::dpl::minstd_rand engine(seed, offset);
                 oneapi::dpl::normal_distribution<remove_complex<ValueType>>

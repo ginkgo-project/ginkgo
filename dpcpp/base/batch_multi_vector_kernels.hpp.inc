@@ -34,7 +34,7 @@ template <typename ValueType, typename Mapping>
 __dpct_inline__ void scale_kernel(
     const gko::batch::multi_vector::batch_item<const ValueType>& alpha,
     const gko::batch::multi_vector::batch_item<ValueType>& x,
-    sycl::nd_item<3>& item_ct1, Mapping map)
+    ::sycl::nd_item<3>& item_ct1, Mapping map)
 {
     const int max_li = x.num_rows * x.num_rhs;
     for (int li = item_ct1.get_local_linear_id(); li < max_li;
@@ -53,7 +53,7 @@ __dpct_inline__ void add_scaled_kernel(
     const gko::batch::multi_vector::batch_item<const ValueType>& alpha,
     const gko::batch::multi_vector::batch_item<const ValueType>& x,
     const gko::batch::multi_vector::batch_item<ValueType>& y,
-    sycl::nd_item<3>& item_ct1, Mapping map)
+    ::sycl::nd_item<3>& item_ct1, Mapping map)
 {
     const int max_li = x.num_rows * x.num_rhs;
     for (int li = item_ct1.get_local_id(2); li < max_li;
@@ -72,12 +72,12 @@ __dpct_inline__ void compute_gen_dot_product_kernel(
     const gko::batch::multi_vector::batch_item<const ValueType>& x,
     const gko::batch::multi_vector::batch_item<const ValueType>& y,
     const gko::batch::multi_vector::batch_item<ValueType>& result,
-    sycl::nd_item<3>& item_ct1, Mapping conj_map)
+    ::sycl::nd_item<3>& item_ct1, Mapping conj_map)
 {
     constexpr auto tile_size = config::warp_size;
     auto subg =
         group::tiled_partition<tile_size>(group::this_thread_block(item_ct1));
-    const auto subgroup = static_cast<sycl::sub_group>(subg);
+    const auto subgroup = static_cast<::sycl::sub_group>(subg);
     const int subgroup_id = subgroup.get_group_id();
     const int subgroup_size = subgroup.get_local_range().size();
     const int num_subgroups = subgroup.get_group_range().size();
@@ -107,12 +107,12 @@ __dpct_inline__ void compute_norm2_kernel(
     const gko::batch::multi_vector::batch_item<const ValueType>& x,
     const gko::batch::multi_vector::batch_item<remove_complex<ValueType>>&
         result,
-    sycl::nd_item<3>& item_ct1)
+    ::sycl::nd_item<3>& item_ct1)
 {
     constexpr auto tile_size = config::warp_size;
     auto subg =
         group::tiled_partition<tile_size>(group::this_thread_block(item_ct1));
-    const auto subgroup = static_cast<sycl::sub_group>(subg);
+    const auto subgroup = static_cast<::sycl::sub_group>(subg);
     const int subgroup_id = subgroup.get_group_id();
     const int subgroup_size = subgroup.get_local_range().size();
     const int num_subgroups = subgroup.get_group_range().size();
@@ -140,7 +140,7 @@ template <typename ValueType>
 __dpct_inline__ void copy_kernel(
     const gko::batch::multi_vector::batch_item<const ValueType>& in,
     const gko::batch::multi_vector::batch_item<ValueType>& out,
-    sycl::nd_item<3>& item_ct1)
+    ::sycl::nd_item<3>& item_ct1)
 {
     for (int iz = item_ct1.get_local_linear_id(); iz < in.num_rows * in.num_rhs;
          iz += item_ct1.get_local_range().size()) {

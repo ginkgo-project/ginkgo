@@ -74,8 +74,8 @@ void symbolic_count(std::shared_ptr<const DefaultExecutor> exec,
     const auto postorder_parent = forest.postorder_parents.get_const_data();
     auto queue = exec->get_queue();
     // build sorted postorder node list for each row
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx_id) {
+    queue->submit([&](::sycl::handler& cgh) {
+        cgh.parallel_for(::sycl::range<1>{num_rows}, [=](::sycl::id<1> idx_id) {
             const auto row = idx_id[0];
             const auto row_begin = row_ptrs[row];
             const auto row_end = row_ptrs[row + 1];
@@ -96,8 +96,8 @@ void symbolic_count(std::shared_ptr<const DefaultExecutor> exec,
         });
     });
     // count nonzeros per row of L
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx_id) {
+    queue->submit([&](::sycl::handler& cgh) {
+        cgh.parallel_for(::sycl::range<1>{num_rows}, [=](::sycl::id<1> idx_id) {
             const auto row = idx_id[0];
             const auto row_begin = row_ptrs[row];
             // instead of relying on the input containing a diagonal, we
@@ -143,8 +143,8 @@ void symbolic_factorize(
     const auto postorder_parent = forest.postorder_parents.get_const_data();
     const auto out_row_ptrs = l_factor->get_const_row_ptrs();
     const auto out_cols = l_factor->get_col_idxs();
-    exec->get_queue()->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx_id) {
+    exec->get_queue()->submit([&](::sycl::handler& cgh) {
+        cgh.parallel_for(::sycl::range<1>{num_rows}, [=](::sycl::id<1> idx_id) {
             const auto row = idx_id[0];
             const auto row_begin = row_ptrs[row];
             // instead of relying on the input containing a diagonal, we

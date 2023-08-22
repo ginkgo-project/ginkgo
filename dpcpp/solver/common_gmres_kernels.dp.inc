@@ -40,7 +40,7 @@ void initialize_kernel(
     ValueType *__restrict__ residual, size_type stride_residual,
     ValueType *__restrict__ givens_sin, size_type stride_sin,
     ValueType *__restrict__ givens_cos, size_type stride_cos,
-    stopping_status *__restrict__ stop_status, sycl::nd_item<3> item_ct1)
+    stopping_status *__restrict__ stop_status, ::sycl::nd_item<3> item_ct1)
 {
     const auto global_id = thread::get_thread_id_flat(item_ct1);
 
@@ -67,7 +67,7 @@ void initialize_kernel(
 
 template <size_type block_size, typename ValueType>
 void initialize_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                         sycl::queue *queue, size_type num_rows,
+                         ::sycl::queue *queue, size_type num_rows,
                          size_type num_cols, size_type krylov_dim,
                          const ValueType *b, size_type stride_b,
                          ValueType *residual, size_type stride_residual,
@@ -75,9 +75,9 @@ void initialize_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                          ValueType *givens_cos, size_type stride_cos,
                          stopping_status *stop_status)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](::sycl::handler &cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
                 initialize_kernel<block_size>(
                     num_rows, num_cols, krylov_dim, b, stride_b, residual,
                     stride_residual, givens_sin, stride_sin, givens_cos,
@@ -146,7 +146,7 @@ void givens_rotation_kernel(
     remove_complex<ValueType> *__restrict__ residual_norm,
     ValueType *__restrict__ residual_norm_collection,
     size_type stride_residual_norm_collection,
-    const stopping_status *__restrict__ stop_status, sycl::nd_item<3> item_ct1)
+    const stopping_status *__restrict__ stop_status, ::sycl::nd_item<3> item_ct1)
 {
     const auto col_idx = thread::get_thread_id_flat(item_ct1);
 
@@ -195,7 +195,7 @@ void givens_rotation_kernel(
 
 template <size_type block_size, typename ValueType>
 void givens_rotation_kernel(dim3 grid, dim3 block,
-                            size_type dynamic_shared_memory, sycl::queue *queue,
+                            size_type dynamic_shared_memory, ::sycl::queue *queue,
                             size_type num_rows, size_type num_cols,
                             size_type iter, ValueType *hessenberg_iter,
                             size_type stride_hessenberg, ValueType *givens_sin,
@@ -206,9 +206,9 @@ void givens_rotation_kernel(dim3 grid, dim3 block,
                             size_type stride_residual_norm_collection,
                             const stopping_status *stop_status)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](::sycl::handler &cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
                 givens_rotation_kernel<block_size>(
                     num_rows, num_cols, iter, hessenberg_iter,
                     stride_hessenberg, givens_sin, stride_sin, givens_cos,
@@ -227,7 +227,7 @@ void solve_upper_triangular_kernel(
     size_type stride_residual_norm_collection,
     const ValueType *__restrict__ hessenberg, size_type stride_hessenberg,
     ValueType *__restrict__ y, size_type stride_y,
-    const size_type *__restrict__ final_iter_nums, sycl::nd_item<3> item_ct1)
+    const size_type *__restrict__ final_iter_nums, ::sycl::nd_item<3> item_ct1)
 {
     const auto col_idx = thread::get_thread_id_flat(item_ct1);
 
@@ -253,16 +253,16 @@ void solve_upper_triangular_kernel(
 
 template <size_type block_size, typename ValueType>
 void solve_upper_triangular_kernel(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue *queue,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory, ::sycl::queue *queue,
     size_type num_cols, size_type num_rhs,
     const ValueType *residual_norm_collection,
     size_type stride_residual_norm_collection, const ValueType *hessenberg,
     size_type stride_hessenberg, ValueType *y, size_type stride_y,
     const size_type *final_iter_nums)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](::sycl::handler &cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
                 solve_upper_triangular_kernel<block_size>(
                     num_cols, num_rhs, residual_norm_collection,
                     stride_residual_norm_collection, hessenberg,

@@ -173,7 +173,7 @@ void reduce(const Group& __restrict__ group, ValueType* __restrict__ data,
 template <unsigned int sg_size = config::warp_size, typename Operator,
           typename ValueType>
 void reduce_array(size_type size, const ValueType* __restrict__ source,
-                  ValueType* __restrict__ result, sycl::nd_item<3> item_ct1,
+                  ValueType* __restrict__ result, ::sycl::nd_item<3> item_ct1,
                   Operator reduce_op = Operator{})
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
@@ -201,7 +201,7 @@ void reduce_array(size_type size, const ValueType* __restrict__ source,
 template <typename DeviceConfig, typename ValueType>
 void reduce_add_array(
     size_type size, const ValueType* __restrict__ source,
-    ValueType* __restrict__ result, sycl::nd_item<3> item_ct1,
+    ValueType* __restrict__ result, ::sycl::nd_item<3> item_ct1,
     uninitialized_array<ValueType, DeviceConfig::block_size>& block_sum)
 {
     reduce_array<DeviceConfig::subgroup_size>(
@@ -215,18 +215,18 @@ void reduce_add_array(
 
 template <typename DeviceConfig = device_config<256, 16>, typename ValueType>
 void reduce_add_array(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                      sycl::queue* queue, size_type size,
+                      ::sycl::queue* queue, size_type size,
                       const ValueType* source, ValueType* result)
 {
-    queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<uninitialized_array<ValueType, DeviceConfig::block_size>,
-                       0, sycl::access::mode::read_write,
-                       sycl::access::target::local>
+    queue->submit([&](::sycl::handler& cgh) {
+        ::sycl::accessor<
+            uninitialized_array<ValueType, DeviceConfig::block_size>, 0,
+            ::sycl::access::mode::read_write, ::sycl::access::target::local>
             block_sum_acc_ct1(cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
+            [=](::sycl::nd_item<3> item_ct1)
                 [[sycl::reqd_sub_group_size(DeviceConfig::subgroup_size)]] {
                     reduce_add_array<DeviceConfig>(
                         size, source, result, item_ct1,

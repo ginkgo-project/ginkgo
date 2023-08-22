@@ -52,10 +52,10 @@ namespace sycl {
  * @internal
  * Returns the number of set bits in the given mask.
  */
-__dpct_inline__ int popcnt(uint32 mask) { return sycl::popcount(mask); }
+__dpct_inline__ int popcnt(uint32 mask) { return ::sycl::popcount(mask); }
 
 /** @copydoc popcnt */
-__dpct_inline__ int popcnt(uint64 mask) { return sycl::popcount(mask); }
+__dpct_inline__ int popcnt(uint64 mask) { return ::sycl::popcount(mask); }
 
 
 /**
@@ -67,13 +67,13 @@ __dpct_inline__ int popcnt(uint64 mask) { return sycl::popcount(mask); }
  */
 __dpct_inline__ int ffs(uint32 mask)
 {
-    return (mask == 0) ? 0 : (sycl::ext::intel::ctz(mask) + 1);
+    return (mask == 0) ? 0 : (::sycl::ext::intel::ctz(mask) + 1);
 }
 
 /** @copydoc ffs */
 __dpct_inline__ int ffs(uint64 mask)
 {
-    return (mask == 0) ? 0 : (sycl::ext::intel::ctz(mask) + 1);
+    return (mask == 0) ? 0 : (::sycl::ext::intel::ctz(mask) + 1);
 }
 
 
@@ -82,10 +82,10 @@ __dpct_inline__ int ffs(uint64 mask)
  * Returns the number of zero bits before the first set bit in the given mask,
  * starting from the most significant bit.
  */
-__dpct_inline__ int clz(uint32 mask) { return sycl::clz(mask); }
+__dpct_inline__ int clz(uint32 mask) { return ::sycl::clz(mask); }
 
 /** @copydoc clz */
-__dpct_inline__ int clz(uint64 mask) { return sycl::clz(mask); }
+__dpct_inline__ int clz(uint64 mask) { return ::sycl::clz(mask); }
 
 
 }  // namespace sycl

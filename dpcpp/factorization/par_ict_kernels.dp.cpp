@@ -88,7 +88,7 @@ void ict_tri_spgeam_nnz(const IndexType* __restrict__ llh_row_ptrs,
                         const IndexType* __restrict__ a_row_ptrs,
                         const IndexType* __restrict__ a_col_idxs,
                         IndexType* __restrict__ l_new_row_ptrs,
-                        IndexType num_rows, sycl::nd_item<3> item_ct1)
+                        IndexType num_rows, ::sycl::nd_item<3> item_ct1)
 {
     auto subwarp = group::tiled_partition<subgroup_size>(
         group::this_thread_block(item_ct1));
@@ -120,14 +120,14 @@ void ict_tri_spgeam_nnz(const IndexType* __restrict__ llh_row_ptrs,
 
 template <int subgroup_size, typename IndexType>
 void ict_tri_spgeam_nnz(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                        sycl::queue* queue, const IndexType* llh_row_ptrs,
+                        ::sycl::queue* queue, const IndexType* llh_row_ptrs,
                         const IndexType* llh_col_idxs,
                         const IndexType* a_row_ptrs,
                         const IndexType* a_col_idxs, IndexType* l_new_row_ptrs,
                         IndexType num_rows)
 {
     queue->parallel_for(sycl_nd_range(grid, block),
-                        [=](sycl::nd_item<3> item_ct1)
+                        [=](::sycl::nd_item<3> item_ct1)
                             [[sycl::reqd_sub_group_size(subgroup_size)]] {
                                 ict_tri_spgeam_nnz<subgroup_size>(
                                     llh_row_ptrs, llh_col_idxs, a_row_ptrs,
@@ -150,7 +150,7 @@ void ict_tri_spgeam_init(const IndexType* __restrict__ llh_row_ptrs,
                          const IndexType* __restrict__ l_new_row_ptrs,
                          IndexType* __restrict__ l_new_col_idxs,
                          ValueType* __restrict__ l_new_vals, IndexType num_rows,
-                         sycl::nd_item<3> item_ct1)
+                         ::sycl::nd_item<3> item_ct1)
 {
     auto subwarp = group::tiled_partition<subgroup_size>(
         group::this_thread_block(item_ct1));
@@ -302,7 +302,7 @@ void ict_tri_spgeam_init(const IndexType* __restrict__ llh_row_ptrs,
 
 template <int subgroup_size, typename ValueType, typename IndexType>
 void ict_tri_spgeam_init(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                         sycl::queue* queue, const IndexType* llh_row_ptrs,
+                         ::sycl::queue* queue, const IndexType* llh_row_ptrs,
                          const IndexType* llh_col_idxs,
                          const ValueType* llh_vals, const IndexType* a_row_ptrs,
                          const IndexType* a_col_idxs, const ValueType* a_vals,
@@ -313,7 +313,7 @@ void ict_tri_spgeam_init(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                          IndexType num_rows)
 {
     queue->parallel_for(sycl_nd_range(grid, block),
-                        [=](sycl::nd_item<3> item_ct1)
+                        [=](::sycl::nd_item<3> item_ct1)
                             [[sycl::reqd_sub_group_size(subgroup_size)]] {
                                 ict_tri_spgeam_init<subgroup_size>(
                                     llh_row_ptrs, llh_col_idxs, llh_vals,
@@ -337,7 +337,7 @@ void ict_sweep(const IndexType* __restrict__ a_row_ptrs,
                const IndexType* __restrict__ l_row_idxs,
                const IndexType* __restrict__ l_col_idxs,
                ValueType* __restrict__ l_vals, IndexType l_nnz,
-               sycl::nd_item<3> item_ct1)
+               ::sycl::nd_item<3> item_ct1)
 {
     auto l_nz = thread::get_subwarp_id_flat<subgroup_size, IndexType>(item_ct1);
     if (l_nz >= l_nnz) {
@@ -398,13 +398,13 @@ void ict_sweep(const IndexType* __restrict__ a_row_ptrs,
 
 template <int subgroup_size, typename ValueType, typename IndexType>
 void ict_sweep(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-               sycl::queue* queue, const IndexType* a_row_ptrs,
+               ::sycl::queue* queue, const IndexType* a_row_ptrs,
                const IndexType* a_col_idxs, const ValueType* a_vals,
                const IndexType* l_row_ptrs, const IndexType* l_row_idxs,
                const IndexType* l_col_idxs, ValueType* l_vals, IndexType l_nnz)
 {
     queue->parallel_for(sycl_nd_range(grid, block),
-                        [=](sycl::nd_item<3> item_ct1)
+                        [=](::sycl::nd_item<3> item_ct1)
                             [[sycl::reqd_sub_group_size(subgroup_size)]] {
                                 ict_sweep<subgroup_size>(
                                     a_row_ptrs, a_col_idxs, a_vals, l_row_ptrs,

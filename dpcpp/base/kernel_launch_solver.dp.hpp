@@ -42,12 +42,12 @@ namespace sycl {
 
 
 template <typename KernelFunction, typename... KernelArgs>
-void generic_kernel_2d_solver(sycl::handler& cgh, int64 rows, int64 cols,
+void generic_kernel_2d_solver(::sycl::handler& cgh, int64 rows, int64 cols,
                               int64 default_stride, KernelFunction fn,
                               KernelArgs... args)
 {
-    cgh.parallel_for(sycl::range<1>{static_cast<std::size_t>(rows * cols)},
-                     [=](sycl::id<1> idx) {
+    cgh.parallel_for(::sycl::range<1>{static_cast<std::size_t>(rows * cols)},
+                     [=](::sycl::id<1> idx) {
                          auto row = static_cast<int64>(idx[0] / cols);
                          auto col = static_cast<int64>(idx[0] % cols);
                          fn(row, col,
@@ -62,7 +62,7 @@ void run_kernel_solver(std::shared_ptr<const SyclExecutor> exec,
                        KernelFunction fn, dim<2> size, size_type default_stride,
                        KernelArgs&&... args)
 {
-    exec->get_queue()->submit([&](sycl::handler& cgh) {
+    exec->get_queue()->submit([&](::sycl::handler& cgh) {
         kernels::sycl::generic_kernel_2d_solver(
             cgh, static_cast<int64>(size[0]), static_cast<int64>(size[1]),
             static_cast<int64>(default_stride), fn,

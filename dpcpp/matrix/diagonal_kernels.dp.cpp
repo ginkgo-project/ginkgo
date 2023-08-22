@@ -68,7 +68,7 @@ template <typename ValueType, typename IndexType>
 void apply_to_csr(size_type num_rows, const ValueType* __restrict__ diag,
                   const IndexType* __restrict__ row_ptrs,
                   ValueType* __restrict__ result_values, bool inverse,
-                  sycl::nd_item<3> item_ct1)
+                  ::sycl::nd_item<3> item_ct1)
 {
     constexpr auto warp_size = config::warp_size;
     auto warp_tile =

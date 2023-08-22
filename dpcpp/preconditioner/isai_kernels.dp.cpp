@@ -91,7 +91,7 @@ __dpct_inline__ void generic_generate(
     const IndexType* __restrict__ i_col_idxs, ValueType* __restrict__ i_values,
     IndexType* __restrict__ excess_rhs_sizes,
     IndexType* __restrict__ excess_nnz, Callable direct_solve,
-    sycl::nd_item<3> item_ct1,
+    ::sycl::nd_item<3> item_ct1,
     uninitialized_array<ValueType, subwarp_size * subwarp_size *
                                        subwarps_per_block>* storage)
 {
@@ -225,7 +225,7 @@ void generate_l_inverse(
     const IndexType* __restrict__ i_row_ptrs,
     const IndexType* __restrict__ i_col_idxs, ValueType* __restrict__ i_values,
     IndexType* __restrict__ excess_rhs_sizes,
-    IndexType* __restrict__ excess_nnz, sycl::nd_item<3> item_ct1,
+    IndexType* __restrict__ excess_nnz, ::sycl::nd_item<3> item_ct1,
     uninitialized_array<ValueType, subwarp_size * subwarp_size *
                                        subwarps_per_block>* storage)
 {
@@ -259,23 +259,23 @@ void generate_l_inverse(
 template <int subwarp_size, int subwarps_per_block, typename ValueType,
           typename IndexType>
 void generate_l_inverse(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                        sycl::queue* queue, IndexType num_rows,
+                        ::sycl::queue* queue, IndexType num_rows,
                         const IndexType* m_row_ptrs,
                         const IndexType* m_col_idxs, const ValueType* m_values,
                         const IndexType* i_row_ptrs,
                         const IndexType* i_col_idxs, ValueType* i_values,
                         IndexType* excess_rhs_sizes, IndexType* excess_nnz)
 {
-    queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<
+    queue->submit([&](::sycl::handler& cgh) {
+        ::sycl::accessor<
             uninitialized_array<ValueType, subwarp_size * subwarp_size *
                                                subwarps_per_block>,
-            0, sycl::access_mode::read_write, sycl::access::target::local>
+            0, ::sycl::access_mode::read_write, ::sycl::access::target::local>
             storage_acc_ct1(cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
+            [=](::sycl::nd_item<3> item_ct1)
                 [[sycl::reqd_sub_group_size(subwarp_size)]] {
                     generate_l_inverse<subwarp_size, subwarps_per_block>(
                         num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs,
@@ -295,7 +295,7 @@ void generate_u_inverse(
     const IndexType* __restrict__ i_row_ptrs,
     const IndexType* __restrict__ i_col_idxs, ValueType* __restrict__ i_values,
     IndexType* __restrict__ excess_rhs_sizes,
-    IndexType* __restrict__ excess_nnz, sycl::nd_item<3> item_ct1,
+    IndexType* __restrict__ excess_nnz, ::sycl::nd_item<3> item_ct1,
     uninitialized_array<ValueType, subwarp_size * subwarp_size *
                                        subwarps_per_block>* storage)
 {
@@ -329,23 +329,23 @@ void generate_u_inverse(
 template <int subwarp_size, int subwarps_per_block, typename ValueType,
           typename IndexType>
 void generate_u_inverse(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                        sycl::queue* queue, IndexType num_rows,
+                        ::sycl::queue* queue, IndexType num_rows,
                         const IndexType* m_row_ptrs,
                         const IndexType* m_col_idxs, const ValueType* m_values,
                         const IndexType* i_row_ptrs,
                         const IndexType* i_col_idxs, ValueType* i_values,
                         IndexType* excess_rhs_sizes, IndexType* excess_nnz)
 {
-    queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<
+    queue->submit([&](::sycl::handler& cgh) {
+        ::sycl::accessor<
             uninitialized_array<ValueType, subwarp_size * subwarp_size *
                                                subwarps_per_block>,
-            0, sycl::access_mode::read_write, sycl::access::target::local>
+            0, ::sycl::access_mode::read_write, ::sycl::access::target::local>
             storage_acc_ct1(cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
+            [=](::sycl::nd_item<3> item_ct1)
                 [[sycl::reqd_sub_group_size(subwarp_size)]] {
                     generate_u_inverse<subwarp_size, subwarps_per_block>(
                         num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs,
@@ -365,7 +365,7 @@ void generate_general_inverse(
     const IndexType* __restrict__ i_row_ptrs,
     const IndexType* __restrict__ i_col_idxs, ValueType* __restrict__ i_values,
     IndexType* __restrict__ excess_rhs_sizes,
-    IndexType* __restrict__ excess_nnz, bool spd, sycl::nd_item<3> item_ct1,
+    IndexType* __restrict__ excess_nnz, bool spd, ::sycl::nd_item<3> item_ct1,
     uninitialized_array<ValueType, subwarp_size * subwarp_size *
                                        subwarps_per_block>* storage)
 {
@@ -411,23 +411,23 @@ void generate_general_inverse(
 template <int subwarp_size, int subwarps_per_block, typename ValueType,
           typename IndexType>
 void generate_general_inverse(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
-    IndexType num_rows, const IndexType* m_row_ptrs,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory,
+    ::sycl::queue* queue, IndexType num_rows, const IndexType* m_row_ptrs,
     const IndexType* m_col_idxs, const ValueType* m_values,
     const IndexType* i_row_ptrs, const IndexType* i_col_idxs,
     ValueType* i_values, IndexType* excess_rhs_sizes, IndexType* excess_nnz,
     bool spd)
 {
-    queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<
+    queue->submit([&](::sycl::handler& cgh) {
+        ::sycl::accessor<
             uninitialized_array<ValueType, subwarp_size * subwarp_size *
                                                subwarps_per_block>,
-            0, sycl::access_mode::read_write, sycl::access::target::local>
+            0, ::sycl::access_mode::read_write, ::sycl::access::target::local>
             storage_acc_ct1(cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
+            [=](::sycl::nd_item<3> item_ct1)
                 [[sycl::reqd_sub_group_size(subwarp_size)]] {
                     generate_general_inverse<subwarp_size, subwarps_per_block>(
                         num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs,
@@ -452,7 +452,7 @@ void generate_excess_system(IndexType num_rows,
                             ValueType* __restrict__ excess_values,
                             ValueType* __restrict__ excess_rhs,
                             size_type e_start, size_type e_end,
-                            sycl::nd_item<3> item_ct1)
+                            ::sycl::nd_item<3> item_ct1)
 {
     const auto row =
         thread::get_subwarp_id_flat<subwarp_size, IndexType>(item_ct1) +
@@ -517,8 +517,8 @@ void generate_excess_system(IndexType num_rows,
 
 template <int subwarp_size, typename ValueType, typename IndexType>
 void generate_excess_system(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
-    IndexType num_rows, const IndexType* m_row_ptrs,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory,
+    ::sycl::queue* queue, IndexType num_rows, const IndexType* m_row_ptrs,
     const IndexType* m_col_idxs, const ValueType* m_values,
     const IndexType* i_row_ptrs, const IndexType* i_col_idxs,
     const IndexType* excess_rhs_ptrs, const IndexType* excess_nz_ptrs,
@@ -527,7 +527,7 @@ void generate_excess_system(
     size_type e_end)
 {
     queue->parallel_for(sycl_nd_range(grid, block),
-                        [=](sycl::nd_item<3> item_ct1)
+                        [=](::sycl::nd_item<3> item_ct1)
                             [[sycl::reqd_sub_group_size(subwarp_size)]] {
                                 generate_excess_system<subwarp_size>(
                                     num_rows, m_row_ptrs, m_col_idxs, m_values,
@@ -542,7 +542,7 @@ template <int subwarp_size, typename ValueType, typename IndexType>
 void scale_excess_solution(const IndexType* __restrict__ excess_block_ptrs,
                            ValueType* __restrict__ excess_solution,
                            size_type e_start, size_type e_end,
-                           sycl::nd_item<3> item_ct1)
+                           ::sycl::nd_item<3> item_ct1)
 {
     const auto warp_id =
         thread::get_subwarp_id_flat<subwarp_size, IndexType>(item_ct1);
@@ -572,13 +572,14 @@ void scale_excess_solution(const IndexType* __restrict__ excess_block_ptrs,
 
 template <int subwarp_size, typename ValueType, typename IndexType>
 void scale_excess_solution(dim3 grid, dim3 block,
-                           size_type dynamic_shared_memory, sycl::queue* queue,
+                           size_type dynamic_shared_memory,
+                           ::sycl::queue* queue,
                            const IndexType* excess_block_ptrs,
                            ValueType* excess_solution, size_type e_start,
                            size_type e_end)
 {
     queue->parallel_for(sycl_nd_range(grid, block),
-                        [=](sycl::nd_item<3> item_ct1)
+                        [=](::sycl::nd_item<3> item_ct1)
                             [[sycl::reqd_sub_group_size(subwarp_size)]] {
                                 scale_excess_solution<subwarp_size>(
                                     excess_block_ptrs, excess_solution, e_start,
@@ -592,7 +593,7 @@ void copy_excess_solution(IndexType num_rows,
                           const IndexType* __restrict__ excess_rhs_ptrs,
                           const ValueType* __restrict__ excess_solution,
                           ValueType* __restrict__ i_values, size_type e_start,
-                          size_type e_end, sycl::nd_item<3> item_ct1)
+                          size_type e_end, ::sycl::nd_item<3> item_ct1)
 {
     const auto excess_row =
         thread::get_subwarp_id_flat<subwarp_size, IndexType>(item_ct1);
@@ -621,14 +622,14 @@ void copy_excess_solution(IndexType num_rows,
 
 template <int subwarp_size, typename ValueType, typename IndexType>
 void copy_excess_solution(dim3 grid, dim3 block,
-                          size_type dynamic_shared_memory, sycl::queue* queue,
+                          size_type dynamic_shared_memory, ::sycl::queue* queue,
                           IndexType num_rows, const IndexType* i_row_ptrs,
                           const IndexType* excess_rhs_ptrs,
                           const ValueType* excess_solution, ValueType* i_values,
                           size_type e_start, size_type e_end)
 {
     queue->parallel_for(sycl_nd_range(grid, block),
-                        [=](sycl::nd_item<3> item_ct1)
+                        [=](::sycl::nd_item<3> item_ct1)
                             [[sycl::reqd_sub_group_size(subwarp_size)]] {
                                 copy_excess_solution<subwarp_size>(
                                     num_rows, i_row_ptrs, excess_rhs_ptrs,

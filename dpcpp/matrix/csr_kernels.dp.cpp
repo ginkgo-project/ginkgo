@@ -109,7 +109,7 @@ __dpct_inline__ T ceildivT(T nom, T denom)
 template <typename ValueType, typename IndexType>
 __dpct_inline__ bool block_segment_scan_reverse(
     const IndexType* __restrict__ ind, ValueType* __restrict__ val,
-    sycl::nd_item<3> item_ct1)
+    ::sycl::nd_item<3> item_ct1)
 {
     bool last = true;
     const auto reg_ind = ind[item_ct1.get_local_id(2)];
@@ -220,7 +220,7 @@ __dpct_inline__ void spmv_kernel(
     acc::range<matrix_accessor> val, const IndexType* __restrict__ col_idxs,
     const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ srow,
     acc::range<input_accessor> b, acc::range<output_accessor> c, Closure scale,
-    sycl::nd_item<3> item_ct1)
+    ::sycl::nd_item<3> item_ct1)
 {
     using arithmetic_type = typename output_accessor::arithmetic_type;
     const IndexType warp_idx =
@@ -266,7 +266,7 @@ void abstract_spmv(const IndexType nwarps, const IndexType num_rows,
                    const IndexType* __restrict__ row_ptrs,
                    const IndexType* __restrict__ srow,
                    acc::range<input_accessor> b, acc::range<output_accessor> c,
-                   sycl::nd_item<3> item_ct1)
+                   ::sycl::nd_item<3> item_ct1)
 {
     using arithmetic_type = typename output_accessor::arithmetic_type;
     using output_type = typename output_accessor::storage_type;
@@ -293,7 +293,7 @@ void abstract_spmv(
     acc::range<matrix_accessor> val, const IndexType* __restrict__ col_idxs,
     const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ srow,
     acc::range<input_accessor> b, acc::range<output_accessor> c,
-    sycl::nd_item<3> item_ct1)
+    ::sycl::nd_item<3> item_ct1)
 {
     using arithmetic_type = typename output_accessor::arithmetic_type;
     using output_type = typename output_accessor::storage_type;
@@ -336,7 +336,7 @@ template <typename arithmetic_type, typename IndexType,
 void merge_path_reduce(
     const IndexType nwarps, const arithmetic_type* __restrict__ last_val,
     const IndexType* __restrict__ last_row, acc::range<output_accessor> c,
-    Alpha_op alpha_op, sycl::nd_item<3> item_ct1,
+    Alpha_op alpha_op, ::sycl::nd_item<3> item_ct1,
     uninitialized_array<IndexType, spmv_block_size>& tmp_ind,
     uninitialized_array<arithmetic_type, spmv_block_size>& tmp_val)
 {
@@ -384,7 +384,7 @@ void merge_path_spmv(
     acc::range<input_accessor> b, acc::range<output_accessor> c,
     IndexType* __restrict__ row_out,
     typename output_accessor::arithmetic_type* __restrict__ val_out,
-    Alpha_op alpha_op, Beta_op beta_op, sycl::nd_item<3> item_ct1,
+    Alpha_op alpha_op, Beta_op beta_op, ::sycl::nd_item<3> item_ct1,
     IndexType* shared_row_ptrs)
 {
     using arithmetic_type = typename output_accessor::arithmetic_type;
@@ -462,7 +462,7 @@ void abstract_merge_path_spmv(
     acc::range<input_accessor> b, acc::range<output_accessor> c,
     IndexType* __restrict__ row_out,
     typename output_accessor::arithmetic_type* __restrict__ val_out,
-    sycl::nd_item<3> item_ct1, IndexType* shared_row_ptrs)
+    ::sycl::nd_item<3> item_ct1, IndexType* shared_row_ptrs)
 {
     using type = typename output_accessor::arithmetic_type;
     merge_path_spmv<items_per_thread>(
@@ -474,20 +474,21 @@ void abstract_merge_path_spmv(
 template <int items_per_thread, typename matrix_accessor,
           typename input_accessor, typename output_accessor, typename IndexType>
 void abstract_merge_path_spmv(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
-    const IndexType num_rows, acc::range<matrix_accessor> val,
-    const IndexType* col_idxs, const IndexType* row_ptrs, const IndexType* srow,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory,
+    ::sycl::queue* queue, const IndexType num_rows,
+    acc::range<matrix_accessor> val, const IndexType* col_idxs,
+    const IndexType* row_ptrs, const IndexType* srow,
     acc::range<input_accessor> b, acc::range<output_accessor> c,
     IndexType* row_out, typename output_accessor::arithmetic_type* val_out)
 {
-    queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<IndexType, 1, sycl::access_mode::read_write,
-                       sycl::access::target::local>
+    queue->submit([&](::sycl::handler& cgh) {
+        ::sycl::accessor<IndexType, 1, ::sycl::access_mode::read_write,
+                         ::sycl::access::target::local>
             shared_row_ptrs_acc_ct1(
-                sycl::range<1>(spmv_block_size * items_per_thread), cgh);
+                ::sycl::range<1>(spmv_block_size * items_per_thread), cgh);
 
         cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
+                         [=](::sycl::nd_item<3> item_ct1) {
                              abstract_merge_path_spmv<items_per_thread>(
                                  num_rows, val, col_idxs, row_ptrs, srow, b, c,
                                  row_out, val_out, item_ct1,
@@ -509,7 +510,7 @@ void abstract_merge_path_spmv(
     const typename output_accessor::storage_type* __restrict__ beta,
     acc::range<output_accessor> c, IndexType* __restrict__ row_out,
     typename output_accessor::arithmetic_type* __restrict__ val_out,
-    sycl::nd_item<3> item_ct1, IndexType* shared_row_ptrs)
+    ::sycl::nd_item<3> item_ct1, IndexType* shared_row_ptrs)
 {
     using type = typename output_accessor::arithmetic_type;
     const type alpha_val = alpha[0];
@@ -524,8 +525,8 @@ void abstract_merge_path_spmv(
 template <int items_per_thread, typename matrix_accessor,
           typename input_accessor, typename output_accessor, typename IndexType>
 void abstract_merge_path_spmv(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
-    const IndexType num_rows,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory,
+    ::sycl::queue* queue, const IndexType num_rows,
     const typename matrix_accessor::storage_type* alpha,
     acc::range<matrix_accessor> val, const IndexType* col_idxs,
     const IndexType* row_ptrs, const IndexType* srow,
@@ -534,14 +535,14 @@ void abstract_merge_path_spmv(
     acc::range<output_accessor> c, IndexType* row_out,
     typename output_accessor::arithmetic_type* val_out)
 {
-    queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<IndexType, 1, sycl::access_mode::read_write,
-                       sycl::access::target::local>
+    queue->submit([&](::sycl::handler& cgh) {
+        ::sycl::accessor<IndexType, 1, ::sycl::access_mode::read_write,
+                         ::sycl::access::target::local>
             shared_row_ptrs_acc_ct1(
-                sycl::range<1>(spmv_block_size * items_per_thread), cgh);
+                ::sycl::range<1>(spmv_block_size * items_per_thread), cgh);
 
         cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
+                         [=](::sycl::nd_item<3> item_ct1) {
                              abstract_merge_path_spmv<items_per_thread>(
                                  num_rows, alpha, val, col_idxs, row_ptrs, srow,
                                  b, beta, c, row_out, val_out, item_ct1,
@@ -557,7 +558,7 @@ template <typename arithmetic_type, typename IndexType,
 void abstract_reduce(
     const IndexType nwarps, const arithmetic_type* __restrict__ last_val,
     const IndexType* __restrict__ last_row, acc::range<output_accessor> c,
-    sycl::nd_item<3> item_ct1,
+    ::sycl::nd_item<3> item_ct1,
     uninitialized_array<IndexType, spmv_block_size>& tmp_ind,
     uninitialized_array<arithmetic_type, spmv_block_size>& tmp_val)
 {
@@ -569,23 +570,23 @@ void abstract_reduce(
 template <typename arithmetic_type, typename IndexType,
           typename output_accessor>
 void abstract_reduce(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                     sycl::queue* queue, const IndexType nwarps,
+                     ::sycl::queue* queue, const IndexType nwarps,
                      const arithmetic_type* __restrict__ last_val,
                      const IndexType* __restrict__ last_row,
                      acc::range<output_accessor> c)
 {
-    queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<uninitialized_array<IndexType, spmv_block_size>, 0,
-                       sycl::access_mode::read_write,
-                       sycl::access::target::local>
+    queue->submit([&](::sycl::handler& cgh) {
+        ::sycl::accessor<uninitialized_array<IndexType, spmv_block_size>, 0,
+                         ::sycl::access_mode::read_write,
+                         ::sycl::access::target::local>
             tmp_ind_acc_ct1(cgh);
-        sycl::accessor<uninitialized_array<arithmetic_type, spmv_block_size>, 0,
-                       sycl::access_mode::read_write,
-                       sycl::access::target::local>
+        ::sycl::accessor<uninitialized_array<arithmetic_type, spmv_block_size>,
+                         0, ::sycl::access_mode::read_write,
+                         ::sycl::access::target::local>
             tmp_val_acc_ct1(cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
                 abstract_reduce(nwarps, last_val, last_row, c, item_ct1,
                                 *tmp_ind_acc_ct1.get_pointer(),
                                 *tmp_val_acc_ct1.get_pointer());
@@ -600,7 +601,7 @@ void abstract_reduce(
     const IndexType nwarps, const arithmetic_type* __restrict__ last_val,
     const IndexType* __restrict__ last_row,
     const MatrixValueType* __restrict__ alpha, acc::range<output_accessor> c,
-    sycl::nd_item<3> item_ct1,
+    ::sycl::nd_item<3> item_ct1,
     uninitialized_array<IndexType, spmv_block_size>& tmp_ind,
     uninitialized_array<arithmetic_type, spmv_block_size>& tmp_val)
 {
@@ -614,23 +615,23 @@ void abstract_reduce(
 template <typename arithmetic_type, typename MatrixValueType,
           typename IndexType, typename output_accessor>
 void abstract_reduce(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                     sycl::queue* queue, const IndexType nwarps,
+                     ::sycl::queue* queue, const IndexType nwarps,
                      const arithmetic_type* last_val, const IndexType* last_row,
                      const MatrixValueType* alpha,
                      acc::range<output_accessor> c)
 {
-    queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<uninitialized_array<IndexType, spmv_block_size>, 0,
-                       sycl::access_mode::read_write,
-                       sycl::access::target::local>
+    queue->submit([&](::sycl::handler& cgh) {
+        ::sycl::accessor<uninitialized_array<IndexType, spmv_block_size>, 0,
+                         ::sycl::access_mode::read_write,
+                         ::sycl::access::target::local>
             tmp_ind_acc_ct1(cgh);
-        sycl::accessor<uninitialized_array<arithmetic_type, spmv_block_size>, 0,
-                       sycl::access_mode::read_write,
-                       sycl::access::target::local>
+        ::sycl::accessor<uninitialized_array<arithmetic_type, spmv_block_size>,
+                         0, ::sycl::access_mode::read_write,
+                         ::sycl::access::target::local>
             tmp_val_acc_ct1(cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
                 abstract_reduce(nwarps, last_val, last_row, alpha, c, item_ct1,
                                 *tmp_ind_acc_ct1.get_pointer(),
                                 *tmp_val_acc_ct1.get_pointer());
@@ -648,7 +649,7 @@ void device_classical_spmv(const size_type num_rows,
                            const IndexType* __restrict__ row_ptrs,
                            acc::range<input_accessor> b,
                            acc::range<output_accessor> c, Closure scale,
-                           sycl::nd_item<3> item_ct1)
+                           ::sycl::nd_item<3> item_ct1)
 {
     using arithmetic_type = typename output_accessor::arithmetic_type;
     auto subgroup_tile = group::tiled_partition<subgroup_size>(
@@ -686,7 +687,7 @@ void abstract_classical_spmv(const size_type num_rows,
                              const IndexType* __restrict__ row_ptrs,
                              acc::range<input_accessor> b,
                              acc::range<output_accessor> c,
-                             sycl::nd_item<3> item_ct1)
+                             ::sycl::nd_item<3> item_ct1)
 {
     using type = typename output_accessor::arithmetic_type;
     device_classical_spmv<subgroup_size>(
@@ -696,16 +697,19 @@ void abstract_classical_spmv(const size_type num_rows,
 
 template <size_type subgroup_size, typename matrix_accessor,
           typename input_accessor, typename output_accessor, typename IndexType>
-void abstract_classical_spmv(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
-    const size_type num_rows, acc::range<matrix_accessor> val,
-    const IndexType* col_idxs, const IndexType* row_ptrs,
-    acc::range<input_accessor> b, acc::range<output_accessor> c)
+void abstract_classical_spmv(dim3 grid, dim3 block,
+                             size_type dynamic_shared_memory,
+                             ::sycl::queue* queue, const size_type num_rows,
+                             acc::range<matrix_accessor> val,
+                             const IndexType* col_idxs,
+                             const IndexType* row_ptrs,
+                             acc::range<input_accessor> b,
+                             acc::range<output_accessor> c)
 {
     if (subgroup_size > 1) {
-        queue->submit([&](sycl::handler& cgh) {
+        queue->submit([&](::sycl::handler& cgh) {
             cgh.parallel_for(sycl_nd_range(grid, block),
-                             [=](sycl::nd_item<3> item_ct1)
+                             [=](::sycl::nd_item<3> item_ct1)
                                  [[sycl::reqd_sub_group_size(subgroup_size)]] {
                                      abstract_classical_spmv<subgroup_size>(
                                          num_rows, val, col_idxs, row_ptrs, b,
@@ -713,9 +717,9 @@ void abstract_classical_spmv(
                                  });
         });
     } else {
-        queue->submit([&](sycl::handler& cgh) {
+        queue->submit([&](::sycl::handler& cgh) {
             cgh.parallel_for(
-                sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
                     abstract_classical_spmv<subgroup_size>(
                         num_rows, val, col_idxs, row_ptrs, b, c, item_ct1);
                 });
@@ -732,7 +736,7 @@ void abstract_classical_spmv(
     acc::range<matrix_accessor> val, const IndexType* __restrict__ col_idxs,
     const IndexType* __restrict__ row_ptrs, acc::range<input_accessor> b,
     const typename output_accessor::storage_type* __restrict__ beta,
-    acc::range<output_accessor> c, sycl::nd_item<3> item_ct1)
+    acc::range<output_accessor> c, ::sycl::nd_item<3> item_ct1)
 {
     using type = typename output_accessor::arithmetic_type;
     const type alpha_val = alpha[0];
@@ -748,8 +752,8 @@ void abstract_classical_spmv(
 template <size_type subgroup_size, typename matrix_accessor,
           typename input_accessor, typename output_accessor, typename IndexType>
 void abstract_classical_spmv(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
-    const size_type num_rows,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory,
+    ::sycl::queue* queue, const size_type num_rows,
     const typename matrix_accessor::storage_type* alpha,
     acc::range<matrix_accessor> val, const IndexType* col_idxs,
     const IndexType* row_ptrs, acc::range<input_accessor> b,
@@ -757,9 +761,9 @@ void abstract_classical_spmv(
     acc::range<output_accessor> c)
 {
     if (subgroup_size > 1) {
-        queue->submit([&](sycl::handler& cgh) {
+        queue->submit([&](::sycl::handler& cgh) {
             cgh.parallel_for(sycl_nd_range(grid, block),
-                             [=](sycl::nd_item<3> item_ct1)
+                             [=](::sycl::nd_item<3> item_ct1)
                                  [[sycl::reqd_sub_group_size(subgroup_size)]] {
                                      abstract_classical_spmv<subgroup_size>(
                                          num_rows, alpha, val, col_idxs,
@@ -767,9 +771,9 @@ void abstract_classical_spmv(
                                  });
         });
     } else {
-        queue->submit([&](sycl::handler& cgh) {
+        queue->submit([&](::sycl::handler& cgh) {
             cgh.parallel_for(sycl_nd_range(grid, block),
-                             [=](sycl::nd_item<3> item_ct1) {
+                             [=](::sycl::nd_item<3> item_ct1) {
                                  abstract_classical_spmv<subgroup_size>(
                                      num_rows, alpha, val, col_idxs, row_ptrs,
                                      b, beta, c, item_ct1);
@@ -783,7 +787,7 @@ template <typename ValueType, typename IndexType>
 void fill_in_dense(size_type num_rows, const IndexType* __restrict__ row_ptrs,
                    const IndexType* __restrict__ col_idxs,
                    const ValueType* __restrict__ values, size_type stride,
-                   ValueType* __restrict__ result, sycl::nd_item<3> item_ct1)
+                   ValueType* __restrict__ result, ::sycl::nd_item<3> item_ct1)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
     if (tidx < num_rows) {
@@ -799,7 +803,7 @@ GKO_ENABLE_DEFAULT_HOST(fill_in_dense, fill_in_dense);
 template <typename IndexType>
 void check_unsorted(const IndexType* __restrict__ row_ptrs,
                     const IndexType* __restrict__ col_idxs, IndexType num_rows,
-                    bool* flag, sycl::nd_item<3> item_ct1, bool* sh_flag)
+                    bool* flag, ::sycl::nd_item<3> item_ct1, bool* sh_flag)
 {
     auto block = group::this_thread_block(item_ct1);
     if (block.thread_rank() == 0) {
@@ -826,16 +830,16 @@ void check_unsorted(const IndexType* __restrict__ row_ptrs,
 
 template <typename IndexType>
 void check_unsorted(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                    sycl::queue* queue, const IndexType* row_ptrs,
+                    ::sycl::queue* queue, const IndexType* row_ptrs,
                     const IndexType* col_idxs, IndexType num_rows, bool* flag)
 {
-    queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<bool, 0, sycl::access_mode::read_write,
-                       sycl::access::target::local>
+    queue->submit([&](::sycl::handler& cgh) {
+        ::sycl::accessor<bool, 0, ::sycl::access_mode::read_write,
+                         ::sycl::access::target::local>
             sh_flag_acc_ct1(cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
                 check_unsorted(row_ptrs, col_idxs, num_rows, flag, item_ct1,
                                sh_flag_acc_ct1.get_pointer());
             });
@@ -848,7 +852,7 @@ void extract_diagonal(size_type diag_size, size_type nnz,
                       const ValueType* __restrict__ orig_values,
                       const IndexType* __restrict__ orig_row_ptrs,
                       const IndexType* __restrict__ orig_col_idxs,
-                      ValueType* __restrict__ diag, sycl::nd_item<3> item_ct1)
+                      ValueType* __restrict__ diag, ::sycl::nd_item<3> item_ct1)
 {
     constexpr auto warp_size = config::warp_size;
     const auto row = thread::get_subwarp_id_flat<warp_size>(item_ct1);
@@ -879,7 +883,7 @@ void row_ptr_permute_kernel(size_type num_rows,
                             const IndexType* __restrict__ permutation,
                             const IndexType* __restrict__ in_row_ptrs,
                             IndexType* __restrict__ out_nnz,
-                            sycl::nd_item<3> item_ct1)
+                            ::sycl::nd_item<3> item_ct1)
 {
     auto tid = thread::get_thread_id_flat(item_ct1);
     if (tid >= num_rows) {
@@ -898,7 +902,7 @@ void inv_row_ptr_permute_kernel(size_type num_rows,
                                 const IndexType* __restrict__ permutation,
                                 const IndexType* __restrict__ in_row_ptrs,
                                 IndexType* __restrict__ out_nnz,
-                                sycl::nd_item<3> item_ct1)
+                                ::sycl::nd_item<3> item_ct1)
 {
     auto tid = thread::get_thread_id_flat(item_ct1);
     if (tid >= num_rows) {
@@ -921,7 +925,7 @@ void row_permute_kernel(size_type num_rows,
                         const IndexType* __restrict__ out_row_ptrs,
                         IndexType* __restrict__ out_cols,
                         ValueType* __restrict__ out_vals,
-                        sycl::nd_item<3> item_ct1)
+                        ::sycl::nd_item<3> item_ct1)
 {
     auto tid = thread::get_subwarp_id_flat<subgroup_size>(item_ct1);
     if (tid >= num_rows) {
@@ -941,15 +945,15 @@ void row_permute_kernel(size_type num_rows,
 
 template <int subgroup_size, typename ValueType, typename IndexType>
 void row_permute_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                        sycl::queue* queue, size_type num_rows,
+                        ::sycl::queue* queue, size_type num_rows,
                         const IndexType* permutation,
                         const IndexType* in_row_ptrs, const IndexType* in_cols,
                         const ValueType* in_vals, const IndexType* out_row_ptrs,
                         IndexType* out_cols, ValueType* out_vals)
 {
-    queue->submit([&](sycl::handler& cgh) {
+    queue->submit([&](::sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
                 row_permute_kernel<subgroup_size>(
                     num_rows, permutation, in_row_ptrs, in_cols, in_vals,
                     out_row_ptrs, out_cols, out_vals, item_ct1);
@@ -967,7 +971,7 @@ void inv_row_permute_kernel(size_type num_rows,
                             const IndexType* __restrict__ out_row_ptrs,
                             IndexType* __restrict__ out_cols,
                             ValueType* __restrict__ out_vals,
-                            sycl::nd_item<3> item_ct1)
+                            ::sycl::nd_item<3> item_ct1)
 {
     auto tid = thread::get_subwarp_id_flat<subgroup_size>(item_ct1);
     if (tid >= num_rows) {
@@ -987,16 +991,17 @@ void inv_row_permute_kernel(size_type num_rows,
 
 template <int subgroup_size, typename ValueType, typename IndexType>
 void inv_row_permute_kernel(dim3 grid, dim3 block,
-                            size_type dynamic_shared_memory, sycl::queue* queue,
-                            size_type num_rows, const IndexType* permutation,
+                            size_type dynamic_shared_memory,
+                            ::sycl::queue* queue, size_type num_rows,
+                            const IndexType* permutation,
                             const IndexType* in_row_ptrs,
                             const IndexType* in_cols, const ValueType* in_vals,
                             const IndexType* out_row_ptrs, IndexType* out_cols,
                             ValueType* out_vals)
 {
-    queue->submit([&](sycl::handler& cgh) {
+    queue->submit([&](::sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
                 inv_row_permute_kernel<subgroup_size>(
                     num_rows, permutation, in_row_ptrs, in_cols, in_vals,
                     out_row_ptrs, out_cols, out_vals, item_ct1);
@@ -1014,7 +1019,7 @@ void inv_symm_permute_kernel(size_type num_rows,
                              const IndexType* __restrict__ out_row_ptrs,
                              IndexType* __restrict__ out_cols,
                              ValueType* __restrict__ out_vals,
-                             sycl::nd_item<3> item_ct1)
+                             ::sycl::nd_item<3> item_ct1)
 {
     auto tid = thread::get_subwarp_id_flat<subgroup_size>(item_ct1);
     if (tid >= num_rows) {
@@ -1035,16 +1040,16 @@ void inv_symm_permute_kernel(size_type num_rows,
 template <int subgroup_size, typename ValueType, typename IndexType>
 void inv_symm_permute_kernel(dim3 grid, dim3 block,
                              size_type dynamic_shared_memory,
-                             sycl::queue* queue, size_type num_rows,
+                             ::sycl::queue* queue, size_type num_rows,
                              const IndexType* permutation,
                              const IndexType* in_row_ptrs,
                              const IndexType* in_cols, const ValueType* in_vals,
                              const IndexType* out_row_ptrs, IndexType* out_cols,
                              ValueType* out_vals)
 {
-    queue->submit([&](sycl::handler& cgh) {
+    queue->submit([&](::sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
                 inv_symm_permute_kernel<subgroup_size>(
                     num_rows, permutation, in_row_ptrs, in_cols, in_vals,
                     out_row_ptrs, out_cols, out_vals, item_ct1);
@@ -1461,7 +1466,7 @@ void calc_nnz_in_span(const span row_span, const span col_span,
                       const IndexType* __restrict__ row_ptrs,
                       const IndexType* __restrict__ col_idxs,
                       IndexType* __restrict__ nnz_per_row,
-                      sycl::nd_item<3> item_ct1)
+                      ::sycl::nd_item<3> item_ct1)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1) + row_span.begin;
     if (tidx < row_span.end) {
@@ -1488,7 +1493,7 @@ void compute_submatrix_idxs_and_vals(size_type num_rows, size_type num_cols,
                                      const IndexType* __restrict__ res_row_ptrs,
                                      IndexType* __restrict__ res_col_idxs,
                                      ValueType* __restrict__ res_values,
-                                     sycl::nd_item<3> item_ct1)
+                                     ::sycl::nd_item<3> item_ct1)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
     if (tidx < num_rows) {
@@ -1795,8 +1800,8 @@ void spgemm(std::shared_ptr<const SyclExecutor> exec,
         reinterpret_cast<col_heap_element<ValueType, IndexType>*>(heap);
 
     // first sweep: count nnz for each row
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+    queue->submit([&](::sycl::handler& cgh) {
+        cgh.parallel_for(::sycl::range<1>{num_rows}, [=](::sycl::id<1> idx) {
             const auto a_row = static_cast<size_type>(idx[0]);
             c_row_ptrs[a_row] = spgemm_multiway_merge(
                 a_row, a_row_ptrs, a_cols, a_vals, b_row_ptrs, b_cols, b_vals,
@@ -1819,8 +1824,8 @@ void spgemm(std::shared_ptr<const SyclExecutor> exec,
     auto c_col_idxs = c_col_idxs_array.get_data();
     auto c_vals = c_vals_array.get_data();
 
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+    queue->submit([&](::sycl::handler& cgh) {
+        cgh.parallel_for(::sycl::range<1>{num_rows}, [=](::sycl::id<1> idx) {
             const auto a_row = static_cast<size_type>(idx[0]);
             spgemm_multiway_merge(
                 a_row, a_row_ptrs, a_cols, a_vals, b_row_ptrs, b_cols, b_vals,
@@ -1880,8 +1885,8 @@ void advanced_spgemm(std::shared_ptr<const SyclExecutor> exec,
         reinterpret_cast<col_heap_element<ValueType, IndexType>*>(heap);
 
     // first sweep: count nnz for each row
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+    queue->submit([&](::sycl::handler& cgh) {
+        cgh.parallel_for(::sycl::range<1>{num_rows}, [=](::sycl::id<1> idx) {
             const auto a_row = static_cast<size_type>(idx[0]);
             auto d_nz = d_row_ptrs[a_row];
             const auto d_end = d_row_ptrs[a_row + 1];
@@ -1918,8 +1923,8 @@ void advanced_spgemm(std::shared_ptr<const SyclExecutor> exec,
     auto c_col_idxs = c_col_idxs_array.get_data();
     auto c_vals = c_vals_array.get_data();
 
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+    queue->submit([&](::sycl::handler& cgh) {
+        cgh.parallel_for(::sycl::range<1>{num_rows}, [=](::sycl::id<1> idx) {
             const auto a_row = static_cast<size_type>(idx[0]);
             auto d_nz = d_row_ptrs[a_row];
             const auto d_end = d_row_ptrs[a_row + 1];
@@ -1997,8 +2002,8 @@ void spgeam(std::shared_ptr<const SyclExecutor> exec,
     auto queue = exec->get_queue();
 
     // count number of non-zeros per row
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+    queue->submit([&](::sycl::handler& cgh) {
+        cgh.parallel_for(::sycl::range<1>{num_rows}, [=](::sycl::id<1> idx) {
             const auto row = static_cast<size_type>(idx[0]);
             auto a_idx = a_row_ptrs[row];
             const auto a_end = a_row_ptrs[row + 1];
@@ -2034,8 +2039,8 @@ void spgeam(std::shared_ptr<const SyclExecutor> exec,
     const auto beta_vals = beta->get_const_values();
 
     // count number of non-zeros per row
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+    queue->submit([&](::sycl::handler& cgh) {
+        cgh.parallel_for(::sycl::range<1>{num_rows}, [=](::sycl::id<1> idx) {
             const auto row = static_cast<size_type>(idx[0]);
             auto a_idx = a_row_ptrs[row];
             const auto a_end = a_row_ptrs[row + 1];
@@ -2115,8 +2120,8 @@ void generic_transpose(std::shared_ptr<const SyclExecutor> exec,
     auto out_vals = trans->get_values();
     components::fill_array(exec, tmp_counts, num_cols, IndexType{});
 
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+    queue->submit([&](::sycl::handler& cgh) {
+        cgh.parallel_for(::sycl::range<1>{num_rows}, [=](::sycl::id<1> idx) {
             const auto row = static_cast<size_type>(idx[0]);
             const auto begin = row_ptrs[row];
             const auto end = row_ptrs[row + 1];
@@ -2129,8 +2134,8 @@ void generic_transpose(std::shared_ptr<const SyclExecutor> exec,
     components::prefix_sum_nonnegative(exec, tmp_counts, num_cols + 1);
     exec->copy(num_cols + 1, tmp_counts, out_row_ptrs);
 
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+    queue->submit([&](::sycl::handler& cgh) {
+        cgh.parallel_for(::sycl::range<1>{num_rows}, [=](::sycl::id<1> idx) {
             const auto row = static_cast<size_type>(idx[0]);
             const auto begin = row_ptrs[row];
             const auto end = row_ptrs[row + 1];
@@ -2256,8 +2261,8 @@ void sort_by_column_index(std::shared_ptr<const SyclExecutor> exec,
     const auto row_ptrs = to_sort->get_const_row_ptrs();
     auto cols = to_sort->get_col_idxs();
     auto vals = to_sort->get_values();
-    exec->get_queue()->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+    exec->get_queue()->submit([&](::sycl::handler& cgh) {
+        cgh.parallel_for(::sycl::range<1>{num_rows}, [=](::sycl::id<1> idx) {
             const auto row = static_cast<size_type>(idx[0]);
             const auto begin = row_ptrs[row];
             auto size = row_ptrs[row + 1] - begin;
@@ -2316,8 +2321,8 @@ void is_sorted_by_column_index(
     const auto row_ptrs = to_check->get_const_row_ptrs();
     const auto cols = to_check->get_const_col_idxs();
     auto is_sorted_device = is_sorted_device_array.get_data();
-    exec->get_queue()->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+    exec->get_queue()->submit([&](::sycl::handler& cgh) {
+        cgh.parallel_for(::sycl::range<1>{num_rows}, [=](::sycl::id<1> idx) {
             const auto row = static_cast<size_type>(idx[0]);
             const auto begin = row_ptrs[row];
             const auto end = row_ptrs[row + 1];
@@ -2473,8 +2478,8 @@ void build_lookup(std::shared_ptr<const SyclExecutor> exec,
                   const IndexType* storage_offsets, int64* row_desc,
                   int32* storage)
 {
-    exec->get_queue()->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+    exec->get_queue()->submit([&](::sycl::handler& cgh) {
+        cgh.parallel_for(::sycl::range<1>{num_rows}, [=](::sycl::id<1> idx) {
             const auto row = static_cast<size_type>(idx[0]);
             const auto row_begin = row_ptrs[row];
             const auto row_len = row_ptrs[row + 1] - row_begin;
