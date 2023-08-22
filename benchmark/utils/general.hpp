@@ -389,13 +389,13 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>(bool)>>
                                              gko::OmpExecutor::create(),
                                              create_hip_allocator());
          }},
-        {"dpcpp", [](bool use_gpu_timer) {
-             auto property = dpcpp_queue_property::in_order;
+        {"sycl", [](bool use_gpu_timer) {
+             auto property = gko::sycl_queue_property::in_order;
              if (use_gpu_timer) {
-                 property = dpcpp_queue_property::in_order |
-                            dpcpp_queue_property::enable_profiling;
+                 property = gko::sycl_queue_property::in_order |
+                            gko::sycl_queue_property::enable_profiling;
              }
-             return gko::DpcppExecutor::create(
+             return gko::SyclExecutor::create(
                  FLAGS_device_id, gko::OmpExecutor::create(), "all", property);
          }}};
 
@@ -425,20 +425,20 @@ const std::map<std::string,
                                              gko::ReferenceExecutor::create(),
                                              create_hip_allocator());
          }},
-        {"dpcpp", [](MPI_Comm comm) {
-             if (gko::DpcppExecutor::get_num_devices("gpu")) {
+        {"sycl", [](MPI_Comm comm) {
+             if (gko::SyclExecutor::get_num_devices("gpu")) {
                  FLAGS_device_id =
                      gko::experimental::mpi::map_rank_to_device_id(
-                         comm, gko::DpcppExecutor::get_num_devices("gpu"));
-             } else if (gko::DpcppExecutor::get_num_devices("cpu")) {
+                         comm, gko::SyclExecutor::get_num_devices("gpu"));
+             } else if (gko::SyclExecutor::get_num_devices("cpu")) {
                  FLAGS_device_id =
                      gko::experimental::mpi::map_rank_to_device_id(
-                         comm, gko::DpcppExecutor::get_num_devices("cpu"));
+                         comm, gko::SyclExecutor::get_num_devices("cpu"));
              } else {
                  GKO_NOT_IMPLEMENTED;
              }
-             return gko::DpcppExecutor::create(
-                 FLAGS_device_id, gko::ReferenceExecutor::create());
+             return gko::SyclExecutor::create(FLAGS_device_id,
+                                              gko::ReferenceExecutor::create());
          }}};
 
 

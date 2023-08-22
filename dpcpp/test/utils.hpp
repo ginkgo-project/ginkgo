@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_SYCL_SINGLE_MODE
 #define SKIP_IF_SINGLE_MODE GTEST_SKIP() << "Skip due to single mode"
 #else
 #define SKIP_IF_SINGLE_MODE                                                  \

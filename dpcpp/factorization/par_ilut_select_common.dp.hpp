@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 namespace par_ilut_factorization {
 
 
@@ -71,7 +71,7 @@ sampleselect_bucket<IndexType> sampleselect_find_bucket(
 
 
 }  // namespace par_ilut_factorization
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko
 

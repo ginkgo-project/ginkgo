@@ -52,7 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 /**
  * @brief The Compressed sparse row matrix format namespace.
  *
@@ -80,7 +80,7 @@ void device_classical_spmv(const size_type num_rows,
                            const IndexType* __restrict__ row_ptrs,
                            acc::range<input_accessor> b,
                            acc::range<output_accessor> c, Closure scale,
-                           sycl::nd_item<3> item_ct1)
+                           ::sycl::nd_item<3> item_ct1)
 {
     using arithmetic_type = typename output_accessor::arithmetic_type;
     auto subgroup_tile = group::tiled_partition<subgroup_size>(
@@ -97,7 +97,7 @@ void device_classical_spmv(const size_type num_rows,
              ind += subgroup_size) {
             temp_val += value * b(col_idxs[ind], column_id);
         }
-        auto subgroup_result = ::gko::kernels::dpcpp::reduce(
+        auto subgroup_result = ::gko::kernels::sycl::reduce(
             subgroup_tile, temp_val,
             [](const arithmetic_type& a, const arithmetic_type& b) {
                 return a + b;
@@ -119,7 +119,7 @@ void abstract_classical_spmv(const size_type num_rows,
                              const IndexType* __restrict__ row_ptrs,
                              acc::range<input_accessor> b,
                              acc::range<output_accessor> c,
-                             sycl::nd_item<3> item_ct1)
+                             ::sycl::nd_item<3> item_ct1)
 {
     using type = typename output_accessor::arithmetic_type;
     device_classical_spmv<subgroup_size>(
@@ -130,14 +130,14 @@ void abstract_classical_spmv(const size_type num_rows,
 template <size_type subgroup_size, typename MatrixValueType,
           typename input_accessor, typename output_accessor, typename IndexType>
 void abstract_classical_spmv(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
-    const size_type num_rows, const MatrixValueType* val,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory,
+    ::sycl::queue* queue, const size_type num_rows, const MatrixValueType* val,
     const IndexType* col_idxs, const IndexType* row_ptrs,
     acc::range<input_accessor> b, acc::range<output_accessor> c)
 {
     // only subgroup = 1, so does not need sycl::reqd_sub_group_size
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+        sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
             abstract_classical_spmv<subgroup_size>(num_rows, val, col_idxs,
                                                    row_ptrs, b, c, item_ct1);
         });
@@ -152,7 +152,7 @@ void abstract_classical_spmv(
     const IndexType* __restrict__ col_idxs,
     const IndexType* __restrict__ row_ptrs, acc::range<input_accessor> b,
     const typename output_accessor::storage_type* __restrict__ beta,
-    acc::range<output_accessor> c, sycl::nd_item<3> item_ct1)
+    acc::range<output_accessor> c, ::sycl::nd_item<3> item_ct1)
 {
     using type = typename output_accessor::arithmetic_type;
     const type alpha_val = static_cast<type>(alpha[0]);
@@ -167,17 +167,20 @@ void abstract_classical_spmv(
 
 template <size_type subgroup_size, typename MatrixValueType,
           typename input_accessor, typename output_accessor, typename IndexType>
-void abstract_classical_spmv(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
-    const size_type num_rows, const MatrixValueType* alpha,
-    const MatrixValueType* val, const IndexType* col_idxs,
-    const IndexType* row_ptrs, acc::range<input_accessor> b,
-    const typename output_accessor::storage_type* beta,
-    acc::range<output_accessor> c)
+void abstract_classical_spmv(dim3 grid, dim3 block,
+                             size_type dynamic_shared_memory,
+                             ::sycl::queue* queue, const size_type num_rows,
+                             const MatrixValueType* alpha,
+                             const MatrixValueType* val,
+                             const IndexType* col_idxs,
+                             const IndexType* row_ptrs,
+                             acc::range<input_accessor> b,
+                             const typename output_accessor::storage_type* beta,
+                             acc::range<output_accessor> c)
 {
     // only subgroup = 1, so does not need sycl::reqd_sub_group_size
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+        sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
             abstract_classical_spmv<subgroup_size>(
                 num_rows, alpha, val, col_idxs, row_ptrs, b, beta, c, item_ct1);
         });
@@ -193,7 +196,7 @@ namespace host_kernel {
 template <int subgroup_size, typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 void classical_spmv(syn::value_list<int, subgroup_size>,
-                    std::shared_ptr<const DpcppExecutor> exec,
+                    std::shared_ptr<const SyclExecutor> exec,
                     const matrix::SparsityCsr<MatrixValueType, IndexType>* a,
                     const matrix::Dense<InputValueType>* b,
                     matrix::Dense<OutputValueType>* c,
@@ -258,7 +261,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_classical_spmv, classical_spmv);
 
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
-void spmv(std::shared_ptr<const DpcppExecutor> exec,
+void spmv(std::shared_ptr<const SyclExecutor> exec,
           const matrix::SparsityCsr<MatrixValueType, IndexType>* a,
           const matrix::Dense<InputValueType>* b,
           matrix::Dense<OutputValueType>* c)
@@ -274,7 +277,7 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
+void advanced_spmv(std::shared_ptr<const SyclExecutor> exec,
                    const matrix::Dense<MatrixValueType>* alpha,
                    const matrix::SparsityCsr<MatrixValueType, IndexType>* a,
                    const matrix::Dense<InputValueType>* b,
@@ -291,7 +294,7 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void transpose(std::shared_ptr<const DpcppExecutor> exec,
+void transpose(std::shared_ptr<const SyclExecutor> exec,
                const matrix::SparsityCsr<ValueType, IndexType>* orig,
                matrix::SparsityCsr<ValueType, IndexType>* trans)
     GKO_NOT_IMPLEMENTED;
@@ -301,7 +304,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void sort_by_column_index(std::shared_ptr<const DpcppExecutor> exec,
+void sort_by_column_index(std::shared_ptr<const SyclExecutor> exec,
                           matrix::SparsityCsr<ValueType, IndexType>* to_sort)
 {
     const auto num_rows = to_sort->get_size()[0];
@@ -309,8 +312,8 @@ void sort_by_column_index(std::shared_ptr<const DpcppExecutor> exec,
     const auto cols = to_sort->get_col_idxs();
     auto queue = exec->get_queue();
     // build sorted postorder node list for each row
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx_id) {
+    queue->submit([&](::sycl::handler& cgh) {
+        cgh.parallel_for(::sycl::range<1>{num_rows}, [=](::sycl::id<1> idx_id) {
             const auto row = idx_id[0];
             const auto row_begin = row_ptrs[row];
             const auto row_end = row_ptrs[row + 1];
@@ -327,7 +330,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
-    std::shared_ptr<const DpcppExecutor> exec,
+    std::shared_ptr<const SyclExecutor> exec,
     const matrix::SparsityCsr<ValueType, IndexType>* to_check, bool* is_sorted)
 {
     *is_sorted = true;
@@ -337,8 +340,8 @@ void is_sorted_by_column_index(
     const auto row_ptrs = to_check->get_const_row_ptrs();
     const auto cols = to_check->get_const_col_idxs();
     auto is_sorted_device = gpu_array.get_data();
-    exec->get_queue()->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+    exec->get_queue()->submit([&](::sycl::handler& cgh) {
+        cgh.parallel_for(::sycl::range<1>{num_rows}, [=](::sycl::id<1> idx) {
             const auto row = static_cast<size_type>(idx[0]);
             const auto begin = row_ptrs[row];
             const auto end = row_ptrs[row + 1];
@@ -360,6 +363,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace sparsity_csr
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

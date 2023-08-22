@@ -59,7 +59,7 @@ namespace hip {
 int value = 3;
 }
 
-namespace dpcpp {
+namespace sycl {
 int value = 4;
 }
 
@@ -79,9 +79,9 @@ public:
     {
         value = hip::value;
     }
-    void run(std::shared_ptr<const gko::DpcppExecutor>) const override
+    void run(std::shared_ptr<const gko::SyclExecutor>) const override
     {
-        value = dpcpp::value;
+        value = sycl::value;
     }
     void run(std::shared_ptr<const gko::ReferenceExecutor>) const override
     {
@@ -128,9 +128,9 @@ TEST_F(Executor, RunsCorrectLambdaOperation)
     auto omp_lambda = [&value]() { value = omp::value; };
     auto cuda_lambda = [&value]() { value = cuda::value; };
     auto hip_lambda = [&value]() { value = hip::value; };
-    auto dpcpp_lambda = [&value]() { value = dpcpp::value; };
+    auto sycl_lambda = [&value]() { value = sycl::value; };
 
-    exec->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
+    exec->run(omp_lambda, cuda_lambda, hip_lambda, sycl_lambda);
 
     ASSERT_EQ(EXEC_NAMESPACE::value, value);
 }

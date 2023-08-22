@@ -52,7 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 /**
  * @brief The PGM solver namespace.
  *
@@ -105,7 +105,7 @@ void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
                         const IndexType* col_idxs, const ValueType* vals,
                         matrix::Coo<ValueType, IndexType>* coarse_coo)
 {
-    // WORKAROUND: reduce_by_segment needs unique policy. Otherwise, dpcpp
+    // WORKAROUND: reduce_by_segment needs unique policy. Otherwise, sycl
     // throws same mangled name error. Related:
     // https://github.com/oneapi-src/oneDPL/issues/507
     auto policy = oneapi::dpl::execution::make_device_policy<
@@ -130,6 +130,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace pgm
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

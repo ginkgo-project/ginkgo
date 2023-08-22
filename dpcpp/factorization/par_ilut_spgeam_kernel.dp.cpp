@@ -62,7 +62,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 /**
  * @brief The parallel ILUT factorization namespace.
  *
@@ -88,7 +88,7 @@ void tri_spgeam_nnz(const IndexType* __restrict__ lu_row_ptrs,
                     const IndexType* __restrict__ a_col_idxs,
                     IndexType* __restrict__ l_new_row_ptrs,
                     IndexType* __restrict__ u_new_row_ptrs, IndexType num_rows,
-                    sycl::nd_item<3> item_ct1)
+                    ::sycl::nd_item<3> item_ct1)
 {
     auto subwarp = group::tiled_partition<subgroup_size>(
         group::this_thread_block(item_ct1));
@@ -123,13 +123,13 @@ void tri_spgeam_nnz(const IndexType* __restrict__ lu_row_ptrs,
 
 template <int subgroup_size, typename IndexType>
 void tri_spgeam_nnz(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                    sycl::queue* queue, const IndexType* lu_row_ptrs,
+                    ::sycl::queue* queue, const IndexType* lu_row_ptrs,
                     const IndexType* lu_col_idxs, const IndexType* a_row_ptrs,
                     const IndexType* a_col_idxs, IndexType* l_new_row_ptrs,
                     IndexType* u_new_row_ptrs, IndexType num_rows)
 {
     queue->parallel_for(sycl_nd_range(grid, block),
-                        [=](sycl::nd_item<3> item_ct1)
+                        [=](::sycl::nd_item<3> item_ct1)
                             [[sycl::reqd_sub_group_size(subgroup_size)]] {
                                 tri_spgeam_nnz<subgroup_size>(
                                     lu_row_ptrs, lu_col_idxs, a_row_ptrs,
@@ -160,7 +160,7 @@ void tri_spgeam_init(const IndexType* __restrict__ lu_row_ptrs,
                      const IndexType* __restrict__ u_new_row_ptrs,
                      IndexType* __restrict__ u_new_col_idxs,
                      ValueType* __restrict__ u_new_vals, IndexType num_rows,
-                     sycl::nd_item<3> item_ct1)
+                     ::sycl::nd_item<3> item_ct1)
 {
     auto subwarp = group::tiled_partition<subgroup_size>(
         group::this_thread_block(item_ct1));
@@ -342,7 +342,7 @@ void tri_spgeam_init(const IndexType* __restrict__ lu_row_ptrs,
 
 template <int subgroup_size, typename ValueType, typename IndexType>
 void tri_spgeam_init(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                     sycl::queue* queue, const IndexType* lu_row_ptrs,
+                     ::sycl::queue* queue, const IndexType* lu_row_ptrs,
                      const IndexType* lu_col_idxs, const ValueType* lu_vals,
                      const IndexType* a_row_ptrs, const IndexType* a_col_idxs,
                      const ValueType* a_vals, const IndexType* l_row_ptrs,
@@ -354,7 +354,7 @@ void tri_spgeam_init(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                      ValueType* u_new_vals, IndexType num_rows)
 {
     queue->parallel_for(sycl_nd_range(grid, block),
-                        [=](sycl::nd_item<3> item_ct1)
+                        [=](::sycl::nd_item<3> item_ct1)
                             [[sycl::reqd_sub_group_size(subgroup_size)]] {
                                 tri_spgeam_init<subgroup_size>(
                                     lu_row_ptrs, lu_col_idxs, lu_vals,
@@ -468,6 +468,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace par_ilut_factorization
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

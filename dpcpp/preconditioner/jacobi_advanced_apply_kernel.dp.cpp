@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 /**
  * @brief The Jacobi preconditioner namespace.
  * @ref Jacobi
@@ -56,7 +56,7 @@ template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
 void advanced_apply(
     syn::value_list<int, max_block_size>,
-    std::shared_ptr<const DpcppExecutor> exec, size_type num_blocks,
+    std::shared_ptr<const SyclExecutor> exec, size_type num_blocks,
     const precision_reduction* block_precisions,
     const IndexType* block_pointers, const ValueType* blocks,
     const preconditioner::block_interleaved_storage_scheme<IndexType>&
@@ -68,7 +68,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_advanced_apply, advanced_apply);
 
 
 template <typename ValueType, typename IndexType>
-void apply(std::shared_ptr<const DpcppExecutor> exec, size_type num_blocks,
+void apply(std::shared_ptr<const SyclExecutor> exec, size_type num_blocks,
            uint32 max_block_size,
            const preconditioner::block_interleaved_storage_scheme<IndexType>&
                storage_scheme,
@@ -100,6 +100,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_JACOBI_APPLY_KERNEL);
 
 
 }  // namespace jacobi
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

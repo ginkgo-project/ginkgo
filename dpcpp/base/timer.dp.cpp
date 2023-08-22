@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-DpcppTimer::DpcppTimer(std::shared_ptr<const DpcppExecutor> exec)
+SyclTimer::SyclTimer(std::shared_ptr<const SyclExecutor> exec)
     : exec_{std::move(exec)}
 {
     if (!exec_->get_queue()
@@ -53,42 +53,41 @@ DpcppTimer::DpcppTimer(std::shared_ptr<const DpcppExecutor> exec)
 }
 
 
-void DpcppTimer::init_time_point(time_point& time)
+void SyclTimer::init_time_point(time_point& time)
 {
-    time.type_ = time_point::type::dpcpp;
-    time.data_.dpcpp_event = new sycl::event{};
+    time.type_ = time_point::type::sycl;
+    time.data_.sycl_event = new ::sycl::event{};
 }
 
 
-void DpcppTimer::record(time_point& time)
+void SyclTimer::record(time_point& time)
 {
-    GKO_ASSERT(time.type_ == time_point::type::dpcpp);
-    *time.data_.dpcpp_event =
-        exec_->get_queue()->submit([&](sycl::handler& cgh) {
-            cgh.parallel_for(1, [=](sycl::id<1> id) {});
+    GKO_ASSERT(time.type_ == time_point::type::sycl);
+    *time.data_.sycl_event =
+        exec_->get_queue()->submit([&](::sycl::handler& cgh) {
+            cgh.parallel_for(1, [=](::sycl::id<1> id) {});
         });
 }
 
 
-void DpcppTimer::wait(time_point& time)
+void SyclTimer::wait(time_point& time)
 {
-    GKO_ASSERT(time.type_ == time_point::type::dpcpp);
-    time.data_.dpcpp_event->wait_and_throw();
+    GKO_ASSERT(time.type_ == time_point::type::sycl);
+    time.data_.sycl_event->wait_and_throw();
 }
 
 
-std::chrono::nanoseconds DpcppTimer::difference_async(const time_point& start,
-                                                      const time_point& stop)
+std::chrono::nanoseconds SyclTimer::difference_async(const time_point& start,
+                                                     const time_point& stop)
 {
-    GKO_ASSERT(start.type_ == time_point::type::dpcpp);
-    GKO_ASSERT(stop.type_ == time_point::type::dpcpp);
-    stop.data_.dpcpp_event->wait_and_throw();
-    auto stop_time =
-        stop.data_.dpcpp_event
-            ->get_profiling_info<sycl::info::event_profiling::command_start>();
+    GKO_ASSERT(start.type_ == time_point::type::sycl);
+    GKO_ASSERT(stop.type_ == time_point::type::sycl);
+    stop.data_.sycl_event->wait_and_throw();
+    auto stop_time = stop.data_.sycl_event->get_profiling_info<
+        ::sycl::info::event_profiling::command_start>();
     auto start_time =
-        start.data_.dpcpp_event
-            ->get_profiling_info<sycl::info::event_profiling::command_end>();
+        start.data_.sycl_event
+            ->get_profiling_info<::sycl::info::event_profiling::command_end>();
     return std::chrono::nanoseconds{static_cast<int64>(stop_time - start_time)};
 }
 

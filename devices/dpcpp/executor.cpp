@@ -44,13 +44,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-std::shared_ptr<Executor> DpcppExecutor::get_master() noexcept
+std::shared_ptr<Executor> SyclExecutor::get_master() noexcept
 {
     return master_;
 }
 
 
-std::shared_ptr<const Executor> DpcppExecutor::get_master() const noexcept
+std::shared_ptr<const Executor> SyclExecutor::get_master() const noexcept
 {
     return master_;
 }

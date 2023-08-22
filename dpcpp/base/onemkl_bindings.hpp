@@ -56,7 +56,7 @@ namespace kernels {
  *
  * @ingroup dpcpp
  */
-namespace dpcpp {
+namespace sycl {
 /**
  * @brief The ONEMKL namespace.
  *
@@ -95,7 +95,7 @@ struct is_supported<std::complex<double>> : std::true_type {};
 
 
 #define GKO_BIND_DOT(ValueType, Name, Func)                                    \
-    inline void Name(sycl::queue& exec_queue, std::int64_t n,                  \
+    inline void Name(::sycl::queue& exec_queue, std::int64_t n,                \
                      const ValueType* x, std::int64_t incx,                    \
                      const ValueType* y, std::int64_t incy, ValueType* result) \
     {                                                                          \
@@ -125,7 +125,7 @@ GKO_BIND_DOT(ValueType, conj_dot, detail::not_implemented);
 #undef GKO_BIND_DOT
 
 }  // namespace onemkl
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko
 

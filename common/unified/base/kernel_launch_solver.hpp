@@ -139,7 +139,7 @@ const device_type<ValueType>* row_vector(const matrix::Dense<ValueType>* mtx)
 #include "cuda/base/kernel_launch_solver.cuh"
 #elif defined(GKO_COMPILING_HIP)
 #include "hip/base/kernel_launch_solver.hip.hpp"
-#elif defined(GKO_COMPILING_DPCPP)
+#elif defined(GKO_COMPILING_SYCL)
 #include "dpcpp/base/kernel_launch_solver.dp.hpp"
 #elif defined(GKO_COMPILING_OMP)
 #include "omp/base/kernel_launch_solver.hpp"

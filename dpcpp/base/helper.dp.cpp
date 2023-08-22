@@ -38,17 +38,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 
 
-bool validate(sycl::queue* queue, unsigned int workgroup_size,
+bool validate(::sycl::queue* queue, unsigned int workgroup_size,
               unsigned int subgroup_size)
 {
     auto device = queue->get_device();
     auto subgroup_size_list =
-        device.get_info<sycl::info::device::sub_group_sizes>();
+        device.get_info<::sycl::info::device::sub_group_sizes>();
     auto max_workgroup_size =
-        device.get_info<sycl::info::device::max_work_group_size>();
+        device.get_info<::sycl::info::device::max_work_group_size>();
     bool allowed = false;
     for (auto& i : subgroup_size_list) {
         allowed |= (i == subgroup_size);
@@ -57,6 +57,6 @@ bool validate(sycl::queue* queue, unsigned int workgroup_size,
 }
 
 
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

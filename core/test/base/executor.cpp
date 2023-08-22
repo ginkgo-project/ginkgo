@@ -282,21 +282,21 @@ TEST(HipExecutor, KnowsItsDeviceId)
 }
 
 
-TEST(DpcppExecutor, KnowsItsMaster)
+TEST(SyclExecutor, KnowsItsMaster)
 {
     auto ref = gko::ReferenceExecutor::create();
-    exec_ptr dpcpp = gko::DpcppExecutor::create(0, ref);
+    exec_ptr sycl = gko::SyclExecutor::create(0, ref);
 
-    ASSERT_EQ(ref, dpcpp->get_master());
+    ASSERT_EQ(ref, sycl->get_master());
 }
 
 
-TEST(DpcppExecutor, KnowsItsDeviceId)
+TEST(SyclExecutor, KnowsItsDeviceId)
 {
     auto ref = gko::ReferenceExecutor::create();
-    auto dpcpp = gko::DpcppExecutor::create(0, ref);
+    auto sycl = gko::SyclExecutor::create(0, ref);
 
-    ASSERT_EQ(0, dpcpp->get_device_id());
+    ASSERT_EQ(0, sycl->get_device_id());
 }
 
 
@@ -311,23 +311,23 @@ TEST(Executor, CanVerifyMemory)
     auto cuda2 = gko::CudaExecutor::create(0, ref);
     auto hip_1 = gko::HipExecutor::create(1, ref);
     auto cuda_1 = gko::CudaExecutor::create(1, ref);
-    std::shared_ptr<gko::DpcppExecutor> host_dpcpp;
-    std::shared_ptr<gko::DpcppExecutor> cpu_dpcpp;
-    std::shared_ptr<gko::DpcppExecutor> gpu_dpcpp;
-    std::shared_ptr<gko::DpcppExecutor> host_dpcpp_dup;
-    std::shared_ptr<gko::DpcppExecutor> cpu_dpcpp_dup;
-    std::shared_ptr<gko::DpcppExecutor> gpu_dpcpp_dup;
-    if (gko::DpcppExecutor::get_num_devices("host")) {
-        host_dpcpp = gko::DpcppExecutor::create(0, ref, "host");
-        host_dpcpp_dup = gko::DpcppExecutor::create(0, ref, "host");
+    std::shared_ptr<gko::SyclExecutor> host_sycl;
+    std::shared_ptr<gko::SyclExecutor> cpu_sycl;
+    std::shared_ptr<gko::SyclExecutor> gpu_sycl;
+    std::shared_ptr<gko::SyclExecutor> host_sycl_dup;
+    std::shared_ptr<gko::SyclExecutor> cpu_sycl_dup;
+    std::shared_ptr<gko::SyclExecutor> gpu_sycl_dup;
+    if (gko::SyclExecutor::get_num_devices("host")) {
+        host_sycl = gko::SyclExecutor::create(0, ref, "host");
+        host_sycl_dup = gko::SyclExecutor::create(0, ref, "host");
     }
-    if (gko::DpcppExecutor::get_num_devices("cpu")) {
-        cpu_dpcpp = gko::DpcppExecutor::create(0, ref, "cpu");
-        cpu_dpcpp_dup = gko::DpcppExecutor::create(0, ref, "cpu");
+    if (gko::SyclExecutor::get_num_devices("cpu")) {
+        cpu_sycl = gko::SyclExecutor::create(0, ref, "cpu");
+        cpu_sycl_dup = gko::SyclExecutor::create(0, ref, "cpu");
     }
-    if (gko::DpcppExecutor::get_num_devices("gpu")) {
-        gpu_dpcpp = gko::DpcppExecutor::create(0, ref, "gpu");
-        gpu_dpcpp_dup = gko::DpcppExecutor::create(0, ref, "gpu");
+    if (gko::SyclExecutor::get_num_devices("gpu")) {
+        gpu_sycl = gko::SyclExecutor::create(0, ref, "gpu");
+        gpu_sycl_dup = gko::SyclExecutor::create(0, ref, "gpu");
     }
 
     ASSERT_EQ(false, ref->memory_accessible(omp));
@@ -340,29 +340,29 @@ TEST(Executor, CanVerifyMemory)
     ASSERT_EQ(false, cuda->memory_accessible(ref));
     ASSERT_EQ(false, omp->memory_accessible(cuda));
     ASSERT_EQ(false, cuda->memory_accessible(omp));
-    if (gko::DpcppExecutor::get_num_devices("host")) {
-        ASSERT_EQ(false, host_dpcpp->memory_accessible(ref));
-        ASSERT_EQ(false, ref->memory_accessible(host_dpcpp));
-        ASSERT_EQ(true, host_dpcpp->memory_accessible(omp));
-        ASSERT_EQ(true, omp->memory_accessible(host_dpcpp));
-        ASSERT_EQ(true, host_dpcpp->memory_accessible(host_dpcpp_dup));
-        ASSERT_EQ(true, host_dpcpp_dup->memory_accessible(host_dpcpp));
+    if (gko::SyclExecutor::get_num_devices("host")) {
+        ASSERT_EQ(false, host_sycl->memory_accessible(ref));
+        ASSERT_EQ(false, ref->memory_accessible(host_sycl));
+        ASSERT_EQ(true, host_sycl->memory_accessible(omp));
+        ASSERT_EQ(true, omp->memory_accessible(host_sycl));
+        ASSERT_EQ(true, host_sycl->memory_accessible(host_sycl_dup));
+        ASSERT_EQ(true, host_sycl_dup->memory_accessible(host_sycl));
     }
-    if (gko::DpcppExecutor::get_num_devices("cpu")) {
-        ASSERT_EQ(false, ref->memory_accessible(cpu_dpcpp));
-        ASSERT_EQ(false, cpu_dpcpp->memory_accessible(ref));
-        ASSERT_EQ(true, cpu_dpcpp->memory_accessible(omp));
-        ASSERT_EQ(true, omp->memory_accessible(cpu_dpcpp));
-        ASSERT_EQ(true, cpu_dpcpp->memory_accessible(cpu_dpcpp_dup));
-        ASSERT_EQ(true, cpu_dpcpp_dup->memory_accessible(cpu_dpcpp));
+    if (gko::SyclExecutor::get_num_devices("cpu")) {
+        ASSERT_EQ(false, ref->memory_accessible(cpu_sycl));
+        ASSERT_EQ(false, cpu_sycl->memory_accessible(ref));
+        ASSERT_EQ(true, cpu_sycl->memory_accessible(omp));
+        ASSERT_EQ(true, omp->memory_accessible(cpu_sycl));
+        ASSERT_EQ(true, cpu_sycl->memory_accessible(cpu_sycl_dup));
+        ASSERT_EQ(true, cpu_sycl_dup->memory_accessible(cpu_sycl));
     }
-    if (gko::DpcppExecutor::get_num_devices("gpu")) {
-        ASSERT_EQ(false, gpu_dpcpp->memory_accessible(ref));
-        ASSERT_EQ(false, ref->memory_accessible(gpu_dpcpp));
-        ASSERT_EQ(false, gpu_dpcpp->memory_accessible(omp));
-        ASSERT_EQ(false, omp->memory_accessible(gpu_dpcpp));
-        ASSERT_EQ(false, gpu_dpcpp->memory_accessible(gpu_dpcpp_dup));
-        ASSERT_EQ(false, gpu_dpcpp_dup->memory_accessible(gpu_dpcpp));
+    if (gko::SyclExecutor::get_num_devices("gpu")) {
+        ASSERT_EQ(false, gpu_sycl->memory_accessible(ref));
+        ASSERT_EQ(false, ref->memory_accessible(gpu_sycl));
+        ASSERT_EQ(false, gpu_sycl->memory_accessible(omp));
+        ASSERT_EQ(false, omp->memory_accessible(gpu_sycl));
+        ASSERT_EQ(false, gpu_sycl->memory_accessible(gpu_sycl_dup));
+        ASSERT_EQ(false, gpu_sycl_dup->memory_accessible(gpu_sycl));
     }
 #if GINKGO_HIP_PLATFORM_NVCC
     ASSERT_EQ(true, hip->memory_accessible(cuda));
@@ -534,7 +534,7 @@ public:
     void run(std::shared_ptr<const gko::OmpExecutor>) const override {}
     void run(std::shared_ptr<const gko::CudaExecutor>) const override {}
     void run(std::shared_ptr<const gko::HipExecutor>) const override {}
-    void run(std::shared_ptr<const gko::DpcppExecutor>) const override {}
+    void run(std::shared_ptr<const gko::SyclExecutor>) const override {}
     void run(std::shared_ptr<const gko::ReferenceExecutor>) const override {}
 };
 

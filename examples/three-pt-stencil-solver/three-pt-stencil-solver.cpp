@@ -172,10 +172,10 @@ void solve_system(const std::string& executor_string,
              [] {
                  return gko::HipExecutor::create(0, gko::OmpExecutor::create());
              }},
-            {"dpcpp",
+            {"sycl",
              [] {
-                 return gko::DpcppExecutor::create(0,
-                                                   gko::OmpExecutor::create());
+                 return gko::SyclExecutor::create(0,
+                                                  gko::OmpExecutor::create());
              }},
             {"reference", [] { return gko::ReferenceExecutor::create(); }}};
 

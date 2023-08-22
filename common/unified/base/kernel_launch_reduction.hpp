@@ -51,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/kernel_launch_reduction.cuh"
 #elif defined(GKO_COMPILING_HIP)
 #include "hip/base/kernel_launch_reduction.hip.hpp"
-#elif defined(GKO_COMPILING_DPCPP)
+#elif defined(GKO_COMPILING_SYCL)
 #include "dpcpp/base/kernel_launch_reduction.dp.hpp"
 #elif defined(GKO_COMPILING_OMP)
 #include "omp/base/kernel_launch_reduction.hpp"

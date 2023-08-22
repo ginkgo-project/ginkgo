@@ -44,11 +44,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 /**
- * @brief The Dpcpp namespace.
+ * @brief The Sycl namespace.
  *
- * @ingroup dpcpp
+ * @ingroup sycl
  */
-namespace dpcpp {
+namespace sycl {
 /**
  * @brief The index_set namespace.
  *
@@ -108,6 +108,6 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 
 }  // namespace idx_set
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

@@ -95,13 +95,33 @@ using std::sqrt;
 
 
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 
 
 using std::abs;
 
 
 using std::sqrt;
+
+
+}  // namespace sycl
+
+
+namespace dpcpp {
+
+
+template <typename T>
+[[deprecated("using sycl namespace")]] inline auto abs(T val)
+{
+    return std::abs(val);
+}
+
+
+template <typename T>
+[[deprecated("using sycl namespace")]] inline auto sqrt(T val)
+{
+    return std::sqrt(val);
+}
 
 
 }  // namespace dpcpp

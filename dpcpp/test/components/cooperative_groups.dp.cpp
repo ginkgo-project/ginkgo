@@ -60,7 +60,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-using namespace gko::kernels::dpcpp;
+using namespace gko::kernels::sycl;
 constexpr auto default_config_list = dcfg_1sg_list_t();
 
 
@@ -68,11 +68,11 @@ class CooperativeGroups : public testing::TestWithParam<unsigned int> {
 protected:
     CooperativeGroups()
         : ref(gko::ReferenceExecutor::create()),
-          dpcpp(gko::DpcppExecutor::create(0, ref)),
+          sycl(gko::SyclExecutor::create(0, ref)),
           test_case(3),
           max_num(test_case * 64),
           result(ref, max_num),
-          dresult(dpcpp)
+          dresult(sycl)
     {
         for (int i = 0; i < max_num; i++) {
             result.get_data()[i] = false;
@@ -84,15 +84,14 @@ protected:
     void test_all_subgroup(Kernel kernel)
     {
         auto subgroup_size = GetParam();
-        auto queue = dpcpp->get_queue();
-        if (gko::kernels::dpcpp::validate(queue, subgroup_size,
-                                          subgroup_size)) {
+        auto queue = sycl->get_queue();
+        if (gko::kernels::sycl::validate(queue, subgroup_size, subgroup_size)) {
             const auto cfg = DCFG_1D::encode(subgroup_size, subgroup_size);
             for (int i = 0; i < test_case * subgroup_size; i++) {
                 result.get_data()[i] = true;
             }
 
-            kernel(cfg, 1, subgroup_size, 0, dpcpp->get_queue(),
+            kernel(cfg, 1, subgroup_size, 0, sycl->get_queue(),
                    dresult.get_data());
 
             // each subgreoup size segment for one test
@@ -106,7 +105,7 @@ protected:
     int test_case;
     int max_num;
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::DpcppExecutor> dpcpp;
+    std::shared_ptr<gko::SyclExecutor> sycl;
     gko::array<bool> result;
     gko::array<bool> dresult;
 };
@@ -114,7 +113,7 @@ protected:
 
 // kernel implementation
 template <typename DeviceConfig>
-void cg_shuffle(bool* s, sycl::nd_item<3> item_ct1)
+void cg_shuffle(bool* s, ::sycl::nd_item<3> item_ct1)
 {
     constexpr auto sg_size = DeviceConfig::subgroup_size;
     auto group =
@@ -131,13 +130,13 @@ void cg_shuffle(bool* s, sycl::nd_item<3> item_ct1)
 // group all kernel things together
 template <typename DeviceConfig>
 void cg_shuffle_host(dim3 grid, dim3 block,
-                     gko::size_type dynamic_shared_memory, sycl::queue* queue,
+                     gko::size_type dynamic_shared_memory, ::sycl::queue* queue,
                      bool* s)
 {
-    queue->submit([&](sycl::handler& cgh) {
+    queue->submit([&](::sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+            [=](::sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
                 DeviceConfig::subgroup_size)]] __WG_BOUND__(DeviceConfig::
                                                                 block_size) {
                 cg_shuffle<DeviceConfig>(s, item_ct1);
@@ -152,7 +151,7 @@ GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TOTYPE(cg_shuffle_config,
 // the call
 void cg_shuffle_config_call(std::uint32_t desired_cfg, dim3 grid, dim3 block,
                             gko::size_type dynamic_shared_memory,
-                            sycl::queue* queue, bool* s)
+                            ::sycl::queue* queue, bool* s)
 {
     cg_shuffle_config(
         default_config_list,
@@ -170,7 +169,7 @@ TEST_P(CooperativeGroups, Shuffle)
 
 
 template <typename DeviceConfig>
-void cg_all(bool* s, sycl::nd_item<3> item_ct1)
+void cg_all(bool* s, ::sycl::nd_item<3> item_ct1)
 {
     constexpr auto sg_size = DeviceConfig::subgroup_size;
     auto group =
@@ -191,7 +190,7 @@ TEST_P(CooperativeGroups, All) { test_all_subgroup(cg_all_call<bool*>); }
 
 
 template <typename DeviceConfig>
-void cg_any(bool* s, sycl::nd_item<3> item_ct1)
+void cg_any(bool* s, ::sycl::nd_item<3> item_ct1)
 {
     constexpr auto sg_size = DeviceConfig::subgroup_size;
     auto group =
@@ -211,7 +210,7 @@ TEST_P(CooperativeGroups, Any) { test_all_subgroup(cg_any_call<bool*>); }
 
 
 template <typename cfg>
-void cg_ballot(bool* s, sycl::nd_item<3> item_ct1)
+void cg_ballot(bool* s, ::sycl::nd_item<3> item_ct1)
 {
     constexpr auto sg_size = cfg::subgroup_size;
     auto group =

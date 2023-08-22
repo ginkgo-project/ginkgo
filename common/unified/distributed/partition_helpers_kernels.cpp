@@ -50,7 +50,7 @@ void check_consecutive_ranges(std::shared_ptr<const DefaultExecutor> exec,
 {
     array<uint32> result_uint32{exec, 1};
     auto num_ranges = range_start_ends.get_num_elems() / 2;
-    // need additional guard because DPCPP doesn't return the initial value for
+    // need additional guard because SYCL doesn't return the initial value for
     // empty inputs
     if (num_ranges > 1) {
         run_kernel_reduction(

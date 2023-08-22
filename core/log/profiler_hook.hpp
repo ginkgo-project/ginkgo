@@ -155,7 +155,7 @@ using profiling_scope_guard = log::default_profiling_scope_guard;
 }  // namespace hip
 
 
-namespace dpcpp {
+namespace sycl {
 
 
 class profiling_scope_guard {
@@ -174,7 +174,7 @@ private:
 };
 
 
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko
 

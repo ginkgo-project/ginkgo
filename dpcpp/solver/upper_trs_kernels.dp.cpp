@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 /**
  * @brief The UPPER_TRS solver namespace.
  *
@@ -59,7 +59,7 @@ namespace dpcpp {
 namespace upper_trs {
 
 
-void should_perform_transpose(std::shared_ptr<const DpcppExecutor> exec,
+void should_perform_transpose(std::shared_ptr<const SyclExecutor> exec,
                               bool& do_transpose)
 {
     do_transpose = false;
@@ -67,7 +67,7 @@ void should_perform_transpose(std::shared_ptr<const DpcppExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void generate(std::shared_ptr<const DpcppExecutor> exec,
+void generate(std::shared_ptr<const SyclExecutor> exec,
               const matrix::Csr<ValueType, IndexType>* matrix,
               std::shared_ptr<solver::SolveStruct>& solve_struct,
               bool unit_diag, const solver::trisolve_algorithm algorithm,
@@ -82,7 +82,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
  * versions <=9.1 due to a limitation in the cssrsm_solve algorithm
  */
 template <typename ValueType, typename IndexType>
-void solve(std::shared_ptr<const DpcppExecutor> exec,
+void solve(std::shared_ptr<const SyclExecutor> exec,
            const matrix::Csr<ValueType, IndexType>* matrix,
            const solver::SolveStruct* solve_struct, bool unit_diag,
            const solver::trisolve_algorithm algorithm,
@@ -95,6 +95,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace upper_trs
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

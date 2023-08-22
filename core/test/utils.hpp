@@ -63,21 +63,21 @@ namespace test {
 
 
 using ValueTypes =
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_SYCL_SINGLE_MODE
     ::testing::Types<float, std::complex<float>>;
 #else
     ::testing::Types<float, double, std::complex<float>, std::complex<double>>;
 #endif
 
 using ComplexValueTypes =
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_SYCL_SINGLE_MODE
     ::testing::Types<std::complex<float>>;
 #else
     ::testing::Types<std::complex<float>, std::complex<double>>;
 #endif
 
 using RealValueTypes =
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_SYCL_SINGLE_MODE
     ::testing::Types<float>;
 #else
     ::testing::Types<float, double>;
@@ -93,7 +93,7 @@ using LocalGlobalIndexTypes =
 
 
 using PODTypes =
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_SYCL_SINGLE_MODE
     ::testing::Types<float, gko::int32, gko::int64>;
 #else
     ::testing::Types<float, double, gko::int32, gko::int64>;
@@ -101,7 +101,7 @@ using PODTypes =
 
 
 using ValueAndIndexTypes =
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_SYCL_SINGLE_MODE
     ::testing::Types<float, std::complex<float>, gko::int32, gko::int64,
                      gko::size_type>;
 #else
@@ -111,7 +111,7 @@ using ValueAndIndexTypes =
 
 
 using RealValueAndIndexTypes =
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_SYCL_SINGLE_MODE
     ::testing::Types<float, gko::int32, gko::int64, gko::size_type>;
 #else
     ::testing::Types<float, double, gko::int32, gko::int64, gko::size_type>;
@@ -119,7 +119,7 @@ using RealValueAndIndexTypes =
 
 
 using ValueIndexTypes =
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_SYCL_SINGLE_MODE
     ::testing::Types<std::tuple<float, gko::int32>,
                      std::tuple<std::complex<float>, gko::int32>,
                      std::tuple<float, gko::int64>,
@@ -136,7 +136,7 @@ using ValueIndexTypes =
 
 
 using RealValueIndexTypes =
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_SYCL_SINGLE_MODE
     ::testing::Types<std::tuple<float, gko::int32>,
                      std::tuple<float, gko::int64>>;
 #else
@@ -147,7 +147,7 @@ using RealValueIndexTypes =
 
 
 using ComplexValueIndexTypes =
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_SYCL_SINGLE_MODE
     ::testing::Types<std::tuple<std::complex<float>, gko::int32>,
                      std::tuple<std::complex<float>, gko::int64>>;
 #else
@@ -159,7 +159,7 @@ using ComplexValueIndexTypes =
 
 
 using TwoValueIndexType =
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_SYCL_SINGLE_MODE
     ::testing::Types<
         std::tuple<float, float, gko::int32>,
         std::tuple<std::complex<float>, std::complex<float>, gko::int32>,
@@ -187,7 +187,7 @@ using TwoValueIndexType =
 
 
 using ValueLocalGlobalIndexTypes =
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_SYCL_SINGLE_MODE
     ::testing::Types<std::tuple<float, gko::int32, int32>,
                      std::tuple<float, gko::int32, int64>,
                      std::tuple<float, gko::int64, int64>,

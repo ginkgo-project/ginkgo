@@ -66,8 +66,8 @@ std::ostream& operator<<(std::ostream& os, const version_info& ver_info)
     print_version(os, ver_info.cuda_version);
     os << "\n    the HIP       module is  ";
     print_version(os, ver_info.hip_version);
-    os << "\n    the DPCPP     module is  ";
-    print_version(os, ver_info.dpcpp_version);
+    os << "\n    the SYCL     module is  ";
+    print_version(os, ver_info.sycl_version);
     return os;
 }
 

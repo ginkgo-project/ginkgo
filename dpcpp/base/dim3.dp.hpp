@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 
 
 /**
@@ -66,9 +66,9 @@ struct dim3 {
      * get_range returns the range for sycl with correct ordering (reverse of
      * cuda)
      *
-     * @return sycl::range<3>
+     * @return ::sycl::range<3>
      */
-    sycl::range<3> get_range() { return sycl::range<3>(z, y, x); }
+    ::sycl::range<3> get_range() { return ::sycl::range<3>(z, y, x); }
 };
 
 
@@ -80,15 +80,15 @@ struct dim3 {
  *
  * @return sycl::nd_range<3>
  */
-inline sycl::nd_range<3> sycl_nd_range(dim3 grid, dim3 block)
+inline ::sycl::nd_range<3> sycl_nd_range(dim3 grid, dim3 block)
 {
     auto local_range = block.get_range();
     auto global_range = grid.get_range() * local_range;
-    return sycl::nd_range<3>(global_range, local_range);
+    return ::sycl::nd_range<3>(global_range, local_range);
 }
 
 
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko
 

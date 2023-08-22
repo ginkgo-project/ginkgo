@@ -46,13 +46,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 
 
 /**
  * Ginkgo uses cooperative groups to handle communication among the threads.
  *
- * However, DPCPP's implementation of cooperative groups is still quite limited
+ * However, SYCL's implementation of cooperative groups is still quite limited
  * in functionality, and some parts are not supported on all hardware
  * interesting for Ginkgo. For this reason, Ginkgo exposes only a part of the
  * original functionality, and possibly extends it if it is required. Thus,
@@ -61,7 +61,7 @@ namespace dpcpp {
  * by Ginkgo's implementation is equivalent to the standard interface, with some
  * useful extensions.
  *
- * A cooperative group (both from standard DPCPP and from Ginkgo) is not a
+ * A cooperative group (both from standard SYCL and from Ginkgo) is not a
  * specific type, but a concept. That is, any type satisfying the interface
  * imposed by the cooperative groups API is considered a cooperative
  * group (a.k.a. "duck typing"). To maximize the generality of components that
@@ -74,7 +74,7 @@ namespace dpcpp {
  * Instead, use the thread_rank() method of the group to distinguish between
  * distinct threads of a group.
  *
- * The original DPCPP implementation does not provide ways to verify if a
+ * The original SYCL implementation does not provide ways to verify if a
  * certain type represents a cooperative group. Ginkgo's implementation provides
  * metafunctions which do that. Additionally, not all cooperative groups have
  * equivalent functionality, so Ginkgo splits the cooperative group concept into
@@ -113,7 +113,7 @@ namespace dpcpp {
  *       to existing cooperative groups, or create new groups if the existing
  *       groups do not cover your use-case. For an example, see the
  *       enable_extended_shuffle mixin, which adds extended shuffles support
- *       to built-in DPCPP cooperative groups.
+ *       to built-in SYCL cooperative groups.
  */
 namespace group {
 
@@ -165,11 +165,11 @@ namespace detail {
 
 
 /**
- * This is a limited implementation of the DPCPP thread_block_tile.
+ * This is a limited implementation of the SYCL thread_block_tile.
  */
 template <unsigned Size>
-class thread_block_tile : public sycl::sub_group {
-    using sub_group = sycl::sub_group;
+class thread_block_tile : public ::sycl::sub_group {
+    using sub_group = ::sycl::sub_group;
     using id_type = sub_group::id_type;
     using mask_type = config::lane_mask_type;
 
@@ -239,9 +239,9 @@ public:
     __dpct_inline__ mask_type ballot(int predicate) const noexcept
     {
         // todo: change it when OneAPI update the mask related api
-        return sycl::reduce_over_group(
+        return ::sycl::reduce_over_group(
             *this, (predicate != 0) ? mask_type(1) << data_.rank : mask_type(0),
-            sycl::plus<mask_type>());
+            ::sycl::plus<mask_type>());
     }
 
     /**
@@ -250,7 +250,7 @@ public:
      */
     __dpct_inline__ bool any(int predicate) const noexcept
     {
-        return sycl::any_of_group(*this, (predicate != 0));
+        return ::sycl::any_of_group(*this, (predicate != 0));
     }
 
     /**
@@ -259,7 +259,7 @@ public:
      */
     __dpct_inline__ bool all(int predicate) const noexcept
     {
-        return sycl::all_of_group(*this, (predicate != 0));
+        return ::sycl::all_of_group(*this, (predicate != 0));
     }
 
 
@@ -390,7 +390,7 @@ struct is_communicator_group_impl<thread_block_tile<Size>> : std::true_type {};
 
 
 class thread_block {
-    friend __dpct_inline__ thread_block this_thread_block(sycl::nd_item<3>&);
+    friend __dpct_inline__ thread_block this_thread_block(::sycl::nd_item<3>&);
 
 public:
     __dpct_inline__ unsigned thread_rank() const noexcept { return data_.rank; }
@@ -400,7 +400,7 @@ public:
     __dpct_inline__ void sync() const noexcept { group_.barrier(); }
 
 private:
-    __dpct_inline__ thread_block(sycl::nd_item<3>& group)
+    __dpct_inline__ thread_block(::sycl::nd_item<3>& group)
         : group_{group},
           data_{static_cast<unsigned>(group.get_local_range().size()),
                 static_cast<unsigned>(group.get_local_linear_id())}
@@ -410,11 +410,11 @@ private:
         unsigned rank;
     } data_;
 
-    sycl::nd_item<3>& group_;
+    ::sycl::nd_item<3>& group_;
 };
 
 
-__dpct_inline__ thread_block this_thread_block(sycl::nd_item<3>& group)
+__dpct_inline__ thread_block this_thread_block(::sycl::nd_item<3>& group)
 {
     return thread_block(group);
 }
@@ -435,7 +435,7 @@ struct is_synchronizable_group_impl<thread_block> : std::true_type {};
 
 
 /**
- * This is a limited implementation of the DPCPP grid_group that works even on
+ * This is a limited implementation of the SYCL grid_group that works even on
  * devices that do not support device-wide synchronization and without special
  * kernel launch syntax.
  *
@@ -444,7 +444,7 @@ struct is_synchronizable_group_impl<thread_block> : std::true_type {};
  * bit block) would have to be used to represent the full space of thread ranks.
  */
 class grid_group {
-    friend __dpct_inline__ grid_group this_grid(sycl::nd_item<3>&);
+    friend __dpct_inline__ grid_group this_grid(::sycl::nd_item<3>&);
 
 public:
     __dpct_inline__ unsigned size() const noexcept { return data_.size; }
@@ -452,7 +452,7 @@ public:
     __dpct_inline__ unsigned thread_rank() const noexcept { return data_.rank; }
 
 private:
-    __dpct_inline__ grid_group(sycl::nd_item<3>& group)
+    __dpct_inline__ grid_group(::sycl::nd_item<3>& group)
         : data_{static_cast<unsigned>(group.get_global_range().size()),
                 static_cast<unsigned>(group.get_global_linear_id())}
     {}
@@ -467,20 +467,20 @@ private:
 // grid_group this_grid()
 // using cooperative_groups::this_grid;
 // Instead, use our limited implementation:
-__dpct_inline__ grid_group this_grid(sycl::nd_item<3>& group)
+__dpct_inline__ grid_group this_grid(::sycl::nd_item<3>& group)
 {
     return grid_group(group);
 }
 
 
 }  // namespace group
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko
 
 
 // Enable group can directly use group function
-#if GINKGO_DPCPP_MAJOR_VERSION < 6
+#if GINKGO_SYCL_MAJOR_VERSION < 6
 inline namespace cl {
 #endif
 namespace sycl {
@@ -489,7 +489,7 @@ namespace detail {
 
 template <unsigned Size>
 struct is_sub_group<
-    ::gko::kernels::dpcpp::group::detail::thread_block_tile<Size>>
+    ::gko::kernels::sycl::group::detail::thread_block_tile<Size>>
     : std::true_type {};
 
 
@@ -501,7 +501,7 @@ struct group_scope;
 
 template <unsigned Size>
 struct group_scope<
-    ::gko::kernels::dpcpp::group::detail::thread_block_tile<Size>> {
+    ::gko::kernels::sycl::group::detail::thread_block_tile<Size>> {
     static constexpr __spv::Scope::Flag value = __spv::Scope::Flag::Subgroup;
 };
 
@@ -509,7 +509,7 @@ struct group_scope<
 }  // namespace spirv
 }  // namespace detail
 }  // namespace sycl
-#if GINKGO_DPCPP_MAJOR_VERSION < 6
+#if GINKGO_SYCL_MAJOR_VERSION < 6
 }  // namespace cl
 #endif
 

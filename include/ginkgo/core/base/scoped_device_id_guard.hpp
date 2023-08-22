@@ -44,7 +44,7 @@ class OmpExecutor;
 class ReferenceExecutor;
 class CudaExecutor;
 class HipExecutor;
-class DpcppExecutor;
+class SyclExecutor;
 
 
 namespace detail {
@@ -84,7 +84,7 @@ public:
  * block, when run with multiple devices. Depending on the executor it will
  * record the current device id and set the device id to the one being passed
  * in. After the scope has been exited, the destructor sets the device_id back
- * to the one before entering the scope. The OmpExecutor and DpcppExecutor don't
+ * to the one before entering the scope. The OmpExecutor and SyclExecutor don't
  * require setting an device id, so in those cases, the class is a no-op.
  *
  * The device id scope has to be constructed from a executor with concrete type
@@ -144,14 +144,14 @@ public:
     scoped_device_id_guard(const HipExecutor* exec, int device_id);
 
     /**
-     * Create a scoped device id from an DpcppExecutor.
+     * Create a scoped device id from an SyclExecutor.
      *
      * The resulting object will be a noop.
      *
      * @param exec  Not used.
      * @param device_id  Not used.
      */
-    scoped_device_id_guard(const DpcppExecutor* exec, int device_id);
+    scoped_device_id_guard(const SyclExecutor* exec, int device_id);
 
     scoped_device_id_guard() = default;
 

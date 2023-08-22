@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 namespace components {
 
 
@@ -66,7 +66,7 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(finalize_prefix_sum_call, finalize_prefix_sum,
 
 
 template <typename IndexType>
-void prefix_sum_nonnegative(std::shared_ptr<const DpcppExecutor> exec,
+void prefix_sum_nonnegative(std::shared_ptr<const SyclExecutor> exec,
                             IndexType* counts, size_type num_entries)
 {
     // prefix_sum should only be performed on a valid array
@@ -102,6 +102,6 @@ template GKO_DECLARE_PREFIX_SUM_NONNEGATIVE_KERNEL(size_type);
 
 
 }  // namespace components
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

@@ -71,7 +71,7 @@ move_only_type move_only_val{};
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 
 
 template <>
@@ -82,14 +82,14 @@ struct to_device_type_impl<move_only_type&> {
 };
 
 
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko
 
 
 class KernelLaunch : public ::testing::Test {
 protected:
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_SYCL_SINGLE_MODE
     using value_type = float;
 #else
     using value_type = double;
@@ -97,9 +97,9 @@ protected:
     using Mtx = gko::matrix::Dense<value_type>;
 
     KernelLaunch()
-        : exec(gko::DpcppExecutor::create(
+        : exec(gko::SyclExecutor::create(
               0, gko::ReferenceExecutor::create(),
-              gko::DpcppExecutor::get_num_devices("gpu") > 0 ? "gpu" : "cpu")),
+              gko::SyclExecutor::get_num_devices("gpu") > 0 ? "gpu" : "cpu")),
           zero_array(exec->get_master(), 16),
           iota_array(exec->get_master(), 16),
           iota_transp_array(exec->get_master(), 16),
@@ -123,7 +123,7 @@ protected:
         iota_transp_array.set_executor(exec);
     }
 
-    std::shared_ptr<gko::DpcppExecutor> exec;
+    std::shared_ptr<gko::SyclExecutor> exec;
     gko::array<int> zero_array;
     gko::array<int> iota_array;
     gko::array<int> iota_transp_array;
@@ -136,7 +136,7 @@ protected:
 
 TEST_F(KernelLaunch, Runs1D)
 {
-    gko::kernels::dpcpp::run_kernel(
+    gko::kernels::sycl::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto d, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
@@ -152,7 +152,7 @@ TEST_F(KernelLaunch, Runs1D)
 
 TEST_F(KernelLaunch, Runs1DArray)
 {
-    gko::kernels::dpcpp::run_kernel(
+    gko::kernels::sycl::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto d, auto d_ptr, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
@@ -174,7 +174,7 @@ TEST_F(KernelLaunch, Runs1DArray)
 
 TEST_F(KernelLaunch, Runs1DDense)
 {
-    gko::kernels::dpcpp::run_kernel(
+    gko::kernels::sycl::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto d, auto d2, auto d_ptr, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
@@ -207,7 +207,7 @@ TEST_F(KernelLaunch, Runs1DDense)
 
 TEST_F(KernelLaunch, Runs2D)
 {
-    gko::kernels::dpcpp::run_kernel(
+    gko::kernels::sycl::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto d, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
@@ -224,7 +224,7 @@ TEST_F(KernelLaunch, Runs2D)
 
 TEST_F(KernelLaunch, Runs2DArray)
 {
-    gko::kernels::dpcpp::run_kernel(
+    gko::kernels::sycl::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto d, auto d_ptr, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
@@ -246,7 +246,7 @@ TEST_F(KernelLaunch, Runs2DArray)
 
 TEST_F(KernelLaunch, Runs2DDense)
 {
-    gko::kernels::dpcpp::run_kernel_solver(
+    gko::kernels::sycl::run_kernel_solver(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto d, auto d2, auto d_ptr, auto d3,
                       auto d4, auto d2_ptr, auto d3_ptr, auto dummy) {
@@ -283,8 +283,8 @@ TEST_F(KernelLaunch, Runs2DDense)
         dim<2>{4, 4}, zero_dense->get_stride(), zero_dense2.get(),
         static_cast<const Mtx*>(zero_dense2.get()),
         zero_dense2->get_const_values(),
-        gko::kernels::dpcpp::default_stride(zero_dense.get()),
-        gko::kernels::dpcpp::row_vector(vec_dense.get()),
+        gko::kernels::sycl::default_stride(zero_dense.get()),
+        gko::kernels::sycl::row_vector(vec_dense.get()),
         zero_dense->get_values(), vec_dense->get_values(), move_only_val);
 
     GKO_ASSERT_MTX_NEAR(zero_dense2, iota_dense, 0.0);
@@ -295,7 +295,7 @@ TEST_F(KernelLaunch, Reduction1D)
 {
     gko::array<int64> output{exec, 1};
 
-    gko::kernels::dpcpp::run_kernel_reduction(
+    gko::kernels::sycl::run_kernel_reduction(
         exec,
         [] GKO_KERNEL(auto i, auto a, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
@@ -317,7 +317,7 @@ TEST_F(KernelLaunch, Reduction1D)
     // 2 * sum i=0...99999 (i+1)
     EXPECT_EQ(exec->copy_val_to_host(output.get_const_data()), 10000100000LL);
 
-    gko::kernels::dpcpp::run_kernel_reduction(
+    gko::kernels::sycl::run_kernel_reduction(
         exec,
         [] GKO_KERNEL(auto i, auto a, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
@@ -345,7 +345,7 @@ TEST_F(KernelLaunch, Reduction2D)
 {
     gko::array<int64> output{exec, 1};
 
-    gko::kernels::dpcpp::run_kernel_reduction(
+    gko::kernels::sycl::run_kernel_reduction(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto a, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
@@ -369,7 +369,7 @@ TEST_F(KernelLaunch, Reduction2D)
     // 4 * sum i=0...999 sum j=0...99 of (i+1)*(j+1)
     EXPECT_EQ(exec->copy_val_to_host(output.get_const_data()), 10110100000LL);
 
-    gko::kernels::dpcpp::run_kernel_reduction(
+    gko::kernels::sycl::run_kernel_reduction(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto a, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
@@ -411,7 +411,7 @@ TEST_F(KernelLaunch, ReductionRow2D)
                     static_cast<int64>(num_cols) * (num_cols + 1) * (i + 1);
             }
 
-            gko::kernels::dpcpp::run_kernel_row_reduction(
+            gko::kernels::sycl::run_kernel_row_reduction(
                 exec,
                 [] GKO_KERNEL(auto i, auto j, auto a, auto dummy) {
                     static_assert(is_same<decltype(i), int64>::value, "index");
@@ -451,7 +451,7 @@ TEST_F(KernelLaunch, ReductionCol2D)
                     static_cast<int64>(num_rows) * (num_rows + 1) * (i + 1);
             }
 
-            gko::kernels::dpcpp::run_kernel_col_reduction(
+            gko::kernels::sycl::run_kernel_col_reduction(
                 exec,
                 [] GKO_KERNEL(auto i, auto j, auto a, auto dummy) {
                     static_assert(is_same<decltype(i), int64>::value, "index");

@@ -57,7 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     __VA_ARGS__;                                                             \
     }                                                                        \
     }                                                                        \
-    namespace dpcpp {                                                        \
+    namespace sycl {                                                        \
     namespace _kernel_namespace {                                            \
     __VA_ARGS__;                                                             \
     }                                                                        \

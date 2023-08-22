@@ -60,7 +60,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 /**
  * @brief The parallel ILUT factorization namespace.
  *
@@ -92,7 +92,7 @@ void sweep(const IndexType* __restrict__ a_row_ptrs,
            const IndexType* __restrict__ ut_col_ptrs,
            const IndexType* __restrict__ ut_row_idxs,
            ValueType* __restrict__ ut_vals, IndexType u_nnz,
-           sycl::nd_item<3> item_ct1)
+           ::sycl::nd_item<3> item_ct1)
 {
     auto tidx = thread::get_subwarp_id_flat<subgroup_size, IndexType>(item_ct1);
     if (tidx >= l_nnz + u_nnz) {
@@ -146,7 +146,7 @@ void sweep(const IndexType* __restrict__ a_row_ptrs,
             return true;
         });
     // accumulate result from all threads
-    sum = ::gko::kernels::dpcpp::reduce(
+    sum = ::gko::kernels::sycl::reduce(
         subwarp, sum, [](ValueType a, ValueType b) { return a + b; });
 
     if (subwarp.thread_rank() == 0) {
@@ -167,7 +167,7 @@ void sweep(const IndexType* __restrict__ a_row_ptrs,
 
 template <int subgroup_size, typename ValueType, typename IndexType>
 void sweep(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-           sycl::queue* queue, const IndexType* a_row_ptrs,
+           ::sycl::queue* queue, const IndexType* a_row_ptrs,
            const IndexType* a_col_idxs, const ValueType* a_vals,
            const IndexType* l_row_ptrs, const IndexType* l_row_idxs,
            const IndexType* l_col_idxs, ValueType* l_vals, IndexType l_nnz,
@@ -176,7 +176,7 @@ void sweep(dim3 grid, dim3 block, size_type dynamic_shared_memory,
            const IndexType* ut_row_idxs, ValueType* ut_vals, IndexType u_nnz)
 {
     queue->parallel_for(sycl_nd_range(grid, block),
-                        [=](sycl::nd_item<3> item_ct1)
+                        [=](::sycl::nd_item<3> item_ct1)
                             [[sycl::reqd_sub_group_size(subgroup_size)]] {
                                 sweep<subgroup_size>(
                                     a_row_ptrs, a_col_idxs, a_vals, l_row_ptrs,
@@ -253,6 +253,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace par_ilut_factorization
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

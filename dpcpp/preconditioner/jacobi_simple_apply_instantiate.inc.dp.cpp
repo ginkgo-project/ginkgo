@@ -53,7 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 /**
  * @brief The Jacobi preconditioner namespace.
  * @ref Jacobi
@@ -72,7 +72,7 @@ void apply(
     preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
     const IndexType* __restrict__ block_ptrs, size_type num_blocks,
     const ValueType* __restrict__ b, int32 b_stride, ValueType* __restrict__ x,
-    int32 x_stride, sycl::nd_item<3> item_ct1)
+    int32 x_stride, ::sycl::nd_item<3> item_ct1)
 {
     const auto block_id =
         thread::get_subwarp_id<subwarp_size, warps_per_block>(item_ct1);
@@ -98,15 +98,15 @@ void apply(
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
 void apply(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
-    const ValueType* blocks,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory,
+    ::sycl::queue* queue, const ValueType* blocks,
     preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
     const IndexType* block_ptrs, size_type num_blocks, const ValueType* b,
     int32 b_stride, ValueType* x, int32 x_stride)
 {
     queue->parallel_for(
         sycl_nd_range(grid, block),
-        [=](sycl::nd_item<3> item_ct1)
+        [=](::sycl::nd_item<3> item_ct1)
             [[sycl::reqd_sub_group_size(subwarp_size)]] {
                 apply<max_block_size, subwarp_size, warps_per_block>(
                     blocks, storage_scheme, block_ptrs, num_blocks, b, b_stride,
@@ -123,7 +123,7 @@ void adaptive_apply(
     const precision_reduction* __restrict__ block_precisions,
     const IndexType* __restrict__ block_ptrs, size_type num_blocks,
     const ValueType* __restrict__ b, int32 b_stride, ValueType* __restrict__ x,
-    int32 x_stride, sycl::nd_item<3> item_ct1)
+    int32 x_stride, ::sycl::nd_item<3> item_ct1)
 {
     const auto block_id =
         thread::get_subwarp_id<subwarp_size, warps_per_block>(item_ct1);
@@ -153,8 +153,8 @@ void adaptive_apply(
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
 void adaptive_apply(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
-    const ValueType* blocks,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory,
+    ::sycl::queue* queue, const ValueType* blocks,
     preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
     const precision_reduction* block_precisions, const IndexType* block_ptrs,
     size_type num_blocks, const ValueType* b, int32 b_stride, ValueType* x,
@@ -162,7 +162,7 @@ void adaptive_apply(
 {
     queue->parallel_for(
         sycl_nd_range(grid, block),
-        [=](sycl::nd_item<3> item_ct1)
+        [=](::sycl::nd_item<3> item_ct1)
             [[sycl::reqd_sub_group_size(subwarp_size)]] {
                 adaptive_apply<max_block_size, subwarp_size, warps_per_block>(
                     blocks, storage_scheme, block_precisions, block_ptrs,
@@ -227,6 +227,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace jacobi
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

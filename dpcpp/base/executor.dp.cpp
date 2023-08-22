@@ -53,12 +53,12 @@ namespace detail {
 
 const std::vector<sycl::device> get_devices(std::string device_type)
 {
-    std::map<std::string, sycl::info::device_type> device_type_map{
-        {"accelerator", sycl::info::device_type::accelerator},
-        {"all", sycl::info::device_type::all},
-        {"cpu", sycl::info::device_type::cpu},
-        {"host", sycl::info::device_type::host},
-        {"gpu", sycl::info::device_type::gpu}};
+    std::map<std::string, ::sycl::info::device_type> device_type_map{
+        {"accelerator", ::sycl::info::device_type::accelerator},
+        {"all", ::sycl::info::device_type::all},
+        {"cpu", ::sycl::info::device_type::cpu},
+        {"host", ::sycl::info::device_type::host},
+        {"gpu", ::sycl::info::device_type::gpu}};
     std::for_each(device_type.begin(), device_type.end(),
                   [](char& c) { c = std::tolower(c); });
     return sycl::device::get_devices(device_type_map.at(device_type));
@@ -68,7 +68,7 @@ const std::vector<sycl::device> get_devices(std::string device_type)
 }  // namespace detail
 
 
-void OmpExecutor::raw_copy_to(const DpcppExecutor* dest, size_type num_bytes,
+void OmpExecutor::raw_copy_to(const SyclExecutor* dest, size_type num_bytes,
                               const void* src_ptr, void* dest_ptr) const
 {
     if (num_bytes > 0) {
@@ -77,7 +77,7 @@ void OmpExecutor::raw_copy_to(const DpcppExecutor* dest, size_type num_bytes,
 }
 
 
-bool OmpExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
+bool OmpExecutor::verify_memory_to(const SyclExecutor* dest_exec) const
 {
     auto device = detail::get_devices(
         dest_exec->get_device_type())[dest_exec->get_device_id()];
@@ -85,23 +85,23 @@ bool OmpExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
 }
 
 
-std::shared_ptr<DpcppExecutor> DpcppExecutor::create(
+std::shared_ptr<SyclExecutor> SyclExecutor::create(
     int device_id, std::shared_ptr<Executor> master, std::string device_type,
-    dpcpp_queue_property property)
+    sycl_queue_property property)
 {
-    return std::shared_ptr<DpcppExecutor>(
-        new DpcppExecutor(device_id, std::move(master), device_type, property));
+    return std::shared_ptr<SyclExecutor>(
+        new SyclExecutor(device_id, std::move(master), device_type, property));
 }
 
 
-void DpcppExecutor::populate_exec_info(const machine_topology* mach_topo)
+void SyclExecutor::populate_exec_info(const machine_topology* mach_topo)
 {
     // Closest CPUs, NUMA node can be updated when there is a way to identify
     // the device itself, which is currently not available with DPC++.
 }
 
 
-void DpcppExecutor::raw_free(void* ptr) const noexcept
+void SyclExecutor::raw_free(void* ptr) const noexcept
 {
     // the free function may synchronize execution or not, which depends on
     // implementation or backend, so it is not guaranteed.
@@ -112,7 +112,7 @@ void DpcppExecutor::raw_free(void* ptr) const noexcept
     } catch (sycl::exception& err) {
 #if GKO_VERBOSE_LEVEL >= 1
         // Unfortunately, if memory free fails, there's not much we can do
-        std::cerr << "Unrecoverable Dpcpp error on device "
+        std::cerr << "Unrecoverable Sycl error on device "
                   << this->get_device_id() << " in " << __func__ << ": "
                   << err.what() << std::endl
                   << "Exiting program" << std::endl;
@@ -120,7 +120,7 @@ void DpcppExecutor::raw_free(void* ptr) const noexcept
         // OpenCL error code use 0 for CL_SUCCESS and negative number for others
         // error. if the error is not from OpenCL, it will return CL_SUCCESS.
         int err_code = err.get_cl_code();
-        // if return CL_SUCCESS, exit 1 as DPCPP error.
+        // if return CL_SUCCESS, exit 1 as SYCL error.
         if (err_code == 0) {
             err_code = 1;
         }
@@ -129,7 +129,7 @@ void DpcppExecutor::raw_free(void* ptr) const noexcept
 }
 
 
-void* DpcppExecutor::raw_alloc(size_type num_bytes) const
+void* SyclExecutor::raw_alloc(size_type num_bytes) const
 {
     void* dev_ptr = sycl::malloc_device(num_bytes, *queue_.get());
     GKO_ENSURE_ALLOCATED(dev_ptr, "DPC++", num_bytes);
@@ -137,8 +137,8 @@ void* DpcppExecutor::raw_alloc(size_type num_bytes) const
 }
 
 
-void DpcppExecutor::raw_copy_to(const OmpExecutor*, size_type num_bytes,
-                                const void* src_ptr, void* dest_ptr) const
+void SyclExecutor::raw_copy_to(const OmpExecutor*, size_type num_bytes,
+                               const void* src_ptr, void* dest_ptr) const
 {
     if (num_bytes > 0) {
         queue_->memcpy(dest_ptr, src_ptr, num_bytes).wait();
@@ -146,8 +146,8 @@ void DpcppExecutor::raw_copy_to(const OmpExecutor*, size_type num_bytes,
 }
 
 
-void DpcppExecutor::raw_copy_to(const CudaExecutor* dest, size_type num_bytes,
-                                const void* src_ptr, void* dest_ptr) const
+void SyclExecutor::raw_copy_to(const CudaExecutor* dest, size_type num_bytes,
+                               const void* src_ptr, void* dest_ptr) const
 {
     // TODO: later when possible, if we have DPC++ with a CUDA backend
     // support/compiler, we could maybe support native copies?
@@ -155,15 +155,15 @@ void DpcppExecutor::raw_copy_to(const CudaExecutor* dest, size_type num_bytes,
 }
 
 
-void DpcppExecutor::raw_copy_to(const HipExecutor* dest, size_type num_bytes,
-                                const void* src_ptr, void* dest_ptr) const
+void SyclExecutor::raw_copy_to(const HipExecutor* dest, size_type num_bytes,
+                               const void* src_ptr, void* dest_ptr) const
 {
     GKO_NOT_SUPPORTED(dest);
 }
 
 
-void DpcppExecutor::raw_copy_to(const DpcppExecutor* dest, size_type num_bytes,
-                                const void* src_ptr, void* dest_ptr) const
+void SyclExecutor::raw_copy_to(const SyclExecutor* dest, size_type num_bytes,
+                               const void* src_ptr, void* dest_ptr) const
 {
     if (num_bytes > 0) {
         // If the queue is different and is not cpu/host, the queue can not
@@ -185,28 +185,28 @@ void DpcppExecutor::raw_copy_to(const DpcppExecutor* dest, size_type num_bytes,
 }
 
 
-void DpcppExecutor::synchronize() const { queue_->wait_and_throw(); }
+void SyclExecutor::synchronize() const { queue_->wait_and_throw(); }
 
-scoped_device_id_guard DpcppExecutor::get_scoped_device_id_guard() const
+scoped_device_id_guard SyclExecutor::get_scoped_device_id_guard() const
 {
     return {this, this->get_device_id()};
 }
 
 
-int DpcppExecutor::get_num_devices(std::string device_type)
+int SyclExecutor::get_num_devices(std::string device_type)
 {
     return detail::get_devices(device_type).size();
 }
 
 
-bool DpcppExecutor::verify_memory_to(const OmpExecutor* dest_exec) const
+bool SyclExecutor::verify_memory_to(const OmpExecutor* dest_exec) const
 {
     auto device = detail::get_devices(
         get_exec_info().device_type)[get_exec_info().device_id];
     return device.is_host() || device.is_cpu();
 }
 
-bool DpcppExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
+bool SyclExecutor::verify_memory_to(const SyclExecutor* dest_exec) const
 {
     // If the queue is different and is not cpu/host, the queue can not access
     // the data from another queue (on the same device)
@@ -224,19 +224,19 @@ bool DpcppExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
 namespace detail {
 
 
-void delete_queue(sycl::queue* queue)
+void delete_queue(::sycl::queue* queue)
 {
     queue->wait();
     delete queue;
 }
 
 
-sycl::property_list get_property_list(dpcpp_queue_property property)
+sycl::property_list get_property_list(sycl_queue_property property)
 {
-    if (property == dpcpp_queue_property::in_order) {
+    if (property == sycl_queue_property::in_order) {
         return {sycl::property::queue::in_order{}};
-    } else if (property == (dpcpp_queue_property::in_order |
-                            dpcpp_queue_property::enable_profiling)) {
+    } else if (property == (sycl_queue_property::in_order |
+                            sycl_queue_property::enable_profiling)) {
         return {sycl::property::queue::in_order{},
                 sycl::property::queue::enable_profiling{}};
     } else {
@@ -248,16 +248,16 @@ sycl::property_list get_property_list(dpcpp_queue_property property)
 }  // namespace detail
 
 
-void DpcppExecutor::set_device_property(dpcpp_queue_property property)
+void SyclExecutor::set_device_property(sycl_queue_property property)
 {
     assert(this->get_exec_info().device_id <
-           DpcppExecutor::get_num_devices(this->get_exec_info().device_type));
+           SyclExecutor::get_num_devices(this->get_exec_info().device_type));
     auto device = detail::get_devices(
         this->get_exec_info().device_type)[this->get_exec_info().device_id];
     if (!device.is_host()) {
         try {
             auto subgroup_sizes =
-                device.get_info<sycl::info::device::sub_group_sizes>();
+                device.get_info<::sycl::info::device::sub_group_sizes>();
             for (auto& i : subgroup_sizes) {
                 this->get_exec_info().subgroup_sizes.push_back(i);
             }
@@ -266,26 +266,26 @@ void DpcppExecutor::set_device_property(dpcpp_queue_property property)
         }
     }
     this->get_exec_info().num_computing_units = static_cast<int>(
-        device.get_info<sycl::info::device::max_compute_units>());
+        device.get_info<::sycl::info::device::max_compute_units>());
     const auto subgroup_sizes = this->get_exec_info().subgroup_sizes;
     if (subgroup_sizes.size()) {
         this->get_exec_info().max_subgroup_size = static_cast<int>(
             *std::max_element(subgroup_sizes.begin(), subgroup_sizes.end()));
     }
     this->get_exec_info().max_workgroup_size = static_cast<int>(
-        device.get_info<sycl::info::device::max_work_group_size>());
+        device.get_info<::sycl::info::device::max_work_group_size>());
 // They change the max_work_item_size with template parameter Dimension after
 // major version 6 and adding the default = 3 is not in the same release.
-#if GINKGO_DPCPP_MAJOR_VERSION >= 6
+#if GINKGO_SYCL_MAJOR_VERSION >= 6
     auto max_workitem_sizes =
-        device.get_info<sycl::info::device::max_work_item_sizes<3>>();
+        device.get_info<::sycl::info::device::max_work_item_sizes<3>>();
 #else
     auto max_workitem_sizes =
-        device.get_info<sycl::info::device::max_work_item_sizes>();
+        device.get_info<::sycl::info::device::max_work_item_sizes>();
 #endif
-    // Get the max dimension of a sycl::id object
+    // Get the max dimension of a ::sycl::id object
     auto max_work_item_dimensions =
-        device.get_info<sycl::info::device::max_work_item_dimensions>();
+        device.get_info<::sycl::info::device::max_work_item_dimensions>();
     for (uint32 i = 0; i < max_work_item_dimensions; i++) {
         this->get_exec_info().max_workitem_sizes.push_back(
             max_workitem_sizes[i]);
@@ -293,12 +293,12 @@ void DpcppExecutor::set_device_property(dpcpp_queue_property property)
 
     // Get the hardware threads per eu
     if (device.has(sycl::aspect::ext_intel_gpu_hw_threads_per_eu)) {
-#if GINKGO_DPCPP_MAJOR_VERSION >= 6
+#if GINKGO_SYCL_MAJOR_VERSION >= 6
         this->get_exec_info().num_pu_per_cu = device.get_info<
-            sycl::ext::intel::info::device::gpu_hw_threads_per_eu>();
+            ::sycl::ext::intel::info::device::gpu_hw_threads_per_eu>();
 #else
         this->get_exec_info().num_pu_per_cu = device.get_info<
-            sycl::info::device::ext_intel_gpu_hw_threads_per_eu>();
+            ::sycl::info::device::ext_intel_gpu_hw_threads_per_eu>();
 #endif
     } else {
         // To make the usage still valid.
@@ -311,18 +311,20 @@ void DpcppExecutor::set_device_property(dpcpp_queue_property property)
     // `wait()` would be needed after every call to a DPC++ function or kernel.
     // For example, without `in_order`, doing a copy, a kernel, and a copy, will
     // not necessarily happen in that order by default, which we need to avoid.
-    auto* queue = new sycl::queue{device, detail::get_property_list(property)};
-    queue_ = std::move(queue_manager<sycl::queue>{queue, detail::delete_queue});
+    auto* queue =
+        new ::sycl::queue{device, detail::get_property_list(property)};
+    queue_ =
+        std::move(queue_manager<::sycl::queue>{queue, detail::delete_queue});
 }
 
 
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 
 
-void destroy_event(sycl::event* event) { delete event; }
+void destroy_event(::sycl::event* event) { delete event; }
 
 
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

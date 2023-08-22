@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 /**
  * @brief The parallel ilu factorization namespace.
  *
@@ -71,7 +71,7 @@ void compute_l_u_factors(size_type num_elements,
                          const IndexType* __restrict__ u_row_ptrs,
                          const IndexType* __restrict__ u_col_idxs,
                          ValueType* __restrict__ u_values,
-                         sycl::nd_item<3> item_ct1)
+                         ::sycl::nd_item<3> item_ct1)
 {
     const auto elem_id = thread::get_thread_id_flat<IndexType>(item_ct1);
     if (elem_id < num_elements) {
@@ -112,7 +112,7 @@ void compute_l_u_factors(size_type num_elements,
 
 template <typename ValueType, typename IndexType>
 void compute_l_u_factors(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                         sycl::queue* queue, size_type num_elements,
+                         ::sycl::queue* queue, size_type num_elements,
                          const IndexType* row_idxs, const IndexType* col_idxs,
                          const ValueType* values, const IndexType* l_row_ptrs,
                          const IndexType* l_col_idxs, ValueType* l_values,
@@ -120,7 +120,7 @@ void compute_l_u_factors(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                          const IndexType* u_col_idxs, ValueType* u_values)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+        sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
             compute_l_u_factors(num_elements, row_idxs, col_idxs, values,
                                 l_row_ptrs, l_col_idxs, l_values, u_row_ptrs,
                                 u_col_idxs, u_values, item_ct1);
@@ -132,7 +132,7 @@ void compute_l_u_factors(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
 
 template <typename ValueType, typename IndexType>
-void compute_l_u_factors(std::shared_ptr<const DpcppExecutor> exec,
+void compute_l_u_factors(std::shared_ptr<const SyclExecutor> exec,
                          size_type iterations,
                          const matrix::Coo<ValueType, IndexType>* system_matrix,
                          matrix::Csr<ValueType, IndexType>* l_factor,
@@ -162,6 +162,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace par_ilu_factorization
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

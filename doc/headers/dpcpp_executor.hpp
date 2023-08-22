@@ -31,9 +31,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 /**
- * @defgroup exec_dpcpp DPC++ Executor
+ * @defgroup exec_sycl SYCL Executor
  *
- * @brief A module dedicated to the implementation and usage of the DPC++
+ * @brief A module dedicated to the implementation and usage of the SYCL
  * executor in Ginkgo.
  *
  * @ingroup Executor

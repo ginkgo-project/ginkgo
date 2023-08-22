@@ -44,7 +44,7 @@ namespace detail {
 /**
  * An implementation of generic_scoped_device_id_guard that does nothing.
  *
- * This is used for OmpExecutor and DpcppExecutor, since they don't require
+ * This is used for OmpExecutor and SyclExecutor, since they don't require
  * setting a device id.
  */
 class noop_scoped_device_id_guard : public generic_scoped_device_id_guard {};

@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 namespace csr {
 
 
@@ -68,7 +68,7 @@ __dpct_inline__ void extract_transposed_diag_blocks(
     const ValueType* __restrict__ values,
     const IndexType* __restrict__ block_ptrs, size_type num_blocks,
     ValueType* __restrict__ block_row, int increment,
-    ValueType* __restrict__ workspace, sycl::nd_item<3> item_ct1)
+    ValueType* __restrict__ workspace, ::sycl::nd_item<3> item_ct1)
 {
     const int tid =
         item_ct1.get_local_id(1) * item_ct1.get_local_range().get(2) +
@@ -120,7 +120,7 @@ __dpct_inline__ void extract_transposed_diag_blocks(
 
 
 }  // namespace csr
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko
 

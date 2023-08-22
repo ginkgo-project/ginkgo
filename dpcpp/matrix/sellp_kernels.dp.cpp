@@ -54,7 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 /**
  * @brief The SELL-P matrix format namespace.
  *
@@ -76,7 +76,7 @@ void spmv_kernel(size_type num_rows, size_type num_right_hand_sides,
                  const ValueType* __restrict__ a,
                  const IndexType* __restrict__ cols,
                  const ValueType* __restrict__ b, ValueType* __restrict__ c,
-                 sycl::nd_item<3> item_ct1)
+                 ::sycl::nd_item<3> item_ct1)
 {
     const auto row = thread::get_thread_id_flat(item_ct1);
     const auto slice_id = row / slice_size;
@@ -99,16 +99,14 @@ GKO_ENABLE_DEFAULT_HOST(spmv_kernel, spmv_kernel);
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spmv_kernel(size_type num_rows, size_type num_right_hand_sides,
-                          size_type b_stride, size_type c_stride,
-                          size_type slice_size,
-                          const size_type* __restrict__ slice_sets,
-                          const ValueType* __restrict__ alpha,
-                          const ValueType* __restrict__ a,
-                          const IndexType* __restrict__ cols,
-                          const ValueType* __restrict__ b,
-                          const ValueType* __restrict__ beta,
-                          ValueType* __restrict__ c, sycl::nd_item<3> item_ct1)
+void advanced_spmv_kernel(
+    size_type num_rows, size_type num_right_hand_sides, size_type b_stride,
+    size_type c_stride, size_type slice_size,
+    const size_type* __restrict__ slice_sets,
+    const ValueType* __restrict__ alpha, const ValueType* __restrict__ a,
+    const IndexType* __restrict__ cols, const ValueType* __restrict__ b,
+    const ValueType* __restrict__ beta, ValueType* __restrict__ c,
+    ::sycl::nd_item<3> item_ct1)
 {
     const auto row = thread::get_thread_id_flat(item_ct1);
     const auto slice_id = row / slice_size;
@@ -135,7 +133,7 @@ GKO_ENABLE_DEFAULT_HOST(advanced_spmv_kernel, advanced_spmv_kernel);
 
 
 template <typename ValueType, typename IndexType>
-void spmv(std::shared_ptr<const DpcppExecutor> exec,
+void spmv(std::shared_ptr<const SyclExecutor> exec,
           const matrix::Sellp<ValueType, IndexType>* a,
           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
@@ -154,7 +152,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SELLP_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
+void advanced_spmv(std::shared_ptr<const SyclExecutor> exec,
                    const matrix::Dense<ValueType>* alpha,
                    const matrix::Sellp<ValueType, IndexType>* a,
                    const matrix::Dense<ValueType>* b,
@@ -178,6 +176,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace sellp
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

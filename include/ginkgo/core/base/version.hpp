@@ -154,7 +154,7 @@ inline std::ostream& operator<<(std::ostream& os, const version& ver)
  *     earlier version may have this implemented or fixed in a later version).
  *
  * This structure provides versions of different parts of Ginkgo: the headers,
- * the core and the kernel modules (reference, OpenMP, CUDA, HIP, DPCPP).
+ * the core and the kernel modules (reference, OpenMP, CUDA, HIP, SYCL).
  * To obtain an instance of version_info filled with information about the
  * current version of Ginkgo, call the version_info::get() static method.
  */
@@ -213,11 +213,19 @@ public:
     version hip_version;
 
     /**
-     * Contains version information of the DPC++ module.
+     * Contains version information of the SYCL module.
      *
-     * This is the version of the static/shared library called "ginkgo_dpcpp".
+     * It's deprecated, please use sycl_version instead.
      */
-    version dpcpp_version;
+    [[deprecated("using sycl_version")]] version dpcpp_version;
+
+
+    /**
+     * Contains version information of the SYCL module.
+     *
+     * This is the version of the static/shared library called "ginkgo_sycl".
+     */
+    version sycl_version;
 
 private:
     static constexpr version get_header_version() noexcept
@@ -236,7 +244,7 @@ private:
 
     static version get_hip_version() noexcept;
 
-    static version get_dpcpp_version() noexcept;
+    static version get_sycl_version() noexcept;
 
     version_info()
         : header_version{get_header_version()},
@@ -245,7 +253,8 @@ private:
           omp_version{get_omp_version()},
           cuda_version{get_cuda_version()},
           hip_version{get_hip_version()},
-          dpcpp_version{get_dpcpp_version()}
+          dpcpp_version{get_sycl_version()},
+          sycl_version{get_sycl_version()}
     {}
 };
 

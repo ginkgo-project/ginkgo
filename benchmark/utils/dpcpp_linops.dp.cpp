@@ -65,9 +65,9 @@ public:
         return this->mat_handle_.get();
     }
 
-    std::shared_ptr<const gko::DpcppExecutor> get_device_exec() const
+    std::shared_ptr<const gko::SyclExecutor> get_device_exec() const
     {
-        return std::dynamic_pointer_cast<const gko::DpcppExecutor>(
+        return std::dynamic_pointer_cast<const gko::SyclExecutor>(
             this->get_executor());
     }
 

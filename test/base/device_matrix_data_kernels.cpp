@@ -325,7 +325,7 @@ TYPED_TEST(DeviceMatrixData, DoesntRemoveZerosIfThereAreNone)
 }
 
 
-#ifndef GKO_COMPILING_DPCPP
+#ifndef GKO_COMPILING_SYCL
 
 
 TYPED_TEST(DeviceMatrixData, SumsDuplicates)

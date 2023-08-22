@@ -45,29 +45,29 @@ namespace {
 
 class Fbcsr : public ::testing::Test {
 protected:
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_SYCL_SINGLE_MODE
     using vtype = float;
 #else
     using vtype = double;
-#endif  // GINKGO_DPCPP_SINGLE_MODE
+#endif  // GINKGO_SYCL_SINGLE_MODE
     using Mtx = gko::matrix::Fbcsr<vtype>;
 
     void SetUp()
     {
-        ASSERT_GT(gko::DpcppExecutor::get_num_devices("all"), 0);
+        ASSERT_GT(gko::SyclExecutor::get_num_devices("all"), 0);
         ref = gko::ReferenceExecutor::create();
-        dpcpp = gko::DpcppExecutor::create(0, ref);
+        sycl = gko::SyclExecutor::create(0, ref);
     }
 
     void TearDown()
     {
-        if (dpcpp != nullptr) {
-            ASSERT_NO_THROW(dpcpp->synchronize());
+        if (sycl != nullptr) {
+            ASSERT_NO_THROW(sycl->synchronize());
         }
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::DpcppExecutor> dpcpp;
+    std::shared_ptr<const gko::SyclExecutor> sycl;
 
     std::unique_ptr<Mtx> mtx;
 };
@@ -80,14 +80,14 @@ TEST_F(Fbcsr, CanWriteFromMatrixOnDevice)
     using MatData = gko::matrix_data<value_type, index_type>;
     gko::testing::FbcsrSample<value_type, index_type> sample(ref);
     auto refmat = sample.generate_fbcsr();
-    auto dpcppmat = gko::clone(dpcpp, refmat);
+    auto syclmat = gko::clone(sycl, refmat);
     MatData refdata;
-    MatData dpcppdata;
+    MatData sycldata;
 
     refmat->write(refdata);
-    dpcppmat->write(dpcppdata);
+    syclmat->write(sycldata);
 
-    ASSERT_TRUE(refdata.nonzeros == dpcppdata.nonzeros);
+    ASSERT_TRUE(refdata.nonzeros == sycldata.nonzeros);
 }
 
 

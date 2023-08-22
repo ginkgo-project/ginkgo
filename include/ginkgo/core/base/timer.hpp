@@ -65,7 +65,7 @@ private:
     friend class CpuTimer;
     friend class CudaTimer;
     friend class HipTimer;
-    friend class DpcppTimer;
+    friend class SyclTimer;
 
     /** What kind of timer was used to generate the time point? */
     enum class type {
@@ -76,14 +76,14 @@ private:
         /** hipEvent-based timer */
         hip,
         /** sycl::event-based timer */
-        dpcpp,
+        sycl,
     };
 
     type type_;
     union data_union {
         CUevent_st* cuda_event;
         GKO_HIP_EVENT_STRUCT* hip_event;
-        sycl::event* dpcpp_event;
+        sycl::event* sycl_event;
         std::chrono::steady_clock::time_point chrono;
 
         data_union();
@@ -159,8 +159,8 @@ public:
      * @param exec  the executor to create a Timer for
      *
      * @return CpuTimer for ReferenceExecutor and OmpExecutor, CudaTimer for
-     *         CudaExecutor, HipTimer for HipExecutor or DpcppTimer for
-     *         DpcppExecutor.
+     *         CudaExecutor, HipTimer for HipExecutor or SyclTimer for
+     *         SyclExecutor.
      */
     static std::unique_ptr<Timer> create_for_executor(
         std::shared_ptr<const Executor> exec);
@@ -226,8 +226,8 @@ private:
 };
 
 
-/** A timer using kernels for timing on a DpcppExecutor in profiling mode. */
-class DpcppTimer : public Timer {
+/** A timer using kernels for timing on a SyclExecutor in profiling mode. */
+class SyclTimer : public Timer {
 public:
     void record(time_point& time) override;
 
@@ -236,14 +236,17 @@ public:
     std::chrono::nanoseconds difference_async(const time_point& start,
                                               const time_point& stop) override;
 
-    DpcppTimer(std::shared_ptr<const DpcppExecutor> exec);
+    SyclTimer(std::shared_ptr<const SyclExecutor> exec);
 
 protected:
     void init_time_point(time_point& time) override;
 
 private:
-    std::shared_ptr<const DpcppExecutor> exec_;
+    std::shared_ptr<const SyclExecutor> exec_;
 };
+
+
+using DpcppTimer [[deprecated]] = SyclTimer;
 
 
 }  // namespace gko

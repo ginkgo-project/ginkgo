@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 /**
  * @brief The Residual norm stopping criterion namespace.
  * @ref resnorm
@@ -57,7 +57,7 @@ namespace residual_norm {
 
 
 template <typename ValueType>
-void residual_norm(std::shared_ptr<const DpcppExecutor> exec,
+void residual_norm(std::shared_ptr<const SyclExecutor> exec,
                    const matrix::Dense<ValueType>* tau,
                    const matrix::Dense<ValueType>* orig_tau,
                    ValueType rel_residual_goal, uint8 stoppingId,
@@ -68,8 +68,8 @@ void residual_norm(std::shared_ptr<const DpcppExecutor> exec,
     static_assert(is_complex_s<ValueType>::value == false,
                   "ValueType must not be complex in this function!");
     auto device_storage_val = device_storage->get_data();
-    exec->get_queue()->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl::range<1>{1}, [=](sycl::id<1>) {
+    exec->get_queue()->submit([&](::sycl::handler& cgh) {
+        cgh.parallel_for(::sycl::range<1>{1}, [=](::sycl::id<1>) {
             device_storage_val[0] = true;
             device_storage_val[1] = false;
         });
@@ -78,9 +78,9 @@ void residual_norm(std::shared_ptr<const DpcppExecutor> exec,
     auto orig_tau_val = orig_tau->get_const_values();
     auto tau_val = tau->get_const_values();
     auto stop_status_val = stop_status->get_data();
-    exec->get_queue()->submit([&](sycl::handler& cgh) {
+    exec->get_queue()->submit([&](::sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl::range<1>{tau->get_size()[1]}, [=](sycl::id<1> idx_id) {
+            ::sycl::range<1>{tau->get_size()[1]}, [=](::sycl::id<1> idx_id) {
                 const auto tidx = idx_id[0];
                 if (tau_val[tidx] < rel_residual_goal * orig_tau_val[tidx]) {
                     stop_status_val[tidx].converge(stoppingId, setFinalized);
@@ -116,7 +116,7 @@ namespace implicit_residual_norm {
 
 template <typename ValueType>
 void implicit_residual_norm(
-    std::shared_ptr<const DpcppExecutor> exec,
+    std::shared_ptr<const SyclExecutor> exec,
     const matrix::Dense<ValueType>* tau,
     const matrix::Dense<remove_complex<ValueType>>* orig_tau,
     remove_complex<ValueType> rel_residual_goal, uint8 stoppingId,
@@ -124,8 +124,8 @@ void implicit_residual_norm(
     array<bool>* device_storage, bool* all_converged, bool* one_changed)
 {
     auto device_storage_val = device_storage->get_data();
-    exec->get_queue()->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl::range<1>{1}, [=](sycl::id<1>) {
+    exec->get_queue()->submit([&](::sycl::handler& cgh) {
+        cgh.parallel_for(::sycl::range<1>{1}, [=](::sycl::id<1>) {
             device_storage_val[0] = true;
             device_storage_val[1] = false;
         });
@@ -134,9 +134,9 @@ void implicit_residual_norm(
     auto orig_tau_val = orig_tau->get_const_values();
     auto tau_val = tau->get_const_values();
     auto stop_status_val = stop_status->get_data();
-    exec->get_queue()->submit([&](sycl::handler& cgh) {
+    exec->get_queue()->submit([&](::sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl::range<1>{tau->get_size()[1]}, [=](sycl::id<1> idx_id) {
+            ::sycl::range<1>{tau->get_size()[1]}, [=](::sycl::id<1> idx_id) {
                 const auto tidx = idx_id[0];
                 if (std::sqrt(std::abs(tau_val[tidx])) <
                     rel_residual_goal * orig_tau_val[tidx]) {
@@ -160,6 +160,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL);
 
 
 }  // namespace implicit_residual_norm
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

@@ -45,17 +45,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 class Timer : public CommonTestFixture {
-#ifdef GKO_COMPILING_DPCPP
+#ifdef GKO_COMPILING_SYCL
 public:
     Timer()
     {
         // require profiling capability
-        const auto property = dpcpp_queue_property::in_order |
-                              dpcpp_queue_property::enable_profiling;
-        if (gko::DpcppExecutor::get_num_devices("gpu") > 0) {
-            exec = gko::DpcppExecutor::create(0, ref, "gpu", property);
-        } else if (gko::DpcppExecutor::get_num_devices("cpu") > 0) {
-            exec = gko::DpcppExecutor::create(0, ref, "cpu", property);
+        const auto property = gko::sycl_queue_property::in_order |
+                              gko::sycl_queue_property::enable_profiling;
+        if (gko::SyclExecutor::get_num_devices("gpu") > 0) {
+            exec = gko::SyclExecutor::create(0, ref, "gpu", property);
+        } else if (gko::SyclExecutor::get_num_devices("cpu") > 0) {
+            exec = gko::SyclExecutor::create(0, ref, "cpu", property);
         } else {
             throw std::runtime_error{"No suitable DPC++ devices"};
         }

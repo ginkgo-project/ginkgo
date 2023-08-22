@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 /**
  * @brief The parallel ic factorization namespace.
  *
@@ -65,7 +65,7 @@ namespace kernel {
 template <typename ValueType, typename IndexType>
 void ic_init(const IndexType* __restrict__ l_row_ptrs,
              ValueType* __restrict__ l_vals, size_type num_rows,
-             sycl::nd_item<3> item_ct1)
+             ::sycl::nd_item<3> item_ct1)
 {
     auto row = thread::get_thread_id_flat(item_ct1);
     if (row >= num_rows) {
@@ -82,11 +82,11 @@ void ic_init(const IndexType* __restrict__ l_row_ptrs,
 
 template <typename ValueType, typename IndexType>
 void ic_init(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-             sycl::queue* queue, const IndexType* l_row_ptrs, ValueType* l_vals,
-             size_type num_rows)
+             ::sycl::queue* queue, const IndexType* l_row_ptrs,
+             ValueType* l_vals, size_type num_rows)
 {
     queue->parallel_for(sycl_nd_range(grid, block),
-                        [=](sycl::nd_item<3> item_ct1) {
+                        [=](::sycl::nd_item<3> item_ct1) {
                             ic_init(l_row_ptrs, l_vals, num_rows, item_ct1);
                         });
 }
@@ -99,7 +99,7 @@ void ic_sweep(const IndexType* __restrict__ a_row_idxs,
               const IndexType* __restrict__ l_row_ptrs,
               const IndexType* __restrict__ l_col_idxs,
               ValueType* __restrict__ l_vals, IndexType l_nnz,
-              sycl::nd_item<3> item_ct1)
+              ::sycl::nd_item<3> item_ct1)
 {
     const auto l_nz = thread::get_thread_id_flat<IndexType>(item_ct1);
     if (l_nz >= l_nnz) {
@@ -133,13 +133,13 @@ void ic_sweep(const IndexType* __restrict__ a_row_idxs,
 
 template <typename ValueType, typename IndexType>
 void ic_sweep(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-              sycl::queue* queue, const IndexType* a_row_idxs,
+              ::sycl::queue* queue, const IndexType* a_row_idxs,
               const IndexType* a_col_idxs, const ValueType* a_vals,
               const IndexType* l_row_ptrs, const IndexType* l_col_idxs,
               ValueType* l_vals, IndexType l_nnz)
 {
     queue->parallel_for(sycl_nd_range(grid, block),
-                        [=](sycl::nd_item<3> item_ct1) {
+                        [=](::sycl::nd_item<3> item_ct1) {
                             ic_sweep(a_row_idxs, a_col_idxs, a_vals, l_row_ptrs,
                                      l_col_idxs, l_vals, l_nnz, item_ct1);
                         });
@@ -188,6 +188,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace par_ic_factorization
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

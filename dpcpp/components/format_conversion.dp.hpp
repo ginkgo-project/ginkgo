@@ -56,7 +56,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 namespace coo {
 namespace host_kernel {
 
@@ -68,10 +68,10 @@ namespace host_kernel {
  * architecture and the number of stored elements.
  */
 template <size_type subgroup_size = config::warp_size>
-size_type calculate_nwarps(std::shared_ptr<const DpcppExecutor> exec,
+size_type calculate_nwarps(std::shared_ptr<const SyclExecutor> exec,
                            const size_type nnz)
 {
-    size_type nsgs_in_dpcpp = exec->get_num_subgroups();
+    size_type nsgs_in_sycl = exec->get_num_subgroups();
     size_type multiple = 8;
     if (nnz >= 2e8) {
         multiple = 256;
@@ -83,14 +83,14 @@ size_type calculate_nwarps(std::shared_ptr<const DpcppExecutor> exec,
         multiple = _tuned_value;
     }
 #endif  // GINKGO_BENCHMARK_ENABLE_TUNING
-    return std::min(multiple * nsgs_in_dpcpp,
+    return std::min(multiple * nsgs_in_sycl,
                     size_type(ceildiv(nnz, subgroup_size)));
 }
 
 
 }  // namespace host_kernel
 }  // namespace coo
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko
 

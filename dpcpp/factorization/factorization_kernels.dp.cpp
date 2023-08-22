@@ -52,7 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 /**
  * @brief The factorization namespace.
  *
@@ -120,7 +120,7 @@ void find_missing_diagonal_elements(
     const IndexType* __restrict__ col_idxs,
     const IndexType* __restrict__ row_ptrs,
     IndexType* __restrict__ elements_to_add_per_row,
-    bool* __restrict__ changes_required, sycl::nd_item<3> item_ct1)
+    bool* __restrict__ changes_required, ::sycl::nd_item<3> item_ct1)
 {
     const auto total_subwarp_count =
         thread::get_subwarp_num_flat<SubwarpSize, IndexType>(item_ct1);
@@ -167,14 +167,14 @@ void find_missing_diagonal_elements(
 
 template <bool IsSorted, int SubwarpSize, typename IndexType>
 void find_missing_diagonal_elements(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
-    IndexType num_rows, IndexType num_cols, const IndexType* col_idxs,
-    const IndexType* row_ptrs, IndexType* elements_to_add_per_row,
-    bool* changes_required)
+    dim3 grid, dim3 block, size_type dynamic_shared_memory,
+    ::sycl::queue* queue, IndexType num_rows, IndexType num_cols,
+    const IndexType* col_idxs, const IndexType* row_ptrs,
+    IndexType* elements_to_add_per_row, bool* changes_required)
 {
     queue->parallel_for(
         sycl_nd_range(grid, block),
-        [=](sycl::nd_item<3> item_ct1)
+        [=](::sycl::nd_item<3> item_ct1)
             [[sycl::reqd_sub_group_size(SubwarpSize)]] {
                 find_missing_diagonal_elements<IsSorted, SubwarpSize>(
                     num_rows, num_cols, col_idxs, row_ptrs,
@@ -191,7 +191,8 @@ void add_missing_diagonal_elements(
     const IndexType* __restrict__ old_col_idxs,
     const IndexType* __restrict__ old_row_ptrs,
     ValueType* __restrict__ new_values, IndexType* __restrict__ new_col_idxs,
-    const IndexType* __restrict__ row_ptrs_addition, sycl::nd_item<3> item_ct1)
+    const IndexType* __restrict__ row_ptrs_addition,
+    ::sycl::nd_item<3> item_ct1)
 {
     // Precaution in case not enough threads were created
     const auto total_subwarp_count =
@@ -267,14 +268,14 @@ void add_missing_diagonal_elements(
 
 template <int SubwarpSize, typename ValueType, typename IndexType>
 void add_missing_diagonal_elements(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
-    IndexType num_rows, const ValueType* old_values,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory,
+    ::sycl::queue* queue, IndexType num_rows, const ValueType* old_values,
     const IndexType* old_col_idxs, const IndexType* old_row_ptrs,
     ValueType* new_values, IndexType* new_col_idxs,
     const IndexType* row_ptrs_addition)
 {
     queue->parallel_for(sycl_nd_range(grid, block),
-                        [=](sycl::nd_item<3> item_ct1)
+                        [=](::sycl::nd_item<3> item_ct1)
                             [[sycl::reqd_sub_group_size(SubwarpSize)]] {
                                 add_missing_diagonal_elements<SubwarpSize>(
                                     num_rows, old_values, old_col_idxs,
@@ -287,7 +288,7 @@ void add_missing_diagonal_elements(
 template <typename IndexType>
 void update_row_ptrs(IndexType num_rows, IndexType* __restrict__ row_ptrs,
                      IndexType* __restrict__ row_ptr_addition,
-                     sycl::nd_item<3> item_ct1)
+                     ::sycl::nd_item<3> item_ct1)
 {
     const auto total_thread_count =
         thread::get_thread_num_flat<IndexType>(item_ct1);
@@ -300,11 +301,11 @@ void update_row_ptrs(IndexType num_rows, IndexType* __restrict__ row_ptrs,
 
 template <typename IndexType>
 void update_row_ptrs(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                     sycl::queue* queue, IndexType num_rows,
+                     ::sycl::queue* queue, IndexType num_rows,
                      IndexType* row_ptrs, IndexType* row_ptr_addition)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+        sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
             update_row_ptrs(num_rows, row_ptrs, row_ptr_addition, item_ct1);
         });
 }
@@ -317,7 +318,7 @@ void count_nnz_per_l_u_row(size_type num_rows,
                            const ValueType* __restrict__ values,
                            IndexType* __restrict__ l_nnz_row,
                            IndexType* __restrict__ u_nnz_row,
-                           sycl::nd_item<3> item_ct1)
+                           ::sycl::nd_item<3> item_ct1)
 {
     const auto row = thread::get_thread_id_flat<IndexType>(item_ct1);
     if (row < num_rows) {
@@ -337,13 +338,14 @@ void count_nnz_per_l_u_row(size_type num_rows,
 
 template <typename ValueType, typename IndexType>
 void count_nnz_per_l_u_row(dim3 grid, dim3 block,
-                           size_type dynamic_shared_memory, sycl::queue* queue,
-                           size_type num_rows, const IndexType* row_ptrs,
-                           const IndexType* col_idxs, const ValueType* values,
-                           IndexType* l_nnz_row, IndexType* u_nnz_row)
+                           size_type dynamic_shared_memory,
+                           ::sycl::queue* queue, size_type num_rows,
+                           const IndexType* row_ptrs, const IndexType* col_idxs,
+                           const ValueType* values, IndexType* l_nnz_row,
+                           IndexType* u_nnz_row)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+        sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
             count_nnz_per_l_u_row(num_rows, row_ptrs, col_idxs, values,
                                   l_nnz_row, u_nnz_row, item_ct1);
         });
@@ -359,7 +361,8 @@ void initialize_l_u(size_type num_rows, const IndexType* __restrict__ row_ptrs,
                     ValueType* __restrict__ l_values,
                     const IndexType* __restrict__ u_row_ptrs,
                     IndexType* __restrict__ u_col_idxs,
-                    ValueType* __restrict__ u_values, sycl::nd_item<3> item_ct1)
+                    ValueType* __restrict__ u_values,
+                    ::sycl::nd_item<3> item_ct1)
 {
     const auto row = thread::get_thread_id_flat<IndexType>(item_ct1);
     if (row < num_rows) {
@@ -397,7 +400,7 @@ void initialize_l_u(size_type num_rows, const IndexType* __restrict__ row_ptrs,
 
 template <typename ValueType, typename IndexType>
 void initialize_l_u(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                    sycl::queue* queue, size_type num_rows,
+                    ::sycl::queue* queue, size_type num_rows,
                     const IndexType* row_ptrs, const IndexType* col_idxs,
                     const ValueType* values, const IndexType* l_row_ptrs,
                     IndexType* l_col_idxs, ValueType* l_values,
@@ -405,7 +408,7 @@ void initialize_l_u(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                     ValueType* u_values)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+        sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
             initialize_l_u(num_rows, row_ptrs, col_idxs, values, l_row_ptrs,
                            l_col_idxs, l_values, u_row_ptrs, u_col_idxs,
                            u_values, item_ct1);
@@ -419,7 +422,7 @@ void count_nnz_per_l_row(size_type num_rows,
                          const IndexType* __restrict__ col_idxs,
                          const ValueType* __restrict__ values,
                          IndexType* __restrict__ l_nnz_row,
-                         sycl::nd_item<3> item_ct1)
+                         ::sycl::nd_item<3> item_ct1)
 {
     const auto row = thread::get_thread_id_flat<IndexType>(item_ct1);
     if (row < num_rows) {
@@ -436,12 +439,12 @@ void count_nnz_per_l_row(size_type num_rows,
 
 template <typename ValueType, typename IndexType>
 void count_nnz_per_l_row(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                         sycl::queue* queue, size_type num_rows,
+                         ::sycl::queue* queue, size_type num_rows,
                          const IndexType* row_ptrs, const IndexType* col_idxs,
                          const ValueType* values, IndexType* l_nnz_row)
 {
     queue->parallel_for(sycl_nd_range(grid, block),
-                        [=](sycl::nd_item<3> item_ct1) {
+                        [=](::sycl::nd_item<3> item_ct1) {
                             count_nnz_per_l_row(num_rows, row_ptrs, col_idxs,
                                                 values, l_nnz_row, item_ct1);
                         });
@@ -455,7 +458,7 @@ void initialize_l(size_type num_rows, const IndexType* __restrict__ row_ptrs,
                   const IndexType* __restrict__ l_row_ptrs,
                   IndexType* __restrict__ l_col_idxs,
                   ValueType* __restrict__ l_values, bool use_sqrt,
-                  sycl::nd_item<3> item_ct1)
+                  ::sycl::nd_item<3> item_ct1)
 {
     const auto row = thread::get_thread_id_flat<IndexType>(item_ct1);
     if (row < num_rows) {
@@ -491,13 +494,13 @@ void initialize_l(size_type num_rows, const IndexType* __restrict__ row_ptrs,
 
 template <typename ValueType, typename IndexType>
 void initialize_l(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                  sycl::queue* queue, size_type num_rows,
+                  ::sycl::queue* queue, size_type num_rows,
                   const IndexType* row_ptrs, const IndexType* col_idxs,
                   const ValueType* values, const IndexType* l_row_ptrs,
                   IndexType* l_col_idxs, ValueType* l_values, bool use_sqrt)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+        sycl_nd_range(grid, block), [=](::sycl::nd_item<3> item_ct1) {
             initialize_l(num_rows, row_ptrs, col_idxs, values, l_row_ptrs,
                          l_col_idxs, l_values, use_sqrt, item_ct1);
         });
@@ -508,7 +511,7 @@ void initialize_l(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
 
 template <typename ValueType, typename IndexType>
-void add_diagonal_elements(std::shared_ptr<const DpcppExecutor> exec,
+void add_diagonal_elements(std::shared_ptr<const SyclExecutor> exec,
                            matrix::Csr<ValueType, IndexType>* mtx,
                            bool is_sorted)
 {
@@ -526,10 +529,10 @@ void add_diagonal_elements(std::shared_ptr<const DpcppExecutor> exec,
     array<bool> needs_change_device{exec, 1};
     needs_change_device = needs_change_host;
 
-    auto dpcpp_old_values = mtx->get_const_values();
-    auto dpcpp_old_col_idxs = mtx->get_const_col_idxs();
-    auto dpcpp_old_row_ptrs = mtx->get_row_ptrs();
-    auto dpcpp_row_ptrs_add = row_ptrs_addition.get_data();
+    auto sycl_old_values = mtx->get_const_values();
+    auto sycl_old_col_idxs = mtx->get_const_col_idxs();
+    auto sycl_old_row_ptrs = mtx->get_row_ptrs();
+    auto sycl_row_ptrs_add = row_ptrs_addition.get_data();
 
     const dim3 block_dim{default_block_size, 1, 1};
     const dim3 grid_dim{
@@ -538,12 +541,12 @@ void add_diagonal_elements(std::shared_ptr<const DpcppExecutor> exec,
     if (is_sorted) {
         kernel::find_missing_diagonal_elements<true, subwarp_size>(
             grid_dim, block_dim, 0, exec->get_queue(), num_rows, num_cols,
-            dpcpp_old_col_idxs, dpcpp_old_row_ptrs, dpcpp_row_ptrs_add,
+            sycl_old_col_idxs, sycl_old_row_ptrs, sycl_row_ptrs_add,
             needs_change_device.get_data());
     } else {
         kernel::find_missing_diagonal_elements<false, subwarp_size>(
             grid_dim, block_dim, 0, exec->get_queue(), num_rows, num_cols,
-            dpcpp_old_col_idxs, dpcpp_old_row_ptrs, dpcpp_row_ptrs_add,
+            sycl_old_col_idxs, sycl_old_row_ptrs, sycl_row_ptrs_add,
             needs_change_device.get_data());
     }
     needs_change_host = needs_change_device;
@@ -551,30 +554,30 @@ void add_diagonal_elements(std::shared_ptr<const DpcppExecutor> exec,
         return;
     }
 
-    components::prefix_sum_nonnegative(exec, dpcpp_row_ptrs_add, row_ptrs_size);
+    components::prefix_sum_nonnegative(exec, sycl_row_ptrs_add, row_ptrs_size);
     exec->synchronize();
 
     auto total_additions =
-        exec->copy_val_to_host(dpcpp_row_ptrs_add + row_ptrs_size - 1);
+        exec->copy_val_to_host(sycl_row_ptrs_add + row_ptrs_size - 1);
     size_type new_num_elems = static_cast<size_type>(total_additions) +
                               mtx->get_num_stored_elements();
 
 
     array<ValueType> new_values{exec, new_num_elems};
     array<IndexType> new_col_idxs{exec, new_num_elems};
-    auto dpcpp_new_values = new_values.get_data();
-    auto dpcpp_new_col_idxs = new_col_idxs.get_data();
+    auto sycl_new_values = new_values.get_data();
+    auto sycl_new_col_idxs = new_col_idxs.get_data();
 
     kernel::add_missing_diagonal_elements<subwarp_size>(
-        grid_dim, block_dim, 0, exec->get_queue(), num_rows, dpcpp_old_values,
-        dpcpp_old_col_idxs, dpcpp_old_row_ptrs, dpcpp_new_values,
-        dpcpp_new_col_idxs, dpcpp_row_ptrs_add);
+        grid_dim, block_dim, 0, exec->get_queue(), num_rows, sycl_old_values,
+        sycl_old_col_idxs, sycl_old_row_ptrs, sycl_new_values,
+        sycl_new_col_idxs, sycl_row_ptrs_add);
 
     const dim3 grid_dim_row_ptrs_update{
         static_cast<uint32>(ceildiv(num_rows, block_dim.x)), 1, 1};
     kernel::update_row_ptrs(grid_dim_row_ptrs_update, block_dim, 0,
-                            exec->get_queue(), num_rows + 1, dpcpp_old_row_ptrs,
-                            dpcpp_row_ptrs_add);
+                            exec->get_queue(), num_rows + 1, sycl_old_row_ptrs,
+                            sycl_row_ptrs_add);
 
     matrix::CsrBuilder<ValueType, IndexType> mtx_builder{mtx};
     mtx_builder.get_value_array() = std::move(new_values);
@@ -587,7 +590,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void initialize_row_ptrs_l_u(
-    std::shared_ptr<const DpcppExecutor> exec,
+    std::shared_ptr<const SyclExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* system_matrix,
     IndexType* l_row_ptrs, IndexType* u_row_ptrs)
 {
@@ -613,7 +616,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void initialize_l_u(std::shared_ptr<const DpcppExecutor> exec,
+void initialize_l_u(std::shared_ptr<const SyclExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* system_matrix,
                     matrix::Csr<ValueType, IndexType>* csr_l,
                     matrix::Csr<ValueType, IndexType>* csr_u)
@@ -639,7 +642,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void initialize_row_ptrs_l(
-    std::shared_ptr<const DpcppExecutor> exec,
+    std::shared_ptr<const SyclExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* system_matrix,
     IndexType* l_row_ptrs)
 {
@@ -663,7 +666,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void initialize_l(std::shared_ptr<const DpcppExecutor> exec,
+void initialize_l(std::shared_ptr<const SyclExecutor> exec,
                   const matrix::Csr<ValueType, IndexType>* system_matrix,
                   matrix::Csr<ValueType, IndexType>* csr_l, bool diag_sqrt)
 {
@@ -686,6 +689,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace factorization
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

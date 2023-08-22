@@ -564,8 +564,8 @@ void Multigrid::generate()
             // default coarse grid solver, direct LU
             // TODO: maybe remove fixed index type
             auto gen_default_solver = [&]() -> std::unique_ptr<LinOp> {
-                // TODO: unify when dpcpp supports direct solver
-                if (dynamic_cast<const DpcppExecutor*>(exec.get())) {
+                // TODO: unify when sycl supports direct solver
+                if (dynamic_cast<const SyclExecutor*>(exec.get())) {
                     using absolute_value_type = remove_complex<value_type>;
                     return solver::Gmres<value_type>::build()
                         .with_criteria(

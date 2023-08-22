@@ -613,7 +613,7 @@ build/dpcpp/igpu/release/shared:
     GKO_COMPILER_FLAGS: "-ffp-model=precise"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "ON"
-    DPCPP_SINGLE_MODE: "ON"
+    SYCL_SINGLE_MODE: "ON"
     ONEAPI_DEVICE_SELECTOR: "*:gpu"
 
 # TODO: Enable when debug shared library size issues are fixed
@@ -630,7 +630,7 @@ build/dpcpp/igpu/release/shared:
 #     GKO_COMPILER_FLAGS: "-ffp-model=precise"
 #     BUILD_TYPE: "Debug"
 #     BUILD_SHARED_LIBS: "ON"
-#     DPCPP_SINGLE_MODE: "ON"
+#     SYCL_SINGLE_MODE: "ON"
 #     ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
 
 # It gives two available backends of GPU on tests
@@ -647,7 +647,7 @@ build/dpcpp/dgpu/release/static:
     GKO_COMPILER_FLAGS: "-ffp-model=precise"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OF"
-    DPCPP_SINGLE_MODE: "ON"
+    SYCL_SINGLE_MODE: "ON"
     ONEAPI_DEVICE_SELECTOR: "*:gpu"
 
 build/dpcpp/level_zero_dgpu/release/shared:
@@ -662,7 +662,7 @@ build/dpcpp/level_zero_dgpu/release/shared:
     BUILD_SYCL: "ON"
     GKO_COMPILER_FLAGS: "-ffp-model=precise"
     BUILD_TYPE: "Release"
-    DPCPP_SINGLE_MODE: "ON"
+    SYCL_SINGLE_MODE: "ON"
     ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
 
 build/icpx/level_zero_dgpu/release/shared:
@@ -677,7 +677,7 @@ build/icpx/level_zero_dgpu/release/shared:
     BUILD_SYCL: "ON"
     GKO_COMPILER_FLAGS: "-ffp-model=precise"
     BUILD_TYPE: "Release"
-    DPCPP_SINGLE_MODE: "ON"
+    SYCL_SINGLE_MODE: "ON"
     ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
 
 # Job with important warnings as error

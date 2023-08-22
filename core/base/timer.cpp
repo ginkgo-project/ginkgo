@@ -65,8 +65,8 @@ time_point::~time_point()
     case type::hip:
         kernels::hip::destroy_event(data_.hip_event);
         break;
-    case type::dpcpp:
-        kernels::dpcpp::destroy_event(data_.dpcpp_event);
+    case type::sycl:
+        kernels::sycl::destroy_event(data_.sycl_event);
         break;
     case type::cpu:
     default:
@@ -137,9 +137,9 @@ std::unique_ptr<Timer> Timer::create_for_executor(
     } else if (auto hip_exec =
                    std::dynamic_pointer_cast<const HipExecutor>(exec)) {
         return std::make_unique<HipTimer>(hip_exec);
-    } else if (auto dpcpp_exec =
-                   std::dynamic_pointer_cast<const DpcppExecutor>(exec)) {
-        return std::make_unique<DpcppTimer>(dpcpp_exec);
+    } else if (auto sycl_exec =
+                   std::dynamic_pointer_cast<const SyclExecutor>(exec)) {
+        return std::make_unique<SyclTimer>(sycl_exec);
     } else {
         return std::make_unique<CpuTimer>();
     }

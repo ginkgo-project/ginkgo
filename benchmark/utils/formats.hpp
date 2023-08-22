@@ -66,9 +66,9 @@ std::string available_format =
     ", hipsparse_csr, hipsparse_csrmm, hipsparse_coo, hipsparse_ell, "
     "hipsparse_hybrid"
 #endif  // HAS_HIP
-#ifdef HAS_DPCPP
+#ifdef HAS_SYCL
     ", onemkl_csr, onemkl_optimized_csr"
-#endif  // HAS_DPCPP
+#endif  // HAS_SYCL
     ".\n";
 
 std::string format_description =
@@ -129,11 +129,11 @@ std::string format_description =
     "hipsparse_ell: hipSPARSE CSR SpMV using hipsparseXhybmv\n"
     "               with HIPSPARSE_HYB_PARTITION_MAX\n"
 #endif  // HAS_HIP
-#ifdef HAS_DPCPP
+#ifdef HAS_SYCL
     "onemkl_csr: oneMKL Csr SpMV\n"
     "onemkl_optimized_csr: oneMKL optimized Csr SpMV using optimize_gemv after "
     "reading the matrix"
-#endif  // HAS_DPCPP
+#endif  // HAS_SYCL
     ;
 
 std::string format_command =
@@ -177,9 +177,8 @@ std::shared_ptr<csr::strategy_type> create_gpu_strategy(
         return std::make_shared<Strategy>(cuda->shared_from_this());
     } else if (auto hip = dynamic_cast<const gko::HipExecutor*>(exec.get())) {
         return std::make_shared<Strategy>(hip->shared_from_this());
-    } else if (auto dpcpp =
-                   dynamic_cast<const gko::DpcppExecutor*>(exec.get())) {
-        return std::make_shared<Strategy>(dpcpp->shared_from_this());
+    } else if (auto sycl = dynamic_cast<const gko::SyclExecutor*>(exec.get())) {
+        return std::make_shared<Strategy>(sycl->shared_from_this());
     } else {
         return std::make_shared<csr::classical>();
     }
@@ -263,10 +262,10 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"hipsparse_coo", create_sparselib_linop<hipsparse_coo>},
         {"hipsparse_ell", create_sparselib_linop<hipsparse_ell>},
 #endif  // HAS_HIP
-#ifdef HAS_DPCPP
+#ifdef HAS_SYCL
         {"onemkl_csr", create_sparselib_linop<onemkl_csr>},
         {"onemkl_optimized_csr", create_sparselib_linop<onemkl_optimized_csr>},
-#endif  // HAS_DPCPP
+#endif  // HAS_SYCL
         {"hybrid", create_matrix_type<hybrid>()},
         {"hybrid0",create_matrix_type<hybrid>( std::make_shared<hybrid::imbalance_limit>(0))},
         {"hybrid25",create_matrix_type<hybrid>( std::make_shared<hybrid::imbalance_limit>(0.25))},

@@ -54,8 +54,8 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
          [] {
              return gko::HipExecutor::create(0, gko::OmpExecutor::create());
          }},
-        {"dpcpp", [] {
-             return gko::DpcppExecutor::create(0, gko::OmpExecutor::create());
+        {"sycl", [] {
+             return gko::SyclExecutor::create(0, gko::OmpExecutor::create());
          }}};
 
 
@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
     // print usage message
     if (argc < 2 || executors.find(argv[1]) == executors.end()) {
         std::cerr << "Usage: executable"
-                  << " <reference|omp|cuda|hip|dpcpp> [<matrix-file>] "
+                  << " <reference|omp|cuda|hip|sycl> [<matrix-file>] "
                      "[<parilu|parilut|paric|parict] [<max-iterations>] "
                      "[<num-repetitions>] [<fill-in-limit>]\n";
         return -1;

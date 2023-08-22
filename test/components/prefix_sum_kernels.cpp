@@ -121,7 +121,7 @@ TYPED_TEST(PrefixSum, DoesntOverflowFromLastElement)
 }
 
 
-#ifndef GKO_COMPILING_DPCPP
+#ifndef GKO_COMPILING_SYCL
 // TODO implement overflow check for DPC++
 
 TYPED_TEST(PrefixSum, ThrowsOnOverflow)

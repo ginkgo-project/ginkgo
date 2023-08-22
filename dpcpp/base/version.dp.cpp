@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-version version_info::get_dpcpp_version() noexcept
+version version_info::get_sycl_version() noexcept
 {
     // When compiling the module, the header version is the same as the library
     // version. Mismatch between the header and the module versions may happen

@@ -415,7 +415,7 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 #define GKO_ENABLE_FOR_ALL_EXECUTORS(_enable_macro) \
     _enable_macro(OmpExecutor, omp);                \
     _enable_macro(HipExecutor, hip);                \
-    _enable_macro(DpcppExecutor, dpcpp);            \
+    _enable_macro(SyclExecutor, sycl);              \
     _enable_macro(CudaExecutor, cuda)
 
 
@@ -427,7 +427,7 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                Should take one argument, which is replaced by the
  *                value type.
  */
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_SYCL_SINGLE_MODE
 #define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(_macro) \
     template _macro(float);                                     \
     template <>                                                 \
@@ -447,7 +447,7 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                Should take one argument, which is replaced by the
  *                value type.
  */
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_SYCL_SINGLE_MODE
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro)          \
     GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(_macro); \
     template _macro(std::complex<float>);                    \
@@ -471,7 +471,7 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                Should take two arguments, which are replaced by the
  *                value and scalar type, respectively.
  */
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_SYCL_SINGLE_MODE
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(_macro)              \
     template _macro(float, float);                                          \
     template <>                                                             \
@@ -515,7 +515,7 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                Should take two arguments, which are replaced by the
  *                value and index types.
  */
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_SYCL_SINGLE_MODE
 #define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(_macro) \
     template _macro(float, int32);                                        \
     template <>                                                           \
@@ -540,7 +540,7 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                Should take two arguments, which are replaced by the
  *                value and index types.
  */
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_SYCL_SINGLE_MODE
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(_macro)          \
     GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(_macro); \
     template _macro(std::complex<float>, int32);                       \
@@ -568,7 +568,7 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                Should take three arguments, which are replaced by the
  *                value, the local and the global index types.
  */
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_SYCL_SINGLE_MODE
 #define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE( \
     _macro)                                                                     \
     template _macro(float, int32, int32);                                       \
@@ -600,7 +600,7 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                Should take two arguments, which are replaced by the
  *                value and index types.
  */
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_SYCL_SINGLE_MODE
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(_macro)  \
     GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE( \
         _macro);                                                            \
@@ -626,7 +626,7 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 #endif
 
 
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_SYCL_SINGLE_MODE
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro)                  \
     template <>                                                            \
     _macro(float, double) GKO_NOT_IMPLEMENTED;                             \

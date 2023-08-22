@@ -97,15 +97,15 @@ GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 }  // namespace gko
 
 
-#elif defined(GKO_COMPILING_DPCPP)
+#elif defined(GKO_COMPILING_SYCL)
 
-#define GKO_DEVICE_NAMESPACE dpcpp
+#define GKO_DEVICE_NAMESPACE sycl
 #define GKO_KERNEL
 
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 
 
 template <typename T>
@@ -127,7 +127,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
     return value;
 }
 
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko
 
@@ -302,7 +302,7 @@ typename to_device_type_impl<T>::type map_to_device(T&& param)
 #include "cuda/base/kernel_launch.cuh"
 #elif defined(GKO_COMPILING_HIP)
 #include "hip/base/kernel_launch.hip.hpp"
-#elif defined(GKO_COMPILING_DPCPP)
+#elif defined(GKO_COMPILING_SYCL)
 #include "dpcpp/base/kernel_launch.dp.hpp"
 #elif defined(GKO_COMPILING_OMP)
 #include "omp/base/kernel_launch.hpp"

@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 /**
  * @brief The Diagonal matrix format namespace.
  *
@@ -68,7 +68,7 @@ template <typename ValueType, typename IndexType>
 void apply_to_csr(size_type num_rows, const ValueType* __restrict__ diag,
                   const IndexType* __restrict__ row_ptrs,
                   ValueType* __restrict__ result_values, bool inverse,
-                  sycl::nd_item<3> item_ct1)
+                  ::sycl::nd_item<3> item_ct1)
 {
     constexpr auto warp_size = config::warp_size;
     auto warp_tile =
@@ -95,7 +95,7 @@ GKO_ENABLE_DEFAULT_HOST(apply_to_csr, apply_to_csr);
 
 
 template <typename ValueType, typename IndexType>
-void apply_to_csr(std::shared_ptr<const DpcppExecutor> exec,
+void apply_to_csr(std::shared_ptr<const SyclExecutor> exec,
                   const matrix::Diagonal<ValueType>* a,
                   const matrix::Csr<ValueType, IndexType>* b,
                   matrix::Csr<ValueType, IndexType>* c, bool inverse)
@@ -118,6 +118,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace diagonal
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

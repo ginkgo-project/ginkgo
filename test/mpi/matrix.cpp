@@ -55,7 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/mpi/executor.hpp"
 
 
-#ifndef GKO_COMPILING_DPCPP
+#ifndef GKO_COMPILING_SYCL
 
 
 template <typename ValueLocalGlobalIndexType>

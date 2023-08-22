@@ -57,11 +57,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 /**
- * @brief The DPCPP namespace.
+ * @brief The SYCL namespace.
  *
- * @ingroup dpcpp
+ * @ingroup sycl
  */
-namespace dpcpp {
+namespace sycl {
 /**
  * @brief The Coordinate matrix format namespace.
  *
@@ -104,7 +104,7 @@ void spmv_kernel(const size_type nnz, const size_type num_lines,
                  const IndexType* __restrict__ row,
                  const ValueType* __restrict__ b, const size_type b_stride,
                  ValueType* __restrict__ c, const size_type c_stride,
-                 Closure scale, sycl::nd_item<3> item_ct1)
+                 Closure scale, ::sycl::nd_item<3> item_ct1)
 {
     ValueType temp_val = zero<ValueType>();
     const auto start =
@@ -160,7 +160,7 @@ void abstract_spmv(const size_type nnz, const size_type num_lines,
                    const IndexType* __restrict__ row,
                    const ValueType* __restrict__ b, const size_type b_stride,
                    ValueType* __restrict__ c, const size_type c_stride,
-                   sycl::nd_item<3> item_ct1)
+                   ::sycl::nd_item<3> item_ct1)
 {
     spmv_kernel(
         nnz, num_lines, val, col, row, b, b_stride, c, c_stride,
@@ -175,7 +175,7 @@ void abstract_spmv(const size_type nnz, const size_type num_lines,
                    const IndexType* __restrict__ row,
                    const ValueType* __restrict__ b, const size_type b_stride,
                    ValueType* __restrict__ c, const size_type c_stride,
-                   sycl::nd_item<3> item_ct1)
+                   ::sycl::nd_item<3> item_ct1)
 {
     ValueType scale_factor = alpha[0];
     spmv_kernel(
@@ -213,7 +213,7 @@ void spmm_kernel(const size_type nnz, const size_type num_elems,
                  const IndexType* __restrict__ row, const size_type num_cols,
                  const ValueType* __restrict__ b, const size_type b_stride,
                  ValueType* __restrict__ c, const size_type c_stride,
-                 Closure scale, sycl::nd_item<3> item_ct1)
+                 Closure scale, ::sycl::nd_item<3> item_ct1)
 {
     ValueType temp = zero<ValueType>();
     const auto coo_idx =
@@ -251,7 +251,7 @@ void abstract_spmm(const size_type nnz, const size_type num_elems,
                    const IndexType* __restrict__ row, const size_type num_cols,
                    const ValueType* __restrict__ b, const size_type b_stride,
                    ValueType* __restrict__ c, const size_type c_stride,
-                   sycl::nd_item<3> item_ct1)
+                   ::sycl::nd_item<3> item_ct1)
 {
     spmm_kernel(
         nnz, num_elems, val, col, row, num_cols, b, b_stride, c, c_stride,
@@ -266,7 +266,7 @@ void abstract_spmm(const size_type nnz, const size_type num_elems,
                    const IndexType* __restrict__ row, const size_type num_cols,
                    const ValueType* __restrict__ b, const size_type b_stride,
                    ValueType* __restrict__ c, const size_type c_stride,
-                   sycl::nd_item<3> item_ct1)
+                   ::sycl::nd_item<3> item_ct1)
 {
     ValueType scale_factor = alpha[0];
     spmm_kernel(
@@ -282,7 +282,7 @@ GKO_ENABLE_DEFAULT_HOST(abstract_spmm, abstract_spmm);
 
 
 template <typename ValueType, typename IndexType>
-void spmv(std::shared_ptr<const DpcppExecutor> exec,
+void spmv(std::shared_ptr<const SyclExecutor> exec,
           const matrix::Coo<ValueType, IndexType>* a,
           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
@@ -294,7 +294,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
+void advanced_spmv(std::shared_ptr<const SyclExecutor> exec,
                    const matrix::Dense<ValueType>* alpha,
                    const matrix::Coo<ValueType, IndexType>* a,
                    const matrix::Dense<ValueType>* b,
@@ -310,7 +310,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void spmv2(std::shared_ptr<const DpcppExecutor> exec,
+void spmv2(std::shared_ptr<const SyclExecutor> exec,
            const matrix::Coo<ValueType, IndexType>* a,
            const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
@@ -346,7 +346,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV2_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spmv2(std::shared_ptr<const DpcppExecutor> exec,
+void advanced_spmv2(std::shared_ptr<const SyclExecutor> exec,
                     const matrix::Dense<ValueType>* alpha,
                     const matrix::Coo<ValueType, IndexType>* a,
                     const matrix::Dense<ValueType>* b,
@@ -386,6 +386,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace coo
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

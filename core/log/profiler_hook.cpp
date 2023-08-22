@@ -424,7 +424,7 @@ std::shared_ptr<ProfilerHook> ProfilerHook::create_for_executor(
         return create_roctx();
     }
 #endif
-    if (std::dynamic_pointer_cast<const DpcppExecutor>(exec)) {
+    if (std::dynamic_pointer_cast<const SyclExecutor>(exec)) {
         return create_vtune();
     }
     return create_tau();

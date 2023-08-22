@@ -44,13 +44,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 
 
 /** @file batch_struct.hpp
  *
  * Helper functions to generate a batch struct from a batch LinOp,
- * while also shallow-casting to the required DPCPP scalar type.
+ * while also shallow-casting to the required SYCL scalar type.
  *
  * A specialization is needed for every format of every kind of linear algebra
  * object. These are intended to be called on the host.
@@ -85,7 +85,7 @@ inline batch::multi_vector::uniform_batch<ValueType> get_batch_struct(
 }
 
 
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko
 
