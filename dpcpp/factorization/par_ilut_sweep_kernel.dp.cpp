@@ -146,7 +146,7 @@ void sweep(const IndexType* __restrict__ a_row_ptrs,
             return true;
         });
     // accumulate result from all threads
-    sum = ::gko::kernels::dpcpp::reduce(
+    sum = ::gko::kernels::sycl::reduce(
         subwarp, sum, [](ValueType a, ValueType b) { return a + b; });
 
     if (subwarp.thread_rank() == 0) {

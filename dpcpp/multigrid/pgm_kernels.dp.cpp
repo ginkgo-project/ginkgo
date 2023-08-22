@@ -105,7 +105,7 @@ void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
                         const IndexType* col_idxs, const ValueType* vals,
                         matrix::Coo<ValueType, IndexType>* coarse_coo)
 {
-    // WORKAROUND: reduce_by_segment needs unique policy. Otherwise, dpcpp
+    // WORKAROUND: reduce_by_segment needs unique policy. Otherwise, sycl
     // throws same mangled name error. Related:
     // https://github.com/oneapi-src/oneDPL/issues/507
     auto policy = oneapi::dpl::execution::make_device_policy<

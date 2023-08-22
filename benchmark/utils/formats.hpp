@@ -177,9 +177,8 @@ std::shared_ptr<csr::strategy_type> create_gpu_strategy(
         return std::make_shared<Strategy>(cuda->shared_from_this());
     } else if (auto hip = dynamic_cast<const gko::HipExecutor*>(exec.get())) {
         return std::make_shared<Strategy>(hip->shared_from_this());
-    } else if (auto dpcpp =
-                   dynamic_cast<const gko::DpcppExecutor*>(exec.get())) {
-        return std::make_shared<Strategy>(dpcpp->shared_from_this());
+    } else if (auto sycl = dynamic_cast<const gko::SyclExecutor*>(exec.get())) {
+        return std::make_shared<Strategy>(sycl->shared_from_this());
     } else {
         return std::make_shared<csr::classical>();
     }

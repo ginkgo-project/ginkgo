@@ -79,7 +79,7 @@ target_compile_options(ginkgo_omp PRIVATE "${GINKGO_COMPILER_FLAGS}")
 target_link_libraries(ginkgo_omp PRIVATE ginkgo_cuda)
 # Need to link against ginkgo_hip for the `raw_copy_to(HipExecutor ...)` method
 target_link_libraries(ginkgo_omp PRIVATE ginkgo_hip)
-# Need to link against ginkgo_dpcpp for the `raw_copy_to(DpcppExecutor ...)` method
+# Need to link against ginkgo_dpcpp for the `raw_copy_to(SyclExecutor ...)` method
 target_link_libraries(ginkgo_omp PRIVATE ginkgo_dpcpp)
 target_link_libraries(ginkgo_omp PUBLIC ginkgo_device)
 

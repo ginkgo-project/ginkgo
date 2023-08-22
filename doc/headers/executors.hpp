@@ -53,7 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *      operations executed on the NVIDIA GPU accelerator;
  * +    @ref exec_hip uses the HIP library to compile code for either NVIDIA or
  *      AMD GPU accelerator;
- * +    @ref exec_dpcpp uses the DPC++ compiler for any DPC++ supported hardware
+ * +    @ref exec_sycl uses the SYCL compiler for any SYCL supported hardware
  *      (e.g. Intel CPUs, GPU, FPGAs, ...);
  * +    @ref exec_ref executes a non-optimized reference implementation,
  *      which can be used to debug the library.

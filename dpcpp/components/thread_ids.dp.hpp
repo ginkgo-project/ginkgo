@@ -45,16 +45,16 @@ namespace gko {
 namespace kernels {
 namespace sycl {
 /**
- * @brief The DPCPP thread namespace.
+ * @brief The SYCL thread namespace.
  *
- * @ingroup dpcpp_thread
+ * @ingroup sycl_thread
  */
 namespace thread {
 
 
 // TODO: porting - need to refine functions and their name in this file
 // the grid/block description uses the cuda dim3 to represent. i.e. using dim3
-// to launch dpcpp kernel, the kernel will reverse the ordering to keep the same
+// to launch sycl kernel, the kernel will reverse the ordering to keep the same
 // linear memory usage as cuda.
 
 
@@ -129,7 +129,7 @@ __dpct_inline__ size_type get_local_warp_id(sycl::nd_item<3> item_ct1)
 template <int subwarp_size>
 __dpct_inline__ size_type get_local_subwarp_id(sycl::nd_item<3> item_ct1)
 {
-    // dpcpp does not have subwarp.
+    // sycl does not have subwarp.
     constexpr auto subwarps_per_warp = subwarp_size / subwarp_size;
     return get_local_warp_id(item_ct1) * subwarps_per_warp +
            item_ct1.get_local_id(1);
@@ -201,7 +201,7 @@ __dpct_inline__ size_type get_warp_id(sycl::nd_item<3> item_ct1)
 template <int subwarp_size, int warps_per_block>
 __dpct_inline__ size_type get_subwarp_id(sycl::nd_item<3> item_ct1)
 {
-    // dpcpp does not have subwarp
+    // sycl does not have subwarp
     constexpr auto subwarps_per_warp = subwarp_size / subwarp_size;
     return get_warp_id<warps_per_block>(item_ct1) * subwarps_per_warp +
            item_ct1.get_local_id(1);

@@ -173,7 +173,7 @@ void HipExecutor::raw_copy_to(const CudaExecutor* dest, size_type num_bytes,
 }
 
 
-void HipExecutor::raw_copy_to(const DpcppExecutor* dest, size_type num_bytes,
+void HipExecutor::raw_copy_to(const SyclExecutor* dest, size_type num_bytes,
                               const void* src_ptr, void* dest_ptr) const
 {
     GKO_NOT_SUPPORTED(dest);

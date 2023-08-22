@@ -508,7 +508,7 @@ void initialize_l(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
 
 template <typename ValueType, typename IndexType>
-void add_diagonal_elements(std::shared_ptr<const DpcppExecutor> exec,
+void add_diagonal_elements(std::shared_ptr<const SyclExecutor> exec,
                            matrix::Csr<ValueType, IndexType>* mtx,
                            bool is_sorted)
 {
@@ -526,10 +526,10 @@ void add_diagonal_elements(std::shared_ptr<const DpcppExecutor> exec,
     array<bool> needs_change_device{exec, 1};
     needs_change_device = needs_change_host;
 
-    auto dpcpp_old_values = mtx->get_const_values();
-    auto dpcpp_old_col_idxs = mtx->get_const_col_idxs();
-    auto dpcpp_old_row_ptrs = mtx->get_row_ptrs();
-    auto dpcpp_row_ptrs_add = row_ptrs_addition.get_data();
+    auto sycl_old_values = mtx->get_const_values();
+    auto sycl_old_col_idxs = mtx->get_const_col_idxs();
+    auto sycl_old_row_ptrs = mtx->get_row_ptrs();
+    auto sycl_row_ptrs_add = row_ptrs_addition.get_data();
 
     const dim3 block_dim{default_block_size, 1, 1};
     const dim3 grid_dim{
@@ -538,12 +538,12 @@ void add_diagonal_elements(std::shared_ptr<const DpcppExecutor> exec,
     if (is_sorted) {
         kernel::find_missing_diagonal_elements<true, subwarp_size>(
             grid_dim, block_dim, 0, exec->get_queue(), num_rows, num_cols,
-            dpcpp_old_col_idxs, dpcpp_old_row_ptrs, dpcpp_row_ptrs_add,
+            sycl_old_col_idxs, sycl_old_row_ptrs, sycl_row_ptrs_add,
             needs_change_device.get_data());
     } else {
         kernel::find_missing_diagonal_elements<false, subwarp_size>(
             grid_dim, block_dim, 0, exec->get_queue(), num_rows, num_cols,
-            dpcpp_old_col_idxs, dpcpp_old_row_ptrs, dpcpp_row_ptrs_add,
+            sycl_old_col_idxs, sycl_old_row_ptrs, sycl_row_ptrs_add,
             needs_change_device.get_data());
     }
     needs_change_host = needs_change_device;
@@ -551,30 +551,30 @@ void add_diagonal_elements(std::shared_ptr<const DpcppExecutor> exec,
         return;
     }
 
-    components::prefix_sum_nonnegative(exec, dpcpp_row_ptrs_add, row_ptrs_size);
+    components::prefix_sum_nonnegative(exec, sycl_row_ptrs_add, row_ptrs_size);
     exec->synchronize();
 
     auto total_additions =
-        exec->copy_val_to_host(dpcpp_row_ptrs_add + row_ptrs_size - 1);
+        exec->copy_val_to_host(sycl_row_ptrs_add + row_ptrs_size - 1);
     size_type new_num_elems = static_cast<size_type>(total_additions) +
                               mtx->get_num_stored_elements();
 
 
     array<ValueType> new_values{exec, new_num_elems};
     array<IndexType> new_col_idxs{exec, new_num_elems};
-    auto dpcpp_new_values = new_values.get_data();
-    auto dpcpp_new_col_idxs = new_col_idxs.get_data();
+    auto sycl_new_values = new_values.get_data();
+    auto sycl_new_col_idxs = new_col_idxs.get_data();
 
     kernel::add_missing_diagonal_elements<subwarp_size>(
-        grid_dim, block_dim, 0, exec->get_queue(), num_rows, dpcpp_old_values,
-        dpcpp_old_col_idxs, dpcpp_old_row_ptrs, dpcpp_new_values,
-        dpcpp_new_col_idxs, dpcpp_row_ptrs_add);
+        grid_dim, block_dim, 0, exec->get_queue(), num_rows, sycl_old_values,
+        sycl_old_col_idxs, sycl_old_row_ptrs, sycl_new_values,
+        sycl_new_col_idxs, sycl_row_ptrs_add);
 
     const dim3 grid_dim_row_ptrs_update{
         static_cast<uint32>(ceildiv(num_rows, block_dim.x)), 1, 1};
     kernel::update_row_ptrs(grid_dim_row_ptrs_update, block_dim, 0,
-                            exec->get_queue(), num_rows + 1, dpcpp_old_row_ptrs,
-                            dpcpp_row_ptrs_add);
+                            exec->get_queue(), num_rows + 1, sycl_old_row_ptrs,
+                            sycl_row_ptrs_add);
 
     matrix::CsrBuilder<ValueType, IndexType> mtx_builder{mtx};
     mtx_builder.get_value_array() = std::move(new_values);
@@ -587,7 +587,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void initialize_row_ptrs_l_u(
-    std::shared_ptr<const DpcppExecutor> exec,
+    std::shared_ptr<const SyclExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* system_matrix,
     IndexType* l_row_ptrs, IndexType* u_row_ptrs)
 {
@@ -613,7 +613,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void initialize_l_u(std::shared_ptr<const DpcppExecutor> exec,
+void initialize_l_u(std::shared_ptr<const SyclExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* system_matrix,
                     matrix::Csr<ValueType, IndexType>* csr_l,
                     matrix::Csr<ValueType, IndexType>* csr_u)
@@ -639,7 +639,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void initialize_row_ptrs_l(
-    std::shared_ptr<const DpcppExecutor> exec,
+    std::shared_ptr<const SyclExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* system_matrix,
     IndexType* l_row_ptrs)
 {
@@ -663,7 +663,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void initialize_l(std::shared_ptr<const DpcppExecutor> exec,
+void initialize_l(std::shared_ptr<const SyclExecutor> exec,
                   const matrix::Csr<ValueType, IndexType>* system_matrix,
                   matrix::Csr<ValueType, IndexType>* csr_l, bool diag_sqrt)
 {

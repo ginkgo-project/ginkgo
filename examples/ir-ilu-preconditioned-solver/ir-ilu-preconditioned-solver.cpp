@@ -78,10 +78,10 @@ int main(int argc, char* argv[])
              [] {
                  return gko::HipExecutor::create(0, gko::OmpExecutor::create());
              }},
-            {"dpcpp",
+            {"sycl",
              [] {
-                 return gko::DpcppExecutor::create(0,
-                                                   gko::OmpExecutor::create());
+                 return gko::SyclExecutor::create(0,
+                                                  gko::OmpExecutor::create());
              }},
             {"reference", [] { return gko::ReferenceExecutor::create(); }}};
 

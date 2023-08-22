@@ -68,7 +68,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_apply, apply);
 
 template <typename ValueType, typename IndexType>
 void simple_apply(
-    std::shared_ptr<const DpcppExecutor> exec, size_type num_blocks,
+    std::shared_ptr<const SyclExecutor> exec, size_type num_blocks,
     uint32 max_block_size,
     const preconditioner::block_interleaved_storage_scheme<IndexType>&
         storage_scheme,

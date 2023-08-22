@@ -133,7 +133,7 @@ void orthonormalize_subspace_vectors_kernel(
             // Ensure already finish reading this shared memory
             item_ct1.barrier(sycl::access::fence_space::local_space);
             reduction_helper[tidx] = dot;
-            ::gko::kernels::dpcpp::reduce(
+            ::gko::kernels::sycl::reduce(
                 group::this_thread_block(item_ct1), reduction_helper,
                 [](const ValueType& a, const ValueType& b) { return a + b; });
             item_ct1.barrier(sycl::access::fence_space::local_space);
@@ -152,7 +152,7 @@ void orthonormalize_subspace_vectors_kernel(
         // Ensure already finish reading this shared memory
         item_ct1.barrier(sycl::access::fence_space::local_space);
         reduction_helper_real[tidx] = norm;
-        ::gko::kernels::dpcpp::reduce(
+        ::gko::kernels::sycl::reduce(
             group::this_thread_block(item_ct1), reduction_helper_real,
             [](const remove_complex<ValueType>& a,
                const remove_complex<ValueType>& b) { return a + b; });
@@ -371,7 +371,7 @@ void multidot_kernel(
     local_res = reduction_helper[tidy * (default_dot_dim + 1) + tidx];
     const auto tile_block = group::tiled_partition<default_dot_dim>(
         group::this_thread_block(item_ct1));
-    const auto sum = ::gko::kernels::dpcpp::reduce(
+    const auto sum = ::gko::kernels::sycl::reduce(
         tile_block, local_res,
         [](const ValueType& a, const ValueType& b) { return a + b; });
     const auto new_rhs = item_ct1.get_group(2) * default_dot_dim + tidy;
@@ -606,7 +606,7 @@ namespace {
 
 
 template <typename ValueType>
-void initialize_m(std::shared_ptr<const DpcppExecutor> exec,
+void initialize_m(std::shared_ptr<const SyclExecutor> exec,
                   const size_type nrhs, matrix::Dense<ValueType>* m,
                   array<stopping_status>* stop_status)
 {
@@ -621,7 +621,7 @@ void initialize_m(std::shared_ptr<const DpcppExecutor> exec,
 
 
 template <typename ValueType>
-void initialize_subspace_vectors(std::shared_ptr<const DpcppExecutor> exec,
+void initialize_subspace_vectors(std::shared_ptr<const SyclExecutor> exec,
                                  matrix::Dense<ValueType>* subspace_vectors,
                                  bool deterministic)
 {
@@ -648,7 +648,7 @@ void initialize_subspace_vectors(std::shared_ptr<const DpcppExecutor> exec,
 
 
 template <typename ValueType>
-void orthonormalize_subspace_vectors(std::shared_ptr<const DpcppExecutor> exec,
+void orthonormalize_subspace_vectors(std::shared_ptr<const SyclExecutor> exec,
                                      matrix::Dense<ValueType>* subspace_vectors)
 {
     orthonormalize_subspace_vectors_kernel<default_block_size>(
@@ -659,7 +659,7 @@ void orthonormalize_subspace_vectors(std::shared_ptr<const DpcppExecutor> exec,
 
 
 template <typename ValueType>
-void solve_lower_triangular(std::shared_ptr<const DpcppExecutor> exec,
+void solve_lower_triangular(std::shared_ptr<const SyclExecutor> exec,
                             const size_type nrhs,
                             const matrix::Dense<ValueType>* m,
                             const matrix::Dense<ValueType>* f,
@@ -678,7 +678,7 @@ void solve_lower_triangular(std::shared_ptr<const DpcppExecutor> exec,
 
 
 template <typename ValueType>
-void update_g_and_u(std::shared_ptr<const DpcppExecutor> exec,
+void update_g_and_u(std::shared_ptr<const SyclExecutor> exec,
                     const size_type nrhs, const size_type k,
                     const matrix::Dense<ValueType>* p,
                     const matrix::Dense<ValueType>* m,
@@ -723,7 +723,7 @@ void update_g_and_u(std::shared_ptr<const DpcppExecutor> exec,
 
 
 template <typename ValueType>
-void update_m(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
+void update_m(std::shared_ptr<const SyclExecutor> exec, const size_type nrhs,
               const size_type k, const matrix::Dense<ValueType>* p,
               const matrix::Dense<ValueType>* g_k, matrix::Dense<ValueType>* m,
               const array<stopping_status>* stop_status)
@@ -755,7 +755,7 @@ void update_m(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
 
 
 template <typename ValueType>
-void update_x_r_and_f(std::shared_ptr<const DpcppExecutor> exec,
+void update_x_r_and_f(std::shared_ptr<const SyclExecutor> exec,
                       const size_type nrhs, const size_type k,
                       const matrix::Dense<ValueType>* m,
                       const matrix::Dense<ValueType>* g,
@@ -784,7 +784,7 @@ void update_x_r_and_f(std::shared_ptr<const DpcppExecutor> exec,
 
 
 template <typename ValueType>
-void initialize(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
+void initialize(std::shared_ptr<const SyclExecutor> exec, const size_type nrhs,
                 matrix::Dense<ValueType>* m,
                 matrix::Dense<ValueType>* subspace_vectors, bool deterministic,
                 array<stopping_status>* stop_status)
@@ -798,7 +798,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_INITIALIZE_KERNEL);
 
 
 template <typename ValueType>
-void step_1(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
+void step_1(std::shared_ptr<const SyclExecutor> exec, const size_type nrhs,
             const size_type k, const matrix::Dense<ValueType>* m,
             const matrix::Dense<ValueType>* f,
             const matrix::Dense<ValueType>* residual,
@@ -824,7 +824,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_1_KERNEL);
 
 
 template <typename ValueType>
-void step_2(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
+void step_2(std::shared_ptr<const SyclExecutor> exec, const size_type nrhs,
             const size_type k, const matrix::Dense<ValueType>* omega,
             const matrix::Dense<ValueType>* preconditioned_vector,
             const matrix::Dense<ValueType>* c, matrix::Dense<ValueType>* u,
@@ -849,7 +849,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_2_KERNEL);
 
 
 template <typename ValueType>
-void step_3(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
+void step_3(std::shared_ptr<const SyclExecutor> exec, const size_type nrhs,
             const size_type k, const matrix::Dense<ValueType>* p,
             matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* g_k,
             matrix::Dense<ValueType>* u, matrix::Dense<ValueType>* m,
@@ -867,7 +867,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_3_KERNEL);
 
 template <typename ValueType>
 void compute_omega(
-    std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
+    std::shared_ptr<const SyclExecutor> exec, const size_type nrhs,
     const remove_complex<ValueType> kappa, const matrix::Dense<ValueType>* tht,
     const matrix::Dense<remove_complex<ValueType>>* residual_norm,
     matrix::Dense<ValueType>* omega, const array<stopping_status>* stop_status)

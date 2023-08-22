@@ -664,7 +664,7 @@ void device_classical_spmv(const size_type num_rows,
              ind += subgroup_size) {
             temp_val += val(ind) * b(col_idxs[ind], column_id);
         }
-        auto subgroup_result = ::gko::kernels::dpcpp::reduce(
+        auto subgroup_result = ::gko::kernels::sycl::reduce(
             subgroup_tile, temp_val,
             [](const arithmetic_type& a, const arithmetic_type& b) {
                 return a + b;
@@ -1058,7 +1058,7 @@ namespace host_kernel {
 template <int items_per_thread, typename MatrixValueType,
           typename InputValueType, typename OutputValueType, typename IndexType>
 void merge_path_spmv(syn::value_list<int, items_per_thread>,
-                     std::shared_ptr<const DpcppExecutor> exec,
+                     std::shared_ptr<const SyclExecutor> exec,
                      const matrix::Csr<MatrixValueType, IndexType>* a,
                      const matrix::Dense<InputValueType>* b,
                      matrix::Dense<OutputValueType>* c,
@@ -1126,7 +1126,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_merge_path_spmv, merge_path_spmv);
 
 
 template <typename ValueType, typename IndexType>
-int compute_items_per_thread(std::shared_ptr<const DpcppExecutor> exec)
+int compute_items_per_thread(std::shared_ptr<const SyclExecutor> exec)
 {
     int num_item = 6;
     // Ensure that the following is satisfied:
@@ -1142,7 +1142,7 @@ int compute_items_per_thread(std::shared_ptr<const DpcppExecutor> exec)
 template <int subgroup_size, typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 void classical_spmv(syn::value_list<int, subgroup_size>,
-                    std::shared_ptr<const DpcppExecutor> exec,
+                    std::shared_ptr<const SyclExecutor> exec,
                     const matrix::Csr<MatrixValueType, IndexType>* a,
                     const matrix::Dense<InputValueType>* b,
                     matrix::Dense<OutputValueType>* c,
@@ -1191,7 +1191,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_classical_spmv, classical_spmv);
 
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
-void load_balance_spmv(std::shared_ptr<const DpcppExecutor> exec,
+void load_balance_spmv(std::shared_ptr<const SyclExecutor> exec,
                        const matrix::Csr<MatrixValueType, IndexType>* a,
                        const matrix::Dense<InputValueType>* b,
                        matrix::Dense<OutputValueType>* c,
@@ -1238,7 +1238,7 @@ void load_balance_spmv(std::shared_ptr<const DpcppExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-bool try_general_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
+bool try_general_sparselib_spmv(std::shared_ptr<const SyclExecutor> exec,
                                 const ValueType host_alpha,
                                 const matrix::Csr<ValueType, IndexType>* a,
                                 const matrix::Dense<ValueType>* b,
@@ -1280,7 +1280,7 @@ template <typename MatrixValueType, typename InputValueType,
           typename = std::enable_if_t<
               !std::is_same<MatrixValueType, InputValueType>::value ||
               !std::is_same<MatrixValueType, OutputValueType>::value>>
-bool try_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
+bool try_sparselib_spmv(std::shared_ptr<const SyclExecutor> exec,
                         const matrix::Csr<MatrixValueType, IndexType>* a,
                         const matrix::Dense<InputValueType>* b,
                         matrix::Dense<OutputValueType>* c,
@@ -1292,7 +1292,7 @@ bool try_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
 }
 
 template <typename ValueType, typename IndexType>
-bool try_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
+bool try_sparselib_spmv(std::shared_ptr<const SyclExecutor> exec,
                         const matrix::Csr<ValueType, IndexType>* a,
                         const matrix::Dense<ValueType>* b,
                         matrix::Dense<ValueType>* c,
@@ -1316,7 +1316,7 @@ bool try_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
 
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
-void spmv(std::shared_ptr<const DpcppExecutor> exec,
+void spmv(std::shared_ptr<const SyclExecutor> exec,
           const matrix::Csr<MatrixValueType, IndexType>* a,
           const matrix::Dense<InputValueType>* b,
           matrix::Dense<OutputValueType>* c)
@@ -1383,7 +1383,7 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
+void advanced_spmv(std::shared_ptr<const SyclExecutor> exec,
                    const matrix::Dense<MatrixValueType>* alpha,
                    const matrix::Csr<MatrixValueType, IndexType>* a,
                    const matrix::Dense<InputValueType>* b,
@@ -1772,7 +1772,7 @@ auto spgemm_multiway_merge(size_type row,
 
 
 template <typename ValueType, typename IndexType>
-void spgemm(std::shared_ptr<const DpcppExecutor> exec,
+void spgemm(std::shared_ptr<const SyclExecutor> exec,
             const matrix::Csr<ValueType, IndexType>* a,
             const matrix::Csr<ValueType, IndexType>* b,
             matrix::Csr<ValueType, IndexType>* c)
@@ -1846,7 +1846,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEMM_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
+void advanced_spgemm(std::shared_ptr<const SyclExecutor> exec,
                      const matrix::Dense<ValueType>* alpha,
                      const matrix::Csr<ValueType, IndexType>* a,
                      const matrix::Csr<ValueType, IndexType>* b,
@@ -1980,7 +1980,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void spgeam(std::shared_ptr<const DpcppExecutor> exec,
+void spgeam(std::shared_ptr<const SyclExecutor> exec,
             const matrix::Dense<ValueType>* alpha,
             const matrix::Csr<ValueType, IndexType>* a,
             const matrix::Dense<ValueType>* beta,
@@ -2065,7 +2065,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void fill_in_dense(std::shared_ptr<const DpcppExecutor> exec,
+void fill_in_dense(std::shared_ptr<const SyclExecutor> exec,
                    const matrix::Csr<ValueType, IndexType>* source,
                    matrix::Dense<ValueType>* result)
 {
@@ -2097,7 +2097,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <bool conjugate, typename ValueType, typename IndexType>
-void generic_transpose(std::shared_ptr<const DpcppExecutor> exec,
+void generic_transpose(std::shared_ptr<const SyclExecutor> exec,
                        const matrix::Csr<ValueType, IndexType>* orig,
                        matrix::Csr<ValueType, IndexType>* trans)
 {
@@ -2148,7 +2148,7 @@ void generic_transpose(std::shared_ptr<const DpcppExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void transpose(std::shared_ptr<const DpcppExecutor> exec,
+void transpose(std::shared_ptr<const SyclExecutor> exec,
                const matrix::Csr<ValueType, IndexType>* orig,
                matrix::Csr<ValueType, IndexType>* trans)
 {
@@ -2159,7 +2159,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void conj_transpose(std::shared_ptr<const DpcppExecutor> exec,
+void conj_transpose(std::shared_ptr<const SyclExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* orig,
                     matrix::Csr<ValueType, IndexType>* trans)
 {
@@ -2171,7 +2171,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void inv_symm_permute(std::shared_ptr<const DpcppExecutor> exec,
+void inv_symm_permute(std::shared_ptr<const SyclExecutor> exec,
                       const IndexType* perm,
                       const matrix::Csr<ValueType, IndexType>* orig,
                       matrix::Csr<ValueType, IndexType>* permuted)
@@ -2197,7 +2197,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void row_permute(std::shared_ptr<const DpcppExecutor> exec,
+void row_permute(std::shared_ptr<const SyclExecutor> exec,
                  const IndexType* perm,
                  const matrix::Csr<ValueType, IndexType>* orig,
                  matrix::Csr<ValueType, IndexType>* row_permuted)
@@ -2223,7 +2223,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void inverse_row_permute(std::shared_ptr<const DpcppExecutor> exec,
+void inverse_row_permute(std::shared_ptr<const SyclExecutor> exec,
                          const IndexType* perm,
                          const matrix::Csr<ValueType, IndexType>* orig,
                          matrix::Csr<ValueType, IndexType>* row_permuted)
@@ -2249,7 +2249,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void sort_by_column_index(std::shared_ptr<const DpcppExecutor> exec,
+void sort_by_column_index(std::shared_ptr<const SyclExecutor> exec,
                           matrix::Csr<ValueType, IndexType>* to_sort)
 {
     const auto num_rows = to_sort->get_size()[0];
@@ -2308,7 +2308,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
-    std::shared_ptr<const DpcppExecutor> exec,
+    std::shared_ptr<const SyclExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* to_check, bool* is_sorted)
 {
     array<bool> is_sorted_device_array{exec, {true}};
@@ -2339,7 +2339,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void extract_diagonal(std::shared_ptr<const DpcppExecutor> exec,
+void extract_diagonal(std::shared_ptr<const SyclExecutor> exec,
                       const matrix::Csr<ValueType, IndexType>* orig,
                       matrix::Diagonal<ValueType>* diag)
 {
@@ -2363,7 +2363,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTRACT_DIAGONAL);
 
 template <typename ValueType, typename IndexType>
 void check_diagonal_entries_exist(
-    std::shared_ptr<const DpcppExecutor> exec,
+    std::shared_ptr<const SyclExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* const mtx,
     bool& has_all_diags) GKO_NOT_IMPLEMENTED;
 
@@ -2372,7 +2372,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void add_scaled_identity(std::shared_ptr<const DpcppExecutor> exec,
+void add_scaled_identity(std::shared_ptr<const SyclExecutor> exec,
                          const matrix::Dense<ValueType>* const alpha,
                          const matrix::Dense<ValueType>* const beta,
                          matrix::Csr<ValueType, IndexType>* const mtx)
@@ -2467,7 +2467,7 @@ void csr_lookup_build_hash(IndexType row_len, IndexType available_storage,
 
 
 template <typename IndexType>
-void build_lookup(std::shared_ptr<const DpcppExecutor> exec,
+void build_lookup(std::shared_ptr<const SyclExecutor> exec,
                   const IndexType* row_ptrs, const IndexType* col_idxs,
                   size_type num_rows, matrix::csr::sparsity_type allowed,
                   const IndexType* storage_offsets, int64* row_desc,

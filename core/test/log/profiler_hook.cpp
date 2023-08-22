@@ -71,7 +71,7 @@ public:
 
     void run(std::shared_ptr<const gko::HipExecutor>) const override {}
 
-    void run(std::shared_ptr<const gko::DpcppExecutor>) const override {}
+    void run(std::shared_ptr<const gko::SyclExecutor>) const override {}
 
     void run(std::shared_ptr<const gko::CudaExecutor>) const override {}
 

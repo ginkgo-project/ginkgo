@@ -57,7 +57,7 @@ namespace residual_norm {
 
 
 template <typename ValueType>
-void residual_norm(std::shared_ptr<const DpcppExecutor> exec,
+void residual_norm(std::shared_ptr<const SyclExecutor> exec,
                    const matrix::Dense<ValueType>* tau,
                    const matrix::Dense<ValueType>* orig_tau,
                    ValueType rel_residual_goal, uint8 stoppingId,
@@ -116,7 +116,7 @@ namespace implicit_residual_norm {
 
 template <typename ValueType>
 void implicit_residual_norm(
-    std::shared_ptr<const DpcppExecutor> exec,
+    std::shared_ptr<const SyclExecutor> exec,
     const matrix::Dense<ValueType>* tau,
     const matrix::Dense<remove_complex<ValueType>>* orig_tau,
     remove_complex<ValueType> rel_residual_goal, uint8 stoppingId,

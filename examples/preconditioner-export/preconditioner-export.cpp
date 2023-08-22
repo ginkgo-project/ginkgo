@@ -55,8 +55,8 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
                    return gko::HipExecutor::create(
                        0, gko::ReferenceExecutor::create());
                }},
-              {"dpcpp", [] {
-                   return gko::DpcppExecutor::create(
+              {"sycl", [] {
+                   return gko::SyclExecutor::create(
                        0, gko::ReferenceExecutor::create());
                }}};
 
@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
     // print usage message
     if (argc < 2 || executors.find(argv[1]) == executors.end()) {
         std::cerr << "Usage: executable"
-                  << " <reference|omp|cuda|hip|dpcpp> [<matrix-file>] "
+                  << " <reference|omp|cuda|hip|sycl> [<matrix-file>] "
                      "[<jacobi|ilu|parilu|parilut|ilu-isai|parilu-isai|parilut-"
                      "isai] [<preconditioner args>]\n";
         std::cerr << "Jacobi parameters: [<max-block-size>] [<accuracy>] "

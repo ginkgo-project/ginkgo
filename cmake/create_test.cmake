@@ -236,7 +236,7 @@ function(ginkgo_create_common_device_test test_name)
     cmake_parse_arguments(PARSE_ARGV 1 common_device_test "" "${gko_test_single_args}" "${gko_test_multi_args}")
     ginkgo_build_test_name(${test_name} test_target_name)
     if(GINKGO_BUILD_SYCL)
-        ginkgo_create_common_test_internal(${test_name} DpcppExecutor dpcpp ${ARGN})
+        ginkgo_create_common_test_internal(${test_name} SyclExecutor dpcpp ${ARGN})
         target_compile_features(${test_target_name}_dpcpp PRIVATE cxx_std_17)
         target_compile_options(${test_target_name}_dpcpp PRIVATE ${GINKGO_DPCPP_FLAGS})
         # We need to use a new file to avoid sycl setting in other backends because add_sycl_to_target will change the source property.

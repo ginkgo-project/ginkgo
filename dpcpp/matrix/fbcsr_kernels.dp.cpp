@@ -58,7 +58,7 @@ namespace fbcsr {
 
 
 template <typename ValueType, typename IndexType>
-void spmv(std::shared_ptr<const DpcppExecutor> exec,
+void spmv(std::shared_ptr<const SyclExecutor> exec,
           const matrix::Fbcsr<ValueType, IndexType>* a,
           const matrix::Dense<ValueType>* b,
           matrix::Dense<ValueType>* c) GKO_NOT_IMPLEMENTED;
@@ -67,7 +67,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FBCSR_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
+void advanced_spmv(std::shared_ptr<const SyclExecutor> exec,
                    const matrix::Dense<ValueType>* alpha,
                    const matrix::Fbcsr<ValueType, IndexType>* a,
                    const matrix::Dense<ValueType>* b,
@@ -90,7 +90,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void fill_in_dense(std::shared_ptr<const DpcppExecutor> exec,
+void fill_in_dense(std::shared_ptr<const SyclExecutor> exec,
                    const matrix::Fbcsr<ValueType, IndexType>* source,
                    matrix::Dense<ValueType>* result) GKO_NOT_IMPLEMENTED;
 
@@ -99,7 +99,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_csr(const std::shared_ptr<const DpcppExecutor> exec,
+void convert_to_csr(const std::shared_ptr<const SyclExecutor> exec,
                     const matrix::Fbcsr<ValueType, IndexType>* const source,
                     matrix::Csr<ValueType, IndexType>* const result)
     GKO_NOT_IMPLEMENTED;
@@ -109,7 +109,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void transpose(std::shared_ptr<const DpcppExecutor> exec,
+void transpose(std::shared_ptr<const SyclExecutor> exec,
                const matrix::Fbcsr<ValueType, IndexType>* orig,
                matrix::Fbcsr<ValueType, IndexType>* trans) GKO_NOT_IMPLEMENTED;
 
@@ -118,7 +118,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void conj_transpose(std::shared_ptr<const DpcppExecutor> exec,
+void conj_transpose(std::shared_ptr<const SyclExecutor> exec,
                     const matrix::Fbcsr<ValueType, IndexType>* orig,
                     matrix::Fbcsr<ValueType, IndexType>* trans)
     GKO_NOT_IMPLEMENTED;
@@ -129,7 +129,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
-    std::shared_ptr<const DpcppExecutor> exec,
+    std::shared_ptr<const SyclExecutor> exec,
     const matrix::Fbcsr<ValueType, IndexType>* to_check,
     bool* is_sorted) GKO_NOT_IMPLEMENTED;
 
@@ -138,7 +138,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void sort_by_column_index(const std::shared_ptr<const DpcppExecutor> exec,
+void sort_by_column_index(const std::shared_ptr<const SyclExecutor> exec,
                           matrix::Fbcsr<ValueType, IndexType>* const to_sort)
     GKO_NOT_IMPLEMENTED;
 
@@ -147,7 +147,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void extract_diagonal(std::shared_ptr<const DpcppExecutor> exec,
+void extract_diagonal(std::shared_ptr<const SyclExecutor> exec,
                       const matrix::Fbcsr<ValueType, IndexType>* orig,
                       matrix::Diagonal<ValueType>* diag) GKO_NOT_IMPLEMENTED;
 

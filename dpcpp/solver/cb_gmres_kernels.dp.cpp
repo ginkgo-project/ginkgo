@@ -248,7 +248,7 @@ void multinorm2_kernel(
     local_res = reduction_helper[tidy * (default_dot_dim + 1) + tidx];
     const auto tile_block = group::tiled_partition<default_dot_dim>(
         group::this_thread_block(item_ct1));
-    const auto sum = ::gko::kernels::dpcpp::reduce(
+    const auto sum = ::gko::kernels::sycl::reduce(
         tile_block, local_res,
         [](const rc_vtype& a, const rc_vtype& b) { return a + b; });
     const auto new_col_idx = item_ct1.get_group(2) * default_dot_dim + tidy;
@@ -326,7 +326,7 @@ void multinorminf_without_stop_kernel(
     local_max = reduction_helper[tidy * (default_dot_dim + 1) + tidx];
     const auto tile_block = group::tiled_partition<default_dot_dim>(
         group::this_thread_block(item_ct1));
-    const auto value = ::gko::kernels::dpcpp::reduce(
+    const auto value = ::gko::kernels::sycl::reduce(
         tile_block, local_max, [](const rc_vtype& a, const rc_vtype& b) {
             return ((a >= b) ? a : b);
         });
@@ -417,13 +417,13 @@ void multinorm2_inf_kernel(
     local_res = reduction_helper_add[tidy * (default_dot_dim + 1) + tidx];
     const auto tile_block = group::tiled_partition<default_dot_dim>(
         group::this_thread_block(item_ct1));
-    const auto sum = ::gko::kernels::dpcpp::reduce(
+    const auto sum = ::gko::kernels::sycl::reduce(
         tile_block, local_res,
         [](const rc_vtype& a, const rc_vtype& b) { return a + b; });
     rc_vtype reduced_max{};
     if (compute_inf) {
         local_max = reduction_helper_max[tidy * (default_dot_dim + 1) + tidx];
-        reduced_max = ::gko::kernels::dpcpp::reduce(
+        reduced_max = ::gko::kernels::sycl::reduce(
             tile_block, local_max, [](const rc_vtype& a, const rc_vtype& b) {
                 return ((a >= b) ? a : b);
             });
@@ -521,7 +521,7 @@ void multidot_kernel(
     const auto new_col_idx =
         item_ct1.get_group(2) * item_ct1.get_local_range().get(2) + tidy;
     const auto tile_block = group::tiled_partition<dot_dim>(thread_block);
-    const auto sum = ::gko::kernels::dpcpp::reduce(
+    const auto sum = ::gko::kernels::sycl::reduce(
         tile_block, local_res,
         [](const ValueType& a, const ValueType& b) { return a + b; });
     if (tidx == 0 && new_col_idx < num_cols &&
@@ -604,7 +604,7 @@ void singledot_kernel(
     reduction_helper[tidx] = local_res;
     auto thread_block = group::this_thread_block(item_ct1);
     thread_block.sync();
-    ::gko::kernels::dpcpp::reduce(
+    ::gko::kernels::sycl::reduce(
         thread_block, reduction_helper,
         [](const ValueType& a, const ValueType& b) { return a + b; });
     if (tidx == 0 && !stop_status[col_idx].has_stopped()) {
@@ -947,7 +947,7 @@ void calculate_Qy_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
 
 template <typename ValueType>
-void zero_matrix(std::shared_ptr<const DpcppExecutor> exec, size_type m,
+void zero_matrix(std::shared_ptr<const SyclExecutor> exec, size_type m,
                  size_type n, size_type stride, ValueType* array)
 {
     const dim3 block_size(default_block_size, 1, 1);
@@ -958,7 +958,7 @@ void zero_matrix(std::shared_ptr<const DpcppExecutor> exec, size_type m,
 
 
 template <typename ValueType>
-void initialize(std::shared_ptr<const DpcppExecutor> exec,
+void initialize(std::shared_ptr<const SyclExecutor> exec,
                 const matrix::Dense<ValueType>* b,
                 matrix::Dense<ValueType>* residual,
                 matrix::Dense<ValueType>* givens_sin,
@@ -984,7 +984,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CB_GMRES_INITIALIZE_KERNEL);
 
 
 template <typename ValueType, typename Accessor3d>
-void restart(std::shared_ptr<const DpcppExecutor> exec,
+void restart(std::shared_ptr<const SyclExecutor> exec,
              const matrix::Dense<ValueType>* residual,
              matrix::Dense<remove_complex<ValueType>>* residual_norm,
              matrix::Dense<ValueType>* residual_norm_collection,
@@ -1012,8 +1012,8 @@ void restart(std::shared_ptr<const DpcppExecutor> exec,
         residual->get_size()[1], krylov_dim, krylov_bases,
         residual_norm_collection->get_values(),
         residual_norm_collection->get_stride());
-    kernels::dpcpp::dense::compute_norm2_dispatch(exec, residual, residual_norm,
-                                                  reduction_tmp);
+    kernels::sycl::dense::compute_norm2_dispatch(exec, residual, residual_norm,
+                                                 reduction_tmp);
 
     if (use_scalar) {
         components::fill_array(exec,
@@ -1054,7 +1054,7 @@ GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_RESTART_KERNEL);
 
 
 template <typename ValueType, typename Accessor3dim>
-void finish_arnoldi_CGS(std::shared_ptr<const DpcppExecutor> exec,
+void finish_arnoldi_CGS(std::shared_ptr<const SyclExecutor> exec,
                         matrix::Dense<ValueType>* next_krylov_basis,
                         Accessor3dim krylov_bases,
                         matrix::Dense<ValueType>* hessenberg_iter,
@@ -1215,7 +1215,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const DpcppExecutor> exec,
 }
 
 template <typename ValueType>
-void givens_rotation(std::shared_ptr<const DpcppExecutor> exec,
+void givens_rotation(std::shared_ptr<const SyclExecutor> exec,
                      matrix::Dense<ValueType>* givens_sin,
                      matrix::Dense<ValueType>* givens_cos,
                      matrix::Dense<ValueType>* hessenberg_iter,
@@ -1242,7 +1242,7 @@ void givens_rotation(std::shared_ptr<const DpcppExecutor> exec,
 
 
 template <typename ValueType, typename Accessor3d>
-void arnoldi(std::shared_ptr<const DpcppExecutor> exec,
+void arnoldi(std::shared_ptr<const SyclExecutor> exec,
              matrix::Dense<ValueType>* next_krylov_basis,
              matrix::Dense<ValueType>* givens_sin,
              matrix::Dense<ValueType>* givens_cos,
@@ -1274,7 +1274,7 @@ GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_ARNOLDI_KERNEL);
 
 template <typename ValueType>
 void solve_upper_triangular(
-    std::shared_ptr<const DpcppExecutor> exec,
+    std::shared_ptr<const SyclExecutor> exec,
     const matrix::Dense<ValueType>* residual_norm_collection,
     const matrix::Dense<ValueType>* hessenberg, matrix::Dense<ValueType>* y,
     const array<size_type>* final_iter_nums)
@@ -1296,7 +1296,7 @@ void solve_upper_triangular(
 
 
 template <typename ValueType, typename ConstAccessor3d>
-void calculate_qy(std::shared_ptr<const DpcppExecutor> exec,
+void calculate_qy(std::shared_ptr<const SyclExecutor> exec,
                   ConstAccessor3d krylov_bases, size_type num_krylov_bases,
                   const matrix::Dense<ValueType>* y,
                   matrix::Dense<ValueType>* before_preconditioner,
@@ -1326,7 +1326,7 @@ void calculate_qy(std::shared_ptr<const DpcppExecutor> exec,
 
 
 template <typename ValueType, typename ConstAccessor3d>
-void solve_krylov(std::shared_ptr<const DpcppExecutor> exec,
+void solve_krylov(std::shared_ptr<const SyclExecutor> exec,
                   const matrix::Dense<ValueType>* residual_norm_collection,
                   ConstAccessor3d krylov_bases,
                   const matrix::Dense<ValueType>* hessenberg,

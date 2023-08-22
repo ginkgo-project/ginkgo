@@ -52,23 +52,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class DpcppExecutor : public ::testing::Test {
+class SyclExecutor : public ::testing::Test {
 protected:
-    DpcppExecutor()
-        : ref(gko::ReferenceExecutor::create()), dpcpp(nullptr), dpcpp2(nullptr)
+    SyclExecutor()
+        : ref(gko::ReferenceExecutor::create()), sycl(nullptr), sycl2(nullptr)
     {}
 
     void SetUp()
     {
-        if (gko::DpcppExecutor::get_num_devices("gpu") > 0) {
-            dpcpp = gko::DpcppExecutor::create(0, ref, "gpu");
-            if (gko::DpcppExecutor::get_num_devices("gpu") > 1) {
-                dpcpp2 = gko::DpcppExecutor::create(1, ref, "gpu");
+        if (gko::SyclExecutor::get_num_devices("gpu") > 0) {
+            sycl = gko::SyclExecutor::create(0, ref, "gpu");
+            if (gko::SyclExecutor::get_num_devices("gpu") > 1) {
+                sycl2 = gko::SyclExecutor::create(1, ref, "gpu");
             }
-        } else if (gko::DpcppExecutor::get_num_devices("cpu") > 0) {
-            dpcpp = gko::DpcppExecutor::create(0, ref, "cpu");
-            if (gko::DpcppExecutor::get_num_devices("cpu") > 1) {
-                dpcpp2 = gko::DpcppExecutor::create(1, ref, "cpu");
+        } else if (gko::SyclExecutor::get_num_devices("cpu") > 0) {
+            sycl = gko::SyclExecutor::create(0, ref, "cpu");
+            if (gko::SyclExecutor::get_num_devices("cpu") > 1) {
+                sycl2 = gko::SyclExecutor::create(1, ref, "cpu");
             }
         } else {
             GKO_NOT_IMPLEMENTED;
@@ -78,104 +78,104 @@ protected:
     void TearDown()
     {
         // ensure that previous calls finished and didn't throw an error
-        ASSERT_NO_THROW(dpcpp->synchronize());
-        if (dpcpp2 != nullptr) {
-            ASSERT_NO_THROW(dpcpp2->synchronize());
+        ASSERT_NO_THROW(sycl->synchronize());
+        if (sycl2 != nullptr) {
+            ASSERT_NO_THROW(sycl2->synchronize());
         }
     }
 
     std::shared_ptr<gko::Executor> ref{};
-    std::shared_ptr<const gko::DpcppExecutor> dpcpp{};
-    std::shared_ptr<const gko::DpcppExecutor> dpcpp2{};
+    std::shared_ptr<const gko::SyclExecutor> sycl{};
+    std::shared_ptr<const gko::SyclExecutor> sycl2{};
 };
 
 
-TEST_F(DpcppExecutor, CanInstantiateTwoExecutorsOnOneDevice)
+TEST_F(SyclExecutor, CanInstantiateTwoExecutorsOnOneDevice)
 {
-    auto dpcpp = gko::DpcppExecutor::create(0, ref);
-    if (dpcpp2 != nullptr) {
-        auto dpcpp2 = gko::DpcppExecutor::create(0, ref);
+    auto sycl = gko::SyclExecutor::create(0, ref);
+    if (sycl2 != nullptr) {
+        auto sycl2 = gko::SyclExecutor::create(0, ref);
     }
 
     // We want automatic deinitialization to not create any error
 }
 
 
-TEST_F(DpcppExecutor, CanGetExecInfo)
+TEST_F(SyclExecutor, CanGetExecInfo)
 {
-    dpcpp = gko::DpcppExecutor::create(0, ref);
+    sycl = gko::SyclExecutor::create(0, ref);
 
-    ASSERT_TRUE(dpcpp->get_num_computing_units() > 0);
-    ASSERT_TRUE(dpcpp->get_subgroup_sizes().size() > 0);
-    ASSERT_TRUE(dpcpp->get_max_workitem_sizes().size() > 0);
-    ASSERT_TRUE(dpcpp->get_max_workgroup_size() > 0);
-    ASSERT_TRUE(dpcpp->get_max_subgroup_size() > 0);
+    ASSERT_TRUE(sycl->get_num_computing_units() > 0);
+    ASSERT_TRUE(sycl->get_subgroup_sizes().size() > 0);
+    ASSERT_TRUE(sycl->get_max_workitem_sizes().size() > 0);
+    ASSERT_TRUE(sycl->get_max_workgroup_size() > 0);
+    ASSERT_TRUE(sycl->get_max_subgroup_size() > 0);
 }
 
 
-TEST_F(DpcppExecutor, KnowsNumberOfDevicesOfTypeAll)
+TEST_F(SyclExecutor, KnowsNumberOfDevicesOfTypeAll)
 {
     auto count = sycl::device::get_devices(sycl::info::device_type::all).size();
 
-    auto num_devices = gko::DpcppExecutor::get_num_devices("all");
+    auto num_devices = gko::SyclExecutor::get_num_devices("all");
 
     ASSERT_EQ(count, num_devices);
 }
 
 
-TEST_F(DpcppExecutor, KnowsNumberOfDevicesOfTypeCPU)
+TEST_F(SyclExecutor, KnowsNumberOfDevicesOfTypeCPU)
 {
     auto count = sycl::device::get_devices(sycl::info::device_type::cpu).size();
 
-    auto num_devices = gko::DpcppExecutor::get_num_devices("cpu");
+    auto num_devices = gko::SyclExecutor::get_num_devices("cpu");
 
     ASSERT_EQ(count, num_devices);
 }
 
 
-TEST_F(DpcppExecutor, KnowsNumberOfDevicesOfTypeGPU)
+TEST_F(SyclExecutor, KnowsNumberOfDevicesOfTypeGPU)
 {
     auto count = sycl::device::get_devices(sycl::info::device_type::gpu).size();
 
-    auto num_devices = gko::DpcppExecutor::get_num_devices("gpu");
+    auto num_devices = gko::SyclExecutor::get_num_devices("gpu");
 
     ASSERT_EQ(count, num_devices);
 }
 
 
-TEST_F(DpcppExecutor, KnowsNumberOfDevicesOfTypeAccelerator)
+TEST_F(SyclExecutor, KnowsNumberOfDevicesOfTypeAccelerator)
 {
     auto count =
         sycl::device::get_devices(sycl::info::device_type::accelerator).size();
 
-    auto num_devices = gko::DpcppExecutor::get_num_devices("accelerator");
+    auto num_devices = gko::SyclExecutor::get_num_devices("accelerator");
 
     ASSERT_EQ(count, num_devices);
 }
 
 
-TEST_F(DpcppExecutor, AllocatesAndFreesMemory)
+TEST_F(SyclExecutor, AllocatesAndFreesMemory)
 {
     int* ptr = nullptr;
 
-    ASSERT_NO_THROW(ptr = dpcpp->alloc<int>(2));
-    ASSERT_NO_THROW(dpcpp->free(ptr));
+    ASSERT_NO_THROW(ptr = sycl->alloc<int>(2));
+    ASSERT_NO_THROW(sycl->free(ptr));
 }
 
 
-TEST_F(DpcppExecutor, FailsWhenOverallocating)
+TEST_F(SyclExecutor, FailsWhenOverallocating)
 {
     const gko::size_type num_elems = 1ll << 50;  // 4PB of integers
     int* ptr = nullptr;
 
     ASSERT_THROW(
         {
-            ptr = dpcpp->alloc<int>(num_elems);
-            dpcpp->synchronize();
+            ptr = sycl->alloc<int>(num_elems);
+            sycl->synchronize();
         },
         gko::AllocationError);
 
-    dpcpp->free(ptr);
+    sycl->free(ptr);
 }
 
 
@@ -187,24 +187,24 @@ void check_data(int* data, bool* result)
     }
 }
 
-TEST_F(DpcppExecutor, CopiesDataToCPU)
+TEST_F(SyclExecutor, CopiesDataToCPU)
 {
     int orig[] = {3, 8};
-    auto* copy = dpcpp->alloc<int>(2);
+    auto* copy = sycl->alloc<int>(2);
     gko::array<bool> is_set(ref, 1);
 
-    dpcpp->copy_from(ref, 2, orig, copy);
+    sycl->copy_from(ref, 2, orig, copy);
 
-    is_set.set_executor(dpcpp);
-    ASSERT_NO_THROW(dpcpp->synchronize());
-    ASSERT_NO_THROW(dpcpp->get_queue()->submit([&](sycl::handler& cgh) {
+    is_set.set_executor(sycl);
+    ASSERT_NO_THROW(sycl->synchronize());
+    ASSERT_NO_THROW(sycl->get_queue()->submit([&](sycl::handler& cgh) {
         auto* is_set_ptr = is_set.get_data();
         cgh.single_task([=]() { check_data(copy, is_set_ptr); });
     }));
     is_set.set_executor(ref);
     ASSERT_EQ(*is_set.get_data(), true);
-    ASSERT_NO_THROW(dpcpp->synchronize());
-    dpcpp->free(copy);
+    ASSERT_NO_THROW(sycl->synchronize());
+    sycl->free(copy);
 }
 
 void init_data(int* data)
@@ -213,79 +213,78 @@ void init_data(int* data)
     data[1] = 8;
 }
 
-TEST_F(DpcppExecutor, CopiesDataFromCPU)
+TEST_F(SyclExecutor, CopiesDataFromCPU)
 {
     int copy[2];
-    auto orig = dpcpp->alloc<int>(2);
-    dpcpp->get_queue()->submit([&](sycl::handler& cgh) {
+    auto orig = sycl->alloc<int>(2);
+    sycl->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.single_task([=]() { init_data(orig); });
     });
 
-    ref->copy_from(dpcpp, 2, orig, copy);
+    ref->copy_from(sycl, 2, orig, copy);
 
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);
-    dpcpp->free(orig);
+    sycl->free(orig);
 }
 
 
-TEST_F(DpcppExecutor, CopiesDataFromDpcppToDpcpp)
+TEST_F(SyclExecutor, CopiesDataFromSyclToSycl)
 {
-    if (dpcpp2 == nullptr) {
+    if (sycl2 == nullptr) {
         GTEST_SKIP();
     }
 
     int copy[2];
     gko::array<bool> is_set(ref, 1);
-    auto orig = dpcpp->alloc<int>(2);
-    dpcpp->get_queue()->submit([&](sycl::handler& cgh) {
+    auto orig = sycl->alloc<int>(2);
+    sycl->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.single_task([=]() { init_data(orig); });
     });
 
-    auto copy_dpcpp2 = dpcpp2->alloc<int>(2);
-    dpcpp2->copy_from(dpcpp, 2, orig, copy_dpcpp2);
+    auto copy_sycl2 = sycl2->alloc<int>(2);
+    sycl2->copy_from(sycl, 2, orig, copy_sycl2);
     // Check that the data is really on GPU
-    is_set.set_executor(dpcpp2);
-    ASSERT_NO_THROW(dpcpp2->get_queue()->submit([&](sycl::handler& cgh) {
+    is_set.set_executor(sycl2);
+    ASSERT_NO_THROW(sycl2->get_queue()->submit([&](sycl::handler& cgh) {
         auto* is_set_ptr = is_set.get_data();
-        cgh.single_task([=]() { check_data(copy_dpcpp2, is_set_ptr); });
+        cgh.single_task([=]() { check_data(copy_sycl2, is_set_ptr); });
     }));
     is_set.set_executor(ref);
     ASSERT_EQ(*is_set.get_data(), true);
 
     // Put the results on OpenMP and run CPU side assertions
-    ref->copy_from(dpcpp2, 2, copy_dpcpp2, copy);
+    ref->copy_from(sycl2, 2, copy_sycl2, copy);
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);
-    dpcpp2->free(copy_dpcpp2);
-    dpcpp->free(orig);
+    sycl2->free(copy_sycl2);
+    sycl->free(orig);
 }
 
 
-TEST_F(DpcppExecutor, Synchronizes)
+TEST_F(SyclExecutor, Synchronizes)
 {
     // Todo design a proper unit test once we support streams
-    ASSERT_NO_THROW(dpcpp->synchronize());
+    ASSERT_NO_THROW(sycl->synchronize());
 }
 
 
-TEST_F(DpcppExecutor, FreeAfterKernel)
+TEST_F(SyclExecutor, FreeAfterKernel)
 {
     size_t length = 10000;
-    auto dpcpp =
-        gko::DpcppExecutor::create(0, gko::ReferenceExecutor::create());
+    auto sycl = gko::SyclExecutor::create(0, gko::ReferenceExecutor::create());
     {
-        gko::array<float> x(dpcpp, length);
-        gko::array<float> y(dpcpp, length);
+        gko::array<float> x(sycl, length);
+        gko::array<float> y(sycl, length);
         auto x_val = x.get_data();
         auto y_val = y.get_data();
-        dpcpp->get_queue()->submit([&](sycl::handler& cgh) {
+        sycl->get_queue()->submit([&](sycl::handler& cgh) {
             cgh.parallel_for(sycl::range<1>{length},
                              [=](sycl::id<1> i) { y_val[i] += x_val[i]; });
         });
     }
     // to ensure everything on queue is finished.
-    dpcpp->synchronize();
+    sycl->synchronize();
 }
 
 

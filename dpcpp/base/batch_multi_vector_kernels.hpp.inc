@@ -92,7 +92,7 @@ __dpct_inline__ void compute_gen_dot_product_kernel(
                    y.values[r * y.stride + rhs_index];
         }
 
-        val = ::gko::kernels::dpcpp::reduce(
+        val = ::gko::kernels::sycl::reduce(
             subg, val, [](ValueType a, ValueType b) { return a + b; });
 
         if (subgroup.get_local_id() == 0) {
@@ -126,7 +126,7 @@ __dpct_inline__ void compute_norm2_kernel(
              r += subgroup_size)
             val += squared_norm(x.values[r * x.stride + rhs_index]);
 
-        val = ::gko::kernels::dpcpp::reduce(
+        val = ::gko::kernels::sycl::reduce(
             subg, val, [](real_type a, real_type b) { return a + b; });
 
         if (subgroup.get_local_id() == 0) {

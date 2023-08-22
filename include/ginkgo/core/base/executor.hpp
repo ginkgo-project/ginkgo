@@ -123,11 +123,14 @@ constexpr allocation_mode default_hip_alloc_mode =
 }  // namespace gko
 
 
+namespace gko {
+
+
 /**
- * The enum class is for the dpcpp queue property. It's legal to use a binary
+ * The enum class is for the sycl queue property. It's legal to use a binary
  * or(|) operation to combine several properties.
  */
-enum class dpcpp_queue_property {
+enum class sycl_queue_property {
     /**
      * queue executes in order
      */
@@ -139,12 +142,19 @@ enum class dpcpp_queue_property {
     enable_profiling = 2
 };
 
-GKO_ATTRIBUTES GKO_INLINE dpcpp_queue_property operator|(dpcpp_queue_property a,
-                                                         dpcpp_queue_property b)
+GKO_ATTRIBUTES GKO_INLINE sycl_queue_property operator|(sycl_queue_property a,
+                                                        sycl_queue_property b)
 {
-    return static_cast<dpcpp_queue_property>(static_cast<int>(a) |
-                                             static_cast<int>(b));
+    return static_cast<sycl_queue_property>(static_cast<int>(a) |
+                                            static_cast<int>(b));
 }
+
+
+}  // namespace gko
+
+
+using dpcpp_queue_property [[deprecated("using gko::sycl_queue_property")]] =
+    gko::sycl_queue_property;
 
 
 namespace gko {
@@ -206,7 +216,7 @@ class ExecutorBase;
  *     void run(const gko::HipExecutor *exec) const override
  *     { os_ << "HIP(" << exec->get_device_id() << ")"; }
  *
- *     void run(const gko::DpcppExecutor *exec) const override
+ *     void run(const gko::SyclExecutor *exec) const override
  *     { os_ << "DPC++(" << exec->get_device_id() << ")"; }
  *
  *     // This is optional, if not overloaded, defaults to OmpExecutor overload
@@ -237,7 +247,7 @@ class ExecutorBase;
  * std::cout << *omp << std::endl
  *           << *gko::CudaExecutor::create(0, omp) << std::endl
  *           << *gko::HipExecutor::create(0, omp) << std::endl
- *           << *gko::DpcppExecutor::create(0, omp) << std::endl
+ *           << *gko::SyclExecutor::create(0, omp) << std::endl
  *           << *gko::ReferenceExecutor::create() << std::endl;
  * ```
  *
@@ -272,7 +282,7 @@ class ExecutorBase;
  *                         .get_device_id()
  *                    << ")"; });
  *         [&]() { os << "DPC++("    // DPC++ closure
- *                    << static_cast<gko::DpcppExecutor&>(exec)
+ *                    << static_cast<gko::SyclExecutor&>(exec)
  *                         .get_device_id()
  *                    << ")"; });
  *     return os;
@@ -352,7 +362,7 @@ public:
         op_(exec);
     }
 
-    void run(std::shared_ptr<const DpcppExecutor> exec) const override
+    void run(std::shared_ptr<const SyclExecutor> exec) const override
     {
         op_(exec);
     }
@@ -382,7 +392,7 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
  * kernel when the operation is executed.
  *
  * The kernels used to bind the operation are searched in `kernels::DEV_TYPE`
- * namespace, where `DEV_TYPE` is replaced by `omp`, `cuda`, `hip`, `dpcpp` and
+ * namespace, where `DEV_TYPE` is replaced by `omp`, `cuda`, `hip`, `sycl` and
  * `reference`.
  *
  * @param _name  operation name
@@ -412,7 +422,7 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
  * }
  * namespace sycl {
  * void my_kernel(int x) {
- *      // dpcpp code
+ *      // sycl code
  * }
  * }
  * namespace reference {
@@ -429,7 +439,7 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
  *     auto omp = OmpExecutor::create();
  *     auto cuda = CudaExecutor::create(0, omp);
  *     auto hip = HipExecutor::create(0, omp);
- *     auto dpcpp = DpcppExecutor::create(0, omp);
+ *     auto sycl = SyclExecutor::create(0, omp);
  *     auto ref = ReferenceExecutor::create();
  *
  *     // create the operation
@@ -438,67 +448,67 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
  *     omp->run(op);  // run omp kernel
  *     cuda->run(op);  // run cuda kernel
  *     hip->run(op);  // run hip kernel
- *     dpcpp->run(op);  // run DPC++ kernel
+ *     sycl->run(op);  // run DPC++ kernel
  *     ref->run(op);  // run reference kernel
  * }
  * ```
  *
  * @ingroup Executor
  */
-#define GKO_REGISTER_OPERATION(_name, _kernel)                                 \
-    template <typename... Args>                                                \
-    auto make_##_name(Args&&... args)                                          \
-    {                                                                          \
-        return ::gko::detail::make_register_operation(                         \
-            #_kernel, [&args...](auto exec) {                                  \
-                using exec_type = decltype(exec);                              \
-                if (std::is_same<                                              \
-                        exec_type,                                             \
-                        std::shared_ptr<const ::gko::ReferenceExecutor>>::     \
-                        value) {                                               \
-                    ::gko::kernels::reference::_kernel(                        \
-                        std::dynamic_pointer_cast<                             \
-                            const ::gko::ReferenceExecutor>(exec),             \
-                        std::forward<Args>(args)...);                          \
-                } else if (std::is_same<                                       \
-                               exec_type,                                      \
-                               std::shared_ptr<const ::gko::OmpExecutor>>::    \
-                               value) {                                        \
-                    ::gko::kernels::omp::_kernel(                              \
-                        std::dynamic_pointer_cast<const ::gko::OmpExecutor>(   \
-                            exec),                                             \
-                        std::forward<Args>(args)...);                          \
-                } else if (std::is_same<                                       \
-                               exec_type,                                      \
-                               std::shared_ptr<const ::gko::CudaExecutor>>::   \
-                               value) {                                        \
-                    ::gko::kernels::cuda::_kernel(                             \
-                        std::dynamic_pointer_cast<const ::gko::CudaExecutor>(  \
-                            exec),                                             \
-                        std::forward<Args>(args)...);                          \
-                } else if (std::is_same<                                       \
-                               exec_type,                                      \
-                               std::shared_ptr<const ::gko::HipExecutor>>::    \
-                               value) {                                        \
-                    ::gko::kernels::hip::_kernel(                              \
-                        std::dynamic_pointer_cast<const ::gko::HipExecutor>(   \
-                            exec),                                             \
-                        std::forward<Args>(args)...);                          \
-                } else if (std::is_same<                                       \
-                               exec_type,                                      \
-                               std::shared_ptr<const ::gko::DpcppExecutor>>::  \
-                               value) {                                        \
-                    ::gko::kernels::dpcpp::_kernel(                            \
-                        std::dynamic_pointer_cast<const ::gko::DpcppExecutor>( \
-                            exec),                                             \
-                        std::forward<Args>(args)...);                          \
-                } else {                                                       \
-                    GKO_NOT_IMPLEMENTED;                                       \
-                }                                                              \
-            });                                                                \
-    }                                                                          \
-    static_assert(true,                                                        \
-                  "This assert is used to counter the false positive extra "   \
+#define GKO_REGISTER_OPERATION(_name, _kernel)                                \
+    template <typename... Args>                                               \
+    auto make_##_name(Args&&... args)                                         \
+    {                                                                         \
+        return ::gko::detail::make_register_operation(                        \
+            #_kernel, [&args...](auto exec) {                                 \
+                using exec_type = decltype(exec);                             \
+                if (std::is_same<                                             \
+                        exec_type,                                            \
+                        std::shared_ptr<const ::gko::ReferenceExecutor>>::    \
+                        value) {                                              \
+                    ::gko::kernels::reference::_kernel(                       \
+                        std::dynamic_pointer_cast<                            \
+                            const ::gko::ReferenceExecutor>(exec),            \
+                        std::forward<Args>(args)...);                         \
+                } else if (std::is_same<                                      \
+                               exec_type,                                     \
+                               std::shared_ptr<const ::gko::OmpExecutor>>::   \
+                               value) {                                       \
+                    ::gko::kernels::omp::_kernel(                             \
+                        std::dynamic_pointer_cast<const ::gko::OmpExecutor>(  \
+                            exec),                                            \
+                        std::forward<Args>(args)...);                         \
+                } else if (std::is_same<                                      \
+                               exec_type,                                     \
+                               std::shared_ptr<const ::gko::CudaExecutor>>::  \
+                               value) {                                       \
+                    ::gko::kernels::cuda::_kernel(                            \
+                        std::dynamic_pointer_cast<const ::gko::CudaExecutor>( \
+                            exec),                                            \
+                        std::forward<Args>(args)...);                         \
+                } else if (std::is_same<                                      \
+                               exec_type,                                     \
+                               std::shared_ptr<const ::gko::HipExecutor>>::   \
+                               value) {                                       \
+                    ::gko::kernels::hip::_kernel(                             \
+                        std::dynamic_pointer_cast<const ::gko::HipExecutor>(  \
+                            exec),                                            \
+                        std::forward<Args>(args)...);                         \
+                } else if (std::is_same<                                      \
+                               exec_type,                                     \
+                               std::shared_ptr<const ::gko::SyclExecutor>>::  \
+                               value) {                                       \
+                    ::gko::kernels::sycl::_kernel(                            \
+                        std::dynamic_pointer_cast<const ::gko::SyclExecutor>( \
+                            exec),                                            \
+                        std::forward<Args>(args)...);                         \
+                } else {                                                      \
+                    GKO_NOT_IMPLEMENTED;                                      \
+                }                                                             \
+            });                                                               \
+    }                                                                         \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
                   "semi-colon warnings")
 
 
@@ -566,7 +576,7 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
  *      operations executed on the NVIDIA GPU accelerator;
  * +    HipExecutor specifies that the data should be stored and the
  *      operations executed on either an NVIDIA or AMD GPU accelerator;
- * +    DpcppExecutor specifies that the data should be stored and the
+ * +    SyclExecutor specifies that the data should be stored and the
  *      operations executed on an hardware supporting DPC++;
  * +    ReferenceExecutor executes a non-optimized reference implementation,
  *      which can be used to debug the library.
@@ -670,21 +680,21 @@ public:
      * @tparam ClosureOmp  type of op_omp
      * @tparam ClosureCuda  type of op_cuda
      * @tparam ClosureHip  type of op_hip
-     * @tparam ClosureDpcpp  type of op_dpcpp
+     * @tparam ClosureSycl  type of op_sycl
      *
      * @param op_omp  functor to run in case of a OmpExecutor or
      *                ReferenceExecutor
      * @param op_cuda  functor to run in case of a CudaExecutor
      * @param op_hip  functor to run in case of a HipExecutor
-     * @param op_dpcpp  functor to run in case of a DpcppExecutor
+     * @param op_sycl  functor to run in case of a SyclExecutor
      */
     template <typename ClosureOmp, typename ClosureCuda, typename ClosureHip,
-              typename ClosureDpcpp>
+              typename ClosureSycl>
     void run(const ClosureOmp& op_omp, const ClosureCuda& op_cuda,
-             const ClosureHip& op_hip, const ClosureDpcpp& op_dpcpp) const
+             const ClosureHip& op_hip, const ClosureSycl& op_sycl) const
     {
-        LambdaOperation<ClosureOmp, ClosureCuda, ClosureHip, ClosureDpcpp> op(
-            op_omp, op_cuda, op_hip, op_dpcpp);
+        LambdaOperation<ClosureOmp, ClosureCuda, ClosureHip, ClosureSycl> op(
+            op_omp, op_cuda, op_hip, op_sycl);
         this->run(op);
     }
 
@@ -906,7 +916,7 @@ protected:
         int device_id = -1;
 
         /**
-         * The type of the device, relevant only for the dpcpp executor.
+         * The type of the device, relevant only for the sycl executor.
          */
         std::string device_type;
 
@@ -920,7 +930,7 @@ protected:
          *
          * @note In CPU executors this is equivalent to the number of cores.
          *       In CUDA and HIP executors this is the number of Streaming
-         *       Multiprocessors. In DPCPP, this is the number of computing
+         *       Multiprocessors. In SYCL, this is the number of computing
          *       units.
          */
         int num_computing_units = -1;
@@ -932,7 +942,7 @@ protected:
          *       per core.
          *       In CUDA and HIP executors this is the number of warps
          *       per SM.
-         *       In DPCPP, this is currently number of hardware threads per eu.
+         *       In SYCL, this is currently number of hardware threads per eu.
          *       If the device does not support, it will be set as 1.
          *       (TODO: check)
          */
@@ -943,8 +953,8 @@ protected:
          *
          * @note In CPU executors this is invalid.
          *       In CUDA and HIP executors this is invalid.
-         *       In DPCPP, this is the subgroup sizes for the device associated
-         *       with the dpcpp executor.
+         *       In SYCL, this is the subgroup sizes for the device associated
+         *       with the sycl executor.
          */
         std::vector<int> subgroup_sizes{};
 
@@ -953,8 +963,8 @@ protected:
          *
          * @note In CPU executors this is invalid.
          *       In CUDA and HIP executors this is the warp size.
-         *       In DPCPP, this is the maximum subgroup size for the device
-         *       associated with the dpcpp executor.
+         *       In SYCL, this is the maximum subgroup size for the device
+         *       associated with the sycl executor.
          */
         int max_subgroup_size = -1;
 
@@ -964,9 +974,9 @@ protected:
          * @note In CPU executors this is invalid.
          *       In CUDA and HIP executors this is the maximum number of threads
          *       in each dimension of a block (x, y, z).
-         *       In DPCPP, this is the maximum number of workitems, in each
+         *       In SYCL, this is the maximum number of workitems, in each
          *       direction of the workgroup for the device associated with the
-         *       dpcpp executor.
+         *       sycl executor.
          */
         std::vector<int> max_workitem_sizes{};
 
@@ -976,7 +986,7 @@ protected:
          * @note In CPU executors this is invalid.
          *       In CUDA and HIP executors this is the maximum number of threads
          *       in block.
-         *       In DPCPP, this is the maximum number of workitems that are
+         *       In SYCL, this is the maximum number of workitems that are
          *       permitted in a workgroup.
          */
         int max_workgroup_size;
@@ -1001,7 +1011,7 @@ protected:
         /**
          * The host processing units closest to the device.
          *
-         * @note Currently only relevant for CUDA, HIP and DPCPP executors.
+         * @note Currently only relevant for CUDA, HIP and SYCL executors.
          *       [Definition from hwloc
          *       documentation:](https://www.open-mpi.org/projects/hwloc/doc/v2.4.0/a00350.php)
          *       "The smallest processing element that can be represented by a
@@ -1123,16 +1133,16 @@ private:
      *
      * The first object is called by the OmpExecutor, the second one by the
      * CudaExecutor, the third one by the HipExecutor and the last one by
-     * the DpcppExecutor. When run on the
+     * the SyclExecutor. When run on the
      * ReferenceExecutor, the implementation will launch the OpenMP version.
      *
      * @tparam ClosureOmp  the type of the first functor
      * @tparam ClosureCuda  the type of the second functor
      * @tparam ClosureHip  the type of the third functor
-     * @tparam ClosureDpcpp  the type of the fourth functor
+     * @tparam ClosureSycl  the type of the fourth functor
      */
     template <typename ClosureOmp, typename ClosureCuda, typename ClosureHip,
-              typename ClosureDpcpp>
+              typename ClosureSycl>
     class LambdaOperation : public Operation {
     public:
         /**
@@ -1142,15 +1152,15 @@ private:
          *                and ReferenceExecutor
          * @param op_cuda  a functor object which will be called by CudaExecutor
          * @param op_hip  a functor object which will be called by HipExecutor
-         * @param op_dpcpp  a functor object which will be called by
-         *                  DpcppExecutor
+         * @param op_sycl  a functor object which will be called by
+         *                  SyclExecutor
          */
         LambdaOperation(const ClosureOmp& op_omp, const ClosureCuda& op_cuda,
-                        const ClosureHip& op_hip, const ClosureDpcpp& op_dpcpp)
+                        const ClosureHip& op_hip, const ClosureSycl& op_sycl)
             : op_omp_(op_omp),
               op_cuda_(op_cuda),
               op_hip_(op_hip),
-              op_dpcpp_(op_dpcpp)
+              op_sycl_(op_sycl)
         {}
 
         void run(std::shared_ptr<const OmpExecutor>) const override
@@ -1173,16 +1183,16 @@ private:
             op_hip_();
         }
 
-        void run(std::shared_ptr<const DpcppExecutor>) const override
+        void run(std::shared_ptr<const SyclExecutor>) const override
         {
-            op_dpcpp_();
+            op_sycl_();
         }
 
     private:
         ClosureOmp op_omp_;
         ClosureCuda op_cuda_;
         ClosureHip op_hip_;
-        ClosureDpcpp op_dpcpp_;
+        ClosureSycl op_sycl_;
     };
 };
 
@@ -1423,7 +1433,7 @@ protected:
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaExecutor, false);
 
-    bool verify_memory_to(const DpcppExecutor* dest_exec) const override;
+    bool verify_memory_to(const SyclExecutor* dest_exec) const override;
 
     std::shared_ptr<CpuAllocatorBase> alloc_;
 };
@@ -1490,7 +1500,7 @@ protected:
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(OmpExecutor, false);
 
-    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(DpcppExecutor, false);
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(SyclExecutor, false);
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaExecutor, false);
 
@@ -1691,7 +1701,7 @@ protected:
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceExecutor, false);
 
-    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(DpcppExecutor, false);
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(SyclExecutor, false);
 
     bool verify_memory_to(const HipExecutor* dest_exec) const override;
 
@@ -1889,7 +1899,7 @@ protected:
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceExecutor, false);
 
-    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(DpcppExecutor, false);
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(SyclExecutor, false);
 
     bool verify_memory_to(const CudaExecutor* dest_exec) const override;
 
@@ -1919,27 +1929,27 @@ using DefaultExecutor = HipExecutor;
 /**
  * This is the Executor subclass which represents a DPC++ enhanced device.
  *
- * @ingroup exec_dpcpp
+ * @ingroup exec_sycl
  * @ingroup Executor
  */
-class DpcppExecutor : public detail::ExecutorBase<DpcppExecutor>,
-                      public std::enable_shared_from_this<DpcppExecutor> {
-    friend class detail::ExecutorBase<DpcppExecutor>;
+class SyclExecutor : public detail::ExecutorBase<SyclExecutor>,
+                     public std::enable_shared_from_this<SyclExecutor> {
+    friend class detail::ExecutorBase<SyclExecutor>;
 
 public:
     /**
-     * Creates a new DpcppExecutor.
+     * Creates a new SyclExecutor.
      *
-     * @param device_id  the DPCPP device id of this device
+     * @param device_id  the SYCL device id of this device
      * @param master  an executor on the host that is used to invoke the device
      *                kernels
      * @param device_type  a string representing the type of device to consider
      *                     (accelerator, cpu, gpu or all).
      */
-    static std::shared_ptr<DpcppExecutor> create(
+    static std::shared_ptr<SyclExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
         std::string device_type = "all",
-        dpcpp_queue_property property = dpcpp_queue_property::in_order);
+        sycl_queue_property property = sycl_queue_property::in_order);
 
     std::shared_ptr<Executor> get_master() noexcept override;
 
@@ -1950,9 +1960,9 @@ public:
     scoped_device_id_guard get_scoped_device_id_guard() const override;
 
     /**
-     * Get the DPCPP device id of the device associated to this executor.
+     * Get the SYCL device id of the device associated to this executor.
      *
-     * @return the DPCPP device id of the device associated to this executor
+     * @return the SYCL device id of the device associated to this executor
      */
     int get_device_id() const noexcept
     {
@@ -2041,12 +2051,11 @@ public:
 
 protected:
     void set_device_property(
-        dpcpp_queue_property property = dpcpp_queue_property::in_order);
+        sycl_queue_property property = sycl_queue_property::in_order);
 
-    DpcppExecutor(
-        int device_id, std::shared_ptr<Executor> master,
-        std::string device_type = "all",
-        dpcpp_queue_property property = dpcpp_queue_property::in_order)
+    SyclExecutor(int device_id, std::shared_ptr<Executor> master,
+                 std::string device_type = "all",
+                 sycl_queue_property property = sycl_queue_property::in_order)
         : master_(master)
     {
         std::for_each(device_type.begin(), device_type.end(),
@@ -2072,7 +2081,7 @@ protected:
 
     bool verify_memory_to(const OmpExecutor* dest_exec) const override;
 
-    bool verify_memory_to(const DpcppExecutor* dest_exec) const override;
+    bool verify_memory_to(const SyclExecutor* dest_exec) const override;
 
 private:
     std::shared_ptr<Executor> master_;
@@ -2083,16 +2092,19 @@ private:
 };
 
 
+using DpcppExecutor [[deprecated("using SyclExecutor")]] = SyclExecutor;
+
+
 namespace kernels {
 namespace sycl {
-using DefaultExecutor = DpcppExecutor;
+using DefaultExecutor = SyclExecutor;
 }  // namespace sycl
 }  // namespace kernels
 
 
 namespace kernels {
 namespace dpcpp {
-using DefaultExecutor [[deprecated("using sycl namespace")]] = DpcppExecutor;
+using DefaultExecutor [[deprecated("using sycl namespace")]] = SyclExecutor;
 }  // namespace dpcpp
 }  // namespace kernels
 

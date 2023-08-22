@@ -76,7 +76,7 @@ void generic_kernel_2d(sycl::handler& cgh, int64 rows, int64 cols,
 
 
 template <typename KernelFunction, typename... KernelArgs>
-void run_kernel(std::shared_ptr<const DpcppExecutor> exec, KernelFunction fn,
+void run_kernel(std::shared_ptr<const SyclExecutor> exec, KernelFunction fn,
                 size_type size, KernelArgs&&... args)
 {
     exec->get_queue()->submit([&](sycl::handler& cgh) {
@@ -86,7 +86,7 @@ void run_kernel(std::shared_ptr<const DpcppExecutor> exec, KernelFunction fn,
 }
 
 template <typename KernelFunction, typename... KernelArgs>
-void run_kernel(std::shared_ptr<const DpcppExecutor> exec, KernelFunction fn,
+void run_kernel(std::shared_ptr<const SyclExecutor> exec, KernelFunction fn,
                 dim<2> size, KernelArgs&&... args)
 {
     exec->get_queue()->submit([&](sycl::handler& cgh) {

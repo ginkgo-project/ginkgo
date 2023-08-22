@@ -129,18 +129,18 @@ int main(int argc, char* argv[])
                  return gko::HipExecutor::create(
                      device_id, gko::ReferenceExecutor::create(), true);
              }},
-            {"dpcpp", [](MPI_Comm comm) {
+            {"sycl", [](MPI_Comm comm) {
                  int device_id = 0;
-                 if (gko::DpcppExecutor::get_num_devices("gpu")) {
+                 if (gko::SyclExecutor::get_num_devices("gpu")) {
                      device_id = gko::experimental::mpi::map_rank_to_device_id(
-                         comm, gko::DpcppExecutor::get_num_devices("gpu"));
-                 } else if (gko::DpcppExecutor::get_num_devices("cpu")) {
+                         comm, gko::SyclExecutor::get_num_devices("gpu"));
+                 } else if (gko::SyclExecutor::get_num_devices("cpu")) {
                      device_id = gko::experimental::mpi::map_rank_to_device_id(
-                         comm, gko::DpcppExecutor::get_num_devices("cpu"));
+                         comm, gko::SyclExecutor::get_num_devices("cpu"));
                  } else {
                      throw std::runtime_error("No suitable DPC++ devices");
                  }
-                 return gko::DpcppExecutor::create(
+                 return gko::SyclExecutor::create(
                      device_id, gko::ReferenceExecutor::create());
              }}};
 

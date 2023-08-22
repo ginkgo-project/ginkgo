@@ -52,7 +52,7 @@ namespace sycl {
 /**
  * Ginkgo uses cooperative groups to handle communication among the threads.
  *
- * However, DPCPP's implementation of cooperative groups is still quite limited
+ * However, SYCL's implementation of cooperative groups is still quite limited
  * in functionality, and some parts are not supported on all hardware
  * interesting for Ginkgo. For this reason, Ginkgo exposes only a part of the
  * original functionality, and possibly extends it if it is required. Thus,
@@ -61,7 +61,7 @@ namespace sycl {
  * by Ginkgo's implementation is equivalent to the standard interface, with some
  * useful extensions.
  *
- * A cooperative group (both from standard DPCPP and from Ginkgo) is not a
+ * A cooperative group (both from standard SYCL and from Ginkgo) is not a
  * specific type, but a concept. That is, any type satisfying the interface
  * imposed by the cooperative groups API is considered a cooperative
  * group (a.k.a. "duck typing"). To maximize the generality of components that
@@ -74,7 +74,7 @@ namespace sycl {
  * Instead, use the thread_rank() method of the group to distinguish between
  * distinct threads of a group.
  *
- * The original DPCPP implementation does not provide ways to verify if a
+ * The original SYCL implementation does not provide ways to verify if a
  * certain type represents a cooperative group. Ginkgo's implementation provides
  * metafunctions which do that. Additionally, not all cooperative groups have
  * equivalent functionality, so Ginkgo splits the cooperative group concept into
@@ -113,7 +113,7 @@ namespace sycl {
  *       to existing cooperative groups, or create new groups if the existing
  *       groups do not cover your use-case. For an example, see the
  *       enable_extended_shuffle mixin, which adds extended shuffles support
- *       to built-in DPCPP cooperative groups.
+ *       to built-in SYCL cooperative groups.
  */
 namespace group {
 
@@ -165,7 +165,7 @@ namespace detail {
 
 
 /**
- * This is a limited implementation of the DPCPP thread_block_tile.
+ * This is a limited implementation of the SYCL thread_block_tile.
  */
 template <unsigned Size>
 class thread_block_tile : public sycl::sub_group {
@@ -435,7 +435,7 @@ struct is_synchronizable_group_impl<thread_block> : std::true_type {};
 
 
 /**
- * This is a limited implementation of the DPCPP grid_group that works even on
+ * This is a limited implementation of the SYCL grid_group that works even on
  * devices that do not support device-wide synchronization and without special
  * kernel launch syntax.
  *
@@ -489,7 +489,7 @@ namespace detail {
 
 template <unsigned Size>
 struct is_sub_group<
-    ::gko::kernels::dpcpp::group::detail::thread_block_tile<Size>>
+    ::gko::kernels::sycl::group::detail::thread_block_tile<Size>>
     : std::true_type {};
 
 
@@ -501,7 +501,7 @@ struct group_scope;
 
 template <unsigned Size>
 struct group_scope<
-    ::gko::kernels::dpcpp::group::detail::thread_block_tile<Size>> {
+    ::gko::kernels::sycl::group::detail::thread_block_tile<Size>> {
     static constexpr __spv::Scope::Flag value = __spv::Scope::Flag::Subgroup;
 };
 

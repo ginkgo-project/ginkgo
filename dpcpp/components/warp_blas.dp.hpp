@@ -348,7 +348,7 @@ __dpct_inline__ void multiply_transposed_vec(
                 mtx_elem =
                     static_cast<VectorValueType>(mtx_row[i * mtx_increment]);
             }
-            const auto out = ::gko::kernels::dpcpp::reduce(
+            const auto out = ::gko::kernels::sycl::reduce(
                 group, mtx_elem * vec,
                 [](VectorValueType x, VectorValueType y) { return x + y; });
             if (group.thread_rank() == 0) {
@@ -460,7 +460,7 @@ __dpct_inline__ remove_complex<ValueType> compute_infinity_norm(
             }
         }
     }
-    return ::gko::kernels::dpcpp::reduce(
+    return ::gko::kernels::sycl::reduce(
         group, sum, [](result_type x, result_type y) { return max(x, y); });
 }
 

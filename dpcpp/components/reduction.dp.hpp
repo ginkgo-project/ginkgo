@@ -110,7 +110,7 @@ __dpct_inline__ int choose_pivot(const Group& group, ValueType local_data,
 {
     using real = remove_complex<ValueType>;
     real lmag = is_pivoted ? -one<real>() : abs(local_data);
-    const auto pivot = ::gko::kernels::dpcpp::reduce(
+    const auto pivot = ::gko::kernels::sycl::reduce(
         group, group.thread_rank(), [&](int lidx, int ridx) {
             const auto rmag = group.shfl(lmag, ridx);
             if (rmag > lmag) {
@@ -155,8 +155,8 @@ void reduce(const Group& __restrict__ group, ValueType* __restrict__ data,
     if (warp_id > 0) {
         return;
     }
-    auto result = ::gko::kernels::dpcpp::reduce(warp, data[warp.thread_rank()],
-                                                reduce_op);
+    auto result =
+        ::gko::kernels::sycl::reduce(warp, data[warp.thread_rank()], reduce_op);
     if (warp.thread_rank() == 0) {
         data[0] = result;
     }
@@ -252,7 +252,7 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(reduce_add_array_call, reduce_add_array_config,
  * @return the reduction result
  */
 template <typename ValueType>
-ValueType reduce_add_array(std::shared_ptr<const DpcppExecutor> exec,
+ValueType reduce_add_array(std::shared_ptr<const SyclExecutor> exec,
                            size_type size, const ValueType* source)
 {
     auto block_results_val = source;

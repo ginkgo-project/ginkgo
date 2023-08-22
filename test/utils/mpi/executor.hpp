@@ -92,17 +92,17 @@ inline void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
 
 
 inline void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                          std::shared_ptr<gko::DpcppExecutor>& exec)
+                          std::shared_ptr<gko::SyclExecutor>& exec)
 {
-    auto num_gpu_devices = gko::DpcppExecutor::get_num_devices("gpu");
-    auto num_cpu_devices = gko::DpcppExecutor::get_num_devices("cpu");
+    auto num_gpu_devices = gko::SyclExecutor::get_num_devices("gpu");
+    auto num_cpu_devices = gko::SyclExecutor::get_num_devices("cpu");
     if (num_gpu_devices > 0) {
-        exec = gko::DpcppExecutor::create(
+        exec = gko::SyclExecutor::create(
             gko::experimental::mpi::map_rank_to_device_id(MPI_COMM_WORLD,
                                                           num_gpu_devices),
             ref, "gpu");
     } else if (num_cpu_devices > 0) {
-        exec = gko::DpcppExecutor::create(
+        exec = gko::SyclExecutor::create(
             gko::experimental::mpi::map_rank_to_device_id(MPI_COMM_WORLD,
                                                           num_cpu_devices),
             ref, "cpu");

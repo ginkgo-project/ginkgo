@@ -57,9 +57,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 /**
- * @brief The DPCPP namespace.
+ * @brief The SYCL namespace.
  *
- * @ingroup dpcpp
+ * @ingroup sycl
  */
 namespace sycl {
 /**
@@ -282,7 +282,7 @@ GKO_ENABLE_DEFAULT_HOST(abstract_spmm, abstract_spmm);
 
 
 template <typename ValueType, typename IndexType>
-void spmv(std::shared_ptr<const DpcppExecutor> exec,
+void spmv(std::shared_ptr<const SyclExecutor> exec,
           const matrix::Coo<ValueType, IndexType>* a,
           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
@@ -294,7 +294,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
+void advanced_spmv(std::shared_ptr<const SyclExecutor> exec,
                    const matrix::Dense<ValueType>* alpha,
                    const matrix::Coo<ValueType, IndexType>* a,
                    const matrix::Dense<ValueType>* b,
@@ -310,7 +310,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void spmv2(std::shared_ptr<const DpcppExecutor> exec,
+void spmv2(std::shared_ptr<const SyclExecutor> exec,
            const matrix::Coo<ValueType, IndexType>* a,
            const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
@@ -346,7 +346,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV2_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spmv2(std::shared_ptr<const DpcppExecutor> exec,
+void advanced_spmv2(std::shared_ptr<const SyclExecutor> exec,
                     const matrix::Dense<ValueType>* alpha,
                     const matrix::Coo<ValueType, IndexType>* a,
                     const matrix::Dense<ValueType>* b,

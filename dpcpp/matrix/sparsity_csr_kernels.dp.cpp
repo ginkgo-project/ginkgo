@@ -97,7 +97,7 @@ void device_classical_spmv(const size_type num_rows,
              ind += subgroup_size) {
             temp_val += value * b(col_idxs[ind], column_id);
         }
-        auto subgroup_result = ::gko::kernels::dpcpp::reduce(
+        auto subgroup_result = ::gko::kernels::sycl::reduce(
             subgroup_tile, temp_val,
             [](const arithmetic_type& a, const arithmetic_type& b) {
                 return a + b;
@@ -193,7 +193,7 @@ namespace host_kernel {
 template <int subgroup_size, typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 void classical_spmv(syn::value_list<int, subgroup_size>,
-                    std::shared_ptr<const DpcppExecutor> exec,
+                    std::shared_ptr<const SyclExecutor> exec,
                     const matrix::SparsityCsr<MatrixValueType, IndexType>* a,
                     const matrix::Dense<InputValueType>* b,
                     matrix::Dense<OutputValueType>* c,
@@ -258,7 +258,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_classical_spmv, classical_spmv);
 
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
-void spmv(std::shared_ptr<const DpcppExecutor> exec,
+void spmv(std::shared_ptr<const SyclExecutor> exec,
           const matrix::SparsityCsr<MatrixValueType, IndexType>* a,
           const matrix::Dense<InputValueType>* b,
           matrix::Dense<OutputValueType>* c)
@@ -274,7 +274,7 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
+void advanced_spmv(std::shared_ptr<const SyclExecutor> exec,
                    const matrix::Dense<MatrixValueType>* alpha,
                    const matrix::SparsityCsr<MatrixValueType, IndexType>* a,
                    const matrix::Dense<InputValueType>* b,
@@ -291,7 +291,7 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void transpose(std::shared_ptr<const DpcppExecutor> exec,
+void transpose(std::shared_ptr<const SyclExecutor> exec,
                const matrix::SparsityCsr<ValueType, IndexType>* orig,
                matrix::SparsityCsr<ValueType, IndexType>* trans)
     GKO_NOT_IMPLEMENTED;
@@ -301,7 +301,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void sort_by_column_index(std::shared_ptr<const DpcppExecutor> exec,
+void sort_by_column_index(std::shared_ptr<const SyclExecutor> exec,
                           matrix::SparsityCsr<ValueType, IndexType>* to_sort)
 {
     const auto num_rows = to_sort->get_size()[0];
@@ -327,7 +327,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
-    std::shared_ptr<const DpcppExecutor> exec,
+    std::shared_ptr<const SyclExecutor> exec,
     const matrix::SparsityCsr<ValueType, IndexType>* to_check, bool* is_sorted)
 {
     *is_sorted = true;

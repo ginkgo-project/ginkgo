@@ -54,7 +54,7 @@ struct config {
     using lane_mask_type = uint64;
 
     /**
-     * The number of threads within a Dpcpp subgroup.
+     * The number of threads within a SYCL subgroup.
      */
     static constexpr uint32 warp_size = 32;
 
@@ -70,7 +70,7 @@ struct config {
     static constexpr uint32 min_warps_per_block = 4;
 
     /**
-     * The default maximal number of threads allowed in DPCPP group
+     * The default maximal number of threads allowed in SYCL group
      */
     static constexpr uint32 max_block_size = 256;
 };

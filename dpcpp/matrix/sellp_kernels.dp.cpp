@@ -135,7 +135,7 @@ GKO_ENABLE_DEFAULT_HOST(advanced_spmv_kernel, advanced_spmv_kernel);
 
 
 template <typename ValueType, typename IndexType>
-void spmv(std::shared_ptr<const DpcppExecutor> exec,
+void spmv(std::shared_ptr<const SyclExecutor> exec,
           const matrix::Sellp<ValueType, IndexType>* a,
           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
@@ -154,7 +154,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SELLP_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
+void advanced_spmv(std::shared_ptr<const SyclExecutor> exec,
                    const matrix::Dense<ValueType>* alpha,
                    const matrix::Sellp<ValueType, IndexType>* a,
                    const matrix::Dense<ValueType>* b,

@@ -188,7 +188,7 @@ namespace detail {
  */
 template <typename ValueType, typename AccuracyType, typename CondType,
           typename Predicate1, typename Predicate2, typename Predicate3>
-GKO_ATTRIBUTES GKO_INLINE uint32 get_supported_storage_reductions_dpcpp(
+GKO_ATTRIBUTES GKO_INLINE uint32 get_supported_storage_reductions_sycl(
     AccuracyType accuracy, CondType cond, Predicate1 verificator1,
     Predicate2 verificator2, Predicate3 verificator3)
 {
@@ -274,8 +274,8 @@ void adaptive_generate(
             preconditioner::detail::precision_reduction_descriptor::singleton(
                 prec);
         if (prec == precision_reduction::autodetect()) {
-            using detail::get_supported_storage_reductions_dpcpp;
-            prec_descriptor = get_supported_storage_reductions_dpcpp<ValueType>(
+            using detail::get_supported_storage_reductions_sycl;
+            prec_descriptor = get_supported_storage_reductions_sycl<ValueType>(
                 accuracy, block_cond,
                 [&subwarp, &block_size, &row, &block_data, &storage_scheme,
                  &block_id] {
@@ -314,8 +314,8 @@ void adaptive_generate(
     // make sure all blocks in the group have the same precision
     const auto warp = group::tiled_partition<config::warp_size>(block);
     const auto prec = preconditioner::detail::get_optimal_storage_reduction(
-        ::gko::kernels::dpcpp::reduce(
-            warp, prec_descriptor, [](uint32 x, uint32 y) { return x & y; }));
+        ::gko::kernels::sycl::reduce(warp, prec_descriptor,
+                                     [](uint32 x, uint32 y) { return x & y; }));
 
     // store the block back into memory
     if (block_id < num_blocks) {

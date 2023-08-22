@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-version version_info::get_dpcpp_version() noexcept
+version version_info::get_sycl_version() noexcept
 {
     // We just return the version with a special "not compiled" tag in
     // placeholder modules.
@@ -53,27 +53,27 @@ version version_info::get_dpcpp_version() noexcept
 }
 
 
-std::shared_ptr<DpcppExecutor> DpcppExecutor::create(
+std::shared_ptr<SyclExecutor> SyclExecutor::create(
     int device_id, std::shared_ptr<Executor> master, std::string device_type,
-    dpcpp_queue_property property)
+    sycl_queue_property property)
 {
-    return std::shared_ptr<DpcppExecutor>(
-        new DpcppExecutor(device_id, std::move(master), device_type, property));
+    return std::shared_ptr<SyclExecutor>(
+        new SyclExecutor(device_id, std::move(master), device_type, property));
 }
 
 
-void DpcppExecutor::populate_exec_info(const machine_topology* mach_topo)
+void SyclExecutor::populate_exec_info(const machine_topology* mach_topo)
 {
     // This method is always called, so cannot throw when not compiled.
 }
 
 
-void OmpExecutor::raw_copy_to(const DpcppExecutor*, size_type num_bytes,
+void OmpExecutor::raw_copy_to(const SyclExecutor*, size_type num_bytes,
                               const void* src_ptr, void* dest_ptr) const
-    GKO_NOT_COMPILED(dpcpp);
+    GKO_NOT_COMPILED(sycl);
 
 
-bool OmpExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
+bool OmpExecutor::verify_memory_to(const SyclExecutor* dest_exec) const
 {
     // Dummy check
     auto dev_type = dest_exec->get_device_type();
@@ -81,7 +81,7 @@ bool OmpExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
 }
 
 
-void DpcppExecutor::raw_free(void* ptr) const noexcept
+void SyclExecutor::raw_free(void* ptr) const noexcept
 {
     // Free must never fail, as it can be called in destructors.
     // If the nvidia module was not compiled, the library couldn't have
@@ -89,51 +89,50 @@ void DpcppExecutor::raw_free(void* ptr) const noexcept
 }
 
 
-void* DpcppExecutor::raw_alloc(size_type num_bytes) const
-    GKO_NOT_COMPILED(dpcpp);
+void* SyclExecutor::raw_alloc(size_type num_bytes) const GKO_NOT_COMPILED(sycl);
 
 
-void DpcppExecutor::raw_copy_to(const OmpExecutor*, size_type num_bytes,
-                                const void* src_ptr, void* dest_ptr) const
-    GKO_NOT_COMPILED(dpcpp);
+void SyclExecutor::raw_copy_to(const OmpExecutor*, size_type num_bytes,
+                               const void* src_ptr, void* dest_ptr) const
+    GKO_NOT_COMPILED(sycl);
 
 
-void DpcppExecutor::raw_copy_to(const CudaExecutor*, size_type num_bytes,
-                                const void* src_ptr, void* dest_ptr) const
-    GKO_NOT_COMPILED(dpcpp);
+void SyclExecutor::raw_copy_to(const CudaExecutor*, size_type num_bytes,
+                               const void* src_ptr, void* dest_ptr) const
+    GKO_NOT_COMPILED(sycl);
 
 
-void DpcppExecutor::raw_copy_to(const HipExecutor*, size_type num_bytes,
-                                const void* src_ptr, void* dest_ptr) const
-    GKO_NOT_COMPILED(dpcpp);
+void SyclExecutor::raw_copy_to(const HipExecutor*, size_type num_bytes,
+                               const void* src_ptr, void* dest_ptr) const
+    GKO_NOT_COMPILED(sycl);
 
 
-void DpcppExecutor::raw_copy_to(const DpcppExecutor*, size_type num_bytes,
-                                const void* src_ptr, void* dest_ptr) const
-    GKO_NOT_COMPILED(dpcpp);
+void SyclExecutor::raw_copy_to(const SyclExecutor*, size_type num_bytes,
+                               const void* src_ptr, void* dest_ptr) const
+    GKO_NOT_COMPILED(sycl);
 
 
-void DpcppExecutor::synchronize() const GKO_NOT_COMPILED(dpcpp);
+void SyclExecutor::synchronize() const GKO_NOT_COMPILED(sycl);
 
 
-scoped_device_id_guard DpcppExecutor::get_scoped_device_id_guard() const
-    GKO_NOT_COMPILED(dpcpp);
+scoped_device_id_guard SyclExecutor::get_scoped_device_id_guard() const
+    GKO_NOT_COMPILED(sycl);
 
 
-int DpcppExecutor::get_num_devices(std::string) { return 0; }
+int SyclExecutor::get_num_devices(std::string) { return 0; }
 
 
-void DpcppExecutor::set_device_property(dpcpp_queue_property property) {}
+void SyclExecutor::set_device_property(sycl_queue_property property) {}
 
 
-bool DpcppExecutor::verify_memory_to(const OmpExecutor* dest_exec) const
+bool SyclExecutor::verify_memory_to(const OmpExecutor* dest_exec) const
 {
     // Dummy check
     return this->get_device_type() == "cpu" ||
            this->get_device_type() == "host";
 }
 
-bool DpcppExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
+bool SyclExecutor::verify_memory_to(const SyclExecutor* dest_exec) const
 {
     // Dummy check
     return dest_exec->get_device_type() == this->get_device_type() &&
@@ -141,43 +140,43 @@ bool DpcppExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
 }
 
 
-scoped_device_id_guard::scoped_device_id_guard(const DpcppExecutor* exec,
+scoped_device_id_guard::scoped_device_id_guard(const SyclExecutor* exec,
                                                int device_id)
-    GKO_NOT_COMPILED(dpcpp);
+    GKO_NOT_COMPILED(sycl);
 
 
 namespace kernels {
 namespace sycl {
 
 
-void destroy_event(sycl::event* event) GKO_NOT_COMPILED(dpcpp);
+void destroy_event(sycl::event* event) GKO_NOT_COMPILED(sycl);
 
 
 }  // namespace sycl
 }  // namespace kernels
 
 
-DpcppTimer::DpcppTimer(std::shared_ptr<const DpcppExecutor> exec)
-    GKO_NOT_COMPILED(dpcpp);
+SyclTimer::SyclTimer(std::shared_ptr<const SyclExecutor> exec)
+    GKO_NOT_COMPILED(sycl);
 
 
-void DpcppTimer::init_time_point(time_point&) GKO_NOT_COMPILED(dpcpp);
+void SyclTimer::init_time_point(time_point&) GKO_NOT_COMPILED(sycl);
 
 
-void DpcppTimer::record(time_point&) GKO_NOT_COMPILED(dpcpp);
+void SyclTimer::record(time_point&) GKO_NOT_COMPILED(sycl);
 
 
-void DpcppTimer::wait(time_point& time) GKO_NOT_COMPILED(dpcpp);
+void SyclTimer::wait(time_point& time) GKO_NOT_COMPILED(sycl);
 
 
-std::chrono::nanoseconds DpcppTimer::difference_async(const time_point& start,
-                                                      const time_point& stop)
-    GKO_NOT_COMPILED(dpcpp);
+std::chrono::nanoseconds SyclTimer::difference_async(const time_point& start,
+                                                     const time_point& stop)
+    GKO_NOT_COMPILED(sycl);
 
 
 }  // namespace gko
 
 
-#define GKO_HOOK_MODULE dpcpp
+#define GKO_HOOK_MODULE sycl
 #include "core/device_hooks/common_kernels.inc.cpp"
 #undef GKO_HOOK_MODULE

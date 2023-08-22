@@ -50,7 +50,7 @@ namespace sycl {
 namespace set_all_statuses {
 
 
-void set_all_statuses(std::shared_ptr<const DpcppExecutor> exec,
+void set_all_statuses(std::shared_ptr<const SyclExecutor> exec,
                       uint8 stoppingId, bool setFinalized,
                       array<stopping_status>* stop_status)
 {

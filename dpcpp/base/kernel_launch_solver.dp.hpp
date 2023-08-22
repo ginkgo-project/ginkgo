@@ -58,15 +58,15 @@ void generic_kernel_2d_solver(sycl::handler& cgh, int64 rows, int64 cols,
 
 
 template <typename KernelFunction, typename... KernelArgs>
-void run_kernel_solver(std::shared_ptr<const DpcppExecutor> exec,
+void run_kernel_solver(std::shared_ptr<const SyclExecutor> exec,
                        KernelFunction fn, dim<2> size, size_type default_stride,
                        KernelArgs&&... args)
 {
     exec->get_queue()->submit([&](sycl::handler& cgh) {
-        kernels::dpcpp::generic_kernel_2d_solver(
+        kernels::sycl::generic_kernel_2d_solver(
             cgh, static_cast<int64>(size[0]), static_cast<int64>(size[1]),
             static_cast<int64>(default_stride), fn,
-            kernels::dpcpp::map_to_device(args)...);
+            kernels::sycl::map_to_device(args)...);
     });
 }
 

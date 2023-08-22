@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-using namespace gko::kernels::dpcpp;
+using namespace gko::kernels::sycl;
 
 
 TEST(DpcppDim3, CanGenerate1DRange)

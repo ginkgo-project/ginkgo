@@ -87,7 +87,7 @@ void generic_kernel_reduction_1d(sycl::handler& cgh, int64 size,
             for (int64 i = tidx; i < size; i += global_size) {
                 partial = op(partial, fn(i, args...));
             }
-            partial = ::gko::kernels::dpcpp::reduce(subgroup, partial, op);
+            partial = ::gko::kernels::sycl::reduce(subgroup, partial, op);
             if (subgroup.thread_rank() == 0) {
                 subgroup_partial[local_tidx / sg_size] = partial;
             }
@@ -97,7 +97,7 @@ void generic_kernel_reduction_1d(sycl::handler& cgh, int64 size,
                 for (int64 i = local_tidx; i < num_partials; i += sg_size) {
                     partial = op(partial, subgroup_partial[i]);
                 }
-                partial = ::gko::kernels::dpcpp::reduce(subgroup, partial, op);
+                partial = ::gko::kernels::sycl::reduce(subgroup, partial, op);
                 if (subgroup.thread_rank() == 0) {
                     storage[tidx / wg_size] = finalize(partial);
                 }
@@ -138,7 +138,7 @@ void generic_kernel_reduction_2d(sycl::handler& cgh, int64 rows, int64 cols,
                 const auto col = i % cols;
                 partial = op(partial, fn(row, col, args...));
             }
-            partial = ::gko::kernels::dpcpp::reduce(subgroup, partial, op);
+            partial = ::gko::kernels::sycl::reduce(subgroup, partial, op);
             if (subgroup.thread_rank() == 0) {
                 subgroup_partial[local_tidx / sg_size] = partial;
             }
@@ -148,7 +148,7 @@ void generic_kernel_reduction_2d(sycl::handler& cgh, int64 rows, int64 cols,
                 for (int64 i = local_tidx; i < num_partials; i += sg_size) {
                     partial = op(partial, subgroup_partial[i]);
                 }
-                partial = ::gko::kernels::dpcpp::reduce(subgroup, partial, op);
+                partial = ::gko::kernels::sycl::reduce(subgroup, partial, op);
                 if (subgroup.thread_rank() == 0) {
                     storage[tidx / wg_size] = finalize(partial);
                 }
@@ -160,7 +160,7 @@ void generic_kernel_reduction_2d(sycl::handler& cgh, int64 rows, int64 cols,
 template <typename DeviceConfig, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
-void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
+void run_kernel_reduction_impl(std::shared_ptr<const SyclExecutor> exec,
                                KernelFunction fn, ReductionOp op,
                                FinalizeOp finalize, ValueType identity,
                                ValueType* result, size_type size,
@@ -204,7 +204,7 @@ void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
 template <typename DeviceConfig, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
-void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
+void run_kernel_reduction_impl(std::shared_ptr<const SyclExecutor> exec,
                                KernelFunction fn, ReductionOp op,
                                FinalizeOp finalize, ValueType identity,
                                ValueType* result, dim<2> size, array<char>& tmp,
@@ -254,7 +254,7 @@ GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TOTYPE(select_run_kernel_reduction,
 
 template <typename ValueType, typename KernelFunction, typename ReductionOp,
           typename FinalizeOp, typename... KernelArgs>
-void run_kernel_reduction_cached(std::shared_ptr<const DpcppExecutor> exec,
+void run_kernel_reduction_cached(std::shared_ptr<const SyclExecutor> exec,
                                  KernelFunction fn, ReductionOp op,
                                  FinalizeOp finalize, ValueType identity,
                                  ValueType* result, dim<2> size,
@@ -276,7 +276,7 @@ void run_kernel_reduction_cached(std::shared_ptr<const DpcppExecutor> exec,
 
 template <typename ValueType, typename KernelFunction, typename ReductionOp,
           typename FinalizeOp, typename... KernelArgs>
-void run_kernel_reduction_cached(std::shared_ptr<const DpcppExecutor> exec,
+void run_kernel_reduction_cached(std::shared_ptr<const SyclExecutor> exec,
                                  KernelFunction fn, ReductionOp op,
                                  FinalizeOp finalize, ValueType identity,
                                  ValueType* result, size_type size,
@@ -303,7 +303,7 @@ template <typename cfg, int ssg_size, typename ValueType,
           typename KernelFunction, typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
 void generic_kernel_row_reduction_2d(syn::value_list<int, ssg_size>,
-                                     std::shared_ptr<const DpcppExecutor> exec,
+                                     std::shared_ptr<const SyclExecutor> exec,
                                      int64 rows, int64 cols, int64 col_blocks,
                                      KernelFunction fn, ReductionOp op,
                                      FinalizeOp finalize, ValueType identity,
@@ -503,7 +503,7 @@ template <typename cfg, int ssg_size, typename ValueType,
           typename KernelFunction, typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
 void run_generic_col_reduction_small(syn::value_list<int, ssg_size>,
-                                     std::shared_ptr<const DpcppExecutor> exec,
+                                     std::shared_ptr<const SyclExecutor> exec,
                                      int64 max_workgroups, KernelFunction fn,
                                      ReductionOp op, FinalizeOp finalize,
                                      ValueType identity, ValueType* result,
@@ -551,7 +551,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_generic_col_reduction_small,
 template <typename cfg, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
-void run_kernel_row_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
+void run_kernel_row_reduction_stage1(std::shared_ptr<const SyclExecutor> exec,
                                      KernelFunction fn, ReductionOp op,
                                      FinalizeOp finalize, ValueType identity,
                                      ValueType* result, size_type result_stride,
@@ -606,7 +606,7 @@ GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TOTYPE(
 template <typename cfg, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
-void run_kernel_col_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
+void run_kernel_col_reduction_stage1(std::shared_ptr<const SyclExecutor> exec,
                                      KernelFunction fn, ReductionOp op,
                                      FinalizeOp finalize, ValueType identity,
                                      ValueType* result, dim<2> size,
@@ -674,7 +674,7 @@ GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TOTYPE(
 
 template <typename ValueType, typename KernelFunction, typename ReductionOp,
           typename FinalizeOp, typename... KernelArgs>
-void run_kernel_row_reduction_cached(std::shared_ptr<const DpcppExecutor> exec,
+void run_kernel_row_reduction_cached(std::shared_ptr<const SyclExecutor> exec,
                                      KernelFunction fn, ReductionOp op,
                                      FinalizeOp finalize, ValueType identity,
                                      ValueType* result, size_type result_stride,
@@ -698,7 +698,7 @@ void run_kernel_row_reduction_cached(std::shared_ptr<const DpcppExecutor> exec,
 
 template <typename ValueType, typename KernelFunction, typename ReductionOp,
           typename FinalizeOp, typename... KernelArgs>
-void run_kernel_col_reduction_cached(std::shared_ptr<const DpcppExecutor> exec,
+void run_kernel_col_reduction_cached(std::shared_ptr<const SyclExecutor> exec,
                                      KernelFunction fn, ReductionOp op,
                                      FinalizeOp finalize, ValueType identity,
                                      ValueType* result, dim<2> size,

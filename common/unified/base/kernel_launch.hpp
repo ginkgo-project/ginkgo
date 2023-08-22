@@ -99,7 +99,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 
 #elif defined(GKO_COMPILING_DPCPP)
 
-#define GKO_DEVICE_NAMESPACE dpcpp
+#define GKO_DEVICE_NAMESPACE sycl
 #define GKO_KERNEL
 
 

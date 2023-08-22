@@ -95,7 +95,7 @@ GKO_ENABLE_DEFAULT_HOST(apply_to_csr, apply_to_csr);
 
 
 template <typename ValueType, typename IndexType>
-void apply_to_csr(std::shared_ptr<const DpcppExecutor> exec,
+void apply_to_csr(std::shared_ptr<const SyclExecutor> exec,
                   const matrix::Diagonal<ValueType>* a,
                   const matrix::Csr<ValueType, IndexType>* b,
                   matrix::Csr<ValueType, IndexType>* c, bool inverse)

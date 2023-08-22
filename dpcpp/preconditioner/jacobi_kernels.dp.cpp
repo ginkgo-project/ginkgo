@@ -63,7 +63,7 @@ namespace {
 
 // a total of 8 32-subgroup (256 threads)
 constexpr int default_num_warps = 8;
-// TODO: get a default_grid_size for dpcpp
+// TODO: get a default_grid_size for sycl
 // with current architectures, at most 32 warps can be scheduled per SM (and
 // current GPUs have at most 84 SMs)
 constexpr int default_grid_size = 32 * 32 * 128;

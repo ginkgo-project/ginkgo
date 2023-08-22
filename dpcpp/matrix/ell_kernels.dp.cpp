@@ -308,7 +308,7 @@ template <int info, typename DeviceConfig, typename InputValueType,
           typename MatrixValueType, typename OutputValueType,
           typename IndexType>
 void abstract_spmv(syn::value_list<int, info>,
-                   std::shared_ptr<const DpcppExecutor> exec,
+                   std::shared_ptr<const SyclExecutor> exec,
                    int num_worker_per_row,
                    const matrix::Ell<MatrixValueType, IndexType>* a,
                    const matrix::Dense<InputValueType>* b,
@@ -370,7 +370,7 @@ GKO_ENABLE_IMPLEMENTATION_TWO_SELECTION(select_abstract_spmv, abstract_spmv);
 
 template <typename ValueType, typename IndexType>
 std::array<int, 3> compute_thread_worker_and_atomicity(
-    std::shared_ptr<const DpcppExecutor> exec,
+    std::shared_ptr<const SyclExecutor> exec,
     const matrix::Ell<ValueType, IndexType>* a)
 {
     int num_thread_per_worker = 16;
@@ -379,7 +379,7 @@ std::array<int, 3> compute_thread_worker_and_atomicity(
 
     const auto nrows = a->get_size()[0];
     const auto ell_ncols = a->get_num_stored_elements_per_row();
-    // TODO: num_threads_per_core should be tuned for Dpcpp
+    // TODO: num_threads_per_core should be tuned for Sycl
     const auto nwarps = 16 * num_threads_per_core;
 
     // Use multithreads to perform the reduction on each row when the matrix is
@@ -413,7 +413,7 @@ std::array<int, 3> compute_thread_worker_and_atomicity(
 
 template <typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
-void spmv(std::shared_ptr<const DpcppExecutor> exec,
+void spmv(std::shared_ptr<const SyclExecutor> exec,
           const matrix::Ell<MatrixValueType, IndexType>* a,
           const matrix::Dense<InputValueType>* b,
           matrix::Dense<OutputValueType>* c)
@@ -424,7 +424,7 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
     const int num_worker_per_row = std::get<2>(data);
 
     /**
-     * info is the parameter for selecting the dpcpp kernel.
+     * info is the parameter for selecting the sycl kernel.
      * for info == 0, it uses the kernel by warp_size threads with atomic
      * operation for other value, it uses the kernel without atomic_add
      */
@@ -447,7 +447,7 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 
 template <typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
+void advanced_spmv(std::shared_ptr<const SyclExecutor> exec,
                    const matrix::Dense<MatrixValueType>* alpha,
                    const matrix::Ell<MatrixValueType, IndexType>* a,
                    const matrix::Dense<InputValueType>* b,
@@ -460,7 +460,7 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
     const int num_worker_per_row = std::get<2>(data);
 
     /**
-     * info is the parameter for selecting the dpcpp kernel.
+     * info is the parameter for selecting the sycl kernel.
      * for info == 0, it uses the kernel by warp_size threads with atomic
      * operation for other value, it uses the kernel without atomic_add
      */

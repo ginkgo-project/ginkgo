@@ -40,25 +40,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /**
- * DpcppTimer uses dpcpp executor and event to measure the timing.
+ * SyclTimer uses sycl executor and event to measure the timing.
  */
-class DpcppTimer : public Timer {
+class SyclTimer : public Timer {
 public:
     /**
-     * Create a DpcppTimer.
+     * Create a SyclTimer.
      *
-     * @param exec  Executor which should be a DpcppExecutor
+     * @param exec  Executor which should be a SyclExecutor
      */
-    DpcppTimer(std::shared_ptr<const gko::Executor> exec)
-        : DpcppTimer(std::dynamic_pointer_cast<const gko::DpcppExecutor>(exec))
+    SyclTimer(std::shared_ptr<const gko::Executor> exec)
+        : SyclTimer(std::dynamic_pointer_cast<const gko::SyclExecutor>(exec))
     {}
 
     /**
-     * Create a DpcppTimer.
+     * Create a SyclTimer.
      *
-     * @param exec  DpcppExecutor associated to the timer
+     * @param exec  SyclExecutor associated to the timer
      */
-    DpcppTimer(std::shared_ptr<const gko::DpcppExecutor> exec) : Timer()
+    SyclTimer(std::shared_ptr<const gko::SyclExecutor> exec) : Timer()
     {
         assert(exec != nullptr);
         if (!exec->get_queue()
@@ -73,7 +73,7 @@ protected:
     void tic_impl() override
     {
         exec_->synchronize();
-        // Currently, gko::DpcppExecutor always use default stream.
+        // Currently, gko::SyclExecutor always use default stream.
         start_ = exec_->get_queue()->submit([&](sycl::handler& cgh) {
             cgh.parallel_for(1, [=](sycl::id<1> id) {});
         });
@@ -96,14 +96,14 @@ protected:
     }
 
 private:
-    std::shared_ptr<const gko::DpcppExecutor> exec_;
+    std::shared_ptr<const gko::SyclExecutor> exec_;
     sycl::event start_;
     int id_;
 };
 
 
-std::shared_ptr<Timer> get_dpcpp_timer(
-    std::shared_ptr<const gko::DpcppExecutor> exec)
+std::shared_ptr<Timer> get_sycl_timer(
+    std::shared_ptr<const gko::SyclExecutor> exec)
 {
-    return std::make_shared<DpcppTimer>(exec);
+    return std::make_shared<SyclTimer>(exec);
 }

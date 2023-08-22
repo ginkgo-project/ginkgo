@@ -138,7 +138,7 @@ namespace syn {
     {                                                                        \
         if (is_eligible(K)) {                                                \
             _callable<BoolArgs..., IntArgs..., SizeTArgs..., TArgs...,       \
-                      ::gko::kernels::dpcpp::device_config<                  \
+                      ::gko::kernels::sycl::device_config<                   \
                           _dcfg::decode<0>(K), _dcfg::decode<1>(K)>>(        \
                 std::forward<InferredArgs>(args)...);                        \
         } else {                                                             \
@@ -214,8 +214,8 @@ namespace syn {
     {                                                                          \
         if (is_eligible(K)) {                                                  \
             _callable(kernel_args, kernel_is_eligible,                         \
-                      ::gko::kernels::dpcpp::device_config<K, 32>(),           \
-                      bool_args, int_args, size_args, type_args,               \
+                      ::gko::kernels::sycl::device_config<K, 32>(), bool_args, \
+                      int_args, size_args, type_args,                          \
                       std::forward<InferredArgs>(args)...);                    \
         } else {                                                               \
             _name(::gko::syn::value_list<std::uint32_t, Rest...>(),            \

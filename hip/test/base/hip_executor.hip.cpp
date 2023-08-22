@@ -76,7 +76,7 @@ public:
         value = -3;
     }
 
-    void run(std::shared_ptr<const gko::DpcppExecutor>) const override
+    void run(std::shared_ptr<const gko::SyclExecutor>) const override
     {
         value = -4;
     }

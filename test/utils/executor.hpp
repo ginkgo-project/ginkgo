@@ -128,12 +128,12 @@ inline void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
 
 
 inline void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                          std::shared_ptr<gko::DpcppExecutor>& exec)
+                          std::shared_ptr<gko::SyclExecutor>& exec)
 {
-    if (gko::DpcppExecutor::get_num_devices("gpu") > 0) {
-        exec = gko::DpcppExecutor::create(0, ref, "gpu");
-    } else if (gko::DpcppExecutor::get_num_devices("cpu") > 0) {
-        exec = gko::DpcppExecutor::create(0, ref, "cpu");
+    if (gko::SyclExecutor::get_num_devices("gpu") > 0) {
+        exec = gko::SyclExecutor::create(0, ref, "gpu");
+    } else if (gko::SyclExecutor::get_num_devices("cpu") > 0) {
+        exec = gko::SyclExecutor::create(0, ref, "cpu");
     } else {
         throw std::runtime_error{"No suitable DPC++ devices"};
     }

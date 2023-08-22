@@ -401,13 +401,13 @@ public:
         {}
 
         /**
-         * Creates a load_balance strategy with DPCPP executor.
+         * Creates a load_balance strategy with SYCL executor.
          *
-         * @param exec the DPCPP executor
+         * @param exec the SYCL executor
          *
          * @note TODO: porting - we hardcode the subgroup size is 32
          */
-        load_balance(std::shared_ptr<const DpcppExecutor> exec)
+        load_balance(std::shared_ptr<const SyclExecutor> exec)
             : load_balance(exec->get_num_subgroups(), 32, false, "intel")
         {}
 
@@ -589,13 +589,13 @@ public:
         {}
 
         /**
-         * Creates an automatical strategy with Dpcpp executor.
+         * Creates an automatical strategy with Sycl executor.
          *
-         * @param exec the Dpcpp executor
+         * @param exec the Sycl executor
          *
          * @note TODO: porting - we hardcode the subgroup size is 32
          */
-        automatical(std::shared_ptr<const DpcppExecutor> exec)
+        automatical(std::shared_ptr<const SyclExecutor> exec)
             : automatical(exec->get_num_subgroups(), 32, false, "intel")
         {}
 
@@ -1153,14 +1153,14 @@ protected:
     {
         auto cuda_exec = std::dynamic_pointer_cast<const CudaExecutor>(exec);
         auto hip_exec = std::dynamic_pointer_cast<const HipExecutor>(exec);
-        auto dpcpp_exec = std::dynamic_pointer_cast<const DpcppExecutor>(exec);
+        auto sycl_exec = std::dynamic_pointer_cast<const SyclExecutor>(exec);
         std::shared_ptr<strategy_type> new_strategy;
         if (cuda_exec) {
             new_strategy = std::make_shared<automatical>(cuda_exec);
         } else if (hip_exec) {
             new_strategy = std::make_shared<automatical>(hip_exec);
-        } else if (dpcpp_exec) {
-            new_strategy = std::make_shared<automatical>(dpcpp_exec);
+        } else if (sycl_exec) {
+            new_strategy = std::make_shared<automatical>(sycl_exec);
         } else {
             new_strategy = std::make_shared<classical>();
         }
@@ -1186,8 +1186,8 @@ protected:
             auto cuda_exec =
                 std::dynamic_pointer_cast<const CudaExecutor>(rexec);
             auto hip_exec = std::dynamic_pointer_cast<const HipExecutor>(rexec);
-            auto dpcpp_exec =
-                std::dynamic_pointer_cast<const DpcppExecutor>(rexec);
+            auto sycl_exec =
+                std::dynamic_pointer_cast<const SyclExecutor>(rexec);
             auto lb = dynamic_cast<load_balance*>(strat);
             if (cuda_exec) {
                 if (lb) {
@@ -1207,14 +1207,14 @@ protected:
                     new_strat = std::make_shared<typename CsrType::automatical>(
                         hip_exec);
                 }
-            } else if (dpcpp_exec) {
+            } else if (sycl_exec) {
                 if (lb) {
                     new_strat =
                         std::make_shared<typename CsrType::load_balance>(
-                            dpcpp_exec);
+                            sycl_exec);
                 } else {
                     new_strat = std::make_shared<typename CsrType::automatical>(
-                        dpcpp_exec);
+                        sycl_exec);
                 }
             } else {
                 // Try to preserve this executor's configuration
@@ -1224,8 +1224,8 @@ protected:
                 auto this_hip_exec =
                     std::dynamic_pointer_cast<const HipExecutor>(
                         this->get_executor());
-                auto this_dpcpp_exec =
-                    std::dynamic_pointer_cast<const DpcppExecutor>(
+                auto this_sycl_exec =
+                    std::dynamic_pointer_cast<const SyclExecutor>(
                         this->get_executor());
                 if (this_cuda_exec) {
                     if (lb) {
@@ -1247,15 +1247,15 @@ protected:
                             std::make_shared<typename CsrType::automatical>(
                                 this_hip_exec);
                     }
-                } else if (this_dpcpp_exec) {
+                } else if (this_sycl_exec) {
                     if (lb) {
                         new_strat =
                             std::make_shared<typename CsrType::load_balance>(
-                                this_dpcpp_exec);
+                                this_sycl_exec);
                     } else {
                         new_strat =
                             std::make_shared<typename CsrType::automatical>(
-                                this_dpcpp_exec);
+                                this_sycl_exec);
                     }
                 } else {
                     // FIXME: this changes strategies.

@@ -69,7 +69,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_generate, generate);
 
 
 template <typename ValueType, typename IndexType>
-void generate(std::shared_ptr<const DpcppExecutor> exec,
+void generate(std::shared_ptr<const SyclExecutor> exec,
               const matrix::Csr<ValueType, IndexType>* system_matrix,
               size_type num_blocks, uint32 max_block_size,
               remove_complex<ValueType> accuracy,

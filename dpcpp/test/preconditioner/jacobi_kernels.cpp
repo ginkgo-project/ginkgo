@@ -71,15 +71,15 @@ protected:
 
     void SetUp()
     {
-        ASSERT_GT(gko::DpcppExecutor::get_num_devices("all"), 0);
+        ASSERT_GT(gko::SyclExecutor::get_num_devices("all"), 0);
         ref = gko::ReferenceExecutor::create();
-        dpcpp = gko::DpcppExecutor::create(0, ref);
+        sycl = gko::SyclExecutor::create(0, ref);
     }
 
     void TearDown()
     {
-        if (dpcpp != nullptr) {
-            ASSERT_NO_THROW(dpcpp->synchronize());
+        if (sycl != nullptr) {
+            ASSERT_NO_THROW(sycl->synchronize());
         }
     }
 
@@ -121,7 +121,7 @@ protected:
                                .with_max_block_size(max_block_size)
                                .with_block_pointers(block_ptrs)
                                .with_skip_sorting(skip_sorting)
-                               .on(dpcpp);
+                               .on(sycl);
         } else {
             bj_factory = Bj::build()
                              .with_max_block_size(max_block_size)
@@ -136,16 +136,16 @@ protected:
                                .with_storage_optimization(block_prec)
                                .with_accuracy(accuracy)
                                .with_skip_sorting(skip_sorting)
-                               .on(dpcpp);
+                               .on(sycl);
         }
         b = gko::test::generate_random_matrix<Vec>(
             dim, num_rhs, std::uniform_int_distribution<>(num_rhs, num_rhs),
             std::normal_distribution<value_type>(0.0, 1.0), engine, ref);
-        d_b = gko::clone(dpcpp, b);
+        d_b = gko::clone(sycl, b);
         x = gko::test::generate_random_matrix<Vec>(
             dim, num_rhs, std::uniform_int_distribution<>(num_rhs, num_rhs),
             std::normal_distribution<value_type>(0.0, 1.0), engine, ref);
-        d_x = gko::clone(dpcpp, x);
+        d_x = gko::clone(sycl, x);
     }
 
     const gko::precision_reduction dp{};
@@ -157,7 +157,7 @@ protected:
     const gko::precision_reduction ap{gko::precision_reduction::autodetect()};
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::DpcppExecutor> dpcpp;
+    std::shared_ptr<gko::SyclExecutor> sycl;
     std::shared_ptr<Mtx> mtx;
     std::unique_ptr<Vec> x;
     std::unique_ptr<Vec> b;
@@ -169,7 +169,7 @@ protected:
 };
 
 
-TEST_F(Jacobi, DpcppFindNaturalBlocksEquivalentToRef)
+TEST_F(Jacobi, SyclFindNaturalBlocksEquivalentToRef)
 {
     /* example matrix:
         1   1
@@ -189,14 +189,14 @@ TEST_F(Jacobi, DpcppFindNaturalBlocksEquivalentToRef)
                 {3, 2, 1.0}}});
 
     auto bj = Bj::build().with_max_block_size(3u).on(ref)->generate(mtx);
-    auto d_bj = Bj::build().with_max_block_size(3u).on(dpcpp)->generate(mtx);
+    auto d_bj = Bj::build().with_max_block_size(3u).on(sycl)->generate(mtx);
 
     ASSERT_EQ(d_bj->get_num_blocks(), bj->get_num_blocks());
     // TODO: actually check if the results are the same
 }
 
 
-TEST_F(Jacobi, DpcppExecutesSupervariableAgglomerationEquivalentToRef)
+TEST_F(Jacobi, SyclExecutesSupervariableAgglomerationEquivalentToRef)
 {
     /* example matrix:
         1   1
@@ -218,14 +218,14 @@ TEST_F(Jacobi, DpcppExecutesSupervariableAgglomerationEquivalentToRef)
                 {4, 4, 1.0}}});
 
     auto bj = Bj::build().with_max_block_size(3u).on(ref)->generate(mtx);
-    auto d_bj = Bj::build().with_max_block_size(3u).on(dpcpp)->generate(mtx);
+    auto d_bj = Bj::build().with_max_block_size(3u).on(sycl)->generate(mtx);
 
     ASSERT_EQ(d_bj->get_num_blocks(), bj->get_num_blocks());
     // TODO: actually check if the results are the same
 }
 
 
-TEST_F(Jacobi, DpcppFindNaturalBlocksInLargeMatrixEquivalentToRef)
+TEST_F(Jacobi, SyclFindNaturalBlocksInLargeMatrixEquivalentToRef)
 {
     /* example matrix:
         1   1
@@ -245,7 +245,7 @@ TEST_F(Jacobi, DpcppFindNaturalBlocksInLargeMatrixEquivalentToRef)
                                       {1.0, 0.0, 1.0, 0.0, 0.0, 0.0}}));
 
     auto bj = Bj::build().with_max_block_size(3u).on(ref)->generate(mtx);
-    auto d_bj = Bj::build().with_max_block_size(3u).on(dpcpp)->generate(mtx);
+    auto d_bj = Bj::build().with_max_block_size(3u).on(sycl)->generate(mtx);
 
     ASSERT_EQ(d_bj->get_num_blocks(), bj->get_num_blocks());
     // TODO: actually check if the results are the same
@@ -253,7 +253,7 @@ TEST_F(Jacobi, DpcppFindNaturalBlocksInLargeMatrixEquivalentToRef)
 
 
 TEST_F(Jacobi,
-       DpcppExecutesSupervariableAgglomerationInLargeMatrixEquivalentToRef)
+       SyclExecutesSupervariableAgglomerationInLargeMatrixEquivalentToRef)
 {
     /* example matrix:
         1   1
@@ -271,7 +271,7 @@ TEST_F(Jacobi,
                                       {0.0, 0.0, 0.0, 0.0, 1.0}}));
 
     auto bj = Bj::build().with_max_block_size(3u).on(ref)->generate(mtx);
-    auto d_bj = Bj::build().with_max_block_size(3u).on(dpcpp)->generate(mtx);
+    auto d_bj = Bj::build().with_max_block_size(3u).on(sycl)->generate(mtx);
 
     ASSERT_EQ(d_bj->get_num_blocks(), bj->get_num_blocks());
     // TODO: actually check if the results are the same
@@ -279,7 +279,7 @@ TEST_F(Jacobi,
 
 
 TEST_F(Jacobi,
-       DpcppExecutesSupervarAgglomerationEquivalentToRefFor150NonzerowsPerRow)
+       SyclExecutesSupervarAgglomerationEquivalentToRefFor150NonzerowsPerRow)
 {
     /* example matrix duplicated 50 times:
         1   1       1
@@ -299,14 +299,14 @@ TEST_F(Jacobi,
 
 
     auto bj = Bj::build().with_max_block_size(3u).on(ref)->generate(mtx);
-    auto d_bj = Bj::build().with_max_block_size(3u).on(dpcpp)->generate(mtx);
+    auto d_bj = Bj::build().with_max_block_size(3u).on(sycl)->generate(mtx);
 
     ASSERT_EQ(d_bj->get_num_blocks(), bj->get_num_blocks());
     // TODO: actually check if the results are the same
 }
 
 
-TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithBlockSize32Sorted)
+TEST_F(Jacobi, SyclPreconditionerEquivalentToRefWithBlockSize32Sorted)
 {
     initialize_data({0, 32, 64, 96, 128}, {}, {}, 32, 100, 110);
 
@@ -318,7 +318,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithBlockSize32Sorted)
 }
 
 
-TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithBlockSize32Unsorted)
+TEST_F(Jacobi, SyclPreconditionerEquivalentToRefWithBlockSize32Unsorted)
 {
     std::default_random_engine engine(42);
     initialize_data({0, 32, 64, 96, 128}, {}, {}, 32, 100, 110, 1, 0.1, false);
@@ -332,7 +332,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithBlockSize32Unsorted)
 }
 
 
-TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithDifferentBlockSize)
+TEST_F(Jacobi, SyclPreconditionerEquivalentToRefWithDifferentBlockSize)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 32,
                     97, 99);
@@ -345,7 +345,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithDifferentBlockSize)
 }
 
 
-TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithMPW)
+TEST_F(Jacobi, SyclPreconditionerEquivalentToRefWithMPW)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 32,
                     97, 99);
@@ -358,7 +358,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithMPW)
 }
 
 
-TEST_F(Jacobi, DpcppTransposedPreconditionerEquivalentToRefWithMPW)
+TEST_F(Jacobi, SyclTransposedPreconditionerEquivalentToRefWithMPW)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 32,
                     97, 99);
@@ -372,7 +372,7 @@ TEST_F(Jacobi, DpcppTransposedPreconditionerEquivalentToRefWithMPW)
 }
 
 
-TEST_F(Jacobi, DpcppConjTransposedPreconditionerEquivalentToRefWithMPW)
+TEST_F(Jacobi, SyclConjTransposedPreconditionerEquivalentToRefWithMPW)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 32,
                     97, 99);
@@ -386,7 +386,7 @@ TEST_F(Jacobi, DpcppConjTransposedPreconditionerEquivalentToRefWithMPW)
 }
 
 
-TEST_F(Jacobi, DpcppApplyEquivalentToRefWithBlockSize32)
+TEST_F(Jacobi, SyclApplyEquivalentToRefWithBlockSize32)
 {
     initialize_data({0, 32, 64, 96, 128}, {}, {}, 32, 100, 111);
     auto bj = bj_factory->generate(mtx);
@@ -399,7 +399,7 @@ TEST_F(Jacobi, DpcppApplyEquivalentToRefWithBlockSize32)
 }
 
 
-TEST_F(Jacobi, DpcppApplyEquivalentToRefWithDifferentBlockSize)
+TEST_F(Jacobi, SyclApplyEquivalentToRefWithDifferentBlockSize)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 32,
                     97, 99);
@@ -413,7 +413,7 @@ TEST_F(Jacobi, DpcppApplyEquivalentToRefWithDifferentBlockSize)
 }
 
 
-TEST_F(Jacobi, DpcppApplyEquivalentToRef)
+TEST_F(Jacobi, SyclApplyEquivalentToRef)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 32,
                     97, 99);
@@ -427,7 +427,7 @@ TEST_F(Jacobi, DpcppApplyEquivalentToRef)
 }
 
 
-TEST_F(Jacobi, DpcppScalarApplyEquivalentToRef)
+TEST_F(Jacobi, SyclScalarApplyEquivalentToRef)
 {
     gko::size_type dim = 313;
     std::default_random_engine engine(42);
@@ -445,14 +445,14 @@ TEST_F(Jacobi, DpcppScalarApplyEquivalentToRef)
         std::normal_distribution<value_type>(0.0, 1.0), engine, ref));
     auto sx = Vec::create(ref, sb->get_size());
 
-    auto d_smtx = gko::share(Mtx::create(dpcpp));
-    auto d_sb = gko::share(Vec::create(dpcpp));
-    auto d_sx = gko::share(Vec::create(dpcpp, sb->get_size()));
+    auto d_smtx = gko::share(Mtx::create(sycl));
+    auto d_sb = gko::share(Vec::create(sycl));
+    auto d_sx = gko::share(Vec::create(sycl, sb->get_size()));
     d_smtx->copy_from(smtx);
     d_sb->copy_from(sb);
 
     auto sj = Bj::build().with_max_block_size(1u).on(ref)->generate(smtx);
-    auto d_sj = Bj::build().with_max_block_size(1u).on(dpcpp)->generate(d_smtx);
+    auto d_sj = Bj::build().with_max_block_size(1u).on(sycl)->generate(d_smtx);
 
     sj->apply(sb, sx);
     d_sj->apply(d_sb, d_sx);
@@ -461,14 +461,14 @@ TEST_F(Jacobi, DpcppScalarApplyEquivalentToRef)
 }
 
 
-TEST_F(Jacobi, DpcppLinearCombinationApplyEquivalentToRef)
+TEST_F(Jacobi, SyclLinearCombinationApplyEquivalentToRef)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 32,
                     97, 99);
     auto alpha = gko::initialize<Vec>({2.0}, ref);
-    auto d_alpha = gko::initialize<Vec>({2.0}, dpcpp);
+    auto d_alpha = gko::initialize<Vec>({2.0}, sycl);
     auto beta = gko::initialize<Vec>({-1.0}, ref);
-    auto d_beta = gko::initialize<Vec>({-1.0}, dpcpp);
+    auto d_beta = gko::initialize<Vec>({-1.0}, sycl);
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
@@ -479,7 +479,7 @@ TEST_F(Jacobi, DpcppLinearCombinationApplyEquivalentToRef)
 }
 
 
-TEST_F(Jacobi, DpcppScalarLinearCombinationApplyEquivalentToRef)
+TEST_F(Jacobi, SyclScalarLinearCombinationApplyEquivalentToRef)
 {
     gko::size_type dim = 313;
     std::default_random_engine engine(42);
@@ -501,16 +501,16 @@ TEST_F(Jacobi, DpcppScalarLinearCombinationApplyEquivalentToRef)
         std::normal_distribution<value_type>(0.0, 1.0), engine, ref,
         gko::dim<2>(dim, 3), 4));
 
-    auto d_smtx = gko::share(gko::clone(dpcpp, smtx));
-    auto d_sb = gko::share(gko::clone(dpcpp, sb));
-    auto d_sx = gko::share(gko::clone(dpcpp, sx));
+    auto d_smtx = gko::share(gko::clone(sycl, smtx));
+    auto d_sb = gko::share(gko::clone(sycl, sb));
+    auto d_sx = gko::share(gko::clone(sycl, sx));
     auto alpha = gko::initialize<Vec>({2.0}, ref);
-    auto d_alpha = gko::initialize<Vec>({2.0}, dpcpp);
+    auto d_alpha = gko::initialize<Vec>({2.0}, sycl);
     auto beta = gko::initialize<Vec>({-1.0}, ref);
-    auto d_beta = gko::initialize<Vec>({-1.0}, dpcpp);
+    auto d_beta = gko::initialize<Vec>({-1.0}, sycl);
 
     auto sj = Bj::build().with_max_block_size(1u).on(ref)->generate(smtx);
-    auto d_sj = Bj::build().with_max_block_size(1u).on(dpcpp)->generate(d_smtx);
+    auto d_sj = Bj::build().with_max_block_size(1u).on(sycl)->generate(d_smtx);
 
     sj->apply(alpha, sb, beta, sx);
     d_sj->apply(d_alpha, d_sb, d_beta, d_sx);
@@ -519,7 +519,7 @@ TEST_F(Jacobi, DpcppScalarLinearCombinationApplyEquivalentToRef)
 }
 
 
-TEST_F(Jacobi, DpcppApplyToMultipleVectorsEquivalentToRef)
+TEST_F(Jacobi, SyclApplyToMultipleVectorsEquivalentToRef)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 32,
                     97, 99, 5);
@@ -533,14 +533,14 @@ TEST_F(Jacobi, DpcppApplyToMultipleVectorsEquivalentToRef)
 }
 
 
-TEST_F(Jacobi, DpcppLinearCombinationApplyToMultipleVectorsEquivalentToRef)
+TEST_F(Jacobi, SyclLinearCombinationApplyToMultipleVectorsEquivalentToRef)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 32,
                     97, 99, 5);
     auto alpha = gko::initialize<Vec>({2.0}, ref);
-    auto d_alpha = gko::initialize<Vec>({2.0}, dpcpp);
+    auto d_alpha = gko::initialize<Vec>({2.0}, sycl);
     auto beta = gko::initialize<Vec>({-1.0}, ref);
-    auto d_beta = gko::initialize<Vec>({-1.0}, dpcpp);
+    auto d_beta = gko::initialize<Vec>({-1.0}, sycl);
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
@@ -590,7 +590,7 @@ TEST_F(Jacobi, SelectsTheSamePrecisionsAsRef)
 
 TEST_F(Jacobi, AvoidsPrecisionsThatOverflow)
 {
-    auto mtx = gko::matrix::Csr<value_type>::create(dpcpp);
+    auto mtx = gko::matrix::Csr<value_type>::create(sycl);
     // clang-format off
     mtx->read(mtx_data::diag({
         // perfectly conditioned block, small value difference,
@@ -607,13 +607,13 @@ TEST_F(Jacobi, AvoidsPrecisionsThatOverflow)
     auto bj =
         Bj::build()
             .with_max_block_size(32u)
-            .with_block_pointers(gko::array<gko::int32>(dpcpp, {0, 2, 4}))
+            .with_block_pointers(gko::array<gko::int32>(sycl, {0, 2, 4}))
             .with_storage_optimization(gko::precision_reduction::autodetect())
             .with_accuracy(value_type{0.1})
-            .on(dpcpp)
+            .on(sycl)
             ->generate(give(mtx));
 
-    // dpcpp considers all block separately
+    // sycl considers all block separately
     auto h_bj = clone(ref, bj);
     auto prec =
         h_bj->get_parameters().storage_optimization.block_wise.get_const_data();
@@ -627,7 +627,7 @@ TEST_F(Jacobi, AvoidsPrecisionsThatOverflow)
 }
 
 
-TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithFullPrecision)
+TEST_F(Jacobi, SyclPreconditionerEquivalentToRefWithFullPrecision)
 {
     SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
@@ -640,7 +640,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithFullPrecision)
 }
 
 
-TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithReducedPrecision)
+TEST_F(Jacobi, SyclPreconditionerEquivalentToRefWithReducedPrecision)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
                     {sp, sp, sp, sp, sp, sp, sp, sp, sp, sp, sp}, {}, 32, 97,
@@ -653,7 +653,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithReducedPrecision)
 }
 
 
-TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithCustomReducedPrecision)
+TEST_F(Jacobi, SyclPreconditionerEquivalentToRefWithCustomReducedPrecision)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
                     {tp, tp, tp, tp, tp, tp, tp, tp, tp, tp, tp}, {}, 32, 97,
@@ -666,7 +666,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithCustomReducedPrecision)
 }
 
 
-TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithQuarteredPrecision)
+TEST_F(Jacobi, SyclPreconditionerEquivalentToRefWithQuarteredPrecision)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
                     {hp, hp, hp, hp, hp, hp, hp, hp, hp, hp, hp}, {}, 32, 97,
@@ -679,7 +679,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithQuarteredPrecision)
 }
 
 
-TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithCustomQuarteredPrecision)
+TEST_F(Jacobi, SyclPreconditionerEquivalentToRefWithCustomQuarteredPrecision)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
                     {qp, qp, qp, qp, qp, qp, qp, qp, qp, qp, qp}, {}, 32, 97,
@@ -692,7 +692,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithCustomQuarteredPrecision)
 }
 
 
-TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithAdaptivePrecision)
+TEST_F(Jacobi, SyclPreconditionerEquivalentToRefWithAdaptivePrecision)
 {
     SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
@@ -706,8 +706,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithAdaptivePrecision)
 }
 
 
-TEST_F(Jacobi,
-       DpcppTransposedPreconditionerEquivalentToRefWithAdaptivePrecision)
+TEST_F(Jacobi, SyclTransposedPreconditionerEquivalentToRefWithAdaptivePrecision)
 {
     SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
@@ -724,7 +723,7 @@ TEST_F(Jacobi,
 
 
 TEST_F(Jacobi,
-       DpcppConjTransposedPreconditionerEquivalentToRefWithAdaptivePrecision)
+       SyclConjTransposedPreconditionerEquivalentToRefWithAdaptivePrecision)
 {
     SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
@@ -740,7 +739,7 @@ TEST_F(Jacobi,
 }
 
 
-TEST_F(Jacobi, DpcppApplyEquivalentToRefWithFullPrecision)
+TEST_F(Jacobi, SyclApplyEquivalentToRefWithFullPrecision)
 {
     SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
@@ -756,7 +755,7 @@ TEST_F(Jacobi, DpcppApplyEquivalentToRefWithFullPrecision)
 }
 
 
-TEST_F(Jacobi, DpcppApplyEquivalentToRefWithReducedPrecision)
+TEST_F(Jacobi, SyclApplyEquivalentToRefWithReducedPrecision)
 {
     SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
@@ -772,7 +771,7 @@ TEST_F(Jacobi, DpcppApplyEquivalentToRefWithReducedPrecision)
 }
 
 
-TEST_F(Jacobi, DpcppApplyEquivalentToRefWithCustomReducedPrecision)
+TEST_F(Jacobi, SyclApplyEquivalentToRefWithCustomReducedPrecision)
 {
     SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
@@ -788,7 +787,7 @@ TEST_F(Jacobi, DpcppApplyEquivalentToRefWithCustomReducedPrecision)
 }
 
 
-TEST_F(Jacobi, DpcppApplyEquivalentToRefWithQuarteredPrecision)
+TEST_F(Jacobi, SyclApplyEquivalentToRefWithQuarteredPrecision)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
                     {hp, hp, hp, hp, hp, hp, hp, hp, hp, hp, hp}, {}, 32, 97,
@@ -803,7 +802,7 @@ TEST_F(Jacobi, DpcppApplyEquivalentToRefWithQuarteredPrecision)
 }
 
 
-TEST_F(Jacobi, DpcppApplyEquivalentToRefWithCustomReducedAndReducedPrecision)
+TEST_F(Jacobi, SyclApplyEquivalentToRefWithCustomReducedAndReducedPrecision)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
                     {up, up, up, up, up, up, up, up, up, up, up}, {}, 32, 97,
@@ -818,7 +817,7 @@ TEST_F(Jacobi, DpcppApplyEquivalentToRefWithCustomReducedAndReducedPrecision)
 }
 
 
-TEST_F(Jacobi, DpcppApplyEquivalentToRefWithCustomQuarteredPrecision)
+TEST_F(Jacobi, SyclApplyEquivalentToRefWithCustomQuarteredPrecision)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
                     {qp, qp, qp, qp, qp, qp, qp, qp, qp, qp, qp}, {}, 32, 97,
@@ -833,7 +832,7 @@ TEST_F(Jacobi, DpcppApplyEquivalentToRefWithCustomQuarteredPrecision)
 }
 
 
-TEST_F(Jacobi, DpcppApplyEquivalentToRefWithAdaptivePrecision)
+TEST_F(Jacobi, SyclApplyEquivalentToRefWithAdaptivePrecision)
 {
     SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
@@ -849,16 +848,16 @@ TEST_F(Jacobi, DpcppApplyEquivalentToRefWithAdaptivePrecision)
 }
 
 
-TEST_F(Jacobi, DpcppLinearCombinationApplyEquivalentToRefWithAdaptivePrecision)
+TEST_F(Jacobi, SyclLinearCombinationApplyEquivalentToRefWithAdaptivePrecision)
 {
     SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
                     {sp, dp, dp, sp, sp, sp, dp, dp, sp, dp, sp}, {}, 32, 97,
                     99);
     auto alpha = gko::initialize<Vec>({2.0}, ref);
-    auto d_alpha = gko::initialize<Vec>({2.0}, dpcpp);
+    auto d_alpha = gko::initialize<Vec>({2.0}, sycl);
     auto beta = gko::initialize<Vec>({-1.0}, ref);
-    auto d_beta = gko::initialize<Vec>({-1.0}, dpcpp);
+    auto d_beta = gko::initialize<Vec>({-1.0}, sycl);
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
@@ -869,7 +868,7 @@ TEST_F(Jacobi, DpcppLinearCombinationApplyEquivalentToRefWithAdaptivePrecision)
 }
 
 
-TEST_F(Jacobi, DpcppApplyToMultipleVectorsEquivalentToRefWithFullPrecision)
+TEST_F(Jacobi, SyclApplyToMultipleVectorsEquivalentToRefWithFullPrecision)
 {
     SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
@@ -885,7 +884,7 @@ TEST_F(Jacobi, DpcppApplyToMultipleVectorsEquivalentToRefWithFullPrecision)
 }
 
 
-TEST_F(Jacobi, DpcppApplyToMultipleVectorsEquivalentToRefWithReducedPrecision)
+TEST_F(Jacobi, SyclApplyToMultipleVectorsEquivalentToRefWithReducedPrecision)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
                     {sp, sp, sp, sp, sp, sp, sp, sp, sp, sp, sp}, {}, 32, 97,
@@ -900,7 +899,7 @@ TEST_F(Jacobi, DpcppApplyToMultipleVectorsEquivalentToRefWithReducedPrecision)
 }
 
 
-TEST_F(Jacobi, DpcppApplyToMultipleVectorsEquivalentToRefWithAdaptivePrecision)
+TEST_F(Jacobi, SyclApplyToMultipleVectorsEquivalentToRefWithAdaptivePrecision)
 {
     SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
@@ -918,16 +917,16 @@ TEST_F(Jacobi, DpcppApplyToMultipleVectorsEquivalentToRefWithAdaptivePrecision)
 
 TEST_F(
     Jacobi,
-    DpcppLinearCombinationApplyToMultipleVectorsEquivalentToRefWithAdaptivePrecision)
+    SyclLinearCombinationApplyToMultipleVectorsEquivalentToRefWithAdaptivePrecision)
 {
     SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
                     {sp, dp, dp, sp, sp, sp, dp, dp, sp, dp, sp}, {}, 32, 97,
                     99, 5);
     auto alpha = gko::initialize<Vec>({2.0}, ref);
-    auto d_alpha = gko::initialize<Vec>({2.0}, dpcpp);
+    auto d_alpha = gko::initialize<Vec>({2.0}, sycl);
     auto beta = gko::initialize<Vec>({-1.0}, ref);
-    auto d_beta = gko::initialize<Vec>({-1.0}, dpcpp);
+    auto d_beta = gko::initialize<Vec>({-1.0}, sycl);
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 

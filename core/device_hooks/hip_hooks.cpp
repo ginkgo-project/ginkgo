@@ -164,7 +164,7 @@ void HipExecutor::raw_copy_to(const HipExecutor*, size_type num_bytes,
     GKO_NOT_COMPILED(hip);
 
 
-void HipExecutor::raw_copy_to(const DpcppExecutor*, size_type num_bytes,
+void HipExecutor::raw_copy_to(const SyclExecutor*, size_type num_bytes,
                               const void* src_ptr, void* dest_ptr) const
     GKO_NOT_COMPILED(hip);
 

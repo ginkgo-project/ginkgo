@@ -53,7 +53,7 @@ void Operation::run(std::shared_ptr<const HipExecutor> executor) const
     GKO_NOT_IMPLEMENTED;
 
 
-void Operation::run(std::shared_ptr<const DpcppExecutor> executor) const
+void Operation::run(std::shared_ptr<const SyclExecutor> executor) const
     GKO_NOT_IMPLEMENTED;
 
 

@@ -107,8 +107,8 @@ public:
     }
 
 private:
-    // if dpcpp uses char to represent data in char, compiling gives error.
-    // Thanksfully, dpcpp support complex data allocation directly.
+    // if sycl uses char to represent data in char, compiling gives error.
+    // Thanksfully, sycl support complex data allocation directly.
     ValueType data_[size];
 };
 

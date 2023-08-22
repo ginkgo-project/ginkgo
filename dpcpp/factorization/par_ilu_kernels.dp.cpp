@@ -132,7 +132,7 @@ void compute_l_u_factors(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
 
 template <typename ValueType, typename IndexType>
-void compute_l_u_factors(std::shared_ptr<const DpcppExecutor> exec,
+void compute_l_u_factors(std::shared_ptr<const SyclExecutor> exec,
                          size_type iterations,
                          const matrix::Coo<ValueType, IndexType>* system_matrix,
                          matrix::Csr<ValueType, IndexType>* l_factor,
