@@ -1,1 +1,0 @@
-ginkgo_create_test(mc64_kernels)

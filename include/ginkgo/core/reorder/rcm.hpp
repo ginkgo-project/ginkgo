@@ -100,8 +100,7 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class [[deprecated("use gko::experimental::reorder::Rcm instead")]] Rcm
     : public EnablePolymorphicObject<Rcm<ValueType, IndexType>,
                                      ReorderingBase<IndexType>>,
-      public EnablePolymorphicAssignment<Rcm<ValueType, IndexType>>
-{
+      public EnablePolymorphicAssignment<Rcm<ValueType, IndexType>> {
     friend class EnablePolymorphicObject<Rcm, ReorderingBase<IndexType>>;
 
 public:
@@ -227,6 +226,11 @@ public:
         rcm_starting_strategy GKO_FACTORY_PARAMETER_SCALAR(
             strategy, rcm_starting_strategy::pseudo_peripheral);
     };
+
+    /**
+     * Returns the parameters used to construct the factory.
+     */
+    const parameters_type& get_parameters() { return parameters_; }
 
     /**
      * @copydoc LinOpFactory::generate
