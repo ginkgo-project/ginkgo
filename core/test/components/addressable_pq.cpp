@@ -56,11 +56,13 @@ protected:
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using pq_type = gko::addressable_priority_queue<value_type, index_type>;
+    using pq_type2 = gko::addressable_priority_queue<value_type, index_type, 1>;
+    using pq_type4 = gko::addressable_priority_queue<value_type, index_type, 2>;
 
     AddressablePriorityQueue() : exec(gko::ReferenceExecutor::create()) {}
 
-    void assert_min(pq_type pq, value_type key, index_type val)
+    template <typename PQType>
+    void assert_min(const PQType& pq, value_type key, index_type val)
     {
         ASSERT_EQ(pq.min_key(), key);
         ASSERT_EQ(pq.min_val(), val);
@@ -68,8 +70,11 @@ protected:
         ASSERT_FALSE(pq.empty());
     }
 
-    void test_pq_functionality(pq_type& pq)
+    template <typename PQType>
+    void test_pq_functionality()
     {
+        PQType pq;
+
         pq.insert(value_type{.5}, 1);
         ASSERT_EQ(pq.size(), 1);
         assert_min(pq, .5, 1);
@@ -124,8 +129,8 @@ TYPED_TEST_SUITE(AddressablePriorityQueue, gko::test::RealValueIndexTypes,
 
 TYPED_TEST(AddressablePriorityQueue, InitializesCorrectly)
 {
-    using pq_type = typename TestFixture::pq_type;
-    pq_type pq{4};
+    using pq_type = typename TestFixture::pq_type2;
+    pq_type pq;
 
     ASSERT_EQ(pq.size(), 0);
     ASSERT_TRUE(pq.empty());
@@ -134,19 +139,13 @@ TYPED_TEST(AddressablePriorityQueue, InitializesCorrectly)
 
 TYPED_TEST(AddressablePriorityQueue, WorksWithDegree2)
 {
-    using pq_type = typename TestFixture::pq_type;
-    pq_type pq{2};
-
-    this->test_pq_functionality(pq);
+    this->template test_pq_functionality<typename TestFixture::pq_type2>();
 }
 
 
 TYPED_TEST(AddressablePriorityQueue, WorksWithDegree4)
 {
-    using pq_type = typename TestFixture::pq_type;
-    pq_type pq{4};
-
-    this->test_pq_functionality(pq);
+    this->template test_pq_functionality<typename TestFixture::pq_type4>();
 }
 
 

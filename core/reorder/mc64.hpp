@@ -30,59 +30,46 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/reorder/mc64_kernels.hpp"
+#ifndef GKO_CORE_REORDER_MC64_HPP_
+#define GKO_CORE_REORDER_MC64_HPP_
+
+#include <ginkgo/core/reorder/mc64.hpp>
 
 
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "core/components/addressable_pq.hpp"
+
+
 namespace gko {
-namespace kernels {
-namespace cuda {
-/**
- * @brief The reordering namespace.
- *
- * @ingroup reorder
- */
+namespace experimental {
+namespace reorder {
 namespace mc64 {
 
 
 template <typename ValueType, typename IndexType>
-void initialize_weights(std::shared_ptr<const DefaultExecutor> exec,
-                        const matrix::Csr<ValueType, IndexType>* mtx,
+void initialize_weights(const matrix::Csr<ValueType, IndexType>* mtx,
                         array<remove_complex<ValueType>>& weights_array,
                         array<remove_complex<ValueType>>& dual_u_array,
                         array<remove_complex<ValueType>>& distance_array,
                         array<remove_complex<ValueType>>& row_maxima_array,
-                        gko::reorder::mc64_strategy strategy)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_MC64_INITIALIZE_WEIGHTS_KERNEL);
+                        gko::experimental::reorder::mc64_strategy strategy);
 
 
 template <typename ValueType, typename IndexType>
-void initial_matching(std::shared_ptr<const DefaultExecutor> exec,
-                      size_type num_rows, const IndexType* row_ptrs,
-                      const IndexType* col_idxs,
-                      const array<ValueType>& weights_array,
-                      const array<ValueType>& dual_u_array,
-                      array<IndexType>& permutation,
-                      array<IndexType>& inv_permutation,
-                      array<IndexType>& matched_idxs_array,
-                      array<IndexType>& unmatched_rows_array,
-                      ValueType tolerance) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_MC64_INITIAL_MATCHING_KERNEL);
+void initial_matching(
+    size_type num_rows, const IndexType* row_ptrs, const IndexType* col_idxs,
+    const array<ValueType>& weights_array, const array<ValueType>& dual_u_array,
+    array<IndexType>& permutation, array<IndexType>& inv_permutation,
+    array<IndexType>& matched_idxs_array,
+    array<IndexType>& unmatched_rows_array, ValueType tolerance);
 
 
 template <typename ValueType, typename IndexType>
 void shortest_augmenting_path(
-    std::shared_ptr<const DefaultExecutor> exec, size_type num_rows,
-    const IndexType* row_ptrs, const IndexType* col_idxs,
+    size_type num_rows, const IndexType* row_ptrs, const IndexType* col_idxs,
     array<ValueType>& weights_array, array<ValueType>& dual_u_array,
     array<ValueType>& distance_array, array<IndexType>& permutation,
     array<IndexType>& inv_permutation, IndexType root,
@@ -90,30 +77,23 @@ void shortest_augmenting_path(
     array<IndexType>& generation_array, array<IndexType>& marked_cols_array,
     array<IndexType>& matched_idxs_array,
     addressable_priority_queue<ValueType, IndexType>& Q,
-    std::vector<IndexType>& q_j, ValueType tolerance) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_MC64_SHORTEST_AUGMENTING_PATH_KERNEL);
+    std::vector<IndexType>& q_j, ValueType tolerance);
 
 
 template <typename ValueType, typename IndexType>
-void compute_scaling(std::shared_ptr<const DefaultExecutor> exec,
-                     const matrix::Csr<ValueType, IndexType>* mtx,
+void compute_scaling(const matrix::Csr<ValueType, IndexType>* mtx,
                      const array<remove_complex<ValueType>>& weights_array,
                      const array<remove_complex<ValueType>>& dual_u_array,
                      const array<remove_complex<ValueType>>& row_maxima_array,
                      const array<IndexType>& permutation,
                      const array<IndexType>& matched_idxs_array,
-                     gko::reorder::mc64_strategy strategy,
-                     gko::matrix::Diagonal<ValueType>* row_scaling,
-                     gko::matrix::Diagonal<ValueType>* col_scaling)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_MC64_COMPUTE_SCALING_KERNEL);
+                     mc64_strategy strategy, ValueType* row_scaling,
+                     ValueType* col_scaling);
 
 
 }  // namespace mc64
-}  // namespace cuda
-}  // namespace kernels
+}  // namespace reorder
+}  // namespace experimental
 }  // namespace gko
+
+#endif  // GKO_CORE_REORDER_MC64_HPP_

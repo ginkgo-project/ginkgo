@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/abstract_factory.hpp>
+#include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
@@ -52,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
 /**
  * @brief The Reorder namespace.
  *
@@ -102,64 +104,23 @@ enum class mc64_strategy { max_diagonal_product, max_diagonal_sum };
  * @tparam IndexType  Type of the indices of all matrices used in this class
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Mc64 : public EnablePolymorphicObject<Mc64<ValueType, IndexType>,
-                                            ReorderingBase<IndexType>>,
-             public EnablePolymorphicAssignment<Mc64<ValueType, IndexType>> {
-    friend class EnablePolymorphicObject<Mc64, ReorderingBase<IndexType>>;
-
+class Mc64
+    : public EnablePolymorphicObject<Mc64<ValueType, IndexType>, LinOpFactory>,
+      public EnablePolymorphicAssignment<Mc64<ValueType, IndexType>> {
 public:
-    using matrix_type = matrix::Csr<ValueType, IndexType>;
-    using PermutationMatrix = matrix::Permutation<IndexType>;
-    using DiagonalMatrix = matrix::Diagonal<ValueType>;
+    struct parameters_type;
+    friend class EnablePolymorphicObject<Mc64<ValueType, IndexType>,
+                                         LinOpFactory>;
+    friend class enable_parameters_type<parameters_type,
+                                        Mc64<ValueType, IndexType>>;
+
     using value_type = ValueType;
     using index_type = IndexType;
+    using result_type = Composition<value_type>;
+    using matrix_type = matrix::Csr<value_type, index_type>;
 
-    /**
-     * Gets the permutation (permutation matrix, output of the algorithm) of the
-     * linear operator.
-     *
-     * @return the permutation (permutation matrix)
-     */
-    std::shared_ptr<const PermutationMatrix> get_permutation() const
-    {
-        return permutation_;
-    }
-
-    /**
-     * Gets the inverse permutation (permutation matrix, output of the
-     * algorithm) of the linear operator.
-     *
-     * @return the inverse permutation (permutation matrix)
-     */
-    std::shared_ptr<const PermutationMatrix> get_inverse_permutation() const
-    {
-        return inv_permutation_;
-    }
-
-    /**
-     * Gets the row scaling coefficients. If the strategy is max_diagonal_sum,
-     * these are all 1.
-     *
-     * @return the row scaling coefficients (diagonal matrix)
-     */
-    std::shared_ptr<const DiagonalMatrix> get_row_scaling() const
-    {
-        return row_scaling_;
-    }
-
-    /**
-     * Gets the column sclaing coefficients. If the strategy is
-     * max_diagonal_sum, these are all 1.
-     *
-     * @return the column scaling coefficients (diagonal matrix)
-     */
-    std::shared_ptr<const DiagonalMatrix> get_col_scaling() const
-    {
-        return col_scaling_;
-    }
-
-    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
-    {
+    struct parameters_type
+        : public enable_parameters_type<parameters_type, Mc64> {
         /**
          * This parameter controls the goal of the permutation.
          */
@@ -172,83 +133,39 @@ public:
          */
         remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(tolerance,
                                                                1e-14);
-
-        /**
-         * This parameter controls the binary logarithm of the heap arity
-         * for the addressable priority queue used in generating the
-         * minimum weight perfect matching.
-         */
-        int GKO_FACTORY_PARAMETER_SCALAR(deg_log2, 4);
     };
-    GKO_ENABLE_REORDERING_BASE_FACTORY(Mc64, parameters, Factory);
-    GKO_ENABLE_BUILD_METHOD(Factory);
+
+    /**
+     * Returns the parameters used to construct the factory.
+     */
+    const parameters_type& get_parameters() const { return parameters_; }
+
+    /**
+     * @copydoc LinOpFactory::generate
+     * @note This function overrides the default LinOpFactory::generate to
+     *       return a Permutation instead of a generic LinOp, which would
+     *       need to be cast to ScaledPermutation again to access its indices.
+     *       It is only necessary because smart pointers aren't covariant.
+     */
+    std::unique_ptr<result_type> generate(
+        std::shared_ptr<const LinOp> system_matrix) const;
+
+    /** Creates a new parameter_type to set up the factory. */
+    static parameters_type build() { return {}; }
 
 protected:
-    /**
-     * Generates the permutation matrix and the inverse permutation
-     * matrix.
-     */
-    void generate(std::shared_ptr<const Executor>& exec,
-                  std::shared_ptr<LinOp> system_matrix);
+    explicit Mc64(std::shared_ptr<const Executor> exec,
+                  const parameters_type& params = {});
 
-    explicit Mc64(std::shared_ptr<const Executor> exec)
-        : EnablePolymorphicObject<Mc64, ReorderingBase<IndexType>>(
-              std::move(exec))
-    {}
+    std::unique_ptr<LinOp> generate_impl(
+        std::shared_ptr<const LinOp> system_matrix) const override;
 
-    explicit Mc64(const Factory* factory, const ReorderingBaseArgs& args)
-        : EnablePolymorphicObject<Mc64, ReorderingBase<IndexType>>(
-              factory->get_executor()),
-          parameters_{factory->get_parameters()}
-    {
-        auto exec = this->get_executor();
-        // Always execute the reordering on a reference executor as the
-        // algorithm is only implemented sequentially.
-        const auto is_gpu_executor = exec != exec->get_master();
-        const auto host_is_ref =
-            dynamic_cast<const ReferenceExecutor*>(exec->get_master().get());
-        auto ref =
-            host_is_ref ? exec->get_master() : ReferenceExecutor::create();
-
-        auto system_matrix = share(matrix_type::create(ref));
-
-        // The system matrix has to be square.
-        GKO_ASSERT_IS_SQUARE_MATRIX(args.system_matrix);
-        if (args.system_matrix->get_size()) {
-            system_matrix =
-                copy_and_convert_to<matrix_type>(ref, args.system_matrix);
-        }
-
-        auto const dim = system_matrix->get_size();
-
-        this->generate(ref, system_matrix);
-
-        // Copy back results to original executor if necessary.
-        if (ref != exec) {
-            auto perm = share(PermutationMatrix::create(exec, dim));
-            perm->copy_from(permutation_.get());
-            permutation_ = perm;
-            auto inv_perm = share(PermutationMatrix::create(exec, dim));
-            inv_perm->copy_from(inv_permutation_.get());
-            inv_permutation_ = inv_perm;
-            auto row_scaling = share(DiagonalMatrix::create(exec, dim[0]));
-            row_scaling->copy_from(row_scaling_.get());
-            row_scaling_ = row_scaling;
-            auto col_scaling = share(DiagonalMatrix::create(exec, dim[0]));
-            col_scaling->copy_from(col_scaling_.get());
-            col_scaling_ = col_scaling;
-        }
-    }
-
-private:
-    std::shared_ptr<PermutationMatrix> permutation_;
-    std::shared_ptr<PermutationMatrix> inv_permutation_;
-    std::shared_ptr<DiagonalMatrix> row_scaling_;
-    std::shared_ptr<DiagonalMatrix> col_scaling_;
+    parameters_type parameters_;
 };
 
 
 }  // namespace reorder
+}  // namespace experimental
 }  // namespace gko
 
 
