@@ -56,7 +56,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 namespace coo {
 namespace host_kernel {
 
@@ -90,7 +90,7 @@ size_type calculate_nwarps(std::shared_ptr<const DpcppExecutor> exec,
 
 }  // namespace host_kernel
 }  // namespace coo
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko
 

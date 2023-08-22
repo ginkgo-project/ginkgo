@@ -44,7 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 
 
 inline auto onedpl_policy(std::shared_ptr<const DpcppExecutor> exec)
@@ -53,7 +53,7 @@ inline auto onedpl_policy(std::shared_ptr<const DpcppExecutor> exec)
 }
 
 
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko
 

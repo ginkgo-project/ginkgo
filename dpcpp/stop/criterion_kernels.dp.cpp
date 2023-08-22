@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 /**
  * @brief The Setting of all statuses namespace.
  * @ref set_status
@@ -66,6 +66,6 @@ void set_all_statuses(std::shared_ptr<const DpcppExecutor> exec,
 
 
 }  // namespace set_all_statuses
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

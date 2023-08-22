@@ -56,7 +56,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 /**
  * @brief The MultiVector matrix format namespace.
  * @ref MultiVector
@@ -319,6 +319,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_MULTI_VECTOR_COPY_KERNEL);
 
 
 }  // namespace batch_multi_vector
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

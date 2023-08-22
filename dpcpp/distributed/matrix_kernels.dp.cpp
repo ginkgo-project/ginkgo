@@ -38,7 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 namespace distributed_matrix {
 
 
@@ -64,6 +64,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
 
 
 }  // namespace distributed_matrix
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

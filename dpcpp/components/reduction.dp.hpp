@@ -59,7 +59,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 
 
 static constexpr int default_block_size = 256;
@@ -290,7 +290,7 @@ ValueType reduce_add_array(std::shared_ptr<const DpcppExecutor> exec,
 }
 
 
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko
 

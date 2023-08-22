@@ -147,13 +147,13 @@ scoped_device_id_guard::scoped_device_id_guard(const DpcppExecutor* exec,
 
 
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 
 
 void destroy_event(sycl::event* event) GKO_NOT_COMPILED(dpcpp);
 
 
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 
 

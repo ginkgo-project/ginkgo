@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 
 
 /**
@@ -53,7 +53,7 @@ remove_complex<ValueType> compute_inf_norm(
     size_type stride) GKO_NOT_IMPLEMENTED;
 
 
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko
 

@@ -71,7 +71,7 @@ move_only_type move_only_val{};
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 
 
 template <>
@@ -82,7 +82,7 @@ struct to_device_type_impl<move_only_type&> {
 };
 
 
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko
 

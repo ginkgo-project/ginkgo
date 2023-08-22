@@ -48,7 +48,7 @@ namespace kernels {
  *
  * @ingroup dpcpp
  */
-namespace dpcpp {
+namespace sycl {
 /**
  * @brief The index_set namespace.
  *
@@ -108,6 +108,6 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 
 }  // namespace idx_set
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

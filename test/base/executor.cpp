@@ -59,7 +59,7 @@ namespace hip {
 int value = 3;
 }
 
-namespace dpcpp {
+namespace sycl {
 int value = 4;
 }
 

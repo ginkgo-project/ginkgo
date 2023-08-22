@@ -410,7 +410,7 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
  *      // hip code
  * }
  * }
- * namespace dpcpp {
+ * namespace sycl {
  * void my_kernel(int x) {
  *      // dpcpp code
  * }
@@ -2084,8 +2084,15 @@ private:
 
 
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 using DefaultExecutor = DpcppExecutor;
+}  // namespace sycl
+}  // namespace kernels
+
+
+namespace kernels {
+namespace dpcpp {
+using DefaultExecutor [[deprecated("using sycl namespace")]] = DpcppExecutor;
 }  // namespace dpcpp
 }  // namespace kernels
 

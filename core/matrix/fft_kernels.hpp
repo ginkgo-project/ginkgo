@@ -108,13 +108,13 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace hip
 
 
-namespace dpcpp {
+namespace sycl {
 namespace fft {
 
 GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace fft
-}  // namespace dpcpp
+}  // namespace sycl
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

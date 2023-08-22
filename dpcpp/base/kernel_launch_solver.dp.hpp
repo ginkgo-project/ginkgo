@@ -38,7 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 
 
 template <typename KernelFunction, typename... KernelArgs>
@@ -71,6 +71,6 @@ void run_kernel_solver(std::shared_ptr<const DpcppExecutor> exec,
 }
 
 
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

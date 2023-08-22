@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 namespace components {
 
 
@@ -102,6 +102,6 @@ template GKO_DECLARE_PREFIX_SUM_NONNEGATIVE_KERNEL(size_type);
 
 
 }  // namespace components
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

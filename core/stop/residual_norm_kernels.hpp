@@ -148,7 +148,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES2;
 }  // namespace hip
 
 
-namespace dpcpp {
+namespace sycl {
 namespace residual_norm {
 
 GKO_DECLARE_ALL_AS_TEMPLATES;
@@ -161,7 +161,7 @@ namespace implicit_residual_norm {
 GKO_DECLARE_ALL_AS_TEMPLATES2;
 
 }  // namespace implicit_residual_norm
-}  // namespace dpcpp
+}  // namespace sycl
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

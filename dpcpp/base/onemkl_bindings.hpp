@@ -56,7 +56,7 @@ namespace kernels {
  *
  * @ingroup dpcpp
  */
-namespace dpcpp {
+namespace sycl {
 /**
  * @brief The ONEMKL namespace.
  *
@@ -125,7 +125,7 @@ GKO_BIND_DOT(ValueType, conj_dot, detail::not_implemented);
 #undef GKO_BIND_DOT
 
 }  // namespace onemkl
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko
 

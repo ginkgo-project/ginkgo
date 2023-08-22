@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 
 
 // TODO: porting - some functions name still use subwarp
@@ -250,7 +250,7 @@ void finalize_prefix_sum(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 }
 
 
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko
 

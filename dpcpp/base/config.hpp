@@ -44,7 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 
 
 struct config {
@@ -152,7 +152,7 @@ using dcfg_1sg_type_list_t =
 using dcfg_1sg_list_t = encode_list<dcfg_1sg_type_list_t>::type;
 
 
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko
 

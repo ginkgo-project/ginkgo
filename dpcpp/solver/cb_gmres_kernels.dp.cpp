@@ -62,7 +62,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 /**
  * @brief The CB_GMRES solver namespace.
  *
@@ -1353,6 +1353,6 @@ GKO_INSTANTIATE_FOR_EACH_CB_GMRES_CONST_TYPE(
 
 
 }  // namespace cb_gmres
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

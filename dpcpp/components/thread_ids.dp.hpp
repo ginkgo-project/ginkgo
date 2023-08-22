@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 /**
  * @brief The DPCPP thread namespace.
  *
@@ -319,7 +319,7 @@ __dpct_inline__ IndexType get_subwarp_num_flat(sycl::nd_item<3> item_ct1)
 
 
 }  // namespace thread
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko
 

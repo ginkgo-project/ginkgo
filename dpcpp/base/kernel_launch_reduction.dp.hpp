@@ -51,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 
 
 static constexpr auto dcfg_1d_list_simple_reduction = dcfg_1d_list_t();
@@ -718,6 +718,6 @@ void run_kernel_col_reduction_cached(std::shared_ptr<const DpcppExecutor> exec,
 }
 
 
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

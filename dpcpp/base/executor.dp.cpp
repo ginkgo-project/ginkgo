@@ -317,12 +317,12 @@ void DpcppExecutor::set_device_property(dpcpp_queue_property property)
 
 
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 
 
 void destroy_event(sycl::event* event) { delete event; }
 
 
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

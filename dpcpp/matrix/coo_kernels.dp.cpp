@@ -61,7 +61,7 @@ namespace kernels {
  *
  * @ingroup dpcpp
  */
-namespace dpcpp {
+namespace sycl {
 /**
  * @brief The Coordinate matrix format namespace.
  *
@@ -386,6 +386,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace coo
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

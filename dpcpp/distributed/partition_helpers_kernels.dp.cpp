@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 namespace partition_helpers {
 
 struct stride {
@@ -114,6 +114,6 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 
 }  // namespace partition_helpers
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko

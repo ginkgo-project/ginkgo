@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace sycl {
 
 
 /**
@@ -88,7 +88,7 @@ __dpct_inline__ int clz(uint32 mask) { return sycl::clz(mask); }
 __dpct_inline__ int clz(uint64 mask) { return sycl::clz(mask); }
 
 
-}  // namespace dpcpp
+}  // namespace sycl
 }  // namespace kernels
 }  // namespace gko
 
