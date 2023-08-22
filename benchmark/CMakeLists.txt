@@ -46,7 +46,7 @@ endfunction()
 
 
 # Generates an executable for one precision. Each executable will be linked to
-# `ginkgo`, `gflags` and `rapidjson`.
+# `ginkgo`, `gflags` and `nlohmann-json`.
 # Note: This should only be used by `ginkgo_add_typed_benchmark_executables`
 #
 # \param name            name for the executable to create (including type suffix)
@@ -96,7 +96,7 @@ endfunction(ginkgo_add_single_benchmark_executable)
 
 
 # Generates an executable for each supported precision. Each executable will be
-# linked to `ginkgo`, `gflags` and `rapidjson`.
+# linked to `ginkgo`, `gflags` and `nlohmann-json`.
 #
 # \param name            base-name for the executable to create
 # \param use_lib_linops  Boolean indicating if linking against hipsparse/cusparse
