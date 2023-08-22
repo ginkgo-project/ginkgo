@@ -91,9 +91,8 @@ public:
     {
         auto factory = stop::ResidualNorm<ValueType>::build();
         SET_VALUE(factory, remove_complex<ValueType>, reduction_factor, config);
-        if (config.contains("baseline")) {
-            factory.with_baseline(
-                get_mode(config.at("baseline").get_data<std::string>()));
+        if (auto& obj = config.get("baseline")) {
+            factory.with_baseline(get_mode(obj.get_data<std::string>()));
         }
         return factory.on(exec);
     }
@@ -122,9 +121,8 @@ public:
     {
         auto factory = stop::ImplicitResidualNorm<ValueType>::build();
         SET_VALUE(factory, remove_complex<ValueType>, reduction_factor, config);
-        if (config.contains("baseline")) {
-            factory.with_baseline(
-                get_mode(config.at("baseline").get_data<std::string>()));
+        if (auto& obj = config.get("baseline")) {
+            factory.with_baseline(get_mode(obj.get_data<std::string>()));
         }
         return factory.on(exec);
     }
@@ -149,10 +147,10 @@ get_pointer<const stop::CriterionFactory>(const pnode& config,
                                           type_descriptor td)
 {
     std::shared_ptr<const stop::CriterionFactory> ptr;
-    if (config.is(pnode::status_t::object)) {
+    if (config.is(pnode::status_t::data)) {
         return context.search_data<stop::CriterionFactory>(
             config.get_data<std::string>());
-    } else if (config.is(pnode::status_t::list)) {
+    } else if (config.is(pnode::status_t::map)) {
         static std::map<
             std::string,
             std::function<std::unique_ptr<gko::stop::CriterionFactory>(
@@ -186,7 +184,7 @@ get_pointer_vector<const stop::CriterionFactory>(
         res.push_back(get_pointer<const stop::CriterionFactory>(config, context,
                                                                 exec, td));
     }
-    // TODO: handle shortcut version by config.is(pnode::status_t::list) &&
+    // TODO: handle shortcut version by config.is(pnode::status_t::map) &&
     // !config.contains("Type")
 
     return res;
