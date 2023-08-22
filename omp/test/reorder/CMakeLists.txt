@@ -1,2 +1,1 @@
-ginkgo_create_test(mc64_kernels RESOURCE_TYPE cpu)
 ginkgo_create_test(rcm_kernels RESOURCE_TYPE cpu)

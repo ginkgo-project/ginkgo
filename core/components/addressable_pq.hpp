@@ -52,10 +52,11 @@ namespace gko {
  *
  * @tparam KeyType    The type of the keys
  * @tparam ValueType  The type of the values
+ * @tparam deg_log2  The binary logarithm of the node degree k
  */
-template <typename KeyType, typename ValueType>
+template <typename KeyType, typename ValueType, int deg_log2 = 4>
 struct addressable_priority_queue {
-    explicit addressable_priority_queue(int deg_log2) : degree{1 << deg_log2} {}
+    constexpr static int degree = 1 << deg_log2;
 
     /**
      * Inserts the given key-value pair into the PQ.
@@ -69,10 +70,11 @@ struct addressable_priority_queue {
         m_values.push_back(value);
         auto handle = next_handle();
         m_handles.push_back(handle);
-        if (handle == m_handle_pos.size())
+        if (handle == m_handle_pos.size()) {
             m_handle_pos.push_back(size() - 1);
-        else
+        } else {
             m_handle_pos[handle] = size() - 1;
+        }
         sift_up(size() - 1);
         return handle;
     }
@@ -97,21 +99,21 @@ struct addressable_priority_queue {
     /**
      * Returns the minimum key from the queue.
      *
-     * @return the minimun key from the queue
+     * @return the minimum key from the queue
      */
     KeyType min_key() const { return m_keys[0]; }
 
     /**
      * Returns the value belonging to the minimum key from the queue.
      *
-     * @return the value corresponding to the minimun key
+     * @return the value corresponding to the minimum key
      */
     ValueType min_val() const { return m_values[0]; }
 
     /**
      * Returns the key-value pair with the minimum key from the queue.
      *
-     * @return the key-value pair corresponding to the minimun key
+     * @return the key-value pair corresponding to the minimum key
      */
     std::pair<KeyType, ValueType> min() const { return {min_key(), min_val()}; }
 
@@ -123,7 +125,6 @@ struct addressable_priority_queue {
         swap(0, size() - 1);
         m_keys.pop_back();
         m_values.pop_back();
-        auto old_handle = m_handles.back();
         m_handles.pop_back();
         sift_down(0);
     }
@@ -164,6 +165,7 @@ private:
     }
 
     /**
+     * Restores the heap invariant downwards, i.e. the
      * Moves the key-value pair at position i down (toward the leaves)
      * until its key is smaller or equal to the one of all its children.
      */
@@ -202,7 +204,6 @@ private:
 
     std::size_t next_handle() const { return m_handle_pos.size(); }
 
-    const int degree;
     std::vector<KeyType> m_keys;
     std::vector<ValueType> m_values;
     std::vector<std::size_t> m_handles;
