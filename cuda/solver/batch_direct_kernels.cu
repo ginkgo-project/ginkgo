@@ -98,7 +98,7 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
     ValueType** const matrices = exec->alloc<ValueType*>(nbatch);
     ValueType** const vectors = exec->alloc<ValueType*>(nbatch);
     const int nblk_1 = (nbatch - 1) / default_block_size + 1;
-    setup_batch_pointers<<<nblk_1, default_block_size>>>(
+    setup_batch_pointers<<<nblk_1, default_block_size, 0, exec->get_stream()>>>(
         num_batches, n, stride, as_cuda_type(a_t->get_values()),
         as_cuda_type(matrices), nrhs, b_stride, as_cuda_type(b_t->get_values()),
         as_cuda_type(vectors));
@@ -119,6 +119,10 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
         std::cerr << "Cublas batch trsm got an illegal param in position "
                   << trsm_info << std::endl;
     }
+    // CUDA 11.4 has a use-after-free bug on Turing
+#if (CUDA_VERSION >= 11040)
+    exec->synchronize();
+#endif
 
     exec->free(matrices);
     exec->free(vectors);
@@ -170,7 +174,8 @@ void pre_diag_scale_system_transpose(
     const size_type b_scaled_stride = b_scaled_t->get_stride().at();
     constexpr size_type left_scale_stride = 1;
     constexpr size_type rght_scale_stride = 1;
-    pre_diag_scale_system_transpose<<<nbatch, default_block_size>>>(
+    pre_diag_scale_system_transpose<<<nbatch, default_block_size, 0,
+                                      exec->get_stream()>>>(
         nbatch, nrows, ncols, a_stride, as_cuda_type(a->get_const_values()),
         nrhs, b_stride, as_cuda_type(b->get_const_values()), left_scale_stride,
         as_cuda_type(left_scale->get_const_values()), rght_scale_stride,

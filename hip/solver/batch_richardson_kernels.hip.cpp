@@ -126,9 +126,9 @@ public:
             get_num_threads_per_block<BatchMatrixType>(exec_, a.num_rows);
 
         hipLaunchKernelGGL(apply_kernel<StopType>, nbatch, block_size,
-                           shared_size, 0, opts_.max_its, opts_.residual_tol,
-                           opts_.relax_factor, logger, prec, a, b.values,
-                           x.values);
+                           shared_size, exec_->get_stream(), opts_.max_its,
+                           opts_.residual_tol, opts_.relax_factor, logger, prec,
+                           a, b.values, x.values);
 
         GKO_HIP_LAST_IF_ERROR_THROW;
     }

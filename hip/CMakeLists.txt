@@ -1,9 +1,14 @@
 set(GINKGO_HIP_SOURCES
+    base/device.hip.cpp
     base/device_matrix_data_kernels.hip.cpp
     base/exception.hip.cpp
     base/executor.hip.cpp
     base/index_set_kernels.hip.cpp
+    base/memory.hip.cpp
+    base/roctx.hip.cpp
     base/scoped_device_id.hip.cpp
+    base/stream.hip.cpp
+    base/timer.hip.cpp
     base/version.hip.cpp
     components/prefix_sum_kernels.hip.cpp
     distributed/matrix_kernels.hip.cpp

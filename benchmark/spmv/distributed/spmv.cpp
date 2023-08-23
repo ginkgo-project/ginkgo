@@ -76,8 +76,10 @@ std::string example_config = R"(
 
 struct Generator : DistributedDefaultSystemGenerator<DefaultSystemGenerator<>> {
     Generator(gko::experimental::mpi::communicator comm)
-        : DistributedDefaultSystemGenerator<DefaultSystemGenerator<>>{
-              std::move(comm), {}}
+        : DistributedDefaultSystemGenerator<DefaultSystemGenerator<>>
+    {
+        std::move(comm), {}
+    }
     {}
 
     void validate_options(const rapidjson::Value& options) const
@@ -124,7 +126,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    std::string json_input = broadcast_json_input(std::cin, comm);
+    std::string json_input = broadcast_json_input(get_input_stream(), comm);
     rapidjson::Document test_cases;
     test_cases.Parse(json_input.c_str());
     if (!test_cases.IsArray()) {

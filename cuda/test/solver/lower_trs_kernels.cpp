@@ -174,21 +174,31 @@ TEST_F(LowerTrs, CudaMultipleRhsApplySyncfreeIsEquivalentToRef)
 TEST_F(LowerTrs, CudaMultipleRhsApplyIsEquivalentToRef)
 {
     initialize_data(50, 3);
+#if CUDA_VERSION >= 11031
+#if CUDA_VERSION < 12000
+    // The cuSPARSE Generic SpSM implementation uses the wrong stride here
+    // so the input and output stride need to match
+    auto in_stride = 4;
+    auto out_stride = 4;
+#else
+    // The cuSPARSE 12 solver is even worse: It only works if the stride is
+    // equal to the number of columns.
+    auto in_stride = 3;
+    auto out_stride = 3;
+#endif
+#else
+    auto in_stride = 4;
+    auto out_stride = 5;
+#endif
     auto lower_trs_factory =
         gko::solver::LowerTrs<>::build().with_num_rhs(3u).on(ref);
     auto d_lower_trs_factory =
         gko::solver::LowerTrs<>::build().with_num_rhs(3u).on(exec);
     auto solver = lower_trs_factory->generate(csr_mtx);
     auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
-    auto db2_strided = Mtx::create(exec, b->get_size(), 4);
+    auto db2_strided = Mtx::create(exec, b->get_size(), in_stride);
     d_b2->convert_to(db2_strided);
-    // The cuSPARSE Generic SpSM implementation uses the wrong stride here
-    // so the input and output stride need to match
-#if CUDA_VERSION >= 11031
-    auto dx_strided = Mtx::create(exec, x->get_size(), 4);
-#else
-    auto dx_strided = Mtx::create(exec, x->get_size(), 5);
-#endif
+    auto dx_strided = Mtx::create(exec, x->get_size(), out_stride);
 
     solver->apply(b2, x);
     d_solver->apply(db2_strided, dx_strided);

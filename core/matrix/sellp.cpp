@@ -60,7 +60,8 @@ namespace {
 GKO_REGISTER_OPERATION(spmv, sellp::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, sellp::advanced_spmv);
 GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
-GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum);
+GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
+                       components::prefix_sum_nonnegative);
 GKO_REGISTER_OPERATION(compute_slice_sets, sellp::compute_slice_sets);
 GKO_REGISTER_OPERATION(fill_in_matrix_data, sellp::fill_in_matrix_data);
 GKO_REGISTER_OPERATION(fill_in_dense, sellp::fill_in_dense);
@@ -206,8 +207,8 @@ void Sellp<ValueType, IndexType>::convert_to(
         tmp->row_ptrs_.resize_and_reset(num_rows + 1);
         exec->run(sellp::make_count_nonzeros_per_row(
             this, tmp->row_ptrs_.get_data()));
-        exec->run(
-            sellp::make_prefix_sum(tmp->row_ptrs_.get_data(), num_rows + 1));
+        exec->run(sellp::make_prefix_sum_nonnegative(tmp->row_ptrs_.get_data(),
+                                                     num_rows + 1));
         const auto nnz = static_cast<size_type>(
             exec->copy_val_to_host(tmp->row_ptrs_.get_const_data() + num_rows));
         tmp->col_idxs_.resize_and_reset(nnz);

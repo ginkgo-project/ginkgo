@@ -103,7 +103,7 @@ void DpcppExecutor::populate_exec_info(const machine_topology* mach_topo)
 
 void DpcppExecutor::raw_free(void* ptr) const noexcept
 {
-    // the free function may syncronize excution or not, which depends on
+    // the free function may synchronize execution or not, which depends on
     // implementation or backend, so it is not guaranteed.
     // TODO: maybe a light wait implementation?
     try {
@@ -316,4 +316,13 @@ void DpcppExecutor::set_device_property(dpcpp_queue_property property)
 }
 
 
+namespace kernels {
+namespace dpcpp {
+
+
+void destroy_event(sycl::event* event) { delete event; }
+
+
+}  // namespace dpcpp
+}  // namespace kernels
 }  // namespace gko

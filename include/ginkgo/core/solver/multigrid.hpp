@@ -261,23 +261,28 @@ public:
         /**
          * Pre-smooth Factory list.
          * Its size must be 0, 1 or be the same as mg_level's.
-         * when size = 0, do not use pre_smoother
+         * when size = 0, use default smoother
          * when size = 1, use the first factory
          * when size > 1, use the same selector as mg_level
-         * nullptr skips this pre_smoother at the level, which is different from
-         * Identity Factory. Identity Factory updates x = x + relaxation *
-         * residual.
+         *
+         * If this option is not set (i.e. size = 0) then the default smoother
+         * is used. The default smoother is one step of iterative refinement
+         * with a scalar Jacobi preconditioner.
+         *
+         * If any element in the vector is a `nullptr` then the smoother
+         * application at the corresponding level is skipped.
          */
-        std::vector<std::shared_ptr<const LinOpFactory>>
-            GKO_FACTORY_PARAMETER_VECTOR(pre_smoother, nullptr);
+        using smoother_list = std::vector<std::shared_ptr<const LinOpFactory>>;
+        smoother_list GKO_FACTORY_PARAMETER_VECTOR(pre_smoother,
+                                                   smoother_list{});
 
         /**
          * Post-smooth Factory list.
          * It is similar to Pre-smooth Factory list. It is ignored if
          * the factory parameter post_uses_pre is set to true.
          */
-        std::vector<std::shared_ptr<const LinOpFactory>>
-            GKO_FACTORY_PARAMETER_VECTOR(post_smoother, nullptr);
+        smoother_list GKO_FACTORY_PARAMETER_VECTOR(post_smoother,
+                                                   smoother_list{});
 
         /**
          * Mid-smooth Factory list. If it contains available elements, multigrid
@@ -286,8 +291,8 @@ public:
          * Pre-smooth Factory list. It is ignored if the factory parameter
          * mid_case is not mid.
          */
-        std::vector<std::shared_ptr<const LinOpFactory>>
-            GKO_FACTORY_PARAMETER_VECTOR(mid_smoother, nullptr);
+        smoother_list GKO_FACTORY_PARAMETER_VECTOR(mid_smoother,
+                                                   smoother_list{});
 
         /**
          * Whether post-smoothing-related calls use corresponding
@@ -323,6 +328,9 @@ public:
 
         /**
          * Coarsest factory list.
+         *
+         * If not set, then a direct LU solver will be used as solver on the
+         * coarsest level.
          */
         std::vector<std::shared_ptr<const LinOpFactory>>
             GKO_FACTORY_PARAMETER_VECTOR(coarsest_solver, nullptr);
@@ -380,14 +388,14 @@ public:
         double GKO_FACTORY_PARAMETER_SCALAR(kcycle_rel_tol, 0.25);
 
         /**
-         * smoother_relax is the relaxation factor of auto generated smoother
-         * when a user-supplied smoother does not use the initial guess.
+         * smoother_relax is the relaxation factor of default generated
+         * smoother.
          */
         std::complex<double> GKO_FACTORY_PARAMETER_SCALAR(smoother_relax, 0.9);
 
         /**
-         * smoother_iters is the number of iteration of auto generated smoother
-         * when a user-supplied smoother does not use the initial guess.
+         * smoother_iters is the number of iteration of default generated
+         * smoother.
          */
         size_type GKO_FACTORY_PARAMETER_SCALAR(smoother_iters, 1);
 
@@ -396,7 +404,7 @@ public:
          * initial_guess_mode.
          */
         initial_guess_mode GKO_FACTORY_PARAMETER_SCALAR(
-            default_initial_guess, initial_guess_mode::provided);
+            default_initial_guess, initial_guess_mode::zero);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Multigrid, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -424,49 +432,10 @@ protected:
      */
     void generate();
 
-    explicit Multigrid(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Multigrid>(exec)
-    {}
+    explicit Multigrid(std::shared_ptr<const Executor> exec);
 
     explicit Multigrid(const Factory* factory,
-                       std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Multigrid>(factory->get_executor(),
-                                 transpose(system_matrix->get_size())),
-          EnableSolverBase<Multigrid>{std::move(system_matrix)},
-          EnableIterativeBase<Multigrid>{
-              stop::combine(factory->get_parameters().criteria)},
-          parameters_{factory->get_parameters()}
-    {
-        if (!parameters_.level_selector) {
-            if (parameters_.mg_level.size() == 1) {
-                level_selector_ = [](const size_type, const LinOp*) {
-                    return size_type{0};
-                };
-            } else if (parameters_.mg_level.size() > 1) {
-                level_selector_ = [](const size_type level, const LinOp*) {
-                    return level;
-                };
-            }
-        } else {
-            level_selector_ = parameters_.level_selector;
-        }
-        if (!parameters_.solver_selector) {
-            if (parameters_.coarsest_solver.size() >= 1) {
-                solver_selector_ = [](const size_type, const LinOp*) {
-                    return size_type{0};
-                };
-            }
-        } else {
-            solver_selector_ = parameters_.solver_selector;
-        }
-
-        this->validate();
-        this->set_default_initial_guess(parameters_.default_initial_guess);
-        if (this->get_system_matrix()->get_size()[0] != 0) {
-            // generate on the existed matrix
-            this->generate();
-        }
-    }
+                       std::shared_ptr<const LinOp> system_matrix);
 
     /**
      * validate checks the given parameters are valid or not.

@@ -131,87 +131,6 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
-void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
-                   const matrix::SparsityCsr<ValueType, IndexType>* input,
-                   matrix::Dense<ValueType>* output)
-{
-    auto row_ptrs = input->get_const_row_ptrs();
-    auto col_idxs = input->get_const_col_idxs();
-    auto val = input->get_const_value()[0];
-    const auto num_rows = input->get_size()[0];
-
-#pragma omp parallel for
-    for (size_type row = 0; row < num_rows; ++row) {
-        for (auto k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
-            auto col = col_idxs[k];
-            output->at(row, col) = val;
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_CSR_FILL_IN_DENSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void count_num_diagonal_elements(
-    std::shared_ptr<const OmpExecutor> exec,
-    const matrix::SparsityCsr<ValueType, IndexType>* matrix,
-    size_type* num_diagonal_elements)
-{
-    auto num_rows = matrix->get_size()[0];
-    auto row_ptrs = matrix->get_const_row_ptrs();
-    auto col_idxs = matrix->get_const_col_idxs();
-    size_type num_diag = 0;
-    for (auto i = 0; i < num_rows; ++i) {
-        for (auto j = row_ptrs[i]; j < row_ptrs[i + 1]; ++j) {
-            if (col_idxs[j] == i) {
-                num_diag++;
-            }
-        }
-    }
-    *num_diagonal_elements = num_diag;
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_CSR_COUNT_NUM_DIAGONAL_ELEMENTS_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void remove_diagonal_elements(std::shared_ptr<const OmpExecutor> exec,
-                              const IndexType* row_ptrs,
-                              const IndexType* col_idxs,
-                              matrix::SparsityCsr<ValueType, IndexType>* matrix)
-{
-    auto num_rows = matrix->get_size()[0];
-    auto adj_ptrs = matrix->get_row_ptrs();
-    auto adj_idxs = matrix->get_col_idxs();
-    size_type num_diag = 0;
-    adj_ptrs[0] = row_ptrs[0];
-    for (auto i = 0; i < num_rows; ++i) {
-        for (auto j = row_ptrs[i]; j < row_ptrs[i + 1]; ++j) {
-            if (col_idxs[j] == i) {
-                num_diag++;
-            }
-        }
-        adj_ptrs[i + 1] = row_ptrs[i + 1] - num_diag;
-    }
-    auto nnz = 0;
-    for (auto i = 0; i < num_rows; ++i) {
-        for (auto j = row_ptrs[i]; j < row_ptrs[i + 1]; ++j) {
-            if (col_idxs[j] != i) {
-                adj_idxs[nnz] = col_idxs[j];
-                nnz++;
-            }
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_CSR_REMOVE_DIAGONAL_ELEMENTS_KERNEL);
-
-
 template <typename IndexType>
 inline void convert_sparsity_to_csc(size_type num_rows,
                                     const IndexType* row_ptrs,
@@ -247,7 +166,7 @@ void transpose_and_transform(
     for (size_type i = 0; i < orig_nnz; i++) {
         trans_row_ptrs[orig_col_idxs[i] + 1]++;
     }
-    components::prefix_sum(exec, trans_row_ptrs + 1, orig_num_cols);
+    components::prefix_sum_nonnegative(exec, trans_row_ptrs + 1, orig_num_cols);
 
     convert_sparsity_to_csc(orig_num_rows, orig_row_ptrs, orig_col_idxs,
                             trans_col_idxs, trans_row_ptrs + 1);

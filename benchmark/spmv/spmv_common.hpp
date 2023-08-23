@@ -116,8 +116,8 @@ void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
             for (auto _ : ic_tuning.run()) {
                 system_matrix->apply(b, x_clone);
             }
-            tuning_case["time"].PushBack(ic_tuning.compute_average_time(),
-                                         allocator);
+            tuning_case["time"].PushBack(
+                ic_tuning.compute_time(FLAGS_timer_method), allocator);
             tuning_case["values"].PushBack(val, allocator);
         }
         // We put back the flag to false to use the default (non-tuned) values
@@ -131,7 +131,7 @@ void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
             system_matrix->apply(b, x_clone);
         }
         add_or_set_member(spmv_case[format_name], "time",
-                          ic.compute_average_time(), allocator);
+                          ic.compute_time(FLAGS_timer_method), allocator);
         add_or_set_member(spmv_case[format_name], "repetitions",
                           ic.get_num_repetitions(), allocator);
 
@@ -146,7 +146,8 @@ void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
             add_or_set_member(test_case["spmv"][format_name], "error",
                               msg_value, allocator);
         }
-        std::cerr << "Error when processing test case " << test_case << "\n"
+        std::cerr << "Error when processing test case\n"
+                  << test_case << "\n"
                   << "what(): " << e.what() << std::endl;
     }
 }
@@ -160,6 +161,11 @@ void run_spmv_benchmark(std::shared_ptr<gko::Executor> exec,
                         std::shared_ptr<Timer> timer, bool do_print)
 {
     auto& allocator = test_cases.GetAllocator();
+    auto profiler_hook = create_profiler_hook(exec);
+    if (profiler_hook) {
+        exec->add_logger(profiler_hook);
+    }
+    auto annotate = annotate_functor{profiler_hook};
 
     for (auto& test_case : test_cases.GetArray()) {
         try {
@@ -179,8 +185,12 @@ void run_spmv_benchmark(std::shared_ptr<gko::Executor> exec,
                 continue;
             }
             if (do_print) {
-                std::clog << "Running test case: " << test_case << std::endl;
+                std::clog << "Running test case\n" << test_case << std::endl;
             }
+            // annotate the test case
+            auto test_case_range =
+                annotate(system_generator.describe_config(test_case));
+
             auto data = system_generator.generate_matrix_data(test_case);
 
             auto nrhs = FLAGS_nrhs;
@@ -213,9 +223,12 @@ void run_spmv_benchmark(std::shared_ptr<gko::Executor> exec,
                 exec->synchronize();
             }
             for (const auto& format_name : formats) {
-                apply_spmv(format_name.c_str(), exec, system_generator, timer,
-                           data, b.get(), x.get(), answer.get(), test_case,
-                           allocator);
+                {
+                    auto format_range = annotate(format_name.c_str());
+                    apply_spmv(format_name.c_str(), exec, system_generator,
+                               timer, data, b.get(), x.get(), answer.get(),
+                               test_case, allocator);
+                }
                 if (do_print) {
                     std::clog << "Current state:" << std::endl
                               << test_cases << std::endl;
@@ -239,7 +252,15 @@ void run_spmv_benchmark(std::shared_ptr<gko::Executor> exec,
         } catch (const std::exception& e) {
             std::cerr << "Error setting up matrix data, what(): " << e.what()
                       << std::endl;
+            if (FLAGS_keep_errors) {
+                rapidjson::Value msg_value;
+                msg_value.SetString(e.what(), allocator);
+                add_or_set_member(test_case, "error", msg_value, allocator);
+            }
         }
+    }
+    if (profiler_hook) {
+        exec->remove_logger(profiler_hook);
     }
 }
 

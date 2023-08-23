@@ -456,8 +456,8 @@ void solve_system(const std::string& solver_name,
             auto x_clone = clone(x);
 
             auto gen_logger = create_operations_logger(
-                FLAGS_nested_names, solver_json["generate"]["components"],
-                allocator, 1);
+                FLAGS_gpu_timer, FLAGS_nested_names, exec,
+                solver_json["generate"]["components"], allocator, 1);
             exec->add_logger(gen_logger);
 
             auto precond = precond_factory.at(precond_name)(exec);
@@ -479,8 +479,8 @@ void solve_system(const std::string& solver_name,
             }
 
             auto apply_logger = create_operations_logger(
-                FLAGS_nested_names, solver_json["apply"]["components"],
-                allocator, 1);
+                FLAGS_gpu_timer, FLAGS_nested_names, exec,
+                solver_json["apply"]["components"], allocator, 1);
             exec->add_logger(apply_logger);
 
             solver->apply(lend(b), lend(x_clone));
@@ -532,9 +532,11 @@ void solve_system(const std::string& solver_name,
                               allocator);
         }
         add_or_set_member(solver_json["generate"], "time",
-                          generate_timer->compute_average_time(), allocator);
+                          generate_timer->compute_time(FLAGS_timer_method),
+                          allocator);
         add_or_set_member(solver_json["apply"], "time",
-                          apply_timer->compute_average_time(), allocator);
+                          apply_timer->compute_time(FLAGS_timer_method),
+                          allocator);
         add_or_set_member(solver_json, "repetitions",
                           apply_timer->get_num_repetitions(), allocator);
 

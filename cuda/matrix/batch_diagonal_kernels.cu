@@ -75,7 +75,8 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
     const auto ncols = static_cast<int>(diag->get_size().at()[1]);
     const auto nrhs = static_cast<int>(x->get_size().at()[1]);
     const int num_blocks = b->get_num_batch_entries();
-    uniform_batch_diag_apply<<<num_blocks, default_block_size>>>(
+    uniform_batch_diag_apply<<<num_blocks, default_block_size, 0,
+                               exec->get_stream()>>>(
         num_blocks, nrows, ncols, as_cuda_type(diag->get_const_values()), nrhs,
         b_stride, as_cuda_type(b->get_const_values()), x_stride,
         as_cuda_type(x->get_values()));
@@ -95,7 +96,8 @@ void apply_in_place(std::shared_ptr<const CudaExecutor> exec,
     const auto nrhs = b->get_size().at()[1];
     const auto nbatch = b->get_num_batch_entries();
     const int num_blocks = b->get_num_batch_entries();
-    uniform_batch_diag_apply_inplace<<<num_blocks, default_block_size>>>(
+    uniform_batch_diag_apply_inplace<<<num_blocks, default_block_size, 0,
+                                       exec->get_stream()>>>(
         nrows, stride, nrhs, nbatch, as_cuda_type(diag->get_const_values()),
         as_cuda_type(b->get_values()));
 }

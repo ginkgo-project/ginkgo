@@ -66,7 +66,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *   <li> <code>-DGINKGO_BUILD_HIP=ON</code> option for AMD or NVIDIA GPUs.
  *   <li> <code>-DGINKGO_BUILD_DPCPP=ON</code> option for Intel GPUs (and
  *        possibly any other platform).
- * </ol
+ * </ol>
  *
  * <a name="graph"></a>
  * @anchor ExampleConnectionGraph
@@ -212,7 +212,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *   <tr valign="top">
  *       <td>@ref heat_equation</td>
  *       <td> Solving a 2D heat equation and showing matrix assembly, vector
- *            initalization and solver setup in a more complex setting with
+ *            initialization and solver setup in a more complex setting with
  *            output visualization.
  *       </td></tr>
  *

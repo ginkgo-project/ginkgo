@@ -413,6 +413,25 @@ TEST_F(EnableLinOpFactory, FactoryGenerateIsLogged)
 }
 
 
+TEST_F(EnableLinOpFactory, WithLoggersWorksAndPropagates)
+{
+    auto before_logger = *logger;
+    auto factory =
+        DummyLinOpWithFactory<>::build().with_loggers(logger).on(ref);
+    auto op = factory->generate(DummyLinOp::create(ref, gko::dim<2>{3, 5}));
+    op->apply(op, op);
+
+    ASSERT_EQ(logger->linop_factory_generate_started,
+              before_logger.linop_factory_generate_started + 1);
+    ASSERT_EQ(logger->linop_factory_generate_completed,
+              before_logger.linop_factory_generate_completed + 1);
+    ASSERT_EQ(logger->linop_apply_started,
+              before_logger.linop_apply_started + 1);
+    ASSERT_EQ(logger->linop_apply_completed,
+              before_logger.linop_apply_completed + 1);
+}
+
+
 TEST_F(EnableLinOpFactory, CopiesLinOpToOtherExecutor)
 {
     auto ref2 = gko::ReferenceExecutor::create();

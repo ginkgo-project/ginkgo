@@ -70,10 +70,6 @@ namespace batch_gmres {
 #include "common/cuda_hip/matrix/batch_vector_kernels.hpp.inc"
 #include "common/cuda_hip/solver/batch_gmres_kernels.hpp.inc"
 
-int get_larger_power(int value, int guess = 64)
-{
-    return guess >= value ? guess : get_larger_power(value, guess << 1);
-}
 
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
@@ -156,7 +152,7 @@ public:
         auto nrows = a.num_rows;
 
         apply_kernel<StopType, n_shared, prec_shared_bool>
-            <<<a.num_batch, block_size, shared_size>>>(
+            <<<a.num_batch, block_size, shared_size, exec_->get_stream()>>>(
                 sconf, opts_.max_its, opts_.residual_tol, opts_.restart_num,
                 logger, prec, a, b_values, x_values, workspace_data);
     }
@@ -180,7 +176,6 @@ public:
             get_max_dynamic_shared_memory<StopType, PrecType, LogType,
                                           BatchMatrixType, value_type>(exec_,
                                                                        0);
-
         const int block_size =
             get_num_threads_per_block<StopType, PrecType, LogType,
                                       BatchMatrixType, value_type>(exec_,

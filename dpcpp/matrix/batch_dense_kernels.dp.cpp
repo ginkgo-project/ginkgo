@@ -72,7 +72,6 @@ namespace batch_dense {
 
 #include "dpcpp/matrix/batch_dense_kernels.hpp.inc"
 
-
 template <typename ValueType>
 void simple_apply(std::shared_ptr<const DpcppExecutor> exec,
                   const matrix::BatchDense<ValueType>* a,
@@ -348,7 +347,6 @@ void convergence_compute_dot(std::shared_ptr<const DpcppExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COMPUTE_DOT_KERNEL);
-
 
 template <typename ValueType>
 void compute_norm2(std::shared_ptr<const DpcppExecutor> exec,

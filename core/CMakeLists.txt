@@ -10,9 +10,11 @@ target_sources(ginkgo
     base/device_matrix_data.cpp
     base/executor.cpp
     base/index_set.cpp
+    base/memory.cpp
     base/mpi.cpp
     base/mtx_io.cpp
     base/perturbation.cpp
+    base/timer.cpp
     base/version.cpp
     distributed/partition.cpp
     factorization/cholesky.cpp
@@ -63,6 +65,7 @@ target_sources(ginkgo
     preconditioner/batch_jacobi.cpp
     preconditioner/isai.cpp
     preconditioner/jacobi.cpp
+    reorder/amd.cpp
     reorder/rcm.cpp
     reorder/scaled_reordered.cpp
     solver/batch_bicgstab.cpp
@@ -80,6 +83,7 @@ target_sources(ginkgo
     solver/cgs.cpp
     solver/direct.cpp
     solver/fcg.cpp
+    solver/gcr.cpp
     solver/gmres.cpp
     solver/idr.cpp
     solver/ir.cpp
@@ -90,10 +94,17 @@ target_sources(ginkgo
     stop/criterion.cpp
     stop/iteration.cpp
     stop/residual_norm.cpp
-    stop/time.cpp)
+    stop/time.cpp
+    ../third_party/SuiteSparse/wrapper32.cpp
+    ../third_party/SuiteSparse/wrapper64.cpp
+    )
 
 if(GINKGO_HAVE_PAPI_SDE)
     target_sources(ginkgo PRIVATE log/papi.cpp)
+endif()
+
+if(GINKGO_HAVE_METIS)
+    target_sources(ginkgo PRIVATE reorder/nested_dissection.cpp)
 endif()
 
 if(GINKGO_BUILD_MPI)
@@ -126,11 +137,15 @@ if(GINKGO_HAVE_PAPI_SDE)
 endif()
 
 if(GINKGO_HAVE_TAU)
-    target_link_libraries(ginkgo PUBLIC perfstubs)
+    target_link_libraries(ginkgo PRIVATE perfstubs)
 endif()
 
 if(GINKGO_HAVE_VTUNE)
-    target_link_libraries(ginkgo PUBLIC VTune::ITT)
+    target_link_libraries(ginkgo PRIVATE VTune::ITT)
+endif()
+
+if(GINKGO_HAVE_METIS)
+    target_link_libraries(ginkgo PRIVATE METIS::METIS)
 endif()
 
 if(GINKGO_BUILD_MPI)

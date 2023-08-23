@@ -100,7 +100,7 @@ protected:
 };
 
 
-TEST_F(MatricesNear, SuceedsIfSame)
+TEST_F(MatricesNear, SucceedsIfSame)
 {
     ASSERT_PRED_FORMAT3(gko::test::assertions::matrices_near, mtx1.get(),
                         mtx1.get(), 0.0);

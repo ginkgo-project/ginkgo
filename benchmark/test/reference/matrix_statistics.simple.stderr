@@ -1,0 +1,9 @@
+This is Ginkgo 1.7.0 (develop)
+    running with core module 1.7.0 (develop)
+Running test case
+{
+    "size": 100,
+    "stencil": "7pt",
+    "problem": {}
+}
+Matrix is of size (125, 125)

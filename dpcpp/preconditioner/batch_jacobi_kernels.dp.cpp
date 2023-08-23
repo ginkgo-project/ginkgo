@@ -167,7 +167,6 @@ void batch_jacobi_apply(
                               row_part_of_which_block_info, r, z);
 }
 
-
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_JACOBI_APPLY_KERNEL);
 
@@ -190,7 +189,6 @@ void batch_jacobi_apply(
                               blocks_array, block_ptrs,
                               row_part_of_which_block_info, r, z);
 }
-
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_JACOBI_ELL_APPLY_KERNEL);

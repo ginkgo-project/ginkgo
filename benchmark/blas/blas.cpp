@@ -100,6 +100,16 @@ std::map<std::string, std::function<std::unique_ptr<BenchmarkOperation>(
              return std::make_unique<AdvancedApplyOperation<Generator>>(
                  exec, Generator{}, dims.n, dims.k, dims.m, dims.stride_A,
                  dims.stride_B, dims.stride_C);
+         }},
+        {"prefix_sum32",
+         [](std::shared_ptr<const gko::Executor> exec, dimensions dims) {
+             return std::make_unique<PrefixSumOperation<gko::int32>>(exec,
+                                                                     dims.n);
+         }},
+        {"prefix_sum64",
+         [](std::shared_ptr<const gko::Executor> exec, dimensions dims) {
+             return std::make_unique<PrefixSumOperation<gko::int64>>(exec,
+                                                                     dims.n);
          }}};
 
 
@@ -123,11 +133,12 @@ Parameters for a benchmark case are:
     std::string format = example_config;
     initialize_argument_parsing(&argc, &argv, header, format);
 
-    std::string extra_information = "The operations are " + FLAGS_operations;
+    std::string extra_information =
+        "The operations are " + FLAGS_operations + "\n";
     print_general_information(extra_information);
     auto exec = executor_factory.at(FLAGS_executor)(FLAGS_gpu_timer);
 
-    rapidjson::IStreamWrapper jcin(std::cin);
+    rapidjson::IStreamWrapper jcin(get_input_stream());
     rapidjson::Document test_cases;
     test_cases.ParseStream(jcin);
     if (!test_cases.IsArray()) {

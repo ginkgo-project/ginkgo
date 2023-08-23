@@ -1,11 +1,16 @@
 add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
 target_sources(ginkgo_cuda
     PRIVATE
+    base/device.cpp
     base/device_matrix_data_kernels.cu
     base/exception.cpp
     base/executor.cpp
     base/index_set_kernels.cpp
+    base/memory.cpp
+    base/nvtx.cpp
     base/scoped_device_id.cpp
+    base/stream.cpp
+    base/timer.cpp
     base/version.cpp
     components/prefix_sum_kernels.cu
     distributed/matrix_kernels.cu

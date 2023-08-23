@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/log/profiler_hook.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -74,7 +75,7 @@ protected:
           solver(ir_factory->generate(mtx))
     {}
 
-    std::shared_ptr<const gko::Executor> exec;
+    std::shared_ptr<gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<typename Solver::Factory> ir_factory;
     std::unique_ptr<gko::LinOp> solver;
@@ -455,6 +456,44 @@ TYPED_TEST(Ir, SmootherBuildWithFactory)
     ASSERT_NE(criteria.get(), nullptr);
     ASSERT_EQ(criteria->get_parameters().max_iters, 3);
     ASSERT_EQ(smoother_factory->get_parameters().solver.get(), factory.get());
+}
+
+
+struct TestSummaryWriter : gko::log::ProfilerHook::SummaryWriter {
+    void write(const std::vector<gko::log::ProfilerHook::summary_entry>& e,
+               std::chrono::nanoseconds overhead) override
+    {
+        int matched = 0;
+        for (const auto& data : e) {
+            if (data.name == "residual_norm::residual_norm") {
+                matched++;
+                // Contains make_residual_norm 3 times: The last 4-th iteration
+                // exits due to iteration limit.
+                EXPECT_EQ(data.count, 3);
+            }
+        }
+        // ensure matching once
+        EXPECT_EQ(matched, 1);
+    }
+};
+
+
+TYPED_TEST(Ir, RunResidualNormCheckCorrectTimes)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    using Mtx = typename TestFixture::Mtx;
+    auto b = gko::initialize<Mtx>({2, -1.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+    auto logger = gko::share(gko::log::ProfilerHook::create_summary(
+        std::make_shared<gko::CpuTimer>(),
+        std::make_unique<TestSummaryWriter>()));
+    this->exec->add_logger(logger);
+
+    // solver reaches the iteration limit
+    this->solver->apply(b, x);
+
+    // The assertions happen in the destructor of `logger`
 }
 
 

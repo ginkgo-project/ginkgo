@@ -275,14 +275,28 @@ void ProfilerHook::on_criterion_check_completed(
 }
 
 
+void ProfilerHook::on_iteration_complete(
+    const LinOp* solver, const LinOp* right_hand_side, const LinOp* solution,
+    const size_type& num_iterations, const LinOp* residual,
+    const LinOp* residual_norm, const LinOp* implicit_sq_residual_norm,
+    const array<stopping_status>* status, bool stopped) const
+{
+    if (num_iterations > 0 &&
+        dynamic_cast<const solver::IterativeBase*>(solver) && !stopped) {
+        this->end_hook_("iteration", profile_event_category::solver);
+        this->begin_hook_("iteration", profile_event_category::solver);
+    }
+}
+
+
 void ProfilerHook::on_iteration_complete(const LinOp* solver,
                                          const size_type& num_iterations,
                                          const LinOp* residual,
                                          const LinOp* solution,
                                          const LinOp* residual_norm) const
 {
-    this->on_iteration_complete(solver, num_iterations, residual, solution,
-                                residual_norm, nullptr);
+    on_iteration_complete(solver, nullptr, solution, num_iterations, residual,
+                          residual_norm, nullptr, nullptr, false);
 }
 
 
@@ -291,11 +305,9 @@ void ProfilerHook::on_iteration_complete(
     const LinOp* solution, const LinOp* residual_norm,
     const LinOp* implicit_sq_residual_norm) const
 {
-    if (num_iterations > 0 &&
-        dynamic_cast<const solver::IterativeBase*>(solver)) {
-        this->end_hook_("iteration", profile_event_category::solver);
-        this->begin_hook_("iteration", profile_event_category::solver);
-    }
+    on_iteration_complete(solver, nullptr, solution, num_iterations, residual,
+                          residual_norm, implicit_sq_residual_norm, nullptr,
+                          false);
 }
 
 
@@ -426,6 +438,11 @@ std::shared_ptr<ProfilerHook> ProfilerHook::create_custom(hook_function begin,
 }
 
 
+profiling_scope_guard::profiling_scope_guard()
+    : empty_{true}, name_{}, category_{profile_event_category::internal}
+{}
+
+
 /**
  * Scope guard that annotates its scope with the provided profiler hooks.
  */
@@ -449,8 +466,7 @@ profiling_scope_guard::profiling_scope_guard(profiling_scope_guard&& other)
     : empty_{std::exchange(other.empty_, true)},
       name_{std::exchange(other.name_, nullptr)},
       category_{other.category_},
-      end_{
-          std::exchange(other.end_, [](const char*, profile_event_category) {})}
+      end_{std::move(other.end_)}
 {}
 
 

@@ -69,7 +69,6 @@ namespace batch_csr {
 
 #include "dpcpp/matrix/batch_csr_kernels.hpp.inc"
 
-
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const DpcppExecutor> exec,
           const matrix::BatchCsr<ValueType, IndexType>* a,
@@ -164,6 +163,13 @@ void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_CONVERT_TO_DENSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType, typename UnaryOperator>
+inline void convert_batch_csr_to_csc(
+    size_type num_rows, const IndexType* row_ptrs, const IndexType* col_idxs,
+    const ValueType* batch_csr_vals, IndexType* row_idxs, IndexType* col_ptrs,
+    ValueType* csc_vals, UnaryOperator op) GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType, typename IndexType, typename UnaryOperator>

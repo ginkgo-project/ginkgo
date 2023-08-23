@@ -1,0 +1,10 @@
+[
+    {
+        "size": 100,
+        "stencil": "7pt",
+        "comm_pattern": "stencil",
+        "optimal": {
+            "spmv": "csr-csr"
+        }
+    }
+]

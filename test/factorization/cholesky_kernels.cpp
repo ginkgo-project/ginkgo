@@ -202,7 +202,7 @@ TYPED_TEST(CholeskySymbolic, KernelSymbolicFactorize)
         gko::array<index_type> row_ptrs{this->ref, num_rows + 1};
         gko::kernels::reference::cholesky::symbolic_count(
             this->ref, mtx.get(), *forest, row_ptrs.get_data(), this->tmp);
-        gko::kernels::reference::components::prefix_sum(
+        gko::kernels::reference::components::prefix_sum_nonnegative(
             this->ref, row_ptrs.get_data(), num_rows + 1);
         const auto nnz =
             static_cast<gko::size_type>(row_ptrs.get_const_data()[num_rows]);
@@ -242,8 +242,9 @@ TYPED_TEST(CholeskySymbolic, SymbolicFactorize)
         std::unique_ptr<matrix_type> dfactors;
         std::unique_ptr<elimination_forest> forest;
         std::unique_ptr<elimination_forest> dforest;
-        gko::factorization::symbolic_cholesky(mtx.get(), factors, forest);
-        gko::factorization::symbolic_cholesky(mtx.get(), dfactors, dforest);
+        gko::factorization::symbolic_cholesky(mtx.get(), true, factors, forest);
+        gko::factorization::symbolic_cholesky(mtx.get(), true, dfactors,
+                                              dforest);
 
         GKO_ASSERT_MTX_EQ_SPARSITY(dfactors, factors);
         this->assert_equal_forests(*forest, *dforest, true);
@@ -261,7 +262,7 @@ TYPED_TEST(CholeskySymbolic, KernelForestFromFactorWorks)
         const auto& mtx = pair.second;
         std::unique_ptr<matrix_type> factors;
         std::unique_ptr<elimination_forest> forest;
-        gko::factorization::symbolic_cholesky(mtx.get(), factors, forest);
+        gko::factorization::symbolic_cholesky(mtx.get(), true, factors, forest);
         const auto dfactors = gko::clone(this->exec, factors);
         elimination_forest dforest{this->exec,
                                    static_cast<index_type>(mtx->get_size()[0])};

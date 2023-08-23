@@ -75,13 +75,12 @@ void extract_dense_linear_sys_pattern(
     dim3 grid(ceildiv(nnz_aiA * default_subwarp_size, default_block_size));
 
     extract_dense_linear_sys_pattern_kernel<default_subwarp_size>
-        <<<grid, block>>>(nrows, first_sys_csr->get_const_row_ptrs(),
-                          first_sys_csr->get_const_col_idxs(),
-                          first_approx_inv->get_const_row_ptrs(),
-                          first_approx_inv->get_const_col_idxs(),
-                          dense_mat_pattern, rhs_one_idxs, sizes,
-                          num_matches_per_row_for_each_csr_sys);
-
+        <<<grid, block, 0, exec->get_stream()>>>(
+            nrows, first_sys_csr->get_const_row_ptrs(),
+            first_sys_csr->get_const_col_idxs(),
+            first_approx_inv->get_const_row_ptrs(),
+            first_approx_inv->get_const_col_idxs(), dense_mat_pattern,
+            rhs_one_idxs, sizes, num_matches_per_row_for_each_csr_sys);
 
     GKO_CUDA_LAST_IF_ERROR_THROW;
 }
@@ -115,7 +114,7 @@ void fill_values_dense_mat_and_solve(
 
 
     fill_values_dense_mat_and_solve_kernel<default_subwarp_size>
-        <<<grid, block>>>(
+        <<<grid, block, 0, exec->get_stream()>>>(
             nbatch, nrows, A_nnz, as_cuda_type(sys_csr->get_const_values()),
             aiA_nnz, inv->get_const_row_ptrs(), as_cuda_type(inv->get_values()),
             dense_mat_pattern, rhs_one_idxs, sizes, input_matrix_type_isai);
@@ -146,7 +145,8 @@ void apply_isai(std::shared_ptr<const DefaultExecutor> exec,
                            num_rows,
                            static_cast<int>(sys_mat->get_num_stored_elements() /
                                             nbatch)) *
-                           sizeof(ValueType)>>>(
+                           sizeof(ValueType),
+                       exec->get_stream()>>>(
         prec, nbatch, num_rows, as_cuda_type(r->get_const_values()),
         as_cuda_type(z->get_values()));
 
@@ -170,12 +170,14 @@ void extract_csr_sys_pattern(
     dim3 block(default_block_size);
     dim3 grid(ceildiv(size, default_block_size));
 
-    extract_csr_sys_pattern_kernel<ValueType><<<grid, block>>>(
-        lin_sys_row, first_approx_inv->get_const_row_ptrs(),
-        first_approx_inv->get_const_col_idxs(),
-        first_sys_csr->get_const_row_ptrs(),
-        first_sys_csr->get_const_col_idxs(), csr_pattern->get_const_row_ptrs(),
-        csr_pattern->get_col_idxs(), csr_pattern->get_values());
+    extract_csr_sys_pattern_kernel<ValueType>
+        <<<grid, block, 0, exec->get_stream()>>>(
+            lin_sys_row, first_approx_inv->get_const_row_ptrs(),
+            first_approx_inv->get_const_col_idxs(),
+            first_sys_csr->get_const_row_ptrs(),
+            first_sys_csr->get_const_col_idxs(),
+            csr_pattern->get_const_row_ptrs(), csr_pattern->get_col_idxs(),
+            csr_pattern->get_values());
 
     GKO_CUDA_LAST_IF_ERROR_THROW;
 }
@@ -200,7 +202,7 @@ void fill_batch_csr_sys_with_values(
     dim3 block(default_block_size);
     dim3 grid(ceildiv(nbatch * csr_nnz, default_block_size));
 
-    fill_batch_csr_system_kernel<<<grid, block>>>(
+    fill_batch_csr_system_kernel<<<grid, block, 0, exec->get_stream()>>>(
         nbatch, csr_nnz, csr_pattern->get_const_values(), sys_nnz,
         as_cuda_type(sys_csr->get_const_values()),
         as_cuda_type(batch_csr_mats->get_values()));
@@ -224,7 +226,7 @@ void initialize_b_and_x_vectors(std::shared_ptr<const DefaultExecutor> exec,
     dim3 block(default_block_size);
     dim3 grid(ceildiv(nbatch * size, default_block_size));
 
-    initialize_b_and_x_vectors_kernel<<<grid, block>>>(
+    initialize_b_and_x_vectors_kernel<<<grid, block, 0, exec->get_stream()>>>(
         nbatch, size, rhs_one_idx, as_cuda_type(b->get_values()),
         as_cuda_type(x->get_values()));
 
@@ -247,7 +249,8 @@ void write_large_sys_solution_to_inverse(
     dim3 block(default_block_size);
     dim3 grid(ceildiv(nbatch * size, default_block_size));
 
-    write_large_sys_solution_to_inverse_kernel<<<grid, block>>>(
+    write_large_sys_solution_to_inverse_kernel<<<grid, block, 0,
+                                                 exec->get_stream()>>>(
         nbatch, lin_sys_row, size, as_cuda_type(x->get_const_values()),
         approx_inv->get_num_stored_elements() / nbatch,
         approx_inv->get_const_row_ptrs(),

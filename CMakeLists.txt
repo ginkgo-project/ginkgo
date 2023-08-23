@@ -9,7 +9,7 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
     cmake_policy(SET CMP0104 OLD)
 endif()
 
-project(Ginkgo LANGUAGES C CXX VERSION 1.5.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
+project(Ginkgo LANGUAGES C CXX VERSION 1.7.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
 set(Ginkgo_VERSION_TAG "develop")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 
@@ -68,7 +68,7 @@ endif()
 set(GINKGO_CUDA_COMPILER_FLAGS "" CACHE STRING
     "Set the required NVCC compiler flags, mainly used for warnings. Current default is an empty string")
 set(GINKGO_CUDA_ARCHITECTURES "Auto" CACHE STRING
-    "A list of target NVIDIA GPU achitectures. See README.md for more detail.")
+    "A list of target NVIDIA GPU architectures. See README.md for more detail.")
 option(GINKGO_CUDA_DEFAULT_HOST_COMPILER "Tell Ginkgo to not automatically set the CUDA host compiler" OFF)
 # the details of fine/coarse grain memory and unsafe atomic are available https://docs.olcf.ornl.gov/systems/crusher_quick_start_guide.html#floating-point-fp-atomic-operations-and-coarse-fine-grained-memory-allocations
 option(GINKGO_HIP_AMD_UNSAFE_ATOMIC "Compiler uses unsafe floating point atomic (only for AMD GPU and ROCM >= 5). Default is ON because we use hipMalloc, which is always on coarse grain. Must turn off when allocating memory on fine grain" ON)
@@ -121,9 +121,19 @@ endif()
 
 # For now, PGI/NVHPC nvc++ compiler doesn't seem to support
 # `#pragma omp declare reduction`
-if (${CMAKE_CXX_COMPILER_ID} MATCHES "PGI|NVHPC")
-    message(STATUS "OpenMP: Switching to OFF because PGI/NVHPC nvc++ compiler lacks important features.")
-    set(GINKGO_BUILD_OMP OFF)
+#
+# The math with optimization level -O2 doesn't follow IEEE standard, so we
+# enable that back as well.
+if (CMAKE_CXX_COMPILER_ID MATCHES "PGI|NVHPC")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Kieee")
+endif()
+
+#Batch Ginkgo options:
+option(GINKGO_CUDA_BATCH_GMRES_USE_NO_SHMEM "Use no shared memory in the batch gmres solver kernels (Might be necessary for large matrices)" OFF)
+if(GINKGO_CUDA_BATCH_GMRES_USE_NO_SHMEM)
+    set(GINKGO_CUDA_BATCH_GMRES_HAVE_NO_SHMEM 1)
+else()
+    set(GINKGO_CUDA_BATCH_GMRES_HAVE_NO_SHMEM 0)
 endif()
 
 #Batch Ginkgo options:
@@ -221,6 +231,12 @@ set(GINKGO_HAVE_VTUNE 0)
 find_package(VTune)
 if(VTune_FOUND)
     set(GINKGO_HAVE_VTUNE 1)
+endif()
+# Automatically find METIS
+set(GINKGO_HAVE_METIS 0)
+find_package(METIS)
+if(METIS_FOUND)
+    set(GINKGO_HAVE_METIS 1)
 endif()
 # Automatically detect ROCTX (see hip.cmake)
 set(GINKGO_HAVE_ROCTX 0)
@@ -445,10 +461,10 @@ if(NOT "${CMAKE_GENERATOR_TOOLSET}" STREQUAL "")
 endif()
 add_custom_target(test_install
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} ${TOOLSET}
-    -H${GINKGO_TEST_INSTALL_SRC_DIR}
+    -S${GINKGO_TEST_INSTALL_SRC_DIR}
     -B${GINKGO_TEST_INSTALL_BIN_DIR}
     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-    -DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX}/${GINKGO_INSTALL_CONFIG_DIR}
+    -DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX}
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
     -DCMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}
@@ -468,7 +484,7 @@ add_custom_target(test_install
 
 add_custom_target(test_exportbuild
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} ${TOOLSET}
-    -H${GINKGO_TEST_EXPORTBUILD_SRC_DIR}
+    -S${GINKGO_TEST_EXPORTBUILD_SRC_DIR}
     -B${GINKGO_TEST_EXPORTBUILD_BIN_DIR}
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
@@ -486,7 +502,7 @@ add_custom_target(test_exportbuild
 
 add_custom_target(test_pkgconfig
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} ${TOOLSET}
-    -H${GINKGO_TEST_PKGCONFIG_SRC_DIR}
+    -S${GINKGO_TEST_PKGCONFIG_SRC_DIR}
     -B${GINKGO_TEST_PKGCONFIG_BIN_DIR}
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}

@@ -94,7 +94,7 @@ std::unique_ptr<LinOp> Cholesky<ValueType, IndexType>::generate_impl(
     std::unique_ptr<matrix_type> factors;
     std::unique_ptr<gko::factorization::elimination_forest<IndexType>> forest;
     if (!parameters_.symbolic_factorization) {
-        gko::factorization::symbolic_cholesky(mtx.get(), factors, forest);
+        gko::factorization::symbolic_cholesky(mtx.get(), true, factors, forest);
     } else {
         const auto& symbolic = parameters_.symbolic_factorization;
         const auto factor_nnz = symbolic->get_num_nonzeros();

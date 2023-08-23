@@ -99,7 +99,8 @@ protected:
     std::default_random_engine engine;
 };
 
-TYPED_TEST_SUITE(Vector, gko::test::ValueLocalGlobalIndexTypes);
+TYPED_TEST_SUITE(Vector, gko::test::ValueLocalGlobalIndexTypes,
+                 TupleTypenameNameGenerator);
 
 
 template <typename ValueType, typename IndexType, typename NonzeroDistribution,

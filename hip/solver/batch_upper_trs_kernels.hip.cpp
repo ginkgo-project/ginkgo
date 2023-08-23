@@ -55,7 +55,7 @@ constexpr int default_block_size = 256;
 
 template <typename BatchMatrixType, typename ValueType>
 void call_apply_kernel(
-    const BatchMatrixType& a,
+    std::shared_ptr<const DefaultExecutor> exec, const BatchMatrixType& a,
     const gko::batch_dense::UniformBatch<const ValueType>& b_b,
     const gko::batch_dense::UniformBatch<ValueType>& x_b)
 {
@@ -65,15 +65,16 @@ void call_apply_kernel(
         gko::kernels::batch_upper_trs::local_memory_requirement<ValueType>(
             a.num_rows, b_b.num_rhs);
 
-    hipLaunchKernelGGL(apply_kernel, nbatch, default_block_size, shared_size, 0,
-                       a, b_b.values, x_b.values);
+    hipLaunchKernelGGL(apply_kernel, nbatch, default_block_size, shared_size,
+                       exec->get_stream(), a, b_b.values, x_b.values);
 
     GKO_HIP_LAST_IF_ERROR_THROW;
 }
 
 
 template <typename ValueType>
-void dispatch_on_matrix_type(const BatchLinOp* const sys_mat,
+void dispatch_on_matrix_type(std::shared_ptr<const DefaultExecutor> exec,
+                             const BatchLinOp* const sys_mat,
                              const matrix::BatchDense<ValueType>* const b,
                              matrix::BatchDense<ValueType>* const x)
 {
@@ -83,17 +84,16 @@ void dispatch_on_matrix_type(const BatchLinOp* const sys_mat,
 
     if (auto amat = dynamic_cast<const matrix::BatchCsr<ValueType>*>(sys_mat)) {
         auto m_b = device::get_batch_struct(amat);
-        call_apply_kernel(m_b, b_b, x_b);
+        call_apply_kernel(exec, m_b, b_b, x_b);
 
     } else if (auto amat =
                    dynamic_cast<const matrix::BatchEll<ValueType>*>(sys_mat)) {
         auto m_b = device::get_batch_struct(amat);
-        call_apply_kernel(m_b, b_b, x_b);
-
+        call_apply_kernel(exec, m_b, b_b, x_b);
     } else if (auto amat = dynamic_cast<const matrix::BatchDense<ValueType>*>(
                    sys_mat)) {
         auto m_b = device::get_batch_struct(amat);
-        call_apply_kernel(m_b, b_b, x_b);
+        call_apply_kernel(exec, m_b, b_b, x_b);
     } else {
         GKO_NOT_SUPPORTED(sys_mat);
     }
@@ -106,7 +106,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            const matrix::BatchDense<ValueType>* const b,
            matrix::BatchDense<ValueType>* const x)
 {
-    dispatch_on_matrix_type(sys_mat, b, x);
+    dispatch_on_matrix_type(exec, sys_mat, b, x);
 }
 
 

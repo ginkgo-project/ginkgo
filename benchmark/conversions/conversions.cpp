@@ -87,7 +87,7 @@ void convert_matrix(const gko::LinOp* matrix_from, const char* format_to,
             matrix_to->copy_from(matrix_from);
         }
         add_or_set_member(conversion_case[conversion_name], "time",
-                          ic.compute_average_time(), allocator);
+                          ic.compute_time(FLAGS_timer_method), allocator);
         add_or_set_member(conversion_case[conversion_name], "repetitions",
                           ic.get_num_repetitions(), allocator);
 
@@ -103,7 +103,8 @@ void convert_matrix(const gko::LinOp* matrix_from, const char* format_to,
             add_or_set_member(test_case["conversions"][conversion_name],
                               "error", msg_value, allocator);
         }
-        std::cerr << "Error when processing test case " << test_case << "\n"
+        std::cerr << "Error when processing test case\n"
+                  << test_case << "\n"
                   << "what(): " << e.what() << std::endl;
     }
 }
@@ -123,7 +124,7 @@ int main(int argc, char* argv[])
     auto exec = executor_factory.at(FLAGS_executor)(FLAGS_gpu_timer);
     auto formats = split(FLAGS_formats, ',');
 
-    rapidjson::IStreamWrapper jcin(std::cin);
+    rapidjson::IStreamWrapper jcin(get_input_stream());
     rapidjson::Document test_cases;
     test_cases.ParseStream(jcin);
     if (!test_cases.IsArray()) {
@@ -131,6 +132,13 @@ int main(int argc, char* argv[])
     }
 
     auto& allocator = test_cases.GetAllocator();
+    auto profiler_hook = create_profiler_hook(exec);
+    if (profiler_hook) {
+        exec->add_logger(profiler_hook);
+    }
+    auto annotate = annotate_functor{profiler_hook};
+
+    DefaultSystemGenerator<> generator{};
 
     for (auto& test_case : test_cases.GetArray()) {
         std::clog << "Benchmarking conversions. " << std::endl;
@@ -143,18 +151,25 @@ int main(int argc, char* argv[])
         }
         auto& conversion_case = test_case["conversions"];
 
-        std::clog << "Running test case: " << test_case << std::endl;
+        std::clog << "Running test case\n" << test_case << std::endl;
         gko::matrix_data<etype, itype> data;
         try {
-            data = DefaultSystemGenerator<>::generate_matrix_data(test_case);
+            data = generator.generate_matrix_data(test_case);
         } catch (std::exception& e) {
             std::cerr << "Error setting up matrix data, what(): " << e.what()
                       << std::endl;
+            if (FLAGS_keep_errors) {
+                rapidjson::Value msg_value;
+                msg_value.SetString(e.what(), allocator);
+                add_or_set_member(test_case, "error", msg_value, allocator);
+            }
             continue;
         }
         std::clog << "Matrix is of size (" << data.size[0] << ", "
                   << data.size[1] << ")" << std::endl;
         add_or_set_member(test_case, "size", data.size[0], allocator);
+        // annotate the test case
+        auto test_case_range = annotate(generator.describe_config(test_case));
         for (const auto& format_from : formats) {
             try {
                 auto matrix_from =
@@ -170,10 +185,13 @@ int main(int argc, char* argv[])
                         conversion_case.HasMember(conversion_name.c_str())) {
                         continue;
                     }
-
-                    convert_matrix(matrix_from.get(), format_to.c_str(),
-                                   conversion_name.c_str(), exec, test_case,
-                                   allocator);
+                    {
+                        auto conversion_range =
+                            annotate(conversion_name.c_str());
+                        convert_matrix(matrix_from.get(), format_to.c_str(),
+                                       conversion_name.c_str(), exec, test_case,
+                                       allocator);
+                    }
                     std::clog << "Current state:" << std::endl
                               << test_cases << std::endl;
                 }
@@ -196,6 +214,9 @@ int main(int argc, char* argv[])
                           << e.what() << std::endl;
             }
         }
+    }
+    if (profiler_hook) {
+        exec->remove_logger(profiler_hook);
     }
 
     std::cout << test_cases << std::endl;

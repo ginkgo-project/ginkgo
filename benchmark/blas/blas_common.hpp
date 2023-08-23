@@ -46,12 +46,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/timer.hpp"
 #include "benchmark/utils/types.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 
 
 // Command-line arguments
 DEFINE_string(
     operations, "copy,axpy,scal",
-    "A comma-separated list of BLAS operations to benchmark.\nCandidates are"
+    "A comma-separated list of operations to benchmark.\nCandidates are"
+    "BLAS algorithms:\n"
     "   copy (y = x),\n"
     "   axpy (y = y + a * x),\n"
     "   multiaxpy (like axpy, but a has one entry per column),\n"
@@ -61,6 +63,9 @@ DEFINE_string(
     "   norm (a = sqrt(x' * x)),\n"
     "   mm (C = A * B),\n"
     "   gemm (C = a * A * B + b * C)\n"
+    "Non-numerical algorithms:\n"
+    "   prefix_sum32 (x_i <- sum_{j=0}^{i-1} x_i, 32 bit indices)\n"
+    "   prefix_sum64 (                            64 bit indices)\n"
     "where A has dimensions n x k, B has dimensions k x m,\n"
     "C has dimensions n x m and x and y have dimensions n x r");
 
@@ -354,6 +359,38 @@ private:
 };
 
 
+GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
+                       components::prefix_sum_nonnegative);
+
+
+template <typename IndexType>
+class PrefixSumOperation : public BenchmarkOperation {
+public:
+    PrefixSumOperation(std::shared_ptr<const gko::Executor> exec,
+                       gko::size_type n)
+        : array_{exec, n}
+    {
+        array_.fill(0);
+    }
+
+    gko::size_type get_flops() const override { return 0; }
+
+    gko::size_type get_memory() const override
+    {
+        return 2 * sizeof(IndexType) * array_.get_num_elems();
+    }
+
+    void run() override
+    {
+        array_.get_executor()->run(make_prefix_sum_nonnegative(
+            array_.get_data(), array_.get_num_elems()));
+    }
+
+private:
+    gko::array<IndexType> array_;
+};
+
+
 struct dimensions {
     gko::size_type n;
     gko::size_type k;
@@ -397,6 +434,28 @@ dimensions parse_dims(rapidjson::Value& test_case)
 }
 
 
+std::string describe(rapidjson::Value& test_case)
+{
+    std::stringstream ss;
+    auto optional_output = [&](const char* name) {
+        if (test_case.HasMember(name) && test_case[name].IsInt64()) {
+            ss << name << " = " << test_case[name].GetInt64() << " ";
+        }
+    };
+    optional_output("n");
+    optional_output("k");
+    optional_output("m");
+    optional_output("r");
+    optional_output("stride");
+    optional_output("stride_x");
+    optional_output("stride_y");
+    optional_output("stride_A");
+    optional_output("stride_B");
+    optional_output("stride_C");
+    return ss.str();
+}
+
+
 template <typename OpMap>
 void apply_blas(const char* operation_name, std::shared_ptr<gko::Executor> exec,
                 std::shared_ptr<Timer> timer, const OpMap& operation_map,
@@ -425,7 +484,7 @@ void apply_blas(const char* operation_name, std::shared_ptr<gko::Executor> exec,
         for (auto _ : ic.run()) {
             op->run();
         }
-        const auto runtime = ic.compute_average_time();
+        const auto runtime = ic.compute_time(FLAGS_timer_method);
         const auto flops = static_cast<double>(op->get_flops());
         const auto mem = static_cast<double>(op->get_memory());
         const auto repetitions = ic.get_num_repetitions();
@@ -450,7 +509,8 @@ void apply_blas(const char* operation_name, std::shared_ptr<gko::Executor> exec,
             add_or_set_member(test_case["blas"][operation_name], "error",
                               msg_value, allocator);
         }
-        std::cerr << "Error when processing test case " << test_case << "\n"
+        std::cerr << "Error when processing test case\n"
+                  << test_case << "\n"
                   << "what(): " << e.what() << std::endl;
     }
 }
@@ -464,6 +524,11 @@ void run_blas_benchmarks(std::shared_ptr<gko::Executor> exec,
 {
     auto operations = split(FLAGS_operations, ',');
     auto& allocator = test_cases.GetAllocator();
+    auto profiler_hook = create_profiler_hook(exec);
+    if (profiler_hook) {
+        exec->add_logger(profiler_hook);
+    }
+    auto annotate = annotate_functor{profiler_hook};
 
     for (auto& test_case : test_cases.GetArray()) {
         try {
@@ -482,12 +547,16 @@ void run_blas_benchmarks(std::shared_ptr<gko::Executor> exec,
                 continue;
             }
             if (do_print) {
-                std::clog << "Running test case: " << test_case << std::endl;
+                std::clog << "Running test case\n" << test_case << std::endl;
             }
-
+            // annotate the test case
+            auto test_case_range = annotate(describe(test_case));
             for (const auto& operation_name : operations) {
-                apply_blas(operation_name.c_str(), exec, timer, operation_map,
-                           test_case, allocator);
+                {
+                    auto operation_range = annotate(operation_name.c_str());
+                    apply_blas(operation_name.c_str(), exec, timer,
+                               operation_map, test_case, allocator);
+                }
 
                 if (do_print) {
                     std::clog << "Current state:" << std::endl
@@ -500,5 +569,8 @@ void run_blas_benchmarks(std::shared_ptr<gko::Executor> exec,
             std::cerr << "Error setting up benchmark, what(): " << e.what()
                       << std::endl;
         }
+    }
+    if (profiler_hook) {
+        exec->remove_logger(profiler_hook);
     }
 }

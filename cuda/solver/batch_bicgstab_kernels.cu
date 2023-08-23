@@ -153,10 +153,11 @@ public:
         const size_t& shared_size) const
     {
         apply_kernel<StopType, n_shared, prec_shared_bool>
-            <<<a.num_batch, block_size, shared_size>>>(
+            <<<a.num_batch, block_size, shared_size, exec_->get_stream()>>>(
                 sconf, opts_.max_its, opts_.residual_tol, logger, prec, a,
                 b_values, x_values, workspace_data);
     }
+
     template <typename BatchMatrixType, typename PrecType, typename StopType,
               typename LogType>
     void call_kernel(LogType logger, const BatchMatrixType& a, PrecType prec,

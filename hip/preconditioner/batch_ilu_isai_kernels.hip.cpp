@@ -98,8 +98,8 @@ void apply_ilu_isai(
             num_rows,
             static_cast<int>(sys_mat->get_num_stored_elements() / nbatch)) *
             sizeof(ValueType),
-        0, prec, nbatch, num_rows, as_hip_type(r->get_const_values()),
-        as_hip_type(z->get_values()));
+        exec->get_stream(), prec, nbatch, num_rows,
+        as_hip_type(r->get_const_values()), as_hip_type(z->get_values()));
 
     GKO_HIP_LAST_IF_ERROR_THROW;
 }

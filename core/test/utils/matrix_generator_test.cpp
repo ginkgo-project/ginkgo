@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include "core/base/utils.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -170,7 +171,10 @@ TYPED_TEST(MatrixGenerator, OutputHasCorrectSize)
 TYPED_TEST(MatrixGenerator, OutputHasCorrectNonzeroAverageAndDeviation)
 {
     using T = typename TestFixture::value_type;
-    // the nonzeros only needs to check the real part
+    // this test only tests integer distributions, so only test real types
+    if (gko::is_complex<T>()) {
+        GTEST_SKIP();
+    }
     this->template check_average_and_deviation<T>(
         begin(this->nnz_per_row_sample), end(this->nnz_per_row_sample), 50.0,
         5.0, [](T val) { return gko::real(val); });
@@ -267,6 +271,58 @@ TYPED_TEST(MatrixGenerator, CanGenerateBandMatrix)
             begin(this->band_values_sample), end(this->band_values_sample),
             20.0, 5.0, [](T& val) { return gko::imag(val); });
     }
+}
+
+
+TYPED_TEST(MatrixGenerator, CanGenerateTridiagMatrix)
+{
+    using T = typename TestFixture::value_type;
+    using Dense = typename TestFixture::mtx_type;
+    auto dist = std::normal_distribution<gko::remove_complex<T>>(0, 1);
+    auto engine = std::default_random_engine(42);
+    auto lower = gko::test::detail::get_rand_value<T>(dist, engine);
+    auto diag = gko::test::detail::get_rand_value<T>(dist, engine);
+    auto upper = gko::test::detail::get_rand_value<T>(dist, engine);
+
+    auto mtx = gko::test::generate_tridiag_matrix<Dense>(
+        50, {lower, diag, upper}, this->exec);
+
+    GKO_ASSERT_IS_SQUARE_MATRIX(mtx);
+    for (gko::size_type i = 0; i < mtx->get_size()[0]; ++i) {
+        ASSERT_EQ(mtx->at(i, i), diag);
+        if (i > 0) {
+            ASSERT_EQ(mtx->at(i, i - 1), lower);
+            ASSERT_EQ(mtx->at(i - 1, i), upper);
+        }
+    }
+}
+
+
+TYPED_TEST(MatrixGenerator, CanGenerateTridiagInverseMatrix)
+{
+    using T = typename TestFixture::value_type;
+    using Dense = typename TestFixture::mtx_type;
+    auto dist = std::normal_distribution<gko::remove_complex<T>>(0, 1);
+    auto engine = std::default_random_engine(42);
+    auto lower = gko::test::detail::get_rand_value<T>(dist, engine);
+    auto upper = gko::test::detail::get_rand_value<T>(dist, engine);
+    // make diagonally dominant
+    auto diag = std::abs(gko::test::detail::get_rand_value<T>(dist, engine)) +
+                std::abs(lower) + std::abs(upper);
+
+    auto mtx = gko::test::generate_tridiag_matrix<Dense>(
+        50, {lower, diag, upper}, this->exec);
+    auto inv_mtx = gko::test::generate_tridiag_inverse_matrix<Dense>(
+        50, {lower, diag, upper}, this->exec);
+
+    auto result = Dense::create(this->exec, mtx->get_size());
+    inv_mtx->apply(mtx, result);
+    auto id = Dense::create(this->exec, mtx->get_size());
+    id->fill(0.0);
+    for (gko::size_type i = 0; i < mtx->get_size()[0]; ++i) {
+        id->at(i, i) = gko::one<T>();
+    }
+    GKO_ASSERT_MTX_NEAR(result, id, r<T>::value * 10);
 }
 
 

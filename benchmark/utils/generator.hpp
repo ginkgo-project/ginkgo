@@ -67,6 +67,20 @@ struct DefaultSystemGenerator {
         }
     }
 
+    static std::string describe_config(rapidjson::Value& config)
+    {
+        if (config.HasMember("filename")) {
+            return config["filename"].GetString();
+        } else if (config.HasMember("stencil")) {
+            std::stringstream ss;
+            ss << "stencil(" << config["size"].GetInt64() << ","
+               << config["stencil"].GetString() << ")";
+            return ss.str();
+        } else {
+            throw std::runtime_error("No known way to describe config.");
+        }
+    }
+
     static std::shared_ptr<gko::LinOp> generate_matrix_with_optimal_format(
         std::shared_ptr<gko::Executor> exec, rapidjson::Value& config)
     {
@@ -172,6 +186,21 @@ struct DistributedDefaultSystemGenerator {
         } else {
             throw std::runtime_error(
                 "No known way to generate matrix data found.");
+        }
+    }
+
+    std::string describe_config(rapidjson::Value& config) const
+    {
+        if (config.HasMember("filename")) {
+            return config["filename"].GetString();
+        } else if (config.HasMember("stencil")) {
+            std::stringstream ss;
+            ss << "stencil(" << config["size"].GetInt64() << ","
+               << config["stencil"].GetString() << ","
+               << config["comm_pattern"].GetString() << ")";
+            return ss.str();
+        } else {
+            throw std::runtime_error("No known way to describe config.");
         }
     }
 

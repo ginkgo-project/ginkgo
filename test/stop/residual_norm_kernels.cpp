@@ -89,6 +89,28 @@ protected:
 TYPED_TEST_SUITE(ResidualNorm, gko::test::ValueTypes, TypenameNameGenerator);
 
 
+TYPED_TEST(ResidualNorm, CanIgorneResidualNorm)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using NormVector = typename TestFixture::NormVector;
+    auto initial_res = gko::initialize<Mtx>({100.0}, this->exec);
+    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, this->exec);
+    auto criterion =
+        this->factory->generate(nullptr, rhs, nullptr, initial_res.get());
+    constexpr gko::uint8 RelativeStoppingId{1};
+    bool one_changed{};
+    gko::array<gko::stopping_status> stop_status(this->ref, 1);
+    stop_status.get_data()[0].reset();
+    stop_status.set_executor(this->exec);
+
+    ASSERT_FALSE(criterion->update().ignore_residual_check(true).check(
+        RelativeStoppingId, true, &stop_status, &one_changed));
+    ASSERT_THROW(criterion->update().check(RelativeStoppingId, true,
+                                           &stop_status, &one_changed),
+                 gko::NotSupported);
+}
+
+
 TYPED_TEST(ResidualNorm, WaitsTillResidualGoal)
 {
     using Mtx = typename TestFixture::Mtx;

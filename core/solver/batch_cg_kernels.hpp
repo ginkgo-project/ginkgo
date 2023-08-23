@@ -181,7 +181,6 @@ StorageConfig compute_shared_storage(const int shared_mem_per_blk,
         sconf.prec_shared = true;
         rem_shared -= prec_storage;
     }
-
     set_gmem_stride_bytes<align_bytes>(sconf, vec_size, prec_storage);
     return sconf;
 }

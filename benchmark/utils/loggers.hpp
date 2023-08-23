@@ -58,41 +58,41 @@ struct JsonSummaryWriter : gko::log::ProfilerHook::SummaryWriter,
 
     void write(
         const std::vector<gko::log::ProfilerHook::summary_entry>& entries,
-        gko::int64 overhead_ns) override
+        std::chrono::nanoseconds overhead) override
     {
         for (const auto& entry : entries) {
             if (entry.name != "total") {
                 add_or_set_member(*object, entry.name.c_str(),
-                                  entry.exclusive_ns * 1e-9 / repetitions,
+                                  entry.exclusive.count() * 1e-9 / repetitions,
                                   *alloc);
             }
         }
-        add_or_set_member(*object, "overhead", overhead_ns * 1e-9 / repetitions,
-                          *alloc);
+        add_or_set_member(*object, "overhead",
+                          overhead.count() * 1e-9 / repetitions, *alloc);
     }
 
     void write_nested(const gko::log::ProfilerHook::nested_summary_entry& root,
-                      gko::int64 overhead_ns) override
+                      std::chrono::nanoseconds overhead) override
     {
         auto visit =
             [this](auto visit,
                    const gko::log::ProfilerHook::nested_summary_entry& node,
                    std::string prefix) -> void {
-            auto exclusive_ns = node.elapsed_ns;
+            auto exclusive = node.elapsed;
             auto new_prefix = prefix + node.name + "::";
             for (const auto& child : node.children) {
                 visit(visit, child, new_prefix);
-                exclusive_ns -= child.elapsed_ns;
+                exclusive -= child.elapsed;
             }
             add_or_set_member(*object, (prefix + node.name).c_str(),
-                              exclusive_ns * 1e-9 / repetitions, *alloc);
+                              exclusive.count() * 1e-9 / repetitions, *alloc);
         };
         // we don't need to annotate the total
         for (const auto& child : root.children) {
             visit(visit, child, "");
         }
-        add_or_set_member(*object, "overhead", overhead_ns * 1e-9 / repetitions,
-                          *alloc);
+        add_or_set_member(*object, "overhead",
+                          overhead.count() * 1e-9 / repetitions, *alloc);
     }
 
     rapidjson::Value* object;
@@ -102,14 +102,23 @@ struct JsonSummaryWriter : gko::log::ProfilerHook::SummaryWriter,
 
 
 inline std::shared_ptr<gko::log::ProfilerHook> create_operations_logger(
-    bool nested, rapidjson::Value& object,
-    rapidjson::MemoryPoolAllocator<>& alloc, gko::uint32 repetitions)
+    bool gpu_timer, bool nested, std::shared_ptr<gko::Executor> exec,
+    rapidjson::Value& object, rapidjson::MemoryPoolAllocator<>& alloc,
+    gko::uint32 repetitions)
 {
+    std::shared_ptr<gko::Timer> timer;
+    if (gpu_timer) {
+        timer = gko::Timer::create_for_executor(exec);
+    } else {
+        timer = std::make_unique<gko::CpuTimer>();
+    }
     if (nested) {
         return gko::log::ProfilerHook::create_nested_summary(
+            timer,
             std::make_unique<JsonSummaryWriter>(object, alloc, repetitions));
     } else {
         return gko::log::ProfilerHook::create_summary(
+            timer,
             std::make_unique<JsonSummaryWriter>(object, alloc, repetitions));
     }
 }
@@ -172,21 +181,15 @@ template <typename ValueType>
 struct ResidualLogger : gko::log::Logger {
     using rc_vtype = gko::remove_complex<ValueType>;
 
-    // TODO2.0: Remove when deprecating simple overload
-    void on_iteration_complete(const gko::LinOp* solver,
-                               const gko::size_type& it,
-                               const gko::LinOp* residual,
+    void on_iteration_complete(const gko::LinOp*,
+                               const gko::LinOp* right_hand_side,
                                const gko::LinOp* solution,
-                               const gko::LinOp* residual_norm) const override
-    {
-        on_iteration_complete(solver, it, residual, solution, residual_norm,
-                              nullptr);
-    }
-
-    void on_iteration_complete(
-        const gko::LinOp*, const gko::size_type&, const gko::LinOp* residual,
-        const gko::LinOp* solution, const gko::LinOp* residual_norm,
-        const gko::LinOp* implicit_sq_residual_norm) const override
+                               const gko::size_type&,
+                               const gko::LinOp* residual,
+                               const gko::LinOp* residual_norm,
+                               const gko::LinOp* implicit_sq_residual_norm,
+                               const gko::array<gko::stopping_status>* status,
+                               bool all_stopped) const override
     {
         timestamps.PushBack(std::chrono::duration<double>(
                                 std::chrono::steady_clock::now() - start)
@@ -261,10 +264,13 @@ private:
 
 // Logs the number of iteration executed
 struct IterationLogger : gko::log::Logger {
-    void on_iteration_complete(const gko::LinOp*,
+    void on_iteration_complete(const gko::LinOp*, const gko::LinOp*,
+                               const gko::LinOp*,
                                const gko::size_type& num_iterations,
                                const gko::LinOp*, const gko::LinOp*,
-                               const gko::LinOp*) const override
+                               const gko::LinOp*,
+                               const gko::array<gko::stopping_status>*,
+                               bool) const override
     {
         this->num_iters = num_iterations;
     }

@@ -1,0 +1,19 @@
+
+[
+    {
+        "size": 100,
+        "stencil": "7pt",
+        "sparse_blas": {
+            "transpose": {
+                "time": 1.0,
+                "flops": 1.0,
+                "bandwidth": 1.0,
+                "repetitions": 1,
+                "completed": true
+            }
+        },
+        "rows": 125,
+        "cols": 125,
+        "nonzeros": 725
+    }
+]

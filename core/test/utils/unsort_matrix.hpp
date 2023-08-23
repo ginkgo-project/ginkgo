@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
+#include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 
@@ -55,24 +56,8 @@ namespace test {
 template <typename MtxPtr, typename RandomEngine>
 void unsort_matrix(MtxPtr&& mtx, RandomEngine&& engine)
 {
-    using value_type = gko::detail::pointee<decltype(mtx->get_values())>;
-    using index_type = gko::detail::pointee<decltype(mtx->get_col_idxs())>;
-    auto nnz = mtx->get_num_stored_elements();
-    if (nnz <= 0) {
-        return;
-    }
-
-    const auto exec = mtx->get_executor();
-    const auto master = exec->get_master();
-
-    // If exec is not the master/host, extract the master and perform the
-    // unsorting there, followed by copying it back
-    if (exec != master) {
-        auto h_mtx = mtx->clone(master);
-        unsort_matrix(h_mtx, engine);
-        mtx->copy_from(h_mtx);
-        return;
-    }
+    using value_type = typename gko::detail::pointee<MtxPtr>::value_type;
+    using index_type = typename gko::detail::pointee<MtxPtr>::index_type;
     matrix_data<value_type, index_type> data;
     mtx->write(data);
     auto& nonzeros = data.nonzeros;

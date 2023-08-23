@@ -41,7 +41,7 @@ For Ginkgo core library:
     *   _gcc 5.5+_
     *   _clang 3.9+_
     *   _Intel compiler 2019+_
-    *   _Apple LLVM 8.0+_
+    *   _Apple Clang 14.0_ is tested. Earlier versions might also work.
     *   _Cray Compiler 14.0.1+_
     *   _NVHPC Compiler 22.7+_
 
@@ -55,7 +55,7 @@ The Ginkgo CUDA module has the following __additional__ requirements:
 
 The Ginkgo HIP module has the following __additional__ requirements:
 
-* _ROCm 4.0+_
+* _ROCm 4.5+_
 *    the HIP, hipBLAS, hipSPARSE, hip/rocRAND and rocThrust packages compiled with either:
     * _AMD_ backend (using the `clang` compiler)
     * _9.2 <= CUDA < 11_ backend

@@ -96,7 +96,7 @@ public:
     GKO_ATTRIBUTES GKO_INLINE void reset() noexcept { data_ = uint8{0}; }
 
     /**
-     * Call if a stop occured due to a hard limit (and convergence was not
+     * Call if a stop occurred due to a hard limit (and convergence was not
      * reached).
      * @param id  id of the stopping criteria.
      * @param set_finalized  Controls if the current version should count as
@@ -114,7 +114,7 @@ public:
     }
 
     /**
-     * Call if convergence occured.
+     * Call if convergence occurred.
      * @param id  id of the stopping criteria.
      * @param set_finalized  Controls if the current version should count as
      * finalized (set to true) or not (set to false).

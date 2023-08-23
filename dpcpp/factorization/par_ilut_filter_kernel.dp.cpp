@@ -100,7 +100,7 @@ void threshold_filter(syn::value_list<int, subgroup_size>,
         old_vals, num_rows, threshold, new_row_ptrs, lower);
 
     // build row pointers
-    components::prefix_sum(exec, new_row_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, new_row_ptrs, num_rows + 1);
 
     // build matrix
     auto new_nnz = exec->copy_val_to_host(new_row_ptrs + num_rows);

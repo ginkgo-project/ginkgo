@@ -47,6 +47,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/criterion.hpp>
 
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 5211, 4973, 4974)
+#endif
+
+
 namespace gko {
 namespace solver {
 
@@ -234,7 +244,7 @@ protected:
             self(), alpha, b, beta, x);
     }
 
-    // TODO: should we provide the defaule implementation?
+    // TODO: should we provide the default implementation?
     /**
      * The class should override this method and must modify the input vectors
      * according to the initial_guess_mode
@@ -372,27 +382,31 @@ private:
 };
 
 
+namespace detail {
+
+
 /**
  * A LinOp implementing this interface stores a system matrix.
+ *
+ * @note This class will replace SolverBase in a future release
  *
  * @ingroup solver
  * @ingroup LinOp
  */
-template <typename MatrixType = LinOp>
-class SolverBase {
+class SolverBaseLinOp {
 public:
-    SolverBase(std::shared_ptr<const Executor> exec)
+    SolverBaseLinOp(std::shared_ptr<const Executor> exec)
         : workspace_{std::move(exec)}
     {}
 
-    virtual ~SolverBase() = default;
+    virtual ~SolverBaseLinOp() = default;
 
     /**
      * Returns the system matrix used by the solver.
      *
      * @return the system matrix operator used by the solver
      */
-    std::shared_ptr<const MatrixType> get_system_matrix() const
+    std::shared_ptr<const LinOp> get_system_matrix() const
     {
         return system_matrix_;
     }
@@ -422,7 +436,7 @@ public:
     virtual std::vector<int> get_workspace_vectors() const { return {}; }
 
 protected:
-    void set_system_matrix_base(std::shared_ptr<const MatrixType> system_matrix)
+    void set_system_matrix_base(std::shared_ptr<const LinOp> system_matrix)
     {
         system_matrix_ = std::move(system_matrix);
     }
@@ -511,7 +525,40 @@ protected:
 private:
     mutable detail::workspace workspace_;
 
-    std::shared_ptr<const MatrixType> system_matrix_;
+    std::shared_ptr<const LinOp> system_matrix_;
+};
+
+
+}  // namespace detail
+
+
+template <typename MatrixType>
+class
+    // clang-format off
+    [[deprecated("This class will be replaced by the template-less detail::SolverBaseLinOp in a future release")]] SolverBase
+    // clang-format on
+    : public detail::SolverBaseLinOp {
+public:
+    using detail::SolverBaseLinOp::SolverBaseLinOp;
+
+    /**
+     * Returns the system matrix, with its concrete type, used by the
+     * solver.
+     *
+     * @return the system matrix operator, with its concrete type, used by
+     * the solver
+     */
+    std::shared_ptr<const MatrixType> get_system_matrix() const
+    {
+        return std::dynamic_pointer_cast<const MatrixType>(
+            SolverBaseLinOp::get_system_matrix());
+    }
+
+protected:
+    void set_system_matrix_base(std::shared_ptr<const MatrixType> system_matrix)
+    {
+        SolverBaseLinOp::set_system_matrix_base(std::move(system_matrix));
+    }
 };
 
 
@@ -552,10 +599,14 @@ public:
         return *this;
     }
 
-    EnableSolverBase() : SolverBase<MatrixType>{self()->get_executor()} {}
+    EnableSolverBase() : SolverBase<MatrixType> { self()->get_executor() }
+    {}
 
     EnableSolverBase(std::shared_ptr<const MatrixType> system_matrix)
-        : SolverBase<MatrixType>{self()->get_executor()}
+        : SolverBase<MatrixType>
+    {
+        self()->get_executor()
+    }
     {
         set_system_matrix(std::move(system_matrix));
     }
@@ -563,8 +614,10 @@ public:
     /**
      * Creates a shallow copy of the provided system matrix.
      */
-    EnableSolverBase(const EnableSolverBase& other)
-        : SolverBase<MatrixType>{other.self()->get_executor()}
+    EnableSolverBase(const EnableSolverBase& other) : SolverBase<MatrixType>
+    {
+        other.self()->get_executor()
+    }
     {
         *this = other;
     }
@@ -573,8 +626,10 @@ public:
      * Moves the provided system matrix. The moved-from object has a nullptr
      * system matrix.
      */
-    EnableSolverBase(EnableSolverBase&& other)
-        : SolverBase<MatrixType>{other.self()->get_executor()}
+    EnableSolverBase(EnableSolverBase&& other) : SolverBase<MatrixType>
+    {
+        other.self()->get_executor()
+    }
     {
         *this = std::move(other);
     }
@@ -781,7 +836,10 @@ public:
         std::shared_ptr<const LinOp> preconditioner)
         : EnableSolverBase<DerivedType>(std::move(system_matrix)),
           EnableIterativeBase<DerivedType>{std::move(stop_factory)},
-          EnablePreconditionable<DerivedType>{std::move(preconditioner)}
+          EnablePreconditionable<DerivedType>
+    {
+        std::move(preconditioner)
+    }
     {}
 
     template <typename FactoryParameters>
@@ -815,4 +873,10 @@ private:
 }  // namespace gko
 
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 #endif  // GKO_PUBLIC_CORE_SOLVER_SOLVER_BASE_HPP_

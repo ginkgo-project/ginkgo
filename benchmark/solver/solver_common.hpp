@@ -71,8 +71,11 @@ DEFINE_uint32(
     nrhs, 1,
     "The number of right hand sides. Record the residual only when nrhs == 1.");
 
+DEFINE_uint32(gcr_restart, 100,
+              "Maximum dimension of the Krylov space to use in GCR");
+
 DEFINE_uint32(gmres_restart, 100,
-              "What maximum dimension of the Krylov space to use in GMRES");
+              "Maximum dimension of the Krylov space to use in GMRES");
 
 DEFINE_uint32(idr_subspace_dim, 2,
               "What dimension of the subspace to use in IDR");
@@ -458,8 +461,8 @@ void solve_system(const std::string& solver_name,
 
             {
                 auto gen_logger = create_operations_logger(
-                    FLAGS_nested_names, solver_json["generate"]["components"],
-                    allocator, 1);
+                    FLAGS_gpu_timer, FLAGS_nested_names, exec,
+                    solver_json["generate"]["components"], allocator, 1);
                 exec->add_logger(gen_logger);
                 if (exec != exec->get_master()) {
                     exec->get_master()->add_logger(gen_logger);
@@ -488,8 +491,8 @@ void solve_system(const std::string& solver_name,
 
             {
                 auto apply_logger = create_operations_logger(
-                    FLAGS_nested_names, solver_json["apply"]["components"],
-                    allocator, 1);
+                    FLAGS_gpu_timer, FLAGS_nested_names, exec,
+                    solver_json["apply"]["components"], allocator, 1);
                 exec->add_logger(apply_logger);
                 if (exec != exec->get_master()) {
                     exec->get_master()->add_logger(apply_logger);
@@ -565,9 +568,11 @@ void solve_system(const std::string& solver_name,
                               allocator);
         }
         add_or_set_member(solver_json["generate"], "time",
-                          generate_timer->compute_average_time(), allocator);
+                          generate_timer->compute_time(FLAGS_timer_method),
+                          allocator);
         add_or_set_member(solver_json["apply"], "time",
-                          apply_timer->compute_average_time(), allocator);
+                          apply_timer->compute_time(FLAGS_timer_method),
+                          allocator);
         add_or_set_member(solver_json, "repetitions",
                           apply_timer->get_num_repetitions(), allocator);
 
@@ -582,7 +587,8 @@ void solve_system(const std::string& solver_name,
             add_or_set_member(test_case["solver"][precond_solver_name], "error",
                               msg_value, allocator);
         }
-        std::cerr << "Error when processing test case " << test_case << "\n"
+        std::cerr << "Error when processing test case\n"
+                  << test_case << "\n"
                   << "what(): " << e.what() << std::endl;
     }
 }
@@ -605,6 +611,11 @@ void run_solver_benchmarks(std::shared_ptr<gko::Executor> exec,
     }
 
     auto& allocator = test_cases.GetAllocator();
+    auto profiler_hook = create_profiler_hook(exec);
+    if (profiler_hook) {
+        exec->add_logger(profiler_hook);
+    }
+    auto annotate = annotate_functor{profiler_hook};
 
     for (auto& test_case : test_cases.GetArray()) {
         try {
@@ -623,8 +634,12 @@ void run_solver_benchmarks(std::shared_ptr<gko::Executor> exec,
                        })) {
                 continue;
             }
+            // annotate the test case
+            auto test_case_range =
+                annotate(system_generator.describe_config(test_case));
+
             if (do_print) {
-                std::clog << "Running test case: " << test_case << std::endl;
+                std::clog << "Running test case\n" << test_case << std::endl;
             }
 
             using Vec = typename SystemGenerator::Vec;
@@ -655,16 +670,20 @@ void run_solver_benchmarks(std::shared_ptr<gko::Executor> exec,
                               allocator);
             auto precond_solver_name = begin(precond_solvers);
             for (const auto& solver_name : solvers) {
+                auto solver_range = annotate(solver_name.c_str());
                 for (const auto& precond_name : preconds) {
                     if (do_print) {
                         std::clog
                             << "\tRunning solver: " << *precond_solver_name
                             << std::endl;
                     }
-                    solve_system(solver_name, precond_name,
-                                 precond_solver_name->c_str(), exec, timer,
-                                 system_matrix, b.get(), x.get(), test_case,
-                                 allocator);
+                    {
+                        auto precond_range = annotate(precond_name.c_str());
+                        solve_system(solver_name, precond_name,
+                                     precond_solver_name->c_str(), exec, timer,
+                                     system_matrix, b.get(), x.get(), test_case,
+                                     allocator);
+                    }
                     if (do_print) {
                         backup_results(test_cases);
                     }
@@ -674,7 +693,15 @@ void run_solver_benchmarks(std::shared_ptr<gko::Executor> exec,
         } catch (const std::exception& e) {
             std::cerr << "Error setting up solver, what(): " << e.what()
                       << std::endl;
+            if (FLAGS_keep_errors) {
+                rapidjson::Value msg_value;
+                msg_value.SetString(e.what(), allocator);
+                add_or_set_member(test_case, "error", msg_value, allocator);
+            }
         }
+    }
+    if (profiler_hook) {
+        exec->remove_logger(profiler_hook);
     }
 }
 

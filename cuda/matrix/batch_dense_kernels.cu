@@ -81,7 +81,8 @@ void simple_apply(std::shared_ptr<const CudaExecutor> exec,
     if (b_ub.num_rhs > 1) {
         GKO_NOT_IMPLEMENTED;
     }
-    mv<<<num_blocks, default_block_size>>>(a_ub, b_ub, c_ub);
+    mv<<<num_blocks, default_block_size, 0, exec->get_stream()>>>(a_ub, b_ub,
+                                                                  c_ub);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -105,8 +106,8 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
     if (b_ub.num_rhs > 1) {
         GKO_NOT_IMPLEMENTED;
     }
-    advanced_mv<<<num_blocks, default_block_size>>>(alpha_ub, a_ub, b_ub,
-                                                    beta_ub, c_ub);
+    advanced_mv<<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+        alpha_ub, a_ub, b_ub, beta_ub, c_ub);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_APPLY_KERNEL);
@@ -120,7 +121,8 @@ void scale(std::shared_ptr<const CudaExecutor> exec,
     const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
     const auto alpha_ub = get_batch_struct(alpha);
     const auto x_ub = get_batch_struct(x);
-    scale<<<num_blocks, default_block_size>>>(alpha_ub, x_ub);
+    scale<<<num_blocks, default_block_size, 0, exec->get_stream()>>>(alpha_ub,
+                                                                     x_ub);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL);
@@ -137,14 +139,16 @@ void add_scaled(std::shared_ptr<const CudaExecutor> exec,
     if (nrhs == 1) {
         const auto num_batch = x->get_num_batch_entries();
         const auto num_rows = x->get_size().at(0)[0];
-        single_add_scaled<<<num_blocks, default_block_size>>>(
+        single_add_scaled<<<num_blocks, default_block_size, 0,
+                            exec->get_stream()>>>(
             num_batch, num_rows, as_cuda_type(alpha->get_const_values()),
             as_cuda_type(x->get_const_values()), as_cuda_type(y->get_values()));
     } else {
         const auto alpha_ub = get_batch_struct(alpha);
         const auto x_ub = get_batch_struct(x);
         const auto y_ub = get_batch_struct(y);
-        add_scaled<<<num_blocks, default_block_size>>>(alpha_ub, x_ub, y_ub);
+        add_scaled<<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+            alpha_ub, x_ub, y_ub);
     }
 }
 
@@ -164,8 +168,8 @@ void add_scale(std::shared_ptr<const DefaultExecutor> exec,
     const auto beta_ub = get_batch_struct(beta);
     const auto x_ub = get_batch_struct(x);
     const auto y_ub = get_batch_struct(y);
-    add_scale<<<num_blocks, default_block_size>>>(alpha_ub, x_ub, beta_ub,
-                                                  y_ub);
+    add_scale<<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+        alpha_ub, x_ub, beta_ub, y_ub);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_ADD_SCALE_KERNEL);
@@ -202,7 +206,8 @@ void compute_dot(std::shared_ptr<const CudaExecutor> exec,
     const auto num_rhs = x->get_size().at()[1];
     if (num_rhs == 1) {
         const auto num_rows = x->get_size().at()[0];
-        single_compute_dot_product<<<num_blocks, default_block_size>>>(
+        single_compute_dot_product<<<num_blocks, default_block_size, 0,
+                                     exec->get_stream()>>>(
             num_blocks, num_rows, as_cuda_type(x->get_const_values()),
             as_cuda_type(y->get_const_values()),
             as_cuda_type(result->get_values()));
@@ -210,8 +215,8 @@ void compute_dot(std::shared_ptr<const CudaExecutor> exec,
         const auto x_ub = get_batch_struct(x);
         const auto y_ub = get_batch_struct(y);
         const auto res_ub = get_batch_struct(result);
-        compute_dot_product<<<num_blocks, default_block_size>>>(x_ub, y_ub,
-                                                                res_ub);
+        compute_dot_product<<<num_blocks, default_block_size, 0,
+                              exec->get_stream()>>>(x_ub, y_ub, res_ub);
     }
 }
 
@@ -240,13 +245,15 @@ void compute_norm2(std::shared_ptr<const CudaExecutor> exec,
     const auto num_rhs = x->get_size().at()[1];
     if (num_rhs == 1) {
         const auto num_rows = x->get_size().at()[0];
-        single_compute_norm2<<<num_blocks, default_block_size>>>(
+        single_compute_norm2<<<num_blocks, default_block_size, 0,
+                               exec->get_stream()>>>(
             num_blocks, num_rows, as_cuda_type(x->get_const_values()),
             as_cuda_type(result->get_values()));
     } else {
         const auto x_ub = get_batch_struct(x);
         const auto res_ub = get_batch_struct(result);
-        compute_norm2<<<num_blocks, default_block_size>>>(x_ub, res_ub);
+        compute_norm2<<<num_blocks, default_block_size, 0,
+                        exec->get_stream()>>>(x_ub, res_ub);
     }
 }
 
@@ -323,7 +330,7 @@ void transpose(std::shared_ptr<const CudaExecutor> exec,
     const size_type trans_stride = trans->get_stride().at();
     const int nrows = orig->get_size().at()[0];
     const int ncols = orig->get_size().at()[1];
-    transpose<<<nbatch, default_block_size>>>(
+    transpose<<<nbatch, default_block_size, 0, exec->get_stream()>>>(
         nrows, ncols, orig_stride, as_cuda_type(orig->get_const_values()),
         trans_stride, as_cuda_type(trans->get_values()),
         [] __device__(cu_val_type x) { return x; });
@@ -343,7 +350,7 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
     const size_type trans_stride = trans->get_stride().at();
     const int nrows = orig->get_size().at()[0];
     const int ncols = orig->get_size().at()[1];
-    transpose<<<nbatch, default_block_size>>>(
+    transpose<<<nbatch, default_block_size, 0, exec->get_stream()>>>(
         nrows, ncols, orig_stride, as_cuda_type(orig->get_const_values()),
         trans_stride, as_cuda_type(trans->get_values()),
         [] __device__(cu_val_type x) { return conj(x); });
@@ -361,7 +368,8 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
     const auto result_ub = get_batch_struct(result);
     const auto x_ub = get_batch_struct(x);
-    copy<<<num_blocks, default_block_size>>>(x_ub, result_ub);
+    copy<<<num_blocks, default_block_size, 0, exec->get_stream()>>>(x_ub,
+                                                                    result_ub);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_COPY_KERNEL);
@@ -393,7 +401,8 @@ void batch_scale(std::shared_ptr<const CudaExecutor> exec,
     const auto nbatch = vec_to_scale->get_num_batch_entries();
 
     const int num_blocks = vec_to_scale->get_num_batch_entries();
-    uniform_batch_scale<<<num_blocks, default_block_size>>>(
+    uniform_batch_scale<<<num_blocks, default_block_size, 0,
+                          exec->get_stream()>>>(
         nrows, stride, nrhs, nbatch,
         as_cuda_type(left_scale->get_const_values()),
         as_cuda_type(rght_scale->get_const_values()),
@@ -419,7 +428,8 @@ void add_scaled_identity(std::shared_ptr<const CudaExecutor> exec,
     const auto a_stride = a->get_stride().at(0);
     const auto b_stride = b->get_stride().at(0);
     const auto beta = b->get_const_values();
-    add_scaled_identity<<<num_blocks, default_block_size>>>(
+    add_scaled_identity<<<num_blocks, default_block_size, 0,
+                          exec->get_stream()>>>(
         num_blocks, nrows, ncols, stride, as_cuda_type(values), a_stride,
         as_cuda_type(alpha), b_stride, as_cuda_type(beta));
 }

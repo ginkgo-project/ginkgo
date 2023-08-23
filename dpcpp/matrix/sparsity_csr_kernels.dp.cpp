@@ -291,35 +291,6 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
-                   const matrix::SparsityCsr<ValueType, IndexType>* input,
-                   matrix::Dense<ValueType>* output) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_CSR_FILL_IN_DENSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void count_num_diagonal_elements(
-    std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::SparsityCsr<ValueType, IndexType>* matrix,
-    size_type* num_diagonal_elements) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_CSR_COUNT_NUM_DIAGONAL_ELEMENTS_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void remove_diagonal_elements(
-    std::shared_ptr<const DpcppExecutor> exec, const IndexType* row_ptrs,
-    const IndexType* col_idxs,
-    matrix::SparsityCsr<ValueType, IndexType>* matrix) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_CSR_REMOVE_DIAGONAL_ELEMENTS_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const DpcppExecutor> exec,
                const matrix::SparsityCsr<ValueType, IndexType>* orig,
                matrix::SparsityCsr<ValueType, IndexType>* trans)
@@ -332,7 +303,23 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void sort_by_column_index(std::shared_ptr<const DpcppExecutor> exec,
                           matrix::SparsityCsr<ValueType, IndexType>* to_sort)
-    GKO_NOT_IMPLEMENTED;
+{
+    const auto num_rows = to_sort->get_size()[0];
+    const auto row_ptrs = to_sort->get_const_row_ptrs();
+    const auto cols = to_sort->get_col_idxs();
+    auto queue = exec->get_queue();
+    // build sorted postorder node list for each row
+    queue->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx_id) {
+            const auto row = idx_id[0];
+            const auto row_begin = row_ptrs[row];
+            const auto row_end = row_ptrs[row + 1];
+            // heap-sort the elements
+            std::make_heap(cols + row_begin, cols + row_end);
+            std::sort_heap(cols + row_begin, cols + row_end);
+        });
+    });
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_SORT_BY_COLUMN_INDEX);
@@ -341,8 +328,32 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::SparsityCsr<ValueType, IndexType>* to_check,
-    bool* is_sorted) GKO_NOT_IMPLEMENTED;
+    const matrix::SparsityCsr<ValueType, IndexType>* to_check, bool* is_sorted)
+{
+    *is_sorted = true;
+    auto cpu_array = make_array_view(exec->get_master(), 1, is_sorted);
+    auto gpu_array = array<bool>{exec, cpu_array};
+    const auto num_rows = to_check->get_size()[0];
+    const auto row_ptrs = to_check->get_const_row_ptrs();
+    const auto cols = to_check->get_const_col_idxs();
+    auto is_sorted_device = gpu_array.get_data();
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+            const auto row = static_cast<size_type>(idx[0]);
+            const auto begin = row_ptrs[row];
+            const auto end = row_ptrs[row + 1];
+            if (*is_sorted_device) {
+                for (auto i = begin; i < end - 1; i++) {
+                    if (cols[i] > cols[i + 1]) {
+                        *is_sorted_device = false;
+                        break;
+                    }
+                }
+            }
+        });
+    });
+    cpu_array = gpu_array;
+};
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_IS_SORTED_BY_COLUMN_INDEX);

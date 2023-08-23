@@ -190,6 +190,11 @@ if [ ! "${GPU_TIMER}" ]; then
     print_default GPU_TIMER
 fi
 
+if [ ! "${TIMER_OUTPUT}" ]; then
+    TIMER_OUTPUT="average"
+    print_default TIMER_OUTPUT
+fi
+
 # Control whether to run detailed benchmarks or not.
 # Default setting is detailed=false. To activate, set DETAILED=1.
 if  [ ! "${DETAILED}" ] || [ "${DETAILED}" -eq 0 ]; then
@@ -349,7 +354,7 @@ run_conversion_benchmarks() {
     cp "$1" "$1.imd" # make sure we're not loosing the original input
     ./conversions/conversions${BENCH_SUFFIX} --backup="$1.bkp" --double_buffer="$1.bkp2" \
                 --executor="${EXECUTOR}" --formats="${FORMATS}" \
-                --device_id="${DEVICE_ID}" --gpu_timer=${GPU_TIMER} \
+                --device_id="${DEVICE_ID}" --gpu_timer=${GPU_TIMER} --timer_method=${TIMER_OUTPUT} \
                 --repetitions="${REPETITIONS}" \
                 --ell_imbalance_limit="${ELL_IMBALANCE_LIMIT}" \
                 <"$1.imd" 2>&1 >"$1"
@@ -367,9 +372,28 @@ run_spmv_benchmarks() {
     cp "$1" "$1.imd" # make sure we're not loosing the original input
     ./spmv/spmv${BENCH_SUFFIX} --backup="$1.bkp" --double_buffer="$1.bkp2" \
                 --executor="${EXECUTOR}" --formats="${FORMATS}" \
-                --device_id="${DEVICE_ID}" --gpu_timer=${GPU_TIMER} \
+                --device_id="${DEVICE_ID}" --gpu_timer=${GPU_TIMER} --timer_method=${TIMER_OUTPUT} \
                 --repetitions="${REPETITIONS}" \
                 --ell_imbalance_limit="${ELL_IMBALANCE_LIMIT}" \
+                <"$1.imd" 2>&1 >"$1"
+    keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
+}
+
+
+# Runs the batch SpMV benchmarks for all batch formats by using file $1 as the input,
+# and updating it with the results. Backups are created after each
+# benchmark run, to prevent data loss in case of a crash. Once the benchmarking
+# is completed, the backups and the results are combined, and the newest file is
+# taken as the final result.
+run_batch_spmv_benchmarks() {
+    [ "${DRY_RUN}" == "true" ] && return
+    cp "$1" "$1.imd" # make sure we're not loosing the original input
+    ./spmv/batch_spmv${BENCH_SUFFIX} --backup="$1.bkp" --double_buffer="$1.bkp2" \
+                --executor="${EXECUTOR}" --formats="${FORMATS}" \
+                --num_duplications="${NUM_BATCH_DUP}" "${BATCH_SCALING_STR}" \
+                --num_batches="${NUM_BATCH_ENTRIES}" "${SS_STR}" \
+                "${SOLVERS_RHS_FLAG}" \
+                --device_id="${DEVICE_ID}" --gpu_timer=${GPU_TIMER} \
                 <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
@@ -407,7 +431,7 @@ run_solver_benchmarks() {
                     --preconditioners="${PRECONDS}" \
                     --max_iters=${SOLVERS_MAX_ITERATIONS} --rel_res_goal=${SOLVERS_PRECISION} \
                     ${SOLVERS_RHS_FLAG} ${DETAILED_STR} ${SOLVERS_INITIAL_GUESS_FLAG} \
-                    --gpu_timer=${GPU_TIMER} \
+                    --gpu_timer=${GPU_TIMER} --timer_method=${TIMER_OUTPUT} \
                     --jacobi_max_block_size=${SOLVERS_JACOBI_MAX_BS} --device_id="${DEVICE_ID}" \
                     --gmres_restart="${SOLVERS_GMRES_RESTART}" \
                     --repetitions="${SOLVER_REPETITIONS}" \
@@ -464,7 +488,7 @@ run_preconditioner_benchmarks() {
                 --executor="${EXECUTOR}" --preconditioners="jacobi" \
                 --jacobi_max_block_size="${bsize}" \
                 --jacobi_storage="${prec}" \
-                --device_id="${DEVICE_ID}" --gpu_timer=${GPU_TIMER} \
+                --device_id="${DEVICE_ID}" --gpu_timer=${GPU_TIMER} --timer_method=${TIMER_OUTPUT} \
                 --repetitions="${REPETITIONS}" \
                 <"$1.imd" 2>&1 >"$1"
             keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"

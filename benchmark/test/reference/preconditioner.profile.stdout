@@ -1,0 +1,22 @@
+
+[
+    {
+        "size": 125,
+        "stencil": "7pt",
+        "preconditioner": {
+            "none": {
+                "generate": {
+                    "components": {},
+                    "time": 1.0,
+                    "repetitions": 1
+                },
+                "apply": {
+                    "components": {},
+                    "time": 1.0,
+                    "repetitions": 1
+                },
+                "completed": true
+            }
+        }
+    }
+]

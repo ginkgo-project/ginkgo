@@ -177,7 +177,7 @@ int main(int argc, char* argv[])
 
     std::clog << gko::version_info::get() << std::endl;
 
-    rapidjson::IStreamWrapper jcin(std::cin);
+    rapidjson::IStreamWrapper jcin(get_input_stream());
     rapidjson::Document test_cases;
     test_cases.ParseStream(jcin);
     if (!test_cases.IsArray()) {
@@ -197,7 +197,7 @@ int main(int argc, char* argv[])
             }
             auto& problem = test_case["problem"];
 
-            std::clog << "Running test case: " << test_case << std::endl;
+            std::clog << "Running test case\n" << test_case << std::endl;
 
             auto matrix =
                 DefaultSystemGenerator<etype, gko::int64>::generate_matrix_data(

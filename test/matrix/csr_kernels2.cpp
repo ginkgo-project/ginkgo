@@ -64,6 +64,7 @@ class Csr : public CommonTestFixture {
 protected:
     using Arr = gko::array<int>;
     using Vec = gko::matrix::Dense<value_type>;
+    using Vec2 = gko::matrix::Dense<gko::next_precision<value_type>>;
     using Mtx = gko::matrix::Csr<value_type>;
     using ComplexVec = gko::matrix::Dense<std::complex<value_type>>;
     using ComplexMtx = gko::matrix::Csr<std::complex<value_type>>;
@@ -150,17 +151,27 @@ protected:
         square_mtx = Mtx::create(ref, strategy);
         square_mtx->move_from(gen_mtx<Vec>(mtx_size[0], mtx_size[0], 1));
         expected = gen_mtx<Vec>(mtx_size[0], num_vectors, 1);
+        expected2 = Vec2::create(ref);
+        expected2->copy_from(expected);
         y = gen_mtx<Vec>(mtx_size[1], num_vectors, 1);
+        y2 = Vec2::create(ref);
+        y2->copy_from(y);
         alpha = gko::initialize<Vec>({2.0}, ref);
+        alpha2 = gko::initialize<Vec2>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
+        beta2 = gko::initialize<Vec2>({-1.0}, ref);
         dmtx = Mtx::create(exec, strategy);
         dmtx->copy_from(mtx);
         square_dmtx = Mtx::create(exec, strategy);
         square_dmtx->copy_from(square_mtx);
         dresult = gko::clone(exec, expected);
+        dresult2 = gko::clone(exec, expected2);
         dy = gko::clone(exec, y);
+        dy2 = gko::clone(exec, y2);
         dalpha = gko::clone(exec, alpha);
+        dalpha2 = gko::clone(exec, alpha2);
         dbeta = gko::clone(exec, beta);
+        dbeta2 = gko::clone(exec, beta2);
 
         std::vector<int> tmp(mtx->get_size()[0], 0);
         auto rng = std::default_random_engine{};
@@ -199,18 +210,26 @@ protected:
     std::unique_ptr<ComplexMtx> complex_mtx;
     std::unique_ptr<Mtx> square_mtx;
     std::unique_ptr<Vec> expected;
+    std::unique_ptr<Vec2> expected2;
     std::unique_ptr<Vec> y;
+    std::unique_ptr<Vec2> y2;
     std::unique_ptr<Vec> alpha;
+    std::unique_ptr<Vec2> alpha2;
     std::unique_ptr<Vec> beta;
+    std::unique_ptr<Vec2> beta2;
 
     std::unique_ptr<Mtx> dmtx;
     std::unique_ptr<Mtx> dmtx2;
     std::unique_ptr<ComplexMtx> complex_dmtx;
     std::unique_ptr<Mtx> square_dmtx;
     std::unique_ptr<Vec> dresult;
+    std::unique_ptr<Vec2> dresult2;
     std::unique_ptr<Vec> dy;
+    std::unique_ptr<Vec2> dy2;
     std::unique_ptr<Vec> dalpha;
+    std::unique_ptr<Vec2> dalpha2;
     std::unique_ptr<Vec> dbeta;
+    std::unique_ptr<Vec2> dbeta2;
     std::unique_ptr<Arr> rpermute_idxs;
     std::unique_ptr<Arr> cpermute_idxs;
 };
@@ -959,10 +978,28 @@ TEST_F(Csr, RecognizeUnsortedMatrixIsEquivalentToRef)
 TEST_F(Csr, SortSortedMatrixIsEquivalentToRef)
 {
     set_up_apply_data<Mtx::classical>();
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
 
     mtx->sort_by_column_index();
     dmtx->sort_by_column_index();
 
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+    // Values must be unchanged, therefore, tolerance is `0`
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
+}
+
+
+TEST_F(Csr, SortSortedMatrixIsEquivalentToRef64)
+{
+    using Mtx64 = gko::matrix::Csr<value_type, gko::int64>;
+    auto mtx = gen_mtx<Mtx64>(123, 234, 0);
+    auto dmtx = gko::clone(exec, mtx);
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
     // Values must be unchanged, therefore, tolerance is `0`
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
 }
@@ -972,10 +1009,95 @@ TEST_F(Csr, SortUnsortedMatrixIsEquivalentToRef)
 {
     set_up_apply_data<Mtx::classical>();
     unsort_mtx();
+    ASSERT_FALSE(dmtx->is_sorted_by_column_index());
 
     mtx->sort_by_column_index();
     dmtx->sort_by_column_index();
 
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+    // Values must be unchanged, therefore, tolerance is `0`
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
+}
+
+
+TEST_F(Csr, SortUnsortedMatrixIsEquivalentToRef64)
+{
+    using Mtx64 = gko::matrix::Csr<value_type, gko::int64>;
+    auto mtx = gen_mtx<Mtx64>(123, 234, 0);
+    gko::test::unsort_matrix(mtx, rand_engine);
+    auto dmtx = gko::clone(exec, mtx);
+    ASSERT_FALSE(dmtx->is_sorted_by_column_index());
+
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+    // Values must be unchanged, therefore, tolerance is `0`
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
+}
+
+
+TEST_F(Csr, SortSortedComplexMatrixIsEquivalentToRef)
+{
+    using MtxComplex = gko::matrix::Csr<std::complex<value_type>, gko::int32>;
+    auto mtx = gen_mtx<MtxComplex>(123, 234, 0);
+    auto dmtx = gko::clone(exec, mtx);
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+    // Values must be unchanged, therefore, tolerance is `0`
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
+}
+
+
+TEST_F(Csr, SortSortedComplexMatrixIsEquivalentToRef64)
+{
+    using MtxComplex64 = gko::matrix::Csr<std::complex<value_type>, gko::int64>;
+    auto mtx = gen_mtx<MtxComplex64>(123, 234, 0);
+    auto dmtx = gko::clone(exec, mtx);
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+    // Values must be unchanged, therefore, tolerance is `0`
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
+}
+
+
+TEST_F(Csr, SortUnsortedComplexMatrixIsEquivalentToRef)
+{
+    using MtxComplex = gko::matrix::Csr<std::complex<value_type>, gko::int32>;
+    auto mtx = gen_mtx<MtxComplex>(123, 234, 0);
+    gko::test::unsort_matrix(mtx, rand_engine);
+    auto dmtx = gko::clone(exec, mtx);
+    ASSERT_FALSE(dmtx->is_sorted_by_column_index());
+
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+    // Values must be unchanged, therefore, tolerance is `0`
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
+}
+
+
+TEST_F(Csr, SortUnsortedComplexMatrixIsEquivalentToRef64)
+{
+    using MtxComplex64 = gko::matrix::Csr<std::complex<value_type>, gko::int64>;
+    auto mtx = gen_mtx<MtxComplex64>(123, 234, 0);
+    gko::test::unsort_matrix(mtx, rand_engine);
+    auto dmtx = gko::clone(exec, mtx);
+    ASSERT_FALSE(dmtx->is_sorted_by_column_index());
+
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
     // Values must be unchanged, therefore, tolerance is `0`
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
 }
@@ -1066,7 +1188,7 @@ TEST_F(Csr, ComputeSubmatrixIsEquivalentToRef)
     row_nnz.fill(gko::zero<int>());
     gko::kernels::reference::csr::calculate_nonzeros_per_row_in_span(
         this->ref, this->mtx2.get(), rspan, cspan, &row_nnz);
-    gko::kernels::reference::components::prefix_sum(
+    gko::kernels::reference::components::prefix_sum_nonnegative(
         this->ref, row_nnz.get_data(), row_nnz.get_num_elems());
     auto num_nnz = row_nnz.get_data()[rspan.length()];
     auto drow_nnz = gko::array<int>(this->exec, row_nnz);
@@ -1131,7 +1253,7 @@ TEST_F(Csr, ComputeSubmatrixFromIndexSetIsEquivalentToRef)
     row_nnz.fill(gko::zero<int>());
     gko::kernels::reference::csr::calculate_nonzeros_per_row_in_index_set(
         this->ref, this->mtx2.get(), rset, cset, row_nnz.get_data());
-    gko::kernels::reference::components::prefix_sum(
+    gko::kernels::reference::components::prefix_sum_nonnegative(
         this->ref, row_nnz.get_data(), row_nnz.get_num_elems());
     auto num_nnz = row_nnz.get_data()[rset.get_num_elems()];
     auto drow_nnz = gko::array<int>(this->exec, row_nnz);

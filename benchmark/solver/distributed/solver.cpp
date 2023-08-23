@@ -46,8 +46,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 struct Generator : public DistributedDefaultSystemGenerator<SolverGenerator> {
     Generator(gko::experimental::mpi::communicator comm)
-        : DistributedDefaultSystemGenerator<SolverGenerator>{std::move(comm),
-                                                             {}}
+        : DistributedDefaultSystemGenerator<SolverGenerator>
+    {
+        std::move(comm), {}
+    }
     {}
 
     std::unique_ptr<Vec> generate_rhs(std::shared_ptr<const gko::Executor> exec,
@@ -128,12 +130,12 @@ int main(int argc, char* argv[])
         }
     }
 
-    std::string json_input = FLAGS_overhead
-                                 ? R"(
+    std::string json_input =
+        FLAGS_overhead ? R"(
 [{"filename": "overhead.mtx",
   "optimal": {"spmv": "csr-csr"}]
 )"
-                                 : broadcast_json_input(std::cin, comm);
+                       : broadcast_json_input(get_input_stream(), comm);
     rapidjson::Document test_cases;
     test_cases.Parse(json_input.c_str());
 

@@ -178,7 +178,8 @@ void run_preconditioner(const char* precond_name,
             }
 
             add_or_set_member(this_precond_data["generate"], "time",
-                              ic_gen.compute_average_time(), allocator);
+                              ic_gen.compute_time(FLAGS_timer_method),
+                              allocator);
             add_or_set_member(this_precond_data["generate"], "repetitions",
                               ic_gen.get_num_repetitions(), allocator);
 
@@ -187,7 +188,8 @@ void run_preconditioner(const char* precond_name,
             }
 
             add_or_set_member(this_precond_data["apply"], "time",
-                              ic_apply.compute_average_time(), allocator);
+                              ic_apply.compute_time(FLAGS_timer_method),
+                              allocator);
             add_or_set_member(this_precond_data["apply"], "repetitions",
                               ic_apply.get_num_repetitions(), allocator);
         }
@@ -200,7 +202,7 @@ void run_preconditioner(const char* precond_name,
             std::unique_ptr<gko::LinOp> precond_op;
             {
                 auto gen_logger = create_operations_logger(
-                    FLAGS_nested_names,
+                    FLAGS_gpu_timer, FLAGS_nested_names, exec,
                     this_precond_data["generate"]["components"], allocator,
                     ic_gen.get_num_repetitions());
                 exec->add_logger(gen_logger);
@@ -217,8 +219,9 @@ void run_preconditioner(const char* precond_name,
             }
 
             auto apply_logger = create_operations_logger(
-                FLAGS_nested_names, this_precond_data["apply"]["components"],
-                allocator, ic_apply.get_num_repetitions());
+                FLAGS_gpu_timer, FLAGS_nested_names, exec,
+                this_precond_data["apply"]["components"], allocator,
+                ic_apply.get_num_repetitions());
             exec->add_logger(apply_logger);
             if (exec->get_master() != exec) {
                 exec->get_master()->add_logger(apply_logger);
@@ -245,7 +248,8 @@ void run_preconditioner(const char* precond_name,
             add_or_set_member(test_case["preconditioner"][encoded_name.c_str()],
                               "error", msg_value, allocator);
         }
-        std::cerr << "Error when processing test case " << test_case << "\n"
+        std::cerr << "Error when processing test case\n"
+                  << test_case << "\n"
                   << "what(): " << e.what() << std::endl;
     }
 }
@@ -275,7 +279,7 @@ int main(int argc, char* argv[])
         std::exit(1);
     }
 
-    rapidjson::IStreamWrapper jcin(std::cin);
+    rapidjson::IStreamWrapper jcin(get_input_stream());
     rapidjson::Document test_cases;
     test_cases.ParseStream(jcin);
     if (!test_cases.IsArray()) {
@@ -283,7 +287,11 @@ int main(int argc, char* argv[])
     }
 
     auto& allocator = test_cases.GetAllocator();
-
+    auto profiler_hook = create_profiler_hook(exec);
+    if (profiler_hook) {
+        exec->add_logger(profiler_hook);
+    }
+    auto annotate = annotate_functor{profiler_hook};
     DefaultSystemGenerator<> generator{};
 
     for (auto& test_case : test_cases.GetArray()) {
@@ -303,7 +311,11 @@ int main(int argc, char* argv[])
                        })) {
                 continue;
             }
-            std::clog << "Running test case: " << test_case << std::endl;
+            std::clog << "Running test case\n" << test_case << std::endl;
+
+            // annotate the test case
+            auto test_case_range =
+                annotate(generator.describe_config(test_case));
 
             auto data = generator.generate_matrix_data(test_case);
 
@@ -319,8 +331,12 @@ int main(int argc, char* argv[])
                       << std::endl;
             add_or_set_member(test_case, "size", data.size[0], allocator);
             for (const auto& precond_name : preconditioners) {
-                run_preconditioner(precond_name.c_str(), exec, system_matrix,
-                                   b.get(), x.get(), test_case, allocator);
+                {
+                    auto precond_range = annotate(precond_name.c_str());
+                    run_preconditioner(precond_name.c_str(), exec,
+                                       system_matrix, b.get(), x.get(),
+                                       test_case, allocator);
+                }
                 std::clog << "Current state:" << std::endl
                           << test_cases << std::endl;
                 backup_results(test_cases);
@@ -329,6 +345,9 @@ int main(int argc, char* argv[])
             std::cerr << "Error setting up preconditioner, what(): " << e.what()
                       << std::endl;
         }
+    }
+    if (profiler_hook) {
+        exec->remove_logger(profiler_hook);
     }
 
     std::cout << test_cases << std::endl;

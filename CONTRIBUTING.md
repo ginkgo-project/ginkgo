@@ -312,7 +312,7 @@ Thus, contributors should be aware of the following rules for blank lines:
         However, simply calling function `f` from function `g` does not imply
         that `f` and `g` are "related".
 2.  Statements within structures / classes are separated with 1 blank line.
-    There are no blank lines betweeen the first / last statement in the
+    There are no blank lines between the first / last statement in the
     structure / class.
     1.  _exception_: there is no blank line between an access modifier (`private`, `protected`, `public`) and the following statement.
        _example_:

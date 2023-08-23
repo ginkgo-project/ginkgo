@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_BASE_DEVICE_HPP_
 
 
+#include <ginkgo/core/base/executor.hpp>
+
+
 namespace gko {
 namespace kernels {
 namespace cuda {
@@ -41,6 +44,10 @@ namespace cuda {
 
 /** calls cudaDeviceReset on the given device. */
 void reset_device(int device_id);
+
+
+/** calls cudaEventDestroy on the given event. */
+void destroy_event(CUevent_st* event);
 
 
 }  // namespace cuda

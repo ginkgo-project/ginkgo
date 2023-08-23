@@ -109,10 +109,12 @@ public:
                 a.num_rows, b.num_rhs, opts_.subspace_dim_val) +
             PrecType::dynamic_work_size(a.num_rows, a.num_nnz) *
                 sizeof(value_type);
-        apply_kernel<StopType><<<nbatch, default_block_size, shared_size>>>(
-            opts_.max_its, opts_.residual_tol, opts_.subspace_dim_val,
-            opts_.kappa_val, opts_.to_use_smoothing, opts_.deterministic_gen,
-            logger, prec, subspace_vectors_, a, b.values, x.values);
+        apply_kernel<StopType>
+            <<<nbatch, default_block_size, shared_size, exec_->get_stream()>>>(
+                opts_.max_its, opts_.residual_tol, opts_.subspace_dim_val,
+                opts_.kappa_val, opts_.to_use_smoothing,
+                opts_.deterministic_gen, logger, prec, subspace_vectors_, a,
+                b.values, x.values);
         GKO_CUDA_LAST_IF_ERROR_THROW;
     }
 

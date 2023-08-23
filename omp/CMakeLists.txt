@@ -60,6 +60,15 @@ target_sources(ginkgo_omp
 ginkgo_compile_features(ginkgo_omp)
 target_compile_definitions(ginkgo_omp PRIVATE GKO_COMPILING_OMP)
 
+# TODO FIXME: Currently nvhpc 22.7+ optimizations break the omp jacobi's custom
+# precision implementation (mantissa segmentation)
+#
+# We compile with -O1 to disable the offending optimization. Note that all OMP
+# jacobi kernels will be slow on NVHPC as a result.
+if (CMAKE_CXX_COMPILER_ID MATCHES "PGI|NVHPC")
+    set_source_files_properties(preconditioner/jacobi_kernels.cpp PROPERTIES COMPILE_FLAGS "-O1")
+endif()
+
 # The dependency to OpenMP's potential pthread dependency needs to be public
 # because well, it's a long story:
 # std::shared_ptr decides whether we need to increment/decrement the reference

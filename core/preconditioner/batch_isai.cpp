@@ -59,7 +59,7 @@ GKO_REGISTER_OPERATION(extract_dense_linear_sys_pattern,
                        batch_isai::extract_dense_linear_sys_pattern);
 GKO_REGISTER_OPERATION(fill_values_dense_mat_and_solve,
                        batch_isai::fill_values_dense_mat_and_solve);
-GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum);
+GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum_nonnegative);
 GKO_REGISTER_OPERATION(extract_csr_sys_pattern,
                        batch_isai::extract_csr_sys_pattern);
 GKO_REGISTER_OPERATION(fill_batch_csr_sys_with_values,

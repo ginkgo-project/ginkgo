@@ -78,7 +78,7 @@ struct row_major_helper_s {
         const std::array<SizeType, (total_dim > 1 ? total_dim - 1 : 0)>& stride,
         IndexType first, Indices&&... idxs)
     {
-        // The ASSERT size check must NOT be indexed with `dim_idx` directy,
+        // The ASSERT size check must NOT be indexed with `dim_idx` directly,
         // otherwise, it leads to a linker error. The reason is likely that
         // `std::array<size_type, N>::operator[](const size_type &)` uses a
         // reference. Since `dim_idx` is constexpr (and not defined in a
@@ -211,16 +211,17 @@ namespace detail {
  * compute(stride, tuple(x1, x2, x3, x4))
  * -> x1 * stride[1] + x2 * stride[2] + x4    (x3 skipped since bit not set)
  */
-template <
-    typename IndexType, std::uint64_t mask, std::size_t set_bits_processed,
-    std::size_t stride_size, std::size_t dim_idx, std::size_t total_dim,
-    // Determine if the bit in the mask is set for dim_idx
-    // If the end is reached (dim_idx == total_dim), set it to false in
-    // order to only need one specialization
-    bool mask_set = (dim_idx < total_dim)
-                        ? static_cast<bool>(mask&(std::uint64_t{1}
-                                                  << (total_dim - 1 - dim_idx)))
-                        : false>
+template <typename IndexType, std::uint64_t mask,
+          std::size_t set_bits_processed, std::size_t stride_size,
+          std::size_t dim_idx, std::size_t total_dim,
+          // Determine if the bit in the mask is set for dim_idx
+          // If the end is reached (dim_idx == total_dim), set it to false in
+          // order to only need one specialization
+          bool mask_set =
+              (dim_idx < total_dim)
+                  ? static_cast<bool>(
+                        mask & (std::uint64_t{1} << (total_dim - 1 - dim_idx)))
+                  : false>
 struct row_major_masked_helper_s {};
 
 

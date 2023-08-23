@@ -90,7 +90,8 @@ GKO_REGISTER_OPERATION(compute_hybrid_coo_row_ptrs,
 GKO_REGISTER_OPERATION(count_nonzeros_per_row, dense::count_nonzeros_per_row);
 GKO_REGISTER_OPERATION(count_nonzero_blocks_per_row,
                        dense::count_nonzero_blocks_per_row);
-GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum);
+GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
+                       components::prefix_sum_nonnegative);
 GKO_REGISTER_OPERATION(compute_slice_sets, dense::compute_slice_sets);
 GKO_REGISTER_OPERATION(transpose, dense::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, dense::conj_transpose);
@@ -233,6 +234,15 @@ void Dense<ValueType>::compute_norm1(ptr_param<LinOp> result) const
 {
     auto exec = this->get_executor();
     this->compute_norm1_impl(make_temporary_output_clone(exec, result).get());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_squared_norm2(ptr_param<LinOp> result) const
+{
+    auto exec = this->get_executor();
+    this->compute_squared_norm2_impl(
+        make_temporary_output_clone(exec, result).get());
 }
 
 
@@ -515,6 +525,33 @@ void Dense<ValueType>::compute_norm1_impl(LinOp* result) const
 
 
 template <typename ValueType>
+void Dense<ValueType>::compute_squared_norm2(ptr_param<LinOp> result,
+                                             array<char>& tmp) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    if (tmp.get_executor() != exec) {
+        tmp.clear();
+        tmp.set_executor(exec);
+    }
+    auto local_result = make_temporary_clone(exec, result);
+    auto dense_res = make_temporary_conversion<remove_complex<ValueType>>(
+        local_result.get());
+    exec->run(dense::make_compute_squared_norm2(this, dense_res.get(), tmp));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_squared_norm2_impl(LinOp* result) const
+{
+    auto exec = this->get_executor();
+    array<char> tmp{exec};
+    this->compute_squared_norm2(make_temporary_output_clone(exec, result).get(),
+                                tmp);
+}
+
+
+template <typename ValueType>
 Dense<ValueType>& Dense<ValueType>::operator=(const Dense& other)
 {
     if (&other != this) {
@@ -602,7 +639,8 @@ void Dense<ValueType>::convert_impl(Coo<ValueType, IndexType>* result) const
 
     array<int64> row_ptrs{exec, num_rows + 1};
     exec->run(dense::make_count_nonzeros_per_row(this, row_ptrs.get_data()));
-    exec->run(dense::make_prefix_sum(row_ptrs.get_data(), num_rows + 1));
+    exec->run(
+        dense::make_prefix_sum_nonnegative(row_ptrs.get_data(), num_rows + 1));
     const auto nnz =
         exec->copy_val_to_host(row_ptrs.get_const_data() + num_rows);
     result->resize(this->get_size(), nnz);
@@ -651,7 +689,8 @@ void Dense<ValueType>::convert_impl(Csr<ValueType, IndexType>* result) const
         tmp->row_ptrs_.resize_and_reset(num_rows + 1);
         exec->run(
             dense::make_count_nonzeros_per_row(this, tmp->get_row_ptrs()));
-        exec->run(dense::make_prefix_sum(tmp->get_row_ptrs(), num_rows + 1));
+        exec->run(dense::make_prefix_sum_nonnegative(tmp->get_row_ptrs(),
+                                                     num_rows + 1));
         const auto nnz =
             exec->copy_val_to_host(tmp->get_const_row_ptrs() + num_rows);
         tmp->col_idxs_.resize_and_reset(nnz);
@@ -703,7 +742,8 @@ void Dense<ValueType>::convert_impl(Fbcsr<ValueType, IndexType>* result) const
     tmp->row_ptrs_.resize_and_reset(row_blocks + 1);
     exec->run(dense::make_count_nonzero_blocks_per_row(this, bs,
                                                        tmp->get_row_ptrs()));
-    exec->run(dense::make_prefix_sum(tmp->get_row_ptrs(), row_blocks + 1));
+    exec->run(dense::make_prefix_sum_nonnegative(tmp->get_row_ptrs(),
+                                                 row_blocks + 1));
     const auto nnz_blocks =
         exec->copy_val_to_host(tmp->get_const_row_ptrs() + row_blocks);
     tmp->col_idxs_.resize_and_reset(nnz_blocks);
@@ -904,7 +944,8 @@ void Dense<ValueType>::convert_impl(
     tmp->row_ptrs_.resize_and_reset(num_rows + 1);
     exec->run(
         dense::make_count_nonzeros_per_row(this, tmp->row_ptrs_.get_data()));
-    exec->run(dense::make_prefix_sum(tmp->row_ptrs_.get_data(), num_rows + 1));
+    exec->run(dense::make_prefix_sum_nonnegative(tmp->row_ptrs_.get_data(),
+                                                 num_rows + 1));
     const auto nnz =
         exec->copy_val_to_host(tmp->row_ptrs_.get_const_data() + num_rows);
     tmp->col_idxs_.resize_and_reset(nnz);

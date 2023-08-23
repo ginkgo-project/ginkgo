@@ -316,9 +316,9 @@ void check_ell_admissibility(const gko::matrix_data<etype, itype>& data)
 template <typename MatrixType, typename... Args>
 auto create_matrix_type(Args&&... args)
 {
-    return [&](std::shared_ptr<const gko::Executor> exec)
+    return [=](std::shared_ptr<const gko::Executor> exec)
                -> std::unique_ptr<MatrixType> {
-        return MatrixType::create(std::move(exec), std::forward<Args>(args)...);
+        return MatrixType::create(std::move(exec), args...);
     };
 }
 

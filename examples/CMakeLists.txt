@@ -26,7 +26,9 @@ set(EXAMPLES_LIST
     minimal-cuda-solver
     mixed-spmv
     mixed-multigrid-solver
+    mixed-multigrid-preconditioned-solver
     multigrid-preconditioned-solver
+    multigrid-preconditioned-solver-customized
     par-ilu-convergence
     performance-debugging
     preconditioner-export
@@ -59,7 +61,7 @@ find_package(Kokkos QUIET)
 if(Kokkos_FOUND)
     if(GINKGO_WITH_CCACHE)
         message(WARNING "The CMAKE_CXX_COMPILER_LAUNCHER is set due to "
-            "GINKGO_WITH_CCACHE=ON which is known to casue issues with CUDA enabled "
+            "GINKGO_WITH_CCACHE=ON which is known to cause issues with CUDA enabled "
             "Kokkos (https://github.com/kokkos/kokkos/issues/4821) including compilation "
             "failures. This can be prevented by setting GINKGO_WITH_CCACHE=OFF.")
     endif()

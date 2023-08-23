@@ -121,24 +121,17 @@ struct ResidualLogger : gko::log::Logger {
     using gko_dense = gko::matrix::Dense<ValueType>;
     using gko_real_dense = gko::matrix::Dense<RealValueType>;
 
-    // This overload is necessary to avoid interface breaks for Ginkgo 2.0
-    void on_iteration_complete(const gko::LinOp* solver,
-                               const gko::size_type& iteration,
-                               const gko::LinOp* residual,
-                               const gko::LinOp* solution,
-                               const gko::LinOp* residual_norm) const override
-    {
-        this->on_iteration_complete(solver, iteration, residual, solution,
-                                    residual_norm, nullptr);
-    }
 
     // Customize the logging hook which is called everytime an iteration is
     // completed
-    void on_iteration_complete(
-        const gko::LinOp*, const gko::size_type& iteration,
-        const gko::LinOp* residual, const gko::LinOp* solution,
-        const gko::LinOp* residual_norm,
-        const gko::LinOp* implicit_sq_residual_norm) const override
+    void on_iteration_complete(const gko::LinOp* solver, const gko::LinOp* b,
+                               const gko::LinOp* solution,
+                               const gko::size_type& iteration,
+                               const gko::LinOp* residual,
+                               const gko::LinOp* residual_norm,
+                               const gko::LinOp* implicit_sq_residual_norm,
+                               const gko::array<gko::stopping_status>*,
+                               bool) const override
     {
         // If the solver shares a residual norm, log its value
         if (residual_norm) {
@@ -156,6 +149,9 @@ struct ResidualLogger : gko::log::Logger {
 
         // If the solver shares the current solution vector
         if (solution) {
+            // Extract the matrix from the solver
+            auto matrix = gko::as<gko::solver::detail::SolverBaseLinOp>(solver)
+                              ->get_system_matrix();
             // Store the matrix's executor
             auto exec = matrix->get_executor();
             // Create a scalar containing the value 1.0
@@ -163,7 +159,7 @@ struct ResidualLogger : gko::log::Logger {
             // Create a scalar containing the value -1.0
             auto neg_one = gko::initialize<gko_dense>({-1.0}, exec);
             // Instantiate a temporary result variable
-            auto res = gko::clone(b);
+            auto res = gko::as<gko_dense>(gko::clone(b));
             // Compute the real residual vector by calling apply on the system
             // matrix
             matrix->apply(one, solution, neg_one, res);
@@ -192,18 +188,12 @@ struct ResidualLogger : gko::log::Logger {
         iterations.push_back(iteration);
     }
 
-    // Construct the logger and store the system matrix and b vectors
-    ResidualLogger(const gko::LinOp* matrix, const gko_dense* b)
-        : gko::log::Logger(gko::log::Logger::iteration_complete_mask),
-          matrix{matrix},
-          b{b}
+    // Construct the logger
+    ResidualLogger()
+        : gko::log::Logger(gko::log::Logger::iteration_complete_mask)
     {}
 
 private:
-    // Pointer to the system matrix
-    const gko::LinOp* matrix;
-    // Pointer to the right hand sides
-    const gko_dense* b;
     // Vector which stores all the recurrent residual norms
     mutable std::vector<RealValueType> recurrent_norms{};
     // Vector which stores all the real residual norms
@@ -259,13 +249,12 @@ int main(int argc, char* argv[])
             {"omp", [] { return gko::OmpExecutor::create(); }},
             {"cuda",
              [] {
-                 return gko::CudaExecutor::create(0, gko::OmpExecutor::create(),
-                                                  true);
+                 return gko::CudaExecutor::create(0,
+                                                  gko::OmpExecutor::create());
              }},
             {"hip",
              [] {
-                 return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
-                                                 true);
+                 return gko::HipExecutor::create(0, gko::OmpExecutor::create());
              }},
             {"dpcpp",
              [] {
@@ -309,7 +298,7 @@ int main(int argc, char* argv[])
             .on(exec);
 
     // Instantiate a ResidualLogger logger.
-    auto logger = std::make_shared<ResidualLogger<ValueType>>(A.get(), b.get());
+    auto logger = std::make_shared<ResidualLogger<ValueType>>();
 
     // Add the previously created logger to the solver factory. The logger
     // will be automatically propagated to all solvers created from this

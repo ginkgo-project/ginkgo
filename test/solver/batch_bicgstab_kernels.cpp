@@ -154,8 +154,6 @@ TEST_F(BatchBicgstab, StencilSystemLoggerIsCorrect)
     const real_type* const res_log_array =
         r_1.logdata.res_norms->get_const_values();
     for (size_t i = 0; i < this->nbatch; i++) {
-        std::cout << "Iterations are " << iter_array[i]
-                  << ", logged norm = " << res_log_array[i] << std::endl;
         GKO_ASSERT((iter_array[i] <= ref_iters + 1) &&
                    (iter_array[i] >= ref_iters - 1));
         ASSERT_LE(res_log_array[i] / this->sys_1.bnorm->at(i, 0, 0),

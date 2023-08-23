@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
     for (size_type i = 0; i < data.size(); ++i) {
         const std::string mat_str = "A.mtx";
         const std::string fbase =
-            "./data/" + problem_descr_str + "/" + std::to_string(i) + "/";
+            "data/" + problem_descr_str + "/" + std::to_string(i) + "/";
         std::string fname = fbase + mat_str;
         std::ifstream mtx_fd(fname);
         data[i] = gko::read_raw<value_type>(mtx_fd);
@@ -259,7 +259,7 @@ int main(int argc, char* argv[])
     solver->add_logger(logger);
     auto x_clone = gko::clone(x);
 
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 3; ++i) {
         x_clone->copy_from(x.get());
         solver->apply(lend(b), lend(x_clone));
     }

@@ -58,6 +58,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rapidjson/prettywriter.h>
 
 
+#include "benchmark/utils/json.hpp"
 #include "benchmark/utils/timer.hpp"
 #include "benchmark/utils/types.hpp"
 #include "core/distributed/helpers.hpp"
@@ -83,14 +84,29 @@ DEFINE_string(double_buffer, "",
               " buffering of backup files, in case of a"
               " crash when overwriting the backup");
 
+DEFINE_string(
+    input, "",
+    "If set, the value is used as the input for the benchmark (if set to a "
+    "json string ending with ]) or as input file path (otherwise).");
+
 DEFINE_bool(detailed, true,
             "If set, performs several runs to obtain more detailed results");
 
-DEFINE_bool(keep_errors, false,
+DEFINE_bool(keep_errors, true,
             "If set, writes exception messages during the execution into the "
             "JSON output");
 
 DEFINE_bool(nested_names, false, "If set, separately logs nested operations");
+
+DEFINE_bool(profile, false,
+            "If set, enables profiler mode: 1 repetition, 0 warmup "
+            "repetitions, detailed=false, profiler_hook=auto (if it is not "
+            "otherwise set)");
+
+DEFINE_string(
+    profiler_hook, "none",
+    "Which profiler annotation mode to use, if any. Options are "
+    "none, nvtx, roctx, vtune, tau, debug, auto (choose based on executor).");
 
 DEFINE_uint32(seed, 42, "Seed used for the random number generator");
 
@@ -115,9 +131,10 @@ DEFINE_uint32(max_repetitions, std::numeric_limits<unsigned int>::max(),
               "If 'repetitions = auto' is used, the maximal number of"
               " repetitions for a single benchmark.");
 
-DEFINE_double(repetition_growth_factor, 1.5,
-              "If 'repetitions = auto' is used, the factor with which the"
-              " repetitions between two timings increase.");
+DEFINE_double(
+    repetition_growth_factor, 1.5,
+    "The factor with which the repetitions between two timings increase. If it "
+    "is lower than or equal to 1, the timing region is always 1 repetition.");
 
 
 /**
@@ -151,12 +168,20 @@ void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
     ver << gko::version_info::get();
     gflags::SetVersionString(ver.str());
     gflags::ParseCommandLineFlags(argc, argv, true);
+    if (FLAGS_profile) {
+        FLAGS_repetitions = "1";
+        FLAGS_warmup = 0;
+        FLAGS_detailed = false;
+        if (FLAGS_profiler_hook == "none") {
+            FLAGS_profiler_hook = "auto";
+        }
+    }
 }
 
 using size_type = gko::size_type;
 
 /**
- * Print general benchmark informations using the common available parameters
+ * Print general benchmark information using the common available parameters
  *
  * @param extra  describes benchmark specific extra parameters to output
  */
@@ -181,64 +206,75 @@ void print_general_information(const std::string& extra)
 }
 
 
+std::shared_ptr<gko::log::ProfilerHook> create_profiler_hook(
+    std::shared_ptr<const gko::Executor> exec)
+{
+    using gko::log::ProfilerHook;
+    std::map<std::string, std::function<std::shared_ptr<ProfilerHook>()>>
+        hook_map{
+            {"none", [] { return std::shared_ptr<ProfilerHook>{}; }},
+            {"auto", [&] { return ProfilerHook::create_for_executor(exec); }},
+            {"nvtx", [] { return ProfilerHook::create_nvtx(); }},
+            {"roctx", [] { return ProfilerHook::create_roctx(); }},
+            {"tau", [] { return ProfilerHook::create_tau(); }},
+            {"vtune", [] { return ProfilerHook::create_vtune(); }},
+            {"debug", [] {
+                 return ProfilerHook::create_custom(
+                     [](const char* name, gko::log::profile_event_category) {
+                         std::clog << "DEBUG: begin " << name << '\n';
+                     },
+                     [](const char* name, gko::log::profile_event_category) {
+                         std::clog << "DEBUG: end   " << name << '\n';
+                     });
+             }}};
+    return hook_map.at(FLAGS_profiler_hook)();
+}
+
+
+struct owning_profiling_scope_guard {
+    std::string name;
+    gko::log::profiling_scope_guard guard;
+
+    owning_profiling_scope_guard() = default;
+
+    owning_profiling_scope_guard(std::string name_,
+                                 gko::log::ProfilerHook* profiler_hook)
+        : name(std::move(name_)), guard{profiler_hook->user_range(name.c_str())}
+    {}
+};
+
+
+struct annotate_functor {
+    owning_profiling_scope_guard operator()(std::string name) const
+    {
+        if (profiler_hook) {
+            return owning_profiling_scope_guard{std::move(name),
+                                                profiler_hook.get()};
+        }
+        return {};
+    }
+
+    gko::log::profiling_scope_guard operator()(const char* name) const
+    {
+        if (profiler_hook) {
+            return profiler_hook->user_range(name);
+        }
+        return {};
+    }
+
+    annotate_functor(std::shared_ptr<gko::log::ProfilerHook> profiler_hook)
+        : profiler_hook{std::move(profiler_hook)}
+    {}
+
+    std::shared_ptr<gko::log::ProfilerHook> profiler_hook;
+};
+
+
 // Returns a random number engine
 std::default_random_engine& get_engine()
 {
     static std::default_random_engine engine(FLAGS_seed);
     return engine;
-}
-
-
-// helper for writing out rapidjson Values
-std::ostream& operator<<(std::ostream& os, const rapidjson::Value& value)
-{
-    rapidjson::OStreamWrapper jos(os);
-    rapidjson::PrettyWriter<rapidjson::OStreamWrapper, rapidjson::UTF8<>,
-                            rapidjson::UTF8<>, rapidjson::CrtAllocator,
-                            rapidjson::kWriteNanAndInfFlag>
-        writer(jos);
-    value.Accept(writer);
-    return os;
-}
-
-
-// helper for setting rapidjson object members
-template <typename T, typename NameType, typename Allocator>
-std::enable_if_t<
-    !std::is_same<typename std::decay<T>::type, gko::size_type>::value, void>
-add_or_set_member(rapidjson::Value& object, NameType&& name, T&& value,
-                  Allocator&& allocator)
-{
-    if (object.HasMember(name)) {
-        object[name] = std::forward<T>(value);
-    } else {
-        auto n = rapidjson::Value(name, allocator);
-        object.AddMember(n, std::forward<T>(value), allocator);
-    }
-}
-
-
-/**
-   @internal This is required to fix some MacOS problems (and possibly other
-   compilers). There is no explicit RapidJSON constructor for `std::size_t` so a
-   conversion to a known constructor is required to solve any ambiguity. See the
-   last comments of https://github.com/ginkgo-project/ginkgo/issues/270.
- */
-template <typename T, typename NameType, typename Allocator>
-std::enable_if_t<
-    std::is_same<typename std::decay<T>::type, gko::size_type>::value, void>
-add_or_set_member(rapidjson::Value& object, NameType&& name, T&& value,
-                  Allocator&& allocator)
-{
-    if (object.HasMember(name)) {
-        object[name] =
-            std::forward<std::uint64_t>(static_cast<std::uint64_t>(value));
-    } else {
-        auto n = rapidjson::Value(name, allocator);
-        object.AddMember(
-            n, std::forward<std::uint64_t>(static_cast<std::uint64_t>(value)),
-            allocator);
-    }
 }
 
 
@@ -252,6 +288,26 @@ std::vector<std::string> split(const std::string& s, char delimiter = ',')
         tokens.push_back(token);
     }
     return tokens;
+}
+
+
+// returns the stream to be used as input of the application
+std::istream& get_input_stream()
+{
+    static auto stream = []() -> std::unique_ptr<std::istream> {
+        std::string input_str(FLAGS_input);
+        if (input_str.empty()) {
+            return nullptr;
+        }
+        if (input_str.back() == ']') {
+            return std::make_unique<std::stringstream>(input_str);
+        }
+        return std::make_unique<std::ifstream>(input_str);
+    }();
+    if (stream) {
+        return *stream;
+    }
+    return std::cin;
 }
 
 
@@ -283,12 +339,12 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>(bool)>>
         {"cuda",
          [](bool) {
              return gko::CudaExecutor::create(FLAGS_device_id,
-                                              gko::OmpExecutor::create(), true);
+                                              gko::OmpExecutor::create());
          }},
         {"hip",
          [](bool) {
              return gko::HipExecutor::create(FLAGS_device_id,
-                                             gko::OmpExecutor::create(), true);
+                                             gko::OmpExecutor::create());
          }},
         {"dpcpp", [](bool use_gpu_timer) {
              auto property = dpcpp_queue_property::in_order;
@@ -314,16 +370,15 @@ const std::map<std::string,
          [](MPI_Comm comm) {
              FLAGS_device_id = gko::experimental::mpi::map_rank_to_device_id(
                  comm, gko::CudaExecutor::get_num_devices());
-             return gko::CudaExecutor::create(
-                 FLAGS_device_id, gko::ReferenceExecutor::create(), false,
-                 gko::allocation_mode::device);
+             return gko::CudaExecutor::create(FLAGS_device_id,
+                                              gko::ReferenceExecutor::create());
          }},
         {"hip",
          [](MPI_Comm comm) {
              FLAGS_device_id = gko::experimental::mpi::map_rank_to_device_id(
                  comm, gko::HipExecutor::get_num_devices());
-             return gko::HipExecutor::create(
-                 FLAGS_device_id, gko::ReferenceExecutor::create(), true);
+             return gko::HipExecutor::create(FLAGS_device_id,
+                                             gko::ReferenceExecutor::create());
          }},
         {"dpcpp", [](MPI_Comm comm) {
              if (gko::DpcppExecutor::get_num_devices("gpu")) {
@@ -751,10 +806,25 @@ public:
         return status_run_.managed_timer.timer;
     }
 
-    double compute_average_time() const
+    /**
+     * Compute the time from the given statistical method
+     *
+     * @param method  the statistical method. If the timer does not have the
+     *                same iteration as the IterationControl, it can only use
+     *                average from the IterationControl.
+     *
+     * @return the statistical time
+     */
+    double compute_time(const std::string& method = "average") const
     {
-        return status_run_.managed_timer.get_total_time() /
-               get_num_repetitions();
+        if (status_run_.managed_timer.timer->get_num_repetitions() ==
+            this->get_num_repetitions()) {
+            return status_run_.managed_timer.compute_time(method);
+        } else {
+            assert(method == "average");
+            return status_run_.managed_timer.get_total_time() /
+                   this->get_num_repetitions();
+        }
     }
 
     IndexType get_num_repetitions() const { return status_run_.cur_it; }
@@ -770,16 +840,21 @@ private:
                 timer->tic();
             }
         }
-        void toc()
+        void toc(unsigned int num = 1)
         {
             if (manage_timings) {
-                timer->toc();
+                timer->toc(num);
             }
         }
 
         void clear() { timer->clear(); }
 
         double get_total_time() const { return timer->get_total_time(); }
+
+        double compute_time(const std::string& method = "average") const
+        {
+            return timer->compute_time(method);
+        }
     };
 
     /**
@@ -839,10 +914,16 @@ private:
             {
                 cur_info->cur_it++;
                 if (cur_info->cur_it >= next_timing && !stopped) {
-                    cur_info->managed_timer.toc();
+                    cur_info->managed_timer.toc(
+                        static_cast<unsigned>(cur_info->cur_it - start_timing));
                     stopped = true;
                     next_timing = static_cast<IndexType>(std::ceil(
                         next_timing * FLAGS_repetition_growth_factor));
+                    // If repetition_growth_factor <= 1, next_timing will be
+                    // next iteration.
+                    if (next_timing <= cur_info->cur_it) {
+                        next_timing = cur_info->cur_it + 1;
+                    }
                 }
                 return *this;
             }
@@ -870,15 +951,18 @@ private:
                 if (!is_finished && stopped) {
                     stopped = false;
                     cur_info->managed_timer.tic();
+                    start_timing = cur_info->cur_it;
                 } else if (is_finished && !stopped) {
-                    cur_info->managed_timer.toc();
+                    cur_info->managed_timer.toc(
+                        static_cast<unsigned>(cur_info->cur_it - start_timing));
                     stopped = true;
                 }
                 return !is_finished;
             }
 
             status* cur_info;
-            IndexType next_timing = 1;  //!< next iteration to stop timing
+            IndexType next_timing = 1;   //!< next iteration to stop timing
+            IndexType start_timing = 0;  //!< iteration for starting timing
             bool stopped = true;
         };
 

@@ -91,15 +91,14 @@ std::unique_ptr<LinOp> Lu<ValueType, IndexType>::generate_impl(
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
     const auto exec = this->get_executor();
-    // TODO deal with non Csr matrices
-    const auto mtx = as<matrix_type>(system_matrix);
+    const auto mtx = copy_and_convert_to<matrix_type>(exec, system_matrix);
     const auto num_rows = mtx->get_size()[0];
     std::unique_ptr<matrix_type> factors;
     if (!parameters_.symbolic_factorization) {
         if (parameters_.symmetric_sparsity) {
             std::unique_ptr<gko::factorization::elimination_forest<IndexType>>
                 forest;
-            exec->run(make_symbolic_cholesky(mtx.get(), factors, forest));
+            exec->run(make_symbolic_cholesky(mtx.get(), true, factors, forest));
         } else {
             exec->run(make_symbolic_lu(mtx.get(), factors));
         }

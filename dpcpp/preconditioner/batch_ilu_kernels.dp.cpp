@@ -142,7 +142,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_PARILU_COMPUTE_FACTORIZATION_KERNEL);
 
 
-// Only for testing purpose
 template <typename ValueType, typename IndexType>
 void apply_ilu(
     std::shared_ptr<const DefaultExecutor> exec,

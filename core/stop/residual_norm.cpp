@@ -193,6 +193,10 @@ bool ResidualNormBase<ValueType>::check_impl(
     const NormVector* dense_tau;
     if (updater.residual_norm_ != nullptr) {
         dense_tau = as<NormVector>(updater.residual_norm_);
+    } else if (updater.ignore_residual_check_) {
+        // If solver already provide the residual norm, we will still store it.
+        // Otherwise, we skip the residual check.
+        return false;
     } else if (updater.residual_ != nullptr) {
         norm_dispatch<ValueType>(
             [&](auto dense_r) { dense_r->compute_norm2(u_dense_tau_); },

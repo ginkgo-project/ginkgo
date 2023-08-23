@@ -867,7 +867,7 @@ public:
                           array<char>& tmp) const;
 
     /**
-     * Computes the column-wise Euclidian (L^2) norm of this matrix.
+     * Computes the column-wise Euclidean (L^2) norm of this matrix.
      *
      * @param result  a Dense row vector, used to store the norm
      *                (the number of columns in the vector must match the number
@@ -876,7 +876,7 @@ public:
     void compute_norm2(ptr_param<LinOp> result) const;
 
     /**
-     * Computes the column-wise Euclidian (L^2) norm of this matrix.
+     * Computes the column-wise Euclidean (L^2) norm of this matrix.
      *
      * @param result  a Dense row vector, used to store the norm
      *                (the number of columns in the vector must match the
@@ -907,6 +907,29 @@ public:
      *             correct executor.
      */
     void compute_norm1(ptr_param<LinOp> result, array<char>& tmp) const;
+
+    /**
+     * Computes the square of the column-wise Euclidean (L^2) norm of this
+     * matrix.
+     *
+     * @param result  a Dense row vector, used to store the norm
+     *                (the number of columns in the vector must match the number
+     *                of columns of this)
+     */
+    void compute_squared_norm2(ptr_param<LinOp> result) const;
+
+    /**
+     * Computes the square of the column-wise Euclidean (L^2) norm of this
+     * matrix.
+     *
+     * @param result  a Dense row vector, used to store the norm
+     *                (the number of columns in the vector must match the
+     *                number of columns of this)
+     * @param tmp  the temporary storage to use for partial sums during the
+     *             reduction computation. It may be resized and/or reset to the
+     *             correct executor.
+     */
+    void compute_squared_norm2(ptr_param<LinOp> result, array<char>& tmp) const;
 
     /**
      * Create a submatrix from the original matrix.
@@ -1197,6 +1220,14 @@ protected:
      *              we will instead always use Ginkgo's implementation.
      */
     virtual void compute_norm1_impl(LinOp* result) const;
+
+    /**
+     * @copydoc compute_squared_norm2(LinOp*) const
+     *
+     * @deprecated  This function will be removed in the future,
+     *              we will instead always use Ginkgo's implementation.
+     */
+    virtual void compute_squared_norm2_impl(LinOp* result) const;
 
     /**
      * Resizes the matrix to the given size.

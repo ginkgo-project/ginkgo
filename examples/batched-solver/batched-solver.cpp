@@ -174,7 +174,7 @@ int main(int argc, char* argv[])
     //  out of them.
     // Ginkgo expects the nonzero values for all the small matrices to be
     //  allocated contiguously, one matrix after the other.
-    //
+
     // Batch_Csr
     auto vals_view = gko::array<value_type>::const_view(
         exec, num_systems * appl_sys.nnz, appl_sys.all_values);
@@ -289,7 +289,8 @@ int main(int argc, char* argv[])
     // Solve the batch system
     // Warmup
     auto x_clone = gko::clone(x);
-    for (int i = 0; i < 5; ++i) {
+
+    for (int i = 0; i < 3; ++i) {
         x_clone->copy_from(x.get());
         solver->apply(lend(b), lend(x_clone));
     }

@@ -42,8 +42,9 @@ namespace log {
 namespace {
 
 
-std::string format_duration(int64 time_ns)
+std::string format_duration(std::chrono::nanoseconds time)
 {
+    const auto time_ns = time.count();
     std::stringstream ss;
     ss << std::setprecision(1) << std::fixed;
     std::array<int64, 7> ranges{{999, 999'999, 999'999'999, 59'999'999'999,
@@ -63,17 +64,19 @@ std::string format_duration(int64 time_ns)
 }
 
 
-std::string format_avg_duration(int64 time_ns, int64 count)
+std::string format_avg_duration(std::chrono::nanoseconds time, int64 count)
 {
-    return format_duration(time_ns / std::max(count, int64{1}));
+    return format_duration(
+        std::chrono::nanoseconds{time.count() / std::max(count, int64{1})});
 }
 
 
-std::string format_fraction(int64 part, int64 whole)
+std::string format_fraction(std::chrono::nanoseconds part,
+                            std::chrono::nanoseconds whole)
 {
     std::stringstream ss;
     ss << std::setprecision(1) << std::fixed;
-    ss << (double(part) / double(whole)) * 100.0 << " %";
+    ss << (double(part.count()) / double(whole.count())) * 100.0 << " %";
     return ss.str();
 }
 
@@ -127,15 +130,16 @@ ProfilerHook::TableSummaryWriter::TableSummaryWriter(std::ostream& output,
 
 
 void ProfilerHook::TableSummaryWriter::write(
-    const std::vector<summary_entry>& entries, int64 overhead_ns)
+    const std::vector<summary_entry>& entries,
+    std::chrono::nanoseconds overhead)
 {
     (*output_) << header_ << '\n'
-               << "Overhead estimate " << format_duration(overhead_ns) << '\n';
+               << "Overhead estimate " << format_duration(overhead) << '\n';
     auto sorted_entries = entries;
     std::sort(sorted_entries.begin(), sorted_entries.end(),
               [](const summary_entry& lhs, const summary_entry& rhs) {
                   // reverse-sort by inclusive total time
-                  return lhs.inclusive_ns > rhs.inclusive_ns;
+                  return lhs.inclusive > rhs.inclusive;
               });
     std::vector<std::array<std::string, 6>> table;
     std::array<std::string, 6> headers({" name ", " total ", " total (self) ",
@@ -143,66 +147,67 @@ void ProfilerHook::TableSummaryWriter::write(
     for (const auto& entry : sorted_entries) {
         table.emplace_back(std::array<std::string, 6>{
             " " + entry.name + " ",
-            " " + format_duration(entry.inclusive_ns) + " ",
-            " " + format_duration(entry.exclusive_ns) + " ",
+            " " + format_duration(entry.inclusive) + " ",
+            " " + format_duration(entry.exclusive) + " ",
             " " + std::to_string(entry.count) + " ",
-            " " + format_avg_duration(entry.inclusive_ns, entry.count) + " ",
-            " " + format_avg_duration(entry.exclusive_ns, entry.count) + " "});
+            " " + format_avg_duration(entry.inclusive, entry.count) + " ",
+            " " + format_avg_duration(entry.exclusive, entry.count) + " "});
     }
     print_table(headers, table, *output_);
 }
 
 
 void ProfilerHook::TableSummaryWriter::write_nested(
-    const nested_summary_entry& root, int64 overhead_ns)
+    const nested_summary_entry& root, std::chrono::nanoseconds overhead)
 {
     (*output_) << header_ << '\n'
-               << "Overhead estimate " << format_duration(overhead_ns) << '\n';
+               << "Overhead estimate " << format_duration(overhead) << '\n';
     std::vector<std::array<std::string, 5>> table;
     std::array<std::string, 5> headers(
         {" name ", " total ", " fraction ", " count ", " avg "});
     auto visitor = [&table](auto visitor, const nested_summary_entry& node,
-                            int64 parent_elapsed_ns,
+                            std::chrono::nanoseconds parent_elapsed,
                             std::size_t depth) -> void {
         std::vector<int64> child_permutation(node.children.size());
         const auto total_child_duration =
-            std::accumulate(node.children.begin(), node.children.end(), int64{},
-                            [](int64 acc, const nested_summary_entry& child) {
-                                return acc + child.elapsed_ns;
+            std::accumulate(node.children.begin(), node.children.end(),
+                            std::chrono::nanoseconds{},
+                            [](std::chrono::nanoseconds acc,
+                               const nested_summary_entry& child) {
+                                return acc + child.elapsed;
                             });
-        const auto self_duration = node.elapsed_ns - total_child_duration;
+        const auto self_duration = node.elapsed - total_child_duration;
         std::iota(child_permutation.begin(), child_permutation.end(), 0);
         std::sort(child_permutation.begin(), child_permutation.end(),
                   [&node](int64 lhs, int64 rhs) {
                       // sort by elapsed time in descending order
-                      return node.children[lhs].elapsed_ns >
-                             node.children[rhs].elapsed_ns;
+                      return node.children[lhs].elapsed >
+                             node.children[rhs].elapsed;
                   });
         table.emplace_back(std::array<std::string, 5>{
             std::string(2 * depth + 1, ' ') + node.name + " ",
-            " " + format_duration(node.elapsed_ns) + " ",
-            format_fraction(node.elapsed_ns, parent_elapsed_ns) + " ",
+            " " + format_duration(node.elapsed) + " ",
+            format_fraction(node.elapsed, parent_elapsed) + " ",
             " " + std::to_string(node.count) + " ",
-            " " + format_avg_duration(node.elapsed_ns, node.count) + " "});
+            " " + format_avg_duration(node.elapsed, node.count) + " "});
         nested_summary_entry self_entry{
             "(self)", self_duration, node.count, {}};
         bool printed_self = false;
         for (const auto child_id : child_permutation) {
             // print (self) entry before smaller entry ...
             if (!printed_self &&
-                node.children[child_id].elapsed_ns < self_duration) {
-                visitor(visitor, self_entry, node.elapsed_ns, depth + 1);
+                node.children[child_id].elapsed < self_duration) {
+                visitor(visitor, self_entry, node.elapsed, depth + 1);
                 printed_self = true;
             }
-            visitor(visitor, node.children[child_id], node.elapsed_ns,
-                    depth + 1);
+            visitor(visitor, node.children[child_id], node.elapsed, depth + 1);
         }
         // ... or at the end
         if (!printed_self && !node.children.empty()) {
-            visitor(visitor, self_entry, node.elapsed_ns, depth + 1);
+            visitor(visitor, self_entry, node.elapsed, depth + 1);
         }
     };
-    visitor(visitor, root, root.elapsed_ns, 0);
+    visitor(visitor, root, root.elapsed, 0);
     print_table(headers, table, *output_);
 }
 

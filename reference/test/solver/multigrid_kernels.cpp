@@ -43,13 +43,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/multigrid/pgm.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/cg.hpp>
-#include <ginkgo/core/stop/combined.hpp>
+#include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 #include <ginkgo/core/stop/time.hpp>
 
 
-#include "core/solver/multigrid_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -258,13 +257,13 @@ protected:
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using rmc_value_type = gko::remove_complex<value_type>;
     using Csr = gko::matrix::Csr<value_type>;
     using Mtx = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Multigrid;
     using Coarse = gko::multigrid::Pgm<value_type>;
     using CoarseNext = gko::multigrid::Pgm<gko::next_precision<value_type>>;
-    using Smoother = gko::preconditioner::Jacobi<value_type>;
+    using Smoother = gko::solver::Ir<value_type>;
+    using InnerSolver = gko::preconditioner::Jacobi<value_type>;
     using CoarsestSolver = gko::solver::Cg<value_type>;
     using CoarsestNextSolver = gko::solver::Cg<gko::next_precision<value_type>>;
     using DummyRPFactory = DummyMultigridLevelWithFactory<value_type>;
@@ -288,8 +287,13 @@ protected:
                                  .with_max_iterations(2u)
                                  .with_max_unassigned_ratio(0.1)
                                  .on(exec)),
-          smoother_factory(
-              gko::give(Smoother::build().with_max_block_size(1u).on(exec))),
+          smoother_factory(gko::give(
+              Smoother::build()
+                  .with_solver(
+                      InnerSolver::build().with_max_block_size(1u).on(exec))
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+                  .on(exec))),
           coarsest_factory(
               CoarsestSolver::build()
                   .with_criteria(
@@ -347,7 +351,6 @@ protected:
         return std::move(
             Solver::build()
                 .with_pre_smoother(smoother_factory)
-                .with_smoother_relax(1.0)
                 .with_coarsest_solver(coarsest_factory)
                 .with_max_levels(2u)
                 .with_post_uses_pre(true)
@@ -373,7 +376,6 @@ protected:
         return std::move(
             Solver::build()
                 .with_pre_smoother(smoother_factory)
-                .with_smoother_relax(1.0)
                 .with_coarsest_solver(coarsestnext_factory)
                 .with_max_levels(2u)
                 .with_post_uses_pre(true)
@@ -407,6 +409,8 @@ protected:
                 .with_pre_smoother(nullptr, this->lo_factory, this->lo_factory)
                 .with_mid_smoother(nullptr, nullptr, this->lo_factory)
                 .with_post_smoother(this->lo_factory, nullptr, this->lo_factory)
+                .with_coarsest_solver(
+                    gko::matrix::IdentityFactory<value_type>::create(exec))
                 .with_post_uses_pre(false)
                 .with_mid_case(mid_case)
                 .with_criteria(

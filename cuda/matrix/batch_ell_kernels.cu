@@ -88,7 +88,8 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
     const auto a_ub = get_batch_struct(a);
     const auto b_ub = get_batch_struct(b);
     const auto c_ub = get_batch_struct(c);
-    spmv<<<num_blocks, default_block_size>>>(a_ub, b_ub, c_ub);
+    spmv<<<num_blocks, default_block_size, 0, exec->get_stream()>>>(a_ub, b_ub,
+                                                                    c_ub);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -109,8 +110,8 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
     const auto c_ub = get_batch_struct(c);
     const auto alpha_ub = get_batch_struct(alpha);
     const auto beta_ub = get_batch_struct(beta);
-    advanced_spmv<<<num_blocks, default_block_size>>>(alpha_ub, a_ub, b_ub,
-                                                      beta_ub, c_ub);
+    advanced_spmv<<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+        alpha_ub, a_ub, b_ub, beta_ub, c_ub);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -244,12 +245,13 @@ void convert_to_batch_dense(
 //                           config::max_block_size / config::warp_size, 1);
 //     const dim3 init_grid_dim(ceildiv(num_cols * nbatches, block_size.x),
 //                              ceildiv(num_rows * nbatches, block_size.y), 1);
-//     initialize_zero_dense<<<init_grid_dim, block_size>>>(
+//     initialize_zero_dense<<<init_grid_dim,
+//     block_size,0,exec->get_stream()>>>(
 //         nbatches, num_rows, num_cols, dstride,
 //         as_cuda_type(dest->get_values()));
 
 //     const auto grid_dim = ceildiv(num_rows * nbatches, default_block_size);
-//     fill_in_dense<<<grid_dim, default_block_size>>>(
+//     fill_in_dense<<<grid_dim, default_block_size,0,exec->get_stream()>>>(
 //         nbatches, num_rows, src->get_num_stored_elements_per_row().at(0),
 //         estride, as_cuda_type(col_idxs), as_cuda_type(vals), dstride,
 //         as_cuda_type(dest->get_values()));
@@ -283,7 +285,7 @@ void check_diagonal_entries_exist(
     const auto max_nnz_per_row =
         static_cast<int>(mtx->get_num_stored_elements_per_row().at(0));
     array<bool> d_result(exec, 1);
-    check_diagonal_entries<<<1, default_block_size>>>(
+    check_diagonal_entries<<<1, default_block_size, 0, exec->get_stream()>>>(
         nmin, row_stride, max_nnz_per_row, mtx->get_const_col_idxs(),
         d_result.get_data());
     has_all_diags = exec->copy_val_to_host(d_result.get_const_data());
@@ -308,7 +310,7 @@ void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
         static_cast<int>(mtx->get_num_stored_elements_per_row().at(0));
     const size_type astride = a->get_stride().at();
     const size_type bstride = b->get_stride().at();
-    add_scaled_identity<<<nbatch, default_block_size>>>(
+    add_scaled_identity<<<nbatch, default_block_size, 0, exec->get_stream()>>>(
         nbatch, nrows, nnz, row_stride, max_nnz_per_row,
         mtx->get_const_col_idxs(), as_cuda_type(mtx->get_values()), astride,
         as_cuda_type(a->get_const_values()), bstride,

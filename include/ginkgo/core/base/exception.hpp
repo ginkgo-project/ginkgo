@@ -73,7 +73,7 @@ namespace gko {
  *     try {
  *         auto y = apply(A, x);
  *     } catch(Error e) {
- *         // an error occured, write the message to screen and exit
+ *         // an error occurred, write the message to screen and exit
  *         std::cout << e.what() << std::endl;
  *         return -1;
  *     }
@@ -184,7 +184,7 @@ public:
      *
      * @param file  The name of the offending source file
      * @param line  The source code line number where the error occurred
-     * @param func  The name of the function where the error occured
+     * @param func  The name of the function where the error occurred
      * @param obj_type  The object type on which the requested operation
                        cannot be performed.
      */
@@ -451,6 +451,26 @@ private:
 
 
 /**
+ * MetisError is thrown when METIS routine throws an error code.
+ */
+class MetisError : public Error {
+public:
+    /**
+     * Initializes a METIS error.
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The name of the METIS routine that failed
+     * @param error  The resulting METIS error name
+     */
+    MetisError(const std::string& file, int line, const std::string& func,
+               const std::string& error)
+        : Error(file, line, func + ": " + error)
+    {}
+};
+
+
+/**
  * DimensionMismatch is thrown if an operation is being applied to LinOps of
  * incompatible size.
  */
@@ -517,7 +537,7 @@ public:
  * Error that denotes issues between block sizes and matrix dimensions
  *
  * \tparam IndexType  Type of index used by the linear algebra object that is
- *                    incompatible with the requried block size.
+ *                    incompatible with the required block size.
  */
 template <typename IndexType>
 class BlockSizeError : public Error {
@@ -609,6 +629,24 @@ public:
 
 
 /**
+ * OverflowError is thrown when an index calculation for storage requirements
+ * overflows. This most likely means that the index type is too small.
+ */
+class OverflowError : public Error {
+public:
+    /**
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param index_type  The integer type that overflowed
+     */
+    OverflowError(const std::string& file, const int line,
+                  const std::string& index_type)
+        : Error(file, line, "Overflowing " + index_type)
+    {}
+};
+
+
+/**
  * StreamError is thrown if accessing a stream failed.
  */
 class StreamError : public Error {
@@ -665,6 +703,24 @@ public:
     UnsupportedMatrixProperty(const std::string& file, const int line,
                               const std::string& msg)
         : Error(file, line, msg)
+    {}
+};
+
+
+class InvalidStateError : public Error {
+public:
+    /**
+     * Initializes an invalid state error.
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The function name where the error occurred
+     * @param clarification  A message describing the invalid state
+     */
+    InvalidStateError(const std::string& file, int line,
+                      const std::string& func, const std::string& clarification)
+        : Error(file, line,
+                func + ": Invalid state encountered : " + clarification)
     {}
 };
 

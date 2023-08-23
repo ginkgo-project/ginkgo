@@ -119,18 +119,32 @@ __forceinline__ __device__ void generic_generate(
             auto m_row_begin = m_row_ptrs[col];
             auto m_row_size = m_row_ptrs[col + 1] - m_row_begin;
             // extract the dense submatrix consisting of the entries whose
-            // columns/rows match column indices from this row
+            // columns/rows match column indices from this row within the
+            // sparsity pattern of the original matrix (matches outside of that
+            // are zero)
             group_match<subwarp_size>(
                 m_col_idxs + m_row_begin, m_row_size, i_col_idxs + i_row_begin,
                 i_row_size, subwarp,
                 [&](IndexType, IndexType m_idx, IndexType i_idx,
                     config::lane_mask_type, bool valid) {
-                    rhs_one_idx += popcnt(subwarp.ballot(
-                        valid && m_col_idxs[m_row_begin + m_idx] < row &&
-                        col == row));
                     if (valid) {
                         dense_system(nz, i_idx) = m_values[m_row_begin + m_idx];
                     }
+                });
+            const auto i_transposed_row_begin = i_row_ptrs[col];
+            const auto i_transposed_row_size =
+                i_row_ptrs[col + 1] - i_transposed_row_begin;
+            // Loop over all matches that are within the sparsity pattern of
+            // the inverse to find the index of the one in the right-hand-side
+            group_match<subwarp_size>(
+                i_col_idxs + i_transposed_row_begin, i_transposed_row_size,
+                i_col_idxs + i_row_begin, i_row_size, subwarp,
+                [&](IndexType, IndexType m_idx, IndexType i_idx,
+                    config::lane_mask_type, bool valid) {
+                    rhs_one_idx += popcnt(subwarp.ballot(
+                        valid &&
+                        i_col_idxs[i_transposed_row_begin + m_idx] < row &&
+                        col == row));
                 });
         }
 
@@ -461,8 +475,8 @@ void generate_tri_inverse(std::shared_ptr<const DefaultExecutor> exec,
                     excess_nz_ptrs);
         }
     }
-    components::prefix_sum(exec, excess_rhs_ptrs, num_rows + 1);
-    components::prefix_sum(exec, excess_nz_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, excess_rhs_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, excess_nz_ptrs, num_rows + 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -490,8 +504,8 @@ void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
                 as_device_type(inverse->get_values()), excess_rhs_ptrs,
                 excess_nz_ptrs, spd);
     }
-    components::prefix_sum(exec, excess_rhs_ptrs, num_rows + 1);
-    components::prefix_sum(exec, excess_nz_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, excess_rhs_ptrs, num_rows + 1);
+    components::prefix_sum_nonnegative(exec, excess_nz_ptrs, num_rows + 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

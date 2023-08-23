@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/log/profiler_hook.hpp>
 
 
+#include <chrono>
 #include <string>
 
 
@@ -187,12 +188,8 @@ TEST(ProfilerHook, LogsIteration)
     std::vector<std::string> expected{"begin:apply(solver)",
                                       "begin:iteration",
                                       "end:iteration",
-                                      "begin:iteration",
-                                      "end:iteration",
                                       "end:apply(solver)",
                                       "begin:advanced_apply(solver)",
-                                      "begin:iteration",
-                                      "end:iteration",
                                       "begin:iteration",
                                       "end:iteration",
                                       "end:advanced_apply(solver)"};
@@ -277,7 +274,7 @@ void call_ranges_unique(std::shared_ptr<gko::log::ProfilerHook> logger)
 
 struct TestSummaryWriter : gko::log::ProfilerHook::SummaryWriter {
     void write(const std::vector<gko::log::ProfilerHook::summary_entry>& e,
-               gko::int64 overhead_ns) override
+               std::chrono::nanoseconds overhead) override
     {
         /*
          * total(
@@ -307,21 +304,22 @@ struct TestSummaryWriter : gko::log::ProfilerHook::SummaryWriter {
         ASSERT_EQ(e[5].count, 1);
         ASSERT_EQ(e[6].name, "bazzzz");
         ASSERT_EQ(e[6].count, 1);
-        ASSERT_EQ(e[0].inclusive_ns, e[0].exclusive_ns + e[1].inclusive_ns);
-        ASSERT_EQ(e[1].inclusive_ns, e[1].exclusive_ns + e[2].inclusive_ns +
-                                         e[3].inclusive_ns + e[6].inclusive_ns);
-        ASSERT_EQ(e[2].inclusive_ns, e[2].exclusive_ns);
-        ASSERT_EQ(e[3].inclusive_ns,
-                  e[3].exclusive_ns + e[4].inclusive_ns + e[5].inclusive_ns);
-        ASSERT_EQ(e[4].inclusive_ns, e[4].exclusive_ns);
-        ASSERT_EQ(e[5].inclusive_ns, e[5].exclusive_ns);
-        ASSERT_EQ(e[6].inclusive_ns, e[6].exclusive_ns);
+        ASSERT_EQ(e[0].inclusive, e[0].exclusive + e[1].inclusive);
+        ASSERT_EQ(e[1].inclusive, e[1].exclusive + e[2].inclusive +
+                                      e[3].inclusive + e[6].inclusive);
+        ASSERT_EQ(e[2].inclusive, e[2].exclusive);
+        ASSERT_EQ(e[3].inclusive,
+                  e[3].exclusive + e[4].inclusive + e[5].inclusive);
+        ASSERT_EQ(e[4].inclusive, e[4].exclusive);
+        ASSERT_EQ(e[5].inclusive, e[5].exclusive);
+        ASSERT_EQ(e[6].inclusive, e[6].exclusive);
     }
 };
 
 TEST(ProfilerHook, SummaryWorks)
 {
     auto logger = gko::log::ProfilerHook::create_summary(
+        std::make_unique<gko::CpuTimer>(),
         std::make_unique<TestSummaryWriter>());
 
     call_ranges_unique(logger);
@@ -351,9 +349,10 @@ void call_ranges(std::shared_ptr<gko::log::ProfilerHook> logger)
     auto range6 = logger->user_range("baz");
 }
 
+
 struct TestNestedSummaryWriter : gko::log::ProfilerHook::NestedSummaryWriter {
     void write_nested(const gko::log::ProfilerHook::nested_summary_entry& e,
-                      gko::int64 overhead_ns) override
+                      std::chrono::nanoseconds overhead) override
     {
         /*
          * total(
@@ -395,6 +394,7 @@ struct TestNestedSummaryWriter : gko::log::ProfilerHook::NestedSummaryWriter {
 TEST(ProfilerHook, NestedSummaryWorks)
 {
     auto logger = gko::log::ProfilerHook::create_nested_summary(
+        std::make_unique<gko::CpuTimer>(),
         std::make_unique<TestNestedSummaryWriter>());
 
     call_ranges(logger);
@@ -406,16 +406,16 @@ TEST(ProfilerHook, NestedSummaryWorks)
 TEST(ProfilerHookTableSummaryWriter, SummaryWorks)
 {
     using gko::log::ProfilerHook;
+    using namespace std::chrono_literals;
     std::stringstream ss;
     ProfilerHook::TableSummaryWriter writer(ss, "Test header");
     std::vector<ProfilerHook::summary_entry> entries;
-    entries.push_back({"empty", 0, 0, 0});  // division by zero
-    entries.push_back({"short", 1, 0, 1});
-    entries.push_back({"shortish", 1'200, 1'000, 1});
-    entries.push_back(
-        {"medium", 1'000'000, 500'000, 4});  // check division by count
-    entries.push_back({"long", 120'000'000'000, 60'000'000'000, 1});
-    entries.push_back({"eternal", 86'400'000'000'000, 86'400'000'000'000, 1});
+    entries.push_back({"empty", 0ns, 0ns, 0});  // division by zero
+    entries.push_back({"short", 1ns, 0ns, 1});
+    entries.push_back({"shortish", 1200ns, 1000ns, 1});
+    entries.push_back({"medium", 1ms, 500us, 4});  // check division by count
+    entries.push_back({"long", 120s, 60s, 1});
+    entries.push_back({"eternal", 24h, 24h, 1});
     const auto expected = R"(Test header
 Overhead estimate 1.0 s 
 |   name   | total  | total (self) | count |   avg    | avg (self) |
@@ -428,7 +428,7 @@ Overhead estimate 1.0 s
 | empty    | 0.0 ns |       0.0 ns |     0 |   0.0 ns |     0.0 ns |
 )";
 
-    writer.write(entries, 1'000'000'000);
+    writer.write(entries, 1s);
 
     ASSERT_EQ(ss.str(), expected);
 }
@@ -437,19 +437,20 @@ Overhead estimate 1.0 s
 TEST(ProfilerHookTableSummaryWriter, NestedSummaryWorks)
 {
     using gko::log::ProfilerHook;
+    using namespace std::chrono_literals;
     std::stringstream ss;
     ProfilerHook::TableSummaryWriter writer(ss, "Test header");
     ProfilerHook::nested_summary_entry entry{
         "root",
-        2000,
+        2us,
         1,
-        {ProfilerHook::nested_summary_entry{"foo", 100, 5, {}},
+        {ProfilerHook::nested_summary_entry{"foo", 100ns, 5, {}},
          ProfilerHook::nested_summary_entry{
              "bar",
-             1000,
+             1000ns,
              2,
-             {ProfilerHook::nested_summary_entry{"child", 100, 2, {}}}},
-         ProfilerHook::nested_summary_entry{"baz", 1, 2, {}}}};
+             {ProfilerHook::nested_summary_entry{"child", 100ns, 2, {}}}},
+         ProfilerHook::nested_summary_entry{"baz", 1ns, 2, {}}}};
     const auto expected = R"(Test header
 Overhead estimate 1.0 ns
 |    name    |  total   | fraction | count |   avg    |
@@ -463,7 +464,7 @@ Overhead estimate 1.0 ns
 |   baz      |   1.0 ns |    0.1 % |     2 |   0.0 ns |
 )";
 
-    writer.write_nested(entry, 1);
+    writer.write_nested(entry, 1ns);
 
     ASSERT_EQ(ss.str(), expected);
 }

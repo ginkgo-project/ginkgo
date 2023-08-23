@@ -100,6 +100,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // clang-format on
 
 
+/* Is METIS available for Reordering? */
+// clang-format off
+#define GKO_HAVE_METIS @GINKGO_HAVE_METIS@
+// clang-format on
+
+#if GKO_HAVE_METIS
+// clang-format off
+#define GKO_METIS_HEADER <@METIS_HEADER@>
+// clang-format on
+#endif
+
 /* Is ROCTX available for Profiling? */
 // clang-format off
 #define GKO_HAVE_ROCTX @GINKGO_HAVE_ROCTX@

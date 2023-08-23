@@ -68,13 +68,12 @@ int main(int argc, char* argv[])
             {"omp", [] { return gko::OmpExecutor::create(); }},
             {"cuda",
              [] {
-                 return gko::CudaExecutor::create(0, gko::OmpExecutor::create(),
-                                                  true);
+                 return gko::CudaExecutor::create(0,
+                                                  gko::OmpExecutor::create());
              }},
             {"hip",
              [] {
-                 return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
-                                                 true);
+                 return gko::HipExecutor::create(0, gko::OmpExecutor::create());
              }},
             {"dpcpp",
              [] {
@@ -106,22 +105,16 @@ int main(int argc, char* argv[])
 
     // copy b again
     b->copy_from(host_x);
-    const RealValueType reduction_factor = 1e-7;
-    auto iter_stop = gko::share(
-        gko::stop::Iteration::build().with_max_iters(10000u).on(exec));
-    auto tol_stop = gko::share(gko::stop::ResidualNorm<ValueType>::build()
-                                   .with_reduction_factor(reduction_factor)
-                                   .on(exec));
-
-    std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
-        gko::log::Convergence<ValueType>::create();
-    iter_stop->add_logger(logger);
-    tol_stop->add_logger(logger);
 
     // Create solver factory
+    const RealValueType reduction_factor = 1e-7;
     auto solver_gen =
         cg::build()
-            .with_criteria(iter_stop, tol_stop)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(10000u).on(exec),
+                gko::stop::ResidualNorm<ValueType>::build()
+                    .with_reduction_factor(reduction_factor)
+                    .on(exec))
             // Add preconditioner, these 2 lines are the only
             // difference from the simple solver example
             .with_preconditioner(bj::build()
@@ -131,9 +124,10 @@ int main(int argc, char* argv[])
                                      .on(exec))
             .on(exec);
     // Create solver
+    std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
+        gko::log::Convergence<ValueType>::create();
     solver_gen->add_logger(logger);
     auto solver = solver_gen->generate(A);
-
 
     // Solve system
     exec->synchronize();
@@ -143,10 +137,8 @@ int main(int argc, char* argv[])
     auto toc = std::chrono::steady_clock::now();
     time += std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
 
-    // Calculate residual
-    auto res = gko::initialize<real_vec>({0.0}, exec);
-    A->apply(one, x, neg_one, b);
-    b->compute_norm2(res);
+    // Get residual
+    auto res = gko::as<real_vec>(logger->get_residual_norm());
     auto impl_res = gko::as<real_vec>(logger->get_implicit_sq_resnorm());
 
     std::cout << "Initial residual norm sqrt(r^T r):\n";

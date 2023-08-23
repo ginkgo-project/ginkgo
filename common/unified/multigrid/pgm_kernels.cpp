@@ -111,7 +111,8 @@ void renumber(std::shared_ptr<const DefaultExecutor> exec,
         },
         num, agg.get_const_data(), agg_map.get_data());
 
-    components::prefix_sum(exec, agg_map.get_data(), agg_map.get_num_elems());
+    components::prefix_sum_nonnegative(exec, agg_map.get_data(),
+                                       agg_map.get_num_elems());
 
     run_kernel(
         exec,
@@ -134,7 +135,7 @@ void map_row(std::shared_ptr<const DefaultExecutor> exec,
         exec,
         [] GKO_KERNEL(auto tidx, auto fine_row_ptrs, auto agg, auto row_idxs) {
             const auto coarse_row = agg[tidx];
-            // TODO: when it is neccessary, it can use warp per row to improve.
+            // TODO: when it is necessary, it can use warp per row to improve.
             for (auto i = fine_row_ptrs[tidx]; i < fine_row_ptrs[tidx + 1];
                  i++) {
                 row_idxs[i] = coarse_row;
@@ -231,7 +232,7 @@ void find_strongest_neighbor(
                 // all neighbor is agg, connect to the strongest agg
                 // Also, no others will use this item as their
                 // strongest_neighbor because they are already aggregated. Thus,
-                // it is determinstic behavior
+                // it is deterministic behavior
                 agg[row] = agg[strongest_agg];
             } else if (strongest_unagg != -1) {
                 // set the strongest neighbor in the unagg group
@@ -259,7 +260,7 @@ void assign_to_exist_agg(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto num = agg.get_num_elems();
     if (intermediate_agg.get_num_elems() > 0) {
-        // determinstic kernel
+        // deterministic kernel
         run_kernel(
             exec,
             [] GKO_KERNEL(auto row, auto row_ptrs, auto col_idxs,

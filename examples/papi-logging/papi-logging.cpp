@@ -151,13 +151,12 @@ int main(int argc, char* argv[])
             {"omp", [] { return gko::OmpExecutor::create(); }},
             {"cuda",
              [] {
-                 return gko::CudaExecutor::create(0, gko::OmpExecutor::create(),
-                                                  true);
+                 return gko::CudaExecutor::create(0,
+                                                  gko::OmpExecutor::create());
              }},
             {"hip",
              [] {
-                 return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
-                                                 true);
+                 return gko::HipExecutor::create(0, gko::OmpExecutor::create());
              }},
             {"dpcpp",
              [] {
@@ -196,8 +195,8 @@ int main(int argc, char* argv[])
 
     // Create a PAPI logger and add it to relevant LinOps
     auto logger = gko::log::Papi<ValueType>::create(
-        exec, gko::log::Logger::linop_apply_completed_mask |
-                  gko::log::Logger::linop_advanced_apply_completed_mask);
+        gko::log::Logger::linop_apply_completed_mask |
+        gko::log::Logger::linop_advanced_apply_completed_mask);
     solver->add_logger(logger);
     A->add_logger(logger);
 

@@ -49,9 +49,9 @@ namespace gko {
 namespace kernels {
 namespace dpcpp {
 /**
- * @brief The batch Cg solver namespace.
+ * @brief The batch Bicgstab solver namespace.
  *
- * @ingroup batch_cg
+ * @ingroup batch_bicgstab
  */
 namespace batch_bicgstab {
 

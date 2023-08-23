@@ -47,7 +47,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/device.hpp>
+#include <ginkgo/core/base/fwd_defs.hpp>
 #include <ginkgo/core/base/machine_topology.hpp>
+#include <ginkgo/core/base/memory.hpp>
 #include <ginkgo/core/base/scoped_device_id_guard.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
@@ -58,7 +60,7 @@ namespace gko {
 
 
 /** How Logger events are propagated to their Executor. */
-enum class log_propagate_mode {
+enum class log_propagation_mode {
     /**
      * Events only get reported at loggers attached to the triggering object.
      * (Except for allocation/free, copy and Operations, since they happen at
@@ -83,8 +85,8 @@ enum class log_propagate_mode {
  * host through the Unified memory model.
  *
  * `unified_host` allocates memory on the
- * host and it is not available on devices which do not have concurrent acesses
- * switched on, but this access can be explictly switched on, when necessary.
+ * host and it is not available on devices which do not have concurrent accesses
+ * switched on, but this access can be explicitly switched on, when necessary.
  */
 enum class allocation_mode { device, unified_global, unified_host };
 
@@ -121,31 +123,6 @@ constexpr allocation_mode default_hip_alloc_mode =
 }  // namespace gko
 
 
-// after intel/llvm September'22 release, which uses major version 6, they
-// introduce another inline namespace _V1.
-#if GINKGO_DPCPP_MAJOR_VERSION >= 6
-namespace sycl {
-inline namespace _V1 {
-
-
-class queue;
-
-
-}  // namespace _V1
-}  // namespace sycl
-#else  // GINKGO_DPCPP_MAJOR_VERSION < 6
-inline namespace cl {
-namespace sycl {
-
-
-class queue;
-
-
-}  // namespace sycl
-}  // namespace cl
-#endif
-
-
 /**
  * The enum class is for the dpcpp queue property. It's legal to use a binary
  * or(|) operation to combine several properties.
@@ -168,24 +145,6 @@ GKO_ATTRIBUTES GKO_INLINE dpcpp_queue_property operator|(dpcpp_queue_property a,
     return static_cast<dpcpp_queue_property>(static_cast<int>(a) |
                                              static_cast<int>(b));
 }
-
-
-struct cublasContext;
-
-struct cusparseContext;
-
-struct CUstream_st;
-
-struct hipblasContext;
-
-struct hipsparseContext;
-
-#if GINKGO_HIP_PLATFORM_HCC
-struct ihipStream_t;
-#define GKO_HIP_STREAM_STRUCT ihipStream_t
-#else
-#define GKO_HIP_STREAM_STRUCT CUstream_st
-#endif
 
 
 namespace gko {
@@ -903,9 +862,9 @@ public:
      * executor.
      * @see Logger::needs_propagation()
      */
-    void set_log_propagation_mode(log_propagate_mode mode)
+    void set_log_propagation_mode(log_propagation_mode mode)
     {
-        log_propagate_mode_ = mode;
+        log_propagation_mode_ = mode;
     }
 
     /**
@@ -913,12 +872,12 @@ public:
      * should be logged at propagating loggers attached to this executor, and
      * there is at least one such propagating logger.
      * @see Logger::needs_propagation()
-     * @see Executor::set_log_propagation_mode(log_propagate_mode)
+     * @see Executor::set_log_propagation_mode(log_propagation_mode)
      */
     bool should_propagate_log() const
     {
         return this->propagating_logger_refcount_.load() > 0 &&
-               log_propagate_mode_ == log_propagate_mode::automatic;
+               log_propagation_mode_ == log_propagation_mode::automatic;
     }
 
     /**
@@ -1158,7 +1117,7 @@ protected:
 
     exec_info exec_info_;
 
-    log_propagate_mode log_propagate_mode_{log_propagate_mode::automatic};
+    log_propagation_mode log_propagation_mode_{log_propagation_mode::automatic};
 
     std::atomic<int> propagating_logger_refcount_{};
 
@@ -1353,14 +1312,24 @@ public:
      *
      * @param device_reset  whether to allow a device reset or not
      */
-    void set_device_reset(bool device_reset) { device_reset_ = device_reset; }
+    [[deprecated(
+        "device_reset is no longer supported, call "
+        "cudaDeviceReset/hipDeviceReset manually")]] void
+    set_device_reset(bool device_reset)
+    {}
 
     /**
      * Returns the current status of the device reset boolean for this executor.
      *
      * @return the current status of the device reset boolean for this executor.
      */
-    bool get_device_reset() { return device_reset_; }
+    [[deprecated(
+        "device_reset is no longer supported, call "
+        "cudaDeviceReset/hipDeviceReset manually")]] bool
+    get_device_reset()
+    {
+        return false;
+    }
 
 protected:
     /**
@@ -1368,11 +1337,13 @@ protected:
      *
      * @param device_reset  the starting device_reset status. Defaults to false.
      */
-    EnableDeviceReset(bool device_reset = false) : device_reset_{device_reset}
-    {}
+    EnableDeviceReset() {}
 
-private:
-    bool device_reset_{};
+    [[deprecated(
+        "device_reset is no longer supported, call "
+        "cudaDeviceReset/hipDeviceReset "
+        "manually")]] EnableDeviceReset(bool device_reset)
+    {}
 };
 
 
@@ -1409,9 +1380,11 @@ public:
     /**
      * Creates a new OmpExecutor.
      */
-    static std::shared_ptr<OmpExecutor> create()
+    static std::shared_ptr<OmpExecutor> create(
+        std::shared_ptr<CpuAllocatorBase> alloc =
+            std::make_shared<CpuAllocator>())
     {
-        return std::shared_ptr<OmpExecutor>(new OmpExecutor());
+        return std::shared_ptr<OmpExecutor>(new OmpExecutor(std::move(alloc)));
     }
 
     std::shared_ptr<Executor> get_master() noexcept override;
@@ -1433,7 +1406,8 @@ public:
     scoped_device_id_guard get_scoped_device_id_guard() const override;
 
 protected:
-    OmpExecutor()
+    OmpExecutor(std::shared_ptr<CpuAllocatorBase> alloc)
+        : alloc_{std::move(alloc)}
     {
         this->OmpExecutor::populate_exec_info(machine_topology::get_instance());
     }
@@ -1455,6 +1429,8 @@ protected:
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaExecutor, false);
 
     bool verify_memory_to(const DpcppExecutor* dest_exec) const override;
+
+    std::shared_ptr<CpuAllocatorBase> alloc_;
 };
 
 
@@ -1474,9 +1450,12 @@ using DefaultExecutor = OmpExecutor;
  */
 class ReferenceExecutor : public OmpExecutor {
 public:
-    static std::shared_ptr<ReferenceExecutor> create()
+    static std::shared_ptr<ReferenceExecutor> create(
+        std::shared_ptr<CpuAllocatorBase> alloc =
+            std::make_shared<CpuAllocator>())
     {
-        return std::shared_ptr<ReferenceExecutor>(new ReferenceExecutor());
+        return std::shared_ptr<ReferenceExecutor>(
+            new ReferenceExecutor(std::move(alloc)));
     }
 
     scoped_device_id_guard get_scoped_device_id_guard() const override
@@ -1493,7 +1472,8 @@ public:
     }
 
 protected:
-    ReferenceExecutor()
+    ReferenceExecutor(std::shared_ptr<CpuAllocatorBase> alloc)
+        : OmpExecutor{std::move(alloc)}
     {
         this->ReferenceExecutor::populate_exec_info(
             machine_topology::get_instance());
@@ -1548,15 +1528,32 @@ public:
      * @param device_id  the CUDA device id of this device
      * @param master  an executor on the host that is used to invoke the device
      * kernels
-     * @param device_reset  whether to reset the device after the object exits
-     *                      the scope.
+     * @param device_reset  this option no longer has any effect.
      * @param alloc_mode  the allocation mode that the executor should operate
      *                    on. See @allocation_mode for more details
+     * @param stream  the stream to execute operations on.
+     */
+    [[deprecated(
+        "device_reset is deprecated entirely, call cudaDeviceReset directly. "
+        "alloc_mode was replaced by the Allocator type "
+        "hierarchy.")]] static std::shared_ptr<CudaExecutor>
+    create(int device_id, std::shared_ptr<Executor> master, bool device_reset,
+           allocation_mode alloc_mode = default_cuda_alloc_mode,
+           CUstream_st* stream = nullptr);
+
+    /**
+     * Creates a new CudaExecutor with a custom allocator and device stream.
+     *
+     * @param device_id  the CUDA device id of this device
+     * @param master  an executor on the host that is used to invoke the device
+     *                kernels.
+     * @param alloc  the allocator to use for device memory allocations.
+     * @param stream  the stream to execute operations on.
      */
     static std::shared_ptr<CudaExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
-        bool device_reset = false,
-        allocation_mode alloc_mode = default_cuda_alloc_mode,
+        std::shared_ptr<CudaAllocatorBase> alloc =
+            std::make_shared<CudaAllocator>(),
         CUstream_st* stream = nullptr);
 
     std::shared_ptr<Executor> get_master() noexcept override;
@@ -1630,7 +1627,7 @@ public:
     }
 
     /**
-     * Get the minor verion of compute capability.
+     * Get the minor version of compute capability.
      */
     int get_minor_version() const noexcept
     {
@@ -1685,26 +1682,15 @@ protected:
     void init_handles();
 
     CudaExecutor(int device_id, std::shared_ptr<Executor> master,
-                 bool device_reset = false,
-                 allocation_mode alloc_mode = default_cuda_alloc_mode,
-                 CUstream_st* stream = nullptr)
-        : EnableDeviceReset{device_reset},
-          master_(master),
-          alloc_mode_{alloc_mode},
-          stream_{stream}
+                 std::shared_ptr<CudaAllocatorBase> alloc, CUstream_st* stream)
+        : alloc_{std::move(alloc)}, master_(master), stream_{stream}
     {
         this->get_exec_info().device_id = device_id;
         this->get_exec_info().num_computing_units = 0;
         this->get_exec_info().num_pu_per_cu = 0;
         this->CudaExecutor::populate_exec_info(
             machine_topology::get_instance());
-
-        // it only gets attribute from device, so it should not be affected by
-        // DeviceReset.
         this->set_gpu_property();
-        // increase the number of executor before any operations may be affected
-        // by DeviceReset.
-        increase_num_execs(this->get_exec_info().device_id);
         this->init_handles();
     }
 
@@ -1724,12 +1710,6 @@ protected:
 
     bool verify_memory_to(const CudaExecutor* dest_exec) const override;
 
-    static void increase_num_execs(unsigned device_id);
-
-    static void decrease_num_execs(unsigned device_id);
-
-    static unsigned get_num_execs(unsigned device_id);
-
     void populate_exec_info(const machine_topology* mach_topo) override;
 
 private:
@@ -1739,45 +1719,8 @@ private:
     using handle_manager = std::unique_ptr<T, std::function<void(T*)>>;
     handle_manager<cublasContext> cublas_handle_;
     handle_manager<cusparseContext> cusparse_handle_;
+    std::shared_ptr<CudaAllocatorBase> alloc_;
     CUstream_st* stream_;
-
-    allocation_mode alloc_mode_;
-};
-
-
-/**
- * An RAII wrapper for a custom CUDA stream.
- * The stream will be created on construction and destroyed when the lifetime of
- * the wrapper ends.
- */
-class cuda_stream {
-public:
-    /** Creates a new custom CUDA stream. */
-    cuda_stream(int device_id = 0);
-
-    /** Destroys the custom CUDA stream, if it wasn't moved-from already. */
-    ~cuda_stream();
-
-    cuda_stream(const cuda_stream&) = delete;
-
-    /** Move-constructs from an existing stream, which will be emptied. */
-    cuda_stream(cuda_stream&&);
-
-    cuda_stream& operator=(const cuda_stream&) = delete;
-
-    /** Move-assigns from an existing stream, which will be emptied. */
-    cuda_stream& operator=(cuda_stream&&) = delete;
-
-    /**
-     * Returns the native CUDA stream handle.
-     * In a moved-from cuda_stream, this will return nullptr.
-     */
-    CUstream_st* get() const;
-
-private:
-    CUstream_st* stream_;
-
-    int device_id_;
 };
 
 
@@ -1811,10 +1754,18 @@ public:
      * @param alloc_mode  the allocation mode that the executor should operate
      *                    on. See @allocation_mode for more details
      */
+    [[deprecated(
+        "device_reset is deprecated entirely, call hipDeviceReset directly. "
+        "alloc_mode was replaced by the Allocator type "
+        "hierarchy.")]] static std::shared_ptr<HipExecutor>
+    create(int device_id, std::shared_ptr<Executor> master, bool device_reset,
+           allocation_mode alloc_mode = default_hip_alloc_mode,
+           GKO_HIP_STREAM_STRUCT* stream = nullptr);
+
     static std::shared_ptr<HipExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
-        bool device_reset = false,
-        allocation_mode alloc_mode = default_hip_alloc_mode,
+        std::shared_ptr<HipAllocatorBase> alloc =
+            std::make_shared<HipAllocator>(),
         GKO_HIP_STREAM_STRUCT* stream = nullptr);
 
     std::shared_ptr<Executor> get_master() noexcept override;
@@ -1855,7 +1806,7 @@ public:
     }
 
     /**
-     * Get the major verion of compute capability.
+     * Get the major version of compute capability.
      */
     int get_major_version() const noexcept
     {
@@ -1863,7 +1814,7 @@ public:
     }
 
     /**
-     * Get the minor verion of compute capability.
+     * Get the minor version of compute capability.
      */
     int get_minor_version() const noexcept
     {
@@ -1937,25 +1888,15 @@ protected:
     void init_handles();
 
     HipExecutor(int device_id, std::shared_ptr<Executor> master,
-                bool device_reset = false,
-                allocation_mode alloc_mode = default_hip_alloc_mode,
-                GKO_HIP_STREAM_STRUCT* stream = nullptr)
-        : EnableDeviceReset{device_reset},
-          master_(master),
-          alloc_mode_(alloc_mode),
-          stream_{stream}
+                std::shared_ptr<HipAllocatorBase> alloc,
+                GKO_HIP_STREAM_STRUCT* stream)
+        : master_{std::move(master)}, alloc_{std::move(alloc)}, stream_{stream}
     {
         this->get_exec_info().device_id = device_id;
         this->get_exec_info().num_computing_units = 0;
         this->get_exec_info().num_pu_per_cu = 0;
         this->HipExecutor::populate_exec_info(machine_topology::get_instance());
-
-        // it only gets attribute from device, so it should not be affected by
-        // DeviceReset.
         this->set_gpu_property();
-        // increase the number of executor before any operations may be affected
-        // by DeviceReset.
-        increase_num_execs(this->get_exec_info().device_id);
         this->init_handles();
     }
 
@@ -1975,12 +1916,6 @@ protected:
 
     bool verify_memory_to(const HipExecutor* dest_exec) const override;
 
-    static void increase_num_execs(int device_id);
-
-    static void decrease_num_execs(int device_id);
-
-    static int get_num_execs(int device_id);
-
     void populate_exec_info(const machine_topology* mach_topo) override;
 
 private:
@@ -1990,45 +1925,8 @@ private:
     using handle_manager = std::unique_ptr<T, std::function<void(T*)>>;
     handle_manager<hipblasContext> hipblas_handle_;
     handle_manager<hipsparseContext> hipsparse_handle_;
-
-    allocation_mode alloc_mode_;
+    std::shared_ptr<HipAllocatorBase> alloc_;
     GKO_HIP_STREAM_STRUCT* stream_;
-};
-
-
-/**
- * An RAII wrapper for a custom HIP stream.
- * The stream will be created on construction and destroyed when the lifetime of
- * the wrapper ends.
- */
-class hip_stream {
-public:
-    /** Creates a new custom HIP stream. */
-    hip_stream(int device_id = 0);
-
-    /** Destroys the custom HIP stream, if it wasn't moved-from already. */
-    ~hip_stream();
-
-    hip_stream(const hip_stream&) = delete;
-
-    /** Move-constructs from an existing stream, which will be emptied. */
-    hip_stream(hip_stream&&);
-
-    hip_stream& operator=(const hip_stream&) = delete;
-
-    /** Move-assigns from an existing stream, which will be emptied. */
-    hip_stream& operator=(hip_stream&&) = delete;
-
-    /**
-     * Returns the native HIP stream handle.
-     * In a moved-from hip_stream, this will return nullptr.
-     */
-    GKO_HIP_STREAM_STRUCT* get() const;
-
-private:
-    GKO_HIP_STREAM_STRUCT* stream_;
-
-    int device_id_;
 };
 
 

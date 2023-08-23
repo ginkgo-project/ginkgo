@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/config.hpp>
+#include <ginkgo/core/base/timer.hpp>
 #include <ginkgo/core/log/logger.hpp>
 
 
@@ -181,11 +182,23 @@ public:
 
     /* Internal solver events */
     void on_iteration_complete(
-        const LinOp* solver, const size_type& num_iterations,
-        const LinOp* residual, const LinOp* solution = nullptr,
-        const LinOp* residual_norm = nullptr) const override;
+        const LinOp* solver, const LinOp* right_hand_side,
+        const LinOp* solution, const size_type& num_iterations,
+        const LinOp* residual, const LinOp* residual_norm,
+        const LinOp* implicit_sq_residual_norm,
+        const array<stopping_status>* status, bool stopped) const override;
 
-    void on_iteration_complete(
+    [[deprecated(
+        "Please use the version with the additional stopping "
+        "information.")]] void
+    on_iteration_complete(const LinOp* solver, const size_type& num_iterations,
+                          const LinOp* residual, const LinOp* solution,
+                          const LinOp* residual_norm) const override;
+
+    [[deprecated(
+        "Please use the version with the additional stopping "
+        "information.")]] void
+    on_iteration_complete(
         const LinOp* solver, const size_type& num_iterations,
         const LinOp* residual, const LinOp* solution,
         const LinOp* residual_norm,
@@ -264,12 +277,12 @@ public:
         /** The name of the range. */
         std::string name;
         /** The total runtime of all invocations of the range in nanoseconds. */
-        int64 inclusive_ns{};
+        std::chrono::nanoseconds inclusive{0};
         /**
          * The total runtime of all invocations of the range in nanoseconds,
          * excluding the runtime of all nested ranges.
          */
-        int64 exclusive_ns{};
+        std::chrono::nanoseconds exclusive{0};
         /** The total number of invocations of the range. */
         int64 count{};
     };
@@ -278,14 +291,14 @@ public:
         /** The name of the range. */
         std::string name;
         /** The total runtime of all invocations of the range in nanoseconds. */
-        int64 elapsed_ns{};
+        std::chrono::nanoseconds elapsed{0};
         /** The total number of invocations of the range. */
         int64 count{};
         /** The nested ranges inside this range. */
         std::vector<nested_summary_entry> children{};
     };
 
-    /** Recieves the results from ProfilerHook::create_summary(). */
+    /** Receives the results from ProfilerHook::create_summary(). */
     class SummaryWriter {
     public:
         virtual ~SummaryWriter() = default;
@@ -294,14 +307,13 @@ public:
          * Callback to write out the summary results.
          *
          * @param entries  the vector of ranges with runtime and count.
-         * @param overhead_ns  an estimate of the profiler overhead in
-         *                     nanoseconds.
+         * @param overhead  an estimate of the profiler overhead
          */
         virtual void write(const std::vector<summary_entry>& entries,
-                           int64 overhead_ns) = 0;
+                           std::chrono::nanoseconds overhead) = 0;
     };
 
-    /** Recieves the results from ProfilerHook::create_nested_summary(). */
+    /** Receives the results from ProfilerHook::create_nested_summary(). */
     class NestedSummaryWriter {
     public:
         virtual ~NestedSummaryWriter() = default;
@@ -310,11 +322,10 @@ public:
          * Callback to write out the summary results.
          *
          * @param root  the root range with runtime and count.
-         * @param overhead_ns  an estimate of the profiler overhead in
-         *                     nanoseconds.
+         * @param overhead  an estimate of the profiler overhead
          */
         virtual void write_nested(const nested_summary_entry& root,
-                                  int64 overhead_ns) = 0;
+                                  std::chrono::nanoseconds overhead) = 0;
     };
 
     /**
@@ -335,10 +346,10 @@ public:
                            std::string header = "Runtime summary");
 
         void write(const std::vector<summary_entry>& entries,
-                   int64 overhead_ns) override;
+                   std::chrono::nanoseconds overhead) override;
 
         void write_nested(const nested_summary_entry& root,
-                          int64 overhead_ns) override;
+                          std::chrono::nanoseconds overhead) override;
 
     private:
         std::ostream* output_;
@@ -349,6 +360,7 @@ public:
      * Creates a logger measuring the runtime of Ginkgo events and printing a
      * summary when it is destroyed.
      *
+     * @param timer  The timer used to record time points.
      * @param writer  The SummaryWriter to receive the performance results.
      * @param debug_check_nesting  Enable this flag if the output looks like it
      *                             might contain incorrect nesting. This
@@ -356,10 +368,12 @@ public:
      *                             recognizes mismatching push/pop pairs on the
      *                             range stack.
      *
-     * @note For this logger to provide reliable GPU timings, enable
-     *       synchronization via `set_synchronization(true)`.
+     * @note For this logger to provide reliable GPU timings, either use
+     *       Timer::create_for_executor or enable synchronization via
+     *       `set_synchronization(true)`.
      */
     static std::shared_ptr<ProfilerHook> create_summary(
+        std::shared_ptr<Timer> timer = std::make_shared<CpuTimer>(),
         std::unique_ptr<SummaryWriter> writer =
             std::make_unique<TableSummaryWriter>(),
         bool debug_check_nesting = false);
@@ -368,6 +382,7 @@ public:
      * Creates a logger measuring the runtime of Ginkgo events in a nested
      * fashion and printing a summary when it is destroyed.
      *
+     * @param timer  The timer used to record time points.
      * @param writer  The NestedSummaryWriter to receive the performance
      *                results.
      * @param debug_check_nesting  Enable this flag if the output looks like it
@@ -376,10 +391,12 @@ public:
      *                             recognizes mismatching push/pop pairs on the
      *                             range stack.
      *
-     * @note For this logger to provide reliable GPU timings, enable
-     *       synchronization via `set_synchronization(true)`.
+     * @note For this logger to provide reliable GPU timings, either use
+     *       Timer::create_for_executor or enable synchronization via
+     *       `set_synchronization(true)`.
      */
     static std::shared_ptr<ProfilerHook> create_nested_summary(
+        std::shared_ptr<Timer> timer = std::make_shared<CpuTimer>(),
         std::unique_ptr<NestedSummaryWriter> writer =
             std::make_unique<TableSummaryWriter>(),
         bool debug_check_nesting = false);
@@ -410,6 +427,9 @@ private:
  */
 class profiling_scope_guard {
 public:
+    /** Creates an empty (moved-from) scope guard. */
+    profiling_scope_guard();
+
     /**
      * Creates the scope guard
      *

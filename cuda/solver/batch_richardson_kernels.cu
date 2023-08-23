@@ -141,9 +141,10 @@ public:
                                       BatchMatrixType, value_type>(exec_,
                                                                    a.num_rows);
 
-        apply_kernel<StopType><<<nbatch, block_size, shared_size>>>(
-            opts_.max_its, opts_.residual_tol, opts_.relax_factor, logger, prec,
-            a, b.values, x.values);
+        apply_kernel<StopType>
+            <<<nbatch, block_size, shared_size, exec_->get_stream()>>>(
+                opts_.max_its, opts_.residual_tol, opts_.relax_factor, logger,
+                prec, a, b.values, x.values);
 
         GKO_CUDA_LAST_IF_ERROR_THROW;
     }

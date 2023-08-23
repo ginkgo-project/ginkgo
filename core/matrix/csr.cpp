@@ -103,7 +103,8 @@ GKO_REGISTER_OPERATION(is_sorted_by_column_index,
                        csr::is_sorted_by_column_index);
 GKO_REGISTER_OPERATION(extract_diagonal, csr::extract_diagonal);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
-GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum);
+GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
+                       components::prefix_sum_nonnegative);
 GKO_REGISTER_OPERATION(inplace_absolute_array,
                        components::inplace_absolute_array);
 GKO_REGISTER_OPERATION(outplace_absolute_array,
@@ -240,7 +241,7 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
         auto x_csr = as<TCsr>(x);
         this->get_executor()->run(csr::make_spgemm(this, b_csr, x_csr));
     } else {
-        precision_dispatch_real_complex<ValueType>(
+        mixed_precision_dispatch_real_complex<ValueType>(
             [this](auto dense_b, auto dense_x) {
                 this->get_executor()->run(
                     csr::make_spmv(this, dense_b, dense_x));
@@ -272,13 +273,17 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
             csr::make_spgeam(as<Dense<ValueType>>(alpha), this,
                              as<Dense<ValueType>>(beta), x_copy.get(), x_csr));
     } else {
-        precision_dispatch_real_complex<ValueType>(
-            [this](auto dense_alpha, auto dense_b, auto dense_beta,
-                   auto dense_x) {
-                this->get_executor()->run(csr::make_advanced_spmv(
-                    dense_alpha, this, dense_b, dense_beta, dense_x));
+        mixed_precision_dispatch_real_complex<ValueType>(
+            [this, alpha, beta](auto dense_b, auto dense_x) {
+                auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
+                auto dense_beta = make_temporary_conversion<
+                    typename std::decay_t<decltype(*dense_x)>::value_type>(
+                    beta);
+                this->get_executor()->run(
+                    csr::make_advanced_spmv(dense_alpha.get(), this, dense_b,
+                                            dense_beta.get(), dense_x));
             },
-            alpha, b, beta, x);
+            b, x);
     }
 }
 
@@ -714,7 +719,8 @@ Csr<ValueType, IndexType>::create_submatrix(const gko::span& row_span,
     array<IndexType> row_ptrs(exec, row_span.length() + 1);
     exec->run(csr::make_calculate_nonzeros_per_row_in_span(
         this, row_span, column_span, &row_ptrs));
-    exec->run(csr::make_prefix_sum(row_ptrs.get_data(), row_span.length() + 1));
+    exec->run(csr::make_prefix_sum_nonnegative(row_ptrs.get_data(),
+                                               row_span.length() + 1));
     auto num_nnz =
         exec->copy_val_to_host(row_ptrs.get_data() + sub_mat_size[0]);
     auto sub_mat = Mat::create(exec, sub_mat_size,
@@ -758,8 +764,8 @@ Csr<ValueType, IndexType>::create_submatrix(
         array<IndexType> row_ptrs(exec, submat_num_rows + 1);
         exec->run(csr::make_calculate_nonzeros_per_row_in_index_set(
             this, row_index_set, col_index_set, row_ptrs.get_data()));
-        exec->run(
-            csr::make_prefix_sum(row_ptrs.get_data(), submat_num_rows + 1));
+        exec->run(csr::make_prefix_sum_nonnegative(row_ptrs.get_data(),
+                                                   submat_num_rows + 1));
         auto num_nnz =
             exec->copy_val_to_host(row_ptrs.get_data() + sub_mat_size[0]);
         auto sub_mat = Mat::create(exec, sub_mat_size,

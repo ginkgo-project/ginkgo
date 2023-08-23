@@ -63,7 +63,7 @@ void run(T, Func, Args...)
  * run uses template to go through the list and select the valid
  * template and run it.
  *
- * @tparam K  the current type tried in the convertion
+ * @tparam K  the current type tried in the conversion
  * @tparam ...Types  the other types will be tried in the conversion if K fails
  * @tparam T  the type of input object
  * @tparam Func  the function will run if the object can be converted to K
@@ -108,7 +108,7 @@ void run(T, Func, Args...)
  *
  * @tparam Base  the Base class with one template
  * @tparam K  the current template type of B. pointer of const Base<K> is tried
- *            in the convertion.
+ *            in the conversion.
  * @tparam ...Types  the other types will be tried in the conversion if K fails
  * @tparam T  the type of input object waiting converted
  * @tparam Func  the function will run if the object can be converted to pointer

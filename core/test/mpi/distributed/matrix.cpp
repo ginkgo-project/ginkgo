@@ -202,7 +202,8 @@ protected:
     gko::experimental::mpi::communicator comm;
 };
 
-TYPED_TEST_SUITE(MatrixBuilder, gko::test::ValueLocalGlobalIndexTypes);
+TYPED_TEST_SUITE(MatrixBuilder, gko::test::ValueLocalGlobalIndexTypes,
+                 TupleTypenameNameGenerator);
 
 
 TYPED_TEST(MatrixBuilder, BuildWithLocal)

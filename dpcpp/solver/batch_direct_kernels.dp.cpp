@@ -246,6 +246,7 @@ void pre_diag_scale_system_transpose(
             });
     });
 }
+
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DIRECT_PRE_DIAG_SCALE_SYSTEM_TRANSPOSE);
 

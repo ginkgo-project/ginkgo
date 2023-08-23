@@ -170,6 +170,19 @@ void calculate_total_cols(std::shared_ptr<const DpcppExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ELL_CALCULATE_TOTAL_COLS_KERNEL);
 
+template <typename ValueType, typename IndexType, typename UnaryOperator>
+inline void convert_batch_ell_to_csc(
+    size_type num_rows, const IndexType* row_ptrs, const IndexType* col_idxs,
+    const ValueType* batch_ell_vals, IndexType* row_idxs, IndexType* col_ptrs,
+    ValueType* csc_vals, UnaryOperator op) GKO_NOT_IMPLEMENTED;
+
+
+template <typename ValueType, typename IndexType, typename UnaryOperator>
+void transpose_and_transform(std::shared_ptr<const DpcppExecutor> exec,
+                             matrix::BatchEll<ValueType, IndexType>* trans,
+                             const matrix::BatchEll<ValueType, IndexType>* orig,
+                             UnaryOperator op) GKO_NOT_IMPLEMENTED;
+
 
 template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const DpcppExecutor> exec,
@@ -189,6 +202,16 @@ void conj_transpose(std::shared_ptr<const DpcppExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ELL_CONJ_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void calculate_total_cols(std::shared_ptr<const DpcppExecutor> exec,
+                          const matrix::BatchEll<ValueType, IndexType>* source,
+                          size_type* result, size_type stride_factor,
+                          size_type slice_size) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_ELL_CALCULATE_TOTAL_COLS_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -232,13 +255,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 template <typename ValueType, typename IndexType>
 void batch_scale(std::shared_ptr<const DpcppExecutor> exec,
-                 const matrix::BatchDiagonal<ValueType>* const left_scale,
-                 const matrix::BatchDiagonal<ValueType>* const right_scale,
-                 matrix::BatchEll<ValueType, IndexType>* const mat)
+                 const matrix::BatchDiagonal<ValueType>* left_scale,
+                 const matrix::BatchDiagonal<ValueType>* right_scale,
+                 matrix::BatchEll<ValueType, IndexType>* scaled)
     GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
-    GKO_DECLARE_BATCH_ELL_SCALE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BATCH_ELL_SCALE);
 
 
 template <typename ValueType, typename IndexType>
@@ -258,30 +280,6 @@ void convert_to_batch_dense(
     std::shared_ptr<const DpcppExecutor> exec,
     const matrix::BatchEll<ValueType, IndexType>* const src,
     matrix::BatchDense<ValueType>* const dest) GKO_NOT_IMPLEMENTED;
-// TODO
-// {
-//     const size_type nbatches = src->get_num_batch_entries();
-//     const int num_rows = src->get_size().at(0)[0];
-//     const int num_cols = src->get_size().at(0)[1];
-//     const int nnz = static_cast<int>(src->get_num_stored_elements() /
-//     nbatches); const size_type dstride = dest->get_stride().at(0); const
-//     size_type estride = src->get_stride().at(0); const auto col_idxs =
-//     src->get_const_col_idxs(); const auto vals = src->get_const_values();
-
-//     const dim3 block_size(config::warp_size,
-//                           config::max_block_size / config::warp_size, 1);
-//     const dim3 init_grid_dim(ceildiv(num_cols * nbatches, block_size.x),
-//                              ceildiv(num_rows * nbatches, block_size.y), 1);
-//     initialize_zero_dense<<<init_grid_dim, block_size>>>(
-//         nbatches, num_rows, num_cols, dstride,
-//         as_cuda_type(dest->get_values()));
-
-//     const auto grid_dim = ceildiv(num_rows * nbatches, default_block_size);
-//     fill_in_dense<<<grid_dim, default_block_size>>>(
-//         nbatches, num_rows, src->get_num_stored_elements_per_row().at(0),
-//         estride, as_cuda_type(col_idxs), as_cuda_type(vals), dstride,
-//         as_cuda_type(dest->get_values()));
-// }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ELL_CONVERT_TO_BATCH_DENSE);

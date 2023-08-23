@@ -84,8 +84,8 @@ void simple_apply(std::shared_ptr<const HipExecutor> exec,
     if (b_ub.num_rhs > 1) {
         GKO_NOT_IMPLEMENTED;
     }
-    hipLaunchKernelGGL(mv, num_blocks, default_block_size, 0, 0, a_ub, b_ub,
-                       c_ub);
+    hipLaunchKernelGGL(mv, num_blocks, default_block_size, 0,
+                       exec->get_stream(), a_ub, b_ub, c_ub);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -109,8 +109,8 @@ void apply(std::shared_ptr<const HipExecutor> exec,
     if (b_ub.num_rhs > 1) {
         GKO_NOT_IMPLEMENTED;
     }
-    hipLaunchKernelGGL(advanced_mv, num_blocks, default_block_size, 0, 0,
-                       alpha_ub, a_ub, b_ub, beta_ub, c_ub);
+    hipLaunchKernelGGL(advanced_mv, num_blocks, default_block_size, 0,
+                       exec->get_stream(), alpha_ub, a_ub, b_ub, beta_ub, c_ub);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_APPLY_KERNEL);
@@ -124,8 +124,8 @@ void scale(std::shared_ptr<const HipExecutor> exec,
     const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
     const auto alpha_ub = get_batch_struct(alpha);
     const auto x_ub = get_batch_struct(x);
-    hipLaunchKernelGGL(scale, dim3(num_blocks), dim3(default_block_size), 0, 0,
-                       alpha_ub, x_ub);
+    hipLaunchKernelGGL(scale, dim3(num_blocks), dim3(default_block_size), 0,
+                       exec->get_stream(), alpha_ub, x_ub);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL);
@@ -143,16 +143,17 @@ void add_scaled(std::shared_ptr<const HipExecutor> exec,
         const auto num_batch = x->get_num_batch_entries();
         const auto num_rows = x->get_size().at(0)[0];
         hipLaunchKernelGGL(
-            single_add_scaled, dim3(num_blocks), dim3(default_block_size), 0, 0,
-            num_batch, num_rows, as_hip_type(alpha->get_const_values()),
+            single_add_scaled, dim3(num_blocks), dim3(default_block_size), 0,
+            exec->get_stream(), num_batch, num_rows,
+            as_hip_type(alpha->get_const_values()),
             as_hip_type(x->get_const_values()), as_hip_type(y->get_values()));
     } else {
         const auto alpha_ub = get_batch_struct(alpha);
         const auto x_ub = get_batch_struct(x);
         const auto y_ub = get_batch_struct(y);
         hipLaunchKernelGGL(add_scaled, dim3(num_blocks),
-                           dim3(default_block_size), 0, 0, alpha_ub, x_ub,
-                           y_ub);
+                           dim3(default_block_size), 0, exec->get_stream(),
+                           alpha_ub, x_ub, y_ub);
     }
 }
 
@@ -172,8 +173,8 @@ void add_scale(std::shared_ptr<const DefaultExecutor> exec,
     const auto beta_ub = get_batch_struct(beta);
     const auto x_ub = get_batch_struct(x);
     const auto y_ub = get_batch_struct(y);
-    hipLaunchKernelGGL(add_scale, num_blocks, default_block_size, 0, 0,
-                       alpha_ub, x_ub, beta_ub, y_ub);
+    hipLaunchKernelGGL(add_scale, num_blocks, default_block_size, 0,
+                       exec->get_stream(), alpha_ub, x_ub, beta_ub, y_ub);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_ADD_SCALE_KERNEL);
@@ -211,7 +212,8 @@ void compute_dot(std::shared_ptr<const HipExecutor> exec,
     if (num_rhs == 1) {
         const auto num_rows = x->get_size().at()[0];
         hipLaunchKernelGGL(single_compute_dot_product, dim3(num_blocks),
-                           dim3(default_block_size), 0, 0, num_blocks, num_rows,
+                           dim3(default_block_size), 0, exec->get_stream(),
+                           num_blocks, num_rows,
                            as_hip_type(x->get_const_values()),
                            as_hip_type(y->get_const_values()),
                            as_hip_type(result->get_values()));
@@ -220,7 +222,8 @@ void compute_dot(std::shared_ptr<const HipExecutor> exec,
         const auto y_ub = get_batch_struct(y);
         const auto res_ub = get_batch_struct(result);
         hipLaunchKernelGGL(compute_dot_product, dim3(num_blocks),
-                           dim3(default_block_size), 0, 0, x_ub, y_ub, res_ub);
+                           dim3(default_block_size), 0, exec->get_stream(),
+                           x_ub, y_ub, res_ub);
     }
 }
 
@@ -250,14 +253,16 @@ void compute_norm2(std::shared_ptr<const HipExecutor> exec,
     if (num_rhs == 1) {
         const auto num_rows = x->get_size().at()[0];
         hipLaunchKernelGGL(single_compute_norm2, dim3(num_blocks),
-                           dim3(default_block_size), 0, 0, num_blocks, num_rows,
+                           dim3(default_block_size), 0, exec->get_stream(),
+                           num_blocks, num_rows,
                            as_hip_type(x->get_const_values()),
                            as_hip_type(result->get_values()));
     } else {
         const auto x_ub = get_batch_struct(x);
         const auto res_ub = get_batch_struct(result);
         hipLaunchKernelGGL(compute_norm2, dim3(num_blocks),
-                           dim3(default_block_size), 0, 0, x_ub, res_ub);
+                           dim3(default_block_size), 0, exec->get_stream(),
+                           x_ub, res_ub);
     }
 }
 
@@ -334,8 +339,8 @@ void transpose(std::shared_ptr<const HipExecutor> exec,
     const size_type trans_stride = trans->get_stride().at();
     const int nrows = orig->get_size().at()[0];
     const int ncols = orig->get_size().at()[1];
-    hipLaunchKernelGGL(transpose, dim3(nbatch), dim3(default_block_size), 0, 0,
-                       nrows, ncols, orig_stride,
+    hipLaunchKernelGGL(transpose, dim3(nbatch), dim3(default_block_size), 0,
+                       exec->get_stream(), nrows, ncols, orig_stride,
                        as_hip_type(orig->get_const_values()), trans_stride,
                        as_hip_type(trans->get_values()),
                        [] __device__(hip_val_type x) { return x; });
@@ -355,8 +360,8 @@ void conj_transpose(std::shared_ptr<const HipExecutor> exec,
     const size_type trans_stride = trans->get_stride().at();
     const int nrows = orig->get_size().at()[0];
     const int ncols = orig->get_size().at()[1];
-    hipLaunchKernelGGL(transpose, dim3(nbatch), dim3(default_block_size), 0, 0,
-                       nrows, ncols, orig_stride,
+    hipLaunchKernelGGL(transpose, dim3(nbatch), dim3(default_block_size), 0,
+                       exec->get_stream(), nrows, ncols, orig_stride,
                        as_hip_type(orig->get_const_values()), trans_stride,
                        as_hip_type(trans->get_values()),
                        [] __device__(hip_val_type x) { return conj(x); });
@@ -374,8 +379,8 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
     const auto result_ub = get_batch_struct(result);
     const auto x_ub = get_batch_struct(x);
-    hipLaunchKernelGGL(copy, dim3(num_blocks), dim3(default_block_size), 0, 0,
-                       x_ub, result_ub);
+    hipLaunchKernelGGL(copy, dim3(num_blocks), dim3(default_block_size), 0,
+                       exec->get_stream(), x_ub, result_ub);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_COPY_KERNEL);
@@ -408,8 +413,9 @@ void batch_scale(std::shared_ptr<const HipExecutor> exec,
 
     const int num_blocks = vec_to_scale->get_num_batch_entries();
     hipLaunchKernelGGL(uniform_batch_scale, dim3(num_blocks),
-                       dim3(default_block_size), 0, 0, nrows, stride, nrhs,
-                       nbatch, as_hip_type(left_scale->get_const_values()),
+                       dim3(default_block_size), 0, exec->get_stream(), nrows,
+                       stride, nrhs, nbatch,
+                       as_hip_type(left_scale->get_const_values()),
                        as_hip_type(rght_scale->get_const_values()),
                        as_hip_type(vec_to_scale->get_values()));
 }
@@ -434,9 +440,9 @@ void add_scaled_identity(std::shared_ptr<const HipExecutor> exec,
     const auto b_stride = b->get_stride().at(0);
     const auto beta = b->get_const_values();
     hipLaunchKernelGGL(add_scaled_identity, num_blocks, default_block_size, 0,
-                       0, num_blocks, nrows, ncols, stride, as_hip_type(values),
-                       a_stride, as_hip_type(alpha), b_stride,
-                       as_hip_type(beta));
+                       exec->get_stream(), num_blocks, nrows, ncols, stride,
+                       as_hip_type(values), a_stride, as_hip_type(alpha),
+                       b_stride, as_hip_type(beta));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(

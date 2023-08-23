@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/mpi.hpp>
+#include <ginkgo/core/base/stream.hpp>
 
 
 inline void init_executor(std::shared_ptr<gko::ReferenceExecutor>,
@@ -71,7 +72,7 @@ inline void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
         exec = gko::CudaExecutor::create(
             gko::experimental::mpi::map_rank_to_device_id(
                 MPI_COMM_WORLD, gko::CudaExecutor::get_num_devices()),
-            ref, false, gko::default_cuda_alloc_mode, stream);
+            ref, std::make_shared<gko::CudaAllocator>(), stream);
     }
 }
 
@@ -86,7 +87,7 @@ inline void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
     exec = gko::HipExecutor::create(
         gko::experimental::mpi::map_rank_to_device_id(
             MPI_COMM_WORLD, gko::HipExecutor::get_num_devices()),
-        ref, false, gko::default_hip_alloc_mode, stream);
+        ref, std::make_shared<gko::HipAllocator>(), stream);
 }
 
 

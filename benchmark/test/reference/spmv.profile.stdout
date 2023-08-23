@@ -1,0 +1,19 @@
+
+[
+    {
+        "size": 125,
+        "stencil": "7pt",
+        "spmv": {
+            "coo": {
+                "storage": 11600,
+                "time": 1.0,
+                "repetitions": 1,
+                "completed": true
+            }
+        },
+        "nnz": 725,
+        "optimal": {
+            "spmv": "coo"
+        }
+    }
+]

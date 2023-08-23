@@ -44,6 +44,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/base/stream.hpp>
+
+
 #ifdef GKO_COMPILING_CUDA
 
 #include "cuda/base/device.hpp"
@@ -106,8 +109,8 @@ inline void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
         if (gko::CudaExecutor::get_num_devices() == 0) {
             throw std::runtime_error{"No suitable CUDA devices"};
         }
-        exec = gko::CudaExecutor::create(0, ref, false,
-                                         gko::default_cuda_alloc_mode, stream);
+        exec = gko::CudaExecutor::create(
+            0, ref, std::make_shared<gko::CudaAllocator>(), stream);
     }
 }
 
@@ -119,8 +122,8 @@ inline void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
     if (gko::HipExecutor::get_num_devices() == 0) {
         throw std::runtime_error{"No suitable HIP devices"};
     }
-    exec = gko::HipExecutor::create(0, ref, false, gko::default_hip_alloc_mode,
-                                    stream);
+    exec = gko::HipExecutor::create(
+        0, ref, std::make_shared<gko::HipAllocator>(), stream);
 }
 
 
@@ -146,7 +149,13 @@ public:
 #endif
     using index_type = int;
 
-    CommonTestFixture() : ref{gko::ReferenceExecutor::create()}
+    CommonTestFixture()
+        :
+#if defined(GKO_TEST_NONDEFAULT_STREAM) && \
+    (defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP))
+          stream{0},
+#endif
+          ref{gko::ReferenceExecutor::create()}
     {
 #if defined(GKO_TEST_NONDEFAULT_STREAM) && \
     (defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP))

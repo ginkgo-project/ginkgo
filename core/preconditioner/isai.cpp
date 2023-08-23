@@ -122,7 +122,7 @@ std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor>& exec,
 template <isai_type IsaiType, typename ValueType, typename IndexType>
 void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
     std::shared_ptr<const LinOp> input, bool skip_sorting, int power,
-    IndexType excess_limit)
+    IndexType excess_limit, remove_complex<ValueType> excess_solver_reduction)
 {
     using Dense = matrix::Dense<ValueType>;
     using LowerTrs = solver::LowerTrs<ValueType, IndexType>;
@@ -244,7 +244,8 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
                             gko::stop::ResidualNorm<ValueType>::build()
                                 .with_baseline(gko::stop::mode::rhs_norm)
                                 .with_reduction_factor(
-                                    remove_complex<ValueType>{1e-6})
+                                    remove_complex<ValueType>{
+                                        excess_solver_reduction})
                                 .on(exec))
                         .on(exec);
                 excess_solution->copy_from(excess_rhs);

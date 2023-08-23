@@ -55,9 +55,6 @@ namespace gko {
 namespace kernels {
 namespace dpcpp {
 
-// #define GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM 1
-// #define GKO_DEVICE_RAND_LIB curand
-
 /**
  * @brief The batch Idr solver namespace.
  *

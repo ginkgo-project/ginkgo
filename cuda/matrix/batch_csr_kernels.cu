@@ -88,7 +88,8 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
     const auto a_ub = get_batch_struct(a);
     const auto b_ub = get_batch_struct(b);
     const auto c_ub = get_batch_struct(c);
-    spmv<<<num_blocks, default_block_size>>>(a_ub, b_ub, c_ub);
+    spmv<<<num_blocks, default_block_size, 0, exec->get_stream()>>>(a_ub, b_ub,
+                                                                    c_ub);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -109,8 +110,8 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
     const auto c_ub = get_batch_struct(c);
     const auto alpha_ub = get_batch_struct(alpha);
     const auto beta_ub = get_batch_struct(beta);
-    advanced_spmv<<<num_blocks, default_block_size>>>(alpha_ub, a_ub, b_ub,
-                                                      beta_ub, c_ub);
+    advanced_spmv<<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+        alpha_ub, a_ub, b_ub, beta_ub, c_ub);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -217,7 +218,8 @@ void batch_scale(std::shared_ptr<const CudaExecutor> exec,
     const size_t shared_size = num_cols * sizeof(ValueType);
     const int block_size = ((num_rows - 1) / 32 + 1) * 32;
     const int num_blocks = mat->get_num_batch_entries();
-    uniform_batch_scale<<<num_blocks, block_size, shared_size>>>(
+    uniform_batch_scale<<<num_blocks, block_size, shared_size,
+                          exec->get_stream()>>>(
         as_cuda_type(left_scale->get_const_values()),
         as_cuda_type(right_scale->get_const_values()), m_ub, num_cols);
 }
@@ -240,7 +242,8 @@ void pre_diag_transform_system(
     const size_type nnz = a->get_num_stored_elements() / nbatch;
     const int nrhs = static_cast<int>(b->get_size().at()[1]);
     const size_type b_stride = b->get_stride().at();
-    pre_diag_scale_system<<<nbatch, default_block_size>>>(
+    pre_diag_scale_system<<<nbatch, default_block_size, 0,
+                            exec->get_stream()>>>(
         nbatch, nrows, ncols, nnz, as_cuda_type(a->get_values()),
         a->get_const_col_idxs(), a->get_const_row_ptrs(), nrhs, b_stride,
         as_cuda_type(b->get_values()),
@@ -263,7 +266,8 @@ void convert_to_batch_dense(
     const int ncols = static_cast<int>(src->get_size().at()[1]);
     const int nnz = static_cast<int>(src->get_num_stored_elements() / nbatches);
     const size_type dstride = dest->get_stride().at();
-    uniform_convert_to_batch_dense<<<nbatches, default_block_size>>>(
+    uniform_convert_to_batch_dense<<<nbatches, default_block_size, 0,
+                                     exec->get_stream()>>>(
         nbatches, nrows, ncols, nnz, src->get_const_row_ptrs(),
         src->get_const_col_idxs(), as_cuda_type(src->get_const_values()),
         dstride, as_cuda_type(dest->get_values()));
@@ -283,7 +287,8 @@ void check_diagonal_entries_exist(
     const auto nmin = static_cast<int>(
         std::min(mtx->get_size().at(0)[0], mtx->get_size().at(0)[1]));
     array<bool> d_result(exec, 1);
-    check_all_diagonal_locations<<<1, default_block_size>>>(
+    check_all_diagonal_locations<<<1, default_block_size, 0,
+                                   exec->get_stream()>>>(
         nmin, mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
         d_result.get_data());
     has_all_diags = exec->copy_val_to_host(d_result.get_const_data());
@@ -305,7 +310,7 @@ void add_scaled_identity(std::shared_ptr<const CudaExecutor> exec,
     const int nrows = mtx->get_size().at()[0];
     const size_type astride = a->get_stride().at();
     const size_type bstride = b->get_stride().at();
-    add_scaled_identity<<<nbatch, default_block_size>>>(
+    add_scaled_identity<<<nbatch, default_block_size, 0, exec->get_stream()>>>(
         nbatch, nrows, nnz, mtx->get_const_row_ptrs(),
         mtx->get_const_col_idxs(), as_cuda_type(mtx->get_values()), astride,
         as_cuda_type(a->get_const_values()), bstride,

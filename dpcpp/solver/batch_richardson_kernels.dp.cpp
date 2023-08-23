@@ -68,7 +68,6 @@ template <typename T>
 using BatchRichardsonOptions =
     gko::kernels::batch_rich::BatchRichardsonOptions<T>;
 
-
 template <typename ValueType>
 class KernelCaller {
 public:

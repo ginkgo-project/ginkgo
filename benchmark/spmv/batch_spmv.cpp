@@ -82,6 +82,7 @@ using size_type = gko::size_type;
 //
 // Overload for the Suitesparse matrices
 void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
+                std::shared_ptr<Timer> timer,
                 const gko::matrix_data<etype>& data, const batch_vec<etype>* b,
                 const batch_vec<etype>* x, const batch_vec<etype>* answer,
                 rapidjson::Value& test_case,
@@ -118,15 +119,15 @@ void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
             // add_or_set_member(spmv_case[format_name], "max_relative_norm2",
             //                   max_relative_norm2, allocator);
         }
+        IterationControl ic{timer};
+
         // warm run
-        for (unsigned int i = 0; i < FLAGS_warmup; i++) {
+        for (auto _ : ic.warmup_run()) {
             auto x_clone = clone(x);
             exec->synchronize();
             system_matrix->apply(lend(b), lend(x_clone));
             exec->synchronize();
         }
-
-        IterationControl ic{get_timer(exec, FLAGS_gpu_timer)};
 
         // tuning run
 #ifdef GINKGO_BENCHMARK_ENABLE_TUNING
@@ -152,15 +153,14 @@ void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
             // variable is used.
             gko::_tuned_value = val;
             auto tuning_timer = get_timer(exec, FLAGS_gpu_timer);
-            for (auto status : ic.run(false)) {
+            IterationControl ic_tuning{tuning_timer};
+            for (auto _ : ic_tuning.run()) {
                 auto x_clone = clone(x);
                 exec->synchronize();
-                tuning_timer->tic();
                 system_matrix->apply(lend(b), lend(x_clone));
-                tuning_timer->toc();
             }
-            tuning_case["time"].PushBack(tuning_timer->compute_average_time(),
-                                         allocator);
+            tuning_case["time"].PushBack(
+                ic_tuning.compute_time(FLAGS_timer_method), allocator);
             tuning_case["values"].PushBack(val, allocator);
         }
         // We put back the flag to false to use the default (non-tuned) values
@@ -169,18 +169,14 @@ void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
 #endif  // GINKGO_BENCHMARK_ENABLE_TUNING
 
         // timed run
-        auto timer = get_timer(exec, FLAGS_gpu_timer);
-        for (auto status : ic.run(false)) {
-            auto x_clone = clone(x);
-            exec->synchronize();
-            timer->tic();
+        auto x_clone = clone(x);
+        for (auto _ : ic.run()) {
             system_matrix->apply(lend(b), lend(x_clone));
-            timer->toc();
         }
         add_or_set_member(spmv_case[format_name], "num_batch_entries",
                           system_matrix->get_num_batch_entries(), allocator);
         add_or_set_member(spmv_case[format_name], "time",
-                          timer->compute_average_time(), allocator);
+                          ic.compute_time(FLAGS_timer_method), allocator);
 
         // compute and write benchmark data
         add_or_set_member(spmv_case[format_name], "completed", true, allocator);
@@ -262,8 +258,8 @@ void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
                 system_matrix->apply(lend(b), lend(x_clone));
                 tuning_timer->toc();
             }
-            tuning_case["time"].PushBack(tuning_timer->compute_average_time(),
-                                         allocator);
+            tuning_case["time"].PushBack(
+                tuning_timer->compute_time(FLAGS_timer_method), allocator);
             tuning_case["values"].PushBack(val, allocator);
         }
         // We put back the flag to false to use the default (non-tuned) values
@@ -283,7 +279,7 @@ void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
         add_or_set_member(spmv_case[format_name], "num_batch_entries",
                           system_matrix->get_num_batch_entries(), allocator);
         add_or_set_member(spmv_case[format_name], "time",
-                          timer->compute_average_time(), allocator);
+                          timer->compute_time(FLAGS_timer_method), allocator);
 
         // compute and write benchmark data
         add_or_set_member(spmv_case[format_name], "completed", true, allocator);
@@ -445,8 +441,10 @@ int main(int argc, char* argv[])
             }
             for (const auto& format_name : formats) {
                 if (FLAGS_using_suite_sparse) {
-                    apply_spmv(format_name.c_str(), exec, data[0], lend(b),
-                               lend(x), lend(answer), test_case, allocator);
+                    apply_spmv(format_name.c_str(), exec,
+                               get_timer(exec, FLAGS_gpu_timer), data[0],
+                               lend(b), lend(x), lend(answer), test_case,
+                               allocator);
                 } else {
                     apply_spmv(format_name.c_str(), exec, data, lend(b),
                                lend(x), lend(answer), test_case, allocator);

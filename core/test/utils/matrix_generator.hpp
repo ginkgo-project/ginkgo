@@ -501,6 +501,130 @@ std::unique_ptr<MatrixType> generate_random_band_matrix(
 }
 
 
+/**
+ * Generates a tridiagonal Toeplitz matrix.
+ *
+ * @param size  the (square) size of the resulting matrix
+ * @param coeffs  the coefficients of the tridiagonal matrix stored as [lower,
+ *                diag, upper]
+ * @param exec  the executor for the resulting matrix
+ *
+ * @return  a tridiagonal Toeplitz matrix.
+ */
+template <typename ValueType, typename IndexType>
+gko::matrix_data<ValueType, IndexType> generate_tridiag_matrix_data(
+    gko::size_type size, std::array<ValueType, 3> coeffs,
+    std::shared_ptr<const gko::Executor> exec)
+{
+    auto lower = coeffs[0];
+    auto diag = coeffs[1];
+    auto upper = coeffs[2];
+
+    gko::matrix_data<ValueType, IndexType> md{gko::dim<2>{size, size}};
+    for (size_type i = 0; i < size; ++i) {
+        if (i > 0) {
+            md.nonzeros.emplace_back(i, i - 1, lower);
+        }
+        md.nonzeros.emplace_back(i, i, diag);
+        if (i < size - 1) {
+            md.nonzeros.emplace_back(i, i + 1, upper);
+        }
+    }
+    return md;
+}
+
+
+/**
+ * @copydoc generate_tridiag_matrix_data
+ */
+template <typename MatrixType>
+std::unique_ptr<MatrixType> generate_tridiag_matrix(
+    gko::size_type size, std::array<typename MatrixType::value_type, 3> coeffs,
+    std::shared_ptr<const gko::Executor> exec)
+{
+    auto mtx = MatrixType::create(exec);
+    mtx->read(generate_tridiag_matrix_data<typename MatrixType::value_type,
+                                           typename MatrixType::index_type>(
+        size, coeffs, exec));
+    return mtx;
+}
+
+
+/**
+ * This computes an inverse of an tridiagonal Toeplitz matrix.
+ *
+ * The computation is based on the formula is from
+ * https://en.wikipedia.org/wiki/Tridiagonal_matrix#Inversion
+ *
+ * @param size  the (square) size of the resulting matrix
+ * @param coeffs  the coefficients of the tridiagonal matrix stored as [lower,
+ *                diag, upper]
+ * @param exec  the executor for the resulting matrix
+ *
+ * @return  a matrix (possible dense) that is the inverse of the matrix
+ *           generated from generate_tridiag_matrix_data with the same inputs
+ */
+template <typename ValueType, typename IndexType>
+gko::matrix_data<ValueType, IndexType> generate_tridiag_inverse_matrix_data(
+    gko::size_type size, std::array<ValueType, 3> coeffs)
+{
+    if (size == 0) {
+        return {};
+    }
+
+    auto lower = coeffs[0];
+    auto diag = coeffs[1];
+    auto upper = coeffs[2];
+
+    std::vector<ValueType> alpha(size + 1);
+    auto beta = std::make_reverse_iterator(alpha.end());
+
+    alpha[0] = 1;
+    alpha[1] = diag;
+    for (std::size_t i = 2; i < alpha.size(); ++i) {
+        alpha[i] = diag * alpha[i - 1] - upper * lower * alpha[i - 2];
+    }
+
+    gko::matrix_data<ValueType, IndexType> md{gko::dim<2>{size, size}};
+    for (size_type i = 0; i < size; ++i) {
+        for (size_type j = 0; j < size; ++j) {
+            if (i == j) {
+                md.nonzeros.emplace_back(i, j,
+                                         alpha[i] * beta[j + 1] / alpha.back());
+            } else {
+                auto sign = static_cast<ValueType>((i + j) % 2 ? -1 : 1);
+                auto off_diag = i < j ? upper : lower;
+                auto min_idx = std::min(i, j);
+                auto max_idx = std::max(i, j);
+                auto val = sign *
+                           static_cast<ValueType>(
+                               std::pow(off_diag, max_idx - min_idx)) *
+                           alpha[min_idx] * beta[max_idx + 1] / alpha.back();
+                md.nonzeros.emplace_back(i, j, val);
+            }
+        }
+    }
+    return md;
+}
+
+
+/**
+ * @copydoc generate_tridiag_inverse_matrix_data
+ */
+template <typename MatrixType>
+std::unique_ptr<MatrixType> generate_tridiag_inverse_matrix(
+    gko::size_type size, std::array<typename MatrixType::value_type, 3> coeffs,
+    std::shared_ptr<const gko::Executor> exec)
+{
+    auto mtx = MatrixType::create(exec);
+    mtx->read(
+        generate_tridiag_inverse_matrix_data<typename MatrixType::value_type,
+                                             typename MatrixType::index_type>(
+            size, coeffs));
+    return mtx;
+}
+
+
 }  // namespace test
 }  // namespace gko
 

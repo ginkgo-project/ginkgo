@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <limits>
 
 
 #include <omp.h>
@@ -52,8 +53,9 @@ namespace components {
  * The last entry of the input array is never used, but is replaced.
  */
 template <typename IndexType>
-void prefix_sum(std::shared_ptr<const OmpExecutor> exec,
-                IndexType* const counts, const size_type num_entries)
+void prefix_sum_nonnegative(std::shared_ptr<const OmpExecutor> exec,
+                            IndexType* const counts,
+                            const size_type num_entries)
 {
     // the operation only makes sense for arrays of size at least 2
     if (num_entries < 2) {
@@ -68,6 +70,8 @@ void prefix_sum(std::shared_ptr<const OmpExecutor> exec,
     const int nthreads = omp_get_max_threads();
     vector<IndexType> proc_sums(nthreads, 0, {exec});
     const size_type def_num_witems = (num_entries - 1) / nthreads + 1;
+    bool overflow = false;
+    constexpr auto max = std::numeric_limits<IndexType>::max();
 
 #pragma omp parallel
     {
@@ -78,9 +82,12 @@ void prefix_sum(std::shared_ptr<const OmpExecutor> exec,
 
         IndexType partial_sum{0};
         for (size_type i = startidx; i < endidx; ++i) {
-            auto nnz = counts[i];
+            auto nnz = i < num_entries - 1 ? counts[i] : IndexType{};
             counts[i] = partial_sum;
-            partial_sum += nnz;
+            if (max - partial_sum < nnz) {
+                overflow = true;
+            }
+            partial_sum = partial_sum + nnz;
         }
 
         proc_sums[thread_id] = partial_sum;
@@ -90,22 +97,32 @@ void prefix_sum(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp single
         {
             for (int i = 0; i < nthreads - 1; i++) {
-                proc_sums[i + 1] += proc_sums[i];
+                if (max - proc_sums[i + 1] < proc_sums[i]) {
+                    overflow = true;
+                }
+                proc_sums[i + 1] = proc_sums[i + 1] + proc_sums[i];
             }
         }
 
         if (thread_id > 0) {
             for (size_type i = startidx; i < endidx; i++) {
+                if (max - counts[i] < proc_sums[thread_id - 1]) {
+                    overflow = true;
+                }
                 counts[i] += proc_sums[thread_id - 1];
             }
         }
     }
+    if (overflow) {
+        throw OverflowError(__FILE__, __LINE__,
+                            name_demangling::get_type_name(typeid(IndexType)));
+    }
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_NONNEGATIVE_KERNEL);
 
 // instantiate for size_type as well, as this is used in the Sellp format
-template GKO_DECLARE_PREFIX_SUM_KERNEL(size_type);
+template GKO_DECLARE_PREFIX_SUM_NONNEGATIVE_KERNEL(size_type);
 
 
 }  // namespace components

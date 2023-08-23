@@ -1,0 +1,1 @@
+ginkgo_create_common_and_reference_test(profiler_hook)

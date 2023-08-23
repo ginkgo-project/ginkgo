@@ -11,6 +11,107 @@ git log --first-parent
 
 Please visit our wiki [Changelog](https://github.com/ginkgo-project/ginkgo/wiki/Changelog) for unreleased changes.
 
+## Version 1.6.0
+
+The Ginkgo team is proud to announce the new Ginkgo minor release 1.6.0. This release brings new features such as:
+- Several building blocks for GPU-resident sparse direct solvers like symbolic
+  and numerical LU and Cholesky factorization, ...,
+- A distributed Schwarz preconditioner,
+- New FGMRES and GCR solvers,
+- Distributed benchmarks for the SpMV operation, solvers, ...
+- Support for non-default streams in the CUDA and HIP backends,
+- Mixed precision support for the CSR SpMV,
+- A new profiling logger which integrates with NVTX, ROCTX, TAU and VTune to
+  provide internal Ginkgo knowledge to most HPC profilers!
+
+and much more.
+
+If you face an issue, please first check our [known issues page](https://github.com/ginkgo-project/ginkgo/wiki/Known-Issues) and the [open issues list](https://github.com/ginkgo-project/ginkgo/issues) and if you do not find a solution, feel free to [open a new issue](https://github.com/ginkgo-project/ginkgo/issues/new/choose) or ask a question using the [github discussions](https://github.com/ginkgo-project/ginkgo/discussions).
+
+Supported systems and requirements:
++ For all platforms, CMake 3.13+
++ C++14 compliant compiler
++ Linux and macOS
+  + GCC: 5.5+
+  + clang: 3.9+
+  + Intel compiler: 2018+
+  + Apple Clang: 14.0 is tested. Earlier versions might also work.
+  + NVHPC: 22.7+
+  + Cray Compiler: 14.0.1+
+  + CUDA module: CUDA 9.2+ or NVHPC 22.7+
+  + HIP module: ROCm 4.5+
+  + DPC++ module: Intel OneAPI 2021.3+ with oneMKL and oneDPL. Set the CXX compiler to `dpcpp`.
++ Windows
+  + MinGW: GCC 5.5+
+  + Microsoft Visual Studio: VS 2019+
+  + CUDA module: CUDA 9.2+, Microsoft Visual Studio
+  + OpenMP module: MinGW.
+
+### Version Support Changes
++ ROCm 4.0+ -> 4.5+ after [#1303](https://github.com/ginkgo-project/ginkgo/pull/1303)
++ Removed Cygwin pipeline and support [#1283](https://github.com/ginkgo-project/ginkgo/pull/1283)
+
+### Interface Changes
++ Due to internal changes, `ConcreteExecutor::run` will now always throw if the corresponding module for the `ConcreteExecutor` is not build [#1234](https://github.com/ginkgo-project/ginkgo/pull/1234)
++ The constructor of `experimental::distributed::Vector` was changed to only accept local vectors as `std::unique_ptr` [#1284](https://github.com/ginkgo-project/ginkgo/pull/1284)
++ The default parameters for the `solver::MultiGrid` were improved. In particular, the smoother defaults to one iteration of `Ir` with `Jacobi` preconditioner, and the coarse grid solver uses the new direct solver with LU factorization. [#1291](https://github.com/ginkgo-project/ginkgo/pull/1291) [#1327](https://github.com/ginkgo-project/ginkgo/pull/1327)
++ The `iteration_complete` event gained a more expressive overload with additional parameters, the old overloads were deprecated. [#1288](https://github.com/ginkgo-project/ginkgo/pull/1288) [#1327](https://github.com/ginkgo-project/ginkgo/pull/1327)
+
+### Deprecations
++ Deprecated less expressive `iteration_complete` event. Users are advised to now implement the function `void iteration_complete(const LinOp* solver, const LinOp* b, const LinOp* x, const size_type& it, const LinOp* r, const LinOp* tau, const LinOp* implicit_tau_sq, const array<stopping_status>* status, bool stopped)` [#1288](https://github.com/ginkgo-project/ginkgo/pull/1288)
+
+### Added Features
++ A distributed Schwarz preconditioner. [#1248](https://github.com/ginkgo-project/ginkgo/pull/1248)
++ A GCR solver [#1239](https://github.com/ginkgo-project/ginkgo/pull/1239)
++ Flexible Gmres solver [#1244](https://github.com/ginkgo-project/ginkgo/pull/1244)
++ Enable Gmres solver for distributed matrices and vectors [#1201](https://github.com/ginkgo-project/ginkgo/pull/1201)
++ An example that uses Kokkos to assemble the system matrix [#1216](https://github.com/ginkgo-project/ginkgo/pull/1216)
++ A symbolic LU factorization allowing the `gko::experimental::factorization::Lu` and `gko::experimental::solver::Direct` classes to be used for matrices with non-symmetric sparsity pattern [#1210](https://github.com/ginkgo-project/ginkgo/pull/1210)
++ A numerical Cholesky factorization [#1215](https://github.com/ginkgo-project/ginkgo/pull/1215)
++ Symbolic factorizations in host-side operations are now wrapped in a host-side `Operation` to make their execution visible to loggers. This means that profiling loggers and benchmarks are no longer missing a separate entry for their runtime [#1232](https://github.com/ginkgo-project/ginkgo/pull/1232)
++ Symbolic factorization benchmark [#1302](https://github.com/ginkgo-project/ginkgo/pull/1302)
++ The `ProfilerHook` logger allows annotating the Ginkgo execution (apply, operations, ...) for profiling frameworks like NVTX, ROCTX and TAU. [#1055](https://github.com/ginkgo-project/ginkgo/pull/1055)
++ `ProfilerHook::created_(nested_)summary` allows the generation of a lightweight runtime profile over all Ginkgo functions written to a user-defined stream [#1270](https://github.com/ginkgo-project/ginkgo/pull/1270) for both host and device timing functionality [#1313](https://github.com/ginkgo-project/ginkgo/pull/1313)
++ It is now possible to enable host buffers for MPI communications at runtime even if the compile option `GINKGO_FORCE_GPU_AWARE_MPI` is set. [#1228](https://github.com/ginkgo-project/ginkgo/pull/1228)
++ A stencil matrices generator (5-pt, 7-pt, 9-pt, and 27-pt) for benchmarks [#1204](https://github.com/ginkgo-project/ginkgo/pull/1204)
++ Distributed benchmarks (multi-vector blas, SpMV, solver) [#1204](https://github.com/ginkgo-project/ginkgo/pull/1204)
++ Benchmarks for CSR sorting and lookup [#1219](https://github.com/ginkgo-project/ginkgo/pull/1219)
++ A timer for MPI benchmarks that reports the longest time [#1217](https://github.com/ginkgo-project/ginkgo/pull/1217)
++ A `timer_method=min|max|average|median` flag for benchmark timing summary [#1294](https://github.com/ginkgo-project/ginkgo/pull/1294)
++ Support for non-default streams in CUDA and HIP executors [#1236](https://github.com/ginkgo-project/ginkgo/pull/1236)
++ METIS integration for nested dissection reordering [#1296](https://github.com/ginkgo-project/ginkgo/pull/1296)
++ SuiteSparse AMD integration for fillin-reducing reordering [#1328](https://github.com/ginkgo-project/ginkgo/pull/1328)
++ Csr mixed-precision SpMV support [#1319](https://github.com/ginkgo-project/ginkgo/pull/1319)
++ A `with_loggers` function for all `Factory` parameters [#1337](https://github.com/ginkgo-project/ginkgo/pull/1337)
+
+### Improvements
++ Improve naming of kernel operations for loggers [#1277](https://github.com/ginkgo-project/ginkgo/pull/1277)
++ Annotate solver iterations in `ProfilerHook` [#1290](https://github.com/ginkgo-project/ginkgo/pull/1290)
++ Allow using the profiler hooks and inline input strings in benchmarks [#1342](https://github.com/ginkgo-project/ginkgo/pull/1342)
++ Allow passing smart pointers in place of raw pointers to most matrix functions. This means that things like `vec->compute_norm2(x.get())` or `vec->compute_norm2(lend(x))` can be simplified to `vec->compute_norm2(x)` [#1279](https://github.com/ginkgo-project/ginkgo/pull/1279) [#1261](https://github.com/ginkgo-project/ginkgo/pull/1261)
++ Catch overflows in prefix sum operations, which makes Ginkgo's operations much less likely to crash. This also improves the performance of the prefix sum kernel [#1303](https://github.com/ginkgo-project/ginkgo/pull/1303)
++ Make the installed GinkgoConfig.cmake file relocatable and follow more best practices [#1325](https://github.com/ginkgo-project/ginkgo/pull/1325)
+
+### Fixes
++ Fix OpenMPI version check [#1200](https://github.com/ginkgo-project/ginkgo/pull/1200)
++ Fix the mpi cxx type binding by c binding [#1306](https://github.com/ginkgo-project/ginkgo/pull/1306)
++ Fix runtime failures for one-sided MPI wrapper functions observed on some OpenMPI versions [#1249](https://github.com/ginkgo-project/ginkgo/pull/1249)
++ Disable thread pinning with GPU executors due to poor performance [#1230](https://github.com/ginkgo-project/ginkgo/pull/1230)
++ Fix hwloc version detection [#1266](https://github.com/ginkgo-project/ginkgo/pull/1266)
++ Fix PAPI detection in non-implicit include directories [#1268](https://github.com/ginkgo-project/ginkgo/pull/1268)
++ Fix PAPI support for newer PAPI versions: [#1321](https://github.com/ginkgo-project/ginkgo/pull/1321)
++ Fix pkg-config file generation for library paths outside prefix [#1271](https://github.com/ginkgo-project/ginkgo/pull/1271)
++ Fix various build failures with ROCm 5.4, CUDA 12 and OneAPI 6 [#1214](https://github.com/ginkgo-project/ginkgo/pull/1214), [#1235](https://github.com/ginkgo-project/ginkgo/pull/1235), [#1251](https://github.com/ginkgo-project/ginkgo/pull/1251)
++ Fix incorrect read for skew-symmetric MatrixMarket files with explicit diagonal entries [#1272](https://github.com/ginkgo-project/ginkgo/pull/1272)
++ Fix handling of missing diagonal entries in symbolic factorizations [#1263](https://github.com/ginkgo-project/ginkgo/pull/1263)
++ Fix segmentation fault in benchmark matrix construction [#1299](https://github.com/ginkgo-project/ginkgo/pull/1299)
++ Fix the stencil matrix creation for benchmarking [#1305](https://github.com/ginkgo-project/ginkgo/pull/1305)
++ Fix the additional residual check in IR [#1307](https://github.com/ginkgo-project/ginkgo/pull/1307)
++ Fix the cuSPARSE CSR SpMM issue on single strided vector when cuda >= 11.6 [#1322](https://github.com/ginkgo-project/ginkgo/pull/1322) [#1331](https://github.com/ginkgo-project/ginkgo/pull/1331)
++ Fix Isai generation for large sparsity powers [#1327](https://github.com/ginkgo-project/ginkgo/pull/1327)
++ Fix Ginkgo compilation and test with NVHPC >= 22.7 [#1331](https://github.com/ginkgo-project/ginkgo/pull/1331)
++ Fix Ginkgo compilation of 32 bit binaries with MSVC [#1349](https://github.com/ginkgo-project/ginkgo/pull/1349)
+
 
 ## Version 1.5.0
 
@@ -114,7 +215,7 @@ Supported systems and requirements:
 + Add reduce_add for arrays ([#831](https://github.com/ginkgo-project/ginkgo/pull/831))
 + Add utility to simplify Dense View creation from an existing Dense vector ([#1136](https://github.com/ginkgo-project/ginkgo/pull/1136)).
 + Add a custom transpose implementation for Fbcsr and Csr transpose for unsupported vendor types ([#1123](https://github.com/ginkgo-project/ginkgo/pull/1123))
-+ Make IDR random initilization deterministic ([#1116](https://github.com/ginkgo-project/ginkgo/pull/1116))
++ Make IDR random initialization deterministic ([#1116](https://github.com/ginkgo-project/ginkgo/pull/1116))
 + Move the algorithm choice for triangular solvers from Csr::strategy_type to a factory parameter ([#1088](https://github.com/ginkgo-project/ginkgo/pull/1088))
 + Update CUDA archCoresPerSM ([#1175](https://github.com/ginkgo-project/ginkgo/pull/1116))
 + Add kernels for Csr sparsity pattern lookup ([#994](https://github.com/ginkgo-project/ginkgo/pull/994))
@@ -519,7 +620,7 @@ page](https://github.com/ginkgo-project/ginkgo/wiki/Known-Issues).
 
 
 ### Additions
-+ Upper and lower triangular solvers ([#327](https://github.com/ginkgo-project/ginkgo/issues/327), [#336](https://github.com/ginkgo-project/ginkgo/issues/336), [#341](https://github.com/ginkgo-project/ginkgo/issues/341), [#342](https://github.com/ginkgo-project/ginkgo/issues/342)) 
++ Upper and lower triangular solvers ([#327](https://github.com/ginkgo-project/ginkgo/issues/327), [#336](https://github.com/ginkgo-project/ginkgo/issues/336), [#341](https://github.com/ginkgo-project/ginkgo/issues/341), [#342](https://github.com/ginkgo-project/ginkgo/issues/342))
 + New factorization support in Ginkgo, and addition of the ParILU
   algorithm ([#305](https://github.com/ginkgo-project/ginkgo/issues/305), [#315](https://github.com/ginkgo-project/ginkgo/issues/315), [#319](https://github.com/ginkgo-project/ginkgo/issues/319), [#324](https://github.com/ginkgo-project/ginkgo/issues/324))
 + New ILU preconditioner ([#348](https://github.com/ginkgo-project/ginkgo/issues/348), [#353](https://github.com/ginkgo-project/ginkgo/issues/353))
@@ -531,7 +632,7 @@ page](https://github.com/ginkgo-project/ginkgo/wiki/Known-Issues).
 + Allow benchmarking CuSPARSE spmv formats through Ginkgo's benchmarks ([#303](https://github.com/ginkgo-project/ginkgo/issues/303))
 + New benchmark for sparse matrix format conversions ([#312](https://github.com/ginkgo-project/ginkgo/issues/312)[#317](https://github.com/ginkgo-project/ginkgo/issues/317))
 + Add conversions between CSR and Hybrid formats ([#302](https://github.com/ginkgo-project/ginkgo/issues/302), [#310](https://github.com/ginkgo-project/ginkgo/issues/310))
-+ Support for sorting rows in the CSR format by column idices ([#322](https://github.com/ginkgo-project/ginkgo/issues/322))
++ Support for sorting rows in the CSR format by column indices ([#322](https://github.com/ginkgo-project/ginkgo/issues/322))
 + Addition of a CUDA COO SpMM kernel for improved performance ([#345](https://github.com/ginkgo-project/ginkgo/issues/345))
 + Addition of a LinOp to handle perturbations of the form (identity + scalar *
   basis * projector) ([#334](https://github.com/ginkgo-project/ginkgo/issues/334))
@@ -746,7 +847,7 @@ Ginkgo 1.0.0 is brought to you by:
 
 **Karlsruhe Institute of Technology**, Germany  
 **Universitat Jaume I**, Spain  
-**University of Tennessee, Knoxville**, US   
+**University of Tennessee, Knoxville**, US  
 
 These universities, along with various project grants, supported the development team and provided resources needed for the development of Ginkgo.
 
@@ -758,7 +859,7 @@ Ginkgo 1.0.0 contains contributions from:
 **Goran Flegar**, Universitat Jaume I  
 **Fritz Göbel**, Karlsruhe Institute of Technology  
 **Thomas Grützmacher**, Karlsruhe Institute of Technology  
-**Pratik Nayak**, Karlsruhe Institue of Technologgy  
+**Pratik Nayak**, Karlsruhe Institute of Technology  
 **Tobias Ribizel**, Karlsruhe Institute of Technology  
 **Yuhsiang Tsai**, National Taiwan University  
 
@@ -768,11 +869,11 @@ Supporting materials are provided by the following individuals:
 **Frithjof Fleischhammer** - the Ginkgo website  
 
 The development team is grateful to the following individuals for discussions and comments:
- 
+
 **Erik Boman**  
 **Jelena Držaić**  
 **Mike Heroux**  
 **Mark Hoemmen**  
-**Timo Heister**    
+**Timo Heister**  
 **Jens Saak**  
 

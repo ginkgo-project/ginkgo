@@ -238,6 +238,17 @@ public:
     using factory = Factory;
 
     /**
+     * Provides the loggers to be added to the factory and its generated
+     * objects in a fluent interface.
+     */
+    template <typename... Args>
+    ConcreteParametersType& with_loggers(Args&&... _value)
+    {
+        this->loggers = {std::forward<Args>(_value)...};
+        return *self();
+    }
+
+    /**
      * Creates a new factory on the specified executor.
      *
      * @param exec  the executor where the factory will be created
@@ -246,11 +257,20 @@ public:
      */
     std::unique_ptr<Factory> on(std::shared_ptr<const Executor> exec) const
     {
-        return std::unique_ptr<Factory>(new Factory(exec, *self()));
+        auto factory = std::unique_ptr<Factory>(new Factory(exec, *self()));
+        for (auto& logger : loggers) {
+            factory->add_logger(logger);
+        };
+        return factory;
     }
 
 protected:
     GKO_ENABLE_SELF(ConcreteParametersType);
+
+    /**
+     * Loggers to be attached to the factory and generated object.
+     */
+    std::vector<std::shared_ptr<const log::Logger>> loggers{};
 };
 
 
