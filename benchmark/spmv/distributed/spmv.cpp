@@ -76,10 +76,8 @@ std::string example_config = R"(
 
 struct Generator : DistributedDefaultSystemGenerator<DefaultSystemGenerator<>> {
     Generator(gko::experimental::mpi::communicator comm)
-        : DistributedDefaultSystemGenerator<DefaultSystemGenerator<>>
-    {
-        std::move(comm), {}
-    }
+        : DistributedDefaultSystemGenerator<DefaultSystemGenerator<>>{
+              std::move(comm), {}}
     {}
 
     void validate_options(const rapidjson::Value& options) const

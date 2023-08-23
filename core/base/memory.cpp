@@ -44,7 +44,7 @@ namespace gko {
 
 void* CpuAllocator::allocate(size_type num_bytes)
 {
-    auto ptr = ::operator new(num_bytes, std::nothrow_t{});
+    auto ptr = ::operator new (num_bytes, std::nothrow_t{});
     GKO_ENSURE_ALLOCATED(ptr, "cpu", num_bytes);
     return ptr;
 }
@@ -52,7 +52,7 @@ void* CpuAllocator::allocate(size_type num_bytes)
 
 void CpuAllocator::deallocate(void* ptr)
 {
-    ::operator delete(ptr, std::nothrow_t{});
+    ::operator delete (ptr, std::nothrow_t{});
 }
 
 

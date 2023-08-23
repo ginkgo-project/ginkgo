@@ -537,7 +537,8 @@ class
     // clang-format off
     [[deprecated("This class will be replaced by the template-less detail::SolverBaseLinOp in a future release")]] SolverBase
     // clang-format on
-    : public detail::SolverBaseLinOp {
+    : public detail::SolverBaseLinOp
+{
 public:
     using detail::SolverBaseLinOp::SolverBaseLinOp;
 
@@ -599,14 +600,10 @@ public:
         return *this;
     }
 
-    EnableSolverBase() : SolverBase<MatrixType> { self()->get_executor() }
-    {}
+    EnableSolverBase() : SolverBase<MatrixType>{self()->get_executor()} {}
 
     EnableSolverBase(std::shared_ptr<const MatrixType> system_matrix)
-        : SolverBase<MatrixType>
-    {
-        self()->get_executor()
-    }
+        : SolverBase<MatrixType>{self()->get_executor()}
     {
         set_system_matrix(std::move(system_matrix));
     }
@@ -614,10 +611,8 @@ public:
     /**
      * Creates a shallow copy of the provided system matrix.
      */
-    EnableSolverBase(const EnableSolverBase& other) : SolverBase<MatrixType>
-    {
-        other.self()->get_executor()
-    }
+    EnableSolverBase(const EnableSolverBase& other)
+        : SolverBase<MatrixType>{other.self()->get_executor()}
     {
         *this = other;
     }
@@ -626,10 +621,8 @@ public:
      * Moves the provided system matrix. The moved-from object has a nullptr
      * system matrix.
      */
-    EnableSolverBase(EnableSolverBase&& other) : SolverBase<MatrixType>
-    {
-        other.self()->get_executor()
-    }
+    EnableSolverBase(EnableSolverBase&& other)
+        : SolverBase<MatrixType>{other.self()->get_executor()}
     {
         *this = std::move(other);
     }
@@ -836,10 +829,7 @@ public:
         std::shared_ptr<const LinOp> preconditioner)
         : EnableSolverBase<DerivedType>(std::move(system_matrix)),
           EnableIterativeBase<DerivedType>{std::move(stop_factory)},
-          EnablePreconditionable<DerivedType>
-    {
-        std::move(preconditioner)
-    }
+          EnablePreconditionable<DerivedType>{std::move(preconditioner)}
     {}
 
     template <typename FactoryParameters>

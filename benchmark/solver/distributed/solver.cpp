@@ -46,10 +46,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 struct Generator : public DistributedDefaultSystemGenerator<SolverGenerator> {
     Generator(gko::experimental::mpi::communicator comm)
-        : DistributedDefaultSystemGenerator<SolverGenerator>
-    {
-        std::move(comm), {}
-    }
+        : DistributedDefaultSystemGenerator<SolverGenerator>{std::move(comm),
+                                                             {}}
     {}
 
     std::unique_ptr<Vec> generate_rhs(std::shared_ptr<const gko::Executor> exec,

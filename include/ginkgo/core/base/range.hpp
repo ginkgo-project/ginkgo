@@ -620,7 +620,7 @@ struct implement_binary_operation<operation_kind::range_by_scalar,
     template <typename Operand>                                              \
     struct [[deprecated(                                                     \
         "Please use " #_operation_name)]] _operation_deprecated_name         \
-        : _operation_name<Operand> {};                                       \
+        : _operation_name<Operand>{};                                        \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
