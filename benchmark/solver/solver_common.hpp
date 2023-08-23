@@ -414,11 +414,7 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
 
     bool validate_config(const json& value) const override
     {
-        return ((value.contains("size") && value.contains("stencil") &&
-                 value["size"].is_number_integer() &&
-                 value["stencil"].is_string()) ||
-                (value.contains("filename") &&
-                 value["filename"].is_string())) &&
+        return generator.validate_config(value) &&
                (value.contains("optimal") &&
                 value["optimal"].contains("spmv") &&
                 value["optimal"]["spmv"].is_string());
