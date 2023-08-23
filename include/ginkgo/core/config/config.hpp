@@ -34,7 +34,15 @@ enum LinOpFactoryType : int {
     CbGmres,
     Direct,
     LowerTrs,
-    UpperTrs
+    UpperTrs,
+    Factorization_Ic,
+    Factorization_Ilu,
+    Cholesky,
+    Lu,
+    ParIc,
+    ParIct,
+    ParIlu,
+    ParIlut
 };
 
 

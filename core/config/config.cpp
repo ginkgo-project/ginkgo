@@ -18,21 +18,29 @@ namespace config {
 
 buildfromconfig_map generate_config_map()
 {
-    return {
-        {"Cg", build_from_config<LinOpFactoryType::Cg>},
-        {"Bicg", build_from_config<LinOpFactoryType::Bicg>},
-        {"Bicgstab", build_from_config<LinOpFactoryType::Bicgstab>},
-        {"Cgs", build_from_config<LinOpFactoryType::Cgs>},
-        {"Fcg", build_from_config<LinOpFactoryType::Fcg>},
-        {"Ir", build_from_config<LinOpFactoryType::Ir>},
-        {"Idr", build_from_config<LinOpFactoryType::Idr>},
-        {"Gcr", build_from_config<LinOpFactoryType::Gcr>},
-        {"Gmres", build_from_config<LinOpFactoryType::Gmres>},
-        {"CbGmres", build_from_config<LinOpFactoryType::CbGmres>},
-        {"Direct", build_from_config<LinOpFactoryType::Direct>},
-        {"LowerTrs", build_from_config<LinOpFactoryType::LowerTrs>},
-        {"UpperTrs", build_from_config<LinOpFactoryType::UpperTrs>},
-    };
+    return {{"Cg", build_from_config<LinOpFactoryType::Cg>},
+            {"Bicg", build_from_config<LinOpFactoryType::Bicg>},
+            {"Bicgstab", build_from_config<LinOpFactoryType::Bicgstab>},
+            {"Cgs", build_from_config<LinOpFactoryType::Cgs>},
+            {"Fcg", build_from_config<LinOpFactoryType::Fcg>},
+            {"Ir", build_from_config<LinOpFactoryType::Ir>},
+            {"Idr", build_from_config<LinOpFactoryType::Idr>},
+            {"Gcr", build_from_config<LinOpFactoryType::Gcr>},
+            {"Gmres", build_from_config<LinOpFactoryType::Gmres>},
+            {"CbGmres", build_from_config<LinOpFactoryType::CbGmres>},
+            {"Direct", build_from_config<LinOpFactoryType::Direct>},
+            {"LowerTrs", build_from_config<LinOpFactoryType::LowerTrs>},
+            {"UpperTrs", build_from_config<LinOpFactoryType::UpperTrs>},
+            {"Factorization_Ic",
+             build_from_config<LinOpFactoryType::Factorization_Ic>},
+            {"Factorization_Ilu",
+             build_from_config<LinOpFactoryType::Factorization_Ilu>},
+            {"Cholesky", build_from_config<LinOpFactoryType::Cholesky>},
+            {"Lu", build_from_config<LinOpFactoryType::Lu>},
+            {"ParIc", build_from_config<LinOpFactoryType::ParIc>},
+            {"ParIct", build_from_config<LinOpFactoryType::ParIct>},
+            {"ParIlu", build_from_config<LinOpFactoryType::ParIlu>},
+            {"ParIlut", build_from_config<LinOpFactoryType::ParIlut>}};
 }
 
 

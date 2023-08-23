@@ -18,6 +18,7 @@ target_sources(ginkgo
     base/timer.cpp
     base/version.cpp
     config/config.cpp
+    config/factorization_config.cpp
     config/property_tree.cpp
     config/stop_config.cpp
     config/solver_config.cpp

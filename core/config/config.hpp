@@ -79,6 +79,51 @@ get_factory<const LinOpFactory>(const pnode& config, const registry& context,
     return std::move(ptr);
 }
 
+
+template <typename Csr>
+inline std::shared_ptr<typename Csr::strategy_type> get_strategy(
+    const pnode& config, const registry& context,
+    std::shared_ptr<const Executor> exec, type_descriptor td)
+{
+    auto str = config.get_data<std::string>();
+    std::shared_ptr<typename Csr::strategy_type> strategy_ptr;
+    if (str == "sparselib" || str == "cusparse") {
+        strategy_ptr = std::make_shared<typename Csr::sparselib>();
+    } else if (str == "automatical") {
+        if (auto explicit_exec =
+                std::dynamic_pointer_cast<const gko::CudaExecutor>(exec)) {
+            strategy_ptr =
+                std::make_shared<typename Csr::automatical>(explicit_exec);
+        } else if (auto explicit_exec =
+                       std::dynamic_pointer_cast<const gko::HipExecutor>(
+                           exec)) {
+            strategy_ptr =
+                std::make_shared<typename Csr::automatical>(explicit_exec);
+        } else {
+            strategy_ptr = std::make_shared<typename Csr::automatical>(256);
+        }
+    } else if (str == "load_balance") {
+        if (auto explicit_exec =
+                std::dynamic_pointer_cast<const gko::CudaExecutor>(exec)) {
+            strategy_ptr =
+                std::make_shared<typename Csr::load_balance>(explicit_exec);
+        } else if (auto explicit_exec =
+                       std::dynamic_pointer_cast<const gko::HipExecutor>(
+                           exec)) {
+            strategy_ptr =
+                std::make_shared<typename Csr::load_balance>(explicit_exec);
+        } else {
+            strategy_ptr = std::make_shared<typename Csr::load_balance>(256);
+        }
+
+    } else if (str == "merge_path") {
+        strategy_ptr = std::make_shared<typename Csr::merge_path>();
+    } else if (str == "classical") {
+        strategy_ptr = std::make_shared<typename Csr::classical>();
+    }
+    return std::move(strategy_ptr);
+}
+
 template <>
 deferred_factory_parameter<const stop::CriterionFactory>
 get_factory<const stop::CriterionFactory>(const pnode& config,
@@ -211,6 +256,18 @@ get_value(const pnode& config)
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+#define SET_CSR_STRATEGY(_factory, _csr_type, _param_name, _config, _context, \
+                         _exec, _td)                                          \
+    {                                                                         \
+        if (_config.contains(#_param_name)) {                                 \
+            _factory.with_##_param_name(gko::config::get_strategy<_csr_type>( \
+                _config.at(#_param_name), _context, _exec, _td));             \
+        }                                                                     \
+    }                                                                         \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
                   "semi-colon warnings")
 
 
