@@ -118,6 +118,8 @@ public:
     /** Creates a new parameter_type to set up the factory. */
     static parameters_type build() { return {}; }
 
+    const parameters_type& get_parameters() const { return parameters_; }
+
 protected:
     explicit Lu(std::shared_ptr<const Executor> exec,
                 const parameters_type& params = {});
