@@ -43,7 +43,15 @@ enum class LinOpFactoryType : int {
     CbGmres,
     Direct,
     LowerTrs,
-    UpperTrs
+    UpperTrs,
+    Factorization_Ic,
+    Factorization_Ilu,
+    Cholesky,
+    Lu,
+    ParIc,
+    ParIct,
+    ParIlu,
+    ParIlut
 };
 
 
@@ -223,6 +231,24 @@ get_value(const pnode& config)
         return solver::initial_guess_mode::provided;
     }
     GKO_INVALID_STATE("Wrong value for initial_guess_mode");
+}
+
+
+template <typename Csr>
+inline std::shared_ptr<typename Csr::strategy_type> get_strategy(
+    const pnode& config)
+{
+    auto str = config.get_string();
+    std::shared_ptr<typename Csr::strategy_type> strategy_ptr;
+    // automatical and load_balance requires the executor
+    if (str == "sparselib" || str == "cusparse") {
+        strategy_ptr = std::make_shared<typename Csr::sparselib>();
+    } else if (str == "merge_path") {
+        strategy_ptr = std::make_shared<typename Csr::merge_path>();
+    } else if (str == "classical") {
+        strategy_ptr = std::make_shared<typename Csr::classical>();
+    }
+    return std::move(strategy_ptr);
 }
 
 

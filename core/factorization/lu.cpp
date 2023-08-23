@@ -8,10 +8,13 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/config/registry.hpp>
 
 
 #include "core/base/array_access.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "core/config/config_helper.hpp"
 #include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/lu_kernels.hpp"
 #include "core/factorization/symbolic.hpp"
@@ -38,6 +41,41 @@ GKO_REGISTER_HOST_OPERATION(symbolic_lu_near_symm,
 
 
 }  // namespace
+
+
+template <typename ValueType, typename IndexType>
+typename Lu<ValueType, IndexType>::parameters_type
+Lu<ValueType, IndexType>::parse(const config::pnode& config,
+                                const config::registry& context,
+                                const config::type_descriptor& td_for_child)
+{
+    using sparsity_pattern_type = typename experimental::factorization::Lu<
+        ValueType, IndexType>::sparsity_pattern_type;
+    auto params =
+        experimental::factorization::Lu<ValueType, IndexType>::build();
+
+    if (auto& obj = config.get("symbolic_factorization")) {
+        params.with_symbolic_factorization(
+            config::get_stored_obj<const sparsity_pattern_type>(obj, context));
+    }
+    if (auto& obj = config.get("symbolic_algorithm")) {
+        auto str = obj.get_string();
+        if (str == "general") {
+            params.with_symbolic_algorithm(symbolic_type::general);
+        } else if (str == "near_symmetric") {
+            params.with_symbolic_algorithm(symbolic_type::near_symmetric);
+        } else if (str == "symmetric") {
+            params.with_symbolic_algorithm(symbolic_type::symmetric);
+        } else {
+            GKO_INVALID_STATE("Wrong value for symbolic_type");
+        }
+    }
+    if (auto& obj = config.get("skip_sorting")) {
+        params.with_skip_sorting(config::get_value<bool>(obj));
+    }
+
+    return params;
+}
 
 
 template <typename ValueType, typename IndexType>

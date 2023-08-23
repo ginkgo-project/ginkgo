@@ -12,6 +12,8 @@
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 
@@ -101,6 +103,11 @@ public:
     };
     GKO_ENABLE_LIN_OP_FACTORY(Ic, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
+
+    static parameters_type parse(
+        const config::pnode& config, const config::registry& context,
+        const config::type_descriptor& td_for_child =
+            config::make_type_descriptor<ValueType, IndexType>());
 
 protected:
     Ic(const Factory* factory, std::shared_ptr<const gko::LinOp> system_matrix)

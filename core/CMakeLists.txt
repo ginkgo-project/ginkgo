@@ -21,6 +21,7 @@ target_sources(ginkgo
     base/version.cpp
     config/config.cpp
     config/config_helper.cpp
+    config/factorization_config.cpp
     config/property_tree.cpp
     config/registry.cpp
     config/solver_config.cpp

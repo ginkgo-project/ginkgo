@@ -10,9 +10,12 @@
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/config/registry.hpp>
 
 
 #include "core/base/array_access.hpp"
+#include "core/config/config_helper.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/ilu_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
@@ -34,6 +37,28 @@ GKO_REGISTER_OPERATION(initialize_l_u, factorization::initialize_l_u);
 
 }  // anonymous namespace
 }  // namespace ilu_factorization
+
+
+template <typename ValueType, typename IndexType>
+typename Ilu<ValueType, IndexType>::parameters_type
+Ilu<ValueType, IndexType>::parse(const config::pnode& config,
+                                 const config::registry& context,
+                                 const config::type_descriptor& td_for_child)
+{
+    using matrix_type =
+        typename factorization::Ilu<ValueType, IndexType>::matrix_type;
+    auto params = factorization::Ilu<ValueType, IndexType>::build();
+    if (auto& obj = config.get("l_strategy")) {
+        params.with_l_strategy(config::get_strategy<matrix_type>(obj));
+    }
+    if (auto& obj = config.get("u_strategy")) {
+        params.with_u_strategy(config::get_strategy<matrix_type>(obj));
+    }
+    if (auto& obj = config.get("skip_sorting")) {
+        params.with_skip_sorting(config::get_value<bool>(obj));
+    }
+    return params;
+}
 
 
 template <typename ValueType, typename IndexType>
