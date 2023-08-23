@@ -179,16 +179,16 @@ struct ResidualLogger : gko::log::Logger {
                                const gko::array<gko::stopping_status>* status,
                                bool all_stopped) const override
     {
-        timestamps.push_back(std::chrono::duration<double>(
-                                 std::chrono::steady_clock::now() - start)
-                                 .count());
+        timestamps->push_back(std::chrono::duration<double>(
+                                  std::chrono::steady_clock::now() - start)
+                                  .count());
         if (residual_norm) {
-            rec_res_norms.push_back(
+            rec_res_norms->push_back(
                 get_norm(gko::as<vec<rc_vtype>>(residual_norm)));
         } else {
             gko::detail::vector_dispatch<rc_vtype>(
                 residual, [&](const auto v_residual) {
-                    rec_res_norms.push_back(compute_norm2(v_residual));
+                    rec_res_norms->push_back(compute_norm2(v_residual));
                 });
         }
         if (solution) {
@@ -196,18 +196,18 @@ struct ResidualLogger : gko::log::Logger {
                 rc_vtype>(solution, [&](auto v_solution) {
                 using concrete_type =
                     std::remove_pointer_t<std::decay_t<decltype(v_solution)>>;
-                true_res_norms.push_back(compute_residual_norm(
+                true_res_norms->push_back(compute_residual_norm(
                     matrix, gko::as<concrete_type>(b), v_solution));
             });
         } else {
-            true_res_norms.push_back(-1.0);
+            true_res_norms->push_back(-1.0);
         }
         if (implicit_sq_residual_norm) {
-            implicit_res_norms.push_back(std::sqrt(
+            implicit_res_norms->push_back(std::sqrt(
                 get_norm(gko::as<vec<rc_vtype>>(implicit_sq_residual_norm))));
             has_implicit_res_norm = true;
         } else {
-            implicit_res_norms.push_back(-1.0);
+            implicit_res_norms->push_back(-1.0);
         }
     }
 
@@ -219,11 +219,11 @@ struct ResidualLogger : gko::log::Logger {
           matrix{matrix.get()},
           b{b.get()},
           start{std::chrono::steady_clock::now()},
-          rec_res_norms{rec_res_norms},
-          true_res_norms{true_res_norms},
+          rec_res_norms{&rec_res_norms},
+          true_res_norms{&true_res_norms},
           has_implicit_res_norm{},
-          implicit_res_norms{implicit_res_norms},
-          timestamps{timestamps}
+          implicit_res_norms{&implicit_res_norms},
+          timestamps{&timestamps}
     {}
 
     bool has_implicit_res_norms() const { return has_implicit_res_norm; }
@@ -232,11 +232,11 @@ private:
     const gko::LinOp* matrix;
     const gko::LinOp* b;
     std::chrono::steady_clock::time_point start;
-    json& rec_res_norms;
-    json& true_res_norms;
+    json* rec_res_norms;
+    json* true_res_norms;
     mutable bool has_implicit_res_norm;
-    json& implicit_res_norms;
-    json& timestamps;
+    json* implicit_res_norms;
+    json* timestamps;
 };
 
 
