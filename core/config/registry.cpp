@@ -30,7 +30,15 @@ configuration_map generate_config_map()
             {"solver::CbGmres", parse<LinOpFactoryType::CbGmres>},
             {"solver::Direct", parse<LinOpFactoryType::Direct>},
             {"solver::LowerTrs", parse<LinOpFactoryType::LowerTrs>},
-            {"solver::UpperTrs", parse<LinOpFactoryType::UpperTrs>}};
+            {"solver::UpperTrs", parse<LinOpFactoryType::UpperTrs>},
+            {"factorization::Ic", parse<LinOpFactoryType::Factorization_Ic>},
+            {"factorization::Ilu", parse<LinOpFactoryType::Factorization_Ilu>},
+            {"factorization::Cholesky", parse<LinOpFactoryType::Cholesky>},
+            {"factorization::Lu", parse<LinOpFactoryType::Lu>},
+            {"factorization::ParIc", parse<LinOpFactoryType::ParIc>},
+            {"factorization::ParIct", parse<LinOpFactoryType::ParIct>},
+            {"factorization::ParIlu", parse<LinOpFactoryType::ParIlu>},
+            {"factorization::ParIlut", parse<LinOpFactoryType::ParIlut>}};
 }
 
 
