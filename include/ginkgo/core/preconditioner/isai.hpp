@@ -13,6 +13,8 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -182,8 +184,8 @@ public:
          * Defaults to using a triangular solver for upper and lower ISAI and
          * to Block-Jacobi preconditioned GMRES for general and spd ISAI.
          */
-        std::shared_ptr<LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
-            excess_solver_factory, nullptr);
+        std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
+            excess_solver_factory);
 
         remove_complex<value_type> GKO_FACTORY_PARAMETER_SCALAR(
             excess_solver_reduction,
@@ -192,6 +194,11 @@ public:
 
     GKO_ENABLE_LIN_OP_FACTORY(Isai, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
+
+    static parameters_type parse(
+        const config::pnode& config, const config::registry& context,
+        const config::type_descriptor& td_for_child =
+            config::make_type_descriptor<ValueType, IndexType>());
 
     std::unique_ptr<LinOp> transpose() const override;
 

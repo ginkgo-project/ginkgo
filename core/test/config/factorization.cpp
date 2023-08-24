@@ -38,10 +38,10 @@ template <typename StrategyType>
 inline void check_strategy(std::shared_ptr<StrategyType>& res,
                            std::shared_ptr<StrategyType>& ans)
 {
-    if (ans) {
+    if (ans && res) {
         ASSERT_EQ(res->get_name(), ans->get_name());
     } else {
-        ASSERT_EQ(res, nullptr);
+        ASSERT_EQ(res, ans);
     }
 }
 
