@@ -38,7 +38,11 @@ configuration_map generate_config_map()
             {"factorization::ParIc", parse<LinOpFactoryType::ParIc>},
             {"factorization::ParIct", parse<LinOpFactoryType::ParIct>},
             {"factorization::ParIlu", parse<LinOpFactoryType::ParIlu>},
-            {"factorization::ParIlut", parse<LinOpFactoryType::ParIlut>}};
+            {"factorization::ParIlut", parse<LinOpFactoryType::ParIlut>},
+            {"preconditioner::Ic", parse<LinOpFactoryType::Ic>},
+            {"preconditioner::Ilu", parse<LinOpFactoryType::Ilu>},
+            {"preconditioner::Isai", parse<LinOpFactoryType::Isai>},
+            {"preconditioner::Jacobi", parse<LinOpFactoryType::Jacobi>}};
 }
 
 

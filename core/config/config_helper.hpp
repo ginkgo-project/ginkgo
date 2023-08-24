@@ -10,6 +10,7 @@
 #include <type_traits>
 
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -51,7 +52,11 @@ enum class LinOpFactoryType : int {
     ParIc,
     ParIct,
     ParIlu,
-    ParIlut
+    ParIlut,
+    Ic,
+    Ilu,
+    Isai,
+    Jacobi
 };
 
 
@@ -90,14 +95,36 @@ deferred_factory_parameter<T> parse_or_get_factory(const pnode& config,
                                                    const registry& context,
                                                    const type_descriptor& td);
 
-/**
- * specialize for const LinOpFactory
- */
+template <typename T>
+inline deferred_factory_parameter<typename T::Factory> get_specific_factory(
+    const pnode& config, const registry& context, const type_descriptor& td)
+{
+    using T_non_const = std::remove_const_t<T>;
+    // static_assert(std::is_convertible<T_non_const*, LinOpFactory*>::value,
+    //               "only LinOpFactory");
+    deferred_factory_parameter<typename T::Factory> ptr;
+
+    if (config.get_tag() == pnode::tag_t::string) {
+        ptr =
+            detail::registry_accessor::get_data<typename T_non_const::Factory>(
+                context, config.get_string());
+    } else if (config.get_tag() == pnode::tag_t::map) {
+        ptr = T_non_const::parse(config, context, td);
+    } else {
+        GKO_INVALID_STATE("The data of config is not valid.");
+    }
+    GKO_THROW_IF_INVALID(!ptr.is_empty(), "Parse get nullptr in the end");
+
+    return ptr;
+}
+
+
 template <>
 deferred_factory_parameter<const LinOpFactory>
 parse_or_get_factory<const LinOpFactory>(const pnode& config,
                                          const registry& context,
                                          const type_descriptor& td);
+
 
 /**
  * specialize for const stop::CriterionFactory
@@ -232,6 +259,45 @@ get_value(const pnode& config)
     }
     GKO_INVALID_STATE("Wrong value for initial_guess_mode");
 }
+
+
+template <typename Type>
+inline typename std::enable_if<std::is_same<Type, precision_reduction>::value,
+                               Type>::type
+get_value(const pnode& config)
+{
+    using T = typename Type::storage_type;
+    if (config.get_tag() == pnode::tag_t::array &&
+        config.get_array().size() == 2) {
+        return Type(get_value<T>(config.get(0)), get_value<T>(config.get(1)));
+    }
+    GKO_INVALID_STATE("should use size 2 array");
+}
+
+
+// template <typename T>
+// struct is_array_t : std::false_type {};
+
+// template <typename V>
+// struct is_array_t<array<V>> : std::true_type {};
+
+// template <typename ArrayType>
+// inline typename std::enable_if<is_array_t<ArrayType>::value, ArrayType>::type
+// get_value(const pnode& config, std::shared_ptr<const Executor> exec)
+// {
+//     using T = typename ArrayType::value_type;
+//     std::vector<T> res;
+//     // for loop in config
+//     if (config.get_tag() == pnode::tag_t::array) {
+//         for (const auto& it : config.get_array()) {
+//             res.push_back(get_value<T>(it));
+//         }
+//     } else {
+//         // only one config can be passed without array
+//         res.push_back(get_value<T>(config));
+//     }
+//     return ArrayType(exec, res.begin(), res.end());
+// }
 
 
 template <typename Csr>
