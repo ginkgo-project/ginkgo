@@ -13,6 +13,7 @@
 #include <type_traits>
 
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -202,6 +203,18 @@ get_value(const pnode& config)
     GKO_INVALID_STATE("Can not get complex value");
 }
 
+template <typename Type>
+inline typename std::enable_if<std::is_same<Type, precision_reduction>::value,
+                               Type>::type
+get_value(const pnode& config)
+{
+    using T = typename Type::storage_type;
+    if (config.is(pnode::status_t::array) && config.get_array().size() == 2) {
+        return Type(get_value<T>(config.at(0)), get_value<T>(config.at(1)));
+    }
+    GKO_INVALID_STATE("should use size 2 array");
+}
+
 template <typename ValueType>
 inline typename std::enable_if<
     std::is_same<ValueType, solver::initial_guess_mode>::value,
@@ -217,6 +230,31 @@ get_value(const pnode& config)
         return solver::initial_guess_mode::provided;
     }
     GKO_INVALID_STATE("Wrong value for initial_guess_mode");
+}
+
+
+template <typename T>
+struct is_array_t : std::false_type {};
+
+template <typename V>
+struct is_array_t<array<V>> : std::true_type {};
+
+template <typename ArrayType>
+inline typename std::enable_if<is_array_t<ArrayType>::value, ArrayType>::type
+get_value(const pnode& config, std::shared_ptr<const Executor> exec)
+{
+    using T = typename ArrayType::value_type;
+    std::vector<T> res;
+    // for loop in config
+    if (config.is(pnode::status_t::array)) {
+        for (const auto& it : config.get_array()) {
+            res.push_back(get_value<T>(it));
+        }
+    } else {
+        // only one config can be passed without array
+        res.push_back(get_value<T>(config));
+    }
+    return ArrayType(exec, res.begin(), res.end());
 }
 
 
@@ -243,7 +281,6 @@ get_value(const pnode& config)
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
-
 
 #define SET_FACTORY_VECTOR(_factory, _param_type, _param_name, _config,      \
                            _context, _td)                                    \
@@ -276,6 +313,17 @@ get_value(const pnode& config)
         if (auto& obj = _config.get(#_param_name)) {                         \
             _factory.with_##_param_name(                                     \
                 gko::config::get_value<_param_type>(obj));                   \
+        }                                                                    \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+#define SET_VALUE_ARRAY(_factory, _param_type, _param_name, _config, _exec)  \
+    {                                                                        \
+        if (_config.contains(#_param_name)) {                                \
+            _factory.with_##_param_name(gko::config::get_value<_param_type>( \
+                _config.at(#_param_name), _exec));                           \
         }                                                                    \
     }                                                                        \
     static_assert(true,                                                      \
