@@ -102,121 +102,145 @@ std::unique_ptr<gko::LinOpFactory> build_from_config<LinOpFactoryType::Ic>(
     std::shared_ptr<const Executor>& exec, gko::config::type_descriptor td)
 {
     auto updated = update_type(config, td);
+    std::string str("LowerTrs");
     if (config.contains("LSolverType")) {
-        auto str = config.at("LSolverType").get_data<std::string>();
+        str = config.at("LSolverType").get_data<std::string>();
+    }
+    if (str == "LowerTrs") {
+        return dispatch<gko::LinOpFactory,
+                        IcHelper<solver::LowerTrs>::Configurator>(
+            updated.first + "," + updated.second, config, context, exec,
+            updated, value_type_list(), index_type_list());
+    } else if (str == "Ir") {
+        return dispatch<gko::LinOpFactory, IcHelper<solver::Ir>::Configurator>(
+            updated.first + "," + updated.second, config, context, exec,
+            updated, value_type_list(), index_type_list());
+    } else if (str == "LowerIsai") {
+        return dispatch<gko::LinOpFactory,
+                        IcHelper<preconditioner::LowerIsai>::Configurator>(
+            updated.first + "," + updated.second, config, context, exec,
+            updated, value_type_list(), index_type_list());
+    } else if (str == "Gmres") {
+        return dispatch<gko::LinOpFactory,
+                        IcHelper<solver::Gmres>::Configurator>(
+            updated.first + "," + updated.second, config, context, exec,
+            updated, value_type_list(), index_type_list());
+    } else {
+        GKO_INVALID_STATE("does not have valid LSolverType");
+    }
+}
+
+
+template <typename LSolver, typename USolver, bool ReverseApply>
+class IluSolverHelper {
+public:
+    template <typename ValueType, typename IndexType>
+    class Configurator {
+    public:
+        static std::unique_ptr<typename preconditioner::Ilu<
+            LSolver, USolver, ReverseApply, IndexType>::Factory>
+        build_from_config(const pnode& config, const registry& context,
+                          std::shared_ptr<const Executor> exec,
+                          type_descriptor td_for_child)
+        {
+            auto factory = preconditioner::Ilu<LSolver, USolver, ReverseApply,
+                                               IndexType>::build();
+            SET_POINTER(factory, typename LSolver::Factory, l_solver_factory,
+                        config, context, exec, td_for_child);
+            SET_POINTER(factory, typename USolver::Factory, u_solver_factory,
+                        config, context, exec, td_for_child);
+            SET_POINTER(factory, LinOpFactory, factorization_factory, config,
+                        context, exec, td_for_child);
+            return factory.on(exec);
+        }
+    };
+};
+
+template <template <typename...> class, template <typename...> class,
+          bool ReverseApply>
+class IluHelper {};
+
+template <template <typename V> class LSolverBase,
+          template <typename V> class USolverBase, bool ReverseApply>
+class IluHelper<LSolverBase, USolverBase, ReverseApply> {
+public:
+    template <typename ValueType, typename IndexType>
+    class Configurator
+        : public IluSolverHelper<
+              LSolverBase<ValueType>, USolverBase<ValueType>,
+              ReverseApply>::template Configurator<ValueType, IndexType> {};
+};
+
+template <template <typename V, typename I> class LSolverBase,
+          template <typename V, typename I> class USolverBase,
+          bool ReverseApply>
+class IluHelper<LSolverBase, USolverBase, ReverseApply> {
+public:
+    template <typename ValueType, typename IndexType>
+    class Configurator
+        : public IluSolverHelper<
+              LSolverBase<ValueType, IndexType>,
+              USolverBase<ValueType, IndexType>,
+              ReverseApply>::template Configurator<ValueType, IndexType> {};
+};
+
+
+template <>
+std::unique_ptr<gko::LinOpFactory> build_from_config<LinOpFactoryType::Ilu>(
+    const pnode& config, const registry& context,
+    std::shared_ptr<const Executor>& exec, gko::config::type_descriptor td)
+{
+    auto updated = update_type(config, td);
+    auto dispatch_solver =
+        [&](auto reverse_apply) -> std::unique_ptr<gko::LinOpFactory> {
+        using ReverseApply = decltype(reverse_apply);
+        // always use symmetric solver for USolverType
+        std::string str("LowerTrs");
+        if (config.contains("LSolverType")) {
+            str = config.at("LSolverType").get_data<std::string>();
+        }
         if (str == "LowerTrs") {
-            return dispatch<gko::LinOpFactory,
-                            IcHelper<solver::LowerTrs>::Configurator>(
+            return dispatch<
+                gko::LinOpFactory,
+                IluHelper<solver::LowerTrs, solver::UpperTrs,
+                          ReverseApply::value>::template Configurator>(
                 updated.first + "," + updated.second, config, context, exec,
                 updated, value_type_list(), index_type_list());
         } else if (str == "Ir") {
-            return dispatch<gko::LinOpFactory,
-                            IcHelper<solver::Ir>::Configurator>(
+            return dispatch<
+                gko::LinOpFactory,
+                IluHelper<solver::Ir, solver::Ir,
+                          ReverseApply::value>::template Configurator>(
                 updated.first + "," + updated.second, config, context, exec,
                 updated, value_type_list(), index_type_list());
         } else if (str == "LowerIsai") {
-            return dispatch<gko::LinOpFactory,
-                            IcHelper<preconditioner::LowerIsai>::Configurator>(
+            return dispatch<
+                gko::LinOpFactory,
+                IluHelper<preconditioner::LowerIsai, preconditioner::UpperIsai,
+                          ReverseApply::value>::template Configurator>(
                 updated.first + "," + updated.second, config, context, exec,
                 updated, value_type_list(), index_type_list());
         } else if (str == "Gmres") {
-            return dispatch<gko::LinOpFactory,
-                            IcHelper<solver::Gmres>::Configurator>(
+            return dispatch<
+                gko::LinOpFactory,
+                IluHelper<solver::Gmres, solver::Gmres,
+                          ReverseApply::value>::template Configurator>(
                 updated.first + "," + updated.second, config, context, exec,
                 updated, value_type_list(), index_type_list());
         } else {
             GKO_INVALID_STATE("does not have valid LSolverType");
         }
+    };
+    bool reverse_apply = false;
+    if (config.contains("ReverseApply")) {
+        reverse_apply = config.at("ReverseApply").get_data<bool>();
+    }
+    if (reverse_apply) {
+        return dispatch_solver(std::true_type{});
     } else {
-        GKO_INVALID_STATE("does not contain LSolverType");
+        return dispatch_solver(std::false_type{});
     }
 }
-
-
-// template <typename LSolver, typename USolver, bool ReverseApply>
-// class IluSolverHelper {
-// public:
-//     template <typename ValueType, typename IndexType>
-//     class Configurator {
-//     public:
-//         static std::unique_ptr<typename preconditioner::Ilu<
-//             LSolver, USolver, ReverseApply, IndexType>::Factory>
-//         build_from_config(const pnode& config, const registry& context,
-//                           std::shared_ptr<const Executor> exec,
-//                           type_descriptor td_for_child)
-//         {
-//             auto factory = preconditioner::Ilu<LSolver, USolver,
-//             ReverseApply,
-//                                                IndexType>::build();
-//             SET_POINTER(factory, typename LSolver::Factory, l_solver_factory,
-//                         config, context, exec, td_for_child);
-//             SET_POINTER(factory, typename USolver::Factory, u_solver_factory,
-//                         config, context, exec, td_for_child);
-//             SET_POINTER(factory, LinOpFactory, factorization_factory, config,
-//                         context, exec, td_for_child);
-//             return factory.on(exec);
-//         }
-//     };
-// };
-
-// template <template <typename...> class, >
-// class IluHelper {};
-
-// template <template <typename V> class SolverBase>
-// class IcHelper<SolverBase> {
-// public:
-//     template <typename ValueType, typename IndexType>
-//     class Configurator
-//         : public IcSolverHelper<SolverBase<ValueType>>::template
-//         Configurator<
-//               ValueType, IndexType> {};
-// };
-
-// template <template <typename V, typename I> class SolverBase>
-// class IcHelper<SolverBase> {
-// public:
-//     template <typename ValueType, typename IndexType>
-//     class Configurator
-//         : public IcSolverHelper<SolverBase<ValueType, IndexType>>::
-//               template Configurator<ValueType, IndexType> {};
-// };
-
-
-// template <>
-// std::unique_ptr<gko::LinOpFactory> build_from_config<LinOpFactoryType::Ic>(
-//     const pnode& config, const registry& context,
-//     std::shared_ptr<const Executor>& exec, gko::config::type_descriptor td)
-// {
-//     auto updated = update_type(config, td);
-//     if (config.contains("LSolverType")) {
-//         auto str = config.at("LSolverType").get_data<std::string>();
-//         if (str == "LowerTrs") {
-//             return dispatch<gko::LinOpFactory,
-//                             IcHelper<solver::LowerTrs>::Configurator>(
-//                 updated.first + "," + updated.second, config, context, exec,
-//                 updated, value_type_list(), index_type_list());
-//         } else if (str == "Ir") {
-//             return dispatch<gko::LinOpFactory,
-//                             IcHelper<solver::Ir>::Configurator>(
-//                 updated.first + "," + updated.second, config, context, exec,
-//                 updated, value_type_list(), index_type_list());
-//         } else if (str == "LowerIsai") {
-//             return dispatch<gko::LinOpFactory,
-//                             IcHelper<preconditioner::LowerIsai>::Configurator>(
-//                 updated.first + "," + updated.second, config, context, exec,
-//                 updated, value_type_list(), index_type_list());
-//         } else if (str == "Gmres") {
-//             return dispatch<gko::LinOpFactory,
-//                             IcHelper<solver::Gmres>::Configurator>(
-//                 updated.first + "," + updated.second, config, context, exec,
-//                 updated, value_type_list(), index_type_list());
-//         } else {
-//             GKO_INVALID_STATE("does not have valid LSolverType");
-//         }
-//     } else {
-//         GKO_INVALID_STATE("does not contain LSolverType");
-//     }
-// }
 
 
 template <preconditioner::isai_type IsaiType>
@@ -303,8 +327,23 @@ public:
         SET_VALUE_ARRAY(factory, gko::array<IndexType>, block_pointers, config,
                         exec);
         // storage_optimization_type is not public. It uses precision_reduction
-        // as input.
-        SET_VALUE(factory, precision_reduction, storage_optimization, config);
+        // as input. Also, it allows value and array input
+        // Each precision_reduction is created by two values.
+        // [x, y] -> one precision_reduction (value mode)
+        // [[x, y], ...] -> array mode
+        if (config.contains("storage_optimization")) {
+            const auto& subconfig = config.at("storage_optimization");
+            if (subconfig.is(pnode::status_t::array)) {
+                if (subconfig.at(0).is(pnode::status_t::array)) {
+                    // more than one precision_reduction -> array mode.
+                    factory.with_storage_optimization(
+                        get_value<array<precision_reduction>>(subconfig, exec));
+                } else {
+                    factory.with_storage_optimization(
+                        get_value<precision_reduction>(subconfig));
+                }
+            }
+        }
         SET_VALUE(factory, remove_complex<ValueType>, accuracy, config);
         return factory.on(exec);
     }

@@ -42,7 +42,7 @@ buildfromconfig_map generate_config_map()
             {"ParIlu", build_from_config<LinOpFactoryType::ParIlu>},
             {"ParIlut", build_from_config<LinOpFactoryType::ParIlut>},
             {"Ic", build_from_config<LinOpFactoryType::Ic>},
-            // {"Ilu", build_from_config<LinOpFactoryType::Ilu>},
+            {"Ilu", build_from_config<LinOpFactoryType::Ilu>},
             {"Isai", build_from_config<LinOpFactoryType::Isai>},
             {"Jacobi", build_from_config<LinOpFactoryType::Jacobi>}};
 }
