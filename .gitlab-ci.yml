@@ -99,7 +99,7 @@ trigger_pipeline:
 # forcibly switched off
 build/cuda101/nompi/clang/cuda_wo_omp/release/shared:
   extends:
-    - .build_template
+    - .build_and_test_template
     - .default_variables
     - .full_test_condition
     - .use_gko-cuda101-openmpi-gnu8-llvm7-intel2019
@@ -110,13 +110,12 @@ build/cuda101/nompi/clang/cuda_wo_omp/release/shared:
     BUILD_HIP: "ON"
     BUILD_HWLOC: "OFF"
     BUILD_TYPE: "Release"
-    CUDA_ARCH: 35
 
 # Job with example runs.
 # Also explicitly test PAPI SDE
 build/cuda101/openmpi/gcc/all/debug/shared:
   extends:
-    - .build_template
+    - .build_and_test_template
     - .default_variables
     - .quick_test_condition
     - .use_gko-cuda101-openmpi-gnu8-llvm7-intel2019
@@ -129,11 +128,10 @@ build/cuda101/openmpi/gcc/all/debug/shared:
     BUILD_TYPE: "Debug"
     BUILD_PAPI_SDE: "ON"
     RUN_EXAMPLES: "ON"
-    CUDA_ARCH: 35
 
 build/cuda101/nompi/clang/all/release/static:
   extends:
-    - .build_template
+    - .build_and_test_template
     - .default_variables
     - .full_test_condition
     - .use_gko-cuda101-openmpi-gnu8-llvm7-intel2019
@@ -145,7 +143,6 @@ build/cuda101/nompi/clang/all/release/static:
     BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
-    CUDA_ARCH: 35
 
 # clang-cuda with cuda 10.1 and friends
 #build/clang-cuda101/openmpi/clang/cuda/release/shared:
@@ -188,7 +185,7 @@ build/cuda101/nompi/clang/all/release/static:
 # works when there is no hwloc and tpl hwloc is also switched off.
 build/cuda102/nompi/gcc/all/debug/shared:
   extends:
-    - .build_template
+    - .build_and_test_template
     - .default_variables
     - .full_test_condition
     - .use_gko-cuda102-nompi-gnu8-llvm8-intel2019
@@ -199,12 +196,11 @@ build/cuda102/nompi/gcc/all/debug/shared:
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
     BUILD_HWLOC: "OFF"
-    CUDA_ARCH: 35
 
 # Use TPL hwloc when no system hwloc is available
 build/cuda102/nompi/clang/all/release/static:
   extends:
-    - .build_template
+    - .build_and_test_template
     - .default_variables
     - .full_test_condition
     - .use_gko-cuda102-nompi-gnu8-llvm8-intel2019
@@ -216,11 +212,10 @@ build/cuda102/nompi/clang/all/release/static:
     BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
-    CUDA_ARCH: 35
 
 build/cuda102/nompi/intel/cuda/debug/static:
   extends:
-    - .build_template
+    - .build_and_test_template
     - .default_variables
     - .full_test_condition
     - .use_gko-cuda102-nompi-gnu8-llvm8-intel2019
@@ -232,12 +227,11 @@ build/cuda102/nompi/intel/cuda/debug/static:
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
     BUILD_SHARED_LIBS: "OFF"
-    CUDA_ARCH: 35
 
 # cuda 11.0 and friends on HoreKa with tests
 build/cuda110/mvapich2/gcc/cuda/debug/shared:
   extends:
-    - .build_template
+    - .build_and_test_template
     - .default_variables
     - .quick_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
@@ -248,29 +242,11 @@ build/cuda110/mvapich2/gcc/cuda/debug/shared:
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
     NONDEFAULT_STREAM: "ON"
-    CUDA_ARCH: 80
-    USE_NAME: "cuda110-mvapich2-gcc-${CI_PIPELINE_ID}"
-    KEEP_CONTAINER: "ON"
-    USE_SLURM: 0
-
-test/cuda110/mvapich2/gcc/cuda/debug/shared:
-  extends:
-    - .horeka_test_template
-    - .default_variables
-    - .quick_test_condition
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
-  variables:
-    USE_NAME: "cuda110-mvapich2-gcc-${CI_PIPELINE_ID}"
-    SLURM_PARTITION: "accelerated"
-    SLURM_GRES: "gpu:4"
-    SLURM_TIME: "02:00:00"
-  dependencies: null
-  needs: [ "build/cuda110/mvapich2/gcc/cuda/debug/shared" ]
 
 
 build/cuda110/nompi/clang/cuda/release/static:
   extends:
-    - .build_template
+    - .build_and_test_template
     - .default_variables
     - .full_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
@@ -281,29 +257,11 @@ build/cuda110/nompi/clang/cuda/release/static:
     BUILD_CUDA: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
-    CUDA_ARCH: 80
-    USE_NAME: "cuda110-nompi-clang-${CI_PIPELINE_ID}"
-    KEEP_CONTAINER: "ON"
-    USE_SLURM: 0
-
-test/cuda110/nompi/clang/cuda/release/static:
-  extends:
-    - .horeka_test_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
-  variables:
-    USE_NAME: "cuda110-nompi-clang-${CI_PIPELINE_ID}"
-    SLURM_PARTITION: "accelerated"
-    SLURM_GRES: "gpu:1"
-    SLURM_TIME: "01:30:00"
-  dependencies: null
-  needs: [ "build/cuda110/nompi/clang/cuda/release/static" ]
 
 
 build/cuda110/nompi/intel/cuda/debug/static:
   extends:
-    - .build_template
+    - .build_and_test_template
     - .default_variables
     - .full_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
@@ -315,24 +273,6 @@ build/cuda110/nompi/intel/cuda/debug/static:
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
     BUILD_SHARED_LIBS: "OFF"
-    CUDA_ARCH: 80
-    USE_NAME: "cuda110-nompi-intel-${CI_PIPELINE_ID}"
-    KEEP_CONTAINER: "ON"
-    USE_SLURM: 0
-
-test/cuda110/nompi/intel/cuda/debug/static:
-  extends:
-    - .horeka_test_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
-  variables:
-    USE_NAME: "cuda110-nompi-intel-${CI_PIPELINE_ID}"
-    SLURM_PARTITION: "accelerated"
-    SLURM_GRES: "gpu:1"
-    SLURM_TIME: "02:00:00"
-  dependencies: null
-  needs: [ "build/cuda110/nompi/intel/cuda/debug/static" ]
 
 
 # cuda 11.4 and friends
