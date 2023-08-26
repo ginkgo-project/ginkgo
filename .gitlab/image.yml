@@ -6,96 +6,120 @@
 
 .use_gko-nocuda-openmpi-gnu9-llvm8:
   image: ginkgohub/cpu:openmpi-gnu9-llvm8
+  variables:
+    IMAGEFILE: "$CI_IMAGE_DIR/cpu_openmpi-gnu9-llvm8.sif"
   tags:
     - private_ci
-    - nla-gpu
+    - cpu
 
 .use_gko-nocuda-nompi-gnu9-llvm8:
   image: ginkgohub/cpu:openmpi-gnu9-llvm8
+  variables:
+    IMAGEFILE: "$CI_IMAGE_DIR/cpu_openmpi-gnu9-llvm8.sif"
   tags:
     - private_ci
     - cpu
-    - amdci
 
 .use_gko-nocuda-mvapich2-gnu5-llvm39-intel2019:
   image: ginkgohub/cpu:mvapich2-gnu5-llvm39-intel2019
+  variables:
+    IMAGEFILE: "$CI_IMAGE_DIR/cpu_mvapich2-gnu5-llvm39-intel2018.sif"
   tags:
     - private_ci
     - cpu
-    - controller
 
 .use_gko-cuda101-openmpi-gnu8-llvm7-intel2019:
   image: ginkgohub/cuda:101-openmpi-gnu8-llvm7-intel2019
+  variables:
+    IMAGEFILE: "$CI_IMAGE_DIR/cuda_101-openmpi-gnu8-llvm7-intel2019.sif"
   tags:
     - private_ci
-    - controller
-    - cpu
+    - nvidia-gpu
 
 .use_gko-cuda101-openmpi-gnu8-llvm13-intel2019:
   image: ginkgohub/cuda:101-openmpi-gnu8-llvm13-intel2019
+  variables:
+    IMAGEFILE: "$CI_IMAGE_DIR/cuda_101-openmpi-gnu8-llvm13-intel2019.sif"
   tags:
     - private_ci
     - nvidia-gpu
 
 .use_gko-cuda102-nompi-gnu8-llvm8-intel2019:
   image: ginkgohub/cuda:102-nompi-gnu8-llvm8-intel2019
+  variables:
+    IMAGEFILE: "$CI_IMAGE_DIR/cuda_102-nompi-gnu8-llvm8-intel2019.sif"
   tags:
     - private_ci
-    - controller
-    - cpu
+    - nvidia-gpu
 
 .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020:
   image: ginkgohub/cuda:110-mvapich2-gnu9-llvm9-intel2020
+  variables:
+    IMAGEFILE: "$CI_IMAGE_DIR/cuda_110-mvapich2-gnu9-llvm9-intel2020.sif"
   tags:
     - private_ci
-    - horeka
+    - nvidia-gpu
 
 .use_gko_cuda114-openmpi-gnu10-llvm12:
   image: ginkgohub/cuda:114-openmpi-gnu10-llvm12
+  variables:
+    IMAGEFILE: "$CI_IMAGE_DIR/cuda_114-openmpi-gnu10-llvm12.sif"
   tags:
     - private_ci
     - nvidia-gpu
 
 .use_gko_nvhpc233-cuda120-openmpi-gnu12-llvm16:
   image: ginkgohub/nvhpc:233-cuda120-openmpi-gnu12-llvm16
+  variables:
+    IMAGEFILE: "$CI_IMAGE_DIR/nvhpc_233-cuda120-openmpi-gnu12-llvm16.sif"
   tags:
     - private_ci
     - nvidia-gpu
 
 .use_gko_nvhpc227-cuda117-openmpi-gnu11-llvm14:
   image: ginkgohub/nvhpc:227-cuda117-openmpi-gnu11-llvm14
+  variables:
+    IMAGEFILE: "$CI_IMAGE_DIR/nvhpc_227-cuda117-openmpi-gnu11-llvm14.sif"
   tags:
     - private_ci
     - nvidia-gpu
 
 .use_gko-rocm45-nompi-gnu8-llvm8:
   image: ginkgohub/rocm:45-mvapich2-gnu8-llvm8
+  variables:
+    IMAGEFILE: "$CI_IMAGE_DIR/rocm_45-mvapich2-gnu8-llvm8.sif"
   tags:
     - private_ci
-    - amdci
-    - gpu
+    - amd-gpu
 
 .use_gko-rocm502-nompi-gnu11-llvm11:
   image: ginkgohub/rocm:502-openmpi-gnu11-llvm11
+  variables:
+    IMAGEFILE: "$CI_IMAGE_DIR/rocm_502-openmpi-gnu11-llvm11.sif"
   tags:
     - private_ci
-    - amdci
-    - gpu
+    - amd-gpu
 
 .use_gko-oneapi-cpu:
   image: ginkgohub/oneapi:2022.1
+  variables:
+    IMAGEFILE: "$CI_IMAGE_DIR/oneapi_2022.1.sif"
   tags:
     - private_ci
-    - fairrs
+    - intel-cpu
 
 .use_gko-oneapi-igpu:
   image: ginkgohub/oneapi:latest
+  variables:
+    IMAGEFILE: "$CI_IMAGE_DIR/oneapi_latest.sif"
   tags:
     - private_ci
     - intel-igpu
 
 .use_gko-oneapi-dgpu:
   image: ginkgohub/oneapi:latest
+  variables:
+    IMAGEFILE: "$CI_IMAGE_DIR/oneapi_latest.sif"
   tags:
     - private_ci
     - intel-dgpu
