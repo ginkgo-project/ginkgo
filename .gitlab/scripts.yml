@@ -32,7 +32,9 @@
       MPI_STR=-DGINKGO_MPI_EXEC_SUFFIX=${MPI_SUFFIX};
       fi
     - export CC=${C_COMPILER} CXX=${CXX_COMPILER} CUDAHOSTCXX=${CXX_COMPILER} CUDACXX=${CUDA_COMPILER}
+    - mkdir ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}/install
     - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
+        -DCMAKE_INSTALL_PREFIX=${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}/install
         -GNinja
         -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
         -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
@@ -55,7 +57,7 @@
     - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT} install
     - awk '!/^#/ { print ($2 - $1)/1000 " " $4 }' .ninja_log | sort -nr
     - if [ "${EXPORT_BUILD_DIR}" == "ON" ]; then ninja test_exportbuild; fi
-    - LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH ninja test_pkgconfig
+    - PKG_CONFIG_PATH=${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}/install/lib/pkgconfig:$PKG_CONFIG_PATH LD_LIBRARY_PATH=${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}/install/lib:$LD_LIBRARY_PATH ninja test_pkgconfig
   dependencies: []
 
 .build_and_test_template:
@@ -78,7 +80,9 @@
       MPI_STR=-DGINKGO_MPI_EXEC_SUFFIX=${MPI_SUFFIX};
       fi
     - export CC=${C_COMPILER} CXX=${CXX_COMPILER} CUDAHOSTCXX=${CXX_COMPILER} CUDACXX=${CUDA_COMPILER}
+    - mkdir ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}/install
     - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
+        -DCMAKE_INSTALL_PREFIX=${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}/install
         -GNinja -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
         -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
         ${EXTRA_CMAKE_FLAGS} ${CUDA_ARCH_STR}
@@ -129,7 +133,7 @@
     - if [ -n "${SYCL_DEVICE_TYPE}" ]; then unset SYCL_DEVICE_TYPE; fi
     - if [ -n "${SYCL_DEVICE_FILTER}" ]; then unset SYCL_DEVICE_FILTER; fi
     - if [ "${EXPORT_BUILD_DIR}" == "ON" ]; then ninja test_exportbuild; fi
-    - LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH ninja test_pkgconfig
+    - PKG_CONFIG_PATH=${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}/install/lib/pkgconfig:$PKG_CONFIG_PATH LD_LIBRARY_PATH=${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}/install/lib:$LD_LIBRARY_PATH ninja test_pkgconfig
   dependencies: []
 
 
