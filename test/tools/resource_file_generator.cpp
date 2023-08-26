@@ -100,7 +100,8 @@ int main()
     };
     add_devices(num_cuda_gpus, "cudagpu");
     add_devices(num_hip_gpus, "hipgpu");
-    add_devices(num_sycl_gpus, "syclgpu");
+    // SYCL GPUs, fall back to CPU
+    add_devices(std::max(1, num_sycl_gpus), "sycl");
 
     std::cout << create_json(cpus + gpus) << std::endl;
 }
