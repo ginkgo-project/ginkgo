@@ -89,6 +89,8 @@ option(GINKGO_INSTALL_RPATH_ORIGIN "Add $ORIGIN (Linux) or @loader_path (MacOS) 
 option(GINKGO_INSTALL_RPATH_DEPENDENCIES "Add dependencies to the installation RPATH." OFF)
 option(GINKGO_FORCE_GPU_AWARE_MPI "Assert that the MPI library is GPU aware. This forces Ginkgo to assume that GPU aware functionality is available (OFF (default) or ON), but may fail
      catastrophically in case the MPI implementation is not GPU Aware, and GPU aware functionality has been forced" OFF)
+set(GINKGO_TEST_OMP_PARALLELISM "4" CACHE STRING
+    "The number of OpenMP threads to use for a test binary during CTest resource file-constrained test.")
 
 # load executor-specific configuration
 if(GINKGO_BUILD_CUDA)
@@ -307,6 +309,10 @@ configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
 # propagated to the other parts of Ginkgo in case of building as static libraries
 add_subdirectory(devices)        # Basic device functionalities. Always compiled.
 add_subdirectory(common)         # Import list of unified kernel source files
+if(GINKGO_BUILD_TESTS)
+    # use custom target `tests` to build only test binaries
+    add_custom_target(tests)
+endif()
 if(GINKGO_BUILD_CUDA)
     add_subdirectory(cuda)       # High-performance kernels for NVIDIA GPUs
 endif()
