@@ -170,7 +170,7 @@ public:
             omp_set_num_threads(ResourceEnvironment::omp_threads);
         }
 #pragma omp parallel
-#pragma single
+#pragma omp single
         std::cerr << "Rank " << rank_ << ": OMP threads "
                   << omp_get_num_threads() << std::endl;
     }
