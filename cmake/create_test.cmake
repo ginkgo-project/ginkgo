@@ -73,14 +73,14 @@ function(ginkgo_add_resource_requirement test_name)
         set(single_resource "cpu:1")
     elseif(add_rr_RESOURCE_TYPE STREQUAL "cpu")
         if(NOT add_rr_RESOURCE_LOCAL_CORES)
-            set(add_rr_RESOURCE_LOCAL_CORES 4)  # perhaps get this from environment variable?
+            set(add_rr_RESOURCE_LOCAL_CORES ${GINKGO_TEST_OMP_PARALLELISM})
         endif()
         if(NOT add_rr_RESOURCE_LOCAL_CORES MATCHES "^[0-9]+")
             message(FATAL_ERROR "Resource specification is invalid: RESOURCE_LOCAL_CORES=${add_rr_RESOURCE_LOCAL_CORES}")
         endif()
 
         set(single_resource "cpu:${add_rr_RESOURCE_LOCAL_CORES}")
-    elseif(add_rr_RESOURCE_TYPE MATCHES "^(cuda|hip|sycl)gpu$")
+    elseif(add_rr_RESOURCE_TYPE MATCHES "^(cudagpu|hipgpu|sycl)$")
         if(NOT add_rr_RESOURCE_PERCENTAGE)
             set(add_rr_RESOURCE_PERCENTAGE 25)
         endif()
@@ -95,7 +95,7 @@ function(ginkgo_add_resource_requirement test_name)
 
         set(single_resource "${add_rr_RESOURCE_TYPE}:${add_rr_RESOURCE_PERCENTAGE}")
     else()
-        message(FATAL_ERROR "Unrecognized resource type ${add_rr_RESOURCE_TYPE}, allowed are: ref, cpu, cudagpu, hipgpu, syclgpu.")
+        message(FATAL_ERROR "Unrecognized resource type ${add_rr_RESOURCE_TYPE}, allowed are: ref, cpu, cudagpu, hipgpu, sycl.")
     endif()
 
     if(NOT add_rr_MPI_SIZE)
@@ -110,9 +110,10 @@ endfunction()
 ## Adds a test to the list executed by ctest and sets its output binary name
 ## Possible additional arguments:
 ## - `MPI_SIZE size` causes the tests to be run with `size` MPI processes.
-## - `RESOURCE_LOCAL_CORES` the number of threads used by a test, default is 4
+## - `RESOURCE_LOCAL_CORES` the number of threads used by a test, default is
+##    $GINKGO_TEST_OMP_PARALLELISM
 ## - `RESOURCE_PERCENTAGE` usage percentage of a single GPU, default is 25
-## - `RESOURCE_TYPE` the resource type, can be ref, cpu, cudagpu, hipgpu, syclgpu
+## - `RESOURCE_TYPE` the resource type, can be ref, cpu, cudagpu, hipgpu, sycl
 ## - `DISABLE_EXECUTORS exec1 exec2` disables the test for certain backends (if built for multiple)
 ## - `ADDITIONAL_LIBRARIES lib1 lib2` adds additional target link dependencies
 ## - `ADDITIONAL_INCLUDES path1 path2` adds additional target include paths
@@ -133,6 +134,8 @@ function(ginkgo_add_test test_name test_target_name)
                  COMMAND ${test_target_name}
                  WORKING_DIRECTORY "$<TARGET_FILE_DIR:ginkgo>")
     endif()
+    # use custom target `tests` to build only test binaries
+    add_dependencies(tests ${test_target_name})
 
     ginkgo_add_resource_requirement(${REL_BINARY_DIR}/${test_name} ${ARGN})
 
@@ -165,7 +168,7 @@ function(ginkgo_create_dpcpp_test test_name)
     target_compile_options(${test_target_name} PRIVATE ${GINKGO_DPCPP_FLAGS})
     target_link_options(${test_target_name} PRIVATE -fsycl-device-code-split=per_kernel)
     ginkgo_set_test_target_properties(${test_target_name} ${ARGN})
-    ginkgo_add_test(${test_name} ${test_target_name} ${ARGN} RESOURCE_TYPE syclgpu)
+    ginkgo_add_test(${test_name} ${test_target_name} ${ARGN} RESOURCE_TYPE sycl)
     # Note: MKL_ENV is empty on linux. Maybe need to apply MKL_ENV to all test.
     if (MKL_ENV)
         set_tests_properties(${test_target_name} PROPERTIES ENVIRONMENT "${MKL_ENV}")
@@ -304,7 +307,7 @@ function(ginkgo_create_common_test_internal test_name exec_type exec)
     elseif (exec STREQUAL hip)
         set(test_resource_type hipgpu)
     else ()
-        set(test_resource_type syclgpu)
+        set(test_resource_type sycl)
     endif ()
     ginkgo_build_test_name(${test_name} test_target_name)
     string(TOUPPER ${exec} exec_upper)
