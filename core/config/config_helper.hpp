@@ -65,7 +65,10 @@ enum class LinOpFactoryType : int {
     Ic,
     Ilu,
     Isai,
-    Jacobi
+    Jacobi,
+    Multigrid,
+    Pgm,
+    FixedCoarsening
 };
 
 

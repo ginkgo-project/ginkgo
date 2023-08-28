@@ -25,6 +25,7 @@ target_sources(ginkgo
     config/preconditioner_config.cpp
     config/property_tree.cpp
     config/registry.cpp
+    config/multigrid_config.cpp
     config/solver_config.cpp
     config/stop_config.cpp
     config/type_descriptor.cpp
