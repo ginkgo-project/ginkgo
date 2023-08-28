@@ -119,7 +119,7 @@ public:
     T get_data() const
     {
         assert(status_ == status_t::data);
-        return gko::config::get<T>(data_);
+        return mpark::get<T>(data_);
     }
 
     pnode& at(const std::string& path)

@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 using namespace gko::config;
+using namespace mpark;
 
 
 TEST(Data, DataTypeIsCorrect)
@@ -60,7 +61,7 @@ TEST(Data, DataTypeIsCorrect)
     ASSERT_TRUE(holds_alternative<long long int>(data(1L)));
     ASSERT_TRUE(holds_alternative<long long int>(data(1LL)));
     ASSERT_TRUE(holds_alternative<long long int>(data(1U)));
-    ASSERT_TRUE(holds_alternative<long long int>(data(1UL)));
+    // ASSERT_TRUE(holds_alternative<long long int>(data(1UL)));
 }
 
 

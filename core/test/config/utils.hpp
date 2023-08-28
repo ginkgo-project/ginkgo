@@ -45,15 +45,15 @@ namespace config {
 
 std::ostream& operator<<(std::ostream& stream, const data& d)
 {
-    if (holds_alternative<std::string>(d)) {
-        stream << '"' << get<std::string>(d) << '"';
-    } else if (holds_alternative<long long int>(d)) {
-        stream << get<long long int>(d);
-    } else if (holds_alternative<double>(d)) {
-        stream << get<double>(d);
-    } else if (holds_alternative<bool>(d)) {
-        stream << (get<bool>(d) ? "true" : "false");
-    } else if (holds_alternative<monostate>(d)) {
+    if (mpark::holds_alternative<std::string>(d)) {
+        stream << '"' << mpark::get<std::string>(d) << '"';
+    } else if (mpark::holds_alternative<long long int>(d)) {
+        stream << mpark::get<long long int>(d);
+    } else if (mpark::holds_alternative<double>(d)) {
+        stream << mpark::get<double>(d);
+    } else if (mpark::holds_alternative<bool>(d)) {
+        stream << (mpark::get<bool>(d) ? "true" : "false");
+    } else if (mpark::holds_alternative<mpark::monostate>(d)) {
         stream << "<empty>";
     }
     return stream;
