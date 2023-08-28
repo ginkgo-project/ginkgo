@@ -42,7 +42,10 @@ configuration_map generate_config_map()
             {"preconditioner::Ic", parse<LinOpFactoryType::Ic>},
             {"preconditioner::Ilu", parse<LinOpFactoryType::Ilu>},
             {"preconditioner::Isai", parse<LinOpFactoryType::Isai>},
-            {"preconditioner::Jacobi", parse<LinOpFactoryType::Jacobi>}};
+            {"preconditioner::Jacobi", parse<LinOpFactoryType::Jacobi>},
+            {"Multigrid", parse<LinOpFactoryType::Multigrid>},
+            {"Pgm", parse<LinOpFactoryType::Pgm>},
+            {"FixedCoarsening", parse<LinOpFactoryType::FixedCoarsening>}};
 }
 
 

@@ -30,6 +30,7 @@
 
 #include "core/base/dispatch_helper.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "core/config/config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/ir_kernels.hpp"
 #include "core/solver/multigrid_kernels.hpp"
@@ -590,6 +591,83 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
 
 }  // namespace detail
 }  // namespace multigrid
+
+
+std::function<size_type(const size_type, const LinOp*)> get_selector(
+    std::string key)
+{
+    static std::map<std::string,
+                    std::function<size_type(const size_type, const LinOp*)>>
+        selector_map{
+            {{"first_for_top", [](const size_type level, const LinOp*) {
+                  return (level == 0) ? 0 : 1;
+              }}}};
+    return selector_map.at(key);
+}
+
+
+typename Multigrid::parameters_type Multigrid::build_from_config(
+    const config::pnode& config, const config::registry& context,
+    config::type_descriptor td_for_child)
+{
+    auto factory = Multigrid::build();
+    SET_FACTORY_VECTOR(factory, const stop::CriterionFactory, criteria, config,
+                       context, td_for_child);
+    SET_FACTORY_VECTOR(factory, const gko::LinOpFactory, mg_level, config,
+                       context, td_for_child);
+    if (config.contains("level_selector")) {
+        auto str = config.at("level_selector").get_data<std::string>();
+        factory.with_level_selector(get_selector(str));
+    }
+    SET_FACTORY_VECTOR(factory, const LinOpFactory, pre_smoother, config,
+                       context, td_for_child);
+    SET_FACTORY_VECTOR(factory, const LinOpFactory, post_smoother, config,
+                       context, td_for_child);
+    SET_FACTORY_VECTOR(factory, const LinOpFactory, mid_smoother, config,
+                       context, td_for_child);
+    SET_VALUE(factory, bool, post_uses_pre, config);
+    if (config.contains("mid_case")) {
+        auto str = config.at("mid_case").get_data<std::string>();
+        if (str == "both") {
+            factory.with_mid_case(multigrid::mid_smooth_type::both);
+        } else if (str == "post_smoother") {
+            factory.with_mid_case(multigrid::mid_smooth_type::post_smoother);
+        } else if (str == "pre_smoother") {
+            factory.with_mid_case(multigrid::mid_smooth_type::pre_smoother);
+        } else if (str == "standalone") {
+            factory.with_mid_case(multigrid::mid_smooth_type::standalone);
+        } else {
+            GKO_INVALID_STATE("Not valid mid_smooth_type value");
+        }
+    }
+    SET_VALUE(factory, size_type, max_levels, config);
+    SET_VALUE(factory, size_type, min_coarse_rows, config);
+    SET_FACTORY_VECTOR(factory, const LinOpFactory, coarsest_solver, config,
+                       context, td_for_child);
+    if (config.contains("solver_selector")) {
+        auto str = config.at("solver_selector").get_data<std::string>();
+        factory.with_solver_selector(get_selector(str));
+    }
+    if (config.contains("cycle")) {
+        auto str = config.at("cycle").get_data<std::string>();
+        if (str == "v") {
+            factory.with_cycle(multigrid::cycle::v);
+        } else if (str == "w") {
+            factory.with_cycle(multigrid::cycle::w);
+        } else if (str == "f") {
+            factory.with_cycle(multigrid::cycle::f);
+        } else {
+            GKO_INVALID_STATE("Not valid cycle value");
+        }
+    }
+    SET_VALUE(factory, size_type, kcycle_base, config);
+    SET_VALUE(factory, double, kcycle_rel_tol, config);
+    SET_VALUE(factory, std::complex<double>, smoother_relax, config);
+    SET_VALUE(factory, size_type, smoother_iters, config);
+    SET_VALUE(factory, solver::initial_guess_mode, default_initial_guess,
+              config);
+    return factory;
+}
 
 
 void Multigrid::generate()
