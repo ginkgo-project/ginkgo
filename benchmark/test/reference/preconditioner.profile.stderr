@@ -4,7 +4,7 @@ Running on reference(0)
 Running with 0 warm iterations and 1 running iterations
 The random seed for right hand sides is 42
 Running with preconditioners: none
-Running test case stencil(100,7pt)
+Running test case stencil(100, 7pt)
 DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
 DEBUG: begin components::aos_to_soa
@@ -24,7 +24,7 @@ DEBUG: end   dense::fill
 DEBUG: begin dense::fill_in_matrix_data
 DEBUG: end   dense::fill_in_matrix_data
 Matrix is of size (125, 125), 725
-DEBUG: begin stencil(100,7pt)
+DEBUG: begin stencil(100, 7pt)
 	Running preconditioner: none
 DEBUG: begin none
 DEBUG: begin copy(<typename>)
@@ -44,4 +44,4 @@ DEBUG: end   copy(<typename>)
 DEBUG: end   apply(<typename>)
 DEBUG: end   repetition apply
 DEBUG: end   none
-DEBUG: end   stencil(100,7pt)
+DEBUG: end   stencil(100, 7pt)

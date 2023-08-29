@@ -211,9 +211,6 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
         std::string best_format;
         // find the fastest among all formats we tested
         for (const auto& format : formats) {
-            if (!test_case[name].contains(format)) {
-                continue;
-            }
             auto& format_case = test_case[name][format];
             if (format_case.contains("completed") &&
                 format_case["completed"].template get<bool>()) {

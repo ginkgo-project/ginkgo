@@ -5,7 +5,7 @@ Running with 0 warm iterations and 1 running iterations
 The random seed for right hand sides is 42
 The formats are [csr]x[csr]
 The number of right hand sides is 1
-Running test case stencil(100,7pt,stencil)
+Running test case stencil(100, 7pt, stencil)
 DEBUG: begin partition::build_ranges_from_global_size
 DEBUG: end   partition::build_ranges_from_global_size
 DEBUG: begin components::fill_array
@@ -55,7 +55,7 @@ DEBUG: end   dense::fill
 DEBUG: begin dense::fill_in_matrix_data
 DEBUG: end   dense::fill_in_matrix_data
 Matrix is of size (81, 81), 144
-DEBUG: begin stencil(100,7pt,stencil)
+DEBUG: begin stencil(100, 7pt, stencil)
 	Running spmv: csr-csr
 DEBUG: begin csr-csr
 DEBUG: begin partition::build_ranges_from_global_size
@@ -137,4 +137,4 @@ DEBUG: end   advanced_apply(<typename>)
 DEBUG: end   apply(<typename>)
 DEBUG: end   repetition
 DEBUG: end   csr-csr
-DEBUG: end   stencil(100,7pt,stencil)
+DEBUG: end   stencil(100, 7pt, stencil)

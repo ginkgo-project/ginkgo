@@ -205,9 +205,8 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
              json& precond_case) const override
     {
         auto decoded_precond_name = precond_decoder.at(encoded_precond_name);
-        precond_case["generate"] = json::object();
-        precond_case["apply"] = json::object();
         for (auto stage : {"generate", "apply"}) {
+            precond_case[stage] = json::object();
             precond_case[stage]["components"] = json::object();
         }
 

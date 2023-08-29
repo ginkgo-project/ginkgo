@@ -4,7 +4,7 @@ Running on reference(0)
 Running with 0 warm iterations and 1 running iterations
 The random seed for right hand sides is 42
 The operations are transpose
-Running test case stencil(100,7pt)
+Running test case stencil(100, 7pt)
 Matrix is of size (125, 125), 725
 DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
@@ -12,7 +12,7 @@ DEBUG: begin components::aos_to_soa
 DEBUG: end   components::aos_to_soa
 DEBUG: begin components::convert_idxs_to_ptrs
 DEBUG: end   components::convert_idxs_to_ptrs
-DEBUG: begin stencil(100,7pt)
+DEBUG: begin stencil(100, 7pt)
 	Running sparse_blas: transpose
 DEBUG: begin transpose
 DEBUG: begin repetition
@@ -22,4 +22,4 @@ DEBUG: begin csr::transpose
 DEBUG: end   csr::transpose
 DEBUG: end   repetition
 DEBUG: end   transpose
-DEBUG: end   stencil(100,7pt)
+DEBUG: end   stencil(100, 7pt)
