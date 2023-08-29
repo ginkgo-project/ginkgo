@@ -40,8 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 
-#include <rapidjson/document.h>
-#include <rapidjson/istreamwrapper.h>
+#include <nlohmann/json.hpp>
 
 
 #include <ginkgo/core/config/property_tree.hpp>
@@ -51,29 +50,31 @@ namespace gko {
 namespace extension {
 
 
-void json_parser(gko::config::pnode& ptree, rapidjson::Value& dom)
+inline void json_parser(gko::config::pnode& ptree, const nlohmann::json& dom)
 {
-    if (dom.IsArray()) {
-        auto array = dom.GetArray();
-        int num = array.Size();
+    if (dom.is_array()) {
+        int num = dom.size();
         ptree.get_array().resize(num);
         for (int i = 0; i < num; i++) {
-            json_parser(ptree.at(i), array[i]);
+            json_parser(ptree.at(i), dom[i]);
         }
-    } else if (dom.IsObject()) {
+    } else if (dom.is_object()) {
         auto& list = ptree.get_map();
-        for (auto& m : dom.GetObject()) {
-            json_parser(list[m.name.GetString()], dom[m.name.GetString()]);
+        for (auto& m : dom.items()) {
+            json_parser(list[m.key()], m.value());
         }
     } else {
-        if (dom.IsInt64()) {
-            ptree = gko::config::pnode{dom.GetInt64()};
-        } else if (dom.IsBool()) {
-            ptree = gko::config::pnode{dom.GetBool()};
-        } else if (dom.IsDouble()) {
-            ptree = gko::config::pnode{dom.GetDouble()};
+        if (dom.is_number_integer()) {
+            ptree = gko::config::pnode{dom.template get<long long int>()};
+        } else if (dom.is_boolean()) {
+            ptree = gko::config::pnode{dom.template get<bool>()};
+        } else if (dom.is_number_float()) {
+            ptree = gko::config::pnode{dom.template get<double>()};
+        } else if (dom.is_string()) {
+            ptree = gko::config::pnode{
+                std::string(dom.template get<std::string>())};
         } else {
-            ptree = gko::config::pnode{std::string(dom.GetString())};
+            ptree = gko::config::pnode{};
         }
     }
 }

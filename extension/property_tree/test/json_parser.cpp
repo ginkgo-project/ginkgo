@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <gtest/gtest.h>
-#include <rapidjson/document.h>
+#include <nlohmann/json.hpp>
 
 
 #include <ginkgo/core/config/property_tree.hpp>
@@ -50,9 +50,7 @@ using namespace gko::extension;
 TEST(JsonParser, ReadObject)
 {
     const char json[] = R"({"base": "ReferenceExecutor"})";
-    rapidjson::StringStream s(json);
-    rapidjson::Document d;
-    d.ParseStream(s);
+    auto d = nlohmann::json::parse(json);
     gko::config::pnode ptree;
 
     json_parser(ptree, d);
@@ -65,21 +63,20 @@ TEST(JsonParser, ReadInput2)
 {
     const char json[] =
         R"({"base": "Csr",
-            "dim": [3, 4], 
+            "dim": [3, 4.5], 
             "exec": {"base": "ReferenceExecutor"}})";
     std::istringstream iss(R"({
   base: "Csr"
   dim: [
     3
-    4
+    4.5
   ]
   exec: {
     base: "ReferenceExecutor"
   }
-})");
-    rapidjson::StringStream s(json);
-    rapidjson::Document d;
-    d.ParseStream(s);
+}
+)");
+    auto d = nlohmann::json::parse(json);
     gko::config::pnode ptree;
 
     json_parser(ptree, d);
@@ -100,10 +97,9 @@ TEST(JsonParser, ReadInput3)
   {
     name: "B"
   }
-])");
-    rapidjson::StringStream s(json);
-    rapidjson::Document d;
-    d.ParseStream(s);
+]
+)");
+    auto d = nlohmann::json::parse(json);
     gko::config::pnode ptree;
 
     json_parser(ptree, d);
