@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <gtest/gtest.h>
+#include <ginkgo/core/base/exception.hpp>
 
 
 #include "core/test/config/utils.hpp"
@@ -170,7 +171,7 @@ TEST(PropertyTree, CreateArrayByGettingArray)
 }
 
 
-TEST(PropertyTree, print)
+TEST(PropertyTree, Print)
 {
     pnode root;
     root = pnode{{{"p0", pnode{1.23}}, {"p1", pnode{1ll}}}};
@@ -191,4 +192,43 @@ TEST(PropertyTree, print)
     print(oss, root);
 
     ASSERT_EQ(oss.str(), iss.str());
+}
+
+
+TEST(PropertyTree, UpdateEmpty)
+{
+    pnode empty_for_array;
+    pnode empty_for_map;
+
+    ASSERT_NO_THROW(empty_for_array.get_array());
+    ASSERT_TRUE(empty_for_array.is(pnode::status_t::array));
+    ASSERT_NO_THROW(empty_for_map.get_map());
+    ASSERT_TRUE(empty_for_map.is(pnode::status_t::map));
+}
+
+
+TEST(PropertyTree, ThrowIfInvalidAccess)
+{
+    pnode root;
+    root.get_map()["p0"] = pnode{1.23};
+    root.get_map()["p2"] = pnode{{pnode{1}, pnode{2}, pnode{}}};
+
+    // root is map
+    ASSERT_THROW(root.get_array(), gko::InvalidStateError);
+    ASSERT_THROW(root.get_data(), gko::InvalidStateError);
+    ASSERT_THROW(root.at(0), gko::InvalidStateError);
+    ASSERT_NO_THROW(root.get_map());
+    ASSERT_NO_THROW(root.at("p0"));
+    // p0 is data
+    ASSERT_THROW(root.at("p0").get_map(), gko::InvalidStateError);
+    ASSERT_THROW(root.at("p0").get_array(), gko::InvalidStateError);
+    ASSERT_THROW(root.at("p0").at(0), gko::InvalidStateError);
+    ASSERT_THROW(root.at("p0").at("p0"), gko::InvalidStateError);
+    ASSERT_NO_THROW(root.at("p0").get_data());
+    // p2 is vector
+    ASSERT_THROW(root.at("p2").get_data(), gko::InvalidStateError);
+    ASSERT_THROW(root.at("p2").get_map(), gko::InvalidStateError);
+    ASSERT_THROW(root.at("p2").at("p0"), gko::InvalidStateError);
+    ASSERT_NO_THROW(root.at("p2").get_array());
+    ASSERT_NO_THROW(root.at("p2").at(0));
 }

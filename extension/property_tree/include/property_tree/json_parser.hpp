@@ -79,17 +79,6 @@ void json_parser(gko::config::pnode& ptree, rapidjson::Value& dom)
 }
 
 
-std::string convert_quote(const std::string& str)
-{
-    auto output = str;
-    for (std::string::size_type pos{};
-         std::string::npos != (pos = output.find("'", pos)); pos += 1) {
-        output.replace(pos, 1, "\"", 1);
-    }
-    return output;
-}
-
-
 }  // namespace extension
 }  // namespace gko
 
