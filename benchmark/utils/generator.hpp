@@ -90,7 +90,7 @@ struct DefaultSystemGenerator {
             return config["filename"].get<std::string>();
         } else if (config.contains("stencil")) {
             std::stringstream ss;
-            ss << "stencil(" << config["size"].get<gko::int64>() << ","
+            ss << "stencil(" << config["size"].get<gko::int64>() << ", "
                << config["stencil"].get<std::string>() << ")";
             return ss.str();
         } else {
@@ -231,8 +231,8 @@ struct DistributedDefaultSystemGenerator {
             return config["filename"].get<std::string>();
         } else if (config.contains("stencil")) {
             std::stringstream ss;
-            ss << "stencil(" << config["size"].get<gko::int64>() << ","
-               << config["stencil"].get<std::string>() << ","
+            ss << "stencil(" << config["size"].get<gko::int64>() << ", "
+               << config["stencil"].get<std::string>() << ", "
                << config["comm_pattern"].get<std::string>() << ")";
             return ss.str();
         } else {

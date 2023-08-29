@@ -4,11 +4,11 @@ Running on reference(0)
 Running with 0 warm iterations and 1 running iterations
 The random seed for right hand sides is 42
 The formats are coo,csr
-Running test case stencil(100,7pt)
+Running test case stencil(100, 7pt)
 Matrix is of size (125, 125), 725
 DEBUG: begin components::aos_to_soa
 DEBUG: end   components::aos_to_soa
-DEBUG: begin stencil(100,7pt)
+DEBUG: begin stencil(100, 7pt)
 	Running conversion: coo-read
 DEBUG: begin coo-read
 DEBUG: begin repetition
@@ -79,4 +79,4 @@ DEBUG: end   components::convert_ptrs_to_idxs
 DEBUG: end   copy(<typename>)
 DEBUG: end   repetition
 DEBUG: end   csr-coo
-DEBUG: end   stencil(100,7pt)
+DEBUG: end   stencil(100, 7pt)
