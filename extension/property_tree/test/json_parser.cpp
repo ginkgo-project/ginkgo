@@ -47,16 +47,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace gko::extension;
 
 
-TEST(JsonParser, ReadInput)
+TEST(JsonParser, ReadObject)
 {
-    const char json[] = "{\"base\": \"ReferenceExecutor\"}";
-    const char json2[] = "{'base': 'ReferenceExecutor'}";
-    auto str = convert_quote(json2);
+    const char json[] = R"({"base": "ReferenceExecutor"})";
     rapidjson::StringStream s(json);
     rapidjson::Document d;
     d.ParseStream(s);
     gko::config::pnode ptree;
+
     json_parser(ptree, d);
+
     ASSERT_EQ(ptree.at("base").get_data<std::string>(), "ReferenceExecutor");
 }
 
@@ -64,20 +64,20 @@ TEST(JsonParser, ReadInput)
 TEST(JsonParser, ReadInput2)
 {
     const char json[] =
-        "{'base': 'Csr', 'dim': [3, 4], 'exec': {'base': 'ReferenceExecutor'}}";
-    std::istringstream iss(
-        "{\n"
-        "  base: \"Csr\"\n"
-        "  dim: [\n"
-        "    3\n"
-        "    4\n"
-        "  ]\n"
-        "  exec: {\n"
-        "    base: \"ReferenceExecutor\"\n"
-        "  }\n"
-        "}\n");
-    auto str = convert_quote(json);
-    rapidjson::StringStream s(str.c_str());
+        R"({"base": "Csr",
+            "dim": [3, 4], 
+            "exec": {"base": "ReferenceExecutor"}})";
+    std::istringstream iss(R"({
+  base: "Csr"
+  dim: [
+    3
+    4
+  ]
+  exec: {
+    base: "ReferenceExecutor"
+  }
+})");
+    rapidjson::StringStream s(json);
     rapidjson::Document d;
     d.ParseStream(s);
     gko::config::pnode ptree;
@@ -92,18 +92,16 @@ TEST(JsonParser, ReadInput2)
 
 TEST(JsonParser, ReadInput3)
 {
-    const char json[] = "[{'name': 'A'}, {'name': 'B'}]";
-    std::istringstream iss(
-        "[\n"
-        "  {\n"
-        "    name: \"A\"\n"
-        "  }\n"
-        "  {\n"
-        "    name: \"B\"\n"
-        "  }\n"
-        "]\n");
-    auto str = convert_quote(json);
-    rapidjson::StringStream s(str.c_str());
+    const char json[] = R"([{"name": "A"}, {"name": "B"}])";
+    std::istringstream iss(R"([
+  {
+    name: "A"
+  }
+  {
+    name: "B"
+  }
+])");
+    rapidjson::StringStream s(json);
     rapidjson::Document d;
     d.ParseStream(s);
     gko::config::pnode ptree;

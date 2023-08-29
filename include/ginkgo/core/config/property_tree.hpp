@@ -75,42 +75,35 @@ public:
     // bool conversion. It's true if and only if it contains data.
     operator bool() const noexcept { return status_ != status_t::empty; }
 
-    // Get the content of node
-    data_type& get_data()
-    {
-        assert(status_ == status_t::data);
-        return data_;
-    }
-
     const data_type& get_data() const
     {
-        assert(status_ == status_t::data);
+        this->throw_if_not_contain(status_t::data);
         return data_;
     }
 
     std::vector<pnode>& get_array()
     {
-        assert(status_ == status_t::array || status_ == status_t::empty);
+        this->throw_if_not_contain(status_t::array, true);
         status_ = status_t::array;
         return array_;
     }
 
     const std::vector<pnode>& get_array() const
     {
-        assert(status_ == status_t::array);
+        this->throw_if_not_contain(status_t::array);
         return array_;
     }
 
     std::map<key_type, pnode>& get_map()
     {
-        assert(status_ == status_t::map || status_ == status_t::empty);
+        this->throw_if_not_contain(status_t::map, true);
         status_ = status_t::map;
         return list_;
     }
 
     const std::map<key_type, pnode>& get_map() const
     {
-        assert(status_ == status_t::map);
+        this->throw_if_not_contain(status_t::map);
         return list_;
     }
 
@@ -118,42 +111,42 @@ public:
     template <typename T>
     T get_data() const
     {
-        assert(status_ == status_t::data);
+        this->throw_if_not_contain(status_t::data);
         return gko::config::get<T>(data_);
     }
 
     pnode& at(const std::string& path)
     {
-        assert(status_ == status_t::map);
+        this->throw_if_not_contain(status_t::map);
         return list_.at(path);
     }
 
     const pnode& at(const std::string& path) const
     {
-        assert(status_ == status_t::map);
+        this->throw_if_not_contain(status_t::map);
         return list_.at(path);
     }
 
-    // Return the objec if it is found. Otherwise, return empty object.
+    // Return the object if it is found. Otherwise, return empty object.
     const pnode& get(const std::string& path) const
     {
-        assert(status_ == status_t::map);
+        this->throw_if_not_contain(status_t::map);
         if (this->contains(path)) {
             return list_.at(path);
         } else {
-            return pnode::empty_pn;
+            return pnode::empty_node();
         }
     }
 
     pnode& at(int i)
     {
-        assert(status_ == status_t::array);
+        this->throw_if_not_contain(status_t::array);
         return array_.at(i);
     }
 
     const pnode& at(int i) const
     {
-        assert(status_ == status_t::array);
+        this->throw_if_not_contain(status_t::array);
         return array_.at(i);
     }
 
@@ -162,19 +155,23 @@ public:
 
     bool contains(std::string key) const
     {
-        assert(status_ == status_t::map);
+        this->throw_if_not_contain(status_t::map);
         auto it = list_.find(key);
         return (it != list_.end());
     }
 
     status_t get_status() const { return status_; }
 
+protected:
+    void throw_if_not_contain(status_t status, bool allow_empty = false) const;
+
+    static const pnode& empty_node();
+
 private:
     std::vector<pnode> array_;        // for array
     std::map<key_type, pnode> list_;  // for list
     data_type data_;                  // for value
     status_t status_;
-    const static pnode empty_pn;
 };
 
 

@@ -10,4 +10,7 @@ if(GINKGO_BUILD_TESTS)
 endif()
 
 ## Install step
-# ginkgo_install_header_only_library(property_tree Ginkgo)
+install(DIRECTORY "include/property_tree"
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/ginkgo/extensions"
+        FILES_MATCHING PATTERN "*.hpp"
+        )
