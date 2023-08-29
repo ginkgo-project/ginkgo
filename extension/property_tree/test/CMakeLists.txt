@@ -24,5 +24,4 @@ function(gkoext_pt_create_test test_name)
 endfunction(gkoext_pt_create_test)
 
 
-gkoext_pt_create_test(json_parser rapidjson)
-gkoext_pt_create_test(string_parser)
+gkoext_pt_create_test(json_parser rapidjson ginkgo)
