@@ -74,11 +74,13 @@ public:
     };
 };
 
-template <template <typename...> class>
-class IcHelper {};
 
+// Do not use the partial specialization for SolverBase<V> and SolverBase<V, I>
+// because the default template arguments are allowed for a template template
+// argument (detail: CWG 150 after c++17
+// https://en.cppreference.com/w/cpp/language/template_parameters#Template_template_arguments)
 template <template <typename V> class SolverBase>
-class IcHelper<SolverBase> {
+class IcHelper1 {
 public:
     template <typename ValueType, typename IndexType>
     class Configurator
@@ -86,8 +88,9 @@ public:
               ValueType, IndexType> {};
 };
 
+
 template <template <typename V, typename I> class SolverBase>
-class IcHelper<SolverBase> {
+class IcHelper2 {
 public:
     template <typename ValueType, typename IndexType>
     class Configurator
@@ -108,21 +111,21 @@ std::unique_ptr<gko::LinOpFactory> build_from_config<LinOpFactoryType::Ic>(
     }
     if (str == "LowerTrs") {
         return dispatch<gko::LinOpFactory,
-                        IcHelper<solver::LowerTrs>::Configurator>(
+                        IcHelper2<solver::LowerTrs>::Configurator>(
             updated.first + "," + updated.second, config, context, exec,
             updated, value_type_list(), index_type_list());
     } else if (str == "Ir") {
-        return dispatch<gko::LinOpFactory, IcHelper<solver::Ir>::Configurator>(
+        return dispatch<gko::LinOpFactory, IcHelper1<solver::Ir>::Configurator>(
             updated.first + "," + updated.second, config, context, exec,
             updated, value_type_list(), index_type_list());
     } else if (str == "LowerIsai") {
         return dispatch<gko::LinOpFactory,
-                        IcHelper<preconditioner::LowerIsai>::Configurator>(
+                        IcHelper2<preconditioner::LowerIsai>::Configurator>(
             updated.first + "," + updated.second, config, context, exec,
             updated, value_type_list(), index_type_list());
     } else if (str == "Gmres") {
         return dispatch<gko::LinOpFactory,
-                        IcHelper<solver::Gmres>::Configurator>(
+                        IcHelper1<solver::Gmres>::Configurator>(
             updated.first + "," + updated.second, config, context, exec,
             updated, value_type_list(), index_type_list());
     } else {
@@ -156,13 +159,10 @@ public:
     };
 };
 
-template <template <typename...> class, template <typename...> class,
-          bool ReverseApply>
-class IluHelper {};
 
 template <template <typename V> class LSolverBase,
           template <typename V> class USolverBase, bool ReverseApply>
-class IluHelper<LSolverBase, USolverBase, ReverseApply> {
+class IluHelper1 {
 public:
     template <typename ValueType, typename IndexType>
     class Configurator
@@ -171,10 +171,11 @@ public:
               ReverseApply>::template Configurator<ValueType, IndexType> {};
 };
 
+
 template <template <typename V, typename I> class LSolverBase,
           template <typename V, typename I> class USolverBase,
           bool ReverseApply>
-class IluHelper<LSolverBase, USolverBase, ReverseApply> {
+class IluHelper2 {
 public:
     template <typename ValueType, typename IndexType>
     class Configurator
@@ -202,29 +203,29 @@ std::unique_ptr<gko::LinOpFactory> build_from_config<LinOpFactoryType::Ilu>(
         if (str == "LowerTrs") {
             return dispatch<
                 gko::LinOpFactory,
-                IluHelper<solver::LowerTrs, solver::UpperTrs,
-                          ReverseApply::value>::template Configurator>(
+                IluHelper2<solver::LowerTrs, solver::UpperTrs,
+                           ReverseApply::value>::template Configurator>(
                 updated.first + "," + updated.second, config, context, exec,
                 updated, value_type_list(), index_type_list());
         } else if (str == "Ir") {
             return dispatch<
                 gko::LinOpFactory,
-                IluHelper<solver::Ir, solver::Ir,
-                          ReverseApply::value>::template Configurator>(
+                IluHelper1<solver::Ir, solver::Ir,
+                           ReverseApply::value>::template Configurator>(
                 updated.first + "," + updated.second, config, context, exec,
                 updated, value_type_list(), index_type_list());
         } else if (str == "LowerIsai") {
             return dispatch<
                 gko::LinOpFactory,
-                IluHelper<preconditioner::LowerIsai, preconditioner::UpperIsai,
-                          ReverseApply::value>::template Configurator>(
+                IluHelper2<preconditioner::LowerIsai, preconditioner::UpperIsai,
+                           ReverseApply::value>::template Configurator>(
                 updated.first + "," + updated.second, config, context, exec,
                 updated, value_type_list(), index_type_list());
         } else if (str == "Gmres") {
             return dispatch<
                 gko::LinOpFactory,
-                IluHelper<solver::Gmres, solver::Gmres,
-                          ReverseApply::value>::template Configurator>(
+                IluHelper1<solver::Gmres, solver::Gmres,
+                           ReverseApply::value>::template Configurator>(
                 updated.first + "," + updated.second, config, context, exec,
                 updated, value_type_list(), index_type_list());
         } else {
