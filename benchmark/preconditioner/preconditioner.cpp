@@ -41,11 +41,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "benchmark/utils/formats.hpp"
+#include "benchmark/utils/general.hpp"
 #include "benchmark/utils/general_matrix.hpp"
 #include "benchmark/utils/generator.hpp"
+#include "benchmark/utils/iteration_control.hpp"
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/preconditioners.hpp"
-#include "benchmark/utils/spmv_validation.hpp"
+#include "benchmark/utils/runner.hpp"
 #include "benchmark/utils/timer.hpp"
 #include "benchmark/utils/types.hpp"
 
@@ -128,34 +130,84 @@ std::string encode_parameters(const char* precond_name)
 }
 
 
-void run_preconditioner(const char* precond_name,
-                        std::shared_ptr<gko::Executor> exec,
-                        std::shared_ptr<const gko::LinOp> system_matrix,
-                        const vec<etype>* b, const vec<etype>* x,
-                        rapidjson::Value& test_case,
-                        rapidjson::MemoryPoolAllocator<>& allocator)
-{
-    try {
-        auto& precond_object = test_case["preconditioner"];
-        auto encoded_name = encode_parameters(precond_name);
+struct preconditioner_benchmark_state {
+    std::unique_ptr<gko::LinOp> x;
+    std::unique_ptr<gko::LinOp> b;
+    std::shared_ptr<const gko::LinOp> system_matrix;
+};
 
-        if (!FLAGS_overwrite &&
-            precond_object.HasMember(encoded_name.c_str())) {
-            return;
+
+using Generator = DefaultSystemGenerator<>;
+
+
+struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
+    std::string name;
+    std::vector<std::string> preconditioners;
+    std::map<std::string, std::string> precond_decoder;
+
+    PreconditionerBenchmark()
+        : name{"preconditioner"}, preconditioners{split(FLAGS_preconditioners)}
+    {
+        for (auto precond : split(FLAGS_preconditioners)) {
+            preconditioners.push_back(encode_parameters(precond.c_str()));
+            precond_decoder[preconditioners.back()] = precond;
         }
+    }
 
-        add_or_set_member(precond_object, encoded_name.c_str(),
-                          rapidjson::Value(rapidjson::kObjectType), allocator);
-        auto& this_precond_data = precond_object[encoded_name.c_str()];
+    const std::string& get_name() const override { return name; }
 
-        add_or_set_member(this_precond_data, "generate",
-                          rapidjson::Value(rapidjson::kObjectType), allocator);
-        add_or_set_member(this_precond_data, "apply",
-                          rapidjson::Value(rapidjson::kObjectType), allocator);
+    const std::vector<std::string>& get_operations() const override
+    {
+        return preconditioners;
+    }
+
+    bool should_print() const override { return true; }
+
+    bool validate_config(const json& value) const override
+    {
+        return Generator::validate_config(value);
+    }
+
+    std::string get_example_config() const override
+    {
+        return Generator::get_example_config();
+    }
+
+    std::string describe_config(const json& test_case) const override
+    {
+        return Generator::describe_config(test_case);
+    }
+
+    preconditioner_benchmark_state setup(std::shared_ptr<gko::Executor> exec,
+                                         json& test_case) const override
+    {
+        preconditioner_benchmark_state state;
+        auto data = Generator::generate_matrix_data(test_case);
+
+        state.system_matrix =
+            formats::matrix_factory(FLAGS_formats, exec, data);
+        state.b = Generator::create_multi_vector_random(exec, data.size[0]);
+        state.x = Generator::create_multi_vector(exec, data.size[0],
+                                                 gko::zero<etype>());
+
+        std::clog << "Matrix is of size (" << data.size[0] << ", "
+                  << data.size[1] << "), " << data.nonzeros.size() << std::endl;
+        test_case["rows"] = data.size[0];
+        test_case["cols"] = data.size[1];
+        test_case["nonzeros"] = data.nonzeros.size();
+        return state;
+    }
+
+
+    void run(std::shared_ptr<gko::Executor> exec, std::shared_ptr<Timer> timer,
+             annotate_functor annotate, preconditioner_benchmark_state& state,
+             const std::string& encoded_precond_name,
+             json& precond_case) const override
+    {
+        auto decoded_precond_name = precond_decoder.at(encoded_precond_name);
         for (auto stage : {"generate", "apply"}) {
-            add_or_set_member(this_precond_data[stage], "components",
-                              rapidjson::Value(rapidjson::kObjectType),
-                              allocator);
+            precond_case[stage] = json::object();
+            precond_case[stage]["components"] = json::object();
         }
 
         IterationControl ic_gen{get_timer(exec, FLAGS_gpu_timer)};
@@ -163,54 +215,57 @@ void run_preconditioner(const char* precond_name,
 
         {
             // fast run, gets total time
-            auto x_clone = clone(x);
+            auto x_clone = clone(state.x);
 
-            auto precond = precond_factory.at(precond_name)(exec);
+            auto precond = precond_factory.at(decoded_precond_name)(exec);
 
-
-            for (auto _ : ic_apply.warmup_run()) {
-                precond->generate(system_matrix)->apply(b, x_clone);
+            {
+                auto range = annotate("warmup", FLAGS_warmup > 0);
+                for (auto _ : ic_apply.warmup_run()) {
+                    precond->generate(state.system_matrix)
+                        ->apply(state.b, x_clone);
+                }
             }
 
             std::unique_ptr<gko::LinOp> precond_op;
             for (auto _ : ic_gen.run()) {
-                precond_op = precond->generate(system_matrix);
+                auto range = annotate("repetition generate");
+                precond_op = precond->generate(state.system_matrix);
             }
 
-            add_or_set_member(this_precond_data["generate"], "time",
-                              ic_gen.compute_time(FLAGS_timer_method),
-                              allocator);
-            add_or_set_member(this_precond_data["generate"], "repetitions",
-                              ic_gen.get_num_repetitions(), allocator);
+            precond_case["generate"]["time"] =
+                ic_gen.compute_time(FLAGS_timer_method);
+            precond_case["generate"]["repetitions"] =
+                ic_gen.get_num_repetitions();
 
             for (auto _ : ic_apply.run()) {
-                precond_op->apply(b, x_clone);
+                auto range = annotate("repetition apply");
+                precond_op->apply(state.b, x_clone);
             }
 
-            add_or_set_member(this_precond_data["apply"], "time",
-                              ic_apply.compute_time(FLAGS_timer_method),
-                              allocator);
-            add_or_set_member(this_precond_data["apply"], "repetitions",
-                              ic_apply.get_num_repetitions(), allocator);
+            precond_case["apply"]["time"] =
+                ic_apply.compute_time(FLAGS_timer_method);
+            precond_case["apply"]["repetitions"] =
+                ic_apply.get_num_repetitions();
         }
 
         if (FLAGS_detailed) {
             // slow run, times each component separately
-            auto x_clone = clone(x);
-            auto precond = precond_factory.at(precond_name)(exec);
+            auto x_clone = clone(state.x);
+            auto precond = precond_factory.at(decoded_precond_name)(exec);
 
             std::unique_ptr<gko::LinOp> precond_op;
             {
                 auto gen_logger = create_operations_logger(
                     FLAGS_gpu_timer, FLAGS_nested_names, exec,
-                    this_precond_data["generate"]["components"], allocator,
+                    precond_case["generate"]["components"],
                     ic_gen.get_num_repetitions());
                 exec->add_logger(gen_logger);
                 if (exec->get_master() != exec) {
                     exec->get_master()->add_logger(gen_logger);
                 }
                 for (auto i = 0u; i < ic_gen.get_num_repetitions(); ++i) {
-                    precond_op = precond->generate(system_matrix);
+                    precond_op = precond->generate(state.system_matrix);
                 }
                 if (exec->get_master() != exec) {
                     exec->get_master()->remove_logger(gen_logger);
@@ -220,39 +275,22 @@ void run_preconditioner(const char* precond_name,
 
             auto apply_logger = create_operations_logger(
                 FLAGS_gpu_timer, FLAGS_nested_names, exec,
-                this_precond_data["apply"]["components"], allocator,
+                precond_case["apply"]["components"],
                 ic_apply.get_num_repetitions());
             exec->add_logger(apply_logger);
             if (exec->get_master() != exec) {
                 exec->get_master()->add_logger(apply_logger);
             }
             for (auto i = 0u; i < ic_apply.get_num_repetitions(); ++i) {
-                precond_op->apply(b, x_clone);
+                precond_op->apply(state.b, x_clone);
             }
             if (exec->get_master() != exec) {
                 exec->get_master()->remove_logger(apply_logger);
             }
             exec->remove_logger(apply_logger);
         }
-
-        add_or_set_member(this_precond_data, "completed", true, allocator);
-    } catch (const std::exception& e) {
-        auto encoded_name = encode_parameters(precond_name);
-        add_or_set_member(test_case["preconditioner"], encoded_name.c_str(),
-                          rapidjson::Value(rapidjson::kObjectType), allocator);
-        add_or_set_member(test_case["preconditioner"][encoded_name.c_str()],
-                          "completed", false, allocator);
-        if (FLAGS_keep_errors) {
-            rapidjson::Value msg_value;
-            msg_value.SetString(e.what(), allocator);
-            add_or_set_member(test_case["preconditioner"][encoded_name.c_str()],
-                              "error", msg_value, allocator);
-        }
-        std::cerr << "Error when processing test case\n"
-                  << test_case << "\n"
-                  << "what(): " << e.what() << std::endl;
     }
-}
+};
 
 
 int main(int argc, char* argv[])
@@ -261,11 +299,11 @@ int main(int argc, char* argv[])
     FLAGS_formats = "csr";
     std::string header =
         "A benchmark for measuring preconditioner performance.\n";
-    std::string format = example_config;
+    std::string format = Generator::get_example_config();
     initialize_argument_parsing_matrix(&argc, &argv, header, format);
 
     std::string extra_information =
-        "Running with preconditioners: " + FLAGS_preconditioners + "\n";
+        "Running with preconditioners: " + FLAGS_preconditioners;
     print_general_information(extra_information);
 
     auto exec = get_executor(FLAGS_gpu_timer);
@@ -279,76 +317,10 @@ int main(int argc, char* argv[])
         std::exit(1);
     }
 
-    rapidjson::IStreamWrapper jcin(get_input_stream());
-    rapidjson::Document test_cases;
-    test_cases.ParseStream(jcin);
-    if (!test_cases.IsArray()) {
-        print_config_error_and_exit();
-    }
+    auto test_cases = json::parse(get_input_stream());
 
-    auto& allocator = test_cases.GetAllocator();
-    auto profiler_hook = create_profiler_hook(exec);
-    if (profiler_hook) {
-        exec->add_logger(profiler_hook);
-    }
-    auto annotate = annotate_functor{profiler_hook};
-    DefaultSystemGenerator<> generator{};
+    run_test_cases(PreconditionerBenchmark{}, exec,
+                   get_timer(exec, FLAGS_gpu_timer), test_cases);
 
-    for (auto& test_case : test_cases.GetArray()) {
-        try {
-            // set up benchmark
-            validate_option_object(test_case);
-            if (!test_case.HasMember("preconditioner")) {
-                test_case.AddMember("preconditioner",
-                                    rapidjson::Value(rapidjson::kObjectType),
-                                    allocator);
-            }
-            auto& precond_object = test_case["preconditioner"];
-            if (!FLAGS_overwrite &&
-                all_of(begin(preconditioners), end(preconditioners),
-                       [&precond_object](const std::string& s) {
-                           return precond_object.HasMember(s.c_str());
-                       })) {
-                continue;
-            }
-            std::clog << "Running test case\n" << test_case << std::endl;
-
-            // annotate the test case
-            auto test_case_range =
-                annotate(generator.describe_config(test_case));
-
-            auto data = generator.generate_matrix_data(test_case);
-
-            auto system_matrix =
-                share(formats::matrix_factory(FLAGS_formats, exec, data));
-            auto b = generator.create_multi_vector_random(
-                exec, system_matrix->get_size()[0]);
-            auto x = generator.create_multi_vector(
-                exec, system_matrix->get_size()[0], gko::zero<etype>());
-
-            std::clog << "Matrix is of size (" << system_matrix->get_size()[0]
-                      << ", " << system_matrix->get_size()[1] << ")"
-                      << std::endl;
-            add_or_set_member(test_case, "size", data.size[0], allocator);
-            for (const auto& precond_name : preconditioners) {
-                {
-                    auto precond_range = annotate(precond_name.c_str());
-                    run_preconditioner(precond_name.c_str(), exec,
-                                       system_matrix, b.get(), x.get(),
-                                       test_case, allocator);
-                }
-                std::clog << "Current state:" << std::endl
-                          << test_cases << std::endl;
-                backup_results(test_cases);
-            }
-        } catch (const std::exception& e) {
-            std::cerr << "Error setting up preconditioner, what(): " << e.what()
-                      << std::endl;
-        }
-    }
-    if (profiler_hook) {
-        exec->remove_logger(profiler_hook);
-    }
-
-    std::cout << test_cases << std::endl;
+    std::cout << std::setw(4) << test_cases << std::endl;
 }

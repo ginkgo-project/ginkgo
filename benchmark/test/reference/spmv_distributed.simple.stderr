@@ -1,0 +1,10 @@
+This is Ginkgo 1.7.0 (develop)
+    running with core module 1.7.0 (develop)
+Running on reference(0)
+Running with 2 warm iterations and 10 running iterations
+The random seed for right hand sides is 42
+The formats are [csr]x[csr]
+The number of right hand sides is 1
+Running test case stencil(100, 7pt, stencil)
+Matrix is of size (81, 81), 144
+	Running spmv: csr-csr

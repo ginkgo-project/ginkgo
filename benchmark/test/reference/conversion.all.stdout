@@ -1,25 +1,22 @@
-
 [
     {
-        "size": 125,
+        "size": 100,
         "stencil": "7pt",
-        "conversions": {
+        "conversion": {
+            "coo-read": {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            },
             "coo-csr": {
                 "time": 1.0,
                 "repetitions": 10,
                 "completed": true
             },
-            "coo-ell": {
-                "completed": false,
-                "error": ""
-            },
-            "coo-sellp": {
-                "completed": false,
-                "error": ""
-            },
-            "coo-hybrid": {
-                "completed": false,
-                "error": ""
+            "csr-read": {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
             },
             "csr-coo": {
                 "time": 1.0,
@@ -41,57 +38,39 @@
                 "repetitions": 10,
                 "completed": true
             },
-            "ell-coo": {
-                "completed": false,
-                "error": ""
+            "ell-read": {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
             },
             "ell-csr": {
                 "time": 1.0,
                 "repetitions": 10,
                 "completed": true
             },
-            "ell-sellp": {
-                "completed": false,
-                "error": ""
-            },
-            "ell-hybrid": {
-                "completed": false,
-                "error": ""
-            },
-            "sellp-coo": {
-                "completed": false,
-                "error": ""
+            "sellp-read": {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
             },
             "sellp-csr": {
                 "time": 1.0,
                 "repetitions": 10,
                 "completed": true
             },
-            "sellp-ell": {
-                "completed": false,
-                "error": ""
-            },
-            "sellp-hybrid": {
-                "completed": false,
-                "error": ""
-            },
-            "hybrid-coo": {
-                "completed": false,
-                "error": ""
+            "hybrid-read": {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
             },
             "hybrid-csr": {
                 "time": 1.0,
                 "repetitions": 10,
                 "completed": true
-            },
-            "hybrid-ell": {
-                "completed": false,
-                "error": ""
-            },
-            "hybrid-sellp": {
-                "completed": false,
-                "error": ""
             }
-        }
+        },
+        "rows": 125,
+        "cols": 125,
+        "nonzeros": 725
     }
 ]

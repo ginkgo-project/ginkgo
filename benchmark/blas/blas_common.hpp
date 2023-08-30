@@ -43,7 +43,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "benchmark/utils/general.hpp"
+#include "benchmark/utils/iteration_control.hpp"
 #include "benchmark/utils/loggers.hpp"
+#include "benchmark/utils/runner.hpp"
 #include "benchmark/utils/timer.hpp"
 #include "benchmark/utils/types.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
@@ -68,14 +70,6 @@ DEFINE_string(
     "   prefix_sum64 (                            64 bit indices)\n"
     "where A has dimensions n x k, B has dimensions k x m,\n"
     "C has dimensions n x m and x and y have dimensions n x r");
-
-
-std::string example_config = R"(
-  [
-    { "n": 100 },
-    { "n": 200, "m": 200, "k": 200 }
-  ]
-)";
 
 
 class BenchmarkOperation {
@@ -404,173 +398,129 @@ struct dimensions {
 };
 
 
-dimensions parse_dims(rapidjson::Value& test_case)
-{
-    auto get_optional = [](rapidjson::Value& obj, const char* name,
-                           gko::size_type default_value) -> gko::size_type {
-        if (obj.HasMember(name)) {
-            return obj[name].GetUint64();
-        } else {
-            return default_value;
-        }
-    };
+struct BlasBenchmark : Benchmark<dimensions> {
+    using map_type =
+        std::map<std::string,
+                 std::function<std::unique_ptr<BenchmarkOperation>(
+                     std::shared_ptr<const gko::Executor>, dimensions)>>;
+    map_type operation_map;
+    std::vector<std::string> operations;
+    std::string name;
+    bool do_print;
 
-    dimensions result;
-    result.n = test_case["n"].GetInt64();
-    result.k = get_optional(test_case, "k", result.n);
-    result.m = get_optional(test_case, "m", result.n);
-    result.r = get_optional(test_case, "r", 1);
-    if (test_case.HasMember("stride")) {
-        result.stride_x = test_case["stride"].GetInt64();
-        result.stride_y = result.stride_x;
-    } else {
-        result.stride_x = get_optional(test_case, "stride_x", result.r);
-        result.stride_y = get_optional(test_case, "stride_y", result.r);
+    BlasBenchmark(map_type operation_map, bool do_print = true)
+        : operation_map{std::move(operation_map)},
+          name{"blas"},
+          operations{split(FLAGS_operations)},
+          do_print{do_print}
+    {}
+
+    const std::string& get_name() const override { return name; }
+
+    const std::vector<std::string>& get_operations() const override
+    {
+        return operations;
     }
-    result.stride_A = get_optional(test_case, "stride_A", result.k);
-    result.stride_B = get_optional(test_case, "stride_B", result.m);
-    result.stride_C = get_optional(test_case, "stride_C", result.m);
-    return result;
-}
 
+    bool should_print() const override { return do_print; }
 
-std::string describe(rapidjson::Value& test_case)
-{
-    std::stringstream ss;
-    auto optional_output = [&](const char* name) {
-        if (test_case.HasMember(name) && test_case[name].IsInt64()) {
-            ss << name << " = " << test_case[name].GetInt64() << " ";
+    std::string get_example_config() const override
+    {
+        return json::parse(R"([{"n": 100}, {"n": 200, "m": 200, "k": 200}])")
+            .dump(4);
+    }
+
+    bool validate_config(const json& value) const override
+    {
+        return value.contains("n") && value["n"].is_number_integer();
+    }
+
+    std::string describe_config(const json& test_case) const override
+    {
+        std::stringstream ss;
+        auto optional_output = [&](const char* name) {
+            if (test_case.contains(name) &&
+                test_case[name].is_number_integer()) {
+                ss << name << " = " << test_case[name].get<gko::int64>() << " ";
+            }
+        };
+        optional_output("n");
+        optional_output("k");
+        optional_output("m");
+        optional_output("r");
+        optional_output("stride");
+        optional_output("stride_x");
+        optional_output("stride_y");
+        optional_output("stride_A");
+        optional_output("stride_B");
+        optional_output("stride_C");
+        return ss.str();
+    }
+
+    dimensions setup(std::shared_ptr<gko::Executor> exec,
+                     json& test_case) const override
+    {
+        auto get_optional = [](json& obj, const char* name,
+                               gko::size_type default_value) -> gko::size_type {
+            if (obj.contains(name)) {
+                return obj[name].get<gko::uint64>();
+            } else {
+                return default_value;
+            }
+        };
+
+        dimensions result;
+        result.n = test_case["n"].get<gko::int64>();
+        result.k = get_optional(test_case, "k", result.n);
+        result.m = get_optional(test_case, "m", result.n);
+        result.r = get_optional(test_case, "r", 1);
+        if (test_case.contains("stride")) {
+            result.stride_x = test_case["stride"].get<gko::int64>();
+            result.stride_y = result.stride_x;
+        } else {
+            result.stride_x = get_optional(test_case, "stride_x", result.r);
+            result.stride_y = get_optional(test_case, "stride_y", result.r);
         }
-    };
-    optional_output("n");
-    optional_output("k");
-    optional_output("m");
-    optional_output("r");
-    optional_output("stride");
-    optional_output("stride_x");
-    optional_output("stride_y");
-    optional_output("stride_A");
-    optional_output("stride_B");
-    optional_output("stride_C");
-    return ss.str();
-}
+        result.stride_A = get_optional(test_case, "stride_A", result.k);
+        result.stride_B = get_optional(test_case, "stride_B", result.m);
+        result.stride_C = get_optional(test_case, "stride_C", result.m);
+        return result;
+    }
 
 
-template <typename OpMap>
-void apply_blas(const char* operation_name, std::shared_ptr<gko::Executor> exec,
-                std::shared_ptr<Timer> timer, const OpMap& operation_map,
-                rapidjson::Value& test_case,
-                rapidjson::MemoryPoolAllocator<>& allocator)
-{
-    try {
-        auto& blas_case = test_case["blas"];
-        add_or_set_member(blas_case, operation_name,
-                          rapidjson::Value(rapidjson::kObjectType), allocator);
-
-        auto op = operation_map.at(operation_name)(exec, parse_dims(test_case));
+    void run(std::shared_ptr<gko::Executor> exec, std::shared_ptr<Timer> timer,
+             annotate_functor annotate, dimensions& dims,
+             const std::string& operation_name,
+             json& operation_case) const override
+    {
+        auto op = operation_map.at(operation_name)(exec, dims);
 
         IterationControl ic(timer);
 
         // warm run
-        for (auto _ : ic.warmup_run()) {
-            op->prepare();
-            exec->synchronize();
-            op->run();
-            exec->synchronize();
+        {
+            auto range = annotate("warmup", FLAGS_warmup > 0);
+            for (auto _ : ic.warmup_run()) {
+                op->prepare();
+                exec->synchronize();
+                op->run();
+                exec->synchronize();
+            }
         }
 
         // timed run
         op->prepare();
         for (auto _ : ic.run()) {
+            auto range = annotate("repetition");
             op->run();
         }
         const auto runtime = ic.compute_time(FLAGS_timer_method);
         const auto flops = static_cast<double>(op->get_flops());
         const auto mem = static_cast<double>(op->get_memory());
         const auto repetitions = ic.get_num_repetitions();
-        add_or_set_member(blas_case[operation_name], "time", runtime,
-                          allocator);
-        add_or_set_member(blas_case[operation_name], "flops", flops / runtime,
-                          allocator);
-        add_or_set_member(blas_case[operation_name], "bandwidth", mem / runtime,
-                          allocator);
-        add_or_set_member(blas_case[operation_name], "repetitions", repetitions,
-                          allocator);
-
-        // compute and write benchmark data
-        add_or_set_member(blas_case[operation_name], "completed", true,
-                          allocator);
-    } catch (const std::exception& e) {
-        add_or_set_member(test_case["blas"][operation_name], "completed", false,
-                          allocator);
-        if (FLAGS_keep_errors) {
-            rapidjson::Value msg_value;
-            msg_value.SetString(e.what(), allocator);
-            add_or_set_member(test_case["blas"][operation_name], "error",
-                              msg_value, allocator);
-        }
-        std::cerr << "Error when processing test case\n"
-                  << test_case << "\n"
-                  << "what(): " << e.what() << std::endl;
+        operation_case["time"] = runtime;
+        operation_case["flops"] = flops / runtime;
+        operation_case["bandwidth"] = mem / runtime;
+        operation_case["repetitions"] = repetitions;
     }
-}
-
-
-template <typename OpMap>
-void run_blas_benchmarks(std::shared_ptr<gko::Executor> exec,
-                         std::shared_ptr<Timer> timer,
-                         const OpMap& operation_map,
-                         rapidjson::Document& test_cases, bool do_print)
-{
-    auto operations = split(FLAGS_operations, ',');
-    auto& allocator = test_cases.GetAllocator();
-    auto profiler_hook = create_profiler_hook(exec);
-    if (profiler_hook) {
-        exec->add_logger(profiler_hook);
-    }
-    auto annotate = annotate_functor{profiler_hook};
-
-    for (auto& test_case : test_cases.GetArray()) {
-        try {
-            // set up benchmark
-            if (!test_case.HasMember("blas")) {
-                test_case.AddMember("blas",
-                                    rapidjson::Value(rapidjson::kObjectType),
-                                    allocator);
-            }
-            auto& blas_case = test_case["blas"];
-            if (!FLAGS_overwrite &&
-                all_of(begin(operations), end(operations),
-                       [&blas_case](const std::string& s) {
-                           return blas_case.HasMember(s.c_str());
-                       })) {
-                continue;
-            }
-            if (do_print) {
-                std::clog << "Running test case\n" << test_case << std::endl;
-            }
-            // annotate the test case
-            auto test_case_range = annotate(describe(test_case));
-            for (const auto& operation_name : operations) {
-                {
-                    auto operation_range = annotate(operation_name.c_str());
-                    apply_blas(operation_name.c_str(), exec, timer,
-                               operation_map, test_case, allocator);
-                }
-
-                if (do_print) {
-                    std::clog << "Current state:" << std::endl
-                              << test_cases << std::endl;
-
-                    backup_results(test_cases);
-                }
-            }
-        } catch (const std::exception& e) {
-            std::cerr << "Error setting up benchmark, what(): " << e.what()
-                      << std::endl;
-        }
-    }
-    if (profiler_hook) {
-        exec->remove_logger(profiler_hook);
-    }
-}
+};

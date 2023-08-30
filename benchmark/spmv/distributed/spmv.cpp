@@ -58,38 +58,7 @@ DEFINE_string(non_local_formats, "csr",
               "run. See the 'formats' option for a list of supported versions");
 
 
-std::string example_config = R"(
-  [
-    {"size": 100, "stencil": "7pt", "comm_pattern": "stencil"},
-    {"filename": "my_file.mtx"}
-  ]
-)";
-
-
-[[noreturn]] void print_config_error_and_exit()
-{
-    std::cerr << "Input has to be a JSON array of matrix configurations:\n"
-              << example_config << std::endl;
-    std::exit(1);
-}
-
-
-struct Generator : DistributedDefaultSystemGenerator<DefaultSystemGenerator<>> {
-    Generator(gko::experimental::mpi::communicator comm)
-        : DistributedDefaultSystemGenerator<DefaultSystemGenerator<>>{
-              std::move(comm), {}}
-    {}
-
-    void validate_options(const rapidjson::Value& options) const
-    {
-        if (!options.IsObject() ||
-            !((options.HasMember("size") && options.HasMember("stencil") &&
-               options.HasMember("comm_pattern")) ||
-              options.HasMember("filename"))) {
-            print_config_error_and_exit();
-        }
-    }
-};
+using Generator = DistributedDefaultSystemGenerator<DefaultSystemGenerator<>>;
 
 
 int main(int argc, char* argv[])
@@ -98,18 +67,19 @@ int main(int argc, char* argv[])
 
     const auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
     const auto rank = comm.rank();
+    const auto do_print = rank == 0;
 
     std::string header =
         "A benchmark for measuring performance of Ginkgo's spmv.\n";
-    std::string format = example_config;
-    initialize_argument_parsing_matrix(&argc, &argv, header, format);
+    std::string format = Generator::get_example_config();
+    initialize_argument_parsing_matrix(&argc, &argv, header, format, "",
+                                       do_print);
 
-    if (rank == 0) {
-        std::string extra_information = "The formats are [" +
-                                        FLAGS_local_formats + "]x[" +
-                                        FLAGS_non_local_formats + "]\n" +
-                                        "The number of right hand sides is " +
-                                        std::to_string(FLAGS_nrhs) + "\n";
+    if (do_print) {
+        std::string extra_information =
+            "The formats are [" + FLAGS_local_formats + "]x[" +
+            FLAGS_non_local_formats + "]\n" +
+            "The number of right hand sides is " + std::to_string(FLAGS_nrhs);
         print_general_information(extra_information);
     }
 
@@ -125,16 +95,13 @@ int main(int argc, char* argv[])
     }
 
     std::string json_input = broadcast_json_input(get_input_stream(), comm);
-    rapidjson::Document test_cases;
-    test_cases.Parse(json_input.c_str());
-    if (!test_cases.IsArray()) {
-        print_config_error_and_exit();
-    }
+    auto test_cases = json::parse(json_input);
 
-    run_spmv_benchmark(exec, test_cases, formats, Generator{comm},
-                       get_mpi_timer(exec, comm, FLAGS_gpu_timer), rank == 0);
+    run_test_cases(SpmvBenchmark<Generator>{Generator{comm}, formats, do_print},
+                   exec, get_mpi_timer(exec, comm, FLAGS_gpu_timer),
+                   test_cases);
 
-    if (rank == 0) {
-        std::cout << test_cases << std::endl;
+    if (do_print) {
+        std::cout << std::setw(4) << test_cases << std::endl;
     }
 }

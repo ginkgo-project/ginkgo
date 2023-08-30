@@ -1,7 +1,6 @@
-
 [
     {
-        "size": 125,
+        "size": 100,
         "stencil": "7pt",
         "spmv": {
             "coo": {
@@ -11,7 +10,9 @@
                 "completed": true
             }
         },
-        "nnz": 725,
+        "rows": 125,
+        "cols": 125,
+        "nonzeros": 725,
         "optimal": {
             "spmv": "coo"
         }

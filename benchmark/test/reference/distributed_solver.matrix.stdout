@@ -1,4 +1,3 @@
-
 [
     {
         "filename": "",
@@ -52,6 +51,7 @@
                 "completed": true
             }
         },
-        "size": 36
+        "rows": 36,
+        "cols": 36
     }
 ]

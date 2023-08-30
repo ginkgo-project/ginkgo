@@ -36,7 +36,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
+#include "benchmark/utils/iteration_control.hpp"
 #include "benchmark/utils/loggers.hpp"
+#include "benchmark/utils/runner.hpp"
 #include "benchmark/utils/timer.hpp"
 #include "benchmark/utils/types.hpp"
 #ifdef GINKGO_BENCHMARK_ENABLE_TUNING
@@ -48,57 +50,122 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 DEFINE_uint32(nrhs, 1, "The number of right hand sides");
 
 
-// This function supposes that management of `FLAGS_overwrite` is done before
-// calling it
-template <typename Generator, typename VectorType, typename IndexType>
-void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
-                const Generator& generator, std::shared_ptr<Timer> timer,
-                const gko::matrix_data<etype, IndexType>& data,
-                const VectorType* b, const VectorType* x,
-                const VectorType* answer, rapidjson::Value& test_case,
-                rapidjson::MemoryPoolAllocator<>& allocator)
-{
-    try {
-        auto& spmv_case = test_case["spmv"];
-        add_or_set_member(spmv_case, format_name,
-                          rapidjson::Value(rapidjson::kObjectType), allocator);
+template <typename Generator>
+struct spmv_benchmark_state {
+    gko::matrix_data<etype, typename Generator::index_type> data;
+    std::unique_ptr<typename Generator::Vec> x;
+    std::unique_ptr<typename Generator::Vec> b;
+    std::unique_ptr<typename Generator::Vec> answer;
+};
 
+
+template <typename Generator>
+struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
+    using Vec = typename Generator::Vec;
+    std::string name;
+    std::vector<std::string> formats;
+    bool do_print;
+    Generator generator;
+
+    SpmvBenchmark(Generator generator, std::vector<std::string> formats,
+                  bool do_print = true)
+        : name{"spmv"},
+          formats{std::move(formats)},
+          generator{generator},
+          do_print{do_print}
+    {}
+
+    const std::string& get_name() const override { return name; }
+
+    const std::vector<std::string>& get_operations() const override
+    {
+        return formats;
+    }
+
+    bool should_print() const override { return do_print; }
+
+    std::string get_example_config() const override
+    {
+        return generator.get_example_config();
+    }
+
+    bool validate_config(const json& test_case) const override
+    {
+        return generator.validate_config(test_case);
+    }
+
+    std::string describe_config(const json& test_case) const override
+    {
+        return generator.describe_config(test_case);
+    }
+
+    spmv_benchmark_state<Generator> setup(std::shared_ptr<gko::Executor> exec,
+                                          json& test_case) const override
+    {
+        spmv_benchmark_state<Generator> state;
+        state.data = generator.generate_matrix_data(test_case);
+
+        auto nrhs = FLAGS_nrhs;
+        state.b = generator.create_multi_vector_random(
+            exec, gko::dim<2>{state.data.size[1], nrhs});
+        state.x = generator.create_multi_vector_random(
+            exec, gko::dim<2>{state.data.size[0], nrhs});
+        if (do_print) {
+            std::clog << "Matrix is of size (" << state.data.size[0] << ", "
+                      << state.data.size[1] << "), "
+                      << state.data.nonzeros.size() << std::endl;
+        }
+        test_case["rows"] = state.data.size[0];
+        test_case["cols"] = state.data.size[1];
+        test_case["nonzeros"] = state.data.nonzeros.size();
+        if (FLAGS_detailed) {
+            state.answer = gko::clone(state.x);
+            auto system_matrix =
+                generator.generate_matrix_with_default_format(exec, state.data);
+            exec->synchronize();
+            system_matrix->apply(state.b, state.answer);
+            exec->synchronize();
+        }
+        return state;
+    }
+
+    void run(std::shared_ptr<gko::Executor> exec, std::shared_ptr<Timer> timer,
+             annotate_functor annotate, spmv_benchmark_state<Generator>& state,
+             const std::string& format_name, json& format_case) const override
+    {
         auto system_matrix = generator.generate_matrix_with_format(
-            exec, format_name, data, &spmv_case[format_name], &allocator);
+            exec, format_name, state.data, &format_case);
 
         // check the residual
         if (FLAGS_detailed) {
-            auto x_clone = clone(x);
+            auto x_clone = clone(state.x);
             exec->synchronize();
-            system_matrix->apply(b, x_clone);
+            system_matrix->apply(state.b, x_clone);
             exec->synchronize();
             auto max_relative_norm2 =
-                compute_max_relative_norm2(x_clone.get(), answer);
-            add_or_set_member(spmv_case[format_name], "max_relative_norm2",
-                              max_relative_norm2, allocator);
+                compute_max_relative_norm2(x_clone.get(), state.answer.get());
+            format_case["max_relative_norm2"] = max_relative_norm2;
         }
 
         IterationControl ic{timer};
         // warm run
-        for (auto _ : ic.warmup_run()) {
-            auto x_clone = clone(x);
-            exec->synchronize();
-            system_matrix->apply(b, x_clone);
-            exec->synchronize();
+        {
+            auto range = annotate("warmup", FLAGS_warmup > 0);
+            for (auto _ : ic.warmup_run()) {
+                auto x_clone = clone(state.x);
+                exec->synchronize();
+                system_matrix->apply(state.b, x_clone);
+                exec->synchronize();
+            }
         }
 
         // tuning run
 #ifdef GINKGO_BENCHMARK_ENABLE_TUNING
         auto& format_case = spmv_case[format_name];
-        if (!format_case.HasMember("tuning")) {
-            format_case.AddMember(
-                "tuning", rapidjson::Value(rapidjson::kObjectType), allocator);
-        }
+        format_case["tuning"] = json::object();
         auto& tuning_case = format_case["tuning"];
-        add_or_set_member(tuning_case, "time",
-                          rapidjson::Value(rapidjson::kArrayType), allocator);
-        add_or_set_member(tuning_case, "values",
-                          rapidjson::Value(rapidjson::kArrayType), allocator);
+        tuning_case["time"] = json::array();
+        tuning_case["values"] = json::array();
 
         // Enable tuning for this portion of code
         gko::_tuning_flag = true;
@@ -112,13 +179,13 @@ void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
             gko::_tuned_value = val;
             auto tuning_timer = get_timer(exec, FLAGS_gpu_timer);
             IterationControl ic_tuning{tuning_timer};
-            auto x_clone = clone(x);
+            auto x_clone = clone(state.x);
             for (auto _ : ic_tuning.run()) {
-                system_matrix->apply(b, x_clone);
+                system_matrix->apply(state.b, x_clone);
             }
-            tuning_case["time"].PushBack(
-                ic_tuning.compute_time(FLAGS_timer_method), allocator);
-            tuning_case["values"].PushBack(val, allocator);
+            tuning_case["time"].push_back(
+                ic_tuning.compute_time(FLAGS_timer_method));
+            tuning_case["values"].push_back(val);
         }
         // We put back the flag to false to use the default (non-tuned) values
         // for the following
@@ -126,142 +193,39 @@ void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
 #endif  // GINKGO_BENCHMARK_ENABLE_TUNING
 
         // timed run
-        auto x_clone = clone(x);
+        auto x_clone = clone(state.x);
         for (auto _ : ic.run()) {
-            system_matrix->apply(b, x_clone);
+            auto range = annotate("repetition");
+            system_matrix->apply(state.b, x_clone);
         }
-        add_or_set_member(spmv_case[format_name], "time",
-                          ic.compute_time(FLAGS_timer_method), allocator);
-        add_or_set_member(spmv_case[format_name], "repetitions",
-                          ic.get_num_repetitions(), allocator);
+        format_case["time"] = ic.compute_time(FLAGS_timer_method);
+        format_case["repetitions"] = ic.get_num_repetitions();
+    }
 
-        // compute and write benchmark data
-        add_or_set_member(spmv_case[format_name], "completed", true, allocator);
-    } catch (const std::exception& e) {
-        add_or_set_member(test_case["spmv"][format_name], "completed", false,
-                          allocator);
-        if (FLAGS_keep_errors) {
-            rapidjson::Value msg_value;
-            msg_value.SetString(e.what(), allocator);
-            add_or_set_member(test_case["spmv"][format_name], "error",
-                              msg_value, allocator);
+    void postprocess(json& test_case) const override
+    {
+        if (!test_case.contains("optimal")) {
+            test_case["optimal"] = json::object();
         }
-        std::cerr << "Error when processing test case\n"
-                  << test_case << "\n"
-                  << "what(): " << e.what() << std::endl;
-    }
-}
-
-
-template <typename SystemGenerator>
-void run_spmv_benchmark(std::shared_ptr<gko::Executor> exec,
-                        rapidjson::Document& test_cases,
-                        const std::vector<std::string> formats,
-                        const SystemGenerator& system_generator,
-                        std::shared_ptr<Timer> timer, bool do_print)
-{
-    auto& allocator = test_cases.GetAllocator();
-    auto profiler_hook = create_profiler_hook(exec);
-    if (profiler_hook) {
-        exec->add_logger(profiler_hook);
-    }
-    auto annotate = annotate_functor{profiler_hook};
-
-    for (auto& test_case : test_cases.GetArray()) {
-        try {
-            // set up benchmark
-            system_generator.validate_options(test_case);
-            if (!test_case.HasMember("spmv")) {
-                test_case.AddMember("spmv",
-                                    rapidjson::Value(rapidjson::kObjectType),
-                                    allocator);
-            }
-            auto& spmv_case = test_case["spmv"];
-            if (!FLAGS_overwrite &&
-                all_of(begin(formats), end(formats),
-                       [&spmv_case](const std::string& s) {
-                           return spmv_case.HasMember(s.c_str());
-                       })) {
-                continue;
-            }
-            if (do_print) {
-                std::clog << "Running test case\n" << test_case << std::endl;
-            }
-            // annotate the test case
-            auto test_case_range =
-                annotate(system_generator.describe_config(test_case));
-
-            auto data = system_generator.generate_matrix_data(test_case);
-
-            auto nrhs = FLAGS_nrhs;
-            auto b = system_generator.create_multi_vector_random(
-                exec, gko::dim<2>{data.size[1], nrhs});
-            auto x = system_generator.create_multi_vector_random(
-                exec, gko::dim<2>{data.size[0], nrhs});
-            if (do_print) {
-                std::clog << "Matrix is of size (" << data.size[0] << ", "
-                          << data.size[1] << ")" << std::endl;
-            }
-            add_or_set_member(test_case, "size", data.size[0], allocator);
-            add_or_set_member(test_case, "nnz", data.nonzeros.size(),
-                              allocator);
-            auto best_performance = std::numeric_limits<double>::max();
-            if (!test_case.HasMember("optimal")) {
-                test_case.AddMember("optimal",
-                                    rapidjson::Value(rapidjson::kObjectType),
-                                    allocator);
-            }
-
-            // Compute the result from ginkgo::coo as the correct answer
-            auto answer = gko::clone(x);
-            if (FLAGS_detailed) {
-                auto system_matrix =
-                    system_generator.generate_matrix_with_default_format(exec,
-                                                                         data);
-                exec->synchronize();
-                system_matrix->apply(b, answer);
-                exec->synchronize();
-            }
-            for (const auto& format_name : formats) {
-                {
-                    auto format_range = annotate(format_name.c_str());
-                    apply_spmv(format_name.c_str(), exec, system_generator,
-                               timer, data, b.get(), x.get(), answer.get(),
-                               test_case, allocator);
+        auto best_time = std::numeric_limits<double>::max();
+        std::string best_format;
+        // find the fastest among all formats we tested
+        for (const auto& format : formats) {
+            auto& format_case = test_case[name][format];
+            if (format_case.contains("completed") &&
+                format_case["completed"].template get<bool>()) {
+                auto time = format_case["time"];
+                if (time < best_time) {
+                    best_time = time;
+                    best_format = format;
                 }
-                if (do_print) {
-                    std::clog << "Current state:" << std::endl
-                              << test_cases << std::endl;
-                }
-                if (spmv_case[format_name.c_str()]["completed"].GetBool()) {
-                    auto performance =
-                        spmv_case[format_name.c_str()]["time"].GetDouble();
-                    if (performance < best_performance) {
-                        best_performance = performance;
-                        add_or_set_member(
-                            test_case["optimal"], "spmv",
-                            rapidjson::Value(format_name.c_str(), allocator)
-                                .Move(),
-                            allocator);
-                    }
-                }
-                if (do_print) {
-                    backup_results(test_cases);
-                }
-            }
-        } catch (const std::exception& e) {
-            std::cerr << "Error setting up matrix data, what(): " << e.what()
-                      << std::endl;
-            if (FLAGS_keep_errors) {
-                rapidjson::Value msg_value;
-                msg_value.SetString(e.what(), allocator);
-                add_or_set_member(test_case, "error", msg_value, allocator);
             }
         }
+        if (!best_format.empty()) {
+            test_case["optimal"][name] = best_format;
+        }
     }
-    if (profiler_hook) {
-        exec->remove_logger(profiler_hook);
-    }
-}
+};
+
 
 #endif  // GINKGO_BENCHMARK_SPMV_SPMV_COMMON_HPP

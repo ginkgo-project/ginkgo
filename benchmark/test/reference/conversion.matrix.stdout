@@ -1,9 +1,18 @@
-
 [
     {
         "filename": "",
-        "conversions": {
+        "conversion": {
+            "coo-read": {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            },
             "coo-csr": {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            },
+            "csr-read": {
                 "time": 1.0,
                 "repetitions": 10,
                 "completed": true
@@ -14,6 +23,8 @@
                 "completed": true
             }
         },
-        "size": 36
+        "rows": 36,
+        "cols": 36,
+        "nonzeros": 208
     }
 ]

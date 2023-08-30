@@ -57,9 +57,9 @@ DEFINE_string(input_matrix, "",
  */
 void initialize_argument_parsing_matrix(
     int* argc, char** argv[], std::string& header, std::string& format,
-    std::string additional_matrix_file_json = "")
+    std::string additional_matrix_file_json = "", bool do_print = true)
 {
-    initialize_argument_parsing(argc, argv, header, format);
+    initialize_argument_parsing(argc, argv, header, format, do_print);
     std::string input_matrix_str{FLAGS_input_matrix};
     if (!input_matrix_str.empty()) {
         if (input_stream) {
@@ -67,17 +67,13 @@ void initialize_argument_parsing_matrix(
                 << "-input and -input_matrix cannot be used simultaneously\n";
             std::exit(1);
         }
-        // create JSON for the filename via RapidJSON to ensure the string is
-        // correctly escaped
-        rapidjson::Document d;
+        // create JSON for the filename via nlohmann_json to ensure the string
+        // is correctly escaped
         auto json_template =
             R"([{"filename":"")" + additional_matrix_file_json + "}]";
-        d.Parse(json_template.c_str());
-        d[0]["filename"].SetString(input_matrix_str.c_str(), d.GetAllocator());
-        rapidjson::StringBuffer sb;
-        rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(sb);
-        d.Accept(writer);
-        input_stream = std::make_unique<std::stringstream>(sb.GetString());
+        auto doc = json::parse(json_template);
+        doc[0]["filename"] = input_matrix_str;
+        input_stream = std::make_unique<std::stringstream>(doc.dump());
     }
 }
 

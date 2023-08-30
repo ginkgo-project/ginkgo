@@ -1,7 +1,6 @@
-
 [
     {
-        "size": 125,
+        "size": 100,
         "stencil": "7pt",
         "comm_pattern": "stencil",
         "optimal": {
@@ -53,6 +52,8 @@
                 "repetitions": 1,
                 "completed": true
             }
-        }
+        },
+        "rows": 125,
+        "cols": 125
     }
 ]

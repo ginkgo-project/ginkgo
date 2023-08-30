@@ -4,43 +4,9 @@ Running on reference(0)
 Running with 2 warm iterations and 10 running iterations
 The random seed for right hand sides is 42
 The formats are coo,csr
-Benchmarking conversions. 
-Running test case
-{
-    "filename": "",
-    "conversions": {}
-}
-Matrix is of size (36, 36)
-Current state:
-[
-    {
-        "filename": "",
-        "conversions": {
-            "coo-csr": {
-                "time": 1.0,
-                "repetitions": 10,
-                "completed": true
-            }
-        },
-        "size": 36
-    }
-]
-Current state:
-[
-    {
-        "filename": "",
-        "conversions": {
-            "coo-csr": {
-                "time": 1.0,
-                "repetitions": 10,
-                "completed": true
-            },
-            "csr-coo": {
-                "time": 1.0,
-                "repetitions": 10,
-                "completed": true
-            }
-        },
-        "size": 36
-    }
-]
+Running test case <filename>
+Matrix is of size (36, 36), 208
+	Running conversion: coo-read
+	Running conversion: coo-csr
+	Running conversion: csr-read
+	Running conversion: csr-coo

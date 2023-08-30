@@ -1,4 +1,3 @@
-
 [
     {
         "filename": "",
@@ -33,6 +32,8 @@
                 "hyperflatness": 6.0545648993883665
             }
         },
-        "size": 36
+        "rows": 36,
+        "cols": 36,
+        "nonzeros": 208
     }
 ]

@@ -85,31 +85,33 @@ std::string input_format =
 // clang-format on
 
 
-void validate_option_object(const rapidjson::Value& value)
+void validate_option_object(const json& value)
 {
-    if (!value.IsObject() || !value.HasMember("filename") ||
-        !value["filename"].IsString() || !value.HasMember("problem") ||
-        !value["problem"].IsObject() || !value["problem"].HasMember("type") ||
-        !value["problem"]["type"].IsString()) {
+    if (!value.is_object() || !value.contains("filename") ||
+        !value["filename"].is_string() || !value.contains("problem") ||
+        !value["problem"].is_object() || !value["problem"].contains("type") ||
+        !value["problem"]["type"].is_string()) {
         print_config_error_and_exit(2);
     }
 }
 
 
 using generator_function = std::function<gko::matrix_data<etype, itype>(
-    rapidjson::Value&, std::default_random_engine&)>;
+    json&, std::default_random_engine&)>;
 
 
 // matrix generators
 gko::matrix_data<etype, itype> generate_block_diagonal(
-    rapidjson::Value& config, std::default_random_engine& engine)
+    json& config, std::default_random_engine& engine)
 {
-    if (!config.HasMember("num_blocks") || !config["num_blocks"].IsUint() ||
-        !config.HasMember("block_size") || !config["block_size"].IsUint()) {
+    if (!config.contains("num_blocks") ||
+        !config["num_blocks"].is_number_unsigned() ||
+        !config.contains("block_size") ||
+        !config["block_size"].is_number_unsigned()) {
         print_config_error_and_exit(2);
     }
-    auto num_blocks = config["num_blocks"].GetUint();
-    auto block_size = config["block_size"].GetUint();
+    auto num_blocks = config["num_blocks"].get<gko::uint64>();
+    auto block_size = config["block_size"].get<gko::uint64>();
     auto block = gko::matrix_data<etype, itype>(
         gko::dim<2>(block_size),
         std::uniform_real_distribution<rc_etype>(-1.0, 1.0), engine);
@@ -132,20 +134,18 @@ int main(int argc, char* argv[])
     std::clog << gko::version_info::get() << std::endl;
 
     auto engine = get_engine();
-    rapidjson::IStreamWrapper jcin(get_input_stream());
-    rapidjson::Document configurations;
-    configurations.ParseStream(jcin);
+    auto configurations = json::parse(get_input_stream());
 
-    if (!configurations.IsArray()) {
+    if (!configurations.is_array()) {
         print_config_error_and_exit(1);
     }
 
-    for (auto& config : configurations.GetArray()) {
+    for (auto& config : configurations) {
         try {
             validate_option_object(config);
             std::clog << "Generating matrix: " << config << std::endl;
-            auto filename = config["filename"].GetString();
-            auto type = config["problem"]["type"].GetString();
+            auto filename = config["filename"].get<std::string>();
+            auto type = config["problem"]["type"].get<std::string>();
             auto mdata = generator[type](config["problem"], engine);
             std::ofstream ofs(filename);
             gko::write_raw(ofs, mdata, gko::layout_type::coordinate);

@@ -53,28 +53,45 @@ struct DefaultSystemGenerator {
     using Vec = vec<ValueType>;
 
     static gko::matrix_data<ValueType, IndexType> generate_matrix_data(
-        rapidjson::Value& config)
+        const json& config)
     {
-        if (config.HasMember("filename")) {
-            std::ifstream in(config["filename"].GetString());
+        if (config.contains("filename")) {
+            std::ifstream in(config["filename"].get<std::string>());
             return gko::read_generic_raw<ValueType, IndexType>(in);
-        } else if (config.HasMember("stencil")) {
+        } else if (config.contains("stencil")) {
             return generate_stencil<ValueType, IndexType>(
-                config["stencil"].GetString(), config["size"].GetInt64());
+                config["stencil"].get<std::string>(),
+                config["size"].get<gko::int64>());
         } else {
             throw std::runtime_error(
                 "No known way to generate matrix data found.");
         }
     }
 
-    static std::string describe_config(rapidjson::Value& config)
+    static std::string get_example_config()
     {
-        if (config.HasMember("filename")) {
-            return config["filename"].GetString();
-        } else if (config.HasMember("stencil")) {
+        return json::
+            parse(R"([{"filename": "my_file.mtx"},{"filename": "my_file2.mtx"},{"size": 100, "stencil": "7pt"}])")
+                .dump(4);
+    }
+
+    static bool validate_config(const json& test_case)
+    {
+        return ((test_case.contains("size") && test_case.contains("stencil") &&
+                 test_case["size"].is_number_integer() &&
+                 test_case["stencil"].is_string()) ||
+                (test_case.contains("filename") &&
+                 test_case["filename"].is_string()));
+    }
+
+    static std::string describe_config(const json& config)
+    {
+        if (config.contains("filename")) {
+            return config["filename"].get<std::string>();
+        } else if (config.contains("stencil")) {
             std::stringstream ss;
-            ss << "stencil(" << config["size"].GetInt64() << ","
-               << config["stencil"].GetString() << ")";
+            ss << "stencil(" << config["size"].get<gko::int64>() << ", "
+               << config["stencil"].get<std::string>() << ")";
             return ss.str();
         } else {
             throw std::runtime_error("No known way to describe config.");
@@ -82,30 +99,30 @@ struct DefaultSystemGenerator {
     }
 
     static std::shared_ptr<gko::LinOp> generate_matrix_with_optimal_format(
-        std::shared_ptr<gko::Executor> exec, rapidjson::Value& config)
+        std::shared_ptr<gko::Executor> exec, json& config)
     {
         auto data = generate_matrix_data(config);
         return generate_matrix_with_format(
-            std::move(exec), config["optimal"]["spmv"].GetString(), data);
+            std::move(exec), config["optimal"]["spmv"].get<std::string>(),
+            data);
     }
 
     static std::shared_ptr<gko::LinOp> generate_matrix_with_format(
         std::shared_ptr<gko::Executor> exec, const std::string& format_name,
         const gko::matrix_data<ValueType, itype>& data,
-        rapidjson::Value* spmv_case = nullptr,
-        rapidjson::MemoryPoolAllocator<>* allocator = nullptr)
+        json* spmv_case = nullptr)
     {
         auto storage_logger = std::make_shared<StorageLogger>();
-        if (spmv_case && allocator) {
+        if (spmv_case) {
             exec->add_logger(storage_logger);
         }
 
         auto mtx =
             gko::share(::formats::matrix_factory(format_name, exec, data));
 
-        if (spmv_case && allocator) {
+        if (spmv_case) {
             exec->remove_logger(storage_logger);
-            storage_logger->write_data(*spmv_case, *allocator);
+            storage_logger->write_data(*spmv_case);
         }
 
         return mtx;
@@ -172,32 +189,51 @@ struct DistributedDefaultSystemGenerator {
     using Vec = dist_vec<value_type>;
 
     gko::matrix_data<value_type, index_type> generate_matrix_data(
-        rapidjson::Value& config) const
+        const json& config) const
     {
-        if (config.HasMember("filename")) {
-            std::ifstream in(config["filename"].GetString());
+        if (config.contains("filename")) {
+            std::ifstream in(config["filename"].get<std::string>());
             return gko::read_generic_raw<value_type, index_type>(in);
-        } else if (config.HasMember("stencil")) {
+        } else if (config.contains("stencil")) {
             auto local_size = static_cast<global_itype>(
-                config["size"].GetInt64() / comm.size());
+                config["size"].get<gko::int64>() / comm.size());
             return generate_stencil<value_type, index_type>(
-                config["stencil"].GetString(), comm, local_size,
-                config["comm_pattern"].GetString() == std::string("optimal"));
+                config["stencil"].get<std::string>(), comm, local_size,
+                config["comm_pattern"].get<std::string>() ==
+                    std::string("optimal"));
         } else {
             throw std::runtime_error(
                 "No known way to generate matrix data found.");
         }
     }
 
-    std::string describe_config(rapidjson::Value& config) const
+    static std::string get_example_config()
     {
-        if (config.HasMember("filename")) {
-            return config["filename"].GetString();
-        } else if (config.HasMember("stencil")) {
+        return json::
+            parse(R"([{"size": 100, "stencil": "7pt", "comm_pattern": "stencil"}, {"filename": "my_file.mtx"}])")
+                .dump(4);
+    }
+
+    static bool validate_config(const json& test_case)
+    {
+        return ((test_case.contains("size") && test_case.contains("stencil") &&
+                 test_case.contains("comm_pattern") &&
+                 test_case["size"].is_number_integer() &&
+                 test_case["stencil"].is_string() &&
+                 test_case["comm_pattern"].is_string()) ||
+                (test_case.contains("filename") &&
+                 test_case["filename"].is_string()));
+    }
+
+    static std::string describe_config(const json& config)
+    {
+        if (config.contains("filename")) {
+            return config["filename"].get<std::string>();
+        } else if (config.contains("stencil")) {
             std::stringstream ss;
-            ss << "stencil(" << config["size"].GetInt64() << ","
-               << config["stencil"].GetString() << ","
-               << config["comm_pattern"].GetString() << ")";
+            ss << "stencil(" << config["size"].get<gko::int64>() << ", "
+               << config["stencil"].get<std::string>() << ", "
+               << config["comm_pattern"].get<std::string>() << ")";
             return ss.str();
         } else {
             throw std::runtime_error("No known way to describe config.");
@@ -205,29 +241,33 @@ struct DistributedDefaultSystemGenerator {
     }
 
     std::shared_ptr<gko::LinOp> generate_matrix_with_optimal_format(
-        std::shared_ptr<gko::Executor> exec, rapidjson::Value& config) const
+        std::shared_ptr<gko::Executor> exec, json& config) const
     {
         auto data = generate_matrix_data(config);
         return generate_matrix_with_format(
-            std::move(exec), config["optimal"]["spmv"].GetString(), data);
+            std::move(exec), config["optimal"]["spmv"].get<std::string>(),
+            data);
     }
 
     std::shared_ptr<gko::LinOp> generate_matrix_with_format(
         std::shared_ptr<gko::Executor> exec, const std::string& format_name,
         const gko::matrix_data<value_type, index_type>& data,
-        rapidjson::Value* spmv_case = nullptr,
-        rapidjson::MemoryPoolAllocator<>* allocator = nullptr) const
+        json* spmv_case = nullptr) const
     {
         auto part = gko::experimental::distributed::
             Partition<itype, global_itype>::build_from_global_size_uniform(
                 exec, comm.size(), static_cast<global_itype>(data.size[0]));
         auto formats = split(format_name, '-');
+        if (formats.size() != 2) {
+            throw std::runtime_error{"Invalid distributed format specifier " +
+                                     format_name};
+        }
 
         auto local_mat = formats::matrix_type_factory.at(formats[0])(exec);
         auto non_local_mat = formats::matrix_type_factory.at(formats[1])(exec);
 
         auto storage_logger = std::make_shared<StorageLogger>();
-        if (spmv_case && allocator) {
+        if (spmv_case) {
             exec->add_logger(storage_logger);
         }
 
@@ -235,9 +275,9 @@ struct DistributedDefaultSystemGenerator {
             exec, comm, local_mat, non_local_mat);
         dist_mat->read_distributed(data, part);
 
-        if (spmv_case && allocator) {
+        if (spmv_case) {
             exec->remove_logger(storage_logger);
-            storage_logger->write_data(comm, *spmv_case, *allocator);
+            storage_logger->write_data(comm, *spmv_case);
         }
 
         return dist_mat;

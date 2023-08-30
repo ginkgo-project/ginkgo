@@ -1,8 +1,4 @@
 This is Ginkgo 1.7.0 (develop)
     running with core module 1.7.0 (develop)
-Running test case
-{
-    "filename": "",
-    "problem": {}
-}
-Matrix is of size (36, 36)
+Running test case <filename>
+Matrix is of size (36, 36), 208

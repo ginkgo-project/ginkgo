@@ -3,34 +3,7 @@ This is Ginkgo 1.7.0 (develop)
 Running on reference(0)
 Running with 2 warm iterations and 10 running iterations
 The random seed for right hand sides is 42
-The operations are transposeRunning test case
-{
-    "filename": "",
-    "sparse_blas": {}
-}
+The operations are transpose
+Running test case <filename>
 Matrix is of size (36, 36), 208
-Current state:
-[
-    {
-        "filename": "",
-        "sparse_blas": {
-            "transpose": {
-                "time": 1.0,
-                "flops": 1.0,
-                "bandwidth": 1.0,
-                "repetitions": 10,
-                "components": {
-                    "allocate": 1.0,
-                    "components::fill_array": 1.0,
-                    "csr::transpose": 1.0,
-                    "free": 1.0,
-                    "overhead": 1.0
-                },
-                "completed": true
-            }
-        },
-        "rows": 36,
-        "cols": 36,
-        "nonzeros": 208
-    }
-]
+	Running sparse_blas: transpose
