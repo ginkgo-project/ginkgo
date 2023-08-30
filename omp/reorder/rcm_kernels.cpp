@@ -235,8 +235,8 @@ struct UbfsLinearQueue {
 #define GKO_CMPXCHG_IMPL(ptr, ptr_expected, replace_with) \
     return __atomic_compare_exchange_n(                   \
         ptr, ptr_expected, replace_with, true,            \
-        std::memory_order::memory_order_acq_rel,          \
-        std::memory_order::memory_order_acquire);
+        static_cast<int>(std::memory_order_acq_rel),      \
+        static_cast<int>(std::memory_order_acquire));
 #endif
 
 /**
