@@ -92,7 +92,8 @@ def sanitize_json_text(input: str) -> List[str]:
     """
 
     result = json.dumps(sanitize_json(json.loads(input)), indent=4)
-    return result.splitlines()
+    # json.dumps doesn't add a trailing newline
+    return result.splitlines() + [""]
 
 
 def sanitize_text(
