@@ -41,7 +41,8 @@ function(ginkgo_benchmark_onemkl_linops type def)
     # make the dependency public to catch issues
     target_compile_definitions(onemkl_linops_${type} PUBLIC ${def})
     target_compile_features(onemkl_linops_${type} PRIVATE cxx_std_17)
-    target_link_libraries(onemkl_linops_${type} PRIVATE Ginkgo::ginkgo MKL::MKL_DPCPP)
+    # target_link_libraries(onemkl_linops_${type} PRIVATE Ginkgo::ginkgo MKL::MKL_DPCPP)
+    target_link_libraries(onemkl_linops_${type} PRIVATE Ginkgo::ginkgo MKL::MKL)
 endfunction()
 
 

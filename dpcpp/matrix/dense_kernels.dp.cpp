@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <CL/sycl.hpp>
-#include <oneapi/mkl.hpp>
+// #include <oneapi/mkl.hpp>
 
 
 #include <ginkgo/core/base/math.hpp>
@@ -52,7 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/helper.hpp"
-#include "dpcpp/base/onemkl_bindings.hpp"
+// #include "dpcpp/base/onemkl_bindings.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
@@ -247,7 +247,8 @@ template <typename ValueType>
 void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
                   const matrix::Dense<ValueType>* a,
                   const matrix::Dense<ValueType>* b,
-                  matrix::Dense<ValueType>* c)
+                  matrix::Dense<ValueType>* c) GKO_NOT_IMPLEMENTED;
+/*
 {
     using namespace oneapi::mkl;
     if (b->get_stride() != 0 && c->get_stride() != 0) {
@@ -263,7 +264,7 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
         }
     }
 }
-
+*/
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);
 
 
@@ -271,7 +272,9 @@ template <typename ValueType>
 void apply(std::shared_ptr<const DefaultExecutor> exec,
            const matrix::Dense<ValueType>* alpha,
            const matrix::Dense<ValueType>* a, const matrix::Dense<ValueType>* b,
-           const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* c)
+           const matrix::Dense<ValueType>* beta,
+           matrix::Dense<ValueType>* c) GKO_NOT_IMPLEMENTED;
+/*
 {
     using namespace oneapi::mkl;
     if (b->get_stride() != 0 && c->get_stride() != 0) {
@@ -289,7 +292,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
         }
     }
 }
-
+*/
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 

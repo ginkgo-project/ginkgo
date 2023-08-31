@@ -37,7 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <CL/sycl.hpp>
-#include <oneapi/mkl.hpp>
+// #include <oneapi/mkl.hpp>
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -1238,12 +1238,12 @@ void load_balance_spmv(std::shared_ptr<const DpcppExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-bool try_general_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
-                                const ValueType host_alpha,
-                                const matrix::Csr<ValueType, IndexType>* a,
-                                const matrix::Dense<ValueType>* b,
-                                const ValueType host_beta,
-                                matrix::Dense<ValueType>* c)
+bool try_general_sparselib_spmv(
+    std::shared_ptr<const DpcppExecutor> exec, const ValueType host_alpha,
+    const matrix::Csr<ValueType, IndexType>* a,
+    const matrix::Dense<ValueType>* b, const ValueType host_beta,
+    matrix::Dense<ValueType>* c) GKO_NOT_IMPLEMENTED;
+/*
 {
     bool try_sparselib = !is_complex<ValueType>();
     if (try_sparselib) {
@@ -1273,7 +1273,7 @@ bool try_general_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
     }
     return try_sparselib;
 }
-
+*/
 
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType,
@@ -1292,12 +1292,13 @@ bool try_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
 }
 
 template <typename ValueType, typename IndexType>
-bool try_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
-                        const matrix::Csr<ValueType, IndexType>* a,
-                        const matrix::Dense<ValueType>* b,
-                        matrix::Dense<ValueType>* c,
-                        const matrix::Dense<ValueType>* alpha = nullptr,
-                        const matrix::Dense<ValueType>* beta = nullptr)
+bool try_sparselib_spmv(
+    std::shared_ptr<const DpcppExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* a,
+    const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c,
+    const matrix::Dense<ValueType>* alpha = nullptr,
+    const matrix::Dense<ValueType>* beta = nullptr) GKO_NOT_IMPLEMENTED;
+/*
 {
     // onemkl only supports host scalar
     if (alpha) {
@@ -1309,7 +1310,7 @@ bool try_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
                                           zero<ValueType>(), c);
     }
 }
-
+*/
 
 }  // namespace host_kernel
 

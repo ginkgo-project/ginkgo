@@ -1,7 +1,7 @@
-find_package(MKL CONFIG REQUIRED HINTS "$ENV{MKLROOT}")
-set(GINKGO_MKL_ROOT "${MKL_ROOT}" PARENT_SCOPE)
-find_package(oneDPL REQUIRED HINTS "$ENV{DPL_ROOT}")
-set(GINKGO_DPL_ROOT "${DPL_ROOT}" PARENT_SCOPE)
+# find_package(MKL CONFIG REQUIRED HINTS "$ENV{MKLROOT}")
+# set(GINKGO_MKL_ROOT "${MKL_ROOT}" PARENT_SCOPE)
+# find_package(oneDPL REQUIRED HINTS "$ENV{DPL_ROOT}")
+# set(GINKGO_DPL_ROOT "${DPL_ROOT}" PARENT_SCOPE)
 
 include(${PROJECT_SOURCE_DIR}/cmake/template_instantiation.cmake)
 add_instantiation_files(${PROJECT_SOURCE_DIR}/common/unified matrix/dense_kernels.instantiate.cpp DENSE_INSTANTIATE)
@@ -85,7 +85,8 @@ string(REPLACE ";" "," GKO_DPCPP_JACOBI_BLOCK_SIZES_CODE "${GKO_DPCPP_JACOBI_BLO
 configure_file(preconditioner/jacobi_common.hpp.in preconditioner/jacobi_common.hpp)
 
 ginkgo_compile_features(ginkgo_dpcpp)
-target_compile_definitions(ginkgo_dpcpp PRIVATE GKO_COMPILING_DPCPP _ONEDPL_COMPILE_KERNEL=0)
+# target_compile_definitions(ginkgo_dpcpp PRIVATE GKO_COMPILING_DPCPP _ONEDPL_COMPILE_KERNEL=0)
+target_compile_definitions(ginkgo_dpcpp PRIVATE GKO_COMPILING_DPCPP)
 
 set(GINKGO_DPCPP_FLAGS ${GINKGO_DPCPP_FLAGS} PARENT_SCOPE)
 target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_DPCPP_FLAGS}")
@@ -106,7 +107,8 @@ endif()
 target_include_directories(ginkgo_dpcpp
     PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/..)
 target_link_libraries(ginkgo_dpcpp PUBLIC ginkgo_device)
-target_link_libraries(ginkgo_dpcpp PRIVATE MKL::MKL_DPCPP oneDPL)
+# target_link_libraries(ginkgo_dpcpp PRIVATE MKL::MKL_DPCPP oneDPL)
+# target_link_libraries(ginkgo_dpcpp PRIVATE MKL::MKL oneDPL)
 if (GINKGO_DPCPP_SINGLE_MODE)
     target_compile_definitions(ginkgo_dpcpp PRIVATE GINKGO_DPCPP_SINGLE_MODE=1)
 endif()

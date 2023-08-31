@@ -38,7 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <CL/sycl.hpp>
-#include <oneapi/dpl/random>
+// #include <oneapi/dpl/random>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -48,7 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/fill_array_kernels.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
-#include "dpcpp/base/onemkl_bindings.hpp"
+// #include "dpcpp/base/onemkl_bindings.hpp"
 #include "dpcpp/components/atomic.dp.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
@@ -623,7 +623,8 @@ void initialize_m(std::shared_ptr<const DpcppExecutor> exec,
 template <typename ValueType>
 void initialize_subspace_vectors(std::shared_ptr<const DpcppExecutor> exec,
                                  matrix::Dense<ValueType>* subspace_vectors,
-                                 bool deterministic)
+                                 bool deterministic) GKO_NOT_IMPLEMENTED;
+/*
 {
     if (!deterministic) {
         auto seed = std::random_device{}();
@@ -645,7 +646,7 @@ void initialize_subspace_vectors(std::shared_ptr<const DpcppExecutor> exec,
         });
     }
 }
-
+*/
 
 template <typename ValueType>
 void orthonormalize_subspace_vectors(std::shared_ptr<const DpcppExecutor> exec,
@@ -678,14 +679,14 @@ void solve_lower_triangular(std::shared_ptr<const DpcppExecutor> exec,
 
 
 template <typename ValueType>
-void update_g_and_u(std::shared_ptr<const DpcppExecutor> exec,
-                    const size_type nrhs, const size_type k,
-                    const matrix::Dense<ValueType>* p,
-                    const matrix::Dense<ValueType>* m,
-                    matrix::Dense<ValueType>* alpha,
-                    matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* g_k,
-                    matrix::Dense<ValueType>* u,
-                    const array<stopping_status>* stop_status)
+void update_g_and_u(
+    std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
+    const size_type k, const matrix::Dense<ValueType>* p,
+    const matrix::Dense<ValueType>* m, matrix::Dense<ValueType>* alpha,
+    matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* g_k,
+    matrix::Dense<ValueType>* u,
+    const array<stopping_status>* stop_status) GKO_NOT_IMPLEMENTED;
+/*
 {
     const auto size = g->get_size()[0];
     const auto p_stride = p->get_stride();
@@ -720,13 +721,14 @@ void update_g_and_u(std::shared_ptr<const DpcppExecutor> exec,
         g_k->get_const_values(), g_k->get_stride(), g->get_values(),
         g->get_stride(), stop_status->get_const_data());
 }
-
+*/
 
 template <typename ValueType>
 void update_m(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
               const size_type k, const matrix::Dense<ValueType>* p,
               const matrix::Dense<ValueType>* g_k, matrix::Dense<ValueType>* m,
-              const array<stopping_status>* stop_status)
+              const array<stopping_status>* stop_status) GKO_NOT_IMPLEMENTED;
+/*
 {
     const auto size = g_k->get_size()[0];
     const auto subspace_dim = m->get_size()[0];
@@ -752,7 +754,7 @@ void update_m(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
         }
     }
 }
-
+*/
 
 template <typename ValueType>
 void update_x_r_and_f(std::shared_ptr<const DpcppExecutor> exec,

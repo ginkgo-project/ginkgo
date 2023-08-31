@@ -32,7 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // force-top: on
 // oneDPL needs to be first to avoid issues with libstdc++ TBB impl
-#include <oneapi/dpl/algorithm>
+// #include <oneapi/dpl/algorithm>
 // force-top: off
 
 
@@ -63,7 +63,8 @@ namespace pgm {
 
 template <typename IndexType>
 void sort_agg(std::shared_ptr<const DefaultExecutor> exec, IndexType num,
-              IndexType* row_idxs, IndexType* col_idxs)
+              IndexType* row_idxs, IndexType* col_idxs) GKO_NOT_IMPLEMENTED;
+/*
 {
     auto policy = onedpl_policy(exec);
     auto it = oneapi::dpl::make_zip_iterator(row_idxs, col_idxs);
@@ -72,13 +73,15 @@ void sort_agg(std::shared_ptr<const DefaultExecutor> exec, IndexType num,
                std::tie(std::get<0>(b), std::get<1>(b));
     });
 }
-
+*/
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_SORT_AGG_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
 void sort_row_major(std::shared_ptr<const DefaultExecutor> exec, size_type nnz,
-                    IndexType* row_idxs, IndexType* col_idxs, ValueType* vals)
+                    IndexType* row_idxs, IndexType* col_idxs,
+                    ValueType* vals) GKO_NOT_IMPLEMENTED;
+/*
 {
     auto policy = onedpl_policy(exec);
     auto it = oneapi::dpl::make_zip_iterator(row_idxs, col_idxs, vals);
@@ -91,7 +94,7 @@ void sort_row_major(std::shared_ptr<const DefaultExecutor> exec, size_type nnz,
                std::tie(std::get<0>(b), std::get<1>(b));
     });
 }
-
+*/
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PGM_SORT_ROW_MAJOR);
 
 
@@ -100,10 +103,11 @@ class coarse_coo_policy {};
 
 
 template <typename ValueType, typename IndexType>
-void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
-                        size_type fine_nnz, const IndexType* row_idxs,
-                        const IndexType* col_idxs, const ValueType* vals,
-                        matrix::Coo<ValueType, IndexType>* coarse_coo)
+void compute_coarse_coo(
+    std::shared_ptr<const DefaultExecutor> exec, size_type fine_nnz,
+    const IndexType* row_idxs, const IndexType* col_idxs, const ValueType* vals,
+    matrix::Coo<ValueType, IndexType>* coarse_coo) GKO_NOT_IMPLEMENTED;
+/*
 {
     // WORKAROUND: reduce_by_segment needs unique policy. Otherwise, dpcpp
     // throws same mangled name error. Related:
@@ -124,7 +128,7 @@ void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
         },
         [](auto a, auto b) { return a + b; });
 }
-
+*/
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PGM_COMPUTE_COARSE_COO);
 

@@ -67,13 +67,15 @@ __dpct_inline__ int popcnt(uint64 mask) { return sycl::popcount(mask); }
  */
 __dpct_inline__ int ffs(uint32 mask)
 {
-    return (mask == 0) ? 0 : (sycl::ext::intel::ctz(mask) + 1);
+    // return (mask == 0) ? 0 : (sycl::ext::intel::ctz(mask) + 1);
+    return (mask == 0) ? 0 : (sycl::ctz(mask) + 1);
 }
 
 /** @copydoc ffs */
 __dpct_inline__ int ffs(uint64 mask)
 {
-    return (mask == 0) ? 0 : (sycl::ext::intel::ctz(mask) + 1);
+    // return (mask == 0) ? 0 : (sycl::ext::intel::ctz(mask) + 1);
+    return (mask == 0) ? 0 : (sycl::ctz(mask) + 1);
 }
 
 
