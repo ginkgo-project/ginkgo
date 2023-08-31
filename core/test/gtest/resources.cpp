@@ -30,12 +30,12 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/test/gtest/resources.hpp"
-
-
 #include <algorithm>
 #include <regex>
 #include <sstream>
+
+
+#include "core/test/gtest/resources.hpp"
 
 
 #ifdef GKO_COMPILING_OMP
