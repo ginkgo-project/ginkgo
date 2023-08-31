@@ -10,26 +10,9 @@ function(ginkgo_build_test_name test_name target_name)
   set(${target_name} ${TEST_TARGET_NAME} PARENT_SCOPE)
 endfunction()
 
-function(ginkgo_create_gtest_main)
-  add_library(ginkgo_gtest_main "")
-  target_sources(ginkgo_gtest_main
-                 PRIVATE
-                 ${PROJECT_SOURCE_DIR}/core/test/gtest/ginkgo_main.cpp)
-  target_link_libraries(ginkgo_gtest_main PRIVATE GTest::GTest Ginkgo::ginkgo)
-endfunction()
-
-function(ginkgo_create_gtest_mpi_main)
-  add_library(ginkgo_gtest_mpi_main "")
-  target_sources(ginkgo_gtest_mpi_main
-                 PRIVATE
-                 ${PROJECT_SOURCE_DIR}/core/test/gtest/ginkgo_mpi_main.cpp)
-  find_package(MPI 3.1 COMPONENTS CXX REQUIRED)
-  target_link_libraries(ginkgo_gtest_mpi_main PRIVATE GTest::GTest MPI::MPI_CXX Ginkgo::ginkgo)
-endfunction()
-
 ## Set up shared target properties and handle ADDITIONAL_LIBRARIES/ADDITIONAL_INCLUDES
 ## `MPI_SIZE size` causes the tests to be run with `size` MPI processes.
-function(ginkgo_set_test_target_properties test_target_name)
+function(ginkgo_set_test_target_properties test_target_name test_library_suffix)
     cmake_parse_arguments(PARSE_ARGV 1 set_properties "" "${gko_test_single_args}" "${gko_test_multi_args}")
     if (GINKGO_FAST_TESTS)
         target_compile_definitions(${test_target_name} PRIVATE GINKGO_FAST_TESTS)
@@ -41,16 +24,12 @@ function(ginkgo_set_test_target_properties test_target_name)
         target_compile_definitions(${test_target_name} PRIVATE GINKGO_DPCPP_SINGLE_MODE=1)
     endif()
     if(GINKGO_CHECK_CIRCULAR_DEPS)
-      target_link_libraries(${test_target_name} PRIVATE "${GINKGO_CIRCULAR_DEPS_FLAGS}")
+        target_link_libraries(${test_target_name} PRIVATE "${GINKGO_CIRCULAR_DEPS_FLAGS}")
     endif()
     if(set_properties_MPI_SIZE)
-      target_sources(${test_target_name}
-                PRIVATE
-                ${PROJECT_SOURCE_DIR}/core/test/gtest/ginkgo_mpi_main.cpp)
+        target_link_libraries(${test_target_name} PRIVATE ginkgo_gtest_main_mpi${test_library_suffix})
     else()
-      target_sources(${test_target_name}
-                PRIVATE
-                ${PROJECT_SOURCE_DIR}/core/test/gtest/ginkgo_main.cpp)
+        target_link_libraries(${test_target_name} PRIVATE ginkgo_gtest_main${test_library_suffix})
     endif()
     target_compile_features(${test_target_name} PUBLIC cxx_std_14)
     target_compile_options(${test_target_name} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
@@ -154,8 +133,8 @@ endfunction()
 function(ginkgo_create_test test_name)
     ginkgo_build_test_name(${test_name} test_target_name)
     add_executable(${test_target_name} ${test_name}.cpp)
-    target_link_libraries(${test_target_name} PRIVATE ${create_test_ADDITIONAL_LIBRARIES})
-    ginkgo_set_test_target_properties(${test_target_name} ${ARGN})
+    target_link_libraries(${test_target_name})
+    ginkgo_set_test_target_properties(${test_target_name} "" ${ARGN})
     ginkgo_add_test(${test_name} ${test_target_name} ${ARGN} RESOURCE_TYPE ref)
 endfunction(ginkgo_create_test)
 
@@ -166,7 +145,7 @@ function(ginkgo_create_dpcpp_test test_name)
     target_compile_features(${test_target_name} PUBLIC cxx_std_17)
     target_compile_options(${test_target_name} PRIVATE ${GINKGO_DPCPP_FLAGS})
     target_link_options(${test_target_name} PRIVATE -fsycl-device-code-split=per_kernel)
-    ginkgo_set_test_target_properties(${test_target_name} ${ARGN})
+    ginkgo_set_test_target_properties(${test_target_name} "_dpcpp" ${ARGN})
     ginkgo_add_test(${test_name} ${test_target_name} ${ARGN} RESOURCE_TYPE sycl)
     # Note: MKL_ENV is empty on linux. Maybe need to apply MKL_ENV to all test.
     if (MKL_ENV)
@@ -200,7 +179,7 @@ function(ginkgo_create_cuda_test_internal test_name filename test_target_name)
     if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
         set_target_properties(${test_target_name} PROPERTIES CUDA_ARCHITECTURES OFF)
     endif()
-    ginkgo_set_test_target_properties(${test_target_name} ${ARGN})
+    ginkgo_set_test_target_properties(${test_target_name} "_cuda" ${ARGN})
     ginkgo_add_test(${test_name} ${test_target_name} ${ARGN} RESOURCE_TYPE cudagpu)
 endfunction(ginkgo_create_cuda_test_internal)
 
@@ -256,7 +235,7 @@ function(ginkgo_create_hip_test_internal test_name filename test_target_name add
         ${hiprand_INCLUDE_DIRS}
         ${HIPSPARSE_INCLUDE_DIRS}
         )
-    ginkgo_set_test_target_properties(${test_target_name} ${ARGN})
+    ginkgo_set_test_target_properties(${test_target_name} "_hip" ${ARGN})
     ginkgo_add_test(${test_name} ${test_target_name} ${ARGN} RESOURCE_TYPE hipgpu)
 endfunction(ginkgo_create_hip_test_internal)
 
@@ -272,7 +251,7 @@ function(ginkgo_create_omp_test_internal test_name filename test_target_name)
     add_executable(${test_target_name} ${test_name}.cpp)
     target_compile_definitions(${test_target_name} PRIVATE GKO_COMPILING_OMP)
     target_link_libraries(${test_target_name} PRIVATE OpenMP::OpenMP_CXX)
-    ginkgo_set_test_target_properties(${test_target_name} ${ARGN})
+    ginkgo_set_test_target_properties(${test_target_name} "_omp" ${ARGN})
     ginkgo_add_test(${test_name} ${test_target_name} ${ARGN} RESOURCE_TYPE cpu)
 endfunction()
 
@@ -327,7 +306,7 @@ function(ginkgo_create_common_test_internal test_name exec_type exec)
         target_compile_definitions(${test_target_name} PRIVATE GINKGO_COMMON_SINGLE_MODE=1)
         target_compile_definitions(${test_target_name} PRIVATE GINKGO_DPCPP_SINGLE_MODE=1)
     endif()
-    ginkgo_set_test_target_properties(${test_target_name} ${ARGN})
+    ginkgo_set_test_target_properties(${test_target_name} "_${exec}" ${ARGN})
     ginkgo_add_test(${test_name}_${exec} ${test_target_name} ${ARGN} RESOURCE_TYPE ${test_resource_type})
 endfunction(ginkgo_create_common_test_internal)
 
