@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <gtest/gtest.h>
+#include <mpi.h>
 
 
 #include <ginkgo/core/base/mpi.hpp>
@@ -394,10 +395,8 @@ int main(int argc, char** argv)
 
     testing::AddGlobalTestEnvironment(new GTestMPIListener::MPIEnvironment);
     ::testing::AddGlobalTestEnvironment(new ResourceEnvironment(rank, size));
-    ::testing::AddGlobalTestEnvironment(new CudaEnvironment(rank));
-    ::testing::AddGlobalTestEnvironment(new HipEnvironment(rank));
-    ::testing::AddGlobalTestEnvironment(new SyclEnvironment(rank));
-    ::testing::AddGlobalTestEnvironment(new OmpEnvironment(rank));
+    ::testing::AddGlobalTestEnvironment(new DeviceEnvironment(rank));
+    MPI_Barrier(comm);
 
     ::testing::TestEventListeners& listeners =
         ::testing::UnitTest::GetInstance()->listeners();

@@ -47,10 +47,7 @@ int main(int argc, char** argv)
     ::testing::InitGoogleTest(&argc, argv);
 
     ::testing::AddGlobalTestEnvironment(new ResourceEnvironment);
-    ::testing::AddGlobalTestEnvironment(new CudaEnvironment(0));
-    ::testing::AddGlobalTestEnvironment(new HipEnvironment(0));
-    ::testing::AddGlobalTestEnvironment(new SyclEnvironment(0));
-    ::testing::AddGlobalTestEnvironment(new OmpEnvironment(0));
+    ::testing::AddGlobalTestEnvironment(new DeviceEnvironment(0));
     int result = RUN_ALL_TESTS();
     return result;
 }

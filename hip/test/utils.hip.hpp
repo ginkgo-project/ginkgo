@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/stream.hpp>
 
 
-#include "core/test/gtest/environments.hpp"
+#include "core/test/gtest/resources.hpp"
 #include "hip/base/device.hpp"
 
 

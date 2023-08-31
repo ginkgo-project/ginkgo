@@ -30,51 +30,22 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CUDA_TEST_UTILS_HPP_
-#define GKO_CUDA_TEST_UTILS_HPP_
+#ifndef GKO_CORE_TEST_GTEST_RESOURCES_HPP_
+#define GKO_CORE_TEST_GTEST_RESOURCES_HPP_
 
 
-#include "core/test/utils.hpp"
+#include <gtest/gtest.h>
 
 
-#include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/stream.hpp>
+class ResourceEnvironment : public ::testing::Environment {
+public:
+    explicit ResourceEnvironment(int rank = 0, int size = 1);
 
-
-#include "core/test/gtest/resources.hpp"
-#include "cuda/base/device.hpp"
-
-
-namespace {
-
-
-class CudaTestFixture : public ::testing::Test {
-protected:
-    CudaTestFixture()
-        : ref(gko::ReferenceExecutor::create()),
-          stream(ResourceEnvironment::cuda_device_id),
-          exec(gko::CudaExecutor::create(
-              ResourceEnvironment::cuda_device_id, ref,
-              std::make_shared<gko::CudaAllocator>(), stream.get())),
-          guard(exec->get_scoped_device_id_guard())
-    {}
-
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            // ensure that previous calls finished and didn't throw an error
-            exec->synchronize();
-        }
-    }
-
-    gko::cuda_stream stream;
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::CudaExecutor> exec;
-    gko::scoped_device_id_guard guard;
+    static int omp_threads;
+    static int cuda_device_id;
+    static int hip_device_id;
+    static int sycl_device_id;
 };
 
 
-}  // namespace
-
-
-#endif  // GKO_CUDA_TEST_UTILS_HPP_
+#endif  // GKO_CORE_TEST_GTEST_RESOURCES_HPP_
