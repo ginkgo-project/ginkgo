@@ -72,15 +72,13 @@
   image: ginkgohub/rocm:45-mvapich2-gnu8-llvm8
   tags:
     - private_ci
-    - amdci
-    - gpu
+    - amd-gpu
 
 .use_gko-rocm502-nompi-gnu11-llvm11:
   image: ginkgohub/rocm:502-openmpi-gnu11-llvm11
   tags:
     - private_ci
-    - amdci
-    - gpu
+    - amd-gpu
 
 .use_gko-oneapi-cpu:
   image: ginkgohub/oneapi:2022.1
