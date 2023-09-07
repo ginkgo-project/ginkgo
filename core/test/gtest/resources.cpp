@@ -138,7 +138,7 @@ ResourceEnvironment::ResourceEnvironment(int rank, int size)
         hip_device_id = resource.id;
     }
     // SYCL GPUs (no other devices!)
-    if (auto rs_sycl_env = get_ctest_group("syclgpu", rank)) {
+    if (auto rs_sycl_env = get_ctest_group("sycl", rank)) {
         auto resource = parse_ctest_resources(rs_sycl_env);
         sycl_device_id = resource.id;
     }

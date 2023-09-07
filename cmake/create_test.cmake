@@ -4,10 +4,10 @@ set(gko_test_multi_args "DISABLE_EXECUTORS;ADDITIONAL_LIBRARIES;ADDITIONAL_INCLU
 
 ## Replaces / by _ to create valid target names from relative paths
 function(ginkgo_build_test_name test_name target_name)
-  file(RELATIVE_PATH REL_BINARY_DIR
-       ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
-  string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
-  set(${target_name} ${TEST_TARGET_NAME} PARENT_SCOPE)
+    file(RELATIVE_PATH REL_BINARY_DIR
+         ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+    string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
+    set(${target_name} ${TEST_TARGET_NAME} PARENT_SCOPE)
 endfunction()
 
 ## Set up shared target properties and handle ADDITIONAL_LIBRARIES/ADDITIONAL_INCLUDES
@@ -51,7 +51,7 @@ function(ginkgo_add_resource_requirement test_name)
         set(single_resource "cpu:1")
     elseif(add_rr_RESOURCE_TYPE STREQUAL "cpu")
         if(NOT add_rr_RESOURCE_LOCAL_CORES)
-            set(add_rr_RESOURCE_LOCAL_CORES ${GINKGO_TEST_OMP_PARALLELISM})
+            set(add_rr_RESOURCE_LOCAL_CORES ${GINKGO_CI_TEST_OMP_PARALLELISM})
         endif()
         if(NOT add_rr_RESOURCE_LOCAL_CORES MATCHES "^[0-9]+")
             message(FATAL_ERROR "Resource specification is invalid: RESOURCE_LOCAL_CORES=${add_rr_RESOURCE_LOCAL_CORES}")
@@ -89,7 +89,7 @@ endfunction()
 ## Possible additional arguments:
 ## - `MPI_SIZE size` causes the tests to be run with `size` MPI processes.
 ## - `RESOURCE_LOCAL_CORES` the number of threads used by a test, default is
-##    $GINKGO_TEST_OMP_PARALLELISM
+##    $GINKGO_CI_TEST_OMP_PARALLELISM
 ## - `RESOURCE_PERCENTAGE` usage percentage of a single GPU, default is 25
 ## - `RESOURCE_TYPE` the resource type, can be ref, cpu, cudagpu, hipgpu, sycl
 ## - `DISABLE_EXECUTORS exec1 exec2` disables the test for certain backends (if built for multiple)
