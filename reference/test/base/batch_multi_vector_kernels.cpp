@@ -354,7 +354,7 @@ TYPED_TEST(MultiVector, ConvertsToPrecision)
     // If OtherT is more precise: 0, otherwise r
     auto residual = r<OtherT>::value < r<T>::value
                         ? gko::remove_complex<T>{0}
-                        : gko::remove_complex<T>{r<OtherT>::value};
+                        : static_cast<gko::remove_complex<T>>(r<OtherT>::value);
 
     this->mtx_1->convert_to(tmp.get());
     tmp->convert_to(res.get());
@@ -377,7 +377,7 @@ TYPED_TEST(MultiVector, MovesToPrecision)
     // If OtherT is more precise: 0, otherwise r
     auto residual = r<OtherT>::value < r<T>::value
                         ? gko::remove_complex<T>{0}
-                        : gko::remove_complex<T>{r<OtherT>::value};
+                        : static_cast<gko::remove_complex<T>>(r<OtherT>::value);
 
     this->mtx_1->move_to(tmp.get());
     tmp->move_to(res.get());
