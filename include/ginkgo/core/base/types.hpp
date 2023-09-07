@@ -165,6 +165,7 @@ using uintptr = std::uintptr_t;
 // using half = sycl::half;
 // #else
 class half;
+class bfloat16;
 // #endif
 
 
