@@ -116,20 +116,6 @@ public:
         std::shared_ptr<matrix::Dense<ValueType>> local_vector,
         transformation mode) const;
 
-    /**
-     * Uses the inverse communication graph to execute non-blocking neighborhood
-     * all-to-all with the local_vector as in- and output.
-     *
-     * Compared to communicate, the recv and send indices are switched, and all
-     * corresponding details.
-     *
-     * @copydoc communicate
-     */
-    template <typename ValueType>
-    mpi::request communicate_inverse(
-        std::shared_ptr<matrix::Dense<ValueType>> local_vector,
-        transformation mode) const;
-
     template <typename IndexType>
     std::shared_ptr<const overlapping_partition<IndexType>> get_partition()
         const
@@ -152,10 +138,10 @@ private:
 
     template <typename ValueType, typename IndexType>
     mpi::request communicate_impl_(
-        MPI_Comm comm, const overlap_indices<IndexType>& send_idxs,
+        MPI_Comm comm, const overlap_indices<index_set<IndexType>>& send_idxs,
         const std::vector<comm_index_type>& send_sizes,
         const std::vector<comm_index_type>& send_offsets,
-        const overlap_indices<IndexType>& recv_idxs,
+        const overlap_indices<index_block<IndexType>>& recv_idxs,
         const std::vector<comm_index_type>& recv_sizes,
         const std::vector<comm_index_type>& recv_offsets,
         std::shared_ptr<matrix::Dense<ValueType>> local_vector,
