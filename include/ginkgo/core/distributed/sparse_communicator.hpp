@@ -52,13 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko::experimental::distributed {
-/**
- * Mode that determines how received values and local values are combined.
- */
-enum class transformation {
-    set,  // sets the local values to the received values
-    add   // adds the received values to the local valules
-};
 
 
 /**
@@ -113,8 +106,7 @@ public:
      */
     template <typename ValueType>
     mpi::request communicate(
-        std::shared_ptr<matrix::Dense<ValueType>> local_vector,
-        transformation mode) const;
+        std::shared_ptr<matrix::Dense<ValueType>> local_vector) const;
 
     template <typename IndexType>
     std::shared_ptr<const overlapping_partition<IndexType>> get_partition()
@@ -144,8 +136,7 @@ private:
         const overlap_indices<index_block<IndexType>>& recv_idxs,
         const std::vector<comm_index_type>& recv_sizes,
         const std::vector<comm_index_type>& recv_offsets,
-        std::shared_ptr<matrix::Dense<ValueType>> local_vector,
-        transformation mode) const;
+        std::shared_ptr<matrix::Dense<ValueType>> local_vector) const;
 
     mpi::communicator default_comm_;
     mpi::communicator inverse_comm_;
