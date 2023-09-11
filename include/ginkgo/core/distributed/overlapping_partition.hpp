@@ -43,9 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include <variant>
-
-
 namespace gko::experimental::distributed {
 
 
@@ -68,25 +65,6 @@ private:
 };
 
 
-namespace detail {
-
-
-template <typename IndexType>
-IndexType get_begin(const index_set<IndexType>&)
-{
-    return 0;
-}
-
-template <typename IndexType>
-IndexType get_begin(const index_block<IndexType>& idxs)
-{
-    return idxs.get_span().begin;
-}
-
-
-}  // namespace detail
-
-
 /**
  * A representation of indices that are shared with other processes.
  *
@@ -106,43 +84,15 @@ public:
     using index_type = typename IndexStorageType::index_type;
 
     overlap_indices(array<comm_index_type> target_ids,
-                    std::vector<IndexStorageType> idxs)
-        : target_ids_(std::move(target_ids)),
-          idxs_(std::move(idxs)),
-          num_local_indices_(std::accumulate(idxs_.begin(), idxs_.end(), 0,
-                                             [](const auto& a, const auto& b) {
-                                                 return a + b.get_num_elems();
-                                             })),
-          begin_(idxs_.empty()
-                     ? 0
-                     : std::min_element(idxs_.begin(), idxs_.end(),
-                                        [](const auto& a, const auto& b) {
-                                            return detail::get_begin(a) <
-                                                   detail::get_begin(b);
-                                        })),
-          size_(idxs_.empty()
-                    ? 0
-                    : std::max_element(idxs_.begin(), idxs_.end(),
-                                       [](const auto& a, const auto& b) {
-                                           return a.get_size() < b.get_size();
-                                       })
-                          ->end)
-    {
-        if (target_ids_.get_num_elems() != idxs_.size()) {
-            GKO_INVALID_STATE("");
-        }
-    }
+                    std::vector<IndexStorageType> idxs);
 
     // @todo correctly handle cross-executor indices
     overlap_indices(std::shared_ptr<const Executor> exec,
-                    overlap_indices&& other)
-        : overlap_indices({exec, std::move(other.target_ids_)},
-                          std::move(other.idxs_))
-    {}
+                    overlap_indices&& other);
 
     size_type get_num_elems() const { return num_local_indices_; }
 
-    index_type get_end() const { return size_; }
+    index_type get_end() const { return end_; }
 
     index_type get_begin() const { return begin_; }
 
@@ -158,7 +108,7 @@ private:
 
     size_type num_local_indices_;
     index_type begin_;
-    index_type size_;
+    index_type end_;
 };
 
 
@@ -191,7 +141,7 @@ public:
     using send_storage_type = index_set<index_type>;
     using recv_storage_type = index_block<index_type>;
 
-    size_type get_local_size() const { return local_size_; }
+    size_type get_local_end() const { return local_end_; }
 
     const overlap_indices<send_storage_type>& get_send_indices() const
     {
@@ -207,11 +157,11 @@ public:
      * The end sentinel of the partition.
      * @return
      */
-    size_type get_size() const
+    size_type get_end() const
     {
-        return std::max(local_size_, static_cast<size_type>(std::max(
-                                         overlap_send_idxs_.get_end(),
-                                         overlap_recv_idxs_.get_end())));
+        return std::max(local_end_, static_cast<size_type>(std::max(
+                                        overlap_send_idxs_.get_end(),
+                                        overlap_recv_idxs_.get_end())));
     }
 
     std::shared_ptr<const Executor> get_executor() const { return exec_; }
@@ -255,48 +205,7 @@ public:
         std::shared_ptr<const Executor> exec, size_type local_size,
         std::vector<std::pair<index_set<index_type>, comm_index_type>>
             send_idxs,
-        array<comm_index_type> target_ids, array<size_type> target_sizes)
-    {
-        // make sure shared indices are a subset of local indices
-        GKO_ASSERT(send_idxs.empty() || send_idxs.size() == 0 ||
-                   local_size >=
-                       std::max_element(send_idxs.begin(), send_idxs.end(),
-                                        [](const auto& a, const auto& b) {
-                                            return a.first.get_end() <
-                                                   b.first.get_end();
-                                        })
-                           ->first.get_end());
-        GKO_ASSERT(target_ids.get_num_elems() == target_sizes.get_num_elems());
-
-        std::vector<index_set<index_type>> send_index_sets(
-            send_idxs.size(), index_set<index_type>(exec));
-        array<comm_index_type> send_target_ids(exec->get_master(),
-                                               send_idxs.size());
-
-        for (int i = 0; i < send_idxs.size(); ++i) {
-            send_index_sets[i] = std::move(send_idxs[i].first);
-            send_target_ids.get_data()[i] = send_idxs[i].second;
-        }
-
-        send_target_ids.set_executor(exec);
-
-        // need to create a subset for each target id
-        // brute force creating index sets until better constructor is available
-        std::vector<span> intervals;
-        auto offset = local_size;
-        for (int gid = 0; gid < target_sizes.get_num_elems(); ++gid) {
-            auto current_size = target_sizes.get_const_data()[gid];
-            intervals.emplace_back(offset, offset + current_size);
-            offset += current_size;
-        }
-
-        return std::shared_ptr<overlapping_partition>{new overlapping_partition{
-            exec, local_size,
-            overlap_indices<send_storage_type>{std::move(send_target_ids),
-                                               std::move(send_index_sets)},
-            overlap_indices<recv_storage_type>{std::move(target_ids),
-                                               std::move(intervals)}}};
-    }
+        array<comm_index_type> target_ids, array<size_type> target_sizes);
 
 private:
     overlapping_partition(std::shared_ptr<const Executor> exec,
@@ -304,7 +213,7 @@ private:
                           overlap_indices<send_storage_type> overlap_send_idxs,
                           overlap_indices<recv_storage_type> overlap_recv_idxs)
         : exec_(exec),
-          local_size_(local_size),
+          local_end_(local_size),
           overlap_send_idxs_(exec, std::move(overlap_send_idxs)),
           overlap_recv_idxs_(exec, std::move(overlap_recv_idxs))
     {}
@@ -312,7 +221,7 @@ private:
     std::shared_ptr<const Executor> exec_;
 
     // owned by this process, interval [0, local_size_) (exclusively or shared)
-    size_type local_size_;
+    size_type local_end_;
     // owned by this and used by other processes (subset of local_idxs_)
     overlap_indices<send_storage_type> overlap_send_idxs_;
     // owned by other processes (doesn't exclude this also owning them)
@@ -328,8 +237,8 @@ std::unique_ptr<gko::matrix::Dense<ValueType>> get_local(
     gko::matrix::Dense<ValueType>* vector,
     const overlapping_partition<IndexType>* part)
 {
-    GKO_ASSERT(vector->get_size()[0] == part->get_size());
-    return vector->create_submatrix(span{0, part->get_local_size()},
+    GKO_ASSERT(vector->get_size()[0] == part->get_end());
+    return vector->create_submatrix(span{0, part->get_local_end()},
                                     span{0, vector->get_size()[1]});
 }
 
@@ -342,9 +251,9 @@ std::unique_ptr<gko::matrix::Dense<ValueType>> get_non_local(
     gko::matrix::Dense<ValueType>* vector,
     const overlapping_partition<IndexType>* part)
 {
-    GKO_ASSERT(vector->get_size()[0] == part->get_size());
+    GKO_ASSERT(vector->get_size()[0] == part->get_end());
     return vector->create_submatrix(
-        span{part->get_local_size(), vector->get_size()[0]},
+        span{part->get_local_end(), vector->get_size()[0]},
         span{0, vector->get_size()[1]});
 }
 

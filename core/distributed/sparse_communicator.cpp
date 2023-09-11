@@ -268,7 +268,7 @@ mpi::request sparse_communicator::communicate_impl_(
     transformation mode) const
 {
     using overlap_idxs_type = overlap_indices<IndexType>;
-    GKO_ASSERT(std::visit([](const auto& part) { return part->get_size(); },
+    GKO_ASSERT(std::visit([](const auto& part) { return part->get_end(); },
                           part_) == local_vector->get_size()[0]);
 
     using vector_type = matrix::Dense<ValueType>;
