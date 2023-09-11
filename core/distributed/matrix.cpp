@@ -101,6 +101,32 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
+    std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const sparse_communicator> sparse_comm,
+    std::unique_ptr<LinOp> local_matrix,
+    std::unique_ptr<LinOp> non_local_matrix)
+    : EnableDistributedLinOp<
+          Matrix<value_type, local_index_type, global_index_type>>{exec},
+      DistributedBase{sparse_comm->get_communicator()},
+      send_offsets_(sparse_comm->get_send_offsets()),
+      send_sizes_(sparse_comm->get_send_sizes()),
+      recv_offsets_(sparse_comm->get_recv_offsets()),
+      recv_sizes_(sparse_comm->get_recv_sizes()),
+      gather_idxs_{exec},
+      non_local_to_global_{exec},
+      one_scalar_{},
+      local_mtx_{std::move(local_matrix)},
+      non_local_mtx_{std::move(non_local_matrix)}
+{
+    auto recv_idxs =
+        sparse_comm->get_partition<GlobalIndexType>()->get_recv_indices();
+    GKO_ASSERT(recv_idxs.get_end() - recv_idxs.get_begin() ==
+               non_local_mtx_->get_size()[1]);
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
     Matrix<next_precision<value_type>, local_index_type, global_index_type>*
         result) const

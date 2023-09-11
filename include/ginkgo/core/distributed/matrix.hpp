@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/lin_op.hpp>
+#include <ginkgo/core/distributed/sparse_communicator.hpp>
 
 
 namespace gko {
@@ -535,6 +536,11 @@ protected:
                     mpi::communicator comm,
                     ptr_param<const LinOp> local_matrix_template,
                     ptr_param<const LinOp> non_local_matrix_template);
+
+    explicit Matrix(std::shared_ptr<const Executor> exec,
+                    std::shared_ptr<const sparse_communicator> sparse_comm,
+                    std::unique_ptr<LinOp> local_matrix,
+                    std::unique_ptr<LinOp> non_local_matrix);
 
     /**
      * Starts a non-blocking communication of the values of b that are shared
