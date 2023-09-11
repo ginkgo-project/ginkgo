@@ -207,9 +207,6 @@ sparse_communicator::sparse_communicator(
     : default_comm_(create_neighborhood_comm(
           comm, part->get_recv_indices().get_target_ids(),
           part->get_send_indices().get_target_ids())),
-      inverse_comm_(create_neighborhood_comm(
-          comm, part->get_send_indices().get_target_ids(),
-          part->get_recv_indices().get_target_ids())),
       send_sizes_(comm.size()),
       send_offsets_(comm.size() + 1),
       recv_sizes_(comm.size()),

@@ -116,6 +116,28 @@ public:
             std::shared_ptr<const overlapping_partition<IndexType>>>(part_);
     }
 
+    const std::vector<comm_index_type>& get_recv_sizes() const
+    {
+        return recv_sizes_;
+    }
+
+    const std::vector<comm_index_type>& get_recv_offsets() const
+    {
+        return recv_offsets_;
+    }
+
+    const std::vector<comm_index_type>& get_send_sizes() const
+    {
+        return send_sizes_;
+    }
+
+    const std::vector<comm_index_type>& get_send_offsets() const
+    {
+        return send_offsets_;
+    }
+
+    mpi::communicator get_communicator() const { return default_comm_; }
+
 private:
     using partition_i32_type = overlapping_partition<int32>;
     using partition_i64_type = overlapping_partition<int64>;
@@ -139,7 +161,6 @@ private:
         std::shared_ptr<matrix::Dense<ValueType>> local_vector) const;
 
     mpi::communicator default_comm_;
-    mpi::communicator inverse_comm_;
 
     std::variant<std::shared_ptr<const partition_i32_type>,
                  std::shared_ptr<const partition_i64_type>>
