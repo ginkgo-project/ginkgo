@@ -15,6 +15,7 @@ target_sources(ginkgo
     base/perturbation.cpp
     base/timer.cpp
     base/version.cpp
+    distributed/overlapping_partition.cpp
     distributed/partition.cpp
     factorization/cholesky.cpp
     factorization/elimination_forest.cpp
