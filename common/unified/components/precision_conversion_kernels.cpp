@@ -36,6 +36,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/unified/base/kernel_launch.hpp"
 
 
+#include <ginkgo/core/base/math.hpp>
+#include <type_traits>
+
 namespace gko {
 namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {
@@ -48,7 +51,14 @@ void convert_precision(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto idx, auto in, auto out) { out[idx] = in[idx]; },
+        [] GKO_KERNEL(auto idx, auto in, auto out) {
+            using in_type = typename std::remove_cv<
+                typename std::remove_reference<decltype(*in)>::type>::type;
+            using out_type = typename std::remove_cv<
+                typename std::remove_reference<decltype(*out)>::type>::type;
+            out[idx] =
+                static_cast<highest_precision<in_type, out_type>>(in[idx]);
+        },
         size, in, out);
 }
 

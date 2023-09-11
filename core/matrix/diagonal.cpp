@@ -209,6 +209,22 @@ void Diagonal<ValueType>::move_to(
 {
     this->convert_to(result);
 }
+
+template <typename ValueType>
+void Diagonal<ValueType>::convert_to(
+    Diagonal<next_precision2<ValueType, 3>>* result) const
+{
+    result->values_ = this->values_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::move_to(
+    Diagonal<next_precision2<ValueType, 3>>* result)
+{
+    this->convert_to(result);
+}
 #endif
 
 

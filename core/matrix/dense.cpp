@@ -608,6 +608,29 @@ void Dense<ValueType>::move_to(
 {
     this->convert_to(result);
 }
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(
+    Dense<next_precision2<ValueType, 3>>* result) const
+{
+    if (result->get_size() != this->get_size()) {
+        result->set_size(this->get_size());
+        result->stride_ = stride_;
+        result->values_.resize_and_reset(result->get_size()[0] *
+                                         result->stride_);
+    }
+    auto exec = this->get_executor();
+    exec->run(dense::make_copy(
+        this, make_temporary_output_clone(exec, result).get()));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Dense<next_precision2<ValueType, 3>>* result)
+{
+    this->convert_to(result);
+}
 #endif
 
 

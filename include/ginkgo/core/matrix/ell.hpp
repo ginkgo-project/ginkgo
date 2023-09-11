@@ -83,6 +83,7 @@ class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
 #if GINKGO_ENABLE_HALF
             public ConvertibleTo<
                 Ell<next_precision<next_precision<ValueType>>, IndexType>>,
+            public ConvertibleTo<Ell<next_precision2<ValueType, 3>, IndexType>>,
 #endif
             public ConvertibleTo<Dense<ValueType>>,
             public ConvertibleTo<Csr<ValueType, IndexType>>,
@@ -135,6 +136,17 @@ public:
 
     void move_to(Ell<next_precision<next_precision<ValueType>>, IndexType>*
                      result) override;
+
+    friend class Ell<previous_precision2<ValueType, 3>, IndexType>;
+    using ConvertibleTo<
+        Ell<next_precision2<ValueType, 3>, IndexType>>::convert_to;
+    using ConvertibleTo<Ell<next_precision2<ValueType, 3>, IndexType>>::move_to;
+
+    void convert_to(
+        Ell<next_precision2<ValueType, 3>, IndexType>* result) const override;
+
+    void move_to(
+        Ell<next_precision2<ValueType, 3>, IndexType>* result) override;
 #endif
 
     void convert_to(Dense<ValueType>* other) const override;

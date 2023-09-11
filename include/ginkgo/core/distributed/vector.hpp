@@ -90,6 +90,7 @@ class Vector
       public ConvertibleTo<Vector<next_precision<ValueType>>>,
 #if GINKGO_ENABLE_HALF
       public ConvertibleTo<Vector<next_precision<next_precision<ValueType>>>>,
+      public ConvertibleTo<Vector<next_precision2<ValueType, 3>>>,
 #endif
       public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
       public DistributedBase {
@@ -208,6 +209,15 @@ public:
 
     void move_to(
         Vector<next_precision<next_precision<ValueType>>>* result) override;
+
+    friend class Vector<previous_precision2<ValueType, 3>>;
+    using ConvertibleTo<Vector<next_precision2<ValueType, 3>>>::convert_to;
+    using ConvertibleTo<Vector<next_precision2<ValueType, 3>>>::move_to;
+
+    void convert_to(
+        Vector<next_precision2<ValueType, 3>>* result) const override;
+
+    void move_to(Vector<next_precision2<ValueType, 3>>* result) override;
 #endif
 
     std::unique_ptr<absolute_type> compute_absolute() const override;
@@ -680,6 +690,16 @@ struct conversion_target_helper<experimental::distributed::Vector<ValueType>> {
 
     static std::unique_ptr<target_type> create_empty(
         const snd_source_type* source)
+    {
+        return target_type::create(source->get_executor(),
+                                   source->get_communicator());
+    }
+
+    using trd_source_type =
+        experimental::distributed::Vector<previous_precision2<ValueType, 3>>;
+
+    static std::unique_ptr<target_type> create_empty(
+        const trd_source_type* source)
     {
         return target_type::create(source->get_executor(),
                                    source->get_communicator());

@@ -219,6 +219,27 @@ void Fbcsr<ValueType, IndexType>::move_to(
 {
     this->convert_to(result);
 }
+
+
+template <typename ValueType, typename IndexType>
+void Fbcsr<ValueType, IndexType>::convert_to(
+    Fbcsr<next_precision2<ValueType, 3>, IndexType>* const result) const
+{
+    result->values_ = this->values_;
+    result->col_idxs_ = this->col_idxs_;
+    result->row_ptrs_ = this->row_ptrs_;
+    result->set_size(this->get_size());
+    // block sizes are immutable except for assignment/conversion
+    result->bs_ = this->bs_;
+}
+
+
+template <typename ValueType, typename IndexType>
+void Fbcsr<ValueType, IndexType>::move_to(
+    Fbcsr<next_precision2<ValueType, 3>, IndexType>* const result)
+{
+    this->convert_to(result);
+}
 #endif
 
 

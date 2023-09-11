@@ -68,20 +68,22 @@ class Csr;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Sellp : public EnableLinOp<Sellp<ValueType, IndexType>>,
-              public EnableCreateMethod<Sellp<ValueType, IndexType>>,
-              public ConvertibleTo<Sellp<next_precision<ValueType>, IndexType>>,
+class Sellp
+    : public EnableLinOp<Sellp<ValueType, IndexType>>,
+      public EnableCreateMethod<Sellp<ValueType, IndexType>>,
+      public ConvertibleTo<Sellp<next_precision<ValueType>, IndexType>>,
 #if GINKGO_ENABLE_HALF
-              public ConvertibleTo<
-                  Sellp<next_precision<next_precision<ValueType>>, IndexType>>,
+      public ConvertibleTo<
+          Sellp<next_precision<next_precision<ValueType>>, IndexType>>,
+      public ConvertibleTo<Sellp<next_precision2<ValueType, 3>, IndexType>>,
 #endif
-              public ConvertibleTo<Dense<ValueType>>,
-              public ConvertibleTo<Csr<ValueType, IndexType>>,
-              public DiagonalExtractable<ValueType>,
-              public ReadableFromMatrixData<ValueType, IndexType>,
-              public WritableToMatrixData<ValueType, IndexType>,
-              public EnableAbsoluteComputation<
-                  remove_complex<Sellp<ValueType, IndexType>>> {
+      public ConvertibleTo<Dense<ValueType>>,
+      public ConvertibleTo<Csr<ValueType, IndexType>>,
+      public DiagonalExtractable<ValueType>,
+      public ReadableFromMatrixData<ValueType, IndexType>,
+      public WritableToMatrixData<ValueType, IndexType>,
+      public EnableAbsoluteComputation<
+          remove_complex<Sellp<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Sellp>;
     friend class EnablePolymorphicObject<Sellp, LinOp>;
     friend class Dense<ValueType>;
@@ -126,6 +128,18 @@ public:
 
     void move_to(Sellp<next_precision<next_precision<ValueType>>, IndexType>*
                      result) override;
+
+    friend class Sellp<previous_precision2<ValueType, 3>, IndexType>;
+    using ConvertibleTo<
+        Sellp<next_precision2<ValueType, 3>, IndexType>>::convert_to;
+    using ConvertibleTo<
+        Sellp<next_precision2<ValueType, 3>, IndexType>>::move_to;
+
+    void convert_to(
+        Sellp<next_precision2<ValueType, 3>, IndexType>* result) const override;
+
+    void move_to(
+        Sellp<next_precision2<ValueType, 3>, IndexType>* result) override;
 #endif
 
     void convert_to(Dense<ValueType>* other) const override;

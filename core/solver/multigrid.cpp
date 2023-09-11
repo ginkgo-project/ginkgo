@@ -317,11 +317,11 @@ void MultigridState::generate(const LinOp* system_matrix_in,
 
         run<gko::multigrid::EnableMultigridLevel,
 #if GINKGO_ENABLE_HALF
-            half,
+            half, bfloat16,
 #endif
             float, double,
 #if GINKGO_ENABLE_HALF
-            std::complex<half>,
+            std::complex<half>, std::complex<bfloat16>,
 #endif
             std::complex<float>, std::complex<double>>(
             mg_level,
@@ -381,11 +381,11 @@ void MultigridState::run_mg_cycle(multigrid::cycle cycle, size_type level,
     auto mg_level = multigrid->get_mg_level_list().at(level);
     run<gko::multigrid::EnableMultigridLevel,
 #if GINKGO_ENABLE_HALF
-        half,
+        half, bfloat16,
 #endif
         float, double,
 #if GINKGO_ENABLE_HALF
-        std::complex<half>,
+        std::complex<half>, std::complex<bfloat16>,
 #endif
         std::complex<float>, std::complex<double>>(
         mg_level, [&, this](auto mg_level) {
@@ -533,11 +533,11 @@ void Multigrid::generate()
 
         run<gko::multigrid::EnableMultigridLevel,
 #if GINKGO_ENABLE_HALF
-            half,
+            half, bfloat16,
 #endif
             float, double,
 #if GINKGO_ENABLE_HALF
-            std::complex<half>,
+            std::complex<half>, std::complex<bfloat16>,
 #endif
             std::complex<float>, std::complex<double>>(
             mg_level,
@@ -578,11 +578,11 @@ void Multigrid::generate()
     // generate coarsest solver
     run<gko::multigrid::EnableMultigridLevel,
 #if GINKGO_ENABLE_HALF
-        half,
+        half, bfloat16,
 #endif
         float, double,
 #if GINKGO_ENABLE_HALF
-        std::complex<half>,
+        std::complex<half>, std::complex<bfloat16>,
 #endif
         std::complex<float>, std::complex<double>>(
         last_mg_level,
@@ -671,11 +671,11 @@ void Multigrid::apply_with_initial_guess_impl(const LinOp* b, LinOp* x,
     auto first_mg_level = this->get_mg_level_list().front();
     run<gko::multigrid::EnableMultigridLevel,
 #if GINKGO_ENABLE_HALF
-        half,
+        half, bfloat16,
 #endif
         float, double,
 #if GINKGO_ENABLE_HALF
-        std::complex<half>,
+        std::complex<half>, std::complex<bfloat16>,
 #endif
         std::complex<float>, std::complex<double>>(first_mg_level, lambda, b,
                                                    x);
@@ -717,11 +717,11 @@ void Multigrid::apply_with_initial_guess_impl(const LinOp* alpha,
     auto first_mg_level = this->get_mg_level_list().front();
     run<gko::multigrid::EnableMultigridLevel,
 #if GINKGO_ENABLE_HALF
-        half,
+        half, bfloat16,
 #endif
         float, double,
 #if GINKGO_ENABLE_HALF
-        std::complex<half>,
+        std::complex<half>, std::complex<bfloat16>,
 #endif
         std::complex<float>, std::complex<double>>(first_mg_level, lambda,
                                                    alpha, b, beta, x);
@@ -789,11 +789,11 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
 
     run<gko::multigrid::EnableMultigridLevel,
 #if GINKGO_ENABLE_HALF
-        half,
+        half, bfloat16,
 #endif
         float, double,
 #if GINKGO_ENABLE_HALF
-        std::complex<half>,
+        std::complex<half>, std::complex<bfloat16>,
 #endif
         std::complex<float>, std::complex<double>>(first_mg_level, lambda, b,
                                                    x);

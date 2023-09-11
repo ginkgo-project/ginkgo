@@ -308,6 +308,24 @@ void Vector<ValueType>::move_to(
 {
     this->convert_to(result);
 }
+
+
+template <typename ValueType>
+void Vector<ValueType>::convert_to(
+    Vector<next_precision2<ValueType, 3>>* result) const
+{
+    GKO_ASSERT(this->get_communicator().size() ==
+               result->get_communicator().size());
+    result->set_size(this->get_size());
+    this->get_local_vector()->convert_to(&result->local_);
+}
+
+
+template <typename ValueType>
+void Vector<ValueType>::move_to(Vector<next_precision2<ValueType, 3>>* result)
+{
+    this->convert_to(result);
+}
 #endif
 
 template <typename ValueType>

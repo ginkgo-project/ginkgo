@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <cublas_v2.h>
 #include <cuda.h>
+#include <cuda_bf16.h>
 #include <cuda_fp16.h>
 #include <cusparse.h>
 #include <thrust/complex.h>
@@ -49,6 +50,39 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
+
+
+// #if defined(__CUDACC__)
+
+// #define BFLOAT_FRIEND_OPERATOR(_op, _opeq)                                  \
+//     __forceinline__ __device__ __nv_bfloat16 operator _op(                  \
+//         const __nv_bfloat16& lhs, const __nv_bfloat16& rhs)                 \
+//     {                                                                       \
+//         return static_cast<__nv_bfloat16>(static_cast<float>(lhs)           \
+//                                               _op static_cast<float>(rhs)); \
+//     }                                                                       \
+//     __forceinline__ __device__ __nv_bfloat16& operator _opeq(               \
+//         __nv_bfloat16& lhs, const __nv_bfloat16& rhs)                       \
+//     {                                                                       \
+//         lhs = static_cast<float>(lhs) _op static_cast<float>(rhs);          \
+//         return lhs;                                                         \
+//     }
+// BFLOAT_FRIEND_OPERATOR(+, +=)
+// BFLOAT_FRIEND_OPERATOR(-, -=)
+// BFLOAT_FRIEND_OPERATOR(*, *=)
+// BFLOAT_FRIEND_OPERATOR(/, /=)
+
+// __forceinline__ __device__ __nv_bfloat16 operator+(const __nv_bfloat16& h)
+// {
+//     return h;
+// }
+// __forceinline__ __device__ __nv_bfloat16 operator-(const __nv_bfloat16& h)
+// {
+//     return -float{h};
+// }
+// #undef BFLOAT_FRIEND_OPERATOR
+
+// #endif
 
 
 // thrust calls the c function not the function from std
@@ -64,6 +98,17 @@ GKO_ATTRIBUTES GKO_INLINE thrust::complex<__half> sqrt(
     return sqrt(static_cast<thrust::complex<float>>(a));
 }
 
+GKO_ATTRIBUTES GKO_INLINE __nv_bfloat16 hypot(__nv_bfloat16 a, __nv_bfloat16 b)
+{
+    return hypot(static_cast<float>(a), static_cast<float>(b));
+}
+
+GKO_ATTRIBUTES GKO_INLINE thrust::complex<__nv_bfloat16> sqrt(
+    thrust::complex<__nv_bfloat16> a)
+{
+    return sqrt(static_cast<thrust::complex<float>>(a));
+}
+
 
 namespace thrust {
 
@@ -75,6 +120,13 @@ GKO_ATTRIBUTES GKO_INLINE __half abs<__half>(const complex<__half>& z)
     return abs(static_cast<complex<float>>(z));
 }
 
+template <>
+GKO_ATTRIBUTES GKO_INLINE __nv_bfloat16
+abs<__nv_bfloat16>(const complex<__nv_bfloat16>& z)
+{
+    return abs(static_cast<complex<float>>(z));
+}
+
 
 }  // namespace thrust
 
@@ -82,6 +134,12 @@ GKO_ATTRIBUTES GKO_INLINE __half abs<__half>(const complex<__half>& z)
 #define THRUST_HALF_FRIEND_OPERATOR(_op, _opeq)                               \
     GKO_ATTRIBUTES GKO_INLINE thrust::complex<__half> operator _op(           \
         const thrust::complex<__half> lhs, const thrust::complex<__half> rhs) \
+    {                                                                         \
+        return thrust::complex<float>{lhs} _op thrust::complex<float>(rhs);   \
+    }                                                                         \
+    GKO_ATTRIBUTES GKO_INLINE thrust::complex<__nv_bfloat16> operator _op(    \
+        const thrust::complex<__nv_bfloat16>& lhs,                            \
+        const thrust::complex<__nv_bfloat16>& rhs)                            \
     {                                                                         \
         return thrust::complex<float>{lhs} _op thrust::complex<float>(rhs);   \
     }
@@ -108,6 +166,12 @@ __device__ __forceinline__ bool is_nan(const __half& val)
     return __hisnan(val);
 }
 
+template <>
+__device__ __forceinline__ bool is_nan(const __nv_bfloat16& val)
+{
+    return isnan(static_cast<float>(val));
+}
+
 
 #else
 
@@ -118,12 +182,25 @@ __device__ __forceinline__ bool is_nan(const __half& val)
     return isnan(static_cast<float>(val));
 }
 
+template <>
+__device__ __forceinline__ bool is_nan(const __nv_bfloat16& val)
+{
+    return isnan(static_cast<float>(val));
+}
+
 
 #endif
 
 
 template <>
 __device__ __forceinline__ bool is_nan(const thrust::complex<__half>& val)
+{
+    return is_nan(val.real()) || is_nan(val.imag());
+}
+
+template <>
+__device__ __forceinline__ bool is_nan(
+    const thrust::complex<__nv_bfloat16>& val)
 {
     return is_nan(val.real()) || is_nan(val.imag());
 }
@@ -141,8 +218,18 @@ namespace cuda {
 
 #if CUDA_VERSION >= 10020
 __device__ __forceinline__ __half abs(const __half& val) { return __habs(val); }
+
+__device__ __forceinline__ __nv_bfloat16 abs(const __nv_bfloat16& val)
+{
+    return abs(static_cast<float>(val));
+}
 #else
 __device__ __forceinline__ __half abs(const __half& val)
+{
+    return abs(static_cast<float>(val));
+}
+
+__device__ __forceinline__ __nv_bfloat16 abs(const __nv_bfloat16& val)
 {
     return abs(static_cast<float>(val));
 }
@@ -151,6 +238,11 @@ __device__ __forceinline__ __half abs(const __half& val)
 
 __device__ __forceinline__ __half sqrt(const __half& val) { return hsqrt(val); }
 
+__device__ __forceinline__ __nv_bfloat16 sqrt(const __nv_bfloat16& val)
+{
+    return sqrt(static_cast<float>(val));
+}
+
 
 #else
 
@@ -160,8 +252,18 @@ __device__ __forceinline__ __half abs(const __half& val)
     return abs(static_cast<float>(val));
 }
 
+__device__ __forceinline__ __nv_bfloat16 abs(const __nv_bfloat16& val)
+{
+    return abs(static_cast<float>(val));
+}
+
 
 __device__ __forceinline__ __half sqrt(const __half& val)
+{
+    return sqrt(static_cast<float>(val));
+}
+
+__device__ __forceinline__ __nv_bfloat16 sqrt(const __nv_bfloat16& val)
 {
     return sqrt(static_cast<float>(val));
 }
@@ -275,8 +377,18 @@ struct culibs_type_impl<half> {
 };
 
 template <>
+struct culibs_type_impl<bfloat16> {
+    using type = __nv_bfloat16;
+};
+
+template <>
 struct culibs_type_impl<std::complex<half>> {
     using type = __half2;
+};
+
+template <>
+struct culibs_type_impl<std::complex<bfloat16>> {
+    using type = __nv_bfloat162;
 };
 
 template <typename T>
@@ -314,6 +426,11 @@ struct cuda_type_impl<half> {
     using type = __half;
 };
 
+template <>
+struct cuda_type_impl<bfloat16> {
+    using type = __nv_bfloat16;
+};
+
 template <typename T>
 struct cuda_type_impl<std::complex<T>> {
     using type = thrust::complex<typename cuda_type_impl<T>::type>;
@@ -334,6 +451,11 @@ struct cuda_type_impl<__half2> {
     using type = thrust::complex<__half>;
 };
 
+template <>
+struct cuda_type_impl<__nv_bfloat162> {
+    using type = thrust::complex<__nv_bfloat16>;
+};
+
 template <typename T>
 struct cuda_struct_member_type_impl {
     using type = T;
@@ -347,6 +469,11 @@ struct cuda_struct_member_type_impl<std::complex<T>> {
 template <>
 struct cuda_struct_member_type_impl<gko::half> {
     using type = __half;
+};
+
+template <>
+struct cuda_struct_member_type_impl<gko::bfloat16> {
+    using type = __nv_bfloat16;
 };
 
 template <typename ValueType, typename IndexType>
@@ -366,11 +493,13 @@ struct cuda_data_type_impl {};
     }
 
 GKO_CUDA_DATA_TYPE(float16, CUDA_R_16F);
+GKO_CUDA_DATA_TYPE(bfloat16, CUDA_R_16BF);
 GKO_CUDA_DATA_TYPE(float, CUDA_R_32F);
 GKO_CUDA_DATA_TYPE(double, CUDA_R_64F);
 GKO_CUDA_DATA_TYPE(std::complex<float>, CUDA_C_32F);
 GKO_CUDA_DATA_TYPE(std::complex<double>, CUDA_C_64F);
 GKO_CUDA_DATA_TYPE(std::complex<float16>, CUDA_C_16F);
+GKO_CUDA_DATA_TYPE(std::complex<bfloat16>, CUDA_C_16BF);
 GKO_CUDA_DATA_TYPE(int32, CUDA_R_32I);
 GKO_CUDA_DATA_TYPE(int8, CUDA_R_8I);
 

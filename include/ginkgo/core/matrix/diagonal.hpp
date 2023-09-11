@@ -73,6 +73,7 @@ class Diagonal
       public ConvertibleTo<Diagonal<next_precision<ValueType>>>,
 #if GINKGO_ENABLE_HALF
       public ConvertibleTo<Diagonal<next_precision<next_precision<ValueType>>>>,
+      public ConvertibleTo<Diagonal<next_precision2<ValueType, 3>>>,
 #endif
       public Transposable,
       public WritableToMatrixData<ValueType, int32>,
@@ -126,6 +127,15 @@ public:
 
     void move_to(
         Diagonal<next_precision<next_precision<ValueType>>>* result) override;
+
+    friend class Diagonal<previous_precision2<ValueType, 3>>;
+    using ConvertibleTo<Diagonal<next_precision2<ValueType, 3>>>::convert_to;
+    using ConvertibleTo<Diagonal<next_precision2<ValueType, 3>>>::move_to;
+
+    void convert_to(
+        Diagonal<next_precision2<ValueType, 3>>* result) const override;
+
+    void move_to(Diagonal<next_precision2<ValueType, 3>>* result) override;
 #endif
 
     void convert_to(Csr<ValueType, int32>* result) const override;

@@ -105,6 +105,26 @@ void atomic_add(half& out, half val)
 }
 
 
+template <>
+void atomic_add(bfloat16& out, bfloat16 val)
+{
+    // UB?
+    uint16_t* address_as_converter = reinterpret_cast<uint16_t*>(&out);
+    uint16_t old = *address_as_converter;
+    uint16_t assumed;
+    do {
+        assumed = old;
+        auto answer =
+            reinterpret<uint16_t>(reinterpret<bfloat16>(assumed) + val);
+#pragma omp atomic capture
+        {
+            old = *address_as_converter;
+            *address_as_converter = (old == assumed) ? answer : old;
+        }
+    } while (assumed != old);
+}
+
+
 }  // namespace omp
 }  // namespace kernels
 }  // namespace gko

@@ -49,11 +49,12 @@ void RowGatherer<IndexType>::apply_impl(const LinOp* in, LinOp* out) const
 {
     run<
 #if GINKGO_ENABLE_HALF
-        const Dense<gko::half>*,
+        const Dense<gko::half>*, const Dense<gko::bfloat16>*,
 #endif
         const Dense<float>*, const Dense<double>*,
 #if GINKGO_ENABLE_HALF
         const Dense<std::complex<gko::half>>*,
+        const Dense<std::complex<gko::bfloat16>>*,
 #endif
         const Dense<std::complex<float>>*, const Dense<std::complex<double>>*>(
         in, [&](auto gather) { gather->row_gather(&row_idxs_, out); });
@@ -65,11 +66,12 @@ void RowGatherer<IndexType>::apply_impl(const LinOp* alpha, const LinOp* in,
 {
     run<
 #if GINKGO_ENABLE_HALF
-        const Dense<gko::half>*,
+        const Dense<gko::half>*, const Dense<gko::bfloat16>*,
 #endif
         const Dense<float>*, const Dense<double>*,
 #if GINKGO_ENABLE_HALF
         const Dense<std::complex<gko::half>>*,
+        const Dense<std::complex<gko::bfloat16>>*,
 #endif
         const Dense<std::complex<float>>*, const Dense<std::complex<double>>*>(
         in,

@@ -91,6 +91,11 @@ struct hip_type<gko::half> {
     using type = __half;
 };
 
+template <>
+struct hip_type<gko::bfloat16> {
+    using type = hip_bfloat16;
+};
+
 // Transform std::complex to thrust::complex
 template <typename T>
 struct hip_type<std::complex<T>> {

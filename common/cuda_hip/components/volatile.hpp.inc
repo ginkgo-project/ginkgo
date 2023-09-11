@@ -42,7 +42,9 @@ __device__ __forceinline__
 template <typename ValueType, typename IndexType>
 __device__ __forceinline__
     std::enable_if_t<std::is_floating_point<ValueType>::value ||
-                         std::is_same<ValueType, __half>::value,
+                         std::is_same<ValueType, __half>::value ||
+                         std::is_same<ValueType, __nv_bfloat16>::value ||
+                         std::is_same<ValueType, hip_bfloat16>::value,
                      thrust::complex<ValueType>>
     load(const thrust::complex<ValueType>* values, IndexType index)
 {

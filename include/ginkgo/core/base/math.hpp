@@ -49,6 +49,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 class __half;
+class __nv_bfloat16;
+class hip_bfloat16;
 
 
 namespace thrust {
@@ -76,6 +78,30 @@ inline gko::half sqrt(gko::half a) { return gko::half(sqrt(float(a))); }
 inline std::complex<gko::half> sqrt(std::complex<gko::half> a)
 {
     return std::complex<gko::half>(sqrt(std::complex<float>(
+        static_cast<float>(a.real()), static_cast<float>(a.imag()))));
+}
+
+
+inline gko::bfloat16 abs(gko::bfloat16 a)
+{
+    return gko::bfloat16((a > 0) ? a : -a);
+}
+
+inline gko::bfloat16 abs(std::complex<gko::bfloat16> a)
+{
+    // Using float abs not sqrt on norm to avoid overflow
+    return gko::bfloat16(abs(std::complex<float>(a)));
+}
+
+
+inline gko::bfloat16 sqrt(gko::bfloat16 a)
+{
+    return gko::bfloat16(sqrt(float(a)));
+}
+
+inline std::complex<gko::bfloat16> sqrt(std::complex<gko::bfloat16> a)
+{
+    return std::complex<gko::bfloat16>(sqrt(std::complex<float>(
         static_cast<float>(a.real()), static_cast<float>(a.imag()))));
 }
 
@@ -225,6 +251,15 @@ struct is_complex_or_scalar_impl<half> : std::true_type {};
 
 template <>
 struct is_complex_or_scalar_impl<__half> : std::true_type {};
+
+template <>
+struct is_complex_or_scalar_impl<bfloat16> : std::true_type {};
+
+template <>
+struct is_complex_or_scalar_impl<__nv_bfloat16> : std::true_type {};
+
+template <>
+struct is_complex_or_scalar_impl<hip_bfloat16> : std::true_type {};
 
 template <typename T>
 struct is_complex_or_scalar_impl<std::complex<T>>
@@ -443,6 +478,12 @@ struct next_precision_impl {};
 #if GINKGO_ENABLE_HALF
 template <>
 struct next_precision_impl<half> {
+    using type = bfloat16;
+};
+
+
+template <>
+struct next_precision_impl<bfloat16> {
     using type = float;
 };
 #endif
@@ -465,6 +506,19 @@ struct next_precision_impl<double> {
 template <typename T>
 struct next_precision_impl<std::complex<T>> {
     using type = std::complex<typename next_precision_impl<T>::type>;
+};
+
+
+template <typename T, unsigned I>
+struct next_precision_impl2 {
+    using type =
+        typename next_precision_impl2<typename next_precision_impl<T>::type,
+                                      I - 1>::type;
+};
+
+template <typename T>
+struct next_precision_impl2<T, 0> {
+    using type = T;
 };
 
 
@@ -520,6 +574,11 @@ struct arth_type<half> {
     using type = float;
 };
 
+template <>
+struct arth_type<bfloat16> {
+    using type = float;
+};
+
 template <typename T>
 struct arth_type<std::complex<T>> {
     using type = std::complex<typename arth_type<T>::type>;
@@ -542,9 +601,85 @@ struct highest_precision_impl {
     using type = decltype(T1{} + T2{});
 };
 
+template <>
+struct highest_precision_impl<half, bfloat16> {
+    using type = float;
+};
+
+template <>
+struct highest_precision_impl<bfloat16, half> {
+    using type = float;
+};
+
+template <>
+struct highest_precision_impl<__nv_bfloat16, __half> {
+    using type = float;
+};
+
+template <>
+struct highest_precision_impl<__half, __nv_bfloat16> {
+    using type = float;
+};
+
+template <>
+struct highest_precision_impl<hip_bfloat16, __half> {
+    using type = float;
+};
+
+template <>
+struct highest_precision_impl<__half, hip_bfloat16> {
+    using type = float;
+};
+
+
+template <>
+struct highest_precision_impl<double, __half> {
+    using type = double;
+};
+
+template <>
+struct highest_precision_impl<__half, double> {
+    using type = double;
+};
+
+template <>
+struct highest_precision_impl<double, __nv_bfloat16> {
+    using type = double;
+};
+
+template <>
+struct highest_precision_impl<__nv_bfloat16, double> {
+    using type = double;
+};
+
+template <>
+struct highest_precision_impl<float, __half> {
+    using type = float;
+};
+
+template <>
+struct highest_precision_impl<__half, float> {
+    using type = float;
+};
+
+template <>
+struct highest_precision_impl<float, __nv_bfloat16> {
+    using type = float;
+};
+
+template <>
+struct highest_precision_impl<__nv_bfloat16, float> {
+    using type = float;
+};
+
 template <typename T1, typename T2>
 struct highest_precision_impl<std::complex<T1>, std::complex<T2>> {
     using type = std::complex<typename highest_precision_impl<T1, T2>::type>;
+};
+
+template <typename T1, typename T2>
+struct highest_precision_impl<thrust::complex<T1>, thrust::complex<T2>> {
+    using type = thrust::complex<typename highest_precision_impl<T1, T2>::type>;
 };
 
 template <typename Head, typename... Tail>
@@ -568,6 +703,9 @@ struct highest_precision_variadic<Head> {
 template <typename T>
 using next_precision = typename detail::next_precision_impl<T>::type;
 
+template <typename T, unsigned I>
+using next_precision2 = typename detail::next_precision_impl2<T, I>::type;
+
 
 /**
  * Obtains the previous type in the singly-linked precision list.
@@ -577,11 +715,28 @@ using next_precision = typename detail::next_precision_impl<T>::type;
  */
 #if GINKGO_ENABLE_HALF
 template <typename T>
-using previous_precision = next_precision<next_precision<T>>;
+using previous_precision = next_precision<next_precision<next_precision<T>>>;
 #else
 template <typename T>
 using previous_precision = next_precision<T>;
 #endif
+
+namespace detail {
+template <typename T, unsigned I>
+struct previous_precision_impl2 {
+    using type =
+        typename previous_precision_impl2<previous_precision<T>, I - 1>::type;
+};
+
+template <typename T>
+struct previous_precision_impl2<T, 0> {
+    using type = T;
+};
+}  // namespace detail
+
+template <typename T, unsigned I>
+using previous_precision2 =
+    typename detail::previous_precision_impl2<T, I>::type;
 
 
 /**

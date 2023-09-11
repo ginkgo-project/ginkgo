@@ -65,6 +65,11 @@ struct cuda_type<gko::half> {
     using type = __half;
 };
 
+template <>
+struct cuda_type<gko::bfloat16> {
+    using type = __nv_bfloat16;
+};
+
 // Unpack cv and reference / pointer qualifiers
 template <typename T>
 struct cuda_type<const T> {

@@ -130,6 +130,7 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
 #if GINKGO_ENABLE_HALF
             public ConvertibleTo<
                 Csr<next_precision<next_precision<ValueType>>, IndexType>>,
+            public ConvertibleTo<Csr<next_precision2<ValueType, 3>, IndexType>>,
 #endif
             public ConvertibleTo<Dense<ValueType>>,
             public ConvertibleTo<Coo<ValueType, IndexType>>,
@@ -740,6 +741,18 @@ public:
 
     void move_to(Csr<next_precision<next_precision<ValueType>>, IndexType>*
                      result) override;
+
+
+    friend class Csr<previous_precision2<ValueType, 3>, IndexType>;
+    using ConvertibleTo<
+        Csr<next_precision2<ValueType, 3>, IndexType>>::convert_to;
+    using ConvertibleTo<Csr<next_precision2<ValueType, 3>, IndexType>>::move_to;
+
+    void convert_to(
+        Csr<next_precision2<ValueType, 3>, IndexType>* result) const override;
+
+    void move_to(
+        Csr<next_precision2<ValueType, 3>, IndexType>* result) override;
 #endif
 
     void convert_to(Dense<ValueType>* other) const override;

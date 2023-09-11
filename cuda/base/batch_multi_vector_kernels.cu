@@ -41,6 +41,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/range_accessors.hpp>
 
 
+#include "cuda/base/types.hpp"
+
+
 #include "core/base/batch_struct.hpp"
 #include "cuda/base/batch_struct.hpp"
 #include "cuda/base/config.hpp"

@@ -84,6 +84,7 @@ class MultiVector
 #if GINKGO_ENABLE_HALF
       public ConvertibleTo<
           MultiVector<next_precision<next_precision<ValueType>>>>,
+      public ConvertibleTo<MultiVector<next_precision2<ValueType, 3>>>,
 #endif
       public ConvertibleTo<MultiVector<next_precision<ValueType>>> {
     friend class EnableCreateMethod<MultiVector>;
@@ -129,6 +130,15 @@ public:
 
     void move_to(MultiVector<next_precision<next_precision<ValueType>>>* result)
         override;
+
+    friend class MultiVector<previous_precision2<ValueType, 3>>;
+    using ConvertibleTo<MultiVector<next_precision2<ValueType, 3>>>::convert_to;
+    using ConvertibleTo<MultiVector<next_precision2<ValueType, 3>>>::move_to;
+
+    void convert_to(
+        MultiVector<next_precision2<ValueType, 3>>* result) const override;
+
+    void move_to(MultiVector<next_precision2<ValueType, 3>>* result) override;
 #endif
 
     /**

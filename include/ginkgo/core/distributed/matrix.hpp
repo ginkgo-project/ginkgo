@@ -271,6 +271,8 @@ class Matrix
 #if GINKGO_ENABLE_HALF
       public ConvertibleTo<Matrix<next_precision<next_precision<ValueType>>,
                                   LocalIndexType, GlobalIndexType>>,
+      public ConvertibleTo<Matrix<next_precision2<ValueType, 3>, LocalIndexType,
+                                  GlobalIndexType>>,
 #endif
       public DistributedBase {
     friend class EnableCreateMethod<Matrix>;
@@ -315,6 +317,18 @@ public:
     void move_to(Matrix<next_precision<next_precision<value_type>>,
                         local_index_type, global_index_type>* result) override;
 
+    friend class Matrix<previous_precision2<ValueType, 3>, LocalIndexType,
+                        GlobalIndexType>;
+    using ConvertibleTo<Matrix<next_precision2<value_type, 3>, local_index_type,
+                               global_index_type>>::convert_to;
+    using ConvertibleTo<Matrix<next_precision2<value_type, 3>, local_index_type,
+                               global_index_type>>::move_to;
+
+    void convert_to(Matrix<next_precision2<value_type, 3>, local_index_type,
+                           global_index_type>* result) const override;
+
+    void move_to(Matrix<next_precision2<value_type, 3>, local_index_type,
+                        global_index_type>* result) override;
 #endif
     /**
      * Reads a square matrix from the device_matrix_data structure and a global

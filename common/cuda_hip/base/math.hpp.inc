@@ -47,6 +47,21 @@ struct device_numeric_limits<__half> {
 };
 
 
+template <>
+struct device_numeric_limits<__nv_bfloat16> {
+    static constexpr auto inf = std::numeric_limits<gko::bfloat16>::infinity();
+    static constexpr auto max = std::numeric_limits<gko::bfloat16>::max();
+    static constexpr auto min = std::numeric_limits<gko::bfloat16>::min();
+};
+
+
+template <>
+struct device_numeric_limits<hip_bfloat16> {
+    static constexpr auto inf = std::numeric_limits<gko::bfloat16>::infinity();
+    static constexpr auto max = std::numeric_limits<gko::bfloat16>::max();
+    static constexpr auto min = std::numeric_limits<gko::bfloat16>::min();
+};
+
 namespace detail {
 
 

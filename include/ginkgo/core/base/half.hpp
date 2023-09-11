@@ -44,7 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef __CUDA_ARCH__
 
-
 #include <cuda_bf16.h>
 #include <cuda_fp16.h>
 class hip_bfloat16;
@@ -73,6 +72,8 @@ namespace gko {
 
 template <typename, size_type, size_type>
 class truncated;
+
+class bfloat16;
 
 
 namespace detail {
@@ -371,6 +372,8 @@ public:
 
     GKO_ATTRIBUTES half(const half& val) = default;
 
+    inline GKO_ATTRIBUTES half(const bfloat16& val);
+
     template <typename V>
     GKO_ATTRIBUTES half& operator=(const V val)
     {
@@ -537,6 +540,9 @@ public:
 
     GKO_ATTRIBUTES bfloat16(const bfloat16& val) = default;
 
+    GKO_ATTRIBUTES bfloat16(const half& val) : bfloat16(static_cast<float>(val))
+    {}
+
     template <typename V>
     GKO_ATTRIBUTES bfloat16& operator=(const V val)
     {
@@ -680,11 +686,18 @@ private:
 };
 
 
+inline GKO_ATTRIBUTES half::half(const bfloat16& val)
+    : half(static_cast<float>(val))
+{}
+
+
 }  // namespace gko
 
 
 namespace std {
 
+template <>
+class complex<gko::bfloat16>;
 
 template <>
 class complex<gko::half> {
@@ -709,6 +722,11 @@ public:
           imag_(static_cast<value_type>(0.f))
     {}
 
+    complex(const gko::bfloat16& real)
+        : real_(static_cast<value_type>(real)),
+          imag_(static_cast<value_type>(0.f))
+    {}
+
     // When using complex(real, imag), MSVC with CUDA try to recognize the
     // complex is a member not constructor.
     template <typename T, typename = std::enable_if_t<std::is_scalar<T>::value>>
@@ -716,6 +734,8 @@ public:
         : real_(static_cast<value_type>(other.real())),
           imag_(static_cast<value_type>(other.imag()))
     {}
+
+    explicit inline complex(const complex<gko::bfloat16>& other);
 
     // explicit complex(const complex<value_type>& other) = default;
 
@@ -863,10 +883,20 @@ public:
           imag_(static_cast<value_type>(0.f))
     {}
 
+    complex(const gko::half& real)
+        : real_(static_cast<value_type>(real)),
+          imag_(static_cast<value_type>(0.f))
+    {}
+
     // When using complex(real, imag), MSVC with CUDA try to recognize the
     // complex is a member not constructor.
     template <typename T, typename = std::enable_if_t<std::is_scalar<T>::value>>
     explicit complex(const complex<T>& other)
+        : real_(static_cast<value_type>(other.real())),
+          imag_(static_cast<value_type>(other.imag()))
+    {}
+
+    explicit complex(const complex<gko::half>& other)
         : real_(static_cast<value_type>(other.real())),
           imag_(static_cast<value_type>(other.imag()))
     {}
@@ -992,6 +1022,12 @@ private:
     value_type real_;
     value_type imag_;
 };
+
+
+inline complex<gko::half>::complex(const complex<gko::bfloat16>& other)
+    : real_(static_cast<value_type>(other.real())),
+      imag_(static_cast<value_type>(other.imag()))
+{}
 
 
 template <>

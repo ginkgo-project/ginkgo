@@ -361,6 +361,11 @@ struct next_precision_impl<gko::half> {
 };
 
 template <>
+struct next_precision_impl<gko::bfloat16> {
+    using type = float;
+};
+
+template <>
 struct next_precision_impl<float> {
     using type = double;
 };
