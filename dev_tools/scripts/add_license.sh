@@ -4,12 +4,11 @@ THIS_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )
 # ${THIS_DIR} is expected to be: ${GINKGO_ROOT_DIR}/dev_tools/scripts
 
 # Use local paths, so there is less chance of a newline being in a path of a found file
-cd "${THIS_DIR}/../.."
+cd "${THIS_DIR}/../.." || exit
 GINKGO_ROOT_DIR="."
 
-
-LICENSE_FILE="${GINKGO_ROOT_DIR}/LICENSE"
-GINKGO_LICENSE_BEACON="******************************<GINKGO LICENSE>******************************"
+GINKGO_LICENSE_BEGIN="// SPDX-FileCopyrightText:"
+GINKGO_LICENSE_END="// SPDX-License-Identifier:"
 
 # These two files are temporary files which will be created (and deleted).
 # Therefore, the files should not already exist.
@@ -41,9 +40,13 @@ if ! command -v cut &> /dev/null; then
     echo 'The command `cut` is required for this script to work, but not supported by your system.' 1>&2
     exit 1
 fi
+if ! command -v date &> /dev/null; then
+    echo 'The command `date` is required for this script to work, but not supported by your system.' 1>&2
+    exit 1
+fi
 
-
-echo -e "/*${GINKGO_LICENSE_BEACON}\n$(cat ${LICENSE_FILE})\n${GINKGO_LICENSE_BEACON}*/\n" > "${COMMENTED_LICENSE_FILE}"
+CURRENT_YEAR=$(date +%Y)
+echo -e "${GINKGO_LICENSE_BEGIN} 2017-${CURRENT_YEAR} The Ginkgo authors\n//\n${GINKGO_LICENSE_END} BSD-3-Clause\n" > "${COMMENTED_LICENSE_FILE}"
 
 # Does not work if a found file (including the path) contains a newline
 find "${GINKGO_ROOT_DIR}" \
@@ -52,14 +55,14 @@ find "${GINKGO_ROOT_DIR}" \
     | grep -F -v -f "${THIS_DIR}/add_license.ignore" \
     | \
     while IFS='' read -r i; do
-        # `grep -F` is important here because the characters in the beacon should be matched against
+        # `grep -F` is important here because the characters in the license should be matched against
         # and not interpreted as an expression.
-        if ! grep -F -q -e "${GINKGO_LICENSE_BEACON}" "${i}"
+        if ! grep -F -q -e "${GINKGO_LICENSE_BEGIN}" "${i}"
         then
             cat "${COMMENTED_LICENSE_FILE}" "${i}" >"${i}.new" && mv "${i}.new" "${i}"
         else
-            beginning=$(grep -F -n -e "/*${GINKGO_LICENSE_BEACON}" "${i}" | cut -d":" -f1)
-            end=$(grep -F -n -e "${GINKGO_LICENSE_BEACON}*/" "${i}" | cut -d":" -f1)
+            beginning=$(grep -F -n -e "${GINKGO_LICENSE_BEGIN}" "${i}" | cut -d":" -f1)
+            end=$(grep -F -n -e "${GINKGO_LICENSE_END}" "${i}" | cut -d":" -f1)
             end=$((end+1))
             diff -u <(sed -n "${beginning},${end}p" "${i}") "${COMMENTED_LICENSE_FILE}" > "${DIFF_FILE}"
             if [ "$(cat "${DIFF_FILE}")" != "" ]
