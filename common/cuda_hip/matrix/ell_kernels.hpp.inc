@@ -72,7 +72,7 @@ __device__ void spmv_kernel(
                 OutputValueType, default_block_size / num_thread_per_worker>
                 storage;
             if (idx_in_worker == 0) {
-                storage[threadIdx.x] = 0;
+                storage[threadIdx.x] = gko::zero<OutputValueType>();
             }
             __syncthreads();
             auto temp = zero<OutputValueType>();

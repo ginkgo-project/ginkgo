@@ -117,7 +117,7 @@ void hessenberg_qr(std::shared_ptr<const DefaultExecutor> exec,
                 const auto gc = givens_cos(j, rhs);
                 const auto gs = givens_sin(j, rhs);
                 const auto out1 = gc * hess_this + gs * hess_next;
-                const auto out2 = -conj(gs) * hess_this + conj(gc) * hess_next;
+                const auto out2 = conj(gc) * hess_next - conj(gs) * hess_this;
                 hessenberg_iter(j, rhs) = out1;
                 hessenberg_iter(j + 1, rhs) = hess_this = out2;
                 hess_next = hessenberg_iter(j + 2, rhs);
@@ -143,8 +143,8 @@ void hessenberg_qr(std::shared_ptr<const DefaultExecutor> exec,
             hessenberg_iter(iter, rhs) = gc * hess_this + gs * hess_next;
             hessenberg_iter(iter + 1, rhs) = zero<value_type>();
             // apply new Givens rotation to RHS of least-squares problem
-            const auto rnc_new =
-                -conj(gs) * residual_norm_collection(iter, rhs);
+            const auto rnc_new = zero<value_type>() -
+                                 conj(gs) * residual_norm_collection(iter, rhs);
             residual_norm_collection(iter + 1, rhs) = rnc_new;
             residual_norm_collection(iter, rhs) =
                 gc * residual_norm_collection(iter, rhs);

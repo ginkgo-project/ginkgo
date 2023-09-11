@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/unified/base/kernel_launch.hpp"
 
-
 namespace gko {
 namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {
@@ -64,7 +63,11 @@ void fill_seq_array(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto idx, auto array) {
-            array[idx] = static_cast<long long>(idx);
+            array[idx] = static_cast<typename std::conditional<
+                std::is_same<device_type<ValueType>, __nv_bfloat16>::value ||
+                    std::is_same<device_type<ValueType>,
+                                 thrust::complex<__nv_bfloat16>>::value,
+                float, long long>::type>(idx);
         },
         n, array);
 }

@@ -69,7 +69,7 @@ __device__ __forceinline__ void apply_gauss_jordan_transform(
     if (group.thread_rank() == key_row) {
         key_col_elem = one<ValueType>() / key_col_elem;
     } else {
-        key_col_elem = -row[key_col] / key_col_elem;
+        key_col_elem = zero<ValueType>() - row[key_col] / key_col_elem;
     }
 #pragma unroll
     for (int32 i = 0; i < max_problem_size; ++i) {
@@ -115,7 +115,7 @@ __device__ __forceinline__ void apply_gauss_jordan_transform_with_rhs(
         key_col_elem = one<ValueType>() / key_col_elem;
         rhs[0] = key_rhs_elem * key_col_elem;
     } else {
-        key_col_elem = -row[key_col] / key_col_elem;
+        key_col_elem = zero<ValueType>() - row[key_col] / key_col_elem;
         rhs[0] += key_rhs_elem * key_col_elem;
     }
 #pragma unroll
