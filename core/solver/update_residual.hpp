@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_CORE_SOLVER_RESIDUAL_UPDATE_HPP_
-#define GKO_CORE_SOLVER_RESIDUAL_UPDATE_HPP_
+#ifndef GKO_CORE_SOLVER_UPDATE_RESIDUAL_HPP_
+#define GKO_CORE_SOLVER_UPDATE_RESIDUAL_HPP_
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -15,17 +15,21 @@ namespace gko {
 namespace solver {
 
 
-template <typename SolverType, typename VectorType, typename ScalarType,
-          typename LogFunc>
-bool residual_update(SolverType* solver, int iter, const ScalarType* one_op,
-                     const ScalarType* neg_one_op, const VectorType* dense_b,
+template <typename SolverType, typename VectorType, typename LogFunc>
+bool update_residual(SolverType* solver, int iter, const VectorType* dense_b,
                      VectorType* dense_x, VectorType* residual,
                      const VectorType*& residual_ptr,
                      std::unique_ptr<gko::stop::Criterion>& stop_criterion,
-                     uint8 relative_stopping_id,
-                     array<stopping_status>& stop_status, bool& one_changed,
-                     LogFunc log)
+                     array<stopping_status>& stop_status, LogFunc log)
 {
+    using ws = workspace_traits<std::remove_cv_t<SolverType>>;
+    constexpr uint8 relative_stopping_id{1};
+
+    // It's required to be initialized outside.
+    auto one_op = solver->get_workspace_op(ws::one);
+    auto neg_one_op = solver->get_workspace_op(ws::minus_one);
+
+    bool one_changed{};
     if (iter == 0) {
         // In iter 0, the iteration and residual are updated.
         bool all_stopped =
@@ -72,4 +76,4 @@ bool residual_update(SolverType* solver, int iter, const ScalarType* one_op,
 }  // namespace solver
 }  // namespace gko
 
-#endif  // GKO_CORE_SOLVER_RESIDUAL_UPDATE_HPP_
+#endif  // GKO_CORE_SOLVER_UPDATE_RESIDUAL_HPP_
