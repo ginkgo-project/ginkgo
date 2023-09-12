@@ -79,10 +79,12 @@ make_temporary_conversion(Ptr&& matrix)
     using NextDense = matrix::Dense<next_precision<ValueType>>;
     using NextNextDense =
         matrix::Dense<next_precision<next_precision<ValueType>>>;
+    using NextNextNextDense = matrix::Dense<next_precision2<ValueType, 3>>;
     using MaybeConstDense =
         std::conditional_t<std::is_const<Pointee>::value, const Dense, Dense>;
-    auto result = detail::temporary_conversion<
-        MaybeConstDense>::template create<NextDense, NextNextDense>(matrix);
+    auto result =
+        detail::temporary_conversion<MaybeConstDense>::template create<
+            NextDense, NextNextDense, NextNextNextDense>(matrix);
     if (!result) {
         GKO_NOT_SUPPORTED(matrix);
     }
@@ -258,12 +260,15 @@ void mixed_precision_dispatch(Function fn, const LinOp* in, LinOp* out)
     using fst_type = matrix::Dense<ValueType>;
     using snd_type = matrix::Dense<next_precision<ValueType>>;
     using trd_type = matrix::Dense<next_precision<next_precision<ValueType>>>;
+    using fth_type = matrix::Dense<next_precision2<ValueType, 3>>;
     if (auto dense_in = dynamic_cast<const fst_type*>(in)) {
         if (auto dense_out = dynamic_cast<fst_type*>(out)) {
             fn(dense_in, dense_out);
         } else if (auto dense_out = dynamic_cast<snd_type*>(out)) {
             fn(dense_in, dense_out);
         } else if (auto dense_out = dynamic_cast<trd_type*>(out)) {
+            fn(dense_in, dense_out);
+        } else if (auto dense_out = dynamic_cast<fth_type*>(out)) {
             fn(dense_in, dense_out);
         } else {
             GKO_NOT_SUPPORTED(out);
@@ -275,6 +280,8 @@ void mixed_precision_dispatch(Function fn, const LinOp* in, LinOp* out)
             fn(dense_in, dense_out);
         } else if (auto dense_out = dynamic_cast<trd_type*>(out)) {
             fn(dense_in, dense_out);
+        } else if (auto dense_out = dynamic_cast<fth_type*>(out)) {
+            fn(dense_in, dense_out);
         } else {
             GKO_NOT_SUPPORTED(out);
         }
@@ -284,6 +291,8 @@ void mixed_precision_dispatch(Function fn, const LinOp* in, LinOp* out)
         } else if (auto dense_out = dynamic_cast<snd_type*>(out)) {
             fn(dense_in, dense_out);
         } else if (auto dense_out = dynamic_cast<trd_type*>(out)) {
+            fn(dense_in, dense_out);
+        } else if (auto dense_out = dynamic_cast<fth_type*>(out)) {
             fn(dense_in, dense_out);
         } else {
             GKO_NOT_SUPPORTED(out);
