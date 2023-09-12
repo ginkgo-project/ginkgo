@@ -14,8 +14,10 @@
 
 // CUDA TOOLKIT < 11 does not support constexpr in combination with
 // thrust::complex, which is why constexpr is only present in later versions
-#if defined(__CUDA_ARCH__) && defined(__CUDACC_VER_MAJOR__) && \
-    (__CUDACC_VER_MAJOR__ < 11)
+// TODO: NVC++ constexpr
+#if (defined(__CUDA_ARCH__) && defined(__CUDACC_VER_MAJOR__) && \
+     (__CUDACC_VER_MAJOR__ < 11)) ||                            \
+    (defined(__NVCOMPILER) && GINKGO_ENABLE_HALF)
 
 #define GKO_ACC_ENABLE_REFERENCE_CONSTEXPR
 
