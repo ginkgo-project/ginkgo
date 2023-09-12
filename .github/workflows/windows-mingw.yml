@@ -50,7 +50,7 @@ jobs:
         mkdir build
         cd build
         cmake -G "MinGW Makefiles" -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_COMPILER_FLAGS=${{ matrix.config.cflags }} ..
-        cmake --build . -j4
+        cmake --build . -j2
       shell: cmd
 
     - name: install

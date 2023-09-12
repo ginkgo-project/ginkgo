@@ -27,8 +27,9 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - {shared: "ON", build_type: "Debug", name: "reference/debug/shared"}
-        - {shared: "OFF", build_type: "Release", name: "reference/release/static"}
+        # Debug with half precision has the issue "library limit of 65535 objects exceeded"
+        - {shared: "ON", build_type: "Debug", name: "reference/debug/shared", half: "OFF"}
+        - {shared: "OFF", build_type: "Release", name: "reference/release/static", half: "ON"}
         # Debug static needs too much storage
         # - {shared: "OFF", build_type: "Debug", name: "reference/debug/static"}
     name: msvc/${{ matrix.config.name }}
@@ -47,7 +48,7 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake  -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_CXX_FLAGS_DEBUG='/MDd /Zi /Ob1 /O1 /Od /RTC1' -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_OMP=OFF ..
+        cmake  -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_CXX_FLAGS_DEBUG='/MDd /Zi /Ob1 /O1 /Od /RTC1' -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_OMP=OFF -DGINKGO_ENABLE_HALF=${{ matrix.config.half }}..
         cmake --build . -j4 --config ${{ matrix.config.build_type }}
         ctest . -C ${{ matrix.config.build_type }} --output-on-failure
 
