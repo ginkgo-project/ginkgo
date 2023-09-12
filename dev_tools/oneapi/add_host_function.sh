@@ -80,9 +80,9 @@ SKIP="false"
 
 rm "${MAP_FILE}"
 while IFS='' read -r line || [ -n "$line" ]; do
-    if [ "${EXTRACT_KERNEL}" = "false" ] && ([ "${line}" = "/*${GINKGO_LICENSE_BEACON}" ] ||  [ "${DURING_LICENSE}" = "true" ]); then
+    if [ "${EXTRACT_KERNEL}" = "false" ] && ([[ "${line}" =~ {GINKGO_LICENSE_BEGIN} ]] ||  [ "${DURING_LICENSE}" = "true" ]); then
         DURING_LICENSE="true"
-        if [ "${line}" = "${GINKGO_LICENSE_BEACON}*/" ]; then
+        if [[ "${line}" =~ ${GINKGO_LICENSE_END} ]]; then
             DURING_LICENSE="false"
             SKIP="true"
         fi

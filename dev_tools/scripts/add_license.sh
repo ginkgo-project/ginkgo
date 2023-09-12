@@ -46,7 +46,9 @@ if ! command -v date &> /dev/null; then
 fi
 
 CURRENT_YEAR=$(date +%Y)
-echo -e "${GINKGO_LICENSE_BEGIN} 2017-${CURRENT_YEAR} The Ginkgo authors\n//\n${GINKGO_LICENSE_END} BSD-3-Clause\n" > "${COMMENTED_LICENSE_FILE}"
+echo "${GINKGO_LICENSE_BEGIN} 2017-${CURRENT_YEAR} The Ginkgo authors" > "${COMMENTED_LICENSE_FILE}"
+echo "//" >> "${COMMENTED_LICENSE_FILE}"
+echo "${GINKGO_LICENSE_END} BSD-3-Clause" >> "${COMMENTED_LICENSE_FILE}"
 
 # Does not work if a found file (including the path) contains a newline
 find "${GINKGO_ROOT_DIR}" \
@@ -63,7 +65,6 @@ find "${GINKGO_ROOT_DIR}" \
         else
             beginning=$(grep -F -n -e "${GINKGO_LICENSE_BEGIN}" "${i}" | cut -d":" -f1)
             end=$(grep -F -n -e "${GINKGO_LICENSE_END}" "${i}" | cut -d":" -f1)
-            end=$((end+1))
             diff -u <(sed -n "${beginning},${end}p" "${i}") "${COMMENTED_LICENSE_FILE}" > "${DIFF_FILE}"
             if [ "$(cat "${DIFF_FILE}")" != "" ]
             then
