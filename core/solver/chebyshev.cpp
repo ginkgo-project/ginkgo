@@ -9,9 +9,9 @@
 
 #include "core/distributed/helpers.hpp"
 #include "core/solver/ir_kernels.hpp"
-#include "core/solver/residual_update.hpp"
 #include "core/solver/solver_base.hpp"
 #include "core/solver/solver_boilerplate.hpp"
+#include "core/solver/update_residual.hpp"
 
 
 namespace gko {
@@ -155,7 +155,6 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
 {
     using Vector = matrix::Dense<ValueType>;
     using ws = workspace_traits<Chebyshev>;
-    constexpr uint8 relative_stopping_id{1};
 
     auto exec = this->get_executor();
     this->setup_workspace();
@@ -198,7 +197,6 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
     auto beta_ref = ValueType{0.5} * (foci_direction_ * alpha_ref) *
                     (foci_direction_ * alpha_ref);
 
-    bool one_changed{};
     auto& stop_status = this->template create_workspace_array<stopping_status>(
         ws::stop, dense_b->get_size()[1]);
     exec->run(chebyshev::make_initialize(&stop_status));
@@ -226,10 +224,9 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
                 solver, dense_b, dense_x, iter, residual_ptr, nullptr, nullptr,
                 &stop_status, all_stopped);
         };
-        bool all_stopped = residual_update(
-            this, iter, one_op, neg_one_op, dense_b, dense_x, residual,
-            residual_ptr, stop_criterion, relative_stopping_id, stop_status,
-            one_changed, log_func);
+        bool all_stopped = update_residual(
+            this, iter, dense_b, dense_x, residual, residual_ptr,
+            stop_criterion, stop_status, log_func);
         if (all_stopped) {
             break;
         }
