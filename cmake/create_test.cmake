@@ -1,4 +1,4 @@
-set(gko_test_resource_args "RESOURCE_LOCAL_CORES;RESOURCE_PERCENTAGE;RESOURCE_TYPE")
+set(gko_test_resource_args "RESOURCE_LOCAL_CORES;RESOURCE_TYPE")
 set(gko_test_single_args "MPI_SIZE;${gko_test_resource_args}")
 set(gko_test_multi_args "DISABLE_EXECUTORS;ADDITIONAL_LIBRARIES;ADDITIONAL_INCLUDES")
 set(gko_test_option_args "NO_RESOURCES")
@@ -60,19 +60,7 @@ function(ginkgo_add_resource_requirement test_name)
 
         set(single_resource "cpu:${add_rr_RESOURCE_LOCAL_CORES}")
     elseif(add_rr_RESOURCE_TYPE MATCHES "^(cudagpu|hipgpu|sycl)$")
-        if(NOT add_rr_RESOURCE_PERCENTAGE)
-            set(add_rr_RESOURCE_PERCENTAGE 25)
-        endif()
-        if(add_rr_MPI_SIZE GREATER 1)
-            set(add_rr_RESOURCE_PERCENTAGE 100)
-        endif()
-        if(NOT add_rr_RESOURCE_PERCENTAGE MATCHES "^[0-9]([0-9][0-9]?)?"
-           OR add_rr_RESOURCE_PERCENTAGE LESS 0
-           OR add_rr_RESOURCE_PERCENTAGE GREATER 100)
-            message(FATAL_ERROR "Resource specification is invalid: RESOURCE_PERCENTAGE=${add_rr_RESOURCE_PERCENTAGE}")
-        endif()
-
-        set(single_resource "${add_rr_RESOURCE_TYPE}:${add_rr_RESOURCE_PERCENTAGE}")
+        set(single_resource "${add_rr_RESOURCE_TYPE}:1")
     else()
         message(FATAL_ERROR "Unrecognized resource type ${add_rr_RESOURCE_TYPE}, allowed are: ref, cpu, cudagpu, hipgpu, sycl.")
     endif()
@@ -91,7 +79,6 @@ endfunction()
 ## - `MPI_SIZE size` causes the tests to be run with `size` MPI processes.
 ## - `RESOURCE_LOCAL_CORES` the number of threads used by a test, default is
 ##    $GINKGO_CI_TEST_OMP_PARALLELISM
-## - `RESOURCE_PERCENTAGE` usage percentage of a single GPU, default is 25
 ## - `RESOURCE_TYPE` the resource type, can be ref, cpu, cudagpu, hipgpu, sycl
 ## - `DISABLE_EXECUTORS exec1 exec2` disables the test for certain backends (if built for multiple)
 ## - `ADDITIONAL_LIBRARIES lib1 lib2` adds additional target link dependencies
