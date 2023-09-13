@@ -127,10 +127,10 @@ public:
 
     CommonTestFixture()
         :
-#ifdef GKO_COMPILING_CUDA
+#if defined(GKO_TEST_NONDEFAULT_STREAM) && defined(GKO_COMPILING_CUDA)
           stream(ResourceEnvironment::cuda_device_id),
 #endif
-#ifdef GKO_COMPILING_HIP
+#if defined(GKO_TEST_NONDEFAULT_STREAM) && defined(GKO_COMPILING_HIP)
           stream(ResourceEnvironment::hip_device_id),
 #endif
           ref{gko::ReferenceExecutor::create()}
