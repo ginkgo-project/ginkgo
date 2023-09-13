@@ -120,12 +120,13 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
         const auto rows = matrix->get_size()[0];
         // workaround suggested by NVIDIA engineers: for some reason
         // cusparse needs non-nullptr input vectors even for analysis
+        // also make sure they are aligned by 16 bytes
         auto descr_b = cusparse::create_dnmat(
             dim<2>{matrix->get_size()[0], num_rhs}, matrix->get_size()[1],
-            reinterpret_cast<ValueType*>(0xDEAD));
+            reinterpret_cast<ValueType*>(0xDEAD0));
         auto descr_c = cusparse::create_dnmat(
             dim<2>{matrix->get_size()[0], num_rhs}, matrix->get_size()[1],
-            reinterpret_cast<ValueType*>(0xDEAF));
+            reinterpret_cast<ValueType*>(0xDEAF0));
 
         auto work_size = cusparse::spsm_buffer_size(
             handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
