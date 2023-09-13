@@ -80,6 +80,14 @@ inline ResultType reinterpret(ValueType val)
 template <>
 void atomic_add(half& out, half val)
 {
+#ifdef __NVCOMPILER
+// NVC++ uses atomic capture on uint16 leads the following error.
+// use of undefined value '%L.B*' br label %L.B* !llvm.loop !*, !dbg !*
+#pragma omp critical
+    {
+        out += val;
+    }
+#else
     // UB?
     uint16_t* address_as_converter = reinterpret_cast<uint16_t*>(&out);
     uint16_t old = *address_as_converter;
@@ -93,6 +101,7 @@ void atomic_add(half& out, half val)
             *address_as_converter = (old == assumed) ? answer : old;
         }
     } while (assumed != old);
+#endif
 }
 
 

@@ -48,13 +48,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 
 
-// Using SYCL_LANGUAGE_VERSION will lead the mismatch sycl namespace from 6.0.0
-// when using dpcpp compiler without dpcpp module
-#if GINKGO_DPCPP_MAJOR_VERSION
-#include <CL/sycl.hpp>
-#endif
-
-
 class __half;
 
 

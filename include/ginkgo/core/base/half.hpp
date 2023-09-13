@@ -42,9 +42,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
 
-#ifdef SYCL_LANGUAGE_VERSION
-#include <CL/sycl.hpp>
-#endif
 
 #ifdef __CUDA_ARCH__
 
@@ -322,14 +319,6 @@ private:
 
 }  // namespace detail
 
-// sycl::half miss the arithmetic operator to result float not half before 5.7
-// (2022-06). It leads ? half : half/half ambiguous The same issue is reported
-// in https://github.com/intel/llvm/issues/6028
-#if defined(SYCL_LANGUAGE_VERSION) && \
-    (__LIBSYCL_MAJOR_VERSION > 5 ||   \
-     (__LIBSYCL_MAJOR_VERSION == 5 && __LIBSYCL_MINOR_VERSION >= 7))
-using half = sycl::half;
-#else
 /**
  * A class providing basic support for half precision floating point types.
  *
@@ -500,7 +489,6 @@ private:
 
     uint16 data_;
 };
-#endif
 
 
 }  // namespace gko
@@ -662,9 +650,6 @@ private:
     value_type imag_;
 };
 
-#if !(defined(SYCL_LANGUAGE_VERSION) && \
-      (__LIBSYCL_MAJOR_VERSION > 5 ||   \
-       (__LIBSYCL_MAJOR_VERSION == 5 && __LIBSYCL_MINOR_VERSION >= 7)))
 template <>
 struct numeric_limits<gko::half> {
     static constexpr bool is_specialized{true};
@@ -700,7 +685,6 @@ struct numeric_limits<gko::half> {
     }
 };
 
-#endif
 
 // complex using a template on operator= for any kind of complex<T>, so we can
 // do full specialization for half
