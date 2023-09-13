@@ -25,9 +25,6 @@
 #include <hip/hip_runtime.h>
 #endif  // __HIPCC__
 
-#ifdef SYCL_LANGUAGE_VERSION
-#include <CL/sycl.hpp>
-#endif
 
 // Macros for handling different compilers / architectures uniformly
 #if defined(__CUDACC__) || defined(__HIPCC__)
@@ -165,13 +162,13 @@ using uint64 = std::uint64_t;
  */
 using uintptr = std::uintptr_t;
 
-#if defined(SYCL_LANGUAGE_VERSION) && \
-    (__LIBSYCL_MAJOR_VERSION > 5 ||   \
-     (__LIBSYCL_MAJOR_VERSION == 5 && __LIBSYCL_MINOR_VERSION >= 7))
-using half = sycl::half;
-#else
+// #if defined(SYCL_LANGUAGE_VERSION) && \
+//     (__LIBSYCL_MAJOR_VERSION > 5 ||   \
+//      (__LIBSYCL_MAJOR_VERSION == 5 && __LIBSYCL_MINOR_VERSION >= 7))
+// using half = sycl::half;
+// #else
 class half;
-#endif
+// #endif
 
 
 /**
