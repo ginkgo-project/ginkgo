@@ -205,16 +205,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 
 template <typename ValueType, typename IndexType>
-void calculate_total_cols(std::shared_ptr<const DpcppExecutor> exec,
-                          const matrix::BatchEll<ValueType, IndexType>* source,
-                          size_type* result, size_type stride_factor,
-                          size_type slice_size) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
-    GKO_DECLARE_BATCH_ELL_CALCULATE_TOTAL_COLS_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void calculate_max_nnz_per_row(
     std::shared_ptr<const DpcppExecutor> exec,
     const matrix::BatchEll<ValueType, IndexType>* source,

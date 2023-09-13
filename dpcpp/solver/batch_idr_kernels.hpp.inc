@@ -118,101 +118,105 @@ __dpct_inline__ void initialize(
     ValueType* const temp_shared_entry,
     typename gko::remove_complex<ValueType>* const tmp_norms_sh,
     sycl::nd_item<3> item_ct1)
-{
-    using real_type = gko::remove_complex<ValueType>();
-    auto sg = item_ct1.get_sub_group();
-    const auto sg_id = sg.get_group_id();
-    const auto tid = item_ct1.get_local_linear_id();
-    const auto gid = item_ct1.get_global_linear_id();
-    const auto group_size = item_ct1.get_local_range().size();
-
-    // copy x from global to shared memory
-    for (int iz = tid; iz < num_rows; iz += group_size) {
-        x_shared_entry[iz] = x_global_entry[iz];
-        r_shared_entry[iz] = b_global_entry[iz];
-    }
-    item_ct1.barrier(sycl::access::fence_space::local_space);
-
-    // r = b - A*x
-    single_advanced_matvec_kernel(static_cast<ValueType>(-1.0), A_global_entry,
-                                  x_shared_entry, static_cast<ValueType>(1.0),
-                                  r_shared_entry, item_ct1);
-    item_ct1.barrier(sycl::access::fence_space::local_space);
-
-    if (sg_id == 0) {
-        // compute residual norms
-        compute_norm2_sg_kernel(num_rows, r_shared_entry,
-                                res_norms_shared_entry, item_ct1);
-    } else if (sg_id == 1) {
-        // Compute norms of rhs
-        compute_norm2_sg_kernel(num_rows, b_global_entry,
-                                rhs_norms_shared_entry, item_ct1);
-    }
-    if (tid == 0) {
-        // omega = 1
-        omega_shared_entry = one<ValueType>();
-    }
-
-    // M = Identity
-    for (int i = tid; i < subspace_dim * subspace_dim; i += group_size) {
-        const int row_index = i / (subspace_dim);
-        const int col_index = i % subspace_dim;
-
-        if (row_index == col_index) {
-            M_shared_entry[row_index * subspace_dim + col_index] =
-                one<ValueType>();
-        } else {
-            M_shared_entry[row_index * subspace_dim + col_index] =
-                zero<ValueType>();
-        }
-    }
-
-    // G = zero
-    // U = zero
-    for (int i = tid; i < num_rows * subspace_dim; i += group_size) {
-        const int vec_index = i / num_rows;
-        const int row_index = i % num_rows;
-        G_shared_entry[vec_index * num_rows + row_index] = zero<ValueType>();
-        U_shared_entry[vec_index * num_rows + row_index] = zero<ValueType>();
-    }
-
-    if (smoothing) {
-        // xs = x
-        // rs = r
-        for (int iz = tid; iz < num_rows; iz += group_size) {
-            xs_shared_entry[iz] = x_shared_entry[iz];
-            rs_shared_entry[iz] = r_shared_entry[iz];
-        }
-    }
-
-    onemkl::philox4x32x10<1> engine1(0, gid);
-    //    onemkl::philox4x32x10<2> engine2(0, tid);
-    onemkl::uniform distr;
-
-    // initialize Subspace_vectors
-    for (int li = tid; li < num_rows * subspace_dim; li += group_size) {
-        const int vec_index = li / num_rows;
-        const int row_index = li % num_rows;
-        if (deterministic) {
-            subspace_vecs_sh[vec_index * num_rows + row_index] =
-                subspace_vecs_global[vec_index * num_rows + row_index];
-        } else {
-            ValueType val;
-            // if (is_complex<ValueType>()) {
-            //  RNG in oneMKL does not support complex number yet
-            //    auto tmp = onemkl::generate(distr, engine2);
-            //    val = ValueType{tmp[0], tmp[1]};
-            //} else {
-            val = onemkl::generate(distr, engine1);
-            //}
-            subspace_vecs_sh[vec_index * num_rows + row_index] = val;
-        }
-    }
-    item_ct1.barrier(sycl::access::fence_space::local_space);
-
-    orthonormalize_subspace_vectors(num_rows, subspace_dim, subspace_vecs_sh,
-                                    temp_shared_entry, tmp_norms_sh, item_ct1);
-}
+{}
+// {
+//     using real_type = gko::remove_complex<ValueType>();
+//     auto sg = item_ct1.get_sub_group();
+//     const auto sg_id = sg.get_group_id();
+//     const auto tid = item_ct1.get_local_linear_id();
+//     const auto gid = item_ct1.get_global_linear_id();
+//     const auto group_size = item_ct1.get_local_range().size();
+//
+//     // copy x from global to shared memory
+//     for (int iz = tid; iz < num_rows; iz += group_size) {
+//         x_shared_entry[iz] = x_global_entry[iz];
+//         r_shared_entry[iz] = b_global_entry[iz];
+//     }
+//     item_ct1.barrier(sycl::access::fence_space::local_space);
+//
+//     // r = b - A*x
+//     single_advanced_matvec_kernel(static_cast<ValueType>(-1.0),
+//     A_global_entry,
+//                                   x_shared_entry,
+//                                   static_cast<ValueType>(1.0),
+//                                   r_shared_entry, item_ct1);
+//     item_ct1.barrier(sycl::access::fence_space::local_space);
+//
+//     if (sg_id == 0) {
+//         // compute residual norms
+//         compute_norm2_sg_kernel(num_rows, r_shared_entry,
+//                                 res_norms_shared_entry, item_ct1);
+//     } else if (sg_id == 1) {
+//         // Compute norms of rhs
+//         compute_norm2_sg_kernel(num_rows, b_global_entry,
+//                                 rhs_norms_shared_entry, item_ct1);
+//     }
+//     if (tid == 0) {
+//         // omega = 1
+//         omega_shared_entry = one<ValueType>();
+//     }
+//
+//     // M = Identity
+//     for (int i = tid; i < subspace_dim * subspace_dim; i += group_size) {
+//         const int row_index = i / (subspace_dim);
+//         const int col_index = i % subspace_dim;
+//
+//         if (row_index == col_index) {
+//             M_shared_entry[row_index * subspace_dim + col_index] =
+//                 one<ValueType>();
+//         } else {
+//             M_shared_entry[row_index * subspace_dim + col_index] =
+//                 zero<ValueType>();
+//         }
+//     }
+//
+//     // G = zero
+//     // U = zero
+//     for (int i = tid; i < num_rows * subspace_dim; i += group_size) {
+//         const int vec_index = i / num_rows;
+//         const int row_index = i % num_rows;
+//         G_shared_entry[vec_index * num_rows + row_index] = zero<ValueType>();
+//         U_shared_entry[vec_index * num_rows + row_index] = zero<ValueType>();
+//     }
+//
+//     if (smoothing) {
+//         // xs = x
+//         // rs = r
+//         for (int iz = tid; iz < num_rows; iz += group_size) {
+//             xs_shared_entry[iz] = x_shared_entry[iz];
+//             rs_shared_entry[iz] = r_shared_entry[iz];
+//         }
+//     }
+//
+//     onemkl::philox4x32x10<1> engine1(0, gid);
+//     //    onemkl::philox4x32x10<2> engine2(0, tid);
+//     onemkl::uniform distr;
+//
+//     // initialize Subspace_vectors
+//     for (int li = tid; li < num_rows * subspace_dim; li += group_size) {
+//         const int vec_index = li / num_rows;
+//         const int row_index = li % num_rows;
+//         if (deterministic) {
+//             subspace_vecs_sh[vec_index * num_rows + row_index] =
+//                 subspace_vecs_global[vec_index * num_rows + row_index];
+//         } else {
+//             ValueType val;
+//             // if (is_complex<ValueType>()) {
+//             //  RNG in oneMKL does not support complex number yet
+//             //    auto tmp = onemkl::generate(distr, engine2);
+//             //    val = ValueType{tmp[0], tmp[1]};
+//             //} else {
+//             val = onemkl::generate(distr, engine1);
+//             //}
+//             subspace_vecs_sh[vec_index * num_rows + row_index] = val;
+//         }
+//     }
+//     item_ct1.barrier(sycl::access::fence_space::local_space);
+//
+//     orthonormalize_subspace_vectors(num_rows, subspace_dim, subspace_vecs_sh,
+//                                     temp_shared_entry, tmp_norms_sh,
+//                                     item_ct1);
+// }
 
 
 template <typename ValueType>

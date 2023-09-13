@@ -38,7 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"
 #include "dpcpp/base/helper.hpp"
-#include "dpcpp/base/onemkl_bindings.hpp"
+// #include "dpcpp/base/onemkl_bindings.hpp"
 
 
 namespace gko {
@@ -50,95 +50,100 @@ namespace batch_direct {
 #include "dpcpp/solver/batch_direct_kernels.hpp.inc"
 
 
-void check_exception(onemkl::exception const& e,
-                     const std::int64_t scratchpad_size)
-{
-    int info_code = e.info();
-    int detail_code = e.detail();
-    if (info_code < 0)
-        std::cout << "The " << info_code
-                  << "-th parameter had an illegal value." << std::endl;
-    else {
-        if (info_code == scratchpad_size && detail_code != 0)
-            std::cout << "The passed scratchpad size , " << scratchpad_size
-                      << ", is insufficient. The size should be at least "
-                      << detail_code << "." << std::endl;
-        else if (info_code != 0 && detail_code == 0)
-            std::cout << "There were some errors for some of the problems in "
-                         "the supplied batch. "
-                      << info_code << " calculations are failed in each batch."
-                      << std::endl;
-        else
-            std::cout << "Some U_i are exactly singular!" << std::endl;
-    }
-}
+// void check_exception(onemkl::exception const& e,
+//                      const std::int64_t scratchpad_size)
+// {
+//     int info_code = e.info();
+//     int detail_code = e.detail();
+//     if (info_code < 0)
+//         std::cout << "The " << info_code
+//                   << "-th parameter had an illegal value." << std::endl;
+//     else {
+//         if (info_code == scratchpad_size && detail_code != 0)
+//             std::cout << "The passed scratchpad size , " << scratchpad_size
+//                       << ", is insufficient. The size should be at least "
+//                       << detail_code << "." << std::endl;
+//         else if (info_code != 0 && detail_code == 0)
+//             std::cout << "There were some errors for some of the problems in
+//             "
+//                          "the supplied batch. "
+//                       << info_code << " calculations are failed in each
+//                       batch."
+//                       << std::endl;
+//         else
+//             std::cout << "Some U_i are exactly singular!" << std::endl;
+//     }
+// }
 
 
 template <typename ValueType>
 void apply(std::shared_ptr<const DpcppExecutor> exec,
            matrix::BatchDense<ValueType>* const a_t,
            matrix::BatchDense<ValueType>* const b_t,
-           gko::log::BatchLogData<ValueType>& logdata)
-{
-    const int num_batches = a_t->get_num_batch_entries();
-    const int nbatch = static_cast<int>(num_batches);
-    const int nrows = a_t->get_size().at()[0];
-    const int ncols = a_t->get_size().at()[1];
-
-    const int nrhs = b_t->get_size().at()[1];
-    // For getrf_batch and getrs_batch
-    const int a_stride = nrows * ncols;
-    const int lda = nrows;
-    const int b_stride = nrows * nrhs;
-    const int ldb = nrows;
-
-    std::int64_t* pivot_array = exec->alloc<std::int64_t>(nbatch * nrows);
-    const int pivot_stride = nrows;
-    auto a_t_values = a_t->get_values();
-    auto b_t_values = b_t->get_values();
-
-    auto queue = exec->get_queue();
-
-    std::int64_t scratchpad_size;
-    try {
-        scratchpad_size = onemkl::getrf_batch_scratchpad_size<ValueType>(
-            *queue, nrows, ncols, lda, a_stride, pivot_stride, nbatch);
-
-        ValueType* const getrf_scratchpad =
-            exec->alloc<ValueType>(scratchpad_size);
-        onemkl::getrf_batch(*queue, nrows, ncols, a_t_values, lda, a_stride,
-                            pivot_array, pivot_stride, nbatch, getrf_scratchpad,
-                            scratchpad_size)
-            .wait();
-        exec->free(getrf_scratchpad);
-    } catch (onemkl::exception const& e) {
-        std::cout << "Unexpected exception caught during synchronous call to "
-                     "LAPACK API - Getrf_batch:\nDetail:"
-                  << std::endl;
-        check_exception(e, scratchpad_size);
-    }
-
-    try {
-        scratchpad_size = onemkl::getrs_batch_scratchpad_size<ValueType>(
-            *queue, onemkl::nontrans, nrows, nrhs, lda, a_stride, pivot_stride,
-            ldb, b_stride, nbatch);
-
-        ValueType* const getrs_scratchpad =
-            exec->alloc<ValueType>(scratchpad_size);
-        onemkl::getrs_batch(*queue, onemkl::nontrans, nrows, nrhs, a_t_values,
-                            lda, a_stride, pivot_array, pivot_stride,
-                            b_t_values, ldb, b_stride, nbatch, getrs_scratchpad,
-                            scratchpad_size)
-            .wait();
-        exec->free(getrs_scratchpad);
-    } catch (onemkl::exception const& e) {
-        std::cout << "Unexpected exception caught during synchronous call to "
-                     "LAPACK API - Getrs_batch:\nDetail:"
-                  << std::endl;
-        check_exception(e, scratchpad_size);
-    }
-    exec->free(pivot_array);
-}
+           gko::log::BatchLogData<ValueType>& logdata) GKO_NOT_IMPLEMENTED;
+// {
+//     const int num_batches = a_t->get_num_batch_entries();
+//     const int nbatch = static_cast<int>(num_batches);
+//     const int nrows = a_t->get_size().at()[0];
+//     const int ncols = a_t->get_size().at()[1];
+//
+//     const int nrhs = b_t->get_size().at()[1];
+//     // For getrf_batch and getrs_batch
+//     const int a_stride = nrows * ncols;
+//     const int lda = nrows;
+//     const int b_stride = nrows * nrhs;
+//     const int ldb = nrows;
+//
+//     std::int64_t* pivot_array = exec->alloc<std::int64_t>(nbatch * nrows);
+//     const int pivot_stride = nrows;
+//     auto a_t_values = a_t->get_values();
+//     auto b_t_values = b_t->get_values();
+//
+//     auto queue = exec->get_queue();
+//
+//     std::int64_t scratchpad_size;
+//     try {
+//         scratchpad_size = onemkl::getrf_batch_scratchpad_size<ValueType>(
+//             *queue, nrows, ncols, lda, a_stride, pivot_stride, nbatch);
+//
+//         ValueType* const getrf_scratchpad =
+//             exec->alloc<ValueType>(scratchpad_size);
+//         onemkl::getrf_batch(*queue, nrows, ncols, a_t_values, lda, a_stride,
+//                             pivot_array, pivot_stride, nbatch,
+//                             getrf_scratchpad, scratchpad_size)
+//             .wait();
+//         exec->free(getrf_scratchpad);
+//     } catch (onemkl::exception const& e) {
+//         std::cout << "Unexpected exception caught during synchronous call to
+//         "
+//                      "LAPACK API - Getrf_batch:\nDetail:"
+//                   << std::endl;
+//         check_exception(e, scratchpad_size);
+//     }
+//
+//     try {
+//         scratchpad_size = onemkl::getrs_batch_scratchpad_size<ValueType>(
+//             *queue, onemkl::nontrans, nrows, nrhs, lda, a_stride,
+//             pivot_stride, ldb, b_stride, nbatch);
+//
+//         ValueType* const getrs_scratchpad =
+//             exec->alloc<ValueType>(scratchpad_size);
+//         onemkl::getrs_batch(*queue, onemkl::nontrans, nrows, nrhs,
+//         a_t_values,
+//                             lda, a_stride, pivot_array, pivot_stride,
+//                             b_t_values, ldb, b_stride, nbatch,
+//                             getrs_scratchpad, scratchpad_size)
+//             .wait();
+//         exec->free(getrs_scratchpad);
+//     } catch (onemkl::exception const& e) {
+//         std::cout << "Unexpected exception caught during synchronous call to
+//         "
+//                      "LAPACK API - Getrs_batch:\nDetail:"
+//                   << std::endl;
+//         check_exception(e, scratchpad_size);
+//     }
+//     exec->free(pivot_array);
+// }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DIRECT_APPLY_KERNEL);
 

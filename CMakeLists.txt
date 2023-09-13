@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
 
 # Use *_ROOT environment variables for find_package calls
-cmake_policy(SET CMP0074 NEW)
+# cmake_policy(SET CMP0074 NEW)
 
 # Let CAS handle the CUDA architecture flags (for now)
 # Windows still gives CMP0104 warning if putting it in cuda.
@@ -305,20 +305,22 @@ if(MSVC)
     endif()
 endif()
 
-if(GINKGO_BUILD_DPCPP)
-    if(CMAKE_CXX_COMPILER MATCHES "icpx")
-        set(GINKGO_DPCPP_MAJOR_VERSION "6")
-        set(GINKGO_DPCPP_VERSION "6")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl")
-        # AoT
-        # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsycl -fsycl-targets=spir64 -Xsycl-target-backend '-device 12.60.7' -fsycl-max-parallel-link-jobs=8 -fsycl-unnamed-lambda")
-    else()
-        ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_MAJOR_VERSION __LIBSYCL_MAJOR_VERSION)
-        ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_VERSION __SYCL_COMPILER_VERSION)
-    endif()
-else()
-    set(GINKGO_DPCPP_MAJOR_VERSION "0")
-endif()
+set(GINKGO_DPCPP_MAJOR_VERSION "6")
+set(GINKGO_DPCPP_VERSION "6")
+# if(GINKGO_BUILD_DPCPP)
+#     if(CMAKE_CXX_COMPILER MATCHES "icpx")
+#         set(GINKGO_DPCPP_MAJOR_VERSION "6")
+#         set(GINKGO_DPCPP_VERSION "6")
+#         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl")
+#         # AoT
+#         # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsycl -fsycl-targets=spir64 -Xsycl-target-backend '-device 12.60.7' -fsycl-max-parallel-link-jobs=8 -fsycl-unnamed-lambda")
+#     else()
+#         ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_MAJOR_VERSION __LIBSYCL_MAJOR_VERSION)
+#         ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_VERSION __SYCL_COMPILER_VERSION)
+#     endif()
+# else()
+#     set(GINKGO_DPCPP_MAJOR_VERSION "0")
+# endif()
 
 configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/batch_config.hpp.in
     ${Ginkgo_BINARY_DIR}/include/ginkgo/batch_config.hpp @ONLY)

@@ -38,7 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <CL/sycl.hpp>
-#include <oneapi/dpl/random>
+// #include <oneapi/dpl/random>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -48,7 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/fill_array_kernels.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
-#include "dpcpp/base/onemkl_bindings.hpp"
+// #include "dpcpp/base/onemkl_bindings.hpp"
 #include "dpcpp/components/atomic.dp.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
@@ -623,28 +623,28 @@ void initialize_m(std::shared_ptr<const DpcppExecutor> exec,
 template <typename ValueType>
 void initialize_subspace_vectors(std::shared_ptr<const DpcppExecutor> exec,
                                  matrix::Dense<ValueType>* subspace_vectors,
-                                 bool deterministic)
-{
-    if (!deterministic) {
-        auto seed = std::random_device{}();
-        auto work = reinterpret_cast<remove_complex<ValueType>*>(
-            subspace_vectors->get_values());
-        auto n =
-            subspace_vectors->get_size()[0] * subspace_vectors->get_stride();
-        n = is_complex<ValueType>() ? 2 * n : n;
-        exec->get_queue()->submit([&](sycl::handler& cgh) {
-            cgh.parallel_for(sycl::range<1>(n), [=](sycl::item<1> idx) {
-                std::uint64_t offset = idx.get_linear_id();
-                oneapi::dpl::minstd_rand engine(seed, offset);
-                oneapi::dpl::normal_distribution<remove_complex<ValueType>>
-                    distr(0, 1);
-                auto res = distr(engine);
-
-                work[idx] = res;
-            });
-        });
-    }
-}
+                                 bool deterministic) GKO_NOT_IMPLEMENTED;
+// {
+//     if (!deterministic) {
+//         auto seed = std::random_device{}();
+//         auto work = reinterpret_cast<remove_complex<ValueType>*>(
+//             subspace_vectors->get_values());
+//         auto n =
+//             subspace_vectors->get_size()[0] * subspace_vectors->get_stride();
+//         n = is_complex<ValueType>() ? 2 * n : n;
+//         exec->get_queue()->submit([&](sycl::handler& cgh) {
+//             cgh.parallel_for(sycl::range<1>(n), [=](sycl::item<1> idx) {
+//                 std::uint64_t offset = idx.get_linear_id();
+//                 oneapi::dpl::minstd_rand engine(seed, offset);
+//                 oneapi::dpl::normal_distribution<remove_complex<ValueType>>
+//                     distr(0, 1);
+//                 auto res = distr(engine);
+//
+//                 work[idx] = res;
+//             });
+//         });
+//     }
+// }
 
 
 template <typename ValueType>
@@ -678,80 +678,80 @@ void solve_lower_triangular(std::shared_ptr<const DpcppExecutor> exec,
 
 
 template <typename ValueType>
-void update_g_and_u(std::shared_ptr<const DpcppExecutor> exec,
-                    const size_type nrhs, const size_type k,
-                    const matrix::Dense<ValueType>* p,
-                    const matrix::Dense<ValueType>* m,
-                    matrix::Dense<ValueType>* alpha,
-                    matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* g_k,
-                    matrix::Dense<ValueType>* u,
-                    const array<stopping_status>* stop_status)
-{
-    const auto size = g->get_size()[0];
-    const auto p_stride = p->get_stride();
-
-    const dim3 grid_dim(ceildiv(nrhs, default_dot_dim),
-                        exec->get_num_computing_units() * 2);
-    const dim3 block_dim(default_dot_dim, default_dot_dim);
-
-    for (size_type i = 0; i < k; i++) {
-        const auto p_i = p->get_const_values() + i * p_stride;
-        if (nrhs > 1 || is_complex<ValueType>()) {
-            components::fill_array(exec, alpha->get_values(), nrhs,
-                                   zero<ValueType>());
-            multidot_kernel(grid_dim, block_dim, 0, exec->get_queue(), size,
-                            nrhs, p_i, g_k->get_values(), g_k->get_stride(),
-                            alpha->get_values(), stop_status->get_const_data());
-        } else {
-            onemkl::dot(*exec->get_queue(), size, p_i, 1, g_k->get_values(),
-                        g_k->get_stride(), alpha->get_values());
-        }
-        update_g_k_and_u_kernel<default_block_size>(
-            ceildiv(size * g_k->get_stride(), default_block_size),
-            default_block_size, 0, exec->get_queue(), k, i, size, nrhs,
-            alpha->get_const_values(), m->get_const_values(), m->get_stride(),
-            g->get_const_values(), g->get_stride(), g_k->get_values(),
-            g_k->get_stride(), u->get_values(), u->get_stride(),
-            stop_status->get_const_data());
-    }
-    update_g_kernel<default_block_size>(
-        ceildiv(size * g_k->get_stride(), default_block_size),
-        default_block_size, 0, exec->get_queue(), k, size, nrhs,
-        g_k->get_const_values(), g_k->get_stride(), g->get_values(),
-        g->get_stride(), stop_status->get_const_data());
-}
+void update_g_and_u(
+    std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
+    const size_type k, const matrix::Dense<ValueType>* p,
+    const matrix::Dense<ValueType>* m, matrix::Dense<ValueType>* alpha,
+    matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* g_k,
+    matrix::Dense<ValueType>* u,
+    const array<stopping_status>* stop_status) GKO_NOT_IMPLEMENTED;
+// {
+//     const auto size = g->get_size()[0];
+//     const auto p_stride = p->get_stride();
+//
+//     const dim3 grid_dim(ceildiv(nrhs, default_dot_dim),
+//                         exec->get_num_computing_units() * 2);
+//     const dim3 block_dim(default_dot_dim, default_dot_dim);
+//
+//     for (size_type i = 0; i < k; i++) {
+//         const auto p_i = p->get_const_values() + i * p_stride;
+//         if (nrhs > 1 || is_complex<ValueType>()) {
+//             components::fill_array(exec, alpha->get_values(), nrhs,
+//                                    zero<ValueType>());
+//             multidot_kernel(grid_dim, block_dim, 0, exec->get_queue(), size,
+//                             nrhs, p_i, g_k->get_values(), g_k->get_stride(),
+//                             alpha->get_values(),
+//                             stop_status->get_const_data());
+//         } else {
+//             onemkl::dot(*exec->get_queue(), size, p_i, 1, g_k->get_values(),
+//                         g_k->get_stride(), alpha->get_values());
+//         }
+//         update_g_k_and_u_kernel<default_block_size>(
+//             ceildiv(size * g_k->get_stride(), default_block_size),
+//             default_block_size, 0, exec->get_queue(), k, i, size, nrhs,
+//             alpha->get_const_values(), m->get_const_values(),
+//             m->get_stride(), g->get_const_values(), g->get_stride(),
+//             g_k->get_values(), g_k->get_stride(), u->get_values(),
+//             u->get_stride(), stop_status->get_const_data());
+//     }
+//     update_g_kernel<default_block_size>(
+//         ceildiv(size * g_k->get_stride(), default_block_size),
+//         default_block_size, 0, exec->get_queue(), k, size, nrhs,
+//         g_k->get_const_values(), g_k->get_stride(), g->get_values(),
+//         g->get_stride(), stop_status->get_const_data());
+// }
 
 
 template <typename ValueType>
 void update_m(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
               const size_type k, const matrix::Dense<ValueType>* p,
               const matrix::Dense<ValueType>* g_k, matrix::Dense<ValueType>* m,
-              const array<stopping_status>* stop_status)
-{
-    const auto size = g_k->get_size()[0];
-    const auto subspace_dim = m->get_size()[0];
-    const auto p_stride = p->get_stride();
-    const auto m_stride = m->get_stride();
-
-    const dim3 grid_dim(ceildiv(nrhs, default_dot_dim),
-                        exec->get_num_computing_units() * 2);
-    const dim3 block_dim(default_dot_dim, default_dot_dim);
-
-    for (size_type i = k; i < subspace_dim; i++) {
-        const auto p_i = p->get_const_values() + i * p_stride;
-        auto m_i = m->get_values() + i * m_stride + k * nrhs;
-        if (nrhs > 1 || is_complex<ValueType>()) {
-            components::fill_array(exec, m_i, nrhs, zero<ValueType>());
-            multidot_kernel(grid_dim, block_dim, 0, exec->get_queue(), size,
-                            nrhs, p_i, g_k->get_const_values(),
-                            g_k->get_stride(), m_i,
-                            stop_status->get_const_data());
-        } else {
-            onemkl::dot(*exec->get_queue(), size, p_i, 1,
-                        g_k->get_const_values(), g_k->get_stride(), m_i);
-        }
-    }
-}
+              const array<stopping_status>* stop_status) GKO_NOT_IMPLEMENTED;
+// {
+//     const auto size = g_k->get_size()[0];
+//     const auto subspace_dim = m->get_size()[0];
+//     const auto p_stride = p->get_stride();
+//     const auto m_stride = m->get_stride();
+//
+//     const dim3 grid_dim(ceildiv(nrhs, default_dot_dim),
+//                         exec->get_num_computing_units() * 2);
+//     const dim3 block_dim(default_dot_dim, default_dot_dim);
+//
+//     for (size_type i = k; i < subspace_dim; i++) {
+//         const auto p_i = p->get_const_values() + i * p_stride;
+//         auto m_i = m->get_values() + i * m_stride + k * nrhs;
+//         if (nrhs > 1 || is_complex<ValueType>()) {
+//             components::fill_array(exec, m_i, nrhs, zero<ValueType>());
+//             multidot_kernel(grid_dim, block_dim, 0, exec->get_queue(), size,
+//                             nrhs, p_i, g_k->get_const_values(),
+//                             g_k->get_stride(), m_i,
+//                             stop_status->get_const_data());
+//         } else {
+//             onemkl::dot(*exec->get_queue(), size, p_i, 1,
+//                         g_k->get_const_values(), g_k->get_stride(), m_i);
+//         }
+//     }
+// }
 
 
 template <typename ValueType>

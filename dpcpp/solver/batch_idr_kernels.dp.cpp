@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"
 #include "dpcpp/base/helper.hpp"
-#include "dpcpp/base/onemkl_bindings.hpp"
+// #include "dpcpp/base/onemkl_bindings.hpp"
 #include "dpcpp/matrix/batch_struct.hpp"
 
 

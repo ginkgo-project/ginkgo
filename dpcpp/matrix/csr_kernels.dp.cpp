@@ -37,7 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <CL/sycl.hpp>
-#include <oneapi/mkl.hpp>
+// #include <oneapi/mkl.hpp>
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -1238,41 +1238,41 @@ void load_balance_spmv(std::shared_ptr<const DpcppExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-bool try_general_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
-                                const ValueType host_alpha,
-                                const matrix::Csr<ValueType, IndexType>* a,
-                                const matrix::Dense<ValueType>* b,
-                                const ValueType host_beta,
-                                matrix::Dense<ValueType>* c)
-{
-    bool try_sparselib = !is_complex<ValueType>();
-    if (try_sparselib) {
-        oneapi::mkl::sparse::matrix_handle_t mat_handle;
-        oneapi::mkl::sparse::init_matrix_handle(&mat_handle);
-        oneapi::mkl::sparse::set_csr_data(
-            mat_handle, IndexType(a->get_size()[0]),
-            IndexType(a->get_size()[1]), oneapi::mkl::index_base::zero,
-            const_cast<IndexType*>(a->get_const_row_ptrs()),
-            const_cast<IndexType*>(a->get_const_col_idxs()),
-            const_cast<ValueType*>(a->get_const_values()));
-        if (b->get_size()[1] == 1 && b->get_stride() == 1) {
-            oneapi::mkl::sparse::gemv(
-                *exec->get_queue(), oneapi::mkl::transpose::nontrans,
-                host_alpha, mat_handle,
-                const_cast<ValueType*>(b->get_const_values()), host_beta,
-                c->get_values());
-        } else {
-            oneapi::mkl::sparse::gemm(
-                *exec->get_queue(), oneapi::mkl::layout::row_major,
-                oneapi::mkl::transpose::nontrans,
-                oneapi::mkl::transpose::nontrans, host_alpha, mat_handle,
-                const_cast<ValueType*>(b->get_const_values()), b->get_size()[1],
-                b->get_stride(), host_beta, c->get_values(), c->get_stride());
-        }
-        oneapi::mkl::sparse::release_matrix_handle(&mat_handle);
-    }
-    return try_sparselib;
-}
+bool try_general_sparselib_spmv(
+    std::shared_ptr<const DpcppExecutor> exec, const ValueType host_alpha,
+    const matrix::Csr<ValueType, IndexType>* a,
+    const matrix::Dense<ValueType>* b, const ValueType host_beta,
+    matrix::Dense<ValueType>* c) GKO_NOT_IMPLEMENTED;
+// {
+//     bool try_sparselib = !is_complex<ValueType>();
+//     if (try_sparselib) {
+//         oneapi::mkl::sparse::matrix_handle_t mat_handle;
+//         oneapi::mkl::sparse::init_matrix_handle(&mat_handle);
+//         oneapi::mkl::sparse::set_csr_data(
+//             mat_handle, IndexType(a->get_size()[0]),
+//             IndexType(a->get_size()[1]), oneapi::mkl::index_base::zero,
+//             const_cast<IndexType*>(a->get_const_row_ptrs()),
+//             const_cast<IndexType*>(a->get_const_col_idxs()),
+//             const_cast<ValueType*>(a->get_const_values()));
+//         if (b->get_size()[1] == 1 && b->get_stride() == 1) {
+//             oneapi::mkl::sparse::gemv(
+//                 *exec->get_queue(), oneapi::mkl::transpose::nontrans,
+//                 host_alpha, mat_handle,
+//                 const_cast<ValueType*>(b->get_const_values()), host_beta,
+//                 c->get_values());
+//         } else {
+//             oneapi::mkl::sparse::gemm(
+//                 *exec->get_queue(), oneapi::mkl::layout::row_major,
+//                 oneapi::mkl::transpose::nontrans,
+//                 oneapi::mkl::transpose::nontrans, host_alpha, mat_handle,
+//                 const_cast<ValueType*>(b->get_const_values()),
+//                 b->get_size()[1], b->get_stride(), host_beta,
+//                 c->get_values(), c->get_stride());
+//         }
+//         oneapi::mkl::sparse::release_matrix_handle(&mat_handle);
+//     }
+//     return try_sparselib;
+// }
 
 
 template <typename MatrixValueType, typename InputValueType,

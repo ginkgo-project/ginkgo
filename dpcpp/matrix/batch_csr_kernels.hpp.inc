@@ -152,13 +152,6 @@ __dpct_inline__ void single_advanced_matvec_kernel(
 }
 
 
-template <typename ValueType, typename IndexType, typename UnaryOperator>
-__dpct_inline__ void convert_batch_csr_to_csc(
-    size_type num_rows, const IndexType* row_ptrs, const IndexType* col_idxs,
-    const ValueType* batch_csr_vals, IndexType* row_idxs, IndexType* col_ptrs,
-    ValueType* csc_vals, UnaryOperator op) GKO_NOT_IMPLEMENTED;
-
-
 template <typename ValueType>
 void batch_scale_kernel(  // TODO: consider to find a new kernel name
     const ValueType* const left_scale, const ValueType* const right_scale,

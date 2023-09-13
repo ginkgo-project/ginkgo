@@ -31,8 +31,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 // force-top: on
-#include <oneapi/dpl/algorithm>
-#include <oneapi/dpl/iterator>
+// #include <oneapi/dpl/algorithm>
+// #include <oneapi/dpl/iterator>
 // force-top: off
 
 
@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "core/components/fill_array_kernels.hpp"
-#include "dpcpp/base/onedpl.hpp"
+// #include "dpcpp/base/onedpl.hpp"
 
 
 namespace gko {
@@ -117,46 +117,48 @@ void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
                             size_type num_ranges, comm_index_type num_parts,
                             comm_index_type& num_empty_parts,
                             LocalIndexType* starting_indices,
-                            LocalIndexType* part_sizes)
-{
-    if (num_ranges > 0) {
-        auto policy = onedpl_policy(exec);
-
-        Array<LocalIndexType> range_sizes{exec, num_ranges};
-        // num_parts sentinel at the end
-        Array<comm_index_type> tmp_part_ids{exec, num_ranges + 1};
-        Array<GlobalIndexType> permutation{exec, num_ranges};
-        // set part_sizes to 0 in case of empty parts
-        components::fill_array(exec, part_sizes, num_parts,
-                               zero<LocalIndexType>());
-
-        kernel::setup_sizes_ids_permutation(
-            exec, num_ranges, num_parts, range_offsets, range_parts,
-            range_sizes, tmp_part_ids, permutation);
-
-        auto tmp_part_id_ptr = tmp_part_ids.get_data();
-        auto range_sizes_ptr = range_sizes.get_data();
-        auto sort_it = oneapi::dpl::make_zip_iterator(
-            tmp_part_id_ptr, range_sizes_ptr, permutation.get_data());
-        // group range_sizes by part ID
-        oneapi::dpl::stable_sort(policy, sort_it, sort_it + num_ranges,
-                                 [](const auto t_a, const auto t_b) {
-                                     return std::get<0>(t_a) < std::get<0>(t_b);
-                                 });
-        // compute inclusive prefix sum for each part
-        oneapi::dpl::inclusive_scan_by_segment(
-            policy, tmp_part_id_ptr, tmp_part_id_ptr + num_ranges,
-            range_sizes_ptr, range_sizes_ptr);
-        // write back the results
-        kernel::compute_part_sizes_and_starting_indices(
-            exec, num_ranges, range_sizes, tmp_part_ids, permutation,
-            starting_indices, part_sizes);
-        num_empty_parts =
-            oneapi::dpl::count(policy, part_sizes, part_sizes + num_parts, 0);
-    } else {
-        num_empty_parts = num_parts;
-    }
-}
+                            LocalIndexType* part_sizes) GKO_NOT_IMPLEMENTED;
+// {
+//     if (num_ranges > 0) {
+//         auto policy = onedpl_policy(exec);
+//
+//         Array<LocalIndexType> range_sizes{exec, num_ranges};
+//         // num_parts sentinel at the end
+//         Array<comm_index_type> tmp_part_ids{exec, num_ranges + 1};
+//         Array<GlobalIndexType> permutation{exec, num_ranges};
+//         // set part_sizes to 0 in case of empty parts
+//         components::fill_array(exec, part_sizes, num_parts,
+//                                zero<LocalIndexType>());
+//
+//         kernel::setup_sizes_ids_permutation(
+//             exec, num_ranges, num_parts, range_offsets, range_parts,
+//             range_sizes, tmp_part_ids, permutation);
+//
+//         auto tmp_part_id_ptr = tmp_part_ids.get_data();
+//         auto range_sizes_ptr = range_sizes.get_data();
+//         auto sort_it = oneapi::dpl::make_zip_iterator(
+//             tmp_part_id_ptr, range_sizes_ptr, permutation.get_data());
+//         // group range_sizes by part ID
+//         oneapi::dpl::stable_sort(policy, sort_it, sort_it + num_ranges,
+//                                  [](const auto t_a, const auto t_b) {
+//                                      return std::get<0>(t_a) <
+//                                      std::get<0>(t_b);
+//                                  });
+//         // compute inclusive prefix sum for each part
+//         oneapi::dpl::inclusive_scan_by_segment(
+//             policy, tmp_part_id_ptr, tmp_part_id_ptr + num_ranges,
+//             range_sizes_ptr, range_sizes_ptr);
+//         // write back the results
+//         kernel::compute_part_sizes_and_starting_indices(
+//             exec, num_ranges, range_sizes, tmp_part_ids, permutation,
+//             starting_indices, part_sizes);
+//         num_empty_parts =
+//             oneapi::dpl::count(policy, part_sizes, part_sizes + num_parts,
+//             0);
+//     } else {
+//         num_empty_parts = num_parts;
+//     }
+// }
 
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_PARTITION_BUILD_STARTING_INDICES);
