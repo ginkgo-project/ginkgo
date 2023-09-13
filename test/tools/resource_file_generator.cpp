@@ -92,7 +92,7 @@ int main()
             if (i > 0) {
                 gpus.append(",\n");
             }
-            gpus += R"(  {"id": ")" + std::to_string(i) + R"(", "slots": 100})";
+            gpus += R"(  {"id": ")" + std::to_string(i) + R"(", "slots": 1})";
         }
         if (num_devices) {
             gpus.append("\n]");
