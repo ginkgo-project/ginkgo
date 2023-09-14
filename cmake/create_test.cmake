@@ -99,8 +99,6 @@ function(ginkgo_add_test test_name test_target_name)
                  COMMAND ${test_target_name}
                  WORKING_DIRECTORY "$<TARGET_FILE_DIR:ginkgo>")
     endif()
-    # use custom target `tests` to build only test binaries
-    add_dependencies(tests ${test_target_name})
 
     ginkgo_add_resource_requirement(${REL_BINARY_DIR}/${test_name} ${ARGN})
 
