@@ -321,12 +321,14 @@ using add_inner_wrapper_t =
     typename detail::add_inner_wrapper<NewInnerWrapper, ListType>::type;
 
 
-using RealValueTypes =
-#if GINKGO_DPCPP_SINGLE_MODE
-    ::testing::Types<gko::half, float>;
-#else
-    ::testing::Types<gko::half, float, double>;
+using RealValueTypes = ::testing::Types<
+#if GINKGO_ENABLE_HALF
+    gko::half,
 #endif
+#if GINKGO_DPCPP_SINGLE_MODE
+    double,
+#endif
+    float>;
 
 using RealValueTypesNoHalf =
 #if GINKGO_DPCPP_SINGLE_MODE
