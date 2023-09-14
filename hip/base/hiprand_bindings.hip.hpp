@@ -87,6 +87,11 @@ inline hiprandGenerator_t rand_generator(int64 seed,
     return gen;
 }
 
+inline void destroy(hiprandGenerator_t gen)
+{
+    GKO_ASSERT_NO_HIPRAND_ERRORS(hiprandDestroyGenerator(gen));
+}
+
 
 #define GKO_BIND_HIPRAND_RANDOM_VECTOR(ValueType, HiprandName)               \
     inline void rand_vector(                                                 \
