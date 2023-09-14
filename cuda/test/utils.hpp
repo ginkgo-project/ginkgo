@@ -52,7 +52,9 @@ class CudaTestFixture : public ::testing::Test {
 protected:
     CudaTestFixture()
         : ref(gko::ReferenceExecutor::create()),
+#ifdef GKO_TEST_NONDEFAULT_STREAM
           stream(ResourceEnvironment::cuda_device_id),
+#endif
           exec(gko::CudaExecutor::create(
               ResourceEnvironment::cuda_device_id, ref,
               std::make_shared<gko::CudaAllocator>(), stream.get())),

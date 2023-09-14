@@ -52,7 +52,9 @@ class HipTestFixture : public ::testing::Test {
 protected:
     HipTestFixture()
         : ref(gko::ReferenceExecutor::create()),
+#ifdef GKO_TEST_NONDEFAULT_STREAM
           stream(ResourceEnvironment::hip_device_id),
+#endif
           exec(gko::HipExecutor::create(ResourceEnvironment::hip_device_id, ref,
                                         std::make_shared<gko::HipAllocator>(),
                                         stream.get())),
