@@ -83,6 +83,12 @@ inline curandGenerator_t rand_generator(int64 seed,
 }
 
 
+inline void destroy(curandGenerator_t gen)
+{
+    GKO_ASSERT_NO_CURAND_ERRORS(curandDestroyGenerator(gen));
+}
+
+
 #define GKO_BIND_CURAND_RANDOM_VECTOR(ValueType, CurandName)                 \
     inline void rand_vector(                                                 \
         curandGenerator_t& gen, int n, remove_complex<ValueType> mean,       \
