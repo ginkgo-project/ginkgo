@@ -39,17 +39,11 @@ endfunction()
 
 function(ginkgo_add_resource_requirement test_name)
     cmake_parse_arguments(PARSE_ARGV 1 add_rr "${gko_test_option_args}" "${gko_test_single_args}" "")
-    if(add_rr_NO_RESOURCES)
+    if(add_rr_NO_RESOURCES OR (NOT add_rr_RESOURCE_TYPE))
         return()
-    endif()
-
-    if (NOT add_rr_RESOURCE_TYPE)
-        message(FATAL_ERROR "Need to provide resource type used by test.")
     endif ()
 
-    if(add_rr_RESOURCE_TYPE STREQUAL "ref")
-        set(single_resource "cpu:1")
-    elseif(add_rr_RESOURCE_TYPE STREQUAL "cpu")
+    if(add_rr_RESOURCE_TYPE STREQUAL "cpu")
         if(NOT add_rr_RESOURCE_LOCAL_CORES)
             set(add_rr_RESOURCE_LOCAL_CORES ${GINKGO_CI_TEST_OMP_PARALLELISM})
         endif()
@@ -78,7 +72,7 @@ endfunction()
 ## - `MPI_SIZE size` causes the tests to be run with `size` MPI processes.
 ## - `RESOURCE_LOCAL_CORES` the number of threads used by a test, default is
 ##    $GINKGO_CI_TEST_OMP_PARALLELISM
-## - `RESOURCE_TYPE` the resource type, can be ref, cpu, cudagpu, hipgpu, sycl
+## - `RESOURCE_TYPE` the resource type, can be cpu, cudagpu, hipgpu, sycl
 ## - `DISABLE_EXECUTORS exec1 exec2` disables the test for certain backends (if built for multiple)
 ## - `ADDITIONAL_LIBRARIES lib1 lib2` adds additional target link dependencies
 ## - `ADDITIONAL_INCLUDES path1 path2` adds additional target include paths
@@ -120,7 +114,7 @@ function(ginkgo_create_test test_name)
     add_executable(${test_target_name} ${test_name}.cpp)
     target_link_libraries(${test_target_name})
     ginkgo_set_test_target_properties(${test_target_name} "" ${ARGN})
-    ginkgo_add_test(${test_name} ${test_target_name} ${ARGN} RESOURCE_TYPE ref)
+    ginkgo_add_test(${test_name} ${test_target_name} ${ARGN})
 endfunction(ginkgo_create_test)
 
 ## Test compiled with dpcpp
@@ -262,7 +256,7 @@ function(ginkgo_create_common_test_internal test_name exec_type exec)
         return()
     endif()
     if (exec STREQUAL reference)
-        set(test_resource_type ref)
+        set(test_resource_type "")
     elseif (exec STREQUAL omp)
         set(test_resource_type cpu)
     elseif (exec STREQUAL cuda)
