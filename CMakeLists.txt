@@ -309,10 +309,6 @@ configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
 # propagated to the other parts of Ginkgo in case of building as static libraries
 add_subdirectory(devices)        # Basic device functionalities. Always compiled.
 add_subdirectory(common)         # Import list of unified kernel source files
-if(GINKGO_BUILD_TESTS)
-    # use custom target `tests` to build only test binaries
-    add_custom_target(tests)
-endif()
 if(GINKGO_BUILD_CUDA)
     add_subdirectory(cuda)       # High-performance kernels for NVIDIA GPUs
 endif()
