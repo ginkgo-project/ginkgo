@@ -118,9 +118,9 @@ using LocalGlobalIndexTypes =
 
 using PODTypes =
 #if GINKGO_DPCPP_SINGLE_MODE
-    ::testing::Types<OPTIONAL(gko::half) float, gko::int32, gko::int64>;
+    ::testing::Types<float, gko::int32, gko::int64>;
 #else
-    ::testing::Types<OPTIONAL(gko::half) float, double, gko::int32, gko::int64>;
+    ::testing::Types<float, double, gko::int32, gko::int64>;
 #endif
 
 
