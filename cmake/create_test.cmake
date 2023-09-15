@@ -56,7 +56,7 @@ function(ginkgo_add_resource_requirement test_name)
     elseif(add_rr_RESOURCE_TYPE MATCHES "^(cudagpu|hipgpu|sycl)$")
         set(single_resource "${add_rr_RESOURCE_TYPE}:1")
     else()
-        message(FATAL_ERROR "Unrecognized resource type ${add_rr_RESOURCE_TYPE}, allowed are: ref, cpu, cudagpu, hipgpu, sycl.")
+        message(FATAL_ERROR "Unrecognized resource type ${add_rr_RESOURCE_TYPE}, allowed are: cpu, cudagpu, hipgpu, sycl.")
     endif()
 
     if(NOT add_rr_MPI_SIZE)
