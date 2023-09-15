@@ -222,7 +222,12 @@ void threshold_filter_approx(std::shared_ptr<const DefaultExecutor> exec,
     // pick splitters
     for (IndexType i = 0; i < bucket_count - 1; ++i) {
         // shift by one so we get upper bounds for the buckets
-        sample[i] = sample[(i + 1) * sampleselect_oversampling];
+        // TODO FIXME: NVHPC 23.3 seems to handle assignment index with
+        // optimization wrongly on a custom class when IndexType is long. We set
+        // the index explicitly with volatile to solve it.
+        // https://godbolt.org/z/srYhGndKn
+        volatile auto index = (i + 1) * sampleselect_oversampling;
+        sample[i] = sample[index];
     }
     // count elements per bucket
     auto histogram = reinterpret_cast<IndexType*>(sample + bucket_count);

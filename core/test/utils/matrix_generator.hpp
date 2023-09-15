@@ -596,9 +596,13 @@ gko::matrix_data<ValueType, IndexType> generate_tridiag_inverse_matrix_data(
                 auto off_diag = i < j ? upper : lower;
                 auto min_idx = std::min(i, j);
                 auto max_idx = std::max(i, j);
+                // TODO: NVHPC requires explicitly casting to single precision
+                // from half.
                 auto val = sign *
-                           static_cast<ValueType>(
-                               std::pow(off_diag, max_idx - min_idx)) *
+                           static_cast<ValueType>(std::pow(
+                               typename gko::detail::arth_type<ValueType>::type{
+                                   off_diag},
+                               max_idx - min_idx)) *
                            alpha[min_idx] * beta[max_idx + 1] / alpha.back();
                 md.nonzeros.emplace_back(i, j, val);
             }
