@@ -38,7 +38,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 
-#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
 
@@ -327,7 +326,10 @@ private:
  */
 class half {
 public:
-    GKO_ATTRIBUTES half() noexcept = default;
+    // TODO: NVHPC (host side) may not use zero initialzation for the data
+    // member by default constructor in some cases. Not sure whether it is
+    // caused by something else in jacobi or isai.
+    GKO_ATTRIBUTES half() noexcept : data_(0){};
 
     template <typename T, typename = std::enable_if_t<std::is_scalar<T>::value>>
     GKO_ATTRIBUTES half(const T val)
