@@ -111,6 +111,7 @@ endfunction()
 
 ## Normal test
 function(ginkgo_create_test test_name)
+    cmake_parse_arguments(PARSE_ARGV 1 create_test "" "${gko_test_single_args}" "${gko_test_multi_args}")
     ginkgo_build_test_name(${test_name} test_target_name)
     add_executable(${test_target_name} ${test_name}.cpp)
     target_link_libraries(${test_target_name})
