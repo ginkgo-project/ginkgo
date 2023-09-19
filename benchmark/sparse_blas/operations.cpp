@@ -123,7 +123,7 @@ public:
                                                            get_engine()));
                 }
             }
-            data.ensure_row_major_order();
+            data.sort_row_major();
             mtx2_ = Mtx::create(exec, size2);
             mtx2_->read(data);
         } else if (mode_str == "dense") {
@@ -131,7 +131,7 @@ public:
             std::uniform_real_distribution<gko::remove_complex<etype>> dist(
                 -1.0, 1.0);
             gko::matrix_data<etype, itype> data{size2, dist, get_engine()};
-            data.ensure_row_major_order();
+            data.sort_row_major();
             mtx2_ = Mtx::create(exec, size2);
             mtx2_->read(data);
         } else {

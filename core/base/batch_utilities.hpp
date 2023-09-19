@@ -128,13 +128,13 @@ void assert_same_sparsity_in_batched_data(
     }
     auto num_nnz = data.at(0).nonzeros.size();
     auto base_data = data.at(0);
-    base_data.ensure_row_major_order();
+    base_data.sort_row_major();
     for (int b = 1; b < data.size(); ++b) {
         if (data[b].nonzeros.size() != num_nnz) {
             GKO_NOT_IMPLEMENTED;
         }
         auto temp_data = data.at(b);
-        temp_data.ensure_row_major_order();
+        temp_data.sort_row_major();
         for (int nnz = 0; nnz < num_nnz; ++nnz) {
             if (temp_data.nonzeros.at(nnz).row !=
                     base_data.nonzeros.at(nnz).row ||

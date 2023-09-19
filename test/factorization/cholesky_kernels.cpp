@@ -283,7 +283,7 @@ protected:
         // add missing upper diagonal entries
         // (values not important, only pattern important)
         gko::utils::make_symmetric(mtx_chol_data);
-        mtx_chol_data.ensure_row_major_order();
+        mtx_chol_data.sort_row_major();
         mtx_chol = matrix_type::create(ref);
         mtx_chol->read(mtx_chol_data);
         storage_offsets.resize_and_reset(num_rows + 1);

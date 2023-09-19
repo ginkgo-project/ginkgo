@@ -152,7 +152,7 @@ public:
                                                entry.first.second,
                                                entry.second};
                        });
-        data.ensure_row_major_order();
+        data.sort_row_major();
         return data;
     }
 

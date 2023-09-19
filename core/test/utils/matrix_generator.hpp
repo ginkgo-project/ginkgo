@@ -65,7 +65,7 @@ matrix_data<ValueType, IndexType> fill_random_matrix_data(
             detail::get_rand_value<ValueType>(value_dist, engine));
     }
 
-    data.ensure_row_major_order();
+    data.sort_row_major();
     return data;
 }
 
@@ -143,7 +143,7 @@ matrix_data<ValueType, IndexType> generate_random_matrix_data(
         }
     }
 
-    data.ensure_row_major_order();
+    data.sort_row_major();
     return data;
 }
 
@@ -378,7 +378,7 @@ matrix_data<ValueType, IndexType> generate_random_triangular_matrix_data(
         }
     }
 
-    data.ensure_row_major_order();
+    data.sort_row_major();
     return data;
 }
 

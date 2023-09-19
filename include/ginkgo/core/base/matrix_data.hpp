@@ -232,7 +232,7 @@ struct matrix_data {
                 }
             }
         }
-        this->ensure_row_major_order();
+        this->sort_row_major();
     }
 
     /**
@@ -456,12 +456,20 @@ struct matrix_data {
     /**
      * Sorts the nonzero vector so the values follow row-major order.
      */
-    void ensure_row_major_order()
+    void sort_row_major()
     {
         std::sort(
             begin(nonzeros), end(nonzeros), [](nonzero_type x, nonzero_type y) {
                 return std::tie(x.row, x.column) < std::tie(y.row, y.column);
             });
+    }
+
+    /**
+     * Sorts the nonzero vector so the values follow row-major order.
+     */
+    GKO_DEPRECATED("Use sort_row_major() instead") void ensure_row_major_order()
+    {
+        sort_row_major();
     }
 
     /**
@@ -481,7 +489,7 @@ struct matrix_data {
      */
     void sum_duplicates()
     {
-        ensure_row_major_order();
+        sort_row_major();
         std::vector<nonzero_type> new_nonzeros;
         if (!nonzeros.empty()) {
             new_nonzeros.emplace_back(nonzeros.front().row,

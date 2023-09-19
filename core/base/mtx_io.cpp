@@ -70,7 +70,7 @@ public:
         std::istringstream dimensions_stream(parsed_header.dimensions_line);
         auto data = parsed_header.layout->read_data(
             dimensions_stream, is, parsed_header.entry, parsed_header.modifier);
-        data.ensure_row_major_order();
+        data.sort_row_major();
         return data;
     }
 
@@ -840,7 +840,7 @@ matrix_data<ValueType, IndexType> read_binary_convert(std::istream& is,
         result.nonzeros[i].column = column;
     }
     // sort the entries
-    result.ensure_row_major_order();
+    result.sort_row_major();
     return result;
 }
 

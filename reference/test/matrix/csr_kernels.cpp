@@ -2576,7 +2576,7 @@ protected:
         // row 3: very sparse
         data.nonzeros.emplace_back(3, 0, 1.0);
         data.nonzeros.emplace_back(3, 64, 1.0);
-        data.ensure_row_major_order();
+        data.sort_row_major();
         // 1000 as min-sentinel
         full_sizes = {0, 0, 1000, 1000, 0, 0};
         bitmap_sizes = {0, 6, 4, 6, 2, 2};

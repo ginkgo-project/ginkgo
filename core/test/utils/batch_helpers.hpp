@@ -158,7 +158,7 @@ std::unique_ptr<const MatrixType> generate_diag_dominant_batch_matrix(
     if (is_hermitian) {
         gko::utils::make_hpd(data);
     }
-    data.ensure_row_major_order();
+    data.sort_row_major();
 
     auto soa_data =
         gko::device_matrix_data<value_type, index_type>::create_from_host(

@@ -53,7 +53,7 @@ protected:
                                             gko::zero<value_type>());
         }
         // remove duplicate nonzero locations
-        host_data.ensure_row_major_order();
+        host_data.sort_row_major();
         host_data.nonzeros.erase(
             std::unique(host_data.nonzeros.begin(), host_data.nonzeros.end(),
                         [](nonzero_type nz1, nonzero_type nz2) {

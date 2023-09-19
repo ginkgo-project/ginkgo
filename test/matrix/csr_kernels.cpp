@@ -106,7 +106,7 @@ public:
             data.nonzeros.emplace_back(221, i + 100, 1.0);
             data.nonzeros.emplace_back(421, i * 3 + 100, 2.0);
         }
-        data.ensure_row_major_order();
+        data.sort_row_major();
         // initialize the matrices
         mtx = Mtx::create(ref);
         mtx->read(data);
