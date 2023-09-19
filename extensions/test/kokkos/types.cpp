@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/mtx_io.hpp>
+#include <ginkgo/extensions/kokkos/types.hpp>
 
 
 #include <cstring>
@@ -41,11 +41,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/native_type.hpp>
-#include <ginkgo/extensions/kokkos/types.hpp>
 
 
 #include "core/test/utils.hpp"
-#include "ginkgo/extensions/kokkos/spaces.hpp"
 
 
 using DefaultMemorySpace = Kokkos::DefaultExecutionSpace::memory_space;
