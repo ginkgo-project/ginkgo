@@ -65,12 +65,20 @@ namespace detail {
  * array mapper allows he conversion `am<T> -> am<const T>`
  */
 template <typename T>
-auto make_mutable_array(std::shared_ptr<const Executor> exec, size_type size,
-                        T* data)
+auto make_array_helper(std::shared_ptr<const Executor> exec, size_type size,
+                       T* data)
 {
-    using U = std::remove_cv_t<T>;
-    return gko::make_array_view(std::move(exec), size, const_cast<U*>(data));
+    return gko::make_array_view(std::move(exec), size, data);
 }
+
+
+template <typename T>
+auto make_array_helper(std::shared_ptr<const Executor> exec, size_type size,
+                       const T* data)
+{
+    return gko::make_const_array_view(std::move(exec), size, data);
+}
+
 
 }  // namespace detail
 
@@ -84,21 +92,19 @@ auto make_mutable_array(std::shared_ptr<const Executor> exec, size_type size,
  *
  * @ingroup layout
  */
-template <typename ValueType, typename IndexType, typename array_mapper>
+template <typename ValueType, typename IndexType, typename mapper>
 struct device_matrix_data {
-    using index_array = typename array_mapper::template type<IndexType>;
-    using value_array = typename array_mapper::template type<ValueType>;
+    using index_array = typename mapper::template type<array<IndexType>>;
+    using value_array = typename mapper::template type<array<ValueType>>;
 
     static device_matrix_data map(std::shared_ptr<const Executor> exec,
                                   size_type num_elems, IndexType* row_idxs,
                                   IndexType* col_idxs, ValueType* values)
     {
-        return {array_mapper::map(
-                    detail::make_mutable_array(exec, num_elems, row_idxs)),
-                array_mapper::map(
-                    detail::make_mutable_array(exec, num_elems, col_idxs)),
-                array_mapper::map(
-                    detail::make_mutable_array(exec, num_elems, values))};
+        return {
+            mapper::map(detail::make_array_helper(exec, num_elems, row_idxs)),
+            mapper::map(detail::make_array_helper(exec, num_elems, col_idxs)),
+            mapper::map(detail::make_array_helper(exec, num_elems, values))};
     }
 
     index_array row_idxs;
@@ -109,6 +115,9 @@ struct device_matrix_data {
 
 }  // namespace layout
 
+
+template <typename am, typename dm>
+struct native;
 
 namespace detail {
 
@@ -124,7 +133,7 @@ namespace detail {
  * @tparam dm  The mapper for gko::matrix::Dense
  */
 template <typename T, typename am, typename dm>
-struct native;
+struct native_impl;
 
 
 /**
@@ -135,19 +144,53 @@ struct native;
  * @tparam dm  Unused
  */
 template <typename ValueType, typename am, typename dm>
-struct native<array<ValueType>, am, dm> : public am {
+struct native_impl<array<ValueType>, am, dm> : public am {
     using type = typename am::template type<ValueType>;
+
+    using am::map;
+
+    static type map(gko::array<ValueType>& arr)
+    {
+        am::check_compatibility(arr);
+        return am::map(arr.get_data(), arr.get_num_elems());
+    }
+
+    static type map(gko::array<ValueType>&& arr)
+    {
+        am::check_compatibility(arr);
+        return am::map(arr.get_data(), arr.get_num_elems());
+    }
 };
 
 /**
- * Mapper for a const Ginkgo array of a specific value type
- *
- * @tparam ValueType  Value type of the array
- * @tparam am  The value type independent mapper for gko::array
- * @tparam dm  Unused
+ * Specialization for array<const ValueType>.
  */
 template <typename ValueType, typename am, typename dm>
-struct native<const array<ValueType>, am, dm> : public am {
+struct native_impl<array<const ValueType>, am, dm> : public am {
+    using type = typename am::template type<const ValueType>;
+
+    using am::map;
+
+    static type map(const gko::array<ValueType>& arr)
+    {
+        am::check_compatibility(arr);
+        return am::map(arr.get_const_data(), arr.get_num_elems());
+    }
+
+    static type map(const gko::detail::const_array_view<ValueType>& arr)
+    {
+        am::check_compatibility(arr);
+        return am::map(arr.get_const_data(), arr.get_num_elems());
+    }
+};
+
+
+/**
+ * Specialization for const array.
+ */
+template <typename ValueType, typename am, typename dm>
+struct native_impl<const array<ValueType>, am, dm>
+    : public native_impl<array<const ValueType>, am, dm> {
     using type = typename am::template type<const ValueType>;
 };
 
@@ -160,28 +203,57 @@ struct native<const array<ValueType>, am, dm> : public am {
  * @tparam dm  The value type independent mapper for gko::matrix::Dense
  */
 template <typename ValueType, typename am, typename dm>
-struct native<matrix::Dense<ValueType>, am, dm> : public dm {
+struct native_impl<matrix::Dense<ValueType>, am, dm> : public dm {
     using type = typename dm::template type<ValueType>;
+
+    using dm::map;
+
+    static type map(gko::matrix::Dense<ValueType>& mtx)
+    {
+        am::check_compatibility(mtx);
+        return dm::map(mtx.get_values(), mtx.get_size(), mtx.get_stride());
+    }
+
+    static type map(gko::matrix::Dense<ValueType>&& mtx)
+    {
+        am::check_compatibility(mtx);
+        return dm::map(mtx.get_values(), mtx.get_size(), mtx.get_stride());
+    }
 };
 
 /**
- * Mapper for a const Ginkgo dense matrix of a specific value type
- *
- * @tparam ValueType  Value type of the array
- * @tparam am  unused
- * @tparam dm  The value type independent mapper for gko::matrix::Dense
+ * Specialization for matrix::Dense<const ValueType>
  */
 template <typename ValueType, typename am, typename dm>
-struct native<const matrix::Dense<ValueType>, am, dm> : public dm {
+struct native_impl<matrix::Dense<const ValueType>, am, dm> : public dm {
+    using type = typename dm::template type<const ValueType>;
+
+    using dm::map;
+
+    static type map(const gko::matrix::Dense<ValueType>& mtx)
+    {
+        am::check_compatibility(mtx);
+        return dm::map(mtx.get_const_values(), mtx.get_size(),
+                       mtx.get_stride());
+    }
+};
+
+/**
+ * Specialization for const matrix::Dense
+ */
+template <typename ValueType, typename am, typename dm>
+struct native_impl<const matrix::Dense<ValueType>, am, dm>
+    : public native_impl<matrix::Dense<const ValueType>, am, dm> {
     using type = typename dm::template type<const ValueType>;
 };
 
 
 template <typename ValueType, typename IndexType, typename array_mapper,
           typename dense_mapper>
-struct native<device_matrix_data<ValueType, IndexType>, array_mapper,
-              dense_mapper> {
-    using type = layout::device_matrix_data<ValueType, IndexType, array_mapper>;
+struct native_impl<device_matrix_data<ValueType, IndexType>, array_mapper,
+                   dense_mapper> {
+    using type = layout::device_matrix_data<ValueType, IndexType,
+                                            native<array_mapper, dense_mapper>>;
 
     static type map(device_matrix_data<ValueType, IndexType>& md)
     {
@@ -192,16 +264,16 @@ struct native<device_matrix_data<ValueType, IndexType>, array_mapper,
 
 template <typename ValueType, typename IndexType, typename array_mapper,
           typename dense_mapper>
-struct native<const device_matrix_data<ValueType, IndexType>, array_mapper,
-              dense_mapper> {
+struct native_impl<const device_matrix_data<ValueType, IndexType>, array_mapper,
+                   dense_mapper> {
     using type = layout::device_matrix_data<const ValueType, const IndexType,
-                                            array_mapper>;
+                                            native<array_mapper, dense_mapper>>;
 
     static type map(const device_matrix_data<ValueType, IndexType>& md)
     {
         return type::map(md.get_executor(), md.get_num_elems(),
                          md.get_const_row_idxs(), md.get_const_col_idxs(),
-                         md.get_values());
+                         md.get_const_values());
     }
 };
 
@@ -220,18 +292,16 @@ struct native<const device_matrix_data<ValueType, IndexType>, array_mapper,
  * A class AM satisfies the array mapper concept if it provides the type alias
  * - `AM::template type<T>`
  * and the functions
- * - `static type<T> map(gko::array<T>&)`
- * - `static type<const T> map(const gko::array<T>&)`
- * - `static type<T> map(gko::array<T>&&)`
+ * - `static type<T> map(T*, size_type)`
+ * - `static type<T> check_compatibility(gko::array<T>&&)`
  * The mapped object should be a non-owning view of the passed in array.
  *
  * Dense mapper concept:
  * A class DM satisfies the dense mapper concept if it provides the type alias
  * - `DM::template type<T>`
  * and the functions
- * - `static type<T> map(gko::matrix::Dense<T>&)`
- * - `static type<const T> map(const gko::matrix::Dense<T>&)`
- * - `static type<T> map(gko::matrix::Dense<T>&&)`
+ * - `static type<T> map(T*, dim<2>, size_type)`
+ * - `static type<T> check_compatibility(gko::array<T>&&)`
  * The mapped object should be a non-owning view of the passed in matrix.
  *
  * Usage:
@@ -260,7 +330,7 @@ private:
 
     template <typename T>
     using native_impl =
-        typename detail::native<sanitize<T>, array_mapper, dense_mapper>;
+        typename detail::native_impl<sanitize<T>, array_mapper, dense_mapper>;
 
 public:
     template <typename T>
@@ -289,6 +359,16 @@ public:
     {
         return map(*input);
     }
+};
+
+
+/**
+ * Mixin to enable default (no-op) compatibility check.
+ */
+struct EnableDefaultCompatibility {
+    template <typename Array>
+    static void check_compatibility(Array&& arr)
+    {}
 };
 
 

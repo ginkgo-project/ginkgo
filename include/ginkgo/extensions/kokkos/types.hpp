@@ -76,6 +76,16 @@ struct native_value_type<const std::complex<T>> {
 };
 
 
+template <typename MemorySpace>
+struct EnableKokkosCompatibility {
+    template <typename Array>
+    static void check_compatibility(Array&& arr)
+    {
+        detail::ensure_compatibility(std::forward<Array>(arr), MemorySpace{});
+    }
+};
+
+
 }  // namespace detail
 
 
@@ -85,31 +95,16 @@ struct native_value_type<const std::complex<T>> {
  * @tparam MemorySpace  The memory space type the mapped object should use.
  */
 template <typename MemorySpace>
-struct array_mapper {
+struct array_mapper : detail::EnableKokkosCompatibility<MemorySpace> {
     template <typename ValueType>
     using type =
         Kokkos::View<typename detail::native_value_type<ValueType>::type*,
                      MemorySpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
 
     template <typename ValueType>
-    static type<ValueType> map(gko::array<ValueType>& arr)
+    static type<ValueType> map(ValueType* data, size_type size)
     {
-        detail::ensure_compatibility(arr, MemorySpace{});
-        return type<ValueType>{arr.get_data(), arr.get_num_elems()};
-    }
-
-    template <typename ValueType>
-    static type<const ValueType> map(const gko::array<ValueType>& arr)
-    {
-        detail::ensure_compatibility(arr, MemorySpace{});
-        return type<const ValueType>{arr.get_const_data(), arr.get_num_elems()};
-    }
-
-    template <typename ValueType>
-    static type<ValueType> map(gko::array<ValueType>&& arr)
-    {
-        detail::ensure_compatibility(arr, MemorySpace{});
-        return type<ValueType>{arr.get_data(), arr.get_num_elems()};
+        return type<ValueType>{data, size};
     }
 };
 
@@ -121,7 +116,7 @@ struct array_mapper {
  * @tparam MemorySpace  The memory space type the mapped object should use.
  */
 template <typename MemorySpace>
-struct dense_mapper {
+struct dense_mapper : detail::EnableKokkosCompatibility<MemorySpace> {
     template <typename ValueType>
     using type =
         Kokkos::View<typename detail::native_value_type<ValueType>::type**,
@@ -129,33 +124,11 @@ struct dense_mapper {
                      Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
 
     template <typename ValueType>
-    static type<ValueType> map(gko::matrix::Dense<ValueType>& mtx)
+    static type<ValueType> map(ValueType* data, gko::dim<2> size,
+                               size_type stride)
     {
-        detail::ensure_compatibility(mtx, MemorySpace{});
         return type<ValueType>{
-            mtx.get_values(),
-            Kokkos::LayoutStride{mtx.get_size()[0], mtx.get_stride(),
-                                 mtx.get_size()[1], 1}};
-    }
-
-    template <typename ValueType>
-    static type<const ValueType> map(const gko::matrix::Dense<ValueType>& mtx)
-    {
-        detail::ensure_compatibility(mtx, MemorySpace{});
-        return type<const ValueType>{
-            mtx.get_const_values(),
-            Kokkos::LayoutStride{mtx.get_size()[0], mtx.get_stride(),
-                                 mtx.get_size()[1], 1}};
-    }
-
-    template <typename ValueType>
-    static type<ValueType> map(gko::matrix::Dense<ValueType>&& mtx)
-    {
-        detail::ensure_compatibility(mtx, MemorySpace{});
-        return type<ValueType>{
-            mtx.get_values(),
-            Kokkos::LayoutStride{mtx.get_size()[0], mtx.get_stride(),
-                                 mtx.get_size()[1], 1}};
+            data, Kokkos::LayoutStride{size[0], stride, size[1], 1}};
     }
 };
 
