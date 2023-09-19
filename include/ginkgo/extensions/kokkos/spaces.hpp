@@ -278,7 +278,9 @@ inline std::shared_ptr<Executor> create_executor(ExecSpace, MemorySpace = {})
 #endif
 #ifdef KOKKOS_ENABLE_SYCL
     if constexpr (std::is_same_v<ExecSpace, Kokkos::Experimental::SYCL>) {
-        // for now Ginkgo doesn't support different allocators for SYCL
+        static_assert(
+            std::is_same_v<MemorySpace, Kokkos::Experimental::SYCLSpace>,
+            "Ginkgo doesn't support shared memory space allocation for SYCL");
         return DpcppExecutor::create(Kokkos::device_id(),
                                      create_default_host_executor());
     }
