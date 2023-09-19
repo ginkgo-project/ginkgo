@@ -355,7 +355,19 @@ public:
     }
 
     template <typename T>
+    static type<T> map(std::shared_ptr<T>&& input)
+    {
+        return map(*input);
+    }
+
+    template <typename T>
     static type<T> map(std::unique_ptr<T>& input)
+    {
+        return map(*input);
+    }
+
+    template <typename T>
+    static type<T> map(std::unique_ptr<T>&& input)
     {
         return map(*input);
     }
