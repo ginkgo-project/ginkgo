@@ -52,7 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace ext {
 namespace kokkos {
-namespace detail {
 
 
 /**
@@ -61,27 +60,33 @@ namespace detail {
  * @tparam T  An arithmetic type.
  */
 template <typename T>
-struct native_value_type {
+struct value_type {
     using type = T;
 };
 
 template <typename T>
-struct native_value_type<std::complex<T>> {
+struct value_type<std::complex<T>> {
     using type = Kokkos::complex<T>;
 };
 
 template <typename T>
-struct native_value_type<const std::complex<T>> {
+struct value_type<const std::complex<T>> {
     using type = const Kokkos::complex<T>;
 };
+
+template <typename T>
+using value_type_t = typename value_type<T>::type;
+
+
+namespace detail {
 
 
 template <typename MemorySpace>
 struct EnableKokkosCompatibility {
-    template <typename Array>
-    static void check_compatibility(Array&& arr)
+    template <typename T>
+    static void check_compatibility(T&& obj)
     {
-        detail::ensure_compatibility(std::forward<Array>(arr), MemorySpace{});
+        detail::ensure_compatibility(std::forward<T>(obj), MemorySpace{});
     }
 };
 
@@ -92,19 +97,31 @@ struct EnableKokkosCompatibility {
 /**
  * Type that maps a Ginkgo array to an unmanaged 1D Kokkos::View.
  *
+ * @warning Using std::complex as data type might lead to issues, since the
+ *          alignment of Kokkos::complex is not necessarily the same.
+ *
  * @tparam MemorySpace  The memory space type the mapped object should use.
  */
 template <typename MemorySpace>
 struct array_mapper : detail::EnableKokkosCompatibility<MemorySpace> {
     template <typename ValueType>
     using type =
-        Kokkos::View<typename detail::native_value_type<ValueType>::type*,
-                     MemorySpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
+        Kokkos::View<typename value_type<ValueType>::type*, MemorySpace,
+                     Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
 
     template <typename ValueType>
     static type<ValueType> map(ValueType* data, size_type size)
     {
-        return type<ValueType>{data, size};
+        static_assert(sizeof(ValueType) == sizeof(value_type_t<ValueType>),
+                      "Can't handle C++ data type and corresponding Kokkos "
+                      "type with mismatching type sizes.");
+        // a similar check for alignment is not possible, since the alignment
+        // of kokkos::complex can be changed, but not through spack. Thus
+        // changing the alignment after an assertion failure requires building
+        // kokkos from source.
+
+        return type<ValueType>{reinterpret_cast<value_type_t<ValueType>*>(data),
+                               size};
     }
 };
 
@@ -112,23 +129,29 @@ struct array_mapper : detail::EnableKokkosCompatibility<MemorySpace> {
 /**
  * Type that maps a Ginkgo matrix::Dense to an unmanaged 2D Kokkos::View.
  *
- * @tparam ValueType  An arithmetic type, maybe const qualified.
+ * @warning Using std::complex as data type might lead to issues, since the
+ *          alignment of Kokkos::complex is not necessarily the same.
+ *
  * @tparam MemorySpace  The memory space type the mapped object should use.
  */
 template <typename MemorySpace>
 struct dense_mapper : detail::EnableKokkosCompatibility<MemorySpace> {
     template <typename ValueType>
-    using type =
-        Kokkos::View<typename detail::native_value_type<ValueType>::type**,
-                     Kokkos::LayoutStride, MemorySpace,
-                     Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
+    using type = Kokkos::View<typename value_type<ValueType>::type**,
+                              Kokkos::LayoutStride, MemorySpace,
+                              Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
 
     template <typename ValueType>
     static type<ValueType> map(ValueType* data, gko::dim<2> size,
                                size_type stride)
     {
+        static_assert(sizeof(ValueType) == sizeof(value_type_t<ValueType>),
+                      "Can't handle C++ data type and corresponding Kokkos "
+                      "type with mismatching type sizes.");
+
         return type<ValueType>{
-            data, Kokkos::LayoutStride{size[0], stride, size[1], 1}};
+            reinterpret_cast<value_type_t<ValueType>*>(data),
+            Kokkos::LayoutStride{size[0], stride, size[1], 1}};
     }
 };
 
@@ -183,7 +206,7 @@ template <typename T,
           typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
 inline auto map_data(T&& data, MemorySpace = {})
 {
-    return kokkos_type<MemorySpace>::map(std::forward<T>(data));
+    return kokkos_type<MemorySpace>::map(data);
 }
 
 
