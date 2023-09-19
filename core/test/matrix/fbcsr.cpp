@@ -476,11 +476,11 @@ TYPED_TEST(Fbcsr, GeneratesCorrectMatrixData)
     using index_type = typename TestFixture::index_type;
     using MtxData = typename TestFixture::MtxData;
     MtxData refdata = this->fbsample.generate_matrix_data_with_explicit_zeros();
-    refdata.ensure_row_major_order();
+    refdata.sort_row_major();
 
     MtxData data;
     this->mtx->write(data);
-    data.ensure_row_major_order();
+    data.sort_row_major();
 
     ASSERT_EQ(data.size, refdata.size);
     ASSERT_EQ(data.nonzeros.size(), refdata.nonzeros.size());

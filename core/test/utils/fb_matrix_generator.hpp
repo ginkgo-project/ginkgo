@@ -83,7 +83,7 @@ std::unique_ptr<MatrixType> generate_random_matrix_with_diag(
             });
     }
 
-    data.ensure_row_major_order();
+    data.sort_row_major();
 
     // convert to the correct matrix type
     auto result = MatrixType::create(exec, std::forward<MatrixArgs>(args)...);

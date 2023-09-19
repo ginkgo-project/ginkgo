@@ -39,7 +39,7 @@ struct DefaultSystemGenerator {
             throw std::runtime_error(
                 "No known way to generate matrix data found.");
         }
-        data.ensure_row_major_order();
+        data.sort_row_major();
         return data;
     }
 
@@ -181,7 +181,7 @@ struct DistributedDefaultSystemGenerator {
             throw std::runtime_error(
                 "No known way to generate matrix data found.");
         }
-        data.ensure_row_major_order();
+        data.sort_row_major();
         return data;
     }
 
