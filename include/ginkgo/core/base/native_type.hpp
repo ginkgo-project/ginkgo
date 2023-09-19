@@ -176,14 +176,7 @@ struct native_impl<array<const ValueType>, am, dm> : public am {
         am::check_compatibility(arr);
         return am::map(arr.get_const_data(), arr.get_num_elems());
     }
-
-    static type map(const gko::detail::const_array_view<ValueType>& arr)
-    {
-        am::check_compatibility(arr);
-        return am::map(arr.get_const_data(), arr.get_num_elems());
-    }
 };
-
 
 /**
  * Specialization for const array.
@@ -192,6 +185,22 @@ template <typename ValueType, typename am, typename dm>
 struct native_impl<const array<ValueType>, am, dm>
     : public native_impl<array<const ValueType>, am, dm> {
     using type = typename am::template type<const ValueType>;
+};
+
+/**
+ * Specialization for const_array_view.
+ */
+template <typename ValueType, typename am, typename dm>
+struct native_impl<detail::const_array_view<ValueType>, am, dm> : public am {
+    using type = typename am::template type<const ValueType>;
+
+    using am::map;
+
+    static type map(const gko::detail::const_array_view<ValueType>& arr)
+    {
+        am::check_compatibility(arr);
+        return am::map(arr.get_const_data(), arr.get_num_elems());
+    }
 };
 
 

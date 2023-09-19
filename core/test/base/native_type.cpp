@@ -156,6 +156,19 @@ TYPED_TEST(ArrayMapper, CanMapConst)
     ASSERT_EQ(checks_compatibility::num_calls, num_call_checks + 1);
 }
 
+TYPED_TEST(ArrayMapper, CanMapConstArrayView)
+{
+    using value_type = typename TestFixture::value_type;
+    auto num_call_checks = checks_compatibility::num_calls;
+
+    auto mapped_array = native::map(this->array.as_const_view());
+
+    using array_type =
+        std::remove_cv_t<std::remove_reference_t<decltype(mapped_array)>>;
+    static_assert(std::is_same_v<array_type, raw_array<const value_type>>);
+    ASSERT_EQ(checks_compatibility::num_calls, num_call_checks + 1);
+}
+
 
 template <typename ValueType>
 class DenseMapper : public ::testing::Test {
@@ -179,9 +192,9 @@ TYPED_TEST(DenseMapper, CanMapDefault)
 
     auto mapped_mtx = native::map(this->mtx);
 
-    using array_type =
+    using mtx_type =
         std::remove_cv_t<std::remove_reference_t<decltype(mapped_mtx)>>;
-    static_assert(std::is_same_v<array_type, raw_dense<value_type>>);
+    static_assert(std::is_same_v<mtx_type, raw_dense<value_type>>);
     ASSERT_EQ(mapped_mtx.data, this->mtx->get_values());
     ASSERT_EQ(checks_compatibility::num_calls, num_call_checks + 1);
 }
@@ -194,9 +207,9 @@ TYPED_TEST(DenseMapper, CanMapRValue)
 
     auto mapped_mtx = native::map(gko::make_dense_view(this->mtx));
 
-    using array_type =
+    using mtx_type =
         std::remove_cv_t<std::remove_reference_t<decltype(mapped_mtx)>>;
-    static_assert(std::is_same_v<array_type, raw_dense<value_type>>);
+    static_assert(std::is_same_v<mtx_type, raw_dense<value_type>>);
     ASSERT_EQ(mapped_mtx.data, this->mtx->get_values());
     ASSERT_EQ(checks_compatibility::num_calls, num_call_checks + 1);
 }
@@ -207,10 +220,10 @@ TYPED_TEST(DenseMapper, CanMapConst)
     using value_type = typename TestFixture::value_type;
     auto num_call_checks = checks_compatibility::num_calls;
 
-    auto mapped_array = native::map(gko::make_const_dense_view(this->mtx));
+    auto mapped_mtx = native::map(gko::make_const_dense_view(this->mtx));
 
-    using array_type =
-        std::remove_cv_t<std::remove_reference_t<decltype(mapped_array)>>;
-    static_assert(std::is_same_v<array_type, raw_dense<const value_type>>);
+    using mtx_type =
+        std::remove_cv_t<std::remove_reference_t<decltype(mapped_mtx)>>;
+    static_assert(std::is_same_v<mtx_type, raw_dense<const value_type>>);
     ASSERT_EQ(checks_compatibility::num_calls, num_call_checks + 1);
 }
