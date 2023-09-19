@@ -165,7 +165,7 @@ inline bool check_compatibility(MemorySpace,
  * @param space  The Kokkos memory space to compare agains.
  */
 template <typename MemorySpace, typename T>
-inline void ensure_compatibility(T&& obj, MemorySpace space)
+inline void assert_compatibility(T&& obj, MemorySpace space)
 {
     if (!check_compatibility(space, obj.get_executor())) {
         throw gko::Error(__FILE__, __LINE__,

@@ -86,7 +86,7 @@ struct EnableKokkosCompatibility {
     template <typename T>
     static void check_compatibility(T&& obj)
     {
-        detail::ensure_compatibility(std::forward<T>(obj), MemorySpace{});
+        detail::assert_compatibility(std::forward<T>(obj), MemorySpace{});
     }
 };
 
