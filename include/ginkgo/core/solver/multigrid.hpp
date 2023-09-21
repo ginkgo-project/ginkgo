@@ -411,29 +411,25 @@ public:
             if (!copy.pre_smoother_generator_.empty()) {
                 copy.pre_smoother.clear();
                 for (auto& generator : copy.pre_smoother_generator_) {
-                    copy.pre_smoother.push_back(generator ? generator.on(exec)
-                                                          : nullptr);
+                    copy.pre_smoother.push_back(generator.on(exec));
                 }
             }
             if (!copy.mid_smoother_generator_.empty()) {
                 copy.mid_smoother.clear();
                 for (auto& generator : copy.mid_smoother_generator_) {
-                    copy.mid_smoother.push_back(generator ? generator.on(exec)
-                                                          : nullptr);
+                    copy.mid_smoother.push_back(generator.on(exec));
                 }
             }
             if (!copy.post_smoother_generator_.empty()) {
                 copy.post_smoother.clear();
                 for (auto& generator : copy.post_smoother_generator_) {
-                    copy.post_smoother.push_back(generator ? generator.on(exec)
-                                                           : nullptr);
+                    copy.post_smoother.push_back(generator.on(exec));
                 }
             }
             if (!copy.coarsest_solver_generator_.empty()) {
                 copy.coarsest_solver.clear();
                 for (auto& generator : copy.coarsest_solver_generator_) {
-                    copy.coarsest_solver.push_back(
-                        generator ? generator.on(exec) : nullptr);
+                    copy.coarsest_solver.push_back(generator.on(exec));
                 }
             }
             return copy.enable_iterative_solver_factory_parameters<
