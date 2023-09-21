@@ -288,7 +288,10 @@ public:
     deferred_factory_parameter() = default;
 
     /** Creates an empty deferred factory parameter. */
-    deferred_factory_parameter(std::nullptr_t) {}
+    explicit deferred_factory_parameter(std::nullptr_t)
+    {
+        generator_ = [](std::shared_ptr<const Executor>) { return nullptr; };
+    }
 
     /**
      * Creates a deferred factory parameter from a preexisting factory with
@@ -298,7 +301,8 @@ public:
               std::enable_if_t<std::is_base_of<
                   FactoryType,
                   std::remove_const_t<ConcreteFactoryType>>::value>* = nullptr>
-    deferred_factory_parameter(std::shared_ptr<ConcreteFactoryType> factory)
+    explicit deferred_factory_parameter(
+        std::shared_ptr<ConcreteFactoryType> factory)
     {
         generator_ =
             [factory = std::shared_ptr<const FactoryType>(std::move(factory))](
@@ -313,7 +317,7 @@ public:
               std::enable_if_t<std::is_base_of<
                   FactoryType,
                   std::remove_const_t<ConcreteFactoryType>>::value>* = nullptr>
-    deferred_factory_parameter(
+    explicit deferred_factory_parameter(
         std::unique_ptr<ConcreteFactoryType, Deleter> factory)
     {
         generator_ =
@@ -329,7 +333,7 @@ public:
     template <typename ParametersType,
               typename = decltype(std::declval<ParametersType>().on(
                   std::shared_ptr<const Executor>{}))>
-    deferred_factory_parameter(ParametersType parameters)
+    explicit deferred_factory_parameter(ParametersType parameters)
     {
         generator_ = [parameters](std::shared_ptr<const Executor> exec)
             -> std::shared_ptr<const FactoryType> {
@@ -341,14 +345,14 @@ public:
     std::shared_ptr<const FactoryType> on(
         std::shared_ptr<const Executor> exec) const
     {
-        if (!(*this)) {
+        if (this->is_empty()) {
             GKO_NOT_SUPPORTED(*this);
         }
         return generator_(exec);
     }
 
     /** Returns true iff the parameter contains a factory. */
-    explicit operator bool() const { return bool(generator_); }
+    bool is_empty() const { return bool(generator_); }
 
 private:
     std::function<std::shared_ptr<const FactoryType>(
