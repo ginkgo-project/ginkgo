@@ -395,7 +395,7 @@ int main(int argc, char** argv)
     MPI_Comm_rank(comm, &rank);
     MPI_Comm_size(comm, &size);
 
-    testing::AddGlobalTestEnvironment(new GTestMPIListener::MPIEnvironment);
+    ::testing::AddGlobalTestEnvironment(new GTestMPIListener::MPIEnvironment);
     ::testing::AddGlobalTestEnvironment(new ResourceEnvironment(rank, size));
     ::testing::AddGlobalTestEnvironment(new DeviceEnvironment(rank));
     MPI_Barrier(comm);

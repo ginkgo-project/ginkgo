@@ -114,7 +114,7 @@ function(ginkgo_create_test test_name)
     ginkgo_build_test_name(${test_name} test_target_name)
     add_executable(${test_target_name} ${test_name}.cpp)
     target_link_libraries(${test_target_name})
-    ginkgo_set_test_target_properties(${test_target_name} "" ${ARGN})
+    ginkgo_set_test_target_properties(${test_target_name} "_cpu" ${ARGN})
     ginkgo_add_test(${test_name} ${test_target_name} ${ARGN})
 endfunction(ginkgo_create_test)
 
