@@ -163,16 +163,16 @@ TYPED_TEST(Ir, CanSetInnerSolverInFactory)
     auto ir_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec),
+                gko::stop::Iteration::build().with_max_iters(3u),
                 gko::stop::ResidualNorm<value_type>::build()
                     .with_reduction_factor(r<value_type>::value)
-                    .on(this->exec))
+                    )
             .with_solver(
                 Solver::build()
                     .with_criteria(
                         gko::stop::Iteration::build().with_max_iters(3u).on(
                             this->exec))
-                    .on(this->exec))
+                    )
             .on(this->exec);
     auto solver = ir_factory->generate(this->mtx);
     auto inner_solver = dynamic_cast<const Solver*>(
@@ -190,14 +190,14 @@ TYPED_TEST(Ir, CanSetGeneratedInnerSolverInFactory)
     std::shared_ptr<Solver> ir_solver =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(this->mtx);
 
     auto ir_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .with_generated_solver(ir_solver)
             .on(this->exec);
     auto solver = ir_factory->generate(this->mtx);
@@ -241,14 +241,14 @@ TYPED_TEST(Ir, ThrowsOnWrongInnerSolverInFactory)
     std::shared_ptr<Solver> ir_solver =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(wrong_sized_mtx);
 
     auto ir_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .with_generated_solver(ir_solver)
             .on(this->exec);
 
@@ -262,14 +262,14 @@ TYPED_TEST(Ir, CanSetInnerSolver)
     std::shared_ptr<Solver> ir_solver =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(this->mtx);
 
     auto ir_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec);
     auto solver = ir_factory->generate(this->mtx);
     solver->set_solver(ir_solver);
@@ -311,14 +311,14 @@ TYPED_TEST(Ir, ThrowOnWrongInnerSolverSet)
     std::shared_ptr<Solver> ir_solver =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(wrong_sized_mtx);
 
     auto ir_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec);
     auto solver = ir_factory->generate(this->mtx);
 
@@ -346,10 +346,10 @@ TYPED_TEST(Ir, DefaultRelaxationFactor)
     auto richardson =
         gko::solver::Richardson<value_type>::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec),
+                gko::stop::Iteration::build().with_max_iters(3u),
                 gko::stop::ResidualNorm<value_type>::build()
                     .with_reduction_factor(r<value_type>::value)
-                    .on(this->exec))
+                    )
             .on(this->exec)
             ->generate(this->mtx);
 
@@ -365,10 +365,10 @@ TYPED_TEST(Ir, UseAsRichardson)
     auto richardson =
         gko::solver::Richardson<value_type>::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec),
+                gko::stop::Iteration::build().with_max_iters(3u),
                 gko::stop::ResidualNorm<value_type>::build()
                     .with_reduction_factor(r<value_type>::value)
-                    .on(this->exec))
+                    )
             .with_relaxation_factor(relaxation_factor)
             .on(this->exec)
             ->generate(this->mtx);

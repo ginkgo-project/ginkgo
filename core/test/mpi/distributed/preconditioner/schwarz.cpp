@@ -123,9 +123,8 @@ TYPED_TEST(SchwarzFactory, CanBeCopied)
     using Jacobi = typename TestFixture::Jacobi;
     using Schwarz = typename TestFixture::Schwarz;
     using Mtx = typename TestFixture::Mtx;
-    auto bj = gko::share(Jacobi::build().on(this->exec));
     auto copy = Schwarz::build()
-                    .with_local_solver(bj)
+                    .with_local_solver(Jacobi::build())
                     .on(this->exec)
                     ->generate(Mtx::create(this->exec, MPI_COMM_WORLD));
 
@@ -141,9 +140,8 @@ TYPED_TEST(SchwarzFactory, CanBeMoved)
     using Schwarz = typename TestFixture::Schwarz;
     using Mtx = typename TestFixture::Mtx;
     auto tmp = clone(this->schwarz);
-    auto bj = gko::share(Jacobi::build().on(this->exec));
     auto copy = Schwarz::build()
-                    .with_local_solver(bj)
+                    .with_local_solver(Jacobi::build())
                     .on(this->exec)
                     ->generate(Mtx::create(this->exec, MPI_COMM_WORLD));
 

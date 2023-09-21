@@ -133,13 +133,13 @@ TEST_F(Ir, ApplyWithIterativeInnerSolverIsEquivalentToRef)
     auto ir_factory =
         gko::solver::Ir<value_type>::build()
             .with_solver(gko::solver::Gmres<value_type>::build().with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(ref)))
+                gko::stop::Iteration::build().with_max_iters(1u)))
             .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
             .on(ref);
     auto d_ir_factory =
         gko::solver::Ir<value_type>::build()
             .with_solver(gko::solver::Gmres<value_type>::build().with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(exec)))
+                gko::stop::Iteration::build().with_max_iters(1u)))
             .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
             .on(exec);
     auto solver = ir_factory->generate(std::move(mtx));
@@ -197,14 +197,14 @@ TEST_F(Ir, RichardsonApplyWithIterativeInnerSolverIsEquivalentToRef)
     auto ir_factory =
         gko::solver::Ir<value_type>::build()
             .with_solver(gko::solver::Gmres<value_type>::build().with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(ref)))
+                gko::stop::Iteration::build().with_max_iters(1u)))
             .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
             .with_relaxation_factor(value_type{0.9})
             .on(ref);
     auto d_ir_factory =
         gko::solver::Ir<value_type>::build()
             .with_solver(gko::solver::Gmres<value_type>::build().with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(exec)))
+                gko::stop::Iteration::build().with_max_iters(1u)))
             .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
             .with_relaxation_factor(value_type{0.9})
             .on(exec);

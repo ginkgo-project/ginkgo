@@ -455,7 +455,7 @@ TYPED_TEST(Ir, ApplyWithGivenInitialGuessModeIsEquivalentToRef)
     auto ref_solver =
         gko::solver::Ir<value_type>::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(1u))
             .on(this->exec)
             ->generate(this->mtx);
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
@@ -464,8 +464,7 @@ TYPED_TEST(Ir, ApplyWithGivenInitialGuessModeIsEquivalentToRef)
         auto solver =
             gko::solver::Ir<value_type>::build()
                 .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(1u).on(
-                        this->exec))
+                    gko::stop::Iteration::build().with_max_iters(1u))
                 .with_default_initial_guess(guess)
                 .on(this->exec)
                 ->generate(this->mtx);

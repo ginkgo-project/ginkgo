@@ -162,13 +162,13 @@ TYPED_TEST(Idr, CanSetPreconditionerGenerator)
     auto idr_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .with_preconditioner(
                 Solver::build()
                     .with_criteria(
                         gko::stop::Iteration::build().with_max_iters(3u).on(
                             this->exec))
-                    .on(this->exec))
+                    )
             .on(this->exec);
 
     auto solver = idr_factory->generate(this->mtx);
@@ -209,14 +209,14 @@ TYPED_TEST(Idr, CanSetPreconditionerInFactory)
     std::shared_ptr<Solver> idr_precond =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(this->mtx);
 
     auto idr_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .with_generated_preconditioner(idr_precond)
             .on(this->exec);
     auto solver = idr_factory->generate(this->mtx);
@@ -236,14 +236,14 @@ TYPED_TEST(Idr, ThrowsOnWrongPreconditionerInFactory)
     std::shared_ptr<Solver> idr_precond =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(wrong_sized_mtx);
 
     auto idr_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .with_generated_preconditioner(idr_precond)
             .on(this->exec);
 
@@ -257,14 +257,14 @@ TYPED_TEST(Idr, CanSetPreconditioner)
     std::shared_ptr<Solver> idr_precond =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(this->mtx);
 
     auto idr_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec);
     auto solver = idr_factory->generate(this->mtx);
     solver->set_preconditioner(idr_precond);
@@ -283,7 +283,7 @@ TYPED_TEST(Idr, CanSetSubspaceDim)
         Solver::build()
             .with_subspace_dim(8u)
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(4u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(4u))
             .on(this->exec);
     auto solver = idr_factory->generate(this->mtx);
     auto subspace_dim = solver->get_subspace_dim();
@@ -320,7 +320,7 @@ TYPED_TEST(Idr, CanSetKappa)
         Solver::build()
             .with_kappa(real_type{0.05})
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(4u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(4u))
             .on(this->exec);
     auto solver = idr_factory->generate(this->mtx);
     auto kappa = solver->get_kappa();
@@ -359,7 +359,7 @@ TYPED_TEST(Idr, CanSetDeterministic)
         Solver::build()
             .with_deterministic(true)
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(4u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(4u))
             .on(this->exec);
     auto solver = idr_factory->generate(this->mtx);
     auto deterministic = solver->get_deterministic();
@@ -396,7 +396,7 @@ TYPED_TEST(Idr, CanSetComplexSubspace)
         Solver::build()
             .with_complex_subspace(true)
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(4u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(4u))
             .on(this->exec);
     auto solver = idr_factory->generate(this->mtx);
     auto complex_subspace = solver->get_complex_subspace();
