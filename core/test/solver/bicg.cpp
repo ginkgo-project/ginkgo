@@ -194,15 +194,13 @@ TYPED_TEST(Bicg, CanSetPreconditionerInFactory)
     using Solver = typename TestFixture::Solver;
     std::shared_ptr<Solver> bicg_precond =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(this->mtx);
 
     auto bicg_factory =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .with_generated_preconditioner(bicg_precond)
             .on(this->exec);
     auto solver = bicg_factory->generate(this->mtx);
@@ -245,15 +243,13 @@ TYPED_TEST(Bicg, ThrowsOnWrongPreconditionerInFactory)
         Mtx::create(this->exec, gko::dim<2>{2, 2});
     std::shared_ptr<Solver> bicg_precond =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(wrong_sized_mtx);
 
     auto bicg_factory =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .with_generated_preconditioner(bicg_precond)
             .on(this->exec);
 
@@ -278,15 +274,13 @@ TYPED_TEST(Bicg, CanSetPreconditioner)
     using Solver = typename TestFixture::Solver;
     std::shared_ptr<Solver> bicg_precond =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(this->mtx);
 
     auto bicg_factory =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec);
     auto solver = bicg_factory->generate(this->mtx);
     solver->set_preconditioner(bicg_precond);

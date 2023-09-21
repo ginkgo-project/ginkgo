@@ -406,8 +406,7 @@ protected:
                 .with_post_uses_pre(false)
                 .with_mid_case(mid_case)
                 .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(1u).on(
-                        this->exec))
+                    gko::stop::Iteration::build().with_max_iters(1u))
                 .with_cycle(cycle)
                 .with_min_coarse_rows(1u)
                 .on(this->exec));
@@ -428,8 +427,7 @@ protected:
                 .with_post_uses_pre(true)
                 .with_mid_case(mid_case)
                 .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(1u).on(
-                        this->exec))
+                    gko::stop::Iteration::build().with_max_iters(1u))
                 .with_cycle(cycle)
                 .with_min_coarse_rows(1u)
                 .on(this->exec));
@@ -1266,7 +1264,7 @@ TYPED_TEST(Multigrid, ZeroGuessIgnoresInput)
             .with_max_levels(2u)
             .with_mg_level(this->coarse_factory)
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(1u))
             .with_min_coarse_rows(1u);
     auto normal_mg = common_part
                          .with_default_initial_guess(

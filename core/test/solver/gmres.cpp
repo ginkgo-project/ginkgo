@@ -180,16 +180,16 @@ TYPED_TEST(Gmres, CanSetPreconditionerGenerator)
     auto gmres_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec),
+                gko::stop::Iteration::build().with_max_iters(3u),
                 gko::stop::ResidualNorm<value_type>::build()
                     .with_reduction_factor(TestFixture::reduction_factor)
-                    .on(this->exec))
+                    )
             .with_preconditioner(
                 Solver::build()
                     .with_criteria(
                         gko::stop::Iteration::build().with_max_iters(3u).on(
                             this->exec))
-                    .on(this->exec))
+                    )
             .on(this->exec);
     auto solver = gmres_factory->generate(this->mtx);
     auto precond = dynamic_cast<const gko::solver::Gmres<value_type>*>(
@@ -236,10 +236,10 @@ TYPED_TEST(Gmres, CanSetKrylovDim)
         Solver::build()
             .with_krylov_dim(4u)
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(4u).on(this->exec),
+                gko::stop::Iteration::build().with_max_iters(4u),
                 gko::stop::ResidualNorm<value_type>::build()
                     .with_reduction_factor(TestFixture::reduction_factor)
-                    .on(this->exec))
+                    )
             .on(this->exec);
     auto solver = gmres_factory->generate(this->mtx);
     auto krylov_dim = solver->get_krylov_dim();
@@ -273,14 +273,14 @@ TYPED_TEST(Gmres, CanSetPreconditionerInFactory)
     std::shared_ptr<Solver> gmres_precond =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(this->mtx);
 
     auto gmres_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .with_generated_preconditioner(gmres_precond)
             .on(this->exec);
     auto solver = gmres_factory->generate(this->mtx);
@@ -300,14 +300,14 @@ TYPED_TEST(Gmres, ThrowsOnWrongPreconditionerInFactory)
     std::shared_ptr<Solver> gmres_precond =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(wrong_sized_mtx);
 
     auto gmres_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .with_generated_preconditioner(gmres_precond)
             .on(this->exec);
 
@@ -333,14 +333,14 @@ TYPED_TEST(Gmres, CanSetPreconditioner)
     std::shared_ptr<Solver> gmres_precond =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(this->mtx);
 
     auto gmres_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec);
     auto solver = gmres_factory->generate(this->mtx);
     solver->set_preconditioner(gmres_precond);

@@ -164,17 +164,17 @@ TYPED_TEST(Cgs, CanSetPreconditionerGenerator)
     auto cgs_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec),
+                gko::stop::Iteration::build().with_max_iters(3u),
                 gko::stop::ResidualNorm<value_type>::build()
                     .with_reduction_factor(
                         gko::remove_complex<value_type>(1e-6))
-                    .on(this->exec))
+                    )
             .with_preconditioner(
                 Solver::build()
                     .with_criteria(
                         gko::stop::Iteration::build().with_max_iters(3u).on(
                             this->exec))
-                    .on(this->exec))
+                    )
             .on(this->exec);
     auto solver = cgs_factory->generate(this->mtx);
     auto precond = dynamic_cast<const gko::solver::Cgs<value_type>*>(
@@ -218,14 +218,14 @@ TYPED_TEST(Cgs, CanSetPreconditionerInFactory)
     std::shared_ptr<Solver> cgs_precond =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(this->mtx);
 
     auto cgs_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .with_generated_preconditioner(cgs_precond)
             .on(this->exec);
     auto solver = cgs_factory->generate(this->mtx);
@@ -245,14 +245,14 @@ TYPED_TEST(Cgs, ThrowsOnWrongPreconditionerInFactory)
     std::shared_ptr<Solver> cgs_precond =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(wrong_sized_mtx);
 
     auto cgs_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .with_generated_preconditioner(cgs_precond)
             .on(this->exec);
 
@@ -278,14 +278,14 @@ TYPED_TEST(Cgs, CanSetPreconditioner)
     std::shared_ptr<Solver> cgs_precond =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(this->mtx);
 
     auto cgs_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec);
     auto solver = cgs_factory->generate(this->mtx);
     solver->set_preconditioner(cgs_precond);

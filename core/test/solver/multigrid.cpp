@@ -287,7 +287,7 @@ TYPED_TEST(Multigrid, ApplyUsesInitialGuessReturnsFalseWhenZeroGuess)
     auto multigrid_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .with_max_levels(2u)
             .with_coarsest_solver(this->lo_factory)
             .with_pre_smoother(this->lo_factory)

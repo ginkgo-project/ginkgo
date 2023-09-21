@@ -194,16 +194,16 @@ TYPED_TEST(Gcr, CanSetPreconditionerGenerator)
     auto gcr_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec),
+                gko::stop::Iteration::build().with_max_iters(3u),
                 gko::stop::ResidualNorm<value_type>::build()
                     .with_reduction_factor(TestFixture::reduction_factor)
-                    .on(this->exec))
+                    )
             .with_preconditioner(
                 Solver::build()
                     .with_criteria(
                         gko::stop::Iteration::build().with_max_iters(3u).on(
                             this->exec))
-                    .on(this->exec))
+                    )
             .on(this->exec);
     auto solver = gcr_factory->generate(this->mtx);
     auto precond = dynamic_cast<const gko::solver::Gcr<value_type>*>(
@@ -249,10 +249,10 @@ TYPED_TEST(Gcr, CanSetKrylovDim)
         Solver::build()
             .with_krylov_dim(4u)
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(4u).on(this->exec),
+                gko::stop::Iteration::build().with_max_iters(4u),
                 gko::stop::ResidualNorm<value_type>::build()
                     .with_reduction_factor(TestFixture::reduction_factor)
-                    .on(this->exec))
+                    )
             .on(this->exec);
     auto solver = gcr_factory->generate(this->mtx);
     auto krylov_dim = solver->get_krylov_dim();
@@ -286,14 +286,14 @@ TYPED_TEST(Gcr, CanSetPreconditionerInFactory)
     std::shared_ptr<Solver> gcr_precond =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(this->mtx);
 
     auto gcr_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .with_generated_preconditioner(gcr_precond)
             .on(this->exec);
     auto solver = gcr_factory->generate(this->mtx);
@@ -313,14 +313,14 @@ TYPED_TEST(Gcr, ThrowsOnWrongPreconditionerInFactory)
     std::shared_ptr<Solver> gcr_precond =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(wrong_sized_mtx);
 
     auto gcr_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .with_generated_preconditioner(gcr_precond)
             .on(this->exec);
 
@@ -346,14 +346,14 @@ TYPED_TEST(Gcr, CanSetPreconditioner)
     std::shared_ptr<Solver> gcr_precond =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(this->mtx);
 
     auto gcr_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec);
     auto solver = gcr_factory->generate(this->mtx);
     solver->set_preconditioner(gcr_precond);

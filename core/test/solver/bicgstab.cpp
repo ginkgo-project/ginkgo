@@ -160,13 +160,13 @@ TYPED_TEST(Bicgstab, CanSetPreconditionerGenerator)
     auto bicgstab_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .with_preconditioner(
                 Solver::build()
                     .with_criteria(
                         gko::stop::Iteration::build().with_max_iters(3u).on(
                             this->exec))
-                    .on(this->exec))
+                    )
             .on(this->exec);
 
     auto solver = bicgstab_factory->generate(this->mtx);
@@ -208,14 +208,14 @@ TYPED_TEST(Bicgstab, CanSetPreconditionerInFactory)
     std::shared_ptr<Solver> bicgstab_precond =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(this->mtx);
 
     auto bicgstab_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .with_generated_preconditioner(bicgstab_precond)
             .on(this->exec);
     auto solver = bicgstab_factory->generate(this->mtx);
@@ -235,14 +235,14 @@ TYPED_TEST(Bicgstab, ThrowsOnWrongPreconditionerInFactory)
     std::shared_ptr<Solver> bicgstab_precond =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(wrong_sized_mtx);
 
     auto bicgstab_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .with_generated_preconditioner(bicgstab_precond)
             .on(this->exec);
 
@@ -268,14 +268,14 @@ TYPED_TEST(Bicgstab, CanSetPreconditioner)
     std::shared_ptr<Solver> bicgstab_precond =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(this->mtx);
 
     auto bicgstab_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec);
     auto solver = bicgstab_factory->generate(this->mtx);
     solver->set_preconditioner(bicgstab_precond);
