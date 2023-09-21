@@ -30,42 +30,22 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <cuda_runtime.h>
+#ifndef GKO_CORE_TEST_GTEST_RESOURCES_HPP_
+#define GKO_CORE_TEST_GTEST_RESOURCES_HPP_
 
 
-#include <ginkgo/core/base/exception_helpers.hpp>
+#include <gtest/gtest.h>
 
 
-#include "cuda/base/device.hpp"
-#include "cuda/base/scoped_device_id.hpp"
+class ResourceEnvironment : public ::testing::Environment {
+public:
+    explicit ResourceEnvironment(int rank = 0, int size = 1);
+
+    static int omp_threads;
+    static int cuda_device_id;
+    static int hip_device_id;
+    static int sycl_device_id;
+};
 
 
-namespace gko {
-namespace kernels {
-namespace cuda {
-
-
-void reset_device(int device_id)
-{
-    gko::detail::cuda_scoped_device_id_guard guard{device_id};
-    cudaDeviceReset();
-}
-
-
-void destroy_event(CUevent_st* event)
-{
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaEventDestroy(event));
-}
-
-
-std::string get_device_name(int device_id)
-{
-    cudaDeviceProp prop;
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDeviceProperties(&prop, device_id));
-    return {prop.name};
-}
-
-
-}  // namespace cuda
-}  // namespace kernels
-}  // namespace gko
+#endif  // GKO_CORE_TEST_GTEST_RESOURCES_HPP_

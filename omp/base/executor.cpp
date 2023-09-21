@@ -30,61 +30,23 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_CORE_BASE_FWD_DEFS_HPP_
-#define GKO_PUBLIC_CORE_BASE_FWD_DEFS_HPP_
+#include <ginkgo/core/base/executor.hpp>
 
 
-#include <ginkgo/config.hpp>
+#include <omp.h>
 
 
-struct cublasContext;
-
-struct cusparseContext;
-
-struct CUstream_st;
-
-struct CUevent_st;
-
-struct hipblasContext;
-
-struct hipsparseContext;
-
-#if GINKGO_HIP_PLATFORM_HCC
-struct ihipStream_t;
-struct ihipEvent_t;
-#define GKO_HIP_STREAM_STRUCT ihipStream_t
-#define GKO_HIP_EVENT_STRUCT ihipEvent_t
-#else
-#define GKO_HIP_STREAM_STRUCT CUstream_st
-#define GKO_HIP_EVENT_STRUCT CUevent_st
-#endif
+namespace gko {
 
 
-// after intel/llvm September'22 release, which uses major version 6, they
-// introduce another inline namespace _V1.
-#if GINKGO_DPCPP_MAJOR_VERSION >= 6
-namespace sycl {
-inline namespace _V1 {
+int OmpExecutor::get_num_omp_threads()
+{
+    int num_threads;
+#pragma omp parallel
+#pragma omp single
+    num_threads = omp_get_num_threads();
+    return num_threads;
+}
 
 
-class queue;
-class event;
-
-
-}  // namespace _V1
-}  // namespace sycl
-#else  // GINKGO_DPCPP_MAJOR_VERSION < 6
-inline namespace cl {
-namespace sycl {
-
-
-class queue;
-class event;
-
-
-}  // namespace sycl
-}  // namespace cl
-#endif
-
-
-#endif  // GKO_PUBLIC_CORE_BASE_FWD_DEFS_HPP_
+}  // namespace gko

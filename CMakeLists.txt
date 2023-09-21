@@ -89,6 +89,8 @@ option(GINKGO_INSTALL_RPATH_ORIGIN "Add $ORIGIN (Linux) or @loader_path (MacOS) 
 option(GINKGO_INSTALL_RPATH_DEPENDENCIES "Add dependencies to the installation RPATH." OFF)
 option(GINKGO_FORCE_GPU_AWARE_MPI "Assert that the MPI library is GPU aware. This forces Ginkgo to assume that GPU aware functionality is available (OFF (default) or ON), but may fail
      catastrophically in case the MPI implementation is not GPU Aware, and GPU aware functionality has been forced" OFF)
+set(GINKGO_CI_TEST_OMP_PARALLELISM "4" CACHE STRING
+    "The number of OpenMP threads to use for a test binary during CTest resource file-constrained test.")
 
 # load executor-specific configuration
 if(GINKGO_BUILD_CUDA)
