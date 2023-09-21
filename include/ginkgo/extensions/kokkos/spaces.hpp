@@ -186,16 +186,20 @@ inline void assert_compatibility(T&& obj, MemorySpace space)
  */
 inline std::shared_ptr<Executor> create_default_host_executor()
 {
+    static std::mutex mutex{};
+    std::lock_guard<std::mutex> guard(mutex);
 #ifdef KOKKOS_ENABLE_SERIAL
     if constexpr (std::is_same_v<Kokkos::DefaultHostExecutionSpace,
                                  Kokkos::Serial>) {
-        return ReferenceExecutor::create();
+        static auto exec = ReferenceExecutor::create();
+        return exec;
     }
 #endif
 #ifdef KOKKOS_ENABLE_OPENMP
     if constexpr (std::is_same_v<Kokkos::DefaultHostExecutionSpace,
                                  Kokkos::OpenMP>) {
-        return OmpExecutor::create();
+        static auto exec = OmpExecutor::create();
+        return exec;
     }
 #endif
     GKO_NOT_IMPLEMENTED;
@@ -225,54 +229,64 @@ inline std::shared_ptr<Executor> create_executor(ExecSpace, MemorySpace = {})
 {
     static_assert(
         Kokkos::SpaceAccessibility<ExecSpace, MemorySpace>::accessible);
+    static std::mutex mutex{};
+    std::lock_guard<std::mutex> guard(mutex);
 #ifdef KOKKOS_ENABLE_SERIAL
     if constexpr (std::is_same_v<ExecSpace, Kokkos::Serial>) {
-        return ReferenceExecutor::create();
+        static auto exec = ReferenceExecutor::create();
+        return exec;
     }
 #endif
 #ifdef KOKKOS_ENABLE_OPENMP
     if constexpr (std::is_same_v<ExecSpace, Kokkos::OpenMP>) {
-        return OmpExecutor::create();
+        static auto exec = OmpExecutor::create();
+        return exec;
     }
 #endif
 #ifdef KOKKOS_ENABLE_CUDA
     if constexpr (std::is_same_v<ExecSpace, Kokkos::Cuda>) {
         if constexpr (std::is_same_v<MemorySpace, Kokkos::CudaSpace>) {
-            return CudaExecutor::create(Kokkos::device_id(),
-                                        create_default_host_executor(),
-                                        std::make_shared<gko::CudaAllocator>());
+            static auto exec = Cuda::create(
+                Kokkos::device_id(), create_default_host_executor(),
+                std::make_shared<gko::CudaAllocator>());
+            return exec;
         }
         if constexpr (std::is_same_v<MemorySpace, Kokkos::CudaUVMSpace>) {
-            return CudaExecutor::create(
+            static auto exec = CudaExecutor::create(
                 Kokkos::device_id(), create_default_host_executor(),
                 std::make_shared<gko::CudaUnifiedAllocator>(
                     Kokkos::device_id()));
+            return exec;
         }
         if constexpr (std::is_same_v<MemorySpace,
                                      Kokkos::CudaHostPinnedSpace>) {
-            return CudaExecutor::create(
+            static auto exec = CudaExecutor::create(
                 Kokkos::device_id(), create_default_host_executor(),
                 std::make_shared<gko::CudaHostAllocator>(Kokkos::device_id()));
+            return exec;
         }
     }
 #endif
 #ifdef KOKKOS_ENABLE_HIP
     if constexpr (std::is_same_v<ExecSpace, Kokkos::HIP>) {
         if constexpr (std::is_same_v<MemorySpace, Kokkos::HIPSpace>) {
-            return HipExecutor::create(Kokkos::device_id(),
-                                       create_default_host_executor(),
-                                       std::make_shared<gko::HipAllocator>());
+            static auto exec = HipExecutor::create(
+                Kokkos::device_id(), create_default_host_executor(),
+                std::make_shared<gko::HipAllocator>());
+            return exec;
         }
         if constexpr (std::is_same_v<MemorySpace, Kokkos::HIPManagedSpace>) {
-            return HipExecutor::create(
+            static auto exec = HipExecutor::create(
                 Kokkos::device_id(), create_default_host_executor(),
                 std::make_shared<gko::HipUnifiedAllocator>(
                     Kokkos::device_id()));
+            return exec;
         }
         if constexpr (std::is_same_v<MemorySpace, Kokkos::HIPHostPinnedSpace>) {
-            return HipExecutor::create(
+            static auto exec = HipExecutor::create(
                 Kokkos::device_id(), create_default_host_executor(),
                 std::make_shared<gko::HipHostAllocator>(Kokkos::device_id()));
+            return exec;
         }
     }
 #endif
@@ -281,8 +295,9 @@ inline std::shared_ptr<Executor> create_executor(ExecSpace, MemorySpace = {})
         static_assert(
             std::is_same_v<MemorySpace, Kokkos::Experimental::SYCLSpace>,
             "Ginkgo doesn't support shared memory space allocation for SYCL");
-        return DpcppExecutor::create(Kokkos::device_id(),
-                                     create_default_host_executor());
+        static auto exec = DpcppExecutor::create(
+            Kokkos::device_id(), create_default_host_executor());
+        return exec;
     }
 #endif
     GKO_NOT_IMPLEMENTED;
