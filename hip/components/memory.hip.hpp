@@ -52,14 +52,14 @@ namespace hip {
 
 
 template <typename ValueType>
-__device__ __forceinline__ ValueType load_relaxed(ValueType* ptr)
+__device__ __forceinline__ ValueType load_relaxed(const ValueType* ptr)
 {
     return load(ptr, 0);
 }
 
 
 template <typename ValueType>
-__device__ __forceinline__ ValueType load_acquire(ValueType* ptr)
+__device__ __forceinline__ ValueType load_acquire(const ValueType* ptr)
 {
     auto result = load(ptr, 0);
     __threadfence();
@@ -82,14 +82,14 @@ __device__ __forceinline__ void store_release(ValueType* ptr, ValueType value)
 
 
 template <typename ValueType>
-__device__ __forceinline__ ValueType load_relaxed_shared(ValueType* ptr)
+__device__ __forceinline__ ValueType load_relaxed_shared(const ValueType* ptr)
 {
     return load(ptr, 0);
 }
 
 
 template <typename ValueType>
-__device__ __forceinline__ ValueType load_acquire_shared(ValueType* ptr)
+__device__ __forceinline__ ValueType load_acquire_shared(const ValueType* ptr)
 {
     auto result = load(ptr, 0);
     __threadfence();

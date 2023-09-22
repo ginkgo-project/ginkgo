@@ -1,11 +1,46 @@
 #!/usr/bin/env python3
-import os
-memory_spaces = [(".shared", ".cta", "_shared", "convert_generic_ptr_to_smem_ptr(ptr)", "r"), ("", ".gpu", "", "ptr", "l")]
+import dataclasses
+
+
+@dataclasses.dataclass
+class space:
+    ptx_space_suffix: str
+    ptx_scope_suffix: str
+    fn_suffix: str
+    ptr_expr: str
+    ptr_constraint: str
+
+
+@dataclasses.dataclass
+class ordering:
+    ptx_load_suffix: str
+    fn_load_suffix: str
+    ptx_store_suffix: str
+    fn_store_suffix: str
+    is_relaxed: bool
+
+
+@dataclasses.dataclass
+class type_desc:
+    ptx_type_suffix: str
+    val_constraint: str
+    name: str
+
+
+memory_spaces = [
+    space(ptx_space_suffix=".shared", ptx_scope_suffix=".cta", fn_suffix="_shared",
+          ptr_expr="convert_generic_ptr_to_smem_ptr((void*)ptr)", ptr_constraint="r"),
+    space(ptx_space_suffix="", ptx_scope_suffix=".gpu", fn_suffix="", ptr_expr="(void*)ptr", ptr_constraint="l")]
 memory_orderings = [
-    (".relaxed", "_relaxed", ".relaxed", "_relaxed", True),
-    (".acquire", "_acquire", ".release", "_release", False)
-    ]
-sizes=[(".b32", "r", "int32", 4), (".b64", "l", "int64", 8), (".f32", "f", "float", 4), (".f64", "d", "double", 8)]
+    ordering(ptx_load_suffix=".relaxed", fn_load_suffix="_relaxed",
+             ptx_store_suffix=".relaxed", fn_store_suffix="_relaxed", is_relaxed=True),
+    ordering(ptx_load_suffix=".acquire", fn_load_suffix="_acquire",
+             ptx_store_suffix=".release", fn_store_suffix="_release", is_relaxed=False)
+]
+types = [type_desc(ptx_type_suffix=".b32", val_constraint="r", name="int32"),
+         type_desc(ptx_type_suffix=".b64", val_constraint="l", name="int64"),
+         type_desc(ptx_type_suffix=".f32", val_constraint="f", name="float"),
+         type_desc(ptx_type_suffix=".f64", val_constraint="d", name="double")]
 # header
 print("""/*******************************<GINKGO LICENSE>******************************
 Copyright (c) 2017-2023, the Ginkgo authors
@@ -57,6 +92,13 @@ namespace kernels {
 namespace cuda {
 
 
+/**
+ * Transforms a generic CUDA pointer pointing to shared memory to a
+ * shared memory pointer for use in PTX assembly.
+ * CUDA PTX assembly uses 32bit pointers for shared memory addressing.
+ * The result is undefined for a generic pointer pointing to anything but
+ * shared memory.
+ */
 __device__ __forceinline__ uint32 convert_generic_ptr_to_smem_ptr(void* ptr)
 {
 // see
@@ -104,23 +146,23 @@ __device__ __forceinline__ uint32 membar_acq_rel_shared()
 """)
 
 # relaxed
-for memory_space_suffix, scope_suffix, function_memory_space_suffix, ptr_name, ptr_constraint in memory_spaces:
-    for volta_load_ordering_suffix, load_function_ordering_suffix, volta_store_ordering_suffix, store_function_ordering_suffix, is_relaxed in memory_orderings:
-        for size_suffix, constraint, typename, size in sizes:
-            membar_expression = "" if is_relaxed else f"membar_acq_rel{function_memory_space_suffix}();"
+for s in memory_spaces:
+    for o in memory_orderings:
+        for t in types:
+            membar_expression = "" if o.is_relaxed else f"membar_acq_rel{s.fn_suffix}();"
             print(f"""
-__device__ __forceinline__ {typename} load{load_function_ordering_suffix}{function_memory_space_suffix}({typename}* ptr)
+__device__ __forceinline__ {t.name} load{o.fn_load_suffix}{s.fn_suffix}(const {t.name}* ptr)
 {{
-    {typename} result;
+    {t.name} result;
 #if __CUDA_ARCH__ < 700
-    asm volatile("ld.volatile{memory_space_suffix}{size_suffix} %0, [%1];"
-                 : "={constraint}"(result)
-                 : "{ptr_constraint}"({ptr_name})
+    asm volatile("ld.volatile{s.ptx_space_suffix}{t.ptx_type_suffix} %0, [%1];"
+                 : "={t.val_constraint}"(result)
+                 : "{s.ptr_constraint}"({s.ptr_expr})
                  : "memory");
 #else
-    asm volatile("ld{volta_load_ordering_suffix}{scope_suffix}{memory_space_suffix}{size_suffix} %0, [%1];"
-                 : "={constraint}"(result)
-                 : "{ptr_constraint}"({ptr_name})
+    asm volatile("ld{o.ptx_load_suffix}{s.ptx_scope_suffix}{s.ptx_space_suffix}{t.ptx_type_suffix} %0, [%1];"
+                 : "={t.val_constraint}"(result)
+                 : "{s.ptr_constraint}"({s.ptr_expr})
                  : "memory");
 #endif
     {membar_expression}
@@ -128,56 +170,57 @@ __device__ __forceinline__ {typename} load{load_function_ordering_suffix}{functi
 }}
 
 
-__device__ __forceinline__ void store{store_function_ordering_suffix}{function_memory_space_suffix}({typename}* ptr, {typename} result)
+__device__ __forceinline__ void store{o.fn_store_suffix}{s.fn_suffix}({t.name}* ptr, {t.name} result)
 {{
     {membar_expression}
 #if __CUDA_ARCH__ < 700
-    asm volatile("st.volatile{memory_space_suffix}{size_suffix} [%0], %1;"
-                 :: "{ptr_constraint}"({ptr_name}), "{constraint}"(result)
+    asm volatile("st.volatile{s.ptx_space_suffix}{t.ptx_type_suffix} [%0], %1;"
+                 :: "{s.ptr_constraint}"({s.ptr_expr}), "{t.val_constraint}"(result)
                  : "memory");
 #else
-    asm volatile("st{volta_store_ordering_suffix}{scope_suffix}{memory_space_suffix}{size_suffix} [%0], %1;"
-                 :: "{ptr_constraint}"({ptr_name}), "{constraint}"(result)
+    asm volatile("st{o.ptx_store_suffix}{s.ptx_scope_suffix}{s.ptx_space_suffix}{t.ptx_type_suffix} [%0], %1;"
+                 :: "{s.ptr_constraint}"({s.ptr_expr}), "{t.val_constraint}"(result)
                  : "memory");
 #endif
 }}
 """)
 
 # vectorized relaxed loads for thrust::complex
-sizes=[(".f32", "f", "float", 4), (".f64", "d", "double", 8)]
-for memory_space_suffix, scope_suffix, function_memory_space_suffix, ptr_name, ptr_constraint in memory_spaces:
-    for size_suffix, constraint, typename, size in sizes:
+types = [type_desc(ptx_type_suffix=".f32", val_constraint="f", name="float"),
+         type_desc(ptx_type_suffix=".f64", val_constraint="d", name="double")]
+for s in memory_spaces:
+    for t in types:
         print(f"""
-__device__ __forceinline__ thrust::complex<{typename}> load_relaxed{function_memory_space_suffix}(thrust::complex<{typename}>* ptr)
+__device__ __forceinline__ thrust::complex<{t.name}> load_relaxed{s.fn_suffix}(const thrust::complex<{t.name}>* ptr)
 {{
-    {typename} real_result;
-    {typename} imag_result;
+    {t.name} real_result;
+    {t.name} imag_result;
 #if __CUDA_ARCH__ < 700
-    asm volatile("ld.volatile{memory_space_suffix}.v2{size_suffix} {{%0, %1}}, [%2];"
-                 : "={constraint}"(real_result), "={constraint}"(imag_result)
-                 : "{ptr_constraint}"({ptr_name})
+    asm volatile("ld.volatile{s.ptx_space_suffix}.v2{t.ptx_type_suffix} {{%0, %1}}, [%2];"
+                 : "={t.val_constraint}"(real_result), "={t.val_constraint}"(imag_result)
+                 : "{s.ptr_constraint}"({s.ptr_expr})
                  : "memory");
 #else
-    asm volatile("ld.relaxed{scope_suffix}{memory_space_suffix}.v2{size_suffix} {{%0, %1}}, [%2];"
-                 : "={constraint}"(real_result), "={constraint}"(imag_result)
-                 : "{ptr_constraint}"({ptr_name})
+    asm volatile("ld.relaxed{s.ptx_scope_suffix}{s.ptx_space_suffix}.v2{t.ptx_type_suffix} {{%0, %1}}, [%2];"
+                 : "={t.val_constraint}"(real_result), "={t.val_constraint}"(imag_result)
+                 : "{s.ptr_constraint}"({s.ptr_expr})
                  : "memory");
 #endif
-    return thrust::complex<{typename}>{{real_result, imag_result}};
+    return thrust::complex<{t.name}>{{real_result, imag_result}};
 }}
 
 
-__device__ __forceinline__ void store_relaxed{function_memory_space_suffix}(thrust::complex<{typename}>* ptr, thrust::complex<{typename}> result)
+__device__ __forceinline__ void store_relaxed{s.fn_suffix}(thrust::complex<{t.name}>* ptr, thrust::complex<{t.name}> result)
 {{
     auto real_result = result.real();
     auto imag_result = result.imag();
 #if __CUDA_ARCH__ < 700
-    asm volatile("st.volatile{memory_space_suffix}.v2{size_suffix} [%0], {{%1, %2}};"
-                 :: "{ptr_constraint}"({ptr_name}), "{constraint}"(real_result), "{constraint}"(imag_result)
+    asm volatile("st.volatile{s.ptx_space_suffix}.v2{t.ptx_type_suffix} [%0], {{%1, %2}};"
+                 :: "{s.ptr_constraint}"({s.ptr_expr}), "{t.val_constraint}"(real_result), "{t.val_constraint}"(imag_result)
                  : "memory");
 #else
-    asm volatile("st.relaxed{scope_suffix}{memory_space_suffix}.v2{size_suffix} [%0], {{%1, %2}};"
-                 :: "{ptr_constraint}"({ptr_name}), "{constraint}"(real_result), "{constraint}"(imag_result)
+    asm volatile("st.relaxed{s.ptx_scope_suffix}{s.ptx_space_suffix}.v2{t.ptx_type_suffix} [%0], {{%1, %2}};"
+                 :: "{s.ptr_constraint}"({s.ptr_expr}), "{t.val_constraint}"(real_result), "{t.val_constraint}"(imag_result)
                  : "memory");
 #endif
 }}
