@@ -107,7 +107,19 @@ public:
         group::tiled_partition<subwarp_size>(group::this_thread_block()).sync();
     }
 
-    __device__ __forceinline__ bool peek(IndexType dependency) { return false; }
+    __device__ __forceinline__ bool peek(IndexType dependency)
+    {
+        const auto dep_block = dependency / (block_size / subwarp_size);
+        const auto dep_local = dependency % (block_size / subwarp_size);
+        // assert(dependency < work_id);
+        if (dep_block == block_id) {
+            // peek at a local dependency
+            return load_acquire_shared(local.status + dep_local);
+        } else {
+            // peek at a global dependency
+            return load_acquire(global.status + dependency);
+        }
+    }
 
     __device__ __forceinline__ void mark_ready()
     {
