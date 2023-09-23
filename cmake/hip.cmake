@@ -227,7 +227,7 @@ set(GINKGO_HIPCC_OPTIONS ${GINKGO_HIP_COMPILER_FLAGS} "-std=c++14 -DGKO_COMPILIN
 set(GINKGO_HIP_NVCC_OPTIONS ${GINKGO_HIP_NVCC_COMPILER_FLAGS} ${GINKGO_HIP_NVCC_ARCH} ${GINKGO_HIP_NVCC_ADDITIONAL_FLAGS})
 set(GINKGO_HIP_CLANG_OPTIONS ${GINKGO_HIP_CLANG_COMPILER_FLAGS} ${GINKGO_AMD_ARCH_FLAGS})
 if(GINKGO_HIP_AMD_UNSAFE_ATOMIC AND HIP_VERSION VERSION_GREATER_EQUAL 5)
-    list(APPEND GINKGO_HIP_CLANG_OPTIONS -munsafe-fp-atomics)
+    list(APPEND GINKGO_HIP_CLANG_OPTIONS "-munsafe-fp-atomics -Wno-unused-command-line-argument")
 endif()
 # HIP's cmake support secretly carries around global state to remember
 # whether we created any shared libraries, and sets PIC flags accordingly.
