@@ -33,7 +33,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/fft.hpp>
 
 
+#include <hip/hip_runtime.h>
+#if HIP_VERSION >= 50200000
+#include <hipfft/hipfft.h>
+#else
 #include <hipfft.h>
+#endif
 
 
 #include <gtest/gtest.h>

@@ -34,9 +34,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <hip/hip_runtime.h>
+#if HIP_VERSION >= 50200000
+#include <hipblas/hipblas.h>
+#include <hiprand/hiprand.h>
+#include <hipsparse/hipsparse.h>
+#else
 #include <hipblas.h>
 #include <hiprand.h>
 #include <hipsparse.h>
+#endif
 
 
 #include <gtest/gtest.h>

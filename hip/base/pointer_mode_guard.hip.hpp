@@ -38,8 +38,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <hip/hip_runtime.h>
+#if HIP_VERSION >= 50200000
+#include <hipblas/hipblas.h>
+#include <hipsparse/hipsparse.h>
+#else
 #include <hipblas.h>
 #include <hipsparse.h>
+#endif
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
