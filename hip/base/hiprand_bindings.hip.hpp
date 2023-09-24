@@ -34,7 +34,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_HIP_BASE_HIPRAND_BINDINGS_HIP_HPP_
 
 
+#include <hip/hip_runtime.h>
+#if HIP_VERSION >= 50200000
+#include <hiprand/hiprand.h>
+#else
 #include <hiprand.h>
+#endif
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
