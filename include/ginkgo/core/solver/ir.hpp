@@ -205,19 +205,6 @@ public:
          */
         initial_guess_mode GKO_FACTORY_PARAMETER_SCALAR(
             default_initial_guess, initial_guess_mode::provided);
-
-        /**
-         *
-         */
-        std::unique_ptr<Factory> on(std::shared_ptr<const Executor> exec) const
-        {
-            auto parameters_copy = *this;
-            if (solver_generator_) {
-                parameters_copy.solver = solver_generator_.on(exec);
-            }
-            return parameters_copy.enable_iterative_solver_factory_parameters<
-                parameters_type, Factory>::on(exec);
-        }
     };
     GKO_ENABLE_LIN_OP_FACTORY(Ir, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

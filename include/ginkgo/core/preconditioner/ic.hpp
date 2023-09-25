@@ -145,6 +145,13 @@ public:
             deferred_factory_parameter<typename l_solver_type::Factory> solver)
         {
             this->l_solver_generator = std::move(solver);
+            this->deferred_factories["l_solver"] = [](const auto& exec,
+                                                      auto& params) {
+                if (!params.l_solver_generator.is_empty()) {
+                    params.l_solver_factory =
+                        params.l_solver_generator.on(exec);
+                }
+            };
             return *this;
         }
 
@@ -159,24 +166,14 @@ public:
             deferred_factory_parameter<LinOpFactory> factorization)
         {
             this->factorization_generator = std::move(factorization);
+            this->deferred_factories["factorization"] = [](const auto& exec,
+                                                           auto& params) {
+                if (!params.factorization_generator.is_empty()) {
+                    params.factorization_factory =
+                        params.factorization_generator.on(exec);
+                }
+            };
             return *this;
-        }
-
-        /**
-         *
-         */
-        std::unique_ptr<Factory> on(std::shared_ptr<const Executor> exec) const
-        {
-            auto parameters_copy = *this;
-            if (l_solver_generator) {
-                parameters_copy.l_solver_factory = l_solver_generator.on(exec);
-            }
-            if (factorization_generator) {
-                parameters_copy.factorization_factory =
-                    factorization_generator.on(exec);
-            }
-            return parameters_copy
-                .enable_parameters_type<parameters_type, Factory>::on(exec);
         }
 
     private:

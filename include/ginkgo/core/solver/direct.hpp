@@ -88,17 +88,6 @@ public:
 
         /** The factorization factory to use for generating the factors. */
         GKO_DEFERRED_FACTORY_PARAMETER(factorization, LinOpFactory);
-
-        /**
-         *
-         */
-        std::unique_ptr<Factory> on(std::shared_ptr<const Executor> exec) const
-        {
-            auto parameters_copy = *this;
-            parameters_copy.factorization = factorization_generator_.on(exec);
-            return parameters_copy
-                .enable_parameters_type<parameters_type, Factory>::on(exec);
-        }
     };
     GKO_ENABLE_LIN_OP_FACTORY(Direct, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

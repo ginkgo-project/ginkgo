@@ -398,43 +398,6 @@ public:
          */
         initial_guess_mode GKO_FACTORY_PARAMETER_SCALAR(
             default_initial_guess, initial_guess_mode::zero);
-
-        std::unique_ptr<Factory> on(std::shared_ptr<const Executor> exec) const
-        {
-            auto copy = *this;
-            if (!copy.mg_level_generator_.empty()) {
-                copy.mg_level.clear();
-                for (auto& generator : copy.mg_level_generator_) {
-                    copy.mg_level.push_back(generator.on(exec));
-                }
-            }
-            if (!copy.pre_smoother_generator_.empty()) {
-                copy.pre_smoother.clear();
-                for (auto& generator : copy.pre_smoother_generator_) {
-                    copy.pre_smoother.push_back(generator.on(exec));
-                }
-            }
-            if (!copy.mid_smoother_generator_.empty()) {
-                copy.mid_smoother.clear();
-                for (auto& generator : copy.mid_smoother_generator_) {
-                    copy.mid_smoother.push_back(generator.on(exec));
-                }
-            }
-            if (!copy.post_smoother_generator_.empty()) {
-                copy.post_smoother.clear();
-                for (auto& generator : copy.post_smoother_generator_) {
-                    copy.post_smoother.push_back(generator.on(exec));
-                }
-            }
-            if (!copy.coarsest_solver_generator_.empty()) {
-                copy.coarsest_solver.clear();
-                for (auto& generator : copy.coarsest_solver_generator_) {
-                    copy.coarsest_solver.push_back(generator.on(exec));
-                }
-            }
-            return copy.enable_iterative_solver_factory_parameters<
-                parameters_type, Factory>::on(exec);
-        }
     };
     GKO_ENABLE_LIN_OP_FACTORY(Multigrid, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

@@ -949,26 +949,6 @@ using EnableDefaultLinOpFactory =
     EnableDefaultFactory<ConcreteFactory, ConcreteLinOp, ParametersType,
                          PolymorphicBase>;
 
-/**
- * This Macro will generate a new type containing the parameters for the factory
- * `_factory_name`. For more details, see #GKO_ENABLE_LIN_OP_FACTORY().
- * It is required to use this macro **before** calling the
- * macro #GKO_ENABLE_LIN_OP_FACTORY().
- * It is also required to use the same names for all parameters between both
- * macros.
- *
- * @param _parameters_name  name of the parameters member in the class
- * @param _factory_name  name of the generated factory type
- *
- * @ingroup LinOp
- */
-#define GKO_CREATE_FACTORY_PARAMETERS(_parameters_name, _factory_name)  \
-public:                                                                 \
-    class _factory_name;                                                \
-    struct _parameters_name##_type                                      \
-        : public ::gko::enable_parameters_type<_parameters_name##_type, \
-                                               _factory_name>
-
 
 /**
  * This macro will generate a default implementation of a LinOpFactory for the
