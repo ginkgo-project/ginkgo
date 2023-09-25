@@ -511,3 +511,8 @@ else()
     FILE(READ ${PROJECT_BINARY_DIR}/minimal.log GINKGO_LOG_SUMMARY)
 endif()
 MESSAGE(STATUS "${GINKGO_LOG_SUMMARY}")
+
+# make sure no build files get committed accidentally
+if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/.gitignore)
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/.gitignore "*")
+endif()
