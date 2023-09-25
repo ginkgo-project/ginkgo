@@ -279,6 +279,12 @@ protected:
      */
     std::vector<std::shared_ptr<const log::Logger>> loggers{};
 
+    /**
+     * Deferred factory parameter initialization functions that will be called
+     * in on(). Their names usually correspond to the variable names in the
+     * parameter type. They will be provided the executor and the parameter
+     * object currently being initialized from the generators.
+     */
     std::unordered_map<std::string,
                        std::function<void(std::shared_ptr<const Executor> exec,
                                           ConcreteParametersType&)>>
@@ -318,9 +324,10 @@ public:                                                                 \
 template <typename FactoryType>
 class deferred_factory_parameter {
 public:
+    /** Creates an empty deferred factory parameter. */
     deferred_factory_parameter() = default;
 
-    /** Creates an empty deferred factory parameter. */
+    /** Creates a deferred factory parameter returning a nullptr. */
     deferred_factory_parameter(std::nullptr_t)
     {
         generator_ = [](std::shared_ptr<const Executor>) { return nullptr; };
@@ -373,7 +380,10 @@ public:
         };
     }
 
-    /** Instantiates the deferred parameter into an actual factory. */
+    /**
+     * Instantiates the deferred parameter into an actual factory. This will
+     * throw if the deferred factory parameter is empty.
+     */
     std::shared_ptr<const FactoryType> on(
         std::shared_ptr<const Executor> exec) const
     {
