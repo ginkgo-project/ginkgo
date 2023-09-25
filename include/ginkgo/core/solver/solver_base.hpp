@@ -861,6 +861,10 @@ private:
 };
 
 
+/**
+ * The parameter type shared between all iterative solvers.
+ * @see GKO_CREATE_FACTORY_PARAMETERS
+ */
 struct iterative_solver_factory_parameters {
     /**
      * Stopping criteria to be used by the solver.
@@ -883,25 +887,16 @@ struct enable_iterative_solver_factory_parameters
         this->criterion_generators = {
             deferred_factory_parameter<stop::CriterionFactory>{
                 std::forward<Args>(value)}...};
+        this->deferred_factories["criteria"] = [](const auto& exec,
+                                                  auto& params) {
+            if (!params.criterion_generators.empty()) {
+                params.criteria.clear();
+                for (auto& generator : params.criterion_generators) {
+                    params.criteria.push_back(generator.on(exec));
+                }
+            }
+        };
         return *self();
-    }
-
-    /**
-     * @copydoc enable_solver_factory_parameters<Parameters, Factory>::on
-     *
-     * @note This variant instantiates stopping criteria that were provided
-     *       without calling `.on(exec)` before generating the factory.
-     */
-    std::unique_ptr<Factory> on(std::shared_ptr<const Executor> exec) const
-    {
-        auto copy = *self();
-        copy.criteria.clear();
-        for (auto& generator : criterion_generators) {
-            copy.criteria.push_back(generator.on(exec));
-        }
-        auto factory =
-            copy.enable_parameters_type<Parameters, Factory>::on(exec);
-        return factory;
     }
 
 private:
@@ -912,6 +907,11 @@ private:
 };
 
 
+/**
+ * The parameter type shared between all preconditioned iterative solvers,
+ * excluding the parameters available in iterative_solver_factory_parameters.
+ * @see GKO_CREATE_FACTORY_PARAMETERS
+ */
 struct preconditioned_iterative_solver_factory_parameters {
     /**
      * The preconditioner to be used by the iterative solver. By default, no
@@ -932,36 +932,34 @@ struct enable_preconditioned_iterative_solver_factory_parameters
     : enable_iterative_solver_factory_parameters<Parameters, Factory>,
       preconditioned_iterative_solver_factory_parameters {
     /**
-     *
+     * Provides a preconditioner factory to be used by the iterative solver in a
+     * fluent interface.
+     * @see preconditioned_iterative_solver_factory_parameters::preconditioner
      */
     Parameters& with_preconditioner(
         deferred_factory_parameter<LinOpFactory> preconditioner)
     {
         this->preconditioner_generator = std::move(preconditioner);
+        this->deferred_factories["preconditioner"] = [](const auto& exec,
+                                                        auto& params) {
+            if (!params.preconditioner_generator.is_empty()) {
+                params.preconditioner =
+                    params.preconditioner_generator.on(exec);
+            }
+        };
         return *self();
     }
 
     /**
-     *
+     * Provides a concrete preconditioner to be used by the iterative solver in
+     * a fluent interface.
+     * @see preconditioned_iterative_solver_factory_parameters::preconditioner
      */
     Parameters& with_generated_preconditioner(
         std::shared_ptr<const LinOp> generated_preconditioner)
     {
         this->generated_preconditioner = std::move(generated_preconditioner);
         return *self();
-    }
-
-    /**
-     *
-     */
-    std::unique_ptr<Factory> on(std::shared_ptr<const Executor> exec) const
-    {
-        auto parameters_copy = *self();
-        if (preconditioner_generator) {
-            parameters_copy.preconditioner = preconditioner_generator.on(exec);
-        }
-        return parameters_copy.enable_iterative_solver_factory_parameters<
-            Parameters, Factory>::on(exec);
     }
 
 private:

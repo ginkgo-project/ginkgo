@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_BASE_ABSTRACT_FACTORY_HPP_
 
 
+#include <unordered_map>
+
+
 #include <ginkgo/core/base/polymorphic_object.hpp>
 
 
@@ -257,7 +260,11 @@ public:
      */
     std::unique_ptr<Factory> on(std::shared_ptr<const Executor> exec) const
     {
-        auto factory = std::unique_ptr<Factory>(new Factory(exec, *self()));
+        ConcreteParametersType copy = *self();
+        for (const auto& item : deferred_factories) {
+            item.second(exec, copy);
+        }
+        auto factory = std::unique_ptr<Factory>(new Factory(exec, copy));
         for (auto& logger : loggers) {
             factory->add_logger(logger);
         };
@@ -271,7 +278,33 @@ protected:
      * Loggers to be attached to the factory and generated object.
      */
     std::vector<std::shared_ptr<const log::Logger>> loggers{};
+
+    std::unordered_map<std::string,
+                       std::function<void(std::shared_ptr<const Executor> exec,
+                                          ConcreteParametersType&)>>
+        deferred_factories;
 };
+
+
+/**
+ * This Macro will generate a new type containing the parameters for the factory
+ * `_factory_name`. For more details, see #GKO_ENABLE_LIN_OP_FACTORY().
+ * It is required to use this macro **before** calling the
+ * macro #GKO_ENABLE_LIN_OP_FACTORY().
+ * It is also required to use the same names for all parameters between both
+ * macros.
+ *
+ * @param _parameters_name  name of the parameters member in the class
+ * @param _factory_name  name of the generated factory type
+ *
+ * @ingroup LinOp
+ */
+#define GKO_CREATE_FACTORY_PARAMETERS(_parameters_name, _factory_name)  \
+public:                                                                 \
+    class _factory_name;                                                \
+    struct _parameters_name##_type                                      \
+        : public ::gko::enable_parameters_type<_parameters_name##_type, \
+                                               _factory_name>
 
 
 /**
@@ -288,7 +321,7 @@ public:
     deferred_factory_parameter() = default;
 
     /** Creates an empty deferred factory parameter. */
-    explicit deferred_factory_parameter(std::nullptr_t)
+    deferred_factory_parameter(std::nullptr_t)
     {
         generator_ = [](std::shared_ptr<const Executor>) { return nullptr; };
     }
@@ -301,8 +334,7 @@ public:
               std::enable_if_t<std::is_base_of<
                   FactoryType,
                   std::remove_const_t<ConcreteFactoryType>>::value>* = nullptr>
-    explicit deferred_factory_parameter(
-        std::shared_ptr<ConcreteFactoryType> factory)
+    deferred_factory_parameter(std::shared_ptr<ConcreteFactoryType> factory)
     {
         generator_ =
             [factory = std::shared_ptr<const FactoryType>(std::move(factory))](
@@ -317,7 +349,7 @@ public:
               std::enable_if_t<std::is_base_of<
                   FactoryType,
                   std::remove_const_t<ConcreteFactoryType>>::value>* = nullptr>
-    explicit deferred_factory_parameter(
+    deferred_factory_parameter(
         std::unique_ptr<ConcreteFactoryType, Deleter> factory)
     {
         generator_ =
@@ -333,7 +365,7 @@ public:
     template <typename ParametersType,
               typename = decltype(std::declval<ParametersType>().on(
                   std::shared_ptr<const Executor>{}))>
-    explicit deferred_factory_parameter(ParametersType parameters)
+    deferred_factory_parameter(ParametersType parameters)
     {
         generator_ = [parameters](std::shared_ptr<const Executor> exec)
             -> std::shared_ptr<const FactoryType> {
@@ -351,8 +383,8 @@ public:
         return generator_(exec);
     }
 
-    /** Returns true iff the parameter contains a factory. */
-    bool is_empty() const { return bool(generator_); }
+    /** Returns true iff the parameter is empty. */
+    bool is_empty() const { return !bool(generator_); }
 
 private:
     std::function<std::shared_ptr<const FactoryType>(
@@ -499,6 +531,12 @@ public:                                                                      \
     parameters_type& with_##_name(deferred_factory_parameter<_type> factory) \
     {                                                                        \
         this->_name##_generator_ = std::move(factory);                       \
+        this->deferred_factories[#_name] = [](const auto& exec,              \
+                                              auto& params) {                \
+            if (!params._name##_generator_.is_empty()) {                     \
+                params._name = params._name##_generator_.on(exec);           \
+            }                                                                \
+        };                                                                   \
         return *this;                                                        \
     }                                                                        \
                                                                              \
@@ -523,11 +561,41 @@ public:                                                                      \
 #define GKO_DEFERRED_FACTORY_VECTOR_PARAMETER(_name, _type)                  \
 public:                                                                      \
     std::vector<std::shared_ptr<const _type>> _name{};                       \
-    template <typename... Args>                                              \
+    template <typename... Args,                                              \
+              typename =                                                     \
+                  std::enable_if_t<xstd::conjunction<std::is_convertible<    \
+                      Args, deferred_factory_parameter<_type>>...>::value>>  \
     parameters_type& with_##_name(Args&&... factories)                       \
     {                                                                        \
         this->_name##_generator_ = {deferred_factory_parameter<_type>{       \
             std::forward<Args>(factories)}...};                              \
+        this->deferred_factories[#_name] = [](const auto& exec,              \
+                                              auto& params) {                \
+            if (!params._name##_generator_.empty()) {                        \
+                params._name.clear();                                        \
+                for (auto& generator : params._name##_generator_) {          \
+                    params._name.push_back(generator.on(exec));              \
+                }                                                            \
+            }                                                                \
+        };                                                                   \
+        return *this;                                                        \
+    }                                                                        \
+    template <typename FactoryType>                                          \
+    parameters_type& with_##_name(const std::vector<FactoryType>& factories) \
+    {                                                                        \
+        this->_name##_generator_.clear();                                    \
+        for (const auto& factory : factories) {                              \
+            this->_name##_generator_.push_back(factory);                     \
+        }                                                                    \
+        this->deferred_factories[#_name] = [](const auto& exec,              \
+                                              auto& params) {                \
+            if (!params._name##_generator_.empty()) {                        \
+                params._name.clear();                                        \
+                for (auto& generator : params._name##_generator_) {          \
+                    params._name.push_back(generator.on(exec));              \
+                }                                                            \
+            }                                                                \
+        };                                                                   \
         return *this;                                                        \
     }                                                                        \
                                                                              \
