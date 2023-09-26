@@ -44,7 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/lin_op.hpp>
-#include <ginkgo/core/distributed/overlapping_partition.hpp>
+#include <ginkgo/core/distributed/localized_partition.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -66,7 +66,7 @@ class sparse_communicator
 public:
     static std::shared_ptr<sparse_communicator> create(
         mpi::communicator comm,
-        std::shared_ptr<const overlapping_partition<int32>> part)
+        std::shared_ptr<const localized_partition<int32>> part)
     {
         return std::shared_ptr<sparse_communicator>{
             new sparse_communicator(std::move(comm), std::move(part))};
@@ -74,7 +74,7 @@ public:
 
     static std::shared_ptr<sparse_communicator> create(
         mpi::communicator comm,
-        std::shared_ptr<const overlapping_partition<int64>> part)
+        std::shared_ptr<const localized_partition<int64>> part)
     {
         return std::shared_ptr<sparse_communicator>{
             new sparse_communicator(std::move(comm), std::move(part))};
@@ -109,11 +109,10 @@ public:
         std::shared_ptr<matrix::Dense<ValueType>> local_vector) const;
 
     template <typename IndexType>
-    std::shared_ptr<const overlapping_partition<IndexType>> get_partition()
-        const
+    std::shared_ptr<const localized_partition<IndexType>> get_partition() const
     {
-        return std::get<
-            std::shared_ptr<const overlapping_partition<IndexType>>>(part_);
+        return std::get<std::shared_ptr<const localized_partition<IndexType>>>(
+            part_);
     }
 
     const std::vector<comm_index_type>& get_recv_sizes() const
@@ -139,8 +138,8 @@ public:
     mpi::communicator get_communicator() const { return default_comm_; }
 
 private:
-    using partition_i32_type = overlapping_partition<int32>;
-    using partition_i64_type = overlapping_partition<int64>;
+    using partition_i32_type = localized_partition<int32>;
+    using partition_i64_type = localized_partition<int64>;
 
     /**
      * Creates sparse communicator from overlapping_partition
@@ -148,7 +147,7 @@ private:
     template <typename IndexType>
     sparse_communicator(
         mpi::communicator comm,
-        std::shared_ptr<const overlapping_partition<IndexType>> part);
+        std::shared_ptr<const localized_partition<IndexType>> part);
 
     template <typename ValueType, typename IndexType>
     mpi::request communicate_impl_(

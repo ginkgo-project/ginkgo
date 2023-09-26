@@ -135,7 +135,7 @@ private:
  * @tparam IndexType  the type of the indices.
  */
 template <typename IndexType = int32>
-class overlapping_partition {
+class localized_partition {
 public:
     using index_type = IndexType;
     using send_storage_type = index_set<index_type>;
@@ -201,17 +201,17 @@ public:
      * // send_idxs = {1, 2} /2/, {2, 3, 4} /1/
      * ```
      */
-    static std::shared_ptr<overlapping_partition> build_from_blocked_recv(
+    static std::shared_ptr<localized_partition> build_from_blocked_recv(
         std::shared_ptr<const Executor> exec, size_type local_size,
         std::vector<std::pair<index_set<index_type>, comm_index_type>>
             send_idxs,
         array<comm_index_type> target_ids, array<size_type> target_sizes);
 
 private:
-    overlapping_partition(std::shared_ptr<const Executor> exec,
-                          size_type local_size,
-                          overlap_indices<send_storage_type> overlap_send_idxs,
-                          overlap_indices<recv_storage_type> overlap_recv_idxs)
+    localized_partition(std::shared_ptr<const Executor> exec,
+                        size_type local_size,
+                        overlap_indices<send_storage_type> overlap_send_idxs,
+                        overlap_indices<recv_storage_type> overlap_recv_idxs)
         : exec_(exec),
           local_end_(local_size),
           overlap_send_idxs_(exec, std::move(overlap_send_idxs)),
@@ -235,7 +235,7 @@ private:
 template <typename ValueType, typename IndexType>
 std::unique_ptr<gko::matrix::Dense<ValueType>> get_local(
     gko::matrix::Dense<ValueType>* vector,
-    const overlapping_partition<IndexType>* part)
+    const localized_partition<IndexType>* part)
 {
     GKO_ASSERT(vector->get_size()[0] == part->get_end());
     return vector->create_submatrix(span{0, part->get_local_end()},
@@ -249,7 +249,7 @@ std::unique_ptr<gko::matrix::Dense<ValueType>> get_local(
 template <typename ValueType, typename IndexType>
 std::unique_ptr<gko::matrix::Dense<ValueType>> get_non_local(
     gko::matrix::Dense<ValueType>* vector,
-    const overlapping_partition<IndexType>* part)
+    const localized_partition<IndexType>* part)
 {
     GKO_ASSERT(vector->get_size()[0] == part->get_end());
     return vector->create_submatrix(

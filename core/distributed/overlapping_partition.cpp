@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/distributed/overlapping_partition.hpp>
+#include <ginkgo/core/distributed/localized_partition.hpp>
 
 
 namespace gko::experimental::distributed {
@@ -99,8 +99,8 @@ overlap_indices<IndexStorageType>::overlap_indices(
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_OVERLAP_INDICES);
 
 template <typename IndexType>
-std::shared_ptr<overlapping_partition<IndexType>>
-overlapping_partition<IndexType>::build_from_blocked_recv(
+std::shared_ptr<localized_partition<IndexType>>
+localized_partition<IndexType>::build_from_blocked_recv(
     std::shared_ptr<const Executor> exec, size_type local_size,
     std::vector<std::pair<index_set<index_type>, comm_index_type>> send_idxs,
     array<comm_index_type> target_ids, array<size_type> target_sizes)
@@ -138,7 +138,7 @@ overlapping_partition<IndexType>::build_from_blocked_recv(
         offset += current_size;
     }
 
-    return std::shared_ptr<overlapping_partition>{new overlapping_partition{
+    return std::shared_ptr<localized_partition>{new localized_partition{
         exec, local_size,
         overlap_indices<send_storage_type>{std::move(send_target_ids),
                                            std::move(send_index_sets)},
