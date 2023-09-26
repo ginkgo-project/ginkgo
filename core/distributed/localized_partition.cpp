@@ -110,10 +110,10 @@ localized_partition<IndexType>::build_from_blocked_recv(
                local_size >= std::max_element(send_idxs.begin(),
                                               send_idxs.end(),
                                               [](const auto& a, const auto& b) {
-                                                  return a.first.get_end() <
-                                                         b.first.get_end();
+                                                  return a.first.get_size() <
+                                                         b.first.get_size();
                                               })
-                                 ->first.get_end());
+                                 ->first.get_size());
     GKO_ASSERT(target_ids.get_num_elems() == target_sizes.get_num_elems());
 
     std::vector<index_set<index_type>> send_index_sets(
@@ -130,7 +130,7 @@ localized_partition<IndexType>::build_from_blocked_recv(
 
     // need to create a subset for each target id
     // brute force creating index sets until better constructor is available
-    std::vector<span> intervals;
+    std::vector<index_block<IndexType>> intervals;
     auto offset = local_size;
     for (int gid = 0; gid < target_sizes.get_num_elems(); ++gid) {
         auto current_size = target_sizes.get_const_data()[gid];
@@ -145,6 +145,9 @@ localized_partition<IndexType>::build_from_blocked_recv(
         overlap_indices<recv_storage_type>{std::move(target_ids),
                                            std::move(intervals)}}};
 }
+
+#define GKO_DECLARE_LOCALIZED_PARTITION(_type) class localized_partition<_type>
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_LOCALIZED_PARTITION);
 
 
 }  // namespace gko::experimental::distributed
