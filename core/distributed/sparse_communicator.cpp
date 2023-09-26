@@ -91,7 +91,7 @@ mpi::communicator create_neighborhood_comm(
  */
 template <typename IndexType>
 mpi::communicator create_neighborhood_comm(
-    mpi::communicator base, const overlapping_partition<IndexType>* part)
+    mpi::communicator base, const localized_partition<IndexType>* part)
 {
     return create_neighborhood_comm(base, part->get_recv_indices().target_ids_,
                                     part->get_send_indices().target_ids_);
@@ -203,7 +203,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_COMMUNICATE);
 template <typename IndexType>
 sparse_communicator::sparse_communicator(
     mpi::communicator comm,
-    std::shared_ptr<const overlapping_partition<IndexType>> part)
+    std::shared_ptr<const localized_partition<IndexType>> part)
     : default_comm_(create_neighborhood_comm(
           comm, part->get_recv_indices().get_target_ids(),
           part->get_send_indices().get_target_ids())),
