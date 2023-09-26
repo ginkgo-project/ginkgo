@@ -149,6 +149,30 @@ public:
     }
 
     /**
+     * Creates an index set on the specified executor with the given indices
+     * cutor and the given size
+     *
+     * @param exec  the Executor where the index set data will be allocated
+     * @param indices  the indices that the index set should hold.
+     * @param is_sorted  a parameter that specifies if the indices array is
+     *                   sorted or not. `true` if sorted.
+     */
+    explicit index_set(std::shared_ptr<const gko::Executor> exec,
+                       const gko::array<index_type>& indices,
+                       const bool is_sorted = false)
+        : exec_(std::move(exec)),
+          index_space_size_(std::numeric_limits<index_type>::max())
+    {
+        GKO_ASSERT(index_space_size_ >= indices.get_num_elems());
+        this->populate_subsets(indices, is_sorted);
+        index_space_size_ =
+            get_num_subsets() > 0
+                ? exec_->copy_val_to_host(subsets_end_.get_const_data() +
+                                          get_num_subsets() - 1)
+                : 0;
+    }
+
+    /**
      * Creates a copy of the input index_set on a different executor.
      *
      * @param exec  the executor where the new index_set will be created
