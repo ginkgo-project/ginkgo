@@ -229,7 +229,7 @@ sparse_communicator::sparse_communicator(
 #define GKO_DECLARE_SPARSE_COMMUNICATOR(IndexType) \
     sparse_communicator::sparse_communicator(      \
         mpi::communicator comm,                    \
-        std::shared_ptr<const overlapping_partition<IndexType>> part)
+        std::shared_ptr<const localized_partition<IndexType>> part)
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_SPARSE_COMMUNICATOR);
 
