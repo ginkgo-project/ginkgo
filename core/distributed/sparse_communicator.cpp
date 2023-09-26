@@ -183,10 +183,10 @@ mpi::request sparse_communicator::communicate(
 {
     return std::visit(
         [&, this](const auto& part) {
-            return communicate_impl_(inverse_comm_.get(),
-                                     part->get_send_indices(), recv_sizes_,
-                                     recv_offsets_, part->get_recv_indices(),
-                                     send_sizes_, send_offsets_, local_vector);
+            return communicate_impl_(default_comm_.get(),
+                                     part->get_send_indices(), send_sizes_,
+                                     send_offsets_, part->get_recv_indices(),
+                                     recv_sizes_, recv_offsets_, local_vector);
         },
         part_);
 }
