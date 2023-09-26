@@ -60,6 +60,12 @@ public:
 
     span get_span() const { return idxs_; }
 
+    explicit index_block(span idxs) : idxs_(idxs) {}
+
+    index_block(IndexType begin, IndexType end)
+        : idxs_(static_cast<size_type>(begin), static_cast<size_type>(end))
+    {}
+
 private:
     span idxs_;
 };
