@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <set>
 
 
 #include "core/distributed/matrix_kernels.hpp"
@@ -97,6 +98,15 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
             non_local_mtx_.get())));
     one_scalar_.init(exec, dim<2>{1, 1});
     one_scalar_->fill(one<value_type>());
+}
+
+
+template <typename GlobalIndexType, typename LocalIndexType>
+gko::array<GlobalIndexType> compute_non_local_to_global(
+    ptr_param<const localized_partition<LocalIndexType>> part,
+    ptr_param<const Partition<LocalIndexType, GlobalIndexType>> global_part)
+{
+    auto send_idxs = part->get_send_indices().get_num_elems();
 }
 
 
@@ -197,6 +207,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     array<value_type> non_local_values{exec};
     array<local_index_type> recv_gather_idxs{exec};
     array<comm_index_type> recv_sizes_array{exec, num_parts};
+
 
     // build local, non-local matrix data and communication structures
     exec->run(matrix::make_build_local_nonlocal(
