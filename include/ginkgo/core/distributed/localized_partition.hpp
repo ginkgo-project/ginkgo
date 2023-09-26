@@ -96,7 +96,7 @@ public:
 
     index_type get_begin() const { return begin_; }
 
-    const array<comm_index_type> get_target_ids() const { return target_ids_; }
+    const array<comm_index_type>& get_target_ids() const { return target_ids_; }
 
     const IndexStorageType& get_indices(size_type i) const { return idxs_[i]; }
 
