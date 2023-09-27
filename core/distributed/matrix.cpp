@@ -80,11 +80,6 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     : EnableDistributedLinOp<
           Matrix<value_type, local_index_type, global_index_type>>{exec},
       DistributedBase{comm},
-      send_offsets_(comm.size() + 1),
-      send_sizes_(comm.size()),
-      recv_offsets_(comm.size() + 1),
-      recv_sizes_(comm.size()),
-      gather_idxs_{exec},
       non_local_to_global_{exec},
       one_scalar_{},
       local_mtx_{local_matrix_template->clone(exec)},
@@ -119,15 +114,11 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     : EnableDistributedLinOp<
           Matrix<value_type, local_index_type, global_index_type>>{exec},
       DistributedBase{sparse_comm->get_communicator()},
-      send_offsets_(sparse_comm->get_send_offsets()),
-      send_sizes_(sparse_comm->get_send_sizes()),
-      recv_offsets_(sparse_comm->get_recv_offsets()),
-      recv_sizes_(sparse_comm->get_recv_sizes()),
-      gather_idxs_{exec},
       non_local_to_global_{exec},
       one_scalar_{},
       local_mtx_{std::move(local_matrix)},
-      non_local_mtx_{std::move(non_local_matrix)}
+      non_local_mtx_{std::move(non_local_matrix)},
+      sparse_comm_(sparse_comm)
 {
     auto recv_idxs =
         sparse_comm->get_partition<GlobalIndexType>()->get_recv_indices();
@@ -145,11 +136,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
                result->get_communicator().size());
     result->local_mtx_->copy_from(this->local_mtx_);
     result->non_local_mtx_->copy_from(this->non_local_mtx_);
-    result->gather_idxs_ = this->gather_idxs_;
-    result->send_offsets_ = this->send_offsets_;
-    result->recv_offsets_ = this->recv_offsets_;
-    result->recv_sizes_ = this->recv_sizes_;
-    result->send_sizes_ = this->send_sizes_;
+    result->sparse_comm_ = this->sparse_comm_;
     result->non_local_to_global_ = this->non_local_to_global_;
     result->set_size(this->get_size());
 }
@@ -164,11 +151,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
                result->get_communicator().size());
     result->local_mtx_->move_from(this->local_mtx_);
     result->non_local_mtx_->move_from(this->non_local_mtx_);
-    result->gather_idxs_ = std::move(this->gather_idxs_);
-    result->send_offsets_ = std::move(this->send_offsets_);
-    result->recv_offsets_ = std::move(this->recv_offsets_);
-    result->recv_sizes_ = std::move(this->recv_sizes_);
-    result->send_sizes_ = std::move(this->send_sizes_);
+    result->sparse_comm_ = std::move(this->sparse_comm_);
     result->non_local_to_global_ = std::move(this->non_local_to_global_);
     result->set_size(this->get_size());
     this->set_size({});
@@ -236,31 +219,29 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         ->read(std::move(non_local_data));
 
     // exchange step 1: determine recv_sizes, send_sizes, send_offsets
+    std::vector<comm_index_type> recv_sizes(num_parts);
     exec->get_master()->copy_from(
-        exec, num_parts, recv_sizes_array.get_const_data(), recv_sizes_.data());
-    std::partial_sum(recv_sizes_.begin(), recv_sizes_.end(),
-                     recv_offsets_.begin() + 1);
-    comm.all_to_all(exec, recv_sizes_.data(), 1, send_sizes_.data(), 1);
-    std::partial_sum(send_sizes_.begin(), send_sizes_.end(),
-                     send_offsets_.begin() + 1);
-    send_offsets_[0] = 0;
-    recv_offsets_[0] = 0;
+        exec, num_parts, recv_sizes_array.get_const_data(), recv_sizes.data());
 
-    // exchange step 2: exchange gather_idxs from receivers to senders
-    auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
-    if (use_host_buffer) {
-        recv_gather_idxs.set_executor(exec->get_master());
-        gather_idxs_.clear();
-        gather_idxs_.set_executor(exec->get_master());
+    std::vector<comm_index_type> unique_recv_ids;
+    std::vector<comm_index_type> unique_recv_sizes;
+    for (std::size_t i = 0; i < recv_sizes.size(); ++i) {
+        if (recv_sizes[i] > 0) {
+            unique_recv_ids.push_back(static_cast<comm_index_type>(i));
+            unique_recv_sizes.push_back(recv_sizes[i]);
+        }
     }
-    gather_idxs_.resize_and_reset(send_offsets_.back());
-    comm.all_to_all_v(use_host_buffer ? exec->get_master() : exec,
-                      recv_gather_idxs.get_const_data(), recv_sizes_.data(),
-                      recv_offsets_.data(), gather_idxs_.get_data(),
-                      send_sizes_.data(), send_offsets_.data());
-    if (use_host_buffer) {
-        gather_idxs_.set_executor(exec);
-    }
+
+    auto part =
+        localized_partition<local_index_type>::build_from_remote_send_indices(
+            exec, comm, num_local_cols,
+            array<comm_index_type>{exec, unique_recv_ids.begin(),
+                                   unique_recv_ids.end()},
+            array<comm_index_type>{exec, unique_recv_sizes.begin(),
+                                   unique_recv_sizes.end()},
+            recv_gather_idxs);
+
+    sparse_comm_ = sparse_communicator::create(comm, part);
 }
 
 
@@ -301,50 +282,6 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-mpi::request Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
-    const local_vector_type* local_b) const
-{
-    auto exec = this->get_executor();
-    const auto comm = this->get_communicator();
-    auto num_cols = local_b->get_size()[1];
-    auto send_size = send_offsets_.back();
-    auto recv_size = recv_offsets_.back();
-    auto send_dim = dim<2>{static_cast<size_type>(send_size), num_cols};
-    auto recv_dim = dim<2>{static_cast<size_type>(recv_size), num_cols};
-    recv_buffer_.init(exec, recv_dim);
-    send_buffer_.init(exec, send_dim);
-
-    local_b->row_gather(&gather_idxs_, send_buffer_.get());
-
-    auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
-    if (use_host_buffer) {
-        host_recv_buffer_.init(exec->get_master(), recv_dim);
-        host_send_buffer_.init(exec->get_master(), send_dim);
-        host_send_buffer_->copy_from(send_buffer_.get());
-    }
-
-    mpi::contiguous_type type(num_cols, mpi::type_impl<ValueType>::get_type());
-    auto send_ptr = use_host_buffer ? host_send_buffer_->get_const_values()
-                                    : send_buffer_->get_const_values();
-    auto recv_ptr = use_host_buffer ? host_recv_buffer_->get_values()
-                                    : recv_buffer_->get_values();
-    exec->synchronize();
-#ifdef GINKGO_FORCE_SPMV_BLOCKING_COMM
-    comm.all_to_all_v(use_host_buffer ? exec->get_master() : exec, send_ptr,
-                      send_sizes_.data(), send_offsets_.data(), type.get(),
-                      recv_ptr, recv_sizes_.data(), recv_offsets_.data(),
-                      type.get());
-    return {};
-#else
-    return comm.i_all_to_all_v(
-        use_host_buffer ? exec->get_master() : exec, send_ptr,
-        send_sizes_.data(), send_offsets_.data(), type.get(), recv_ptr,
-        recv_sizes_.data(), recv_offsets_.data(), type.get());
-#endif
-}
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
     const LinOp* b, LinOp* x) const
 {
@@ -360,7 +297,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                 dense_x->get_local_vector()->get_stride());
 
             auto comm = this->get_communicator();
-            auto req = this->communicate(dense_b->get_local_vector());
+            auto req = sparse_comm_->communicate(dense_b->get_local_vector(),
+                                                 send_buffer_, recv_buffer_);
             local_mtx_->apply(dense_b->get_local_vector(), local_x);
             req.wait();
 
