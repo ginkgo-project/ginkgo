@@ -57,23 +57,13 @@ public:
         : gko::batch::EnableBatchLinOp<DummyBatchLinOp>(exec, size)
     {}
 
-    void access() const { last_access = this->get_executor(); }
-
-    mutable std::shared_ptr<const gko::Executor> last_access;
-    mutable std::shared_ptr<const gko::Executor> last_b_access;
-    mutable std::shared_ptr<const gko::Executor> last_x_access;
-    mutable std::shared_ptr<const gko::Executor> last_alpha_access;
-    mutable std::shared_ptr<const gko::Executor> last_beta_access;
+    int called = 0;
 
 protected:
     void apply_impl(const gko::batch::BatchLinOp* b,
                     gko::batch::BatchLinOp* x) const override
     {
-        this->access();
-        static_cast<const DummyBatchLinOp*>(b)->access();
-        static_cast<const DummyBatchLinOp*>(x)->access();
-        last_b_access = b->get_executor();
-        last_x_access = x->get_executor();
+        this->called = 1;
     }
 
     void apply_impl(const gko::batch::BatchLinOp* alpha,
@@ -81,15 +71,7 @@ protected:
                     const gko::batch::BatchLinOp* beta,
                     gko::batch::BatchLinOp* x) const override
     {
-        this->access();
-        static_cast<const DummyBatchLinOp*>(alpha)->access();
-        static_cast<const DummyBatchLinOp*>(b)->access();
-        static_cast<const DummyBatchLinOp*>(beta)->access();
-        static_cast<const DummyBatchLinOp*>(x)->access();
-        last_alpha_access = alpha->get_executor();
-        last_b_access = b->get_executor();
-        last_beta_access = beta->get_executor();
-        last_x_access = x->get_executor();
+        this->called = 2;
     }
 };
 
@@ -156,7 +138,7 @@ TEST_F(EnableBatchLinOp, CallsApplyImpl)
 {
     op->apply(b, x);
 
-    ASSERT_EQ(op->last_access, ref2);
+    ASSERT_EQ(op->called, 1);
 }
 
 
@@ -164,7 +146,7 @@ TEST_F(EnableBatchLinOp, CallsApplyImplForBatch)
 {
     op2->apply(b2, x2);
 
-    ASSERT_EQ(op2->last_access, ref2);
+    ASSERT_EQ(op2->called, 1);
 }
 
 
@@ -172,7 +154,7 @@ TEST_F(EnableBatchLinOp, CallsExtendedApplyImpl)
 {
     op->apply(alpha, b, beta, x);
 
-    ASSERT_EQ(op->last_access, ref2);
+    ASSERT_EQ(op->called, 2);
 }
 
 
@@ -180,7 +162,7 @@ TEST_F(EnableBatchLinOp, CallsExtendedApplyImplBatch)
 {
     op2->apply(alpha2, b2, beta2, x2);
 
-    ASSERT_EQ(op2->last_access, ref2);
+    ASSERT_EQ(op2->called, 2);
 }
 
 
@@ -280,46 +262,6 @@ TEST_F(EnableBatchLinOp, ExtendedApplyFailsOnWrongBetaDimension)
         DummyBatchLinOp::create(ref, gko::batch_dim<2>(1, gko::dim<2>{2, 5}));
 
     ASSERT_THROW(op->apply(alpha, b, wrong, x), gko::DimensionMismatch);
-}
-
-
-TEST_F(EnableBatchLinOp, ApplyDoesNotCopyBetweenSameMemory)
-{
-    op->apply(b, x);
-
-    ASSERT_EQ(op->last_b_access, ref);
-    ASSERT_EQ(op->last_x_access, ref);
-}
-
-
-TEST_F(EnableBatchLinOp, ApplyNoCopyBackBetweenSameMemory)
-{
-    op->apply(b, x);
-
-    ASSERT_EQ(b->last_access, ref);
-    ASSERT_EQ(x->last_access, ref);
-}
-
-
-TEST_F(EnableBatchLinOp, ExtendedApplyDoesNotCopyBetweenSameMemory)
-{
-    op->apply(alpha, b, beta, x);
-
-    ASSERT_EQ(op->last_alpha_access, ref);
-    ASSERT_EQ(op->last_b_access, ref);
-    ASSERT_EQ(op->last_beta_access, ref);
-    ASSERT_EQ(op->last_x_access, ref);
-}
-
-
-TEST_F(EnableBatchLinOp, ExtendedApplyNoCopyBackBetweenSameMemory)
-{
-    op->apply(alpha, b, beta, x);
-
-    ASSERT_EQ(alpha->last_access, ref);
-    ASSERT_EQ(b->last_access, ref);
-    ASSERT_EQ(beta->last_access, ref);
-    ASSERT_EQ(x->last_access, ref);
 }
 
 

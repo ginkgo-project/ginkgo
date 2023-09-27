@@ -316,25 +316,37 @@ inline size_type get_num_batch_items(const T& obj)
 
 
 /**
+ * Asserts that _op1 and _op2 have equal number of items in the batch
+ *
+ * @throw ValueMismatch  if _op1 and _op2 do not have equal number of items
+ */
+#define GKO_ASSERT_BATCH_EQUAL_NUM_ITEMS(_op1, _op2)                       \
+    {                                                                      \
+        auto equal_num_items =                                             \
+            ::gko::detail::get_batch_size(_op1).get_num_batch_items() ==   \
+            ::gko::detail::get_batch_size(_op2).get_num_batch_items();     \
+        if (!equal_num_items) {                                            \
+            throw ::gko::ValueMismatch(                                    \
+                __FILE__, __LINE__, __func__,                              \
+                ::gko::detail::get_batch_size(_op2).get_num_batch_items(), \
+                ::gko::detail::get_batch_size(_op2).get_num_batch_items(), \
+                "expected equal number of batch items");                   \
+        }                                                                  \
+    }
+
+
+/**
  * Asserts that _op1 can be applied to _op2.
  *
  * @throw DimensionMismatch  if _op1 cannot be applied to _op2.
  */
 #define GKO_ASSERT_BATCH_CONFORMANT(_op1, _op2)                              \
     {                                                                        \
-        auto equal_num_items =                                               \
-            ::gko::detail::get_batch_size(_op1).get_num_batch_items() ==     \
-            ::gko::detail::get_batch_size(_op2).get_num_batch_items();       \
+        GKO_ASSERT_BATCH_EQUAL_NUM_ITEMS(_op1, _op2);                        \
         auto equal_inner_size =                                              \
             ::gko::detail::get_batch_size(_op1).get_common_size()[1] ==      \
             ::gko::detail::get_batch_size(_op2).get_common_size()[0];        \
-        if (!equal_num_items) {                                              \
-            throw ::gko::ValueMismatch(                                      \
-                __FILE__, __LINE__, __func__,                                \
-                ::gko::detail::get_batch_size(_op2).get_num_batch_items(),   \
-                ::gko::detail::get_batch_size(_op2).get_num_batch_items(),   \
-                "expected equal number of batch items");                     \
-        } else if (!equal_inner_size) {                                      \
+        if (!equal_inner_size) {                                             \
             throw ::gko::DimensionMismatch(                                  \
                 __FILE__, __LINE__, __func__, #_op1,                         \
                 ::gko::detail::get_batch_size(_op1).get_common_size()[0],    \
@@ -354,19 +366,11 @@ inline size_type get_num_batch_items(const T& obj)
  */
 #define GKO_ASSERT_BATCH_REVERSE_CONFORMANT(_op1, _op2)                      \
     {                                                                        \
-        auto equal_num_items =                                               \
-            ::gko::detail::get_batch_size(_op1).get_num_batch_items() ==     \
-            ::gko::detail::get_batch_size(_op2).get_num_batch_items();       \
+        GKO_ASSERT_BATCH_EQUAL_NUM_ITEMS(_op1, _op2);                        \
         auto equal_outer_size =                                              \
             ::gko::detail::get_batch_size(_op1).get_common_size()[0] ==      \
             ::gko::detail::get_batch_size(_op2).get_common_size()[1];        \
-        if (!equal_num_items) {                                              \
-            throw ::gko::ValueMismatch(                                      \
-                __FILE__, __LINE__, __func__,                                \
-                ::gko::detail::get_batch_size(_op2).get_num_batch_items(),   \
-                ::gko::detail::get_batch_size(_op2).get_num_batch_items(),   \
-                "expected equal number of batch items");                     \
-        } else if (!equal_outer_size) {                                      \
+        if (!equal_outer_size) {                                             \
             throw ::gko::DimensionMismatch(                                  \
                 __FILE__, __LINE__, __func__, #_op1,                         \
                 ::gko::detail::get_batch_size(_op1).get_common_size()[0],    \
@@ -386,19 +390,11 @@ inline size_type get_num_batch_items(const T& obj)
  */
 #define GKO_ASSERT_BATCH_EQUAL_ROWS(_op1, _op2)                            \
     {                                                                      \
-        auto equal_num_items =                                             \
-            ::gko::detail::get_batch_size(_op1).get_num_batch_items() ==   \
-            ::gko::detail::get_batch_size(_op2).get_num_batch_items();     \
+        GKO_ASSERT_BATCH_EQUAL_NUM_ITEMS(_op1, _op2);                      \
         auto equal_rows =                                                  \
             ::gko::detail::get_batch_size(_op1).get_common_size()[0] ==    \
             ::gko::detail::get_batch_size(_op2).get_common_size()[0];      \
-        if (!equal_num_items) {                                            \
-            throw ::gko::ValueMismatch(                                    \
-                __FILE__, __LINE__, __func__,                              \
-                ::gko::detail::get_batch_size(_op2).get_num_batch_items(), \
-                ::gko::detail::get_batch_size(_op2).get_num_batch_items(), \
-                "expected equal number of batch items");                   \
-        } else if (!equal_rows) {                                          \
+        if (!equal_rows) {                                                 \
             throw ::gko::DimensionMismatch(                                \
                 __FILE__, __LINE__, __func__, #_op1,                       \
                 ::gko::detail::get_batch_size(_op1).get_common_size()[0],  \
@@ -419,19 +415,11 @@ inline size_type get_num_batch_items(const T& obj)
  */
 #define GKO_ASSERT_BATCH_EQUAL_COLS(_op1, _op2)                            \
     {                                                                      \
-        auto equal_num_items =                                             \
-            ::gko::detail::get_batch_size(_op1).get_num_batch_items() ==   \
-            ::gko::detail::get_batch_size(_op2).get_num_batch_items();     \
+        GKO_ASSERT_BATCH_EQUAL_NUM_ITEMS(_op1, _op2);                      \
         auto equal_cols =                                                  \
             ::gko::detail::get_batch_size(_op1).get_common_size()[1] ==    \
             ::gko::detail::get_batch_size(_op2).get_common_size()[1];      \
-        if (!equal_num_items) {                                            \
-            throw ::gko::ValueMismatch(                                    \
-                __FILE__, __LINE__, __func__,                              \
-                ::gko::detail::get_batch_size(_op2).get_num_batch_items(), \
-                ::gko::detail::get_batch_size(_op2).get_num_batch_items(), \
-                "expected equal number of batch items");                   \
-        } else if (!equal_cols) {                                          \
+        if (!equal_cols) {                                                 \
             throw ::gko::DimensionMismatch(                                \
                 __FILE__, __LINE__, __func__, #_op1,                       \
                 ::gko::detail::get_batch_size(_op1).get_common_size()[0],  \
@@ -450,30 +438,22 @@ inline size_type get_num_batch_items(const T& obj)
  * @throw DimensionMismatch  if `_op1` and `_op2` differ in the number of
  *                           rows or columns
  */
-#define GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(_op1, _op2)                      \
-    {                                                                      \
-        auto equal_num_items =                                             \
-            ::gko::detail::get_batch_size(_op1).get_num_batch_items() ==   \
-            ::gko::detail::get_batch_size(_op2).get_num_batch_items();     \
-        auto equal_size =                                                  \
-            ::gko::detail::get_batch_size(_op1).get_common_size() ==       \
-            ::gko::detail::get_batch_size(_op2).get_common_size();         \
-        if (!equal_num_items) {                                            \
-            throw ::gko::ValueMismatch(                                    \
-                __FILE__, __LINE__, __func__,                              \
-                ::gko::detail::get_batch_size(_op2).get_num_batch_items(), \
-                ::gko::detail::get_batch_size(_op2).get_num_batch_items(), \
-                "expected equal number of batch items");                   \
-        } else if (!equal_size) {                                          \
-            throw ::gko::DimensionMismatch(                                \
-                __FILE__, __LINE__, __func__, #_op1,                       \
-                ::gko::detail::get_batch_size(_op1).get_common_size()[0],  \
-                ::gko::detail::get_batch_size(_op1).get_common_size()[1],  \
-                #_op2,                                                     \
-                ::gko::detail::get_batch_size(_op2).get_common_size()[0],  \
-                ::gko::detail::get_batch_size(_op2).get_common_size()[1],  \
-                "expected matching size among all batch items");           \
-        }                                                                  \
+#define GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(_op1, _op2)                     \
+    {                                                                     \
+        GKO_ASSERT_BATCH_EQUAL_NUM_ITEMS(_op1, _op2);                     \
+        auto equal_size =                                                 \
+            ::gko::detail::get_batch_size(_op1).get_common_size() ==      \
+            ::gko::detail::get_batch_size(_op2).get_common_size();        \
+        if (!equal_size) {                                                \
+            throw ::gko::DimensionMismatch(                               \
+                __FILE__, __LINE__, __func__, #_op1,                      \
+                ::gko::detail::get_batch_size(_op1).get_common_size()[0], \
+                ::gko::detail::get_batch_size(_op1).get_common_size()[1], \
+                #_op2,                                                    \
+                ::gko::detail::get_batch_size(_op2).get_common_size()[0], \
+                ::gko::detail::get_batch_size(_op2).get_common_size()[1], \
+                "expected matching size among all batch items");          \
+        }                                                                 \
     }
 
 

@@ -195,13 +195,6 @@ public:
     }
 
     /**
-     * Sets the size of the batch operator.
-     *
-     * @param size to be set
-     */
-    void set_size(const batch_dim<2>& size) { size_ = size; }
-
-    /**
      * Returns the size of the batch operator.
      *
      * @return size of the batch operator
@@ -209,6 +202,13 @@ public:
     const batch_dim<2>& get_size() const noexcept { return size_; }
 
 protected:
+    /**
+     * Sets the size of the batch operator.
+     *
+     * @param size to be set
+     */
+    void set_size(const batch_dim<2>& size) { size_ = size; }
+
     /**
      * Creates a batch operator with uniform batches.
      *
