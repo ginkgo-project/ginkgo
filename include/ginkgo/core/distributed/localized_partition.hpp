@@ -211,7 +211,14 @@ public:
         std::shared_ptr<const Executor> exec, size_type local_size,
         std::vector<std::pair<index_set<index_type>, comm_index_type>>
             send_idxs,
-        array<comm_index_type> target_ids, array<size_type> target_sizes);
+        const array<comm_index_type>& target_ids,
+        const array<comm_index_type>& target_sizes);
+
+    static std::shared_ptr<localized_partition> build_from_remote_send_indices(
+        std::shared_ptr<const Executor> exec, mpi::communicator comm,
+        size_type local_size, const array<comm_index_type>& recv_ids,
+        const array<comm_index_type>& recv_sizes,
+        const array<IndexType>& remote_send_indices);
 
 private:
     localized_partition(std::shared_ptr<const Executor> exec,
