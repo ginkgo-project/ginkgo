@@ -445,7 +445,9 @@ public:
      * The default constructor. It creates a null MPI_Request of
      * MPI_REQUEST_NULL type.
      */
-    request(callback cb = {}) : req_(MPI_REQUEST_NULL), cb_(std::move(cb)) {}
+    request(callback cb = [](auto) {})
+        : req_(MPI_REQUEST_NULL), cb_(std::move(cb))
+    {}
 
     request(const request&) = delete;
 
