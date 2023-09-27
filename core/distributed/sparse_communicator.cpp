@@ -98,102 +98,31 @@ mpi::communicator create_neighborhood_comm(
 }
 
 
-/**
- * Deleter that writes back received values correctly.
- */
-template <typename ValueType, typename IndexType>
-struct interleaved_deleter {
-    using vector_type = gko::matrix::Dense<ValueType>;
-
-    void operator()(vector_type* ptr)
-    {
-        if (original.expired()) {
-            GKO_INVALID_STATE(
-                "Original communication object has been deleted. Please make "
-                "sure that the input vector for the sparse communication has a "
-                "longer lifetime than the mpi::request.");
-        }
-        auto shared_original = original.lock();
-
-        // row scatter
-        auto host_exec = ptr->get_executor()->get_master();
-        auto host_ptr = make_temporary_clone(host_exec, ptr);
-        auto offset = 0;
-        for (auto cur_idxs : idxs->get_num_groups()) {
-            auto full_idxs = idxs->get_indices(cur_idxs).to_global_indices();
-            full_idxs.set_executor(host_exec);
-            for (int i = 0; i < full_idxs.get_num_elems(); ++i) {
-                auto row = full_idxs.get_const_data()[i];
-                for (int col = 0; col < ptr->get_size()[1]; ++col) {
-                    shared_original->at(row, col) =
-                        host_ptr->at(i + offset, col);
-                }
-            }
-            offset += cur_idxs.get_num_elems();
-        }
-        delete ptr;
-    }
-
-    interleaved_deleter(std::shared_ptr<vector_type> original,
-                        const overlap_indices<index_set<IndexType>>* idxs,
-                        matrix::Dense<ValueType>* one)
-        : original(std::move(original)), idxs(idxs), one(one)
-    {}
-
-    std::weak_ptr<vector_type> original;
-    const overlap_indices<index_set<IndexType>>* idxs;
-    matrix::Dense<ValueType>* one;
-};
-
-
-/**
- * Deleter that writes back received values correctly.
- * Does nothing if `transformation == set`.
- */
-template <typename ValueType, typename IndexType>
-struct blocked_deleter {
-    using vector_type = gko::matrix::Dense<ValueType>;
-
-    void operator()(vector_type* ptr)
-    {
-        if (original.expired()) {
-            GKO_INVALID_STATE(
-                "Original communication object has been deleted. Please make "
-                "sure that the input vector for the sparse communication has a "
-                "longer lifetime than the mpi::request.");
-        }
-        delete ptr;
-    }
-
-    blocked_deleter(std::shared_ptr<vector_type> original,
-                    const overlap_indices<index_block<IndexType>>* idxs,
-                    matrix::Dense<ValueType>* one)
-        : original(std::move(original)), idxs(idxs), one(one)
-    {}
-
-    std::weak_ptr<vector_type> original;
-    const overlap_indices<index_block<IndexType>>* idxs;
-    matrix::Dense<ValueType>* one;
-};
-
-
 template <typename ValueType>
 mpi::request sparse_communicator::communicate(
-    std::shared_ptr<matrix::Dense<ValueType>> local_vector) const
+    const matrix::Dense<ValueType>* local_vector,
+    const detail::DenseCache<ValueType>& send_buffer,
+    const detail::DenseCache<ValueType>& recv_buffer) const
 {
     return std::visit(
         [&, this](const auto& part) {
-            return communicate_impl_(default_comm_.get(),
-                                     part->get_send_indices(), send_sizes_,
-                                     send_offsets_, part->get_recv_indices(),
-                                     recv_sizes_, recv_offsets_, local_vector);
+            if constexpr (std::is_same_v<std::decay_t<decltype(part)>,
+                                         std::monostate>) {
+                return mpi::request{};
+            } else {
+                return communicate_impl_(default_comm_.get(), part,
+                                         local_vector, send_buffer,
+                                         recv_buffer);
+            }
         },
         part_);
 }
 
-#define GKO_DECLARE_COMMUNICATE(ValueType)         \
-    mpi::request sparse_communicator::communicate( \
-        std::shared_ptr<matrix::Dense<ValueType>> local_vector) const
+#define GKO_DECLARE_COMMUNICATE(ValueType)                \
+    mpi::request sparse_communicator::communicate(        \
+        const matrix::Dense<ValueType>* local_vector,     \
+        const detail::DenseCache<ValueType>& send_buffer, \
+        const detail::DenseCache<ValueType>& recv_buffer) const
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_COMMUNICATE);
 
@@ -207,10 +136,10 @@ sparse_communicator::sparse_communicator(
     : default_comm_(create_neighborhood_comm(
           comm, part->get_recv_indices().get_target_ids(),
           part->get_send_indices().get_target_ids())),
-      send_sizes_(comm.size()),
-      send_offsets_(comm.size() + 1),
-      recv_sizes_(comm.size()),
-      recv_offsets_(comm.size() + 1)
+      send_sizes_(part->get_send_indices().get_num_groups()),
+      send_offsets_(part->get_send_indices().get_num_groups() + 1),
+      recv_sizes_(part->get_recv_indices().get_num_groups()),
+      recv_offsets_(part->get_recv_indices().get_num_groups() + 1)
 {
     auto exec = part->get_executor();
     auto host_exec = exec->get_master();
@@ -237,81 +166,53 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_SPARSE_COMMUNICATOR);
 
 template <typename ValueType, typename IndexType>
 mpi::request sparse_communicator::communicate_impl_(
-    MPI_Comm comm, const overlap_indices<index_set<IndexType>>& send_idxs,
-    const std::vector<comm_index_type>& send_sizes,
-    const std::vector<comm_index_type>& send_offsets,
-    const overlap_indices<index_block<IndexType>>& recv_idxs,
-    const std::vector<comm_index_type>& recv_sizes,
-    const std::vector<comm_index_type>& recv_offsets,
-    std::shared_ptr<matrix::Dense<ValueType>> local_vector) const
+    MPI_Comm comm, std::shared_ptr<const localized_partition<IndexType>> part,
+    const matrix::Dense<ValueType>* local_vector,
+    const detail::DenseCache<ValueType>& send_buffer,
+    const detail::DenseCache<ValueType>& recv_buffer) const
 {
-    using overlap_idxs_type = overlap_indices<IndexType>;
-    GKO_ASSERT(std::visit([](const auto& part) { return part->get_end(); },
-                          part_) == local_vector->get_size()[0]);
-
-    using vector_type = matrix::Dense<ValueType>;
+    GKO_ASSERT(part->get_local_end() == local_vector->get_size()[0]);
 
     auto exec = local_vector->get_executor();
 
-    std::unique_lock<std::mutex> guard(cache_mutex);
-    if (!one_buffer_.get<ValueType>()) {
-        one_buffer_.init<ValueType>(exec, {1, 1});
-        one_buffer_.get<ValueType>()->fill(one<ValueType>());
+    auto send_idxs = part->get_send_indices();
+    auto recv_idxs = part->get_recv_indices();
+
+    recv_buffer.init(exec,
+                     {recv_idxs.get_num_elems(), local_vector->get_size()[1]});
+
+    send_buffer.init(exec,
+                     {send_idxs.get_num_elems(), local_vector->get_size()[1]});
+    size_type offset = 0;
+    for (int i = 0; i < send_idxs.get_num_groups(); ++i) {
+        // need direct support for index_set
+        auto full_idxs = send_idxs.get_indices(i).to_global_indices();
+        local_vector->row_gather(
+            &full_idxs, send_buffer.get()->create_submatrix(
+                            {offset, offset + full_idxs.get_num_elems()},
+                            {0, local_vector->get_size()[1]}));
+        offset += full_idxs.get_num_elems();
     }
 
-    // automatically copies back/adds if necessary
-    using recv_handle_t =
-        std::unique_ptr<vector_type, std::function<void(vector_type*)>>;
-    auto recv_handle = [&] {
-        return recv_handle_t{
-            get_submatrix(local_vector.get(), &recv_idxs).release(),
-            blocked_deleter<ValueType, IndexType>{
-                local_vector, &recv_idxs, one_buffer_.get<ValueType>()}};
-    }();
+    auto recv_ptr = recv_buffer->get_values();
+    auto send_ptr = send_buffer->get_values();
 
-    auto send_handle = [&] {
-        send_buffer_.init<ValueType>(
-            exec, {send_idxs.get_num_elems(), local_vector->get_size()[1]});
-
-        size_type offset = 0;
-        for (int i = 0; i < send_idxs.get_num_groups(); ++i) {
-            // need direct support for index_set
-            auto full_idxs = send_idxs.get_indices(i).to_global_indices();
-            local_vector->row_gather(
-                &full_idxs, send_buffer_.get<ValueType>()->create_submatrix(
-                                {offset, offset + full_idxs.get_num_elems()},
-                                {0, local_vector->get_size()[1]}));
-            offset += full_idxs.get_num_elems();
-        }
-
-        return make_dense_view(send_buffer_.get<ValueType>());
-    }();
-    auto recv_ptr = recv_handle->get_values();
-    auto send_ptr = send_handle->get_values();
-
-    // request deletes recv_handle on successful wait (or at destructor),
-    // while keeping this alive
-    mpi::request req([h = std::move(recv_handle), g = std::move(guard),
-                      sp = shared_from_this()](mpi::request*) mutable {
-        h.reset();
-        g.release();
-        sp.reset();
-    });
-    MPI_Ineighbor_alltoallv(send_ptr, send_sizes.data(), send_offsets.data(),
-                            MPI_DOUBLE, recv_ptr, recv_sizes.data(),
-                            recv_offsets.data(), MPI_DOUBLE, comm, req.get());
+    mpi::contiguous_type type(local_vector->get_size()[1],
+                              mpi::type_impl<ValueType>::get_type());
+    mpi::request req;
+    MPI_Ineighbor_alltoallv(send_ptr, send_sizes_.data(), send_offsets_.data(),
+                            type.get(), recv_ptr, recv_sizes_.data(),
+                            recv_offsets_.data(), type.get(), comm, req.get());
     return req;
 }
 
 #define GKO_DECLARE_COMMUNICATE_IMPL(ValueType, IndexType)                     \
     mpi::request sparse_communicator::communicate_impl_<ValueType, IndexType>( \
-        MPI_Comm comm, const overlap_indices<index_set<IndexType>>& send_idxs, \
-        const std::vector<comm_index_type>& send_sizes,                        \
-        const std::vector<comm_index_type>& send_offsets,                      \
-        const overlap_indices<index_block<IndexType>>& recv_idxs,              \
-        const std::vector<comm_index_type>& recv_sizes,                        \
-        const std::vector<comm_index_type>& recv_offsets,                      \
-        std::shared_ptr<matrix::Dense<ValueType>> local_vector) const;
+        MPI_Comm comm,                                                         \
+        std::shared_ptr<const localized_partition<IndexType>> part,            \
+        const matrix::Dense<ValueType>* local_vector,                          \
+        const detail::DenseCache<ValueType>& send_buffer,                      \
+        const detail::DenseCache<ValueType>& recv_buffer) const
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COMMUNICATE_IMPL);
 
