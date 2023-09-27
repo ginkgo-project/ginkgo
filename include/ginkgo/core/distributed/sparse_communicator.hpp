@@ -106,7 +106,9 @@ public:
      */
     template <typename ValueType>
     mpi::request communicate(
-        std::shared_ptr<matrix::Dense<ValueType>> local_vector) const;
+        const matrix::Dense<ValueType>* local_vector,
+        const detail::DenseCache<ValueType>& send_buffer,
+        const detail::DenseCache<ValueType>& recv_buffer) const;
 
     template <typename IndexType>
     std::shared_ptr<const localized_partition<IndexType>> get_partition() const
@@ -151,17 +153,15 @@ private:
 
     template <typename ValueType, typename IndexType>
     mpi::request communicate_impl_(
-        MPI_Comm comm, const overlap_indices<index_set<IndexType>>& send_idxs,
-        const std::vector<comm_index_type>& send_sizes,
-        const std::vector<comm_index_type>& send_offsets,
-        const overlap_indices<index_block<IndexType>>& recv_idxs,
-        const std::vector<comm_index_type>& recv_sizes,
-        const std::vector<comm_index_type>& recv_offsets,
-        std::shared_ptr<matrix::Dense<ValueType>> local_vector) const;
+        MPI_Comm comm,
+        std::shared_ptr<const localized_partition<IndexType>> part,
+        const matrix::Dense<ValueType>* local_vector,
+        const detail::DenseCache<ValueType>& send_buffer,
+        const detail::DenseCache<ValueType>& recv_buffer) const;
 
     mpi::communicator default_comm_;
 
-    std::variant<std::shared_ptr<const partition_i32_type>,
+    std::variant<std::monostate, std::shared_ptr<const partition_i32_type>,
                  std::shared_ptr<const partition_i64_type>>
         part_;
 
@@ -169,13 +169,6 @@ private:
     std::vector<comm_index_type> send_offsets_;
     std::vector<comm_index_type> recv_sizes_;
     std::vector<comm_index_type> recv_offsets_;
-
-    // @todo can only handle one communication at a time, need to figure out how
-    //       to handle multiple
-    mutable std::mutex cache_mutex;
-    gko::detail::AnyDenseCache recv_buffer_;
-    gko::detail::AnyDenseCache send_buffer_;
-    gko::detail::AnyDenseCache one_buffer_;
 };
 
 
