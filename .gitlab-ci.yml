@@ -306,7 +306,7 @@ test/cuda110/nompi/clang/cuda/release/static:
   variables:
     USE_NAME: "cuda110-nompi-clang-${CI_PIPELINE_ID}"
     SLURM_PARTITION: "accelerated"
-    SLURM_GRES: "gpu:1"
+    SLURM_GRES: "gpu:4"
     SLURM_TIME: "01:30:00"
   dependencies: null
   needs: [ "build/cuda110/nompi/clang/cuda/release/static" ]
@@ -340,7 +340,7 @@ test/cuda110/nompi/intel/cuda/debug/static:
   variables:
     USE_NAME: "cuda110-nompi-intel-${CI_PIPELINE_ID}"
     SLURM_PARTITION: "accelerated"
-    SLURM_GRES: "gpu:1"
+    SLURM_GRES: "gpu:4"
     SLURM_TIME: "02:00:00"
   dependencies: null
   needs: [ "build/cuda110/nompi/intel/cuda/debug/static" ]
