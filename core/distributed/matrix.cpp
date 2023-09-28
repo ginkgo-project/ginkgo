@@ -83,7 +83,11 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       non_local_to_global_{exec},
       one_scalar_{},
       local_mtx_{local_matrix_template->clone(exec)},
-      non_local_mtx_{non_local_matrix_template->clone(exec)}
+      non_local_mtx_{non_local_matrix_template->clone(exec)},
+      sparse_comm_(sparse_communicator::create(
+          comm, localized_partition<int32>::build_from_blocked_recv(
+                    exec, 0, {}, array<comm_index_type>{exec},
+                    array<comm_index_type>{exec})))
 {
     GKO_ASSERT(
         (dynamic_cast<ReadableFromMatrixData<ValueType, LocalIndexType>*>(
@@ -331,7 +335,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                 dense_x->get_local_vector()->get_stride());
 
             auto comm = this->get_communicator();
-            auto req = this->communicate(dense_b->get_local_vector());
+            auto req = sparse_comm_->communicate(dense_b->get_local_vector(),
+                                                 send_buffer_, recv_buffer_);
             local_mtx_->apply(local_alpha, dense_b->get_local_vector(),
                               local_beta, local_x);
             req.wait();
@@ -380,12 +385,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         this->set_size(other.get_size());
         local_mtx_->copy_from(other.local_mtx_);
         non_local_mtx_->copy_from(other.non_local_mtx_);
-        gather_idxs_ = other.gather_idxs_;
-        send_offsets_ = other.send_offsets_;
-        recv_offsets_ = other.recv_offsets_;
-        send_sizes_ = other.send_sizes_;
-        recv_sizes_ = other.recv_sizes_;
         non_local_to_global_ = other.non_local_to_global_;
+        sparse_comm_ = other.sparse_comm_;
         one_scalar_.init(this->get_executor(), dim<2>{1, 1});
         one_scalar_->fill(one<value_type>());
     }
@@ -404,12 +405,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
         other.set_size({});
         local_mtx_->move_from(other.local_mtx_);
         non_local_mtx_->move_from(other.non_local_mtx_);
-        gather_idxs_ = std::move(other.gather_idxs_);
-        send_offsets_ = std::move(other.send_offsets_);
-        recv_offsets_ = std::move(other.recv_offsets_);
-        send_sizes_ = std::move(other.send_sizes_);
-        recv_sizes_ = std::move(other.recv_sizes_);
         non_local_to_global_ = std::move(other.non_local_to_global_);
+        sparse_comm_ = std::move(other.sparse_comm_);
         one_scalar_.init(this->get_executor(), dim<2>{1, 1});
         one_scalar_->fill(one<value_type>());
     }
