@@ -145,8 +145,8 @@ __global__ void agglomerate_supervariables_kernel(
 }
 
 
-template <bool conjugate, int max_block_size, int subwarp_size,
-          int warps_per_block, typename ValueType, typename IndexType>
+template <bool conjugate, int subwarp_size, int warps_per_block,
+          typename ValueType, typename IndexType>
 __global__ void __launch_bounds__(warps_per_block* config::warp_size)
     transpose_jacobi(const ValueType* __restrict__ blocks,
                      preconditioner::block_interleaved_storage_scheme<IndexType>
@@ -154,8 +154,7 @@ __global__ void __launch_bounds__(warps_per_block* config::warp_size)
                      const IndexType* __restrict__ block_ptrs,
                      size_type num_blocks, ValueType* __restrict__ out_blocks)
 {
-    const auto block_id =
-        thread::get_subwarp_id<subwarp_size, warps_per_block>();
+    const auto block_id = thread::get_subwarp_id_flat<subwarp_size>();
     const auto subwarp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
     if (block_id >= num_blocks) {
@@ -176,18 +175,16 @@ __global__ void __launch_bounds__(warps_per_block* config::warp_size)
 }
 
 
-template <bool conjugate, int max_block_size, int subwarp_size,
-          int warps_per_block, typename ValueType, typename IndexType>
-__global__ void
-__launch_bounds__(warps_per_block* config::warp_size) adaptive_transpose_jacobi(
+template <bool conjugate, int subwarp_size, int warps_per_block,
+          typename ValueType, typename IndexType>
+__global__ void adaptive_transpose_jacobi(
     const ValueType* __restrict__ blocks,
     preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
     const precision_reduction* __restrict__ block_precisions,
     const IndexType* __restrict__ block_ptrs, size_type num_blocks,
     ValueType* __restrict__ out_blocks)
 {
-    const auto block_id =
-        thread::get_subwarp_id<subwarp_size, warps_per_block>();
+    const auto block_id = thread::get_subwarp_id_flat<subwarp_size>();
     const auto subwarp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
     if (block_id >= num_blocks) {
@@ -197,23 +194,23 @@ __launch_bounds__(warps_per_block* config::warp_size) adaptive_transpose_jacobi(
 
     const auto block_stride = storage_scheme.get_stride();
     const auto rank = subwarp.thread_rank();
-    if (rank < block_size) {
-        GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
-            ValueType, block_precisions[block_id],
-            auto local_block =
-                reinterpret_cast<const resolved_precision*>(
-                    blocks + storage_scheme.get_group_offset(block_id)) +
-                storage_scheme.get_block_offset(block_id);
-            auto local_out_block =
-                reinterpret_cast<resolved_precision*>(
-                    out_blocks + storage_scheme.get_group_offset(block_id)) +
-                storage_scheme.get_block_offset(block_id);
-            for (IndexType i = 0; i < block_size; ++i) {
-                auto val = local_block[i * block_stride + rank];
-                local_out_block[i + rank * block_stride] =
-                    conjugate ? conj(val) : val;
-            });
-    }
+    GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
+        ValueType, block_precisions[block_id],
+        auto local_block =
+            reinterpret_cast<const resolved_precision*>(
+                blocks + storage_scheme.get_group_offset(block_id)) +
+            storage_scheme.get_block_offset(block_id);
+        auto local_out_block =
+            reinterpret_cast<resolved_precision*>(
+                out_blocks + storage_scheme.get_group_offset(block_id)) +
+            storage_scheme.get_block_offset(block_id);
+        for (int i = rank; i < block_size * block_size; i += subwarp_size) {
+            int row = i % block_size;
+            int col = i / block_size;
+            auto val = local_block[row + col * block_stride];
+            local_out_block[row * block_stride + col] =
+                conjugate ? conj(val) : val;
+        });
 }
 
 
@@ -313,18 +310,16 @@ void transpose_jacobi(
     constexpr int blocks_per_warp = config::warp_size / subwarp_size;
     const auto grid_size =
         ceildiv(num_blocks, warps_per_block * blocks_per_warp);
-    const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
+    const auto block_size = subwarp_size * blocks_per_warp * warps_per_block;
 
     if (grid_size > 0) {
         if (block_precisions) {
-            adaptive_transpose_jacobi<conjugate, max_block_size, subwarp_size,
-                                      warps_per_block>
+            adaptive_transpose_jacobi<conjugate, subwarp_size, warps_per_block>
                 <<<grid_size, block_size, 0, exec->get_stream()>>>(
                     as_device_type(blocks), storage_scheme, block_precisions,
                     block_pointers, num_blocks, as_device_type(out_blocks));
         } else {
-            transpose_jacobi<conjugate, max_block_size, subwarp_size,
-                             warps_per_block>
+            transpose_jacobi<conjugate, subwarp_size, warps_per_block>
                 <<<grid_size, block_size, 0, exec->get_stream()>>>(
                     as_device_type(blocks), storage_scheme, block_pointers,
                     num_blocks, as_device_type(out_blocks));
