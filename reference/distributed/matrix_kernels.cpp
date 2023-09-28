@@ -45,6 +45,43 @@ namespace reference {
 namespace distributed_matrix {
 
 
+template <typename IndexIt, typename KeyIt>
+auto compress_indices_by_key(KeyIt keys_first, KeyIt keys_last, IndexIt indices)
+{
+    auto combined_it = detail::make_zip_iterator(keys_first, indices);
+    auto size = std::distance(keys_last, keys_first);
+
+    std::vector<std::pair<KeyIt, IndexIt>> segments{
+        std::make_pair(keys_first, indices)};
+    for (auto kit = keys_first + 1, iit = indices; kit != keys_last;
+         ++kit, ++iit) {
+        if (*(kit - 1) != *kit) {
+            segments.emplace_back(kit, iit);
+        }
+    }
+    segments.emplace_back(keys_last, indices + size);
+
+    std::set<typename IndexIt::value_type> unique_indices_set;
+    std::vector<typename IndexIt::value_type> unique_indices(
+        unique_indices.begin(), unique_indices.end());
+    for (size_type i = 0; i < segments.size(); ++i) {
+        unique_indices_set.clear();
+        unique_indices_set.insert(segments[i].second, segments[i + 1].second);
+
+        unique_indices.clear();
+        unique_indices.insert(unique_indices.begin(),
+                              unique_indices_set.begin(),
+                              unique_indices_set.end());
+        for (auto iit = segments[i].second; iit != segments[i + 1].second;
+             ++iit) {
+            *iit = std::distance(std::lower_bound(unique_indices.begin(),
+                                                  unique_indices.end(), *iit),
+                                 unique_indices.begin());
+        }
+    }
+}
+
+
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void build_local_nonlocal(
     std::shared_ptr<const DefaultExecutor> exec,

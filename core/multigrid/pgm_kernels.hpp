@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/distributed/localized_partition.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -113,10 +114,12 @@ namespace pgm {
                             const IndexType* col_idxs, const ValueType* vals, \
                             matrix::Coo<ValueType, IndexType>* coarse_coo)
 
-#define GKO_DECLARE_PGM_GATHER_INDEX(IndexType)                    \
-    void gather_index(std::shared_ptr<const DefaultExecutor> exec, \
-                      size_type num_res, const IndexType* orig,    \
-                      const IndexType* gather_map, IndexType* result)
+#define GKO_DECLARE_PGM_GATHER_INDEX(IndexType)                         \
+    void gather_index(std::shared_ptr<const DefaultExecutor> exec,      \
+                      size_type num_res, const IndexType* orig,         \
+                      const experimental::distributed::overlap_indices< \
+                          index_set<IndexType>>* gather_map,            \
+                      IndexType* result)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                               \

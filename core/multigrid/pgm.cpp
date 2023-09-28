@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/matrix/row_gatherer.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
+#include <set>
 
 
 #include "core/base/iterator_factory.hpp"
@@ -244,9 +245,10 @@ Pgm<ValueType, IndexType>::generate_local(
 }
 
 
-template <typename IndexType>
+template <typename ValueType, typename IndexType>
 void communicate(
-    std::shared_ptr<const experimental::distributed::MatrixBase<IndexType>>
+    std::shared_ptr<
+        const experimental::distributed::Matrix<ValueType, IndexType>>
         matrix,
     const array<IndexType>& local_agg, array<IndexType>& non_local_agg)
 {
@@ -254,20 +256,27 @@ void communicate(
     const auto comm =
         gko::as<experimental::distributed::DistributedBase>(matrix)
             ->get_communicator();
-    auto send_sizes = matrix->get_send_sizes();
-    auto recv_sizes = matrix->get_recv_sizes();
-    auto send_offsets = matrix->get_send_offsets();
-    auto recv_offsets = matrix->get_recv_offsets();
-    auto gather_idxs = matrix->get_gather_idxs();
+    auto sparse_comm = matrix->get_sparse_communicator();
+    auto send_sizes = sparse_comm->get_send_sizes();
+    auto recv_sizes = sparse_comm->get_recv_sizes();
+    auto send_offsets = sparse_comm->get_send_offsets();
+    auto recv_offsets = sparse_comm->get_recv_offsets();
+    auto gather_idxs =
+        sparse_comm->template get_partition<IndexType>()->get_send_indices();
     auto total_send_size = send_offsets.back();
     auto total_recv_size = recv_offsets.back();
 
     array<IndexType> send_agg(exec, total_send_size);
-    exec->run(pgm::make_gather_index(
-        send_agg.get_num_elems(), local_agg.get_const_data(),
-        gather_idxs.get_const_data(), send_agg.get_data()));
+    exec->run(pgm::make_gather_index(send_agg.get_num_elems(),
+                                     local_agg.get_const_data(), &gather_idxs,
+                                     send_agg.get_data()));
 
-    auto use_host_buffer = experimental::mpi::requires_host_buffer(exec, comm);
+    // make remote-target-wise iota indices
+    array<IndexType> remote_agg
+
+
+        auto use_host_buffer =
+            experimental::mpi::requires_host_buffer(exec, comm);
     array<IndexType> host_recv_buffer(exec->get_master());
     array<IndexType> host_send_buffer(exec->get_master());
     if (use_host_buffer) {
@@ -284,14 +293,14 @@ void communicate(
     auto recv_ptr = use_host_buffer ? host_recv_buffer.get_data()
                                     : non_local_agg.get_data();
     exec->synchronize();
-    comm.all_to_all_v(use_host_buffer ? exec->get_master() : exec, send_ptr,
-                      send_sizes.data(), send_offsets.data(), type, recv_ptr,
-                      recv_sizes.data(), recv_offsets.data(), type);
+    MPI_Neighbor_alltoallv(send_ptr, send_sizes.data(), send_offsets.data(),
+                           type, recv_ptr, recv_sizes.data(),
+                           recv_offsets.data(), type,
+                           sparse_comm->get_communicator());
     if (use_host_buffer) {
         exec->copy_from(exec->get_master(), total_recv_size, recv_ptr,
                         non_local_agg.get_data());
     }
-    return;
 }
 
 
@@ -312,7 +321,7 @@ void Pgm<ValueType, IndexType>::generate()
     using csr_type = matrix::Csr<ValueType, IndexType>;
 #if GINKGO_BUILD_MPI
     if (auto matrix = std::dynamic_pointer_cast<
-            const experimental::distributed::MatrixBase<IndexType>>(
+            const experimental::distributed::Matrix<ValueType, IndexType>>(
             system_matrix_)) {
         // only work for the square local matrix
         auto exec = gko::as<LinOp>(matrix)->get_executor();
@@ -336,62 +345,118 @@ void Pgm<ValueType, IndexType>::generate()
         communicate(matrix, agg_, non_local_agg);
         // generate non_local_col_map
         non_local_agg.set_executor(exec->get_master());
-        array<IndexType> non_local_col_map(exec->get_master(), non_local_size);
-        array<IndexType> part_id(exec->get_master(), non_local_size);
-        array<IndexType> index(exec->get_master(), non_local_size);
-        auto recv_offsets = matrix->get_recv_offsets();
-        for (int i = 0; i + 1 < recv_offsets.size(); i++) {
-            for (auto j = recv_offsets.at(i); j < recv_offsets.at(i + 1); j++) {
-                part_id.get_data()[j] = i;
-                index.get_data()[j] = j;
-            }
+
+        // compute new localized_partition
+        int64 coarse_size = std::get<1>(result)->get_size()[0];
+
+        using experimental::distributed::comm_index_type;
+        auto fine_part = matrix->get_sparse_communicator()
+                             ->template get_partition<IndexType>();
+
+        // target ids for sending and receiving doesn't change through
+        // coarsening
+        array<comm_index_type> coarse_recv_ids{
+            exec->get_master(), fine_part->get_recv_indices().get_target_ids()};
+        array<comm_index_type> coarse_send_ids{
+            exec->get_master(), fine_part->get_send_indices().get_target_ids()};
+
+        // create coarse send indices, by mapping the fine send indices using
+        // the agg map. Additionally, it is necessary to remove possible
+        // duplication (perhaps this should be part of index_set?)
+        std::vector<std::pair<index_set<IndexType>, comm_index_type>>
+            coarse_send_idxs;
+        for (size_type group = 0; group < coarse_send_idxs.size(); ++group) {
+            auto fine_idxs = fine_part->get_send_indices()
+                                 .get_indices(group)
+                                 .to_global_indices();
+            // map fine idx to coarse
+            auto duplicate_coarse_idxs = fine_idxs;
+            exec->run(pgm::make_map_col(
+                fine_idxs.get_num_elems(), fine_idxs.get_const_data(),
+                agg_.get_const_data(), duplicate_coarse_idxs.get_data()));
+            // sort + make unique on host
+            duplicate_coarse_idxs.set_executor(exec->get_master());
+            std::sort(duplicate_coarse_idxs.get_data(),
+                      duplicate_coarse_idxs.get_data() +
+                          duplicate_coarse_idxs.get_num_elems());
+            auto it =
+                detail::make_zip_iterator(duplicate_coarse_idxs.get_data(),
+                                          duplicate_coarse_idxs.get_data() + 1);
+            auto unique_count = static_cast<size_type>(
+                duplicate_coarse_idxs.get_num_elems() > 1
+                    ? std::count_if(
+                          it, it + duplicate_coarse_idxs.get_num_elems() - 1,
+                          [](const auto& a) {
+                              return std::get<0>(a) != std::get<1>(a);
+                          })
+                    : 0);
+            array<IndexType> coarse_idxs{exec->get_master(), unique_count};
+            std::unique_copy(duplicate_coarse_idxs.get_data(),
+                             duplicate_coarse_idxs.get_data() +
+                                 duplicate_coarse_idxs.get_num_elems(),
+                             coarse_idxs.get_data());
+
+            coarse_send_idxs.emplace_back(
+                index_set<IndexType>{
+                    exec, array<IndexType>{exec, std::move(coarse_idxs)}, true},
+                coarse_send_ids.get_data()[group]);
         }
-        // do it in host currently.
-        auto it = detail::make_zip_iterator(
-            part_id.get_data(), non_local_agg.get_data(), index.get_data());
-        // prepare tuple <part_id, local_agg, index>
-        // sort by <part_id, local_agg> or did segment sort
-        std::sort(it, it + non_local_size);
-        // add additional in tail such that the offset easily handle it.
-        array<IndexType> renumber(exec->get_master(), non_local_size + 1);
-        renumber.get_data()[0] = 0;
-        // renumber (prefix_sum) with not eqaul <part_id, local_agg>
-        for (int i = 1; i < non_local_size; i++) {
-            if (part_id.get_data()[i] != part_id.get_data()[i - 1] ||
-                non_local_agg.get_data()[i] !=
-                    non_local_agg.get_data()[i - 1]) {
-                renumber.get_data()[i] = renumber.get_data()[i - 1] + 1;
-            } else {
-                renumber.get_data()[i] = renumber.get_data()[i - 1];
-            }
+
+        // create coarse recv indices, this requires only knowing the new
+        // size of the received indices
+        array<comm_index_type> coarse_recv_sizes{
+            exec->get_master(), coarse_recv_ids.get_num_elems()};
+        for (size_type group = 0; group < coarse_recv_ids.get_num_elems();
+             ++group) {
+            auto fine_span =
+                fine_part->get_recv_indices().get_indices(group).get_span();
+            // count unique columns in non_local_agg
+            array<IndexType> group_agg{
+                exec, non_local_agg.get_data(),
+                non_local_agg.get_data() + fine_span.end};
+            auto agg_it = group_agg.get_data();
+            std::sort(agg_it, agg_it + fine_span.length());
+            auto it = detail::make_zip_iterator(agg_it, agg_it + 1);
+            auto unique_count =
+                non_local_agg.get_num_elems() > 1
+                    ? std::count_if(it, it + fine_span.length() - 1,
+                                    [](const auto& a) {
+                                        return std::get<0>(a) != std::get<1>(a);
+                                    })
+                    : 0;
+            coarse_recv_sizes.get_data()[group] =
+                static_cast<comm_index_type>(unique_count);
         }
-        renumber.get_data()[non_local_size] =
-            renumber.get_data()[non_local_size - 1] + 1;
-        // create col map
-        // for each thread i, col_map[tuple[i].index] = map[i]
-        for (int i = 0; i < non_local_size; i++) {
-            non_local_col_map.get_data()[index.get_data()[i]] =
-                renumber.get_data()[i];
+
+        auto coarse_part = experimental::distributed::localized_partition<
+            IndexType>::build_from_blocked_recv(exec, coarse_size,
+                                                std::move(coarse_send_idxs),
+                                                coarse_recv_ids,
+                                                coarse_recv_sizes);
+        auto coarse_comm =
+            experimental::distributed::sparse_communicator::create(comm,
+                                                                   coarse_part);
+
+        auto recv_idxs = coarse_part->get_recv_indices();
+        // build column mapping. The new non-local column index is given by
+        // c_c = compress(non_local_agg + recv_offsets)
+        auto offsets = coarse_comm->get_recv_offsets();
+        // compress is already implemented in the matrix_kernels,
+        // here it is only recreated to not extract the kernel atm
+        std::set<IndexType> unique_cols_set;
+        for (size_type i = 0; i < non_local_agg.get_num_elems(); ++i) {
+            auto group = *std::lower_bound(offsets.begin(), offsets.end(), i);
+            unique_cols_set.insert(non_local_agg.get_data()[i] +
+                                   offsets[group]);
         }
-        // get new recv_size and recv_offsets
-        std::vector<experimental::distributed::comm_index_type> new_recv_size(
-            num_rank);
-        std::vector<experimental::distributed::comm_index_type>
-            new_recv_offsets(num_rank + 1);
-        auto rank = comm.rank();
-        for (int i = 0; i < num_rank; i++) {
-            new_recv_size.at(i) = renumber.get_data()[recv_offsets.at(i + 1)] -
-                                  renumber.get_data()[recv_offsets.at(i)];
-            new_recv_offsets.at(i + 1) =
-                new_recv_offsets.at(i) + new_recv_size.at(i);
+        std::vector<IndexType> unique_cols(unique_cols_set.begin(),
+                                           unique_cols_set.end());
+        array<IndexType> non_local_map{exec, non_local_agg.get_num_elems()};
+        for (size_type i = 0; i < non_local_map.get_num_elems(); ++i) {
+            non
         }
-        IndexType non_local_num_agg = new_recv_offsets.back();
-        array<IndexType> new_recv_gather_idxs(exec->get_master(),
-                                              non_local_num_agg);
-        for (int i = 0; i < non_local_size; i++) {
-            new_recv_gather_idxs.get_data()[renumber.get_data()[i]] =
-                non_local_agg.get_data()[i];
-        }
+
+
         // build coo from row and col map
         // generate_coarse but the row and col map are different
         // Only support csr matrix currently.
@@ -402,14 +467,12 @@ void Pgm<ValueType, IndexType>::generate()
             non_local_csr = convert_to_with_sorting<csr_type>(
                 exec, non_local_matrix, parameters_.skip_sorting);
         }
-        non_local_col_map.set_executor(exec);
         auto result_non_local_csr = generate_coarse(
             exec, non_local_csr.get(),
             static_cast<IndexType>(std::get<1>(result)->get_size()[0]), agg_,
-            static_cast<IndexType>(non_local_num_agg), non_local_col_map);
+            static_cast<IndexType>(non_local_num_agg), non_local_agg);
         // use local and non-local to build coarse matrix
         // also restriction and prolongation (Local-only-global matrix)
-        int64 coarse_size = std::get<1>(result)->get_size()[0];
         comm.all_reduce(exec->get_master(), &coarse_size, 1, MPI_SUM);
         new_recv_gather_idxs.set_executor(exec);
         auto setup = [&](auto global_index) {

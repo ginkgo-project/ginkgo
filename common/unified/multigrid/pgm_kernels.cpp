@@ -341,16 +341,25 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
 
 
 template <typename IndexType>
-void gather_index(std::shared_ptr<const DefaultExecutor> exec,
-                  size_type num_res, const IndexType* orig,
-                  const IndexType* gather_map, IndexType* result)
+void gather_index(
+    std::shared_ptr<const DefaultExecutor> exec, size_type num_res,
+    const IndexType* orig,
+    const experimental::distributed::overlap_indices<index_set<IndexType>>*
+        gather_map,
+    IndexType* result)
 {
-    run_kernel(
-        exec,
-        [] GKO_KERNEL(auto tidx, auto orig, auto gather_map, auto result) {
-            result[tidx] = orig[gather_map[tidx]];
-        },
-        num_res, orig, gather_map, result);
+    size_type offset = 0;
+    for (size_type group = 0; group < gather_map->get_num_groups(); ++group) {
+        auto map = gather_map->get_indices(group).to_global_indices();
+        run_kernel(
+            exec,
+            [] GKO_KERNEL(auto tidx, auto orig, auto offset, auto map,
+                          auto result) {
+                result[tidx + offset] = orig[map[tidx]];
+            },
+            num_res, orig, offset, map, result);
+        offset += map.get_num_elems();
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_GATHER_INDEX);

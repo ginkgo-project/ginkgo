@@ -156,22 +156,6 @@ template <typename ValueType>
 class Vector;
 
 
-// TODO: move the data into this class
-template <typename IndexType>
-class MatrixBase {
-public:
-    virtual std::vector<comm_index_type> get_recv_sizes() const = 0;
-    virtual std::vector<comm_index_type> get_send_sizes() const = 0;
-    virtual std::vector<comm_index_type> get_recv_offsets() const = 0;
-    virtual std::vector<comm_index_type> get_send_offsets() const = 0;
-    virtual std::shared_ptr<const LinOp> get_non_local_matrix() const = 0;
-    virtual std::shared_ptr<const LinOp> get_local_matrix() const = 0;
-    virtual array<IndexType> get_gather_idxs() const = 0;
-    virtual array<IndexType> get_recv_gather_idxs() const = 0;
-    // TODO: use type tag?
-    virtual bool is_using_index(size_t index_size) const = 0;
-};
-
 /**
  * The Matrix class defines a (MPI-)distributed matrix.
  *
@@ -277,42 +261,36 @@ public:
  * @tparam GlobalIndexType  The type for global indices.
  */
 template <typename ValueType = default_precision,
-          typename LocalIndexType = int32, typename GlobalIndexType = int64>
+          typename LocalIndexType = int32>
 class Matrix
-    : public EnableDistributedLinOp<
-          Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
-      public EnableCreateMethod<
-          Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
-      public ConvertibleTo<
-          Matrix<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
-      public DistributedBase,
-      public MatrixBase<LocalIndexType> {
+    : public EnableDistributedLinOp<Matrix<ValueType, LocalIndexType>>,
+      public EnableCreateMethod<Matrix<ValueType, LocalIndexType>>,
+      public ConvertibleTo<Matrix<next_precision<ValueType>, LocalIndexType>>,
+      public DistributedBase {
     friend class EnableCreateMethod<Matrix>;
     friend class EnableDistributedPolymorphicObject<Matrix, LinOp>;
-    friend class Matrix<next_precision<ValueType>, LocalIndexType,
-                        GlobalIndexType>;
+    friend class Matrix<next_precision<ValueType>, LocalIndexType>;
 
 public:
     using value_type = ValueType;
-    using index_type = GlobalIndexType;
+    using index_type = LocalIndexType;
     using local_index_type = LocalIndexType;
-    using global_index_type = GlobalIndexType;
     using global_vector_type =
         gko::experimental::distributed::Vector<ValueType>;
     using local_vector_type = typename global_vector_type::local_vector_type;
 
     using EnableDistributedLinOp<Matrix>::convert_to;
     using EnableDistributedLinOp<Matrix>::move_to;
-    using ConvertibleTo<Matrix<next_precision<ValueType>, LocalIndexType,
-                               GlobalIndexType>>::convert_to;
-    using ConvertibleTo<Matrix<next_precision<ValueType>, LocalIndexType,
-                               GlobalIndexType>>::move_to;
+    using ConvertibleTo<
+        Matrix<next_precision<ValueType>, LocalIndexType>>::convert_to;
+    using ConvertibleTo<
+        Matrix<next_precision<ValueType>, LocalIndexType>>::move_to;
 
-    void convert_to(Matrix<next_precision<value_type>, local_index_type,
-                           global_index_type>* result) const override;
+    void convert_to(Matrix<next_precision<value_type>, local_index_type>*
+                        result) const override;
 
-    void move_to(Matrix<next_precision<value_type>, local_index_type,
-                        global_index_type>* result) override;
+    void move_to(
+        Matrix<next_precision<value_type>, local_index_type>* result) override;
 
     /**
      * Reads a square matrix from the device_matrix_data structure and a global
@@ -328,10 +306,13 @@ public:
      * @param data  The device_matrix_data structure.
      * @param partition  The global row and column partition.
      */
+    template <typename GlobalIndexType>
     void read_distributed(
-        const device_matrix_data<value_type, global_index_type>& data,
-        ptr_param<const Partition<local_index_type, global_index_type>>
-            partition);
+        const device_matrix_data<value_type, GlobalIndexType>& data,
+        ptr_param<const Partition<local_index_type, GlobalIndexType>> partition)
+    {
+        this->read_distributed(data, partition, partition);
+    }
 
     /**
      * Reads a square matrix from the matrix_data structure and a global
@@ -342,10 +323,16 @@ public:
      * @note For efficiency it is advised to use the device_matrix_data
      * overload.
      */
+    template <typename GlobalIndexType>
     void read_distributed(
-        const matrix_data<value_type, global_index_type>& data,
-        ptr_param<const Partition<local_index_type, global_index_type>>
-            partition);
+        const matrix_data<value_type, GlobalIndexType>& data,
+        ptr_param<const Partition<local_index_type, GlobalIndexType>> partition)
+    {
+        this->read_distributed(
+            device_matrix_data<value_type, GlobalIndexType>::create_from_host(
+                this->get_executor(), data),
+            partition, partition);
+    }
 
     /**
      * Reads a matrix from the device_matrix_data structure, a global row
@@ -362,11 +349,12 @@ public:
      * @param row_partition  The global row partition.
      * @param col_partition  The global col partition.
      */
+    template <typename GlobalIndexType>
     void read_distributed(
-        const device_matrix_data<value_type, global_index_type>& data,
-        ptr_param<const Partition<local_index_type, global_index_type>>
+        const device_matrix_data<value_type, GlobalIndexType>& data,
+        ptr_param<const Partition<local_index_type, GlobalIndexType>>
             row_partition,
-        ptr_param<const Partition<local_index_type, global_index_type>>
+        ptr_param<const Partition<local_index_type, GlobalIndexType>>
             col_partition);
 
     /**
@@ -378,29 +366,33 @@ public:
      * @note For efficiency it is advised to use the device_matrix_data
      * overload.
      */
+    template <typename GlobalIndexType>
     void read_distributed(
-        const matrix_data<value_type, global_index_type>& data,
-        ptr_param<const Partition<local_index_type, global_index_type>>
+        const matrix_data<value_type, GlobalIndexType>& data,
+        ptr_param<const Partition<local_index_type, GlobalIndexType>>
             row_partition,
-        ptr_param<const Partition<local_index_type, global_index_type>>
-            col_partition);
+        ptr_param<const Partition<local_index_type, GlobalIndexType>>
+            col_partition)
+    {
+        this->read_distributed(
+            device_matrix_data<value_type, GlobalIndexType>::create_from_host(
+                this->get_executor(), data),
+            row_partition, col_partition);
+    }
 
     /**
      * Get read access to the stored local matrix.
      *
      * @return  Shared pointer to the stored local matrix
      */
-    std::shared_ptr<const LinOp> get_local_matrix() const override
-    {
-        return local_mtx_;
-    }
+    std::shared_ptr<const LinOp> get_local_matrix() const { return local_mtx_; }
 
     /**
      * Get read access to the stored non-local matrix.
      *
      * @return  Shared pointer to the stored non-local matrix
      */
-    std::shared_ptr<const LinOp> get_non_local_matrix() const override
+    std::shared_ptr<const LinOp> get_non_local_matrix() const
     {
         return non_local_mtx_;
     }
@@ -573,7 +565,6 @@ protected:
                     LinOp* x) const override;
 
 private:
-    array<global_index_type> non_local_to_global_;
     gko::detail::DenseCache<value_type> one_scalar_;
     gko::detail::DenseCache<value_type> host_send_buffer_;
     gko::detail::DenseCache<value_type> host_recv_buffer_;

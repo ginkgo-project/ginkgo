@@ -57,30 +57,28 @@ GKO_REGISTER_OPERATION(build_local_nonlocal,
 }  // namespace matrix
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
-    std::shared_ptr<const Executor> exec, mpi::communicator comm)
+template <typename ValueType, typename LocalIndexType>
+Matrix<ValueType, LocalIndexType>::Matrix(std::shared_ptr<const Executor> exec,
+                                          mpi::communicator comm)
     : Matrix(exec, comm, with_matrix_type<gko::matrix::Csr>())
 {}
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
+template <typename ValueType, typename LocalIndexType>
+Matrix<ValueType, LocalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm,
     ptr_param<const LinOp> local_matrix_template)
     : Matrix(exec, comm, local_matrix_template, local_matrix_template)
 {}
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
+template <typename ValueType, typename LocalIndexType>
+Matrix<ValueType, LocalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm,
     ptr_param<const LinOp> local_matrix_template,
     ptr_param<const LinOp> non_local_matrix_template)
-    : EnableDistributedLinOp<
-          Matrix<value_type, local_index_type, global_index_type>>{exec},
+    : EnableDistributedLinOp<Matrix<value_type, local_index_type>>{exec},
       DistributedBase{comm},
-      non_local_to_global_{exec},
       one_scalar_{},
       local_mtx_{local_matrix_template->clone(exec)},
       non_local_mtx_{non_local_matrix_template->clone(exec)},
@@ -100,75 +98,61 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
 }
 
 
-template <typename GlobalIndexType, typename LocalIndexType>
-gko::array<GlobalIndexType> compute_non_local_to_global(
-    ptr_param<const localized_partition<LocalIndexType>> part,
-    ptr_param<const Partition<LocalIndexType, GlobalIndexType>> global_part)
-{
-    auto send_idxs = part->get_send_indices().get_num_elems();
-}
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
+template <typename ValueType, typename LocalIndexType>
+Matrix<ValueType, LocalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec,
     std::shared_ptr<const sparse_communicator> sparse_comm,
     std::unique_ptr<LinOp> local_matrix,
     std::unique_ptr<LinOp> non_local_matrix)
-    : EnableDistributedLinOp<
-          Matrix<value_type, local_index_type, global_index_type>>{exec},
+    : EnableDistributedLinOp<Matrix<value_type, local_index_type>>{exec},
       DistributedBase{sparse_comm->get_communicator()},
-      non_local_to_global_{exec},
       one_scalar_{},
       local_mtx_{std::move(local_matrix)},
       non_local_mtx_{std::move(non_local_matrix)},
-      sparse_comm_(sparse_comm)
+      sparse_comm_(std::move(sparse_comm))
 {
-    auto recv_idxs =
-        sparse_comm->get_partition<GlobalIndexType>()->get_recv_indices();
-    GKO_ASSERT(recv_idxs.get_end() - recv_idxs.get_begin() ==
-               non_local_mtx_->get_size()[1]);
+    auto part = sparse_comm_->get_partition<local_index_type>();
+    auto recv_idxs = part->get_recv_indices();
+    GKO_ASSERT_IS_SCALAR(local_mtx_);
+    GKO_ASSERT_EQUAL_ROWS(local_mtx_, non_local_mtx_);
+    GKO_ASSERT(part->get_local_end() == local_mtx_->get_size()[0]);
+    GKO_ASSERT(recv_idxs.get_num_elems() == non_local_mtx_->get_size()[1]);
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
-    Matrix<next_precision<value_type>, local_index_type, global_index_type>*
-        result) const
+template <typename ValueType, typename LocalIndexType>
+void Matrix<ValueType, LocalIndexType>::convert_to(
+    Matrix<next_precision<value_type>, local_index_type>* result) const
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
     result->local_mtx_->copy_from(this->local_mtx_);
     result->non_local_mtx_->copy_from(this->non_local_mtx_);
     result->sparse_comm_ = this->sparse_comm_;
-    result->non_local_to_global_ = this->non_local_to_global_;
     result->set_size(this->get_size());
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
-    Matrix<next_precision<value_type>, local_index_type, global_index_type>*
-        result)
+template <typename ValueType, typename LocalIndexType>
+void Matrix<ValueType, LocalIndexType>::move_to(
+    Matrix<next_precision<value_type>, local_index_type>* result)
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
     result->local_mtx_->move_from(this->local_mtx_);
     result->non_local_mtx_->move_from(this->non_local_mtx_);
     result->sparse_comm_ = std::move(this->sparse_comm_);
-    result->non_local_to_global_ = std::move(this->non_local_to_global_);
     result->set_size(this->get_size());
     this->set_size({});
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
-    const device_matrix_data<value_type, global_index_type>& data,
-    ptr_param<const Partition<local_index_type, global_index_type>>
-        row_partition,
-    ptr_param<const Partition<local_index_type, global_index_type>>
-        col_partition)
+template <typename ValueType, typename LocalIndexType>
+template <typename GlobalIndexType>
+void Matrix<ValueType, LocalIndexType>::read_distributed(
+    const device_matrix_data<value_type, GlobalIndexType>& data,
+    ptr_param<const Partition<local_index_type, GlobalIndexType>> row_partition,
+    ptr_param<const Partition<local_index_type, GlobalIndexType>> col_partition)
 {
     const auto comm = this->get_communicator();
     GKO_ASSERT_EQ(data.get_size()[0], row_partition->get_size());
@@ -194,6 +178,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     array<value_type> non_local_values{exec};
     array<local_index_type> recv_gather_idxs{exec};
     array<comm_index_type> recv_sizes_array{exec, num_parts};
+    array<GlobalIndexType> non_local_to_global_{exec};
 
     // build local, non-local matrix data and communication structures
     exec->run(matrix::make_build_local_nonlocal(
@@ -247,46 +232,22 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     sparse_comm_ = sparse_communicator::create(comm, part);
 }
 
+#define GKO_DECLARE_MATRIX_READ_DISTRIBUTED(_value_type, _index_type,    \
+                                            _global_index_type)          \
+    void Matrix<_value_type, _index_type>::read_distributed(             \
+        const device_matrix_data<_value_type, _global_index_type>& data, \
+        ptr_param<const Partition<_index_type, _global_index_type>>      \
+            row_partition,                                               \
+        ptr_param<const Partition<_index_type, _global_index_type>>      \
+            col_partition)
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
-    const matrix_data<value_type, global_index_type>& data,
-    ptr_param<const Partition<local_index_type, global_index_type>>
-        row_partition,
-    ptr_param<const Partition<local_index_type, global_index_type>>
-        col_partition)
-{
-    this->read_distributed(
-        device_matrix_data<value_type, global_index_type>::create_from_host(
-            this->get_executor(), data),
-        row_partition, col_partition);
-}
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_MATRIX_READ_DISTRIBUTED);
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
-    const matrix_data<ValueType, global_index_type>& data,
-    ptr_param<const Partition<local_index_type, global_index_type>> partition)
-{
-    this->read_distributed(
-        device_matrix_data<value_type, global_index_type>::create_from_host(
-            this->get_executor(), data),
-        partition, partition);
-}
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
-    const device_matrix_data<ValueType, GlobalIndexType>& data,
-    ptr_param<const Partition<local_index_type, global_index_type>> partition)
-{
-    this->read_distributed(data, partition, partition);
-}
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
-    const LinOp* b, LinOp* x) const
+template <typename ValueType, typename LocalIndexType>
+void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* b,
+                                                   LinOp* x) const
 {
     distributed::precision_dispatch_real_complex<ValueType>(
         [this](const auto dense_b, auto dense_x) {
@@ -317,9 +278,11 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
-    const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x) const
+template <typename ValueType, typename LocalIndexType>
+void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* alpha,
+                                                   const LinOp* b,
+                                                   const LinOp* beta,
+                                                   LinOp* x) const
 {
     distributed::precision_dispatch_real_complex<ValueType>(
         [this](const auto local_alpha, const auto dense_b,
@@ -352,30 +315,28 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(const Matrix& other)
-    : EnableDistributedLinOp<Matrix<value_type, local_index_type,
-                                    global_index_type>>{other.get_executor()},
+template <typename ValueType, typename LocalIndexType>
+Matrix<ValueType, LocalIndexType>::Matrix(const Matrix& other)
+    : EnableDistributedLinOp<
+          Matrix<value_type, local_index_type>>{other.get_executor()},
       DistributedBase{other.get_communicator()}
 {
     *this = other;
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
-    Matrix&& other) noexcept
-    : EnableDistributedLinOp<Matrix<value_type, local_index_type,
-                                    global_index_type>>{other.get_executor()},
+template <typename ValueType, typename LocalIndexType>
+Matrix<ValueType, LocalIndexType>::Matrix(Matrix&& other) noexcept
+    : EnableDistributedLinOp<
+          Matrix<value_type, local_index_type>>{other.get_executor()},
       DistributedBase{other.get_communicator()}
 {
     *this = std::move(other);
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-Matrix<ValueType, LocalIndexType, GlobalIndexType>&
-Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
+template <typename ValueType, typename LocalIndexType>
+Matrix<ValueType, LocalIndexType>& Matrix<ValueType, LocalIndexType>::operator=(
     const Matrix& other)
 {
     if (this != &other) {
@@ -384,7 +345,6 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         this->set_size(other.get_size());
         local_mtx_->copy_from(other.local_mtx_);
         non_local_mtx_->copy_from(other.non_local_mtx_);
-        non_local_to_global_ = other.non_local_to_global_;
         sparse_comm_ = other.sparse_comm_;
         one_scalar_.init(this->get_executor(), dim<2>{1, 1});
         one_scalar_->fill(one<value_type>());
@@ -393,9 +353,9 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-Matrix<ValueType, LocalIndexType, GlobalIndexType>&
-Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
+template <typename ValueType, typename LocalIndexType>
+Matrix<ValueType, LocalIndexType>& Matrix<ValueType, LocalIndexType>::operator=(
+    Matrix&& other)
 {
     if (this != &other) {
         GKO_ASSERT_EQ(other.get_communicator().size(),
@@ -404,7 +364,6 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
         other.set_size({});
         local_mtx_->move_from(other.local_mtx_);
         non_local_mtx_->move_from(other.non_local_mtx_);
-        non_local_to_global_ = std::move(other.non_local_to_global_);
         sparse_comm_ = std::move(other.sparse_comm_);
         one_scalar_.init(this->get_executor(), dim<2>{1, 1});
         one_scalar_->fill(one<value_type>());
@@ -413,11 +372,9 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
 }
 
 
-#define GKO_DECLARE_DISTRIBUTED_MATRIX(ValueType, LocalIndexType, \
-                                       GlobalIndexType)           \
-    class Matrix<ValueType, LocalIndexType, GlobalIndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_DISTRIBUTED_MATRIX);
+#define GKO_DECLARE_DISTRIBUTED_MATRIX(ValueType, LocalIndexType) \
+    class Matrix<ValueType, LocalIndexType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_DISTRIBUTED_MATRIX);
 
 
 }  // namespace distributed

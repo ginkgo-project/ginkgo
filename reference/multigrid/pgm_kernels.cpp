@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/distributed/localized_partition.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
@@ -349,12 +350,20 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename IndexType>
-void gather_index(std::shared_ptr<const DefaultExecutor> exec,
-                  size_type num_res, const IndexType* orig,
-                  const IndexType* gather_map, IndexType* result)
+void gather_index(
+    std::shared_ptr<const DefaultExecutor> exec, size_type num_res,
+    const IndexType* orig,
+    const experimental::distributed::overlap_indices<index_set<IndexType>>*
+        gather_map,
+    IndexType* result)
 {
-    for (size_type i = 0; i < num_res; ++i) {
-        result[i] = orig[gather_map[i]];
+    size_type offset = 0;
+    for (size_type group = 0; group < gather_map->get_num_groups(); ++group) {
+        auto map = gather_map->get_indices(group).to_global_indices();
+        for (size_type i = 0; i < map.get_num_elems(); ++i) {
+            result[i + offset] = orig[map.get_data()[i]];
+        }
+        offset += map.get_num_elems();
     }
 }
 
