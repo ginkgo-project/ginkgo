@@ -11,6 +11,7 @@
 #include <thrust/execution_policy.h>
 #include <thrust/for_each.h>
 #include <thrust/iterator/transform_iterator.h>
+#include <thrust/iterator/transform_output_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/sequence.h>
 #include <thrust/sort.h>
@@ -23,6 +24,7 @@
 
 #include "hip/base/thrust.hip.hpp"
 #include "hip/components/atomic.hip.hpp"
+#include "hip/components/searching.hip.hpp"
 
 
 namespace gko {
