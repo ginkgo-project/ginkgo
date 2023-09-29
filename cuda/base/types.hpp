@@ -94,6 +94,9 @@ THRUST_HALF_FRIEND_OPERATOR(/, /=)
 
 namespace gko {
 
+// It is required by NVHPC 23.3, isnan is undefined when NVHPC are only as host
+// compiler.
+#ifdef __CUDACC__
 
 // from the cuda_fp16.hpp
 #if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 530
@@ -126,10 +129,14 @@ __device__ __forceinline__ bool is_nan(const thrust::complex<__half>& val)
 }
 
 
+#endif
+
+
 namespace kernels {
 namespace cuda {
 
 
+#ifdef __CUDACC__
 #if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 530
 
 #if CUDA_VERSION >= 10020
@@ -161,7 +168,7 @@ __device__ __forceinline__ __half sqrt(const __half& val)
 
 
 #endif
-
+#endif
 
 namespace detail {
 
