@@ -50,6 +50,106 @@ struct input_type {
     {}
 };
 
+/**
+ * Maps indices grouped by keys in a given range into the compact range [0, N),
+ * where N is the sum of the number of unique indices in each group. Also
+ * reorders the input keys and indices,
+ *
+ * Consider the following example with a single key:
+ * ```
+ * K = [0, 0, 0, 0]
+ * I = [3, 2, 7, 7]
+ * ```
+ * then the output iterator will hold:
+ * ```
+ * O = [1, 0, 2, 2]
+ * ```
+ * If there is more than one key, the resulting indices for a group k will have
+ * lower values than any indices in group k' with `k < k'`. Consider the
+ * following example:
+ * ```
+ * K = [1, 1, 1, 0, 0, 0, 3, 3, 3]
+ * I = [1, 2, 3, 5, 5, 6, 10, 9, 9]
+ * ```
+ * then the output will be
+ * ```
+ * O = [2, 3, 4, 0, 0, 1, 6, 5, 5]
+ * ```
+ * Additionally the input keys and indices are sorted and made unique, and the
+ * end iterators of the unique range will be returned:
+ * ```
+ * K' = [0, 0, 1, 1, 1, 3, 3]
+ * I' = [5, 6, 1, 2, 3, 9, 10]
+ * ```
+ * It is possible that different groups have the same indices. But the resulting
+ * indices will have unique value ranges for each group. Consider the following
+ * example:
+ * ```
+ * K = [0, 0, 1, 1]
+ * I = [1, 2, 1, 2]
+ * ```
+ * then the output iterator will hold:
+ * ```
+ * O = [0, 1, 2, 3]
+ * ```
+ */
+template <typename ExecType, typename KeyIt, typename IndexIt,
+          typename OutputIt>
+thrust::tuple<KeyIt, IndexIt, OutputIt> compress_indices_by_key(
+    std::shared_ptr<const ExecType> exec, KeyIt keys_first, KeyIt keys_last,
+    IndexIt indices, OutputIt out)
+{
+    using key_type = typename thrust::iterator_traits<KeyIt>::value_type;
+    using index_type = typename thrust::iterator_traits<IndexIt>::value_type;
+    using out_index_type =
+        typename thrust::iterator_traits<OutputIt>::value_type;
+    using diff_type = typename thrust::iterator_traits<KeyIt>::difference_type;
+
+    auto policy = thrust_policy(exec);
+
+    auto size = static_cast<size_type>(thrust::distance(keys_first, keys_last));
+    array<key_type> original_keys{exec, size};
+    array<index_type> original_indices{exec, size};
+    auto original_keys_it = original_keys.get_data();
+    auto original_indices_it = original_indices.get_data();
+    thrust::copy(policy, keys_first, keys_last, original_keys_it);
+    thrust::copy(policy, indices, indices + size, original_indices_it);
+
+    auto combined_it =
+        thrust::make_zip_iterator(thrust::make_tuple(keys_first, indices));
+
+    // sort keys and indices into segment of indices with the same key
+    thrust::sort(policy, combined_it, combined_it + size);
+
+    // make indices unique in each segment
+    auto unique_ends = thrust::unique(policy, combined_it, combined_it + size);
+    auto unique_size =
+        static_cast<diff_type>(thrust::distance(combined_it, unique_ends));
+
+    // map input indices to compressed index space
+    thrust::transform(
+        policy, original_keys_it, original_keys_it + size, original_indices_it,
+        out,
+        [keys_first, indices, unique_size] __host__ __device__(
+            const key_type& key, const index_type& index) {
+            auto segment_start = binary_search(
+                diff_type{0}, unique_size,
+                [keys_first, key](auto i) { return keys_first[i] >= key; });
+            auto segment_end = binary_search(
+                diff_type{0}, unique_size,
+                [keys_first, key](auto i) { return keys_first[i] > key; });
+            auto segment_size = segment_end - segment_start;
+
+            auto compressed_idx = binary_search(
+                segment_start, segment_size,
+                [indices, index](auto i) { return indices[i] >= index; });
+            return static_cast<out_index_type>(compressed_idx);
+        });
+
+    return thrust::make_tuple(keys_first + unique_size, indices + unique_size,
+                              out + size);
+}
+
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void build_local_nonlocal(
@@ -82,16 +182,18 @@ void build_local_nonlocal(
     const auto num_col_ranges = col_partition->get_num_ranges();
     const auto num_input_elements = input.get_num_elems();
 
+    auto policy = thrust_policy(exec);
+
     // precompute the row and column range id of each input element
     auto input_row_idxs = input.get_const_row_idxs();
     auto input_col_idxs = input.get_const_col_idxs();
     array<size_type> row_range_ids{exec, num_input_elements};
-    thrust::upper_bound(thrust_policy(exec), row_range_bounds + 1,
+    thrust::upper_bound(policy, row_range_bounds + 1,
                         row_range_bounds + num_row_ranges + 1, input_row_idxs,
                         input_row_idxs + num_input_elements,
                         row_range_ids.get_data());
     array<size_type> col_range_ids{exec, input.get_num_elems()};
-    thrust::upper_bound(thrust_policy(exec), col_range_bounds + 1,
+    thrust::upper_bound(policy, col_range_bounds + 1,
                         col_range_bounds + num_col_ranges + 1, input_col_idxs,
                         input_col_idxs + num_input_elements,
                         col_range_ids.get_data());
@@ -100,7 +202,7 @@ void build_local_nonlocal(
     auto range_ids_it = thrust::make_zip_iterator(thrust::make_tuple(
         row_range_ids.get_const_data(), col_range_ids.get_const_data()));
     auto num_elements_pair = thrust::transform_reduce(
-        thrust_policy(exec), range_ids_it, range_ids_it + num_input_elements,
+        policy, range_ids_it, range_ids_it + num_input_elements,
         [local_part, row_part_ids, col_part_ids] __host__ __device__(
             const thrust::tuple<size_type, size_type>& tuple) {
             auto row_part = row_part_ids[thrust::get<0>(tuple)];
@@ -156,8 +258,7 @@ void build_local_nonlocal(
             return thrust::make_tuple(local_row, local_col, input.val);
         });
     thrust::copy_if(
-        thrust_policy(exec), local_it, local_it + input.get_num_elems(),
-        range_ids_it,
+        policy, local_it, local_it + input.get_num_elems(), range_ids_it,
         thrust::make_zip_iterator(thrust::make_tuple(local_row_idxs.get_data(),
                                                      local_col_idxs.get_data(),
                                                      local_values.get_data())),
@@ -177,7 +278,7 @@ void build_local_nonlocal(
     array<comm_index_type> non_local_col_part_ids{exec, num_non_local_elements};
     array<size_type> non_local_col_range_ids{exec, num_non_local_elements};
     auto non_local_it = thrust::make_transform_iterator(
-        input_it, [map_to_local_row, map_to_local_col,
+        input_it, [map_to_local_row,
                    col_part_ids] __host__ __device__(const input_type input) {
             auto local_row = map_to_local_row(input.row, input.row_range);
             return thrust::make_tuple(local_row, input.col, input.val,
@@ -185,7 +286,7 @@ void build_local_nonlocal(
                                       input.col_range);
         });
     thrust::copy_if(
-        thrust_policy(exec), non_local_it, non_local_it + input.get_num_elems(),
+        policy, non_local_it, non_local_it + input.get_num_elems(),
         range_ids_it,
         thrust::make_zip_iterator(thrust::make_tuple(
             non_local_row_idxs.get_data(), non_local_global_col_idxs.get_data(),
@@ -198,89 +299,36 @@ void build_local_nonlocal(
             return row_part == local_part && col_part != local_part;
         });
 
-    // 1. sort global columns, part-id and range-id according to
-    // their part-id and global columns
-    // the previous `non_local_global_col_idxs` is not modify to
-    // keep it consistent with the non-local row and values array
-    array<GlobalIndexType> sorted_non_local_global_col_idxs{
-        exec, non_local_global_col_idxs};
-    auto key_it = thrust::make_zip_iterator(
-        thrust::make_tuple(non_local_col_part_ids.get_data(),
-                           sorted_non_local_global_col_idxs.get_data()));
-    thrust::sort_by_key(thrust_policy(exec), key_it,
-                        key_it + num_non_local_elements,
-                        non_local_col_range_ids.get_data());
-
-    // 2. remove duplicate columns, now the new column i has global index
-    // non_local_global_col_idxs[i]
-    auto non_local_global_col_idxs_begin =
-        sorted_non_local_global_col_idxs.get_data();
-    auto non_local_global_col_idxs_end = thrust::get<0>(thrust::unique_by_key(
-        thrust_policy(exec), non_local_global_col_idxs_begin,
-        non_local_global_col_idxs_begin + num_non_local_elements,
-        thrust::make_zip_iterator(
-            thrust::make_tuple(non_local_col_part_ids.get_data(),
-                               non_local_col_range_ids.get_data()))));
-    auto num_non_local_cols = static_cast<size_type>(thrust::distance(
-        non_local_global_col_idxs_begin, non_local_global_col_idxs_end));
-
-    // 2.5 copy unique_columns to non_local_to_global map
-    non_local_to_global.resize_and_reset(num_non_local_cols);
-    exec->copy(num_non_local_cols, non_local_global_col_idxs_begin,
-               non_local_to_global.get_data());
-
-    // 3. create mapping from unique_columns
-    // since we don't have hash tables on GPUs I'm first sorting the non-local
-    // global column indices and their new local index again by the global
-    // column index. Then I'm using binary searches to find the new local column
-    // index.
-    array<LocalIndexType> permutation{exec, num_non_local_cols};
-    thrust::sequence(thrust_policy(exec), permutation.get_data(),
-                     permutation.get_data() + num_non_local_cols);
-    thrust::sort_by_key(
-        thrust_policy(exec), non_local_global_col_idxs_begin,
-        non_local_global_col_idxs_begin + num_non_local_cols,
-        thrust::make_zip_iterator(thrust::make_tuple(
-            non_local_col_part_ids.get_data(), permutation.get_data())));
-
-    // 4. map column index of non-local entries to new columns
+    // compute compressed column indices for non-local cols
     non_local_col_idxs.resize_and_reset(num_non_local_elements);
-    array<size_type> lower_bounds{exec, num_non_local_elements};
-    // I have to precompute the lower bounds because the calling binary
-    // searches from the device does not work:
-    // https://github.com/NVIDIA/thrust/issues/1415
-    // TODO: compute lower bounds on-the-fly if available
-    thrust::lower_bound(
-        thrust_policy(exec), non_local_global_col_idxs_begin,
-        non_local_global_col_idxs_begin + num_non_local_cols,
-        non_local_global_col_idxs.get_data(),
-        non_local_global_col_idxs.get_data() + num_non_local_elements,
-        lower_bounds.get_data());
-    auto permutation_data = permutation.get_data();
-    thrust::transform(
-        thrust_policy(exec), lower_bounds.get_data(),
-        lower_bounds.get_data() + num_non_local_elements,
-        non_local_col_idxs.get_data(),
-        [permutation_data] __host__ __device__(const size_type lower_bound) {
-            return permutation_data[lower_bound];
-        });
+    auto compress_key_it = thrust::make_zip_iterator(thrust::make_tuple(
+        non_local_col_part_ids.get_data(), non_local_col_range_ids.get_data()));
+    auto compressed_result = compress_indices_by_key(
+        exec, compress_key_it, compress_key_it + num_non_local_elements,
+        non_local_global_col_idxs.get_data(), non_local_col_idxs.get_data());
+    auto num_non_local_cols =
+        thrust::distance(compress_key_it, thrust::get<0>(compressed_result));
 
-    // 5. compute gather idxs and recv_sizes
+    // compute gather idxs and recv_sizes
     local_gather_idxs.resize_and_reset(num_non_local_cols);
-    auto transform_it = thrust::make_zip_iterator(thrust::make_tuple(
-        non_local_to_global.get_data(), non_local_col_range_ids.get_data()));
+    // keep until the mapping is removed from matrix
+    non_local_to_global.resize_and_reset(num_non_local_cols);
+    // map unique (global_col, range_id) to (remote_local_col, global_col)
     thrust::transform(
-        thrust_policy(exec), transform_it, transform_it + num_non_local_cols,
-        local_gather_idxs.get_data(),
-        [map_to_local_col] __host__ __device__(
-            const thrust::tuple<GlobalIndexType, size_type>& tuple) {
-            return map_to_local_col(thrust::get<0>(tuple),
-                                    thrust::get<1>(tuple));
+        policy, non_local_global_col_idxs.get_data(),
+        non_local_global_col_idxs.get_data() + num_non_local_cols,
+        non_local_col_range_ids.get_data(),
+        thrust::make_zip_iterator(thrust::make_tuple(
+            local_gather_idxs.get_data(), non_local_to_global.get_data())),
+        [map_to_local_col] __host__ __device__(GlobalIndexType global_col,
+                                               size_type range_id) {
+            return thrust::make_tuple(map_to_local_col(global_col, range_id),
+                                      global_col);
         });
 
     auto recv_sizes_ptr = recv_sizes.get_data();
-    thrust::fill_n(thrust_policy(exec), recv_sizes_ptr, num_parts, 0);
-    thrust::for_each_n(thrust_policy(exec), non_local_col_part_ids.get_data(),
+    thrust::fill_n(policy, recv_sizes_ptr, num_parts, 0);
+    thrust::for_each_n(policy, non_local_col_part_ids.get_data(),
                        num_non_local_cols,
                        [recv_sizes_ptr] __device__(const size_type part) {
                            atomic_add(recv_sizes_ptr + part, 1);

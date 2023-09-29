@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cuda/base/thrust.cuh"
 #include "cuda/components/atomic.cuh"
+#include "cuda/components/searching.cuh"
 
 
 namespace gko {

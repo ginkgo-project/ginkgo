@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "core/base/iterator_factory.hpp"
 #include "core/distributed/matrix_kernels.hpp"
 #include "core/test/utils.hpp"
 
@@ -567,5 +568,72 @@ TYPED_TEST(Matrix, BuildGhostMapScattered)
         GKO_ASSERT_ARRAY_EQ(result[local_id], this->non_local_to_global);
     }
 }
+
+template <typename IndexIt, typename KeyIt>
+auto compress_indices_by_key(KeyIt keys_first, KeyIt keys_last, IndexIt indices)
+{
+    using namespace gko;
+    auto combined_it = detail::make_zip_iterator(keys_first, indices);
+    auto size = std::distance(keys_first, keys_last);
+
+    std::vector<IndexIt> segments{indices};
+    for (auto kit = keys_first + 1, iit = indices + 1; kit != keys_last;
+         ++kit, ++iit) {
+        if (*(kit - 1) != *kit) {
+            segments.emplace_back(iit);
+        }
+    }
+    segments.emplace_back(indices + size);
+
+    std::set<typename IndexIt::value_type> unique_indices_set;
+    std::vector<typename IndexIt::value_type> unique_indices;
+    typename IndexIt::value_type offset{};
+    for (size_type i = 0; i < segments.size() - 1; ++i) {
+        unique_indices_set.clear();
+        unique_indices_set.insert(segments[i], segments[i + 1]);
+
+        unique_indices.clear();
+        unique_indices.insert(unique_indices.begin(),
+                              unique_indices_set.begin(),
+                              unique_indices_set.end());
+        for (auto iit = segments[i]; iit != segments[i + 1]; ++iit) {
+            *iit = std::distance(unique_indices.begin(),
+                                 std::lower_bound(unique_indices.begin(),
+                                                  unique_indices.end(), *iit)) +
+                   offset;
+        }
+        offset += unique_indices_set.size();
+    }
+}
+
+TEST(CompressIndicesByKey, CanCompressIndicesByKey)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    std::vector<int> keys{0, 0, 0, 1, 1, 1, 2, 2, 2};
+    std::vector<int> indices{0, 1, 2, 5, 6, 7, 4, 4, 7};
+    std::vector<int> result{0, 1, 2, 3, 4, 5, 6, 6, 7};
+
+    compress_indices_by_key(keys.begin(), keys.end(), indices.begin());
+
+    GKO_ASSERT_ARRAY_EQ(
+        gko::make_array_view(exec, indices.size(), indices.data()),
+        gko::make_array_view(exec, result.size(), result.data()));
+}
+
+
+TEST(CompressIndicesByKey, CanCompressIndicesByKeyUnsorted)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    std::vector<int> keys{0, 0, 0, 1, 1, 1, 2, 2, 2};
+    std::vector<int> indices{2, 0, 1, 5, 5, 5, 7, 4, 4};
+    std::vector<int> result{2, 0, 1, 3, 3, 3, 5, 4, 4};
+
+    compress_indices_by_key(keys.begin(), keys.end(), indices.begin());
+
+    GKO_ASSERT_ARRAY_EQ(
+        gko::make_array_view(exec, indices.size(), indices.data()),
+        gko::make_array_view(exec, result.size(), result.data()));
+}
+
 
 }  // namespace

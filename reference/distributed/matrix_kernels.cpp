@@ -44,6 +44,56 @@ namespace kernels {
 namespace reference {
 namespace distributed_matrix {
 
+/**
+ * Maps indices into the compact range [0, N), where N is the number of unique
+ * indices. Also reorders the input keys and indices,
+ *
+ * The comp and unq parameters can be used to group the indices. The comp gives
+ * the ordering between to indices, and unq checks if two indices are equal.
+ *
+ * Consider the following example using default comparisons:
+ * ```
+ * comp = std::less<>;
+ * unq = std::equal_to<>;
+ * I = [3, 2, 7, 7]
+ * ```
+ * then the output iterator will hold:
+ * ```
+ * O = [1, 0, 2, 2]
+ * ```
+ */
+template <typename IndexIt, typename OutputIt, typename Compare,
+          typename Unique>
+std::tuple<IndexIt, OutputIt> compress_indices(IndexIt indices_first,
+                                               IndexIt indices_last,
+                                               OutputIt out, Compare&& comp,
+                                               Unique&& unq)
+{
+    using index_type = typename std::iterator_traits<IndexIt>::value_type;
+    using out_index_type = typename std::iterator_traits<OutputIt>::value_type;
+
+    auto size = std::distance(indices_first, indices_last);
+
+    std::vector<index_type> original_indices(indices_first, indices_last);
+
+    std::sort(indices_first, indices_last, comp);
+    auto unique_indices_end = std::unique(indices_first, indices_last, unq);
+
+    auto iit = original_indices.begin();
+    auto oit = out;
+    for (size_type i = 0; i < size; ++i, ++iit, ++oit) {
+        auto segment_begin =
+            std::lower_bound(indices_first, unique_indices_end, *iit, comp);
+        auto segment_end =
+            std::upper_bound(indices_first, unique_indices_end, *iit, comp);
+
+        *oit = static_cast<out_index_type>(std::distance(
+            indices_first, std::lower_bound(segment_begin, segment_end, *iit)));
+    }
+
+    return std::make_tuple(unique_indices_end, out + size);
+}
+
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void build_local_nonlocal(
@@ -127,50 +177,42 @@ void build_local_nonlocal(
     }
 
     // create non-local matrix
-    // 1. stable sort global columns according to their part-id and global
-    // columns
+    // copy non-local data into row and value array
+    // copy non-local global column indices into temporary vector
+    non_local_row_idxs.resize_and_reset(non_local_entries.size());
+    non_local_col_idxs.resize_and_reset(non_local_entries.size());
+    non_local_values.resize_and_reset(non_local_entries.size());
+    vector<GlobalIndexType> unique_columns(non_local_entries.size(), exec);
+    for (size_type i = 0; i < non_local_entries.size(); ++i) {
+        const auto& entry = non_local_entries[i];
+        non_local_row_idxs.get_data()[i] = entry.row;
+        unique_columns[i] = entry.column;
+        non_local_values.get_data()[i] = entry.value;
+    }
+    // map non-local global column indices into compresses column index space
     auto find_col_part = [&](GlobalIndexType idx) {
         auto range_id = find_range(idx, col_partition, 0);
         return col_part_ids[range_id];
     };
-    vector<GlobalIndexType> unique_columns(exec);
-    std::transform(non_local_entries.begin(), non_local_entries.end(),
-                   std::back_inserter(unique_columns),
-                   [](const auto& entry) { return entry.column; });
-    std::sort(unique_columns.begin(), unique_columns.end(),
-              [&](const auto& a, const auto& b) {
-                  auto part_a = find_col_part(a);
-                  auto part_b = find_col_part(b);
-                  return std::tie(part_a, a) < std::tie(part_b, b);
-              });
+    auto compress_result = compress_indices(
+        unique_columns.begin(), unique_columns.end(),
+        non_local_col_idxs.get_data(),
+        [&](const auto& a, const auto& b) {
+            auto part_a = find_col_part(a);
+            auto part_b = find_col_part(b);
+            return std::tie(part_a, a) < std::tie(part_b, b);
+        },
+        [&](const auto& a, const auto& b) {
+            auto part_a = find_col_part(a);
+            auto part_b = find_col_part(b);
+            return std::tie(part_a, a) == std::tie(part_b, b);
+        });
+    auto unique_columns_end = std::get<0>(compress_result);
+    unique_columns.erase(unique_columns_end, unique_columns.end());
 
-    // 2. remove duplicate columns, now the new column i has global index
-    // unique_columns[i]
-    unique_columns.erase(
-        std::unique(unique_columns.begin(), unique_columns.end()),
-        unique_columns.end());
-
-    // 3. create mapping from unique_columns
-    unordered_map<GlobalIndexType, LocalIndexType> non_local_column_map(exec);
-    for (size_type i = 0; i < unique_columns.size(); ++i) {
-        non_local_column_map[unique_columns[i]] =
-            static_cast<LocalIndexType>(i);
-    }
-
-    // 3.5 copy unique_columns to array
+    // copy unique_columns to array
     non_local_to_global = array<GlobalIndexType>{exec, unique_columns.begin(),
                                                  unique_columns.end()};
-
-    // 4. fill non_local_data
-    non_local_row_idxs.resize_and_reset(non_local_entries.size());
-    non_local_col_idxs.resize_and_reset(non_local_entries.size());
-    non_local_values.resize_and_reset(non_local_entries.size());
-    for (size_type i = 0; i < non_local_entries.size(); ++i) {
-        const auto& entry = non_local_entries[i];
-        non_local_row_idxs.get_data()[i] = entry.row;
-        non_local_col_idxs.get_data()[i] = non_local_column_map[entry.column];
-        non_local_values.get_data()[i] = entry.value;
-    }
 
     // compute gather idxs and recv_sizes
     local_gather_idxs.resize_and_reset(unique_columns.size());

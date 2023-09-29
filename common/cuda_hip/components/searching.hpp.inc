@@ -47,9 +47,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @returns  the index of `middle`, i.e., the partition point
  */
 template <typename IndexType, typename Predicate>
-__forceinline__ __device__ IndexType binary_search(IndexType offset,
-                                                   IndexType length,
-                                                   Predicate p)
+__forceinline__ __host__ __device__ IndexType binary_search(IndexType offset,
+                                                            IndexType length,
+                                                            Predicate p)
 {
     while (length > 0) {
         auto half_length = length / 2;

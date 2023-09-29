@@ -50,6 +50,62 @@ namespace omp {
 namespace distributed_matrix {
 
 
+/**
+ * Maps indices into the compact range [0, N), where N is the number of unique
+ * indices. Also reorders the input keys and indices,
+ *
+ * The comp and unq parameters can be used to group the indices. The comp gives
+ * the ordering between to indices, and unq checks if two indices are equal.
+ *
+ * Consider the following example using default comparisons:
+ * ```
+ * comp = std::less<>;
+ * unq = std::equal_to<>;
+ * I = [3, 2, 7, 7]
+ * ```
+ * then the output iterator will hold:
+ * ```
+ * O = [1, 0, 2, 2]
+ * ```
+ */
+template <typename IndexIt, typename OutputIt, typename Compare,
+          typename Unique>
+std::tuple<IndexIt, OutputIt> compress_indices(IndexIt indices_first,
+                                               IndexIt indices_last,
+                                               OutputIt out, Compare&& comp,
+                                               Unique&& unq)
+{
+    using index_type = typename std::iterator_traits<IndexIt>::value_type;
+    using out_index_type = typename std::iterator_traits<OutputIt>::value_type;
+
+    auto size = std::distance(indices_first, indices_last);
+
+    std::vector<index_type> original_indices(size);
+#pragma omp parallel for
+    for (size_type i = 0; i < size; ++i) {
+        original_indices[i] = *(indices_first + i);
+    }
+
+    std::sort(indices_first, indices_last, comp);
+    auto unique_indices_end = std::unique(indices_first, indices_last, unq);
+
+#pragma omp parallel for
+    for (size_type i = 0; i < size; ++i) {
+        auto iit = original_indices.begin() + i;
+        auto oit = out + i;
+        auto segment_begin =
+            std::lower_bound(indices_first, unique_indices_end, *iit, comp);
+        auto segment_end =
+            std::upper_bound(indices_first, unique_indices_end, *iit, comp);
+
+        *oit = static_cast<out_index_type>(std::distance(
+            indices_first, std::lower_bound(segment_begin, segment_end, *iit)));
+    }
+
+    return std::make_tuple(unique_indices_end, out + size);
+}
+
+
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void build_local_nonlocal(
     std::shared_ptr<const DefaultExecutor> exec,
@@ -104,8 +160,6 @@ void build_local_nonlocal(
                range_starting_indices[range_id];
     };
 
-    // store non-local columns and their range indices
-    map<GlobalIndexType, range_index_type> non_local_cols(exec);
     // store non-local entries with global column idxs
     vector<global_nonzero> non_local_entries(exec);
     vector<local_nonzero> local_entries(exec);
@@ -118,8 +172,6 @@ void build_local_nonlocal(
 
 #pragma omp parallel firstprivate(col_range_id_hint, row_range_id_hint)
     {
-        std::unordered_map<GlobalIndexType, range_index_type>
-            thread_non_local_cols;
         std::vector<global_nonzero> thread_non_local_entries;
         std::vector<local_nonzero> thread_local_entries;
         std::vector<comm_index_type> thread_recv_sizes;
@@ -150,7 +202,6 @@ void build_local_nonlocal(
                     thread_local_entries.emplace_back(local_row, local_col,
                                                       value);
                 } else {
-                    thread_non_local_cols.emplace(global_col, col_range_id);
                     thread_non_local_entries.emplace_back(local_row, global_col,
                                                           value);
                 }
@@ -159,12 +210,6 @@ void build_local_nonlocal(
         local_entry_offsets[thread_id] = thread_local_entries.size();
         non_local_entry_offsets[thread_id] = thread_non_local_entries.size();
 
-#pragma omp critical
-        {
-            // collect global non-local columns
-            non_local_cols.insert(thread_non_local_cols.begin(),
-                                  thread_non_local_cols.end());
-        }
 #pragma omp barrier
 #pragma omp single
         {
@@ -206,57 +251,58 @@ void build_local_nonlocal(
         local_values.get_data()[i] = entry.value;
     }
 
-    // count non-local columns per part
-    for (const auto& entry : non_local_cols) {
-        auto col_range_id = entry.second;
-        recv_sizes_ptr[col_part_ids[col_range_id]]++;
-    }
-    const auto num_non_local_cols = std::accumulate(
-        recv_sizes_ptr, recv_sizes_ptr + num_parts, size_type{});
-    components::prefix_sum_nonnegative(exec, recv_sizes_ptr, num_parts);
-
-    // collect and renumber offdiagonal columns
-    local_gather_idxs.resize_and_reset(num_non_local_cols);
-    std::unordered_map<GlobalIndexType, LocalIndexType>
-        non_local_global_to_local;
-    for (const auto& entry : non_local_cols) {
-        auto range = entry.second;
-        auto part = col_part_ids[range];
-        auto idx = recv_sizes_ptr[part];
-        local_gather_idxs.get_data()[idx] =
-            map_to_local(entry.first, col_partition, entry.second);
-        non_local_global_to_local[entry.first] = idx;
-        ++recv_sizes_ptr[part];
-    }
-
-    // build local-to-global map for non-local columns
-    non_local_to_global.resize_and_reset(num_non_local_cols);
-    std::fill_n(non_local_to_global.get_data(),
-                non_local_to_global.get_num_elems(),
-                invalid_index<GlobalIndexType>());
-    for (const auto& key_value : non_local_global_to_local) {
-        const auto global_idx = key_value.first;
-        const auto local_idx = key_value.second;
-        non_local_to_global.get_data()[local_idx] = global_idx;
-    }
-
-    // compute sizes from shifted offsets
-    for (size_type i = num_parts - 1; i > 0; --i) {
-        recv_sizes_ptr[i] -= recv_sizes_ptr[i - 1];
-    }
-
-    // map non-local values to local column indices
+    // store non-local row, values to output
     non_local_row_idxs.resize_and_reset(non_local_entries.size());
     non_local_col_idxs.resize_and_reset(non_local_entries.size());
     non_local_values.resize_and_reset(non_local_entries.size());
+    std::vector<GlobalIndexType> unique_columns(non_local_entries.size());
 #pragma omp parallel for
     for (size_type i = 0; i < non_local_entries.size(); i++) {
         auto global = non_local_entries[i];
         non_local_row_idxs.get_data()[i] =
             static_cast<LocalIndexType>(global.row);
-        non_local_col_idxs.get_data()[i] =
-            non_local_global_to_local[global.column];
         non_local_values.get_data()[i] = global.value;
+        unique_columns[i] = global.column;
+    }
+
+    // map non-local global column indices into compresses column index space
+    auto find_col_part = [&](GlobalIndexType idx) {
+        auto range_id = find_range(idx, col_partition, 0);
+        return col_part_ids[range_id];
+    };
+    auto compress_result = compress_indices(
+        unique_columns.begin(), unique_columns.end(),
+        non_local_col_idxs.get_data(),
+        [&](const auto& a, const auto& b) {
+            auto part_a = find_col_part(a);
+            auto part_b = find_col_part(b);
+            return std::tie(part_a, a) < std::tie(part_b, b);
+        },
+        [&](const auto& a, const auto& b) {
+            auto part_a = find_col_part(a);
+            auto part_b = find_col_part(b);
+            return std::tie(part_a, a) == std::tie(part_b, b);
+        });
+    auto unique_columns_end = std::get<0>(compress_result);
+    unique_columns.erase(unique_columns_end, unique_columns.end());
+
+    // copy unique_columns to array
+    non_local_to_global = array<GlobalIndexType>{exec, unique_columns.begin(),
+                                                 unique_columns.end()};
+
+    // compute gather idxs and recv_sizes
+    local_gather_idxs.resize_and_reset(unique_columns.size());
+    std::fill_n(recv_sizes.get_data(), num_parts, 0);
+    size_type col_range_id = 0;
+#pragma omp parallel for firstprivate(col_range_id)
+    for (size_type i = 0; i < unique_columns.size(); ++i) {
+        col_range_id =
+            find_range(unique_columns[i], col_partition, col_range_id);
+        local_gather_idxs.get_data()[i] =
+            map_to_local(unique_columns[i], col_partition, col_range_id);
+        auto col_part = find_col_part(unique_columns[i]);
+#pragma omp atomic
+        recv_sizes.get_data()[col_part]++;
     }
 }
 
