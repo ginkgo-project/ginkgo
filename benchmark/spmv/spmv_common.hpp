@@ -144,7 +144,9 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
             exec->synchronize();
             auto max_relative_norm2 =
                 compute_max_relative_norm2(x_clone.get(), state.answer.get());
-            format_case["max_relative_norm2"] = max_relative_norm2;
+            format_case["max_relative_norm2"] =
+                static_cast<typename gko::detail::arth_type<rc_etype>::type>(
+                    max_relative_norm2);
         }
 
         IterationControl ic{timer};

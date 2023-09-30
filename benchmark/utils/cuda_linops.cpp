@@ -558,14 +558,19 @@ private:
     ((CUDA_VERSION >= 10020) && !(defined(_WIN32) || defined(__CYGWIN__)))
 
 
+// cuSPARSE does not support 16 bit compute for full 16 bit floating point
+// input. Also, the scalar must be the compute type, i.e. float.
 template <typename ValueType>
-void cusparse_generic_spmv(std::shared_ptr<const gko::CudaExecutor> gpu_exec,
-                           const cusparseSpMatDescr_t mat,
-                           const gko::array<ValueType>& scalars,
-                           const gko::LinOp* b, gko::LinOp* x,
-                           cusparseOperation_t trans, cusparseSpMVAlg_t alg)
+void cusparse_generic_spmv(
+    std::shared_ptr<const gko::CudaExecutor> gpu_exec,
+    const cusparseSpMatDescr_t mat,
+    const gko::array<typename gko::detail::arth_type<ValueType>::type>& scalars,
+    const gko::LinOp* b, gko::LinOp* x, cusparseOperation_t trans,
+    cusparseSpMVAlg_t alg)
 {
     cudaDataType_t cu_value = gko::kernels::cuda::cuda_data_type<ValueType>();
+    cudaDataType_t compute_value = gko::kernels::cuda::cuda_data_type<
+        typename gko::detail::arth_type<ValueType>::type>();
     using gko::kernels::cuda::as_culibs_type;
     auto dense_b = gko::as<gko::matrix::Dense<ValueType>>(b);
     auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
@@ -584,13 +589,14 @@ void cusparse_generic_spmv(std::shared_ptr<const gko::CudaExecutor> gpu_exec,
     gko::size_type buffer_size = 0;
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpMV_bufferSize(
         gpu_exec->get_cusparse_handle(), trans, &scalars.get_const_data()[0],
-        mat, vecb, &scalars.get_const_data()[1], vecx, cu_value, alg,
+        mat, vecb, &scalars.get_const_data()[1], vecx, compute_value, alg,
         &buffer_size));
     gko::array<char> buffer_array(gpu_exec, buffer_size);
     auto dbuffer = buffer_array.get_data();
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpMV(
         gpu_exec->get_cusparse_handle(), trans, &scalars.get_const_data()[0],
-        mat, vecb, &scalars.get_const_data()[1], vecx, cu_value, alg, dbuffer));
+        mat, vecb, &scalars.get_const_data()[1], vecx, compute_value, alg,
+        dbuffer));
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyDnVec(vecx));
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyDnVec(vecb));
 }
@@ -669,8 +675,8 @@ public:
 protected:
     void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
     {
-        cusparse_generic_spmv(this->get_gpu_exec(), mat_, scalars, b, x, trans_,
-                              Alg);
+        cusparse_generic_spmv<ValueType>(this->get_gpu_exec(), mat_, scalars, b,
+                                         x, trans_, Alg);
     }
 
     void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
@@ -686,9 +692,11 @@ protected:
     {}
 
 private:
+    using compute_type = typename gko::detail::arth_type<ValueType>::type;
     // Contains {alpha, beta}
-    gko::array<ValueType> scalars{
-        this->get_executor(), {gko::one<ValueType>(), gko::zero<ValueType>()}};
+    gko::array<compute_type> scalars{
+        this->get_executor(),
+        {gko::one<compute_type>(), gko::zero<compute_type>()}};
     std::shared_ptr<csr> csr_;
     cusparseOperation_t trans_;
     cusparseSpMatDescr_t mat_;
@@ -761,8 +769,8 @@ public:
 protected:
     void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
     {
-        cusparse_generic_spmv(this->get_gpu_exec(), mat_, scalars, b, x, trans_,
-                              default_csr_alg);
+        cusparse_generic_spmv<ValueType>(this->get_gpu_exec(), mat_, scalars, b,
+                                         x, trans_, default_csr_alg);
     }
 
     void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
@@ -777,9 +785,11 @@ protected:
     {}
 
 private:
+    using compute_type = typename gko::detail::arth_type<ValueType>::type;
     // Contains {alpha, beta}
-    gko::array<ValueType> scalars{
-        this->get_executor(), {gko::one<ValueType>(), gko::zero<ValueType>()}};
+    gko::array<compute_type> scalars{
+        this->get_executor(),
+        {gko::one<compute_type>(), gko::zero<compute_type>()}};
     std::shared_ptr<coo> coo_;
     cusparseOperation_t trans_;
     cusparseSpMatDescr_t mat_;

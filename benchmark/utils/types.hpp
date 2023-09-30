@@ -46,7 +46,8 @@ using itype = gko::int32;
 #if defined(GKO_BENCHMARK_USE_DOUBLE_PRECISION) ||         \
     defined(GKO_BENCHMARK_USE_SINGLE_PRECISION) ||         \
     defined(GKO_BENCHMARK_USE_DOUBLE_COMPLEX_PRECISION) || \
-    defined(GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION)
+    defined(GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION) || \
+    defined(GKO_BENCHMARK_USE_HALF_PRECISION)
 // separate ifdefs to catch duplicate definitions
 #ifdef GKO_BENCHMARK_USE_DOUBLE_PRECISION
 using etype = double;
@@ -59,6 +60,10 @@ using etype = std::complex<double>;
 #endif
 #ifdef GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION
 using etype = std::complex<float>;
+#endif
+#ifdef GKO_BENCHMARK_USE_HALF_PRECISION
+#include <ginkgo/core/base/half.hpp>
+using etype = gko::half;
 #endif
 #else  // default to double precision
 using etype = double;
