@@ -299,6 +299,16 @@ GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_MULTI_VECTOR_COPY_KERNEL);
 }  // namespace batch_multi_vector
 
 
+namespace batch_dense {
+
+
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SIMPLE_APPLY_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_ADVANCED_APPLY_KERNEL);
+
+
+}  // namespace batch_dense
+
+
 namespace dense {
 
 
