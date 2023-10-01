@@ -92,99 +92,6 @@ namespace batch {
 class BatchLinOp : public EnableAbstractPolymorphicObject<BatchLinOp> {
 public:
     /**
-     * Applies a batch linear operator to a batch vector (or a sequence of batch
-     * of vectors).
-     *
-     * Performs the operation x = op(b), where op is this batch linear operator.
-     *
-     * @param b  the input batch vector(s) on which the batch operator is
-     *           applied
-     * @param x  the output batch vector(s) where the result is stored
-     *
-     * @return this
-     */
-    BatchLinOp* apply(ptr_param<const BatchLinOp> b, ptr_param<BatchLinOp> x)
-    {
-        this->template log<log::Logger::batch_linop_apply_started>(
-            this, b.get(), x.get());
-        this->validate_application_parameters(b.get(), x.get());
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::batch_linop_apply_completed>(
-            this, b.get(), x.get());
-        return this;
-    }
-
-    /**
-     * @copydoc apply(const BatchLinOp *, BatchLinOp *)
-     */
-    const BatchLinOp* apply(ptr_param<const BatchLinOp> b,
-                            ptr_param<BatchLinOp> x) const
-    {
-        this->template log<log::Logger::batch_linop_apply_started>(
-            this, b.get(), x.get());
-        this->validate_application_parameters(b.get(), x.get());
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::batch_linop_apply_completed>(
-            this, b.get(), x.get());
-        return this;
-    }
-
-    /**
-     * Performs the operation x = alpha * op(b) + beta * x.
-     *
-     * @param alpha  scaling of the result of op(b)
-     * @param b  vector(s) on which the operator is applied
-     * @param beta  scaling of the input x
-     * @param x  output vector(s)
-     *
-     * @return this
-     */
-    BatchLinOp* apply(ptr_param<const BatchLinOp> alpha,
-                      ptr_param<const BatchLinOp> b,
-                      ptr_param<const BatchLinOp> beta, ptr_param<BatchLinOp> x)
-    {
-        this->template log<log::Logger::batch_linop_advanced_apply_started>(
-            this, alpha.get(), b.get(), beta.get(), x.get());
-        this->validate_application_parameters(alpha.get(), b.get(), beta.get(),
-                                              x.get());
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, alpha).get(),
-                         make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, beta).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::batch_linop_advanced_apply_completed>(
-            this, alpha.get(), b.get(), beta.get(), x.get());
-        return this;
-    }
-
-    /**
-     * @copydoc apply(const BatchLinOp *, const BatchLinOp *, const BatchLinOp
-     * *, BatchLinOp *)
-     */
-    const BatchLinOp* apply(ptr_param<const BatchLinOp> alpha,
-                            ptr_param<const BatchLinOp> b,
-                            ptr_param<const BatchLinOp> beta,
-                            ptr_param<BatchLinOp> x) const
-    {
-        this->template log<log::Logger::batch_linop_advanced_apply_started>(
-            this, alpha.get(), b.get(), beta.get(), x.get());
-        this->validate_application_parameters(alpha.get(), b.get(), beta.get(),
-                                              x.get());
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, alpha).get(),
-                         make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, beta).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::batch_linop_advanced_apply_completed>(
-            this, alpha.get(), b.get(), beta.get(), x.get());
-        return this;
-    }
-
-    /**
      * Returns the number of batches in the batch operator.
      *
      * @return number of batches in the batch operator
@@ -235,66 +142,6 @@ protected:
                         const batch_dim<2>& batch_size)
         : EnableAbstractPolymorphicObject<BatchLinOp>(exec), size_{batch_size}
     {}
-
-    /**
-     * Implementers of BatchLinOp should override this function instead
-     * of apply(const BatchLinOp *, BatchLinOp *).
-     *
-     * Performs the operation x = op(b), where op is this linear operator.
-     *
-     * @param b  the input batch vector(s) on which the operator is applied
-     * @param x  the output batch vector(s) where the result is stored
-     */
-    virtual void apply_impl(const BatchLinOp* b, BatchLinOp* x) const = 0;
-
-    /**
-     * Implementers of BatchLinOp should override this function instead
-     * of apply(const BatchLinOp *, const BatchLinOp *, const BatchLinOp *,
-     * BatchLinOp *).
-     *
-     * @param alpha  scaling of the result of op(b)
-     * @param b  vector(s) on which the operator is applied
-     * @param beta  scaling of the input x
-     * @param x  output vector(s)
-     */
-    virtual void apply_impl(const BatchLinOp* alpha, const BatchLinOp* b,
-                            const BatchLinOp* beta, BatchLinOp* x) const = 0;
-
-    /**
-     * Throws a DimensionMismatch exception if the parameters to `apply` are of
-     * the wrong size.
-     *
-     * @param b  batch vector(s) on which the operator is applied
-     * @param x  output batch vector(s)
-     */
-    void validate_application_parameters(const BatchLinOp* b,
-                                         const BatchLinOp* x) const
-    {
-        GKO_ASSERT_BATCH_CONFORMANT(this, b);
-        GKO_ASSERT_BATCH_EQUAL_ROWS(this, x);
-        GKO_ASSERT_BATCH_EQUAL_COLS(b, x);
-    }
-
-    /**
-     * Throws a DimensionMismatch exception if the parameters to `apply` are of
-     * the wrong size.
-     *
-     * @param alpha  scaling of the result of op(b)
-     * @param b  batch vector(s) on which the operator is applied
-     * @param beta  scaling of the input x
-     * @param x  output batch vector(s)
-     */
-    void validate_application_parameters(const BatchLinOp* alpha,
-                                         const BatchLinOp* b,
-                                         const BatchLinOp* beta,
-                                         const BatchLinOp* x) const
-    {
-        this->validate_application_parameters(b, x);
-        GKO_ASSERT_BATCH_EQUAL_ROWS(
-            alpha, batch_dim<2>(b->get_num_batch_items(), dim<2>(1, 1)));
-        GKO_ASSERT_BATCH_EQUAL_ROWS(
-            beta, batch_dim<2>(b->get_num_batch_items(), dim<2>(1, 1)));
-    }
 
 private:
     batch_dim<2> size_{};
@@ -394,38 +241,6 @@ class EnableBatchLinOp
 public:
     using EnablePolymorphicObject<ConcreteBatchLinOp,
                                   PolymorphicBase>::EnablePolymorphicObject;
-
-    const ConcreteBatchLinOp* apply(ptr_param<const BatchLinOp> b,
-                                    ptr_param<BatchLinOp> x) const
-    {
-        PolymorphicBase::apply(b, x);
-        return self();
-    }
-
-    ConcreteBatchLinOp* apply(ptr_param<const BatchLinOp> b,
-                              ptr_param<BatchLinOp> x)
-    {
-        PolymorphicBase::apply(b, x);
-        return self();
-    }
-
-    const ConcreteBatchLinOp* apply(ptr_param<const BatchLinOp> alpha,
-                                    ptr_param<const BatchLinOp> b,
-                                    ptr_param<const BatchLinOp> beta,
-                                    ptr_param<BatchLinOp> x) const
-    {
-        PolymorphicBase::apply(alpha, b, beta, x);
-        return self();
-    }
-
-    ConcreteBatchLinOp* apply(ptr_param<const BatchLinOp> alpha,
-                              ptr_param<const BatchLinOp> b,
-                              ptr_param<const BatchLinOp> beta,
-                              ptr_param<BatchLinOp> x)
-    {
-        PolymorphicBase::apply(alpha, b, beta, x);
-        return self();
-    }
 
 protected:
     GKO_ENABLE_SELF(ConcreteBatchLinOp);
