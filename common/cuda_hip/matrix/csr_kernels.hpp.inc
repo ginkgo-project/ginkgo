@@ -477,6 +477,47 @@ __device__ void device_classical_spmv(const size_type num_rows,
 }
 
 
+template <size_type subwarp_size, typename AccessType, typename input_accessor,
+          typename output_accessor, typename IndexType, typename Closure>
+__device__ void device_classical_spmv(
+    const size_type num_rows,
+    acc::range<acc::reduced_row_major<1u, AccessType, const __half>> val,
+    const IndexType* __restrict__ col_idxs,
+    const IndexType* __restrict__ row_ptrs, acc::range<input_accessor> b,
+    acc::range<output_accessor> c, Closure scale)
+{
+    using arithmetic_type = typename output_accessor::arithmetic_type;
+    auto subwarp_tile =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
+    const auto subrow = thread::get_subwarp_num_flat<subwarp_size>();
+    const auto subid = subwarp_tile.thread_rank() * 2;
+    // can not use auto for hip because the type is
+    // __HIP_Coordinates<__HIP_BlockIdx>::__Y which is not allowed in accessor
+    // operator()
+    const int column_id = blockIdx.y;
+    auto row = thread::get_subwarp_id_flat<subwarp_size>();
+    for (; row < num_rows; row += subrow) {
+        const auto ind_end = row_ptrs[row + 1];
+        auto temp_val = zero<arithmetic_type>();
+        for (auto ind = row_ptrs[row] + subid; ind < ind_end;
+             ind += subwarp_size * 2) {
+            temp_val += val(ind) * b(col_idxs[ind], column_id);
+            if (ind + 1 < ind_end) {
+                temp_val += val(ind + 1) * b(col_idxs[ind + 1], column_id);
+            }
+        }
+        auto subwarp_result =
+            reduce(subwarp_tile, temp_val,
+                   [](const arithmetic_type& a, const arithmetic_type& b) {
+                       return a + b;
+                   });
+        if (subid == 0) {
+            c(row, column_id) = scale(subwarp_result, c(row, column_id));
+        }
+    }
+}
+
+
 template <size_type subwarp_size, typename matrix_accessor,
           typename input_accessor, typename output_accessor, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_classical_spmv(
@@ -766,15 +807,15 @@ __global__ __launch_bounds__(default_block_size) void inv_symm_permute(
 
 template <typename ValueType, typename IndexType>
 __global__
-__launch_bounds__(default_block_size) void compute_submatrix_idxs_and_vals(
-    const size_type num_rows, const size_type num_cols,
-    const size_type row_offset, const size_type col_offset,
-    const IndexType* __restrict__ source_row_ptrs,
-    const IndexType* __restrict__ source_col_idxs,
-    const ValueType* __restrict__ source_values,
-    const IndexType* __restrict__ result_row_ptrs,
-    IndexType* __restrict__ result_col_idxs,
-    ValueType* __restrict__ result_values)
+    __launch_bounds__(default_block_size) void compute_submatrix_idxs_and_vals(
+        const size_type num_rows, const size_type num_cols,
+        const size_type row_offset, const size_type col_offset,
+        const IndexType* __restrict__ source_row_ptrs,
+        const IndexType* __restrict__ source_col_idxs,
+        const ValueType* __restrict__ source_values,
+        const IndexType* __restrict__ result_row_ptrs,
+        IndexType* __restrict__ result_col_idxs,
+        ValueType* __restrict__ result_values)
 {
     const auto res_row = thread::get_thread_id_flat();
     if (res_row < num_rows) {
@@ -796,10 +837,11 @@ __launch_bounds__(default_block_size) void compute_submatrix_idxs_and_vals(
 
 template <typename IndexType>
 __global__
-__launch_bounds__(default_block_size) void calculate_nnz_per_row_in_span(
-    const span row_span, const span col_span,
-    const IndexType* __restrict__ row_ptrs,
-    const IndexType* __restrict__ col_idxs, IndexType* __restrict__ nnz_per_row)
+    __launch_bounds__(default_block_size) void calculate_nnz_per_row_in_span(
+        const span row_span, const span col_span,
+        const IndexType* __restrict__ row_ptrs,
+        const IndexType* __restrict__ col_idxs,
+        IndexType* __restrict__ nnz_per_row)
 {
     const auto src_row = thread::get_thread_id_flat() + row_span.begin;
     if (src_row < row_span.end) {
