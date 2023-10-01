@@ -360,9 +360,9 @@ TYPED_TEST(Matrix, CanApplyToMultipleVectors)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::global_index_type;
     auto vec_md = gko::matrix_data<value_type, index_type>{
-        I<I<value_type>>{{1, 11}, {2, 22}, {3, 33}, {4, 44}, {5, 55}}};
+        I<I<value_type>>{{1, 6}, {2, 7}, {3, 8}, {4, 9}, {5, 10}}};
     I<I<value_type>> result[3] = {
-        {{10, 110}, {18, 198}}, {{28, 308}, {67, 737}}, {{59, 649}}};
+        {{10, 25}, {18, 53}}, {{28, 83}, {67, 142}}, {{59, 154}}};
     auto rank = this->comm.rank();
     this->x->read_distributed(vec_md, this->col_part);
     this->y->read_distributed(vec_md, this->row_part);

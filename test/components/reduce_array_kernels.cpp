@@ -52,8 +52,13 @@ template <typename T>
 class ReduceArray : public CommonTestFixture {
 protected:
     using value_type = T;
+    // In bfloat16, 256 + 1 -> 256. The reference gets 256 but parallel version
+    // doesn't due to ordering and grouping.
     ReduceArray()
-        : total_size(1024),
+        : total_size(
+              (std::is_same<gko::remove_complex<T>, gko::bfloat16>::value)
+                  ? 254
+                  : 1024),
           out{ref, I<T>{2}},
           dout{exec, out},
           vals{ref, total_size},

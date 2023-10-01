@@ -320,6 +320,7 @@ TYPED_TEST(Cgs, SolvesDenseSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    SKIP_IF_BFLOAT16(value_type);
     auto solver = this->cgs_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
@@ -334,6 +335,7 @@ TYPED_TEST(Cgs, SolvesDenseSystemMixed)
 {
     using value_type = next_precision<typename TestFixture::value_type>;
     using Mtx = gko::matrix::Dense<value_type>;
+    SKIP_IF_BFLOAT16(typename TestFixture::value_type);
     auto solver = this->cgs_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
@@ -393,6 +395,7 @@ TYPED_TEST(Cgs, SolvesMultipleDenseSystem)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using T = value_type;
+    SKIP_IF_BFLOAT16(value_type);
     auto half_tol = std::sqrt(r<value_type>::value);
     auto solver = this->cgs_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>(
@@ -498,6 +501,7 @@ TYPED_TEST(Cgs, SolvesMultipleDenseSystemsUsingAdvancedApply)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using T = value_type;
+    SKIP_IF_BFLOAT16(value_type);
     auto half_tol = std::sqrt(r<value_type>::value);
     auto solver = this->cgs_factory->generate(this->mtx);
     auto alpha = gko::initialize<Mtx>({2.0}, this->exec);

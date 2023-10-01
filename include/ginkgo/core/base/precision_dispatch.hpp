@@ -393,7 +393,9 @@ make_temporary_conversion(LinOp* matrix)
         template create<
             experimental::distributed::Vector<next_precision<ValueType>>,
             experimental::distributed::Vector<
-                next_precision<next_precision<ValueType>>>>(matrix);
+                next_precision<next_precision<ValueType>>>,
+            experimental::distributed::Vector<next_precision2<ValueType, 3>>>(
+            matrix);
     if (!result) {
         GKO_NOT_SUPPORTED(matrix);
     }
@@ -413,7 +415,9 @@ make_temporary_conversion(const LinOp* matrix)
         template create<
             experimental::distributed::Vector<next_precision<ValueType>>,
             experimental::distributed::Vector<
-                next_precision<next_precision<ValueType>>>>(matrix);
+                next_precision<next_precision<ValueType>>>,
+            experimental::distributed::Vector<next_precision2<ValueType, 3>>>(
+            matrix);
     if (!result) {
         GKO_NOT_SUPPORTED(matrix);
     }

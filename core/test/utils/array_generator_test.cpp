@@ -65,8 +65,10 @@ protected:
                              InputIterator sample_end, Closure closure_op)
     {
         using std::pow;
-        ValueType res = 0;
-        ValueType num_elems = 0;
+        // use double to avoid rounding error
+        double res = 0;
+        // can not use ValueType when it is bfloat16
+        int num_elems = 0;
         while (sample_start != sample_end) {
             auto tmp = *(sample_start++);
             res += pow(closure_op(tmp) - c, n);

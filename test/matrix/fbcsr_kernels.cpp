@@ -160,6 +160,7 @@ TYPED_TEST(Fbcsr, SpmvIsEquivalentToRefSorted)
     using value_type = typename Mtx::value_type;
     if (this->exec->get_master() != this->exec) {
         SKIP_IF_HALF(value_type);
+        SKIP_IF_BFLOAT16(value_type);
     }
     auto drand = gko::clone(this->exec, this->rsorted);
     auto x =
@@ -185,6 +186,7 @@ TYPED_TEST(Fbcsr, SpmvMultiIsEquivalentToRefSorted)
     using value_type = typename Mtx::value_type;
     if (this->exec->get_master() != this->exec) {
         SKIP_IF_HALF(value_type);
+        SKIP_IF_BFLOAT16(value_type);
     }
     auto drand = gko::clone(this->exec, this->rsorted);
     auto x =
@@ -211,6 +213,7 @@ TYPED_TEST(Fbcsr, AdvancedSpmvIsEquivalentToRefSorted)
     using real_type = typename TestFixture::real_type;
     if (this->exec->get_master() != this->exec) {
         SKIP_IF_HALF(value_type);
+        SKIP_IF_BFLOAT16(value_type);
     }
     auto drand = gko::clone(this->exec, this->rsorted);
     auto x =
@@ -244,6 +247,7 @@ TYPED_TEST(Fbcsr, AdvancedSpmvMultiIsEquivalentToRefSorted)
     using real_type = typename TestFixture::real_type;
     if (this->exec->get_master() != this->exec) {
         SKIP_IF_HALF(value_type);
+        SKIP_IF_BFLOAT16(value_type);
     }
     auto drand = gko::clone(this->exec, this->rsorted);
     auto x =

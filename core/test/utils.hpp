@@ -70,10 +70,10 @@ namespace test {
 
 using ValueTypes =
 #if GINKGO_DPCPP_SINGLE_MODE
-    ::testing::Types<OPTIONAL(gko::half) float,
+    ::testing::Types<OPTIONAL(gko::half) OPTIONAL(gko::bfloat16) float,
                      OPTIONAL(std::complex<gko::half>) std::complex<float>>;
 #else
-    ::testing::Types<OPTIONAL(gko::half) float, double,
+    ::testing::Types<OPTIONAL(gko::half) OPTIONAL(gko::bfloat16) float, double,
                      OPTIONAL(std::complex<gko::half>) std::complex<float>,
                      std::complex<double>>;
 #endif
@@ -102,9 +102,9 @@ using ComplexValueTypesNoHalf =
 
 using RealValueTypes =
 #if GINKGO_DPCPP_SINGLE_MODE
-    ::testing::Types<OPTIONAL(gko::half) float>;
+    ::testing::Types<OPTIONAL(gko::half) OPTIONAL(gko::bfloat16) float>;
 #else
-    ::testing::Types<OPTIONAL(gko::half) float, double>;
+    ::testing::Types<OPTIONAL(gko::half) OPTIONAL(gko::bfloat16) float, double>;
 #endif
 
 
@@ -126,11 +126,11 @@ using PODTypes =
 
 using ValueAndIndexTypes =
 #if GINKGO_DPCPP_SINGLE_MODE
-    ::testing::Types<OPTIONAL(gko::half) float,
+    ::testing::Types<OPTIONAL(gko::half) OPTIONAL(gko::bfloat16) float,
                      OPTIONAL(std::complex<gko::half>) std::complex<float>,
                      gko::int32, gko::int64, gko::size_type>;
 #else
-    ::testing::Types<OPTIONAL(gko::half) float, double,
+    ::testing::Types<OPTIONAL(gko::half) OPTIONAL(gko::bfloat16) float, double,
                      OPTIONAL(std::complex<gko::half>) std::complex<float>,
                      std::complex<double>, gko::int32, gko::int64,
                      gko::size_type>;
@@ -139,11 +139,11 @@ using ValueAndIndexTypes =
 
 using RealValueAndIndexTypes =
 #if GINKGO_DPCPP_SINGLE_MODE
-    ::testing::Types<OPTIONAL(gko::half) float, gko::int32, gko::int64,
-                     gko::size_type>;
+    ::testing::Types<OPTIONAL(gko::half) OPTIONAL(gko::bfloat16) float,
+                     gko::int32, gko::int64, gko::size_type>;
 #else
-    ::testing::Types<OPTIONAL(gko::half) float, double, gko::int32, gko::int64,
-                     gko::size_type>;
+    ::testing::Types<OPTIONAL(gko::half) OPTIONAL(gko::bfloat16) float, double,
+                     gko::int32, gko::int64, gko::size_type>;
 #endif
 
 
@@ -396,5 +396,12 @@ using next_precision = typename detail::next_precision_impl<T>::type;
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
+#define SKIP_IF_BFLOAT16(type)                                               \
+    if (std::is_same<gko::remove_complex<type>, gko::bfloat16>::value) {     \
+        GTEST_SKIP() << "Skip due to bfloat16 mode";                         \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 #endif  // GKO_CORE_TEST_UTILS_HPP_
