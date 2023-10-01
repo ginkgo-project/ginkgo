@@ -81,6 +81,46 @@ struct uniform_batch {
 }  // namespace multi_vector
 
 
+namespace batch_dense {
+
+
+/**
+ * Encapsulates one matrix from a batch of multi-vectors.
+ */
+template <typename ValueType>
+struct batch_item {
+    using value_type = ValueType;
+    ValueType* values;
+    int stride;
+    int num_rows;
+    int num_rhs;
+};
+
+
+/**
+ * A 'simple' structure to store a global uniform batch of multi-vectors.
+ */
+template <typename ValueType>
+struct uniform_batch {
+    using value_type = ValueType;
+    using entry_type = batch_item<ValueType>;
+
+    ValueType* values;
+    size_type num_batch_items;
+    int stride;
+    int num_rows;
+    int num_rhs;
+
+    size_type get_entry_storage() const
+    {
+        return num_rows * stride * sizeof(value_type);
+    }
+};
+
+
+}  // namespace batch_dense
+
+
 template <typename ValueType>
 GKO_ATTRIBUTES GKO_INLINE multi_vector::batch_item<const ValueType> to_const(
     const multi_vector::batch_item<ValueType>& b)
@@ -92,6 +132,22 @@ GKO_ATTRIBUTES GKO_INLINE multi_vector::batch_item<const ValueType> to_const(
 template <typename ValueType>
 GKO_ATTRIBUTES GKO_INLINE multi_vector::uniform_batch<const ValueType> to_const(
     const multi_vector::uniform_batch<ValueType>& ub)
+{
+    return {ub.values, ub.num_batch_items, ub.stride, ub.num_rows, ub.num_rhs};
+}
+
+
+template <typename ValueType>
+GKO_ATTRIBUTES GKO_INLINE matrix::batch_dense::batch_item<const ValueType>
+to_const(const matrix::batch_dense::batch_item<ValueType>& b)
+{
+    return {b.values, b.stride, b.num_rows, b.num_rhs};
+}
+
+
+template <typename ValueType>
+GKO_ATTRIBUTES GKO_INLINE matrix::batch_dense::uniform_batch<const ValueType>
+to_const(const matrix::batch_dense::uniform_batch<ValueType>& ub)
 {
     return {ub.values, ub.num_batch_items, ub.stride, ub.num_rows, ub.num_rhs};
 }
@@ -117,6 +173,26 @@ extract_batch_item(const multi_vector::uniform_batch<ValueType>& batch,
 
 template <typename ValueType>
 GKO_ATTRIBUTES GKO_INLINE multi_vector::batch_item<ValueType>
+extract_batch_item(ValueType* const batch_values, const int stride,
+                   const int num_rows, const int num_rhs,
+                   const size_type batch_idx)
+{
+    return {batch_values + batch_idx * stride * num_rows, stride, num_rows,
+            num_rhs};
+}
+
+
+template <typename ValueType>
+GKO_ATTRIBUTES GKO_INLINE matrix::batch_dense::batch_item<ValueType>
+extract_batch_item(const matrix::batch_dense::uniform_batch<ValueType>& batch,
+                   const size_type batch_idx)
+{
+    return {batch.values + batch_idx * batch.stride * batch.num_rows,
+            batch.stride, batch.num_rows, batch.num_rhs};
+}
+
+template <typename ValueType>
+GKO_ATTRIBUTES GKO_INLINE matrix::batch_dense::batch_item<ValueType>
 extract_batch_item(ValueType* const batch_values, const int stride,
                    const int num_rows, const int num_rhs,
                    const size_type batch_idx)
