@@ -297,6 +297,18 @@ void mixed_precision_dispatch(Function fn, const LinOp* in, LinOp* out)
         } else {
             GKO_NOT_SUPPORTED(out);
         }
+    } else if (auto dense_in = dynamic_cast<const fth_type*>(in)) {
+        if (auto dense_out = dynamic_cast<fst_type*>(out)) {
+            fn(dense_in, dense_out);
+        } else if (auto dense_out = dynamic_cast<snd_type*>(out)) {
+            fn(dense_in, dense_out);
+        } else if (auto dense_out = dynamic_cast<trd_type*>(out)) {
+            fn(dense_in, dense_out);
+        } else if (auto dense_out = dynamic_cast<fth_type*>(out)) {
+            fn(dense_in, dense_out);
+        } else {
+            GKO_NOT_SUPPORTED(out);
+        }
     } else {
         GKO_NOT_SUPPORTED(in);
     }

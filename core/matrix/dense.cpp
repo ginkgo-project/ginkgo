@@ -1393,7 +1393,8 @@ void gather_mixed_real_complex(Function fn, LinOp* out)
     using fst_type = matrix::Dense<ValueType>;
     using snd_type = matrix::Dense<next_precision<ValueType>>;
     using trd_type = matrix::Dense<next_precision<next_precision<ValueType>>>;
-    run<fst_type*, snd_type*, trd_type*>(out, fn);
+    using fth_type = matrix::Dense<next_precision2<ValueType, 3>>;
+    run<fst_type*, snd_type*, trd_type*, fth_type*>(out, fn);
 #else
     precision_dispatch<ValueType>(fn, out);
 #endif

@@ -47,8 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_bf16.h>
 #include <cuda_fp16.h>
 
-#if defined(__CUDACC__)
-
+#if defined(__CUDACC__) && (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 800))
 #define BFLOAT_FRIEND_OPERATOR(_op, _opeq)                                  \
     __forceinline__ __device__ __nv_bfloat16 operator _op(                  \
         const __nv_bfloat16& lhs, const __nv_bfloat16& rhs)                 \
@@ -433,7 +432,7 @@ public:
         return static_cast<half>(static_cast<float>(lhf)                    \
                                      _op static_cast<float>(rhf));          \
     }                                                                       \
-    GKO_ATTRIBUTES half& operator _opeq(const half & hf)                    \
+    GKO_ATTRIBUTES half& operator _opeq(const half& hf)                     \
     {                                                                       \
         auto result = *this _op hf;                                         \
         this->float2half(result);                                           \
@@ -599,7 +598,7 @@ public:
         return static_cast<bfloat16>(static_cast<float>(lhf)           \
                                          _op static_cast<float>(rhf)); \
     }                                                                  \
-    GKO_ATTRIBUTES bfloat16& operator _opeq(const bfloat16 & hf)       \
+    GKO_ATTRIBUTES bfloat16& operator _opeq(const bfloat16& hf)        \
     {                                                                  \
         auto result = *this _op hf;                                    \
         this->float2bfloat16(result);                                  \
