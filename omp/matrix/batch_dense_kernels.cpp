@@ -40,6 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
+#include "core/base/batch_struct.hpp"
+#include "core/matrix/batch_struct.hpp"
 #include "reference/matrix/batch_struct.hpp"
 
 
@@ -61,7 +63,7 @@ template <typename ValueType>
 void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
                   const batch::matrix::BatchDense<ValueType>* mat,
                   const batch::MultiVector<ValueType>* b,
-                  MultiVector<ValueType>* x)
+                  batch::MultiVector<ValueType>* x)
 {
     const auto b_ub = host::get_batch_struct(b);
     const auto x_ub = host::get_batch_struct(x);

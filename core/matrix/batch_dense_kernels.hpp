@@ -42,6 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 
@@ -50,7 +53,7 @@ namespace kernels {
     void simple_apply(std::shared_ptr<const DefaultExecutor> exec, \
                       const batch::matrix::BatchDense<_type>* a,   \
                       const batch::MultiVector<_type>* b,          \
-                      MultiVector<_type>* c)
+                      batch::MultiVector<_type>* c)
 
 #define GKO_DECLARE_BATCH_DENSE_ADVANCED_APPLY_KERNEL(_type)         \
     void advanced_apply(std::shared_ptr<const DefaultExecutor> exec, \

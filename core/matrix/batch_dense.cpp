@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 #include "core/matrix/batch_dense_kernels.hpp"
@@ -66,7 +67,7 @@ namespace detail {
 
 template <typename ValueType>
 batch_dim<2> compute_batch_size(
-    const std::vector<matrix::Dense<ValueType>*>& matrices)
+    const std::vector<gko::matrix::Dense<ValueType>*>& matrices)
 {
     auto common_size = matrices[0]->get_size();
     for (size_type i = 1; i < matrices.size(); ++i) {
@@ -80,7 +81,7 @@ batch_dim<2> compute_batch_size(
 
 
 template <typename ValueType>
-std::unique_ptr<matrix::Dense<ValueType>>
+std::unique_ptr<gko::matrix::Dense<ValueType>>
 BatchDense<ValueType>::create_view_for_item(size_type item_id)
 {
     auto exec = this->get_executor();
@@ -96,7 +97,7 @@ BatchDense<ValueType>::create_view_for_item(size_type item_id)
 
 
 template <typename ValueType>
-std::unique_ptr<const matrix::Dense<ValueType>>
+std::unique_ptr<const gko::matrix::Dense<ValueType>>
 BatchDense<ValueType>::create_const_view_for_item(size_type item_id) const
 {
     auto exec = this->get_executor();
@@ -113,7 +114,8 @@ BatchDense<ValueType>::create_const_view_for_item(size_type item_id) const
 
 template <typename ValueType>
 std::unique_ptr<BatchDense<ValueType>>
-BatchDense<ValueType>::create_with_config_of(ptr_param<const MultiVector> other)
+BatchDense<ValueType>::create_with_config_of(
+    ptr_param<const BatchDense<ValueType>> other)
 {
     // De-referencing `other` before calling the functions (instead of
     // using operator `->`) is currently required to be compatible with

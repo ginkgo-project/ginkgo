@@ -30,18 +30,19 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_BATCH_STRUCT_HPP_
-#define GKO_CORE_BASE_BATCH_STRUCT_HPP_
+#ifndef GKO_CORE_MATRIX_BATCH_STRUCT_HPP_
+#define GKO_CORE_MATRIX_BATCH_STRUCT_HPP_
 
 
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/batch_dense.hpp>
 
 
 namespace gko {
 namespace batch {
-namespace multi_vector {
+namespace matrix {
+namespace batch_dense {
 
 
 /**
@@ -78,56 +79,47 @@ struct uniform_batch {
 };
 
 
-}  // namespace multi_vector
+}  // namespace batch_dense
 
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE multi_vector::batch_item<const ValueType> to_const(
-    const multi_vector::batch_item<ValueType>& b)
+GKO_ATTRIBUTES GKO_INLINE batch_dense::batch_item<const ValueType> to_const(
+    const batch_dense::batch_item<ValueType>& b)
 {
     return {b.values, b.stride, b.num_rows, b.num_rhs};
 }
 
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE multi_vector::uniform_batch<const ValueType> to_const(
-    const multi_vector::uniform_batch<ValueType>& ub)
+GKO_ATTRIBUTES GKO_INLINE batch_dense::uniform_batch<const ValueType> to_const(
+    const batch_dense::uniform_batch<ValueType>& ub)
 {
     return {ub.values, ub.num_batch_items, ub.stride, ub.num_rows, ub.num_rhs};
 }
 
 
-/**
- * Extract one object (matrix, vector etc.) from a batch of objects
- *
- * This overload is for batch multi-vectors.
- * These overloads are intended to be called from within a kernel.
- *
- * @param batch  The batch of objects to extract from
- * @param batch_idx  The position of the desired object in the batch
- */
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE multi_vector::batch_item<ValueType>
-extract_batch_item(const multi_vector::uniform_batch<ValueType>& batch,
-                   const size_type batch_idx)
+GKO_ATTRIBUTES GKO_INLINE batch_dense::batch_item<ValueType> extract_batch_item(
+    const batch_dense::uniform_batch<ValueType>& batch,
+    const size_type batch_idx)
 {
     return {batch.values + batch_idx * batch.stride * batch.num_rows,
             batch.stride, batch.num_rows, batch.num_rhs};
 }
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE multi_vector::batch_item<ValueType>
-extract_batch_item(ValueType* const batch_values, const int stride,
-                   const int num_rows, const int num_rhs,
-                   const size_type batch_idx)
+GKO_ATTRIBUTES GKO_INLINE batch_dense::batch_item<ValueType> extract_batch_item(
+    ValueType* const batch_values, const int stride, const int num_rows,
+    const int num_rhs, const size_type batch_idx)
 {
     return {batch_values + batch_idx * stride * num_rows, stride, num_rows,
             num_rhs};
 }
 
 
+}  // namespace matrix
 }  // namespace batch
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_BATCH_STRUCT_HPP_
+#endif  // GKO_CORE_MATRIX_BATCH_STRUCT_HPP_

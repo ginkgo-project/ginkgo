@@ -59,7 +59,7 @@ template <typename ValueType>
 void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
                   const batch::matrix::BatchDense<ValueType>* a,
                   const batch::MultiVector<ValueType>* b,
-                  MultiVector<ValueType>* c) GKO_NOT_IMPLEMENTED;
+                  batch::MultiVector<ValueType>* x) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_SIMPLE_APPLY_KERNEL);

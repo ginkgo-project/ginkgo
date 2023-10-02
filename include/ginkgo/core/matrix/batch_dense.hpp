@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/batch_lin_op.hpp>
+#include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
@@ -85,7 +86,7 @@ public:
     using value_type = ValueType;
     using index_type = int32;
     using transposed_type = BatchDense<ValueType>;
-    using unbatch_type = matrix::Dense<ValueType>;
+    using unbatch_type = gko::matrix::Dense<ValueType>;
     using absolute_type = remove_complex<BatchDense>;
     using complex_type = to_complex<BatchDense>;
 
@@ -227,10 +228,9 @@ public:
      * array (if it resides on the same executor as the vector) or a copy of the
      * array on the correct executor.
      */
-    static std::unique_ptr<const MultiVector<value_type><ValueType>>
-    create_const(std::shared_ptr<const Executor> exec,
-                 const batch_dim<2>& sizes,
-                 gko::detail::const_array_view<ValueType>&& values);
+    static std::unique_ptr<const MultiVector<value_type>> create_const(
+        std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
+        gko::detail::const_array_view<ValueType>&& values);
 
 private:
     inline size_type compute_num_elems(const batch_dim<2>& size)
