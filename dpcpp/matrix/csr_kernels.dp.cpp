@@ -1248,7 +1248,9 @@ bool try_general_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
                                 matrix::Dense<ValueType>* c)
 {
     constexpr bool try_sparselib =
-        !is_complex<ValueType>() && !std::is_same<ValueType, gko::half>::value;
+        !is_complex<ValueType>() &&
+        !std::is_same<ValueType, gko::half>::value &&
+        !std::is_same<ValueType, gko::bfloat16>::value;
     if constexpr (try_sparselib) {
         oneapi::mkl::sparse::matrix_handle_t mat_handle;
         oneapi::mkl::sparse::init_matrix_handle(&mat_handle);
