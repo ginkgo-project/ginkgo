@@ -62,8 +62,7 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto input, auto output) {
-            using type =
-                device_type<highest_precision<InValueType, OutValueType>>;
+            using type = device_type<OutValueType>;
             output(row, col) = static_cast<type>(input(row, col));
         },
         input->get_size(), input, output);

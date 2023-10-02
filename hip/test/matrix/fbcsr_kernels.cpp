@@ -178,7 +178,8 @@ TYPED_TEST(Fbcsr, SpmvIsEquivalentToRefSorted)
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[0], 1));
     auto prod_hip = Dense::create(this->exec, prod_ref->get_size());
 
-    if (std::is_same<value_type, gko::half>::value) {
+    if (std::is_same<value_type, gko::half>::value ||
+        std::is_same<value_type, gko::bfloat16>::value) {
         ASSERT_THROW(rand_hip->apply(x_hip, prod_hip), gko::NotImplemented);
     } else {
         rand_hip->apply(x_hip, prod_hip);
@@ -206,7 +207,8 @@ TYPED_TEST(Fbcsr, SpmvMultiIsEquivalentToRefSorted)
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[0], 3));
     auto prod_hip = Dense::create(this->exec, prod_ref->get_size());
 
-    if (std::is_same<value_type, gko::half>::value) {
+    if (std::is_same<value_type, gko::half>::value ||
+        std::is_same<value_type, gko::bfloat16>::value) {
         ASSERT_THROW(rand_hip->apply(x_hip, prod_hip), gko::NotImplemented);
     } else {
         rand_hip->apply(x_hip, prod_hip);
@@ -246,7 +248,8 @@ TYPED_TEST(Fbcsr, AdvancedSpmvIsEquivalentToRefSorted)
     auto beta = Dense::create(this->exec);
     beta->copy_from(beta_ref);
 
-    if (std::is_same<value_type, gko::half>::value) {
+    if (std::is_same<value_type, gko::half>::value ||
+        std::is_same<value_type, gko::bfloat16>::value) {
         ASSERT_THROW(rand_hip->apply(alpha, x_hip, beta, prod_hip),
                      gko::NotImplemented);
     } else {
@@ -287,7 +290,8 @@ TYPED_TEST(Fbcsr, AdvancedSpmvMultiIsEquivalentToRefSorted)
     auto beta = Dense::create(this->exec);
     beta->copy_from(beta_ref);
 
-    if (std::is_same<value_type, gko::half>::value) {
+    if (std::is_same<value_type, gko::half>::value ||
+        std::is_same<value_type, gko::bfloat16>::value) {
         ASSERT_THROW(rand_hip->apply(alpha, x_hip, beta, prod_hip),
                      gko::NotImplemented);
     } else {

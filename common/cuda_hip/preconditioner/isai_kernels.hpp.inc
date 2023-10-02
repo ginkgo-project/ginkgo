@@ -290,8 +290,9 @@ __global__ __launch_bounds__(default_block_size) void generate_general_inverse(
         ValueType sol = subwarp.shfl(rhs, perm);
 
         if (spd) {
-            auto diag = subwarp.shfl(sol, num_elems - 1);
-            sol /= sqrt(diag);
+            ValueType diag = subwarp.shfl(sol, num_elems - 1);
+            // TODO: check why HIP bfloat16 return float
+            sol /= static_cast<ValueType>(sqrt(diag));
         }
 
         return sol;

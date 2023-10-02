@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 
+#include <hip/hip_bfloat16.h>
 #include <hip/hip_complex.h>
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
@@ -68,6 +69,18 @@ __device__ __forceinline__ thrust::complex<__half> sqrt(
     return sqrt(static_cast<thrust::complex<float>>(a));
 }
 
+__device__ __forceinline__ hip_bfloat16 hypot(hip_bfloat16 a, hip_bfloat16 b)
+{
+    return static_cast<hip_bfloat16>(
+        hypot(static_cast<float>(a), static_cast<float>(b)));
+}
+
+__device__ __forceinline__ thrust::complex<hip_bfloat16> sqrt(
+    thrust::complex<hip_bfloat16> a)
+{
+    return sqrt(static_cast<thrust::complex<float>>(a));
+}
+
 __device__ __forceinline__ thrust::complex<float> sqrt(
     thrust::complex<float> val)
 {
@@ -84,8 +97,17 @@ __device__ __forceinline__ __half sqrt(__half val)
 {
     return sqrt(static_cast<float>(val));
 }
+
+__device__ __forceinline__ hip_bfloat16 sqrt(hip_bfloat16 val)
+{
+    return sqrt(static_cast<float>(val));
+}
 #else
 __device__ __forceinline__ __half sqrt(__half val) { return hsqrt(val); }
+__device__ __forceinline__ hip_bfloat16 sqrt(hip_bfloat16 val)
+{
+    return static_cast<hip_bfloat16>(sqrt(static_cast<float>(val)));
+}
 #endif
 
 
@@ -99,12 +121,26 @@ GKO_ATTRIBUTES GKO_INLINE __half abs<__half>(const complex<__half>& z)
     return hypot(static_cast<float>(z.real()), static_cast<float>(z.imag()));
 }
 
+template <>
+GKO_ATTRIBUTES GKO_INLINE hip_bfloat16
+abs<hip_bfloat16>(const complex<hip_bfloat16>& z)
+{
+    return static_cast<hip_bfloat16>(
+        hypot(static_cast<float>(z.real()), static_cast<float>(z.imag())));
+}
+
 
 }  // namespace thrust
 
 #define THRUST_HALF_FRIEND_OPERATOR(_op, _opeq)                               \
     GKO_ATTRIBUTES GKO_INLINE thrust::complex<__half> operator _op(           \
         const thrust::complex<__half> lhs, const thrust::complex<__half> rhs) \
+    {                                                                         \
+        return thrust::complex<float>{lhs} _op thrust::complex<float>(rhs);   \
+    }                                                                         \
+    GKO_ATTRIBUTES GKO_INLINE thrust::complex<hip_bfloat16> operator _op(     \
+        const thrust::complex<hip_bfloat16> lhs,                              \
+        const thrust::complex<hip_bfloat16> rhs)                              \
     {                                                                         \
         return thrust::complex<float>{lhs} _op thrust::complex<float>(rhs);   \
     }
@@ -155,6 +191,15 @@ __device__ __forceinline__ __half abs(const __half& val) { return __habs(val); }
 
 #endif
 
+__device__ __forceinline__ bool is_nan(const hip_bfloat16& val)
+{
+    return is_nan(static_cast<float>(val));
+}
+
+__device__ __forceinline__ hip_bfloat16 abs(const hip_bfloat16& val)
+{
+    return static_cast<hip_bfloat16>(abs(static_cast<float>(val)));
+}
 
 namespace kernels {
 namespace hip {
@@ -267,6 +312,16 @@ struct hiplibs_type_impl<std::complex<half>> {
     using type = __half2;
 };
 
+template <>
+struct hiplibs_type_impl<bfloat16> {
+    using type = hip_bfloat16;
+};
+
+template <>
+struct hiplibs_type_impl<std::complex<bfloat16>> {
+    // TODO: HIP does not support it.
+    using type = __half2;
+};
 
 template <typename T>
 struct hiplibs_type_impl<thrust::complex<T>> {
@@ -345,6 +400,11 @@ struct hip_type_impl<gko::half> {
     using type = __half;
 };
 
+template <>
+struct hip_type_impl<gko::bfloat16> {
+    using type = hip_bfloat16;
+};
+
 template <typename T>
 struct hip_type_impl<std::complex<T>> {
     using type = thrust::complex<typename hip_type_impl<T>::type>;
@@ -365,6 +425,8 @@ struct hip_type_impl<__half2> {
     using type = thrust::complex<__half>;
 };
 
+// TODO: hip does not support hip_bfloat162
+
 template <typename T>
 struct hip_struct_member_type_impl {
     using type = T;
@@ -378,6 +440,11 @@ struct hip_struct_member_type_impl<std::complex<T>> {
 template <>
 struct hip_struct_member_type_impl<gko::half> {
     using type = __half;
+};
+
+template <>
+struct hip_struct_member_type_impl<gko::bfloat16> {
+    using type = hip_bfloat16;
 };
 
 template <typename ValueType, typename IndexType>

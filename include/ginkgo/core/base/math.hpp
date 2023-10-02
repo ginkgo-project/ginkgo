@@ -922,7 +922,7 @@ GKO_INLINE __host__ constexpr T zero(const T&)
 template <typename T>
 GKO_INLINE __host__ constexpr T one()
 {
-    return T(1);
+    return T(static_cast<remove_complex<T>>(1.0));
 }
 
 
@@ -982,7 +982,7 @@ GKO_INLINE __device__ constexpr std::enable_if_t<
     !std::is_same<T, std::complex<remove_complex<T>>>::value, T>
 one()
 {
-    return T(1);
+    return T(static_cast<remove_complex<T>>(1.0));
 }
 
 

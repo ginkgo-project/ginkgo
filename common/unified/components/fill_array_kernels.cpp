@@ -63,11 +63,15 @@ void fill_seq_array(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto idx, auto array) {
+            // hip bfloat16 does not provide implicit conversion
             array[idx] = static_cast<typename std::conditional<
-                std::is_same<device_type<ValueType>, __nv_bfloat16>::value ||
-                    std::is_same<device_type<ValueType>,
-                                 thrust::complex<__nv_bfloat16>>::value,
-                float, long long>::type>(idx);
+                std::is_same<device_type<remove_complex<ValueType>>,
+                             __nv_bfloat16>::value,
+                float,
+                typename std::conditional<
+                    std::is_same<device_type<remove_complex<ValueType>>,
+                                 hip_bfloat16>::value,
+                    hip_bfloat16, long long>::type>::type>(idx);
         },
         n, array);
 }

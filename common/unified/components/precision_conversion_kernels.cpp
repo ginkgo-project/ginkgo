@@ -56,8 +56,7 @@ void convert_precision(std::shared_ptr<const DefaultExecutor> exec,
                 typename std::remove_reference<decltype(*in)>::type>::type;
             using out_type = typename std::remove_cv<
                 typename std::remove_reference<decltype(*out)>::type>::type;
-            out[idx] =
-                static_cast<highest_precision<in_type, out_type>>(in[idx]);
+            out[idx] = static_cast<out_type>(in[idx]);
         },
         size, in, out);
 }
