@@ -30,62 +30,66 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/batch_dense_kernels.hpp"
+#ifndef GKO_REFERENCE_MATRIX_BATCH_STRUCT_HPP_
+#define GKO_REFERENCE_MATRIX_BATCH_STRUCT_HPP_
 
 
+#include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/math.hpp>
 
 
 #include "core/base/batch_struct.hpp"
-#include "core/matrix/batch_struct.hpp"
-#include "cuda/base/config.hpp"
-#include "cuda/base/cublas_bindings.hpp"
-#include "cuda/base/pointer_mode_guard.hpp"
-#include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/reduction.cuh"
-#include "cuda/components/thread_ids.cuh"
-#include "cuda/components/uninitialized_array.hpp"
-#include "cuda/matrix/batch_struct.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace cuda {
 /**
- * @brief The BatchDense matrix format namespace.
- *
- * @ingroup batch_dense
+ * @brief A namespace for shared functionality between omp and reference
+ *  executors.
  */
-namespace batch_dense {
+namespace host {
 
 
-constexpr auto default_block_size = 256;
-constexpr int sm_multiplier = 4;
+/** @file batch_struct.hpp
+ *
+ * Helper functions to generate a batch struct from a batch LinOp.
+ *
+ * A specialization is needed for every format of every kind of linear algebra
+ * object. These are intended to be called on the host.
+ */
 
 
+/**
+ * Generates an immutable uniform batch struct from a batch of multi-vectors.
+ */
 template <typename ValueType>
-void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
-                  const batch::matrix::BatchDense<ValueType>* mat,
-                  const batch::MultiVector<ValueType>* b,
-                  batch::MultiVector<ValueType>* x) GKO_NOT_IMPLEMENTED;
+inline batch::matrix::batch_dense::uniform_batch<const ValueType>
+get_batch_struct(const batch::matrix::BatchDense<ValueType>* const op)
+{
+    return {op->get_const_values(), op->get_num_batch_items(),
+            static_cast<int>(op->get_common_size()[1]),
+            static_cast<int>(op->get_common_size()[0]),
+            static_cast<int>(op->get_common_size()[1])};
+}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BATCH_DENSE_SIMPLE_APPLY_KERNEL);
 
-
+/**
+ * Generates a uniform batch struct from a batch of multi-vectors.
+ */
 template <typename ValueType>
-void advanced_apply(std::shared_ptr<const DefaultExecutor> exec,
-                    const batch::MultiVector<ValueType>* alpha,
-                    const batch::matrix::BatchDense<ValueType>* a,
-                    const batch::MultiVector<ValueType>* b,
-                    const batch::MultiVector<ValueType>* beta,
-                    batch::MultiVector<ValueType>* c) GKO_NOT_IMPLEMENTED;
+inline batch::matrix::batch_dense::uniform_batch<ValueType> get_batch_struct(
+    batch::matrix::BatchDense<ValueType>* const op)
+{
+    return {op->get_values(), op->get_num_batch_items(),
+            static_cast<int>(op->get_common_size()[1]),
+            static_cast<int>(op->get_common_size()[0]),
+            static_cast<int>(op->get_common_size()[1])};
+}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BATCH_DENSE_ADVANCED_APPLY_KERNEL);
 
-
-}  // namespace batch_dense
-}  // namespace cuda
+}  // namespace host
 }  // namespace kernels
 }  // namespace gko
+
+
+#endif  // GKO_REFERENCE_MATRIX_BATCH_STRUCT_HPP_

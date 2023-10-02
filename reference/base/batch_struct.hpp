@@ -87,34 +87,6 @@ inline batch::multi_vector::uniform_batch<ValueType> get_batch_struct(
 }
 
 
-/**
- * Generates an immutable uniform batch struct from a batch of multi-vectors.
- */
-template <typename ValueType>
-inline batch::matrix::batch_dense::uniform_batch<const ValueType>
-get_batch_struct(const batch::matrix::BatchDense<ValueType>* const op)
-{
-    return {op->get_const_values(), op->get_num_batch_items(),
-            static_cast<int>(op->get_common_size()[1]),
-            static_cast<int>(op->get_common_size()[0]),
-            static_cast<int>(op->get_common_size()[1])};
-}
-
-
-/**
- * Generates a uniform batch struct from a batch of multi-vectors.
- */
-template <typename ValueType>
-inline batch::matrix::batch_dense::uniform_batch<ValueType> get_batch_struct(
-    batch::matrix::BatchDense<ValueType>* const op)
-{
-    return {op->get_values(), op->get_num_batch_items(),
-            static_cast<int>(op->get_common_size()[1]),
-            static_cast<int>(op->get_common_size()[0]),
-            static_cast<int>(op->get_common_size()[1])};
-}
-
-
 }  // namespace host
 }  // namespace kernels
 }  // namespace gko

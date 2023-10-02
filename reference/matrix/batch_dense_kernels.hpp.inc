@@ -32,9 +32,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 template <typename ValueType>
 inline void simple_apply_kernel(
-    const gko::batch::batch_dense::batch_item<const ValueType>& a,
-    const gko::batch::batch_multi_vector::batch_item<const ValueType>& b,
-    const gko::batch::batch_multi_vector::batch_item<ValueType>& c)
+    const gko::batch::matrix::batch_dense::batch_item<const ValueType>& a,
+    const gko::batch::multi_vector::batch_item<const ValueType>& b,
+    const gko::batch::multi_vector::batch_item<ValueType>& c)
 {
     for (int row = 0; row < c.num_rows; ++row) {
         for (int col = 0; col < c.num_rhs; ++col) {
@@ -57,10 +57,10 @@ inline void simple_apply_kernel(
 template <typename ValueType>
 inline void advanced_apply_kernel(
     const ValueType alpha,
-    const gko::batch::batch_dense::batch_item<const ValueType>& a,
-    const gko::batch::batch_multi_vector::batch_item<const ValueType>& b,
+    const gko::batch::matrix::batch_dense::batch_item<const ValueType>& a,
+    const gko::batch::multi_vector::batch_item<const ValueType>& b,
     const ValueType beta,
-    const gko::batch::batch_multi_vector::batch_item<ValueType>& c)
+    const gko::batch::multi_vector::batch_item<ValueType>& c)
 {
     if (beta != gko::zero<ValueType>()) {
         for (int row = 0; row < c.num_rows; ++row) {
