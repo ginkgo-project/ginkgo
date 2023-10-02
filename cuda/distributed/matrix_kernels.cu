@@ -23,6 +23,7 @@
 
 #include "cuda/base/thrust.cuh"
 #include "cuda/components/atomic.cuh"
+#include "cuda/components/searching.cuh"
 
 
 namespace gko {
