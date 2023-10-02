@@ -562,7 +562,7 @@ private:
 
 class bfloat16 {
 public:
-    GKO_ATTRIBUTES bfloat16() noexcept = default;
+    GKO_ATTRIBUTES bfloat16() noexcept : data_(0) {}
 
     template <typename T, typename = std::enable_if_t<std::is_scalar<T>::value>>
     GKO_ATTRIBUTES bfloat16(const T val)
