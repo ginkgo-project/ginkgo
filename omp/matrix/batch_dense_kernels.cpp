@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
+#include "reference/base/batch_struct.hpp"
 #include "reference/matrix/batch_struct.hpp"
 
 
@@ -70,7 +71,7 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
     const auto mat_ub = host::get_batch_struct(mat);
 #pragma omp parallel for
     for (size_type batch = 0; batch < x->get_num_batch_items(); ++batch) {
-        const auto mat_item = batch::extract_batch_item(mat_ub, batch);
+        const auto mat_item = batch::matrix::extract_batch_item(mat_ub, batch);
         const auto b_item = batch::extract_batch_item(b_ub, batch);
         const auto x_item = batch::extract_batch_item(x_ub, batch);
         simple_apply_kernel(mat_item, b_item, x_item);
@@ -84,40 +85,25 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void advanced_apply(std::shared_ptr<const DefaultExecutor> exec,
                     const batch::MultiVector<ValueType>* alpha,
-                    const batch::matrix::BatchDense<ValueType>* a,
+                    const batch::matrix::BatchDense<ValueType>* mat,
                     const batch::MultiVector<ValueType>* b,
                     const batch::MultiVector<ValueType>* beta,
-                    batch::MultiVector<ValueType>* c)
+                    batch::MultiVector<ValueType>* x)
 {
     const auto b_ub = host::get_batch_struct(b);
     const auto x_ub = host::get_batch_struct(x);
     const auto mat_ub = host::get_batch_struct(mat);
     const auto alpha_ub = host::get_batch_struct(alpha);
     const auto beta_ub = host::get_batch_struct(beta);
-    if (alpha->get_num_batch_items() > 1) {
-        GKO_ASSERT(alpha->get_num_batch_items() == x->get_num_batch_items());
-        GKO_ASSERT(beta->get_num_batch_items() == x->get_num_batch_items());
 #pragma omp parallel for
-        for (size_type batch = 0; batch < x->get_num_batch_items(); ++batch) {
-            const auto mat_item = batch::extract_batch_item(mat_ub, batch);
-            const auto b_item = batch::extract_batch_item(b_ub, batch);
-            const auto x_item = batch::extract_batch_item(x_ub, batch);
-            const auto alpha_item = batch::extract_batch_item(alpha_ub, batch);
-            const auto beta_item = batch::extract_batch_item(beta_ub, batch);
-            advanced_apply_kernel(alpha_item.values[0], mat_item, b_item,
-                                  beta_item.values[0], x_item);
-        }
-    } else {
-        const auto alpha_item = batch::extract_batch_item(alpha_ub, 0);
-        const auto beta_item = batch::extract_batch_item(beta_ub, 0);
-#pragma omp parallel for
-        for (size_type batch = 0; batch < x->get_num_batch_items(); ++batch) {
-            const auto mat_item = batch::extract_batch_item(mat_ub, batch);
-            const auto b_item = batch::extract_batch_item(b_ub, batch);
-            const auto x_item = batch::extract_batch_item(x_ub, batch);
-            advanced_apply_kernel(alpha_item.values[0], mat_item, b_item,
-                                  beta_item.values[0], x_item);
-        }
+    for (size_type batch = 0; batch < x->get_num_batch_items(); ++batch) {
+        const auto mat_item = batch::matrix::extract_batch_item(mat_ub, batch);
+        const auto b_item = batch::extract_batch_item(b_ub, batch);
+        const auto x_item = batch::extract_batch_item(x_ub, batch);
+        const auto alpha_item = batch::extract_batch_item(alpha_ub, batch);
+        const auto beta_item = batch::extract_batch_item(beta_ub, batch);
+        advanced_apply_kernel(alpha_item.values[0], mat_item, b_item,
+                              beta_item.values[0], x_item);
     }
 }
 

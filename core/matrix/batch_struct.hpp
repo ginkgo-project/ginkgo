@@ -54,7 +54,7 @@ struct batch_item {
     ValueType* values;
     int stride;
     int num_rows;
-    int num_rhs;
+    int num_cols;
 };
 
 
@@ -70,7 +70,7 @@ struct uniform_batch {
     size_type num_batch_items;
     int stride;
     int num_rows;
-    int num_rhs;
+    int num_cols;
 
     size_type get_entry_storage() const
     {
@@ -86,7 +86,7 @@ template <typename ValueType>
 GKO_ATTRIBUTES GKO_INLINE batch_dense::batch_item<const ValueType> to_const(
     const batch_dense::batch_item<ValueType>& b)
 {
-    return {b.values, b.stride, b.num_rows, b.num_rhs};
+    return {b.values, b.stride, b.num_rows, b.num_cols};
 }
 
 
@@ -94,7 +94,7 @@ template <typename ValueType>
 GKO_ATTRIBUTES GKO_INLINE batch_dense::uniform_batch<const ValueType> to_const(
     const batch_dense::uniform_batch<ValueType>& ub)
 {
-    return {ub.values, ub.num_batch_items, ub.stride, ub.num_rows, ub.num_rhs};
+    return {ub.values, ub.num_batch_items, ub.stride, ub.num_rows, ub.num_cols};
 }
 
 
@@ -104,16 +104,16 @@ GKO_ATTRIBUTES GKO_INLINE batch_dense::batch_item<ValueType> extract_batch_item(
     const size_type batch_idx)
 {
     return {batch.values + batch_idx * batch.stride * batch.num_rows,
-            batch.stride, batch.num_rows, batch.num_rhs};
+            batch.stride, batch.num_rows, batch.num_cols};
 }
 
 template <typename ValueType>
 GKO_ATTRIBUTES GKO_INLINE batch_dense::batch_item<ValueType> extract_batch_item(
     ValueType* const batch_values, const int stride, const int num_rows,
-    const int num_rhs, const size_type batch_idx)
+    const int num_cols, const size_type batch_idx)
 {
     return {batch_values + batch_idx * stride * num_rows, stride, num_rows,
-            num_rhs};
+            num_cols};
 }
 
 
