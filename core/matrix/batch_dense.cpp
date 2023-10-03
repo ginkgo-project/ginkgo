@@ -128,13 +128,6 @@ BatchDense<ValueType>::create_with_config_of(
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::set_size(const batch_dim<2>& value) noexcept
-{
-    batch_size_ = value;
-}
-
-
-template <typename ValueType>
 std::unique_ptr<BatchDense<ValueType>>
 BatchDense<ValueType>::create_with_same_config() const
 {

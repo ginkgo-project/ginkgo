@@ -412,9 +412,9 @@ TYPED_TEST(MultiVector, CanBeReadFromMatrixData)
     auto m = gko::batch::read<value_type, index_type,
                               gko::batch::MultiVector<value_type>>(this->exec,
                                                                    vec_data);
-    EXPECT_EQ(m->at(0, 0, 0), value_type{1.0});
 
     ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 2));
+    EXPECT_EQ(m->at(0, 0, 0), value_type{1.0});
     EXPECT_EQ(m->at(0, 0, 1), value_type{3.0});
     EXPECT_EQ(m->at(0, 1, 0), value_type{0.0});
     EXPECT_EQ(m->at(0, 1, 1), value_type{5.0});
