@@ -168,11 +168,12 @@ template <typename ValueType>
 void BatchDense<ValueType>::apply_impl(const MultiVector<ValueType>* b,
                                        MultiVector<ValueType>* x) const
 {
-    GKO_ASSERT_EQUAL_DIMENSIONS(b->get_common_size(), x->get_common_size());
     GKO_ASSERT_EQ(b->get_num_batch_items(), this->get_num_batch_items());
-    GKO_ASSERT_CONFORMANT(this->get_common_size(), b->get_common_size());
     GKO_ASSERT_EQ(this->get_num_batch_items(), x->get_num_batch_items());
-    GKO_ASSERT_CONFORMANT(this->get_common_size(), x->get_common_size());
+
+    GKO_ASSERT_CONFORMANT(this->get_common_size(), b->get_common_size());
+    GKO_ASSERT_EQUAL_ROWS(this->get_common_size(), x->get_common_size());
+    GKO_ASSERT_EQUAL_COLS(b->get_common_size(), x->get_common_size());
     this->get_executor()->run(dense::make_simple_apply(this, b, x));
 }
 
@@ -183,13 +184,14 @@ void BatchDense<ValueType>::apply_impl(const MultiVector<ValueType>* alpha,
                                        const MultiVector<ValueType>* beta,
                                        MultiVector<ValueType>* x) const
 {
-    GKO_ASSERT_EQUAL_DIMENSIONS(b->get_common_size(), x->get_common_size());
     GKO_ASSERT_EQ(b->get_num_batch_items(), this->get_num_batch_items());
-    GKO_ASSERT_CONFORMANT(this->get_common_size(), b->get_common_size());
     GKO_ASSERT_EQ(this->get_num_batch_items(), x->get_num_batch_items());
-    GKO_ASSERT_CONFORMANT(this->get_common_size(), x->get_common_size());
-    GKO_ASSERT_EQUAL_COLS(alpha->get_common_size(), gko::dim<2>(1, 1));
-    GKO_ASSERT_EQUAL_COLS(beta->get_common_size(), gko::dim<2>(1, 1));
+
+    GKO_ASSERT_CONFORMANT(this->get_common_size(), b->get_common_size());
+    GKO_ASSERT_EQUAL_ROWS(this->get_common_size(), x->get_common_size());
+    GKO_ASSERT_EQUAL_COLS(b->get_common_size(), x->get_common_size());
+    GKO_ASSERT_EQUAL_DIMENSIONS(alpha->get_common_size(), gko::dim<2>(1, 1));
+    GKO_ASSERT_EQUAL_DIMENSIONS(beta->get_common_size(), gko::dim<2>(1, 1));
     this->get_executor()->run(
         dense::make_advanced_apply(alpha, this, b, beta, x));
 }
