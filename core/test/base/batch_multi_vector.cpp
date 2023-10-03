@@ -188,11 +188,11 @@ TYPED_TEST(MultiVector, CanBeConstructedFromExistingData)
     using size_type = gko::size_type;
     // clang-format off
     value_type data[] = {
-       1.0, 2.0,
-       -1.0,3.0,
+       1.0,  2.0,
+      -1.0,  3.0,
        4.0, -1.0,
-       3.0, 5.0,
-       1.0, 5.0,
+       3.0,  5.0,
+       1.0,  5.0,
        6.0, -3.0};
     // clang-format on
 
@@ -218,11 +218,11 @@ TYPED_TEST(MultiVector, CanBeConstructedFromExistingConstData)
     using size_type = gko::size_type;
     // clang-format off
     value_type data[] = {
-       1.0, 2.0,
-       -1.0,3.0,
+       1.0,  2.0,
+      -1.0,  3.0,
        4.0, -1.0,
-       3.0, 5.0,
-       1.0, 5.0,
+       3.0,  5.0,
+       1.0,  5.0,
        6.0, -3.0};
     // clang-format on
 
@@ -252,7 +252,7 @@ TYPED_TEST(MultiVector, CanBeConstructedFromDenseMatrices)
     auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
                                           this->exec);
 
-    auto m = gko::batch::multivector::create_from_dense(
+    auto m = gko::batch::create_from_item<gko::batch::MultiVector<value_type>>(
         this->exec, std::vector<DenseMtx*>{mat1.get(), mat2.get()});
 
     this->assert_equal_to_original_mtx(m.get());
@@ -269,10 +269,12 @@ TYPED_TEST(MultiVector, CanBeConstructedFromDenseMatricesByDuplication)
     auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
                                           this->exec);
 
-    auto bat_m = gko::batch::multivector::create_from_dense(
-        this->exec, std::vector<DenseMtx*>{mat1.get(), mat1.get(), mat1.get()});
-    auto m =
-        gko::batch::multivector::create_from_dense(this->exec, 3, mat1.get());
+    auto bat_m =
+        gko::batch::create_from_item<gko::batch::MultiVector<value_type>>(
+            this->exec,
+            std::vector<DenseMtx*>{mat1.get(), mat1.get(), mat1.get()});
+    auto m = gko::batch::create_from_item<gko::batch::MultiVector<value_type>>(
+        this->exec, 3, mat1.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(bat_m.get(), m.get(), 1e-14);
 }
@@ -287,14 +289,16 @@ TYPED_TEST(MultiVector, CanBeConstructedByDuplicatingMultiVectors)
                                           this->exec);
     auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
                                           this->exec);
-    auto m = gko::batch::multivector::create_from_dense(
+    auto m = gko::batch::create_from_item<gko::batch::MultiVector<value_type>>(
         this->exec, std::vector<DenseMtx*>{mat1.get(), mat2.get()});
-    auto m_ref = gko::batch::multivector::create_from_dense(
-        this->exec, std::vector<DenseMtx*>{mat1.get(), mat2.get(), mat1.get(),
-                                           mat2.get(), mat1.get(), mat2.get()});
+    auto m_ref =
+        gko::batch::create_from_item<gko::batch::MultiVector<value_type>>(
+            this->exec,
+            std::vector<DenseMtx*>{mat1.get(), mat2.get(), mat1.get(),
+                                   mat2.get(), mat1.get(), mat2.get()});
 
-    auto m2 =
-        gko::batch::multivector::duplicate<value_type>(this->exec, 3, m.get());
+    auto m2 = gko::batch::duplicate<gko::batch::MultiVector<value_type>>(
+        this->exec, 3, m.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(m2.get(), m_ref.get(), 1e-14);
 }
@@ -385,7 +389,8 @@ TYPED_TEST(MultiVector, CanBeUnbatchedIntoDenseMatrices)
     auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
                                           this->exec);
 
-    auto dense_mats = gko::batch::multivector::unbatch(this->mtx.get());
+    auto dense_mats = gko::batch::unbatch<gko::batch::MultiVector<value_type>>(
+        this->mtx.get());
 
     ASSERT_EQ(dense_mats.size(), 2);
     GKO_ASSERT_MTX_NEAR(dense_mats[0].get(), mat1.get(), 0.);
@@ -404,7 +409,8 @@ TYPED_TEST(MultiVector, CanBeReadFromMatrixData)
     vec_data.emplace_back(gko::matrix_data<value_type, index_type>(
         {2, 2}, {{0, 0, -1.0}, {0, 1, 0.5}, {1, 0, 0.0}, {1, 1, 9.0}}));
 
-    auto m = gko::batch::multivector::read<value_type, index_type>(this->exec,
+    auto m = gko::batch::read<value_type, index_type,
+                              gko::batch::MultiVector<value_type>>(this->exec,
                                                                    vec_data);
     EXPECT_EQ(m->at(0, 0, 0), value_type{1.0});
 
@@ -429,7 +435,8 @@ TYPED_TEST(MultiVector, CanBeReadFromSparseMatrixData)
     vec_data.emplace_back(gko::matrix_data<value_type, index_type>(
         {2, 2}, {{0, 0, -1.0}, {0, 1, 0.5}, {1, 1, 9.0}}));
 
-    auto m = gko::batch::multivector::read<value_type, index_type>(this->exec,
+    auto m = gko::batch::read<value_type, index_type,
+                              gko::batch::MultiVector<value_type>>(this->exec,
                                                                    vec_data);
 
     ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 2));
@@ -451,7 +458,8 @@ TYPED_TEST(MultiVector, GeneratesCorrectMatrixData)
     using tpl = typename gko::matrix_data<TypeParam>::nonzero_type;
 
     auto data =
-        gko::batch::multivector::write<value_type, index_type>(this->mtx.get());
+        gko::batch::write<value_type, index_type,
+                          gko::batch::MultiVector<value_type>>(this->mtx.get());
 
     ASSERT_EQ(data[0].size, gko::dim<2>(2, 3));
     ASSERT_EQ(data[0].nonzeros.size(), 6);
