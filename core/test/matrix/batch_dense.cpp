@@ -44,9 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/test/utils.hpp"
 
 
-namespace {
-
-
 template <typename T>
 class BatchDense : public ::testing::Test {
 protected:
@@ -55,11 +52,13 @@ protected:
     using size_type = gko::size_type;
     BatchDense()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::batch_initialize<gko::matrix::BatchDense<value_type>>(
-              std::vector<size_type>{4, 3},
+          mtx(gko::batch::initialize<
+              gko::batch::matrix::BatchDense<value_type>>(
               {{{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}},
                {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}},
-              exec))
+              exec)),
+          dense_mtx(gko::initialize<gko::matrix::Dense<value_type>>(
+              {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}, exec))
     {}
 
 
@@ -67,13 +66,8 @@ protected:
         gko::matrix::BatchDense<value_type>* m)
     {
         ASSERT_EQ(m->get_num_batch_entries(), 2);
-        ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 3));
-        ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 3));
-        ASSERT_EQ(m->get_stride().at(0), 4);
-        ASSERT_EQ(m->get_stride().at(1), 3);
-        ASSERT_EQ(m->get_num_stored_elements(), (2 * 4) + (2 * 3));
-        ASSERT_EQ(m->get_num_stored_elements(0), 2 * 4);
-        ASSERT_EQ(m->get_num_stored_elements(1), 2 * 3);
+        ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 3));
+        ASSERT_EQ(m->get_num_stored_elements(), 2 * (2 * 4));
         EXPECT_EQ(m->at(0, 0, 0), value_type{-1.0});
         EXPECT_EQ(m->at(0, 0, 1), value_type{2.0});
         EXPECT_EQ(m->at(0, 0, 2), value_type{3.0});
@@ -95,7 +89,7 @@ protected:
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<gko::matrix::BatchDense<value_type>> mtx;
+    std::unique_ptr<gko::batch::matrix::BatchDense<value_type>> mtx;
 };
 
 TYPED_TEST_SUITE(BatchDense, gko::test::ValueTypes);
@@ -103,46 +97,85 @@ TYPED_TEST_SUITE(BatchDense, gko::test::ValueTypes);
 
 TYPED_TEST(BatchDense, CanBeEmpty)
 {
-    auto empty = gko::matrix::BatchDense<TypeParam>::create(this->exec);
+    auto empty = gko::batch::matrix::BatchDense<TypeParam>::create(this->exec);
     this->assert_empty(empty.get());
 }
 
 
 TYPED_TEST(BatchDense, ReturnsNullValuesArrayWhenEmpty)
 {
-    auto empty = gko::matrix::BatchDense<TypeParam>::create(this->exec);
+    auto empty = gko::batch::matrix::BatchDense<TypeParam>::create(this->exec);
     ASSERT_EQ(empty->get_const_values(), nullptr);
+}
+
+
+TYPED_TEST(BatchDense, CanGetValuesForEntry)
+{
+    using value_type = typename TestFixture::value_type;
+
+    ASSERT_EQ(this->mtx->get_values_for_item(1)[0], value_type{1.0});
+}
+
+
+TYPED_TEST(BatchDense, CanCreateDenseItemView)
+{
+    GKO_ASSERT_MTX_NEAR(this->mtx->create_view_for_item(1), this->dense_mtx,
+                        0.0);
+}
+
+
+TYPED_TEST(BatchDense, CanBeCopied)
+{
+    auto mtx_copy =
+        gko::batch::matrix::BatchDense<TypeParam>::create(this->exec);
+
+    mtx_copy->copy_from(this->mtx.get());
+
+    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->mtx->at(0, 0, 0) = 7;
+    this->mtx->at(0, 1) = 7;
+    this->assert_equal_to_original_mtx(mtx_copy.get());
+}
+
+
+TYPED_TEST(BatchDense, CanBeMoved)
+{
+    auto mtx_copy =
+        gko::batch::matrix::BatchDense<TypeParam>::create(this->exec);
+
+    mtx_copy->copy_from(std::move(this->mtx));
+
+    this->assert_equal_to_original_mtx(mtx_copy.get());
+}
+
+
+TYPED_TEST(BatchDense, CanBeCloned)
+{
+    auto mtx_clone = this->mtx->clone();
+
+    this->assert_equal_to_original_mtx(
+        dynamic_cast<decltype(this->mtx.get())>(mtx_clone.get()));
+}
+
+
+TYPED_TEST(BatchDense, CanBeCleared)
+{
+    this->mtx->clear();
+
+    this->assert_empty(this->mtx.get());
 }
 
 
 TYPED_TEST(BatchDense, CanBeConstructedWithSize)
 {
     using size_type = gko::size_type;
-    auto m = gko::matrix::BatchDense<TypeParam>::create(
-        this->exec,
-        std::vector<gko::dim<2>>{gko::dim<2>{2, 4}, gko::dim<2>{2, 3}});
+
+    auto m = gko::batch::matrix::BatchDense<TypeParam>::create(
+        this->exec, gko::batch_dim<2>> {2, gko::dim<2>{5, 3}});
 
     ASSERT_EQ(m->get_num_batch_entries(), 2);
-    ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 4));
-    ASSERT_EQ(m->get_size().at(1), gko::dim<2>(2, 3));
-    EXPECT_EQ(m->get_stride().at(0), 4);
-    EXPECT_EQ(m->get_stride().at(1), 3);
-    ASSERT_EQ(m->get_num_stored_elements(), 14);
-    ASSERT_EQ(m->get_num_stored_elements(0), 8);
-    ASSERT_EQ(m->get_num_stored_elements(1), 6);
-}
-
-
-TYPED_TEST(BatchDense, CanBeConstructedWithSizeAndStride)
-{
-    using size_type = gko::size_type;
-    auto m = gko::matrix::BatchDense<TypeParam>::create(
-        this->exec, std::vector<gko::dim<2>>{gko::dim<2>{2, 3}},
-        std::vector<size_type>{4});
-
-    ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 3));
-    EXPECT_EQ(m->get_stride().at(0), 4);
-    ASSERT_EQ(m->get_num_stored_elements(), 8);
+    ASSERT_EQ(m->get_common_size(), gko::dim<2>(5, 3));
+    ASSERT_EQ(m->get_num_stored_elements(), 30);
 }
 
 
@@ -152,23 +185,27 @@ TYPED_TEST(BatchDense, CanBeConstructedFromExistingData)
     using size_type = gko::size_type;
     // clang-format off
     value_type data[] = {
-       1.0, 2.0, -1.0,
-       3.0, 4.0, -1.0,
-       3.0, 5.0, 1.0,
-       5.0, 6.0, -3.0};
+       1.0,  2.0,
+      -1.0,  3.0,
+       4.0, -1.0,
+       3.0,  5.0,
+       1.0,  5.0,
+       6.0, -3.0};
     // clang-format on
 
-    auto m = gko::matrix::BatchDense<TypeParam>::create(
-        this->exec,
-        std::vector<gko::dim<2>>{gko::dim<2>{2, 2}, gko::dim<2>{2, 2}},
-        gko::array<value_type>::view(this->exec, 12, data),
-        std::vector<size_type>{3, 3});
+    auto m = gko::batch::matrix::BatchDense<TypeParam>::create(
+        this->exec, gko::batch_dim<2>(2, gko::dim<2>(2, 2)),
+        gko::array<value_type>::view(this->exec, 8, data));
 
     ASSERT_EQ(m->get_const_values(), data);
+    ASSERT_EQ(m->at(0, 0, 0), value_type{1.0});
     ASSERT_EQ(m->at(0, 0, 1), value_type{2.0});
-    ASSERT_EQ(m->at(0, 1, 2), value_type{-1.0});
-    ASSERT_EQ(m->at(1, 0, 1), value_type{5.0});
-    ASSERT_EQ(m->at(1, 1, 2), value_type{-3.0});
+    ASSERT_EQ(m->at(0, 1, 0), value_type{-1.0});
+    ASSERT_EQ(m->at(0, 1, 1), value_type{3.0});
+    ASSERT_EQ(m->at(1, 0, 0), value_type{4.0});
+    ASSERT_EQ(m->at(1, 0, 1), value_type{-1.0});
+    ASSERT_EQ(m->at(1, 1, 0), value_type{3.0});
+    ASSERT_EQ(m->at(1, 1, 1), value_type{5.0});
 }
 
 
@@ -178,23 +215,27 @@ TYPED_TEST(BatchDense, CanBeConstructedFromExistingConstData)
     using size_type = gko::size_type;
     // clang-format off
     const value_type data[] = {
-       1.0, 2.0, -1.0,
-       3.0, 4.0, -1.0,
-       3.0, 5.0, 1.0,
-       5.0, 6.0, -3.0};
+       1.0,  2.0,
+      -1.0,  3.0,
+       4.0, -1.0,
+       3.0,  5.0,
+       1.0,  5.0,
+       6.0, -3.0};
     // clang-format on
 
     auto m = gko::matrix::BatchDense<TypeParam>::create_const(
-        this->exec,
-        std::vector<gko::dim<2>>{gko::dim<2>{2, 2}, gko::dim<2>{2, 2}},
-        gko::array<value_type>::const_view(this->exec, 12, data),
-        std::vector<size_type>{3, 3});
+        this->exec, gko::batch_dim<2>(2, gko::dim<2>(2, 2)),
+        gko::array<value_type>::const_view(this->exec, 8, data));
 
     ASSERT_EQ(m->get_const_values(), data);
+    ASSERT_EQ(m->at(0, 0, 0), value_type{1.0});
     ASSERT_EQ(m->at(0, 0, 1), value_type{2.0});
-    ASSERT_EQ(m->at(0, 1, 2), value_type{-1.0});
-    ASSERT_EQ(m->at(1, 0, 1), value_type{5.0});
-    ASSERT_EQ(m->at(1, 1, 2), value_type{-3.0});
+    ASSERT_EQ(m->at(0, 1, 0), value_type{-1.0});
+    ASSERT_EQ(m->at(0, 1, 1), value_type{3.0});
+    ASSERT_EQ(m->at(1, 0, 0), value_type{4.0});
+    ASSERT_EQ(m->at(1, 0, 1), value_type{-1.0});
+    ASSERT_EQ(m->at(1, 1, 0), value_type{3.0});
+    ASSERT_EQ(m->at(1, 1, 1), value_type{5.0});
 }
 
 
@@ -203,20 +244,15 @@ TYPED_TEST(BatchDense, CanBeConstructedFromBatchDenseMatrices)
     using value_type = typename TestFixture::value_type;
     using DenseMtx = typename TestFixture::DenseMtx;
     using size_type = gko::size_type;
-    auto mat1 = gko::initialize<DenseMtx>(
-        3, {{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}}, this->exec);
+    auto mat1 = gko::initialize<DenseMtx>({{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}},
+                                          this->exec);
     auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
                                           this->exec);
 
-    auto m = gko::matrix::BatchDense<TypeParam>::create(
+    auto m = gko::batch::multivector::create_from_dense(
         this->exec, std::vector<DenseMtx*>{mat1.get(), mat2.get()});
-    auto m_ref = gko::matrix::BatchDense<TypeParam>::create(
-        this->exec, std::vector<DenseMtx*>{mat1.get(), mat2.get(), mat1.get(),
-                                           mat2.get(), mat1.get(), mat2.get()});
-    auto m2 =
-        gko::matrix::BatchDense<TypeParam>::create(this->exec, 3, m.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(m2.get(), m_ref.get(), 1e-14);
+    this->assert_equal_to_original_mtx(m.get());
 }
 
 
@@ -297,19 +333,6 @@ TYPED_TEST(BatchDense, CanBeListConstructed)
 }
 
 
-TYPED_TEST(BatchDense, CanBeListConstructedWithstride)
-{
-    using value_type = typename TestFixture::value_type;
-    auto m = gko::batch_initialize<gko::matrix::BatchDense<TypeParam>>(
-        std::vector<gko::size_type>{2}, {{1.0, 2.0}}, this->exec);
-    ASSERT_EQ(m->get_num_batch_entries(), 1);
-    ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 1));
-    ASSERT_EQ(m->get_num_stored_elements(), 4);
-    EXPECT_EQ(m->at(0, 0), value_type{1.0});
-    EXPECT_EQ(m->at(0, 1), value_type{2.0});
-}
-
-
 TYPED_TEST(BatchDense, CanBeListConstructedByCopies)
 {
     using value_type = typename TestFixture::value_type;
@@ -382,40 +405,6 @@ TYPED_TEST(BatchDense, CanBeDoubleListConstructedWithstride)
     EXPECT_EQ(m->at(1, 2), value_type{3.0});
     ASSERT_EQ(m->at(1, 3), value_type{4.0});
     EXPECT_EQ(m->at(1, 4), value_type{5.0});
-}
-
-
-TYPED_TEST(BatchDense, CanBeCopied)
-{
-    auto mtx_copy = gko::matrix::BatchDense<TypeParam>::create(this->exec);
-    mtx_copy->copy_from(this->mtx.get());
-    this->assert_equal_to_original_mtx(this->mtx.get());
-    this->mtx->at(0, 0, 0) = 7;
-    this->mtx->at(0, 1) = 7;
-    this->assert_equal_to_original_mtx(mtx_copy.get());
-}
-
-
-TYPED_TEST(BatchDense, CanBeMoved)
-{
-    auto mtx_copy = gko::matrix::BatchDense<TypeParam>::create(this->exec);
-    mtx_copy->copy_from(std::move(this->mtx));
-    this->assert_equal_to_original_mtx(mtx_copy.get());
-}
-
-
-TYPED_TEST(BatchDense, CanBeCloned)
-{
-    auto mtx_clone = this->mtx->clone();
-    this->assert_equal_to_original_mtx(
-        dynamic_cast<decltype(this->mtx.get())>(mtx_clone.get()));
-}
-
-
-TYPED_TEST(BatchDense, CanBeCleared)
-{
-    this->mtx->clear();
-    this->assert_empty(this->mtx.get());
 }
 
 
@@ -515,6 +504,3 @@ TYPED_TEST(BatchDense, CanBeReadFromMatrixAssemblyData)
     EXPECT_EQ(m->at(1, 0, 0), value_type{2.0});
     EXPECT_EQ(m->at(1, 1, 0), value_type{5.0});
 }
-
-
-}  // namespace
