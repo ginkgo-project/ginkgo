@@ -103,7 +103,7 @@ public:
     operator=(arithmetic_type val) &&
     {
         storage_type* const GKO_ACC_RESTRICT r_ptr = ptr_;
-        *r_ptr = val;
+        *r_ptr = detail::implicit_explicit_conversion<storage_type>(val);
         return val;
     }
 
@@ -115,7 +115,8 @@ public:
     }
 
     constexpr GKO_ACC_ATTRIBUTES arithmetic_type
-    operator=(reduced_storage&& ref) && noexcept
+        operator=(reduced_storage&& ref) &&
+        noexcept
     {
         std::move(*this) = ref.implicit_conversion();
         return *this;
