@@ -53,12 +53,14 @@ namespace gko {
 namespace batch {
 namespace matrix {
 namespace dense {
+namespace {
 
 
 GKO_REGISTER_OPERATION(simple_apply, batch_dense::simple_apply);
 GKO_REGISTER_OPERATION(advanced_apply, batch_dense::advanced_apply);
 
 
+}  // namespace
 }  // namespace dense
 
 
@@ -141,11 +143,32 @@ BatchDense<ValueType>::create_with_same_config() const
 }
 
 
+template <typename ValueType>
+std::unique_ptr<const BatchDense<ValueType>>
+BatchDense<ValueType>::create_const(
+    std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
+    gko::detail::const_array_view<ValueType>&& values)
+{
+    // cast const-ness away, but return a const object afterwards,
+    // so we can ensure that no modifications take place.
+    return std::unique_ptr<const BatchDense>(new BatchDense{
+        exec, sizes, gko::detail::array_const_cast(std::move(values))});
+}
+
+
 inline const batch_dim<2> get_col_sizes(const batch_dim<2>& sizes)
 {
     return batch_dim<2>(sizes.get_num_batch_items(),
                         dim<2>(1, sizes.get_common_size()[1]));
 }
+
+
+template <typename ValueType>
+BatchDense<ValueType>::BatchDense(std::shared_ptr<const Executor> exec,
+                                  const batch_dim<2>& size)
+    : EnableBatchLinOp<BatchDense<ValueType>>(exec, size),
+      values_(exec, compute_num_elems(size))
+{}
 
 
 template <typename ValueType>
@@ -157,7 +180,7 @@ void BatchDense<ValueType>::apply_impl(const MultiVector<ValueType>* b,
     GKO_ASSERT_CONFORMANT(this->get_common_size(), b->get_common_size());
     GKO_ASSERT_EQ(this->get_num_batch_items(), x->get_num_batch_items());
     GKO_ASSERT_CONFORMANT(this->get_common_size(), x->get_common_size());
-    this->get_executor()->run(batch_dense::make_simple_apply(this, b, x));
+    this->get_executor()->run(dense::make_simple_apply(this, b, x));
 }
 
 
@@ -175,7 +198,7 @@ void BatchDense<ValueType>::apply_impl(const MultiVector<ValueType>* alpha,
     GKO_ASSERT_EQUAL_COLS(alpha->get_common_size(), gko::dim<2>(1, 1));
     GKO_ASSERT_EQUAL_COLS(beta->get_common_size(), gko::dim<2>(1, 1));
     this->get_executor()->run(
-        batch_dense::make_advanced_apply(alpha, this, b, beta, x));
+        dense::make_advanced_apply(alpha, this, b, beta, x));
 }
 
 

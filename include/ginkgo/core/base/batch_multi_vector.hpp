@@ -52,6 +52,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace batch {
+namespace matrix {
+
+
+template <typename ValueType>
+class BatchDense;
+
+
+}
+
 
 /**
  * MultiVector stores multiple vectors in a batched fashion and is useful
@@ -81,21 +90,25 @@ class MultiVector
     : public EnablePolymorphicObject<MultiVector<ValueType>>,
       public EnablePolymorphicAssignment<MultiVector<ValueType>>,
       public EnableCreateMethod<MultiVector<ValueType>>,
-      public ConvertibleTo<MultiVector<next_precision<ValueType>>> {
+      public ConvertibleTo<MultiVector<next_precision<ValueType>>>,
+      public ConvertibleTo<matrix::BatchDense<ValueType>> {
     friend class EnableCreateMethod<MultiVector>;
     friend class EnablePolymorphicObject<MultiVector>;
     friend class MultiVector<to_complex<ValueType>>;
     friend class MultiVector<next_precision<ValueType>>;
+    friend class matrix::BatchDense<ValueType>;
 
 public:
     using EnablePolymorphicAssignment<MultiVector>::convert_to;
     using EnablePolymorphicAssignment<MultiVector>::move_to;
     using ConvertibleTo<MultiVector<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<MultiVector<next_precision<ValueType>>>::move_to;
+    using ConvertibleTo<matrix::BatchDense<ValueType>>::convert_to;
+    using ConvertibleTo<matrix::BatchDense<ValueType>>::move_to;
 
     using value_type = ValueType;
     using index_type = int32;
-    using unbatch_type = matrix::Dense<ValueType>;
+    using unbatch_type = gko::matrix::Dense<ValueType>;
     using absolute_type = remove_complex<MultiVector<ValueType>>;
     using complex_type = to_complex<MultiVector<ValueType>>;
 
@@ -112,6 +125,10 @@ public:
         MultiVector<next_precision<ValueType>>* result) const override;
 
     void move_to(MultiVector<next_precision<ValueType>>* result) override;
+
+    void convert_to(matrix::BatchDense<ValueType>* result) const override;
+
+    void move_to(matrix::BatchDense<ValueType>* result) override;
 
     /**
      * Creates a mutable view (of matrix::Dense type) of one item of the Batch
@@ -196,8 +213,8 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_values_for_item(
-        size_type batch_id) const noexcept
+    const value_type* get_const_values_for_item(size_type batch_id) const
+        noexcept
     {
         GKO_ASSERT(batch_id < this->get_num_batch_items());
         return values_.get_const_data() +

@@ -97,14 +97,7 @@ public:
      * @param other  The other matrix whose configuration needs to copied.
      */
     static std::unique_ptr<BatchDense> create_with_config_of(
-        const BatchDense* other)
-    {
-        // De-referencing `other` before calling the functions (instead of
-        // using operator `->`) is currently required to be compatible with
-        // CUDA 10.1.
-        // Otherwise, it results in a compile error.
-        return (*other).create_with_same_config();
-    }
+        ptr_param<const BatchDense> other);
 
     void convert_to(
         BatchDense<next_precision<ValueType>>* result) const override;
@@ -228,7 +221,7 @@ public:
      * array (if it resides on the same executor as the vector) or a copy of the
      * array on the correct executor.
      */
-    static std::unique_ptr<const MultiVector<value_type>> create_const(
+    static std::unique_ptr<const BatchDense<value_type>> create_const(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
         gko::detail::const_array_view<ValueType>&& values);
 
