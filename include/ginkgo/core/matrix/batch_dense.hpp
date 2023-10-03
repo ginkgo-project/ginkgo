@@ -124,30 +124,6 @@ public:
         size_type item_id) const;
 
     /**
-     * Returns the batch size.
-     *
-     * @return the batch size
-     */
-    batch_dim<2> get_size() const { return batch_size_; }
-
-    /**
-     * Returns the number of batch items.
-     *
-     * @return the number of batch items
-     */
-    size_type get_num_batch_items() const
-    {
-        return batch_size_.get_num_batch_items();
-    }
-
-    /**
-     * Returns the common size of the batch items.
-     *
-     * @return the common size stored
-     */
-    dim<2> get_common_size() const { return batch_size_.get_common_size(); }
-
-    /**
      * Returns a pointer to the array of values of the multi-vector
      *
      * @return the pointer to the array of values
@@ -164,6 +140,59 @@ public:
     const value_type* get_const_values() const noexcept
     {
         return values_.get_const_data();
+    }
+
+    /**
+     * Returns a single element for a particular batch item.
+     *
+     * @param batch_id  the batch item index to be queried
+     * @param row  the row of the requested element
+     * @param col  the column of the requested element
+     *
+     * @note  the method has to be called on the same Executor the vector is
+     *        stored at (e.g. trying to call this method on a GPU multi-vector
+     *        from the OMP results in a runtime error)
+     */
+    value_type& at(size_type batch_id, size_type row, size_type col)
+    {
+        GKO_ASSERT(batch_id < this->get_num_batch_items());
+        return values_.get_data()[linearize_index(batch_id, row, col)];
+    }
+
+    /**
+     * @copydoc MultiVector::at(size_type, size_type, size_type)
+     */
+    value_type at(size_type batch_id, size_type row, size_type col) const
+    {
+        GKO_ASSERT(batch_id < this->get_num_batch_items());
+        return values_.get_const_data()[linearize_index(batch_id, row, col)];
+    }
+
+    /**
+     * Returns a single element for a particular batch item.
+     *
+     * Useful for iterating across all elements of the vector.
+     * However, it is less efficient than the two-parameter variant of this
+     * method.
+     *
+     * @param batch_id  the batch item index to be queried
+     * @param idx  a linear index of the requested element
+     *
+     * @note  the method has to be called on the same Executor the vector is
+     *        stored at (e.g. trying to call this method on a GPU multi-vector
+     *        from the OMP results in a runtime error)
+     */
+    ValueType& at(size_type batch_id, size_type idx) noexcept
+    {
+        return values_.get_data()[linearize_index(batch_id, idx)];
+    }
+
+    /**
+     * @copydoc MultiVector::at(size_type, size_type, size_type)
+     */
+    ValueType at(size_type batch_id, size_type idx) const noexcept
+    {
+        return values_.get_const_data()[linearize_index(batch_id, idx)];
     }
 
     /**
@@ -225,12 +254,6 @@ public:
         std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
         gko::detail::const_array_view<ValueType>&& values);
 
-private:
-    inline size_type compute_num_elems(const batch_dim<2>& size)
-    {
-        return size.get_cumulative_offset(size.get_num_batch_items());
-    }
-
 
     void apply(const MultiVector<value_type>* b,
                MultiVector<value_type>* x) const
@@ -246,14 +269,13 @@ private:
         this->apply_impl(alpha, b, beta, x);
     }
 
-protected:
-    /**
-     * Sets the size of the MultiVector<value_type>.
-     *
-     * @param value  the new size of the operator
-     */
-    void set_size(const batch_dim<2>& value) noexcept;
+private:
+    inline size_type compute_num_elems(const batch_dim<2>& size)
+    {
+        return size.get_cumulative_offset(size.get_num_batch_items());
+    }
 
+protected:
     /**
      * Creates an uninitialized BatchDense matrix of the specified size.
      *
@@ -310,8 +332,8 @@ protected:
     size_type linearize_index(size_type batch, size_type row,
                               size_type col) const noexcept
     {
-        return batch_size_.get_cumulative_offset(batch) +
-               row * batch_size_.get_common_size()[1] + col;
+        return this->get_size().get_cumulative_offset(batch) +
+               row * this->get_size().get_common_size()[1] + col;
     }
 
     size_type linearize_index(size_type batch, size_type idx) const noexcept
@@ -321,7 +343,6 @@ protected:
     }
 
 private:
-    batch_dim<2> batch_size_;
     array<value_type> values_;
 };
 
