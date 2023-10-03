@@ -43,7 +43,7 @@ inline void simple_apply_kernel(
     }
 
     for (int row = 0; row < c.num_rows; ++row) {
-        for (int inner = 0; inner < a.num_rhs; ++inner) {
+        for (int inner = 0; inner < a.num_cols; ++inner) {
             for (int col = 0; col < c.num_rhs; ++col) {
                 c.values[row * c.stride + col] +=
                     a.values[row * a.stride + inner] *
@@ -77,7 +77,7 @@ inline void advanced_apply_kernel(
     }
 
     for (int row = 0; row < c.num_rows; ++row) {
-        for (int inner = 0; inner < a.num_rhs; ++inner) {
+        for (int inner = 0; inner < a.num_cols; ++inner) {
             for (int col = 0; col < c.num_rhs; ++col) {
                 c.values[row * c.stride + col] +=
                     alpha * a.values[row * a.stride + inner] *

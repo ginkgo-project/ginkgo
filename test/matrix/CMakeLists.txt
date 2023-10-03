@@ -1,3 +1,4 @@
+ginkgo_create_common_test(batch_dense_kernels DISABLE_EXECUTORS dpcpp hip cuda)
 ginkgo_create_common_device_test(csr_kernels)
 ginkgo_create_common_test(csr_kernels2)
 ginkgo_create_common_test(coo_kernels)
