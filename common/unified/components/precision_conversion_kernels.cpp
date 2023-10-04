@@ -52,11 +52,12 @@ void convert_precision(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto idx, auto in, auto out) {
-            using in_type = typename std::remove_cv<
-                typename std::remove_reference<decltype(*in)>::type>::type;
-            using out_type = typename std::remove_cv<
-                typename std::remove_reference<decltype(*out)>::type>::type;
-            out[idx] = static_cast<out_type>(in[idx]);
+            using target_type = device_type<TargetType>;
+            using arithmetic_type =
+                highest_precision<target_type, device_type<SourceType>>;
+            // use float as the bridge between bfloat16 and half on device
+            out[idx] =
+                static_cast<target_type>(static_cast<arithmetic_type>(in[idx]));
         },
         size, in, out);
 }

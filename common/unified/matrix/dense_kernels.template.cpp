@@ -63,7 +63,10 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
         exec,
         [] GKO_KERNEL(auto row, auto col, auto input, auto output) {
             using type = device_type<OutValueType>;
-            output(row, col) = static_cast<type>(input(row, col));
+            using arithmetic_type =
+                highest_precision<type, device_type<InValueType>>;
+            output(row, col) = static_cast<type>(
+                static_cast<arithmetic_type>(input(row, col)));
         },
         input->get_size(), input, output);
 }
@@ -405,8 +408,11 @@ void row_gather(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto orig, auto rows, auto gathered) {
-            gathered(row, col) =
-                static_cast<device_type<OutputType>>(orig(rows[row], col));
+            using output_type = device_type<OutputType>;
+            using arithmetic_type =
+                highest_precision<output_type, device_type<ValueType>>;
+            gathered(row, col) = static_cast<output_type>(
+                static_cast<arithmetic_type>(orig(rows[row], col)));
         },
         dim<2>{row_idxs->get_num_elems(), orig->get_size()[1]}, orig, *row_idxs,
         row_collection);
