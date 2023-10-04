@@ -37,11 +37,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/range_accessors.hpp>
 
 
+#include "core/base/batch_struct.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "dpcpp/base/batch_struct.hpp"
 #include "dpcpp/base/config.hpp"
@@ -193,9 +194,9 @@ void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
     // TODO: Remove reqd_sub_group size and use sycl::reduce_over_group
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                config::warp_size)]] {
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            config::warp_size)]] {
                 auto group = item_ct1.get_group();
                 auto group_id = group.get_group_linear_id();
                 const auto x_b = batch::extract_batch_item(x_ub, group_id);
@@ -231,19 +232,18 @@ void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec,
 
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(config::warp_size)]] {
-                    auto group = item_ct1.get_group();
-                    auto group_id = group.get_group_linear_id();
-                    const auto x_b = batch::extract_batch_item(x_ub, group_id);
-                    const auto y_b = batch::extract_batch_item(y_ub, group_id);
-                    const auto res_b =
-                        batch::extract_batch_item(res_ub, group_id);
-                    compute_gen_dot_product_kernel(
-                        x_b, y_b, res_b, item_ct1,
-                        [](auto val) { return conj(val); });
-                });
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            config::warp_size)]] {
+                auto group = item_ct1.get_group();
+                auto group_id = group.get_group_linear_id();
+                const auto x_b = batch::extract_batch_item(x_ub, group_id);
+                const auto y_b = batch::extract_batch_item(y_ub, group_id);
+                const auto res_b = batch::extract_batch_item(res_ub, group_id);
+                compute_gen_dot_product_kernel(
+                    x_b, y_b, res_b, item_ct1,
+                    [](auto val) { return conj(val); });
+            });
     });
 }
 
@@ -268,17 +268,16 @@ void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
     const dim3 grid(num_batches);
 
     exec->get_queue()->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1)
-                             [[sycl::reqd_sub_group_size(config::warp_size)]] {
-                                 auto group = item_ct1.get_group();
-                                 auto group_id = group.get_group_linear_id();
-                                 const auto x_b =
-                                     batch::extract_batch_item(x_ub, group_id);
-                                 const auto res_b = batch::extract_batch_item(
-                                     res_ub, group_id);
-                                 compute_norm2_kernel(x_b, res_b, item_ct1);
-                             });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            config::warp_size)]] {
+                auto group = item_ct1.get_group();
+                auto group_id = group.get_group_linear_id();
+                const auto x_b = batch::extract_batch_item(x_ub, group_id);
+                const auto res_b = batch::extract_batch_item(res_ub, group_id);
+                compute_norm2_kernel(x_b, res_b, item_ct1);
+            });
     });
 }
 
