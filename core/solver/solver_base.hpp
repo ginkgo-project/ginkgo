@@ -48,12 +48,12 @@ namespace solver {
  * @param x  the input vectors
  * @param guess  the input guess
  */
-template <typename VectorType>
-void prepare_initial_guess(const VectorType* b, VectorType* x,
+template <typename VectorType, typename Vector2Type>
+void prepare_initial_guess(const VectorType* b, Vector2Type* x,
                            initial_guess_mode guess)
 {
     if (guess == initial_guess_mode::zero) {
-        x->fill(zero<typename VectorType::value_type>());
+        x->fill(zero<typename Vector2Type::value_type>());
     } else if (guess == initial_guess_mode::rhs) {
         x->copy_from(b);
     }

@@ -54,7 +54,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr_builder.hpp"
 #include "core/multigrid/pgm_kernels.hpp"
 
-
+#define UseCsr 0
+#define RemoveZero 0
 namespace gko {
 namespace multigrid {
 namespace pgm {
@@ -99,11 +100,11 @@ void agg_to_restrict(std::shared_ptr<const Executor> exec, IndexType num_agg,
 }
 
 
-template <typename ValueType, typename IndexType>
+template <typename ValueType, typename IndexType, typename ScalarType>
 std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
     std::shared_ptr<const Executor> exec,
     const matrix::Csr<ValueType, IndexType>* fine_csr, IndexType num_agg,
-    const gko::array<IndexType>& agg)
+    const gko::array<IndexType>& agg, ScalarType scalar_val)
 {
     const auto num = fine_csr->get_size()[0];
     const auto nnz = fine_csr->get_num_stored_elements();
@@ -135,8 +136,13 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
         nnz, row_idxs.get_const_data(), col_idxs.get_const_data(),
         vals.get_const_data(), coarse_coo.get()));
     // use move_to
-    auto coarse_csr = matrix::Csr<ValueType, IndexType>::create(exec);
-    coarse_csr->move_from(coarse_coo);
+    auto coarse_csr = matrix::Csr<ValueType, IndexType>::create(
+        exec, std::make_shared<
+                  typename matrix::Csr<ValueType, IndexType>::classical>());
+    coarse_csr->copy_from(std::move(coarse_coo));
+    auto scalar = initialize<matrix::Dense<ValueType>>(
+        {static_cast<ValueType>(scalar_val)}, exec);
+    coarse_csr->scale(scalar.get());
     return std::move(coarse_csr);
 }
 
@@ -144,12 +150,17 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
 }  // namespace
 
 
-template <typename ValueType, typename IndexType>
-void Pgm<ValueType, IndexType>::generate()
+template <typename ValueType, typename IndexType, typename WorkingType,
+          typename MultigridType>
+void Pgm<ValueType, IndexType, WorkingType, MultigridType>::generate()
 {
-    using csr_type = matrix::Csr<ValueType, IndexType>;
-    using real_type = remove_complex<ValueType>;
+    std::cout << "Pgm " << typeid(ValueType).name() << ", "
+              << typeid(WorkingType).name() << ", "
+              << typeid(MultigridType).name() << " generation" << std::endl;
+    using csr_type = matrix::Csr<WorkingType, IndexType>;
+    using real_type = remove_complex<WorkingType>;
     using weight_csr_type = remove_complex<csr_type>;
+    using fine_csr_type = matrix::Csr<ValueType, IndexType>;
     auto exec = this->get_executor();
     const auto num_rows = this->system_matrix_->get_size()[0];
     array<IndexType> strongest_neighbor(this->get_executor(), num_rows);
@@ -167,6 +178,25 @@ void Pgm<ValueType, IndexType>::generate()
         // keep the same precision data in fine_op
         this->set_fine_op(pgm_op_shared_ptr);
     }
+    // fine_op keeps ValueType
+    if (!dynamic_cast<const fine_csr_type*>(pgm_op)) {
+        // pgm is already sorted
+        std::shared_ptr<const fine_csr_type> op =
+            convert_to_with_sorting<fine_csr_type>(exec, pgm_op, true);
+        this->set_fine_op(op);
+    }
+#if RemoveZero
+    {
+        auto tmp = this->get_fine_op();
+        gko::matrix_data<ValueType, IndexType> data;
+        as<fine_csr_type>(tmp)->write(data);
+        data.remove_zeros();
+        auto new_tmp = share(fine_csr_type::create(
+            exec, std::make_shared<typename fine_csr_type::classical>()));
+        new_tmp->read(data);
+        this->set_fine_op(new_tmp);
+    }
+#endif
     // Initial agg = -1
     exec->run(pgm::make_fill_array(agg_.get_data(), agg_.get_num_elems(),
                                    -one<IndexType>()));
@@ -220,23 +250,93 @@ void Pgm<ValueType, IndexType>::generate()
         exec, gko::dim<2>{fine_dim, coarse_dim}));
     exec->copy_from(exec, agg_.get_num_elems(), agg_.get_const_data(),
                     prolong_row_gather->get_row_idxs());
+    std::shared_ptr<gko::LinOp> prolong_mtx = prolong_row_gather;
+#if UseCsr
+    prolong_mtx = share(gko::matrix::Csr<ValueType, IndexType>::create(
+        exec, gko::dim<2>{fine_dim, coarse_dim}, fine_dim,
+        std::make_shared<
+            typename gko::matrix::Csr<ValueType, IndexType>::classical>()));
+    auto prolong_csr =
+        gko::as<gko::matrix::Csr<ValueType, IndexType>>(prolong_mtx);
+    exec->copy_from(exec, agg_.get_num_elems(), agg_.get_const_data(),
+                    prolong_csr->get_col_idxs());
+    exec->run(
+        pgm::make_fill_seq_array(prolong_csr->get_row_ptrs(), fine_dim + 1));
+    exec->run(pgm::make_fill_array(prolong_csr->get_values(), fine_dim,
+                                   one<ValueType>()));
+#endif
+    auto scalar_val = parameters_.scalar;
     auto restrict_sparsity =
         share(matrix::SparsityCsr<ValueType, IndexType>::create(
-            exec, gko::dim<2>{coarse_dim, fine_dim}, fine_dim));
+            exec, gko::dim<2>{coarse_dim, fine_dim}, fine_dim, scalar_val));
     agg_to_restrict(exec, num_agg, agg_, restrict_sparsity->get_row_ptrs(),
                     restrict_sparsity->get_col_idxs());
 
+    std::shared_ptr<gko::LinOp> restrict_mtx = restrict_sparsity;
+#if UseCsr
+    restrict_mtx = share(gko::matrix::Csr<ValueType, IndexType>::create(
+        exec,
+        std::make_shared<
+            typename gko::matrix::Csr<ValueType, IndexType>::classical>()));
+    restrict_mtx->copy_from(restrict_sparsity.get());
+#endif
     // Construct the coarse matrix
     // TODO: improve it
-    auto coarse_matrix = generate_coarse(exec, pgm_op, num_agg, agg_);
-
-    this->set_multigrid_level(prolong_row_gather, coarse_matrix,
-                              restrict_sparsity);
+    auto working_coarse_matrix =
+        generate_coarse(exec, pgm_op, num_agg, agg_, scalar_val);
+    auto coarse_matrix = share(gko::matrix::Csr<ValueType, IndexType>::create(
+        exec,
+        std::make_shared<
+            typename gko::matrix::Csr<ValueType, IndexType>::classical>()));
+    coarse_matrix->copy_from(working_coarse_matrix.get());
+#if RemoveZero
+    {
+        gko::matrix_data<ValueType, IndexType> data;
+        coarse_matrix->write(data);
+        data.remove_zeros();
+        coarse_matrix->read(data);
+    }
+#endif
+    this->set_multigrid_level(prolong_mtx, coarse_matrix, restrict_mtx);
+    //   after coarse setting
+    this->set_working_coarse_op(working_coarse_matrix);
+    std::cout << "finish" << std::endl;
 }
 
 
 #define GKO_DECLARE_PGM(_vtype, _itype) class Pgm<_vtype, _itype>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PGM);
+template class Pgm<float, int32, double, float>;
+template class Pgm<float, int64, double, float>;
+template class Pgm<float, int32, double, double>;
+template class Pgm<float, int64, double, double>;
+#if GINKGO_ENABLE_HALF
+template class Pgm<half, int32, double, half>;
+template class Pgm<half, int64, double, half>;
+template class Pgm<half, int32, float, half>;
+template class Pgm<half, int64, float, half>;
+template class Pgm<half, int32, double, float>;
+template class Pgm<half, int64, double, float>;
+template class Pgm<half, int32, float, float>;
+template class Pgm<half, int64, float, float>;
+template class Pgm<half, int32, double, double>;
+template class Pgm<half, int64, double, double>;
+template class Pgm<half, int32, float, double>;
+template class Pgm<half, int64, float, double>;
+
+template class Pgm<bfloat16, int32, double, bfloat16>;
+template class Pgm<bfloat16, int64, double, bfloat16>;
+template class Pgm<bfloat16, int32, float, bfloat16>;
+template class Pgm<bfloat16, int64, float, bfloat16>;
+template class Pgm<bfloat16, int32, double, float>;
+template class Pgm<bfloat16, int64, double, float>;
+template class Pgm<bfloat16, int32, float, float>;
+template class Pgm<bfloat16, int64, float, float>;
+template class Pgm<bfloat16, int32, double, double>;
+template class Pgm<bfloat16, int64, double, double>;
+template class Pgm<bfloat16, int32, float, double>;
+template class Pgm<bfloat16, int64, float, double>;
+#endif
 
 }  // namespace multigrid
 }  // namespace gko
