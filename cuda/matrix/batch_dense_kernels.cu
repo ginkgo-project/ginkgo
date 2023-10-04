@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
+#include "cuda/base/batch_struct.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/cublas_bindings.hpp"
 #include "cuda/base/pointer_mode_guard.hpp"
@@ -45,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/thread_ids.cuh"
 #include "cuda/components/uninitialized_array.hpp"
-// #include "cuda/matrix/batch_struct.hip.hpp"
+#include "cuda/matrix/batch_struct.hpp"
 
 
 namespace gko {
@@ -60,29 +61,18 @@ namespace batch_dense {
 
 
 constexpr auto default_block_size = 256;
-constexpr int sm_multiplier = 4;
+constexpr int sm_oversubscription = 4;
+
+// clang-format off
+
+// NOTE: DO NOT CHANGE THE ORDERING OF THE INCLUDES
+
+#include "common/cuda_hip/matrix/batch_dense_kernels.hpp.inc"
 
 
-template <typename ValueType>
-void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
-                  const batch::matrix::BatchDense<ValueType>* mat,
-                  const batch::MultiVector<ValueType>* b,
-                  batch::MultiVector<ValueType>* x) GKO_NOT_IMPLEMENTED;
+#include "common/cuda_hip/matrix/batch_dense_kernel_launcher.hpp.inc"
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BATCH_DENSE_SIMPLE_APPLY_KERNEL);
-
-
-template <typename ValueType>
-void advanced_apply(std::shared_ptr<const DefaultExecutor> exec,
-                    const batch::MultiVector<ValueType>* alpha,
-                    const batch::matrix::BatchDense<ValueType>* a,
-                    const batch::MultiVector<ValueType>* b,
-                    const batch::MultiVector<ValueType>* beta,
-                    batch::MultiVector<ValueType>* c) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BATCH_DENSE_ADVANCED_APPLY_KERNEL);
+// clang-format on
 
 
 }  // namespace batch_dense

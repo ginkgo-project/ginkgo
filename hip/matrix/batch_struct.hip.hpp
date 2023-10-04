@@ -30,55 +30,67 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/batch_dense_kernels.hpp"
+#ifndef GKO_HIP_MATRIX_BATCH_STRUCT_HPP_
+#define GKO_HIP_MATRIX_BATCH_STRUCT_HPP_
 
 
-#include <hip/hip_runtime.h>
-
-
+#include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/range_accessors.hpp>
+#include <ginkgo/core/matrix/batch_dense.hpp>
 
 
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
-#include "hip/base/batch_struct.hpp"
-#include "hip/base/config.hip.hpp"
-#include "hip/base/hipblas_bindings.hip.hpp"
-#include "hip/base/pointer_mode_guard.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/components/reduction.hip.hpp"
-#include "hip/components/thread_ids.hip.hpp"
-#include "hip/components/uninitialized_array.hip.hpp"
-#include "hip/matrix/batch_struct.hip.hpp"
+#include "hip/base/config.hpp"
+#include "hip/base/types.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace hip {
-/**
- * @brief The BatchDense matrix format namespace.
+
+
+/** @file batch_struct.hpp
  *
- * @ingroup batch_dense
+ * Helper functions to generate a batch struct from a batch LinOp,
+ * while also shallow-casting to the required HIP scalar type.
+ *
+ * A specialization is needed for every format of every kind of linear algebra
+ * object. These are intended to be called on the host.
  */
-namespace batch_dense {
 
 
-constexpr auto default_block_size = 256;
-constexpr int sm_oversubscription = 4;
+/**
+ * Generates an immutable uniform batch struct from a batch of multi-vectors.
+ */
+template <typename ValueType>
+inline batch::matrix::batch_dense::uniform_batch<const hip_type<ValueType>>
+get_batch_struct(const batch::matrix::BatchDense<ValueType>* const op)
+{
+    return {as_hip_type(op->get_const_values()), op->get_num_batch_items(),
+            static_cast<int>(op->get_common_size()[1]),
+            static_cast<int>(op->get_common_size()[0]),
+            static_cast<int>(op->get_common_size()[1])};
+}
 
-// clang-format off
 
-// NOTE: DO NOT CHANGE THE ORDERING OF THE INCLUDES
+/**
+ * Generates a uniform batch struct from a batch of multi-vectors.
+ */
+template <typename ValueType>
+inline batch::matrix::batch_dense::uniform_batch<hip_type<ValueType>>
+get_batch_struct(batch::matrix::BatchDense<ValueType>* const op)
+{
+    return {as_hip_type(op->get_values()), op->get_num_batch_items(),
+            static_cast<int>(op->get_common_size()[1]),
+            static_cast<int>(op->get_common_size()[0]),
+            static_cast<int>(op->get_common_size()[1])};
+}
 
-#include "common/cuda_hip/matrix/batch_dense_kernels.hpp.inc"
 
-
-#include "common/cuda_hip/matrix/batch_dense_kernel_launcher.hpp.inc"
-
-// clang-format on
-
-}  // namespace batch_dense
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko
+
+
+#endif  // GKO_HIP_MATRIX_BATCH_STRUCT_HPP_
