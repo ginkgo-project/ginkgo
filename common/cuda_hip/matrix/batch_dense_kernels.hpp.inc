@@ -52,10 +52,8 @@ __device__ __forceinline__ void simple_apply(
             temp += val * b[j];
         }
 
-#pragma unroll
-        for (int i = static_cast<int>(tile_size) / 2; i > 0; i /= 2) {
-            temp += subwarp_grp.shfl_down(temp, i);
-        }
+        // subgroup level reduction
+        temp = reduce(subgroup, temp, thrust::plus<ValueType>{});
 
         if (subwarp_grp.thread_rank() == 0) {
             x[row] = temp;
@@ -116,10 +114,8 @@ __device__ __forceinline__ void advanced_apply(
             temp += alpha * val * b[j];
         }
 
-#pragma unroll
-        for (int i = static_cast<int>(tile_size) / 2; i > 0; i /= 2) {
-            temp += subwarp_grp.shfl_down(temp, i);
-        }
+        // subgroup level reduction
+        temp = reduce(subgroup, temp, thrust::plus<ValueType>{});
 
         if (subwarp_grp.thread_rank() == 0) {
             x[row] = temp + beta * x[row];
