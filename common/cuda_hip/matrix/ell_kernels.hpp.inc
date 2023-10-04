@@ -43,13 +43,14 @@ __device__ void spmv_kernel(
     acc::range<b_accessor> b, OutputValueType* __restrict__ c,
     const size_type c_stride, Closure op)
 {
+    using arithmetic_type = typename a_accessor::arithmetic_type;
     const auto tidx = thread::get_thread_id_flat();
     const decltype(tidx) column_id = blockIdx.y;
     if (num_thread_per_worker == 1) {
         // Specialize the num_thread_per_worker = 1. It doesn't need the shared
         // memory, __syncthreads, and atomic_add
         if (tidx < num_rows) {
-            auto temp = zero<OutputValueType>();
+            auto temp = zero<arithmetic_type>();
             for (size_type idx = 0; idx < num_stored_elements_per_row; idx++) {
                 const auto ind = tidx + idx * stride;
                 const auto col_idx = col[ind];
@@ -69,13 +70,13 @@ __device__ void spmv_kernel(
             const auto worker_id = tidx / num_rows;
             const auto step_size = num_worker_per_row * num_thread_per_worker;
             __shared__ uninitialized_array<
-                OutputValueType, default_block_size / num_thread_per_worker>
+                arithmetic_type, default_block_size / num_thread_per_worker>
                 storage;
             if (idx_in_worker == 0) {
                 storage[threadIdx.x] = 0;
             }
             __syncthreads();
-            auto temp = zero<OutputValueType>();
+            auto temp = zero<arithmetic_type>();
             for (size_type idx =
                      worker_id * num_thread_per_worker + idx_in_worker;
                  idx < num_stored_elements_per_row; idx += step_size) {
@@ -114,7 +115,9 @@ __global__ __launch_bounds__(default_block_size) void spmv(
     spmv_kernel<num_thread_per_worker, atomic>(
         num_rows, num_worker_per_row, val, col, stride,
         num_stored_elements_per_row, b, c, c_stride,
-        [](const OutputValueType& x, const OutputValueType& y) { return x; });
+        [](const auto& x, const OutputValueType& y) {
+            return static_cast<OutputValueType>(x);
+        });
 }
 
 
@@ -128,7 +131,8 @@ __global__ __launch_bounds__(default_block_size) void spmv(
     const OutputValueType* __restrict__ beta, OutputValueType* __restrict__ c,
     const size_type c_stride)
 {
-    const OutputValueType alpha_val = alpha(0);
+    using arithmetic_type = typename a_accessor::arithmetic_type;
+    const auto alpha_val = alpha(0);
     const OutputValueType beta_val = beta[0];
     if (atomic) {
         // Because the atomic operation changes the values of c during
@@ -139,16 +143,16 @@ __global__ __launch_bounds__(default_block_size) void spmv(
         spmv_kernel<num_thread_per_worker, atomic>(
             num_rows, num_worker_per_row, val, col, stride,
             num_stored_elements_per_row, b, c, c_stride,
-            [&alpha_val](const OutputValueType& x, const OutputValueType& y) {
-                return alpha_val * x;
+            [&alpha_val](const auto& x, const OutputValueType& y) {
+                return static_cast<OutputValueType>(alpha_val * x);
             });
     } else {
         spmv_kernel<num_thread_per_worker, atomic>(
             num_rows, num_worker_per_row, val, col, stride,
             num_stored_elements_per_row, b, c, c_stride,
-            [&alpha_val, &beta_val](const OutputValueType& x,
-                                    const OutputValueType& y) {
-                return alpha_val * x + beta_val * y;
+            [&alpha_val, &beta_val](const auto& x, const OutputValueType& y) {
+                return static_cast<OutputValueType>(
+                    alpha_val * x + static_cast<arithmetic_type>(beta_val * y));
             });
     }
 }
