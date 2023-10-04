@@ -78,12 +78,11 @@ generate_l1sj_cheb(std::shared_ptr<const gko::Executor> exec,
     using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
     return gko::share(
         cheb::build()
-            .with_solver(bj::build()
-                             .with_l1(true)
-                             .with_max_block_size(1u)
-                             .with_skip_sorting(true)
-                             .on(exec))
-            .with_num_keep(2)
+            .with_preconditioner(bj::build()
+                                     .with_l1(true)
+                                     .with_max_block_size(1u)
+                                     .with_skip_sorting(true)
+                                     .on(exec))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(iteration).on(
                     exec))
@@ -109,6 +108,7 @@ int main(int argc, char* argv[])
     using ValueType = double;
     using MixedType = float;
     using MixedType2 = gko::half;
+    using MixedType3 = gko::bfloat16;
     using IndexType = int;
     using vec = gko::matrix::Dense<ValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
@@ -186,6 +186,13 @@ int main(int argc, char* argv[])
                   << ", the rest of levels are half" << std::endl;
     } else if (mixed_mode == 6) {
         std::cout << "          all level is half" << std::endl;
+    } else if (mixed_mode == 7) {
+        std::cout << "          first level is double" << std::endl
+                  << ",        second level is float" << std::endl
+                  << ", the rest of levels are bfloat16" << std::endl;
+    } else if (mixed_mode == 8) {
+        std::cout << "          first level is double" << std::endl
+                  << ", the rest of levels are bfloat16" << std::endl;
     } else if (mixed_mode >= 400 && mixed_mode <= 499) {
         if (switch_to_single > switch_to_half || switch_to_single < 1) {
             std::cout << "switch to single should be eariler than switch to half" << std::endl;
@@ -205,7 +212,7 @@ int main(int argc, char* argv[])
                   << "rest use float" << std::endl;
     } else if (mixed_mode < 0) {
         std::cout << "complex" << std::endl;
-    }else {
+    } else {
         std::exit(1);
     }
     std::cout << "The maxium number of levels: " << num_max_levels << std::endl;
@@ -362,37 +369,43 @@ int main(int argc, char* argv[])
 
     // Create smoother factory (ir with bj)
     std::shared_ptr<gko::LinOpFactory> smoother_gen_d, smoother_gen_f,
-        smoother_gen_h;
+        smoother_gen_h, smoother_gen_b;
     std::shared_ptr<gko::LinOpFactory> coarsest_solver_gen_d,
-        coarsest_solver_gen_f, coarsest_solver_gen_h;
+        coarsest_solver_gen_f, coarsest_solver_gen_h, coarsest_solver_gen_b;
     if (sm_mode == "jacobi") {
         smoother_gen_d = generate_sj_ir<double>(exec, 1u, 1u);
         smoother_gen_f = generate_sj_ir<float>(exec, 1u, 1u);
         smoother_gen_h = generate_sj_ir<gko::half>(exec, 1u, 1u);
+        smoother_gen_b = generate_sj_ir<gko::bfloat16>(exec, 1u, 1u);
         coarsest_solver_gen_d = generate_sj_ir<double>(exec, 4u, 1u);
         coarsest_solver_gen_f = generate_sj_ir<float>(exec, 4u, 1u);
         coarsest_solver_gen_h = generate_sj_ir<gko::half>(exec, 4u, 1u);
+        coarsest_solver_gen_b = generate_sj_ir<gko::bfloat16>(exec, 4u, 1u);
     } else if (sm_mode == "bj") {
         // 32 block_size
         smoother_gen_d = generate_sj_ir<double>(exec, 1u, 32u);
         smoother_gen_f = generate_sj_ir<float>(exec, 1u, 32u);
         smoother_gen_h = generate_sj_ir<gko::half>(exec, 1u, 32u);
+        smoother_gen_b = generate_sj_ir<gko::bfloat16>(exec, 1u, 32u);
         coarsest_solver_gen_d = generate_sj_ir<double>(exec, 4u, 32u);
         coarsest_solver_gen_f = generate_sj_ir<float>(exec, 4u, 32u);
         coarsest_solver_gen_h = generate_sj_ir<gko::half>(exec, 4u, 32u);
+        coarsest_solver_gen_b = generate_sj_ir<gko::bfloat16>(exec, 4u, 32u);
     } else if (sm_mode == "l1cheyb") {
         smoother_gen_d = generate_l1sj_cheb<double>(exec, 2u);
         smoother_gen_f = generate_l1sj_cheb<float>(exec, 2u);
         smoother_gen_h = generate_l1sj_cheb<gko::half>(exec, 2u);
+        smoother_gen_b = generate_l1sj_cheb<gko::bfloat16>(exec, 2u);
         coarsest_solver_gen_d = generate_l1sj_cheb<double>(exec, 2u);
         coarsest_solver_gen_f = generate_l1sj_cheb<float>(exec, 2u);
         coarsest_solver_gen_h = generate_l1sj_cheb<gko::half>(exec, 2u);
+        coarsest_solver_gen_b = generate_l1sj_cheb<gko::bfloat16>(exec, 2u);
     } else {
         std::cout << "not supported sm_mode " << sm_mode << std::endl;
         std::exit(1);
     }
 
-
+    std::cout << "generated smoother" << std::endl;
     // Create RestrictProlong factory<coarse, fine, working> (always use double
     // as fine matrix in generation)
     auto mg_level_gen_dd = generate_pgm<double, double, double>(exec, scalar);
@@ -403,7 +416,14 @@ int main(int argc, char* argv[])
     auto mg_level_gen_hf = generate_pgm<gko::half, double, float>(exec, scalar);
     auto mg_level_gen_hh =
         generate_pgm<gko::half, double, gko::half>(exec, scalar);
+    auto mg_level_gen_bd =
+        generate_pgm<gko::bfloat16, double, double>(exec, scalar);
+    auto mg_level_gen_bf =
+        generate_pgm<gko::bfloat16, double, float>(exec, scalar);
+    auto mg_level_gen_bb =
+        generate_pgm<gko::bfloat16, double, gko::bfloat16>(exec, scalar);
     // Create multigrid factory
+    std::cout << "generated pgm" << std::endl;
     std::shared_ptr<gko::solver::Multigrid::Factory> multigrid_gen;
     if (mixed_mode == 0) {
         multigrid_gen = mg::build()
@@ -532,6 +552,40 @@ int main(int argc, char* argv[])
                             .with_cycle(cycle)
                             .with_default_initial_guess(initial_mode)
                             .on(exec);
+    } else if (mixed_mode == 7) {
+        multigrid_gen =
+            mg::build()
+                .with_max_levels(num_max_levels)
+                .with_min_coarse_rows(64u)
+                .with_pre_smoother(smoother_gen_d, smoother_gen_f,
+                                   smoother_gen_b)
+                .with_mg_level(mg_level_gen_dd, mg_level_gen_ff,
+                               mg_level_gen_bb)
+                .with_level_selector([](const gko::size_type level,
+                                        const gko::LinOp*) -> gko::size_type {
+                    return level >= 2 ? 2 : level;
+                })
+                .with_coarsest_solver(coarsest_solver_gen_b)
+                .with_criteria(criterion)
+                .with_cycle(cycle)
+                .with_default_initial_guess(initial_mode)
+                .on(exec);
+    } else if (mixed_mode == 8) {
+        multigrid_gen =
+            mg::build()
+                .with_max_levels(num_max_levels)
+                .with_min_coarse_rows(64u)
+                .with_pre_smoother(smoother_gen_d, smoother_gen_b)
+                .with_mg_level(mg_level_gen_dd, mg_level_gen_bb)
+                .with_level_selector([](const gko::size_type level,
+                                        const gko::LinOp*) -> gko::size_type {
+                    return level >= 1 ? 1 : level;
+                })
+                .with_coarsest_solver(coarsest_solver_gen_b)
+                .with_criteria(criterion)
+                .with_cycle(cycle)
+                .with_default_initial_guess(initial_mode)
+                .on(exec);
     } else if (mixed_mode >= 400 && mixed_mode <= 499) {
         multigrid_gen =
             mg::build()
@@ -691,6 +745,86 @@ int main(int argc, char* argv[])
                 .with_cycle(cycle)
                 .with_default_initial_guess(initial_mode)
                 .on(exec);
+    } else if (mixed_mode == -32) {
+        // V: d-s
+        // M: b
+        multigrid_gen =
+            mg::build()
+                .with_max_levels(num_max_levels)
+                .with_min_coarse_rows(64u)
+                // input and output are double
+                // first smoother needs to be double to avoid casting copy
+                .with_pre_smoother(smoother_gen_d, smoother_gen_f)
+                .with_post_uses_pre(true)
+                .with_mg_level(mg_level_gen_bf, mg_level_gen_bf)
+                .with_level_selector([](const gko::size_type level,
+                                        const gko::LinOp*) -> gko::size_type {
+                    return level >= 1 ? 1 : level;
+                })
+                .with_coarsest_solver(coarsest_solver_gen_f)
+                .with_criteria(criterion)
+                .with_cycle(cycle)
+                .with_default_initial_guess(initial_mode)
+                .on(exec);
+    } else if (mixed_mode == -33) {
+        // V: d-s
+        // M: d-s-b
+        multigrid_gen =
+            mg::build()
+                .with_max_levels(num_max_levels)
+                .with_min_coarse_rows(64u)
+                // smoother using float
+                .with_pre_smoother(smoother_gen_d, smoother_gen_f,
+                                   smoother_gen_f)
+                .with_mg_level(mg_level_gen_dd, mg_level_gen_ff,
+                               mg_level_gen_bf)
+                .with_level_selector([](const gko::size_type level,
+                                        const gko::LinOp*) -> gko::size_type {
+                    return level >= 2 ? 2 : level;
+                })
+                .with_coarsest_solver(coarsest_solver_gen_f)
+                .with_criteria(criterion)
+                .with_cycle(cycle)
+                .with_default_initial_guess(initial_mode)
+                .on(exec);
+    } else if (mixed_mode == -42) {
+        // V: d
+        // M: b
+        multigrid_gen = mg::build()
+                            .with_max_levels(num_max_levels)
+                            .with_min_coarse_rows(64u)
+                            // smoother using float
+                            .with_pre_smoother(smoother_gen_d)
+                            .with_mg_level(mg_level_gen_bd)
+                            .with_coarsest_solver(coarsest_solver_gen_d)
+                            .with_criteria(criterion)
+                            .with_cycle(cycle)
+                            .with_default_initial_guess(initial_mode)
+                            .on(exec);
+    } else if (mixed_mode == -43) {
+        // V: d
+        // M: d-s-b
+        multigrid_gen =
+            mg::build()
+                .with_max_levels(num_max_levels)
+                .with_min_coarse_rows(64u)
+                // smoother using float
+                .with_pre_smoother(smoother_gen_d, smoother_gen_d,
+                                   smoother_gen_d)
+                .with_mg_level(mg_level_gen_dd, mg_level_gen_fd,
+                               mg_level_gen_bd)
+                .with_level_selector([](const gko::size_type level,
+                                        const gko::LinOp*) -> gko::size_type {
+                    return level >= 2 ? 2 : level;
+                })
+                .with_coarsest_solver(coarsest_solver_gen_d)
+                .with_criteria(criterion)
+                .with_cycle(cycle)
+                .with_default_initial_guess(initial_mode)
+                .on(exec);
+    } else {
+        std::cout << "wrong mixed mode" << std::endl;
+        std::exit(1);
     }
     std::chrono::nanoseconds gen_time(0);
     auto gen_tic = std::chrono::steady_clock::now();
