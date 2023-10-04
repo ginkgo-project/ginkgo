@@ -470,6 +470,16 @@ int main()
         check_solver<Solver>(exec, A_raw, b, x);
     }
 
+    // core/solver/chebyshev.hpp
+    {
+        using Solver = gko::solver::Chebyshev<>;
+        auto test =
+            Solver::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+                .on(exec);
+    }
+
     // core/solver/fcg.hpp
     {
         using Solver = gko::solver::Fcg<>;

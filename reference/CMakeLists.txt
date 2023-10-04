@@ -9,9 +9,9 @@ target_sources(ginkgo_reference
     components/absolute_array_kernels.cpp
     components/fill_array_kernels.cpp
     components/format_conversion_kernels.cpp
-    components/reduce_array_kernels.cpp
     components/precision_conversion_kernels.cpp
     components/prefix_sum_kernels.cpp
+    components/reduce_array_kernels.cpp
     distributed/matrix_kernels.cpp
     distributed/partition_helpers_kernels.cpp
     distributed/partition_kernels.cpp
@@ -41,13 +41,13 @@ target_sources(ginkgo_reference
     reorder/rcm_kernels.cpp
     solver/bicg_kernels.cpp
     solver/bicgstab_kernels.cpp
+    solver/cb_gmres_kernels.cpp
     solver/cg_kernels.cpp
     solver/cgs_kernels.cpp
+    solver/common_gmres_kernels.cpp
     solver/fcg_kernels.cpp
     solver/gcr_kernels.cpp
     solver/gmres_kernels.cpp
-    solver/cb_gmres_kernels.cpp
-    solver/common_gmres_kernels.cpp
     solver/idr_kernels.cpp
     solver/ir_kernels.cpp
     solver/lower_trs_kernels.cpp

@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/cb_gmres.hpp>
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/cgs.hpp>
+#include <ginkgo/core/solver/chebyshev.hpp>
 #include <ginkgo/core/solver/fcg.hpp>
 #include <ginkgo/core/solver/gcr.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
@@ -208,6 +209,21 @@ struct Ir : SimpleSolverTest<gko::solver::Ir<solver_value_type>> {
         gko::ptr_param<const solver_type> solver)
     {
         return solver->get_solver().get();
+    }
+};
+
+
+struct Chebyshev : SimpleSolverTest<gko::solver::Chebyshev<solver_value_type>> {
+    static double tolerance() { return 1e7 * r<value_type>::value; }
+
+    static typename solver_type::parameters_type build_preconditioned(
+        std::shared_ptr<const gko::Executor> exec,
+        gko::size_type iteration_count, bool check_residual = true)
+    {
+        return SimpleSolverTest<gko::solver::Chebyshev<solver_value_type>>::
+            build(exec, iteration_count, check_residual)
+                .with_preconditioner(
+                    precond_type::build().with_max_block_size(1u).on(exec));
     }
 };
 
@@ -921,9 +937,9 @@ using SolverTypes =
     ::testing::Types<Cg, Cgs, Fcg, Bicg, Bicgstab,
                      /* "IDR uses different initialization approaches even when
                         deterministic", Idr<1>, Idr<4>,*/
-                     Ir, CbGmres<2>, CbGmres<10>, Gmres<2>, Gmres<10>,
-                     FGmres<2>, FGmres<10>, Gcr<2>, Gcr<10>, LowerTrs, UpperTrs,
-                     LowerTrsUnitdiag, UpperTrsUnitdiag
+                     Ir, Chebyshev, CbGmres<2>, CbGmres<10>, Gmres<2>,
+                     Gmres<10>, FGmres<2>, FGmres<10>, Gcr<2>, Gcr<10>,
+                     LowerTrs, UpperTrs, LowerTrsUnitdiag, UpperTrsUnitdiag
 #ifdef GKO_COMPILING_CUDA
                      ,
                      LowerTrsSyncfree, UpperTrsSyncfree,
