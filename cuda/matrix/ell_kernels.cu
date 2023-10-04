@@ -122,10 +122,12 @@ void abstract_spmv(syn::value_list<int, info>,
                    const matrix::Dense<MatrixValueType>* alpha = nullptr,
                    const matrix::Dense<OutputValueType>* beta = nullptr)
 {
+    using arithmetic_type =
+        highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     using a_accessor =
-        gko::acc::reduced_row_major<1, OutputValueType, const MatrixValueType>;
+        gko::acc::reduced_row_major<1, arithmetic_type, const MatrixValueType>;
     using b_accessor =
-        gko::acc::reduced_row_major<2, OutputValueType, const InputValueType>;
+        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
 
     const auto nrows = a->get_size()[0];
     const auto stride = a->get_stride();
