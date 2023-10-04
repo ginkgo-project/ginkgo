@@ -153,7 +153,7 @@ TYPED_TEST(BatchDense, CanBeMoved)
     auto mtx_copy =
         gko::batch::matrix::BatchDense<TypeParam>::create(this->exec);
 
-    mtx_copy->copy_from(std::move(this->mtx));
+    this->mtx->move_to(mtx_copy);
 
     this->assert_equal_to_original_mtx(mtx_copy.get());
 }
