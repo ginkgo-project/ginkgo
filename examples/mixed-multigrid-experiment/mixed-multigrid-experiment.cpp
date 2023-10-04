@@ -937,6 +937,7 @@ int main(int argc, char* argv[])
     // run_solver->add_logger(prof);
     // Solve system
     std::chrono::nanoseconds time(0);
+    std::vector<std::chrono::nanoseconds> time_vec;
     for (int i = 0; i < rep; i++) {
         x_run->copy_from(x);
         exec->synchronize();
@@ -944,7 +945,10 @@ int main(int argc, char* argv[])
         run_solver->apply(b, x_run);
         exec->synchronize();
         auto toc = std::chrono::steady_clock::now();
-        time += std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
+        auto duration =
+            std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
+        time_vec.emplace_back(duration);
+        time += duration;
     }
 // run_solver->remove_logger(prof.get());
 #if ENABLE_PROFILE
@@ -979,4 +983,23 @@ int main(int argc, char* argv[])
               << static_cast<double>(time.count()) / 1000000.0 /
                      logger->get_num_iterations() / rep
               << std::endl;
+    std::sort(time_vec.begin(), time_vec.end());
+    double median = 0.0;
+    auto mid = time_vec.size() / 2;
+    if (time_vec.size() % 2 == 0) {
+        // contains even elements
+        median = static_cast<double>(time_vec.at(mid).count() +
+                                     time_vec.at(mid - 1).count()) /
+                 2;
+    } else {
+        median = static_cast<double>(time_vec.at(mid).count());
+    }
+    std::cout << prefix << " execution median time [ms]: " << median / 1000000.0
+              << std::endl;
+    std::cout << "timing sorted raw data [ms]:";
+    for (int i = 0; i < rep; i++) {
+        std::cout << " "
+                  << static_cast<double>(time_vec.at(i).count()) / 1000000.0;
+    }
+    std::cout << std::endl;
 }
