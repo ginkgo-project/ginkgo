@@ -78,6 +78,7 @@ constexpr int sm_oversubscription = 4;
 
 // clang-format on
 
+
 }  // namespace batch_multi_vector
 }  // namespace cuda
 }  // namespace kernels
