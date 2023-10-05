@@ -33,7 +33,43 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 template <typename ValueType>
 __dpct_inline__ void simple_apply_kernel(
     const gko::batch::matrix::batch_dense::batch_item<const ValueType>& mat,
-    const ValueType* const __restrict__ b, ValueType* const __restrict__ x,
+    const gko::batch::multi_vector::batch_item<const ValueType>& b,
+    const gko::batch::multi_vector::batch_item<ValueType>& x,
+    sycl::nd_item<3>& item_ct1)
+{
+    constexpr auto tile_size = config::warp_size;
+    auto subg =
+        group::tiled_partition<tile_size>(group::this_thread_block(item_ct1));
+    const auto subgroup = static_cast<sycl::sub_group>(subg);
+    const int subgroup_id = subgroup.get_group_id();
+    const int subgroup_size = subgroup.get_local_range().size();
+    const int num_subgroups = subgroup.get_group_range().size();
+
+    for (int row = subgroup_id; row < mat.num_rows; row += num_subgroups) {
+        ValueType temp = zero<ValueType>();
+        for (int j = subgroup.get_local_id(); j < mat.num_cols;
+             j += subgroup_size) {
+            const ValueType val = mat.values[row * mat.stride + j];
+            temp += val * b.values[j];
+        }
+
+        temp = ::gko::kernels::dpcpp::reduce(
+            subg, temp, [](ValueType a, ValueType b) { return a + b; });
+
+        if (subgroup.get_local_id() == 0) {
+            x.values[row] = temp;
+        }
+    }
+}
+
+
+template <typename ValueType>
+__dpct_inline__ void advanced_apply_kernel(
+    const gko::batch::multi_vector::batch_item<const ValueType>& alpha,
+    const gko::batch::matrix::batch_dense::batch_item<const ValueType>& mat,
+    const gko::batch::multi_vector::batch_item<const ValueType>& b,
+    const gko::batch::multi_vector::batch_item<const ValueType>& beta,
+    const gko::batch::multi_vector::batch_item<ValueType>& x,
     sycl::nd_item<3>& item_ct1)
 {
     constexpr auto tile_size = config::warp_size;
@@ -49,43 +85,14 @@ __dpct_inline__ void simple_apply_kernel(
         for (int j = subgroup.get_local_id(); j < mat.num_cols;
              j += subgroup_size) {
             const ValueType val = mat.values[row * mat.stride + j];
-            temp += val * b[j];
+            temp += alpha.values[0] * val * b.values[j];
         }
+
         temp = ::gko::kernels::dpcpp::reduce(
-            subg, temp, [](ValueType v1, ValueType v2) { return v1 + v2; });
+            subg, temp, [](ValueType a, ValueType b) { return a + b; });
+
         if (subgroup.get_local_id() == 0) {
-            x[row] = temp;
-        }
-    }
-}
-
-
-template <typename ValueType>
-__dpct_inline__ void advanced_apply_kernel(
-    const ValueType alpha,
-    const gko::batch::matrix::batch_dense::batch_item<const ValueType>& mat,
-    const ValueType* const __restrict__ b, const ValueType beta,
-    ValueType* const __restrict__ x, sycl::nd_item<3>& item_ct1)
-{
-    constexpr auto tile_size = config::warp_size;
-    auto subg =
-        group::tiled_partition<tile_size>(group::this_thread_block(item_ct1));
-    const auto subgroup = static_cast<sycl::sub_group>(subg);
-    const int subgroup_id = subgroup.get_group_id();
-    const int subgroup_size = subgroup.get_local_range().size();
-    const int num_subgroup = subgroup.get_group_range().size();
-
-    for (int row = subgroup_id; row < mat.num_rows; row += num_subgroup) {
-        ValueType temp = zero<ValueType>();
-        for (int j = subgroup.get_local_id(); j < mat.num_cols;
-             j += subgroup_size) {
-            const ValueType val = mat.values[row * mat.stride + j];
-            temp += alpha * val * b[j];
-        }
-        temp = ::gko::kernels::dpcpp::reduce(
-            subg, temp, [](ValueType v1, ValueType v2) { return v1 + v2; });
-        if (subgroup.get_local_id() == 0) {
-            x[row] = temp + beta * x[row];
+            x.values[row] = temp + beta.values[0] * x.values[row];
         }
     }
 }
