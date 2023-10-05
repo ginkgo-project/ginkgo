@@ -61,7 +61,7 @@ namespace hip {
 
 
 /**
- * Generates an immutable uniform batch struct from a batch of multi-vectors.
+ * Generates an immutable uniform batch struct from a batch of dense matrices.
  */
 template <typename ValueType>
 inline batch::matrix::batch_dense::uniform_batch<const hip_type<ValueType>>
@@ -75,7 +75,7 @@ get_batch_struct(const batch::matrix::Dense<ValueType>* const op)
 
 
 /**
- * Generates a uniform batch struct from a batch of multi-vectors.
+ * Generates a uniform batch struct from a batch of dense matrices.
  */
 template <typename ValueType>
 inline batch::matrix::batch_dense::uniform_batch<hip_type<ValueType>>

@@ -83,6 +83,38 @@ batch_dim<2> compute_batch_size(
 
 
 template <typename ValueType>
+std::unique_ptr<gko::batch::MultiVector<ValueType>>
+Dense<ValueType>::create_multi_vector_view()
+{
+    auto exec = this->get_executor();
+    auto num_batch_items = this->get_num_batch_items();
+    auto num_rows = this->get_common_size()[0];
+    auto stride = this->get_common_size()[1];
+    auto mvec = MultiVector<ValueType>::create(
+        exec, this->get_size(),
+        make_array_view(exec, num_batch_items * num_rows * stride,
+                        this->get_values()));
+    return mvec;
+}
+
+
+template <typename ValueType>
+std::unique_ptr<const gko::batch::MultiVector<ValueType>>
+Dense<ValueType>::create_const_multi_vector_view() const
+{
+    auto exec = this->get_executor();
+    auto num_batch_items = this->get_num_batch_items();
+    auto num_rows = this->get_common_size()[0];
+    auto stride = this->get_common_size()[1];
+    auto mvec = MultiVector<ValueType>::create_const(
+        exec, this->get_size(),
+        make_const_array_view(exec, num_batch_items * num_rows * stride,
+                              this->get_const_values()));
+    return mvec;
+}
+
+
+template <typename ValueType>
 std::unique_ptr<gko::matrix::Dense<ValueType>>
 Dense<ValueType>::create_view_for_item(size_type item_id)
 {
