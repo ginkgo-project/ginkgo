@@ -391,7 +391,7 @@ int main(int argc, char* argv[])
         coarsest_solver_gen_f = generate_sj_ir<float>(exec, 4u, 32u);
         coarsest_solver_gen_h = generate_sj_ir<gko::half>(exec, 4u, 32u);
         coarsest_solver_gen_b = generate_sj_ir<gko::bfloat16>(exec, 4u, 32u);
-    } else if (sm_mode == "l1cheyb") {
+    } else if (sm_mode == "l1cheby") {
         smoother_gen_d = generate_l1sj_cheb<double>(exec, 2u);
         smoother_gen_f = generate_l1sj_cheb<float>(exec, 2u);
         smoother_gen_h = generate_l1sj_cheb<gko::half>(exec, 2u);
