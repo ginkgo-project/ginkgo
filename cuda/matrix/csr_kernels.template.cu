@@ -112,7 +112,7 @@ using classical_kernels =
 using spgeam_kernels =
     syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
 
-
+#define PACKED_CSR 1
 #include "common/cuda_hip/matrix/csr_common.hpp.inc"
 #include "common/cuda_hip/matrix/csr_kernels.hpp.inc"
 
@@ -522,6 +522,12 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
                 max_length_per_row = a->get_num_stored_elements() /
                                      std::max<size_type>(a->get_size()[0], 1);
             }
+            if (PACKED_CSR &&
+                (std::is_same<MatrixValueType, gko::half>::value ||
+                 std::is_same<MatrixValueType, gko::bfloat16>::value)) {
+                // we process two elements in one threads
+                max_length_per_row /= 2;
+            }
             max_length_per_row = std::max<size_type>(max_length_per_row, 1);
             host_kernel::select_classical_spmv(
                 classical_kernels(),
@@ -582,6 +588,12 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                 // as a fall-back: use average row length, at least 1
                 max_length_per_row = a->get_num_stored_elements() /
                                      std::max<size_type>(a->get_size()[0], 1);
+            }
+            if (PACKED_CSR &&
+                (std::is_same<MatrixValueType, gko::half>::value ||
+                 std::is_same<MatrixValueType, gko::bfloat16>::value)) {
+                // we process two elements in one threads
+                max_length_per_row /= 2;
             }
             max_length_per_row = std::max<size_type>(max_length_per_row, 1);
             host_kernel::select_classical_spmv(
