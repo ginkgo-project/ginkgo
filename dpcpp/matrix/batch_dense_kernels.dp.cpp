@@ -80,10 +80,10 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
                   const batch::MultiVector<ValueType>* b,
                   batch::MultiVector<ValueType>* x)
 {
-    const size_type num_rows = x->get_common_size()[0];
-    const size_type num_cols = x->get_common_size()[1];
+    const size_type num_rows = mat->get_common_size()[0];
+    const size_type num_cols = mat->get_common_size()[1];
 
-    const auto num_batch_items = x->get_num_batch_items();
+    const auto num_batch_items = mat->get_num_batch_items();
     auto device = exec->get_queue()->get_device();
     auto group_size =
         device.get_info<sycl::info::device::max_work_group_size>();
@@ -100,14 +100,16 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
     // Launch a kernel that has nbatches blocks, each block has max group size
     (exec->get_queue())->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            config::warp_size)]] {
                 auto group = item_ct1.get_group();
                 auto group_id = group.get_group_linear_id();
                 const auto mat_b =
                     batch::matrix::extract_batch_item(mat_ub, group_id);
                 const auto b_b = batch::extract_batch_item(b_ub, group_id);
                 const auto x_b = batch::extract_batch_item(x_ub, group_id);
-                simple_apply_kernel(mat_b, b_b.values, x_b.values, item_ct1);
+                simple_apply_kernel(mat_b, b_b, x_b, item_ct1);
             });
     });
 }
@@ -145,7 +147,9 @@ void advanced_apply(std::shared_ptr<const DefaultExecutor> exec,
     // Launch a kernel that has nbatches blocks, each block has max group size
     (exec->get_queue())->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            config::warp_size)]] {
                 auto group = item_ct1.get_group();
                 auto group_id = group.get_group_linear_id();
                 const auto mat_b =
@@ -156,8 +160,8 @@ void advanced_apply(std::shared_ptr<const DefaultExecutor> exec,
                     batch::extract_batch_item(alpha_ub, group_id);
                 const auto beta_b =
                     batch::extract_batch_item(beta_ub, group_id);
-                advanced_apply_kernel(alpha_b.values[0], mat_b, b_b.values,
-                                      beta_b.values[0], x_b.values, item_ct1);
+                advanced_apply_kernel(alpha_b, mat_b, b_b, beta_b, x_b,
+                                      item_ct1);
             });
     });
 }
