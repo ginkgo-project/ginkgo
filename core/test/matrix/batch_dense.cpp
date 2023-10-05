@@ -59,6 +59,10 @@ protected:
               {{{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}},
                {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}},
               exec)),
+          mvec(gko::batch::initialize<gko::batch::MultiVector<value_type>>(
+              {{{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}},
+               {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}},
+              exec)),
           dense_mtx(gko::initialize<gko::matrix::Dense<value_type>>(
               {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}, exec))
     {}
@@ -92,6 +96,7 @@ protected:
 
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<gko::batch::matrix::Dense<value_type>> mtx;
+    std::unique_ptr<gko::batch::MultiVector<value_type>> mvec;
     std::unique_ptr<gko::matrix::Dense<value_type>> dense_mtx;
 };
 
@@ -130,6 +135,13 @@ TYPED_TEST(Dense, CanCreateDenseItemView)
 {
     GKO_ASSERT_MTX_NEAR(this->mtx->create_view_for_item(1), this->dense_mtx,
                         0.0);
+}
+
+
+TYPED_TEST(Dense, CanCreateMultiVectorView)
+{
+    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx->create_multi_vector_view(), this->mvec,
+                              0.0);
 }
 
 

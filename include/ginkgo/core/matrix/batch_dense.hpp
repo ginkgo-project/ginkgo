@@ -59,21 +59,24 @@ namespace matrix {
  * matrix in each of the batches.
  *
  * The values in each of the batches are stored in row-major format (values
- * belonging to the same row appear consecutive in the memory). Optionally, rows
- * can be padded for better memory access.
+ * belonging to the same row appear consecutive in the memory and the values of
+ * each batch item are also stored consecutively in memory).
+ *
+ * @note Though the storage layout is similar to the multi-vector object, the
+ * class semantics and the operations it aims to provide is different. Hence it
+ * is recommended to create multi-vector objects if the user means to view the
+ * data as a set of vectors.
  *
  * @tparam ValueType  precision of matrix elements
  *
- * @note While this format is not very useful for storing sparse matrices, it
- *       is often suitable to store vectors, and sets of vectors.
  * @ingroup batch_dense
  * @ingroup mat_formats
  * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
-class Dense : public EnableBatchLinOp<Dense<ValueType>>,
-              public EnableCreateMethod<Dense<ValueType>>,
-              public ConvertibleTo<Dense<next_precision<ValueType>>> {
+class Dense final : public EnableBatchLinOp<Dense<ValueType>>,
+                    public EnableCreateMethod<Dense<ValueType>>,
+                    public ConvertibleTo<Dense<next_precision<ValueType>>> {
     friend class EnableCreateMethod<Dense>;
     friend class EnablePolymorphicObject<Dense, BatchLinOp>;
     friend class Dense<to_complex<ValueType>>;
@@ -103,16 +106,31 @@ public:
 
     void move_to(Dense<next_precision<ValueType>>* result) override;
 
+    /**
+     * Creates a mutable view (of MultiVector type) of the data owned by the
+     * matrix::Dense object. Does not perform any deep copies, but only
+     * returns a view of the underlying data.
+     *
+     * @return  a MultiVector object with a view of the data from the batch
+     * dense matrix.
+     */
+    std::unique_ptr<MultiVector<value_type>> create_multi_vector_view();
 
     /**
-     * Creates a mutable view (of matrix::Dense type) of one item of the Batch
-     * MultiVector<value_type> object. Does not perform any deep copies, but
-     * only returns a view of the data.
+     * @copydoc create_const_multi_vector_view()
+     */
+    std::unique_ptr<const MultiVector<value_type>>
+    create_const_multi_vector_view() const;
+
+    /**
+     * Creates a mutable view (of matrix::Dense type) of one item of the
+     * batch::matrix::Dense<value_type> object. Does not perform any deep
+     * copies, but only returns a view of the data.
      *
      * @param item_id  The index of the batch item
      *
-     * @return  a matrix::Dense object with the data from the batch item at the
-     *          given index.
+     * @return  a batch::matrix::Dense object with the data from the batch item
+     * at the given index.
      */
     std::unique_ptr<unbatch_type> create_view_for_item(size_type item_id);
 
@@ -148,8 +166,8 @@ public:
      * @param row  the row of the requested element
      * @param col  the column of the requested element
      *
-     * @note  the method has to be called on the same Executor the vector is
-     *        stored at (e.g. trying to call this method on a GPU multi-vector
+     * @note  the method has to be called on the same Executor the matrix is
+     *        stored at (e.g. trying to call this method on a GPU Dense object
      *        from the OMP results in a runtime error)
      */
     value_type& at(size_type batch_id, size_type row, size_type col)
@@ -159,7 +177,7 @@ public:
     }
 
     /**
-     * @copydoc MultiVector::at(size_type, size_type, size_type)
+     * @copydoc Dense::at(size_type, size_type, size_type)
      */
     value_type at(size_type batch_id, size_type row, size_type col) const
     {
@@ -170,15 +188,15 @@ public:
     /**
      * Returns a single element for a particular batch item.
      *
-     * Useful for iterating across all elements of the vector.
+     * Useful for iterating across all elements of the matrix.
      * However, it is less efficient than the two-parameter variant of this
      * method.
      *
      * @param batch_id  the batch item index to be queried
      * @param idx  a linear index of the requested element
      *
-     * @note  the method has to be called on the same Executor the vector is
-     *        stored at (e.g. trying to call this method on a GPU multi-vector
+     * @note  the method has to be called on the same Executor the matrix is
+     *        stored at (e.g. trying to call this method on a GPU Dense object
      *        from the OMP results in a runtime error)
      */
     ValueType& at(size_type batch_id, size_type idx) noexcept
@@ -187,7 +205,7 @@ public:
     }
 
     /**
-     * @copydoc MultiVector::at(size_type, size_type, size_type)
+     * @copydoc Dense::at(size_type, size_type, size_type)
      */
     ValueType at(size_type batch_id, size_type idx) const noexcept
     {
@@ -195,7 +213,7 @@ public:
     }
 
     /**
-     * Returns a pointer to the array of values of the multi-vector for a
+     * Returns a pointer to the array of values of the matrix for a
      * specific batch item.
      *
      * @param batch_id  the id of the batch item.
@@ -236,30 +254,45 @@ public:
         return values_.get_num_elems();
     }
 
-
     /**
      * Creates a constant (immutable) batch dense matrix from a constant
      * array.
      *
-     * @param exec  the executor to create the vector on
-     * @param size  the dimensions of the vector
-     * @param values  the value array of the vector
+     * @param exec  the executor to create the matrix on
+     * @param size  the dimensions of the matrix
+     * @param values  the value array of the matrix
      *
-     * @return A smart pointer to the constant multi-vector wrapping the input
-     * array (if it resides on the same executor as the vector) or a copy of the
+     * @return A smart pointer to the constant matrix wrapping the input
+     * array (if it resides on the same executor as the matrix) or a copy of the
      * array on the correct executor.
      */
     static std::unique_ptr<const Dense<value_type>> create_const(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
         gko::detail::const_array_view<ValueType>&& values);
 
-
+    /**
+     * Apply the matrix to a multi-vector. Represents the matrix vector
+     * multiplication, x = A * b, where x and b are both multi-vectors.
+     *
+     * @param b  the multi-vector to be applied to
+     * @param x  the output multi-vector
+     */
     void apply(const MultiVector<value_type>* b,
                MultiVector<value_type>* x) const
     {
         this->apply_impl(b, x);
     }
 
+    /**
+     * Apply the matrix to a multi-vector with a linear combination of the given
+     * input vector. Represents the matrix vector multiplication, x = alpha* A *
+     * b + beta * x, where x and b are both multi-vectors.
+     *
+     * @param alpha  the scalar to scale the matrix-vector product with
+     * @param b      the multi-vector to be applied to
+     * @param beta   the scalar to scale the x vector with
+     * @param x      the output multi-vector
+     */
     void apply(const MultiVector<value_type>* alpha,
                const MultiVector<value_type>* b,
                const MultiVector<value_type>* beta,
@@ -293,9 +326,6 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param size  sizes of the batch matrices in a batch_dim object
      * @param values  array of matrix values
-     * @param strides  stride of the rows (i.e. offset between the first
-     *                  elements of two consecutive rows, expressed as the
-     *                  number of matrix elements)
      *
      * @note If `values` is not an rvalue, not an array of ValueType, or is on
      *       the wrong executor, an internal copy will be created, and the
@@ -320,13 +350,13 @@ protected:
      */
     std::unique_ptr<Dense> create_with_same_config() const;
 
-    virtual void apply_impl(const MultiVector<value_type>* b,
-                            MultiVector<value_type>* x) const;
+    void apply_impl(const MultiVector<value_type>* b,
+                    MultiVector<value_type>* x) const;
 
-    virtual void apply_impl(const MultiVector<value_type>* alpha,
-                            const MultiVector<value_type>* b,
-                            const MultiVector<value_type>* beta,
-                            MultiVector<value_type>* x) const;
+    void apply_impl(const MultiVector<value_type>* alpha,
+                    const MultiVector<value_type>* b,
+                    const MultiVector<value_type>* beta,
+                    MultiVector<value_type>* x) const;
 
     size_type linearize_index(size_type batch, size_type row,
                               size_type col) const noexcept

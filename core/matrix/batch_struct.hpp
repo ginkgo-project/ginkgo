@@ -46,7 +46,7 @@ namespace batch_dense {
 
 
 /**
- * Encapsulates one matrix from a batch of multi-vectors.
+ * Encapsulates one matrix from a batch of dense matrices.
  */
 template <typename ValueType>
 struct batch_item {
@@ -59,7 +59,7 @@ struct batch_item {
 
 
 /**
- * A 'simple' structure to store a global uniform batch of multi-vectors.
+ * A 'simple' structure to store a global uniform batch of dense matrices.
  */
 template <typename ValueType>
 struct uniform_batch {
