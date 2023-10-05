@@ -53,16 +53,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 template <typename T>
-class BatchDense : public ::testing::Test {
+class Dense : public ::testing::Test {
 protected:
     using value_type = T;
     using size_type = gko::size_type;
-    using Mtx = gko::batch::matrix::BatchDense<value_type>;
+    using Mtx = gko::batch::matrix::Dense<value_type>;
     using MVec = gko::batch::MultiVector<value_type>;
     using DenseMtx = gko::matrix::Dense<value_type>;
     using ComplexMtx = gko::to_complex<Mtx>;
     using RealMtx = gko::remove_complex<Mtx>;
-    BatchDense()
+    Dense()
         : exec(gko::ReferenceExecutor::create()),
           mtx_0(gko::batch::initialize<Mtx>(
               {{I<T>({1.0, -1.0, 1.5}), I<T>({-2.0, 2.0, 3.0})},
@@ -111,10 +111,10 @@ protected:
 };
 
 
-TYPED_TEST_SUITE(BatchDense, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Dense, gko::test::ValueTypes);
 
 
-TYPED_TEST(BatchDense, AppliesToBatchMultiVector)
+TYPED_TEST(Dense, AppliesToBatchMultiVector)
 {
     using T = typename TestFixture::value_type;
 
@@ -129,7 +129,7 @@ TYPED_TEST(BatchDense, AppliesToBatchMultiVector)
 }
 
 
-TYPED_TEST(BatchDense, AppliesLinearCombinationWithSameAlphaToBatchMultiVector)
+TYPED_TEST(Dense, AppliesLinearCombinationWithSameAlphaToBatchMultiVector)
 {
     using Mtx = typename TestFixture::Mtx;
     using MVec = typename TestFixture::MVec;
@@ -156,7 +156,7 @@ TYPED_TEST(BatchDense, AppliesLinearCombinationWithSameAlphaToBatchMultiVector)
 }
 
 
-TYPED_TEST(BatchDense, AppliesLinearCombinationToBatchMultiVector)
+TYPED_TEST(Dense, AppliesLinearCombinationToBatchMultiVector)
 {
     using Mtx = typename TestFixture::Mtx;
     using MVec = typename TestFixture::MVec;
@@ -183,7 +183,7 @@ TYPED_TEST(BatchDense, AppliesLinearCombinationToBatchMultiVector)
 }
 
 
-TYPED_TEST(BatchDense, ApplyFailsOnWrongNumberOfResultCols)
+TYPED_TEST(Dense, ApplyFailsOnWrongNumberOfResultCols)
 {
     using MVec = typename TestFixture::MVec;
     auto res = MVec::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{2}});
@@ -193,7 +193,7 @@ TYPED_TEST(BatchDense, ApplyFailsOnWrongNumberOfResultCols)
 }
 
 
-TYPED_TEST(BatchDense, ApplyFailsOnWrongNumberOfResultRows)
+TYPED_TEST(Dense, ApplyFailsOnWrongNumberOfResultRows)
 {
     using MVec = typename TestFixture::MVec;
     auto res = MVec::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{3}});
@@ -203,7 +203,7 @@ TYPED_TEST(BatchDense, ApplyFailsOnWrongNumberOfResultRows)
 }
 
 
-TYPED_TEST(BatchDense, ApplyFailsOnWrongInnerDimension)
+TYPED_TEST(Dense, ApplyFailsOnWrongInnerDimension)
 {
     using MVec = typename TestFixture::MVec;
     auto res =
@@ -214,7 +214,7 @@ TYPED_TEST(BatchDense, ApplyFailsOnWrongInnerDimension)
 }
 
 
-TYPED_TEST(BatchDense, AdvancedApplyFailsOnWrongInnerDimension)
+TYPED_TEST(Dense, AdvancedApplyFailsOnWrongInnerDimension)
 {
     using MVec = typename TestFixture::MVec;
     auto res =
@@ -230,7 +230,7 @@ TYPED_TEST(BatchDense, AdvancedApplyFailsOnWrongInnerDimension)
 }
 
 
-TYPED_TEST(BatchDense, AdvancedApplyFailsOnWrongAlphaDimension)
+TYPED_TEST(Dense, AdvancedApplyFailsOnWrongAlphaDimension)
 {
     using MVec = typename TestFixture::MVec;
     auto res =

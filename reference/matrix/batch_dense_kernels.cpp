@@ -51,8 +51,8 @@ namespace gko {
 namespace kernels {
 namespace reference {
 /**
- * @brief The BatchDense matrix format namespace.
- * @ref BatchDense
+ * @brief The Dense matrix format namespace.
+ * @ref Dense
  * @ingroup batch_dense
  */
 namespace batch_dense {
@@ -63,7 +63,7 @@ namespace batch_dense {
 
 template <typename ValueType>
 void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
-                  const batch::matrix::BatchDense<ValueType>* mat,
+                  const batch::matrix::Dense<ValueType>* mat,
                   const batch::MultiVector<ValueType>* b,
                   batch::MultiVector<ValueType>* x)
 {
@@ -85,7 +85,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void advanced_apply(std::shared_ptr<const DefaultExecutor> exec,
                     const batch::MultiVector<ValueType>* alpha,
-                    const batch::matrix::BatchDense<ValueType>* mat,
+                    const batch::matrix::Dense<ValueType>* mat,
                     const batch::MultiVector<ValueType>* b,
                     const batch::MultiVector<ValueType>* beta,
                     batch::MultiVector<ValueType>* x)

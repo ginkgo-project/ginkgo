@@ -48,15 +48,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 template <typename T>
-class BatchDense : public ::testing::Test {
+class Dense : public ::testing::Test {
 protected:
     using value_type = T;
     using DenseMtx = gko::matrix::Dense<value_type>;
     using size_type = gko::size_type;
-    BatchDense()
+    Dense()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::batch::initialize<
-              gko::batch::matrix::BatchDense<value_type>>(
+          mtx(gko::batch::initialize<gko::batch::matrix::Dense<value_type>>(
               {{{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}},
                {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}},
               exec)),
@@ -66,7 +65,7 @@ protected:
 
 
     static void assert_equal_to_original_mtx(
-        gko::batch::matrix::BatchDense<value_type>* m)
+        gko::batch::matrix::Dense<value_type>* m)
     {
         ASSERT_EQ(m->get_num_batch_items(), 2);
         ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 3));
@@ -85,41 +84,41 @@ protected:
         ASSERT_EQ(m->at(1, 1, 2), value_type{3.0});
     }
 
-    static void assert_empty(gko::batch::matrix::BatchDense<value_type>* m)
+    static void assert_empty(gko::batch::matrix::Dense<value_type>* m)
     {
         ASSERT_EQ(m->get_num_batch_items(), 0);
         ASSERT_EQ(m->get_num_stored_elements(), 0);
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<gko::batch::matrix::BatchDense<value_type>> mtx;
+    std::unique_ptr<gko::batch::matrix::Dense<value_type>> mtx;
     std::unique_ptr<gko::matrix::Dense<value_type>> dense_mtx;
 };
 
-TYPED_TEST_SUITE(BatchDense, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Dense, gko::test::ValueTypes);
 
 
-TYPED_TEST(BatchDense, KnowsItsSizeAndValues)
+TYPED_TEST(Dense, KnowsItsSizeAndValues)
 {
     this->assert_equal_to_original_mtx(this->mtx.get());
 }
 
 
-TYPED_TEST(BatchDense, CanBeEmpty)
+TYPED_TEST(Dense, CanBeEmpty)
 {
-    auto empty = gko::batch::matrix::BatchDense<TypeParam>::create(this->exec);
+    auto empty = gko::batch::matrix::Dense<TypeParam>::create(this->exec);
     this->assert_empty(empty.get());
 }
 
 
-TYPED_TEST(BatchDense, ReturnsNullValuesArrayWhenEmpty)
+TYPED_TEST(Dense, ReturnsNullValuesArrayWhenEmpty)
 {
-    auto empty = gko::batch::matrix::BatchDense<TypeParam>::create(this->exec);
+    auto empty = gko::batch::matrix::Dense<TypeParam>::create(this->exec);
     ASSERT_EQ(empty->get_const_values(), nullptr);
 }
 
 
-TYPED_TEST(BatchDense, CanGetValuesForEntry)
+TYPED_TEST(Dense, CanGetValuesForEntry)
 {
     using value_type = typename TestFixture::value_type;
 
@@ -127,17 +126,16 @@ TYPED_TEST(BatchDense, CanGetValuesForEntry)
 }
 
 
-TYPED_TEST(BatchDense, CanCreateDenseItemView)
+TYPED_TEST(Dense, CanCreateDenseItemView)
 {
     GKO_ASSERT_MTX_NEAR(this->mtx->create_view_for_item(1), this->dense_mtx,
                         0.0);
 }
 
 
-TYPED_TEST(BatchDense, CanBeCopied)
+TYPED_TEST(Dense, CanBeCopied)
 {
-    auto mtx_copy =
-        gko::batch::matrix::BatchDense<TypeParam>::create(this->exec);
+    auto mtx_copy = gko::batch::matrix::Dense<TypeParam>::create(this->exec);
 
     mtx_copy->copy_from(this->mtx.get());
 
@@ -148,10 +146,9 @@ TYPED_TEST(BatchDense, CanBeCopied)
 }
 
 
-TYPED_TEST(BatchDense, CanBeMoved)
+TYPED_TEST(Dense, CanBeMoved)
 {
-    auto mtx_copy =
-        gko::batch::matrix::BatchDense<TypeParam>::create(this->exec);
+    auto mtx_copy = gko::batch::matrix::Dense<TypeParam>::create(this->exec);
 
     this->mtx->move_to(mtx_copy);
 
@@ -159,7 +156,7 @@ TYPED_TEST(BatchDense, CanBeMoved)
 }
 
 
-TYPED_TEST(BatchDense, CanBeCloned)
+TYPED_TEST(Dense, CanBeCloned)
 {
     auto mtx_clone = this->mtx->clone();
 
@@ -168,7 +165,7 @@ TYPED_TEST(BatchDense, CanBeCloned)
 }
 
 
-TYPED_TEST(BatchDense, CanBeCleared)
+TYPED_TEST(Dense, CanBeCleared)
 {
     this->mtx->clear();
 
@@ -176,11 +173,11 @@ TYPED_TEST(BatchDense, CanBeCleared)
 }
 
 
-TYPED_TEST(BatchDense, CanBeConstructedWithSize)
+TYPED_TEST(Dense, CanBeConstructedWithSize)
 {
     using size_type = gko::size_type;
 
-    auto m = gko::batch::matrix::BatchDense<TypeParam>::create(
+    auto m = gko::batch::matrix::Dense<TypeParam>::create(
         this->exec, gko::batch_dim<2>(2, gko::dim<2>{5, 3}));
 
     ASSERT_EQ(m->get_num_batch_items(), 2);
@@ -189,7 +186,7 @@ TYPED_TEST(BatchDense, CanBeConstructedWithSize)
 }
 
 
-TYPED_TEST(BatchDense, CanBeConstructedFromExistingData)
+TYPED_TEST(Dense, CanBeConstructedFromExistingData)
 {
     using value_type = typename TestFixture::value_type;
     using size_type = gko::size_type;
@@ -203,7 +200,7 @@ TYPED_TEST(BatchDense, CanBeConstructedFromExistingData)
        6.0, -3.0};
     // clang-format on
 
-    auto m = gko::batch::matrix::BatchDense<TypeParam>::create(
+    auto m = gko::batch::matrix::Dense<TypeParam>::create(
         this->exec, gko::batch_dim<2>(2, gko::dim<2>(2, 2)),
         gko::array<value_type>::view(this->exec, 8, data));
 
@@ -219,7 +216,7 @@ TYPED_TEST(BatchDense, CanBeConstructedFromExistingData)
 }
 
 
-TYPED_TEST(BatchDense, CanBeConstructedFromExistingConstData)
+TYPED_TEST(Dense, CanBeConstructedFromExistingConstData)
 {
     using value_type = typename TestFixture::value_type;
     using size_type = gko::size_type;
@@ -233,7 +230,7 @@ TYPED_TEST(BatchDense, CanBeConstructedFromExistingConstData)
        6.0, -3.0};
     // clang-format on
 
-    auto m = gko::batch::matrix::BatchDense<TypeParam>::create_const(
+    auto m = gko::batch::matrix::Dense<TypeParam>::create_const(
         this->exec, gko::batch_dim<2>(2, gko::dim<2>(2, 2)),
         gko::array<value_type>::const_view(this->exec, 8, data));
 
@@ -249,7 +246,7 @@ TYPED_TEST(BatchDense, CanBeConstructedFromExistingConstData)
 }
 
 
-TYPED_TEST(BatchDense, CanBeConstructedFromDenseMatrices)
+TYPED_TEST(Dense, CanBeConstructedFromDenseMatrices)
 {
     using value_type = typename TestFixture::value_type;
     using DenseMtx = typename TestFixture::DenseMtx;
@@ -260,15 +257,15 @@ TYPED_TEST(BatchDense, CanBeConstructedFromDenseMatrices)
     auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
                                           this->exec);
 
-    auto m = gko::batch::create_from_item<
-        gko::batch::matrix::BatchDense<value_type>>(
-        this->exec, std::vector<DenseMtx*>{mat1.get(), mat2.get()});
+    auto m =
+        gko::batch::create_from_item<gko::batch::matrix::Dense<value_type>>(
+            this->exec, std::vector<DenseMtx*>{mat1.get(), mat2.get()});
 
     this->assert_equal_to_original_mtx(m.get());
 }
 
 
-TYPED_TEST(BatchDense, CanBeConstructedFromDenseMatricesByDuplication)
+TYPED_TEST(Dense, CanBeConstructedFromDenseMatricesByDuplication)
 {
     using value_type = typename TestFixture::value_type;
     using DenseMtx = typename TestFixture::DenseMtx;
@@ -279,17 +276,19 @@ TYPED_TEST(BatchDense, CanBeConstructedFromDenseMatricesByDuplication)
     auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
                                           this->exec);
 
-    auto bat_m = gko::batch::create_from_item<
-        gko::batch::matrix::BatchDense<value_type>>(
-        this->exec, std::vector<DenseMtx*>{mat1.get(), mat1.get(), mat1.get()});
-    auto m = gko::batch::create_from_item<
-        gko::batch::matrix::BatchDense<value_type>>(this->exec, 3, mat1.get());
+    auto bat_m =
+        gko::batch::create_from_item<gko::batch::matrix::Dense<value_type>>(
+            this->exec,
+            std::vector<DenseMtx*>{mat1.get(), mat1.get(), mat1.get()});
+    auto m =
+        gko::batch::create_from_item<gko::batch::matrix::Dense<value_type>>(
+            this->exec, 3, mat1.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(bat_m.get(), m.get(), 1e-14);
 }
 
 
-TYPED_TEST(BatchDense, CanBeConstructedByDuplicatingBatchDenseMatrices)
+TYPED_TEST(Dense, CanBeConstructedByDuplicatingDenseMatrices)
 {
     using value_type = typename TestFixture::value_type;
     using DenseMtx = typename TestFixture::DenseMtx;
@@ -300,22 +299,23 @@ TYPED_TEST(BatchDense, CanBeConstructedByDuplicatingBatchDenseMatrices)
     auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
                                           this->exec);
 
-    auto m = gko::batch::create_from_item<
-        gko::batch::matrix::BatchDense<value_type>>(
-        this->exec, std::vector<DenseMtx*>{mat1.get(), mat2.get()});
-    auto m_ref = gko::batch::create_from_item<
-        gko::batch::matrix::BatchDense<value_type>>(
-        this->exec, std::vector<DenseMtx*>{mat1.get(), mat2.get(), mat1.get(),
-                                           mat2.get(), mat1.get(), mat2.get()});
+    auto m =
+        gko::batch::create_from_item<gko::batch::matrix::Dense<value_type>>(
+            this->exec, std::vector<DenseMtx*>{mat1.get(), mat2.get()});
+    auto m_ref =
+        gko::batch::create_from_item<gko::batch::matrix::Dense<value_type>>(
+            this->exec,
+            std::vector<DenseMtx*>{mat1.get(), mat2.get(), mat1.get(),
+                                   mat2.get(), mat1.get(), mat2.get()});
 
-    auto m2 = gko::batch::duplicate<gko::batch::matrix::BatchDense<value_type>>(
+    auto m2 = gko::batch::duplicate<gko::batch::matrix::Dense<value_type>>(
         this->exec, 3, m.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(m2.get(), m_ref.get(), 1e-14);
 }
 
 
-TYPED_TEST(BatchDense, CanBeUnbatchedIntoDenseMatrices)
+TYPED_TEST(Dense, CanBeUnbatchedIntoDenseMatrices)
 {
     using value_type = typename TestFixture::value_type;
     using DenseMtx = typename TestFixture::DenseMtx;
@@ -326,7 +326,7 @@ TYPED_TEST(BatchDense, CanBeUnbatchedIntoDenseMatrices)
                                           this->exec);
 
     auto dense_mats =
-        gko::batch::unbatch<gko::batch::matrix::BatchDense<value_type>>(
+        gko::batch::unbatch<gko::batch::matrix::Dense<value_type>>(
             this->mtx.get());
 
     GKO_ASSERT_MTX_NEAR(dense_mats[0].get(), mat1.get(), 0.);
@@ -334,10 +334,10 @@ TYPED_TEST(BatchDense, CanBeUnbatchedIntoDenseMatrices)
 }
 
 
-TYPED_TEST(BatchDense, CanBeListConstructed)
+TYPED_TEST(Dense, CanBeListConstructed)
 {
     using value_type = typename TestFixture::value_type;
-    auto m = gko::batch::initialize<gko::batch::matrix::BatchDense<TypeParam>>(
+    auto m = gko::batch::initialize<gko::batch::matrix::Dense<TypeParam>>(
         {{1.0, 2.0}, {1.0, 3.0}}, this->exec);
 
     ASSERT_EQ(m->get_num_batch_items(), 2);
@@ -349,11 +349,11 @@ TYPED_TEST(BatchDense, CanBeListConstructed)
 }
 
 
-TYPED_TEST(BatchDense, CanBeListConstructedByCopies)
+TYPED_TEST(Dense, CanBeListConstructedByCopies)
 {
     using value_type = typename TestFixture::value_type;
 
-    auto m = gko::batch::initialize<gko::batch::matrix::BatchDense<TypeParam>>(
+    auto m = gko::batch::initialize<gko::batch::matrix::Dense<TypeParam>>(
         2, I<value_type>({1.0, 2.0}), this->exec);
 
     ASSERT_EQ(m->get_num_batch_items(), 2);
@@ -365,12 +365,12 @@ TYPED_TEST(BatchDense, CanBeListConstructedByCopies)
 }
 
 
-TYPED_TEST(BatchDense, CanBeDoubleListConstructed)
+TYPED_TEST(Dense, CanBeDoubleListConstructed)
 {
     using value_type = typename TestFixture::value_type;
     using T = value_type;
 
-    auto m = gko::batch::initialize<gko::batch::matrix::BatchDense<TypeParam>>(
+    auto m = gko::batch::initialize<gko::batch::matrix::Dense<TypeParam>>(
         {{I<T>{1.0, 1.0, 0.0}, I<T>{2.0, 4.0, 3.0}, I<T>{3.0, 6.0, 1.0}},
          {I<T>{1.0, 2.0, -1.0}, I<T>{3.0, 4.0, -2.0}, I<T>{5.0, 6.0, -3.0}}},
         this->exec);
@@ -389,7 +389,7 @@ TYPED_TEST(BatchDense, CanBeDoubleListConstructed)
 }
 
 
-TYPED_TEST(BatchDense, CanBeReadFromMatrixData)
+TYPED_TEST(Dense, CanBeReadFromMatrixData)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = int;
@@ -401,8 +401,8 @@ TYPED_TEST(BatchDense, CanBeReadFromMatrixData)
         {2, 2}, {{0, 0, -1.0}, {0, 1, 0.5}, {1, 0, 0.0}, {1, 1, 9.0}}));
 
     auto m = gko::batch::read<value_type, index_type,
-                              gko::batch::matrix::BatchDense<value_type>>(
-        this->exec, vec_data);
+                              gko::batch::matrix::Dense<value_type>>(this->exec,
+                                                                     vec_data);
 
     ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 2));
     EXPECT_EQ(m->at(0, 0, 0), value_type{1.0});
@@ -416,7 +416,7 @@ TYPED_TEST(BatchDense, CanBeReadFromMatrixData)
 }
 
 
-TYPED_TEST(BatchDense, CanBeReadFromSparseMatrixData)
+TYPED_TEST(Dense, CanBeReadFromSparseMatrixData)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = int;
@@ -427,8 +427,8 @@ TYPED_TEST(BatchDense, CanBeReadFromSparseMatrixData)
         {2, 2}, {{0, 0, -1.0}, {0, 1, 0.5}, {1, 1, 9.0}}));
 
     auto m = gko::batch::read<value_type, index_type,
-                              gko::batch::matrix::BatchDense<value_type>>(
-        this->exec, vec_data);
+                              gko::batch::matrix::Dense<value_type>>(this->exec,
+                                                                     vec_data);
 
     ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 2));
     EXPECT_EQ(m->at(0, 0, 0), value_type{1.0});
@@ -442,14 +442,14 @@ TYPED_TEST(BatchDense, CanBeReadFromSparseMatrixData)
 }
 
 
-TYPED_TEST(BatchDense, GeneratesCorrectMatrixData)
+TYPED_TEST(Dense, GeneratesCorrectMatrixData)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = int;
     using tpl = typename gko::matrix_data<TypeParam>::nonzero_type;
 
     auto data = gko::batch::write<value_type, index_type,
-                                  gko::batch::matrix::BatchDense<value_type>>(
+                                  gko::batch::matrix::Dense<value_type>>(
         this->mtx.get());
 
     ASSERT_EQ(data[0].size, gko::dim<2>(2, 3));

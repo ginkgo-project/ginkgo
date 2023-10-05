@@ -55,7 +55,7 @@ namespace matrix {
 
 
 /**
- * BatchDense is a batch matrix format which explicitly stores all values of the
+ * Dense is a batch matrix format which explicitly stores all values of the
  * matrix in each of the batches.
  *
  * The values in each of the batches are stored in row-major format (values
@@ -71,38 +71,37 @@ namespace matrix {
  * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
-class BatchDense : public EnableBatchLinOp<BatchDense<ValueType>>,
-                   public EnableCreateMethod<BatchDense<ValueType>>,
-                   public ConvertibleTo<BatchDense<next_precision<ValueType>>> {
-    friend class EnableCreateMethod<BatchDense>;
-    friend class EnablePolymorphicObject<BatchDense, BatchLinOp>;
-    friend class BatchDense<to_complex<ValueType>>;
-    friend class BatchDense<next_precision<ValueType>>;
+class Dense : public EnableBatchLinOp<Dense<ValueType>>,
+              public EnableCreateMethod<Dense<ValueType>>,
+              public ConvertibleTo<Dense<next_precision<ValueType>>> {
+    friend class EnableCreateMethod<Dense>;
+    friend class EnablePolymorphicObject<Dense, BatchLinOp>;
+    friend class Dense<to_complex<ValueType>>;
+    friend class Dense<next_precision<ValueType>>;
 
 public:
-    using EnableBatchLinOp<BatchDense>::convert_to;
-    using EnableBatchLinOp<BatchDense>::move_to;
+    using EnableBatchLinOp<Dense>::convert_to;
+    using EnableBatchLinOp<Dense>::move_to;
 
     using value_type = ValueType;
     using index_type = int32;
-    using transposed_type = BatchDense<ValueType>;
+    using transposed_type = Dense<ValueType>;
     using unbatch_type = gko::matrix::Dense<ValueType>;
-    using absolute_type = remove_complex<BatchDense>;
-    using complex_type = to_complex<BatchDense>;
+    using absolute_type = remove_complex<Dense>;
+    using complex_type = to_complex<Dense>;
 
     /**
-     * Creates a BatchDense matrix with the configuration of another BatchDense
+     * Creates a Dense matrix with the configuration of another Dense
      * matrix.
      *
      * @param other  The other matrix whose configuration needs to copied.
      */
-    static std::unique_ptr<BatchDense> create_with_config_of(
-        ptr_param<const BatchDense> other);
+    static std::unique_ptr<Dense> create_with_config_of(
+        ptr_param<const Dense> other);
 
-    void convert_to(
-        BatchDense<next_precision<ValueType>>* result) const override;
+    void convert_to(Dense<next_precision<ValueType>>* result) const override;
 
-    void move_to(BatchDense<next_precision<ValueType>>* result) override;
+    void move_to(Dense<next_precision<ValueType>>* result) override;
 
 
     /**
@@ -250,7 +249,7 @@ public:
      * array (if it resides on the same executor as the vector) or a copy of the
      * array on the correct executor.
      */
-    static std::unique_ptr<const BatchDense<value_type>> create_const(
+    static std::unique_ptr<const Dense<value_type>> create_const(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
         gko::detail::const_array_view<ValueType>&& values);
 
@@ -277,16 +276,16 @@ private:
 
 protected:
     /**
-     * Creates an uninitialized BatchDense matrix of the specified size.
+     * Creates an uninitialized Dense matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      */
-    BatchDense(std::shared_ptr<const Executor> exec,
-               const batch_dim<2>& size = batch_dim<2>{});
+    Dense(std::shared_ptr<const Executor> exec,
+          const batch_dim<2>& size = batch_dim<2>{});
 
     /**
-     * Creates a BatchDense matrix from an already allocated (and initialized)
+     * Creates a Dense matrix from an already allocated (and initialized)
      * array.
      *
      * @tparam ValuesArray  type of array of values
@@ -303,9 +302,9 @@ protected:
      *       original array data will not be used in the matrix.
      */
     template <typename ValuesArray>
-    BatchDense(std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
-               ValuesArray&& values)
-        : EnableBatchLinOp<BatchDense>(exec, size),
+    Dense(std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+          ValuesArray&& values)
+        : EnableBatchLinOp<Dense>(exec, size),
           values_{exec, std::forward<ValuesArray>(values)}
     {
         // Ensure that the values array has the correct size
@@ -314,12 +313,12 @@ protected:
     }
 
     /**
-     * Creates a BatchDense matrix with the same configuration as the callers
+     * Creates a Dense matrix with the same configuration as the callers
      * matrix.
      *
-     * @returns a BatchDense matrix with the same configuration as the caller.
+     * @returns a Dense matrix with the same configuration as the caller.
      */
-    std::unique_ptr<BatchDense> create_with_same_config() const;
+    std::unique_ptr<Dense> create_with_same_config() const;
 
     virtual void apply_impl(const MultiVector<value_type>* b,
                             MultiVector<value_type>* x) const;
