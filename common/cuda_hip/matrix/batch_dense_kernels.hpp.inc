@@ -39,15 +39,15 @@ __device__ __forceinline__ void simple_apply(
     constexpr auto tile_size = config::warp_size;
 
     auto thread_block = group::this_thread_block();
-    auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
-    const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
-    const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
+    auto subgroup = group::tiled_partition<tile_size>(thread_block);
+    const auto subgroup_id = static_cast<int>(threadIdx.x / tile_size);
+    const int num_subgroups_per_block = ceildiv(blockDim.x, tile_size);
 
-    for (int row = subwarp_grp_id; row < mat.num_rows;
-         row += num_subwarp_grps_per_block) {
+    for (int row = subgroup_id; row < mat.num_rows;
+         row += num_subgroups_per_block) {
         ValueType temp = zero<ValueType>();
-        for (int j = subwarp_grp.thread_rank(); j < mat.num_cols;
-             j += subwarp_grp.size()) {
+        for (int j = subgroup.thread_rank(); j < mat.num_cols;
+             j += subgroup.size()) {
             const ValueType val = mat.values[row * mat.stride + j];
             temp += val * b[j];
         }
@@ -55,7 +55,7 @@ __device__ __forceinline__ void simple_apply(
         // subgroup level reduction
         temp = reduce(subgroup, temp, thrust::plus<ValueType>{});
 
-        if (subwarp_grp.thread_rank() == 0) {
+        if (subgroup.thread_rank() == 0) {
             x[row] = temp;
         }
     }
@@ -101,15 +101,15 @@ __device__ __forceinline__ void advanced_apply(
     constexpr auto tile_size = config::warp_size;
 
     auto thread_block = group::this_thread_block();
-    auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
-    const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
-    const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
+    auto subgroup = group::tiled_partition<tile_size>(thread_block);
+    const auto subgroup_id = static_cast<int>(threadIdx.x / tile_size);
+    const int num_subgroups_per_block = ceildiv(blockDim.x, tile_size);
 
-    for (int row = subwarp_grp_id; row < mat.num_rows;
-         row += num_subwarp_grps_per_block) {
+    for (int row = subgroup_id; row < mat.num_rows;
+         row += num_subgroups_per_block) {
         ValueType temp = zero<ValueType>();
-        for (int j = subwarp_grp.thread_rank(); j < mat.num_cols;
-             j += subwarp_grp.size()) {
+        for (int j = subgroup.thread_rank(); j < mat.num_cols;
+             j += subgroup.size()) {
             const ValueType val = mat.values[row * mat.stride + j];
             temp += alpha * val * b[j];
         }
@@ -117,7 +117,7 @@ __device__ __forceinline__ void advanced_apply(
         // subgroup level reduction
         temp = reduce(subgroup, temp, thrust::plus<ValueType>{});
 
-        if (subwarp_grp.thread_rank() == 0) {
+        if (subgroup.thread_rank() == 0) {
             x[row] = temp + beta * x[row];
         }
     }
