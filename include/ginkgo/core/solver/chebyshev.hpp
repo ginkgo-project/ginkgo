@@ -213,6 +213,7 @@ private:
     mutable size_type num_max_generation_;
     ValueType center_;
     ValueType foci_direction_;
+    mutable bool generated_ = false;
 };
 
 
