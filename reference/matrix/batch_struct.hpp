@@ -66,7 +66,7 @@ namespace host {
  */
 template <typename ValueType>
 inline batch::matrix::batch_dense::uniform_batch<const ValueType>
-get_batch_struct(const batch::matrix::BatchDense<ValueType>* const op)
+get_batch_struct(const batch::matrix::Dense<ValueType>* const op)
 {
     return {op->get_const_values(), op->get_num_batch_items(),
             static_cast<int>(op->get_common_size()[1]),
@@ -80,7 +80,7 @@ get_batch_struct(const batch::matrix::BatchDense<ValueType>* const op)
  */
 template <typename ValueType>
 inline batch::matrix::batch_dense::uniform_batch<ValueType> get_batch_struct(
-    batch::matrix::BatchDense<ValueType>* const op)
+    batch::matrix::Dense<ValueType>* const op)
 {
     return {op->get_values(), op->get_num_batch_items(),
             static_cast<int>(op->get_common_size()[1]),

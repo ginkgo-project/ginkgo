@@ -51,14 +51,14 @@ namespace kernels {
 
 #define GKO_DECLARE_BATCH_DENSE_SIMPLE_APPLY_KERNEL(_type)         \
     void simple_apply(std::shared_ptr<const DefaultExecutor> exec, \
-                      const batch::matrix::BatchDense<_type>* a,   \
+                      const batch::matrix::Dense<_type>* a,        \
                       const batch::MultiVector<_type>* b,          \
                       batch::MultiVector<_type>* c)
 
 #define GKO_DECLARE_BATCH_DENSE_ADVANCED_APPLY_KERNEL(_type)         \
     void advanced_apply(std::shared_ptr<const DefaultExecutor> exec, \
                         const batch::MultiVector<_type>* alpha,      \
-                        const batch::matrix::BatchDense<_type>* a,   \
+                        const batch::matrix::Dense<_type>* a,        \
                         const batch::MultiVector<_type>* b,          \
                         const batch::MultiVector<_type>* beta,       \
                         batch::MultiVector<_type>* c)

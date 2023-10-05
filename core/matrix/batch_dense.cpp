@@ -84,7 +84,7 @@ batch_dim<2> compute_batch_size(
 
 template <typename ValueType>
 std::unique_ptr<gko::matrix::Dense<ValueType>>
-BatchDense<ValueType>::create_view_for_item(size_type item_id)
+Dense<ValueType>::create_view_for_item(size_type item_id)
 {
     auto exec = this->get_executor();
     auto num_rows = this->get_common_size()[0];
@@ -100,7 +100,7 @@ BatchDense<ValueType>::create_view_for_item(size_type item_id)
 
 template <typename ValueType>
 std::unique_ptr<const gko::matrix::Dense<ValueType>>
-BatchDense<ValueType>::create_const_view_for_item(size_type item_id) const
+Dense<ValueType>::create_const_view_for_item(size_type item_id) const
 {
     auto exec = this->get_executor();
     auto num_rows = this->get_common_size()[0];
@@ -115,9 +115,8 @@ BatchDense<ValueType>::create_const_view_for_item(size_type item_id) const
 
 
 template <typename ValueType>
-std::unique_ptr<BatchDense<ValueType>>
-BatchDense<ValueType>::create_with_config_of(
-    ptr_param<const BatchDense<ValueType>> other)
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_with_config_of(
+    ptr_param<const Dense<ValueType>> other)
 {
     // De-referencing `other` before calling the functions (instead of
     // using operator `->`) is currently required to be compatible with
@@ -128,23 +127,21 @@ BatchDense<ValueType>::create_with_config_of(
 
 
 template <typename ValueType>
-std::unique_ptr<BatchDense<ValueType>>
-BatchDense<ValueType>::create_with_same_config() const
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_with_same_config()
+    const
 {
-    return BatchDense<ValueType>::create(this->get_executor(),
-                                         this->get_size());
+    return Dense<ValueType>::create(this->get_executor(), this->get_size());
 }
 
 
 template <typename ValueType>
-std::unique_ptr<const BatchDense<ValueType>>
-BatchDense<ValueType>::create_const(
+std::unique_ptr<const Dense<ValueType>> Dense<ValueType>::create_const(
     std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
     gko::detail::const_array_view<ValueType>&& values)
 {
     // cast const-ness away, but return a const object afterwards,
     // so we can ensure that no modifications take place.
-    return std::unique_ptr<const BatchDense>(new BatchDense{
+    return std::unique_ptr<const Dense>(new Dense{
         exec, sizes, gko::detail::array_const_cast(std::move(values))});
 }
 
@@ -157,16 +154,16 @@ inline const batch_dim<2> get_col_sizes(const batch_dim<2>& sizes)
 
 
 template <typename ValueType>
-BatchDense<ValueType>::BatchDense(std::shared_ptr<const Executor> exec,
-                                  const batch_dim<2>& size)
-    : EnableBatchLinOp<BatchDense<ValueType>>(exec, size),
+Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
+                        const batch_dim<2>& size)
+    : EnableBatchLinOp<Dense<ValueType>>(exec, size),
       values_(exec, compute_num_elems(size))
 {}
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::apply_impl(const MultiVector<ValueType>* b,
-                                       MultiVector<ValueType>* x) const
+void Dense<ValueType>::apply_impl(const MultiVector<ValueType>* b,
+                                  MultiVector<ValueType>* x) const
 {
     GKO_ASSERT_EQ(b->get_num_batch_items(), this->get_num_batch_items());
     GKO_ASSERT_EQ(this->get_num_batch_items(), x->get_num_batch_items());
@@ -179,10 +176,10 @@ void BatchDense<ValueType>::apply_impl(const MultiVector<ValueType>* b,
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::apply_impl(const MultiVector<ValueType>* alpha,
-                                       const MultiVector<ValueType>* b,
-                                       const MultiVector<ValueType>* beta,
-                                       MultiVector<ValueType>* x) const
+void Dense<ValueType>::apply_impl(const MultiVector<ValueType>* alpha,
+                                  const MultiVector<ValueType>* b,
+                                  const MultiVector<ValueType>* beta,
+                                  MultiVector<ValueType>* x) const
 {
     GKO_ASSERT_EQ(b->get_num_batch_items(), this->get_num_batch_items());
     GKO_ASSERT_EQ(this->get_num_batch_items(), x->get_num_batch_items());
@@ -198,8 +195,8 @@ void BatchDense<ValueType>::apply_impl(const MultiVector<ValueType>* alpha,
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::convert_to(
-    BatchDense<next_precision<ValueType>>* result) const
+void Dense<ValueType>::convert_to(
+    Dense<next_precision<ValueType>>* result) const
 {
     result->values_ = this->values_;
     result->set_size(this->get_size());
@@ -207,14 +204,13 @@ void BatchDense<ValueType>::convert_to(
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::move_to(
-    BatchDense<next_precision<ValueType>>* result)
+void Dense<ValueType>::move_to(Dense<next_precision<ValueType>>* result)
 {
     this->convert_to(result);
 }
 
 
-#define GKO_DECLARE_BATCH_DENSE_MATRIX(_type) class BatchDense<_type>
+#define GKO_DECLARE_BATCH_DENSE_MATRIX(_type) class Dense<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_MATRIX);
 
 

@@ -292,12 +292,11 @@ void MultiVector<ValueType>::move_to(
 
 
 template <typename ValueType>
-void MultiVector<ValueType>::convert_to(
-    matrix::BatchDense<ValueType>* result) const
+void MultiVector<ValueType>::convert_to(matrix::Dense<ValueType>* result) const
 {
     auto exec = result->get_executor() != nullptr ? result->get_executor()
                                                   : this->get_executor();
-    auto tmp = gko::batch::matrix::BatchDense<ValueType>::create_const(
+    auto tmp = gko::batch::matrix::Dense<ValueType>::create_const(
         exec, this->get_size(),
         make_const_array_view(exec, this->get_num_stored_elements(),
                               this->get_const_values()));
@@ -306,7 +305,7 @@ void MultiVector<ValueType>::convert_to(
 
 
 template <typename ValueType>
-void MultiVector<ValueType>::move_to(matrix::BatchDense<ValueType>* result)
+void MultiVector<ValueType>::move_to(matrix::Dense<ValueType>* result)
 {
     this->convert_to(result);
 }

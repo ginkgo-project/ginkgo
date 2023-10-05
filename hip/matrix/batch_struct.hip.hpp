@@ -41,8 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
-#include "hip/base/config.hpp"
-#include "hip/base/types.hpp"
+#include "hip/base/config.hip.hpp"
+#include "hip/base/types.hip.hpp"
 
 
 namespace gko {
@@ -65,7 +65,7 @@ namespace hip {
  */
 template <typename ValueType>
 inline batch::matrix::batch_dense::uniform_batch<const hip_type<ValueType>>
-get_batch_struct(const batch::matrix::BatchDense<ValueType>* const op)
+get_batch_struct(const batch::matrix::Dense<ValueType>* const op)
 {
     return {as_hip_type(op->get_const_values()), op->get_num_batch_items(),
             static_cast<int>(op->get_common_size()[1]),
@@ -79,7 +79,7 @@ get_batch_struct(const batch::matrix::BatchDense<ValueType>* const op)
  */
 template <typename ValueType>
 inline batch::matrix::batch_dense::uniform_batch<hip_type<ValueType>>
-get_batch_struct(batch::matrix::BatchDense<ValueType>* const op)
+get_batch_struct(batch::matrix::Dense<ValueType>* const op)
 {
     return {as_hip_type(op->get_values()), op->get_num_batch_items(),
             static_cast<int>(op->get_common_size()[1]),

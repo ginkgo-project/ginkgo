@@ -53,13 +53,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-class BatchDense : public CommonTestFixture {
+class Dense : public CommonTestFixture {
 protected:
     using vtype = double;
-    using Mtx = gko::batch::matrix::BatchDense<vtype>;
+    using Mtx = gko::batch::matrix::Dense<vtype>;
     using MVec = gko::batch::MultiVector<vtype>;
 
-    BatchDense() : rand_engine(15) {}
+    Dense() : rand_engine(15) {}
 
     template <typename MtxType>
     std::unique_ptr<MtxType> gen_mtx(const gko::size_type num_batch_items,
@@ -107,7 +107,7 @@ protected:
 };
 
 
-TEST_F(BatchDense, SingleVectorApplyIsEquivalentToRef)
+TEST_F(Dense, SingleVectorApplyIsEquivalentToRef)
 {
     set_up_apply_data(1);
 
@@ -118,7 +118,7 @@ TEST_F(BatchDense, SingleVectorApplyIsEquivalentToRef)
 }
 
 
-TEST_F(BatchDense, SingleVectorAdvancedApplyIsEquivalentToRef)
+TEST_F(Dense, SingleVectorAdvancedApplyIsEquivalentToRef)
 {
     set_up_apply_data(1);
 

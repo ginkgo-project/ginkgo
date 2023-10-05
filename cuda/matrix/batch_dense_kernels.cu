@@ -58,7 +58,7 @@ namespace gko {
 namespace kernels {
 namespace cuda {
 /**
- * @brief The BatchDense matrix format namespace.
+ * @brief The Dense matrix format namespace.
  *
  * @ingroup batch_dense
  */
