@@ -98,7 +98,7 @@ protected:
 
     static bool is_permutation(const perm_type* input_perm)
     {
-        const auto perm_size = input_perm->get_permutation_size();
+        const auto perm_size = input_perm->get_size()[0];
         auto perm_sorted = std::vector<i_type>(perm_size);
         std::copy_n(input_perm->get_const_permutation(), perm_size,
                     perm_sorted.begin());

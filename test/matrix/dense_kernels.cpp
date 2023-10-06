@@ -50,6 +50,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
+#include <ginkgo/core/matrix/permutation.hpp>
+#include <ginkgo/core/matrix/scaled_permutation.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -70,6 +72,9 @@ protected:
     using ComplexMtx = gko::matrix::Dense<std::complex<value_type>>;
     using Diagonal = gko::matrix::Diagonal<value_type>;
     using MixedComplexMtx = gko::matrix::Dense<std::complex<mixed_type>>;
+    using Permutation = gko::matrix::Permutation<index_type>;
+    using ScaledPermutation =
+        gko::matrix::ScaledPermutation<value_type, index_type>;
 
     Dense() : rand_engine(15) {}
 
@@ -145,9 +150,18 @@ protected:
         std::iota(tmp2.begin(), tmp2.end(), 0);
         std::shuffle(tmp2.begin(), tmp2.end(), rng);
         std::vector<int> tmp3(x->get_size()[0] / 10);
+        std::vector<value_type> scale_factors(tmp.size());
+        std::vector<value_type> scale_factors2(tmp2.size());
         std::uniform_int_distribution<int> row_dist(0, x->get_size()[0] - 1);
+        std::uniform_real_distribution<value_type> scale_dist{1, 2};
         for (auto& i : tmp3) {
             i = row_dist(rng);
+        }
+        for (auto& s : scale_factors) {
+            s = scale_dist(rng);
+        }
+        for (auto& s : scale_factors2) {
+            s = scale_dist(rng);
         }
         rpermute_idxs =
             std::unique_ptr<Arr>(new Arr{ref, tmp.begin(), tmp.end()});
@@ -155,6 +169,18 @@ protected:
             std::unique_ptr<Arr>(new Arr{ref, tmp2.begin(), tmp2.end()});
         rgather_idxs =
             std::unique_ptr<Arr>(new Arr{ref, tmp3.begin(), tmp3.end()});
+        rpermutation = Permutation::create(ref, tmp.size(), *rpermute_idxs);
+        cpermutation = Permutation::create(ref, tmp2.size(), *cpermute_idxs);
+        rspermutation = ScaledPermutation::create(
+            ref,
+            gko::array<value_type>{ref, scale_factors.begin(),
+                                   scale_factors.end()},
+            *rpermute_idxs);
+        cspermutation = ScaledPermutation::create(
+            ref,
+            gko::array<value_type>{ref, scale_factors2.begin(),
+                                   scale_factors2.end()},
+            *cpermute_idxs);
     }
 
     template <typename ConvertedType, typename InputType>
@@ -187,6 +213,10 @@ protected:
     std::unique_ptr<Mtx> dsquare;
     std::unique_ptr<Arr> rpermute_idxs;
     std::unique_ptr<Arr> cpermute_idxs;
+    std::unique_ptr<Permutation> rpermutation;
+    std::unique_ptr<Permutation> cpermutation;
+    std::unique_ptr<ScaledPermutation> rspermutation;
+    std::unique_ptr<ScaledPermutation> cspermutation;
     std::unique_ptr<Arr> rgather_idxs;
 };
 
@@ -1275,6 +1305,192 @@ TEST_F(Dense, CanAdvancedGatherRowsIntoMixedDenseCrossExecutor)
     sub_dx->row_gather(alpha, rgather_idxs.get(), beta, dr_gather);
 
     GKO_ASSERT_MTX_NEAR(r_gather, dr_gather, 0);
+}
+
+
+TEST_F(Dense, IsGenericPermutable)
+{
+    using gko::matrix::permute_mode;
+    set_up_apply_data();
+
+    for (auto mode :
+         {permute_mode::none, permute_mode::rows, permute_mode::columns,
+          permute_mode::symmetric, permute_mode::inverse_rows,
+          permute_mode::inverse_columns, permute_mode::inverse_symmetric}) {
+        SCOPED_TRACE(mode);
+        auto permuted = square->permute(rpermutation, mode);
+        auto dpermuted = dsquare->permute(rpermutation, mode);
+
+        GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+    }
+}
+
+
+TEST_F(Dense, IsGenericPermutableRectangular)
+{
+    using gko::matrix::permute_mode;
+    set_up_apply_data();
+
+    auto rpermuted = x->permute(rpermutation, permute_mode::rows);
+    auto drpermuted = dx->permute(rpermutation, permute_mode::rows);
+    auto irpermuted = x->permute(rpermutation, permute_mode::inverse_rows);
+    auto dirpermuted = dx->permute(rpermutation, permute_mode::inverse_rows);
+    auto cpermuted = x->permute(cpermutation, permute_mode::columns);
+    auto dcpermuted = dx->permute(cpermutation, permute_mode::columns);
+    auto icpermuted = x->permute(cpermutation, permute_mode::inverse_columns);
+    auto dicpermuted = dx->permute(cpermutation, permute_mode::inverse_columns);
+
+    GKO_ASSERT_MTX_NEAR(rpermuted, drpermuted, 0);
+    GKO_ASSERT_MTX_NEAR(irpermuted, dirpermuted, 0);
+    GKO_ASSERT_MTX_NEAR(cpermuted, dcpermuted, 0);
+    GKO_ASSERT_MTX_NEAR(icpermuted, dicpermuted, 0);
+}
+
+
+TEST_F(Dense, IsGenericPermutableIntoDenseCrossExecutor)
+{
+    using gko::matrix::permute_mode;
+    set_up_apply_data();
+
+    for (auto mode :
+         {permute_mode::none, permute_mode::rows, permute_mode::columns,
+          permute_mode::symmetric, permute_mode::inverse_rows,
+          permute_mode::inverse_columns, permute_mode::inverse_symmetric}) {
+        SCOPED_TRACE(mode);
+        auto host_permuted = square->clone();
+
+        auto ref_permuted = square->permute(rpermutation, mode);
+        dsquare->permute(rpermutation, host_permuted, mode);
+
+        GKO_ASSERT_MTX_NEAR(ref_permuted, host_permuted, 0);
+    }
+}
+
+
+TEST_F(Dense, IsNonsymmPermutable)
+{
+    using gko::matrix::permute_mode;
+    set_up_apply_data();
+
+    for (auto invert : {false, true}) {
+        SCOPED_TRACE(invert);
+        auto permuted = x->permute(rpermutation, cpermutation, invert);
+        auto dpermuted = dx->permute(rpermutation, cpermutation, invert);
+
+        GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+    }
+}
+
+
+TEST_F(Dense, IsNonsymmPermutableIntoDenseCrossExecutor)
+{
+    using gko::matrix::permute_mode;
+    set_up_apply_data();
+
+    for (auto invert : {false, true}) {
+        SCOPED_TRACE(invert);
+        auto host_permuted = dx->clone();
+
+        auto ref_permuted = x->permute(rpermutation, cpermutation, invert);
+        dx->permute(rpermutation, cpermutation, host_permuted, invert);
+
+        GKO_ASSERT_MTX_NEAR(ref_permuted, host_permuted, 0);
+    }
+}
+
+
+TEST_F(Dense, IsGenericScalePermutable)
+{
+    using gko::matrix::permute_mode;
+    set_up_apply_data();
+
+    for (auto mode :
+         {permute_mode::none, permute_mode::rows, permute_mode::columns,
+          permute_mode::symmetric, permute_mode::inverse_rows,
+          permute_mode::inverse_columns, permute_mode::inverse_symmetric}) {
+        SCOPED_TRACE(mode);
+        auto permuted = square->scale_permute(rspermutation, mode);
+        auto dpermuted = dsquare->scale_permute(rspermutation, mode);
+
+        GKO_ASSERT_MTX_NEAR(permuted, dpermuted, r<value_type>::value);
+    }
+}
+
+
+TEST_F(Dense, IsGenericScalePermutableRectangular)
+{
+    using gko::matrix::permute_mode;
+    set_up_apply_data();
+
+    auto rpermuted = x->scale_permute(rspermutation, permute_mode::rows);
+    auto drpermuted = dx->scale_permute(rspermutation, permute_mode::rows);
+    auto irpermuted =
+        x->scale_permute(rspermutation, permute_mode::inverse_rows);
+    auto dirpermuted =
+        dx->scale_permute(rspermutation, permute_mode::inverse_rows);
+    auto cpermuted = x->scale_permute(cspermutation, permute_mode::columns);
+    auto dcpermuted = dx->scale_permute(cspermutation, permute_mode::columns);
+    auto icpermuted =
+        x->scale_permute(cspermutation, permute_mode::inverse_columns);
+    auto dicpermuted =
+        dx->scale_permute(cspermutation, permute_mode::inverse_columns);
+
+    GKO_ASSERT_MTX_NEAR(rpermuted, drpermuted, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(irpermuted, dirpermuted, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(cpermuted, dcpermuted, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(icpermuted, dicpermuted, r<value_type>::value);
+}
+
+
+TEST_F(Dense, IsGenericScalePermutableIntoDenseCrossExecutor)
+{
+    using gko::matrix::permute_mode;
+    set_up_apply_data();
+
+    for (auto mode :
+         {permute_mode::none, permute_mode::rows, permute_mode::columns,
+          permute_mode::symmetric, permute_mode::inverse_rows,
+          permute_mode::inverse_columns, permute_mode::inverse_symmetric}) {
+        SCOPED_TRACE(mode);
+        auto host_permuted = square->clone();
+
+        auto ref_permuted = square->permute(rpermutation, mode);
+        dsquare->permute(rpermutation, host_permuted, mode);
+
+        GKO_ASSERT_MTX_NEAR(ref_permuted, host_permuted, r<value_type>::value);
+    }
+}
+
+
+TEST_F(Dense, IsNonsymmScalePermutable)
+{
+    using gko::matrix::permute_mode;
+    set_up_apply_data();
+
+    for (auto invert : {false, true}) {
+        SCOPED_TRACE(invert);
+        auto permuted = x->permute(rpermutation, cpermutation, invert);
+        auto dpermuted = dx->permute(rpermutation, cpermutation, invert);
+
+        GKO_ASSERT_MTX_NEAR(permuted, dpermuted, r<value_type>::value);
+    }
+}
+
+
+TEST_F(Dense, IsNonsymmScalePermutableIntoDenseCrossExecutor)
+{
+    using gko::matrix::permute_mode;
+    set_up_apply_data();
+
+    for (auto invert : {false, true}) {
+        SCOPED_TRACE(invert);
+        auto host_permuted = dx->clone();
+
+        auto ref_permuted = x->permute(rpermutation, cpermutation, invert);
+        dx->permute(rpermutation, cpermutation, host_permuted, invert);
+
+        GKO_ASSERT_MTX_NEAR(ref_permuted, host_permuted, r<value_type>::value);
+    }
 }
 
 

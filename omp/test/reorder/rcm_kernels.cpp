@@ -118,8 +118,7 @@ protected:
             return false;
         }
 
-        const auto n = gko::as<perm_type>(reorder->get_permutation())
-                           ->get_permutation_size();
+        const auto n = reorder->get_permutation()->get_size()[0];
         auto degrees = std::vector<i_type>(n);
         for (gko::size_type i = 0; i < n; ++i) {
             degrees[i] =
@@ -198,8 +197,8 @@ protected:
     static bool is_rcm_ordered(std::shared_ptr<CsrMtx> mtx,
                                std::shared_ptr<reorder_type> reorder)
     {
-        const auto n = gko::as<perm_type>(reorder->get_permutation())
-                           ->get_permutation_size();
+        const auto n =
+            gko::as<perm_type>(reorder->get_permutation())->get_size()[0];
         const auto row_ptrs = mtx->get_const_row_ptrs();
         const auto col_idxs = mtx->get_const_col_idxs();
         auto degrees = std::vector<i_type>(n);

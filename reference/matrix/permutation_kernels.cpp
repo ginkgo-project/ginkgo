@@ -30,54 +30,29 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/matrix/permutation.hpp>
 #include "core/matrix/permutation_kernels.hpp"
-#include "ginkgo/core/base/executor.hpp"
 
 
 namespace gko {
-namespace matrix {
+namespace kernels {
+namespace reference {
 namespace permutation {
 
 
-GKO_REGISTER_OPERATION(invert, permutation::invert);
-
-
-}
-
-
 template <typename IndexType>
-std::unique_ptr<Permutation<IndexType>> Permutation<IndexType>::invert() const
+void invert(std::shared_ptr<const DefaultExecutor> exec,
+            const IndexType* permutation, size_type size,
+            IndexType* output_permutation)
 {
-    const auto exec = this->get_executor();
-    const auto size = this->get_size()[0];
-    array<index_type> inv_permutation{exec, size};
-    exec->run(permutation::make_invert(this->get_const_permutation(), size,
-                                       inv_permutation.get_data()));
-    return Permutation::create(exec, dim<2>{size, size},
-                               std::move(inv_permutation));
-}
-
-
-template <typename IndexType>
-void Permutation<IndexType>::write(
-    gko::matrix_data<value_type, index_type>& data) const
-{
-    const auto host_this =
-        make_temporary_clone(this->get_executor()->get_master(), this);
-    data.size = this->get_size();
-    data.nonzeros.clear();
-    data.nonzeros.reserve(data.size[0]);
-    for (IndexType row = 0; row < this->get_size()[0]; row++) {
-        data.nonzeros.emplace_back(row, host_this->get_const_permutation()[row],
-                                   1.0);
+    for (size_type i = 0; i < size; i++) {
+        output_permutation[permutation[i]] = i;
     }
 }
 
-
-#define GKO_DECLARE_PERMUTATION_MATRIX(_type) class Permutation<_type>
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PERMUTATION_MATRIX);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PERMUTATION_INVERT_KERNEL);
 
 
-}  // namespace matrix
+}  // namespace permutation
+}  // namespace reference
+}  // namespace kernels
 }  // namespace gko

@@ -35,6 +35,8 @@ target_sources(ginkgo_reference
     matrix/fbcsr_kernels.cpp
     matrix/fft_kernels.cpp
     matrix/hybrid_kernels.cpp
+    matrix/permutation_kernels.cpp
+    matrix/scaled_permutation_kernels.cpp
     matrix/sellp_kernels.cpp
     matrix/sparsity_csr_kernels.cpp
     multigrid/pgm_kernels.cpp

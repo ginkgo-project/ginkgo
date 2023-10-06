@@ -51,39 +51,40 @@ namespace {
 template <typename ValueIndexType>
 class Permutation : public ::testing::Test {
 protected:
-    using v_type =
+    using value_type =
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
-    using i_type =
+    using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using Vec = gko::matrix::Dense<v_type>;
-    using Csr = gko::matrix::Csr<v_type, i_type>;
+    using Vec = gko::matrix::Dense<value_type>;
+    using Csr = gko::matrix::Csr<value_type, index_type>;
     Permutation()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::matrix::Permutation<i_type>::create(
-              exec, gko::dim<2>{4, 3}, gko::array<i_type>{exec, {1, 0, 2, 3}}))
+          mtx(gko::matrix::Permutation<index_type>::create(
+              exec, gko::dim<2>{4, 3},
+              gko::array<index_type>{exec, {1, 0, 2, 3}}))
     {}
 
 
     static void assert_equal_to_original_mtx(
-        gko::ptr_param<gko::matrix::Permutation<i_type>> m)
+        gko::ptr_param<gko::matrix::Permutation<index_type>> m)
     {
         auto perm = m->get_permutation();
         ASSERT_EQ(m->get_size(), gko::dim<2>(4, 3));
-        ASSERT_EQ(m->get_permutation_size(), 4);
+        ASSERT_EQ(m->get_size()[0], 4);
         ASSERT_EQ(perm[0], 1);
         ASSERT_EQ(perm[1], 0);
         ASSERT_EQ(perm[2], 2);
         ASSERT_EQ(perm[3], 3);
     }
 
-    static void assert_empty(gko::matrix::Permutation<i_type>* m)
+    static void assert_empty(gko::matrix::Permutation<index_type>* m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
-        ASSERT_EQ(m->get_permutation_size(), 0);
+        ASSERT_EQ(m->get_size()[0], 0);
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<gko::matrix::Permutation<i_type>> mtx;
+    std::unique_ptr<gko::matrix::Permutation<index_type>> mtx;
 };
 
 TYPED_TEST_SUITE(Permutation, gko::test::ValueIndexTypes,
@@ -92,8 +93,8 @@ TYPED_TEST_SUITE(Permutation, gko::test::ValueIndexTypes,
 
 TYPED_TEST(Permutation, CanBeEmpty)
 {
-    using i_type = typename TestFixture::i_type;
-    auto empty = gko::matrix::Permutation<i_type>::create(this->exec);
+    using index_type = typename TestFixture::index_type;
+    auto empty = gko::matrix::Permutation<index_type>::create(this->exec);
 
     this->assert_empty(empty.get());
 }
@@ -101,8 +102,8 @@ TYPED_TEST(Permutation, CanBeEmpty)
 
 TYPED_TEST(Permutation, ReturnsNullValuesArrayWhenEmpty)
 {
-    using i_type = typename TestFixture::i_type;
-    auto empty = gko::matrix::Permutation<i_type>::create(this->exec);
+    using index_type = typename TestFixture::index_type;
+    auto empty = gko::matrix::Permutation<index_type>::create(this->exec);
 
     ASSERT_EQ(empty->get_const_permutation(), nullptr);
 }
@@ -110,19 +111,19 @@ TYPED_TEST(Permutation, ReturnsNullValuesArrayWhenEmpty)
 
 TYPED_TEST(Permutation, CanBeConstructedWithSize)
 {
-    using i_type = typename TestFixture::i_type;
-    auto m =
-        gko::matrix::Permutation<i_type>::create(this->exec, gko::dim<2>{2, 3});
+    using index_type = typename TestFixture::index_type;
+    auto m = gko::matrix::Permutation<index_type>::create(this->exec,
+                                                          gko::dim<2>{2, 3});
 
     ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(m->get_permutation_size(), 2);
+    ASSERT_EQ(m->get_size()[0], 2);
 }
 
 
 TYPED_TEST(Permutation, FactorySetsCorrectPermuteMask)
 {
-    using i_type = typename TestFixture::i_type;
-    auto m = gko::matrix::Permutation<i_type>::create(this->exec);
+    using index_type = typename TestFixture::index_type;
+    auto m = gko::matrix::Permutation<index_type>::create(this->exec);
     auto mask = m->get_permute_mask();
 
     ASSERT_EQ(mask, gko::matrix::row_permute);
@@ -131,10 +132,10 @@ TYPED_TEST(Permutation, FactorySetsCorrectPermuteMask)
 
 TYPED_TEST(Permutation, PermutationCanBeConstructedFromExistingData)
 {
-    using i_type = typename TestFixture::i_type;
-    i_type data[] = {1, 0, 2};
+    using index_type = typename TestFixture::index_type;
+    index_type data[] = {1, 0, 2};
 
-    auto m = gko::matrix::Permutation<i_type>::create(
+    auto m = gko::matrix::Permutation<index_type>::create(
         this->exec, gko::dim<2>{3, 5},
         gko::make_array_view(this->exec, 3, data));
 
@@ -144,12 +145,12 @@ TYPED_TEST(Permutation, PermutationCanBeConstructedFromExistingData)
 
 TYPED_TEST(Permutation, PermutationCanBeConstructedFromExistingConstData)
 {
-    using i_type = typename TestFixture::i_type;
-    using i_type = typename TestFixture::i_type;
-    const i_type data[] = {1, 0, 2};
+    using index_type = typename TestFixture::index_type;
+    using index_type = typename TestFixture::index_type;
+    const index_type data[] = {1, 0, 2};
 
-    auto m = gko::matrix::Permutation<i_type>::create_const(
-        this->exec, 3, gko::array<i_type>::const_view(this->exec, 3, data));
+    auto m = gko::matrix::Permutation<index_type>::create_const(
+        this->exec, 3, gko::array<index_type>::const_view(this->exec, 3, data));
 
     ASSERT_EQ(m->get_const_permutation(), data);
 }
@@ -157,20 +158,20 @@ TYPED_TEST(Permutation, PermutationCanBeConstructedFromExistingConstData)
 
 TYPED_TEST(Permutation, CanBeConstructedWithSizeAndMask)
 {
-    using i_type = typename TestFixture::i_type;
-    auto m = gko::matrix::Permutation<i_type>::create(
+    using index_type = typename TestFixture::index_type;
+    auto m = gko::matrix::Permutation<index_type>::create(
         this->exec, gko::dim<2>{2, 3}, gko::matrix::column_permute);
 
     ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(m->get_permutation_size(), 2);
+    ASSERT_EQ(m->get_size()[0], 2);
     ASSERT_EQ(m->get_permute_mask(), gko::matrix::column_permute);
 }
 
 
 TYPED_TEST(Permutation, CanExplicitlyOverrideSetPermuteMask)
 {
-    using i_type = typename TestFixture::i_type;
-    auto m = gko::matrix::Permutation<i_type>::create(
+    using index_type = typename TestFixture::index_type;
+    auto m = gko::matrix::Permutation<index_type>::create(
         this->exec, gko::dim<2>{2, 3}, gko::matrix::column_permute);
 
     auto mask = m->get_permute_mask();
@@ -186,10 +187,10 @@ TYPED_TEST(Permutation, CanExplicitlyOverrideSetPermuteMask)
 
 TYPED_TEST(Permutation, PermutationThrowsforWrongRowPermDimensions)
 {
-    using i_type = typename TestFixture::i_type;
-    i_type data[] = {0, 2, 1};
+    using index_type = typename TestFixture::index_type;
+    index_type data[] = {0, 2, 1};
 
-    ASSERT_THROW(gko::matrix::Permutation<i_type>::create(
+    ASSERT_THROW(gko::matrix::Permutation<index_type>::create(
                      this->exec, gko::dim<2>{4, 2},
                      gko::make_array_view(this->exec, 3, data)),
                  gko::ValueMismatch);
@@ -198,10 +199,10 @@ TYPED_TEST(Permutation, PermutationThrowsforWrongRowPermDimensions)
 
 TYPED_TEST(Permutation, SettingMaskDoesNotModifyData)
 {
-    using i_type = typename TestFixture::i_type;
-    i_type data[] = {1, 0, 2};
+    using index_type = typename TestFixture::index_type;
+    index_type data[] = {1, 0, 2};
 
-    auto m = gko::matrix::Permutation<i_type>::create(
+    auto m = gko::matrix::Permutation<index_type>::create(
         this->exec, gko::dim<2>{3, 5},
         gko::make_array_view(this->exec, 3, data));
 
@@ -220,10 +221,10 @@ TYPED_TEST(Permutation, SettingMaskDoesNotModifyData)
 
 TYPED_TEST(Permutation, PermutationThrowsforWrongColPermDimensions)
 {
-    using i_type = typename TestFixture::i_type;
-    i_type data[] = {0, 2, 1};
+    using index_type = typename TestFixture::index_type;
+    index_type data[] = {0, 2, 1};
 
-    ASSERT_THROW(gko::matrix::Permutation<i_type>::create(
+    ASSERT_THROW(gko::matrix::Permutation<index_type>::create(
                      this->exec, gko::dim<2>{3, 4},
                      gko::make_array_view(this->exec, 3, data),
                      gko::matrix::column_permute),
@@ -239,8 +240,8 @@ TYPED_TEST(Permutation, KnowsItsSizeAndValues)
 
 TYPED_TEST(Permutation, CanBeCopied)
 {
-    using i_type = typename TestFixture::i_type;
-    auto mtx_copy = gko::matrix::Permutation<i_type>::create(this->exec);
+    using index_type = typename TestFixture::index_type;
+    auto mtx_copy = gko::matrix::Permutation<index_type>::create(this->exec);
 
     mtx_copy->copy_from(this->mtx);
 
@@ -252,8 +253,8 @@ TYPED_TEST(Permutation, CanBeCopied)
 
 TYPED_TEST(Permutation, CanBeMoved)
 {
-    using i_type = typename TestFixture::i_type;
-    auto mtx_copy = gko::matrix::Permutation<i_type>::create(this->exec);
+    using index_type = typename TestFixture::index_type;
+    auto mtx_copy = gko::matrix::Permutation<index_type>::create(this->exec);
 
     mtx_copy->move_from(this->mtx);
 
@@ -263,8 +264,8 @@ TYPED_TEST(Permutation, CanBeMoved)
 
 TYPED_TEST(Permutation, CopyingPreservesMask)
 {
-    using i_type = typename TestFixture::i_type;
-    auto mtx_copy = gko::matrix::Permutation<i_type>::create(this->exec);
+    using index_type = typename TestFixture::index_type;
+    auto mtx_copy = gko::matrix::Permutation<index_type>::create(this->exec);
 
     mtx_copy->copy_from(this->mtx);
 

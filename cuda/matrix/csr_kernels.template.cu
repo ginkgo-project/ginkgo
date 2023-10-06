@@ -124,7 +124,7 @@ namespace {
 template <int items_per_thread, typename MatrixValueType,
           typename InputValueType, typename OutputValueType, typename IndexType>
 void merge_path_spmv(syn::value_list<int, items_per_thread>,
-                     std::shared_ptr<const CudaExecutor> exec,
+                     std::shared_ptr<const DefaultExecutor> exec,
                      const matrix::Csr<MatrixValueType, IndexType>* a,
                      const matrix::Dense<InputValueType>* b,
                      matrix::Dense<OutputValueType>* c,
@@ -204,7 +204,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_merge_path_spmv, merge_path_spmv);
 
 
 template <typename ValueType, typename IndexType>
-int compute_items_per_thread(std::shared_ptr<const CudaExecutor> exec)
+int compute_items_per_thread(std::shared_ptr<const DefaultExecutor> exec)
 {
     const int version =
         (exec->get_major_version() << 4) + exec->get_minor_version();
@@ -245,7 +245,7 @@ int compute_items_per_thread(std::shared_ptr<const CudaExecutor> exec)
 template <int subwarp_size, typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 void classical_spmv(syn::value_list<int, subwarp_size>,
-                    std::shared_ptr<const CudaExecutor> exec,
+                    std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Csr<MatrixValueType, IndexType>* a,
                     const matrix::Dense<InputValueType>* b,
                     matrix::Dense<OutputValueType>* c,
@@ -298,7 +298,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_classical_spmv, classical_spmv);
 
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
-void load_balance_spmv(std::shared_ptr<const CudaExecutor> exec,
+void load_balance_spmv(std::shared_ptr<const DefaultExecutor> exec,
                        const matrix::Csr<MatrixValueType, IndexType>* a,
                        const matrix::Dense<InputValueType>* b,
                        matrix::Dense<OutputValueType>* c,
@@ -349,7 +349,7 @@ void load_balance_spmv(std::shared_ptr<const CudaExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-bool try_general_sparselib_spmv(std::shared_ptr<const CudaExecutor> exec,
+bool try_general_sparselib_spmv(std::shared_ptr<const DefaultExecutor> exec,
                                 const ValueType* alpha,
                                 const matrix::Csr<ValueType, IndexType>* a,
                                 const matrix::Dense<ValueType>* b,
@@ -441,7 +441,7 @@ template <typename MatrixValueType, typename InputValueType,
           typename = std::enable_if_t<
               !std::is_same<MatrixValueType, InputValueType>::value ||
               !std::is_same<MatrixValueType, OutputValueType>::value>>
-bool try_sparselib_spmv(std::shared_ptr<const CudaExecutor> exec,
+bool try_sparselib_spmv(std::shared_ptr<const DefaultExecutor> exec,
                         const matrix::Csr<MatrixValueType, IndexType>* a,
                         const matrix::Dense<InputValueType>* b,
                         matrix::Dense<OutputValueType>* c,
@@ -453,7 +453,7 @@ bool try_sparselib_spmv(std::shared_ptr<const CudaExecutor> exec,
 }
 
 template <typename ValueType, typename IndexType>
-bool try_sparselib_spmv(std::shared_ptr<const CudaExecutor> exec,
+bool try_sparselib_spmv(std::shared_ptr<const DefaultExecutor> exec,
                         const matrix::Csr<ValueType, IndexType>* a,
                         const matrix::Dense<ValueType>* b,
                         matrix::Dense<ValueType>* c,
@@ -479,7 +479,7 @@ bool try_sparselib_spmv(std::shared_ptr<const CudaExecutor> exec,
 
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
-void spmv(std::shared_ptr<const CudaExecutor> exec,
+void spmv(std::shared_ptr<const DefaultExecutor> exec,
           const matrix::Csr<MatrixValueType, IndexType>* a,
           const matrix::Dense<InputValueType>* b,
           matrix::Dense<OutputValueType>* c)
@@ -536,7 +536,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
 
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
+void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
                    const matrix::Dense<MatrixValueType>* alpha,
                    const matrix::Csr<MatrixValueType, IndexType>* a,
                    const matrix::Dense<InputValueType>* b,
@@ -597,7 +597,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void spgemm(std::shared_ptr<const CudaExecutor> exec,
+void spgemm(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Csr<ValueType, IndexType>* a,
             const matrix::Csr<ValueType, IndexType>* b,
             matrix::Csr<ValueType, IndexType>* c)
@@ -719,56 +719,8 @@ void spgemm(std::shared_ptr<const CudaExecutor> exec,
 }
 
 
-namespace {
-
-
-template <int subwarp_size, typename ValueType, typename IndexType>
-void spgeam(syn::value_list<int, subwarp_size>,
-            std::shared_ptr<const DefaultExecutor> exec, const ValueType* alpha,
-            const IndexType* a_row_ptrs, const IndexType* a_col_idxs,
-            const ValueType* a_vals, const ValueType* beta,
-            const IndexType* b_row_ptrs, const IndexType* b_col_idxs,
-            const ValueType* b_vals, matrix::Csr<ValueType, IndexType>* c)
-{
-    auto m = static_cast<IndexType>(c->get_size()[0]);
-    auto c_row_ptrs = c->get_row_ptrs();
-    // count nnz for alpha * A + beta * B
-    auto subwarps_per_block = default_block_size / subwarp_size;
-    auto num_blocks = ceildiv(m, subwarps_per_block);
-    if (num_blocks > 0) {
-        kernel::spgeam_nnz<subwarp_size>
-            <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
-                a_row_ptrs, a_col_idxs, b_row_ptrs, b_col_idxs, m, c_row_ptrs);
-    }
-
-    // build row pointers
-    components::prefix_sum_nonnegative(exec, c_row_ptrs, m + 1);
-
-    // accumulate non-zeros for alpha * A + beta * B
-    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-    auto c_nnz = exec->copy_val_to_host(c_row_ptrs + m);
-    c_builder.get_col_idx_array().resize_and_reset(c_nnz);
-    c_builder.get_value_array().resize_and_reset(c_nnz);
-    auto c_col_idxs = c->get_col_idxs();
-    auto c_vals = c->get_values();
-    if (num_blocks > 0) {
-        kernel::spgeam<subwarp_size>
-            <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
-                as_device_type(alpha), a_row_ptrs, a_col_idxs,
-                as_device_type(a_vals), as_device_type(beta), b_row_ptrs,
-                b_col_idxs, as_device_type(b_vals), m, c_row_ptrs, c_col_idxs,
-                as_device_type(c_vals));
-    }
-}
-
-GKO_ENABLE_IMPLEMENTATION_SELECTION(select_spgeam, spgeam);
-
-
-}  // namespace
-
-
 template <typename ValueType, typename IndexType>
-void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
+void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
                      const matrix::Dense<ValueType>* alpha,
                      const matrix::Csr<ValueType, IndexType>* a,
                      const matrix::Csr<ValueType, IndexType>* b,
@@ -914,54 +866,7 @@ void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void spgeam(std::shared_ptr<const DefaultExecutor> exec,
-            const matrix::Dense<ValueType>* alpha,
-            const matrix::Csr<ValueType, IndexType>* a,
-            const matrix::Dense<ValueType>* beta,
-            const matrix::Csr<ValueType, IndexType>* b,
-            matrix::Csr<ValueType, IndexType>* c)
-{
-    auto total_nnz =
-        a->get_num_stored_elements() + b->get_num_stored_elements();
-    auto nnz_per_row = total_nnz / a->get_size()[0];
-    select_spgeam(
-        spgeam_kernels(),
-        [&](int compiled_subwarp_size) {
-            return compiled_subwarp_size >= nnz_per_row ||
-                   compiled_subwarp_size == config::warp_size;
-        },
-        syn::value_list<int>(), syn::type_list<>(), exec,
-        alpha->get_const_values(), a->get_const_row_ptrs(),
-        a->get_const_col_idxs(), a->get_const_values(),
-        beta->get_const_values(), b->get_const_row_ptrs(),
-        b->get_const_col_idxs(), b->get_const_values(), c);
-}
-
-
-template <typename ValueType, typename IndexType>
-void fill_in_dense(std::shared_ptr<const CudaExecutor> exec,
-                   const matrix::Csr<ValueType, IndexType>* source,
-                   matrix::Dense<ValueType>* result)
-{
-    const auto num_rows = result->get_size()[0];
-    const auto num_cols = result->get_size()[1];
-    const auto stride = result->get_stride();
-    const auto row_ptrs = source->get_const_row_ptrs();
-    const auto col_idxs = source->get_const_col_idxs();
-    const auto vals = source->get_const_values();
-
-    auto grid_dim = ceildiv(num_rows, default_block_size);
-    if (grid_dim > 0) {
-        kernel::fill_in_dense<<<grid_dim, default_block_size, 0,
-                                exec->get_stream()>>>(
-            num_rows, as_device_type(row_ptrs), as_device_type(col_idxs),
-            as_device_type(vals), stride, as_device_type(result->get_values()));
-    }
-}
-
-
-template <typename ValueType, typename IndexType>
-void transpose(std::shared_ptr<const CudaExecutor> exec,
+void transpose(std::shared_ptr<const DefaultExecutor> exec,
                const matrix::Csr<ValueType, IndexType>* orig,
                matrix::Csr<ValueType, IndexType>* trans)
 {
@@ -1010,7 +915,7 @@ void transpose(std::shared_ptr<const CudaExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
+void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* orig,
                     matrix::Csr<ValueType, IndexType>* trans)
 {
@@ -1067,160 +972,7 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void inv_symm_permute(std::shared_ptr<const CudaExecutor> exec,
-                      const IndexType* perm,
-                      const matrix::Csr<ValueType, IndexType>* orig,
-                      matrix::Csr<ValueType, IndexType>* permuted)
-{
-    auto num_rows = orig->get_size()[0];
-    auto count_num_blocks = ceildiv(num_rows, default_block_size);
-    if (count_num_blocks > 0) {
-        kernel::inv_row_ptr_permute<<<count_num_blocks, default_block_size, 0,
-                                      exec->get_stream()>>>(
-            num_rows, perm, orig->get_const_row_ptrs(),
-            permuted->get_row_ptrs());
-    }
-    components::prefix_sum_nonnegative(exec, permuted->get_row_ptrs(),
-                                       num_rows + 1);
-    auto copy_num_blocks =
-        ceildiv(num_rows, default_block_size / config::warp_size);
-    if (copy_num_blocks > 0) {
-        kernel::inv_symm_permute<config::warp_size>
-            <<<copy_num_blocks, default_block_size, 0, exec->get_stream()>>>(
-                num_rows, perm, orig->get_const_row_ptrs(),
-                orig->get_const_col_idxs(),
-                as_device_type(orig->get_const_values()),
-                permuted->get_row_ptrs(), permuted->get_col_idxs(),
-                as_device_type(permuted->get_values()));
-    }
-}
-
-
-template <typename ValueType, typename IndexType>
-void row_permute(std::shared_ptr<const CudaExecutor> exec,
-                 const IndexType* perm,
-                 const matrix::Csr<ValueType, IndexType>* orig,
-                 matrix::Csr<ValueType, IndexType>* row_permuted)
-{
-    auto num_rows = orig->get_size()[0];
-    auto count_num_blocks = ceildiv(num_rows, default_block_size);
-    if (count_num_blocks > 0) {
-        kernel::row_ptr_permute<<<count_num_blocks, default_block_size, 0,
-                                  exec->get_stream()>>>(
-            num_rows, perm, orig->get_const_row_ptrs(),
-            row_permuted->get_row_ptrs());
-    }
-    components::prefix_sum_nonnegative(exec, row_permuted->get_row_ptrs(),
-                                       num_rows + 1);
-    auto copy_num_blocks =
-        ceildiv(num_rows, default_block_size / config::warp_size);
-    if (copy_num_blocks > 0) {
-        kernel::row_permute<config::warp_size>
-            <<<copy_num_blocks, default_block_size, 0, exec->get_stream()>>>(
-                num_rows, perm, orig->get_const_row_ptrs(),
-                orig->get_const_col_idxs(),
-                as_device_type(orig->get_const_values()),
-                row_permuted->get_row_ptrs(), row_permuted->get_col_idxs(),
-                as_device_type(row_permuted->get_values()));
-    }
-}
-
-
-template <typename ValueType, typename IndexType>
-void inverse_row_permute(std::shared_ptr<const CudaExecutor> exec,
-                         const IndexType* perm,
-                         const matrix::Csr<ValueType, IndexType>* orig,
-                         matrix::Csr<ValueType, IndexType>* row_permuted)
-{
-    auto num_rows = orig->get_size()[0];
-    auto count_num_blocks = ceildiv(num_rows, default_block_size);
-    if (count_num_blocks > 0) {
-        kernel::inv_row_ptr_permute<<<count_num_blocks, default_block_size, 0,
-                                      exec->get_stream()>>>(
-            num_rows, perm, orig->get_const_row_ptrs(),
-            row_permuted->get_row_ptrs());
-    }
-    components::prefix_sum_nonnegative(exec, row_permuted->get_row_ptrs(),
-                                       num_rows + 1);
-    auto copy_num_blocks =
-        ceildiv(num_rows, default_block_size / config::warp_size);
-    if (copy_num_blocks > 0) {
-        kernel::inv_row_permute<config::warp_size>
-            <<<copy_num_blocks, default_block_size, 0, exec->get_stream()>>>(
-                num_rows, perm, orig->get_const_row_ptrs(),
-                orig->get_const_col_idxs(),
-                as_device_type(orig->get_const_values()),
-                row_permuted->get_row_ptrs(), row_permuted->get_col_idxs(),
-                as_device_type(row_permuted->get_values()));
-    }
-}
-
-
-template <typename ValueType, typename IndexType>
-void calculate_nonzeros_per_row_in_span(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* source, const span& row_span,
-    const span& col_span, array<IndexType>* row_nnz)
-{
-    const auto num_rows = source->get_size()[0];
-    auto row_ptrs = source->get_const_row_ptrs();
-    auto col_idxs = source->get_const_col_idxs();
-    auto grid_dim = ceildiv(row_span.length(), default_block_size);
-    if (grid_dim > 0) {
-        kernel::calculate_nnz_per_row_in_span<<<grid_dim, default_block_size, 0,
-                                                exec->get_stream()>>>(
-            row_span, col_span, as_device_type(row_ptrs),
-            as_device_type(col_idxs), as_device_type(row_nnz->get_data()));
-    }
-}
-
-
-template <typename ValueType, typename IndexType>
-void compute_submatrix(std::shared_ptr<const DefaultExecutor> exec,
-                       const matrix::Csr<ValueType, IndexType>* source,
-                       gko::span row_span, gko::span col_span,
-                       matrix::Csr<ValueType, IndexType>* result)
-{
-    auto row_offset = row_span.begin;
-    auto col_offset = col_span.begin;
-    auto num_rows = result->get_size()[0];
-    auto num_cols = result->get_size()[1];
-    auto row_ptrs = source->get_const_row_ptrs();
-    auto grid_dim = ceildiv(num_rows, default_block_size);
-    if (grid_dim > 0) {
-        kernel::compute_submatrix_idxs_and_vals<<<grid_dim, default_block_size,
-                                                  0, exec->get_stream()>>>(
-            num_rows, num_cols, row_offset, col_offset,
-            as_device_type(source->get_const_row_ptrs()),
-            as_device_type(source->get_const_col_idxs()),
-            as_device_type(source->get_const_values()),
-            as_device_type(result->get_const_row_ptrs()),
-            as_device_type(result->get_col_idxs()),
-            as_device_type(result->get_values()));
-    }
-}
-
-
-template <typename ValueType, typename IndexType>
-void calculate_nonzeros_per_row_in_index_set(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* source,
-    const gko::index_set<IndexType>& row_index_set,
-    const gko::index_set<IndexType>& col_index_set,
-    IndexType* row_nnz) GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType, typename IndexType>
-void compute_submatrix_from_index_set(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* source,
-    const gko::index_set<IndexType>& row_index_set,
-    const gko::index_set<IndexType>& col_index_set,
-    matrix::Csr<ValueType, IndexType>* result) GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType, typename IndexType>
-void sort_by_column_index(std::shared_ptr<const CudaExecutor> exec,
+void sort_by_column_index(std::shared_ptr<const DefaultExecutor> exec,
                           matrix::Csr<ValueType, IndexType>* to_sort)
 {
     if (cusparse::is_supported<ValueType, IndexType>::value) {
@@ -1268,95 +1020,6 @@ void sort_by_column_index(std::shared_ptr<const CudaExecutor> exec,
     } else {
         fallback_sort(exec, to_sort);
     }
-}
-
-
-template <typename ValueType, typename IndexType>
-void is_sorted_by_column_index(
-    std::shared_ptr<const CudaExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* to_check, bool* is_sorted)
-{
-    *is_sorted = true;
-    auto cpu_array = make_array_view(exec->get_master(), 1, is_sorted);
-    auto gpu_array = array<bool>{exec, cpu_array};
-    auto block_size = default_block_size;
-    auto num_rows = static_cast<IndexType>(to_check->get_size()[0]);
-    auto num_blocks = ceildiv(num_rows, block_size);
-    if (num_blocks > 0) {
-        kernel::
-            check_unsorted<<<num_blocks, block_size, 0, exec->get_stream()>>>(
-                to_check->get_const_row_ptrs(), to_check->get_const_col_idxs(),
-                num_rows, gpu_array.get_data());
-    }
-    cpu_array = gpu_array;
-}
-
-
-template <typename ValueType, typename IndexType>
-void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType>* orig,
-                      matrix::Diagonal<ValueType>* diag)
-{
-    const auto nnz = orig->get_num_stored_elements();
-    const auto diag_size = diag->get_size()[0];
-    const auto num_blocks =
-        ceildiv(config::warp_size * diag_size, default_block_size);
-
-    const auto orig_values = orig->get_const_values();
-    const auto orig_row_ptrs = orig->get_const_row_ptrs();
-    const auto orig_col_idxs = orig->get_const_col_idxs();
-    auto diag_values = diag->get_values();
-
-    if (num_blocks > 0) {
-        kernel::extract_diagonal<<<num_blocks, default_block_size, 0,
-                                   exec->get_stream()>>>(
-            diag_size, nnz, as_device_type(orig_values),
-            as_device_type(orig_row_ptrs), as_device_type(orig_col_idxs),
-            as_device_type(diag_values));
-    }
-}
-
-
-template <typename ValueType, typename IndexType>
-void check_diagonal_entries_exist(
-    std::shared_ptr<const CudaExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* const mtx, bool& has_all_diags)
-{
-    const auto num_diag = static_cast<IndexType>(
-        std::min(mtx->get_size()[0], mtx->get_size()[1]));
-    if (num_diag > 0) {
-        const IndexType num_blocks =
-            ceildiv(num_diag, default_block_size / config::warp_size);
-        array<bool> has_diags(exec, {true});
-        kernel::check_diagonal_entries<<<num_blocks, default_block_size, 0,
-                                         exec->get_stream()>>>(
-            num_diag, mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
-            has_diags.get_data());
-        has_all_diags = exec->copy_val_to_host(has_diags.get_const_data());
-    } else {
-        has_all_diags = true;
-    }
-}
-
-
-template <typename ValueType, typename IndexType>
-void add_scaled_identity(std::shared_ptr<const CudaExecutor> exec,
-                         const matrix::Dense<ValueType>* const alpha,
-                         const matrix::Dense<ValueType>* const beta,
-                         matrix::Csr<ValueType, IndexType>* const mtx)
-{
-    const auto nrows = mtx->get_size()[0];
-    if (nrows == 0) {
-        return;
-    }
-    const auto nthreads = nrows * config::warp_size;
-    const auto nblocks = ceildiv(nthreads, default_block_size);
-    kernel::add_scaled_identity<<<nblocks, default_block_size, 0,
-                                  exec->get_stream()>>>(
-        as_device_type(alpha->get_const_values()),
-        as_device_type(beta->get_const_values()), static_cast<IndexType>(nrows),
-        mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
-        as_device_type(mtx->get_values()));
 }
 
 

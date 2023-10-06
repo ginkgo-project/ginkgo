@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/scaled_permutation.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -47,72 +48,68 @@ namespace {
 
 
 template <typename ValueIndexType>
-class Permutation : public ::testing::Test {
+class ScaledPermutation : public ::testing::Test {
 protected:
     using value_type =
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Vec = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::ScaledPermutation<value_type, index_type>;
 
-    Permutation() : exec(gko::ReferenceExecutor::create()) {}
+    ScaledPermutation() : exec(gko::ReferenceExecutor::create())
+    {
+        perm3 = Mtx::create(exec,
+                            gko::array<value_type>{this->exec, {1.0, 2.0, 4.0}},
+                            gko::array<index_type>{this->exec, {1, 2, 0}});
+        perm2 =
+            Mtx::create(exec, gko::array<value_type>{this->exec, {3.0, 5.0}},
+                        gko::array<index_type>{this->exec, {1, 0}});
+    }
 
     std::shared_ptr<const gko::Executor> exec;
+    std::unique_ptr<Mtx> perm3;
+    std::unique_ptr<Mtx> perm2;
 };
 
-TYPED_TEST_SUITE(Permutation, gko::test::ValueIndexTypes,
+TYPED_TEST_SUITE(ScaledPermutation, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 
-TYPED_TEST(Permutation, Invert)
+TYPED_TEST(ScaledPermutation, Invert)
 {
-    using index_type = typename TestFixture::index_type;
-    auto perm = gko::matrix::Permutation<index_type>::create(
-        this->exec, 3, gko::array<index_type>{this->exec, {1, 2, 0}});
-
-    auto inv = perm->invert();
+    using T = typename TestFixture::value_type;
+    auto inv = this->perm3->invert();
 
     EXPECT_EQ(inv->get_const_permutation()[0], 2);
     EXPECT_EQ(inv->get_const_permutation()[1], 0);
     EXPECT_EQ(inv->get_const_permutation()[2], 1);
+    EXPECT_EQ(inv->get_const_scale()[0], T{0.25});
+    EXPECT_EQ(inv->get_const_scale()[1], T{1.0});
+    EXPECT_EQ(inv->get_const_scale()[2], T{0.5});
 }
 
 
-TYPED_TEST(Permutation, Write)
+TYPED_TEST(ScaledPermutation, Write)
 {
-    using index_type = typename TestFixture::index_type;
-    auto perm = gko::matrix::Permutation<index_type>::create(
-        this->exec, 3, gko::array<index_type>{this->exec, {1, 2, 0}});
+    using T = typename TestFixture::value_type;
 
     GKO_ASSERT_MTX_NEAR(
-        perm, l<double>({{0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}, {1.0, 0.0, 0.0}}),
+        this->perm3, l<T>({{0.0, 1.0, 0.0}, {0.0, 0.0, 2.0}, {4.0, 0.0, 0.0}}),
         0.0);
 }
 
 
-TYPED_TEST(Permutation, AppliesRowPermutationToDense)
+TYPED_TEST(ScaledPermutation, AppliesToDense)
 {
-    using index_type = typename TestFixture::index_type;
     using T = typename TestFixture::value_type;
     using Vec = typename TestFixture::Vec;
-    // clang-format off
-    auto x = gko::initialize<Vec>(
-        {I<T>{2.0, 3.0},
-         I<T>{4.0, 2.5}}, this->exec);
-    // clang-format on
+    auto x = gko::initialize<Vec>({I<T>{2.0, 3.0}, I<T>{4.0, 2.5}}, this->exec);
     auto y = Vec::create(this->exec, gko::dim<2>{2});
-    index_type rdata[] = {1, 0};
 
-    auto perm = gko::matrix::Permutation<index_type>::create(
-        this->exec, gko::dim<2>{2}, gko::make_array_view(this->exec, 2, rdata));
+    this->perm2->apply(x, y);
 
-    perm->apply(x, y);
-    // clang-format off
-    GKO_ASSERT_MTX_NEAR(y,
-                        l({{4.0, 2.5},
-                           {2.0, 3.0}}),
-                        0.0);
-    // clang-format on
+    GKO_ASSERT_MTX_NEAR(y, l({{12.0, 7.5}, {10.0, 15.0}}), 0.0);
 }
 
 

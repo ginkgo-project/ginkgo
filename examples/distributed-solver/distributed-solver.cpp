@@ -119,15 +119,14 @@ int main(int argc, char* argv[])
                  int device_id = gko::experimental::mpi::map_rank_to_device_id(
                      comm, gko::CudaExecutor::get_num_devices());
                  return gko::CudaExecutor::create(
-                     device_id, gko::ReferenceExecutor::create(), false,
-                     gko::allocation_mode::device);
+                     device_id, gko::ReferenceExecutor::create());
              }},
             {"hip",
              [](MPI_Comm comm) {
                  int device_id = gko::experimental::mpi::map_rank_to_device_id(
                      comm, gko::HipExecutor::get_num_devices());
                  return gko::HipExecutor::create(
-                     device_id, gko::ReferenceExecutor::create(), true);
+                     device_id, gko::ReferenceExecutor::create());
              }},
             {"dpcpp", [](MPI_Comm comm) {
                  int device_id = 0;

@@ -1102,6 +1102,35 @@ void inv_symm_permute_kernel(size_type num_rows,
     }
 }
 
+
+template <int subgroup_size, typename ValueType, typename IndexType>
+void inv_nonsymm_permute_kernel(size_type num_rows,
+                                const IndexType* __restrict__ row_permutation,
+                                const IndexType* __restrict__ col_permutation,
+                                const IndexType* __restrict__ in_row_ptrs,
+                                const IndexType* __restrict__ in_cols,
+                                const ValueType* __restrict__ in_vals,
+                                const IndexType* __restrict__ out_row_ptrs,
+                                IndexType* __restrict__ out_cols,
+                                ValueType* __restrict__ out_vals,
+                                sycl::nd_item<3> item_ct1)
+{
+    auto tid = thread::get_subwarp_id_flat<subgroup_size>(item_ct1);
+    if (tid >= num_rows) {
+        return;
+    }
+    auto lane = item_ct1.get_local_id(2) % subgroup_size;
+    auto in_row = tid;
+    auto out_row = row_permutation[tid];
+    auto in_begin = in_row_ptrs[in_row];
+    auto in_size = in_row_ptrs[in_row + 1] - in_begin;
+    auto out_begin = out_row_ptrs[out_row];
+    for (IndexType i = lane; i < in_size; i += subgroup_size) {
+        out_cols[out_begin + i] = col_permutation[in_cols[in_begin + i]];
+        out_vals[out_begin + i] = in_vals[in_begin + i];
+    }
+}
+
 template <int subgroup_size, typename ValueType, typename IndexType>
 void inv_symm_permute_kernel(dim3 grid, dim3 block,
                              size_type dynamic_shared_memory,
@@ -1119,6 +1148,25 @@ void inv_symm_permute_kernel(dim3 grid, dim3 block,
                     num_rows, permutation, in_row_ptrs, in_cols, in_vals,
                     out_row_ptrs, out_cols, out_vals, item_ct1);
             });
+    });
+}
+
+template <int subgroup_size, typename ValueType, typename IndexType>
+void inv_nonsymm_permute_kernel(
+    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
+    size_type num_rows, const IndexType* row_permutation,
+    const IndexType* col_permutation, const IndexType* in_row_ptrs,
+    const IndexType* in_cols, const ValueType* in_vals,
+    const IndexType* out_row_ptrs, IndexType* out_cols, ValueType* out_vals)
+{
+    queue->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1) {
+                             inv_nonsymm_permute_kernel<subgroup_size>(
+                                 num_rows, row_permutation, col_permutation,
+                                 in_row_ptrs, in_cols, in_vals, out_row_ptrs,
+                                 out_cols, out_vals, item_ct1);
+                         });
     });
 }
 
@@ -2267,6 +2315,33 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void inv_nonsymm_permute(std::shared_ptr<const DpcppExecutor> exec,
+                         const IndexType* row_perm, const IndexType* col_perm,
+                         const matrix::Csr<ValueType, IndexType>* orig,
+                         matrix::Csr<ValueType, IndexType>* permuted)
+{
+    auto num_rows = orig->get_size()[0];
+    auto count_num_blocks = ceildiv(num_rows, default_block_size);
+    inv_row_ptr_permute_kernel(
+        count_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
+        row_perm, orig->get_const_row_ptrs(), permuted->get_row_ptrs());
+    components::prefix_sum_nonnegative(exec, permuted->get_row_ptrs(),
+                                       num_rows + 1);
+    auto copy_num_blocks =
+        ceildiv(num_rows, default_block_size / config::warp_size);
+    inv_symm_permute_kernel<config::warp_size>(
+        copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
+        row_perm, col_perm, orig->get_const_row_ptrs(),
+        orig->get_const_col_idxs(), orig->get_const_values(),
+        permuted->get_row_ptrs(), permuted->get_col_idxs(),
+        permuted->get_values());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_INV_NONSYMM_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void row_permute(std::shared_ptr<const DpcppExecutor> exec,
                  const IndexType* perm,
                  const matrix::Csr<ValueType, IndexType>* orig,
@@ -2293,10 +2368,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void inverse_row_permute(std::shared_ptr<const DpcppExecutor> exec,
-                         const IndexType* perm,
-                         const matrix::Csr<ValueType, IndexType>* orig,
-                         matrix::Csr<ValueType, IndexType>* row_permuted)
+void inv_row_permute(std::shared_ptr<const DpcppExecutor> exec,
+                     const IndexType* perm,
+                     const matrix::Csr<ValueType, IndexType>* orig,
+                     matrix::Csr<ValueType, IndexType>* row_permuted)
 {
     auto num_rows = orig->get_size()[0];
     auto count_num_blocks = ceildiv(num_rows, default_block_size);
@@ -2315,7 +2390,7 @@ void inverse_row_permute(std::shared_ptr<const DpcppExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_INVERSE_ROW_PERMUTE_KERNEL);
+    GKO_DECLARE_CSR_INV_ROW_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

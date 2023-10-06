@@ -52,6 +52,78 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace matrix {
 
+
+/** Specifies how a permutation will be applied to a matrix. */
+enum class permute_mode {
+    /** Neither rows nor columns will be permuted. */
+    none = 0b0,
+    /** The rows will be permuted. */
+    rows = 0b1,
+    /** The columns will be permuted. */
+    columns = 0b10,
+    /**
+     * The rows and columns will be permuted. This is equivalent to
+     * `permute_mode::rows | permute_mode::columns`.
+     */
+    symmetric = 0b11,
+    /** The permutation will be inverted before being applied. */
+    inverse = 0b100,
+    /**
+     * The rows will be permuted using the inverse permutation. This is
+     * equivalent to `permute_mode::rows | permute_mode::inverse`.
+     */
+    inverse_rows = 0b101,
+    /**
+     * The columns will be permuted using the inverse permutation. This is
+     * equivalent to `permute_mode::columns | permute_mode::inverse`.
+     */
+    inverse_columns = 0b110,
+    /**
+     * The rows and columns will be permuted using the inverse permutation. This
+     * is equivalent to `permute_mode::symmetric | permute_mode::inverse`.
+     */
+    inverse_symmetric = 0b111
+};
+
+
+/** Combines two permutation modes. */
+inline permute_mode operator|(permute_mode a, permute_mode b)
+{
+    return static_cast<permute_mode>(static_cast<int>(a) | static_cast<int>(b));
+}
+
+
+/** Computes the intersection of two permutation modes. */
+inline permute_mode operator&(permute_mode a, permute_mode b)
+{
+    return static_cast<permute_mode>(static_cast<int>(a) & static_cast<int>(b));
+}
+
+
+inline std::ostream& operator<<(std::ostream& stream, permute_mode mode)
+{
+    switch (mode) {
+    case permute_mode::none:
+        return stream << "none";
+    case permute_mode::rows:
+        return stream << "rows";
+    case permute_mode::columns:
+        return stream << "columns";
+    case permute_mode::symmetric:
+        return stream << "symmetric";
+    case permute_mode::inverse:
+        return stream << "inverse";
+    case permute_mode::inverse_rows:
+        return stream << "inverse_rows";
+    case permute_mode::inverse_columns:
+        return stream << "inverse_columns";
+    case permute_mode::inverse_symmetric:
+        return stream << "inverse_symmetric";
+    }
+    return stream;
+}
+
+
 /** @internal std::bitset allows to store any number of bits */
 using mask_type = gko::uint64;
 
@@ -77,11 +149,14 @@ static constexpr mask_type inverse_permute = mask_type{1 << 3};
  */
 template <typename IndexType = int32>
 class Permutation : public EnableLinOp<Permutation<IndexType>>,
-                    public EnableCreateMethod<Permutation<IndexType>> {
+                    public EnableCreateMethod<Permutation<IndexType>>,
+                    public WritableToMatrixData<default_precision, IndexType> {
     friend class EnableCreateMethod<Permutation>;
     friend class EnablePolymorphicObject<Permutation, LinOp>;
 
 public:
+    // value_type is only available to enable the usage of gko::write
+    using value_type = default_precision;
     using index_type = IndexType;
 
     /**
@@ -110,7 +185,8 @@ public:
      * @return the number of elements explicitly stored in the permutation
      * array.
      */
-    size_type get_permutation_size() const noexcept
+    [[deprecated("use get_size()[0] instead")]] size_type get_permutation_size()
+        const noexcept
     {
         return permutation_.get_num_elems();
     }
@@ -131,6 +207,16 @@ public:
     {
         enabled_permute_ = permute_mask;
     }
+
+    /**
+     * Returns the inverse permutation.
+     *
+     * @return a newly created Permutation object storing the inverse
+     *         permutation of this Permutation.
+     */
+    std::unique_ptr<Permutation> invert() const;
+
+    void write(gko::matrix_data<value_type, index_type>& data) const override;
 
     /**
      * Creates a constant (immutable) Permutation matrix from a constant array.
@@ -214,7 +300,7 @@ protected:
         }
     }
 
-    void apply_impl(const LinOp* in, LinOp* out) const
+    void apply_impl(const LinOp* in, LinOp* out) const override
     {
         auto perm = as<Permutable<index_type>>(in);
         std::unique_ptr<gko::LinOp> tmp{};
@@ -248,7 +334,7 @@ protected:
 
 
     void apply_impl(const LinOp*, const LinOp* in, const LinOp*,
-                    LinOp* out) const
+                    LinOp* out) const override
     {
         // Ignores alpha and beta and just performs a normal permutation as an
         // advanced apply does not really make sense here.
