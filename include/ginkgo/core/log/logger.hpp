@@ -455,9 +455,9 @@ protected:
      * @warning This on_iteration_complete function that this macro declares is
      * deprecated. Please use the version with the stopping information.
      */
-    [
-        [deprecated("Please use the version with the additional stopping "
-                    "information.")]] virtual void
+    [[deprecated(
+        "Please use the version with the additional stopping "
+        "information.")]] virtual void
     on_iteration_complete(const LinOp* solver, const size_type& it,
                           const LinOp* r, const LinOp* x = nullptr,
                           const LinOp* tau = nullptr) const
@@ -476,9 +476,9 @@ protected:
      * @warning This on_iteration_complete function that this macro declares is
      * deprecated. Please use the version with the stopping information.
      */
-    [
-        [deprecated("Please use the version with the additional stopping "
-                    "information.")]] virtual void
+    [[deprecated(
+        "Please use the version with the additional stopping "
+        "information.")]] virtual void
     on_iteration_complete(const LinOp* solver, const size_type& it,
                           const LinOp* r, const LinOp* x, const LinOp* tau,
                           const LinOp* implicit_tau_sq) const
@@ -810,8 +810,8 @@ private:
     template <size_type Event, typename ConcreteLoggableT>
     struct propagate_log_helper<
         Event, ConcreteLoggableT,
-        xstd::void_t<decltype(
-            std::declval<ConcreteLoggableT>().get_executor())>> {
+        xstd::void_t<
+            decltype(std::declval<ConcreteLoggableT>().get_executor())>> {
         template <typename... Args>
         static void propagate_log(const ConcreteLoggableT* loggable,
                                   Args&&... args)
