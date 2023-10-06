@@ -54,27 +54,11 @@ namespace GKO_DEVICE_NAMESPACE {
 namespace csr {
 
 
-template <typename IndexType>
-void invert_permutation(std::shared_ptr<const DefaultExecutor> exec,
-                        size_type size, const IndexType* permutation_indices,
-                        IndexType* inv_permutation)
-{
-    run_kernel(
-        exec,
-        [] GKO_KERNEL(auto tid, auto permutation, auto inv_permutation) {
-            inv_permutation[permutation[tid]] = tid;
-        },
-        size, permutation_indices, inv_permutation);
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INVERT_PERMUTATION_KERNEL);
-
-
 template <typename ValueType, typename IndexType>
-void inverse_column_permute(std::shared_ptr<const DefaultExecutor> exec,
-                            const IndexType* perm,
-                            const matrix::Csr<ValueType, IndexType>* orig,
-                            matrix::Csr<ValueType, IndexType>* column_permuted)
+void inv_col_permute(std::shared_ptr<const DefaultExecutor> exec,
+                     const IndexType* perm,
+                     const matrix::Csr<ValueType, IndexType>* orig,
+                     matrix::Csr<ValueType, IndexType>* col_permuted)
 {
     auto num_rows = orig->get_size()[0];
     auto nnz = orig->get_num_stored_elements();
@@ -95,12 +79,46 @@ void inverse_column_permute(std::shared_ptr<const DefaultExecutor> exec,
         },
         size, num_rows, nnz, perm, orig->get_const_row_ptrs(),
         orig->get_const_col_idxs(), orig->get_const_values(),
-        column_permuted->get_row_ptrs(), column_permuted->get_col_idxs(),
-        column_permuted->get_values());
+        col_permuted->get_row_ptrs(), col_permuted->get_col_idxs(),
+        col_permuted->get_values());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_INVERSE_COLUMN_PERMUTE_KERNEL);
+    GKO_DECLARE_CSR_INV_COL_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void inv_col_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
+                           const ValueType* scale, const IndexType* perm,
+                           const matrix::Csr<ValueType, IndexType>* orig,
+                           matrix::Csr<ValueType, IndexType>* col_permuted)
+{
+    auto num_rows = orig->get_size()[0];
+    auto nnz = orig->get_num_stored_elements();
+    auto size = std::max(num_rows, nnz);
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto tid, auto num_rows, auto num_nonzeros, auto scale,
+                      auto permutation, auto in_row_ptrs, auto in_col_idxs,
+                      auto in_vals, auto out_row_ptrs, auto out_col_idxs,
+                      auto out_vals) {
+            if (tid < num_nonzeros) {
+                const auto in_col = in_col_idxs[tid];
+                out_col_idxs[tid] = permutation[in_col];
+                out_vals[tid] = in_vals[tid] / scale[in_col];
+            }
+            if (tid <= num_rows) {
+                out_row_ptrs[tid] = in_row_ptrs[tid];
+            }
+        },
+        size, num_rows, nnz, scale, perm, orig->get_const_row_ptrs(),
+        orig->get_const_col_idxs(), orig->get_const_values(),
+        col_permuted->get_row_ptrs(), col_permuted->get_col_idxs(),
+        col_permuted->get_values());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_INV_COL_SCALE_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

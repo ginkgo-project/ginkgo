@@ -383,7 +383,7 @@ void compute_sqrt(std::shared_ptr<const DefaultExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void symm_permute(std::shared_ptr<const DefaultExecutor> exec,
-                  const array<IndexType>* permutation_indices,
+                  const IndexType* permutation_indices,
                   const matrix::Dense<ValueType>* orig,
                   matrix::Dense<ValueType>* permuted)
 {
@@ -392,13 +392,13 @@ void symm_permute(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto row, auto col, auto orig, auto perm, auto permuted) {
             permuted(row, col) = orig(perm[row], perm[col]);
         },
-        orig->get_size(), orig, *permutation_indices, permuted);
+        orig->get_size(), orig, permutation_indices, permuted);
 }
 
 
 template <typename ValueType, typename IndexType>
 void inv_symm_permute(std::shared_ptr<const DefaultExecutor> exec,
-                      const array<IndexType>* permutation_indices,
+                      const IndexType* permutation_indices,
                       const matrix::Dense<ValueType>* orig,
                       matrix::Dense<ValueType>* permuted)
 {
@@ -407,14 +407,49 @@ void inv_symm_permute(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto row, auto col, auto orig, auto perm, auto permuted) {
             permuted(perm[row], perm[col]) = orig(row, col);
         },
-        orig->get_size(), orig, *permutation_indices, permuted);
+        orig->get_size(), orig, permutation_indices, permuted);
+}
+
+
+template <typename ValueType, typename IndexType>
+void nonsymm_permute(std::shared_ptr<const DefaultExecutor> exec,
+                     const IndexType* row_permutation_indices,
+                     const IndexType* column_permutation_indices,
+                     const matrix::Dense<ValueType>* orig,
+                     matrix::Dense<ValueType>* permuted)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto col, auto orig, auto row_perm,
+                      auto col_perm, auto permuted) {
+            permuted(row, col) = orig(row_perm[row], col_perm[col]);
+        },
+        orig->get_size(), orig, row_permutation_indices,
+        column_permutation_indices, permuted);
+}
+
+
+template <typename ValueType, typename IndexType>
+void inv_nonsymm_permute(std::shared_ptr<const DefaultExecutor> exec,
+                         const IndexType* row_permutation_indices,
+                         const IndexType* column_permutation_indices,
+                         const matrix::Dense<ValueType>* orig,
+                         matrix::Dense<ValueType>* permuted)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto col, auto orig, auto row_perm,
+                      auto col_perm, auto permuted) {
+            permuted(row_perm[row], col_perm[col]) = orig(row, col);
+        },
+        orig->get_size(), orig, row_permutation_indices,
+        column_permutation_indices, permuted);
 }
 
 
 template <typename ValueType, typename OutputType, typename IndexType>
 void row_gather(std::shared_ptr<const DefaultExecutor> exec,
-                const array<IndexType>* row_idxs,
-                const matrix::Dense<ValueType>* orig,
+                const IndexType* row_idxs, const matrix::Dense<ValueType>* orig,
                 matrix::Dense<OutputType>* row_collection)
 {
     run_kernel(
@@ -422,15 +457,14 @@ void row_gather(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto row, auto col, auto orig, auto rows, auto gathered) {
             gathered(row, col) = orig(rows[row], col);
         },
-        dim<2>{row_idxs->get_num_elems(), orig->get_size()[1]}, orig, *row_idxs,
-        row_collection);
+        row_collection->get_size(), orig, row_idxs, row_collection);
 }
 
 
 template <typename ValueType, typename OutputType, typename IndexType>
 void advanced_row_gather(std::shared_ptr<const DefaultExecutor> exec,
                          const matrix::Dense<ValueType>* alpha,
-                         const array<IndexType>* row_idxs,
+                         const IndexType* row_idxs,
                          const matrix::Dense<ValueType>* orig,
                          const matrix::Dense<ValueType>* beta,
                          matrix::Dense<OutputType>* row_collection)
@@ -445,54 +479,191 @@ void advanced_row_gather(std::shared_ptr<const DefaultExecutor> exec,
                 static_cast<type>(beta[0]) *
                     static_cast<type>(gathered(row, col));
         },
-        dim<2>{row_idxs->get_num_elems(), orig->get_size()[1]},
-        alpha->get_const_values(), orig, *row_idxs, beta->get_const_values(),
-        row_collection);
+        row_collection->get_size(), alpha->get_const_values(), orig, row_idxs,
+        beta->get_const_values(), row_collection);
 }
 
 
 template <typename ValueType, typename IndexType>
-void column_permute(std::shared_ptr<const DefaultExecutor> exec,
-                    const array<IndexType>* permutation_indices,
-                    const matrix::Dense<ValueType>* orig,
-                    matrix::Dense<ValueType>* column_permuted)
+void col_permute(std::shared_ptr<const DefaultExecutor> exec,
+                 const IndexType* permutation_indices,
+                 const matrix::Dense<ValueType>* orig,
+                 matrix::Dense<ValueType>* col_permuted)
 {
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto orig, auto perm, auto permuted) {
             permuted(row, col) = orig(row, perm[col]);
         },
-        orig->get_size(), orig, *permutation_indices, column_permuted);
+        orig->get_size(), orig, permutation_indices, col_permuted);
 }
 
 
 template <typename ValueType, typename IndexType>
-void inverse_row_permute(std::shared_ptr<const DefaultExecutor> exec,
-                         const array<IndexType>* permutation_indices,
-                         const matrix::Dense<ValueType>* orig,
-                         matrix::Dense<ValueType>* row_permuted)
+void inv_row_permute(std::shared_ptr<const DefaultExecutor> exec,
+                     const IndexType* permutation_indices,
+                     const matrix::Dense<ValueType>* orig,
+                     matrix::Dense<ValueType>* row_permuted)
 {
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto orig, auto perm, auto permuted) {
             permuted(perm[row], col) = orig(row, col);
         },
-        orig->get_size(), orig, *permutation_indices, row_permuted);
+        orig->get_size(), orig, permutation_indices, row_permuted);
 }
 
 
 template <typename ValueType, typename IndexType>
-void inverse_column_permute(std::shared_ptr<const DefaultExecutor> exec,
-                            const array<IndexType>* permutation_indices,
-                            const matrix::Dense<ValueType>* orig,
-                            matrix::Dense<ValueType>* column_permuted)
+void inv_col_permute(std::shared_ptr<const DefaultExecutor> exec,
+                     const IndexType* permutation_indices,
+                     const matrix::Dense<ValueType>* orig,
+                     matrix::Dense<ValueType>* col_permuted)
 {
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto orig, auto perm, auto permuted) {
             permuted(row, perm[col]) = orig(row, col);
         },
-        orig->get_size(), orig, *permutation_indices, column_permuted);
+        orig->get_size(), orig, permutation_indices, col_permuted);
+}
+
+
+template <typename ValueType, typename IndexType>
+void symm_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
+                        const ValueType* scale, const IndexType* perm,
+                        const matrix::Dense<ValueType>* orig,
+                        matrix::Dense<ValueType>* permuted)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto j, auto scale, auto perm, auto orig,
+                      auto permuted) {
+            permuted(i, j) = scale[i] * scale[j] * orig(perm[i], perm[j]);
+        },
+        orig->get_size(), scale, perm, orig, permuted);
+}
+
+
+template <typename ValueType, typename IndexType>
+void inv_symm_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
+                            const ValueType* scale, const IndexType* perm,
+                            const matrix::Dense<ValueType>* orig,
+                            matrix::Dense<ValueType>* permuted)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto j, auto scale, auto perm, auto orig,
+                      auto permuted) {
+            permuted(perm[i], perm[j]) = orig(i, j) / (scale[i] * scale[j]);
+        },
+        orig->get_size(), scale, perm, orig, permuted);
+}
+
+
+template <typename ValueType, typename IndexType>
+void nonsymm_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
+                           const ValueType* row_scale,
+                           const IndexType* row_perm,
+                           const ValueType* col_scale,
+                           const IndexType* col_perm,
+                           const matrix::Dense<ValueType>* orig,
+                           matrix::Dense<ValueType>* permuted)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto j, auto row_scale, auto row_perm,
+                      auto col_scale, auto col_perm, auto orig, auto permuted) {
+            permuted(i, j) =
+                row_scale[i] * col_scale[j] * orig(row_perm[i], col_perm[j]);
+        },
+        orig->get_size(), row_scale, row_perm, col_scale, col_perm, orig,
+        permuted);
+}
+
+
+template <typename ValueType, typename IndexType>
+void inv_nonsymm_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
+                               const ValueType* row_scale,
+                               const IndexType* row_perm,
+                               const ValueType* col_scale,
+                               const IndexType* col_perm,
+                               const matrix::Dense<ValueType>* orig,
+                               matrix::Dense<ValueType>* permuted)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto j, auto row_scale, auto row_perm,
+                      auto col_scale, auto col_perm, auto orig, auto permuted) {
+            permuted(row_perm[i], row_perm[j]) =
+                orig(i, j) / (row_scale[i] * col_scale[j]);
+        },
+        orig->get_size(), row_scale, row_perm, col_scale, col_perm, orig,
+        permuted);
+}
+
+
+template <typename ValueType, typename IndexType>
+void row_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
+                       const ValueType* scale, const IndexType* perm,
+                       const matrix::Dense<ValueType>* orig,
+                       matrix::Dense<ValueType>* permuted)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto j, auto scale, auto perm, auto orig,
+                      auto permuted) {
+            permuted(i, j) = scale[i] * orig(perm[i], j);
+        },
+        orig->get_size(), scale, perm, orig, permuted);
+}
+
+
+template <typename ValueType, typename IndexType>
+void inv_row_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
+                           const ValueType* scale, const IndexType* perm,
+                           const matrix::Dense<ValueType>* orig,
+                           matrix::Dense<ValueType>* permuted)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto j, auto scale, auto perm, auto orig,
+                      auto permuted) {
+            permuted(perm[i], j) = orig(i, j) / scale[i];
+        },
+        orig->get_size(), scale, perm, orig, permuted);
+}
+
+
+template <typename ValueType, typename IndexType>
+void col_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
+                       const ValueType* scale, const IndexType* perm,
+                       const matrix::Dense<ValueType>* orig,
+                       matrix::Dense<ValueType>* permuted)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto j, auto scale, auto perm, auto orig,
+                      auto permuted) {
+            permuted(i, j) = scale[j] * orig(i, perm[j]);
+        },
+        orig->get_size(), scale, perm, orig, permuted);
+}
+
+
+template <typename ValueType, typename IndexType>
+void inv_col_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
+                           const ValueType* scale, const IndexType* perm,
+                           const matrix::Dense<ValueType>* orig,
+                           matrix::Dense<ValueType>* permuted)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto j, auto scale, auto perm, auto orig,
+                      auto permuted) {
+            permuted(i, perm[j]) = orig(i, j) / scale[j];
+        },
+        orig->get_size(), scale, perm, orig, permuted);
 }
 
 

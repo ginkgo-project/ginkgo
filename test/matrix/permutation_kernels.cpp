@@ -31,53 +31,43 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <ginkgo/core/matrix/permutation.hpp>
-#include "core/matrix/permutation_kernels.hpp"
-#include "ginkgo/core/base/executor.hpp"
 
 
-namespace gko {
-namespace matrix {
-namespace permutation {
+#include <algorithm>
+#include <numeric>
 
 
-GKO_REGISTER_OPERATION(invert, permutation::invert);
+#include <gtest/gtest.h>
 
 
-}
+#include "core/test/utils.hpp"
+#include "test/utils/executor.hpp"
 
 
-template <typename IndexType>
-std::unique_ptr<Permutation<IndexType>> Permutation<IndexType>::invert() const
-{
-    const auto exec = this->get_executor();
-    const auto size = this->get_size()[0];
-    array<index_type> inv_permutation{exec, size};
-    exec->run(permutation::make_invert(this->get_const_permutation(), size,
-                                       inv_permutation.get_data()));
-    return Permutation::create(exec, dim<2>{size, size},
-                               std::move(inv_permutation));
-}
+class Permutation : public CommonTestFixture {
+protected:
+    using Perm = gko::matrix::Permutation<index_type>;
 
-
-template <typename IndexType>
-void Permutation<IndexType>::write(
-    gko::matrix_data<value_type, index_type>& data) const
-{
-    const auto host_this =
-        make_temporary_clone(this->get_executor()->get_master(), this);
-    data.size = this->get_size();
-    data.nonzeros.clear();
-    data.nonzeros.reserve(data.size[0]);
-    for (IndexType row = 0; row < this->get_size()[0]; row++) {
-        data.nonzeros.emplace_back(row, host_this->get_const_permutation()[row],
-                                   1.0);
+    Permutation() : rand_engine(42)
+    {
+        std::vector<int> tmp(1000, 0);
+        std::iota(tmp.begin(), tmp.end(), 0);
+        std::shuffle(tmp.begin(), tmp.end(), rand_engine);
+        permutation = Perm::create(ref, tmp.size(), gko::array<index_type>(ref, tmp.begin(), tmp.end()));
+        dpermutation = permutation->clone(exec);
     }
+
+    std::default_random_engine rand_engine;
+
+    std::unique_ptr<Perm> permutation;
+    std::unique_ptr<Perm> dpermutation;
+};
+
+
+TEST_F(Permutation, InvertIsEquivalentToRef)
+{
+    auto inv = permutation->invert();
+    auto dinv = dpermutation->invert();
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(inv, dinv);
 }
-
-
-#define GKO_DECLARE_PERMUTATION_MATRIX(_type) class Permutation<_type>
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PERMUTATION_MATRIX);
-
-
-}  // namespace matrix
-}  // namespace gko

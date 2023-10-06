@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/permutation.hpp>
 
 
 namespace gko {
@@ -80,9 +81,6 @@ class Fbcsr;
 
 template <typename ValueType, typename IndexType>
 class Hybrid;
-
-template <typename IndexType>
-class Permutation;
 
 template <typename ValueType, typename IndexType>
 class ScaledPermutation;
@@ -492,7 +490,7 @@ public:
      */
     void permute(ptr_param<const Permutation<int32>> row_permutation,
                  ptr_param<const Permutation<int32>> column_permutation,
-                 ptr_param<Dense> output, bool invert) const;
+                 ptr_param<Dense> output, bool invert = false) const;
 
     /**
      * @copydoc permute(ptr_param<const Permutation<int32>>, ptr_param<const
@@ -500,7 +498,7 @@ public:
      */
     void permute(ptr_param<const Permutation<int64>> row_permutation,
                  ptr_param<const Permutation<int64>> column_permutation,
-                 ptr_param<Dense> output, bool invert) const;
+                 ptr_param<Dense> output, bool invert = false) const;
 
     /**
      * Creates a scaled and permuted copy of this matrix.
@@ -537,7 +535,7 @@ public:
      * @copydoc scale_permute(ptr_param<const ScaledPermutation<value_type,
      * int32>>, ptr_param<Dense>, permute_mode)
      */
-    std::unique_ptr<Dense> scale_permute(
+    void scale_permute(
         ptr_param<const ScaledPermutation<value_type, int64>> permutation,
         ptr_param<Dense> output, permute_mode mode) const;
 
@@ -575,22 +573,22 @@ public:
      * that writes the permuted copy into an existing Dense matrix.
      * @param output  the output matrix.
      */
-    std::unique_ptr<Dense> scale_permute(
+    void scale_permute(
         ptr_param<const ScaledPermutation<value_type, int32>> row_permutation,
         ptr_param<const ScaledPermutation<value_type, int32>>
             column_permutation,
-        ptr_param<Dense> output, bool invert) const;
+        ptr_param<Dense> output, bool invert = false) const;
 
     /**
      * @copydoc scale_permute(ptr_param<const ScaledPermutation<value_type,
      * int32>>, ptr_param<const ScaledPermutation<value_type, int32>>,
      * ptr_param<Dense>, bool)
      */
-    std::unique_ptr<Dense> scale_permute(
+    void scale_permute(
         ptr_param<const ScaledPermutation<value_type, int64>> row_permutation,
         ptr_param<const ScaledPermutation<value_type, int64>>
             column_permutation,
-        ptr_param<Dense> output, bool invert) const;
+        ptr_param<Dense> output, bool invert = false) const;
 
     std::unique_ptr<LinOp> permute(
         const array<int32>* permutation_indices) const override;
@@ -1469,19 +1467,24 @@ protected:
     }
 
     template <typename IndexType>
-    void permute_impl(const array<IndexType>* permutation, Dense* output) const;
+    void permute_impl(const Permutation<IndexType>* permutation,
+                      permute_mode mode, Dense* output) const;
 
     template <typename IndexType>
-    void inverse_permute_impl(const array<IndexType>* permutation,
-                              Dense* output) const;
+    void permute_impl(const Permutation<IndexType>* row_permutation,
+                      const Permutation<IndexType>* col_permutation,
+                      bool invert, Dense* output) const;
 
     template <typename IndexType>
-    void row_permute_impl(const array<IndexType>* permutation,
-                          Dense* output) const;
+    void scale_permute_impl(
+        const ScaledPermutation<ValueType, IndexType>* permutation,
+        permute_mode mode, Dense* output) const;
 
     template <typename IndexType>
-    void inverse_row_permute_impl(const array<IndexType>* permutation,
-                                  Dense* output) const;
+    void scale_permute_impl(
+        const ScaledPermutation<ValueType, IndexType>* row_permutation,
+        const ScaledPermutation<ValueType, IndexType>* column_permutation,
+        bool invert, Dense* output) const;
 
     template <typename OutputType, typename IndexType>
     void row_gather_impl(const array<IndexType>* row_idxs,
@@ -1492,14 +1495,6 @@ protected:
                          const array<IndexType>* row_idxs,
                          const Dense<ValueType>* beta,
                          Dense<OutputType>* row_collection) const;
-
-    template <typename IndexType>
-    void column_permute_impl(const array<IndexType>* permutation,
-                             Dense* output) const;
-
-    template <typename IndexType>
-    void inverse_column_permute_impl(const array<IndexType>* permutation,
-                                     Dense* output) const;
 
 private:
     array<value_type> values_;
