@@ -39,6 +39,7 @@ target_sources(ginkgo_cuda
     factorization/par_ilut_spgeam_kernel.cu
     factorization/par_ilut_sweep_kernel.cu
     matrix/batch_dense_kernels.cu
+    matrix/batch_ell_kernels.cu
     matrix/coo_kernels.cu
     ${CSR_INSTANTIATE}
     matrix/dense_kernels.cu
