@@ -93,6 +93,13 @@ public:
     }
 
     /**
+     * Returns the common size of the batch items.
+     *
+     * @return the common size stored
+     */
+    dim<2> get_common_size() const { return size_.get_common_size(); }
+
+    /**
      * Returns the size of the batch operator.
      *
      * @return size of the batch operator, a batch_dim object
