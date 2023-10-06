@@ -256,8 +256,8 @@ TEST_F(Workspace, CanCreateOperators)
     ASSERT_EQ(op2->get_size(), size2);
     ASSERT_EQ(op1->get_stride(), stride1);
     ASSERT_EQ(op2->get_stride(), stride2);
-    ASSERT_EQ(typeid(*op1), typeid(DummyLinOp));
-    ASSERT_EQ(typeid(*op2), typeid(DummyLinOp2));
+    GKO_ASSERT_DYNAMIC_TYPE(op1, DummyLinOp);
+    GKO_ASSERT_DYNAMIC_TYPE(op2, DummyLinOp2);
     ASSERT_EQ(op1, ws.get_op(1));
     ASSERT_EQ(op2, ws.get_op(0));
 }
@@ -288,7 +288,7 @@ TEST_F(Workspace, ChecksExactOperatorType)
         0, [&] { return std::make_unique<DerivedDummyLinOp>(exec); },
         typeid(DerivedDummyLinOp), {}, 0);
 
-    ASSERT_EQ(typeid(*op1), typeid(DerivedDummyLinOp));
+    GKO_ASSERT_DYNAMIC_TYPE(op1, DerivedDummyLinOp);
 }
 
 

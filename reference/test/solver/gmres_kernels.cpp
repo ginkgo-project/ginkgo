@@ -373,15 +373,15 @@ TYPED_TEST(Gmres, KernelMultiAxpy)
     this->small_final_iter_nums.get_data()[1] = restart;
     this->small_krylov_bases = gko::initialize<Mtx>(  // restart+1 x rows x #rhs
         {
-            I<T>{1, 10},     // 0, 0, x
-            I<T>{2, 11},     // 0, 1, x
-            I<T>{3, 12},     // 0, 2, x
-            I<T>{4, 13},     // 1, 0, x
-            I<T>{5, 14},     // 1, 1, x
-            I<T>{6, 15},     // 1, 2, x
-            I<T>{nan, nan},  // 2, 0, x
-            I<T>{nan, nan},  // 2, 1, x
-            I<T>{nan, nan},  // 2, 2, x
+            I<T>{1, 10},                              // 0, 0, x
+            I<T>{2, 11},                              // 0, 1, x
+            I<T>{3, 12},                              // 0, 2, x
+            I<T>{4, 13},                              // 1, 0, x
+            I<T>{5, 14},                              // 1, 1, x
+            I<T>{6, 15},                              // 1, 2, x
+            I<T>{nan, nan},                           // 2, 0, x
+            I<T>{nan, nan},                           // 2, 1, x
+            I<T>{nan, nan},                           // 2, 2, x
         },
         this->exec);
     this->small_stop.get_data()[0].stop(7, false);
@@ -718,12 +718,9 @@ TYPED_TEST(Gmres, SolvesBigDenseSystem1WithRestart)
     auto gmres_factory_restart =
         Solver::build()
             .with_krylov_dim(4u)
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(200u).on(
-                    this->exec),
-                gko::stop::ResidualNorm<value_type>::build()
-                    .with_reduction_factor(r<value_type>::value)
-                    .on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(200u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value))
             .on(this->exec);
     auto solver = gmres_factory_restart->generate(this->mtx_medium);
     auto b = gko::initialize<Mtx>(
@@ -744,16 +741,12 @@ TYPED_TEST(Gmres, SolvesWithPreconditioner)
     using value_type = typename TestFixture::value_type;
     auto gmres_factory_preconditioner =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(100u).on(
-                    this->exec),
-                gko::stop::ResidualNorm<value_type>::build()
-                    .with_reduction_factor(r<value_type>::value)
-                    .on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(100u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value))
             .with_preconditioner(
                 gko::preconditioner::Jacobi<value_type>::build()
-                    .with_max_block_size(3u)
-                    .on(this->exec))
+                    .with_max_block_size(3u))
             .on(this->exec);
     auto solver = gmres_factory_preconditioner->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(

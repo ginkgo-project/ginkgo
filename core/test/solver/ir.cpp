@@ -162,17 +162,11 @@ TYPED_TEST(Ir, CanSetInnerSolverInFactory)
     using value_type = typename TestFixture::value_type;
     auto ir_factory =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u),
-                gko::stop::ResidualNorm<value_type>::build()
-                    .with_reduction_factor(r<value_type>::value)
-                    )
-            .with_solver(
-                Solver::build()
-                    .with_criteria(
-                        gko::stop::Iteration::build().with_max_iters(3u).on(
-                            this->exec))
-                    )
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value))
+            .with_solver(Solver::build().with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u)))
             .on(this->exec);
     auto solver = ir_factory->generate(this->mtx);
     auto inner_solver = dynamic_cast<const Solver*>(
@@ -189,15 +183,13 @@ TYPED_TEST(Ir, CanSetGeneratedInnerSolverInFactory)
     using Solver = typename TestFixture::Solver;
     std::shared_ptr<Solver> ir_solver =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(this->mtx);
 
     auto ir_factory =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .with_generated_solver(ir_solver)
             .on(this->exec);
     auto solver = ir_factory->generate(this->mtx);
@@ -240,15 +232,13 @@ TYPED_TEST(Ir, ThrowsOnWrongInnerSolverInFactory)
         Mtx::create(this->exec, gko::dim<2>{2, 2});
     std::shared_ptr<Solver> ir_solver =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(wrong_sized_mtx);
 
     auto ir_factory =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .with_generated_solver(ir_solver)
             .on(this->exec);
 
@@ -261,15 +251,13 @@ TYPED_TEST(Ir, CanSetInnerSolver)
     using Solver = typename TestFixture::Solver;
     std::shared_ptr<Solver> ir_solver =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(this->mtx);
 
     auto ir_factory =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec);
     auto solver = ir_factory->generate(this->mtx);
     solver->set_solver(ir_solver);
@@ -289,9 +277,7 @@ TYPED_TEST(Ir, CanSetApplyWithInitialGuessMode)
                        initial_guess_mode::zero}) {
         auto ir_factory =
             Solver::build()
-                .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(3u).on(
-                        this->exec))
+                .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
                 .with_default_initial_guess(guess)
                 .on(this->exec);
         auto solver = ir_factory->generate(this->mtx);
@@ -310,15 +296,13 @@ TYPED_TEST(Ir, ThrowOnWrongInnerSolverSet)
         Mtx::create(this->exec, gko::dim<2>{2, 2});
     std::shared_ptr<Solver> ir_solver =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(wrong_sized_mtx);
 
     auto ir_factory =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec);
     auto solver = ir_factory->generate(this->mtx);
 
@@ -345,11 +329,9 @@ TYPED_TEST(Ir, DefaultRelaxationFactor)
 
     auto richardson =
         gko::solver::Richardson<value_type>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u),
-                gko::stop::ResidualNorm<value_type>::build()
-                    .with_reduction_factor(r<value_type>::value)
-                    )
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value))
             .on(this->exec)
             ->generate(this->mtx);
 
@@ -364,11 +346,9 @@ TYPED_TEST(Ir, UseAsRichardson)
 
     auto richardson =
         gko::solver::Richardson<value_type>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u),
-                gko::stop::ResidualNorm<value_type>::build()
-                    .with_reduction_factor(r<value_type>::value)
-                    )
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value))
             .with_relaxation_factor(relaxation_factor)
             .on(this->exec)
             ->generate(this->mtx);
@@ -492,6 +472,23 @@ TYPED_TEST(Ir, RunResidualNormCheckCorrectTimes)
     this->solver->apply(b, x);
 
     // The assertions happen in the destructor of `logger`
+}
+
+
+TYPED_TEST(Ir, PassExplicitFactory)
+{
+    using Solver = typename TestFixture::Solver;
+    auto stop_factory = gko::share(
+        gko::stop::Iteration::build().with_max_iters(1u).on(this->exec));
+    auto inner_solver_factory = gko::share(Solver::build().on(this->exec));
+
+    auto factory = Solver::build()
+                       .with_criteria(stop_factory)
+                       .with_solver(inner_solver_factory)
+                       .on(this->exec);
+
+    ASSERT_EQ(factory->get_parameters().criteria.front(), stop_factory);
+    ASSERT_EQ(factory->get_parameters().solver, inner_solver_factory);
 }
 
 

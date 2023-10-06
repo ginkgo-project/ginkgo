@@ -56,6 +56,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
 #include "core/test/utils.hpp"
+#include "core/test/utils/assertions.hpp"
 
 
 namespace {
@@ -810,7 +811,7 @@ TYPED_TEST(Csr, ConvertsToPrecision)
     GKO_ASSERT_MTX_NEAR(this->mtx2, res, residual);
     auto first_strategy = this->mtx2->get_strategy();
     auto second_strategy = res->get_strategy();
-    ASSERT_EQ(typeid(*first_strategy), typeid(*second_strategy));
+    GKO_ASSERT_DYNAMIC_TYPE_EQ(first_strategy, second_strategy);
 }
 
 
@@ -835,7 +836,7 @@ TYPED_TEST(Csr, MovesToPrecision)
     GKO_ASSERT_MTX_NEAR(this->mtx2, res, residual);
     auto first_strategy = this->mtx2->get_strategy();
     auto second_strategy = res->get_strategy();
-    ASSERT_EQ(typeid(*first_strategy), typeid(*second_strategy));
+    GKO_ASSERT_DYNAMIC_TYPE_EQ(first_strategy, second_strategy);
 }
 
 
