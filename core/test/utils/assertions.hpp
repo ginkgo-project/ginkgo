@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <initializer_list>
 #include <string>
 #include <type_traits>
+#include <typeinfo>
 
 
 #include <gtest/gtest.h>
@@ -52,13 +53,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
+#include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <typeinfo>
 
 
 #include "core/base/batch_utilities.hpp"
 #include "core/base/extended_float.hpp"
-#include "ginkgo/core/base/name_demangling.hpp"
 
 
 namespace gko {

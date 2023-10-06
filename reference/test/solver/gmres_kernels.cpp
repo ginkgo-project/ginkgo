@@ -373,15 +373,15 @@ TYPED_TEST(Gmres, KernelMultiAxpy)
     this->small_final_iter_nums.get_data()[1] = restart;
     this->small_krylov_bases = gko::initialize<Mtx>(  // restart+1 x rows x #rhs
         {
-            I<T>{1, 10},                              // 0, 0, x
-            I<T>{2, 11},                              // 0, 1, x
-            I<T>{3, 12},                              // 0, 2, x
-            I<T>{4, 13},                              // 1, 0, x
-            I<T>{5, 14},                              // 1, 1, x
-            I<T>{6, 15},                              // 1, 2, x
-            I<T>{nan, nan},                           // 2, 0, x
-            I<T>{nan, nan},                           // 2, 1, x
-            I<T>{nan, nan},                           // 2, 2, x
+            I<T>{1, 10},     // 0, 0, x
+            I<T>{2, 11},     // 0, 1, x
+            I<T>{3, 12},     // 0, 2, x
+            I<T>{4, 13},     // 1, 0, x
+            I<T>{5, 14},     // 1, 1, x
+            I<T>{6, 15},     // 1, 2, x
+            I<T>{nan, nan},  // 2, 0, x
+            I<T>{nan, nan},  // 2, 1, x
+            I<T>{nan, nan},  // 2, 2, x
         },
         this->exec);
     this->small_stop.get_data()[0].stop(7, false);

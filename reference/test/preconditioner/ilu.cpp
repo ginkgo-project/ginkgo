@@ -614,8 +614,7 @@ TEST_F(DefaultIlu, CanBeUsedAsPreconditioner)
 {
     auto solver =
         gko::solver::Bicgstab<>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(2u))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
             .with_preconditioner(default_ilu_prec_type::build())
             .on(this->exec)
             ->generate(this->mtx);
@@ -635,8 +634,7 @@ TEST_F(DefaultIlu, CanBeUsedAsGeneratedPreconditioner)
         default_ilu_prec_type::build().on(this->exec)->generate(this->mtx);
     auto solver =
         gko::solver::Bicgstab<>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(2u))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
             .with_generated_preconditioner(precond)
             .on(this->exec)
             ->generate(this->mtx);
