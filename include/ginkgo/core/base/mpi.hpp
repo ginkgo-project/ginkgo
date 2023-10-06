@@ -1013,6 +1013,19 @@ public:
             this->get()));
     }
 
+    template <typename SendType, typename RecvType>
+    void all_gather_v(std::shared_ptr<const Executor> exec,
+                      const SendType* send_buffer, const int send_count,
+                      RecvType* recv_buffer, const int* recv_counts,
+                      const int* displacements) const
+    {
+        auto guard = exec->get_scoped_device_id_guard();
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Allgatherv(
+            send_buffer, send_count, type_impl<SendType>::get_type(),
+            recv_buffer, recv_counts, displacements,
+            type_impl<RecvType>::get_type(), this->get()));
+    }
+
     /**
      * (Non-blocking) Gather data onto all ranks from all ranks in the
      * communicator.

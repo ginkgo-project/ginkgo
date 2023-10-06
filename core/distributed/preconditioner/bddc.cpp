@@ -379,7 +379,7 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
     }
 
     for (auto it = interface_map.begin(); it != interface_map.end(); it++) {
-        if (it->second.size() == 1) {  // first.size() > 2) {
+        if (it->second.size() > 0) {  //== 1) {  // first.size() > 2) {
             // if (parameters_.boundary_idxs.find(it->second[0]) !=
             //    parameters_.boundary_idxs.end()) {
             //    continue;
@@ -393,7 +393,7 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
         }
     }
 
-    for (auto it = interface_map.begin(); it != interface_map.end(); it++) {
+    /*for (auto it = interface_map.begin(); it != interface_map.end(); it++) {
         if (it->second.size() > 1) {  // first.size() == 2) {
             std::vector<IndexType> edge{};
             for (auto i = 0; i < it->second.size(); i++) {
@@ -410,7 +410,7 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
                 interface_dofs_.emplace_back(it->second);
             }
         }
-    }
+    }*/
 
     if (comm.rank() == 0) {
         int total = 0;
@@ -606,25 +606,26 @@ void Bddc<ValueType, IndexType>::generate_constraints()
     size_t i = 0;
     size_t idx = 0;
     auto nnz = mat_data.nonzeros[idx];
-    std::set<IndexType> dbcs{};
+    std::set<IndexType> dbcs;
     while (i < local_rows.size()) {
         while (nnz.row == local_rows[i] && idx < mat_data.nonzeros.size()) {
             auto j = std::distance(
                 local_rows.begin(),
                 std::find(local_rows.begin(), local_rows.end(), nnz.column));
-            // if (parameters_.boundary_idxs.find(nnz.row) !=
-            //    parameters_.boundary_idxs.end()) {
-            //    dbcs.insert(i);
-            //} else if (parameters_.boundary_idxs.find(nnz.column) ==
-            //           parameters_.boundary_idxs.end()) {
-            if (i == j) {
-                if (abs(nnz.value) < 1e-8) {
-                    std::cout << "RANK " << comm.rank() << " ZERO DIAG: " << i
-                              << ", " << nnz.value << std::endl;
+            if (parameters_.boundary_idxs.find(nnz.row) !=
+                parameters_.boundary_idxs.end()) {
+                dbcs.insert(i);
+            } else if (parameters_.boundary_idxs.find(nnz.column) ==
+                       parameters_.boundary_idxs.end()) {
+                if (i == j) {
+                    if (abs(nnz.value) < 1e-8) {
+                        std::cout << "RANK " << comm.rank()
+                                  << " ZERO DIAG: " << i << ", " << nnz.value
+                                  << std::endl;
+                    }
                 }
+                local_data.nonzeros.emplace_back(i, j, nnz.value);
             }
-            local_data.nonzeros.emplace_back(i, j, nnz.value);
-            //}
             idx++;
             if (idx < mat_data.nonzeros.size()) {
                 nnz = mat_data.nonzeros[idx];
@@ -652,14 +653,14 @@ void Bddc<ValueType, IndexType>::generate_constraints()
             auto found =
                 std::find(inner_idxs.begin(), inner_idxs.end(), nnz.column);
             if (found != inner_idxs.end()) {
-                // if (parameters_.boundary_idxs.find(nnz.row) !=
-                //    parameters_.boundary_idxs.end()) {
-                //    inner_dbcs.insert(i);
-                //} else if (parameters_.boundary_idxs.find(nnz.column) ==
-                //           parameters_.boundary_idxs.end()) {
-                auto j = std::distance(inner_idxs.begin(), found);
-                inner_data.nonzeros.emplace_back(i, j, nnz.value);
-                //}
+                if (parameters_.boundary_idxs.find(nnz.row) !=
+                    parameters_.boundary_idxs.end()) {
+                    inner_dbcs.insert(i);
+                } else if (parameters_.boundary_idxs.find(nnz.column) ==
+                           parameters_.boundary_idxs.end()) {
+                    auto j = std::distance(inner_idxs.begin(), found);
+                    inner_data.nonzeros.emplace_back(i, j, nnz.value);
+                }
             }
             idx++;
             if (idx < mat_data.nonzeros.size()) {
@@ -782,9 +783,6 @@ void Bddc<ValueType, IndexType>::schur_complement_solve()
     auto comm = global_system_matrix_->get_communicator();
     auto n_rows = local_system_matrix_->get_size()[0];
     auto n_cols = n_rows - local_rows_.size();
-    if (comm.rank() == 0) {
-        std::cout << "738" << std::endl;
-    }
     auto lhs = matrix::Dense<ValueType>::create(exec, dim<2>{n_rows, n_cols});
     lhs->fill(zero<ValueType>());
     auto host_rhs = clone(host, lhs);
@@ -792,37 +790,15 @@ void Bddc<ValueType, IndexType>::schur_complement_solve()
         host_rhs->at(n_rows - n_cols + i, i) = one<ValueType>();
     }
     auto rhs = clone(exec, host_rhs);
-    if (comm.rank() == 0) {
-        std::cout << "793" << std::endl;
-    }
 
     local_solver_->apply(rhs.get(), lhs.get());
-    if (comm.rank() == 0) {
-        std::cout << "798" << std::endl;
-    }
 
     phi_ = clone(exec, lhs->create_submatrix(span{0, local_rows_.size()},
                                              span(0, n_cols)));
     phi_t_ = as<matrix::Dense<ValueType>>(phi_->transpose());
-    if (comm.rank() == 0) {
-        std::cout << "805" << std::endl;
-    }
-    // std::ofstream phi_out{"phi_" + std::to_string(comm.rank()) + ".mtx"};
-    // gko::write(phi_out, phi_);
-    // auto local = local_system_matrix_->create_submatrix(span{0,
-    // local_rows_.size()}, span{0, local_rows_.size()}); auto intermediate =
-    // matrix::Dense<ValueType>::create(exec, gko::dim<2>{local_rows_.size(),
-    // n_cols}); local_coarse_matrix_ = matrix::Dense<ValueType>::create(exec,
-    // gko::dim<2>{n_cols, n_cols}); local->apply(phi_, intermediate);
-    // phi_t_->apply(intermediate, local_coarse_matrix_);
     local_coarse_matrix_ =
         clone(host, lhs->create_submatrix(span{local_rows_.size(), n_rows},
                                           span{0, n_cols}));
-    if (comm.rank() == 0) {
-        std::cout << "818" << std::endl;
-    }
-    // std::ofstream coarse_out{"coarse_" + std::to_string(comm.rank()) +
-    // ".mtx"}; gko::write(coarse_out, local_coarse_matrix_);
     auto neg_one =
         initialize<matrix::Dense<ValueType>>({-one<ValueType>()}, exec);
     local_coarse_matrix_->scale(neg_one.get());
@@ -1307,9 +1283,6 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
     global_coarse_matrix_->apply(neg_one_op_, coarse_solution_, one_op_, cr);
     cr->compute_norm2(resnorm);
 
-    if (comm.rank() == 0)
-        std::cout << "COARSE: " << resnorm->at(0, 0) << std::endl;
-
     prolong_coarse_solution();
 
     local_solution_large_->fill(zero<ValueType>());
@@ -1349,7 +1322,7 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
                                    global_solution));
 
     static int cnt = 0;
-    if (parameters_.static_condensation || true) {
+    if (parameters_.static_condensation || true && cnt == 0) {
         intermediate_->copy_from(
             as<experimental::distributed::Vector<ValueType>>(dense_b));
         global_system_matrix_->apply(neg_one_op_.get(), dense_x, one_op_.get(),
@@ -1357,9 +1330,6 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
         auto r1 = intermediate_->get_local_vector();
 
         intermediate_->compute_norm2(resnorm);
-    }
-    if (comm.rank() == 0) {
-        std::cout << resnorm->at(0, 0);
     }
     if (parameters_.static_condensation && cnt < 100000000) {
         auto r1 = intermediate_->get_local_vector();
@@ -1379,14 +1349,7 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
         global_system_matrix_->apply(neg_one_op_, dense_x, one_op_,
                                      intermediate_);
         intermediate_->compute_norm2(resnorm2);
-
-        if (comm.rank() == 0) {
-            std::cout << " / " << resnorm2->at(0, 0);
-        }
         cnt++;
-    }
-    if (comm.rank() == 0) {
-        std::cout << std::endl;
     }
 }
 
@@ -1419,33 +1382,36 @@ void Bddc<ValueType, IndexType>::generate()
     } else {
         generate_interfaces();
     }
-    std::cout << "RANK " << comm.rank() << " DONE WITH INTERFACES" << std::endl;
+    // std::cout << "RANK " << comm.rank() << " DONE WITH INTERFACES" <<
+    // std::endl;
     generate_constraints();
-    std::cout << "RANK " << comm.rank()
-              << " DONE WITH CONSTRAINTS, NUM INTERFACES: "
-              << interfaces_.size()
-              << ", CONSTRAINED SIZE: " << local_system_matrix_->get_size()
-              << std::endl;
+    // std::cout << "RANK " << comm.rank()
+    //          << " DONE WITH CONSTRAINTS, NUM INTERFACES: "
+    //          << interfaces_.size()
+    //          << ", CONSTRAINED SIZE: " << local_system_matrix_->get_size()
+    //          << std::endl;
     local_solver_ =
         parameters_.local_solver_factory->generate(local_system_matrix_);
-    std::cout << "RANK " << comm.rank() << " DONE WITH LOCAL SOLVER"
-              << std::endl;
+    // std::cout << "RANK " << comm.rank() << " DONE WITH LOCAL SOLVER"
+    //          << std::endl;
     schur_complement_solve();
-    std::cout << "RANK " << comm.rank() << " DONE WITH SCHUR SOLVE"
-              << std::endl;
+    // std::cout << "RANK " << comm.rank() << " DONE WITH SCHUR SOLVE"
+    //          << std::endl;
     generate_coarse_system();
-    std::cout << "RANK " << comm.rank() << " DONE WITH COARSE SYSTEM"
-              << std::endl;
+    // std::cout << "RANK " << comm.rank() << " DONE WITH COARSE SYSTEM"
+    //          << std::endl;
     generate_weights();
-    std::cout << "RANK " << comm.rank() << " DONE WITH WEIGHTS" << std::endl;
+    // std::cout << "RANK " << comm.rank() << " DONE WITH WEIGHTS" << std::endl;
     coarse_solver_ =
         parameters_.coarse_solver_factory->generate(global_coarse_matrix_);
-    std::cout << "RANK " << comm.rank() << " DONE WITH COARSE SOLVER"
-              << std::endl;
-    inner_solver_ =
-        parameters_.inner_solver_factory->generate(inner_system_matrix_);
-    std::cout << "RANK " << comm.rank() << " DONE WITH INNER SOLVER"
-              << std::endl;
+    // std::cout << "RANK " << comm.rank() << " DONE WITH COARSE SOLVER"
+    //          << std::endl;
+    if (parameters_.static_condensation) {
+        inner_solver_ =
+            parameters_.inner_solver_factory->generate(inner_system_matrix_);
+    }
+    // std::cout << "RANK " << comm.rank() << " DONE WITH INNER SOLVER"
+    //          << std::endl;
     local_residual_large_ = matrix::Dense<ValueType>::create(
         exec, dim<2>{local_rows_.size() + interfaces_.size(), 1});
     local_residual_large_->fill(zero<ValueType>());
@@ -1459,9 +1425,11 @@ void Bddc<ValueType, IndexType>::generate()
     local_solution_large_ = clone(local_residual_large_.get());
     local_solution_ = local_solution_large_->create_submatrix(
         span{0, local_rows_.size()}, span{0, 1});
-    inner_residual_ =
-        matrix::Dense<ValueType>::create(exec, dim<2>{inner_idxs_.size(), 1});
-    inner_solution_ = clone(inner_residual_.get());
+    if (parameters_.static_condensation) {
+        inner_residual_ = matrix::Dense<ValueType>::create(
+            exec, dim<2>{inner_idxs_.size(), 1});
+        inner_solution_ = clone(inner_residual_.get());
+    }
     one_op_ = initialize<matrix::Dense<ValueType>>({one<ValueType>()}, exec);
     neg_one_op_ =
         initialize<matrix::Dense<ValueType>>({-one<ValueType>()}, exec);
