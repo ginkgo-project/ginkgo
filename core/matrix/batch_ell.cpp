@@ -64,24 +64,6 @@ GKO_REGISTER_OPERATION(advanced_apply, batch_ell::advanced_apply);
 }  // namespace ell
 
 
-namespace detail {
-
-
-template <typename ValueType, typename IndexType>
-batch_dim<2> compute_batch_size(
-    const std::vector<gko::matrix::Ell<ValueType, IndexType>*>& matrices)
-{
-    auto common_size = matrices[0]->get_size();
-    for (size_type i = 1; i < matrices.size(); ++i) {
-        GKO_ASSERT_EQUAL_DIMENSIONS(common_size, matrices[i]->get_size());
-    }
-    return batch_dim<2>{matrices.size(), common_size};
-}
-
-
-}  // namespace detail
-
-
 template <typename ValueType, typename IndexType>
 std::unique_ptr<gko::matrix::Ell<ValueType, IndexType>>
 Ell<ValueType, IndexType>::create_view_for_item(size_type item_id)
@@ -145,7 +127,8 @@ template <typename ValueType, typename IndexType>
 std::unique_ptr<const Ell<ValueType, IndexType>>
 Ell<ValueType, IndexType>::create_const(
     std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
-    int num_elems_per_row, gko::detail::const_array_view<ValueType>&& values,
+    const IndexType num_elems_per_row,
+    gko::detail::const_array_view<ValueType>&& values,
     gko::detail::const_array_view<IndexType>&& col_idxs)
 {
     // cast const-ness away, but return a const object afterwards,
@@ -166,7 +149,8 @@ inline const batch_dim<2> get_col_sizes(const batch_dim<2>& sizes)
 
 template <typename ValueType, typename IndexType>
 Ell<ValueType, IndexType>::Ell(std::shared_ptr<const Executor> exec,
-                               const batch_dim<2>& size, int num_elems_per_row)
+                               const batch_dim<2>& size,
+                               IndexType num_elems_per_row)
     : EnableBatchLinOp<Ell<ValueType, IndexType>>(exec, size),
       num_elems_per_row_(num_elems_per_row),
       values_(exec, compute_num_elems(size, num_elems_per_row)),
@@ -209,7 +193,7 @@ void Ell<ValueType, IndexType>::apply_impl(const MultiVector<ValueType>* alpha,
 
 template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::convert_to(
-    Ell<next_precision<ValueType, IndexType>>* result) const
+    Ell<next_precision<ValueType>, IndexType>* result) const
 {
     result->values_ = this->values_;
     result->col_idxs_ = this->col_idxs_;
@@ -218,16 +202,16 @@ void Ell<ValueType, IndexType>::convert_to(
 }
 
 
-template <typename ValueType>
+template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::move_to(
-    Ell<next_precision<ValueType, IndexType>>* result)
+    Ell<next_precision<ValueType>, IndexType>* result)
 {
     this->convert_to(result);
 }
 
 
-#define GKO_DECLARE_BATCH_ELL_MATRIX(_type) class Ell<_vtype, _itype>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BATCH_ELL_MATRIX);
+#define GKO_DECLARE_BATCH_ELL_MATRIX(ValueType) class Ell<ValueType, int32>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_ELL_MATRIX);
 
 
 }  // namespace matrix

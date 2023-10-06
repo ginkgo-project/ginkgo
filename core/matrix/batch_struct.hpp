@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
+#include <ginkgo/core/matrix/batch_ell.hpp>
 
 
 namespace gko {
@@ -82,6 +83,53 @@ struct uniform_batch {
 }  // namespace dense
 
 
+namespace batch_ell {
+
+
+/**
+ * Encapsulates one matrix from a batch of ell matrices.
+ */
+template <typename ValueType>
+struct batch_item {
+    using value_type = ValueType;
+    using index_type = int32;
+
+    ValueType* values;
+    const index_type* col_idxs;
+    index_type stride;
+    index_type num_rows;
+    index_type num_cols;
+    index_type num_stored_elems_per_row;
+};
+
+
+/**
+ * A 'simple' structure to store a global uniform batch of ell matrices.
+ */
+template <typename ValueType>
+struct uniform_batch {
+    using value_type = ValueType;
+    using index_type = int;
+    using entry_type = batch_item<value_type>;
+
+    ValueType* values;
+    const index_type* col_idxs;
+    size_type num_batch_items;
+    index_type stride;
+    index_type num_rows;
+    index_type num_cols;
+    index_type num_stored_elems_per_row;
+
+    size_type get_entry_storage() const
+    {
+        return num_rows * num_stored_elems_per_row * sizeof(value_type);
+    }
+};
+
+
+}  // namespace batch_ell
+
+
 template <typename ValueType>
 GKO_ATTRIBUTES GKO_INLINE dense::batch_item<const ValueType> to_const(
     const dense::batch_item<ValueType>& b)
@@ -113,6 +161,53 @@ GKO_ATTRIBUTES GKO_INLINE dense::batch_item<ValueType> extract_batch_item(
 {
     return {batch_values + batch_idx * stride * num_rows, stride, num_rows,
             num_cols};
+}
+
+
+template <typename ValueType>
+GKO_ATTRIBUTES GKO_INLINE batch_ell::batch_item<const ValueType> to_const(
+    const batch_ell::batch_item<ValueType>& b)
+{
+    return {b.values,   b.col_idxs, b.stride,
+            b.num_rows, b.num_cols, b.num_stored_elems_per_row};
+}
+
+
+template <typename ValueType>
+GKO_ATTRIBUTES GKO_INLINE batch_ell::uniform_batch<const ValueType> to_const(
+    const batch_ell::uniform_batch<ValueType>& ub)
+{
+    return {ub.values,   ub.col_idxs, ub.num_batch_items,         ub.stride,
+            ub.num_rows, ub.num_cols, ub.num_stored_elems_per_row};
+}
+
+
+template <typename ValueType>
+GKO_ATTRIBUTES GKO_INLINE batch_ell::batch_item<ValueType> extract_batch_item(
+    const batch_ell::uniform_batch<ValueType>& batch, const size_type batch_idx)
+{
+    return {batch.values +
+                batch_idx * batch.num_stored_elems_per_row * batch.num_rows,
+            batch.col_idxs +
+                batch_idx * batch.num_stored_elems_per_row * batch.num_rows,
+            batch.stride,
+            batch.num_rows,
+            batch.num_cols,
+            batch.num_stored_elems_per_row};
+}
+
+template <typename ValueType>
+GKO_ATTRIBUTES GKO_INLINE batch_ell::batch_item<ValueType> extract_batch_item(
+    ValueType* const batch_values, int* const batch_col_idxs, const int stride,
+    const int num_rows, const int num_cols, int num_elems_per_row,
+    const size_type batch_idx)
+{
+    return {batch_values + batch_idx * num_elems_per_row * num_rows,
+            batch_col_idxs + batch_idx * num_elems_per_row * num_rows,
+            stride,
+            num_rows,
+            num_cols,
+            num_elems_per_row};
 }
 
 

@@ -30,10 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-template <typename ValueType, typename IndexType>
+template <typename ValueType>
 inline void simple_apply_kernel(
-    const gko::batch::matrix::batch_ell::batch_item<const ValueType,
-                                                    const IndexType>& a,
+    const gko::batch::matrix::batch_ell::batch_item<const ValueType>& a,
     const gko::batch::multi_vector::batch_item<const ValueType>& b,
     const gko::batch::multi_vector::batch_item<ValueType>& c)
 {
@@ -53,11 +52,10 @@ inline void simple_apply_kernel(
 }
 
 
-template <typename ValueType, typename IndexType>
+template <typename ValueType>
 inline void advanced_apply_kernel(
     const ValueType alpha,
-    const gko::batch::matrix::batch_ell::batch_item<const ValueType,
-                                                    const IndexType>& a,
+    const gko::batch::matrix::batch_ell::batch_item<const ValueType>& a,
     const gko::batch::multi_vector::batch_item<const ValueType>& b,
     const ValueType beta,
     const gko::batch::multi_vector::batch_item<ValueType>& c)
