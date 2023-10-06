@@ -52,16 +52,16 @@ namespace kernels {
 #define GKO_DECLARE_BATCH_ELL_SIMPLE_APPLY_KERNEL(_vtype, _itype)  \
     void simple_apply(std::shared_ptr<const DefaultExecutor> exec, \
                       const batch::matrix::Ell<_vtype, _itype>* a, \
-                      const batch::MultiVector<_vtype, _itype>* b, \
-                      batch::MultiVector<_vtype, _itype>* c)
+                      const batch::MultiVector<_vtype>* b,         \
+                      batch::MultiVector<_vtype>* c)
 
-#define GKO_DECLARE_BATCH_ELL_ADVANCED_APPLY_KERNEL(_vtype, _itype)      \
-    void advanced_apply(std::shared_ptr<const DefaultExecutor> exec,     \
-                        const batch::MultiVector<_vtype, _itype>* alpha, \
-                        const batch::matrix::Ell<_vtype, _itype>* a,     \
-                        const batch::MultiVector<_vtype, _itype>* b,     \
-                        const batch::MultiVector<_vtype, _itype>* beta,  \
-                        batch::MultiVector<_vtype, _itype>* c)
+#define GKO_DECLARE_BATCH_ELL_ADVANCED_APPLY_KERNEL(_vtype, _itype)  \
+    void advanced_apply(std::shared_ptr<const DefaultExecutor> exec, \
+                        const batch::MultiVector<_vtype>* alpha,     \
+                        const batch::matrix::Ell<_vtype, _itype>* a, \
+                        const batch::MultiVector<_vtype>* b,         \
+                        const batch::MultiVector<_vtype>* beta,      \
+                        batch::MultiVector<_vtype>* c)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                 \
     template <typename ValueType, typename IndexType>                \

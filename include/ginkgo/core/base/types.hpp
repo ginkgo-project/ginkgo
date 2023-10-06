@@ -531,6 +531,22 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     template _macro(double, int64)
 #endif
 
+#if GINKGO_DPCPP_SINGLE_MODE
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(_macro) \
+    template _macro(float, int32);                            \
+    template <>                                               \
+    _macro(double, int32) GKO_NOT_IMPLEMENTED;                \
+    template _macro(std::complex<float>, int32);              \
+    template <>                                               \
+    _macro(std::complex<double>, int32) GKO_NOT_IMPLEMENTED
+#else
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(_macro) \
+    template _macro(float, int32);                            \
+    template _macro(double, int32);                           \
+    template _macro(std::complex<float>, int32);              \
+    template _macro(std::complex<double>, int32)
+#endif
+
 
 /**
  * Instantiates a template for each value and index type compiled by Ginkgo.

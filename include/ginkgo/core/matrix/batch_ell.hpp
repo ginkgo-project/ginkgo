@@ -88,7 +88,7 @@ public:
     using EnableBatchLinOp<Ell>::move_to;
 
     using value_type = ValueType;
-    using index_type = int32;
+    using index_type = IndexType;
     using transposed_type = Ell<ValueType, IndexType>;
     using unbatch_type = gko::matrix::Ell<ValueType, IndexType>;
     using absolute_type = remove_complex<Ell>;
@@ -170,7 +170,7 @@ public:
      * @return the number of elements stored in each row of the ELL matrix. Same
      * for each batch item
      */
-    int get_num_stored_elements_per_row() const noexcept
+    index_type get_num_stored_elements_per_row() const noexcept
     {
         return num_elems_per_row_;
     }
@@ -205,7 +205,7 @@ public:
      *
      * @return the pointer to the array of col_idxs
      */
-    value_type* get_col_idxs_for_item(size_type batch_id) noexcept
+    index_type* get_col_idxs_for_item(size_type batch_id) noexcept
     {
         GKO_ASSERT(batch_id < this->get_num_batch_items());
         return col_idxs_.get_data() +
@@ -219,8 +219,8 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_col_idxs_for_item(
-        size_type batch_id) const noexcept
+    const index_type* get_const_col_idxs_for_item(size_type batch_id) const
+        noexcept
     {
         GKO_ASSERT(batch_id < this->get_num_batch_items());
         return col_idxs_.get_const_data() +
@@ -249,8 +249,8 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_values_for_item(
-        size_type batch_id) const noexcept
+    const value_type* get_const_values_for_item(size_type batch_id) const
+        noexcept
     {
         GKO_ASSERT(batch_id < this->get_num_batch_items());
         return values_.get_const_data() +
@@ -271,9 +271,9 @@ public:
      * array (if it resides on the same executor as the matrix) or a copy of the
      * array on the correct executor.
      */
-    static std::unique_ptr<const Ell<value_type, index_type>> create_const(
+    static std::unique_ptr<const Ell> create_const(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
-        const int num_elems_per_row,
+        const index_type num_elems_per_row,
         gko::detail::const_array_view<ValueType>&& values,
         gko::detail::const_array_view<IndexType>&& col_idxs);
 
@@ -309,9 +309,10 @@ public:
     }
 
 private:
-    size_type compute_num_elems(const batch_dim<2>& size, int num_elems_per_row)
+    size_type compute_num_elems(const batch_dim<2>& size,
+                                IndexType num_elems_per_row)
     {
-        return size->get_common_size()[0] * num_elems_per_row;
+        return size.get_common_size()[0] * num_elems_per_row;
     }
 
 
@@ -325,7 +326,7 @@ protected:
      */
     Ell(std::shared_ptr<const Executor> exec,
         const batch_dim<2>& size = batch_dim<2>{},
-        const int num_elems_per_row = 0);
+        const IndexType num_elems_per_row = 0);
 
     /**
      * Creates a Ell matrix from an already allocated (and initialized)
@@ -345,7 +346,7 @@ protected:
      */
     template <typename ValuesArray, typename IndicesArray>
     Ell(std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
-        const int num_elems_per_row, ValuesArray&& values,
+        const IndexType num_elems_per_row, ValuesArray&& values,
         IndicesArray&& col_idxs)
         : EnableBatchLinOp<Ell>(exec, size),
           num_elems_per_row_{num_elems_per_row},
@@ -353,7 +354,7 @@ protected:
           col_idxs_{exec, std::forward<IndicesArray>(col_idxs)}
     {
         // Ensure that the value and col_idxs arrays have the correct size
-        auto num_elems = this->get_size()[0] * num_elems_per_row() *
+        auto num_elems = this->get_common_size()[0] * num_elems_per_row *
                          this->get_num_batch_items();
         GKO_ENSURE_IN_BOUNDS(num_elems, values_.get_num_elems() + 1);
         GKO_ENSURE_IN_BOUNDS(num_elems, col_idxs_.get_num_elems() + 1);
@@ -376,7 +377,7 @@ protected:
                     MultiVector<value_type>* x) const;
 
 private:
-    int num_elems_per_row_;
+    index_type num_elems_per_row_;
     array<value_type> values_;
     array<index_type> col_idxs_;
 };
