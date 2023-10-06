@@ -34,13 +34,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_REFERENCE_MATRIX_BATCH_STRUCT_HPP_
 
 
+#include "core/matrix/batch_struct.hpp"
+
+
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 
 
 #include "core/base/batch_struct.hpp"
-#include "core/matrix/batch_struct.hpp"
 
 
 namespace gko {
