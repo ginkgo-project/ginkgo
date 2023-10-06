@@ -155,7 +155,7 @@ struct CsrWithDefaultStrategy : CsrBase {
         CsrBase::assert_empty_state(mtx);
         auto first_strategy = mtx->create_default()->get_strategy();
         auto second_strategy = mtx->get_strategy();
-        ASSERT_EQ(typeid(*first_strategy), typeid(*second_strategy));
+        GKO_ASSERT_DYNAMIC_TYPE_EQ(first_strategy, second_strategy);
     }
 };
 

@@ -33,6 +33,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/preconditioner/ilu.hpp>
 
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
+#endif
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 5211, 4973, 4974)
+#endif
+
+
 #include <memory>
 
 
@@ -42,6 +53,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/factorization/par_ilu.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
+
+
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -105,6 +119,38 @@ TEST_F(IluFactory, CanSetFactorizationFactory)
 
     ASSERT_EQ(ilu_factory->get_parameters().factorization_factory,
               this->fact_factory);
+}
+
+
+TEST_F(IluFactory, DeprecatedFactoryParameter)
+{
+    auto ilu_factory = ilu_prec_type::build()
+                           .with_l_solver_factory(this->l_factory)
+                           .with_u_solver_factory(this->u_factory)
+                           .with_factorization_factory(this->fact_factory)
+                           .on(this->exec);
+
+    ASSERT_EQ(ilu_factory->get_parameters().l_solver_factory, this->l_factory);
+    ASSERT_EQ(ilu_factory->get_parameters().u_solver_factory, this->u_factory);
+    ASSERT_EQ(ilu_factory->get_parameters().factorization_factory,
+              this->fact_factory);
+}
+
+
+TEST_F(IluFactory, DeferredFactoryParameter)
+{
+    auto ilu_factory = ilu_prec_type::build()
+                           .with_l_solver(l_solver_type::build())
+                           .with_u_solver(u_solver_type::build())
+                           .with_factorization(ilu_type::build())
+                           .on(this->exec);
+
+    GKO_ASSERT_DYNAMIC_TYPE(ilu_factory->get_parameters().l_solver_factory,
+                            l_solver_type::Factory);
+    GKO_ASSERT_DYNAMIC_TYPE(ilu_factory->get_parameters().u_solver_factory,
+                            u_solver_type::Factory);
+    GKO_ASSERT_DYNAMIC_TYPE(ilu_factory->get_parameters().factorization_factory,
+                            ilu_type::Factory);
 }
 
 

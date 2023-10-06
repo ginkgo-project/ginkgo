@@ -163,18 +163,12 @@ TYPED_TEST(Cgs, CanSetPreconditionerGenerator)
     using value_type = typename TestFixture::value_type;
     auto cgs_factory =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u),
-                gko::stop::ResidualNorm<value_type>::build()
-                    .with_reduction_factor(
-                        gko::remove_complex<value_type>(1e-6))
-                    )
-            .with_preconditioner(
-                Solver::build()
-                    .with_criteria(
-                        gko::stop::Iteration::build().with_max_iters(3u).on(
-                            this->exec))
-                    )
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(
+                                   gko::remove_complex<value_type>(1e-6)))
+            .with_preconditioner(Solver::build().with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u)))
             .on(this->exec);
     auto solver = cgs_factory->generate(this->mtx);
     auto precond = dynamic_cast<const gko::solver::Cgs<value_type>*>(
@@ -217,15 +211,13 @@ TYPED_TEST(Cgs, CanSetPreconditionerInFactory)
     using Solver = typename TestFixture::Solver;
     std::shared_ptr<Solver> cgs_precond =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(this->mtx);
 
     auto cgs_factory =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .with_generated_preconditioner(cgs_precond)
             .on(this->exec);
     auto solver = cgs_factory->generate(this->mtx);
@@ -244,15 +236,13 @@ TYPED_TEST(Cgs, ThrowsOnWrongPreconditionerInFactory)
         Mtx::create(this->exec, gko::dim<2>{2, 2});
     std::shared_ptr<Solver> cgs_precond =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(wrong_sized_mtx);
 
     auto cgs_factory =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .with_generated_preconditioner(cgs_precond)
             .on(this->exec);
 
@@ -277,15 +267,13 @@ TYPED_TEST(Cgs, CanSetPreconditioner)
     using Solver = typename TestFixture::Solver;
     std::shared_ptr<Solver> cgs_precond =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(this->mtx);
 
     auto cgs_factory =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec);
     auto solver = cgs_factory->generate(this->mtx);
     solver->set_preconditioner(cgs_precond);
@@ -293,6 +281,23 @@ TYPED_TEST(Cgs, CanSetPreconditioner)
 
     ASSERT_NE(precond.get(), nullptr);
     ASSERT_EQ(precond.get(), cgs_precond.get());
+}
+
+
+TYPED_TEST(Cgs, PassExplicitFactory)
+{
+    using Solver = typename TestFixture::Solver;
+    auto stop_factory = gko::share(
+        gko::stop::Iteration::build().with_max_iters(1u).on(this->exec));
+    auto precond_factory = gko::share(Solver::build().on(this->exec));
+
+    auto factory = Solver::build()
+                       .with_criteria(stop_factory)
+                       .with_preconditioner(precond_factory)
+                       .on(this->exec);
+
+    ASSERT_EQ(factory->get_parameters().criteria.front(), stop_factory);
+    ASSERT_EQ(factory->get_parameters().preconditioner, precond_factory);
 }
 
 

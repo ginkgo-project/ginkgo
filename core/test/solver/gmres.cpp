@@ -182,14 +182,9 @@ TYPED_TEST(Gmres, CanSetPreconditionerGenerator)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(3u),
                 gko::stop::ResidualNorm<value_type>::build()
-                    .with_reduction_factor(TestFixture::reduction_factor)
-                    )
-            .with_preconditioner(
-                Solver::build()
-                    .with_criteria(
-                        gko::stop::Iteration::build().with_max_iters(3u).on(
-                            this->exec))
-                    )
+                    .with_reduction_factor(TestFixture::reduction_factor))
+            .with_preconditioner(Solver::build().with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u)))
             .on(this->exec);
     auto solver = gmres_factory->generate(this->mtx);
     auto precond = dynamic_cast<const gko::solver::Gmres<value_type>*>(
@@ -238,8 +233,7 @@ TYPED_TEST(Gmres, CanSetKrylovDim)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(4u),
                 gko::stop::ResidualNorm<value_type>::build()
-                    .with_reduction_factor(TestFixture::reduction_factor)
-                    )
+                    .with_reduction_factor(TestFixture::reduction_factor))
             .on(this->exec);
     auto solver = gmres_factory->generate(this->mtx);
     auto krylov_dim = solver->get_krylov_dim();
@@ -272,15 +266,13 @@ TYPED_TEST(Gmres, CanSetPreconditionerInFactory)
     using Solver = typename TestFixture::Solver;
     std::shared_ptr<Solver> gmres_precond =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(this->mtx);
 
     auto gmres_factory =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .with_generated_preconditioner(gmres_precond)
             .on(this->exec);
     auto solver = gmres_factory->generate(this->mtx);
@@ -299,15 +291,13 @@ TYPED_TEST(Gmres, ThrowsOnWrongPreconditionerInFactory)
         Mtx::create(this->exec, gko::dim<2>{2, 2});
     std::shared_ptr<Solver> gmres_precond =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(wrong_sized_mtx);
 
     auto gmres_factory =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .with_generated_preconditioner(gmres_precond)
             .on(this->exec);
 
@@ -332,15 +322,13 @@ TYPED_TEST(Gmres, CanSetPreconditioner)
     using Solver = typename TestFixture::Solver;
     std::shared_ptr<Solver> gmres_precond =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(this->mtx);
 
     auto gmres_factory =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec);
     auto solver = gmres_factory->generate(this->mtx);
     solver->set_preconditioner(gmres_precond);
@@ -348,6 +336,23 @@ TYPED_TEST(Gmres, CanSetPreconditioner)
 
     ASSERT_NE(precond.get(), nullptr);
     ASSERT_EQ(precond.get(), gmres_precond.get());
+}
+
+
+TYPED_TEST(Gmres, PassExplicitFactory)
+{
+    using Solver = typename TestFixture::Solver;
+    auto stop_factory = gko::share(
+        gko::stop::Iteration::build().with_max_iters(1u).on(this->exec));
+    auto precond_factory = gko::share(Solver::build().on(this->exec));
+
+    auto factory = Solver::build()
+                       .with_criteria(stop_factory)
+                       .with_preconditioner(precond_factory)
+                       .on(this->exec);
+
+    ASSERT_EQ(factory->get_parameters().criteria.front(), stop_factory);
+    ASSERT_EQ(factory->get_parameters().preconditioner, precond_factory);
 }
 
 

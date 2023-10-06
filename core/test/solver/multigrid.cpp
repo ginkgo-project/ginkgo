@@ -902,4 +902,32 @@ TYPED_TEST(Multigrid, CustomCoarsestSolverSelector)
 }
 
 
+TYPED_TEST(Multigrid, DeferredFactoryParameter)
+{
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    using DummyFactory = typename TestFixture::DummyFactory;
+
+    auto solver = Solver::build()
+                      .with_mg_level(DummyRPFactory::build())
+                      .with_pre_smoother(DummyFactory::build())
+                      .with_mid_smoother(DummyFactory::build())
+                      .with_post_smoother(DummyFactory::build())
+                      .with_criteria(gko::stop::Iteration::build())
+                      .with_coarsest_solver(DummyFactory::build())
+                      .on(this->exec);
+
+    GKO_ASSERT_DYNAMIC_TYPE(solver->get_parameters().mg_level[0],
+                            typename DummyRPFactory::Factory);
+    GKO_ASSERT_DYNAMIC_TYPE(solver->get_parameters().pre_smoother[0],
+                            typename DummyFactory::Factory);
+    GKO_ASSERT_DYNAMIC_TYPE(solver->get_parameters().mid_smoother[0],
+                            typename DummyFactory::Factory);
+    GKO_ASSERT_DYNAMIC_TYPE(solver->get_parameters().post_smoother[0],
+                            typename DummyFactory::Factory);
+    GKO_ASSERT_DYNAMIC_TYPE(solver->get_parameters().coarsest_solver[0],
+                            typename DummyFactory::Factory);
+}
+
+
 }  // namespace

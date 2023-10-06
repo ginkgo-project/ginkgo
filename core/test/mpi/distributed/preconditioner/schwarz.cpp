@@ -160,4 +160,17 @@ TYPED_TEST(SchwarzFactory, CanBeCleared)
 }
 
 
+TYPED_TEST(SchwarzFactory, PassExplicitFactory)
+{
+    using Jacobi = typename TestFixture::Jacobi;
+    using Schwarz = typename TestFixture::Schwarz;
+    auto jacobi_factory = gko::share(Jacobi::build().on(this->exec));
+
+    auto factory =
+        Schwarz::build().with_local_solver(jacobi_factory).on(this->exec);
+
+    ASSERT_EQ(factory->get_parameters().local_solver, jacobi_factory);
+}
+
+
 }  // namespace
