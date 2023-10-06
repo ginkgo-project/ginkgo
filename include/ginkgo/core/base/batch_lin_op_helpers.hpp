@@ -61,7 +61,7 @@ namespace batch {
  * template parameters to enable a subclass of BatchLinOpFactory.
  *
  * @tparam ConcreteFactory  the concrete factory which is being implemented
- *                          [CRTP parmeter]
+ *                          [CRTP parameter]
  * @tparam ConcreteLinOp  the concrete BatchLinOp type which this factory
  * produces, needs to have a constructor which takes a const ConcreteFactory *,
  * and an std::shared_ptr<const BatchLinOp> as parameters.
@@ -128,13 +128,13 @@ using EnableDefaultBatchLinOpFactory =
  * // create a factory with default `my_value` parameter
  * auto fact = MyBatchLinOp::build().on(exec);
  * // create a operator using the factory:
- * auto my_op = fact->generate(gko::matrix::BatchIdentity::create(exec, 2));
+ * auto my_op = fact->generate(gko::batch::matrix::Identity::create(exec, 2));
  * std::cout << my_op->get_my_parameters().my_value;  // prints 5
  *
  * // create a factory with custom `my_value` parameter
  * auto fact = MyLinOp::build().with_my_value(0).on(exec);
  * // create a operator using the factory:
- * auto my_op = fact->generate(gko::matrix::BatchIdentity::create(exec, 2));
+ * auto my_op = fact->generate(gko::batch::matrix::Identity::create(exec, 2));
  * std::cout << my_op->get_my_parameters().my_value;  // prints 0
  * ```
  *
