@@ -70,31 +70,22 @@ namespace batch {
  * have no communication/information exchange between them. Therefore, any
  * collective operations between the batches is not possible and not
  * implemented. This allows for each batch to be computed and operated on in an
- * embarrasingly parallel fashion.
+ * embarrassingly parallel fashion.
  *
- * Similar to the LinOp class, the BatchLinOp also implements
- * BatchLinOp::apply() methods which call the internal apply_impl() methods
- * which the concrete BatchLinOp's have to implement.
- *
- * A key difference between the LinOp and the BatchLinOp classes is the storing
- * of dimensions. BatchLinOp allows for storing non-equal objects in the
- * batches and hence stores a batch_dim object instead of a dim object. The
- * batch_dim object is optimized to store less amount of data when storing
- * uniform batches.
- *
- * All size validation functions again verify first that the number of batches
- * are conformant and that the dimensions in the corresponding batches
- * themselves are also valid/conformant. Here too, optimizations for uniform
- * batches have been added.
+ * A key difference between the LinOp and the BatchLinOp class is that the apply
+ * between BatchLinOps is no longer supported. The user can apply a BatchLinOp
+ * to a batch::MultiVector but not to any general BatchLinOp. Therefore, the
+ * BatchLinOp serves only as a base class providing necessary core functionality
+ * from Polymorphic object and store the dimensions of the batched object.
  *
  * @ref BatchLinOp
  */
 class BatchLinOp : public EnableAbstractPolymorphicObject<BatchLinOp> {
 public:
     /**
-     * Returns the number of batches in the batch operator.
+     * Returns the number of items in the batch operator.
      *
-     * @return number of batches in the batch operator
+     * @return number of items in the batch operator
      */
     size_type get_num_batch_items() const noexcept
     {
@@ -104,7 +95,7 @@ public:
     /**
      * Returns the size of the batch operator.
      *
-     * @return size of the batch operator
+     * @return size of the batch operator, a batch_dim object
      */
     const batch_dim<2>& get_size() const noexcept { return size_; }
 
@@ -117,12 +108,12 @@ protected:
     void set_size(const batch_dim<2>& size) { size_ = size; }
 
     /**
-     * Creates a batch operator with uniform batches.
+     * Creates a batch operator storing items of uniform sizes.
      *
      * @param exec        the executor where all the operations are performed
-     * @param num_batch_items the number of batches to be stored in the
+     * @param num_batch_items the number of batch items to be stored in the
      * operator
-     * @param size        the size of on of the operator in the batched operator
+     * @param size        the common size of the items in the batched operator
      */
     explicit BatchLinOp(std::shared_ptr<const Executor> exec,
                         const size_type num_batch_items = 0,
@@ -133,10 +124,10 @@ protected:
     {}
 
     /**
-     * Creates a batch operator.
+     * Creates a batch operator storing items of uniform sizes.
      *
-     * @param exec  the executor where all the operations are performed
-     * @param batch_size  the sizes of the batch operator stored as a batch_dim
+     * @param exec        the executor where all the operations are performed
+     * @param batch_size  the size the batched operator, as a batch_dim object
      */
     explicit BatchLinOp(std::shared_ptr<const Executor> exec,
                         const batch_dim<2>& batch_size)
@@ -213,9 +204,7 @@ public:
  * while the library takes care of generating the trivial utility functions.
  * The mixin will provide default implementations for the entire
  * PolymorphicObject interface, including a default implementation of
- * `copy_from` between objects of the new BatchLinOp type. It will also hide the
- * default BatchLinOp::apply() methods with versions that preserve the static
- * type of the object.
+ * `copy_from` between objects of the new BatchLinOp type.
  *
  * Implementers of new BatchLinOps are required to specify only the following
  * aspects:
@@ -224,8 +213,6 @@ public:
  *     EnableCreateMethod mixin (used mostly for matrix formats),
  *     or GKO_ENABLE_BATCH_LIN_OP_FACTORY macro (used for operators created from
  *     other operators, like preconditioners and solvers).
- * 2.  Application of the BatchLinOp: Implementers have to override the two
- *     overloads of the BatchLinOp::apply_impl() virtual methods.
  *
  * @tparam ConcreteBatchLinOp  the concrete BatchLinOp which is being
  *                             implemented [CRTP parameter]
