@@ -55,9 +55,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class Dense : public CommonTestFixture {
 protected:
-    using vtype = double;
-    using Mtx = gko::batch::matrix::Dense<vtype>;
-    using MVec = gko::batch::MultiVector<vtype>;
+    using Mtx = gko::batch::matrix::Dense<value_type>;
+    using MVec = gko::batch::MultiVector<value_type>;
 
     Dense() : rand_engine(15) {}
 
@@ -87,7 +86,7 @@ protected:
         expected = MVec::create(
             ref,
             gko::batch_dim<2>(batch_size, gko::dim<2>{num_rows, num_vecs}));
-        expected->fill(gko::one<vtype>());
+        expected->fill(gko::one<value_type>());
         dresult = gko::clone(exec, expected);
     }
 
@@ -114,7 +113,7 @@ TEST_F(Dense, SingleVectorApplyIsEquivalentToRef)
     x->apply(y.get(), expected.get());
     dx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_BATCH_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
 
 
@@ -125,5 +124,5 @@ TEST_F(Dense, SingleVectorAdvancedApplyIsEquivalentToRef)
     x->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_BATCH_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
