@@ -198,8 +198,8 @@ public:
     }
 
     /**
-     * Returns a pointer to the array of col_idxs of the matrix for a
-     * specific batch item.
+     * Returns a pointer to the array of col_idxs of the matrix. This is shared
+     * across all batch items.
      *
      * @param batch_id  the id of the batch item.
      *
@@ -208,8 +208,7 @@ public:
     index_type* get_col_idxs_for_item(size_type batch_id) noexcept
     {
         GKO_ASSERT(batch_id < this->get_num_batch_items());
-        return col_idxs_.get_data() +
-               batch_id * this->get_num_elements_per_item();
+        return col_idxs_.get_data();
     }
 
     /**
@@ -223,8 +222,7 @@ public:
         noexcept
     {
         GKO_ASSERT(batch_id < this->get_num_batch_items());
-        return col_idxs_.get_const_data() +
-               batch_id * this->get_num_elements_per_item();
+        return col_idxs_.get_const_data();
     }
 
     /**
@@ -312,7 +310,8 @@ private:
     size_type compute_num_elems(const batch_dim<2>& size,
                                 IndexType num_elems_per_row)
     {
-        return size.get_common_size()[0] * num_elems_per_row;
+        return size.get_num_batch_items() * size.get_common_size()[0] *
+               num_elems_per_row;
     }
 
 
@@ -356,8 +355,9 @@ protected:
         // Ensure that the value and col_idxs arrays have the correct size
         auto num_elems = this->get_common_size()[0] * num_elems_per_row *
                          this->get_num_batch_items();
-        GKO_ENSURE_IN_BOUNDS(num_elems, values_.get_num_elems() + 1);
-        GKO_ENSURE_IN_BOUNDS(num_elems, col_idxs_.get_num_elems() + 1);
+        GKO_ASSERT_EQ(num_elems, values_.get_num_elems());
+        GKO_ASSERT_EQ(this->get_num_elements_per_item(),
+                      col_idxs_.get_num_elems());
     }
 
     /**
