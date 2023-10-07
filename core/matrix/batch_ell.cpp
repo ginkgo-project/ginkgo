@@ -70,13 +70,13 @@ Ell<ValueType, IndexType>::create_view_for_item(size_type item_id)
 {
     auto exec = this->get_executor();
     auto num_rows = this->get_common_size()[0];
-    auto stride = this->get_common_size()[1];
+    auto stride = this->get_common_size()[0];
     auto mat = unbatch_type::create(
         exec, this->get_common_size(),
         make_array_view(exec, this->get_num_elements_per_item(),
                         this->get_values_for_item(item_id)),
         make_array_view(exec, this->get_num_elements_per_item(),
-                        this->get_col_idxs_for_item(item_id)),
+                        this->get_col_idxs()),
         this->get_num_stored_elements_per_row(), stride);
     return mat;
 }
@@ -88,13 +88,13 @@ Ell<ValueType, IndexType>::create_const_view_for_item(size_type item_id) const
 {
     auto exec = this->get_executor();
     auto num_rows = this->get_common_size()[0];
-    auto stride = this->get_common_size()[1];
+    auto stride = this->get_common_size()[0];
     auto mat = unbatch_type::create_const(
         exec, this->get_common_size(),
         make_const_array_view(exec, this->get_num_elements_per_item(),
                               this->get_const_values_for_item(item_id)),
         make_const_array_view(exec, this->get_num_elements_per_item(),
-                              this->get_const_col_idxs_for_item(item_id)),
+                              this->get_const_col_idxs()),
         this->get_num_stored_elements_per_row(), stride);
     return mat;
 }
@@ -152,9 +152,10 @@ Ell<ValueType, IndexType>::Ell(std::shared_ptr<const Executor> exec,
                                const batch_dim<2>& size,
                                IndexType num_elems_per_row)
     : EnableBatchLinOp<Ell<ValueType, IndexType>>(exec, size),
-      num_elems_per_row_(num_elems_per_row),
-      values_(exec, compute_num_elems(size, num_elems_per_row)),
-      col_idxs_(exec, compute_num_elems(size, num_elems_per_row))
+      num_elems_per_row_(num_elems_per_row == 0 ? size.get_common_size()[1]
+                                                : num_elems_per_row),
+      values_(exec, compute_num_elems(size, num_elems_per_row_)),
+      col_idxs_(exec, this->get_common_size()[0] * num_elems_per_row_)
 {}
 
 

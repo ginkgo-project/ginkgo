@@ -51,6 +51,7 @@ template <typename T>
 class Ell : public ::testing::Test {
 protected:
     using value_type = T;
+    using index_type = gko::int32;
     using EllMtx = gko::matrix::Ell<value_type>;
     using size_type = gko::size_type;
     Ell()
@@ -58,46 +59,71 @@ protected:
           mtx(gko::batch::initialize<gko::batch::matrix::Ell<value_type>>(
               {{{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}},
                {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}},
-              exec)),
-          mvec(gko::batch::initialize<gko::batch::MultiVector<value_type>>(
-              {{{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}},
-               {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}},
-              exec)),
+              exec, 3)),
+          sp_mtx(gko::batch::initialize<gko::batch::matrix::Ell<value_type>>(
+              {{{-1.0, 0.0, 0.0}, {0.0, 2.5, 3.5}},
+               {{1.0, 0.0, 0.0}, {0.0, 2.0, 3.0}}},
+              exec, 2)),
           ell_mtx(gko::initialize<gko::matrix::Ell<value_type>>(
-              {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}, exec))
+              {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}, exec, gko::dim<2>(2, 3), 3)),
+          sp_ell_mtx(gko::initialize<gko::matrix::Ell<value_type>>(
+              {{1.0, 0.0, 0.0}, {0.0, 2.0, 3.0}}, exec, gko::dim<2>(2, 3), 2))
     {}
 
+    static void assert_equal_to_original_sparse_mtx(
+        const gko::batch::matrix::Ell<value_type>* m)
+    {
+        ASSERT_EQ(m->get_num_batch_items(), 2);
+        ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 3));
+        ASSERT_EQ(m->get_num_stored_elements(), 2 * (2 * 2));
+        ASSERT_EQ(m->get_num_stored_elements_per_row(), 2);
+        EXPECT_EQ(m->get_const_values()[0], value_type{-1.0});
+        EXPECT_EQ(m->get_const_values()[1], value_type{2.5});
+        EXPECT_EQ(m->get_const_values()[2], value_type{0.0});
+        EXPECT_EQ(m->get_const_values()[3], value_type{3.5});
+        EXPECT_EQ(m->get_const_values()[4], value_type{1.0});
+        EXPECT_EQ(m->get_const_values()[5], value_type{2.0});
+        EXPECT_EQ(m->get_const_values()[6], value_type{0.0});
+        EXPECT_EQ(m->get_const_values()[7], value_type{3.0});
+        EXPECT_EQ(m->get_const_col_idxs()[0], index_type{0});
+        EXPECT_EQ(m->get_const_col_idxs()[1], index_type{1});
+        EXPECT_EQ(m->get_const_col_idxs()[2], index_type{-1});
+        ASSERT_EQ(m->get_const_col_idxs()[3], index_type{2});
+    }
 
     static void assert_equal_to_original_mtx(
-        gko::batch::matrix::Ell<value_type>* m)
+        const gko::batch::matrix::Ell<value_type>* m)
     {
         ASSERT_EQ(m->get_num_batch_items(), 2);
         ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 2 * (2 * 3));
-        EXPECT_EQ(m->at(0, 0, 0), value_type{-1.0});
-        EXPECT_EQ(m->at(0, 0, 1), value_type{2.0});
-        EXPECT_EQ(m->at(0, 0, 2), value_type{3.0});
-        EXPECT_EQ(m->at(0, 1, 0), value_type{-1.5});
-        EXPECT_EQ(m->at(0, 1, 1), value_type{2.5});
-        ASSERT_EQ(m->at(0, 1, 2), value_type{3.5});
-        EXPECT_EQ(m->at(1, 0, 0), value_type{1.0});
-        EXPECT_EQ(m->at(1, 0, 1), value_type{2.5});
-        EXPECT_EQ(m->at(1, 0, 2), value_type{3.0});
-        EXPECT_EQ(m->at(1, 1, 0), value_type{1.0});
-        EXPECT_EQ(m->at(1, 1, 1), value_type{2.0});
-        ASSERT_EQ(m->at(1, 1, 2), value_type{3.0});
+        ASSERT_EQ(m->get_num_stored_elements_per_row(), 3);
+        EXPECT_EQ(m->get_const_values()[0], value_type{-1.0});
+        EXPECT_EQ(m->get_const_values()[1], value_type{-1.5});
+        EXPECT_EQ(m->get_const_values()[2], value_type{2.0});
+        EXPECT_EQ(m->get_const_values()[3], value_type{2.5});
+        EXPECT_EQ(m->get_const_values()[4], value_type{3.0});
+        EXPECT_EQ(m->get_const_values()[5], value_type{3.5});
+        EXPECT_EQ(m->get_const_values()[6], value_type{1.0});
+        EXPECT_EQ(m->get_const_values()[7], value_type{1.0});
+        EXPECT_EQ(m->get_const_values()[8], value_type{2.5});
+        EXPECT_EQ(m->get_const_values()[9], value_type{2.0});
+        EXPECT_EQ(m->get_const_values()[10], value_type{3.0});
+        ASSERT_EQ(m->get_const_values()[11], value_type{3.0});
     }
 
     static void assert_empty(gko::batch::matrix::Ell<value_type>* m)
     {
         ASSERT_EQ(m->get_num_batch_items(), 0);
         ASSERT_EQ(m->get_num_stored_elements(), 0);
+        ASSERT_EQ(m->get_num_stored_elements_per_row(), 0);
     }
 
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<gko::batch::matrix::Ell<value_type>> mtx;
-    std::unique_ptr<gko::batch::MultiVector<value_type>> mvec;
+    std::unique_ptr<gko::batch::matrix::Ell<value_type>> sp_mtx;
     std::unique_ptr<gko::matrix::Ell<value_type>> ell_mtx;
+    std::unique_ptr<gko::matrix::Ell<value_type>> sp_ell_mtx;
 };
 
 TYPED_TEST_SUITE(Ell, gko::test::ValueTypes);
@@ -106,6 +132,12 @@ TYPED_TEST_SUITE(Ell, gko::test::ValueTypes);
 TYPED_TEST(Ell, KnowsItsSizeAndValues)
 {
     this->assert_equal_to_original_mtx(this->mtx.get());
+}
+
+
+TYPED_TEST(Ell, SparseMtxKnowsItsSizeAndValues)
+{
+    this->assert_equal_to_original_sparse_mtx(this->sp_mtx.get());
 }
 
 
@@ -137,10 +169,10 @@ TYPED_TEST(Ell, CanCreateEllItemView)
 }
 
 
-TYPED_TEST(Ell, CanCreateMultiVectorView)
+TYPED_TEST(Ell, CanCreateSpEllItemView)
 {
-    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx->create_multi_vector_view(), this->mvec,
-                              0.0);
+    GKO_ASSERT_MTX_NEAR(this->sp_mtx->create_view_for_item(1), this->sp_ell_mtx,
+                        0.0);
 }
 
 
@@ -151,8 +183,7 @@ TYPED_TEST(Ell, CanBeCopied)
     mtx_copy->copy_from(this->mtx.get());
 
     this->assert_equal_to_original_mtx(this->mtx.get());
-    this->mtx->at(0, 0, 0) = 7;
-    this->mtx->at(0, 1) = 7;
+    this->mtx->get_values()[0] = 7;
     this->assert_equal_to_original_mtx(mtx_copy.get());
 }
 
@@ -189,71 +220,62 @@ TYPED_TEST(Ell, CanBeConstructedWithSize)
     using size_type = gko::size_type;
 
     auto m = gko::batch::matrix::Ell<TypeParam>::create(
-        this->exec, gko::batch_dim<2>(2, gko::dim<2>{5, 3}));
+        this->exec, gko::batch_dim<2>(2, gko::dim<2>{5, 3}), 2);
 
     ASSERT_EQ(m->get_num_batch_items(), 2);
     ASSERT_EQ(m->get_common_size(), gko::dim<2>(5, 3));
-    ASSERT_EQ(m->get_num_stored_elements(), 30);
+    ASSERT_EQ(m->get_num_stored_elements_per_row(), 2);
+    ASSERT_EQ(m->get_num_stored_elements(), 20);
 }
 
 
 TYPED_TEST(Ell, CanBeConstructedFromExistingData)
 {
     using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
     using size_type = gko::size_type;
     // clang-format off
-    value_type data[] = {
+    value_type values[] = {
+       -1.0,  2.5,
+       0.0,  3.5,
        1.0,  2.0,
-      -1.0,  3.0,
-       4.0, -1.0,
-       3.0,  5.0,
-       1.0,  5.0,
-       6.0, -3.0};
+       0.0,  3.0};
+    index_type col_idxs[] = {
+       0,  1,
+      -1, 2};
     // clang-format on
 
     auto m = gko::batch::matrix::Ell<TypeParam>::create(
-        this->exec, gko::batch_dim<2>(2, gko::dim<2>(2, 2)),
-        gko::array<value_type>::view(this->exec, 8, data));
+        this->exec, gko::batch_dim<2>(2, gko::dim<2>(2, 3)), 2,
+        gko::array<value_type>::view(this->exec, 8, values),
+        gko::array<index_type>::view(this->exec, 4, col_idxs));
 
-    ASSERT_EQ(m->get_const_values(), data);
-    ASSERT_EQ(m->at(0, 0, 0), value_type{1.0});
-    ASSERT_EQ(m->at(0, 0, 1), value_type{2.0});
-    ASSERT_EQ(m->at(0, 1, 0), value_type{-1.0});
-    ASSERT_EQ(m->at(0, 1, 1), value_type{3.0});
-    ASSERT_EQ(m->at(1, 0, 0), value_type{4.0});
-    ASSERT_EQ(m->at(1, 0, 1), value_type{-1.0});
-    ASSERT_EQ(m->at(1, 1, 0), value_type{3.0});
-    ASSERT_EQ(m->at(1, 1, 1), value_type{5.0});
+    this->assert_equal_to_original_sparse_mtx(m.get());
 }
 
 
 TYPED_TEST(Ell, CanBeConstructedFromExistingConstData)
 {
     using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
     using size_type = gko::size_type;
     // clang-format off
-    const value_type data[] = {
+    value_type values[] = {
+       -1.0,  2.5,
+       0.0,  3.5,
        1.0,  2.0,
-      -1.0,  3.0,
-       4.0, -1.0,
-       3.0,  5.0,
-       1.0,  5.0,
-       6.0, -3.0};
+       0.0,  3.0};
+    index_type col_idxs[] = {
+       0,  1,
+      -1, 2};
     // clang-format on
 
     auto m = gko::batch::matrix::Ell<TypeParam>::create_const(
-        this->exec, gko::batch_dim<2>(2, gko::dim<2>(2, 2)),
-        gko::array<value_type>::const_view(this->exec, 8, data));
+        this->exec, gko::batch_dim<2>(2, gko::dim<2>(2, 3)), 2,
+        gko::array<value_type>::const_view(this->exec, 8, values),
+        gko::array<index_type>::const_view(this->exec, 4, col_idxs));
 
-    ASSERT_EQ(m->get_const_values(), data);
-    ASSERT_EQ(m->at(0, 0, 0), value_type{1.0});
-    ASSERT_EQ(m->at(0, 0, 1), value_type{2.0});
-    ASSERT_EQ(m->at(0, 1, 0), value_type{-1.0});
-    ASSERT_EQ(m->at(0, 1, 1), value_type{3.0});
-    ASSERT_EQ(m->at(1, 0, 0), value_type{4.0});
-    ASSERT_EQ(m->at(1, 0, 1), value_type{-1.0});
-    ASSERT_EQ(m->at(1, 1, 0), value_type{3.0});
-    ASSERT_EQ(m->at(1, 1, 1), value_type{5.0});
+    this->assert_equal_to_original_sparse_mtx(m.get());
 }
 
 
@@ -263,35 +285,36 @@ TYPED_TEST(Ell, CanBeConstructedFromEllMatrices)
     using EllMtx = typename TestFixture::EllMtx;
     using size_type = gko::size_type;
 
-    auto mat1 = gko::initialize<EllMtx>({{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}},
+    auto mat1 = gko::initialize<EllMtx>({{-1.0, 0.0, 0.0}, {0.0, 2.5, 3.5}},
                                         this->exec);
     auto mat2 =
-        gko::initialize<EllMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}, this->exec);
+        gko::initialize<EllMtx>({{1.0, 0.0, 0.0}, {0.0, 2.0, 3.0}}, this->exec);
 
     auto m = gko::batch::create_from_item<gko::batch::matrix::Ell<value_type>>(
-        this->exec, std::vector<EllMtx*>{mat1.get(), mat2.get()});
+        this->exec, std::vector<EllMtx*>{mat1.get(), mat2.get()},
+        mat1->get_num_stored_elements_per_row());
 
-    this->assert_equal_to_original_mtx(m.get());
+    this->assert_equal_to_original_sparse_mtx(m.get());
 }
 
 
 TYPED_TEST(Ell, CanBeConstructedFromEllMatricesByDuplication)
 {
     using value_type = typename TestFixture::value_type;
+    using index_type = int;
     using EllMtx = typename TestFixture::EllMtx;
     using size_type = gko::size_type;
 
-    auto mat1 = gko::initialize<EllMtx>(4, {{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}},
-                                        this->exec);
-    auto mat2 =
-        gko::initialize<EllMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}, this->exec);
+    auto mat1 =
+        gko::initialize<EllMtx>({{1.0, 0.0, 0.0}, {0.0, 2.0, 0.0}}, this->exec);
 
     auto bat_m =
         gko::batch::create_from_item<gko::batch::matrix::Ell<value_type>>(
             this->exec,
-            std::vector<EllMtx*>{mat1.get(), mat1.get(), mat1.get()});
+            std::vector<EllMtx*>{mat1.get(), mat1.get(), mat1.get()},
+            mat1->get_num_stored_elements_per_row());
     auto m = gko::batch::create_from_item<gko::batch::matrix::Ell<value_type>>(
-        this->exec, 3, mat1.get());
+        this->exec, 3, mat1.get(), mat1->get_num_stored_elements_per_row());
 
     GKO_ASSERT_BATCH_MTX_NEAR(bat_m.get(), m.get(), 1e-14);
 }
@@ -300,24 +323,27 @@ TYPED_TEST(Ell, CanBeConstructedFromEllMatricesByDuplication)
 TYPED_TEST(Ell, CanBeConstructedByDuplicatingEllMatrices)
 {
     using value_type = typename TestFixture::value_type;
+    using index_type = int;
     using EllMtx = typename TestFixture::EllMtx;
     using size_type = gko::size_type;
 
-    auto mat1 = gko::initialize<EllMtx>({{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}},
+    auto mat1 = gko::initialize<EllMtx>({{-1.0, 0.0, 0.0}, {0.0, 2.5, 0.0}},
                                         this->exec);
     auto mat2 =
-        gko::initialize<EllMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}, this->exec);
+        gko::initialize<EllMtx>({{1.0, 0.0, 0.0}, {0.0, 2.0, 0.0}}, this->exec);
 
     auto m = gko::batch::create_from_item<gko::batch::matrix::Ell<value_type>>(
-        this->exec, std::vector<EllMtx*>{mat1.get(), mat2.get()});
+        this->exec, std::vector<EllMtx*>{mat1.get(), mat2.get()},
+        mat1->get_num_stored_elements_per_row());
     auto m_ref =
         gko::batch::create_from_item<gko::batch::matrix::Ell<value_type>>(
             this->exec,
             std::vector<EllMtx*>{mat1.get(), mat2.get(), mat1.get(), mat2.get(),
-                                 mat1.get(), mat2.get()});
+                                 mat1.get(), mat2.get()},
+            mat1->get_num_stored_elements_per_row());
 
     auto m2 = gko::batch::duplicate<gko::batch::matrix::Ell<value_type>>(
-        this->exec, 3, m.get());
+        this->exec, 3, m.get(), mat1->get_num_stored_elements_per_row());
 
     GKO_ASSERT_BATCH_MTX_NEAR(m2.get(), m_ref.get(), 1e-14);
 }
@@ -326,15 +352,16 @@ TYPED_TEST(Ell, CanBeConstructedByDuplicatingEllMatrices)
 TYPED_TEST(Ell, CanBeUnbatchedIntoEllMatrices)
 {
     using value_type = typename TestFixture::value_type;
+    using index_type = int;
     using EllMtx = typename TestFixture::EllMtx;
     using size_type = gko::size_type;
-    auto mat1 = gko::initialize<EllMtx>(4, {{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}},
+    auto mat1 = gko::initialize<EllMtx>({{-1.0, 0.0, 0.0}, {0.0, 2.5, 3.5}},
                                         this->exec);
     auto mat2 =
-        gko::initialize<EllMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}, this->exec);
+        gko::initialize<EllMtx>({{1.0, 0.0, 0.0}, {0.0, 2.0, 3.0}}, this->exec);
 
     auto ell_mats = gko::batch::unbatch<gko::batch::matrix::Ell<value_type>>(
-        this->mtx.get());
+        this->sp_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(ell_mats[0].get(), mat1.get(), 0.);
     GKO_ASSERT_MTX_NEAR(ell_mats[1].get(), mat2.get(), 0.);
@@ -344,55 +371,83 @@ TYPED_TEST(Ell, CanBeUnbatchedIntoEllMatrices)
 TYPED_TEST(Ell, CanBeListConstructed)
 {
     using value_type = typename TestFixture::value_type;
+    using index_type = int;
     auto m = gko::batch::initialize<gko::batch::matrix::Ell<TypeParam>>(
-        {{1.0, 2.0}, {1.0, 3.0}}, this->exec);
+        {{0.0, -1.0}, {1.0, 0.0}}, this->exec);
 
     ASSERT_EQ(m->get_num_batch_items(), 2);
     ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 1));
-    EXPECT_EQ(m->at(0, 0), value_type{1});
-    EXPECT_EQ(m->at(0, 1), value_type{2});
-    EXPECT_EQ(m->at(1, 0), value_type{1});
-    EXPECT_EQ(m->at(1, 1), value_type{3});
+    ASSERT_EQ(m->get_num_stored_elements(), 4);
+    ASSERT_EQ(m->get_num_stored_elements_per_row(), 1);
+    EXPECT_EQ(m->get_values()[0], value_type{0.0});
+    EXPECT_EQ(m->get_values()[1], value_type{-1.0});
+    EXPECT_EQ(m->get_values()[2], value_type{1.0});
+    EXPECT_EQ(m->get_values()[3], value_type{0.0});
+    EXPECT_EQ(m->get_col_idxs()[0], index_type{0});
+    EXPECT_EQ(m->get_col_idxs()[1], index_type{-1});
 }
 
 
 TYPED_TEST(Ell, CanBeListConstructedByCopies)
 {
     using value_type = typename TestFixture::value_type;
+    using index_type = int;
 
     auto m = gko::batch::initialize<gko::batch::matrix::Ell<TypeParam>>(
-        2, I<value_type>({1.0, 2.0}), this->exec);
+        2, I<value_type>({0.0, -1.0}), this->exec, 1);
 
     ASSERT_EQ(m->get_num_batch_items(), 2);
     ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 1));
-    EXPECT_EQ(m->at(0, 0, 0), value_type{1.0});
-    EXPECT_EQ(m->at(0, 0, 1), value_type{2.0});
-    EXPECT_EQ(m->at(1, 0, 0), value_type{1.0});
-    EXPECT_EQ(m->at(1, 0, 1), value_type{2.0});
+    ASSERT_EQ(m->get_num_stored_elements(), 4);
+    ASSERT_EQ(m->get_num_stored_elements_per_row(), 1);
+    EXPECT_EQ(m->get_values()[0], value_type{0.0});
+    EXPECT_EQ(m->get_values()[1], value_type{-1.0});
+    EXPECT_EQ(m->get_values()[2], value_type{0.0});
+    EXPECT_EQ(m->get_values()[3], value_type{-1.0});
+    EXPECT_EQ(m->get_col_idxs()[0], index_type{-1});
+    EXPECT_EQ(m->get_col_idxs()[1], index_type{0});
 }
 
 
 TYPED_TEST(Ell, CanBeDoubleListConstructed)
 {
     using value_type = typename TestFixture::value_type;
+    using index_type = int;
     using T = value_type;
 
     auto m = gko::batch::initialize<gko::batch::matrix::Ell<TypeParam>>(
-        {{I<T>{1.0, 1.0, 0.0}, I<T>{2.0, 4.0, 3.0}, I<T>{3.0, 6.0, 1.0}},
-         {I<T>{1.0, 2.0, -1.0}, I<T>{3.0, 4.0, -2.0}, I<T>{5.0, 6.0, -3.0}}},
-        this->exec);
+        // clang-format off
+        {{I<T>{1.0, 0.0, 0.0},
+          I<T>{2.0, 0.0, 3.0},
+          I<T>{3.0, 6.0, 0.0}},
+         {I<T>{1.0, 0.0, 0.0},
+          I<T>{3.0, 0.0, -2.0},
+          I<T>{5.0, 8.0, 0.0}}},
+        // clang-format on
+        this->exec, 2);
 
+    ASSERT_EQ(m->get_num_batch_items(), 2);
     ASSERT_EQ(m->get_common_size(), gko::dim<2>(3, 3));
-    EXPECT_EQ(m->at(0, 0), value_type{1.0});
-    EXPECT_EQ(m->at(0, 1), value_type{1.0});
-    EXPECT_EQ(m->at(0, 2), value_type{0.0});
-    ASSERT_EQ(m->at(0, 3), value_type{2.0});
-    EXPECT_EQ(m->at(0, 4), value_type{4.0});
-    EXPECT_EQ(m->at(1, 0), value_type{1.0});
-    EXPECT_EQ(m->at(1, 1), value_type{2.0});
-    EXPECT_EQ(m->at(1, 2), value_type{-1.0});
-    ASSERT_EQ(m->at(1, 3), value_type{3.0});
-    EXPECT_EQ(m->at(1, 4), value_type{4.0});
+    ASSERT_EQ(m->get_num_stored_elements(), 2 * (2 * 3));
+    ASSERT_EQ(m->get_num_stored_elements_per_row(), 2);
+    EXPECT_EQ(m->get_values()[0], value_type{1.0});
+    EXPECT_EQ(m->get_values()[1], value_type{2.0});
+    EXPECT_EQ(m->get_values()[2], value_type{3.0});
+    EXPECT_EQ(m->get_values()[3], value_type{0.0});
+    EXPECT_EQ(m->get_values()[4], value_type{3.0});
+    EXPECT_EQ(m->get_values()[5], value_type{6.0});
+    EXPECT_EQ(m->get_values()[6], value_type{1.0});
+    EXPECT_EQ(m->get_values()[7], value_type{3.0});
+    EXPECT_EQ(m->get_values()[8], value_type{5.0});
+    EXPECT_EQ(m->get_values()[9], value_type{0.0});
+    EXPECT_EQ(m->get_values()[10], value_type{-2.0});
+    EXPECT_EQ(m->get_values()[11], value_type{8.0});
+    EXPECT_EQ(m->get_col_idxs()[0], index_type{0});
+    EXPECT_EQ(m->get_col_idxs()[1], index_type{0});
+    EXPECT_EQ(m->get_col_idxs()[2], index_type{0});
+    EXPECT_EQ(m->get_col_idxs()[3], index_type{-1});
+    EXPECT_EQ(m->get_col_idxs()[4], index_type{2});
+    EXPECT_EQ(m->get_col_idxs()[5], index_type{1});
 }
 
 
@@ -400,52 +455,17 @@ TYPED_TEST(Ell, CanBeReadFromMatrixData)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = int;
-
     auto vec_data = std::vector<gko::matrix_data<value_type, index_type>>{};
     vec_data.emplace_back(gko::matrix_data<value_type, index_type>(
-        {2, 2}, {{0, 0, 1.0}, {0, 1, 3.0}, {1, 0, 0.0}, {1, 1, 5.0}}));
+        {2, 3}, {{0, 0, -1.0}, {1, 1, 2.5}, {1, 2, 3.5}}));
     vec_data.emplace_back(gko::matrix_data<value_type, index_type>(
-        {2, 2}, {{0, 0, -1.0}, {0, 1, 0.5}, {1, 0, 0.0}, {1, 1, 9.0}}));
+        {2, 3}, {{0, 0, 1.0}, {1, 1, 2.0}, {1, 2, 3.0}}));
 
     auto m = gko::batch::read<value_type, index_type,
                               gko::batch::matrix::Ell<value_type>>(this->exec,
-                                                                   vec_data);
+                                                                   vec_data, 2);
 
-    ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 2));
-    EXPECT_EQ(m->at(0, 0, 0), value_type{1.0});
-    EXPECT_EQ(m->at(0, 0, 1), value_type{3.0});
-    EXPECT_EQ(m->at(0, 1, 0), value_type{0.0});
-    EXPECT_EQ(m->at(0, 1, 1), value_type{5.0});
-    EXPECT_EQ(m->at(1, 0, 0), value_type{-1.0});
-    EXPECT_EQ(m->at(1, 0, 1), value_type{0.5});
-    EXPECT_EQ(m->at(1, 1, 0), value_type{0.0});
-    EXPECT_EQ(m->at(1, 1, 1), value_type{9.0});
-}
-
-
-TYPED_TEST(Ell, CanBeReadFromSparseMatrixData)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = int;
-    auto vec_data = std::vector<gko::matrix_data<value_type, index_type>>{};
-    vec_data.emplace_back(gko::matrix_data<value_type, index_type>(
-        {2, 2}, {{0, 0, 1.0}, {0, 1, 3.0}, {1, 1, 5.0}}));
-    vec_data.emplace_back(gko::matrix_data<value_type, index_type>(
-        {2, 2}, {{0, 0, -1.0}, {0, 1, 0.5}, {1, 1, 9.0}}));
-
-    auto m = gko::batch::read<value_type, index_type,
-                              gko::batch::matrix::Ell<value_type>>(this->exec,
-                                                                   vec_data);
-
-    ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 2));
-    EXPECT_EQ(m->at(0, 0, 0), value_type{1.0});
-    EXPECT_EQ(m->at(0, 0, 1), value_type{3.0});
-    EXPECT_EQ(m->at(0, 1, 0), value_type{0.0});
-    EXPECT_EQ(m->at(0, 1, 1), value_type{5.0});
-    EXPECT_EQ(m->at(1, 0, 0), value_type{-1.0});
-    EXPECT_EQ(m->at(1, 0, 1), value_type{0.5});
-    EXPECT_EQ(m->at(1, 1, 0), value_type{0.0});
-    EXPECT_EQ(m->at(1, 1, 1), value_type{9.0});
+    this->assert_equal_to_original_sparse_mtx(m.get());
 }
 
 
@@ -455,24 +475,18 @@ TYPED_TEST(Ell, GeneratesCorrectMatrixData)
     using index_type = int;
     using tpl = typename gko::matrix_data<TypeParam>::nonzero_type;
 
-    auto data =
-        gko::batch::write<value_type, index_type,
-                          gko::batch::matrix::Ell<value_type>>(this->mtx.get());
+    auto data = gko::batch::write<value_type, index_type,
+                                  gko::batch::matrix::Ell<value_type>>(
+        this->sp_mtx.get());
 
     ASSERT_EQ(data[0].size, gko::dim<2>(2, 3));
-    ASSERT_EQ(data[0].nonzeros.size(), 6);
+    ASSERT_EQ(data[0].nonzeros.size(), 3);
     EXPECT_EQ(data[0].nonzeros[0], tpl(0, 0, value_type{-1.0}));
-    EXPECT_EQ(data[0].nonzeros[1], tpl(0, 1, value_type{2.0}));
-    EXPECT_EQ(data[0].nonzeros[2], tpl(0, 2, value_type{3.0}));
-    EXPECT_EQ(data[0].nonzeros[3], tpl(1, 0, value_type{-1.5}));
-    EXPECT_EQ(data[0].nonzeros[4], tpl(1, 1, value_type{2.5}));
-    EXPECT_EQ(data[0].nonzeros[5], tpl(1, 2, value_type{3.5}));
+    EXPECT_EQ(data[0].nonzeros[1], tpl(1, 1, value_type{2.5}));
+    EXPECT_EQ(data[0].nonzeros[2], tpl(1, 2, value_type{3.5}));
     ASSERT_EQ(data[1].size, gko::dim<2>(2, 3));
-    ASSERT_EQ(data[1].nonzeros.size(), 6);
+    ASSERT_EQ(data[1].nonzeros.size(), 3);
     EXPECT_EQ(data[1].nonzeros[0], tpl(0, 0, value_type{1.0}));
-    EXPECT_EQ(data[1].nonzeros[1], tpl(0, 1, value_type{2.5}));
-    EXPECT_EQ(data[1].nonzeros[2], tpl(0, 2, value_type{3.0}));
-    EXPECT_EQ(data[1].nonzeros[3], tpl(1, 0, value_type{1.0}));
-    EXPECT_EQ(data[1].nonzeros[4], tpl(1, 1, value_type{2.0}));
-    EXPECT_EQ(data[1].nonzeros[5], tpl(1, 2, value_type{3.0}));
+    EXPECT_EQ(data[1].nonzeros[1], tpl(1, 1, value_type{2.0}));
+    EXPECT_EQ(data[1].nonzeros[2], tpl(1, 2, value_type{3.0}));
 }
