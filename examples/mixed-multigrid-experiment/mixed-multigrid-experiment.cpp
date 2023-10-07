@@ -329,7 +329,7 @@ int main(int argc, char* argv[])
 
     // Prepare the stopping criteria
     const gko::remove_complex<ValueType> tolerance = 1e-9;
-    const unsigned mg_iter = mg_mode == "solver" ? 700u : 1u;
+    const unsigned mg_iter = mg_mode == "solver" ? 800u : 1u;
     const gko::solver::initial_guess_mode initial_mode =
         mg_mode == "solver" ? gko::solver::initial_guess_mode::provided
                             : gko::solver::initial_guess_mode::zero;
@@ -339,7 +339,7 @@ int main(int argc, char* argv[])
                                    .with_baseline(gko::stop::mode::absolute)
                                    .with_reduction_factor(tolerance)
                                    .on(exec));
-    auto cg_iter = 700u;
+    auto cg_iter = 800u;
 #if ENABLE_PROFILE
     cg_iter = 3u;
 #endif
@@ -996,6 +996,8 @@ int main(int argc, char* argv[])
     }
     std::cout << prefix << " execution median time [ms]: " << median / 1000000.0
               << std::endl;
+    std::cout << prefix << " execution median time per iteraion[ms]: "
+              << median / 1000000.0 / logger->get_num_iterations() << std::endl;
     std::cout << "timing sorted raw data [ms]:";
     for (int i = 0; i < rep; i++) {
         std::cout << " "

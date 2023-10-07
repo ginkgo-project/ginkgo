@@ -42,11 +42,10 @@ run() {
 
 for matrix in ${AMGX_LISTS}; do
     mtx="${DATA_FOLDER}/amgx_data/${matrix}/${matrix}.mtx"
-    scale="0"
     run ${matrix} 10 v 0 ${mtx}
     if [[ "${matrix}" == "2cubes_sphere" ]] || [[ "${matrix}" == "offshore" ]]; then
         # because bfloat16 can solve them, we run the scale version additionally
-        run ${matrix} 10 v ${scale} ${mtx}
+        run ${matrix} 10 v 1 ${mtx}
     fi
     # run ${matrix} 10 v ${scale} ${mtx}
     # run ${matrix} 3 w ${scale} ${mtx}

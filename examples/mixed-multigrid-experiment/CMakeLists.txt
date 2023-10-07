@@ -13,3 +13,5 @@ target_include_directories(mixed-multigrid-experiment PRIVATE "${CUDA_INCLUDE_DI
 
 # Copy the data files to the execution directory
 configure_file(data/A.mtx data/A.mtx COPYONLY)
+configure_file(collect_case.sh collect_case.sh COPYONLY)
+configure_file(run_selected.sh run_selected.sh COPYONLY)

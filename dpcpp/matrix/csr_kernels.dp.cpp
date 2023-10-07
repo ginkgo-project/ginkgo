@@ -1235,9 +1235,10 @@ void classical_spmv(syn::value_list<int, subgroup_size>,
     const auto num_subgroup =
         exec->get_num_subgroups() * classical_oversubscription;
     const auto nsg_in_group = spmv_block_size / subgroup_size;
-    const auto gridx =
-        std::min(ceildiv(a->get_size()[0], spmv_block_size / subgroup_size),
-                 int64(num_subgroup / nsg_in_group));
+    // const auto gridx =
+    //     std::min(ceildiv(a->get_size()[0], spmv_block_size / subgroup_size),
+    //              int64(num_subgroup / nsg_in_group));
+    const auto gridx = ceildiv(a->get_size()[0], spmv_block_size / subgroup_size);
     const dim3 grid(gridx, b->get_size()[1]);
     const dim3 block(spmv_block_size);
 
@@ -1449,6 +1450,9 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
                 max_length_per_row = a->get_num_stored_elements() /
                                      std::max<size_type>(a->get_size()[0], 1);
             }
+            // using average
+            max_length_per_row =
+                a->get_num_stored_elements() / a->get_size()[0];
             if (std::is_same<MatrixValueType, gko::half>::value ||
                 std::is_same<MatrixValueType, gko::bfloat16>::value) {
                 // we process two elements in one threads
@@ -1525,6 +1529,9 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
                 max_length_per_row = a->get_num_stored_elements() /
                                      std::max<size_type>(a->get_size()[0], 1);
             }
+            // using average
+            max_length_per_row =
+                a->get_num_stored_elements() / a->get_size()[0];
             if (std::is_same<MatrixValueType, gko::half>::value ||
                 std::is_same<MatrixValueType, gko::bfloat16>::value) {
                 // we process two elements in one threads
