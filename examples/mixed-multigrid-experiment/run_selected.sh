@@ -19,7 +19,7 @@ MIXED_MODE="0 1 2 3 7 8 -11 -12 -13 -21 -22 -23 -32 -33 -42 -43"
 MG_MODE="$4"
 #"cg preconditioner"
 SM_MODE="$5"
-#"jacobi bj l1cheyb"
+#"jacobi bj l1cheby"
 run() {
     local matrix="$1"
     local num_levels="$2"
@@ -33,6 +33,12 @@ run() {
             echo "   |_ mg_mode ${mg_mode}"
             for sm_mode in ${SM_MODE}; do
                 echo "      |_ sm_mode ${sm_mode}"
+                if [[ "${sm_mode}" == "l1cheby" ]]; then
+                    if [[ "${matrix}" == "cage13" ]] || [[ "${matrix}" == "cage14" ]]; then
+                        echo "Skip matrix ${matrix} in ${sm_mode}"
+                        continue
+                    fi
+                fi
                 ./mixed-multigrid-experiment ${EXECUTOR} ${mixed_mode} ${num_levels} ${cycle} ${mg_mode} ${sm_mode} ${scale} ${mtx} ${b} > ${RESULT_FOLDER}/${matrix}_mixed${mixed_mode}_level${num_levels}_cycle${cycle}_mode${mg_mode}_${sm_mode}_scale${scale}.txt
                 echo "./mixed-multigrid-experiment ${EXECUTOR} ${mixed_mode} ${num_levels} ${cycle} ${mg_mode} ${sm_mode} ${scale} ${mtx} ${b} > ${RESULT_FOLDER}/${matrix}_mixed${mixed_mode}_level${num_levels}_cycle${cycle}_mode${mg_mode}_${sm_mode}_scale${scale}.txt"
             done

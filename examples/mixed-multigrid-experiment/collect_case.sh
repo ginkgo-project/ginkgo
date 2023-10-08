@@ -18,7 +18,7 @@ RESULT_FOLDER=$1
 MG_MODE="$2"
 #"cg preconditioner"
 SM_MODE="$3"
-#"jacobi bj l1cheyb"
+#"jacobi bj l1cheby"
 for num_levels in 10; do
     for cycle in v; do
         for mg_mode in ${MG_MODE}; do
@@ -27,6 +27,12 @@ for num_levels in 10; do
                 echo "matrix, final residual, iteration count, generation time[ms], total execution time[ms], executation time per iteration[ms], total execution median time[ms], executation median time per iteration[ms]" > ${output}
                 for list in AMGX_LISTS MFEM_LISTS; do
                     for matrix in ${!list}; do
+                        if [[ "${sm_mode}" == "l1cheby" ]]; then
+                            if [[ "${matrix}" == "cage13" ]] || [[ "${matrix}" == "cage14" ]]; then
+                                echo "Skip matrix ${matrix} in ${sm_mode}"
+                                continue
+                            fi
+                        fi
                         echo "matrix ${matrix} in ${mtx}"
                         scale=0
                         matrix_name="${matrix}"
