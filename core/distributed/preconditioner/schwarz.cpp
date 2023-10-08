@@ -183,6 +183,15 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
         this->set_solver(
             gko::share(parameters_.local_solver->generate(local_matrix)));
     }
+
+    auto dist_mat =
+        as<experimental::distributed::Matrix<ValueType, LocalIndexType,
+                                             GlobalIndexType>>(system_matrix);
+
+    if (parameters_.coarse_solver_factory) {
+        this->coarse_solver_ = as<multigrid::MultigridLevel>(
+            share(parameters_.coarse_solver_factory->generate(dist_mat)));
+    }
 }
 
 
