@@ -100,9 +100,17 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
             as<experimental::distributed::Matrix<
                 ValueType, LocalIndexType, GlobalIndexType>>(system_matrix)
                 ->get_local_matrix())));
-
     } else {
         this->set_solver(parameters_.generated_local_solver);
+    }
+
+    auto dist_mat =
+        as<experimental::distributed::Matrix<ValueType, LocalIndexType,
+                                             GlobalIndexType>>(system_matrix);
+
+    if (parameters_.coarse_solver_factory) {
+        this->coarse_solver_ = as<multigrid::MultigridLevel>(
+            share(parameters_.coarse_solver_factory->generate(dist_mat)));
     }
 }
 

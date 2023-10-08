@@ -16,6 +16,7 @@
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
+#include <ginkgo/core/multigrid/multigrid_level.hpp>
 
 
 namespace gko {
@@ -74,6 +75,12 @@ public:
          */
         std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(
             generated_local_solver, nullptr);
+
+        /**
+         * Coarse solver factory.
+         */
+        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
+            coarse_solver_factory, nullptr);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Schwarz, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -86,6 +93,7 @@ protected:
      */
     explicit Schwarz(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Schwarz>(std::move(exec))
+
     {}
 
     /**
@@ -126,6 +134,7 @@ private:
     void set_solver(std::shared_ptr<const LinOp> new_solver);
 
     std::shared_ptr<const LinOp> local_solver_;
+    std::shared_ptr<const multigrid::MultigridLevel> coarse_solver_;
 };
 
 
