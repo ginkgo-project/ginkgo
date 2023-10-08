@@ -43,3 +43,11 @@ test_framework.compare_output(
     expected_stdout="preconditioner.profile.stdout",
     expected_stderr="preconditioner.profile.stderr",
 )
+
+# stdin
+test_framework.compare_output(
+    ["-reorder", "amd"],
+    expected_stdout="preconditioner.reordered.stdout",
+    expected_stderr="preconditioner.reordered.stderr",
+    stdin='[{"size": 100, "stencil": "7pt"}]',
+)

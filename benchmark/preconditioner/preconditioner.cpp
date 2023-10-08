@@ -183,6 +183,7 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
     {
         preconditioner_benchmark_state state;
         auto data = Generator::generate_matrix_data(test_case);
+        reorder(data, test_case);
 
         state.system_matrix =
             formats::matrix_factory(FLAGS_formats, exec, data);

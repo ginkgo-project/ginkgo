@@ -41,11 +41,79 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "benchmark/utils/general.hpp"
+#include "benchmark/utils/generator.hpp"
+
+
+std::string reordering_algorithm_desc =
+    "Reordering algorithm to apply to the input matrices:\n"
+    "    none - no reordering\n"
+    "    amd - Approximate Minimum Degree reordering algorithm\n"
+#if GKO_HAVE_METIS
+    "    nd - Nested Dissection reordering algorithm\n"
+#endif
+    "    rcm - Reverse Cuthill-McKee reordering algorithm";
 
 
 DEFINE_string(input_matrix, "",
               "Filename of a matrix to be used as the single input. Overwrites "
               "the value of the -input flag");
+
+DEFINE_string(reorder, "none", reordering_algorithm_desc.c_str());
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<gko::matrix::Permutation<IndexType>> reorder(
+    gko::matrix_data<ValueType, IndexType>& data, json& test_case,
+    bool is_distributed = false)
+{
+    if (FLAGS_reorder == "none" || is_distributed) {
+        return nullptr;
+    }
+    using Csr = gko::matrix::Csr<ValueType, IndexType>;
+    auto ref = gko::ReferenceExecutor::create();
+    auto mtx = gko::share(Csr::create(ref));
+    mtx->read(data);
+    std::unique_ptr<gko::matrix::Permutation<IndexType>> perm;
+    if (FLAGS_reorder == "amd") {
+        perm = gko::experimental::reorder::Amd<IndexType>::build()
+                   .on(ref)
+                   ->generate(mtx);
+#if GKO_HAVE_METIS
+    } else if (FLAGS_reorder == "nd") {
+        perm = gko::experimental::reorder::NestedDissection<ValueType,
+                                                            IndexType>::build()
+                   .on(ref)
+                   ->generate(mtx);
+#endif
+    } else if (FLAGS_reorder == "rcm") {
+        perm = gko::reorder::Rcm<ValueType, IndexType>::build()
+                   .on(ref)
+                   ->generate(mtx)
+                   ->get_permutation()
+                   ->clone();
+    } else {
+        throw std::runtime_error{"Unknown reordering algorithm " +
+                                 FLAGS_reorder};
+    }
+    mtx->permute(perm)->write(data);
+    test_case["reordered"] = FLAGS_reorder;
+    return perm;
+}
+
+
+template <typename ValueType, typename IndexType>
+void permute(std::unique_ptr<gko::matrix::Dense<ValueType>>& vec,
+             const gko::matrix::Permutation<IndexType>* perm)
+{
+    vec = vec->permute(perm, gko::matrix::permute_mode::rows);
+}
+
+
+template <typename ValueType, typename IndexType>
+void permute(
+    std::unique_ptr<gko::experimental::distributed::Vector<ValueType>>& vec,
+    const gko::matrix::Permutation<IndexType>* perm)
+{}
 
 
 /**

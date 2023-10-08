@@ -1,0 +1,9 @@
+This is Ginkgo 1.7.0 (develop)
+    running with core module 1.7.0 (develop)
+Running on reference(0)
+Running with 2 warm iterations and 10 running iterations
+The random seed for right hand sides is 42
+The operations are symbolic_cholesky
+Running test case stencil(100, 7pt)
+Matrix is of size (125, 125), 725
+	Running sparse_blas: symbolic_cholesky

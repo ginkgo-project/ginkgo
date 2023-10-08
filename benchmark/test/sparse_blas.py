@@ -4,7 +4,8 @@ import test_framework
 # check that all input modes work:
 # parameter
 test_framework.compare_output(
-    ["-operations", "transpose", "-input", '[{"size": 100, "stencil": "7pt"}]'],
+    ["-operations", "transpose", "-input",
+        '[{"size": 100, "stencil": "7pt"}]'],
     expected_stdout="sparse_blas.simple.stdout",
     expected_stderr="sparse_blas.simple.stderr",
 )
@@ -54,4 +55,12 @@ test_framework.compare_output(
     ],
     expected_stdout="sparse_blas.profile.stdout",
     expected_stderr="sparse_blas.profile.stderr",
+)
+
+# reordering
+test_framework.compare_output(
+    ["-operations", "symbolic_cholesky", "-reorder", "amd"],
+    expected_stdout="sparse_blas.reordered.stdout",
+    expected_stderr="sparse_blas.reordered.stderr",
+    stdin='[{"size": 100, "stencil": "7pt"}]',
 )

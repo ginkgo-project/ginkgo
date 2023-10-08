@@ -43,3 +43,11 @@ test_framework.compare_output(
     expected_stdout="solver.profile.stdout",
     expected_stderr="solver.profile.stderr",
 )
+
+# reordering
+test_framework.compare_output(
+    ["-reorder", "amd"],
+    expected_stdout="solver.reordered.stdout",
+    expected_stderr="solver.reordered.stderr",
+    stdin='[{"size": 100, "stencil": "7pt", "optimal": {"spmv": "csr"}}]',
+)

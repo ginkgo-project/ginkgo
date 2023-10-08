@@ -118,6 +118,8 @@ struct ConversionBenchmark : Benchmark<gko::device_matrix_data<etype, itype>> {
     {
         gko::matrix_data<etype, itype> data;
         data = Generator::generate_matrix_data(test_case);
+        // no reordering here, as it doesn't impact conversions beyond
+        // dense-sparse conversions
         std::clog << "Matrix is of size (" << data.size[0] << ", "
                   << data.size[1] << "), " << data.nonzeros.size() << std::endl;
         test_case["rows"] = data.size[0];

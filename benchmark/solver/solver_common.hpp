@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
+#include "benchmark/utils/general_matrix.hpp"
 #include "benchmark/utils/generator.hpp"
 #include "benchmark/utils/iteration_control.hpp"
 #include "benchmark/utils/loggers.hpp"
@@ -433,10 +434,17 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                 {std::numeric_limits<rc_etype>::quiet_NaN()}, exec);
             state.x = generator.initialize({0.0}, exec);
         } else {
-            state.system_matrix =
-                generator.generate_matrix_with_optimal_format(exec, test_case);
+            auto data = generator.generate_matrix_data(test_case);
+            auto permutation =
+                reorder(data, test_case, generator.is_distributed());
+
+            state.system_matrix = generator.generate_matrix_with_format(
+                exec, test_case["optimal"]["spmv"].get<std::string>(), data);
             state.b = generator.generate_rhs(exec, state.system_matrix.get(),
                                              test_case);
+            if (permutation) {
+                permute(state.b, permutation.get());
+            }
             state.x = generator.generate_initial_guess(
                 exec, state.system_matrix.get(), state.b.get());
         }
