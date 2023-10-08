@@ -7,6 +7,7 @@
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/multigrid/pgm.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 
 #include "core/test/utils.hpp"
@@ -27,6 +28,7 @@ protected:
     using Schwarz = gko::experimental::distributed::preconditioner::Schwarz<
         value_type, local_index_type, global_index_type>;
     using Jacobi = gko::preconditioner::Jacobi<value_type, local_index_type>;
+    using Pgm = gko::multigrid::Pgm<value_type, local_index_type>;
     using Mtx =
         gko::experimental::distributed::Matrix<value_type, local_index_type,
                                                global_index_type>;
@@ -34,10 +36,12 @@ protected:
     SchwarzFactory()
         : exec(gko::ReferenceExecutor::create()),
           jacobi_factory(Jacobi::build().on(exec)),
+          pgm_factory(Pgm::build().on(exec)),
           mtx(Mtx::create(exec, MPI_COMM_WORLD))
     {
         schwarz = Schwarz::build()
                       .with_local_solver(jacobi_factory)
+                      .with_coarse_solver_factory(pgm_factory)
                       .on(exec)
                       ->generate(mtx);
     }
@@ -55,11 +59,14 @@ protected:
         ASSERT_EQ(a->get_size(), b->get_size());
         ASSERT_EQ(a->get_parameters().local_solver,
                   b->get_parameters().local_solver);
+        ASSERT_EQ(a->get_parameters().coarse_solver_factory,
+                  b->get_parameters().coarse_solver_factory);
     }
 
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Schwarz> schwarz;
     std::shared_ptr<typename Jacobi::Factory> jacobi_factory;
+    std::shared_ptr<typename Pgm::Factory> pgm_factory;
     std::shared_ptr<Mtx> mtx;
 };
 
@@ -80,6 +87,13 @@ TYPED_TEST(SchwarzFactory, CanSetLocalFactory)
 }
 
 
+TYPED_TEST(SchwarzFactory, CanSetCoarseSolverFactory)
+{
+    ASSERT_EQ(this->schwarz->get_parameters().coarse_solver_factory,
+              this->pgm_factory);
+}
+
+
 TYPED_TEST(SchwarzFactory, CanBeCloned)
 {
     auto schwarz_clone = clone(this->schwarz);
@@ -91,10 +105,14 @@ TYPED_TEST(SchwarzFactory, CanBeCloned)
 TYPED_TEST(SchwarzFactory, CanBeCopied)
 {
     using Jacobi = typename TestFixture::Jacobi;
+    using Pgm = typename TestFixture::Pgm;
     using Schwarz = typename TestFixture::Schwarz;
     using Mtx = typename TestFixture::Mtx;
+    auto bj = gko::share(Jacobi::build().on(this->exec));
+    auto pgm = gko::share(Pgm::build().on(this->exec));
     auto copy = Schwarz::build()
-                    .with_local_solver(Jacobi::build())
+                    .with_local_solver(bj)
+                    .with_coarse_solver_factory(pgm)
                     .on(this->exec)
                     ->generate(Mtx::create(this->exec, MPI_COMM_WORLD));
 
@@ -107,11 +125,15 @@ TYPED_TEST(SchwarzFactory, CanBeCopied)
 TYPED_TEST(SchwarzFactory, CanBeMoved)
 {
     using Jacobi = typename TestFixture::Jacobi;
+    using Pgm = typename TestFixture::Pgm;
     using Schwarz = typename TestFixture::Schwarz;
     using Mtx = typename TestFixture::Mtx;
     auto tmp = clone(this->schwarz);
+    auto bj = gko::share(Jacobi::build().on(this->exec));
+    auto pgm = gko::share(Pgm::build().on(this->exec));
     auto copy = Schwarz::build()
-                    .with_local_solver(Jacobi::build())
+                    .with_local_solver(bj)
+                    .with_coarse_solver_factory(pgm)
                     .on(this->exec)
                     ->generate(Mtx::create(this->exec, MPI_COMM_WORLD));
 
@@ -127,6 +149,7 @@ TYPED_TEST(SchwarzFactory, CanBeCleared)
 
     ASSERT_EQ(this->schwarz->get_size(), gko::dim<2>(0, 0));
     ASSERT_EQ(this->schwarz->get_parameters().local_solver, nullptr);
+    ASSERT_EQ(this->schwarz->get_parameters().coarse_solver_factory, nullptr);
 }
 
 
