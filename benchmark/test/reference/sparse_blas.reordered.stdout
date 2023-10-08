@@ -1,0 +1,32 @@
+[
+    {
+        "size": 100,
+        "stencil": "7pt",
+        "sparse_blas": {
+            "symbolic_cholesky": {
+                "time": 1.0,
+                "flops": 1.0,
+                "bandwidth": 1.0,
+                "repetitions": 10,
+                "components": {
+                    "compute_elim_forest": 1.0,
+                    "allocate": 1.0,
+                    "free": 1.0,
+                    "components::fill_array": 1.0,
+                    "cholesky::symbolic_count": 1.0,
+                    "components::prefix_sum_nonnegative": 1.0,
+                    "copy": 1.0,
+                    "cholesky::symbolic_factorize": 1.0,
+                    "csr::sort_by_column_index": 1.0,
+                    "overhead": 1.0
+                },
+                "factor_nonzeros": 1324,
+                "completed": true
+            }
+        },
+        "reordered": "amd",
+        "rows": 125,
+        "cols": 125,
+        "nonzeros": 725
+    }
+]

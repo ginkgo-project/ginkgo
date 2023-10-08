@@ -114,7 +114,7 @@ struct SparseBlasBenchmark : Benchmark<std::unique_ptr<Mtx>> {
                                json& test_case) const override
     {
         auto data = Generator::generate_matrix_data(test_case);
-        data.ensure_row_major_order();
+        reorder(data, test_case);
         std::clog << "Matrix is of size (" << data.size[0] << ", "
                   << data.size[1] << "), " << data.nonzeros.size() << std::endl;
         test_case["rows"] = data.size[0];
