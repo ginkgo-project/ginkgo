@@ -1,5 +1,5 @@
 ginkgo_create_common_test(batch_dense_kernels)
-ginkgo_create_common_test(batch_ell_kernels DISABLE_EXECUTORS dpcpp)
+ginkgo_create_common_test(batch_ell_kernels)
 ginkgo_create_common_device_test(csr_kernels)
 ginkgo_create_common_test(csr_kernels2)
 ginkgo_create_common_test(coo_kernels)

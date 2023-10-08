@@ -83,8 +83,6 @@ std::unique_ptr<MatrixType> generate_random_batch_matrix(
         exec, batch_dim<2>(num_batch_items, dim<2>(num_rows, num_cols)),
         std::forward<MatrixArgs>(args)...);
 
-    // TODO: Need to preserve sparsity pattern across batch items for batched
-    // sparse matrix formats
     for (size_type b = 0; b < num_batch_items; b++) {
         auto rand_mat =
             generate_random_matrix<typename MatrixType::unbatch_type>(
