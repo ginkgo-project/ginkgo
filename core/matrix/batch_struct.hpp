@@ -188,8 +188,7 @@ GKO_ATTRIBUTES GKO_INLINE batch_ell::batch_item<ValueType> extract_batch_item(
 {
     return {batch.values +
                 batch_idx * batch.num_stored_elems_per_row * batch.num_rows,
-            batch.col_idxs +
-                batch_idx * batch.num_stored_elems_per_row * batch.num_rows,
+            batch.col_idxs,
             batch.stride,
             batch.num_rows,
             batch.num_cols,
@@ -203,7 +202,7 @@ GKO_ATTRIBUTES GKO_INLINE batch_ell::batch_item<ValueType> extract_batch_item(
     const size_type batch_idx)
 {
     return {batch_values + batch_idx * num_elems_per_row * num_rows,
-            batch_col_idxs + batch_idx * num_elems_per_row * num_rows,
+            batch_col_idxs,
             stride,
             num_rows,
             num_cols,

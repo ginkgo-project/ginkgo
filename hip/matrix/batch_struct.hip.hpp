@@ -87,6 +87,40 @@ get_batch_struct(batch::matrix::Dense<ValueType>* const op)
 }
 
 
+/**
+ * Generates an immutable uniform batch struct from a batch of ell matrices.
+ */
+template <typename ValueType>
+inline batch::matrix::batch_ell::uniform_batch<const hip_type<ValueType>>
+get_batch_struct(const batch::matrix::Ell<ValueType, int32>* const op)
+{
+    return {as_hip_type(op->get_const_values()),
+            op->get_const_col_idxs(),
+            op->get_num_batch_items(),
+            static_cast<int>(op->get_common_size()[0]),
+            static_cast<int>(op->get_common_size()[0]),
+            static_cast<int>(op->get_common_size()[1]),
+            static_cast<int>(op->get_num_stored_elements_per_row())};
+}
+
+
+/**
+ * Generates a uniform batch struct from a batch of ell matrices.
+ */
+template <typename ValueType>
+inline batch::matrix::batch_ell::uniform_batch<hip_type<ValueType>>
+get_batch_struct(batch::matrix::Ell<ValueType, int32>* const op)
+{
+    return {as_hip_type(op->get_values()),
+            op->get_col_idxs(),
+            op->get_num_batch_items(),
+            static_cast<int>(op->get_common_size()[0]),
+            static_cast<int>(op->get_common_size()[0]),
+            static_cast<int>(op->get_common_size()[1]),
+            static_cast<int>(op->get_num_stored_elements_per_row())};
+}
+
+
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko
