@@ -102,14 +102,20 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     std::shared_ptr<const LinOp> system_matrix)
 {
+    auto dist_mat =
+        as<experimental::distributed::Matrix<ValueType, LocalIndexType,
+                                             GlobalIndexType>>(system_matrix);
+
     if (parameters_.local_solver_factory) {
         this->local_solver_ = parameters_.local_solver_factory->generate(
-            as<experimental::distributed::Matrix<ValueType, LocalIndexType,
-                                                 GlobalIndexType>>(
-                system_matrix)
-                ->get_local_matrix());
+            dist_mat->get_local_matrix());
     } else {
         GKO_NOT_IMPLEMENTED;
+    }
+
+    if (parameters_.coarse_solver_factory) {
+        this->coarse_solver_ = as<multigrid::MultigridLevel>(
+            share(parameters_.coarse_solver_factory->generate(dist_mat)));
     }
 }
 
