@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/mixed_precision_types.hpp"
 #include "core/base/utils.hpp"
+#include "accessor/sycl_helper.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_accessor_helper.hpp"
@@ -678,7 +679,7 @@ void device_classical_spmv(const size_type num_rows,
     }
 }
 
-
+/*
 template <size_type subgroup_size, typename AccessType, typename input_accessor,
           typename output_accessor, typename IndexType, typename Closure>
 void device_classical_spmv(
@@ -756,7 +757,7 @@ void device_classical_spmv(
         }
     }
 }
-
+*/
 
 template <size_type subgroup_size, typename matrix_accessor,
           typename input_accessor, typename output_accessor, typename IndexType>
@@ -1250,17 +1251,17 @@ void classical_spmv(syn::value_list<int, subgroup_size>,
     if (alpha == nullptr && beta == nullptr) {
         if (grid.x > 0 && grid.y > 0) {
             kernel::abstract_classical_spmv<subgroup_size>(
-                grid, block, 0, exec->get_queue(), a->get_size()[0], a_vals,
-                a->get_const_col_idxs(), a->get_const_row_ptrs(), b_vals,
-                c_vals);
+                grid, block, 0, exec->get_queue(), a->get_size()[0], as_sycl_range(a_vals),
+                a->get_const_col_idxs(), a->get_const_row_ptrs(), as_sycl_range(b_vals),
+                as_sycl_range(c_vals));
         }
     } else if (alpha != nullptr && beta != nullptr) {
         if (grid.x > 0 && grid.y > 0) {
             kernel::abstract_classical_spmv<subgroup_size>(
                 grid, block, 0, exec->get_queue(), a->get_size()[0],
-                alpha->get_const_values(), a_vals, a->get_const_col_idxs(),
-                a->get_const_row_ptrs(), b_vals, beta->get_const_values(),
-                c_vals);
+                alpha->get_const_values(), as_sycl_range(a_vals), a->get_const_col_idxs(),
+                a->get_const_row_ptrs(), as_sycl_range(b_vals), beta->get_const_values(),
+                as_sycl_range(c_vals));
         }
     } else {
         GKO_KERNEL_NOT_FOUND;
