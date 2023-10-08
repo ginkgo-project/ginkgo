@@ -62,6 +62,7 @@ protected:
     using Mtx = gko::matrix::Dense<v_type>;
     using CsrMtx = gko::matrix::Csr<v_type, i_type>;
     using reorder_type = gko::reorder::Rcm<v_type, i_type>;
+    using new_reorder_type = gko::experimental::reorder::Rcm<i_type>;
     using strategy = gko::reorder::starting_strategy;
     using perm_type = gko::matrix::Permutation<i_type>;
 
@@ -110,22 +111,22 @@ protected:
     }
 
     static bool is_valid_start_node(std::shared_ptr<CsrMtx> mtx,
-                                    std::shared_ptr<reorder_type> reorder,
-                                    i_type start,
-                                    std::vector<bool>& already_visited)
+                                    const i_type* permutation, i_type start,
+                                    std::vector<bool>& already_visited,
+                                    gko::reorder::starting_strategy strategy)
     {
         if (already_visited[start]) {
             return false;
         }
 
-        const auto n = reorder->get_permutation()->get_size()[0];
+        const auto n = mtx->get_size()[0];
         auto degrees = std::vector<i_type>(n);
         for (gko::size_type i = 0; i < n; ++i) {
             degrees[i] =
                 mtx->get_const_row_ptrs()[i + 1] - mtx->get_const_row_ptrs()[i];
         }
 
-        switch (reorder->get_parameters().strategy) {
+        switch (strategy) {
         case strategy::minimum_degree: {
             auto min_degree = std::numeric_limits<i_type>::max();
             for (gko::size_type i = 0; i < n; ++i) {
@@ -195,10 +196,10 @@ protected:
     }
 
     static bool is_rcm_ordered(std::shared_ptr<CsrMtx> mtx,
-                               std::shared_ptr<reorder_type> reorder)
+                               const i_type* permutation,
+                               gko::reorder::starting_strategy strategy)
     {
-        const auto n =
-            gko::as<perm_type>(reorder->get_permutation())->get_size()[0];
+        const auto n = mtx->get_size()[0];
         const auto row_ptrs = mtx->get_const_row_ptrs();
         const auto col_idxs = mtx->get_const_col_idxs();
         auto degrees = std::vector<i_type>(n);
@@ -209,14 +210,8 @@ protected:
 
         // Following checks for cm ordering, therefore create a reversed perm.
         auto perm = std::vector<i_type>(n);
-        std::copy_n(gko::as<perm_type>(reorder->get_permutation())
-                        ->get_const_permutation(),
-                    n, perm.begin());
-        for (gko::size_type i = 0; i < n / 2; ++i) {
-            const auto tmp = perm[i];
-            perm[i] = perm[n - i - 1];
-            perm[n - i - 1] = tmp;
-        }
+        std::copy_n(permutation, n, perm.begin());
+        std::reverse(perm.begin(), perm.end());
 
         // Now check for cm ordering.
 
@@ -224,8 +219,8 @@ protected:
         std::vector<bool> already_visited(n);
         while (base_offset != n) {
             // Assert valid start node.
-            if (!is_valid_start_node(mtx, reorder, perm[base_offset],
-                                     already_visited)) {
+            if (!is_valid_start_node(mtx, permutation, perm[base_offset],
+                                     already_visited, strategy)) {
                 return false;
             }
 
@@ -330,7 +325,30 @@ TEST_F(Rcm, OmpPermutationIsRcmOrdered)
 
     auto perm = d_reorder_op->get_permutation();
 
-    ASSERT_PRED2(is_rcm_ordered, d_1138_bus_mtx, d_reorder_op);
+    ASSERT_PRED3(is_rcm_ordered, d_1138_bus_mtx, perm->get_const_permutation(),
+                 d_reorder_op->get_parameters().strategy);
+}
+
+TEST_F(Rcm, OmpPermutationIsRcmOrderedMinDegree)
+{
+    d_reorder_op =
+        reorder_type::build()
+            .with_strategy(gko::reorder::starting_strategy::minimum_degree)
+            .on(omp)
+            ->generate(d_1138_bus_mtx);
+
+    auto perm = d_reorder_op->get_permutation();
+
+    ASSERT_PRED3(is_rcm_ordered, d_1138_bus_mtx, perm->get_const_permutation(),
+                 d_reorder_op->get_parameters().strategy);
+}
+
+TEST_F(Rcm, OmpPermutationIsRcmOrderedNewInterface)
+{
+    auto perm = new_reorder_type::build().on(omp)->generate(d_1138_bus_mtx);
+
+    ASSERT_PRED3(is_rcm_ordered, d_1138_bus_mtx, perm->get_const_permutation(),
+                 gko::reorder::starting_strategy::pseudo_peripheral);
 }
 
 }  // namespace
