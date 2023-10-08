@@ -55,19 +55,15 @@ namespace matrix {
 
 
 /**
- * Ell is a batch matrix format which explicitly stores all values of the
- * matrix in each of the batches.
+ * Ell is a sparse matrix format that stores the same number of nonzeros in each
+ * row, enabling coalesced accesses. It is suitable for sparsity patterns that
+ * have a similar number of nonzeros in every row. The values are stored in a
+ * column-major fashion similar to the monolithic gko::matrix::Ell class. It is
+ * also assumed that the sparsity pattern of all the items in the batch is the
+ * same and therefore only a single copy of the sparsity pattern is stored.
  *
- * The values in each of the batches are stored in row-major format (values
- * belonging to the same row appear consecutive in the memory and the values of
- * each batch item are also stored consecutively in memory).
- *
- * @note Though the storage layout is similar to the multi-vector object, the
- * class semantics and the operations it aims to provide is different. Hence it
- * is recommended to create multi-vector objects if the user means to view the
- * data as a set of vectors.
- *
- * @tparam ValueType  precision of matrix elements
+ * @tparam ValueType  value precision of matrix elements
+ * @tparam IndexType  index precision of matrix elements
  *
  * @ingroup batch_ell
  * @ingroup mat_formats
