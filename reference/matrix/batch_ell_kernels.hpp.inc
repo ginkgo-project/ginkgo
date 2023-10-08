@@ -36,14 +36,14 @@ inline void simple_apply_kernel(
     const gko::batch::multi_vector::batch_item<const ValueType>& b,
     const gko::batch::multi_vector::batch_item<ValueType>& c)
 {
-    for (int row = 0; row < a.num_rows; ++row) {
-        for (int j = 0; j < b.num_rhs; ++j) {
+    for (int row = 0; row < c.num_rows; ++row) {
+        for (int j = 0; j < c.num_rhs; ++j) {
             c.values[row * c.stride + j] = zero<ValueType>();
         }
         for (auto k = 0; k < a.num_stored_elems_per_row; ++k) {
             auto val = a.values[row + k * a.stride];
             auto col = a.col_idxs[row + k * a.stride];
-            for (int j = 0; j < b.num_rhs; ++j) {
+            for (int j = 0; j < c.num_rhs; ++j) {
                 c.values[row * c.stride + j] +=
                     val * b.values[col * b.stride + j];
             }

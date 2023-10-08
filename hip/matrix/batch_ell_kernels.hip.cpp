@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/batch_ell_kernels.hpp"
 
 
+#include <hip/hip_runtime.h>
 #include <thrust/functional.h>
 #include <thrust/transform.h>
 
@@ -42,21 +43,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
-#include "cuda/base/batch_struct.hpp"
-#include "cuda/base/config.hpp"
-#include "cuda/base/cublas_bindings.hpp"
-#include "cuda/base/pointer_mode_guard.hpp"
-#include "cuda/base/thrust.cuh"
-#include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/reduction.cuh"
-#include "cuda/components/thread_ids.cuh"
-#include "cuda/components/uninitialized_array.hpp"
-#include "cuda/matrix/batch_struct.hpp"
+#include "hip/base/batch_struct.hip.hpp"
+#include "hip/base/config.hip.hpp"
+#include "hip/base/hipblas_bindings.hip.hpp"
+#include "hip/base/pointer_mode_guard.hip.hpp"
+#include "hip/base/thrust.hip.hpp"
+#include "hip/components/cooperative_groups.hip.hpp"
+#include "hip/components/reduction.hip.hpp"
+#include "hip/components/thread_ids.hip.hpp"
+#include "hip/components/uninitialized_array.hip.hpp"
+#include "hip/matrix/batch_struct.hip.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace cuda {
+namespace hip {
 /**
  * @brief The Ell matrix format namespace.
  * @ref Ell
@@ -72,7 +73,7 @@ constexpr int sm_oversubscription = 4;
 
 // NOTE: DO NOT CHANGE THE ORDERING OF THE INCLUDES
 
-// #include "common/cuda_hip/matrix/batch_ell_kernels.hpp.inc"
+#include "common/cuda_hip/matrix/batch_ell_kernels.hpp.inc"
 
 
 #include "common/cuda_hip/matrix/batch_ell_kernel_launcher.hpp.inc"
@@ -81,6 +82,6 @@ constexpr int sm_oversubscription = 4;
 
 
 }  // namespace batch_ell
-}  // namespace cuda
+}  // namespace hip
 }  // namespace kernels
 }  // namespace gko
