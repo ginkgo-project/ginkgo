@@ -63,22 +63,36 @@ protected:
     template <typename MtxType>
     std::unique_ptr<MtxType> gen_mtx(const gko::size_type num_batch_items,
                                      gko::size_type num_rows,
-                                     gko::size_type num_cols)
+                                     gko::size_type num_cols,
+                                     int num_elems_per_row)
     {
         return gko::test::generate_random_batch_matrix<MtxType>(
+            num_batch_items, num_rows, num_cols,
+            std::uniform_int_distribution<>(num_elems_per_row,
+                                            num_elems_per_row),
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref,
+            num_elems_per_row);
+    }
+
+    std::unique_ptr<MVec> gen_mvec(const gko::size_type num_batch_items,
+                                   gko::size_type num_rows,
+                                   gko::size_type num_cols)
+    {
+        return gko::test::generate_random_batch_matrix<MVec>(
             num_batch_items, num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    void set_up_apply_data(gko::size_type num_vecs = 1)
+    void set_up_apply_data(gko::size_type num_vecs = 1,
+                           int num_elems_per_row = 5)
     {
         const int num_rows = 252;
         const int num_cols = 32;
-        x = gen_mtx<Mtx>(batch_size, num_rows, num_cols);
-        y = gen_mtx<MVec>(batch_size, num_cols, num_vecs);
-        alpha = gen_mtx<MVec>(batch_size, 1, 1);
-        beta = gen_mtx<MVec>(batch_size, 1, 1);
+        x = gen_mtx<Mtx>(batch_size, num_rows, num_cols, num_elems_per_row);
+        y = gen_mvec(batch_size, num_cols, num_vecs);
+        alpha = gen_mvec(batch_size, 1, 1);
+        beta = gen_mvec(batch_size, 1, 1);
         dx = gko::clone(exec, x);
         dy = gko::clone(exec, y);
         dalpha = gko::clone(exec, alpha);
