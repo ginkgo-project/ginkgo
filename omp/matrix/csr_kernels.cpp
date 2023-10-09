@@ -1079,10 +1079,10 @@ void inv_nonsymm_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
         auto dst_begin = p_row_ptrs[dst_row];
         auto row_size = in_row_ptrs[src_row + 1] - src_begin;
         for (IndexType i = 0; i < row_size; ++i) {
-            const auto in_col = in_col_idxs[src_begin + i];
-            p_col_idxs[dst_begin + i] = col_perm[in_col];
+            const auto out_col = col_perm[in_col_idxs[src_begin + i]];
+            p_col_idxs[dst_begin + i] = out_col;
             p_vals[dst_begin + i] = in_vals[src_begin + i] /
-                                    (row_scale[src_row] * col_scale[in_col]);
+                                    (row_scale[dst_row] * col_scale[out_col]);
         }
     }
 }
@@ -1123,7 +1123,7 @@ void row_scale_permute(std::shared_ptr<const OmpExecutor> exec,
         std::copy_n(orig_col_idxs + src_begin, row_size,
                     rp_col_idxs + dst_begin);
         for (IndexType i = 0; i < row_size; i++) {
-            rp_vals[i + dst_begin] = orig_vals[i + src_begin] * scale[dst_row];
+            rp_vals[i + dst_begin] = orig_vals[i + src_begin] * scale[src_row];
         }
     }
 }
@@ -1164,7 +1164,7 @@ void inv_row_scale_permute(std::shared_ptr<const OmpExecutor> exec,
         std::copy_n(orig_col_idxs + src_begin, row_size,
                     rp_col_idxs + dst_begin);
         for (IndexType i = 0; i < row_size; i++) {
-            rp_vals[i + dst_begin] = orig_vals[i + src_begin] / scale[src_row];
+            rp_vals[i + dst_begin] = orig_vals[i + src_begin] / scale[dst_row];
         }
     }
 }

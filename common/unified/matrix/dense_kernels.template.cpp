@@ -539,7 +539,9 @@ void symm_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
         exec,
         [] GKO_KERNEL(auto i, auto j, auto scale, auto perm, auto orig,
                       auto permuted) {
-            permuted(i, j) = scale[i] * scale[j] * orig(perm[i], perm[j]);
+            const auto row = perm[i];
+            const auto col = perm[j];
+            permuted(i, j) = scale[row] * scale[col] * orig(row, col);
         },
         orig->get_size(), scale, perm, orig, permuted);
 }
@@ -555,7 +557,9 @@ void inv_symm_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
         exec,
         [] GKO_KERNEL(auto i, auto j, auto scale, auto perm, auto orig,
                       auto permuted) {
-            permuted(perm[i], perm[j]) = orig(i, j) / (scale[i] * scale[j]);
+            const auto row = perm[i];
+            const auto col = perm[j];
+            permuted(row, col) = orig(i, j) / (scale[row] * scale[col]);
         },
         orig->get_size(), scale, perm, orig, permuted);
 }
@@ -574,8 +578,9 @@ void nonsymm_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
         exec,
         [] GKO_KERNEL(auto i, auto j, auto row_scale, auto row_perm,
                       auto col_scale, auto col_perm, auto orig, auto permuted) {
-            permuted(i, j) =
-                row_scale[i] * col_scale[j] * orig(row_perm[i], col_perm[j]);
+            const auto row = row_perm[i];
+            const auto col = col_perm[j];
+            permuted(i, j) = row_scale[row] * col_scale[col] * orig(row, col);
         },
         orig->get_size(), row_scale, row_perm, col_scale, col_perm, orig,
         permuted);
@@ -595,8 +600,9 @@ void inv_nonsymm_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
         exec,
         [] GKO_KERNEL(auto i, auto j, auto row_scale, auto row_perm,
                       auto col_scale, auto col_perm, auto orig, auto permuted) {
-            permuted(row_perm[i], row_perm[j]) =
-                orig(i, j) / (row_scale[i] * col_scale[j]);
+            const auto row = row_perm[i];
+            const auto col = col_perm[j];
+            permuted(row, col) = orig(i, j) / (row_scale[i] * col_scale[j]);
         },
         orig->get_size(), row_scale, row_perm, col_scale, col_perm, orig,
         permuted);
@@ -613,7 +619,8 @@ void row_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
         exec,
         [] GKO_KERNEL(auto i, auto j, auto scale, auto perm, auto orig,
                       auto permuted) {
-            permuted(i, j) = scale[i] * orig(perm[i], j);
+            const auto row = perm[i];
+            permuted(i, j) = scale[row] * orig(row, j);
         },
         orig->get_size(), scale, perm, orig, permuted);
 }
@@ -629,7 +636,8 @@ void inv_row_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
         exec,
         [] GKO_KERNEL(auto i, auto j, auto scale, auto perm, auto orig,
                       auto permuted) {
-            permuted(perm[i], j) = orig(i, j) / scale[i];
+            const auto row = perm[i];
+            permuted(row, j) = orig(i, j) / scale[row];
         },
         orig->get_size(), scale, perm, orig, permuted);
 }
@@ -645,7 +653,8 @@ void col_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
         exec,
         [] GKO_KERNEL(auto i, auto j, auto scale, auto perm, auto orig,
                       auto permuted) {
-            permuted(i, j) = scale[j] * orig(i, perm[j]);
+            const auto col = perm[j];
+            permuted(i, j) = scale[col] * orig(i, col);
         },
         orig->get_size(), scale, perm, orig, permuted);
 }
@@ -661,7 +670,8 @@ void inv_col_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
         exec,
         [] GKO_KERNEL(auto i, auto j, auto scale, auto perm, auto orig,
                       auto permuted) {
-            permuted(i, perm[j]) = orig(i, j) / scale[j];
+            const auto col = perm[j];
+            permuted(i, col) = orig(i, j) / scale[col];
         },
         orig->get_size(), scale, perm, orig, permuted);
 }

@@ -103,9 +103,9 @@ void inv_col_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
                       auto in_vals, auto out_row_ptrs, auto out_col_idxs,
                       auto out_vals) {
             if (tid < num_nonzeros) {
-                const auto in_col = in_col_idxs[tid];
-                out_col_idxs[tid] = permutation[in_col];
-                out_vals[tid] = in_vals[tid] / scale[in_col];
+                const auto out_col = permutation[in_col_idxs[tid]];
+                out_col_idxs[tid] = out_col;
+                out_vals[tid] = in_vals[tid] / scale[out_col];
             }
             if (tid <= num_rows) {
                 out_row_ptrs[tid] = in_row_ptrs[tid];

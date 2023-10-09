@@ -813,7 +813,7 @@ __global__ __launch_bounds__(default_block_size) void row_scale_permute(
     auto out_begin = out_row_ptrs[out_row];
     for (IndexType i = lane; i < in_size; i += subwarp_size) {
         out_cols[out_begin + i] = in_cols[in_begin + i];
-        out_vals[out_begin + i] = in_vals[in_begin + i] * scale[out_row];
+        out_vals[out_begin + i] = in_vals[in_begin + i] * scale[in_row];
     }
 }
 
@@ -840,7 +840,7 @@ __global__ __launch_bounds__(default_block_size) void inv_row_scale_permute(
     auto out_begin = out_row_ptrs[out_row];
     for (IndexType i = lane; i < in_size; i += subwarp_size) {
         out_cols[out_begin + i] = in_cols[in_begin + i];
-        out_vals[out_begin + i] = in_vals[in_begin + i] / scale[in_row];
+        out_vals[out_begin + i] = in_vals[in_begin + i] / scale[out_row];
     }
 }
 
@@ -866,10 +866,10 @@ __global__ __launch_bounds__(default_block_size) void inv_symm_scale_permute(
     auto in_size = in_row_ptrs[in_row + 1] - in_begin;
     auto out_begin = out_row_ptrs[out_row];
     for (IndexType i = lane; i < in_size; i += subwarp_size) {
-        const auto in_col = in_cols[in_begin + i];
-        out_cols[out_begin + i] = permutation[in_col];
+        const auto out_col = permutation[in_cols[in_begin + i]];
+        out_cols[out_begin + i] = out_col;
         out_vals[out_begin + i] =
-            in_vals[in_begin + i] / (scale[in_row] * scale[in_col]);
+            in_vals[in_begin + i] / (scale[out_row] * scale[out_col]);
     }
 }
 
@@ -897,10 +897,10 @@ __global__ __launch_bounds__(default_block_size) void inv_nonsymm_scale_permute(
     auto in_size = in_row_ptrs[in_row + 1] - in_begin;
     auto out_begin = out_row_ptrs[out_row];
     for (IndexType i = lane; i < in_size; i += subwarp_size) {
-        const auto in_col = in_cols[in_begin + i];
-        out_cols[out_begin + i] = col_permutation[in_col];
+        const auto out_col = col_permutation[in_cols[in_begin + i]];
+        out_cols[out_begin + i] = out_col;
         out_vals[out_begin + i] =
-            in_vals[in_begin + i] / (row_scale[in_row] * col_scale[in_col]);
+            in_vals[in_begin + i] / (row_scale[out_row] * col_scale[out_col]);
     }
 }
 

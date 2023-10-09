@@ -1028,10 +1028,10 @@ void inv_nonsymm_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
         auto dst_begin = p_row_ptrs[dst_row];
         auto row_size = in_row_ptrs[src_row + 1] - src_begin;
         for (IndexType i = 0; i < row_size; ++i) {
-            const auto in_col = in_col_idxs[src_begin + i];
-            p_col_idxs[dst_begin + i] = col_perm[in_col];
+            const auto out_col = col_perm[in_col_idxs[src_begin + i]];
+            p_col_idxs[dst_begin + i] = out_col;
             p_vals[dst_begin + i] = in_vals[src_begin + i] /
-                                    (row_scale[src_row] * col_scale[in_col]);
+                                    (row_scale[dst_row] * col_scale[out_col]);
         }
     }
 }
@@ -1068,7 +1068,7 @@ void row_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
         const auto row_size = in_row_ptrs[src_row + 1] - src_begin;
         std::copy_n(in_col_idxs + src_begin, row_size, rp_col_idxs + dst_begin);
         for (IndexType i = 0; i < row_size; i++) {
-            rp_vals[i + dst_begin] = in_vals[i + src_begin] * scale[dst_row];
+            rp_vals[i + dst_begin] = in_vals[i + src_begin] * scale[src_row];
         }
     }
 }
@@ -1105,7 +1105,7 @@ void inv_row_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
         auto row_size = in_row_ptrs[src_row + 1] - src_begin;
         std::copy_n(in_col_idxs + src_begin, row_size, rp_col_idxs + dst_begin);
         for (IndexType i = 0; i < row_size; i++) {
-            rp_vals[i + dst_begin] = in_vals[i + src_begin] / scale[src_row];
+            rp_vals[i + dst_begin] = in_vals[i + src_begin] / scale[dst_row];
         }
     }
 }
@@ -1133,9 +1133,9 @@ void inv_col_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
         auto row_end = in_row_ptrs[row + 1];
         cp_row_ptrs[row] = in_row_ptrs[row];
         for (auto k = row_begin; k < row_end; ++k) {
-            const auto in_col = in_col_idxs[k];
-            cp_col_idxs[k] = perm[in_col];
-            cp_vals[k] = in_vals[k] / scale[in_col];
+            const auto out_col = perm[in_col_idxs[k]];
+            cp_col_idxs[k] = out_col;
+            cp_vals[k] = in_vals[k] / scale[out_col];
         }
     }
     cp_row_ptrs[num_rows] = in_row_ptrs[num_rows];

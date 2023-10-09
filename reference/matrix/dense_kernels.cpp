@@ -975,8 +975,8 @@ void col_permute(std::shared_ptr<const ReferenceExecutor> exec,
                  const IndexType* perm, const matrix::Dense<ValueType>* orig,
                  matrix::Dense<ValueType>* col_permuted)
 {
-    for (size_type j = 0; j < orig->get_size()[1]; ++j) {
-        for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
             col_permuted->at(i, j) = orig->at(i, perm[j]);
         }
     }
@@ -1009,8 +1009,8 @@ void inv_col_permute(std::shared_ptr<const ReferenceExecutor> exec,
                      const matrix::Dense<ValueType>* orig,
                      matrix::Dense<ValueType>* col_permuted)
 {
-    for (size_type j = 0; j < orig->get_size()[1]; ++j) {
-        for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
             col_permuted->at(i, perm[j]) = orig->at(i, j);
         }
     }
@@ -1026,10 +1026,11 @@ void symm_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
                         const matrix::Dense<ValueType>* orig,
                         matrix::Dense<ValueType>* permuted)
 {
-    for (size_type j = 0; j < orig->get_size()[1]; ++j) {
-        for (size_type i = 0; i < orig->get_size()[0]; ++i) {
-            permuted->at(i, j) =
-                scale[i] * scale[j] * orig->at(perm[i], perm[j]);
+    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            const auto row = perm[i];
+            const auto col = perm[j];
+            permuted->at(i, j) = scale[row] * scale[col] * orig->at(row, col);
         }
     }
 }
@@ -1044,10 +1045,11 @@ void inv_symm_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
                             const matrix::Dense<ValueType>* orig,
                             matrix::Dense<ValueType>* permuted)
 {
-    for (size_type j = 0; j < orig->get_size()[1]; ++j) {
-        for (size_type i = 0; i < orig->get_size()[0]; ++i) {
-            permuted->at(perm[i], perm[j]) =
-                orig->at(i, j) / (scale[i] * scale[j]);
+    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            const auto row = perm[i];
+            const auto col = perm[j];
+            permuted->at(row, col) = orig->at(i, j) / (scale[row] * scale[col]);
         }
     }
 }
@@ -1065,10 +1067,12 @@ void nonsymm_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
                            const matrix::Dense<ValueType>* orig,
                            matrix::Dense<ValueType>* permuted)
 {
-    for (size_type j = 0; j < orig->get_size()[1]; ++j) {
-        for (size_type i = 0; i < orig->get_size()[0]; ++i) {
-            permuted->at(i, j) = row_scale[i] * col_scale[j] *
-                                 orig->at(row_perm[i], col_perm[j]);
+    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            const auto row = row_perm[i];
+            const auto col = col_perm[j];
+            permuted->at(i, j) =
+                row_scale[row] * col_scale[col] * orig->at(row, col);
         }
     }
 }
@@ -1086,10 +1090,13 @@ void inv_nonsymm_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
                                const matrix::Dense<ValueType>* orig,
                                matrix::Dense<ValueType>* permuted)
 {
-    for (size_type j = 0; j < orig->get_size()[1]; ++j) {
-        for (size_type i = 0; i < orig->get_size()[0]; ++i) {
-            permuted->at(row_perm[i], col_perm[j]) =
-                orig->at(i, j) / (row_scale[i] * col_scale[j]);
+    // TODO this was broken in common, why did the test not pick it up?
+    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            const auto row = row_perm[i];
+            const auto col = col_perm[j];
+            permuted->at(row, col) =
+                orig->at(i, j) / (row_scale[row] * col_scale[col]);
         }
     }
 }
@@ -1104,9 +1111,10 @@ void row_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
                        const matrix::Dense<ValueType>* orig,
                        matrix::Dense<ValueType>* permuted)
 {
-    for (size_type j = 0; j < orig->get_size()[1]; ++j) {
-        for (size_type i = 0; i < orig->get_size()[0]; ++i) {
-            permuted->at(i, j) = scale[i] * orig->at(perm[i], j);
+    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            const auto row = perm[i];
+            permuted->at(i, j) = scale[row] * orig->at(row, j);
         }
     }
 }
@@ -1121,9 +1129,10 @@ void inv_row_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
                            const matrix::Dense<ValueType>* orig,
                            matrix::Dense<ValueType>* permuted)
 {
-    for (size_type j = 0; j < orig->get_size()[1]; ++j) {
-        for (size_type i = 0; i < orig->get_size()[0]; ++i) {
-            permuted->at(perm[i], j) = orig->at(i, j) / scale[i];
+    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            const auto row = perm[i];
+            permuted->at(row, j) = orig->at(i, j) / scale[row];
         }
     }
 }
@@ -1138,9 +1147,10 @@ void col_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
                        const matrix::Dense<ValueType>* orig,
                        matrix::Dense<ValueType>* permuted)
 {
-    for (size_type j = 0; j < orig->get_size()[1]; ++j) {
-        for (size_type i = 0; i < orig->get_size()[0]; ++i) {
-            permuted->at(i, j) = scale[j] * orig->at(i, perm[j]);
+    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            const auto col = perm[j];
+            permuted->at(i, j) = scale[col] * orig->at(i, col);
         }
     }
 }
@@ -1155,9 +1165,10 @@ void inv_col_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
                            const matrix::Dense<ValueType>* orig,
                            matrix::Dense<ValueType>* permuted)
 {
-    for (size_type j = 0; j < orig->get_size()[1]; ++j) {
-        for (size_type i = 0; i < orig->get_size()[0]; ++i) {
-            permuted->at(i, perm[j]) = orig->at(i, j) / scale[j];
+    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            const auto col = perm[j];
+            permuted->at(i, col) = orig->at(i, j) / scale[col];
         }
     }
 }

@@ -84,9 +84,9 @@ TYPED_TEST(ScaledPermutation, Invert)
     EXPECT_EQ(inv->get_const_permutation()[0], 2);
     EXPECT_EQ(inv->get_const_permutation()[1], 0);
     EXPECT_EQ(inv->get_const_permutation()[2], 1);
-    EXPECT_EQ(inv->get_const_scale()[0], T{0.25});
-    EXPECT_EQ(inv->get_const_scale()[1], T{1.0});
-    EXPECT_EQ(inv->get_const_scale()[2], T{0.5});
+    EXPECT_EQ(inv->get_const_scale()[0], T{0.5});
+    EXPECT_EQ(inv->get_const_scale()[1], T{0.25});
+    EXPECT_EQ(inv->get_const_scale()[2], T{1.0});
 }
 
 
@@ -95,7 +95,7 @@ TYPED_TEST(ScaledPermutation, Write)
     using T = typename TestFixture::value_type;
 
     GKO_ASSERT_MTX_NEAR(
-        this->perm3, l<T>({{0.0, 1.0, 0.0}, {0.0, 0.0, 2.0}, {4.0, 0.0, 0.0}}),
+        this->perm3, l<T>({{0.0, 2.0, 0.0}, {0.0, 0.0, 4.0}, {1.0, 0.0, 0.0}}),
         0.0);
 }
 
@@ -109,7 +109,7 @@ TYPED_TEST(ScaledPermutation, AppliesToDense)
 
     this->perm2->apply(x, y);
 
-    GKO_ASSERT_MTX_NEAR(y, l({{12.0, 7.5}, {10.0, 15.0}}), 0.0);
+    GKO_ASSERT_MTX_NEAR(y, l({{20.0, 12.5}, {6.0, 9.0}}), 0.0);
 }
 
 
