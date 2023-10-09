@@ -736,7 +736,6 @@ std::unique_ptr<const Permutation<IndexType>> create_permutation_view(
     const array<IndexType>& indices)
 {
     return Permutation<IndexType>::create_const(indices.get_executor(),
-                                                indices.get_num_elems(),
                                                 indices.as_const_view());
 }
 

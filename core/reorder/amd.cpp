@@ -212,8 +212,7 @@ std::unique_ptr<LinOp> Amd<IndexType>::generate_impl(
         head, elen, degree, w));
 
     // permutation gets copied to device via gko::array constructor
-    return permutation_type::create(exec, dim<2>{num_rows, num_rows},
-                                    std::move(permutation));
+    return permutation_type::create(exec, std::move(permutation));
 }
 
 

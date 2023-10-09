@@ -68,7 +68,7 @@ TYPED_TEST(Permutation, Invert)
 {
     using index_type = typename TestFixture::index_type;
     auto perm = gko::matrix::Permutation<index_type>::create(
-        this->exec, 3, gko::array<index_type>{this->exec, {1, 2, 0}});
+        this->exec, gko::array<index_type>{this->exec, {1, 2, 0}});
 
     auto inv = perm->invert();
 
@@ -104,7 +104,7 @@ TYPED_TEST(Permutation, AppliesRowPermutationToDense)
     index_type rdata[] = {1, 0};
 
     auto perm = gko::matrix::Permutation<index_type>::create(
-        this->exec, gko::dim<2>{2}, gko::make_array_view(this->exec, 2, rdata));
+        this->exec, gko::make_array_view(this->exec, 2, rdata));
 
     perm->apply(x, y);
     // clang-format off

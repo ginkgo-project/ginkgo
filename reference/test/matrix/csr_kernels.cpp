@@ -93,9 +93,9 @@ protected:
           mtx3_unsorted(
               Mtx::create(exec, gko::dim<2>(3, 3), 7,
                           std::make_shared<typename Mtx::classical>())),
-          perm3(Perm::create(exec, 3, gko::array<index_type>{exec, {1, 2, 0}})),
+          perm3(Perm::create(exec, gko::array<index_type>{exec, {1, 2, 0}})),
           perm3_rev(perm3->invert()),
-          perm2(Perm::create(exec, 2, gko::array<index_type>{exec, {1, 0}})),
+          perm2(Perm::create(exec, gko::array<index_type>{exec, {1, 0}})),
           perm0(Perm::create(exec)),
           scale_perm3(ScaledPerm::create(
               exec, gko::array<value_type>{this->exec, {2.0, 3.0, 5.0}},

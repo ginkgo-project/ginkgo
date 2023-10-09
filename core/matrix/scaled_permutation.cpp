@@ -107,10 +107,9 @@ void ScaledPermutation<ValueType, IndexType>::apply_impl(const LinOp* alpha,
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            auto x_clone = dense_x->clone();
-            dense_b->scale_permute(this, x_clone, permute_mode::rows);
+            auto tmp = dense_b->scale_permute(this, permute_mode::rows);
             dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, x_clone);
+            dense_x->add_scaled(dense_alpha, tmp);
         },
         alpha, b, beta, x);
 }
