@@ -92,6 +92,13 @@ public:
             generated_local_solver, nullptr);
 
         /**
+         * Operator factory to generate the triplet (prolong_op, coarse_op,
+         * restrict_op).
+         */
+        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
+            galerkin_ops_factory, nullptr);
+
+        /**
          * Coarse solver factory.
          */
         std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
@@ -173,6 +180,7 @@ private:
     detail::VectorCache<ValueType> cache_;
 
     std::shared_ptr<const multigrid::MultigridLevel> coarse_solver_;
+    std::shared_ptr<const multigrid::MultigridLevel> galerkin_ops_;
 };
 
 
