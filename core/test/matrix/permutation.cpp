@@ -60,8 +60,7 @@ protected:
     Permutation()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::matrix::Permutation<index_type>::create(
-              exec, gko::dim<2>{4, 3},
-              gko::array<index_type>{exec, {1, 0, 2, 3}}))
+              exec, gko::array<index_type>{exec, {1, 0, 2, 3}}))
     {}
 
 
@@ -69,8 +68,7 @@ protected:
         gko::ptr_param<gko::matrix::Permutation<index_type>> m)
     {
         auto perm = m->get_permutation();
-        ASSERT_EQ(m->get_size(), gko::dim<2>(4, 3));
-        ASSERT_EQ(m->get_size()[0], 4);
+        ASSERT_EQ(m->get_size(), gko::dim<2>(4, 4));
         ASSERT_EQ(perm[0], 1);
         ASSERT_EQ(perm[1], 0);
         ASSERT_EQ(perm[2], 2);
@@ -80,7 +78,6 @@ protected:
     static void assert_empty(gko::matrix::Permutation<index_type>* m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
-        ASSERT_EQ(m->get_size()[0], 0);
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -112,21 +109,9 @@ TYPED_TEST(Permutation, ReturnsNullValuesArrayWhenEmpty)
 TYPED_TEST(Permutation, CanBeConstructedWithSize)
 {
     using index_type = typename TestFixture::index_type;
-    auto m = gko::matrix::Permutation<index_type>::create(this->exec,
-                                                          gko::dim<2>{2, 3});
+    auto m = gko::matrix::Permutation<index_type>::create(this->exec, 2);
 
-    ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(m->get_size()[0], 2);
-}
-
-
-TYPED_TEST(Permutation, FactorySetsCorrectPermuteMask)
-{
-    using index_type = typename TestFixture::index_type;
-    auto m = gko::matrix::Permutation<index_type>::create(this->exec);
-    auto mask = m->get_permute_mask();
-
-    ASSERT_EQ(mask, gko::matrix::row_permute);
+    ASSERT_EQ(m->get_size(), gko::dim<2>(2, 2));
 }
 
 
@@ -136,8 +121,7 @@ TYPED_TEST(Permutation, PermutationCanBeConstructedFromExistingData)
     index_type data[] = {1, 0, 2};
 
     auto m = gko::matrix::Permutation<index_type>::create(
-        this->exec, gko::dim<2>{3, 5},
-        gko::make_array_view(this->exec, 3, data));
+        this->exec, gko::make_array_view(this->exec, 3, data));
 
     ASSERT_EQ(m->get_const_permutation(), data);
 }
@@ -150,85 +134,9 @@ TYPED_TEST(Permutation, PermutationCanBeConstructedFromExistingConstData)
     const index_type data[] = {1, 0, 2};
 
     auto m = gko::matrix::Permutation<index_type>::create_const(
-        this->exec, 3, gko::array<index_type>::const_view(this->exec, 3, data));
+        this->exec, gko::array<index_type>::const_view(this->exec, 3, data));
 
     ASSERT_EQ(m->get_const_permutation(), data);
-}
-
-
-TYPED_TEST(Permutation, CanBeConstructedWithSizeAndMask)
-{
-    using index_type = typename TestFixture::index_type;
-    auto m = gko::matrix::Permutation<index_type>::create(
-        this->exec, gko::dim<2>{2, 3}, gko::matrix::column_permute);
-
-    ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(m->get_size()[0], 2);
-    ASSERT_EQ(m->get_permute_mask(), gko::matrix::column_permute);
-}
-
-
-TYPED_TEST(Permutation, CanExplicitlyOverrideSetPermuteMask)
-{
-    using index_type = typename TestFixture::index_type;
-    auto m = gko::matrix::Permutation<index_type>::create(
-        this->exec, gko::dim<2>{2, 3}, gko::matrix::column_permute);
-
-    auto mask = m->get_permute_mask();
-    ASSERT_EQ(mask, gko::matrix::column_permute);
-
-    m->set_permute_mask(gko::matrix::row_permute |
-                        gko::matrix::inverse_permute);
-
-    auto s_mask = m->get_permute_mask();
-    ASSERT_EQ(s_mask, gko::matrix::row_permute | gko::matrix::inverse_permute);
-}
-
-
-TYPED_TEST(Permutation, PermutationThrowsforWrongRowPermDimensions)
-{
-    using index_type = typename TestFixture::index_type;
-    index_type data[] = {0, 2, 1};
-
-    ASSERT_THROW(gko::matrix::Permutation<index_type>::create(
-                     this->exec, gko::dim<2>{4, 2},
-                     gko::make_array_view(this->exec, 3, data)),
-                 gko::ValueMismatch);
-}
-
-
-TYPED_TEST(Permutation, SettingMaskDoesNotModifyData)
-{
-    using index_type = typename TestFixture::index_type;
-    index_type data[] = {1, 0, 2};
-
-    auto m = gko::matrix::Permutation<index_type>::create(
-        this->exec, gko::dim<2>{3, 5},
-        gko::make_array_view(this->exec, 3, data));
-
-    auto mask = m->get_permute_mask();
-    ASSERT_EQ(m->get_const_permutation(), data);
-    ASSERT_EQ(mask, gko::matrix::row_permute);
-
-    m->set_permute_mask(gko::matrix::row_permute |
-                        gko::matrix::inverse_permute);
-
-    auto s_mask = m->get_permute_mask();
-    ASSERT_EQ(s_mask, gko::matrix::row_permute | gko::matrix::inverse_permute);
-    ASSERT_EQ(m->get_const_permutation(), data);
-}
-
-
-TYPED_TEST(Permutation, PermutationThrowsforWrongColPermDimensions)
-{
-    using index_type = typename TestFixture::index_type;
-    index_type data[] = {0, 2, 1};
-
-    ASSERT_THROW(gko::matrix::Permutation<index_type>::create(
-                     this->exec, gko::dim<2>{3, 4},
-                     gko::make_array_view(this->exec, 3, data),
-                     gko::matrix::column_permute),
-                 gko::ValueMismatch);
 }
 
 
@@ -259,32 +167,6 @@ TYPED_TEST(Permutation, CanBeMoved)
     mtx_copy->move_from(this->mtx);
 
     this->assert_equal_to_original_mtx(mtx_copy);
-}
-
-
-TYPED_TEST(Permutation, CopyingPreservesMask)
-{
-    using index_type = typename TestFixture::index_type;
-    auto mtx_copy = gko::matrix::Permutation<index_type>::create(this->exec);
-
-    mtx_copy->copy_from(this->mtx);
-
-    auto o_mask = this->mtx->get_permute_mask();
-    auto n_mask = mtx_copy->get_permute_mask();
-    ASSERT_EQ(o_mask, gko::matrix::row_permute);
-    ASSERT_EQ(o_mask, n_mask);
-
-    this->mtx->set_permute_mask(gko::matrix::column_permute);
-
-    o_mask = this->mtx->get_permute_mask();
-    n_mask = mtx_copy->get_permute_mask();
-    ASSERT_EQ(o_mask, gko::matrix::column_permute);
-    ASSERT_NE(o_mask, n_mask);
-
-    mtx_copy->copy_from(this->mtx);
-
-    n_mask = mtx_copy->get_permute_mask();
-    ASSERT_EQ(o_mask, n_mask);
 }
 
 

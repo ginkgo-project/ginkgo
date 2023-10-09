@@ -186,27 +186,13 @@ public:
      * array.
      */
     [[deprecated("use get_size()[0] instead")]] size_type get_permutation_size()
-        const noexcept
-    {
-        return permutation_.get_num_elems();
-    }
+        const noexcept;
 
-    /**
-     * Get the permute masks
-     *
-     * @return  permute_mask the permute masks
-     */
-    mask_type get_permute_mask() const { return enabled_permute_; }
+    [[deprecated("permute mask is no longer supported")]] mask_type
+    get_permute_mask() const;
 
-    /**
-     * Set the permute masks
-     *
-     * @param permute_mask the permute masks
-     */
-    void set_permute_mask(mask_type permute_mask)
-    {
-        enabled_permute_ = permute_mask;
-    }
+    [[deprecated("permute mask is no longer supported")]] void set_permute_mask(
+        mask_type permute_mask);
 
     /**
      * Returns the inverse permutation.
@@ -229,17 +215,26 @@ public:
      *          (if it resides on the same executor as the matrix) or a copy of
      *          the array on the correct executor.
      */
+    [[deprecated(
+        "use create_const without size and permute mask")]] static std::
+        unique_ptr<const Permutation>
+        create_const(std::shared_ptr<const Executor> exec, size_type size,
+                     gko::detail::const_array_view<IndexType>&& perm_idxs,
+                     mask_type enabled_permute = row_permute);
+    /**
+     * Creates a constant (immutable) Permutation matrix from a constant array.
+     *
+     * @param exec  the executor to create the matrix on
+     * @param size  the size of the square matrix
+     * @param perm_idxs  the permutation index array of the matrix
+     * @param enabled_permute  the mask describing the type of permutation
+     * @returns A smart pointer to the constant matrix wrapping the input array
+     *          (if it resides on the same executor as the matrix) or a copy of
+     *          the array on the correct executor.
+     */
     static std::unique_ptr<const Permutation> create_const(
-        std::shared_ptr<const Executor> exec, size_type size,
-        gko::detail::const_array_view<IndexType>&& perm_idxs,
-        mask_type enabled_permute = row_permute)
-    {
-        // cast const-ness away, but return a const object afterwards,
-        // so we can ensure that no modifications take place.
-        return std::unique_ptr<const Permutation>(new Permutation{
-            exec, size, gko::detail::array_const_cast(std::move(perm_idxs)),
-            enabled_permute});
-    }
+        std::shared_ptr<const Executor> exec,
+        gko::detail::const_array_view<IndexType>&& perm_idxs);
 
 protected:
     /**
@@ -247,31 +242,11 @@ protected:
      *
      * @param exec  Executor associated to the LinOp
      */
-    Permutation(std::shared_ptr<const Executor> exec)
-        : Permutation(std::move(exec), dim<2>{})
-    {}
-
-    /**
-     * Creates uninitialized Permutation arrays of the specified size.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the permutable matrix
-     * @param enabled_permute  mask for the type of permutation to apply.
-     */
-    Permutation(std::shared_ptr<const Executor> exec, const dim<2>& size,
-                const mask_type& enabled_permute = row_permute)
-        : EnableLinOp<Permutation>(exec, size),
-          permutation_(exec, size[0]),
-          row_size_(size[0]),
-          col_size_(size[1]),
-          enabled_permute_(enabled_permute)
-    {}
+    Permutation(std::shared_ptr<const Executor> exec, size_type = 0);
 
     /**
      * Creates a Permutation matrix from an already allocated (and initialized)
      * row and column permutation arrays.
-     *
-     * @tparam IndicesArray  type of array of indices
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the permutation array.
@@ -282,71 +257,34 @@ protected:
      * IndexType, or is on the wrong executor, an internal copy will be created,
      * and the original array data will not be used in the matrix.
      */
-    template <typename IndicesArray>
-    Permutation(std::shared_ptr<const Executor> exec, const dim<2>& size,
-                IndicesArray&& permutation_indices,
-                const mask_type& enabled_permute = row_permute)
-        : EnableLinOp<Permutation>(exec, size),
-          permutation_{exec, std::forward<IndicesArray>(permutation_indices)},
-          row_size_(size[0]),
-          col_size_(size[1]),
-          enabled_permute_(enabled_permute)
-    {
-        if (enabled_permute_ & row_permute) {
-            GKO_ASSERT_EQ(size[0], permutation_.get_num_elems());
-        }
-        if (enabled_permute_ & column_permute) {
-            GKO_ASSERT_EQ(size[1], permutation_.get_num_elems());
-        }
-    }
+    Permutation(std::shared_ptr<const Executor> exec,
+                array<index_type> permutation_indices);
 
-    void apply_impl(const LinOp* in, LinOp* out) const override
-    {
-        auto perm = as<Permutable<index_type>>(in);
-        std::unique_ptr<gko::LinOp> tmp{};
-        if (enabled_permute_ & inverse_permute) {
-            if (enabled_permute_ & row_permute) {
-                tmp = perm->inverse_row_permute(&permutation_);
-            }
-            if (enabled_permute_ & column_permute) {
-                if (enabled_permute_ & row_permute) {
-                    tmp = as<Permutable<index_type>>(tmp.get())
-                              ->inverse_column_permute(&permutation_);
-                } else {
-                    tmp = perm->inverse_column_permute(&permutation_);
-                }
-            }
-        } else {
-            if (enabled_permute_ & row_permute) {
-                tmp = perm->row_permute(&permutation_);
-            }
-            if (enabled_permute_ & column_permute) {
-                if (enabled_permute_ & row_permute) {
-                    tmp = as<Permutable<index_type>>(tmp.get())->column_permute(
-                        &permutation_);
-                } else {
-                    tmp = perm->column_permute(&permutation_);
-                }
-            }
-        }
-        out->move_from(tmp);
-    }
+    [[deprecated(
+        "dim<2> is no longer supported as a dimension parameter, use size_type "
+        "instead")]] Permutation(std::shared_ptr<const Executor> exec,
+                                 const dim<2>& size);
 
+    [[deprecated("permute mask is no longer supported")]] Permutation(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        const mask_type& enabled_permute);
+
+    [[deprecated("use the overload without dimensions")]] Permutation(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        array<index_type> permutation_indices);
+
+    [[deprecated("permute mask is no longer supported")]] Permutation(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        array<index_type> permutation_indices,
+        const mask_type& enabled_permute);
+
+    void apply_impl(const LinOp* in, LinOp* out) const override;
 
     void apply_impl(const LinOp*, const LinOp* in, const LinOp*,
-                    LinOp* out) const override
-    {
-        // Ignores alpha and beta and just performs a normal permutation as an
-        // advanced apply does not really make sense here.
-        this->apply_impl(in, out);
-    }
-
+                    LinOp* out) const override;
 
 private:
     array<index_type> permutation_;
-    size_type row_size_;
-    size_type col_size_;
-    mask_type enabled_permute_;
 };
 
 
