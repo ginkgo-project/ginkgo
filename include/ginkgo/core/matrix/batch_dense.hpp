@@ -252,7 +252,7 @@ public:
      */
     static std::unique_ptr<const Dense<value_type>> create_const(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
-        detail::const_array_view<ValueType>&& values);
+        gko::detail::const_array_view<ValueType>&& values);
 
     /**
      * Apply the matrix to a multi-vector. Represents the matrix vector
