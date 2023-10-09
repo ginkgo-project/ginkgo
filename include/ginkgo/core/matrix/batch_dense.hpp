@@ -62,7 +62,7 @@ namespace matrix {
  * belonging to the same row appear consecutive in the memory and the values of
  * each batch item are also stored consecutively in memory).
  *
- * @note Though the storage layout is similar to the multi-vector object, the
+ * @note Though the storage layout is the same as the multi-vector object, the
  * class semantics and the operations it aims to provide is different. Hence it
  * is recommended to create multi-vector objects if the user means to view the
  * data as a set of vectors.

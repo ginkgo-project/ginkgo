@@ -64,24 +64,6 @@ GKO_REGISTER_OPERATION(advanced_apply, batch_dense::advanced_apply);
 }  // namespace dense
 
 
-namespace detail {
-
-
-template <typename ValueType>
-batch_dim<2> compute_batch_size(
-    const std::vector<gko::matrix::Dense<ValueType>*>& matrices)
-{
-    auto common_size = matrices[0]->get_size();
-    for (size_type i = 1; i < matrices.size(); ++i) {
-        GKO_ASSERT_EQUAL_DIMENSIONS(common_size, matrices[i]->get_size());
-    }
-    return batch_dim<2>{matrices.size(), common_size};
-}
-
-
-}  // namespace detail
-
-
 template <typename ValueType>
 std::unique_ptr<gko::batch::MultiVector<ValueType>>
 Dense<ValueType>::create_multi_vector_view()
@@ -175,13 +157,6 @@ std::unique_ptr<const Dense<ValueType>> Dense<ValueType>::create_const(
     // so we can ensure that no modifications take place.
     return std::unique_ptr<const Dense>(new Dense{
         exec, sizes, gko::detail::array_const_cast(std::move(values))});
-}
-
-
-inline const batch_dim<2> get_col_sizes(const batch_dim<2>& sizes)
-{
-    return batch_dim<2>(sizes.get_num_batch_items(),
-                        dim<2>(1, sizes.get_common_size()[1]));
 }
 
 

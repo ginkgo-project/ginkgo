@@ -90,7 +90,7 @@ protected:
         dresult = gko::clone(exec, expected);
     }
 
-    std::ranlux48 rand_engine;
+    std::default_random_engine rand_engine;
 
     const size_t batch_size = 11;
     std::unique_ptr<Mtx> x;

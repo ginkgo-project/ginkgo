@@ -71,7 +71,7 @@ inline void advanced_apply_kernel(
     } else {
         for (int row = 0; row < c.num_rows; ++row) {
             for (int col = 0; col < c.num_rhs; ++col) {
-                c.values[row * c.stride + col] *= gko::zero<ValueType>();
+                c.values[row * c.stride + col] = gko::zero<ValueType>();
             }
         }
     }

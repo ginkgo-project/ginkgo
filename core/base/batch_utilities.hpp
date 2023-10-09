@@ -109,14 +109,13 @@ std::unique_ptr<OutputType> create_from_item(
 
 
 template <typename InputType>
-auto unbatch(const InputType* batch_multivec)
+auto unbatch(const InputType* batch_object)
 {
-    auto exec = batch_multivec->get_executor();
     auto unbatched_mats =
         std::vector<std::unique_ptr<typename InputType::unbatch_type>>{};
-    for (size_type b = 0; b < batch_multivec->get_num_batch_items(); ++b) {
+    for (size_type b = 0; b < batch_object->get_num_batch_items(); ++b) {
         unbatched_mats.emplace_back(
-            batch_multivec->create_const_view_for_item(b)->clone());
+            batch_object->create_const_view_for_item(b)->clone());
     }
     return unbatched_mats;
 }

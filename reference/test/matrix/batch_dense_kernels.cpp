@@ -107,7 +107,7 @@ protected:
     std::unique_ptr<DenseMtx> x_00;
     std::unique_ptr<DenseMtx> x_01;
 
-    std::ranlux48 rand_engine;
+    std::default_random_engine rand_engine;
 };
 
 
