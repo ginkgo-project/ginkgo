@@ -125,8 +125,8 @@ void ScaledPermutation<ValueType, IndexType>::write(
     data.nonzeros.clear();
     data.nonzeros.reserve(data.size[0]);
     for (IndexType row = 0; row < this->get_size()[0]; row++) {
-        data.nonzeros.emplace_back(row, host_this->get_const_permutation()[row],
-                                   host_this->get_const_scale()[row]);
+        auto col = host_this->get_const_permutation()[row];
+        data.nonzeros.emplace_back(row, col, host_this->get_const_scale()[col]);
     }
 }
 

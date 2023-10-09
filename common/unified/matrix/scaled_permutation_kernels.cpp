@@ -55,9 +55,9 @@ void invert(std::shared_ptr<const DefaultExecutor> exec,
         exec,
         [] GKO_KERNEL(auto i, auto input_permutation, auto input_scale,
                       auto output_permutation, auto output_scale) {
-            output_permutation[input_permutation[i]] = i;
-            output_scale[input_permutation[i]] =
-                one(input_scale[i]) / input_scale[i];
+            const auto ip = input_permutation[i];
+            output_permutation[ip] = i;
+            output_scale[i] = one(input_scale[ip]) / input_scale[ip];
         },
         size, input_permutation, input_scale, output_permutation, output_scale);
 }

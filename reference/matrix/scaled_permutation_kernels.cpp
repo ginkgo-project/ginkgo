@@ -49,8 +49,9 @@ void invert(std::shared_ptr<const DefaultExecutor> exec,
             ValueType* output_scale)
 {
     for (size_type i = 0; i < size; i++) {
-        output_permutation[input_permutation[i]] = i;
-        output_scale[input_permutation[i]] = one<ValueType>() / input_scale[i];
+        const auto ip = input_permutation[i];
+        output_permutation[ip] = i;
+        output_scale[i] = one<ValueType>() / input_scale[ip];
     }
 }
 
