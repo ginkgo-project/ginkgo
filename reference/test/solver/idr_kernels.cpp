@@ -62,30 +62,24 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{1.0, -3.0, 0.0}, {-4.0, 1.0, -3.0}, {2.0, -1.0, 2.0}}, exec)),
-          idr_factory(
-              Solver::build()
-                  .with_deterministic(true)
-                  .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(8u).on(exec),
-                      gko::stop::Time::build()
-                          .with_time_limit(std::chrono::seconds(6))
-                          .on(exec),
-                      gko::stop::ResidualNorm<value_type>::build()
-                          .with_reduction_factor(r<value_type>::value)
-                          .on(exec))
-                  .on(exec)),
+          idr_factory(Solver::build()
+                          .with_deterministic(true)
+                          .with_criteria(
+                              gko::stop::Iteration::build().with_max_iters(8u),
+                              gko::stop::Time::build().with_time_limit(
+                                  std::chrono::seconds(6)),
+                              gko::stop::ResidualNorm<value_type>::build()
+                                  .with_reduction_factor(r<value_type>::value))
+                          .on(exec)),
           idr_factory_precision(
               Solver::build()
                   .with_deterministic(true)
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(50u).on(
-                          exec),
-                      gko::stop::Time::build()
-                          .with_time_limit(std::chrono::seconds(6))
-                          .on(exec),
+                      gko::stop::Iteration::build().with_max_iters(50u),
+                      gko::stop::Time::build().with_time_limit(
+                          std::chrono::seconds(6)),
                       gko::stop::ResidualNorm<value_type>::build()
-                          .with_reduction_factor(r<value_type>::value)
-                          .on(exec))
+                          .with_reduction_factor(r<value_type>::value))
                   .on(exec))
     {}
 

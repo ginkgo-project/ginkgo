@@ -77,15 +77,12 @@ protected:
               gmres_type::build()
                   .with_storage_precision(storage_prec)
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(100u).on(
-                          exec),
-                      gko::stop::Time::build()
-                          .with_time_limit(std::chrono::seconds(6))
-                          .on(exec),
+                      gko::stop::Iteration::build().with_max_iters(100u),
+                      gko::stop::Time::build().with_time_limit(
+                          std::chrono::seconds(6)),
                       gko::stop::ResidualNorm<value_type>::build()
                           .with_baseline(gko::stop::mode::initial_resnorm)
-                          .with_reduction_factor(this->reduction_factor())
-                          .on(exec))
+                          .with_reduction_factor(this->reduction_factor()))
                   .on(exec)),
           mtx_big(gko::initialize<Mtx>(
               {{2295.7, -764.8, 1166.5, 428.9, 291.7, -774.5},
@@ -99,12 +96,10 @@ protected:
               gmres_type::build()
                   .with_storage_precision(storage_prec)
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(100u).on(
-                          exec),
+                      gko::stop::Iteration::build().with_max_iters(100u),
                       gko::stop::ResidualNorm<value_type>::build()
                           .with_baseline(gko::stop::mode::initial_resnorm)
-                          .with_reduction_factor(this->reduction_factor())
-                          .on(exec))
+                          .with_reduction_factor(this->reduction_factor()))
                   .on(exec)),
           mtx_medium(
               gko::initialize<Mtx>({{-86.40, 153.30, -108.90, 8.60, -61.60},
@@ -271,16 +266,12 @@ TYPED_TEST(CbGmres, SolvesStencilSystem2)
     auto factory =
         gmres_type::build()
             .with_storage_precision(this->storage_prec)
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(100u).on(
-                    this->exec),
-                gko::stop::Time::build()
-                    .with_time_limit(std::chrono::seconds(6))
-                    .on(this->exec),
-                gko::stop::ResidualNorm<T>::build()
-                    .with_baseline(gko::stop::mode::initial_resnorm)
-                    .with_reduction_factor(this->reduction_factor())
-                    .on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(100u),
+                           gko::stop::Time::build().with_time_limit(
+                               std::chrono::seconds(6)),
+                           gko::stop::ResidualNorm<T>::build()
+                               .with_baseline(gko::stop::mode::initial_resnorm)
+                               .with_reduction_factor(this->reduction_factor()))
             .on(this->exec);
     auto solver = factory->generate(this->mtx2);
     auto b = gko::initialize<Mtx>({33.0, 20.0, 20.0}, this->exec);
@@ -526,13 +517,10 @@ TYPED_TEST(CbGmres, SolvesBigDenseSystem1WithRestart)
         gmres_type::build()
             .with_krylov_dim(4u)
             .with_storage_precision(this->storage_prec)
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(200u).on(
-                    this->exec),
-                gko::stop::ResidualNorm<value_type>::build()
-                    .with_baseline(gko::stop::mode::initial_resnorm)
-                    .with_reduction_factor(this->reduction_factor())
-                    .on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(200u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_baseline(gko::stop::mode::initial_resnorm)
+                               .with_reduction_factor(this->reduction_factor()))
             .on(this->exec);
     auto solver = cb_gmres_factory_restart->generate(this->mtx_medium);
     auto b = gko::initialize<Mtx>(
@@ -554,17 +542,13 @@ TYPED_TEST(CbGmres, SolvesWithPreconditioner)
     auto cb_gmres_factory_preconditioner =
         gmres_type::build()
             .with_storage_precision(this->storage_prec)
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(100u).on(
-                    this->exec),
-                gko::stop::ResidualNorm<value_type>::build()
-                    .with_baseline(gko::stop::mode::initial_resnorm)
-                    .with_reduction_factor(this->reduction_factor())
-                    .on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(100u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_baseline(gko::stop::mode::initial_resnorm)
+                               .with_reduction_factor(this->reduction_factor()))
             .with_preconditioner(
                 gko::preconditioner::Jacobi<value_type>::build()
-                    .with_max_block_size(3u)
-                    .on(this->exec))
+                    .with_max_block_size(3u))
             .on(this->exec);
     auto solver = cb_gmres_factory_preconditioner->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(

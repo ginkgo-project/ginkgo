@@ -80,37 +80,29 @@ protected:
           u_factor(gko::initialize<Mtx>(
               {{2., 1., 1.}, {0., 4., 1.}, {0., 0., 3.}}, exec)),
           l_u_composition(Composition::create(l_factor, u_factor)),
-          l_factory(
-              l_solver_type::build()
-                  .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(10u).on(
-                          exec),
-                      gko::stop::Time::build()
-                          .with_time_limit(std::chrono::seconds(6))
-                          .on(exec),
-                      gko::stop::ResidualNorm<value_type>::build()
-                          .with_reduction_factor(r<T>::value)
-                          .on(exec))
-                  .on(exec)),
-          u_factory(
-              u_solver_type::build()
-                  .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(10u).on(
-                          exec),
-                      gko::stop::Time::build()
-                          .with_time_limit(std::chrono::seconds(6))
-                          .on(exec),
-                      gko::stop::ResidualNorm<value_type>::build()
-                          .with_reduction_factor(r<T>::value)
-                          .on(exec))
-                  .on(exec)),
+          l_factory(l_solver_type::build()
+                        .with_criteria(
+                            gko::stop::Iteration::build().with_max_iters(10u),
+                            gko::stop::Time::build().with_time_limit(
+                                std::chrono::seconds(6)),
+                            gko::stop::ResidualNorm<value_type>::build()
+                                .with_reduction_factor(r<T>::value))
+                        .on(exec)),
+          u_factory(u_solver_type::build()
+                        .with_criteria(
+                            gko::stop::Iteration::build().with_max_iters(10u),
+                            gko::stop::Time::build().with_time_limit(
+                                std::chrono::seconds(6)),
+                            gko::stop::ResidualNorm<value_type>::build()
+                                .with_reduction_factor(r<T>::value))
+                        .on(exec)),
           ilu_pre_factory(ilu_prec_type::build()
-                              .with_l_solver_factory(l_factory)
-                              .with_u_solver_factory(u_factory)
+                              .with_l_solver(l_factory)
+                              .with_u_solver(u_factory)
                               .on(exec)),
           ilu_rev_pre_factory(ilu_rev_prec_type::build()
-                                  .with_l_solver_factory(l_factory)
-                                  .with_u_solver_factory(u_factory)
+                                  .with_l_solver(l_factory)
+                                  .with_u_solver(u_factory)
                                   .on(exec))
     {}
 
@@ -622,9 +614,8 @@ TEST_F(DefaultIlu, CanBeUsedAsPreconditioner)
 {
     auto solver =
         gko::solver::Bicgstab<>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(2u).on(this->exec))
-            .with_preconditioner(default_ilu_prec_type::build().on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
+            .with_preconditioner(default_ilu_prec_type::build())
             .on(this->exec)
             ->generate(this->mtx);
     auto x = Mtx::create(this->exec, gko::dim<2>{3, 1});
@@ -643,8 +634,7 @@ TEST_F(DefaultIlu, CanBeUsedAsGeneratedPreconditioner)
         default_ilu_prec_type::build().on(this->exec)->generate(this->mtx);
     auto solver =
         gko::solver::Bicgstab<>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(2u).on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
             .with_generated_preconditioner(precond)
             .on(this->exec)
             ->generate(this->mtx);

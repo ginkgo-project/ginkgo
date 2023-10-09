@@ -74,8 +74,9 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
-    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
-    {
+    class Factory;
+
+    struct parameters_type : enable_parameters_type<parameters_type, Factory> {
         /**
          * Number of right hand sides.
          *
@@ -86,8 +87,7 @@ public:
         gko::size_type GKO_FACTORY_PARAMETER_SCALAR(num_rhs, 1u);
 
         /** The factorization factory to use for generating the factors. */
-        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
-            factorization, nullptr);
+        GKO_DEFERRED_FACTORY_PARAMETER(factorization, LinOpFactory);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Direct, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

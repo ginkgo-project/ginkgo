@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 
 
+#include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
@@ -215,19 +216,16 @@ public:
      */
     void set_cycle(multigrid::cycle cycle) { parameters_.cycle = cycle; }
 
-    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
-    {
-        /**
-         * Criterion factories.
-         */
-        std::vector<std::shared_ptr<const stop::CriterionFactory>>
-            GKO_FACTORY_PARAMETER_VECTOR(criteria, nullptr);
 
+    class Factory;
+
+    struct parameters_type
+        : public enable_iterative_solver_factory_parameters<parameters_type,
+                                                            Factory> {
         /**
          * MultigridLevel Factory list
          */
-        std::vector<std::shared_ptr<const gko::LinOpFactory>>
-            GKO_FACTORY_PARAMETER_VECTOR(mg_level, nullptr);
+        GKO_DEFERRED_FACTORY_VECTOR_PARAMETER(mg_level, LinOpFactory);
 
         /**
          * Custom selector size_type (size_type level, const LinOp* fine_matrix)
@@ -272,17 +270,14 @@ public:
          * If any element in the vector is a `nullptr` then the smoother
          * application at the corresponding level is skipped.
          */
-        using smoother_list = std::vector<std::shared_ptr<const LinOpFactory>>;
-        smoother_list GKO_FACTORY_PARAMETER_VECTOR(pre_smoother,
-                                                   smoother_list{});
+        GKO_DEFERRED_FACTORY_VECTOR_PARAMETER(pre_smoother, LinOpFactory);
 
         /**
          * Post-smooth Factory list.
          * It is similar to Pre-smooth Factory list. It is ignored if
          * the factory parameter post_uses_pre is set to true.
          */
-        smoother_list GKO_FACTORY_PARAMETER_VECTOR(post_smoother,
-                                                   smoother_list{});
+        GKO_DEFERRED_FACTORY_VECTOR_PARAMETER(post_smoother, LinOpFactory);
 
         /**
          * Mid-smooth Factory list. If it contains available elements, multigrid
@@ -291,8 +286,7 @@ public:
          * Pre-smooth Factory list. It is ignored if the factory parameter
          * mid_case is not mid.
          */
-        smoother_list GKO_FACTORY_PARAMETER_VECTOR(mid_smoother,
-                                                   smoother_list{});
+        GKO_DEFERRED_FACTORY_VECTOR_PARAMETER(mid_smoother, LinOpFactory);
 
         /**
          * Whether post-smoothing-related calls use corresponding
@@ -332,8 +326,7 @@ public:
          * If not set, then a direct LU solver will be used as solver on the
          * coarsest level.
          */
-        std::vector<std::shared_ptr<const LinOpFactory>>
-            GKO_FACTORY_PARAMETER_VECTOR(coarsest_solver, nullptr);
+        GKO_DEFERRED_FACTORY_VECTOR_PARAMETER(coarsest_solver, LinOpFactory);
 
         /**
          * Custom coarsest_solver selector

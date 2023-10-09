@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <initializer_list>
 #include <string>
 #include <type_traits>
+#include <typeinfo>
 
 
 #include <gtest/gtest.h>
@@ -52,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
+#include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -1010,6 +1012,45 @@ template <typename LinOp1, typename T>
 }
 
 
+template <typename Ptr1, typename Ptr2>
+::testing::AssertionResult dynamic_type_eq(const std::string& expr1,
+                                           const std::string& expr2,
+                                           const Ptr1& ptr1, const Ptr2& ptr2)
+{
+    auto& ref1 = *ptr1;
+    auto& ref2 = *ptr2;
+    if (typeid(ref1) == typeid(ref2)) {
+        return ::testing::AssertionSuccess();
+    } else {
+        return ::testing::AssertionFailure()
+               << "mismatching dynamic types\n"
+               << expr1 << " is\n\t"
+               << gko::name_demangling::get_type_name(typeid(ref1)) << "\n"
+               << expr2 << " is\n\t"
+               << gko::name_demangling::get_type_name(typeid(ref2)) << "\n";
+    }
+}
+
+
+template <typename Ptr>
+::testing::AssertionResult dynamic_type_is(const std::string& expr,
+                                           const std::string&, const Ptr& ptr,
+                                           const std::type_info& type)
+{
+    auto& ref = *ptr;
+    if (typeid(ref) == type) {
+        return ::testing::AssertionSuccess();
+    } else {
+        return ::testing::AssertionFailure()
+               << "unexpected dynamic type\n"
+               << expr << " is\n\t"
+               << gko::name_demangling::get_type_name(typeid(ref)) << "\n"
+               << "but we expected\n\t"
+               << gko::name_demangling::get_type_name(type) << "\n";
+    }
+}
+
+
 namespace detail {
 
 
@@ -1246,6 +1287,53 @@ T* plain_ptr(T* ptr)
     {                                                                     \
         ASSERT_PRED_FORMAT2(::gko::test::assertions::str_contains, _str1, \
                             _str2);                                       \
+    }
+
+
+/**
+ * Checks if the dynamic types of the objects referenced by two pointers are
+ * equal.
+ *
+ * @param _ptr1  the first pointer
+ * @param _ptr2  the second pointer
+ */
+#define GKO_ASSERT_DYNAMIC_TYPE_EQ(_ptr1, _ptr2)                             \
+    {                                                                        \
+        ASSERT_PRED_FORMAT2(::gko::test::assertions::dynamic_type_eq, _ptr1, \
+                            _ptr2);                                          \
+    }
+
+
+/**
+ * @copydoc GKO_ASSERT_DYNAMIC_TYPE_EQ
+ */
+#define GKO_EXPECT_DYNAMIC_TYPE_EQ(_ptr1, _ptr2)                             \
+    {                                                                        \
+        EXPECT_PRED_FORMAT2(::gko::test::assertions::dynamic_type_eq, _ptr1, \
+                            _ptr2);                                          \
+    }
+
+
+/**
+ * Checks if the dynamic type of a pointer to an object matches a given type
+ *
+ * @param _ptr  the pointer
+ * @param _type  the expected type
+ */
+#define GKO_ASSERT_DYNAMIC_TYPE(_ptr, _type)                                \
+    {                                                                       \
+        ASSERT_PRED_FORMAT2(::gko::test::assertions::dynamic_type_is, _ptr, \
+                            typeid(_type));                                 \
+    }
+
+
+/**
+ * @copydoc GKO_ASSERT_DYNAMIC_TYPE
+ */
+#define GKO_EXPECT_DYNAMIC_TYPE(_ptr, _type)                                \
+    {                                                                       \
+        EXPECT_PRED_FORMAT2(::gko::test::assertions::dynamic_type_is, _ptr, \
+                            typeid(_type));                                 \
     }
 
 

@@ -76,13 +76,11 @@ protected:
           gmres_factory(
               Solver::build()
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(4u).on(exec),
-                      gko::stop::Time::build()
-                          .with_time_limit(std::chrono::seconds(6))
-                          .on(exec),
+                      gko::stop::Iteration::build().with_max_iters(4u),
+                      gko::stop::Time::build().with_time_limit(
+                          std::chrono::seconds(6)),
                       gko::stop::ResidualNorm<value_type>::build()
-                          .with_reduction_factor(r<value_type>::value)
-                          .on(exec))
+                          .with_reduction_factor(r<value_type>::value))
                   .with_krylov_dim(3u)
                   .on(exec)),
           mtx_big(gko::initialize<Mtx>(
@@ -96,20 +94,16 @@ protected:
           gmres_factory_big(
               Solver::build()
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(100u).on(
-                          exec),
+                      gko::stop::Iteration::build().with_max_iters(100u),
                       gko::stop::ResidualNorm<value_type>::build()
-                          .with_reduction_factor(r<value_type>::value)
-                          .on(exec))
+                          .with_reduction_factor(r<value_type>::value))
                   .on(exec)),
           gmres_factory_big2(
               Solver::build()
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(100u).on(
-                          exec),
+                      gko::stop::Iteration::build().with_max_iters(100u),
                       gko::stop::ImplicitResidualNorm<value_type>::build()
-                          .with_reduction_factor(r<value_type>::value)
-                          .on(exec))
+                          .with_reduction_factor(r<value_type>::value))
                   .on(exec)),
           mtx_medium(
               gko::initialize<Mtx>({{-86.40, 153.30, -108.90, 8.60, -61.60},
@@ -724,12 +718,9 @@ TYPED_TEST(Gmres, SolvesBigDenseSystem1WithRestart)
     auto gmres_factory_restart =
         Solver::build()
             .with_krylov_dim(4u)
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(200u).on(
-                    this->exec),
-                gko::stop::ResidualNorm<value_type>::build()
-                    .with_reduction_factor(r<value_type>::value)
-                    .on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(200u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value))
             .on(this->exec);
     auto solver = gmres_factory_restart->generate(this->mtx_medium);
     auto b = gko::initialize<Mtx>(
@@ -750,16 +741,12 @@ TYPED_TEST(Gmres, SolvesWithPreconditioner)
     using value_type = typename TestFixture::value_type;
     auto gmres_factory_preconditioner =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(100u).on(
-                    this->exec),
-                gko::stop::ResidualNorm<value_type>::build()
-                    .with_reduction_factor(r<value_type>::value)
-                    .on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(100u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value))
             .with_preconditioner(
                 gko::preconditioner::Jacobi<value_type>::build()
-                    .with_max_block_size(3u)
-                    .on(this->exec))
+                    .with_max_block_size(3u))
             .on(this->exec);
     auto solver = gmres_factory_preconditioner->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(

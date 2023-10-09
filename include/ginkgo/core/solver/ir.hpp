@@ -177,19 +177,14 @@ public:
      */
     Ir(Ir&&);
 
-    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
-    {
-        /**
-         * Criterion factories.
-         */
-        std::vector<std::shared_ptr<const stop::CriterionFactory>>
-            GKO_FACTORY_PARAMETER_VECTOR(criteria, nullptr);
+    class Factory;
 
+    struct parameters_type
+        : enable_iterative_solver_factory_parameters<parameters_type, Factory> {
         /**
          * Inner solver factory.
          */
-        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
-            solver, nullptr);
+        GKO_DEFERRED_FACTORY_PARAMETER(solver, LinOpFactory);
 
         /**
          * Already generated solver. If one is provided, the factory `solver`
@@ -319,8 +314,7 @@ auto build_smoother(std::shared_ptr<const LinOpFactory> factory,
     return Ir<ValueType>::build()
         .with_solver(factory)
         .with_relaxation_factor(relaxation_factor)
-        .with_criteria(
-            gko::stop::Iteration::build().with_max_iters(iteration).on(exec))
+        .with_criteria(gko::stop::Iteration::build().with_max_iters(iteration))
         .on(exec);
 }
 
@@ -344,8 +338,7 @@ auto build_smoother(std::shared_ptr<const LinOp> solver,
     return Ir<ValueType>::build()
         .with_generated_solver(solver)
         .with_relaxation_factor(relaxation_factor)
-        .with_criteria(
-            gko::stop::Iteration::build().with_max_iters(iteration).on(exec))
+        .with_criteria(gko::stop::Iteration::build().with_max_iters(iteration))
         .on(exec);
 }
 

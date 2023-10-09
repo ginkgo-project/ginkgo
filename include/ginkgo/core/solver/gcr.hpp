@@ -108,30 +108,12 @@ public:
      */
     void set_krylov_dim(size_type other) { parameters_.krylov_dim = other; }
 
-    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
-    {
-        /**
-         * Criterion factories.
-         */
-        std::vector<std::shared_ptr<const stop::CriterionFactory>>
-            GKO_FACTORY_PARAMETER_VECTOR(criteria, nullptr);
+    class Factory;
 
-        /**
-         * Preconditioner factory.
-         */
-        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
-            preconditioner, nullptr);
-
-        /**
-         * Already generated preconditioner. If one is provided, the factory
-         * `preconditioner` will be ignored.
-         */
-        std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(
-            generated_preconditioner, nullptr);
-
-        /**
-         * Krylov dimension factory.
-         */
+    struct parameters_type
+        : enable_preconditioned_iterative_solver_factory_parameters<
+              parameters_type, Factory> {
+        /** Krylov subspace dimension/restart value. */
         size_type GKO_FACTORY_PARAMETER_SCALAR(krylov_dim, 0u);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Gcr, parameters, Factory);

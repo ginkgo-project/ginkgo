@@ -35,11 +35,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <memory>
+#include <type_traits>
 #include <utility>
 
 
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/solver/workspace.hpp>
@@ -856,6 +858,114 @@ private:
                 system_matrix->get_executor(), system_matrix->get_size());
         }
     }
+};
+
+
+/**
+ * The parameter type shared between all iterative solvers.
+ * @see GKO_CREATE_FACTORY_PARAMETERS
+ */
+struct iterative_solver_factory_parameters {
+    /**
+     * Stopping criteria to be used by the solver.
+     */
+    std::vector<std::shared_ptr<const stop::CriterionFactory>> criteria{};
+};
+
+
+template <typename Parameters, typename Factory>
+struct enable_iterative_solver_factory_parameters
+    : enable_parameters_type<Parameters, Factory>,
+      iterative_solver_factory_parameters {
+    /**
+     * Provides stopping criteria via stop::CriterionFactory instances to be
+     * used by the iterative solver in a fluent interface.
+     */
+    template <typename... Args>
+    Parameters& with_criteria(Args&&... value)
+    {
+        this->criterion_generators = {
+            deferred_factory_parameter<stop::CriterionFactory>{
+                std::forward<Args>(value)}...};
+        this->deferred_factories["criteria"] = [](const auto& exec,
+                                                  auto& params) {
+            if (!params.criterion_generators.empty()) {
+                params.criteria.clear();
+                for (auto& generator : params.criterion_generators) {
+                    params.criteria.push_back(generator.on(exec));
+                }
+            }
+        };
+        return *self();
+    }
+
+private:
+    GKO_ENABLE_SELF(Parameters);
+
+    std::vector<deferred_factory_parameter<stop::CriterionFactory>>
+        criterion_generators;
+};
+
+
+/**
+ * The parameter type shared between all preconditioned iterative solvers,
+ * excluding the parameters available in iterative_solver_factory_parameters.
+ * @see GKO_CREATE_FACTORY_PARAMETERS
+ */
+struct preconditioned_iterative_solver_factory_parameters {
+    /**
+     * The preconditioner to be used by the iterative solver. By default, no
+     * preconditioner is used.
+     */
+    std::shared_ptr<const LinOpFactory> preconditioner{nullptr};
+
+    /**
+     * Already generated preconditioner. If one is provided, the factory
+     * `preconditioner` will be ignored.
+     */
+    std::shared_ptr<const LinOp> generated_preconditioner{nullptr};
+};
+
+
+template <typename Parameters, typename Factory>
+struct enable_preconditioned_iterative_solver_factory_parameters
+    : enable_iterative_solver_factory_parameters<Parameters, Factory>,
+      preconditioned_iterative_solver_factory_parameters {
+    /**
+     * Provides a preconditioner factory to be used by the iterative solver in a
+     * fluent interface.
+     * @see preconditioned_iterative_solver_factory_parameters::preconditioner
+     */
+    Parameters& with_preconditioner(
+        deferred_factory_parameter<LinOpFactory> preconditioner)
+    {
+        this->preconditioner_generator = std::move(preconditioner);
+        this->deferred_factories["preconditioner"] = [](const auto& exec,
+                                                        auto& params) {
+            if (!params.preconditioner_generator.is_empty()) {
+                params.preconditioner =
+                    params.preconditioner_generator.on(exec);
+            }
+        };
+        return *self();
+    }
+
+    /**
+     * Provides a concrete preconditioner to be used by the iterative solver in
+     * a fluent interface.
+     * @see preconditioned_iterative_solver_factory_parameters::preconditioner
+     */
+    Parameters& with_generated_preconditioner(
+        std::shared_ptr<const LinOp> generated_preconditioner)
+    {
+        this->generated_preconditioner = std::move(generated_preconditioner);
+        return *self();
+    }
+
+private:
+    GKO_ENABLE_SELF(Parameters);
+
+    deferred_factory_parameter<LinOpFactory> preconditioner_generator;
 };
 
 

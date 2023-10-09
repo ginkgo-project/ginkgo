@@ -108,19 +108,16 @@ int main(int argc, char* argv[])
     std::shared_ptr<gko::LinOpFactory> multigrid_gen;
     multigrid_gen =
         mg::build()
-            .with_mg_level(pgm::build().with_deterministic(true).on(exec))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+            .with_mg_level(pgm::build().with_deterministic(true))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
             .on(exec);
     const gko::remove_complex<ValueType> tolerance = 1e-8;
     auto solver_gen =
         cg::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(100u).on(exec),
-                gko::stop::ResidualNorm<ValueType>::build()
-                    .with_baseline(gko::stop::mode::absolute)
-                    .with_reduction_factor(tolerance)
-                    .on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(100u),
+                           gko::stop::ResidualNorm<ValueType>::build()
+                               .with_baseline(gko::stop::mode::absolute)
+                               .with_reduction_factor(tolerance))
             .with_preconditioner(multigrid_gen)
             .on(exec);
     // Create solver

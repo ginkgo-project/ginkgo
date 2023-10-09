@@ -65,15 +65,12 @@ protected:
           // Eigenvalues of mtx are 0.9, 1.0 and 1.1
           // Richardson iteration, converges since
           // | relaxation_factor * lambda - 1 | < 1
-          ir_factory(
-              Solver::build()
-                  .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(30u).on(
-                          exec),
-                      gko::stop::ResidualNorm<value_type>::build()
-                          .with_reduction_factor(r<value_type>::value)
-                          .on(exec))
-                  .on(exec))
+          ir_factory(Solver::build()
+                         .with_criteria(
+                             gko::stop::Iteration::build().with_max_iters(30u),
+                             gko::stop::ResidualNorm<value_type>::build()
+                                 .with_reduction_factor(r<value_type>::value))
+                         .on(exec))
     {}
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
@@ -187,11 +184,9 @@ TYPED_TEST(Ir, SolvesTriangularSystemWithIterativeInnerSolver)
 
     auto solver_factory =
         gko::solver::Ir<value_type>::build()
-            .with_criteria(gko::stop::Iteration::build().with_max_iters(30u).on(
-                               this->exec),
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(30u),
                            gko::stop::ResidualNorm<value_type>::build()
-                               .with_reduction_factor(r<value_type>::value)
-                               .on(this->exec))
+                               .with_reduction_factor(r<value_type>::value))
             .with_solver(inner_solver_factory)
             .on(this->exec);
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
@@ -354,16 +349,15 @@ TYPED_TEST(Ir, RichardsonSolvesTriangularSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
-    auto solver = gko::solver::Ir<value_type>::build()
-                      .with_criteria(
-                          gko::stop::Iteration::build().with_max_iters(100u).on(
-                              this->exec),
-                          gko::stop::ResidualNorm<value_type>::build()
-                              .with_reduction_factor(r<value_type>::value)
-                              .on(this->exec))
-                      .with_relaxation_factor(value_type{0.9})
-                      .on(this->exec)
-                      ->generate(this->mtx);
+    auto solver =
+        gko::solver::Ir<value_type>::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(100u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value)
+                               .on(this->exec))
+            .with_relaxation_factor(value_type{0.9})
+            .on(this->exec)
+            ->generate(this->mtx);
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
@@ -386,12 +380,10 @@ TYPED_TEST(Ir, RichardsonSolvesTriangularSystemWithIterativeInnerSolver)
             .on(this->exec));
     auto solver_factory =
         gko::solver::Ir<value_type>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(100u).on(
-                    this->exec),
-                gko::stop::ResidualNorm<value_type>::build()
-                    .with_reduction_factor(r<value_type>::value)
-                    .on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(100u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value)
+                               .on(this->exec))
             .with_relaxation_factor(value_type{0.9})
             .with_solver(inner_solver_factory)
             .on(this->exec);
@@ -410,8 +402,7 @@ TYPED_TEST(Ir, RichardsonTransposedSolvesTriangularSystem)
     using value_type = typename TestFixture::value_type;
     auto solver =
         gko::solver::Ir<value_type>::build()
-            .with_criteria(gko::stop::Iteration::build().with_max_iters(30u).on(
-                               this->exec),
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(30u),
                            gko::stop::ResidualNorm<value_type>::build()
                                .with_reduction_factor(r<value_type>::value)
                                .on(this->exec))
@@ -433,8 +424,7 @@ TYPED_TEST(Ir, RichardsonConjTransposedSolvesTriangularSystem)
     using value_type = typename TestFixture::value_type;
     auto solver =
         gko::solver::Ir<value_type>::build()
-            .with_criteria(gko::stop::Iteration::build().with_max_iters(30u).on(
-                               this->exec),
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(30u),
                            gko::stop::ResidualNorm<value_type>::build()
                                .with_reduction_factor(r<value_type>::value)
                                .on(this->exec))
@@ -457,8 +447,7 @@ TYPED_TEST(Ir, ApplyWithGivenInitialGuessModeIsEquivalentToRef)
     using initial_guess_mode = gko::solver::initial_guess_mode;
     auto ref_solver =
         gko::solver::Ir<value_type>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
             .on(this->exec)
             ->generate(this->mtx);
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
@@ -466,9 +455,7 @@ TYPED_TEST(Ir, ApplyWithGivenInitialGuessModeIsEquivalentToRef)
                        initial_guess_mode::zero}) {
         auto solver =
             gko::solver::Ir<value_type>::build()
-                .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(1u).on(
-                        this->exec))
+                .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
                 .with_default_initial_guess(guess)
                 .on(this->exec)
                 ->generate(this->mtx);

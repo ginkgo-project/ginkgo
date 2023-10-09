@@ -113,19 +113,13 @@ int main(int argc, char* argv[])
     RealValueType inner_reduction_factor{1e-2};
     auto solver_gen =
         ir::build()
-            .with_solver(
-                cg::build()
-                    .with_criteria(
-                        gko::stop::ResidualNorm<ValueType>::build()
-                            .with_reduction_factor(inner_reduction_factor)
-                            .on(exec))
-                    .on(exec))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(max_iters).on(
-                    exec),
+            .with_solver(cg::build().with_criteria(
                 gko::stop::ResidualNorm<ValueType>::build()
-                    .with_reduction_factor(outer_reduction_factor)
-                    .on(exec))
+                    .with_reduction_factor(inner_reduction_factor)))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(max_iters),
+                gko::stop::ResidualNorm<ValueType>::build()
+                    .with_reduction_factor(outer_reduction_factor))
             .on(exec);
     // Create solver
     auto solver = solver_gen->generate(A);
