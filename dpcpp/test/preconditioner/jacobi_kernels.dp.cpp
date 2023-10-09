@@ -90,7 +90,7 @@ protected:
         gko::uint32 max_block_size, int min_nnz, int max_nnz, int num_rhs = 1,
         value_type accuracy = 0.1, bool skip_sorting = true)
     {
-        std::default_random_engine engine(42);
+        std::ranlux48 engine(42);
         const auto dim = *(end(block_pointers) - 1);
         if (condition_numbers.size() == 0) {
             mtx = gko::test::generate_random_matrix<Mtx>(
