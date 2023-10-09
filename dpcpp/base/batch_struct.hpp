@@ -53,7 +53,7 @@ namespace dpcpp {
  * while also shallow-casting to the required DPCPP scalar type.
  *
  * A specialization is needed for every format of every kind of linear algebra
- * object. These are intended to be called on the host.
+ * object.
  */
 
 
@@ -65,9 +65,9 @@ inline batch::multi_vector::uniform_batch<const ValueType> get_batch_struct(
     const batch::MultiVector<ValueType>* const op)
 {
     return {op->get_const_values(), op->get_num_batch_items(),
-            static_cast<int>(op->get_common_size()[1]),
-            static_cast<int>(op->get_common_size()[0]),
-            static_cast<int>(op->get_common_size()[1])};
+            static_cast<int32>(op->get_common_size()[1]),
+            static_cast<int32>(op->get_common_size()[0]),
+            static_cast<int32>(op->get_common_size()[1])};
 }
 
 
@@ -79,9 +79,9 @@ inline batch::multi_vector::uniform_batch<ValueType> get_batch_struct(
     batch::MultiVector<ValueType>* const op)
 {
     return {op->get_values(), op->get_num_batch_items(),
-            static_cast<int>(op->get_common_size()[1]),
-            static_cast<int>(op->get_common_size()[0]),
-            static_cast<int>(op->get_common_size()[1])};
+            static_cast<int32>(op->get_common_size()[1]),
+            static_cast<int32>(op->get_common_size()[0]),
+            static_cast<int32>(op->get_common_size()[1])};
 }
 
 

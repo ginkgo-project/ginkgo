@@ -308,14 +308,7 @@ void MultiVector<ValueType>::convert_to(matrix::Dense<ValueType>* result) const
 template <typename ValueType>
 void MultiVector<ValueType>::move_to(matrix::Dense<ValueType>* result)
 {
-    auto exec = result->get_executor() == nullptr ? this->get_executor()
-                                                  : result->get_executor();
-    auto tmp = gko::batch::matrix::Dense<ValueType>::create_const(
-        exec, this->get_size(),
-        make_const_array_view(this->get_executor(),
-                              this->get_num_stored_elements(),
-                              this->get_const_values()));
-    tmp->move_to(result);
+    this->convert_to(result);
 }
 
 

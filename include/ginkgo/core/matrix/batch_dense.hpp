@@ -63,7 +63,7 @@ namespace matrix {
  * each batch item are also stored consecutively in memory).
  *
  * @note Though the storage layout is the same as the multi-vector object, the
- * class semantics and the operations it aims to provide is different. Hence it
+ * class semantics and the operations it aims to provide are different. Hence it
  * is recommended to create multi-vector objects if the user means to view the
  * data as a set of vectors.
  *
@@ -123,13 +123,13 @@ public:
     create_const_multi_vector_view() const;
 
     /**
-     * Creates a mutable view (of matrix::Dense type) of one item of the
+     * Creates a mutable view (of gko::matrix::Dense type) of one item of the
      * batch::matrix::Dense<value_type> object. Does not perform any deep
      * copies, but only returns a view of the data.
      *
      * @param item_id  The index of the batch item
      *
-     * @return  a batch::matrix::Dense object with the data from the batch item
+     * @return  a gko::matrix::Dense object with the data from the batch item
      * at the given index.
      */
     std::unique_ptr<unbatch_type> create_view_for_item(size_type item_id);
@@ -168,7 +168,7 @@ public:
      *
      * @note  the method has to be called on the same Executor the matrix is
      *        stored at (e.g. trying to call this method on a GPU Dense object
-     *        from the OMP results in a runtime error)
+     *        from the OMP may result in incorrect behaviour)
      */
     value_type& at(size_type batch_id, size_type row, size_type col)
     {
@@ -197,7 +197,7 @@ public:
      *
      * @note  the method has to be called on the same Executor the matrix is
      *        stored at (e.g. trying to call this method on a GPU Dense object
-     *        from the OMP results in a runtime error)
+     *        from the OMP may result in incorrect behaviour)
      */
     ValueType& at(size_type batch_id, size_type idx) noexcept
     {
@@ -268,7 +268,7 @@ public:
      */
     static std::unique_ptr<const Dense<value_type>> create_const(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
-        gko::detail::const_array_view<ValueType>&& values);
+        detail::const_array_view<ValueType>&& values);
 
     /**
      * Apply the matrix to a multi-vector. Represents the matrix vector
@@ -343,7 +343,7 @@ protected:
     }
 
     /**
-     * Creates a Dense matrix with the same configuration as the callers
+     * Creates a Dense matrix with the same configuration as the caller's
      * matrix.
      *
      * @returns a Dense matrix with the same configuration as the caller.

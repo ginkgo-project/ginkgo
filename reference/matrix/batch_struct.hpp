@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 
 
@@ -67,13 +68,13 @@ namespace host {
  * Generates an immutable uniform batch struct from a batch of dense matrices.
  */
 template <typename ValueType>
-inline batch::matrix::batch_dense::uniform_batch<const ValueType>
-get_batch_struct(const batch::matrix::Dense<ValueType>* const op)
+inline batch::matrix::dense::uniform_batch<const ValueType> get_batch_struct(
+    const batch::matrix::Dense<ValueType>* const op)
 {
     return {op->get_const_values(), op->get_num_batch_items(),
-            static_cast<int>(op->get_common_size()[1]),
-            static_cast<int>(op->get_common_size()[0]),
-            static_cast<int>(op->get_common_size()[1])};
+            static_cast<int32>(op->get_common_size()[1]),
+            static_cast<int32>(op->get_common_size()[0]),
+            static_cast<int32>(op->get_common_size()[1])};
 }
 
 
@@ -81,13 +82,13 @@ get_batch_struct(const batch::matrix::Dense<ValueType>* const op)
  * Generates a uniform batch struct from a batch of dense matrices.
  */
 template <typename ValueType>
-inline batch::matrix::batch_dense::uniform_batch<ValueType> get_batch_struct(
+inline batch::matrix::dense::uniform_batch<ValueType> get_batch_struct(
     batch::matrix::Dense<ValueType>* const op)
 {
     return {op->get_values(), op->get_num_batch_items(),
-            static_cast<int>(op->get_common_size()[1]),
-            static_cast<int>(op->get_common_size()[0]),
-            static_cast<int>(op->get_common_size()[1])};
+            static_cast<int32>(op->get_common_size()[1]),
+            static_cast<int32>(op->get_common_size()[0]),
+            static_cast<int32>(op->get_common_size()[1])};
 }
 
 

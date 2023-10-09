@@ -51,9 +51,9 @@ template <typename ValueType>
 struct batch_item {
     using value_type = ValueType;
     ValueType* values;
-    int stride;
-    int num_rows;
-    int num_rhs;
+    int32 stride;
+    int32 num_rows;
+    int32 num_rhs;
 };
 
 
@@ -67,9 +67,9 @@ struct uniform_batch {
 
     ValueType* values;
     size_type num_batch_items;
-    int stride;
-    int num_rows;
-    int num_rhs;
+    int32 stride;
+    int32 num_rows;
+    int32 num_rhs;
 
     size_type get_entry_storage() const
     {
@@ -117,8 +117,8 @@ extract_batch_item(const multi_vector::uniform_batch<ValueType>& batch,
 
 template <typename ValueType>
 GKO_ATTRIBUTES GKO_INLINE multi_vector::batch_item<ValueType>
-extract_batch_item(ValueType* const batch_values, const int stride,
-                   const int num_rows, const int num_rhs,
+extract_batch_item(ValueType* const batch_values, const int32 stride,
+                   const int32 num_rows, const int32 num_rhs,
                    const size_type batch_idx)
 {
     return {batch_values + batch_idx * stride * num_rows, stride, num_rows,

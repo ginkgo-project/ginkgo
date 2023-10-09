@@ -55,17 +55,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class Dense : public CommonTestFixture {
 protected:
-    using Mtx = gko::batch::matrix::Dense<value_type>;
-    using MVec = gko::batch::MultiVector<value_type>;
+    using BMtx = gko::batch::matrix::Dense<value_type>;
+    using BMVec = gko::batch::MultiVector<value_type>;
 
     Dense() : rand_engine(15) {}
 
-    template <typename MtxType>
-    std::unique_ptr<MtxType> gen_mtx(const gko::size_type num_batch_items,
-                                     gko::size_type num_rows,
-                                     gko::size_type num_cols)
+    template <typename BMtxType>
+    std::unique_ptr<BMtxType> gen_mtx(const gko::size_type num_batch_items,
+                                      gko::size_type num_rows,
+                                      gko::size_type num_cols)
     {
-        return gko::test::generate_random_batch_matrix<MtxType>(
+        return gko::test::generate_random_batch_matrix<BMtxType>(
             num_batch_items, num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
@@ -75,15 +75,15 @@ protected:
     {
         const int num_rows = 252;
         const int num_cols = 32;
-        x = gen_mtx<Mtx>(batch_size, num_rows, num_cols);
-        y = gen_mtx<MVec>(batch_size, num_cols, num_vecs);
-        alpha = gen_mtx<MVec>(batch_size, 1, 1);
-        beta = gen_mtx<MVec>(batch_size, 1, 1);
+        x = gen_mtx<BMtx>(batch_size, num_rows, num_cols);
+        y = gen_mtx<BMVec>(batch_size, num_cols, num_vecs);
+        alpha = gen_mtx<BMVec>(batch_size, 1, 1);
+        beta = gen_mtx<BMVec>(batch_size, 1, 1);
         dx = gko::clone(exec, x);
         dy = gko::clone(exec, y);
         dalpha = gko::clone(exec, alpha);
         dbeta = gko::clone(exec, beta);
-        expected = MVec::create(
+        expected = BMVec::create(
             ref,
             gko::batch_dim<2>(batch_size, gko::dim<2>{num_rows, num_vecs}));
         expected->fill(gko::one<value_type>());
@@ -93,16 +93,16 @@ protected:
     std::default_random_engine rand_engine;
 
     const size_t batch_size = 11;
-    std::unique_ptr<Mtx> x;
-    std::unique_ptr<MVec> y;
-    std::unique_ptr<MVec> alpha;
-    std::unique_ptr<MVec> beta;
-    std::unique_ptr<MVec> expected;
-    std::unique_ptr<MVec> dresult;
-    std::unique_ptr<Mtx> dx;
-    std::unique_ptr<MVec> dy;
-    std::unique_ptr<MVec> dalpha;
-    std::unique_ptr<MVec> dbeta;
+    std::unique_ptr<BMtx> x;
+    std::unique_ptr<BMVec> y;
+    std::unique_ptr<BMVec> alpha;
+    std::unique_ptr<BMVec> beta;
+    std::unique_ptr<BMVec> expected;
+    std::unique_ptr<BMVec> dresult;
+    std::unique_ptr<BMtx> dx;
+    std::unique_ptr<BMVec> dy;
+    std::unique_ptr<BMVec> dalpha;
+    std::unique_ptr<BMVec> dbeta;
 };
 
 
