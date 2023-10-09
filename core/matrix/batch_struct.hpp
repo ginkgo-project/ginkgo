@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace batch {
 namespace matrix {
-namespace batch_dense {
+namespace dense {
 
 
 /**
@@ -51,10 +51,10 @@ namespace batch_dense {
 template <typename ValueType>
 struct batch_item {
     using value_type = ValueType;
-    ValueType* values;
-    int stride;
-    int num_rows;
-    int num_cols;
+    value_type* values;
+    int32 stride;
+    int32 num_rows;
+    int32 num_cols;
 };
 
 
@@ -68,9 +68,9 @@ struct uniform_batch {
 
     ValueType* values;
     size_type num_batch_items;
-    int stride;
-    int num_rows;
-    int num_cols;
+    int32 stride;
+    int32 num_rows;
+    int32 num_cols;
 
     size_type get_entry_storage() const
     {
@@ -79,38 +79,37 @@ struct uniform_batch {
 };
 
 
-}  // namespace batch_dense
+}  // namespace dense
 
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE batch_dense::batch_item<const ValueType> to_const(
-    const batch_dense::batch_item<ValueType>& b)
+GKO_ATTRIBUTES GKO_INLINE dense::batch_item<const ValueType> to_const(
+    const dense::batch_item<ValueType>& b)
 {
     return {b.values, b.stride, b.num_rows, b.num_cols};
 }
 
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE batch_dense::uniform_batch<const ValueType> to_const(
-    const batch_dense::uniform_batch<ValueType>& ub)
+GKO_ATTRIBUTES GKO_INLINE dense::uniform_batch<const ValueType> to_const(
+    const dense::uniform_batch<ValueType>& ub)
 {
     return {ub.values, ub.num_batch_items, ub.stride, ub.num_rows, ub.num_cols};
 }
 
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE batch_dense::batch_item<ValueType> extract_batch_item(
-    const batch_dense::uniform_batch<ValueType>& batch,
-    const size_type batch_idx)
+GKO_ATTRIBUTES GKO_INLINE dense::batch_item<ValueType> extract_batch_item(
+    const dense::uniform_batch<ValueType>& batch, const size_type batch_idx)
 {
     return {batch.values + batch_idx * batch.stride * batch.num_rows,
             batch.stride, batch.num_rows, batch.num_cols};
 }
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE batch_dense::batch_item<ValueType> extract_batch_item(
-    ValueType* const batch_values, const int stride, const int num_rows,
-    const int num_cols, const size_type batch_idx)
+GKO_ATTRIBUTES GKO_INLINE dense::batch_item<ValueType> extract_batch_item(
+    ValueType* const batch_values, const int32 stride, const int32 num_rows,
+    const int32 num_cols, const size_type batch_idx)
 {
     return {batch_values + batch_idx * stride * num_rows, stride, num_rows,
             num_cols};
