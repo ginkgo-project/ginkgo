@@ -81,6 +81,7 @@ int main(int argc, char* argv[])
     using schwarz = gko::experimental::distributed::preconditioner::Schwarz<
         ValueType, LocalIndexType, GlobalIndexType>;
     using bj = gko::preconditioner::Jacobi<ValueType, LocalIndexType>;
+    using pgm = gko::multigrid::Pgm<ValueType, LocalIndexType>;
 
     // Create an MPI communicator get the rank of the calling process.
     const auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
@@ -217,6 +218,15 @@ int main(int argc, char* argv[])
 
     // Setup the local block diagonal solver factory.
     auto local_solver = gko::share(bj::build().on(exec));
+    auto coarse_solver = gko::share(
+        solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(100).on(exec),
+                gko::stop::ResidualNorm<ValueType>::build()
+                    .with_reduction_factor(1e-6)
+                    .on(exec))
+            .on(exec));
+    auto pgm_fac = gko::share(pgm::build().on(exec));
 
     // Setup the stopping criterion and logger
     const gko::remove_complex<ValueType> reduction_factor{1e-8};
@@ -224,9 +234,12 @@ int main(int argc, char* argv[])
         gko::log::Convergence<ValueType>::create();
     auto Ainv =
         solver::build()
-            .with_preconditioner(schwarz::build()
-                                     .with_local_solver_factory(local_solver)
-                                     .on(exec))
+            .with_preconditioner(
+                schwarz::build()
+                    .with_local_solver_factory(local_solver)
+                    // .with_galerkin_ops_factory(pgm_fac)
+                    // .with_coarse_solver_factory(coarse_solver)
+                    .on(exec))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(num_iters).on(
                     exec),
@@ -253,6 +266,7 @@ int main(int argc, char* argv[])
 
     // Get the residual.
     auto res_norm = gko::as<vec>(logger->get_residual_norm());
+    auto host_res = gko::make_temporary_clone(exec->get_master(), res_norm);
 
     // @sect3{Printing Results}
     // Print the achieved residual norm and timings on rank 0.
@@ -260,7 +274,7 @@ int main(int argc, char* argv[])
         // clang-format off
         std::cout << "\nNum rows in matrix: " << num_rows
                   << "\nNum ranks: " << comm.size()
-                  << "\nFinal Res norm: " << *res_norm->get_const_values()
+                  << "\nFinal Res norm: " << *host_res->get_const_values()
                   << "\nIteration count: " << logger->get_num_iterations()
                   << "\nInit time: " << t_init_end - t_init
                   << "\nRead time: " << t_read_setup_end - t_init
