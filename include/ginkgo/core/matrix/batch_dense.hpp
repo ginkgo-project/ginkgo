@@ -107,22 +107,6 @@ public:
     void move_to(Dense<next_precision<ValueType>>* result) override;
 
     /**
-     * Creates a mutable view (of MultiVector type) of the data owned by the
-     * matrix::Dense object. Does not perform any deep copies, but only
-     * returns a view of the underlying data.
-     *
-     * @return  a MultiVector object with a view of the data from the batch
-     * dense matrix.
-     */
-    std::unique_ptr<MultiVector<value_type>> create_multi_vector_view();
-
-    /**
-     * @copydoc create_const_multi_vector_view()
-     */
-    std::unique_ptr<const MultiVector<value_type>>
-    create_const_multi_vector_view() const;
-
-    /**
      * Creates a mutable view (of gko::matrix::Dense type) of one item of the
      * batch::matrix::Dense<value_type> object. Does not perform any deep
      * copies, but only returns a view of the data.
@@ -234,8 +218,8 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_values_for_item(
-        size_type batch_id) const noexcept
+    const value_type* get_const_values_for_item(size_type batch_id) const
+        noexcept
     {
         GKO_ASSERT(batch_id < this->get_num_batch_items());
         return values_.get_const_data() +
