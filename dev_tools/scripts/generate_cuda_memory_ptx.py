@@ -37,8 +37,8 @@ memory_orderings = [
     ordering(ptx_load_suffix=".acquire", fn_load_suffix="_acquire",
              ptx_store_suffix=".release", fn_store_suffix="_release", is_relaxed=False)
 ]
-types = [type_desc(ptx_type_suffix=".b32", val_constraint="r", name="int32"),
-         type_desc(ptx_type_suffix=".b64", val_constraint="l", name="int64"),
+types = [type_desc(ptx_type_suffix=".s32", val_constraint="r", name="int32"),
+         type_desc(ptx_type_suffix=".s64", val_constraint="l", name="int64"),
          type_desc(ptx_type_suffix=".f32", val_constraint="f", name="float"),
          type_desc(ptx_type_suffix=".f64", val_constraint="d", name="double")]
 # header
