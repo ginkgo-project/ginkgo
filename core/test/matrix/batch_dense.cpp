@@ -138,13 +138,6 @@ TYPED_TEST(Dense, CanCreateDenseItemView)
 }
 
 
-TYPED_TEST(Dense, CanCreateMultiVectorView)
-{
-    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx->create_multi_vector_view(), this->mvec,
-                              0.0);
-}
-
-
 TYPED_TEST(Dense, CanBeCopied)
 {
     auto mtx_copy = gko::batch::matrix::Dense<TypeParam>::create(this->exec);
