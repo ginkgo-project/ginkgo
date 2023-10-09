@@ -449,7 +449,7 @@ __global__ void sptrsv_naive_caching_kernel(
 
     // This check to ensure no infinite loops happen.
     if (is_nan(r)) {
-        store_relaxed(x_s + self_shid, zero<ValueType>());
+        store_relaxed_shared(x_s + self_shid, zero<ValueType>());
         store_relaxed(x + row * x_stride + rhs, zero<ValueType>());
         *nan_produced = true;
     }
