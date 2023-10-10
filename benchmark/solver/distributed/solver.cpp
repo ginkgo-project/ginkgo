@@ -39,6 +39,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 
 
+#define GKO_BENCHMARK_DISTRIBUTED
+
+
 #include "benchmark/solver/solver_common.hpp"
 #include "benchmark/utils/general_matrix.hpp"
 #include "benchmark/utils/generator.hpp"

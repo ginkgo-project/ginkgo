@@ -38,6 +38,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 
+#define GKO_BENCHMARK_DISTRIBUTED
+
+
 #include "benchmark/blas/blas_common.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/generator.hpp"

@@ -435,8 +435,7 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
             state.x = generator.initialize({0.0}, exec);
         } else {
             auto data = generator.generate_matrix_data(test_case);
-            auto permutation =
-                reorder(data, test_case, generator.is_distributed());
+            auto permutation = reorder(data, test_case);
 
             state.system_matrix = generator.generate_matrix_with_format(
                 exec, test_case["optimal"]["spmv"].get<std::string>(), data);

@@ -52,8 +52,6 @@ struct DefaultSystemGenerator {
     using value_type = ValueType;
     using Vec = vec<ValueType>;
 
-    static bool is_distributed() { return false; }
-
     static gko::matrix_data<ValueType, IndexType> generate_matrix_data(
         const json& config)
     {
@@ -192,8 +190,6 @@ struct DistributedDefaultSystemGenerator {
 
     using Mtx = dist_mtx<value_type, local_index_type, index_type>;
     using Vec = dist_vec<value_type>;
-
-    static bool is_distributed() { return true; }
 
     gko::matrix_data<value_type, index_type> generate_matrix_data(
         const json& config) const
