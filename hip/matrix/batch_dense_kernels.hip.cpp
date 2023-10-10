@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <hip/hip_runtime.h>
 #include <thrust/functional.h>
-#include <thrust/transform.h>
 
 
 #include <ginkgo/core/base/math.hpp>
@@ -46,8 +45,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/batch_struct.hpp"
 #include "hip/base/batch_struct.hip.hpp"
 #include "hip/base/config.hip.hpp"
-#include "hip/base/hipblas_bindings.hip.hpp"
-#include "hip/base/pointer_mode_guard.hip.hpp"
 #include "hip/base/thrust.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/reduction.hip.hpp"

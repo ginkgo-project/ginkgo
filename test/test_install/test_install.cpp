@@ -222,7 +222,7 @@ int main()
     // core/base/batch_dense.hpp
     {
         using type1 = float;
-        using batch_dense_type = gko::batch::Dense<type1>;
+        using batch_dense_type = gko::batch::matrix::Dense<type1>;
         auto test = batch_dense_type::create(exec);
     }
 
