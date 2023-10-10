@@ -51,22 +51,27 @@ std::string reordering_algorithm_desc =
 #if GKO_HAVE_METIS
     "    nd - Nested Dissection reordering algorithm\n"
 #endif
-    "    rcm - Reverse Cuthill-McKee reordering algorithm";
+    "    rcm - Reverse Cuthill-McKee reordering algorithm\n"
+    "This is a preprocessing step whose runtime will not be included\n"
+    "in the measurements.";
 
 
 DEFINE_string(input_matrix, "",
               "Filename of a matrix to be used as the single input. Overwrites "
               "the value of the -input flag");
 
+
+#ifndef GKO_BENCHMARK_DISTRIBUTED
 DEFINE_string(reorder, "none", reordering_algorithm_desc.c_str());
+#endif
 
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<gko::matrix::Permutation<IndexType>> reorder(
-    gko::matrix_data<ValueType, IndexType>& data, json& test_case,
-    bool is_distributed = false)
+    gko::matrix_data<ValueType, IndexType>& data, json& test_case)
 {
-    if (FLAGS_reorder == "none" || is_distributed) {
+#ifndef GKO_BENCHMARK_DISTRIBUTED
+    if (FLAGS_reorder == "none") {
         return nullptr;
     }
     using Csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -100,6 +105,10 @@ std::unique_ptr<gko::matrix::Permutation<IndexType>> reorder(
     gko::as<Csr>(mtx->permute(&perm_arr))->write(data);
     test_case["reordered"] = FLAGS_reorder;
     return perm;
+#else
+    // no reordering for distributed benchmarks
+    return nullptr;
+#endif
 }
 
 

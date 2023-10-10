@@ -43,6 +43,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <typeinfo>
 
 
+#define GKO_BENCHMARK_DISTRIBUTED
+
+
 #include "benchmark/spmv/spmv_common.hpp"
 #include "benchmark/utils/general_matrix.hpp"
 #include "benchmark/utils/generator.hpp"

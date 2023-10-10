@@ -105,7 +105,7 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
     {
         spmv_benchmark_state<Generator> state;
         state.data = generator.generate_matrix_data(test_case);
-        reorder(state.data, test_case, generator.is_distributed());
+        reorder(state.data, test_case);
 
         auto nrhs = FLAGS_nrhs;
         state.b = generator.create_multi_vector_random(
