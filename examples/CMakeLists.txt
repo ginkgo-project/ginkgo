@@ -33,7 +33,7 @@ set(EXAMPLES_LIST
     simple-solver-logging)
 
 if(GINKGO_BUILD_CUDA AND GINKGO_BUILD_OMP)
-    list(APPEND EXAMPLES_LIST custom-matrix-format)
+    list(APPEND EXAMPLES_LIST custom-matrix-format cuda-kernel-integration)
 endif()
 
 if(GINKGO_BUILD_EXTLIB_EXAMPLE)
