@@ -83,7 +83,7 @@ struct uniform_batch {
 }  // namespace dense
 
 
-namespace batch_ell {
+namespace ell {
 
 
 /**
@@ -109,7 +109,7 @@ struct batch_item {
 template <typename ValueType>
 struct uniform_batch {
     using value_type = ValueType;
-    using index_type = int;
+    using index_type = int32;
     using entry_type = batch_item<value_type>;
 
     ValueType* values;
@@ -127,7 +127,7 @@ struct uniform_batch {
 };
 
 
-}  // namespace batch_ell
+}  // namespace ell
 
 
 template <typename ValueType>
@@ -165,8 +165,8 @@ GKO_ATTRIBUTES GKO_INLINE dense::batch_item<ValueType> extract_batch_item(
 
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE batch_ell::batch_item<const ValueType> to_const(
-    const batch_ell::batch_item<ValueType>& b)
+GKO_ATTRIBUTES GKO_INLINE ell::batch_item<const ValueType> to_const(
+    const ell::batch_item<ValueType>& b)
 {
     return {b.values,   b.col_idxs, b.stride,
             b.num_rows, b.num_cols, b.num_stored_elems_per_row};
@@ -174,8 +174,8 @@ GKO_ATTRIBUTES GKO_INLINE batch_ell::batch_item<const ValueType> to_const(
 
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE batch_ell::uniform_batch<const ValueType> to_const(
-    const batch_ell::uniform_batch<ValueType>& ub)
+GKO_ATTRIBUTES GKO_INLINE ell::uniform_batch<const ValueType> to_const(
+    const ell::uniform_batch<ValueType>& ub)
 {
     return {ub.values,   ub.col_idxs, ub.num_batch_items,         ub.stride,
             ub.num_rows, ub.num_cols, ub.num_stored_elems_per_row};
@@ -183,8 +183,8 @@ GKO_ATTRIBUTES GKO_INLINE batch_ell::uniform_batch<const ValueType> to_const(
 
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE batch_ell::batch_item<ValueType> extract_batch_item(
-    const batch_ell::uniform_batch<ValueType>& batch, const size_type batch_idx)
+GKO_ATTRIBUTES GKO_INLINE ell::batch_item<ValueType> extract_batch_item(
+    const ell::uniform_batch<ValueType>& batch, const size_type batch_idx)
 {
     return {batch.values +
                 batch_idx * batch.num_stored_elems_per_row * batch.num_rows,
@@ -196,7 +196,7 @@ GKO_ATTRIBUTES GKO_INLINE batch_ell::batch_item<ValueType> extract_batch_item(
 }
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE batch_ell::batch_item<ValueType> extract_batch_item(
+GKO_ATTRIBUTES GKO_INLINE ell::batch_item<ValueType> extract_batch_item(
     ValueType* const batch_values, int* const batch_col_idxs, const int stride,
     const int num_rows, const int num_cols, int num_elems_per_row,
     const size_type batch_idx)

@@ -58,15 +58,13 @@ class Ell : public ::testing::Test {
 protected:
     using value_type = T;
     using size_type = gko::size_type;
-    using Mtx = gko::batch::matrix::Ell<value_type>;
-    using MVec = gko::batch::MultiVector<value_type>;
+    using BMtx = gko::batch::matrix::Ell<value_type>;
+    using BMVec = gko::batch::MultiVector<value_type>;
     using EllMtx = gko::matrix::Ell<value_type>;
     using DenseMtx = gko::matrix::Dense<value_type>;
-    using ComplexMtx = gko::to_complex<Mtx>;
-    using RealMtx = gko::remove_complex<Mtx>;
     Ell()
         : exec(gko::ReferenceExecutor::create()),
-          mtx_0(gko::batch::initialize<Mtx>(
+          mtx_0(gko::batch::initialize<BMtx>(
               {{I<T>({1.0, -1.0, 1.5}), I<T>({-2.0, 2.0, 3.0})},
                {{1.0, -2.0, -0.5}, {1.0, -2.5, 4.0}}},
               exec)),
@@ -74,7 +72,7 @@ protected:
               {I<T>({1.0, -1.0, 1.5}), I<T>({-2.0, 2.0, 3.0})}, exec)),
           mtx_01(gko::initialize<EllMtx>(
               {I<T>({1.0, -2.0, -0.5}), I<T>({1.0, -2.5, 4.0})}, exec)),
-          b_0(gko::batch::initialize<MVec>(
+          b_0(gko::batch::initialize<BMVec>(
               {{I<T>({1.0, 0.0, 1.0}), I<T>({2.0, 0.0, 1.0}),
                 I<T>({1.0, 0.0, 2.0})},
                {I<T>({-1.0, 1.0, 1.0}), I<T>({1.0, -1.0, 1.0}),
@@ -88,7 +86,7 @@ protected:
               {I<T>({-1.0, 1.0, 1.0}), I<T>({1.0, -1.0, 1.0}),
                I<T>({1.0, 0.0, 2.0})},
               exec)),
-          x_0(gko::batch::initialize<MVec>(
+          x_0(gko::batch::initialize<BMVec>(
               {{I<T>({2.0, 0.0, 1.0}), I<T>({2.0, 0.0, 2.0})},
                {I<T>({-2.0, 1.0, 1.0}), I<T>({1.0, -1.0, -1.0})}},
               exec)),
@@ -99,13 +97,13 @@ protected:
     {}
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
-    std::unique_ptr<Mtx> mtx_0;
+    std::unique_ptr<BMtx> mtx_0;
     std::unique_ptr<EllMtx> mtx_00;
     std::unique_ptr<EllMtx> mtx_01;
-    std::unique_ptr<MVec> b_0;
+    std::unique_ptr<BMVec> b_0;
     std::unique_ptr<DenseMtx> b_00;
     std::unique_ptr<DenseMtx> b_01;
-    std::unique_ptr<MVec> x_0;
+    std::unique_ptr<BMVec> x_0;
     std::unique_ptr<DenseMtx> x_00;
     std::unique_ptr<DenseMtx> x_01;
 
@@ -121,38 +119,10 @@ TYPED_TEST(Ell, AppliesToBatchMultiVector)
     using T = typename TestFixture::value_type;
 
     this->mtx_0->apply(this->b_0.get(), this->x_0.get());
+
     this->mtx_00->apply(this->b_00.get(), this->x_00.get());
     this->mtx_01->apply(this->b_01.get(), this->x_01.get());
-
     auto res = gko::batch::unbatch<gko::batch::MultiVector<T>>(this->x_0.get());
-
-    GKO_ASSERT_MTX_NEAR(res[0].get(), this->x_00.get(), 0.);
-    GKO_ASSERT_MTX_NEAR(res[1].get(), this->x_01.get(), 0.);
-}
-
-
-TYPED_TEST(Ell, AppliesLinearCombinationWithSameAlphaToBatchMultiVector)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using MVec = typename TestFixture::MVec;
-    using DenseMtx = typename TestFixture::DenseMtx;
-    using T = typename TestFixture::value_type;
-    auto alpha = gko::batch::initialize<MVec>(2, {1.5}, this->exec);
-    auto beta = gko::batch::initialize<MVec>(2, {-4.0}, this->exec);
-    auto alpha0 = gko::initialize<DenseMtx>({1.5}, this->exec);
-    auto alpha1 = gko::initialize<DenseMtx>({1.5}, this->exec);
-    auto beta0 = gko::initialize<DenseMtx>({-4.0}, this->exec);
-    auto beta1 = gko::initialize<DenseMtx>({-4.0}, this->exec);
-
-    this->mtx_0->apply(alpha.get(), this->b_0.get(), beta.get(),
-                       this->x_0.get());
-    this->mtx_00->apply(alpha0.get(), this->b_00.get(), beta0.get(),
-                        this->x_00.get());
-    this->mtx_01->apply(alpha1.get(), this->b_01.get(), beta1.get(),
-                        this->x_01.get());
-
-    auto res = gko::batch::unbatch<gko::batch::MultiVector<T>>(this->x_0.get());
-
     GKO_ASSERT_MTX_NEAR(res[0].get(), this->x_00.get(), 0.);
     GKO_ASSERT_MTX_NEAR(res[1].get(), this->x_01.get(), 0.);
 }
@@ -160,12 +130,12 @@ TYPED_TEST(Ell, AppliesLinearCombinationWithSameAlphaToBatchMultiVector)
 
 TYPED_TEST(Ell, AppliesLinearCombinationToBatchMultiVector)
 {
-    using Mtx = typename TestFixture::Mtx;
-    using MVec = typename TestFixture::MVec;
+    using BMtx = typename TestFixture::BMtx;
+    using BMVec = typename TestFixture::BMVec;
     using DenseMtx = typename TestFixture::DenseMtx;
     using T = typename TestFixture::value_type;
-    auto alpha = gko::batch::initialize<MVec>({{1.5}, {-1.0}}, this->exec);
-    auto beta = gko::batch::initialize<MVec>({{2.5}, {-4.0}}, this->exec);
+    auto alpha = gko::batch::initialize<BMVec>({{1.5}, {-1.0}}, this->exec);
+    auto beta = gko::batch::initialize<BMVec>({{2.5}, {-4.0}}, this->exec);
     auto alpha0 = gko::initialize<DenseMtx>({1.5}, this->exec);
     auto alpha1 = gko::initialize<DenseMtx>({-1.0}, this->exec);
     auto beta0 = gko::initialize<DenseMtx>({2.5}, this->exec);
@@ -173,13 +143,12 @@ TYPED_TEST(Ell, AppliesLinearCombinationToBatchMultiVector)
 
     this->mtx_0->apply(alpha.get(), this->b_0.get(), beta.get(),
                        this->x_0.get());
+
     this->mtx_00->apply(alpha0.get(), this->b_00.get(), beta0.get(),
                         this->x_00.get());
     this->mtx_01->apply(alpha1.get(), this->b_01.get(), beta1.get(),
                         this->x_01.get());
-
     auto res = gko::batch::unbatch<gko::batch::MultiVector<T>>(this->x_0.get());
-
     GKO_ASSERT_MTX_NEAR(res[0].get(), this->x_00.get(), 0.);
     GKO_ASSERT_MTX_NEAR(res[1].get(), this->x_01.get(), 0.);
 }
@@ -187,8 +156,8 @@ TYPED_TEST(Ell, AppliesLinearCombinationToBatchMultiVector)
 
 TYPED_TEST(Ell, ApplyFailsOnWrongNumberOfResultCols)
 {
-    using MVec = typename TestFixture::MVec;
-    auto res = MVec::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{2}});
+    using BMVec = typename TestFixture::BMVec;
+    auto res = BMVec::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{2}});
 
     ASSERT_THROW(this->mtx_0->apply(this->b_0.get(), res.get()),
                  gko::DimensionMismatch);
@@ -197,8 +166,8 @@ TYPED_TEST(Ell, ApplyFailsOnWrongNumberOfResultCols)
 
 TYPED_TEST(Ell, ApplyFailsOnWrongNumberOfResultRows)
 {
-    using MVec = typename TestFixture::MVec;
-    auto res = MVec::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{3}});
+    using BMVec = typename TestFixture::BMVec;
+    auto res = BMVec::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{3}});
 
     ASSERT_THROW(this->mtx_0->apply(this->b_0.get(), res.get()),
                  gko::DimensionMismatch);
@@ -207,9 +176,9 @@ TYPED_TEST(Ell, ApplyFailsOnWrongNumberOfResultRows)
 
 TYPED_TEST(Ell, ApplyFailsOnWrongInnerDimension)
 {
-    using MVec = typename TestFixture::MVec;
+    using BMVec = typename TestFixture::BMVec;
     auto res =
-        MVec::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{2, 3}});
+        BMVec::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{2, 3}});
 
     ASSERT_THROW(this->mtx_0->apply(res.get(), this->x_0.get()),
                  gko::DimensionMismatch);
@@ -218,13 +187,13 @@ TYPED_TEST(Ell, ApplyFailsOnWrongInnerDimension)
 
 TYPED_TEST(Ell, AdvancedApplyFailsOnWrongInnerDimension)
 {
-    using MVec = typename TestFixture::MVec;
+    using BMVec = typename TestFixture::BMVec;
     auto res =
-        MVec::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{2, 3}});
+        BMVec::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{2, 3}});
     auto alpha =
-        MVec::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{1, 1}});
+        BMVec::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{1, 1}});
     auto beta =
-        MVec::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{1, 1}});
+        BMVec::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{1, 1}});
 
     ASSERT_THROW(
         this->mtx_0->apply(alpha.get(), res.get(), beta.get(), this->x_0.get()),
@@ -234,13 +203,13 @@ TYPED_TEST(Ell, AdvancedApplyFailsOnWrongInnerDimension)
 
 TYPED_TEST(Ell, AdvancedApplyFailsOnWrongAlphaDimension)
 {
-    using MVec = typename TestFixture::MVec;
+    using BMVec = typename TestFixture::BMVec;
     auto res =
-        MVec::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{3, 3}});
+        BMVec::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{3, 3}});
     auto alpha =
-        MVec::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{2, 1}});
+        BMVec::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{2, 1}});
     auto beta =
-        MVec::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{1, 1}});
+        BMVec::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{1, 1}});
 
     ASSERT_THROW(
         this->mtx_0->apply(alpha.get(), res.get(), beta.get(), this->x_0.get()),

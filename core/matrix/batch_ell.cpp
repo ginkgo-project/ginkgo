@@ -105,21 +105,9 @@ std::unique_ptr<Ell<ValueType, IndexType>>
 Ell<ValueType, IndexType>::create_with_config_of(
     ptr_param<const Ell<ValueType, IndexType>> other)
 {
-    // De-referencing `other` before calling the functions (instead of
-    // using operator `->`) is currently required to be compatible with
-    // CUDA 10.1.
-    // Otherwise, it results in a compile error.
-    return (*other).create_with_same_config();
-}
-
-
-template <typename ValueType, typename IndexType>
-std::unique_ptr<Ell<ValueType, IndexType>>
-Ell<ValueType, IndexType>::create_with_same_config() const
-{
     return Ell<ValueType, IndexType>::create(
-        this->get_executor(), this->get_size(),
-        this->get_num_stored_elements_per_row());
+        other->get_executor(), other->get_size(),
+        other->get_num_stored_elements_per_row());
 }
 
 
@@ -163,12 +151,7 @@ template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::apply_impl(const MultiVector<ValueType>* b,
                                            MultiVector<ValueType>* x) const
 {
-    GKO_ASSERT_EQ(b->get_num_batch_items(), this->get_num_batch_items());
-    GKO_ASSERT_EQ(this->get_num_batch_items(), x->get_num_batch_items());
-
-    GKO_ASSERT_CONFORMANT(this->get_common_size(), b->get_common_size());
-    GKO_ASSERT_EQUAL_ROWS(this->get_common_size(), x->get_common_size());
-    GKO_ASSERT_EQUAL_COLS(b->get_common_size(), x->get_common_size());
+    this->validate_application_parameters(b, x);
     this->get_executor()->run(ell::make_simple_apply(this, b, x));
 }
 
@@ -179,14 +162,7 @@ void Ell<ValueType, IndexType>::apply_impl(const MultiVector<ValueType>* alpha,
                                            const MultiVector<ValueType>* beta,
                                            MultiVector<ValueType>* x) const
 {
-    GKO_ASSERT_EQ(b->get_num_batch_items(), this->get_num_batch_items());
-    GKO_ASSERT_EQ(this->get_num_batch_items(), x->get_num_batch_items());
-
-    GKO_ASSERT_CONFORMANT(this->get_common_size(), b->get_common_size());
-    GKO_ASSERT_EQUAL_ROWS(this->get_common_size(), x->get_common_size());
-    GKO_ASSERT_EQUAL_COLS(b->get_common_size(), x->get_common_size());
-    GKO_ASSERT_EQUAL_DIMENSIONS(alpha->get_common_size(), gko::dim<2>(1, 1));
-    GKO_ASSERT_EQUAL_DIMENSIONS(beta->get_common_size(), gko::dim<2>(1, 1));
+    this->validate_application_parameters(alpha, b, beta, x);
     this->get_executor()->run(
         ell::make_advanced_apply(alpha, this, b, beta, x));
 }

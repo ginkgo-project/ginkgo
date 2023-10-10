@@ -144,6 +144,7 @@ TYPED_TEST(Ell, SparseMtxKnowsItsSizeAndValues)
 TYPED_TEST(Ell, CanBeEmpty)
 {
     auto empty = gko::batch::matrix::Ell<TypeParam>::create(this->exec);
+
     this->assert_empty(empty.get());
 }
 
@@ -151,6 +152,7 @@ TYPED_TEST(Ell, CanBeEmpty)
 TYPED_TEST(Ell, ReturnsNullValuesArrayWhenEmpty)
 {
     auto empty = gko::batch::matrix::Ell<TypeParam>::create(this->exec);
+
     ASSERT_EQ(empty->get_const_values(), nullptr);
 }
 
@@ -284,7 +286,6 @@ TYPED_TEST(Ell, CanBeConstructedFromEllMatrices)
     using value_type = typename TestFixture::value_type;
     using EllMtx = typename TestFixture::EllMtx;
     using size_type = gko::size_type;
-
     auto mat1 = gko::initialize<EllMtx>({{-1.0, 0.0, 0.0}, {0.0, 2.5, 3.5}},
                                         this->exec);
     auto mat2 =
@@ -304,15 +305,14 @@ TYPED_TEST(Ell, CanBeConstructedFromEllMatricesByDuplication)
     using index_type = int;
     using EllMtx = typename TestFixture::EllMtx;
     using size_type = gko::size_type;
-
     auto mat1 =
         gko::initialize<EllMtx>({{1.0, 0.0, 0.0}, {0.0, 2.0, 0.0}}, this->exec);
-
     auto bat_m =
         gko::batch::create_from_item<gko::batch::matrix::Ell<value_type>>(
             this->exec,
             std::vector<EllMtx*>{mat1.get(), mat1.get(), mat1.get()},
             mat1->get_num_stored_elements_per_row());
+
     auto m = gko::batch::create_from_item<gko::batch::matrix::Ell<value_type>>(
         this->exec, 3, mat1.get(), mat1->get_num_stored_elements_per_row());
 
@@ -326,7 +326,6 @@ TYPED_TEST(Ell, CanBeConstructedByDuplicatingEllMatrices)
     using index_type = int;
     using EllMtx = typename TestFixture::EllMtx;
     using size_type = gko::size_type;
-
     auto mat1 = gko::initialize<EllMtx>({{-1.0, 0.0, 0.0}, {0.0, 2.5, 0.0}},
                                         this->exec);
     auto mat2 =
@@ -372,6 +371,7 @@ TYPED_TEST(Ell, CanBeListConstructed)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = int;
+
     auto m = gko::batch::initialize<gko::batch::matrix::Ell<TypeParam>>(
         {{0.0, -1.0}, {1.0, 0.0}}, this->exec);
 
