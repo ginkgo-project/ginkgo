@@ -73,13 +73,14 @@ namespace batch {
  *
  * A key difference between the LinOp and the BatchLinOp class is that the apply
  * between BatchLinOps is no longer supported. The user can apply a BatchLinOp
- * to a batch::MultiVector but not to any general BatchLinOp. This apply to a
- * batch::MultiVector is handled by the concrete LinOp and may be moved to the
- * base BatchLinOp class in the future.
+ * to a batch::MultiVector but not to any general BatchLinOp.
  *
  * Therefore, the BatchLinOp serves only as a base class providing necessary
  * core functionality from Polymorphic object and store the dimensions of the
  * batched object.
+ *
+ * @note Apply to batch::MultiVector objects are handled by the concrete LinOp
+ * and may be moved to the base BatchLinOp class in the future.
  *
  * @ref BatchLinOp
  */
