@@ -95,7 +95,9 @@ std::unique_ptr<gko::matrix::Permutation<IndexType>> reorder(
         throw std::runtime_error{"Unknown reordering algorithm " +
                                  FLAGS_reorder};
     }
-    mtx->permute(perm)->write(data);
+    auto perm_arr =
+        gko::array<IndexType>::view(ref, data.size[0], perm->get_permutation());
+    gko::as<Csr>(mtx->permute(&perm_arr))->write(data);
     test_case["reordered"] = FLAGS_reorder;
     return perm;
 }
@@ -103,16 +105,18 @@ std::unique_ptr<gko::matrix::Permutation<IndexType>> reorder(
 
 template <typename ValueType, typename IndexType>
 void permute(std::unique_ptr<gko::matrix::Dense<ValueType>>& vec,
-             const gko::matrix::Permutation<IndexType>* perm)
+             gko::matrix::Permutation<IndexType>* perm)
 {
-    vec = vec->permute(perm, gko::matrix::permute_mode::rows);
+    auto perm_arr = gko::array<IndexType>::view(
+        perm->get_executor(), perm->get_size()[0], perm->get_permutation());
+    vec = gko::as<gko::matrix::Dense<ValueType>>(vec->row_permute(&perm_arr));
 }
 
 
 template <typename ValueType, typename IndexType>
 void permute(
     std::unique_ptr<gko::experimental::distributed::Vector<ValueType>>& vec,
-    const gko::matrix::Permutation<IndexType>* perm)
+    gko::matrix::Permutation<IndexType>* perm)
 {}
 
 
