@@ -44,9 +44,34 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/log/logger.hpp>
 
 
 namespace {
+
+
+struct DummyLogger : gko::log::Logger {
+    DummyLogger()
+        : gko::log::Logger(gko::log::Logger::batch_linop_factory_events_mask)
+    {}
+
+    void on_batch_linop_factory_generate_started(
+        const gko::batch::BatchLinOpFactory*,
+        const gko::batch::BatchLinOp*) const override
+    {
+        batch_linop_factory_generate_started++;
+    }
+
+    void on_batch_linop_factory_generate_completed(
+        const gko::batch::BatchLinOpFactory*, const gko::batch::BatchLinOp*,
+        const gko::batch::BatchLinOp*) const override
+    {
+        batch_linop_factory_generate_completed++;
+    }
+
+    int mutable batch_linop_factory_generate_started = 0;
+    int mutable batch_linop_factory_generate_completed = 0;
+};
 
 
 class DummyBatchLinOp : public gko::batch::EnableBatchLinOp<DummyBatchLinOp>,
@@ -63,33 +88,25 @@ class EnableBatchLinOp : public ::testing::Test {
 protected:
     EnableBatchLinOp()
         : ref{gko::ReferenceExecutor::create()},
-          ref2{gko::ReferenceExecutor::create()},
-          op{DummyBatchLinOp::create(ref2,
-                                     gko::batch_dim<2>(1, gko::dim<2>{3, 5}))},
-          op2{DummyBatchLinOp::create(ref2,
-                                      gko::batch_dim<2>(2, gko::dim<2>{3, 5}))}
+          op{DummyBatchLinOp::create(ref,
+                                     gko::batch_dim<2>(1, gko::dim<2>{3, 5}))}
     {}
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::ReferenceExecutor> ref2;
     std::unique_ptr<DummyBatchLinOp> op;
-    std::unique_ptr<DummyBatchLinOp> op2;
 };
 
 
 TEST_F(EnableBatchLinOp, KnowsNumBatchItems)
 {
     ASSERT_EQ(op->get_num_batch_items(), 1);
-    ASSERT_EQ(op2->get_num_batch_items(), 2);
 }
 
 
 TEST_F(EnableBatchLinOp, KnowsItsSizes)
 {
     auto op1_sizes = gko::batch_dim<2>(1, gko::dim<2>{3, 5});
-    auto op2_sizes = gko::batch_dim<2>(2, gko::dim<2>{3, 5});
     ASSERT_EQ(op->get_size(), op1_sizes);
-    ASSERT_EQ(op2->get_size(), op2_sizes);
 }
 
 
@@ -123,9 +140,14 @@ public:
 
 class EnableBatchLinOpFactory : public ::testing::Test {
 protected:
-    EnableBatchLinOpFactory() : ref{gko::ReferenceExecutor::create()} {}
+    EnableBatchLinOpFactory()
+        : ref{gko::ReferenceExecutor::create()},
+          logger{std::make_shared<DummyLogger>()}
+
+    {}
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
+    std::shared_ptr<DummyLogger> logger;
 };
 
 
@@ -158,6 +180,53 @@ TEST_F(EnableBatchLinOpFactory, PassesParametersToBatchLinOp)
     ASSERT_EQ(op->get_executor(), ref);
     ASSERT_EQ(op->get_parameters().value, 6);
     ASSERT_EQ(op->op_.get(), dummy.get());
+}
+
+
+TEST_F(EnableBatchLinOpFactory, FactoryGenerateIsLogged)
+{
+    auto before_logger = *logger;
+    auto factory = DummyBatchLinOpWithFactory<>::build().on(ref);
+    factory->add_logger(logger);
+    factory->generate(
+        DummyBatchLinOp::create(ref, gko::batch_dim<2>(1, gko::dim<2>{3, 5})));
+
+    ASSERT_EQ(logger->batch_linop_factory_generate_started,
+              before_logger.batch_linop_factory_generate_started + 1);
+    ASSERT_EQ(logger->batch_linop_factory_generate_completed,
+              before_logger.batch_linop_factory_generate_completed + 1);
+}
+
+
+TEST_F(EnableBatchLinOpFactory, WithLoggersWorksAndPropagates)
+{
+    auto before_logger = *logger;
+    auto factory =
+        DummyBatchLinOpWithFactory<>::build().with_loggers(logger).on(ref);
+    auto op = factory->generate(
+        DummyBatchLinOp::create(ref, gko::batch_dim<2>(1, gko::dim<2>{3, 5})));
+
+    ASSERT_EQ(logger->batch_linop_factory_generate_started,
+              before_logger.batch_linop_factory_generate_started + 1);
+    ASSERT_EQ(logger->batch_linop_factory_generate_completed,
+              before_logger.batch_linop_factory_generate_completed + 1);
+}
+
+
+TEST_F(EnableBatchLinOpFactory, CopiesLinOpToOtherExecutor)
+{
+    auto ref2 = gko::ReferenceExecutor::create();
+    auto dummy = gko::share(
+        DummyBatchLinOp::create(ref2, gko::batch_dim<2>(1, gko::dim<2>{3, 5})));
+    auto factory = DummyBatchLinOpWithFactory<>::build().with_value(6).on(ref);
+
+    auto op = factory->generate(dummy);
+
+    ASSERT_EQ(op->get_executor(), ref);
+    ASSERT_EQ(op->get_parameters().value, 6);
+    ASSERT_EQ(op->op_->get_executor(), ref);
+    ASSERT_NE(op->op_.get(), dummy.get());
+    ASSERT_TRUE(dynamic_cast<const DummyBatchLinOp*>(op->op_.get()));
 }
 
 

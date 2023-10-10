@@ -73,9 +73,13 @@ namespace batch {
  *
  * A key difference between the LinOp and the BatchLinOp class is that the apply
  * between BatchLinOps is no longer supported. The user can apply a BatchLinOp
- * to a batch::MultiVector but not to any general BatchLinOp. Therefore, the
- * BatchLinOp serves only as a base class providing necessary core functionality
- * from Polymorphic object and store the dimensions of the batched object.
+ * to a batch::MultiVector but not to any general BatchLinOp. This apply to a
+ * batch::MultiVector is handled by the concrete LinOp and may be moved to the
+ * base BatchLinOp class in the future.
+ *
+ * Therefore, the BatchLinOp serves only as a base class providing necessary
+ * core functionality from Polymorphic object and store the dimensions of the
+ * batched object.
  *
  * @ref BatchLinOp
  */
@@ -84,24 +88,24 @@ public:
     /**
      * Returns the number of items in the batch operator.
      *
-     * @return number of items in the batch operator
+     * @return  number of items in the batch operator
      */
     size_type get_num_batch_items() const noexcept
     {
-        return size_.get_num_batch_items();
+        return get_size().get_num_batch_items();
     }
 
     /**
      * Returns the common size of the batch items.
      *
-     * @return the common size stored
+     * @return  the common size stored
      */
-    dim<2> get_common_size() const { return size_.get_common_size(); }
+    dim<2> get_common_size() const { return get_size().get_common_size(); }
 
     /**
      * Returns the size of the batch operator.
      *
-     * @return size of the batch operator, a batch_dim object
+     * @return  size of the batch operator, a batch_dim object
      */
     const batch_dim<2>& get_size() const noexcept { return size_; }
 
@@ -117,6 +121,17 @@ protected:
      * Creates a batch operator storing items of uniform sizes.
      *
      * @param exec        the executor where all the operations are performed
+     * @param batch_size  the size the batched operator, as a batch_dim object
+     */
+    explicit BatchLinOp(std::shared_ptr<const Executor> exec,
+                        const batch_dim<2>& batch_size)
+        : EnableAbstractPolymorphicObject<BatchLinOp>(exec), size_{batch_size}
+    {}
+
+    /**
+     * Creates a batch operator storing items of uniform sizes.
+     *
+     * @param exec        the executor where all the operations are performed
      * @param num_batch_items the number of batch items to be stored in the
      * operator
      * @param size        the common size of the items in the batched operator
@@ -124,20 +139,10 @@ protected:
     explicit BatchLinOp(std::shared_ptr<const Executor> exec,
                         const size_type num_batch_items = 0,
                         const dim<2>& common_size = dim<2>{})
-        : EnableAbstractPolymorphicObject<BatchLinOp>(exec),
-          size_{num_batch_items > 0 ? batch_dim<2>(num_batch_items, common_size)
-                                    : batch_dim<2>{}}
-    {}
-
-    /**
-     * Creates a batch operator storing items of uniform sizes.
-     *
-     * @param exec        the executor where all the operations are performed
-     * @param batch_size  the size the batched operator, as a batch_dim object
-     */
-    explicit BatchLinOp(std::shared_ptr<const Executor> exec,
-                        const batch_dim<2>& batch_size)
-        : EnableAbstractPolymorphicObject<BatchLinOp>(exec), size_{batch_size}
+        : BatchLinOp{std::move(exec),
+                     num_batch_items > 0
+                         ? batch_dim<2>(num_batch_items, common_size)
+                         : batch_dim<2>{}}
     {}
 
 private:
@@ -158,7 +163,7 @@ private:
  * ---------------------------
  *
  * ```c++
- * // Suppose A is a batch matrix, batch_b a batch rhs vector, and batch_x an
+ * // Suppose A is a batch matrix, batch_b, a batch rhs vector, and batch_x, an
  * // initial guess
  * // Create a BatchCG which runs for at most 1000 iterations, and stops after
  * // reducing the residual norm by 6 orders of magnitude
@@ -234,9 +239,6 @@ class EnableBatchLinOp
 public:
     using EnablePolymorphicObject<ConcreteBatchLinOp,
                                   PolymorphicBase>::EnablePolymorphicObject;
-
-protected:
-    GKO_ENABLE_SELF(ConcreteBatchLinOp);
 };
 
 
