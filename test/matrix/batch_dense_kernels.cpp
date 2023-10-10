@@ -75,11 +75,11 @@ protected:
     {
         const int num_rows = 252;
         const int num_cols = 32;
-        x = gen_mtx<BMtx>(batch_size, num_rows, num_cols);
+        mat = gen_mtx<BMtx>(batch_size, num_rows, num_cols);
         y = gen_mtx<BMVec>(batch_size, num_cols, num_vecs);
         alpha = gen_mtx<BMVec>(batch_size, 1, 1);
         beta = gen_mtx<BMVec>(batch_size, 1, 1);
-        dx = gko::clone(exec, x);
+        dmat = gko::clone(exec, mat);
         dy = gko::clone(exec, y);
         dalpha = gko::clone(exec, alpha);
         dbeta = gko::clone(exec, beta);
@@ -93,13 +93,13 @@ protected:
     std::default_random_engine rand_engine;
 
     const size_t batch_size = 11;
-    std::unique_ptr<BMtx> x;
+    std::unique_ptr<BMtx> mat;
     std::unique_ptr<BMVec> y;
     std::unique_ptr<BMVec> alpha;
     std::unique_ptr<BMVec> beta;
     std::unique_ptr<BMVec> expected;
     std::unique_ptr<BMVec> dresult;
-    std::unique_ptr<BMtx> dx;
+    std::unique_ptr<BMtx> dmat;
     std::unique_ptr<BMVec> dy;
     std::unique_ptr<BMVec> dalpha;
     std::unique_ptr<BMVec> dbeta;
@@ -110,8 +110,8 @@ TEST_F(Dense, SingleVectorApplyIsEquivalentToRef)
 {
     set_up_apply_data(1);
 
-    x->apply(y.get(), expected.get());
-    dx->apply(dy.get(), dresult.get());
+    mat->apply(y.get(), expected.get());
+    dmat->apply(dy.get(), dresult.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
@@ -121,8 +121,8 @@ TEST_F(Dense, SingleVectorAdvancedApplyIsEquivalentToRef)
 {
     set_up_apply_data(1);
 
-    x->apply(alpha.get(), y.get(), beta.get(), expected.get());
-    dx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+    mat->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmat->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dresult, expected, r<value_type>::value);
 }

@@ -133,6 +133,7 @@ public:
      */
     size_type get_cumulative_offset(size_type batch_id) const
     {
+        GKO_ASSERT(batch_id < this->get_num_batch_items());
         return batch_id * this->get_common_size()[0] *
                this->get_common_size()[1];
     }
@@ -198,6 +199,7 @@ public:
      */
     ValueType& at(size_type batch_id, size_type idx) noexcept
     {
+        GKO_ASSERT(batch_id < this->get_num_batch_items());
         return values_.get_data()[linearize_index(batch_id, idx)];
     }
 
@@ -206,6 +208,7 @@ public:
      */
     ValueType at(size_type batch_id, size_type idx) const noexcept
     {
+        GKO_ASSERT(batch_id < this->get_num_batch_items());
         return values_.get_const_data()[linearize_index(batch_id, idx)];
     }
 

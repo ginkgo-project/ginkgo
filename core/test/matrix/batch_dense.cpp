@@ -256,7 +256,6 @@ TYPED_TEST(Dense, CanBeConstructedFromDenseMatrices)
     using value_type = typename TestFixture::value_type;
     using DenseMtx = typename TestFixture::DenseMtx;
     using size_type = gko::size_type;
-
     auto mat1 = gko::initialize<DenseMtx>({{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}},
                                           this->exec);
     auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
@@ -275,16 +274,15 @@ TYPED_TEST(Dense, CanBeConstructedFromDenseMatricesByDuplication)
     using value_type = typename TestFixture::value_type;
     using DenseMtx = typename TestFixture::DenseMtx;
     using size_type = gko::size_type;
-
     auto mat1 = gko::initialize<DenseMtx>(
         4, {{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}}, this->exec);
     auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
                                           this->exec);
-
     auto bat_m =
         gko::batch::create_from_item<gko::batch::matrix::Dense<value_type>>(
             this->exec,
             std::vector<DenseMtx*>{mat1.get(), mat1.get(), mat1.get()});
+
     auto m =
         gko::batch::create_from_item<gko::batch::matrix::Dense<value_type>>(
             this->exec, 3, mat1.get());
@@ -298,12 +296,10 @@ TYPED_TEST(Dense, CanBeConstructedByDuplicatingDenseMatrices)
     using value_type = typename TestFixture::value_type;
     using DenseMtx = typename TestFixture::DenseMtx;
     using size_type = gko::size_type;
-
     auto mat1 = gko::initialize<DenseMtx>({{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}},
                                           this->exec);
     auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
                                           this->exec);
-
     auto m =
         gko::batch::create_from_item<gko::batch::matrix::Dense<value_type>>(
             this->exec, std::vector<DenseMtx*>{mat1.get(), mat2.get()});
@@ -342,6 +338,7 @@ TYPED_TEST(Dense, CanBeUnbatchedIntoDenseMatrices)
 TYPED_TEST(Dense, CanBeListConstructed)
 {
     using value_type = typename TestFixture::value_type;
+
     auto m = gko::batch::initialize<gko::batch::matrix::Dense<TypeParam>>(
         {{1.0, 2.0}, {1.0, 3.0}}, this->exec);
 
@@ -406,7 +403,6 @@ TYPED_TEST(Dense, CanBeReadFromMatrixData)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = int;
-
     auto vec_data = std::vector<gko::matrix_data<value_type, index_type>>{};
     vec_data.emplace_back(gko::matrix_data<value_type, index_type>(
         {2, 2}, {{0, 0, 1.0}, {0, 1, 3.0}, {1, 0, 0.0}, {1, 1, 5.0}}));
