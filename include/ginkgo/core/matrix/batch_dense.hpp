@@ -125,6 +125,19 @@ public:
         size_type item_id) const;
 
     /**
+     * Get the cumulative storage size offset
+     *
+     * @param batch_id the batch id
+     *
+     * @return the cumulative offset
+     */
+    size_type get_cumulative_offset(size_type batch_id) const
+    {
+        return batch_id * this->get_common_size()[0] *
+               this->get_common_size()[1];
+    }
+
+    /**
      * Returns a pointer to the array of values of the multi-vector
      *
      * @return the pointer to the array of values
@@ -207,8 +220,7 @@ public:
     value_type* get_values_for_item(size_type batch_id) noexcept
     {
         GKO_ASSERT(batch_id < this->get_num_batch_items());
-        return values_.get_data() +
-               this->get_size().get_cumulative_offset(batch_id);
+        return values_.get_data() + this->get_cumulative_offset(batch_id);
     }
 
     /**
@@ -222,8 +234,7 @@ public:
         size_type batch_id) const noexcept
     {
         GKO_ASSERT(batch_id < this->get_num_batch_items());
-        return values_.get_const_data() +
-               this->get_size().get_cumulative_offset(batch_id);
+        return values_.get_const_data() + this->get_cumulative_offset(batch_id);
     }
 
     /**
@@ -269,8 +280,8 @@ public:
 
     /**
      * Apply the matrix to a multi-vector with a linear combination of the given
-     * input vector. Represents the matrix vector multiplication, x = alpha* A *
-     * b + beta * x, where x and b are both multi-vectors.
+     * input vector. Represents the matrix vector multiplication, x = alpha * A
+     * * b + beta * x, where x and b are both multi-vectors.
      *
      * @param alpha  the scalar to scale the matrix-vector product with
      * @param b      the multi-vector to be applied to
@@ -288,7 +299,8 @@ public:
 private:
     inline size_type compute_num_elems(const batch_dim<2>& size)
     {
-        return size.get_cumulative_offset(size.get_num_batch_items());
+        return size.get_num_batch_items() * size.get_common_size()[0] *
+               size.get_common_size()[1];
     }
 
 protected:
@@ -326,14 +338,6 @@ protected:
         GKO_ENSURE_IN_BOUNDS(num_elems, values_.get_num_elems() + 1);
     }
 
-    /**
-     * Creates a Dense matrix with the same configuration as the caller's
-     * matrix.
-     *
-     * @returns a Dense matrix with the same configuration as the caller.
-     */
-    std::unique_ptr<Dense> create_with_same_config() const;
-
     void apply_impl(const MultiVector<value_type>* b,
                     MultiVector<value_type>* x) const;
 
@@ -345,7 +349,7 @@ protected:
     size_type linearize_index(size_type batch, size_type row,
                               size_type col) const noexcept
     {
-        return this->get_size().get_cumulative_offset(batch) +
+        return this->get_cumulative_offset(batch) +
                row * this->get_size().get_common_size()[1] + col;
     }
 

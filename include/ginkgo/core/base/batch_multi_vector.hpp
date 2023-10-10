@@ -202,8 +202,7 @@ public:
     value_type* get_values_for_item(size_type batch_id) noexcept
     {
         GKO_ASSERT(batch_id < this->get_num_batch_items());
-        return values_.get_data() +
-               this->get_size().get_cumulative_offset(batch_id);
+        return values_.get_data() + this->get_cumulative_offset(batch_id);
     }
 
     /**
@@ -217,8 +216,7 @@ public:
         size_type batch_id) const noexcept
     {
         GKO_ASSERT(batch_id < this->get_num_batch_items());
-        return values_.get_const_data() +
-               this->get_size().get_cumulative_offset(batch_id);
+        return values_.get_const_data() + this->get_cumulative_offset(batch_id);
     }
 
     /**
@@ -231,6 +229,19 @@ public:
     size_type get_num_stored_elements() const noexcept
     {
         return values_.get_num_elems();
+    }
+
+    /**
+     * Get the cumulative storage size offset
+     *
+     * @param batch_id the batch id
+     *
+     * @return the cumulative offset
+     */
+    size_type get_cumulative_offset(size_type batch_id) const
+    {
+        return batch_id * this->get_common_size()[0] *
+               this->get_common_size()[1];
     }
 
     /**
@@ -375,7 +386,8 @@ public:
 private:
     inline size_type compute_num_elems(const batch_dim<2>& size)
     {
-        return size.get_cumulative_offset(size.get_num_batch_items());
+        return size.get_num_batch_items() * size.get_common_size()[0] *
+               size.get_common_size()[1];
     }
 
 protected:
@@ -434,7 +446,7 @@ protected:
     size_type linearize_index(size_type batch, size_type row,
                               size_type col) const noexcept
     {
-        return batch_size_.get_cumulative_offset(batch) +
+        return this->get_cumulative_offset(batch) +
                row * batch_size_.get_common_size()[1] + col;
     }
 

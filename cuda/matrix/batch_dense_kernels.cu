@@ -77,6 +77,7 @@ constexpr int sm_oversubscription = 4;
 
 #include "common/cuda_hip/matrix/batch_dense_kernel_launcher.hpp.inc"
 
+
 // clang-format on
 
 

@@ -100,19 +100,7 @@ template <typename ValueType>
 std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_with_config_of(
     ptr_param<const Dense<ValueType>> other)
 {
-    // De-referencing `other` before calling the functions (instead of
-    // using operator `->`) is currently required to be compatible with
-    // CUDA 10.1.
-    // Otherwise, it results in a compile error.
-    return (*other).create_with_same_config();
-}
-
-
-template <typename ValueType>
-std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_with_same_config()
-    const
-{
-    return Dense<ValueType>::create(this->get_executor(), this->get_size());
+    return Dense<ValueType>::create(other->get_executor(), other->get_size());
 }
 
 

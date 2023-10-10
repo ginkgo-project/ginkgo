@@ -289,7 +289,7 @@ TYPED_TEST(Dense, CanBeConstructedFromDenseMatricesByDuplication)
         gko::batch::create_from_item<gko::batch::matrix::Dense<value_type>>(
             this->exec, 3, mat1.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(bat_m.get(), m.get(), 1e-14);
+    GKO_ASSERT_BATCH_MTX_NEAR(bat_m.get(), m.get(), 0);
 }
 
 
@@ -316,7 +316,7 @@ TYPED_TEST(Dense, CanBeConstructedByDuplicatingDenseMatrices)
     auto m2 = gko::batch::duplicate<gko::batch::matrix::Dense<value_type>>(
         this->exec, 3, m.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(m2.get(), m_ref.get(), 1e-14);
+    GKO_ASSERT_BATCH_MTX_NEAR(m2.get(), m_ref.get(), 0);
 }
 
 
@@ -384,13 +384,21 @@ TYPED_TEST(Dense, CanBeDoubleListConstructed)
     EXPECT_EQ(m->at(0, 0), value_type{1.0});
     EXPECT_EQ(m->at(0, 1), value_type{1.0});
     EXPECT_EQ(m->at(0, 2), value_type{0.0});
-    ASSERT_EQ(m->at(0, 3), value_type{2.0});
+    EXPECT_EQ(m->at(0, 3), value_type{2.0});
     EXPECT_EQ(m->at(0, 4), value_type{4.0});
+    EXPECT_EQ(m->at(0, 5), value_type{3.0});
+    EXPECT_EQ(m->at(0, 6), value_type{3.0});
+    EXPECT_EQ(m->at(0, 7), value_type{6.0});
+    EXPECT_EQ(m->at(0, 8), value_type{1.0});
     EXPECT_EQ(m->at(1, 0), value_type{1.0});
     EXPECT_EQ(m->at(1, 1), value_type{2.0});
     EXPECT_EQ(m->at(1, 2), value_type{-1.0});
-    ASSERT_EQ(m->at(1, 3), value_type{3.0});
+    EXPECT_EQ(m->at(1, 3), value_type{3.0});
     EXPECT_EQ(m->at(1, 4), value_type{4.0});
+    EXPECT_EQ(m->at(1, 5), value_type{-2.0});
+    EXPECT_EQ(m->at(1, 6), value_type{5.0});
+    EXPECT_EQ(m->at(1, 7), value_type{6.0});
+    EXPECT_EQ(m->at(1, 8), value_type{-3.0});
 }
 
 

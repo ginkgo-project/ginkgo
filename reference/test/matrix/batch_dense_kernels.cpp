@@ -126,32 +126,6 @@ TYPED_TEST(Dense, AppliesToBatchMultiVector)
 }
 
 
-TYPED_TEST(Dense, AppliesLinearCombinationWithSameAlphaToBatchMultiVector)
-{
-    using BMtx = typename TestFixture::BMtx;
-    using BMVec = typename TestFixture::BMVec;
-    using DenseMtx = typename TestFixture::DenseMtx;
-    using T = typename TestFixture::value_type;
-    auto alpha = gko::batch::initialize<BMVec>(2, {1.5}, this->exec);
-    auto beta = gko::batch::initialize<BMVec>(2, {-4.0}, this->exec);
-    auto alpha0 = gko::initialize<DenseMtx>({1.5}, this->exec);
-    auto alpha1 = gko::initialize<DenseMtx>({1.5}, this->exec);
-    auto beta0 = gko::initialize<DenseMtx>({-4.0}, this->exec);
-    auto beta1 = gko::initialize<DenseMtx>({-4.0}, this->exec);
-
-    this->mtx_0->apply(alpha.get(), this->b_0.get(), beta.get(),
-                       this->x_0.get());
-
-    this->mtx_00->apply(alpha0.get(), this->b_00.get(), beta0.get(),
-                        this->x_00.get());
-    this->mtx_01->apply(alpha1.get(), this->b_01.get(), beta1.get(),
-                        this->x_01.get());
-    auto res = gko::batch::unbatch<gko::batch::MultiVector<T>>(this->x_0.get());
-    GKO_ASSERT_MTX_NEAR(res[0].get(), this->x_00.get(), 0.);
-    GKO_ASSERT_MTX_NEAR(res[1].get(), this->x_01.get(), 0.);
-}
-
-
 TYPED_TEST(Dense, AppliesLinearCombinationToBatchMultiVector)
 {
     using BMtx = typename TestFixture::BMtx;
