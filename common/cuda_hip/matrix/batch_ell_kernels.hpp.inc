@@ -33,7 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 template <typename ValueType>
 __device__ __forceinline__ void simple_apply(
-    const gko::batch::matrix::batch_ell::batch_item<const ValueType>& mat,
+    const gko::batch::matrix::ell::batch_item<const ValueType>& mat,
     const ValueType* const __restrict__ b, ValueType* const __restrict__ x)
 {
     const auto num_rows = mat.num_rows;
@@ -60,7 +60,7 @@ template <typename ValueType>
 __global__ __launch_bounds__(
     default_block_size,
     sm_oversubscription) void simple_apply_kernel(const gko::batch::matrix::
-                                                      batch_ell::uniform_batch<
+                                                      ell::uniform_batch<
                                                           const ValueType>
                                                           mat,
                                                   const gko::batch::
@@ -88,7 +88,7 @@ __global__ __launch_bounds__(
 template <typename ValueType>
 __device__ __forceinline__ void advanced_apply(
     const ValueType alpha,
-    const gko::batch::matrix::batch_ell::batch_item<const ValueType>& mat,
+    const gko::batch::matrix::ell::batch_item<const ValueType>& mat,
     const ValueType* const __restrict__ b, const ValueType beta,
     ValueType* const __restrict__ x)
 {
@@ -121,10 +121,9 @@ __global__ __launch_bounds__(
                                                                 const ValueType>
                                                                 alpha,
                                                     const gko::batch::matrix::
-                                                        batch_ell::
-                                                            uniform_batch<
-                                                                const ValueType>
-                                                                mat,
+                                                        ell::uniform_batch<
+                                                            const ValueType>
+                                                            mat,
                                                     const gko::batch::
                                                         multi_vector::
                                                             uniform_batch<

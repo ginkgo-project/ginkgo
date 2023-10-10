@@ -36,9 +36,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 
 
-#include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/range_accessors.hpp>
+#include <ginkgo/core/base/batch_multi_vector.hpp>
+#include <ginkgo/core/matrix/batch_ell.hpp>
 
 
 #include "core/base/batch_struct.hpp"

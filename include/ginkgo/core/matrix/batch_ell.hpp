@@ -356,14 +356,6 @@ protected:
                       col_idxs_.get_num_elems());
     }
 
-    /**
-     * Creates a Ell matrix with the same configuration as the callers
-     * matrix.
-     *
-     * @returns a Ell matrix with the same configuration as the caller.
-     */
-    std::unique_ptr<Ell> create_with_same_config() const;
-
     void apply_impl(const MultiVector<value_type>* b,
                     MultiVector<value_type>* x) const;
 

@@ -39,17 +39,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <CL/sycl.hpp>
 
 
-#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/batch_multi_vector.hpp>
-#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
 
 
 #include "core/base/batch_struct.hpp"
-#include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/batch_struct.hpp"
 #include "dpcpp/base/batch_struct.hpp"
-#include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"
 #include "dpcpp/base/helper.hpp"
@@ -98,19 +94,19 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
     }
 
     // Launch a kernel that has nbatches blocks, each block has max group size
-    (exec->get_queue())->submit([&](sycl::handler& cgh) {
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(config::warp_size)]] {
-                    auto group = item_ct1.get_group();
-                    auto group_id = group.get_group_linear_id();
-                    const auto mat_b =
-                        batch::matrix::extract_batch_item(mat_ub, group_id);
-                    const auto b_b = batch::extract_batch_item(b_ub, group_id);
-                    const auto x_b = batch::extract_batch_item(x_ub, group_id);
-                    simple_apply_kernel(mat_b, b_b, x_b, item_ct1);
-                });
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            config::warp_size)]] {
+                auto group = item_ct1.get_group();
+                auto group_id = group.get_group_linear_id();
+                const auto mat_b =
+                    batch::matrix::extract_batch_item(mat_ub, group_id);
+                const auto b_b = batch::extract_batch_item(b_ub, group_id);
+                const auto x_b = batch::extract_batch_item(x_ub, group_id);
+                simple_apply_kernel(mat_b, b_b, x_b, item_ct1);
+            });
     });
 }
 
@@ -145,24 +141,24 @@ void advanced_apply(std::shared_ptr<const DefaultExecutor> exec,
     const dim3 grid(num_batch_items);
 
     // Launch a kernel that has nbatches blocks, each block has max group size
-    (exec->get_queue())->submit([&](sycl::handler& cgh) {
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(config::warp_size)]] {
-                    auto group = item_ct1.get_group();
-                    auto group_id = group.get_group_linear_id();
-                    const auto mat_b =
-                        batch::matrix::extract_batch_item(mat_ub, group_id);
-                    const auto b_b = batch::extract_batch_item(b_ub, group_id);
-                    const auto x_b = batch::extract_batch_item(x_ub, group_id);
-                    const auto alpha_b =
-                        batch::extract_batch_item(alpha_ub, group_id);
-                    const auto beta_b =
-                        batch::extract_batch_item(beta_ub, group_id);
-                    advanced_apply_kernel(alpha_b, mat_b, b_b, beta_b, x_b,
-                                          item_ct1);
-                });
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            config::warp_size)]] {
+                auto group = item_ct1.get_group();
+                auto group_id = group.get_group_linear_id();
+                const auto mat_b =
+                    batch::matrix::extract_batch_item(mat_ub, group_id);
+                const auto b_b = batch::extract_batch_item(b_ub, group_id);
+                const auto x_b = batch::extract_batch_item(x_ub, group_id);
+                const auto alpha_b =
+                    batch::extract_batch_item(alpha_ub, group_id);
+                const auto beta_b =
+                    batch::extract_batch_item(beta_ub, group_id);
+                advanced_apply_kernel(alpha_b, mat_b, b_b, beta_b, x_b,
+                                      item_ct1);
+            });
     });
 }
 

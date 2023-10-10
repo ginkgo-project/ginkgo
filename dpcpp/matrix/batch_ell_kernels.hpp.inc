@@ -32,7 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 template <typename ValueType>
 __dpct_inline__ void simple_apply_kernel(
-    const gko::batch::matrix::batch_ell::batch_item<const ValueType>& mat,
+    const gko::batch::matrix::ell::batch_item<const ValueType>& mat,
     const gko::batch::multi_vector::batch_item<const ValueType>& b,
     const gko::batch::multi_vector::batch_item<ValueType>& x,
     sycl::nd_item<3>& item_ct1)
@@ -56,7 +56,7 @@ __dpct_inline__ void simple_apply_kernel(
 template <typename ValueType>
 __dpct_inline__ void advanced_apply_kernel(
     const gko::batch::multi_vector::batch_item<const ValueType>& alpha,
-    const gko::batch::matrix::batch_ell::batch_item<const ValueType>& mat,
+    const gko::batch::matrix::ell::batch_item<const ValueType>& mat,
     const gko::batch::multi_vector::batch_item<const ValueType>& b,
     const gko::batch::multi_vector::batch_item<const ValueType>& beta,
     const gko::batch::multi_vector::batch_item<ValueType>& x,

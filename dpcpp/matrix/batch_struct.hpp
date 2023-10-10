@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/matrix/batch_dense.hpp>
+#include <ginkgo/core/matrix/batch_ell.hpp>
 
 
 #include "core/base/batch_struct.hpp"
@@ -90,16 +91,16 @@ inline batch::matrix::dense::uniform_batch<ValueType> get_batch_struct(
  * Generates an immutable uniform batch struct from a batch of ell matrices.
  */
 template <typename ValueType>
-inline batch::matrix::batch_ell::uniform_batch<const ValueType>
-get_batch_struct(const batch::matrix::Ell<ValueType, int32>* const op)
+inline batch::matrix::ell::uniform_batch<const ValueType> get_batch_struct(
+    const batch::matrix::Ell<ValueType, int32>* const op)
 {
     return {op->get_const_values(),
             op->get_const_col_idxs(),
             op->get_num_batch_items(),
-            static_cast<int>(op->get_common_size()[0]),
-            static_cast<int>(op->get_common_size()[0]),
-            static_cast<int>(op->get_common_size()[1]),
-            static_cast<int>(op->get_num_stored_elements_per_row())};
+            static_cast<int32>(op->get_common_size()[0]),
+            static_cast<int32>(op->get_common_size()[0]),
+            static_cast<int32>(op->get_common_size()[1]),
+            static_cast<int32>(op->get_num_stored_elements_per_row())};
 }
 
 
@@ -107,16 +108,16 @@ get_batch_struct(const batch::matrix::Ell<ValueType, int32>* const op)
  * Generates a uniform batch struct from a batch of ell matrices.
  */
 template <typename ValueType>
-inline batch::matrix::batch_ell::uniform_batch<ValueType> get_batch_struct(
+inline batch::matrix::ell::uniform_batch<ValueType> get_batch_struct(
     batch::matrix::Ell<ValueType, int32>* const op)
 {
     return {op->get_values(),
             op->get_col_idxs(),
             op->get_num_batch_items(),
-            static_cast<int>(op->get_common_size()[0]),
-            static_cast<int>(op->get_common_size()[0]),
-            static_cast<int>(op->get_common_size()[1]),
-            static_cast<int>(op->get_num_stored_elements_per_row())};
+            static_cast<int32>(op->get_common_size()[0]),
+            static_cast<int32>(op->get_common_size()[0]),
+            static_cast<int32>(op->get_common_size()[1]),
+            static_cast<int32>(op->get_num_stored_elements_per_row())};
 }
 
 
