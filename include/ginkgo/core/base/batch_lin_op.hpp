@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/abstract_factory.hpp>
+#include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -109,6 +110,45 @@ public:
      * @return  size of the batch operator, a batch_dim object
      */
     const batch_dim<2>& get_size() const noexcept { return size_; }
+
+    /**
+     * Validates the sizes for the apply(b,x) operation in the
+     * concrete BatchLinOp.
+     *
+     */
+    template <typename ValueType>
+    void validate_application_parameters(const MultiVector<ValueType>* b,
+                                         MultiVector<ValueType>* x) const
+    {
+        GKO_ASSERT_EQ(b->get_num_batch_items(), this->get_num_batch_items());
+        GKO_ASSERT_EQ(this->get_num_batch_items(), x->get_num_batch_items());
+
+        GKO_ASSERT_CONFORMANT(this->get_common_size(), b->get_common_size());
+        GKO_ASSERT_EQUAL_ROWS(this->get_common_size(), x->get_common_size());
+        GKO_ASSERT_EQUAL_COLS(b->get_common_size(), x->get_common_size());
+    }
+
+    /**
+     * Validates the sizes for the apply(alpha, b , beta, x) operation in the
+     * concrete BatchLinOp.
+     *
+     */
+    template <typename ValueType>
+    void validate_application_parameters(const MultiVector<ValueType>* alpha,
+                                         const MultiVector<ValueType>* b,
+                                         const MultiVector<ValueType>* beta,
+                                         MultiVector<ValueType>* x) const
+    {
+        GKO_ASSERT_EQ(b->get_num_batch_items(), this->get_num_batch_items());
+        GKO_ASSERT_EQ(this->get_num_batch_items(), x->get_num_batch_items());
+
+        GKO_ASSERT_CONFORMANT(this->get_common_size(), b->get_common_size());
+        GKO_ASSERT_EQUAL_ROWS(this->get_common_size(), x->get_common_size());
+        GKO_ASSERT_EQUAL_COLS(b->get_common_size(), x->get_common_size());
+        GKO_ASSERT_EQUAL_DIMENSIONS(alpha->get_common_size(),
+                                    gko::dim<2>(1, 1));
+        GKO_ASSERT_EQUAL_DIMENSIONS(beta->get_common_size(), gko::dim<2>(1, 1));
+    }
 
 protected:
     /**
