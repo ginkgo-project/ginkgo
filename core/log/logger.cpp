@@ -43,6 +43,7 @@ constexpr Logger::mask_type Logger::operation_events_mask;
 constexpr Logger::mask_type Logger::polymorphic_object_events_mask;
 constexpr Logger::mask_type Logger::linop_events_mask;
 constexpr Logger::mask_type Logger::linop_factory_events_mask;
+constexpr Logger::mask_type Logger::batch_linop_factory_events_mask;
 constexpr Logger::mask_type Logger::criterion_events_mask;
 
 constexpr Logger::mask_type Logger::allocation_started_mask;
