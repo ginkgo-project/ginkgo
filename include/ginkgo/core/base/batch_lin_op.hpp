@@ -248,13 +248,13 @@ public:
  *
  * @tparam ConcreteFactory  the concrete factory which is being implemented
  *                          [CRTP parameter]
- * @tparam ConcreteLinOp  the concrete BatchLinOp type which this factory
+ * @tparam ConcreteBatchLinOp  the concrete BatchLinOp type which this factory
  * produces, needs to have a constructor which takes a const ConcreteFactory *,
  * and an std::shared_ptr<const BatchLinOp> as parameters.
  * @tparam ParametersType  a subclass of enable_parameters_type template which
  *                         defines all of the parameters of the factory
  * @tparam PolymorphicBase  parent of ConcreteFactory in the polymorphic
- *                          hierarchy, has to be a subclass of LinOpFactory
+ *                          hierarchy, has to be a subclass of BatchLinOpFactory
  *
  * @ingroup BatchLinOp
  */
@@ -330,8 +330,8 @@ using EnableDefaultBatchLinOpFactory =
  * in all contexts. See <https://stackoverflow.com/q/50202718/9385966> for more
  * details.
  *
- * @param _lin_op  concrete operator for which the factory is to be created
- *                 [CRTP parameter]
+ * @param _batch_lin_op  concrete operator for which the factory is to be
+ *                       created [CRTP parameter]
  * @param _parameters_name  name of the parameters member in the class
  *                          (its type is `<_parameters_name>_type`, the
  *                          protected member's name is `<_parameters_name>_`,
