@@ -93,18 +93,18 @@ public:
         const auto dep_block = dependency / (block_size / subwarp_size);
         const auto dep_local = dependency % (block_size / subwarp_size);
         // assert(dependency < work_id);
-        if (dep_block == block_id) {
-            // wait for a local dependency
-            while (!load(local.status, dep_local)) {
-                __threadfence();
-            }
-        } else {
-            // wait for a global dependency
-            while (!load(global.status, dependency)) {
-                __threadfence();
+        if (get_lane() == 0) {
+            if (dep_block == block_id) {
+                // wait for a local dependency
+                while (!load_acquire_shared(local.status + dep_local)) {
+                }
+            } else {
+                // wait for a global dependency
+                while (!load_acquire(global.status + dependency)) {
+                }
             }
         }
-        __threadfence();
+        group::tiled_partition<subwarp_size>(group::this_thread_block()).sync();
     }
 
     __device__ __forceinline__ bool peek(IndexType dependency)
@@ -114,27 +114,22 @@ public:
         // assert(dependency < work_id);
         if (dep_block == block_id) {
             // peek at a local dependency
-            auto finished = load(local.status, dep_local) != 0;
-            __threadfence();
-            return finished;
+            return load_acquire_shared(local.status + dep_local);
         } else {
             // peek at a global dependency
-            auto finished = load(global.status, dependency);
-            __threadfence();
-            return finished;
+            return load_acquire(global.status + dependency);
         }
     }
 
     __device__ __forceinline__ void mark_ready()
     {
         group::tiled_partition<subwarp_size>(group::this_thread_block()).sync();
-        __threadfence();
         if (get_lane() == 0) {
             const auto sh_id = get_work_id() % (block_size / subwarp_size);
             // notify local warps
-            store(local.status, sh_id, 1);
+            store_release_shared(local.status + sh_id, 1);
             // notify other blocks
-            store(global.status, get_work_id(), 1);
+            store_release(global.status + get_work_id(), 1);
         }
     }
 
