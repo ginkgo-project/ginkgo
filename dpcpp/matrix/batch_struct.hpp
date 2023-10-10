@@ -56,7 +56,7 @@ namespace dpcpp {
  * while also shallow-casting to the required DPCPP scalar type.
  *
  * A specialization is needed for every format of every kind of linear algebra
- * object.
+ * object. These are intended to be called on the host.
  */
 
 

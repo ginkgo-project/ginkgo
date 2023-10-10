@@ -75,18 +75,6 @@ struct batch_dim {
     }
 
     /**
-     * Get the cumulative storage size offset
-     *
-     * @param batch_id the batch id
-     *
-     * @return the cumulative offset
-     */
-    size_type get_cumulative_offset(size_type batch_id) const
-    {
-        return batch_id * common_size_[0] * common_size_[1];
-    }
-
-    /**
      * Checks if two batch_dim objects are equal.
      *
      * @param x  first object
