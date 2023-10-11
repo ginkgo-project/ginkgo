@@ -64,9 +64,8 @@ using criterionfactory_map =
 using type_descriptor = std::pair<std::string, std::string>;
 using buildfromconfig_map =
     std::map<std::string,
-             std::function<std::unique_ptr<gko::LinOpFactory>(
-                 const pnode&, const registry&,
-                 std::shared_ptr<const Executor>&, type_descriptor)>>;
+             std::function<deferred_factory_parameter<gko::LinOpFactory>(
+                 const pnode&, const registry&, type_descriptor)>>;
 
 
 /**
