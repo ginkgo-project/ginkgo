@@ -43,3 +43,11 @@ test_framework.compare_output(
     expected_stdout="spmv.profile.stdout",
     expected_stderr="spmv.profile.stderr",
 )
+
+# stdin
+test_framework.compare_output(
+    ["-reorder", "amd"],
+    expected_stdout="spmv.reordered.stdout",
+    expected_stderr="spmv.reordered.stderr",
+    stdin='[{"size": 100, "stencil": "7pt"}]',
+)

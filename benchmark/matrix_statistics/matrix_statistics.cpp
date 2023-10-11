@@ -186,6 +186,7 @@ struct MatrixStatistics : Benchmark<empty_state> {
                       json& test_case) const override
     {
         auto data = Generator::generate_matrix_data(test_case);
+        // no reordering here, as it doesn't change statistics
         std::clog << "Matrix is of size (" << data.size[0] << ", "
                   << data.size[1] << "), " << data.nonzeros.size() << std::endl;
         test_case["rows"] = data.size[0];

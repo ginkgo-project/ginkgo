@@ -55,17 +55,20 @@ struct DefaultSystemGenerator {
     static gko::matrix_data<ValueType, IndexType> generate_matrix_data(
         const json& config)
     {
+        gko::matrix_data<ValueType, IndexType> data;
         if (config.contains("filename")) {
             std::ifstream in(config["filename"].get<std::string>());
-            return gko::read_generic_raw<ValueType, IndexType>(in);
+            data = gko::read_generic_raw<ValueType, IndexType>(in);
         } else if (config.contains("stencil")) {
-            return generate_stencil<ValueType, IndexType>(
+            data = generate_stencil<ValueType, IndexType>(
                 config["stencil"].get<std::string>(),
                 config["size"].get<gko::int64>());
         } else {
             throw std::runtime_error(
                 "No known way to generate matrix data found.");
         }
+        data.ensure_row_major_order();
+        return data;
     }
 
     static std::string get_example_config()
@@ -191,13 +194,14 @@ struct DistributedDefaultSystemGenerator {
     gko::matrix_data<value_type, index_type> generate_matrix_data(
         const json& config) const
     {
+        gko::matrix_data<value_type, index_type> data;
         if (config.contains("filename")) {
             std::ifstream in(config["filename"].get<std::string>());
-            return gko::read_generic_raw<value_type, index_type>(in);
+            data = gko::read_generic_raw<value_type, index_type>(in);
         } else if (config.contains("stencil")) {
             auto local_size = static_cast<global_itype>(
                 config["size"].get<gko::int64>() / comm.size());
-            return generate_stencil<value_type, index_type>(
+            data = generate_stencil<value_type, index_type>(
                 config["stencil"].get<std::string>(), comm, local_size,
                 config["comm_pattern"].get<std::string>() ==
                     std::string("optimal"));
@@ -205,6 +209,8 @@ struct DistributedDefaultSystemGenerator {
             throw std::runtime_error(
                 "No known way to generate matrix data found.");
         }
+        data.ensure_row_major_order();
+        return data;
     }
 
     static std::string get_example_config()
@@ -238,15 +244,6 @@ struct DistributedDefaultSystemGenerator {
         } else {
             throw std::runtime_error("No known way to describe config.");
         }
-    }
-
-    std::shared_ptr<gko::LinOp> generate_matrix_with_optimal_format(
-        std::shared_ptr<gko::Executor> exec, json& config) const
-    {
-        auto data = generate_matrix_data(config);
-        return generate_matrix_with_format(
-            std::move(exec), config["optimal"]["spmv"].get<std::string>(),
-            data);
     }
 
     std::shared_ptr<gko::LinOp> generate_matrix_with_format(
