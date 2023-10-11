@@ -86,14 +86,16 @@ inline std::shared_ptr<T> get_pointer(const pnode& config,
 
 
 template <typename T>
-inline deferred_factory_parameter<std::remove_const_t<T>> get_factory(
-    const pnode& config, const registry& context, type_descriptor td);
+inline deferred_factory_parameter<T> get_factory(const pnode& config,
+                                                 const registry& context,
+                                                 type_descriptor td);
 
 template <>
-inline deferred_factory_parameter<LinOpFactory> get_factory<const LinOpFactory>(
-    const pnode& config, const registry& context, type_descriptor td)
+inline deferred_factory_parameter<const LinOpFactory>
+get_factory<const LinOpFactory>(const pnode& config, const registry& context,
+                                type_descriptor td)
 {
-    deferred_factory_parameter<LinOpFactory> ptr;
+    deferred_factory_parameter<const LinOpFactory> ptr;
     if (config.is(pnode::status_t::data)) {
         ptr = context.search_data<LinOpFactory>(config.get_data<std::string>());
     } else if (config.is(pnode::status_t::map)) {
@@ -105,18 +107,17 @@ inline deferred_factory_parameter<LinOpFactory> get_factory<const LinOpFactory>(
 }
 
 template <>
-deferred_factory_parameter<stop::CriterionFactory>
+deferred_factory_parameter<const stop::CriterionFactory>
 get_factory<const stop::CriterionFactory>(const pnode& config,
                                           const registry& context,
                                           type_descriptor td);
 
 
 template <typename T>
-inline std::vector<deferred_factory_parameter<std::remove_const_t<T>>>
-get_factory_vector(const pnode& config, const registry& context,
-                   type_descriptor td)
+inline std::vector<deferred_factory_parameter<T>> get_factory_vector(
+    const pnode& config, const registry& context, type_descriptor td)
 {
-    std::vector<deferred_factory_parameter<std::remove_const_t<T>>> res;
+    std::vector<deferred_factory_parameter<T>> res;
     // for loop in config
     if (config.is(pnode::status_t::array)) {
         for (const auto& it : config.get_array()) {
