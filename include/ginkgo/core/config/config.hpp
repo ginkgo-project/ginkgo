@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/registry.hpp>
+#include <ginkgo/core/solver/solver_base.hpp>
 
 
 namespace gko {
@@ -54,15 +55,15 @@ enum LinOpFactoryType : int { Cg = 0 };
 // It is only an intermediate step. If we do not provide the SolverType with VT,
 // IT selection, it can be in detail namespace or hide it by structure
 template <int flag>
-std::unique_ptr<gko::LinOpFactory> build_from_config(
+deferred_factory_parameter<gko::LinOpFactory> build_from_config(
     const pnode& config, const registry& context,
-    std::shared_ptr<const Executor>& exec, type_descriptor td = {"", ""});
+    type_descriptor td = {"", ""});
 
 
 // The main function
-std::unique_ptr<gko::LinOpFactory> build_from_config(
+deferred_factory_parameter<gko::LinOpFactory> build_from_config(
     const pnode& config, const registry& context,
-    std::shared_ptr<const Executor>& exec, type_descriptor td = {"", ""});
+    type_descriptor td = {"", ""});
 
 
 buildfromconfig_map generate_config_map();

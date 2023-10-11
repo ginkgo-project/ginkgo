@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/cg.hpp>
+#include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/time.hpp>
 
@@ -64,9 +65,8 @@ protected:
           stop_factory{Stop::build().on(exec)},
           func{[](const gko::config::pnode& config,
                   const gko::config::registry& context,
-                  std::shared_ptr<const gko::Executor>& exec,
                   gko::config::type_descriptor td_for_child) {
-              return gko::solver::Cg<float>::build().on(exec);
+              return gko::solver::Cg<float>::build();
           }},
           reg{{{"func", func}}}
     {}
@@ -75,9 +75,9 @@ protected:
     std::shared_ptr<Matrix> matrix;
     std::shared_ptr<typename Solver::Factory> solver_factory;
     std::shared_ptr<typename Stop::Factory> stop_factory;
-    std::function<std::unique_ptr<gko::LinOpFactory>(
+    std::function<gko::deferred_factory_parameter<gko::LinOpFactory>(
         const gko::config::pnode&, const gko::config::registry&,
-        std::shared_ptr<const gko::Executor>&, gko::config::type_descriptor)>
+        gko::config::type_descriptor)>
         func;
     gko::config::registry reg;
 };
@@ -176,8 +176,9 @@ TEST_F(Registry, ThrowWithWrongType)
 
 TEST_F(Registry, GetBuildMap)
 {
-    auto factory = reg.get_build_map().at("func")(gko::config::pnode{"unused"},
-                                                  reg, exec, {"", ""});
+    auto factory = reg.get_build_map()
+                       .at("func")(gko::config::pnode{"unused"}, reg, {"", ""})
+                       .on(exec);
 
     ASSERT_NE(factory, nullptr);
 }

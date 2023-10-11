@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/solver/solver_base.hpp>
 
 
 namespace gko {
@@ -49,13 +50,12 @@ buildfromconfig_map generate_config_map()
 }
 
 
-std::unique_ptr<gko::LinOpFactory> build_from_config(
-    const pnode& config, const registry& context,
-    std::shared_ptr<const Executor>& exec, type_descriptor td)
+deferred_factory_parameter<gko::LinOpFactory> build_from_config(
+    const pnode& config, const registry& context, type_descriptor td)
 {
     if (auto& obj = config.get("Type")) {
         auto func = context.get_build_map().at(obj.get_data<std::string>());
-        return func(config, context, exec, td);
+        return func(config, context, td);
     }
     GKO_INVALID_STATE("Should contain Type property");
 }
