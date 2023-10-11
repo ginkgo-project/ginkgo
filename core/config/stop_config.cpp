@@ -137,12 +137,12 @@ configure_implicit_residual(const pnode& config, const registry& context,
 
 
 template <>
-deferred_factory_parameter<stop::CriterionFactory>
+deferred_factory_parameter<const stop::CriterionFactory>
 get_factory<const stop::CriterionFactory>(const pnode& config,
                                           const registry& context,
                                           type_descriptor td)
 {
-    deferred_factory_parameter<stop::CriterionFactory> ptr;
+    deferred_factory_parameter<const stop::CriterionFactory> ptr;
     if (config.is(pnode::status_t::data)) {
         return context.search_data<stop::CriterionFactory>(
             config.get_data<std::string>());
