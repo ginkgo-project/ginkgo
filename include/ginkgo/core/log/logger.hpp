@@ -58,6 +58,17 @@ class PolymorphicObject;
 class Operation;
 class stopping_status;
 
+
+namespace batch {
+
+
+class BatchLinOp;
+class BatchLinOpFactory;
+
+
+}  // namespace batch
+
+
 /**
  * @brief The Stopping criterion namespace.
  * @ref stop
@@ -563,6 +574,30 @@ public:
                               const PolymorphicObject* input,
                               const PolymorphicObject* output)
 
+    /**
+     * BatchLinOp Factory's generate started event.
+     *
+     * @param factory  the factory used
+     * @param input  the BatchLinOp object used as input for the generation
+     * (usually a system matrix)
+     */
+    GKO_LOGGER_REGISTER_EVENT(24, batch_linop_factory_generate_started,
+                              const batch::BatchLinOpFactory* factory,
+                              const batch::BatchLinOp* input)
+
+    /**
+     * BatchLinOp Factory's generate completed event.
+     *
+     * @param factory  the factory used
+     * @param input  the BatchLinOp object used as input for the generation
+     * (usually a system matrix)
+     * @param output  the generated BatchLinOp object
+     */
+    GKO_LOGGER_REGISTER_EVENT(25, batch_linop_factory_generate_completed,
+                              const batch::BatchLinOpFactory* factory,
+                              const batch::BatchLinOp* input,
+                              const batch::BatchLinOp* output)
+
 #undef GKO_LOGGER_REGISTER_EVENT
 
     /**
@@ -604,6 +639,13 @@ public:
     static constexpr mask_type linop_factory_events_mask =
         linop_factory_generate_started_mask |
         linop_factory_generate_completed_mask;
+
+    /**
+     * Bitset Mask which activates all batch linop factory events
+     */
+    static constexpr mask_type batch_linop_factory_events_mask =
+        batch_linop_factory_generate_started_mask |
+        batch_linop_factory_generate_completed_mask;
 
     /**
      * Bitset Mask which activates all criterion events
