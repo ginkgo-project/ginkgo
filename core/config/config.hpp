@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/config/registry.hpp>
+#include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
 
@@ -74,7 +75,6 @@ inline type_descriptor update_type(const pnode& config,
 template <typename T>
 inline std::shared_ptr<T> get_pointer(const pnode& config,
                                       const registry& context,
-                                      std::shared_ptr<const Executor> exec,
                                       type_descriptor td)
 {
     std::shared_ptr<T> ptr;
@@ -84,54 +84,57 @@ inline std::shared_ptr<T> get_pointer(const pnode& config,
     return std::move(ptr);
 }
 
+
+template <typename T>
+inline deferred_factory_parameter<std::remove_const_t<T>> get_factory(
+    const pnode& config, const registry& context, type_descriptor td);
+
 template <>
-inline std::shared_ptr<const LinOpFactory> get_pointer<const LinOpFactory>(
-    const pnode& config, const registry& context,
-    std::shared_ptr<const Executor> exec, type_descriptor td)
+inline deferred_factory_parameter<LinOpFactory> get_factory<const LinOpFactory>(
+    const pnode& config, const registry& context, type_descriptor td)
 {
-    std::shared_ptr<const LinOpFactory> ptr;
+    deferred_factory_parameter<LinOpFactory> ptr;
     if (config.is(pnode::status_t::data)) {
         ptr = context.search_data<LinOpFactory>(config.get_data<std::string>());
     } else if (config.is(pnode::status_t::map)) {
-        ptr = build_from_config(config, context, exec, td);
+        ptr = build_from_config(config, context, td);
     }
     // handle object is config
-    assert(ptr.get() != nullptr);
+    assert(!ptr.is_empty());
     return std::move(ptr);
 }
 
 template <>
-std::shared_ptr<const stop::CriterionFactory>
-get_pointer<const stop::CriterionFactory>(const pnode& config,
+deferred_factory_parameter<stop::CriterionFactory>
+get_factory<const stop::CriterionFactory>(const pnode& config,
                                           const registry& context,
-                                          std::shared_ptr<const Executor> exec,
                                           type_descriptor td);
 
 
 template <typename T>
-inline std::vector<std::shared_ptr<T>> get_pointer_vector(
-    const pnode& config, const registry& context,
-    std::shared_ptr<const Executor> exec, type_descriptor td)
+inline std::vector<deferred_factory_parameter<std::remove_const_t<T>>>
+get_factory_vector(const pnode& config, const registry& context,
+                   type_descriptor td)
 {
-    std::vector<std::shared_ptr<T>> res;
+    std::vector<deferred_factory_parameter<std::remove_const_t<T>>> res;
     // for loop in config
     if (config.is(pnode::status_t::array)) {
         for (const auto& it : config.get_array()) {
-            res.push_back(get_pointer<T>(it, context, exec, td));
+            res.push_back(get_factory<T>(it, context, td));
         }
     } else {
         // only one config can be passed without array
-        res.push_back(get_pointer<T>(config, context, exec, td));
+        res.push_back(get_factory<T>(config, context, td));
     }
 
     return res;
 }
 
-template <>
-std::vector<std::shared_ptr<const stop::CriterionFactory>>
-get_pointer_vector<const stop::CriterionFactory>(
-    const pnode& config, const registry& context,
-    std::shared_ptr<const Executor> exec, type_descriptor td);
+// template <>
+// std::vector<std::shared_ptr<const stop::CriterionFactory>>
+// get_pointer_vector<const stop::CriterionFactory>(
+//     const pnode& config, const registry& context,
+//     std::shared_ptr<const Executor> exec, type_descriptor td);
 
 
 template <typename IndexType>
@@ -172,26 +175,38 @@ get_value(const pnode& config)
 }
 
 
-#define SET_POINTER(_factory, _param_type, _param_name, _config, _context,     \
-                    _exec, _td)                                                \
-    {                                                                          \
-        if (auto& obj = _config.get(#_param_name)) {                           \
-            _factory.with_##_param_name(gko::config::get_pointer<_param_type>( \
-                obj, _context, _exec, _td));                                   \
-        }                                                                      \
-    }                                                                          \
-    static_assert(true,                                                        \
-                  "This assert is used to counter the false positive extra "   \
-                  "semi-colon warnings")
-
-
-#define SET_POINTER_VECTOR(_factory, _param_type, _param_name, _config,      \
-                           _context, _exec, _td)                             \
+#define SET_POINTER(_factory, _param_type, _param_name, _config, _context,   \
+                    _td)                                                     \
     {                                                                        \
         if (auto& obj = _config.get(#_param_name)) {                         \
             _factory.with_##_param_name(                                     \
-                gko::config::get_pointer_vector<_param_type>(obj, _context,  \
-                                                             _exec, _td));   \
+                gko::config::get_pointer<_param_type>(obj, _context, _td));  \
+        }                                                                    \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+#define SET_FACTORY(_factory, _param_type, _param_name, _config, _context,   \
+                    _td)                                                     \
+    {                                                                        \
+        if (auto& obj = _config.get(#_param_name)) {                         \
+            _factory.with_##_param_name(                                     \
+                gko::config::get_factory<_param_type>(obj, _context, _td));  \
+        }                                                                    \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+
+#define SET_FACTORY_VECTOR(_factory, _param_type, _param_name, _config,      \
+                           _context, _td)                                    \
+    {                                                                        \
+        if (auto& obj = _config.get(#_param_name)) {                         \
+            _factory.with_##_param_name(                                     \
+                gko::config::get_factory_vector<_param_type>(obj, _context,  \
+                                                             _td));          \
         }                                                                    \
     }                                                                        \
     static_assert(true,                                                      \
