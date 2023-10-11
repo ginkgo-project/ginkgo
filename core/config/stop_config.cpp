@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
+#include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
@@ -47,23 +48,21 @@ namespace gko {
 namespace config {
 
 
-inline std::unique_ptr<stop::CriterionFactory> configure_time(
-    const pnode& config, const registry& context,
-    std::shared_ptr<const Executor> exec, type_descriptor td)
+inline deferred_factory_parameter<stop::CriterionFactory> configure_time(
+    const pnode& config, const registry& context, type_descriptor td)
 {
     auto factory = stop::Time::build();
     SET_VALUE(factory, long long int, time_limit, config);
-    return factory.on(exec);
+    return factory;
 }
 
 
-inline std::unique_ptr<stop::CriterionFactory> configure_iter(
-    const pnode& config, const registry& context,
-    std::shared_ptr<const Executor> exec, type_descriptor td)
+inline deferred_factory_parameter<stop::CriterionFactory> configure_iter(
+    const pnode& config, const registry& context, type_descriptor td)
 {
     auto factory = stop::Iteration::build();
     SET_VALUE(factory, size_type, max_iters, config);
-    return factory.on(exec);
+    return factory;
 }
 
 
@@ -83,10 +82,10 @@ stop::mode get_mode(const std::string& str)
 template <typename ValueType>
 class ResidualNormConfigurer {
 public:
-    static std::unique_ptr<typename stop::ResidualNorm<ValueType>::Factory>
+    static deferred_factory_parameter<
+        typename stop::ResidualNorm<ValueType>::Factory>
     build_from_config(const gko::config::pnode& config,
                       const gko::config::registry& context,
-                      std::shared_ptr<const Executor> exec,
                       gko::config::type_descriptor td_for_child)
     {
         auto factory = stop::ResidualNorm<ValueType>::build();
@@ -94,29 +93,27 @@ public:
         if (auto& obj = config.get("baseline")) {
             factory.with_baseline(get_mode(obj.get_data<std::string>()));
         }
-        return factory.on(exec);
+        return factory;
     }
 };
 
 
-inline std::unique_ptr<stop::CriterionFactory> configure_residual(
-    const pnode& config, const registry& context,
-    std::shared_ptr<const Executor> exec, type_descriptor td)
+inline deferred_factory_parameter<stop::CriterionFactory> configure_residual(
+    const pnode& config, const registry& context, type_descriptor td)
 {
     auto updated = update_type(config, td);
     return dispatch<stop::CriterionFactory, ResidualNormConfigurer>(
-        updated.first, config, context, exec, updated, value_type_list());
+        updated.first, config, context, updated, value_type_list());
 }
 
 
 template <typename ValueType>
 class ImplicitResidualNormConfigurer {
 public:
-    static std::unique_ptr<
+    static deferred_factory_parameter<
         typename stop::ImplicitResidualNorm<ValueType>::Factory>
     build_from_config(const gko::config::pnode& config,
                       const gko::config::registry& context,
-                      std::shared_ptr<const Executor> exec,
                       gko::config::type_descriptor td_for_child)
     {
         auto factory = stop::ImplicitResidualNorm<ValueType>::build();
@@ -124,71 +121,72 @@ public:
         if (auto& obj = config.get("baseline")) {
             factory.with_baseline(get_mode(obj.get_data<std::string>()));
         }
-        return factory.on(exec);
+        return factory;
     }
 };
 
 
-inline std::unique_ptr<stop::CriterionFactory> configure_implicit_residual(
-    const pnode& config, const registry& context,
-    std::shared_ptr<const Executor> exec, type_descriptor td)
+inline deferred_factory_parameter<stop::CriterionFactory>
+configure_implicit_residual(const pnode& config, const registry& context,
+                            type_descriptor td)
 {
     auto updated = update_type(config, td);
     return dispatch<stop::CriterionFactory, ImplicitResidualNormConfigurer>(
-        updated.first, config, context, exec, updated, value_type_list());
+        updated.first, config, context, updated, value_type_list());
 }
 
 
 template <>
-std::shared_ptr<const stop::CriterionFactory>
-get_pointer<const stop::CriterionFactory>(const pnode& config,
+deferred_factory_parameter<stop::CriterionFactory>
+get_factory<const stop::CriterionFactory>(const pnode& config,
                                           const registry& context,
-                                          std::shared_ptr<const Executor> exec,
                                           type_descriptor td)
 {
-    std::shared_ptr<const stop::CriterionFactory> ptr;
+    deferred_factory_parameter<stop::CriterionFactory> ptr;
     if (config.is(pnode::status_t::data)) {
         return context.search_data<stop::CriterionFactory>(
             config.get_data<std::string>());
     } else if (config.is(pnode::status_t::map)) {
-        static std::map<
-            std::string,
-            std::function<std::unique_ptr<gko::stop::CriterionFactory>(
-                const pnode&, const registry&, std::shared_ptr<const Executor>&,
-                type_descriptor)>>
+        static std::map<std::string,
+                        std::function<deferred_factory_parameter<
+                            gko::stop::CriterionFactory>(
+                            const pnode&, const registry&, type_descriptor)>>
             criterion_map{
                 {{"Time", configure_time},
                  {"Iteration", configure_iter},
                  {"ResidualNorm", configure_residual},
                  {"ImplicitResidualNorm", configure_implicit_residual}}};
         return criterion_map.at(config.at("Type").get_data<std::string>())(
-            config, context, exec, td);
+            config, context, td);
     }
-    assert(ptr.get() != nullptr);
+    assert(!ptr.is_empty());
     return std::move(ptr);
 }
 
-template <>
-std::vector<std::shared_ptr<const stop::CriterionFactory>>
-get_pointer_vector<const stop::CriterionFactory>(
-    const pnode& config, const registry& context,
-    std::shared_ptr<const Executor> exec, type_descriptor td)
-{
-    std::vector<std::shared_ptr<const stop::CriterionFactory>> res;
-    if (config.is(pnode::status_t::array)) {
-        for (const auto& it : config.get_array()) {
-            res.push_back(get_pointer<const stop::CriterionFactory>(it, context,
-                                                                    exec, td));
-        }
-    } else {
-        res.push_back(get_pointer<const stop::CriterionFactory>(config, context,
-                                                                exec, td));
-    }
-    // TODO: handle shortcut version by config.is(pnode::status_t::map) &&
-    // !config.contains("Type")
+// template <>
+// std::vector<std::shared_ptr<const stop::CriterionFactory>>
+// get_pointer_vector<const stop::CriterionFactory>(
+//     const pnode& config, const registry& context,
+//     std::shared_ptr<const Executor> exec, type_descriptor td)
+// {
+//     std::vector<std::shared_ptr<const stop::CriterionFactory>> res;
+//     if (config.is(pnode::status_t::array)) {
+//         for (const auto& it : config.get_array()) {
+//             res.push_back(get_pointer<const stop::CriterionFactory>(it,
+//             context,
+//                                                                     exec,
+//                                                                     td));
+//         }
+//     } else {
+//         res.push_back(get_pointer<const stop::CriterionFactory>(config,
+//         context,
+//                                                                 exec, td));
+//     }
+//     // TODO: handle shortcut version by config.is(pnode::status_t::map) &&
+//     // !config.contains("Type")
 
-    return res;
-}
+//     return res;
+// }
 
 
 }  // namespace config

@@ -85,9 +85,9 @@ TEST_F(Config, GenerateObjectWithoutDefault)
     auto reg = registry(config_map);
 
     pnode p{{{"ValueType", pnode{"double"}}, {"criteria", this->stop_config}}};
-    auto obj = build_from_config<0>(p, reg, this->exec);
+    auto obj = build_from_config<0>(p, reg).on(this->exec);
 
-    ASSERT_NE(dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get()),
+    ASSERT_NE(dynamic_cast<const gko::solver::Cg<double>::Factory*>(obj.get()),
               nullptr);
 }
 
@@ -100,11 +100,11 @@ TEST_F(Config, GenerateObjectWithData)
 
     pnode p{{{"generated_preconditioner", pnode{"precond"}},
              {"criteria", this->stop_config}}};
-    auto obj = build_from_config<0>(p, reg, this->exec, {"float", ""});
+    auto obj = build_from_config<0>(p, reg, {"float", ""}).on(this->exec);
 
-    ASSERT_NE(dynamic_cast<gko::solver::Cg<float>::Factory*>(obj.get()),
+    ASSERT_NE(dynamic_cast<const gko::solver::Cg<float>::Factory*>(obj.get()),
               nullptr);
-    ASSERT_NE(dynamic_cast<gko::solver::Cg<float>::Factory*>(obj.get())
+    ASSERT_NE(dynamic_cast<const gko::solver::Cg<float>::Factory*>(obj.get())
                   ->get_parameters()
                   .generated_preconditioner,
               nullptr);
@@ -119,11 +119,11 @@ TEST_F(Config, GenerateObjectWithPreconditioner)
     pnode p{{{"ValueType", pnode{"double"}}, {"criteria", this->stop_config}}};
     p.get_map()["preconditioner"] =
         pnode{{{"Type", pnode{"Cg"}}, {"criteria", this->stop_config}}};
-    auto obj = build_from_config<0>(p, reg, this->exec);
+    auto obj = build_from_config<0>(p, reg).on(this->exec);
 
-    ASSERT_NE(dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get()),
+    ASSERT_NE(dynamic_cast<const gko::solver::Cg<double>::Factory*>(obj.get()),
               nullptr);
-    ASSERT_NE(dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get())
+    ASSERT_NE(dynamic_cast<const gko::solver::Cg<double>::Factory*>(obj.get())
                   ->get_parameters()
                   .preconditioner,
               nullptr);
@@ -135,27 +135,25 @@ TEST_F(Config, GenerateObjectWithCustomBuild)
     auto config_map = generate_config_map();
 
     config_map["Custom"] = [](const pnode& config, const registry& context,
-                              std::shared_ptr<const gko::Executor>& exec,
                               type_descriptor td_for_child) {
-        return gko::solver::Bicg<double>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(2u).on(exec))
-            .on(exec);
+        return gko::solver::Bicg<double>::build().with_criteria(
+            gko::stop::Iteration::build().with_max_iters(2u));
     };
     auto reg = registry(config_map);
 
     pnode p{{{"ValueType", pnode{"double"}}, {"criteria", this->stop_config}}};
     p.get_map()["preconditioner"] =
         pnode{std::map<std::string, pnode>{{"Type", pnode{"Custom"}}}};
-    auto obj = build_from_config<0>(p, reg, this->exec, {"double", ""});
+    auto obj = build_from_config<0>(p, reg, {"double", ""}).on(this->exec);
 
-    ASSERT_NE(dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get()),
+    ASSERT_NE(dynamic_cast<const gko::solver::Cg<double>::Factory*>(obj.get()),
               nullptr);
-    ASSERT_NE(dynamic_cast<const gko::solver::Bicg<double>::Factory*>(
-                  dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get())
-                      ->get_parameters()
-                      .preconditioner.get()),
-              nullptr);
+    ASSERT_NE(
+        dynamic_cast<const gko::solver::Bicg<double>::Factory*>(
+            dynamic_cast<const gko::solver::Cg<double>::Factory*>(obj.get())
+                ->get_parameters()
+                .preconditioner.get()),
+        nullptr);
 }
 
 
