@@ -154,13 +154,15 @@ public:
 
         [[deprecated("use with_l_solver instead")]] parameters_type&
         with_l_solver_factory(
-            deferred_factory_parameter<typename l_solver_type::Factory> solver)
+            deferred_factory_parameter<const typename l_solver_type::Factory>
+                solver)
         {
             return with_l_solver(std::move(solver));
         }
 
         parameters_type& with_l_solver(
-            deferred_factory_parameter<typename l_solver_type::Factory> solver)
+            deferred_factory_parameter<const typename l_solver_type::Factory>
+                solver)
         {
             this->l_solver_generator = std::move(solver);
             this->deferred_factories["l_solver"] = [](const auto& exec,
@@ -175,13 +177,15 @@ public:
 
         [[deprecated("use with_u_solver instead")]] parameters_type&
         with_u_solver_factory(
-            deferred_factory_parameter<typename u_solver_type::Factory> solver)
+            deferred_factory_parameter<const typename u_solver_type::Factory>
+                solver)
         {
             return with_u_solver(std::move(solver));
         }
 
         parameters_type& with_u_solver(
-            deferred_factory_parameter<typename u_solver_type::Factory> solver)
+            deferred_factory_parameter<const typename u_solver_type::Factory>
+                solver)
         {
             this->u_solver_generator = std::move(solver);
             this->deferred_factories["u_solver"] = [](const auto& exec,
@@ -196,13 +200,13 @@ public:
 
         [[deprecated("use with_factorization instead")]] parameters_type&
         with_factorization_factory(
-            deferred_factory_parameter<LinOpFactory> factorization)
+            deferred_factory_parameter<const LinOpFactory> factorization)
         {
             return with_factorization(std::move(factorization));
         }
 
         parameters_type& with_factorization(
-            deferred_factory_parameter<LinOpFactory> factorization)
+            deferred_factory_parameter<const LinOpFactory> factorization)
         {
             this->factorization_generator = std::move(factorization);
             this->deferred_factories["factorization"] = [](const auto& exec,
@@ -216,13 +220,13 @@ public:
         }
 
     private:
-        deferred_factory_parameter<typename l_solver_type::Factory>
+        deferred_factory_parameter<const typename l_solver_type::Factory>
             l_solver_generator;
 
-        deferred_factory_parameter<typename u_solver_type::Factory>
+        deferred_factory_parameter<const typename u_solver_type::Factory>
             u_solver_generator;
 
-        deferred_factory_parameter<LinOpFactory> factorization_generator;
+        deferred_factory_parameter<const LinOpFactory> factorization_generator;
     };
 
     GKO_ENABLE_LIN_OP_FACTORY(Ilu, parameters, Factory);

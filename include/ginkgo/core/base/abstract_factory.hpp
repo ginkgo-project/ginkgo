@@ -338,14 +338,15 @@ public:
      * shared ownership.
      */
     template <typename ConcreteFactoryType,
-              std::enable_if_t<std::is_base_of<
-                  FactoryType,
-                  std::remove_const_t<ConcreteFactoryType>>::value>* = nullptr>
+              std::enable_if_t<
+                  std::is_base_of<FactoryType, ConcreteFactoryType>::value &&
+                  !(!std::is_const<FactoryType>::value &&
+                    std::is_const<ConcreteFactoryType>::value)>* = nullptr>
     deferred_factory_parameter(std::shared_ptr<ConcreteFactoryType> factory)
     {
-        generator_ =
-            [factory = std::shared_ptr<const FactoryType>(std::move(factory))](
-                std::shared_ptr<const Executor>) { return factory; };
+        generator_ = [factory =
+                          std::shared_ptr<FactoryType>(std::move(factory))](
+                         std::shared_ptr<const Executor>) { return factory; };
     }
 
     /**
@@ -353,15 +354,16 @@ public:
      * preexisting factory with unique ownership.
      */
     template <typename ConcreteFactoryType, typename Deleter,
-              std::enable_if_t<std::is_base_of<
-                  FactoryType,
-                  std::remove_const_t<ConcreteFactoryType>>::value>* = nullptr>
+              std::enable_if_t<
+                  std::is_base_of<FactoryType, ConcreteFactoryType>::value &&
+                  !(!std::is_const<FactoryType>::value &&
+                    std::is_const<ConcreteFactoryType>::value)>* = nullptr>
     deferred_factory_parameter(
         std::unique_ptr<ConcreteFactoryType, Deleter> factory)
     {
-        generator_ =
-            [factory = std::shared_ptr<const FactoryType>(std::move(factory))](
-                std::shared_ptr<const Executor>) { return factory; };
+        generator_ = [factory =
+                          std::shared_ptr<FactoryType>(std::move(factory))](
+                         std::shared_ptr<const Executor>) { return factory; };
     }
 
     /**
@@ -375,17 +377,14 @@ public:
     deferred_factory_parameter(ParametersType parameters)
     {
         generator_ = [parameters](std::shared_ptr<const Executor> exec)
-            -> std::shared_ptr<const FactoryType> {
-            return parameters.on(exec);
-        };
+            -> std::shared_ptr<FactoryType> { return parameters.on(exec); };
     }
 
     /**
      * Instantiates the deferred parameter into an actual factory. This will
      * throw if the deferred factory parameter is empty.
      */
-    std::shared_ptr<const FactoryType> on(
-        std::shared_ptr<const Executor> exec) const
+    std::shared_ptr<FactoryType> on(std::shared_ptr<const Executor> exec) const
     {
         if (this->is_empty()) {
             GKO_NOT_SUPPORTED(*this);
@@ -397,8 +396,7 @@ public:
     bool is_empty() const { return !bool(generator_); }
 
 private:
-    std::function<std::shared_ptr<const FactoryType>(
-        std::shared_ptr<const Executor>)>
+    std::function<std::shared_ptr<FactoryType>(std::shared_ptr<const Executor>)>
         generator_;
 };
 
@@ -537,7 +535,7 @@ private:
  */
 #define GKO_DEFERRED_FACTORY_PARAMETER(_name, _type)                         \
 public:                                                                      \
-    std::shared_ptr<const _type> _name{};                                    \
+    std::shared_ptr<_type> _name{};                                          \
     parameters_type& with_##_name(deferred_factory_parameter<_type> factory) \
     {                                                                        \
         this->_name##_generator_ = std::move(factory);                       \
@@ -570,7 +568,7 @@ public:                                                                      \
  */
 #define GKO_DEFERRED_FACTORY_VECTOR_PARAMETER(_name, _type)                  \
 public:                                                                      \
-    std::vector<std::shared_ptr<const _type>> _name{};                       \
+    std::vector<std::shared_ptr<_type>> _name{};                             \
     template <typename... Args,                                              \
               typename =                                                     \
                   std::enable_if_t<xstd::conjunction<std::is_convertible<    \
@@ -590,7 +588,9 @@ public:                                                                      \
         };                                                                   \
         return *this;                                                        \
     }                                                                        \
-    template <typename FactoryType>                                          \
+    template <typename FactoryType,                                          \
+              typename = std::enable_if_t<std::is_convertible<               \
+                  FactoryType, deferred_factory_parameter<_type>>::value>>   \
     parameters_type& with_##_name(const std::vector<FactoryType>& factories) \
     {                                                                        \
         this->_name##_generator_.clear();                                    \
