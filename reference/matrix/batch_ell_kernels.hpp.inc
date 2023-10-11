@@ -30,9 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-template <typename ValueType>
+template <typename ValueType, typename IndexType>
 inline void simple_apply_kernel(
-    const gko::batch::matrix::ell::batch_item<const ValueType>& a,
+    const gko::batch::matrix::ell::batch_item<const ValueType, IndexType>& a,
     const gko::batch::multi_vector::batch_item<const ValueType>& b,
     const gko::batch::multi_vector::batch_item<ValueType>& c)
 {
@@ -43,19 +43,21 @@ inline void simple_apply_kernel(
         for (auto k = 0; k < a.num_stored_elems_per_row; ++k) {
             auto val = a.values[row + k * a.stride];
             auto col = a.col_idxs[row + k * a.stride];
-            for (int j = 0; j < c.num_rhs; ++j) {
-                c.values[row * c.stride + j] +=
-                    val * b.values[col * b.stride + j];
+            if (col != invalid_index<IndexType>()) {
+                for (int j = 0; j < c.num_rhs; ++j) {
+                    c.values[row * c.stride + j] +=
+                        val * b.values[col * b.stride + j];
+                }
             }
         }
     }
 }
 
 
-template <typename ValueType>
+template <typename ValueType, typename IndexType>
 inline void advanced_apply_kernel(
     const ValueType alpha,
-    const gko::batch::matrix::ell::batch_item<const ValueType>& a,
+    const gko::batch::matrix::ell::batch_item<const ValueType, IndexType>& a,
     const gko::batch::multi_vector::batch_item<const ValueType>& b,
     const ValueType beta,
     const gko::batch::multi_vector::batch_item<ValueType>& c)
@@ -67,9 +69,11 @@ inline void advanced_apply_kernel(
         for (auto k = 0; k < a.num_stored_elems_per_row; ++k) {
             auto val = a.values[row + k * a.stride];
             auto col = a.col_idxs[row + k * a.stride];
-            for (int j = 0; j < b.num_rhs; ++j) {
-                c.values[row * c.stride + j] +=
-                    alpha * val * b.values[col * b.stride + j];
+            if (col != invalid_index<IndexType>()) {
+                for (int j = 0; j < b.num_rhs; ++j) {
+                    c.values[row * c.stride + j] +=
+                        alpha * val * b.values[col * b.stride + j];
+                }
             }
         }
     }

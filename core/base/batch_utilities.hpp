@@ -165,12 +165,8 @@ std::vector<gko::matrix_data<ValueType, IndexType>> write(
 /**
  * Creates and initializes a batch of single column-vectors.
  *
- * This function first creates a temporary MultiVector, fills it with
- * passed in values, and then converts the vector to the requested type.
- *
- * @tparam Matrix  matrix type to initialize
- *                 (MultiVector has to implement the ConvertibleTo<Matrix>
- *                 interface)
+ * @tparam Matrix  matrix type to initialize (It has to implement the
+ *                 read<Matrix> function)
  * @tparam TArgs  argument types for Matrix::create method
  *                (not including the implied Executor as the first argument)
  *
@@ -180,7 +176,6 @@ std::vector<gko::matrix_data<ValueType, IndexType>> write(
  *                     including the Executor, which is passed as the first
  *                     argument
  *
- * @ingroup MultiVector
  * @ingroup mat_formats
  */
 template <typename Matrix, typename... TArgs>
@@ -220,23 +215,19 @@ std::unique_ptr<Matrix> initialize(
 
 
 /**
- * Creates and initializes a batch of multi-vectors.
+ * Creates and initializes a batch of matrices.
  *
- * This function first creates a temporary MultiVector, fills it with
- * passed in values, and then converts the vector to the requested type.
- *
- * @tparam Matrix  matrix type to initialize
- *                 (Dense has to implement the ConvertibleTo<Matrix> interface)
+ * @tparam Matrix  matrix type to initialize (It has to implement the
+ *                 read<Matrix> function)
  * @tparam TArgs  argument types for Matrix::create method
  *                (not including the implied Executor as the first argument)
  *
- * @param vals  values used to initialize the vector
- * @param exec  Executor associated to the vector
+ * @param vals  values used to initialize the matrix
+ * @param exec  Executor associated with the matrix
  * @param create_args  additional arguments passed to Matrix::create, not
  *                     including the Executor, which is passed as the first
  *                     argument
  *
- * @ingroup MultiVector
  * @ingroup mat_formats
  */
 template <typename Matrix, typename... TArgs>
@@ -290,23 +281,18 @@ std::unique_ptr<Matrix> initialize(
  * Creates and initializes a batch single column-vector by making copies of the
  * single input column vector.
  *
- * This function first creates a temporary batch multi-vector, fills it with
- * passed in values, and then converts the vector to the requested type.
- *
- * @tparam Matrix  matrix type to initialize
- *                 (MultiVector has to implement the ConvertibleTo<Matrix>
- *                  interface)
+ * @tparam Matrix  matrix type to initialize (It has to implement the
+ *                 read<Matrix> function)
  * @tparam TArgs  argument types for Matrix::create method
  *                (not including the implied Executor as the first argument)
  *
  * @param num_vectors  The number of times the input vector is to be duplicated
  * @param vals  values used to initialize each vector in the temp. batch
- * @param exec  Executor associated to the vector
+ * @param exec  Executor associated with the matrix
  * @param create_args  additional arguments passed to Matrix::create, not
  *                     including the Executor, which is passed as the first
  *                     argument
  *
- * @ingroup MultiVector
  * @ingroup mat_formats
  */
 template <typename Matrix, typename... TArgs>
@@ -343,23 +329,18 @@ std::unique_ptr<Matrix> initialize(
 /**
  * Creates and initializes a matrix from copies of a given matrix.
  *
- * This function first creates a temporary batch multi-vector, fills it with
- * passed in values, and then converts the vector to the requested type.
- *
- * @tparam Matrix  matrix type to initialize
- *                 (MultiVector has to implement the ConvertibleTo<Matrix>
- *                  interface)
+ * @tparam Matrix  matrix type to initialize (It has to implement the
+ *                 read<Matrix> function)
  * @tparam TArgs  argument types for Matrix::create method
  *                (not including the implied Executor as the first argument)
  *
  * @param num_batch_items The number of times the input matrix is duplicated
- * @param vals  values used to initialize each vector in the temp. batch
- * @param exec  Executor associated to the vector
+ * @param vals  values used to initialize each matrix in the temp. batch
+ * @param exec  Executor associated to the matrix
  * @param create_args  additional arguments passed to Matrix::create, not
  *                     including the Executor, which is passed as the first
  *                     argument
  *
- * @ingroup LinOp
  * @ingroup mat_formats
  */
 template <typename Matrix, typename... TArgs>

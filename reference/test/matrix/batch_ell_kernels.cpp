@@ -123,8 +123,8 @@ TYPED_TEST(Ell, AppliesToBatchMultiVector)
     this->mtx_00->apply(this->b_00.get(), this->x_00.get());
     this->mtx_01->apply(this->b_01.get(), this->x_01.get());
     auto res = gko::batch::unbatch<gko::batch::MultiVector<T>>(this->x_0.get());
-    GKO_ASSERT_MTX_NEAR(res[0].get(), this->x_00.get(), 0.);
-    GKO_ASSERT_MTX_NEAR(res[1].get(), this->x_01.get(), 0.);
+    GKO_ASSERT_MTX_NEAR(res[0].get(), this->x_00.get(), r<T>::value);
+    GKO_ASSERT_MTX_NEAR(res[1].get(), this->x_01.get(), r<T>::value);
 }
 
 
@@ -149,8 +149,8 @@ TYPED_TEST(Ell, AppliesLinearCombinationToBatchMultiVector)
     this->mtx_01->apply(alpha1.get(), this->b_01.get(), beta1.get(),
                         this->x_01.get());
     auto res = gko::batch::unbatch<gko::batch::MultiVector<T>>(this->x_0.get());
-    GKO_ASSERT_MTX_NEAR(res[0].get(), this->x_00.get(), 0.);
-    GKO_ASSERT_MTX_NEAR(res[1].get(), this->x_01.get(), 0.);
+    GKO_ASSERT_MTX_NEAR(res[0].get(), this->x_00.get(), r<T>::value);
+    GKO_ASSERT_MTX_NEAR(res[1].get(), this->x_01.get(), r<T>::value);
 }
 
 

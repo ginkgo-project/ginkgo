@@ -52,14 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace batch {
-namespace matrix {
-
-
-template <typename ValueType>
-class Dense;
-
-
-}
 
 
 /**
@@ -90,21 +82,17 @@ class MultiVector
     : public EnablePolymorphicObject<MultiVector<ValueType>>,
       public EnablePolymorphicAssignment<MultiVector<ValueType>>,
       public EnableCreateMethod<MultiVector<ValueType>>,
-      public ConvertibleTo<MultiVector<next_precision<ValueType>>>,
-      public ConvertibleTo<matrix::Dense<ValueType>> {
+      public ConvertibleTo<MultiVector<next_precision<ValueType>>> {
     friend class EnableCreateMethod<MultiVector>;
     friend class EnablePolymorphicObject<MultiVector>;
     friend class MultiVector<to_complex<ValueType>>;
     friend class MultiVector<next_precision<ValueType>>;
-    friend class matrix::Dense<ValueType>;
 
 public:
     using EnablePolymorphicAssignment<MultiVector>::convert_to;
     using EnablePolymorphicAssignment<MultiVector>::move_to;
     using ConvertibleTo<MultiVector<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<MultiVector<next_precision<ValueType>>>::move_to;
-    using ConvertibleTo<matrix::Dense<ValueType>>::convert_to;
-    using ConvertibleTo<matrix::Dense<ValueType>>::move_to;
 
     using value_type = ValueType;
     using index_type = int32;
@@ -125,10 +113,6 @@ public:
         MultiVector<next_precision<ValueType>>* result) const override;
 
     void move_to(MultiVector<next_precision<ValueType>>* result) override;
-
-    void convert_to(matrix::Dense<ValueType>* result) const override;
-
-    void move_to(matrix::Dense<ValueType>* result) override;
 
     /**
      * Creates a mutable view (of matrix::Dense type) of one item of the Batch

@@ -306,7 +306,6 @@ private:
                size.get_common_size()[1];
     }
 
-protected:
     /**
      * Creates an uninitialized Dense matrix of the specified size.
      *
@@ -362,7 +361,6 @@ protected:
                                idx % this->get_common_size()[1]);
     }
 
-private:
     array<value_type> values_;
 };
 
