@@ -35,6 +35,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/ginkgo.hpp>
 #include <iostream>
 
+void parsinv(
+    int n, // matrix size
+    int Lnnz, // number of nonzeros in LT stored in CSR, upper triangular  (equivalent to L in CSC)
+    int *Lrowptr, // row pointer L
+    int *Lcolidx, //col index L
+    double *Lval, // val array L
+    int Snnz, // number of nonzeros in S (stored in CSR, full sparse)
+    int *Srowptr, // row pointer S
+    int *Srowidx, // row index S
+    int *Scolidx, //col index S
+    double *Sval // val array S
+    );
+
+
 int main(int argc, char** argv)
 {
     using value_type = double;
@@ -73,6 +87,20 @@ int main(int argc, char** argv)
     auto L_transpose =
         static_cast<typename Csr::transposed_type*>(L_transpose_linop.get());
     // Solve system
+    parsinv( L_transpose->get_size()[0], 
+		    L_transpose->get_num_stored_elements(), 
+		    L_transpose->get_row_ptrs(), 
+		    L_transpose->get_col_idxs(),
+		    L_transpose->get_values(),
+                    S_coo->get_num_stored_elements(),
+		    S_row_ptrs,
+		    S_row_idxs,
+		    S_col_idxs,
+		    S_values
+    );
     // Write result
     write(std::cout, I);
+
+    printf("\n\n\n\n\n\n\n");
+    write(std::cout, S_coo);
 }
