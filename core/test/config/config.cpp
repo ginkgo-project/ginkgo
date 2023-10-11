@@ -102,9 +102,9 @@ TEST_F(Config, GenerateObjectWithData)
              {"criteria", this->stop_config}}};
     auto obj = build_from_config<0>(p, reg, {"float", ""}).on(this->exec);
 
-    ASSERT_NE(dynamic_cast<const gko::solver::Cg<float>::Factory*>(obj.get()),
+    ASSERT_NE(dynamic_cast<gko::solver::Cg<float>::Factory*>(obj.get()),
               nullptr);
-    ASSERT_NE(dynamic_cast<const gko::solver::Cg<float>::Factory*>(obj.get())
+    ASSERT_NE(dynamic_cast<gko::solver::Cg<float>::Factory*>(obj.get())
                   ->get_parameters()
                   .generated_preconditioner,
               nullptr);
@@ -121,9 +121,9 @@ TEST_F(Config, GenerateObjectWithPreconditioner)
         pnode{{{"Type", pnode{"Cg"}}, {"criteria", this->stop_config}}};
     auto obj = build_from_config<0>(p, reg).on(this->exec);
 
-    ASSERT_NE(dynamic_cast<const gko::solver::Cg<double>::Factory*>(obj.get()),
+    ASSERT_NE(dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get()),
               nullptr);
-    ASSERT_NE(dynamic_cast<const gko::solver::Cg<double>::Factory*>(obj.get())
+    ASSERT_NE(dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get())
                   ->get_parameters()
                   .preconditioner,
               nullptr);
@@ -146,14 +146,13 @@ TEST_F(Config, GenerateObjectWithCustomBuild)
         pnode{std::map<std::string, pnode>{{"Type", pnode{"Custom"}}}};
     auto obj = build_from_config<0>(p, reg, {"double", ""}).on(this->exec);
 
-    ASSERT_NE(dynamic_cast<const gko::solver::Cg<double>::Factory*>(obj.get()),
+    ASSERT_NE(dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get()),
               nullptr);
-    ASSERT_NE(
-        dynamic_cast<const gko::solver::Bicg<double>::Factory*>(
-            dynamic_cast<const gko::solver::Cg<double>::Factory*>(obj.get())
-                ->get_parameters()
-                .preconditioner.get()),
-        nullptr);
+    ASSERT_NE(dynamic_cast<const gko::solver::Bicg<double>::Factory*>(
+                  dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get())
+                      ->get_parameters()
+                      .preconditioner.get()),
+              nullptr);
 }
 
 
