@@ -184,7 +184,7 @@ public:
         /**
          * Inner solver factory.
          */
-        GKO_DEFERRED_FACTORY_PARAMETER(solver, LinOpFactory);
+        GKO_DEFERRED_FACTORY_PARAMETER(solver, const LinOpFactory);
 
         /**
          * Already generated solver. If one is provided, the factory `solver`
