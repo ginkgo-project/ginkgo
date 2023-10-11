@@ -81,6 +81,7 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
 
     const auto num_batch_items = mat->get_num_batch_items();
     auto device = exec->get_queue()->get_device();
+    // TODO: use runtime selection of group size based on num_rows.
     auto group_size =
         device.get_info<sycl::info::device::max_work_group_size>();
 
@@ -134,6 +135,7 @@ void advanced_apply(std::shared_ptr<const DefaultExecutor> exec,
 
     const auto num_batch_items = mat_ub.num_batch_items;
     auto device = exec->get_queue()->get_device();
+    // TODO: use runtime selection of group size based on num_rows.
     auto group_size =
         device.get_info<sycl::info::device::max_work_group_size>();
 

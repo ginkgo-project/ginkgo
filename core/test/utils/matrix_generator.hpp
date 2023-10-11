@@ -232,7 +232,7 @@ std::unique_ptr<MatrixType> fill_random_matrix_with_sparsity_pattern(
     using index_type = IndexType;
 
     GKO_ASSERT(row_idxs.get_num_elems() == col_idxs.get_num_elems());
-    GKO_ASSERT(row_idxs.get_num_elems() < (num_rows * num_cols));
+    GKO_ASSERT(row_idxs.get_num_elems() <= (num_rows * num_cols));
     auto result = MatrixType::create(exec, std::forward<MatrixArgs>(args)...);
     result->read(fill_random_matrix_data<value_type, index_type>(
         num_rows, num_cols, row_idxs, col_idxs,

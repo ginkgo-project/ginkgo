@@ -38,7 +38,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 
 
@@ -52,26 +51,26 @@ class Ell : public ::testing::Test {
 protected:
     using value_type = T;
     using index_type = gko::int32;
-    using EllMtx = gko::matrix::Ell<value_type>;
+    using BatchEllMtx = gko::batch::matrix::Ell<value_type, index_type>;
+    using EllMtx = gko::matrix::Ell<value_type, index_type>;
     using size_type = gko::size_type;
     Ell()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::batch::initialize<gko::batch::matrix::Ell<value_type>>(
+          mtx(gko::batch::initialize<BatchEllMtx>(
               {{{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}},
                {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}},
               exec, 3)),
-          sp_mtx(gko::batch::initialize<gko::batch::matrix::Ell<value_type>>(
+          sp_mtx(gko::batch::initialize<BatchEllMtx>(
               {{{-1.0, 0.0, 0.0}, {0.0, 2.5, 3.5}},
                {{1.0, 0.0, 0.0}, {0.0, 2.0, 3.0}}},
               exec, 2)),
-          ell_mtx(gko::initialize<gko::matrix::Ell<value_type>>(
-              {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}, exec, gko::dim<2>(2, 3), 3)),
-          sp_ell_mtx(gko::initialize<gko::matrix::Ell<value_type>>(
-              {{1.0, 0.0, 0.0}, {0.0, 2.0, 3.0}}, exec, gko::dim<2>(2, 3), 2))
+          ell_mtx(gko::initialize<EllMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
+                                          exec, gko::dim<2>(2, 3), 3)),
+          sp_ell_mtx(gko::initialize<EllMtx>({{1.0, 0.0, 0.0}, {0.0, 2.0, 3.0}},
+                                             exec, gko::dim<2>(2, 3), 2))
     {}
 
-    static void assert_equal_to_original_sparse_mtx(
-        const gko::batch::matrix::Ell<value_type>* m)
+    static void assert_equal_to_original_sparse_mtx(const BatchEllMtx* m)
     {
         ASSERT_EQ(m->get_num_batch_items(), 2);
         ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 3));
@@ -91,8 +90,7 @@ protected:
         ASSERT_EQ(m->get_const_col_idxs()[3], index_type{2});
     }
 
-    static void assert_equal_to_original_mtx(
-        const gko::batch::matrix::Ell<value_type>* m)
+    static void assert_equal_to_original_mtx(const BatchEllMtx* m)
     {
         ASSERT_EQ(m->get_num_batch_items(), 2);
         ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 3));
@@ -112,7 +110,7 @@ protected:
         ASSERT_EQ(m->get_const_values()[11], value_type{3.0});
     }
 
-    static void assert_empty(gko::batch::matrix::Ell<value_type>* m)
+    static void assert_empty(BatchEllMtx* m)
     {
         ASSERT_EQ(m->get_num_batch_items(), 0);
         ASSERT_EQ(m->get_num_stored_elements(), 0);
@@ -120,10 +118,10 @@ protected:
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<gko::batch::matrix::Ell<value_type>> mtx;
-    std::unique_ptr<gko::batch::matrix::Ell<value_type>> sp_mtx;
-    std::unique_ptr<gko::matrix::Ell<value_type>> ell_mtx;
-    std::unique_ptr<gko::matrix::Ell<value_type>> sp_ell_mtx;
+    std::unique_ptr<BatchEllMtx> mtx;
+    std::unique_ptr<BatchEllMtx> sp_mtx;
+    std::unique_ptr<EllMtx> ell_mtx;
+    std::unique_ptr<EllMtx> sp_ell_mtx;
 };
 
 TYPED_TEST_SUITE(Ell, gko::test::ValueTypes);
@@ -143,16 +141,11 @@ TYPED_TEST(Ell, SparseMtxKnowsItsSizeAndValues)
 
 TYPED_TEST(Ell, CanBeEmpty)
 {
-    auto empty = gko::batch::matrix::Ell<TypeParam>::create(this->exec);
+    using BatchEllMtx = typename TestFixture::BatchEllMtx;
+
+    auto empty = BatchEllMtx::create(this->exec);
 
     this->assert_empty(empty.get());
-}
-
-
-TYPED_TEST(Ell, ReturnsNullValuesArrayWhenEmpty)
-{
-    auto empty = gko::batch::matrix::Ell<TypeParam>::create(this->exec);
-
     ASSERT_EQ(empty->get_const_values(), nullptr);
 }
 
@@ -180,7 +173,9 @@ TYPED_TEST(Ell, CanCreateSpEllItemView)
 
 TYPED_TEST(Ell, CanBeCopied)
 {
-    auto mtx_copy = gko::batch::matrix::Ell<TypeParam>::create(this->exec);
+    using BatchEllMtx = typename TestFixture::BatchEllMtx;
+
+    auto mtx_copy = BatchEllMtx::create(this->exec);
 
     mtx_copy->copy_from(this->mtx.get());
 
@@ -192,7 +187,9 @@ TYPED_TEST(Ell, CanBeCopied)
 
 TYPED_TEST(Ell, CanBeMoved)
 {
-    auto mtx_copy = gko::batch::matrix::Ell<TypeParam>::create(this->exec);
+    using BatchEllMtx = typename TestFixture::BatchEllMtx;
+
+    auto mtx_copy = BatchEllMtx::create(this->exec);
 
     this->mtx->move_to(mtx_copy);
 
@@ -219,10 +216,10 @@ TYPED_TEST(Ell, CanBeCleared)
 
 TYPED_TEST(Ell, CanBeConstructedWithSize)
 {
-    using size_type = gko::size_type;
+    using BatchEllMtx = typename TestFixture::BatchEllMtx;
 
-    auto m = gko::batch::matrix::Ell<TypeParam>::create(
-        this->exec, gko::batch_dim<2>(2, gko::dim<2>{5, 3}), 2);
+    auto m = BatchEllMtx::create(this->exec,
+                                 gko::batch_dim<2>(2, gko::dim<2>{5, 3}), 2);
 
     ASSERT_EQ(m->get_num_batch_items(), 2);
     ASSERT_EQ(m->get_common_size(), gko::dim<2>(5, 3));
@@ -235,19 +232,19 @@ TYPED_TEST(Ell, CanBeConstructedFromExistingData)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    using size_type = gko::size_type;
+    using BatchEllMtx = typename TestFixture::BatchEllMtx;
     // clang-format off
     value_type values[] = {
        -1.0,  2.5,
-       0.0,  3.5,
-       1.0,  2.0,
-       0.0,  3.0};
+        0.0,  3.5,
+        1.0,  2.0,
+        0.0,  3.0};
     index_type col_idxs[] = {
-       0,  1,
+       0, 1,
       -1, 2};
     // clang-format on
 
-    auto m = gko::batch::matrix::Ell<TypeParam>::create(
+    auto m = BatchEllMtx::create(
         this->exec, gko::batch_dim<2>(2, gko::dim<2>(2, 3)), 2,
         gko::array<value_type>::view(this->exec, 8, values),
         gko::array<index_type>::view(this->exec, 4, col_idxs));
@@ -260,19 +257,19 @@ TYPED_TEST(Ell, CanBeConstructedFromExistingConstData)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    using size_type = gko::size_type;
+    using BatchEllMtx = typename TestFixture::BatchEllMtx;
     // clang-format off
     value_type values[] = {
        -1.0,  2.5,
-       0.0,  3.5,
-       1.0,  2.0,
-       0.0,  3.0};
+        0.0,  3.5,
+        1.0,  2.0,
+        0.0,  3.0};
     index_type col_idxs[] = {
-       0,  1,
+       0, 1,
       -1, 2};
     // clang-format on
 
-    auto m = gko::batch::matrix::Ell<TypeParam>::create_const(
+    auto m = BatchEllMtx::create_const(
         this->exec, gko::batch_dim<2>(2, gko::dim<2>(2, 3)), 2,
         gko::array<value_type>::const_view(this->exec, 8, values),
         gko::array<index_type>::const_view(this->exec, 4, col_idxs));
@@ -283,15 +280,14 @@ TYPED_TEST(Ell, CanBeConstructedFromExistingConstData)
 
 TYPED_TEST(Ell, CanBeConstructedFromEllMatrices)
 {
-    using value_type = typename TestFixture::value_type;
+    using BatchEllMtx = typename TestFixture::BatchEllMtx;
     using EllMtx = typename TestFixture::EllMtx;
-    using size_type = gko::size_type;
     auto mat1 = gko::initialize<EllMtx>({{-1.0, 0.0, 0.0}, {0.0, 2.5, 3.5}},
                                         this->exec);
     auto mat2 =
         gko::initialize<EllMtx>({{1.0, 0.0, 0.0}, {0.0, 2.0, 3.0}}, this->exec);
 
-    auto m = gko::batch::create_from_item<gko::batch::matrix::Ell<value_type>>(
+    auto m = gko::batch::create_from_item<BatchEllMtx>(
         this->exec, std::vector<EllMtx*>{mat1.get(), mat2.get()},
         mat1->get_num_stored_elements_per_row());
 
@@ -301,19 +297,15 @@ TYPED_TEST(Ell, CanBeConstructedFromEllMatrices)
 
 TYPED_TEST(Ell, CanBeConstructedFromEllMatricesByDuplication)
 {
-    using value_type = typename TestFixture::value_type;
-    using index_type = int;
+    using BatchEllMtx = typename TestFixture::BatchEllMtx;
     using EllMtx = typename TestFixture::EllMtx;
-    using size_type = gko::size_type;
     auto mat1 =
         gko::initialize<EllMtx>({{1.0, 0.0, 0.0}, {0.0, 2.0, 0.0}}, this->exec);
-    auto bat_m =
-        gko::batch::create_from_item<gko::batch::matrix::Ell<value_type>>(
-            this->exec,
-            std::vector<EllMtx*>{mat1.get(), mat1.get(), mat1.get()},
-            mat1->get_num_stored_elements_per_row());
+    auto bat_m = gko::batch::create_from_item<BatchEllMtx>(
+        this->exec, std::vector<EllMtx*>{mat1.get(), mat1.get(), mat1.get()},
+        mat1->get_num_stored_elements_per_row());
 
-    auto m = gko::batch::create_from_item<gko::batch::matrix::Ell<value_type>>(
+    auto m = gko::batch::create_from_item<BatchEllMtx>(
         this->exec, 3, mat1.get(), mat1->get_num_stored_elements_per_row());
 
     GKO_ASSERT_BATCH_MTX_NEAR(bat_m.get(), m.get(), 1e-14);
@@ -322,26 +314,23 @@ TYPED_TEST(Ell, CanBeConstructedFromEllMatricesByDuplication)
 
 TYPED_TEST(Ell, CanBeConstructedByDuplicatingEllMatrices)
 {
-    using value_type = typename TestFixture::value_type;
-    using index_type = int;
+    using BatchEllMtx = typename TestFixture::BatchEllMtx;
     using EllMtx = typename TestFixture::EllMtx;
-    using size_type = gko::size_type;
     auto mat1 = gko::initialize<EllMtx>({{-1.0, 0.0, 0.0}, {0.0, 2.5, 0.0}},
                                         this->exec);
     auto mat2 =
         gko::initialize<EllMtx>({{1.0, 0.0, 0.0}, {0.0, 2.0, 0.0}}, this->exec);
 
-    auto m = gko::batch::create_from_item<gko::batch::matrix::Ell<value_type>>(
+    auto m = gko::batch::create_from_item<BatchEllMtx>(
         this->exec, std::vector<EllMtx*>{mat1.get(), mat2.get()},
         mat1->get_num_stored_elements_per_row());
-    auto m_ref =
-        gko::batch::create_from_item<gko::batch::matrix::Ell<value_type>>(
-            this->exec,
-            std::vector<EllMtx*>{mat1.get(), mat2.get(), mat1.get(), mat2.get(),
-                                 mat1.get(), mat2.get()},
-            mat1->get_num_stored_elements_per_row());
+    auto m_ref = gko::batch::create_from_item<BatchEllMtx>(
+        this->exec,
+        std::vector<EllMtx*>{mat1.get(), mat2.get(), mat1.get(), mat2.get(),
+                             mat1.get(), mat2.get()},
+        mat1->get_num_stored_elements_per_row());
 
-    auto m2 = gko::batch::duplicate<gko::batch::matrix::Ell<value_type>>(
+    auto m2 = gko::batch::duplicate<BatchEllMtx>(
         this->exec, 3, m.get(), mat1->get_num_stored_elements_per_row());
 
     GKO_ASSERT_BATCH_MTX_NEAR(m2.get(), m_ref.get(), 1e-14);
@@ -350,17 +339,14 @@ TYPED_TEST(Ell, CanBeConstructedByDuplicatingEllMatrices)
 
 TYPED_TEST(Ell, CanBeUnbatchedIntoEllMatrices)
 {
-    using value_type = typename TestFixture::value_type;
-    using index_type = int;
+    using BatchEllMtx = typename TestFixture::BatchEllMtx;
     using EllMtx = typename TestFixture::EllMtx;
-    using size_type = gko::size_type;
     auto mat1 = gko::initialize<EllMtx>({{-1.0, 0.0, 0.0}, {0.0, 2.5, 3.5}},
                                         this->exec);
     auto mat2 =
         gko::initialize<EllMtx>({{1.0, 0.0, 0.0}, {0.0, 2.0, 3.0}}, this->exec);
 
-    auto ell_mats = gko::batch::unbatch<gko::batch::matrix::Ell<value_type>>(
-        this->sp_mtx.get());
+    auto ell_mats = gko::batch::unbatch<BatchEllMtx>(this->sp_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(ell_mats[0].get(), mat1.get(), 0.);
     GKO_ASSERT_MTX_NEAR(ell_mats[1].get(), mat2.get(), 0.);
@@ -370,10 +356,12 @@ TYPED_TEST(Ell, CanBeUnbatchedIntoEllMatrices)
 TYPED_TEST(Ell, CanBeListConstructed)
 {
     using value_type = typename TestFixture::value_type;
-    using index_type = int;
+    using index_type = typename TestFixture::index_type;
+    using BatchEllMtx = typename TestFixture::BatchEllMtx;
+    using EllMtx = typename TestFixture::EllMtx;
 
-    auto m = gko::batch::initialize<gko::batch::matrix::Ell<TypeParam>>(
-        {{0.0, -1.0}, {1.0, 0.0}}, this->exec);
+    auto m = gko::batch::initialize<BatchEllMtx>({{0.0, -1.0}, {1.0, 0.0}},
+                                                 this->exec);
 
     ASSERT_EQ(m->get_num_batch_items(), 2);
     ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 1));
@@ -391,10 +379,11 @@ TYPED_TEST(Ell, CanBeListConstructed)
 TYPED_TEST(Ell, CanBeListConstructedByCopies)
 {
     using value_type = typename TestFixture::value_type;
-    using index_type = int;
+    using index_type = typename TestFixture::index_type;
+    using BatchEllMtx = typename TestFixture::BatchEllMtx;
 
-    auto m = gko::batch::initialize<gko::batch::matrix::Ell<TypeParam>>(
-        2, I<value_type>({0.0, -1.0}), this->exec, 1);
+    auto m = gko::batch::initialize<BatchEllMtx>(2, I<value_type>({0.0, -1.0}),
+                                                 this->exec, 1);
 
     ASSERT_EQ(m->get_num_batch_items(), 2);
     ASSERT_EQ(m->get_common_size(), gko::dim<2>(2, 1));
@@ -412,10 +401,11 @@ TYPED_TEST(Ell, CanBeListConstructedByCopies)
 TYPED_TEST(Ell, CanBeDoubleListConstructed)
 {
     using value_type = typename TestFixture::value_type;
-    using index_type = int;
+    using index_type = typename TestFixture::index_type;
+    using BatchEllMtx = typename TestFixture::BatchEllMtx;
     using T = value_type;
 
-    auto m = gko::batch::initialize<gko::batch::matrix::Ell<TypeParam>>(
+    auto m = gko::batch::initialize<BatchEllMtx>(
         // clang-format off
         {{I<T>{1.0, 0.0, 0.0},
           I<T>{2.0, 0.0, 3.0},
@@ -454,15 +444,15 @@ TYPED_TEST(Ell, CanBeDoubleListConstructed)
 TYPED_TEST(Ell, CanBeReadFromMatrixData)
 {
     using value_type = typename TestFixture::value_type;
-    using index_type = int;
+    using index_type = typename TestFixture::index_type;
+    using BatchEllMtx = typename TestFixture::BatchEllMtx;
     auto vec_data = std::vector<gko::matrix_data<value_type, index_type>>{};
     vec_data.emplace_back(gko::matrix_data<value_type, index_type>(
         {2, 3}, {{0, 0, -1.0}, {1, 1, 2.5}, {1, 2, 3.5}}));
     vec_data.emplace_back(gko::matrix_data<value_type, index_type>(
         {2, 3}, {{0, 0, 1.0}, {1, 1, 2.0}, {1, 2, 3.0}}));
 
-    auto m = gko::batch::read<value_type, index_type,
-                              gko::batch::matrix::Ell<value_type>>(this->exec,
+    auto m = gko::batch::read<value_type, index_type, BatchEllMtx>(this->exec,
                                                                    vec_data, 2);
 
     this->assert_equal_to_original_sparse_mtx(m.get());
@@ -472,11 +462,11 @@ TYPED_TEST(Ell, CanBeReadFromMatrixData)
 TYPED_TEST(Ell, GeneratesCorrectMatrixData)
 {
     using value_type = typename TestFixture::value_type;
-    using index_type = int;
+    using index_type = typename TestFixture::index_type;
+    using BatchEllMtx = typename TestFixture::BatchEllMtx;
     using tpl = typename gko::matrix_data<TypeParam>::nonzero_type;
 
-    auto data = gko::batch::write<value_type, index_type,
-                                  gko::batch::matrix::Ell<value_type>>(
+    auto data = gko::batch::write<value_type, index_type, BatchEllMtx>(
         this->sp_mtx.get());
 
     ASSERT_EQ(data[0].size, gko::dim<2>(2, 3));

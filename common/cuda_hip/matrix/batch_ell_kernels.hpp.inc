@@ -31,9 +31,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-template <typename ValueType>
+template <typename ValueType, typename IndexType>
 __device__ __forceinline__ void simple_apply(
-    const gko::batch::matrix::ell::batch_item<const ValueType>& mat,
+    const gko::batch::matrix::ell::batch_item<const ValueType, IndexType>& mat,
     const ValueType* const __restrict__ b, ValueType* const __restrict__ x)
 {
     const auto num_rows = mat.num_rows;
@@ -46,7 +46,7 @@ __device__ __forceinline__ void simple_apply(
         for (size_type idx = 0; idx < num_stored_elements_per_row; idx++) {
             const auto ind = tidx + idx * stride;
             const auto col_idx = col[ind];
-            if (col_idx == invalid_index<int>()) {
+            if (col_idx == invalid_index<IndexType>()) {
                 break;
             } else {
                 temp += val[ind] * b[col_idx];
@@ -56,12 +56,13 @@ __device__ __forceinline__ void simple_apply(
     }
 }
 
-template <typename ValueType>
+template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(
     default_block_size,
     sm_oversubscription) void simple_apply_kernel(const gko::batch::matrix::
                                                       ell::uniform_batch<
-                                                          const ValueType>
+                                                          const ValueType,
+                                                          IndexType>
                                                           mat,
                                                   const gko::batch::
                                                       multi_vector::
@@ -85,10 +86,10 @@ __global__ __launch_bounds__(
 }
 
 
-template <typename ValueType>
+template <typename ValueType, typename IndexType>
 __device__ __forceinline__ void advanced_apply(
     const ValueType alpha,
-    const gko::batch::matrix::ell::batch_item<const ValueType>& mat,
+    const gko::batch::matrix::ell::batch_item<const ValueType, IndexType>& mat,
     const ValueType* const __restrict__ b, const ValueType beta,
     ValueType* const __restrict__ x)
 {
@@ -102,7 +103,7 @@ __device__ __forceinline__ void advanced_apply(
         for (size_type idx = 0; idx < num_stored_elements_per_row; idx++) {
             const auto ind = tidx + idx * stride;
             const auto col_idx = col[ind];
-            if (col_idx == invalid_index<int>()) {
+            if (col_idx == invalid_index<IndexType>()) {
                 break;
             } else {
                 temp += alpha * val[ind] * b[col_idx];
@@ -112,7 +113,7 @@ __device__ __forceinline__ void advanced_apply(
     }
 }
 
-template <typename ValueType>
+template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(
     default_block_size,
     sm_oversubscription) void advanced_apply_kernel(const gko::batch::
@@ -122,7 +123,8 @@ __global__ __launch_bounds__(
                                                                 alpha,
                                                     const gko::batch::matrix::
                                                         ell::uniform_batch<
-                                                            const ValueType>
+                                                            const ValueType,
+                                                            IndexType>
                                                             mat,
                                                     const gko::batch::
                                                         multi_vector::

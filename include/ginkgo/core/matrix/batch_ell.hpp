@@ -67,6 +67,8 @@ namespace matrix {
  * batch is the same and therefore only a single copy of the sparsity pattern is
  * stored.
  *
+ * @note Currently only IndexType of int32 is supported.
+ *
  * @tparam ValueType  value precision of matrix elements
  * @tparam IndexType  index precision of matrix elements
  *
@@ -83,6 +85,8 @@ class Ell final
     friend class EnablePolymorphicObject<Ell, BatchLinOp>;
     friend class Ell<to_complex<ValueType>, IndexType>;
     friend class Ell<next_precision<ValueType>, IndexType>;
+    static_assert(std::is_same<decltype(IndexType), int32>::value,
+                  "IndexType must be a 32 bit integer");
 
 public:
     using EnableBatchLinOp<Ell>::convert_to;
@@ -315,8 +319,6 @@ private:
                num_elems_per_row;
     }
 
-
-protected:
     /**
      * Creates an uninitialized Ell matrix of the specified size.
      *
@@ -369,7 +371,6 @@ protected:
                     const MultiVector<value_type>* beta,
                     MultiVector<value_type>* x) const;
 
-private:
     index_type num_elems_per_row_;
     array<value_type> values_;
     array<index_type> col_idxs_;
