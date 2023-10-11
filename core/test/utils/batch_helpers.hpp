@@ -82,11 +82,22 @@ std::unique_ptr<MatrixType> generate_random_batch_matrix(
     auto result = MatrixType::create(
         exec, batch_dim<2>(num_batch_items, dim<2>(num_rows, num_cols)),
         std::forward<MatrixArgs>(args)...);
+    auto sp_mat = generate_random_device_matrix_data<value_type, index_type>(
+        num_rows, num_cols, nonzero_dist, value_dist, engine,
+        exec->get_master());
+    auto row_idxs = gko::array<index_type>::const_view(
+                        exec->get_master(), sp_mat.get_num_elems(),
+                        sp_mat.get_const_row_idxs())
+                        .copy_to_array();
+    auto col_idxs = gko::array<index_type>::const_view(
+                        exec->get_master(), sp_mat.get_num_elems(),
+                        sp_mat.get_const_col_idxs())
+                        .copy_to_array();
 
     for (size_type b = 0; b < num_batch_items; b++) {
-        auto rand_mat =
-            generate_random_matrix<typename MatrixType::unbatch_type>(
-                num_rows, num_cols, nonzero_dist, value_dist, engine, exec);
+        auto rand_mat = fill_random_matrix_with_sparsity_pattern<
+            typename MatrixType::unbatch_type, index_type>(
+            num_rows, num_cols, row_idxs, col_idxs, value_dist, engine, exec);
         result->create_view_for_item(b)->copy_from(rand_mat.get());
     }
 

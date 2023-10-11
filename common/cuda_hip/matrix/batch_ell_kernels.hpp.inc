@@ -46,7 +46,7 @@ __device__ __forceinline__ void simple_apply(
         for (size_type idx = 0; idx < num_stored_elements_per_row; idx++) {
             const auto ind = tidx + idx * stride;
             const auto col_idx = col[ind];
-            if (col_idx < idx) {
+            if (col_idx == invalid_index<int>()) {
                 break;
             } else {
                 temp += val[ind] * b[col_idx];
@@ -102,7 +102,7 @@ __device__ __forceinline__ void advanced_apply(
         for (size_type idx = 0; idx < num_stored_elements_per_row; idx++) {
             const auto ind = tidx + idx * stride;
             const auto col_idx = col[ind];
-            if (col_idx < idx) {
+            if (col_idx == invalid_index<int>()) {
                 break;
             } else {
                 temp += alpha * val[ind] * b[col_idx];
