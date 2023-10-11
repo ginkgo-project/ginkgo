@@ -58,9 +58,14 @@ namespace matrix {
  * Ell is a sparse matrix format that stores the same number of nonzeros in each
  * row, enabling coalesced accesses. It is suitable for sparsity patterns that
  * have a similar number of nonzeros in every row. The values are stored in a
- * column-major fashion similar to the monolithic gko::matrix::Ell class. It is
- * also assumed that the sparsity pattern of all the items in the batch is the
- * same and therefore only a single copy of the sparsity pattern is stored.
+ * column-major fashion similar to the monolithic gko::matrix::Ell class.
+ *
+ * Similar to the monolithic gko::matrix::Ell class, invalid_index<IndexType> is
+ * used as the column index for padded zero entries.
+ *
+ * @note It is also assumed that the sparsity pattern of all the items in the
+ * batch is the same and therefore only a single copy of the sparsity pattern is
+ * stored.
  *
  * @tparam ValueType  value precision of matrix elements
  * @tparam IndexType  index precision of matrix elements
@@ -253,13 +258,13 @@ public:
 
     /**
      * Creates a constant (immutable) batch ell matrix from a constant
-     * array.
+     * array. The column indices array needs to be the same for all batch items.
      *
      * @param exec  the executor to create the matrix on
      * @param size  the dimensions of the matrix
      * @param num_elems_per_row  the number of elements to be stored in each row
      * @param values  the value array of the matrix
-     * @param col_idxs the col_idxs array of the matrix
+     * @param col_idxs the col_idxs array of a single batch item of the matrix.
      *
      * @return A smart pointer to the constant matrix wrapping the input
      * array (if it resides on the same executor as the matrix) or a copy of the
@@ -325,7 +330,7 @@ protected:
 
     /**
      * Creates a Ell matrix from an already allocated (and initialized)
-     * array.
+     * array. The column indices array needs to be the same for all batch items.
      *
      * @tparam ValuesArray  type of array of values
      *
@@ -333,7 +338,7 @@ protected:
      * @param size  size of the matrix
      * @param num_elems_per_row  the number of elements to be stored in each row
      * @param values  array of matrix values
-     * @param col_idxs the col_idxs array of the matrix
+     * @param col_idxs the col_idxs array of a single batch item of the matrix.
      *
      * @note If `values` is not an rvalue, not an array of ValueType, or is on
      *       the wrong executor, an internal copy will be created, and the

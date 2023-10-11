@@ -55,7 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class Ell : public CommonTestFixture {
 protected:
-    using BMtx = gko::batch::matrix::Ell<value_type>;
+    using BMtx = gko::batch::matrix::Ell<value_type, gko::int32>;
     using BMVec = gko::batch::MultiVector<value_type>;
 
     Ell() : rand_engine(15) {}

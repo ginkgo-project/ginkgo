@@ -128,13 +128,6 @@ Ell<ValueType, IndexType>::create_const(
 }
 
 
-inline const batch_dim<2> get_col_sizes(const batch_dim<2>& sizes)
-{
-    return batch_dim<2>(sizes.get_num_batch_items(),
-                        dim<2>(1, sizes.get_common_size()[1]));
-}
-
-
 template <typename ValueType, typename IndexType>
 Ell<ValueType, IndexType>::Ell(std::shared_ptr<const Executor> exec,
                                const batch_dim<2>& size,
