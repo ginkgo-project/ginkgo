@@ -233,8 +233,8 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_values_for_item(
-        size_type batch_id) const noexcept
+    const value_type* get_const_values_for_item(size_type batch_id) const
+        noexcept
     {
         GKO_ASSERT(batch_id < this->get_num_batch_items());
         return values_.get_const_data() + this->get_cumulative_offset(batch_id);
@@ -275,11 +275,8 @@ public:
      * @param b  the multi-vector to be applied to
      * @param x  the output multi-vector
      */
-    void apply(const MultiVector<value_type>* b,
-               MultiVector<value_type>* x) const
-    {
-        this->apply_impl(b, x);
-    }
+    Dense* apply(ptr_param<const MultiVector<value_type>> b,
+                 ptr_param<MultiVector<value_type>> x);
 
     /**
      * Apply the matrix to a multi-vector with a linear combination of the given
@@ -291,13 +288,26 @@ public:
      * @param beta   the scalar to scale the x vector with
      * @param x      the output multi-vector
      */
-    void apply(const MultiVector<value_type>* alpha,
-               const MultiVector<value_type>* b,
-               const MultiVector<value_type>* beta,
-               MultiVector<value_type>* x) const
-    {
-        this->apply_impl(alpha, b, beta, x);
-    }
+    Dense* apply(ptr_param<const MultiVector<value_type>> alpha,
+                 ptr_param<const MultiVector<value_type>> b,
+                 ptr_param<const MultiVector<value_type>> beta,
+                 ptr_param<MultiVector<value_type>> x);
+
+    /**
+     * @copydoc apply(const MultiVector<value_type>*, MultiVector<value_type>*)
+     */
+    const Dense* apply(ptr_param<const MultiVector<value_type>> b,
+                       ptr_param<MultiVector<value_type>> x) const;
+
+    /**
+     * @copydoc apply(const MultiVector<value_type>*, const
+     * MultiVector<value_type>*, const MultiVector<value_type>*,
+     * MultiVector<value_type>*)
+     */
+    const Dense* apply(ptr_param<const MultiVector<value_type>> alpha,
+                       ptr_param<const MultiVector<value_type>> b,
+                       ptr_param<const MultiVector<value_type>> beta,
+                       ptr_param<MultiVector<value_type>> x) const;
 
 private:
     inline size_type compute_num_elems(const batch_dim<2>& size)
