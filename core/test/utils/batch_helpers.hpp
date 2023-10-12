@@ -95,9 +95,10 @@ std::unique_ptr<MatrixType> generate_random_batch_matrix(
                         .copy_to_array();
 
     for (size_type b = 0; b < num_batch_items; b++) {
-        auto rand_mat = fill_random_matrix_with_sparsity_pattern<
-            typename MatrixType::unbatch_type, index_type>(
-            num_rows, num_cols, row_idxs, col_idxs, value_dist, engine, exec);
+        auto rand_mat =
+            fill_random_matrix<typename MatrixType::unbatch_type, index_type>(
+                num_rows, num_cols, row_idxs, col_idxs, value_dist, engine,
+                exec);
         result->create_view_for_item(b)->copy_from(rand_mat.get());
     }
 

@@ -44,9 +44,10 @@ __dpct_inline__ void simple_apply_kernel(
             const auto col_idx = mat.col_idxs[tidx + idx * mat.stride];
             if (col_idx == invalid_index<IndexType>()) {
                 break;
-            } else
+            } else {
                 temp += mat.values[tidx + idx * mat.stride] *
                         b.values[col_idx * b.stride];
+            }
         }
         x.values[tidx * x.stride] = temp;
     }
@@ -69,11 +70,12 @@ __dpct_inline__ void advanced_apply_kernel(
             const auto col_idx = mat.col_idxs[tidx + idx * mat.stride];
             if (col_idx == invalid_index<IndexType>()) {
                 break;
-            } else
-                temp += alpha.values[0] * mat.values[tidx + idx * mat.stride] *
+            } else {
+                temp += mat.values[tidx + idx * mat.stride] *
                         b.values[col_idx * b.stride];
+            }
         }
         x.values[tidx * x.stride] =
-            temp + beta.values[0] * x.values[tidx * x.stride];
+            alpha.values[0] * temp + beta.values[0] * x.values[tidx * x.stride];
     }
 }

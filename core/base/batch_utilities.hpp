@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -46,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
+#include <ginkgo/core/matrix/batch_dense.hpp>
 
 
 namespace gko {
@@ -126,6 +128,36 @@ auto unbatch(const InputType* batch_object)
 }
 
 
+namespace detail {
+
+
+template <typename ValueType, typename IndexType>
+void assert_same_sparsity_in_batched_data(
+    const std::vector<gko::matrix_data<ValueType, IndexType>>& data)
+{
+    auto num_nnz = data[0].nonzeros.size();
+    auto base_data = data[0];
+    base_data.ensure_row_major_order();
+    for (int b = 0; b < data.size(); ++b) {
+        if (data[b].nonzeros.size() != num_nnz) {
+            GKO_NOT_IMPLEMENTED;
+        }
+        auto temp_data = data[b];
+        temp_data.ensure_row_major_order();
+        for (int nnz = 0; nnz < num_nnz; ++nnz) {
+            if (temp_data.nonzeros[nnz].row != base_data.nonzeros[nnz].row ||
+                temp_data.nonzeros[nnz].column !=
+                    base_data.nonzeros[nnz].column) {
+                GKO_NOT_IMPLEMENTED;
+            }
+        }
+    }
+}
+
+
+}  // namespace detail
+
+
 template <typename ValueType, typename IndexType, typename OutputType,
           typename... TArgs>
 std::unique_ptr<OutputType> read(
@@ -134,6 +166,12 @@ std::unique_ptr<OutputType> read(
     TArgs&&... create_args)
 {
     auto num_batch_items = data.size();
+    // Throw if all the items in the batch dont have same sparsity.
+    if (!std::is_same<OutputType,
+                      gko::batch::matrix::Dense<ValueType>>::value &&
+        !std::is_same<OutputType, gko::batch::MultiVector<ValueType>>::value) {
+        detail::assert_same_sparsity_in_batched_data(data);
+    }
     auto tmp =
         OutputType::create(exec, batch_dim<2>(num_batch_items, data[0].size),
                            std::forward<TArgs>(create_args)...);
@@ -163,7 +201,8 @@ std::vector<gko::matrix_data<ValueType, IndexType>> write(
 
 
 /**
- * Creates and initializes a batch of single column-vectors.
+ * Creates and initializes a batch of the specified Matrix type with a single
+ * column-vector.
  *
  * @tparam Matrix  matrix type to initialize (It has to implement the
  *                 read<Matrix> function)
@@ -278,15 +317,16 @@ std::unique_ptr<Matrix> initialize(
 
 
 /**
- * Creates and initializes a batch single column-vector by making copies of the
- * single input column vector.
+ * Creates and initializes a batch of specified Matrix type with a single
+ * column-vector by making copies of the single input column vector.
  *
  * @tparam Matrix  matrix type to initialize (It has to implement the
  *                 read<Matrix> function)
  * @tparam TArgs  argument types for Matrix::create method
  *                (not including the implied Executor as the first argument)
  *
- * @param num_vectors  The number of times the input vector is to be duplicated
+ * @param num_batch_items  The number of times the input vector is to be
+ *                         duplicated
  * @param vals  values used to initialize each vector in the temp. batch
  * @param exec  Executor associated with the matrix
  * @param create_args  additional arguments passed to Matrix::create, not
@@ -297,21 +337,20 @@ std::unique_ptr<Matrix> initialize(
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
-    const size_type num_vectors,
+    const size_type num_batch_items,
     std::initializer_list<typename Matrix::value_type> vals,
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
 {
     using value_type = typename Matrix::value_type;
     using index_type = typename Matrix::index_type;
     using mat_data = gko::matrix_data<value_type, index_type>;
-    size_type num_batch_items = num_vectors;
     GKO_THROW_IF_INVALID(num_batch_items > 0 && vals.size() > 0,
                          "Input data is empty");
     auto num_rows = begin(vals) ? vals.size() : 0;
     auto common_size = dim<2>(num_rows, 1);
     auto b_size = batch_dim<2>(num_batch_items, common_size);
     std::vector<mat_data> input_mat_data(num_batch_items, common_size);
-    for (size_type batch = 0; batch < num_vectors; batch++) {
+    for (size_type batch = 0; batch < num_batch_items; batch++) {
         input_mat_data[batch].nonzeros.reserve(num_rows);
         size_type idx = 0;
         for (const auto& elem : vals) {
@@ -334,7 +373,7 @@ std::unique_ptr<Matrix> initialize(
  * @tparam TArgs  argument types for Matrix::create method
  *                (not including the implied Executor as the first argument)
  *
- * @param num_batch_items The number of times the input matrix is duplicated
+ * @param num_batch_items  The number of times the input matrix is duplicated
  * @param vals  values used to initialize each matrix in the temp. batch
  * @param exec  Executor associated to the matrix
  * @param create_args  additional arguments passed to Matrix::create, not

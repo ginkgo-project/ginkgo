@@ -206,23 +206,24 @@ generate_random_device_matrix_data(gko::size_type num_rows,
  * @tparam MatrixType  type of matrix to generate (must implement
  *                     the interface `ReadableFromMatrixData<>` and provide
  *                     matching `value_type` and `index_type` type aliases)
+ * @tparam IndexType  the type for row and column indices
+ * @tparam ValueDistribution  type of value distribution
+ * @tparam Engine  type of random engine
  *
  * @param num_rows  number of rows
  * @param num_cols  number of columns
- * @param value_dist  distribution of matrix values
  * @param row_idxs  the row indices of the matrix
  * @param col_idxs  the column indices of the matrix
+ * @param value_dist  distribution of matrix values
  * @param exec  executor where the matrix should be allocated
  * @param args  additional arguments for the matrix constructor
- *
- * The other (template) parameters match generate_random_matrix_data.
  *
  * @return the unique pointer of MatrixType
  */
 template <typename MatrixType = matrix::Dense<>,
           typename IndexType = typename MatrixType::index_type,
           typename ValueDistribution, typename Engine, typename... MatrixArgs>
-std::unique_ptr<MatrixType> fill_random_matrix_with_sparsity_pattern(
+std::unique_ptr<MatrixType> fill_random_matrix(
     size_type num_rows, size_type num_cols,
     const gko::array<IndexType>& row_idxs,
     const gko::array<IndexType>& col_idxs, ValueDistribution&& value_dist,

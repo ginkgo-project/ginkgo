@@ -360,7 +360,7 @@ TYPED_TEST(Ell, CanBeListConstructed)
     using BatchEllMtx = typename TestFixture::BatchEllMtx;
     using EllMtx = typename TestFixture::EllMtx;
 
-    auto m = gko::batch::initialize<BatchEllMtx>({{0.0, -1.0}, {1.0, 0.0}},
+    auto m = gko::batch::initialize<BatchEllMtx>({{0.0, -1.0}, {0.0, -5.0}},
                                                  this->exec);
 
     ASSERT_EQ(m->get_num_batch_items(), 2);
@@ -369,10 +369,10 @@ TYPED_TEST(Ell, CanBeListConstructed)
     ASSERT_EQ(m->get_num_stored_elements_per_row(), 1);
     EXPECT_EQ(m->get_values()[0], value_type{0.0});
     EXPECT_EQ(m->get_values()[1], value_type{-1.0});
-    EXPECT_EQ(m->get_values()[2], value_type{1.0});
-    EXPECT_EQ(m->get_values()[3], value_type{0.0});
-    EXPECT_EQ(m->get_col_idxs()[0], index_type{0});
-    EXPECT_EQ(m->get_col_idxs()[1], index_type{-1});
+    EXPECT_EQ(m->get_values()[2], value_type{0.0});
+    EXPECT_EQ(m->get_values()[3], value_type{-5.0});
+    EXPECT_EQ(m->get_col_idxs()[0], index_type{-1});
+    EXPECT_EQ(m->get_col_idxs()[1], index_type{0});
 }
 
 
@@ -456,6 +456,28 @@ TYPED_TEST(Ell, CanBeReadFromMatrixData)
                                                                    vec_data, 2);
 
     this->assert_equal_to_original_sparse_mtx(m.get());
+}
+
+
+TYPED_TEST(Ell, CanBeDetectDataWithDifferentSparsity)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using BatchEllMtx = typename TestFixture::BatchEllMtx;
+    auto vec_data = std::vector<gko::matrix_data<value_type, index_type>>{};
+    vec_data.emplace_back(
+        gko::matrix_data<value_type, index_type>({2, 3}, {
+                                                             {0, 0, -1.0},
+                                                             {1, 1, 2.5},
+                                                             {1, 2, 0.5},
+                                                             {2, 2, -3.0},
+                                                         }));
+    vec_data.emplace_back(gko::matrix_data<value_type, index_type>(
+        {2, 3}, {{0, 0, 1.0}, {1, 1, 2.0}, {1, 2, 3.0}}));
+
+    EXPECT_THROW(
+        gko::batch::detail::assert_same_sparsity_in_batched_data(vec_data),
+        gko::NotImplemented);
 }
 
 
