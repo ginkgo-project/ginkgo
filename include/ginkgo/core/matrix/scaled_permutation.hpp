@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/permutation.hpp>
 
 
 namespace gko {
@@ -63,9 +64,7 @@ namespace matrix {
 template <typename ValueType = default_precision, typename IndexType = int32>
 class ScaledPermutation
     : public EnableLinOp<ScaledPermutation<ValueType, IndexType>>,
-      public EnableCreateMethod<ScaledPermutation<ValueType, IndexType>>,
       public WritableToMatrixData<ValueType, IndexType> {
-    friend class EnableCreateMethod<ScaledPermutation>;
     friend class EnablePolymorphicObject<ScaledPermutation, LinOp>;
 
 public:
@@ -118,7 +117,50 @@ public:
      */
     std::unique_ptr<ScaledPermutation> invert() const;
 
+    /**
+     * Combines this scaled permutation with another scaled permutation via
+     * composition. This means `result = other * this` from the matrix
+     * perspective, which is equivalent to first scaling and permuting by `this`
+     * and then by `other`.
+     *
+     * @param other  the other permutation
+     * @return the combined permutation
+     */
+    std::unique_ptr<ScaledPermutation> combine(
+        ptr_param<const ScaledPermutation> other) const;
+
     void write(gko::matrix_data<value_type, index_type>& data) const override;
+
+    /**
+     * Creates an uninitialized ScaledPermutation matrix.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  dimensions of the (square) scaled permutation matrix
+     */
+    static std::unique_ptr<ScaledPermutation> create(
+        std::shared_ptr<const Executor> exec, size_type size = 0);
+
+    /**
+     * Create a ScaledPermutation from a Permutation.
+     * The permutation will be copied, the scaling factors are all set to 1.0.
+     *
+     * @param permutation  the permutation
+     * @return  the scaled permutation.
+     */
+    static std::unique_ptr<ScaledPermutation> create(
+        ptr_param<const Permutation<IndexType>> permutation);
+
+    /**
+     * Creates a ScaledPermutation matrix from already allocated (and
+     * initialized) arrays.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param permutation_indices  array of permutation indices
+     * @param scaling_factors  array of scaling factors
+     */
+    static std::unique_ptr<ScaledPermutation> create(
+        std::shared_ptr<const Executor> exec, array<value_type> scaling_factors,
+        array<index_type> permutation_indices);
 
     /**
      * Creates a constant (immutable) ScaledPermutation matrix from constant
@@ -137,32 +179,16 @@ public:
         gko::detail::const_array_view<index_type>&& perm_idxs);
 
 protected:
-    /**
-     * Creates an uninitialized ScaledPermutation matrix.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  dimensions of the (square) scaled permutation matrix
-     */
     ScaledPermutation(std::shared_ptr<const Executor> exec, size_type size = 0);
 
-    /**
-     * Creates a ScaledPermutation matrix from already allocated (and
-     * initialized) arrays.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param permutation_indices  array of permutation indices
-     * @param scaling_factors  array of scaling factors
-     */
     ScaledPermutation(std::shared_ptr<const Executor> exec,
                       array<value_type> scaling_factors,
                       array<index_type> permutation_indices);
 
     void apply_impl(const LinOp* in, LinOp* out) const override;
 
-
     void apply_impl(const LinOp*, const LinOp* in, const LinOp*,
                     LinOp* out) const override;
-
 
 private:
     array<value_type> scale_;

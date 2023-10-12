@@ -38,9 +38,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <random>
 
 
 #include "core/test/utils.hpp"
+#include "ginkgo/core/base/exception.hpp"
 
 
 namespace {
@@ -78,11 +80,55 @@ TYPED_TEST(Permutation, Invert)
 }
 
 
+TYPED_TEST(Permutation, Combine)
+{
+    using index_type = typename TestFixture::index_type;
+    auto perm = gko::matrix::Permutation<index_type>::create(
+        this->exec, gko::array<index_type>{this->exec, {1, 2, 0}});
+    auto perm2 = gko::matrix::Permutation<index_type>::create(
+        this->exec, gko::array<index_type>{this->exec, {0, 2, 1}});
+
+    auto combined = perm->combine(perm2);
+
+    EXPECT_EQ(combined->get_const_permutation()[0], 2);
+    EXPECT_EQ(combined->get_const_permutation()[1], 1);
+    EXPECT_EQ(combined->get_const_permutation()[2], 0);
+}
+
+
+TYPED_TEST(Permutation, CombineWithInverse)
+{
+    using index_type = typename TestFixture::index_type;
+    const gko::size_type size = 20;
+    auto perm = gko::matrix::Permutation<index_type>::create(this->exec, size);
+    std::iota(perm->get_permutation(), perm->get_permutation() + size, 0);
+    std::shuffle(perm->get_permutation(), perm->get_permutation() + size,
+                 std::default_random_engine{29584});
+
+    auto combined = perm->combine(perm->invert());
+
+    for (index_type i = 0; i < size; i++) {
+        ASSERT_EQ(combined->get_const_permutation()[i], i);
+    }
+}
+
+
+TYPED_TEST(Permutation, CombineFailsWithMismatchingSize)
+{
+    using index_type = typename TestFixture::index_type;
+    auto perm = gko::matrix::Permutation<index_type>::create(
+        this->exec, gko::array<index_type>{this->exec, {1, 2, 0}});
+    auto perm0 = gko::matrix::Permutation<index_type>::create(this->exec);
+
+    ASSERT_THROW(perm->combine(perm0), gko::DimensionMismatch);
+}
+
+
 TYPED_TEST(Permutation, Write)
 {
     using index_type = typename TestFixture::index_type;
     auto perm = gko::matrix::Permutation<index_type>::create(
-        this->exec, 3, gko::array<index_type>{this->exec, {1, 2, 0}});
+        this->exec, gko::array<index_type>{this->exec, {1, 2, 0}});
 
     GKO_ASSERT_MTX_NEAR(
         perm, l<double>({{0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}, {1.0, 0.0, 0.0}}),

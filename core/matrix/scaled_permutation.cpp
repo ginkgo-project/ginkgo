@@ -32,6 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
 #include "core/matrix/scaled_permutation_kernels.hpp"
+#include "ginkgo/core/base/exception_helpers.hpp"
 #include "ginkgo/core/base/executor.hpp"
 #include "ginkgo/core/base/precision_dispatch.hpp"
 
@@ -43,6 +44,7 @@ namespace {
 
 
 GKO_REGISTER_OPERATION(invert, scaled_permutation::invert);
+GKO_REGISTER_OPERATION(combine, scaled_permutation::combine);
 
 
 }  // namespace
@@ -73,17 +75,81 @@ ScaledPermutation<ValueType, IndexType>::ScaledPermutation(
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<ScaledPermutation<ValueType, IndexType>>
+ScaledPermutation<ValueType, IndexType>::create(
+    std::shared_ptr<const Executor> exec, size_type size)
+{
+    return std::unique_ptr<ScaledPermutation>(
+        new ScaledPermutation{exec, size});
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<ScaledPermutation<ValueType, IndexType>>
+ScaledPermutation<ValueType, IndexType>::create(
+    ptr_param<const Permutation<IndexType>> permutation)
+{
+    const auto exec = permutation->get_executor();
+    const auto size = permutation->get_size()[0];
+    array<value_type> scale{exec, size};
+    array<index_type> perm{exec, size};
+    exec->copy(size, permutation->get_const_permutation(), perm.get_data());
+    scale.fill(one<ValueType>());
+    return create(exec, std::move(scale), std::move(perm));
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<ScaledPermutation<ValueType, IndexType>>
+ScaledPermutation<ValueType, IndexType>::create(
+    std::shared_ptr<const Executor> exec, array<value_type> scaling_factors,
+    array<index_type> permutation_indices)
+{
+    return std::unique_ptr<ScaledPermutation>(new ScaledPermutation{
+        exec, std::move(scaling_factors), std::move(permutation_indices)});
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<const ScaledPermutation<ValueType, IndexType>>
+ScaledPermutation<ValueType, IndexType>::create_const(
+    std::shared_ptr<const Executor> exec,
+    gko::detail::const_array_view<value_type>&& scale,
+    gko::detail::const_array_view<index_type>&& perm_idxs)
+{
+    return create(exec, gko::detail::array_const_cast(std::move(scale)),
+                  gko::detail::array_const_cast(std::move(perm_idxs)));
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<ScaledPermutation<ValueType, IndexType>>
 ScaledPermutation<ValueType, IndexType>::invert() const
 {
     const auto exec = this->get_executor();
     const auto size = this->get_size()[0];
-    array<index_type> inv_permutation{exec, size};
-    array<value_type> inv_scale{exec, size};
+    auto result = ScaledPermutation::create(exec, size);
     exec->run(scaled_permutation::make_invert(
-        this->get_const_permutation(), this->get_const_scale(), size,
-        inv_permutation.get_data(), inv_scale.get_data()));
-    return ScaledPermutation::create(exec, std::move(inv_scale),
-                                     std::move(inv_permutation));
+        this->get_const_scale(), this->get_const_permutation(), size,
+        result->get_scale(), result->get_permutation()));
+    return result;
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<ScaledPermutation<ValueType, IndexType>>
+ScaledPermutation<ValueType, IndexType>::combine(
+    ptr_param<const ScaledPermutation> other) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, other);
+    const auto exec = this->get_executor();
+    const auto size = this->get_size()[0];
+    const auto local_other = make_temporary_clone(exec, other);
+    auto result = ScaledPermutation::create(exec, size);
+    exec->run(scaled_permutation::make_combine(
+        this->get_const_scale(), this->get_const_permutation(),
+        local_other->get_const_scale(), local_other->get_const_permutation(),
+        size, result->get_scale(), result->get_permutation()));
+    return result;
 }
 
 

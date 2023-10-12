@@ -61,6 +61,24 @@ void invert(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PERMUTATION_INVERT_KERNEL);
 
 
+template <typename IndexType>
+void combine(std::shared_ptr<const DefaultExecutor> exec,
+             const IndexType* first_permutation,
+             const IndexType* second_permutation, size_type size,
+             IndexType* output_permutation)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto first_permutation, auto second_permutation,
+                      auto output_permutation) {
+            output_permutation[i] = second_permutation[first_permutation[i]];
+        },
+        size, first_permutation, second_permutation, output_permutation);
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PERMUTATION_COMBINE_KERNEL);
+
+
 }  // namespace permutation
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels

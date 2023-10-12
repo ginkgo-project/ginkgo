@@ -52,14 +52,20 @@ protected:
     {
         std::vector<int> tmp(1000, 0);
         std::iota(tmp.begin(), tmp.end(), 0);
+        auto tmp2 = tmp;
         std::shuffle(tmp.begin(), tmp.end(), rand_engine);
-        permutation = Perm::create(ref, tmp.size(), gko::array<index_type>(ref, tmp.begin(), tmp.end()));
+        std::shuffle(tmp2.begin(), tmp2.end(), rand_engine);
+        permutation = Perm::create(
+            ref, gko::array<index_type>(ref, tmp.begin(), tmp.end()));
+        permutation2 = Perm::create(
+            ref, gko::array<index_type>(ref, tmp2.begin(), tmp2.end()));
         dpermutation = permutation->clone(exec);
     }
 
     std::default_random_engine rand_engine;
 
     std::unique_ptr<Perm> permutation;
+    std::unique_ptr<Perm> permutation2;
     std::unique_ptr<Perm> dpermutation;
 };
 
@@ -70,4 +76,13 @@ TEST_F(Permutation, InvertIsEquivalentToRef)
     auto dinv = dpermutation->invert();
 
     GKO_ASSERT_MTX_EQ_SPARSITY(inv, dinv);
+}
+
+
+TEST_F(Permutation, CombineIsEquivalentToRef)
+{
+    auto combined = permutation->combine(permutation2);
+    auto dcombined = dpermutation->combine(permutation2);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(combined, dcombined);
 }
