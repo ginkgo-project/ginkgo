@@ -30,15 +30,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/log/profiler_hook.hpp>
+
 #if GKO_HAVE_TAU
 #define PERFSTUBS_USE_TIMERS
 #include <perfstubs_api/timer.h>
 #endif
-
-
-#include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/log/profiler_hook.hpp>
-
 
 namespace gko {
 namespace log {
@@ -56,7 +54,7 @@ void begin_tau(const char* name, profile_event_category)
 }
 
 
-void end_tau(const char*, profile_event_category)
+void end_tau(const char* name, profile_event_category)
 {
     PERFSTUBS_STOP_STRING(name);
 }
