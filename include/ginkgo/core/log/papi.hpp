@@ -208,10 +208,7 @@ public:
     create(std::shared_ptr<const gko::Executor>,
            const Logger::mask_type& enabled_events = Logger::all_events_mask)
     {
-        return std::shared_ptr<Papi>(new Papi(enabled_events), [](auto logger) {
-            papi_sde_shutdown(logger->get_handle());
-            delete logger;
-        });
+        return Papi::create(enabled_events);
     }
 
     /**
@@ -223,8 +220,9 @@ public:
         const Logger::mask_type& enabled_events = Logger::all_events_mask)
     {
         return std::shared_ptr<Papi>(new Papi(enabled_events), [](auto logger) {
-            papi_sde_shutdown(logger->get_handle());
+            auto handle = logger->get_handle();
             delete logger;
+            papi_sde_shutdown(handle);
         });
     }
 
