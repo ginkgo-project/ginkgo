@@ -206,7 +206,6 @@ template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::apply_impl(const MultiVector<ValueType>* b,
                                            MultiVector<ValueType>* x) const
 {
-    this->validate_application_parameters(b, x);
     this->get_executor()->run(ell::make_simple_apply(this, b, x));
 }
 
@@ -217,7 +216,6 @@ void Ell<ValueType, IndexType>::apply_impl(const MultiVector<ValueType>* alpha,
                                            const MultiVector<ValueType>* beta,
                                            MultiVector<ValueType>* x) const
 {
-    this->validate_application_parameters(alpha, b, beta, x);
     this->get_executor()->run(
         ell::make_advanced_apply(alpha, this, b, beta, x));
 }
