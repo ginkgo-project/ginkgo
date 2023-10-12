@@ -42,7 +42,7 @@ __dpct_inline__ void simple_apply_kernel(
         auto temp = zero<ValueType>();
         for (size_type idx = 0; idx < mat.num_stored_elems_per_row; idx++) {
             const auto col_idx = mat.col_idxs[tidx + idx * mat.stride];
-            if (col_idx != invalid_index<IndexType>()) {
+            if (col_idx == invalid_index<IndexType>()) {
                 break;
             } else
                 temp += mat.values[tidx + idx * mat.stride] *
@@ -67,7 +67,7 @@ __dpct_inline__ void advanced_apply_kernel(
         auto temp = zero<ValueType>();
         for (size_type idx = 0; idx < mat.num_stored_elems_per_row; idx++) {
             const auto col_idx = mat.col_idxs[tidx + idx * mat.stride];
-            if (col_idx != invalid_index<IndexType>()) {
+            if (col_idx == invalid_index<IndexType>()) {
                 break;
             } else
                 temp += alpha.values[0] * mat.values[tidx + idx * mat.stride] *

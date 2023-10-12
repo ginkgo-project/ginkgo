@@ -85,7 +85,7 @@ class Ell final
     friend class EnablePolymorphicObject<Ell, BatchLinOp>;
     friend class Ell<to_complex<ValueType>, IndexType>;
     friend class Ell<next_precision<ValueType>, IndexType>;
-    static_assert(std::is_same<decltype(IndexType), int32>::value,
+    static_assert(std::is_same<IndexType, int32>::value,
                   "IndexType must be a 32 bit integer");
 
 public:
@@ -94,8 +94,7 @@ public:
 
     using value_type = ValueType;
     using index_type = IndexType;
-    using transposed_type = Ell<ValueType, IndexType>;
-    using unbatch_type = gko::matrix::Ell<ValueType, IndexType>;
+    using unbatch_type = gko::matrix::Ell<value_type, index_type>;
     using absolute_type = remove_complex<Ell>;
     using complex_type = to_complex<Ell>;
 
@@ -223,8 +222,8 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type* get_const_col_idxs_for_item(
-        size_type batch_id) const noexcept
+    const index_type* get_const_col_idxs_for_item(size_type batch_id) const
+        noexcept
     {
         GKO_ASSERT(batch_id < this->get_num_batch_items());
         return col_idxs_.get_const_data();
@@ -252,8 +251,8 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_values_for_item(
-        size_type batch_id) const noexcept
+    const value_type* get_const_values_for_item(size_type batch_id) const
+        noexcept
     {
         GKO_ASSERT(batch_id < this->get_num_batch_items());
         return values_.get_const_data() +
@@ -277,8 +276,8 @@ public:
     static std::unique_ptr<const Ell> create_const(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
         const index_type num_elems_per_row,
-        gko::detail::const_array_view<ValueType>&& values,
-        gko::detail::const_array_view<IndexType>&& col_idxs);
+        gko::detail::const_array_view<value_type>&& values,
+        gko::detail::const_array_view<index_type>&& col_idxs);
 
     /**
      * Apply the matrix to a multi-vector. Represents the matrix vector
@@ -287,29 +286,39 @@ public:
      * @param b  the multi-vector to be applied to
      * @param x  the output multi-vector
      */
-    void apply(const MultiVector<value_type>* b,
-               MultiVector<value_type>* x) const
-    {
-        this->apply_impl(b, x);
-    }
+    Ell* apply(ptr_param<const MultiVector<value_type>> b,
+               ptr_param<MultiVector<value_type>> x);
 
     /**
      * Apply the matrix to a multi-vector with a linear combination of the given
-     * input vector. Represents the matrix vector multiplication, x = alpha* A *
-     * b + beta * x, where x and b are both multi-vectors.
+     * input vector. Represents the matrix vector multiplication, x = alpha * A
+     * * b + beta * x, where x and b are both multi-vectors.
      *
      * @param alpha  the scalar to scale the matrix-vector product with
      * @param b      the multi-vector to be applied to
      * @param beta   the scalar to scale the x vector with
      * @param x      the output multi-vector
      */
-    void apply(const MultiVector<value_type>* alpha,
-               const MultiVector<value_type>* b,
-               const MultiVector<value_type>* beta,
-               MultiVector<value_type>* x) const
-    {
-        this->apply_impl(alpha, b, beta, x);
-    }
+    Ell* apply(ptr_param<const MultiVector<value_type>> alpha,
+               ptr_param<const MultiVector<value_type>> b,
+               ptr_param<const MultiVector<value_type>> beta,
+               ptr_param<MultiVector<value_type>> x);
+
+    /**
+     * @copydoc apply(const MultiVector<value_type>*, MultiVector<value_type>*)
+     */
+    const Ell* apply(ptr_param<const MultiVector<value_type>> b,
+                     ptr_param<MultiVector<value_type>> x) const;
+
+    /**
+     * @copydoc apply(const MultiVector<value_type>*, const
+     * MultiVector<value_type>*, const MultiVector<value_type>*,
+     * MultiVector<value_type>*)
+     */
+    const Ell* apply(ptr_param<const MultiVector<value_type>> alpha,
+                     ptr_param<const MultiVector<value_type>> b,
+                     ptr_param<const MultiVector<value_type>> beta,
+                     ptr_param<MultiVector<value_type>> x) const;
 
 private:
     size_type compute_num_elems(const batch_dim<2>& size,
