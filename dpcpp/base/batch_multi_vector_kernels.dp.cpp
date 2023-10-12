@@ -37,11 +37,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/range_accessors.hpp>
 
 
+#include "core/base/batch_struct.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "dpcpp/base/batch_struct.hpp"
 #include "dpcpp/base/config.hpp"

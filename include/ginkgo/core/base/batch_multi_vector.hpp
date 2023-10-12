@@ -52,6 +52,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace batch {
+namespace matrix {
+
+
+template <typename ValueType>
+class Dense;
+
+
+}
+
 
 /**
  * MultiVector stores multiple vectors in a batched fashion and is useful
@@ -81,21 +90,25 @@ class MultiVector
     : public EnablePolymorphicObject<MultiVector<ValueType>>,
       public EnablePolymorphicAssignment<MultiVector<ValueType>>,
       public EnableCreateMethod<MultiVector<ValueType>>,
-      public ConvertibleTo<MultiVector<next_precision<ValueType>>> {
+      public ConvertibleTo<MultiVector<next_precision<ValueType>>>,
+      public ConvertibleTo<matrix::Dense<ValueType>> {
     friend class EnableCreateMethod<MultiVector>;
     friend class EnablePolymorphicObject<MultiVector>;
     friend class MultiVector<to_complex<ValueType>>;
     friend class MultiVector<next_precision<ValueType>>;
+    friend class matrix::Dense<ValueType>;
 
 public:
     using EnablePolymorphicAssignment<MultiVector>::convert_to;
     using EnablePolymorphicAssignment<MultiVector>::move_to;
     using ConvertibleTo<MultiVector<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<MultiVector<next_precision<ValueType>>>::move_to;
+    using ConvertibleTo<matrix::Dense<ValueType>>::convert_to;
+    using ConvertibleTo<matrix::Dense<ValueType>>::move_to;
 
     using value_type = ValueType;
     using index_type = int32;
-    using unbatch_type = matrix::Dense<ValueType>;
+    using unbatch_type = gko::matrix::Dense<ValueType>;
     using absolute_type = remove_complex<MultiVector<ValueType>>;
     using complex_type = to_complex<MultiVector<ValueType>>;
 
@@ -112,6 +125,10 @@ public:
         MultiVector<next_precision<ValueType>>* result) const override;
 
     void move_to(MultiVector<next_precision<ValueType>>* result) override;
+
+    void convert_to(matrix::Dense<ValueType>* result) const override;
+
+    void move_to(matrix::Dense<ValueType>* result) override;
 
     /**
      * Creates a mutable view (of matrix::Dense type) of one item of the Batch
@@ -185,8 +202,7 @@ public:
     value_type* get_values_for_item(size_type batch_id) noexcept
     {
         GKO_ASSERT(batch_id < this->get_num_batch_items());
-        return values_.get_data() +
-               this->get_size().get_cumulative_offset(batch_id);
+        return values_.get_data() + this->get_cumulative_offset(batch_id);
     }
 
     /**
@@ -200,8 +216,7 @@ public:
         size_type batch_id) const noexcept
     {
         GKO_ASSERT(batch_id < this->get_num_batch_items());
-        return values_.get_const_data() +
-               this->get_size().get_cumulative_offset(batch_id);
+        return values_.get_const_data() + this->get_cumulative_offset(batch_id);
     }
 
     /**
@@ -214,6 +229,19 @@ public:
     size_type get_num_stored_elements() const noexcept
     {
         return values_.get_num_elems();
+    }
+
+    /**
+     * Get the cumulative storage size offset
+     *
+     * @param batch_id the batch id
+     *
+     * @return the cumulative offset
+     */
+    size_type get_cumulative_offset(size_type batch_id) const
+    {
+        return batch_id * this->get_common_size()[0] *
+               this->get_common_size()[1];
     }
 
     /**
@@ -358,7 +386,8 @@ public:
 private:
     inline size_type compute_num_elems(const batch_dim<2>& size)
     {
-        return size.get_cumulative_offset(size.get_num_batch_items());
+        return size.get_num_batch_items() * size.get_common_size()[0] *
+               size.get_common_size()[1];
     }
 
 protected:
@@ -417,7 +446,7 @@ protected:
     size_type linearize_index(size_type batch, size_type row,
                               size_type col) const noexcept
     {
-        return batch_size_.get_cumulative_offset(batch) +
+        return this->get_cumulative_offset(batch) +
                row * batch_size_.get_common_size()[1] + col;
     }
 

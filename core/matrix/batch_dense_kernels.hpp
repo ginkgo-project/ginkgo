@@ -30,66 +30,54 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_REFERENCE_BASE_BATCH_STRUCT_HPP_
-#define GKO_REFERENCE_BASE_BATCH_STRUCT_HPP_
+#ifndef GKO_CORE_MATRIX_BATCH_DENSE_KERNELS_HPP_
+#define GKO_CORE_MATRIX_BATCH_DENSE_KERNELS_HPP_
+
+
+#include <ginkgo/core/matrix/batch_dense.hpp>
 
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
-#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
-#include "core/base/batch_struct.hpp"
+#include "core/base/kernel_declaration.hpp"
 
 
 namespace gko {
 namespace kernels {
-/**
- * @brief A namespace for shared functionality between omp and reference
- *  executors.
- */
-namespace host {
 
 
-/** @file batch_struct.hpp
- *
- * Helper functions to generate a batch struct from a batch LinOp.
- *
- * A specialization is needed for every format of every kind of linear algebra
- * object. These are intended to be called on the host.
- */
+#define GKO_DECLARE_BATCH_DENSE_SIMPLE_APPLY_KERNEL(_type)         \
+    void simple_apply(std::shared_ptr<const DefaultExecutor> exec, \
+                      const batch::matrix::Dense<_type>* a,        \
+                      const batch::MultiVector<_type>* b,          \
+                      batch::MultiVector<_type>* c)
+
+#define GKO_DECLARE_BATCH_DENSE_ADVANCED_APPLY_KERNEL(_type)         \
+    void advanced_apply(std::shared_ptr<const DefaultExecutor> exec, \
+                        const batch::MultiVector<_type>* alpha,      \
+                        const batch::matrix::Dense<_type>* a,        \
+                        const batch::MultiVector<_type>* b,          \
+                        const batch::MultiVector<_type>* beta,       \
+                        batch::MultiVector<_type>* c)
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                        \
+    template <typename ValueType>                           \
+    GKO_DECLARE_BATCH_DENSE_SIMPLE_APPLY_KERNEL(ValueType); \
+    template <typename ValueType>                           \
+    GKO_DECLARE_BATCH_DENSE_ADVANCED_APPLY_KERNEL(ValueType)
 
 
-/**
- * Generates an immutable uniform batch struct from a batch of multi-vectors.
- */
-template <typename ValueType>
-inline batch::multi_vector::uniform_batch<const ValueType> get_batch_struct(
-    const batch::MultiVector<ValueType>* const op)
-{
-    return {op->get_const_values(), op->get_num_batch_items(),
-            static_cast<int32>(op->get_common_size()[1]),
-            static_cast<int32>(op->get_common_size()[0]),
-            static_cast<int32>(op->get_common_size()[1])};
-}
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(batch_dense,
+                                        GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
-/**
- * Generates a uniform batch struct from a batch of multi-vectors.
- */
-template <typename ValueType>
-inline batch::multi_vector::uniform_batch<ValueType> get_batch_struct(
-    batch::MultiVector<ValueType>* const op)
-{
-    return {op->get_values(), op->get_num_batch_items(),
-            static_cast<int32>(op->get_common_size()[1]),
-            static_cast<int32>(op->get_common_size()[0]),
-            static_cast<int32>(op->get_common_size()[1])};
-}
+#undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 
-}  // namespace host
 }  // namespace kernels
 }  // namespace gko
 
 
-#endif  // GKO_REFERENCE_BASE_BATCH_STRUCT_HPP_
+#endif  // GKO_CORE_MATRIX_BATCH_DENSE_KERNELS_HPP_

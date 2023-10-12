@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/batch_dense.hpp>
 
 
 #include "core/base/batch_multi_vector_kernels.hpp"
@@ -72,7 +73,7 @@ namespace detail {
 
 template <typename ValueType>
 batch_dim<2> compute_batch_size(
-    const std::vector<matrix::Dense<ValueType>*>& matrices)
+    const std::vector<gko::matrix::Dense<ValueType>*>& matrices)
 {
     auto common_size = matrices[0]->get_size();
     for (size_type i = 1; i < matrices.size(); ++i) {
@@ -86,7 +87,7 @@ batch_dim<2> compute_batch_size(
 
 
 template <typename ValueType>
-std::unique_ptr<matrix::Dense<ValueType>>
+std::unique_ptr<gko::matrix::Dense<ValueType>>
 MultiVector<ValueType>::create_view_for_item(size_type item_id)
 {
     auto exec = this->get_executor();
@@ -102,7 +103,7 @@ MultiVector<ValueType>::create_view_for_item(size_type item_id)
 
 
 template <typename ValueType>
-std::unique_ptr<const matrix::Dense<ValueType>>
+std::unique_ptr<const gko::matrix::Dense<ValueType>>
 MultiVector<ValueType>::create_const_view_for_item(size_type item_id) const
 {
     auto exec = this->get_executor();
@@ -285,6 +286,27 @@ void MultiVector<ValueType>::convert_to(
 template <typename ValueType>
 void MultiVector<ValueType>::move_to(
     MultiVector<next_precision<ValueType>>* result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType>
+void MultiVector<ValueType>::convert_to(matrix::Dense<ValueType>* result) const
+{
+    auto exec = result->get_executor() == nullptr ? this->get_executor()
+                                                  : result->get_executor();
+    auto tmp = gko::batch::matrix::Dense<ValueType>::create_const(
+        exec, this->get_size(),
+        make_const_array_view(this->get_executor(),
+                              this->get_num_stored_elements(),
+                              this->get_const_values()));
+    result->copy_from(tmp);
+}
+
+
+template <typename ValueType>
+void MultiVector<ValueType>::move_to(matrix::Dense<ValueType>* result)
 {
     this->convert_to(result);
 }

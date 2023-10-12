@@ -720,8 +720,8 @@ template <typename Mat1, typename Mat2>
     using value_type1 = typename Mat1::value_type;
     using value_type2 = typename Mat2::value_type;
 
-    auto first_data = gko::batch::multivector::write<value_type1, int>(first);
-    auto second_data = gko::batch::multivector::write<value_type2, int>(second);
+    auto first_data = gko::batch::write<value_type1, int, Mat1>(first);
+    auto second_data = gko::batch::write<value_type2, int, Mat2>(second);
 
     if (first_data.size() != second_data.size()) {
         return ::testing::AssertionFailure()

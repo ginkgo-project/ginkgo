@@ -30,35 +30,36 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_BATCH_STRUCT_HPP_
-#define GKO_CORE_BASE_BATCH_STRUCT_HPP_
+#ifndef GKO_CORE_MATRIX_BATCH_STRUCT_HPP_
+#define GKO_CORE_MATRIX_BATCH_STRUCT_HPP_
 
 
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/batch_dense.hpp>
 
 
 namespace gko {
 namespace batch {
-namespace multi_vector {
+namespace matrix {
+namespace dense {
 
 
 /**
- * Encapsulates one matrix from a batch of multi-vectors.
+ * Encapsulates one matrix from a batch of dense matrices.
  */
 template <typename ValueType>
 struct batch_item {
     using value_type = ValueType;
-    ValueType* values;
+    value_type* values;
     int32 stride;
     int32 num_rows;
-    int32 num_rhs;
+    int32 num_cols;
 };
 
 
 /**
- * A 'simple' structure to store a global uniform batch of multi-vectors.
+ * A 'simple' structure to store a global uniform batch of dense matrices.
  */
 template <typename ValueType>
 struct uniform_batch {
@@ -69,7 +70,7 @@ struct uniform_batch {
     size_type num_batch_items;
     int32 stride;
     int32 num_rows;
-    int32 num_rhs;
+    int32 num_cols;
 
     size_type get_entry_storage() const
     {
@@ -78,56 +79,46 @@ struct uniform_batch {
 };
 
 
-}  // namespace multi_vector
+}  // namespace dense
 
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE multi_vector::batch_item<const ValueType> to_const(
-    const multi_vector::batch_item<ValueType>& b)
+GKO_ATTRIBUTES GKO_INLINE dense::batch_item<const ValueType> to_const(
+    const dense::batch_item<ValueType>& b)
 {
-    return {b.values, b.stride, b.num_rows, b.num_rhs};
+    return {b.values, b.stride, b.num_rows, b.num_cols};
 }
 
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE multi_vector::uniform_batch<const ValueType> to_const(
-    const multi_vector::uniform_batch<ValueType>& ub)
+GKO_ATTRIBUTES GKO_INLINE dense::uniform_batch<const ValueType> to_const(
+    const dense::uniform_batch<ValueType>& ub)
 {
-    return {ub.values, ub.num_batch_items, ub.stride, ub.num_rows, ub.num_rhs};
+    return {ub.values, ub.num_batch_items, ub.stride, ub.num_rows, ub.num_cols};
 }
 
 
-/**
- * Extract one object (matrix, vector etc.) from a batch of objects
- *
- * This overload is for batch multi-vectors.
- * These overloads are intended to be called from within a kernel.
- *
- * @param batch  The batch of objects to extract from
- * @param batch_idx  The position of the desired object in the batch
- */
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE multi_vector::batch_item<ValueType>
-extract_batch_item(const multi_vector::uniform_batch<ValueType>& batch,
-                   const size_type batch_idx)
+GKO_ATTRIBUTES GKO_INLINE dense::batch_item<ValueType> extract_batch_item(
+    const dense::uniform_batch<ValueType>& batch, const size_type batch_idx)
 {
     return {batch.values + batch_idx * batch.stride * batch.num_rows,
-            batch.stride, batch.num_rows, batch.num_rhs};
+            batch.stride, batch.num_rows, batch.num_cols};
 }
 
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE multi_vector::batch_item<ValueType>
-extract_batch_item(ValueType* const batch_values, const int32 stride,
-                   const int32 num_rows, const int32 num_rhs,
-                   const size_type batch_idx)
+GKO_ATTRIBUTES GKO_INLINE dense::batch_item<ValueType> extract_batch_item(
+    ValueType* const batch_values, const int32 stride, const int32 num_rows,
+    const int32 num_cols, const size_type batch_idx)
 {
     return {batch_values + batch_idx * stride * num_rows, stride, num_rows,
-            num_rhs};
+            num_cols};
 }
 
 
+}  // namespace matrix
 }  // namespace batch
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_BATCH_STRUCT_HPP_
+#endif  // GKO_CORE_MATRIX_BATCH_STRUCT_HPP_

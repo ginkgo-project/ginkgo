@@ -51,16 +51,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace batch {
-namespace multivector {
 
 
-template <typename ValueType>
-std::unique_ptr<batch::MultiVector<ValueType>> duplicate(
-    std::shared_ptr<const Executor> exec, size_type num_duplications,
-    const batch::MultiVector<ValueType>* input)
+template <typename OutputType>
+std::unique_ptr<OutputType> duplicate(std::shared_ptr<const Executor> exec,
+                                      size_type num_duplications,
+                                      const OutputType* input)
 {
     auto num_batch_items = input->get_num_batch_items();
-    auto tmp = batch::MultiVector<ValueType>::create(
+    auto tmp = OutputType::create(
         exec, batch_dim<2>(num_batch_items * num_duplications,
                            input->get_common_size()));
 
@@ -75,13 +74,13 @@ std::unique_ptr<batch::MultiVector<ValueType>> duplicate(
 }
 
 
-template <typename ValueType>
-std::unique_ptr<batch::MultiVector<ValueType>> create_from_dense(
+template <typename OutputType>
+std::unique_ptr<OutputType> create_from_item(
     std::shared_ptr<const Executor> exec, const size_type num_duplications,
-    const matrix::Dense<ValueType>* input)
+    const typename OutputType::unbatch_type* input)
 {
     auto num_batch_items = num_duplications;
-    auto tmp = batch::MultiVector<ValueType>::create(
+    auto tmp = OutputType::create(
         exec, batch_dim<2>(num_batch_items, input->get_size()));
 
     for (size_type b = 0; b < num_batch_items; ++b) {
@@ -92,13 +91,13 @@ std::unique_ptr<batch::MultiVector<ValueType>> create_from_dense(
 }
 
 
-template <typename ValueType>
-std::unique_ptr<batch::MultiVector<ValueType>> create_from_dense(
+template <typename OutputType>
+std::unique_ptr<OutputType> create_from_item(
     std::shared_ptr<const Executor> exec,
-    const std::vector<matrix::Dense<ValueType>*>& input)
+    const std::vector<typename OutputType::unbatch_type*>& input)
 {
     auto num_batch_items = input.size();
-    auto tmp = batch::MultiVector<ValueType>::create(
+    auto tmp = OutputType::create(
         exec, batch_dim<2>(num_batch_items, input[0]->get_size()));
 
     for (size_type b = 0; b < num_batch_items; ++b) {
@@ -109,29 +108,27 @@ std::unique_ptr<batch::MultiVector<ValueType>> create_from_dense(
 }
 
 
-template <typename ValueType>
-std::vector<std::unique_ptr<matrix::Dense<ValueType>>> unbatch(
-    const batch::MultiVector<ValueType>* batch_multivec)
+template <typename InputType>
+auto unbatch(const InputType* batch_object)
 {
-    auto exec = batch_multivec->get_executor();
     auto unbatched_mats =
-        std::vector<std::unique_ptr<matrix::Dense<ValueType>>>{};
-    for (size_type b = 0; b < batch_multivec->get_num_batch_items(); ++b) {
+        std::vector<std::unique_ptr<typename InputType::unbatch_type>>{};
+    for (size_type b = 0; b < batch_object->get_num_batch_items(); ++b) {
         unbatched_mats.emplace_back(
-            batch_multivec->create_const_view_for_item(b)->clone());
+            batch_object->create_const_view_for_item(b)->clone());
     }
     return unbatched_mats;
 }
 
 
-template <typename ValueType, typename IndexType>
-std::unique_ptr<MultiVector<ValueType>> read(
+template <typename ValueType, typename IndexType, typename OutputType>
+std::unique_ptr<OutputType> read(
     std::shared_ptr<const Executor> exec,
     const std::vector<gko::matrix_data<ValueType, IndexType>>& data)
 {
     auto num_batch_items = data.size();
-    auto tmp = MultiVector<ValueType>::create(
-        exec, batch_dim<2>(num_batch_items, data[0].size));
+    auto tmp =
+        OutputType::create(exec, batch_dim<2>(num_batch_items, data[0].size));
 
     for (size_type b = 0; b < num_batch_items; ++b) {
         tmp->create_view_for_item(b)->read(data[b]);
@@ -141,9 +138,9 @@ std::unique_ptr<MultiVector<ValueType>> read(
 }
 
 
-template <typename ValueType, typename IndexType>
+template <typename ValueType, typename IndexType, typename OutputType>
 std::vector<gko::matrix_data<ValueType, IndexType>> write(
-    const MultiVector<ValueType>* mvec)
+    const OutputType* mvec)
 {
     auto data = std::vector<gko::matrix_data<ValueType, IndexType>>(
         mvec->get_num_batch_items());
@@ -157,7 +154,6 @@ std::vector<gko::matrix_data<ValueType, IndexType>> write(
 }
 
 
-}  // namespace multivector
 }  // namespace batch
 }  // namespace gko
 

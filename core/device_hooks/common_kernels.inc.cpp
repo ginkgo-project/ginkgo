@@ -57,6 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/par_ict_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
+#include "core/matrix/batch_dense_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
@@ -297,6 +298,16 @@ GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_MULTI_VECTOR_COPY_KERNEL);
 
 
 }  // namespace batch_multi_vector
+
+
+namespace batch_dense {
+
+
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SIMPLE_APPLY_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_ADVANCED_APPLY_KERNEL);
+
+
+}  // namespace batch_dense
 
 
 namespace dense {
