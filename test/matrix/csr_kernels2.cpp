@@ -918,14 +918,11 @@ TEST_F(Csr, IsGenericPermutableRectangular)
 
     auto rpermuted = mtx->permute(rpermutation, permute_mode::rows);
     auto drpermuted = dmtx->permute(rpermutation, permute_mode::rows);
-    auto irpermuted =
-        mtx->permute(rpermutation, permute_mode::inverse_rows);
-    auto dirpermuted =
-        dmtx->permute(rpermutation, permute_mode::inverse_rows);
+    auto irpermuted = mtx->permute(rpermutation, permute_mode::inverse_rows);
+    auto dirpermuted = dmtx->permute(rpermutation, permute_mode::inverse_rows);
     auto cpermuted = mtx->permute(cpermutation, permute_mode::columns);
     auto dcpermuted = dmtx->permute(cpermutation, permute_mode::columns);
-    auto icpermuted =
-        mtx->permute(cpermutation, permute_mode::inverse_columns);
+    auto icpermuted = mtx->permute(cpermutation, permute_mode::inverse_columns);
     auto dicpermuted =
         dmtx->permute(cpermutation, permute_mode::inverse_columns);
 
@@ -1021,8 +1018,10 @@ TEST_F(Csr, IsNonsymmScalePermutable)
 
     for (auto invert : {false, true}) {
         SCOPED_TRACE(invert);
-        auto permuted = mtx->scale_permute(srpermutation, scpermutation, invert);
-        auto dpermuted = dmtx->scale_permute(srpermutation, scpermutation, invert);
+        auto permuted =
+            mtx->scale_permute(srpermutation, scpermutation, invert);
+        auto dpermuted =
+            dmtx->scale_permute(srpermutation, scpermutation, invert);
 
         GKO_EXPECT_MTX_NEAR(permuted, dpermuted, r<value_type>::value);
         GKO_EXPECT_MTX_EQ_SPARSITY(permuted, dpermuted);
