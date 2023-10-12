@@ -188,16 +188,16 @@ public:
                                const array<stopping_status>* status,
                                bool stopped) const override;
 
-    [[deprecated(
-        "Please use the version with the additional stopping "
-        "information.")]] void
+    [
+        [deprecated("Please use the version with the additional stopping "
+                    "information.")]] void
     on_iteration_complete(const LinOp* solver, const size_type& num_iterations,
                           const LinOp* residual, const LinOp* solution,
                           const LinOp* residual_norm) const override;
 
-    [[deprecated(
-        "Please use the version with the additional stopping "
-        "information.")]] void
+    [
+        [deprecated("Please use the version with the additional stopping "
+                    "information.")]] void
     on_iteration_complete(
         const LinOp* solver, const size_type& num_iterations,
         const LinOp* residual, const LinOp* solution,
@@ -213,7 +213,7 @@ public:
     create(std::shared_ptr<const gko::Executor>,
            const Logger::mask_type& enabled_events = Logger::all_events_mask)
     {
-        return std::shared_ptr<Papi>(new Papi(enabled_events));
+        return Papi::create(enabled_events);
     }
 
     /**
@@ -224,7 +224,11 @@ public:
     static std::shared_ptr<Papi> create(
         const Logger::mask_type& enabled_events = Logger::all_events_mask)
     {
-        return std::shared_ptr<Papi>(new Papi(enabled_events));
+        return std::shared_ptr<Papi>(new Papi(enabled_events), [](auto logger) {
+            auto handle = logger->get_handle();
+            delete logger;
+            papi_sde_shutdown(handle);
+        });
     }
 
     /**
