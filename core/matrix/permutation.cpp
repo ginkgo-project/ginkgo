@@ -31,12 +31,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <ginkgo/core/matrix/permutation.hpp>
+
+
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/precision_dispatch.hpp>
+#include <ginkgo/core/base/temporary_clone.hpp>
+#include <ginkgo/core/base/utils_helper.hpp>
+
+
 #include "core/base/dispatch_helper.hpp"
 #include "core/matrix/permutation_kernels.hpp"
-#include "ginkgo/core/base/exception_helpers.hpp"
-#include "ginkgo/core/base/executor.hpp"
-#include "ginkgo/core/base/precision_dispatch.hpp"
-#include "ginkgo/core/base/utils_helper.hpp"
 
 
 namespace gko {
@@ -45,9 +50,10 @@ namespace permutation {
 
 
 GKO_REGISTER_OPERATION(invert, permutation::invert);
+GKO_REGISTER_OPERATION(combine, permutation::combine);
 
 
-}
+}  // namespace permutation
 
 
 template <typename IndexType>
@@ -162,10 +168,26 @@ std::unique_ptr<Permutation<IndexType>> Permutation<IndexType>::invert() const
 {
     const auto exec = this->get_executor();
     const auto size = this->get_size()[0];
-    array<index_type> inv_permutation{exec, size};
+    auto result = Permutation<IndexType>::create(exec, size);
     exec->run(permutation::make_invert(this->get_const_permutation(), size,
-                                       inv_permutation.get_data()));
-    return Permutation::create(exec, std::move(inv_permutation));
+                                       result->get_permutation()));
+    return result;
+}
+
+
+template <typename IndexType>
+std::unique_ptr<Permutation<IndexType>> Permutation<IndexType>::combine(
+    ptr_param<const Permutation<IndexType>> other) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, other);
+    const auto exec = this->get_executor();
+    const auto size = this->get_size()[0];
+    const auto local_other = make_temporary_clone(exec, other);
+    auto result = Permutation<IndexType>::create(exec, size);
+    exec->run(permutation::make_combine(this->get_const_permutation(),
+                                        local_other->get_const_permutation(),
+                                        size, result->get_permutation()));
+    return result;
 }
 
 

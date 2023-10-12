@@ -202,6 +202,18 @@ public:
      */
     std::unique_ptr<Permutation> invert() const;
 
+    /**
+     * Combines this permutation with another permutation via composition.
+     * The resulting permutation fulfills `result[i] = other[this[i]]`
+     * or `result = other * this` from the matrix perspective, which is
+     * equivalent to first permuting by `this` and then by `other`.
+     *
+     * @param other  the other permutation
+     * @return the combined permutation
+     */
+    std::unique_ptr<Permutation> combine(
+        ptr_param<const Permutation> other) const;
+
     void write(gko::matrix_data<value_type, index_type>& data) const override;
 
     /**

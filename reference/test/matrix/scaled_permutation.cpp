@@ -90,6 +90,69 @@ TYPED_TEST(ScaledPermutation, Invert)
 }
 
 
+TYPED_TEST(ScaledPermutation, CreateFromPermutation)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto non_scaled = gko::matrix::Permutation<index_type>::create(
+        this->exec, gko::array<index_type>{this->exec, {1, 2, 0}});
+
+    auto scaled = Mtx::create(non_scaled);
+
+    EXPECT_EQ(scaled->get_const_permutation()[0], 1);
+    EXPECT_EQ(scaled->get_const_permutation()[1], 2);
+    EXPECT_EQ(scaled->get_const_permutation()[2], 0);
+    EXPECT_EQ(scaled->get_const_scale()[0], gko::one<value_type>());
+    EXPECT_EQ(scaled->get_const_scale()[1], gko::one<value_type>());
+    EXPECT_EQ(scaled->get_const_scale()[2], gko::one<value_type>());
+}
+
+
+TYPED_TEST(ScaledPermutation, Combine)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto other_perm = Mtx::create(
+        this->exec, gko::array<value_type>{this->exec, {3.0, 5.0, 7.0}},
+        gko::array<index_type>{this->exec, {1, 0, 2}});
+
+    auto combined = this->perm3->combine(other_perm);
+
+    EXPECT_EQ(combined->get_const_permutation()[0], 0);
+    EXPECT_EQ(combined->get_const_permutation()[1], 2);
+    EXPECT_EQ(combined->get_const_permutation()[2], 1);
+    EXPECT_EQ(combined->get_const_scale()[0], value_type{7});
+    EXPECT_EQ(combined->get_const_scale()[1], value_type{6});
+    EXPECT_EQ(combined->get_const_scale()[2], value_type{20});
+}
+
+
+TYPED_TEST(ScaledPermutation, CombineWithInverse)
+{
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    const gko::size_type size = 20;
+    auto rng = std::default_random_engine{3754};
+    auto perm = gko::matrix::Permutation<index_type>::create(this->exec, size);
+    std::iota(perm->get_permutation(), perm->get_permutation() + size, 0);
+    std::shuffle(perm->get_permutation(), perm->get_permutation() + size, rng);
+
+    auto combined = perm->combine(perm->invert());
+
+    for (index_type i = 0; i < size; i++) {
+        ASSERT_EQ(combined->get_const_permutation()[i], i);
+    }
+}
+
+
+TYPED_TEST(ScaledPermutation, CombineFailsWithMismatchingSize)
+{
+    ASSERT_THROW(this->perm3->combine(this->perm2), gko::DimensionMismatch);
+}
+
+
 TYPED_TEST(ScaledPermutation, Write)
 {
     using T = typename TestFixture::value_type;

@@ -44,9 +44,9 @@ namespace scaled_permutation {
 
 template <typename ValueType, typename IndexType>
 void invert(std::shared_ptr<const DefaultExecutor> exec,
-            const IndexType* input_permutation, const ValueType* input_scale,
-            size_type size, IndexType* output_permutation,
-            ValueType* output_scale)
+            const ValueType* input_scale, const IndexType* input_permutation,
+            size_type size, ValueType* output_scale,
+            IndexType* output_permutation)
 {
     for (size_type i = 0; i < size; i++) {
         const auto ip = input_permutation[i];
@@ -57,6 +57,26 @@ void invert(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SCALED_PERMUTATION_INVERT_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void combine(std::shared_ptr<const DefaultExecutor> exec,
+             const ValueType* first_scale, const IndexType* first_permutation,
+             const ValueType* second_scale, const IndexType* second_permutation,
+             size_type size, ValueType* output_scale,
+             IndexType* output_permutation)
+{
+    // P_2 S_2 P_1 S_1 = P_2 P_1 S'_2 S_1 with S'_2 = P_1^-1 S_2 P_1^-T
+    for (size_type i = 0; i < size; i++) {
+        const auto first_permuted = first_permutation[i];
+        output_permutation[i] = second_permutation[first_permuted];
+        output_scale[first_permuted] =
+            first_scale[first_permuted] * second_scale[i];
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SCALED_PERMUTATION_COMBINE_KERNEL);
 
 
 }  // namespace scaled_permutation

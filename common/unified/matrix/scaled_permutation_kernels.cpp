@@ -47,23 +47,48 @@ namespace scaled_permutation {
 
 template <typename ValueType, typename IndexType>
 void invert(std::shared_ptr<const DefaultExecutor> exec,
-            const IndexType* input_permutation, const ValueType* input_scale,
-            size_type size, IndexType* output_permutation,
-            ValueType* output_scale)
+            const ValueType* input_scale, const IndexType* input_permutation,
+            size_type size, ValueType* output_scale,
+            IndexType* output_permutation)
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto input_permutation, auto input_scale,
-                      auto output_permutation, auto output_scale) {
+        [] GKO_KERNEL(auto i, auto input_scale, auto input_permutation,
+                      auto output_scale, auto output_permutation) {
             const auto ip = input_permutation[i];
             output_permutation[ip] = i;
             output_scale[i] = one(input_scale[ip]) / input_scale[ip];
         },
-        size, input_permutation, input_scale, output_permutation, output_scale);
+        size, input_scale, input_permutation, output_scale, output_permutation);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SCALED_PERMUTATION_INVERT_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void combine(std::shared_ptr<const DefaultExecutor> exec,
+             const ValueType* first_scale, const IndexType* first_permutation,
+             const ValueType* second_scale, const IndexType* second_permutation,
+             size_type size, ValueType* output_scale,
+             IndexType* output_permutation)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto first_scale, auto first_permutation,
+                      auto second_scale, auto second_permutation,
+                      auto output_permutation, auto output_scale) {
+            const auto first_permuted = first_permutation[i];
+            output_permutation[i] = second_permutation[first_permuted];
+            output_scale[first_permuted] =
+                first_scale[first_permuted] * second_scale[i];
+        },
+        size, first_scale, first_permutation, second_scale, second_permutation,
+        output_permutation, output_scale);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SCALED_PERMUTATION_COMBINE_KERNEL);
 
 
 }  // namespace scaled_permutation
