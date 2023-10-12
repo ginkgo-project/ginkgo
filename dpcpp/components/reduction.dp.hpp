@@ -94,6 +94,23 @@ __dpct_inline__ ValueType reduce(const Group& group, ValueType local_data,
 }
 
 
+template <
+    int subsize, typename Group, typename ValueType, typename Operator,
+    typename = std::enable_if_t<group::is_communicator_group<Group>::value>>
+__dpct_inline__ ValueType reduce(const Group& group, ValueType local_data,
+                                 Operator reduce_op = Operator{})
+{
+    // TODO: it may be return back to the usual implementation without subsize
+    // when the cluster group comes.
+#pragma unroll
+    for (int32 bitmask = 1; bitmask < subsize; bitmask <<= 1) {
+        const auto remote_data = group.shfl_xor(local_data, bitmask);
+        local_data = reduce_op(local_data, remote_data);
+    }
+    return local_data;
+}
+
+
 /**
  * @internal
  *

@@ -72,12 +72,7 @@ size_type calculate_nwarps(std::shared_ptr<const DpcppExecutor> exec,
                            const size_type nnz)
 {
     size_type nsgs_in_dpcpp = exec->get_num_subgroups();
-    size_type multiple = 8;
-    if (nnz >= 2e8) {
-        multiple = 256;
-    } else if (nnz >= 2e7) {
-        multiple = 32;
-    }
+    size_type multiple = 2;
 #ifdef GINKGO_BENCHMARK_ENABLE_TUNING
     if (_tuning_flag) {
         multiple = _tuned_value;

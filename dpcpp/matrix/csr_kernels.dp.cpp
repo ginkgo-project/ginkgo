@@ -93,7 +93,11 @@ constexpr int classical_oversubscription = 32;
  */
 using compiled_kernels = syn::value_list<int, 6>;
 
-using classical_kernels = syn::value_list<int, config::warp_size, 16, 1>;
+using classical_kernels =
+    syn::value_list<int, config::warp_size, 16, 8, 4, 2, 1>;
+
+using classical_subgroup_kernels =
+    syn::value_list<int, 1, 16, config::warp_size>;
 
 
 namespace kernel {
@@ -639,9 +643,9 @@ void abstract_reduce(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 }
 
 
-template <size_type subgroup_size, typename matrix_accessor,
-          typename input_accessor, typename output_accessor, typename IndexType,
-          typename Closure>
+template <size_type subgroup_size, int subsize = subgroup_size,
+          typename matrix_accessor, typename input_accessor,
+          typename output_accessor, typename IndexType, typename Closure>
 void device_classical_spmv(const size_type num_rows,
                            acc::range<matrix_accessor> val,
                            const IndexType* __restrict__ col_idxs,
@@ -653,33 +657,41 @@ void device_classical_spmv(const size_type num_rows,
     using arithmetic_type = typename output_accessor::arithmetic_type;
     auto subgroup_tile = group::tiled_partition<subgroup_size>(
         group::this_thread_block(item_ct1));
-    const auto subrow = thread::get_subwarp_num_flat<subgroup_size>(item_ct1);
-    const auto subid = subgroup_tile.thread_rank();
+    const auto subrow = thread::get_subwarp_num_flat<subgroup_size>(item_ct1) *
+                        (subgroup_size / subsize);
+    const auto subid = subgroup_tile.thread_rank() % subsize;
     const auto column_id = item_ct1.get_group(1);
-    auto row = thread::get_subwarp_id_flat<subgroup_size>(item_ct1);
-    for (; row < num_rows; row += subrow) {
-        const auto ind_end = row_ptrs[row + 1];
+    auto lead_row = thread::get_subwarp_id_flat<subgroup_size>(item_ct1) *
+                    (subgroup_size / subsize);
+    // To keep all work-item of the same subgroup
+    for (; lead_row < num_rows; lead_row += subrow) {
+        auto row = lead_row + subgroup_tile.thread_rank() / subsize;
         auto temp_val = zero<arithmetic_type>();
-        for (auto ind = row_ptrs[row] + subid; ind < ind_end;
-             ind += subgroup_size) {
-            temp_val += val(ind) * b(col_idxs[ind], column_id);
+        if (row < num_rows) {
+            const auto ind_end = row_ptrs[row + 1];
+            for (auto ind = row_ptrs[row] + subid; ind < ind_end;
+                 ind += subsize) {
+                temp_val += val(ind) * b(col_idxs[ind], column_id);
+            }
         }
-        auto subgroup_result = ::gko::kernels::dpcpp::reduce(
+        auto subgroup_result = ::gko::kernels::dpcpp::reduce<subsize>(
             subgroup_tile, temp_val,
             [](const arithmetic_type& a, const arithmetic_type& b) {
                 return a + b;
             });
-        // TODO: check the barrier
+        // Note: we needed the barrier because it was an optimization issue on
+        // cpu. If something goes wrong again, we may check this first.
         subgroup_tile.sync();
-        if (subid == 0) {
+        if (subid == 0 && row < num_rows) {
             c(row, column_id) = scale(subgroup_result, c(row, column_id));
         }
     }
 }
 
 
-template <size_type subgroup_size, typename matrix_accessor,
-          typename input_accessor, typename output_accessor, typename IndexType>
+template <size_type subgroup_size, int subsize = subgroup_size,
+          typename matrix_accessor, typename input_accessor,
+          typename output_accessor, typename IndexType>
 void abstract_classical_spmv(const size_type num_rows,
                              acc::range<matrix_accessor> val,
                              const IndexType* __restrict__ col_idxs,
@@ -689,13 +701,14 @@ void abstract_classical_spmv(const size_type num_rows,
                              sycl::nd_item<3> item_ct1)
 {
     using type = typename output_accessor::arithmetic_type;
-    device_classical_spmv<subgroup_size>(
+    device_classical_spmv<subgroup_size, subsize>(
         num_rows, val, col_idxs, row_ptrs, b, c,
         [](const type& x, const type& y) { return x; }, item_ct1);
 }
 
-template <size_type subgroup_size, typename matrix_accessor,
-          typename input_accessor, typename output_accessor, typename IndexType>
+template <size_type subgroup_size, int subsize = subgroup_size,
+          typename matrix_accessor, typename input_accessor,
+          typename output_accessor, typename IndexType>
 void abstract_classical_spmv(
     dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
     const size_type num_rows, acc::range<matrix_accessor> val,
@@ -704,19 +717,19 @@ void abstract_classical_spmv(
 {
     if (subgroup_size > 1) {
         queue->submit([&](sycl::handler& cgh) {
-            cgh.parallel_for(sycl_nd_range(grid, block),
-                             [=](sycl::nd_item<3> item_ct1)
-                                 [[sycl::reqd_sub_group_size(subgroup_size)]] {
-                                     abstract_classical_spmv<subgroup_size>(
-                                         num_rows, val, col_idxs, row_ptrs, b,
-                                         c, item_ct1);
-                                 });
+            cgh.parallel_for(
+                sycl_nd_range(grid, block),
+                [=](sycl::nd_item<3> item_ct1)
+                    [[sycl::reqd_sub_group_size(subgroup_size)]] {
+                        abstract_classical_spmv<subgroup_size, subsize>(
+                            num_rows, val, col_idxs, row_ptrs, b, c, item_ct1);
+                    });
         });
     } else {
         queue->submit([&](sycl::handler& cgh) {
             cgh.parallel_for(
                 sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                    abstract_classical_spmv<subgroup_size>(
+                    abstract_classical_spmv<subgroup_size, subsize>(
                         num_rows, val, col_idxs, row_ptrs, b, c, item_ct1);
                 });
         });
@@ -724,8 +737,9 @@ void abstract_classical_spmv(
 }
 
 
-template <size_type subgroup_size, typename matrix_accessor,
-          typename input_accessor, typename output_accessor, typename IndexType>
+template <size_type subgroup_size, int subsize = subgroup_size,
+          typename matrix_accessor, typename input_accessor,
+          typename output_accessor, typename IndexType>
 void abstract_classical_spmv(
     const size_type num_rows,
     const typename matrix_accessor::storage_type* __restrict__ alpha,
@@ -737,7 +751,7 @@ void abstract_classical_spmv(
     using type = typename output_accessor::arithmetic_type;
     const type alpha_val = alpha[0];
     const type beta_val = beta[0];
-    device_classical_spmv<subgroup_size>(
+    device_classical_spmv<subgroup_size, subsize>(
         num_rows, val, col_idxs, row_ptrs, b, c,
         [&alpha_val, &beta_val](const type& x, const type& y) {
             return alpha_val * x + beta_val * y;
@@ -745,8 +759,9 @@ void abstract_classical_spmv(
         item_ct1);
 }
 
-template <size_type subgroup_size, typename matrix_accessor,
-          typename input_accessor, typename output_accessor, typename IndexType>
+template <size_type subgroup_size, int subsize = subgroup_size,
+          typename matrix_accessor, typename input_accessor,
+          typename output_accessor, typename IndexType>
 void abstract_classical_spmv(
     dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
     const size_type num_rows,
@@ -758,22 +773,23 @@ void abstract_classical_spmv(
 {
     if (subgroup_size > 1) {
         queue->submit([&](sycl::handler& cgh) {
-            cgh.parallel_for(sycl_nd_range(grid, block),
-                             [=](sycl::nd_item<3> item_ct1)
-                                 [[sycl::reqd_sub_group_size(subgroup_size)]] {
-                                     abstract_classical_spmv<subgroup_size>(
-                                         num_rows, alpha, val, col_idxs,
-                                         row_ptrs, b, beta, c, item_ct1);
-                                 });
+            cgh.parallel_for(
+                sycl_nd_range(grid, block),
+                [=](sycl::nd_item<3> item_ct1)
+                    [[sycl::reqd_sub_group_size(subgroup_size)]] {
+                        abstract_classical_spmv<subgroup_size, subsize>(
+                            num_rows, alpha, val, col_idxs, row_ptrs, b, beta,
+                            c, item_ct1);
+                    });
         });
     } else {
         queue->submit([&](sycl::handler& cgh) {
-            cgh.parallel_for(sycl_nd_range(grid, block),
-                             [=](sycl::nd_item<3> item_ct1) {
-                                 abstract_classical_spmv<subgroup_size>(
-                                     num_rows, alpha, val, col_idxs, row_ptrs,
-                                     b, beta, c, item_ct1);
-                             });
+            cgh.parallel_for(
+                sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                    abstract_classical_spmv<subgroup_size, subsize>(
+                        num_rows, alpha, val, col_idxs, row_ptrs, b, beta, c,
+                        item_ct1);
+                });
         });
     }
 }
@@ -1139,9 +1155,28 @@ int compute_items_per_thread(std::shared_ptr<const DpcppExecutor> exec)
 }
 
 
-template <int subgroup_size, typename MatrixValueType, typename InputValueType,
+constexpr int get_enough_subgroup_size(int sub_size, syn::value_list<int>)
+{
+    return 0;
+}
+
+
+template <int smallest, int... others>
+constexpr int get_enough_subgroup_size(
+    int sub_size, syn::value_list<int, smallest, others...>)
+{
+    if (smallest >= sub_size) {
+        return smallest;
+    } else {
+        return get_enough_subgroup_size(sub_size,
+                                        syn::value_list<int, others...>());
+    }
+}
+
+
+template <int subsize, typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
-void classical_spmv(syn::value_list<int, subgroup_size>,
+void classical_spmv(syn::value_list<int, subsize>,
                     std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::Csr<MatrixValueType, IndexType>* a,
                     const matrix::Dense<InputValueType>* b,
@@ -1152,12 +1187,14 @@ void classical_spmv(syn::value_list<int, subgroup_size>,
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
 
-    const auto num_subgroup =
-        exec->get_num_subgroups() * classical_oversubscription;
-    const auto nsg_in_group = spmv_block_size / subgroup_size;
-    const auto gridx =
-        std::min(ceildiv(a->get_size()[0], spmv_block_size / subgroup_size),
-                 int64(num_subgroup / nsg_in_group));
+    constexpr auto subgroup_size =
+        get_enough_subgroup_size(subsize, classical_subgroup_kernels());
+    static_assert(subgroup_size != 0);
+    auto gridx = ceildiv(a->get_size()[0], spmv_block_size / subsize);
+    // sycl allows the index up to int::max by default
+    if (gridx * spmv_block_size >= std::numeric_limits<int>::max()) {
+        gridx = std::numeric_limits<int>::max() / spmv_block_size;
+    }
     const dim3 grid(gridx, b->get_size()[1]);
     const dim3 block(spmv_block_size);
 
@@ -1168,14 +1205,14 @@ void classical_spmv(syn::value_list<int, subgroup_size>,
     auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
     if (alpha == nullptr && beta == nullptr) {
         if (grid.x > 0 && grid.y > 0) {
-            kernel::abstract_classical_spmv<subgroup_size>(
+            kernel::abstract_classical_spmv<subgroup_size, subsize>(
                 grid, block, 0, exec->get_queue(), a->get_size()[0], a_vals,
                 a->get_const_col_idxs(), a->get_const_row_ptrs(), b_vals,
                 c_vals);
         }
     } else if (alpha != nullptr && beta != nullptr) {
         if (grid.x > 0 && grid.y > 0) {
-            kernel::abstract_classical_spmv<subgroup_size>(
+            kernel::abstract_classical_spmv<subgroup_size, subsize>(
                 grid, block, 0, exec->get_queue(), a->get_size()[0],
                 alpha->get_const_values(), a_vals, a->get_const_col_idxs(),
                 a->get_const_row_ptrs(), b_vals, beta->get_const_values(),
@@ -1351,26 +1388,29 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
             use_classical = !host_kernel::try_sparselib_spmv(exec, a, b, c);
         }
         if (use_classical) {
-            IndexType max_length_per_row = 0;
+            IndexType subgroup_ref = 0;
             using Tcsr = matrix::Csr<MatrixValueType, IndexType>;
             if (auto strategy =
                     std::dynamic_pointer_cast<const typename Tcsr::classical>(
                         a->get_strategy())) {
-                max_length_per_row = strategy->get_max_length_per_row();
+                subgroup_ref = strategy->get_max_length_per_row();
             } else if (auto strategy = std::dynamic_pointer_cast<
                            const typename Tcsr::automatical>(
                            a->get_strategy())) {
-                max_length_per_row = strategy->get_max_length_per_row();
+                subgroup_ref = strategy->get_max_length_per_row();
             } else {
                 // as a fall-back: use average row length, at least 1
-                max_length_per_row = a->get_num_stored_elements() /
-                                     std::max<size_type>(a->get_size()[0], 1);
+                subgroup_ref = a->get_num_stored_elements() /
+                               std::max<size_type>(a->get_size()[0], 1);
             }
-            max_length_per_row = std::max<size_type>(max_length_per_row, 1);
+            if (a->get_size()[0] >= 1e5 && subgroup_ref < 1e4) {
+                subgroup_ref = a->get_num_stored_elements() / a->get_size()[0];
+            }
+            subgroup_ref = std::max<size_type>(subgroup_ref, 1);
             host_kernel::select_classical_spmv(
                 classical_kernels(),
-                [&max_length_per_row](int compiled_info) {
-                    return max_length_per_row >= compiled_info;
+                [&subgroup_ref](int compiled_info) {
+                    return subgroup_ref >= compiled_info;
                 },
                 syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
         }
@@ -1422,26 +1462,29 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
                 !host_kernel::try_sparselib_spmv(exec, a, b, c, alpha, beta);
         }
         if (use_classical) {
-            IndexType max_length_per_row = 0;
+            IndexType subgroup_ref = 0;
             using Tcsr = matrix::Csr<MatrixValueType, IndexType>;
             if (auto strategy =
                     std::dynamic_pointer_cast<const typename Tcsr::classical>(
                         a->get_strategy())) {
-                max_length_per_row = strategy->get_max_length_per_row();
+                subgroup_ref = strategy->get_max_length_per_row();
             } else if (auto strategy = std::dynamic_pointer_cast<
                            const typename Tcsr::automatical>(
                            a->get_strategy())) {
-                max_length_per_row = strategy->get_max_length_per_row();
+                subgroup_ref = strategy->get_max_length_per_row();
             } else {
                 // as a fall-back: use average row length, at least 1
-                max_length_per_row = a->get_num_stored_elements() /
-                                     std::max<size_type>(a->get_size()[0], 1);
+                subgroup_ref = a->get_num_stored_elements() /
+                               std::max<size_type>(a->get_size()[0], 1);
             }
-            max_length_per_row = std::max<size_type>(max_length_per_row, 1);
+            if (a->get_size()[0] >= 1e5 && subgroup_ref < 1e4) {
+                subgroup_ref = a->get_num_stored_elements() / a->get_size()[0];
+            }
+            subgroup_ref = std::max<size_type>(subgroup_ref, 1);
             host_kernel::select_classical_spmv(
                 classical_kernels(),
-                [&max_length_per_row](int compiled_info) {
-                    return max_length_per_row >= compiled_info;
+                [&subgroup_ref](int compiled_info) {
+                    return subgroup_ref >= compiled_info;
                 },
                 syn::value_list<int>(), syn::type_list<>(), exec, a, b, c,
                 alpha, beta);

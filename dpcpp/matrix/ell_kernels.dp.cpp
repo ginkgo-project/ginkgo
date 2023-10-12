@@ -104,7 +104,7 @@ constexpr int max_thread_per_worker = 32;
  * 0 is a special case where it uses a sub-warp size of warp_size in
  * combination with atomic_adds.
  */
-using compiled_kernels = syn::value_list<int, 0, 16, 32>;
+using compiled_kernels = syn::value_list<int, 0, 1, 2, 4, 8, 16, 32>;
 
 
 namespace kernel {
@@ -379,14 +379,14 @@ std::array<int, 3> compute_thread_worker_and_atomicity(
     std::shared_ptr<const DpcppExecutor> exec,
     const matrix::Ell<ValueType, IndexType>* a)
 {
-    int num_thread_per_worker = 16;
+    int num_thread_per_worker = 1;
     int atomic = 0;
     int num_worker_per_row = 1;
 
     const auto nrows = a->get_size()[0];
     const auto ell_ncols = a->get_num_stored_elements_per_row();
     // TODO: num_threads_per_core should be tuned for Dpcpp
-    const auto nwarps = 16 * num_threads_per_core;
+    const auto nwarps = exec->get_num_subgroups() * num_threads_per_core;
 
     // Use multithreads to perform the reduction on each row when the matrix is
     // wide.
