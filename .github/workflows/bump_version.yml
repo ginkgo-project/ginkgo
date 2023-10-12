@@ -1,0 +1,29 @@
+name: Bump Version
+on:
+  pull_request_target:
+    types:
+      - closed
+    branches:
+      - 'develop'
+
+jobs:
+  bump_version:
+    name: Bump version when merge pull request
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.base_ref }}
+          fetch-depth: 0
+          token: ${{ secrets.PAT_TOKEN }}
+      - name: bump version
+        run: |
+          tweak=$(grep -E "set\(Ginkgo_VERSION_TWEAK" CMakeLists.txt | sed -E 's/[^0-9]//g')
+          sed -i -E 's/set\(Ginkgo_VERSION_TWEAK.*/set\(Ginkgo_VERSION_TWEAK $(( tweak + 1 ))/g' CMakeLists.txt 
+      - name: push
+        run: |
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          git commit -m "[skip ci] bump tweak version from ${{ github.event.pull_request.head.sha }}" CMakeLists.txt
+          git push --force-with-lease
