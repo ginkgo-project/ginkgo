@@ -1,7 +1,8 @@
-find_package(MKL CONFIG REQUIRED HINTS "$ENV{MKLROOT}")
-set(GINKGO_MKL_ROOT "${MKL_ROOT}" PARENT_SCOPE)
-find_package(oneDPL REQUIRED HINTS "$ENV{DPL_ROOT}")
-set(GINKGO_DPL_ROOT "${DPL_ROOT}" PARENT_SCOPE)
+find_package(MKL CONFIG REQUIRED HINTS "$ENV{MKLROOT}" "$ENV{MKL_ROOT}")
+find_package(oneDPL REQUIRED HINTS "$ENV{DPL_ROOT}" "$ENV{DPLROOT}")
+# use the parameter from cmake 
+set(GINKGO_MKL_ROOT "${MKL_DIR}" PARENT_SCOPE)
+set(GINKGO_DPL_ROOT "${oneDPL_DIR}" PARENT_SCOPE)
 
 include(${PROJECT_SOURCE_DIR}/cmake/template_instantiation.cmake)
 add_instantiation_files(${PROJECT_SOURCE_DIR}/common/unified matrix/dense_kernels.instantiate.cpp DENSE_INSTANTIATE)
