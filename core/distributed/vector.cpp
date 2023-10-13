@@ -572,14 +572,15 @@ void Vector<ValueType>::compute_squared_norm2(ptr_param<LinOp> result,
 
 
 template <typename ValueType>
-void Vector<ValueType>::compute_mean(LinOp* result) const
+void Vector<ValueType>::compute_mean(ptr_param<LinOp> result) const
 {
     array<char> tmp{this->get_executor()};
     this->compute_mean(result, tmp);
 }
 
 
-void Vector<ValueType>::compute_mean(LinOp* result, array<char>& tmp) const
+void Vector<ValueType>::compute_mean(ptr_param<LinOp> result,
+                                     array<char>& tmp) const
 {
     using MeanVector = local_vector_type;
     const auto global_size = this->get_size()[0];
