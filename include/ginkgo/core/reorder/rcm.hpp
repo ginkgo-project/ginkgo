@@ -74,6 +74,9 @@ enum class starting_strategy { minimum_degree, pseudo_peripheral };
  * objective of this class is to generate a reordering/permutation vector (in
  * the form of the Permutation matrix), which can be used to apply to reorder a
  * matrix as required.
+ * @deprecated  This class is deprecated and should be replaced by
+ * gko::experimental::reorder::Rcm, which integrates more cleanly with the other
+ * reordering-related functionality of Ginkgo.
  *
  * There are two "starting strategies" currently available: minimum degree and
  * pseudo-peripheral. These strategies control how a starting vertex for a
@@ -92,9 +95,10 @@ enum class starting_strategy { minimum_degree, pseudo_peripheral };
  * @ingroup reorder
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Rcm : public EnablePolymorphicObject<Rcm<ValueType, IndexType>,
-                                           ReorderingBase<IndexType>>,
-            public EnablePolymorphicAssignment<Rcm<ValueType, IndexType>> {
+class [[deprecated("use gko::experimental::reorder::Rcm instead")]] Rcm
+    : public EnablePolymorphicObject<Rcm<ValueType, IndexType>,
+                                     ReorderingBase<IndexType>>,
+      public EnablePolymorphicAssignment<Rcm<ValueType, IndexType>> {
     friend class EnablePolymorphicObject<Rcm, ReorderingBase<IndexType>>;
 
 public:
@@ -170,7 +174,28 @@ using rcm_starting_strategy = gko::reorder::starting_strategy;
 
 
 /**
- * @copydoc gko::reorder::Rcm
+ * Rcm is a reordering algorithm minimizing the bandwidth of a matrix. Such a
+ * reordering typically also significantly reduces fill-in, though usually not
+ * as effective as more complex algorithms, specifically AMD and nested
+ * dissection schemes. The advantage of this algorithm is its low runtime.
+ *
+ * The class is a LinOpFactory generating a Permutation matrix out of a Csr
+ * system matrix, to be used with `Csr::permute(...)`.
+ *
+ * There are two "starting strategies" currently available: minimum degree and
+ * pseudo-peripheral. These strategies control how a starting vertex for a
+ * connected component is chosen, which is then renumbered as first vertex in
+ * the component, starting the algorithm from there.
+ * In general, the bandwidths obtained by choosing a pseudo-peripheral vertex
+ * are slightly smaller than those obtained from choosing a vertex of minimum
+ * degree. On the other hand, this strategy is much more expensive, relatively.
+ * The algorithm for finding a pseudo-peripheral vertex as
+ * described in "Computer Solution of Sparse Linear Systems" (George, Liu, Ng,
+ * Oak Ridge National Laboratory, 1994) is implemented here.
+ *
+ * @tparam IndexType  Type of the indices of all matrices used in this class
+ *
+ * @ingroup reorder
  */
 template <typename IndexType = int32>
 class Rcm : public EnablePolymorphicObject<Rcm<IndexType>, LinOpFactory>,
