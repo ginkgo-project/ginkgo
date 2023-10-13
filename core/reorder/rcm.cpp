@@ -187,26 +187,22 @@ std::unique_ptr<LinOp> Rcm<IndexType>::generate_impl(
     const auto exec = this->get_executor();
     const auto host_exec = exec->get_master();
     const auto num_rows = system_matrix->get_size()[0];
-    using complex_scalar = matrix::Dense<std::complex<float>>;
-    using real_scalar = matrix::Dense<float>;
-    using complex_identity = matrix::Identity<std::complex<float>>;
-    using real_identity = matrix::Identity<float>;
-    using complex_mtx = matrix::Csr<std::complex<float>, IndexType>;
-    using real_mtx = matrix::Csr<float, IndexType>;
     using sparsity_mtx = matrix::SparsityCsr<float, IndexType>;
     std::unique_ptr<LinOp> converted;
     // extract row pointers and column indices
     IndexType* d_row_ptrs{};
     IndexType* d_col_idxs{};
     size_type d_nnz{};
-    if (auto convertible = dynamic_cast<const ConvertibleTo<complex_mtx>*>(
-            system_matrix.get())) {
-        auto conv_csr = complex_mtx::create(exec);
-        convertible->convert_to(conv_csr);
+    auto convert = [&](auto op, auto value_type) {
+        using ValueType = std::decay_t<decltype(value_type)>;
+        using Identity = matrix::Identity<ValueType>;
+        using Mtx = matrix::Csr<ValueType, IndexType>;
+        using Scalar = matrix::Dense<ValueType>;
+        auto conv_csr = matrix::Csr<ValueType, IndexType>::create(exec);
+        as<Mtx>(op)->convert_to(conv_csr);
         if (!parameters_.skip_symmetrize) {
-            auto scalar =
-                initialize<complex_scalar>({one<std::complex<float>>()}, exec);
-            auto id = complex_identity::create(exec, conv_csr->get_size()[0]);
+            auto scalar = initialize<Scalar>({one<ValueType>()}, exec);
+            auto id = Identity::create(exec, conv_csr->get_size()[0]);
             // compute A^T + A
             conv_csr->transpose()->apply(scalar, id, scalar, conv_csr);
         }
@@ -214,19 +210,13 @@ std::unique_ptr<LinOp> Rcm<IndexType>::generate_impl(
         d_row_ptrs = conv_csr->get_row_ptrs();
         d_col_idxs = conv_csr->get_col_idxs();
         converted = std::move(conv_csr);
+    };
+    if (auto convertible =
+            dynamic_cast<const ConvertibleTo<matrix::Csr<float, IndexType>>*>(
+                system_matrix.get())) {
+        convert(system_matrix, float{});
     } else {
-        auto conv_csr = real_mtx::create(exec);
-        as<ConvertibleTo<real_mtx>>(system_matrix)->convert_to(conv_csr);
-        if (!parameters_.skip_symmetrize) {
-            auto scalar = initialize<real_scalar>({one<float>()}, exec);
-            auto id = real_identity::create(exec, conv_csr->get_size()[0]);
-            // compute A^T + A
-            conv_csr->transpose()->apply(scalar, id, scalar, conv_csr);
-        }
-        d_nnz = conv_csr->get_num_stored_elements();
-        d_row_ptrs = conv_csr->get_row_ptrs();
-        d_col_idxs = conv_csr->get_col_idxs();
-        converted = std::move(conv_csr);
+        convert(system_matrix, std::complex<float>{});
     }
 
     array<IndexType> permutation(host_exec, num_rows);
