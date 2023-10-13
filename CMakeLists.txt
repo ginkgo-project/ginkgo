@@ -24,7 +24,7 @@ option(GINKGO_BUILD_BENCHMARKS "Build Ginkgo's benchmarks" ON)
 option(GINKGO_BUILD_REFERENCE "Compile reference CPU kernels" ON)
 option(GINKGO_BUILD_OMP "Compile OpenMP kernels for CPU" ${GINKGO_HAS_OMP})
 option(GINKGO_BUILD_MPI "Compile the MPI module" ${GINKGO_HAS_MPI})
-gko_rename_cache(GINKGO_BUILD_DPCPP GINKGO_BUILD_SYCL BOOL)
+gko_rename_cache(GINKGO_BUILD_DPCPP GINKGO_BUILD_SYCL BOOL "Compile SYCL kernels for Intel GPUs or other SYCL enabled hardware")
 option(GINKGO_BUILD_SYCL
     "Compile SYCL kernels for Intel GPUs or other SYCL enabled hardware" ${GINKGO_HAS_SYCL})
 option(GINKGO_BUILD_CUDA "Compile kernels for NVIDIA GPUs" ${GINKGO_HAS_CUDA})
