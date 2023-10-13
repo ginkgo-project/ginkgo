@@ -217,6 +217,36 @@ TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionedSolver)
                                                  this->non_dist_x);
 }
 
+TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionedSolverWithPregenSolver)
+{
+    using value_type = typename TestFixture::value_type;
+    using csr = typename TestFixture::local_matrix_type;
+    using cg = typename TestFixture::solver_type;
+    using prec = typename TestFixture::dist_prec_type;
+    constexpr double tolerance = 1e-20;
+    auto iter_stop = gko::share(
+        gko::stop::Iteration::build().with_max_iters(200u).on(this->exec));
+    auto tol_stop = gko::share(
+        gko::stop::ResidualNorm<value_type>::build()
+            .with_reduction_factor(
+                static_cast<gko::remove_complex<value_type>>(tolerance))
+            .on(this->exec));
+    this->non_dist_solver_factory =
+        cg::build()
+            .with_preconditioner(this->local_solver_factory)
+            .with_criteria(iter_stop, tol_stop)
+            .on(this->exec);
+    auto local_solver =
+        this->non_dist_solver_factory->generate(this->non_dist_mat);
+    this->dist_solver_factory =
+        cg::build()
+            .with_preconditioner(prec::build()
+                                     .with_generated_local_solver(local_solver)
+                                     .on(this->exec))
+            .with_criteria(iter_stop, tol_stop)
+            .on(this->exec);
+}
+
 
 TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditioner)
 {
