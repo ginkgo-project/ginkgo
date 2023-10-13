@@ -64,6 +64,7 @@ int main(int argc, char** argv)
     std::ifstream I_file(argv[3]);
     using Csr = gko::matrix::Csr<value_type, index_type>;
     using Coo = gko::matrix::Coo<value_type, index_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     // Instantiate a CUDA executor
     auto gpu = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
     // Read data
@@ -86,8 +87,40 @@ int main(int argc, char** argv)
     auto L_transpose_linop = L->transpose();
     auto L_transpose =
         static_cast<typename Csr::transposed_type*>(L_transpose_linop.get());
+    
+    auto size = I->get_num_stored_elements();
+    auto A_vec = Dense::create_const(
+            gpu, gko::dim<2>{size, 1},
+            gko::array<value_type>::const_view(gpu, size, I->get_const_values()),
+            1);
+    auto B_vec = Dense::create_const(
+            gpu, gko::dim<2>{size, 1},
+            gko::array<value_type>::const_view(gpu, size, S_coo->get_const_values()),
+            1);
+    auto neg_one = gko::initialize<Dense>({-gko::one<value_type>()}, gpu);
+    
+
+    auto result =
+           gko::matrix::Dense<value_type>::create(gpu, gko::dim<2>{1, 1});
+        A_vec->compute_norm2(result);
+        std::cout << "norm selected inverse : "
+                  << gpu->copy_val_to_host(result->get_values()) << std::endl;
+	
+        B_vec->compute_norm2(result);
+        std::cout << "norm initial guess : "
+                  << gpu->copy_val_to_host(result->get_values()) << std::endl;
+
+        auto work_vec = A_vec->clone();
+        work_vec->add_scaled(neg_one, B_vec);
+           work_vec->compute_norm2(result);
+        std::cout << "Frobenious norm iteration " << 0  << " : "
+                  << gpu->copy_val_to_host(result->get_values()) << std::endl;
+
+
+
     // Solve system
-    parsinv( L_transpose->get_size()[0], 
+    for(int i=0; i<100; i++){
+    	parsinv( L_transpose->get_size()[0], 
 		    L_transpose->get_num_stored_elements(), 
 		    L_transpose->get_row_ptrs(), 
 		    L_transpose->get_col_idxs(),
@@ -97,10 +130,19 @@ int main(int argc, char** argv)
 		    S_row_idxs,
 		    S_col_idxs,
 		    S_values
-    );
+    	);
+    	auto work_vec = A_vec->clone();
+	work_vec->add_scaled(neg_one, B_vec);
+	auto result =
+    		gko::matrix::Dense<value_type>::create(gpu, gko::dim<2>{1, 1});
+	work_vec->compute_norm2(result);
+	std::cout << "Frobenious norm iteration " << i+1  << " : "
+        	  << gpu->copy_val_to_host(result->get_values()) << std::endl;
+	
+    }
     // Write result
-    write(std::cout, I);
+    //write(std::cout, I);
 
-    printf("\n\n\n\n\n\n\n");
-    write(std::cout, S_coo);
+   // printf("\n\n\n\n\n\n\n");
+ //   write(std::cout, S_coo);
 }
