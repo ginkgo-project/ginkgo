@@ -143,6 +143,8 @@ private:
     std::shared_ptr<const LinOp> local_solver_;
     std::shared_ptr<const multigrid::MultigridLevel> galerkin_ops_;
     std::shared_ptr<const LinOp> coarse_solver_;
+    std::shared_ptr<LinOp> csol_;
+    std::shared_ptr<const LinOp> half_;
 };
 
 
