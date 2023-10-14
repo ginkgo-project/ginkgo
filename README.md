@@ -16,7 +16,7 @@
 Ginkgo is a high-performance linear algebra library for manycore systems, with a
 focus on the solution of sparse linear systems. It is implemented using modern C++
 (you will need an at least C++14 compliant compiler to build it), with GPU kernels
-implemented in CUDA, HIP, and DPC++.
+implemented in CUDA, HIP, and DPC++(SYCL).
 
 
 Performance
@@ -62,10 +62,10 @@ The Ginkgo HIP module has the following __additional__ requirements:
     * _10.1 <= CUDA < 11_ backend
 * if the hipFFT package is available, it is used to implement the FFT LinOps.
 
-The Ginkgo DPC++ module has the following __additional__ requirements:
+The Ginkgo DPC++(SYCL) module has the following __additional__ requirements:
 
 * _OneAPI 2021.3+_
-* Set `dpcpp` as the `CMAKE_CXX_COMPILER`
+* Set `dpcpp` or `icpx` as the `CMAKE_CXX_COMPILER`
 * `c++17` is used to compile Ginkgo
 * The following oneAPI packages should be available:
     * oneMKL
@@ -123,7 +123,7 @@ cmake -G "Unix Makefiles" .. && make
 By default, `GINKGO_BUILD_REFERENCE` is enabled. You should be able to run
 examples with this executor. By default, Ginkgo tries to enable the relevant
 modules depending on your machine environment (present of CUDA, ...). You can
-also explicitly compile with the OpenMP, CUDA, HIP or DPC++ modules enabled to
+also explicitly compile with the OpenMP, CUDA, HIP or DPC++(SYCL) modules enabled to
 run the examples with these executors. Please refer to the [Installation
 page](./INSTALL.md) for more details.
 

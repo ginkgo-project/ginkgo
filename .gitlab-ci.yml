@@ -581,7 +581,7 @@ build/nocuda-nomixed/nompi/clang/omp/debug/static:
     BUILD_SHARED_LIBS: "OFF"
     MIXED_PRECISION: "OFF"
 
-build/dpcpp/2022-1/cpu/release/static:
+build/dpcpp/2022-1/cpu/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
@@ -590,7 +590,7 @@ build/dpcpp/2022-1/cpu/release/static:
   variables:
     C_COMPILER: "gcc"
     CXX_COMPILER: "dpcpp"
-    BUILD_DPCPP: "ON"
+    BUILD_SYCL: "ON"
     GKO_COMPILER_FLAGS: "-ffp-model=precise"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "ON"
@@ -609,7 +609,7 @@ build/dpcpp/igpu/release/shared:
   variables:
     C_COMPILER: "gcc"
     CXX_COMPILER: "dpcpp"
-    BUILD_DPCPP: "ON"
+    BUILD_SYCL: "ON"
     GKO_COMPILER_FLAGS: "-ffp-model=precise"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "ON"
@@ -626,7 +626,7 @@ build/dpcpp/igpu/release/shared:
 #   variables:
 #     C_COMPILER: "gcc"
 #     CXX_COMPILER: "dpcpp"
-#     BUILD_DPCPP: "ON"
+#     BUILD_SYCL: "ON"
 #     GKO_COMPILER_FLAGS: "-ffp-model=precise"
 #     BUILD_TYPE: "Debug"
 #     BUILD_SHARED_LIBS: "ON"
@@ -643,7 +643,7 @@ build/dpcpp/dgpu/release/static:
   variables:
     C_COMPILER: "gcc"
     CXX_COMPILER: "dpcpp"
-    BUILD_DPCPP: "ON"
+    BUILD_SYCL: "ON"
     GKO_COMPILER_FLAGS: "-ffp-model=precise"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OF"
@@ -659,7 +659,22 @@ build/dpcpp/level_zero_dgpu/release/shared:
   variables:
     C_COMPILER: "gcc"
     CXX_COMPILER: "dpcpp"
-    BUILD_DPCPP: "ON"
+    BUILD_SYCL: "ON"
+    GKO_COMPILER_FLAGS: "-ffp-model=precise"
+    BUILD_TYPE: "Release"
+    DPCPP_SINGLE_MODE: "ON"
+    ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
+
+build/icpx/level_zero_dgpu/release/shared:
+  extends:
+    - .build_and_test_template
+    - .default_variables
+    - .quick_test_condition
+    - .use_gko-oneapi-dgpu
+  variables:
+    C_COMPILER: "icx"
+    CXX_COMPILER: "icpx"
+    BUILD_SYCL: "ON"
     GKO_COMPILER_FLAGS: "-ffp-model=precise"
     BUILD_TYPE: "Release"
     DPCPP_SINGLE_MODE: "ON"
@@ -819,7 +834,7 @@ gh-pages:
         -DCMAKE_CUDA_COMPILER=${CUDA_COMPILER} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
         -DBUILD_SHARED_LIBS=ON ${EXTRA_CMAKE_FLAGS} -DGINKGO_DEVEL_TOOLS=OFF
         -DGINKGO_BUILD_REFERENCE=OFF -DGINKGO_BUILD_OMP=OFF -DGINKGO_BUILD_CUDA=OFF
-        -DGINKGO_BUILD_HIP=OFF -DGINKGO_BUILD_DPCPP=OFF -DGINKGO_BUILD_MPI=OFF
+        -DGINKGO_BUILD_HIP=OFF -DGINKGO_BUILD_SYCL=OFF -DGINKGO_BUILD_MPI=OFF
         -DGINKGO_BUILD_TESTS=OFF -DGINKGO_BUILD_EXAMPLES=OFF
         -DGINKGO_BUILD_DOC=ON -DGINKGO_DOC_GENERATE_PDF=ON
     - make usr

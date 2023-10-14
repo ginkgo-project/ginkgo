@@ -21,7 +21,8 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - {build_type: "Release", name: "intel/release/shared", "mixed": "ON"}
+        - {compiler: "dpcpp", build_type: "Release", name: "intel/dpcpp/release/shared", mixed: "ON"}
+        - {compiler: "icpx", build_type: "Release", name: "intel/icpx/release/shared", mixed: "OFF"}
     name: ${{ matrix.config.name }}
     runs-on: [gpu_intel]
 
@@ -35,7 +36,7 @@ jobs:
         spack find --loaded
         mkdir build
         cd build
-        cmake .. -DCMAKE_INSTALL_PREFIX=install_ginkgo -DGINKGO_COMPILER_FLAGS="-ffp-model=precise" -DCMAKE_CXX_COMPILER=dpcpp -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_MIXED_PRECISION=${{ matrix.config.mixed }} -DGINKGO_DPCPP_SINGLE_MODE=ON
+        cmake .. -DCMAKE_INSTALL_PREFIX=install_ginkgo -DGINKGO_COMPILER_FLAGS="-ffp-model=precise" -DCMAKE_CXX_COMPILER=${{ matrix.config.compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_MIXED_PRECISION=${{ matrix.config.mixed }} -DGINKGO_DPCPP_SINGLE_MODE=ON
         make -j8
         ONEAPI_DEVICE_SELECTOR=level_zero:gpu ctest -j10 --output-on-failure
 

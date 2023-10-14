@@ -22,7 +22,7 @@ set_target_properties(gtest gtest_main PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${GINKGO_LIBRARY_PATH}")
 # If CXX compiler is dpcpp, use -ffp-model=precise
 # Otherwise, it will throw src/gtest.cc:1583:8: error: comparison with NaN always evaluates to false in fast floating point modes
-if(CMAKE_CXX_COMPILER MATCHES "dpcpp")
+if(CMAKE_CXX_COMPILER MATCHES "dpcpp|icpx")
     target_compile_options(gtest PRIVATE "-ffp-model=precise")
     target_compile_options(gtest_main PRIVATE "-ffp-model=precise")
 endif()

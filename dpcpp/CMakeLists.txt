@@ -1,7 +1,8 @@
-find_package(MKL CONFIG REQUIRED HINTS "$ENV{MKLROOT}")
-set(GINKGO_MKL_ROOT "${MKL_ROOT}" PARENT_SCOPE)
-find_package(oneDPL REQUIRED HINTS "$ENV{DPL_ROOT}")
-set(GINKGO_DPL_ROOT "${DPL_ROOT}" PARENT_SCOPE)
+find_package(MKL CONFIG REQUIRED HINTS "$ENV{MKLROOT}" "$ENV{MKL_ROOT}")
+find_package(oneDPL REQUIRED HINTS "$ENV{DPL_ROOT}" "$ENV{DPLROOT}")
+# use the parameter from cmake 
+set(GINKGO_MKL_ROOT "${MKL_DIR}" PARENT_SCOPE)
+set(GINKGO_DPL_ROOT "${oneDPL_DIR}" PARENT_SCOPE)
 
 include(${PROJECT_SOURCE_DIR}/cmake/template_instantiation.cmake)
 add_instantiation_files(${PROJECT_SOURCE_DIR}/common/unified matrix/dense_kernels.instantiate.cpp DENSE_INSTANTIATE)
@@ -90,6 +91,10 @@ target_compile_definitions(ginkgo_dpcpp PRIVATE GKO_COMPILING_DPCPP _ONEDPL_COMP
 
 set(GINKGO_DPCPP_FLAGS ${GINKGO_DPCPP_FLAGS} PARENT_SCOPE)
 target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_DPCPP_FLAGS}")
+# all file in target ginkgo_dpcpp are necessarily compiled with sycl, so we can ignore the warning.
+# If we would like to use SOURCES, please use the new files copied from GKO_UNIFIED_COMMON_SOURCES.
+# Otherwise, the source's properties will be changed by add_sycl_to_target
+gko_add_sycl_to_target(TARGET ginkgo_dpcpp)
 target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_COMPILER_FLAGS}")
 # Note: add MKL as PRIVATE not PUBLIC (MKL example shows) to avoid propagating
 # find_package(MKL) everywhere when linking ginkgo (see the MKL example
