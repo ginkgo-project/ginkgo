@@ -918,7 +918,7 @@ public:
     void compute_squared_norm2(ptr_param<LinOp> result, array<char>& tmp) const;
 
     /**
-     * Computes the column-wise mean of this matrix.
+     * Computes the column-wise arithmetic mean of this matrix.
      *
      * @param result  a Dense row vector, used to store the mean
      *                (the number of columns in the vector must match the number
@@ -927,7 +927,7 @@ public:
     void compute_mean(LinOp* result) const;
 
     /**
-     * Computes the column-wise mean of this matrix.
+     * Computes the column-wise arithmetic mean of this matrix.
      *
      * @param result  a Dense row vector, used to store the mean
      *                (the number of columns in the vector must match the
