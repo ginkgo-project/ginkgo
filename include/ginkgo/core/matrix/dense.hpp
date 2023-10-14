@@ -924,7 +924,7 @@ public:
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
-    void compute_mean(LinOp* result) const;
+    void compute_mean(ptr_param<LinOp> result) const;
 
     /**
      * Computes the column-wise arithmetic mean of this matrix.
@@ -936,7 +936,7 @@ public:
      *             reduction computation. It may be resized and/or reset to the
      *             correct executor.
      */
-    void compute_mean(LinOp* result, array<char>& tmp) const;
+    void compute_mean(ptr_param<LinOp> result, array<char>& tmp) const;
 
     /**
      * Create a submatrix from the original matrix.

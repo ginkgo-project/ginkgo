@@ -237,14 +237,6 @@ void Dense<ValueType>::compute_squared_norm2(ptr_param<LinOp> result) const
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_mean(LinOp* result) const
-{
-    auto exec = this->get_executor();
-    this->compute_mean_impl(make_temporary_output_clone(exec, result).get());
-}
-
-
-template <typename ValueType>
 void Dense<ValueType>::inv_scale_impl(const LinOp* alpha)
 {
     GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
@@ -506,7 +498,16 @@ void Dense<ValueType>::compute_squared_norm2(ptr_param<LinOp> result,
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_mean(LinOp* result, array<char>& tmp) const
+void Dense<ValueType>::compute_mean(ptr_param<LinOp> result) const
+{
+    auto exec = this->get_executor();
+    this->compute_mean_impl(make_temporary_output_clone(exec, result).get());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_mean(ptr_param<LinOp> result,
+                                    array<char>& tmp) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
@@ -527,6 +528,7 @@ void Dense<ValueType>::compute_squared_norm2_impl(LinOp* result) const
     this->compute_squared_norm2(make_temporary_output_clone(exec, result).get(),
                                 tmp);
 }
+
 
 template <typename ValueType>
 void Dense<ValueType>::compute_mean_impl(LinOp* result) const
