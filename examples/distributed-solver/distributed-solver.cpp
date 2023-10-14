@@ -80,6 +80,7 @@ int main(int argc, char* argv[])
         static_cast<gko::size_type>(argc >= 3 ? std::atoi(argv[2]) : 100);
     const auto num_iters =
         static_cast<gko::size_type>(argc >= 4 ? std::atoi(argv[3]) : 1000);
+    std::string schw_type = argc >= 5 ? argv[4] : "multi-level";
 
     const std::map<std::string,
                    std::function<std::shared_ptr<gko::Executor>(MPI_Comm)>>
@@ -194,31 +195,53 @@ int main(int argc, char* argv[])
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(100).on(exec),
                 gko::stop::ResidualNorm<ValueType>::build()
-                    .with_reduction_factor(1e-6)
+                    .with_reduction_factor(1e-3)
                     .on(exec))
             .on(exec));
+
     auto pgm_fac = gko::share(pgm::build().on(exec));
 
     // Setup the stopping criterion and logger
     const gko::remove_complex<ValueType> reduction_factor{1e-8};
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
         gko::log::Convergence<ValueType>::create();
-    auto Ainv =
-        solver::build()
-            .with_preconditioner(
-                schwarz::build()
-                    .with_local_solver_factory(local_solver)
-                    // .with_galerkin_ops_factory(pgm_fac)
-                    // .with_coarse_solver_factory(coarse_solver)
-                    .on(exec))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(num_iters).on(
-                    exec),
-                gko::stop::ResidualNorm<ValueType>::build()
-                    .with_reduction_factor(reduction_factor)
-                    .on(exec))
-            .on(exec)
-            ->generate(A);
+    std::shared_ptr<gko::LinOp> Ainv{};
+    if (schw_type == "multi-level") {
+        Ainv =
+            solver::build()
+                .with_preconditioner(
+                    schwarz::build()
+                        .with_local_solver_factory(local_solver)
+                        .with_galerkin_ops_factory(pgm_fac)
+                        .with_coarse_solver_factory(coarse_solver)
+                        .on(exec))
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(num_iters).on(
+                        exec),
+                    gko::stop::ResidualNorm<ValueType>::build()
+                        .with_reduction_factor(reduction_factor)
+                        .on(exec))
+                .on(exec)
+                ->generate(A);
+    } else {
+        schw_type = "one-level";
+        Ainv =
+            solver::build()
+                .with_preconditioner(
+                    schwarz::build()
+                        .with_local_solver_factory(local_solver)
+                        .with_galerkin_ops_factory(pgm_fac)
+                        .with_coarse_solver_factory(coarse_solver)
+                        .on(exec))
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(num_iters).on(
+                        exec),
+                    gko::stop::ResidualNorm<ValueType>::build()
+                        .with_reduction_factor(reduction_factor)
+                        .on(exec))
+                .on(exec)
+                ->generate(A);
+    }
     // Add logger to the generated solver to log the iteration count and
     // residual norm
     Ainv->add_logger(logger);
@@ -245,6 +268,7 @@ int main(int argc, char* argv[])
         // clang-format off
         std::cout << "\nNum rows in matrix: " << num_rows
                   << "\nNum ranks: " << comm.size()
+                  << "\nPrecond type: " << schw_type
                   << "\nFinal Res norm: " << *host_res->get_const_values()
                   << "\nIteration count: " << logger->get_num_iterations()
                   << "\nInit time: " << t_init_end - t_init
