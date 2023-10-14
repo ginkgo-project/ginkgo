@@ -920,7 +920,7 @@ public:
     /**
      * Computes the column-wise mean of this matrix.
      *
-     * @param result  a Dense row vector, used to store the norm
+     * @param result  a Dense row vector, used to store the mean
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
@@ -929,7 +929,7 @@ public:
     /**
      * Computes the column-wise mean of this matrix.
      *
-     * @param result  a Dense row vector, used to store the norm
+     * @param result  a Dense row vector, used to store the mean
      *                (the number of columns in the vector must match the
      *                number of columns of this)
      * @param tmp  the temporary storage to use for partial sums during the
