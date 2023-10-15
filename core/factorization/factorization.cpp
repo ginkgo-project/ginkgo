@@ -33,18 +33,88 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/factorization/factorization.hpp>
 
 
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+
+
+#include "core/factorization/factorization_kernels.hpp"
 
 
 namespace gko {
 namespace experimental {
 namespace factorization {
+namespace {
+
+
+GKO_REGISTER_OPERATION(initialize_row_ptrs_l_u,
+                       factorization::initialize_row_ptrs_l_u);
+GKO_REGISTER_OPERATION(initialize_l_u, factorization::initialize_l_u);
+GKO_REGISTER_OPERATION(initialize_row_ptrs_l,
+                       factorization::initialize_row_ptrs_l);
+GKO_REGISTER_OPERATION(initialize_l, factorization::initialize_l);
+
+
+}  // namespace
 
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Factorization<ValueType, IndexType>>
-Factorization<ValueType, IndexType>::unpack() const GKO_NOT_IMPLEMENTED;
+Factorization<ValueType, IndexType>::unpack() const
+{
+    const auto exec = this->get_executor();
+    const auto size = this->get_size();
+    switch (this->get_storage_type()) {
+    case storage_type::empty:
+        GKO_NOT_SUPPORTED(nullptr);
+    case storage_type::composition:
+    case storage_type::symm_composition:
+        return this->clone();
+    case storage_type::combined_lu: {
+        // count nonzeros
+        array<index_type> l_row_ptrs{exec, size[0] + 1};
+        array<index_type> u_row_ptrs{exec, size[0] + 1};
+        const auto mtx = this->get_combined();
+        exec->run(make_initialize_row_ptrs_l_u(mtx.get(), l_row_ptrs.get_data(),
+                                               u_row_ptrs.get_data()));
+        const auto l_nnz = static_cast<size_type>(
+            exec->copy_val_to_host(l_row_ptrs.get_const_data() + size[0]));
+        const auto u_nnz = static_cast<size_type>(
+            exec->copy_val_to_host(u_row_ptrs.get_const_data() + size[0]));
+        // create matrices
+        auto l_mtx = matrix_type::create(
+            exec, size, array<value_type>{exec, l_nnz},
+            array<index_type>{exec, l_nnz}, std::move(l_row_ptrs));
+        auto u_mtx = matrix_type::create(
+            exec, size, array<value_type>{exec, u_nnz},
+            array<index_type>{exec, u_nnz}, std::move(u_row_ptrs));
+        // fill matrices
+        exec->run(make_initialize_l_u(mtx.get(), l_mtx.get(), u_mtx.get()));
+        return create_from_composition(
+            composition_type::create(std::move(l_mtx), std::move(u_mtx)));
+    }
+    case storage_type::symm_combined_cholesky: {
+        // count nonzeros
+        array<index_type> l_row_ptrs{exec, size[0] + 1};
+        const auto mtx = this->get_combined();
+        exec->run(make_initialize_row_ptrs_l(mtx.get(), l_row_ptrs.get_data()));
+        const auto l_nnz = static_cast<size_type>(
+            exec->copy_val_to_host(l_row_ptrs.get_const_data() + size[0]));
+        // create matrices
+        auto l_mtx = matrix_type::create(
+            exec, size, array<value_type>{exec, l_nnz},
+            array<index_type>{exec, l_nnz}, std::move(l_row_ptrs));
+        // fill matrices
+        exec->run(make_initialize_l(mtx.get(), l_mtx.get(), false));
+        auto u_mtx = l_mtx->conj_transpose();
+        return create_from_symm_composition(
+            composition_type::create(std::move(l_mtx), std::move(u_mtx)));
+    }
+    case storage_type::combined_ldu:
+    case storage_type::symm_combined_ldl:
+        GKO_NOT_IMPLEMENTED;
+    }
+}
 
 
 template <typename ValueType, typename IndexType>
@@ -58,7 +128,7 @@ template <typename ValueType, typename IndexType>
 std::shared_ptr<const gko::matrix::Csr<ValueType, IndexType>>
 Factorization<ValueType, IndexType>::get_lower_factor() const
 {
-    switch (storage_type_) {
+    switch (this->get_storage_type()) {
     case storage_type::composition:
     case storage_type::symm_composition:
         GKO_ASSERT(factors_->get_operators().size() == 2 ||
