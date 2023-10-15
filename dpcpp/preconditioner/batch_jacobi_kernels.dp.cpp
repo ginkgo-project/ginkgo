@@ -131,16 +131,15 @@ void batch_jacobi_apply_helper(
                            sycl::access::target::local>
                 slm_storage(sycl::range<1>(shared_size), cgh);
             cgh.parallel_for(
-                sycl_nd_range(grid, block),
-                [=](sycl::nd_item<3> item_ct1)
-                    [[sycl::reqd_sub_group_size(subgroup_size)]] {
-                        auto batch_id = item_ct1.get_group_linear_id();
-                        batch_block_jacobi_apply(
-                            prec_block_jacobi, batch_id, nrows, r_values,
-                            z_values,
-                            static_cast<ValueType*>(slm_storage.get_pointer()),
-                            item_ct1);
-                    });
+                sycl_nd_range(grid, block), [=
+            ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                                subgroup_size)]] {
+                    auto batch_id = item_ct1.get_group_linear_id();
+                    batch_block_jacobi_apply(
+                        prec_block_jacobi, batch_id, nrows, r_values, z_values,
+                        static_cast<ValueType*>(slm_storage.get_pointer()),
+                        item_ct1);
+                });
         });
     }
 }
@@ -209,7 +208,8 @@ void compute_cumulative_block_storage(
         });
     });
     exec->get_queue()->wait();
-    components::prefix_sum(exec, blocks_cumulative_storage, num_blocks + 1);
+    components::prefix_sum_nonnegative(exec, blocks_cumulative_storage,
+                                       num_blocks + 1);
 }
 
 template void compute_cumulative_block_storage<int>(
@@ -262,16 +262,15 @@ void extract_common_blocks_pattern(
     const auto col_idxs = first_sys_csr->get_const_col_idxs();
 
     (exec->get_queue())->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1)
-                             [[intel::reqd_sub_group_size(subgroup_size)]] {
-                                 extract_common_block_pattern_kernel(
-                                     static_cast<int>(nrows), row_ptrs,
-                                     col_idxs, num_blocks, storage_scheme,
-                                     cumulative_block_storage, block_pointers,
-                                     row_part_of_which_block_info,
-                                     blocks_pattern, item_ct1);
-                             });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[intel::reqd_sub_group_size(
+                                            subgroup_size)]] {
+                extract_common_block_pattern_kernel(
+                    static_cast<int>(nrows), row_ptrs, col_idxs, num_blocks,
+                    storage_scheme, cumulative_block_storage, block_pointers,
+                    row_part_of_which_block_info, blocks_pattern, item_ct1);
+            });
     });
 }
 
@@ -311,15 +310,15 @@ void compute_block_jacobi_helper(
     dim3 grid(ceildiv(num_blocks * nbatch * subgroup_size, group_size));
 
     (exec->get_queue())->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1)
-                             [[intel::reqd_sub_group_size(subgroup_size)]] {
-                                 compute_block_jacobi_kernel(
-                                     nbatch, static_cast<int>(nnz),
-                                     sys_csr_values, num_blocks, storage_scheme,
-                                     cumulative_block_storage, block_pointers,
-                                     blocks_pattern, blocks, item_ct1);
-                             });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[intel::reqd_sub_group_size(
+                                            subgroup_size)]] {
+                compute_block_jacobi_kernel(
+                    nbatch, static_cast<int>(nnz), sys_csr_values, num_blocks,
+                    storage_scheme, cumulative_block_storage, block_pointers,
+                    blocks_pattern, blocks, item_ct1);
+            });
     });
 }
 
@@ -373,16 +372,16 @@ void transpose_block_jacobi(
     dim3 grid(ceildiv(nrows * nbatch * subgroup_size, group_size));
 
     (exec->get_queue())->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1)
-                             [[intel::reqd_sub_group_size(subgroup_size)]] {
-                                 transpose_block_jacobi_kernel(
-                                     nbatch, static_cast<int>(nrows),
-                                     num_blocks, block_pointers, blocks_array,
-                                     storage_scheme, cumulative_block_storage,
-                                     row_part_of_which_block_info,
-                                     out_blocks_array, to_conjugate, item_ct1);
-                             });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[intel::reqd_sub_group_size(
+                                            subgroup_size)]] {
+                transpose_block_jacobi_kernel(
+                    nbatch, static_cast<int>(nrows), num_blocks, block_pointers,
+                    blocks_array, storage_scheme, cumulative_block_storage,
+                    row_part_of_which_block_info, out_blocks_array,
+                    to_conjugate, item_ct1);
+            });
     });
 }
 
