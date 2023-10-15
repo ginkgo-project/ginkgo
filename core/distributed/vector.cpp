@@ -579,6 +579,7 @@ void Vector<ValueType>::compute_mean(ptr_param<LinOp> result) const
 }
 
 
+template <typename ValueType>
 void Vector<ValueType>::compute_mean(ptr_param<LinOp> result,
                                      array<char>& tmp) const
 {
