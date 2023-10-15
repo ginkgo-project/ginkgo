@@ -49,25 +49,41 @@ void parsinv(
     );
 
 
+void parsinv_residual(
+    int n, // matrix size
+    int Annz, // number of nonzeros in A
+    int *Arowptr, // row pointer A
+    int *Arowidx, //row index A
+    int *Acolidx, //col index A
+    double *Aval, // val array A
+    int *Srowptr, // row pointer S
+    int *Scolidx, //col index S
+    double *Sval, // val array S
+    double *tval
+    );
+
+
 int main(int argc, char** argv)
 {
     using value_type = double;
     using index_type = gko::int32;
-    if (argc != 4) {
+    if (argc != 5) {
         std::cout << "Please execute with the following parameters:\n"
                   << argv[0]
-                  << " <S matrix path> <L matrix path> <I matrix path>\n";
+                  << " <Astd::ifstream S_file(argv[1]); matrix path> <S matrix path> <L matrix path> <I matrix path>\n";
         std::exit(1);
     }
-    std::ifstream S_file(argv[1]);
-    std::ifstream L_file(argv[2]);
-    std::ifstream I_file(argv[3]);
+    std::ifstream A_file(argv[1]);
+    std::ifstream S_file(argv[2]);
+    std::ifstream L_file(argv[3]);
+    std::ifstream I_file(argv[4]);
     using Csr = gko::matrix::Csr<value_type, index_type>;
     using Coo = gko::matrix::Coo<value_type, index_type>;
     using Dense = gko::matrix::Dense<value_type>;
     // Instantiate a CUDA executor
     auto gpu = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
     // Read data
+    auto A_csr = gko::share(gko::read<Csr>(A_file, gpu));
     auto S_csr = gko::read<Csr>(S_file, gpu);
     auto L = gko::read<Csr>(L_file, gpu);
     auto I = gko::read<Csr>(I_file, gpu);
@@ -79,12 +95,27 @@ int main(int argc, char** argv)
     auto S_coo = Coo::create(gpu);
     S_csr->move_to(S_coo);
 
+    auto LL = gko::experimental::factorization::Cholesky<value_type, index_type>::build().on(gpu)->generate(A_csr);
+    auto LLU = LL->unpack();
+
+    gko::array<index_type> Arow_ptrs_array(gpu, num_row_ptrs);
+    gpu->copy_from(gpu, num_row_ptrs, A_csr->get_const_row_ptrs(),
+                   Arow_ptrs_array.get_data());
+    auto A_coo = Coo::create(gpu);
+    A_csr->move_to(A_coo);
+
+
+    auto A_row_ptrs = Arow_ptrs_array.get_data();
+    auto A_row_idxs = A_coo->get_row_idxs();
+    auto A_col_idxs = A_coo->get_col_idxs();
+    auto A_values = A_coo->get_values();
+
     auto S_row_ptrs = row_ptrs_array.get_data();
     auto S_row_idxs = S_coo->get_row_idxs();
     auto S_col_idxs = S_coo->get_col_idxs();
     auto S_values = S_coo->get_values();
 
-    auto L_transpose_linop = L->transpose();
+    auto L_transpose_linop = LLU->get_lower_factor()->transpose();
     auto L_transpose =
         static_cast<typename Csr::transposed_type*>(L_transpose_linop.get());
     
@@ -100,6 +131,7 @@ int main(int argc, char** argv)
     auto neg_one = gko::initialize<Dense>({-gko::one<value_type>()}, gpu);
     
 
+
     auto result =
            gko::matrix::Dense<value_type>::create(gpu, gko::dim<2>{1, 1});
         A_vec->compute_norm2(result);
@@ -113,13 +145,11 @@ int main(int argc, char** argv)
         auto work_vec = A_vec->clone();
         work_vec->add_scaled(neg_one, B_vec);
            work_vec->compute_norm2(result);
-        std::cout << "Frobenious norm iteration " << 0  << " : "
-                  << gpu->copy_val_to_host(result->get_values()) << std::endl;
-
-
+        printf("Frobenious norm iteration %2d: %.4e\n",
+                  0, gpu->copy_val_to_host(result->get_values()));
 
     // Solve system
-    for(int i=0; i<100; i++){
+    for(int i=0; i<20; i++){
     	parsinv( L_transpose->get_size()[0], 
 		    L_transpose->get_num_stored_elements(), 
 		    L_transpose->get_row_ptrs(), 
@@ -131,18 +161,35 @@ int main(int argc, char** argv)
 		    S_col_idxs,
 		    S_values
     	);
-    	auto work_vec = A_vec->clone();
+/*
+         // the next block is completely useless as (AS-I)_spy(A)=0 does not hold
+        auto work_vec_t = Dense::create(gpu, gko::dim<2>(A_coo->get_num_stored_elements(), 1));
+	parsinv_residual(
+		    A_coo->get_size()[0],
+                    A_coo->get_num_stored_elements(),
+                    A_row_ptrs,
+                    A_row_idxs,
+                    A_col_idxs,
+                    A_values,
+		    //S_row_ptrs,
+                    //S_col_idxs,
+                    //S_values,
+		    I->get_row_ptrs(),
+                    I->get_col_idxs(),
+                    I->get_values(),
+		    work_vec_t->get_values());
+*/		
+	auto work_vec = A_vec->clone();
 	work_vec->add_scaled(neg_one, B_vec);
 	auto result =
     		gko::matrix::Dense<value_type>::create(gpu, gko::dim<2>{1, 1});
 	work_vec->compute_norm2(result);
-	std::cout << "Frobenious norm iteration " << i+1  << " : "
-        	  << gpu->copy_val_to_host(result->get_values()) << std::endl;
+	printf("Frobenious norm iteration %2d: %.4e\n",
+        	  i+1, gpu->copy_val_to_host(result->get_values()));
 	
     }
+
     // Write result
     //write(std::cout, I);
-
-   // printf("\n\n\n\n\n\n\n");
- //   write(std::cout, S_coo);
+    //write(std::cout, S_coo);
 }
