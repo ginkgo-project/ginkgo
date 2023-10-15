@@ -30,42 +30,24 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <cuda_runtime.h>
+#include <gtest/gtest.h>
 
 
-#include <ginkgo/core/base/exception_helpers.hpp>
+#include "core/test/gtest/environments.hpp"
 
 
-#include "cuda/base/device.hpp"
-#include "cuda/base/scoped_device_id.hpp"
+int ResourceEnvironment::omp_threads = 0;
+int ResourceEnvironment::cuda_device_id = 0;
+int ResourceEnvironment::hip_device_id = 0;
+int ResourceEnvironment::sycl_device_id = 0;
 
 
-namespace gko {
-namespace kernels {
-namespace cuda {
-
-
-void reset_device(int device_id)
+int main(int argc, char** argv)
 {
-    gko::detail::cuda_scoped_device_id_guard guard{device_id};
-    cudaDeviceReset();
+    ::testing::InitGoogleTest(&argc, argv);
+
+    ::testing::AddGlobalTestEnvironment(new ResourceEnvironment);
+    ::testing::AddGlobalTestEnvironment(new DeviceEnvironment(0));
+    int result = RUN_ALL_TESTS();
+    return result;
 }
-
-
-void destroy_event(CUevent_st* event)
-{
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaEventDestroy(event));
-}
-
-
-std::string get_device_name(int device_id)
-{
-    cudaDeviceProp prop;
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDeviceProperties(&prop, device_id));
-    return {prop.name};
-}
-
-
-}  // namespace cuda
-}  // namespace kernels
-}  // namespace gko

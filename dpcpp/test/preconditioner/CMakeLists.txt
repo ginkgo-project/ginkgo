@@ -1,1 +1,1 @@
-ginkgo_create_test(jacobi_kernels)
+ginkgo_create_dpcpp_test(jacobi_kernels)

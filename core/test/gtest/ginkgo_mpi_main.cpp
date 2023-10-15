@@ -51,6 +51,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/base/mpi.hpp>
+
+
+#include "core/test/gtest/environments.hpp"
+
+
 namespace GTestMPIListener {
 
 // This class sets up the global test environment, which is needed
@@ -92,7 +98,6 @@ public:
 private:
     // Disallow copying
     MPIEnvironment(const MPIEnvironment& env) {}
-
 };  // class MPIEnvironment
 
 
@@ -373,17 +378,33 @@ private:
 }  // namespace GTestMPIListener
 
 
+int ResourceEnvironment::omp_threads = 0;
+int ResourceEnvironment::cuda_device_id = 0;
+int ResourceEnvironment::hip_device_id = 0;
+int ResourceEnvironment::sycl_device_id = 0;
+
+
 int main(int argc, char** argv)
 {
     ::testing::InitGoogleTest(&argc, argv);
+
     MPI_Init(&argc, &argv);
+    MPI_Comm comm(MPI_COMM_WORLD);
+    int rank;
+    int size;
+    MPI_Comm_rank(comm, &rank);
+    MPI_Comm_size(comm, &size);
+
     ::testing::AddGlobalTestEnvironment(new GTestMPIListener::MPIEnvironment);
+    ::testing::AddGlobalTestEnvironment(new ResourceEnvironment(rank, size));
+    ::testing::AddGlobalTestEnvironment(new DeviceEnvironment(rank));
+    MPI_Barrier(comm);
+
     ::testing::TestEventListeners& listeners =
         ::testing::UnitTest::GetInstance()->listeners();
     ::testing::TestEventListener* l =
         listeners.Release(listeners.default_result_printer());
-    listeners.Append(
-        new GTestMPIListener::MPIWrapperPrinter(l, MPI_COMM_WORLD));
+    listeners.Append(new GTestMPIListener::MPIWrapperPrinter(l, comm));
     int result = RUN_ALL_TESTS();
     return result;
 }

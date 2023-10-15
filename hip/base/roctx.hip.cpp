@@ -37,7 +37,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #if GINKGO_HIP_PLATFORM_HCC && GKO_HAVE_ROCTX
+#if HIP_VERSION >= 50200000
+#include <roctracer/roctx.h>
+#else
 #include <roctx.h>
+#endif
 #endif
 
 

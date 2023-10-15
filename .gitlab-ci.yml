@@ -23,9 +23,9 @@ include:
   # interruptible, because the flag does not directly support rules [1].
   #
   # [1] https://gitlab.com/gitlab-org/gitlab/-/issues/194023#note_1225906002
-  - local: '.gitlab/add-interrupt.yml'
-    rules:
-      - if: $CI_COMMIT_BRANCH != "master" && $CI_COMMIT_BRANCH != "develop" && CI_COMMIT_TAG !~ /^v\d+\.\d+\.\d+/
+  # - local: '.gitlab/add-interrupt.yml'
+  #   rules:
+  #     - if: $CI_COMMIT_BRANCH != "master" && $CI_COMMIT_BRANCH != "develop" && CI_COMMIT_TAG !~ /^v\d+\.\d+\.\d+/
 
 sync:
   stage: sync
@@ -306,7 +306,7 @@ test/cuda110/nompi/clang/cuda/release/static:
   variables:
     USE_NAME: "cuda110-nompi-clang-${CI_PIPELINE_ID}"
     SLURM_PARTITION: "accelerated"
-    SLURM_GRES: "gpu:1"
+    SLURM_GRES: "gpu:4"
     SLURM_TIME: "01:30:00"
   dependencies: null
   needs: [ "build/cuda110/nompi/clang/cuda/release/static" ]
@@ -340,10 +340,11 @@ test/cuda110/nompi/intel/cuda/debug/static:
   variables:
     USE_NAME: "cuda110-nompi-intel-${CI_PIPELINE_ID}"
     SLURM_PARTITION: "accelerated"
-    SLURM_GRES: "gpu:1"
+    SLURM_GRES: "gpu:4"
     SLURM_TIME: "02:00:00"
   dependencies: null
   needs: [ "build/cuda110/nompi/intel/cuda/debug/static" ]
+
 
 # cuda 11.4 and friends
 build/cuda114/nompi/gcc/cuda/debug/shared:

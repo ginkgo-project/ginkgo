@@ -143,7 +143,7 @@ void transpose_scale_copy(std::shared_ptr<const CudaExecutor> exec,
     const int nrhs = static_cast<int>(scaled->get_size().at()[1]);
     const size_type orig_stride = orig->get_stride().at();
     const size_type scaled_stride = scaled->get_stride().at();
-    transpose_scale_copy<<<nbatch, default_block_size>>>(
+    transpose_scale_copy<<<nbatch, default_block_size, 0, exec->get_stream()>>>(
         nbatch, nrows, nrhs, orig_stride, scaled_stride,
         as_cuda_type(scaling->get_const_values()),
         as_cuda_type(orig->get_const_values()),

@@ -41,19 +41,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/stream.hpp>
 
 
+#include "core/test/gtest/resources.hpp"
 #include "cuda/base/device.hpp"
 
 
 namespace {
-
-
-class CudaEnvironment : public ::testing::Environment {
-public:
-    void TearDown() override { gko::kernels::cuda::reset_device(0); }
-};
-
-testing::Environment* cuda_env =
-    testing::AddGlobalTestEnvironment(new CudaEnvironment);
 
 
 class CudaTestFixture : public ::testing::Test {
@@ -61,12 +53,12 @@ protected:
     CudaTestFixture()
         : ref(gko::ReferenceExecutor::create()),
 #ifdef GKO_TEST_NONDEFAULT_STREAM
-          stream(0),
-          exec(gko::CudaExecutor::create(
-              0, ref, std::make_shared<gko::CudaAllocator>(), stream.get()))
-#else
-          exec(gko::CudaExecutor::create(0, ref))
+          stream(ResourceEnvironment::cuda_device_id),
 #endif
+          exec(gko::CudaExecutor::create(
+              ResourceEnvironment::cuda_device_id, ref,
+              std::make_shared<gko::CudaAllocator>(), stream.get())),
+          guard(exec->get_scoped_device_id_guard())
     {}
 
     void TearDown()
@@ -77,11 +69,10 @@ protected:
         }
     }
 
-#ifdef GKO_TEST_NONDEFAULT_STREAM
     gko::cuda_stream stream;
-#endif
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::CudaExecutor> exec;
+    gko::scoped_device_id_guard guard;
 };
 
 

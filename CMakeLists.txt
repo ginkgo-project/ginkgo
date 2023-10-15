@@ -93,6 +93,8 @@ option(GINKGO_INSTALL_RPATH_ORIGIN "Add $ORIGIN (Linux) or @loader_path (MacOS) 
 option(GINKGO_INSTALL_RPATH_DEPENDENCIES "Add dependencies to the installation RPATH." OFF)
 option(GINKGO_FORCE_GPU_AWARE_MPI "Assert that the MPI library is GPU aware. This forces Ginkgo to assume that GPU aware functionality is available (OFF (default) or ON), but may fail
      catastrophically in case the MPI implementation is not GPU Aware, and GPU aware functionality has been forced" OFF)
+set(GINKGO_CI_TEST_OMP_PARALLELISM "4" CACHE STRING
+    "The number of OpenMP threads to use for a test binary during CTest resource file-constrained test.")
 
 # load executor-specific configuration
 if(GINKGO_BUILD_CUDA)
@@ -205,13 +207,6 @@ endif()
 include(CheckIncludeFileCXX)
 check_include_file_cxx(cxxabi.h GKO_HAVE_CXXABI_H)
 
-# Automatically find PAPI and search for the required 'sde' component
-set(GINKGO_HAVE_PAPI_SDE 0)
-find_package(PAPI OPTIONAL_COMPONENTS sde)
-if(PAPI_sde_FOUND)
-    set(GINKGO_HAVE_PAPI_SDE 1)
-endif()
-
 # Automatically find TAU
 set(GINKGO_HAVE_TAU 0)
 find_package(PerfStubs QUIET)
@@ -240,12 +235,6 @@ endif()
 if(GINKGO_BUILD_HWLOC AND (MSVC OR WIN32 OR CYGWIN OR APPLE))
     set(GINKGO_BUILD_HWLOC OFF CACHE BOOL "Build Ginkgo with HWLOC. Default is OFF. Ginkgo does not support HWLOC on Windows/MacOS" FORCE)
     message(WARNING "Ginkgo does not support HWLOC on Windows/MacOS, switch GINKGO_BUILD_HWLOC to OFF")
-endif()
-if(GINKGO_BUILD_HWLOC)
-    set(GINKGO_HAVE_HWLOC 1)
-else()
-    set(GINKGO_HAVE_HWLOC 0)
-    message(STATUS "HWLOC is being forcibly switched off")
 endif()
 
 set(GINKGO_HAVE_GPU_AWARE_MPI OFF)
@@ -276,7 +265,6 @@ if(GINKGO_BUILD_MPI)
 endif()
 
 # Try to find the third party packages before using our subdirectories
-include(cmake/package_helpers.cmake)
 if(GINKGO_BUILD_TESTS)
     find_package(GTest 1.10.0) # No need for QUIET as CMake ships FindGTest
 endif()
@@ -284,9 +272,29 @@ if(GINKGO_BUILD_BENCHMARKS)
     find_package(gflags 2.2.2 QUIET)
     find_package(RapidJSON 1.1.0 QUIET)
 endif()
+
+set(GINKGO_HAVE_HWLOC 0)
 if(GINKGO_BUILD_HWLOC)
-    find_package(HWLOC 2.1) # No need for QUIET as we ship FindHWLOC
+    find_package(HWLOC 2.1)
+    if (HWLOC_FOUND)
+        set(GINKGO_HAVE_HWLOC 1)
+    else()
+        message(WARNING "HWLOC could not be found. HWLOC support will be disabled.")
+        set(GINKGO_BUILD_HWLOC OFF CACHE BOOL "HWLOC support was disabled because a system package could not be found." FORCE)
+    endif()
 endif()
+
+set(GINKGO_HAVE_PAPI_SDE 0)
+if(GINKGO_BUILD_PAPI_SDE)
+    find_package(PAPI 7.0.1.0 COMPONENTS sde)
+    if (PAPI_SDE_FOUND)
+        set(GINKGO_HAVE_PAPI_SDE 1)
+    else()
+        message(WARNING "PAPI (SDE) could not be found. PAPI_SDE support will be disabled.")
+        set(GINKGO_BUILD_PAPI_SDE OFF CACHE BOOL "PAPI_SDE support was disabled because a system package could not be found." FORCE)
+    endif()
+endif()
+
 add_subdirectory(third_party)    # Third-party tools and libraries
 
 if(MSVC)

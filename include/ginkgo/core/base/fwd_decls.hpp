@@ -30,42 +30,61 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <cuda_runtime.h>
+#ifndef GKO_PUBLIC_CORE_BASE_FWD_DECLS_HPP_
+#define GKO_PUBLIC_CORE_BASE_FWD_DECLS_HPP_
 
 
-#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/config.hpp>
 
 
-#include "cuda/base/device.hpp"
-#include "cuda/base/scoped_device_id.hpp"
+struct cublasContext;
+
+struct cusparseContext;
+
+struct CUstream_st;
+
+struct CUevent_st;
+
+struct hipblasContext;
+
+struct hipsparseContext;
+
+#if GINKGO_HIP_PLATFORM_HCC
+struct ihipStream_t;
+struct ihipEvent_t;
+#define GKO_HIP_STREAM_STRUCT ihipStream_t
+#define GKO_HIP_EVENT_STRUCT ihipEvent_t
+#else
+#define GKO_HIP_STREAM_STRUCT CUstream_st
+#define GKO_HIP_EVENT_STRUCT CUevent_st
+#endif
 
 
-namespace gko {
-namespace kernels {
-namespace cuda {
+// after intel/llvm September'22 release, which uses major version 6, they
+// introduce another inline namespace _V1.
+#if GINKGO_DPCPP_MAJOR_VERSION >= 6
+namespace sycl {
+inline namespace _V1 {
 
 
-void reset_device(int device_id)
-{
-    gko::detail::cuda_scoped_device_id_guard guard{device_id};
-    cudaDeviceReset();
-}
+class queue;
+class event;
 
 
-void destroy_event(CUevent_st* event)
-{
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaEventDestroy(event));
-}
+}  // namespace _V1
+}  // namespace sycl
+#else  // GINKGO_DPCPP_MAJOR_VERSION < 6
+inline namespace cl {
+namespace sycl {
 
 
-std::string get_device_name(int device_id)
-{
-    cudaDeviceProp prop;
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDeviceProperties(&prop, device_id));
-    return {prop.name};
-}
+class queue;
+class event;
 
 
-}  // namespace cuda
-}  // namespace kernels
-}  // namespace gko
+}  // namespace sycl
+}  // namespace cl
+#endif
+
+
+#endif  // GKO_PUBLIC_CORE_BASE_FWD_DECLS_HPP_
