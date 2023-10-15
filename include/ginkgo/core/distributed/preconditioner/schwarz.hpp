@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
+#include <ginkgo/core/multigrid/multigrid_level.hpp>
 
 
 namespace gko {
@@ -95,6 +96,19 @@ public:
          */
         std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
             local_solver_factory, nullptr);
+
+        /**
+         * Operator factory to generate the triplet (prolong_op, coarse_op,
+         * restrict_op).
+         */
+        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
+            galerkin_ops_factory, nullptr);
+
+        /**
+         * Coarse solver factory.
+         */
+        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
+            coarse_solver_factory, nullptr);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Schwarz, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -107,6 +121,7 @@ protected:
      */
     explicit Schwarz(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Schwarz>(std::move(exec))
+
     {}
 
     /**
@@ -141,6 +156,10 @@ protected:
 
 private:
     std::shared_ptr<const LinOp> local_solver_;
+    std::shared_ptr<const multigrid::MultigridLevel> galerkin_ops_;
+    std::shared_ptr<const LinOp> coarse_solver_;
+    std::shared_ptr<LinOp> csol_;
+    std::shared_ptr<const LinOp> half_;
 };
 
 
