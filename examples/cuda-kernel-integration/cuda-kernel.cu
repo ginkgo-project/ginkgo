@@ -49,16 +49,11 @@ __global__ void parsinv_kernel(
             // jl and js are the col-indices of the respective nonzero entries
             jl = Lcolidx[ il ];
             js = Scolidx[ is ];
-	    if(jl==js){
-	    	//printf("match in i:%d j:%d jl:%d js:%d\n", i,j,jl,js);
-	    }
             sp = (jl == js) ? Lval[ il ] * Sval[ is ] : sp;
             s = (jl == js) ? s+sp : s;
             il = (jl <= js) ? il+1 : il;
             is = (jl >= js) ? is+1 : is;
         }
-	// printf("(%d,%d) L(%d %d)= %.2e update %.2e\n", i, j, i, i, Lii, s);
-        //s -= sp;  // undo the last operation (it must be the last)    
         s = 1. / Lii * s; // scaling
         
         if (i == j) // diagonal element
@@ -86,10 +81,101 @@ void parsinv(
     double *Sval // val array S
     ){
     unsigned int grid_dim = (Snnz + default_block_size - 1) / default_block_size;
-    double *tval;
-    cudaMalloc(&tval, sizeof(double)*Snnz);
+    // use tval for Jacbi-style updates
+    //double *tval;
+    //cudaMalloc(&tval, sizeof(double)*Snnz);
 
     parsinv_kernel<<<dim3(grid_dim), dim3(default_block_size)>>>(n, Lnnz, Lrowptr, Lcolidx, Lval, Snnz, Srowptr, Srowidx, Scolidx, Sval, tval);
     //cudaMemcpy(Sval, tval, sizeof(double)*Snnz, cudaMemcpyDeviceToDevice);
-    cudaFree(tval);
+    // cudaFree(tval);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+__global__ void parsinv_residual_kernel(
+    int n, // matrix size
+    int Annz, // number of nonzeros in A stored in CSR
+    int *Arowptr, // row pointer A
+    int *Arowidx, //row index A
+    int *Acolidx, //col index A
+    double *Aval, // val array A
+    int *Srowptr, // row pointer S
+    int *Scolidx, //col index S
+    double *Sval, // val array S
+    double *tval // residual vector of length Annz
+    ){
+
+    int threadidx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (threadidx < Annz) {
+        int i, j, ia, is, ja, js;
+        double  s=0.0, sp;
+        // handle element A(threadidx) = A(i,j)
+        i = Arowidx[ threadidx ];
+        j = Acolidx[ threadidx ];
+
+
+
+
+
+	// tmp = A*S - I
+	// if diagonal element, set tmp to -1.0
+	// tval[ threadidx ] = (i==j) ? -1.0 : 0.0; 
+
+
+        // compute tmp(i,j) = A(i,:) * S(:,j) = A(i,:) * S(j,:)
+        // il and is are iterating over the nonzero entries in the respective rows
+        ia = Arowptr[ i ];
+        is = Srowptr[ j ];
+ 	while( ia < Arowptr[i+1] && is < Srowptr[ j+1 ] ){
+            sp = 0.0;
+            // ja and js are the col-indices of the respective nonzero entries
+            ja = Acolidx[ ia ];
+            js = Scolidx[ is ];
+            sp = (ja == js) ? Aval[ ia ] * Sval[ is ] : sp;
+            s = (ja == js) ? s+sp : s;
+            ia = (ja <= js) ? ia+1 : ia;
+            is = (ja >= js) ? is+1 : is;
+        }
+	tval[ threadidx ] = (i==j) ? s-1.0 : s;
+    }
+}
+
+
+
+
+void parsinv_residual(
+    int n, // matrix size
+    int Annz, // number of nonzeros in A
+    int *Arowptr, // row pointer A
+    int *Arowidx, //row index A
+    int *Acolidx, //col index A
+    double *Aval, // val array A
+    int *Srowptr, // row pointer S
+    int *Scolidx, //col index S
+    double *Sval, // val array S
+    double *tval
+    ){
+    unsigned int grid_dim = (Annz + default_block_size - 1) / default_block_size;
+
+    parsinv_residual_kernel<<<dim3(grid_dim), dim3(default_block_size)>>>(n, Annz, Arowptr, Arowidx, Acolidx, Aval, Srowptr, Scolidx, Sval, tval);
+}
+
+
+
+
+
+
+
+
+
+
