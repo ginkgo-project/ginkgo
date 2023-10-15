@@ -714,6 +714,16 @@ TYPED_TEST(Dense, ComputesMean)
 }
 
 
+TYPED_TEST(Dense, ComputesMeanFailsOnWrongResultSize)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto result = Mtx::create(this->exec, gko::dim<2>{1, 2});
+
+    ASSERT_THROW(this->mtx4->compute_mean(result), gko::DimensionMismatch);
+}
+
+
 TYPED_TEST(Dense, ComputeDotFailsOnWrongInputSize)
 {
     using Mtx = typename TestFixture::Mtx;
