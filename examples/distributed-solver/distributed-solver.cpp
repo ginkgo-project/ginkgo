@@ -259,8 +259,6 @@ int main(int argc, char* argv[])
                 .with_preconditioner(
                     schwarz::build()
                         .with_local_solver_factory(local_solver)
-                        .with_galerkin_ops_factory(pgm_fac)
-                        .with_coarse_solver_factory(coarse_solver)
                         .on(exec))
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(num_iters).on(
