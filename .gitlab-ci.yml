@@ -23,9 +23,9 @@ include:
   # interruptible, because the flag does not directly support rules [1].
   #
   # [1] https://gitlab.com/gitlab-org/gitlab/-/issues/194023#note_1225906002
-  - local: '.gitlab/add-interrupt.yml'
-    rules:
-      - if: $CI_COMMIT_BRANCH != "master" && $CI_COMMIT_BRANCH != "develop" && CI_COMMIT_TAG !~ /^v\d+\.\d+\.\d+/
+  # - local: '.gitlab/add-interrupt.yml'
+  #   rules:
+  #     - if: $CI_COMMIT_BRANCH != "master" && $CI_COMMIT_BRANCH != "develop" && CI_COMMIT_TAG !~ /^v\d+\.\d+\.\d+/
 
 sync:
   stage: sync
