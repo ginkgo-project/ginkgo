@@ -680,8 +680,8 @@ TYPED_TEST(VectorReductions, ComputesMeanIsSameAsDense)
     using value_type = typename TestFixture::value_type;
     this->init_result();
 
-    this->x->compute_mean(this->res.get());
-    this->dense_x->compute_mean(this->dense_res.get());
+    this->x->compute_mean(this->res);
+    this->dense_x->compute_mean(this->dense_res);
 
     GKO_ASSERT_MTX_NEAR(this->res, this->dense_res, r<value_type>::value);
 }
@@ -691,8 +691,8 @@ TYPED_TEST(VectorReductions, ComputesMeanWithTmpIsSameAsDense)
     using value_type = typename TestFixture::value_type;
     this->init_result();
 
-    this->x->compute_mean(this->res.get(), this->tmp);
-    this->dense_x->compute_mean(this->dense_res.get(), this->dense_tmp);
+    this->x->compute_mean(this->res, this->tmp);
+    this->dense_x->compute_mean(this->dense_res, this->dense_tmp);
 
     GKO_ASSERT_MTX_NEAR(this->res, this->dense_res, r<value_type>::value);
 }
