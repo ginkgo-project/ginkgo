@@ -91,8 +91,7 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
 
         restrict->apply(dense_b, this->csol_);
         this->coarse_solver_->apply(this->csol_, this->csol_);
-        prolong->apply(this->half_.get(), this->csol_.get(), this->half_.get(),
-                       dense_x);
+        prolong->apply(this->half_, this->csol_, this->half_, dense_x);
     }
 }
 
