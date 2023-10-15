@@ -1431,7 +1431,8 @@ void find_diagonal_entries_locations(
     const size_type num_blocks =
         ceildiv(num_warps, ceildiv(default_block_size, config::warp_size));
 
-    kernel::find_diagonal_locations<<<num_blocks, default_block_size>>>(
+    kernel::find_diagonal_locations<<<num_blocks, default_block_size, 0,
+                                      exec->get_stream()>>>(
         static_cast<IndexType>(
             std::min(mtx->get_size()[0], mtx->get_size()[1])),
         mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(), diag_locs);
