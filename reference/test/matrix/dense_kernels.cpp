@@ -708,9 +708,9 @@ TYPED_TEST(Dense, ComputesMean)
 
     this->mtx4->compute_mean(result.get());
 
-    GKO_EXPECT_NEAR(result->at(0, 0), T{0.5}, 1e-6);
-    GKO_EXPECT_NEAR(result->at(0, 1), T{4.0}, 1e-6);
-    GKO_EXPECT_NEAR(result->at(0, 2), T{1.0}, 1e-6);
+    GKO_EXPECT_NEAR(result->at(0, 0), T{0.5}, r<T>::value * 10);
+    GKO_EXPECT_NEAR(result->at(0, 1), T{4.0}, r<T>::value * 10);
+    GKO_EXPECT_NEAR(result->at(0, 2), T{1.0}, r<T>::value * 10);
 }
 
 

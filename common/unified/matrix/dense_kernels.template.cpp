@@ -286,11 +286,11 @@ void compute_mean(std::shared_ptr<const DefaultExecutor> exec,
     using ValueType_nc = gko::remove_complex<ValueType>;
     run_kernel_col_reduction_cached(
         exec,
-        [] GKO_KERNEL(auto i, auto j, auto x, auto total_size) {
-            return x(i, j) / static_cast<ValueType_nc>(total_size);
+        [] GKO_KERNEL(auto i, auto j, auto x, auto inv_total_size) {
+            return x(i, j) * inv_total_size;
         },
         GKO_KERNEL_REDUCE_SUM(ValueType), result->get_values(), x->get_size(),
-        tmp, x, x->get_size()[0]);
+        tmp, x, 1. / x->get_size()[0]);
 }
 
 

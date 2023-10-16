@@ -589,7 +589,7 @@ void Vector<ValueType>::compute_mean(ptr_param<LinOp> result,
     const auto global_size = this->get_size()[0];
     const auto local_size = this->get_local_vector()->get_size()[0];
     const auto num_vecs = static_cast<int>(this->get_size()[1]);
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, num_vecs));
+    GKO_ASSERT_EQUAL_COLS(result, dim<2>(1, num_vecs));
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto dense_res = make_temporary_clone(exec, as<MeanVector>(result));
@@ -597,7 +597,7 @@ void Vector<ValueType>::compute_mean(ptr_param<LinOp> result,
 
     // scale by its weight ie ratio of local to global size
     auto weight = initialize<matrix::Dense<remove_complex<ValueType>>>(
-        1, {static_cast<remove_complex<ValueType>>(local_size) / global_size},
+        {static_cast<remove_complex<ValueType>>(local_size) / global_size},
         this->get_executor());
     dense_res->scale(weight.get());
 

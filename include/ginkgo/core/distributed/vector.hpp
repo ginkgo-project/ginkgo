@@ -428,19 +428,6 @@ public:
     void compute_mean(ptr_param<LinOp> result, array<char>& tmp) const;
 
     /**
-     * Computes the column-wise arithmetic mean of this (multi-)vector using a
-     * global reduction.
-     *
-     * @param result  a Dense row matrix, used to store the mean
-     *                (the number of columns in result must match the number
-     *                of columns of this)
-     * @param tmp  the temporary storage to use for partial sums during the
-     *             reduction computation. It may be resized and/or reset to the
-     *             correct executor.
-     */
-    void compute_mean(LinOp* result, array<char>& tmp) const;
-
-    /**
      * Returns a single element of the multi-vector.
      *
      * @param row  the local row of the requested element
