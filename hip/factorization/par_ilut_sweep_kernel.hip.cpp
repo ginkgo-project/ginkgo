@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/synthesizer/implementation_selection.hpp"
 #include "hip/base/math.hip.hpp"
 #include "hip/components/intrinsics.hip.hpp"
+#include "hip/components/memory.hip.hpp"
 #include "hip/components/merging.hip.hpp"
 #include "hip/components/prefix_sum.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
