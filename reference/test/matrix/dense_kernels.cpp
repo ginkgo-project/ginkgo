@@ -114,23 +114,6 @@ protected:
 TYPED_TEST_SUITE(Dense, gko::test::ValueTypes, TypenameNameGenerator);
 
 
-template <typename ValueIndexType>
-class DenseWithIndexType
-    : public Dense<
-          typename std::tuple_element<0, decltype(ValueIndexType())>::type> {
-public:
-    using value_type =
-        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
-    using index_type =
-        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-
-    index_type invalid_index = gko::invalid_index<index_type>();
-};
-
-TYPED_TEST_SUITE(DenseWithIndexType, gko::test::ValueIndexTypes,
-                 PairTypenameNameGenerator);
-
-
 TYPED_TEST(Dense, CopyRespectsStride)
 {
     using value_type = typename TestFixture::value_type;
@@ -794,6 +777,553 @@ TYPED_TEST(Dense, MovesToPrecision)
 
     GKO_ASSERT_MTX_NEAR(this->mtx1, res, residual);
 }
+
+
+TYPED_TEST(Dense, SquareMatrixIsTransposable)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto trans = gko::as<Mtx>(this->mtx5->transpose());
+
+    GKO_ASSERT_MTX_NEAR(
+        trans, l<T>({{1.0, -2.0, 2.1}, {-1.0, 2.0, 3.4}, {-0.5, 4.5, 1.2}}),
+        0.0);
+}
+
+
+TYPED_TEST(Dense, SquareMatrixIsTransposableIntoDense)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto trans = Mtx::create(this->exec, this->mtx5->get_size());
+
+    this->mtx5->transpose(trans);
+
+    GKO_ASSERT_MTX_NEAR(
+        trans, l<T>({{1.0, -2.0, 2.1}, {-1.0, 2.0, 3.4}, {-0.5, 4.5, 1.2}}),
+        0.0);
+}
+
+
+TYPED_TEST(Dense, SquareSubmatrixIsTransposableIntoDense)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto trans = Mtx::create(this->exec, gko::dim<2>{2, 2}, 4);
+
+    this->mtx5->create_submatrix({0, 2}, {0, 2})->transpose(trans);
+
+    GKO_ASSERT_MTX_NEAR(trans, l<T>({{1.0, -2.0}, {-1.0, 2.0}}), 0.0);
+    ASSERT_EQ(trans->get_stride(), 4);
+}
+
+
+TYPED_TEST(Dense, SquareMatrixIsTransposableIntoDenseFailsForWrongDimensions)
+{
+    using Mtx = typename TestFixture::Mtx;
+
+    ASSERT_THROW(this->mtx5->transpose(Mtx::create(this->exec)),
+                 gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Dense, NonSquareMatrixIsTransposable)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto trans = gko::as<Mtx>(this->mtx4->transpose());
+
+    GKO_ASSERT_MTX_NEAR(trans, l<T>({{1.0, 0.0}, {3.0, 5.0}, {2.0, 0.0}}), 0.0);
+}
+
+
+TYPED_TEST(Dense, NonSquareMatrixIsTransposableIntoDense)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto trans =
+        Mtx::create(this->exec, gko::transpose(this->mtx4->get_size()));
+
+    this->mtx4->transpose(trans);
+
+    GKO_ASSERT_MTX_NEAR(trans, l<T>({{1.0, 0.0}, {3.0, 5.0}, {2.0, 0.0}}), 0.0);
+}
+
+
+TYPED_TEST(Dense, NonSquareSubmatrixIsTransposableIntoDense)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto trans = Mtx::create(this->exec, gko::dim<2>{2, 1}, 5);
+
+    this->mtx4->create_submatrix({0, 1}, {0, 2})->transpose(trans);
+
+    GKO_ASSERT_MTX_NEAR(trans, l({1.0, 3.0}), 0.0);
+    ASSERT_EQ(trans->get_stride(), 5);
+}
+
+
+TYPED_TEST(Dense, NonSquareMatrixIsTransposableIntoDenseFailsForWrongDimensions)
+{
+    using Mtx = typename TestFixture::Mtx;
+
+    ASSERT_THROW(this->mtx4->transpose(Mtx::create(this->exec)),
+                 gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Dense, ExtractsDiagonalFromSquareMatrix)
+{
+    using T = typename TestFixture::value_type;
+
+    auto diag = this->mtx5->extract_diagonal();
+
+    ASSERT_EQ(diag->get_size()[0], 3);
+    ASSERT_EQ(diag->get_size()[1], 3);
+    ASSERT_EQ(diag->get_values()[0], T{1.});
+    ASSERT_EQ(diag->get_values()[1], T{2.});
+    ASSERT_EQ(diag->get_values()[2], T{1.2});
+}
+
+
+TYPED_TEST(Dense, ExtractsDiagonalFromTallSkinnyMatrix)
+{
+    using T = typename TestFixture::value_type;
+
+    auto diag = this->mtx4->extract_diagonal();
+
+    ASSERT_EQ(diag->get_size()[0], 2);
+    ASSERT_EQ(diag->get_size()[1], 2);
+    ASSERT_EQ(diag->get_values()[0], T{1.});
+    ASSERT_EQ(diag->get_values()[1], T{5.});
+}
+
+
+TYPED_TEST(Dense, ExtractsDiagonalFromShortFatMatrix)
+{
+    using T = typename TestFixture::value_type;
+
+    auto diag = this->mtx8->extract_diagonal();
+
+    ASSERT_EQ(diag->get_size()[0], 2);
+    ASSERT_EQ(diag->get_size()[1], 2);
+    ASSERT_EQ(diag->get_values()[0], T{1.});
+    ASSERT_EQ(diag->get_values()[1], T{2.});
+}
+
+
+TYPED_TEST(Dense, ExtractsDiagonalFromSquareMatrixIntoDiagonal)
+{
+    using T = typename TestFixture::value_type;
+    auto diag = gko::matrix::Diagonal<T>::create(this->exec, 3);
+
+    this->mtx5->extract_diagonal(diag);
+
+    ASSERT_EQ(diag->get_size()[0], 3);
+    ASSERT_EQ(diag->get_size()[1], 3);
+    ASSERT_EQ(diag->get_values()[0], T{1.});
+    ASSERT_EQ(diag->get_values()[1], T{2.});
+    ASSERT_EQ(diag->get_values()[2], T{1.2});
+}
+
+
+TYPED_TEST(Dense, ExtractsDiagonalFromTallSkinnyMatrixIntoDiagonal)
+{
+    using T = typename TestFixture::value_type;
+    auto diag = gko::matrix::Diagonal<T>::create(this->exec, 2);
+
+    this->mtx4->extract_diagonal(diag);
+
+    ASSERT_EQ(diag->get_size()[0], 2);
+    ASSERT_EQ(diag->get_size()[1], 2);
+    ASSERT_EQ(diag->get_values()[0], T{1.});
+    ASSERT_EQ(diag->get_values()[1], T{5.});
+}
+
+
+TYPED_TEST(Dense, ExtractsDiagonalFromShortFatMatrixIntoDiagonal)
+{
+    using T = typename TestFixture::value_type;
+    auto diag = gko::matrix::Diagonal<T>::create(this->exec, 2);
+
+    this->mtx8->extract_diagonal(diag);
+
+    ASSERT_EQ(diag->get_size()[0], 2);
+    ASSERT_EQ(diag->get_size()[1], 2);
+    ASSERT_EQ(diag->get_values()[0], T{1.});
+    ASSERT_EQ(diag->get_values()[1], T{2.});
+}
+
+
+TYPED_TEST(Dense, InplaceAbsolute)
+{
+    using T = typename TestFixture::value_type;
+
+    this->mtx5->compute_absolute_inplace();
+
+    GKO_ASSERT_MTX_NEAR(
+        this->mtx5, l<T>({{1.0, 1.0, 0.5}, {2.0, 2.0, 4.5}, {2.1, 3.4, 1.2}}),
+        0.0);
+}
+
+
+TYPED_TEST(Dense, InplaceAbsoluteSubMatrix)
+{
+    using T = typename TestFixture::value_type;
+    auto mtx = this->mtx5->create_submatrix(gko::span{0, 2}, gko::span{0, 2});
+
+    mtx->compute_absolute_inplace();
+
+    GKO_ASSERT_MTX_NEAR(
+        this->mtx5, l<T>({{1.0, 1.0, -0.5}, {2.0, 2.0, 4.5}, {2.1, 3.4, 1.2}}),
+        0.0);
+}
+
+
+TYPED_TEST(Dense, OutplaceAbsolute)
+{
+    using T = typename TestFixture::value_type;
+
+    auto abs_mtx = this->mtx5->compute_absolute();
+
+    GKO_ASSERT_MTX_NEAR(
+        abs_mtx, l<T>({{1.0, 1.0, 0.5}, {2.0, 2.0, 4.5}, {2.1, 3.4, 1.2}}),
+        0.0);
+}
+
+
+TYPED_TEST(Dense, OutplaceAbsoluteIntoDense)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto abs_mtx =
+        gko::remove_complex<Mtx>::create(this->exec, this->mtx5->get_size());
+
+    this->mtx5->compute_absolute(abs_mtx);
+
+    GKO_ASSERT_MTX_NEAR(
+        abs_mtx, l<T>({{1.0, 1.0, 0.5}, {2.0, 2.0, 4.5}, {2.1, 3.4, 1.2}}),
+        0.0);
+}
+
+
+TYPED_TEST(Dense, OutplaceAbsoluteSubMatrix)
+{
+    using T = typename TestFixture::value_type;
+    auto mtx = this->mtx5->create_submatrix(gko::span{0, 2}, gko::span{0, 2});
+
+    auto abs_mtx = mtx->compute_absolute();
+
+    GKO_ASSERT_MTX_NEAR(abs_mtx, l<T>({{1.0, 1.0}, {2.0, 2.0}}), 0);
+    GKO_ASSERT_EQ(abs_mtx->get_stride(), 2);
+}
+
+
+TYPED_TEST(Dense, OutplaceSubmatrixAbsoluteIntoDense)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto mtx = this->mtx5->create_submatrix(gko::span{0, 2}, gko::span{0, 2});
+    auto abs_mtx =
+        gko::remove_complex<Mtx>::create(this->exec, gko::dim<2>{2, 2}, 4);
+
+    mtx->compute_absolute(abs_mtx);
+
+    GKO_ASSERT_MTX_NEAR(abs_mtx, l<T>({{1.0, 1.0}, {2.0, 2.0}}), 0);
+    GKO_ASSERT_EQ(abs_mtx->get_stride(), 4);
+}
+
+
+TYPED_TEST(Dense, AppliesToComplex)
+{
+    using value_type = typename TestFixture::value_type;
+    using complex_type = gko::to_complex<value_type>;
+    using Vec = gko::matrix::Dense<complex_type>;
+    auto exec = gko::ReferenceExecutor::create();
+    auto b =
+        gko::initialize<Vec>({{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
+                              {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}},
+                              {complex_type{3.0, 4.0}, complex_type{4.0, 5.0}}},
+                             exec);
+    auto x = Vec::create(exec, gko::dim<2>{2, 2});
+
+    this->mtx1->apply(b, x);
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({{complex_type{14.0, 16.0}, complex_type{20.0, 22.0}},
+           {complex_type{17.0, 19.0}, complex_type{24.5, 26.5}}}),
+        0.0);
+}
+
+
+TYPED_TEST(Dense, AppliesToMixedComplex)
+{
+    using mixed_value_type =
+        gko::next_precision<typename TestFixture::value_type>;
+    using mixed_complex_type = gko::to_complex<mixed_value_type>;
+    using Vec = gko::matrix::Dense<mixed_complex_type>;
+    auto exec = gko::ReferenceExecutor::create();
+    auto b = gko::initialize<Vec>(
+        {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
+         {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}},
+         {mixed_complex_type{3.0, 4.0}, mixed_complex_type{4.0, 5.0}}},
+        exec);
+    auto x = Vec::create(exec, gko::dim<2>{2, 2});
+
+    this->mtx1->apply(b, x);
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({{mixed_complex_type{14.0, 16.0}, mixed_complex_type{20.0, 22.0}},
+           {mixed_complex_type{17.0, 19.0}, mixed_complex_type{24.5, 26.5}}}),
+        0.0);
+}
+
+
+TYPED_TEST(Dense, AdvancedAppliesToComplex)
+{
+    using value_type = typename TestFixture::value_type;
+    using complex_type = gko::to_complex<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
+    using DenseComplex = gko::matrix::Dense<complex_type>;
+    auto exec = gko::ReferenceExecutor::create();
+
+    auto b = gko::initialize<DenseComplex>(
+        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
+         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}},
+         {complex_type{3.0, 4.0}, complex_type{4.0, 5.0}}},
+        exec);
+    auto x = gko::initialize<DenseComplex>(
+        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
+         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}}},
+        exec);
+    auto alpha = gko::initialize<Dense>({-1.0}, this->exec);
+    auto beta = gko::initialize<Dense>({2.0}, this->exec);
+
+    this->mtx1->apply(alpha, b, beta, x);
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({{complex_type{-12.0, -16.0}, complex_type{-16.0, -20.0}},
+           {complex_type{-13.0, -15.0}, complex_type{-18.5, -20.5}}}),
+        0.0);
+}
+
+
+TYPED_TEST(Dense, AdvancedAppliesToMixedComplex)
+{
+    using mixed_value_type =
+        gko::next_precision<typename TestFixture::value_type>;
+    using mixed_complex_type = gko::to_complex<mixed_value_type>;
+    using MixedDense = gko::matrix::Dense<mixed_value_type>;
+    using MixedDenseComplex = gko::matrix::Dense<mixed_complex_type>;
+    auto exec = gko::ReferenceExecutor::create();
+
+    auto b = gko::initialize<MixedDenseComplex>(
+        {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
+         {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}},
+         {mixed_complex_type{3.0, 4.0}, mixed_complex_type{4.0, 5.0}}},
+        exec);
+    auto x = gko::initialize<MixedDenseComplex>(
+        {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
+         {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}}},
+        exec);
+    auto alpha = gko::initialize<MixedDense>({-1.0}, this->exec);
+    auto beta = gko::initialize<MixedDense>({2.0}, this->exec);
+
+    this->mtx1->apply(alpha, b, beta, x);
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({{mixed_complex_type{-12.0, -16.0}, mixed_complex_type{-16.0, -20.0}},
+           {mixed_complex_type{-13.0, -15.0},
+            mixed_complex_type{-18.5, -20.5}}}),
+        0.0);
+}
+
+
+TYPED_TEST(Dense, MakeComplex)
+{
+    using T = typename TestFixture::value_type;
+
+    auto complex_mtx = this->mtx5->make_complex();
+
+    GKO_ASSERT_MTX_NEAR(complex_mtx, this->mtx5, 0.0);
+}
+
+
+TYPED_TEST(Dense, MakeComplexIntoDense)
+{
+    using T = typename TestFixture::value_type;
+    using ComplexMtx = typename TestFixture::ComplexMtx;
+    auto exec = this->mtx5->get_executor();
+
+    auto complex_mtx = ComplexMtx::create(exec, this->mtx5->get_size());
+    this->mtx5->make_complex(complex_mtx);
+
+    GKO_ASSERT_MTX_NEAR(complex_mtx, this->mtx5, 0.0);
+}
+
+
+TYPED_TEST(Dense, MakeComplexIntoDenseFailsForWrongDimensions)
+{
+    using T = typename TestFixture::value_type;
+    using ComplexMtx = typename TestFixture::ComplexMtx;
+    auto exec = this->mtx5->get_executor();
+
+    auto complex_mtx = ComplexMtx::create(exec);
+
+    ASSERT_THROW(this->mtx5->make_complex(complex_mtx), gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Dense, GetReal)
+{
+    using T = typename TestFixture::value_type;
+
+    auto real_mtx = this->mtx5->get_real();
+
+    GKO_ASSERT_MTX_NEAR(real_mtx, this->mtx5, 0.0);
+}
+
+
+TYPED_TEST(Dense, GetRealIntoDense)
+{
+    using T = typename TestFixture::value_type;
+    using RealMtx = typename TestFixture::RealMtx;
+    auto exec = this->mtx5->get_executor();
+
+    auto real_mtx = RealMtx::create(exec, this->mtx5->get_size());
+    this->mtx5->get_real(real_mtx);
+
+    GKO_ASSERT_MTX_NEAR(real_mtx, this->mtx5, 0.0);
+}
+
+
+TYPED_TEST(Dense, GetRealIntoDenseFailsForWrongDimensions)
+{
+    using T = typename TestFixture::value_type;
+    using RealMtx = typename TestFixture::RealMtx;
+    auto exec = this->mtx5->get_executor();
+
+    auto real_mtx = RealMtx::create(exec);
+    ASSERT_THROW(this->mtx5->get_real(real_mtx), gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Dense, GetImag)
+{
+    using T = typename TestFixture::value_type;
+
+    auto imag_mtx = this->mtx5->get_imag();
+
+    GKO_ASSERT_MTX_NEAR(
+        imag_mtx, l<T>({{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}),
+        0.0);
+}
+
+
+TYPED_TEST(Dense, GetImagIntoDense)
+{
+    using T = typename TestFixture::value_type;
+    using RealMtx = typename TestFixture::RealMtx;
+    auto exec = this->mtx5->get_executor();
+
+    auto imag_mtx = RealMtx::create(exec, this->mtx5->get_size());
+    this->mtx5->get_imag(imag_mtx);
+
+    GKO_ASSERT_MTX_NEAR(
+        imag_mtx, l<T>({{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}),
+        0.0);
+}
+
+
+TYPED_TEST(Dense, GetImagIntoDenseFailsForWrongDimensions)
+{
+    using T = typename TestFixture::value_type;
+    using RealMtx = typename TestFixture::RealMtx;
+    auto exec = this->mtx5->get_executor();
+
+    auto imag_mtx = RealMtx::create(exec);
+    ASSERT_THROW(this->mtx5->get_imag(imag_mtx), gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Dense, MakeTemporaryConversionDoesntConvertOnMatch)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Mtx>({8.0}, this->exec);
+
+    ASSERT_EQ(gko::make_temporary_conversion<T>(alpha).get(), alpha.get());
+}
+
+
+TYPED_TEST(Dense, MakeTemporaryConversionConvertsBack)
+{
+    using MixedMtx = typename TestFixture::MixedMtx;
+    using T = typename TestFixture::value_type;
+    using MixedT = typename MixedMtx::value_type;
+    auto alpha = gko::initialize<MixedMtx>({8.0}, this->exec);
+
+    {
+        auto conversion = gko::make_temporary_conversion<T>(alpha);
+        conversion->at(0, 0) = T{7.0};
+    }
+
+    ASSERT_EQ(alpha->at(0, 0), MixedT{7.0});
+}
+
+
+TYPED_TEST(Dense, MakeTemporaryConversionConstDoesntConvertBack)
+{
+    using MixedMtx = typename TestFixture::MixedMtx;
+    using T = typename TestFixture::value_type;
+    using MixedT = typename MixedMtx::value_type;
+    auto alpha = gko::initialize<MixedMtx>({8.0}, this->exec);
+
+    {
+        auto conversion = gko::make_temporary_conversion<T>(
+            static_cast<const MixedMtx*>(alpha.get()));
+        alpha->at(0, 0) = MixedT{7.0};
+    }
+
+    ASSERT_EQ(alpha->at(0, 0), MixedT{7.0});
+}
+
+
+TYPED_TEST(Dense, ScaleAddIdentityRectangular)
+{
+    using T = typename TestFixture::value_type;
+    using Vec = typename TestFixture::Mtx;
+    using MixedVec = typename TestFixture::MixedMtx;
+    auto alpha = gko::initialize<Vec>({2.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto b = gko::initialize<Vec>(
+        {I<T>{2.0, 0.0}, I<T>{1.0, 2.5}, I<T>{0.0, -4.0}}, this->exec);
+
+    b->add_scaled_identity(alpha, beta);
+
+    GKO_ASSERT_MTX_NEAR(b, l({{0.0, 0.0}, {-1.0, -0.5}, {0.0, 4.0}}), 0.0);
+}
+
+
+template <typename ValueIndexType>
+class DenseWithIndexType
+    : public Dense<
+          typename std::tuple_element<0, decltype(ValueIndexType())>::type> {
+public:
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+
+    index_type invalid_index = gko::invalid_index<index_type>();
+};
+
+TYPED_TEST_SUITE(DenseWithIndexType, gko::test::ValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 template <typename ValueType, typename IndexType>
@@ -1672,99 +2202,6 @@ TYPED_TEST(DenseWithIndexType, MovesEmptyToSellp)
 }
 
 
-TYPED_TEST(Dense, SquareMatrixIsTransposable)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto trans = gko::as<Mtx>(this->mtx5->transpose());
-
-    GKO_ASSERT_MTX_NEAR(
-        trans, l<T>({{1.0, -2.0, 2.1}, {-1.0, 2.0, 3.4}, {-0.5, 4.5, 1.2}}),
-        0.0);
-}
-
-
-TYPED_TEST(Dense, SquareMatrixIsTransposableIntoDense)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto trans = Mtx::create(this->exec, this->mtx5->get_size());
-
-    this->mtx5->transpose(trans);
-
-    GKO_ASSERT_MTX_NEAR(
-        trans, l<T>({{1.0, -2.0, 2.1}, {-1.0, 2.0, 3.4}, {-0.5, 4.5, 1.2}}),
-        0.0);
-}
-
-
-TYPED_TEST(Dense, SquareSubmatrixIsTransposableIntoDense)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto trans = Mtx::create(this->exec, gko::dim<2>{2, 2}, 4);
-
-    this->mtx5->create_submatrix({0, 2}, {0, 2})->transpose(trans);
-
-    GKO_ASSERT_MTX_NEAR(trans, l<T>({{1.0, -2.0}, {-1.0, 2.0}}), 0.0);
-    ASSERT_EQ(trans->get_stride(), 4);
-}
-
-
-TYPED_TEST(Dense, SquareMatrixIsTransposableIntoDenseFailsForWrongDimensions)
-{
-    using Mtx = typename TestFixture::Mtx;
-
-    ASSERT_THROW(this->mtx5->transpose(Mtx::create(this->exec)),
-                 gko::DimensionMismatch);
-}
-
-
-TYPED_TEST(Dense, NonSquareMatrixIsTransposable)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto trans = gko::as<Mtx>(this->mtx4->transpose());
-
-    GKO_ASSERT_MTX_NEAR(trans, l<T>({{1.0, 0.0}, {3.0, 5.0}, {2.0, 0.0}}), 0.0);
-}
-
-
-TYPED_TEST(Dense, NonSquareMatrixIsTransposableIntoDense)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto trans =
-        Mtx::create(this->exec, gko::transpose(this->mtx4->get_size()));
-
-    this->mtx4->transpose(trans);
-
-    GKO_ASSERT_MTX_NEAR(trans, l<T>({{1.0, 0.0}, {3.0, 5.0}, {2.0, 0.0}}), 0.0);
-}
-
-
-TYPED_TEST(Dense, NonSquareSubmatrixIsTransposableIntoDense)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto trans = Mtx::create(this->exec, gko::dim<2>{2, 1}, 5);
-
-    this->mtx4->create_submatrix({0, 1}, {0, 2})->transpose(trans);
-
-    GKO_ASSERT_MTX_NEAR(trans, l({1.0, 3.0}), 0.0);
-    ASSERT_EQ(trans->get_stride(), 5);
-}
-
-
-TYPED_TEST(Dense, NonSquareMatrixIsTransposableIntoDenseFailsForWrongDimensions)
-{
-    using Mtx = typename TestFixture::Mtx;
-
-    ASSERT_THROW(this->mtx4->transpose(Mtx::create(this->exec)),
-                 gko::DimensionMismatch);
-}
-
-
 TYPED_TEST(DenseWithIndexType, SquareMatrixCanGatherRows)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -2439,443 +2876,6 @@ TYPED_TEST(DenseWithIndexType,
     ASSERT_THROW(
         this->mtx5->inverse_column_permute(&permute_idxs, Mtx::create(exec)),
         gko::DimensionMismatch);
-}
-
-
-TYPED_TEST(Dense, ExtractsDiagonalFromSquareMatrix)
-{
-    using T = typename TestFixture::value_type;
-
-    auto diag = this->mtx5->extract_diagonal();
-
-    ASSERT_EQ(diag->get_size()[0], 3);
-    ASSERT_EQ(diag->get_size()[1], 3);
-    ASSERT_EQ(diag->get_values()[0], T{1.});
-    ASSERT_EQ(diag->get_values()[1], T{2.});
-    ASSERT_EQ(diag->get_values()[2], T{1.2});
-}
-
-
-TYPED_TEST(Dense, ExtractsDiagonalFromTallSkinnyMatrix)
-{
-    using T = typename TestFixture::value_type;
-
-    auto diag = this->mtx4->extract_diagonal();
-
-    ASSERT_EQ(diag->get_size()[0], 2);
-    ASSERT_EQ(diag->get_size()[1], 2);
-    ASSERT_EQ(diag->get_values()[0], T{1.});
-    ASSERT_EQ(diag->get_values()[1], T{5.});
-}
-
-
-TYPED_TEST(Dense, ExtractsDiagonalFromShortFatMatrix)
-{
-    using T = typename TestFixture::value_type;
-
-    auto diag = this->mtx8->extract_diagonal();
-
-    ASSERT_EQ(diag->get_size()[0], 2);
-    ASSERT_EQ(diag->get_size()[1], 2);
-    ASSERT_EQ(diag->get_values()[0], T{1.});
-    ASSERT_EQ(diag->get_values()[1], T{2.});
-}
-
-
-TYPED_TEST(Dense, ExtractsDiagonalFromSquareMatrixIntoDiagonal)
-{
-    using T = typename TestFixture::value_type;
-    auto diag = gko::matrix::Diagonal<T>::create(this->exec, 3);
-
-    this->mtx5->extract_diagonal(diag);
-
-    ASSERT_EQ(diag->get_size()[0], 3);
-    ASSERT_EQ(diag->get_size()[1], 3);
-    ASSERT_EQ(diag->get_values()[0], T{1.});
-    ASSERT_EQ(diag->get_values()[1], T{2.});
-    ASSERT_EQ(diag->get_values()[2], T{1.2});
-}
-
-
-TYPED_TEST(Dense, ExtractsDiagonalFromTallSkinnyMatrixIntoDiagonal)
-{
-    using T = typename TestFixture::value_type;
-    auto diag = gko::matrix::Diagonal<T>::create(this->exec, 2);
-
-    this->mtx4->extract_diagonal(diag);
-
-    ASSERT_EQ(diag->get_size()[0], 2);
-    ASSERT_EQ(diag->get_size()[1], 2);
-    ASSERT_EQ(diag->get_values()[0], T{1.});
-    ASSERT_EQ(diag->get_values()[1], T{5.});
-}
-
-
-TYPED_TEST(Dense, ExtractsDiagonalFromShortFatMatrixIntoDiagonal)
-{
-    using T = typename TestFixture::value_type;
-    auto diag = gko::matrix::Diagonal<T>::create(this->exec, 2);
-
-    this->mtx8->extract_diagonal(diag);
-
-    ASSERT_EQ(diag->get_size()[0], 2);
-    ASSERT_EQ(diag->get_size()[1], 2);
-    ASSERT_EQ(diag->get_values()[0], T{1.});
-    ASSERT_EQ(diag->get_values()[1], T{2.});
-}
-
-
-TYPED_TEST(Dense, InplaceAbsolute)
-{
-    using T = typename TestFixture::value_type;
-
-    this->mtx5->compute_absolute_inplace();
-
-    GKO_ASSERT_MTX_NEAR(
-        this->mtx5, l<T>({{1.0, 1.0, 0.5}, {2.0, 2.0, 4.5}, {2.1, 3.4, 1.2}}),
-        0.0);
-}
-
-
-TYPED_TEST(Dense, InplaceAbsoluteSubMatrix)
-{
-    using T = typename TestFixture::value_type;
-    auto mtx = this->mtx5->create_submatrix(gko::span{0, 2}, gko::span{0, 2});
-
-    mtx->compute_absolute_inplace();
-
-    GKO_ASSERT_MTX_NEAR(
-        this->mtx5, l<T>({{1.0, 1.0, -0.5}, {2.0, 2.0, 4.5}, {2.1, 3.4, 1.2}}),
-        0.0);
-}
-
-
-TYPED_TEST(Dense, OutplaceAbsolute)
-{
-    using T = typename TestFixture::value_type;
-
-    auto abs_mtx = this->mtx5->compute_absolute();
-
-    GKO_ASSERT_MTX_NEAR(
-        abs_mtx, l<T>({{1.0, 1.0, 0.5}, {2.0, 2.0, 4.5}, {2.1, 3.4, 1.2}}),
-        0.0);
-}
-
-
-TYPED_TEST(Dense, OutplaceAbsoluteIntoDense)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto abs_mtx =
-        gko::remove_complex<Mtx>::create(this->exec, this->mtx5->get_size());
-
-    this->mtx5->compute_absolute(abs_mtx);
-
-    GKO_ASSERT_MTX_NEAR(
-        abs_mtx, l<T>({{1.0, 1.0, 0.5}, {2.0, 2.0, 4.5}, {2.1, 3.4, 1.2}}),
-        0.0);
-}
-
-
-TYPED_TEST(Dense, OutplaceAbsoluteSubMatrix)
-{
-    using T = typename TestFixture::value_type;
-    auto mtx = this->mtx5->create_submatrix(gko::span{0, 2}, gko::span{0, 2});
-
-    auto abs_mtx = mtx->compute_absolute();
-
-    GKO_ASSERT_MTX_NEAR(abs_mtx, l<T>({{1.0, 1.0}, {2.0, 2.0}}), 0);
-    GKO_ASSERT_EQ(abs_mtx->get_stride(), 2);
-}
-
-
-TYPED_TEST(Dense, OutplaceSubmatrixAbsoluteIntoDense)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto mtx = this->mtx5->create_submatrix(gko::span{0, 2}, gko::span{0, 2});
-    auto abs_mtx =
-        gko::remove_complex<Mtx>::create(this->exec, gko::dim<2>{2, 2}, 4);
-
-    mtx->compute_absolute(abs_mtx);
-
-    GKO_ASSERT_MTX_NEAR(abs_mtx, l<T>({{1.0, 1.0}, {2.0, 2.0}}), 0);
-    GKO_ASSERT_EQ(abs_mtx->get_stride(), 4);
-}
-
-
-TYPED_TEST(Dense, AppliesToComplex)
-{
-    using value_type = typename TestFixture::value_type;
-    using complex_type = gko::to_complex<value_type>;
-    using Vec = gko::matrix::Dense<complex_type>;
-    auto exec = gko::ReferenceExecutor::create();
-    auto b =
-        gko::initialize<Vec>({{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
-                              {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}},
-                              {complex_type{3.0, 4.0}, complex_type{4.0, 5.0}}},
-                             exec);
-    auto x = Vec::create(exec, gko::dim<2>{2, 2});
-
-    this->mtx1->apply(b, x);
-
-    GKO_ASSERT_MTX_NEAR(
-        x,
-        l({{complex_type{14.0, 16.0}, complex_type{20.0, 22.0}},
-           {complex_type{17.0, 19.0}, complex_type{24.5, 26.5}}}),
-        0.0);
-}
-
-
-TYPED_TEST(Dense, AppliesToMixedComplex)
-{
-    using mixed_value_type =
-        gko::next_precision<typename TestFixture::value_type>;
-    using mixed_complex_type = gko::to_complex<mixed_value_type>;
-    using Vec = gko::matrix::Dense<mixed_complex_type>;
-    auto exec = gko::ReferenceExecutor::create();
-    auto b = gko::initialize<Vec>(
-        {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
-         {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}},
-         {mixed_complex_type{3.0, 4.0}, mixed_complex_type{4.0, 5.0}}},
-        exec);
-    auto x = Vec::create(exec, gko::dim<2>{2, 2});
-
-    this->mtx1->apply(b, x);
-
-    GKO_ASSERT_MTX_NEAR(
-        x,
-        l({{mixed_complex_type{14.0, 16.0}, mixed_complex_type{20.0, 22.0}},
-           {mixed_complex_type{17.0, 19.0}, mixed_complex_type{24.5, 26.5}}}),
-        0.0);
-}
-
-
-TYPED_TEST(Dense, AdvancedAppliesToComplex)
-{
-    using value_type = typename TestFixture::value_type;
-    using complex_type = gko::to_complex<value_type>;
-    using Dense = gko::matrix::Dense<value_type>;
-    using DenseComplex = gko::matrix::Dense<complex_type>;
-    auto exec = gko::ReferenceExecutor::create();
-
-    auto b = gko::initialize<DenseComplex>(
-        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
-         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}},
-         {complex_type{3.0, 4.0}, complex_type{4.0, 5.0}}},
-        exec);
-    auto x = gko::initialize<DenseComplex>(
-        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
-         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}}},
-        exec);
-    auto alpha = gko::initialize<Dense>({-1.0}, this->exec);
-    auto beta = gko::initialize<Dense>({2.0}, this->exec);
-
-    this->mtx1->apply(alpha, b, beta, x);
-
-    GKO_ASSERT_MTX_NEAR(
-        x,
-        l({{complex_type{-12.0, -16.0}, complex_type{-16.0, -20.0}},
-           {complex_type{-13.0, -15.0}, complex_type{-18.5, -20.5}}}),
-        0.0);
-}
-
-
-TYPED_TEST(Dense, AdvancedAppliesToMixedComplex)
-{
-    using mixed_value_type =
-        gko::next_precision<typename TestFixture::value_type>;
-    using mixed_complex_type = gko::to_complex<mixed_value_type>;
-    using MixedDense = gko::matrix::Dense<mixed_value_type>;
-    using MixedDenseComplex = gko::matrix::Dense<mixed_complex_type>;
-    auto exec = gko::ReferenceExecutor::create();
-
-    auto b = gko::initialize<MixedDenseComplex>(
-        {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
-         {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}},
-         {mixed_complex_type{3.0, 4.0}, mixed_complex_type{4.0, 5.0}}},
-        exec);
-    auto x = gko::initialize<MixedDenseComplex>(
-        {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
-         {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}}},
-        exec);
-    auto alpha = gko::initialize<MixedDense>({-1.0}, this->exec);
-    auto beta = gko::initialize<MixedDense>({2.0}, this->exec);
-
-    this->mtx1->apply(alpha, b, beta, x);
-
-    GKO_ASSERT_MTX_NEAR(
-        x,
-        l({{mixed_complex_type{-12.0, -16.0}, mixed_complex_type{-16.0, -20.0}},
-           {mixed_complex_type{-13.0, -15.0},
-            mixed_complex_type{-18.5, -20.5}}}),
-        0.0);
-}
-
-
-TYPED_TEST(Dense, MakeComplex)
-{
-    using T = typename TestFixture::value_type;
-
-    auto complex_mtx = this->mtx5->make_complex();
-
-    GKO_ASSERT_MTX_NEAR(complex_mtx, this->mtx5, 0.0);
-}
-
-
-TYPED_TEST(Dense, MakeComplexIntoDense)
-{
-    using T = typename TestFixture::value_type;
-    using ComplexMtx = typename TestFixture::ComplexMtx;
-    auto exec = this->mtx5->get_executor();
-
-    auto complex_mtx = ComplexMtx::create(exec, this->mtx5->get_size());
-    this->mtx5->make_complex(complex_mtx);
-
-    GKO_ASSERT_MTX_NEAR(complex_mtx, this->mtx5, 0.0);
-}
-
-
-TYPED_TEST(Dense, MakeComplexIntoDenseFailsForWrongDimensions)
-{
-    using T = typename TestFixture::value_type;
-    using ComplexMtx = typename TestFixture::ComplexMtx;
-    auto exec = this->mtx5->get_executor();
-
-    auto complex_mtx = ComplexMtx::create(exec);
-
-    ASSERT_THROW(this->mtx5->make_complex(complex_mtx), gko::DimensionMismatch);
-}
-
-
-TYPED_TEST(Dense, GetReal)
-{
-    using T = typename TestFixture::value_type;
-
-    auto real_mtx = this->mtx5->get_real();
-
-    GKO_ASSERT_MTX_NEAR(real_mtx, this->mtx5, 0.0);
-}
-
-
-TYPED_TEST(Dense, GetRealIntoDense)
-{
-    using T = typename TestFixture::value_type;
-    using RealMtx = typename TestFixture::RealMtx;
-    auto exec = this->mtx5->get_executor();
-
-    auto real_mtx = RealMtx::create(exec, this->mtx5->get_size());
-    this->mtx5->get_real(real_mtx);
-
-    GKO_ASSERT_MTX_NEAR(real_mtx, this->mtx5, 0.0);
-}
-
-
-TYPED_TEST(Dense, GetRealIntoDenseFailsForWrongDimensions)
-{
-    using T = typename TestFixture::value_type;
-    using RealMtx = typename TestFixture::RealMtx;
-    auto exec = this->mtx5->get_executor();
-
-    auto real_mtx = RealMtx::create(exec);
-    ASSERT_THROW(this->mtx5->get_real(real_mtx), gko::DimensionMismatch);
-}
-
-
-TYPED_TEST(Dense, GetImag)
-{
-    using T = typename TestFixture::value_type;
-
-    auto imag_mtx = this->mtx5->get_imag();
-
-    GKO_ASSERT_MTX_NEAR(
-        imag_mtx, l<T>({{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}),
-        0.0);
-}
-
-
-TYPED_TEST(Dense, GetImagIntoDense)
-{
-    using T = typename TestFixture::value_type;
-    using RealMtx = typename TestFixture::RealMtx;
-    auto exec = this->mtx5->get_executor();
-
-    auto imag_mtx = RealMtx::create(exec, this->mtx5->get_size());
-    this->mtx5->get_imag(imag_mtx);
-
-    GKO_ASSERT_MTX_NEAR(
-        imag_mtx, l<T>({{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}),
-        0.0);
-}
-
-
-TYPED_TEST(Dense, GetImagIntoDenseFailsForWrongDimensions)
-{
-    using T = typename TestFixture::value_type;
-    using RealMtx = typename TestFixture::RealMtx;
-    auto exec = this->mtx5->get_executor();
-
-    auto imag_mtx = RealMtx::create(exec);
-    ASSERT_THROW(this->mtx5->get_imag(imag_mtx), gko::DimensionMismatch);
-}
-
-
-TYPED_TEST(Dense, MakeTemporaryConversionDoesntConvertOnMatch)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto alpha = gko::initialize<Mtx>({8.0}, this->exec);
-
-    ASSERT_EQ(gko::make_temporary_conversion<T>(alpha).get(), alpha.get());
-}
-
-
-TYPED_TEST(Dense, MakeTemporaryConversionConvertsBack)
-{
-    using MixedMtx = typename TestFixture::MixedMtx;
-    using T = typename TestFixture::value_type;
-    using MixedT = typename MixedMtx::value_type;
-    auto alpha = gko::initialize<MixedMtx>({8.0}, this->exec);
-
-    {
-        auto conversion = gko::make_temporary_conversion<T>(alpha);
-        conversion->at(0, 0) = T{7.0};
-    }
-
-    ASSERT_EQ(alpha->at(0, 0), MixedT{7.0});
-}
-
-
-TYPED_TEST(Dense, MakeTemporaryConversionConstDoesntConvertBack)
-{
-    using MixedMtx = typename TestFixture::MixedMtx;
-    using T = typename TestFixture::value_type;
-    using MixedT = typename MixedMtx::value_type;
-    auto alpha = gko::initialize<MixedMtx>({8.0}, this->exec);
-
-    {
-        auto conversion = gko::make_temporary_conversion<T>(
-            static_cast<const MixedMtx*>(alpha.get()));
-        alpha->at(0, 0) = MixedT{7.0};
-    }
-
-    ASSERT_EQ(alpha->at(0, 0), MixedT{7.0});
-}
-
-
-TYPED_TEST(Dense, ScaleAddIdentityRectangular)
-{
-    using T = typename TestFixture::value_type;
-    using Vec = typename TestFixture::Mtx;
-    using MixedVec = typename TestFixture::MixedMtx;
-    auto alpha = gko::initialize<Vec>({2.0}, this->exec);
-    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
-    auto b = gko::initialize<Vec>(
-        {I<T>{2.0, 0.0}, I<T>{1.0, 2.5}, I<T>{0.0, -4.0}}, this->exec);
-
-    b->add_scaled_identity(alpha, beta);
-
-    GKO_ASSERT_MTX_NEAR(b, l({{0.0, 0.0}, {-1.0, -0.5}, {0.0, 4.0}}), 0.0);
 }
 
 
