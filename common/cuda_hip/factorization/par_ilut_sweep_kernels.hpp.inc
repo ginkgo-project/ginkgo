@@ -87,8 +87,8 @@ __global__ __launch_bounds__(default_block_size) void sweep(
             // we don't need to use the `bool valid` because last_entry is
             // already a smaller sentinel value than the one used in group_merge
             if (l_col == ut_row && l_col < last_entry) {
-                sum += l_vals[l_idx + l_row_begin] *
-                       ut_vals[ut_idx + ut_col_begin];
+                sum += load_relaxed(l_vals + (l_idx + l_row_begin)) *
+                       load_relaxed(ut_vals + (ut_idx + ut_col_begin));
             }
             // remember the transposed element
             auto found_transp = subwarp.ballot(ut_row == row);
@@ -103,15 +103,16 @@ __global__ __launch_bounds__(default_block_size) void sweep(
 
     if (subwarp.thread_rank() == 0) {
         if (lower) {
-            auto to_write = (a_val - sum) / ut_vals[ut_col_ptrs[col + 1] - 1];
+            auto to_write = (a_val - sum) /
+                            load_relaxed(ut_vals + (ut_col_ptrs[col + 1] - 1));
             if (is_finite(to_write)) {
-                l_vals[l_nz] = to_write;
+                store_relaxed(l_vals + l_nz, to_write);
             }
         } else {
             auto to_write = a_val - sum;
             if (is_finite(to_write)) {
-                u_vals[u_nz] = to_write;
-                ut_vals[ut_nz] = to_write;
+                store_relaxed(u_vals + u_nz, to_write);
+                store_relaxed(ut_vals + ut_nz, to_write);
             }
         }
     }
