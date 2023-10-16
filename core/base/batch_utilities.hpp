@@ -349,17 +349,16 @@ std::unique_ptr<Matrix> initialize(
     auto num_rows = begin(vals) ? vals.size() : 0;
     auto common_size = dim<2>(num_rows, 1);
     auto b_size = batch_dim<2>(num_batch_items, common_size);
-    std::vector<mat_data> input_mat_data(num_batch_items, common_size);
-    for (size_type batch = 0; batch < num_batch_items; batch++) {
-        input_mat_data[batch].nonzeros.reserve(num_rows);
-        size_type idx = 0;
-        for (const auto& elem : vals) {
-            if (elem != zero<value_type>()) {
-                input_mat_data[batch].nonzeros.emplace_back(idx, 0, elem);
-            }
-            ++idx;
+    mat_data single_mat_data(common_size);
+    single_mat_data.nonzeros.reserve(num_rows);
+    size_type idx = 0;
+    for (const auto& elem : vals) {
+        if (elem != zero<value_type>()) {
+            single_mat_data.nonzeros.emplace_back(idx, 0, elem);
         }
+        ++idx;
     }
+    std::vector<mat_data> input_mat_data(num_batch_items, single_mat_data);
     return read<value_type, index_type, Matrix>(
         exec, input_mat_data, std::forward<TArgs>(create_args)...);
 }
@@ -397,21 +396,19 @@ std::unique_ptr<Matrix> initialize(
     auto common_size = dim<2>(begin(vals) ? vals.size() : 0,
                               begin(vals) ? begin(vals)->size() : 0);
     batch_dim<2> b_size(num_batch_items, common_size);
-    std::vector<mat_data> input_mat_data(num_batch_items, common_size);
-    for (size_type batch = 0; batch < num_batch_items; batch++) {
-        size_type ridx = 0;
-        for (const auto& row : vals) {
-            size_type cidx = 0;
-            for (const auto& elem : row) {
-                if (elem != zero<value_type>()) {
-                    input_mat_data[batch].nonzeros.emplace_back(ridx, cidx,
-                                                                elem);
-                }
-                ++cidx;
+    mat_data single_mat_data(common_size);
+    size_type ridx = 0;
+    for (const auto& row : vals) {
+        size_type cidx = 0;
+        for (const auto& elem : row) {
+            if (elem != zero<value_type>()) {
+                single_mat_data.nonzeros.emplace_back(ridx, cidx, elem);
             }
-            ++ridx;
+            ++cidx;
         }
+        ++ridx;
     }
+    std::vector<mat_data> input_mat_data(num_batch_items, single_mat_data);
     return read<value_type, index_type, Matrix>(
         exec, input_mat_data, std::forward<TArgs>(create_args)...);
 }
