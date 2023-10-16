@@ -71,9 +71,13 @@ protected:
         : ref(gko::ReferenceExecutor::create()),
           lower_mtx{gko::initialize<matrix_type>(
               {{1.0, 0.0, 0.0}, {3.0, 1.0, 0.0}, {1.0, 2.0, 1.0}}, ref)},
+          lower_cholesky_mtx{gko::initialize<matrix_type>(
+              {{1.0, 0.0, 0.0}, {3.0, -1.0, 0.0}, {1.0, 2.0, 5.0}}, ref)},
           diagonal{diag_type::create(ref, 3)},
           upper_mtx(gko::initialize<matrix_type>(
               {{1.0, 2.0, 1.0}, {0.0, 1.0, 3.0}, {0.0, 0.0, 1.0}}, ref)),
+          upper_nonunit_mtx(gko::initialize<matrix_type>(
+              {{1.0, 2.0, 1.0}, {0.0, -1.0, 3.0}, {0.0, 0.0, 5.0}}, ref)),
           combined_mtx(gko::initialize<matrix_type>(
               {{1.0, 2.0, 1.0}, {3.0, -1.0, 3.0}, {1.0, 2.0, 5.0}}, ref)),
           input(gko::initialize<vector_type>({1.0, 2.0, 3.0}, ref)),
@@ -88,8 +92,10 @@ protected:
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     std::shared_ptr<matrix_type> lower_mtx;
+    std::shared_ptr<matrix_type> lower_cholesky_mtx;
     std::shared_ptr<diag_type> diagonal;
     std::shared_ptr<matrix_type> upper_mtx;
+    std::shared_ptr<matrix_type> upper_nonunit_mtx;
     std::shared_ptr<matrix_type> combined_mtx;
     std::shared_ptr<vector_type> input;
     std::shared_ptr<vector_type> output;
@@ -258,6 +264,87 @@ TYPED_TEST(Factorization, CreateSymmCombinedLDLWorks)
     ASSERT_THROW(
         fact->apply(this->alpha, this->input, this->beta, this->output),
         gko::NotSupported);
+}
+
+
+TYPED_TEST(Factorization, UnpackCombinedLUWorks)
+{
+    using factorization_type = typename TestFixture::factorization_type;
+    auto fact = factorization_type::create_from_combined_lu(
+        this->combined_mtx->clone());
+
+    auto separated = fact->unpack();
+
+    ASSERT_EQ(separated->get_storage_type(),
+              gko::experimental::factorization::storage_type::composition);
+    ASSERT_EQ(separated->get_combined(), nullptr);
+    ASSERT_EQ(separated->get_diagonal(), nullptr);
+    GKO_ASSERT_MTX_NEAR(separated->get_lower_factor(), this->lower_mtx, 0.0);
+    GKO_ASSERT_MTX_NEAR(separated->get_upper_factor(), this->upper_nonunit_mtx,
+                        0.0);
+}
+
+
+TYPED_TEST(Factorization, UnpackSymmCombinedCholeskyWorks)
+{
+    using matrix_type = typename TestFixture::matrix_type;
+    using factorization_type = typename TestFixture::factorization_type;
+    auto fact = factorization_type::create_from_combined_cholesky(
+        this->combined_mtx->clone());
+
+    auto separated = fact->unpack();
+
+    ASSERT_EQ(separated->get_storage_type(),
+              gko::experimental::factorization::storage_type::symm_composition);
+    ASSERT_EQ(separated->get_combined(), nullptr);
+    ASSERT_EQ(separated->get_diagonal(), nullptr);
+    GKO_ASSERT_MTX_NEAR(separated->get_lower_factor(), this->lower_cholesky_mtx,
+                        0.0);
+    GKO_ASSERT_MTX_NEAR(
+        separated->get_upper_factor(),
+        gko::as<matrix_type>(this->lower_cholesky_mtx->conj_transpose()), 0.0);
+}
+
+
+TYPED_TEST(Factorization, UnpackCompositionWorks)
+{
+    using factorization_type = typename TestFixture::factorization_type;
+    using composition_type = typename TestFixture::composition_type;
+    auto fact = factorization_type::create_from_composition(
+        composition_type::create(this->lower_mtx, this->upper_nonunit_mtx));
+
+    auto separated = fact->unpack();
+
+    ASSERT_EQ(separated->get_storage_type(),
+              gko::experimental::factorization::storage_type::composition);
+    ASSERT_EQ(separated->get_combined(), nullptr);
+    ASSERT_EQ(separated->get_diagonal(), nullptr);
+    GKO_ASSERT_MTX_NEAR(separated->get_lower_factor(), this->lower_mtx, 0.0);
+    GKO_ASSERT_MTX_NEAR(separated->get_upper_factor(), this->upper_nonunit_mtx,
+                        0.0);
+}
+
+
+TYPED_TEST(Factorization, UnpackSymmCompositionWorks)
+{
+    using matrix_type = typename TestFixture::matrix_type;
+    using factorization_type = typename TestFixture::factorization_type;
+    using composition_type = typename TestFixture::composition_type;
+    auto fact = factorization_type::create_from_symm_composition(
+        composition_type::create(this->lower_cholesky_mtx,
+                                 this->lower_cholesky_mtx->conj_transpose()));
+
+    auto separated = fact->unpack();
+
+    ASSERT_EQ(separated->get_storage_type(),
+              gko::experimental::factorization::storage_type::symm_composition);
+    ASSERT_EQ(separated->get_combined(), nullptr);
+    ASSERT_EQ(separated->get_diagonal(), nullptr);
+    GKO_ASSERT_MTX_NEAR(separated->get_lower_factor(), this->lower_cholesky_mtx,
+                        0.0);
+    GKO_ASSERT_MTX_NEAR(
+        separated->get_upper_factor(),
+        gko::as<matrix_type>(this->lower_cholesky_mtx->conj_transpose()), 0.0);
 }
 
 
