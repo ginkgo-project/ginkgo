@@ -5,6 +5,7 @@ target_sources(ginkgo
     PRIVATE
     base/array.cpp
     base/batch_multi_vector.cpp
+    base/block_operator.cpp
     base/combination.cpp
     base/composition.cpp
     base/dense_cache.cpp
