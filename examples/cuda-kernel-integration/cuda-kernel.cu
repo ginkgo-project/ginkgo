@@ -177,5 +177,53 @@ void parsinv_residual(
 
 
 
+// computes spones(A).*B and writes result in A
+__global__ void ASpOnesB_kernel(
+    int n, // matrix size
+    int *Arowptr, // row pointer A
+    int *Acolidx, //col index A
+    double *Aval, // val array A
+    const int *Browptr, // row pointer B
+    const int *Bcolidx, //col index B
+    const double *Bval // val array B
+    ){
+
+    int threadidx = blockIdx.x * blockDim.x + threadIdx.x;
+    int ia, ib, ja, jb;
+
+    if (threadidx < n) {
+	int row = threadidx;
+
+        ia = Arowptr[ row ];
+        ib = Browptr[ row ];
+        while( ia < Arowptr[ row+1 ] && ib < Browptr[ row+1 ] ){
+            // ja and jb are the col-indices of the respective nonzero entries
+            ja = Acolidx[ ia ];
+            jb = Bcolidx[ ib ];
+	    if( ja == jb ){
+		    Aval[ia] = Bval[ib];
+	    }
+            ia = (ja <= jb) ? ia+1 : ia;
+            ib = (ja >= jb) ? ib+1 : ib;
+        }
+    }
+}
 
 
+
+
+
+
+void ASpOnesB(
+    int n, // matrix size
+    int *Arowptr, // row pointer A
+    int *Acolidx, //col index A
+    double *Aval, // val array A
+    const int *Browptr, // row pointer B
+    const int *Bcolidx, //col index B
+    const double *Bval // val array B
+    ){
+    unsigned int grid_dim = (n + default_block_size - 1) / default_block_size;
+
+    ASpOnesB_kernel<<<dim3(grid_dim), dim3(default_block_size)>>>(n, Arowptr, Acolidx, Aval, Browptr, Bcolidx, Bval );
+}

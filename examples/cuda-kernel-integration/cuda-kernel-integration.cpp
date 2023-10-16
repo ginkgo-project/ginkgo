@@ -62,6 +62,15 @@ void parsinv_residual(
     double *tval
     );
 
+void ASpOnesB(
+    int n, // matrix size
+    int *Arowptr, // row pointer A
+    int *Acolidx, //col index A
+    double *Aval, // val array A
+    const int *Browptr, // row pointer B
+    const int *Bcolidx, //col index B
+    const double *Bval // val array B
+    );
 
 int main(int argc, char** argv)
 {
@@ -112,7 +121,6 @@ int main(int argc, char** argv)
     auto S_coo = Coo::create(gpu);
     S_csr->get_combined()->convert_to(S_coo);
 
-
     auto S_row_ptrs = row_ptrs_array.get_const_data();
     auto S_row_idxs = S_coo->get_const_row_idxs();
     auto S_col_idxs = S_coo->get_const_col_idxs();
@@ -124,29 +132,38 @@ int main(int argc, char** argv)
     std::unique_ptr<const Dense>A_vec;
     std::unique_ptr<const Dense>B_vec;
     if( debug > 0 ){
-        A_vec = Dense::create_const(
-            gpu, gko::dim<2>{size, 1},
-            gko::array<value_type>::const_view(gpu, size, I->get_const_values()),
-            1);
+	auto sp_size = I->get_num_stored_elements();
+	A_vec = Dense::create_const(
+            gpu, gko::dim<2>{sp_size, 1},
+            gko::array<value_type>::const_view(gpu, 
+		    sp_size, I->get_const_values()), 1);
+	auto ASelInv = I->clone();
+	ASpOnesB( ASelInv->get_size()[0], 
+			ASelInv->get_row_ptrs(),
+			ASelInv->get_col_idxs(),
+			ASelInv->get_values(),
+			S_row_ptrs,
+			S_col_idxs,
+			S_values);
         B_vec = Dense::create_const(
-            gpu, gko::dim<2>{size, 1},
-            gko::array<value_type>::const_view(gpu, size, S_coo->get_const_values()),
-            1);
+            gpu, gko::dim<2>{sp_size, 1},
+            gko::array<value_type>::const_view(gpu, 
+		    sp_size, ASelInv->get_const_values()), 1);
     
-    auto result =
+    	auto result =
            gko::matrix::Dense<value_type>::create(gpu, gko::dim<2>{1, 1});
-    A_vec->compute_norm2(result);
-    std::cout << "norm selected inverse : "
+    	A_vec->compute_norm2(result);
+    	std::cout << "norm selected inverse : "
                   << gpu->copy_val_to_host(result->get_values()) << std::endl;
 	
-    B_vec->compute_norm2(result);
-    std::cout << "norm initial guess : "
-                  << gpu->copy_val_to_host(result->get_values()) << std::endl;
+    	B_vec->compute_norm2(result);
+    	std::cout << "norm initial guess : "
+                 << gpu->copy_val_to_host(result->get_values()) << std::endl;
 
-    auto work_vec = A_vec->clone();
-    work_vec->add_scaled(neg_one, B_vec);
-    work_vec->compute_norm2(result);
-    printf("Frobenious norm iteration %2d: %.4e\n",
+    	auto work_vec = A_vec->clone();
+    	work_vec->add_scaled(neg_one, B_vec);
+    	work_vec->compute_norm2(result);
+    	printf("Frobenious norm iteration %2d: %.4e\n",
                   0, gpu->copy_val_to_host(result->get_values()));
     }
     // end error computation
@@ -167,20 +184,40 @@ int main(int argc, char** argv)
     	);
 	if( debug > 0 ){
 		// compute after every iteration the error to correct solution
-		auto work_vec = A_vec->clone();
-		work_vec->add_scaled(neg_one, B_vec);
-		auto result =
-    			gko::matrix::Dense<value_type>::create(gpu, gko::dim<2>{1, 1});
-		work_vec->compute_norm2(result);
-		printf("Frobenious norm iteration %2d: %.4e\n",
-        		 i+1, gpu->copy_val_to_host(result->get_values()));
+	        auto sp_size = I->get_num_stored_elements(); 
+		A_vec = Dense::create_const(
+        	    gpu, gko::dim<2>{sp_size, 1},
+            	gko::array<value_type>::const_view(gpu,
+                    sp_size, I->get_const_values()), 1);
+        	auto ASelInv = I->clone();
+        	ASpOnesB( ASelInv->get_size()[0],
+                        ASelInv->get_row_ptrs(),
+                        ASelInv->get_col_idxs(),
+                        ASelInv->get_values(),
+                        S_row_ptrs,
+                        S_col_idxs,
+                        S_values);
+        	B_vec = Dense::create_const(
+            		gpu, gko::dim<2>{sp_size, 1},
+            	gko::array<value_type>::const_view(gpu,
+                    sp_size, ASelInv->get_const_values()), 1);
+
+    		auto result =
+           		gko::matrix::Dense<value_type>::create(gpu, gko::dim<2>{1, 1});
+
+    		auto work_vec = A_vec->clone();
+    		work_vec->add_scaled(neg_one, B_vec);
+    		work_vec->compute_norm2(result);
+    		printf("Frobenious norm iteration %2d: %.4e\n",
+                  i+1, gpu->copy_val_to_host(result->get_values()));
 	}
     }
     end = std::chrono::steady_clock::now();
     double inverse_time = std::chrono::duration<double>(end-start).count();
 
-    printf("Factorization time: %.4e\nSelected inverse time: %.4e\n", factorization_time, inverse_time);
-
+    printf("\n#####################################################################\n");
+    printf("#\n# Factorization time: %.4e\n# Selected inverse time: %.4e\n#", factorization_time, inverse_time);
+    printf("\n#####################################################################\n");
     // Write result
     //write(std::cout, I);
     //write(std::cout, S_coo);
