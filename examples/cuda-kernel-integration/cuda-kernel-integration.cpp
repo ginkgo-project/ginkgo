@@ -34,17 +34,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <ginkgo/ginkgo.hpp>
 #include <iostream>
+#include <chrono>
 
 void parsinv(
     int n, // matrix size
     int Lnnz, // number of nonzeros in LT stored in CSR, upper triangular  (equivalent to L in CSC)
-    int *Lrowptr, // row pointer L
-    int *Lcolidx, //col index L
-    double *Lval, // val array L
+    const int *Lrowptr, // row pointer L
+    const int *Lcolidx, //col index L
+    const double *Lval, // val array L
     int Snnz, // number of nonzeros in S (stored in CSR, full sparse)
-    int *Srowptr, // row pointer S
-    int *Srowidx, // row index S
-    int *Scolidx, //col index S
+    const int *Srowptr, // row pointer S
+    const int *Srowidx, // row index S
+    const int *Scolidx, //col index S
     double *Sval // val array S
     );
 
@@ -67,37 +68,61 @@ int main(int argc, char** argv)
 {
     using value_type = double;
     using index_type = gko::int32;
-    if (argc != 5) {
-        std::cout << "Please execute with the following parameters:\n"
-                  << argv[0]
-                  << " <Astd::ifstream S_file(argv[1]); matrix path> <S matrix path> <L matrix path> <I matrix path>\n";
-        std::exit(1);
-    }
-    std::ifstream A_file(argv[1]);
-    std::ifstream S_file(argv[2]);
-    std::ifstream L_file(argv[3]);
-    std::ifstream I_file(argv[4]);
     using Csr = gko::matrix::Csr<value_type, index_type>;
     using Coo = gko::matrix::Coo<value_type, index_type>;
     using Dense = gko::matrix::Dense<value_type>;
+
     // Instantiate a CUDA executor
     auto gpu = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
-    // Read data
+    
+    int debug = 0;
+    // debug = 0 : only compute selected inverse based on matrix
+    // debug = 1 : feed in reference solution and compare against solution
+    if (argc == 2 ) {
+    }
+    else if ( argc == 3 ){
+	    debug = 1;
+	    std::cout << " Computing error ro reference solution in iterations "  << std::endl;
+	}
+    else {
+        std::cout << "Please execute with the following parameters:\n"
+                  << argv[0]
+                  << "<A matrix path> <I matrix path>\n";
+        std::exit(1);
+    }
+    std::ifstream A_file(argv[1]);
     auto A_csr = gko::share(gko::read<Csr>(A_file, gpu));
-    auto S_csr = gko::read<Csr>(S_file, gpu);
-    auto L = gko::read<Csr>(L_file, gpu);
-    auto I = gko::read<Csr>(I_file, gpu);
+    std::unique_ptr<Csr> I;
+
+    if( debug > 0 ){
+    	std::ifstream I_file(argv[2]);
+	I = gko::read<Csr>(I_file, gpu);
+    }
+    // use Ginkgo Cholesky factorization and use the combined as sparsity pattern S
+    auto start = std::chrono::steady_clock::now();
+    auto S_csr = gko::experimental::factorization::Cholesky<value_type, index_type>::build().on(gpu)->generate(A_csr);
+    auto LLU = S_csr->unpack();
+    auto L = LLU->get_upper_factor();
+    auto end = std::chrono::steady_clock::now();
+    double factorization_time = std::chrono::duration<double>(end-start).count();
 
     const auto num_row_ptrs = S_csr->get_size()[0] + 1;
     gko::array<index_type> row_ptrs_array(gpu, num_row_ptrs);
-    gpu->copy_from(gpu, num_row_ptrs, S_csr->get_const_row_ptrs(),
+    gpu->copy_from(gpu, num_row_ptrs, S_csr->get_combined()->get_const_row_ptrs(),
                    row_ptrs_array.get_data());
     auto S_coo = Coo::create(gpu);
-    S_csr->move_to(S_coo);
+    S_csr->get_combined()->convert_to(S_coo);
 
-    auto LL = gko::experimental::factorization::Cholesky<value_type, index_type>::build().on(gpu)->generate(A_csr);
-    auto LLU = LL->unpack();
 
+    auto S_row_ptrs = row_ptrs_array.get_const_data();
+    auto S_row_idxs = S_coo->get_const_row_idxs();
+    auto S_col_idxs = S_coo->get_const_col_idxs();
+    auto S_values = S_coo->get_values();
+
+
+
+
+/*	    
     gko::array<index_type> Arow_ptrs_array(gpu, num_row_ptrs);
     gpu->copy_from(gpu, num_row_ptrs, A_csr->get_const_row_ptrs(),
                    Arow_ptrs_array.get_data());
@@ -109,85 +134,95 @@ int main(int argc, char** argv)
     auto A_row_idxs = A_coo->get_row_idxs();
     auto A_col_idxs = A_coo->get_col_idxs();
     auto A_values = A_coo->get_values();
-
-    auto S_row_ptrs = row_ptrs_array.get_data();
-    auto S_row_idxs = S_coo->get_row_idxs();
-    auto S_col_idxs = S_coo->get_col_idxs();
-    auto S_values = S_coo->get_values();
-
+   
+   // for debugging, if not converging: read in L and transpose
     auto L_transpose_linop = LLU->get_lower_factor()->transpose();
     auto L_transpose =
-        static_cast<typename Csr::transposed_type*>(L_transpose_linop.get());
-    
-    auto size = I->get_num_stored_elements();
-    auto A_vec = Dense::create_const(
+         static_cast<typename Csr::transposed_type*>(L_transpose_linop.get());
+
+        // the next block is completely useless as (AS-I)_spy(A)=0 does not hold
+ 	// but it could be used this fashion inside the loop 
+  	auto work_vec_t = Dense::create(gpu, gko::dim<2>(A_coo->get_num_stored_elements(), 1));
+        parsinv_residual(
+                    A_coo->get_size()[0],
+                    A_coo->get_num_stored_elements(),
+                    A_row_ptrs,
+                    A_row_idxs,
+                    A_col_idxs,
+                    A_values,
+                    //S_row_ptrs,
+                    //S_col_idxs,
+                    //S_values,
+                    I->get_row_ptrs(),
+                    I->get_col_idxs(),
+                    I->get_values(),
+                    work_vec_t->get_values());
+*/
+
+   
+    // compute error to correct solution
+    auto size = S_coo->get_num_stored_elements();
+    auto neg_one = gko::initialize<Dense>({-gko::one<value_type>()}, gpu);
+    std::unique_ptr<const Dense>A_vec;
+    std::unique_ptr<const Dense>B_vec;
+    if( debug > 0 ){
+        A_vec = Dense::create_const(
             gpu, gko::dim<2>{size, 1},
             gko::array<value_type>::const_view(gpu, size, I->get_const_values()),
             1);
-    auto B_vec = Dense::create_const(
+        B_vec = Dense::create_const(
             gpu, gko::dim<2>{size, 1},
             gko::array<value_type>::const_view(gpu, size, S_coo->get_const_values()),
             1);
-    auto neg_one = gko::initialize<Dense>({-gko::one<value_type>()}, gpu);
     
-
-
     auto result =
            gko::matrix::Dense<value_type>::create(gpu, gko::dim<2>{1, 1});
-        A_vec->compute_norm2(result);
-        std::cout << "norm selected inverse : "
+    A_vec->compute_norm2(result);
+    std::cout << "norm selected inverse : "
                   << gpu->copy_val_to_host(result->get_values()) << std::endl;
 	
-        B_vec->compute_norm2(result);
-        std::cout << "norm initial guess : "
+    B_vec->compute_norm2(result);
+    std::cout << "norm initial guess : "
                   << gpu->copy_val_to_host(result->get_values()) << std::endl;
 
-        auto work_vec = A_vec->clone();
-        work_vec->add_scaled(neg_one, B_vec);
-           work_vec->compute_norm2(result);
-        printf("Frobenious norm iteration %2d: %.4e\n",
+    auto work_vec = A_vec->clone();
+    work_vec->add_scaled(neg_one, B_vec);
+    work_vec->compute_norm2(result);
+    printf("Frobenious norm iteration %2d: %.4e\n",
                   0, gpu->copy_val_to_host(result->get_values()));
-
-    // Solve system
+    }
+    // end error computation
+    
+    start = std::chrono::steady_clock::now();
+    // Solve system iteratively - control iterations
     for(int i=0; i<20; i++){
-    	parsinv( L_transpose->get_size()[0], 
-		    L_transpose->get_num_stored_elements(), 
-		    L_transpose->get_row_ptrs(), 
-		    L_transpose->get_col_idxs(),
-		    L_transpose->get_values(),
+	    //magic kernel - taking L as upper Cholesky and selected sparse inverse S
+    	parsinv( L->get_size()[0], 
+		    L->get_num_stored_elements(), 
+		    L->get_const_row_ptrs(), 
+		    L->get_const_col_idxs(),
+		    L->get_const_values(),
                     S_coo->get_num_stored_elements(),
 		    S_row_ptrs,
 		    S_row_idxs,
 		    S_col_idxs,
 		    S_values
     	);
-/*
-         // the next block is completely useless as (AS-I)_spy(A)=0 does not hold
-        auto work_vec_t = Dense::create(gpu, gko::dim<2>(A_coo->get_num_stored_elements(), 1));
-	parsinv_residual(
-		    A_coo->get_size()[0],
-                    A_coo->get_num_stored_elements(),
-                    A_row_ptrs,
-                    A_row_idxs,
-                    A_col_idxs,
-                    A_values,
-		    //S_row_ptrs,
-                    //S_col_idxs,
-                    //S_values,
-		    I->get_row_ptrs(),
-                    I->get_col_idxs(),
-                    I->get_values(),
-		    work_vec_t->get_values());
-*/		
-	auto work_vec = A_vec->clone();
-	work_vec->add_scaled(neg_one, B_vec);
-	auto result =
-    		gko::matrix::Dense<value_type>::create(gpu, gko::dim<2>{1, 1});
-	work_vec->compute_norm2(result);
-	printf("Frobenious norm iteration %2d: %.4e\n",
-        	  i+1, gpu->copy_val_to_host(result->get_values()));
-	
+	if( debug > 0 ){
+		// compute after every iteration the error to correct solution
+		auto work_vec = A_vec->clone();
+		work_vec->add_scaled(neg_one, B_vec);
+		auto result =
+    			gko::matrix::Dense<value_type>::create(gpu, gko::dim<2>{1, 1});
+		work_vec->compute_norm2(result);
+		printf("Frobenious norm iteration %2d: %.4e\n",
+        		 i+1, gpu->copy_val_to_host(result->get_values()));
+	}
     }
+    end = std::chrono::steady_clock::now();
+    double inverse_time = std::chrono::duration<double>(end-start).count();
+
+    printf("Factorization time: %.4e\nSelected inverse time: %.4e\n", factorization_time, inverse_time);
 
     // Write result
     //write(std::cout, I);
