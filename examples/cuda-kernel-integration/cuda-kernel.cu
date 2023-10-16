@@ -5,13 +5,13 @@ constexpr unsigned int default_block_size = 512;
 __global__ void parsinv_kernel( 
     int n, // matrix size
     int Lnnz, // number of nonzeros in LT stored in CSR, upper triangular  (equivalent to L in CSC)
-    int *Lrowptr, // row pointer L
-    int *Lcolidx, //col index L 
-    double *Lval, // val array L
+    const int *Lrowptr, // row pointer L
+    const int *Lcolidx, //col index L 
+    const double *Lval, // val array L
     int Snnz, // number of nonzeros in S (stored in CSR, full sparse)
-    int *Srowptr, // row pointer S
-    int *Srowidx, // row index S 
-    int *Scolidx, //col index S 
+    const int *Srowptr, // row pointer S
+    const int *Srowidx, // row index S 
+    const int *Scolidx, //col index S 
     double *Sval, // val array S
     double *tval 
     ){
@@ -71,18 +71,18 @@ __global__ void parsinv_kernel(
 void parsinv(
     int n, // matrix size
     int Lnnz, // number of nonzeros in LT stored in CSR, upper triangular  (equivalent to L in CSC)
-    int *Lrowptr, // row pointer L
-    int *Lcolidx, //col index L
-    double *Lval, // val array L
+    const int *Lrowptr, // row pointer L
+    const int *Lcolidx, //col index L
+    const double *Lval, // val array L
     int Snnz, // number of nonzeros in S (stored in CSR, full sparse)
-    int *Srowptr, // row pointer S
-    int *Srowidx, // row index S
-    int *Scolidx, //col index S
+    const int *Srowptr, // row pointer S
+    const int *Srowidx, // row index S
+    const int *Scolidx, //col index S
     double *Sval // val array S
     ){
     unsigned int grid_dim = (Snnz + default_block_size - 1) / default_block_size;
     // use tval for Jacbi-style updates
-    //double *tval;
+    double *tval;
     //cudaMalloc(&tval, sizeof(double)*Snnz);
 
     parsinv_kernel<<<dim3(grid_dim), dim3(default_block_size)>>>(n, Lnnz, Lrowptr, Lcolidx, Lval, Snnz, Srowptr, Srowidx, Scolidx, Sval, tval);
