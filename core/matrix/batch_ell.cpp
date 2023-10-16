@@ -101,17 +101,6 @@ Ell<ValueType, IndexType>::create_const_view_for_item(size_type item_id) const
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<Ell<ValueType, IndexType>>
-Ell<ValueType, IndexType>::create_with_config_of(
-    ptr_param<const Ell<ValueType, IndexType>> other)
-{
-    return Ell<ValueType, IndexType>::create(
-        other->get_executor(), other->get_size(),
-        other->get_num_stored_elements_per_row());
-}
-
-
-template <typename ValueType, typename IndexType>
 std::unique_ptr<const Ell<ValueType, IndexType>>
 Ell<ValueType, IndexType>::create_const(
     std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,

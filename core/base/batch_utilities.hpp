@@ -54,6 +54,9 @@ namespace gko {
 namespace batch {
 
 
+/**
+ * Duplicate a given input batch object.
+ */
 template <typename OutputType, typename... TArgs>
 std::unique_ptr<OutputType> duplicate(std::shared_ptr<const Executor> exec,
                                       size_type num_duplications,
@@ -78,6 +81,9 @@ std::unique_ptr<OutputType> duplicate(std::shared_ptr<const Executor> exec,
 }
 
 
+/**
+ * Duplicate a monolithic matrix and create a batch object.
+ */
 template <typename OutputType, typename... TArgs>
 std::unique_ptr<OutputType> create_from_item(
     std::shared_ptr<const Executor> exec, const size_type num_duplications,
@@ -96,6 +102,13 @@ std::unique_ptr<OutputType> create_from_item(
 }
 
 
+/**
+ * Create a batch object from a vector of monolithic object that share the same
+ * sparsity pattern.
+ *
+ * @note The sparsity of the elements in the input vector of matrices needs to
+ * be the same. TODO: Check for same sparsity among the different input items
+ */
 template <typename OutputType, typename... TArgs>
 std::unique_ptr<OutputType> create_from_item(
     std::shared_ptr<const Executor> exec,
@@ -115,6 +128,9 @@ std::unique_ptr<OutputType> create_from_item(
 }
 
 
+/**
+ * Unbatch a batched object into a vector of items of its unbatch_type.
+ */
 template <typename InputType>
 auto unbatch(const InputType* batch_object)
 {
@@ -135,19 +151,20 @@ template <typename ValueType, typename IndexType>
 void assert_same_sparsity_in_batched_data(
     const std::vector<gko::matrix_data<ValueType, IndexType>>& data)
 {
-    auto num_nnz = data[0].nonzeros.size();
-    auto base_data = data[0];
+    auto num_nnz = data.at(0).nonzeros.size();
+    auto base_data = data.at(0);
     base_data.ensure_row_major_order();
-    for (int b = 0; b < data.size(); ++b) {
+    for (int b = 1; b < data.size(); ++b) {
         if (data[b].nonzeros.size() != num_nnz) {
             GKO_NOT_IMPLEMENTED;
         }
-        auto temp_data = data[b];
+        auto temp_data = data.at(b);
         temp_data.ensure_row_major_order();
         for (int nnz = 0; nnz < num_nnz; ++nnz) {
-            if (temp_data.nonzeros[nnz].row != base_data.nonzeros[nnz].row ||
-                temp_data.nonzeros[nnz].column !=
-                    base_data.nonzeros[nnz].column) {
+            if (temp_data.nonzeros.at(nnz).row !=
+                    base_data.nonzeros.at(nnz).row ||
+                temp_data.nonzeros.at(nnz).column !=
+                    base_data.nonzeros.at(nnz).column) {
                 GKO_NOT_IMPLEMENTED;
             }
         }
@@ -158,6 +175,10 @@ void assert_same_sparsity_in_batched_data(
 }  // namespace detail
 
 
+/**
+ * Create a batch object from a vector of gko::matrix_data objects. Each item of
+ * the vector needs to store the same sparsity pattern.
+ */
 template <typename ValueType, typename IndexType, typename OutputType,
           typename... TArgs>
 std::unique_ptr<OutputType> read(
@@ -173,7 +194,7 @@ std::unique_ptr<OutputType> read(
         detail::assert_same_sparsity_in_batched_data(data);
     }
     auto tmp =
-        OutputType::create(exec, batch_dim<2>(num_batch_items, data[0].size),
+        OutputType::create(exec, batch_dim<2>(num_batch_items, data.at(0).size),
                            std::forward<TArgs>(create_args)...);
 
     for (size_type b = 0; b < num_batch_items; ++b) {
@@ -184,6 +205,9 @@ std::unique_ptr<OutputType> read(
 }
 
 
+/**
+ * Write a vector of matrix data objects from an input batch object.
+ */
 template <typename ValueType, typename IndexType, typename OutputType>
 std::vector<gko::matrix_data<ValueType, IndexType>> write(
     const OutputType* mvec)
@@ -201,8 +225,8 @@ std::vector<gko::matrix_data<ValueType, IndexType>> write(
 
 
 /**
- * Creates and initializes a batch of the specified Matrix type with a single
- * column-vector.
+ * Creates and initializes a batch of the specified Matrix type from a series of
+ * single column-vectors.
  *
  * @tparam Matrix  matrix type to initialize (It has to implement the
  *                 read<Matrix> function)
