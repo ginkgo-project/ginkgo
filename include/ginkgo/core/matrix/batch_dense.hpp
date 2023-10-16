@@ -93,15 +93,6 @@ public:
     using absolute_type = remove_complex<Dense>;
     using complex_type = to_complex<Dense>;
 
-    /**
-     * Creates a Dense matrix with the configuration of another Dense
-     * matrix.
-     *
-     * @param other  The other matrix whose configuration needs to copied.
-     */
-    static std::unique_ptr<Dense> create_with_config_of(
-        ptr_param<const Dense> other);
-
     void convert_to(Dense<next_precision<ValueType>>* result) const override;
 
     void move_to(Dense<next_precision<ValueType>>* result) override;
@@ -233,8 +224,8 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_values_for_item(
-        size_type batch_id) const noexcept
+    const value_type* get_const_values_for_item(size_type batch_id) const
+        noexcept
     {
         GKO_ASSERT(batch_id < this->get_num_batch_items());
         return values_.get_const_data() + this->get_cumulative_offset(batch_id);

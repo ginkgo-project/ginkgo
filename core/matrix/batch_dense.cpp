@@ -97,14 +97,6 @@ Dense<ValueType>::create_const_view_for_item(size_type item_id) const
 
 
 template <typename ValueType>
-std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_with_config_of(
-    ptr_param<const Dense<ValueType>> other)
-{
-    return Dense<ValueType>::create(other->get_executor(), other->get_size());
-}
-
-
-template <typename ValueType>
 std::unique_ptr<const Dense<ValueType>> Dense<ValueType>::create_const(
     std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
     gko::detail::const_array_view<ValueType>&& values)
