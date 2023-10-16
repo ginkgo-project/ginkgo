@@ -49,8 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-#ifndef GKO_COMPILING_DPCPP
-
 // TODO: Add tests for non-sorted BatchCsr input matrix
 class BatchLowerTrs : public CommonTestFixture {
 protected:
@@ -287,6 +285,3 @@ TEST_F(BatchLowerTrs, EllSolveIsEquivalentToReference)
 //     GKO_ASSERT_BATCH_MTX_NEAR(x, d_x, 1000 * eps);
 
 // }
-
-
-#endif

@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/ginkgo.hpp>
 
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <map>
 #include <random>
@@ -53,7 +54,8 @@ using index_type = int;
 using size_type = gko::size_type;
 using vec_type = gko::matrix::BatchDense<value_type>;
 using real_vec_type = gko::matrix::BatchDense<real_type>;
-using mtx_type = gko::matrix::BatchCsr<value_type, index_type>;
+using mtx_csr_t = gko::matrix::BatchCsr<value_type, index_type>;
+using mtx_ell_t = gko::matrix::BatchEll<value_type, index_type>;
 using bicgstab = gko::solver::BatchBicgstab<value_type>;
 using cg = gko::solver::BatchCg<value_type>;
 using gmres = gko::solver::BatchGmres<value_type>;
@@ -172,15 +174,29 @@ int main(int argc, char* argv[])
     //  out of them.
     // Ginkgo expects the nonzero values for all the small matrices to be
     //  allocated contiguously, one matrix after the other.
+    //
+    // Batch_Csr
     auto vals_view = gko::array<value_type>::const_view(
         exec, num_systems * appl_sys.nnz, appl_sys.all_values);
     auto rowptrs_view = gko::array<index_type>::const_view(exec, num_rows + 1,
                                                            appl_sys.row_ptrs);
     auto colidxs_view = gko::array<index_type>::const_view(exec, appl_sys.nnz,
                                                            appl_sys.col_idxs);
-    auto A = gko::share(mtx_type::create_const(
+    auto A = gko::share(mtx_csr_t::create_const(
         exec, batch_mat_size, std::move(vals_view), std::move(colidxs_view),
         std::move(rowptrs_view)));
+
+    //  Batch_Ell
+    // auto vals_view = gko::array<value_type>::const_view(
+    //     exec, num_systems * appl_sys.nnz, appl_sys.all_values);
+    // auto colidxs_view = gko::array<index_type>::const_view(exec,
+    // appl_sys.nnz,
+    //                                                        appl_sys.col_idxs);
+    // auto A = gko::share(mtx_ell_t::create_const(
+    //     exec, batch_mat_size, gko::batch_stride{num_systems, appl_sys.nnz},
+    //     gko::batch_stride{num_systems, appl_sys.nnz}, std::move(vals_view),
+    //     std::move(colidxs_view)));
+
     // @sect3{RHS and solution vectors}
     // batch_stride object specifies the access stride within the individual
     //  matrices (vectors) in the batch. In this case, we specify a stride of 1
@@ -273,8 +289,7 @@ int main(int argc, char* argv[])
     // Solve the batch system
     // Warmup
     auto x_clone = gko::clone(x);
-
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 5; ++i) {
         x_clone->copy_from(x.get());
         solver->apply(lend(b), lend(x_clone));
     }
@@ -289,6 +304,7 @@ int main(int argc, char* argv[])
             std::chrono::steady_clock::now();
         auto time_span =
             std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+        std::cout << time_span.count() << std::endl;
         apply_time += time_span.count();
     }
     x->copy_from(x_clone.get());
@@ -335,14 +351,16 @@ int main(int argc, char* argv[])
             }
         }
     }
+    auto apply_time_avrg = apply_time / num_reps * 1000;
     if (print_time) {
-        std::cout << apply_time / num_reps << std::endl;
+        std::cout << std::fixed << std::setprecision(2);
+        std::cout << apply_time_avrg << std::endl;
     } else {
         std::cout << "Solver type: " << in_solver
                   << "\nMatrix size: " << A->get_size().at(0)
                   << "\nNum batch entries: " << A->get_num_batch_entries()
-                  << "\nEntire solve took: " << apply_time / num_reps
-                  << " seconds." << std::endl;
+                  << "\nEntire solve took: " << apply_time_avrg << " msecs."
+                  << std::endl;
     }
 
     // Ginkgo objects are cleaned up automatically; but the "application" still

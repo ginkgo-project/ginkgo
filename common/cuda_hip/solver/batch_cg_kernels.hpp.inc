@@ -117,8 +117,9 @@ __device__ __forceinline__ void update_x_and_r(
 }  // namespace
 
 
-template <typename StopType, typename PrecType, typename LogType,
-          typename BatchMatrixType, typename ValueType>
+template <typename StopType, const int n_shared, const bool prec_shared_bool,
+          typename PrecType, typename LogType, typename BatchMatrixType,
+          typename ValueType>
 __global__ void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
                              const int max_iter,
                              const gko::remove_complex<ValueType> tol,
@@ -146,36 +147,38 @@ __global__ void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
         ValueType* Ap_sh;
         ValueType* x_sh;
         ValueType* prec_work_sh;
-        if (sconf.n_shared >= 1) {
+
+        if (n_shared >= 1) {
             r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
         } else {
             r_sh = workspace + gmem_offset;
         }
-        if (sconf.n_shared == 1) {
+        if (n_shared == 1) {
             z_sh = workspace + gmem_offset;
         } else {
             z_sh = r_sh + sconf.padded_vec_len;
         }
-        if (sconf.n_shared == 2) {
+        if (n_shared == 2) {
             p_sh = workspace + gmem_offset;
         } else {
             p_sh = z_sh + sconf.padded_vec_len;
         }
-        if (sconf.n_shared == 3) {
+        if (n_shared == 3) {
             Ap_sh = workspace + gmem_offset;
         } else {
             Ap_sh = p_sh + sconf.padded_vec_len;
         }
-        if (!sconf.prec_shared && sconf.n_shared == 4) {
-            prec_work_sh = workspace + gmem_offset;
-        } else {
-            prec_work_sh = Ap_sh + sconf.padded_vec_len;
-        }
-        if (sconf.n_shared == 4 && sconf.prec_shared) {
+        if (n_shared == 4) {
             x_sh = workspace + gmem_offset;
         } else {
-            x_sh = prec_work_sh + PrecType::dynamic_work_size(nrows, a.num_nnz);
+            x_sh = Ap_sh + sconf.padded_vec_len;
         }
+        if (!prec_shared_bool && n_shared == 5) {
+            prec_work_sh = workspace + gmem_offset;
+        } else {
+            prec_work_sh = x_sh + sconf.padded_vec_len;
+        }
+
         __shared__ uninitialized_array<ValueType, 1> rho_old_sh;
         __shared__ uninitialized_array<ValueType, 1> rho_new_sh;
         __shared__ uninitialized_array<ValueType, 1> alpha_sh;

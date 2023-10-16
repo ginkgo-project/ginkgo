@@ -176,8 +176,9 @@ __device__ __forceinline__ void update_x_middle(
 // unnamed namespace
 
 
-template <typename StopType, typename PrecType, typename LogType,
-          typename BatchMatrixType, typename ValueType>
+template <typename StopType, int n_shared, bool prec_shared_bool,
+          typename PrecType, typename LogType, typename BatchMatrixType,
+          typename ValueType>
 __global__ void apply_kernel(
     const gko::kernels::batch_bicgstab::StorageConfig sconf, const int max_iter,
     const gko::remove_complex<ValueType> tol, LogType logger,
@@ -210,209 +211,56 @@ __global__ void apply_kernel(
         ValueType* x_sh;
         ValueType* prec_work_sh;
 
-        if (sconf.n_shared >= 1) {
+        if (n_shared >= 1) {
             p_hat_sh = reinterpret_cast<ValueType*>(local_mem_sh);
         } else {
             p_hat_sh = workspace + gmem_offset;
         }
-        if (sconf.n_shared == 1) {
+        if (n_shared == 1) {
             s_hat_sh = workspace + gmem_offset;
         } else {
             s_hat_sh = p_hat_sh + sconf.padded_vec_len;
         }
-        if (sconf.n_shared == 2) {
+        if (n_shared == 2) {
             v_sh = workspace + gmem_offset;
         } else {
             v_sh = s_hat_sh + sconf.padded_vec_len;
         }
-        if (sconf.n_shared == 3) {
+        if (n_shared == 3) {
             t_sh = workspace + gmem_offset;
         } else {
             t_sh = v_sh + sconf.padded_vec_len;
         }
-        if (!sconf.prec_shared && sconf.n_shared == 4) {
-            prec_work_sh = workspace + gmem_offset;
-        } else {
-            prec_work_sh = t_sh + sconf.padded_vec_len;
-        }
-        if (sconf.n_shared == 4 && sconf.prec_shared) {
+        if (n_shared == 4) {
             p_sh = workspace + gmem_offset;
         } else {
-            p_sh = prec_work_sh + PrecType::dynamic_work_size(nrows, a.num_nnz);
+            p_sh = t_sh + sconf.padded_vec_len;
         }
-        if (sconf.n_shared == 5) {
+        if (n_shared == 5) {
             s_sh = workspace + gmem_offset;
         } else {
             s_sh = p_sh + sconf.padded_vec_len;
         }
-        if (sconf.n_shared == 6) {
+        if (n_shared == 6) {
             r_sh = workspace + gmem_offset;
         } else {
             r_sh = s_sh + sconf.padded_vec_len;
         }
-        if (sconf.n_shared == 7) {
+        if (n_shared == 7) {
             r_hat_sh = workspace + gmem_offset;
         } else {
             r_hat_sh = r_sh + sconf.padded_vec_len;
         }
-        if (sconf.n_shared == 8) {
+        if (n_shared == 8) {
             x_sh = workspace + gmem_offset;
         } else {
             x_sh = r_hat_sh + sconf.padded_vec_len;
         }
-
-        __shared__ uninitialized_array<ValueType, 1> rho_old_sh;
-        __shared__ uninitialized_array<ValueType, 1> rho_new_sh;
-        __shared__ uninitialized_array<ValueType, 1> omega_sh;
-        __shared__ uninitialized_array<ValueType, 1> alpha_sh;
-        __shared__ uninitialized_array<ValueType, 1> temp_sh;
-        __shared__ real_type norms_rhs_sh[1];
-        __shared__ real_type norms_res_sh[1];
-
-        const auto a_global_entry = gko::batch::batch_entry(a, ibatch);
-        const ValueType* const b_entry_ptr =
-            gko::batch::batch_entry_ptr(b, 1, nrows, ibatch);
-        ValueType* const x_gl_entry_ptr =
-            gko::batch::batch_entry_ptr(x, 1, nrows, ibatch);
-
-        // generate preconditioner
-        prec_shared.generate(ibatch, a_global_entry, prec_work_sh);
-
-        // initialization
-        // rho_old = 1, omega = 1, alpha = 1
-        // compute b norms
-        // copy x from global to shared memory
-        // r = b - A*x
-        // compute residual norms
-        // r_hat = r
-        // p = 0
-        // v = 0
-        initialize(warp_grp, nrows, a_global_entry, b_entry_ptr, x_gl_entry_ptr,
-                   rho_old_sh[0], omega_sh[0], alpha_sh[0], x_sh, r_sh,
-                   r_hat_sh, p_sh, v_sh, norms_rhs_sh[0], norms_res_sh[0]);
-        __syncthreads();
-
-        // stopping criterion object
-        StopType stop(tol, norms_rhs_sh);
-
-        int iter = 0;
-        for (; iter < max_iter; iter++) {
-            if (stop.check_converged(norms_res_sh)) {
-                break;
-            }
-
-            // rho_new =  < r_hat , r > = (r_hat)' * (r)
-            if (threadIdx.x / config::warp_size == 0) {
-                single_compute_dot_product(warp_grp, nrows, r_hat_sh, r_sh,
-                                           rho_new_sh[0]);
-            }
-            __syncthreads();
-
-            // beta = (rho_new / rho_old)*(alpha / omega)
-            // p = r + beta*(p - omega * v)
-            update_p(nrows, rho_new_sh[0], rho_old_sh[0], alpha_sh[0],
-                     omega_sh[0], r_sh, v_sh, p_sh);
-            __syncthreads();
-
-            // p_hat = precond * p
-            prec_shared.apply(nrows, p_sh, p_hat_sh);
-            __syncthreads();
-
-            // v = A * p_hat
-            single_matvec_kernel(a_global_entry, p_hat_sh, v_sh);
-            __syncthreads();
-
-            // alpha = rho_new / < r_hat , v>
-            compute_alpha(warp_grp, nrows, rho_new_sh[0], r_hat_sh, v_sh,
-                          alpha_sh[0] /*, converged*/);
-            __syncthreads();
-
-            // s = r - alpha*v
-            update_s(nrows, r_sh, alpha_sh[0], v_sh, s_sh /*, converged*/);
-            __syncthreads();
-
-            // an estimate of residual norms
-            if (threadIdx.x / config::warp_size == 0) {
-                single_compute_norm2(warp_grp, nrows, s_sh, norms_res_sh[0]);
-            }
-            __syncthreads();
-
-            // if (norms_res_sh[0] / norms_rhs_sh[0] < tol) {
-            if (stop.check_converged(norms_res_sh)) {
-                update_x_middle(nrows, alpha_sh[0], p_hat_sh, x_sh);
-                break;
-            }
-
-            // s_hat = precond * s
-            prec_shared.apply(nrows, s_sh, s_hat_sh);
-            __syncthreads();
-
-            // t = A * s_hat
-            single_matvec_kernel(a_global_entry, s_hat_sh, t_sh);
-            __syncthreads();
-
-            // omega = <t,s> / <t,t>
-            compute_omega(warp_grp, nrows, t_sh, s_sh, temp_sh[0],
-                          omega_sh[0] /*, converged*/);
-            __syncthreads();
-
-            // x = x + alpha*p_hat + omega *s_hat
-            // r = s - omega * t
-            update_x_and_r(nrows, p_hat_sh, s_hat_sh, alpha_sh[0], omega_sh[0],
-                           s_sh, t_sh, x_sh, r_sh /*, converged*/);
-            __syncthreads();
-
-            if (threadIdx.x / config::warp_size == 0) {
-                single_compute_norm2(warp_grp, nrows, r_sh, norms_res_sh[0]);
-            }
-            //__syncthreads();
-
-            if (threadIdx.x == blockDim.x - 1) {
-                rho_old_sh[0] = rho_new_sh[0];
-            }
-            __syncthreads();
+        if (!prec_shared_bool && n_shared == 9) {
+            prec_work_sh = workspace + gmem_offset;
+        } else {
+            prec_work_sh = x_sh + sconf.padded_vec_len;
         }
-
-        logger.log_iteration(ibatch, iter, norms_res_sh[0]);
-
-        // copy x back to global memory
-        single_copy(nrows, x_sh, x_gl_entry_ptr);
-        __syncthreads();
-    }
-}
-
-
-template <typename StopType, typename PrecType, typename LogType,
-          typename BatchMatrixType, typename ValueType>
-__global__ void small_apply_kernel(
-    const gko::kernels::batch_bicgstab::StorageConfig sconf, const int max_iter,
-    const gko::remove_complex<ValueType> tol, LogType logger,
-    PrecType prec_shared, const BatchMatrixType a,
-    const ValueType* const __restrict__ b, ValueType* const __restrict__ x,
-    ValueType* const __restrict__ workspace = nullptr)
-{
-    using real_type = typename gko::remove_complex<ValueType>;
-    const auto nbatch = a.num_batch;
-    const auto nrows = a.num_rows;
-
-    constexpr auto tile_size = config::warp_size;
-    auto thread_block = group::this_thread_block();
-    auto warp_grp = group::tiled_partition<tile_size>(thread_block);
-
-    for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
-        extern __shared__ char local_mem_sh[];
-
-        ValueType* const p_hat_sh = reinterpret_cast<ValueType*>(local_mem_sh);
-        ValueType* const s_hat_sh = p_hat_sh + sconf.padded_vec_len;
-        ValueType* const v_sh = s_hat_sh + sconf.padded_vec_len;
-        ValueType* const t_sh = v_sh + sconf.padded_vec_len;
-        ValueType* const prec_work_sh = t_sh + sconf.padded_vec_len;
-        ValueType* const p_sh =
-            prec_work_sh + PrecType::dynamic_work_size(nrows, a.num_nnz);
-        ValueType* const s_sh = p_sh + sconf.padded_vec_len;
-        ValueType* const r_sh = s_sh + sconf.padded_vec_len;
-        ValueType* const r_hat_sh = r_sh + sconf.padded_vec_len;
-        ValueType* const x_sh = r_hat_sh + sconf.padded_vec_len;
 
         __shared__ uninitialized_array<ValueType, 1> rho_old_sh;
         __shared__ uninitialized_array<ValueType, 1> rho_new_sh;

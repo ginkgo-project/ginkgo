@@ -32,13 +32,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 template <int subwarp_size>
 __global__
-    __launch_bounds__(default_block_size) void extract_dense_linear_sys_pattern_kernel(
-        const int nrows, const int* const __restrict__ A_row_ptrs,
-        const int* const __restrict__ A_col_idxs,
-        const int* const __restrict__ aiA_row_ptrs,
-        const int* const __restrict__ aiA_col_idxs,
-        int* const dense_mat_pattern, int* const rhs_one_idxs, int* const sizes,
-        int* num_matches_per_row_for_each_csr_sys)
+__launch_bounds__(default_block_size) void extract_dense_linear_sys_pattern_kernel(
+    const int nrows, const int* const __restrict__ A_row_ptrs,
+    const int* const __restrict__ A_col_idxs,
+    const int* const __restrict__ aiA_row_ptrs,
+    const int* const __restrict__ aiA_col_idxs, int* const dense_mat_pattern,
+    int* const rhs_one_idxs, int* const sizes,
+    int* num_matches_per_row_for_each_csr_sys)
 {
     using gko::preconditioner::batch_isai::row_size_limit;
     // assert(subwarp_size >= row_size_limit); //Not required here
@@ -312,16 +312,15 @@ solve_general_dense_system(Group subwarpgrp, const int size,
 
 template <int subwarp_size, typename ValueType>
 __global__
-    __launch_bounds__(default_block_size) void fill_values_dense_mat_and_solve_kernel(
-        const int nbatch, const int nrows, const int A_nnz,
-        const ValueType* const A_values, const int aiA_nnz,
-        const int* const __restrict__ aiA_row_ptrs,
-        ValueType* const __restrict__ aiA_values,
-        const int* const __restrict__ dense_mat_pattern,
-        const int* const __restrict__ rhs_one_idxs,
-        const int* const __restrict__ sizes,
-        const enum gko::preconditioner::batch_isai_input_matrix_type
-            matrix_type)
+__launch_bounds__(default_block_size) void fill_values_dense_mat_and_solve_kernel(
+    const int nbatch, const int nrows, const int A_nnz,
+    const ValueType* const A_values, const int aiA_nnz,
+    const int* const __restrict__ aiA_row_ptrs,
+    ValueType* const __restrict__ aiA_values,
+    const int* const __restrict__ dense_mat_pattern,
+    const int* const __restrict__ rhs_one_idxs,
+    const int* const __restrict__ sizes,
+    const enum gko::preconditioner::batch_isai_input_matrix_type matrix_type)
 {
     using gko::preconditioner::batch_isai::row_size_limit;
     static_assert(row_size_limit <= subwarp_size, "incompatible subwarp size");
@@ -436,14 +435,14 @@ __device__ __forceinline__ void match_for_csr(
 
 template <typename ValueType>
 __global__
-    __launch_bounds__(default_block_size) void extract_csr_sys_pattern_kernel(
-        const int lin_sys_row, const int* const __restrict__ inv_row_ptrs,
-        const int* const __restrict__ inv_col_idxs,
-        const int* const __restrict__ sys_row_ptrs,
-        const int* const __restrict__ sys_col_idxs,
-        const int* const __restrict__ csr_pattern_row_ptrs,
-        int* const __restrict__ csr_pattern_col_idxs,
-        gko::remove_complex<ValueType>* const __restrict__ csr_pattern_values)
+__launch_bounds__(default_block_size) void extract_csr_sys_pattern_kernel(
+    const int lin_sys_row, const int* const __restrict__ inv_row_ptrs,
+    const int* const __restrict__ inv_col_idxs,
+    const int* const __restrict__ sys_row_ptrs,
+    const int* const __restrict__ sys_col_idxs,
+    const int* const __restrict__ csr_pattern_row_ptrs,
+    int* const __restrict__ csr_pattern_col_idxs,
+    gko::remove_complex<ValueType>* const __restrict__ csr_pattern_values)
 {
     // use one thread per match of the 2 arrays (non-coalseced accesses but data
     // locality)
@@ -470,12 +469,11 @@ __global__
 
 template <typename ValueType>
 __global__
-    __launch_bounds__(default_block_size) void fill_batch_csr_system_kernel(
-        const int nbatch, const int csr_nnz,
-        const gko::remove_complex<
-            ValueType>* const __restrict__ csr_pattern_values,
-        const int sys_nnz, const ValueType* const __restrict__ sys_csr_values,
-        ValueType* const __restrict__ batch_csr_mats_values)
+__launch_bounds__(default_block_size) void fill_batch_csr_system_kernel(
+    const int nbatch, const int csr_nnz,
+    const gko::remove_complex<ValueType>* const __restrict__ csr_pattern_values,
+    const int sys_nnz, const ValueType* const __restrict__ sys_csr_values,
+    ValueType* const __restrict__ batch_csr_mats_values)
 {
     const int gid = threadIdx.x + blockDim.x * blockIdx.x;
 
@@ -494,10 +492,9 @@ __global__
 
 template <typename ValueType>
 __global__
-    __launch_bounds__(default_block_size) void initialize_b_and_x_vectors_kernel(
-        const int nbatch, const int size, const int rhs_one_idx,
-        ValueType* const __restrict__ b_vals,
-        ValueType* const __restrict__ x_vals)
+__launch_bounds__(default_block_size) void initialize_b_and_x_vectors_kernel(
+    const int nbatch, const int size, const int rhs_one_idx,
+    ValueType* const __restrict__ b_vals, ValueType* const __restrict__ x_vals)
 {
     const int gid = threadIdx.x + blockDim.x * blockIdx.x;
 
@@ -515,11 +512,11 @@ __global__
 
 template <typename ValueType>
 __global__
-    __launch_bounds__(default_block_size) void write_large_sys_solution_to_inverse_kernel(
-        const int nbatch, const int lin_sys_row, const int size,
-        const ValueType* const __restrict__ x_vals, const int inv_nnz,
-        const int* const __restrict__ inv_row_ptrs,
-        ValueType* const __restrict__ inv_vals)
+__launch_bounds__(default_block_size) void write_large_sys_solution_to_inverse_kernel(
+    const int nbatch, const int lin_sys_row, const int size,
+    const ValueType* const __restrict__ x_vals, const int inv_nnz,
+    const int* const __restrict__ inv_row_ptrs,
+    ValueType* const __restrict__ inv_vals)
 {
     const int gid = threadIdx.x + blockDim.x * blockIdx.x;
     assert(size == inv_row_ptrs[lin_sys_row + 1] - inv_row_ptrs[lin_sys_row]);

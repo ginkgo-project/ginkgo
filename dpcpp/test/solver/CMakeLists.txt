@@ -1,0 +1,1 @@
+ginkgo_create_test(batch_direct_kernels)

@@ -51,9 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-#ifndef GKO_COMPILING_DPCPP
-
-
 class BatchCsr : public CommonTestFixture {
 protected:
     using real_type = gko::remove_complex<value_type>;
@@ -334,6 +331,3 @@ TEST_F(BatchCsr, AddScaleIdentityIsEquivalentToReference)
 
     GKO_ASSERT_BATCH_MTX_NEAR(mtx, dmtx, r<double>::value);
 }
-
-
-#endif

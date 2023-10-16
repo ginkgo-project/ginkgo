@@ -123,11 +123,9 @@ endif()
 
 # For now, PGI/NVHPC nvc++ compiler doesn't seem to support
 # `#pragma omp declare reduction`
-#
-# The math with optimization level -O2 doesn't follow IEEE standard, so we
-# enable that back as well.
-if (CMAKE_CXX_COMPILER_ID MATCHES "PGI|NVHPC")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Kieee")
+if (${CMAKE_CXX_COMPILER_ID} MATCHES "PGI|NVHPC")
+    message(STATUS "OpenMP: Switching to OFF because PGI/NVHPC nvc++ compiler lacks important features.")
+    set(GINKGO_BUILD_OMP OFF)
 endif()
 
 #Batch Ginkgo options:
@@ -306,8 +304,16 @@ if(MSVC)
 endif()
 
 if(GINKGO_BUILD_DPCPP)
-    ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_MAJOR_VERSION __LIBSYCL_MAJOR_VERSION)
-    ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_VERSION __SYCL_COMPILER_VERSION)
+    if(CMAKE_CXX_COMPILER MATCHES "icpx")
+        set(GINKGO_DPCPP_MAJOR_VERSION "6")
+        set(GINKGO_DPCPP_VERSION "6")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl")
+        # AoT
+        # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsycl -fsycl-targets=spir64 -Xsycl-target-backend '-device 12.60.7' -fsycl-max-parallel-link-jobs=8 -fsycl-unnamed-lambda")
+    else()
+        ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_MAJOR_VERSION __LIBSYCL_MAJOR_VERSION)
+        ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_VERSION __SYCL_COMPILER_VERSION)
+    endif()
 else()
     set(GINKGO_DPCPP_MAJOR_VERSION "0")
 endif()
@@ -453,10 +459,10 @@ if(NOT "${CMAKE_GENERATOR_TOOLSET}" STREQUAL "")
 endif()
 add_custom_target(test_install
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} ${TOOLSET}
-    -S${GINKGO_TEST_INSTALL_SRC_DIR}
+    -H${GINKGO_TEST_INSTALL_SRC_DIR}
     -B${GINKGO_TEST_INSTALL_BIN_DIR}
     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-    -DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX}
+    -DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX}/${GINKGO_INSTALL_CONFIG_DIR}
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
     -DCMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}
@@ -476,7 +482,7 @@ add_custom_target(test_install
 
 add_custom_target(test_exportbuild
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} ${TOOLSET}
-    -S${GINKGO_TEST_EXPORTBUILD_SRC_DIR}
+    -H${GINKGO_TEST_EXPORTBUILD_SRC_DIR}
     -B${GINKGO_TEST_EXPORTBUILD_BIN_DIR}
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
@@ -494,7 +500,7 @@ add_custom_target(test_exportbuild
 
 add_custom_target(test_pkgconfig
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} ${TOOLSET}
-    -S${GINKGO_TEST_PKGCONFIG_SRC_DIR}
+    -H${GINKGO_TEST_PKGCONFIG_SRC_DIR}
     -B${GINKGO_TEST_PKGCONFIG_BIN_DIR}
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}

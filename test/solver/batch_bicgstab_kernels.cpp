@@ -52,9 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-#ifndef GKO_COMPILING_DPCPP
-
-
 class BatchBicgstab : public CommonTestFixture {
 protected:
     using real_type = gko::remove_complex<value_type>;
@@ -306,10 +303,14 @@ TEST_F(BatchBicgstab, SolvesLargeCsrSystemEquivalentToReference)
     const float solver_restol = 1e-4;
     auto r_sys = gko::test::generate_solvable_batch_system<mtx_type>(
         ref, 2, 990, 1, false);
-    auto r_jac_factory = gko::share(
-        gko::preconditioner::BatchJacobi<value_type>::build().on(ref));
-    auto d_jac_factory = gko::share(
-        gko::preconditioner::BatchJacobi<value_type>::build().on(exec));
+    auto r_jac_factory =
+        gko::share(gko::preconditioner::BatchJacobi<value_type>::build()
+                       .with_max_block_size(1u)
+                       .on(ref));
+    auto d_jac_factory =
+        gko::share(gko::preconditioner::BatchJacobi<value_type>::build()
+                       .with_max_block_size(1u)
+                       .on(exec));
     auto r_factory =
         solver_type::build()
             .with_default_max_iterations(500)
@@ -414,6 +415,3 @@ TEST_F(BatchBicgstab, SolvesLargeEllSystemEquivalentToReference)
         exec, r_sys, r_factory.get(), d_factory.get(), iter_tol, res_tol,
         sol_tol);
 }
-
-
-#endif

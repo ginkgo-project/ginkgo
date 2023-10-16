@@ -119,12 +119,12 @@ __device__ __forceinline__ void single_advanced_matvec_kernel(
 
 template <typename ValueType>
 __global__
-    __launch_bounds__(default_block_size, sm_multiplier) void advanced_mv(
-        const gko::batch_dense::UniformBatch<const ValueType> alpha,
-        const gko::batch_dense::UniformBatch<const ValueType> a,
-        const gko::batch_dense::UniformBatch<const ValueType> b,
-        const gko::batch_dense::UniformBatch<const ValueType> beta,
-        const gko::batch_dense::UniformBatch<ValueType> c)
+__launch_bounds__(default_block_size, sm_multiplier) void advanced_mv(
+    const gko::batch_dense::UniformBatch<const ValueType> alpha,
+    const gko::batch_dense::UniformBatch<const ValueType> a,
+    const gko::batch_dense::UniformBatch<const ValueType> b,
+    const gko::batch_dense::UniformBatch<const ValueType> beta,
+    const gko::batch_dense::UniformBatch<ValueType> c)
 {
     for (size_type ibatch = blockIdx.x; ibatch < a.num_batch;
          ibatch += gridDim.x) {
@@ -308,9 +308,9 @@ __device__ __forceinline__ void compute_norm2(
 
 template <typename ValueType>
 __global__
-    __launch_bounds__(default_block_size, sm_multiplier) void compute_norm2(
-        const gko::batch_dense::UniformBatch<const ValueType> x,
-        const gko::batch_dense::UniformBatch<remove_complex<ValueType>> result)
+__launch_bounds__(default_block_size, sm_multiplier) void compute_norm2(
+    const gko::batch_dense::UniformBatch<const ValueType> x,
+    const gko::batch_dense::UniformBatch<remove_complex<ValueType>> result)
 {
     for (size_type ibatch = blockIdx.x; ibatch < x.num_batch;
          ibatch += gridDim.x) {
