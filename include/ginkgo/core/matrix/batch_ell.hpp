@@ -213,8 +213,8 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type* get_const_col_idxs_for_item(size_type batch_id) const
-        noexcept
+    const index_type* get_const_col_idxs_for_item(
+        size_type batch_id) const noexcept
     {
         GKO_ASSERT(batch_id < this->get_num_batch_items());
         return col_idxs_.get_const_data();
@@ -242,8 +242,8 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_values_for_item(size_type batch_id) const
-        noexcept
+    const value_type* get_const_values_for_item(
+        size_type batch_id) const noexcept
     {
         GKO_ASSERT(batch_id < this->get_num_batch_items());
         return values_.get_const_data() +
