@@ -49,7 +49,6 @@ void parsinv(
     double *Sval // val array S
     );
 
-
 void parsinv_residual(
     int n, // matrix size
     int Annz, // number of nonzeros in A
@@ -118,47 +117,6 @@ int main(int argc, char** argv)
     auto S_row_idxs = S_coo->get_const_row_idxs();
     auto S_col_idxs = S_coo->get_const_col_idxs();
     auto S_values = S_coo->get_values();
-
-
-
-
-/*	    
-    gko::array<index_type> Arow_ptrs_array(gpu, num_row_ptrs);
-    gpu->copy_from(gpu, num_row_ptrs, A_csr->get_const_row_ptrs(),
-                   Arow_ptrs_array.get_data());
-    auto A_coo = Coo::create(gpu);
-    A_csr->move_to(A_coo);
-
-
-    auto A_row_ptrs = Arow_ptrs_array.get_data();
-    auto A_row_idxs = A_coo->get_row_idxs();
-    auto A_col_idxs = A_coo->get_col_idxs();
-    auto A_values = A_coo->get_values();
-   
-   // for debugging, if not converging: read in L and transpose
-    auto L_transpose_linop = LLU->get_lower_factor()->transpose();
-    auto L_transpose =
-         static_cast<typename Csr::transposed_type*>(L_transpose_linop.get());
-
-        // the next block is completely useless as (AS-I)_spy(A)=0 does not hold
- 	// but it could be used this fashion inside the loop 
-  	auto work_vec_t = Dense::create(gpu, gko::dim<2>(A_coo->get_num_stored_elements(), 1));
-        parsinv_residual(
-                    A_coo->get_size()[0],
-                    A_coo->get_num_stored_elements(),
-                    A_row_ptrs,
-                    A_row_idxs,
-                    A_col_idxs,
-                    A_values,
-                    //S_row_ptrs,
-                    //S_col_idxs,
-                    //S_values,
-                    I->get_row_ptrs(),
-                    I->get_col_idxs(),
-                    I->get_values(),
-                    work_vec_t->get_values());
-*/
-
    
     // compute error to correct solution
     auto size = S_coo->get_num_stored_elements();
@@ -194,9 +152,8 @@ int main(int argc, char** argv)
     // end error computation
     
     start = std::chrono::steady_clock::now();
-    // Solve system iteratively - control iterations
-    for(int i=0; i<20; i++){
-	    //magic kernel - taking L as upper Cholesky and selected sparse inverse S
+    // Solve system
+    for(int i=0; i<50; i++){
     	parsinv( L->get_size()[0], 
 		    L->get_num_stored_elements(), 
 		    L->get_const_row_ptrs(), 
