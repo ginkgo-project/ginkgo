@@ -156,7 +156,7 @@ public:
         auto nrows = a.num_rows;
 
         apply_kernel<StopType, n_shared, prec_shared_bool>
-            <<<a.num_batch, block_size, shared_size>>>(
+            <<<a.num_batch, block_size, shared_size, exec_->get_stream()>>>(
                 sconf, opts_.max_its, opts_.residual_tol, opts_.restart_num,
                 logger, prec, a, b_values, x_values, workspace_data);
     }

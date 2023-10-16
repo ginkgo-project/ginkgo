@@ -12,13 +12,13 @@ target_sources(ginkgo_dpcpp
     base/helper.dp.cpp
     base/index_set_kernels.dp.cpp
     base/scoped_device_id.dp.cpp
+    base/timer.dp.cpp
     base/version.dp.cpp
     components/prefix_sum_kernels.dp.cpp
     distributed/matrix_kernels.dp.cpp
     distributed/partition_kernels.dp.cpp
     distributed/vector_kernels.dp.cpp
     factorization/cholesky_kernels.dp.cpp
-    factorization/factorization_kernels.dp.cpp
     factorization/factorization_kernels.dp.cpp
     factorization/ic_kernels.dp.cpp
     factorization/ilu_kernels.dp.cpp
