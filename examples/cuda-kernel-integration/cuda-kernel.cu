@@ -2,16 +2,16 @@
 constexpr unsigned int default_block_size = 512;
 
 
-__global__ void parsinv_kernel( 
+__global__ __launch_bounds__(default_block_size) void parsinv_kernel( 
     int n, // matrix size
     int Lnnz, // number of nonzeros in LT stored in CSR, upper triangular  (equivalent to L in CSC)
-    const int *Lrowptr, // row pointer L
-    const int *Lcolidx, //col index L 
-    const double *Lval, // val array L
+    const int*  Lrowptr, // row pointer L
+    const int*  Lcolidx, //col index L 
+    const double* Lval, // val array L
     int Snnz, // number of nonzeros in S (stored in CSR, full sparse)
-    const int *Srowptr, // row pointer S
-    const int *Srowidx, // row index S 
-    const int *Scolidx, //col index S 
+    const int* Srowptr, // row pointer S
+    const int* Srowidx, // row index S 
+    const int* Scolidx, //col index S 
     double *Sval, // val array S
     double *tval 
     ){
@@ -31,7 +31,7 @@ __global__ void parsinv_kernel(
         // if we notice j>i, we compute S(j,i) instead of S(i,j)
         // maybe later
         if( i>j ){
-	//	return;
+		return;
 	    // swap indices - there might be a more efficient way, though
             int t = i;
             i = j;
@@ -58,9 +58,16 @@ __global__ void parsinv_kernel(
         
         if (i == j) // diagonal element
             Sval[ threadidx ] = 1. / ( Lii * Lii) - s;
-        else  
+        else{  
             Sval[ threadidx ] = - s;
-
+	    for(int t = Srowptr[ j ]; t<Srowptr[ j+1 ]; t++){
+		if( Scolidx[t] == i ){
+			Sval[t] = -s;
+		       break;	
+		}
+	    }
+	    
+	}
 
 
     }
