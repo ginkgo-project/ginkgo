@@ -675,6 +675,7 @@ TYPED_TEST(VectorReductions, ComputeSquaredNorm2WithTmpIsSameAsDense)
                         r<value_type>::value);
 }
 
+
 TYPED_TEST(VectorReductions, ComputesMeanIsSameAsDense)
 {
     using value_type = typename TestFixture::value_type;
