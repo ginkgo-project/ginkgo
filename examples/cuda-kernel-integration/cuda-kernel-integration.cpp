@@ -168,7 +168,7 @@ int main(int argc, char** argv)
     }
     // end error computation
     
-    double inverse_time;
+    double inverse_time = 0.0;
     // Solve system
     for(int i=0; i<50; i++){
     	start = std::chrono::steady_clock::now();
@@ -183,6 +183,7 @@ int main(int argc, char** argv)
 		    S_col_idxs,
 		    S_values
     	);
+	gpu->synchronize();
 	end = std::chrono::steady_clock::now();
         inverse_time += std::chrono::duration<double>(end-start).count();
 	if( debug > 0 ){
