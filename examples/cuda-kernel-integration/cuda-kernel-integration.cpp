@@ -168,10 +168,11 @@ int main(int argc, char** argv)
     }
     // end error computation
     
-    start = std::chrono::steady_clock::now();
+    double inverse_time;
     // Solve system
     for(int i=0; i<50; i++){
-    	parsinv( L->get_size()[0], 
+    	start = std::chrono::steady_clock::now();
+	parsinv( L->get_size()[0], 
 		    L->get_num_stored_elements(), 
 		    L->get_const_row_ptrs(), 
 		    L->get_const_col_idxs(),
@@ -182,6 +183,8 @@ int main(int argc, char** argv)
 		    S_col_idxs,
 		    S_values
     	);
+	end = std::chrono::steady_clock::now();
+        inverse_time += std::chrono::duration<double>(end-start).count();
 	if( debug > 0 ){
 		// compute after every iteration the error to correct solution
 	        auto sp_size = I->get_num_stored_elements(); 
@@ -212,8 +215,6 @@ int main(int argc, char** argv)
                   i+1, gpu->copy_val_to_host(result->get_values()));
 	}
     }
-    end = std::chrono::steady_clock::now();
-    double inverse_time = std::chrono::duration<double>(end-start).count();
 
     printf("\n#####################################################################\n");
     printf("#\n# Factorization time: %.4e\n# Selected inverse time: %.4e\n#", factorization_time, inverse_time);
