@@ -290,7 +290,7 @@ void compute_mean(std::shared_ptr<const DefaultExecutor> exec,
             return x(i, j) * inv_total_size;
         },
         GKO_KERNEL_REDUCE_SUM(ValueType), result->get_values(), x->get_size(),
-        tmp, x, 1. / x->get_size()[0]);
+        tmp, x, ValueType_nc{1.} / x->get_size()[0]);
 }
 
 

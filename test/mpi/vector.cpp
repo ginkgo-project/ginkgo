@@ -687,6 +687,7 @@ TYPED_TEST(VectorReductions, ComputesMeanIsSameAsDense)
     GKO_ASSERT_MTX_NEAR(this->res, this->dense_res, r<value_type>::value);
 }
 
+
 TYPED_TEST(VectorReductions, ComputesMeanWithTmpIsSameAsDense)
 {
     using value_type = typename TestFixture::value_type;
