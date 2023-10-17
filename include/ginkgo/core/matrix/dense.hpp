@@ -1238,9 +1238,6 @@ protected:
 
     /**
      * @copydoc compute_mean(LinOp*) const
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
      */
     virtual void compute_mean_impl(LinOp* result) const;
 
