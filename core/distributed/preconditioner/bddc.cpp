@@ -687,6 +687,16 @@ void Bddc<ValueType, IndexType>::generate_constraints()
         i++;
     }
 
+    CC = matrix::Csr<ValueType, IndexType>::create(exec);
+    CC->read(cc_data);
+    CE = matrix::Dense<ValueType>::create(exec);
+    CE->read(ce_data);
+    EC = share(as<matrix::Dense<ValueType>>(CE->transpose()));
+    EE = matrix::Csr<ValueType, IndexType>::create(exec);
+    EE->read(ee_data);
+    std::ofstream EE_stream{"EE_" + std::to_string(comm.rank()) + ".mtx"};
+    write(EE_stream, EE, gko::layout_type::coordinate);
+
     std::for_each(dbcs.begin(), dbcs.end(), [&local_data](int i) {
         local_data.nonzeros.emplace_back(i, i, one<ValueType>());
     });
@@ -791,6 +801,10 @@ void Bddc<ValueType, IndexType>::generate_constraints()
             recv_buffer_.get_data()[recv_buffer_to_global_.get_data()[i]];
     }
 
+    IndexType edge_idx = 0;
+    IndexType edge_dof = 0;
+    matrix_data<ValueType, IndexType> edge_constraints_data{
+        dim<2>{edges.size(), edge_idxs.size()}};
     for (auto interface = 0; interface < num_interfaces; interface++) {
         IndexType interface_size =
             interface_dofs_[interfaces_[interface]].size();
@@ -815,8 +829,19 @@ void Bddc<ValueType, IndexType>::generate_constraints()
             auto i = local_rows.size() + interface;
             local_data.nonzeros.emplace_back(i, j, val);
             local_data.nonzeros.emplace_back(j, i, val);
+            if (interface_dofs_[interfaces_[interface]].size() > 1) {
+                edge_constraints_data.nonzeros.emplace_back(edge_idx, edge_dof,
+                                                            val);
+                edge_dof++;
+            }
+        }
+        if (interface_dofs_[interfaces_[interface]].size() > 1) {
+            edge_idx++;
         }
     }
+
+    edge_constraints = matrix::Csr<ValueType, IndexType>::create(exec);
+    edge_constraints->read(edge_constraints_data);
 
     local_data.ensure_row_major_order();
     local_system_matrix_ = matrix::Csr<ValueType, IndexType>::create(exec);
@@ -855,6 +880,15 @@ void Bddc<ValueType, IndexType>::schur_complement_solve()
     auto neg_one =
         initialize<matrix::Dense<ValueType>>({-one<ValueType>()}, exec);
     local_coarse_matrix_->scale(neg_one.get());
+
+    auto LHS = clone(exec, EC);
+    EE_solver->apply(EC, LHS);
+    auto ID = matrix::Dense<ValueType>::create(
+        host, dim<2>{edges_.get_num_elems(), edges_.get_num_elems()});
+    edge_constraints->apply(LHS, ID);
+    for (auto i = 0; i < ID->get_size()[0]; i++) {
+        ID->at(i, i) -= one<ValueType>();
+    }
 }
 
 
@@ -1446,6 +1480,8 @@ void Bddc<ValueType, IndexType>::generate()
         parameters_.local_solver_factory->generate(local_system_matrix_);
     std::cout << "RANK " << comm.rank() << " DONE WITH LOCAL SOLVER"
               << std::endl;
+    EE_solver = parameters_.local_solver_factory->generate(EE);
+    std::cout << "RANK " << comm.rank() << " DONE WITH EE SOLVER" << std::endl;
     schur_complement_solve();
     std::cout << "RANK " << comm.rank() << " DONE WITH SCHUR SOLVE"
               << std::endl;

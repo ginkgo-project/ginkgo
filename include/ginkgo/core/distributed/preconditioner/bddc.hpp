@@ -221,9 +221,11 @@ private:
     array<index_type> corners_;
     array<index_type> edges_;
     std::shared_ptr<matrix_type> CC;
-    std::shared_ptr<matrix_type> CE;
-    std::shared_ptr<matrix_type> EC;
+    std::shared_ptr<vec_type> CE;
+    std::shared_ptr<vec_type> EC;
     std::shared_ptr<matrix_type> EE;
+    std::shared_ptr<matrix_type> edge_constraints;
+    std::shared_ptr<const LinOp> EE_solver;
     std::shared_ptr<const global_matrix_type> global_system_matrix_;
     std::shared_ptr<global_matrix_type> global_coarse_matrix_;
     std::shared_ptr<matrix_type> local_system_matrix_;
