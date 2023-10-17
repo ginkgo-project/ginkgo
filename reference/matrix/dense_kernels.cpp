@@ -408,11 +408,10 @@ void compute_mean(std::shared_ptr<const ReferenceExecutor> exec,
     }
 
     for (size_type i = 0; i < x->get_size()[0]; ++i) {
-        const ValueType_nc alpha = static_cast<ValueType_nc>(i) / (i + 1);
-        const ValueType_nc beta = static_cast<ValueType_nc>(1) / (i + 1);
         for (size_type j = 0; j < x->get_size()[1]; ++j) {
-            result->at(0, j) = alpha * result->at(0, j) + beta * x->at(i, j);
+            result->at(0, i) += x->at(i, j);
         }
+        result->at(0, i) /= static_cast<ValueType_nc>(x->get_size()[1]);
     }
 }
 
