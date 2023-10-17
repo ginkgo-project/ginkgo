@@ -203,43 +203,43 @@ TYPED_TEST(SchwarzPreconditioner, GenerateFailsIfInvalidState)
 }
 
 
-// TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionedSolver)
-// {
-//     using value_type = typename TestFixture::value_type;
-//     using csr = typename TestFixture::local_matrix_type;
-//     using cg = typename TestFixture::solver_type;
-//     using prec = typename TestFixture::dist_prec_type;
-//     constexpr double tolerance = 1e-20;
-//     auto iter_stop = gko::share(
-//         gko::stop::Iteration::build().with_max_iters(200u).on(this->exec));
-//     auto tol_stop = gko::share(
-//         gko::stop::ResidualNorm<value_type>::build()
-//             .with_reduction_factor(
-//                 static_cast<gko::remove_complex<value_type>>(tolerance))
-//             .on(this->exec));
-//     this->dist_solver_factory =
-//         cg::build()
-//             .with_preconditioner(
-//                 prec::build()
-//                     .with_local_solver(this->local_solver_factory)
-//                     .on(this->exec))
-//             .with_criteria(iter_stop, tol_stop)
-//             .on(this->exec);
-//     auto dist_solver = this->dist_solver_factory->generate(this->dist_mat);
-//     this->non_dist_solver_factory =
-//         cg::build()
-//             .with_preconditioner(this->local_solver_factory)
-//             .with_criteria(iter_stop, tol_stop)
-//             .on(this->exec);
-//     auto non_dist_solver =
-//         this->non_dist_solver_factory->generate(this->non_dist_mat);
-//
-//     dist_solver->apply(this->dist_b.get(), this->dist_x.get());
-//     dist_solver->apply(this->non_dist_b.get(), this->non_dist_x.get());
-//
-//     this->assert_equal_to_non_distributed_vector(this->dist_x,
-//                                                  this->non_dist_x);
-// }
+TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionedSolver)
+{
+    using value_type = typename TestFixture::value_type;
+    using csr = typename TestFixture::local_matrix_type;
+    using cg = typename TestFixture::solver_type;
+    using prec = typename TestFixture::dist_prec_type;
+    constexpr double tolerance = 1e-20;
+    auto iter_stop = gko::share(
+        gko::stop::Iteration::build().with_max_iters(200u).on(this->exec));
+    auto tol_stop = gko::share(
+        gko::stop::ResidualNorm<value_type>::build()
+            .with_reduction_factor(
+                static_cast<gko::remove_complex<value_type>>(tolerance))
+            .on(this->exec));
+    this->dist_solver_factory =
+        cg::build()
+            .with_preconditioner(
+                prec::build()
+                    .with_local_solver(this->local_solver_factory)
+                    .on(this->exec))
+            .with_criteria(iter_stop, tol_stop)
+            .on(this->exec);
+    auto dist_solver = this->dist_solver_factory->generate(this->dist_mat);
+    this->non_dist_solver_factory =
+        cg::build()
+            .with_preconditioner(this->local_solver_factory)
+            .with_criteria(iter_stop, tol_stop)
+            .on(this->exec);
+    auto non_dist_solver =
+        this->non_dist_solver_factory->generate(this->non_dist_mat);
+
+    dist_solver->apply(this->dist_b.get(), this->dist_x.get());
+    non_dist_solver->apply(this->non_dist_b.get(), this->non_dist_x.get());
+
+    this->assert_equal_to_non_distributed_vector(this->dist_x,
+                                                 this->non_dist_x);
+}
 
 
 TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionedSolverWithPregenSolver)
