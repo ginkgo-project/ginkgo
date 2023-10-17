@@ -431,6 +431,10 @@ void Bddc<ValueType, IndexType>::generate_constraints()
     // Count interface dofs on rank
     size_t num_interfaces{};
     size_t num_interface_dofs{};
+    std::vector<IndexType> corners{};
+    std::vector<IndexType> corner_idxs{};
+    std::vector<IndexType> edges{};
+    std::vector<IndexType> edge_idxs{};
     for (auto interface = 0; interface < interface_dof_ranks_.size();
          interface++) {
         auto ranks = interface_dof_ranks_[interface];
@@ -438,8 +442,23 @@ void Bddc<ValueType, IndexType>::generate_constraints()
             num_interfaces++;
             num_interface_dofs += interface_dofs_[interface].size();
             interfaces_.emplace_back(interface);
+            if (interface_dofs_[interface].size() == 1) {
+                corners.emplace_back(interface);
+                corner_idxs.emplace_back(interface_dofs_[interface][0]);
+            } else {
+                edges.emplace_back(interface);
+                for (auto i = 0; i < interface_dofs_[interface].size(); i++) {
+                    edge_idxs.emplace_back(interface_dofs_[interface][i]);
+                }
+            }
         }
     }
+
+    corners_ = array<IndexType>(host, corners.begin(), corners.end());
+    edges_ = array<IndexType>(host, edges.begin(), edges.end());
+
+    std::cout << "RANK: " << corners.size() << " CORNERS, " << edges.size()
+              << " EDGES" << std::endl;
 
     auto mat_data = global_system_matrix_->get_matrix_data().copy_to_host();
     mat_data.ensure_row_major_order();
@@ -603,6 +622,12 @@ void Bddc<ValueType, IndexType>::generate_constraints()
     size_t local_system_size = local_rows.size() + num_interfaces;
     matrix_data<ValueType, IndexType> local_data{
         dim<2>{local_system_size, local_system_size}};
+    matrix_data<ValueType, IndexType> cc_data{
+        dim<2>{corner_idxs.size(), corner_idxs.size()}};
+    matrix_data<ValueType, IndexType> ce_data{
+        dim<2>{corner_idxs.size(), edge_idxs.size()}};
+    matrix_data<ValueType, IndexType> ee_data{
+        dim<2>{edge_idxs.size(), edge_idxs.size()}};
     size_t i = 0;
     size_t idx = 0;
     auto nnz = mat_data.nonzeros[idx];
@@ -625,6 +650,34 @@ void Bddc<ValueType, IndexType>::generate_constraints()
                     }
                 }
                 local_data.nonzeros.emplace_back(i, j, nnz.value);
+                auto row_corner =
+                    std::find(corner_idxs.begin(), corner_idxs.end(), nnz.row);
+                auto col_corner = std::find(corner_idxs.begin(),
+                                            corner_idxs.end(), nnz.column);
+                auto row_edge =
+                    std::find(edge_idxs.begin(), edge_idxs.end(), nnz.row);
+                auto col_edge =
+                    std::find(edge_idxs.begin(), edge_idxs.end(), nnz.column);
+                if (row_corner != corner_idxs.end()) {
+                    if (col_corner != corner_idxs.end()) {
+                        cc_data.nonzeros.emplace_back(
+                            std::distance(corner_idxs.begin(), row_corner),
+                            std::distance(corner_idxs.begin(), col_corner),
+                            nnz.value);
+                    } else if (col_edge != edge_idxs.end()) {
+                        ce_data.nonzeros.emplace_back(
+                            std::distance(corner_idxs.begin(), row_corner),
+                            std::distance(edge_idxs.begin(), col_edge),
+                            nnz.value);
+                    }
+                } else if (row_edge != edge_idxs.end()) {
+                    if (col_edge != edge_idxs.end()) {
+                        ee_data.nonzeros.emplace_back(
+                            std::distance(edge_idxs.begin(), row_edge),
+                            std::distance(edge_idxs.begin(), col_edge),
+                            nnz.value);
+                    }
+                }
             }
             idx++;
             if (idx < mat_data.nonzeros.size()) {
@@ -1382,30 +1435,29 @@ void Bddc<ValueType, IndexType>::generate()
     } else {
         generate_interfaces();
     }
-    // std::cout << "RANK " << comm.rank() << " DONE WITH INTERFACES" <<
-    // std::endl;
+    std::cout << "RANK " << comm.rank() << " DONE WITH INTERFACES" << std::endl;
     generate_constraints();
-    // std::cout << "RANK " << comm.rank()
-    //          << " DONE WITH CONSTRAINTS, NUM INTERFACES: "
-    //          << interfaces_.size()
-    //          << ", CONSTRAINED SIZE: " << local_system_matrix_->get_size()
-    //          << std::endl;
+    std::cout << "RANK " << comm.rank()
+              << " DONE WITH CONSTRAINTS, NUM INTERFACES: "
+              << interfaces_.size()
+              << ", CONSTRAINED SIZE: " << local_system_matrix_->get_size()
+              << std::endl;
     local_solver_ =
         parameters_.local_solver_factory->generate(local_system_matrix_);
-    // std::cout << "RANK " << comm.rank() << " DONE WITH LOCAL SOLVER"
-    //          << std::endl;
+    std::cout << "RANK " << comm.rank() << " DONE WITH LOCAL SOLVER"
+              << std::endl;
     schur_complement_solve();
-    // std::cout << "RANK " << comm.rank() << " DONE WITH SCHUR SOLVE"
-    //          << std::endl;
+    std::cout << "RANK " << comm.rank() << " DONE WITH SCHUR SOLVE"
+              << std::endl;
     generate_coarse_system();
-    // std::cout << "RANK " << comm.rank() << " DONE WITH COARSE SYSTEM"
-    //          << std::endl;
+    std::cout << "RANK " << comm.rank() << " DONE WITH COARSE SYSTEM"
+              << std::endl;
     generate_weights();
-    // std::cout << "RANK " << comm.rank() << " DONE WITH WEIGHTS" << std::endl;
+    std::cout << "RANK " << comm.rank() << " DONE WITH WEIGHTS" << std::endl;
     coarse_solver_ =
         parameters_.coarse_solver_factory->generate(global_coarse_matrix_);
-    // std::cout << "RANK " << comm.rank() << " DONE WITH COARSE SOLVER"
-    //          << std::endl;
+    std::cout << "RANK " << comm.rank() << " DONE WITH COARSE SOLVER"
+              << std::endl;
     if (parameters_.static_condensation) {
         inner_solver_ =
             parameters_.inner_solver_factory->generate(inner_system_matrix_);
