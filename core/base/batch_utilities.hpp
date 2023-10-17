@@ -151,6 +151,9 @@ template <typename ValueType, typename IndexType>
 void assert_same_sparsity_in_batched_data(
     const std::vector<gko::matrix_data<ValueType, IndexType>>& data)
 {
+    if (data.empty()) {
+        return;
+    }
     auto num_nnz = data.at(0).nonzeros.size();
     auto base_data = data.at(0);
     base_data.ensure_row_major_order();
