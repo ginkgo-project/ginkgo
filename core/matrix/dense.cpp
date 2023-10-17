@@ -509,7 +509,7 @@ template <typename ValueType>
 void Dense<ValueType>::compute_mean(ptr_param<LinOp> result,
                                     array<char>& tmp) const
 {
-    GKO_ASSERT_EQUAL_COLS(result, dim<2>(1, this->get_size()[1]));
+    GKO_ASSERT_EQUAL_COLS(result, this);
     auto exec = this->get_executor();
     if (tmp.get_executor() != exec) {
         tmp.clear();

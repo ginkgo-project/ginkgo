@@ -589,7 +589,7 @@ void Vector<ValueType>::compute_mean(ptr_param<LinOp> result,
     const auto global_size = this->get_size()[0];
     const auto local_size = this->get_local_vector()->get_size()[0];
     const auto num_vecs = static_cast<int>(this->get_size()[1]);
-    GKO_ASSERT_EQUAL_COLS(result, dim<2>(1, num_vecs));
+    GKO_ASSERT_EQUAL_COLS(result, this);
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto dense_res = make_temporary_clone(exec, as<MeanVector>(result));
