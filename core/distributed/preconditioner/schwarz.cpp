@@ -102,24 +102,28 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     std::shared_ptr<const LinOp> system_matrix)
 {
-    if (parameters_.local_solver && !parameters_.generated_local_solver) {
+    if (parameters_.local_solver != nullptr &&
+        parameters_.generated_local_solver != nullptr) {
+        throw ::gko::InvalidStateError(
+            __FILE__, __LINE__, __func__,
+            "Provided both a generated solver and a solver factory");
+    }
+
+    if (parameters_.local_solver == nullptr &&
+        parameters_.generated_local_solver == nullptr) {
+        throw ::gko::InvalidStateError(
+            __FILE__, __LINE__, __func__,
+            "Requires either a generated solver or an solver factory");
+    }
+
+    if (parameters_.local_solver) {
         this->local_solver_ = parameters_.local_solver->generate(
             as<experimental::distributed::Matrix<ValueType, LocalIndexType,
                                                  GlobalIndexType>>(
                 system_matrix)
                 ->get_local_matrix());
-    } else if (parameters_.generated_local_solver &&
-               !parameters_.local_solver) {
-        this->local_solver_ = parameters_.generated_local_solver;
-    } else if (!parameters_.generated_local_solver &&
-               !parameters_.local_solver) {
-        throw ::gko::InvalidStateError(
-            __FILE__, __LINE__, __func__,
-            "Requires either a generated solver or an solver factory");
     } else {
-        throw ::gko::InvalidStateError(
-            __FILE__, __LINE__, __func__,
-            "Provided both a generated solver and a solver factory");
+        this->local_solver_ = parameters_.generated_local_solver;
     }
 }
 
