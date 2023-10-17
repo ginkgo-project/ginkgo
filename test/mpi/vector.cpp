@@ -699,6 +699,7 @@ TYPED_TEST(VectorReductions, ComputesMeanWithTmpIsSameAsDense)
     GKO_ASSERT_MTX_NEAR(this->res, this->dense_res, r<value_type>::value);
 }
 
+
 TYPED_TEST(VectorReductions, ComputeDotCopiesToHostOnlyIfNecessary)
 {
     this->init_result();
