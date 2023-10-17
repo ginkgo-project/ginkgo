@@ -30,56 +30,55 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/batch_dense_kernels.hpp"
+#ifndef GKO_CORE_MATRIX_BATCH_ELL_KERNELS_HPP_
+#define GKO_CORE_MATRIX_BATCH_ELL_KERNELS_HPP_
 
 
-#include <hip/hip_runtime.h>
-#include <thrust/functional.h>
+#include <ginkgo/core/matrix/batch_ell.hpp>
 
 
+#include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
-#include "core/base/batch_struct.hpp"
-#include "core/matrix/batch_struct.hpp"
-#include "hip/base/batch_struct.hip.hpp"
-#include "hip/base/config.hip.hpp"
-#include "hip/base/thrust.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/components/reduction.hip.hpp"
-#include "hip/components/thread_ids.hip.hpp"
-#include "hip/components/uninitialized_array.hip.hpp"
-#include "hip/matrix/batch_struct.hip.hpp"
+#include "core/base/kernel_declaration.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace hip {
-/**
- * @brief The Dense matrix format namespace.
- *
- * @ingroup batch_dense
- */
-namespace batch_dense {
 
 
-constexpr auto default_block_size = 256;
-constexpr int sm_oversubscription = 4;
+#define GKO_DECLARE_BATCH_ELL_SIMPLE_APPLY_KERNEL(_vtype, _itype)  \
+    void simple_apply(std::shared_ptr<const DefaultExecutor> exec, \
+                      const batch::matrix::Ell<_vtype, _itype>* a, \
+                      const batch::MultiVector<_vtype>* b,         \
+                      batch::MultiVector<_vtype>* c)
 
-// clang-format off
+#define GKO_DECLARE_BATCH_ELL_ADVANCED_APPLY_KERNEL(_vtype, _itype)  \
+    void advanced_apply(std::shared_ptr<const DefaultExecutor> exec, \
+                        const batch::MultiVector<_vtype>* alpha,     \
+                        const batch::matrix::Ell<_vtype, _itype>* a, \
+                        const batch::MultiVector<_vtype>* b,         \
+                        const batch::MultiVector<_vtype>* beta,      \
+                        batch::MultiVector<_vtype>* c)
 
-// NOTE: DO NOT CHANGE THE ORDERING OF THE INCLUDES
-
-#include "common/cuda_hip/matrix/batch_dense_kernels.hpp.inc"
-
-
-#include "common/cuda_hip/matrix/batch_dense_kernel_launcher.hpp.inc"
-
-
-// clang-format on
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                 \
+    template <typename ValueType, typename IndexType>                \
+    GKO_DECLARE_BATCH_ELL_SIMPLE_APPLY_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                \
+    GKO_DECLARE_BATCH_ELL_ADVANCED_APPLY_KERNEL(ValueType, IndexType)
 
 
-}  // namespace batch_dense
-}  // namespace hip
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(batch_ell,
+                                        GKO_DECLARE_ALL_AS_TEMPLATES);
+
+
+#undef GKO_DECLARE_ALL_AS_TEMPLATES
+
+
 }  // namespace kernels
 }  // namespace gko
+
+
+#endif  // GKO_CORE_MATRIX_BATCH_ELL_KERNELS_HPP_

@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -52,6 +53,49 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace test {
+
+
+/**
+ * Fills matrix data for a random matrix given a sparsity pattern
+ *
+ * @tparam ValueType  the type for matrix values
+ * @tparam IndexType  the type for row and column indices
+ * @tparam ValueDistribution  type of value distribution
+ * @tparam Engine  type of random engine
+ *
+ * @param num_rows  number of rows
+ * @param num_cols  number of columns
+ * @param row_idxs  the row indices of the matrix
+ * @param col_idxs  the column indices of the matrix
+ * @param value_dist  distribution of matrix values
+ * @param engine  a random engine
+ *
+ * @return the generated matrix_data with entries according to the given
+ *         dimensions and nonzero count and value distributions.
+ */
+template <typename ValueType, typename IndexType, typename ValueDistribution,
+          typename Engine>
+matrix_data<ValueType, IndexType> fill_random_matrix_data(
+    size_type num_rows, size_type num_cols,
+    const gko::array<IndexType>& row_indices,
+    const gko::array<IndexType>& col_indices, ValueDistribution&& value_dist,
+    Engine&& engine)
+{
+    matrix_data<ValueType, IndexType> data{gko::dim<2>{num_rows, num_cols}, {}};
+    auto host_exec = row_indices.get_executor()->get_master();
+    auto host_row_indices = make_temporary_clone(host_exec, &row_indices);
+    auto host_col_indices = make_temporary_clone(host_exec, &col_indices);
+
+    for (int nnz = 0; nnz < row_indices.get_num_elems(); ++nnz) {
+        data.nonzeros.emplace_back(
+            host_row_indices->get_const_data()[nnz],
+            host_col_indices->get_const_data()[nnz],
+            detail::get_rand_value<ValueType>(value_dist, engine));
+    }
+
+    data.ensure_row_major_order();
+    return data;
+}
 
 
 /**
@@ -157,12 +201,59 @@ generate_random_device_matrix_data(gko::size_type num_rows,
 
 
 /**
+ * Fills a random matrix with given sparsity pattern.
+ *
+ * @tparam MatrixType  type of matrix to generate (must implement
+ *                     the interface `ReadableFromMatrixData<>` and provide
+ *                     matching `value_type` and `index_type` type aliases)
+ * @tparam IndexType  the type for row and column indices
+ * @tparam ValueDistribution  type of value distribution
+ * @tparam Engine  type of random engine
+ *
+ * @param num_rows  number of rows
+ * @param num_cols  number of columns
+ * @param row_idxs  the row indices of the matrix
+ * @param col_idxs  the column indices of the matrix
+ * @param value_dist  distribution of matrix values
+ * @param exec  executor where the matrix should be allocated
+ * @param args  additional arguments for the matrix constructor
+ *
+ * @return the unique pointer of MatrixType
+ */
+template <typename MatrixType = matrix::Dense<>,
+          typename IndexType = typename MatrixType::index_type,
+          typename ValueDistribution, typename Engine, typename... MatrixArgs>
+std::unique_ptr<MatrixType> fill_random_matrix(
+    size_type num_rows, size_type num_cols,
+    const gko::array<IndexType>& row_idxs,
+    const gko::array<IndexType>& col_idxs, ValueDistribution&& value_dist,
+    Engine&& engine, std::shared_ptr<const Executor> exec, MatrixArgs&&... args)
+{
+    using value_type = typename MatrixType::value_type;
+    using index_type = IndexType;
+
+    GKO_ASSERT(row_idxs.get_num_elems() == col_idxs.get_num_elems());
+    GKO_ASSERT(row_idxs.get_num_elems() <= (num_rows * num_cols));
+    auto result = MatrixType::create(exec, std::forward<MatrixArgs>(args)...);
+    result->read(fill_random_matrix_data<value_type, index_type>(
+        num_rows, num_cols, row_idxs, col_idxs,
+        std::forward<ValueDistribution>(value_dist),
+        std::forward<Engine>(engine)));
+    return result;
+}
+
+
+/**
  * Generates a random matrix.
  *
  * @tparam MatrixType  type of matrix to generate (must implement
  *                     the interface `ReadableFromMatrixData<>` and provide
  *                     matching `value_type` and `index_type` type aliases)
  *
+ * @param num_rows  number of rows
+ * @param num_cols  number of columns
+ * @param nonzero_dist  distribution of nonzeros per row
+ * @param value_dist  distribution of matrix values
  * @param exec  executor where the matrix should be allocated
  * @param args  additional arguments for the matrix constructor
  *

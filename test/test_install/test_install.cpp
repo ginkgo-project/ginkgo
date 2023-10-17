@@ -219,11 +219,18 @@ int main()
         auto test = batch_multi_vector_type::create(exec);
     }
 
-    // core/base/batch_dense.hpp
+    // core/matrix/batch_dense.hpp
     {
         using type1 = float;
         using batch_dense_type = gko::batch::matrix::Dense<type1>;
         auto test = batch_dense_type::create(exec);
+    }
+
+    // core/matrix/batch_ell.hpp
+    {
+        using type1 = float;
+        using batch_ell_type = gko::batch::matrix::Ell<type1>;
+        auto test = batch_ell_type::create(exec);
     }
 
     // core/base/combination.hpp

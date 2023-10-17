@@ -30,14 +30,16 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/batch_dense_kernels.hpp"
+#include "core/matrix/batch_ell_kernels.hpp"
 
 
 #include <hip/hip_runtime.h>
 #include <thrust/functional.h>
 
 
-#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/batch_multi_vector.hpp>
+#include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/batch_ell.hpp>
 
 
 #include "core/base/batch_struct.hpp"
@@ -56,11 +58,11 @@ namespace gko {
 namespace kernels {
 namespace hip {
 /**
- * @brief The Dense matrix format namespace.
- *
- * @ingroup batch_dense
+ * @brief The Ell matrix format namespace.
+ * @ref Ell
+ * @ingroup batch_ell
  */
-namespace batch_dense {
+namespace batch_ell {
 
 
 constexpr auto default_block_size = 256;
@@ -70,16 +72,15 @@ constexpr int sm_oversubscription = 4;
 
 // NOTE: DO NOT CHANGE THE ORDERING OF THE INCLUDES
 
-#include "common/cuda_hip/matrix/batch_dense_kernels.hpp.inc"
+#include "common/cuda_hip/matrix/batch_ell_kernels.hpp.inc"
 
 
-#include "common/cuda_hip/matrix/batch_dense_kernel_launcher.hpp.inc"
-
+#include "common/cuda_hip/matrix/batch_ell_kernel_launcher.hpp.inc"
 
 // clang-format on
 
 
-}  // namespace batch_dense
+}  // namespace batch_ell
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko

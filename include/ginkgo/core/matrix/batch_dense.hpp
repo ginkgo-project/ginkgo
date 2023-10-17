@@ -93,15 +93,6 @@ public:
     using absolute_type = remove_complex<Dense>;
     using complex_type = to_complex<Dense>;
 
-    /**
-     * Creates a Dense matrix with the configuration of another Dense
-     * matrix.
-     *
-     * @param other  The other matrix whose configuration needs to copied.
-     */
-    static std::unique_ptr<Dense> create_with_config_of(
-        ptr_param<const Dense> other);
-
     void convert_to(Dense<next_precision<ValueType>>* result) const override;
 
     void move_to(Dense<next_precision<ValueType>>* result) override;
@@ -275,11 +266,8 @@ public:
      * @param b  the multi-vector to be applied to
      * @param x  the output multi-vector
      */
-    void apply(const MultiVector<value_type>* b,
-               MultiVector<value_type>* x) const
-    {
-        this->apply_impl(b, x);
-    }
+    Dense* apply(ptr_param<const MultiVector<value_type>> b,
+                 ptr_param<MultiVector<value_type>> x);
 
     /**
      * Apply the matrix to a multi-vector with a linear combination of the given
@@ -291,13 +279,26 @@ public:
      * @param beta   the scalar to scale the x vector with
      * @param x      the output multi-vector
      */
-    void apply(const MultiVector<value_type>* alpha,
-               const MultiVector<value_type>* b,
-               const MultiVector<value_type>* beta,
-               MultiVector<value_type>* x) const
-    {
-        this->apply_impl(alpha, b, beta, x);
-    }
+    Dense* apply(ptr_param<const MultiVector<value_type>> alpha,
+                 ptr_param<const MultiVector<value_type>> b,
+                 ptr_param<const MultiVector<value_type>> beta,
+                 ptr_param<MultiVector<value_type>> x);
+
+    /**
+     * @copydoc apply(const MultiVector<value_type>*, MultiVector<value_type>*)
+     */
+    const Dense* apply(ptr_param<const MultiVector<value_type>> b,
+                       ptr_param<MultiVector<value_type>> x) const;
+
+    /**
+     * @copydoc apply(const MultiVector<value_type>*, const
+     * MultiVector<value_type>*, const MultiVector<value_type>*,
+     * MultiVector<value_type>*)
+     */
+    const Dense* apply(ptr_param<const MultiVector<value_type>> alpha,
+                       ptr_param<const MultiVector<value_type>> b,
+                       ptr_param<const MultiVector<value_type>> beta,
+                       ptr_param<MultiVector<value_type>> x) const;
 
 private:
     inline size_type compute_num_elems(const batch_dim<2>& size)
@@ -306,7 +307,6 @@ private:
                size.get_common_size()[1];
     }
 
-protected:
     /**
      * Creates an uninitialized Dense matrix of the specified size.
      *
@@ -362,7 +362,6 @@ protected:
                                idx % this->get_common_size()[1]);
     }
 
-private:
     array<value_type> values_;
 };
 

@@ -52,14 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace batch {
-namespace matrix {
-
-
-template <typename ValueType>
-class Dense;
-
-
-}
 
 
 /**
@@ -90,21 +82,17 @@ class MultiVector
     : public EnablePolymorphicObject<MultiVector<ValueType>>,
       public EnablePolymorphicAssignment<MultiVector<ValueType>>,
       public EnableCreateMethod<MultiVector<ValueType>>,
-      public ConvertibleTo<MultiVector<next_precision<ValueType>>>,
-      public ConvertibleTo<matrix::Dense<ValueType>> {
+      public ConvertibleTo<MultiVector<next_precision<ValueType>>> {
     friend class EnableCreateMethod<MultiVector>;
     friend class EnablePolymorphicObject<MultiVector>;
     friend class MultiVector<to_complex<ValueType>>;
     friend class MultiVector<next_precision<ValueType>>;
-    friend class matrix::Dense<ValueType>;
 
 public:
     using EnablePolymorphicAssignment<MultiVector>::convert_to;
     using EnablePolymorphicAssignment<MultiVector>::move_to;
     using ConvertibleTo<MultiVector<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<MultiVector<next_precision<ValueType>>>::move_to;
-    using ConvertibleTo<matrix::Dense<ValueType>>::convert_to;
-    using ConvertibleTo<matrix::Dense<ValueType>>::move_to;
 
     using value_type = ValueType;
     using index_type = int32;
@@ -125,10 +113,6 @@ public:
         MultiVector<next_precision<ValueType>>* result) const override;
 
     void move_to(MultiVector<next_precision<ValueType>>* result) override;
-
-    void convert_to(matrix::Dense<ValueType>* result) const override;
-
-    void move_to(matrix::Dense<ValueType>* result) override;
 
     /**
      * Creates a mutable view (of matrix::Dense type) of one item of the Batch
@@ -460,224 +444,6 @@ private:
     batch_dim<2> batch_size_;
     array<value_type> values_;
 };
-
-
-/**
- * Creates and initializes a batch of single column-vectors.
- *
- * This function first creates a temporary MultiVector, fills it with
- * passed in values, and then converts the vector to the requested type.
- *
- * @tparam Matrix  matrix type to initialize
- *                 (MultiVector has to implement the ConvertibleTo<Matrix>
- *                 interface)
- * @tparam TArgs  argument types for Matrix::create method
- *                (not including the implied Executor as the first argument)
- *
- * @param vals  values used to initialize the batch vector
- * @param exec  Executor associated to the vector
- * @param create_args  additional arguments passed to Matrix::create, not
- *                     including the Executor, which is passed as the first
- *                     argument
- *
- * @ingroup MultiVector
- * @ingroup mat_formats
- */
-template <typename Matrix, typename... TArgs>
-std::unique_ptr<Matrix> initialize(
-    std::initializer_list<std::initializer_list<typename Matrix::value_type>>
-        vals,
-    std::shared_ptr<const Executor> exec, TArgs&&... create_args)
-{
-    using batch_multi_vector = MultiVector<typename Matrix::value_type>;
-    size_type num_batch_items = vals.size();
-    GKO_THROW_IF_INVALID(num_batch_items > 0, "Input data is empty");
-    auto vals_begin = begin(vals);
-    size_type common_num_rows = vals_begin ? vals_begin->size() : 0;
-    auto common_size = dim<2>(common_num_rows, 1);
-    for (auto& val : vals) {
-        GKO_ASSERT_EQ(common_num_rows, val.size());
-    }
-    auto b_size = batch_dim<2>(num_batch_items, common_size);
-    auto tmp = batch_multi_vector::create(exec->get_master(), b_size);
-    size_type batch = 0;
-    for (const auto& b : vals) {
-        size_type idx = 0;
-        for (const auto& elem : b) {
-            tmp->at(batch, idx) = elem;
-            ++idx;
-        }
-        ++batch;
-    }
-    auto mtx = Matrix::create(exec, std::forward<TArgs>(create_args)...);
-    tmp->move_to(mtx);
-    return mtx;
-}
-
-
-/**
- * Creates and initializes a batch of multi-vectors.
- *
- * This function first creates a temporary MultiVector, fills it with
- * passed in values, and then converts the vector to the requested type.
- *
- * @tparam Matrix  matrix type to initialize
- *                 (Dense has to implement the ConvertibleTo<Matrix> interface)
- * @tparam TArgs  argument types for Matrix::create method
- *                (not including the implied Executor as the first argument)
- *
- * @param vals  values used to initialize the vector
- * @param exec  Executor associated to the vector
- * @param create_args  additional arguments passed to Matrix::create, not
- *                     including the Executor, which is passed as the first
- *                     argument
- *
- * @ingroup MultiVector
- * @ingroup mat_formats
- */
-template <typename Matrix, typename... TArgs>
-std::unique_ptr<Matrix> initialize(
-    std::initializer_list<std::initializer_list<
-        std::initializer_list<typename Matrix::value_type>>>
-        vals,
-    std::shared_ptr<const Executor> exec, TArgs&&... create_args)
-{
-    using batch_multi_vector = MultiVector<typename Matrix::value_type>;
-    size_type num_batch_items = vals.size();
-    GKO_THROW_IF_INVALID(num_batch_items > 0, "Input data is empty");
-    auto vals_begin = begin(vals);
-    size_type common_num_rows = vals_begin ? vals_begin->size() : 0;
-    size_type common_num_cols =
-        vals_begin->begin() ? vals_begin->begin()->size() : 0;
-    auto common_size = dim<2>(common_num_rows, common_num_cols);
-    for (const auto& b : vals) {
-        auto num_rows = b.size();
-        auto num_cols = begin(b)->size();
-        auto b_size = dim<2>(num_rows, num_cols);
-        GKO_ASSERT_EQUAL_DIMENSIONS(b_size, common_size);
-    }
-
-    auto b_size = batch_dim<2>(num_batch_items, common_size);
-    auto tmp = batch_multi_vector::create(exec->get_master(), b_size);
-    size_type batch = 0;
-    for (const auto& b : vals) {
-        size_type ridx = 0;
-        for (const auto& row : b) {
-            size_type cidx = 0;
-            for (const auto& elem : row) {
-                tmp->at(batch, ridx, cidx) = elem;
-                ++cidx;
-            }
-            ++ridx;
-        }
-        ++batch;
-    }
-    auto mtx = Matrix::create(exec, std::forward<TArgs>(create_args)...);
-    tmp->move_to(mtx);
-    return mtx;
-}
-
-
-/**
- * Creates and initializes a batch single column-vector by making copies of the
- * single input column vector.
- *
- * This function first creates a temporary batch multi-vector, fills it with
- * passed in values, and then converts the vector to the requested type.
- *
- * @tparam Matrix  matrix type to initialize
- *                 (MultiVector has to implement the ConvertibleTo<Matrix>
- *                  interface)
- * @tparam TArgs  argument types for Matrix::create method
- *                (not including the implied Executor as the first argument)
- *
- * @param num_vectors  The number of times the input vector is to be duplicated
- * @param vals  values used to initialize each vector in the temp. batch
- * @param exec  Executor associated to the vector
- * @param create_args  additional arguments passed to Matrix::create, not
- *                     including the Executor, which is passed as the first
- *                     argument
- *
- * @ingroup MultiVector
- * @ingroup mat_formats
- */
-template <typename Matrix, typename... TArgs>
-std::unique_ptr<Matrix> initialize(
-    const size_type num_vectors,
-    std::initializer_list<typename Matrix::value_type> vals,
-    std::shared_ptr<const Executor> exec, TArgs&&... create_args)
-{
-    using batch_multi_vector = MultiVector<typename Matrix::value_type>;
-    size_type num_batch_items = num_vectors;
-    GKO_THROW_IF_INVALID(num_batch_items > 0 && vals.size() > 0,
-                         "Input data is empty");
-    auto b_size =
-        batch_dim<2>(num_batch_items, dim<2>(begin(vals) ? vals.size() : 0, 1));
-    auto tmp = batch_multi_vector::create(exec->get_master(), b_size);
-    for (size_type batch = 0; batch < num_vectors; batch++) {
-        size_type idx = 0;
-        for (const auto& elem : vals) {
-            tmp->at(batch, idx) = elem;
-            ++idx;
-        }
-    }
-    auto mtx = Matrix::create(exec, std::forward<TArgs>(create_args)...);
-    tmp->move_to(mtx);
-    return mtx;
-}
-
-
-/**
- * Creates and initializes a matrix from copies of a given matrix.
- *
- * This function first creates a temporary batch multi-vector, fills it with
- * passed in values, and then converts the vector to the requested type.
- *
- * @tparam Matrix  matrix type to initialize
- *                 (MultiVector has to implement the ConvertibleTo<Matrix>
- *                  interface)
- * @tparam TArgs  argument types for Matrix::create method
- *                (not including the implied Executor as the first argument)
- *
- * @param num_batch_items The number of times the input matrix is duplicated
- * @param vals  values used to initialize each vector in the temp. batch
- * @param exec  Executor associated to the vector
- * @param create_args  additional arguments passed to Matrix::create, not
- *                     including the Executor, which is passed as the first
- *                     argument
- *
- * @ingroup LinOp
- * @ingroup mat_formats
- */
-template <typename Matrix, typename... TArgs>
-std::unique_ptr<Matrix> initialize(
-    const size_type num_batch_items,
-    std::initializer_list<std::initializer_list<typename Matrix::value_type>>
-        vals,
-    std::shared_ptr<const Executor> exec, TArgs&&... create_args)
-{
-    using batch_multi_vector = MultiVector<typename Matrix::value_type>;
-    GKO_THROW_IF_INVALID(num_batch_items > 0 && vals.size() > 0,
-                         "Input data is empty");
-    auto common_size = dim<2>(begin(vals) ? vals.size() : 0,
-                              begin(vals) ? begin(vals)->size() : 0);
-    batch_dim<2> b_size(num_batch_items, common_size);
-    auto tmp = batch_multi_vector::create(exec->get_master(), b_size);
-    for (size_type batch = 0; batch < num_batch_items; batch++) {
-        size_type ridx = 0;
-        for (const auto& row : vals) {
-            size_type cidx = 0;
-            for (const auto& elem : row) {
-                tmp->at(batch, ridx, cidx) = elem;
-                ++cidx;
-            }
-            ++ridx;
-        }
-    }
-    auto mtx = Matrix::create(exec, std::forward<TArgs>(create_args)...);
-    tmp->move_to(mtx);
-    return mtx;
-}
 
 
 }  // namespace batch

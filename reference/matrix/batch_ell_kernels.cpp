@@ -30,14 +30,14 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/batch_dense_kernels.hpp"
+#include "core/matrix/batch_ell_kernels.hpp"
 
 
 #include <algorithm>
 
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
-#include <ginkgo/core/matrix/batch_dense.hpp>
+#include <ginkgo/core/matrix/batch_ell.hpp>
 
 
 #include "core/base/batch_struct.hpp"
@@ -50,19 +50,19 @@ namespace gko {
 namespace kernels {
 namespace reference {
 /**
- * @brief The Dense matrix format namespace.
- * @ref Dense
- * @ingroup batch_dense
+ * @brief The Ell matrix format namespace.
+ * @ref Ell
+ * @ingroup batch_ell
  */
-namespace batch_dense {
+namespace batch_ell {
 
 
-#include "reference/matrix/batch_dense_kernels.hpp.inc"
+#include "reference/matrix/batch_ell_kernels.hpp.inc"
 
 
-template <typename ValueType>
+template <typename ValueType, typename IndexType>
 void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
-                  const batch::matrix::Dense<ValueType>* mat,
+                  const batch::matrix::Ell<ValueType, IndexType>* mat,
                   const batch::MultiVector<ValueType>* b,
                   batch::MultiVector<ValueType>* x)
 {
@@ -77,14 +77,14 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BATCH_DENSE_SIMPLE_APPLY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
+    GKO_DECLARE_BATCH_ELL_SIMPLE_APPLY_KERNEL);
 
 
-template <typename ValueType>
+template <typename ValueType, typename IndexType>
 void advanced_apply(std::shared_ptr<const DefaultExecutor> exec,
                     const batch::MultiVector<ValueType>* alpha,
-                    const batch::matrix::Dense<ValueType>* mat,
+                    const batch::matrix::Ell<ValueType, IndexType>* mat,
                     const batch::MultiVector<ValueType>* b,
                     const batch::MultiVector<ValueType>* beta,
                     batch::MultiVector<ValueType>* x)
@@ -105,11 +105,11 @@ void advanced_apply(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BATCH_DENSE_ADVANCED_APPLY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
+    GKO_DECLARE_BATCH_ELL_ADVANCED_APPLY_KERNEL);
 
 
-}  // namespace batch_dense
+}  // namespace batch_ell
 }  // namespace reference
 }  // namespace kernels
 }  // namespace gko

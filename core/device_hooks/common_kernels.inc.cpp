@@ -58,6 +58,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/par_ilu_kernels.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
 #include "core/matrix/batch_dense_kernels.hpp"
+#include "core/matrix/batch_ell_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
@@ -136,6 +137,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     template <typename ValueType, typename IndexType>               \
     _macro(ValueType, IndexType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
     GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(_macro)
+
+#define GKO_STUB_VALUE_AND_INT32_TYPE(_macro)                       \
+    template <typename ValueType, typename IndexType>               \
+    _macro(ValueType, IndexType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(_macro)
 
 #define GKO_STUB_MIXED_VALUE_AND_INDEX_TYPE(_macro)                     \
     template <typename InputValueType, typename MatrixValueType,        \
@@ -308,6 +314,16 @@ GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_ADVANCED_APPLY_KERNEL);
 
 
 }  // namespace batch_dense
+
+
+namespace batch_ell {
+
+
+GKO_STUB_VALUE_AND_INT32_TYPE(GKO_DECLARE_BATCH_ELL_SIMPLE_APPLY_KERNEL);
+GKO_STUB_VALUE_AND_INT32_TYPE(GKO_DECLARE_BATCH_ELL_ADVANCED_APPLY_KERNEL);
+
+
+}  // namespace batch_ell
 
 
 namespace dense {
