@@ -99,6 +99,20 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::set_solver(
+    std::shared_ptr<const LinOp> new_solver)
+{
+    auto exec = this->get_executor();
+    if (new_solver) {
+        if (new_solver->get_executor() != exec) {
+            new_solver = gko::clone(exec, new_solver);
+        }
+    }
+    this->local_solver_ = new_solver;
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     std::shared_ptr<const LinOp> system_matrix)
 {
@@ -113,13 +127,13 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     }
 
     if (parameters_.local_solver) {
-        this->local_solver_ = parameters_.local_solver->generate(
-            as<experimental::distributed::Matrix<ValueType, LocalIndexType,
-                                                 GlobalIndexType>>(
-                system_matrix)
-                ->get_local_matrix());
+        this->set_solver(gko::share(parameters_.local_solver->generate(
+            as<experimental::distributed::Matrix<
+                ValueType, LocalIndexType, GlobalIndexType>>(system_matrix)
+                ->get_local_matrix())));
+
     } else {
-        this->local_solver_ = parameters_.generated_local_solver;
+        this->set_solver(parameters_.generated_local_solver);
     }
 }
 
