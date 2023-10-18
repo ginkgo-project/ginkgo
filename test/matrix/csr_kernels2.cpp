@@ -1311,9 +1311,6 @@ TEST_F(Csr, CreateSubMatrixIsEquivalentToRef)
 }
 
 
-#ifndef GKO_COMPILING_DPCPP
-
-
 TEST_F(Csr, CanDetectMissingDiagonalEntry)
 {
     using T = double;
@@ -1359,6 +1356,3 @@ TEST_F(Csr, AddScaledIdentityToNonSquare)
 
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, r<value_type>::value);
 }
-
-
-#endif  // GKO_COMPILING_DPCPP
