@@ -37,21 +37,23 @@ __global__ __launch_bounds__(default_block_size) void parsinv_kernel(
         // compute L(i,:).* S(j,:)
         // il and is are iterating over the nonzero entries in the respective
         // rows
-        int il = Lrowptr[i] + 1;
-        int is = Srowptr[j] + 1;
+        int il = Lrowptr[i+1] -1;
+        int is = Srowptr[j+1] - 1;
         int jl, js;
-        double s, sp;
-        while (il < Lrowptr[i + 1] && is < Srowptr[j + 1]) {
-            sp = 0.0;
+        double s = 0.0;
+	// for faster execution, sweep over rows right to left
+        // we know that L is an upper matrix, and we can this way save all 
+	// the comparisons with elements in the lower triangular matrix	
+        while (il > Lrowptr[i] && is > Srowptr[j]) {
             // jl and js are the col-indices of the respective nonzero entries
             jl = Lcolidx[il];
             js = Scolidx[is];
             if (jl == js) {
-                sp = Lval[il] * Sval[is];
+                auto sp = Lval[il] * Sval[is];
                 s = s + sp;
             }
-            il = (jl <= js) ? il + 1 : il;
-            is = (jl >= js) ? is + 1 : is;
+            il = (jl >= js) ? il - 1 : il;
+            is = (jl <= js) ? is - 1 : is;
         }
         s = 1. / Lii * s;  // scaling
 
