@@ -5,13 +5,13 @@ constexpr unsigned int default_block_size = 512;
 __global__ __launch_bounds__(default_block_size) void parsinv_kernel( 
     int n, // matrix size
     int Lnnz, // number of nonzeros in LT stored in CSR, upper triangular  (equivalent to L in CSC)
-    const int*  Lrowptr, // row pointer L
-    const int*  Lcolidx, //col index L 
-    const double* Lval, // val array L
+    const int*  __restrict__ Lrowptr, // row pointer L
+    const int*  __restrict__ Lcolidx, //col index L 
+    const double* __restrict__  Lval, // val array L
     int Snnz, // number of nonzeros in S (stored in CSR, full sparse)
-    const int* Srowptr, // row pointer S
-    const int* Srowidx, // row index S 
-    const int* Scolidx, //col index S 
+    const int* __restrict__ Srowptr, // row pointer S
+    const int* __restrict__ Srowidx, // row index S 
+    const int* __restrict__ Scolidx, //col index S 
     double *Sval, // val array S
     double *tval 
     ){
@@ -19,12 +19,12 @@ __global__ __launch_bounds__(default_block_size) void parsinv_kernel(
     int threadidx = blockIdx.x * blockDim.x + threadIdx.x;
     
     if (threadidx < Snnz) {
-        int i, j, il, is, jl, js;
-        double Lii, s=0.0, sp;
+        int il, is, jl, js;
+        double s=0.0, sp;
 
         // handle element S(threadidx) = S(i,j)
-        i = Srowidx[ threadidx ];
-        j = Scolidx[ threadidx ];
+        const auto i = Srowidx[ threadidx ];
+        const auto j = Scolidx[ threadidx ];
 
 
 	// we are working on a symmetric matrix S
@@ -32,14 +32,14 @@ __global__ __launch_bounds__(default_block_size) void parsinv_kernel(
         // maybe later
         if( i>j ){
 		return;
-	    // swap indices - there might be a more efficient way, though
-            int t = i;
-            i = j;
-            j = t;
+	    // alternative: swap indices to compute (i,j) using the formula for (j,i)
+            // int t = i;
+            // i = j;
+            // j = t;
         }
 
         // retrieve L(i,i), easy as these are the first element in each row
-        Lii = Lval[ Lrowptr[ i ] ];
+        const auto Lii = Lval[ Lrowptr[ i ] ];
         // compute L(i,:).* S(j,:)
         // il and is are iterating over the nonzero entries in the respective rows
         il = Lrowptr[ i ]+1;

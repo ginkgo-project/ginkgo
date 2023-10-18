@@ -90,12 +90,12 @@ int main(int argc, char** argv)
     }
     else if ( argc == 3 ){
 	    debug = 1;
-	    std::cout << " Computing error ro reference solution in iterations "  << std::endl;
+	    std::cout << " Computing error to reference solution in iterations "  << std::endl;
 	}
     else {
         std::cout << "Please execute with the following parameters:\n"
                   << argv[0]
-                  << "<A matrix path> <I matrix path>\n";
+                  << "<A matrix path> [optional: <I matrix path> ]\n";
         std::exit(1);
     }
     std::ifstream A_file(argv[1]);
