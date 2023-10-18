@@ -112,6 +112,7 @@ Factorization<ValueType, IndexType>::unpack() const
     }
     case storage_type::combined_ldu:
     case storage_type::symm_combined_ldl:
+    default:
         GKO_NOT_IMPLEMENTED;
     }
 }
