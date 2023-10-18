@@ -203,6 +203,7 @@ TYPED_TEST(SchwarzPreconditioner, GenerateFailsIfNoSolverProvided)
 {
     using prec = typename TestFixture::dist_prec_type;
     auto schwarz_no_solver = prec::build().on(this->exec);
+
     ASSERT_THROW(schwarz_no_solver->generate(this->dist_mat),
                  gko::InvalidStateError);
 }
@@ -260,7 +261,7 @@ TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionedSolverWithPregenSolver)
     auto local_solver = gko::share(local_prec_type::build()
                                        .with_max_block_size(1u)
                                        .on(this->exec)
-                                       ->generate(this->non_dist_mat));
+                                       ->generate(this->dist_mat->get_local_matrix()));
     auto precond = prec::build()
                        .with_local_solver(this->local_solver_factory)
                        .on(this->exec)
@@ -273,7 +274,7 @@ TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionedSolverWithPregenSolver)
     auto dist_x_pregen = gko::share(this->dist_x->clone());
 
     precond->apply(this->dist_b.get(), dist_x.get());
-    precond->apply(this->dist_b.get(), dist_x_pregen.get());
+    precond_pregen->apply(this->dist_b.get(), dist_x_pregen.get());
 
     GKO_ASSERT_MTX_NEAR(dist_x->get_local_vector(),
                         dist_x_pregen->get_local_vector(),
