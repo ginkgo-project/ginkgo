@@ -196,7 +196,12 @@ TYPED_TEST(SchwarzPreconditioner, GenerateFailsIfInvalidState)
                        .on(this->exec);
 
     ASSERT_THROW(schwarz->generate(this->dist_mat), gko::InvalidStateError);
+}
 
+
+TYPED_TEST(SchwarzPreconditioner, GenerateFailsIfNoSolverProvided)
+{
+    using prec = typename TestFixture::dist_prec_type;
     auto schwarz_no_solver = prec::build().on(this->exec);
     ASSERT_THROW(schwarz_no_solver->generate(this->dist_mat),
                  gko::InvalidStateError);
@@ -260,21 +265,19 @@ TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionedSolverWithPregenSolver)
                        .with_local_solver(this->local_solver_factory)
                        .on(this->exec)
                        ->generate(this->dist_mat);
-
     auto precond_pregen = prec::build()
                               .with_generated_local_solver(local_solver)
                               .on(this->exec)
                               ->generate(this->dist_mat);
-
     auto dist_x = gko::share(this->dist_x->clone());
     auto dist_x_pregen = gko::share(this->dist_x->clone());
 
     precond->apply(this->dist_b.get(), dist_x.get());
     precond->apply(this->dist_b.get(), dist_x_pregen.get());
 
-    GKO_ASSERT_MTX_NEAR(
-        dist_x->get_local_vector(), dist_x_pregen->get_local_vector(),
-        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(dist_x->get_local_vector(),
+                        dist_x_pregen->get_local_vector(),
+                        r<value_type>::value);
 }
 
 

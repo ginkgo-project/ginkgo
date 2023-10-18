@@ -102,17 +102,13 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     std::shared_ptr<const LinOp> system_matrix)
 {
-    if (parameters_.local_solver != nullptr &&
-        parameters_.generated_local_solver != nullptr) {
-        throw ::gko::InvalidStateError(
-            __FILE__, __LINE__, __func__,
+    if (parameters_.local_solver && parameters_.generated_local_solver) {
+        GKO_INVALID_STATE(
             "Provided both a generated solver and a solver factory");
     }
 
-    if (parameters_.local_solver == nullptr &&
-        parameters_.generated_local_solver == nullptr) {
-        throw ::gko::InvalidStateError(
-            __FILE__, __LINE__, __func__,
+    if (!parameters_.local_solver && !parameters_.generated_local_solver) {
+        GKO_INVALID_STATE(
             "Requires either a generated solver or an solver factory");
     }
 
