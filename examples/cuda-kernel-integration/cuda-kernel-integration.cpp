@@ -46,7 +46,8 @@ void parsinv(
     const int *Srowptr, // row pointer S
     const int *Srowidx, // row index S
     const int *Scolidx, //col index S
-    double *Sval // val array S
+    double *Sval, // val array S
+    const int* sym_map
     );
 
 void parsinv_residual(
@@ -61,6 +62,16 @@ void parsinv_residual(
     double *Sval, // val array S
     double *tval
     );
+
+void symmapping(int n,     // matrix size
+             int Snnz,  // number of nonzeros in S (stored in CSR, full sparse)
+             const int* Srowptr,  // row pointer S
+             const int* Srowidx,  // row index S
+             const int* Scolidx,  // col index S
+             int* sym_map    // symmetric entry mapping
+                                //contains in each location k corresponding
+                                // to location(i,j) the entry t corresponding to (j,i)
+	);
 
 void ASpOnesB(
     int n, // matrix size
@@ -125,7 +136,17 @@ int main(int argc, char** argv)
     auto S_row_idxs = S_coo->get_const_row_idxs();
     auto S_col_idxs = S_coo->get_const_col_idxs();
     auto S_values = S_coo->get_values();
-   
+
+    // create a vector for the symmetric mapping in S
+    gko::array<int> sym_map(gpu, S_coo->get_num_stored_elements());
+    symmapping( S_coo->get_size()[0],
+                    S_coo->get_num_stored_elements(),
+                    S_row_ptrs,
+                    S_row_idxs,
+                    S_col_idxs,
+                    sym_map.get_data());
+
+
     // compute error to correct solution
     auto size = S_coo->get_num_stored_elements();
     auto neg_one = gko::initialize<Dense>({-gko::one<value_type>()}, gpu);
@@ -181,7 +202,8 @@ int main(int argc, char** argv)
 		    S_row_ptrs,
 		    S_row_idxs,
 		    S_col_idxs,
-		    S_values
+		    S_values,
+		    sym_map.get_const_data()
     	);
 	gpu->synchronize();
 	end = std::chrono::steady_clock::now();

@@ -14,14 +14,15 @@ __global__ __launch_bounds__(default_block_size) void parsinv_kernel(
     const int* __restrict__ Srowidx,  // row index S
     const int* __restrict__ Scolidx,  // col index S
     double* __restrict__ Sval,        // val array S
-    double* __restrict__ tval)
+    double* __restrict__ tval,
+    const int* __restrict__ sym_map)
 {
     int threadidx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (threadidx < Snnz) {
         // handle element S(threadidx) = S(i,j)
         const int i = Srowidx[threadidx];
-        const auto j = Scolidx[threadidx];
+        const int j = Scolidx[threadidx];
 
         // we are working on a symmetric matrix S
         // if we notice j>i, we compute S(j,i) instead of S(i,j)
@@ -61,12 +62,14 @@ __global__ __launch_bounds__(default_block_size) void parsinv_kernel(
             Sval[threadidx] = 1. / (Lii * Lii) - s;
         else {
             Sval[threadidx] = -s;
-            for (int t = Srowptr[j]; t < Srowptr[j + 1]; t++) {
+	    Sval[sym_map[threadidx]] = -s;
+ /*         // Use the symmetry mapping for writing also to S(j,i)
+	    for (int t = Srowptr[j]; t < Srowptr[j + 1]; t++) {
                 if (Scolidx[t] == i) {
                     Sval[t] = -s;
                     break;
                 }
-            }
+            }*/
         }
     }
 }
@@ -82,7 +85,8 @@ void parsinv(int n,     // matrix size
              const int* Srowptr,  // row pointer S
              const int* Srowidx,  // row index S
              const int* Scolidx,  // col index S
-             double* Sval         // val array S
+             double* Sval,         // val array S
+	     const int* sym_map
 )
 {
     unsigned int grid_dim =
@@ -93,9 +97,62 @@ void parsinv(int n,     // matrix size
 
     parsinv_kernel<<<dim3(grid_dim), dim3(default_block_size)>>>(
         n, Lnnz, Lrowptr, Lcolidx, Lval, Snnz, Srowptr, Srowidx, Scolidx, Sval,
-        tval);
+        tval, sym_map);
     // cudaMemcpy(Sval, tval, sizeof(double)*Snnz, cudaMemcpyDeviceToDevice);
     //  cudaFree(tval);
+}
+
+
+
+
+__global__ __launch_bounds__(default_block_size) void symmapping_kernel(
+    int n,     // matrix size
+    int Snnz,  // number of nonzeros in S (stored in CSR, full sparse)
+    const int* __restrict__ Srowptr,  // row pointer S
+    const int* __restrict__ Srowidx,  // row index S
+    const int* __restrict__ Scolidx,  // col index S
+    int* __restrict__ sym_map)
+{
+    int threadidx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (threadidx < Snnz) {
+        // handle element S(threadidx) = S(i,j)
+        const int i = Srowidx[threadidx];
+        const int j = Scolidx[threadidx];
+        
+	if (i > j) {
+            return;
+        }
+
+        if (i == j){  // diagonal element
+		sym_map[threadidx] = threadidx;
+	} else {
+            for (int t = Srowptr[j]; t < Srowptr[j + 1]; t++) {
+                if (Scolidx[t] == i) {
+                    sym_map[t] = threadidx;
+		    sym_map[threadidx] = t;
+                    return;
+                }
+            }
+        }
+    }
+}
+
+void symmapping(int n,     // matrix size
+             int Snnz,  // number of nonzeros in S (stored in CSR, full sparse)
+             const int* Srowptr,  // row pointer S
+             const int* Srowidx,  // row index S
+             const int* Scolidx,  // col index S
+	     int* sym_map	// symmetric entry mapping
+	     			//contains in each location k corresponding 
+	     			// to location(i,j) the entry t corresponding to (j,i) 
+)
+{
+    unsigned int grid_dim =
+        (Snnz + default_block_size - 1) / default_block_size;
+
+    symmapping_kernel<<<dim3(grid_dim), dim3(default_block_size)>>>(
+        n, Snnz, Srowptr, Srowidx, Scolidx, sym_map);
 }
 
 
