@@ -146,6 +146,11 @@ namespace kernels {
                        matrix::Dense<remove_complex<_type>>* result, \
                        array<char>& tmp)
 
+#define GKO_DECLARE_DENSE_COMPUTE_MEAN_KERNEL(_type)               \
+    void compute_mean(std::shared_ptr<const DefaultExecutor> exec, \
+                      const matrix::Dense<_type>* x,               \
+                      matrix::Dense<_type>* result, array<char>& tmp)
+
 #define GKO_DECLARE_DENSE_FILL_IN_MATRIX_DATA_KERNEL(_type, _prec)         \
     void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,  \
                              const device_matrix_data<_type, _prec>& data, \
@@ -349,6 +354,8 @@ namespace kernels {
     GKO_DECLARE_DENSE_COMPUTE_NORM2_DISPATCH_KERNEL(ValueType);             \
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL(ValueType);                      \
+    template <typename ValueType>                                           \
+    GKO_DECLARE_DENSE_COMPUTE_MEAN_KERNEL(ValueType);                       \
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_DENSE_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType);     \
     template <typename ValueType>                                           \

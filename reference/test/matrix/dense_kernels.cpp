@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <complex>
 #include <memory>
+#include <numeric>
 #include <random>
 
 
@@ -695,6 +696,37 @@ TYPED_TEST(Dense, ComputesNorm1Mixed)
 
     EXPECT_EQ(result->at(0, 0), MixedT_nc{6.0});
     EXPECT_EQ(result->at(0, 1), MixedT_nc{8.0});
+}
+
+
+TYPED_TEST(Dense, ComputesMean)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+
+    auto iota = Mtx::create(this->exec, gko::dim<2>{10, 1});
+    std::iota(iota->get_values(), iota->get_values() + 10, 1);
+    auto iota_result = Mtx::create(this->exec, gko::dim<2>{1, 1});
+    iota->compute_mean(iota_result.get());
+    GKO_EXPECT_NEAR(iota_result->at(0, 0), T{5.5}, r<T>::value * 10);
+
+    auto result = Mtx::create(this->exec, gko::dim<2>{1, 3});
+
+    this->mtx4->compute_mean(result.get());
+
+    GKO_EXPECT_NEAR(result->at(0, 0), T{0.5}, r<T>::value * 10);
+    GKO_EXPECT_NEAR(result->at(0, 1), T{4.0}, r<T>::value * 10);
+    GKO_EXPECT_NEAR(result->at(0, 2), T{1.0}, r<T>::value * 10);
+}
+
+
+TYPED_TEST(Dense, ComputesMeanFailsOnWrongResultSize)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto result = Mtx::create(this->exec, gko::dim<2>{1, 2});
+
+    ASSERT_THROW(this->mtx4->compute_mean(result), gko::DimensionMismatch);
 }
 
 
