@@ -65,6 +65,9 @@ namespace batch {
 class BatchLinOp;
 class BatchLinOpFactory;
 
+template <typename ValueType>
+class MultiVector;
+
 
 }  // namespace batch
 
@@ -459,9 +462,9 @@ protected:
      * @warning This on_iteration_complete function that this macro declares is
      * deprecated. Please use the version with the stopping information.
      */
-    [[deprecated(
-        "Please use the version with the additional stopping "
-        "information.")]] virtual void
+    [
+        [deprecated("Please use the version with the additional stopping "
+                    "information.")]] virtual void
     on_iteration_complete(const LinOp* solver, const size_type& it,
                           const LinOp* r, const LinOp* x = nullptr,
                           const LinOp* tau = nullptr) const
@@ -480,9 +483,9 @@ protected:
      * @warning This on_iteration_complete function that this macro declares is
      * deprecated. Please use the version with the stopping information.
      */
-    [[deprecated(
-        "Please use the version with the additional stopping "
-        "information.")]] virtual void
+    [
+        [deprecated("Please use the version with the additional stopping "
+                    "information.")]] virtual void
     on_iteration_complete(const LinOp* solver, const size_type& it,
                           const LinOp* r, const LinOp* x, const LinOp* tau,
                           const LinOp* implicit_tau_sq) const
@@ -597,6 +600,11 @@ public:
                               const batch::BatchLinOpFactory* factory,
                               const batch::BatchLinOp* input,
                               const batch::BatchLinOp* output)
+
+
+    GKO_LOGGER_REGISTER_EVENT(26, batch_solver_completed,
+                              const array<int>& iteration,
+                              const batch::MultiVector<double>* res_norms)
 
 #undef GKO_LOGGER_REGISTER_EVENT
 
@@ -814,8 +822,8 @@ private:
     template <size_type Event, typename ConcreteLoggableT>
     struct propagate_log_helper<
         Event, ConcreteLoggableT,
-        xstd::void_t<
-            decltype(std::declval<ConcreteLoggableT>().get_executor())>> {
+        xstd::void_t<decltype(
+            std::declval<ConcreteLoggableT>().get_executor())>> {
         template <typename... Args>
         static void propagate_log(const ConcreteLoggableT* loggable,
                                   Args&&... args)
