@@ -29,6 +29,7 @@ target_sources(ginkgo
     factorization/par_ilu.cpp
     factorization/par_ilut.cpp
     factorization/symbolic.cpp
+    log/batch_logger.cpp
     log/convergence.cpp
     log/logger.cpp
     log/performance_hint.cpp
@@ -41,6 +42,7 @@ target_sources(ginkgo
     log/stream.cpp
     matrix/batch_dense.cpp
     matrix/batch_ell.cpp
+    matrix/batch_identity.cpp
     matrix/coo.cpp
     matrix/csr.cpp
     matrix/dense.cpp
@@ -62,6 +64,7 @@ target_sources(ginkgo
     reorder/amd.cpp
     reorder/rcm.cpp
     reorder/scaled_reordered.cpp
+    solver/batch_bicgstab.cpp
     solver/bicg.cpp
     solver/bicgstab.cpp
     solver/cb_gmres.cpp
