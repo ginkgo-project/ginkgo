@@ -39,7 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/batch_struct.hpp"
 #include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/load_store.cuh"
 #include "cuda/components/reduction.cuh"
 
 

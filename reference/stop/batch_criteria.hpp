@@ -39,9 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
 
 
-#include "reference/base/config.hpp"
-
-
 namespace gko {
 namespace kernels {
 namespace host {

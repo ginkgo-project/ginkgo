@@ -48,7 +48,7 @@ namespace matrix {
 
 
 /**
- * BatchIdentity is a batch matrix format which explicitly stores all values of
+ * Identity is a batch matrix format which explicitly stores all values of
  * the matrix in each of the batches.
  *
  * The values in each of the batches are stored in row-major format (values
@@ -64,21 +64,21 @@ namespace matrix {
  * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
-class BatchIdentity final
-    : public EnableBatchLinOp<BatchIdentity<ValueType>>,
-      public EnableCreateMethod<BatchIdentity<ValueType>> {
-    friend class EnableCreateMethod<BatchIdentity>;
-    friend class EnablePolymorphicObject<BatchIdentity, BatchLinOp>;
+class Identity final
+    : public EnableBatchLinOp<Identity<ValueType>>,
+      public EnableCreateMethod<Identity<ValueType>> {
+    friend class EnableCreateMethod<Identity>;
+    friend class EnablePolymorphicObject<Identity, BatchLinOp>;
 
 public:
-    using EnableBatchLinOp<BatchIdentity>::convert_to;
-    using EnableBatchLinOp<BatchIdentity>::move_to;
+    using EnableBatchLinOp<Identity>::convert_to;
+    using EnableBatchLinOp<Identity>::move_to;
 
     using value_type = ValueType;
     using index_type = int32;
     using unbatch_type = gko::matrix::Identity<ValueType>;
-    using absolute_type = remove_complex<BatchIdentity>;
-    using complex_type = to_complex<BatchIdentity>;
+    using absolute_type = remove_complex<Identity>;
+    using complex_type = to_complex<Identity>;
 
     /**
      * Apply the matrix to a multi-vector. Represents the matrix vector
@@ -87,7 +87,7 @@ public:
      * @param b  the multi-vector to be applied to
      * @param x  the output multi-vector
      */
-    BatchIdentity* apply(ptr_param<const MultiVector<value_type>> b,
+    Identity* apply(ptr_param<const MultiVector<value_type>> b,
                          ptr_param<MultiVector<value_type>> x);
 
     /**
@@ -100,7 +100,7 @@ public:
      * @param beta   the scalar to scale the x vector with
      * @param x      the output multi-vector
      */
-    BatchIdentity* apply(ptr_param<const MultiVector<value_type>> alpha,
+    Identity* apply(ptr_param<const MultiVector<value_type>> alpha,
                          ptr_param<const MultiVector<value_type>> b,
                          ptr_param<const MultiVector<value_type>> beta,
                          ptr_param<MultiVector<value_type>> x);
@@ -108,7 +108,7 @@ public:
     /**
      * @copydoc apply(const MultiVector<value_type>*, MultiVector<value_type>*)
      */
-    const BatchIdentity* apply(ptr_param<const MultiVector<value_type>> b,
+    const Identity* apply(ptr_param<const MultiVector<value_type>> b,
                                ptr_param<MultiVector<value_type>> x) const;
 
     /**
@@ -116,19 +116,19 @@ public:
      * MultiVector<value_type>*, const MultiVector<value_type>*,
      * MultiVector<value_type>*)
      */
-    const BatchIdentity* apply(ptr_param<const MultiVector<value_type>> alpha,
+    const Identity* apply(ptr_param<const MultiVector<value_type>> alpha,
                                ptr_param<const MultiVector<value_type>> b,
                                ptr_param<const MultiVector<value_type>> beta,
                                ptr_param<MultiVector<value_type>> x) const;
 
 private:
     /**
-     * Creates an uninitialized BatchIdentity matrix of the specified size.
+     * Creates an uninitialized Identity matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the batch matrices in a batch_dim object
      */
-    BatchIdentity(std::shared_ptr<const Executor> exec,
+    Identity(std::shared_ptr<const Executor> exec,
                   const batch_dim<2>& size = batch_dim<2>{});
 
     void apply_impl(const MultiVector<value_type>* b,

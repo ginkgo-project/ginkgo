@@ -47,7 +47,7 @@ namespace host {
  * unpreconditioned solves )
  */
 template <typename ValueType>
-class BatchIdentity final {
+class Identity final {
 public:
     using value_type = ValueType;
 
