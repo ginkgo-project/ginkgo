@@ -224,8 +224,8 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_values_for_item(
-        size_type batch_id) const noexcept
+    const value_type* get_const_values_for_item(size_type batch_id) const
+        noexcept
     {
         GKO_ASSERT(batch_id < this->get_num_batch_items());
         return values_.get_const_data() + this->get_cumulative_offset(batch_id);
@@ -315,6 +315,16 @@ private:
      */
     Dense(std::shared_ptr<const Executor> exec,
           const batch_dim<2>& size = batch_dim<2>{});
+
+    /**
+     * Creates an uninitialized Dense matrix of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param num_batch_items  number of items in the batch
+     * @param common_size  common size of the items in the batch
+     */
+    Dense(std::shared_ptr<const Executor> exec, const size_type num_batch_items,
+          const gko::dim<2>& common_size = gko::dim<2>{});
 
     /**
      * Creates a Dense matrix from an already allocated (and initialized)
