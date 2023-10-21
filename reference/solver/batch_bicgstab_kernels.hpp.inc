@@ -185,24 +185,24 @@ inline void batch_entry_bicgstab_impl(
     LogType logger, PrecType prec, const BatchMatrixType& a,
     const gko::batch::multi_vector::uniform_batch<const ValueType>& b,
     const gko::batch::multi_vector::uniform_batch<ValueType>& x,
-    const size_type ibatch, unsigned char* const local_space)
+    const size_type batch_item_id, unsigned char* const local_space)
 {
+    constexpr int max_num_rhs = 1;
     using real_type = typename gko::remove_complex<ValueType>;
-    const size_type nbatch = a.num_batch_items;
-    const auto nrows = a.num_rows;
-    const auto nrhs = b.num_rhs;
-    GKO_ASSERT((nrhs <= max_num_rhs));
+    const auto num_rows = a.num_rows;
+    const auto num_rhs = b.num_rhs;
+    GKO_ASSERT(num_rhs <= max_num_rhs);
 
     unsigned char* const shared_space = local_space;
     ValueType* const r = reinterpret_cast<ValueType*>(shared_space);
-    ValueType* const r_hat = r + nrows * nrhs;
-    ValueType* const p = r_hat + nrows * nrhs;
-    ValueType* const p_hat = p + nrows * nrhs;
-    ValueType* const v = p_hat + nrows * nrhs;
-    ValueType* const s = v + nrows * nrhs;
-    ValueType* const s_hat = s + nrows * nrhs;
-    ValueType* const t = s_hat + nrows * nrhs;
-    ValueType* const prec_work = t + nrows * nrhs;
+    ValueType* const r_hat = r + num_rows * num_rhs;
+    ValueType* const p = r_hat + num_rows * num_rhs;
+    ValueType* const p_hat = p + num_rows * num_rhs;
+    ValueType* const v = p_hat + num_rows * num_rhs;
+    ValueType* const s = v + num_rows * num_rhs;
+    ValueType* const s_hat = s + num_rows * num_rhs;
+    ValueType* const t = s_hat + num_rows * num_rhs;
+    ValueType* const prec_work = t + num_rows * num_rhs;
     ValueType rho_old[max_num_rhs];
     ValueType rho_new[max_num_rhs];
     ValueType omega[max_num_rhs];
@@ -212,62 +212,45 @@ inline void batch_entry_bicgstab_impl(
     real_type norms_res[max_num_rhs];
 
     const auto A_entry = gko::batch::matrix::extract_batch_item(
-        gko::batch::matrix::to_const(a), ibatch);
-
+        gko::batch::matrix::to_const(a), batch_item_id);
     const gko::batch::multi_vector::batch_item<const ValueType> b_entry =
-        gko::batch::extract_batch_item(gko::batch::to_const(b), ibatch);
-
+        gko::batch::extract_batch_item(gko::batch::to_const(b), batch_item_id);
     const gko::batch::multi_vector::batch_item<ValueType> x_entry =
-        gko::batch::extract_batch_item(x, ibatch);
-
+        gko::batch::extract_batch_item(x, batch_item_id);
 
     const gko::batch::multi_vector::batch_item<ValueType> r_entry{
-        r, static_cast<size_type>(nrhs), nrows, nrhs};
-
+        r, num_rhs, num_rows, num_rhs};
     const gko::batch::multi_vector::batch_item<ValueType> r_hat_entry{
-        r_hat, static_cast<size_type>(nrhs), nrows, nrhs};
-
+        r_hat, num_rhs, num_rows, num_rhs};
     const gko::batch::multi_vector::batch_item<ValueType> p_entry{
-        p, static_cast<size_type>(nrhs), nrows, nrhs};
-
+        p, num_rhs, num_rows, num_rhs};
     const gko::batch::multi_vector::batch_item<ValueType> p_hat_entry{
-        p_hat, static_cast<size_type>(nrhs), nrows, nrhs};
-
+        p_hat, num_rhs, num_rows, num_rhs};
     const gko::batch::multi_vector::batch_item<ValueType> v_entry{
-        v, static_cast<size_type>(nrhs), nrows, nrhs};
-
+        v, num_rhs, num_rows, num_rhs};
     const gko::batch::multi_vector::batch_item<ValueType> s_entry{
-        s, static_cast<size_type>(nrhs), nrows, nrhs};
-
+        s, num_rhs, num_rows, num_rhs};
     const gko::batch::multi_vector::batch_item<ValueType> s_hat_entry{
-        s_hat, static_cast<size_type>(nrhs), nrows, nrhs};
-
+        s_hat, num_rhs, num_rows, num_rhs};
     const gko::batch::multi_vector::batch_item<ValueType> t_entry{
-        t, static_cast<size_type>(nrhs), nrows, nrhs};
-
+        t, num_rhs, num_rows, num_rhs};
     const gko::batch::multi_vector::batch_item<ValueType> rho_old_entry{
-        rho_old, static_cast<size_type>(nrhs), 1, nrhs};
-
+        rho_old, num_rhs, 1, num_rhs};
     const gko::batch::multi_vector::batch_item<ValueType> rho_new_entry{
-        rho_new, static_cast<size_type>(nrhs), 1, nrhs};
-
+        rho_new, num_rhs, 1, num_rhs};
     const gko::batch::multi_vector::batch_item<ValueType> omega_entry{
-        omega, static_cast<size_type>(nrhs), 1, nrhs};
-
+        omega, num_rhs, 1, num_rhs};
     const gko::batch::multi_vector::batch_item<ValueType> alpha_entry{
-        alpha, static_cast<size_type>(nrhs), 1, nrhs};
-
+        alpha, num_rhs, 1, num_rhs};
     const gko::batch::multi_vector::batch_item<ValueType> temp_entry{
-        temp, static_cast<size_type>(nrhs), 1, nrhs};
-
+        temp, num_rhs, 1, num_rhs};
     const gko::batch::multi_vector::batch_item<real_type> rhs_norms_entry{
-        norms_rhs, static_cast<size_type>(nrhs), 1, nrhs};
-
+        norms_rhs, num_rhs, 1, num_rhs};
     const gko::batch::multi_vector::batch_item<real_type> res_norms_entry{
-        norms_res, static_cast<size_type>(nrhs), 1, nrhs};
+        norms_res, num_rhs, 1, num_rhs};
 
     // generate preconditioner
-    prec.generate(ibatch, A_entry, prec_work);
+    prec.generate(batch_item_id, A_entry, prec_work);
 
     // initialization
     // rho_old = 1, omega = 1, alpha = 1
@@ -368,5 +351,5 @@ inline void batch_entry_bicgstab_impl(
         copy_kernel(gko::batch::to_const(rho_new_entry), rho_old_entry);
     }
 
-    logger.log_iteration(ibatch, iter, res_norms_entry.values[0]);
+    logger.log_iteration(batch_item_id, iter, res_norms_entry.values[0]);
 }
