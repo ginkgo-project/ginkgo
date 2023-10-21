@@ -171,7 +171,7 @@ protected:
         GKO_ASSERT_BATCH_HAS_SQUARE_DIMENSIONS(system_matrix_);
 
         using value_type = typename ConcreteSolver::value_type;
-        using Identity = matrix::BatchIdentity<value_type>;
+        using Identity = matrix::Identity<value_type>;
         using real_type = remove_complex<value_type>;
 
         if (common_params.generated_prec) {

@@ -69,10 +69,10 @@ namespace solver {
  * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
-class BatchBicgstab final
-    : public EnableBatchSolver<BatchBicgstab<ValueType>, ValueType> {
-    friend class EnableBatchLinOp<BatchBicgstab>;
-    friend class EnablePolymorphicObject<BatchBicgstab, BatchLinOp>;
+class Bicgstab final
+    : public EnableBatchSolver<Bicgstab<ValueType>, ValueType> {
+    friend class EnableBatchLinOp<Bicgstab>;
+    friend class EnablePolymorphicObject<Bicgstab, BatchLinOp>;
 
 public:
     using value_type = ValueType;
@@ -115,17 +115,17 @@ public:
         ::gko::batch::stop::ToleranceType GKO_FACTORY_PARAMETER_SCALAR(
             tolerance_type, ::gko::batch::stop::ToleranceType::absolute);
     };
-    GKO_ENABLE_BATCH_LIN_OP_FACTORY(BatchBicgstab, parameters, Factory);
+    GKO_ENABLE_BATCH_LIN_OP_FACTORY(Bicgstab, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 private:
-    explicit BatchBicgstab(std::shared_ptr<const Executor> exec)
-        : EnableBatchSolver<BatchBicgstab>(std::move(exec))
+    explicit Bicgstab(std::shared_ptr<const Executor> exec)
+        : EnableBatchSolver<Bicgstab>(std::move(exec))
     {}
 
-    explicit BatchBicgstab(const Factory* factory,
+    explicit Bicgstab(const Factory* factory,
                            std::shared_ptr<const BatchLinOp> system_matrix)
-        : EnableBatchSolver<BatchBicgstab>(
+        : EnableBatchSolver<Bicgstab>(
               factory->get_executor(), std::move(system_matrix),
               detail::extract_common_batch_params(factory->get_parameters())),
           parameters_{factory->get_parameters()}

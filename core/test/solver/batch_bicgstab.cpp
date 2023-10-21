@@ -56,7 +56,7 @@ protected:
     using real_type = gko::remove_complex<T>;
     using Mtx = gko::batch::matrix::Dense<value_type>;
     using MVec = gko::batch::MultiVector<value_type>;
-    using Solver = gko::batch::solver::BatchBicgstab<value_type>;
+    using Solver = gko::batch::solver::Bicgstab<value_type>;
 
     BatchBicgstab()
         : exec(gko::ReferenceExecutor::create()),

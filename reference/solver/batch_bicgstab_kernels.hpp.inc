@@ -180,7 +180,7 @@ inline void update_x_middle(
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
 inline void batch_entry_bicgstab_impl(
-    const gko::kernels::batch_bicgstab::BatchBicgstabOptions<
+    const gko::kernels::batch_bicgstab::BicgstabOptions<
         remove_complex<ValueType>>& opts,
     LogType logger, PrecType prec, const BatchMatrixType& a,
     const gko::batch::multi_vector::uniform_batch<const ValueType>& b,
@@ -330,7 +330,7 @@ inline void batch_entry_bicgstab_impl(
 
 
         if (stop.check_converged(res_norms_entry.values)) {
-            // update x for the sytems (rhs) which converge at this point...  x
+            // update x for the systems (rhs) which converge at this point...  x
             // = x + alpha*p_hat
             // note bits could change from 0 to 1, not the other way round, so
             // we can use xor to get info about recent convergence...

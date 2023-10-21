@@ -39,7 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/batch_struct.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/components/load_store.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
 
 

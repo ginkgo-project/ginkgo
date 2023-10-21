@@ -155,7 +155,7 @@ public:
  * depending on runtime parameters.
  *
  * @tparam KernelCaller  Class with an interface like DummyKernelCaller,
- *   that is reponsible for finally calling the templated backend-specific
+ *   that is responsible for finally calling the templated backend-specific
  *   kernel.
  * @tparam OptsType  Structure type of options for the particular solver to be
  *   used.
@@ -210,10 +210,9 @@ public:
         const multi_vector::uniform_batch<device_value_type>& x_b)
     {
         if (!precon_ ||
-            dynamic_cast<const matrix::BatchIdentity<value_type>*>(precon_)) {
-            dispatch_on_stop<device::BatchIdentity<device_value_type>>(
-                logger, amat, device::BatchIdentity<device_value_type>(), b_b,
-                x_b);
+            dynamic_cast<const matrix::Identity<value_type>*>(precon_)) {
+            dispatch_on_stop<device::Identity<device_value_type>>(
+                logger, amat, device::Identity<device_value_type>(), b_b, x_b);
         } else {
             GKO_NOT_IMPLEMENTED;
         }
@@ -273,7 +272,7 @@ private:
 
 
 /**
- * Conventient function to create a dispatcher. Infers most template arguments.
+ * Convenient function to create a dispatcher. Infers most template arguments.
  */
 template <typename ValueType, typename KernelCaller, typename OptsType>
 BatchSolverDispatch<KernelCaller, OptsType, ValueType> create_dispatcher(

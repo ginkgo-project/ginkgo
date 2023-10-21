@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * unpreconditioned solves )
  */
 template <typename ValueType>
-class BatchIdentity final {
+class Identity final {
 public:
     using value_type = ValueType;
 
