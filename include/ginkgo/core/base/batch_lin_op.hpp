@@ -229,7 +229,8 @@ public:
     std::unique_ptr<BatchLinOp> generate(
         std::shared_ptr<const BatchLinOp> input) const
     {
-        this->template log<log::Logger::batch_linop_factory_generate_started>(
+        this->template log<
+            gko::log::Logger::batch_linop_factory_generate_started>(
             this, input.get());
         const auto exec = this->get_executor();
         std::unique_ptr<BatchLinOp> generated;
@@ -239,7 +240,8 @@ public:
             generated =
                 this->AbstractFactory::generate(gko::clone(exec, input));
         }
-        this->template log<log::Logger::batch_linop_factory_generate_completed>(
+        this->template log<
+            gko::log::Logger::batch_linop_factory_generate_completed>(
             this, input.get(), generated.get());
         return generated;
     }
