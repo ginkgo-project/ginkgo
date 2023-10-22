@@ -156,20 +156,21 @@ class EnableBatchSolver
     : public BatchSolver,
       public EnableBatchLinOp<ConcreteSolver, PolymorphicBase> {
 public:
-    ConcreteSolver* apply(ptr_param<const MultiVector<ValueType>> b,
-                          ptr_param<MultiVector<ValueType>> x) const
+    const ConcreteSolver* apply(ptr_param<const MultiVector<ValueType>> b,
+                                ptr_param<MultiVector<ValueType>> x) const
     {
         this->validate_application_parameters(b.get(), x.get());
         auto exec = this->get_executor();
         this->apply_impl(make_temporary_clone(exec, b).get(),
                          make_temporary_clone(exec, x).get());
-        return this;
+        return self();
     }
 
-    ConcreteSolver* apply_impl(ptr_param<const MultiVector<ValueType>>* alpha,
-                               ptr_param<const MultiVector<ValueType>>* b,
-                               ptr_param<const MultiVector<ValueType>>* beta,
-                               ptr_param<MultiVector<ValueType>>* x) const
+    const ConcreteSolver* apply_impl(
+        ptr_param<const MultiVector<ValueType>>* alpha,
+        ptr_param<const MultiVector<ValueType>>* b,
+        ptr_param<const MultiVector<ValueType>>* beta,
+        ptr_param<MultiVector<ValueType>>* x) const
     {
         this->validate_application_parameters(alpha.get(), b.get(), beta.get(),
                                               x.get());
@@ -178,10 +179,28 @@ public:
                          make_temporary_clone(exec, b).get(),
                          make_temporary_clone(exec, beta).get(),
                          make_temporary_clone(exec, x).get());
-        return this;
+        return self();
+    }
+
+    ConcreteSolver* apply(ptr_param<const MultiVector<ValueType>> b,
+                          ptr_param<MultiVector<ValueType>> x)
+    {
+        static_cast<const ConcreteSolver*>(this)->apply(b, x);
+        return self();
+    }
+
+    ConcreteSolver* apply_impl(ptr_param<const MultiVector<ValueType>>* alpha,
+                               ptr_param<const MultiVector<ValueType>>* b,
+                               ptr_param<const MultiVector<ValueType>>* beta,
+                               ptr_param<MultiVector<ValueType>>* x)
+    {
+        static_cast<const ConcreteSolver*>(this)->apply(alpha, b, beta, x);
+        return self();
     }
 
 protected:
+    GKO_ENABLE_SELF(ConcreteSolver);
+
     explicit EnableBatchSolver(std::shared_ptr<const Executor> exec)
         : EnableBatchLinOp<ConcreteSolver, PolymorphicBase>(std::move(exec))
     {}
