@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
+#include <ginkgo/core/log/batch_logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -145,6 +146,156 @@ std::unique_ptr<MatrixType> generate_3pt_stencil_batch_matrix(
         num_batch_items, data);
     return gko::batch::read<value_type, index_type, MatrixType>(
         exec, batch_data, std::forward<MatrixArgs>(args)...);
+}
+
+
+template <typename MatrixType>
+struct LinearSystem {
+    using value_type = typename MatrixType::value_type;
+    using multi_vec = batch::MultiVector<value_type>;
+    using real_vec = batch::MultiVector<remove_complex<value_type>>;
+
+    std::shared_ptr<MatrixType> matrix;
+    std::shared_ptr<multi_vec> rhs;
+    std::shared_ptr<real_vec> rhs_norm;
+    std::shared_ptr<multi_vec> exact_sol;
+};
+
+
+template <typename MatrixType, typename... MatrixArgs>
+LinearSystem<MatrixType> generate_3pt_stencil_batch_problem(
+    std::shared_ptr<const Executor> exec, const size_type num_batch_items,
+    const int num_rows, const int num_rhs, MatrixArgs&&... args)
+{
+    using ValueType = typename MatrixType::value_type;
+    using multi_vec = batch::MultiVector<ValueType>;
+    using real_vec = batch::MultiVector<remove_complex<ValueType>>;
+    LinearSystem<MatrixType> sys;
+    sys.matrix = gko::test::generate_3pt_stencil_batch_matrix<MatrixType>(
+        exec, num_rows, num_batch_items, std::forward<MatrixArgs>(args)...);
+    auto exac_sol =
+        multi_vec::unbatch_type::create(exec, gko::dim<2>(num_rows, num_rhs));
+    exac_sol->fill(one<ValueType>());
+    sys.exact_sol = gko::batch::create_from_item<multi_vec>(
+        exec, num_batch_items, exac_sol.get());
+    sys.rhs = sys.exact_sol->clone();
+    sys.matrix->apply(sys.exact_sol, sys.rhs);
+    const gko::batch_dim<2> norm_dim(num_batch_items, gko::dim<2>(1, num_rhs));
+    sys.rhs_norm = real_vec::create(exec, norm_dim);
+    sys.rhs->compute_norm2(sys.rhs_norm.get());
+    return sys;
+}
+
+
+template <typename MatrixType>
+std::unique_ptr<
+    batch::MultiVector<remove_complex<typename MatrixType::value_type>>>
+compute_residual_norms(
+    const MatrixType* const mtx,
+    const batch::MultiVector<typename MatrixType::value_type>* const b,
+    const batch::MultiVector<typename MatrixType::value_type>* const x)
+{
+    using value_type = typename MatrixType::value_type;
+    using multi_vec = batch::MultiVector<value_type>;
+    using real_vec = batch::MultiVector<remove_complex<value_type>>;
+    auto exec = mtx->get_executor();
+    auto num_batch_items = x->get_num_batch_items();
+    auto num_rows = x->get_common_size()[0];
+    auto num_rhs = x->get_common_size()[1];
+    const gko::batch_dim<2> norm_dim(num_batch_items, gko::dim<2>(1, num_rhs));
+
+    auto res = b->clone();
+    auto res_norms = real_vec::create(exec, norm_dim);
+    auto alpha =
+        gko::batch::initialize<multi_vec>(num_batch_items, {-1.0}, exec);
+    auto beta = gko::batch::initialize<multi_vec>(num_batch_items, {1.0}, exec);
+    mtx->apply(alpha, x, beta, res);
+    res->compute_norm2(res_norms);
+    return res_norms;
+}
+
+
+template <typename ValueType>
+struct Result {
+    using multi_vec = batch::MultiVector<ValueType>;
+    using real_vec = batch::MultiVector<remove_complex<ValueType>>;
+
+    std::shared_ptr<multi_vec> x;
+    std::shared_ptr<real_vec> res_norm;
+    gko::batch::log::BatchLogData<double> logdata;
+};
+
+
+template <typename MatrixType, typename SolverType>
+Result<typename MatrixType::value_type> solve_linear_system(
+    std::shared_ptr<const Executor> exec, const LinearSystem<MatrixType>& sys,
+    std::shared_ptr<SolverType> solver)
+{
+    using value_type = typename MatrixType::value_type;
+    using real_type = remove_complex<value_type>;
+    using multi_vec = typename Result<value_type>::multi_vec;
+    using real_vec = typename Result<value_type>::real_vec;
+
+    const size_type num_batch_items = sys.matrix->get_num_batch_items();
+    const int num_rows = sys.matrix->get_common_size()[0];
+    const int num_rhs = sys.rhs->get_common_size()[1];
+    const gko::batch_dim<2> vec_size(num_batch_items,
+                                     gko::dim<2>(num_rows, num_rhs));
+    const gko::batch_dim<2> norm_size(num_batch_items, gko::dim<2>(1, num_rhs));
+
+    Result<value_type> result;
+    // Initialize r to the original unscaled b
+    result.x = sys.rhs->clone();
+
+    solver->apply(sys.rhs, result.x);
+    result.res_norm =
+        compute_residual_norms(sys.matrix.get(), result.x.get(), sys.rhs.get());
+
+    return std::move(result);
+}
+
+
+template <typename MatrixType, typename SolveFunction, typename Settings>
+Result<typename MatrixType::value_type> solve_linear_system(
+    std::shared_ptr<const Executor> exec, SolveFunction solve_function,
+    const Settings settings, const LinearSystem<MatrixType>& sys,
+    std::shared_ptr<batch::BatchLinOpFactory> precond_factory = nullptr)
+{
+    using value_type = typename MatrixType::value_type;
+    using real_type = remove_complex<value_type>;
+    using multi_vec = typename Result<value_type>::multi_vec;
+    using real_vec = typename Result<value_type>::real_vec;
+
+    const size_type num_batch_items = sys.matrix->get_num_batch_items();
+    const int num_rows = sys.matrix->get_common_size()[0];
+    const int num_rhs = sys.rhs->get_common_size()[1];
+    const gko::batch_dim<2> vec_size(num_batch_items,
+                                     gko::dim<2>(num_rows, num_rhs));
+    const gko::batch_dim<2> norm_size(num_batch_items, gko::dim<2>(1, num_rhs));
+
+    Result<value_type> result;
+    // Initialize r to the original unscaled b
+    result.x = sys.rhs->clone();
+
+    result.logdata.res_norms =
+        gko::batch::MultiVector<double>::create(exec, norm_size);
+    result.logdata.iter_counts.set_executor(exec);
+    result.logdata.iter_counts.resize_and_reset(num_rhs * num_batch_items);
+
+    std::unique_ptr<gko::batch::BatchLinOp> precond;
+    if (precond_factory) {
+        precond = precond_factory->generate(sys.matrix);
+    } else {
+        precond = nullptr;
+    }
+
+    solve_function(settings, precond.get(), sys.matrix.get(), sys.rhs.get(),
+                   result.x.get(), result.logdata);
+
+    result.res_norm =
+        compute_residual_norms(sys.matrix.get(), result.x.get(), sys.rhs.get());
+
+    return std::move(result);
 }
 
 
