@@ -155,6 +155,32 @@ template <typename ConcreteSolver,
 class EnableBatchSolver
     : public BatchSolver,
       public EnableBatchLinOp<ConcreteSolver, PolymorphicBase> {
+public:
+    ConcreteSolver* apply(ptr_param<const MultiVector<ValueType>> b,
+                          ptr_param<MultiVector<ValueType>> x) const
+    {
+        this->validate_application_parameters(b.get(), x.get());
+        auto exec = this->get_executor();
+        this->apply_impl(make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, x).get());
+        return this;
+    }
+
+    ConcreteSolver* apply_impl(ptr_param<const MultiVector<ValueType>>* alpha,
+                               ptr_param<const MultiVector<ValueType>>* b,
+                               ptr_param<const MultiVector<ValueType>>* beta,
+                               ptr_param<MultiVector<ValueType>>* x) const
+    {
+        this->validate_application_parameters(alpha.get(), b.get(), beta.get(),
+                                              x.get());
+        auto exec = this->get_executor();
+        this->apply_impl(make_temporary_clone(exec, alpha).get(),
+                         make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, beta).get(),
+                         make_temporary_clone(exec, x).get());
+        return this;
+    }
+
 protected:
     explicit EnableBatchSolver(std::shared_ptr<const Executor> exec)
         : EnableBatchLinOp<ConcreteSolver, PolymorphicBase>(std::move(exec))
@@ -185,31 +211,6 @@ protected:
             auto id = Identity::create(exec, system_matrix->get_size());
             preconditioner_ = std::move(id);
         }
-    }
-
-    ConcreteSolver* apply(ptr_param<const MultiVector<ValueType>> b,
-                          ptr_param<MultiVector<ValueType>> x) const
-    {
-        this->validate_application_parameters(b.get(), x.get());
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, x).get());
-        return this;
-    }
-
-    ConcreteSolver* apply_impl(ptr_param<const MultiVector<ValueType>>* alpha,
-                               ptr_param<const MultiVector<ValueType>>* b,
-                               ptr_param<const MultiVector<ValueType>>* beta,
-                               ptr_param<MultiVector<ValueType>>* x) const
-    {
-        this->validate_application_parameters(alpha.get(), b.get(), beta.get(),
-                                              x.get());
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, alpha).get(),
-                         make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, beta).get(),
-                         make_temporary_clone(exec, x).get());
-        return this;
     }
 
     void apply_impl(const MultiVector<ValueType>* b,
