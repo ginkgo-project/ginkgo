@@ -359,35 +359,33 @@ LinearSystem<MatrixType> generate_diag_dominant_batch_problem(
                         soa_data.get_const_col_idxs())
                         .copy_to_array();
 
-    std::vector<gko::matrix_data<value_type, index_type>> batch_data(
-        num_batch_items);
+    std::vector<gko::matrix_data<value_type, index_type>> batch_data;
     batch_data.reserve(num_batch_items);
+    batch_data.emplace_back(data);
     auto rand_val_dist = std::normal_distribution<>(-0.5, 0.5);
     for (size_type b = 1; b < num_batch_items; b++) {
         auto rand_data = fill_random_matrix_data<value_type, index_type>(
             num_rows, num_cols, row_idxs, col_idxs, rand_val_dist, engine);
         gko::utils::make_diag_dominant(rand_data);
         batch_data.emplace_back(rand_data);
+        GKO_ASSERT(rand_data.size == batch_data.at(0).size);
     }
 
     LinearSystem<MatrixType> sys;
-    sys.matrix = gko::give(gko::batch::read<value_type, index_type, MatrixType>(
-        exec, batch_data, std::forward<MatrixArgs>(args)...));
+    sys.matrix = gko::batch::read<value_type, index_type, MatrixType>(
+        exec, batch_data, std::forward<MatrixArgs>(args)...);
 
-    std::vector<gko::matrix_data<value_type, index_type>> batch_sol_data(
-        num_batch_items);
+    std::vector<gko::matrix_data<value_type, index_type>> batch_sol_data;
     batch_sol_data.reserve(num_batch_items);
     for (size_type b = 0; b < num_batch_items; b++) {
         auto rand_data = generate_random_matrix_data<value_type, index_type>(
-            num_rows, num_cols,
+            num_rows, num_rhs,
             std::uniform_int_distribution<index_type>(num_rhs, num_rhs),
             rand_val_dist, engine);
         batch_sol_data.emplace_back(rand_data);
     }
-    sys.exact_sol = gko::give(
-        gko::batch::read<value_type, index_type,
-                         typename LinearSystem<MatrixType>::multi_vec>(
-            exec, batch_sol_data));
+    sys.exact_sol = gko::batch::read<value_type, index_type, multi_vec>(
+        exec, batch_sol_data);
     sys.rhs = sys.exact_sol->clone();
     sys.matrix->apply(sys.exact_sol, sys.rhs);
     const gko::batch_dim<2> norm_dim(num_batch_items, gko::dim<2>(1, num_rhs));
