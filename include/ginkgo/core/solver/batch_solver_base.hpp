@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/batch_lin_op.hpp>
 #include <ginkgo/core/base/batch_multi_vector.hpp>
+#include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/log/batch_logger.hpp>
 #include <ginkgo/core/matrix/batch_identity.hpp>
 
@@ -167,10 +168,10 @@ public:
     }
 
     const ConcreteSolver* apply_impl(
-        ptr_param<const MultiVector<ValueType>>* alpha,
-        ptr_param<const MultiVector<ValueType>>* b,
-        ptr_param<const MultiVector<ValueType>>* beta,
-        ptr_param<MultiVector<ValueType>>* x) const
+        ptr_param<const MultiVector<ValueType>> alpha,
+        ptr_param<const MultiVector<ValueType>> b,
+        ptr_param<const MultiVector<ValueType>> beta,
+        ptr_param<MultiVector<ValueType>> x) const
     {
         this->validate_application_parameters(alpha.get(), b.get(), beta.get(),
                                               x.get());
@@ -189,10 +190,10 @@ public:
         return self();
     }
 
-    ConcreteSolver* apply_impl(ptr_param<const MultiVector<ValueType>>* alpha,
-                               ptr_param<const MultiVector<ValueType>>* b,
-                               ptr_param<const MultiVector<ValueType>>* beta,
-                               ptr_param<MultiVector<ValueType>>* x)
+    ConcreteSolver* apply_impl(ptr_param<const MultiVector<ValueType>> alpha,
+                               ptr_param<const MultiVector<ValueType>> b,
+                               ptr_param<const MultiVector<ValueType>> beta,
+                               ptr_param<MultiVector<ValueType>> x)
     {
         static_cast<const ConcreteSolver*>(this)->apply(alpha, b, beta, x);
         return self();
