@@ -258,10 +258,11 @@ TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionedSolverWithPregenSolver)
     using cg = typename TestFixture::solver_type;
     using prec = typename TestFixture::dist_prec_type;
 
-    auto local_solver = gko::share(local_prec_type::build()
-                                       .with_max_block_size(1u)
-                                       .on(this->exec)
-                                       ->generate(this->dist_mat->get_local_matrix()));
+    auto local_solver =
+        gko::share(local_prec_type::build()
+                       .with_max_block_size(1u)
+                       .on(this->exec)
+                       ->generate(this->dist_mat->get_local_matrix()));
     auto precond = prec::build()
                        .with_local_solver(this->local_solver_factory)
                        .on(this->exec)
