@@ -55,12 +55,11 @@ GKO_REGISTER_OPERATION(apply, batch_bicgstab::apply);
 
 template <typename ValueType>
 void Bicgstab<ValueType>::solver_apply(const MultiVector<ValueType>* b,
-                                            MultiVector<ValueType>* x,
-                                            BatchInfo* const info) const
+                                       MultiVector<ValueType>* x,
+                                       BatchInfo* const info) const
 {
     using MVec = MultiVector<ValueType>;
-    const kernels::batch_bicgstab::BicgstabOptions<
-        remove_complex<ValueType>>
+    const kernels::batch_bicgstab::BicgstabOptions<remove_complex<ValueType>>
         opts{this->max_iterations_, static_cast<real_type>(this->residual_tol_),
              parameters_.tolerance_type};
     auto exec = this->get_executor();
@@ -73,21 +72,6 @@ void Bicgstab<ValueType>::solver_apply(const MultiVector<ValueType>* b,
 
 #define GKO_DECLARE_BATCH_BICGSTAB(_type) class Bicgstab<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_BICGSTAB);
-
-
-// #define GKO_DECLARE_BATCH_BICGSTAB_APPLY_FUNCTIONS(_type)                   \
-//     EnableBatchSolver<Bicgstab<_type>, _type, BatchLinOp>::            \
-//         EnableBatchSolver(std::shared_ptr<const Executor> exec,             \
-//                           std::shared_ptr<const BatchLinOp> system_matrix,  \
-//                           detail::common_batch_params common_params);       \
-//     template void                                                           \
-//     EnableBatchSolver<Bicgstab<_type>, _type, BatchLinOp>::apply_impl( \
-//         const MultiVector<_type>* b, MultiVector<_type>* x) const;          \
-//     template void                                                           \
-//     EnableBatchSolver<Bicgstab<_type>, _type, BatchLinOp>::apply_impl( \
-//         const MultiVector<_type>* alpha, const MultiVector<_type>* b,       \
-//         const MultiVector<_type>* beta, MultiVector<_type>* x) const
-// GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_BICGSTAB_APPLY_FUNCTIONS);
 
 
 }  // namespace solver
