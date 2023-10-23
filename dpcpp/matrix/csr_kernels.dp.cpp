@@ -899,7 +899,6 @@ void check_diagonal_entries(const IndexType num_min_rows_cols,
             if (tile_grp.thread_rank() == 0) {
                 *has_all_diags = false;
             }
-            return;
         }
     }
 }
@@ -921,16 +920,19 @@ void add_scaled_identity(const ValueType* const __restrict__ alpha,
         group::this_thread_block(item_ct1));
     const auto row =
         thread::get_subwarp_id_flat<subgroup_size, IndexType>(item_ct1);
-    const auto num_warps =
-        thread::get_subwarp_num_flat<subgroup_size, IndexType>(item_ct1);
     if (row < num_rows) {
         const auto tid_in_warp = tile_grp.thread_rank();
         const auto row_start = row_ptrs[row];
         const auto num_nz = row_ptrs[row + 1] - row_start;
+        const auto beta_val = beta[0];
+        const auto alpha_val = alpha[0];
         for (IndexType iz = tid_in_warp; iz < num_nz; iz += subgroup_size) {
-            values[iz + row_start] *= beta[0];
-            if (col_idxs[iz + row_start] == row) {
-                values[iz + row_start] += alpha[0];
+            if (beta_val != one<ValueType>()) {
+                values[iz + row_start] *= beta_val;
+            }
+            if (col_idxs[iz + row_start] == row &&
+                alpha_val != zero<ValueType>()) {
+                values[iz + row_start] += alpha_val;
             }
         }
     }
