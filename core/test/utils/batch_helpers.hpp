@@ -135,10 +135,10 @@ std::unique_ptr<MatrixType> generate_3pt_stencil_batch_matrix(
     for (int row = 1; row < num_rows - 1; ++row) {
         data.nonzeros.emplace_back(row, row + 1, value_type{-1.0});
         data.nonzeros.emplace_back(row - 1, row, value_type{-1.0});
-        data.nonzeros.emplace_back(row, row, value_type{2.0});
+        data.nonzeros.emplace_back(row, row, value_type{3.0});
     }
-    data.nonzeros.emplace_back(0, 0, value_type{2.0});
-    data.nonzeros.emplace_back(num_rows - 1, num_rows - 1, value_type{2.0});
+    data.nonzeros.emplace_back(0, 0, value_type{3.0});
+    data.nonzeros.emplace_back(num_rows - 1, num_rows - 1, value_type{3.0});
     data.nonzeros.emplace_back(num_rows - 1, num_rows - 2, value_type{-1.0});
     data.nonzeros.emplace_back(0, 1, value_type{-1.0});
 
@@ -173,12 +173,11 @@ LinearSystem<MatrixType> generate_3pt_stencil_batch_problem(
     LinearSystem<MatrixType> sys;
     sys.matrix = gko::test::generate_3pt_stencil_batch_matrix<MatrixType>(
         exec, num_rows, num_batch_items, std::forward<MatrixArgs>(args)...);
-    auto exac_sol =
-        multi_vec::unbatch_type::create(exec, gko::dim<2>(num_rows, num_rhs));
-    exac_sol->fill(one<ValueType>());
-    sys.exact_sol = gko::batch::create_from_item<multi_vec>(
-        exec, num_batch_items, exac_sol.get());
-    sys.rhs = sys.exact_sol->clone();
+    sys.exact_sol = multi_vec::create(
+        exec,
+        gko::batch_dim<2>(num_batch_items, gko::dim<2>(num_rows, num_rhs)));
+    sys.exact_sol->fill(ValueType{2.0});
+    sys.rhs = multi_vec::create_with_config_of(sys.exact_sol);
     sys.matrix->apply(sys.exact_sol, sys.rhs);
     const gko::batch_dim<2> norm_dim(num_batch_items, gko::dim<2>(1, num_rhs));
     sys.rhs_norm = real_vec::create(exec, norm_dim);
@@ -244,8 +243,8 @@ Result<typename MatrixType::value_type> solve_linear_system(
     const gko::batch_dim<2> norm_size(num_batch_items, gko::dim<2>(1, num_rhs));
 
     Result<value_type> result;
-    // Initialize r to the original unscaled b
-    result.x = sys.rhs->clone();
+    result.x = multi_vec::create_with_config_of(sys.rhs);
+    result.x->fill(zero<value_type>());
 
     solver->apply(sys.rhs, result.x);
     result.res_norm =
@@ -275,7 +274,8 @@ Result<typename MatrixType::value_type> solve_linear_system(
 
     Result<value_type> result;
     // Initialize r to the original unscaled b
-    result.x = sys.rhs->clone();
+    result.x = multi_vec::create_with_config_of(sys.rhs);
+    result.x->fill(zero<value_type>());
 
     gko::batch::log::BatchLogData<double> logdata;
     logdata.res_norms =
@@ -386,7 +386,7 @@ LinearSystem<MatrixType> generate_diag_dominant_batch_problem(
     }
     sys.exact_sol = gko::batch::read<value_type, index_type, multi_vec>(
         exec, batch_sol_data);
-    sys.rhs = sys.exact_sol->clone();
+    sys.rhs = multi_vec::create_with_config_of(sys.exact_sol);
     sys.matrix->apply(sys.exact_sol, sys.rhs);
     const gko::batch_dim<2> norm_dim(num_batch_items, gko::dim<2>(1, num_rhs));
     sys.rhs_norm = real_vec::create(exec, norm_dim);

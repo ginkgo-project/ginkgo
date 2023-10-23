@@ -84,11 +84,11 @@ protected:
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
-    const real_type eps = r<value_type>::value;
+    const real_type eps = 1e-3;
     const gko::size_type num_batch_items = 2;
     const int num_rows = 3;
     const int num_rhs = 1;
-    const Settings solver_settings{500, static_cast<real_type>(1e3) * eps,
+    const Settings solver_settings{100, eps,
                                    gko::batch::stop::ToleranceType::relative};
     LinSys linear_system;
     std::function<void(const Settings, const gko::batch::BatchLinOp*,
@@ -96,7 +96,7 @@ protected:
         solve_lambda;
 };
 
-TYPED_TEST_SUITE(BatchBicgstab, gko::test::ValueTypes);
+TYPED_TEST_SUITE(BatchBicgstab, gko::test::RealValueTypes);
 
 
 TYPED_TEST(BatchBicgstab, SolvesStencilSystem)
@@ -114,6 +114,40 @@ TYPED_TEST(BatchBicgstab, SolvesStencilSystem)
 }
 
 
+TYPED_TEST(BatchBicgstab, SolvesEllStencilSystem)
+{
+    using Mtx = typename TestFixture::EllMtx;
+    using Settings = typename TestFixture::Settings;
+    using MVec = typename TestFixture::MVec;
+    using LogData = typename TestFixture::LogData;
+    const int num_rows = 13;
+    const size_t num_batch_items = 2;
+    const int num_rhs = 1;
+    auto lin_sys = gko::test::generate_3pt_stencil_batch_problem<Mtx>(
+        this->exec, num_batch_items, num_rows, num_rhs, 3);
+
+    auto executor = this->exec;
+    auto solve_lambda = [executor](const Settings opts,
+                                   const gko::batch::BatchLinOp* prec,
+                                   const Mtx* mtx, const MVec* b, MVec* x,
+                                   LogData& logdata) {
+        gko::kernels::reference::batch_bicgstab::apply<
+            typename Mtx::value_type>(executor, opts, mtx, prec, b, x, logdata);
+    };
+
+
+    auto res = gko::test::solve_linear_system(this->exec, solve_lambda,
+                                              this->solver_settings, lin_sys);
+    auto tol = this->solver_settings.residual_tol * 10;
+    for (size_t i = 0; i < num_batch_items; i++) {
+        ASSERT_LE(res.res_norm->get_const_values()[i] /
+                      lin_sys.rhs_norm->get_const_values()[i],
+                  tol);
+    }
+    GKO_ASSERT_BATCH_MTX_NEAR(res.x, lin_sys.exact_sol, tol);
+}
+
+
 TYPED_TEST(BatchBicgstab, StencilSystemLoggerLogsResidual)
 {
     using value_type = typename TestFixture::value_type;
@@ -124,9 +158,8 @@ TYPED_TEST(BatchBicgstab, StencilSystemLoggerLogsResidual)
                                               this->linear_system);
 
     const int ref_iters = 2;
-    const int* const iter_array = res.logdata.iter_counts.get_const_data();
-    const double* const res_log_array =
-        res.logdata.res_norms->get_const_values();
+    auto iter_array = res.logdata.iter_counts.get_const_data();
+    auto res_log_array = res.logdata.res_norms->get_const_values();
     for (size_t i = 0; i < this->num_batch_items; i++) {
         ASSERT_LE(res_log_array[i] / this->linear_system.rhs_norm->at(i, 0, 0),
                   this->solver_settings.residual_tol);
@@ -188,6 +221,47 @@ TYPED_TEST(BatchBicgstab, CanSolveDenseSystem)
 }
 
 
+TYPED_TEST(BatchBicgstab, ApplyLogsResAndIters)
+{
+    using value_type = typename TestFixture::value_type;
+    using real_type = gko::remove_complex<value_type>;
+    using Solver = typename TestFixture::solver_type;
+    using Mtx = typename TestFixture::Mtx;
+    using Logger = gko::batch::log::BatchConvergence<double>;
+    const real_type tol = 1e-5;
+    const int max_iters = 1000;
+    auto solver_factory =
+        Solver::build()
+            .with_default_max_iterations(max_iters)
+            .with_default_residual_tol(tol)
+            .with_tolerance_type(gko::batch::stop::ToleranceType::relative)
+            .on(this->exec);
+    const int num_rows = 13;
+    const size_t num_batch_items = 5;
+    const int num_rhs = 1;
+    std::shared_ptr<Logger> logger = Logger::create(this->exec);
+    auto linear_system = gko::test::generate_3pt_stencil_batch_problem<Mtx>(
+        this->exec, num_batch_items, num_rows, num_rhs);
+    auto solver = gko::share(solver_factory->generate(linear_system.matrix));
+    solver->add_logger(logger);
+
+    auto res =
+        gko::test::solve_linear_system(this->exec, linear_system, solver);
+    solver->remove_logger(logger);
+
+    auto iter_counts = logger->get_num_iterations();
+    auto res_norm = logger->get_residual_norm();
+    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 10);
+    for (size_t i = 0; i < num_batch_items; i++) {
+        auto rel_res_norm = res.res_norm->get_const_values()[i] /
+                            linear_system.rhs_norm->get_const_values()[i];
+        ASSERT_LE(iter_counts.get_const_data()[i], max_iters);
+        EXPECT_LE(rel_res_norm, res_norm->at(i, 0, 0));
+        ASSERT_LE(rel_res_norm, tol * 10);
+    }
+}
+
+
 TYPED_TEST(BatchBicgstab, CanSolveEllSystem)
 {
     using value_type = typename TestFixture::value_type;
@@ -245,10 +319,10 @@ TYPED_TEST(BatchBicgstab, CanSolveDenseHpdSystem)
     auto res =
         gko::test::solve_linear_system(this->exec, linear_system, solver);
 
-    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 500);
+    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 50);
     for (size_t i = 0; i < num_batch_items; i++) {
         ASSERT_LE(res.res_norm->get_const_values()[i] /
                       linear_system.rhs_norm->get_const_values()[i],
-                  tol * 100);
+                  tol * 10);
     }
 }

@@ -41,12 +41,14 @@ inline void initialize(
     const gko::batch::multi_vector::batch_item<ValueType>& r_entry,
     const gko::batch::multi_vector::batch_item<ValueType>& r_hat_entry,
     const gko::batch::multi_vector::batch_item<ValueType>& p_entry,
+    const gko::batch::multi_vector::batch_item<ValueType>& p_hat_entry,
     const gko::batch::multi_vector::batch_item<ValueType>& v_entry,
     const gko::batch::multi_vector::batch_item<
         typename gko::remove_complex<ValueType>>& rhs_norms_entry,
     const gko::batch::multi_vector::batch_item<
         typename gko::remove_complex<ValueType>>& res_norms_entry)
 {
+    using real_type = gko::remove_complex<ValueType>;
     for (int c = 0; c < rho_old_entry.num_rhs; c++) {
         rho_old_entry.values[c] = one<ValueType>();
         omega_entry.values[c] = one<ValueType>();
@@ -55,7 +57,6 @@ inline void initialize(
 
     // Compute norms of rhs
     compute_norm2_kernel<ValueType>(b_entry, rhs_norms_entry);
-
 
     // r = b
     copy_kernel(b_entry, r_entry);
@@ -72,6 +73,7 @@ inline void initialize(
     for (int r = 0; r < p_entry.num_rows; r++) {
         for (int c = 0; c < p_entry.num_rhs; c++) {
             p_entry.values[r * p_entry.stride + c] = zero<ValueType>();
+            p_hat_entry.values[r * p_hat_entry.stride + c] = zero<ValueType>();
             v_entry.values[r * v_entry.stride + c] = zero<ValueType>();
         }
     }
@@ -259,10 +261,11 @@ inline void batch_entry_bicgstab_impl(
     // compute residual norms
     // r_hat = r
     // p = 0
+    // p_hat = 0
     // v = 0
     initialize(A_entry, b_entry, gko::batch::to_const(x_entry), rho_old_entry,
-               omega_entry, alpha_entry, r_entry, r_hat_entry, p_entry, v_entry,
-               rhs_norms_entry, res_norms_entry);
+               omega_entry, alpha_entry, r_entry, r_hat_entry, p_entry,
+               p_hat_entry, v_entry, rhs_norms_entry, res_norms_entry);
 
     // stopping criterion object
     StopType stop(opts.residual_tol, rhs_norms_entry.values);
@@ -279,7 +282,6 @@ inline void batch_entry_bicgstab_impl(
                                               gko::batch::to_const(r_entry),
                                               rho_new_entry);
 
-
         // beta = (rho_new / rho_old)*(alpha / omega)
         // p = r + beta*(p - omega * v)
         update_p(gko::batch::to_const(rho_new_entry),
@@ -288,7 +290,6 @@ inline void batch_entry_bicgstab_impl(
                  gko::batch::to_const(omega_entry),
                  gko::batch::to_const(r_entry), gko::batch::to_const(v_entry),
                  p_entry);
-
 
         // p_hat = precond * p
         prec.apply(gko::batch::to_const(p_entry), p_hat_entry);
@@ -302,15 +303,14 @@ inline void batch_entry_bicgstab_impl(
                       gko::batch::to_const(r_hat_entry),
                       gko::batch::to_const(v_entry), alpha_entry);
 
-
         // s = r - alpha*v
         update_s(gko::batch::to_const(r_entry),
                  gko::batch::to_const(alpha_entry),
                  gko::batch::to_const(v_entry), s_entry);
+
         // an estimate of residual norms
         compute_norm2_kernel<ValueType>(gko::batch::to_const(s_entry),
                                         res_norms_entry);
-
 
         if (stop.check_converged(res_norms_entry.values)) {
             // update x for the systems (rhs) which converge at this point...  x
@@ -329,7 +329,6 @@ inline void batch_entry_bicgstab_impl(
         // t = A * s_hat
         simple_apply_kernel(A_entry, gko::batch::to_const(s_hat_entry),
                             t_entry);
-
         // omega = <t,s> / <t,t>
         compute_omega(gko::batch::to_const(t_entry),
                       gko::batch::to_const(s_entry), temp_entry, omega_entry);

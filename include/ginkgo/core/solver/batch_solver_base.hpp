@@ -242,7 +242,7 @@ protected:
 
         auto exec = this->get_executor();
 
-        const size_type num_rhs = b->get_common_size()[0];
+        const size_type num_rhs = b->get_common_size()[1];
         const size_type num_batch_items = b->get_num_batch_items();
         batch_dim<2> batch_size(num_batch_items, dim<2>{1, num_rhs});
 
