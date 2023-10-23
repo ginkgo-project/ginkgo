@@ -168,7 +168,7 @@ class BatchSolverDispatch {
 public:
     using value_type = ValueType;
     using device_value_type = DeviceValueType<ValueType>;
-    using res_norm_type = double;
+    using res_norm_type = remove_complex<value_type>;
 
     BatchSolverDispatch(const KernelCaller& kernel_caller, const OptsType& opts,
                         const BatchLinOp* const matrix,

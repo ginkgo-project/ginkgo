@@ -66,7 +66,8 @@ void Bicgstab<ValueType>::solver_apply(const MultiVector<ValueType>* b,
     exec->run(bicgstab::make_apply(
         opts, this->system_matrix_.get(), this->preconditioner_.get(),
         as<const MVec>(b), as<MVec>(x),
-        *as<log::BatchLogData<double>>(info->logdata.get())));
+        *as<log::BatchLogData<remove_complex<ValueType>>>(
+            info->logdata.get())));
 }
 
 

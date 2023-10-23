@@ -211,11 +211,11 @@ StorageConfig compute_shared_storage(const int shared_mem_per_blk,
 #define GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL(_type)                       \
     void apply(                                                              \
         std::shared_ptr<const DefaultExecutor> exec,                         \
-        const gko::kernels::batch_bicgstab::BicgstabOptions<            \
+        const gko::kernels::batch_bicgstab::BicgstabOptions<                 \
             remove_complex<_type>>& options,                                 \
         const batch::BatchLinOp* a, const batch::BatchLinOp* preconditioner, \
         const batch::MultiVector<_type>* b, batch::MultiVector<_type>* x,    \
-        gko::batch::log::BatchLogData<double>& logdata)
+        gko::batch::log::BatchLogData<remove_complex<_type>>& logdata)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES \

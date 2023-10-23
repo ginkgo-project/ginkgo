@@ -65,8 +65,7 @@ constexpr int max_num_rhs = 1;
 
 
 template <typename T>
-using BicgstabOptions =
-    gko::kernels::batch_bicgstab::BicgstabOptions<T>;
+using BicgstabOptions = gko::kernels::batch_bicgstab::BicgstabOptions<T>;
 
 template <typename ValueType>
 class KernelCaller {
@@ -119,7 +118,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            const batch::BatchLinOp* const precon,
            const batch::MultiVector<ValueType>* const b,
            batch::MultiVector<ValueType>* const x,
-           batch::log::BatchLogData<double>& logdata)
+           batch::log::BatchLogData<remove_complex<ValueType>>& logdata)
 {
     auto dispatcher = batch::solver::create_dispatcher<ValueType>(
         KernelCaller<ValueType>(exec, opts), opts, a, precon);
