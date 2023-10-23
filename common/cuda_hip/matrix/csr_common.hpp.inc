@@ -102,7 +102,6 @@ __global__ __launch_bounds__(default_block_size) void check_diagonal_entries(
             if (tile_grp.thread_rank() == 0) {
                 *has_all_diags = false;
             }
-            return;
         }
     }
 }

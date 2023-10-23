@@ -826,15 +826,19 @@ __global__ __launch_bounds__(default_block_size) void add_scaled_identity(
     auto tile_grp =
         group::tiled_partition<warp_size>(group::this_thread_block());
     const auto warpid = thread::get_subwarp_id_flat<warp_size, IndexType>();
-    const auto num_warps = thread::get_subwarp_num_flat<warp_size, IndexType>();
     if (warpid < num_rows) {
         const auto tid_in_warp = tile_grp.thread_rank();
         const IndexType row_start = row_ptrs[warpid];
         const IndexType num_nz = row_ptrs[warpid + 1] - row_start;
+        const auto beta_val = beta[0];
+        const auto alpha_val = alpha[0];
         for (IndexType iz = tid_in_warp; iz < num_nz; iz += warp_size) {
-            values[iz + row_start] *= beta[0];
-            if (col_idxs[iz + row_start] == warpid) {
-                values[iz + row_start] += alpha[0];
+            if (beta_val != one<ValueType>()) {
+                values[iz + row_start] *= beta_val;
+            }
+            if (col_idxs[iz + row_start] == warpid &&
+                alpha_val != zero<ValueType>()) {
+                values[iz + row_start] += alpha_val;
             }
         }
     }
