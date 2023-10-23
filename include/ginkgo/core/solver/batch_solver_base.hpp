@@ -46,6 +46,12 @@ namespace batch {
 namespace solver {
 
 
+/**
+ * The BatchSolver is a base class for all batched solvers and provides the
+ * common getters and setter for these batched solver classes.
+ *
+ * @ingroup solvers
+ */
 class BatchSolver {
 public:
     /**
@@ -142,6 +148,10 @@ common_batch_params extract_common_batch_params(ParamsType& params)
 }  // namespace detail
 
 
+/**
+ * This struct stores the logger database of residual norms and iteration count
+ * which is common to all batched solvers.
+ */
 struct BatchInfo {
     std::unique_ptr<log::BatchLogDataBase> logdata;
 };
@@ -167,11 +177,10 @@ public:
         return self();
     }
 
-    const ConcreteSolver* apply_impl(
-        ptr_param<const MultiVector<ValueType>> alpha,
-        ptr_param<const MultiVector<ValueType>> b,
-        ptr_param<const MultiVector<ValueType>> beta,
-        ptr_param<MultiVector<ValueType>> x) const
+    const ConcreteSolver* apply(ptr_param<const MultiVector<ValueType>> alpha,
+                                ptr_param<const MultiVector<ValueType>> b,
+                                ptr_param<const MultiVector<ValueType>> beta,
+                                ptr_param<MultiVector<ValueType>> x) const
     {
         this->validate_application_parameters(alpha.get(), b.get(), beta.get(),
                                               x.get());
@@ -190,10 +199,10 @@ public:
         return self();
     }
 
-    ConcreteSolver* apply_impl(ptr_param<const MultiVector<ValueType>> alpha,
-                               ptr_param<const MultiVector<ValueType>> b,
-                               ptr_param<const MultiVector<ValueType>> beta,
-                               ptr_param<MultiVector<ValueType>> x)
+    ConcreteSolver* apply(ptr_param<const MultiVector<ValueType>> alpha,
+                          ptr_param<const MultiVector<ValueType>> b,
+                          ptr_param<const MultiVector<ValueType>> beta,
+                          ptr_param<MultiVector<ValueType>> x)
     {
         static_cast<const ConcreteSolver*>(this)->apply(alpha, b, beta, x);
         return self();
@@ -239,9 +248,7 @@ protected:
         using value_type = ValueType;
         using Vector = MultiVector<value_type>;
         using res_log_type = double;
-
         auto exec = this->get_executor();
-
         const size_type num_rhs = b->get_common_size()[1];
         const size_type num_batch_items = b->get_num_batch_items();
         batch_dim<2> batch_size(num_batch_items, dim<2>{1, num_rhs});
@@ -274,15 +281,6 @@ protected:
         x->add_scaled(alpha, x_clone.get());
     }
 
-    /**
-     * Calls the concrete solver on the given system (not necessarily on
-     * system_matrix_).
-     *
-     * @param mtx  Left-hand side matrix for the linear solve.
-     * @param b  Right-hand side vector.
-     * @param x  Solution vector and initial guess.
-     * @param info  Batch logging information.
-     */
     virtual void solver_apply(const MultiVector<ValueType>* b,
                               MultiVector<ValueType>* x,
                               BatchInfo* const info) const = 0;

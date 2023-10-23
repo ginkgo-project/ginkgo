@@ -601,11 +601,31 @@ public:
                               const batch::BatchLinOp* input,
                               const batch::BatchLinOp* output)
 
+public:
+    static constexpr size_type batch_solver_completed{26};
+    static constexpr mask_type batch_solver_completed_mask{mask_type{1} << 26};
 
-    GKO_LOGGER_REGISTER_EVENT(26, batch_solver_completed,
-                              const array<int>& iteration,
-                              const batch::MultiVector<double>* res_norms)
+    template <size_type Event, typename... Params>
+    std::enable_if_t<Event == 26 && (26 < event_count_max)> on(
+        Params&&... params) const
+    {
+        if (enabled_events_ & (mask_type{1} << 26)) {
+            this->on_batch_solver_completed(std::forward<Params>(params)...);
+        }
+    }
 
+protected:
+    virtual void on_batch_solver_completed(
+        const array<int>& iters,
+        const batch::MultiVector<double>* residual_norms) const
+    {}
+
+    virtual void on_batch_solver_completed(
+        const array<int>& iters,
+        const batch::MultiVector<float>* residual_norms) const
+    {}
+
+public:
 #undef GKO_LOGGER_REGISTER_EVENT
 
     /**

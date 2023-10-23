@@ -114,6 +114,7 @@ TEST_F(BatchBicgstab, SolvesStencilSystem)
     const int max_iters = 100;
     auto linear_system = setup_linsys_and_solver<Mtx>(num_batch_items, num_rows,
                                                       num_rhs, tol, max_iters);
+
     auto res = gko::test::solve_linear_system(exec, solve_lambda,
                                               solver_settings, linear_system);
 
@@ -177,16 +178,17 @@ TEST_F(BatchBicgstab, CanSolve3ptStencilSystem)
     const int max_iters = 100;
     auto linear_system = setup_linsys_and_solver<Mtx>(num_batch_items, num_rows,
                                                       num_rhs, tol, max_iters);
-
     auto solver = gko::share(solver_factory->generate(linear_system.matrix));
 
     auto res = gko::test::solve_linear_system(exec, linear_system, solver);
 
     GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 10);
     for (size_t i = 0; i < num_batch_items; i++) {
-        ASSERT_LE(res.res_norm->get_const_values()[i] /
-                      linear_system.rhs_norm->get_const_values()[i],
-                  tol);
+        auto comp_res_norm =
+            exec->copy_val_to_host(res.res_norm->get_const_values() + i) /
+            exec->copy_val_to_host(linear_system.rhs_norm->get_const_values() +
+                                   i);
+        ASSERT_LE(comp_res_norm, tol);
     }
 }
 
@@ -212,19 +214,19 @@ TEST_F(BatchBicgstab, CanSolveLargeHpdSystem)
     solver->add_logger(logger);
 
     auto res = gko::test::solve_linear_system(exec, linear_system, solver);
-    solver->remove_logger(logger);
 
+    solver->remove_logger(logger);
     auto iter_counts = gko::make_temporary_clone(exec->get_master(),
                                                  &logger->get_num_iterations());
     auto res_norm = gko::make_temporary_clone(exec->get_master(),
                                               logger->get_residual_norm());
     GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, comp_tol);
     for (size_t i = 0; i < num_batch_items; i++) {
-        auto rel_res_norm =
+        auto comp_res_norm =
             exec->copy_val_to_host(res.res_norm->get_const_values() + i);
         ASSERT_LE(iter_counts->get_const_data()[i], max_iters);
         EXPECT_LE(res_norm->at(i, 0, 0), comp_tol);
         EXPECT_GT(res_norm->at(i, 0, 0), real_type{0.0});
-        ASSERT_LE(rel_res_norm, comp_tol);
+        ASSERT_LE(comp_res_norm, comp_tol);
     }
 }

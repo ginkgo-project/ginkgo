@@ -98,7 +98,9 @@ TYPED_TEST(BatchBicgstab, FactoryCreatesCorrectSolver)
         ASSERT_EQ(this->solver->get_common_size(),
                   gko::dim<2>(this->nrows, this->nrows));
     }
+
     auto solver = static_cast<Solver*>(this->solver.get());
+
     ASSERT_NE(solver->get_system_matrix(), nullptr);
     ASSERT_EQ(solver->get_system_matrix(), this->mtx);
 }
@@ -140,6 +142,7 @@ TYPED_TEST(BatchBicgstab, CanBeCloned)
 {
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
+
     auto clone = this->solver->clone();
 
     ASSERT_EQ(clone->get_common_size(), gko::dim<2>(this->nrows, this->nrows));
@@ -174,8 +177,8 @@ TYPED_TEST(BatchBicgstab, CanSetCriteriaInFactory)
             .with_default_residual_tol(static_cast<real_type>(0.25))
             .with_tolerance_type(gko::batch::stop::ToleranceType::relative)
             .on(this->exec);
-    auto solver = solver_factory->generate(this->mtx);
 
+    auto solver = solver_factory->generate(this->mtx);
     ASSERT_EQ(solver->get_parameters().default_max_iterations, 22);
     ASSERT_EQ(solver->get_parameters().default_residual_tol, 0.25);
     ASSERT_EQ(solver->get_parameters().tolerance_type,

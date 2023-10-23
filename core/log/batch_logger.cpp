@@ -46,7 +46,7 @@ namespace log {
 template <typename ValueType>
 void BatchConvergence<ValueType>::on_batch_solver_completed(
     const array<int>& iteration_count,
-    const MultiVector<remove_complex<ValueType>>* const residual_norm) const
+    const MultiVector<remove_complex<ValueType>>* residual_norm) const
 {
     this->iteration_count_ = iteration_count;
     this->residual_norm_->copy_from(residual_norm);

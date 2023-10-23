@@ -56,11 +56,12 @@ namespace solver {
  * Being a generic solver, it is capable of solving general matrices, including
  * non-s.p.d matrices.
  *
- * This solver solves a batch of linear systems using Bicgstab algorithm.
+ * This solver solves a batch of linear systems using the Bicgstab algorithm.
+ * Each linear system in the batch can converge independently.
  *
  * Unless otherwise specified via the `preconditioner` factory parameter, this
  * implementation does not use any preconditioner by default. The type of
- * tolerance( absolute or relative ) and the maximum number of iterations to be
+ * tolerance (absolute or relative) and the maximum number of iterations to be
  * used in the stopping criterion can be set via the factory parameters.
  *
  * @tparam ValueType  precision of matrix elements
@@ -124,7 +125,7 @@ private:
     {}
 
     explicit Bicgstab(const Factory* factory,
-                           std::shared_ptr<const BatchLinOp> system_matrix)
+                      std::shared_ptr<const BatchLinOp> system_matrix)
         : EnableBatchSolver<Bicgstab>(
               factory->get_executor(), std::move(system_matrix),
               detail::extract_common_batch_params(factory->get_parameters())),

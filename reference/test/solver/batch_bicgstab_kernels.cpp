@@ -125,7 +125,6 @@ TYPED_TEST(BatchBicgstab, SolvesEllStencilSystem)
     const int num_rhs = 1;
     auto lin_sys = gko::test::generate_3pt_stencil_batch_problem<Mtx>(
         this->exec, num_batch_items, num_rows, num_rhs, 3);
-
     auto executor = this->exec;
     auto solve_lambda = [executor](const Settings opts,
                                    const gko::batch::BatchLinOp* prec,
@@ -138,6 +137,7 @@ TYPED_TEST(BatchBicgstab, SolvesEllStencilSystem)
 
     auto res = gko::test::solve_linear_system(this->exec, solve_lambda,
                                               this->solver_settings, lin_sys);
+
     auto tol = this->solver_settings.residual_tol * 10;
     for (size_t i = 0; i < num_batch_items; i++) {
         ASSERT_LE(res.res_norm->get_const_values()[i] /
@@ -243,8 +243,8 @@ TYPED_TEST(BatchBicgstab, ApplyLogsResAndIters)
     auto linear_system = gko::test::generate_3pt_stencil_batch_problem<Mtx>(
         this->exec, num_batch_items, num_rows, num_rhs);
     auto solver = gko::share(solver_factory->generate(linear_system.matrix));
-    solver->add_logger(logger);
 
+    solver->add_logger(logger);
     auto res =
         gko::test::solve_linear_system(this->exec, linear_system, solver);
     solver->remove_logger(logger);
