@@ -247,7 +247,7 @@ protected:
     {
         using value_type = ValueType;
         using Vector = MultiVector<value_type>;
-        using res_log_type = double;
+        using res_log_type = remove_complex<value_type>;
         auto exec = this->get_executor();
         const size_type num_rhs = b->get_common_size()[1];
         const size_type num_batch_items = b->get_num_batch_items();

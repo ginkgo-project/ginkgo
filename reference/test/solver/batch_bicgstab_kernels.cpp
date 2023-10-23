@@ -64,7 +64,7 @@ protected:
     using MVec = gko::batch::MultiVector<value_type>;
     using RealMVec = gko::batch::MultiVector<real_type>;
     using Settings = gko::kernels::batch_bicgstab::BicgstabOptions<real_type>;
-    using LogData = gko::batch::log::BatchLogData<double>;
+    using LogData = gko::batch::log::BatchLogData<real_type>;
     using LinSys = gko::test::LinearSystem<Mtx>;
 
     BatchBicgstab()
@@ -227,7 +227,7 @@ TYPED_TEST(BatchBicgstab, ApplyLogsResAndIters)
     using real_type = gko::remove_complex<value_type>;
     using Solver = typename TestFixture::solver_type;
     using Mtx = typename TestFixture::Mtx;
-    using Logger = gko::batch::log::BatchConvergence<double>;
+    using Logger = gko::batch::log::BatchConvergence<value_type>;
     const real_type tol = 1e-5;
     const int max_iters = 1000;
     auto solver_factory =

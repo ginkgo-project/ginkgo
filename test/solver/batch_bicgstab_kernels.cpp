@@ -63,8 +63,8 @@ protected:
     using MVec = gko::batch::MultiVector<value_type>;
     using RealMVec = gko::batch::MultiVector<real_type>;
     using Settings = gko::kernels::batch_bicgstab::BicgstabOptions<real_type>;
-    using LogData = gko::batch::log::BatchLogData<double>;
-    using Logger = gko::batch::log::BatchConvergence<double>;
+    using LogData = gko::batch::log::BatchLogData<real_type>;
+    using Logger = gko::batch::log::BatchConvergence<real_type>;
 
     BatchBicgstab() {}
 
