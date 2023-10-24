@@ -49,12 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace hip {
-
-
-// NOTE: this default block size is not used for the main solver kernel.
-constexpr int default_block_size = 256;
-constexpr int sm_oversubscription = 4;
-
 /**
  * @brief The batch Bicgstab solver namespace.
  *
