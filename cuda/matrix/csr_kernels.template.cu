@@ -1322,16 +1322,15 @@ void check_diagonal_entries_exist(
     std::shared_ptr<const CudaExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* const mtx, bool& has_all_diags)
 {
-    const size_type num_warps = mtx->get_size()[0];
-    if (num_warps > 0) {
-        const size_type num_blocks =
-            num_warps / (default_block_size / config::warp_size);
+    const auto num_diag = static_cast<IndexType>(
+        std::min(mtx->get_size()[0], mtx->get_size()[1]));
+    if (num_diag > 0) {
+        const IndexType num_blocks =
+            ceildiv(num_diag, default_block_size / config::warp_size);
         array<bool> has_diags(exec, {true});
         kernel::check_diagonal_entries<<<num_blocks, default_block_size, 0,
                                          exec->get_stream()>>>(
-            static_cast<IndexType>(
-                std::min(mtx->get_size()[0], mtx->get_size()[1])),
-            mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+            num_diag, mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
             has_diags.get_data());
         has_all_diags = exec->copy_val_to_host(has_diags.get_const_data());
     } else {

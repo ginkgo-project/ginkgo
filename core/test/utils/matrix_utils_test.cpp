@@ -376,10 +376,9 @@ TEST(MatrixUtils, ModifyToEnsureAllDiagonalEntries)
         }
         return all_diags;
     };
-    auto b = gko::initialize<Csr>(
-        {I<T>{2.0, 0.0, 1.1, 0.0}, I<T>{1.0, 2.4, 0.0, -1.0},
-         I<T>{0.0, -4.0, 2.2, -2.0}, I<T>{0.0, -3.0, 1.5, 1.0}},
-        exec);
+    auto b = gko::initialize<Csr>({I<T>{2.0, 0.0, 1.1}, I<T>{1.0, 0.0, 0.0},
+                                   I<T>{0.0, -4.0, 2.2}, I<T>{0.0, -3.0, 1.5}},
+                                  exec);
     // ensure it misses some diag
     bool prev_check = check_all_diag(b.get());
 
