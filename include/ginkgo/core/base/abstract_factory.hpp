@@ -340,8 +340,8 @@ public:
     template <typename ConcreteFactoryType,
               std::enable_if_t<
                   std::is_base_of<FactoryType, ConcreteFactoryType>::value &&
-                  !(!std::is_const<FactoryType>::value &&
-                    std::is_const<ConcreteFactoryType>::value)>* = nullptr>
+                  (std::is_const<FactoryType>::value ||
+                   !std::is_const<ConcreteFactoryType>::value)>* = nullptr>
     deferred_factory_parameter(std::shared_ptr<ConcreteFactoryType> factory)
     {
         generator_ = [factory =
@@ -356,8 +356,8 @@ public:
     template <typename ConcreteFactoryType, typename Deleter,
               std::enable_if_t<
                   std::is_base_of<FactoryType, ConcreteFactoryType>::value &&
-                  !(!std::is_const<FactoryType>::value &&
-                    std::is_const<ConcreteFactoryType>::value)>* = nullptr>
+                  (std::is_const<FactoryType>::value ||
+                   !std::is_const<ConcreteFactoryType>::value)>* = nullptr>
     deferred_factory_parameter(
         std::unique_ptr<ConcreteFactoryType, Deleter> factory)
     {
@@ -533,10 +533,15 @@ private:
  * @param _type  pointee type of the parameter, e.g. LinOpFactory
  *
  */
-#define GKO_DEFERRED_FACTORY_PARAMETER(_name, _type)                         \
+#define GKO_DEFERRED_FACTORY_PARAMETER(_name)                                \
+    _name{};                                                                 \
+                                                                             \
+private:                                                                     \
+    using _name##_type = typename decltype(_name)::element_type;             \
+                                                                             \
 public:                                                                      \
-    std::shared_ptr<_type> _name{};                                          \
-    parameters_type& with_##_name(deferred_factory_parameter<_type> factory) \
+    parameters_type& with_##_name(                                           \
+        deferred_factory_parameter<_name##_type> factory)                    \
     {                                                                        \
         this->_name##_generator_ = std::move(factory);                       \
         this->deferred_factories[#_name] = [](const auto& exec,              \
@@ -549,7 +554,7 @@ public:                                                                      \
     }                                                                        \
                                                                              \
 private:                                                                     \
-    deferred_factory_parameter<_type> _name##_generator_;                    \
+    deferred_factory_parameter<_name##_type> _name##_generator_;             \
                                                                              \
 public:                                                                      \
     static_assert(true,                                                      \
@@ -566,55 +571,60 @@ public:                                                                      \
  * @param _type  pointee type of the vector entries, e.g. LinOpFactory
  *
  */
-#define GKO_DEFERRED_FACTORY_VECTOR_PARAMETER(_name, _type)                  \
-public:                                                                      \
-    std::vector<std::shared_ptr<_type>> _name{};                             \
-    template <typename... Args,                                              \
-              typename =                                                     \
-                  std::enable_if_t<xstd::conjunction<std::is_convertible<    \
-                      Args, deferred_factory_parameter<_type>>...>::value>>  \
-    parameters_type& with_##_name(Args&&... factories)                       \
-    {                                                                        \
-        this->_name##_generator_ = {deferred_factory_parameter<_type>{       \
-            std::forward<Args>(factories)}...};                              \
-        this->deferred_factories[#_name] = [](const auto& exec,              \
-                                              auto& params) {                \
-            if (!params._name##_generator_.empty()) {                        \
-                params._name.clear();                                        \
-                for (auto& generator : params._name##_generator_) {          \
-                    params._name.push_back(generator.on(exec));              \
-                }                                                            \
-            }                                                                \
-        };                                                                   \
-        return *this;                                                        \
-    }                                                                        \
-    template <typename FactoryType,                                          \
-              typename = std::enable_if_t<std::is_convertible<               \
-                  FactoryType, deferred_factory_parameter<_type>>::value>>   \
-    parameters_type& with_##_name(const std::vector<FactoryType>& factories) \
-    {                                                                        \
-        this->_name##_generator_.clear();                                    \
-        for (const auto& factory : factories) {                              \
-            this->_name##_generator_.push_back(factory);                     \
-        }                                                                    \
-        this->deferred_factories[#_name] = [](const auto& exec,              \
-                                              auto& params) {                \
-            if (!params._name##_generator_.empty()) {                        \
-                params._name.clear();                                        \
-                for (auto& generator : params._name##_generator_) {          \
-                    params._name.push_back(generator.on(exec));              \
-                }                                                            \
-            }                                                                \
-        };                                                                   \
-        return *this;                                                        \
-    }                                                                        \
-                                                                             \
-private:                                                                     \
-    std::vector<deferred_factory_parameter<_type>> _name##_generator_;       \
-                                                                             \
-public:                                                                      \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
+#define GKO_DEFERRED_FACTORY_VECTOR_PARAMETER(_name)                          \
+    _name{};                                                                  \
+                                                                              \
+private:                                                                      \
+    using _name##_type = typename decltype(_name)::value_type::element_type;  \
+                                                                              \
+public:                                                                       \
+    template <                                                                \
+        typename... Args,                                                     \
+        typename = std::enable_if_t<xstd::conjunction<std::is_convertible<    \
+            Args, deferred_factory_parameter<_name##_type>>...>::value>>      \
+    parameters_type& with_##_name(Args&&... factories)                        \
+    {                                                                         \
+        this->_name##_generator_ = {deferred_factory_parameter<_name##_type>{ \
+            std::forward<Args>(factories)}...};                               \
+        this->deferred_factories[#_name] = [](const auto& exec,               \
+                                              auto& params) {                 \
+            if (!params._name##_generator_.empty()) {                         \
+                params._name.clear();                                         \
+                for (auto& generator : params._name##_generator_) {           \
+                    params._name.push_back(generator.on(exec));               \
+                }                                                             \
+            }                                                                 \
+        };                                                                    \
+        return *this;                                                         \
+    }                                                                         \
+    template <                                                                \
+        typename FactoryType,                                                 \
+        typename = std::enable_if_t<std::is_convertible<                      \
+            FactoryType, deferred_factory_parameter<_name##_type>>::value>>   \
+    parameters_type& with_##_name(const std::vector<FactoryType>& factories)  \
+    {                                                                         \
+        this->_name##_generator_.clear();                                     \
+        for (const auto& factory : factories) {                               \
+            this->_name##_generator_.push_back(factory);                      \
+        }                                                                     \
+        this->deferred_factories[#_name] = [](const auto& exec,               \
+                                              auto& params) {                 \
+            if (!params._name##_generator_.empty()) {                         \
+                params._name.clear();                                         \
+                for (auto& generator : params._name##_generator_) {           \
+                    params._name.push_back(generator.on(exec));               \
+                }                                                             \
+            }                                                                 \
+        };                                                                    \
+        return *this;                                                         \
+    }                                                                         \
+                                                                              \
+private:                                                                      \
+    std::vector<deferred_factory_parameter<_name##_type>> _name##_generator_; \
+                                                                              \
+public:                                                                       \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
                   "semi-colon warnings")
 
 
