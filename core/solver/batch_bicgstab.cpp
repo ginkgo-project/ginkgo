@@ -54,20 +54,19 @@ GKO_REGISTER_OPERATION(apply, batch_bicgstab::apply);
 
 
 template <typename ValueType>
-void Bicgstab<ValueType>::solver_apply(const MultiVector<ValueType>* b,
-                                       MultiVector<ValueType>* x,
-                                       BatchInfo* const info) const
+void Bicgstab<ValueType>::solver_apply(
+    const MultiVector<ValueType>* b, MultiVector<ValueType>* x,
+    log::BatchLogData<remove_complex<ValueType>>* log_data) const
 {
     using MVec = MultiVector<ValueType>;
-    const kernels::batch_bicgstab::BicgstabOptions<remove_complex<ValueType>>
-        opts{this->max_iterations_, static_cast<real_type>(this->residual_tol_),
-             parameters_.tolerance_type};
+    const kernels::batch_bicgstab::BicgstabSettings<remove_complex<ValueType>>
+        settings{this->max_iterations_,
+                 static_cast<real_type>(this->residual_tol_),
+                 parameters_.tolerance_type};
     auto exec = this->get_executor();
-    exec->run(bicgstab::make_apply(
-        opts, this->system_matrix_.get(), this->preconditioner_.get(),
-        as<const MVec>(b), as<MVec>(x),
-        *as<log::BatchLogData<remove_complex<ValueType>>>(
-            info->logdata.get())));
+    exec->run(bicgstab::make_apply(settings, this->system_matrix_.get(),
+                                   this->preconditioner_.get(), b, x,
+                                   *log_data));
 }
 
 

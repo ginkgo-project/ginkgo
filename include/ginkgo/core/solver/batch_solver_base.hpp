@@ -149,15 +149,6 @@ common_batch_params extract_common_batch_params(ParamsType& params)
 
 
 /**
- * This struct stores the logger database of residual norms and iteration count
- * which is common to all batched solvers.
- */
-struct BatchInfo {
-    std::unique_ptr<log::BatchLogDataBase> logdata;
-};
-
-
-/**
  * @tparam PolymorphicBase  The base class; must be a subclass of BatchLinOp.
  */
 template <typename ConcreteSolver,
@@ -167,6 +158,7 @@ class EnableBatchSolver
     : public BatchSolver,
       public EnableBatchLinOp<ConcreteSolver, PolymorphicBase> {
 public:
+    using real_type = remove_complex<ValueType>;
     const ConcreteSolver* apply(ptr_param<const MultiVector<ValueType>> b,
                                 ptr_param<MultiVector<ValueType>> x) const
     {
@@ -245,29 +237,17 @@ protected:
     void apply_impl(const MultiVector<ValueType>* b,
                     MultiVector<ValueType>* x) const
     {
-        using value_type = ValueType;
-        using Vector = MultiVector<value_type>;
-        using res_log_type = remove_complex<value_type>;
         auto exec = this->get_executor();
-        const size_type num_rhs = b->get_common_size()[1];
-        const size_type num_batch_items = b->get_num_batch_items();
-        batch_dim<2> batch_size(num_batch_items, dim<2>{1, num_rhs});
+        if (b->get_common_size()[1] > 1) {
+            GKO_NOT_IMPLEMENTED;
+        }
+        auto log_data_ = std::make_unique<log::BatchLogData<real_type>>(
+            exec, b->get_num_batch_items());
 
-        BatchInfo info;
-        info.logdata =
-            std::move(std::make_unique<log::BatchLogData<res_log_type>>());
-        auto concrete_logdata =
-            static_cast<log::BatchLogData<res_log_type>*>(info.logdata.get());
-        concrete_logdata->res_norms =
-            MultiVector<res_log_type>::create(this->get_executor(), batch_size);
-        concrete_logdata->iter_counts.set_executor(this->get_executor());
-        concrete_logdata->iter_counts.resize_and_reset(num_rhs *
-                                                       num_batch_items);
-
-        this->solver_apply(b, x, &info);
+        this->solver_apply(b, x, log_data_.get());
 
         this->template log<gko::log::Logger::batch_solver_completed>(
-            concrete_logdata->iter_counts, concrete_logdata->res_norms.get());
+            log_data_->iter_counts, log_data_->res_norms);
     }
 
     void apply_impl(const MultiVector<ValueType>* alpha,
@@ -283,7 +263,7 @@ protected:
 
     virtual void solver_apply(const MultiVector<ValueType>* b,
                               MultiVector<ValueType>* x,
-                              BatchInfo* const info) const = 0;
+                              log::BatchLogData<real_type>* info) const = 0;
 };
 
 

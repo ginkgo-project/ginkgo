@@ -45,12 +45,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace dpcpp {
-
-
-// NOTE: this default block size is not used for the main solver kernel.
-constexpr int default_block_size = 256;
-constexpr int sm_multiplier = 4;
-
 /**
  * @brief The batch Bicgstab solver namespace.
  *
@@ -60,12 +54,12 @@ namespace batch_bicgstab {
 
 
 template <typename T>
-using BicgstabOptions = gko::kernels::batch_bicgstab::BicgstabOptions<T>;
+using BicgstabSettings = gko::kernels::batch_bicgstab::BicgstabSettings<T>;
 
 
 template <typename ValueType>
 void apply(std::shared_ptr<const DefaultExecutor> exec,
-           const BicgstabOptions<remove_complex<ValueType>>& opts,
+           const BicgstabSettings<remove_complex<ValueType>>& settings,
            const batch::BatchLinOp* const a,
            const batch::BatchLinOp* const precon,
            const batch::MultiVector<ValueType>* const b,

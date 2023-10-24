@@ -58,12 +58,12 @@ namespace batch_bicgstab {
 
 
 template <typename T>
-using BicgstabOptions = gko::kernels::batch_bicgstab::BicgstabOptions<T>;
+using BicgstabSettings = gko::kernels::batch_bicgstab::BicgstabSettings<T>;
 
 
 template <typename ValueType>
 void apply(std::shared_ptr<const DefaultExecutor> exec,
-           const BicgstabOptions<remove_complex<ValueType>>& opts,
+           const BicgstabSettings<remove_complex<ValueType>>& settings,
            const batch::BatchLinOp* const a,
            const batch::BatchLinOp* const precon,
            const batch::MultiVector<ValueType>* const b,

@@ -616,13 +616,11 @@ public:
 
 protected:
     virtual void on_batch_solver_completed(
-        const array<int>& iters,
-        const batch::MultiVector<double>* residual_norms) const
+        const array<int>& iters, const array<double>& residual_norms) const
     {}
 
     virtual void on_batch_solver_completed(
-        const array<int>& iters,
-        const batch::MultiVector<float>* residual_norms) const
+        const array<int>& iters, const array<float>& residual_norms) const
     {}
 
 public:

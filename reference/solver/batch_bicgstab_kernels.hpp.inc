@@ -182,8 +182,8 @@ inline void update_x_middle(
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
 inline void batch_entry_bicgstab_impl(
-    const gko::kernels::batch_bicgstab::BicgstabOptions<
-        remove_complex<ValueType>>& opts,
+    const gko::kernels::batch_bicgstab::BicgstabSettings<
+        remove_complex<ValueType>>& settings,
     LogType logger, PrecType prec, const BatchMatrixType& a,
     const gko::batch::multi_vector::uniform_batch<const ValueType>& b,
     const gko::batch::multi_vector::uniform_batch<ValueType>& x,
@@ -268,11 +268,11 @@ inline void batch_entry_bicgstab_impl(
                p_hat_entry, v_entry, rhs_norms_entry, res_norms_entry);
 
     // stopping criterion object
-    StopType stop(opts.residual_tol, rhs_norms_entry.values);
+    StopType stop(settings.residual_tol, rhs_norms_entry.values);
 
     int iter{};
 
-    for (iter = 0; iter < opts.max_its; iter++) {
+    for (iter = 0; iter < settings.max_iterations; iter++) {
         if (stop.check_converged(res_norms_entry.values)) {
             break;
         }

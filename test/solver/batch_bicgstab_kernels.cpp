@@ -62,7 +62,7 @@ protected:
     using EllMtx = gko::batch::matrix::Ell<value_type>;
     using MVec = gko::batch::MultiVector<value_type>;
     using RealMVec = gko::batch::MultiVector<real_type>;
-    using Settings = gko::kernels::batch_bicgstab::BicgstabOptions<real_type>;
+    using Settings = gko::kernels::batch_bicgstab::BicgstabSettings<real_type>;
     using LogData = gko::batch::log::BatchLogData<real_type>;
     using Logger = gko::batch::log::BatchConvergence<real_type>;
 
@@ -78,10 +78,10 @@ protected:
         solve_lambda = [executor](const Settings settings,
                                   const gko::batch::BatchLinOp* prec,
                                   const Mtx* mtx, const MVec* b, MVec* x,
-                                  LogData& logdata) {
+                                  LogData& log_data) {
             gko::kernels::EXEC_NAMESPACE::batch_bicgstab::apply<
                 typename Mtx::value_type>(executor, settings, mtx, prec, b, x,
-                                          logdata);
+                                          log_data);
         };
         solver_settings =
             Settings{max_iters, tol, gko::batch::stop::ToleranceType::relative};
@@ -140,7 +140,7 @@ TEST_F(BatchBicgstab, StencilSystemLoggerLogsResidual)
     auto res = gko::test::solve_linear_system(exec, solve_lambda,
                                               solver_settings, linear_system);
 
-    auto res_log_array = res.logdata.res_norms->get_const_values();
+    auto res_log_array = res.log_data->res_norms.get_const_data();
     for (size_t i = 0; i < num_batch_items; i++) {
         ASSERT_LE(res_log_array[i] / linear_system.rhs_norm->at(i, 0, 0),
                   solver_settings.residual_tol);
@@ -162,7 +162,7 @@ TEST_F(BatchBicgstab, StencilSystemLoggerLogsIterations)
     auto res = gko::test::solve_linear_system(exec, solve_lambda,
                                               solver_settings, linear_system);
 
-    auto iter_array = res.logdata.iter_counts.get_const_data();
+    auto iter_array = res.log_data->iter_counts.get_const_data();
     for (size_t i = 0; i < num_batch_items; i++) {
         ASSERT_EQ(iter_array[i], ref_iters);
     }
@@ -219,14 +219,14 @@ TEST_F(BatchBicgstab, CanSolveLargeHpdSystem)
     auto iter_counts = gko::make_temporary_clone(exec->get_master(),
                                                  &logger->get_num_iterations());
     auto res_norm = gko::make_temporary_clone(exec->get_master(),
-                                              logger->get_residual_norm());
+                                              &logger->get_residual_norm());
     GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, comp_tol);
     for (size_t i = 0; i < num_batch_items; i++) {
         auto comp_res_norm =
             exec->copy_val_to_host(res.res_norm->get_const_values() + i);
         ASSERT_LE(iter_counts->get_const_data()[i], max_iters);
-        EXPECT_LE(res_norm->at(i, 0, 0), comp_tol);
-        EXPECT_GT(res_norm->at(i, 0, 0), real_type{0.0});
+        EXPECT_LE(res_norm->get_const_data()[i], comp_tol);
+        EXPECT_GT(res_norm->get_const_data()[i], real_type{0.0});
         ASSERT_LE(comp_res_norm, comp_tol);
     }
 }

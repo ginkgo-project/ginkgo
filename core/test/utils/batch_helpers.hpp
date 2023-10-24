@@ -221,7 +221,8 @@ struct Result {
 
     std::shared_ptr<multi_vec> x;
     std::shared_ptr<real_vec> res_norm;
-    gko::batch::log::BatchLogData<remove_complex<ValueType>> logdata;
+    std::unique_ptr<gko::batch::log::BatchLogData<remove_complex<ValueType>>>
+        log_data;
 };
 
 
@@ -277,11 +278,8 @@ Result<typename MatrixType::value_type> solve_linear_system(
     result.x = multi_vec::create_with_config_of(sys.rhs);
     result.x->fill(zero<value_type>());
 
-    gko::batch::log::BatchLogData<real_type> logdata;
-    logdata.res_norms =
-        gko::batch::MultiVector<real_type>::create(exec, norm_size);
-    logdata.iter_counts.set_executor(exec);
-    logdata.iter_counts.resize_and_reset(num_rhs * num_batch_items);
+    auto log_data = std::make_unique<batch::log::BatchLogData<real_type>>(
+        exec, num_batch_items);
 
     std::unique_ptr<gko::batch::BatchLinOp> precond;
     if (precond_factory) {
@@ -291,14 +289,12 @@ Result<typename MatrixType::value_type> solve_linear_system(
     }
 
     solve_function(settings, precond.get(), sys.matrix.get(), sys.rhs.get(),
-                   result.x.get(), logdata);
+                   result.x.get(), *log_data.get());
 
-    result.logdata.res_norms = gko::batch::MultiVector<real_type>::create(
-        exec->get_master(), norm_size);
-    result.logdata.iter_counts.set_executor(exec->get_master());
-    result.logdata.iter_counts.resize_and_reset(num_rhs * num_batch_items);
-    result.logdata.res_norms->copy_from(logdata.res_norms.get());
-    result.logdata.iter_counts = logdata.iter_counts;
+    result.log_data = std::make_unique<batch::log::BatchLogData<real_type>>(
+        exec->get_master());
+    result.log_data->iter_counts = log_data->iter_counts;
+    result.log_data->res_norms = log_data->res_norms;
 
     result.res_norm =
         compute_residual_norms(sys.matrix.get(), sys.rhs.get(), result.x.get());
