@@ -586,8 +586,10 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     _macro(std::complex<double>, int32) GKO_NOT_IMPLEMENTED
 #else
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(_macro) \
+    GKO_ADAPT_HF(_macro(half, int32));                        \
     template _macro(float, int32);                            \
     template _macro(double, int32);                           \
+    GKO_ADAPT_HF(_macro(std::complex<half>, int32));          \
     template _macro(std::complex<float>, int32);              \
     template _macro(std::complex<double>, int32)
 #endif
