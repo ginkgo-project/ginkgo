@@ -95,6 +95,12 @@ public:
          * Local solver factory.
          */
         GKO_DEFERRED_FACTORY_PARAMETER(local_solver, LinOpFactory);
+
+        /**
+         * Generated Inner solvers.
+         */
+        std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(
+            generated_local_solver, nullptr);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Schwarz, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -130,7 +136,6 @@ protected:
      */
     void generate(std::shared_ptr<const LinOp> system_matrix);
 
-
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
     template <typename VectorType>
@@ -140,6 +145,13 @@ protected:
                     LinOp* x) const override;
 
 private:
+    /**
+     * Sets the solver operator used as the local solver.
+     *
+     * @param new_solver  the new local solver
+     */
+    void set_solver(std::shared_ptr<const LinOp> new_solver);
+
     std::shared_ptr<const LinOp> local_solver_;
 };
 

@@ -178,6 +178,36 @@ protected:
 TYPED_TEST_SUITE(SchwarzPreconditioner, gko::test::ValueLocalGlobalIndexTypes,
                  TupleTypenameNameGenerator);
 
+TYPED_TEST(SchwarzPreconditioner, GenerateFailsIfInvalidState)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    using local_prec_type =
+        gko::preconditioner::Jacobi<value_type, local_index_type>;
+    using prec = typename TestFixture::dist_prec_type;
+
+    auto local_solver = gko::share(local_prec_type::build()
+                                       .with_max_block_size(1u)
+                                       .on(this->exec)
+                                       ->generate(this->non_dist_mat));
+    auto schwarz = prec::build()
+                       .with_local_solver(this->local_solver_factory)
+                       .with_generated_local_solver(local_solver)
+                       .on(this->exec);
+
+    ASSERT_THROW(schwarz->generate(this->dist_mat), gko::InvalidStateError);
+}
+
+
+TYPED_TEST(SchwarzPreconditioner, GenerateFailsIfNoSolverProvided)
+{
+    using prec = typename TestFixture::dist_prec_type;
+    auto schwarz_no_solver = prec::build().on(this->exec);
+
+    ASSERT_THROW(schwarz_no_solver->generate(this->dist_mat),
+                 gko::InvalidStateError);
+}
+
 
 TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionedSolver)
 {
@@ -218,11 +248,44 @@ TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionedSolver)
 }
 
 
+TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionedSolverWithPregenSolver)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    using local_prec_type =
+        gko::preconditioner::Jacobi<value_type, local_index_type>;
+    using csr = typename TestFixture::local_matrix_type;
+    using cg = typename TestFixture::solver_type;
+    using prec = typename TestFixture::dist_prec_type;
+
+    auto local_solver =
+        gko::share(local_prec_type::build()
+                       .with_max_block_size(1u)
+                       .on(this->exec)
+                       ->generate(this->dist_mat->get_local_matrix()));
+    auto precond = prec::build()
+                       .with_local_solver(this->local_solver_factory)
+                       .on(this->exec)
+                       ->generate(this->dist_mat);
+    auto precond_pregen = prec::build()
+                              .with_generated_local_solver(local_solver)
+                              .on(this->exec)
+                              ->generate(this->dist_mat);
+    auto dist_x = gko::share(this->dist_x->clone());
+    auto dist_x_pregen = gko::share(this->dist_x->clone());
+
+    precond->apply(this->dist_b.get(), dist_x.get());
+    precond_pregen->apply(this->dist_b.get(), dist_x_pregen.get());
+
+    GKO_ASSERT_MTX_NEAR(dist_x->get_local_vector(),
+                        dist_x_pregen->get_local_vector(),
+                        r<value_type>::value);
+}
+
+
 TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditioner)
 {
     using value_type = typename TestFixture::value_type;
-    using csr = typename TestFixture::local_matrix_type;
-    using cg = typename TestFixture::solver_type;
     using prec = typename TestFixture::dist_prec_type;
 
     auto precond_factory = prec::build()
