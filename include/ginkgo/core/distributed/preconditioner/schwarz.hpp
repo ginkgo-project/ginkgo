@@ -94,7 +94,8 @@ public:
         /**
          * Local solver factory.
          */
-        GKO_DEFERRED_FACTORY_PARAMETER(local_solver, const LinOpFactory);
+        std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
+            local_solver);
 
         /**
          * Generated Inner solvers.

@@ -70,7 +70,7 @@ public:
          * too costly.
          */
         std::vector<std::shared_ptr<const CriterionFactory>>
-            GKO_FACTORY_PARAMETER_VECTOR(criteria, nullptr);
+            GKO_DEFERRED_FACTORY_VECTOR_PARAMETER(criteria);
     };
 
     class Factory
