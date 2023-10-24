@@ -871,6 +871,76 @@ void extract_diagonal(size_type diag_size, size_type nnz,
 GKO_ENABLE_DEFAULT_HOST(extract_diagonal, extract_diagonal);
 
 
+template <typename IndexType>
+void check_diagonal_entries(const IndexType num_min_rows_cols,
+                            const IndexType* const __restrict__ row_ptrs,
+                            const IndexType* const __restrict__ col_idxs,
+                            bool* const __restrict__ has_all_diags,
+                            sycl::nd_item<3> item_ct1)
+{
+    constexpr int subgroup_size = config::warp_size;
+    auto tile_grp = group::tiled_partition<subgroup_size>(
+        group::this_thread_block(item_ct1));
+    const auto row =
+        thread::get_subwarp_id_flat<subgroup_size, IndexType>(item_ct1);
+    if (row < num_min_rows_cols) {
+        const auto tid_in_warp = tile_grp.thread_rank();
+        const auto row_start = row_ptrs[row];
+        const auto num_nz = row_ptrs[row + 1] - row_start;
+        bool row_has_diag_local{false};
+        for (IndexType iz = tid_in_warp; iz < num_nz; iz += subgroup_size) {
+            if (col_idxs[iz + row_start] == row) {
+                row_has_diag_local = true;
+                break;
+            }
+        }
+        auto row_has_diag = static_cast<bool>(tile_grp.any(row_has_diag_local));
+        if (!row_has_diag) {
+            if (tile_grp.thread_rank() == 0) {
+                *has_all_diags = false;
+            }
+        }
+    }
+}
+
+GKO_ENABLE_DEFAULT_HOST(check_diagonal_entries, check_diagonal_entries);
+
+
+template <typename ValueType, typename IndexType>
+void add_scaled_identity(const ValueType* const __restrict__ alpha,
+                         const ValueType* const __restrict__ beta,
+                         const IndexType num_rows,
+                         const IndexType* const __restrict__ row_ptrs,
+                         const IndexType* const __restrict__ col_idxs,
+                         ValueType* const __restrict__ values,
+                         sycl::nd_item<3> item_ct1)
+{
+    constexpr int subgroup_size = config::warp_size;
+    auto tile_grp = group::tiled_partition<subgroup_size>(
+        group::this_thread_block(item_ct1));
+    const auto row =
+        thread::get_subwarp_id_flat<subgroup_size, IndexType>(item_ct1);
+    if (row < num_rows) {
+        const auto tid_in_warp = tile_grp.thread_rank();
+        const auto row_start = row_ptrs[row];
+        const auto num_nz = row_ptrs[row + 1] - row_start;
+        const auto beta_val = beta[0];
+        const auto alpha_val = alpha[0];
+        for (IndexType iz = tid_in_warp; iz < num_nz; iz += subgroup_size) {
+            if (beta_val != one<ValueType>()) {
+                values[iz + row_start] *= beta_val;
+            }
+            if (col_idxs[iz + row_start] == row &&
+                alpha_val != zero<ValueType>()) {
+                values[iz + row_start] += alpha_val;
+            }
+        }
+    }
+}
+
+GKO_ENABLE_DEFAULT_HOST(add_scaled_identity, add_scaled_identity);
+
+
 }  // namespace kernel
 
 
@@ -2364,8 +2434,24 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTRACT_DIAGONAL);
 template <typename ValueType, typename IndexType>
 void check_diagonal_entries_exist(
     std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* const mtx,
-    bool& has_all_diags) GKO_NOT_IMPLEMENTED;
+    const matrix::Csr<ValueType, IndexType>* const mtx, bool& has_all_diags)
+{
+    const size_type num_subgroup = mtx->get_size()[0];
+    if (num_subgroup > 0) {
+        const size_type num_blocks =
+            num_subgroup / (default_block_size / config::warp_size);
+        array<bool> has_diags(exec, {true});
+        kernel::check_diagonal_entries(
+            num_blocks, default_block_size, 0, exec->get_queue(),
+            static_cast<IndexType>(
+                std::min(mtx->get_size()[0], mtx->get_size()[1])),
+            mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+            has_diags.get_data());
+        has_all_diags = exec->copy_val_to_host(has_diags.get_const_data());
+    } else {
+        has_all_diags = true;
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CHECK_DIAGONAL_ENTRIES_EXIST);
@@ -2376,7 +2462,19 @@ void add_scaled_identity(std::shared_ptr<const DpcppExecutor> exec,
                          const matrix::Dense<ValueType>* const alpha,
                          const matrix::Dense<ValueType>* const beta,
                          matrix::Csr<ValueType, IndexType>* const mtx)
-    GKO_NOT_IMPLEMENTED;
+{
+    const auto nrows = mtx->get_size()[0];
+    if (nrows == 0) {
+        return;
+    }
+    const auto nthreads = nrows * config::warp_size;
+    const auto nblocks = ceildiv(nthreads, default_block_size);
+    kernel::add_scaled_identity(
+        nblocks, default_block_size, 0, exec->get_queue(),
+        alpha->get_const_values(), beta->get_const_values(),
+        static_cast<IndexType>(nrows), mtx->get_const_row_ptrs(),
+        mtx->get_const_col_idxs(), mtx->get_values());
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADD_SCALED_IDENTITY_KERNEL);
