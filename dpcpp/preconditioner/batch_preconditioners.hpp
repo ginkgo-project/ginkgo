@@ -52,4 +52,5 @@ namespace dpcpp {
 }  // namespace kernels
 }  // namespace gko
 
+
 #endif  // GKO_DPCPP_PRECONDITIONER_BATCH_PRECONDITIONERS_HPP_

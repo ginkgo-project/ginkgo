@@ -39,8 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace omp {
-
-
 /**
  * @brief The batch Bicgstab solver namespace.
  *
@@ -67,6 +65,7 @@ constexpr int max_num_rhs = 1;
 template <typename T>
 using BicgstabOptions = gko::kernels::batch_bicgstab::BicgstabOptions<T>;
 
+
 template <typename ValueType>
 class KernelCaller {
 public:
@@ -75,37 +74,37 @@ public:
         : exec_{std::move(exec)}, opts_{opts}
     {}
 
-    template <typename BatchMatrixType, typename PrecType, typename StopType,
+    template <typename BatchMatrixType, typename PrecondType, typename StopType,
               typename LogType>
     void call_kernel(
-        const LogType& logger, const BatchMatrixType& a, PrecType prec,
+        const LogType& logger, const BatchMatrixType& mat, PrecondType precond,
         const gko::batch::multi_vector::uniform_batch<const ValueType>& b,
         const gko::batch::multi_vector::uniform_batch<ValueType>& x) const
     {
         using real_type = typename gko::remove_complex<ValueType>;
-        const size_type nbatch = a.num_batch_items;
-        const auto nrows = a.num_rows;
-        const auto nrhs = b.num_rhs;
-        if (nrhs > 1) {
+        const size_type num_batch_items = mat.num_batch_items;
+        const auto num_rows = mat.num_rows;
+        const auto num_rhs = b.num_rhs;
+        if (num_rhs > 1) {
             GKO_NOT_IMPLEMENTED;
         }
 
         const int local_size_bytes =
             gko::kernels::batch_bicgstab::local_memory_requirement<ValueType>(
-                nrows, nrhs) +
-            PrecType::dynamic_work_size(nrows, a.get_num_nnz()) *
+                num_rows, num_rhs) +
+            PrecondType::dynamic_work_size(num_rows, mat.get_num_nnz()) *
                 sizeof(ValueType);
 
 #pragma omp parallel for firstprivate(logger)
-        for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
+        for (size_type batch_id = 0; batch_id < num_batch_items; batch_id++) {
             // TODO: Align to cache line boundary
             // TODO: Allocate and free once per thread rather than once per
             // work-item.
             const auto local_space =
                 static_cast<unsigned char*>(malloc(local_size_bytes));
-            batch_entry_bicgstab_impl<StopType, PrecType, LogType,
+            batch_entry_bicgstab_impl<StopType, PrecondType, LogType,
                                       BatchMatrixType, ValueType>(
-                opts_, logger, prec, a, b, x, ibatch, local_space);
+                opts_, logger, precond, mat, b, x, batch_id, local_space);
             free(local_space);
         }
     }
@@ -119,14 +118,14 @@ private:
 template <typename ValueType>
 void apply(std::shared_ptr<const DefaultExecutor> exec,
            const BicgstabOptions<remove_complex<ValueType>>& opts,
-           const batch::BatchLinOp* const a,
-           const batch::BatchLinOp* const precon,
+           const batch::BatchLinOp* const mat,
+           const batch::BatchLinOp* const precond,
            const batch::MultiVector<ValueType>* const b,
            batch::MultiVector<ValueType>* const x,
            batch::log::BatchLogData<remove_complex<ValueType>>& logdata)
 {
     auto dispatcher = batch::solver::create_dispatcher<ValueType>(
-        KernelCaller<ValueType>(exec, opts), opts, a, precon);
+        KernelCaller<ValueType>(exec, opts), opts, mat, precond);
     dispatcher.apply(b, x, logdata);
 }
 

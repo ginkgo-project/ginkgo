@@ -46,10 +46,9 @@ namespace stop {
 
 
 /**
- * Stopping criterion for batch solvers that combines a maximum iteration
- * count and relative residual threshold.
+ * Stopping criterion for batch solvers with relative residual threshold.
  *
- * Supports only one right hand side.
+ * @note Supports only one right hand side.
  */
 template <typename ValueType>
 class SimpleRelResidual {
@@ -59,9 +58,8 @@ public:
     /**
      * Set up the stopping criterion and convergence variable.
      *
-     * @param max_iters  Maximum number of iterations allowed.
      * @param rel_res_tol  Tolerance on relative residual norm.
-     * @param rhs_b_norms  The reference RHS norms.
+     * @param rhs_b_norms  The RHS norms.
      */
     SimpleRelResidual(const real_type rel_res_tol,
                       const real_type* const rhs_b_norms)
@@ -73,7 +71,7 @@ public:
      *
      * @param residual_norms  Current residual norm.
      *
-     * @return  True if RHS has converged, false otherwise.
+     * @return  true if converged, false otherwise.
      */
     bool check_converged(const real_type* const residual_norms) const
     {
@@ -87,10 +85,10 @@ private:
 
 
 /**
- * Stopping criterion for batch solvers that combines a maximum iteration
- * count and absolute residual threshold.
+ * Stopping criterion for batch solvers that checks for an absolute residual
+ * threshold.
  *
- * Supports only one right hand side.
+ * @note Supports only one right hand side.
  */
 template <typename ValueType>
 class SimpleAbsResidual {
@@ -100,22 +98,16 @@ public:
     /**
      * Set up the stopping criterion and convergence variable.
      *
-     * @param max_iters  Maximum number of iterations allowed.
      * @param tol  Tolerance on residual norm.
+     * @param dummy  for uniform creation of stopping criteria.
      */
     SimpleAbsResidual(const real_type tol, const real_type*) : abs_tol_{tol} {}
 
     /**
      * Checks whether the different right hand sides have converged.
      *
-     * @param iter  The current iteration count.
-     * @param residual_norms  (Optional) current residual norm of each RHS.
-     * @param residual  Current residual vectors. Unused if residual_norms
-     *                  are provided.
-     * @param converged  Bits representing converged (1) or not (0) for each
-     *                   RHS. The 'right-most' bit corresponds to the first RHS.
-     *
-     * @return  True if all RHS have converged, false otherwise.
+     * @param residual_norms  current residual norm of each RHS.
+     * @return  true if converged, false otherwise.
      */
     bool check_converged(const real_type* const residual_norms) const
     {

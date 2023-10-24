@@ -40,12 +40,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace cuda {
+namespace batch_log {
 
 
 #include "common/cuda_hip/log/batch_logger.hpp.inc"
 
 
-}
+}  // namespace batch_log
+}  // namespace cuda
 }  // namespace kernels
 }  // namespace gko
 

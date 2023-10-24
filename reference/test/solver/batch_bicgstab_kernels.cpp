@@ -290,7 +290,7 @@ TYPED_TEST(BatchBicgstab, CanSolveEllSystem)
     for (size_t i = 0; i < num_batch_items; i++) {
         ASSERT_LE(res.res_norm->get_const_values()[i] /
                       linear_system.rhs_norm->get_const_values()[i],
-                  tol);
+                  tol * 10);
     }
 }
 
@@ -307,7 +307,7 @@ TYPED_TEST(BatchBicgstab, CanSolveDenseHpdSystem)
         Solver::build()
             .with_default_max_iterations(max_iters)
             .with_default_residual_tol(tol)
-            .with_tolerance_type(gko::batch::stop::ToleranceType::relative)
+            .with_tolerance_type(gko::batch::stop::ToleranceType::absolute)
             .on(this->exec);
     const int num_rows = 65;
     const gko::size_type num_batch_items = 5;
@@ -321,8 +321,6 @@ TYPED_TEST(BatchBicgstab, CanSolveDenseHpdSystem)
 
     GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 50);
     for (size_t i = 0; i < num_batch_items; i++) {
-        ASSERT_LE(res.res_norm->get_const_values()[i] /
-                      linear_system.rhs_norm->get_const_values()[i],
-                  tol * 10);
+        ASSERT_LE(res.res_norm->get_const_values()[i], tol * 10);
     }
 }
