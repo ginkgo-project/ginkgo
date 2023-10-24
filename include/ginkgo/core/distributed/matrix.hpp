@@ -318,6 +318,21 @@ public:
             partition);
 
     /**
+     * Reads a square matrix from the matrix_data structure and a global
+     * partition.
+     *
+     * @see read_distributed
+     *
+     * @note For efficiency it is advised to use the device_matrix_data
+     * overload.
+     */
+    void read_distributed(
+        const matrix_data<value_type, local_index_type>& local_data,
+        const matrix_data<value_type, local_index_type>& non_local_data,
+        ptr_param<const Partition<local_index_type, global_index_type>>
+            partition);
+
+    /**
      * Reads a matrix from the device_matrix_data structure, a global row
      * partition, and a global column partition.
      *

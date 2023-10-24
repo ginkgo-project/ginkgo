@@ -119,6 +119,32 @@ TYPED_TEST(MatrixCreation, ReadsDistributedGlobalData)
 }
 
 
+TYPED_TEST(MatrixCreation, ReadsDistributedLocalNonLocalData)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::local_index_type;
+    using csr = typename TestFixture::local_matrix_type;
+    using mtx_type = typename TestFixture::dist_mtx_type;
+
+    I<I<value_type>> res_local[] = {{{0, 1}, {0, 3}}, {{6, 0}, {0, 8}}, {{10}}};
+    I<I<value_type>> res_non_local[] = {
+        {{0, 2}, {4, 0}}, {{5, 0}, {0, 7}}, {{9}}};
+    auto rank = this->dist_mat->get_communicator().rank();
+    this->dist_mat->read_distributed(this->mat_input, this->row_part);
+    gko::matrix_data<value_type, index_type> local_data {};
+    gko::matrix_data<value_type, index_type> non_local_data {};
+    gko::as<csr>(this->dist_mat->get_local_matrix())->write(local_data);
+    gko::as<csr>(this->dist_mat->get_non_local_matrix())->write(non_local_data);
+    auto dist_mat = mtx_type::create(this->exec, this->comm);
+    dist_mat->read_distributed(local_data, non_local_data, this->row_part);
+
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
+                        gko::as<csr>(dist_mat->get_local_matrix()), 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_non_local_matrix()),
+                        gko::as<csr>(dist_mat->get_non_local_matrix()), 0);
+}
+
+
 TYPED_TEST(MatrixCreation, ReadsDistributedLocalData)
 {
     using value_type = typename TestFixture::value_type;

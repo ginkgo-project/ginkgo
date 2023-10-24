@@ -141,6 +141,16 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
     this->set_size({});
 }
 
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
+    const matrix_data<ValueType, LocalIndexType>& data,
+    const matrix_data<ValueType, LocalIndexType>& non_local_data,
+    ptr_param<const Partition<local_index_type, global_index_type>>
+        row_partition)
+{}
+
+
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const device_matrix_data<value_type, global_index_type>& data,
@@ -172,6 +182,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     array<value_type> non_local_values{exec};
     array<local_index_type> recv_gather_idxs{exec};
     array<comm_index_type> recv_sizes_array{exec, num_parts};
+
+    // NOTE till here identical to default read distributed
 
     // build local, non-local matrix data and communication structures
     exec->run(matrix::make_build_local_nonlocal(
