@@ -58,8 +58,9 @@ void combine(std::shared_ptr<const DefaultExecutor> exec,
              const IndexType* second_permutation, size_type size,
              IndexType* output_permutation)
 {
+    // P_2 P_1 does a row permutation of P_1 with indices from P_2
     for (size_type i = 0; i < size; i++) {
-        output_permutation[i] = second_permutation[first_permutation[i]];
+        output_permutation[i] = first_permutation[second_permutation[i]];
     }
 }
 

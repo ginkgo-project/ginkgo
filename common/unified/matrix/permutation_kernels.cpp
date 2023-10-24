@@ -71,7 +71,7 @@ void combine(std::shared_ptr<const DefaultExecutor> exec,
         exec,
         [] GKO_KERNEL(auto i, auto first_permutation, auto second_permutation,
                       auto output_permutation) {
-            output_permutation[i] = second_permutation[first_permutation[i]];
+            output_permutation[i] = first_permutation[second_permutation[i]];
         },
         size, first_permutation, second_permutation, output_permutation);
 }

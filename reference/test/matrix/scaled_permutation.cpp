@@ -67,6 +67,22 @@ protected:
                         gko::array<index_type>{this->exec, {1, 0}});
     }
 
+    std::unique_ptr<Vec> ref_combine(const Mtx* first, const Mtx* second)
+    {
+        const auto exec = first->get_executor();
+        gko::matrix_data<value_type, index_type> first_perm_data;
+        gko::matrix_data<value_type, index_type> second_perm_data;
+        first->write(first_perm_data);
+        second->write(second_perm_data);
+        const auto first_mtx = Vec::create(exec);
+        const auto second_mtx = Vec::create(exec);
+        first_mtx->read(first_perm_data);
+        second_mtx->read(second_perm_data);
+        auto combined_mtx = first_mtx->clone();
+        second_mtx->apply(first_mtx, combined_mtx);
+        return combined_mtx;
+    }
+
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Mtx> perm3;
     std::unique_ptr<Mtx> perm2;
@@ -113,19 +129,43 @@ TYPED_TEST(ScaledPermutation, Combine)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
+    using Vec = typename TestFixture::Vec;
     using Mtx = typename TestFixture::Mtx;
-    auto other_perm = Mtx::create(
+    const auto other_perm = Mtx::create(
         this->exec, gko::array<value_type>{this->exec, {3.0, 5.0, 7.0}},
         gko::array<index_type>{this->exec, {1, 0, 2}});
+    const auto ref_combined =
+        this->ref_combine(this->perm3.get(), other_perm.get());
 
-    auto combined = this->perm3->combine(other_perm);
+    const auto combined = this->perm3->combine(other_perm);
 
-    EXPECT_EQ(combined->get_const_permutation()[0], 0);
-    EXPECT_EQ(combined->get_const_permutation()[1], 2);
-    EXPECT_EQ(combined->get_const_permutation()[2], 1);
-    EXPECT_EQ(combined->get_const_scale()[0], value_type{7});
-    EXPECT_EQ(combined->get_const_scale()[1], value_type{6});
-    EXPECT_EQ(combined->get_const_scale()[2], value_type{20});
+    GKO_ASSERT_MTX_NEAR(combined, ref_combined, 0.0);
+}
+
+
+TYPED_TEST(ScaledPermutation, CombineLarger)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Vec = typename TestFixture::Vec;
+    using Mtx = typename TestFixture::Mtx;
+    const auto perm = Mtx::create(
+        this->exec,
+        gko::array<value_type>{
+            this->exec,
+            {1.0, 2.0, 3.0, 5.0, 7.0, 11.0, 13.0, 17.0, 19.0, 23.0}},
+        gko::array<index_type>{this->exec, {6, 2, 4, 0, 1, 5, 9, 8, 3, 7}});
+    const auto perm2 = Mtx::create(
+        this->exec,
+        gko::array<value_type>{
+            this->exec,
+            {29.0, 31.0, 37.0, 41.0, 43.0, 47.0, 53.0, 59.0, 61.0, 67.0}},
+        gko::array<index_type>{this->exec, {9, 2, 1, 6, 3, 7, 8, 4, 0, 5}});
+    const auto ref_combined = this->ref_combine(perm.get(), perm2.get());
+
+    const auto combined = perm->combine(perm2);
+
+    GKO_ASSERT_MTX_NEAR(combined, ref_combined, 0.0);
 }
 
 
