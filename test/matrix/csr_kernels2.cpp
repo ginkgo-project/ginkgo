@@ -1315,10 +1315,12 @@ TEST_F(Csr, CanDetectMissingDiagonalEntry)
 {
     using T = double;
     using Csr = Mtx;
-    auto ref_mtx = gen_mtx<Csr>(103, 98, 10);
+    auto ref_mtx = gen_mtx<Csr>(103, 104, 10);
     const auto rowptrs = ref_mtx->get_row_ptrs();
     const auto colidxs = ref_mtx->get_col_idxs();
-    const int testrow = 15;
+    gko::utils::ensure_all_diagonal_entries(ref_mtx.get());
+    // Choose the last row to ensure that kernel assign enough work
+    const int testrow = 102;
     gko::utils::remove_diagonal_entry_from_row(ref_mtx.get(), testrow);
     auto mtx = gko::clone(exec, ref_mtx);
     bool has_diags = true;
