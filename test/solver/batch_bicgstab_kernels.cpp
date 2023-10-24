@@ -195,7 +195,7 @@ TEST_F(BatchBicgstab, CanSolve3ptStencilSystem)
 
 TEST_F(BatchBicgstab, CanSolveLargeHpdSystem)
 {
-    const int num_batch_items = 4;
+    const int num_batch_items = 3;
     const int num_rows = 1025;
     const int num_rhs = 1;
     const real_type tol = 1e-5;

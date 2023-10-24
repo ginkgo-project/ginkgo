@@ -203,13 +203,13 @@ compute_residual_norms(
     auto num_rhs = x->get_common_size()[1];
     const gko::batch_dim<2> norm_dim(num_batch_items, gko::dim<2>(1, num_rhs));
 
-    auto res = b->clone();
+    auto residual_vec = b->clone();
     auto res_norms = real_vec::create(exec, norm_dim);
     auto alpha =
         gko::batch::initialize<multi_vec>(num_batch_items, {-1.0}, exec);
     auto beta = gko::batch::initialize<multi_vec>(num_batch_items, {1.0}, exec);
-    mtx->apply(alpha, x, beta, res);
-    res->compute_norm2(res_norms);
+    mtx->apply(alpha, x, beta, residual_vec);
+    residual_vec->compute_norm2(res_norms);
     return res_norms;
 }
 
