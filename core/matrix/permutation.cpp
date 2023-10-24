@@ -56,6 +56,76 @@ GKO_REGISTER_OPERATION(combine, permutation::combine);
 }  // namespace permutation
 
 
+void validate_permute_dimensions(dim<2> size, dim<2> permutation_size,
+                                 permute_mode mode)
+{
+    if ((mode & permute_mode::symmetric) == permute_mode::symmetric) {
+        GKO_ASSERT_IS_SQUARE_MATRIX(size);
+    }
+    if ((mode & permute_mode::rows) == permute_mode::rows) {
+        if (size[0] != permutation_size[0]) {
+            throw DimensionMismatch(
+                __FILE__, __LINE__, __func__, "matrix", size[0], size[1],
+                "permutation", permutation_size[0], permutation_size[0],
+                "expected the permutation size to match the number of rows");
+        };
+    }
+    if ((mode & permute_mode::columns) == permute_mode::columns) {
+        if (size[1] != permutation_size[0]) {
+            throw DimensionMismatch(
+                __FILE__, __LINE__, __func__, "matrix", size[0], size[1],
+                "permutation", permutation_size[0], permutation_size[0],
+                "expected the permutation size to match the number of columns");
+        };
+    }
+}
+
+
+permute_mode operator|(permute_mode a, permute_mode b)
+{
+    return static_cast<permute_mode>(static_cast<unsigned>(a) |
+                                     static_cast<unsigned>(b));
+}
+
+
+permute_mode operator&(permute_mode a, permute_mode b)
+{
+    return static_cast<permute_mode>(static_cast<unsigned>(a) &
+                                     static_cast<unsigned>(b));
+}
+
+
+permute_mode operator^(permute_mode a, permute_mode b)
+{
+    return static_cast<permute_mode>(static_cast<unsigned>(a) ^
+                                     static_cast<unsigned>(b));
+}
+
+
+std::ostream& operator<<(std::ostream& stream, permute_mode mode)
+{
+    switch (mode) {
+    case permute_mode::none:
+        return stream << "none";
+    case permute_mode::rows:
+        return stream << "rows";
+    case permute_mode::columns:
+        return stream << "columns";
+    case permute_mode::symmetric:
+        return stream << "symmetric";
+    case permute_mode::inverse:
+        return stream << "inverse";
+    case permute_mode::inverse_rows:
+        return stream << "inverse_rows";
+    case permute_mode::inverse_columns:
+        return stream << "inverse_columns";
+    case permute_mode::inverse_symmetric:
+        return stream << "inverse_symmetric";
+    }
+    return stream;
+}
+
+
 template <typename IndexType>
 std::unique_ptr<const Permutation<IndexType>>
 Permutation<IndexType>::create_const(
@@ -119,33 +189,9 @@ Permutation<IndexType>::Permutation(std::shared_ptr<const Executor> exec,
 
 
 template <typename IndexType>
-Permutation<IndexType>::Permutation(std::shared_ptr<const Executor> exec,
-                                    const dim<2>& size,
-                                    array<index_type> permutation_indices)
-    : Permutation{std::move(exec), std::move(permutation_indices)}
-{
-    GKO_ASSERT_EQ(size[0], permutation_.get_num_elems());
-    GKO_ASSERT_IS_SQUARE_MATRIX(size);
-}
-
-
-template <typename IndexType>
-Permutation<IndexType>::Permutation(std::shared_ptr<const Executor> exec,
-                                    const dim<2>& size,
-                                    array<index_type> permutation_indices,
-                                    const mask_type& enabled_permute)
-    : Permutation{std::move(exec), std::move(permutation_indices)}
-{
-    GKO_ASSERT_EQ(enabled_permute, row_permute);
-    GKO_ASSERT_EQ(size[0], permutation_.get_num_elems());
-    GKO_ASSERT_IS_SQUARE_MATRIX(size);
-}
-
-
-template <typename IndexType>
 size_type Permutation<IndexType>::get_permutation_size() const noexcept
 {
-    return permutation_.get_num_elems();
+    return this->get_size()[0];
 }
 
 
@@ -212,14 +258,8 @@ void dispatch_dense(const LinOp* op, Functor fn)
 {
     using matrix::Dense;
     using std::complex;
-    if (dynamic_cast<const ConvertibleTo<Dense<double>>*>(op)) {
-        run<const Dense<double>*, const Dense<float>*>(op, fn);
-    } else if (dynamic_cast<const ConvertibleTo<Dense<complex<double>>>*>(op)) {
-        run<const Dense<complex<double>>*, const Dense<complex<float>>*>(op,
-                                                                         fn);
-    } else {
-        GKO_NOT_SUPPORTED(*op);
-    }
+    run<const Dense<double>*, const Dense<float>*,
+        const Dense<complex<double>>*, const Dense<complex<float>>*>(op, fn);
 }
 
 

@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 
 
@@ -47,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class Permutation : public CommonTestFixture {
 protected:
     using Perm = gko::matrix::Permutation<index_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
 
     Permutation() : rand_engine(42)
     {
@@ -60,10 +62,28 @@ protected:
         permutation2 = Perm::create(
             ref, gko::array<index_type>(ref, tmp2.begin(), tmp2.end()));
         dpermutation = permutation->clone(exec);
+
+        mtx = gko::test::generate_random_matrix<Mtx>(
+            tmp.size(), 4, std::uniform_int_distribution<>(4, 4),
+            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
+                                                                      1.0),
+            rand_engine, ref);
+        mtx2 = gko::test::generate_random_matrix<Mtx>(
+            tmp.size(), 4, std::uniform_int_distribution<>(4, 4),
+            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
+                                                                      1.0),
+            rand_engine, ref);
+        alpha = gko::initialize<Mtx>({2.0}, ref);
+        beta = gko::initialize<Mtx>({-3.0}, ref);
+        dmtx = mtx->clone();
     }
 
     std::default_random_engine rand_engine;
-
+    std::unique_ptr<Mtx> mtx;
+    std::unique_ptr<Mtx> mtx2;
+    std::unique_ptr<Mtx> dmtx;
+    std::unique_ptr<Mtx> alpha;
+    std::unique_ptr<Mtx> beta;
     std::unique_ptr<Perm> permutation;
     std::unique_ptr<Perm> permutation2;
     std::unique_ptr<Perm> dpermutation;
@@ -76,6 +96,30 @@ TEST_F(Permutation, InvertIsEquivalentToRef)
     auto dinv = dpermutation->invert();
 
     GKO_ASSERT_MTX_EQ_SPARSITY(inv, dinv);
+}
+
+
+TEST_F(Permutation, ApplyIsEquivalentToRef)
+{
+    auto out = mtx->clone();
+    auto dout = dmtx->clone();
+
+    permutation->apply(mtx, out);
+    dpermutation->apply(dmtx, dout);
+
+    GKO_ASSERT_MTX_NEAR(out, dout, 0.0);
+}
+
+
+TEST_F(Permutation, AdvancedApplyIsEquivalentToRef)
+{
+    auto out = mtx->clone();
+    auto dout = dmtx->clone();
+
+    permutation->apply(alpha, mtx, beta, out);
+    dpermutation->apply(alpha, dmtx, beta, dout);
+
+    GKO_ASSERT_MTX_NEAR(out, dout, r<value_type>::value);
 }
 
 

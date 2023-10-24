@@ -771,17 +771,7 @@ public:
      * Creates a permuted copy $A'$ of this matrix $A$ with the given
      * permutation $P$. By default, this computes a symmetric permutation
      * (permute_mode::symmetric). For the effect of the different permutation
-     * modes, see the following table.
-     *
-     * mode              | entry mapping              | matrix representation
-     * ------------------|----------------------------|----------------------
-     * none              | $A'(i, j) = A(i, j)$       | $A' = A$
-     * rows              | $A'(i, j) = A(p[i], j)$    | $A' = P A$
-     * columns           | $A'(i, j) = A(i, p[j])$    | $A' = A P^T$
-     * inverse_rows      | $A'(p[i], j) = A(i, j)$    | $A' = P^{-1} A$
-     * inverse_columns   | $A'(p[i], j) = A(i, j)$    | $A' = A P^{-T}$
-     * symmetric         | $A'(i, j) = A(p[i], p[j])$ | $A' = P A P^T$
-     * inverse_symmetric | $A'(p[i], p[j]) = A(i, j)$ | $A' = P^{-1} A P^{-T}$
+     * modes, see @ref permute_mode
      *
      * @param permutation  The input permutation.
      * @param mode  The permutation mode. If permute_mode::inverse is set, we

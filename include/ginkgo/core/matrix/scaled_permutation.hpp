@@ -62,7 +62,7 @@ namespace matrix {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class ScaledPermutation
+class ScaledPermutation final
     : public EnableLinOp<ScaledPermutation<ValueType, IndexType>>,
       public WritableToMatrixData<ValueType, IndexType> {
     friend class EnablePolymorphicObject<ScaledPermutation, LinOp>;
@@ -110,10 +110,12 @@ public:
     }
 
     /**
-     * Returns the inverse scaled permutation.
+     * Returns the inverse of this operator as a scaled permutation.
+     * It is computed via $(P S)^-1 = P^{-1} (P S P^{-1})$.
      *
      * @return a newly created ScaledPermutation object storing the inverse
-     *         permutation and scaling factors of this ScalingPermutation.
+     *         of the permutation and scaling factors of this
+     *         ScalledPermutation.
      */
     std::unique_ptr<ScaledPermutation> invert() const;
 
@@ -151,8 +153,7 @@ public:
         ptr_param<const Permutation<IndexType>> permutation);
 
     /**
-     * Creates a ScaledPermutation matrix from already allocated (and
-     * initialized) arrays.
+     * Creates a ScaledPermutation matrix from already allocated arrays.
      *
      * @param exec  Executor associated to the matrix
      * @param permutation_indices  array of permutation indices
@@ -178,7 +179,7 @@ public:
         gko::detail::const_array_view<value_type>&& scale,
         gko::detail::const_array_view<index_type>&& perm_idxs);
 
-protected:
+private:
     ScaledPermutation(std::shared_ptr<const Executor> exec, size_type size = 0);
 
     ScaledPermutation(std::shared_ptr<const Executor> exec,
@@ -190,7 +191,6 @@ protected:
     void apply_impl(const LinOp*, const LinOp* in, const LinOp*,
                     LinOp* out) const override;
 
-private:
     array<value_type> scale_;
     array<index_type> permutation_;
 };

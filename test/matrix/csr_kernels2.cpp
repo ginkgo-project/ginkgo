@@ -193,8 +193,8 @@ protected:
         std::generate(scale2.begin(), scale2.end(), gen);
         rpermute_idxs = std::make_unique<Arr>(ref, tmp.begin(), tmp.end());
         cpermute_idxs = std::make_unique<Arr>(ref, tmp2.begin(), tmp2.end());
-        rpermutation = Perm::create(ref, tmp.size(), *rpermute_idxs);
-        cpermutation = Perm::create(ref, tmp2.size(), *cpermute_idxs);
+        rpermutation = Perm::create(ref, *rpermute_idxs);
+        cpermutation = Perm::create(ref, *cpermute_idxs);
         srpermutation = ScaledPerm::create(
             ref, gko::array<value_type>(ref, scale.begin(), scale.end()),
             *rpermute_idxs);
@@ -911,33 +911,46 @@ TEST_F(Csr, IsGenericPermutable)
 }
 
 
+TEST_F(Csr, IsColPermutableHypersparse)
+{
+    using gko::matrix::permute_mode;
+    auto hypersparse_mtx = gko::initialize<Mtx>(
+        {{0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, {0.0, 0.0, 2.0}}, ref);
+    auto dhypersparse_mtx = hypersparse_mtx->clone();
+    auto perm3 = Perm::create(ref, gko::array<index_type>{ref, {1, 2, 0}});
+
+    for (auto mode : {permute_mode::columns, permute_mode::inverse_columns}) {
+        SCOPED_TRACE(mode);
+        auto permuted = hypersparse_mtx->permute(perm3, mode);
+        auto dpermuted = dhypersparse_mtx->permute(perm3, mode);
+
+        GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+        GKO_ASSERT_MTX_EQ_SPARSITY(permuted, dpermuted);
+        ASSERT_TRUE(dpermuted->is_sorted_by_column_index());
+    }
+}
+
+
 TEST_F(Csr, IsGenericPermutableRectangular)
 {
     using gko::matrix::permute_mode;
     set_up_apply_data<Mtx::classical>();
 
-    auto rpermuted = mtx->permute(rpermutation, permute_mode::rows);
-    auto drpermuted = dmtx->permute(rpermutation, permute_mode::rows);
-    auto irpermuted = mtx->permute(rpermutation, permute_mode::inverse_rows);
-    auto dirpermuted = dmtx->permute(rpermutation, permute_mode::inverse_rows);
-    auto cpermuted = mtx->permute(cpermutation, permute_mode::columns);
-    auto dcpermuted = dmtx->permute(cpermutation, permute_mode::columns);
-    auto icpermuted = mtx->permute(cpermutation, permute_mode::inverse_columns);
-    auto dicpermuted =
-        dmtx->permute(cpermutation, permute_mode::inverse_columns);
+    for (auto mode :
+         {permute_mode::rows, permute_mode::columns, permute_mode::inverse_rows,
+          permute_mode::inverse_columns}) {
+        SCOPED_TRACE(mode);
+        auto perm = (mode & permute_mode::rows) == permute_mode::rows
+                        ? rpermutation.get()
+                        : cpermutation.get();
 
-    GKO_EXPECT_MTX_NEAR(rpermuted, drpermuted, r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(irpermuted, dirpermuted, r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(cpermuted, dcpermuted, r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(icpermuted, dicpermuted, r<value_type>::value);
-    GKO_EXPECT_MTX_EQ_SPARSITY(rpermuted, drpermuted);
-    GKO_EXPECT_MTX_EQ_SPARSITY(irpermuted, dirpermuted);
-    GKO_EXPECT_MTX_EQ_SPARSITY(cpermuted, dcpermuted);
-    GKO_EXPECT_MTX_EQ_SPARSITY(icpermuted, dicpermuted);
-    EXPECT_TRUE(rpermuted->is_sorted_by_column_index());
-    EXPECT_TRUE(irpermuted->is_sorted_by_column_index());
-    EXPECT_TRUE(cpermuted->is_sorted_by_column_index());
-    EXPECT_TRUE(icpermuted->is_sorted_by_column_index());
+        auto permuted = mtx->permute(perm, mode);
+        auto dpermuted = dmtx->permute(perm, mode);
+
+        GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+        GKO_ASSERT_MTX_EQ_SPARSITY(permuted, dpermuted);
+        ASSERT_TRUE(dpermuted->is_sorted_by_column_index());
+    }
 }
 
 
@@ -978,36 +991,48 @@ TEST_F(Csr, IsGenericScalePermutable)
 }
 
 
+TEST_F(Csr, IsColScalePermutableHypersparse)
+{
+    using gko::matrix::permute_mode;
+    auto hypersparse_mtx = gko::initialize<Mtx>(
+        {{0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, {0.0, 0.0, 2.0}}, ref);
+    auto dhypersparse_mtx = hypersparse_mtx->clone();
+    auto perm3 =
+        ScaledPerm::create(ref, gko::array<value_type>{ref, {1.0, 2.0, 4.0}},
+                           gko::array<index_type>{ref, {1, 2, 0}});
+
+    for (auto mode : {permute_mode::columns, permute_mode::inverse_columns}) {
+        SCOPED_TRACE(mode);
+        auto permuted = hypersparse_mtx->scale_permute(perm3, mode);
+        auto dpermuted = dhypersparse_mtx->scale_permute(perm3, mode);
+
+        GKO_ASSERT_MTX_NEAR(permuted, dpermuted, r<value_type>::value);
+        GKO_ASSERT_MTX_EQ_SPARSITY(permuted, dpermuted);
+        ASSERT_TRUE(dpermuted->is_sorted_by_column_index());
+    }
+}
+
+
 TEST_F(Csr, IsGenericScalePermutableRectangular)
 {
     using gko::matrix::permute_mode;
     set_up_apply_data<Mtx::classical>();
 
-    auto rpermuted = mtx->scale_permute(srpermutation, permute_mode::rows);
-    auto drpermuted = dmtx->scale_permute(srpermutation, permute_mode::rows);
-    auto irpermuted =
-        mtx->scale_permute(srpermutation, permute_mode::inverse_rows);
-    auto dirpermuted =
-        dmtx->scale_permute(srpermutation, permute_mode::inverse_rows);
-    auto cpermuted = mtx->scale_permute(scpermutation, permute_mode::columns);
-    auto dcpermuted = dmtx->scale_permute(scpermutation, permute_mode::columns);
-    auto icpermuted =
-        mtx->scale_permute(scpermutation, permute_mode::inverse_columns);
-    auto dicpermuted =
-        dmtx->scale_permute(scpermutation, permute_mode::inverse_columns);
+    for (auto mode :
+         {permute_mode::rows, permute_mode::columns, permute_mode::inverse_rows,
+          permute_mode::inverse_columns}) {
+        SCOPED_TRACE(mode);
+        auto perm = (mode & permute_mode::rows) == permute_mode::rows
+                        ? srpermutation.get()
+                        : scpermutation.get();
 
-    GKO_EXPECT_MTX_NEAR(rpermuted, drpermuted, r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(irpermuted, dirpermuted, r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(cpermuted, dcpermuted, r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(icpermuted, dicpermuted, r<value_type>::value);
-    GKO_EXPECT_MTX_EQ_SPARSITY(rpermuted, drpermuted);
-    GKO_EXPECT_MTX_EQ_SPARSITY(irpermuted, dirpermuted);
-    GKO_EXPECT_MTX_EQ_SPARSITY(cpermuted, dcpermuted);
-    GKO_EXPECT_MTX_EQ_SPARSITY(icpermuted, dicpermuted);
-    EXPECT_TRUE(rpermuted->is_sorted_by_column_index());
-    EXPECT_TRUE(irpermuted->is_sorted_by_column_index());
-    EXPECT_TRUE(cpermuted->is_sorted_by_column_index());
-    EXPECT_TRUE(icpermuted->is_sorted_by_column_index());
+        auto permuted = mtx->scale_permute(perm, mode);
+        auto dpermuted = dmtx->scale_permute(perm, mode);
+
+        GKO_ASSERT_MTX_NEAR(permuted, dpermuted, r<value_type>::value);
+        GKO_ASSERT_MTX_EQ_SPARSITY(permuted, dpermuted);
+        ASSERT_TRUE(dpermuted->is_sorted_by_column_index());
+    }
 }
 
 

@@ -602,7 +602,7 @@ void inv_nonsymm_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
                       auto col_scale, auto col_perm, auto orig, auto permuted) {
             const auto row = row_perm[i];
             const auto col = col_perm[j];
-            permuted(row, col) = orig(i, j) / (row_scale[i] * col_scale[j]);
+            permuted(row, col) = orig(i, j) / (row_scale[row] * col_scale[col]);
         },
         orig->get_size(), row_scale, row_perm, col_scale, col_perm, orig,
         permuted);

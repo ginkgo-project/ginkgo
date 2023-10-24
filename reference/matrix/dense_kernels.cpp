@@ -1090,7 +1090,6 @@ void inv_nonsymm_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
                                const matrix::Dense<ValueType>* orig,
                                matrix::Dense<ValueType>* permuted)
 {
-    // TODO this was broken in common, why did the test not pick it up?
     for (size_type i = 0; i < orig->get_size()[0]; ++i) {
         for (size_type j = 0; j < orig->get_size()[1]; ++j) {
             const auto row = row_perm[i];

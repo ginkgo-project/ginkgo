@@ -2429,7 +2429,7 @@ TYPED_TEST(DenseWithIndexType, PermuteFailsWithIncorrectPermutationSize)
         SCOPED_TRACE(mode);
 
         ASSERT_THROW(this->mtx5->permute(this->perm0, mode),
-                     gko::ValueMismatch);
+                     gko::DimensionMismatch);
     }
 }
 
@@ -2538,11 +2538,11 @@ TYPED_TEST(DenseWithIndexType, NonsymmPermuteInverseStridedIntoDense)
 TYPED_TEST(DenseWithIndexType, NonsymmPermuteFailsWithIncorrectPermutationSize)
 {
     ASSERT_THROW(this->mtx5->permute(this->perm0, this->perm3_rev),
-                 gko::ValueMismatch);
+                 gko::DimensionMismatch);
     ASSERT_THROW(this->mtx5->permute(this->perm3_rev, this->perm0),
-                 gko::ValueMismatch);
+                 gko::DimensionMismatch);
     ASSERT_THROW(this->mtx5->permute(this->perm0, this->perm0),
-                 gko::ValueMismatch);
+                 gko::DimensionMismatch);
 }
 
 
@@ -2728,7 +2728,7 @@ TYPED_TEST(DenseWithIndexType,
     gko::array<index_type> permute_idxs{exec, {1, 2}};
 
     ASSERT_THROW(this->mtx5->permute(&permute_idxs, this->mtx5->clone()),
-                 gko::ValueMismatch);
+                 gko::DimensionMismatch);
 }
 
 
@@ -2820,7 +2820,7 @@ TYPED_TEST(DenseWithIndexType,
 
     ASSERT_THROW(
         this->mtx5->inverse_permute(&permute_idxs, this->mtx5->clone()),
-        gko::ValueMismatch);
+        gko::DimensionMismatch);
 }
 
 
@@ -2915,7 +2915,7 @@ TYPED_TEST(DenseWithIndexType,
     auto permuted = Mtx::create(exec, this->mtx5->get_size());
 
     ASSERT_THROW(this->mtx5->row_permute(&permute_idxs, permuted),
-                 gko::ValueMismatch);
+                 gko::DimensionMismatch);
 }
 
 
@@ -3010,7 +3010,7 @@ TYPED_TEST(DenseWithIndexType,
     auto permuted = Mtx::create(exec, this->mtx5->get_size());
 
     ASSERT_THROW(this->mtx5->column_permute(&permute_idxs, permuted),
-                 gko::ValueMismatch);
+                 gko::DimensionMismatch);
 }
 
 
@@ -3107,7 +3107,7 @@ TYPED_TEST(DenseWithIndexType,
     auto permuted = Mtx::create(exec, this->mtx5->get_size());
 
     ASSERT_THROW(this->mtx5->inverse_row_permute(&permute_idxs, permuted),
-                 gko::ValueMismatch);
+                 gko::DimensionMismatch);
 }
 
 
@@ -3205,7 +3205,7 @@ TYPED_TEST(DenseWithIndexType,
     auto permuted = Mtx::create(exec, this->mtx5->get_size());
 
     ASSERT_THROW(this->mtx5->inverse_column_permute(&permute_idxs, permuted),
-                 gko::ValueMismatch);
+                 gko::DimensionMismatch);
 }
 
 
@@ -3394,7 +3394,7 @@ TYPED_TEST(DenseWithIndexType, ScaledPermuteFailsWithIncorrectPermutationSize)
         SCOPED_TRACE(mode);
 
         ASSERT_THROW(this->mtx5->scale_permute(this->scale_perm0, mode),
-                     gko::ValueMismatch);
+                     gko::DimensionMismatch);
     }
 }
 
@@ -3538,13 +3538,13 @@ TYPED_TEST(DenseWithIndexType,
 {
     ASSERT_THROW(
         this->mtx5->scale_permute(this->scale_perm0, this->scale_perm3_rev),
-        gko::ValueMismatch);
+        gko::DimensionMismatch);
     ASSERT_THROW(
         this->mtx5->scale_permute(this->scale_perm3_rev, this->scale_perm0),
-        gko::ValueMismatch);
+        gko::DimensionMismatch);
     ASSERT_THROW(
         this->mtx5->scale_permute(this->scale_perm0, this->scale_perm0),
-        gko::ValueMismatch);
+        gko::DimensionMismatch);
 }
 
 

@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/fbcsr.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
@@ -58,6 +59,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
 #include "core/matrix/hybrid_kernels.hpp"
+#include "core/matrix/permutation.hpp"
 #include "core/matrix/sellp_kernels.hpp"
 
 
@@ -535,6 +537,7 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::permute(
     const auto exec = this->get_executor();
     const auto size = this->get_size();
     const auto nnz = this->get_num_stored_elements();
+    validate_permute_dimensions(size, permutation->get_size(), mode);
     if ((mode & permute_mode::symmetric) == permute_mode::none) {
         return this->clone();
     }
@@ -552,7 +555,8 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::permute(
     std::unique_ptr<const Permutation<IndexType>> inv_permutation;
     const auto perm_idxs = local_permutation->get_const_permutation();
     const IndexType* inv_perm_idxs{};
-    // to permute columns, we need to know the inverse permutation
+    // Due to the sparse storage, we can only inverse-permute columns, so we
+    // need to compute the inverse for forward-permutations.
     bool needs_inverse =
         (mode & permute_mode::inverse_columns) == permute_mode::columns;
     if (needs_inverse) {
@@ -580,7 +584,7 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::permute(
         exec->run(csr::make_inv_symm_permute(perm_idxs, this, result.get()));
         break;
     default:
-        GKO_ASSERT(false);
+        GKO_INVALID_STATE("Invalid permute mode");
     }
     result->make_srow();
     if ((mode & permute_mode::columns) == permute_mode::columns) {
@@ -598,8 +602,8 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::permute(
     const auto exec = this->get_executor();
     const auto size = this->get_size();
     const auto nnz = this->get_num_stored_elements();
-    GKO_ASSERT_EQ(size[0], row_permutation->get_size()[0]);
-    GKO_ASSERT_EQ(size[1], col_permutation->get_size()[0]);
+    GKO_ASSERT_EQUAL_ROWS(this, row_permutation);
+    GKO_ASSERT_EQUAL_COLS(this, col_permutation);
     auto result = Csr::create(exec, size, nnz, this->get_strategy()->copy());
     auto local_row_permutation = make_temporary_clone(exec, row_permutation);
     auto local_col_permutation = make_temporary_clone(exec, col_permutation);
@@ -630,17 +634,9 @@ Csr<ValueType, IndexType>::scale_permute(
     const auto exec = this->get_executor();
     const auto size = this->get_size();
     const auto nnz = this->get_num_stored_elements();
+    validate_permute_dimensions(size, permutation->get_size(), mode);
     if ((mode & permute_mode::symmetric) == permute_mode::none) {
         return this->clone();
-    }
-    if ((mode & permute_mode::symmetric) == permute_mode::symmetric) {
-        GKO_ASSERT_IS_SQUARE_MATRIX(this);
-    }
-    if ((mode & permute_mode::rows) == permute_mode::rows) {
-        GKO_ASSERT_EQ(size[0], permutation->get_size()[0]);
-    }
-    if ((mode & permute_mode::columns) == permute_mode::columns) {
-        GKO_ASSERT_EQ(size[1], permutation->get_size()[0]);
     }
     auto result = Csr::create(exec, size, nnz, this->get_strategy()->copy());
     auto local_permutation = make_temporary_clone(exec, permutation);
@@ -684,7 +680,7 @@ Csr<ValueType, IndexType>::scale_permute(
                                                    this, result.get()));
         break;
     default:
-        GKO_ASSERT(false);
+        GKO_INVALID_STATE("Invalid permute mode");
     }
     result->make_srow();
     if ((mode & permute_mode::columns) == permute_mode::columns) {
@@ -704,8 +700,8 @@ Csr<ValueType, IndexType>::scale_permute(
     const auto exec = this->get_executor();
     const auto size = this->get_size();
     const auto nnz = this->get_num_stored_elements();
-    GKO_ASSERT_EQ(size[0], row_permutation->get_size()[0]);
-    GKO_ASSERT_EQ(size[1], col_permutation->get_size()[0]);
+    GKO_ASSERT_EQUAL_ROWS(this, row_permutation);
+    GKO_ASSERT_EQUAL_COLS(this, col_permutation);
     auto result = Csr::create(exec, size, nnz, this->get_strategy()->copy());
     auto local_row_permutation = make_temporary_clone(exec, row_permutation);
     auto local_col_permutation = make_temporary_clone(exec, col_permutation);

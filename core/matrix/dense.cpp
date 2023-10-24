@@ -61,6 +61,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/matrix/hybrid_kernels.hpp"
+#include "core/matrix/permutation.hpp"
 
 
 namespace gko {
@@ -1133,18 +1134,10 @@ void Dense<ValueType>::permute_impl(const Permutation<IndexType>* permutation,
     const auto exec = this->get_executor();
     const auto size = this->get_size();
     GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
+    validate_permute_dimensions(size, permutation->get_size(), mode);
     if ((mode & permute_mode::symmetric) == permute_mode::none) {
         output->copy_from(this);
         return;
-    }
-    if ((mode & permute_mode::symmetric) == permute_mode::symmetric) {
-        GKO_ASSERT_IS_SQUARE_MATRIX(this);
-    }
-    if ((mode & permute_mode::rows) == permute_mode::rows) {
-        GKO_ASSERT_EQ(size[0], permutation->get_size()[0]);
-    }
-    if ((mode & permute_mode::columns) == permute_mode::columns) {
-        GKO_ASSERT_EQ(size[1], permutation->get_size()[0]);
     }
     auto local_output = make_temporary_output_clone(exec, output);
     auto local_perm = make_temporary_clone(exec, permutation);
@@ -1174,7 +1167,7 @@ void Dense<ValueType>::permute_impl(const Permutation<IndexType>* permutation,
             local_perm->get_const_permutation(), this, local_output.get()));
         break;
     default:
-        GKO_ASSERT(false);  // cannot happen
+        GKO_INVALID_STATE("Invalid permute mode");
     }
 }
 
@@ -1189,8 +1182,8 @@ void Dense<ValueType>::permute_impl(
     auto exec = this->get_executor();
     auto size = this->get_size();
     GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
-    GKO_ASSERT_EQ(size[0], row_permutation->get_size()[0]);
-    GKO_ASSERT_EQ(size[1], col_permutation->get_size()[0]);
+    GKO_ASSERT_EQUAL_ROWS(this, row_permutation);
+    GKO_ASSERT_EQUAL_COLS(this, col_permutation);
     auto local_output = make_temporary_output_clone(exec, output);
     auto local_row_perm = make_temporary_clone(exec, row_permutation);
     auto local_col_perm = make_temporary_clone(exec, col_permutation);
@@ -1215,18 +1208,10 @@ void Dense<ValueType>::scale_permute_impl(
     const auto exec = this->get_executor();
     const auto size = this->get_size();
     GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
+    validate_permute_dimensions(size, permutation->get_size(), mode);
     if ((mode & permute_mode::symmetric) == permute_mode::none) {
         output->copy_from(this);
         return;
-    }
-    if ((mode & permute_mode::symmetric) == permute_mode::symmetric) {
-        GKO_ASSERT_IS_SQUARE_MATRIX(this);
-    }
-    if ((mode & permute_mode::rows) == permute_mode::rows) {
-        GKO_ASSERT_EQ(size[0], permutation->get_size()[0]);
-    }
-    if ((mode & permute_mode::columns) == permute_mode::columns) {
-        GKO_ASSERT_EQ(size[1], permutation->get_size()[0]);
     }
     auto local_output = make_temporary_output_clone(exec, output);
     auto local_perm = make_temporary_clone(exec, permutation);
@@ -1262,7 +1247,7 @@ void Dense<ValueType>::scale_permute_impl(
             this, local_output.get()));
         break;
     default:
-        GKO_ASSERT(false);  // cannot happen
+        GKO_INVALID_STATE("Invalid permute mode");
     }
 }
 
@@ -1277,8 +1262,8 @@ void Dense<ValueType>::scale_permute_impl(
     auto exec = this->get_executor();
     auto size = this->get_size();
     GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
-    GKO_ASSERT_EQ(size[0], row_permutation->get_size()[0]);
-    GKO_ASSERT_EQ(size[1], col_permutation->get_size()[0]);
+    GKO_ASSERT_EQUAL_ROWS(this, row_permutation);
+    GKO_ASSERT_EQUAL_COLS(this, col_permutation);
     auto local_output = make_temporary_output_clone(exec, output);
     auto local_row_perm = make_temporary_clone(exec, row_permutation);
     auto local_col_perm = make_temporary_clone(exec, col_permutation);

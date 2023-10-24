@@ -62,7 +62,7 @@ void inv_col_permute(std::shared_ptr<const DefaultExecutor> exec,
 {
     auto num_rows = orig->get_size()[0];
     auto nnz = orig->get_num_stored_elements();
-    auto size = std::max(num_rows, nnz);
+    auto size = std::max(num_rows + 1, nnz);
     run_kernel(
         exec,
         [] GKO_KERNEL(auto tid, auto num_rows, auto num_nonzeros,
@@ -95,7 +95,7 @@ void inv_col_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
 {
     auto num_rows = orig->get_size()[0];
     auto nnz = orig->get_num_stored_elements();
-    auto size = std::max(num_rows, nnz);
+    auto size = std::max(num_rows + 1, nnz);
     run_kernel(
         exec,
         [] GKO_KERNEL(auto tid, auto num_rows, auto num_nonzeros, auto scale,
