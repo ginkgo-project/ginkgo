@@ -61,6 +61,25 @@ protected:
 
     Permutation() : exec(gko::ReferenceExecutor::create()) {}
 
+    std::unique_ptr<gko::matrix::Dense<double>> ref_combine(
+        const gko::matrix::Permutation<index_type>* first,
+        const gko::matrix::Permutation<index_type>* second)
+    {
+        using Mtx = gko::matrix::Dense<double>;
+        const auto exec = first->get_executor();
+        gko::matrix_data<double, index_type> first_perm_data;
+        gko::matrix_data<double, index_type> second_perm_data;
+        first->write(first_perm_data);
+        second->write(second_perm_data);
+        const auto first_mtx = Mtx::create(exec);
+        const auto second_mtx = Mtx::create(exec);
+        first_mtx->read(first_perm_data);
+        second_mtx->read(second_perm_data);
+        auto combined_mtx = first_mtx->clone();
+        second_mtx->apply(first_mtx, combined_mtx);
+        return combined_mtx;
+    }
+
     std::shared_ptr<const gko::Executor> exec;
 };
 
@@ -84,17 +103,37 @@ TYPED_TEST(Permutation, Invert)
 
 TYPED_TEST(Permutation, Combine)
 {
+    using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto perm = gko::matrix::Permutation<index_type>::create(
+    using Vec = gko::matrix::Dense<double>;
+    const auto perm = gko::matrix::Permutation<index_type>::create(
         this->exec, gko::array<index_type>{this->exec, {1, 2, 0}});
-    auto perm2 = gko::matrix::Permutation<index_type>::create(
+    const auto perm2 = gko::matrix::Permutation<index_type>::create(
         this->exec, gko::array<index_type>{this->exec, {0, 2, 1}});
+    const auto ref_combined = this->ref_combine(perm.get(), perm2.get());
 
-    auto combined = perm->combine(perm2);
+    const auto combined = perm->combine(perm2);
 
-    EXPECT_EQ(combined->get_const_permutation()[0], 2);
-    EXPECT_EQ(combined->get_const_permutation()[1], 1);
-    EXPECT_EQ(combined->get_const_permutation()[2], 0);
+    GKO_ASSERT_MTX_NEAR(combined, ref_combined, 0.0);
+}
+
+
+TYPED_TEST(Permutation, CombineLarger)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Vec = gko::matrix::Dense<double>;
+    const auto perm = gko::matrix::Permutation<index_type>::create(
+        this->exec,
+        gko::array<index_type>{this->exec, {6, 2, 4, 0, 1, 5, 9, 8, 3, 7}});
+    const auto perm2 = gko::matrix::Permutation<index_type>::create(
+        this->exec,
+        gko::array<index_type>{this->exec, {9, 2, 1, 6, 3, 7, 8, 4, 0, 5}});
+    const auto ref_combined = this->ref_combine(perm.get(), perm2.get());
+
+    const auto combined = perm->combine(perm2);
+
+    GKO_ASSERT_MTX_NEAR(combined, ref_combined, 0.0);
 }
 
 

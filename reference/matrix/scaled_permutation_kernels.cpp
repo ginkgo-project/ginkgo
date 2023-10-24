@@ -67,11 +67,15 @@ void combine(std::shared_ptr<const DefaultExecutor> exec,
              IndexType* output_permutation)
 {
     // P_2 S_2 P_1 S_1 = P_2 P_1 S'_2 S_1 with S'_2 = P_1^-1 S_2 P_1^-T
+    // P_2 P_1 does a row permutation of P_1 with indices from P_2
     for (size_type i = 0; i < size; i++) {
-        const auto first_permuted = first_permutation[i];
-        output_permutation[i] = second_permutation[first_permuted];
-        output_scale[first_permuted] =
-            first_scale[first_permuted] * second_scale[i];
+        const auto second_permuted = second_permutation[i];
+        const auto combined_permuted = first_permutation[second_permuted];
+        output_permutation[i] = combined_permuted;
+        // output_scale[i] = first_scale[i] * second_scale[inv_first_perm[i]];
+        // second_perm[i] = inv_first_perm[combined_perm[i]];
+        output_scale[combined_permuted] =
+            first_scale[combined_permuted] * second_scale[second_permuted];
     }
 }
 

@@ -78,10 +78,11 @@ void combine(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto i, auto first_scale, auto first_permutation,
                       auto second_scale, auto second_permutation,
                       auto output_permutation, auto output_scale) {
-            const auto first_permuted = first_permutation[i];
-            output_permutation[i] = second_permutation[first_permuted];
-            output_scale[first_permuted] =
-                first_scale[first_permuted] * second_scale[i];
+            const auto second_permuted = second_permutation[i];
+            const auto combined_permuted = first_permutation[second_permuted];
+            output_permutation[i] = combined_permuted;
+            output_scale[combined_permuted] =
+                first_scale[combined_permuted] * second_scale[second_permuted];
         },
         size, first_scale, first_permutation, second_scale, second_permutation,
         output_permutation, output_scale);
