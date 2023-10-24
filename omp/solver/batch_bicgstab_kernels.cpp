@@ -63,15 +63,15 @@ constexpr int max_num_rhs = 1;
 
 
 template <typename T>
-using BicgstabOptions = gko::kernels::batch_bicgstab::BicgstabOptions<T>;
+using BicgstabSettings = gko::kernels::batch_bicgstab::BicgstabSettings<T>;
 
 
 template <typename ValueType>
 class KernelCaller {
 public:
     KernelCaller(std::shared_ptr<const DefaultExecutor> exec,
-                 const BicgstabOptions<remove_complex<ValueType>> opts)
-        : exec_{std::move(exec)}, opts_{opts}
+                 const BicgstabSettings<remove_complex<ValueType>> settings)
+        : exec_{std::move(exec)}, settings_{settings}
     {}
 
     template <typename BatchMatrixType, typename PrecondType, typename StopType,
@@ -104,20 +104,20 @@ public:
                 static_cast<unsigned char*>(malloc(local_size_bytes));
             batch_entry_bicgstab_impl<StopType, PrecondType, LogType,
                                       BatchMatrixType, ValueType>(
-                opts_, logger, precond, mat, b, x, batch_id, local_space);
+                settings_, logger, precond, mat, b, x, batch_id, local_space);
             free(local_space);
         }
     }
 
 private:
     const std::shared_ptr<const DefaultExecutor> exec_;
-    const BicgstabOptions<remove_complex<ValueType>> opts_;
+    const BicgstabSettings<remove_complex<ValueType>> settings_;
 };
 
 
 template <typename ValueType>
 void apply(std::shared_ptr<const DefaultExecutor> exec,
-           const BicgstabOptions<remove_complex<ValueType>>& opts,
+           const BicgstabSettings<remove_complex<ValueType>>& settings,
            const batch::BatchLinOp* const mat,
            const batch::BatchLinOp* const precond,
            const batch::MultiVector<ValueType>* const b,
@@ -125,7 +125,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            batch::log::BatchLogData<remove_complex<ValueType>>& logdata)
 {
     auto dispatcher = batch::solver::create_dispatcher<ValueType>(
-        KernelCaller<ValueType>(exec, opts), opts, mat, precond);
+        KernelCaller<ValueType>(exec, settings), settings, mat, precond);
     dispatcher.apply(b, x, logdata);
 }
 

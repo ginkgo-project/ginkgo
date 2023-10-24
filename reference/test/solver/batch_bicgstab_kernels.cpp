@@ -63,7 +63,7 @@ protected:
     using EllMtx = gko::batch::matrix::Ell<value_type>;
     using MVec = gko::batch::MultiVector<value_type>;
     using RealMVec = gko::batch::MultiVector<real_type>;
-    using Settings = gko::kernels::batch_bicgstab::BicgstabOptions<real_type>;
+    using Settings = gko::kernels::batch_bicgstab::BicgstabSettings<real_type>;
     using LogData = gko::batch::log::BatchLogData<real_type>;
     using LinSys = gko::test::LinearSystem<Mtx>;
 
@@ -76,10 +76,10 @@ protected:
         solve_lambda = [executor](const Settings opts,
                                   const gko::batch::BatchLinOp* prec,
                                   const Mtx* mtx, const MVec* b, MVec* x,
-                                  LogData& logdata) {
+                                  LogData& log_data) {
             gko::kernels::reference::batch_bicgstab::apply<
                 typename Mtx::value_type>(executor, opts, mtx, prec, b, x,
-                                          logdata);
+                                          log_data);
         };
     }
 
@@ -126,13 +126,13 @@ TYPED_TEST(BatchBicgstab, SolvesEllStencilSystem)
     auto lin_sys = gko::test::generate_3pt_stencil_batch_problem<Mtx>(
         this->exec, num_batch_items, num_rows, num_rhs, 3);
     auto executor = this->exec;
-    auto solve_lambda = [executor](const Settings opts,
-                                   const gko::batch::BatchLinOp* prec,
-                                   const Mtx* mtx, const MVec* b, MVec* x,
-                                   LogData& logdata) {
-        gko::kernels::reference::batch_bicgstab::apply<
-            typename Mtx::value_type>(executor, opts, mtx, prec, b, x, logdata);
-    };
+    auto solve_lambda =
+        [executor](const Settings opts, const gko::batch::BatchLinOp* prec,
+                   const Mtx* mtx, const MVec* b, MVec* x, LogData& log_data) {
+            gko::kernels::reference::batch_bicgstab::apply<
+                typename Mtx::value_type>(executor, opts, mtx, prec, b, x,
+                                          log_data);
+        };
 
 
     auto res = gko::test::solve_linear_system(this->exec, solve_lambda,
@@ -158,8 +158,8 @@ TYPED_TEST(BatchBicgstab, StencilSystemLoggerLogsResidual)
                                               this->linear_system);
 
     const int ref_iters = 2;
-    auto iter_array = res.logdata.iter_counts.get_const_data();
-    auto res_log_array = res.logdata.res_norms->get_const_values();
+    auto iter_array = res.log_data->iter_counts.get_const_data();
+    auto res_log_array = res.log_data->res_norms.get_const_data();
     for (size_t i = 0; i < this->num_batch_items; i++) {
         ASSERT_LE(res_log_array[i] / this->linear_system.rhs_norm->at(i, 0, 0),
                   this->solver_settings.residual_tol);
@@ -181,7 +181,7 @@ TYPED_TEST(BatchBicgstab, StencilSystemLoggerLogsIterations)
     auto res = gko::test::solve_linear_system(
         this->exec, this->solve_lambda, solver_settings, this->linear_system);
 
-    const int* const iter_array = res.logdata.iter_counts.get_const_data();
+    const int* const iter_array = res.log_data->iter_counts.get_const_data();
     for (size_t i = 0; i < this->num_batch_items; i++) {
         ASSERT_EQ(iter_array[i], ref_iters);
     }
@@ -256,7 +256,7 @@ TYPED_TEST(BatchBicgstab, ApplyLogsResAndIters)
         auto rel_res_norm = res.res_norm->get_const_values()[i] /
                             linear_system.rhs_norm->get_const_values()[i];
         ASSERT_LE(iter_counts.get_const_data()[i], max_iters);
-        EXPECT_LE(rel_res_norm, res_norm->at(i, 0, 0));
+        EXPECT_LE(rel_res_norm, res_norm.get_const_data()[i]);
         ASSERT_LE(rel_res_norm, tol * 10);
     }
 }

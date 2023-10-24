@@ -65,15 +65,15 @@ constexpr int max_num_rhs = 1;
 
 
 template <typename T>
-using BicgstabOptions = gko::kernels::batch_bicgstab::BicgstabOptions<T>;
+using BicgstabSettings = gko::kernels::batch_bicgstab::BicgstabSettings<T>;
 
 
 template <typename ValueType>
 class KernelCaller {
 public:
     KernelCaller(std::shared_ptr<const DefaultExecutor> exec,
-                 const BicgstabOptions<remove_complex<ValueType>> opts)
-        : exec_{std::move(exec)}, opts_{opts}
+                 const BicgstabSettings<remove_complex<ValueType>> settings)
+        : exec_{std::move(exec)}, settings_{settings}
     {}
 
     template <typename BatchMatrixType, typename PrecType, typename StopType,
@@ -101,28 +101,29 @@ public:
         for (size_type batch_id = 0; batch_id < num_batch_items; batch_id++) {
             batch_entry_bicgstab_impl<StopType, PrecType, LogType,
                                       BatchMatrixType, ValueType>(
-                opts_, logger, prec, mat, b, x, batch_id, local_space.data());
+                settings_, logger, prec, mat, b, x, batch_id,
+                local_space.data());
         }
     }
 
 private:
     const std::shared_ptr<const DefaultExecutor> exec_;
-    const BicgstabOptions<remove_complex<ValueType>> opts_;
+    const BicgstabSettings<remove_complex<ValueType>> settings_;
 };
 
 
 template <typename ValueType>
 void apply(std::shared_ptr<const DefaultExecutor> exec,
-           const BicgstabOptions<remove_complex<ValueType>>& opts,
+           const BicgstabSettings<remove_complex<ValueType>>& settings,
            const batch::BatchLinOp* const mat,
            const batch::BatchLinOp* const precon,
            const batch::MultiVector<ValueType>* const b,
            batch::MultiVector<ValueType>* const x,
-           batch::log::BatchLogData<remove_complex<ValueType>>& logdata)
+           batch::log::BatchLogData<remove_complex<ValueType>>& log_data)
 {
     auto dispatcher = batch::solver::create_dispatcher<ValueType>(
-        KernelCaller<ValueType>(exec, opts), opts, mat, precon);
-    dispatcher.apply(b, x, logdata);
+        KernelCaller<ValueType>(exec, settings), settings, mat, precon);
+    dispatcher.apply(b, x, log_data);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL);

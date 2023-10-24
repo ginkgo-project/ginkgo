@@ -55,33 +55,37 @@ namespace log {
 /**
  * Types of batch loggers available.
  */
-enum class BatchLogType {
-    convergence_completion,
-    simple_convergence_completion
-};
-
-
-struct BatchLogDataBase {
-    /**
-     * Stores convergence iteration counts for every matrix in the batch and
-     * for every right-hand side.
-     */
-    array<int> iter_counts;
-
-    virtual ~BatchLogDataBase() = default;
-};
+enum class BatchLogType { simple_convergence_completion };
 
 
 /**
  * Stores logging data for batch solver kernels.
+ *
+ * @note Supports only single rhs
  */
 template <typename ValueType>
-struct BatchLogData : public BatchLogDataBase {
+struct BatchLogData {
+    using real_type = remove_complex<ValueType>;
+
+    BatchLogData(std::shared_ptr<const Executor> exec,
+                 size_type num_batch_items = 0)
+        : res_norms(exec), iter_counts(exec)
+    {
+        if (num_batch_items > 0) {
+            iter_counts.resize_and_reset(num_batch_items);
+            res_norms.resize_and_reset(num_batch_items);
+        }
+    }
+
     /**
-     * Stores residual norm values for every linear system in the batch
-     * for every right-hand side.
+     * Stores residual norm values for every linear system in the batch.
      */
-    std::shared_ptr<MultiVector<remove_complex<ValueType>>> res_norms;
+    array<real_type> res_norms;
+
+    /**
+     * Stores convergence iteration counts for every matrix in the batch
+     */
+    array<int> iter_counts;
 };
 
 
@@ -104,7 +108,7 @@ public:
 
     void on_batch_solver_completed(
         const array<int>& iteration_count,
-        const MultiVector<real_type>* residual_norm) const override;
+        const array<real_type>& residual_norm) const override;
 
     /**
      * Creates a convergence logger. This dynamically allocates the memory,
@@ -135,9 +139,9 @@ public:
     /**
      * @return  The residual norms for the entire batch.
      */
-    const MultiVector<real_type>* get_residual_norm() const noexcept
+    const array<real_type>& get_residual_norm() const noexcept
     {
-        return residual_norm_.get();
+        return residual_norm_;
     }
 
 protected:
@@ -146,12 +150,12 @@ protected:
         const mask_type& enabled_events = gko::log::Logger::all_events_mask)
         : gko::log::Logger(enabled_events),
           iteration_count_(exec->get_master()),
-          residual_norm_(MultiVector<real_type>::create(exec->get_master()))
+          residual_norm_(exec->get_master())
     {}
 
 private:
     mutable array<int> iteration_count_;
-    mutable std::unique_ptr<MultiVector<real_type>> residual_norm_{};
+    mutable array<real_type> residual_norm_;
 };
 
 

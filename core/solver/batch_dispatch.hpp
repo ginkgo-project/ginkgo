@@ -190,7 +190,7 @@ class BatchSolverDispatch {
 public:
     using value_type = ValueType;
     using device_value_type = DeviceValueType<ValueType>;
-    using res_norm_type = remove_complex<value_type>;
+    using real_type = remove_complex<value_type>;
 
     BatchSolverDispatch(const KernelCaller& kernel_caller,
                         const SettingsType& settings,
@@ -248,12 +248,11 @@ public:
         const BatchMatrixType& amat,
         const multi_vector::uniform_batch<const device_value_type>& b_item,
         const multi_vector::uniform_batch<device_value_type>& x_item,
-        log::BatchLogData<res_norm_type>& logdata)
+        log::BatchLogData<real_type>& log_data)
     {
         if (logger_type_ == log::BatchLogType::simple_convergence_completion) {
-            device::batch_log::SimpleFinalLogger<res_norm_type> logger(
-                logdata.res_norms->get_values(),
-                logdata.iter_counts.get_data());
+            device::batch_log::SimpleFinalLogger<real_type> logger(
+                log_data.res_norms.get_data(), log_data.iter_counts.get_data());
             dispatch_on_preconditioner(logger, amat, b_item, x_item);
         } else {
             GKO_NOT_IMPLEMENTED;
@@ -268,7 +267,7 @@ public:
      */
     void apply(const MultiVector<ValueType>* const b,
                MultiVector<ValueType>* const x,
-               log::BatchLogData<res_norm_type>& logdata)
+               log::BatchLogData<real_type>& log_data)
     {
         const auto x_item = device::get_batch_struct(x);
         const auto b_item = device::get_batch_struct(b);
@@ -277,12 +276,12 @@ public:
                 dynamic_cast<const batch::matrix::Ell<ValueType, int32>*>(
                     mat_)) {
             auto mat_item = device::get_batch_struct(batch_mat);
-            dispatch_on_logger(mat_item, b_item, x_item, logdata);
+            dispatch_on_logger(mat_item, b_item, x_item, log_data);
         } else if (auto batch_mat =
                        dynamic_cast<const batch::matrix::Dense<ValueType>*>(
                            mat_)) {
             auto mat_item = device::get_batch_struct(batch_mat);
-            dispatch_on_logger(mat_item, b_item, x_item, logdata);
+            dispatch_on_logger(mat_item, b_item, x_item, log_data);
         } else {
             GKO_NOT_SUPPORTED(mat_);
         }

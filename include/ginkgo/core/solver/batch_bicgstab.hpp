@@ -134,7 +134,7 @@ private:
 
     void solver_apply(const MultiVector<ValueType>* b,
                       MultiVector<ValueType>* x,
-                      BatchInfo* const info) const override;
+                      log::BatchLogData<real_type>* log_data) const override;
 };
 
 
