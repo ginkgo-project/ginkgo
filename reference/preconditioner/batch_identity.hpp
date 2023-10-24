@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace host {
+namespace batch_preconditioner {
 
 
 /**
@@ -92,6 +93,7 @@ public:
 };
 
 
+}  // namespace batch_preconditioner
 }  // namespace host
 }  // namespace kernels
 }  // namespace gko

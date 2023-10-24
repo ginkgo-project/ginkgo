@@ -40,13 +40,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace cuda {
-namespace stop {
+namespace batch_stop {
 
 
 #include "common/cuda_hip/stop/batch_criteria.hpp.inc"
 
 
-}  // namespace stop
+}  // namespace batch_stop
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko
