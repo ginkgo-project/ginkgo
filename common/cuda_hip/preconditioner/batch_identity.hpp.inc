@@ -31,50 +31,29 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 /**
- *  Identity preconditioner for batch solvers. ( To be able to have
- * unpreconditioned solves )
+ * @see reference/preconditioner/batch_identity.hpp
  */
 template <typename ValueType>
 class Identity final {
 public:
     using value_type = ValueType;
 
-    /**
-     * The size of the work vector required in case of static allocation.
-     */
     static constexpr int work_size = 0;
 
-    /**
-     * The size of the work vector required in case of dynamic allocation.
-     *
-     * For the Identity preconditioner, this is unnecessary, but this function
-     * is part of a 'batch preconditioner interface' because other
-     * preconditioners may need it.
-     */
     __host__ __device__ static constexpr int dynamic_work_size(int, int)
     {
         return 0;
     }
 
-
-    /**
-     * Sets the input and generates the identity preconditioner.(Nothing needs
-     * to be actually generated.)
-     *
-     * @param mat  Matrix for which to build an Ideniity preconditioner.
-     * @param work  A 'work-vector', which is unneecessary here as no
-     * preconditioner values are to be stored.
-     */
     __device__ __forceinline__ void generate(
         size_type,
-        const gko::batch::matrix::ell::batch_item<const ValueType, gko::int32>&
-            mat,
+        const gko::batch::matrix::ell::batch_item<const ValueType, gko::int32>&,
         ValueType*)
     {}
 
     __device__ __forceinline__ void generate(
         size_type,
-        const gko::batch::matrix::dense::batch_item<const ValueType>& mat,
+        const gko::batch::matrix::dense::batch_item<const ValueType>&,
         ValueType*)
     {}
 

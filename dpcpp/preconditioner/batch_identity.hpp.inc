@@ -30,35 +30,18 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 /**
- *  Identity preconditioner for batch solvers. ( To be able to have
- * unpreconditioned solves )
+ * @see reference/preconditioner/batch_identity.hpp
  */
 template <typename ValueType>
 class Identity final {
 public:
     using value_type = ValueType;
 
-    /**
-     * The size of the work vector required in case of static allocation.
-     */
     static constexpr int work_size = 0;
 
-    /**
-     * The size of the work vector required in case of dynamic allocation.
-     */
     static int dynamic_work_size(int, int) { return 0; }
 
-
-    /**
-     * Sets the input and generates the identity preconditioner.(Nothing needs
-     * to be actually generated.)
-     *
-     * @param mat  Matrix for which to build an Ideniity preconditioner.
-     * @param work  A 'work-vector', which is unneecessary here as no
-     * preconditioner values are to be stored.
-     */
     void generate(size_type batch_id,
                   const gko::batch::matrix::ell::batch_item<const ValueType, const gko::int32>&,
                   ValueType* const, sycl::nd_item<3> item_ct1)

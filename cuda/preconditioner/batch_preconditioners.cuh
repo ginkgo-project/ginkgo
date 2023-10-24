@@ -54,4 +54,5 @@ namespace cuda {
 }  // namespace kernels
 }  // namespace gko
 
+
 #endif  // GKO_CUDA_PRECONDITIONER_BATCH_PRECONDITIONERS_CUH_

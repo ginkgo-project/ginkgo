@@ -46,7 +46,7 @@ namespace batch_log {
 /**
  * Logs the final residual and iteration count for a batch solver.
  *
- * Specialized for a single RHS.
+ * @note Supports only a single RHS per batch item.
  */
 template <typename RealType>
 class SimpleFinalLogger final {
@@ -54,12 +54,12 @@ public:
     using real_type = RealType;
 
     /**
-     * Sets pre-allocated storage for logging.
+     * Constructor
      *
-     * @param batch_residuals  Array of residuals norms of size
-     *                         num_batches x num_rhs. Used as row major.
-     * @param batch_iters  Array of final iteration counts for each
-     *                     linear system and each RHS in the batch.
+     * @param batch_residuals  residuals norms of size
+     *                         num_batch_items.
+     * @param batch_iters  final iteration counts for each
+     *                     linear system in the batch.
      */
     SimpleFinalLogger(real_type* const batch_residuals, int* const batch_iters)
         : final_residuals_{batch_residuals}, final_iters_{batch_iters}
@@ -89,5 +89,6 @@ private:
 }  // namespace host
 }  // namespace kernels
 }  // namespace gko
+
 
 #endif  // GKO_REFERENCE_LOG_BATCH_LOGGER_HPP_

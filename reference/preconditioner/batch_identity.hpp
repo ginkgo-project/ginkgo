@@ -43,8 +43,9 @@ namespace host {
 
 
 /**
- *  Identity preconditioner for batch solvers. ( To be able to have
- * unpreconditioned solves )
+ * Identity preconditioner for batch solvers. Enables unpreconditioned solves
+ * by performing a copy of the preconditioned vector to the un-preconditioned
+ * vector.
  */
 template <typename ValueType>
 class Identity final {
@@ -61,27 +62,25 @@ public:
      */
     static int dynamic_work_size(int, int) { return 0; }
 
-
     /**
      * Sets the input and generates the identity preconditioner.(Nothing needs
      * to be actually generated.)
-     *
-     * @param mat  Matrix for which to build an Ideniity preconditioner.
-     * @param work  A 'work-vector', which is unneecessary here as no
-     * preconditioner values are to be stored.
      */
     void generate(size_type,
                   const gko::batch::matrix::ell::batch_item<const ValueType,
-                                                            const int32>& mat,
-                  ValueType* const work)
+                                                            const int32>&,
+                  ValueType* const)
     {}
 
-    void generate(
-        size_type,
-        const gko::batch::matrix::dense::batch_item<const ValueType>& mat,
-        ValueType* const work)
+    void generate(size_type,
+                  const gko::batch::matrix::dense::batch_item<const ValueType>&,
+                  ValueType* const)
     {}
 
+    /**
+     * Applies the preconditioner to the vector. For the identity
+     * preconditioner, this is equivalent to a copy.
+     */
     void apply(const gko::batch::multi_vector::batch_item<const ValueType>& r,
                const gko::batch::multi_vector::batch_item<ValueType>& z) const
     {
@@ -96,5 +95,6 @@ public:
 }  // namespace host
 }  // namespace kernels
 }  // namespace gko
+
 
 #endif  // GKO_REFERENCE_PRECONDITIONER_BATCH_IDENTITY_HPP_

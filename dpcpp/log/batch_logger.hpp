@@ -51,34 +51,17 @@ namespace batch_log {
 
 
 /**
- * Logs the final residual and iteration count for a batch solver.
- *
- * Specialized for a single RHS.
+ * @see reference/log/batch_logger.hpp
  */
 template <typename RealType>
 class SimpleFinalLogger final {
 public:
     using real_type = RealType;
 
-    /**
-     * Sets pre-allocated storage for logging.
-     *
-     * @param batch_residuals  Array of residuals norms of size
-     *                         num_batches x num_rhs. Used as row major.
-     * @param batch_iters  Array of final iteration counts for each
-     *                     linear system and each RHS in the batch.
-     */
     SimpleFinalLogger(real_type* const batch_residuals, int* const batch_iters)
         : final_residuals_{batch_residuals}, final_iters_{batch_iters}
     {}
 
-    /**
-     * Logs the iteration count and residual norm.
-     *
-     * @param batch_idx  The index of linear system in the batch to log.
-     * @param iter  The current iteration count (0-based).
-     * @param res_norm  Norm of current residual
-     */
     __dpct_inline__ void log_iteration(const size_type batch_idx,
                                        const int iter, const real_type res_norm)
     {
