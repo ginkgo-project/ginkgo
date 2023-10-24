@@ -1018,12 +1018,14 @@ void row_permute_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                         IndexType* out_cols, ValueType* out_vals)
 {
     queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                row_permute_kernel<subgroup_size>(
-                    num_rows, permutation, in_row_ptrs, in_cols, in_vals,
-                    out_row_ptrs, out_cols, out_vals, item_ct1);
-            });
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1)
+                             [[sycl::reqd_sub_group_size(subgroup_size)]] {
+                                 row_permute_kernel<subgroup_size>(
+                                     num_rows, permutation, in_row_ptrs,
+                                     in_cols, in_vals, out_row_ptrs, out_cols,
+                                     out_vals, item_ct1);
+                             });
     });
 }
 
@@ -1065,12 +1067,14 @@ void inv_row_permute_kernel(dim3 grid, dim3 block,
                             ValueType* out_vals)
 {
     queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                inv_row_permute_kernel<subgroup_size>(
-                    num_rows, permutation, in_row_ptrs, in_cols, in_vals,
-                    out_row_ptrs, out_cols, out_vals, item_ct1);
-            });
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1)
+                             [[sycl::reqd_sub_group_size(subgroup_size)]] {
+                                 inv_row_permute_kernel<subgroup_size>(
+                                     num_rows, permutation, in_row_ptrs,
+                                     in_cols, in_vals, out_row_ptrs, out_cols,
+                                     out_vals, item_ct1);
+                             });
     });
 }
 
@@ -1142,12 +1146,14 @@ void inv_symm_permute_kernel(dim3 grid, dim3 block,
                              ValueType* out_vals)
 {
     queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                inv_symm_permute_kernel<subgroup_size>(
-                    num_rows, permutation, in_row_ptrs, in_cols, in_vals,
-                    out_row_ptrs, out_cols, out_vals, item_ct1);
-            });
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1)
+                             [[sycl::reqd_sub_group_size(subgroup_size)]] {
+                                 inv_symm_permute_kernel<subgroup_size>(
+                                     num_rows, permutation, in_row_ptrs,
+                                     in_cols, in_vals, out_row_ptrs, out_cols,
+                                     out_vals, item_ct1);
+                             });
     });
 }
 
@@ -1161,12 +1167,14 @@ void inv_nonsymm_permute_kernel(
 {
     queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             inv_nonsymm_permute_kernel<subgroup_size>(
-                                 num_rows, row_permutation, col_permutation,
-                                 in_row_ptrs, in_cols, in_vals, out_row_ptrs,
-                                 out_cols, out_vals, item_ct1);
-                         });
+                         [=](sycl::nd_item<3> item_ct1)
+                             [[sycl::reqd_sub_group_size(subgroup_size)]] {
+                                 inv_nonsymm_permute_kernel<subgroup_size>(
+                                     num_rows, row_permutation, col_permutation,
+                                     in_row_ptrs, in_cols, in_vals,
+                                     out_row_ptrs, out_cols, out_vals,
+                                     item_ct1);
+                             });
     });
 }
 

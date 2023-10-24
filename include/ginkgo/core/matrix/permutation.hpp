@@ -53,95 +53,84 @@ namespace gko {
 namespace matrix {
 
 
-/** Specifies how a permutation will be applied to a matrix. */
-enum class permute_mode {
+/**
+ * Specifies how a permutation will be applied to a matrix.
+ * For the effect of the different permutation
+ * modes, see the following table.
+ *
+ * mode              | entry mapping              | matrix representation
+ * ------------------|----------------------------|----------------------
+ * none              | $A'(i, j) = A(i, j)$       | $A' = A$
+ * rows              | $A'(i, j) = A(p[i], j)$    | $A' = P A$
+ * columns           | $A'(i, j) = A(i, p[j])$    | $A' = A P^T$
+ * inverse_rows      | $A'(p[i], j) = A(i, j)$    | $A' = P^{-1} A$
+ * inverse_columns   | $A'(i, p[j]) = A(i, j)$    | $A' = A P^{-T}$
+ * symmetric         | $A'(i, j) = A(p[i], p[j])$ | $A' = P A P^T$
+ * inverse_symmetric | $A'(p[i], p[j]) = A(i, j)$ | $A' = P^{-1} A P^{-T}$
+ */
+enum class permute_mode : unsigned {
     /** Neither rows nor columns will be permuted. */
-    none = 0b0,
+    none = 0b000u,
     /** The rows will be permuted. */
-    rows = 0b1,
+    rows = 0b001u,
     /** The columns will be permuted. */
-    columns = 0b10,
+    columns = 0b010u,
     /**
      * The rows and columns will be permuted. This is equivalent to
      * `permute_mode::rows | permute_mode::columns`.
      */
-    symmetric = 0b11,
+    symmetric = 0b011u,
     /** The permutation will be inverted before being applied. */
-    inverse = 0b100,
+    inverse = 0b100u,
     /**
      * The rows will be permuted using the inverse permutation. This is
      * equivalent to `permute_mode::rows | permute_mode::inverse`.
      */
-    inverse_rows = 0b101,
+    inverse_rows = 0b101u,
     /**
      * The columns will be permuted using the inverse permutation. This is
      * equivalent to `permute_mode::columns | permute_mode::inverse`.
      */
-    inverse_columns = 0b110,
+    inverse_columns = 0b110u,
     /**
      * The rows and columns will be permuted using the inverse permutation. This
      * is equivalent to `permute_mode::symmetric | permute_mode::inverse`.
      */
-    inverse_symmetric = 0b111
+    inverse_symmetric = 0b111u
 };
 
 
 /** Combines two permutation modes. */
-inline permute_mode operator|(permute_mode a, permute_mode b)
-{
-    return static_cast<permute_mode>(static_cast<int>(a) | static_cast<int>(b));
-}
+permute_mode operator|(permute_mode a, permute_mode b);
 
 
 /** Computes the intersection of two permutation modes. */
-inline permute_mode operator&(permute_mode a, permute_mode b)
-{
-    return static_cast<permute_mode>(static_cast<int>(a) & static_cast<int>(b));
-}
+permute_mode operator&(permute_mode a, permute_mode b);
 
 
-inline std::ostream& operator<<(std::ostream& stream, permute_mode mode)
-{
-    switch (mode) {
-    case permute_mode::none:
-        return stream << "none";
-    case permute_mode::rows:
-        return stream << "rows";
-    case permute_mode::columns:
-        return stream << "columns";
-    case permute_mode::symmetric:
-        return stream << "symmetric";
-    case permute_mode::inverse:
-        return stream << "inverse";
-    case permute_mode::inverse_rows:
-        return stream << "inverse_rows";
-    case permute_mode::inverse_columns:
-        return stream << "inverse_columns";
-    case permute_mode::inverse_symmetric:
-        return stream << "inverse_symmetric";
-    }
-    return stream;
-}
+/** Computes the symmetric difference of two permutation modes. */
+permute_mode operator^(permute_mode a, permute_mode b);
 
 
-/** @internal std::bitset allows to store any number of bits */
+/** Prints a permutation mode. */
+std::ostream& operator<<(std::ostream& stream, permute_mode mode);
+
+
 using mask_type = gko::uint64;
 
 static constexpr mask_type row_permute = mask_type{1};
-static constexpr mask_type column_permute = mask_type{1 << 2};
-static constexpr mask_type inverse_permute = mask_type{1 << 3};
+[[deprecated("permute mask is no longer supported")]] static constexpr mask_type
+    column_permute = mask_type{1 << 2};
+[[deprecated("permute mask is no longer supported")]] static constexpr mask_type
+    inverse_permute = mask_type{1 << 3};
 
 /**
- * Permutation is a matrix "format" which stores the row and column permutation
- * arrays which can be used for re-ordering the rows and columns a matrix.
+ * Permutation is a matrix format that represents a permutation matrix,
+ * i.e. a matrix where each row and column has exactly one entry.
+ * The matrix can only be applied to Dense inputs, where it represents
+ * a row permutation: $A' = PA$ means $A'(i, j) = A(p[i], j)$.
  *
  * @tparam IndexType  precision of permutation array indices.
- *
- * @note This format is used mainly to allow for an abstraction of the
- * permutation/re-ordering and provides the user with an apply method which
- * calls the respective LinOp's permute operation if the respective LinOp
- * implements the Permutable interface. As such it only stores an array of the
- * permutation indices.
  *
  * @ingroup permutation
  * @ingroup mat_formats
@@ -206,7 +195,9 @@ public:
      * Combines this permutation with another permutation via composition.
      * The resulting permutation fulfills `result[i] = other[this[i]]`
      * or `result = other * this` from the matrix perspective, which is
-     * equivalent to first permuting by `this` and then by `other`.
+     * equivalent to first permuting by `this` and then by `other`:
+     * Combining permutations $P_1$ and $P_2$ with `P = P_1.combine(P_2)`
+     * performs the operation permute(A, P) = permute(permute(A, P_1), P_2).
      *
      * @param other  the other permutation
      * @return the combined permutation
@@ -270,7 +261,7 @@ protected:
      * and the original array data will not be used in the matrix.
      */
     Permutation(std::shared_ptr<const Executor> exec,
-                array<index_type> permutation_indices);
+                array<IndexType> permutation_indices);
 
     [[deprecated(
         "dim<2> is no longer supported as a dimension parameter, use size_type "
@@ -281,14 +272,29 @@ protected:
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         const mask_type& enabled_permute);
 
+    template <typename IndicesArray>
     [[deprecated("use the overload without dimensions")]] Permutation(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
-        array<index_type> permutation_indices);
+        IndicesArray&& permutation_indices)
+        : Permutation{exec, array<IndexType>{exec, std::forward<IndicesArray>(
+                                                       permutation_indices)}}
+    {
+        GKO_ASSERT_EQ(size[0], permutation_.get_num_elems());
+        GKO_ASSERT_IS_SQUARE_MATRIX(size);
+    }
 
+    template <typename IndicesArray>
     [[deprecated("permute mask is no longer supported")]] Permutation(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
-        array<index_type> permutation_indices,
-        const mask_type& enabled_permute);
+        IndicesArray&& permutation_indices, const mask_type& enabled_permute)
+        : Permutation{std::move(exec),
+                      array<IndexType>{exec, std::forward<IndicesArray>(
+                                                 permutation_indices)}}
+    {
+        GKO_ASSERT_EQ(enabled_permute, row_permute);
+        GKO_ASSERT_EQ(size[0], permutation_.get_num_elems());
+        GKO_ASSERT_IS_SQUARE_MATRIX(size);
+    }
 
     void apply_impl(const LinOp* in, LinOp* out) const override;
 

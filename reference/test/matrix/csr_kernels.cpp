@@ -1421,12 +1421,14 @@ TYPED_TEST(Csr, PermuteRoundtrip)
     using gko::matrix::permute_mode;
 
     for (auto mode :
-         {permute_mode::rows, permute_mode::columns, permute_mode::symmetric}) {
+         {permute_mode::rows, permute_mode::columns, permute_mode::symmetric,
+          permute_mode::inverse_rows, permute_mode::inverse_columns,
+          permute_mode::inverse_symmetric}) {
         SCOPED_TRACE(mode);
 
         auto permuted =
             this->mtx3_sorted->permute(this->perm3, mode)
-                ->permute(this->perm3, mode | permute_mode::inverse);
+                ->permute(this->perm3, mode ^ permute_mode::inverse);
 
         GKO_ASSERT_MTX_NEAR(this->mtx3_sorted, permuted, 0.0);
         GKO_ASSERT_MTX_EQ_SPARSITY(permuted, this->mtx3_sorted);
@@ -1435,37 +1437,44 @@ TYPED_TEST(Csr, PermuteRoundtrip)
 }
 
 
+TYPED_TEST(Csr, PermuteInverted)
+{
+    using gko::matrix::permute_mode;
+
+    for (auto mode :
+         {permute_mode::rows, permute_mode::columns, permute_mode::symmetric}) {
+        SCOPED_TRACE(mode);
+
+        auto permuted = this->mtx3_sorted->permute(this->perm3, mode);
+        auto inv_inv_permuted = this->mtx3_sorted->permute(
+            this->perm3->invert(), mode | permute_mode::inverse);
+
+        GKO_ASSERT_MTX_NEAR(permuted, inv_inv_permuted, 0.0);
+        GKO_ASSERT_MTX_EQ_SPARSITY(permuted, inv_inv_permuted);
+        ASSERT_TRUE(permuted->is_sorted_by_column_index());
+        ASSERT_TRUE(inv_inv_permuted->is_sorted_by_column_index());
+    }
+}
+
+
 TYPED_TEST(Csr, PermuteRectangular)
 {
     using gko::matrix::permute_mode;
 
-    auto rpermuted = this->mtx2->permute(this->perm2, permute_mode::rows);
-    auto irpermuted =
-        this->mtx2->permute(this->perm2, permute_mode::inverse_rows);
-    auto cpermuted = this->mtx2->permute(this->perm3, permute_mode::columns);
-    auto icpermuted =
-        this->mtx2->permute(this->perm3, permute_mode::inverse_columns);
-    auto ref_rpermuted =
-        ref_permute(this->mtx2.get(), this->perm2.get(), permute_mode::rows);
-    auto ref_irpermuted = ref_permute(this->mtx2.get(), this->perm2.get(),
-                                      permute_mode::inverse_rows);
-    auto ref_cpermuted =
-        ref_permute(this->mtx2.get(), this->perm3.get(), permute_mode::columns);
-    auto ref_icpermuted = ref_permute(this->mtx2.get(), this->perm3.get(),
-                                      permute_mode::inverse_columns);
+    for (auto mode :
+         {permute_mode::rows, permute_mode::columns, permute_mode::inverse_rows,
+          permute_mode::inverse_columns}) {
+        auto perm = (mode & permute_mode::rows) == permute_mode::rows
+                        ? this->perm2.get()
+                        : this->perm3.get();
 
-    GKO_ASSERT_MTX_NEAR(rpermuted, ref_rpermuted, 0.0);
-    GKO_ASSERT_MTX_NEAR(irpermuted, ref_irpermuted, 0.0);
-    GKO_ASSERT_MTX_NEAR(cpermuted, ref_cpermuted, 0.0);
-    GKO_ASSERT_MTX_NEAR(icpermuted, ref_icpermuted, 0.0);
-    GKO_ASSERT_MTX_EQ_SPARSITY(rpermuted, ref_rpermuted);
-    GKO_ASSERT_MTX_EQ_SPARSITY(irpermuted, ref_irpermuted);
-    GKO_ASSERT_MTX_EQ_SPARSITY(cpermuted, ref_cpermuted);
-    GKO_ASSERT_MTX_EQ_SPARSITY(icpermuted, ref_icpermuted);
-    ASSERT_TRUE(rpermuted->is_sorted_by_column_index());
-    ASSERT_TRUE(irpermuted->is_sorted_by_column_index());
-    ASSERT_TRUE(cpermuted->is_sorted_by_column_index());
-    ASSERT_TRUE(icpermuted->is_sorted_by_column_index());
+        auto permuted = this->mtx2->permute(perm, mode);
+        auto ref_permuted = ref_permute(this->mtx2.get(), perm, mode);
+
+        GKO_ASSERT_MTX_NEAR(permuted, ref_permuted, 0.0);
+        GKO_ASSERT_MTX_EQ_SPARSITY(permuted, ref_permuted);
+        ASSERT_TRUE(permuted->is_sorted_by_column_index());
+    }
 }
 
 
@@ -1480,7 +1489,7 @@ TYPED_TEST(Csr, PermuteFailsWithIncorrectPermutationSize)
         SCOPED_TRACE(mode);
 
         ASSERT_THROW(this->mtx3_sorted->permute(this->perm0, mode),
-                     gko::ValueMismatch);
+                     gko::DimensionMismatch);
     }
 }
 
@@ -1545,14 +1554,27 @@ TYPED_TEST(Csr, NonsymmPermuteRoundtrip)
 }
 
 
+TYPED_TEST(Csr, NonsymmPermuteInverted)
+{
+    auto permuted = this->mtx3_sorted->permute(this->perm3, this->perm3_rev);
+    auto inv_inv_permuted = this->mtx3_sorted->permute(
+        this->perm3->invert(), this->perm3_rev->invert(), true);
+
+    GKO_ASSERT_MTX_NEAR(permuted, inv_inv_permuted, 0.0);
+    GKO_ASSERT_MTX_EQ_SPARSITY(permuted, inv_inv_permuted);
+    ASSERT_TRUE(permuted->is_sorted_by_column_index());
+    ASSERT_TRUE(inv_inv_permuted->is_sorted_by_column_index());
+}
+
+
 TYPED_TEST(Csr, NonsymmPermuteFailsWithIncorrectPermutationSize)
 {
     ASSERT_THROW(this->mtx3_sorted->permute(this->perm0, this->perm3_rev),
-                 gko::ValueMismatch);
+                 gko::DimensionMismatch);
     ASSERT_THROW(this->mtx3_sorted->permute(this->perm3_rev, this->perm0),
-                 gko::ValueMismatch);
+                 gko::DimensionMismatch);
     ASSERT_THROW(this->mtx3_sorted->permute(this->perm0, this->perm0),
-                 gko::ValueMismatch);
+                 gko::DimensionMismatch);
 }
 
 
@@ -1585,13 +1607,15 @@ TYPED_TEST(Csr, ScaledPermuteRoundtrip)
     using value_type = typename TestFixture::value_type;
 
     for (auto mode :
-         {permute_mode::rows, permute_mode::columns, permute_mode::symmetric}) {
+         {permute_mode::rows, permute_mode::columns, permute_mode::symmetric,
+          permute_mode::inverse_rows, permute_mode::inverse_columns,
+          permute_mode::inverse_symmetric}) {
         SCOPED_TRACE(mode);
 
         auto permuted =
             this->mtx3_sorted->scale_permute(this->scale_perm3, mode)
                 ->scale_permute(this->scale_perm3,
-                                mode | permute_mode::inverse);
+                                mode ^ permute_mode::inverse);
 
         GKO_ASSERT_MTX_NEAR(this->mtx3_sorted, permuted, r<value_type>::value);
         GKO_ASSERT_MTX_EQ_SPARSITY(permuted, this->mtx3_sorted);
@@ -1605,35 +1629,20 @@ TYPED_TEST(Csr, ScaledPermuteRectangular)
     using gko::matrix::permute_mode;
     using value_type = typename TestFixture::value_type;
 
-    auto rpermuted =
-        this->mtx2->scale_permute(this->scale_perm2, permute_mode::rows);
-    auto irpermuted = this->mtx2->scale_permute(this->scale_perm2,
-                                                permute_mode::inverse_rows);
-    auto cpermuted =
-        this->mtx2->scale_permute(this->scale_perm3, permute_mode::columns);
-    auto icpermuted = this->mtx2->scale_permute(this->scale_perm3,
-                                                permute_mode::inverse_columns);
-    auto ref_rpermuted = ref_permute(this->mtx2.get(), this->scale_perm2.get(),
-                                     permute_mode::rows);
-    auto ref_irpermuted = ref_permute(this->mtx2.get(), this->scale_perm2.get(),
-                                      permute_mode::inverse_rows);
-    auto ref_cpermuted = ref_permute(this->mtx2.get(), this->scale_perm3.get(),
-                                     permute_mode::columns);
-    auto ref_icpermuted = ref_permute(this->mtx2.get(), this->scale_perm3.get(),
-                                      permute_mode::inverse_columns);
+    for (auto mode :
+         {permute_mode::rows, permute_mode::columns, permute_mode::inverse_rows,
+          permute_mode::inverse_columns}) {
+        auto perm = (mode & permute_mode::rows) == permute_mode::rows
+                        ? this->scale_perm2.get()
+                        : this->scale_perm3.get();
 
-    GKO_ASSERT_MTX_NEAR(rpermuted, ref_rpermuted, r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(irpermuted, ref_irpermuted, r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(cpermuted, ref_cpermuted, r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(icpermuted, ref_icpermuted, r<value_type>::value);
-    GKO_ASSERT_MTX_EQ_SPARSITY(rpermuted, ref_rpermuted);
-    GKO_ASSERT_MTX_EQ_SPARSITY(irpermuted, ref_irpermuted);
-    GKO_ASSERT_MTX_EQ_SPARSITY(cpermuted, ref_cpermuted);
-    GKO_ASSERT_MTX_EQ_SPARSITY(icpermuted, ref_icpermuted);
-    ASSERT_TRUE(rpermuted->is_sorted_by_column_index());
-    ASSERT_TRUE(irpermuted->is_sorted_by_column_index());
-    ASSERT_TRUE(cpermuted->is_sorted_by_column_index());
-    ASSERT_TRUE(icpermuted->is_sorted_by_column_index());
+        auto permuted = this->mtx2->scale_permute(perm, mode);
+        auto ref_permuted = ref_permute(this->mtx2.get(), perm, mode);
+
+        GKO_ASSERT_MTX_NEAR(permuted, ref_permuted, r<value_type>::value);
+        GKO_ASSERT_MTX_EQ_SPARSITY(permuted, ref_permuted);
+        ASSERT_TRUE(permuted->is_sorted_by_column_index());
+    }
 }
 
 
@@ -1648,7 +1657,7 @@ TYPED_TEST(Csr, ScaledPermuteFailsWithIncorrectPermutationSize)
         SCOPED_TRACE(mode);
 
         ASSERT_THROW(this->mtx3_sorted->scale_permute(this->scale_perm0, mode),
-                     gko::ValueMismatch);
+                     gko::DimensionMismatch);
     }
 }
 
@@ -1734,13 +1743,13 @@ TYPED_TEST(Csr, NonsymmScaledPermuteFailsWithIncorrectPermutationSize)
 {
     ASSERT_THROW(this->mtx3_sorted->scale_permute(this->scale_perm0,
                                                   this->scale_perm3_rev),
-                 gko::ValueMismatch);
+                 gko::DimensionMismatch);
     ASSERT_THROW(this->mtx3_sorted->scale_permute(this->scale_perm3_rev,
                                                   this->scale_perm0),
-                 gko::ValueMismatch);
+                 gko::DimensionMismatch);
     ASSERT_THROW(
         this->mtx3_sorted->scale_permute(this->scale_perm0, this->scale_perm0),
-        gko::ValueMismatch);
+        gko::DimensionMismatch);
 }
 
 
