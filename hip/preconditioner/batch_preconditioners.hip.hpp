@@ -45,11 +45,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace hip {
+namespace batch_preconditioner {
 
 
 #include "common/cuda_hip/preconditioner/batch_identity.hpp.inc"
 
 
+}  // namespace batch_preconditioner
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko

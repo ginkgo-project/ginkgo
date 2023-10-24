@@ -215,13 +215,13 @@ public:
         if (settings_.tol_type == stop::ToleranceType::absolute) {
             caller_.template call_kernel<
                 BatchMatrixType, PrecType,
-                device::stop::SimpleAbsResidual<device_value_type>, LogType>(
-                logger, mat_item, precond, b_item, x_item);
+                device::batch_stop::SimpleAbsResidual<device_value_type>,
+                LogType>(logger, mat_item, precond, b_item, x_item);
         } else if (settings_.tol_type == stop::ToleranceType::relative) {
             caller_.template call_kernel<
                 BatchMatrixType, PrecType,
-                device::stop::SimpleRelResidual<device_value_type>, LogType>(
-                logger, mat_item, precond, b_item, x_item);
+                device::batch_stop::SimpleRelResidual<device_value_type>,
+                LogType>(logger, mat_item, precond, b_item, x_item);
         } else {
             GKO_NOT_IMPLEMENTED;
         }
@@ -235,9 +235,11 @@ public:
     {
         if (!precond_ ||
             dynamic_cast<const matrix::Identity<value_type>*>(precond_)) {
-            dispatch_on_stop<device::Identity<device_value_type>>(
-                logger, mat_item, device::Identity<device_value_type>(), b_item,
-                x_item);
+            dispatch_on_stop<
+                device::batch_preconditioner::Identity<device_value_type>>(
+                logger, mat_item,
+                device::batch_preconditioner::Identity<device_value_type>(),
+                b_item, x_item);
         } else {
             GKO_NOT_IMPLEMENTED;
         }

@@ -43,11 +43,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace dpcpp {
+namespace batch_preconditioner {
 
 
 #include "dpcpp/preconditioner/batch_identity.hpp.inc"
 
 
+}  // namespace batch_preconditioner
 }  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko

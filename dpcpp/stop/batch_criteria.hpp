@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace dpcpp {
-namespace stop {
+namespace batch_stop {
 
 
 /**
@@ -96,7 +96,7 @@ private:
 };
 
 
-}  // namespace stop
+}  // namespace batch_stop
 }  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
