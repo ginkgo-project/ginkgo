@@ -68,12 +68,26 @@ struct BatchLogData {
     using real_type = remove_complex<ValueType>;
 
     BatchLogData(std::shared_ptr<const Executor> exec,
-                 size_type num_batch_items = 0)
+                 size_type num_batch_items = 0,
+                 array<unsigned char> workspace = {})
         : res_norms(exec), iter_counts(exec)
     {
+        const size_type workspace_size =
+            num_batch_items * (sizeof(real_type) + sizeof(int));
         if (num_batch_items > 0) {
-            iter_counts.resize_and_reset(num_batch_items);
-            res_norms.resize_and_reset(num_batch_items);
+            if (workspace.get_num_elems() >= workspace_size) {
+                iter_counts = array<int>::view(
+                    exec, num_batch_items,
+                    reinterpret_cast<int*>(workspace.get_data()));
+                res_norms = array<real_type>::view(
+                    exec, num_batch_items,
+                    reinterpret_cast<real_type*>(
+                        workspace.get_data() +
+                        (sizeof(int) * num_batch_items)));
+            } else {
+                iter_counts.resize_and_reset(num_batch_items);
+                res_norms.resize_and_reset(num_batch_items);
+            }
         }
     }
 
@@ -149,8 +163,8 @@ protected:
         std::shared_ptr<const Executor> exec,
         const mask_type& enabled_events = gko::log::Logger::all_events_mask)
         : gko::log::Logger(enabled_events),
-          iteration_count_(exec->get_master()),
-          residual_norm_(exec->get_master())
+          iteration_count_(exec),
+          residual_norm_(exec)
     {}
 
 private:

@@ -116,13 +116,15 @@ protected:
         : system_matrix_{std::move(system_matrix)},
           preconditioner_{std::move(gen_preconditioner)},
           residual_tol_{res_tol},
-          max_iterations_{max_iterations}
+          max_iterations_{max_iterations},
+          workspace_{}
     {}
 
     std::shared_ptr<const BatchLinOp> system_matrix_{};
     std::shared_ptr<const BatchLinOp> preconditioner_{};
     double residual_tol_{};
     int max_iterations_{};
+    mutable array<unsigned char> workspace_{};
 };
 
 
@@ -232,6 +234,12 @@ protected:
             auto id = Identity::create(exec, system_matrix->get_size());
             preconditioner_ = std::move(id);
         }
+        // FIXME
+        // const size_type workspace_size = system_matrix->get_num_batch_items()
+        // *
+        //                                  (sizeof(real_type) + sizeof(int));
+        // workspace_.set_executor(exec);
+        // workspace_.resize_and_reset(workspace_size);
     }
 
     void apply_impl(const MultiVector<ValueType>* b,
@@ -242,7 +250,7 @@ protected:
             GKO_NOT_IMPLEMENTED;
         }
         auto log_data_ = std::make_unique<log::BatchLogData<real_type>>(
-            exec, b->get_num_batch_items());
+            exec, b->get_num_batch_items(), workspace_);
 
         this->solver_apply(b, x, log_data_.get());
 

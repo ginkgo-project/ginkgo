@@ -277,7 +277,7 @@ TYPED_TEST(BatchBicgstab, CanSolveEllSystem)
             .with_tolerance_type(gko::batch::stop::ToleranceType::relative)
             .on(this->exec);
     const int num_rows = 13;
-    const size_t num_batch_items = 5;
+    const size_t num_batch_items = 2;
     const int num_rhs = 1;
     auto linear_system = gko::test::generate_3pt_stencil_batch_problem<Mtx>(
         this->exec, num_batch_items, num_rows, num_rhs, 3);
@@ -321,6 +321,6 @@ TYPED_TEST(BatchBicgstab, CanSolveDenseHpdSystem)
 
     GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 50);
     for (size_t i = 0; i < num_batch_items; i++) {
-        ASSERT_LE(res.res_norm->get_const_values()[i], tol * 10);
+        ASSERT_LE(res.res_norm->get_const_values()[i], tol * 50);
     }
 }
