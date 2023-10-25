@@ -56,7 +56,6 @@ struct batch_item {
     int32 stride;
     int32 num_rows;
     int32 num_cols;
-    int32 num_nnz = num_rows * stride;
 };
 
 
@@ -73,14 +72,13 @@ struct uniform_batch {
     int32 stride;
     int32 num_rows;
     int32 num_cols;
-    int32 num_nnz = num_rows * stride;
 
     inline size_type get_num_nnz() const
     {
         return static_cast<size_type>(stride * num_rows);
     }
 
-    inline size_type get_entry_storage() const
+    inline size_type get_storage_size() const
     {
         return get_num_nnz() * sizeof(value_type);
     }
@@ -132,7 +130,7 @@ struct uniform_batch {
         return static_cast<size_type>(stride * num_stored_elems_per_row);
     }
 
-    inline size_type get_entry_storage() const
+    inline size_type get_storage_size() const
     {
         return get_num_nnz() * sizeof(value_type);
     }

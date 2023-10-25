@@ -60,8 +60,8 @@ protected:
 
     BatchBicgstab()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::test::generate_3pt_stencil_batch_matrix<Mtx>(
-              this->exec->get_master(), nrows, nbatch)),
+          mtx(gko::share(gko::test::generate_3pt_stencil_batch_matrix<Mtx>(
+              this->exec->get_master(), num_batch_items, num_rows))),
           solver_factory(Solver::build()
                              .with_default_max_iterations(def_max_iters)
                              .with_default_tolerance(def_abs_res_tol)
@@ -71,14 +71,14 @@ protected:
     {}
 
     std::shared_ptr<const gko::Executor> exec;
-    const gko::size_type nbatch = 3;
-    const int nrows = 5;
-    std::shared_ptr<Mtx> mtx;
+    const gko::size_type num_batch_items = 3;
+    const int num_rows = 5;
+    std::shared_ptr<const Mtx> mtx;
     std::unique_ptr<typename Solver::Factory> solver_factory;
     const int def_max_iters = 100;
     const real_type def_abs_res_tol = 1e-11;
-    const gko::batch::stop::ToleranceType def_tol_type =
-        gko::batch::stop::ToleranceType::absolute;
+    const gko::batch::stop::tolerance_type def_tol_type =
+        gko::batch::stop::tolerance_type::absolute;
     std::unique_ptr<gko::batch::BatchLinOp> solver;
 };
 
@@ -94,12 +94,10 @@ TYPED_TEST(BatchBicgstab, FactoryKnowsItsExecutor)
 TYPED_TEST(BatchBicgstab, FactoryCreatesCorrectSolver)
 {
     using Solver = typename TestFixture::Solver;
-    for (size_t i = 0; i < this->nbatch; i++) {
-        ASSERT_EQ(this->solver->get_common_size(),
-                  gko::dim<2>(this->nrows, this->nrows));
-    }
+    ASSERT_EQ(this->solver->get_common_size(),
+              gko::dim<2>(this->num_rows, this->num_rows));
 
-    auto solver = static_cast<Solver*>(this->solver.get());
+    auto solver = gko::as<Solver>(this->solver.get());
 
     ASSERT_NE(solver->get_system_matrix(), nullptr);
     ASSERT_EQ(solver->get_system_matrix(), this->mtx);
@@ -114,10 +112,11 @@ TYPED_TEST(BatchBicgstab, CanBeCopied)
 
     copy->copy_from(this->solver.get());
 
-    ASSERT_EQ(copy->get_common_size(), gko::dim<2>(this->nrows, this->nrows));
-    ASSERT_EQ(copy->get_num_batch_items(), this->nbatch);
-    auto copy_mtx = static_cast<Solver*>(copy.get())->get_system_matrix();
-    const auto copy_batch_mtx = static_cast<const Mtx*>(copy_mtx.get());
+    ASSERT_EQ(copy->get_common_size(),
+              gko::dim<2>(this->num_rows, this->num_rows));
+    ASSERT_EQ(copy->get_num_batch_items(), this->num_batch_items);
+    auto copy_mtx = gko::as<Solver>(copy.get())->get_system_matrix();
+    const auto copy_batch_mtx = gko::as<const Mtx>(copy_mtx.get());
     GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), copy_batch_mtx, 0.0);
 }
 
@@ -130,10 +129,11 @@ TYPED_TEST(BatchBicgstab, CanBeMoved)
 
     copy->move_from(this->solver);
 
-    ASSERT_EQ(copy->get_common_size(), gko::dim<2>(this->nrows, this->nrows));
-    ASSERT_EQ(copy->get_num_batch_items(), this->nbatch);
-    auto copy_mtx = static_cast<Solver*>(copy.get())->get_system_matrix();
-    const auto copy_batch_mtx = static_cast<const Mtx*>(copy_mtx.get());
+    ASSERT_EQ(copy->get_common_size(),
+              gko::dim<2>(this->num_rows, this->num_rows));
+    ASSERT_EQ(copy->get_num_batch_items(), this->num_batch_items);
+    auto copy_mtx = gko::as<Solver>(copy.get())->get_system_matrix();
+    const auto copy_batch_mtx = gko::as<const Mtx>(copy_mtx.get());
     GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), copy_batch_mtx, 0.0);
 }
 
@@ -145,10 +145,11 @@ TYPED_TEST(BatchBicgstab, CanBeCloned)
 
     auto clone = this->solver->clone();
 
-    ASSERT_EQ(clone->get_common_size(), gko::dim<2>(this->nrows, this->nrows));
-    ASSERT_EQ(clone->get_num_batch_items(), this->nbatch);
-    auto clone_mtx = static_cast<Solver*>(clone.get())->get_system_matrix();
-    const auto clone_batch_mtx = static_cast<const Mtx*>(clone_mtx.get());
+    ASSERT_EQ(clone->get_common_size(),
+              gko::dim<2>(this->num_rows, this->num_rows));
+    ASSERT_EQ(clone->get_num_batch_items(), this->num_batch_items);
+    auto clone_mtx = gko::as<Solver>(clone.get())->get_system_matrix();
+    const auto clone_batch_mtx = gko::as<const Mtx>(clone_mtx.get());
     GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), clone_batch_mtx, 0.0);
 }
 
@@ -160,8 +161,7 @@ TYPED_TEST(BatchBicgstab, CanBeCleared)
     this->solver->clear();
 
     ASSERT_EQ(this->solver->get_num_batch_items(), 0);
-    auto solver_mtx =
-        static_cast<Solver*>(this->solver.get())->get_system_matrix();
+    auto solver_mtx = gko::as<Solver>(this->solver.get())->get_system_matrix();
     ASSERT_EQ(solver_mtx, nullptr);
 }
 
@@ -175,14 +175,14 @@ TYPED_TEST(BatchBicgstab, CanSetCriteriaInFactory)
         Solver::build()
             .with_default_max_iterations(22)
             .with_default_tolerance(static_cast<real_type>(0.25))
-            .with_tolerance_type(gko::batch::stop::ToleranceType::relative)
+            .with_tolerance_type(gko::batch::stop::tolerance_type::relative)
             .on(this->exec);
 
     auto solver = solver_factory->generate(this->mtx);
     ASSERT_EQ(solver->get_parameters().default_max_iterations, 22);
     ASSERT_EQ(solver->get_parameters().default_tolerance, 0.25);
     ASSERT_EQ(solver->get_parameters().tolerance_type,
-              gko::batch::stop::ToleranceType::relative);
+              gko::batch::stop::tolerance_type::relative);
 }
 
 
@@ -194,7 +194,7 @@ TYPED_TEST(BatchBicgstab, CanSetResidualTol)
         Solver::build()
             .with_default_max_iterations(22)
             .with_default_tolerance(static_cast<real_type>(0.25))
-            .with_tolerance_type(gko::batch::stop::ToleranceType::relative)
+            .with_tolerance_type(gko::batch::stop::tolerance_type::relative)
             .on(this->exec);
     auto solver = solver_factory->generate(this->mtx);
 
@@ -214,7 +214,7 @@ TYPED_TEST(BatchBicgstab, CanSetMaxIterations)
         Solver::build()
             .with_default_max_iterations(22)
             .with_default_tolerance(static_cast<real_type>(0.25))
-            .with_tolerance_type(gko::batch::stop::ToleranceType::relative)
+            .with_tolerance_type(gko::batch::stop::tolerance_type::relative)
             .on(this->exec);
     auto solver = solver_factory->generate(this->mtx);
 

@@ -119,7 +119,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            const batch::BatchLinOp* const precon,
            const batch::MultiVector<ValueType>* const b,
            batch::MultiVector<ValueType>* const x,
-           batch::log::BatchLogData<remove_complex<ValueType>>& log_data)
+           batch::log::detail::log_data<remove_complex<ValueType>>& log_data)
 {
     auto dispatcher = batch::solver::create_dispatcher<ValueType>(
         KernelCaller<ValueType>(exec, settings), settings, mat, precon);

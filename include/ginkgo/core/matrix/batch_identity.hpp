@@ -48,18 +48,11 @@ namespace matrix {
 
 
 /**
- * Identity is a batch matrix format which explicitly stores all values of
- * the matrix in each of the batches.
- *
- * The values in each of the batches are stored in row-major format (values
- * belonging to the same row appear consecutive in the memory). Optionally, rows
- * can be padded for better memory access.
+ * The batch Identity matrix, which represents a batch of Identity matrices.
  *
  * @tparam ValueType  precision of matrix elements
  *
- * @note While this format is not very useful for storing sparse matrices, it
- *       is often suitable to store vectors, and sets of vectors.
- * @ingroup batch_dense
+ * @ingroup batch_identity
  * @ingroup mat_formats
  * @ingroup BatchLinOp
  */
@@ -81,7 +74,7 @@ public:
 
     /**
      * Apply the matrix to a multi-vector. Represents the matrix vector
-     * multiplication, x = A * b, where x and b are both multi-vectors.
+     * multiplication, x = I * b, where x and b are both multi-vectors.
      *
      * @param b  the multi-vector to be applied to
      * @param x  the output multi-vector
@@ -91,7 +84,7 @@ public:
 
     /**
      * Apply the matrix to a multi-vector with a linear combination of the given
-     * input vector. Represents the matrix vector multiplication, x = alpha * A
+     * input vector. Represents the matrix vector multiplication, x = alpha * I
      * * b + beta * x, where x and b are both multi-vectors.
      *
      * @param alpha  the scalar to scale the matrix-vector product with
