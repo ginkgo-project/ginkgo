@@ -55,15 +55,27 @@ namespace matrix {
 
 template <typename ValueType>
 Identity<ValueType>::Identity(std::shared_ptr<const Executor> exec,
-                                        const batch_dim<2>& size)
+                              const batch_dim<2>& size)
     : EnableBatchLinOp<Identity<ValueType>>(exec, size)
-{}
+{
+    GKO_ASSERT_BATCH_HAS_SQUARE_DIMENSIONS(this->get_size());
+}
 
 
 template <typename ValueType>
 Identity<ValueType>* Identity<ValueType>::apply(
     ptr_param<const MultiVector<ValueType>> b,
     ptr_param<MultiVector<ValueType>> x)
+{
+    static_cast<const Identity*>(this)->apply(b, x);
+    return this;
+}
+
+
+template <typename ValueType>
+const Identity<ValueType>* Identity<ValueType>::apply(
+    ptr_param<const MultiVector<ValueType>> b,
+    ptr_param<MultiVector<ValueType>> x) const
 {
     this->validate_application_parameters(b.get(), x.get());
     auto exec = this->get_executor();
@@ -74,21 +86,23 @@ Identity<ValueType>* Identity<ValueType>::apply(
 
 
 template <typename ValueType>
-const Identity<ValueType>* Identity<ValueType>::apply(
-    ptr_param<const MultiVector<ValueType>> b,
-    ptr_param<MultiVector<ValueType>> x) const
-{
-    this->apply(b, x);
-    return this;
-}
-
-
-template <typename ValueType>
 Identity<ValueType>* Identity<ValueType>::apply(
     ptr_param<const MultiVector<ValueType>> alpha,
     ptr_param<const MultiVector<ValueType>> b,
     ptr_param<const MultiVector<ValueType>> beta,
     ptr_param<MultiVector<ValueType>> x)
+{
+    static_cast<const Identity*>(this)->apply(alpha, b, beta, x);
+    return this;
+}
+
+
+template <typename ValueType>
+const Identity<ValueType>* Identity<ValueType>::apply(
+    ptr_param<const MultiVector<ValueType>> alpha,
+    ptr_param<const MultiVector<ValueType>> b,
+    ptr_param<const MultiVector<ValueType>> beta,
+    ptr_param<MultiVector<ValueType>> x) const
 {
     this->validate_application_parameters(alpha.get(), b.get(), beta.get(),
                                           x.get());
@@ -102,34 +116,25 @@ Identity<ValueType>* Identity<ValueType>::apply(
 
 
 template <typename ValueType>
-const Identity<ValueType>* Identity<ValueType>::apply(
-    ptr_param<const MultiVector<ValueType>> alpha,
-    ptr_param<const MultiVector<ValueType>> b,
-    ptr_param<const MultiVector<ValueType>> beta,
-    ptr_param<MultiVector<ValueType>> x) const
-{
-    this->apply(alpha, b, beta, x);
-    return this;
-}
-
-
-template <typename ValueType>
 void Identity<ValueType>::apply_impl(const MultiVector<ValueType>* b,
-                                          MultiVector<ValueType>* x) const
+                                     MultiVector<ValueType>* x) const
 {
     x->copy_from(b);
 }
 
 
 template <typename ValueType>
-void Identity<ValueType>::apply_impl(
-    const MultiVector<ValueType>* alpha, const MultiVector<ValueType>* b,
-    const MultiVector<ValueType>* beta,
-    MultiVector<ValueType>* x) const GKO_NOT_IMPLEMENTED;
+void Identity<ValueType>::apply_impl(const MultiVector<ValueType>* alpha,
+                                     const MultiVector<ValueType>* b,
+                                     const MultiVector<ValueType>* beta,
+                                     MultiVector<ValueType>* x) const
+{
+    x->scale(beta);
+    x->add_scaled(alpha, b);
+}
 
 
-#define GKO_DECLARE_BATCH_IDENTITY_MATRIX(ValueType) \
-    class Identity<ValueType>
+#define GKO_DECLARE_BATCH_IDENTITY_MATRIX(ValueType) class Identity<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_IDENTITY_MATRIX);
 
 
