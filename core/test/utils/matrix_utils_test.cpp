@@ -355,29 +355,37 @@ TEST(MatrixUtils, ModifyToEnsureAllDiagonalEntries)
     using T = float;
     using Csr = gko::matrix::Csr<T, int>;
     auto exec = gko::ReferenceExecutor::create();
-    auto b = gko::initialize<Csr>(
-        {I<T>{2.0, 0.0, 1.1, 0.0}, I<T>{1.0, 2.4, 0.0, -1.0},
-         I<T>{0.0, -4.0, 2.2, -2.0}, I<T>{0.0, -3.0, 1.5, 1.0}},
-        exec);
+    auto check_all_diag = [](const Csr* csr) {
+        const auto rowptrs = csr->get_const_row_ptrs();
+        const auto colidxs = csr->get_const_col_idxs();
+        const auto ndiag =
+            static_cast<int>(std::min(csr->get_size()[0], csr->get_size()[1]));
+        bool all_diags = true;
+        for (int i = 0; i < ndiag; i++) {
+            bool has_diag = false;
+            for (int j = rowptrs[i]; j < rowptrs[i + 1]; j++) {
+                if (colidxs[j] == i) {
+                    has_diag = true;
+                    break;
+                }
+            }
+            if (!has_diag) {
+                all_diags = false;
+                break;
+            }
+        }
+        return all_diags;
+    };
+    auto b = gko::initialize<Csr>({I<T>{2.0, 0.0, 1.1}, I<T>{1.0, 0.0, 0.0},
+                                   I<T>{0.0, -4.0, 2.2}, I<T>{0.0, -3.0, 1.5}},
+                                  exec);
+    // ensure it misses some diag
+    bool prev_check = check_all_diag(b.get());
 
     gko::utils::ensure_all_diagonal_entries(b.get());
 
-    const auto rowptrs = b->get_const_row_ptrs();
-    const auto colidxs = b->get_const_col_idxs();
-    bool all_diags = true;
-    for (int i = 0; i < 3; i++) {
-        bool has_diag = false;
-        for (int j = rowptrs[i]; j < rowptrs[i + 1]; j++) {
-            if (colidxs[j] == i) {
-                has_diag = true;
-            }
-        }
-        if (!has_diag) {
-            all_diags = false;
-            break;
-        }
-    }
-    ASSERT_TRUE(all_diags);
+    ASSERT_FALSE(prev_check);
+    ASSERT_TRUE(check_all_diag(b.get()));
 }
 
 

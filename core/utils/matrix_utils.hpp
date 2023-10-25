@@ -301,9 +301,10 @@ void ensure_all_diagonal_entries(MtxType* mtx)
     using index_type = typename MtxType::index_type;
     matrix_data<value_type, index_type> mdata;
     mtx->write(mdata);
-    const auto nrows = static_cast<index_type>(mtx->get_size()[0]);
-    mdata.nonzeros.reserve(mtx->get_num_stored_elements() + nrows);
-    for (index_type i = 0; i < nrows; i++) {
+    const auto ndiag = static_cast<index_type>(
+        std::min(mtx->get_size()[0], mtx->get_size()[1]));
+    mdata.nonzeros.reserve(mtx->get_num_stored_elements() + ndiag);
+    for (index_type i = 0; i < ndiag; i++) {
         mdata.nonzeros.push_back({i, i, zero<value_type>()});
     }
     mdata.sum_duplicates();
