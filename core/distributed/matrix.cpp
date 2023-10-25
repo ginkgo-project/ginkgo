@@ -154,7 +154,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const device_matrix_data<value_type, global_index_type>& data,
-    const device_matrix_data<value_type, global_index_type>& non_local_data,
+    const matrix_data<value_type, local_index_type>& non_local_data,
     const Partition<local_index_type, global_index_type>* row_partition)
 {
     auto col_partition = row_partition;
@@ -294,6 +294,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     device_matrix_data<value_type, local_index_type> local_data{
         exec, dim<2>{num_local_rows, num_local_cols}, std::move(local_row_idxs),
         std::move(local_col_idxs), std::move(local_values)};
+    // TODO FIXME
     device_matrix_data<value_type, local_index_type> non_local_data{
         exec, dim<2>{num_local_rows, num_non_local_cols},
         std::move(non_local_row_idxs), std::move(non_local_col_idxs),

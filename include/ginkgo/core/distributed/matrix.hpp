@@ -300,7 +300,7 @@ public:
      */
     void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
-        const device_matrix_data<value_type, global_index_type>& non_local_data,
+        const matrix_data<value_type, local_index_type>& non_local_data,
         const Partition<local_index_type, global_index_type>* row_partition);
 
     /**
