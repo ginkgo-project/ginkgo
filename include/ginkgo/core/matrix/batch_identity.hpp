@@ -64,9 +64,8 @@ namespace matrix {
  * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
-class Identity final
-    : public EnableBatchLinOp<Identity<ValueType>>,
-      public EnableCreateMethod<Identity<ValueType>> {
+class Identity final : public EnableBatchLinOp<Identity<ValueType>>,
+                       public EnableCreateMethod<Identity<ValueType>> {
     friend class EnableCreateMethod<Identity>;
     friend class EnablePolymorphicObject<Identity, BatchLinOp>;
 
@@ -88,7 +87,7 @@ public:
      * @param x  the output multi-vector
      */
     Identity* apply(ptr_param<const MultiVector<value_type>> b,
-                         ptr_param<MultiVector<value_type>> x);
+                    ptr_param<MultiVector<value_type>> x);
 
     /**
      * Apply the matrix to a multi-vector with a linear combination of the given
@@ -101,15 +100,15 @@ public:
      * @param x      the output multi-vector
      */
     Identity* apply(ptr_param<const MultiVector<value_type>> alpha,
-                         ptr_param<const MultiVector<value_type>> b,
-                         ptr_param<const MultiVector<value_type>> beta,
-                         ptr_param<MultiVector<value_type>> x);
+                    ptr_param<const MultiVector<value_type>> b,
+                    ptr_param<const MultiVector<value_type>> beta,
+                    ptr_param<MultiVector<value_type>> x);
 
     /**
      * @copydoc apply(const MultiVector<value_type>*, MultiVector<value_type>*)
      */
     const Identity* apply(ptr_param<const MultiVector<value_type>> b,
-                               ptr_param<MultiVector<value_type>> x) const;
+                          ptr_param<MultiVector<value_type>> x) const;
 
     /**
      * @copydoc apply(const MultiVector<value_type>*, const
@@ -117,19 +116,19 @@ public:
      * MultiVector<value_type>*)
      */
     const Identity* apply(ptr_param<const MultiVector<value_type>> alpha,
-                               ptr_param<const MultiVector<value_type>> b,
-                               ptr_param<const MultiVector<value_type>> beta,
-                               ptr_param<MultiVector<value_type>> x) const;
+                          ptr_param<const MultiVector<value_type>> b,
+                          ptr_param<const MultiVector<value_type>> beta,
+                          ptr_param<MultiVector<value_type>> x) const;
 
 private:
     /**
-     * Creates an uninitialized Identity matrix of the specified size.
+     * Creates an Identity matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the batch matrices in a batch_dim object
      */
     Identity(std::shared_ptr<const Executor> exec,
-                  const batch_dim<2>& size = batch_dim<2>{});
+             const batch_dim<2>& size = batch_dim<2>{});
 
     void apply_impl(const MultiVector<value_type>* b,
                     MultiVector<value_type>* x) const;
