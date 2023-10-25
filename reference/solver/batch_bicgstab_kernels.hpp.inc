@@ -48,12 +48,9 @@ inline void initialize(
     const gko::batch::multi_vector::batch_item<
         typename gko::remove_complex<ValueType>>& res_norms_entry)
 {
-    using real_type = gko::remove_complex<ValueType>;
-    for (int c = 0; c < rho_old_entry.num_rhs; c++) {
-        rho_old_entry.values[c] = one<ValueType>();
-        omega_entry.values[c] = one<ValueType>();
-        alpha_entry.values[c] = one<ValueType>();
-    }
+    rho_old_entry.values[0] = one<ValueType>();
+    omega_entry.values[0] = one<ValueType>();
+    alpha_entry.values[0] = one<ValueType>();
 
     // Compute norms of rhs
     compute_norm2_kernel<ValueType>(b_entry, rhs_norms_entry);
@@ -71,11 +68,9 @@ inline void initialize(
     copy_kernel(gko::batch::to_const(r_entry), r_hat_entry);
 
     for (int r = 0; r < p_entry.num_rows; r++) {
-        for (int c = 0; c < p_entry.num_rhs; c++) {
-            p_entry.values[r * p_entry.stride + c] = zero<ValueType>();
-            p_hat_entry.values[r * p_hat_entry.stride + c] = zero<ValueType>();
-            v_entry.values[r * v_entry.stride + c] = zero<ValueType>();
-        }
+        p_entry.values[r * p_entry.stride] = zero<ValueType>();
+        p_hat_entry.values[r * p_hat_entry.stride] = zero<ValueType>();
+        v_entry.values[r * v_entry.stride] = zero<ValueType>();
     }
 }
 
@@ -189,7 +184,6 @@ inline void batch_entry_bicgstab_impl(
     const gko::batch::multi_vector::uniform_batch<ValueType>& x,
     const size_type batch_item_id, unsigned char* const local_space)
 {
-    constexpr int max_num_rhs = 1;
     using real_type = typename gko::remove_complex<ValueType>;
     const auto num_rows = a.num_rows;
     const auto num_rhs = b.num_rhs;
@@ -274,6 +268,8 @@ inline void batch_entry_bicgstab_impl(
 
     for (iter = 0; iter < settings.max_iterations; iter++) {
         if (stop.check_converged(res_norms_entry.values)) {
+            logger.log_iteration(batch_item_id, iter,
+                                 res_norms_entry.values[0]);
             break;
         }
 
@@ -313,13 +309,12 @@ inline void batch_entry_bicgstab_impl(
                                         res_norms_entry);
 
         if (stop.check_converged(res_norms_entry.values)) {
-            // update x for the systems (rhs) which converge at this point...  x
-            // = x + alpha*p_hat
-            // note bits could change from 0 to 1, not the other way round, so
-            // we can use xor to get info about recent convergence...
-            // const uint32 converged_recent = converged_prev ^ converged;
+            // update x for the systems
+            // x = x + alpha * p_hat
             update_x_middle(gko::batch::to_const(alpha_entry),
                             gko::batch::to_const(p_hat_entry), x_entry);
+            logger.log_iteration(batch_item_id, iter,
+                                 res_norms_entry.values[0]);
             break;
         }
 

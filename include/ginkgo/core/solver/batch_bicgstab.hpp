@@ -94,15 +94,15 @@ private:
 
     explicit Bicgstab(const Factory* factory,
                       std::shared_ptr<const BatchLinOp> system_matrix)
-        : EnableBatchSolver<Bicgstab>(
-              factory->get_executor(), std::move(system_matrix),
-              detail::extract_common_batch_params(factory->get_parameters())),
+        : EnableBatchSolver<Bicgstab>(factory->get_executor(),
+                                      std::move(system_matrix),
+                                      factory->get_parameters()),
           parameters_{factory->get_parameters()}
     {}
 
-    void solver_apply(const MultiVector<ValueType>* b,
-                      MultiVector<ValueType>* x,
-                      log::BatchLogData<real_type>* log_data) const override;
+    void solver_apply(
+        const MultiVector<ValueType>* b, MultiVector<ValueType>* x,
+        log::detail::log_data<real_type>* log_data) const override;
 };
 
 

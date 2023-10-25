@@ -163,7 +163,7 @@ namespace solver {
 
 
 template <typename DValueType>
-class DummyKernelCaller {
+class KernelCallerInterface {
 public:
     template <typename BatchMatrixType, typename PrecType, typename StopType,
               typename LogType>
@@ -174,30 +174,42 @@ public:
 };
 
 
+namespace log {
+namespace detail {
+/**
+ *
+ * Types of batch loggers available.
+ */
+enum class log_type { simple_convergence_completion };
+
+
+}  // namespace detail
+}  // namespace log
+
+
 /**
  * Handles dispatching to the correct instantiation of a batched solver
  * depending on runtime parameters.
  *
- * @tparam KernelCaller  Class with an interface like DummyKernelCaller,
+ * @tparam ValueType  The user-facing value type.
+ * @tparam KernelCaller  Class with an interface like KernelCallerInterface,
  *   that is responsible for finally calling the templated backend-specific
  *   kernel.
  * @tparam SettingsType  Structure type of options for the particular solver to
  * be used.
- * @tparam ValueType  The user-facing value type.
  */
-template <typename KernelCaller, typename SettingsType, typename ValueType>
+template <typename ValueType, typename KernelCaller, typename SettingsType>
 class BatchSolverDispatch {
 public:
     using value_type = ValueType;
     using device_value_type = DeviceValueType<ValueType>;
     using real_type = remove_complex<value_type>;
 
-    BatchSolverDispatch(const KernelCaller& kernel_caller,
-                        const SettingsType& settings,
-                        const BatchLinOp* const matrix,
-                        const BatchLinOp* const preconditioner,
-                        const log::BatchLogType logger_type =
-                            log::BatchLogType::simple_convergence_completion)
+    BatchSolverDispatch(
+        const KernelCaller& kernel_caller, const SettingsType& settings,
+        const BatchLinOp* const matrix, const BatchLinOp* const preconditioner,
+        const log::detail::log_type logger_type =
+            log::detail::log_type::simple_convergence_completion)
         : caller_{kernel_caller},
           settings_{settings},
           mat_{matrix},
@@ -212,12 +224,12 @@ public:
         const multi_vector::uniform_batch<const device_value_type>& b_item,
         const multi_vector::uniform_batch<device_value_type>& x_item)
     {
-        if (settings_.tol_type == stop::ToleranceType::absolute) {
+        if (settings_.tol_type == stop::tolerance_type::absolute) {
             caller_.template call_kernel<
                 BatchMatrixType, PrecType,
                 device::batch_stop::SimpleAbsResidual<device_value_type>,
                 LogType>(logger, mat_item, precond, b_item, x_item);
-        } else if (settings_.tol_type == stop::ToleranceType::relative) {
+        } else if (settings_.tol_type == stop::tolerance_type::relative) {
             caller_.template call_kernel<
                 BatchMatrixType, PrecType,
                 device::batch_stop::SimpleRelResidual<device_value_type>,
@@ -250,9 +262,10 @@ public:
         const BatchMatrixType& amat,
         const multi_vector::uniform_batch<const device_value_type>& b_item,
         const multi_vector::uniform_batch<device_value_type>& x_item,
-        log::BatchLogData<real_type>& log_data)
+        batch::log::detail::log_data<real_type>& log_data)
     {
-        if (logger_type_ == log::BatchLogType::simple_convergence_completion) {
+        if (logger_type_ ==
+            log::detail::log_type::simple_convergence_completion) {
             device::batch_log::SimpleFinalLogger<real_type> logger(
                 log_data.res_norms.get_data(), log_data.iter_counts.get_data());
             dispatch_on_preconditioner(logger, amat, b_item, x_item);
@@ -261,19 +274,11 @@ public:
         }
     }
 
-    /**
-     * Solves a linear system from the given data and kernel caller.
-     *
-     * @note The correct backend-specific get_batch_struct function needs to be
-     * available in the current scope.
-     */
-    void apply(const MultiVector<ValueType>* const b,
-               MultiVector<ValueType>* const x,
-               log::BatchLogData<real_type>& log_data)
+    void dispatch_on_matrix(
+        const multi_vector::uniform_batch<const device_value_type>& b_item,
+        const multi_vector::uniform_batch<device_value_type>& x_item,
+        batch::log::detail::log_data<real_type>& log_data)
     {
-        const auto x_item = device::get_batch_struct(x);
-        const auto b_item = device::get_batch_struct(b);
-
         if (auto batch_mat =
                 dynamic_cast<const batch::matrix::Ell<ValueType, int32>*>(
                     mat_)) {
@@ -289,12 +294,28 @@ public:
         }
     }
 
+    /**
+     * Solves a linear system from the given data and kernel caller.
+     *
+     * @note The correct backend-specific get_batch_struct function needs to be
+     * available in the current scope.
+     */
+    void apply(const MultiVector<ValueType>* const b,
+               MultiVector<ValueType>* const x,
+               batch::log::detail::log_data<real_type>& log_data)
+    {
+        const auto x_item = device::get_batch_struct(x);
+        const auto b_item = device::get_batch_struct(b);
+
+        dispatch_on_matrix(b_item, x_item, log_data);
+    }
+
 private:
     const KernelCaller caller_;
     const SettingsType settings_;
     const BatchLinOp* mat_;
     const BatchLinOp* precond_;
-    const log::BatchLogType logger_type_;
+    const log::detail::log_type logger_type_;
 };
 
 
@@ -302,13 +323,13 @@ private:
  * Convenient function to create a dispatcher. Infers most template arguments.
  */
 template <typename ValueType, typename KernelCaller, typename SettingsType>
-BatchSolverDispatch<KernelCaller, SettingsType, ValueType> create_dispatcher(
+BatchSolverDispatch<ValueType, KernelCaller, SettingsType> create_dispatcher(
     const KernelCaller& kernel_caller, const SettingsType& settings,
     const BatchLinOp* const matrix, const BatchLinOp* const preconditioner,
-    const log::BatchLogType logger_type =
-        log::BatchLogType::simple_convergence_completion)
+    const log::detail::log_type logger_type =
+        log::detail::log_type::simple_convergence_completion)
 {
-    return BatchSolverDispatch<KernelCaller, SettingsType, ValueType>(
+    return BatchSolverDispatch<ValueType, KernelCaller, SettingsType>(
         kernel_caller, settings, matrix, preconditioner, logger_type);
 }
 
@@ -316,5 +337,6 @@ BatchSolverDispatch<KernelCaller, SettingsType, ValueType> create_dispatcher(
 }  // namespace solver
 }  // namespace batch
 }  // namespace gko
+
 
 #endif  // GKO_CORE_SOLVER_BATCH_DISPATCH_HPP_

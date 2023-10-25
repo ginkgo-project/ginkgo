@@ -75,6 +75,8 @@ constexpr Logger::mask_type Logger::linop_factory_generate_completed_mask;
 constexpr Logger::mask_type Logger::criterion_check_started_mask;
 constexpr Logger::mask_type Logger::criterion_check_completed_mask;
 
+constexpr Logger::mask_type Logger::batch_solver_completed_mask;
+
 constexpr Logger::mask_type Logger::iteration_complete_mask;
 
 

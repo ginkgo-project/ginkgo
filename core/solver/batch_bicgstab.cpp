@@ -56,7 +56,7 @@ GKO_REGISTER_OPERATION(apply, batch_bicgstab::apply);
 template <typename ValueType>
 void Bicgstab<ValueType>::solver_apply(
     const MultiVector<ValueType>* b, MultiVector<ValueType>* x,
-    log::BatchLogData<remove_complex<ValueType>>* log_data) const
+    log::detail::log_data<remove_complex<ValueType>>* log_data) const
 {
     using MVec = MultiVector<ValueType>;
     const kernels::batch_bicgstab::BicgstabSettings<remove_complex<ValueType>>

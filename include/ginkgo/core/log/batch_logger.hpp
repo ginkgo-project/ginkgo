@@ -50,12 +50,7 @@ namespace batch {
  * @ingroup log
  */
 namespace log {
-
-
-/**
- * Types of batch loggers available.
- */
-enum class BatchLogType { simple_convergence_completion };
+namespace detail {
 
 
 /**
@@ -64,12 +59,11 @@ enum class BatchLogType { simple_convergence_completion };
  * @note Supports only single rhs
  */
 template <typename ValueType>
-struct BatchLogData {
+struct log_data final {
     using real_type = remove_complex<ValueType>;
 
-    BatchLogData(std::shared_ptr<const Executor> exec,
-                 size_type num_batch_items = 0,
-                 array<unsigned char> workspace = {})
+    log_data(std::shared_ptr<const Executor> exec,
+             size_type num_batch_items = 0, array<unsigned char> workspace = {})
         : res_norms(exec), iter_counts(exec)
     {
         const size_type workspace_size =
@@ -103,6 +97,9 @@ struct BatchLogData {
 };
 
 
+}  // namespace detail
+
+
 /**
  * Logs the final residuals and iteration counts for a batch solver.
  *
@@ -127,6 +124,8 @@ public:
     /**
      * Creates a convergence logger. This dynamically allocates the memory,
      * constructs the object and returns an std::unique_ptr to this object.
+     * TODO: See if the objects can be pre-allocated beforehand instead of being
+     * copied in the `on_<>` event
      *
      * @param exec  the executor
      * @param enabled_events  the events enabled for this logger. By default all
@@ -135,11 +134,11 @@ public:
      * @return an std::unique_ptr to the the constructed object
      */
     static std::unique_ptr<BatchConvergence> create(
-        std::shared_ptr<const Executor> exec,
-        const mask_type& enabled_events = gko::log::Logger::all_events_mask)
+        const mask_type& enabled_events =
+            gko::log::Logger::batch_solver_completed_mask)
     {
         return std::unique_ptr<BatchConvergence>(
-            new BatchConvergence(exec, enabled_events));
+            new BatchConvergence(enabled_events));
     }
 
     /**
@@ -159,17 +158,14 @@ public:
     }
 
 protected:
-    explicit BatchConvergence(
-        std::shared_ptr<const Executor> exec,
-        const mask_type& enabled_events = gko::log::Logger::all_events_mask)
-        : gko::log::Logger(enabled_events),
-          iteration_count_(exec),
-          residual_norm_(exec)
+    explicit BatchConvergence(const mask_type& enabled_events =
+                                  gko::log::Logger::batch_solver_completed_mask)
+        : gko::log::Logger(enabled_events)
     {}
 
 private:
-    mutable array<int> iteration_count_;
-    mutable array<real_type> residual_norm_;
+    mutable array<int> iteration_count_{};
+    mutable array<real_type> residual_norm_{};
 };
 
 

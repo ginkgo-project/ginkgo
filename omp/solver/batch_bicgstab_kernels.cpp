@@ -100,12 +100,11 @@ public:
             // TODO: Align to cache line boundary
             // TODO: Allocate and free once per thread rather than once per
             // work-item.
-            const auto local_space =
-                static_cast<unsigned char*>(malloc(local_size_bytes));
+            auto local_space = array<unsigned char>(exec_, local_size_bytes);
             batch_entry_bicgstab_impl<StopType, PrecondType, LogType,
                                       BatchMatrixType, ValueType>(
-                settings_, logger, precond, mat, b, x, batch_id, local_space);
-            free(local_space);
+                settings_, logger, precond, mat, b, x, batch_id,
+                local_space.get_data());
         }
     }
 
@@ -122,7 +121,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            const batch::BatchLinOp* const precond,
            const batch::MultiVector<ValueType>* const b,
            batch::MultiVector<ValueType>* const x,
-           batch::log::BatchLogData<remove_complex<ValueType>>& logdata)
+           batch::log::detail::log_data<remove_complex<ValueType>>& logdata)
 {
     auto dispatcher = batch::solver::create_dispatcher<ValueType>(
         KernelCaller<ValueType>(exec, settings), settings, mat, precond);

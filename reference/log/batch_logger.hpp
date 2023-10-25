@@ -44,7 +44,7 @@ namespace batch_log {
 
 
 /**
- * Logs the final residual and iteration count for a batch solver.
+ * Logs the final residual norm and iteration count for a batch solver.
  *
  * @note Supports only a single RHS per batch item.
  */
@@ -66,11 +66,11 @@ public:
     {}
 
     /**
-     * Logs the iteration count and residual norm.
+     * Logs the final iteration count and the final residual norm.
      *
      * @param batch_idx  The index of linear system in the batch to log.
-     * @param iter  The current iteration count (0-based).
-     * @param res_norm  Norm of current residual
+     * @param iter  The final iteration count (0-based).
+     * @param res_norm  Norm of final residual norm
      */
     void log_iteration(const size_type batch_idx, const int iter,
                        const real_type res_norm)

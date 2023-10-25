@@ -56,7 +56,7 @@ template <typename RealType>
 struct BicgstabSettings {
     int max_iterations;
     RealType residual_tol;
-    ::gko::batch::stop::ToleranceType tol_type;
+    ::gko::batch::stop::tolerance_type tol_type;
 };
 
 
@@ -100,7 +100,7 @@ inline int local_memory_requirement(const int num_rows, const int num_rhs)
             remove_complex<_type>>& options,                                 \
         const batch::BatchLinOp* a, const batch::BatchLinOp* preconditioner, \
         const batch::MultiVector<_type>* b, batch::MultiVector<_type>* x,    \
-        gko::batch::log::BatchLogData<remove_complex<_type>>& logdata)
+        gko::batch::log::detail::log_data<remove_complex<_type>>& logdata)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES \

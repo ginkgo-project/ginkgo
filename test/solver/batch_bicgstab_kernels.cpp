@@ -63,16 +63,15 @@ protected:
     using MVec = gko::batch::MultiVector<value_type>;
     using RealMVec = gko::batch::MultiVector<real_type>;
     using Settings = gko::kernels::batch_bicgstab::BicgstabSettings<real_type>;
-    using LogData = gko::batch::log::BatchLogData<real_type>;
+    using LogData = gko::batch::log::detail::log_data<real_type>;
     using Logger = gko::batch::log::BatchConvergence<real_type>;
 
     BatchBicgstab() {}
 
-    template <typename MatrixType, typename... MatrixArgs>
+    template <typename MatrixType>
     gko::test::LinearSystem<MatrixType> setup_linsys_and_solver(
-        const gko::size_type num_batch_items, const int num_rows,
-        const int num_rhs, const real_type tol, const int max_iters,
-        MatrixArgs&&... args)
+        std::shared_ptr<const MatrixType> mat, const int num_rhs,
+        const real_type tol, const int max_iters)
     {
         auto executor = exec;
         solve_lambda = [executor](const Settings settings,
@@ -83,18 +82,16 @@ protected:
                 typename Mtx::value_type>(executor, settings, mtx, prec, b, x,
                                           log_data);
         };
-        solver_settings =
-            Settings{max_iters, tol, gko::batch::stop::ToleranceType::relative};
+        solver_settings = Settings{max_iters, tol,
+                                   gko::batch::stop::tolerance_type::relative};
 
         solver_factory =
             solver_type::build()
                 .with_default_max_iterations(max_iters)
                 .with_default_tolerance(tol)
-                .with_tolerance_type(gko::batch::stop::ToleranceType::relative)
+                .with_tolerance_type(gko::batch::stop::tolerance_type::relative)
                 .on(exec);
-        return gko::test::generate_3pt_stencil_batch_problem<MatrixType>(
-            exec, num_batch_items, num_rows, num_rhs,
-            std::forward<MatrixArgs>(args)...);
+        return gko::test::generate_batch_linear_system(mat, num_rhs);
     }
 
     std::function<void(const Settings, const gko::batch::BatchLinOp*,
@@ -112,8 +109,9 @@ TEST_F(BatchBicgstab, SolvesStencilSystem)
     const int num_rhs = 1;
     const real_type tol = 1e-5;
     const int max_iters = 100;
-    auto linear_system = setup_linsys_and_solver<Mtx>(num_batch_items, num_rows,
-                                                      num_rhs, tol, max_iters);
+    auto mat = gko::share(gko::test::generate_3pt_stencil_batch_matrix<Mtx>(
+        exec, num_batch_items, num_rows));
+    auto linear_system = setup_linsys_and_solver(mat, num_rhs, tol, max_iters);
 
     auto res = gko::test::solve_linear_system(exec, solve_lambda,
                                               solver_settings, linear_system);
@@ -134,8 +132,9 @@ TEST_F(BatchBicgstab, StencilSystemLoggerLogsResidual)
     const int num_rhs = 1;
     const real_type tol = 1e-5;
     const int max_iters = 100;
-    auto linear_system = setup_linsys_and_solver<Mtx>(num_batch_items, num_rows,
-                                                      num_rhs, tol, max_iters);
+    auto mat = gko::share(gko::test::generate_3pt_stencil_batch_matrix<Mtx>(
+        exec, num_batch_items, num_rows));
+    auto linear_system = setup_linsys_and_solver(mat, num_rhs, tol, max_iters);
 
     auto res = gko::test::solve_linear_system(exec, solve_lambda,
                                               solver_settings, linear_system);
@@ -156,8 +155,9 @@ TEST_F(BatchBicgstab, StencilSystemLoggerLogsIterations)
     const int num_rows = 10;
     const int num_rhs = 1;
     const int ref_iters = 5;
-    auto linear_system = setup_linsys_and_solver<Mtx>(num_batch_items, num_rows,
-                                                      num_rhs, 0, ref_iters);
+    auto mat = gko::share(gko::test::generate_3pt_stencil_batch_matrix<Mtx>(
+        exec, num_batch_items, num_rows));
+    auto linear_system = setup_linsys_and_solver(mat, num_rhs, 0, ref_iters);
 
     auto res = gko::test::solve_linear_system(exec, solve_lambda,
                                               solver_settings, linear_system);
@@ -176,8 +176,9 @@ TEST_F(BatchBicgstab, CanSolve3ptStencilSystem)
     const int num_rhs = 1;
     const real_type tol = 1e-5;
     const int max_iters = 100;
-    auto linear_system = setup_linsys_and_solver<Mtx>(num_batch_items, num_rows,
-                                                      num_rhs, tol, max_iters);
+    auto mat = gko::share(gko::test::generate_3pt_stencil_batch_matrix<Mtx>(
+        exec, num_batch_items, num_rows));
+    auto linear_system = setup_linsys_and_solver(mat, num_rhs, tol, max_iters);
     auto solver = gko::share(solver_factory->generate(linear_system.matrix));
 
     auto res = gko::test::solve_linear_system(exec, linear_system, solver);
@@ -205,11 +206,14 @@ TEST_F(BatchBicgstab, CanSolveLargeHpdSystem)
         solver_type::build()
             .with_default_max_iterations(max_iters)
             .with_default_tolerance(tol)
-            .with_tolerance_type(gko::batch::stop::ToleranceType::absolute)
+            .with_tolerance_type(gko::batch::stop::tolerance_type::absolute)
             .on(exec);
-    std::shared_ptr<Logger> logger = Logger::create(exec);
-    auto linear_system = gko::test::generate_diag_dominant_batch_problem<Mtx>(
-        exec, num_batch_items, num_rows, num_rhs, true);
+    std::shared_ptr<Logger> logger = Logger::create();
+    auto diag_dom_mat =
+        gko::share(gko::test::generate_diag_dominant_batch_matrix<Mtx>(
+            exec, num_batch_items, num_rows, true));
+    auto linear_system =
+        gko::test::generate_batch_linear_system(diag_dom_mat, num_rhs);
     auto solver = gko::share(solver_factory->generate(linear_system.matrix));
     solver->add_logger(logger);
 

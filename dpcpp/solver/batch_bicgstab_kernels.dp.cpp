@@ -64,7 +64,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            const batch::BatchLinOp* const precon,
            const batch::MultiVector<ValueType>* const b,
            batch::MultiVector<ValueType>* const x,
-           batch::log::BatchLogData<remove_complex<ValueType>>& logdata)
+           batch::log::detail::log_data<remove_complex<ValueType>>& logdata)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL);

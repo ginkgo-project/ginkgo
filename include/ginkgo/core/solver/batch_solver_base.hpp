@@ -89,7 +89,13 @@ public:
      * @param res_tol  The residual tolerance to be used for subsequent
      *                 invocations of the solver.
      */
-    void set_residual_tolerance(double res_tol) { residual_tol_ = res_tol; }
+    void set_residual_tolerance(double res_tol)
+    {
+        if (res_tol < 0) {
+            GKO_INVALID_STATE("Tolerance cannot be negative!");
+        }
+        residual_tol_ = res_tol;
+    }
 
     /**
      * Get the maximum number of iterations set on the solver.
@@ -106,7 +112,34 @@ public:
      */
     void set_max_iterations(int max_iterations)
     {
+        if (max_iterations < 0) {
+            GKO_INVALID_STATE("Max iterations cannot be negative!");
+        }
         max_iterations_ = max_iterations;
+    }
+
+    /**
+     * Get the tolerance type.
+     *
+     * @return  The tolerance type.
+     */
+    ::gko::batch::stop::tolerance_type get_tolerance_type() const
+    {
+        return tol_type_;
+    }
+
+    /**
+     * Set the type of tolerance check to use inside the solver
+     *
+     * @param tol_type  The tolerance type.
+     */
+    void set_tolerance_type(::gko::batch::stop::tolerance_type tol_type)
+    {
+        if (tol_type != ::gko::batch::stop::tolerance_type::absolute ||
+            tol_type != ::gko::batch::stop::tolerance_type::relative) {
+            GKO_INVALID_STATE("Invalid tolerance type specified!");
+        }
+        tol_type_ = tol_type;
     }
 
 protected:
@@ -114,11 +147,13 @@ protected:
 
     BatchSolver(std::shared_ptr<const BatchLinOp> system_matrix,
                 std::shared_ptr<const BatchLinOp> gen_preconditioner,
-                const double res_tol, const int max_iterations)
+                const double res_tol, const int max_iterations,
+                const ::gko::batch::stop::tolerance_type tol_type)
         : system_matrix_{std::move(system_matrix)},
           preconditioner_{std::move(gen_preconditioner)},
           residual_tol_{res_tol},
           max_iterations_{max_iterations},
+          tol_type_{tol_type},
           workspace_{}
     {}
 
@@ -126,30 +161,9 @@ protected:
     std::shared_ptr<const BatchLinOp> preconditioner_{};
     double residual_tol_{};
     int max_iterations_{};
+    ::gko::batch::stop::tolerance_type tol_type_{};
     mutable array<unsigned char> workspace_{};
 };
-
-
-namespace detail {
-
-
-struct common_batch_params {
-    std::shared_ptr<const BatchLinOpFactory> prec_factory;
-    std::shared_ptr<const BatchLinOp> generated_prec;
-    double residual_tolerance;
-    int max_iterations;
-};
-
-
-template <typename ParamsType>
-common_batch_params extract_common_batch_params(ParamsType& params)
-{
-    return {params.preconditioner, params.generated_preconditioner,
-            params.default_tolerance, params.default_max_iterations};
-}
-
-
-}  // namespace detail
 
 
 /**
@@ -196,8 +210,8 @@ struct enable_preconditioned_iterative_solver_factory_parameters
      * To specify which type of tolerance check is to be considered, absolute or
      * relative (to the rhs l2 norm)
      */
-    ::gko::batch::stop::ToleranceType GKO_FACTORY_PARAMETER_SCALAR(
-        tolerance_type, ::gko::batch::stop::ToleranceType::absolute);
+    ::gko::batch::stop::tolerance_type GKO_FACTORY_PARAMETER_SCALAR(
+        tolerance_type, ::gko::batch::stop::tolerance_type::absolute);
 
     /**
      * Provides a preconditioner factory to be used by the iterative solver in a
@@ -301,11 +315,12 @@ protected:
         : EnableBatchLinOp<ConcreteSolver, PolymorphicBase>(std::move(exec))
     {}
 
+    template <typename FactoryParameters>
     explicit EnableBatchSolver(std::shared_ptr<const Executor> exec,
                                std::shared_ptr<const BatchLinOp> system_matrix,
-                               detail::common_batch_params common_params)
-        : BatchSolver(system_matrix, nullptr, common_params.residual_tolerance,
-                      common_params.max_iterations),
+                               const FactoryParameters& params)
+        : BatchSolver(system_matrix, nullptr, params.default_tolerance,
+                      params.default_max_iterations, params.tolerance_type),
           EnableBatchLinOp<ConcreteSolver, PolymorphicBase>(
               exec, gko::transpose(system_matrix->get_size()))
     {
@@ -315,13 +330,12 @@ protected:
         using Identity = matrix::Identity<value_type>;
         using real_type = remove_complex<value_type>;
 
-        if (common_params.generated_prec) {
-            GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(common_params.generated_prec,
+        if (params.generated_preconditioner) {
+            GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(params.generated_preconditioner,
                                               this);
-            preconditioner_ = std::move(common_params.generated_prec);
-        } else if (common_params.prec_factory) {
-            preconditioner_ =
-                common_params.prec_factory->generate(system_matrix_);
+            preconditioner_ = std::move(params.generated_preconditioner);
+        } else if (params.preconditioner) {
+            preconditioner_ = params.preconditioner->generate(system_matrix_);
         } else {
             auto id = Identity::create(exec, system_matrix->get_size());
             preconditioner_ = std::move(id);
@@ -341,7 +355,7 @@ protected:
         if (b->get_common_size()[1] > 1) {
             GKO_NOT_IMPLEMENTED;
         }
-        auto log_data_ = std::make_unique<log::BatchLogData<real_type>>(
+        auto log_data_ = std::make_unique<log::detail::log_data<real_type>>(
             exec, b->get_num_batch_items(), workspace_);
 
         this->solver_apply(b, x, log_data_.get());
@@ -363,7 +377,7 @@ protected:
 
     virtual void solver_apply(const MultiVector<ValueType>* b,
                               MultiVector<ValueType>* x,
-                              log::BatchLogData<real_type>* info) const = 0;
+                              log::detail::log_data<real_type>* info) const = 0;
 };
 
 
