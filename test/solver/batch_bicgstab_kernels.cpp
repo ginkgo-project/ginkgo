@@ -89,7 +89,7 @@ protected:
         solver_factory =
             solver_type::build()
                 .with_default_max_iterations(max_iters)
-                .with_default_residual_tol(tol)
+                .with_default_tolerance(tol)
                 .with_tolerance_type(gko::batch::stop::ToleranceType::relative)
                 .on(exec);
         return gko::test::generate_3pt_stencil_batch_problem<MatrixType>(
@@ -204,7 +204,7 @@ TEST_F(BatchBicgstab, CanSolveLargeHpdSystem)
     auto solver_factory =
         solver_type::build()
             .with_default_max_iterations(max_iters)
-            .with_default_residual_tol(tol)
+            .with_default_tolerance(tol)
             .with_tolerance_type(gko::batch::stop::ToleranceType::absolute)
             .on(exec);
     std::shared_ptr<Logger> logger = Logger::create(exec);

@@ -34,11 +34,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_SOLVER_BATCH_SOLVER_HPP_
 
 
+#include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/batch_lin_op.hpp>
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/log/batch_logger.hpp>
 #include <ginkgo/core/matrix/batch_identity.hpp>
+#include <ginkgo/core/stop/batch_stop_enum.hpp>
 
 
 namespace gko {
@@ -143,7 +145,7 @@ template <typename ParamsType>
 common_batch_params extract_common_batch_params(ParamsType& params)
 {
     return {params.preconditioner, params.generated_preconditioner,
-            params.default_residual_tol, params.default_max_iterations};
+            params.default_tolerance, params.default_max_iterations};
 }
 
 
@@ -151,6 +153,96 @@ common_batch_params extract_common_batch_params(ParamsType& params)
 
 
 /**
+ * The parameter type shared between all preconditioned iterative solvers,
+ * excluding the parameters available in iterative_solver_factory_parameters.
+ * @see GKO_CREATE_FACTORY_PARAMETERS
+ */
+struct preconditioned_iterative_solver_factory_parameters {
+    /**
+     * The preconditioner to be used by the iterative solver. By default, no
+     * preconditioner is used.
+     */
+    std::shared_ptr<const BatchLinOpFactory> preconditioner{nullptr};
+
+    /**
+     * Already generated preconditioner. If one is provided, the factory
+     * `preconditioner` will be ignored.
+     */
+    std::shared_ptr<const BatchLinOp> generated_preconditioner{nullptr};
+};
+
+
+template <typename Parameters, typename Factory>
+struct enable_preconditioned_iterative_solver_factory_parameters
+    : enable_parameters_type<Parameters, Factory>,
+      preconditioned_iterative_solver_factory_parameters {
+    /**
+     * Default maximum number iterations allowed.
+     *
+     * Generated solvers are initialized with this value for their maximum
+     * iterations.
+     */
+    int GKO_FACTORY_PARAMETER_SCALAR(default_max_iterations, 100);
+
+    /**
+     * Default residual tolerance.
+     *
+     * Generated solvers are initialized with this value for their residual
+     * tolerance.
+     */
+    double GKO_FACTORY_PARAMETER_SCALAR(default_tolerance, 1e-11);
+
+    /**
+     * To specify which type of tolerance check is to be considered, absolute or
+     * relative (to the rhs l2 norm)
+     */
+    ::gko::batch::stop::ToleranceType GKO_FACTORY_PARAMETER_SCALAR(
+        tolerance_type, ::gko::batch::stop::ToleranceType::absolute);
+
+    /**
+     * Provides a preconditioner factory to be used by the iterative solver in a
+     * fluent interface.
+     * @see preconditioned_iterative_solver_factory_parameters::preconditioner
+     */
+    Parameters& with_preconditioner(
+        deferred_factory_parameter<BatchLinOpFactory> preconditioner)
+    {
+        this->preconditioner_generator = std::move(preconditioner);
+        this->deferred_factories["preconditioner"] = [](const auto& exec,
+                                                        auto& params) {
+            if (!params.preconditioner_generator.is_empty()) {
+                params.preconditioner =
+                    params.preconditioner_generator.on(exec);
+            }
+        };
+        return *self();
+    }
+
+    /**
+     * Provides a concrete preconditioner to be used by the iterative solver in
+     * a fluent interface.
+     * @see preconditioned_iterative_solver_factory_parameters::preconditioner
+     */
+    Parameters& with_generated_preconditioner(
+        std::shared_ptr<const BatchLinOp> generated_preconditioner)
+    {
+        this->generated_preconditioner = std::move(generated_preconditioner);
+        return *self();
+    }
+
+private:
+    GKO_ENABLE_SELF(Parameters);
+
+    deferred_factory_parameter<BatchLinOpFactory> preconditioner_generator;
+};
+
+
+/**
+ * This mixin provides apply and common iterative solver functionality to all
+ * the batched solvers.
+ *
+ * @tparam ConcreteSolver  The concrete solver class.
+ * @tparam ValueType  The value type of the multivectors.
  * @tparam PolymorphicBase  The base class; must be a subclass of BatchLinOp.
  */
 template <typename ConcreteSolver,

@@ -64,7 +64,7 @@ protected:
               this->exec->get_master(), nrows, nbatch)),
           solver_factory(Solver::build()
                              .with_default_max_iterations(def_max_iters)
-                             .with_default_residual_tol(def_abs_res_tol)
+                             .with_default_tolerance(def_abs_res_tol)
                              .with_tolerance_type(def_tol_type)
                              .on(exec)),
           solver(solver_factory->generate(mtx))
@@ -174,13 +174,13 @@ TYPED_TEST(BatchBicgstab, CanSetCriteriaInFactory)
     auto solver_factory =
         Solver::build()
             .with_default_max_iterations(22)
-            .with_default_residual_tol(static_cast<real_type>(0.25))
+            .with_default_tolerance(static_cast<real_type>(0.25))
             .with_tolerance_type(gko::batch::stop::ToleranceType::relative)
             .on(this->exec);
 
     auto solver = solver_factory->generate(this->mtx);
     ASSERT_EQ(solver->get_parameters().default_max_iterations, 22);
-    ASSERT_EQ(solver->get_parameters().default_residual_tol, 0.25);
+    ASSERT_EQ(solver->get_parameters().default_tolerance, 0.25);
     ASSERT_EQ(solver->get_parameters().tolerance_type,
               gko::batch::stop::ToleranceType::relative);
 }
@@ -193,7 +193,7 @@ TYPED_TEST(BatchBicgstab, CanSetResidualTol)
     auto solver_factory =
         Solver::build()
             .with_default_max_iterations(22)
-            .with_default_residual_tol(static_cast<real_type>(0.25))
+            .with_default_tolerance(static_cast<real_type>(0.25))
             .with_tolerance_type(gko::batch::stop::ToleranceType::relative)
             .on(this->exec);
     auto solver = solver_factory->generate(this->mtx);
@@ -201,7 +201,7 @@ TYPED_TEST(BatchBicgstab, CanSetResidualTol)
     solver->set_residual_tolerance(0.5);
 
     ASSERT_EQ(solver->get_parameters().default_max_iterations, 22);
-    ASSERT_EQ(solver->get_parameters().default_residual_tol, 0.25);
+    ASSERT_EQ(solver->get_parameters().default_tolerance, 0.25);
     ASSERT_EQ(solver->get_residual_tolerance(), 0.5);
 }
 
@@ -213,14 +213,14 @@ TYPED_TEST(BatchBicgstab, CanSetMaxIterations)
     auto solver_factory =
         Solver::build()
             .with_default_max_iterations(22)
-            .with_default_residual_tol(static_cast<real_type>(0.25))
+            .with_default_tolerance(static_cast<real_type>(0.25))
             .with_tolerance_type(gko::batch::stop::ToleranceType::relative)
             .on(this->exec);
     auto solver = solver_factory->generate(this->mtx);
 
     solver->set_max_iterations(10);
 
-    ASSERT_EQ(solver->get_parameters().default_residual_tol, 0.25);
+    ASSERT_EQ(solver->get_parameters().default_tolerance, 0.25);
     ASSERT_EQ(solver->get_parameters().default_max_iterations, 22);
     ASSERT_EQ(solver->get_max_iterations(), 10);
 }

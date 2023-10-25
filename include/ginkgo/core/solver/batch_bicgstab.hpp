@@ -79,43 +79,11 @@ public:
     using value_type = ValueType;
     using real_type = gko::remove_complex<ValueType>;
 
-    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
-    {
-        /**
-         * Preconditioner factory.
-         */
-        std::shared_ptr<const BatchLinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
-            preconditioner, nullptr);
+    class Factory;
 
-        /**
-         * Already generated preconditioner. If one is provided, the factory
-         * `preconditioner` will be ignored.
-         */
-        std::shared_ptr<const BatchLinOp> GKO_FACTORY_PARAMETER_SCALAR(
-            generated_preconditioner, nullptr);
-
-        /**
-         * Default maximum number iterations allowed.
-         *
-         * Generated solvers are initialized with this value for their maximum
-         * iterations.
-         */
-        int GKO_FACTORY_PARAMETER_SCALAR(default_max_iterations, 100);
-
-        /**
-         * Default residual tolerance.
-         *
-         * Generated solvers are initialized with this value for their residual
-         * tolerance.
-         */
-        real_type GKO_FACTORY_PARAMETER_SCALAR(default_residual_tol, 1e-11);
-
-        /**
-         * To specify which tolerance is to be considered.
-         */
-        ::gko::batch::stop::ToleranceType GKO_FACTORY_PARAMETER_SCALAR(
-            tolerance_type, ::gko::batch::stop::ToleranceType::absolute);
-    };
+    struct parameters_type
+        : enable_preconditioned_iterative_solver_factory_parameters<
+              parameters_type, Factory> {};
     GKO_ENABLE_BATCH_LIN_OP_FACTORY(Bicgstab, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
