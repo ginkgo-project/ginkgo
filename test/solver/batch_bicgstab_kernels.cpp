@@ -87,8 +87,8 @@ protected:
 
         solver_factory =
             solver_type::build()
-                .with_default_max_iterations(max_iters)
-                .with_default_tolerance(tol)
+                .with_max_iterations(max_iters)
+                .with_tolerance(tol)
                 .with_tolerance_type(gko::batch::stop::tolerance_type::relative)
                 .on(exec);
         return gko::test::generate_batch_linear_system(mat, num_rhs);
@@ -204,8 +204,8 @@ TEST_F(BatchBicgstab, CanSolveLargeHpdSystem)
     const real_type comp_tol = tol * 100;
     auto solver_factory =
         solver_type::build()
-            .with_default_max_iterations(max_iters)
-            .with_default_tolerance(tol)
+            .with_max_iterations(max_iters)
+            .with_tolerance(tol)
             .with_tolerance_type(gko::batch::stop::tolerance_type::absolute)
             .on(exec);
     std::shared_ptr<Logger> logger = Logger::create();
