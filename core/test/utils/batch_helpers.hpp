@@ -369,8 +369,9 @@ ResultWithLogData<typename MatrixType::value_type> solve_linear_system(
     solve_lambda(settings, precond.get(), sys.matrix.get(), sys.rhs.get(),
                  result.x.get(), *log_data.get());
 
+
     result.log_data = std::make_unique<batch::log::detail::log_data<real_type>>(
-        exec->get_master());
+        exec->get_master(), num_batch_items);
     result.log_data->iter_counts = log_data->iter_counts;
     result.log_data->res_norms = log_data->res_norms;
 

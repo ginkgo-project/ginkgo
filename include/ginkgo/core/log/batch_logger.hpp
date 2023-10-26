@@ -62,26 +62,40 @@ template <typename ValueType>
 struct log_data final {
     using real_type = remove_complex<ValueType>;
 
-    log_data(std::shared_ptr<const Executor> exec,
-             size_type num_batch_items = 0, array<unsigned char> workspace = {})
+    log_data(std::shared_ptr<const Executor> exec, size_type num_batch_items)
         : res_norms(exec), iter_counts(exec)
     {
         const size_type workspace_size =
             num_batch_items * (sizeof(real_type) + sizeof(int));
         if (num_batch_items > 0) {
-            if (workspace.get_num_elems() >= workspace_size) {
-                iter_counts = array<int>::view(
-                    exec, num_batch_items,
-                    reinterpret_cast<int*>(workspace.get_data()));
-                res_norms = array<real_type>::view(
-                    exec, num_batch_items,
-                    reinterpret_cast<real_type*>(
-                        workspace.get_data() +
-                        (sizeof(int) * num_batch_items)));
-            } else {
-                iter_counts.resize_and_reset(num_batch_items);
-                res_norms.resize_and_reset(num_batch_items);
-            }
+            iter_counts.resize_and_reset(num_batch_items);
+            res_norms.resize_and_reset(num_batch_items);
+        } else {
+            GKO_INVALID_STATE("Invalid num batch items passed in");
+        }
+    }
+
+    log_data(std::shared_ptr<const Executor> exec, size_type num_batch_items,
+             array<unsigned char> workspace)
+        : res_norms(exec), iter_counts(exec)
+    {
+        const size_type workspace_size =
+            num_batch_items * (sizeof(real_type) + sizeof(int));
+        if (num_batch_items > 0 && !workspace.is_owning() &&
+            workspace.get_num_elems() >= workspace_size) {
+            iter_counts =
+                array<int>::view(exec, num_batch_items,
+                                 reinterpret_cast<int*>(workspace.get_data()));
+            res_norms = array<real_type>::view(
+                exec, num_batch_items,
+                reinterpret_cast<real_type*>(workspace.get_data() +
+                                             (sizeof(int) * num_batch_items)));
+            // } else {
+            //     iter_counts.resize_and_reset(num_batch_items);
+            //     res_norms.resize_and_reset(num_batch_items);
+            // }
+        } else {
+            GKO_INVALID_STATE("invalid workspace or num batch items passed in");
         }
     }
 
