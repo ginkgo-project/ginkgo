@@ -85,7 +85,7 @@ namespace batch_bicgstab {
 
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
-int get_num_threads_per_block(std::shared_ptr<const CudaExecutor> exec,
+int get_num_threads_per_block(std::shared_ptr<const DefaultExecutor> exec,
                               const int num_rows)
 {
     int nwarps = num_rows / 4;
@@ -117,7 +117,7 @@ int get_num_threads_per_block(std::shared_ptr<const CudaExecutor> exec,
 
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
-int get_max_dynamic_shared_memory(std::shared_ptr<const CudaExecutor> exec,
+int get_max_dynamic_shared_memory(std::shared_ptr<const DefaultExecutor> exec,
                                   const size_type required_cache_storage)
 {
     int shmem_per_sm = 0;
@@ -178,7 +178,7 @@ public:
     {
         using real_type = gko::remove_complex<value_type>;
         const size_type num_batch_items = mat.num_batch_items;
-        constexpr int align_multiple = 2;
+        constexpr int align_multiple = 8;
         const int shared_gap =
             ((mat.num_rows + align_multiple - 1) / align_multiple) *
             align_multiple;
