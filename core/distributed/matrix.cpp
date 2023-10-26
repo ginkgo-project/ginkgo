@@ -136,6 +136,35 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
+    const device_matrix_data<value_type, local_index_type>& local_data,
+    const device_matrix_data<value_type, local_index_type>& non_local_data,
+    std::shared_ptr<const sparse_communicator> sparse_comm)
+{
+    sparse_comm_ = std::move(sparse_comm);
+    const auto comm = sparse_comm_->get_communicator();
+    auto exec = this->get_executor();
+    // this is a partition of the column space
+    auto part = sparse_comm_->get_partition<LocalIndexType>();
+    GKO_ASSERT_EQUAL_ROWS(local_data.get_size(), non_local_data.get_size());
+    GKO_ASSERT_EQ(local_data.get_size()[1], part->get_local_end());
+    GKO_ASSERT_EQ(non_local_data.get_size()[1],
+                  part->get_recv_indices().get_num_elems());
+
+    as<ReadableFromMatrixData<ValueType, LocalIndexType>>(local_mtx_)
+        ->read(std::move(local_data));
+    as<ReadableFromMatrixData<ValueType, LocalIndexType>>(non_local_mtx_)
+        ->read(std::move(non_local_data));
+
+    auto num_rows = local_mtx_->get_size()[0];
+    auto num_cols = local_mtx_->get_size()[1];
+    comm.all_reduce(exec, &num_rows, 1, MPI_SUM);
+    comm.all_reduce(exec, &num_cols, 1, MPI_SUM);
+    this->set_size({num_rows, num_cols});
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const device_matrix_data<value_type, global_index_type>& data,
     ptr_param<const Partition<local_index_type, global_index_type>>
         row_partition,
