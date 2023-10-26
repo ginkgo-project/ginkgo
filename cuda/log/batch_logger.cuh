@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CUDA_LOG_BATCH_LOGGERS_CUH_
-#define GKO_CUDA_LOG_BATCH_LOGGERS_CUH_
+#ifndef GKO_CUDA_LOG_BATCH_LOGGER_CUH_
+#define GKO_CUDA_LOG_BATCH_LOGGER_CUH_
 
 
 #include <ginkgo/core/base/types.hpp>
@@ -51,4 +51,4 @@ namespace batch_log {
 }  // namespace kernels
 }  // namespace gko
 
-#endif  // GKO_CUDA_LOG_BATCH_LOGGERS_CUH_
+#endif  // GKO_CUDA_LOG_BATCH_LOGGER_CUH_

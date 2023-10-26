@@ -59,10 +59,9 @@ void Bicgstab<ValueType>::solver_apply(
     log::detail::log_data<remove_complex<ValueType>>* log_data) const
 {
     using MVec = MultiVector<ValueType>;
-    const kernels::batch_bicgstab::settings<remove_complex<ValueType>>
-        settings{this->max_iterations_,
-                 static_cast<real_type>(this->residual_tol_),
-                 parameters_.tolerance_type};
+    const kernels::batch_bicgstab::settings<remove_complex<ValueType>> settings{
+        this->max_iterations_, static_cast<real_type>(this->residual_tol_),
+        parameters_.tolerance_type};
     auto exec = this->get_executor();
     exec->run(bicgstab::make_apply(settings, this->system_matrix_.get(),
                                    this->preconditioner_.get(), b, x,
