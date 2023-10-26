@@ -121,8 +121,8 @@ std::shared_ptr<localized_partition<IndexType>>
 localized_partition<IndexType>::build_from_blocked_recv(
     std::shared_ptr<const Executor> exec, size_type local_size,
     std::vector<std::pair<index_set<index_type>, comm_index_type>> send_idxs,
-    const array<comm_index_type>& target_ids,
-    const array<comm_index_type>& target_sizes)
+    const array<comm_index_type>& recv_ids,
+    const array<comm_index_type>& recv_sizes)
 {
     // make sure shared indices are a subset of local indices
     GKO_ASSERT(send_idxs.empty() || send_idxs.size() == 0 ||
@@ -133,7 +133,7 @@ localized_partition<IndexType>::build_from_blocked_recv(
                                                          b.first.get_size();
                                               })
                                  ->first.get_size());
-    GKO_ASSERT(target_ids.get_num_elems() == target_sizes.get_num_elems());
+    GKO_ASSERT(recv_ids.get_num_elems() == recv_sizes.get_num_elems());
 
     std::vector<index_set<index_type>> send_index_sets(
         send_idxs.size(), index_set<index_type>(exec));
@@ -150,13 +150,13 @@ localized_partition<IndexType>::build_from_blocked_recv(
     // need to create a subset for each target id
     // brute force creating index sets until better constructor is available
     std::vector<index_block<IndexType>> intervals =
-        compute_index_blocks<IndexType>(local_size, target_sizes);
+        compute_index_blocks<IndexType>(local_size, recv_sizes);
 
     return std::shared_ptr<localized_partition>{new localized_partition{
         exec, local_size,
         overlap_indices<send_storage_type>{std::move(send_target_ids),
                                            std::move(send_index_sets)},
-        overlap_indices<recv_storage_type>{target_ids, std::move(intervals)}}};
+        overlap_indices<recv_storage_type>{recv_ids, std::move(intervals)}}};
 }
 
 
