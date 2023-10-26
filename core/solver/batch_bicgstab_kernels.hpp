@@ -96,8 +96,8 @@ inline int local_memory_requirement(const int num_rows, const int num_rhs)
 #define GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL(_type)                       \
     void apply(                                                              \
         std::shared_ptr<const DefaultExecutor> exec,                         \
-        const gko::kernels::batch_bicgstab::settings<                \
-            remove_complex<_type>>& options,                                 \
+        const gko::kernels::batch_bicgstab::settings<remove_complex<_type>>& \
+            options,                                                         \
         const batch::BatchLinOp* a, const batch::BatchLinOp* preconditioner, \
         const batch::MultiVector<_type>* b, batch::MultiVector<_type>* x,    \
         gko::batch::log::detail::log_data<remove_complex<_type>>& logdata)

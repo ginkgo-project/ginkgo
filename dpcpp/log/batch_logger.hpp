@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_DPCPP_LOG_BATCH_LOGGERS_HPP_
-#define GKO_DPCPP_LOG_BATCH_LOGGERS_HPP_
+#ifndef GKO_DPCPP_LOG_BATCH_LOGGER_HPP_
+#define GKO_DPCPP_LOG_BATCH_LOGGER_HPP_
 
 
 #include <ginkgo/config.hpp>
@@ -80,4 +80,4 @@ private:
 }  // namespace kernels
 }  // namespace gko
 
-#endif  // GKO_DPCPP_LOG_BATCH_LOGGERS_HPP_
+#endif  // GKO_DPCPP_LOG_BATCH_LOGGER_HPP_
