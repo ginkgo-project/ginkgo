@@ -341,11 +341,10 @@ protected:
             preconditioner_ = std::move(id);
         }
         // FIXME
-        // const size_type workspace_size = system_matrix->get_num_batch_items()
-        // *
-        //                                  (sizeof(real_type) + sizeof(int));
-        // workspace_.set_executor(exec);
-        // workspace_.resize_and_reset(workspace_size);
+        const size_type workspace_size = system_matrix->get_num_batch_items() *
+                                         (sizeof(real_type) + sizeof(int));
+        workspace_.set_executor(exec);
+        workspace_.resize_and_reset(workspace_size);
     }
 
     void apply_impl(const MultiVector<ValueType>* b,
@@ -356,10 +355,11 @@ protected:
             GKO_NOT_IMPLEMENTED;
         }
         auto log_data_ = std::make_unique<log::detail::log_data<real_type>>(
-            exec, b->get_num_batch_items(), workspace_);
+            exec, b->get_num_batch_items(), workspace_.as_view());
 
         this->solver_apply(b, x, log_data_.get());
 
+        // TODO: This needs to allocate data with every call.
         this->template log<gko::log::Logger::batch_solver_completed>(
             log_data_->iter_counts, log_data_->res_norms);
     }

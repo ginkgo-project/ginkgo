@@ -86,8 +86,7 @@ public:
                const gko::batch::multi_vector::batch_item<ValueType>& z) const
     {
         for (int i = 0; i < r.num_rows; i++) {
-            for (int j = 0; j < r.num_rhs; j++)
-                z.values[i * z.stride + j] = r.values[i * r.stride + j];
+            z.values[i * z.stride] = r.values[i * r.stride];
         }
     }
 };

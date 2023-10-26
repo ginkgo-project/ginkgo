@@ -48,6 +48,14 @@ void BatchConvergence<ValueType>::on_batch_solver_completed(
     const array<int>& iteration_count,
     const array<remove_complex<ValueType>>& residual_norm) const
 {
+    if (this->iteration_count_.get_num_elems() == 0) {
+        this->iteration_count_ = gko::array<int>(
+            iteration_count.get_executor(), iteration_count.get_num_elems());
+    }
+    if (this->residual_norm_.get_num_elems() == 0) {
+        this->residual_norm_ = gko::array<remove_complex<ValueType>>(
+            residual_norm.get_executor(), residual_norm.get_num_elems());
+    }
     this->iteration_count_ = iteration_count;
     this->residual_norm_ = residual_norm;
 }
