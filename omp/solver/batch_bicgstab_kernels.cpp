@@ -63,14 +63,14 @@ constexpr int max_num_rhs = 1;
 
 
 template <typename T>
-using BicgstabSettings = gko::kernels::batch_bicgstab::BicgstabSettings<T>;
+using settings = gko::kernels::batch_bicgstab::settings<T>;
 
 
 template <typename ValueType>
 class KernelCaller {
 public:
     KernelCaller(std::shared_ptr<const DefaultExecutor> exec,
-                 const BicgstabSettings<remove_complex<ValueType>> settings)
+                 const settings<remove_complex<ValueType>> settings)
         : exec_{std::move(exec)}, settings_{settings}
     {}
 
@@ -110,13 +110,13 @@ public:
 
 private:
     const std::shared_ptr<const DefaultExecutor> exec_;
-    const BicgstabSettings<remove_complex<ValueType>> settings_;
+    const settings<remove_complex<ValueType>> settings_;
 };
 
 
 template <typename ValueType>
 void apply(std::shared_ptr<const DefaultExecutor> exec,
-           const BicgstabSettings<remove_complex<ValueType>>& settings,
+           const settings<remove_complex<ValueType>>& settings,
            const batch::BatchLinOp* const mat,
            const batch::BatchLinOp* const precond,
            const batch::MultiVector<ValueType>* const b,
