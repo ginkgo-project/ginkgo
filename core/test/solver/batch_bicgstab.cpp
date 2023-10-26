@@ -63,8 +63,8 @@ protected:
           mtx(gko::share(gko::test::generate_3pt_stencil_batch_matrix<Mtx>(
               this->exec->get_master(), num_batch_items, num_rows))),
           solver_factory(Solver::build()
-                             .with_default_max_iterations(def_max_iters)
-                             .with_default_tolerance(def_abs_res_tol)
+                             .with_max_iterations(def_max_iters)
+                             .with_tolerance(def_abs_res_tol)
                              .with_tolerance_type(def_tol_type)
                              .on(exec)),
           solver(solver_factory->generate(mtx))
@@ -173,14 +173,14 @@ TYPED_TEST(BatchBicgstab, CanSetCriteriaInFactory)
 
     auto solver_factory =
         Solver::build()
-            .with_default_max_iterations(22)
-            .with_default_tolerance(static_cast<real_type>(0.25))
+            .with_max_iterations(22)
+            .with_tolerance(static_cast<real_type>(0.25))
             .with_tolerance_type(gko::batch::stop::tolerance_type::relative)
             .on(this->exec);
 
     auto solver = solver_factory->generate(this->mtx);
-    ASSERT_EQ(solver->get_parameters().default_max_iterations, 22);
-    ASSERT_EQ(solver->get_parameters().default_tolerance, 0.25);
+    ASSERT_EQ(solver->get_parameters().max_iterations, 22);
+    ASSERT_EQ(solver->get_parameters().tolerance, 0.25);
     ASSERT_EQ(solver->get_parameters().tolerance_type,
               gko::batch::stop::tolerance_type::relative);
 }
@@ -192,17 +192,19 @@ TYPED_TEST(BatchBicgstab, CanSetResidualTol)
     using real_type = typename TestFixture::real_type;
     auto solver_factory =
         Solver::build()
-            .with_default_max_iterations(22)
-            .with_default_tolerance(static_cast<real_type>(0.25))
+            .with_max_iterations(22)
+            .with_tolerance(static_cast<real_type>(0.25))
             .with_tolerance_type(gko::batch::stop::tolerance_type::relative)
             .on(this->exec);
     auto solver = solver_factory->generate(this->mtx);
 
-    solver->set_residual_tolerance(0.5);
+    solver->reset_tolerance(0.5);
 
-    ASSERT_EQ(solver->get_parameters().default_max_iterations, 22);
-    ASSERT_EQ(solver->get_parameters().default_tolerance, 0.25);
-    ASSERT_EQ(solver->get_residual_tolerance(), 0.5);
+    ASSERT_EQ(solver->get_parameters().max_iterations, 22);
+    ASSERT_EQ(solver->get_parameters().tolerance, 0.25);
+    ASSERT_EQ(solver->get_parameters().tolerance_type,
+              gko::batch::stop::tolerance_type::relative);
+    ASSERT_EQ(solver->get_tolerance(), 0.5);
 }
 
 
@@ -212,17 +214,42 @@ TYPED_TEST(BatchBicgstab, CanSetMaxIterations)
     using real_type = typename TestFixture::real_type;
     auto solver_factory =
         Solver::build()
-            .with_default_max_iterations(22)
-            .with_default_tolerance(static_cast<real_type>(0.25))
+            .with_max_iterations(22)
+            .with_tolerance(static_cast<real_type>(0.25))
             .with_tolerance_type(gko::batch::stop::tolerance_type::relative)
             .on(this->exec);
     auto solver = solver_factory->generate(this->mtx);
 
-    solver->set_max_iterations(10);
+    solver->reset_max_iterations(10);
 
-    ASSERT_EQ(solver->get_parameters().default_tolerance, 0.25);
-    ASSERT_EQ(solver->get_parameters().default_max_iterations, 22);
+    ASSERT_EQ(solver->get_parameters().tolerance, 0.25);
+    ASSERT_EQ(solver->get_parameters().max_iterations, 22);
+    ASSERT_EQ(solver->get_parameters().tolerance_type,
+              gko::batch::stop::tolerance_type::relative);
     ASSERT_EQ(solver->get_max_iterations(), 10);
+}
+
+
+TYPED_TEST(BatchBicgstab, CanSetTolType)
+{
+    using Solver = typename TestFixture::Solver;
+    using real_type = typename TestFixture::real_type;
+    auto solver_factory =
+        Solver::build()
+            .with_max_iterations(22)
+            .with_tolerance(static_cast<real_type>(0.25))
+            .with_tolerance_type(gko::batch::stop::tolerance_type::relative)
+            .on(this->exec);
+    auto solver = solver_factory->generate(this->mtx);
+
+    solver->reset_tolerance_type(gko::batch::stop::tolerance_type::absolute);
+
+    ASSERT_EQ(solver->get_parameters().max_iterations, 22);
+    ASSERT_EQ(solver->get_parameters().tolerance, 0.25);
+    ASSERT_EQ(solver->get_parameters().tolerance_type,
+              gko::batch::stop::tolerance_type::relative);
+    ASSERT_EQ(solver->get_tolerance_type(),
+              gko::batch::stop::tolerance_type::absolute);
 }
 
 

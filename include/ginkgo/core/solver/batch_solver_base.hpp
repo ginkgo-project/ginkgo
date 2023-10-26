@@ -81,7 +81,7 @@ public:
      *
      * @return The residual tolerance.
      */
-    double get_residual_tolerance() const { return residual_tol_; }
+    double get_tolerance() const { return residual_tol_; }
 
     /**
      * Update the residual tolerance to be used by the solver.
@@ -89,7 +89,7 @@ public:
      * @param res_tol  The residual tolerance to be used for subsequent
      *                 invocations of the solver.
      */
-    void set_residual_tolerance(double res_tol)
+    void reset_tolerance(double res_tol)
     {
         if (res_tol < 0) {
             GKO_INVALID_STATE("Tolerance cannot be negative!");
@@ -110,7 +110,7 @@ public:
      *
      * @param max_iterations  The maximum number of iterations for the solver.
      */
-    void set_max_iterations(int max_iterations)
+    void reset_max_iterations(int max_iterations)
     {
         if (max_iterations < 0) {
             GKO_INVALID_STATE("Max iterations cannot be negative!");
@@ -133,13 +133,14 @@ public:
      *
      * @param tol_type  The tolerance type.
      */
-    void set_tolerance_type(::gko::batch::stop::tolerance_type tol_type)
+    void reset_tolerance_type(::gko::batch::stop::tolerance_type tol_type)
     {
-        if (tol_type != ::gko::batch::stop::tolerance_type::absolute ||
-            tol_type != ::gko::batch::stop::tolerance_type::relative) {
+        if (tol_type == ::gko::batch::stop::tolerance_type::absolute ||
+            tol_type == ::gko::batch::stop::tolerance_type::relative) {
+            tol_type_ = tol_type;
+        } else {
             GKO_INVALID_STATE("Invalid tolerance type specified!");
         }
-        tol_type_ = tol_type;
     }
 
 protected:
@@ -196,7 +197,7 @@ struct enable_preconditioned_iterative_solver_factory_parameters
      * Generated solvers are initialized with this value for their maximum
      * iterations.
      */
-    int GKO_FACTORY_PARAMETER_SCALAR(default_max_iterations, 100);
+    int GKO_FACTORY_PARAMETER_SCALAR(max_iterations, 100);
 
     /**
      * Default residual tolerance.
@@ -204,7 +205,7 @@ struct enable_preconditioned_iterative_solver_factory_parameters
      * Generated solvers are initialized with this value for their residual
      * tolerance.
      */
-    double GKO_FACTORY_PARAMETER_SCALAR(default_tolerance, 1e-11);
+    double GKO_FACTORY_PARAMETER_SCALAR(tolerance, 1e-11);
 
     /**
      * To specify which type of tolerance check is to be considered, absolute or
@@ -319,8 +320,8 @@ protected:
     explicit EnableBatchSolver(std::shared_ptr<const Executor> exec,
                                std::shared_ptr<const BatchLinOp> system_matrix,
                                const FactoryParameters& params)
-        : BatchSolver(system_matrix, nullptr, params.default_tolerance,
-                      params.default_max_iterations, params.tolerance_type),
+        : BatchSolver(system_matrix, nullptr, params.tolerance,
+                      params.max_iterations, params.tolerance_type),
           EnableBatchLinOp<ConcreteSolver, PolymorphicBase>(
               exec, gko::transpose(system_matrix->get_size()))
     {

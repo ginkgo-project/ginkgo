@@ -167,8 +167,8 @@ TYPED_TEST(BatchBicgstab, CanSolveDenseSystem)
     const int max_iters = 1000;
     auto solver_factory =
         Solver::build()
-            .with_default_max_iterations(max_iters)
-            .with_default_tolerance(tol)
+            .with_max_iterations(max_iters)
+            .with_tolerance(tol)
             .with_tolerance_type(gko::batch::stop::tolerance_type::relative)
             .on(this->exec);
     const int num_rows = 13;
@@ -204,8 +204,8 @@ TYPED_TEST(BatchBicgstab, ApplyLogsResAndIters)
     const int max_iters = 1000;
     auto solver_factory =
         Solver::build()
-            .with_default_max_iterations(max_iters)
-            .with_default_tolerance(tol)
+            .with_max_iterations(max_iters)
+            .with_tolerance(tol)
             .with_tolerance_type(gko::batch::stop::tolerance_type::relative)
             .on(this->exec);
     const int num_rows = 13;
@@ -247,8 +247,8 @@ TYPED_TEST(BatchBicgstab, CanSolveEllSystem)
     const int max_iters = 1000;
     auto solver_factory =
         Solver::build()
-            .with_default_max_iterations(max_iters)
-            .with_default_tolerance(tol)
+            .with_max_iterations(max_iters)
+            .with_tolerance(tol)
             .with_tolerance_type(gko::batch::stop::tolerance_type::relative)
             .on(this->exec);
     const int num_rows = 13;
@@ -283,8 +283,8 @@ TYPED_TEST(BatchBicgstab, CanSolveDenseHpdSystem)
     const int max_iters = 1000;
     auto solver_factory =
         Solver::build()
-            .with_default_max_iterations(max_iters)
-            .with_default_tolerance(tol)
+            .with_max_iterations(max_iters)
+            .with_tolerance(tol)
             .with_tolerance_type(gko::batch::stop::tolerance_type::absolute)
             .on(this->exec);
     const int num_rows = 65;
