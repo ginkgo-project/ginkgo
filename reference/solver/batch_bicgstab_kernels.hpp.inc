@@ -177,8 +177,8 @@ inline void update_x_middle(
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
 inline void batch_entry_bicgstab_impl(
-    const gko::kernels::batch_bicgstab::BicgstabSettings<
-        remove_complex<ValueType>>& settings,
+    const gko::kernels::batch_bicgstab::settings<remove_complex<ValueType>>&
+        settings,
     LogType logger, PrecType prec, const BatchMatrixType& a,
     const gko::batch::multi_vector::uniform_batch<const ValueType>& b,
     const gko::batch::multi_vector::uniform_batch<ValueType>& x,

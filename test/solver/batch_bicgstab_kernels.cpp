@@ -62,7 +62,7 @@ protected:
     using EllMtx = gko::batch::matrix::Ell<value_type>;
     using MVec = gko::batch::MultiVector<value_type>;
     using RealMVec = gko::batch::MultiVector<real_type>;
-    using Settings = gko::kernels::batch_bicgstab::BicgstabSettings<real_type>;
+    using Settings = gko::kernels::batch_bicgstab::settings<real_type>;
     using LogData = gko::batch::log::detail::log_data<real_type>;
     using Logger = gko::batch::log::BatchConvergence<real_type>;
 
