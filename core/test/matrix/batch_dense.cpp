@@ -191,19 +191,6 @@ TYPED_TEST(Dense, CanBeConstructedWithSize)
 }
 
 
-TYPED_TEST(Dense, CanBeConstructedWithSizeAndNumItems)
-{
-    using size_type = gko::size_type;
-
-    auto m = gko::batch::matrix::Dense<TypeParam>::create(this->exec, 2,
-                                                          gko::dim<2>{5, 3});
-
-    ASSERT_EQ(m->get_num_batch_items(), 2);
-    ASSERT_EQ(m->get_common_size(), gko::dim<2>(5, 3));
-    ASSERT_EQ(m->get_num_stored_elements(), 30);
-}
-
-
 TYPED_TEST(Dense, CanBeConstructedFromExistingData)
 {
     using value_type = typename TestFixture::value_type;

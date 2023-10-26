@@ -317,16 +317,6 @@ private:
           const batch_dim<2>& size = batch_dim<2>{});
 
     /**
-     * Creates an uninitialized Dense matrix of the specified size.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param num_batch_items  number of items in the batch
-     * @param common_size  common size of the items in the batch
-     */
-    Dense(std::shared_ptr<const Executor> exec, const size_type num_batch_items,
-          const gko::dim<2>& common_size = gko::dim<2>{});
-
-    /**
      * Creates a Dense matrix from an already allocated (and initialized)
      * array.
      *

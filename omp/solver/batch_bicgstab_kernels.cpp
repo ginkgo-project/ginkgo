@@ -92,7 +92,8 @@ public:
         const int local_size_bytes =
             gko::kernels::batch_bicgstab::local_memory_requirement<ValueType>(
                 num_rows, num_rhs) +
-            PrecondType::dynamic_work_size(num_rows, mat.get_num_nnz()) *
+            PrecondType::dynamic_work_size(num_rows,
+                                           mat.get_single_item_num_nnz()) *
                 sizeof(ValueType);
 
 #pragma omp parallel for firstprivate(logger)

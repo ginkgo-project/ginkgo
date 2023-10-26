@@ -73,14 +73,9 @@ struct uniform_batch {
     int32 num_rows;
     int32 num_cols;
 
-    inline size_type get_num_nnz() const
+    inline size_type get_single_item_num_nnz() const
     {
         return static_cast<size_type>(stride * num_rows);
-    }
-
-    inline size_type get_storage_size() const
-    {
-        return get_num_nnz() * sizeof(value_type);
     }
 };
 
@@ -125,14 +120,9 @@ struct uniform_batch {
     index_type num_cols;
     index_type num_stored_elems_per_row;
 
-    inline size_type get_num_nnz() const
+    inline size_type get_single_item_num_nnz() const
     {
         return static_cast<size_type>(stride * num_stored_elems_per_row);
-    }
-
-    inline size_type get_storage_size() const
-    {
-        return get_num_nnz() * sizeof(value_type);
     }
 };
 

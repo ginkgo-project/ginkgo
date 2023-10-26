@@ -133,18 +133,12 @@ std::unique_ptr<const MatrixType> generate_3pt_stencil_batch_matrix(
                     static_cast<size_type>(num_cols)},
         {}};
     for (int row = 0; row < num_rows; ++row) {
-        if (row == 0) {
-            data.nonzeros.emplace_back(0, 0, value_type{5.0});
-            data.nonzeros.emplace_back(0, 1, value_type{-1.0});
-        } else if (row == num_rows - 1) {
-            data.nonzeros.emplace_back(num_rows - 1, num_rows - 1,
-                                       value_type{5.0});
-            data.nonzeros.emplace_back(num_rows - 1, num_rows - 2,
-                                       value_type{-1.0});
-        } else {
-            data.nonzeros.emplace_back(row, row + 1, value_type{-1.0});
+        if (row > 0) {
             data.nonzeros.emplace_back(row - 1, row, value_type{-1.0});
-            data.nonzeros.emplace_back(row, row, value_type{5.0});
+        }
+        data.nonzeros.emplace_back(row, row, value_type{5.0});
+        if (row < num_rows - 1) {
+            data.nonzeros.emplace_back(row, row + 1, value_type{-1.0});
         }
     }
 
@@ -173,21 +167,21 @@ std::unique_ptr<const MatrixType> generate_diag_dominant_batch_matrix(
         {}};
     auto engine = std::default_random_engine(42);
     auto rand_diag_dist = std::normal_distribution<real_type>(4.0, 12.0);
-    for (int row = 1; row < num_rows - 1; ++row) {
+    for (int row = 0; row < num_rows; ++row) {
         std::uniform_int_distribution<index_type> rand_nnz_dist{1, row + 1};
         const auto k = rand_nnz_dist(engine);
-        data.nonzeros.emplace_back(row, k, value_type{-1.0});
-        data.nonzeros.emplace_back(row, row + 1, value_type{-1.0});
-        data.nonzeros.emplace_back(row - 1, row, value_type{-1.0});
+        if (row > 0) {
+            data.nonzeros.emplace_back(row - 1, row, value_type{-1.0});
+        }
         data.nonzeros.emplace_back(
             row, row,
             static_cast<value_type>(
                 detail::get_rand_value<real_type>(rand_diag_dist, engine)));
+        if (row < num_rows - 1) {
+            data.nonzeros.emplace_back(row, k, value_type{-1.0});
+            data.nonzeros.emplace_back(row, row + 1, value_type{-1.0});
+        }
     }
-    data.nonzeros.emplace_back(0, 0, value_type{2.0});
-    data.nonzeros.emplace_back(num_rows - 1, num_rows - 1, value_type{2.0});
-    data.nonzeros.emplace_back(num_rows - 1, num_rows - 2, value_type{-1.0});
-    data.nonzeros.emplace_back(0, 1, value_type{-1.0});
 
     if (is_hermitian) {
         gko::utils::make_hpd(data);
