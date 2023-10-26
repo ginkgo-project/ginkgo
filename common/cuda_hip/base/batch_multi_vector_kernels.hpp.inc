@@ -47,10 +47,15 @@ __device__ __forceinline__ void scale(
 }
 
 template <typename ValueType, typename Mapping>
-__global__
-__launch_bounds__(default_block_size, sm_oversubscription) void scale_kernel(
-    const gko::batch::multi_vector::uniform_batch<const ValueType> alpha,
-    const gko::batch::multi_vector::uniform_batch<ValueType> x, Mapping map)
+__global__ __launch_bounds__(
+    default_block_size,
+    sm_oversubscription) void scale_kernel(const gko::batch::multi_vector::
+                                               uniform_batch<const ValueType>
+                                                   alpha,
+                                           const gko::batch::multi_vector::
+                                               uniform_batch<ValueType>
+                                                   x,
+                                           Mapping map)
 {
     for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_items;
          batch_id += gridDim.x) {
@@ -103,6 +108,28 @@ __global__ __launch_bounds__(
 }
 
 
+template <typename Group, typename ValueType>
+__device__ __forceinline__ void single_rhs_compute_dot(Group subgroup,
+                                                       const int num_rows,
+                                                       const ValueType* x,
+                                                       const ValueType* y,
+                                                       ValueType& result)
+
+{
+    ValueType val = zero<ValueType>();
+    for (int r = subgroup.thread_rank(); r < num_rows; r += subgroup.size()) {
+        val += conj(x[r]) * y[r];
+    }
+
+    // subgroup level reduction
+    val = reduce(subgroup, val, thrust::plus<ValueType>{});
+
+    if (subgroup.thread_rank() == 0) {
+        result = val;
+    }
+}
+
+
 template <typename Group, typename ValueType, typename Mapping>
 __device__ __forceinline__ void gen_one_dot(
     const gko::batch::multi_vector::batch_item<const ValueType>& x,
@@ -149,11 +176,11 @@ __device__ __forceinline__ void compute_gen_dot_product(
 
 template <typename ValueType, typename Mapping>
 __global__
-__launch_bounds__(default_block_size, sm_oversubscription) void compute_gen_dot_product_kernel(
-    const gko::batch::multi_vector::uniform_batch<const ValueType> x,
-    const gko::batch::multi_vector::uniform_batch<const ValueType> y,
-    const gko::batch::multi_vector::uniform_batch<ValueType> result,
-    Mapping map)
+    __launch_bounds__(default_block_size, sm_oversubscription) void compute_gen_dot_product_kernel(
+        const gko::batch::multi_vector::uniform_batch<const ValueType> x,
+        const gko::batch::multi_vector::uniform_batch<const ValueType> y,
+        const gko::batch::multi_vector::uniform_batch<ValueType> result,
+        Mapping map)
 {
     for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_items;
          batch_id += gridDim.x) {
@@ -161,6 +188,27 @@ __launch_bounds__(default_block_size, sm_oversubscription) void compute_gen_dot_
         const auto y_b = gko::batch::extract_batch_item(y, batch_id);
         const auto r_b = gko::batch::extract_batch_item(result, batch_id);
         compute_gen_dot_product(x_b, y_b, r_b, map);
+    }
+}
+
+
+template <typename Group, typename ValueType>
+__device__ __forceinline__ void single_rhs_compute_norm2(
+    Group subgroup, const int num_rows, const ValueType* x,
+    remove_complex<ValueType>& result)
+{
+    using real_type = typename gko::remove_complex<ValueType>;
+    real_type val = zero<real_type>();
+
+    for (int r = subgroup.thread_rank(); r < num_rows; r += subgroup.size()) {
+        val += squared_norm(x[r]);
+    }
+
+    // subgroup level reduction
+    val = reduce(subgroup, val, thrust::plus<remove_complex<ValueType>>{});
+
+    if (subgroup.thread_rank() == 0) {
+        result = sqrt(val);
     }
 }
 
@@ -238,6 +286,17 @@ __global__ __launch_bounds__(
 }
 
 
+template <typename ValueType>
+__device__ __forceinline__ void single_rhs_copy(const int num_rows,
+                                                const ValueType* in,
+                                                ValueType* out)
+{
+    for (int iz = threadIdx.x; iz < num_rows; iz += blockDim.x) {
+        out[iz] = in[iz];
+    }
+}
+
+
 /**
  * Copies the values of one multi-vector into another.
  *
@@ -260,9 +319,9 @@ __device__ __forceinline__ void copy(
 
 template <typename ValueType>
 __global__
-__launch_bounds__(default_block_size, sm_oversubscription) void copy_kernel(
-    const gko::batch::multi_vector::uniform_batch<const ValueType> src,
-    const gko::batch::multi_vector::uniform_batch<ValueType> dst)
+    __launch_bounds__(default_block_size, sm_oversubscription) void copy_kernel(
+        const gko::batch::multi_vector::uniform_batch<const ValueType> src,
+        const gko::batch::multi_vector::uniform_batch<ValueType> dst)
 {
     for (size_type batch_id = blockIdx.x; batch_id < src.num_batch_items;
          batch_id += gridDim.x) {

@@ -250,7 +250,7 @@ LinearSystem<MatrixType> generate_batch_linear_system(
     // A * x_{exact} = b
     sys.matrix->apply(sys.exact_sol, sys.rhs);
     const gko::batch_dim<2> norm_dim(num_batch_items, gko::dim<2>(1, num_rhs));
-    sys.rhs_norm = real_vec::create(exec, norm_dim);
+    sys.rhs_norm = real_vec::create(exec->get_master(), norm_dim);
     sys.rhs->compute_norm2(sys.rhs_norm.get());
     return sys;
 }
@@ -273,7 +273,7 @@ compute_residual_norms(
     const gko::batch_dim<2> norm_dim(num_batch_items, gko::dim<2>(1, num_rhs));
 
     auto residual_vec = b->clone();
-    auto res_norms = real_vec::create(exec, norm_dim);
+    auto res_norms = real_vec::create(exec->get_master(), norm_dim);
     auto alpha =
         gko::batch::initialize<multi_vec>(num_batch_items, {-1.0}, exec);
     auto beta = gko::batch::initialize<multi_vec>(num_batch_items, {1.0}, exec);
