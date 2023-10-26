@@ -49,7 +49,7 @@ namespace stop {
  *
  * With the `relative` tolerance type, the solver
  * convergence criteria checks against the relative residual norm
- * ($\frac{||r||}{||b||} < \tau$, where $||b||$$ is the L2 norm of the rhs).
+ * ($\frac{||r||}{||b||} <= \tau$, where $||b||$$ is the L2 norm of the rhs).
  */
 enum class tolerance_type { absolute, relative };
 

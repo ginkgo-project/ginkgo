@@ -231,9 +231,26 @@ TYPED_TEST(BatchBicgstab, ThrowsOnRectangularMatrixInFactory)
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
     std::shared_ptr<Mtx> rectangular_mtx =
-        Mtx::create(this->exec, 2, gko::dim<2>{3, 5});
+        Mtx::create(this->exec, gko::batch_dim<2>(2, gko::dim<2>{3, 5}));
 
     ASSERT_THROW(this->solver_factory->generate(rectangular_mtx),
+                 gko::BadDimension);
+}
+
+
+TYPED_TEST(BatchBicgstab, ThrowsForMultipleRhs)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using MVec = typename TestFixture::MVec;
+    using Solver = typename TestFixture::Solver;
+    std::shared_ptr<MVec> b =
+        MVec::create(this->exec, gko::batch_dim<2>(2, gko::dim<2>{3, 2}));
+    std::shared_ptr<MVec> x =
+        MVec::create(this->exec, gko::batch_dim<2>(2, gko::dim<2>{3, 2}));
+    std::shared_ptr<Mtx> mtx =
+        Mtx::create(this->exec, gko::batch_dim<2>(2, gko::dim<2>{3, 2}));
+
+    ASSERT_THROW(this->solver_factory->generate(mtx)->apply(b, x),
                  gko::BadDimension);
 }
 

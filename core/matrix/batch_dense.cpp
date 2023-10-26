@@ -117,14 +117,6 @@ Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType>
-Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
-                        const size_type num_batch_items,
-                        const dim<2>& common_size)
-    : Dense(exec, batch_dim<2>(num_batch_items, common_size))
-{}
-
-
-template <typename ValueType>
 Dense<ValueType>* Dense<ValueType>::apply(
     ptr_param<const MultiVector<ValueType>> b,
     ptr_param<MultiVector<ValueType>> x)

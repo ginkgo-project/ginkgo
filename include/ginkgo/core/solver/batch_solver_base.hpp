@@ -359,7 +359,6 @@ protected:
 
         this->solver_apply(b, x, log_data_.get());
 
-        // TODO: This needs to allocate data with every call.
         this->template log<gko::log::Logger::batch_solver_completed>(
             log_data_->iter_counts, log_data_->res_norms);
     }
