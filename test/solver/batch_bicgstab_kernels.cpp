@@ -171,7 +171,7 @@ TEST_F(BatchBicgstab, StencilSystemLoggerLogsIterations)
 
 TEST_F(BatchBicgstab, CanSolve3ptStencilSystem)
 {
-    const int num_batch_items = 12;
+    const int num_batch_items = 8;
     const int num_rows = 100;
     const int num_rhs = 1;
     const real_type tol = 1e-5;
@@ -185,35 +185,24 @@ TEST_F(BatchBicgstab, CanSolve3ptStencilSystem)
 
     GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 10);
     for (size_t i = 0; i < num_batch_items; i++) {
-        auto comp_res_norm =
-            exec->copy_val_to_host(res.res_norm->get_const_values() + i) /
-            exec->copy_val_to_host(linear_system.rhs_norm->get_const_values() +
-                                   i);
+        auto comp_res_norm = res.res_norm->get_const_values()[i] /
+                             linear_system.rhs_norm->get_const_values()[i];
         ASSERT_LE(comp_res_norm, tol);
     }
 }
 
 
-TEST_F(BatchBicgstab, CanSolveLargeHpdSystem)
+TEST_F(BatchBicgstab, CanSolveLargeBatchSizeHpdSystem)
 {
-    const int num_batch_items = 3;
-    const int num_rows = 1025;
+    const int num_batch_items = 100;
+    const int num_rows = 102;
     const int num_rhs = 1;
     const real_type tol = 1e-5;
-    const int max_iters = 2000;
-    const real_type comp_tol = tol * 100;
-    auto solver_factory =
-        solver_type::build()
-            .with_max_iterations(max_iters)
-            .with_tolerance(tol)
-            .with_tolerance_type(gko::batch::stop::tolerance_type::absolute)
-            .on(exec);
+    const int max_iters = num_rows;
     std::shared_ptr<Logger> logger = Logger::create();
-    auto diag_dom_mat =
-        gko::share(gko::test::generate_diag_dominant_batch_matrix<Mtx>(
-            exec, num_batch_items, num_rows, true));
-    auto linear_system =
-        gko::test::generate_batch_linear_system(diag_dom_mat, num_rhs);
+    auto mat = gko::share(gko::test::generate_diag_dominant_batch_matrix<Mtx>(
+        exec, num_batch_items, num_rows, true));
+    auto linear_system = setup_linsys_and_solver(mat, num_rhs, tol, max_iters);
     auto solver = gko::share(solver_factory->generate(linear_system.matrix));
     solver->add_logger(logger);
 
@@ -224,13 +213,50 @@ TEST_F(BatchBicgstab, CanSolveLargeHpdSystem)
                                                  &logger->get_num_iterations());
     auto res_norm = gko::make_temporary_clone(exec->get_master(),
                                               &logger->get_residual_norm());
-    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, comp_tol);
+    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 50);
     for (size_t i = 0; i < num_batch_items; i++) {
-        auto comp_res_norm =
-            exec->copy_val_to_host(res.res_norm->get_const_values() + i);
+        auto comp_res_norm = res.res_norm->get_const_values()[i] /
+                             linear_system.rhs_norm->get_const_values()[i];
         ASSERT_LE(iter_counts->get_const_data()[i], max_iters);
-        EXPECT_LE(res_norm->get_const_data()[i], comp_tol);
+        EXPECT_LE(res_norm->get_const_data()[i] /
+                      linear_system.rhs_norm->get_const_values()[i],
+                  tol);
         EXPECT_GT(res_norm->get_const_data()[i], real_type{0.0});
-        ASSERT_LE(comp_res_norm, comp_tol);
+        ASSERT_LE(comp_res_norm, tol);
+    }
+}
+
+
+TEST_F(BatchBicgstab, CanSolveLargeMatrixSizeHpdSystem)
+{
+    const int num_batch_items = 12;
+    const int num_rows = 1025;
+    const int num_rhs = 1;
+    const real_type tol = 1e-5;
+    const int max_iters = num_rows;
+    std::shared_ptr<Logger> logger = Logger::create();
+    auto mat = gko::share(gko::test::generate_diag_dominant_batch_matrix<Mtx>(
+        exec, num_batch_items, num_rows, true));
+    auto linear_system = setup_linsys_and_solver(mat, num_rhs, tol, max_iters);
+    auto solver = gko::share(solver_factory->generate(linear_system.matrix));
+    solver->add_logger(logger);
+
+    auto res = gko::test::solve_linear_system(exec, linear_system, solver);
+
+    solver->remove_logger(logger);
+    auto iter_counts = gko::make_temporary_clone(exec->get_master(),
+                                                 &logger->get_num_iterations());
+    auto res_norm = gko::make_temporary_clone(exec->get_master(),
+                                              &logger->get_residual_norm());
+    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 50);
+    for (size_t i = 0; i < num_batch_items; i++) {
+        auto comp_res_norm = res.res_norm->get_const_values()[i] /
+                             linear_system.rhs_norm->get_const_values()[i];
+        ASSERT_LE(iter_counts->get_const_data()[i], max_iters);
+        EXPECT_LE(res_norm->get_const_data()[i] /
+                      linear_system.rhs_norm->get_const_values()[i],
+                  tol);
+        EXPECT_GT(res_norm->get_const_data()[i], real_type{0.0});
+        ASSERT_LE(comp_res_norm, tol);
     }
 }
