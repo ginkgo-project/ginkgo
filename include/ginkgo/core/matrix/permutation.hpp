@@ -189,11 +189,11 @@ public:
      * @return a newly created Permutation object storing the inverse
      *         permutation of this Permutation.
      */
-    std::unique_ptr<Permutation> invert() const;
+    std::unique_ptr<Permutation> compute_inverse() const;
 
     /**
-     * Combines this permutation with another permutation via composition.
-     * The resulting permutation fulfills `result[i] = other[this[i]]`
+     * Composes this permutation with another permutation.
+     * The resulting permutation fulfills `result[i] = this[other[i]]`
      * or `result = other * this` from the matrix perspective, which is
      * equivalent to first permuting by `this` and then by `other`:
      * Combining permutations $P_1$ and $P_2$ with `P = P_1.combine(P_2)`
@@ -202,7 +202,7 @@ public:
      * @param other  the other permutation
      * @return the combined permutation
      */
-    std::unique_ptr<Permutation> combine(
+    std::unique_ptr<Permutation> compose(
         ptr_param<const Permutation> other) const;
 
     void write(gko::matrix_data<value_type, index_type>& data) const override;

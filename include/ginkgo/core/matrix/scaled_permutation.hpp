@@ -115,20 +115,19 @@ public:
      *
      * @return a newly created ScaledPermutation object storing the inverse
      *         of the permutation and scaling factors of this
-     *         ScalledPermutation.
+     *         ScaledPermutation.
      */
-    std::unique_ptr<ScaledPermutation> invert() const;
+    std::unique_ptr<ScaledPermutation> compute_inverse() const;
 
     /**
-     * Combines this scaled permutation with another scaled permutation via
-     * composition. This means `result = other * this` from the matrix
-     * perspective, which is equivalent to first scaling and permuting by `this`
-     * and then by `other`.
+     * Composes this scaled permutation with another scaled permutation. This
+     * means `result = other * this` from the matrix perspective, which is
+     * equivalent to first scaling and permuting by `this` and then by `other`.
      *
      * @param other  the other permutation
      * @return the combined permutation
      */
-    std::unique_ptr<ScaledPermutation> combine(
+    std::unique_ptr<ScaledPermutation> compose(
         ptr_param<const ScaledPermutation> other) const;
 
     void write(gko::matrix_data<value_type, index_type>& data) const override;

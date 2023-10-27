@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
+#include <ginkgo/core/matrix/scaled_permutation.hpp>
 
 
 namespace gko {
@@ -59,9 +60,6 @@ class Ell;
 
 template <typename ValueType, typename IndexType>
 class Hybrid;
-
-template <typename ValueType, typename IndexType>
-class ScaledPermutation;
 
 template <typename ValueType, typename IndexType>
 class Sellp;

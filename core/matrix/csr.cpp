@@ -541,15 +541,6 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::permute(
     if ((mode & permute_mode::symmetric) == permute_mode::none) {
         return this->clone();
     }
-    if ((mode & permute_mode::symmetric) == permute_mode::symmetric) {
-        GKO_ASSERT_IS_SQUARE_MATRIX(this);
-    }
-    if ((mode & permute_mode::rows) == permute_mode::rows) {
-        GKO_ASSERT_EQ(size[0], permutation->get_size()[0]);
-    }
-    if ((mode & permute_mode::columns) == permute_mode::columns) {
-        GKO_ASSERT_EQ(size[1], permutation->get_size()[0]);
-    }
     auto result = Csr::create(exec, size, nnz, this->get_strategy()->copy());
     auto local_permutation = make_temporary_clone(exec, permutation);
     std::unique_ptr<const Permutation<IndexType>> inv_permutation;
@@ -560,7 +551,7 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::permute(
     bool needs_inverse =
         (mode & permute_mode::inverse_columns) == permute_mode::columns;
     if (needs_inverse) {
-        inv_permutation = local_permutation->invert();
+        inv_permutation = local_permutation->compute_inverse();
         inv_perm_idxs = inv_permutation->get_const_permutation();
     }
     switch (mode) {
@@ -613,8 +604,8 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::permute(
             local_col_permutation->get_const_permutation(), this,
             result.get()));
     } else {
-        const auto inv_row_perm = local_row_permutation->invert();
-        const auto inv_col_perm = local_col_permutation->invert();
+        const auto inv_row_perm = local_row_permutation->compute_inverse();
+        const auto inv_col_perm = local_col_permutation->compute_inverse();
         exec->run(csr::make_inv_nonsymm_permute(
             inv_row_perm->get_const_permutation(),
             inv_col_perm->get_const_permutation(), this, result.get()));
@@ -650,7 +641,7 @@ Csr<ValueType, IndexType>::scale_permute(
     bool needs_inverse =
         (mode & permute_mode::inverse_columns) == permute_mode::columns;
     if (needs_inverse) {
-        inv_permutation = local_permutation->invert();
+        inv_permutation = local_permutation->compute_inverse();
         inv_scale_factors = inv_permutation->get_const_scale();
         inv_perm_idxs = inv_permutation->get_const_permutation();
     }
@@ -713,8 +704,8 @@ Csr<ValueType, IndexType>::scale_permute(
             local_col_permutation->get_const_permutation(), this,
             result.get()));
     } else {
-        const auto inv_row_perm = local_row_permutation->invert();
-        const auto inv_col_perm = local_col_permutation->invert();
+        const auto inv_row_perm = local_row_permutation->compute_inverse();
+        const auto inv_col_perm = local_col_permutation->compute_inverse();
         exec->run(csr::make_inv_nonsymm_scale_permute(
             inv_row_perm->get_const_scale(),
             inv_row_perm->get_const_permutation(),

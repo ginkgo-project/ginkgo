@@ -982,7 +982,8 @@ void inv_row_ptr_permute_kernel(size_type num_rows,
 GKO_ENABLE_DEFAULT_HOST(inv_row_ptr_permute_kernel, inv_row_ptr_permute_kernel);
 
 
-template <int subgroup_size, typename ValueType, typename IndexType>
+template <int subgroup_size = config::warp_size, typename ValueType,
+          typename IndexType>
 void row_permute_kernel(size_type num_rows,
                         const IndexType* __restrict__ permutation,
                         const IndexType* __restrict__ in_row_ptrs,
@@ -997,40 +998,23 @@ void row_permute_kernel(size_type num_rows,
     if (tid >= num_rows) {
         return;
     }
-    auto lane = item_ct1.get_local_id(2) % subgroup_size;
-    auto in_row = permutation[tid];
-    auto out_row = tid;
-    auto in_begin = in_row_ptrs[in_row];
-    auto in_size = in_row_ptrs[in_row + 1] - in_begin;
-    auto out_begin = out_row_ptrs[out_row];
+    const auto lane = item_ct1.get_local_id(2) % subgroup_size;
+    const auto in_row = permutation[tid];
+    const auto out_row = tid;
+    const auto in_begin = in_row_ptrs[in_row];
+    const auto in_size = in_row_ptrs[in_row + 1] - in_begin;
+    const auto out_begin = out_row_ptrs[out_row];
     for (IndexType i = lane; i < in_size; i += subgroup_size) {
         out_cols[out_begin + i] = in_cols[in_begin + i];
         out_vals[out_begin + i] = in_vals[in_begin + i];
     }
 }
 
-template <int subgroup_size, typename ValueType, typename IndexType>
-void row_permute_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                        sycl::queue* queue, size_type num_rows,
-                        const IndexType* permutation,
-                        const IndexType* in_row_ptrs, const IndexType* in_cols,
-                        const ValueType* in_vals, const IndexType* out_row_ptrs,
-                        IndexType* out_cols, ValueType* out_vals)
-{
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1)
-                             [[sycl::reqd_sub_group_size(subgroup_size)]] {
-                                 row_permute_kernel<subgroup_size>(
-                                     num_rows, permutation, in_row_ptrs,
-                                     in_cols, in_vals, out_row_ptrs, out_cols,
-                                     out_vals, item_ct1);
-                             });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(row_ptr_permute_kernel, row_ptr_permute_kernel);
 
 
-template <int subgroup_size, typename ValueType, typename IndexType>
+template <int subgroup_size = config::warp_size, typename ValueType,
+          typename IndexType>
 void inv_row_permute_kernel(size_type num_rows,
                             const IndexType* __restrict__ permutation,
                             const IndexType* __restrict__ in_row_ptrs,
@@ -1045,41 +1029,23 @@ void inv_row_permute_kernel(size_type num_rows,
     if (tid >= num_rows) {
         return;
     }
-    auto lane = item_ct1.get_local_id(2) % subgroup_size;
-    auto in_row = tid;
-    auto out_row = permutation[tid];
-    auto in_begin = in_row_ptrs[in_row];
-    auto in_size = in_row_ptrs[in_row + 1] - in_begin;
-    auto out_begin = out_row_ptrs[out_row];
+    const auto lane = item_ct1.get_local_id(2) % subgroup_size;
+    const auto in_row = tid;
+    const auto out_row = permutation[tid];
+    const auto in_begin = in_row_ptrs[in_row];
+    const auto in_size = in_row_ptrs[in_row + 1] - in_begin;
+    const auto out_begin = out_row_ptrs[out_row];
     for (IndexType i = lane; i < in_size; i += subgroup_size) {
         out_cols[out_begin + i] = in_cols[in_begin + i];
         out_vals[out_begin + i] = in_vals[in_begin + i];
     }
 }
 
-template <int subgroup_size, typename ValueType, typename IndexType>
-void inv_row_permute_kernel(dim3 grid, dim3 block,
-                            size_type dynamic_shared_memory, sycl::queue* queue,
-                            size_type num_rows, const IndexType* permutation,
-                            const IndexType* in_row_ptrs,
-                            const IndexType* in_cols, const ValueType* in_vals,
-                            const IndexType* out_row_ptrs, IndexType* out_cols,
-                            ValueType* out_vals)
-{
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1)
-                             [[sycl::reqd_sub_group_size(subgroup_size)]] {
-                                 inv_row_permute_kernel<subgroup_size>(
-                                     num_rows, permutation, in_row_ptrs,
-                                     in_cols, in_vals, out_row_ptrs, out_cols,
-                                     out_vals, item_ct1);
-                             });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(inv_row_permute_kernel, inv_row_permute_kernel);
 
 
-template <int subgroup_size, typename ValueType, typename IndexType>
+template <int subgroup_size = config::warp_size, typename ValueType,
+          typename IndexType>
 void inv_symm_permute_kernel(size_type num_rows,
                              const IndexType* __restrict__ permutation,
                              const IndexType* __restrict__ in_row_ptrs,
@@ -1094,20 +1060,23 @@ void inv_symm_permute_kernel(size_type num_rows,
     if (tid >= num_rows) {
         return;
     }
-    auto lane = item_ct1.get_local_id(2) % subgroup_size;
-    auto in_row = tid;
-    auto out_row = permutation[tid];
-    auto in_begin = in_row_ptrs[in_row];
-    auto in_size = in_row_ptrs[in_row + 1] - in_begin;
-    auto out_begin = out_row_ptrs[out_row];
+    const auto lane = item_ct1.get_local_id(2) % subgroup_size;
+    const auto in_row = tid;
+    const auto out_row = permutation[tid];
+    const auto in_begin = in_row_ptrs[in_row];
+    const auto in_size = in_row_ptrs[in_row + 1] - in_begin;
+    const auto out_begin = out_row_ptrs[out_row];
     for (IndexType i = lane; i < in_size; i += subgroup_size) {
         out_cols[out_begin + i] = permutation[in_cols[in_begin + i]];
         out_vals[out_begin + i] = in_vals[in_begin + i];
     }
 }
 
+GKO_ENABLE_DEFAULT_HOST(inv_symm_permute_kernel, inv_symm_permute_kernel);
 
-template <int subgroup_size, typename ValueType, typename IndexType>
+
+template <int subgroup_size = config::warp_size, typename ValueType,
+          typename IndexType>
 void inv_nonsymm_permute_kernel(size_type num_rows,
                                 const IndexType* __restrict__ row_permutation,
                                 const IndexType* __restrict__ col_permutation,
@@ -1135,51 +1104,11 @@ void inv_nonsymm_permute_kernel(size_type num_rows,
     }
 }
 
-template <int subgroup_size, typename ValueType, typename IndexType>
-void inv_symm_permute_kernel(dim3 grid, dim3 block,
-                             size_type dynamic_shared_memory,
-                             sycl::queue* queue, size_type num_rows,
-                             const IndexType* permutation,
-                             const IndexType* in_row_ptrs,
-                             const IndexType* in_cols, const ValueType* in_vals,
-                             const IndexType* out_row_ptrs, IndexType* out_cols,
-                             ValueType* out_vals)
-{
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1)
-                             [[sycl::reqd_sub_group_size(subgroup_size)]] {
-                                 inv_symm_permute_kernel<subgroup_size>(
-                                     num_rows, permutation, in_row_ptrs,
-                                     in_cols, in_vals, out_row_ptrs, out_cols,
-                                     out_vals, item_ct1);
-                             });
-    });
-}
-
-template <int subgroup_size, typename ValueType, typename IndexType>
-void inv_nonsymm_permute_kernel(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
-    size_type num_rows, const IndexType* row_permutation,
-    const IndexType* col_permutation, const IndexType* in_row_ptrs,
-    const IndexType* in_cols, const ValueType* in_vals,
-    const IndexType* out_row_ptrs, IndexType* out_cols, ValueType* out_vals)
-{
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1)
-                             [[sycl::reqd_sub_group_size(subgroup_size)]] {
-                                 inv_nonsymm_permute_kernel<subgroup_size>(
-                                     num_rows, row_permutation, col_permutation,
-                                     in_row_ptrs, in_cols, in_vals,
-                                     out_row_ptrs, out_cols, out_vals,
-                                     item_ct1);
-                             });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(inv_nonsymm_permute_kernel, inv_nonsymm_permute_kernel);
 
 
-template <int subgroup_size, typename ValueType, typename IndexType>
+template <int subgroup_size = config::warp_size, typename ValueType,
+          typename IndexType>
 void row_scale_permute_kernel(size_type num_rows,
                               const ValueType* __restrict__ scale,
                               const IndexType* __restrict__ permutation,
@@ -1195,38 +1124,23 @@ void row_scale_permute_kernel(size_type num_rows,
     if (tid >= num_rows) {
         return;
     }
-    auto lane = item_ct1.get_local_id(2) % subgroup_size;
-    auto in_row = permutation[tid];
-    auto out_row = tid;
-    auto in_begin = in_row_ptrs[in_row];
-    auto in_size = in_row_ptrs[in_row + 1] - in_begin;
-    auto out_begin = out_row_ptrs[out_row];
+    const auto lane = item_ct1.get_local_id(2) % subgroup_size;
+    const auto in_row = permutation[tid];
+    const auto out_row = tid;
+    const auto in_begin = in_row_ptrs[in_row];
+    const auto in_size = in_row_ptrs[in_row + 1] - in_begin;
+    const auto out_begin = out_row_ptrs[out_row];
     for (IndexType i = lane; i < in_size; i += subgroup_size) {
         out_cols[out_begin + i] = in_cols[in_begin + i];
         out_vals[out_begin + i] = in_vals[in_begin + i] * scale[in_row];
     }
 }
 
-template <int subgroup_size, typename ValueType, typename IndexType>
-void row_scale_permute_kernel(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
-    size_type num_rows, const ValueType* scale, const IndexType* permutation,
-    const IndexType* in_row_ptrs, const IndexType* in_cols,
-    const ValueType* in_vals, const IndexType* out_row_ptrs,
-    IndexType* out_cols, ValueType* out_vals)
-{
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                row_scale_permute_kernel<subgroup_size>(
-                    num_rows, scale, permutation, in_row_ptrs, in_cols, in_vals,
-                    out_row_ptrs, out_cols, out_vals, item_ct1);
-            });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(row_scale_permute_kernel, row_scale_permute_kernel);
 
 
-template <int subgroup_size, typename ValueType, typename IndexType>
+template <int subgroup_size = config::warp_size, typename ValueType,
+          typename IndexType>
 void inv_row_scale_permute_kernel(size_type num_rows,
                                   const ValueType* __restrict__ scale,
                                   const IndexType* __restrict__ permutation,
@@ -1242,38 +1156,24 @@ void inv_row_scale_permute_kernel(size_type num_rows,
     if (tid >= num_rows) {
         return;
     }
-    auto lane = item_ct1.get_local_id(2) % subgroup_size;
-    auto in_row = tid;
-    auto out_row = permutation[tid];
-    auto in_begin = in_row_ptrs[in_row];
-    auto in_size = in_row_ptrs[in_row + 1] - in_begin;
-    auto out_begin = out_row_ptrs[out_row];
+    const auto lane = item_ct1.get_local_id(2) % subgroup_size;
+    const auto in_row = tid;
+    const auto out_row = permutation[tid];
+    const auto in_begin = in_row_ptrs[in_row];
+    const auto in_size = in_row_ptrs[in_row + 1] - in_begin;
+    const auto out_begin = out_row_ptrs[out_row];
     for (IndexType i = lane; i < in_size; i += subgroup_size) {
         out_cols[out_begin + i] = in_cols[in_begin + i];
         out_vals[out_begin + i] = in_vals[in_begin + i] / scale[out_row];
     }
 }
 
-template <int subgroup_size, typename ValueType, typename IndexType>
-void inv_row_scale_permute_kernel(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
-    size_type num_rows, const ValueType* scale, const IndexType* permutation,
-    const IndexType* in_row_ptrs, const IndexType* in_cols,
-    const ValueType* in_vals, const IndexType* out_row_ptrs,
-    IndexType* out_cols, ValueType* out_vals)
-{
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                inv_row_scale_permute_kernel<subgroup_size>(
-                    num_rows, scale, permutation, in_row_ptrs, in_cols, in_vals,
-                    out_row_ptrs, out_cols, out_vals, item_ct1);
-            });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(inv_row_scale_permute_kernel,
+                        inv_row_scale_permute_kernel);
 
 
-template <int subgroup_size, typename ValueType, typename IndexType>
+template <int subgroup_size = config::warp_size, typename ValueType,
+          typename IndexType>
 void inv_symm_scale_permute_kernel(size_type num_rows,
                                    const ValueType* __restrict__ scale,
                                    const IndexType* __restrict__ permutation,
@@ -1289,12 +1189,12 @@ void inv_symm_scale_permute_kernel(size_type num_rows,
     if (tid >= num_rows) {
         return;
     }
-    auto lane = item_ct1.get_local_id(2) % subgroup_size;
-    auto in_row = tid;
-    auto out_row = permutation[tid];
-    auto in_begin = in_row_ptrs[in_row];
-    auto in_size = in_row_ptrs[in_row + 1] - in_begin;
-    auto out_begin = out_row_ptrs[out_row];
+    const auto lane = item_ct1.get_local_id(2) % subgroup_size;
+    const auto in_row = tid;
+    const auto out_row = permutation[tid];
+    const auto in_begin = in_row_ptrs[in_row];
+    const auto in_size = in_row_ptrs[in_row + 1] - in_begin;
+    const auto out_begin = out_row_ptrs[out_row];
     for (IndexType i = lane; i < in_size; i += subgroup_size) {
         const auto out_col = permutation[in_cols[in_begin + i]];
         out_cols[out_begin + i] = out_col;
@@ -1303,8 +1203,12 @@ void inv_symm_scale_permute_kernel(size_type num_rows,
     }
 }
 
+GKO_ENABLE_DEFAULT_HOST(inv_symm_scale_permute_kernel,
+                        inv_symm_scale_permute_kernel);
 
-template <int subgroup_size, typename ValueType, typename IndexType>
+
+template <int subgroup_size = config::warp_size, typename ValueType,
+          typename IndexType>
 void inv_nonsymm_scale_permute_kernel(
     size_type num_rows, const ValueType* __restrict__ row_scale,
     const IndexType* __restrict__ row_permutation,
@@ -1321,12 +1225,12 @@ void inv_nonsymm_scale_permute_kernel(
     if (tid >= num_rows) {
         return;
     }
-    auto lane = item_ct1.get_local_id(2) % subgroup_size;
-    auto in_row = tid;
-    auto out_row = row_permutation[tid];
-    auto in_begin = in_row_ptrs[in_row];
-    auto in_size = in_row_ptrs[in_row + 1] - in_begin;
-    auto out_begin = out_row_ptrs[out_row];
+    const auto lane = item_ct1.get_local_id(2) % subgroup_size;
+    const auto in_row = tid;
+    const auto out_row = row_permutation[tid];
+    const auto in_begin = in_row_ptrs[in_row];
+    const auto in_size = in_row_ptrs[in_row + 1] - in_begin;
+    const auto out_begin = out_row_ptrs[out_row];
     for (IndexType i = lane; i < in_size; i += subgroup_size) {
         const auto out_col = col_permutation[in_cols[in_begin + i]];
         out_cols[out_begin + i] = out_col;
@@ -1335,43 +1239,9 @@ void inv_nonsymm_scale_permute_kernel(
     }
 }
 
-template <int subgroup_size, typename ValueType, typename IndexType>
-void inv_symm_scale_permute_kernel(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
-    size_type num_rows, const ValueType* scale, const IndexType* permutation,
-    const IndexType* in_row_ptrs, const IndexType* in_cols,
-    const ValueType* in_vals, const IndexType* out_row_ptrs,
-    IndexType* out_cols, ValueType* out_vals)
-{
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                inv_symm_scale_permute_kernel<subgroup_size>(
-                    num_rows, scale, permutation, in_row_ptrs, in_cols, in_vals,
-                    out_row_ptrs, out_cols, out_vals, item_ct1);
-            });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(inv_nonsymm_scale_permute_kernel,
+                        inv_nonsymm_scale_permute_kernel);
 
-template <int subgroup_size, typename ValueType, typename IndexType>
-void inv_nonsymm_scale_permute_kernel(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
-    size_type num_rows, const ValueType* row_scale,
-    const IndexType* row_permutation, const ValueType* col_scale,
-    const IndexType* col_permutation, const IndexType* in_row_ptrs,
-    const IndexType* in_cols, const ValueType* in_vals,
-    const IndexType* out_row_ptrs, IndexType* out_cols, ValueType* out_vals)
-{
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                inv_nonsymm_scale_permute_kernel<subgroup_size>(
-                    num_rows, row_scale, row_permutation, col_scale,
-                    col_permutation, in_row_ptrs, in_cols, in_vals,
-                    out_row_ptrs, out_cols, out_vals, item_ct1);
-            });
-    });
-}
 
 namespace host_kernel {
 
@@ -2506,7 +2376,7 @@ void inv_symm_permute(std::shared_ptr<const DpcppExecutor> exec,
                                        num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
-    inv_symm_permute_kernel<config::warp_size>(
+    inv_symm_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
         perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
         orig->get_const_values(), permuted->get_row_ptrs(),
@@ -2532,7 +2402,7 @@ void inv_nonsymm_permute(std::shared_ptr<const DpcppExecutor> exec,
                                        num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
-    inv_nonsymm_permute_kernel<config::warp_size>(
+    inv_nonsymm_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
         row_perm, col_perm, orig->get_const_row_ptrs(),
         orig->get_const_col_idxs(), orig->get_const_values(),
@@ -2559,7 +2429,7 @@ void row_permute(std::shared_ptr<const DpcppExecutor> exec,
                                        num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
-    row_permute_kernel<config::warp_size>(
+    row_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
         perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
         orig->get_const_values(), row_permuted->get_row_ptrs(),
@@ -2585,7 +2455,7 @@ void inv_row_permute(std::shared_ptr<const DpcppExecutor> exec,
                                        num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
-    inv_row_permute_kernel<config::warp_size>(
+    inv_row_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
         perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
         orig->get_const_values(), row_permuted->get_row_ptrs(),
@@ -2611,7 +2481,7 @@ void inv_symm_scale_permute(std::shared_ptr<const DpcppExecutor> exec,
                                        num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
-    inv_symm_scale_permute_kernel<config::warp_size>(
+    inv_symm_scale_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
         scale, perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
         orig->get_const_values(), permuted->get_row_ptrs(),
@@ -2640,7 +2510,7 @@ void inv_nonsymm_scale_permute(std::shared_ptr<const DpcppExecutor> exec,
                                        num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
-    inv_nonsymm_scale_permute_kernel<config::warp_size>(
+    inv_nonsymm_scale_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
         row_scale, row_perm, col_scale, col_perm, orig->get_const_row_ptrs(),
         orig->get_const_col_idxs(), orig->get_const_values(),
@@ -2667,7 +2537,7 @@ void row_scale_permute(std::shared_ptr<const DpcppExecutor> exec,
                                        num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
-    row_scale_permute_kernel<config::warp_size>(
+    row_scale_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
         scale, perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
         orig->get_const_values(), row_permuted->get_row_ptrs(),
@@ -2693,7 +2563,7 @@ void inv_row_scale_permute(std::shared_ptr<const DpcppExecutor> exec,
                                        num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
-    inv_row_scale_permute_kernel<config::warp_size>(
+    inv_row_scale_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
         scale, perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
         orig->get_const_values(), row_permuted->get_row_ptrs(),

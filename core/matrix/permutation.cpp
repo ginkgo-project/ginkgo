@@ -50,7 +50,7 @@ namespace permutation {
 
 
 GKO_REGISTER_OPERATION(invert, permutation::invert);
-GKO_REGISTER_OPERATION(combine, permutation::combine);
+GKO_REGISTER_OPERATION(compose, permutation::compose);
 
 
 }  // namespace permutation
@@ -210,7 +210,8 @@ void Permutation<IndexType>::set_permute_mask(mask_type permute_mask)
 
 
 template <typename IndexType>
-std::unique_ptr<Permutation<IndexType>> Permutation<IndexType>::invert() const
+std::unique_ptr<Permutation<IndexType>>
+Permutation<IndexType>::compute_inverse() const
 {
     const auto exec = this->get_executor();
     const auto size = this->get_size()[0];
@@ -222,7 +223,7 @@ std::unique_ptr<Permutation<IndexType>> Permutation<IndexType>::invert() const
 
 
 template <typename IndexType>
-std::unique_ptr<Permutation<IndexType>> Permutation<IndexType>::combine(
+std::unique_ptr<Permutation<IndexType>> Permutation<IndexType>::compose(
     ptr_param<const Permutation<IndexType>> other) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, other);
@@ -230,7 +231,7 @@ std::unique_ptr<Permutation<IndexType>> Permutation<IndexType>::combine(
     const auto size = this->get_size()[0];
     const auto local_other = make_temporary_clone(exec, other);
     auto result = Permutation<IndexType>::create(exec, size);
-    exec->run(permutation::make_combine(this->get_const_permutation(),
+    exec->run(permutation::make_compose(this->get_const_permutation(),
                                         local_other->get_const_permutation(),
                                         size, result->get_permutation()));
     return result;

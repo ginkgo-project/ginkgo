@@ -94,7 +94,7 @@ protected:
               Mtx::create(exec, gko::dim<2>(3, 3), 7,
                           std::make_shared<typename Mtx::classical>())),
           perm3(Perm::create(exec, gko::array<index_type>{exec, {1, 2, 0}})),
-          perm3_rev(perm3->invert()),
+          perm3_rev(perm3->compute_inverse()),
           perm2(Perm::create(exec, gko::array<index_type>{exec, {1, 0}})),
           perm0(Perm::create(exec)),
           scale_perm3(ScaledPerm::create(
@@ -1317,7 +1317,7 @@ std::unique_ptr<gko::matrix::Csr<ValueType, IndexType>> csr_from_permutation(
 {
     gko::matrix_data<double, IndexType> double_data;
     if (invert) {
-        perm->invert()->write(double_data);
+        perm->compute_inverse()->write(double_data);
     } else {
         perm->write(double_data);
     }
@@ -1339,7 +1339,7 @@ std::unique_ptr<gko::matrix::Csr<ValueType, IndexType>> csr_from_permutation(
 {
     gko::matrix_data<ValueType, IndexType> data;
     if (invert) {
-        perm->invert()->write(data);
+        perm->compute_inverse()->write(data);
     } else {
         perm->write(data);
     }
@@ -1447,7 +1447,7 @@ TYPED_TEST(Csr, PermuteInverted)
 
         auto permuted = this->mtx3_sorted->permute(this->perm3, mode);
         auto inv_inv_permuted = this->mtx3_sorted->permute(
-            this->perm3->invert(), mode | permute_mode::inverse);
+            this->perm3->compute_inverse(), mode | permute_mode::inverse);
 
         GKO_ASSERT_MTX_NEAR(permuted, inv_inv_permuted, 0.0);
         GKO_ASSERT_MTX_EQ_SPARSITY(permuted, inv_inv_permuted);
@@ -1557,8 +1557,9 @@ TYPED_TEST(Csr, NonsymmPermuteRoundtrip)
 TYPED_TEST(Csr, NonsymmPermuteInverted)
 {
     auto permuted = this->mtx3_sorted->permute(this->perm3, this->perm3_rev);
-    auto inv_inv_permuted = this->mtx3_sorted->permute(
-        this->perm3->invert(), this->perm3_rev->invert(), true);
+    auto inv_inv_permuted =
+        this->mtx3_sorted->permute(this->perm3->compute_inverse(),
+                                   this->perm3_rev->compute_inverse(), true);
 
     GKO_ASSERT_MTX_NEAR(permuted, inv_inv_permuted, 0.0);
     GKO_ASSERT_MTX_EQ_SPARSITY(permuted, inv_inv_permuted);

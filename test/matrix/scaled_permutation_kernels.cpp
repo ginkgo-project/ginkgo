@@ -99,8 +99,8 @@ protected:
 
 TEST_F(ScaledPermutation, InvertIsEquivalentToRef)
 {
-    auto inv = permutation->invert();
-    auto dinv = dpermutation->invert();
+    auto inv = permutation->compute_inverse();
+    auto dinv = dpermutation->compute_inverse();
 
     GKO_ASSERT_MTX_NEAR(inv, dinv, r<value_type>::value);
 }
@@ -132,8 +132,8 @@ TEST_F(ScaledPermutation, AdvancedApplyIsEquivalentToRef)
 
 TEST_F(ScaledPermutation, CombineIsEquivalentToRef)
 {
-    auto combined = permutation->combine(permutation2);
-    auto dcombined = dpermutation->combine(permutation2);
+    auto combined = permutation->compose(permutation2);
+    auto dcombined = dpermutation->compose(permutation2);
 
     GKO_ASSERT_MTX_NEAR(combined, dcombined, r<value_type>::value);
 }

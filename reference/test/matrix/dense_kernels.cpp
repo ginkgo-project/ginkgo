@@ -2278,7 +2278,7 @@ std::unique_ptr<gko::matrix::Dense<ValueType>> ref_permute(
         gko::matrix::Dense<double>::create(input->get_executor());
     gko::matrix_data<double, IndexType> permutation_data;
     if ((mode & permute_mode::inverse) == permute_mode::inverse) {
-        permutation->invert()->write(permutation_data);
+        permutation->compute_inverse()->write(permutation_data);
     } else {
         permutation->write(permutation_data);
     }
@@ -2313,8 +2313,8 @@ std::unique_ptr<gko::matrix::Dense<ValueType>> ref_permute(
     gko::matrix_data<double, IndexType> row_permutation_data;
     gko::matrix_data<double, IndexType> col_permutation_data;
     if (invert) {
-        row_permutation->invert()->write(row_permutation_data);
-        col_permutation->invert()->write(col_permutation_data);
+        row_permutation->compute_inverse()->write(row_permutation_data);
+        col_permutation->compute_inverse()->write(col_permutation_data);
     } else {
         row_permutation->write(row_permutation_data);
         col_permutation->write(col_permutation_data);
@@ -2498,6 +2498,15 @@ TYPED_TEST(DenseWithIndexType, NonsymmPermuteRoundtrip)
                         ->permute(this->perm3, this->perm3_rev, true);
 
     GKO_ASSERT_MTX_NEAR(this->mtx5, permuted, 0.0);
+}
+
+
+TYPED_TEST(DenseWithIndexType, NonsymmPermuteInverseInverted)
+{
+    auto inv_permuted = this->mtx5->permute(this->perm3, this->perm3_rev, true);
+    auto preinv_permuted = this->mtx5->permute(this->perm3_rev, this->perm3);
+
+    GKO_ASSERT_MTX_NEAR(inv_permuted, preinv_permuted, 0.0);
 }
 
 
@@ -3235,7 +3244,7 @@ std::unique_ptr<gko::matrix::Dense<ValueType>> ref_scaled_permute(
         gko::matrix::Dense<ValueType>::create(input->get_executor());
     gko::matrix_data<ValueType, IndexType> permutation_data;
     if ((mode & permute_mode::inverse) == permute_mode::inverse) {
-        permutation->invert()->write(permutation_data);
+        permutation->compute_inverse()->write(permutation_data);
     } else {
         permutation->write(permutation_data);
     }
@@ -3271,8 +3280,8 @@ std::unique_ptr<gko::matrix::Dense<ValueType>> ref_scaled_permute(
     gko::matrix_data<ValueType, IndexType> row_permutation_data;
     gko::matrix_data<ValueType, IndexType> col_permutation_data;
     if (invert) {
-        row_permutation->invert()->write(row_permutation_data);
-        col_permutation->invert()->write(col_permutation_data);
+        row_permutation->compute_inverse()->write(row_permutation_data);
+        col_permutation->compute_inverse()->write(col_permutation_data);
     } else {
         row_permutation->write(row_permutation_data);
         col_permutation->write(col_permutation_data);
@@ -3484,6 +3493,19 @@ TYPED_TEST(DenseWithIndexType, NonsymmScaledPermuteRoundtrip)
     GKO_ASSERT_MTX_NEAR(this->mtx5, permuted, r<value_type>::value);
 }
 
+
+TYPED_TEST(DenseWithIndexType, NonsymmScaledPermuteInverseInverted)
+{
+    using value_type = typename TestFixture::value_type;
+
+    auto inv_permuted = this->mtx5->scale_permute(this->scale_perm3,
+                                                  this->scale_perm3_rev, true);
+    auto preinv_permuted =
+        this->mtx5->scale_permute(this->scale_perm3->compute_inverse(),
+                                  this->scale_perm3_rev->compute_inverse());
+
+    GKO_ASSERT_MTX_NEAR(inv_permuted, preinv_permuted, r<value_type>::value);
+}
 
 TYPED_TEST(DenseWithIndexType, NonsymmScaledPermuteStridedIntoDense)
 {
