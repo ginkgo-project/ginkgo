@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "accessor/reduced_row_major.hpp"
 #include "accessor/utils.hpp"
 #include "core/base/extended_float.hpp"  // necessary for gko::half
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -156,7 +157,8 @@ using ReducedStorage3dTypes =
                      std::tuple<std::complex<double>, std::complex<float>>,
                      std::tuple<std::complex<float>, std::complex<float>>>;
 
-TYPED_TEST_SUITE(ReducedStorage3d, ReducedStorage3dTypes);
+TYPED_TEST_SUITE(ReducedStorage3d, ReducedStorage3dTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(ReducedStorage3d, CorrectLengths)

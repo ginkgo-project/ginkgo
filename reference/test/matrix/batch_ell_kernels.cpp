@@ -111,7 +111,7 @@ protected:
 };
 
 
-TYPED_TEST_SUITE(Ell, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Ell, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Ell, AppliesToBatchMultiVector)
