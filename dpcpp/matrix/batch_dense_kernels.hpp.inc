@@ -33,9 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 template <typename ValueType>
 __dpct_inline__ void simple_apply_kernel(
     const gko::batch::matrix::dense::batch_item<const ValueType>& mat,
-    const gko::batch::multi_vector::batch_item<const ValueType>& b,
-    const gko::batch::multi_vector::batch_item<ValueType>& x,
-    sycl::nd_item<3>& item_ct1)
+    const ValueType* b, ValueType* x, sycl::nd_item<3>& item_ct1)
 {
     constexpr auto tile_size = config::warp_size;
     auto subg =
@@ -50,14 +48,14 @@ __dpct_inline__ void simple_apply_kernel(
         for (int j = subgroup.get_local_id(); j < mat.num_cols;
              j += subgroup_size) {
             const ValueType val = mat.values[row * mat.stride + j];
-            temp += val * b.values[j];
+            temp += val * b[j];
         }
 
         temp = ::gko::kernels::dpcpp::reduce(
             subg, temp, [](ValueType a, ValueType b) { return a + b; });
 
         if (subgroup.get_local_id() == 0) {
-            x.values[row] = temp;
+            x[row] = temp;
         }
     }
 }
@@ -65,11 +63,9 @@ __dpct_inline__ void simple_apply_kernel(
 
 template <typename ValueType>
 __dpct_inline__ void advanced_apply_kernel(
-    const gko::batch::multi_vector::batch_item<const ValueType>& alpha,
+    const ValueType alpha,
     const gko::batch::matrix::dense::batch_item<const ValueType>& mat,
-    const gko::batch::multi_vector::batch_item<const ValueType>& b,
-    const gko::batch::multi_vector::batch_item<const ValueType>& beta,
-    const gko::batch::multi_vector::batch_item<ValueType>& x,
+    const ValueType* b, const ValueType beta, ValueType* x,
     sycl::nd_item<3>& item_ct1)
 {
     constexpr auto tile_size = config::warp_size;
@@ -85,14 +81,14 @@ __dpct_inline__ void advanced_apply_kernel(
         for (int j = subgroup.get_local_id(); j < mat.num_cols;
              j += subgroup_size) {
             const ValueType val = mat.values[row * mat.stride + j];
-            temp += alpha.values[0] * val * b.values[j];
+            temp += alpha * val * b[j];
         }
 
         temp = ::gko::kernels::dpcpp::reduce(
             subg, temp, [](ValueType a, ValueType b) { return a + b; });
 
         if (subgroup.get_local_id() == 0) {
-            x.values[row] = temp + beta.values[0] * x.values[row];
+            x[row] = temp + beta * x[row];
         }
     }
 }
