@@ -133,8 +133,8 @@ ScaledPermutation<ValueType, IndexType>::compute_inverse() const
     const auto size = this->get_size()[0];
     auto result = ScaledPermutation::create(exec, size);
     exec->run(scaled_permutation::make_invert(
-        this->get_const_scale(), this->get_const_permutation(), size,
-        result->get_scale(), result->get_permutation()));
+        this->get_const_scaling_factors(), this->get_const_permutation(), size,
+        result->get_scaling_factors(), result->get_permutation()));
     return result;
 }
 
@@ -150,9 +150,10 @@ ScaledPermutation<ValueType, IndexType>::compose(
     const auto local_other = make_temporary_clone(exec, other);
     auto result = ScaledPermutation::create(exec, size);
     exec->run(scaled_permutation::make_compose(
-        this->get_const_scale(), this->get_const_permutation(),
-        local_other->get_const_scale(), local_other->get_const_permutation(),
-        size, result->get_scale(), result->get_permutation()));
+        this->get_const_scaling_factors(), this->get_const_permutation(),
+        local_other->get_const_scaling_factors(),
+        local_other->get_const_permutation(), size,
+        result->get_scaling_factors(), result->get_permutation()));
     return result;
 }
 
@@ -196,7 +197,8 @@ void ScaledPermutation<ValueType, IndexType>::write(
     data.nonzeros.reserve(data.size[0]);
     for (IndexType row = 0; row < this->get_size()[0]; row++) {
         auto col = host_this->get_const_permutation()[row];
-        data.nonzeros.emplace_back(row, col, host_this->get_const_scale()[col]);
+        data.nonzeros.emplace_back(row, col,
+                                   host_this->get_const_scaling_factors()[col]);
     }
 }
 

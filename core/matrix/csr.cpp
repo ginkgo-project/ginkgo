@@ -634,7 +634,7 @@ Csr<ValueType, IndexType>::scale_permute(
     std::unique_ptr<const ScaledPermutation<ValueType, IndexType>>
         inv_permutation;
     const auto perm_idxs = local_permutation->get_const_permutation();
-    const auto scale_factors = local_permutation->get_const_scale();
+    const auto scale_factors = local_permutation->get_const_scaling_factors();
     const ValueType* inv_scale_factors{};
     const IndexType* inv_perm_idxs{};
     // to permute columns, we need to know the inverse permutation
@@ -642,7 +642,7 @@ Csr<ValueType, IndexType>::scale_permute(
         (mode & permute_mode::inverse_columns) == permute_mode::columns;
     if (needs_inverse) {
         inv_permutation = local_permutation->compute_inverse();
-        inv_scale_factors = inv_permutation->get_const_scale();
+        inv_scale_factors = inv_permutation->get_const_scaling_factors();
         inv_perm_idxs = inv_permutation->get_const_permutation();
     }
     switch (mode) {
@@ -698,18 +698,18 @@ Csr<ValueType, IndexType>::scale_permute(
     auto local_col_permutation = make_temporary_clone(exec, col_permutation);
     if (invert) {
         exec->run(csr::make_inv_nonsymm_scale_permute(
-            local_row_permutation->get_const_scale(),
+            local_row_permutation->get_const_scaling_factors(),
             local_row_permutation->get_const_permutation(),
-            local_col_permutation->get_const_scale(),
+            local_col_permutation->get_const_scaling_factors(),
             local_col_permutation->get_const_permutation(), this,
             result.get()));
     } else {
         const auto inv_row_perm = local_row_permutation->compute_inverse();
         const auto inv_col_perm = local_col_permutation->compute_inverse();
         exec->run(csr::make_inv_nonsymm_scale_permute(
-            inv_row_perm->get_const_scale(),
+            inv_row_perm->get_const_scaling_factors(),
             inv_row_perm->get_const_permutation(),
-            inv_col_perm->get_const_scale(),
+            inv_col_perm->get_const_scaling_factors(),
             inv_col_perm->get_const_permutation(), this, result.get()));
     }
     result->make_srow();

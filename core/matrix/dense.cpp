@@ -1218,33 +1218,33 @@ void Dense<ValueType>::scale_permute_impl(
     switch (mode) {
     case permute_mode::rows:
         exec->run(dense::make_row_scale_permute(
-            local_perm->get_const_scale(), local_perm->get_const_permutation(),
-            this, local_output.get()));
+            local_perm->get_const_scaling_factors(),
+            local_perm->get_const_permutation(), this, local_output.get()));
         break;
     case permute_mode::columns:
         exec->run(dense::make_col_scale_permute(
-            local_perm->get_const_scale(), local_perm->get_const_permutation(),
-            this, local_output.get()));
+            local_perm->get_const_scaling_factors(),
+            local_perm->get_const_permutation(), this, local_output.get()));
         break;
     case permute_mode::symmetric:
         exec->run(dense::make_symm_scale_permute(
-            local_perm->get_const_scale(), local_perm->get_const_permutation(),
-            this, local_output.get()));
+            local_perm->get_const_scaling_factors(),
+            local_perm->get_const_permutation(), this, local_output.get()));
         break;
     case permute_mode::inverse_rows:
         exec->run(dense::make_inv_row_scale_permute(
-            local_perm->get_const_scale(), local_perm->get_const_permutation(),
-            this, local_output.get()));
+            local_perm->get_const_scaling_factors(),
+            local_perm->get_const_permutation(), this, local_output.get()));
         break;
     case permute_mode::inverse_columns:
         exec->run(dense::make_inv_col_scale_permute(
-            local_perm->get_const_scale(), local_perm->get_const_permutation(),
-            this, local_output.get()));
+            local_perm->get_const_scaling_factors(),
+            local_perm->get_const_permutation(), this, local_output.get()));
         break;
     case permute_mode::inverse_symmetric:
         exec->run(dense::make_inv_symm_scale_permute(
-            local_perm->get_const_scale(), local_perm->get_const_permutation(),
-            this, local_output.get()));
+            local_perm->get_const_scaling_factors(),
+            local_perm->get_const_permutation(), this, local_output.get()));
         break;
     default:
         GKO_INVALID_STATE("Invalid permute mode");
@@ -1269,15 +1269,15 @@ void Dense<ValueType>::scale_permute_impl(
     auto local_col_perm = make_temporary_clone(exec, col_permutation);
     if (invert) {
         exec->run(dense::make_inv_nonsymm_scale_permute(
-            local_row_perm->get_const_scale(),
+            local_row_perm->get_const_scaling_factors(),
             local_row_perm->get_const_permutation(),
-            local_col_perm->get_const_scale(),
+            local_col_perm->get_const_scaling_factors(),
             local_col_perm->get_const_permutation(), this, local_output.get()));
     } else {
         exec->run(dense::make_nonsymm_scale_permute(
-            local_row_perm->get_const_scale(),
+            local_row_perm->get_const_scaling_factors(),
             local_row_perm->get_const_permutation(),
-            local_col_perm->get_const_scale(),
+            local_col_perm->get_const_scaling_factors(),
             local_col_perm->get_const_permutation(), this, local_output.get()));
     }
 }

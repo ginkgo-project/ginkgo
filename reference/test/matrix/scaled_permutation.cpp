@@ -103,9 +103,9 @@ TYPED_TEST(ScaledPermutation, Invert)
     EXPECT_EQ(inv->get_const_permutation()[0], 2);
     EXPECT_EQ(inv->get_const_permutation()[1], 0);
     EXPECT_EQ(inv->get_const_permutation()[2], 1);
-    EXPECT_EQ(inv->get_const_scale()[0], T{0.5});
-    EXPECT_EQ(inv->get_const_scale()[1], T{0.25});
-    EXPECT_EQ(inv->get_const_scale()[2], T{1.0});
+    EXPECT_EQ(inv->get_const_scaling_factors()[0], T{0.5});
+    EXPECT_EQ(inv->get_const_scaling_factors()[1], T{0.25});
+    EXPECT_EQ(inv->get_const_scaling_factors()[2], T{1.0});
 }
 
 
@@ -122,9 +122,9 @@ TYPED_TEST(ScaledPermutation, CreateFromPermutation)
     EXPECT_EQ(scaled->get_const_permutation()[0], 1);
     EXPECT_EQ(scaled->get_const_permutation()[1], 2);
     EXPECT_EQ(scaled->get_const_permutation()[2], 0);
-    EXPECT_EQ(scaled->get_const_scale()[0], gko::one<value_type>());
-    EXPECT_EQ(scaled->get_const_scale()[1], gko::one<value_type>());
-    EXPECT_EQ(scaled->get_const_scale()[2], gko::one<value_type>());
+    EXPECT_EQ(scaled->get_const_scaling_factors()[0], gko::one<value_type>());
+    EXPECT_EQ(scaled->get_const_scaling_factors()[1], gko::one<value_type>());
+    EXPECT_EQ(scaled->get_const_scaling_factors()[2], gko::one<value_type>());
 }
 
 
@@ -185,16 +185,16 @@ TYPED_TEST(ScaledPermutation, CombineWithInverse)
     std::iota(perm->get_permutation(), perm->get_permutation() + size, 0);
     std::shuffle(perm->get_permutation(), perm->get_permutation() + size, rng);
     for (gko::size_type i = 0; i < size; i++) {
-        perm->get_scale()[i] = dist(rng);
+        perm->get_scaling_factors()[i] = dist(rng);
     }
 
     auto combined = perm->compose(perm->compute_inverse());
 
     for (index_type i = 0; i < size; i++) {
         ASSERT_EQ(combined->get_const_permutation()[i], i);
-        ASSERT_LT(
-            gko::abs(combined->get_const_scale()[i] - gko::one<value_type>()),
-            r<value_type>::value);
+        ASSERT_LT(gko::abs(combined->get_const_scaling_factors()[i] -
+                           gko::one<value_type>()),
+                  r<value_type>::value);
     }
 }
 

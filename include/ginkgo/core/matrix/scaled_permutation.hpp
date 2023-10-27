@@ -76,16 +76,16 @@ public:
      *
      * @return the pointer to the scaling factors.
      */
-    value_type* get_scale() noexcept { return scale_.get_data(); }
+    value_type* get_scaling_factors() noexcept { return scale_.get_data(); }
 
     /**
-     * @copydoc get_scale()
+     * @copydoc get_scaling_factors()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_scale() const noexcept
+    const value_type* get_const_scaling_factors() const noexcept
     {
         return scale_.get_const_data();
     }
