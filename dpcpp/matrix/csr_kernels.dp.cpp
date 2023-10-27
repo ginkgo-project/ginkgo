@@ -1010,7 +1010,7 @@ void row_permute_kernel(size_type num_rows,
     }
 }
 
-GKO_ENABLE_DEFAULT_HOST(row_ptr_permute_kernel, row_ptr_permute_kernel);
+GKO_ENABLE_DEFAULT_HOST(row_permute_kernel, row_permute_kernel);
 
 
 template <int subgroup_size = config::warp_size, typename ValueType,
