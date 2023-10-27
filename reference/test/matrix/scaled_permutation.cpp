@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
 
 
+#include <random>
+
+
 #include <gtest/gtest.h>
 
 
@@ -95,7 +98,7 @@ TYPED_TEST_SUITE(ScaledPermutation, gko::test::ValueIndexTypes,
 TYPED_TEST(ScaledPermutation, Invert)
 {
     using T = typename TestFixture::value_type;
-    auto inv = this->perm3->invert();
+    auto inv = this->perm3->compute_inverse();
 
     EXPECT_EQ(inv->get_const_permutation()[0], 2);
     EXPECT_EQ(inv->get_const_permutation()[1], 0);
@@ -137,7 +140,7 @@ TYPED_TEST(ScaledPermutation, Combine)
     const auto ref_combined =
         this->ref_combine(this->perm3.get(), other_perm.get());
 
-    const auto combined = this->perm3->combine(other_perm);
+    const auto combined = this->perm3->compose(other_perm);
 
     GKO_ASSERT_MTX_NEAR(combined, ref_combined, 0.0);
 }
@@ -163,7 +166,7 @@ TYPED_TEST(ScaledPermutation, CombineLarger)
         gko::array<index_type>{this->exec, {9, 2, 1, 6, 3, 7, 8, 4, 0, 5}});
     const auto ref_combined = this->ref_combine(perm.get(), perm2.get());
 
-    const auto combined = perm->combine(perm2);
+    const auto combined = perm->compose(perm2);
 
     GKO_ASSERT_MTX_NEAR(combined, ref_combined, 0.0);
 }
@@ -171,25 +174,34 @@ TYPED_TEST(ScaledPermutation, CombineLarger)
 
 TYPED_TEST(ScaledPermutation, CombineWithInverse)
 {
-    using T = typename TestFixture::value_type;
+    using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     const gko::size_type size = 20;
     auto rng = std::default_random_engine{3754};
-    auto perm = gko::matrix::Permutation<index_type>::create(this->exec, size);
+    auto dist = std::uniform_real_distribution<gko::remove_complex<value_type>>{
+        1.0, 2.0};
+    auto perm = gko::matrix::ScaledPermutation<value_type, index_type>::create(
+        this->exec, size);
     std::iota(perm->get_permutation(), perm->get_permutation() + size, 0);
     std::shuffle(perm->get_permutation(), perm->get_permutation() + size, rng);
+    for (gko::size_type i = 0; i < size; i++) {
+        perm->get_scale()[i] = dist(rng);
+    }
 
-    auto combined = perm->combine(perm->invert());
+    auto combined = perm->compose(perm->compute_inverse());
 
     for (index_type i = 0; i < size; i++) {
         ASSERT_EQ(combined->get_const_permutation()[i], i);
+        ASSERT_LT(
+            gko::abs(combined->get_const_scale()[i] - gko::one<value_type>()),
+            r<value_type>::value);
     }
 }
 
 
 TYPED_TEST(ScaledPermutation, CombineFailsWithMismatchingSize)
 {
-    ASSERT_THROW(this->perm3->combine(this->perm2), gko::DimensionMismatch);
+    ASSERT_THROW(this->perm3->compose(this->perm2), gko::DimensionMismatch);
 }
 
 
@@ -213,6 +225,21 @@ TYPED_TEST(ScaledPermutation, AppliesToDense)
     this->perm2->apply(x, y);
 
     GKO_ASSERT_MTX_NEAR(y, l({{20.0, 12.5}, {6.0, 9.0}}), 0.0);
+}
+
+
+TYPED_TEST(ScaledPermutation, AdvancedAppliesToDense)
+{
+    using T = typename TestFixture::value_type;
+    using Vec = typename TestFixture::Vec;
+    auto alpha = gko::initialize<Vec>({2.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto x = gko::initialize<Vec>({I<T>{2.0, 3.0}, I<T>{4.0, 2.5}}, this->exec);
+    auto y = x->clone();
+
+    this->perm2->apply(alpha, x, beta, y);
+
+    GKO_ASSERT_MTX_NEAR(y, l({{38.0, 22.0}, {8.0, 15.5}}), 0.0);
 }
 
 

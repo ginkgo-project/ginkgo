@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -93,7 +94,7 @@ TYPED_TEST(Permutation, Invert)
     auto perm = gko::matrix::Permutation<index_type>::create(
         this->exec, gko::array<index_type>{this->exec, {1, 2, 0}});
 
-    auto inv = perm->invert();
+    auto inv = perm->compute_inverse();
 
     EXPECT_EQ(inv->get_const_permutation()[0], 2);
     EXPECT_EQ(inv->get_const_permutation()[1], 0);
@@ -103,16 +104,14 @@ TYPED_TEST(Permutation, Invert)
 
 TYPED_TEST(Permutation, Combine)
 {
-    using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    using Vec = gko::matrix::Dense<double>;
     const auto perm = gko::matrix::Permutation<index_type>::create(
         this->exec, gko::array<index_type>{this->exec, {1, 2, 0}});
     const auto perm2 = gko::matrix::Permutation<index_type>::create(
         this->exec, gko::array<index_type>{this->exec, {0, 2, 1}});
     const auto ref_combined = this->ref_combine(perm.get(), perm2.get());
 
-    const auto combined = perm->combine(perm2);
+    const auto combined = perm->compose(perm2);
 
     GKO_ASSERT_MTX_NEAR(combined, ref_combined, 0.0);
 }
@@ -120,9 +119,7 @@ TYPED_TEST(Permutation, Combine)
 
 TYPED_TEST(Permutation, CombineLarger)
 {
-    using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    using Vec = gko::matrix::Dense<double>;
     const auto perm = gko::matrix::Permutation<index_type>::create(
         this->exec,
         gko::array<index_type>{this->exec, {6, 2, 4, 0, 1, 5, 9, 8, 3, 7}});
@@ -131,7 +128,7 @@ TYPED_TEST(Permutation, CombineLarger)
         gko::array<index_type>{this->exec, {9, 2, 1, 6, 3, 7, 8, 4, 0, 5}});
     const auto ref_combined = this->ref_combine(perm.get(), perm2.get());
 
-    const auto combined = perm->combine(perm2);
+    const auto combined = perm->compose(perm2);
 
     GKO_ASSERT_MTX_NEAR(combined, ref_combined, 0.0);
 }
@@ -146,7 +143,7 @@ TYPED_TEST(Permutation, CombineWithInverse)
     std::shuffle(perm->get_permutation(), perm->get_permutation() + size,
                  std::default_random_engine{29584});
 
-    auto combined = perm->combine(perm->invert());
+    auto combined = perm->compose(perm->compute_inverse());
 
     for (index_type i = 0; i < size; i++) {
         ASSERT_EQ(combined->get_const_permutation()[i], i);
@@ -161,7 +158,7 @@ TYPED_TEST(Permutation, CombineFailsWithMismatchingSize)
         this->exec, gko::array<index_type>{this->exec, {1, 2, 0}});
     auto perm0 = gko::matrix::Permutation<index_type>::create(this->exec);
 
-    ASSERT_THROW(perm->combine(perm0), gko::DimensionMismatch);
+    ASSERT_THROW(perm->compose(perm0), gko::DimensionMismatch);
 }
 
 
@@ -200,6 +197,47 @@ TYPED_TEST(Permutation, AppliesRowPermutationToDense)
                            {2.0, 3.0}}),
                         0.0);
     // clang-format on
+}
+
+
+TYPED_TEST(Permutation, AdvancedAppliesRowPermutationToDense)
+{
+    using index_type = typename TestFixture::index_type;
+    using T = typename TestFixture::value_type;
+    using Vec = typename TestFixture::Vec;
+    // clang-format off
+    auto x = gko::initialize<Vec>(
+        {I<T>{2.0, 3.0},
+         I<T>{4.0, 2.5}}, this->exec);
+    // clang-format on
+    auto alpha = gko::initialize<Vec>({2.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto y = x->clone();
+    index_type rdata[] = {1, 0};
+
+    auto perm = gko::matrix::Permutation<index_type>::create(
+        this->exec, gko::make_array_view(this->exec, 2, rdata));
+
+    perm->apply(alpha, x, beta, y);
+
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(y,
+                        l({{6.0, 2.0},
+                           {0.0, 3.5}}),
+                        0.0);
+    // clang-format on
+}
+
+
+TYPED_TEST(Permutation, ApplyFailsWithNonDenseMatrix)
+{
+    using index_type = typename TestFixture::index_type;
+    using T = typename TestFixture::value_type;
+    auto mtx = gko::matrix::Csr<T, index_type>::create(this->exec);
+    auto mtx2 = mtx->clone();
+    auto perm = gko::matrix::Permutation<index_type>::create(this->exec);
+
+    ASSERT_THROW(perm->apply(mtx, mtx2), gko::NotSupported);
 }
 
 

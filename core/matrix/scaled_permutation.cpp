@@ -48,7 +48,7 @@ namespace {
 
 
 GKO_REGISTER_OPERATION(invert, scaled_permutation::invert);
-GKO_REGISTER_OPERATION(combine, scaled_permutation::combine);
+GKO_REGISTER_OPERATION(compose, scaled_permutation::compose);
 
 
 }  // namespace
@@ -127,7 +127,7 @@ ScaledPermutation<ValueType, IndexType>::create_const(
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<ScaledPermutation<ValueType, IndexType>>
-ScaledPermutation<ValueType, IndexType>::invert() const
+ScaledPermutation<ValueType, IndexType>::compute_inverse() const
 {
     const auto exec = this->get_executor();
     const auto size = this->get_size()[0];
@@ -141,7 +141,7 @@ ScaledPermutation<ValueType, IndexType>::invert() const
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<ScaledPermutation<ValueType, IndexType>>
-ScaledPermutation<ValueType, IndexType>::combine(
+ScaledPermutation<ValueType, IndexType>::compose(
     ptr_param<const ScaledPermutation> other) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, other);
@@ -149,7 +149,7 @@ ScaledPermutation<ValueType, IndexType>::combine(
     const auto size = this->get_size()[0];
     const auto local_other = make_temporary_clone(exec, other);
     auto result = ScaledPermutation::create(exec, size);
-    exec->run(scaled_permutation::make_combine(
+    exec->run(scaled_permutation::make_compose(
         this->get_const_scale(), this->get_const_permutation(),
         local_other->get_const_scale(), local_other->get_const_permutation(),
         size, result->get_scale(), result->get_permutation()));

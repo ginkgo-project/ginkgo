@@ -92,8 +92,8 @@ protected:
 
 TEST_F(Permutation, InvertIsEquivalentToRef)
 {
-    auto inv = permutation->invert();
-    auto dinv = dpermutation->invert();
+    auto inv = permutation->compute_inverse();
+    auto dinv = dpermutation->compute_inverse();
 
     GKO_ASSERT_MTX_EQ_SPARSITY(inv, dinv);
 }
@@ -125,8 +125,8 @@ TEST_F(Permutation, AdvancedApplyIsEquivalentToRef)
 
 TEST_F(Permutation, CombineIsEquivalentToRef)
 {
-    auto combined = permutation->combine(permutation2);
-    auto dcombined = dpermutation->combine(permutation2);
+    auto combined = permutation->compose(permutation2);
+    auto dcombined = dpermutation->compose(permutation2);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(combined, dcombined);
 }

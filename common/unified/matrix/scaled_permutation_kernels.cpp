@@ -67,7 +67,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void combine(std::shared_ptr<const DefaultExecutor> exec,
+void compose(std::shared_ptr<const DefaultExecutor> exec,
              const ValueType* first_scale, const IndexType* first_permutation,
              const ValueType* second_scale, const IndexType* second_permutation,
              size_type size, ValueType* output_scale,
@@ -89,7 +89,7 @@ void combine(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SCALED_PERMUTATION_COMBINE_KERNEL);
+    GKO_DECLARE_SCALED_PERMUTATION_COMPOSE_KERNEL);
 
 
 }  // namespace scaled_permutation

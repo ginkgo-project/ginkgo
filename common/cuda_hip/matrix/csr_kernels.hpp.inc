@@ -665,8 +665,8 @@ __global__ __launch_bounds__(default_block_size) void row_ptr_permute(
     if (tid >= num_rows) {
         return;
     }
-    auto in_row = permutation[tid];
-    auto out_row = tid;
+    const auto in_row = permutation[tid];
+    const auto out_row = tid;
     out_nnz[out_row] = in_row_ptrs[in_row + 1] - in_row_ptrs[in_row];
 }
 
@@ -680,8 +680,8 @@ __global__ __launch_bounds__(default_block_size) void inv_row_ptr_permute(
     if (tid >= num_rows) {
         return;
     }
-    auto in_row = tid;
-    auto out_row = permutation[tid];
+    const auto in_row = tid;
+    const auto out_row = permutation[tid];
     out_nnz[out_row] = in_row_ptrs[in_row + 1] - in_row_ptrs[in_row];
 }
 
@@ -699,12 +699,12 @@ __global__ __launch_bounds__(default_block_size) void row_permute(
     if (tid >= num_rows) {
         return;
     }
-    auto lane = threadIdx.x % subwarp_size;
-    auto in_row = permutation[tid];
-    auto out_row = tid;
-    auto in_begin = in_row_ptrs[in_row];
-    auto in_size = in_row_ptrs[in_row + 1] - in_begin;
-    auto out_begin = out_row_ptrs[out_row];
+    const auto lane = threadIdx.x % subwarp_size;
+    const auto in_row = permutation[tid];
+    const auto out_row = tid;
+    const auto in_begin = in_row_ptrs[in_row];
+    const auto in_size = in_row_ptrs[in_row + 1] - in_begin;
+    const auto out_begin = out_row_ptrs[out_row];
     for (IndexType i = lane; i < in_size; i += subwarp_size) {
         out_cols[out_begin + i] = in_cols[in_begin + i];
         out_vals[out_begin + i] = in_vals[in_begin + i];
@@ -725,12 +725,12 @@ __global__ __launch_bounds__(default_block_size) void inv_row_permute(
     if (tid >= num_rows) {
         return;
     }
-    auto lane = threadIdx.x % subwarp_size;
-    auto in_row = tid;
-    auto out_row = permutation[tid];
-    auto in_begin = in_row_ptrs[in_row];
-    auto in_size = in_row_ptrs[in_row + 1] - in_begin;
-    auto out_begin = out_row_ptrs[out_row];
+    const auto lane = threadIdx.x % subwarp_size;
+    const auto in_row = tid;
+    const auto out_row = permutation[tid];
+    const auto in_begin = in_row_ptrs[in_row];
+    const auto in_size = in_row_ptrs[in_row + 1] - in_begin;
+    const auto out_begin = out_row_ptrs[out_row];
     for (IndexType i = lane; i < in_size; i += subwarp_size) {
         out_cols[out_begin + i] = in_cols[in_begin + i];
         out_vals[out_begin + i] = in_vals[in_begin + i];
@@ -751,12 +751,12 @@ __global__ __launch_bounds__(default_block_size) void inv_symm_permute(
     if (tid >= num_rows) {
         return;
     }
-    auto lane = threadIdx.x % subwarp_size;
-    auto in_row = tid;
-    auto out_row = permutation[tid];
-    auto in_begin = in_row_ptrs[in_row];
-    auto in_size = in_row_ptrs[in_row + 1] - in_begin;
-    auto out_begin = out_row_ptrs[out_row];
+    const auto lane = threadIdx.x % subwarp_size;
+    const auto in_row = tid;
+    const auto out_row = permutation[tid];
+    const auto in_begin = in_row_ptrs[in_row];
+    const auto in_size = in_row_ptrs[in_row + 1] - in_begin;
+    const auto out_begin = out_row_ptrs[out_row];
     for (IndexType i = lane; i < in_size; i += subwarp_size) {
         out_cols[out_begin + i] = permutation[in_cols[in_begin + i]];
         out_vals[out_begin + i] = in_vals[in_begin + i];
@@ -778,12 +778,12 @@ __global__ __launch_bounds__(default_block_size) void inv_nonsymm_permute(
     if (tid >= num_rows) {
         return;
     }
-    auto lane = threadIdx.x % subwarp_size;
-    auto in_row = tid;
-    auto out_row = row_permutation[tid];
-    auto in_begin = in_row_ptrs[in_row];
-    auto in_size = in_row_ptrs[in_row + 1] - in_begin;
-    auto out_begin = out_row_ptrs[out_row];
+    const auto lane = threadIdx.x % subwarp_size;
+    const auto in_row = tid;
+    const auto out_row = row_permutation[tid];
+    const auto in_begin = in_row_ptrs[in_row];
+    const auto in_size = in_row_ptrs[in_row + 1] - in_begin;
+    const auto out_begin = out_row_ptrs[out_row];
     for (IndexType i = lane; i < in_size; i += subwarp_size) {
         out_cols[out_begin + i] = col_permutation[in_cols[in_begin + i]];
         out_vals[out_begin + i] = in_vals[in_begin + i];
@@ -805,12 +805,12 @@ __global__ __launch_bounds__(default_block_size) void row_scale_permute(
     if (tid >= num_rows) {
         return;
     }
-    auto lane = threadIdx.x % subwarp_size;
-    auto in_row = permutation[tid];
-    auto out_row = tid;
-    auto in_begin = in_row_ptrs[in_row];
-    auto in_size = in_row_ptrs[in_row + 1] - in_begin;
-    auto out_begin = out_row_ptrs[out_row];
+    const auto lane = threadIdx.x % subwarp_size;
+    const auto in_row = permutation[tid];
+    const auto out_row = tid;
+    const auto in_begin = in_row_ptrs[in_row];
+    const auto in_size = in_row_ptrs[in_row + 1] - in_begin;
+    const auto out_begin = out_row_ptrs[out_row];
     for (IndexType i = lane; i < in_size; i += subwarp_size) {
         out_cols[out_begin + i] = in_cols[in_begin + i];
         out_vals[out_begin + i] = in_vals[in_begin + i] * scale[in_row];
@@ -832,12 +832,12 @@ __global__ __launch_bounds__(default_block_size) void inv_row_scale_permute(
     if (tid >= num_rows) {
         return;
     }
-    auto lane = threadIdx.x % subwarp_size;
-    auto in_row = tid;
-    auto out_row = permutation[tid];
-    auto in_begin = in_row_ptrs[in_row];
-    auto in_size = in_row_ptrs[in_row + 1] - in_begin;
-    auto out_begin = out_row_ptrs[out_row];
+    const auto lane = threadIdx.x % subwarp_size;
+    const auto in_row = tid;
+    const auto out_row = permutation[tid];
+    const auto in_begin = in_row_ptrs[in_row];
+    const auto in_size = in_row_ptrs[in_row + 1] - in_begin;
+    const auto out_begin = out_row_ptrs[out_row];
     for (IndexType i = lane; i < in_size; i += subwarp_size) {
         out_cols[out_begin + i] = in_cols[in_begin + i];
         out_vals[out_begin + i] = in_vals[in_begin + i] / scale[out_row];
@@ -859,12 +859,12 @@ __global__ __launch_bounds__(default_block_size) void inv_symm_scale_permute(
     if (tid >= num_rows) {
         return;
     }
-    auto lane = threadIdx.x % subwarp_size;
-    auto in_row = tid;
-    auto out_row = permutation[tid];
-    auto in_begin = in_row_ptrs[in_row];
-    auto in_size = in_row_ptrs[in_row + 1] - in_begin;
-    auto out_begin = out_row_ptrs[out_row];
+    const auto lane = threadIdx.x % subwarp_size;
+    const auto in_row = tid;
+    const auto out_row = permutation[tid];
+    const auto in_begin = in_row_ptrs[in_row];
+    const auto in_size = in_row_ptrs[in_row + 1] - in_begin;
+    const auto out_begin = out_row_ptrs[out_row];
     for (IndexType i = lane; i < in_size; i += subwarp_size) {
         const auto out_col = permutation[in_cols[in_begin + i]];
         out_cols[out_begin + i] = out_col;
@@ -890,12 +890,12 @@ __global__ __launch_bounds__(default_block_size) void inv_nonsymm_scale_permute(
     if (tid >= num_rows) {
         return;
     }
-    auto lane = threadIdx.x % subwarp_size;
-    auto in_row = tid;
-    auto out_row = row_permutation[tid];
-    auto in_begin = in_row_ptrs[in_row];
-    auto in_size = in_row_ptrs[in_row + 1] - in_begin;
-    auto out_begin = out_row_ptrs[out_row];
+    const auto lane = threadIdx.x % subwarp_size;
+    const auto in_row = tid;
+    const auto out_row = row_permutation[tid];
+    const auto in_begin = in_row_ptrs[in_row];
+    const auto in_size = in_row_ptrs[in_row + 1] - in_begin;
+    const auto out_begin = out_row_ptrs[out_row];
     for (IndexType i = lane; i < in_size; i += subwarp_size) {
         const auto out_col = col_permutation[in_cols[in_begin + i]];
         out_cols[out_begin + i] = out_col;

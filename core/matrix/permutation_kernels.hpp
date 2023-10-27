@@ -60,8 +60,8 @@ namespace kernels {
                 const IndexType* permutation_indices, size_type size, \
                 IndexType* inv_permutation)
 
-#define GKO_DECLARE_PERMUTATION_COMBINE_KERNEL(IndexType)             \
-    void combine(std::shared_ptr<const DefaultExecutor> exec,         \
+#define GKO_DECLARE_PERMUTATION_COMPOSE_KERNEL(IndexType)             \
+    void compose(std::shared_ptr<const DefaultExecutor> exec,         \
                  const IndexType* first_permutation,                  \
                  const IndexType* second_permutation, size_type size, \
                  IndexType* combined_permutation)
@@ -71,7 +71,7 @@ namespace kernels {
     template <typename IndexType>                     \
     GKO_DECLARE_PERMUTATION_INVERT_KERNEL(IndexType); \
     template <typename IndexType>                     \
-    GKO_DECLARE_PERMUTATION_COMBINE_KERNEL(IndexType)
+    GKO_DECLARE_PERMUTATION_COMPOSE_KERNEL(IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(permutation,
