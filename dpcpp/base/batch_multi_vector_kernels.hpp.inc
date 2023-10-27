@@ -67,6 +67,49 @@ __dpct_inline__ void add_scaled_kernel(
 }
 
 
+template <typename ValueType>
+__dpct_inline__ void single_rhs_compute_dot(
+    const int num_rows, const ValueType* const __restrict__ x,
+    const ValueType* const __restrict__ y, ValueType& result,
+    sycl::nd_item<3> item_ct1)
+{
+    const auto group = item_ct1.get_group();
+    const auto group_size = item_ct1.get_local_range().size();
+    const auto tid = item_ct1.get_local_linear_id();
+
+    ValueType val = zero<ValueType>();
+
+    for (int r = tid; r < num_rows; r += group_size) {
+        val += conj(x[r]) * y[r];
+    }
+    result = sycl::reduce_over_group(group, val, sycl::plus<>());
+}
+
+
+template <typename ValueType>
+__dpct_inline__ void single_rhs_compute_dot_sg(
+    const int num_rows, const ValueType* const __restrict__ x,
+    const ValueType* const __restrict__ y, ValueType& result,
+    sycl::nd_item<3> item_ct1)
+{
+    const auto sg = item_ct1.get_sub_group();
+    const auto sg_size = sg.get_local_range().size();
+    const auto sg_tid = sg.get_local_id();
+
+    ValueType val = zero<ValueType>();
+
+    for (int r = sg_tid; r < num_rows; r += sg_size) {
+        val += conj(x[r]) * y[r];
+    }
+
+    val = sycl::reduce_over_group(sg, val, sycl::plus<>());
+
+    if (sg_tid == 0) {
+        result = val;
+    }
+}
+
+
 template <typename ValueType, typename Mapping>
 __dpct_inline__ void compute_gen_dot_product_kernel(
     const gko::batch::multi_vector::batch_item<const ValueType>& x,
@@ -103,6 +146,52 @@ __dpct_inline__ void compute_gen_dot_product_kernel(
 
 
 template <typename ValueType>
+__dpct_inline__ void single_rhs_compute_norm2_sg(
+    const int num_rows, const ValueType* const __restrict__ x,
+    gko::remove_complex<ValueType>& result, sycl::nd_item<3> item_ct1)
+{
+    const auto sg = item_ct1.get_sub_group();
+    const auto sg_size = sg.get_local_range().size();
+    const auto sg_tid = sg.get_local_id();
+
+    using real_type = typename gko::remove_complex<ValueType>;
+    real_type val = zero<real_type>();
+
+    for (int r = sg_tid; r < num_rows; r += sg_size) {
+        val += squared_norm(x[r]);
+    }
+
+    val = sycl::reduce_over_group(sg, val, sycl::plus<>());
+
+    if (sg_tid == 0) {
+        result = sqrt(val);
+    }
+}
+
+
+template <typename ValueType>
+__dpct_inline__ void single_rhs_compute_norm2(
+    const int num_rows, const ValueType* const __restrict__ x,
+    gko::remove_complex<ValueType>& result, sycl::nd_item<3> item_ct1)
+{
+    const auto group = item_ct1.get_group();
+    const auto group_size = item_ct1.get_local_range().size();
+    const auto tid = item_ct1.get_local_linear_id();
+
+    using real_type = typename gko::remove_complex<ValueType>;
+    real_type val = zero<real_type>();
+
+    for (int r = tid; r < num_rows; r += group_size) {
+        val += squared_norm(x[r]);
+    }
+
+    val = sycl::reduce_over_group(group, val, sycl::plus<>());
+
+    result = sqrt(val);
+}
+
+
+template <typename ValueType>
 __dpct_inline__ void compute_norm2_kernel(
     const gko::batch::multi_vector::batch_item<const ValueType>& x,
     const gko::batch::multi_vector::batch_item<remove_complex<ValueType>>&
@@ -132,6 +221,17 @@ __dpct_inline__ void compute_norm2_kernel(
         if (subgroup.get_local_id() == 0) {
             result.values[rhs_index] = sqrt(val);
         }
+    }
+}
+
+
+template <typename ValueType>
+__dpct_inline__ void copy_kernel(const int num_rows, const ValueType* in,
+                                 ValueType* out, sycl::nd_item<3>& item_ct1)
+{
+    for (int iz = item_ct1.get_local_linear_id(); iz < num_rows;
+         iz += item_ct1.get_local_range().size()) {
+        out[iz] = in[iz];
     }
 }
 
