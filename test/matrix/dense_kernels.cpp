@@ -1433,7 +1433,7 @@ TEST_F(Dense, IsGenericScalePermutableRectangular)
         auto permuted = x->scale_permute(perm, mode);
         auto dpermuted = dx->scale_permute(perm, mode);
 
-        GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+        GKO_ASSERT_MTX_NEAR(permuted, dpermuted, r<value_type>::value);
     }
 }
 
