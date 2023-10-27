@@ -165,7 +165,8 @@ protected:
     using index_type = IndexType;
 };
 
-TYPED_TEST_SUITE(PartitionHelpers, gko::test::IndexTypes);
+TYPED_TEST_SUITE(PartitionHelpers, gko::test::IndexTypes,
+                 TypenameNameGenerator);
 
 
 TYPED_TEST(PartitionHelpers, CanCheckConsecutiveRanges)

@@ -128,7 +128,7 @@ protected:
     std::default_random_engine rand_engine;
 };
 
-TYPED_TEST_SUITE(MultiVector, gko::test::ValueTypes);
+TYPED_TEST_SUITE(MultiVector, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(MultiVector, ScalesData)
