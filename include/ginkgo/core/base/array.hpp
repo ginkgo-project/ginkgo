@@ -160,7 +160,7 @@ private:
 
 
 template <typename ValueType>
-using ConstArrayView [[deprecated("please use const_array_view")]] =
+using ConstArrayView GKO_DEPRECATED("please use const_array_view") =
     const_array_view<ValueType>;
 
 
@@ -714,7 +714,7 @@ private:
 
 
 template <typename ValueType>
-using Array [[deprecated("please use array")]] = array<ValueType>;
+using Array GKO_DEPRECATED("please use array") = array<ValueType>;
 
 
 /**

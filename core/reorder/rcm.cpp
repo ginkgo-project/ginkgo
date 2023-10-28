@@ -81,15 +81,7 @@ void rcm_reorder(const matrix::SparsityCsr<ValueType, IndexType>* mtx,
 }
 
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-
-#endif
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 5211, 4973, 4974)
-#endif
+GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
 
 
 template <typename ValueType, typename IndexType>
@@ -164,12 +156,7 @@ Rcm<ValueType, IndexType>::Rcm(const Factory* factory,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RCM);
 
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+GKO_END_DISABLE_DEPRECATION_WARNINGS
 
 
 }  // namespace reorder

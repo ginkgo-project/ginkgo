@@ -97,7 +97,7 @@ enum class starting_strategy { minimum_degree, pseudo_peripheral };
  * @ingroup reorder
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class [[deprecated("use gko::experimental::reorder::Rcm instead")]] Rcm
+class GKO_DEPRECATED("use gko::experimental::reorder::Rcm instead") Rcm
     : public EnablePolymorphicObject<Rcm<ValueType, IndexType>,
                                      ReorderingBase<IndexType>>,
       public EnablePolymorphicAssignment<Rcm<ValueType, IndexType>>

@@ -33,17 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/reorder/rcm.hpp>
 
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-
-#endif
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 5211, 4973, 4974)
-#endif
-
-
 #include <algorithm>
 #include <fstream>
 #include <memory>
@@ -60,6 +49,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
+
+
+GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
 
 
 namespace {

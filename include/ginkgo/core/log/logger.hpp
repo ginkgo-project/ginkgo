@@ -462,12 +462,12 @@ protected:
      * @warning This on_iteration_complete function that this macro declares is
      * deprecated. Please use the version with the stopping information.
      */
-    [[deprecated(
+    GKO_DEPRECATED(
         "Please use the version with the additional stopping "
-        "information.")]] virtual void
-    on_iteration_complete(const LinOp* solver, const size_type& it,
-                          const LinOp* r, const LinOp* x = nullptr,
-                          const LinOp* tau = nullptr) const
+        "information.")
+    virtual void on_iteration_complete(const LinOp* solver, const size_type& it,
+                                       const LinOp* r, const LinOp* x = nullptr,
+                                       const LinOp* tau = nullptr) const
     {}
 
     /**
@@ -483,28 +483,17 @@ protected:
      * @warning This on_iteration_complete function that this macro declares is
      * deprecated. Please use the version with the stopping information.
      */
-    [[deprecated(
+    GKO_DEPRECATED(
         "Please use the version with the additional stopping "
-        "information.")]] virtual void
-    on_iteration_complete(const LinOp* solver, const size_type& it,
-                          const LinOp* r, const LinOp* x, const LinOp* tau,
-                          const LinOp* implicit_tau_sq) const
+        "information.")
+    virtual void on_iteration_complete(const LinOp* solver, const size_type& it,
+                                       const LinOp* r, const LinOp* x,
+                                       const LinOp* tau,
+                                       const LinOp* implicit_tau_sq) const
     {
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 5211, 4973, 4974)
-#endif
+        GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
         this->on_iteration_complete(solver, it, r, x, tau);
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+        GKO_END_DISABLE_DEPRECATION_WARNINGS
     }
 
     /**
@@ -529,27 +518,9 @@ protected:
                                        const array<stopping_status>* status,
                                        bool stopped) const
     {
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif  // defined(__GNUC__) || defined(__clang__)
-#ifdef __NVCOMPILER
-#pragma diag_suppress 1445
-#endif  // __NVCOMPILER
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 5211, 4973, 4974)
-#endif  // _MSC_VER
+        GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
         this->on_iteration_complete(solver, it, r, x, tau, implicit_tau_sq);
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif  // defined(__GNUC__) || defined(__clang__)
-#ifdef __NVCOMPILER
-#pragma diag_warning 1445
-#endif  // __NVCOMPILER
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif  // _MSC_VER
+        GKO_END_DISABLE_DEPRECATION_WARNINGS
     }
 
 public:
@@ -716,9 +687,9 @@ protected:
      *                           logs every event except linop's apply started
      *                           event.
      */
-    [[deprecated("use single-parameter constructor")]] explicit Logger(
-        std::shared_ptr<const gko::Executor> exec,
-        const mask_type& enabled_events = all_events_mask)
+    GKO_DEPRECATED("use single-parameter constructor")
+    explicit Logger(std::shared_ptr<const gko::Executor> exec,
+                    const mask_type& enabled_events = all_events_mask)
         : Logger{enabled_events}
     {}
 
