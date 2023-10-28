@@ -50,6 +50,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/test/utils/assertions.hpp"
 
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
+#endif
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 5211, 4973, 4974)
+#endif
+
+
 namespace {
 
 
@@ -178,3 +189,11 @@ TEST_F(Rcm, NewInterfaceWorksOnNonsymmetric)
 
 
 }  // namespace
+
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
