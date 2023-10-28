@@ -196,60 +196,62 @@ public:
         else {
             switch (n_shared_total) {
             case 0:
-                launch_apply_kernel<StopType, 32, 0, false>(
+                launch_apply_kernel<StopType, 32, 0, true>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, group_size, shared_size);
                 break;
             case 1:
-                launch_apply_kernel<StopType, 32, 1, false>(
+                launch_apply_kernel<StopType, 32, 1, true>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, group_size, shared_size);
                 break;
             case 2:
-                launch_apply_kernel<StopType, 32, 2, false>(
+                launch_apply_kernel<StopType, 32, 2, true>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, group_size, shared_size);
                 break;
             case 3:
-                launch_apply_kernel<StopType, 32, 3, false>(
+                launch_apply_kernel<StopType, 32, 3, true>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, group_size, shared_size);
                 break;
             case 4:
-                launch_apply_kernel<StopType, 32, 4, false>(
+                launch_apply_kernel<StopType, 32, 4, true>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, group_size, shared_size);
                 break;
             case 5:
-                launch_apply_kernel<StopType, 32, 5, false>(
+                launch_apply_kernel<StopType, 32, 5, true>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, group_size, shared_size);
                 break;
             case 6:
-                launch_apply_kernel<StopType, 32, 6, false>(
+                launch_apply_kernel<StopType, 32, 6, true>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, group_size, shared_size);
                 break;
             case 7:
-                launch_apply_kernel<StopType, 32, 8, false>(
+                launch_apply_kernel<StopType, 32, 7, true>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, group_size, shared_size);
                 break;
             case 8:
-                launch_apply_kernel<StopType, 32, 8, false>(
+                launch_apply_kernel<StopType, 32, 8, true>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, group_size, shared_size);
                 break;
             case 9:
-                launch_apply_kernel<StopType, 32, 9, false>(
+                launch_apply_kernel<StopType, 32, 9, true>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, group_size, shared_size);
                 break;
             case 10:
-                launch_apply_kernel<StopType, 32, 10, false>(
+                launch_apply_kernel<StopType, 32, 10, true>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, group_size, shared_size);
                 break;
+            default:
+                GKO_NOT_IMPLEMENTED;
             }
         }
     }

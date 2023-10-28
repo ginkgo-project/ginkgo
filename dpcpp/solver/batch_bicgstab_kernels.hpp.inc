@@ -63,17 +63,17 @@ __dpct_inline__ void initialize(
 
     // r = b - A*x
     advanced_apply_kernel(static_cast<ValueType>(-1.0), mat_global_entry,
-                                  x_shared_entry, static_cast<ValueType>(1.0),
-                                  r_shared_entry, item_ct1);
+                          x_shared_entry, static_cast<ValueType>(1.0),
+                          r_shared_entry, item_ct1);
     item_ct1.barrier(sycl::access::fence_space::local_space);
 
     if constexpr (sg_kernel_all) {
         if (sg_id == 0) {
             single_rhs_compute_norm2_sg(num_rows, r_shared_entry, res_norm,
-                                    item_ct1);
+                                        item_ct1);
         } else if (sg_id == 1) {
             single_rhs_compute_norm2_sg(num_rows, b_global_entry, rhs_norm,
-                                    item_ct1);
+                                        item_ct1);
         }
     } else {
         single_rhs_compute_norm2(num_rows, r_shared_entry, res_norm, item_ct1);
@@ -120,7 +120,7 @@ __dpct_inline__ void compute_alpha(const int num_rows, const ValueType& rho_new,
 
         if (sg_id == 0) {
             single_rhs_compute_dot_sg(num_rows, r_hat_shared_entry,
-                                          v_shared_entry, alpha, item_ct1);
+                                      v_shared_entry, alpha, item_ct1);
         }
         if (tid == 0) {
             alpha = rho_new / alpha;
@@ -128,7 +128,7 @@ __dpct_inline__ void compute_alpha(const int num_rows, const ValueType& rho_new,
         item_ct1.barrier(sycl::access::fence_space::local_space);
     } else {
         single_rhs_compute_dot(num_rows, r_hat_shared_entry, v_shared_entry,
-                                   alpha, item_ct1);
+                               alpha, item_ct1);
         alpha = rho_new / alpha;
     }
 }
@@ -162,19 +162,19 @@ __dpct_inline__ void compute_omega(const int num_rows,
         const auto tid = item_ct1.get_local_linear_id();
 
         if (sg_id == 0)
-            single_rhs_compute_dot_sg(num_rows, t_shared_entry,
-                                          s_shared_entry, omega, item_ct1);
+            single_rhs_compute_dot_sg(num_rows, t_shared_entry, s_shared_entry,
+                                      omega, item_ct1);
         else if (sg_id == 1)
-            single_rhs_compute_dot_sg(num_rows, t_shared_entry,
-                                          t_shared_entry, temp, item_ct1);
+            single_rhs_compute_dot_sg(num_rows, t_shared_entry, t_shared_entry,
+                                      temp, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::local_space);
         if (tid == 0) omega /= temp;
         item_ct1.barrier(sycl::access::fence_space::local_space);
     } else {
-        single_rhs_compute_dot(num_rows, t_shared_entry, s_shared_entry,
-                                   omega, item_ct1);
-        single_rhs_compute_dot(num_rows, t_shared_entry, t_shared_entry,
-                                   temp, item_ct1);
+        single_rhs_compute_dot(num_rows, t_shared_entry, s_shared_entry, omega,
+                               item_ct1);
+        single_rhs_compute_dot(num_rows, t_shared_entry, t_shared_entry, temp,
+                               item_ct1);
         omega /= temp;
     }
 }
@@ -356,6 +356,7 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
     int iter = 0;
     for (; iter < max_iter; iter++) {
         if (stop.check_converged(norms_res_sh)) {
+            logger.log_iteration(batch_id, iter, norms_res_sh[0]);
             break;
         }
 
@@ -363,18 +364,18 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
         if constexpr (sg_kernel_all) {
             if (sg_id == 0) {
                 single_rhs_compute_dot_sg(num_rows, r_hat_sh, r_sh,
-                                              rho_new_sh[0], item_ct1);
+                                          rho_new_sh[0], item_ct1);
             }
             item_ct1.barrier(sycl::access::fence_space::local_space);
         } else {
             single_rhs_compute_dot(num_rows, r_hat_sh, r_sh, rho_new_sh[0],
-                                       item_ct1);
+                                   item_ct1);
         }
 
         // beta = (rho_new / rho_old)*(alpha / omega)
         // p = r + beta*(p - omega * v)
-        update_p(num_rows, rho_new_sh[0], rho_old_sh[0], alpha_sh[0], omega_sh[0],
-                 r_sh, v_sh, p_sh, item_ct1);
+        update_p(num_rows, rho_new_sh[0], rho_old_sh[0], alpha_sh[0],
+                 omega_sh[0], r_sh, v_sh, p_sh, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::local_space);
 
         // p_hat = precond * p
@@ -388,7 +389,7 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
         // alpha = rho_new / < r_hat , v>
         compute_alpha<sg_kernel_all>(num_rows, rho_new_sh[0], r_hat_sh, v_sh,
                                      alpha_sh[0], item_ct1);
-        // item_ct1.barrier(sycl::access::fence_space::local_space);
+        item_ct1.barrier(sycl::access::fence_space::local_space);
 
         // s = r - alpha*v
         update_s(num_rows, r_sh, alpha_sh[0], v_sh, s_sh, item_ct1);
@@ -397,7 +398,8 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
         // an estimate of residual norms
         if constexpr (sg_kernel_all) {
             if (sg_id == 0) {
-                single_rhs_compute_norm2_sg(num_rows, s_sh, norms_res_sh[0], item_ct1);
+                single_rhs_compute_norm2_sg(num_rows, s_sh, norms_res_sh[0],
+                                            item_ct1);
             }
             item_ct1.barrier(sycl::access::fence_space::local_space);
         } else {
@@ -407,6 +409,7 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
         // if (norms_res_sh[0] / norms_rhs_sh[0] < tol) {
         if (stop.check_converged(norms_res_sh)) {
             update_x_middle(num_rows, alpha_sh[0], p_hat_sh, x_sh, item_ct1);
+            logger.log_iteration(batch_id, iter, norms_res_sh[0]);
             break;
         }
 
@@ -419,9 +422,9 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
         item_ct1.barrier(sycl::access::fence_space::local_space);
 
         // omega = <t,s> / <t,t>
-        compute_omega<sg_kernel_all>(num_rows, t_sh, s_sh, temp_sh[0], omega_sh[0],
-                                     item_ct1);
-        //        item_ct1.barrier(sycl::access::fence_space::local_space);
+        compute_omega<sg_kernel_all>(num_rows, t_sh, s_sh, temp_sh[0],
+                                     omega_sh[0], item_ct1);
+        item_ct1.barrier(sycl::access::fence_space::local_space);
 
         // x = x + alpha*p_hat + omega *s_hat
         // r = s - omega * t
@@ -431,7 +434,8 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
 
         if constexpr (sg_kernel_all) {
             if (sg_id == 0)
-                single_rhs_compute_norm2_sg(num_rows, r_sh, norms_res_sh[0], item_ct1);
+                single_rhs_compute_norm2_sg(num_rows, r_sh, norms_res_sh[0],
+                                            item_ct1);
             if (tid == group_size - 1) {
                 rho_old_sh[0] = rho_new_sh[0];
             }
