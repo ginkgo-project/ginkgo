@@ -691,7 +691,8 @@ private:
 
 
 class ReorderRcmOperation : public BenchmarkOperation {
-    using reorder_type = gko::reorder::Rcm<etype, itype>;
+    using reorder_type = gko::experimental::reorder::Rcm<itype>;
+    using permute_type = gko::matrix::Permutation<itype>;
 
 public:
     explicit ReorderRcmOperation(const Mtx* mtx)
@@ -715,8 +716,8 @@ public:
 
 private:
     std::shared_ptr<Mtx> mtx_;
-    std::unique_ptr<reorder_type::Factory> factory_;
-    std::unique_ptr<reorder_type> reorder_;
+    std::unique_ptr<reorder_type> factory_;
+    std::unique_ptr<permute_type> reorder_;
 };
 
 

@@ -91,11 +91,9 @@ std::unique_ptr<gko::matrix::Permutation<IndexType>> reorder(
                    ->generate(mtx);
 #endif
     } else if (FLAGS_reorder == "rcm") {
-        perm = gko::reorder::Rcm<ValueType, IndexType>::build()
+        perm = gko::experimental::reorder::Rcm<IndexType>::build()
                    .on(ref)
-                   ->generate(mtx)
-                   ->get_permutation()
-                   ->clone();
+                   ->generate(mtx);
     } else {
         throw std::runtime_error{"Unknown reordering algorithm " +
                                  FLAGS_reorder};

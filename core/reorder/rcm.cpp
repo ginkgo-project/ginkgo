@@ -81,6 +81,17 @@ void rcm_reorder(matrix::SparsityCsr<ValueType, IndexType>* mtx,
 }
 
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
+#endif
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 5211, 4973, 4974)
+#endif
+
+
 template <typename ValueType, typename IndexType>
 Rcm<ValueType, IndexType>::Rcm(std::shared_ptr<const Executor> exec)
     : EnablePolymorphicObject<Rcm, ReorderingBase<IndexType>>(std::move(exec))
@@ -153,6 +164,14 @@ Rcm<ValueType, IndexType>::Rcm(const Factory* factory,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RCM);
 
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+
 }  // namespace reorder
 
 
@@ -199,7 +218,7 @@ std::unique_ptr<LinOp> Rcm<IndexType>::generate_impl(
         using Mtx = matrix::Csr<ValueType, IndexType>;
         using Scalar = matrix::Dense<ValueType>;
         auto conv_csr = matrix::Csr<ValueType, IndexType>::create(exec);
-        as<Mtx>(op)->convert_to(conv_csr);
+        as<ConvertibleTo<Mtx>>(op)->convert_to(conv_csr);
         if (!parameters_.skip_symmetrize) {
             auto scalar = initialize<Scalar>({one<ValueType>()}, exec);
             auto id = Identity::create(exec, conv_csr->get_size()[0]);
