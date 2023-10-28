@@ -64,10 +64,12 @@ enum class starting_strategy { minimum_degree, pseudo_peripheral };
 
 
 /**
- * Rcm is a reordering algorithm minimizing the bandwidth of a matrix. Such a
- * reordering typically also significantly reduces fill-in, though usually not
- * as effective as more complex algorithms, specifically AMD and nested
- * dissection schemes. The advantage of this algorithm is its low runtime.
+ * Rcm (Reverse Cuthill-McKee) is a reordering algorithm minimizing the
+ * bandwidth of a matrix. Such a reordering typically also significantly reduces
+ * fill-in, though usually not as effective as more complex algorithms,
+ * specifically AMD and nested dissection schemes. The advantage of this
+ * algorithm is its low runtime.
+ * It requires the input matrix to be structurally symmetric.
  *
  * @note  This class is derived from polymorphic object but is not a LinOp as it
  * does not make sense for this class to implement the apply methods. The
@@ -174,10 +176,11 @@ using rcm_starting_strategy = gko::reorder::starting_strategy;
 
 
 /**
- * Rcm is a reordering algorithm minimizing the bandwidth of a matrix. Such a
- * reordering typically also significantly reduces fill-in, though usually not
- * as effective as more complex algorithms, specifically AMD and nested
- * dissection schemes. The advantage of this algorithm is its low runtime.
+ * Rcm (Reverse Cuthill-McKee) is a reordering algorithm minimizing the
+ * bandwidth of a matrix. Such a reordering typically also significantly reduces
+ * fill-in, though usually not as effective as more complex algorithms,
+ * specifically AMD and nested dissection schemes. The advantage of this
+ * algorithm is its low runtime.
  *
  * The class is a LinOpFactory generating a Permutation matrix out of a Csr
  * system matrix, to be used with `Csr::permute(...)`.
