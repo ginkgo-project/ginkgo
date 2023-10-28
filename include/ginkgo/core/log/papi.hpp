@@ -40,11 +40,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if GKO_HAVE_PAPI_SDE
 
 
+#include <sde_lib.h>
 #include <cstddef>
 #include <iostream>
 #include <map>
 #include <mutex>
-#include <sde_lib.h>
 
 
 #include <ginkgo/core/base/polymorphic_object.hpp>
@@ -183,17 +183,18 @@ public:
                                const array<stopping_status>* status,
                                bool stopped) const override;
 
-    [[deprecated(
+    GKO_DEPRECATED(
         "Please use the version with the additional stopping "
-        "information.")]] void
-    on_iteration_complete(const LinOp* solver, const size_type& num_iterations,
-                          const LinOp* residual, const LinOp* solution,
-                          const LinOp* residual_norm) const override;
+        "information.")
+    void on_iteration_complete(const LinOp* solver,
+                               const size_type& num_iterations,
+                               const LinOp* residual, const LinOp* solution,
+                               const LinOp* residual_norm) const override;
 
-    [[deprecated(
+    GKO_DEPRECATED(
         "Please use the version with the additional stopping "
-        "information.")]] void
-    on_iteration_complete(
+        "information.")
+    void on_iteration_complete(
         const LinOp* solver, const size_type& num_iterations,
         const LinOp* residual, const LinOp* solution,
         const LinOp* residual_norm,
@@ -204,9 +205,10 @@ public:
      *
      * @param enabled_events  the events enabled for this Logger
      */
-    [[deprecated("use single-parameter create")]] static std::shared_ptr<Papi>
-    create(std::shared_ptr<const gko::Executor>,
-           const Logger::mask_type& enabled_events = Logger::all_events_mask)
+    GKO_DEPRECATED("use single-parameter create")
+    static std::shared_ptr<Papi> create(
+        std::shared_ptr<const gko::Executor>,
+        const Logger::mask_type& enabled_events = Logger::all_events_mask)
     {
         return Papi::create(enabled_events);
     }
@@ -242,7 +244,8 @@ public:
     const papi_handle_t get_handle() const { return papi_handle; }
 
 protected:
-    [[deprecated("use single-parameter constructor")]] explicit Papi(
+    GKO_DEPRECATED("use single-parameter constructor")
+    explicit Papi(
         std::shared_ptr<const gko::Executor> exec,
         const Logger::mask_type& enabled_events = Logger::all_events_mask)
         : Papi(enabled_events)

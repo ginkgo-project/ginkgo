@@ -1307,24 +1307,20 @@ public:
      *
      * @param device_reset  whether to allow a device reset or not
      */
-    [[deprecated(
+    GKO_DEPRECATED(
         "device_reset is no longer supported, call "
-        "cudaDeviceReset/hipDeviceReset manually")]] void
-    set_device_reset(bool device_reset)
-    {}
+        "cudaDeviceReset/hipDeviceReset manually")
+    void set_device_reset(bool device_reset) {}
 
     /**
      * Returns the current status of the device reset boolean for this executor.
      *
      * @return the current status of the device reset boolean for this executor.
      */
-    [[deprecated(
+    GKO_DEPRECATED(
         "device_reset is no longer supported, call "
-        "cudaDeviceReset/hipDeviceReset manually")]] bool
-    get_device_reset()
-    {
-        return false;
-    }
+        "cudaDeviceReset/hipDeviceReset manually")
+    bool get_device_reset() { return false; }
 
 protected:
     /**
@@ -1334,11 +1330,10 @@ protected:
      */
     EnableDeviceReset() {}
 
-    [[deprecated(
+    GKO_DEPRECATED(
         "device_reset is no longer supported, call "
-        "cudaDeviceReset/hipDeviceReset manually")]] EnableDeviceReset(bool
-                                                                           device_reset)
-    {}
+        "cudaDeviceReset/hipDeviceReset manually")
+    EnableDeviceReset(bool device_reset) {}
 };
 
 
@@ -1530,13 +1525,14 @@ public:
      *                    on. See @allocation_mode for more details
      * @param stream  the stream to execute operations on.
      */
-    [[deprecated(
+    GKO_DEPRECATED(
         "device_reset is deprecated entirely, call cudaDeviceReset directly. "
         "alloc_mode was replaced by the Allocator type "
-        "hierarchy.")]] static std::shared_ptr<CudaExecutor>
-    create(int device_id, std::shared_ptr<Executor> master, bool device_reset,
-           allocation_mode alloc_mode = default_cuda_alloc_mode,
-           CUstream_st* stream = nullptr);
+        "hierarchy.")
+    static std::shared_ptr<CudaExecutor> create(
+        int device_id, std::shared_ptr<Executor> master, bool device_reset,
+        allocation_mode alloc_mode = default_cuda_alloc_mode,
+        CUstream_st* stream = nullptr);
 
     /**
      * Creates a new CudaExecutor with a custom allocator and device stream.
@@ -1743,13 +1739,14 @@ public:
      * @param alloc_mode  the allocation mode that the executor should operate
      *                    on. See @allocation_mode for more details
      */
-    [[deprecated(
+    GKO_DEPRECATED(
         "device_reset is deprecated entirely, call hipDeviceReset directly. "
         "alloc_mode was replaced by the Allocator type "
-        "hierarchy.")]] static std::shared_ptr<HipExecutor>
-    create(int device_id, std::shared_ptr<Executor> master, bool device_reset,
-           allocation_mode alloc_mode = default_hip_alloc_mode,
-           GKO_HIP_STREAM_STRUCT* stream = nullptr);
+        "hierarchy.")
+    static std::shared_ptr<HipExecutor> create(
+        int device_id, std::shared_ptr<Executor> master, bool device_reset,
+        allocation_mode alloc_mode = default_hip_alloc_mode,
+        GKO_HIP_STREAM_STRUCT* stream = nullptr);
 
     static std::shared_ptr<HipExecutor> create(
         int device_id, std::shared_ptr<Executor> master,

@@ -89,11 +89,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 // Handle deprecated notices correctly on different systems
-#if defined(_WIN32) || defined(__CYGWIN__)
-#define GKO_DEPRECATED(msg) __declspec(deprecated(msg))
+// clang-format off
+#define GKO_DEPRECATED(_msg) [[deprecated(_msg)]]
+#ifdef __NVCOMPILER
+#define GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS _Pragma("diag_suppress 1445")
+#define GKO_END_DISABLE_DEPRECATION_WARNINGS _Pragma("diag_warning 1445")
+#elif defined(__GNUC__) || defined(__clang__)
+#define GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS                      \
+    _Pragma("GCC diagnostic push")                                  \
+    _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
+#define GKO_END_DISABLE_DEPRECATION_WARNINGS _Pragma("GCC diagnostic pop")
+#elif defined(_MSC_VER)
+#define GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS        \
+    _Pragma("warning(push)")                          \
+    _Pragma("warning(disable : 5211 4973 4974 4996)")
+#define GKO_END_DISABLE_DEPRECATION_WARNINGS _Pragma("warning(pop)")
 #else
-#define GKO_DEPRECATED(msg) __attribute__((deprecated(msg)))
-#endif  // defined(_WIN32) || defined(__CYGWIN__)
+#define GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
+#define GKO_END_DISABLE_DEPRECATION_WARNINGS
+#endif
+// clang-format on
 
 
 namespace gko {

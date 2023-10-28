@@ -402,17 +402,18 @@ public:
         const LinOp* residual_norm, const LinOp* implicit_resnorm_sq,
         const array<stopping_status>* status, bool stopped) const override;
 
-    [[deprecated(
+    GKO_DEPRECATED(
         "Please use the version with the additional stopping "
-        "information.")]] void
-    on_iteration_complete(const LinOp* solver, const size_type& num_iterations,
-                          const LinOp* residual, const LinOp* solution,
-                          const LinOp* residual_norm) const override;
+        "information.")
+    void on_iteration_complete(const LinOp* solver,
+                               const size_type& num_iterations,
+                               const LinOp* residual, const LinOp* solution,
+                               const LinOp* residual_norm) const override;
 
-    [[deprecated(
+    GKO_DEPRECATED(
         "Please use the version with the additional stopping "
-        "information.")]] void
-    on_iteration_complete(
+        "information.")
+    void on_iteration_complete(
         const LinOp* solver, const size_type& num_iterations,
         const LinOp* residual, const LinOp* solution,
         const LinOp* residual_norm,
@@ -436,10 +437,11 @@ public:
      * dependencies. At the same time, this method is short enough that it
      * shouldn't be a problem.
      */
-    [[deprecated("use two-parameter create")]] static std::unique_ptr<Record>
-    create(std::shared_ptr<const Executor> exec,
-           const mask_type& enabled_events = Logger::all_events_mask,
-           size_type max_storage = 1)
+    GKO_DEPRECATED("use two-parameter create")
+    static std::unique_ptr<Record> create(
+        std::shared_ptr<const Executor> exec,
+        const mask_type& enabled_events = Logger::all_events_mask,
+        size_type max_storage = 1)
     {
         return std::unique_ptr<Record>(new Record(enabled_events, max_storage));
     }
@@ -493,10 +495,10 @@ protected:
      *                     storage. It is advised to control this to reduce
      *                     memory overhead of this logger.
      */
-    [[deprecated("use two-parameter constructor")]] explicit Record(
-        std::shared_ptr<const gko::Executor> exec,
-        const mask_type& enabled_events = Logger::all_events_mask,
-        size_type max_storage = 0)
+    GKO_DEPRECATED("use two-parameter constructor")
+    explicit Record(std::shared_ptr<const gko::Executor> exec,
+                    const mask_type& enabled_events = Logger::all_events_mask,
+                    size_type max_storage = 0)
         : Record(enabled_events, max_storage)
     {}
 

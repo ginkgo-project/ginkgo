@@ -119,10 +119,10 @@ std::ostream& operator<<(std::ostream& stream, permute_mode mode);
 using mask_type = gko::uint64;
 
 static constexpr mask_type row_permute = mask_type{1};
-[[deprecated("permute mask is no longer supported")]] static constexpr mask_type
-    column_permute = mask_type{1 << 2};
-[[deprecated("permute mask is no longer supported")]] static constexpr mask_type
-    inverse_permute = mask_type{1 << 3};
+GKO_DEPRECATED("permute mask is no longer supported")
+static constexpr mask_type column_permute = mask_type{1 << 2};
+GKO_DEPRECATED("permute mask is no longer supported")
+static constexpr mask_type inverse_permute = mask_type{1 << 3};
 
 /**
  * Permutation is a matrix format that represents a permutation matrix,
@@ -174,14 +174,14 @@ public:
      * @return the number of elements explicitly stored in the permutation
      * array.
      */
-    [[deprecated("use get_size()[0] instead")]] size_type get_permutation_size()
-        const noexcept;
+    GKO_DEPRECATED("use get_size()[0] instead")
+    size_type get_permutation_size() const noexcept;
 
-    [[deprecated("permute mask is no longer supported")]] mask_type
-    get_permute_mask() const;
+    GKO_DEPRECATED("permute mask is no longer supported")
+    mask_type get_permute_mask() const;
 
-    [[deprecated("permute mask is no longer supported")]] void set_permute_mask(
-        mask_type permute_mask);
+    GKO_DEPRECATED("permute mask is no longer supported")
+    void set_permute_mask(mask_type permute_mask);
 
     /**
      * Returns the inverse permutation.
@@ -218,12 +218,11 @@ public:
      *          (if it resides on the same executor as the matrix) or a copy of
      *          the array on the correct executor.
      */
-    [[deprecated(
-        "use create_const without size and permute mask")]] static std::
-        unique_ptr<const Permutation>
-        create_const(std::shared_ptr<const Executor> exec, size_type size,
-                     gko::detail::const_array_view<IndexType>&& perm_idxs,
-                     mask_type enabled_permute = row_permute);
+    GKO_DEPRECATED("use create_const without size and permute mask")
+    static std::unique_ptr<const Permutation> create_const(
+        std::shared_ptr<const Executor> exec, size_type size,
+        gko::detail::const_array_view<IndexType>&& perm_idxs,
+        mask_type enabled_permute = row_permute);
     /**
      * Creates a constant (immutable) Permutation matrix from a constant array.
      *
@@ -263,19 +262,19 @@ protected:
     Permutation(std::shared_ptr<const Executor> exec,
                 array<IndexType> permutation_indices);
 
-    [[deprecated(
+    GKO_DEPRECATED(
         "dim<2> is no longer supported as a dimension parameter, use size_type "
-        "instead")]] Permutation(std::shared_ptr<const Executor> exec,
-                                 const dim<2>& size);
+        "instead")
+    Permutation(std::shared_ptr<const Executor> exec, const dim<2>& size);
 
-    [[deprecated("permute mask is no longer supported")]] Permutation(
-        std::shared_ptr<const Executor> exec, const dim<2>& size,
-        const mask_type& enabled_permute);
+    GKO_DEPRECATED("permute mask is no longer supported")
+    Permutation(std::shared_ptr<const Executor> exec, const dim<2>& size,
+                const mask_type& enabled_permute);
 
     template <typename IndicesArray>
-    [[deprecated("use the overload without dimensions")]] Permutation(
-        std::shared_ptr<const Executor> exec, const dim<2>& size,
-        IndicesArray&& permutation_indices)
+    GKO_DEPRECATED("use the overload without dimensions")
+    Permutation(std::shared_ptr<const Executor> exec, const dim<2>& size,
+                IndicesArray&& permutation_indices)
         : Permutation{exec, array<IndexType>{exec, std::forward<IndicesArray>(
                                                        permutation_indices)}}
     {
@@ -284,9 +283,10 @@ protected:
     }
 
     template <typename IndicesArray>
-    [[deprecated("permute mask is no longer supported")]] Permutation(
-        std::shared_ptr<const Executor> exec, const dim<2>& size,
-        IndicesArray&& permutation_indices, const mask_type& enabled_permute)
+    GKO_DEPRECATED("permute mask is no longer supported")
+    Permutation(std::shared_ptr<const Executor> exec, const dim<2>& size,
+                IndicesArray&& permutation_indices,
+                const mask_type& enabled_permute)
         : Permutation{std::move(exec),
                       array<IndexType>{exec, std::forward<IndicesArray>(
                                                  permutation_indices)}}

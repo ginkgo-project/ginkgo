@@ -196,10 +196,9 @@ private:
 
 
 template <typename ValueType = default_precision, typename IndexType = int32>
-using AmgxPgm
-    [[deprecated("This class is deprecated and will be removed in the next "
-                 "major release. Please use Pgm instead.")]] =
-        Pgm<ValueType, IndexType>;
+using AmgxPgm GKO_DEPRECATED(
+    "This class is deprecated and will be removed in the next "
+    "major release. Please use Pgm instead.") = Pgm<ValueType, IndexType>;
 
 
 }  // namespace multigrid
