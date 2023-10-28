@@ -683,6 +683,7 @@ public:
 };
 
 
+/** Exception thrown if an object is in an invalid state. */
 class InvalidStateError : public Error {
 public:
     /**

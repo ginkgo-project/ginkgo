@@ -12,6 +12,8 @@ set(UNIFIED_SOURCES
     matrix/csr_kernels.cpp
     matrix/ell_kernels.cpp
     matrix/hybrid_kernels.cpp
+    matrix/permutation_kernels.cpp
+    matrix/scaled_permutation_kernels.cpp
     matrix/sellp_kernels.cpp
     matrix/sparsity_csr_kernels.cpp
     matrix/diagonal_kernels.cpp

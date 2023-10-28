@@ -862,11 +862,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CONJ_TRANSPOSE_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void symm_permute(std::shared_ptr<const ReferenceExecutor> exec,
-                  const array<IndexType>* permutation_indices,
-                  const matrix::Dense<ValueType>* orig,
+                  const IndexType* perm, const matrix::Dense<ValueType>* orig,
                   matrix::Dense<ValueType>* permuted)
 {
-    auto perm = permutation_indices->get_const_data();
     auto size = orig->get_size()[0];
     for (size_type i = 0; i < size; ++i) {
         for (size_type j = 0; j < size; ++j) {
@@ -881,11 +879,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void inv_symm_permute(std::shared_ptr<const ReferenceExecutor> exec,
-                      const array<IndexType>* permutation_indices,
+                      const IndexType* perm,
                       const matrix::Dense<ValueType>* orig,
                       matrix::Dense<ValueType>* permuted)
 {
-    auto perm = permutation_indices->get_const_data();
     auto size = orig->get_size()[0];
     for (size_type i = 0; i < size; ++i) {
         for (size_type j = 0; j < size; ++j) {
@@ -898,14 +895,46 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_INV_SYMM_PERMUTE_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void nonsymm_permute(std::shared_ptr<const ReferenceExecutor> exec,
+                     const IndexType* row_perm, const IndexType* col_perm,
+                     const matrix::Dense<ValueType>* orig,
+                     matrix::Dense<ValueType>* permuted)
+{
+    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            permuted->at(i, j) = orig->at(row_perm[i], col_perm[j]);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_NONSYMM_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void inv_nonsymm_permute(std::shared_ptr<const ReferenceExecutor> exec,
+                         const IndexType* row_perm, const IndexType* col_perm,
+                         const matrix::Dense<ValueType>* orig,
+                         matrix::Dense<ValueType>* permuted)
+{
+    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            permuted->at(row_perm[i], col_perm[j]) = orig->at(i, j);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_INV_NONSYMM_PERMUTE_KERNEL);
+
+
 template <typename ValueType, typename OutputType, typename IndexType>
 void row_gather(std::shared_ptr<const ReferenceExecutor> exec,
-                const array<IndexType>* row_idxs,
-                const matrix::Dense<ValueType>* orig,
+                const IndexType* rows, const matrix::Dense<ValueType>* orig,
                 matrix::Dense<OutputType>* row_collection)
 {
-    auto rows = row_idxs->get_const_data();
-    for (size_type i = 0; i < row_idxs->get_num_elems(); ++i) {
+    for (size_type i = 0; i < row_collection->get_size()[0]; ++i) {
         for (size_type j = 0; j < orig->get_size()[1]; ++j) {
             row_collection->at(i, j) = orig->at(rows[i], j);
         }
@@ -919,16 +948,15 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
 template <typename ValueType, typename OutputType, typename IndexType>
 void advanced_row_gather(std::shared_ptr<const ReferenceExecutor> exec,
                          const matrix::Dense<ValueType>* alpha,
-                         const array<IndexType>* row_idxs,
+                         const IndexType* rows,
                          const matrix::Dense<ValueType>* orig,
                          const matrix::Dense<ValueType>* beta,
                          matrix::Dense<OutputType>* row_collection)
 {
     using type = highest_precision<ValueType, OutputType>;
-    auto rows = row_idxs->get_const_data();
     auto scalar_alpha = alpha->at(0, 0);
     auto scalar_beta = beta->at(0, 0);
-    for (size_type i = 0; i < row_idxs->get_num_elems(); ++i) {
+    for (size_type i = 0; i < row_collection->get_size()[0]; ++i) {
         for (size_type j = 0; j < orig->get_size()[1]; ++j) {
             row_collection->at(i, j) =
                 static_cast<type>(scalar_alpha * orig->at(rows[i], j)) +
@@ -943,30 +971,27 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
 
 
 template <typename ValueType, typename IndexType>
-void column_permute(std::shared_ptr<const ReferenceExecutor> exec,
-                    const array<IndexType>* permutation_indices,
-                    const matrix::Dense<ValueType>* orig,
-                    matrix::Dense<ValueType>* column_permuted)
+void col_permute(std::shared_ptr<const ReferenceExecutor> exec,
+                 const IndexType* perm, const matrix::Dense<ValueType>* orig,
+                 matrix::Dense<ValueType>* col_permuted)
 {
-    auto perm = permutation_indices->get_const_data();
-    for (size_type j = 0; j < orig->get_size()[1]; ++j) {
-        for (size_type i = 0; i < orig->get_size()[0]; ++i) {
-            column_permuted->at(i, j) = orig->at(i, perm[j]);
+    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            col_permuted->at(i, j) = orig->at(i, perm[j]);
         }
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_COLUMN_PERMUTE_KERNEL);
+    GKO_DECLARE_DENSE_COL_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void inverse_row_permute(std::shared_ptr<const ReferenceExecutor> exec,
-                         const array<IndexType>* permutation_indices,
-                         const matrix::Dense<ValueType>* orig,
-                         matrix::Dense<ValueType>* row_permuted)
+void inv_row_permute(std::shared_ptr<const ReferenceExecutor> exec,
+                     const IndexType* perm,
+                     const matrix::Dense<ValueType>* orig,
+                     matrix::Dense<ValueType>* row_permuted)
 {
-    auto perm = permutation_indices->get_const_data();
     for (size_type i = 0; i < orig->get_size()[0]; ++i) {
         for (size_type j = 0; j < orig->get_size()[1]; ++j) {
             row_permuted->at(perm[i], j) = orig->at(i, j);
@@ -979,21 +1004,176 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void inverse_column_permute(std::shared_ptr<const ReferenceExecutor> exec,
-                            const array<IndexType>* permutation_indices,
-                            const matrix::Dense<ValueType>* orig,
-                            matrix::Dense<ValueType>* column_permuted)
+void inv_col_permute(std::shared_ptr<const ReferenceExecutor> exec,
+                     const IndexType* perm,
+                     const matrix::Dense<ValueType>* orig,
+                     matrix::Dense<ValueType>* col_permuted)
 {
-    auto perm = permutation_indices->get_const_data();
-    for (size_type j = 0; j < orig->get_size()[1]; ++j) {
-        for (size_type i = 0; i < orig->get_size()[0]; ++i) {
-            column_permuted->at(i, perm[j]) = orig->at(i, j);
+    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            col_permuted->at(i, perm[j]) = orig->at(i, j);
         }
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_INV_COLUMN_PERMUTE_KERNEL);
+    GKO_DECLARE_DENSE_INV_COL_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void symm_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
+                        const ValueType* scale, const IndexType* perm,
+                        const matrix::Dense<ValueType>* orig,
+                        matrix::Dense<ValueType>* permuted)
+{
+    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            const auto row = perm[i];
+            const auto col = perm[j];
+            permuted->at(i, j) = scale[row] * scale[col] * orig->at(row, col);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_SYMM_SCALE_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void inv_symm_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
+                            const ValueType* scale, const IndexType* perm,
+                            const matrix::Dense<ValueType>* orig,
+                            matrix::Dense<ValueType>* permuted)
+{
+    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            const auto row = perm[i];
+            const auto col = perm[j];
+            permuted->at(row, col) = orig->at(i, j) / (scale[row] * scale[col]);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_INV_SYMM_SCALE_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void nonsymm_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
+                           const ValueType* row_scale,
+                           const IndexType* row_perm,
+                           const ValueType* col_scale,
+                           const IndexType* col_perm,
+                           const matrix::Dense<ValueType>* orig,
+                           matrix::Dense<ValueType>* permuted)
+{
+    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            const auto row = row_perm[i];
+            const auto col = col_perm[j];
+            permuted->at(i, j) =
+                row_scale[row] * col_scale[col] * orig->at(row, col);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_NONSYMM_SCALE_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void inv_nonsymm_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
+                               const ValueType* row_scale,
+                               const IndexType* row_perm,
+                               const ValueType* col_scale,
+                               const IndexType* col_perm,
+                               const matrix::Dense<ValueType>* orig,
+                               matrix::Dense<ValueType>* permuted)
+{
+    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            const auto row = row_perm[i];
+            const auto col = col_perm[j];
+            permuted->at(row, col) =
+                orig->at(i, j) / (row_scale[row] * col_scale[col]);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_INV_NONSYMM_SCALE_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void row_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
+                       const ValueType* scale, const IndexType* perm,
+                       const matrix::Dense<ValueType>* orig,
+                       matrix::Dense<ValueType>* permuted)
+{
+    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            const auto row = perm[i];
+            permuted->at(i, j) = scale[row] * orig->at(row, j);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_ROW_SCALE_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void inv_row_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
+                           const ValueType* scale, const IndexType* perm,
+                           const matrix::Dense<ValueType>* orig,
+                           matrix::Dense<ValueType>* permuted)
+{
+    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            const auto row = perm[i];
+            permuted->at(row, j) = orig->at(i, j) / scale[row];
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_INV_ROW_SCALE_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void col_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
+                       const ValueType* scale, const IndexType* perm,
+                       const matrix::Dense<ValueType>* orig,
+                       matrix::Dense<ValueType>* permuted)
+{
+    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            const auto col = perm[j];
+            permuted->at(i, j) = scale[col] * orig->at(i, col);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_COL_SCALE_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void inv_col_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
+                           const ValueType* scale, const IndexType* perm,
+                           const matrix::Dense<ValueType>* orig,
+                           matrix::Dense<ValueType>* permuted)
+{
+    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            const auto col = perm[j];
+            permuted->at(i, col) = orig->at(i, j) / scale[col];
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_INV_COL_SCALE_PERMUTE_KERNEL);
 
 
 template <typename ValueType>

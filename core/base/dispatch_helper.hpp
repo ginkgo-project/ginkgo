@@ -54,9 +54,9 @@ namespace gko {
  * @note this is the end case
  */
 template <typename T, typename Func, typename... Args>
-void run(T, Func, Args...)
+void run(T obj, Func, Args...)
 {
-    GKO_NOT_IMPLEMENTED;
+    GKO_NOT_SUPPORTED(obj);
 }
 
 /**
@@ -97,9 +97,9 @@ void run(T obj, Func f, Args... args)
  */
 template <template <typename> class Base, typename T, typename Func,
           typename... Args>
-void run(T, Func, Args...)
+void run(T obj, Func, Args...)
 {
-    GKO_NOT_IMPLEMENTED;
+    GKO_NOT_SUPPORTED(obj);
 }
 
 /**

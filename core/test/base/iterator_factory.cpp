@@ -273,13 +273,13 @@ TYPED_TEST(ZipIterator, IncompatibleIteratorDeathTest)
 
     // a set of operations that return inconsistent results for the two
     // different iterators
-    EXPECT_EXIT(it2 - it1, check_assertion_exit_code, "");
-    EXPECT_EXIT(it2 == it1, check_assertion_exit_code, "");
-    EXPECT_EXIT(it2 != it1, check_assertion_exit_code, "");
-    EXPECT_EXIT(it1 < it2, check_assertion_exit_code, "");
-    EXPECT_EXIT(it2 <= it1, check_assertion_exit_code, "");
-    EXPECT_EXIT(it2 > it1, check_assertion_exit_code, "");
-    EXPECT_EXIT(it1 >= it2, check_assertion_exit_code, "");
+    EXPECT_EXIT((void)(it2 - it1), check_assertion_exit_code, "");
+    EXPECT_EXIT((void)(it2 == it1), check_assertion_exit_code, "");
+    EXPECT_EXIT((void)(it2 != it1), check_assertion_exit_code, "");
+    EXPECT_EXIT((void)(it1 < it2), check_assertion_exit_code, "");
+    EXPECT_EXIT((void)(it2 <= it1), check_assertion_exit_code, "");
+    EXPECT_EXIT((void)(it2 > it1), check_assertion_exit_code, "");
+    EXPECT_EXIT((void)(it1 >= it2), check_assertion_exit_code, "");
 }
 
 

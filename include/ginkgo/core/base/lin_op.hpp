@@ -520,6 +520,9 @@ public:
      * In the resulting LinOp, the entry at location `(i,j)` contains the input
      * value `(perm[i],perm[j])`.
      *
+     * From the linear algebra perspective, with $P_{ij} = \delta_{i
+     * \pi(i)}$, this represents the operation $P A P^T$.
+     *
      * @param permutation_indices  the array of indices containing the
      *                             permutation order.
      *
@@ -530,13 +533,16 @@ public:
     {
         return as<Permutable>(this->row_permute(permutation_indices))
             ->column_permute(permutation_indices);
-    };
+    }
 
     /**
      * Returns a LinOp representing the symmetric inverse row and column
      * permutation of the Permutable object.
      * In the resulting LinOp, the entry at location `(perm[i],perm[j])`
      * contains the input value `(i,j)`.
+     *
+     * From the linear algebra perspective, with $P_{ij} = \delta_{i
+     * \pi(i)}$, this represents the operation $P^{-1} A P^{-T}$.
      *
      * @param permutation_indices  the array of indices containing the
      *                             permutation order.
@@ -548,12 +554,15 @@ public:
     {
         return as<Permutable>(this->inverse_row_permute(permutation_indices))
             ->inverse_column_permute(permutation_indices);
-    };
+    }
 
     /**
      * Returns a LinOp representing the row permutation of the Permutable
      * object.
      * In the resulting LinOp, the row `i` contains the input row `perm[i]`.
+     *
+     * From the linear algebra perspective, with $P_{ij} = \delta_{i
+     * \pi(i)}$, this represents the operation $P A$.
      *
      * @param permutation_indices  the array of indices containing the
      *                             permutation order.
@@ -569,6 +578,9 @@ public:
      * In the resulting LinOp, the column `i` contains the input column
      * `perm[i]`.
      *
+     * From the linear algebra perspective, with $P_{ij} = \delta_{i
+     * \pi(i)}$, this represents the operation $A P^T$.
+     *
      * @param permutation_indices  the array of indices containing the
      *                             permutation order `perm`.
      *
@@ -581,6 +593,9 @@ public:
      * Returns a LinOp representing the row permutation of the inverse permuted
      * object.
      * In the resulting LinOp, the row `perm[i]` contains the input row `i`.
+     *
+     * From the linear algebra perspective, with $P_{ij} = \delta_{i
+     * \pi(i)}$, this represents the operation $P^{-1} A$.
      *
      * @param permutation_indices  the array of indices containing the
      *                             permutation order `perm`.
@@ -595,6 +610,9 @@ public:
      * object.
      * In the resulting LinOp, the column `perm[i]` contains the input column
      * `i`.
+     *
+     * From the linear algebra perspective, with $P_{ij} = \delta_{i
+     * \pi(i)}$, this represents the operation $A P^{-T}$.
      *
      * @param permutation_indices  the array of indices containing the
      *                             permutation order `perm`.

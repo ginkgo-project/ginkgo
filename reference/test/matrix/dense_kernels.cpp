@@ -51,6 +51,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
+#include <ginkgo/core/matrix/permutation.hpp>
+#include <ginkgo/core/matrix/scaled_permutation.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -1348,6 +1350,40 @@ public:
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using Permutation = gko::matrix::Permutation<index_type>;
+    using ScaledPermutation =
+        gko::matrix::ScaledPermutation<value_type, index_type>;
+
+
+    DenseWithIndexType()
+    {
+        perm2 = Permutation::create(this->exec,
+                                    gko::array<index_type>{this->exec, {1, 0}});
+        perm3 = Permutation::create(
+            this->exec, gko::array<index_type>{this->exec, {1, 2, 0}});
+        perm3_rev = Permutation::create(
+            this->exec, gko::array<index_type>{this->exec, {2, 0, 1}});
+        perm0 = Permutation::create(this->exec, 0);
+        scale_perm2 = ScaledPermutation::create(
+            this->exec, gko::array<value_type>{this->exec, {17.0, 19.0}},
+            gko::array<index_type>{this->exec, {1, 0}});
+        scale_perm3 = ScaledPermutation::create(
+            this->exec, gko::array<value_type>{this->exec, {2.0, 3.0, 5.0}},
+            gko::array<index_type>{this->exec, {1, 2, 0}});
+        scale_perm3_rev = ScaledPermutation::create(
+            this->exec, gko::array<value_type>{this->exec, {7.0, 11.0, 13.0}},
+            gko::array<index_type>{this->exec, {2, 0, 1}});
+        scale_perm0 = ScaledPermutation::create(this->exec, 0);
+    }
+
+    std::unique_ptr<Permutation> perm2;
+    std::unique_ptr<Permutation> perm3;
+    std::unique_ptr<Permutation> perm3_rev;
+    std::unique_ptr<Permutation> perm0;
+    std::unique_ptr<ScaledPermutation> scale_perm2;
+    std::unique_ptr<ScaledPermutation> scale_perm3;
+    std::unique_ptr<ScaledPermutation> scale_perm3_rev;
+    std::unique_ptr<ScaledPermutation> scale_perm0;
 };
 
 TYPED_TEST_SUITE(DenseWithIndexType, gko::test::ValueIndexTypes,
@@ -2230,6 +2266,295 @@ TYPED_TEST(DenseWithIndexType, MovesEmptyToSellp)
 }
 
 
+template <typename ValueType, typename IndexType>
+std::unique_ptr<gko::matrix::Dense<ValueType>> ref_permute(
+    gko::matrix::Dense<ValueType>* input,
+    gko::matrix::Permutation<IndexType>* permutation,
+    gko::matrix::permute_mode mode)
+{
+    using gko::matrix::permute_mode;
+    auto result = input->clone();
+    auto permutation_dense =
+        gko::matrix::Dense<double>::create(input->get_executor());
+    gko::matrix_data<double, IndexType> permutation_data;
+    if ((mode & permute_mode::inverse) == permute_mode::inverse) {
+        permutation->compute_inverse()->write(permutation_data);
+    } else {
+        permutation->write(permutation_data);
+    }
+    permutation_dense->read(permutation_data);
+    if ((mode & permute_mode::rows) == permute_mode::rows) {
+        // compute P * A
+        permutation_dense->apply(input, result);
+    }
+    if ((mode & permute_mode::columns) == permute_mode::columns) {
+        // compute A * P^T = (P * A^T)^T
+        auto tmp = result->transpose();
+        auto tmp2 = gko::as<gko::matrix::Dense<ValueType>>(tmp->clone());
+        permutation_dense->apply(tmp, tmp2);
+        tmp2->transpose(result);
+    }
+    return result;
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<gko::matrix::Dense<ValueType>> ref_permute(
+    gko::matrix::Dense<ValueType>* input,
+    gko::matrix::Permutation<IndexType>* row_permutation,
+    gko::matrix::Permutation<IndexType>* col_permutation, bool invert)
+{
+    using gko::matrix::permute_mode;
+    auto result = input->clone();
+    auto row_permutation_dense =
+        gko::matrix::Dense<double>::create(input->get_executor());
+    auto col_permutation_dense =
+        gko::matrix::Dense<double>::create(input->get_executor());
+    gko::matrix_data<double, IndexType> row_permutation_data;
+    gko::matrix_data<double, IndexType> col_permutation_data;
+    if (invert) {
+        row_permutation->compute_inverse()->write(row_permutation_data);
+        col_permutation->compute_inverse()->write(col_permutation_data);
+    } else {
+        row_permutation->write(row_permutation_data);
+        col_permutation->write(col_permutation_data);
+    }
+    row_permutation_dense->read(row_permutation_data);
+    col_permutation_dense->read(col_permutation_data);
+    row_permutation_dense->apply(input, result);
+    auto tmp = result->transpose();
+    auto tmp2 = gko::as<gko::matrix::Dense<ValueType>>(tmp->clone());
+    col_permutation_dense->apply(tmp, tmp2);
+    tmp2->transpose(result);
+    return result;
+}
+
+
+TYPED_TEST(DenseWithIndexType, Permute)
+{
+    using gko::matrix::permute_mode;
+
+    for (auto mode :
+         {permute_mode::none, permute_mode::rows, permute_mode::columns,
+          permute_mode::symmetric, permute_mode::inverse_rows,
+          permute_mode::inverse_columns, permute_mode::inverse_symmetric}) {
+        SCOPED_TRACE(mode);
+
+        auto permuted = this->mtx5->permute(this->perm3, mode);
+        auto ref_permuted =
+            ref_permute(this->mtx5.get(), this->perm3.get(), mode);
+
+        GKO_ASSERT_MTX_NEAR(permuted, ref_permuted, 0.0);
+    }
+}
+
+
+TYPED_TEST(DenseWithIndexType, PermuteRoundtrip)
+{
+    using gko::matrix::permute_mode;
+
+    for (auto mode :
+         {permute_mode::rows, permute_mode::columns, permute_mode::symmetric}) {
+        SCOPED_TRACE(mode);
+
+        auto permuted =
+            this->mtx5->permute(this->perm3, mode)
+                ->permute(this->perm3, mode | permute_mode::inverse);
+
+        GKO_ASSERT_MTX_NEAR(this->mtx5, permuted, 0.0);
+    }
+}
+
+
+TYPED_TEST(DenseWithIndexType, PermuteStridedIntoDense)
+{
+    using gko::matrix::permute_mode;
+    using Mtx = typename TestFixture::Mtx;
+    auto mtx = Mtx::create(this->exec, this->mtx5->get_size(),
+                           this->mtx5->get_size()[1] + 1);
+    mtx->copy_from(this->mtx5);
+
+    for (auto mode :
+         {permute_mode::none, permute_mode::rows, permute_mode::columns,
+          permute_mode::symmetric, permute_mode::inverse,
+          permute_mode::inverse_rows, permute_mode::inverse_columns,
+          permute_mode::inverse_symmetric}) {
+        SCOPED_TRACE(mode);
+        auto permuted = Mtx::create(this->exec, this->mtx5->get_size(),
+                                    this->mtx5->get_size()[1] + 2);
+
+        this->mtx5->permute(this->perm3, permuted, mode);
+        auto ref_permuted =
+            ref_permute(this->mtx5.get(), this->perm3.get(), mode);
+
+        GKO_ASSERT_MTX_NEAR(permuted, ref_permuted, 0.0);
+    }
+}
+
+
+TYPED_TEST(DenseWithIndexType, PermuteRectangular)
+{
+    using gko::matrix::permute_mode;
+
+    auto rpermuted = this->mtx1->permute(this->perm2, permute_mode::rows);
+    auto irpermuted =
+        this->mtx1->permute(this->perm2, permute_mode::inverse_rows);
+    auto cpermuted = this->mtx1->permute(this->perm3, permute_mode::columns);
+    auto icpermuted =
+        this->mtx1->permute(this->perm3, permute_mode::inverse_columns);
+    auto ref_rpermuted =
+        ref_permute(this->mtx1.get(), this->perm2.get(), permute_mode::rows);
+    auto ref_irpermuted = ref_permute(this->mtx1.get(), this->perm2.get(),
+                                      permute_mode::inverse_rows);
+    auto ref_cpermuted =
+        ref_permute(this->mtx1.get(), this->perm3.get(), permute_mode::columns);
+    auto ref_icpermuted = ref_permute(this->mtx1.get(), this->perm3.get(),
+                                      permute_mode::inverse_columns);
+
+    GKO_ASSERT_MTX_NEAR(rpermuted, ref_rpermuted, 0.0);
+    GKO_ASSERT_MTX_NEAR(irpermuted, ref_irpermuted, 0.0);
+    GKO_ASSERT_MTX_NEAR(cpermuted, ref_cpermuted, 0.0);
+    GKO_ASSERT_MTX_NEAR(icpermuted, ref_icpermuted, 0.0);
+}
+
+
+TYPED_TEST(DenseWithIndexType, PermuteFailsWithIncorrectPermutationSize)
+{
+    using gko::matrix::permute_mode;
+
+    for (auto mode :
+         {/* no permute_mode::none */ permute_mode::rows, permute_mode::columns,
+          permute_mode::symmetric, permute_mode::inverse_rows,
+          permute_mode::inverse_columns, permute_mode::inverse_symmetric}) {
+        SCOPED_TRACE(mode);
+
+        ASSERT_THROW(this->mtx5->permute(this->perm0, mode),
+                     gko::DimensionMismatch);
+    }
+}
+
+
+TYPED_TEST(DenseWithIndexType, PermuteFailsWithIncorrectOutputSize)
+{
+    using gko::matrix::permute_mode;
+    using Mtx = typename TestFixture::Mtx;
+    auto output = Mtx::create(this->exec);
+
+    for (auto mode :
+         {permute_mode::none, permute_mode::rows, permute_mode::columns,
+          permute_mode::symmetric, permute_mode::inverse_rows,
+          permute_mode::inverse_columns, permute_mode::inverse_symmetric}) {
+        SCOPED_TRACE(mode);
+
+        ASSERT_THROW(this->mtx5->permute(this->perm3, output, mode),
+                     gko::DimensionMismatch);
+    }
+}
+
+
+TYPED_TEST(DenseWithIndexType, NonsymmPermute)
+{
+    auto permuted = this->mtx5->permute(this->perm3, this->perm3_rev);
+    auto ref_permuted = ref_permute(this->mtx5.get(), this->perm3.get(),
+                                    this->perm3_rev.get(), false);
+
+    GKO_ASSERT_MTX_NEAR(permuted, ref_permuted, 0.0);
+}
+
+
+TYPED_TEST(DenseWithIndexType, NonsymmPermuteInverse)
+{
+    auto permuted = this->mtx5->permute(this->perm3, this->perm3_rev, true);
+    auto ref_permuted = ref_permute(this->mtx5.get(), this->perm3.get(),
+                                    this->perm3_rev.get(), true);
+
+    GKO_ASSERT_MTX_NEAR(permuted, ref_permuted, 0.0);
+}
+
+
+TYPED_TEST(DenseWithIndexType, NonsymmPermuteRectangular)
+{
+    auto permuted = this->mtx1->permute(this->perm2, this->perm3);
+    auto ref_permuted = ref_permute(this->mtx1.get(), this->perm2.get(),
+                                    this->perm3.get(), false);
+
+    GKO_ASSERT_MTX_NEAR(permuted, ref_permuted, 0.0);
+}
+
+
+TYPED_TEST(DenseWithIndexType, NonsymmPermuteInverseRectangular)
+{
+    auto permuted = this->mtx1->permute(this->perm2, this->perm3, true);
+    auto ref_permuted = ref_permute(this->mtx1.get(), this->perm2.get(),
+                                    this->perm3.get(), true);
+
+    GKO_ASSERT_MTX_NEAR(permuted, ref_permuted, 0.0);
+}
+
+
+TYPED_TEST(DenseWithIndexType, NonsymmPermuteRoundtrip)
+{
+    auto permuted = this->mtx5->permute(this->perm3, this->perm3_rev)
+                        ->permute(this->perm3, this->perm3_rev, true);
+
+    GKO_ASSERT_MTX_NEAR(this->mtx5, permuted, 0.0);
+}
+
+
+TYPED_TEST(DenseWithIndexType, NonsymmPermuteInverseInverted)
+{
+    auto inv_permuted = this->mtx5->permute(this->perm3, this->perm3_rev, true);
+    auto preinv_permuted = this->mtx5->permute(this->perm3_rev, this->perm3);
+
+    GKO_ASSERT_MTX_NEAR(inv_permuted, preinv_permuted, 0.0);
+}
+
+
+TYPED_TEST(DenseWithIndexType, NonsymmPermuteStridedIntoDense)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto mtx = Mtx::create(this->exec, this->mtx5->get_size(),
+                           this->mtx5->get_size()[1] + 1);
+    auto permuted = Mtx::create(this->exec, this->mtx5->get_size(),
+                                this->mtx5->get_size()[1] + 2);
+    mtx->copy_from(this->mtx5);
+
+    mtx->permute(this->perm3, this->perm3_rev, permuted);
+    auto ref_permuted = ref_permute(this->mtx5.get(), this->perm3.get(),
+                                    this->perm3_rev.get(), false);
+
+    GKO_ASSERT_MTX_NEAR(permuted, ref_permuted, 0.0);
+}
+
+
+TYPED_TEST(DenseWithIndexType, NonsymmPermuteInverseStridedIntoDense)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto mtx = Mtx::create(this->exec, this->mtx5->get_size(),
+                           this->mtx5->get_size()[1] + 1);
+    auto permuted = Mtx::create(this->exec, this->mtx5->get_size(),
+                                this->mtx5->get_size()[1] + 2);
+    mtx->copy_from(this->mtx5);
+
+    mtx->permute(this->perm3, this->perm3_rev, permuted, true);
+    auto ref_permuted = ref_permute(this->mtx5.get(), this->perm3.get(),
+                                    this->perm3_rev.get(), true);
+
+    GKO_ASSERT_MTX_NEAR(permuted, ref_permuted, 0.0);
+}
+
+
+TYPED_TEST(DenseWithIndexType, NonsymmPermuteFailsWithIncorrectPermutationSize)
+{
+    ASSERT_THROW(this->mtx5->permute(this->perm0, this->perm3_rev),
+                 gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx5->permute(this->perm3_rev, this->perm0),
+                 gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx5->permute(this->perm0, this->perm0),
+                 gko::DimensionMismatch);
+}
+
+
 TYPED_TEST(DenseWithIndexType, SquareMatrixCanGatherRows)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -2412,7 +2737,7 @@ TYPED_TEST(DenseWithIndexType,
     gko::array<index_type> permute_idxs{exec, {1, 2}};
 
     ASSERT_THROW(this->mtx5->permute(&permute_idxs, this->mtx5->clone()),
-                 gko::ValueMismatch);
+                 gko::DimensionMismatch);
 }
 
 
@@ -2504,7 +2829,7 @@ TYPED_TEST(DenseWithIndexType,
 
     ASSERT_THROW(
         this->mtx5->inverse_permute(&permute_idxs, this->mtx5->clone()),
-        gko::ValueMismatch);
+        gko::DimensionMismatch);
 }
 
 
@@ -2599,7 +2924,7 @@ TYPED_TEST(DenseWithIndexType,
     auto permuted = Mtx::create(exec, this->mtx5->get_size());
 
     ASSERT_THROW(this->mtx5->row_permute(&permute_idxs, permuted),
-                 gko::ValueMismatch);
+                 gko::DimensionMismatch);
 }
 
 
@@ -2694,7 +3019,7 @@ TYPED_TEST(DenseWithIndexType,
     auto permuted = Mtx::create(exec, this->mtx5->get_size());
 
     ASSERT_THROW(this->mtx5->column_permute(&permute_idxs, permuted),
-                 gko::ValueMismatch);
+                 gko::DimensionMismatch);
 }
 
 
@@ -2791,7 +3116,7 @@ TYPED_TEST(DenseWithIndexType,
     auto permuted = Mtx::create(exec, this->mtx5->get_size());
 
     ASSERT_THROW(this->mtx5->inverse_row_permute(&permute_idxs, permuted),
-                 gko::ValueMismatch);
+                 gko::DimensionMismatch);
 }
 
 
@@ -2889,7 +3214,7 @@ TYPED_TEST(DenseWithIndexType,
     auto permuted = Mtx::create(exec, this->mtx5->get_size());
 
     ASSERT_THROW(this->mtx5->inverse_column_permute(&permute_idxs, permuted),
-                 gko::ValueMismatch);
+                 gko::DimensionMismatch);
 }
 
 
@@ -2903,6 +3228,344 @@ TYPED_TEST(DenseWithIndexType,
 
     ASSERT_THROW(
         this->mtx5->inverse_column_permute(&permute_idxs, Mtx::create(exec)),
+        gko::DimensionMismatch);
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<gko::matrix::Dense<ValueType>> ref_scaled_permute(
+    gko::matrix::Dense<ValueType>* input,
+    gko::matrix::ScaledPermutation<ValueType, IndexType>* permutation,
+    gko::matrix::permute_mode mode)
+{
+    using gko::matrix::permute_mode;
+    auto result = input->clone();
+    auto permutation_dense =
+        gko::matrix::Dense<ValueType>::create(input->get_executor());
+    gko::matrix_data<ValueType, IndexType> permutation_data;
+    if ((mode & permute_mode::inverse) == permute_mode::inverse) {
+        permutation->compute_inverse()->write(permutation_data);
+    } else {
+        permutation->write(permutation_data);
+    }
+    permutation_dense->read(permutation_data);
+    if ((mode & permute_mode::rows) == permute_mode::rows) {
+        // compute P * A
+        permutation_dense->apply(input, result);
+    }
+    if ((mode & permute_mode::columns) == permute_mode::columns) {
+        // compute A * P^T = (P * A^T)^T
+        auto tmp = result->transpose();
+        auto tmp2 = gko::as<gko::matrix::Dense<ValueType>>(tmp->clone());
+        permutation_dense->apply(tmp, tmp2);
+        tmp2->transpose(result);
+    }
+    return result;
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<gko::matrix::Dense<ValueType>> ref_scaled_permute(
+    gko::matrix::Dense<ValueType>* input,
+    gko::matrix::ScaledPermutation<ValueType, IndexType>* row_permutation,
+    gko::matrix::ScaledPermutation<ValueType, IndexType>* col_permutation,
+    bool invert)
+{
+    using gko::matrix::permute_mode;
+    auto result = input->clone();
+    auto row_permutation_dense =
+        gko::matrix::Dense<ValueType>::create(input->get_executor());
+    auto col_permutation_dense =
+        gko::matrix::Dense<ValueType>::create(input->get_executor());
+    gko::matrix_data<ValueType, IndexType> row_permutation_data;
+    gko::matrix_data<ValueType, IndexType> col_permutation_data;
+    if (invert) {
+        row_permutation->compute_inverse()->write(row_permutation_data);
+        col_permutation->compute_inverse()->write(col_permutation_data);
+    } else {
+        row_permutation->write(row_permutation_data);
+        col_permutation->write(col_permutation_data);
+    }
+    row_permutation_dense->read(row_permutation_data);
+    col_permutation_dense->read(col_permutation_data);
+    row_permutation_dense->apply(input, result);
+    auto tmp = result->transpose();
+    auto tmp2 = gko::as<gko::matrix::Dense<ValueType>>(tmp->clone());
+    col_permutation_dense->apply(tmp, tmp2);
+    tmp2->transpose(result);
+    return result;
+}
+
+
+TYPED_TEST(DenseWithIndexType, ScaledPermute)
+{
+    using gko::matrix::permute_mode;
+    using value_type = typename TestFixture::value_type;
+
+    for (auto mode :
+         {permute_mode::none, permute_mode::rows, permute_mode::columns,
+          permute_mode::symmetric, permute_mode::inverse_rows,
+          permute_mode::inverse_columns, permute_mode::inverse_symmetric}) {
+        SCOPED_TRACE(mode);
+
+        auto permuted = this->mtx5->scale_permute(this->scale_perm3, mode);
+        auto ref_permuted =
+            ref_scaled_permute(this->mtx5.get(), this->scale_perm3.get(), mode);
+
+        GKO_ASSERT_MTX_NEAR(permuted, ref_permuted, r<value_type>::value);
+    }
+}
+
+
+TYPED_TEST(DenseWithIndexType, ScaledPermuteRoundtrip)
+{
+    using gko::matrix::permute_mode;
+    using value_type = typename TestFixture::value_type;
+
+    for (auto mode :
+         {permute_mode::rows, permute_mode::columns, permute_mode::symmetric}) {
+        SCOPED_TRACE(mode);
+
+        auto permuted = this->mtx5->scale_permute(this->scale_perm3, mode)
+                            ->scale_permute(this->scale_perm3,
+                                            mode | permute_mode::inverse);
+
+        GKO_ASSERT_MTX_NEAR(this->mtx5, permuted, r<value_type>::value);
+    }
+}
+
+
+TYPED_TEST(DenseWithIndexType, ScaledPermuteStridedIntoDense)
+{
+    using gko::matrix::permute_mode;
+    using value_type = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto mtx = Mtx::create(this->exec, this->mtx5->get_size(),
+                           this->mtx5->get_size()[1] + 1);
+    mtx->copy_from(this->mtx5);
+
+    for (auto mode :
+         {permute_mode::none, permute_mode::rows, permute_mode::columns,
+          permute_mode::symmetric, permute_mode::inverse,
+          permute_mode::inverse_rows, permute_mode::inverse_columns,
+          permute_mode::inverse_symmetric}) {
+        SCOPED_TRACE(mode);
+        auto permuted = Mtx::create(this->exec, this->mtx5->get_size(),
+                                    this->mtx5->get_size()[1] + 2);
+
+        this->mtx5->scale_permute(this->scale_perm3, permuted, mode);
+        auto ref_permuted =
+            ref_scaled_permute(this->mtx5.get(), this->scale_perm3.get(), mode);
+
+        GKO_ASSERT_MTX_NEAR(permuted, ref_permuted, r<value_type>::value);
+    }
+}
+
+
+TYPED_TEST(DenseWithIndexType, ScaledPermuteRectangular)
+{
+    using gko::matrix::permute_mode;
+    using value_type = typename TestFixture::value_type;
+
+    auto rpermuted =
+        this->mtx1->scale_permute(this->scale_perm2, permute_mode::rows);
+    auto irpermuted = this->mtx1->scale_permute(this->scale_perm2,
+                                                permute_mode::inverse_rows);
+    auto cpermuted =
+        this->mtx1->scale_permute(this->scale_perm3, permute_mode::columns);
+    auto icpermuted = this->mtx1->scale_permute(this->scale_perm3,
+                                                permute_mode::inverse_columns);
+    auto ref_rpermuted = ref_scaled_permute(
+        this->mtx1.get(), this->scale_perm2.get(), permute_mode::rows);
+    auto ref_irpermuted = ref_scaled_permute(
+        this->mtx1.get(), this->scale_perm2.get(), permute_mode::inverse_rows);
+    auto ref_cpermuted = ref_scaled_permute(
+        this->mtx1.get(), this->scale_perm3.get(), permute_mode::columns);
+    auto ref_icpermuted =
+        ref_scaled_permute(this->mtx1.get(), this->scale_perm3.get(),
+                           permute_mode::inverse_columns);
+
+    GKO_ASSERT_MTX_NEAR(rpermuted, ref_rpermuted, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(irpermuted, ref_irpermuted, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(cpermuted, ref_cpermuted, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(icpermuted, ref_icpermuted, r<value_type>::value);
+}
+
+
+TYPED_TEST(DenseWithIndexType, ScaledPermuteFailsWithIncorrectPermutationSize)
+{
+    using gko::matrix::permute_mode;
+
+    for (auto mode :
+         {/* no permute_mode::none */ permute_mode::rows, permute_mode::columns,
+          permute_mode::symmetric, permute_mode::inverse_rows,
+          permute_mode::inverse_columns, permute_mode::inverse_symmetric}) {
+        SCOPED_TRACE(mode);
+
+        ASSERT_THROW(this->mtx5->scale_permute(this->scale_perm0, mode),
+                     gko::DimensionMismatch);
+    }
+}
+
+
+TYPED_TEST(DenseWithIndexType, ScaledPermuteFailsWithIncorrectOutputSize)
+{
+    using gko::matrix::permute_mode;
+    using Mtx = typename TestFixture::Mtx;
+    auto output = Mtx::create(this->exec);
+
+    for (auto mode :
+         {permute_mode::none, permute_mode::rows, permute_mode::columns,
+          permute_mode::symmetric, permute_mode::inverse_rows,
+          permute_mode::inverse_columns, permute_mode::inverse_symmetric}) {
+        SCOPED_TRACE(mode);
+
+        ASSERT_THROW(this->mtx5->scale_permute(this->scale_perm3, output, mode),
+                     gko::DimensionMismatch);
+    }
+}
+
+
+TYPED_TEST(DenseWithIndexType, NonsymmScaledPermute)
+{
+    using value_type = typename TestFixture::value_type;
+
+    auto permuted =
+        this->mtx5->scale_permute(this->scale_perm3, this->scale_perm3_rev);
+    auto ref_permuted =
+        ref_scaled_permute(this->mtx5.get(), this->scale_perm3.get(),
+                           this->scale_perm3_rev.get(), false);
+
+    GKO_ASSERT_MTX_NEAR(permuted, ref_permuted, r<value_type>::value);
+}
+
+
+TYPED_TEST(DenseWithIndexType, NonsymmScaledPermuteInverse)
+{
+    using value_type = typename TestFixture::value_type;
+
+    auto permuted = this->mtx5->scale_permute(this->scale_perm3,
+                                              this->scale_perm3_rev, true);
+    auto ref_permuted =
+        ref_scaled_permute(this->mtx5.get(), this->scale_perm3.get(),
+                           this->scale_perm3_rev.get(), true);
+
+    GKO_ASSERT_MTX_NEAR(permuted, ref_permuted, r<value_type>::value);
+}
+
+
+TYPED_TEST(DenseWithIndexType, NonsymmScaledPermuteRectangular)
+{
+    using value_type = typename TestFixture::value_type;
+
+    auto permuted =
+        this->mtx1->scale_permute(this->scale_perm2, this->scale_perm3);
+    auto ref_permuted =
+        ref_scaled_permute(this->mtx1.get(), this->scale_perm2.get(),
+                           this->scale_perm3.get(), false);
+
+    GKO_ASSERT_MTX_NEAR(permuted, ref_permuted, r<value_type>::value);
+}
+
+
+TYPED_TEST(DenseWithIndexType, NonsymmScaledPermuteInverseRectangular)
+{
+    using value_type = typename TestFixture::value_type;
+
+    auto permuted =
+        this->mtx1->scale_permute(this->scale_perm2, this->scale_perm3, true);
+    auto ref_permuted =
+        ref_scaled_permute(this->mtx1.get(), this->scale_perm2.get(),
+                           this->scale_perm3.get(), true);
+
+    GKO_ASSERT_MTX_NEAR(permuted, ref_permuted, r<value_type>::value);
+}
+
+
+TYPED_TEST(DenseWithIndexType, NonsymmScaledPermuteRoundtrip)
+{
+    using value_type = typename TestFixture::value_type;
+
+    auto permuted =
+        this->mtx5->scale_permute(this->scale_perm3, this->scale_perm3_rev)
+            ->scale_permute(this->scale_perm3, this->scale_perm3_rev, true);
+
+    GKO_ASSERT_MTX_NEAR(this->mtx5, permuted, r<value_type>::value);
+}
+
+
+TYPED_TEST(DenseWithIndexType, NonsymmScaledPermuteInverseInverted)
+{
+    using value_type = typename TestFixture::value_type;
+
+    auto inv_permuted = this->mtx5->scale_permute(this->scale_perm3,
+                                                  this->scale_perm3_rev, true);
+    auto preinv_permuted =
+        this->mtx5->scale_permute(this->scale_perm3->compute_inverse(),
+                                  this->scale_perm3_rev->compute_inverse());
+
+    GKO_ASSERT_MTX_NEAR(inv_permuted, preinv_permuted, r<value_type>::value);
+}
+
+TYPED_TEST(DenseWithIndexType, NonsymmScaledPermuteStridedIntoDense)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto mtx = Mtx::create(this->exec, this->mtx5->get_size(),
+                           this->mtx5->get_size()[1] + 1);
+    auto permuted = Mtx::create(this->exec, this->mtx5->get_size(),
+                                this->mtx5->get_size()[1] + 2);
+    mtx->copy_from(this->mtx5);
+
+    mtx->scale_permute(this->scale_perm3, this->scale_perm3_rev, permuted);
+    auto ref_permuted =
+        ref_scaled_permute(this->mtx5.get(), this->scale_perm3.get(),
+                           this->scale_perm3_rev.get(), false);
+
+    GKO_ASSERT_MTX_NEAR(permuted, ref_permuted, r<value_type>::value);
+}
+
+
+TYPED_TEST(DenseWithIndexType, NonsymmScaledPermuteInverseStridedIntoDense)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto mtx = Mtx::create(this->exec, this->mtx5->get_size(),
+                           this->mtx5->get_size()[1] + 1);
+    auto permuted = Mtx::create(this->exec, this->mtx5->get_size(),
+                                this->mtx5->get_size()[1] + 2);
+    mtx->copy_from(this->mtx5);
+
+    mtx->scale_permute(this->scale_perm3, this->scale_perm3_rev, permuted,
+                       true);
+    auto ref_permuted =
+        ref_scaled_permute(this->mtx5.get(), this->scale_perm3.get(),
+                           this->scale_perm3_rev.get(), true);
+
+    GKO_ASSERT_MTX_NEAR(permuted, ref_permuted, r<value_type>::value);
+}
+
+
+TYPED_TEST(DenseWithIndexType, NonsymmScaledPermuteFailsWithIncorrectOutputSize)
+{
+    ASSERT_THROW(
+        this->mtx5->scale_permute(this->scale_perm3, this->scale_perm3,
+                                  TestFixture::Mtx::create(this->exec)),
+        gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(DenseWithIndexType,
+           NonsymmScaledPermuteFailsWithIncorrectPermutationSize)
+{
+    ASSERT_THROW(
+        this->mtx5->scale_permute(this->scale_perm0, this->scale_perm3_rev),
+        gko::DimensionMismatch);
+    ASSERT_THROW(
+        this->mtx5->scale_permute(this->scale_perm3_rev, this->scale_perm0),
+        gko::DimensionMismatch);
+    ASSERT_THROW(
+        this->mtx5->scale_permute(this->scale_perm0, this->scale_perm0),
         gko::DimensionMismatch);
 }
 

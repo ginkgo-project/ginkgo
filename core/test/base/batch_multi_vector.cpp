@@ -96,7 +96,7 @@ protected:
     std::unique_ptr<gko::matrix::Dense<value_type>> dense_mtx;
 };
 
-TYPED_TEST_SUITE(MultiVector, gko::test::ValueTypes);
+TYPED_TEST_SUITE(MultiVector, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(MultiVector, CanBeEmpty)

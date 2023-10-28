@@ -237,50 +237,112 @@ namespace kernels {
                         const matrix::Dense<_type>* orig,            \
                         matrix::Dense<_type>* trans)
 
+#define GKO_DECLARE_DENSE_SYMM_SCALE_PERMUTE_KERNEL(_vtype, _itype)           \
+    void symm_scale_permute(                                                  \
+        std::shared_ptr<const DefaultExecutor> exec, const _vtype* scale,     \
+        const _itype* permutation_indices, const matrix::Dense<_vtype>* orig, \
+        matrix::Dense<_vtype>* permuted)
+
+#define GKO_DECLARE_DENSE_ROW_SCALE_PERMUTE_KERNEL(_vtype, _itype)            \
+    void row_scale_permute(                                                   \
+        std::shared_ptr<const DefaultExecutor> exec, const _vtype* scale,     \
+        const _itype* permutation_indices, const matrix::Dense<_vtype>* orig, \
+        matrix::Dense<_vtype>* permuted)
+
+#define GKO_DECLARE_DENSE_COL_SCALE_PERMUTE_KERNEL(_vtype, _itype)            \
+    void col_scale_permute(                                                   \
+        std::shared_ptr<const DefaultExecutor> exec, const _vtype* scale,     \
+        const _itype* permutation_indices, const matrix::Dense<_vtype>* orig, \
+        matrix::Dense<_vtype>* permuted)
+
+#define GKO_DECLARE_DENSE_INV_SYMM_SCALE_PERMUTE_KERNEL(_vtype, _itype)       \
+    void inv_symm_scale_permute(                                              \
+        std::shared_ptr<const DefaultExecutor> exec, const _vtype* scale,     \
+        const _itype* permutation_indices, const matrix::Dense<_vtype>* orig, \
+        matrix::Dense<_vtype>* permuted)
+
+#define GKO_DECLARE_DENSE_INV_ROW_SCALE_PERMUTE_KERNEL(_vtype, _itype)        \
+    void inv_row_scale_permute(                                               \
+        std::shared_ptr<const DefaultExecutor> exec, const _vtype* scale,     \
+        const _itype* permutation_indices, const matrix::Dense<_vtype>* orig, \
+        matrix::Dense<_vtype>* permuted)
+
+#define GKO_DECLARE_DENSE_INV_COL_SCALE_PERMUTE_KERNEL(_vtype, _itype)        \
+    void inv_col_scale_permute(                                               \
+        std::shared_ptr<const DefaultExecutor> exec, const _vtype* scale,     \
+        const _itype* permutation_indices, const matrix::Dense<_vtype>* orig, \
+        matrix::Dense<_vtype>* permuted)
+
+#define GKO_DECLARE_DENSE_NONSYMM_SCALE_PERMUTE_KERNEL(_vtype, _itype)        \
+    void nonsymm_scale_permute(                                               \
+        std::shared_ptr<const DefaultExecutor> exec, const _vtype* row_scale, \
+        const _itype* row_permutation_indices, const _vtype* column_scale,    \
+        const _itype* column_permutation_indices,                             \
+        const matrix::Dense<_vtype>* orig, matrix::Dense<_vtype>* permuted)
+
+#define GKO_DECLARE_DENSE_INV_NONSYMM_SCALE_PERMUTE_KERNEL(_vtype, _itype)    \
+    void inv_nonsymm_scale_permute(                                           \
+        std::shared_ptr<const DefaultExecutor> exec, const _vtype* row_scale, \
+        const _itype* row_permutation_indices, const _vtype* column_scale,    \
+        const _itype* column_permutation_indices,                             \
+        const matrix::Dense<_vtype>* orig, matrix::Dense<_vtype>* permuted)
+
 #define GKO_DECLARE_DENSE_SYMM_PERMUTE_KERNEL(_vtype, _itype)      \
     void symm_permute(std::shared_ptr<const DefaultExecutor> exec, \
-                      const array<_itype>* permutation_indices,    \
+                      const _itype* permutation_indices,           \
                       const matrix::Dense<_vtype>* orig,           \
                       matrix::Dense<_vtype>* permuted)
 
 #define GKO_DECLARE_DENSE_INV_SYMM_PERMUTE_KERNEL(_vtype, _itype)      \
     void inv_symm_permute(std::shared_ptr<const DefaultExecutor> exec, \
-                          const array<_itype>* permutation_indices,    \
+                          const _itype* permutation_indices,           \
                           const matrix::Dense<_vtype>* orig,           \
                           matrix::Dense<_vtype>* permuted)
 
+#define GKO_DECLARE_DENSE_NONSYMM_PERMUTE_KERNEL(_vtype, _itype)      \
+    void nonsymm_permute(std::shared_ptr<const DefaultExecutor> exec, \
+                         const _itype* row_permutation_indices,       \
+                         const _itype* column_permutation_indices,    \
+                         const matrix::Dense<_vtype>* orig,           \
+                         matrix::Dense<_vtype>* permuted)
+
+#define GKO_DECLARE_DENSE_INV_NONSYMM_PERMUTE_KERNEL(_vtype, _itype)      \
+    void inv_nonsymm_permute(std::shared_ptr<const DefaultExecutor> exec, \
+                             const _itype* row_permutation_indices,       \
+                             const _itype* column_permutation_indices,    \
+                             const matrix::Dense<_vtype>* orig,           \
+                             matrix::Dense<_vtype>* permuted)
+
 #define GKO_DECLARE_DENSE_ROW_GATHER_KERNEL(_vtype, _otype, _itype) \
     void row_gather(std::shared_ptr<const DefaultExecutor> exec,    \
-                    const array<_itype>* gather_indices,            \
+                    const _itype* gather_indices,                   \
                     const matrix::Dense<_vtype>* orig,              \
                     matrix::Dense<_otype>* row_collection)
 
+#define GKO_DECLARE_DENSE_ADVANCED_ROW_GATHER_KERNEL(_vtype, _otype, _itype)  \
+    void advanced_row_gather(                                                 \
+        std::shared_ptr<const DefaultExecutor> exec,                          \
+        const matrix::Dense<_vtype>* alpha, const _itype* gather_indices,     \
+        const matrix::Dense<_vtype>* orig, const matrix::Dense<_vtype>* beta, \
+        matrix::Dense<_otype>* row_collection)
 
-#define GKO_DECLARE_DENSE_ADVANCED_ROW_GATHER_KERNEL(_vtype, _otype, _itype) \
-    void advanced_row_gather(std::shared_ptr<const DefaultExecutor> exec,    \
-                             const matrix::Dense<_vtype>* alpha,             \
-                             const array<_itype>* gather_indices,            \
-                             const matrix::Dense<_vtype>* orig,              \
-                             const matrix::Dense<_vtype>* beta,              \
-                             matrix::Dense<_otype>* row_collection)
+#define GKO_DECLARE_DENSE_COL_PERMUTE_KERNEL(_vtype, _itype)      \
+    void col_permute(std::shared_ptr<const DefaultExecutor> exec, \
+                     const _itype* permutation_indices,           \
+                     const matrix::Dense<_vtype>* orig,           \
+                     matrix::Dense<_vtype>* col_permuted)
 
-#define GKO_DECLARE_DENSE_COLUMN_PERMUTE_KERNEL(_vtype, _itype)      \
-    void column_permute(std::shared_ptr<const DefaultExecutor> exec, \
-                        const array<_itype>* permutation_indices,    \
-                        const matrix::Dense<_vtype>* orig,           \
-                        matrix::Dense<_vtype>* column_permuted)
+#define GKO_DECLARE_DENSE_INV_ROW_PERMUTE_KERNEL(_vtype, _itype)      \
+    void inv_row_permute(std::shared_ptr<const DefaultExecutor> exec, \
+                         const _itype* permutation_indices,           \
+                         const matrix::Dense<_vtype>* orig,           \
+                         matrix::Dense<_vtype>* row_permuted)
 
-#define GKO_DECLARE_DENSE_INV_ROW_PERMUTE_KERNEL(_vtype, _itype)          \
-    void inverse_row_permute(std::shared_ptr<const DefaultExecutor> exec, \
-                             const array<_itype>* permutation_indices,    \
-                             const matrix::Dense<_vtype>* orig,           \
-                             matrix::Dense<_vtype>* row_permuted)
-
-#define GKO_DECLARE_DENSE_INV_COLUMN_PERMUTE_KERNEL(_vtype, _itype)          \
-    void inverse_column_permute(std::shared_ptr<const DefaultExecutor> exec, \
-                                const array<_itype>* permutation_indices,    \
-                                const matrix::Dense<_vtype>* orig,           \
-                                matrix::Dense<_vtype>* column_permuted)
+#define GKO_DECLARE_DENSE_INV_COL_PERMUTE_KERNEL(_vtype, _itype)      \
+    void inv_col_permute(std::shared_ptr<const DefaultExecutor> exec, \
+                         const _itype* permutation_indices,           \
+                         const matrix::Dense<_vtype>* orig,           \
+                         matrix::Dense<_vtype>* col_permuted)
 
 #define GKO_DECLARE_DENSE_EXTRACT_DIAGONAL_KERNEL(_vtype)              \
     void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec, \
@@ -319,104 +381,124 @@ namespace kernels {
                              matrix::Dense<_vtype>* mtx)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL(ValueType);                       \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_APPLY_KERNEL(ValueType);                              \
-    template <typename InValueType, typename OutValueType>                  \
-    GKO_DECLARE_DENSE_COPY_KERNEL(InValueType, OutValueType);               \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_FILL_KERNEL(ValueType);                               \
-    template <typename ValueType, typename ScalarType>                      \
-    GKO_DECLARE_DENSE_SCALE_KERNEL(ValueType, ScalarType);                  \
-    template <typename ValueType, typename ScalarType>                      \
-    GKO_DECLARE_DENSE_INV_SCALE_KERNEL(ValueType, ScalarType);              \
-    template <typename ValueType, typename ScalarType>                      \
-    GKO_DECLARE_DENSE_ADD_SCALED_KERNEL(ValueType, ScalarType);             \
-    template <typename ValueType, typename ScalarType>                      \
-    GKO_DECLARE_DENSE_SUB_SCALED_KERNEL(ValueType, ScalarType);             \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_ADD_SCALED_DIAG_KERNEL(ValueType);                    \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_SUB_SCALED_DIAG_KERNEL(ValueType);                    \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL(ValueType);                        \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_COMPUTE_DOT_DISPATCH_KERNEL(ValueType);               \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_KERNEL(ValueType);                   \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_DISPATCH_KERNEL(ValueType);          \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL(ValueType);                      \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_COMPUTE_NORM2_DISPATCH_KERNEL(ValueType);             \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL(ValueType);                      \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_COMPUTE_MEAN_KERNEL(ValueType);                       \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_DENSE_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType);     \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_COMPUTE_SQUARED_NORM2_KERNEL(ValueType);              \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_COMPUTE_SQRT_KERNEL(ValueType);                       \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_DENSE_CONVERT_TO_COO_KERNEL(ValueType, IndexType);          \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);          \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_DENSE_CONVERT_TO_ELL_KERNEL(ValueType, IndexType);          \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_DENSE_CONVERT_TO_FBCSR_KERNEL(ValueType, IndexType);        \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_DENSE_CONVERT_TO_HYBRID_KERNEL(ValueType, IndexType);       \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL(ValueType, IndexType);        \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_DENSE_CONVERT_TO_SPARSITY_CSR_KERNEL(ValueType, IndexType); \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_COMPUTE_MAX_NNZ_PER_ROW_KERNEL(ValueType);            \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_COMPUTE_SLICE_SETS_KERNEL(ValueType);                 \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_DENSE_COUNT_NONZEROS_PER_ROW_KERNEL(ValueType, IndexType);  \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_DENSE_COUNT_NONZERO_BLOCKS_PER_ROW_KERNEL(ValueType,        \
-                                                          IndexType);       \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_TRANSPOSE_KERNEL(ValueType);                          \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_CONJ_TRANSPOSE_KERNEL(ValueType);                     \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_DENSE_SYMM_PERMUTE_KERNEL(ValueType, IndexType);            \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_DENSE_INV_SYMM_PERMUTE_KERNEL(ValueType, IndexType);        \
-    template <typename ValueType, typename OutputType, typename IndexType>  \
-    GKO_DECLARE_DENSE_ROW_GATHER_KERNEL(ValueType, OutputType, IndexType);  \
-    template <typename ValueType, typename OutputType, typename IndexType>  \
-    GKO_DECLARE_DENSE_ADVANCED_ROW_GATHER_KERNEL(ValueType, OutputType,     \
-                                                 IndexType);                \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_DENSE_COLUMN_PERMUTE_KERNEL(ValueType, IndexType);          \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_DENSE_INV_ROW_PERMUTE_KERNEL(ValueType, IndexType);         \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_DENSE_INV_COLUMN_PERMUTE_KERNEL(ValueType, IndexType);      \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_EXTRACT_DIAGONAL_KERNEL(ValueType);                   \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_INPLACE_ABSOLUTE_DENSE_KERNEL(ValueType);                   \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_OUTPLACE_ABSOLUTE_DENSE_KERNEL(ValueType);                  \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_MAKE_COMPLEX_KERNEL(ValueType);                             \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_GET_REAL_KERNEL(ValueType);                                 \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_GET_IMAG_KERNEL(ValueType);                                 \
-    template <typename ValueType, typename ScalarType>                      \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                          \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL(ValueType);                         \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_DENSE_APPLY_KERNEL(ValueType);                                \
+    template <typename InValueType, typename OutValueType>                    \
+    GKO_DECLARE_DENSE_COPY_KERNEL(InValueType, OutValueType);                 \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_DENSE_FILL_KERNEL(ValueType);                                 \
+    template <typename ValueType, typename ScalarType>                        \
+    GKO_DECLARE_DENSE_SCALE_KERNEL(ValueType, ScalarType);                    \
+    template <typename ValueType, typename ScalarType>                        \
+    GKO_DECLARE_DENSE_INV_SCALE_KERNEL(ValueType, ScalarType);                \
+    template <typename ValueType, typename ScalarType>                        \
+    GKO_DECLARE_DENSE_ADD_SCALED_KERNEL(ValueType, ScalarType);               \
+    template <typename ValueType, typename ScalarType>                        \
+    GKO_DECLARE_DENSE_SUB_SCALED_KERNEL(ValueType, ScalarType);               \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_DENSE_ADD_SCALED_DIAG_KERNEL(ValueType);                      \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_DENSE_SUB_SCALED_DIAG_KERNEL(ValueType);                      \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL(ValueType);                          \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_DENSE_COMPUTE_DOT_DISPATCH_KERNEL(ValueType);                 \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_KERNEL(ValueType);                     \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_DISPATCH_KERNEL(ValueType);            \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL(ValueType);                        \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_DENSE_COMPUTE_NORM2_DISPATCH_KERNEL(ValueType);               \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL(ValueType);                        \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_DENSE_COMPUTE_MEAN_KERNEL(ValueType);                         \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType);       \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_DENSE_COMPUTE_SQUARED_NORM2_KERNEL(ValueType);                \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_DENSE_COMPUTE_SQRT_KERNEL(ValueType);                         \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_CONVERT_TO_COO_KERNEL(ValueType, IndexType);            \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);            \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_CONVERT_TO_ELL_KERNEL(ValueType, IndexType);            \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_CONVERT_TO_FBCSR_KERNEL(ValueType, IndexType);          \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_CONVERT_TO_HYBRID_KERNEL(ValueType, IndexType);         \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL(ValueType, IndexType);          \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_CONVERT_TO_SPARSITY_CSR_KERNEL(ValueType, IndexType);   \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_DENSE_COMPUTE_MAX_NNZ_PER_ROW_KERNEL(ValueType);              \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_DENSE_COMPUTE_SLICE_SETS_KERNEL(ValueType);                   \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_COUNT_NONZEROS_PER_ROW_KERNEL(ValueType, IndexType);    \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_COUNT_NONZERO_BLOCKS_PER_ROW_KERNEL(ValueType,          \
+                                                          IndexType);         \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_DENSE_TRANSPOSE_KERNEL(ValueType);                            \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_DENSE_CONJ_TRANSPOSE_KERNEL(ValueType);                       \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_SYMM_PERMUTE_KERNEL(ValueType, IndexType);              \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_INV_SYMM_PERMUTE_KERNEL(ValueType, IndexType);          \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_NONSYMM_PERMUTE_KERNEL(ValueType, IndexType);           \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_INV_NONSYMM_PERMUTE_KERNEL(ValueType, IndexType);       \
+    template <typename ValueType, typename OutputType, typename IndexType>    \
+    GKO_DECLARE_DENSE_ROW_GATHER_KERNEL(ValueType, OutputType, IndexType);    \
+    template <typename ValueType, typename OutputType, typename IndexType>    \
+    GKO_DECLARE_DENSE_ADVANCED_ROW_GATHER_KERNEL(ValueType, OutputType,       \
+                                                 IndexType);                  \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_COL_PERMUTE_KERNEL(ValueType, IndexType);               \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_INV_ROW_PERMUTE_KERNEL(ValueType, IndexType);           \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_INV_COL_PERMUTE_KERNEL(ValueType, IndexType);           \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_SYMM_SCALE_PERMUTE_KERNEL(ValueType, IndexType);        \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_INV_SYMM_SCALE_PERMUTE_KERNEL(ValueType, IndexType);    \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_ROW_SCALE_PERMUTE_KERNEL(ValueType, IndexType);         \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_COL_SCALE_PERMUTE_KERNEL(ValueType, IndexType);         \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_INV_ROW_SCALE_PERMUTE_KERNEL(ValueType, IndexType);     \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_INV_COL_SCALE_PERMUTE_KERNEL(ValueType, IndexType);     \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_NONSYMM_SCALE_PERMUTE_KERNEL(ValueType, IndexType);     \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_INV_NONSYMM_SCALE_PERMUTE_KERNEL(ValueType, IndexType); \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_DENSE_EXTRACT_DIAGONAL_KERNEL(ValueType);                     \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_INPLACE_ABSOLUTE_DENSE_KERNEL(ValueType);                     \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_OUTPLACE_ABSOLUTE_DENSE_KERNEL(ValueType);                    \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_MAKE_COMPLEX_KERNEL(ValueType);                               \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_GET_REAL_KERNEL(ValueType);                                   \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_GET_IMAG_KERNEL(ValueType);                                   \
+    template <typename ValueType, typename ScalarType>                        \
     GKO_DECLARE_DENSE_ADD_SCALED_IDENTITY_KERNEL(ValueType, ScalarType)
 
 
