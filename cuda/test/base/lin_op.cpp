@@ -144,6 +144,7 @@ protected:
     FactoryParameter() {}
 
 public:
+    using parameters_type = FactoryParameter;
     std::vector<int> GKO_FACTORY_PARAMETER_VECTOR(vector_parameter, 10, 11);
     int GKO_FACTORY_PARAMETER_SCALAR(scalar_parameter, -4);
 };

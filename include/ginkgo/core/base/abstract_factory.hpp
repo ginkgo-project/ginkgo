@@ -443,7 +443,7 @@ private:
  * @ingroup LinOp
  */
 #define GKO_FACTORY_PARAMETER(_name, ...)                                    \
-    mutable _name{__VA_ARGS__};                                              \
+    _name{__VA_ARGS__};                                                      \
                                                                              \
     template <typename... Args>                                              \
     parameters_type& with_##_name(Args&&... _value)                          \
@@ -493,7 +493,7 @@ private:
 // cudafe into a C-style cast, the parameter pack expansion is not removed and
 // `Args&&... args` is still kept as a parameter pack.
 #define GKO_FACTORY_PARAMETER(_name, ...)                                    \
-    mutable _name{__VA_ARGS__};                                              \
+    _name{__VA_ARGS__};                                                      \
                                                                              \
     template <typename... Args>                                              \
     parameters_type& with_##_name(Args&&... _value)                          \
@@ -506,7 +506,7 @@ private:
                   "semi-colon warnings")
 
 #define GKO_FACTORY_PARAMETER_SCALAR(_name, _default)                        \
-    mutable _name{_default};                                                 \
+    _name{_default};                                                         \
                                                                              \
     template <typename Arg>                                                  \
     parameters_type& with_##_name(Arg&& _value)                              \
@@ -520,7 +520,7 @@ private:
                   "semi-colon warnings")
 
 #define GKO_FACTORY_PARAMETER_VECTOR(_name, ...)                             \
-    mutable _name{__VA_ARGS__};                                              \
+    _name{__VA_ARGS__};                                                      \
                                                                              \
     template <typename... Args>                                              \
     parameters_type& with_##_name(Args&&... _value)                          \
