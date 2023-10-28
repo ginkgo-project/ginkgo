@@ -66,11 +66,10 @@ namespace preconditioner {
  * It allows to set both the solver for L and the solver for U independently,
  * while providing the defaults solver::LowerTrs and solver::UpperTrs, which
  * are direct triangular solvers.
- * For these solvers, a factory can be provided (with `with_l_solver_factory`
- * and `with_u_solver_factory`) to have more control over their behavior.
- * In particular, it is possible to use an iterative method for solving the
- * triangular systems. The default parameters for an iterative triangluar
- * solver are:
+ * For these solvers, a factory can be provided (with `with_l_solver` and
+ * `with_u_solver`) to have more control over their behavior. In particular, it
+ * is possible to use an iterative method for solving the triangular systems.
+ * The default parameters for an iterative triangluar solver are:
  * - reduction factor = 1e-4
  * - max iteration = <number of rows of the matrix given to the solver>
  * Solvers without such criteria can also be used, in which case none are set.

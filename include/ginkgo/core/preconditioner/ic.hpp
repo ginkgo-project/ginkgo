@@ -67,7 +67,7 @@ namespace preconditioner {
  * is a direct triangular solvers. The solver for L^H is the
  * conjugate-transposed solver for L, ensuring that the preconditioner is
  * symmetric and positive-definite. For this L solver, a factory can be provided
- * (using `with_l_solver_factory`) to have more control over their behavior. In
+ * (using `with_l_solver`) to have more control over their behavior. In
  * particular, it is possible to use an iterative method for solving the
  * triangular systems. The default parameters for an iterative triangluar solver
  * are:
