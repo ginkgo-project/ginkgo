@@ -105,7 +105,7 @@ protected:
 TEST_F(BatchBicgstab, SolvesStencilSystem)
 {
     const int num_batch_items = 2;
-    const int num_rows = 10;
+    const int num_rows = 33;
     const int num_rhs = 1;
     const real_type tol = 1e-5;
     const int max_iters = 100;
@@ -128,7 +128,7 @@ TEST_F(BatchBicgstab, SolvesStencilSystem)
 TEST_F(BatchBicgstab, StencilSystemLoggerLogsResidual)
 {
     const int num_batch_items = 2;
-    const int num_rows = 10;
+    const int num_rows = 33;
     const int num_rhs = 1;
     const real_type tol = 1e-5;
     const int max_iters = 100;
@@ -152,7 +152,7 @@ TEST_F(BatchBicgstab, StencilSystemLoggerLogsResidual)
 TEST_F(BatchBicgstab, StencilSystemLoggerLogsIterations)
 {
     const int num_batch_items = 2;
-    const int num_rows = 10;
+    const int num_rows = 33;
     const int num_rhs = 1;
     const int ref_iters = 5;
     auto mat = gko::share(gko::test::generate_3pt_stencil_batch_matrix<Mtx>(
@@ -175,7 +175,7 @@ TEST_F(BatchBicgstab, CanSolve3ptStencilSystem)
     const int num_rows = 100;
     const int num_rhs = 1;
     const real_type tol = 1e-5;
-    const int max_iters = 100;
+    const int max_iters = 500;
     auto mat = gko::share(gko::test::generate_3pt_stencil_batch_matrix<Mtx>(
         exec, num_batch_items, num_rows));
     auto linear_system = setup_linsys_and_solver(mat, num_rhs, tol, max_iters);

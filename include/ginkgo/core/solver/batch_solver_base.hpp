@@ -158,6 +158,11 @@ protected:
           workspace_{}
     {}
 
+    void set_system_matrix_base(std::shared_ptr<const BatchLinOp> system_matrix)
+    {
+        system_matrix_ = std::move(system_matrix);
+    }
+
     std::shared_ptr<const BatchLinOp> system_matrix_{};
     std::shared_ptr<const BatchLinOp> preconditioner_{};
     double residual_tol_{};
@@ -341,11 +346,71 @@ protected:
             auto id = Identity::create(exec, system_matrix->get_size());
             preconditioner_ = std::move(id);
         }
-        // FIXME
         const size_type workspace_size = system_matrix->get_num_batch_items() *
                                          (sizeof(real_type) + sizeof(int));
         workspace_.set_executor(exec);
         workspace_.resize_and_reset(workspace_size);
+    }
+
+    void set_system_matrix(std::shared_ptr<const BatchLinOp> new_system_matrix)
+    {
+        auto exec = self()->get_executor();
+        if (new_system_matrix) {
+            GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(self(), new_system_matrix);
+            GKO_ASSERT_BATCH_HAS_SQUARE_DIMENSIONS(new_system_matrix);
+            if (new_system_matrix->get_executor() != exec) {
+                new_system_matrix = gko::clone(exec, new_system_matrix);
+            }
+        }
+        this->set_system_matrix_base(new_system_matrix);
+    }
+
+    /**
+     * Creates a shallow copy of the provided system matrix, clones it onto
+     * this executor if executors don't match.
+     */
+    EnableBatchSolver& operator=(const EnableBatchSolver& other)
+    {
+        if (&other != this) {
+            this->set_size(other.get_size());
+            set_system_matrix(other.get_system_matrix());
+        }
+        return *this;
+    }
+
+    /**
+     * Moves the provided system matrix, clones it onto this executor if
+     * executors don't match. The moved-from object has a nullptr system matrix.
+     */
+    EnableBatchSolver& operator=(EnableBatchSolver&& other)
+    {
+        if (&other != this) {
+            this->set_size(other.get_size());
+            set_system_matrix(other.get_system_matrix());
+            other.set_system_matrix(nullptr);
+        }
+        return *this;
+    }
+
+    /**
+     * Creates a shallow copy of the provided system matrix.
+     */
+    EnableBatchSolver(const EnableBatchSolver& other)
+        : EnableBatchLinOp<ConcreteSolver, PolymorphicBase>(
+              other.self()->get_executor(), other.self()->get_size())
+    {
+        *this = other;
+    }
+
+    /**
+     * Moves the provided system matrix. The moved-from object has a nullptr
+     * system matrix.
+     */
+    EnableBatchSolver(EnableBatchSolver&& other)
+        : EnableBatchLinOp<ConcreteSolver, PolymorphicBase>(
+              other.self()->get_executor(), other.self()->get_size())
+    {
+        *this = std::move(other);
     }
 
     void apply_impl(const MultiVector<ValueType>* b,

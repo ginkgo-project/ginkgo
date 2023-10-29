@@ -96,7 +96,7 @@ public:
                                            mat.get_single_item_num_nnz()) *
                 sizeof(ValueType);
 
-#pragma omp parallel for firstprivate(logger)
+#pragma omp parallel for
         for (size_type batch_id = 0; batch_id < num_batch_items; batch_id++) {
             // TODO: Align to cache line boundary
             // TODO: Allocate and free once per thread rather than once per
