@@ -30,6 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+
 template <const bool sg_kernel_all, typename BatchMatrixType_entry,
           typename ValueType>
 __dpct_inline__ void initialize(
@@ -76,9 +77,11 @@ __dpct_inline__ void initialize(
                                         item_ct1);
         }
     } else {
-        single_rhs_compute_norm2(num_rows, r_shared_entry, res_norm, item_ct1);
-        single_rhs_compute_norm2(num_rows, b_global_entry, rhs_norm, item_ct1);
+        // single_rhs_compute_norm2(num_rows, r_shared_entry, res_norm,
+        // item_ct1); single_rhs_compute_norm2(num_rows, b_global_entry,
+        // rhs_norm, item_ct1);
     }
+    item_ct1.barrier(sycl::access::fence_space::local_space);
 
 
     for (int iz = tid; iz < num_rows; iz += group_size) {
@@ -107,6 +110,7 @@ __dpct_inline__ void update_p(const int num_rows, const ValueType& rho_new,
     }
 }
 
+
 template <const bool sg_kernel_all, typename ValueType>
 __dpct_inline__ void compute_alpha(const int num_rows, const ValueType& rho_new,
                                    const ValueType* const r_hat_shared_entry,
@@ -127,9 +131,9 @@ __dpct_inline__ void compute_alpha(const int num_rows, const ValueType& rho_new,
         }
         item_ct1.barrier(sycl::access::fence_space::local_space);
     } else {
-        single_rhs_compute_dot(num_rows, r_hat_shared_entry, v_shared_entry,
-                               alpha, item_ct1);
-        alpha = rho_new / alpha;
+        // single_rhs_compute_dot(num_rows, r_hat_shared_entry, v_shared_entry,
+        //                        alpha, item_ct1);
+        // alpha = rho_new / alpha;
     }
 }
 
@@ -171,13 +175,16 @@ __dpct_inline__ void compute_omega(const int num_rows,
         if (tid == 0) omega /= temp;
         item_ct1.barrier(sycl::access::fence_space::local_space);
     } else {
-        single_rhs_compute_dot(num_rows, t_shared_entry, s_shared_entry, omega,
-                               item_ct1);
-        single_rhs_compute_dot(num_rows, t_shared_entry, t_shared_entry, temp,
-                               item_ct1);
-        omega /= temp;
+        // single_rhs_compute_dot(num_rows, t_shared_entry, s_shared_entry,
+        // omega,
+        //                        item_ct1);
+        // single_rhs_compute_dot(num_rows, t_shared_entry, t_shared_entry,
+        // temp,
+        //                        item_ct1);
+        // omega /= temp;
     }
 }
+
 
 template <typename ValueType>
 __dpct_inline__ void update_x_and_r(
@@ -368,8 +375,8 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
             }
             item_ct1.barrier(sycl::access::fence_space::local_space);
         } else {
-            single_rhs_compute_dot(num_rows, r_hat_sh, r_sh, rho_new_sh[0],
-                                   item_ct1);
+            // single_rhs_compute_dot(num_rows, r_hat_sh, r_sh, rho_new_sh[0],
+            //                        item_ct1);
         }
 
         // beta = (rho_new / rho_old)*(alpha / omega)
@@ -403,10 +410,10 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
             }
             item_ct1.barrier(sycl::access::fence_space::local_space);
         } else {
-            single_rhs_compute_norm2(num_rows, s_sh, norms_res_sh[0], item_ct1);
+            // single_rhs_compute_norm2(num_rows, s_sh, norms_res_sh[0],
+            // item_ct1);
         }
 
-        // if (norms_res_sh[0] / norms_rhs_sh[0] < tol) {
         if (stop.check_converged(norms_res_sh)) {
             update_x_middle(num_rows, alpha_sh[0], p_hat_sh, x_sh, item_ct1);
             logger.log_iteration(batch_id, iter, norms_res_sh[0]);
@@ -441,8 +448,8 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
             }
             item_ct1.barrier(sycl::access::fence_space::local_space);
         } else {
-            single_rhs_compute_norm2(num_rows, r_sh, norms_res_sh[0], item_ct1);
-            rho_old_sh[0] = rho_new_sh[0];
+            // single_rhs_compute_norm2(num_rows, r_sh, norms_res_sh[0],
+            // item_ct1); rho_old_sh[0] = rho_new_sh[0];
         }
     }
 
