@@ -247,7 +247,7 @@ LinearSystem<MatrixType> generate_batch_linear_system(
     sys.exact_sol->fill(value_type{2.0});
 
     sys.rhs = multi_vec::create_with_config_of(sys.exact_sol);
-    // A * x^{*} = b
+    // A * x_{exact} = b
     sys.matrix->apply(sys.exact_sol, sys.rhs);
     const gko::batch_dim<2> norm_dim(num_batch_items, gko::dim<2>(1, num_rhs));
     sys.rhs_norm = real_vec::create(exec, norm_dim);

@@ -328,7 +328,7 @@ inline size_type get_num_batch_items(const T& obj)
         if (!equal_num_items) {                                            \
             throw ::gko::ValueMismatch(                                    \
                 __FILE__, __LINE__, __func__,                              \
-                ::gko::detail::get_batch_size(_op2).get_num_batch_items(), \
+                ::gko::detail::get_batch_size(_op1).get_num_batch_items(), \
                 ::gko::detail::get_batch_size(_op2).get_num_batch_items(), \
                 "expected equal number of batch items");                   \
         }                                                                  \
