@@ -100,7 +100,8 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class [[deprecated("use gko::experimental::reorder::Rcm instead")]] Rcm
     : public EnablePolymorphicObject<Rcm<ValueType, IndexType>,
                                      ReorderingBase<IndexType>>,
-      public EnablePolymorphicAssignment<Rcm<ValueType, IndexType>> {
+      public EnablePolymorphicAssignment<Rcm<ValueType, IndexType>>
+{
     friend class EnablePolymorphicObject<Rcm, ReorderingBase<IndexType>>;
 
 public:
