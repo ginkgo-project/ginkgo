@@ -42,10 +42,10 @@ public:
 
     static int dynamic_work_size(int, int) { return 0; }
 
-    void generate(size_type batch_id,
-                  const gko::batch::matrix::ell::batch_item<const ValueType,
-                                                            gko::int32>&,
-                  ValueType* const, sycl::nd_item<3> item_ct1)
+    void generate(
+        size_type batch_id,
+        const gko::batch::matrix::ell::batch_item<const ValueType, gko::int32>&,
+        ValueType* const, sycl::nd_item<3> item_ct1)
     {}
 
     void generate(size_type batch_id,
