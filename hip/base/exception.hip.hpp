@@ -41,10 +41,12 @@ namespace gko {
 
 
 #define GKO_HIP_LAST_IF_ERROR_THROW                                          \
-    hipError_t err = hipGetLastError();                                      \
-    if (err != hipSuccess) {                                                 \
-        printf(" Hip kernel error: %s\n", hipGetErrorString(err));           \
-        throw gko::HipError(__FILE__, __LINE__, __func__, err);              \
+    {                                                                        \
+        hipError_t err = hipGetLastError();                                  \
+        if (err != hipSuccess) {                                             \
+            printf(" Hip kernel error: %s\n", hipGetErrorString(err));       \
+            throw gko::HipError(__FILE__, __LINE__, __func__, err);          \
+        }                                                                    \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \

@@ -79,7 +79,7 @@ using settings = gko::kernels::batch_bicgstab::settings<T>;
 
 __dpct_inline__ int get_group_size(int value, int simd_len = 32)
 {
-    int num_sg = (value + simd_len - 1) / simd_len;
+    int num_sg = ceildiv(value, simd_len);
     return (num_sg * simd_len);
 }
 
@@ -89,7 +89,7 @@ class KernelCaller {
 public:
     KernelCaller(std::shared_ptr<const DefaultExecutor> exec,
                  const settings<remove_complex<ValueType>> settings)
-        : exec_{exec}, settings_{settings}
+        : exec_{std::move(exec)}, settings_{settings}
     {}
 
     template <typename StopType, const int simd_len, const int n_shared_total,
@@ -156,29 +156,31 @@ public:
         auto device = exec_->get_queue()->get_device();
         auto group_size =
             device.get_info<sycl::info::device::max_work_group_size>();
-        if (group_size > num_rows) group_size = get_group_size(num_rows);
+        if (group_size > num_rows) {
+            group_size = get_group_size(num_rows);
+        };
 
-        size_type shmem_per_blk =
+        // reserve 5 for intermediate rho-s, norms,
+        // alpha, omega, temp and for reduce_over_group
+        // If the value available is negative, then set it to 0
+        size_type shmem_per_blk = std::max(
             device.get_info<sycl::info::device::local_mem_size>() -
-            (group_size + 5) * sizeof(ValueType) -
-            2 * sizeof(
-                    real_type);  // reserve 5 for intermediate rho-s, norms,
-                                 // alpha, omega, temp and for reduce_over_group
-        if (shmem_per_blk < 0) shmem_per_blk = 0;
-        const int shared_gap = num_rows;
+                (group_size + 5) * sizeof(ValueType) - 2 * sizeof(real_type),
+            static_cast<size_type>(0));
+        const int padded_num_rows = num_rows;
         const size_type prec_size = PrecType::dynamic_work_size(
-            shared_gap, mat.get_single_item_num_nnz());
+            padded_num_rows, mat.get_single_item_num_nnz());
         const auto sconf =
             gko::kernels::batch_bicgstab::compute_shared_storage<PrecType,
                                                                  ValueType>(
-                shmem_per_blk, shared_gap, mat.get_single_item_num_nnz(),
+                shmem_per_blk, padded_num_rows, mat.get_single_item_num_nnz(),
                 b.num_rhs);
-        const size_t shared_size =
-            sconf.n_shared * shared_gap + (sconf.prec_shared ? prec_size : 0);
+        const size_t shared_size = sconf.n_shared * padded_num_rows +
+                                   (sconf.prec_shared ? prec_size : 0);
         auto workspace = gko::array<ValueType>(
             exec_,
             sconf.gmem_stride_bytes * num_batch_items / sizeof(ValueType));
-        assert(sconf.gmem_stride_bytes % sizeof(ValueType) == 0);
+        GKO_ASSERT(sconf.gmem_stride_bytes % sizeof(ValueType) == 0);
 
         ValueType* const workspace_data = workspace.get_data();
         int n_shared_total = sconf.n_shared + int(sconf.prec_shared);

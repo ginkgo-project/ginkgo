@@ -166,24 +166,33 @@ storage_config compute_shared_storage(const int shared_mem_per_blk,
     const int prec_storage =
         Prectype::dynamic_work_size(num_rows, num_nz) * sizeof(ValueType);
     int rem_shared = shared_mem_per_blk;
+    // Set default values. All vecs are in global.
     storage_config sconf{false, 0, num_main_vecs, 0, num_rows};
+    // If available shared mem, is zero, set all vecs to global.
     if (rem_shared <= 0) {
         set_gmem_stride_bytes<align_bytes>(sconf, vec_size, prec_storage);
         return sconf;
     }
+    // Compute the number of vecs that can be stored in shared memory and assign
+    // the rest to global memory.
     const int initial_vecs_available = rem_shared / vec_size;
     const int num_vecs_shared = min(initial_vecs_available, num_main_vecs);
     sconf.n_shared += num_vecs_shared;
     sconf.n_global -= num_vecs_shared;
+    // Set the storage configuration with preconditioner workspace in global if
+    // there are any vectors in global memory.
     if (sconf.n_global > 0) {
         set_gmem_stride_bytes<align_bytes>(sconf, vec_size, prec_storage);
         return sconf;
     }
     rem_shared -= num_vecs_shared * vec_size;
+    // If more shared memory space is available and preconditioner workspace is
+    // needed, enable preconditioner workspace to use shared memory.
     if (rem_shared >= prec_storage && prec_storage > 0) {
         sconf.prec_shared = true;
         rem_shared -= prec_storage;
     }
+    // Set the global storage config and align to 32 bytes.
     set_gmem_stride_bytes<align_bytes>(sconf, vec_size, prec_storage);
     return sconf;
 }

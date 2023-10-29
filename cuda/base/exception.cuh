@@ -41,10 +41,12 @@ namespace gko {
 
 
 #define GKO_CUDA_LAST_IF_ERROR_THROW                                         \
-    cudaError_t err = cudaGetLastError();                                    \
-    if (err != cudaSuccess) {                                                \
-        printf(" Kernel error: %s\n", cudaGetErrorString(err));              \
-        throw gko::CudaError(__FILE__, __LINE__, __func__, err);             \
+    {                                                                        \
+        cudaError_t err = cudaGetLastError();                                \
+        if (err != cudaSuccess) {                                            \
+            printf(" Kernel error: %s\n", cudaGetErrorString(err));          \
+            throw gko::CudaError(__FILE__, __LINE__, __func__, err);         \
+        }                                                                    \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
@@ -52,5 +54,6 @@ namespace gko {
 
 
 }  // namespace gko
+
 
 #endif  // GKO_CUDA_BASE_EXCEPTION_CUH_

@@ -317,11 +317,11 @@ __global__ void apply_kernel(
 
             // alpha = rho_new / < r_hat , v>
             compute_alpha(subgroup, num_rows, rho_new_sh[0], r_hat_sh, v_sh,
-                          alpha_sh[0] /*, converged*/);
+                          alpha_sh[0]);
             __syncthreads();
 
             // s = r - alpha*v
-            update_s(num_rows, r_sh, alpha_sh[0], v_sh, s_sh /*, converged*/);
+            update_s(num_rows, r_sh, alpha_sh[0], v_sh, s_sh);
             __syncthreads();
 
             // an estimate of residual norms
@@ -348,13 +348,13 @@ __global__ void apply_kernel(
 
             // omega = <t,s> / <t,t>
             compute_omega(subgroup, num_rows, t_sh, s_sh, temp_sh[0],
-                          omega_sh[0] /*, converged*/);
+                          omega_sh[0]);
             __syncthreads();
 
             // x = x + alpha*p_hat + omega *s_hat
             // r = s - omega * t
             update_x_and_r(num_rows, p_hat_sh, s_hat_sh, alpha_sh[0],
-                           omega_sh[0], s_sh, t_sh, x_sh, r_sh /*, converged*/);
+                           omega_sh[0], s_sh, t_sh, x_sh, r_sh);
             __syncthreads();
 
             if (threadIdx.x / config::warp_size == 0) {

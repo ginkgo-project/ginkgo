@@ -147,7 +147,7 @@ public:
         using real_type = gko::remove_complex<value_type>;
         const size_type num_batch_items = mat.num_batch_items;
         constexpr int align_multiple = 8;
-        const int shared_gap =
+        const int padded_num_rows =
             ((mat.num_rows + align_multiple - 1) / align_multiple) *
             align_multiple;
         const int shmem_per_blk = exec_->get_max_shared_memory_per_block();
@@ -156,16 +156,16 @@ public:
         assert(block_size >= 2 * config::warp_size);
 
         const size_t prec_size =
-            PrecType::dynamic_work_size(shared_gap,
+            PrecType::dynamic_work_size(padded_num_rows,
                                         mat.get_single_item_num_nnz()) *
             sizeof(value_type);
         const auto sconf =
             gko::kernels::batch_bicgstab::compute_shared_storage<PrecType,
                                                                  value_type>(
-                shmem_per_blk, shared_gap, mat.get_single_item_num_nnz(),
+                shmem_per_blk, padded_num_rows, mat.get_single_item_num_nnz(),
                 b.num_rhs);
         const size_t shared_size =
-            sconf.n_shared * shared_gap * sizeof(value_type) +
+            sconf.n_shared * padded_num_rows * sizeof(value_type) +
             (sconf.prec_shared ? prec_size : 0);
         auto workspace = gko::array<value_type>(
             exec_,
