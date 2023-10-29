@@ -80,7 +80,7 @@ using settings = gko::kernels::batch_bicgstab::settings<T>;
 __dpct_inline__ int get_group_size(int value, int simd_len = 32)
 {
     int num_sg = ceildiv(value, simd_len);
-    return (num_sg * simd_len);
+    return num_sg * simd_len;
 }
 
 
