@@ -74,7 +74,6 @@ protected:
     using CsrMtx = gko::matrix::Csr<v_type, i_type>;
     using reorder_type = gko::reorder::Rcm<v_type, i_type>;
     using new_reorder_type = gko::experimental::reorder::Rcm<i_type>;
-    using strategy = gko::reorder::starting_strategy;
     using perm_type = gko::matrix::Permutation<i_type>;
 
     Rcm()
@@ -138,7 +137,7 @@ protected:
         }
 
         switch (strategy) {
-        case strategy::minimum_degree: {
+        case gko::reorder::starting_strategy::minimum_degree: {
             auto min_degree = std::numeric_limits<i_type>::max();
             for (gko::size_type i = 0; i < n; ++i) {
                 if (!already_visited[i] && degrees[i] < min_degree) {
@@ -151,7 +150,7 @@ protected:
             break;
         }
 
-        case strategy::pseudo_peripheral: {
+        case gko::reorder::starting_strategy::pseudo_peripheral: {
             // Check if any valid contender has a lowereq height than the
             // selected start node.
 
