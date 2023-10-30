@@ -101,13 +101,10 @@ int get_num_threads_per_block(std::shared_ptr<const DefaultExecutor> exec,
     cudaDeviceGetAttribute(&max_regs_blk, cudaDevAttrMaxRegistersPerBlock,
                            exec->get_device_id());
     const int max_threads_regs =
-        ((max_regs_blk /
-          static_cast<int>((static_cast<double>(num_regs_used)))) /
-         warp_sz) *
-        warp_sz;
+        ((max_regs_blk / static_cast<int>(num_regs_used)) / warp_sz) * warp_sz;
     int max_threads = std::min(max_threads_regs, device_max_threads);
     max_threads = max_threads <= 1024 ? max_threads : 1024;
-    return std::min(num_warps * warp_sz, max_threads);
+    return std::max(std::min(num_warps * warp_sz, max_threads), min_block_size);
 }
 
 
@@ -136,12 +133,12 @@ using settings = gko::kernels::batch_bicgstab::settings<T>;
 
 
 template <typename CuValueType>
-class KernelCaller {
+class kernel_caller {
 public:
     using value_type = CuValueType;
 
-    KernelCaller(std::shared_ptr<const DefaultExecutor> exec,
-                 const settings<remove_complex<value_type>> settings)
+    kernel_caller(std::shared_ptr<const DefaultExecutor> exec,
+                  const settings<remove_complex<value_type>> settings)
         : exec_{std::move(exec)}, settings_{settings}
     {}
 
@@ -263,6 +260,8 @@ public:
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, block_size, shared_size);
                 break;
+            default:
+                GKO_NOT_IMPLEMENTED;
             }
         }
 
@@ -286,7 +285,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
 {
     using cu_value_type = cuda_type<ValueType>;
     auto dispatcher = batch::solver::create_dispatcher<ValueType>(
-        KernelCaller<cu_value_type>(exec, settings), settings, mat, precon);
+        kernel_caller<cu_value_type>(exec, settings), settings, mat, precon);
     dispatcher.apply(b, x, logdata);
 }
 

@@ -224,7 +224,7 @@ struct LinearSystem {
 
     std::shared_ptr<const MatrixType> matrix;
     std::shared_ptr<multi_vec> rhs;
-    std::shared_ptr<real_vec> rhs_norm;
+    std::shared_ptr<real_vec> host_rhs_norm;
     std::shared_ptr<multi_vec> exact_sol;
 };
 
@@ -250,8 +250,8 @@ LinearSystem<MatrixType> generate_batch_linear_system(
     // A * x_{exact} = b
     sys.matrix->apply(sys.exact_sol, sys.rhs);
     const gko::batch_dim<2> norm_dim(num_batch_items, gko::dim<2>(1, num_rhs));
-    sys.rhs_norm = real_vec::create(exec->get_master(), norm_dim);
-    sys.rhs->compute_norm2(sys.rhs_norm.get());
+    sys.host_rhs_norm = real_vec::create(exec->get_master(), norm_dim);
+    sys.rhs->compute_norm2(sys.host_rhs_norm.get());
     return sys;
 }
 
@@ -273,13 +273,13 @@ compute_residual_norms(
     const gko::batch_dim<2> norm_dim(num_batch_items, gko::dim<2>(1, num_rhs));
 
     auto residual_vec = b->clone();
-    auto res_norms = real_vec::create(exec->get_master(), norm_dim);
+    auto res_norm = real_vec::create(exec->get_master(), norm_dim);
     auto alpha =
         gko::batch::initialize<multi_vec>(num_batch_items, {-1.0}, exec);
     auto beta = gko::batch::initialize<multi_vec>(num_batch_items, {1.0}, exec);
     mtx->apply(alpha, x, beta, residual_vec);
-    residual_vec->compute_norm2(res_norms);
-    return res_norms;
+    residual_vec->compute_norm2(res_norm);
+    return res_norm;
 }
 
 
@@ -289,7 +289,7 @@ struct Result {
     using real_vec = batch::MultiVector<remove_complex<ValueType>>;
 
     std::shared_ptr<multi_vec> x;
-    std::shared_ptr<real_vec> res_norm;
+    std::shared_ptr<real_vec> host_res_norm;
 };
 
 
@@ -323,7 +323,7 @@ Result<typename MatrixType::value_type> solve_linear_system(
     result.x->fill(zero<value_type>());
 
     solver->apply(sys.rhs, result.x);
-    result.res_norm =
+    result.host_res_norm =
         compute_residual_norms(sys.matrix.get(), sys.rhs.get(), result.x.get());
 
     return std::move(result);
@@ -369,7 +369,7 @@ ResultWithLogData<typename MatrixType::value_type> solve_linear_system(
     result.log_data->iter_counts = log_data->iter_counts;
     result.log_data->res_norms = log_data->res_norms;
 
-    result.res_norm =
+    result.host_res_norm =
         compute_residual_norms(sys.matrix.get(), sys.rhs.get(), result.x.get());
 
     return std::move(result);

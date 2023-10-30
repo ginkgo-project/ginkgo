@@ -60,9 +60,9 @@ namespace gko {
 namespace kernels {
 namespace dpcpp {
 /**
- * @brief The batch Cg solver namespace.
+ * @brief The batch Bicgstab solver namespace.
  *
- * @ingroup batch_cg
+ * @ingroup batch_bicgstab
  */
 namespace batch_bicgstab {
 
@@ -77,10 +77,10 @@ template <typename T>
 using settings = gko::kernels::batch_bicgstab::settings<T>;
 
 
-__dpct_inline__ int get_group_size(int value, int simd_len = 32)
+__dpct_inline__ int get_group_size(int value, int subgroup_size = 32)
 {
-    int num_sg = ceildiv(value, simd_len);
-    return num_sg * simd_len;
+    int num_sg = ceildiv(value, subgroup_size);
+    return num_sg * subgroup_size;
 }
 
 
@@ -92,9 +92,9 @@ public:
         : exec_{std::move(exec)}, settings_{settings}
     {}
 
-    template <typename StopType, const int simd_len, const int n_shared_total,
-              const bool sg_kernel_all, typename PrecType, typename LogType,
-              typename BatchMatrixType>
+    template <typename StopType, const int subgroup_size,
+              const int n_shared_total, const bool sg_kernel_all,
+              typename PrecType, typename LogType, typename BatchMatrixType>
     __dpct_inline__ void launch_apply_kernel(
         const gko::kernels::batch_bicgstab::storage_config& sconf,
         LogType& logger, PrecType& prec, const BatchMatrixType mat,
@@ -111,15 +111,16 @@ public:
         auto max_iters = settings_.max_iterations;
         auto res_tol = settings_.residual_tol;
 
-        (exec_->get_queue())->submit([&](sycl::handler& cgh) {
+        exec_->get_queue()->submit([&](sycl::handler& cgh) {
             sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
                            sycl::access::target::local>
                 slm_values(sycl::range<1>(shared_size), cgh);
 
             cgh.parallel_for(
-                sycl_nd_range(grid, block),
-                [=](sycl::nd_item<3> item_ct1) [[intel::reqd_sub_group_size(
-                    simd_len)]] [[intel::kernel_args_restrict]] {
+                sycl_nd_range(grid, block), [=
+            ](sycl::nd_item<3> item_ct1) [[intel::reqd_sub_group_size(
+                                                subgroup_size)]] [
+                                                [intel::kernel_args_restrict]] {
                     auto batch_id = item_ct1.get_group_linear_id();
                     const auto mat_global_entry =
                         gko::batch::matrix::extract_batch_item(mat, batch_id);
@@ -162,10 +163,13 @@ public:
         // reserve 5 for intermediate rho-s, norms,
         // alpha, omega, temp and for reduce_over_group
         // If the value available is negative, then set it to 0
-        size_type shmem_per_blk = std::max(
-            device.get_info<sycl::info::device::local_mem_size>() -
-                (group_size + 5) * sizeof(ValueType) - 2 * sizeof(real_type),
-            static_cast<size_type>(0));
+        const int static_var_mem =
+            (group_size + 5) * sizeof(ValueType) - 2 * sizeof(real_type);
+        int shmem_per_blk = std::max(
+            static_cast<int>(
+                device.get_info<sycl::info::device::local_mem_size>()) -
+                static_var_mem,
+            0);
         const int padded_num_rows = num_rows;
         const size_type prec_size = PrecType::dynamic_work_size(
             padded_num_rows, mat.get_single_item_num_nnz());
@@ -185,16 +189,17 @@ public:
         int n_shared_total = sconf.n_shared + int(sconf.prec_shared);
 
         // template
-        // launch_apply_kernel<StopType, SIMDLEN, n_shared_total, sg_kernel_all>
-        if (num_rows <= 32 && n_shared_total == 10)
+        // launch_apply_kernel<StopType, subgroup_size, n_shared_total,
+        // sg_kernel_all>
+        if (num_rows <= 32 && n_shared_total == 10) {
             launch_apply_kernel<StopType, 16, 10, true>(
                 sconf, logger, prec, mat, b.values, x.values, workspace_data,
                 group_size, shared_size);
-        else if (num_rows <= 256 && n_shared_total == 10)
+        } else if (num_rows <= 256 && n_shared_total == 10) {
             launch_apply_kernel<StopType, 32, 10, true>(
                 sconf, logger, prec, mat, b.values, x.values, workspace_data,
                 group_size, shared_size);
-        else {
+        } else {
             switch (n_shared_total) {
             case 0:
                 launch_apply_kernel<StopType, 32, 0, true>(

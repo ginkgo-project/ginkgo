@@ -39,6 +39,7 @@ __dpct_inline__ void initialize(
     ValueType& alpha, ValueType* const x_shared_entry,
     ValueType* const r_shared_entry, ValueType* const r_hat_shared_entry,
     ValueType* const p_shared_entry, ValueType* const v_shared_entry,
+    ValueType* const p_hat_shared_entry,
     typename gko::remove_complex<ValueType>& rhs_norm,
     typename gko::remove_complex<ValueType>& res_norm,
     sycl::nd_item<3> item_ct1)
@@ -85,6 +86,7 @@ __dpct_inline__ void initialize(
     for (int iz = tid; iz < num_rows; iz += group_size) {
         r_hat_shared_entry[iz] = r_shared_entry[iz];
         p_shared_entry[iz] = zero<ValueType>();
+        p_hat_shared_entry[iz] = zero<ValueType>();
         v_shared_entry[iz] = zero<ValueType>();
     }
 }
@@ -115,23 +117,24 @@ __dpct_inline__ void compute_alpha(const int num_rows, const ValueType& rho_new,
                                    const ValueType* const v_shared_entry,
                                    ValueType& alpha, sycl::nd_item<3> item_ct1)
 {
+    auto sg = item_ct1.get_sub_group();
+    const auto sg_id = sg.get_group_id();
+    const auto tid = item_ct1.get_local_linear_id();
     if constexpr (sg_kernel_all) {
-        auto sg = item_ct1.get_sub_group();
-        const auto sg_id = sg.get_group_id();
-        const auto tid = item_ct1.get_local_linear_id();
-
         if (sg_id == 0) {
-            single_rhs_compute_dot_sg(num_rows, r_hat_shared_entry,
-                                      v_shared_entry, alpha, item_ct1);
+            single_rhs_compute_conj_dot_sg(num_rows, r_hat_shared_entry,
+                                           v_shared_entry, alpha, item_ct1);
         }
         if (tid == 0) {
             alpha = rho_new / alpha;
         }
         item_ct1.barrier(sycl::access::fence_space::local_space);
     } else {
-        single_rhs_compute_dot(num_rows, r_hat_shared_entry, v_shared_entry,
-                               alpha, item_ct1);
-        alpha = rho_new / alpha;
+        single_rhs_compute_conj_dot(num_rows, r_hat_shared_entry,
+                                    v_shared_entry, alpha, item_ct1);
+        if (tid == 0) {
+            alpha = rho_new / alpha;
+        }
     }
 }
 
@@ -158,26 +161,30 @@ __dpct_inline__ void compute_omega(const int num_rows,
                                    ValueType& temp, ValueType& omega,
                                    sycl::nd_item<3> item_ct1)
 {
+    auto sg = item_ct1.get_sub_group();
+    const auto sg_id = sg.get_group_id();
+    const auto tid = item_ct1.get_local_linear_id();
     if constexpr (sg_kernel_all) {
-        auto sg = item_ct1.get_sub_group();
-        const auto sg_id = sg.get_group_id();
-        const auto tid = item_ct1.get_local_linear_id();
-
-        if (sg_id == 0)
-            single_rhs_compute_dot_sg(num_rows, t_shared_entry, s_shared_entry,
-                                      omega, item_ct1);
-        else if (sg_id == 1)
-            single_rhs_compute_dot_sg(num_rows, t_shared_entry, t_shared_entry,
-                                      temp, item_ct1);
+        if (sg_id == 0) {
+            single_rhs_compute_conj_dot_sg(num_rows, t_shared_entry,
+                                           s_shared_entry, omega, item_ct1);
+        } else if (sg_id == 1) {
+            single_rhs_compute_conj_dot_sg(num_rows, t_shared_entry,
+                                           t_shared_entry, temp, item_ct1);
+        }
         item_ct1.barrier(sycl::access::fence_space::local_space);
-        if (tid == 0) omega /= temp;
+        if (tid == 0) {
+            omega /= temp;
+        }
         item_ct1.barrier(sycl::access::fence_space::local_space);
     } else {
-        single_rhs_compute_dot(num_rows, t_shared_entry, s_shared_entry, omega,
-                               item_ct1);
-        single_rhs_compute_dot(num_rows, t_shared_entry, t_shared_entry, temp,
-                               item_ct1);
-        omega /= temp;
+        single_rhs_compute_conj_dot(num_rows, t_shared_entry, s_shared_entry,
+                                    omega, item_ct1);
+        single_rhs_compute_conj_dot(num_rows, t_shared_entry, t_shared_entry,
+                                    temp, item_ct1);
+        if (tid == 0) {
+            omega /= temp;
+        }
     }
 }
 
@@ -244,33 +251,21 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
     real_type* norms_rhs_sh;
     real_type* norms_res_sh;
 
-    if constexpr (sg_kernel_all) {
-        using tile_value_t = ValueType[5];
-        tile_value_t& values =
-            *sycl::ext::oneapi::group_local_memory_for_overwrite<tile_value_t>(
-                group);
-        using tile_real_t = real_type[2];
-        tile_real_t& reals =
-            *sycl::ext::oneapi::group_local_memory_for_overwrite<tile_real_t>(
-                group);
-        rho_old_sh = &values[0];
-        rho_new_sh = &values[1];
-        alpha_sh = &values[2];
-        omega_sh = &values[3];
-        temp_sh = &values[4];
-        norms_rhs_sh = &reals[0];
-        norms_res_sh = &reals[1];
-    } else {
-        ValueType values[5];
-        real_type reals[2];
-        rho_old_sh = &values[0];
-        rho_new_sh = &values[1];
-        alpha_sh = &values[2];
-        omega_sh = &values[3];
-        temp_sh = &values[4];
-        norms_rhs_sh = &reals[0];
-        norms_res_sh = &reals[1];
-    }
+    using tile_value_t = ValueType[5];
+    tile_value_t& values =
+        *sycl::ext::oneapi::group_local_memory_for_overwrite<tile_value_t>(
+            group);
+    using tile_real_t = real_type[2];
+    tile_real_t& reals =
+        *sycl::ext::oneapi::group_local_memory_for_overwrite<tile_real_t>(
+            group);
+    rho_old_sh = &values[0];
+    rho_new_sh = &values[1];
+    alpha_sh = &values[2];
+    omega_sh = &values[3];
+    temp_sh = &values[4];
+    norms_rhs_sh = &reals[0];
+    norms_res_sh = &reals[1];
     const int gmem_offset =
         batch_id * sconf.gmem_stride_bytes / sizeof(ValueType);
     ValueType* p_hat_sh;
@@ -346,11 +341,12 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
     // compute residual norms
     // r_hat = r
     // p = 0
+    // p_hat = 0
     // v = 0
     initialize<sg_kernel_all>(num_rows, mat_global_entry, b_global_entry,
                               x_global_entry, rho_old_sh[0], omega_sh[0],
-                              alpha_sh[0], x_sh, r_sh, r_hat_sh, p_sh, v_sh,
-                              norms_rhs_sh[0], norms_res_sh[0], item_ct1);
+                              alpha_sh[0], x_sh, r_sh, r_hat_sh, p_sh, p_hat_sh,
+                              v_sh, norms_rhs_sh[0], norms_res_sh[0], item_ct1);
     item_ct1.barrier(sycl::access::fence_space::local_space);
 
     // stopping criterion object
@@ -366,13 +362,13 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
         // rho_new =  < r_hat , r > = (r_hat)' * (r)
         if constexpr (sg_kernel_all) {
             if (sg_id == 0) {
-                single_rhs_compute_dot_sg(num_rows, r_hat_sh, r_sh,
-                                          rho_new_sh[0], item_ct1);
+                single_rhs_compute_conj_dot_sg(num_rows, r_hat_sh, r_sh,
+                                               rho_new_sh[0], item_ct1);
             }
             item_ct1.barrier(sycl::access::fence_space::local_space);
         } else {
-            single_rhs_compute_dot(num_rows, r_hat_sh, r_sh, rho_new_sh[0],
-                                   item_ct1);
+            single_rhs_compute_conj_dot(num_rows, r_hat_sh, r_sh, rho_new_sh[0],
+                                        item_ct1);
         }
 
         // beta = (rho_new / rho_old)*(alpha / omega)

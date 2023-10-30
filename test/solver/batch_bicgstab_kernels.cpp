@@ -117,8 +117,8 @@ TEST_F(BatchBicgstab, SolvesStencilSystem)
                                               solver_settings, linear_system);
 
     for (size_t i = 0; i < num_batch_items; i++) {
-        ASSERT_LE(res.res_norm->get_const_values()[i] /
-                      linear_system.rhs_norm->get_const_values()[i],
+        ASSERT_LE(res.host_res_norm->get_const_values()[i] /
+                      linear_system.host_rhs_norm->get_const_values()[i],
                   solver_settings.residual_tol);
     }
     GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol);
@@ -141,9 +141,9 @@ TEST_F(BatchBicgstab, StencilSystemLoggerLogsResidual)
 
     auto res_log_array = res.log_data->res_norms.get_const_data();
     for (size_t i = 0; i < num_batch_items; i++) {
-        ASSERT_LE(res_log_array[i] / linear_system.rhs_norm->at(i, 0, 0),
+        ASSERT_LE(res_log_array[i] / linear_system.host_rhs_norm->at(i, 0, 0),
                   solver_settings.residual_tol);
-        ASSERT_NEAR(res_log_array[i], res.res_norm->get_const_values()[i],
+        ASSERT_NEAR(res_log_array[i], res.host_res_norm->get_const_values()[i],
                     10 * tol);
     }
 }
@@ -185,8 +185,8 @@ TEST_F(BatchBicgstab, CanSolve3ptStencilSystem)
 
     GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 10);
     for (size_t i = 0; i < num_batch_items; i++) {
-        auto comp_res_norm = res.res_norm->get_const_values()[i] /
-                             linear_system.rhs_norm->get_const_values()[i];
+        auto comp_res_norm = res.host_res_norm->get_const_values()[i] /
+                             linear_system.host_rhs_norm->get_const_values()[i];
         ASSERT_LE(comp_res_norm, tol);
     }
 }
@@ -215,11 +215,11 @@ TEST_F(BatchBicgstab, CanSolveLargeBatchSizeHpdSystem)
                                               &logger->get_residual_norm());
     GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 50);
     for (size_t i = 0; i < num_batch_items; i++) {
-        auto comp_res_norm = res.res_norm->get_const_values()[i] /
-                             linear_system.rhs_norm->get_const_values()[i];
+        auto comp_res_norm = res.host_res_norm->get_const_values()[i] /
+                             linear_system.host_rhs_norm->get_const_values()[i];
         ASSERT_LE(iter_counts->get_const_data()[i], max_iters);
         EXPECT_LE(res_norm->get_const_data()[i] /
-                      linear_system.rhs_norm->get_const_values()[i],
+                      linear_system.host_rhs_norm->get_const_values()[i],
                   tol);
         EXPECT_GT(res_norm->get_const_data()[i], real_type{0.0});
         ASSERT_LE(comp_res_norm, tol);
@@ -250,11 +250,11 @@ TEST_F(BatchBicgstab, CanSolveLargeMatrixSizeHpdSystem)
                                               &logger->get_residual_norm());
     GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 50);
     for (size_t i = 0; i < num_batch_items; i++) {
-        auto comp_res_norm = res.res_norm->get_const_values()[i] /
-                             linear_system.rhs_norm->get_const_values()[i];
+        auto comp_res_norm = res.host_res_norm->get_const_values()[i] /
+                             linear_system.host_rhs_norm->get_const_values()[i];
         ASSERT_LE(iter_counts->get_const_data()[i], max_iters);
         EXPECT_LE(res_norm->get_const_data()[i] /
-                      linear_system.rhs_norm->get_const_values()[i],
+                      linear_system.host_rhs_norm->get_const_values()[i],
                   tol);
         EXPECT_GT(res_norm->get_const_data()[i], real_type{0.0});
         ASSERT_LE(comp_res_norm, tol);

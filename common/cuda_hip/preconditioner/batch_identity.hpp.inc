@@ -45,16 +45,9 @@ public:
         return 0;
     }
 
-    __device__ __forceinline__ void generate(
-        size_type,
-        const gko::batch::matrix::ell::batch_item<const ValueType, gko::int32>&,
-        ValueType*)
-    {}
-
-    __device__ __forceinline__ void generate(
-        size_type,
-        const gko::batch::matrix::dense::batch_item<const ValueType>&,
-        ValueType*)
+    template <typename batch_item_type>
+    __device__ __forceinline__ void generate(size_type, const batch_item_type&,
+                                             ValueType*)
     {}
 
     __device__ __forceinline__ void apply(const int num_rows,
