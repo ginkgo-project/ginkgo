@@ -65,9 +65,9 @@ inline void initialize(
     compute_norm2_kernel<ValueType>(gko::batch::to_const(r_entry),
                                     res_norms_entry);
 
-    copy_kernel(gko::batch::to_const(r_entry), r_hat_entry);
-
     for (int r = 0; r < p_entry.num_rows; r++) {
+        r_hat_entry.values[r * r_hat_entry.stride] =
+            r_entry.values[r * r_entry.stride];
         p_entry.values[r * p_entry.stride] = zero<ValueType>();
         p_hat_entry.values[r * p_hat_entry.stride] = zero<ValueType>();
         v_entry.values[r * v_entry.stride] = zero<ValueType>();

@@ -219,20 +219,6 @@ int main()
         auto test = batch_multi_vector_type::create(exec);
     }
 
-    // core/matrix/batch_dense.hpp
-    {
-        using type1 = float;
-        using batch_dense_type = gko::batch::matrix::Dense<type1>;
-        auto test = batch_dense_type::create(exec);
-    }
-
-    // core/matrix/batch_ell.hpp
-    {
-        using type1 = float;
-        using batch_ell_type = gko::batch::matrix::Ell<type1>;
-        auto test = batch_ell_type::create(exec);
-    }
-
     // core/base/combination.hpp
     {
         using type1 = int;
@@ -374,6 +360,20 @@ int main()
     }
 #endif  // GKO_HAVE_PAPI_SDE
 
+    // core/matrix/batch_dense.hpp
+    {
+        using type1 = float;
+        using batch_dense_type = gko::batch::matrix::Dense<type1>;
+        auto test = batch_dense_type::create(exec);
+    }
+
+    // core/matrix/batch_ell.hpp
+    {
+        using type1 = float;
+        using batch_ell_type = gko::batch::matrix::Ell<type1>;
+        auto test = batch_ell_type::create(exec);
+    }
+
     // core/matrix/coo.hpp
     {
         using Mtx = gko::matrix::Coo<>;
@@ -454,6 +454,12 @@ int main()
     {
         using Bj = gko::preconditioner::Jacobi<>;
         auto test = Bj::build().with_max_block_size(1u).on(exec);
+    }
+
+    // core/solver/batch_bicgstab.hpp
+    {
+        using Solver = gko::batch::solver::Bicgstab<>;
+        auto test = Solver::build().with_max_iterations(5).on(exec);
     }
 
     // core/solver/bicgstab.hpp

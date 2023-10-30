@@ -163,7 +163,7 @@ namespace solver {
 
 
 template <typename DValueType>
-class KernelCallerInterface {
+class kernel_caller_interface {
 public:
     template <typename BatchMatrixType, typename PrecType, typename StopType,
               typename LogType>
@@ -192,20 +192,20 @@ enum class log_type { simple_convergence_completion };
  * depending on runtime parameters.
  *
  * @tparam ValueType  The user-facing value type.
- * @tparam KernelCaller  Class with an interface like KernelCallerInterface,
+ * @tparam KernelCaller  Class with an interface like kernel_caller_interface,
  *   that is responsible for finally calling the templated backend-specific
  *   kernel.
  * @tparam SettingsType  Structure type of options for the particular solver to
  * be used.
  */
 template <typename ValueType, typename KernelCaller, typename SettingsType>
-class BatchSolverDispatch {
+class batch_solver_dispatch {
 public:
     using value_type = ValueType;
     using device_value_type = DeviceValueType<ValueType>;
     using real_type = remove_complex<value_type>;
 
-    BatchSolverDispatch(
+    batch_solver_dispatch(
         const KernelCaller& kernel_caller, const SettingsType& settings,
         const BatchLinOp* const matrix, const BatchLinOp* const preconditioner,
         const log::detail::log_type logger_type =
@@ -323,13 +323,13 @@ private:
  * Convenient function to create a dispatcher. Infers most template arguments.
  */
 template <typename ValueType, typename KernelCaller, typename SettingsType>
-BatchSolverDispatch<ValueType, KernelCaller, SettingsType> create_dispatcher(
+batch_solver_dispatch<ValueType, KernelCaller, SettingsType> create_dispatcher(
     const KernelCaller& kernel_caller, const SettingsType& settings,
     const BatchLinOp* const matrix, const BatchLinOp* const preconditioner,
     const log::detail::log_type logger_type =
         log::detail::log_type::simple_convergence_completion)
 {
-    return BatchSolverDispatch<ValueType, KernelCaller, SettingsType>(
+    return batch_solver_dispatch<ValueType, KernelCaller, SettingsType>(
         kernel_caller, settings, matrix, preconditioner, logger_type);
 }
 

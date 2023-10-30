@@ -67,15 +67,8 @@ public:
      * Sets the input and generates the identity preconditioner.(Nothing needs
      * to be actually generated.)
      */
-    void generate(size_type,
-                  const gko::batch::matrix::ell::batch_item<const ValueType,
-                                                            const int32>&,
-                  ValueType* const)
-    {}
-
-    void generate(size_type,
-                  const gko::batch::matrix::dense::batch_item<const ValueType>&,
-                  ValueType* const)
+    template <typename batch_item_type>
+    void generate(size_type, const batch_item_type&, ValueType* const)
     {}
 
     /**
