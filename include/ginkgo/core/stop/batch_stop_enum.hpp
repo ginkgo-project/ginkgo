@@ -44,12 +44,14 @@ namespace stop {
  * solver.
  *
  * `absolute` tolerance implies that the convergence criteria check is
- * against the computed residual ($||r|| <= \tau$, where $||r||$ may be implicit
- * or explicit depending on the solver).
+ * against the computed residual ($||r|| <= \tau$)
  *
  * With the `relative` tolerance type, the solver
  * convergence criteria checks against the relative residual norm
  * ($\frac{||r||}{||b||} <= \tau$, where $||b||$$ is the L2 norm of the rhs).
+ *
+ * @note the compute residual norm, $||r||$ may be implicit or explicit
+ * depending on the solver algorithm.
  */
 enum class tolerance_type { absolute, relative };
 

@@ -75,7 +75,7 @@ public:
      */
     bool check_converged(const real_type* const residual_norms) const
     {
-        return (residual_norms[0] / rhs_norms_[0] <= rel_tol_);
+        return residual_norms[0] <= (rel_tol_ * rhs_norms_[0]);
     }
 
 private:

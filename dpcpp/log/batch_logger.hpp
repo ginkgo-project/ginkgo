@@ -56,7 +56,7 @@ namespace batch_log {
 template <typename RealType>
 class SimpleFinalLogger final {
 public:
-    using real_type = RealType;
+    using real_type = remove_complex<RealType>;
 
     SimpleFinalLogger(real_type* const batch_residuals, int* const batch_iters)
         : final_residuals_{batch_residuals}, final_iters_{batch_iters}

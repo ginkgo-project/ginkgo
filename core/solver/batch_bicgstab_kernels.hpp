@@ -54,6 +54,8 @@ namespace batch_bicgstab {
  */
 template <typename RealType>
 struct settings {
+    static_assert(std::is_same<RealType, remove_complex<RealType>>::value,
+                  "Template parameter must be a real type");
     int max_iterations;
     RealType residual_tol;
     ::gko::batch::stop::tolerance_type tol_type;
