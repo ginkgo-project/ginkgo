@@ -85,7 +85,7 @@ public:
         const size_type num_batch_items = mat.num_batch_items;
         const auto num_rows = mat.num_rows;
         const auto num_rhs = b.num_rhs;
-        if (num_rhs > 1) {
+        if (num_rhs > max_num_rhs) {
             GKO_NOT_IMPLEMENTED;
         }
 

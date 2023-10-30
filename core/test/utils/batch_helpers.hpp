@@ -118,7 +118,7 @@ std::unique_ptr<MatrixType> generate_random_batch_matrix(
  * @param exec  The executor.
  * @param num_rows  The size (number of rows) of the generated matrix
  * @param num_batch_items  The number of Poisson matrices in the batch
- * @param args The create args to be forwarded to the matrix
+ * @param args  The create args to be forwarded to the matrix
  */
 template <typename MatrixType, typename... MatrixArgs>
 std::unique_ptr<const MatrixType> generate_3pt_stencil_batch_matrix(

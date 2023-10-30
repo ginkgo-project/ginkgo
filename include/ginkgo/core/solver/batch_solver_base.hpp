@@ -163,6 +163,11 @@ protected:
         system_matrix_ = std::move(system_matrix);
     }
 
+    void set_preconditioner_base(std::shared_ptr<const BatchLinOp> precond)
+    {
+        preconditioner_ = std::move(precond);
+    }
+
     std::shared_ptr<const BatchLinOp> system_matrix_{};
     std::shared_ptr<const BatchLinOp> preconditioner_{};
     double residual_tol_{};
@@ -365,36 +370,47 @@ protected:
         this->set_system_matrix_base(new_system_matrix);
     }
 
-    /**
-     * Creates a shallow copy of the provided system matrix, clones it onto
-     * this executor if executors don't match.
-     */
+    void set_preconditioner(std::shared_ptr<const BatchLinOp> new_precond)
+    {
+        auto exec = self()->get_executor();
+        if (new_precond) {
+            GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(self(), new_precond);
+            GKO_ASSERT_BATCH_HAS_SQUARE_DIMENSIONS(new_precond);
+            if (new_precond->get_executor() != exec) {
+                new_precond = gko::clone(exec, new_precond);
+            }
+        }
+        this->set_preconditioner_base(new_precond);
+    }
+
     EnableBatchSolver& operator=(const EnableBatchSolver& other)
     {
         if (&other != this) {
             this->set_size(other.get_size());
             set_system_matrix(other.get_system_matrix());
+            set_preconditioner(other.get_preconditioner());
+            reset_tolerance(other.get_tolerance());
+            reset_max_iterations(other.get_max_iterations());
+            reset_tolerance_type(other.get_tolerance_type());
         }
         return *this;
     }
 
-    /**
-     * Moves the provided system matrix, clones it onto this executor if
-     * executors don't match. The moved-from object has a nullptr system matrix.
-     */
     EnableBatchSolver& operator=(EnableBatchSolver&& other)
     {
         if (&other != this) {
             this->set_size(other.get_size());
             set_system_matrix(other.get_system_matrix());
+            set_preconditioner(other.get_preconditioner());
+            reset_tolerance(other.get_tolerance());
+            reset_max_iterations(other.get_max_iterations());
+            reset_tolerance_type(other.get_tolerance_type());
             other.set_system_matrix(nullptr);
+            other.set_preconditioner(nullptr);
         }
         return *this;
     }
 
-    /**
-     * Creates a shallow copy of the provided system matrix.
-     */
     EnableBatchSolver(const EnableBatchSolver& other)
         : EnableBatchLinOp<ConcreteSolver, PolymorphicBase>(
               other.self()->get_executor(), other.self()->get_size())
@@ -402,10 +418,6 @@ protected:
         *this = other;
     }
 
-    /**
-     * Moves the provided system matrix. The moved-from object has a nullptr
-     * system matrix.
-     */
     EnableBatchSolver(EnableBatchSolver&& other)
         : EnableBatchLinOp<ConcreteSolver, PolymorphicBase>(
               other.self()->get_executor(), other.self()->get_size())

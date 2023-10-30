@@ -329,7 +329,7 @@ inline void batch_entry_bicgstab_impl(
                       gko::batch::to_const(s_entry), temp_entry, omega_entry);
 
 
-        // x = x + alpha*p_hat + omega *s_hat
+        // x = x + alpha * p_hat + omega * s_hat
         // r = s - omega * t
         update_x_and_r(gko::batch::to_const(p_hat_entry),
                        gko::batch::to_const(s_hat_entry),

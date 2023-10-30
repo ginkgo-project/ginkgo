@@ -119,7 +119,7 @@ struct log_data final {
  * @ingroup log
  */
 template <typename ValueType = default_precision>
-class BatchConvergence : public gko::log::Logger {
+class BatchConvergence final : public gko::log::Logger {
 public:
     using real_type = remove_complex<ValueType>;
     using mask_type = gko::log::Logger::mask_type;

@@ -51,7 +51,7 @@ namespace batch_log {
 template <typename RealType>
 class SimpleFinalLogger final {
 public:
-    using real_type = RealType;
+    using real_type = remove_complex<RealType>;
 
     /**
      * Constructor
