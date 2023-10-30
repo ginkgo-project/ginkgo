@@ -67,10 +67,10 @@ using settings = gko::kernels::batch_bicgstab::settings<T>;
 
 
 template <typename ValueType>
-class KernelCaller {
+class kernel_caller {
 public:
-    KernelCaller(std::shared_ptr<const DefaultExecutor> exec,
-                 const settings<remove_complex<ValueType>> settings)
+    kernel_caller(std::shared_ptr<const DefaultExecutor> exec,
+                  const settings<remove_complex<ValueType>> settings)
         : exec_{std::move(exec)}, settings_{settings}
     {}
 
@@ -125,7 +125,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            batch::log::detail::log_data<remove_complex<ValueType>>& logdata)
 {
     auto dispatcher = batch::solver::create_dispatcher<ValueType>(
-        KernelCaller<ValueType>(exec, settings), settings, mat, precond);
+        kernel_caller<ValueType>(exec, settings), settings, mat, precond);
     dispatcher.apply(b, x, logdata);
 }
 

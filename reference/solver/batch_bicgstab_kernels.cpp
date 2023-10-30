@@ -69,10 +69,10 @@ using settings = gko::kernels::batch_bicgstab::settings<T>;
 
 
 template <typename ValueType>
-class KernelCaller {
+class kernel_caller {
 public:
-    KernelCaller(std::shared_ptr<const DefaultExecutor> exec,
-                 const settings<remove_complex<ValueType>> settings)
+    kernel_caller(std::shared_ptr<const DefaultExecutor> exec,
+                  const settings<remove_complex<ValueType>> settings)
         : exec_{std::move(exec)}, settings_{settings}
     {}
 
@@ -97,13 +97,13 @@ public:
             PrecType::dynamic_work_size(num_rows,
                                         mat.get_single_item_num_nnz()) *
                 sizeof(ValueType);
-        std::vector<unsigned char> local_space(local_size_bytes);
+        array<unsigned char> local_space(exec_, local_size_bytes);
 
         for (size_type batch_id = 0; batch_id < num_batch_items; batch_id++) {
             batch_entry_bicgstab_impl<StopType, PrecType, LogType,
                                       BatchMatrixType, ValueType>(
                 settings_, logger, prec, mat, b, x, batch_id,
-                local_space.data());
+                local_space.get_data());
         }
     }
 
@@ -123,7 +123,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            batch::log::detail::log_data<remove_complex<ValueType>>& log_data)
 {
     auto dispatcher = batch::solver::create_dispatcher<ValueType>(
-        KernelCaller<ValueType>(exec, settings), settings, mat, precon);
+        kernel_caller<ValueType>(exec, settings), settings, mat, precon);
     dispatcher.apply(b, x, log_data);
 }
 
