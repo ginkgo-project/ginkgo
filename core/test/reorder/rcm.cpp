@@ -33,6 +33,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/reorder/rcm.hpp>
 
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
+#endif
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 5211, 4973, 4974)
+#endif
+
+
 #include <memory>
 
 
@@ -52,6 +63,7 @@ protected:
     using v_type = double;
     using i_type = int;
     using reorder_type = gko::reorder::Rcm<v_type, i_type>;
+    using new_reorder_type = gko::experimental::reorder::Rcm<i_type>;
 
     Rcm()
         : exec(gko::ReferenceExecutor::create()),
@@ -65,6 +77,27 @@ protected:
 TEST_F(Rcm, RcmFactoryKnowsItsExecutor)
 {
     ASSERT_EQ(this->rcm_factory->get_executor(), this->exec);
+}
+
+
+TEST_F(Rcm, NewInterfaceDefaults)
+{
+    auto param = new_reorder_type::build();
+
+    ASSERT_EQ(param.skip_symmetrize, false);
+    ASSERT_EQ(param.strategy,
+              gko::reorder::starting_strategy::pseudo_peripheral);
+}
+
+
+TEST_F(Rcm, NewInterfaceSetParameters)
+{
+    auto param =
+        new_reorder_type::build().with_skip_symmetrize(true).with_strategy(
+            gko::reorder::starting_strategy::minimum_degree);
+
+    ASSERT_EQ(param.skip_symmetrize, true);
+    ASSERT_EQ(param.strategy, gko::reorder::starting_strategy::minimum_degree);
 }
 
 }  // namespace

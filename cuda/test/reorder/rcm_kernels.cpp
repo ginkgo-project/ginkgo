@@ -33,6 +33,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/reorder/rcm.hpp>
 
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
+#endif
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 5211, 4973, 4974)
+#endif
+
+
 #include <gtest/gtest.h>
 
 
@@ -49,34 +60,39 @@ protected:
     using i_type = int;
     using CsrMtx = gko::matrix::Csr<v_type, i_type>;
     using reorder_type = gko::reorder::Rcm<v_type, i_type>;
+    using new_reorder_type = gko::experimental::reorder::Rcm<i_type>;
     using perm_type = gko::matrix::Permutation<i_type>;
 
 
     Rcm()
-        :  // clang-format off
-          p_mtx(gko::initialize<CsrMtx>({{1.0, 2.0, 0.0, -1.3, 2.1},
+        : p_mtx(gko::initialize<CsrMtx>({{1.0, 2.0, 0.0, -1.3, 2.1},
                                          {2.0, 5.0, 1.5, 0.0, 0.0},
                                          {0.0, 1.5, 1.5, 1.1, 0.0},
                                          {-1.3, 0.0, 1.1, 2.0, 0.0},
                                          {2.1, 0.0, 0.0, 0.0, 1.0}},
-                                        exec)),
-          // clang-format on
-          rcm_factory(reorder_type::build().on(exec)),
-          reorder_op(rcm_factory->generate(p_mtx))
+                                        exec))
     {}
 
-    std::unique_ptr<reorder_type::Factory> rcm_factory;
     std::shared_ptr<CsrMtx> p_mtx;
-    std::unique_ptr<reorder_type> reorder_op;
 };
 
 
-TEST_F(Rcm, IsExecutedOnCpuExecutor)
+TEST_F(Rcm, IsEquivalentToRef)
 {
-    // This only executes successfully if computed on cpu executor.
-    auto p = reorder_op->get_permutation();
+    auto reorder_op = reorder_type::build().on(ref)->generate(p_mtx);
+    auto dreorder_op = reorder_type::build().on(exec)->generate(p_mtx);
 
-    ASSERT_TRUE(true);
+    GKO_ASSERT_ARRAY_EQ(dreorder_op->get_permutation_array(),
+                        reorder_op->get_permutation_array());
+}
+
+
+TEST_F(Rcm, IsEquivalentToRefNewInterface)
+{
+    auto reorder_op = new_reorder_type::build().on(ref)->generate(p_mtx);
+    auto dreorder_op = new_reorder_type::build().on(exec)->generate(p_mtx);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(dreorder_op, reorder_op);
 }
 
 

@@ -50,6 +50,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/test/utils/assertions.hpp"
 
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
+#endif
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 5211, 4973, 4974)
+#endif
+
+
 namespace {
 
 
@@ -59,8 +70,8 @@ protected:
     using i_type = int;
     using CsrMtx = gko::matrix::Csr<v_type, i_type>;
     using reorder_type = gko::reorder::Rcm<v_type, i_type>;
+    using new_reorder_type = gko::experimental::reorder::Rcm<i_type>;
     using perm_type = gko::matrix::Permutation<i_type>;
-
 
     Rcm()
         : exec(gko::ReferenceExecutor::create()),
@@ -83,6 +94,17 @@ protected:
                                          {1., 0., 0., 0., 1., 0., 0., 1., 1.},
                                          {1., 0., 0., 1., 1., 0., 0., 1., 1.}},
                                         exec)),
+        p_mtx_1_lower(gko::initialize<CsrMtx>(
+                                        {{1., 0., 0., 0., 0., 0., 0., 0., 0.},
+                                         {0., 1., 0., 0., 0., 0., 0., 0., 0.},
+                                         {0., 1., 1., 0., 0., 0., 0., 0., 0.},
+                                         {1., 1., 0., 1., 0., 0., 0., 0., 0.},
+                                         {1., 0., 0., 1., 1., 0., 0., 0., 0.},
+                                         {1., 1., 1., 1., 1., 1., 0., 0., 0.},
+                                         {0., 1., 1., 1., 1., 1., 1., 0., 0.},
+                                         {1., 0., 0., 0., 1., 0., 0., 1., 0.},
+                                         {1., 0., 0., 1., 1., 0., 0., 1., 1.}},
+                                        exec)),
           // clang-format on
           rcm_factory(reorder_type::build().on(exec)),
           reorder_op_0(rcm_factory->generate(p_mtx_0)),
@@ -95,6 +117,7 @@ protected:
     std::unique_ptr<reorder_type> reorder_op_0;
     std::shared_ptr<CsrMtx> p_mtx_1;
     std::unique_ptr<reorder_type> reorder_op_1;
+    std::shared_ptr<CsrMtx> p_mtx_1_lower;
 
     static bool is_permutation(const perm_type* input_perm)
     {
@@ -140,4 +163,37 @@ TEST_F(Rcm, PermutesPerfectFullBand)
 }
 
 
+TEST_F(Rcm, NewInterfaceWorksOnSymmetric)
+{
+    std::vector<i_type> correct = {7, 8, 0, 4, 3, 5, 6, 1, 2};
+
+    auto permutation =
+        new_reorder_type::build().with_skip_symmetrize(true).on(exec)->generate(
+            p_mtx_1);
+
+    auto p = permutation->get_const_permutation();
+    ASSERT_TRUE(std::equal(p, p + correct.size(), correct.begin()));
+}
+
+
+TEST_F(Rcm, NewInterfaceWorksOnNonsymmetric)
+{
+    std::vector<i_type> correct = {7, 8, 0, 4, 3, 5, 6, 1, 2};
+
+    auto permutation =
+        new_reorder_type::build().on(exec)->generate(p_mtx_1_lower);
+
+    auto p = permutation->get_const_permutation();
+    ASSERT_TRUE(std::equal(p, p + correct.size(), correct.begin()));
+}
+
+
 }  // namespace
+
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
