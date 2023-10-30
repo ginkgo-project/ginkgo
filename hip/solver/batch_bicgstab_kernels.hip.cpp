@@ -85,21 +85,19 @@ template <typename BatchMatrixType>
 int get_num_threads_per_block(std::shared_ptr<const DefaultExecutor> exec,
                               const int num_rows)
 {
-    int nwarps = num_rows / 4;
-    if (nwarps < 2) {
-        nwarps = 2;
-    }
-    const int min_block_size = 2 * config::warp_size;
+    int num_warps = std::max(num_rows / 4, 2);
+    constexpr int warp_sz = static_cast<int>(config::warp_size);
+    const int min_block_size = 2 * warp_sz;
     const int device_max_threads =
-        ((std::max(num_rows, min_block_size)) / config::warp_size) *
-        config::warp_size;
+        ((std::max(num_rows, min_block_size)) / warp_sz) * warp_sz;
     const int num_regs_used_per_thread = 64;
     int max_regs_blk = 0;
     hipDeviceGetAttribute(&max_regs_blk, hipDeviceAttributeMaxRegistersPerBlock,
                           exec->get_device_id());
     const int max_threads_regs = (max_regs_blk / num_regs_used_per_thread);
-    const int max_threads = std::min(max_threads_regs, device_max_threads);
-    return std::min(nwarps * static_cast<int>(config::warp_size), max_threads);
+    int max_threads = std::min(max_threads_regs, device_max_threads);
+    max_threads = max_threads <= 1024 ? max_threads : 1024;
+    return std::max(std::min(num_warps * warp_sz, max_threads), min_block_size);
 }
 
 
@@ -108,12 +106,12 @@ using settings = gko::kernels::batch_bicgstab::settings<T>;
 
 
 template <typename HipValueType>
-class KernelCaller {
+class kernel_caller {
 public:
     using value_type = HipValueType;
 
-    KernelCaller(std::shared_ptr<const DefaultExecutor> exec,
-                 const settings<remove_complex<value_type>> settings)
+    kernel_caller(std::shared_ptr<const DefaultExecutor> exec,
+                  const settings<remove_complex<value_type>> settings)
         : exec_{exec}, settings_{settings}
     {}
 
@@ -147,12 +145,11 @@ public:
         const size_type num_batch_items = mat.num_batch_items;
         constexpr int align_multiple = 8;
         const int padded_num_rows =
-            ((mat.num_rows + align_multiple - 1) / align_multiple) *
-            align_multiple;
+            ceildiv(mat.num_rows, align_multiple) * align_multiple;
         const int shmem_per_blk = exec_->get_max_shared_memory_per_block();
         const int block_size =
             get_num_threads_per_block<BatchMatrixType>(exec_, mat.num_rows);
-        assert(block_size >= 2 * config::warp_size);
+        GKO_ASSERT(block_size >= 2 * config::warp_size);
 
         const size_t prec_size =
             PrecType::dynamic_work_size(padded_num_rows,
@@ -175,62 +172,64 @@ public:
 
         // Template parameters launch_apply_kernel<StopType, n_shared,
         // prec_shared)
-        if (sconf.prec_shared)
-            launch_apply_kernel<StopType, 9, 1>(
+        if (sconf.prec_shared) {
+            launch_apply_kernel<StopType, 9, true>(
                 sconf, logger, prec, mat, b.values, x.values, workspace_data,
                 block_size, shared_size);
-        else {
+        } else {
             switch (sconf.n_shared) {
             case 0:
-                launch_apply_kernel<StopType, 0, 0>(
+                launch_apply_kernel<StopType, 0, false>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, block_size, shared_size);
                 break;
             case 1:
-                launch_apply_kernel<StopType, 1, 0>(
+                launch_apply_kernel<StopType, 1, false>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, block_size, shared_size);
                 break;
             case 2:
-                launch_apply_kernel<StopType, 2, 0>(
+                launch_apply_kernel<StopType, 2, false>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, block_size, shared_size);
                 break;
             case 3:
-                launch_apply_kernel<StopType, 3, 0>(
+                launch_apply_kernel<StopType, 3, false>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, block_size, shared_size);
                 break;
             case 4:
-                launch_apply_kernel<StopType, 4, 0>(
+                launch_apply_kernel<StopType, 4, false>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, block_size, shared_size);
                 break;
             case 5:
-                launch_apply_kernel<StopType, 5, 0>(
+                launch_apply_kernel<StopType, 5, false>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, block_size, shared_size);
                 break;
             case 6:
-                launch_apply_kernel<StopType, 6, 0>(
+                launch_apply_kernel<StopType, 6, false>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, block_size, shared_size);
                 break;
             case 7:
-                launch_apply_kernel<StopType, 7, 0>(
+                launch_apply_kernel<StopType, 7, false>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, block_size, shared_size);
                 break;
             case 8:
-                launch_apply_kernel<StopType, 8, 0>(
+                launch_apply_kernel<StopType, 8, false>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, block_size, shared_size);
                 break;
             case 9:
-                launch_apply_kernel<StopType, 9, 0>(
+                launch_apply_kernel<StopType, 9, false>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, block_size, shared_size);
                 break;
+            default:
+                GKO_NOT_IMPLEMENTED;
             }
         }
 
@@ -254,7 +253,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
 {
     using hip_value_type = hip_type<ValueType>;
     auto dispatcher = batch::solver::create_dispatcher<ValueType>(
-        KernelCaller<hip_value_type>(exec, settings), settings, mat, precon);
+        kernel_caller<hip_value_type>(exec, settings), settings, mat, precon);
     dispatcher.apply(b, x, logdata);
 }
 

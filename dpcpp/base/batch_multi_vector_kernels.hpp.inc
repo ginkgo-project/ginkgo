@@ -67,15 +67,12 @@ __dpct_inline__ void add_scaled_kernel(
 }
 
 
-template <int tile_size = config::warp_size, typename ValueType>
-__dpct_inline__ void single_rhs_compute_dot(
+template <typename ValueType>
+__dpct_inline__ void single_rhs_compute_conj_dot(
     const int num_rows, const ValueType* const __restrict__ x,
     const ValueType* const __restrict__ y, ValueType& result,
     sycl::nd_item<3> item_ct1)
 {
-    // auto grp =
-    //     group::tiled_partition<group_size>(group::this_thread_block(item_ct1));
-    // auto grp = group::this_thread_block(item_ct1);
     const auto group = item_ct1.get_group();
     const auto group_size = item_ct1.get_local_range().size();
     const auto tid = item_ct1.get_local_linear_id();
@@ -90,7 +87,7 @@ __dpct_inline__ void single_rhs_compute_dot(
 
 
 template <int tile_size = config::warp_size, typename ValueType>
-__dpct_inline__ void single_rhs_compute_dot_sg(
+__dpct_inline__ void single_rhs_compute_conj_dot_sg(
     const int num_rows, const ValueType* const __restrict__ x,
     const ValueType* const __restrict__ y, ValueType& result,
     sycl::nd_item<3> item_ct1)
@@ -183,8 +180,6 @@ __dpct_inline__ void single_rhs_compute_norm2(
     const int num_rows, const ValueType* const __restrict__ x,
     gko::remove_complex<ValueType>& result, sycl::nd_item<3> item_ct1)
 {
-    // auto grp =
-    //     group::tiled_partition<tile_size>(group::this_thread_block(item_ct1));
     const auto group = item_ct1.get_group();
     const auto group_size = item_ct1.get_local_range().size();
     const auto tid = item_ct1.get_local_linear_id();
@@ -197,8 +192,6 @@ __dpct_inline__ void single_rhs_compute_norm2(
     }
 
     val = sycl::reduce_over_group(group, val, sycl::plus<>());
-    // val = ::gko::kernels::dpcpp::reduce(
-    //     grp, val, [](real_type a, real_type b) { return a + b; });
 
     result = sqrt(val);
 }

@@ -92,7 +92,8 @@ get_batch_struct(batch::matrix::Dense<ValueType>* const op)
  * Generates an immutable uniform batch struct from a batch of ell matrices.
  */
 template <typename ValueType, typename IndexType>
-inline batch::matrix::ell::uniform_batch<const hip_type<ValueType>, IndexType>
+inline batch::matrix::ell::uniform_batch<const hip_type<ValueType>,
+                                         const IndexType>
 get_batch_struct(const batch::matrix::Ell<ValueType, IndexType>* const op)
 {
     return {as_hip_type(op->get_const_values()),

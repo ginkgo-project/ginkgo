@@ -42,15 +42,9 @@ public:
 
     static int dynamic_work_size(int, int) { return 0; }
 
-    void generate(
-        size_type batch_id,
-        const gko::batch::matrix::ell::batch_item<const ValueType, gko::int32>&,
-        ValueType* const, sycl::nd_item<3> item_ct1)
-    {}
-
-    void generate(size_type batch_id,
-                  const gko::batch::matrix::dense::batch_item<const ValueType>&,
-                  ValueType* const, sycl::nd_item<3> item_ct1)
+    template <typename batch_item_type>
+    void generate(size_type, const batch_item_type&, ValueType*,
+                  sycl::nd_item<3> item_ct1)
     {}
 
     __dpct_inline__ void apply(const int num_rows, const ValueType* const r,

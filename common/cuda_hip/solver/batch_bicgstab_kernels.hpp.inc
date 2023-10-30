@@ -38,7 +38,8 @@ __device__ __forceinline__ void initialize(
     const ValueType* const x_global_entry, ValueType& rho_old, ValueType& omega,
     ValueType& alpha, ValueType* const x_shared_entry,
     ValueType* const r_shared_entry, ValueType* const r_hat_shared_entry,
-    ValueType* const p_shared_entry, ValueType* const v_shared_entry,
+    ValueType* const p_shared_entry, ValueType* const p_hat_shared_entry,
+    ValueType* const v_shared_entry,
     typename gko::remove_complex<ValueType>& rhs_norm,
     typename gko::remove_complex<ValueType>& res_norm)
 {
@@ -70,6 +71,7 @@ __device__ __forceinline__ void initialize(
     for (int iz = threadIdx.x; iz < num_rows; iz += blockDim.x) {
         r_hat_shared_entry[iz] = r_shared_entry[iz];
         p_shared_entry[iz] = zero<ValueType>();
+        p_hat_shared_entry[iz] = zero<ValueType>();
         v_shared_entry[iz] = zero<ValueType>();
     }
 }
@@ -82,8 +84,8 @@ __device__ __forceinline__ void update_p(
     const ValueType* const r_shared_entry,
     const ValueType* const v_shared_entry, ValueType* const p_shared_entry)
 {
+    const ValueType beta = (rho_new / rho_old) * (alpha / omega);
     for (int r = threadIdx.x; r < num_rows; r += blockDim.x) {
-        const ValueType beta = (rho_new / rho_old) * (alpha / omega);
         p_shared_entry[r] =
             r_shared_entry[r] +
             beta * (p_shared_entry[r] - omega * v_shared_entry[r]);
@@ -97,8 +99,8 @@ __device__ __forceinline__ void compute_alpha(
     const ValueType* const v_shared_entry, ValueType& alpha)
 {
     if (threadIdx.x / config::warp_size == 0) {
-        single_rhs_compute_dot(subgroup, num_rows, r_hat_shared_entry,
-                               v_shared_entry, alpha);
+        single_rhs_compute_conj_dot(subgroup, num_rows, r_hat_shared_entry,
+                                    v_shared_entry, alpha);
     }
     __syncthreads();
     if (threadIdx.x == 0) {
@@ -126,11 +128,11 @@ __device__ __forceinline__ void compute_omega(
     const ValueType* const s_shared_entry, ValueType& temp, ValueType& omega)
 {
     if (threadIdx.x / config::warp_size == 0) {
-        single_rhs_compute_dot(subgroup, num_rows, t_shared_entry,
-                               s_shared_entry, omega);
+        single_rhs_compute_conj_dot(subgroup, num_rows, t_shared_entry,
+                                    s_shared_entry, omega);
     } else if (threadIdx.x / config::warp_size == 1) {
-        single_rhs_compute_dot(subgroup, num_rows, t_shared_entry,
-                               t_shared_entry, temp);
+        single_rhs_compute_conj_dot(subgroup, num_rows, t_shared_entry,
+                                    t_shared_entry, temp);
     }
 
     __syncthreads();
@@ -278,10 +280,12 @@ __global__ void apply_kernel(
         // compute residual norms
         // r_hat = r
         // p = 0
+        // p_hat = 0
         // v = 0
         initialize(subgroup, num_rows, mat_entry, b_entry_ptr, x_gl_entry_ptr,
                    rho_old_sh[0], omega_sh[0], alpha_sh[0], x_sh, r_sh,
-                   r_hat_sh, p_sh, v_sh, norms_rhs_sh[0], norms_res_sh[0]);
+                   r_hat_sh, p_sh, p_hat_sh, v_sh, norms_rhs_sh[0],
+                   norms_res_sh[0]);
         __syncthreads();
 
         // stopping criterion object
@@ -296,8 +300,8 @@ __global__ void apply_kernel(
 
             // rho_new =  < r_hat , r > = (r_hat)' * (r)
             if (threadIdx.x / config::warp_size == 0) {
-                single_rhs_compute_dot(subgroup, num_rows, r_hat_sh, r_sh,
-                                       rho_new_sh[0]);
+                single_rhs_compute_conj_dot(subgroup, num_rows, r_hat_sh, r_sh,
+                                            rho_new_sh[0]);
             }
             __syncthreads();
 
