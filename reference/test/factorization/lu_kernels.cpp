@@ -164,6 +164,19 @@ TYPED_TEST(Lu, SymbolicLUWorks)
 }
 
 
+TYPED_TEST(Lu, SymbolicLUNearSymmWorks)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->forall_matrices([this] {
+        std::unique_ptr<gko::matrix::Csr<value_type, index_type>> lu;
+        gko::factorization::symbolic_lu_near_symm(this->mtx.get(), lu);
+
+        GKO_ASSERT_MTX_EQ_SPARSITY(lu, this->mtx_lu);
+    });
+}
+
+
 TYPED_TEST(Lu, SymbolicLUWorksWithMissingDiagonal)
 {
     using matrix_type = typename TestFixture::matrix_type;
