@@ -37,13 +37,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 
 
+#include <thrust/copy.h>
+
+
 #include <ginkgo/core/matrix/csr.hpp>
 
 
 #include "core/base/allocator.hpp"
 #include "core/matrix/csr_lookup.hpp"
+#include "hip/base/thrust.hip.hpp"
 #include "hip/base/types.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
+#include "hip/components/reduction.hip.hpp"
 #include "hip/components/syncfree.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 
