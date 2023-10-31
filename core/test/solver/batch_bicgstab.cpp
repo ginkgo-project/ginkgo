@@ -74,11 +74,11 @@ protected:
     const gko::size_type num_batch_items = 3;
     const int num_rows = 5;
     std::shared_ptr<const Mtx> mtx;
-    std::unique_ptr<typename Solver::Factory> solver_factory;
     const int def_max_iters = 100;
     const real_type def_abs_res_tol = 1e-11;
     const gko::batch::stop::tolerance_type def_tol_type =
         gko::batch::stop::tolerance_type::absolute;
+    std::unique_ptr<typename Solver::Factory> solver_factory;
     std::unique_ptr<gko::batch::BatchLinOp> solver;
 };
 
