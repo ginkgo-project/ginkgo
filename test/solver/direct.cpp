@@ -93,22 +93,24 @@ protected:
         mtx = gko::read<matrix_type>(s_mtx, ref);
         dmtx = gko::clone(exec, mtx);
         const auto num_rows = mtx->get_size()[0];
-        factory =
-            solver_type::build()
-                .with_factorization(
-                    factorization_type::build().with_symmetric_sparsity(true))
-                .with_num_rhs(static_cast<gko::size_type>(nrhs))
-                .on(ref);
+        factory = solver_type::build()
+                      .with_factorization(
+                          factorization_type::build().with_symbolic_algorithm(
+                              gko::experimental::factorization::
+                                  symbolic_algorithm::symmetric))
+                      .with_num_rhs(static_cast<gko::size_type>(nrhs))
+                      .on(ref);
         alpha = gen_mtx(1, 1);
         beta = gen_mtx(1, 1);
         input = gen_mtx(num_rows, nrhs);
         output = gen_mtx(num_rows, nrhs);
-        dfactory =
-            solver_type::build()
-                .with_factorization(
-                    factorization_type::build().with_symmetric_sparsity(true))
-                .with_num_rhs(static_cast<gko::size_type>(nrhs))
-                .on(exec);
+        dfactory = solver_type::build()
+                       .with_factorization(
+                           factorization_type::build().with_symbolic_algorithm(
+                               gko::experimental::factorization::
+                                   symbolic_algorithm::symmetric))
+                       .with_num_rhs(static_cast<gko::size_type>(nrhs))
+                       .on(exec);
         dalpha = gko::clone(exec, alpha);
         dbeta = gko::clone(exec, beta);
         dinput = gko::clone(exec, input);

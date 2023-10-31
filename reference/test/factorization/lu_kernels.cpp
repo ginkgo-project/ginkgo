@@ -265,7 +265,8 @@ TYPED_TEST(Lu, FactorizeSymmetricWorks)
             auto factory =
                 gko::experimental::factorization::Lu<value_type,
                                                      index_type>::build()
-                    .with_symmetric_sparsity(true)
+                    .with_symbolic_algorithm(gko::experimental::factorization::
+                                                 symbolic_algorithm::symmetric)
                     .on(this->ref);
 
             auto lu = factory->generate(this->mtx);
@@ -288,10 +289,38 @@ TYPED_TEST(Lu, FactorizeNonsymmetricWorks)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     this->forall_matrices([this] {
-        auto factory = gko::experimental::factorization::Lu<value_type,
-                                                            index_type>::build()
-                           .with_symmetric_sparsity(false)
-                           .on(this->ref);
+        auto factory =
+            gko::experimental::factorization::Lu<value_type,
+                                                 index_type>::build()
+                .with_symbolic_algorithm(gko::experimental::factorization::
+                                             symbolic_algorithm::general)
+                .on(this->ref);
+
+        auto lu = factory->generate(this->mtx);
+
+        GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_combined(), this->mtx_lu);
+        GKO_ASSERT_MTX_NEAR(lu->get_combined(), this->mtx_lu,
+                            15 * r<value_type>::value);
+        ASSERT_EQ(lu->get_storage_type(),
+                  gko::experimental::factorization::storage_type::combined_lu);
+        ASSERT_EQ(lu->get_lower_factor(), nullptr);
+        ASSERT_EQ(lu->get_upper_factor(), nullptr);
+        ASSERT_EQ(lu->get_diagonal(), nullptr);
+    });
+}
+
+
+TYPED_TEST(Lu, FactorizeNearSymmetricWorks)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->forall_matrices([this] {
+        auto factory =
+            gko::experimental::factorization::Lu<value_type,
+                                                 index_type>::build()
+                .with_symbolic_algorithm(gko::experimental::factorization::
+                                             symbolic_algorithm::near_symmetric)
+                .on(this->ref);
 
         auto lu = factory->generate(this->mtx);
 

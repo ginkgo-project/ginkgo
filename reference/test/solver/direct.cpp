@@ -77,7 +77,9 @@ protected:
                 .with_factorization(
                     gko::experimental::factorization::Lu<value_type,
                                                          index_type>::build()
-                        .with_symmetric_sparsity(true))
+                        .with_symbolic_algorithm(
+                            gko::experimental::factorization::
+                                symbolic_algorithm::symmetric))
                 .on(exec);
         solver = factory->generate(mtx);
         std::normal_distribution<gko::remove_complex<value_type>> dist(0, 1);

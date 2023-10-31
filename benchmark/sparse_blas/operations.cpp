@@ -642,6 +642,37 @@ private:
 };
 
 
+class SymbolicLuNearSymmOperation : public BenchmarkOperation {
+public:
+    explicit SymbolicLuNearSymmOperation(const Mtx* mtx) : mtx_{mtx}, result_{}
+    {}
+
+    std::pair<bool, double> validate() const override
+    {
+        return std::make_pair(
+            validate_symbolic_factorization(mtx_, result_.get()), 0.0);
+    }
+
+    gko::size_type get_flops() const override { return 0; }
+
+    gko::size_type get_memory() const override { return 0; }
+
+    void run() override
+    {
+        gko::factorization::symbolic_lu_near_symm(mtx_, result_);
+    }
+
+    void write_stats(json& object) override
+    {
+        object["factor_nonzeros"] = result_->get_num_stored_elements();
+    }
+
+private:
+    const Mtx* mtx_;
+    std::unique_ptr<Mtx> result_;
+};
+
+
 class SymbolicCholeskyOperation : public BenchmarkOperation {
 public:
     explicit SymbolicCholeskyOperation(const Mtx* mtx, bool symmetric)
@@ -816,6 +847,10 @@ const std::map<std::string,
         {"symbolic_lu",
          [](const Mtx* mtx) {
              return std::make_unique<SymbolicLuOperation>(mtx);
+         }},
+        {"symbolic_lu_near_symm",
+         [](const Mtx* mtx) {
+             return std::make_unique<SymbolicLuNearSymmOperation>(mtx);
          }},
         {"symbolic_cholesky",
          [](const Mtx* mtx) {
