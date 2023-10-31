@@ -270,8 +270,7 @@ private:
  * @tparam ValueType  The value type of the multivectors.
  * @tparam PolymorphicBase  The base class; must be a subclass of BatchLinOp.
  */
-template <typename ConcreteSolver,
-          typename ValueType = typename ConcreteSolver::value_type,
+template <typename ConcreteSolver, typename ValueType,
           typename PolymorphicBase = BatchLinOp>
 class EnableBatchSolver
     : public BatchSolver,
