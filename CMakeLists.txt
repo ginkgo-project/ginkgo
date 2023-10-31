@@ -248,7 +248,6 @@ if(GINKGO_BUILD_MPI)
         ${Ginkgo_SOURCE_DIR}/cmake/openmpi_test.cpp
                 COMPILE_DEFINITIONS -DCHECK_HAS_OPEN_MPI=1
         LINK_LIBRARIES MPI::MPI_CXX
-                OUTPUT_VARIABLE output
         )
     if(uses_openmpi)
         try_compile(valid_openmpi_version
