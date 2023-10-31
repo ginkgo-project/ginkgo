@@ -76,7 +76,7 @@ struct log_data final {
     }
 
     log_data(std::shared_ptr<const Executor> exec, size_type num_batch_items,
-             array<unsigned char> workspace)
+             array<unsigned char>& workspace)
         : res_norms(exec), iter_counts(exec)
     {
         const size_type workspace_size =
