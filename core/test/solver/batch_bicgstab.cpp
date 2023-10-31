@@ -91,6 +91,26 @@ TYPED_TEST(BatchBicgstab, FactoryKnowsItsExecutor)
 }
 
 
+TYPED_TEST(BatchBicgstab, FactoryHasCorrectDefaults)
+{
+    using Solver = typename TestFixture::Solver;
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+
+    auto solver_factory = Solver::build().on(this->exec);
+    auto solver = solver_factory->generate(Mtx::create(this->exec));
+
+    ASSERT_NE(solver->get_system_matrix(), nullptr);
+    ASSERT_NE(solver->get_preconditioner(), nullptr);
+    ASSERT_NO_THROW(gko::as<gko::batch::matrix::Identity<value_type>>(
+        solver->get_preconditioner()));
+    ASSERT_EQ(solver->get_tolerance(), 1e-11);
+    ASSERT_EQ(solver->get_max_iterations(), 100);
+    ASSERT_EQ(solver->get_tolerance_type(),
+              gko::batch::stop::tolerance_type::absolute);
+}
+
+
 TYPED_TEST(BatchBicgstab, FactoryCreatesCorrectSolver)
 {
     using Solver = typename TestFixture::Solver;

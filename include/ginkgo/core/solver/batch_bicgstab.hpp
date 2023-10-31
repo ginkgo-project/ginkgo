@@ -89,14 +89,14 @@ public:
 
 private:
     explicit Bicgstab(std::shared_ptr<const Executor> exec)
-        : EnableBatchSolver<Bicgstab>(std::move(exec))
+        : EnableBatchSolver<Bicgstab, ValueType>(std::move(exec))
     {}
 
     explicit Bicgstab(const Factory* factory,
                       std::shared_ptr<const BatchLinOp> system_matrix)
-        : EnableBatchSolver<Bicgstab>(factory->get_executor(),
-                                      std::move(system_matrix),
-                                      factory->get_parameters()),
+        : EnableBatchSolver<Bicgstab, ValueType>(factory->get_executor(),
+                                                 std::move(system_matrix),
+                                                 factory->get_parameters()),
           parameters_{factory->get_parameters()}
     {}
 
