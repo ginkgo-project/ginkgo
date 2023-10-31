@@ -63,7 +63,7 @@ public:
      */
     std::shared_ptr<const BatchLinOp> get_system_matrix() const
     {
-        return system_matrix_;
+        return this->system_matrix_;
     }
 
     /**
@@ -73,7 +73,7 @@ public:
      */
     std::shared_ptr<const BatchLinOp> get_preconditioner() const
     {
-        return preconditioner_;
+        return this->preconditioner_;
     }
 
     /**
@@ -81,7 +81,7 @@ public:
      *
      * @return The residual tolerance.
      */
-    double get_tolerance() const { return residual_tol_; }
+    double get_tolerance() const { return this->residual_tol_; }
 
     /**
      * Update the residual tolerance to be used by the solver.
@@ -94,7 +94,7 @@ public:
         if (res_tol < 0) {
             GKO_INVALID_STATE("Tolerance cannot be negative!");
         }
-        residual_tol_ = res_tol;
+        this->residual_tol_ = res_tol;
     }
 
     /**
@@ -102,7 +102,7 @@ public:
      *
      * @return  Maximum number of iterations.
      */
-    int get_max_iterations() const { return max_iterations_; }
+    int get_max_iterations() const { return this->max_iterations_; }
 
     /**
      * Set the maximum number of iterations for the solver to use,
@@ -115,7 +115,7 @@ public:
         if (max_iterations < 0) {
             GKO_INVALID_STATE("Max iterations cannot be negative!");
         }
-        max_iterations_ = max_iterations;
+        this->max_iterations_ = max_iterations;
     }
 
     /**
@@ -125,7 +125,7 @@ public:
      */
     ::gko::batch::stop::tolerance_type get_tolerance_type() const
     {
-        return tol_type_;
+        return this->tol_type_;
     }
 
     /**
@@ -137,7 +137,7 @@ public:
     {
         if (tol_type == ::gko::batch::stop::tolerance_type::absolute ||
             tol_type == ::gko::batch::stop::tolerance_type::relative) {
-            tol_type_ = tol_type;
+            this->tol_type_ = tol_type;
         } else {
             GKO_INVALID_STATE("Invalid tolerance type specified!");
         }
@@ -160,12 +160,12 @@ protected:
 
     void set_system_matrix_base(std::shared_ptr<const BatchLinOp> system_matrix)
     {
-        system_matrix_ = std::move(system_matrix);
+        this->system_matrix_ = std::move(system_matrix);
     }
 
     void set_preconditioner_base(std::shared_ptr<const BatchLinOp> precond)
     {
-        preconditioner_ = std::move(precond);
+        this->preconditioner_ = std::move(precond);
     }
 
     std::shared_ptr<const BatchLinOp> system_matrix_{};
@@ -386,11 +386,11 @@ protected:
     {
         if (&other != this) {
             this->set_size(other.get_size());
-            set_system_matrix(other.get_system_matrix());
-            set_preconditioner(other.get_preconditioner());
-            reset_tolerance(other.get_tolerance());
-            reset_max_iterations(other.get_max_iterations());
-            reset_tolerance_type(other.get_tolerance_type());
+            this->set_system_matrix(other.get_system_matrix());
+            this->set_preconditioner(other.get_preconditioner());
+            this->reset_tolerance(other.get_tolerance());
+            this->reset_max_iterations(other.get_max_iterations());
+            this->reset_tolerance_type(other.get_tolerance_type());
         }
         return *this;
     }
@@ -399,11 +399,11 @@ protected:
     {
         if (&other != this) {
             this->set_size(other.get_size());
-            set_system_matrix(other.get_system_matrix());
-            set_preconditioner(other.get_preconditioner());
-            reset_tolerance(other.get_tolerance());
-            reset_max_iterations(other.get_max_iterations());
-            reset_tolerance_type(other.get_tolerance_type());
+            this->set_system_matrix(other.get_system_matrix());
+            this->set_preconditioner(other.get_preconditioner());
+            this->reset_tolerance(other.get_tolerance());
+            this->reset_max_iterations(other.get_max_iterations());
+            this->reset_tolerance_type(other.get_tolerance_type());
             other.set_system_matrix(nullptr);
             other.set_preconditioner(nullptr);
         }
