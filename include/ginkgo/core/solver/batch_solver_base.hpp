@@ -431,8 +431,9 @@ protected:
         if (b->get_common_size()[1] > 1) {
             GKO_NOT_IMPLEMENTED;
         }
+        auto workspace_view = workspace_.as_view();
         auto log_data_ = std::make_unique<log::detail::log_data<real_type>>(
-            exec, b->get_num_batch_items(), workspace_.as_view());
+            exec, b->get_num_batch_items(), workspace_view);
 
         this->solver_apply(b, x, log_data_.get());
 
