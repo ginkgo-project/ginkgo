@@ -46,6 +46,24 @@ namespace experimental {
 namespace factorization {
 
 
+enum class symbolic_algorithm {
+    /** An LU factorization algorithm that works on all matrices. */
+    general,
+    /**
+     * An LU factorization algorithm that works best on matrices with an almost
+     * symmetric sparsity pattern. It is correct for general matrices, but may
+     * use excessive amounts of memory and time.
+     */
+    near_symmetric,
+    /**
+     * An LU factorization algorithm that works only on matrices with a
+     * symmetric sparsity pattern. Running it on a matrix with a non-symmetric
+     * sparsity pattern will likely lead to the application crashing.
+     */
+    symmetric
+};
+
+
 /**
  * Computes an LU factorization of a sparse matrix. This LinOpFactory returns a
  * Factorization storing the L and U factors for the provided system matrix in
@@ -85,12 +103,14 @@ public:
             GKO_FACTORY_PARAMETER_SCALAR(symbolic_factorization, nullptr);
 
         /**
-         * If the system matrix has a symmetric sparsity pattern, set this flag
-         * to `true` to use a symbolic Cholesky factorization instead of a
-         * symbolic LU factorization to determine the sparsity pattern of L & U.
-         * This will most likely significantly reduce the generation runtime.
+         * If the symbolic factorization of the matrix is not provided to the
+         * factory, this parameter controls which algorithm will be used to
+         * compute it.
+         * @note Only use symbolic_factorization_algorithm::symmetric if you are
+         *       sure your matrix has a symmetric sparsity pattern!
          */
-        bool GKO_FACTORY_PARAMETER_SCALAR(symmetric_sparsity, false);
+        symbolic_algorithm GKO_FACTORY_PARAMETER_SCALAR(
+            symbolic_algorithm, symbolic_algorithm::general);
 
         /**
          * The `system_matrix`, which will be given to this factory, must be
