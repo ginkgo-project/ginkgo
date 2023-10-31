@@ -43,7 +43,7 @@ using dfp = gko::deferred_factory_parameter<T>;
 
 
 // Note: the following Factory structure is not identical to Ginkgo Factory
-// struture, but it is easier setup without too much dependences and
+// structure, but it is easier setup without too many dependencies and
 // inheritances.
 struct DummyBaseFactory {
     virtual ~DummyBaseFactory() = default;
@@ -148,7 +148,7 @@ protected:
 };
 
 
-TEST_F(DeferredFactoryParameter, Empty)
+TEST_F(DeferredFactoryParameter, CanBeDefaultConstructed)
 {
     auto fact = dfp<DBF>();
     auto fact2 = dfp<const DBF>();
@@ -160,19 +160,19 @@ TEST_F(DeferredFactoryParameter, Empty)
 }
 
 
-TEST_F(DeferredFactoryParameter, Nullptr)
+TEST_F(DeferredFactoryParameter, CanBeConstructedFromNullptr)
 {
     auto fact = dfp<DBF>(nullptr);
     auto fact2 = dfp<const DBF>(nullptr);
 
     ASSERT_FALSE(fact.is_empty());
-    ASSERT_FALSE(fact.on(nullptr));
+    ASSERT_EQ(fact.on(nullptr), nullptr);
     ASSERT_FALSE(fact2.is_empty());
-    ASSERT_FALSE(fact2.on(nullptr));
+    ASSERT_EQ(fact2.on(nullptr), nullptr);
 }
 
 
-TEST_F(DeferredFactoryParameter, NonConstConstructor)
+TEST_F(DeferredFactoryParameter, CheckNonConstConstructor)
 {
     // Itself
     // shared_ptr
@@ -201,7 +201,7 @@ TEST_F(DeferredFactoryParameter, NonConstConstructor)
 }
 
 
-TEST_F(DeferredFactoryParameter, ConstConstructor)
+TEST_F(DeferredFactoryParameter, CheckConstConstructor)
 {
     // Itself
     // shared_ptr
@@ -243,11 +243,11 @@ TEST_F(DeferredFactoryParameter, ConstConstructor)
 }
 
 
-TEST_F(DeferredFactoryParameter, NonConstConstructorCheck)
+TEST_F(DeferredFactoryParameter, ValidateNotAllowedFromNonConstConstructor)
 {
     ASSERT_TRUE((test<dfp<DBF>, std::shared_ptr<DBF>>::value));
-    // The following can not be construct. Using the corresponding constructor
-    // leads compile error.
+    // The following can not be constructed. Using the corresponding constructor
+    // leads to a compile-time error.
     ASSERT_FALSE((test<dfp<DBF>, std::shared_ptr<const DBF>>::value));
     ASSERT_FALSE((test<dfp<DBF>, std::unique_ptr<const DBF>>::value));
     ASSERT_FALSE((test<dfp<DBF>, dfp<const DBF>>::value));
@@ -258,7 +258,7 @@ TEST_F(DeferredFactoryParameter, NonConstConstructorCheck)
 }
 
 
-TEST_F(DeferredFactoryParameter, MacroWithConstList)
+TEST_F(DeferredFactoryParameter, CheckMacroWithConstList)
 {
     auto result =
         DummyFactory2::param{}
@@ -290,7 +290,7 @@ TEST_F(DeferredFactoryParameter, MacroWithConstList)
 }
 
 
-TEST_F(DeferredFactoryParameter, MacroWithNonConstList)
+TEST_F(DeferredFactoryParameter, CheckMacroWithNonConstList)
 {
     auto result =
         DummyFactory2::param{}
@@ -318,7 +318,7 @@ TEST_F(DeferredFactoryParameter, MacroWithNonConstList)
 }
 
 
-TEST_F(DeferredFactoryParameter, MacroWithConstVector)
+TEST_F(DeferredFactoryParameter, CheckMacroWithConstVector)
 {
     auto const_dbf_vec = std::vector<std::shared_ptr<const DBF>>{
         this->shared_dbf, this->shared_dbf};
@@ -376,7 +376,7 @@ TEST_F(DeferredFactoryParameter, MacroWithConstVector)
 }
 
 
-TEST_F(DeferredFactoryParameter, MacroWithNonConstVector)
+TEST_F(DeferredFactoryParameter, CheckMacroWithNonConstVector)
 {
     auto dbf_vec =
         std::vector<std::shared_ptr<DBF>>{this->shared_dbf, this->shared_dbf};
@@ -418,7 +418,7 @@ TEST_F(DeferredFactoryParameter, MacroWithNonConstVector)
 }
 
 
-TEST_F(DeferredFactoryParameter, MacroWithNonConstCheck)
+TEST_F(DeferredFactoryParameter, ValidateNotAllowedFromMacroWithNonConst)
 {
     ASSERT_TRUE((test_with_factory<std::vector<std::shared_ptr<DBF>>>::value));
     ASSERT_TRUE(
