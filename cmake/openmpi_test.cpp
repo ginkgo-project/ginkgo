@@ -39,12 +39,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 int main()
 {
 #if CHECK_HAS_OPEN_MPI && defined(OPEN_MPI) && OPEN_MPI
-    static_assert(true);
-#elif CHECK_OPEN_MPI_VERSION
+    static_assert(true, "Check availability of OpenMPI");
+#elif CHECK_OPEN_MPI_VERSION && defined(OPEN_MPI) && OPEN_MPI
     static_assert(OMPI_MAJOR_VERSION > 4 ||
-                  (OMPI_MAJOR_VERSION == 4 && OMPI_MINOR_VERSION >= 1));
+                      (OMPI_MAJOR_VERSION == 4 && OMPI_MINOR_VERSION >= 1),
+                  "Check OpenMPI version.");
 #else
-    static_assert(false);
+    static_assert(false, "No OpenMPI available");
 #endif
-    return 1;
 }
