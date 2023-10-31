@@ -870,9 +870,6 @@ struct enable_iterative_solver_factory_parameters
      */
     std::vector<std::shared_ptr<const stop::CriterionFactory>>
         GKO_DEFERRED_FACTORY_VECTOR_PARAMETER(criteria);
-
-private:
-    GKO_ENABLE_SELF(Parameters);
 };
 
 
@@ -894,9 +891,6 @@ struct enable_preconditioned_iterative_solver_factory_parameters
      */
     std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(
         generated_preconditioner, nullptr);
-
-private:
-    GKO_ENABLE_SELF(Parameters);
 };
 
 

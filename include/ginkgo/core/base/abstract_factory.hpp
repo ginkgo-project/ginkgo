@@ -446,11 +446,12 @@ private:
     _name{__VA_ARGS__};                                                      \
                                                                              \
     template <typename... Args>                                              \
-    parameters_type& with_##_name(Args&&... _value)                          \
+    auto with_##_name(Args&&... _value)                                      \
+        ->std::decay_t<decltype(*(this->self()))>&                           \
     {                                                                        \
         using type = decltype(this->_name);                                  \
         this->_name = type{std::forward<Args>(_value)...};                   \
-        return *static_cast<parameters_type*>(this);                         \
+        return *(this->self());                                              \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
@@ -496,38 +497,40 @@ private:
     _name{__VA_ARGS__};                                                      \
                                                                              \
     template <typename... Args>                                              \
-    parameters_type& with_##_name(Args&&... _value)                          \
+    auto with_##_name(Args&&... _value)                                      \
+        ->std::decay_t<decltype(*(this->self()))>&                           \
     {                                                                        \
         GKO_NOT_IMPLEMENTED;                                                 \
-        return *static_cast<parameters_type*>(this);                         \
+        return *(this->self());                                              \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
-#define GKO_FACTORY_PARAMETER_SCALAR(_name, _default)                        \
-    _name{_default};                                                         \
-                                                                             \
-    template <typename Arg>                                                  \
-    parameters_type& with_##_name(Arg&& _value)                              \
-    {                                                                        \
-        using type = decltype(this->_name);                                  \
-        this->_name = type{std::forward<Arg>(_value)};                       \
-        return *static_cast<parameters_type*>(this);                         \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
+#define GKO_FACTORY_PARAMETER_SCALAR(_name, _default)                         \
+    _name{_default};                                                          \
+                                                                              \
+    template <typename Arg>                                                   \
+    auto with_##_name(Arg&& _value)->std::decay_t<decltype(*(this->self()))>& \
+    {                                                                         \
+        using type = decltype(this->_name);                                   \
+        this->_name = type{std::forward<Arg>(_value)};                        \
+        return *(this->self());                                               \
+    }                                                                         \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
                   "semi-colon warnings")
 
 #define GKO_FACTORY_PARAMETER_VECTOR(_name, ...)                             \
     _name{__VA_ARGS__};                                                      \
                                                                              \
     template <typename... Args>                                              \
-    parameters_type& with_##_name(Args&&... _value)                          \
+    auto with_##_name(Args&&... _value)                                      \
+        ->std::decay_t<decltype(*(this->self()))>&                           \
     {                                                                        \
         using type = decltype(this->_name);                                  \
         this->_name = type{std::forward<Args>(_value)...};                   \
-        return *static_cast<parameters_type*>(this);                         \
+        return *(this->self());                                              \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
@@ -543,32 +546,32 @@ private:
  * @param _type  pointee type of the parameter, e.g. LinOpFactory
  *
  */
-#define GKO_DEFERRED_FACTORY_PARAMETER(_name)                                \
-    _name{};                                                                 \
-                                                                             \
-private:                                                                     \
-    using _name##_type = typename decltype(_name)::element_type;             \
-                                                                             \
-public:                                                                      \
-    parameters_type& with_##_name(                                           \
-        ::gko::deferred_factory_parameter<_name##_type> factory)             \
-    {                                                                        \
-        this->_name##_generator_ = std::move(factory);                       \
-        this->deferred_factories[#_name] = [](const auto& exec,              \
-                                              auto& params) {                \
-            if (!params._name##_generator_.is_empty()) {                     \
-                params._name = params._name##_generator_.on(exec);           \
-            }                                                                \
-        };                                                                   \
-        return *static_cast<parameters_type*>(this);                         \
-    }                                                                        \
-                                                                             \
-private:                                                                     \
-    ::gko::deferred_factory_parameter<_name##_type> _name##_generator_;      \
-                                                                             \
-public:                                                                      \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
+#define GKO_DEFERRED_FACTORY_PARAMETER(_name)                                  \
+    _name{};                                                                   \
+                                                                               \
+private:                                                                       \
+    using _name##_type = typename decltype(_name)::element_type;               \
+                                                                               \
+public:                                                                        \
+    auto with_##_name(::gko::deferred_factory_parameter<_name##_type> factory) \
+        ->std::decay_t<decltype(*(this->self()))>&                             \
+    {                                                                          \
+        this->_name##_generator_ = std::move(factory);                         \
+        this->deferred_factories[#_name] = [](const auto& exec,                \
+                                              auto& params) {                  \
+            if (!params._name##_generator_.is_empty()) {                       \
+                params._name = params._name##_generator_.on(exec);             \
+            }                                                                  \
+        };                                                                     \
+        return *(this->self());                                                \
+    }                                                                          \
+                                                                               \
+private:                                                                       \
+    ::gko::deferred_factory_parameter<_name##_type> _name##_generator_;        \
+                                                                               \
+public:                                                                        \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
                   "semi-colon warnings")
 
 /**
@@ -592,7 +595,8 @@ public:                                                                        \
               typename = std::enable_if_t<::gko::xstd::conjunction<            \
                   std::is_convertible<Args, ::gko::deferred_factory_parameter< \
                                                 _name##_type>>...>::value>>    \
-    parameters_type& with_##_name(Args&&... factories)                         \
+    auto with_##_name(Args&&... factories)                                     \
+        ->std::decay_t<decltype(*(this->self()))>&                             \
     {                                                                          \
         this->_name##_generator_ = {                                           \
             ::gko::deferred_factory_parameter<_name##_type>{                   \
@@ -606,13 +610,14 @@ public:                                                                        \
                 }                                                              \
             }                                                                  \
         };                                                                     \
-        return *static_cast<parameters_type*>(this);                           \
+        return *(this->self());                                                \
     }                                                                          \
     template <typename FactoryType,                                            \
               typename = std::enable_if_t<std::is_convertible<                 \
                   FactoryType,                                                 \
                   ::gko::deferred_factory_parameter<_name##_type>>::value>>    \
-    parameters_type& with_##_name(const std::vector<FactoryType>& factories)   \
+    auto with_##_name(const std::vector<FactoryType>& factories)               \
+        ->std::decay_t<decltype(*(this->self()))>&                             \
     {                                                                          \
         this->_name##_generator_.clear();                                      \
         for (const auto& factory : factories) {                                \
@@ -627,7 +632,7 @@ public:                                                                        \
                 }                                                              \
             }                                                                  \
         };                                                                     \
-        return *static_cast<parameters_type*>(this);                           \
+        return *(this->self());                                                \
     }                                                                          \
                                                                                \
 private:                                                                       \

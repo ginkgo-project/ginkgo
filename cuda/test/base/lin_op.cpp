@@ -144,7 +144,10 @@ protected:
     FactoryParameter() {}
 
 public:
-    using parameters_type = FactoryParameter;
+    // FACTORY_PARAMETER macro needs self, which is usually available in
+    // enable_parameters_type. To reduce complexity, we add self here.
+    GKO_ENABLE_SELF(FactoryParameter);
+
     std::vector<int> GKO_FACTORY_PARAMETER_VECTOR(vector_parameter, 10, 11);
     int GKO_FACTORY_PARAMETER_SCALAR(scalar_parameter, -4);
 };
