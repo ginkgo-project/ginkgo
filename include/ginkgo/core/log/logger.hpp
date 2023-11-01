@@ -65,6 +65,9 @@ namespace batch {
 class BatchLinOp;
 class BatchLinOpFactory;
 
+template <typename ValueType>
+class MultiVector;
+
 
 }  // namespace batch
 
@@ -598,6 +601,43 @@ public:
                               const batch::BatchLinOp* input,
                               const batch::BatchLinOp* output)
 
+public:
+    static constexpr size_type batch_solver_completed{26};
+    static constexpr mask_type batch_solver_completed_mask{mask_type{1} << 26};
+
+    template <size_type Event, typename... Params>
+    std::enable_if_t<Event == 26 && (26 < event_count_max)> on(
+        Params&&... params) const
+    {
+        if (enabled_events_ & batch_solver_completed_mask) {
+            this->on_batch_solver_completed(std::forward<Params>(params)...);
+        }
+    }
+
+protected:
+    /**
+     * Batch solver's event that records the iteration count and the residual
+     * norm.
+     *
+     * @param iters  the array of iteration counts.
+     * @param residual_norms  the array storing the residual norms.
+     */
+    virtual void on_batch_solver_completed(
+        const array<int>& iters, const array<double>& residual_norms) const
+    {}
+
+    /**
+     * Batch solver's event that records the iteration count and the residual
+     * norm.
+     *
+     * @param iters  the array of iteration counts.
+     * @param residual_norms  the array storing the residual norms.
+     */
+    virtual void on_batch_solver_completed(
+        const array<int>& iters, const array<float>& residual_norms) const
+    {}
+
+public:
 #undef GKO_LOGGER_REGISTER_EVENT
 
     /**

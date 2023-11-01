@@ -328,7 +328,7 @@ inline size_type get_num_batch_items(const T& obj)
         if (!equal_num_items) {                                            \
             throw ::gko::ValueMismatch(                                    \
                 __FILE__, __LINE__, __func__,                              \
-                ::gko::detail::get_batch_size(_op2).get_num_batch_items(), \
+                ::gko::detail::get_batch_size(_op1).get_num_batch_items(), \
                 ::gko::detail::get_batch_size(_op2).get_num_batch_items(), \
                 "expected equal number of batch items");                   \
         }                                                                  \
@@ -453,6 +453,27 @@ inline size_type get_num_batch_items(const T& obj)
                 ::gko::detail::get_batch_size(_op2).get_common_size()[0], \
                 ::gko::detail::get_batch_size(_op2).get_common_size()[1], \
                 "expected matching size among all batch items");          \
+        }                                                                 \
+    }
+
+
+/**
+ * Asserts that `_op1` and `_op2` have the same number of rows and columns.
+ *
+ * @throw DimensionMismatch  if `_op1` and `_op2` differ in the number of
+ *                           rows or columns
+ */
+#define GKO_ASSERT_BATCH_HAS_SQUARE_DIMENSIONS(_op1)                      \
+    {                                                                     \
+        auto is_square =                                                  \
+            ::gko::detail::get_batch_size(_op1).get_common_size()[0] ==   \
+            ::gko::detail::get_batch_size(_op1).get_common_size()[1];     \
+        if (!is_square) {                                                 \
+            throw ::gko::BadDimension(                                    \
+                __FILE__, __LINE__, __func__, #_op1,                      \
+                ::gko::detail::get_batch_size(_op1).get_common_size()[0], \
+                ::gko::detail::get_batch_size(_op1).get_common_size()[1], \
+                "expected common size of matrices to be square");         \
         }                                                                 \
     }
 

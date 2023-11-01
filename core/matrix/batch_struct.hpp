@@ -73,9 +73,9 @@ struct uniform_batch {
     int32 num_rows;
     int32 num_cols;
 
-    size_type get_entry_storage() const
+    inline size_type get_single_item_num_nnz() const
     {
-        return num_rows * stride * sizeof(value_type);
+        return static_cast<size_type>(stride * num_rows);
     }
 };
 
@@ -120,9 +120,9 @@ struct uniform_batch {
     index_type num_cols;
     index_type num_stored_elems_per_row;
 
-    size_type get_entry_storage() const
+    inline size_type get_single_item_num_nnz() const
     {
-        return num_rows * num_stored_elems_per_row * sizeof(value_type);
+        return static_cast<size_type>(stride * num_stored_elems_per_row);
     }
 };
 
@@ -165,8 +165,8 @@ GKO_ATTRIBUTES GKO_INLINE dense::batch_item<ValueType> extract_batch_item(
 
 
 template <typename ValueType, typename IndexType>
-GKO_ATTRIBUTES GKO_INLINE ell::batch_item<const ValueType, IndexType> to_const(
-    const ell::batch_item<ValueType, IndexType>& b)
+GKO_ATTRIBUTES GKO_INLINE ell::batch_item<const ValueType, const IndexType>
+to_const(const ell::batch_item<ValueType, IndexType>& b)
 {
     return {b.values,   b.col_idxs, b.stride,
             b.num_rows, b.num_cols, b.num_stored_elems_per_row};
@@ -174,7 +174,7 @@ GKO_ATTRIBUTES GKO_INLINE ell::batch_item<const ValueType, IndexType> to_const(
 
 
 template <typename ValueType, typename IndexType>
-GKO_ATTRIBUTES GKO_INLINE ell::uniform_batch<const ValueType, IndexType>
+GKO_ATTRIBUTES GKO_INLINE ell::uniform_batch<const ValueType, const IndexType>
 to_const(const ell::uniform_batch<ValueType, IndexType>& ub)
 {
     return {ub.values,   ub.col_idxs, ub.num_batch_items,         ub.stride,
