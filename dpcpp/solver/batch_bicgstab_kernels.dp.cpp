@@ -117,10 +117,9 @@ public:
                 slm_values(sycl::range<1>(shared_size), cgh);
 
             cgh.parallel_for(
-                sycl_nd_range(grid, block), [=
-            ](sycl::nd_item<3> item_ct1) [[intel::reqd_sub_group_size(
-                                                subgroup_size)]] [
-                                                [intel::kernel_args_restrict]] {
+                sycl_nd_range(grid, block),
+                [=](sycl::nd_item<3> item_ct1) [[intel::reqd_sub_group_size(
+                    subgroup_size)]] [[intel::kernel_args_restrict]] {
                     auto batch_id = item_ct1.get_group_linear_id();
                     const auto mat_global_entry =
                         gko::batch::matrix::extract_batch_item(mat, batch_id);

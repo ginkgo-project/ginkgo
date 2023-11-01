@@ -46,7 +46,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/batch_dispatch.hpp"
 #include "cuda/base/batch_struct.hpp"
 #include "cuda/base/config.hpp"
-#include "cuda/base/exception.cuh"
 #include "cuda/base/kernel_config.cuh"
 #include "cuda/base/thrust.cuh"
 #include "cuda/base/types.hpp"

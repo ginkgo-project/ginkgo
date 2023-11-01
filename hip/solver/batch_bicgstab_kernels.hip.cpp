@@ -47,7 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/batch_dispatch.hpp"
 #include "hip/base/batch_struct.hip.hpp"
 #include "hip/base/config.hip.hpp"
-#include "hip/base/exception.hip.hpp"
 #include "hip/base/math.hip.hpp"
 #include "hip/base/thrust.hip.hpp"
 #include "hip/base/types.hip.hpp"

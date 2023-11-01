@@ -105,10 +105,10 @@ __global__ __launch_bounds__(
 
 template <typename Group, typename ValueType>
 __device__ __forceinline__ void single_rhs_compute_conj_dot(Group subgroup,
-                                                       const int num_rows,
-                                                       const ValueType* x,
-                                                       const ValueType* y,
-                                                       ValueType& result)
+                                                            const int num_rows,
+                                                            const ValueType* x,
+                                                            const ValueType* y,
+                                                            ValueType& result)
 
 {
     ValueType val = zero<ValueType>();
