@@ -52,7 +52,7 @@ namespace matrix {
 /**
  * ScaledPermutation is a matrix combining a permutation with scaling factors.
  * It is a combination of Diagonal and Permutation, and can be read as
- * $SP = P \pdot S$, i.e. the scaling gets applied before the permutation.
+ * $SP = P \cdot S$, i.e. the scaling gets applied before the permutation.
  *
  * @tparam IndexType  index type of permutation indices
  * @tparam ValueType  value type of the scaling factors
