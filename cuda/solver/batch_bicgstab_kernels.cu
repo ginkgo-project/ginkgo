@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/batch_dispatch.hpp"
 #include "cuda/base/batch_struct.hpp"
 #include "cuda/base/config.hpp"
-#include "cuda/base/kernel_config.cuh"
+#include "cuda/base/kernel_config.hpp"
 #include "cuda/base/thrust.cuh"
 #include "cuda/base/types.hpp"
 #include "cuda/components/cooperative_groups.cuh"
@@ -172,7 +172,9 @@ public:
         constexpr int align_multiple = 8;
         const int padded_num_rows =
             ceildiv(mat.num_rows, align_multiple) * align_multiple;
-        gko::kernels::cuda::configure_shared_memory_banks<value_type>();
+        auto shem_guard =
+            gko::kernels::cuda::detail::shared_memory_config_guard<
+                value_type>();
         const int shmem_per_blk =
             get_max_dynamic_shared_memory<StopType, PrecType, LogType,
                                           BatchMatrixType, value_type>(exec_);
