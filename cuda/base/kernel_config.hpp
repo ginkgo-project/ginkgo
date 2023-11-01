@@ -30,36 +30,66 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CUDA_BASE_KERNEL_CONFIG_CUH_
-#define GKO_CUDA_BASE_KERNEL_CONFIG_CUH_
+#ifndef GKO_CUDA_BASE_KERNEL_CONFIG_HPP_
+#define GKO_CUDA_BASE_KERNEL_CONFIG_HPP_
 
 
-#include "cuda/base/math.hpp"
+#include <cuda_runtime.h>
 
 
 namespace gko {
 namespace kernels {
 namespace cuda {
+namespace detail {
 
 
-/**
- * Set shared memory bank configuration.
- *
- * \tparam ValueType  The scalar type used for computations.
- */
 template <typename ValueType>
-inline void configure_shared_memory_banks()
-{
-    if (sizeof(ValueType) == 4) {
-        cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeFourByte);
-    } else if (sizeof(ValueType) % 8 == 0) {
-        cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
+class shared_memory_config_guard {
+public:
+    using value_type = ValueType;
+    shared_memory_config_guard() : original_config_{}
+    {
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaDeviceGetSharedMemConfig(&original_config_));
+
+        if (sizeof(value_type) == 4) {
+            GKO_ASSERT_NO_CUDA_ERRORS(
+                cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeFourByte));
+        } else if (sizeof(value_type) % 8 == 0) {
+            GKO_ASSERT_NO_CUDA_ERRORS(
+                cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte));
+        } else {
+            GKO_ASSERT_NO_CUDA_ERRORS(
+                cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeDefault));
+        }
     }
-}
 
 
+    ~shared_memory_config_guard()
+    {
+        auto error_code = cudaDeviceSetSharedMemConfig(original_config_);
+        if (error_code != cudaSuccess) {
+#if GKO_VERBOSE_LEVEL >= 1
+            std::cerr << "Unrecoverable CUDA error while resetting the "
+                         "shared memory config to "
+                      << original_config_ << " in " << __func__ << ": "
+                      << cudaGetErrorName(error_code) << ": "
+                      << cudaGetErrorString(error_code) << std::endl
+                      << "Exiting program" << std::endl;
+#endif  // GKO_VERBOSE_LEVEL >= 1
+            std::exit(error_code);
+        }
+    }
+
+private:
+    cudaSharedMemConfig original_config_;
+};
+
+
+}  // namespace detail
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko
 
-#endif  // GKO_CUDA_BASE_KERNEL_CONFIG_CUH_
+
+#endif  // GKO_CUDA_BASE_KERNEL_CONFIG_HPP_
