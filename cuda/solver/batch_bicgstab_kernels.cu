@@ -265,7 +265,7 @@ public:
             }
         }
 
-        GKO_CUDA_LAST_IF_ERROR_THROW;
+        exec_->synchronize();
     }
 
 private:
