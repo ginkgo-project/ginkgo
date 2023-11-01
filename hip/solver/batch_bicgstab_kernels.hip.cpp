@@ -91,8 +91,9 @@ int get_num_threads_per_block(std::shared_ptr<const DefaultExecutor> exec,
         ((std::max(num_rows, min_block_size)) / warp_sz) * warp_sz;
     const int num_regs_used_per_thread = 64;
     int max_regs_blk = 0;
-    hipDeviceGetAttribute(&max_regs_blk, hipDeviceAttributeMaxRegistersPerBlock,
-                          exec->get_device_id());
+    GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
+        &max_regs_blk, hipDeviceAttributeMaxRegistersPerBlock,
+        exec->get_device_id()));
     const int max_threads_regs = (max_regs_blk / num_regs_used_per_thread);
     int max_threads = std::min(max_threads_regs, device_max_threads);
     max_threads = max_threads <= 1024 ? max_threads : 1024;
@@ -145,7 +146,10 @@ public:
         constexpr int align_multiple = 8;
         const int padded_num_rows =
             ceildiv(mat.num_rows, align_multiple) * align_multiple;
-        const int shmem_per_blk = exec_->get_max_shared_memory_per_block();
+        int shmem_per_blk = 0;
+        GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
+            &shmem_per_blk, hipDeviceAttributeMaxSharedMemoryPerBlock,
+            exec_->get_device_id()));
         const int block_size =
             get_num_threads_per_block<BatchMatrixType>(exec_, mat.num_rows);
         GKO_ASSERT(block_size >= 2 * config::warp_size);
