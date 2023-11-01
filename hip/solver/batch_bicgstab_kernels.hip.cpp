@@ -233,7 +233,7 @@ public:
             }
         }
 
-        GKO_HIP_LAST_IF_ERROR_THROW;
+        exec_->synchronize();
     }
 
 private:

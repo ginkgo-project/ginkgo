@@ -201,8 +201,9 @@ std::unique_ptr<OutputType> read(
                            std::forward<TArgs>(create_args)...);
 
     for (size_type b = 0; b < num_batch_items; ++b) {
-        if (data.at(b).size != data.at(0).size)
+        if (data.at(b).size != data.at(0).size) {
             GKO_INVALID_STATE("Incorrect data passed in");
+        }
         tmp->create_view_for_item(b)->read(data[b]);
     }
 
