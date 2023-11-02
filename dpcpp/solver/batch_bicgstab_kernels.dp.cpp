@@ -77,7 +77,8 @@ template <typename T>
 using settings = gko::kernels::batch_bicgstab::settings<T>;
 
 
-__dpct_inline__ int get_group_size(int value, int subgroup_size = 32)
+__dpct_inline__ int get_group_size(int value,
+                                   int subgroup_size = config::warp_size)
 {
     int num_sg = ceildiv(value, subgroup_size);
     return num_sg * subgroup_size;
@@ -117,9 +118,10 @@ public:
                 slm_values(sycl::range<1>(shared_size), cgh);
 
             cgh.parallel_for(
-                sycl_nd_range(grid, block),
-                [=](sycl::nd_item<3> item_ct1) [[intel::reqd_sub_group_size(
-                    subgroup_size)]] [[intel::kernel_args_restrict]] {
+                sycl_nd_range(grid, block), [=
+            ](sycl::nd_item<3> item_ct1) [[intel::reqd_sub_group_size(
+                                                subgroup_size)]] [
+                                                [intel::kernel_args_restrict]] {
                     auto batch_id = item_ct1.get_group_linear_id();
                     const auto mat_global_entry =
                         gko::batch::matrix::extract_batch_item(mat, batch_id);
@@ -163,7 +165,7 @@ public:
         // alpha, omega, temp and for reduce_over_group
         // If the value available is negative, then set it to 0
         const int static_var_mem =
-            (group_size + 5) * sizeof(ValueType) - 2 * sizeof(real_type);
+            (group_size + 5) * sizeof(ValueType) + 2 * sizeof(real_type);
         int shmem_per_blk = std::max(
             static_cast<int>(
                 device.get_info<sycl::info::device::local_mem_size>()) -
@@ -191,7 +193,7 @@ public:
         // launch_apply_kernel<StopType, subgroup_size, n_shared_total,
         // sg_kernel_all>
         if (num_rows <= 32 && n_shared_total == 10) {
-            launch_apply_kernel<StopType, 16, 10, true>(
+            launch_apply_kernel<StopType, 32, 10, true>(
                 sconf, logger, prec, mat, b.values, x.values, workspace_data,
                 group_size, shared_size);
         } else if (num_rows <= 256 && n_shared_total == 10) {
