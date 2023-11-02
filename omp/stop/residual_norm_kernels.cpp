@@ -65,7 +65,7 @@ void residual_norm(std::shared_ptr<const OmpExecutor> exec,
     bool local_one_changed = false;
 #pragma omp parallel for reduction(|| : local_one_changed)
     for (size_type i = 0; i < tau->get_size()[1]; ++i) {
-        if (tau->at(i) < rel_residual_goal * orig_tau->at(i)) {
+        if (tau->at(i) <= rel_residual_goal * orig_tau->at(i)) {
             stop_status->get_data()[i].converge(stoppingId, setFinalized);
             local_one_changed = true;
         }
@@ -110,7 +110,7 @@ void implicit_residual_norm(
     bool local_one_changed = false;
 #pragma omp parallel for reduction(|| : local_one_changed)
     for (size_type i = 0; i < tau->get_size()[1]; ++i) {
-        if (sqrt(abs(tau->at(i))) < rel_residual_goal * orig_tau->at(i)) {
+        if (sqrt(abs(tau->at(i))) <= rel_residual_goal * orig_tau->at(i)) {
             stop_status->get_data()[i].converge(stoppingId, setFinalized);
             local_one_changed = true;
         }
