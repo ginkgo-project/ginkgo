@@ -73,7 +73,7 @@ protected:
     template <typename PQType>
     void test_pq_functionality()
     {
-        PQType pq;
+        PQType pq{exec};
 
         pq.insert(value_type{.5}, 1);
         ASSERT_EQ(pq.size(), 1);
@@ -130,7 +130,7 @@ TYPED_TEST_SUITE(AddressablePriorityQueue, gko::test::RealValueIndexTypes,
 TYPED_TEST(AddressablePriorityQueue, InitializesCorrectly)
 {
     using pq_type = typename TestFixture::pq_type2;
-    pq_type pq;
+    pq_type pq{this->exec};
 
     ASSERT_EQ(pq.size(), 0);
     ASSERT_TRUE(pq.empty());

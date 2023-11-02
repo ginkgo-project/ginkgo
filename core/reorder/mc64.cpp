@@ -433,7 +433,8 @@ void augment_matching(
     // For each row that is not contained in the initial matching, search for
     // an augmenting path, update the matching and compute the new entries
     // of the dual vectors.
-    addressable_priority_queue<remove_complex<ValueType>, IndexType> Q;
+    addressable_priority_queue<remove_complex<ValueType>, IndexType> Q{
+        mtx->get_executor()};
     std::vector<IndexType> q_j{};
     const auto unmatched = unmatched_rows.get_data();
     size_type um = 0;

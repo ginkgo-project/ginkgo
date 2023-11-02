@@ -38,7 +38,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 
+#include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
+
+
+#include "core/base/allocator.hpp"
 
 
 namespace gko {
@@ -58,22 +62,29 @@ template <typename KeyType, typename ValueType, int deg_log2 = 4>
 struct addressable_priority_queue {
     constexpr static int degree = 1 << deg_log2;
 
+    addressable_priority_queue(std::shared_ptr<const Executor> exec)
+        : keys_{exec}, values_{exec}, handles_{exec}, handle_pos_{exec}
+    {}
+
     /**
      * Inserts the given key-value pair into the PQ.
      * Duplicate keys are allowed, they may be returned in an arbitrary order.
+     *
+     * @param key  the key by which the queue is ordered
+     * @param value  the value associated with the key
      *
      * @returns a handle for the pair to be used when modifying the key.
      */
     std::size_t insert(KeyType key, ValueType value)
     {
-        m_keys.push_back(key);
-        m_values.push_back(value);
+        keys_.push_back(key);
+        values_.push_back(value);
         auto handle = next_handle();
-        m_handles.push_back(handle);
-        if (handle == m_handle_pos.size()) {
-            m_handle_pos.push_back(size() - 1);
+        handles_.push_back(handle);
+        if (handle == handle_pos_.size()) {
+            handle_pos_.push_back(size() - 1);
         } else {
-            m_handle_pos[handle] = size() - 1;
+            handle_pos_[handle] = size() - 1;
         }
         sift_up(size() - 1);
         return handle;
@@ -84,11 +95,11 @@ struct addressable_priority_queue {
      */
     void update_key(std::size_t handle, KeyType new_key)
     {
-        auto pos = m_handle_pos[handle];
+        auto pos = handle_pos_[handle];
         GKO_ASSERT(pos < size());
-        GKO_ASSERT(m_handles[pos] == handle);
-        auto old_key = m_keys[pos];
-        m_keys[pos] = new_key;
+        GKO_ASSERT(handles_[pos] == handle);
+        auto old_key = keys_[pos];
+        keys_[pos] = new_key;
         if (old_key < new_key) {
             sift_down(pos);
         } else {
@@ -101,14 +112,14 @@ struct addressable_priority_queue {
      *
      * @return the minimum key from the queue
      */
-    KeyType min_key() const { return m_keys[0]; }
+    KeyType min_key() const { return keys_[0]; }
 
     /**
      * Returns the value belonging to the minimum key from the queue.
      *
      * @return the value corresponding to the minimum key
      */
-    ValueType min_val() const { return m_values[0]; }
+    ValueType min_val() const { return values_[0]; }
 
     /**
      * Returns the key-value pair with the minimum key from the queue.
@@ -123,9 +134,9 @@ struct addressable_priority_queue {
     void pop_min()
     {
         swap(0, size() - 1);
-        m_keys.pop_back();
-        m_values.pop_back();
-        m_handles.pop_back();
+        keys_.pop_back();
+        values_.pop_back();
+        handles_.pop_back();
         sift_down(0);
     }
 
@@ -134,7 +145,7 @@ struct addressable_priority_queue {
      *
      * @return  the number of key-value pairs in the queue
      */
-    std::size_t size() const { return m_keys.size(); }
+    std::size_t size() const { return keys_.size(); }
 
     /**
      * Returns true if and only if the queue has size 0.
@@ -145,10 +156,10 @@ struct addressable_priority_queue {
 
     void reset()
     {
-        m_keys.clear();
-        m_values.clear();
-        m_handles.clear();
-        m_handle_pos.clear();
+        keys_.clear();
+        values_.clear();
+        handles_.clear();
+        handle_pos_.clear();
     }
 
 private:
@@ -158,10 +169,10 @@ private:
 
     void swap(std::size_t i, std::size_t j)
     {
-        std::swap(m_keys[i], m_keys[j]);
-        std::swap(m_values[i], m_values[j]);
-        std::swap(m_handles[i], m_handles[j]);
-        std::swap(m_handle_pos[m_handles[i]], m_handle_pos[m_handles[j]]);
+        std::swap(keys_[i], keys_[j]);
+        std::swap(values_[i], values_[j]);
+        std::swap(handles_[i], handles_[j]);
+        std::swap(handle_pos_[handles_[i]], handle_pos_[handles_[j]]);
     }
 
     /**
@@ -173,14 +184,14 @@ private:
     {
         auto cur = i;
         while (first_child(cur) < size()) {
-            const auto begin = m_keys.begin() + first_child(cur);
+            const auto begin = keys_.begin() + first_child(cur);
             const auto end =
-                m_keys.begin() + std::min(first_child(cur + 1), size());
+                keys_.begin() + std::min(first_child(cur + 1), size());
             const auto it = std::min_element(begin, end);
-            if (m_keys[cur] <= *it) {
+            if (keys_[cur] <= *it) {
                 break;
             }
-            auto min_child = std::distance(m_keys.begin(), it);
+            auto min_child = std::distance(keys_.begin(), it);
             swap(cur, min_child);
             cur = min_child;
         }
@@ -189,12 +200,12 @@ private:
     /**
      * Moves the key-value pair at position i up (toward the root)
      * until its key is larger or equal to the one of its parent.
-     * */
+     */
     void sift_up(std::size_t i)
     {
         auto cur = i;
         while (cur > 0) {
-            if (m_keys[cur] >= m_keys[parent(cur)]) {
+            if (keys_[cur] >= keys_[parent(cur)]) {
                 break;
             }
             swap(cur, parent(cur));
@@ -202,12 +213,13 @@ private:
         }
     }
 
-    std::size_t next_handle() const { return m_handle_pos.size(); }
+    // FIXME use free-list
+    std::size_t next_handle() const { return handle_pos_.size(); }
 
-    std::vector<KeyType> m_keys;
-    std::vector<ValueType> m_values;
-    std::vector<std::size_t> m_handles;
-    std::vector<std::size_t> m_handle_pos;
+    vector<KeyType> keys_;
+    vector<ValueType> values_;
+    vector<std::size_t> handles_;
+    vector<std::size_t> handle_pos_;
 };
 
 

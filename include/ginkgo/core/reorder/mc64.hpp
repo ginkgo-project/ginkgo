@@ -79,11 +79,12 @@ enum class mc64_strategy { max_diagonal_product, max_diagonal_sum };
  * on a nonsingular square matrix, the algorithm computes a minimum weight
  * perfect matching on a weighted edge bipartite graph of the matrix. It is
  * described in detail in "On Algorithms for Permuting Large Entries to the
- * Diagonal of a Sparse Matrix" (Duff, Koster, 2001). There are two strategies
- * for choosing the weights supported:
+ * Diagonal of a Sparse Matrix" (Duff, Koster, 2001,
+ * DOI: 10.1137/S0895479899358443). There are two strategies for choosing the
+ * weights supported:
  *  - Maximizing the product of the absolute values on the diagonal.
  *    For this strategy, the weights are computed as
- *      $c(i, j) = log_2(a_i) - log_2(abs(a(i, j)))$ if $a(i, j) \neq 0 $ and
+ *      $c(i, j) = \log_2(a_i) - \log_2(|a(i, j)|)$ if $a(i, j) \neq 0 $ and
  * $c(i, j) = \infty$ otherwise. Here, a_i is the maximum absolute value in row
  * i of the matrix A. In this case, the implementation computes a row
  * permutation P and row and column scaling coefficients L and R such that the
@@ -91,7 +92,7 @@ enum class mc64_strategy { max_diagonal_product, max_diagonal_sum };
  * smaller or equal entries everywhere else.
  *  - Maximizing the sum of the absolute values on the diagonal.
  *    For this strategy, the weights are computed as
- *      $c(i, j) = a_i - abs(a(i, j))$ if $a(i, j) \neq 0$ and $c(i, j) =
+ *      $c(i, j) = a_i - |a(i, j)|$ if $a(i, j) \neq 0$ and $c(i, j) =
  * \infty$ otherwise. In this case, no scaling coefficients are computed.
  *
  * @note  This class is derived from polymorphic object but is not a LinOp as it
