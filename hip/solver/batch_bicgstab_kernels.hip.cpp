@@ -89,6 +89,9 @@ int get_num_threads_per_block(std::shared_ptr<const DefaultExecutor> exec,
     const int min_block_size = 2 * warp_sz;
     const int device_max_threads =
         ((std::max(num_rows, min_block_size)) / warp_sz) * warp_sz;
+    // This value has been taken from RocM docs. This is the number of registers
+    // that maximizes the occupancy on an AMD GPU (MI200). HIP does not have an
+    // API to query the number of registers a function uses.
     const int num_regs_used_per_thread = 64;
     int max_regs_blk = 0;
     GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(

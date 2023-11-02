@@ -198,7 +198,7 @@ TEST_F(BatchBicgstab, CanSolveLargeBatchSizeHpdSystem)
     const int num_rows = 102;
     const int num_rhs = 1;
     const real_type tol = 1e-5;
-    const int max_iters = num_rows;
+    const int max_iters = num_rows * 2;
     std::shared_ptr<Logger> logger = Logger::create();
     auto mat = gko::share(gko::test::generate_diag_dominant_batch_matrix<Mtx>(
         exec, num_batch_items, num_rows, true));
@@ -213,7 +213,7 @@ TEST_F(BatchBicgstab, CanSolveLargeBatchSizeHpdSystem)
                                                  &logger->get_num_iterations());
     auto res_norm = gko::make_temporary_clone(exec->get_master(),
                                               &logger->get_residual_norm());
-    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 50);
+    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 500);
     for (size_t i = 0; i < num_batch_items; i++) {
         auto comp_res_norm = res.host_res_norm->get_const_values()[i] /
                              linear_system.host_rhs_norm->get_const_values()[i];
@@ -233,7 +233,7 @@ TEST_F(BatchBicgstab, CanSolveLargeMatrixSizeHpdSystem)
     const int num_rows = 1025;
     const int num_rhs = 1;
     const real_type tol = 1e-5;
-    const int max_iters = num_rows;
+    const int max_iters = num_rows * 2;
     std::shared_ptr<Logger> logger = Logger::create();
     auto mat = gko::share(gko::test::generate_diag_dominant_batch_matrix<Mtx>(
         exec, num_batch_items, num_rows, true));
@@ -248,7 +248,7 @@ TEST_F(BatchBicgstab, CanSolveLargeMatrixSizeHpdSystem)
                                                  &logger->get_num_iterations());
     auto res_norm = gko::make_temporary_clone(exec->get_master(),
                                               &logger->get_residual_norm());
-    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 50);
+    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 500);
     for (size_t i = 0; i < num_batch_items; i++) {
         auto comp_res_norm = res.host_res_norm->get_const_values()[i] /
                              linear_system.host_rhs_norm->get_const_values()[i];

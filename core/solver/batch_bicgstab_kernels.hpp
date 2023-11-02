@@ -192,7 +192,7 @@ storage_config compute_shared_storage(const int available_shared_mem,
         sconf.prec_shared = true;
         rem_shared -= prec_storage;
     }
-    // Set the global storage config and align to 32 bytes.
+    // Set the global storage config and align to align_bytes bytes.
     set_gmem_stride_bytes<align_bytes>(sconf, vec_size, prec_storage);
     return sconf;
 }
