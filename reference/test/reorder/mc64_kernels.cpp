@@ -92,35 +92,35 @@ protected:
           // accuracy for GKO_ASSRT_ARRAY_EQ
           initialized_weights_product{
               ref,
-              I<real_type>{static_cast<real_type>(std::log(3.)),
-                           static_cast<real_type>(std::log(3.)) -
-                               static_cast<real_type>(std::log(2.)),
-                           0., 0., static_cast<real_type>(std::log(5.)), 0.,
-                           static_cast<real_type>(std::log(6.)) -
-                               static_cast<real_type>(std::log(4.)),
+              I<real_type>{static_cast<real_type>(std::log2(3.)),
+                           static_cast<real_type>(std::log2(3.)) -
+                               static_cast<real_type>(std::log2(2.)),
+                           0., 0., static_cast<real_type>(std::log2(5.)), 0.,
+                           static_cast<real_type>(std::log2(6.)) -
+                               static_cast<real_type>(std::log2(4.)),
                            0.,
-                           static_cast<real_type>(std::log(4.)) -
-                               static_cast<real_type>(std::log(3.)),
+                           static_cast<real_type>(std::log2(4.)) -
+                               static_cast<real_type>(std::log2(3.)),
                            0.,
-                           static_cast<real_type>(std::log(4.)) -
-                               static_cast<real_type>(std::log(2.)),
-                           static_cast<real_type>(std::log(8.)) -
-                               static_cast<real_type>(std::log(5.)),
+                           static_cast<real_type>(std::log2(4.)) -
+                               static_cast<real_type>(std::log2(2.)),
+                           static_cast<real_type>(std::log2(8.)) -
+                               static_cast<real_type>(std::log2(5.)),
                            0.}},
           initialized_dual_u_product{
               ref, I<real_type>{0.,
-                                static_cast<real_type>(std::log(3.)) -
-                                    static_cast<real_type>(std::log(2.)),
+                                static_cast<real_type>(std::log2(3.)) -
+                                    static_cast<real_type>(std::log2(2.)),
                                 0., 0., 0.,
-                                static_cast<real_type>(std::log(4.)) -
-                                    static_cast<real_type>(std::log(3.))}},
+                                static_cast<real_type>(std::log2(4.)) -
+                                    static_cast<real_type>(std::log2(3.))}},
           initialized_row_maxima_product{
-              ref, I<real_type>{static_cast<real_type>(std::log(3.)),
-                                static_cast<real_type>(std::log(5.)),
-                                static_cast<real_type>(std::log(6.)),
-                                static_cast<real_type>(std::log(4.)),
-                                static_cast<real_type>(std::log(4.)),
-                                static_cast<real_type>(std::log(8.))}},
+              ref, I<real_type>{static_cast<real_type>(std::log2(3.)),
+                                static_cast<real_type>(std::log2(5.)),
+                                static_cast<real_type>(std::log2(6.)),
+                                static_cast<real_type>(std::log2(4.)),
+                                static_cast<real_type>(std::log2(4.)),
+                                static_cast<real_type>(std::log2(8.))}},
           initialized_distance{ref, I<real_type>{inf, inf, inf, inf, inf, inf}},
           empty_permutation{ref, I<index_type>{-1, -1, -1, -1, -1, -1}},
           empty_inverse_permutation{ref, I<index_type>{-1, -1, -1, -1, -1, -1}},
