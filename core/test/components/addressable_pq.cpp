@@ -64,33 +64,33 @@ protected:
     template <typename PQType>
     void assert_min(const PQType& pq, value_type key, index_type val)
     {
+        ASSERT_FALSE(pq.empty());
         ASSERT_EQ(pq.min_key(), key);
         ASSERT_EQ(pq.min_val(), val);
         ASSERT_TRUE((pq.min() == std::pair<value_type, index_type>{key, val}));
-        ASSERT_FALSE(pq.empty());
     }
 
     template <typename PQType>
     void test_pq_functionality()
     {
-        PQType pq{exec};
+        PQType pq{exec, 8};
 
         pq.insert(value_type{.5}, 1);
         ASSERT_EQ(pq.size(), 1);
         assert_min(pq, .5, 1);
 
         // insert larger key
-        const auto handle_7 = pq.insert(value_type{1.}, 7);
+        pq.insert(value_type{1.}, 7);
         ASSERT_EQ(pq.size(), 2);
         assert_min(pq, .5, 1);
 
         // insert min key
-        const auto handle_4 = pq.insert(value_type{.1}, 4);
+        pq.insert(value_type{.1}, 4);
         ASSERT_EQ(pq.size(), 3);
         assert_min(pq, .1, 4);
 
         // update key to have different min
-        pq.update_key(handle_4, value_type{.7});
+        pq.update_key(value_type{.7}, 4);
         ASSERT_EQ(pq.size(), 3);
         assert_min(pq, .5, 1);
 
@@ -100,7 +100,7 @@ protected:
         assert_min(pq, .5, 1);
 
         // update max to new min key
-        pq.update_key(handle_7, value_type{.2});
+        pq.update_key(value_type{.2}, 7);
         ASSERT_EQ(pq.size(), 4);
         assert_min(pq, .2, 7);
 
@@ -130,7 +130,7 @@ TYPED_TEST_SUITE(AddressablePriorityQueue, gko::test::RealValueIndexTypes,
 TYPED_TEST(AddressablePriorityQueue, InitializesCorrectly)
 {
     using pq_type = typename TestFixture::pq_type2;
-    pq_type pq{this->exec};
+    pq_type pq{this->exec, 0};
 
     ASSERT_EQ(pq.size(), 0);
     ASSERT_TRUE(pq.empty());

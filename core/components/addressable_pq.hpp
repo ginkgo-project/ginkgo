@@ -55,15 +55,22 @@ namespace gko {
  * and removing the key-value pair with the minimum key.
  *
  * @tparam KeyType    The type of the keys
- * @tparam ValueType  The type of the values
+ * @tparam ValueType  The type of the values, it needs to be an integer type.
  * @tparam deg_log2  The binary logarithm of the node degree k
  */
 template <typename KeyType, typename ValueType, int deg_log2 = 4>
 struct addressable_priority_queue {
     constexpr static int degree = 1 << deg_log2;
 
-    addressable_priority_queue(std::shared_ptr<const Executor> exec)
-        : keys_{exec}, values_{exec}, handles_{exec}, handle_pos_{exec}
+    /**
+     * Constructs an addressable PQ from its host executor and an array for
+     * storing the binary heap positions for each of the values.
+     */
+    addressable_priority_queue(std::shared_ptr<const Executor> exec,
+                               size_type num_values)
+        : keys_{exec},
+          values_{exec},
+          heap_pos_{num_values, unused_handle(), exec}
     {}
 
     /**
@@ -71,33 +78,32 @@ struct addressable_priority_queue {
      * Duplicate keys are allowed, they may be returned in an arbitrary order.
      *
      * @param key  the key by which the queue is ordered
-     * @param value  the value associated with the key
-     *
-     * @returns a handle for the pair to be used when modifying the key.
+     * @param value  the value associated with the key. No two keys may have the
+     *               same value!
      */
-    std::size_t insert(KeyType key, ValueType value)
+    void insert(KeyType key, ValueType value)
     {
+        GKO_ASSERT(value < static_cast<ValueType>(heap_pos_.size()));
+        GKO_ASSERT(value >= 0);
+        GKO_ASSERT(heap_pos_[value] == unused_handle());
         keys_.push_back(key);
         values_.push_back(value);
-        auto handle = next_handle();
-        handles_.push_back(handle);
-        if (handle == handle_pos_.size()) {
-            handle_pos_.push_back(size() - 1);
-        } else {
-            handle_pos_[handle] = size() - 1;
-        }
-        sift_up(size() - 1);
-        return handle;
+        const auto new_pos = size() - 1;
+        heap_pos_[value] = new_pos;
+        sift_up(new_pos);
     }
 
     /**
-     * Updates the key of the pair with the given handle.
+     * Updates the key of the pair with the given new key.
      */
-    void update_key(std::size_t handle, KeyType new_key)
+    void update_key(KeyType new_key, ValueType value)
     {
-        auto pos = handle_pos_[handle];
+        GKO_ASSERT(value < static_cast<ValueType>(heap_pos_.size()));
+        GKO_ASSERT(value >= 0);
+        auto pos = heap_pos_[value];
         GKO_ASSERT(pos < size());
-        GKO_ASSERT(handles_[pos] == handle);
+        GKO_ASSERT(pos != unused_handle());
+        GKO_ASSERT(values_[pos] == value);
         auto old_key = keys_[pos];
         keys_[pos] = new_key;
         if (old_key < new_key) {
@@ -134,9 +140,9 @@ struct addressable_priority_queue {
     void pop_min()
     {
         swap(0, size() - 1);
+        heap_pos_[values_.back()] = unused_handle();
         keys_.pop_back();
         values_.pop_back();
-        handles_.pop_back();
         sift_down(0);
     }
 
@@ -156,10 +162,11 @@ struct addressable_priority_queue {
 
     void reset()
     {
+        for (auto value : values_) {
+            heap_pos_[value] = unused_handle();
+        }
         keys_.clear();
         values_.clear();
-        handles_.clear();
-        handle_pos_.clear();
     }
 
 private:
@@ -167,12 +174,15 @@ private:
 
     std::size_t first_child(std::size_t i) const { return degree * i + 1; }
 
+    // This is a function instead of a member because otherwise we'd need to
+    // explicitly export the symbol. C++17 fixes this with inline variables
+    constexpr static size_type unused_handle() { return ~size_type{}; }
+
     void swap(std::size_t i, std::size_t j)
     {
         std::swap(keys_[i], keys_[j]);
         std::swap(values_[i], values_[j]);
-        std::swap(handles_[i], handles_[j]);
-        std::swap(handle_pos_[handles_[i]], handle_pos_[handles_[j]]);
+        std::swap(heap_pos_[values_[i]], heap_pos_[values_[j]]);
     }
 
     /**
@@ -184,14 +194,20 @@ private:
     {
         auto cur = i;
         while (first_child(cur) < size()) {
-            const auto begin = keys_.begin() + first_child(cur);
-            const auto end =
-                keys_.begin() + std::min(first_child(cur + 1), size());
-            const auto it = std::min_element(begin, end);
+            typename std::vector<KeyType>::const_iterator it;
+            if (first_child(cur + 1) < size()) {
+                // fast path: known loop trip count
+                it = std::min_element(keys_.cbegin() + first_child(cur),
+                                      keys_.cbegin() + first_child(cur + 1));
+            } else {
+                // slow path: unknown loop trip count
+                it = std::min_element(keys_.cbegin() + first_child(cur),
+                                      keys_.cbegin() + size());
+            }
             if (keys_[cur] <= *it) {
                 break;
             }
-            auto min_child = std::distance(keys_.begin(), it);
+            auto min_child = std::distance(keys_.cbegin(), it);
             swap(cur, min_child);
             cur = min_child;
         }
@@ -213,13 +229,11 @@ private:
         }
     }
 
-    // FIXME use free-list
-    std::size_t next_handle() const { return handle_pos_.size(); }
-
     vector<KeyType> keys_;
     vector<ValueType> values_;
-    vector<std::size_t> handles_;
-    vector<std::size_t> handle_pos_;
+    // for each value, heap_pos_[value] stores the position of this value inside
+    // the heap, or unused_handle() if it's not in the heap.
+    vector<size_type> heap_pos_;
 };
 
 
