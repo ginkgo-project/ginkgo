@@ -259,6 +259,8 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
     tile_real_t& reals =
         *sycl::ext::oneapi::group_local_memory_for_overwrite<tile_real_t>(
             group);
+    // ValueType values[5];
+    // real_type reals[2];
     rho_old_sh = &values[0];
     rho_new_sh = &values[1];
     alpha_sh = &values[2];
