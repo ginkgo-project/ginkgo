@@ -254,7 +254,7 @@ TYPED_TEST(Mc64, ShortestAugmentingPath)
 {
     using index_type = typename TestFixture::index_type;
     using real_type = typename TestFixture::real_type;
-    gko::addressable_priority_queue<real_type, index_type> Q;
+    gko::addressable_priority_queue<real_type, index_type> Q{this->ref};
     std::vector<index_type> q_j{};
 
     gko::experimental::reorder::mc64::shortest_augmenting_path(
