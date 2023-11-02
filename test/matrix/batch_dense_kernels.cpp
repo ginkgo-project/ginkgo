@@ -71,9 +71,9 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    void set_up_apply_data(int num_rows, gko::size_type num_vecs = 1)
+    void set_up_apply_data(gko::size_type num_rows, gko::size_type num_vecs = 1)
     {
-        const int num_cols = 32;
+        const gko::size_type num_cols = 32;
         mat = gen_mtx<BMtx>(batch_size, num_rows, num_cols);
         y = gen_mtx<BMVec>(batch_size, num_cols, num_vecs);
         alpha = gen_mtx<BMVec>(batch_size, 1, 1);
@@ -91,7 +91,7 @@ protected:
 
     std::default_random_engine rand_engine;
 
-    const size_t batch_size = 11;
+    const gko::size_type batch_size = 11;
     std::unique_ptr<BMtx> mat;
     std::unique_ptr<BMVec> y;
     std::unique_ptr<BMVec> alpha;

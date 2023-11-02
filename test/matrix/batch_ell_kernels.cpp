@@ -87,8 +87,8 @@ protected:
     void set_up_apply_data(gko::size_type num_vecs = 1,
                            int num_elems_per_row = 5)
     {
-        const int num_rows = 252;
-        const int num_cols = 32;
+        const gko::size_type num_rows = 252;
+        const gko::size_type num_cols = 32;
         GKO_ASSERT(num_elems_per_row <= num_cols);
         mat = gen_mtx<BMtx>(batch_size, num_rows, num_cols, num_elems_per_row);
         y = gen_mvec(batch_size, num_cols, num_vecs);
@@ -107,7 +107,7 @@ protected:
 
     std::ranlux48 rand_engine;
 
-    const size_t batch_size = 11;
+    const gko::size_type batch_size = 11;
     std::unique_ptr<BMtx> mat;
     std::unique_ptr<BMVec> y;
     std::unique_ptr<BMVec> alpha;
