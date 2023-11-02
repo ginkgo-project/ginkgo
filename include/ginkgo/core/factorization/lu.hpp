@@ -46,7 +46,7 @@ namespace experimental {
 namespace factorization {
 
 
-enum class symbolic_algorithm {
+enum class symbolic_type {
     /** An LU factorization algorithm that works on all matrices. */
     general,
     /**
@@ -109,8 +109,8 @@ public:
          * @note Only use symbolic_factorization_algorithm::symmetric if you are
          *       sure your matrix has a symmetric sparsity pattern!
          */
-        symbolic_algorithm GKO_FACTORY_PARAMETER_SCALAR(
-            symbolic_algorithm, symbolic_algorithm::general);
+        symbolic_type GKO_FACTORY_PARAMETER_SCALAR(symbolic_algorithm,
+                                                   symbolic_type::general);
 
         /**
          * The `system_matrix`, which will be given to this factory, must be

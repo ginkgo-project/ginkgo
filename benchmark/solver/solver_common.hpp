@@ -247,15 +247,14 @@ std::unique_ptr<gko::LinOpFactory> generate_solver(
             .with_factorization(
                 gko::experimental::factorization::Lu<etype, itype>::build()
                     .with_symbolic_algorithm(gko::experimental::factorization::
-                                                 symbolic_algorithm::symmetric))
+                                                 symbolic_type::symmetric))
             .on(exec);
     } else if (description == "near_symm_direct") {
         return gko::experimental::solver::Direct<etype, itype>::build()
             .with_factorization(
                 gko::experimental::factorization::Lu<etype, itype>::build()
-                    .with_symbolic_algorithm(
-                        gko::experimental::factorization::symbolic_algorithm::
-                            near_symmetric))
+                    .with_symbolic_algorithm(gko::experimental::factorization::
+                                                 symbolic_type::near_symmetric))
             .on(exec);
     } else if (description == "direct") {
         return gko::experimental::solver::Direct<etype, itype>::build()

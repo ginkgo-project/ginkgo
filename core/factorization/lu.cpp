@@ -98,13 +98,13 @@ std::unique_ptr<LinOp> Lu<ValueType, IndexType>::generate_impl(
     std::unique_ptr<matrix_type> factors;
     if (!parameters_.symbolic_factorization) {
         switch (parameters_.symbolic_algorithm) {
-        case symbolic_algorithm::general:
+        case symbolic_type::general:
             exec->run(make_symbolic_lu(mtx.get(), factors));
             break;
-        case symbolic_algorithm::near_symmetric:
+        case symbolic_type::near_symmetric:
             exec->run(make_symbolic_lu_near_symm(mtx.get(), factors));
             break;
-        case symbolic_algorithm::symmetric: {
+        case symbolic_type::symmetric: {
             std::unique_ptr<gko::factorization::elimination_forest<IndexType>>
                 forest;
             exec->run(make_symbolic_cholesky(mtx.get(), true, factors, forest));

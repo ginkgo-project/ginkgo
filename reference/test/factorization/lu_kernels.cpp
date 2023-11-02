@@ -266,7 +266,7 @@ TYPED_TEST(Lu, FactorizeSymmetricWorks)
                 gko::experimental::factorization::Lu<value_type,
                                                      index_type>::build()
                     .with_symbolic_algorithm(gko::experimental::factorization::
-                                                 symbolic_algorithm::symmetric)
+                                                 symbolic_type::symmetric)
                     .on(this->ref);
 
             auto lu = factory->generate(this->mtx);
@@ -292,8 +292,8 @@ TYPED_TEST(Lu, FactorizeNonsymmetricWorks)
         auto factory =
             gko::experimental::factorization::Lu<value_type,
                                                  index_type>::build()
-                .with_symbolic_algorithm(gko::experimental::factorization::
-                                             symbolic_algorithm::general)
+                .with_symbolic_algorithm(
+                    gko::experimental::factorization::symbolic_type::general)
                 .on(this->ref);
 
         auto lu = factory->generate(this->mtx);
@@ -319,7 +319,7 @@ TYPED_TEST(Lu, FactorizeNearSymmetricWorks)
             gko::experimental::factorization::Lu<value_type,
                                                  index_type>::build()
                 .with_symbolic_algorithm(gko::experimental::factorization::
-                                             symbolic_algorithm::near_symmetric)
+                                             symbolic_type::near_symmetric)
                 .on(this->ref);
 
         auto lu = factory->generate(this->mtx);

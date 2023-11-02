@@ -289,14 +289,14 @@ TYPED_TEST(Lu, GenerateSymmWithUnknownSparsityIsEquivalentToRef)
         auto factory =
             gko::experimental::factorization::Lu<value_type,
                                                  index_type>::build()
-                .with_symbolic_algorithm(gko::experimental::factorization::
-                                             symbolic_algorithm::symmetric)
+                .with_symbolic_algorithm(
+                    gko::experimental::factorization::symbolic_type::symmetric)
                 .on(this->ref);
         auto dfactory =
             gko::experimental::factorization::Lu<value_type,
                                                  index_type>::build()
-                .with_symbolic_algorithm(gko::experimental::factorization::
-                                             symbolic_algorithm::symmetric)
+                .with_symbolic_algorithm(
+                    gko::experimental::factorization::symbolic_type::symmetric)
                 .on(this->exec);
 
         auto lu = factory->generate(this->mtx);
@@ -318,13 +318,13 @@ TYPED_TEST(Lu, GenerateNearSymmWithUnknownSparsityIsEquivalentToRef)
             gko::experimental::factorization::Lu<value_type,
                                                  index_type>::build()
                 .with_symbolic_algorithm(gko::experimental::factorization::
-                                             symbolic_algorithm::near_symmetric)
+                                             symbolic_type::near_symmetric)
                 .on(this->ref);
         auto dfactory =
             gko::experimental::factorization::Lu<value_type,
                                                  index_type>::build()
                 .with_symbolic_algorithm(gko::experimental::factorization::
-                                             symbolic_algorithm::near_symmetric)
+                                             symbolic_type::near_symmetric)
                 .on(this->exec);
 
         auto lu = factory->generate(this->mtx);
