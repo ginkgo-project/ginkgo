@@ -204,9 +204,8 @@ void shortest_augmenting_path(
     array<ValueType>& weights_array, array<ValueType>& dual_u_array,
     array<ValueType>& distance_array, array<IndexType>& permutation,
     array<IndexType>& inv_permutation, IndexType root,
-    array<IndexType>& parents_array, array<IndexType>& handles_array,
-    array<IndexType>& generation_array, array<IndexType>& marked_cols_array,
-    array<IndexType>& matched_idxs_array,
+    array<IndexType>& parents_array, array<IndexType>& generation_array,
+    array<IndexType>& marked_cols_array, array<IndexType>& matched_idxs_array,
     addressable_priority_queue<ValueType, IndexType>& Q,
     std::vector<IndexType>& q_j, ValueType tolerance)
 {
@@ -220,8 +219,6 @@ void shortest_augmenting_path(
     auto ip = inv_permutation.get_data();
 
     auto parents = parents_array.get_data();
-    // Handles to access and update entries in the addressable priority queue.
-    auto handles = handles_array.get_data();
     // Generation array to mark visited nodes.
     // It can take four states:
     //  - gen[col] = #rows + root: The distance to col is smaller than the
@@ -300,7 +297,7 @@ void shortest_augmenting_path(
                 q_j.push_back(col);
             } else {
                 generation[col] = root;
-                handles[col] = Q.insert(dist, col);
+                Q.insert(dist, col);
             }
         }
     }
@@ -382,12 +379,12 @@ void shortest_augmenting_path(
                         } else if (gen != root) {
                             // col was not encountered before.
                             generation[col] = root;
-                            handles[col] = Q.insert(dnew, col);
+                            Q.insert(dnew, col);
                         } else {
                             // col was already encountered but with larger
                             // distance on a different path.
                             generation[col] = root;
-                            Q.update_key(handles[col], dnew);
+                            Q.update_key(dnew, col);
                         }
                     }
                 }
@@ -417,24 +414,27 @@ void shortest_augmenting_path(
 
 
 template <typename ValueType, typename IndexType>
-void augment_matching(
-    const matrix::Csr<ValueType, IndexType>* mtx,
-    array<remove_complex<ValueType>>& weights,
-    array<remove_complex<ValueType>>& dual_u,
-    array<remove_complex<ValueType>>& distance, array<IndexType>& permutation,
-    array<IndexType>& inv_permutation, array<IndexType>& unmatched_rows,
-    array<IndexType>& parents, array<IndexType>& handles,
-    array<IndexType>& generation, array<IndexType>& marked_cols,
-    array<IndexType>& matched_idxs, remove_complex<ValueType> tolerance)
+void augment_matching(const matrix::Csr<ValueType, IndexType>* mtx,
+                      array<remove_complex<ValueType>>& weights,
+                      array<remove_complex<ValueType>>& dual_u,
+                      array<remove_complex<ValueType>>& distance,
+                      array<IndexType>& permutation,
+                      array<IndexType>& inv_permutation,
+                      array<IndexType>& unmatched_rows,
+                      array<IndexType>& parents, array<IndexType>& generation,
+                      array<IndexType>& marked_cols,
+                      array<IndexType>& matched_idxs,
+                      remove_complex<ValueType> tolerance)
 {
+    const auto host_exec = mtx->get_executor();
     const auto num_rows = mtx->get_size()[0];
     const auto row_ptrs = mtx->get_const_row_ptrs();
     const auto col_idxs = mtx->get_const_col_idxs();
+    addressable_priority_queue<remove_complex<ValueType>, IndexType> Q{
+        host_exec, num_rows};
     // For each row that is not contained in the initial matching, search for
     // an augmenting path, update the matching and compute the new entries
     // of the dual vectors.
-    addressable_priority_queue<remove_complex<ValueType>, IndexType> Q{
-        mtx->get_executor()};
     std::vector<IndexType> q_j{};
     const auto unmatched = unmatched_rows.get_data();
     size_type um = 0;
@@ -443,8 +443,8 @@ void augment_matching(
         if (root != -1) {
             mc64::shortest_augmenting_path(
                 num_rows, row_ptrs, col_idxs, weights, dual_u, distance,
-                permutation, inv_permutation, root, parents, handles,
-                generation, marked_cols, matched_idxs, Q, q_j, tolerance);
+                permutation, inv_permutation, root, parents, generation,
+                marked_cols, matched_idxs, Q, q_j, tolerance);
         }
         root = unmatched[um];
     }
@@ -550,7 +550,6 @@ std::unique_ptr<LinOp> Mc64<ValueType, IndexType>::generate_impl(
     // columns, indices corresponding to matched columns in the according row
     // and still unmatched rows
     array<IndexType> parents{host_exec, num_rows};
-    array<IndexType> handles{host_exec, num_rows};
     array<IndexType> generation{host_exec, num_rows};
     array<IndexType> marked_cols{host_exec, num_rows};
     array<IndexType> matched_idxs{host_exec, num_rows};
@@ -558,7 +557,6 @@ std::unique_ptr<LinOp> Mc64<ValueType, IndexType>::generate_impl(
     array<ValueType> row_scaling{host_exec, num_rows};
     array<ValueType> col_scaling{host_exec, num_rows};
     parents.fill(0);
-    handles.fill(0);
     generation.fill(0);
     marked_cols.fill(0);
     matched_idxs.fill(0);
@@ -585,7 +583,7 @@ std::unique_ptr<LinOp> Mc64<ValueType, IndexType>::generate_impl(
 
     exec->run(make_augment_matching(
         mtx.get(), weights, dual_u, distance, permutation, inv_permutation,
-        unmatched_rows, parents, handles, generation, marked_cols, matched_idxs,
+        unmatched_rows, parents, generation, marked_cols, matched_idxs,
         this->get_parameters().tolerance));
 
     exec->run(make_compute_scaling(

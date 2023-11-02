@@ -127,7 +127,6 @@ protected:
           empty_matched_idxs{ref, I<index_type>{0, 0, 0, 0, 0, 0}},
           empty_unmatched_rows{ref, I<index_type>{0, 0, 0, 0, 0, 0}},
           initial_parents{ref, I<index_type>{0, 0, 0, 0, 0, 0}},
-          initial_handles{ref, I<index_type>{0, 0, 0, 0, 0, 0}},
           initial_generation{ref, I<index_type>{0, 0, 0, 0, 0, 0}},
           initial_marked_cols{ref, I<index_type>{0, 0, 0, 0, 0, 0}},
           initial_matched_idxs{ref, I<index_type>{1, 3, 5, 8, 0, 12}},
@@ -138,7 +137,6 @@ protected:
           final_permutation{ref, I<index_type>{1, 0, 3, 5, 4, 2}},
           final_inverse_permutation{ref, I<index_type>{1, 0, 5, 2, 4, 3}},
           final_parents{ref, I<index_type>{0, 0, 3, 4, 4, 2}},
-          final_handles{ref, I<index_type>{0, 0, 0, 0, 0, 0}},
           final_generation{ref, I<index_type>{0, 0, -4, -4, 0, -4}},
           final_marked_cols{ref, I<index_type>{3, 5, 2, 0, 0, 0}},
           final_matched_idxs{ref, I<index_type>{1, 3, 5, 8, 10, 12}},
@@ -182,7 +180,6 @@ protected:
     gko::array<index_type> initial_matching_permutation;
     gko::array<index_type> initial_matching_inverse_permutation;
     gko::array<index_type> initial_parents;
-    gko::array<index_type> initial_handles;
     gko::array<index_type> initial_generation;
     gko::array<index_type> initial_marked_cols;
     gko::array<index_type> initial_matched_idxs;
@@ -190,7 +187,6 @@ protected:
     gko::array<index_type> final_permutation;
     gko::array<index_type> final_inverse_permutation;
     gko::array<index_type> final_parents;
-    gko::array<index_type> final_handles;
     gko::array<index_type> final_generation;
     gko::array<index_type> final_marked_cols;
     gko::array<index_type> final_matched_idxs;
@@ -254,7 +250,8 @@ TYPED_TEST(Mc64, ShortestAugmentingPath)
 {
     using index_type = typename TestFixture::index_type;
     using real_type = typename TestFixture::real_type;
-    gko::addressable_priority_queue<real_type, index_type> Q{this->ref};
+    gko::addressable_priority_queue<real_type, index_type> Q{
+        this->ref, this->mtx->get_size()[0]};
     std::vector<index_type> q_j{};
 
     gko::experimental::reorder::mc64::shortest_augmenting_path(
@@ -263,7 +260,7 @@ TYPED_TEST(Mc64, ShortestAugmentingPath)
         this->initialized_dual_u_sum, this->initialized_distance,
         this->initial_matching_permutation,
         this->initial_matching_inverse_permutation, 4 * gko::one<index_type>(),
-        this->initial_parents, this->initial_handles, this->initial_generation,
+        this->initial_parents, this->initial_generation,
         this->initial_marked_cols, this->initial_matched_idxs, Q, q_j,
         this->tol);
 
@@ -272,7 +269,6 @@ TYPED_TEST(Mc64, ShortestAugmentingPath)
     GKO_ASSERT_ARRAY_EQ(this->initial_matching_inverse_permutation,
                         this->final_inverse_permutation);
     GKO_ASSERT_ARRAY_EQ(this->initial_parents, this->final_parents);
-    GKO_ASSERT_ARRAY_EQ(this->initial_handles, this->final_handles);
     GKO_ASSERT_ARRAY_EQ(this->initial_generation, this->final_generation);
     GKO_ASSERT_ARRAY_EQ(this->initial_marked_cols, this->final_marked_cols);
     GKO_ASSERT_ARRAY_EQ(this->initial_matched_idxs, this->final_matched_idxs);
