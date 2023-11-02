@@ -96,8 +96,8 @@ protected:
         factory = solver_type::build()
                       .with_factorization(
                           factorization_type::build().with_symbolic_algorithm(
-                              gko::experimental::factorization::
-                                  symbolic_algorithm::symmetric))
+                              gko::experimental::factorization::symbolic_type::
+                                  symmetric))
                       .with_num_rhs(static_cast<gko::size_type>(nrhs))
                       .on(ref);
         alpha = gen_mtx(1, 1);
@@ -107,8 +107,8 @@ protected:
         dfactory = solver_type::build()
                        .with_factorization(
                            factorization_type::build().with_symbolic_algorithm(
-                               gko::experimental::factorization::
-                                   symbolic_algorithm::symmetric))
+                               gko::experimental::factorization::symbolic_type::
+                                   symmetric))
                        .with_num_rhs(static_cast<gko::size_type>(nrhs))
                        .on(exec);
         dalpha = gko::clone(exec, alpha);
