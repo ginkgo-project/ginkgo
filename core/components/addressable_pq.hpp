@@ -194,7 +194,7 @@ private:
     {
         auto cur = i;
         while (first_child(cur) < size()) {
-            typename std::vector<KeyType>::const_iterator it;
+            auto it = keys_.cbegin();
             if (first_child(cur + 1) < size()) {
                 // fast path: known loop trip count
                 it = std::min_element(keys_.cbegin() + first_child(cur),
