@@ -48,7 +48,7 @@ namespace stop {
  *
  * With the `relative` tolerance type, the solver
  * convergence criteria checks against the relative residual norm
- * ($||r|| \leq ||b|| \times \tau$, where $||b||$$ is the L2 norm of the rhs).
+ * ($||r|| \leq ||b|| \times \tau$, where $||b||$ is the L2 norm of the rhs).
  *
  * @note the computed residual norm, $||r||$ may be implicit or explicit
  * depending on the solver algorithm.
