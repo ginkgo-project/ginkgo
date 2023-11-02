@@ -73,9 +73,8 @@ void shortest_augmenting_path(
     array<ValueType>& weights_array, array<ValueType>& dual_u_array,
     array<ValueType>& distance_array, array<IndexType>& permutation,
     array<IndexType>& inv_permutation, IndexType root,
-    array<IndexType>& parents_array, array<IndexType>& handles_array,
-    array<IndexType>& generation_array, array<IndexType>& marked_cols_array,
-    array<IndexType>& matched_idxs_array,
+    array<IndexType>& parents_array, array<IndexType>& generation_array,
+    array<IndexType>& marked_cols_array, array<IndexType>& matched_idxs_array,
     addressable_priority_queue<ValueType, IndexType>& Q,
     std::vector<IndexType>& q_j, ValueType tolerance);
 
