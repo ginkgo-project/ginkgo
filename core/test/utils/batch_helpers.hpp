@@ -166,7 +166,7 @@ std::unique_ptr<const MatrixType> generate_diag_dominant_batch_matrix(
                     static_cast<size_type>(num_cols)},
         {}};
     auto engine = std::default_random_engine(42);
-    auto rand_diag_dist = std::normal_distribution<real_type>(4.0, 12.0);
+    auto rand_diag_dist = std::normal_distribution<real_type>(8.0, 1.0);
     for (int row = 0; row < num_rows; ++row) {
         std::uniform_int_distribution<index_type> rand_nnz_dist{1, row + 1};
         const auto k = rand_nnz_dist(engine);
@@ -175,8 +175,8 @@ std::unique_ptr<const MatrixType> generate_diag_dominant_batch_matrix(
         }
         data.nonzeros.emplace_back(
             row, row,
-            static_cast<value_type>(
-                detail::get_rand_value<real_type>(rand_diag_dist, engine)));
+            std::abs(static_cast<value_type>(
+                detail::get_rand_value<real_type>(rand_diag_dist, engine))));
         if (row < num_rows - 1) {
             data.nonzeros.emplace_back(row, k, value_type{-1.0});
             data.nonzeros.emplace_back(row, row + 1, value_type{-1.0});
@@ -208,8 +208,15 @@ std::unique_ptr<const MatrixType> generate_diag_dominant_batch_matrix(
         auto rand_data = fill_random_matrix_data<value_type, index_type>(
             num_rows, num_cols, row_idxs, col_idxs, rand_val_dist, engine);
         gko::utils::make_diag_dominant(rand_data);
-        batch_data.emplace_back(rand_data);
         GKO_ASSERT(rand_data.size == batch_data.at(0).size);
+        GKO_ASSERT(rand_data.nonzeros.size() == data.nonzeros.size());
+        // Copy over the diagonal values
+        for (int i = 0; i < data.nonzeros.size(); ++i) {
+            if (data.nonzeros[i].row == data.nonzeros[i].column) {
+                rand_data.nonzeros[i] = data.nonzeros[i];
+            }
+        }
+        batch_data.emplace_back(rand_data);
     }
     return gko::batch::read<value_type, index_type, MatrixType>(
         exec, batch_data, std::forward<MatrixArgs>(args)...);
