@@ -54,6 +54,7 @@ class ResidualNorm : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<T>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<T>>;
+    using ValueType = T;
 
     ResidualNorm()
     {
@@ -100,6 +101,39 @@ TYPED_TEST(ResidualNorm, CanCreateFactory)
     ASSERT_EQ(this->abs_factory_->get_parameters().baseline,
               gko::stop::mode::absolute);
     ASSERT_EQ(this->abs_factory_->get_executor(), this->exec_);
+}
+
+TYPED_TEST(ResidualNorm, CheckIfResZeroConverges)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using NormVector = typename TestFixture::NormVector;
+    using T = typename TestFixture::ValueType;
+    using mode = typename gko::stop::mode;
+    std::shared_ptr<gko::LinOp> mtx = gko::initialize<Mtx>({1.0}, this->exec_);
+    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({0.0}, this->exec_);
+    std::shared_ptr<gko::LinOp> x = gko::initialize<Mtx>({0.0}, this->exec_);
+    std::shared_ptr<gko::LinOp> res_norm =
+        gko::initialize<NormVector>({0.0}, this->exec_);
+
+    for (auto baseline :
+         {mode::rhs_norm, mode::initial_resnorm, mode::absolute}) {
+        gko::remove_complex<T> factor =
+            (baseline == mode::absolute) ? 0.0 : r<T>::value;
+        auto criterion = gko::stop::ResidualNorm<T>::build()
+                             .with_reduction_factor(factor)
+                             .with_baseline(baseline)
+                             .on(this->exec_)
+                             ->generate(mtx, rhs, x.get(), nullptr);
+        constexpr gko::uint8 RelativeStoppingId{1};
+        bool one_changed{};
+        gko::array<gko::stopping_status> stop_status(this->exec_, 1);
+        stop_status.get_data()[0].reset();
+
+        EXPECT_TRUE(criterion->update().residual_norm(res_norm).check(
+            RelativeStoppingId, true, &stop_status, &one_changed));
+        EXPECT_TRUE(stop_status.get_data()[0].has_converged());
+        EXPECT_TRUE(one_changed);
+    }
 }
 
 
@@ -776,6 +810,7 @@ class ImplicitResidualNorm : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<T>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<T>>;
+    using ValueType = T;
 
     ImplicitResidualNorm()
     {
@@ -818,6 +853,40 @@ TYPED_TEST(ImplicitResidualNorm, CanCreateFactory)
     ASSERT_EQ(this->factory_3_->get_parameters().baseline,
               gko::stop::mode::rhs_norm);
     ASSERT_EQ(this->factory_->get_executor(), this->exec_);
+}
+
+TYPED_TEST(ImplicitResidualNorm, CheckIfResZeroConverges)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::ValueType;
+    using mode = typename gko::stop::mode;
+    std::shared_ptr<gko::LinOp> mtx = gko::initialize<Mtx>({1.0}, this->exec_);
+    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({0.0}, this->exec_);
+    std::shared_ptr<gko::LinOp> x = gko::initialize<Mtx>({0.0}, this->exec_);
+    std::shared_ptr<gko::LinOp> implicit_sq_res_norm =
+        gko::initialize<Mtx>({0.0}, this->exec_);
+
+    for (auto baseline :
+         {mode::rhs_norm, mode::initial_resnorm, mode::absolute}) {
+        gko::remove_complex<T> factor =
+            (baseline == mode::absolute) ? 0.0 : r<T>::value;
+        auto criterion = gko::stop::ImplicitResidualNorm<T>::build()
+                             .with_reduction_factor(factor)
+                             .with_baseline(baseline)
+                             .on(this->exec_)
+                             ->generate(mtx, rhs, x.get(), nullptr);
+        constexpr gko::uint8 RelativeStoppingId{1};
+        bool one_changed{};
+        gko::array<gko::stopping_status> stop_status(this->exec_, 1);
+        stop_status.get_data()[0].reset();
+
+        EXPECT_TRUE(
+            criterion->update()
+                .implicit_sq_residual_norm(implicit_sq_res_norm)
+                .check(RelativeStoppingId, true, &stop_status, &one_changed));
+        EXPECT_TRUE(stop_status.get_data()[0].has_converged());
+        EXPECT_TRUE(one_changed);
+    }
 }
 
 

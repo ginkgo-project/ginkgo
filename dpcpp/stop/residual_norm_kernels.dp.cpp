@@ -82,7 +82,7 @@ void residual_norm(std::shared_ptr<const DpcppExecutor> exec,
         cgh.parallel_for(
             sycl::range<1>{tau->get_size()[1]}, [=](sycl::id<1> idx_id) {
                 const auto tidx = idx_id[0];
-                if (tau_val[tidx] < rel_residual_goal * orig_tau_val[tidx]) {
+                if (tau_val[tidx] <= rel_residual_goal * orig_tau_val[tidx]) {
                     stop_status_val[tidx].converge(stoppingId, setFinalized);
                     device_storage_val[1] = true;
                 }
@@ -138,7 +138,7 @@ void implicit_residual_norm(
         cgh.parallel_for(
             sycl::range<1>{tau->get_size()[1]}, [=](sycl::id<1> idx_id) {
                 const auto tidx = idx_id[0];
-                if (std::sqrt(std::abs(tau_val[tidx])) <
+                if (std::sqrt(std::abs(tau_val[tidx])) <=
                     rel_residual_goal * orig_tau_val[tidx]) {
                     stop_status_val[tidx].converge(stoppingId, setFinalized);
                     device_storage_val[1] = true;

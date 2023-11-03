@@ -52,13 +52,13 @@ namespace stop {
  * The mode for the residual norm criterion.
  *
  * - absolute:        Check for tolerance against residual norm.
- *                    $ || r || < \tau $
+ *                    $ || r || \leq \tau $
  *
  * - initial_resnorm: Check for tolerance relative to the initial residual norm.
- *                    $ \frac{|| r ||}{|| r_0||} < \tau $
+ *                    $ || r || \leq \tau \times || r_0|| $
  *
  * - rhs_norm:        Check for tolerance relative to the rhs norm.
- *                    $ \frac{|| r ||}{|| b ||} < \tau $
+ *                    $ || r || \leq \tau \times || b || $
  *
  * @ingroup stop
  */
@@ -118,10 +118,11 @@ private:
  * The ResidualNorm class is a stopping criterion which
  * stops the iteration process when the actual residual norm is below a
  * certain threshold relative to
- * 1. the norm of the right-hand side, norm(residual) / norm(right_hand_side)
- *                                                                  < threshold
- * 2. the initial residual, norm(residual) / norm(initial_residual) < threshold.
- * 3. one,  norm(residual) < threshold.
+ * 1. the norm of the right-hand side, norm(residual) $\leq$ < threshold *
+ *    norm(right_hand_side).
+ * 2. the initial residual, norm(residual) $\leq$ threshold *
+ *    norm(initial_residual).
+ * 3. one,  norm(residual) $\leq$ threshold.
  *
  * For better performance, the checks are run on the executor
  * where the algorithm is executed.
@@ -176,11 +177,11 @@ protected:
  * The ImplicitResidualNorm class is a stopping criterion which
  * stops the iteration process when the implicit residual norm is below a
  * certain threshold relative to
- * 1. the norm of the right-hand side, implicit_resnorm / norm(right_hand_side)
- *                                                          < threshold
- * 2. the initial residual, implicit_resnorm / norm(initial_residual) <
- *                                                          < threshold.
- * 3. one, implicit_resnorm < threshold.
+ * 1. the norm of the right-hand side, implicit_resnorm $\leq$ < threshold *
+ * norm(right_hand_side)
+ * 2. the initial residual, implicit_resnorm $\leq$ threshold *
+ * norm(initial_residual) .
+ * 3. one,  implicit_resnorm $\leq$ threshold.
  *
  * @note To use this stopping criterion there are some dependencies. The
  * constructor depends on either `b` or the `initial_residual` in order to

@@ -70,7 +70,7 @@ __global__ __launch_bounds__(default_block_size) void residual_norm_kernel(
 {
     const auto tidx = thread::get_thread_id_flat();
     if (tidx < num_cols) {
-        if (tau[tidx] < rel_residual_goal * orig_tau[tidx]) {
+        if (tau[tidx] <= rel_residual_goal * orig_tau[tidx]) {
             stop_status[tidx].converge(stoppingId, setFinalized);
             device_storage[1] = true;
         }
@@ -151,7 +151,7 @@ __launch_bounds__(default_block_size) void implicit_residual_norm_kernel(
 {
     const auto tidx = thread::get_thread_id_flat();
     if (tidx < num_cols) {
-        if (sqrt(abs(tau[tidx])) < rel_residual_goal * orig_tau[tidx]) {
+        if (sqrt(abs(tau[tidx])) <= rel_residual_goal * orig_tau[tidx]) {
             stop_status[tidx].converge(stoppingId, setFinalized);
             device_storage[1] = true;
         }
