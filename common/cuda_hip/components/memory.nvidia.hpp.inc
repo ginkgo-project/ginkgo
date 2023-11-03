@@ -1031,3 +1031,246 @@ __device__ __forceinline__ void store_relaxed(thrust::complex<double>* ptr,
         "d"(real_result), "d"(imag_result)
         : "memory");
 }
+
+
+__device__ __forceinline__ __half load_relaxed_shared(const __half* ptr)
+{
+    float result;
+    asm volatile(
+        "{\n\t"
+        "  .reg .f16 t;\n\t"
+#if __CUDA_ARCH__ < 700
+        "  ld.volatile.shared.b16 t, [%1];\n\t"
+#else
+        "  ld.relaxed.cta.shared.b16 t, [%1];\n\t"
+#endif
+        "  cvt.f32.f16 %0, t;\n\t"
+        "}"
+        : "=f"(result)
+        : "r"(convert_generic_ptr_to_smem_ptr(const_cast<__half*>(ptr)))
+        : "memory");
+
+    return static_cast<__half>(result);
+}
+
+
+__device__ __forceinline__ void store_relaxed_shared(__half* ptr, __half result)
+{
+    asm volatile(
+        "{\n\t"
+        "  .reg .f16 t;\n\t"
+        "  cvt.rn.f16.f32 t, %1;\n\t"
+#if __CUDA_ARCH__ < 700
+        "  st.volatile.shared.b16 [%0], t;\n\t"
+#else
+        "  st.relaxed.cta.shared.b16 [%0], t;\n\t"
+#endif
+        "}" ::"r"(convert_generic_ptr_to_smem_ptr(ptr)),
+        "f"(static_cast<float>(result))
+        : "memory");
+}
+
+
+__device__ __forceinline__ __half load_acquire_shared(const __half* ptr)
+{
+    float result;
+    asm volatile(
+        "{\n\t"
+        "  .reg .f16 t;\n\t"
+#if __CUDA_ARCH__ < 700
+        "  ld.volatile.shared.b16 t, [%1];\n\t"
+#else
+        "  ld.acquire.cta.shared.b16 t, [%1];\n\t"
+#endif
+        "  cvt.f32.f16 %0, t;\n\t"
+        "}"
+        : "=f"(result)
+        : "r"(convert_generic_ptr_to_smem_ptr(const_cast<__half*>(ptr)))
+        : "memory");
+    membar_acq_rel_shared();
+    return static_cast<__half>(result);
+}
+
+
+__device__ __forceinline__ void store_release_shared(__half* ptr, __half result)
+{
+    membar_acq_rel_shared();
+    asm volatile(
+        "{\n\t"
+        "  .reg .f16 t;\n\t"
+        "  cvt.rn.f16.f32 t, %1;\n\t"
+#if __CUDA_ARCH__ < 700
+        "  st.volatile.shared.b16 [%0], t;\n\t"
+#else
+        "  st.release.cta.shared.b16 [%0], t;\n\t"
+#endif
+        "}" ::"r"(convert_generic_ptr_to_smem_ptr(ptr)),
+        "f"(static_cast<float>(result))
+        : "memory");
+}
+
+
+__device__ __forceinline__ __half load_relaxed(const __half* ptr)
+{
+    float result;
+    asm volatile(
+        "{\n\t"
+        "  .reg .f16 t;\n\t"
+#if __CUDA_ARCH__ < 700
+        "  ld.volatile.b16 t, [%1];\n\t"
+#else
+        "  ld.relaxed.gpu.b16 t, [%1];\n\t"
+#endif
+        "  cvt.f32.f16 %0, t;\n\t"
+        "}"
+        : "=f"(result)
+        : "l"(const_cast<__half*>(ptr))
+        : "memory");
+
+    return static_cast<__half>(result);
+}
+
+
+__device__ __forceinline__ void store_relaxed(__half* ptr, __half result)
+{
+    asm volatile(
+        "{\n\t"
+        "  .reg .f16 t;\n\t"
+        "  cvt.rn.f16.f32 t, %1;\n\t"
+#if __CUDA_ARCH__ < 700
+        "  st.volatile.b16 [%0], t;\n\t"
+#else
+        "  st.relaxed.gpu.b16 [%0], t;\n\t"
+#endif
+        "}" ::"l"(ptr),
+        "f"(static_cast<float>(result))
+        : "memory");
+}
+
+
+__device__ __forceinline__ __half load_acquire(const __half* ptr)
+{
+    float result;
+    asm volatile(
+        "{\n\t"
+        "  .reg .f16 t;\n\t"
+#if __CUDA_ARCH__ < 700
+        "  ld.volatile.b16 t, [%1];\n\t"
+#else
+        "  ld.acquire.gpu.b16 t, [%1];\n\t"
+#endif
+        "  cvt.f32.f16 %0, t;\n\t"
+        "}"
+        : "=f"(result)
+        : "l"(const_cast<__half*>(ptr))
+        : "memory");
+    membar_acq_rel();
+    return static_cast<__half>(result);
+}
+
+
+__device__ __forceinline__ void store_release(__half* ptr, __half result)
+{
+    membar_acq_rel();
+    asm volatile(
+        "{\n\t"
+        "  .reg .f16 t;\n\t"
+        "  cvt.rn.f16.f32 t, %1;\n\t"
+#if __CUDA_ARCH__ < 700
+        "  st.volatile.b16 [%0], t;\n\t"
+#else
+        "  st.release.gpu.b16 [%0], t;\n\t"
+#endif
+        "}" ::"l"(ptr),
+        "f"(static_cast<float>(result))
+        : "memory");
+}
+
+
+__device__ __forceinline__ thrust::complex<__half> load_relaxed_shared(
+    const thrust::complex<__half>* ptr)
+{
+    float real_result;
+    float imag_result;
+    asm volatile(
+        "{\n\t"
+        "  .reg .v2 .f16 t;\n\t"
+#if __CUDA_ARCH__ < 700
+        "ld.volatile.shared.v2.b16 {%0, %1}, [%2];\n\t"
+#else
+        "ld.relaxed.cta.shared.v2.b16 {%0, %1}, [%2];\n\t"
+#endif
+        "  cvt.f32.f16 %0, t.x;\n\t"
+        "  cvt.f32.f16 %1, t.y;\n\t"
+        "}"
+        : "=f"(real_result), "=f"(imag_result)
+        : "r"(convert_generic_ptr_to_smem_ptr(
+            const_cast<thrust::complex<__half>*>(ptr)))
+        : "memory");
+    return thrust::complex<__half>{real_result, imag_result};
+}
+
+
+__device__ __forceinline__ void store_relaxed_shared(
+    thrust::complex<__half>* ptr, thrust::complex<__half> result)
+{
+    auto real_result = static_cast<float>(result.real());
+    auto imag_result = static_cast<float>(result.imag());
+    asm volatile(
+        "{\n\t"
+        "  .reg .v2 .f16 t;\n\t"
+        "  cvt.rn.f16.f32 t.x, %1;\n\t"
+        "  cvt.rn.f16.f32 t.y, %2;\n\t"
+#if __CUDA_ARCH__ < 700
+        "st.volatile.shared.v2.b16 [%0], t;\n\t"
+#else
+        "st.relaxed.cta.shared.v2.b16 [%0], t;\n\t"
+#endif
+        "}" ::"r"(convert_generic_ptr_to_smem_ptr(ptr)),
+        "f"(real_result), "f"(imag_result)
+        : "memory");
+}
+
+
+__device__ __forceinline__ thrust::complex<__half> load_relaxed(
+    const thrust::complex<__half>* ptr)
+{
+    float real_result;
+    float imag_result;
+    asm volatile(
+        "{\n\t"
+        "  .reg .v2 .f16 t;\n\t"
+#if __CUDA_ARCH__ < 700
+        "ld.volatile.v2.b16 {%0, %1}, [%2];\n\t"
+#else
+        "ld.relaxed.gpu.v2.b16 {%0, %1}, [%2];\n\t"
+#endif
+        "  cvt.f32.f16 %0, t.x;\n\t"
+        "  cvt.f32.f16 %1, t.y;\n\t"
+        "}"
+        : "=f"(real_result), "=f"(imag_result)
+        : "l"(const_cast<thrust::complex<__half>*>(ptr))
+        : "memory");
+    return thrust::complex<__half>{real_result, imag_result};
+}
+
+
+__device__ __forceinline__ void store_relaxed(thrust::complex<__half>* ptr,
+                                              thrust::complex<__half> result)
+{
+    auto real_result = static_cast<float>(result.real());
+    auto imag_result = static_cast<float>(result.imag());
+    asm volatile(
+        "{\n\t"
+        "  .reg .v2 .f16 t;\n\t"
+        "  cvt.rn.f16.f32 t.x, %1;\n\t"
+        "  cvt.rn.f16.f32 t.y, %2;\n\t"
+#if __CUDA_ARCH__ < 700
+        "st.volatile.v2.b16 [%0], t;\n\t"
+#else
+        "st.relaxed.gpu.v2.b16 [%0], t;\n\t"
+#endif
+        "}" ::"l"(ptr),
+        "f"(real_result), "f"(imag_result)
+        : "memory");
+}
