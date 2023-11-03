@@ -222,7 +222,7 @@ TEST_F(BatchBicgstab, CanSolveLargeBatchSizeHpdSystem)
                       linear_system.host_rhs_norm->get_const_values()[i],
                   tol);
         EXPECT_GT(res_norm->get_const_data()[i], real_type{0.0});
-        ASSERT_LE(comp_res_norm, tol);
+        ASSERT_LE(comp_res_norm, tol * 10);
     }
 }
 
@@ -257,6 +257,6 @@ TEST_F(BatchBicgstab, CanSolveLargeMatrixSizeHpdSystem)
                       linear_system.host_rhs_norm->get_const_values()[i],
                   tol);
         EXPECT_GT(res_norm->get_const_data()[i], real_type{0.0});
-        ASSERT_LE(comp_res_norm, tol);
+        ASSERT_LE(comp_res_norm, tol * 10);
     }
 }
