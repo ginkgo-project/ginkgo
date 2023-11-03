@@ -87,7 +87,7 @@ protected:
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     const real_type eps = 1e-3;
     const gko::size_type num_batch_items = 2;
-    const int num_rows = 3;
+    const int num_rows = 15;
     const int num_rhs = 1;
     const Settings solver_settings{100, eps,
                                    gko::batch::stop::tolerance_type::relative};
