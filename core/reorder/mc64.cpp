@@ -75,34 +75,38 @@ void initialize_weights(const matrix::Csr<ValueType, IndexType>* mtx,
     const auto row_ptrs = mtx->get_const_row_ptrs();
     const auto col_idxs = mtx->get_const_col_idxs();
     const auto values = mtx->get_const_values();
-    auto calculate_weight =
-        strategy == gko::experimental::reorder::mc64_strategy::max_diagonal_sum
-            ? [](ValueType a) { return abs(a); }
-            : [](ValueType a) { return std::log2(abs(a)); };
     auto weights = weights_array.get_data();
     auto dual_u = dual_u_array.get_data();
     auto distance = distance_array.get_data();
     auto row_maxima = row_maxima_array.get_data();
     dual_u_array.fill(inf);
     distance_array.fill(inf);
-    for (IndexType row = 0; row < num_rows; row++) {
-        const auto row_begin = row_ptrs[row];
-        const auto row_end = row_ptrs[row + 1];
-        auto row_max = -inf;
-        for (IndexType idx = row_begin; idx < row_end; idx++) {
-            const auto weight = calculate_weight(values[idx]);
-            weights[idx] = weight;
-            row_max = std::max(weight, row_max);
-        }
+    auto run_computation = [&](auto calculate_weight) {
+        for (IndexType row = 0; row < num_rows; row++) {
+            const auto row_begin = row_ptrs[row];
+            const auto row_end = row_ptrs[row + 1];
+            auto row_max = -inf;
+            for (IndexType idx = row_begin; idx < row_end; idx++) {
+                const auto weight = calculate_weight(values[idx]);
+                weights[idx] = weight;
+                row_max = std::max(weight, row_max);
+            }
 
-        row_maxima[row] = row_max;
+            row_maxima[row] = row_max;
 
-        for (IndexType idx = row_begin; idx < row_end; idx++) {
-            const auto weight = row_max - weights[idx];
-            weights[idx] = weight;
-            const auto col = col_idxs[idx];
-            dual_u[col] = std::min(weight, dual_u[col]);
+            for (IndexType idx = row_begin; idx < row_end; idx++) {
+                const auto weight = row_max - weights[idx];
+                weights[idx] = weight;
+                const auto col = col_idxs[idx];
+                dual_u[col] = std::min(weight, dual_u[col]);
+            }
         }
+    };
+    if (strategy ==
+        gko::experimental::reorder::mc64_strategy::max_diagonal_sum) {
+        run_computation([](ValueType a) { return abs(a); });
+    } else {
+        run_computation([](ValueType a) { return std::log2(abs(a)); });
     }
 }
 
@@ -156,7 +160,7 @@ void initial_matching(
     // If there is another column col_1 with w(row_1, col_1) < tolerance
     // that is not yet matched, replace the matched edge (row_1, col)
     // with the two new matched edges (row, col) and (row_1, col_1).
-    auto um = 0;
+    size_type um = 0;
     auto row = unmatched[um];
     // If row == 0 we passed the last unmatched row and reached the
     // zero-initialized part of the array. Row 0 is always matched as the matrix

@@ -160,6 +160,7 @@ struct addressable_priority_queue {
      */
     bool empty() const { return size() == 0; }
 
+    /** Clears the queue, removing all entries. */
     void reset()
     {
         for (auto value : values_) {
