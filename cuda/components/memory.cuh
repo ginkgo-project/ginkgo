@@ -81,7 +81,7 @@ __device__ __forceinline__ uint32 convert_generic_ptr_to_smem_ptr(void* ptr)
 }
 
 
-__device__ __forceinline__ uint32 membar_acq_rel()
+__device__ __forceinline__ void membar_acq_rel()
 {
 #if __CUDA_ARCH__ < 700
     asm volatile("membar.gl;" ::: "memory");
@@ -91,7 +91,7 @@ __device__ __forceinline__ uint32 membar_acq_rel()
 }
 
 
-__device__ __forceinline__ uint32 membar_acq_rel_shared()
+__device__ __forceinline__ void membar_acq_rel_shared()
 {
 #if __CUDA_ARCH__ < 700
     asm volatile("membar.cta;" ::: "memory");
