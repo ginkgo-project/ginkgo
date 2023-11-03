@@ -90,6 +90,8 @@ public:
 
     /**
      * Returns the parameters used to construct the factory.
+     *
+     * @return the parameters used to construct the factory.
      */
     const parameters_type& get_parameters() { return parameters_; }
 
