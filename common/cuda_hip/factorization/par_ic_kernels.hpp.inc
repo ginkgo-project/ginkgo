@@ -78,16 +78,18 @@ __global__ __launch_bounds__(default_block_size) void ic_sweep(
         auto l_col = l_col_idxs[l_row_begin];
         auto lh_row = l_col_idxs[lh_col_begin];
         if (l_col == lh_row && l_col < last_entry) {
-            sum += l_vals[l_row_begin] * conj(l_vals[lh_col_begin]);
+            sum += load_relaxed(l_vals + l_row_begin) *
+                   conj(load_relaxed(l_vals + lh_col_begin));
         }
         l_row_begin += l_col <= lh_row;
         lh_col_begin += l_col >= lh_row;
     }
-    auto to_write = row == col
-                        ? sqrt(a_val - sum)
-                        : (a_val - sum) / l_vals[l_row_ptrs[col + 1] - 1];
+    auto to_write =
+        row == col
+            ? sqrt(a_val - sum)
+            : (a_val - sum) / load_relaxed(l_vals + (l_row_ptrs[col + 1] - 1));
     if (is_finite(to_write)) {
-        l_vals[l_nz] = to_write;
+        store_relaxed(l_vals + l_nz, to_write);
     }
 }
 
