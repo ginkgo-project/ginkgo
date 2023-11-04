@@ -51,59 +51,65 @@ namespace gko {
 /**
  * An addressable priority queue based on a k-ary heap.
  *
- * It allows inserting key-value pairs, modifying their key as well as accessing
- * and removing the key-value pair with the minimum key.
+ * It allows inserting key-node pairs, modifying their key as well as accessing
+ * and removing the key-node pair with the minimum key.
  *
  * @tparam KeyType    The type of the keys
- * @tparam ValueType  The type of the values, it needs to be an integer type.
- * @tparam deg_log2  The binary logarithm of the node degree k
+ * @tparam IndexType  The type of the nodes, it needs to be an integer type.
+ * @tparam degree     The node degree k
  */
-template <typename KeyType, typename ValueType, int deg_log2 = 4>
+template <typename KeyType, typename IndexType, int degree = 4>
 struct addressable_priority_queue {
-    constexpr static int degree = 1 << deg_log2;
-
     /**
-     * Constructs an addressable PQ from its host executor and an array for
-     * storing the binary heap positions for each of the values.
+     * Constructs an addressable PQ from a host executor.
+     *
+     * @param host_exec  the host executor for allocating the data
+     * @param num_nodes  the number of nodes that may be inserted into this
+     *                   queue. Every node ID inserted must be below num_nodes.
      */
-    addressable_priority_queue(std::shared_ptr<const Executor> exec,
-                               size_type num_values)
-        : keys_{exec},
-          values_{exec},
-          heap_pos_{num_values, unused_handle(), exec}
+    addressable_priority_queue(std::shared_ptr<const Executor> host_exec,
+                               size_type num_nodes)
+        : keys_{host_exec},
+          nodes_{host_exec},
+          heap_pos_{num_nodes, invalid_index<IndexType>(), host_exec}
     {}
 
     /**
-     * Inserts the given key-value pair into the PQ.
+     * Inserts the given key-node pair into the PQ.
      * Duplicate keys are allowed, they may be returned in an arbitrary order.
      *
      * @param key  the key by which the queue is ordered
-     * @param value  the value associated with the key. No two keys may have the
-     *               same value!
+     * @param node  the node associated with the key. Every node may only be
+     *              inserted once!
      */
-    void insert(KeyType key, ValueType value)
+    void insert(KeyType key, IndexType node)
     {
-        GKO_ASSERT(value < static_cast<ValueType>(heap_pos_.size()));
-        GKO_ASSERT(value >= 0);
-        GKO_ASSERT(heap_pos_[value] == unused_handle());
+        GKO_ASSERT(node < static_cast<IndexType>(heap_pos_.size()));
+        GKO_ASSERT(node >= 0);
+        GKO_ASSERT(heap_pos_[node] == invalid_index<IndexType>());
         keys_.push_back(key);
-        values_.push_back(value);
+        nodes_.push_back(node);
         const auto new_pos = size() - 1;
-        heap_pos_[value] = new_pos;
+        heap_pos_[node] = new_pos;
         sift_up(new_pos);
     }
 
     /**
-     * Updates the key of the pair with the given new key.
+     * Updates the key of a node with the given new key.
+     * Duplicate keys are allowed, they may be returned in an arbitrary order.
+     *
+     * @param new_key  the key by which the queue is ordered
+     * @param node  the node associated with the key. It must have been inserted
+     *              beforehand.
      */
-    void update_key(KeyType new_key, ValueType value)
+    void update_key(KeyType new_key, IndexType node)
     {
-        GKO_ASSERT(value < static_cast<ValueType>(heap_pos_.size()));
-        GKO_ASSERT(value >= 0);
-        auto pos = heap_pos_[value];
+        GKO_ASSERT(node < static_cast<IndexType>(heap_pos_.size()));
+        GKO_ASSERT(node >= 0);
+        auto pos = heap_pos_[node];
         GKO_ASSERT(pos < size());
-        GKO_ASSERT(pos != unused_handle());
-        GKO_ASSERT(values_[pos] == value);
+        GKO_ASSERT(pos != invalid_index<IndexType>());
+        GKO_ASSERT(nodes_[pos] == node);
         auto old_key = keys_[pos];
         keys_[pos] = new_key;
         if (old_key < new_key) {
@@ -121,35 +127,39 @@ struct addressable_priority_queue {
     KeyType min_key() const { return keys_[0]; }
 
     /**
-     * Returns the value belonging to the minimum key from the queue.
+     * Returns the node belonging to the minimum key from the queue.
      *
-     * @return the value corresponding to the minimum key
+     * @return the node corresponding to the minimum key
      */
-    ValueType min_val() const { return values_[0]; }
+    IndexType min_node() const { return nodes_[0]; }
 
     /**
-     * Returns the key-value pair with the minimum key from the queue.
+     * Returns the key-node pair with the minimum key from the queue.
      *
-     * @return the key-value pair corresponding to the minimum key
+     * @return the key-node pair corresponding to the minimum key
      */
-    std::pair<KeyType, ValueType> min() const { return {min_key(), min_val()}; }
+    std::pair<KeyType, IndexType> min() const
+    {
+        return {min_key(), min_node()};
+    }
 
     /**
-     * Removes the key-value pair with the minimum key from the queue.
+     * Removes the key-node pair with the minimum key from the queue.
      */
     void pop_min()
     {
+        GKO_ASSERT(!empty());
         swap(0, size() - 1);
-        heap_pos_[values_.back()] = unused_handle();
+        heap_pos_[nodes_.back()] = invalid_index<IndexType>();
         keys_.pop_back();
-        values_.pop_back();
+        nodes_.pop_back();
         sift_down(0);
     }
 
     /**
-     * Returns the number of key-value pairs in the queue.
+     * Returns the number of key-node pairs in the queue.
      *
-     * @return  the number of key-value pairs in the queue
+     * @return  the number of key-node pairs in the queue
      */
     std::size_t size() const { return keys_.size(); }
 
@@ -163,11 +173,11 @@ struct addressable_priority_queue {
     /** Clears the queue, removing all entries. */
     void reset()
     {
-        for (auto value : values_) {
-            heap_pos_[value] = unused_handle();
+        for (auto node : nodes_) {
+            heap_pos_[node] = invalid_index<IndexType>();
         }
         keys_.clear();
-        values_.clear();
+        nodes_.clear();
     }
 
 private:
@@ -175,20 +185,16 @@ private:
 
     std::size_t first_child(std::size_t i) const { return degree * i + 1; }
 
-    // This is a function instead of a member because otherwise we'd need to
-    // explicitly export the symbol. C++17 fixes this with inline variables
-    constexpr static size_type unused_handle() { return ~size_type{}; }
-
     void swap(std::size_t i, std::size_t j)
     {
         std::swap(keys_[i], keys_[j]);
-        std::swap(values_[i], values_[j]);
-        std::swap(heap_pos_[values_[i]], heap_pos_[values_[j]]);
+        std::swap(nodes_[i], nodes_[j]);
+        std::swap(heap_pos_[nodes_[i]], heap_pos_[nodes_[j]]);
     }
 
     /**
      * Restores the heap invariant downwards, i.e. the
-     * Moves the key-value pair at position i down (toward the leaves)
+     * Moves the key-node pair at position i down (toward the leaves)
      * until its key is smaller or equal to the one of all its children.
      */
     void sift_down(std::size_t i)
@@ -215,7 +221,7 @@ private:
     }
 
     /**
-     * Moves the key-value pair at position i up (toward the root)
+     * Moves the key-node pair at position i up (toward the root)
      * until its key is larger or equal to the one of its parent.
      */
     void sift_up(std::size_t i)
@@ -231,10 +237,10 @@ private:
     }
 
     vector<KeyType> keys_;
-    vector<ValueType> values_;
-    // for each value, heap_pos_[value] stores the position of this value inside
-    // the heap, or unused_handle() if it's not in the heap.
-    vector<size_type> heap_pos_;
+    vector<IndexType> nodes_;
+    // for each node, heap_pos_[node] stores the position of this node inside
+    // the heap, or invalid_index<IndexType>() if it's not in the heap.
+    vector<IndexType> heap_pos_;
 };
 
 
