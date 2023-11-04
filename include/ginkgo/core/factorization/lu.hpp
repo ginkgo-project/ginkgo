@@ -58,7 +58,8 @@ enum class symbolic_type {
     /**
      * An LU factorization algorithm that works only on matrices with a
      * symmetric sparsity pattern. Running it on a matrix with a non-symmetric
-     * sparsity pattern will likely lead to the application crashing.
+     * sparsity pattern is undefined behavior and will likely lead to the
+     * application crashing.
      */
     symmetric
 };
