@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <cmath>
 #include <fstream>
+#include <limits>
 #include <memory>
 
 
@@ -144,7 +145,6 @@ protected:
                                           0., 2., 3., 0.}},
           final_dual_u{ref, I<real_type>{0., 1., -1., -2., 0., 0.}},
           final_distance{ref, I<real_type>{inf, inf, 1., 0., inf, 1.}},
-          final_row_maxima{ref, I<real_type>{3., 5., 6., 4., 4., 8.}},
           tolerance{10 * std::numeric_limits<real_type>::epsilon()}
     {}
 
@@ -172,7 +172,6 @@ protected:
     gko::array<real_type> final_weights;
     gko::array<real_type> final_dual_u;
     gko::array<real_type> final_distance;
-    gko::array<real_type> final_row_maxima;
     gko::array<index_type> empty_permutation;
     gko::array<index_type> empty_inverse_permutation;
     gko::array<index_type> empty_matched_idxs;
@@ -199,28 +198,30 @@ TYPED_TEST_SUITE(Mc64, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 TYPED_TEST(Mc64, InitializeWeightsSum)
 {
+    this->dual_u.fill(
+        std::numeric_limits<typename TestFixture::real_type>::infinity());
+
     gko::experimental::reorder::mc64::initialize_weights(
-        this->mtx.get(), this->weights, this->dual_u, this->distance,
-        this->row_maxima,
+        this->mtx.get(), this->weights, this->dual_u, this->row_maxima,
         gko::experimental::reorder::mc64_strategy::max_diagonal_sum);
 
     GKO_ASSERT_ARRAY_EQ(this->weights, this->initialized_weights_sum);
     GKO_ASSERT_ARRAY_EQ(this->dual_u, this->initialized_dual_u_sum);
-    GKO_ASSERT_ARRAY_EQ(this->distance, this->initialized_distance);
     GKO_ASSERT_ARRAY_EQ(this->row_maxima, this->initialized_row_maxima_sum);
 }
 
 
 TYPED_TEST(Mc64, InitializeWeightsProduct)
 {
+    this->dual_u.fill(
+        std::numeric_limits<typename TestFixture::real_type>::infinity());
+
     gko::experimental::reorder::mc64::initialize_weights(
-        this->mtx.get(), this->weights, this->dual_u, this->distance,
-        this->row_maxima,
+        this->mtx.get(), this->weights, this->dual_u, this->row_maxima,
         gko::experimental::reorder::mc64_strategy::max_diagonal_product);
 
     GKO_ASSERT_ARRAY_EQ(this->weights, this->initialized_weights_product);
     GKO_ASSERT_ARRAY_EQ(this->dual_u, this->initialized_dual_u_product);
-    GKO_ASSERT_ARRAY_EQ(this->distance, this->initialized_distance);
     GKO_ASSERT_ARRAY_EQ(this->row_maxima, this->initialized_row_maxima_product);
 }
 
@@ -305,10 +306,7 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingExampleSum)
 TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingExampleProduct)
 {
     using index_type = typename TestFixture::index_type;
-    using real_type = typename TestFixture::real_type;
     using value_type = typename TestFixture::value_type;
-    using matrix_type = typename TestFixture::matrix_type;
-    using perm_type = typename TestFixture::perm_type;
     auto mc64_factory =
         gko::experimental::reorder::Mc64<value_type, index_type>::build()
             .with_strategy(

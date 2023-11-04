@@ -84,28 +84,25 @@ enum class mc64_strategy { max_diagonal_product, max_diagonal_sum };
  * weights supported:
  *  - Maximizing the product of the absolute values on the diagonal.
  *    For this strategy, the weights are computed as
- *      $c(i, j) = \log_2(a_i) - \log_2(|a(i, j)|)$ if $a(i, j) \neq 0 $ and
- * $c(i, j) = \infty$ otherwise. Here, a_i is the maximum absolute value in row
- * i of the matrix A. In this case, the implementation computes a row
- * permutation P and row and column scaling coefficients L and R such that the
- * matrix P*L*A*R has values with unity absolute value on the diagonal and
- * smaller or equal entries everywhere else.
+ *    $c(i, j) = \log_2(a_i) - \log_2(|a(i, j)|)$ if $a(i, j) \neq 0 $ and
+ *    $c(i, j) = \infty$ otherwise. Here, a_i is the maximum absolute value in
+ *    row i of the matrix A. In this case, the implementation computes a row
+ *    permutation P and row and column scaling coefficients L and R such that
+ *    the matrix P*L*A*R has values with unity absolute value on the diagonal
+ *    and smaller or equal entries everywhere else.
  *  - Maximizing the sum of the absolute values on the diagonal.
  *    For this strategy, the weights are computed as
- *      $c(i, j) = a_i - |a(i, j)|$ if $a(i, j) \neq 0$ and $c(i, j) =
- * \infty$ otherwise. In this case, no scaling coefficients are computed.
+ *    $c(i, j) = a_i - |a(i, j)|$ if $a(i, j) \neq 0$ and $c(i, j) =
+ *    \infty$ otherwise. In this case, no scaling coefficients are computed.
  *
- * @note  This class is derived from polymorphic object but is not a LinOp as it
- * does not make sense for this class to implement the apply methods. The
- * objective of this class is to generate a reordering/permutation vector (in
- * the form of the Permutation matrix), which can be used to apply to reorder a
- * matrix as required.
+ * This class creates a Combination of two ScaledPermutations representing the
+ * row and column permutation and scaling factors computed by this algorithm.
  *
  * @tparam ValueType  Type of the values of all matrices used in this class
  * @tparam IndexType  Type of the indices of all matrices used in this class
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Mc64
+class Mc64 final
     : public EnablePolymorphicObject<Mc64<ValueType, IndexType>, LinOpFactory>,
       public EnablePolymorphicAssignment<Mc64<ValueType, IndexType>> {
 public:
@@ -156,7 +153,7 @@ public:
     /** Creates a new parameter_type to set up the factory. */
     static parameters_type build() { return {}; }
 
-protected:
+private:
     explicit Mc64(std::shared_ptr<const Executor> exec,
                   const parameters_type& params = {});
 

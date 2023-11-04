@@ -56,8 +56,8 @@ protected:
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using pq_type2 = gko::addressable_priority_queue<value_type, index_type, 1>;
-    using pq_type4 = gko::addressable_priority_queue<value_type, index_type, 2>;
+    using pq_type2 = gko::addressable_priority_queue<value_type, index_type, 2>;
+    using pq_type4 = gko::addressable_priority_queue<value_type, index_type, 4>;
 
     AddressablePriorityQueue() : exec(gko::ReferenceExecutor::create()) {}
 
@@ -66,7 +66,7 @@ protected:
     {
         ASSERT_FALSE(pq.empty());
         ASSERT_EQ(pq.min_key(), key);
-        ASSERT_EQ(pq.min_val(), val);
+        ASSERT_EQ(pq.min_node(), val);
         ASSERT_TRUE((pq.min() == std::pair<value_type, index_type>{key, val}));
     }
 
