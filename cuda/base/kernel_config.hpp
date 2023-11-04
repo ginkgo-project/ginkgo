@@ -35,6 +35,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <cuda_runtime.h>
+
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
@@ -68,18 +70,8 @@ public:
 
     ~shared_memory_config_guard()
     {
-        auto error_code = cudaDeviceSetSharedMemConfig(original_config_);
-        if (error_code != cudaSuccess) {
-#if GKO_VERBOSE_LEVEL >= 1
-            std::cerr << "Unrecoverable CUDA error while resetting the "
-                         "shared memory config to "
-                      << original_config_ << " in " << __func__ << ": "
-                      << cudaGetErrorName(error_code) << ": "
-                      << cudaGetErrorString(error_code) << std::endl
-                      << "Exiting program" << std::endl;
-#endif  // GKO_VERBOSE_LEVEL >= 1
-            std::exit(error_code);
-        }
+        // No need to exit or throw if we cant set the value back.
+        cudaDeviceSetSharedMemConfig(original_config_);
     }
 
 private:
