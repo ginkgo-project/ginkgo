@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_REFERENCE_PRECONDITIONER_BATCH_IDENTITY_HPP_
 
 
+#include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
 
 

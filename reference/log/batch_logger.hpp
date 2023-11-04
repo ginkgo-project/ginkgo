@@ -51,8 +51,6 @@ namespace batch_log {
 template <typename RealType>
 class SimpleFinalLogger final {
 public:
-    using real_type = remove_complex<RealType>;
-
     /**
      * Constructor
      *
@@ -61,7 +59,7 @@ public:
      * @param batch_iters  final iteration counts for each
      *                     linear system in the batch.
      */
-    SimpleFinalLogger(real_type* const batch_residuals, int* const batch_iters)
+    SimpleFinalLogger(RealType* const batch_residuals, int* const batch_iters)
         : final_residuals_{batch_residuals}, final_iters_{batch_iters}
     {}
 
@@ -73,14 +71,14 @@ public:
      * @param res_norm  Norm of final residual norm
      */
     void log_iteration(const size_type batch_idx, const int iter,
-                       const real_type res_norm)
+                       const RealType res_norm)
     {
         final_iters_[batch_idx] = iter;
         final_residuals_[batch_idx] = res_norm;
     }
 
 private:
-    real_type* const final_residuals_;
+    RealType* const final_residuals_;
     int* const final_iters_;
 };
 
