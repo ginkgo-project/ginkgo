@@ -293,11 +293,20 @@ void symbolic_factorize_simple(
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_LU_SYMMETRIC_FACTORIZE_SIMPLE);
 
 
-struct eq_one_functor {
-    template <typename ValueType>
-    __device__ __forceinline__ bool operator()(ValueType val) const
+struct first_eq_one_functor {
+    template <typename Pair>
+    __device__ __forceinline__ bool operator()(Pair pair) const
     {
-        return val == one<float>();
+        return thrust::get<0>(pair) == one<float>();
+    }
+};
+
+
+struct return_second_functor {
+    template <typename Pair>
+    __device__ __forceinline__ auto operator()(Pair pair) const
+    {
+        return thrust::get<1>(pair);
     }
 };
 
@@ -309,9 +318,13 @@ void symbolic_factorize_simple_finalize(
 {
     const auto col_idxs = factors->get_const_col_idxs();
     const auto vals = factors->get_const_values();
-    thrust::copy_if(thrust_policy(exec), col_idxs,
-                    col_idxs + factors->get_num_stored_elements(), vals,
-                    out_col_idxs, eq_one_functor{});
+    const auto input_it =
+        thrust::make_zip_iterator(thrust::make_tuple(vals, col_idxs));
+    const auto output_it = thrust::make_transform_output_iterator(
+        out_col_idxs, return_second_functor{});
+    thrust::copy_if(thrust_policy(exec), input_it,
+                    input_it + factors->get_num_stored_elements(), output_it,
+                    first_eq_one_functor{});
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
