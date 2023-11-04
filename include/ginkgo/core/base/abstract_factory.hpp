@@ -313,6 +313,18 @@ public:                                                                 \
                                                _factory_name>
 
 
+namespace detail {
+
+
+// Use pointer not the type because std::is_convertible<const type, type> can be
+// true.
+template <typename From, typename To>
+struct is_pointer_convertible : std::is_convertible<From*, To*> {};
+
+
+}  // namespace detail
+
+
 /**
  * Represents a factory parameter of factory type that can either initialized by
  * a pre-existing factory or by passing in a factory_parameters object whose
@@ -338,14 +350,13 @@ public:
      * shared ownership.
      */
     template <typename ConcreteFactoryType,
-              std::enable_if_t<std::is_base_of<
-                  FactoryType,
-                  std::remove_const_t<ConcreteFactoryType>>::value>* = nullptr>
+              std::enable_if_t<detail::is_pointer_convertible<
+                  ConcreteFactoryType, FactoryType>::value>* = nullptr>
     deferred_factory_parameter(std::shared_ptr<ConcreteFactoryType> factory)
     {
-        generator_ =
-            [factory = std::shared_ptr<const FactoryType>(std::move(factory))](
-                std::shared_ptr<const Executor>) { return factory; };
+        generator_ = [factory =
+                          std::shared_ptr<FactoryType>(std::move(factory))](
+                         std::shared_ptr<const Executor>) { return factory; };
     }
 
     /**
@@ -353,15 +364,14 @@ public:
      * preexisting factory with unique ownership.
      */
     template <typename ConcreteFactoryType, typename Deleter,
-              std::enable_if_t<std::is_base_of<
-                  FactoryType,
-                  std::remove_const_t<ConcreteFactoryType>>::value>* = nullptr>
+              std::enable_if_t<detail::is_pointer_convertible<
+                  ConcreteFactoryType, FactoryType>::value>* = nullptr>
     deferred_factory_parameter(
         std::unique_ptr<ConcreteFactoryType, Deleter> factory)
     {
-        generator_ =
-            [factory = std::shared_ptr<const FactoryType>(std::move(factory))](
-                std::shared_ptr<const Executor>) { return factory; };
+        generator_ = [factory =
+                          std::shared_ptr<FactoryType>(std::move(factory))](
+                         std::shared_ptr<const Executor>) { return factory; };
     }
 
     /**
@@ -370,22 +380,21 @@ public:
      * parameter's `.on(exec)` function will be called.
      */
     template <typename ParametersType,
-              typename = decltype(std::declval<ParametersType>().on(
-                  std::shared_ptr<const Executor>{}))>
+              typename U = decltype(std::declval<ParametersType>().on(
+                  std::shared_ptr<const Executor>{})),
+              std::enable_if_t<detail::is_pointer_convertible<
+                  typename U::element_type, FactoryType>::value>* = nullptr>
     deferred_factory_parameter(ParametersType parameters)
     {
         generator_ = [parameters](std::shared_ptr<const Executor> exec)
-            -> std::shared_ptr<const FactoryType> {
-            return parameters.on(exec);
-        };
+            -> std::shared_ptr<FactoryType> { return parameters.on(exec); };
     }
 
     /**
      * Instantiates the deferred parameter into an actual factory. This will
      * throw if the deferred factory parameter is empty.
      */
-    std::shared_ptr<const FactoryType> on(
-        std::shared_ptr<const Executor> exec) const
+    std::shared_ptr<FactoryType> on(std::shared_ptr<const Executor> exec) const
     {
         if (this->is_empty()) {
             GKO_NOT_SUPPORTED(*this);
@@ -397,8 +406,7 @@ public:
     bool is_empty() const { return !bool(generator_); }
 
 private:
-    std::function<std::shared_ptr<const FactoryType>(
-        std::shared_ptr<const Executor>)>
+    std::function<std::shared_ptr<FactoryType>(std::shared_ptr<const Executor>)>
         generator_;
 };
 
@@ -435,14 +443,15 @@ private:
  * @ingroup LinOp
  */
 #define GKO_FACTORY_PARAMETER(_name, ...)                                    \
-    mutable _name{__VA_ARGS__};                                              \
+    _name{__VA_ARGS__};                                                      \
                                                                              \
     template <typename... Args>                                              \
-    auto with_##_name(Args&&... _value)->std::decay_t<decltype(*this)>&      \
+    auto with_##_name(Args&&... _value)                                      \
+        ->std::decay_t<decltype(*(this->self()))>&                           \
     {                                                                        \
         using type = decltype(this->_name);                                  \
         this->_name = type{std::forward<Args>(_value)...};                   \
-        return *this;                                                        \
+        return *(this->self());                                              \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
@@ -485,41 +494,43 @@ private:
 // cudafe into a C-style cast, the parameter pack expansion is not removed and
 // `Args&&... args` is still kept as a parameter pack.
 #define GKO_FACTORY_PARAMETER(_name, ...)                                    \
-    mutable _name{__VA_ARGS__};                                              \
+    _name{__VA_ARGS__};                                                      \
                                                                              \
     template <typename... Args>                                              \
-    auto with_##_name(Args&&... _value)->std::decay_t<decltype(*this)>&      \
+    auto with_##_name(Args&&... _value)                                      \
+        ->std::decay_t<decltype(*(this->self()))>&                           \
     {                                                                        \
         GKO_NOT_IMPLEMENTED;                                                 \
-        return *this;                                                        \
+        return *(this->self());                                              \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
-#define GKO_FACTORY_PARAMETER_SCALAR(_name, _default)                        \
-    mutable _name{_default};                                                 \
-                                                                             \
-    template <typename Arg>                                                  \
-    auto with_##_name(Arg&& _value)->std::decay_t<decltype(*this)>&          \
-    {                                                                        \
-        using type = decltype(this->_name);                                  \
-        this->_name = type{std::forward<Arg>(_value)};                       \
-        return *this;                                                        \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
+#define GKO_FACTORY_PARAMETER_SCALAR(_name, _default)                         \
+    _name{_default};                                                          \
+                                                                              \
+    template <typename Arg>                                                   \
+    auto with_##_name(Arg&& _value)->std::decay_t<decltype(*(this->self()))>& \
+    {                                                                         \
+        using type = decltype(this->_name);                                   \
+        this->_name = type{std::forward<Arg>(_value)};                        \
+        return *(this->self());                                               \
+    }                                                                         \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
                   "semi-colon warnings")
 
 #define GKO_FACTORY_PARAMETER_VECTOR(_name, ...)                             \
-    mutable _name{__VA_ARGS__};                                              \
+    _name{__VA_ARGS__};                                                      \
                                                                              \
     template <typename... Args>                                              \
-    auto with_##_name(Args&&... _value)->std::decay_t<decltype(*this)>&      \
+    auto with_##_name(Args&&... _value)                                      \
+        ->std::decay_t<decltype(*(this->self()))>&                           \
     {                                                                        \
         using type = decltype(this->_name);                                  \
         this->_name = type{std::forward<Args>(_value)...};                   \
-        return *this;                                                        \
+        return *(this->self());                                              \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
@@ -535,27 +546,32 @@ private:
  * @param _type  pointee type of the parameter, e.g. LinOpFactory
  *
  */
-#define GKO_DEFERRED_FACTORY_PARAMETER(_name, _type)                         \
-public:                                                                      \
-    std::shared_ptr<const _type> _name{};                                    \
-    parameters_type& with_##_name(deferred_factory_parameter<_type> factory) \
-    {                                                                        \
-        this->_name##_generator_ = std::move(factory);                       \
-        this->deferred_factories[#_name] = [](const auto& exec,              \
-                                              auto& params) {                \
-            if (!params._name##_generator_.is_empty()) {                     \
-                params._name = params._name##_generator_.on(exec);           \
-            }                                                                \
-        };                                                                   \
-        return *this;                                                        \
-    }                                                                        \
-                                                                             \
-private:                                                                     \
-    deferred_factory_parameter<_type> _name##_generator_;                    \
-                                                                             \
-public:                                                                      \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
+#define GKO_DEFERRED_FACTORY_PARAMETER(_name)                                  \
+    _name{};                                                                   \
+                                                                               \
+private:                                                                       \
+    using _name##_type = typename decltype(_name)::element_type;               \
+                                                                               \
+public:                                                                        \
+    auto with_##_name(::gko::deferred_factory_parameter<_name##_type> factory) \
+        ->std::decay_t<decltype(*(this->self()))>&                             \
+    {                                                                          \
+        this->_name##_generator_ = std::move(factory);                         \
+        this->deferred_factories[#_name] = [](const auto& exec,                \
+                                              auto& params) {                  \
+            if (!params._name##_generator_.is_empty()) {                       \
+                params._name = params._name##_generator_.on(exec);             \
+            }                                                                  \
+        };                                                                     \
+        return *(this->self());                                                \
+    }                                                                          \
+                                                                               \
+private:                                                                       \
+    ::gko::deferred_factory_parameter<_name##_type> _name##_generator_;        \
+                                                                               \
+public:                                                                        \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
                   "semi-colon warnings")
 
 /**
@@ -568,53 +584,64 @@ public:                                                                      \
  * @param _type  pointee type of the vector entries, e.g. LinOpFactory
  *
  */
-#define GKO_DEFERRED_FACTORY_VECTOR_PARAMETER(_name, _type)                  \
-public:                                                                      \
-    std::vector<std::shared_ptr<const _type>> _name{};                       \
-    template <typename... Args,                                              \
-              typename =                                                     \
-                  std::enable_if_t<xstd::conjunction<std::is_convertible<    \
-                      Args, deferred_factory_parameter<_type>>...>::value>>  \
-    parameters_type& with_##_name(Args&&... factories)                       \
-    {                                                                        \
-        this->_name##_generator_ = {deferred_factory_parameter<_type>{       \
-            std::forward<Args>(factories)}...};                              \
-        this->deferred_factories[#_name] = [](const auto& exec,              \
-                                              auto& params) {                \
-            if (!params._name##_generator_.empty()) {                        \
-                params._name.clear();                                        \
-                for (auto& generator : params._name##_generator_) {          \
-                    params._name.push_back(generator.on(exec));              \
-                }                                                            \
-            }                                                                \
-        };                                                                   \
-        return *this;                                                        \
-    }                                                                        \
-    template <typename FactoryType>                                          \
-    parameters_type& with_##_name(const std::vector<FactoryType>& factories) \
-    {                                                                        \
-        this->_name##_generator_.clear();                                    \
-        for (const auto& factory : factories) {                              \
-            this->_name##_generator_.push_back(factory);                     \
-        }                                                                    \
-        this->deferred_factories[#_name] = [](const auto& exec,              \
-                                              auto& params) {                \
-            if (!params._name##_generator_.empty()) {                        \
-                params._name.clear();                                        \
-                for (auto& generator : params._name##_generator_) {          \
-                    params._name.push_back(generator.on(exec));              \
-                }                                                            \
-            }                                                                \
-        };                                                                   \
-        return *this;                                                        \
-    }                                                                        \
-                                                                             \
-private:                                                                     \
-    std::vector<deferred_factory_parameter<_type>> _name##_generator_;       \
-                                                                             \
-public:                                                                      \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
+#define GKO_DEFERRED_FACTORY_VECTOR_PARAMETER(_name)                           \
+    _name{};                                                                   \
+                                                                               \
+private:                                                                       \
+    using _name##_type = typename decltype(_name)::value_type::element_type;   \
+                                                                               \
+public:                                                                        \
+    template <typename... Args,                                                \
+              typename = std::enable_if_t<::gko::xstd::conjunction<            \
+                  std::is_convertible<Args, ::gko::deferred_factory_parameter< \
+                                                _name##_type>>...>::value>>    \
+    auto with_##_name(Args&&... factories)                                     \
+        ->std::decay_t<decltype(*(this->self()))>&                             \
+    {                                                                          \
+        this->_name##_generator_ = {                                           \
+            ::gko::deferred_factory_parameter<_name##_type>{                   \
+                std::forward<Args>(factories)}...};                            \
+        this->deferred_factories[#_name] = [](const auto& exec,                \
+                                              auto& params) {                  \
+            if (!params._name##_generator_.empty()) {                          \
+                params._name.clear();                                          \
+                for (auto& generator : params._name##_generator_) {            \
+                    params._name.push_back(generator.on(exec));                \
+                }                                                              \
+            }                                                                  \
+        };                                                                     \
+        return *(this->self());                                                \
+    }                                                                          \
+    template <typename FactoryType,                                            \
+              typename = std::enable_if_t<std::is_convertible<                 \
+                  FactoryType,                                                 \
+                  ::gko::deferred_factory_parameter<_name##_type>>::value>>    \
+    auto with_##_name(const std::vector<FactoryType>& factories)               \
+        ->std::decay_t<decltype(*(this->self()))>&                             \
+    {                                                                          \
+        this->_name##_generator_.clear();                                      \
+        for (const auto& factory : factories) {                                \
+            this->_name##_generator_.push_back(factory);                       \
+        }                                                                      \
+        this->deferred_factories[#_name] = [](const auto& exec,                \
+                                              auto& params) {                  \
+            if (!params._name##_generator_.empty()) {                          \
+                params._name.clear();                                          \
+                for (auto& generator : params._name##_generator_) {            \
+                    params._name.push_back(generator.on(exec));                \
+                }                                                              \
+            }                                                                  \
+        };                                                                     \
+        return *(this->self());                                                \
+    }                                                                          \
+                                                                               \
+private:                                                                       \
+    std::vector<::gko::deferred_factory_parameter<_name##_type>>               \
+        _name##_generator_;                                                    \
+                                                                               \
+public:                                                                        \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
                   "semi-colon warnings")
 
 

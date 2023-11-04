@@ -87,7 +87,8 @@ public:
         gko::size_type GKO_FACTORY_PARAMETER_SCALAR(num_rhs, 1u);
 
         /** The factorization factory to use for generating the factors. */
-        GKO_DEFERRED_FACTORY_PARAMETER(factorization, LinOpFactory);
+        std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
+            factorization);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Direct, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

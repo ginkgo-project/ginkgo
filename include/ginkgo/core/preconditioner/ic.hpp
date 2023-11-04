@@ -67,7 +67,7 @@ namespace preconditioner {
  * is a direct triangular solvers. The solver for L^H is the
  * conjugate-transposed solver for L, ensuring that the preconditioner is
  * symmetric and positive-definite. For this L solver, a factory can be provided
- * (using `with_l_solver_factory`) to have more control over their behavior. In
+ * (using `with_l_solver`) to have more control over their behavior. In
  * particular, it is possible to use an iterative method for solving the
  * triangular systems. The default parameters for an iterative triangluar solver
  * are:
@@ -136,13 +136,15 @@ public:
 
         [[deprecated("use with_l_solver instead")]] parameters_type&
         with_l_solver_factory(
-            deferred_factory_parameter<typename l_solver_type::Factory> solver)
+            deferred_factory_parameter<const typename l_solver_type::Factory>
+                solver)
         {
             return with_l_solver(std::move(solver));
         }
 
         parameters_type& with_l_solver(
-            deferred_factory_parameter<typename l_solver_type::Factory> solver)
+            deferred_factory_parameter<const typename l_solver_type::Factory>
+                solver)
         {
             this->l_solver_generator = std::move(solver);
             this->deferred_factories["l_solver"] = [](const auto& exec,
@@ -157,13 +159,13 @@ public:
 
         [[deprecated("use with_factorization instead")]] parameters_type&
         with_factorization_factory(
-            deferred_factory_parameter<LinOpFactory> factorization)
+            deferred_factory_parameter<const LinOpFactory> factorization)
         {
             return with_factorization(std::move(factorization));
         }
 
         parameters_type& with_factorization(
-            deferred_factory_parameter<LinOpFactory> factorization)
+            deferred_factory_parameter<const LinOpFactory> factorization)
         {
             this->factorization_generator = std::move(factorization);
             this->deferred_factories["factorization"] = [](const auto& exec,
@@ -177,10 +179,10 @@ public:
         }
 
     private:
-        deferred_factory_parameter<typename l_solver_type::Factory>
+        deferred_factory_parameter<const typename l_solver_type::Factory>
             l_solver_generator;
 
-        deferred_factory_parameter<LinOpFactory> factorization_generator;
+        deferred_factory_parameter<const LinOpFactory> factorization_generator;
     };
 
     GKO_ENABLE_LIN_OP_FACTORY(Ic, parameters, Factory);

@@ -184,7 +184,8 @@ public:
         /**
          * Inner solver factory.
          */
-        GKO_DEFERRED_FACTORY_PARAMETER(solver, LinOpFactory);
+        std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
+            solver);
 
         /**
          * Already generated solver. If one is provided, the factory `solver`

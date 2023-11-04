@@ -131,19 +131,21 @@ int main(int argc, char* argv[])
     // handle different preconditioners
     if (precond == "jacobi") {
         // jacobi: max_block_size, accuracy, storage_optimization
-        auto factory = gko::preconditioner::Jacobi<>::build().on(exec);
+        auto factory_parameter = gko::preconditioner::Jacobi<>::build();
         if (argc >= 5) {
-            factory->get_parameters().max_block_size = std::stoi(argv[4]);
+            factory_parameter.with_max_block_size(
+                static_cast<gko::uint32>(std::stoi(argv[4])));
         }
         if (argc >= 6) {
-            factory->get_parameters().accuracy = std::stod(argv[5]);
+            factory_parameter.with_accuracy(std::stod(argv[5]));
         }
         if (argc >= 7) {
-            factory->get_parameters().storage_optimization =
+            factory_parameter.with_storage_optimization(
                 std::string{argv[6]} == "auto"
                     ? gko::precision_reduction::autodetect()
-                    : gko::precision_reduction(0, std::stoi(argv[6]));
+                    : gko::precision_reduction(0, std::stoi(argv[6])));
         }
+        auto factory = factory_parameter.on(exec);
         auto jacobi = try_generate([&] { return factory->generate(mtx); });
         output(jacobi, matrix + ".jacobi" + output_suffix);
     } else if (precond == "ilu") {
@@ -157,10 +159,12 @@ int main(int argc, char* argv[])
                matrix + ".ilu-u");
     } else if (precond == "parilu") {
         // parilu: iterations
-        auto factory = gko::factorization::ParIlu<>::build().on(exec);
+        auto factory_parameter = gko::factorization::ParIlu<>::build();
         if (argc >= 5) {
-            factory->get_parameters().iterations = std::stoi(argv[4]);
+            factory_parameter.with_iterations(
+                static_cast<gko::size_type>(std::stoi(argv[4])));
         }
+        auto factory = factory_parameter.on(exec);
         auto ilu = gko::as<gko::Composition<>>(
             try_generate([&] { return factory->generate(mtx); }));
         output(gko::as<gko::matrix::Csr<>>(ilu->get_operators()[0]),
@@ -169,13 +173,15 @@ int main(int argc, char* argv[])
                matrix + ".parilu" + output_suffix + "-u");
     } else if (precond == "parilut") {
         // parilut: iterations, fill-in limit
-        auto factory = gko::factorization::ParIlut<>::build().on(exec);
+        auto factory_parameter = gko::factorization::ParIlut<>::build();
         if (argc >= 5) {
-            factory->get_parameters().iterations = std::stoi(argv[4]);
+            factory_parameter.with_iterations(
+                static_cast<gko::size_type>(std::stoi(argv[4])));
         }
         if (argc >= 6) {
-            factory->get_parameters().fill_in_limit = std::stod(argv[5]);
+            factory_parameter.with_fill_in_limit(std::stod(argv[5]));
         }
+        auto factory = factory_parameter.on(exec);
         auto ilut = gko::as<gko::Composition<>>(
             try_generate([&] { return factory->generate(mtx); }));
         output(gko::as<gko::matrix::Csr<>>(ilut->get_operators()[0]),
@@ -206,15 +212,16 @@ int main(int argc, char* argv[])
                matrix + ".ilu-isai" + output_suffix + "-u");
     } else if (precond == "parilu-isai") {
         // parilu-isai: iterations, sparsity power
-        auto fact_factory =
-            gko::share(gko::factorization::ParIlu<>::build().on(exec));
+        auto fact_parameter = gko::factorization::ParIlu<>::build();
         int sparsity_power = 1;
         if (argc >= 5) {
-            fact_factory->get_parameters().iterations = std::stoi(argv[4]);
+            fact_parameter.with_iterations(
+                static_cast<gko::size_type>(std::stoi(argv[4])));
         }
         if (argc >= 6) {
             sparsity_power = std::stoi(argv[5]);
         }
+        auto fact_factory = gko::share(fact_parameter.on(exec));
         auto factory =
             gko::preconditioner::Ilu<gko::preconditioner::LowerIsai<>,
                                      gko::preconditioner::UpperIsai<>>::build()
@@ -231,18 +238,19 @@ int main(int argc, char* argv[])
                matrix + ".parilu-isai" + output_suffix + "-u");
     } else if (precond == "parilut-isai") {
         // parilut-isai: iterations, fill-in limit, sparsity power
-        auto fact_factory =
-            gko::share(gko::factorization::ParIlut<>::build().on(exec));
+        auto fact_parameter = gko::factorization::ParIlut<>::build();
         int sparsity_power = 1;
         if (argc >= 5) {
-            fact_factory->get_parameters().iterations = std::stoi(argv[4]);
+            fact_parameter.with_iterations(
+                static_cast<gko::size_type>(std::stoi(argv[4])));
         }
         if (argc >= 6) {
-            fact_factory->get_parameters().fill_in_limit = std::stod(argv[5]);
+            fact_parameter.with_fill_in_limit(std::stod(argv[5]));
         }
         if (argc >= 7) {
             sparsity_power = std::stoi(argv[6]);
         }
+        auto fact_factory = gko::share(fact_parameter.on(exec));
         auto factory =
             gko::preconditioner::Ilu<gko::preconditioner::LowerIsai<>,
                                      gko::preconditioner::UpperIsai<>>::build()

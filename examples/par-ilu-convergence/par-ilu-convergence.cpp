@@ -133,52 +133,36 @@ int main(int argc, char* argv[])
                                                                  exec);
     }));
 
-    std::shared_ptr<gko::LinOpFactory> factory;
-    std::function<void(int)> set_iterations;
-    if (precond == "parilu") {
-        factory =
-            gko::factorization::ParIlu<ValueType, IndexType>::build().on(exec);
-        set_iterations = [&](int it) {
-            gko::as<gko::factorization::ParIlu<ValueType, IndexType>::Factory>(
-                factory)
-                ->get_parameters()
-                .iterations = it;
-        };
-    } else if (precond == "paric") {
-        factory =
-            gko::factorization::ParIc<ValueType, IndexType>::build().on(exec);
-        set_iterations = [&](int it) {
-            gko::as<gko::factorization::ParIc<ValueType, IndexType>::Factory>(
-                factory)
-                ->get_parameters()
-                .iterations = it;
-        };
-    } else if (precond == "parilut") {
-        factory = gko::factorization::ParIlut<ValueType, IndexType>::build()
-                      .with_fill_in_limit(limit)
-                      .on(exec);
-        set_iterations = [&](int it) {
-            gko::as<gko::factorization::ParIlut<ValueType, IndexType>::Factory>(
-                factory)
-                ->get_parameters()
-                .iterations = it;
-        };
-    } else if (precond == "parict") {
-        factory = gko::factorization::ParIct<ValueType, IndexType>::build()
-                      .with_fill_in_limit(limit)
-                      .on(exec);
-        set_iterations = [&](int it) {
-            gko::as<gko::factorization::ParIct<ValueType, IndexType>::Factory>(
-                factory)
-                ->get_parameters()
-                .iterations = it;
-        };
-    }
+    auto factory_generator =
+        [&](gko::size_type iteration) -> std::shared_ptr<gko::LinOpFactory> {
+        if (precond == "parilu") {
+            return gko::factorization::ParIlu<ValueType, IndexType>::build()
+                .with_iterations(iteration)
+                .on(exec);
+        } else if (precond == "paric") {
+            return gko::factorization::ParIc<ValueType, IndexType>::build()
+                .with_iterations(iteration)
+                .on(exec);
+        } else if (precond == "parilut") {
+            return gko::factorization::ParIlut<ValueType, IndexType>::build()
+                .with_fill_in_limit(limit)
+                .with_iterations(iteration)
+                .on(exec);
+        } else if (precond == "parict") {
+            return gko::factorization::ParIct<ValueType, IndexType>::build()
+                .with_fill_in_limit(limit)
+                .with_iterations(iteration)
+                .on(exec);
+        } else {
+            GKO_NOT_IMPLEMENTED;
+        }
+    };
+
     auto one = gko::initialize<gko::matrix::Dense<ValueType>>({1.0}, exec);
     auto minus_one =
         gko::initialize<gko::matrix::Dense<ValueType>>({-1.0}, exec);
     for (int it = 1; it <= max_iterations; ++it) {
-        set_iterations(it);
+        auto factory = factory_generator(it);
         std::cout << it << ';';
         std::vector<long> times;
         std::vector<double> residuals;

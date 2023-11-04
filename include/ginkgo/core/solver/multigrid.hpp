@@ -225,7 +225,8 @@ public:
         /**
          * MultigridLevel Factory list
          */
-        GKO_DEFERRED_FACTORY_VECTOR_PARAMETER(mg_level, LinOpFactory);
+        std::vector<std::shared_ptr<const LinOpFactory>>
+            GKO_DEFERRED_FACTORY_VECTOR_PARAMETER(mg_level);
 
         /**
          * Custom selector size_type (size_type level, const LinOp* fine_matrix)
@@ -270,14 +271,16 @@ public:
          * If any element in the vector is a `nullptr` then the smoother
          * application at the corresponding level is skipped.
          */
-        GKO_DEFERRED_FACTORY_VECTOR_PARAMETER(pre_smoother, LinOpFactory);
+        std::vector<std::shared_ptr<const LinOpFactory>>
+            GKO_DEFERRED_FACTORY_VECTOR_PARAMETER(pre_smoother);
 
         /**
          * Post-smooth Factory list.
          * It is similar to Pre-smooth Factory list. It is ignored if
          * the factory parameter post_uses_pre is set to true.
          */
-        GKO_DEFERRED_FACTORY_VECTOR_PARAMETER(post_smoother, LinOpFactory);
+        std::vector<std::shared_ptr<const LinOpFactory>>
+            GKO_DEFERRED_FACTORY_VECTOR_PARAMETER(post_smoother);
 
         /**
          * Mid-smooth Factory list. If it contains available elements, multigrid
@@ -286,7 +289,8 @@ public:
          * Pre-smooth Factory list. It is ignored if the factory parameter
          * mid_case is not mid.
          */
-        GKO_DEFERRED_FACTORY_VECTOR_PARAMETER(mid_smoother, LinOpFactory);
+        std::vector<std::shared_ptr<const LinOpFactory>>
+            GKO_DEFERRED_FACTORY_VECTOR_PARAMETER(mid_smoother);
 
         /**
          * Whether post-smoothing-related calls use corresponding
@@ -326,7 +330,8 @@ public:
          * If not set, then a direct LU solver will be used as solver on the
          * coarsest level.
          */
-        GKO_DEFERRED_FACTORY_VECTOR_PARAMETER(coarsest_solver, LinOpFactory);
+        std::vector<std::shared_ptr<const LinOpFactory>>
+            GKO_DEFERRED_FACTORY_VECTOR_PARAMETER(coarsest_solver);
 
         /**
          * Custom coarsest_solver selector
