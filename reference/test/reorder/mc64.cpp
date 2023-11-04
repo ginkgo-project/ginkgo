@@ -73,17 +73,10 @@ protected:
     Mc64()
         : exec(gko::ReferenceExecutor::create()),
           mc64_factory(reorder_type::build().on(exec)),
-          // clang-format off
           id3_mtx(gko::initialize<CsrMtx>(
-              {{1.0, 0.0, 0.0}, 
-              {0.0, 1.0, 0.0}, 
-              {0.0, 0.0, 1.0}}, exec)),
+              {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}}, exec)),
           not_id3_mtx(gko::initialize<CsrMtx>(
-              {{1.0, 0.0, 2.0}, 
-              {0.0, 1.0, 0.0}, 
-              {2.0, 0.0, 1.0}}, exec)),
-          // clang-format on
-          reorder_op(mc64_factory->generate(id3_mtx))
+              {{1.0, 0.0, 2.0}, {0.0, 1.0, 0.0}, {2.0, 0.0, 1.0}}, exec))
     {}
 
     std::pair<std::shared_ptr<const perm_type>,
@@ -108,7 +101,6 @@ protected:
     std::shared_ptr<CsrMtx> id3_mtx;
     std::shared_ptr<CsrMtx> not_id3_mtx;
     std::unique_ptr<reorder_type> mc64_factory;
-    std::unique_ptr<result_type> reorder_op;
 };
 
 TYPED_TEST_SUITE(Mc64, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
@@ -133,9 +125,12 @@ TYPED_TEST(Mc64, CanBeCreatedWithReorderingStrategy)
             .with_strategy(
                 gko::experimental::reorder::mc64_strategy::max_diagonal_sum)
             .on(this->exec)
-            ->generate(this->id3_mtx);
+            ->generate(this->not_id3_mtx);
 
-    this->assert_correct_permutation(mc64.get());
+    auto perm = this->unpack(mc64.get()).first->get_const_permutation();
+    ASSERT_EQ(perm[0], 2);
+    ASSERT_EQ(perm[1], 1);
+    ASSERT_EQ(perm[2], 0);
 }
 
 
