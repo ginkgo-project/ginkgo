@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <cuda_runtime.h>
+#include <ginkgo/core/base/exception_helpers.hpp>
 
 
 namespace gko {
