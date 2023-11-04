@@ -152,7 +152,7 @@ void symbolic_factorize_simple(
         // initialize the row
         std::fill(factor_vals + factor_begin, factor_vals + factor_end,
                   zero<float>());
-        for (auto nz = row_ptrs[row]; nz < row_ptrs[row + 1]; nz++) {
+        for (auto nz = mtx_begin; nz < mtx_end; nz++) {
             const auto col = col_idxs[nz];
             factor_vals[lookup.lookup_unsafe(col) + factor_begin] =
                 one<float>();
@@ -164,7 +164,6 @@ void symbolic_factorize_simple(
         for (auto lower_nz = factor_begin; lower_nz < row_diag; lower_nz++) {
             const auto dep = factor_cols[lower_nz];
             const auto dep_diag_idx = diag_idxs[dep];
-            const auto dep_diag = factor_vals[dep_diag_idx];
             const auto dep_end = factor_row_ptrs[dep + 1];
             if (factor_vals[lower_nz] == one<float>()) {
                 for (auto dep_nz = dep_diag_idx + 1; dep_nz < dep_end;
