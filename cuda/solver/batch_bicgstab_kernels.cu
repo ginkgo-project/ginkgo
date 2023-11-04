@@ -205,11 +205,11 @@ public:
 
         // Template parameters launch_apply_kernel<StopType, n_shared,
         // prec_shared>
-        if (sconf.prec_shared)
+        if (sconf.prec_shared) {
             launch_apply_kernel<StopType, 9, true>(
                 sconf, logger, prec, mat, b.values, x.values, workspace_data,
                 block_size, shared_size);
-        else {
+        } else {
             switch (sconf.n_shared) {
             case 0:
                 launch_apply_kernel<StopType, 0, false>(
@@ -265,8 +265,6 @@ public:
                 GKO_NOT_IMPLEMENTED;
             }
         }
-
-        exec_->synchronize();
     }
 
 private:

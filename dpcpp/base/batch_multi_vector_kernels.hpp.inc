@@ -163,8 +163,9 @@ __dpct_inline__ void single_rhs_compute_norm2_sg(
     using real_type = typename gko::remove_complex<ValueType>;
     real_type val = zero<real_type>();
 
-    for (int r = subgroup.get_local_id(); r < num_rows; r += subgroup_size)
+    for (int r = subgroup.get_local_id(); r < num_rows; r += subgroup_size) {
         val += squared_norm(x[r]);
+    }
 
     val = ::gko::kernels::dpcpp::reduce(
         subg, val, [](real_type a, real_type b) { return a + b; });
