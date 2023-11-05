@@ -8,6 +8,7 @@
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
 
@@ -15,6 +16,54 @@
 namespace gko {
 namespace batch {
 namespace matrix {
+namespace csr {
+
+
+/**
+ * Encapsulates one matrix from a batch of csr matrices.
+ */
+template <typename ValueType, typename IndexType>
+struct batch_item {
+    using value_type = ValueType;
+    using index_type = IndexType;
+
+    ValueType* values;
+    const index_type* col_idxs;
+    const index_type* row_ptrs;
+    index_type stride;
+    index_type num_rows;
+    index_type num_cols;
+};
+
+
+/**
+ * A 'simple' structure to store a global uniform batch of csr matrices.
+ */
+template <typename ValueType, typename IndexType>
+struct uniform_batch {
+    using value_type = ValueType;
+    using index_type = IndexType;
+    using entry_type = batch_item<value_type, index_type>;
+
+    ValueType* values;
+    const index_type* col_idxs;
+    const index_type* row_ptrs;
+    size_type num_batch_items;
+    index_type stride;
+    index_type num_rows;
+    index_type num_cols;
+    index_type num_nnz_per_item;
+
+    inline size_type get_single_item_num_nnz() const
+    {
+        return static_cast<size_type>(num_nnz_per_item);
+    }
+};
+
+
+}  // namespace csr
+
+
 namespace dense {
 
 
@@ -100,6 +149,53 @@ struct uniform_batch {
 
 
 }  // namespace ell
+
+
+template <typename ValueType, typename IndexType>
+GKO_ATTRIBUTES GKO_INLINE csr::batch_item<const ValueType, const IndexType>
+to_const(const csr::batch_item<ValueType, IndexType>& b)
+{
+    return {b.values, b.col_idxs, b.row_ptrs, b.stride, b.num_rows, b.num_cols};
+}
+
+
+template <typename ValueType, typename IndexType>
+GKO_ATTRIBUTES GKO_INLINE csr::uniform_batch<const ValueType, const IndexType>
+to_const(const csr::uniform_batch<ValueType, IndexType>& ub)
+{
+    return {ub.values, ub.col_idxs, ub.row_ptrs, ub.num_batch_items,
+            ub.stride, ub.num_rows, ub.num_cols, ub.num_nnz_per_item};
+}
+
+
+template <typename ValueType, typename IndexType>
+GKO_ATTRIBUTES GKO_INLINE csr::batch_item<ValueType, IndexType>
+extract_batch_item(const csr::uniform_batch<ValueType, IndexType>& batch,
+                   const size_type batch_idx)
+{
+    return {batch.values + batch_idx * batch.num_nnz_per_item,
+            batch.col_idxs,
+            batch.row_ptrs,
+            batch.stride,
+            batch.num_rows,
+            batch.num_cols};
+}
+
+template <typename ValueType, typename IndexType>
+GKO_ATTRIBUTES GKO_INLINE csr::batch_item<ValueType, IndexType>
+extract_batch_item(ValueType* const batch_values,
+                   IndexType* const batch_col_idxs,
+                   IndexType* const batch_row_ptrs, const int stride,
+                   const int num_rows, const int num_cols, int num_nnz_per_item,
+                   const size_type batch_idx)
+{
+    return {batch_values + batch_idx * num_nnz_per_item,
+            batch_col_idxs,
+            batch_row_ptrs,
+            stride,
+            num_rows,
+            num_cols};
+}
 
 
 template <typename ValueType>
