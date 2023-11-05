@@ -486,8 +486,25 @@ void Csr<ValueType, IndexType>::read(device_mat_data&& data)
     this->row_ptrs_.resize_and_reset(size[0] + 1);
     this->set_size(size);
     // Need to copy instead of move, as move into view data is not supported.
-    this->values_ = arrays.values;
-    this->col_idxs_ = arrays.col_idxs;
+    if (this->values_.is_owning()) {
+        this->values_ = std::move(arrays.values);
+    } else {
+        if (this->values_.get_num_elems() == arrays.values.get_num_elems()) {
+            this->values_ = arrays.values;
+        } else {
+            GKO_INVALID_STATE("Input values view is of incorrect size!");
+        }
+    }
+    if (this->col_idxs_.is_owning()) {
+        this->col_idxs_ = std::move(arrays.col_idxs);
+    } else {
+        if (this->col_idxs_.get_num_elems() ==
+            arrays.col_idxs.get_num_elems()) {
+            this->col_idxs_ = arrays.col_idxs;
+        } else {
+            GKO_INVALID_STATE("Input col_idxs view is of incorrect size!");
+        }
+    }
     const auto row_idxs = std::move(arrays.row_idxs);
     auto local_row_idxs = make_temporary_clone(exec, &row_idxs);
     exec->run(csr::make_convert_idxs_to_ptrs(local_row_idxs->get_const_data(),
