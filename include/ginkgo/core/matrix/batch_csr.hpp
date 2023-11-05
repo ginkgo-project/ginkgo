@@ -55,15 +55,12 @@ namespace matrix {
 
 
 /**
- * Csr is a sparse matrix format that stores the same number of nonzeros in each
- * row, enabling coalesced accesses. It is suitable for sparsity patterns that
- * have a similar number of nonzeros in every row. The values are stored in a
- * column-major fashion similar to the monolithic gko::matrix::Csr class.
+ * Csr is a general sparse matrix format that stores the column indices for each
+ * nonzero entry and a cumulative sum of the number of nonzeros in each row. It
+ * is one of the most popular sparse matrix formats due to its versatility and
+ * ability to store a wide range of sparsity patterns in an efficient fashion.
  *
- * Similar to the monolithic gko::matrix::Csr class, invalid_index<IndexType> is
- * used as the column index for padded zero entries.
- *
- * @note It is also assumed that the sparsity pattern of all the items in the
+ * @note It is assumed that the sparsity pattern of all the items in the
  * batch is the same and therefore only a single copy of the sparsity pattern is
  * stored.
  *
@@ -236,7 +233,9 @@ public:
 
     /**
      * Creates a constant (immutable) batch csr matrix from a constant
-     * array. The column indices array needs to be the same for all batch items.
+     * array. Only a single sparsity pattern (column indices and row pointers)
+     * is stored and hence the user needs to ensure that each batch item has the
+     * same sparsity pattern.
      *
      * @param exec  the executor to create the matrix on
      * @param size  the dimensions of the matrix
@@ -304,6 +303,11 @@ private:
      * @param size  size of the matrix
      * @param num_nonzeros_per_item  number of nonzeros in each item of the
      * batch matrix
+     *
+     * @internal It is necessary to pass in the correct nnz_per_item to ensure
+     * that the arrays are allocated correctly. An incorrect value will result
+     * in a runtime failure when the user tries to use any batch matrix
+     * utilities such as create_view_from_item etc.
      */
     Csr(std::shared_ptr<const Executor> exec,
         const batch_dim<2>& size = batch_dim<2>{},
