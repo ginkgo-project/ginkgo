@@ -183,8 +183,7 @@ std::unique_ptr<LinOp> NestedDissection<ValueType, IndexType>::generate_impl(
                             inv_permutation.get_data()));
     permutation.set_executor(exec);
     // we discard the inverse permutation
-    return permutation_type::create(exec, dim<2>{num_rows, num_rows},
-                                    std::move(permutation));
+    return permutation_type::create(exec, std::move(permutation));
 }
 
 
