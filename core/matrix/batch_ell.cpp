@@ -134,7 +134,10 @@ Ell<ValueType, IndexType>* Ell<ValueType, IndexType>::apply(
     ptr_param<const MultiVector<ValueType>> b,
     ptr_param<MultiVector<ValueType>> x)
 {
-    static_cast<const Ell*>(this)->apply(b, x);
+    this->validate_application_parameters(b.get(), x.get());
+    auto exec = this->get_executor();
+    this->apply_impl(make_temporary_clone(exec, b).get(),
+                     make_temporary_clone(exec, x).get());
     return this;
 }
 
@@ -159,7 +162,13 @@ Ell<ValueType, IndexType>* Ell<ValueType, IndexType>::apply(
     ptr_param<const MultiVector<ValueType>> beta,
     ptr_param<MultiVector<ValueType>> x)
 {
-    static_cast<const Ell*>(this)->apply(alpha, b, beta, x);
+    this->validate_application_parameters(alpha.get(), b.get(), beta.get(),
+                                          x.get());
+    auto exec = this->get_executor();
+    this->apply_impl(make_temporary_clone(exec, alpha).get(),
+                     make_temporary_clone(exec, b).get(),
+                     make_temporary_clone(exec, beta).get(),
+                     make_temporary_clone(exec, x).get());
     return this;
 }
 

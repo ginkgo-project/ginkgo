@@ -33,9 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 template <typename ValueType, typename IndexType>
 __dpct_inline__ void simple_apply_kernel(
     const gko::batch::matrix::ell::batch_item<const ValueType, IndexType>& mat,
-    const gko::batch::multi_vector::batch_item<const ValueType>& b,
-    const gko::batch::multi_vector::batch_item<ValueType>& x,
-    sycl::nd_item<3>& item_ct1)
+    const ValueType* b, ValueType* x, sycl::nd_item<3>& item_ct1)
 {
     for (int tidx = item_ct1.get_local_linear_id(); tidx < mat.num_rows;
          tidx += item_ct1.get_local_range().size()) {
@@ -45,22 +43,19 @@ __dpct_inline__ void simple_apply_kernel(
             if (col_idx == invalid_index<IndexType>()) {
                 break;
             } else {
-                temp += mat.values[tidx + idx * mat.stride] *
-                        b.values[col_idx * b.stride];
+                temp += mat.values[tidx + idx * mat.stride] * b[col_idx];
             }
         }
-        x.values[tidx * x.stride] = temp;
+        x[tidx] = temp;
     }
 }
 
 
 template <typename ValueType, typename IndexType>
 __dpct_inline__ void advanced_apply_kernel(
-    const gko::batch::multi_vector::batch_item<const ValueType>& alpha,
+    const ValueType alpha,
     const gko::batch::matrix::ell::batch_item<const ValueType, IndexType>& mat,
-    const gko::batch::multi_vector::batch_item<const ValueType>& b,
-    const gko::batch::multi_vector::batch_item<const ValueType>& beta,
-    const gko::batch::multi_vector::batch_item<ValueType>& x,
+    const ValueType* b, const ValueType beta, ValueType* x,
     sycl::nd_item<3>& item_ct1)
 {
     for (int tidx = item_ct1.get_local_linear_id(); tidx < mat.num_rows;
@@ -71,11 +66,9 @@ __dpct_inline__ void advanced_apply_kernel(
             if (col_idx == invalid_index<IndexType>()) {
                 break;
             } else {
-                temp += mat.values[tidx + idx * mat.stride] *
-                        b.values[col_idx * b.stride];
+                temp += mat.values[tidx + idx * mat.stride] * b[col_idx];
             }
         }
-        x.values[tidx * x.stride] =
-            alpha.values[0] * temp + beta.values[0] * x.values[tidx * x.stride];
+        x[tidx] = alpha * temp + beta * x[tidx];
     }
 }

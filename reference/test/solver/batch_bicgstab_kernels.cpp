@@ -87,7 +87,7 @@ protected:
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     const real_type eps = 1e-3;
     const gko::size_type num_batch_items = 2;
-    const int num_rows = 3;
+    const int num_rows = 15;
     const int num_rhs = 1;
     const Settings solver_settings{100, eps,
                                    gko::batch::stop::tolerance_type::relative};
@@ -108,8 +108,8 @@ TYPED_TEST(BatchBicgstab, SolvesStencilSystem)
                                               this->linear_system);
 
     for (size_t i = 0; i < this->num_batch_items; i++) {
-        ASSERT_LE(res.res_norm->get_const_values()[i] /
-                      this->linear_system.rhs_norm->get_const_values()[i],
+        ASSERT_LE(res.host_res_norm->get_const_values()[i] /
+                      this->linear_system.host_rhs_norm->get_const_values()[i],
                   this->solver_settings.residual_tol);
     }
     GKO_ASSERT_BATCH_MTX_NEAR(res.x, this->linear_system.exact_sol,
@@ -130,9 +130,10 @@ TYPED_TEST(BatchBicgstab, StencilSystemLoggerLogsResidual)
     auto iter_array = res.log_data->iter_counts.get_const_data();
     auto res_log_array = res.log_data->res_norms.get_const_data();
     for (size_t i = 0; i < this->num_batch_items; i++) {
-        ASSERT_LE(res_log_array[i] / this->linear_system.rhs_norm->at(i, 0, 0),
-                  this->solver_settings.residual_tol);
-        ASSERT_NEAR(res_log_array[i], res.res_norm->get_const_values()[i],
+        ASSERT_LE(
+            res_log_array[i] / this->linear_system.host_rhs_norm->at(i, 0, 0),
+            this->solver_settings.residual_tol);
+        ASSERT_NEAR(res_log_array[i], res.host_res_norm->get_const_values()[i],
                     10 * this->eps);
     }
 }
@@ -186,8 +187,8 @@ TYPED_TEST(BatchBicgstab, CanSolveDenseSystem)
 
     GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 10);
     for (size_t i = 0; i < num_batch_items; i++) {
-        ASSERT_LE(res.res_norm->get_const_values()[i] /
-                      linear_system.rhs_norm->get_const_values()[i],
+        ASSERT_LE(res.host_res_norm->get_const_values()[i] /
+                      linear_system.host_rhs_norm->get_const_values()[i],
                   tol);
     }
 }
@@ -228,8 +229,8 @@ TYPED_TEST(BatchBicgstab, ApplyLogsResAndIters)
     auto res_norm = logger->get_residual_norm();
     GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 50);
     for (size_t i = 0; i < num_batch_items; i++) {
-        auto rel_res_norm = res.res_norm->get_const_values()[i] /
-                            linear_system.rhs_norm->get_const_values()[i];
+        auto rel_res_norm = res.host_res_norm->get_const_values()[i] /
+                            linear_system.host_rhs_norm->get_const_values()[i];
         ASSERT_LE(iter_counts.get_const_data()[i], max_iters);
         EXPECT_LE(res_norm.get_const_data()[i], tol * 50);
         ASSERT_LE(rel_res_norm, tol * 50);
@@ -266,8 +267,8 @@ TYPED_TEST(BatchBicgstab, CanSolveEllSystem)
 
     GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 10);
     for (size_t i = 0; i < num_batch_items; i++) {
-        ASSERT_LE(res.res_norm->get_const_values()[i] /
-                      linear_system.rhs_norm->get_const_values()[i],
+        ASSERT_LE(res.host_res_norm->get_const_values()[i] /
+                      linear_system.host_rhs_norm->get_const_values()[i],
                   tol * 10);
     }
 }
@@ -302,6 +303,6 @@ TYPED_TEST(BatchBicgstab, CanSolveDenseHpdSystem)
 
     GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 50);
     for (size_t i = 0; i < num_batch_items; i++) {
-        ASSERT_LE(res.res_norm->get_const_values()[i], tol * 50);
+        ASSERT_LE(res.host_res_norm->get_const_values()[i], tol * 50);
     }
 }

@@ -856,7 +856,6 @@ private:
 template <typename Parameters, typename Factory>
 struct enable_iterative_solver_factory_parameters
     : enable_parameters_type<Parameters, Factory> {
-    using parameters_type = Parameters;
     /**
      * Stopping criteria to be used by the solver.
      */
@@ -868,8 +867,6 @@ struct enable_iterative_solver_factory_parameters
 template <typename Parameters, typename Factory>
 struct enable_preconditioned_iterative_solver_factory_parameters
     : enable_iterative_solver_factory_parameters<Parameters, Factory> {
-    using parameters_type = Parameters;
-
     /**
      * The preconditioner to be used by the iterative solver. By default, no
      * preconditioner is used.

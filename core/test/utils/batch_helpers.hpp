@@ -166,7 +166,7 @@ std::unique_ptr<const MatrixType> generate_diag_dominant_batch_matrix(
                     static_cast<size_type>(num_cols)},
         {}};
     auto engine = std::default_random_engine(42);
-    auto rand_diag_dist = std::normal_distribution<real_type>(4.0, 12.0);
+    auto rand_diag_dist = std::normal_distribution<real_type>(8.0, 1.0);
     for (int row = 0; row < num_rows; ++row) {
         std::uniform_int_distribution<index_type> rand_nnz_dist{1, row + 1};
         const auto k = rand_nnz_dist(engine);
@@ -175,8 +175,8 @@ std::unique_ptr<const MatrixType> generate_diag_dominant_batch_matrix(
         }
         data.nonzeros.emplace_back(
             row, row,
-            static_cast<value_type>(
-                detail::get_rand_value<real_type>(rand_diag_dist, engine)));
+            std::abs(static_cast<value_type>(
+                detail::get_rand_value<real_type>(rand_diag_dist, engine))));
         if (row < num_rows - 1) {
             data.nonzeros.emplace_back(row, k, value_type{-1.0});
             data.nonzeros.emplace_back(row, row + 1, value_type{-1.0});
@@ -208,8 +208,15 @@ std::unique_ptr<const MatrixType> generate_diag_dominant_batch_matrix(
         auto rand_data = fill_random_matrix_data<value_type, index_type>(
             num_rows, num_cols, row_idxs, col_idxs, rand_val_dist, engine);
         gko::utils::make_diag_dominant(rand_data);
-        batch_data.emplace_back(rand_data);
         GKO_ASSERT(rand_data.size == batch_data.at(0).size);
+        GKO_ASSERT(rand_data.nonzeros.size() == data.nonzeros.size());
+        // Copy over the diagonal values
+        for (int i = 0; i < data.nonzeros.size(); ++i) {
+            if (data.nonzeros[i].row == data.nonzeros[i].column) {
+                rand_data.nonzeros[i] = data.nonzeros[i];
+            }
+        }
+        batch_data.emplace_back(rand_data);
     }
     return gko::batch::read<value_type, index_type, MatrixType>(
         exec, batch_data, std::forward<MatrixArgs>(args)...);
@@ -224,7 +231,7 @@ struct LinearSystem {
 
     std::shared_ptr<const MatrixType> matrix;
     std::shared_ptr<multi_vec> rhs;
-    std::shared_ptr<real_vec> rhs_norm;
+    std::shared_ptr<real_vec> host_rhs_norm;
     std::shared_ptr<multi_vec> exact_sol;
 };
 
@@ -250,8 +257,8 @@ LinearSystem<MatrixType> generate_batch_linear_system(
     // A * x_{exact} = b
     sys.matrix->apply(sys.exact_sol, sys.rhs);
     const gko::batch_dim<2> norm_dim(num_batch_items, gko::dim<2>(1, num_rhs));
-    sys.rhs_norm = real_vec::create(exec, norm_dim);
-    sys.rhs->compute_norm2(sys.rhs_norm.get());
+    sys.host_rhs_norm = real_vec::create(exec->get_master(), norm_dim);
+    sys.rhs->compute_norm2(sys.host_rhs_norm.get());
     return sys;
 }
 
@@ -273,13 +280,13 @@ compute_residual_norms(
     const gko::batch_dim<2> norm_dim(num_batch_items, gko::dim<2>(1, num_rhs));
 
     auto residual_vec = b->clone();
-    auto res_norms = real_vec::create(exec, norm_dim);
+    auto res_norm = real_vec::create(exec->get_master(), norm_dim);
     auto alpha =
         gko::batch::initialize<multi_vec>(num_batch_items, {-1.0}, exec);
     auto beta = gko::batch::initialize<multi_vec>(num_batch_items, {1.0}, exec);
     mtx->apply(alpha, x, beta, residual_vec);
-    residual_vec->compute_norm2(res_norms);
-    return res_norms;
+    residual_vec->compute_norm2(res_norm);
+    return res_norm;
 }
 
 
@@ -289,7 +296,7 @@ struct Result {
     using real_vec = batch::MultiVector<remove_complex<ValueType>>;
 
     std::shared_ptr<multi_vec> x;
-    std::shared_ptr<real_vec> res_norm;
+    std::shared_ptr<real_vec> host_res_norm;
 };
 
 
@@ -323,7 +330,7 @@ Result<typename MatrixType::value_type> solve_linear_system(
     result.x->fill(zero<value_type>());
 
     solver->apply(sys.rhs, result.x);
-    result.res_norm =
+    result.host_res_norm =
         compute_residual_norms(sys.matrix.get(), sys.rhs.get(), result.x.get());
 
     return std::move(result);
@@ -369,7 +376,7 @@ ResultWithLogData<typename MatrixType::value_type> solve_linear_system(
     result.log_data->iter_counts = log_data->iter_counts;
     result.log_data->res_norms = log_data->res_norms;
 
-    result.res_norm =
+    result.host_res_norm =
         compute_residual_norms(sys.matrix.get(), sys.rhs.get(), result.x.get());
 
     return std::move(result);
