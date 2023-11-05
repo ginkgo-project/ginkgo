@@ -182,25 +182,13 @@ protected:
  * excluding the parameters available in iterative_solver_factory_parameters.
  * @see GKO_CREATE_FACTORY_PARAMETERS
  */
-struct preconditioned_iterative_solver_factory_parameters {
-    /**
-     * The preconditioner to be used by the iterative solver. By default, no
-     * preconditioner is used.
-     */
-    std::shared_ptr<const BatchLinOpFactory> preconditioner{nullptr};
-
-    /**
-     * Already generated preconditioner. If one is provided, the factory
-     * `preconditioner` will be ignored.
-     */
-    std::shared_ptr<const BatchLinOp> generated_preconditioner{nullptr};
-};
+struct preconditioned_iterative_solver_factory_parameters {};
 
 
 template <typename Parameters, typename Factory>
 struct enable_preconditioned_iterative_solver_factory_parameters
-    : enable_parameters_type<Parameters, Factory>,
-      preconditioned_iterative_solver_factory_parameters {
+    : enable_parameters_type<Parameters, Factory> {
+    using parameters_type = Parameters;
     /**
      * Default maximum number iterations allowed.
      *
@@ -225,40 +213,18 @@ struct enable_preconditioned_iterative_solver_factory_parameters
         tolerance_type, ::gko::batch::stop::tolerance_type::absolute);
 
     /**
-     * Provides a preconditioner factory to be used by the iterative solver in a
-     * fluent interface.
-     * @see preconditioned_iterative_solver_factory_parameters::preconditioner
+     * The preconditioner to be used by the iterative solver. By default, no
+     * preconditioner is used.
      */
-    Parameters& with_preconditioner(
-        deferred_factory_parameter<BatchLinOpFactory> preconditioner)
-    {
-        this->preconditioner_generator = std::move(preconditioner);
-        this->deferred_factories["preconditioner"] = [](const auto& exec,
-                                                        auto& params) {
-            if (!params.preconditioner_generator.is_empty()) {
-                params.preconditioner =
-                    params.preconditioner_generator.on(exec);
-            }
-        };
-        return *self();
-    }
+    std::shared_ptr<const BatchLinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
+        preconditioner);
 
     /**
-     * Provides a concrete preconditioner to be used by the iterative solver in
-     * a fluent interface.
-     * @see preconditioned_iterative_solver_factory_parameters::preconditioner
+     * Already generated preconditioner. If one is provided, the factory
+     * `preconditioner` will be ignored.
      */
-    Parameters& with_generated_preconditioner(
-        std::shared_ptr<const BatchLinOp> generated_preconditioner)
-    {
-        this->generated_preconditioner = std::move(generated_preconditioner);
-        return *self();
-    }
-
-private:
-    GKO_ENABLE_SELF(Parameters);
-
-    deferred_factory_parameter<BatchLinOpFactory> preconditioner_generator;
+    std::shared_ptr<const BatchLinOp> GKO_FACTORY_PARAMETER_SCALAR(
+        generated_preconditioner, nullptr);
 };
 
 
