@@ -177,18 +177,9 @@ protected:
 };
 
 
-/**
- * The parameter type shared between all preconditioned iterative solvers,
- * excluding the parameters available in iterative_solver_factory_parameters.
- * @see GKO_CREATE_FACTORY_PARAMETERS
- */
-struct preconditioned_iterative_solver_factory_parameters {};
-
-
 template <typename Parameters, typename Factory>
 struct enable_preconditioned_iterative_solver_factory_parameters
     : enable_parameters_type<Parameters, Factory> {
-    using parameters_type = Parameters;
     /**
      * Default maximum number iterations allowed.
      *
