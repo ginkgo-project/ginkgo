@@ -485,8 +485,9 @@ void Csr<ValueType, IndexType>::read(device_mat_data&& data)
     auto arrays = data.empty_out();
     this->row_ptrs_.resize_and_reset(size[0] + 1);
     this->set_size(size);
-    this->values_ = std::move(arrays.values);
-    this->col_idxs_ = std::move(arrays.col_idxs);
+    // Need to copy instead of move, as move into view data is not supported.
+    this->values_ = arrays.values;
+    this->col_idxs_ = arrays.col_idxs;
     const auto row_idxs = std::move(arrays.row_idxs);
     auto local_row_idxs = make_temporary_clone(exec, &row_idxs);
     exec->run(csr::make_convert_idxs_to_ptrs(local_row_idxs->get_const_data(),
