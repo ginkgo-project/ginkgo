@@ -30,8 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-template <const bool sg_kernel_all, typename BatchMatrixType_entry,
-          typename ValueType>
+template <typename BatchMatrixType_entry, typename ValueType>
 __dpct_inline__ void initialize(
     const int num_rows, const BatchMatrixType_entry& mat_global_entry,
     const ValueType* const b_global_entry,
@@ -68,17 +67,12 @@ __dpct_inline__ void initialize(
                           r_shared_entry, item_ct1);
     item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
-    if constexpr (sg_kernel_all) {
-        if (sg_id == 0) {
-            single_rhs_compute_norm2_sg(num_rows, r_shared_entry, res_norm,
-                                        item_ct1);
-        } else if (sg_id == 1) {
-            single_rhs_compute_norm2_sg(num_rows, b_global_entry, rhs_norm,
-                                        item_ct1);
-        }
-    } else {
-        single_rhs_compute_norm2(num_rows, r_shared_entry, res_norm, item_ct1);
-        single_rhs_compute_norm2(num_rows, b_global_entry, rhs_norm, item_ct1);
+    if (sg_id == 0) {
+        single_rhs_compute_norm2_sg(num_rows, r_shared_entry, res_norm,
+                                    item_ct1);
+    } else if (sg_id == 1) {
+        single_rhs_compute_norm2_sg(num_rows, b_global_entry, rhs_norm,
+                                    item_ct1);
     }
     item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
@@ -111,7 +105,7 @@ __dpct_inline__ void update_p(const int num_rows, const ValueType& rho_new,
 }
 
 
-template <const bool sg_kernel_all, typename ValueType>
+template <typename ValueType>
 __dpct_inline__ void compute_alpha(const int num_rows, const ValueType& rho_new,
                                    const ValueType* const r_hat_shared_entry,
                                    const ValueType* const v_shared_entry,
@@ -120,23 +114,15 @@ __dpct_inline__ void compute_alpha(const int num_rows, const ValueType& rho_new,
     auto sg = item_ct1.get_sub_group();
     const auto sg_id = sg.get_group_id();
     const auto tid = item_ct1.get_local_linear_id();
-    if constexpr (sg_kernel_all) {
-        if (sg_id == 0) {
-            single_rhs_compute_conj_dot_sg(num_rows, r_hat_shared_entry,
-                                           v_shared_entry, alpha, item_ct1);
-        }
-        item_ct1.barrier(sycl::access::fence_space::global_and_local);
-        if (tid == 0) {
-            alpha = rho_new / alpha;
-        }
-        item_ct1.barrier(sycl::access::fence_space::global_and_local);
-    } else {
-        single_rhs_compute_conj_dot(num_rows, r_hat_shared_entry,
-                                    v_shared_entry, alpha, item_ct1);
-        if (tid == 0) {
-            alpha = rho_new / alpha;
-        }
+    if (sg_id == 0) {
+        single_rhs_compute_conj_dot_sg(num_rows, r_hat_shared_entry,
+                                       v_shared_entry, alpha, item_ct1);
     }
+    item_ct1.barrier(sycl::access::fence_space::global_and_local);
+    if (tid == 0) {
+        alpha = rho_new / alpha;
+    }
+    item_ct1.barrier(sycl::access::fence_space::global_and_local);
 }
 
 
@@ -155,7 +141,7 @@ __dpct_inline__ void update_s(const int num_rows,
 }
 
 
-template <const bool sg_kernel_all, typename ValueType>
+template <typename ValueType>
 __dpct_inline__ void compute_omega(const int num_rows,
                                    const ValueType* const t_shared_entry,
                                    const ValueType* const s_shared_entry,
@@ -165,28 +151,18 @@ __dpct_inline__ void compute_omega(const int num_rows,
     auto sg = item_ct1.get_sub_group();
     const auto sg_id = sg.get_group_id();
     const auto tid = item_ct1.get_local_linear_id();
-    if constexpr (sg_kernel_all) {
-        if (sg_id == 0) {
-            single_rhs_compute_conj_dot_sg(num_rows, t_shared_entry,
-                                           s_shared_entry, omega, item_ct1);
-        } else if (sg_id == 1) {
-            single_rhs_compute_conj_dot_sg(num_rows, t_shared_entry,
-                                           t_shared_entry, temp, item_ct1);
-        }
-        item_ct1.barrier(sycl::access::fence_space::global_and_local);
-        if (tid == 0) {
-            omega /= temp;
-        }
-        item_ct1.barrier(sycl::access::fence_space::global_and_local);
-    } else {
-        single_rhs_compute_conj_dot(num_rows, t_shared_entry, s_shared_entry,
-                                    omega, item_ct1);
-        single_rhs_compute_conj_dot(num_rows, t_shared_entry, t_shared_entry,
-                                    temp, item_ct1);
-        if (tid == 0) {
-            omega /= temp;
-        }
+    if (sg_id == 0) {
+        single_rhs_compute_conj_dot_sg(num_rows, t_shared_entry, s_shared_entry,
+                                       omega, item_ct1);
+    } else if (sg_id == 1) {
+        single_rhs_compute_conj_dot_sg(num_rows, t_shared_entry, t_shared_entry,
+                                       temp, item_ct1);
     }
+    item_ct1.barrier(sycl::access::fence_space::global_and_local);
+    if (tid == 0) {
+        omega /= temp;
+    }
+    item_ct1.barrier(sycl::access::fence_space::global_and_local);
 }
 
 
@@ -220,9 +196,8 @@ __dpct_inline__ void update_x_middle(const int num_rows, const ValueType& alpha,
 }
 
 
-template <typename StopType, const int n_shared_total, const bool sg_kernel_all,
-          typename PrecType, typename LogType, typename BatchMatrixType,
-          typename ValueType>
+template <typename StopType, const int n_shared_total, typename PrecType,
+          typename LogType, typename BatchMatrixType, typename ValueType>
 void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
                   const int max_iter, const gko::remove_complex<ValueType> tol,
                   LogType logger, PrecType prec_shared,
@@ -344,10 +319,10 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
     // p = 0
     // p_hat = 0
     // v = 0
-    initialize<sg_kernel_all>(num_rows, mat_global_entry, b_global_entry,
-                              x_global_entry, rho_old_sh[0], omega_sh[0],
-                              alpha_sh[0], x_sh, r_sh, r_hat_sh, p_sh, p_hat_sh,
-                              v_sh, norms_rhs_sh[0], norms_res_sh[0], item_ct1);
+    initialize(num_rows, mat_global_entry, b_global_entry, x_global_entry,
+               rho_old_sh[0], omega_sh[0], alpha_sh[0], x_sh, r_sh, r_hat_sh,
+               p_sh, p_hat_sh, v_sh, norms_rhs_sh[0], norms_res_sh[0],
+               item_ct1);
     item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
     // stopping criterion object
@@ -361,16 +336,11 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
         }
 
         // rho_new =  < r_hat , r > = (r_hat)' * (r)
-        if constexpr (sg_kernel_all) {
-            if (sg_id == 0) {
-                single_rhs_compute_conj_dot_sg(num_rows, r_hat_sh, r_sh,
-                                               rho_new_sh[0], item_ct1);
-            }
-            item_ct1.barrier(sycl::access::fence_space::global_and_local);
-        } else {
-            single_rhs_compute_conj_dot(num_rows, r_hat_sh, r_sh, rho_new_sh[0],
-                                        item_ct1);
+        if (sg_id == 0) {
+            single_rhs_compute_conj_dot_sg(num_rows, r_hat_sh, r_sh,
+                                           rho_new_sh[0], item_ct1);
         }
+        item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
         // beta = (rho_new / rho_old)*(alpha / omega)
         // p = r + beta*(p - omega * v)
@@ -387,8 +357,8 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
         item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
         // alpha = rho_new / < r_hat , v>
-        compute_alpha<sg_kernel_all>(num_rows, rho_new_sh[0], r_hat_sh, v_sh,
-                                     alpha_sh[0], item_ct1);
+        compute_alpha(num_rows, rho_new_sh[0], r_hat_sh, v_sh, alpha_sh[0],
+                      item_ct1);
         item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
         // s = r - alpha*v
@@ -396,15 +366,11 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
         item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
         // an estimate of residual norms
-        if constexpr (sg_kernel_all) {
-            if (sg_id == 0) {
-                single_rhs_compute_norm2_sg(num_rows, s_sh, norms_res_sh[0],
-                                            item_ct1);
-            }
-            item_ct1.barrier(sycl::access::fence_space::global_and_local);
-        } else {
-            single_rhs_compute_norm2(num_rows, s_sh, norms_res_sh[0], item_ct1);
+        if (sg_id == 0) {
+            single_rhs_compute_norm2_sg(num_rows, s_sh, norms_res_sh[0],
+                                        item_ct1);
         }
+        item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
         if (stop.check_converged(norms_res_sh)) {
             update_x_middle(num_rows, alpha_sh[0], p_hat_sh, x_sh, item_ct1);
@@ -421,8 +387,7 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
         item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
         // omega = <t,s> / <t,t>
-        compute_omega<sg_kernel_all>(num_rows, t_sh, s_sh, temp_sh[0],
-                                     omega_sh[0], item_ct1);
+        compute_omega(num_rows, t_sh, s_sh, temp_sh[0], omega_sh[0], item_ct1);
         item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
         // x = x + alpha*p_hat + omega *s_hat
@@ -431,18 +396,13 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
                        s_sh, t_sh, x_sh, r_sh, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
-        if constexpr (sg_kernel_all) {
-            if (sg_id == 0)
-                single_rhs_compute_norm2_sg(num_rows, r_sh, norms_res_sh[0],
-                                            item_ct1);
-            if (tid == group_size - 1) {
-                rho_old_sh[0] = rho_new_sh[0];
-            }
-            item_ct1.barrier(sycl::access::fence_space::global_and_local);
-        } else {
-            single_rhs_compute_norm2(num_rows, r_sh, norms_res_sh[0], item_ct1);
+        if (sg_id == 0)
+            single_rhs_compute_norm2_sg(num_rows, r_sh, norms_res_sh[0],
+                                        item_ct1);
+        if (tid == group_size - 1) {
             rho_old_sh[0] = rho_new_sh[0];
         }
+        item_ct1.barrier(sycl::access::fence_space::global_and_local);
     }
 
     logger.log_iteration(batch_id, iter, norms_res_sh[0]);

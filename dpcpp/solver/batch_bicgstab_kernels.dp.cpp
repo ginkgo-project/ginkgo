@@ -94,8 +94,8 @@ public:
     {}
 
     template <typename StopType, const int subgroup_size,
-              const int n_shared_total, const bool sg_kernel_all,
-              typename PrecType, typename LogType, typename BatchMatrixType>
+              const int n_shared_total, typename PrecType, typename LogType,
+              typename BatchMatrixType>
     __dpct_inline__ void launch_apply_kernel(
         const gko::kernels::batch_bicgstab::storage_config& sconf,
         LogType& logger, PrecType& prec, const BatchMatrixType mat,
@@ -118,9 +118,10 @@ public:
                 slm_values(sycl::range<1>(shared_size), cgh);
 
             cgh.parallel_for(
-                sycl_nd_range(grid, block),
-                [=](sycl::nd_item<3> item_ct1) [[intel::reqd_sub_group_size(
-                    subgroup_size)]] [[intel::kernel_args_restrict]] {
+                sycl_nd_range(grid, block), [=
+            ](sycl::nd_item<3> item_ct1) [[intel::reqd_sub_group_size(
+                                                subgroup_size)]] [
+                                                [intel::kernel_args_restrict]] {
                     auto batch_id = item_ct1.get_group_linear_id();
                     const auto mat_global_entry =
                         gko::batch::matrix::extract_batch_item(mat, batch_id);
@@ -130,7 +131,7 @@ public:
                     ValueType* const x_global_entry =
                         gko::batch::multi_vector::batch_item_ptr(
                             x_values, 1, num_rows, batch_id);
-                    apply_kernel<StopType, n_shared_total, sg_kernel_all>(
+                    apply_kernel<StopType, n_shared_total>(
                         sconf, max_iters, res_tol, logger, prec,
                         mat_global_entry, b_global_entry, x_global_entry,
                         num_rows, mat.get_single_item_num_nnz(),
@@ -197,67 +198,67 @@ public:
         // launch_apply_kernel<StopType, subgroup_size, n_shared_total,
         // sg_kernel_all>
         if (num_rows <= 32 && n_shared_total == 10) {
-            launch_apply_kernel<StopType, 32, 10, true>(
+            launch_apply_kernel<StopType, 32, 10>(
                 sconf, logger, prec, mat, b.values, x.values, workspace_data,
                 group_size, shared_size);
         } else if (num_rows <= 256 && n_shared_total == 10) {
-            launch_apply_kernel<StopType, 32, 10, true>(
+            launch_apply_kernel<StopType, 32, 10>(
                 sconf, logger, prec, mat, b.values, x.values, workspace_data,
                 group_size, shared_size);
         } else {
             switch (n_shared_total) {
             case 0:
-                launch_apply_kernel<StopType, 32, 0, true>(
+                launch_apply_kernel<StopType, 32, 0>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, group_size, shared_size);
                 break;
             case 1:
-                launch_apply_kernel<StopType, 32, 1, true>(
+                launch_apply_kernel<StopType, 32, 1>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, group_size, shared_size);
                 break;
             case 2:
-                launch_apply_kernel<StopType, 32, 2, true>(
+                launch_apply_kernel<StopType, 32, 2>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, group_size, shared_size);
                 break;
             case 3:
-                launch_apply_kernel<StopType, 32, 3, true>(
+                launch_apply_kernel<StopType, 32, 3>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, group_size, shared_size);
                 break;
             case 4:
-                launch_apply_kernel<StopType, 32, 4, true>(
+                launch_apply_kernel<StopType, 32, 4>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, group_size, shared_size);
                 break;
             case 5:
-                launch_apply_kernel<StopType, 32, 5, true>(
+                launch_apply_kernel<StopType, 32, 5>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, group_size, shared_size);
                 break;
             case 6:
-                launch_apply_kernel<StopType, 32, 6, true>(
+                launch_apply_kernel<StopType, 32, 6>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, group_size, shared_size);
                 break;
             case 7:
-                launch_apply_kernel<StopType, 32, 7, true>(
+                launch_apply_kernel<StopType, 32, 7>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, group_size, shared_size);
                 break;
             case 8:
-                launch_apply_kernel<StopType, 32, 8, true>(
+                launch_apply_kernel<StopType, 32, 8>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, group_size, shared_size);
                 break;
             case 9:
-                launch_apply_kernel<StopType, 32, 9, true>(
+                launch_apply_kernel<StopType, 32, 9>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, group_size, shared_size);
                 break;
             case 10:
-                launch_apply_kernel<StopType, 32, 10, true>(
+                launch_apply_kernel<StopType, 32, 10>(
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, group_size, shared_size);
                 break;
