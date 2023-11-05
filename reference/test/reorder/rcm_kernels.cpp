@@ -50,9 +50,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/test/utils/assertions.hpp"
 
 
-GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
-
-
 namespace {
 
 
@@ -181,6 +178,3 @@ TEST_F(Rcm, NewInterfaceWorksOnNonsymmetric)
 
 
 }  // namespace
-
-
-GKO_END_DISABLE_DEPRECATION_WARNINGS

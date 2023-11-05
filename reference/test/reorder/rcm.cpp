@@ -51,9 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/test/utils/assertions.hpp"
 
 
-GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
-
-
 namespace {
 
 
@@ -72,12 +69,12 @@ protected:
           rcm_factory(reorder_type::build().on(exec)),
           // clang-format off
           id3_mtx(gko::initialize<CsrMtx>(
-              {{1.0, 0.0, 0.0}, 
-              {0.0, 1.0, 0.0}, 
+              {{1.0, 0.0, 0.0},
+              {0.0, 1.0, 0.0},
               {0.0, 0.0, 1.0}}, exec)),
           not_id3_mtx(gko::initialize<CsrMtx>(
-              {{1.0, 0.0, 1.0}, 
-              {0.0, 1.0, 0.0}, 
+              {{1.0, 0.0, 1.0},
+              {0.0, 1.0, 0.0},
               {1.0, 0.0, 1.0}}, exec)),
           // clang-format on
           reorder_op(rcm_factory->generate(id3_mtx))

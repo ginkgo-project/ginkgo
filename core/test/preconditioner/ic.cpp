@@ -129,3 +129,6 @@ TEST_F(IcFactory, DeferredFactoryParameter)
 
 
 }  // namespace
+
+
+GKO_END_DISABLE_DEPRECATION_WARNINGS

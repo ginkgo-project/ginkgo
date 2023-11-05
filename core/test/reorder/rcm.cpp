@@ -33,9 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/reorder/rcm.hpp>
 
 
-GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
-
-
 #include <memory>
 
 
@@ -49,6 +46,7 @@ GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
 
 
 namespace {
+
 
 class Rcm : public ::testing::Test {
 protected:
@@ -65,6 +63,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<reorder_type::Factory> rcm_factory;
 };
+
 
 TEST_F(Rcm, RcmFactoryKnowsItsExecutor)
 {
@@ -91,5 +90,6 @@ TEST_F(Rcm, NewInterfaceSetParameters)
     ASSERT_EQ(param.skip_symmetrize, true);
     ASSERT_EQ(param.strategy, gko::reorder::starting_strategy::minimum_degree);
 }
+
 
 }  // namespace
