@@ -71,7 +71,7 @@ constexpr int sm_oversubscription = 4;
 
 // NOTE: DO NOT CHANGE THE ORDERING OF THE INCLUDES
 
-// #include "common/cuda_hip/matrix/batch_csr_kernels.hpp.inc"
+#include "common/cuda_hip/matrix/batch_csr_kernels.hpp.inc"
 
 
 #include "common/cuda_hip/matrix/batch_csr_kernel_launcher.hpp.inc"
