@@ -81,9 +81,6 @@ void rcm_reorder(const matrix::SparsityCsr<ValueType, IndexType>* mtx,
 }
 
 
-GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
-
-
 template <typename ValueType, typename IndexType>
 Rcm<ValueType, IndexType>::Rcm(std::shared_ptr<const Executor> exec)
     : EnablePolymorphicObject<Rcm, ReorderingBase<IndexType>>(std::move(exec))
@@ -154,9 +151,6 @@ Rcm<ValueType, IndexType>::Rcm(const Factory* factory,
 
 #define GKO_DECLARE_RCM(ValueType, IndexType) class Rcm<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RCM);
-
-
-GKO_END_DISABLE_DEPRECATION_WARNINGS
 
 
 }  // namespace reorder

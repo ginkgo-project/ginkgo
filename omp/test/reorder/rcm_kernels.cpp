@@ -33,9 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/reorder/rcm.hpp>
 
 
-GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
-
-
 #include <algorithm>
 #include <deque>
 #include <fstream>

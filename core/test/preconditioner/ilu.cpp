@@ -147,3 +147,6 @@ TEST_F(IluFactory, DeferredFactoryParameter)
 
 
 }  // namespace
+
+
+GKO_END_DISABLE_DEPRECATION_WARNINGS
