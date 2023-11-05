@@ -39,14 +39,13 @@ __device__ __forceinline__ void simple_apply(
     const auto num_rows = mat.num_rows;
     const auto val = mat.values;
     const auto col = mat.col_idxs;
-    for (int tidx = threadIdx.x; tidx < num_rows; tidx += blockDim.x) {
+    for (int row = threadIdx.x; row < num_rows; row += blockDim.x) {
         auto temp = zero<ValueType>();
-        for (auto nnz = mat.row_ptrs[tidx]; nnz < mat.row_ptrs[tidx + 1];
-             nnz++) {
+        for (auto nnz = mat.row_ptrs[row]; nnz < mat.row_ptrs[row + 1]; nnz++) {
             const auto col_idx = col[nnz];
             temp += val[nnz] * b[col_idx];
         }
-        x[tidx] = temp;
+        x[row] = temp;
     }
 }
 
@@ -90,14 +89,13 @@ __device__ __forceinline__ void advanced_apply(
     const auto num_rows = mat.num_rows;
     const auto val = mat.values;
     const auto col = mat.col_idxs;
-    for (int tidx = threadIdx.x; tidx < num_rows; tidx += blockDim.x) {
+    for (int row = threadIdx.x; row < num_rows; row += blockDim.x) {
         auto temp = zero<ValueType>();
-        for (auto nnz = mat.row_ptrs[tidx]; nnz < mat.row_ptrs[tidx + 1];
-             nnz++) {
+        for (auto nnz = mat.row_ptrs[row]; nnz < mat.row_ptrs[row + 1]; nnz++) {
             const auto col_idx = col[nnz];
             temp += alpha * val[nnz] * b[col_idx];
         }
-        x[tidx] = temp + beta * x[tidx];
+        x[row] = temp + beta * x[row];
     }
 }
 

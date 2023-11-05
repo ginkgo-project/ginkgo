@@ -38,15 +38,14 @@ __dpct_inline__ void simple_apply_kernel(
     const auto num_rows = mat.num_rows;
     const auto val = mat.values;
     const auto col = mat.col_idxs;
-    for (int tidx = item_ct1.get_local_linear_id(); tidx < num_rows;
-         tidx += item_ct1.get_local_range().size()) {
+    for (int row = item_ct1.get_local_linear_id(); row < num_rows;
+         row += item_ct1.get_local_range().size()) {
         auto temp = zero<ValueType>();
-        for (auto nnz = mat.row_ptrs[tidx]; nnz < mat.row_ptrs[tidx + 1];
-             nnz++) {
+        for (auto nnz = mat.row_ptrs[row]; nnz < mat.row_ptrs[row + 1]; nnz++) {
             const auto col_idx = col[nnz];
             temp += val[nnz] * b[col_idx];
         }
-        c[tidx] = temp;
+        x[row] = temp;
     }
 }
 
@@ -58,27 +57,16 @@ __dpct_inline__ void advanced_apply_kernel(
     const ValueType* b, const ValueType beta, ValueType* x,
     sycl::nd_item<3>& item_ct1)
 {
-    auto sg = item_ct1.get_sub_group();
-
-    for (int row = sg.get_group_id(); row < mat.num_rows;
-         row += sg.get_group_range().size()) {
-        const int row_start = mat.row_ptrs[row];
-        const int row_end = mat.row_ptrs[row + 1];
-
-        ValueType temp = zero<ValueType>();
-        for (int i = sg.get_local_id() + row_start; i < row_end;
-             i += sg.get_local_range().size()) {
-            const int col = mat.col_idxs[i];
-            const ValueType val = mat.values[i];
-            temp += val * b[col];
+    const auto num_rows = mat.num_rows;
+    const auto val = mat.values;
+    const auto col = mat.col_idxs;
+    for (int row = item_ct1.get_local_linear_id(); row < num_rows;
+         row += item_ct1.get_local_range().size()) {
+        auto temp = zero<ValueType>();
+        for (auto nnz = mat.row_ptrs[row]; nnz < mat.row_ptrs[row + 1]; nnz++) {
+            const auto col_idx = col[nnz];
+            temp += alpha * val[nnz] * b[col_idx];
         }
-
-        temp = ::gko::kernels::dpcpp::reduce(
-            sg, temp, [](ValueType a, ValueType b) { return a + b; });
-
-
-        if (sg.get_local_id() == 0) {
-            c[row] = alpha * temp + beta * c[row];
-        }
+        x[row] = temp + beta * x[row];
     }
 }
