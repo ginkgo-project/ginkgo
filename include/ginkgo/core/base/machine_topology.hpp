@@ -415,7 +415,7 @@ private:
 };
 
 
-using MachineTopology [[deprecated("please use machine_topology")]] =
+using MachineTopology GKO_DEPRECATED("please use machine_topology") =
     machine_topology;
 
 

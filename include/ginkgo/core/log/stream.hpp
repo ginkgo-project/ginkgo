@@ -164,17 +164,18 @@ public:
                                const array<stopping_status>* status,
                                bool stopped) const override;
 
-    [[deprecated(
+    GKO_DEPRECATED(
         "Please use the version with the additional stopping "
-        "information.")]] void
-    on_iteration_complete(const LinOp* solver, const size_type& num_iterations,
-                          const LinOp* residual, const LinOp* solution,
-                          const LinOp* residual_norm) const override;
+        "information.")
+    void on_iteration_complete(const LinOp* solver,
+                               const size_type& num_iterations,
+                               const LinOp* residual, const LinOp* solution,
+                               const LinOp* residual_norm) const override;
 
-    [[deprecated(
+    GKO_DEPRECATED(
         "Please use the version with the additional stopping "
-        "information.")]] void
-    on_iteration_complete(
+        "information.")
+    void on_iteration_complete(
         const LinOp* solver, const size_type& num_iterations,
         const LinOp* residual, const LinOp* solution,
         const LinOp* residual_norm,
@@ -198,10 +199,11 @@ public:
      * dependencies. At the same time, this method is short enough that it
      * shouldn't be a problem.
      */
-    [[deprecated("use three-parameter create")]] static std::unique_ptr<Stream>
-    create(std::shared_ptr<const Executor> exec,
-           const Logger::mask_type& enabled_events = Logger::all_events_mask,
-           std::ostream& os = std::cout, bool verbose = false)
+    GKO_DEPRECATED("use three-parameter create")
+    static std::unique_ptr<Stream> create(
+        std::shared_ptr<const Executor> exec,
+        const Logger::mask_type& enabled_events = Logger::all_events_mask,
+        std::ostream& os = std::cout, bool verbose = false)
     {
         return std::unique_ptr<Stream>(new Stream(enabled_events, os, verbose));
     }
@@ -243,7 +245,8 @@ protected:
      *                 includes always printing residuals and other information
      *                 which can give a large output.
      */
-    [[deprecated("use three-parameter constructor")]] explicit Stream(
+    GKO_DEPRECATED("use three-parameter constructor")
+    explicit Stream(
         std::shared_ptr<const gko::Executor> exec,
         const Logger::mask_type& enabled_events = Logger::all_events_mask,
         std::ostream& os = std::cerr, bool verbose = false)

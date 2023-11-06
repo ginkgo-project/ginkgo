@@ -30,63 +30,59 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_REFERENCE_LOG_BATCH_LOGGER_HPP_
-#define GKO_REFERENCE_LOG_BATCH_LOGGER_HPP_
+#ifndef GKO_CUDA_BASE_KERNEL_CONFIG_HPP_
+#define GKO_CUDA_BASE_KERNEL_CONFIG_HPP_
 
 
-#include <ginkgo/core/base/types.hpp>
+#include <cuda_runtime.h>
+
+
+#include <ginkgo/core/base/exception_helpers.hpp>
 
 
 namespace gko {
 namespace kernels {
-namespace host {
-namespace batch_log {
+namespace cuda {
+namespace detail {
 
 
-/**
- * Logs the final residual norm and iteration count for a batch solver.
- *
- * @note Supports only a single RHS per batch item.
- */
-template <typename RealType>
-class SimpleFinalLogger final {
+template <typename ValueType>
+class shared_memory_config_guard {
 public:
-    /**
-     * Constructor
-     *
-     * @param batch_residuals  residuals norms of size
-     *                         num_batch_items.
-     * @param batch_iters  final iteration counts for each
-     *                     linear system in the batch.
-     */
-    SimpleFinalLogger(RealType* const batch_residuals, int* const batch_iters)
-        : final_residuals_{batch_residuals}, final_iters_{batch_iters}
-    {}
-
-    /**
-     * Logs the final iteration count and the final residual norm.
-     *
-     * @param batch_idx  The index of linear system in the batch to log.
-     * @param iter  The final iteration count (0-based).
-     * @param res_norm  Norm of final residual norm
-     */
-    void log_iteration(const size_type batch_idx, const int iter,
-                       const RealType res_norm)
+    using value_type = ValueType;
+    shared_memory_config_guard() : original_config_{}
     {
-        final_iters_[batch_idx] = iter;
-        final_residuals_[batch_idx] = res_norm;
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaDeviceGetSharedMemConfig(&original_config_));
+
+        if (sizeof(value_type) == 4) {
+            GKO_ASSERT_NO_CUDA_ERRORS(
+                cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeFourByte));
+        } else if (sizeof(value_type) % 8 == 0) {
+            GKO_ASSERT_NO_CUDA_ERRORS(
+                cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte));
+        } else {
+            GKO_ASSERT_NO_CUDA_ERRORS(
+                cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeDefault));
+        }
+    }
+
+
+    ~shared_memory_config_guard()
+    {
+        // No need to exit or throw if we cant set the value back.
+        cudaDeviceSetSharedMemConfig(original_config_);
     }
 
 private:
-    RealType* const final_residuals_;
-    int* const final_iters_;
+    cudaSharedMemConfig original_config_;
 };
 
 
-}  // namespace batch_log
-}  // namespace host
+}  // namespace detail
+}  // namespace cuda
 }  // namespace kernels
 }  // namespace gko
 
 
-#endif  // GKO_REFERENCE_LOG_BATCH_LOGGER_HPP_
+#endif  // GKO_CUDA_BASE_KERNEL_CONFIG_HPP_

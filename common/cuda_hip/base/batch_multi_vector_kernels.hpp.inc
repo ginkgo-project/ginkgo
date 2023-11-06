@@ -103,6 +103,28 @@ __global__ __launch_bounds__(
 }
 
 
+template <typename Group, typename ValueType>
+__device__ __forceinline__ void single_rhs_compute_conj_dot(Group subgroup,
+                                                            const int num_rows,
+                                                            const ValueType* x,
+                                                            const ValueType* y,
+                                                            ValueType& result)
+
+{
+    ValueType val = zero<ValueType>();
+    for (int r = subgroup.thread_rank(); r < num_rows; r += subgroup.size()) {
+        val += conj(x[r]) * y[r];
+    }
+
+    // subgroup level reduction
+    val = reduce(subgroup, val, thrust::plus<ValueType>{});
+
+    if (subgroup.thread_rank() == 0) {
+        result = val;
+    }
+}
+
+
 template <typename Group, typename ValueType, typename Mapping>
 __device__ __forceinline__ void gen_one_dot(
     const gko::batch::multi_vector::batch_item<const ValueType>& x,
@@ -161,6 +183,27 @@ __launch_bounds__(default_block_size, sm_oversubscription) void compute_gen_dot_
         const auto y_b = gko::batch::extract_batch_item(y, batch_id);
         const auto r_b = gko::batch::extract_batch_item(result, batch_id);
         compute_gen_dot_product(x_b, y_b, r_b, map);
+    }
+}
+
+
+template <typename Group, typename ValueType>
+__device__ __forceinline__ void single_rhs_compute_norm2(
+    Group subgroup, const int num_rows, const ValueType* x,
+    remove_complex<ValueType>& result)
+{
+    using real_type = typename gko::remove_complex<ValueType>;
+    real_type val = zero<real_type>();
+
+    for (int r = subgroup.thread_rank(); r < num_rows; r += subgroup.size()) {
+        val += squared_norm(x[r]);
+    }
+
+    // subgroup level reduction
+    val = reduce(subgroup, val, thrust::plus<remove_complex<ValueType>>{});
+
+    if (subgroup.thread_rank() == 0) {
+        result = sqrt(val);
     }
 }
 
@@ -234,6 +277,17 @@ __global__ __launch_bounds__(
         const auto x_b = gko::batch::extract_batch_item(x, batch_id);
         const auto r_b = gko::batch::extract_batch_item(result, batch_id);
         compute_norm2(x_b, r_b);
+    }
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ void single_rhs_copy(const int num_rows,
+                                                const ValueType* in,
+                                                ValueType* out)
+{
+    for (int iz = threadIdx.x; iz < num_rows; iz += blockDim.x) {
+        out[iz] = in[iz];
     }
 }
 

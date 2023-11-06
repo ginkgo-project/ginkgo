@@ -37,13 +37,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 
 
+#include <thrust/copy.h>
+#include <thrust/iterator/transform_output_iterator.h>
+#include <thrust/iterator/zip_iterator.h>
+
+
 #include <ginkgo/core/matrix/csr.hpp>
 
 
 #include "core/base/allocator.hpp"
 #include "core/matrix/csr_lookup.hpp"
+#include "cuda/base/thrust.cuh"
 #include "cuda/base/types.hpp"
 #include "cuda/components/cooperative_groups.cuh"
+#include "cuda/components/reduction.cuh"
 #include "cuda/components/syncfree.cuh"
 #include "cuda/components/thread_ids.cuh"
 

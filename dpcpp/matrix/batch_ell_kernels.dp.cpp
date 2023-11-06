@@ -106,7 +106,8 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
                         batch::matrix::extract_batch_item(mat_ub, group_id);
                     const auto b_b = batch::extract_batch_item(b_ub, group_id);
                     const auto x_b = batch::extract_batch_item(x_ub, group_id);
-                    simple_apply_kernel(mat_b, b_b, x_b, item_ct1);
+                    simple_apply_kernel(mat_b, b_b.values, x_b.values,
+                                        item_ct1);
                 });
     });
 }
@@ -158,7 +159,8 @@ void advanced_apply(std::shared_ptr<const DefaultExecutor> exec,
                         batch::extract_batch_item(alpha_ub, group_id);
                     const auto beta_b =
                         batch::extract_batch_item(beta_ub, group_id);
-                    advanced_apply_kernel(alpha_b, mat_b, b_b, beta_b, x_b,
+                    advanced_apply_kernel(alpha_b.values[0], mat_b, b_b.values,
+                                          beta_b.values[0], x_b.values,
                                           item_ct1);
                 });
     });

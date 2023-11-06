@@ -240,13 +240,7 @@ protected:
 // The following classes are deprecated, but they internally reference
 // themselves. To reduce unnecessary warnings, we disable deprecation warnings
 // for the definition of these classes.
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#elif defined(_MSC_BUILD) || defined(__INTEL_LLVM_COMPILER)
-#pragma warning(push)
-#pragma warning(disable : 4996)
-#endif
+GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
 
 
 /**
@@ -269,11 +263,10 @@ protected:
  * @ingroup stop
  */
 template <typename ValueType = default_precision>
-class [[deprecated(
+class GKO_DEPRECATED(
     "Please use the class ResidualNorm with the factory parameter baseline = "
-    "mode::initial_resnorm")]] ResidualNormReduction
-    : public ResidualNormBase<ValueType>
-{
+    "mode::initial_resnorm") ResidualNormReduction
+    : public ResidualNormBase<ValueType> {
 public:
     using ComplexVector = matrix::Dense<to_complex<ValueType>>;
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
@@ -326,11 +319,10 @@ protected:
  * @ingroup stop
  */
 template <typename ValueType = default_precision>
-class [[deprecated(
+class GKO_DEPRECATED(
     "Please use the class ResidualNorm with the factory parameter baseline = "
-    "mode::rhs_norm")]] RelativeResidualNorm
-    : public ResidualNormBase<ValueType>
-{
+    "mode::rhs_norm") RelativeResidualNorm
+    : public ResidualNormBase<ValueType> {
 public:
     using ComplexVector = matrix::Dense<to_complex<ValueType>>;
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
@@ -381,11 +373,10 @@ protected:
  * @ingroup stop
  */
 template <typename ValueType = default_precision>
-class [[deprecated(
+class GKO_DEPRECATED(
     "Please use the class ResidualNorm with the factory parameter baseline = "
-    "mode::absolute")]] AbsoluteResidualNorm
-    : public ResidualNormBase<ValueType>
-{
+    "mode::absolute") AbsoluteResidualNorm
+    : public ResidualNormBase<ValueType> {
 public:
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
     using Vector = matrix::Dense<ValueType>;
@@ -417,11 +408,7 @@ protected:
 };
 
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#elif defined(_MSC_BUILD) || defined(__INTEL_LLVM_COMPILER)
-#pragma warning(pop)
-#endif
+GKO_END_DISABLE_DEPRECATION_WARNINGS
 
 
 }  // namespace stop

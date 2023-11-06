@@ -33,17 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/reorder/rcm.hpp>
 
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-
-#endif
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 5211, 4973, 4974)
-#endif
-
-
 #include <memory>
 
 
@@ -57,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace {
+
 
 class Rcm : public ::testing::Test {
 protected:
@@ -73,6 +63,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<reorder_type::Factory> rcm_factory;
 };
+
 
 TEST_F(Rcm, RcmFactoryKnowsItsExecutor)
 {
@@ -99,5 +90,6 @@ TEST_F(Rcm, NewInterfaceSetParameters)
     ASSERT_EQ(param.skip_symmetrize, true);
     ASSERT_EQ(param.strategy, gko::reorder::starting_strategy::minimum_degree);
 }
+
 
 }  // namespace

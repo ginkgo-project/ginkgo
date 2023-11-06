@@ -102,11 +102,11 @@ public:
      * dependencies. At the same time, this method is short enough that it
      * shouldn't be a problem.
      */
-    [[deprecated(
-        "use single-parameter create")]] static std::unique_ptr<Convergence>
-    create(std::shared_ptr<const Executor>,
-           const mask_type& enabled_events = Logger::criterion_events_mask |
-                                             Logger::iteration_complete_mask)
+    GKO_DEPRECATED("use single-parameter create")
+    static std::unique_ptr<Convergence> create(
+        std::shared_ptr<const Executor>,
+        const mask_type& enabled_events = Logger::criterion_events_mask |
+                                          Logger::iteration_complete_mask)
     {
         return std::unique_ptr<Convergence>(new Convergence(enabled_events));
     }
@@ -188,7 +188,8 @@ protected:
      * @param enabled_events  the events enabled for this logger. By default all
      *                        events.
      */
-    [[deprecated("use single-parameter constructor")]] explicit Convergence(
+    GKO_DEPRECATED("use single-parameter constructor")
+    explicit Convergence(
         std::shared_ptr<const gko::Executor>,
         const mask_type& enabled_events = Logger::criterion_events_mask |
                                           Logger::iteration_complete_mask)

@@ -49,14 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/criterion.hpp>
 
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 5211, 4973, 4974)
-#endif
+GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
 
 
 namespace gko {
@@ -537,10 +530,9 @@ private:
 template <typename MatrixType>
 class
     // clang-format off
-    [[deprecated("This class will be replaced by the template-less detail::SolverBaseLinOp in a future release")]] SolverBase
+    GKO_DEPRECATED("This class will be replaced by the template-less detail::SolverBaseLinOp in a future release") SolverBase
     // clang-format on
-    : public detail::SolverBaseLinOp
-{
+    : public detail::SolverBaseLinOp {
 public:
     using detail::SolverBaseLinOp::SolverBaseLinOp;
 
@@ -864,7 +856,6 @@ private:
 template <typename Parameters, typename Factory>
 struct enable_iterative_solver_factory_parameters
     : enable_parameters_type<Parameters, Factory> {
-    using parameters_type = Parameters;
     /**
      * Stopping criteria to be used by the solver.
      */
@@ -876,8 +867,6 @@ struct enable_iterative_solver_factory_parameters
 template <typename Parameters, typename Factory>
 struct enable_preconditioned_iterative_solver_factory_parameters
     : enable_iterative_solver_factory_parameters<Parameters, Factory> {
-    using parameters_type = Parameters;
-
     /**
      * The preconditioner to be used by the iterative solver. By default, no
      * preconditioner is used.
@@ -898,10 +887,7 @@ struct enable_preconditioned_iterative_solver_factory_parameters
 }  // namespace gko
 
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+GKO_END_DISABLE_DEPRECATION_WARNINGS
+
+
 #endif  // GKO_PUBLIC_CORE_SOLVER_SOLVER_BASE_HPP_

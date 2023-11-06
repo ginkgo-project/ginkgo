@@ -151,8 +151,8 @@ public:
          */
         std::shared_ptr<const LinOpFactory> factorization_factory{};
 
-        [[deprecated("use with_l_solver instead")]] parameters_type&
-        with_l_solver_factory(
+        GKO_DEPRECATED("use with_l_solver instead")
+        parameters_type& with_l_solver_factory(
             deferred_factory_parameter<const typename l_solver_type::Factory>
                 solver)
         {
@@ -174,8 +174,8 @@ public:
             return *this;
         }
 
-        [[deprecated("use with_u_solver instead")]] parameters_type&
-        with_u_solver_factory(
+        GKO_DEPRECATED("use with_u_solver instead")
+        parameters_type& with_u_solver_factory(
             deferred_factory_parameter<const typename u_solver_type::Factory>
                 solver)
         {
@@ -197,8 +197,8 @@ public:
             return *this;
         }
 
-        [[deprecated("use with_factorization instead")]] parameters_type&
-        with_factorization_factory(
+        GKO_DEPRECATED("use with_factorization instead")
+        parameters_type& with_factorization_factory(
             deferred_factory_parameter<const LinOpFactory> factorization)
         {
             return with_factorization(std::move(factorization));

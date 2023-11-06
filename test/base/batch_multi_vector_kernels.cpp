@@ -70,10 +70,9 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    void set_up_vector_data(gko::size_type num_vecs,
+    void set_up_vector_data(gko::size_type num_vecs, const int num_rows = 252,
                             bool different_alpha = false)
     {
-        const int num_rows = 252;
         x = gen_mtx<Mtx>(batch_size, num_rows, num_vecs);
         y = gen_mtx<Mtx>(batch_size, num_rows, num_vecs);
         c_x = gen_mtx<ComplexMtx>(batch_size, num_rows, num_vecs);
@@ -143,7 +142,7 @@ TEST_F(MultiVector, MultipleVectorAddScaledIsEquivalentToRef)
 
 TEST_F(MultiVector, MultipleVectorAddScaledWithDifferentAlphaIsEquivalentToRef)
 {
-    set_up_vector_data(20, true);
+    set_up_vector_data(20, 252, true);
 
     x->add_scaled(alpha.get(), y.get());
     dx->add_scaled(dalpha.get(), dy.get());
@@ -182,6 +181,21 @@ TEST_F(MultiVector, MultipleVectorScaleWithDifferentAlphaIsEquivalentToRef)
     dx->scale(dalpha.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 5 * r<value_type>::value);
+}
+
+
+TEST_F(MultiVector, ComputeNorm2SingleSmallIsEquivalentToRef)
+{
+    set_up_vector_data(1, 10);
+    auto norm_size =
+        gko::batch_dim<2>(batch_size, gko::dim<2>{1, x->get_common_size()[1]});
+    auto norm_expected = NormVector::create(this->ref, norm_size);
+    auto dnorm = NormVector::create(this->exec, norm_size);
+
+    x->compute_norm2(norm_expected.get());
+    dx->compute_norm2(dnorm.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(norm_expected, dnorm, 5 * r<value_type>::value);
 }
 
 
@@ -238,6 +252,21 @@ TEST_F(MultiVector, ComputeDotIsEquivalentToRef)
 TEST_F(MultiVector, ComputeDotSingleIsEquivalentToRef)
 {
     set_up_vector_data(1);
+    auto dot_size =
+        gko::batch_dim<2>(batch_size, gko::dim<2>{1, x->get_common_size()[1]});
+    auto dot_expected = Mtx::create(this->ref, dot_size);
+    auto ddot = Mtx::create(this->exec, dot_size);
+
+    x->compute_dot(y.get(), dot_expected.get());
+    dx->compute_dot(dy.get(), ddot.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dot_expected, ddot, 5 * r<value_type>::value);
+}
+
+
+TEST_F(MultiVector, ComputeDotSingleSmallIsEquivalentToRef)
+{
+    set_up_vector_data(1, 10);
     auto dot_size =
         gko::batch_dim<2>(batch_size, gko::dim<2>{1, x->get_common_size()[1]});
     auto dot_expected = Mtx::create(this->ref, dot_size);

@@ -106,7 +106,10 @@ __global__ __launch_bounds__(default_block_size) void factorize(
     // for each lower triangular entry: eliminate with corresponding row
     for (auto lower_nz = row_begin; lower_nz < row_diag; lower_nz++) {
         const auto dep = cols[lower_nz];
-        auto val = vals[lower_nz];
+        // we can load the value before synchronizing because the following
+        // updates only go past the diagonal of the dependency row, i.e. at
+        // least column dep + 1
+        const auto val = vals[lower_nz];
         const auto diag_idx = diag_idxs[dep];
         const auto dep_end = row_ptrs[dep + 1];
         scheduler.wait(dep);
@@ -125,6 +128,88 @@ __global__ __launch_bounds__(default_block_size) void factorize(
         }
     }
     scheduler.mark_ready();
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void symbolic_factorize_simple(
+    const IndexType* __restrict__ mtx_row_ptrs,
+    const IndexType* __restrict__ mtx_cols,
+    const IndexType* __restrict__ factor_row_ptrs,
+    const IndexType* __restrict__ factor_cols,
+    const IndexType* __restrict__ storage_offsets,
+    const int32* __restrict__ storage, const int64* __restrict__ row_descs,
+    IndexType* __restrict__ diag_idxs, ValueType* __restrict__ factor_vals,
+    IndexType* __restrict__ out_row_nnz, syncfree_storage dep_storage,
+    size_type num_rows)
+{
+    using scheduler_t =
+        syncfree_scheduler<default_block_size, config::warp_size, IndexType>;
+    __shared__ typename scheduler_t::shared_storage sh_dep_storage;
+    scheduler_t scheduler(dep_storage, sh_dep_storage);
+    const auto row = scheduler.get_work_id();
+    if (row >= num_rows) {
+        return;
+    }
+    const auto warp =
+        group::tiled_partition<config::warp_size>(group::this_thread_block());
+    const auto lane = warp.thread_rank();
+    const auto factor_begin = factor_row_ptrs[row];
+    const auto factor_end = factor_row_ptrs[row + 1];
+    const auto mtx_begin = mtx_row_ptrs[row];
+    const auto mtx_end = mtx_row_ptrs[row + 1];
+    gko::matrix::csr::device_sparsity_lookup<IndexType> lookup{
+        factor_row_ptrs, factor_cols, storage_offsets,
+        storage,         row_descs,   static_cast<size_type>(row)};
+    const auto row_diag = lookup.lookup_unsafe(row) + factor_begin;
+    // fill with zeros first
+    for (auto nz = factor_begin + lane; nz < factor_end;
+         nz += config::warp_size) {
+        factor_vals[nz] = zero<float>();
+    }
+    warp.sync();
+    // then fill in the system matrix
+    for (auto nz = mtx_begin + lane; nz < mtx_end; nz += config::warp_size) {
+        const auto col = mtx_cols[nz];
+        factor_vals[lookup.lookup_unsafe(col) + factor_begin] = one<float>();
+    }
+    // finally set diagonal and store diagonal index
+    if (lane == 0) {
+        diag_idxs[row] = row_diag;
+        factor_vals[row_diag] = one<float>();
+    }
+    warp.sync();
+    // for each lower triangular entry: eliminate with corresponding row
+    for (auto lower_nz = factor_begin; lower_nz < row_diag; lower_nz++) {
+        const auto dep = factor_cols[lower_nz];
+        const auto dep_end = factor_row_ptrs[dep + 1];
+        scheduler.wait(dep);
+        // read the diag entry after we are sure it was written.
+        const auto diag_idx = diag_idxs[dep];
+        if (factor_vals[lower_nz] == one<float>()) {
+            // eliminate with upper triangle/entries past the diagonal
+            for (auto upper_nz = diag_idx + 1 + lane; upper_nz < dep_end;
+                 upper_nz += config::warp_size) {
+                const auto upper_col = factor_cols[upper_nz];
+                const auto upper_val = factor_vals[upper_nz];
+                const auto output_pos =
+                    lookup.lookup_unsafe(upper_col) + factor_begin;
+                if (upper_val == one<float>()) {
+                    factor_vals[output_pos] = one<float>();
+                }
+            }
+        }
+    }
+    scheduler.mark_ready();
+    IndexType row_nnz{};
+    for (auto nz = factor_begin + lane; nz < factor_end;
+         nz += config::warp_size) {
+        row_nnz += factor_vals[nz] == one<float>() ? 1 : 0;
+    }
+    row_nnz = reduce(warp, row_nnz, thrust::plus<IndexType>{});
+    if (lane == 0) {
+        out_row_nnz[row] = row_nnz;
+    }
 }
 
 
@@ -177,3 +262,70 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LU_FACTORIZE);
+
+
+template <typename IndexType>
+void symbolic_factorize_simple(
+    std::shared_ptr<const DefaultExecutor> exec, const IndexType* row_ptrs,
+    const IndexType* col_idxs, const IndexType* lookup_offsets,
+    const int64* lookup_descs, const int32* lookup_storage,
+    matrix::Csr<float, IndexType>* factors, IndexType* out_row_nnz)
+{
+    const auto num_rows = factors->get_size()[0];
+    const auto factor_row_ptrs = factors->get_const_row_ptrs();
+    const auto factor_cols = factors->get_const_col_idxs();
+    const auto factor_vals = factors->get_values();
+    array<IndexType> diag_idx_array{exec, num_rows};
+    array<int> tmp_storage{exec};
+    const auto diag_idxs = diag_idx_array.get_data();
+    if (num_rows > 0) {
+        syncfree_storage dep_storage(exec, tmp_storage, num_rows);
+        const auto num_blocks =
+            ceildiv(num_rows, default_block_size / config::warp_size);
+        kernel::symbolic_factorize_simple<<<num_blocks, default_block_size, 0,
+                                            exec->get_stream()>>>(
+            row_ptrs, col_idxs, factor_row_ptrs, factor_cols, lookup_offsets,
+            lookup_storage, lookup_descs, diag_idxs, factor_vals, out_row_nnz,
+            dep_storage, num_rows);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_LU_SYMMETRIC_FACTORIZE_SIMPLE);
+
+
+struct first_eq_one_functor {
+    template <typename Pair>
+    __device__ __forceinline__ bool operator()(Pair pair) const
+    {
+        return thrust::get<0>(pair) == one<float>();
+    }
+};
+
+
+struct return_second_functor {
+    template <typename Pair>
+    __device__ __forceinline__ auto operator()(Pair pair) const
+    {
+        return thrust::get<1>(pair);
+    }
+};
+
+
+template <typename IndexType>
+void symbolic_factorize_simple_finalize(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<float, IndexType>* factors, IndexType* out_col_idxs)
+{
+    const auto col_idxs = factors->get_const_col_idxs();
+    const auto vals = factors->get_const_values();
+    const auto input_it =
+        thrust::make_zip_iterator(thrust::make_tuple(vals, col_idxs));
+    const auto output_it = thrust::make_transform_output_iterator(
+        out_col_idxs, return_second_functor{});
+    thrust::copy_if(thrust_policy(exec), input_it,
+                    input_it + factors->get_num_stored_elements(), output_it,
+                    first_eq_one_functor{});
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_LU_SYMMETRIC_FACTORIZE_SIMPLE_FINALIZE);

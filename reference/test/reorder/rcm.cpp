@@ -33,17 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/reorder/rcm.hpp>
 
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-
-#endif
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 5211, 4973, 4974)
-#endif
-
-
 #include <algorithm>
 #include <fstream>
 #include <memory>
@@ -80,12 +69,12 @@ protected:
           rcm_factory(reorder_type::build().on(exec)),
           // clang-format off
           id3_mtx(gko::initialize<CsrMtx>(
-              {{1.0, 0.0, 0.0}, 
-              {0.0, 1.0, 0.0}, 
+              {{1.0, 0.0, 0.0},
+              {0.0, 1.0, 0.0},
               {0.0, 0.0, 1.0}}, exec)),
           not_id3_mtx(gko::initialize<CsrMtx>(
-              {{1.0, 0.0, 1.0}, 
-              {0.0, 1.0, 0.0}, 
+              {{1.0, 0.0, 1.0},
+              {0.0, 1.0, 0.0},
               {1.0, 0.0, 1.0}}, exec)),
           // clang-format on
           reorder_op(rcm_factory->generate(id3_mtx))
