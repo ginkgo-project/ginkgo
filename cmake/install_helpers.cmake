@@ -72,6 +72,7 @@ function(ginkgo_install)
     install(DIRECTORY "${Ginkgo_SOURCE_DIR}/include/"
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}"
         FILES_MATCHING PATTERN "*.hpp"
+                       PATTERN "*.h"   # C API header
         )
     install(FILES "${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp"
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/ginkgo"
