@@ -68,8 +68,12 @@ protected:
     using real_type = gko::remove_complex<value_type>;
     using matrix_type = gko::matrix::Csr<value_type, index_type>;
     using perm_type = gko::matrix::ScaledPermutation<value_type, index_type>;
-    static constexpr auto inf = std::numeric_limits<real_type>::infinity();
-    static constexpr real_type tol = 1e-14;
+    // this is a constexpr member functions to avoid having to export the symbol
+    // for the constant variable
+    static constexpr real_type inf()
+    {
+        return std::numeric_limits<real_type>::infinity();
+    }
 
     Mc64()
         : ref(gko::ReferenceExecutor::create()),
@@ -122,7 +126,8 @@ protected:
                                 static_cast<real_type>(std::log2(4.)),
                                 static_cast<real_type>(std::log2(4.)),
                                 static_cast<real_type>(std::log2(8.))}},
-          initialized_distance{ref, I<real_type>{inf, inf, inf, inf, inf, inf}},
+          initialized_distance{
+              ref, I<real_type>{inf(), inf(), inf(), inf(), inf(), inf()}},
           empty_permutation{ref, I<index_type>{-1, -1, -1, -1, -1, -1}},
           empty_inverse_permutation{ref, I<index_type>{-1, -1, -1, -1, -1, -1}},
           empty_matched_idxs{ref, I<index_type>{0, 0, 0, 0, 0, 0}},
@@ -144,8 +149,8 @@ protected:
           final_weights{ref, I<real_type>{2., 1., 0., 0., 4., 0., 2., 0., 1.,
                                           0., 2., 3., 0.}},
           final_dual_u{ref, I<real_type>{0., 1., -1., -2., 0., 0.}},
-          final_distance{ref, I<real_type>{inf, inf, 1., 0., inf, 1.}},
-          tolerance{10 * std::numeric_limits<real_type>::epsilon()}
+          final_distance{ref, I<real_type>{inf(), inf(), 1., 0., inf(), 1.}},
+          zero_tol{1e-14}
     {}
 
     std::pair<std::shared_ptr<const perm_type>,
@@ -204,7 +209,7 @@ protected:
     gko::array<index_type> final_marked_cols;
     gko::array<index_type> final_matched_idxs;
     std::shared_ptr<matrix_type> mtx;
-    const real_type tolerance;
+    const real_type zero_tol;
 };
 
 TYPED_TEST_SUITE(Mc64, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
@@ -255,7 +260,7 @@ TYPED_TEST(Mc64, InitialMatching)
         this->mtx->get_const_col_idxs(), this->initialized_weights_sum,
         this->initialized_dual_u_sum, this->empty_permutation,
         this->empty_inverse_permutation, this->empty_matched_idxs,
-        this->empty_unmatched_rows, this->tol);
+        this->empty_unmatched_rows, this->zero_tol);
 
     GKO_ASSERT_ARRAY_EQ(this->empty_permutation,
                         this->initial_matching_permutation);
@@ -283,7 +288,7 @@ TYPED_TEST(Mc64, ShortestAugmentingPath)
         this->initial_matching_inverse_permutation, 4 * gko::one<index_type>(),
         this->initial_parents, this->initial_generation,
         this->initial_marked_cols, this->initial_matched_idxs, Q, q_j,
-        this->tol);
+        this->zero_tol);
 
     GKO_ASSERT_ARRAY_EQ(this->initial_matching_permutation,
                         this->final_permutation);
@@ -349,18 +354,18 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingExampleProduct)
     ASSERT_EQ(perm[3], 4);
     ASSERT_EQ(perm[4], 0);
     ASSERT_EQ(perm[5], 2);
-    GKO_ASSERT_NEAR(row_scaling[0], value_type{1. / 3.}, this->tolerance);
-    GKO_ASSERT_NEAR(row_scaling[1], value_type{0.2}, this->tolerance);
-    GKO_ASSERT_NEAR(row_scaling[2], value_type{0.2}, this->tolerance);
-    GKO_ASSERT_NEAR(row_scaling[3], value_type{4. / 15.}, this->tolerance);
-    GKO_ASSERT_NEAR(row_scaling[4], value_type{0.3}, this->tolerance);
-    GKO_ASSERT_NEAR(row_scaling[5], value_type{2. / 15.}, this->tolerance);
-    GKO_ASSERT_NEAR(col_scaling[0], value_type{1.}, this->tolerance);
-    GKO_ASSERT_NEAR(col_scaling[1], value_type{1.5}, this->tolerance);
-    GKO_ASSERT_NEAR(col_scaling[2], value_type{0.9375}, this->tolerance);
-    GKO_ASSERT_NEAR(col_scaling[3], value_type{5. / 6.}, this->tolerance);
-    GKO_ASSERT_NEAR(col_scaling[4], value_type{1.}, this->tolerance);
-    GKO_ASSERT_NEAR(col_scaling[5], value_type{1.25}, this->tolerance);
+    GKO_ASSERT_NEAR(row_scaling[0], value_type{1. / 3.}, r<value_type>::value);
+    GKO_ASSERT_NEAR(row_scaling[1], value_type{0.2}, r<value_type>::value);
+    GKO_ASSERT_NEAR(row_scaling[2], value_type{0.2}, r<value_type>::value);
+    GKO_ASSERT_NEAR(row_scaling[3], value_type{4. / 15.}, r<value_type>::value);
+    GKO_ASSERT_NEAR(row_scaling[4], value_type{0.3}, r<value_type>::value);
+    GKO_ASSERT_NEAR(row_scaling[5], value_type{2. / 15.}, r<value_type>::value);
+    GKO_ASSERT_NEAR(col_scaling[0], value_type{1.}, r<value_type>::value);
+    GKO_ASSERT_NEAR(col_scaling[1], value_type{1.5}, r<value_type>::value);
+    GKO_ASSERT_NEAR(col_scaling[2], value_type{0.9375}, r<value_type>::value);
+    GKO_ASSERT_NEAR(col_scaling[3], value_type{5. / 6.}, r<value_type>::value);
+    GKO_ASSERT_NEAR(col_scaling[4], value_type{1.}, r<value_type>::value);
+    GKO_ASSERT_NEAR(col_scaling[5], value_type{1.25}, r<value_type>::value);
 }
 
 
@@ -389,7 +394,7 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingLargeTrivialExampleProduct)
 
     mtx = mtx->scale_permute(row_perm, col_perm);
 
-    GKO_ASSERT_MTX_NEAR(mtx, expected_result, this->tolerance);
+    GKO_ASSERT_MTX_NEAR(mtx, expected_result, r<value_type>::value);
 }
 
 
