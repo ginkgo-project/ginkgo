@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 
 namespace gko {
@@ -274,6 +275,65 @@ private:
     handle_type handle_;
 };
 
+
+template <typename T>
+class temporary_multivector_conversion {
+public:
+    using lin_op_type =
+        std::conditional_t<std::is_const_v<T>, const MultiVector, MultiVector>;
+    using precision_type = std::remove_cv_t<T>;
+    using value_type = std::remove_cv_t<lin_op_type>;
+    using pointer = lin_op_type*;
+
+
+    /**
+     * Create a temporary conversion for a non-temporary LinOp.
+     *
+     * @tparam ConversionCandidates  list of potential dynamic types of ptr to
+     *                               try out for converting ptr to type T.
+     */
+    template <typename... ConversionCandidates>
+    static temporary_multivector_conversion create(ptr_param<lin_op_type> ptr)
+    {
+        if (ptr->template has_precision<precision_type>()) {
+            return handle_type{ptr, null_deleter<value_type>{}};
+        } else {
+            return conversion_helper<ConversionCandidates...>::template convert<
+                T>(ptr.get());
+        }
+    }
+
+    /**
+     * Returns the object held by temporary_conversion.
+     *
+     * @return the object held by temporary_conversion
+     */
+    pointer get() const { return handle_.get(); }
+
+    /**
+     * Calls a method on the underlying object.
+     *
+     * @return the underlying object
+     */
+    pointer operator->() const { return handle_.get(); }
+
+    /**
+     * Returns if the conversion was successful.
+     */
+    explicit operator bool() { return static_cast<bool>(handle_); }
+
+private:
+    // std::function deleter allows to decide the (type of) deleter at
+    // runtime
+    using handle_type =
+        std::unique_ptr<value_type , std::function<void(pointer)>>;
+
+    temporary_multivector_conversion(handle_type handle)
+        : handle_{std::move(handle)}
+    {}
+
+    handle_type handle_;
+};
 
 }  // namespace detail
 }  // namespace gko

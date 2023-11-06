@@ -34,14 +34,43 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GINKGO_MULTIVECTOR_HPP
 
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/types.hpp>
 #include <variant>
 
 
 namespace gko {
-namespace matrix {
 
 
-class MultiVector : public gko::EnableAbstractPolymorphicObject<MultiVector> {
+using precisions = std::variant<double, float, std::complex<double>,
+                                std::complex<float>>;
+
+
+struct PrecisionAware{
+    using precision = std::variant<std::monostate, double, float, std::complex<double>,
+                                    std::complex<float>>;
+
+    virtual ~PrecisionAware() = default;
+
+    template<typename ValueType>
+    bool has_precision() const {
+        return std::holds_alternative<ValueType>(stored_precision);
+    }
+
+protected:
+    precision stored_precision;
+};
+
+
+template<typename ValueType>
+struct EnablePrecisionAware{
+
+
+};
+
+
+
+class MultiVector : public gko::EnableAbstractPolymorphicObject<MultiVector>,
+                    public PrecisionAware{
 public:
     [[nodiscard]] static std::unique_ptr<MultiVector> create_with_config_of(
         ptr_param<const MultiVector> other)
@@ -143,7 +172,6 @@ protected:
 };
 
 
-}  // namespace matrix
 }  // namespace gko
 
 
