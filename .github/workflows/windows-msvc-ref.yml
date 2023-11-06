@@ -27,8 +27,10 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - {shared: "ON", build_type: "Debug", name: "reference/debug/shared"}
+        # Debug shared exceeds symbol limit
+        # - {shared: "ON", build_type: "Debug", name: "reference/debug/shared"}
         - {shared: "OFF", build_type: "Release", name: "reference/release/static"}
+        - {shared: "ON", build_type: "Release", name: "reference/release/shared"}
         # Debug static needs too much storage
         # - {shared: "OFF", build_type: "Debug", name: "reference/debug/static"}
     name: msvc/${{ matrix.config.name }}

@@ -227,6 +227,13 @@ public:
     };
 
     /**
+     * Returns the parameters used to construct the factory.
+     *
+     * @return the parameters used to construct the factory.
+     */
+    const parameters_type& get_parameters() { return parameters_; }
+
+    /**
      * @copydoc LinOpFactory::generate
      * @note This function overrides the default LinOpFactory::generate to
      *       return a Permutation instead of a generic LinOp, which would
