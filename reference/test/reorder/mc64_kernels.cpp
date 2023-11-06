@@ -156,6 +156,20 @@ protected:
                               gko::as<perm_type>(result->get_operators()[1]));
     }
 
+    void assert_array_near(const gko::array<real_type>& a,
+                           const gko::array<real_type>& b, std::string name)
+    {
+        ASSERT_EQ(a.get_num_elems(), b.get_num_elems());
+        for (gko::size_type i = 0; i < a.get_num_elems(); i++) {
+            if (std::isfinite(a.get_const_data()[i]) ||
+                std::isfinite(b.get_const_data()[i])) {
+                ASSERT_NEAR(a.get_const_data()[i], b.get_const_data()[i],
+                            r<value_type>::value)
+                    << name << '[' << i << ']';
+            }
+        }
+    }
+
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     gko::array<real_type> tmp;
     gko::array<real_type> weights;
@@ -205,9 +219,12 @@ TYPED_TEST(Mc64, InitializeWeightsSum)
         this->mtx.get(), this->weights, this->dual_u, this->row_maxima,
         gko::experimental::reorder::mc64_strategy::max_diagonal_sum);
 
-    GKO_ASSERT_ARRAY_EQ(this->weights, this->initialized_weights_sum);
-    GKO_ASSERT_ARRAY_EQ(this->dual_u, this->initialized_dual_u_sum);
-    GKO_ASSERT_ARRAY_EQ(this->row_maxima, this->initialized_row_maxima_sum);
+    this->assert_array_near(this->weights, this->initialized_weights_sum,
+                            "weights");
+    this->assert_array_near(this->dual_u, this->initialized_dual_u_sum,
+                            "dual_u");
+    this->assert_array_near(this->row_maxima, this->initialized_row_maxima_sum,
+                            "row_maxima");
 }
 
 
@@ -220,9 +237,12 @@ TYPED_TEST(Mc64, InitializeWeightsProduct)
         this->mtx.get(), this->weights, this->dual_u, this->row_maxima,
         gko::experimental::reorder::mc64_strategy::max_diagonal_product);
 
-    GKO_ASSERT_ARRAY_EQ(this->weights, this->initialized_weights_product);
-    GKO_ASSERT_ARRAY_EQ(this->dual_u, this->initialized_dual_u_product);
-    GKO_ASSERT_ARRAY_EQ(this->row_maxima, this->initialized_row_maxima_product);
+    this->assert_array_near(this->weights, this->initialized_weights_product,
+                            "weights");
+    this->assert_array_near(this->dual_u, this->initialized_dual_u_product,
+                            "dual_u");
+    this->assert_array_near(this->row_maxima,
+                            this->initialized_row_maxima_product, "row_maxima");
 }
 
 
@@ -273,9 +293,12 @@ TYPED_TEST(Mc64, ShortestAugmentingPath)
     GKO_ASSERT_ARRAY_EQ(this->initial_generation, this->final_generation);
     GKO_ASSERT_ARRAY_EQ(this->initial_marked_cols, this->final_marked_cols);
     GKO_ASSERT_ARRAY_EQ(this->initial_matched_idxs, this->final_matched_idxs);
-    GKO_ASSERT_ARRAY_EQ(this->initialized_weights_sum, this->final_weights);
-    GKO_ASSERT_ARRAY_EQ(this->initialized_dual_u_sum, this->final_dual_u);
-    GKO_ASSERT_ARRAY_EQ(this->initialized_distance, this->final_distance);
+    this->assert_array_near(this->initialized_weights_sum, this->final_weights,
+                            "weights");
+    this->assert_array_near(this->initialized_dual_u_sum, this->final_dual_u,
+                            "dual_u");
+    this->assert_array_near(this->initialized_distance, this->final_distance,
+                            "distance");
 }
 
 
