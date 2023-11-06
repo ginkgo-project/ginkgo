@@ -580,25 +580,29 @@ std::unique_ptr<LinOp> Mc64<ValueType, IndexType>::generate_impl(
     const auto row_ptrs = mtx->get_const_row_ptrs();
     const auto col_idxs = mtx->get_const_col_idxs();
 
-    exec->run(make_initialize_weights(mtx.get(), weights, dual_u, row_maxima,
-                                      parameters_.strategy));
+    if (num_rows > 0) {
+        exec->run(make_initialize_weights(mtx.get(), weights, dual_u,
+                                          row_maxima, parameters_.strategy));
 
-    // Compute an initial maximum matching from the nonzero entries for which
-    // the reduced weight (W(i, j) - u(j) - v(i)) is zero. Here, W is the
-    // weight matrix and u and v are the dual vectors. Note that v initially
-    // only contains zeros and hence can still be ignored here.
-    exec->run(make_initial_matching(
-        num_rows, row_ptrs, col_idxs, weights, dual_u, permutation,
-        inv_permutation, matched_idxs, unmatched_rows, parameters_.tolerance));
+        // Compute an initial maximum matching from the nonzero entries for
+        // which the reduced weight (W(i, j) - u(j) - v(i)) is zero. Here, W is
+        // the weight matrix and u and v are the dual vectors. Note that v
+        // initially only contains zeros and hence can still be ignored here.
+        exec->run(make_initial_matching(num_rows, row_ptrs, col_idxs, weights,
+                                        dual_u, permutation, inv_permutation,
+                                        matched_idxs, unmatched_rows,
+                                        parameters_.tolerance));
 
-    exec->run(make_augment_matching(
-        mtx.get(), weights, dual_u, distance, permutation, inv_permutation,
-        unmatched_rows, parents, generation, marked_cols, matched_idxs,
-        this->get_parameters().tolerance));
+        exec->run(make_augment_matching(
+            mtx.get(), weights, dual_u, distance, permutation, inv_permutation,
+            unmatched_rows, parents, generation, marked_cols, matched_idxs,
+            this->get_parameters().tolerance));
 
-    exec->run(make_compute_scaling(
-        mtx.get(), weights, dual_u, row_maxima, permutation, matched_idxs,
-        parameters_.strategy, row_scaling.get_data(), col_scaling.get_data()));
+        exec->run(make_compute_scaling(
+            mtx.get(), weights, dual_u, row_maxima, permutation, matched_idxs,
+            parameters_.strategy, row_scaling.get_data(),
+            col_scaling.get_data()));
+    }
 
     array<index_type> identity_permutation{exec, num_rows};
     exec->run(make_fill_seq_array(identity_permutation.get_data(), num_rows));

@@ -134,6 +134,22 @@ TYPED_TEST(Mc64, CanBeCreatedWithReorderingStrategy)
 }
 
 
+TYPED_TEST(Mc64, CanBeCreatedEmpty)
+{
+    using reorder_type = typename TestFixture::reorder_type;
+    using matrix_type = typename TestFixture::CsrMtx;
+
+    auto mc64 =
+        reorder_type::build()
+            .with_strategy(
+                gko::experimental::reorder::mc64_strategy::max_diagonal_sum)
+            .on(this->exec)
+            ->generate(matrix_type::create(this->exec));
+
+    ASSERT_FALSE(mc64->get_size());
+}
+
+
 TYPED_TEST(Mc64, CanBeCreatedWithTolerance)
 {
     using reorder_type = typename TestFixture::reorder_type;
