@@ -38,7 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sstream>
 #include <string>
 
-#include "../include/ginkgo/c_api.h"
+#include "../include/ginkgo/c_api.hpp"
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -90,10 +90,11 @@ gko_executor ginkgo_executor_omp_create()
     return new gko_executor_st{gko::OmpExecutor::create()};
 }
 
-// gko_executor ginkgo_executor_cuda_create()
-// {
-//     return new gko_executor_st{gko::CudaExecutor::create()};
-// }
+gko_executor ginkgo_executor_cuda_create()
+{
+    return new gko_executor_st{
+        gko::CudaExecutor::create(0, gko::OmpExecutor::create())};
+}
 
 // gko_executor ginkgo_executor_hip_create()
 // {

@@ -334,11 +334,8 @@ typedef struct gko_executor_st* gko_executor;
  */
 void ginkgo_executor_delete(gko_executor exec_st_ptr);
 
-
-//---------------------------OpenMP--------------------------------------
-
 gko_executor ginkgo_executor_omp_create();
-// gko_executor ginkgo_executor_cuda_create();
+gko_executor ginkgo_executor_cuda_create();
 // gko_executor ginkgo_executor_hip_create();
 // gko_executor ginkgo_executor_dpcpp_create();
 gko_executor ginkgo_executor_reference_create();
