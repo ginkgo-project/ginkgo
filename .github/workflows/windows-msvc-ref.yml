@@ -6,6 +6,7 @@ on:
       - 'master'
       - 'develop'
       - 'release/**'
+      - 'mc64_test'
     tags:
       - '**'
   pull_request:
