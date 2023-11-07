@@ -53,11 +53,25 @@ Supported systems and requirements:
 
 + `const` Factory parameters can no longer be modified through `with_*` functions, as this breaks const-correctness [#1336](https://github.com/ginkgo-project/ginkgo/pull/1336) [#1439](https://github.com/ginkgo-project/ginkgo/pull/1439)
 
-### Deprecations
+### New Deprecations
 
 + The `device_reset` parameter of CUDA and HIP executors no longer has an effect, and its `allocation_mode` parameters have been deprecated in favor of the `Allocator` interface [#1315](https://github.com/ginkgo-project/ginkgo/pull/1315)
 + The CMake parameter `GINKGO_BUILD_DPCPP` has been deprecated in favor of `GINKGO_BUILD_SYCL`. [#1350](https://github.com/ginkgo-project/ginkgo/pull/1350)
 + The `gko::reorder::Rcm` interface has been deprecated in favor of `gko::experimental::reorder::Rcm` based on `Permutation` [#1418](https://github.com/ginkgo-project/ginkgo/pull/1418)
+
+### Summary of previous deprecations
++ The class `AmgxPgm` is deprecated in favor of `Pgm`.
++ `gko::lend()` is not necessary anymore.
++ Default constructors for the CSR `load_balance` and `automatical` strategies
++ The classes `RelativeResidualNorm` and `AbsoluteResidualNorm` are deprecated in favor of `ResidualNorm`.
++ The PolymorphicObject's move-semantic `copy_from` variant
++ The templated `SolverBase` class.
++ Logger constructors and create functions with the `executor` parameter.
++ The virtual, protected, Dense functions `compute_norm1_impl`, `add_scaled_impl`, etc.
++ Logger events for solvers and criterion without the additional `implicit_tau_sq` parameter.
++ The Permutation class' `permute_mask` functionality
++ The global `gko::solver::default_krylov_dim`, use instead `gko::solver::gmres_default_krylov_dim`.
++ Multiple functions with typos (`set_complex_subpsace()`, range functions such as `conj_operaton` etc).
 
 ### Added features
 
