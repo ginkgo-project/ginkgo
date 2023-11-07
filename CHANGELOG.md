@@ -15,10 +15,10 @@ Please visit our wiki [Changelog](https://github.com/ginkgo-project/ginkgo/wiki/
 
 The Ginkgo team is proud to announce the new Ginkgo minor release 1.7.0. This release brings new features such as:
 - Complete GPU-resident sparse direct solvers feature set and interfaces,
-- Sparse batched iterative kernels support for Dense and ELL matrix types and the BiCGSTAB solver,
-- A new MC64 reordering,
-- MPI support for the SYCL backend,
 - Improved Cholesky factorization performance,
+- A new MC64 reordering,
+- Batched iterative solver support with the BiCGSTAB solver with batched Dense and ELL matrix types,
+- MPI support for the SYCL backend,
 - Improved ParILU(T)/ParIC(T) preconditioner convergence,
 and more!
 
@@ -36,8 +36,8 @@ Supported systems and requirements:
   + Cray Compiler: 14.0.1+
   + CUDA module: CMake 3.18+, and CUDA 10.0+ or NVHPC 22.7+
   + HIP module: ROCm 4.5+
-  + DPC++ module: Intel OneAPI 2021.3+ with oneMKL and oneDPL. Set the CXX compiler to `dpcpp` or `icpx`.
-  + MPI: version 3.1+, ideally with GPUDirect support for best performance
+  + DPC++ module: Intel OneAPI 2022.1+ with oneMKL and oneDPL. Set the CXX compiler to `dpcpp` or `icpx`.
+  + MPI: standard version 3.1+, ideally GPU Aware, for best performance
 + Windows
   + MinGW: GCC 5.5+
   + Microsoft Visual Studio: VS 2019+
