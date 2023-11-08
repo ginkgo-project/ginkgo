@@ -186,7 +186,7 @@ mpi::request sparse_communicator::communicate_impl_(
     size_type offset = 0;
     for (int i = 0; i < send_idxs.get_num_groups(); ++i) {
         // need direct support for index_set
-        auto full_idxs = send_idxs.get_indices(i).to_global_indices();
+        auto full_idxs = send_idxs.get_indices(i);
         local_vector->row_gather(
             &full_idxs, send_buffer.get()->create_submatrix(
                             {offset, offset + full_idxs.get_num_elems()},

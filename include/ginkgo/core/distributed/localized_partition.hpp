@@ -52,11 +52,11 @@ namespace gko::experimental::distributed {
 template <typename IndexType = int32>
 class index_block {
 public:
-    using index_type = IndexType;
+    using value_type = IndexType;
 
-    index_type get_size() const { return idxs_.end; }
+    value_type get_size() const { return idxs_.end; }
 
-    index_type get_num_elems() const { return idxs_.length(); }
+    value_type get_num_elems() const { return idxs_.length(); }
 
     span get_span() const { return idxs_; }
 
@@ -87,7 +87,7 @@ private:
 template <typename IndexStorageType>
 class overlap_indices {
 public:
-    using index_type = typename IndexStorageType::index_type;
+    using index_type = typename IndexStorageType::value_type;
 
     overlap_indices(array<comm_index_type> target_ids,
                     std::vector<IndexStorageType> idxs);
@@ -144,7 +144,7 @@ template <typename IndexType = int32>
 class localized_partition {
 public:
     using index_type = IndexType;
-    using send_storage_type = index_set<index_type>;
+    using send_storage_type = array<index_type>;
     using recv_storage_type = index_block<index_type>;
 
     size_type get_local_end() const { return local_end_; }
@@ -209,8 +209,7 @@ public:
      */
     static std::shared_ptr<localized_partition> build_from_blocked_recv(
         std::shared_ptr<const Executor> exec, size_type local_size,
-        std::vector<std::pair<index_set<index_type>, comm_index_type>>
-            send_idxs,
+        std::vector<std::pair<array<index_type>, comm_index_type>> send_idxs,
         const array<comm_index_type>& recv_ids,
         const array<comm_index_type>& recv_sizes);
 

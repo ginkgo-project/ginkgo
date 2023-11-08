@@ -33,14 +33,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/distributed/localized_partition.hpp>
 
 
+#include "core/components/max_array_kernels.hpp"
+
+
 namespace gko::experimental::distributed {
+namespace array_kernels {
+
+
+GKO_REGISTER_OPERATION(max, components::max_array);
+
+
+}
 
 
 namespace detail {
 
 
 template <typename IndexType>
-IndexType get_begin(const index_set<IndexType>&)
+IndexType get_begin(const array<IndexType>&)
 {
     return 0;
 }
@@ -49,6 +59,22 @@ template <typename IndexType>
 IndexType get_begin(const index_block<IndexType>& idxs)
 {
     return idxs.get_span().begin;
+}
+
+
+template <typename IndexType>
+IndexType get_size(const array<IndexType>& arr)
+{
+    auto exec = arr.get_executor();
+    IndexType max;
+    exec->run(array_kernels::make_max(arr, max));
+    return max;
+}
+
+template <typename IndexType>
+IndexType get_size(const index_block<IndexType>& idxs)
+{
+    return idxs.get_span().end;
 }
 
 
@@ -72,11 +98,11 @@ overlap_indices<IndexStorageType>::overlap_indices(
                        }))),
       end_(idxs_.empty()
                ? index_type{}
-               : std::max_element(idxs_.begin(), idxs_.end(),
-                                  [](const auto& a, const auto& b) {
-                                      return a.get_size() < b.get_size();
-                                  })
-                     ->get_size())
+               : detail::get_size(*std::max_element(
+                     idxs_.begin(), idxs_.end(),
+                     [](const auto& a, const auto& b) {
+                         return detail::get_size(a) < detail::get_size(b);
+                     })))
 {
     if (target_ids_.get_num_elems() != idxs_.size()) {
         GKO_INVALID_STATE("");
@@ -92,8 +118,8 @@ overlap_indices<IndexStorageType>::overlap_indices(
 {}
 
 
-#define GKO_DECLARE_OVERLAP_INDICES(IndexType)   \
-    class overlap_indices<index_set<IndexType>>; \
+#define GKO_DECLARE_OVERLAP_INDICES(IndexType) \
+    class overlap_indices<array<IndexType>>;   \
     template class overlap_indices<index_block<IndexType>>
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_OVERLAP_INDICES);
@@ -120,23 +146,24 @@ template <typename IndexType>
 std::shared_ptr<localized_partition<IndexType>>
 localized_partition<IndexType>::build_from_blocked_recv(
     std::shared_ptr<const Executor> exec, size_type local_size,
-    std::vector<std::pair<index_set<index_type>, comm_index_type>> send_idxs,
+    std::vector<std::pair<array<index_type>, comm_index_type>> send_idxs,
     const array<comm_index_type>& recv_ids,
     const array<comm_index_type>& recv_sizes)
 {
     // make sure shared indices are a subset of local indices
     GKO_ASSERT(send_idxs.empty() || send_idxs.size() == 0 ||
-               local_size >= std::max_element(send_idxs.begin(),
-                                              send_idxs.end(),
-                                              [](const auto& a, const auto& b) {
-                                                  return a.first.get_size() <
-                                                         b.first.get_size();
-                                              })
-                                 ->first.get_size());
+               local_size >=
+                   detail::get_size(
+                       std::max_element(send_idxs.begin(), send_idxs.end(),
+                                        [](const auto& a, const auto& b) {
+                                            return detail::get_size(a.first) <
+                                                   detail::get_size(b.first);
+                                        })
+                           ->first));
     GKO_ASSERT(recv_ids.get_num_elems() == recv_sizes.get_num_elems());
 
-    std::vector<index_set<index_type>> send_index_sets(
-        send_idxs.size(), index_set<index_type>(exec));
+    std::vector<array<index_type>> send_index_sets(send_idxs.size(),
+                                                   array<index_type>(exec));
     array<comm_index_type> send_target_ids(exec->get_master(),
                                            send_idxs.size());
 
@@ -255,12 +282,13 @@ localized_partition<IndexType>::build_from_remote_send_indices(
         send_sizes_host->get_data() + send_sizes_host->get_num_elems(),
         send_offsets.begin() + 1);
 
-    std::vector<index_set<IndexType>> send_idxs;
+    std::vector<array<IndexType>> send_idxs(send_sizes_host->get_num_elems(),
+                                            array<IndexType>{exec});
     for (int i = 0; i < send_sizes_host->get_num_elems(); ++i) {
-        send_idxs.emplace_back(
-            exec,
+        auto array_view =
             make_array_view(exec, send_sizes_host->get_data()[i],
-                            local_send_indices.get_data() + send_offsets[i]));
+                            local_send_indices.get_data() + send_offsets[i]);
+        send_idxs[i] = array_view;
     }
 
     auto intervals = compute_index_blocks<IndexType>(local_size, recv_sizes);
