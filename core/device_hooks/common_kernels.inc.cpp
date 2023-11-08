@@ -13,6 +13,7 @@
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
+#include "core/components/max_array_kernels.hpp"
 #include "core/components/precision_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/components/reduce_array_kernels.hpp"
@@ -180,6 +181,7 @@ template GKO_DECLARE_PREFIX_SUM_NONNEGATIVE_KERNEL(size_type);
 GKO_STUB_TEMPLATE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
 template GKO_DECLARE_FILL_ARRAY_KERNEL(bool);
 
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_MAX_ARRAY_KERNEL);
 GKO_STUB_TEMPLATE_TYPE(GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL);
 GKO_STUB_TEMPLATE_TYPE(GKO_DECLARE_REDUCE_ADD_ARRAY_KERNEL);
 GKO_STUB_VALUE_TYPE(GKO_DECLARE_INPLACE_ABSOLUTE_ARRAY_KERNEL);
