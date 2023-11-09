@@ -1,5 +1,7 @@
 ![Ginkgo](/assets/logo.png)
 
+[![autoversion](https://gitlab.com/ginkgo-project/ginkgo-public-ci/badges/auto_version/pipeline.svg)](https://github.com/ginkgo-project/ginkgo/commits/auto_version)
+[![Intel-build](https://github.com/ginkgo-project/ginkgo/actions/workflows/intel.yml/badge.svg?branch=auto_version)](https://github.com/ginkgo-project/ginkgo/actions/workflows/intel.yml)
 [![Build status](https://gitlab.com/ginkgo-project/ginkgo-public-ci/badges/develop/pipeline.svg)](https://github.com/ginkgo-project/ginkgo/commits/develop)
 [![OSX-build](https://github.com/ginkgo-project/ginkgo/actions/workflows/osx.yml/badge.svg)](https://github.com/ginkgo-project/ginkgo/actions/workflows/osx.yml)
 [![Windows-build](https://github.com/ginkgo-project/ginkgo/actions/workflows/windows-msvc-ref.yml/badge.svg)](https://github.com/ginkgo-project/ginkgo/actions/workflows/windows-msvc-ref.yml)

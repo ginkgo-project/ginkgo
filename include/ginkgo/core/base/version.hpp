@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ostream>
+#include <typle>
 
 
 #include <ginkgo/config.hpp>
@@ -53,8 +54,8 @@ namespace gko {
  */
 struct version {
     constexpr version(const uint64 major, const uint64 minor,
-                      const uint64 patch, const char* tag)
-        : major{major}, minor{minor}, patch{patch}, tag{tag}
+                      const uint64 patch, const uint64 tweak, const char* tag)
+        : major{major}, minor{minor}, patch{patch}, tweak{tweak}, tag{tag}
     {}
 
     /**
@@ -73,6 +74,11 @@ struct version {
     const uint64 patch;
 
     /**
+     * The tweak version number.
+     */
+    const uint64 tweak;
+
+    /**
      * Addition tag string that describes the version in more detail.
      *
      * It does not participate in comparisons.
@@ -83,7 +89,7 @@ struct version {
 inline bool operator==(const version& first, const version& second)
 {
     return first.major == second.major && first.minor == second.minor &&
-           first.patch == second.patch;
+           first.patch == second.patch && first.tweak == second.tweak;
 }
 
 inline bool operator!=(const version& first, const version& second)
@@ -93,12 +99,11 @@ inline bool operator!=(const version& first, const version& second)
 
 inline bool operator<(const version& first, const version& second)
 {
-    if (first.major < second.major) return true;
-    if (first.major == second.major && first.minor < second.minor) return true;
-    if (first.major == second.major && first.minor == second.minor &&
-        first.patch < second.patch)
-        return true;
-    return false;
+    const auto first_version =
+        std::tie(first.major, first.minor, first.patch, first.tweak);
+    const auto second_version =
+        std::tie(second.major, second.minor, second.patch, second.tweak);
+    return first_version < second_version;
 }
 
 inline bool operator<=(const version& first, const version& second)
@@ -223,7 +228,7 @@ private:
     static constexpr version get_header_version() noexcept
     {
         return version{GKO_VERSION_MAJOR, GKO_VERSION_MINOR, GKO_VERSION_PATCH,
-                       GKO_VERSION_TAG};
+                       GKO_VERSION_TWEAK, GKO_VERSION_TAG};
     }
 
     static version get_core_version() noexcept;
