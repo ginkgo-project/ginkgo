@@ -215,7 +215,7 @@ private:
  * // create a batch linear operator which represents the solver
  * auto batch_cg = batch_cg_factory->generate(A);
  * // solve the system
- * batch_cg->apply(gko::lend(batch_b), gko::lend(batch_x));
+ * batch_cg->apply(batch_b, batch_x);
  * ```
  *
  * @ingroup BatchLinOp

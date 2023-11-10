@@ -11,6 +11,121 @@ git log --first-parent
 
 Please visit our wiki [Changelog](https://github.com/ginkgo-project/ginkgo/wiki/Changelog) for unreleased changes.
 
+## Version 1.7.0
+
+The Ginkgo team is proud to announce the new Ginkgo minor release 1.7.0. This release brings new features such as:
+- Complete GPU-resident sparse direct solvers feature set and interfaces,
+- Improved Cholesky factorization performance,
+- A new MC64 reordering,
+- Batched iterative solver support with the BiCGSTAB solver with batched Dense and ELL matrix types,
+- MPI support for the SYCL backend,
+- Improved ParILU(T)/ParIC(T) preconditioner convergence,
+and more!
+
+If you face an issue, please first check our [known issues page](https://github.com/ginkgo-project/ginkgo/wiki/Known-Issues) and the [open issues list](https://github.com/ginkgo-project/ginkgo/issues) and if you do not find a solution, feel free to [open a new issue](https://github.com/ginkgo-project/ginkgo/issues/new/choose) or ask a question using the [github discussions](https://github.com/ginkgo-project/ginkgo/discussions).
+
+Supported systems and requirements:
++ For all platforms, CMake 3.16+
++ C++14 compliant compiler
++ Linux and macOS
+  + GCC: 5.5+
+  + clang: 3.9+
+  + Intel compiler: 2019+
+  + Apple Clang: 14.0 is tested. Earlier versions might also work.
+  + NVHPC: 22.7+
+  + Cray Compiler: 14.0.1+
+  + CUDA module: CMake 3.18+, and CUDA 10.1+ or NVHPC 22.7+
+  + HIP module: ROCm 4.5+
+  + DPC++ module: Intel oneAPI 2022.1+ with oneMKL and oneDPL. Set the CXX compiler to `dpcpp` or `icpx`.
+  + MPI: standard version 3.1+, ideally GPU Aware, for best performance
++ Windows
+  + MinGW: GCC 5.5+
+  + Microsoft Visual Studio: VS 2019+
+  + CUDA module: CUDA 10.1+, Microsoft Visual Studio
+  + OpenMP module: MinGW.
+
+### Version support changes
+
++ CUDA 9.2 is no longer supported and 10.0 is untested [#1382](https://github.com/ginkgo-project/ginkgo/pull/1382)
++ Ginkgo now requires CMake version 3.16 (and 3.18 for CUDA) [#1368](https://github.com/ginkgo-project/ginkgo/pull/1368)
+
+### Interface changes
+
++ `const` Factory parameters can no longer be modified through `with_*` functions, as this breaks const-correctness [#1336](https://github.com/ginkgo-project/ginkgo/pull/1336) [#1439](https://github.com/ginkgo-project/ginkgo/pull/1439)
+
+### New Deprecations
+
++ The `device_reset` parameter of CUDA and HIP executors no longer has an effect, and its `allocation_mode` parameters have been deprecated in favor of the `Allocator` interface. [#1315](https://github.com/ginkgo-project/ginkgo/pull/1315)
++ The CMake parameter `GINKGO_BUILD_DPCPP` has been deprecated in favor of `GINKGO_BUILD_SYCL`. [#1350](https://github.com/ginkgo-project/ginkgo/pull/1350)
++ The `gko::reorder::Rcm` interface has been deprecated in favor of `gko::experimental::reorder::Rcm` based on `Permutation`. [#1418](https://github.com/ginkgo-project/ginkgo/pull/1418)
++ The Permutation class' `permute_mask` functionality. [#1415](https://github.com/ginkgo-project/ginkgo/pull/1415)
++ Multiple functions with typos (`set_complex_subpsace()`, range functions such as `conj_operaton` etc). [#1348](https://github.com/ginkgo-project/ginkgo/pull/1348)
+
+### Summary of previous deprecations
++ `gko::lend()` is not necessary anymore.
++ The classes `RelativeResidualNorm` and `AbsoluteResidualNorm` are deprecated in favor of `ResidualNorm`.
++ The class `AmgxPgm` is deprecated in favor of `Pgm`.
++ Default constructors for the CSR `load_balance` and `automatical` strategies
++ The PolymorphicObject's move-semantic `copy_from` variant
++ The templated `SolverBase` class.
++ The class `MachineTopology` is deprecated in favor of `machine_topology`.
++ Logger constructors and create functions with the `executor` parameter.
++ The virtual, protected, Dense functions `compute_norm1_impl`, `add_scaled_impl`, etc.
++ Logger events for solvers and criterion without the additional `implicit_tau_sq` parameter.
++ The global `gko::solver::default_krylov_dim`, use instead `gko::solver::gmres_default_krylov_dim`.
+
+### Added features
+
++ Adds a batch::BatchLinOp class that forms a base class for batched linear operators such as batched matrix formats, solver and preconditioners [#1379](https://github.com/ginkgo-project/ginkgo/pull/1379)
++ Adds a batch::MultiVector class that enables operations such as dot, norm, scale on batched vectors [#1371](https://github.com/ginkgo-project/ginkgo/pull/1371)
++ Adds a batch::Dense matrix format that stores batched dense matrices and provides gemv operations for these dense matrices. [#1413](https://github.com/ginkgo-project/ginkgo/pull/1413)
++ Adds a batch::Ell matrix format that stores batched Ell matrices and provides spmv operations for these batched Ell matrices. [#1416](https://github.com/ginkgo-project/ginkgo/pull/1416) [#1437](https://github.com/ginkgo-project/ginkgo/pull/1437)
++ Add a batch::Bicgstab solver (class, core, and reference kernels) that enables iterative solution of batched linear systems [#1438](https://github.com/ginkgo-project/ginkgo/pull/1438).
++ Add device kernels (CUDA, HIP, and DPCPP) for batch::Bicgstab solver. [#1443](https://github.com/ginkgo-project/ginkgo/pull/1443).
++ New MC64 reordering algorithm which optimizes the diagonal product or sum of a matrix by permuting the rows, and computes additional scaling factors for equilibriation [#1120](https://github.com/ginkgo-project/ginkgo/pull/1120)
++ New interface for (non-symmetric) permutation and scaled permutation of Dense and Csr matrices [#1415](https://github.com/ginkgo-project/ginkgo/pull/1415)
++ LU and Cholesky Factorizations can now be separated into their factors [#1432](https://github.com/ginkgo-project/ginkgo/pull/1432)
++ New symbolic LU factorization algorithm that is optimized for matrices with an almost-symmetric sparsity pattern [#1445](https://github.com/ginkgo-project/ginkgo/pull/1445)
++ Sorting kernels for SparsityCsr on all backends [#1343](https://github.com/ginkgo-project/ginkgo/pull/1343)
++ Allow passing pre-generated local solver as factory parameter for the distributed Schwarz preconditioner [#1426](https://github.com/ginkgo-project/ginkgo/pull/1426)
++ Add DPCPP kernels for Partition [#1034](https://github.com/ginkgo-project/ginkgo/pull/1034), and CSR's `check_diagonal_entries` and `add_scaled_identity` functionality [#1436](https://github.com/ginkgo-project/ginkgo/pull/1436)
++ Adds a helper function to create a partition based on either local sizes, or local ranges [#1227](https://github.com/ginkgo-project/ginkgo/pull/1227)
++ Add function to compute arithmetic mean of dense and distributed vectors [#1275](https://github.com/ginkgo-project/ginkgo/pull/1275)
++ Adds `icpx` compiler supports [#1350](https://github.com/ginkgo-project/ginkgo/pull/1350)
++ All backends can be built simultaneously [#1333](https://github.com/ginkgo-project/ginkgo/pull/1333)
++ Emits a CMake warning in downstream projects that use different compilers than the installed Ginkgo [#1372](https://github.com/ginkgo-project/ginkgo/pull/1372)
++ Reordering algorithms in sparse_blas benchmark [#1354](https://github.com/ginkgo-project/ginkgo/pull/1354)
++ Benchmarks gained an `-allocator` parameter to specify device allocators [#1385](https://github.com/ginkgo-project/ginkgo/pull/1385)
++ Benchmarks gained an `-input_matrix` parameter that initializes the input JSON based on the filename [#1387](https://github.com/ginkgo-project/ginkgo/pull/1387)
++ Benchmark inputs can now be reordered as a preprocessing step [#1408](https://github.com/ginkgo-project/ginkgo/pull/1408)
+
+
+### Improvements
+
++ Significantly improve Cholesky factorization performance [#1366](https://github.com/ginkgo-project/ginkgo/pull/1366)
++ Improve parallel build performance [#1378](https://github.com/ginkgo-project/ginkgo/pull/1378)
++ Allow constrained parallel test execution using CTest resources [#1373](https://github.com/ginkgo-project/ginkgo/pull/1373)
++ Use arithmetic type more inside mixed precision ELL [#1414](https://github.com/ginkgo-project/ginkgo/pull/1414)
++ Most factory parameters of factory type no longer need to be constructed explicitly via `.on(exec)` [#1336](https://github.com/ginkgo-project/ginkgo/pull/1336) [#1439](https://github.com/ginkgo-project/ginkgo/pull/1439)
++ Improve ParILU(T)/ParIC(T) convergence by using more appropriate atomic operations [#1434](https://github.com/ginkgo-project/ginkgo/pull/1434)
+
+### Fixes
+
++ Fix an over-allocation for OpenMP reductions [#1369](https://github.com/ginkgo-project/ginkgo/pull/1369)
++ Fix DPCPP's common-kernel reduction for empty input sizes [#1362](https://github.com/ginkgo-project/ginkgo/pull/1362)
++ Fix several typos in the API and documentation [#1348](https://github.com/ginkgo-project/ginkgo/pull/1348)
++ Fix inconsistent `Threads` between generations [#1388](https://github.com/ginkgo-project/ginkgo/pull/1388)
++ Fix benchmark median condition [#1398](https://github.com/ginkgo-project/ginkgo/pull/1398)
++ Fix HIP 5.6.0 compilation [#1411](https://github.com/ginkgo-project/ginkgo/pull/1411)
++ Fix missing destruction of rand_generator from cuda/hip [#1417](https://github.com/ginkgo-project/ginkgo/pull/1417)
++ Fix PAPI logger destruction order [#1419](https://github.com/ginkgo-project/ginkgo/pull/1419)
++ Fix TAU logger compilation [#1422](https://github.com/ginkgo-project/ginkgo/pull/1422)
++ Fix relative criterion to not iterate if the residual is already zero [#1079](https://github.com/ginkgo-project/ginkgo/pull/1079)
++ Fix memory_order invocations with C++20 changes [#1402](https://github.com/ginkgo-project/ginkgo/pull/1402)
++ Fix `check_diagonal_entries_exist` report correctly when only missing diagonal value in the last rows. [#1440](https://github.com/ginkgo-project/ginkgo/pull/1440)
++ Fix checking OpenMPI version in cross-compilation settings [#1446](https://github.com/ginkgo-project/ginkgo/pull/1446)
++ Fix false-positive deprecation warnings in Ginkgo, especially for the old Rcm (it doesn't emit deprecation warnings anymore as a result but is still considered deprecated) [#1444](https://github.com/ginkgo-project/ginkgo/pull/1444)
+
 ## Version 1.6.0
 
 The Ginkgo team is proud to announce the new Ginkgo minor release 1.6.0. This release brings new features such as:
