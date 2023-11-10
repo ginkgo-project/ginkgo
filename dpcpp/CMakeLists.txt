@@ -1,11 +1,15 @@
-find_package(MKL CONFIG REQUIRED HINTS "$ENV{MKLROOT}")
-set(GINKGO_MKL_ROOT "${MKL_ROOT}" PARENT_SCOPE)
-find_package(oneDPL REQUIRED HINTS "$ENV{DPL_ROOT}")
-set(GINKGO_DPL_ROOT "${DPL_ROOT}" PARENT_SCOPE)
+find_package(MKL CONFIG REQUIRED HINTS "$ENV{MKLROOT}" "$ENV{MKL_ROOT}")
+find_package(oneDPL REQUIRED HINTS "$ENV{DPL_ROOT}" "$ENV{DPLROOT}")
+# use the parameter from cmake 
+set(GINKGO_MKL_ROOT "${MKL_DIR}" PARENT_SCOPE)
+set(GINKGO_DPL_ROOT "${oneDPL_DIR}" PARENT_SCOPE)
 
+include(${PROJECT_SOURCE_DIR}/cmake/template_instantiation.cmake)
+add_instantiation_files(${PROJECT_SOURCE_DIR}/common/unified matrix/dense_kernels.instantiate.cpp DENSE_INSTANTIATE)
 add_library(ginkgo_dpcpp $<TARGET_OBJECTS:ginkgo_dpcpp_device> "")
 target_sources(ginkgo_dpcpp
     PRIVATE
+    base/batch_multi_vector_kernels.dp.cpp
     base/device_matrix_data_kernels.dp.cpp
     base/executor.dp.cpp
     base/helper.dp.cpp
@@ -15,6 +19,7 @@ target_sources(ginkgo_dpcpp
     base/version.dp.cpp
     components/prefix_sum_kernels.dp.cpp
     distributed/matrix_kernels.dp.cpp
+    distributed/partition_helpers_kernels.dp.cpp
     distributed/partition_kernels.dp.cpp
     distributed/vector_kernels.dp.cpp
     factorization/cholesky_kernels.dp.cpp
@@ -31,6 +36,8 @@ target_sources(ginkgo_dpcpp
     factorization/par_ilut_select_kernel.dp.cpp
     factorization/par_ilut_spgeam_kernel.dp.cpp
     factorization/par_ilut_sweep_kernel.dp.cpp
+    matrix/batch_dense_kernels.dp.cpp
+    matrix/batch_ell_kernels.dp.cpp
     matrix/coo_kernels.dp.cpp
     matrix/csr_kernels.dp.cpp
     matrix/fbcsr_kernels.dp.cpp
@@ -47,6 +54,7 @@ target_sources(ginkgo_dpcpp
     preconditioner/jacobi_kernels.dp.cpp
     preconditioner/jacobi_simple_apply_kernel.dp.cpp
     reorder/rcm_kernels.dp.cpp
+    solver/batch_bicgstab_kernels.dp.cpp
     solver/cb_gmres_kernels.dp.cpp
     solver/idr_kernels.dp.cpp
     solver/lower_trs_kernels.dp.cpp
@@ -55,6 +63,7 @@ target_sources(ginkgo_dpcpp
     stop/criterion_kernels.dp.cpp
     stop/residual_norm_kernels.dp.cpp
     ${GKO_UNIFIED_COMMON_SOURCES}
+    ${DENSE_INSTANTIATE}
     )
 
 # TODO: adjust it when dpcpp jacobi supports more block size
@@ -84,6 +93,10 @@ target_compile_definitions(ginkgo_dpcpp PRIVATE GKO_COMPILING_DPCPP _ONEDPL_COMP
 
 set(GINKGO_DPCPP_FLAGS ${GINKGO_DPCPP_FLAGS} PARENT_SCOPE)
 target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_DPCPP_FLAGS}")
+# all file in target ginkgo_dpcpp are necessarily compiled with sycl, so we can ignore the warning.
+# If we would like to use SOURCES, please use the new files copied from GKO_UNIFIED_COMMON_SOURCES.
+# Otherwise, the source's properties will be changed by add_sycl_to_target
+gko_add_sycl_to_target(TARGET ginkgo_dpcpp)
 target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_COMPILER_FLAGS}")
 # Note: add MKL as PRIVATE not PUBLIC (MKL example shows) to avoid propagating
 # find_package(MKL) everywhere when linking ginkgo (see the MKL example

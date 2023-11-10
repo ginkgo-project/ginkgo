@@ -63,7 +63,7 @@ class Hybrid;
 /**
  * COO stores a matrix in the coordinate matrix format.
  *
- * The nonzero elements are stored in an array row-wise (but not neccessarily
+ * The nonzero elements are stored in an array row-wise (but not necessarily
  * sorted by column index within a row). Two extra arrays contain the row and
  * column indexes of each nonzero element of the matrix.
  *

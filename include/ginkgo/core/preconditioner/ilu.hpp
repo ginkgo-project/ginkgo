@@ -66,11 +66,10 @@ namespace preconditioner {
  * It allows to set both the solver for L and the solver for U independently,
  * while providing the defaults solver::LowerTrs and solver::UpperTrs, which
  * are direct triangular solvers.
- * For these solvers, a factory can be provided (with `with_l_solver_factory`
- * and `with_u_solver_factory`) to have more control over their behavior.
- * In particular, it is possible to use an iterative method for solving the
- * triangular systems. The default parameters for an iterative triangluar
- * solver are:
+ * For these solvers, a factory can be provided (with `with_l_solver` and
+ * `with_u_solver`) to have more control over their behavior. In particular, it
+ * is possible to use an iterative method for solving the triangular systems.
+ * The default parameters for an iterative triangluar solver are:
  * - reduction factor = 1e-4
  * - max iteration = <number of rows of the matrix given to the solver>
  * Solvers without such criteria can also be used, in which case none are set.
@@ -131,25 +130,102 @@ public:
         Ilu<typename USolverType::transposed_type,
             typename LSolverType::transposed_type, ReverseApply, IndexType>;
 
-    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
-    {
+    class Factory;
+
+    struct parameters_type
+        : public enable_parameters_type<parameters_type, Factory> {
         /**
          * Factory for the L solver
          */
-        std::shared_ptr<typename l_solver_type::Factory>
-            GKO_FACTORY_PARAMETER_SCALAR(l_solver_factory, nullptr);
+        std::shared_ptr<const typename l_solver_type::Factory>
+            l_solver_factory{};
 
         /**
          * Factory for the U solver
          */
-        std::shared_ptr<typename u_solver_type::Factory>
-            GKO_FACTORY_PARAMETER_SCALAR(u_solver_factory, nullptr);
+        std::shared_ptr<const typename u_solver_type::Factory>
+            u_solver_factory{};
 
         /**
          * Factory for the factorization
          */
-        std::shared_ptr<LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
-            factorization_factory, nullptr);
+        std::shared_ptr<const LinOpFactory> factorization_factory{};
+
+        GKO_DEPRECATED("use with_l_solver instead")
+        parameters_type& with_l_solver_factory(
+            deferred_factory_parameter<const typename l_solver_type::Factory>
+                solver)
+        {
+            return with_l_solver(std::move(solver));
+        }
+
+        parameters_type& with_l_solver(
+            deferred_factory_parameter<const typename l_solver_type::Factory>
+                solver)
+        {
+            this->l_solver_generator = std::move(solver);
+            this->deferred_factories["l_solver"] = [](const auto& exec,
+                                                      auto& params) {
+                if (!params.l_solver_generator.is_empty()) {
+                    params.l_solver_factory =
+                        params.l_solver_generator.on(exec);
+                }
+            };
+            return *this;
+        }
+
+        GKO_DEPRECATED("use with_u_solver instead")
+        parameters_type& with_u_solver_factory(
+            deferred_factory_parameter<const typename u_solver_type::Factory>
+                solver)
+        {
+            return with_u_solver(std::move(solver));
+        }
+
+        parameters_type& with_u_solver(
+            deferred_factory_parameter<const typename u_solver_type::Factory>
+                solver)
+        {
+            this->u_solver_generator = std::move(solver);
+            this->deferred_factories["u_solver"] = [](const auto& exec,
+                                                      auto& params) {
+                if (!params.u_solver_generator.is_empty()) {
+                    params.u_solver_factory =
+                        params.u_solver_generator.on(exec);
+                }
+            };
+            return *this;
+        }
+
+        GKO_DEPRECATED("use with_factorization instead")
+        parameters_type& with_factorization_factory(
+            deferred_factory_parameter<const LinOpFactory> factorization)
+        {
+            return with_factorization(std::move(factorization));
+        }
+
+        parameters_type& with_factorization(
+            deferred_factory_parameter<const LinOpFactory> factorization)
+        {
+            this->factorization_generator = std::move(factorization);
+            this->deferred_factories["factorization"] = [](const auto& exec,
+                                                           auto& params) {
+                if (!params.factorization_generator.is_empty()) {
+                    params.factorization_factory =
+                        params.factorization_generator.on(exec);
+                }
+            };
+            return *this;
+        }
+
+    private:
+        deferred_factory_parameter<const typename l_solver_type::Factory>
+            l_solver_generator;
+
+        deferred_factory_parameter<const typename u_solver_type::Factory>
+            u_solver_generator;
+
+        deferred_factory_parameter<const LinOpFactory> factorization_generator;
     };
 
     GKO_ENABLE_LIN_OP_FACTORY(Ilu, parameters, Factory);
@@ -393,12 +469,10 @@ protected:
             static_cast<unsigned int>(mtx->get_size()[0])};
 
         return SolverType::build()
-            .with_criteria(gko::stop::Iteration::build()
-                               .with_max_iters(default_max_iters)
-                               .on(exec),
-                           gko::stop::ResidualNorm<value_type>::build()
-                               .with_reduction_factor(default_reduce_residual)
-                               .on(exec))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(default_max_iters),
+                gko::stop::ResidualNorm<value_type>::build()
+                    .with_reduction_factor(default_reduce_residual))
             .on(exec)
             ->generate(mtx);
     }

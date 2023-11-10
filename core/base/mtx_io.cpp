@@ -267,7 +267,7 @@ private:
 
     /**
      * storage modifier hierarchy provides algorithms for handling storage
-     * modifiers (general, symetric, skew symetric, hermitian) and filling the
+     * modifiers (general, symmetric, skew symmetric, hermitian) and filling the
      * entire matrix from the stored parts
      */
     struct storage_modifier {
@@ -491,7 +491,7 @@ private:
          * @param os  The output stream to write to
          * @param data  The matrix data to write
          * @param entry_writer  The entry format to write in.
-         * @param modifier  The strorage modifer
+         * @param modifier  The storage modifier
          */
         virtual void write_data(std::ostream& os,
                                 const matrix_data<ValueType, IndexType>& data,
@@ -554,7 +554,7 @@ private:
          * @param os  The output stream to write to
          * @param data  The matrix data to write
          * @param entry_writer  The entry format to write in.
-         * @param modifier  The strorage modifer
+         * @param modifier  The storage modifier
          */
         void write_data(std::ostream& os,
                         const matrix_data<ValueType, IndexType>& data,
@@ -623,7 +623,7 @@ private:
          * @param os  The output stream to write to
          * @param data  The matrix data to write
          * @param entry_writer  The entry format to write in.
-         * @param modifier  The strorage modifer
+         * @param modifier  The storage modifier
          */
         void write_data(std::ostream& os,
                         const matrix_data<ValueType, IndexType>& data,

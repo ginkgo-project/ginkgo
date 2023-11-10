@@ -1,23 +1,20 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.16)
 
-# Use *_ROOT environment variables for find_package calls
-cmake_policy(SET CMP0074 NEW)
-
-# Let CAS handle the CUDA architecture flags (for now)
-# Windows still gives CMP0104 warning if putting it in cuda.
-if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
-    cmake_policy(SET CMP0104 OLD)
-endif()
-
-project(Ginkgo LANGUAGES C CXX VERSION 1.6.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
+project(Ginkgo LANGUAGES C CXX VERSION 1.7.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
 set(Ginkgo_VERSION_TAG "master")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
+# Cuda and Hip also look for Threads. Set it before any find_package to ensure the Threads setting is not changed.
+set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 # Determine which modules can be compiled
 include(cmake/hip_path.cmake)
 include(cmake/autodetect_executors.cmake)
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/Modules/")
+include(cmake/autodetect_system_libs.cmake)
+
+# rename helper
+include(cmake/rename.cmake)
 
 # Ginkgo configuration options
 option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" OFF)
@@ -27,8 +24,9 @@ option(GINKGO_BUILD_BENCHMARKS "Build Ginkgo's benchmarks" ON)
 option(GINKGO_BUILD_REFERENCE "Compile reference CPU kernels" ON)
 option(GINKGO_BUILD_OMP "Compile OpenMP kernels for CPU" ${GINKGO_HAS_OMP})
 option(GINKGO_BUILD_MPI "Compile the MPI module" ${GINKGO_HAS_MPI})
-option(GINKGO_BUILD_DPCPP
-    "Compile DPC++ kernels for Intel GPUs or other DPC++ enabled hardware" ${GINKGO_HAS_DPCPP})
+gko_rename_cache(GINKGO_BUILD_DPCPP GINKGO_BUILD_SYCL BOOL "Compile SYCL kernels for Intel GPUs or other SYCL enabled hardware")
+option(GINKGO_BUILD_SYCL
+    "Compile SYCL kernels for Intel GPUs or other SYCL enabled hardware" ${GINKGO_HAS_SYCL})
 option(GINKGO_BUILD_CUDA "Compile kernels for NVIDIA GPUs" ${GINKGO_HAS_CUDA})
 option(GINKGO_BUILD_HIP "Compile kernels for AMD or NVIDIA GPUs" ${GINKGO_HAS_HIP})
 option(GINKGO_BUILD_DOC "Generate documentation" OFF)
@@ -56,7 +54,7 @@ set(GINKGO_VERBOSE_LEVEL "1" CACHE STRING
 if(MSVC)
     set(GINKGO_COMPILER_FLAGS "" CACHE STRING
         "Set the required CXX compiler flags, mainly used for warnings. Current default is ``")
-elseif(GINKGO_BUILD_DPCPP OR CMAKE_CXX_COMPILER MATCHES "dpcpp")
+elseif(GINKGO_BUILD_SYCL OR CMAKE_CXX_COMPILER MATCHES "dpcpp|icpx")
     # For now always use `-ffp-model=precise` with DPC++. This can be removed when
     # the floating point issues are fixed.
     set(GINKGO_COMPILER_FLAGS "-Wpedantic;-ffp-model=precise" CACHE STRING
@@ -68,8 +66,7 @@ endif()
 set(GINKGO_CUDA_COMPILER_FLAGS "" CACHE STRING
     "Set the required NVCC compiler flags, mainly used for warnings. Current default is an empty string")
 set(GINKGO_CUDA_ARCHITECTURES "Auto" CACHE STRING
-    "A list of target NVIDIA GPU achitectures. See README.md for more detail.")
-option(GINKGO_CUDA_DEFAULT_HOST_COMPILER "Tell Ginkgo to not automatically set the CUDA host compiler" OFF)
+    "A list of target NVIDIA GPU architectures. See README.md for more detail.")
 # the details of fine/coarse grain memory and unsafe atomic are available https://docs.olcf.ornl.gov/systems/crusher_quick_start_guide.html#floating-point-fp-atomic-operations-and-coarse-fine-grained-memory-allocations
 option(GINKGO_HIP_AMD_UNSAFE_ATOMIC "Compiler uses unsafe floating point atomic (only for AMD GPU and ROCM >= 5). Default is ON because we use hipMalloc, which is always on coarse grain. Must turn off when allocating memory on fine grain" ON)
 set(GINKGO_HIP_COMPILER_FLAGS "" CACHE STRING
@@ -80,19 +77,24 @@ set(GINKGO_HIP_CLANG_COMPILER_FLAGS "" CACHE STRING
     "Set the required HIP CLANG compiler flags. Current default is an empty string.")
 set(GINKGO_HIP_AMDGPU "" CACHE STRING
     "The amdgpu_target(s) variable passed to hipcc. The default is none (auto).")
+option(GINKGO_SPLIT_TEMPLATE_INSTANTIATIONS "Split template instantiations for slow-to-compile files. This improves parallel build performance" ON)
+mark_as_advanced(GINKGO_SPLIT_TEMPLATE_INSTANTIATIONS)
 option(GINKGO_JACOBI_FULL_OPTIMIZATIONS "Use all the optimizations for the CUDA Jacobi algorithm" OFF)
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
 if(MSVC OR WIN32 OR CYGWIN OR APPLE)
     option(GINKGO_BUILD_HWLOC "Build Ginkgo with HWLOC. Default is OFF. Ginkgo does not support HWLOC on Windows/MacOS" OFF)
 else()
-    option(GINKGO_BUILD_HWLOC "Build Ginkgo with HWLOC. Default is ON. If a system HWLOC is not found, then we try to build it ourselves. Switch this OFF to disable HWLOC." ON)
+    option(GINKGO_BUILD_HWLOC "Build Ginkgo with HWLOC. Enabled if a system installation is found." ${HWLOC_FOUND})
 endif()
+option(GINKGO_BUILD_PAPI_SDE "Build Ginkgo with PAPI SDE. Enabled if a system installation is found." ${PAPI_SDE_FOUND})
 option(GINKGO_DPCPP_SINGLE_MODE "Do not compile double kernels for the DPC++ backend." OFF)
 option(GINKGO_INSTALL_RPATH "Set the RPATH when installing its libraries." ON)
 option(GINKGO_INSTALL_RPATH_ORIGIN "Add $ORIGIN (Linux) or @loader_path (MacOS) to the installation RPATH." ON)
 option(GINKGO_INSTALL_RPATH_DEPENDENCIES "Add dependencies to the installation RPATH." OFF)
 option(GINKGO_FORCE_GPU_AWARE_MPI "Assert that the MPI library is GPU aware. This forces Ginkgo to assume that GPU aware functionality is available (OFF (default) or ON), but may fail
      catastrophically in case the MPI implementation is not GPU Aware, and GPU aware functionality has been forced" OFF)
+set(GINKGO_CI_TEST_OMP_PARALLELISM "4" CACHE STRING
+    "The number of OpenMP threads to use for a test binary during CTest resource file-constrained test.")
 
 # load executor-specific configuration
 if(GINKGO_BUILD_CUDA)
@@ -101,10 +103,13 @@ endif()
 if(GINKGO_BUILD_HIP)
     include(cmake/hip.cmake)
 endif()
+if(GINKGO_BUILD_SYCL)
+    include(cmake/sycl.cmake)
+endif()
 if(GINKGO_BUILD_OMP)
     find_package(OpenMP 3.0 REQUIRED)
 endif()
-set(THREADS_PREFER_PTHREAD_FLAG ON)
+
 find_package(Threads REQUIRED)
 include(cmake/build_type_helpers.cmake)
 
@@ -197,13 +202,6 @@ endif()
 include(CheckIncludeFileCXX)
 check_include_file_cxx(cxxabi.h GKO_HAVE_CXXABI_H)
 
-# Automatically find PAPI and search for the required 'sde' component
-set(GINKGO_HAVE_PAPI_SDE 0)
-find_package(PAPI OPTIONAL_COMPONENTS sde)
-if(PAPI_sde_FOUND)
-    set(GINKGO_HAVE_PAPI_SDE 1)
-endif()
-
 # Automatically find TAU
 set(GINKGO_HAVE_TAU 0)
 find_package(PerfStubs QUIET)
@@ -233,12 +231,6 @@ if(GINKGO_BUILD_HWLOC AND (MSVC OR WIN32 OR CYGWIN OR APPLE))
     set(GINKGO_BUILD_HWLOC OFF CACHE BOOL "Build Ginkgo with HWLOC. Default is OFF. Ginkgo does not support HWLOC on Windows/MacOS" FORCE)
     message(WARNING "Ginkgo does not support HWLOC on Windows/MacOS, switch GINKGO_BUILD_HWLOC to OFF")
 endif()
-if(GINKGO_BUILD_HWLOC)
-    set(GINKGO_HAVE_HWLOC 1)
-else()
-    set(GINKGO_HAVE_HWLOC 0)
-    message(STATUS "HWLOC is being forcibly switched off")
-endif()
 
 set(GINKGO_HAVE_GPU_AWARE_MPI OFF)
 set(GINKGO_FORCE_SPMV_BLOCKING_COMM OFF)
@@ -250,14 +242,21 @@ if(GINKGO_BUILD_MPI)
         set(GINKGO_HAVE_GPU_AWARE_MPI OFF)
     endif()
 
-    try_run(uses_openmpi gko_result_unused
+    # use try_compile instead of try_run to prevent cross-compiling issues
+    try_compile(uses_openmpi
         ${Ginkgo_BINARY_DIR}
         ${Ginkgo_SOURCE_DIR}/cmake/openmpi_test.cpp
+                COMPILE_DEFINITIONS -DCHECK_HAS_OPEN_MPI=1
         LINK_LIBRARIES MPI::MPI_CXX
-        RUN_OUTPUT_VARIABLE openmpi_version
         )
     if(uses_openmpi)
-        if(openmpi_version VERSION_LESS "4.1")
+        try_compile(valid_openmpi_version
+                    ${Ginkgo_BINARY_DIR}
+                    ${Ginkgo_SOURCE_DIR}/cmake/openmpi_test.cpp
+                    COMPILE_DEFINITIONS -DCHECK_OPEN_MPI_VERSION=1
+                    LINK_LIBRARIES MPI::MPI_CXX
+        )
+        if(NOT valid_openmpi_version)
             message(WARNING
                 "OpenMPI v4.0.x has a bug that forces us to use blocking communication in our distributed "
                 "matrix class. To enable faster, non-blocking communication, consider updating your OpenMPI version or "
@@ -268,17 +267,38 @@ if(GINKGO_BUILD_MPI)
 endif()
 
 # Try to find the third party packages before using our subdirectories
-include(cmake/package_helpers.cmake)
 if(GINKGO_BUILD_TESTS)
     find_package(GTest 1.10.0) # No need for QUIET as CMake ships FindGTest
 endif()
 if(GINKGO_BUILD_BENCHMARKS)
     find_package(gflags 2.2.2 QUIET)
-    find_package(RapidJSON 1.1.0 QUIET)
+    find_package(nlohmann_json 3.9.1 QUIET)
 endif()
+
+# System provided, third party libraries (not bundled!)
+set(GINKGO_HAVE_HWLOC 0)
 if(GINKGO_BUILD_HWLOC)
-    find_package(HWLOC 2.1) # No need for QUIET as we ship FindHWLOC
+    find_package(HWLOC 2.1)
+    if (HWLOC_FOUND)
+        set(GINKGO_HAVE_HWLOC 1)
+    else()
+        message(WARNING "HWLOC could not be found. HWLOC support will be disabled.")
+        set(GINKGO_BUILD_HWLOC OFF CACHE BOOL "HWLOC support was disabled because a system package could not be found." FORCE)
+    endif()
 endif()
+
+set(GINKGO_HAVE_PAPI_SDE 0)
+if(GINKGO_BUILD_PAPI_SDE)
+    find_package(PAPI 7.0.1.0 COMPONENTS sde)
+    if (PAPI_SDE_FOUND)
+        set(GINKGO_HAVE_PAPI_SDE 1)
+    else()
+        message(WARNING "PAPI (SDE) could not be found. PAPI_SDE support will be disabled.")
+        set(GINKGO_BUILD_PAPI_SDE OFF CACHE BOOL "PAPI_SDE support was disabled because a system package could not be found." FORCE)
+    endif()
+endif()
+
+# Bundled third party libraries
 add_subdirectory(third_party)    # Third-party tools and libraries
 
 if(MSVC)
@@ -289,7 +309,7 @@ if(MSVC)
     endif()
 endif()
 
-if(GINKGO_BUILD_DPCPP)
+if(GINKGO_BUILD_SYCL)
     ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_MAJOR_VERSION __LIBSYCL_MAJOR_VERSION)
     ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_VERSION __SYCL_COMPILER_VERSION)
 else()
@@ -312,7 +332,7 @@ endif()
 if(GINKGO_BUILD_HIP)
     add_subdirectory(hip)        # High-performance kernels for AMD or NVIDIA GPUs
 endif()
-if(GINKGO_BUILD_DPCPP)
+if(GINKGO_BUILD_SYCL)
     add_subdirectory(dpcpp)        # High-performance DPC++ kernels
 endif()
 if(GINKGO_BUILD_OMP)
@@ -505,3 +525,8 @@ else()
     FILE(READ ${PROJECT_BINARY_DIR}/minimal.log GINKGO_LOG_SUMMARY)
 endif()
 MESSAGE(STATUS "${GINKGO_LOG_SUMMARY}")
+
+# make sure no build files get committed accidentally
+if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/.gitignore)
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/.gitignore "*")
+endif()

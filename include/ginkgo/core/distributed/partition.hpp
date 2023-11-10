@@ -83,11 +83,11 @@ namespace distributed {
  * ```
  * starting_index[0] = 0,
  * starting_index[1] = 0,
- * starting_index[2] = 3,  // second range of part 1
+ * starting_index[2] = 3,  // second range of part 0
  * starting_index[3] = 0,
- * starting_index[4] = 5,  // third range of part 1
+ * starting_index[4] = 5,  // third range of part 0
  * ```
- * which you can use to iterate only over the the second range of part 1 (the
+ * which you can use to iterate only over the the second range of part 0 (the
  * third global range) with
  * ```
  * for(int i = 0; i < r[3] - r[2]; ++i){
@@ -231,7 +231,7 @@ public:
      *
      * @return  true if each part has no more than one contiguous range.
      */
-    bool has_connected_parts();
+    bool has_connected_parts() const;
 
     /**
      * Checks if the ranges are ordered by their part index.
@@ -240,7 +240,7 @@ public:
      *
      * @return  true if the ranges are ordered by their part index.
      */
-    bool has_ordered_parts();
+    bool has_ordered_parts() const;
 
     /**
      * Builds a partition from a given mapping global_index -> part_id.
@@ -260,15 +260,18 @@ public:
      *
      * @param exec  the Executor on which the partition should be built
      * @param ranges  the boundaries of the ranges representing each part.
-     *                Part i contains the indices [ranges[i], ranges[i + 1]).
-     *                Has to contain at least one element.
-     *                The first element has to be 0.
+     *                Part part_id[i] contains the indices
+     *                [ranges[i], ranges[i + 1]). Has to contain at least
+     *                one element. The first element has to be 0.
+     * @param part_ids  the part ids of the provided ranges. If empty, then
+     *                  it will assume range i belongs to part i.
      *
      * @return  a Partition representing the given contiguous partitioning.
      */
     static std::unique_ptr<Partition> build_from_contiguous(
         std::shared_ptr<const Executor> exec,
-        const array<global_index_type>& ranges);
+        const array<global_index_type>& ranges,
+        const array<comm_index_type>& part_ids = {});
 
     /**
      * Builds a partition by evenly distributing the global range.

@@ -109,13 +109,12 @@ void run_solver(volatile bool* stop_iteration_process,
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
 
     // Create solver factory and solve system
-    auto solver = bicg::build()
-                      .with_criteria(ByInteraction::build()
-                                         .with_stop_iteration_process(
-                                             stop_iteration_process)
-                                         .on(exec))
-                      .on(exec)
-                      ->generate(A);
+    auto solver =
+        bicg::build()
+            .with_criteria(ByInteraction::build().with_stop_iteration_process(
+                stop_iteration_process))
+            .on(exec)
+            ->generate(A);
     solver->add_logger(gko::log::Stream<ValueType>::create(
         gko::log::Logger::iteration_complete_mask, std::cout, true));
     solver->apply(b, x);
@@ -158,13 +157,12 @@ int main(int argc, char* argv[])
             {"omp", [] { return gko::OmpExecutor::create(); }},
             {"cuda",
              [] {
-                 return gko::CudaExecutor::create(0, gko::OmpExecutor::create(),
-                                                  true);
+                 return gko::CudaExecutor::create(0,
+                                                  gko::OmpExecutor::create());
              }},
             {"hip",
              [] {
-                 return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
-                                                 true);
+                 return gko::HipExecutor::create(0, gko::OmpExecutor::create());
              }},
             {"dpcpp",
              [] {
@@ -176,7 +174,7 @@ int main(int argc, char* argv[])
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
-    // Declare a user controled boolean for the iteration process
+    // Declare a user controlled boolean for the iteration process
     volatile bool stop_iteration_process{};
 
     // Create a new a thread to launch the solver

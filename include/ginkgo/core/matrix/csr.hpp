@@ -38,6 +38,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/permutation.hpp>
+#include <ginkgo/core/matrix/scaled_permutation.hpp>
 
 
 namespace gko {
@@ -762,6 +764,74 @@ public:
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
+
+    /**
+     * Creates a permuted copy $A'$ of this matrix $A$ with the given
+     * permutation $P$. By default, this computes a symmetric permutation
+     * (permute_mode::symmetric). For the effect of the different permutation
+     * modes, see @ref permute_mode
+     *
+     * @param permutation  The input permutation.
+     * @param mode  The permutation mode. If permute_mode::inverse is set, we
+     *              use the inverse permutation $P^{-1}$ instead of $P$.
+     *              If permute_mode::rows is set, the rows will be permuted.
+     *              If permute_mode::columns is set, the columns will be
+     *              permuted.
+     * @return  The permuted matrix.
+     */
+    std::unique_ptr<Csr> permute(
+        ptr_param<const Permutation<index_type>> permutation,
+        permute_mode mode = permute_mode::symmetric) const;
+
+    /**
+     * Creates a non-symmetrically permuted copy $A'$ of this matrix $A$ with
+     * the given row and column permutations $P$ and $Q$. The operation will
+     * compute $A'(i, j) = A(p[i], q[j])$, or $A' = P A Q^T$ if `invert` is
+     * `false`, and $A'(p[i], q[j]) = A(i,j)$, or $A' = P^{-1} A Q^{-T}$ if
+     * `invert` is `true`.
+     *
+     * @param row_permutation  The permutation $P$ to apply to the rows
+     * @param column_permutation  The permutation $Q$ to apply to the columns
+     * @param invert  If set to `false`, uses the input permutations, otherwise
+     *                uses their inverses $P^{-1}, Q^{-1}$
+     * @return  The permuted matrix.
+     */
+    std::unique_ptr<Csr> permute(
+        ptr_param<const Permutation<index_type>> row_permutation,
+        ptr_param<const Permutation<index_type>> column_permutation,
+        bool invert = false) const;
+
+    /**
+     * Creates a scaled and permuted copy of this matrix.
+     * For an explanation of the permutation modes, see
+     * @ref permute(ptr_param<const Permutation<index_type>>, permute_mode)
+     *
+     * @param permutation  The scaled permutation.
+     * @param mode  The permutation mode.
+     * @return The permuted matrix.
+     */
+    std::unique_ptr<Csr> scale_permute(
+        ptr_param<const ScaledPermutation<value_type, index_type>> permutation,
+        permute_mode = permute_mode::symmetric) const;
+
+    /**
+     * Creates a scaled and permuted copy of this matrix.
+     * For an explanation of the parameters, see
+     * @ref permute(ptr_param<const Permutation<index_type>>, ptr_param<const
+     * Permutation<index_type>>, permute_mode)
+     *
+     * @param row_permutation  The scaled row permutation.
+     * @param column_permutation  The scaled column permutation.
+     * @param invert  If set to `false`, uses the input permutations, otherwise
+     *                uses their inverses $P^{-1}, Q^{-1}$
+     * @return The permuted matrix.
+     */
+    std::unique_ptr<Csr> scale_permute(
+        ptr_param<const ScaledPermutation<value_type, index_type>>
+            row_permutation,
+        ptr_param<const ScaledPermutation<value_type, index_type>>
+            column_permutation,
+        bool invert = false) const;
 
     std::unique_ptr<LinOp> permute(
         const array<IndexType>* permutation_indices) const override;

@@ -197,23 +197,23 @@ __launch_bounds__(warps_per_block* config::warp_size) adaptive_transpose_jacobi(
 
     const auto block_stride = storage_scheme.get_stride();
     const auto rank = subwarp.thread_rank();
-    if (rank < block_size) {
-        GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
-            ValueType, block_precisions[block_id],
-            auto local_block =
-                reinterpret_cast<const resolved_precision*>(
-                    blocks + storage_scheme.get_group_offset(block_id)) +
-                storage_scheme.get_block_offset(block_id);
-            auto local_out_block =
-                reinterpret_cast<resolved_precision*>(
-                    out_blocks + storage_scheme.get_group_offset(block_id)) +
-                storage_scheme.get_block_offset(block_id);
-            for (IndexType i = 0; i < block_size; ++i) {
-                auto val = local_block[i * block_stride + rank];
-                local_out_block[i + rank * block_stride] =
-                    conjugate ? conj(val) : val;
-            });
-    }
+    GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
+        ValueType, block_precisions[block_id],
+        auto local_block =
+            reinterpret_cast<const resolved_precision*>(
+                blocks + storage_scheme.get_group_offset(block_id)) +
+            storage_scheme.get_block_offset(block_id);
+        auto local_out_block =
+            reinterpret_cast<resolved_precision*>(
+                out_blocks + storage_scheme.get_group_offset(block_id)) +
+            storage_scheme.get_block_offset(block_id);
+        for (int i = rank; i < block_size * block_size; i += subwarp_size) {
+            int row = i % block_size;
+            int col = i / block_size;
+            auto val = local_block[row + col * block_stride];
+            local_out_block[row * block_stride + col] =
+                conjugate ? conj(val) : val;
+        });
 }
 
 

@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <hip/hip_runtime.h>
+#include <thrust/sort.h>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -42,9 +43,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "accessor/hip_helper.hpp"
 #include "accessor/reduced_row_major.hpp"
 #include "core/base/mixed_precision_types.hpp"
+#include "core/components/fill_array_kernels.hpp"
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "hip/base/config.hip.hpp"
+#include "hip/base/hipsparse_bindings.hip.hpp"
 #include "hip/base/math.hip.hpp"
+#include "hip/base/thrust.hip.hpp"
 #include "hip/base/types.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
@@ -64,6 +69,7 @@ namespace sparsity_csr {
 
 
 constexpr int classical_oversubscription = 32;
+constexpr int default_block_size = 512;
 constexpr int spmv_block_size = 256;
 constexpr int warps_in_block = 4;
 
@@ -71,6 +77,7 @@ constexpr int warps_in_block = 4;
 using classical_kernels = syn::value_list<int, 2>;
 
 
+#include "common/cuda_hip/matrix/csr_common.hpp.inc"
 #include "common/cuda_hip/matrix/sparsity_csr_kernels.hpp.inc"
 
 
@@ -179,6 +186,62 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void sort_by_column_index(std::shared_ptr<const DefaultExecutor> exec,
+                          matrix::SparsityCsr<ValueType, IndexType>* to_sort)
+{
+    const auto nnz = static_cast<IndexType>(to_sort->get_num_nonzeros());
+    const auto num_rows = static_cast<IndexType>(to_sort->get_size()[0]);
+    const auto num_cols = static_cast<IndexType>(to_sort->get_size()[1]);
+    const auto row_ptrs = to_sort->get_const_row_ptrs();
+    const auto col_idxs = to_sort->get_col_idxs();
+    if (hipsparse::is_supported<ValueType, IndexType>::value) {
+        const auto handle = exec->get_hipsparse_handle();
+        auto descr = hipsparse::create_mat_descr();
+        array<IndexType> permutation_array(exec, to_sort->get_num_nonzeros());
+        auto permutation = permutation_array.get_data();
+        components::fill_seq_array(exec, permutation,
+                                   to_sort->get_num_nonzeros());
+        size_type buffer_size{};
+        hipsparse::csrsort_buffer_size(handle, num_rows, num_cols, nnz,
+                                       row_ptrs, col_idxs, buffer_size);
+        array<char> buffer_array{exec, buffer_size};
+        auto buffer = buffer_array.get_data();
+        hipsparse::csrsort(handle, num_rows, num_cols, nnz, descr, row_ptrs,
+                           col_idxs, permutation, buffer);
+        hipsparse::destroy(descr);
+    } else {
+        fallback_sort(exec, to_sort);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SPARSITY_CSR_SORT_BY_COLUMN_INDEX);
+
+
+template <typename ValueType, typename IndexType>
+void is_sorted_by_column_index(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::SparsityCsr<ValueType, IndexType>* to_check, bool* is_sorted)
+{
+    *is_sorted = true;
+    auto cpu_array = make_array_view(exec->get_master(), 1, is_sorted);
+    auto gpu_array = array<bool>{exec, cpu_array};
+    const auto num_rows = static_cast<IndexType>(to_check->get_size()[0]);
+    auto num_blocks = ceildiv(num_rows, default_block_size);
+    if (num_blocks > 0) {
+        kernel::check_unsorted<<<num_blocks, default_block_size, 0,
+                                 exec->get_stream()>>>(
+            to_check->get_const_row_ptrs(), to_check->get_const_col_idxs(),
+            num_rows, gpu_array.get_data());
+    }
+    cpu_array = gpu_array;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SPARSITY_CSR_IS_SORTED_BY_COLUMN_INDEX);
 
 
 }  // namespace sparsity_csr

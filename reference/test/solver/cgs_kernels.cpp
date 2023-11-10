@@ -65,15 +65,12 @@ protected:
               {{1.0, -3.0, 0.0}, {-4.0, 1.0, -3.0}, {2.0, -1.0, 2.0}}, exec)),
           stopped{},
           non_stopped{},
-          cgs_factory(
-              Solver::build()
-                  .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(40u).on(
-                          exec),
-                      gko::stop::ResidualNorm<value_type>::build()
-                          .with_reduction_factor(r<value_type>::value)
-                          .on(exec))
-                  .on(exec)),
+          cgs_factory(Solver::build()
+                          .with_criteria(
+                              gko::stop::Iteration::build().with_max_iters(40u),
+                              gko::stop::ResidualNorm<value_type>::build()
+                                  .with_reduction_factor(r<value_type>::value))
+                          .on(exec)),
           mtx_big(
               gko::initialize<Mtx>({{-99.0, 87.0, -67.0, -62.0, -68.0, -19.0},
                                     {-30.0, -17.0, -1.0, 9.0, 23.0, 77.0},
@@ -85,20 +82,16 @@ protected:
           cgs_factory_big(
               Solver::build()
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(100u).on(
-                          exec),
+                      gko::stop::Iteration::build().with_max_iters(100u),
                       gko::stop::ResidualNorm<value_type>::build()
-                          .with_reduction_factor(r<value_type>::value)
-                          .on(exec))
+                          .with_reduction_factor(r<value_type>::value))
                   .on(exec)),
           cgs_factory_big2(
               Solver::build()
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(100u).on(
-                          exec),
+                      gko::stop::Iteration::build().with_max_iters(100u),
                       gko::stop::ImplicitResidualNorm<value_type>::build()
-                          .with_reduction_factor(r<value_type>::value)
-                          .on(exec))
+                          .with_reduction_factor(r<value_type>::value))
                   .on(exec))
     {
         auto small_size = gko::dim<2>{2, 2};

@@ -60,6 +60,8 @@ GKO_REGISTER_OPERATION(factorize, lu_factorization::factorize);
 GKO_REGISTER_HOST_OPERATION(symbolic_cholesky,
                             gko::factorization::symbolic_cholesky);
 GKO_REGISTER_HOST_OPERATION(symbolic_lu, gko::factorization::symbolic_lu);
+GKO_REGISTER_HOST_OPERATION(symbolic_lu_near_symm,
+                            gko::factorization::symbolic_lu_near_symm);
 
 
 }  // namespace
@@ -95,12 +97,21 @@ std::unique_ptr<LinOp> Lu<ValueType, IndexType>::generate_impl(
     const auto num_rows = mtx->get_size()[0];
     std::unique_ptr<matrix_type> factors;
     if (!parameters_.symbolic_factorization) {
-        if (parameters_.symmetric_sparsity) {
+        switch (parameters_.symbolic_algorithm) {
+        case symbolic_type::general:
+            exec->run(make_symbolic_lu(mtx.get(), factors));
+            break;
+        case symbolic_type::near_symmetric:
+            exec->run(make_symbolic_lu_near_symm(mtx.get(), factors));
+            break;
+        case symbolic_type::symmetric: {
             std::unique_ptr<gko::factorization::elimination_forest<IndexType>>
                 forest;
             exec->run(make_symbolic_cholesky(mtx.get(), true, factors, forest));
-        } else {
-            exec->run(make_symbolic_lu(mtx.get(), factors));
+            break;
+        }
+        default:
+            GKO_INVALID_STATE("Invalid symbolic factorization algorithm");
         }
     } else {
         const auto& symbolic = parameters_.symbolic_factorization;

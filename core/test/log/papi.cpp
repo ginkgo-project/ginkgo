@@ -71,7 +71,12 @@ protected:
         }
     }
 
-    void TearDown() { eventset = PAPI_NULL; }
+    void TearDown()
+    {
+        logger = nullptr;
+        PAPI_destroy_eventset(&eventset);
+        PAPI_shutdown();
+    }
 
     template <typename U>
     const std::string init(const gko::log::Logger::mask_type& event,
@@ -466,8 +471,7 @@ TYPED_TEST(Papi, CatchesLinOpFactoryGenerateStarted)
 {
     auto factory =
         gko::solver::Bicgstab<TypeParam>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec);
     auto str = this->init(gko::log::Logger::linop_factory_generate_started_mask,
                           "linop_factory_generate_started", factory.get());
@@ -487,8 +491,7 @@ TYPED_TEST(Papi, CatchesLinOpFactoryGenerateCompleted)
 {
     auto factory =
         gko::solver::Bicgstab<TypeParam>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec);
     TypeParam dummy;
     auto str =

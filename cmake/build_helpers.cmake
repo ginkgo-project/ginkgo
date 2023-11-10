@@ -139,7 +139,8 @@ function(ginkgo_extract_dpcpp_version DPCPP_COMPILER GINKGO_DPCPP_VERSION MACRO_
         "int main() {std::cout << ${MACRO_VAR} << '\\n'\;"
         "return 0\;}")
     file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/extract_dpcpp_ver.cpp" ${DPCPP_VERSION_PROG})
-    execute_process(COMMAND ${DPCPP_COMPILER} ${CMAKE_CURRENT_BINARY_DIR}/extract_dpcpp_ver.cpp
+    # we always add -fsycl
+    execute_process(COMMAND ${DPCPP_COMPILER} -fsycl ${CMAKE_CURRENT_BINARY_DIR}/extract_dpcpp_ver.cpp
         -o ${CMAKE_CURRENT_BINARY_DIR}/extract_dpcpp_ver
         ERROR_VARIABLE DPCPP_EXTRACT_VER_ERROR)
     execute_process(COMMAND ${CMAKE_CURRENT_BINARY_DIR}/extract_dpcpp_ver

@@ -53,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
+#include "core/factorization/symbolic.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
 #include "core/test/utils.hpp"
@@ -238,19 +239,92 @@ TYPED_TEST(Lu, KernelFactorizeIsEquivalentToRef)
 }
 
 
+TYPED_TEST(Lu, SymbolicCholeskyWorks)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->forall_matrices([this] {
+        std::unique_ptr<gko::matrix::Csr<value_type, index_type>> dlu;
+        std::unique_ptr<gko::factorization::elimination_forest<index_type>>
+            forest;
+        gko::factorization::symbolic_cholesky(this->dmtx.get(), true, dlu,
+                                              forest);
+
+        GKO_ASSERT_MTX_EQ_SPARSITY(dlu, this->dmtx_lu);
+    });
+}
+
+
+TYPED_TEST(Lu, SymbolicLUWorks)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->forall_matrices([this] {
+        std::unique_ptr<gko::matrix::Csr<value_type, index_type>> dlu;
+        gko::factorization::symbolic_lu(this->dmtx.get(), dlu);
+
+        GKO_ASSERT_MTX_EQ_SPARSITY(dlu, this->dmtx_lu);
+    });
+}
+
+
+TYPED_TEST(Lu, SymbolicLUNearSymmWorks)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->forall_matrices([this] {
+        std::unique_ptr<gko::matrix::Csr<value_type, index_type>> dlu;
+        gko::factorization::symbolic_lu_near_symm(this->dmtx.get(), dlu);
+
+        GKO_ASSERT_MTX_EQ_SPARSITY(dlu, this->dmtx_lu);
+    });
+}
+
+
 TYPED_TEST(Lu, GenerateSymmWithUnknownSparsityIsEquivalentToRef)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     this->forall_matrices([this] {
-        auto factory = gko::experimental::factorization::Lu<value_type,
-                                                            index_type>::build()
-                           .with_symmetric_sparsity(true)
-                           .on(this->ref);
+        auto factory =
+            gko::experimental::factorization::Lu<value_type,
+                                                 index_type>::build()
+                .with_symbolic_algorithm(
+                    gko::experimental::factorization::symbolic_type::symmetric)
+                .on(this->ref);
         auto dfactory =
             gko::experimental::factorization::Lu<value_type,
                                                  index_type>::build()
-                .with_symmetric_sparsity(true)
+                .with_symbolic_algorithm(
+                    gko::experimental::factorization::symbolic_type::symmetric)
+                .on(this->exec);
+
+        auto lu = factory->generate(this->mtx);
+        auto dlu = dfactory->generate(this->dmtx);
+
+        GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_combined(), dlu->get_combined());
+        GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
+                            r<value_type>::value);
+    });
+}
+
+
+TYPED_TEST(Lu, GenerateNearSymmWithUnknownSparsityIsEquivalentToRef)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->forall_matrices([this] {
+        auto factory =
+            gko::experimental::factorization::Lu<value_type,
+                                                 index_type>::build()
+                .with_symbolic_algorithm(gko::experimental::factorization::
+                                             symbolic_type::near_symmetric)
+                .on(this->ref);
+        auto dfactory =
+            gko::experimental::factorization::Lu<value_type,
+                                                 index_type>::build()
+                .with_symbolic_algorithm(gko::experimental::factorization::
+                                             symbolic_type::near_symmetric)
                 .on(this->exec);
 
         auto lu = factory->generate(this->mtx);

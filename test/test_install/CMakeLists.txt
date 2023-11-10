@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.16)
 
 project(TestInstall LANGUAGES CXX)
 
@@ -38,12 +38,6 @@ if(GINKGO_BUILD_CUDA)
     enable_language(CUDA)
     configure_file(test_install.cpp test_install.cu COPYONLY)
     add_executable(test_install_cuda ${CMAKE_CURRENT_BINARY_DIR}/test_install.cu)
-    target_compile_options(test_install_cuda
-        PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_ARCH_FLAGS}>")
-    # we handle CUDA architecture flags for now, disable CMake handling
-    if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
-        set_target_properties(test_install_cuda PROPERTIES CUDA_ARCHITECTURES OFF)
-    endif()
     target_compile_definitions(test_install_cuda PRIVATE HAS_CUDA=1)
     target_compile_definitions(test_install_cuda PRIVATE HAS_REFERENCE=${HAS_REFERENCE})
     target_link_libraries(test_install_cuda PRIVATE Ginkgo::ginkgo)
@@ -60,16 +54,13 @@ if(GINKGO_BUILD_HIP)
     else()
         set (GINKGO_PIC_OPTION "$<$<CONFIG:Debug>:-fPIC>")
     endif()
-    if (CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
-        set(TESTINSTALL_CUDA_ARCH_FLAGS "${GINKGO_CUDA_ARCH_FLAGS}")
-    endif()
     if (CMAKE_CUDA_HOST_COMPILER)
         set(TESTINSTALL_CUDA_HOST_COMPILER "-ccbin=${CMAKE_CUDA_HOST_COMPILER}")
     endif()
     hip_add_executable(test_install_hip test_install.cpp
         HIPCC_OPTIONS "-std=c++14"
         CLANG_OPTIONS "${GINKGO_PIC_OPTION}"
-        NVCC_OPTIONS "${GINKGO_CUDA_PIC_OPTION}" "${TESTINSTALL_CUDA_ARCH_FLAGS}" "${TESTINSTALL_CUDA_HOST_COMPILER}")
+        NVCC_OPTIONS "${GINKGO_CUDA_PIC_OPTION}" "${TESTINSTALL_CUDA_HOST_COMPILER}")
 
     target_link_libraries(test_install_hip PRIVATE Ginkgo::ginkgo)
     target_compile_definitions(test_install_hip PRIVATE HAS_HIP=1)

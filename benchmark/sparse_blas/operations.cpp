@@ -38,7 +38,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "benchmark/sparse_blas/operations.hpp"
-#include "benchmark/utils/json.hpp"
 #include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/symbolic.hpp"
 #include "core/matrix/csr_kernels.hpp"
@@ -632,11 +631,40 @@ public:
 
     void run() override { gko::factorization::symbolic_lu(mtx_, result_); }
 
-    void write_stats(rapidjson::Value& object,
-                     rapidjson::MemoryPoolAllocator<>& allocator) override
+    void write_stats(json& object) override
     {
-        add_or_set_member(object, "factor_nonzeros",
-                          result_->get_num_stored_elements(), allocator);
+        object["factor_nonzeros"] = result_->get_num_stored_elements();
+    }
+
+private:
+    const Mtx* mtx_;
+    std::unique_ptr<Mtx> result_;
+};
+
+
+class SymbolicLuNearSymmOperation : public BenchmarkOperation {
+public:
+    explicit SymbolicLuNearSymmOperation(const Mtx* mtx) : mtx_{mtx}, result_{}
+    {}
+
+    std::pair<bool, double> validate() const override
+    {
+        return std::make_pair(
+            validate_symbolic_factorization(mtx_, result_.get()), 0.0);
+    }
+
+    gko::size_type get_flops() const override { return 0; }
+
+    gko::size_type get_memory() const override { return 0; }
+
+    void run() override
+    {
+        gko::factorization::symbolic_lu_near_symm(mtx_, result_);
+    }
+
+    void write_stats(json& object) override
+    {
+        object["factor_nonzeros"] = result_->get_num_stored_elements();
     }
 
 private:
@@ -680,11 +708,9 @@ public:
                                               forest_);
     }
 
-    void write_stats(rapidjson::Value& object,
-                     rapidjson::MemoryPoolAllocator<>& allocator) override
+    void write_stats(json& object) override
     {
-        add_or_set_member(object, "factor_nonzeros",
-                          result_->get_num_stored_elements(), allocator);
+        object["factor_nonzeros"] = result_->get_num_stored_elements();
     }
 
 private:
@@ -692,6 +718,106 @@ private:
     bool symmetric_;
     std::unique_ptr<Mtx> result_;
     std::unique_ptr<gko::factorization::elimination_forest<itype>> forest_;
+};
+
+
+class ReorderRcmOperation : public BenchmarkOperation {
+    using reorder_type = gko::experimental::reorder::Rcm<itype>;
+    using permute_type = gko::matrix::Permutation<itype>;
+
+public:
+    explicit ReorderRcmOperation(const Mtx* mtx)
+        : mtx_{mtx->clone()},
+          factory_{reorder_type::build().on(mtx->get_executor())}
+    {}
+
+    std::pair<bool, double> validate() const override
+    {
+        // validating RCM correctness is hard, let's leave it out for now
+        return {true, 0.0};
+    }
+
+    gko::size_type get_flops() const override { return 0; }
+
+    gko::size_type get_memory() const override { return 0; }
+
+    void prepare() override {}
+
+    void run() override { reorder_ = factory_->generate(mtx_); }
+
+private:
+    std::shared_ptr<Mtx> mtx_;
+    std::unique_ptr<reorder_type> factory_;
+    std::unique_ptr<permute_type> reorder_;
+};
+
+
+#if GKO_HAVE_METIS
+
+
+class ReorderNestedDissectionOperation : public BenchmarkOperation {
+    using factory_type =
+        gko::experimental::reorder::NestedDissection<etype, itype>;
+    using reorder_type = gko::matrix::Permutation<itype>;
+
+public:
+    explicit ReorderNestedDissectionOperation(const Mtx* mtx)
+        : mtx_{mtx->clone()},
+          factory_{factory_type::build().on(mtx->get_executor())}
+    {}
+
+    std::pair<bool, double> validate() const override
+    {
+        // validating ND correctness is hard, let's leave it out for now
+        return {true, 0.0};
+    }
+
+    gko::size_type get_flops() const override { return 0; }
+
+    gko::size_type get_memory() const override { return 0; }
+
+    void prepare() override {}
+
+    void run() override { reorder_ = factory_->generate(mtx_); }
+
+private:
+    std::shared_ptr<Mtx> mtx_;
+    std::unique_ptr<factory_type> factory_;
+    std::unique_ptr<reorder_type> reorder_;
+};
+
+
+#endif
+
+
+class ReorderApproxMinDegOperation : public BenchmarkOperation {
+    using factory_type = gko::experimental::reorder::Amd<itype>;
+    using reorder_type = gko::matrix::Permutation<itype>;
+
+public:
+    explicit ReorderApproxMinDegOperation(const Mtx* mtx)
+        : mtx_{mtx->clone()},
+          factory_{factory_type::build().on(mtx->get_executor())}
+    {}
+
+    std::pair<bool, double> validate() const override
+    {
+        // validating AMD correctness is hard, let's leave it out for now
+        return {true, 0.0};
+    }
+
+    gko::size_type get_flops() const override { return 0; }
+
+    gko::size_type get_memory() const override { return 0; }
+
+    void prepare() override {}
+
+    void run() override { reorder_ = factory_->generate(mtx_); }
+
+private:
+    std::shared_ptr<Mtx> mtx_;
+    std::unique_ptr<factory_type> factory_;
+    std::unique_ptr<reorder_type> reorder_;
 };
 
 
@@ -722,12 +848,33 @@ const std::map<std::string,
          [](const Mtx* mtx) {
              return std::make_unique<SymbolicLuOperation>(mtx);
          }},
+        {"symbolic_lu_near_symm",
+         [](const Mtx* mtx) {
+             return std::make_unique<SymbolicLuNearSymmOperation>(mtx);
+         }},
         {"symbolic_cholesky",
          [](const Mtx* mtx) {
              return std::make_unique<SymbolicCholeskyOperation>(mtx, false);
          }},
-        {"symbolic_cholesky_symmetric", [](const Mtx* mtx) {
+        {"symbolic_cholesky_symmetric",
+         [](const Mtx* mtx) {
              return std::make_unique<SymbolicCholeskyOperation>(mtx, true);
+         }},
+        {"reorder_rcm",
+         [](const Mtx* mtx) {
+             return std::make_unique<ReorderRcmOperation>(mtx);
+         }},
+        {"reorder_amd",
+         [](const Mtx* mtx) {
+             return std::make_unique<ReorderApproxMinDegOperation>(mtx);
+         }},
+        {"reorder_nd",
+         [](const Mtx* mtx) -> std::unique_ptr<BenchmarkOperation> {
+#if GKO_HAVE_METIS
+             return std::make_unique<ReorderNestedDissectionOperation>(mtx);
+#else
+             GKO_NOT_COMPILED(METIS);
+#endif
          }}};
 
 

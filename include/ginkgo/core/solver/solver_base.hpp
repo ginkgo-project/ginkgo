@@ -35,11 +35,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <memory>
+#include <type_traits>
 #include <utility>
 
 
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/solver/workspace.hpp>
@@ -47,14 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/criterion.hpp>
 
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 5211, 4973, 4974)
-#endif
+GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
 
 
 namespace gko {
@@ -244,7 +239,7 @@ protected:
             self(), alpha, b, beta, x);
     }
 
-    // TODO: should we provide the defaule implementation?
+    // TODO: should we provide the default implementation?
     /**
      * The class should override this method and must modify the input vectors
      * according to the initial_guess_mode
@@ -535,10 +530,9 @@ private:
 template <typename MatrixType>
 class
     // clang-format off
-    [[deprecated("This class will be replaced by the template-less detail::SolverBaseLinOp in a future release")]] SolverBase
+    GKO_DEPRECATED("This class will be replaced by the template-less detail::SolverBaseLinOp in a future release") SolverBase
     // clang-format on
-    : public detail::SolverBaseLinOp
-{
+    : public detail::SolverBaseLinOp {
 public:
     using detail::SolverBaseLinOp::SolverBaseLinOp;
 
@@ -859,14 +853,41 @@ private:
 };
 
 
+template <typename Parameters, typename Factory>
+struct enable_iterative_solver_factory_parameters
+    : enable_parameters_type<Parameters, Factory> {
+    /**
+     * Stopping criteria to be used by the solver.
+     */
+    std::vector<std::shared_ptr<const stop::CriterionFactory>>
+        GKO_DEFERRED_FACTORY_VECTOR_PARAMETER(criteria);
+};
+
+
+template <typename Parameters, typename Factory>
+struct enable_preconditioned_iterative_solver_factory_parameters
+    : enable_iterative_solver_factory_parameters<Parameters, Factory> {
+    /**
+     * The preconditioner to be used by the iterative solver. By default, no
+     * preconditioner is used.
+     */
+    std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
+        preconditioner);
+
+    /**
+     * Already generated preconditioner. If one is provided, the factory
+     * `preconditioner` will be ignored.
+     */
+    std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(
+        generated_preconditioner, nullptr);
+};
+
+
 }  // namespace solver
 }  // namespace gko
 
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+GKO_END_DISABLE_DEPRECATION_WARNINGS
+
+
 #endif  // GKO_PUBLIC_CORE_SOLVER_SOLVER_BASE_HPP_

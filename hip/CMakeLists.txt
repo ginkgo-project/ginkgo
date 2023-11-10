@@ -1,13 +1,24 @@
+include(${PROJECT_SOURCE_DIR}/cmake/template_instantiation.cmake)
+add_instantiation_files(. matrix/csr_kernels.instantiate.hip.cpp CSR_INSTANTIATE)
+add_instantiation_files(. matrix/fbcsr_kernels.instantiate.hip.cpp FBCSR_INSTANTIATE)
+# we don't split up the dense kernels into distinct compilations
+list(APPEND GKO_UNIFIED_COMMON_SOURCES ${PROJECT_SOURCE_DIR}/common/unified/matrix/dense_kernels.instantiate.cpp)
 set(GINKGO_HIP_SOURCES
+    base/batch_multi_vector_kernels.hip.cpp
+    base/device.hip.cpp
     base/device_matrix_data_kernels.hip.cpp
     base/exception.hip.cpp
     base/executor.hip.cpp
     base/index_set_kernels.hip.cpp
+    base/memory.hip.cpp
+    base/roctx.hip.cpp
     base/scoped_device_id.hip.cpp
+    base/stream.hip.cpp
     base/timer.hip.cpp
     base/version.hip.cpp
     components/prefix_sum_kernels.hip.cpp
     distributed/matrix_kernels.hip.cpp
+    distributed/partition_helpers_kernels.hip.cpp
     distributed/partition_kernels.hip.cpp
     distributed/vector_kernels.hip.cpp
     factorization/cholesky_kernels.hip.cpp
@@ -24,12 +35,14 @@ set(GINKGO_HIP_SOURCES
     factorization/par_ilut_select_kernel.hip.cpp
     factorization/par_ilut_spgeam_kernel.hip.cpp
     factorization/par_ilut_sweep_kernel.hip.cpp
+    matrix/batch_dense_kernels.hip.cpp
+    matrix/batch_ell_kernels.hip.cpp
     matrix/coo_kernels.hip.cpp
-    matrix/csr_kernels.hip.cpp
+    ${CSR_INSTANTIATE}
     matrix/dense_kernels.hip.cpp
     matrix/diagonal_kernels.hip.cpp
     matrix/ell_kernels.hip.cpp
-    matrix/fbcsr_kernels.hip.cpp
+    ${FBCSR_INSTANTIATE}
     matrix/sellp_kernels.hip.cpp
     matrix/sparsity_csr_kernels.hip.cpp
     multigrid/pgm_kernels.hip.cpp
@@ -39,6 +52,7 @@ set(GINKGO_HIP_SOURCES
     preconditioner/jacobi_kernels.hip.cpp
     preconditioner/jacobi_simple_apply_kernel.hip.cpp
     reorder/rcm_kernels.hip.cpp
+    solver/batch_bicgstab_kernels.hip.cpp
     solver/cb_gmres_kernels.hip.cpp
     solver/idr_kernels.hip.cpp
     solver/lower_trs_kernels.hip.cpp
@@ -132,7 +146,7 @@ if(GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
     endif()
     target_link_libraries(ginkgo_hip PUBLIC ${HIP_LIBAMDHIP64_LIBRARIES})
 elseif(GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
-    find_package(CUDA 9.2 REQUIRED)
+    find_package(CUDA 10.1 REQUIRED)
     target_link_libraries(ginkgo_hip PUBLIC ${CUDA_LIBRARIES})
 endif()
 

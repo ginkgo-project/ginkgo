@@ -40,6 +40,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#ifdef GKO_COMPILING_DPCPP
+#include <CL/sycl.hpp>
+#endif
+
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -71,15 +76,13 @@ protected:
         exec_idr_factory =
             Solver::build()
                 .with_deterministic(true)
-                .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+                .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
                 .on(exec);
 
         ref_idr_factory =
             Solver::build()
                 .with_deterministic(true)
-                .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(1u).on(ref))
+                .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
                 .on(ref);
     }
 
@@ -290,15 +293,13 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceOneRHSIsEquivalentToRef)
         Solver::build()
             .with_deterministic(true)
             .with_complex_subspace(true)
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
             .on(exec);
     ref_idr_factory =
         Solver::build()
             .with_deterministic(true)
             .with_complex_subspace(true)
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(ref))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
             .on(ref);
     auto ref_solver = ref_idr_factory->generate(mtx);
     auto exec_solver = exec_idr_factory->generate(d_mtx);
@@ -332,15 +333,13 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceMultipleRHSIsEquivalentToRef)
         Solver::build()
             .with_deterministic(true)
             .with_complex_subspace(true)
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
             .on(exec);
     ref_idr_factory =
         Solver::build()
             .with_deterministic(true)
             .with_complex_subspace(true)
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(ref))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
             .on(ref);
     auto exec_solver = exec_idr_factory->generate(d_mtx);
     auto ref_solver = ref_idr_factory->generate(mtx);

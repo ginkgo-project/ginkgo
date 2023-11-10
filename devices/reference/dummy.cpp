@@ -31,4 +31,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 // Remove this file once there is at least one source file in
-// ginkgo_referece_device
+// ginkgo_reference_device

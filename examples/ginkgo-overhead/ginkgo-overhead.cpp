@@ -72,8 +72,7 @@ int main(int argc, char* argv[])
     auto cg_factory =
         cg::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(num_iters).on(
-                    exec))
+                gko::stop::Iteration::build().with_max_iters(num_iters))
             .on(exec);
     auto A = gko::initialize<mtx>({1.0}, exec);
     auto b = gko::initialize<vec>({std::nan("")}, exec);

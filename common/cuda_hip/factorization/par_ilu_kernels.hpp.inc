@@ -57,7 +57,8 @@ __global__ __launch_bounds__(default_block_size) void compute_l_u_factors(
             const auto u_col = u_col_idxs[u_idx];
             last_operation = zero<ValueType>();
             if (l_col == u_col) {
-                last_operation = l_values[l_idx] * u_values[u_idx];
+                last_operation = load_relaxed(l_values + l_idx) *
+                                 load_relaxed(u_values + u_idx);
                 sum -= last_operation;
             }
             l_idx += (l_col <= u_col);
@@ -65,14 +66,15 @@ __global__ __launch_bounds__(default_block_size) void compute_l_u_factors(
         }
         sum += last_operation;  // undo the last operation
         if (row > col) {
-            auto to_write = sum / u_values[u_row_ptrs[col + 1] - 1];
+            auto to_write =
+                sum / load_relaxed(u_values + (u_row_ptrs[col + 1] - 1));
             if (is_finite(to_write)) {
-                l_values[l_idx - 1] = to_write;
+                store_relaxed(l_values + (l_idx - 1), to_write);
             }
         } else {
             auto to_write = sum;
             if (is_finite(to_write)) {
-                u_values[u_idx - 1] = to_write;
+                store_relaxed(u_values + (u_idx - 1), to_write);
             }
         }
     }

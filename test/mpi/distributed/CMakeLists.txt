@@ -1,4 +1,0 @@
-ginkgo_create_common_and_reference_test(matrix MPI_SIZE 3)
-ginkgo_create_common_and_reference_test(vector MPI_SIZE 3)
-
-add_subdirectory(preconditioner)

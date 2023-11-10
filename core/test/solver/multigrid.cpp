@@ -153,11 +153,10 @@ protected:
         multigrid_factory =
             Solver::build()
                 .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(3u).on(exec),
+                    gko::stop::Iteration::build().with_max_iters(3u),
                     gko::stop::ResidualNorm<value_type>::build()
                         .with_baseline(gko::stop::mode::initial_resnorm)
-                        .with_reduction_factor(gko::remove_complex<T>{1e-6})
-                        .on(exec))
+                        .with_reduction_factor(gko::remove_complex<T>{1e-6}))
                 .with_max_levels(2u)
                 .with_coarsest_solver(lo_factory)
                 .with_pre_smoother(lo_factory)
@@ -287,8 +286,7 @@ TYPED_TEST(Multigrid, ApplyUsesInitialGuessReturnsFalseWhenZeroGuess)
     using Solver = typename TestFixture::Solver;
     auto multigrid_factory =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .with_max_levels(2u)
             .with_coarsest_solver(this->lo_factory)
             .with_pre_smoother(this->lo_factory)
@@ -901,6 +899,34 @@ TYPED_TEST(Multigrid, CustomCoarsestSolverSelector)
     auto coarsest_solver = solver->get_coarsest_solver();
 
     ASSERT_EQ(this->get_value(coarsest_solver), 2);
+}
+
+
+TYPED_TEST(Multigrid, DeferredFactoryParameter)
+{
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    using DummyFactory = typename TestFixture::DummyFactory;
+
+    auto solver = Solver::build()
+                      .with_mg_level(DummyRPFactory::build())
+                      .with_pre_smoother(DummyFactory::build())
+                      .with_mid_smoother(DummyFactory::build())
+                      .with_post_smoother(DummyFactory::build())
+                      .with_criteria(gko::stop::Iteration::build())
+                      .with_coarsest_solver(DummyFactory::build())
+                      .on(this->exec);
+
+    GKO_ASSERT_DYNAMIC_TYPE(solver->get_parameters().mg_level[0],
+                            typename DummyRPFactory::Factory);
+    GKO_ASSERT_DYNAMIC_TYPE(solver->get_parameters().pre_smoother[0],
+                            typename DummyFactory::Factory);
+    GKO_ASSERT_DYNAMIC_TYPE(solver->get_parameters().mid_smoother[0],
+                            typename DummyFactory::Factory);
+    GKO_ASSERT_DYNAMIC_TYPE(solver->get_parameters().post_smoother[0],
+                            typename DummyFactory::Factory);
+    GKO_ASSERT_DYNAMIC_TYPE(solver->get_parameters().coarsest_solver[0],
+                            typename DummyFactory::Factory);
 }
 
 

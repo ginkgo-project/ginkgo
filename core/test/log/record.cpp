@@ -440,8 +440,7 @@ TEST(Record, CatchesLinopFactoryGenerateStarted)
         gko::log::Logger::linop_factory_generate_started_mask);
     auto factory =
         gko::solver::Bicgstab<>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(exec);
     auto input = factory->generate(gko::matrix::Dense<>::create(exec));
 
@@ -462,8 +461,7 @@ TEST(Record, CatchesLinopFactoryGenerateCompleted)
         gko::log::Logger::linop_factory_generate_completed_mask);
     auto factory =
         gko::solver::Bicgstab<>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(exec);
     auto input = factory->generate(gko::matrix::Dense<>::create(exec));
     auto output = factory->generate(gko::matrix::Dense<>::create(exec));
@@ -569,8 +567,7 @@ TEST(Record, CatchesIterations)
         gko::log::Record::create(gko::log::Logger::iteration_complete_mask);
     auto factory =
         gko::solver::Bicgstab<>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(exec);
     auto solver = factory->generate(gko::initialize<Dense>({1.1}, exec));
     auto right_hand_side = gko::initialize<Dense>({-5.5}, exec);

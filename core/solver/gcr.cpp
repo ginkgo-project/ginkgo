@@ -186,7 +186,7 @@ void Gcr<ValueType>::apply_dense_impl(const VectorType* dense_b,
     size_type restart_iter = 0;
 
     /* Memory movement summary for average iteration with krylov_dim d:
-     * (4d+22+4/d)n+(d+1+1/d) * values + matrix/preconditioner stroage
+     * (4d+22+4/d)n+(d+1+1/d) * values + matrix/preconditioner storage
      * 1x SpMV:                       2n * values + storage
      * 1x Preconditioner:             2n * values + storage
      * 1x step 1       (scal, axpys)  6n

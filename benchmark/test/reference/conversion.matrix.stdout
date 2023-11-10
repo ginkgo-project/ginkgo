@@ -1,0 +1,30 @@
+[
+    {
+        "filename": "",
+        "conversion": {
+            "coo-read": {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            },
+            "coo-csr": {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            },
+            "csr-read": {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            },
+            "csr-coo": {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            }
+        },
+        "rows": 36,
+        "cols": 36,
+        "nonzeros": 208
+    }
+]

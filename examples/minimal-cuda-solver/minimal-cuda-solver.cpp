@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 int main()
 {
     // Instantiate a CUDA executor
-    auto gpu = gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true);
+    auto gpu = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
     // Read data
     auto A = gko::read<gko::matrix::Csr<>>(std::cin, gpu);
     auto b = gko::read<gko::matrix::Dense<>>(std::cin, gpu);
@@ -44,12 +44,10 @@ int main()
     // Create the solver
     auto solver =
         gko::solver::Cg<>::build()
-            .with_preconditioner(gko::preconditioner::Jacobi<>::build().on(gpu))
+            .with_preconditioner(gko::preconditioner::Jacobi<>::build())
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(20u).on(gpu),
-                gko::stop::ResidualNorm<>::build()
-                    .with_reduction_factor(1e-15)
-                    .on(gpu))
+                gko::stop::Iteration::build().with_max_iters(20u),
+                gko::stop::ResidualNorm<>::build().with_reduction_factor(1e-15))
             .on(gpu);
     // Solve system
     solver->generate(give(A))->apply(b, x);

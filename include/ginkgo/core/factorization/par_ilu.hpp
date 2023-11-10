@@ -128,7 +128,7 @@ public:
          * The number of iterations the `compute` kernel will use when doing
          * the factorization. The default value `0` means `Auto`, so the
          * implementation decides on the actual value depending on the
-         * ressources that are available.
+         * resources that are available.
          */
         size_type GKO_FACTORY_PARAMETER_SCALAR(iterations, 0);
 

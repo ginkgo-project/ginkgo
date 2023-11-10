@@ -12,6 +12,9 @@ compile_commands.json
 CTestTestfile.cmake
 build
 
+### Python
+__pycache__
+
 ### IDE
 # Clion
 .idea

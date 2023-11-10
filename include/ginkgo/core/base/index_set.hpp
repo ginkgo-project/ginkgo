@@ -360,7 +360,7 @@ public:
         const bool is_sorted = false) const;
 
     /**
-     * This function allows the user obtain a decompresed global_indices array
+     * This function allows the user obtain a decompressed global_indices array
      * from the indices stored in the index set
      *
      * @return  the decompressed set of indices.

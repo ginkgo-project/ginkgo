@@ -337,7 +337,7 @@ public:
                           array<char>& tmp) const;
 
     /**
-     * Computes the square of the column-wise Euclidian ($L^2$) norm of this
+     * Computes the square of the column-wise Euclidean ($L^2$) norm of this
      * (multi-)vector using a global reduction.
      *
      * @param result  a Dense row vector, used to store the norm
@@ -347,7 +347,7 @@ public:
     void compute_squared_norm2(ptr_param<LinOp> result) const;
 
     /**
-     * Computes the square of the column-wise Euclidian ($L^2$) norm of this
+     * Computes the square of the column-wise Euclidean ($L^2$) norm of this
      * (multi-)vector using a global reduction.
      *
      * @param result  a Dense row vector, used to store the norm
@@ -360,7 +360,7 @@ public:
     void compute_squared_norm2(ptr_param<LinOp> result, array<char>& tmp) const;
 
     /**
-     * Computes the Euclidian (L^2) norm of this (multi-)vector using a global
+     * Computes the Euclidean (L^2) norm of this (multi-)vector using a global
      * reduction.
      *
      * @param result  a Dense row matrix, used to store the norm
@@ -370,7 +370,7 @@ public:
     void compute_norm2(ptr_param<LinOp> result) const;
 
     /**
-     * Computes the Euclidian (L^2) norm of this (multi-)vector using a global
+     * Computes the Euclidean (L^2) norm of this (multi-)vector using a global
      * reduction.
      *
      * @param result  a Dense row matrix, used to store the norm
@@ -403,6 +403,29 @@ public:
      *             correct executor.
      */
     void compute_norm1(ptr_param<LinOp> result, array<char>& tmp) const;
+
+    /**
+     * Computes the column-wise mean of this (multi-)vector using a global
+     * reduction.
+     *
+     * @param result  a Dense row matrix, used to store the mean
+     *                (the number of columns in result must match the number
+     *                of columns of this)
+     */
+    void compute_mean(ptr_param<LinOp> result) const;
+
+    /**
+     * Computes the column-wise arithmetic mean of this (multi-)vector using a
+     * global reduction.
+     *
+     * @param result  a Dense row matrix, used to store the mean
+     *                (the number of columns in result must match the number
+     *                of columns of this)
+     * @param tmp  the temporary storage to use for partial sums during the
+     *             reduction computation. It may be resized and/or reset to the
+     *             correct executor.
+     */
+    void compute_mean(ptr_param<LinOp> result, array<char>& tmp) const;
 
     /**
      * Returns a single element of the multi-vector.

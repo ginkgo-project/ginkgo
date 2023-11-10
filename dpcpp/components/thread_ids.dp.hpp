@@ -238,7 +238,7 @@ __dpct_inline__ size_type get_thread_id(sycl::nd_item<3> item_ct1)
  *
  * Returns the global ID of the thread in the given index type.
  * This function assumes one-dimensional thread and block indexing in cuda
- * sense. It uses the third position infomation to get the information.
+ * sense. It uses the third position information to get the information.
  *
  * @return the global ID of the thread in the given index type.
  *
@@ -258,7 +258,7 @@ __dpct_inline__ IndexType get_thread_id_flat(sycl::nd_item<3> item_ct1)
  *
  * Returns the total number of threads in the given index type.
  * This function assumes one-dimensional thread and block indexing in cuda
- * sense. It uses the third position infomation to get the information.
+ * sense. It uses the third position information to get the information.
  *
  * @return the total number of threads in the given index type.
  *

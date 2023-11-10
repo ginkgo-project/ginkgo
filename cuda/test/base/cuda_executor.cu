@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/stream.hpp>
 
 #include "common/cuda_hip/base/executor.hpp.inc"
 #include "cuda/base/scoped_device_id.hpp"
@@ -92,7 +93,7 @@ protected:
           stream(0),
           other_stream(gko::CudaExecutor::get_num_devices() - 1),
 #endif
-          omp(gko::OmpExecutor::create()),
+          ref(gko::ReferenceExecutor::create()),
           cuda(nullptr),
           cuda2(nullptr),
           cuda3(nullptr)
@@ -103,18 +104,19 @@ protected:
         ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
 #ifdef GKO_TEST_NONDEFAULT_STREAM
         cuda = gko::CudaExecutor::create(
-            0, omp, false, gko::default_cuda_alloc_mode, stream.get());
+            0, ref, std::make_shared<gko::CudaAllocator>(), stream.get());
         cuda2 = gko::CudaExecutor::create(
-            gko::CudaExecutor::get_num_devices() - 1, omp, false,
-            gko::default_cuda_alloc_mode, other_stream.get());
+            gko::CudaExecutor::get_num_devices() - 1, ref,
+            std::make_shared<gko::CudaAllocator>(), other_stream.get());
         cuda3 = gko::CudaExecutor::create(
-            0, omp, false, gko::allocation_mode::unified_global, stream.get());
+            0, ref, std::make_shared<gko::CudaUnifiedAllocator>(0),
+            stream.get());
 #else
-        cuda = gko::CudaExecutor::create(0, omp);
+        cuda = gko::CudaExecutor::create(0, ref);
         cuda2 = gko::CudaExecutor::create(
-            gko::CudaExecutor::get_num_devices() - 1, omp);
-        cuda3 = gko::CudaExecutor::create(0, omp, false,
-                                          gko::allocation_mode::unified_global);
+            gko::CudaExecutor::get_num_devices() - 1, ref);
+        cuda3 = gko::CudaExecutor::create(
+            0, ref, std::make_shared<gko::CudaUnifiedAllocator>(0));
 #endif
     }
 
@@ -130,7 +132,7 @@ protected:
     gko::cuda_stream stream;
     gko::cuda_stream other_stream;
 #endif
-    std::shared_ptr<gko::Executor> omp;
+    std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::CudaExecutor> cuda;
     std::shared_ptr<gko::CudaExecutor> cuda2;
     std::shared_ptr<gko::CudaExecutor> cuda3;
@@ -139,8 +141,8 @@ protected:
 
 TEST_F(CudaExecutor, CanInstantiateTwoExecutorsOnOneDevice)
 {
-    auto cuda = gko::CudaExecutor::create(0, omp);
-    auto cuda2 = gko::CudaExecutor::create(0, omp);
+    auto cuda = gko::CudaExecutor::create(0, ref);
+    auto cuda2 = gko::CudaExecutor::create(0, ref);
 
     // We want automatic deinitialization to not create any error
 }
@@ -195,7 +197,7 @@ TEST_F(CudaExecutor, CopiesDataToCuda)
     int orig[] = {3, 8};
     auto* copy = cuda->alloc<int>(2);
 
-    cuda->copy_from(omp, 2, orig, copy);
+    cuda->copy_from(ref, 2, orig, copy);
 
     check_data<<<1, 1, 0, cuda->get_stream()>>>(copy);
     ASSERT_NO_THROW(cuda->synchronize());
@@ -216,7 +218,7 @@ TEST_F(CudaExecutor, CanAllocateOnUnifiedMemory)
     int orig[] = {3, 8};
     auto* copy = cuda3->alloc<int>(2);
 
-    cuda3->copy_from(omp, 2, orig, copy);
+    cuda3->copy_from(ref, 2, orig, copy);
 
     check_data<<<1, 1, 0, cuda3->get_stream()>>>(copy);
     ASSERT_NO_THROW(cuda3->synchronize());
@@ -238,7 +240,7 @@ TEST_F(CudaExecutor, CopiesDataFromCuda)
     auto orig = cuda->alloc<int>(2);
     init_data<<<1, 1, 0, cuda->get_stream()>>>(orig);
 
-    omp->copy_from(cuda, 2, orig, copy);
+    ref->copy_from(cuda, 2, orig, copy);
 
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);
@@ -291,7 +293,7 @@ TEST_F(CudaExecutor, CopiesDataFromCudaToCuda)
     cuda2->run(ExampleOperation(value));
     ASSERT_EQ(value, cuda2->get_device_id());
     // Put the results on OpenMP and run CPU side assertions
-    omp->copy_from(cuda2, 2, copy_cuda2, copy);
+    ref->copy_from(cuda2, 2, copy_cuda2, copy);
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);
     cuda2->free(copy_cuda2);

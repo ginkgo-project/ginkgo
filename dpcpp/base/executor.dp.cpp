@@ -103,7 +103,7 @@ void DpcppExecutor::populate_exec_info(const machine_topology* mach_topo)
 
 void DpcppExecutor::raw_free(void* ptr) const noexcept
 {
-    // the free function may syncronize excution or not, which depends on
+    // the free function may synchronize execution or not, which depends on
     // implementation or backend, so it is not guaranteed.
     // TODO: maybe a light wait implementation?
     try {
@@ -321,6 +321,17 @@ namespace dpcpp {
 
 
 void destroy_event(sycl::event* event) { delete event; }
+
+
+std::string get_device_name(int device_id)
+{
+    auto devices = ::gko::detail::get_devices("gpu");
+    if (devices.empty()) {
+        return "CPU";
+    }
+
+    return devices[device_id].get_info<sycl::info::device::name>();
+}
 
 
 }  // namespace dpcpp

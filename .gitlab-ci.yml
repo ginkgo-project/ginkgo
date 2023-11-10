@@ -19,6 +19,13 @@ include:
   - local: '.gitlab/rules.yml'
   - local: '.gitlab/scripts.yml'
   - local: '.gitlab/variables.yml'
+  # This is a workaround to conditionally make the branch pipelines
+  # interruptible, because the flag does not directly support rules [1].
+  #
+  # [1] https://gitlab.com/gitlab-org/gitlab/-/issues/194023#note_1225906002
+  - local: '.gitlab/add-interrupt.yml'
+    rules:
+      - if: $CI_COMMIT_BRANCH != "master" && $CI_COMMIT_BRANCH != "develop" && $CI_COMMIT_TAG !~ /^v\d+\.\d+\.\d+/
 
 sync:
   stage: sync
@@ -86,20 +93,6 @@ trigger_pipeline:
 
 # Build jobs
 # Job with example runs.
-# cuda 9.2 and friends
-build/cuda92/nompi/gcc/all/release/shared:
-  extends:
-    - .build_and_test_template
-    - .default_variables
-    - .quick_test_condition
-    - .use_gko-cuda92-mvapich2-gnu7-llvm50-intel2017
-  variables:
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
-    BUILD_TYPE: "Release"
-    CUDA_ARCH: 61
-
 # cuda 10.1 and friends
 # Build CUDA NVIDIA without omp
 # Make sure that our jobs run when HWLOC is
@@ -120,6 +113,7 @@ build/cuda101/nompi/clang/cuda_wo_omp/release/shared:
     CUDA_ARCH: 35
 
 # Job with example runs.
+# Also explicitly test PAPI SDE
 build/cuda101/openmpi/gcc/all/debug/shared:
   extends:
     - .build_template
@@ -133,6 +127,7 @@ build/cuda101/openmpi/gcc/all/debug/shared:
     MPI_AS_ROOT: "ON"
     BUILD_HIP: "ON"
     BUILD_TYPE: "Debug"
+    BUILD_PAPI_SDE: "ON"
     RUN_EXAMPLES: "ON"
     CUDA_ARCH: 35
 
@@ -169,7 +164,6 @@ build/cuda101/nompi/clang/all/release/static:
 #    MPI_AS_ROOT: "ON"
 #    BUILD_HIP: "OFF"
 #    BUILD_TYPE: "Release"
-#    CUDA_ARCH: 61
 
 
 #build/clang-cuda101/nompi/clang/cuda/debug/static:
@@ -187,7 +181,6 @@ build/cuda101/nompi/clang/all/release/static:
 #    BUILD_TYPE: "Debug"
 #    FAST_TESTS: "ON"
 #    BUILD_SHARED_LIBS: "OFF"
-#    CUDA_ARCH: 61
 
 
 # cuda 10.2 and friends
@@ -272,6 +265,8 @@ test/cuda110/mvapich2/gcc/cuda/debug/shared:
     SLURM_GRES: "gpu:4"
     SLURM_TIME: "02:00:00"
   dependencies: null
+  # FIXME: current slurm always reports failure even if all tests are passed.
+  allow_failure: yes
   needs: [ "build/cuda110/mvapich2/gcc/cuda/debug/shared" ]
 
 
@@ -302,9 +297,11 @@ test/cuda110/nompi/clang/cuda/release/static:
   variables:
     USE_NAME: "cuda110-nompi-clang-${CI_PIPELINE_ID}"
     SLURM_PARTITION: "accelerated"
-    SLURM_GRES: "gpu:1"
+    SLURM_GRES: "gpu:4"
     SLURM_TIME: "01:30:00"
   dependencies: null
+  # FIXME: current slurm always reports failure even if all tests are passed.
+  allow_failure: yes
   needs: [ "build/cuda110/nompi/clang/cuda/release/static" ]
 
 
@@ -336,9 +333,11 @@ test/cuda110/nompi/intel/cuda/debug/static:
   variables:
     USE_NAME: "cuda110-nompi-intel-${CI_PIPELINE_ID}"
     SLURM_PARTITION: "accelerated"
-    SLURM_GRES: "gpu:1"
+    SLURM_GRES: "gpu:4"
     SLURM_TIME: "02:00:00"
   dependencies: null
+  # FIXME: current slurm always reports failure even if all tests are passed.
+  allow_failure: yes
   needs: [ "build/cuda110/nompi/intel/cuda/debug/static" ]
 
 
@@ -348,7 +347,7 @@ build/cuda114/nompi/gcc/cuda/debug/shared:
     - .build_and_test_template
     - .default_variables
     - .quick_test_condition
-    - .use_gko_cuda114-openmpi-gnu11-llvm12
+    - .use_gko_cuda114-openmpi-gnu10-llvm12
   variables:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
@@ -358,7 +357,6 @@ build/cuda114/nompi/gcc/cuda/debug/shared:
     CXX_FLAGS: "-Wno-error=maybe-uninitialized"
     # disable spurious unused argument warning
     EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
-    CUDA_ARCH: 61
 
 
 # nvhpc and friends
@@ -381,7 +379,6 @@ build/nvhpc233/cuda120/nompi/nvcpp/release/static:
     CXX_FLAGS: "--diag_suppress=useless_using_declaration,declared_but_not_referenced"
     # disable spurious unused argument warning
     EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
-    CUDA_ARCH: 61
 
 build/nvhpc227/cuda117/nompi/nvcpp/debug/shared:
   extends:
@@ -401,7 +398,6 @@ build/nvhpc227/cuda117/nompi/nvcpp/debug/shared:
     CXX_FLAGS: "--diag_suppress=useless_using_declaration,declared_but_not_referenced"
     # disable spurious unused argument warning
     EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
-    CUDA_ARCH: 61
 
 # ROCm 4.5 and friends
 build/amd/nompi/gcc/rocm45/release/shared:
@@ -538,24 +534,13 @@ build/nocuda/openmpi/clang/omp/debug/static:
     FAST_TESTS: "ON"
     BUILD_SHARED_LIBS: "OFF"
 
-test/nocuda/openmpi/clang/omp/debug/static:
-  extends:
-    - .build_and_test_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-nocuda-openmpi-gnu9-llvm8
-  variables:
-    USE_NAME: "nocuda-openmpi-clang-${CI_PIPELINE_ID}"
-  dependencies: null
-  needs: [ "build/nocuda/openmpi/clang/omp/debug/static" ]
-
 # nocuda with the oldest supported compiler
 build/nocuda/nompi/gcc/omp/release/static:
   extends:
     - .build_and_test_template
     - .default_variables
     - .quick_test_condition
-    - .use_gko-nocuda-mvapich2-gnu5-llvm39-intel2018
+    - .use_gko-nocuda-mvapich2-gnu5-llvm39-intel2019
   variables:
     BUILD_OMP: "ON"
     BUILD_TYPE: "Release"
@@ -566,7 +551,7 @@ build/nocuda-nomixed/nompi/clang/omp/release/static:
     - .build_and_test_template
     - .default_variables
     - .full_test_condition
-    - .use_gko-nocuda-mvapich2-gnu5-llvm39-intel2018
+    - .use_gko-nocuda-mvapich2-gnu5-llvm39-intel2019
   variables:
     C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
@@ -602,7 +587,7 @@ build/nocuda-nomixed/nompi/clang/omp/debug/static:
     BUILD_SHARED_LIBS: "OFF"
     MIXED_PRECISION: "OFF"
 
-build/dpcpp/2022-1/cpu/release/static:
+build/dpcpp/2022-1/cpu/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
@@ -611,10 +596,11 @@ build/dpcpp/2022-1/cpu/release/static:
   variables:
     C_COMPILER: "gcc"
     CXX_COMPILER: "dpcpp"
-    BUILD_DPCPP: "ON"
+    BUILD_SYCL: "ON"
+    GKO_COMPILER_FLAGS: "-ffp-model=precise"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "ON"
-    SYCL_DEVICE_TYPE: "CPU"
+    SYCL_DEVICE_FILTER: "*:cpu"
     SLURM_PARTITION: "cpu"
     SLURM_TIME: "2:00:00"
     # This job is not in exclusive mode
@@ -629,11 +615,12 @@ build/dpcpp/igpu/release/shared:
   variables:
     C_COMPILER: "gcc"
     CXX_COMPILER: "dpcpp"
-    BUILD_DPCPP: "ON"
+    BUILD_SYCL: "ON"
+    GKO_COMPILER_FLAGS: "-ffp-model=precise"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "ON"
     DPCPP_SINGLE_MODE: "ON"
-    SYCL_DEVICE_TYPE: "GPU"
+    ONEAPI_DEVICE_SELECTOR: "*:gpu"
 
 # TODO: Enable when debug shared library size issues are fixed
 # build/dpcpp/level_zero_igpu/debug/shared:
@@ -645,11 +632,12 @@ build/dpcpp/igpu/release/shared:
 #   variables:
 #     C_COMPILER: "gcc"
 #     CXX_COMPILER: "dpcpp"
-#     BUILD_DPCPP: "ON"
+#     BUILD_SYCL: "ON"
+#     GKO_COMPILER_FLAGS: "-ffp-model=precise"
 #     BUILD_TYPE: "Debug"
 #     BUILD_SHARED_LIBS: "ON"
 #     DPCPP_SINGLE_MODE: "ON"
-#     SYCL_DEVICE_FILTER: "Level_Zero:GPU"
+#     ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
 
 # It gives two available backends of GPU on tests
 build/dpcpp/dgpu/release/static:
@@ -661,11 +649,12 @@ build/dpcpp/dgpu/release/static:
   variables:
     C_COMPILER: "gcc"
     CXX_COMPILER: "dpcpp"
-    BUILD_DPCPP: "ON"
+    BUILD_SYCL: "ON"
+    GKO_COMPILER_FLAGS: "-ffp-model=precise"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OF"
     DPCPP_SINGLE_MODE: "ON"
-    SYCL_DEVICE_TYPE: "GPU"
+    ONEAPI_DEVICE_SELECTOR: "*:gpu"
 
 build/dpcpp/level_zero_dgpu/release/shared:
   extends:
@@ -676,10 +665,26 @@ build/dpcpp/level_zero_dgpu/release/shared:
   variables:
     C_COMPILER: "gcc"
     CXX_COMPILER: "dpcpp"
-    BUILD_DPCPP: "ON"
+    BUILD_SYCL: "ON"
+    GKO_COMPILER_FLAGS: "-ffp-model=precise"
     BUILD_TYPE: "Release"
     DPCPP_SINGLE_MODE: "ON"
-    SYCL_DEVICE_FILTER: "Level_Zero:GPU"
+    ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
+
+build/icpx/level_zero_dgpu/release/shared:
+  extends:
+    - .build_and_test_template
+    - .default_variables
+    - .quick_test_condition
+    - .use_gko-oneapi-dgpu
+  variables:
+    C_COMPILER: "icx"
+    CXX_COMPILER: "icpx"
+    BUILD_SYCL: "ON"
+    GKO_COMPILER_FLAGS: "-ffp-model=precise"
+    BUILD_TYPE: "Release"
+    DPCPP_SINGLE_MODE: "ON"
+    ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
 
 # Job with important warnings as error
 warnings:
@@ -694,6 +699,7 @@ warnings:
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
     CXX_FLAGS: "-Werror=pedantic -pedantic-errors"
+    GKO_COMPILER_FLAGS: "-Wpedantic"
   allow_failure: yes
 
 # Ensure kernel modules do not depend on core
@@ -818,6 +824,7 @@ sonarqube_cov:
 # Deploy documentation to github-pages
 gh-pages:
   stage: deploy
+  interruptible: false
   extends:
     - .default_variables
     - .deploy_condition
@@ -833,7 +840,7 @@ gh-pages:
         -DCMAKE_CUDA_COMPILER=${CUDA_COMPILER} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
         -DBUILD_SHARED_LIBS=ON ${EXTRA_CMAKE_FLAGS} -DGINKGO_DEVEL_TOOLS=OFF
         -DGINKGO_BUILD_REFERENCE=OFF -DGINKGO_BUILD_OMP=OFF -DGINKGO_BUILD_CUDA=OFF
-        -DGINKGO_BUILD_HIP=OFF -DGINKGO_BUILD_DPCPP=OFF -DGINKGO_BUILD_MPI=OFF
+        -DGINKGO_BUILD_HIP=OFF -DGINKGO_BUILD_SYCL=OFF -DGINKGO_BUILD_MPI=OFF
         -DGINKGO_BUILD_TESTS=OFF -DGINKGO_BUILD_EXAMPLES=OFF
         -DGINKGO_BUILD_DOC=ON -DGINKGO_DOC_GENERATE_PDF=ON
     - make usr
@@ -921,6 +928,7 @@ cudamemcheck:
 
 new-issue-on-failure:
   stage: on-failure
+  interruptible: false
   extends:
     - .default_variables
     - .use_status-job-settings

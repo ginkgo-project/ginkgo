@@ -203,7 +203,7 @@ bool validate(sycl::queue* queue, unsigned workgroup_size,
  * get_first_cfg will return the first valid config by validate function from
  * given config array.
  *
- * @tparam IterArr  the iteratable array type
+ * @tparam IterArr  the iterable array type
  * @tparam Validate  the validate function type
  *
  * @param arr  the config array

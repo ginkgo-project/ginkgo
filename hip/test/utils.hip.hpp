@@ -38,21 +38,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/stream.hpp>
 
 
+#include "core/test/gtest/resources.hpp"
 #include "hip/base/device.hpp"
 
 
 namespace {
-
-
-class HipEnvironment : public ::testing::Environment {
-public:
-    void TearDown() override { gko::kernels::hip::reset_device(0); }
-};
-
-testing::Environment* hip_env =
-    testing::AddGlobalTestEnvironment(new HipEnvironment);
 
 
 class HipTestFixture : public ::testing::Test {
@@ -60,11 +53,12 @@ protected:
     HipTestFixture()
         : ref(gko::ReferenceExecutor::create()),
 #ifdef GKO_TEST_NONDEFAULT_STREAM
-          exec(gko::HipExecutor::create(
-              0, ref, false, gko::default_hip_alloc_mode, stream.get()))
-#else
-          exec(gko::HipExecutor::create(0, ref))
+          stream(ResourceEnvironment::hip_device_id),
 #endif
+          exec(gko::HipExecutor::create(ResourceEnvironment::hip_device_id, ref,
+                                        std::make_shared<gko::HipAllocator>(),
+                                        stream.get())),
+          guard(exec->get_scoped_device_id_guard())
     {}
 
     void TearDown()
@@ -75,11 +69,10 @@ protected:
         }
     }
 
-#ifdef GKO_TEST_NONDEFAULT_STREAM
     gko::hip_stream stream;
-#endif
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::HipExecutor> exec;
+    gko::scoped_device_id_guard guard;
 };
 
 

@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if GINKGO_BUILD_MPI
 
 
+#include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
@@ -93,8 +94,14 @@ public:
         /**
          * Local solver factory.
          */
-        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
-            local_solver_factory, nullptr);
+        std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
+            local_solver);
+
+        /**
+         * Generated Inner solvers.
+         */
+        std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(
+            generated_local_solver, nullptr);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Schwarz, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -112,7 +119,7 @@ protected:
     /**
      * Creates a Schwarz preconditioner from a matrix using a Schwarz::Factory.
      *
-     * @param factory  the factory to use to create the preconditoner
+     * @param factory  the factory to use to create the preconditioner
      * @param system_matrix  the matrix this preconditioner should be created
      *                       from
      */
@@ -126,10 +133,9 @@ protected:
     }
 
     /**
-     * Generates the preconditoner.
+     * Generates the preconditioner.
      */
     void generate(std::shared_ptr<const LinOp> system_matrix);
-
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
@@ -140,6 +146,13 @@ protected:
                     LinOp* x) const override;
 
 private:
+    /**
+     * Sets the solver operator used as the local solver.
+     *
+     * @param new_solver  the new local solver
+     */
+    void set_solver(std::shared_ptr<const LinOp> new_solver);
+
     std::shared_ptr<const LinOp> local_solver_;
 };
 

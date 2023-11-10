@@ -1,1 +1,0 @@
-ginkgo_create_common_and_reference_test(schwarz MPI_SIZE 3)

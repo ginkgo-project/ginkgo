@@ -14,7 +14,7 @@ Final residual norm sqrt(r^T r):
 CG iteration count:     12
 CG generation time [ms]: 1.41642
 CG execution time [ms]: 6.59244
-CG execution time per iteraion[ms]: 0.54937
+CG execution time per iteration[ms]: 0.54937
 
 @endcode
 

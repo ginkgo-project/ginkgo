@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/memory.hpp>
 
 
 namespace {
@@ -247,111 +248,53 @@ TEST(ReferenceExecutor, IsItsOwnMaster)
 
 TEST(CudaExecutor, KnowsItsMaster)
 {
-    auto omp = gko::OmpExecutor::create();
-    exec_ptr cuda = gko::CudaExecutor::create(0, omp);
+    auto ref = gko::ReferenceExecutor::create();
+    exec_ptr cuda = gko::CudaExecutor::create(0, ref);
 
-    ASSERT_EQ(omp, cuda->get_master());
+    ASSERT_EQ(ref, cuda->get_master());
 }
 
 
 TEST(CudaExecutor, KnowsItsDeviceId)
 {
-    auto omp = gko::OmpExecutor::create();
-    auto cuda = gko::CudaExecutor::create(0, omp);
+    auto ref = gko::ReferenceExecutor::create();
+    auto cuda = gko::CudaExecutor::create(0, ref);
 
     ASSERT_EQ(0, cuda->get_device_id());
 }
 
 
-TEST(CudaExecutor, CanGetDeviceResetBoolean)
-{
-    auto omp = gko::OmpExecutor::create();
-    auto cuda = gko::CudaExecutor::create(0, omp);
-
-    ASSERT_EQ(false, cuda->get_device_reset());
-}
-
-
-TEST(CudaExecutor, CanSetDefaultDeviceResetBoolean)
-{
-    auto omp = gko::OmpExecutor::create();
-    auto cuda = gko::CudaExecutor::create(0, omp, true);
-
-    ASSERT_EQ(true, cuda->get_device_reset());
-}
-
-
-TEST(CudaExecutor, CanSetDeviceResetBoolean)
-{
-    auto omp = gko::OmpExecutor::create();
-    auto cuda = gko::CudaExecutor::create(0, omp);
-
-    cuda->set_device_reset(true);
-
-    ASSERT_EQ(true, cuda->get_device_reset());
-}
-
-
 TEST(HipExecutor, KnowsItsMaster)
 {
-    auto omp = gko::OmpExecutor::create();
-    exec_ptr hip = gko::HipExecutor::create(0, omp);
+    auto ref = gko::ReferenceExecutor::create();
+    exec_ptr hip = gko::HipExecutor::create(0, ref);
 
-    ASSERT_EQ(omp, hip->get_master());
+    ASSERT_EQ(ref, hip->get_master());
 }
 
 
 TEST(HipExecutor, KnowsItsDeviceId)
 {
-    auto omp = gko::OmpExecutor::create();
-    auto hip = gko::HipExecutor::create(0, omp);
+    auto ref = gko::ReferenceExecutor::create();
+    auto hip = gko::HipExecutor::create(0, ref);
 
     ASSERT_EQ(0, hip->get_device_id());
 }
 
 
-TEST(HipExecutor, CanGetDeviceResetBoolean)
-{
-    auto omp = gko::OmpExecutor::create();
-    auto hip = gko::HipExecutor::create(0, omp);
-
-    ASSERT_EQ(false, hip->get_device_reset());
-}
-
-
-TEST(HipExecutor, CanSetDefaultDeviceResetBoolean)
-{
-    auto omp = gko::OmpExecutor::create();
-    auto hip = gko::HipExecutor::create(0, omp, true);
-
-    ASSERT_EQ(true, hip->get_device_reset());
-}
-
-
-TEST(HipExecutor, CanSetDeviceResetBoolean)
-{
-    auto omp = gko::OmpExecutor::create();
-    auto hip = gko::HipExecutor::create(0, omp);
-
-    hip->set_device_reset(true);
-
-    ASSERT_EQ(true, hip->get_device_reset());
-}
-
-
 TEST(DpcppExecutor, KnowsItsMaster)
 {
-    auto omp = gko::OmpExecutor::create();
-    exec_ptr dpcpp = gko::DpcppExecutor::create(0, omp);
+    auto ref = gko::ReferenceExecutor::create();
+    exec_ptr dpcpp = gko::DpcppExecutor::create(0, ref);
 
-    ASSERT_EQ(omp, dpcpp->get_master());
+    ASSERT_EQ(ref, dpcpp->get_master());
 }
 
 
 TEST(DpcppExecutor, KnowsItsDeviceId)
 {
-    auto omp = gko::OmpExecutor::create();
-    auto dpcpp = gko::DpcppExecutor::create(0, omp);
+    auto ref = gko::ReferenceExecutor::create();
+    auto dpcpp = gko::DpcppExecutor::create(0, ref);
 
     ASSERT_EQ(0, dpcpp->get_device_id());
 }
@@ -361,13 +304,13 @@ TEST(Executor, CanVerifyMemory)
 {
     auto ref = gko::ReferenceExecutor::create();
     auto omp = gko::OmpExecutor::create();
-    auto hip = gko::HipExecutor::create(0, omp);
-    auto cuda = gko::CudaExecutor::create(0, omp);
+    auto hip = gko::HipExecutor::create(0, ref);
+    auto cuda = gko::CudaExecutor::create(0, ref);
     auto omp2 = gko::OmpExecutor::create();
-    auto hip2 = gko::HipExecutor::create(0, omp);
-    auto cuda2 = gko::CudaExecutor::create(0, omp);
-    auto hip_1 = gko::HipExecutor::create(1, omp);
-    auto cuda_1 = gko::CudaExecutor::create(1, omp);
+    auto hip2 = gko::HipExecutor::create(0, ref);
+    auto cuda2 = gko::CudaExecutor::create(0, ref);
+    auto hip_1 = gko::HipExecutor::create(1, ref);
+    auto cuda_1 = gko::CudaExecutor::create(1, ref);
     std::shared_ptr<gko::DpcppExecutor> host_dpcpp;
     std::shared_ptr<gko::DpcppExecutor> cpu_dpcpp;
     std::shared_ptr<gko::DpcppExecutor> gpu_dpcpp;
@@ -375,16 +318,16 @@ TEST(Executor, CanVerifyMemory)
     std::shared_ptr<gko::DpcppExecutor> cpu_dpcpp_dup;
     std::shared_ptr<gko::DpcppExecutor> gpu_dpcpp_dup;
     if (gko::DpcppExecutor::get_num_devices("host")) {
-        host_dpcpp = gko::DpcppExecutor::create(0, omp, "host");
-        host_dpcpp_dup = gko::DpcppExecutor::create(0, omp, "host");
+        host_dpcpp = gko::DpcppExecutor::create(0, ref, "host");
+        host_dpcpp_dup = gko::DpcppExecutor::create(0, ref, "host");
     }
     if (gko::DpcppExecutor::get_num_devices("cpu")) {
-        cpu_dpcpp = gko::DpcppExecutor::create(0, omp, "cpu");
-        cpu_dpcpp_dup = gko::DpcppExecutor::create(0, omp, "cpu");
+        cpu_dpcpp = gko::DpcppExecutor::create(0, ref, "cpu");
+        cpu_dpcpp_dup = gko::DpcppExecutor::create(0, ref, "cpu");
     }
     if (gko::DpcppExecutor::get_num_devices("gpu")) {
-        gpu_dpcpp = gko::DpcppExecutor::create(0, omp, "gpu");
-        gpu_dpcpp_dup = gko::DpcppExecutor::create(0, omp, "gpu");
+        gpu_dpcpp = gko::DpcppExecutor::create(0, ref, "gpu");
+        gpu_dpcpp_dup = gko::DpcppExecutor::create(0, ref, "gpu");
     }
 
     ASSERT_EQ(false, ref->memory_accessible(omp));
@@ -442,20 +385,11 @@ TEST(Executor, CanVerifyMemory)
 }
 
 
-template <typename T>
-struct mock_free : T {
-    /**
-     * @internal Due to a bug with gcc 5.3, the constructor needs to be called
-     * with `()` operator instead of `{}`.
-     */
-    template <typename... Params>
-    mock_free(Params&&... params) : T(std::forward<Params>(params)...)
-    {}
-
-    void raw_free(void* ptr) const noexcept override
+struct MockAllocator : gko::CpuAllocator {
+    void deallocate(void* ptr) noexcept override
     {
         called_free = true;
-        T::raw_free(ptr);
+        CpuAllocator::deallocate(ptr);
     }
 
     mutable bool called_free{false};
@@ -464,12 +398,13 @@ struct mock_free : T {
 
 TEST(ExecutorDeleter, DeletesObject)
 {
-    auto ref = std::make_shared<mock_free<gko::ReferenceExecutor>>();
+    auto alloc = std::make_shared<MockAllocator>();
+    auto ref = gko::ReferenceExecutor::create(alloc);
     auto x = ref->alloc<int>(5);
 
     gko::executor_deleter<int>{ref}(x);
 
-    ASSERT_TRUE(ref->called_free);
+    ASSERT_TRUE(alloc->called_free);
 }
 
 

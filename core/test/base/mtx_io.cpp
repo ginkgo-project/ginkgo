@@ -286,7 +286,7 @@ TEST(MtxReader, ReadsSparseRealMtx)
 }
 
 
-TEST(MtxReader, ReadsSparseRealSymetricMtx)
+TEST(MtxReader, ReadsSparseRealSymmetricMtx)
 {
     using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
     std::istringstream iss(
@@ -310,7 +310,7 @@ TEST(MtxReader, ReadsSparseRealSymetricMtx)
 }
 
 
-TEST(MtxReader, ReadsSparseRealSkewSymetricMtx)
+TEST(MtxReader, ReadsSparseRealSkewSymmetricMtx)
 {
     using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
     std::istringstream iss(
@@ -330,7 +330,7 @@ TEST(MtxReader, ReadsSparseRealSkewSymetricMtx)
 }
 
 
-TEST(MtxReader, ReadsSparseRealSkewSymetricMtxWithExplicitDiagonal)
+TEST(MtxReader, ReadsSparseRealSkewSymmetricMtxWithExplicitDiagonal)
 {
     using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
     std::istringstream iss(

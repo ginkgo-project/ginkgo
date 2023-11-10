@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/unified/base/kernel_launch.hpp"
 
 
+#include <algorithm>
 #include <memory>
 #include <type_traits>
 
@@ -321,102 +322,180 @@ TEST_F(KernelLaunch, Runs2DDense)
 
 void run1d_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
 {
-    gko::array<int64> output{exec, 1};
+    gko::array<int64> output{exec, {-1l}};
+    auto run_reduction = [&](int64 init, size_type size) {
+        gko::kernels::EXEC_NAMESPACE::run_kernel_reduction(
+            exec,
+            [] GKO_KERNEL(auto i, auto a, auto dummy) {
+                static_assert(is_same<decltype(i), int64>::value, "index");
+                static_assert(is_same<decltype(a), int64*>::value, "value");
+                static_assert(is_same<decltype(dummy), int64>::value, "dummy");
+                return i + 1;
+            },
+            [] GKO_KERNEL(auto i, auto j) { return i + j; },
+            [] GKO_KERNEL(auto j) { return j * 2; }, init, output.get_data(),
+            size, output, move_only_val);
+    };
 
-    gko::kernels::EXEC_NAMESPACE::run_kernel_reduction(
-        exec,
-        [] GKO_KERNEL(auto i, auto a, auto dummy) {
-            static_assert(is_same<decltype(i), int64>::value, "index");
-            static_assert(is_same<decltype(a), int64*>::value, "value");
-            static_assert(is_same<decltype(dummy), int64>::value, "dummy");
-            return i + 1;
-        },
-        [] GKO_KERNEL(auto i, auto j) { return i + j; },
-        [] GKO_KERNEL(auto j) { return j * 2; }, int64{}, output.get_data(),
-        size_type{100000}, output, move_only_val);
+    {
+        SCOPED_TRACE("Size 0");
+        run_reduction(int64{0}, size_type{0});
 
-    // 2 * sum i=0...99999 (i+1)
-    ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), 10000100000LL);
+        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), int64{0});
+    }
 
-    gko::kernels::EXEC_NAMESPACE::run_kernel_reduction(
-        exec,
-        [] GKO_KERNEL(auto i, auto a, auto dummy) {
-            static_assert(is_same<decltype(i), int64>::value, "index");
-            static_assert(is_same<decltype(a), int64*>::value, "value");
-            static_assert(is_same<decltype(dummy), int64>::value, "dummy");
-            return i + 1;
-        },
-        [] GKO_KERNEL(auto i, auto j) {
-            static_assert(is_same<decltype(i), int64>::value, "a");
-            static_assert(is_same<decltype(i), int64>::value, "b");
-            return i + j;
-        },
-        [] GKO_KERNEL(auto j) {
-            static_assert(is_same<decltype(j), int64>::value, "value");
-            return j * 2;
-        },
-        int64{}, output.get_data(), size_type{100}, output, move_only_val);
+    {
+        SCOPED_TRACE("Size 100000");
+        run_reduction(int64{0}, size_type{100000});
 
-    // 2 * sum i=0...99 (i+1)
-    ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), 10100LL);
+        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()),
+                  int64{10000100000});
+    }
+
+    {
+        SCOPED_TRACE("Size 100");
+        run_reduction(int64{0}, size_type{100});
+
+        // 2 * sum i=0...99 (i+1)
+        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()),
+                  int64{10100});
+    }
 }
 
 TEST_F(KernelLaunch, Reduction1D) { run1d_reduction(exec); }
 
 
-void run2d_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
+void run1d_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
+                            std::vector<size_type> sizes)
 {
     gko::array<int64> output{exec, 1};
+    gko::array<char> temp(exec);
+    for (const auto& size : sizes) {
+        temp.clear();
+        gko::kernels::EXEC_NAMESPACE::run_kernel_reduction_cached(
+            exec, [] GKO_KERNEL(auto i) { return i + 1; },
+            [] GKO_KERNEL(auto i, auto j) { return std::max(i, j); },
+            [] GKO_KERNEL(auto j) { return j; }, int64{}, output.get_data(),
+            size, temp);
 
-    gko::kernels::EXEC_NAMESPACE::run_kernel_reduction(
-        exec,
-        [] GKO_KERNEL(auto i, auto j, auto a, auto dummy) {
-            static_assert(is_same<decltype(i), int64>::value, "index");
-            static_assert(is_same<decltype(j), int64>::value, "index");
-            static_assert(is_same<decltype(a), int64*>::value, "value");
-            static_assert(is_same<decltype(dummy), int64>::value, "dummy");
-            return (i + 1) * (j + 1);
-        },
-        [] GKO_KERNEL(auto i, auto j) {
-            static_assert(is_same<decltype(i), int64>::value, "a");
-            static_assert(is_same<decltype(i), int64>::value, "b");
-            return i + j;
-        },
-        [] GKO_KERNEL(auto j) {
-            static_assert(is_same<decltype(j), int64>::value, "value");
-            return j * 4;
-        },
-        int64{}, output.get_data(), gko::dim<2>{1000, 100}, output,
-        move_only_val);
+        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()),
+                  static_cast<int64>(size));
+        // The temporary storage (used for partial sums) must be smaller than
+        // the input array
+        ASSERT_LE(temp.get_num_elems(), size * sizeof(int64));
+    }
+}
 
-    // 4 * sum i=0...999 sum j=0...99 of (i+1)*(j+1)
-    ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), 10110100000LL);
+TEST_F(KernelLaunch, Reduction1DCached)
+{
+    run1d_reduction_cached(exec, {10, 1000, 1000000, 1234567, 7654321});
+}
 
-    gko::kernels::EXEC_NAMESPACE::run_kernel_reduction(
-        exec,
-        [] GKO_KERNEL(auto i, auto j, auto a, auto dummy) {
-            static_assert(is_same<decltype(i), int64>::value, "index");
-            static_assert(is_same<decltype(j), int64>::value, "index");
-            static_assert(is_same<decltype(a), int64*>::value, "value");
-            static_assert(is_same<decltype(dummy), int64>::value, "dummy");
-            return (i + 1) * (j + 1);
-        },
-        [] GKO_KERNEL(auto i, auto j) {
-            static_assert(is_same<decltype(i), int64>::value, "a");
-            static_assert(is_same<decltype(i), int64>::value, "b");
-            return i + j;
-        },
-        [] GKO_KERNEL(auto j) {
-            static_assert(is_same<decltype(j), int64>::value, "value");
-            return j * 4;
-        },
-        int64{}, output.get_data(), gko::dim<2>{10, 10}, output, move_only_val);
 
-    // 4 * sum i=0...9 sum j=0...9 of (i+1)*(j+1)
-    ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), 12100LL);
+void run2d_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
+{
+    gko::array<int64> output{exec, {-1l}};
+    auto run_reduction = [&](int64 init, gko::dim<2> size) {
+        gko::kernels::EXEC_NAMESPACE::run_kernel_reduction(
+            exec,
+            [] GKO_KERNEL(auto i, auto j, auto a, auto dummy) {
+                static_assert(is_same<decltype(i), int64>::value, "index");
+                static_assert(is_same<decltype(j), int64>::value, "index");
+                static_assert(is_same<decltype(a), int64*>::value, "value");
+                static_assert(is_same<decltype(dummy), int64>::value, "dummy");
+                return (i + 1) * (j + 1);
+            },
+            [] GKO_KERNEL(auto i, auto j) {
+                static_assert(is_same<decltype(i), int64>::value, "a");
+                static_assert(is_same<decltype(i), int64>::value, "b");
+                return i + j;
+            },
+            [] GKO_KERNEL(auto j) {
+                static_assert(is_same<decltype(j), int64>::value, "value");
+                return j * 4;
+            },
+            init, output.get_data(), size, output, move_only_val);
+    };
+
+    {
+        SCOPED_TRACE("Dim 0x0");
+        run_reduction(int64{0}, gko::dim<2>{0, 0});
+
+        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), int64{0});
+    }
+
+    {
+        SCOPED_TRACE("Dim 0x10");
+        run_reduction(int64{0}, gko::dim<2>{0, 10});
+
+        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), int64{0});
+    }
+
+    {
+        SCOPED_TRACE("Dim 10x0");
+        run_reduction(int64{0}, gko::dim<2>{10, 0});
+
+        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), int64{0});
+    }
+
+    {
+        SCOPED_TRACE("Dim 1000x100");
+        run_reduction(int64{0}, gko::dim<2>{1000, 100});
+
+        // 4 * sum i=0...999 sum j=0...99 of (i+1)*(j+1)
+        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()),
+                  int64{10110100000});
+    }
+
+    {
+        SCOPED_TRACE("Dim 10x10");
+        run_reduction(int64{0}, gko::dim<2>{10, 10});
+
+        // 4 * sum i=0...9 sum j=0...9 of (i+1)*(j+1)
+        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()),
+                  int64{12100});
+    }
 }
 
 TEST_F(KernelLaunch, Reduction2D) { run2d_reduction(exec); }
+
+
+void run2d_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
+                            std::vector<gko::dim<2>> dims)
+{
+    gko::array<int64> output{exec, 1};
+    gko::array<char> temp(exec);
+    for (const auto& dim : dims) {
+        temp.clear();
+        gko::kernels::EXEC_NAMESPACE::run_kernel_reduction_cached(
+            exec, [] GKO_KERNEL(auto i, auto j) { return i + j + 2; },
+            [] GKO_KERNEL(auto i, auto j) { return std::max(i, j); },
+            [] GKO_KERNEL(auto j) { return j; }, int64{}, output.get_data(),
+            dim, temp);
+
+        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()),
+                  static_cast<int64>(dim[0] + dim[1]));
+        // The temporary storage (used for partial sums) must be smaller than
+        // the input array
+        ASSERT_LE(temp.get_num_elems(), dim[0] * dim[1] * sizeof(int64));
+    }
+}
+
+TEST_F(KernelLaunch, Reduction2DCached)
+{
+    run2d_reduction_cached(exec, {{20, 10},
+                                  {10, 3000},
+                                  {1000, 5},
+                                  {30, 50},
+                                  {600, 500},
+                                  {500, 600},
+                                  {1000, 900},
+                                  {900, 1000},
+                                  {1, 100000},
+                                  {100000, 1},
+                                  {500000, 20},
+                                  {20, 500000}});
+}
 
 
 void run2d_row_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
@@ -468,6 +547,49 @@ void run2d_row_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
 TEST_F(KernelLaunch, ReductionRow2D) { run2d_row_reduction(exec); }
 
 
+void run2d_row_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
+                                std::vector<gko::dim<2>> dims)
+{
+    const size_type result_stride = 1;
+    gko::array<char> temp(exec);
+    for (const auto& dim : dims) {
+        gko::array<int64> host_ref{exec->get_master(), dim[0]};
+        gko::array<int64> output{exec, host_ref};
+        temp.clear();
+        for (int64 i = 0; i < host_ref.get_num_elems(); ++i) {
+            host_ref.get_data()[i] = dim[1] + i + 1;
+        }
+
+        gko::kernels::EXEC_NAMESPACE::run_kernel_row_reduction_cached(
+            exec, [] GKO_KERNEL(auto i, auto j) { return i + j + 2; },
+            [] GKO_KERNEL(auto i, auto j) { return std::max(i, j); },
+            [] GKO_KERNEL(auto j) { return j; }, int64{}, output.get_data(),
+            result_stride, dim, temp);
+
+        GKO_ASSERT_ARRAY_EQ(host_ref, output);
+        // The temporary storage (used for partial sums) must be smaller than
+        // the input array
+        ASSERT_LE(temp.get_num_elems(), dim[0] * dim[1] * sizeof(int64));
+    }
+}
+
+TEST_F(KernelLaunch, ReductionRowCached)
+{
+    run2d_row_reduction_cached(exec, {{20, 10},
+                                      {10, 3000},
+                                      {1000, 5},
+                                      {30, 50},
+                                      {600, 500},
+                                      {500, 600},
+                                      {1000, 900},
+                                      {900, 1000},
+                                      {1, 100000},
+                                      {100000, 1},
+                                      {500000, 20},
+                                      {20, 500000}});
+}
+
+
 void run2d_col_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
 {
     // empty, most threads idle, most threads busy, multiple blocks
@@ -517,3 +639,43 @@ void run2d_col_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
 }
 
 TEST_F(KernelLaunch, ReductionCol2D) { run2d_col_reduction(exec); }
+
+
+void run2d_col_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
+                                std::vector<gko::dim<2>> dims)
+{
+    gko::array<char> temp(exec);
+    for (const auto& dim : dims) {
+        gko::array<int64> host_ref{exec->get_master(), dim[1]};
+        gko::array<int64> output{exec, host_ref};
+        temp.clear();
+        for (int64 i = 0; i < host_ref.get_num_elems(); ++i) {
+            host_ref.get_data()[i] = dim[0] + i + 1;
+        }
+
+        gko::kernels::EXEC_NAMESPACE::run_kernel_col_reduction_cached(
+            exec, [] GKO_KERNEL(auto i, auto j) { return i + j + 2; },
+            [] GKO_KERNEL(auto i, auto j) { return std::max(i, j); },
+            [] GKO_KERNEL(auto j) { return j; }, int64{}, output.get_data(),
+            dim, temp);
+
+        GKO_ASSERT_ARRAY_EQ(host_ref, output);
+        ASSERT_LE(temp.get_num_elems(), dim[0] * dim[1] * sizeof(int64));
+    }
+}
+
+TEST_F(KernelLaunch, ReductionColCached)
+{
+    run2d_col_reduction_cached(exec, {{20, 10},
+                                      {10, 3000},
+                                      {1000, 5},
+                                      {30, 50},
+                                      {600, 500},
+                                      {500, 600},
+                                      {1000, 900},
+                                      {900, 1000},
+                                      {1, 100000},
+                                      {100000, 1},
+                                      {500000, 20},
+                                      {20, 500000}});
+}

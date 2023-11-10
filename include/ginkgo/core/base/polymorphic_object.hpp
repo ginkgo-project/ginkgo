@@ -59,8 +59,9 @@ namespace gko {
  * @note Most of the public methods of this class should not be overridden
  *       directly, and are thus not virtual. Instead, there are equivalent
  *       protected methods (ending in <method_name>_impl) that should be
- *       overriden instead. This allows polymorphic objects to implement default
- *       behavior around virtual methods (parameter checking, type casting).
+ *       overridden instead. This allows polymorphic objects to implement
+ *       default behavior around virtual methods (parameter checking, type
+ *       casting).
  *
  * @see EnablePolymorphicObject if you wish to implement a concrete polymorphic
  *      object and have sensible defaults generated automatically.
@@ -181,14 +182,13 @@ public:
      * @tparam Deleter  the deleter of the unique_ptr parameter
      */
     template <typename Derived, typename Deleter>
-    [[deprecated(
+    GKO_DEPRECATED(
         "This function will be removed in a future release, the replacement "
         "will copy instead of move. If a move is intended, use move_from "
-        "instead.")]] std::
-        enable_if_t<
-            std::is_base_of<PolymorphicObject, std::decay_t<Derived>>::value,
-            PolymorphicObject>*
-        copy_from(std::unique_ptr<Derived, Deleter>&& other)
+        "instead.")
+    std::enable_if_t<
+        std::is_base_of<PolymorphicObject, std::decay_t<Derived>>::value,
+        PolymorphicObject>* copy_from(std::unique_ptr<Derived, Deleter>&& other)
     {
         this->template log<log::Logger::polymorphic_object_move_started>(
             exec_.get(), other.get(), this);
@@ -408,14 +408,13 @@ public:
     }
 
     template <typename Derived>
-    [[deprecated(
+    GKO_DEPRECATED(
         "This function will be removed in a future release, the replacement "
         "will copy instead of move. If a move in intended, use move_to "
-        "instead.")]] std::
-        enable_if_t<
-            std::is_base_of<PolymorphicObject, std::decay_t<Derived>>::value,
-            AbstractObject>*
-        copy_from(std::unique_ptr<Derived>&& other)
+        "instead.")
+    std::enable_if_t<
+        std::is_base_of<PolymorphicObject, std::decay_t<Derived>>::value,
+        AbstractObject>* copy_from(std::unique_ptr<Derived>&& other)
     {
         return static_cast<AbstractObject*>(
             this->PolymorphicBase::copy_from(std::move(other)));
@@ -657,7 +656,7 @@ std::shared_ptr<const R> copy_and_convert_to(
  * The mixin changes parameter and return types of appropriate public methods of
  * PolymorphicObject in the same way EnableAbstractPolymorphicObject does.
  * In addition, it also provides default implementations of PolymorphicObject's
- * vritual methods by using the _executor default constructor_ and the
+ * virtual methods by using the _executor default constructor_ and the
  * assignment operator of ConcreteObject. Consequently, the following is a
  * minimal example of PolymorphicObject:
  *

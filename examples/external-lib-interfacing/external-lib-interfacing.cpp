@@ -880,11 +880,9 @@ void AdvectionProblem<dim>::solve()
     auto solver_gen =
         bicgstab::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1000).on(exec),
-                gko::stop::ResidualNorm<>::build()
-                    .with_reduction_factor(1e-12)
-                    .on(exec))
-            .with_preconditioner(bj::build().on(exec))
+                gko::stop::Iteration::build().with_max_iters(1000),
+                gko::stop::ResidualNorm<>::build().with_reduction_factor(1e-12))
+            .with_preconditioner(bj::build())
             .on(exec);
     auto solver = solver_gen->generate(gko::give(A));
 
@@ -1324,7 +1322,7 @@ void GradientEstimation::estimate_cell(
 // <code>set_thread_limit</code>, the default value from the Intel Threading
 // Building Blocks (TBB) library is used. If the call to
 // <code>set_thread_limit</code> is omitted, the number of threads will be
-// chosen by TBB indepently of DEAL_II_NUM_THREADS.
+// chosen by TBB independently of DEAL_II_NUM_THREADS.
 int main()
 {
     try {

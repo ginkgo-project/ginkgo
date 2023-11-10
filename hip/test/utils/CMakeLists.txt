@@ -1,1 +1,1 @@
-ginkgo_create_hip_test(assertions_test)
+ginkgo_create_test(assertions_test RESOURCE_TYPE hipgpu)

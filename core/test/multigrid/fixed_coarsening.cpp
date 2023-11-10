@@ -86,7 +86,7 @@ TYPED_TEST(FixedCoarseningFactory, DefaultSetting)
     using MgLevel = typename TestFixture::MgLevel;
     auto factory = MgLevel::build().on(this->exec);
 
-    ASSERT_EQ(factory->get_parameters().coarse_rows.get_data(), nullptr);
+    ASSERT_EQ(factory->get_parameters().coarse_rows.get_const_data(), nullptr);
     ASSERT_EQ(factory->get_parameters().skip_sorting, false);
 }
 

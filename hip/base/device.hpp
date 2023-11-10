@@ -49,6 +49,10 @@ void reset_device(int device_id);
 void destroy_event(GKO_HIP_EVENT_STRUCT* event);
 
 
+/** returns hipDeviceProp.name for the given device */
+std::string get_device_name(int device_id);
+
+
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko

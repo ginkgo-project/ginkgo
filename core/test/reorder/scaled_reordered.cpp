@@ -46,6 +46,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/bicgstab.hpp>
 
 
+GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
+
+
 namespace {
 
 
@@ -132,3 +135,6 @@ TEST_F(ScaledReorderedFactory, CanSetColScaling)
 
 
 }  // namespace
+
+
+GKO_END_DISABLE_DEPRECATION_WARNINGS

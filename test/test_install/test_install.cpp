@@ -104,11 +104,9 @@ void check_solver(std::shared_ptr<gko::Executor> exec,
     auto solver_gen =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(num_iters).on(
-                    exec),
-                gko::stop::ResidualNorm<>::build()
-                    .with_reduction_factor(reduction_factor)
-                    .on(exec))
+                gko::stop::Iteration::build().with_max_iters(num_iters),
+                gko::stop::ResidualNorm<>::build().with_reduction_factor(
+                    reduction_factor))
             .on(exec);
 #if HAS_REFERENCE
     A->read(A_raw);
@@ -126,11 +124,9 @@ void check_solver(std::shared_ptr<gko::Executor> exec,
     auto solver_gen_ref =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(num_iters).on(
-                    exec_ref),
-                gko::stop::ResidualNorm<>::build()
-                    .with_reduction_factor(reduction_factor)
-                    .on(exec_ref))
+                gko::stop::Iteration::build().with_max_iters(num_iters),
+                gko::stop::ResidualNorm<>::build().with_reduction_factor(
+                    reduction_factor))
             .on(exec_ref);
     auto x_ref = gko::clone(exec_ref, x);
     solver_gen->generate(A_ref)->apply(b, x_ref);
@@ -208,6 +204,19 @@ int main()
         using type1 = int;
         using array_type = gko::array<type1>;
         array_type test;
+    }
+
+    // core/base/batch_dim.hpp
+    {
+        using type1 = int;
+        auto test = gko::batch_dim<2, type1>{};
+    }
+
+    // core/base/batch_multi_vector.hpp
+    {
+        using type1 = float;
+        using batch_multi_vector_type = gko::batch::MultiVector<type1>;
+        auto test = batch_multi_vector_type::create(exec);
     }
 
     // core/base/combination.hpp
@@ -351,6 +360,20 @@ int main()
     }
 #endif  // GKO_HAVE_PAPI_SDE
 
+    // core/matrix/batch_dense.hpp
+    {
+        using type1 = float;
+        using batch_dense_type = gko::batch::matrix::Dense<type1>;
+        auto test = batch_dense_type::create(exec);
+    }
+
+    // core/matrix/batch_ell.hpp
+    {
+        using type1 = float;
+        using batch_ell_type = gko::batch::matrix::Ell<type1>;
+        auto test = batch_ell_type::create(exec);
+    }
+
     // core/matrix/coo.hpp
     {
         using Mtx = gko::matrix::Coo<>;
@@ -433,6 +456,12 @@ int main()
         auto test = Bj::build().with_max_block_size(1u).on(exec);
     }
 
+    // core/solver/batch_bicgstab.hpp
+    {
+        using Solver = gko::batch::solver::Bicgstab<>;
+        auto test = Solver::build().with_max_iterations(5).on(exec);
+    }
+
     // core/solver/bicgstab.hpp
     {
         using Solver = gko::solver::Bicgstab<>;
@@ -480,8 +509,7 @@ int main()
         using Solver = gko::solver::Ir<>;
         auto test =
             Solver::build()
-                .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+                .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
                 .on(exec);
     }
 

@@ -33,7 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // force-top: on
 // oneDPL needs to be first to avoid issues with libstdc++ TBB impl
 #include <oneapi/dpl/algorithm>
-#include <oneapi/dpl/execution>
 // force-top: off
 
 
@@ -46,6 +45,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/multigrid/pgm.hpp>
+
+
+#include "dpcpp/base/onedpl.hpp"
 
 
 namespace gko {
@@ -63,8 +65,7 @@ template <typename IndexType>
 void sort_agg(std::shared_ptr<const DefaultExecutor> exec, IndexType num,
               IndexType* row_idxs, IndexType* col_idxs)
 {
-    auto policy =
-        oneapi::dpl::execution::make_device_policy(*exec->get_queue());
+    auto policy = onedpl_policy(exec);
     auto it = oneapi::dpl::make_zip_iterator(row_idxs, col_idxs);
     std::sort(policy, it, it + num, [](auto a, auto b) {
         return std::tie(std::get<0>(a), std::get<1>(a)) <
@@ -79,12 +80,12 @@ template <typename ValueType, typename IndexType>
 void sort_row_major(std::shared_ptr<const DefaultExecutor> exec, size_type nnz,
                     IndexType* row_idxs, IndexType* col_idxs, ValueType* vals)
 {
-    auto policy =
-        oneapi::dpl::execution::make_device_policy(*exec->get_queue());
+    auto policy = onedpl_policy(exec);
     auto it = oneapi::dpl::make_zip_iterator(row_idxs, col_idxs, vals);
-    // Because reduce_by_segment is not determinstic, so we do not need
+    // Because reduce_by_segment is not deterministic, so we do not need
     // stable_sort
-    // TODO: If we have determinstic reduce_by_segment, it should be stable_sort
+    // TODO: If we have deterministic reduce_by_segment, it should be
+    // stable_sort
     std::sort(policy, it, it + nnz, [](auto a, auto b) {
         return std::tie(std::get<0>(a), std::get<1>(a)) <
                std::tie(std::get<0>(b), std::get<1>(b));

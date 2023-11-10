@@ -36,9 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <tuple>
 
 
-#include <rapidjson/document.h>
-
-
+#include "benchmark/utils/json.hpp"
 #include "benchmark/utils/types.hpp"
 
 
@@ -79,9 +77,7 @@ public:
     /**
      * Allows the operation to write arbitrary information to the JSON output.
      */
-    virtual void write_stats(rapidjson::Value& object,
-                             rapidjson::MemoryPoolAllocator<>& allocator)
-    {}
+    virtual void write_stats(json& object) {}
 };
 
 

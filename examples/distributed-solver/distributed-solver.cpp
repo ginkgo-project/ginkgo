@@ -51,9 +51,9 @@ int main(int argc, char* argv[])
     // done with the following helper construct that uses RAII to automate the
     // initialization and finalization.
     const gko::experimental::mpi::environment env(argc, argv);
-    // @sect3{Type Definitiions}
+    // @sect3{Type Definitions}
     // Define the needed types. In a parallel program we need to differentiate
-    // beweeen global and local indices, thus we have two index types.
+    // between global and local indices, thus we have two index types.
     using GlobalIndexType = gko::int64;
     using LocalIndexType = gko::int32;
     // The underlying value type.
@@ -119,15 +119,14 @@ int main(int argc, char* argv[])
                  int device_id = gko::experimental::mpi::map_rank_to_device_id(
                      comm, gko::CudaExecutor::get_num_devices());
                  return gko::CudaExecutor::create(
-                     device_id, gko::ReferenceExecutor::create(), false,
-                     gko::allocation_mode::device);
+                     device_id, gko::ReferenceExecutor::create());
              }},
             {"hip",
              [](MPI_Comm comm) {
                  int device_id = gko::experimental::mpi::map_rank_to_device_id(
                      comm, gko::HipExecutor::get_num_devices());
                  return gko::HipExecutor::create(
-                     device_id, gko::ReferenceExecutor::create(), true);
+                     device_id, gko::ReferenceExecutor::create());
              }},
             {"dpcpp", [](MPI_Comm comm) {
                  int device_id = 0;
@@ -222,19 +221,15 @@ int main(int argc, char* argv[])
     const gko::remove_complex<ValueType> reduction_factor{1e-8};
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
         gko::log::Convergence<ValueType>::create();
-    auto Ainv =
-        solver::build()
-            .with_preconditioner(schwarz::build()
-                                     .with_local_solver_factory(local_solver)
-                                     .on(exec))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(num_iters).on(
-                    exec),
-                gko::stop::ResidualNorm<ValueType>::build()
-                    .with_reduction_factor(reduction_factor)
-                    .on(exec))
-            .on(exec)
-            ->generate(A);
+    auto Ainv = solver::build()
+                    .with_preconditioner(
+                        schwarz::build().with_local_solver(local_solver))
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(num_iters),
+                        gko::stop::ResidualNorm<ValueType>::build()
+                            .with_reduction_factor(reduction_factor))
+                    .on(exec)
+                    ->generate(A);
     // Add logger to the generated solver to log the iteration count and
     // residual norm
     Ainv->add_logger(logger);

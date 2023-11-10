@@ -1,9 +1,9 @@
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.16)
 project(multigrid-preconditioned-solver-customized)
 
 # We only need to find Ginkgo if we build this example stand-alone
 if (NOT GINKGO_BUILD_EXAMPLES)
-    find_package(Ginkgo 1.6.0 REQUIRED)
+    find_package(Ginkgo 1.7.0 REQUIRED)
 endif()
 
 add_executable(multigrid-preconditioned-solver-customized multigrid-preconditioned-solver-customized.cpp)

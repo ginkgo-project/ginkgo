@@ -65,15 +65,16 @@ namespace {
 
 class HipExecutor : public ::testing::Test {
 protected:
-    HipExecutor() : omp(gko::OmpExecutor::create()), hip(nullptr), hip2(nullptr)
+    HipExecutor()
+        : ref(gko::ReferenceExecutor::create()), hip(nullptr), hip2(nullptr)
     {}
 
     void SetUp()
     {
         ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
-        hip = gko::HipExecutor::create(0, omp);
+        hip = gko::HipExecutor::create(0, ref);
         hip2 = gko::HipExecutor::create(gko::HipExecutor::get_num_devices() - 1,
-                                        omp);
+                                        ref);
     }
 
     void TearDown()
@@ -84,7 +85,7 @@ protected:
         }
     }
 
-    std::shared_ptr<gko::Executor> omp;
+    std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::HipExecutor> hip;
     std::shared_ptr<const gko::HipExecutor> hip2;
 };
@@ -107,7 +108,7 @@ inline int get_core_os_id(int log_id)
 
 TEST_F(HipExecutor, CanBindToSinglePu)
 {
-    hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
+    hip = gko::HipExecutor::create(0, gko::ReferenceExecutor::create());
 
     const int bind_pu = 1;
     gko::machine_topology::get_instance()->bind_to_pu(bind_pu);
@@ -119,7 +120,7 @@ TEST_F(HipExecutor, CanBindToSinglePu)
 
 TEST_F(HipExecutor, CanBindToPus)
 {
-    hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
+    hip = gko::HipExecutor::create(0, gko::ReferenceExecutor::create());
 
     std::vector<int> bind_pus = {1, 3};
     gko::machine_topology::get_instance()->bind_to_pus(bind_pus);
@@ -131,7 +132,7 @@ TEST_F(HipExecutor, CanBindToPus)
 
 TEST_F(HipExecutor, CanBindToCores)
 {
-    hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
+    hip = gko::HipExecutor::create(0, gko::ReferenceExecutor::create());
 
     std::vector<int> bind_cores = {1, 3};
     gko::machine_topology::get_instance()->bind_to_cores(bind_cores);
@@ -143,7 +144,7 @@ TEST_F(HipExecutor, CanBindToCores)
 
 TEST_F(HipExecutor, ClosestCpusIsPopulated)
 {
-    hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
+    hip = gko::HipExecutor::create(0, gko::ReferenceExecutor::create());
     auto close_cpus = hip->get_closest_pus();
     if (close_cpus.size() == 0) {
         GTEST_SKIP();
@@ -155,7 +156,7 @@ TEST_F(HipExecutor, ClosestCpusIsPopulated)
 
 TEST_F(HipExecutor, KnowsItsNuma)
 {
-    hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
+    hip = gko::HipExecutor::create(0, gko::ReferenceExecutor::create());
     auto numa0 = hip->get_closest_numa();
     auto close_cpus = hip->get_closest_pus();
     if (close_cpus.size() == 0) {

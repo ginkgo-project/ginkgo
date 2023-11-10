@@ -33,7 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /**
  * @internal
  *
- * Compute a segement scan using add operation (+) of a subwarp. Each segment
+ * Compute a segment scan using add operation (+) of a subwarp. Each segment
  * performs suffix sum. Works on the source array and returns whether the thread
  * is the first element of its segment with same `ind`.
  */

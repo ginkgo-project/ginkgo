@@ -61,8 +61,8 @@ void process(const char* input, const char* output, bool validate)
         }
     }
     if (validate) {
-        std::ifstream ois(output, std::ios_base::in | std::ios_base::binary);
-        auto data2 = gko::read_binary_raw<ValueType, gko::int64>(ois);
+        std::ifstream is(output, std::ios_base::in | std::ios_base::binary);
+        auto data2 = gko::read_binary_raw<ValueType, gko::int64>(is);
         std::cerr << "Comparing against previously read data\n";
         if (data.size != data2.size) {
             throw GKO_STREAM_ERROR("Mismatching sizes!");

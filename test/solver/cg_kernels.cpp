@@ -203,19 +203,15 @@ TEST_F(Cg, ApplyIsEquivalentToRef)
     auto d_b = gko::clone(exec, b);
     auto cg_factory =
         gko::solver::Cg<value_type>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(50u).on(ref),
-                gko::stop::ResidualNorm<value_type>::build()
-                    .with_reduction_factor(::r<value_type>::value)
-                    .on(ref))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(50u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(::r<value_type>::value))
             .on(ref);
     auto d_cg_factory =
         gko::solver::Cg<value_type>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(50u).on(exec),
-                gko::stop::ResidualNorm<value_type>::build()
-                    .with_reduction_factor(::r<value_type>::value)
-                    .on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(50u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(::r<value_type>::value))
             .on(exec);
     auto solver = cg_factory->generate(std::move(mtx));
     auto d_solver = d_cg_factory->generate(std::move(d_mtx));

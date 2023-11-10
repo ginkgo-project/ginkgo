@@ -94,9 +94,10 @@ protected:
         dmtx = gko::clone(exec, mtx);
         const auto num_rows = mtx->get_size()[0];
         factory = solver_type::build()
-                      .with_factorization(factorization_type::build()
-                                              .with_symmetric_sparsity(true)
-                                              .on(ref))
+                      .with_factorization(
+                          factorization_type::build().with_symbolic_algorithm(
+                              gko::experimental::factorization::symbolic_type::
+                                  symmetric))
                       .with_num_rhs(static_cast<gko::size_type>(nrhs))
                       .on(ref);
         alpha = gen_mtx(1, 1);
@@ -104,9 +105,10 @@ protected:
         input = gen_mtx(num_rows, nrhs);
         output = gen_mtx(num_rows, nrhs);
         dfactory = solver_type::build()
-                       .with_factorization(factorization_type::build()
-                                               .with_symmetric_sparsity(true)
-                                               .on(exec))
+                       .with_factorization(
+                           factorization_type::build().with_symbolic_algorithm(
+                               gko::experimental::factorization::symbolic_type::
+                                   symmetric))
                        .with_num_rhs(static_cast<gko::size_type>(nrhs))
                        .on(exec);
         dalpha = gko::clone(exec, alpha);

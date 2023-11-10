@@ -1,1 +1,1 @@
-ginkgo_create_test(fbcsr_kernels)
+ginkgo_create_dpcpp_test(fbcsr_kernels)

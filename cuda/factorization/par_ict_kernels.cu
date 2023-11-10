@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/components/intrinsics.cuh"
+#include "cuda/components/memory.cuh"
 #include "cuda/components/merging.cuh"
 #include "cuda/components/prefix_sum.cuh"
 #include "cuda/components/reduction.cuh"

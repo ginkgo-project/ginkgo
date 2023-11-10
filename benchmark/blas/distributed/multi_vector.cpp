@@ -38,6 +38,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 
+#define GKO_BENCHMARK_DISTRIBUTED
+
+
 #include "benchmark/blas/blas_common.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/generator.hpp"
@@ -50,6 +53,10 @@ int main(int argc, char* argv[])
 {
     gko::experimental::mpi::environment mpi_env{argc, argv};
 
+    const auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
+    const auto rank = comm.rank();
+    const auto do_print = rank == 0;
+
     std::string header = R"("
 A benchmark for measuring performance of Ginkgo's BLAS-like "
 operations.
@@ -60,26 +67,19 @@ Parameters for a benchmark case are:
     stride_x: stride for input vector x (optional, default r)
     stride_y: stride for in/out vector y (optional, default r)
 )";
-    std::string format = example_config;
-    initialize_argument_parsing(&argc, &argv, header, format);
+    std::string format = Generator::get_example_config();
+    initialize_argument_parsing(&argc, &argv, header, format, do_print);
 
-    std::string extra_information = "The operations are " + FLAGS_operations;
-    print_general_information(extra_information);
-
-    const auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
-    const auto rank = comm.rank();
+    if (do_print) {
+        std::string extra_information =
+            "The operations are " + FLAGS_operations;
+        print_general_information(extra_information);
+    }
 
     auto exec = executor_factory_mpi.at(FLAGS_executor)(comm.get());
 
     std::string json_input = broadcast_json_input(get_input_stream(), comm);
-    rapidjson::Document test_cases;
-    test_cases.Parse(json_input.c_str());
-    if (!test_cases.IsArray()) {
-        std::cerr
-            << "Input has to be a JSON array of benchmark configurations:\n"
-            << format;
-        std::exit(1);
-    }
+    auto test_cases = json::parse(json_input);
 
     std::map<std::string,
              std::function<std::unique_ptr<BenchmarkOperation>(
@@ -127,10 +127,10 @@ Parameters for a benchmark case are:
                      exec, Generator{comm, {}}, dims.n, dims.r, dims.stride_y);
              }}};
 
-    run_blas_benchmarks(exec, get_mpi_timer(exec, comm, FLAGS_gpu_timer),
-                        operation_map, test_cases, rank == 0);
+    run_test_cases(BlasBenchmark{operation_map, do_print}, exec,
+                   get_mpi_timer(exec, comm, FLAGS_gpu_timer), test_cases);
 
-    if (rank == 0) {
-        std::cout << test_cases << std::endl;
+    if (do_print) {
+        std::cout << std::setw(4) << test_cases << std::endl;
     }
 }

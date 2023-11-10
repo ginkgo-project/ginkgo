@@ -399,7 +399,7 @@ using cooperative_groups::thread_block_tile;
 // public API:
 // void sync() const
 // unsigned thread_rank() const
-// usigned size() const
+// unsigned size() const
 // T shfl(T, int)
 // T shfl_up(T, unsigned)
 // T shfl_down(T, unsigned)

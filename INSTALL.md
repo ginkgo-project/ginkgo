@@ -31,7 +31,7 @@ Ginkgo adds the following additional switches to control what is being built:
 *   `-DGINKGO_FAST_TESTS={ON, OFF}` reduces the input sizes for a few slow tests
     to speed them up, default is `OFF`.
 *   `-DGINKGO_BUILD_BENCHMARKS={ON, OFF}` builds Ginkgo's benchmarks
-    (will download gflags and rapidjson), default is `ON`.
+    (will download gflags and nlohmann-json), default is `ON`.
 *   `-DGINKGO_BUILD_EXAMPLES={ON, OFF}` builds Ginkgo's examples, default is `ON`
 *   `-DGINKGO_BUILD_EXTLIB_EXAMPLE={ON, OFF}` builds the interfacing example
     with deal.II, default is `OFF`.
@@ -42,9 +42,10 @@ Ginkgo adds the following additional switches to control what is being built:
 *   `-DGINKGO_BUILD_CUDA={ON, OFF}` builds optimized cuda versions of the kernels
     (requires CUDA), default is `ON` if a CUDA compiler could be detected,
     `OFF` otherwise.
-*   `-DGINKGO_BUILD_DPCPP={ON, OFF}` builds optimized DPC++ versions of the
-    kernels (requires `CMAKE_CXX_COMPILER` to be set to the `dpcpp` compiler).
-    The default is `ON` if `CMAKE_CXX_COMPILER` is a DPC++ compiler, `OFF`
+*   `-DGINKGO_BUILD_DPCPP={ON, OFF}` is deprecated. Please use `GINKGO_BUILD_SYCL` instead.
+*   `-DGINKGO_BUILD_SYCL={ON, OFF}` builds optimized SYCL versions of the
+    kernels (requires `CMAKE_CXX_COMPILER` to be set to the `dpcpp` or `icpx` compiler).
+    The default is `ON` if `CMAKE_CXX_COMPILER` is a SYCL compiler, `OFF`
     otherwise.
 *   `-DGINKGO_BUILD_HIP={ON, OFF}` builds optimized HIP versions of the kernels
     (requires HIP), default is `ON` if an installation of HIP could be detected,
@@ -205,7 +206,7 @@ packages can be turned off by disabling the relevant options.
   Test](https://github.com/google/googletest);
 + GINKGO_BUILD_BENCHMARKS=ON: For argument management we use
   [gflags](https://github.com/gflags/gflags) and for JSON parsing we use
-  [RapidJSON](https://github.com/Tencent/rapidjson);
+  [nlohmann-json](https://github.com/nlohmann/json);
 + GINKGO_DEVEL_TOOLS=ON:
   [git-cmake-format](https://github.com/gflegar/git-cmake-format) is our CMake
   helper for code formatting.
@@ -224,7 +225,7 @@ packages can be turned off by disabling the relevant options.
 Ginkgo attempts to use pre-installed versions of these package if they match
 version requirements using `find_package`. Otherwise, the configuration step
 will download the files for each of the packages `GTest`, `gflags`,
-`RapidJSON` and `hwloc` and build them internally.
+`nlohmann-json` and `hwloc` and build them internally.
 
 Note that, if the external packages were not installed to the default location,
 the CMake option `-DCMAKE_PREFIX_PATH=<path-list>` needs to be set to the

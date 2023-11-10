@@ -129,7 +129,7 @@ std::unique_ptr<MatrixType> generate_random_matrix_with_diag(
  *                generated FBCSR matrix.
  * @param block_size  Block size of output Fbcsr matrix.
  * @param row_diag_dominant  If true, a row-diagonal-dominant Fbcsr matrix is
- *                           generated. Note that in this case, the intput Csr
+ *                           generated. Note that in this case, the input Csr
  *                           matrix must have diagonal entries in all rows.
  * @param rand_engine  Random number engine to use, such as
  * std::default_random_engine.

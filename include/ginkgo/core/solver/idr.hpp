@@ -162,33 +162,29 @@ public:
      * Sets the complex_subspace parameter of the solver.
      *
      * @param other  the new complex_subspace parameter
+     * @deprecated Please use set_complex_subspace instead
      */
+    GKO_DEPRECATED("Use set_complex_subspace instead")
     void set_complex_subpsace(const bool other)
+    {
+        this->set_complex_subspace(other);
+    }
+
+    /**
+     * Sets the complex_subspace parameter of the solver.
+     *
+     * @param other  the new complex_subspace parameter
+     */
+    void set_complex_subspace(const bool other)
     {
         parameters_.complex_subspace = other;
     }
 
-    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
-    {
-        /**
-         * Criterion factories.
-         */
-        std::vector<std::shared_ptr<const stop::CriterionFactory>>
-            GKO_FACTORY_PARAMETER_VECTOR(criteria, nullptr);
+    class Factory;
 
-        /**
-         * Preconditioner factory.
-         */
-        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
-            preconditioner, nullptr);
-
-        /**
-         * Already generated preconditioner. If one is provided, the factory
-         * `preconditioner` will be ignored.
-         */
-        std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(
-            generated_preconditioner, nullptr);
-
+    struct parameters_type
+        : enable_preconditioned_iterative_solver_factory_parameters<
+              parameters_type, Factory> {
         /**
          * Dimension of the subspace S. Determines how many intermediate
          * residuals are computed in each iteration.

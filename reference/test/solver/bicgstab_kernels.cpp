@@ -69,36 +69,29 @@ protected:
           bicgstab_factory(
               Solver::build()
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(8u).on(exec),
-                      gko::stop::Time::build()
-                          .with_time_limit(std::chrono::seconds(6))
-                          .on(exec),
+                      gko::stop::Iteration::build().with_max_iters(8u),
+                      gko::stop::Time::build().with_time_limit(
+                          std::chrono::seconds(6)),
                       gko::stop::ResidualNorm<value_type>::build()
-                          .with_reduction_factor(r<value_type>::value)
-                          .on(exec))
+                          .with_reduction_factor(r<value_type>::value))
                   .on(exec)),
           bicgstab_factory2(
               Solver::build()
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(8u).on(exec),
-                      gko::stop::Time::build()
-                          .with_time_limit(std::chrono::seconds(6))
-                          .on(exec),
+                      gko::stop::Iteration::build().with_max_iters(8u),
+                      gko::stop::Time::build().with_time_limit(
+                          std::chrono::seconds(6)),
                       gko::stop::ImplicitResidualNorm<value_type>::build()
-                          .with_reduction_factor(r<value_type>::value)
-                          .on(exec))
+                          .with_reduction_factor(r<value_type>::value))
                   .on(exec)),
           bicgstab_factory_precision(
               Solver::build()
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(50u).on(
-                          exec),
-                      gko::stop::Time::build()
-                          .with_time_limit(std::chrono::seconds(6))
-                          .on(exec),
+                      gko::stop::Iteration::build().with_max_iters(50u),
+                      gko::stop::Time::build().with_time_limit(
+                          std::chrono::seconds(6)),
                       gko::stop::ResidualNorm<value_type>::build()
-                          .with_reduction_factor(r<value_type>::value)
-                          .on(exec))
+                          .with_reduction_factor(r<value_type>::value))
                   .on(exec))
     {
         auto small_size = gko::dim<2>{2, 2};

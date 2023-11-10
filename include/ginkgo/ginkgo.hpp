@@ -39,6 +39,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/batch_dim.hpp>
+#include <ginkgo/core/base/batch_lin_op.hpp>
+#include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/combination.hpp>
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/dense_cache.hpp>
@@ -48,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/fwd_decls.hpp>
 #include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/intrinsics.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
@@ -55,6 +59,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/matrix_assembly_data.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
+#include <ginkgo/core/base/memory.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
@@ -65,6 +70,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/scoped_device_id_guard.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
+#include <ginkgo/core/base/stream.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/temporary_conversion.hpp>
 #include <ginkgo/core/base/timer.hpp>
@@ -77,6 +83,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/distributed/lin_op.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
+#include <ginkgo/core/distributed/partition_helpers.hpp>
 #include <ginkgo/core/distributed/polymorphic_object.hpp>
 
 #include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
@@ -93,6 +100,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/factorization/par_ilu.hpp>
 #include <ginkgo/core/factorization/par_ilut.hpp>
 
+#include <ginkgo/core/log/batch_logger.hpp>
 #include <ginkgo/core/log/convergence.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/log/papi.hpp>
@@ -101,6 +109,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/log/record.hpp>
 #include <ginkgo/core/log/stream.hpp>
 
+#include <ginkgo/core/matrix/batch_dense.hpp>
+#include <ginkgo/core/matrix/batch_ell.hpp>
+#include <ginkgo/core/matrix/batch_identity.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -112,6 +123,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/row_gatherer.hpp>
+#include <ginkgo/core/matrix/scaled_permutation.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -125,11 +137,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 
 #include <ginkgo/core/reorder/amd.hpp>
+#include <ginkgo/core/reorder/mc64.hpp>
 #include <ginkgo/core/reorder/nested_dissection.hpp>
 #include <ginkgo/core/reorder/rcm.hpp>
 #include <ginkgo/core/reorder/reordering_base.hpp>
 #include <ginkgo/core/reorder/scaled_reordered.hpp>
 
+#include <ginkgo/core/solver/batch_bicgstab.hpp>
+#include <ginkgo/core/solver/batch_solver_base.hpp>
 #include <ginkgo/core/solver/bicg.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cb_gmres.hpp>
@@ -147,6 +162,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/solver/workspace.hpp>
 
+#include <ginkgo/core/stop/batch_stop_enum.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 #include <ginkgo/core/stop/iteration.hpp>

@@ -22,8 +22,7 @@
   script:
     - mkdir -p ${CI_JOB_NAME} && cd ${CI_JOB_NAME}
     - if [ -n "${CUDA_ARCH}" ]; then
-      CUDA_ARCH_STR=-DGINKGO_CUDA_ARCHITECTURES=${CUDA_ARCH};
-      CUDA_HOST_STR=-DCMAKE_CUDA_HOST_COMPILER=$(which ${CXX_COMPILER});
+      export CUDA_ARCH_STR=-DGINKGO_CUDA_ARCHITECTURES=${CUDA_ARCH};
       fi
     - if [[ "${MPI_AS_ROOT}" == "ON" ]];then
       export OMPI_ALLOW_RUN_AS_ROOT=1;
@@ -32,17 +31,19 @@
     - if [[ "${BUILD_MPI}" == "ON" ]]; then
       MPI_STR=-DGINKGO_MPI_EXEC_SUFFIX=${MPI_SUFFIX};
       fi
+    - export CC=${C_COMPILER} CXX=${CXX_COMPILER} CUDAHOSTCXX=${CXX_COMPILER} CUDACXX=${CUDA_COMPILER}
     - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
         -GNinja
-        -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
-        -DCMAKE_CUDA_COMPILER=${CUDA_COMPILER} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+        -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
         -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
-        ${EXTRA_CMAKE_FLAGS} ${CUDA_ARCH_STR} ${CUDA_HOST_STR}
+        ${EXTRA_CMAKE_FLAGS} ${CUDA_ARCH_STR}
+        -DGINKGO_COMPILER_FLAGS=${GKO_COMPILER_FLAGS}
         -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
-        -DGINKGO_BUILD_HIP=${BUILD_HIP}
+        -DGINKGO_BUILD_HIP=${BUILD_HIP} -DGINKGO_BUILD_SYCL=${BUILD_SYCL}
         -DGINKGO_BUILD_MPI=${BUILD_MPI} ${MPI_STR}
         -DGINKGO_BUILD_HWLOC=${BUILD_HWLOC}
+        -DGINKGO_BUILD_PAPI_SDE=${BUILD_PAPI_SDE}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
         -DGINKGO_FAST_TESTS=${FAST_TESTS}
         -DGINKGO_TEST_NONDEFAULT_STREAM=${NONDEFAULT_STREAM}
@@ -52,6 +53,7 @@
         -DGINKGO_DPCPP_SINGLE_MODE=${DPCPP_SINGLE_MODE}
         -DGINKGO_EXPORT_BUILD_DIR=${EXPORT_BUILD_DIR}
     - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT} install
+    - awk '!/^#/ { print ($2 - $1)/1000 " " $4 }' .ninja_log | sort -nr
     - if [ "${EXPORT_BUILD_DIR}" == "ON" ]; then ninja test_exportbuild; fi
     - LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH ninja test_pkgconfig
   dependencies: []
@@ -63,11 +65,11 @@
   script:
     - mkdir -p ${CI_JOB_NAME} && cd ${CI_JOB_NAME}
     - if [ -n "${CUDA_ARCH}" ]; then
-      CUDA_ARCH_STR=-DGINKGO_CUDA_ARCHITECTURES=${CUDA_ARCH};
-      CUDA_HOST_STR=-DCMAKE_CUDA_HOST_COMPILER=$(which ${CXX_COMPILER});
+      export CUDA_ARCH_STR=-DGINKGO_CUDA_ARCHITECTURES=${CUDA_ARCH};
       fi
     - if [ -n "${SYCL_DEVICE_TYPE}" ]; then export SYCL_DEVICE_TYPE; fi
     - if [ -n "${SYCL_DEVICE_FILTER}" ]; then export SYCL_DEVICE_FILTER; fi
+    - if [ -n "${ONEAPI_DEVICE_SELECTOR}" ]; then export ONEAPI_DEVICE_SELECTOR; fi
     - if [[ "${MPI_AS_ROOT}" == "ON" ]];then
       export OMPI_ALLOW_RUN_AS_ROOT=1;
       export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1;
@@ -75,17 +77,18 @@
     - if [[ "${BUILD_MPI}" == "ON" ]]; then
       MPI_STR=-DGINKGO_MPI_EXEC_SUFFIX=${MPI_SUFFIX};
       fi
+    - export CC=${C_COMPILER} CXX=${CXX_COMPILER} CUDAHOSTCXX=${CXX_COMPILER} CUDACXX=${CUDA_COMPILER}
     - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
-        -GNinja
-        -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
-        -DCMAKE_CUDA_COMPILER=${CUDA_COMPILER} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+        -GNinja -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
         -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
-        ${EXTRA_CMAKE_FLAGS} ${CUDA_ARCH_STR} ${CUDA_HOST_STR}
+        ${EXTRA_CMAKE_FLAGS} ${CUDA_ARCH_STR}
+        -DGINKGO_COMPILER_FLAGS=${GKO_COMPILER_FLAGS}
         -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
-        -DGINKGO_BUILD_HIP=${BUILD_HIP}
+        -DGINKGO_BUILD_HIP=${BUILD_HIP} -DGINKGO_BUILD_SYCL=${BUILD_SYCL}
         -DGINKGO_BUILD_MPI=${BUILD_MPI} ${MPI_STR}
         -DGINKGO_BUILD_HWLOC=${BUILD_HWLOC}
+        -DGINKGO_BUILD_PAPI_SDE=${BUILD_PAPI_SDE}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
         -DGINKGO_FAST_TESTS=${FAST_TESTS}
         -DGINKGO_MIXED_PRECISION=${MIXED_PRECISION}
@@ -94,9 +97,10 @@
         -DGINKGO_RUN_EXAMPLES=${RUN_EXAMPLES}
         -DGINKGO_EXPORT_BUILD_DIR=${EXPORT_BUILD_DIR}
     - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT} install
+    - awk '!/^#/ { print ($2 - $1)/1000 " " $4 }' .ninja_log | sort -nr
     - |
         (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
-    - ctest -V --timeout 6000
+    - ctest --output-on-failure --timeout 6000 ${CTEST_EXTRA_ARGS}
     - ninja test_install
     - pushd test/test_install
     - ninja install
@@ -148,7 +152,7 @@
     - cd ${CI_JOB_NAME/test/build}
     - |
         (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
-    - ctest -V --timeout 6000
+    - ctest --output-on-failure --timeout 6000 ${CTEST_EXTRA_ARGS}
     - ninja test_install
     - pushd test/test_install
     - ninja install

@@ -1,6 +1,7 @@
 add_library(ginkgo_reference $<TARGET_OBJECTS:ginkgo_reference_device> "")
 target_sources(ginkgo_reference
     PRIVATE
+    base/batch_multi_vector_kernels.cpp
     base/device_matrix_data_kernels.cpp
     base/index_set_kernels.cpp
     base/scoped_device_id.cpp
@@ -12,6 +13,7 @@ target_sources(ginkgo_reference
     components/precision_conversion_kernels.cpp
     components/prefix_sum_kernels.cpp
     distributed/matrix_kernels.cpp
+    distributed/partition_helpers_kernels.cpp
     distributed/partition_kernels.cpp
     distributed/vector_kernels.cpp
     factorization/cholesky_kernels.cpp
@@ -23,6 +25,8 @@ target_sources(ginkgo_reference
     factorization/par_ict_kernels.cpp
     factorization/par_ilu_kernels.cpp
     factorization/par_ilut_kernels.cpp
+    matrix/batch_dense_kernels.cpp
+    matrix/batch_ell_kernels.cpp
     matrix/coo_kernels.cpp
     matrix/csr_kernels.cpp
     matrix/dense_kernels.cpp
@@ -31,12 +35,15 @@ target_sources(ginkgo_reference
     matrix/fbcsr_kernels.cpp
     matrix/fft_kernels.cpp
     matrix/hybrid_kernels.cpp
+    matrix/permutation_kernels.cpp
+    matrix/scaled_permutation_kernels.cpp
     matrix/sellp_kernels.cpp
     matrix/sparsity_csr_kernels.cpp
     multigrid/pgm_kernels.cpp
     preconditioner/isai_kernels.cpp
     preconditioner/jacobi_kernels.cpp
     reorder/rcm_kernels.cpp
+    solver/batch_bicgstab_kernels.cpp
     solver/bicg_kernels.cpp
     solver/bicgstab_kernels.cpp
     solver/cg_kernels.cpp

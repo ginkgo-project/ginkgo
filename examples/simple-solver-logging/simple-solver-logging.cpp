@@ -85,13 +85,12 @@ int main(int argc, char* argv[])
             {"omp", [] { return gko::OmpExecutor::create(); }},
             {"cuda",
              [] {
-                 return gko::CudaExecutor::create(0, gko::OmpExecutor::create(),
-                                                  true);
+                 return gko::CudaExecutor::create(0,
+                                                  gko::OmpExecutor::create());
              }},
             {"hip",
              [] {
-                 return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
-                                                 true);
+                 return gko::HipExecutor::create(0, gko::OmpExecutor::create());
              }},
             {"dpcpp",
              [] {
@@ -137,9 +136,8 @@ int main(int argc, char* argv[])
     // Generate solver
     auto solver_gen =
         cg::build()
-            .with_criteria(
-                residual_criterion,
-                gko::stop::Iteration::build().with_max_iters(20u).on(exec))
+            .with_criteria(residual_criterion,
+                           gko::stop::Iteration::build().with_max_iters(20u))
             .on(exec);
     auto solver = solver_gen->generate(A);
 

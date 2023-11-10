@@ -4,12 +4,14 @@ add_library(ginkgo "")
 target_sources(ginkgo
     PRIVATE
     base/array.cpp
+    base/batch_multi_vector.cpp
     base/combination.cpp
     base/composition.cpp
     base/dense_cache.cpp
     base/device_matrix_data.cpp
     base/executor.cpp
     base/index_set.cpp
+    base/memory.cpp
     base/mpi.cpp
     base/mtx_io.cpp
     base/perturbation.cpp
@@ -27,6 +29,7 @@ target_sources(ginkgo
     factorization/par_ilu.cpp
     factorization/par_ilut.cpp
     factorization/symbolic.cpp
+    log/batch_logger.cpp
     log/convergence.cpp
     log/logger.cpp
     log/performance_hint.cpp
@@ -37,6 +40,9 @@ target_sources(ginkgo
     log/vtune.cpp
     log/record.cpp
     log/stream.cpp
+    matrix/batch_dense.cpp
+    matrix/batch_ell.cpp
+    matrix/batch_identity.cpp
     matrix/coo.cpp
     matrix/csr.cpp
     matrix/dense.cpp
@@ -47,16 +53,19 @@ target_sources(ginkgo
     matrix/hybrid.cpp
     matrix/identity.cpp
     matrix/permutation.cpp
+    matrix/row_gatherer.cpp
+    matrix/scaled_permutation.cpp
     matrix/sellp.cpp
     matrix/sparsity_csr.cpp
-    matrix/row_gatherer.cpp
     multigrid/pgm.cpp
     multigrid/fixed_coarsening.cpp
     preconditioner/isai.cpp
     preconditioner/jacobi.cpp
     reorder/amd.cpp
+    reorder/mc64.cpp
     reorder/rcm.cpp
     reorder/scaled_reordered.cpp
+    solver/batch_bicgstab.cpp
     solver/bicg.cpp
     solver/bicgstab.cpp
     solver/cb_gmres.cpp
@@ -93,6 +102,7 @@ if(GINKGO_BUILD_MPI)
         PRIVATE
         mpi/exception.cpp
         distributed/matrix.cpp
+        distributed/partition_helpers.cpp
         distributed/vector.cpp
         distributed/preconditioner/schwarz.cpp)
 endif()
@@ -111,10 +121,7 @@ target_link_libraries(ginkgo
 set(GKO_RPATH_ADDITIONS "")
 
 if(GINKGO_HAVE_PAPI_SDE)
-    target_link_libraries(ginkgo PUBLIC PAPI::PAPI)
-    list(GET PAPI_LIBRARIES 0 PAPI_FIRST_LIB)
-    get_filename_component(GKO_PAPI_LIBDIR "${PAPI_FIRST_LIB}" DIRECTORY)
-    list(APPEND GKO_RPATH_ADDITIONS "${GKO_PAPI_LIBDIR}")
+    target_link_libraries(ginkgo PUBLIC PAPI::PAPI_SDE)
 endif()
 
 if(GINKGO_HAVE_TAU)

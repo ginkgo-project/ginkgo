@@ -186,7 +186,7 @@ private:
         cache_struct(const cache_struct& other) {}
         cache_struct& operator=(const cache_struct& other) { return *this; }
 
-        // allocate linops of cache. The dimenstion of `intermediate` is
+        // allocate linops of cache. The dimension of `intermediate` is
         // (the number of rows of projector, the number of columns of b). Others
         // are 1x1 scalar.
         void allocate(std::shared_ptr<const Executor> exec, dim<2> size)

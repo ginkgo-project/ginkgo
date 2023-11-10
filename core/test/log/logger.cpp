@@ -30,18 +30,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+// force-top: on
+#include <ginkgo/core/base/types.hpp>
+GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
+// force-top: off
+
+
 #include <ginkgo/core/log/logger.hpp>
-
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-
-#endif
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 5211, 4973, 4974)
-#endif
 
 
 #include <memory>
@@ -362,9 +357,4 @@ TEST(IterationCompleteOverload, CanLogCurrent)
 }  // namespace
 
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+GKO_END_DISABLE_DEPRECATION_WARNINGS

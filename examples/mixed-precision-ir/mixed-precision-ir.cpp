@@ -76,13 +76,12 @@ int main(int argc, char* argv[])
             {"omp", [] { return gko::OmpExecutor::create(); }},
             {"cuda",
              [] {
-                 return gko::CudaExecutor::create(0, gko::OmpExecutor::create(),
-                                                  true);
+                 return gko::CudaExecutor::create(0,
+                                                  gko::OmpExecutor::create());
              }},
             {"hip",
              [] {
-                 return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
-                                                 true);
+                 return gko::HipExecutor::create(0, gko::OmpExecutor::create());
              }},
             {"dpcpp",
              [] {
@@ -125,12 +124,10 @@ int main(int argc, char* argv[])
     // Create inner solver
     auto inner_solver =
         cg::build()
-            .with_criteria(gko::stop::ResidualNorm<SolverType>::build()
-                               .with_reduction_factor(inner_reduction_factor)
-                               .on(exec),
-                           gko::stop::Iteration::build()
-                               .with_max_iters(max_inner_iters)
-                               .on(exec))
+            .with_criteria(
+                gko::stop::ResidualNorm<SolverType>::build()
+                    .with_reduction_factor(inner_reduction_factor),
+                gko::stop::Iteration::build().with_max_iters(max_inner_iters))
             .on(exec)
             ->generate(give(solver_A));
 

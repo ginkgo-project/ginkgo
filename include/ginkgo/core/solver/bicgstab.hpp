@@ -98,27 +98,11 @@ public:
      */
     bool apply_uses_initial_guess() const override { return true; }
 
-    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
-    {
-        /**
-         * Criterion factories.
-         */
-        std::vector<std::shared_ptr<const stop::CriterionFactory>>
-            GKO_FACTORY_PARAMETER_VECTOR(criteria, nullptr);
+    class Factory;
+    struct parameters_type
+        : enable_preconditioned_iterative_solver_factory_parameters<
+              parameters_type, Factory> {};
 
-        /**
-         * Preconditioner factory.
-         */
-        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
-            preconditioner, nullptr);
-
-        /**
-         * Already generated preconditioner. If one is provided, the factory
-         * `preconditioner` will be ignored.
-         */
-        std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(
-            generated_preconditioner, nullptr);
-    };
     GKO_ENABLE_LIN_OP_FACTORY(Bicgstab, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 

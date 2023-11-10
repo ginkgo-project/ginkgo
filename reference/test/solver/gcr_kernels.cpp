@@ -72,18 +72,15 @@ protected:
           non_stopped{},
           mtx(gko::initialize<Mtx>(
               {{1.0, 2.0, 3.0}, {3.0, 2.0, -1.0}, {0.0, -1.0, 2}}, exec)),
-          gcr_factory(
-              Solver::build()
-                  .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(4u).on(exec),
-                      gko::stop::Time::build()
-                          .with_time_limit(std::chrono::seconds(6))
-                          .on(exec),
-                      gko::stop::ResidualNorm<value_type>::build()
-                          .with_reduction_factor(r<value_type>::value)
-                          .on(exec))
-                  .with_krylov_dim(3u)
-                  .on(exec)),
+          gcr_factory(Solver::build()
+                          .with_criteria(
+                              gko::stop::Iteration::build().with_max_iters(4u),
+                              gko::stop::Time::build().with_time_limit(
+                                  std::chrono::seconds(6)),
+                              gko::stop::ResidualNorm<value_type>::build()
+                                  .with_reduction_factor(r<value_type>::value))
+                          .with_krylov_dim(3u)
+                          .on(exec)),
           mtx_big(gko::initialize<Mtx>(
               {{2295.7, -764.8, 1166.5, 428.9, 291.7, -774.5},
                {2752.6, -1127.7, 1212.8, -299.1, 987.7, 786.8},
@@ -95,20 +92,16 @@ protected:
           gcr_factory_big(
               Solver::build()
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(100u).on(
-                          exec),
+                      gko::stop::Iteration::build().with_max_iters(100u),
                       gko::stop::ResidualNorm<value_type>::build()
-                          .with_reduction_factor(r<value_type>::value)
-                          .on(exec))
+                          .with_reduction_factor(r<value_type>::value))
                   .on(exec)),
           gcr_factory_big2(
               Solver::build()
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(100u).on(
-                          exec),
+                      gko::stop::Iteration::build().with_max_iters(100u),
                       gko::stop::ImplicitResidualNorm<value_type>::build()
-                          .with_reduction_factor(r<value_type>::value)
-                          .on(exec))
+                          .with_reduction_factor(r<value_type>::value))
                   .on(exec)),
           mtx_medium(
               gko::initialize<Mtx>({{-86.40, 153.30, -108.90, 8.60, -61.60},
@@ -581,12 +574,9 @@ TYPED_TEST(Gcr, SolvesBigDenseSystem1WithRestart)
     auto gcr_factory_restart =
         Solver::build()
             .with_krylov_dim(4u)
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(200u).on(
-                    this->exec),
-                gko::stop::ResidualNorm<value_type>::build()
-                    .with_reduction_factor(r<value_type>::value)
-                    .on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(200u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value))
             .on(this->exec);
     auto solver = gcr_factory_restart->generate(this->mtx_medium);
     auto b = gko::initialize<Mtx>(
@@ -607,16 +597,12 @@ TYPED_TEST(Gcr, SolvesWithPreconditioner)
     using value_type = typename TestFixture::value_type;
     auto gcr_factory_preconditioner =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(100u).on(
-                    this->exec),
-                gko::stop::ResidualNorm<value_type>::build()
-                    .with_reduction_factor(r<value_type>::value)
-                    .on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(100u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value))
             .with_preconditioner(
                 gko::preconditioner::Jacobi<value_type>::build()
-                    .with_max_block_size(3u)
-                    .on(this->exec))
+                    .with_max_block_size(3u))
             .on(this->exec);
     auto solver = gcr_factory_preconditioner->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(

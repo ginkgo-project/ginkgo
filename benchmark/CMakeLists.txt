@@ -20,9 +20,7 @@ function(ginkgo_benchmark_cusparse_linops type def)
     endif()
     # make the dependency public to catch issues
     target_compile_definitions(cusparse_linops_${type} PUBLIC ${def})
-    target_link_libraries(cusparse_linops_${type} Ginkgo::ginkgo ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE})
-    target_include_directories(cusparse_linops_${type} SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
-    target_compile_definitions(cusparse_linops_${type} PRIVATE ALLOWMP=1)
+    target_link_libraries(cusparse_linops_${type} Ginkgo::ginkgo CUDA::cudart CUDA::cublas CUDA::cusparse)
 endfunction()
 
 function(ginkgo_benchmark_hipsparse_linops type def)
@@ -48,7 +46,7 @@ endfunction()
 
 
 # Generates an executable for one precision. Each executable will be linked to
-# `ginkgo`, `gflags` and `rapidjson`.
+# `ginkgo`, `gflags` and `nlohmann-json`.
 # Note: This should only be used by `ginkgo_add_typed_benchmark_executables`
 #
 # \param name            name for the executable to create (including type suffix)
@@ -59,7 +57,7 @@ endfunction()
 # All remaining arguments will be treated as source files
 function(ginkgo_add_single_benchmark_executable name use_lib_linops macro_def type)
     add_executable("${name}" ${ARGN})
-    target_link_libraries("${name}" ginkgo gflags rapidjson)
+    target_link_libraries("${name}" ginkgo gflags nlohmann_json::nlohmann_json)
     # always include the device timer
     if (GINKGO_BUILD_CUDA)
         target_compile_definitions("${name}" PRIVATE HAS_CUDA_TIMER=1)
@@ -69,7 +67,7 @@ function(ginkgo_add_single_benchmark_executable name use_lib_linops macro_def ty
         target_compile_definitions("${name}" PRIVATE HAS_HIP_TIMER=1)
         target_link_libraries("${name}" hip_timer)
     endif()
-    if (GINKGO_BUILD_DPCPP)
+    if (GINKGO_BUILD_SYCL)
         target_compile_definitions("${name}" PRIVATE HAS_DPCPP_TIMER=1)
         target_link_libraries("${name}" dpcpp_timer)
     endif()
@@ -89,7 +87,7 @@ function(ginkgo_add_single_benchmark_executable name use_lib_linops macro_def ty
             target_compile_definitions("${name}" PRIVATE HAS_HIP=1)
             target_link_libraries("${name}" hipsparse_linops_${type})
         endif()
-        if (GINKGO_BUILD_DPCPP)
+        if (GINKGO_BUILD_SYCL)
             target_compile_definitions("${name}" PRIVATE HAS_DPCPP=1)
             target_link_libraries("${name}" onemkl_linops_${type})
         endif()
@@ -98,7 +96,7 @@ endfunction(ginkgo_add_single_benchmark_executable)
 
 
 # Generates an executable for each supported precision. Each executable will be
-# linked to `ginkgo`, `gflags` and `rapidjson`.
+# linked to `ginkgo`, `gflags` and `nlohmann-json`.
 #
 # \param name            base-name for the executable to create
 # \param use_lib_linops  Boolean indicating if linking against hipsparse/cusparse
@@ -122,8 +120,7 @@ if (GINKGO_BUILD_CUDA)
     ginkgo_benchmark_cusparse_linops(z GKO_BENCHMARK_USE_DOUBLE_COMPLEX_PRECISION)
     ginkgo_benchmark_cusparse_linops(c GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION)
     add_library(cuda_timer utils/cuda_timer.cpp)
-    target_link_libraries(cuda_timer ginkgo ${CUDA_RUNTIME_LIBS})
-    target_include_directories(cuda_timer SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
+    target_link_libraries(cuda_timer ginkgo CUDA::cudart)
 endif()
 if (GINKGO_BUILD_HIP)
     ginkgo_benchmark_hipsparse_linops(d GKO_BENCHMARK_USE_DOUBLE_PRECISION)
@@ -137,12 +134,14 @@ if (GINKGO_BUILD_HIP)
     target_link_libraries(hip_timer ginkgo)
 endif()
 
-if (GINKGO_BUILD_DPCPP)
+if (GINKGO_BUILD_SYCL)
     ginkgo_benchmark_onemkl_linops(d GKO_BENCHMARK_USE_DOUBLE_PRECISION)
     ginkgo_benchmark_onemkl_linops(s GKO_BENCHMARK_USE_SINGLE_PRECISION)
     ginkgo_benchmark_onemkl_linops(z GKO_BENCHMARK_USE_DOUBLE_COMPLEX_PRECISION)
     ginkgo_benchmark_onemkl_linops(c GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION)
     add_library(dpcpp_timer utils/dpcpp_timer.dp.cpp)
+    target_compile_options(dpcpp_timer PRIVATE ${GINKGO_DPCPP_FLAGS})
+    gko_add_sycl_to_target(TARGET dpcpp_timer SOURCES utils/dpcpp_timer.dp.cpp)
     target_link_libraries(dpcpp_timer ginkgo)
 endif()
 
@@ -152,7 +151,7 @@ if (GINKGO_BUILD_MPI)
 endif()
 
 add_subdirectory(blas)
-add_subdirectory(conversions)
+add_subdirectory(conversion)
 add_subdirectory(matrix_generator)
 add_subdirectory(matrix_statistics)
 add_subdirectory(preconditioner)
@@ -160,22 +159,14 @@ add_subdirectory(solver)
 add_subdirectory(sparse_blas)
 add_subdirectory(spmv)
 add_subdirectory(tools)
+if (GINKGO_BUILD_TESTS)
+    add_subdirectory(test)
+endif()
 
-add_custom_target(make_run_all_benchmarks ALL)
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/run_all_benchmarks.sh
-    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
-    FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE
-    WORLD_READ WORLD_EXECUTE)
-
-add_custom_command(
-    TARGET make_run_all_benchmarks POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_CURRENT_SOURCE_DIR}/run_all_benchmarks.sh
-            ${CMAKE_CURRENT_BINARY_DIR}/run_all_benchmarks.sh)
+configure_file(run_all_benchmarks.sh run_all_benchmarks.sh COPYONLY)
 
 add_custom_target(benchmark)
 add_custom_command(
     TARGET benchmark POST_BUILD
     COMMAND bash run_all_benchmarks.sh >/dev/null
-    DEPENDS make_run_all_benchmarks
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})

@@ -546,7 +546,7 @@ protected:
     /**
      * Creates a Jacobi preconditioner from a matrix using a Jacobi::Factory.
      *
-     * @param factory  the factory to use to create the preconditoner
+     * @param factory  the factory to use to create the preconditioner
      * @param system_matrix  the matrix this preconditioner should be created
      *                       from
      */
@@ -593,7 +593,7 @@ protected:
             max_block_stride = param_max_block_stride;
             if (this->get_executor() != this->get_executor()->get_master() &&
                 max_block_stride != default_block_stride) {
-                // only support the default value on the gpu devive
+                // only support the default value on the gpu device
                 GKO_NOT_SUPPORTED(this);
             }
         }
@@ -612,7 +612,7 @@ protected:
     }
 
     /**
-     * Generates the preconditoner.
+     * Generates the preconditioner.
      *
      * @param system_matrix  the source matrix used to generate the
      *                       preconditioner

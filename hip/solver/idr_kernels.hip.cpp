@@ -106,6 +106,7 @@ void initialize_subspace_vectors(std::shared_ptr<const DefaultExecutor> exec,
             gen,
             subspace_vectors->get_size()[0] * subspace_vectors->get_stride(),
             0.0, 1.0, subspace_vectors->get_values());
+        hiprand::destroy(gen);
     }
 }
 

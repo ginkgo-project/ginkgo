@@ -1,9 +1,9 @@
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.16)
 project(custom-stopping-criterion)
 
 # We only need to find Ginkgo if we build this example stand-alone
 if (NOT GINKGO_BUILD_EXAMPLES)
-    find_package(Ginkgo 1.6.0 REQUIRED)
+    find_package(Ginkgo 1.7.0 REQUIRED)
     set(THREADS_PREFER_PTHREAD_FLAG ON)
     find_package(Threads REQUIRED)
 endif()

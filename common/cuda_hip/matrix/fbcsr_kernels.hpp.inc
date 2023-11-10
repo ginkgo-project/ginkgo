@@ -172,11 +172,7 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
     }
     auto in_rows = data.get_row_idxs();
     auto in_cols = data.get_col_idxs();
-    // workaround for CUDA 9.2 Thrust: Their complex<> implementation is broken
-    // due to overly generic assignment operator and constructor leading to
-    // ambiguities. So we need to use our own fake_complex type
-    auto in_vals =
-        reinterpret_cast<device_member_type<ValueType>*>(data.get_values());
+    auto in_vals = as_device_type(data.get_values());
     auto in_loc_it =
         thrust::make_zip_iterator(thrust::make_tuple(in_rows, in_cols));
     thrust::sort_by_key(thrust_policy(exec), in_loc_it, in_loc_it + nnz,
@@ -232,14 +228,10 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
             const auto block_end = i < num_blocks - 1 ? block_ptrs[i + 1] : nnz;
             for (auto nz = block_begin; nz < block_end; nz++) {
                 block_values[i * bs * bs + (in_cols[nz] % bs) * bs +
-                             (in_rows[nz] % bs)] =
-                    fake_complex_unpack(in_vals[nz]);
+                             (in_rows[nz] % bs)] = in_vals[nz];
             }
         });
 }
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_FILL_IN_MATRIX_DATA_KERNEL);
 
 
 namespace kernel {
@@ -323,9 +315,6 @@ void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_FILL_IN_DENSE_KERNEL);
-
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(const std::shared_ptr<const DefaultExecutor> exec,
@@ -344,9 +333,6 @@ void convert_to_csr(const std::shared_ptr<const DefaultExecutor> exec,
             source->get_num_block_rows(), source->get_block_size());
     }
 }
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_CONVERT_TO_CSR_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -372,23 +358,14 @@ void is_sorted_by_column_index(
     *is_sorted = exec->copy_val_to_host(gpu_array.get_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_IS_SORTED_BY_COLUMN_INDEX);
-
 
 template <typename ValueType, typename IndexType>
 void sort_by_column_index(const std::shared_ptr<const DefaultExecutor> exec,
                           matrix::Fbcsr<ValueType, IndexType>* const to_sort)
     GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_SORT_BY_COLUMN_INDEX);
-
 
 template <typename ValueType, typename IndexType>
 void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Fbcsr<ValueType, IndexType>* orig,
                       matrix::Diagonal<ValueType>* diag) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_EXTRACT_DIAGONAL);

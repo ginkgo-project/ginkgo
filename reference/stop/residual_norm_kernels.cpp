@@ -67,7 +67,7 @@ void residual_norm(std::shared_ptr<const ReferenceExecutor> exec,
     *all_converged = true;
     *one_changed = false;
     for (size_type i = 0; i < tau->get_size()[1]; ++i) {
-        if (tau->at(i) < rel_residual_goal * orig_tau->at(i)) {
+        if (tau->at(i) <= rel_residual_goal * orig_tau->at(i)) {
             stop_status->get_data()[i].converge(stoppingId, setFinalized);
             *one_changed = true;
         }
@@ -107,7 +107,7 @@ void implicit_residual_norm(
     *all_converged = true;
     *one_changed = false;
     for (size_type i = 0; i < tau->get_size()[1]; ++i) {
-        if (sqrt(abs(tau->at(i))) < rel_residual_goal * orig_tau->at(i)) {
+        if (sqrt(abs(tau->at(i))) <= rel_residual_goal * orig_tau->at(i)) {
             stop_status->get_data()[i].converge(stoppingId, setFinalized);
             *one_changed = true;
         }

@@ -52,13 +52,13 @@ namespace stop {
  * The mode for the residual norm criterion.
  *
  * - absolute:        Check for tolerance against residual norm.
- *                    $ || r || < \tau $
+ *                    $ || r || \leq \tau $
  *
  * - initial_resnorm: Check for tolerance relative to the initial residual norm.
- *                    $ \frac{|| r ||}{|| r_0||} < \tau $
+ *                    $ || r || \leq \tau \times || r_0|| $
  *
  * - rhs_norm:        Check for tolerance relative to the rhs norm.
- *                    $ \frac{|| r ||}{|| b ||} < \tau $
+ *                    $ || r || \leq \tau \times || b || $
  *
  * @ingroup stop
  */
@@ -118,10 +118,11 @@ private:
  * The ResidualNorm class is a stopping criterion which
  * stops the iteration process when the actual residual norm is below a
  * certain threshold relative to
- * 1. the norm of the right-hand side, norm(residual) / norm(right_hand_side)
- *                                                                  < threshold
- * 2. the initial residual, norm(residual) / norm(initial_residual) < threshold.
- * 3. one,  norm(residual) < threshold.
+ * 1. the norm of the right-hand side, norm(residual) $\leq$ < threshold *
+ *    norm(right_hand_side).
+ * 2. the initial residual, norm(residual) $\leq$ threshold *
+ *    norm(initial_residual).
+ * 3. one,  norm(residual) $\leq$ threshold.
  *
  * For better performance, the checks are run on the executor
  * where the algorithm is executed.
@@ -176,11 +177,11 @@ protected:
  * The ImplicitResidualNorm class is a stopping criterion which
  * stops the iteration process when the implicit residual norm is below a
  * certain threshold relative to
- * 1. the norm of the right-hand side, implicit_resnorm / norm(right_hand_side)
- *                                                          < threshold
- * 2. the initial residual, implicit_resnorm / norm(initial_residual) <
- *                                                          < threshold.
- * 3. one, implicit_resnorm < threshold.
+ * 1. the norm of the right-hand side, implicit_resnorm $\leq$ < threshold *
+ * norm(right_hand_side)
+ * 2. the initial residual, implicit_resnorm $\leq$ threshold *
+ * norm(initial_residual) .
+ * 3. one,  implicit_resnorm $\leq$ threshold.
  *
  * @note To use this stopping criterion there are some dependencies. The
  * constructor depends on either `b` or the `initial_residual` in order to
@@ -239,13 +240,7 @@ protected:
 // The following classes are deprecated, but they internally reference
 // themselves. To reduce unnecessary warnings, we disable deprecation warnings
 // for the definition of these classes.
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#elif defined(_MSC_BUILD) || defined(__INTEL_LLVM_COMPILER)
-#pragma warning(push)
-#pragma warning(disable : 4996)
-#endif
+GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
 
 
 /**
@@ -268,11 +263,10 @@ protected:
  * @ingroup stop
  */
 template <typename ValueType = default_precision>
-class [[deprecated(
+class GKO_DEPRECATED(
     "Please use the class ResidualNorm with the factory parameter baseline = "
-    "mode::initial_resnorm")]] ResidualNormReduction
-    : public ResidualNormBase<ValueType>
-{
+    "mode::initial_resnorm") ResidualNormReduction
+    : public ResidualNormBase<ValueType> {
 public:
     using ComplexVector = matrix::Dense<to_complex<ValueType>>;
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
@@ -325,11 +319,10 @@ protected:
  * @ingroup stop
  */
 template <typename ValueType = default_precision>
-class [[deprecated(
+class GKO_DEPRECATED(
     "Please use the class ResidualNorm with the factory parameter baseline = "
-    "mode::rhs_norm")]] RelativeResidualNorm
-    : public ResidualNormBase<ValueType>
-{
+    "mode::rhs_norm") RelativeResidualNorm
+    : public ResidualNormBase<ValueType> {
 public:
     using ComplexVector = matrix::Dense<to_complex<ValueType>>;
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
@@ -380,11 +373,10 @@ protected:
  * @ingroup stop
  */
 template <typename ValueType = default_precision>
-class [[deprecated(
+class GKO_DEPRECATED(
     "Please use the class ResidualNorm with the factory parameter baseline = "
-    "mode::absolute")]] AbsoluteResidualNorm
-    : public ResidualNormBase<ValueType>
-{
+    "mode::absolute") AbsoluteResidualNorm
+    : public ResidualNormBase<ValueType> {
 public:
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
     using Vector = matrix::Dense<ValueType>;
@@ -416,11 +408,7 @@ protected:
 };
 
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#elif defined(_MSC_BUILD) || defined(__INTEL_LLVM_COMPILER)
-#pragma warning(pop)
-#endif
+GKO_END_DISABLE_DEPRECATION_WARNINGS
 
 
 }  // namespace stop

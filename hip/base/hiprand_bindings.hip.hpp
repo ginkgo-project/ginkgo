@@ -34,7 +34,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_HIP_BASE_HIPRAND_BINDINGS_HIP_HPP_
 
 
+#include <hip/hip_runtime.h>
+#if HIP_VERSION >= 50200000
+#include <hiprand/hiprand.h>
+#else
 #include <hiprand.h>
+#endif
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -80,6 +85,11 @@ inline hiprandGenerator_t rand_generator(int64 seed,
     GKO_ASSERT_NO_HIPRAND_ERRORS(
         hiprandSetPseudoRandomGeneratorSeed(gen, seed));
     return gen;
+}
+
+inline void destroy(hiprandGenerator_t gen)
+{
+    GKO_ASSERT_NO_HIPRAND_ERRORS(hiprandDestroyGenerator(gen));
 }
 
 

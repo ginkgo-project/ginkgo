@@ -58,6 +58,20 @@ class PolymorphicObject;
 class Operation;
 class stopping_status;
 
+
+namespace batch {
+
+
+class BatchLinOp;
+class BatchLinOpFactory;
+
+template <typename ValueType>
+class MultiVector;
+
+
+}  // namespace batch
+
+
 /**
  * @brief The Stopping criterion namespace.
  * @ref stop
@@ -111,10 +125,10 @@ public:
      * call only if the user activates this event through the mask. If the
      * event is activated, we rely on polymorphism and the virtual method
      * `on_##_event_name()` to either call the Logger class's function,
-     * which does nothing, or the overriden version in the derived class if
+     * which does nothing, or the overridden version in the derived class if
      * any. Therefore, to support a new event in any Logger (i.e. class
      * which derive from this class), the function `on_##_event_name()`
-     * should be overriden and implemented.
+     * should be overridden and implemented.
      *
      * @param _id  the unique id of the event
      *
@@ -448,12 +462,12 @@ protected:
      * @warning This on_iteration_complete function that this macro declares is
      * deprecated. Please use the version with the stopping information.
      */
-    [[deprecated(
+    GKO_DEPRECATED(
         "Please use the version with the additional stopping "
-        "information.")]] virtual void
-    on_iteration_complete(const LinOp* solver, const size_type& it,
-                          const LinOp* r, const LinOp* x = nullptr,
-                          const LinOp* tau = nullptr) const
+        "information.")
+    virtual void on_iteration_complete(const LinOp* solver, const size_type& it,
+                                       const LinOp* r, const LinOp* x = nullptr,
+                                       const LinOp* tau = nullptr) const
     {}
 
     /**
@@ -469,28 +483,17 @@ protected:
      * @warning This on_iteration_complete function that this macro declares is
      * deprecated. Please use the version with the stopping information.
      */
-    [[deprecated(
+    GKO_DEPRECATED(
         "Please use the version with the additional stopping "
-        "information.")]] virtual void
-    on_iteration_complete(const LinOp* solver, const size_type& it,
-                          const LinOp* r, const LinOp* x, const LinOp* tau,
-                          const LinOp* implicit_tau_sq) const
+        "information.")
+    virtual void on_iteration_complete(const LinOp* solver, const size_type& it,
+                                       const LinOp* r, const LinOp* x,
+                                       const LinOp* tau,
+                                       const LinOp* implicit_tau_sq) const
     {
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 5211, 4973, 4974)
-#endif
+        GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
         this->on_iteration_complete(solver, it, r, x, tau);
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+        GKO_END_DISABLE_DEPRECATION_WARNINGS
     }
 
     /**
@@ -515,27 +518,9 @@ protected:
                                        const array<stopping_status>* status,
                                        bool stopped) const
     {
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif  // defined(__GNUC__) || defined(__clang__)
-#ifdef __NVCOMPILER
-#pragma diag_suppress 1445
-#endif  // __NVCOMPILER
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 5211, 4973, 4974)
-#endif  // _MSC_VER
+        GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
         this->on_iteration_complete(solver, it, r, x, tau, implicit_tau_sq);
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif  // defined(__GNUC__) || defined(__clang__)
-#ifdef __NVCOMPILER
-#pragma diag_warning 1445
-#endif  // __NVCOMPILER
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif  // _MSC_VER
+        GKO_END_DISABLE_DEPRECATION_WARNINGS
     }
 
 public:
@@ -563,6 +548,67 @@ public:
                               const PolymorphicObject* input,
                               const PolymorphicObject* output)
 
+    /**
+     * BatchLinOp Factory's generate started event.
+     *
+     * @param factory  the factory used
+     * @param input  the BatchLinOp object used as input for the generation
+     * (usually a system matrix)
+     */
+    GKO_LOGGER_REGISTER_EVENT(24, batch_linop_factory_generate_started,
+                              const batch::BatchLinOpFactory* factory,
+                              const batch::BatchLinOp* input)
+
+    /**
+     * BatchLinOp Factory's generate completed event.
+     *
+     * @param factory  the factory used
+     * @param input  the BatchLinOp object used as input for the generation
+     * (usually a system matrix)
+     * @param output  the generated BatchLinOp object
+     */
+    GKO_LOGGER_REGISTER_EVENT(25, batch_linop_factory_generate_completed,
+                              const batch::BatchLinOpFactory* factory,
+                              const batch::BatchLinOp* input,
+                              const batch::BatchLinOp* output)
+
+public:
+    static constexpr size_type batch_solver_completed{26};
+    static constexpr mask_type batch_solver_completed_mask{mask_type{1} << 26};
+
+    template <size_type Event, typename... Params>
+    std::enable_if_t<Event == 26 && (26 < event_count_max)> on(
+        Params&&... params) const
+    {
+        if (enabled_events_ & batch_solver_completed_mask) {
+            this->on_batch_solver_completed(std::forward<Params>(params)...);
+        }
+    }
+
+protected:
+    /**
+     * Batch solver's event that records the iteration count and the residual
+     * norm.
+     *
+     * @param iters  the array of iteration counts.
+     * @param residual_norms  the array storing the residual norms.
+     */
+    virtual void on_batch_solver_completed(
+        const array<int>& iters, const array<double>& residual_norms) const
+    {}
+
+    /**
+     * Batch solver's event that records the iteration count and the residual
+     * norm.
+     *
+     * @param iters  the array of iteration counts.
+     * @param residual_norms  the array storing the residual norms.
+     */
+    virtual void on_batch_solver_completed(
+        const array<int>& iters, const array<float>& residual_norms) const
+    {}
+
+public:
 #undef GKO_LOGGER_REGISTER_EVENT
 
     /**
@@ -606,6 +652,13 @@ public:
         linop_factory_generate_completed_mask;
 
     /**
+     * Bitset Mask which activates all batch linop factory events
+     */
+    static constexpr mask_type batch_linop_factory_events_mask =
+        batch_linop_factory_generate_started_mask |
+        batch_linop_factory_generate_completed_mask;
+
+    /**
      * Bitset Mask which activates all criterion events
      */
     static constexpr mask_type criterion_events_mask =
@@ -634,9 +687,9 @@ protected:
      *                           logs every event except linop's apply started
      *                           event.
      */
-    [[deprecated("use single-parameter constructor")]] explicit Logger(
-        std::shared_ptr<const gko::Executor> exec,
-        const mask_type& enabled_events = all_events_mask)
+    GKO_DEPRECATED("use single-parameter constructor")
+    explicit Logger(std::shared_ptr<const gko::Executor> exec,
+                    const mask_type& enabled_events = all_events_mask)
         : Logger{enabled_events}
     {}
 

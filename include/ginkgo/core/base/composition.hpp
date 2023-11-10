@@ -176,7 +176,7 @@ protected:
      * @tparam Rest  types of trailing parameters
      *
      * @param oper  the first operator
-     * @param rest  remainging operators
+     * @param rest  remaining operators
      */
     template <typename... Rest>
     explicit Composition(std::shared_ptr<const LinOp> oper, Rest&&... rest)
@@ -217,7 +217,7 @@ public:
     }
 
     /**
-     * Returns the operator at index-th poistion of composition
+     * Returns the operator at index-th position of composition
      *
      * @return index-th operator
      *

@@ -111,7 +111,8 @@ public:
             return copy.back();
         } else if (method == "median") {
             auto mid = copy.size() / 2;
-            if (copy.size() % 2) {
+            if (copy.size() % 2 == 0) {
+                // contains even elements
                 return (copy.at(mid) + copy.at(mid - 1)) / 2;
             } else {
                 return copy.at(mid);

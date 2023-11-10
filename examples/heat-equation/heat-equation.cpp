@@ -192,11 +192,10 @@ int main(int argc, char* argv[])
     // stopping at 1e-10 relative accuracy
     auto solver =
         gko::solver::Cg<>::build()
-            .with_preconditioner(gko::preconditioner::Ic<>::build().on(exec))
+            .with_preconditioner(gko::preconditioner::Ic<>::build())
             .with_criteria(gko::stop::ResidualNorm<>::build()
                                .with_baseline(gko::stop::mode::rhs_norm)
-                               .with_reduction_factor(1e-10)
-                               .on(exec))
+                               .with_reduction_factor(1e-10))
             .on(exec)
             ->generate(stencil_matrix);
     // time stamp of the last output frame (initialized to a sentinel value)

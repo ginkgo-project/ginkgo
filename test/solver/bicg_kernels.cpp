@@ -239,19 +239,15 @@ TEST_F(Bicg, ApplyWithSpdMatrixIsEquivalentToRef)
     auto d_b = gko::clone(exec, b);
     auto bicg_factory =
         gko::solver::Bicg<value_type>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(50u).on(ref),
-                gko::stop::ResidualNorm<value_type>::build()
-                    .with_reduction_factor(::r<value_type>::value)
-                    .on(ref))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(50u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(::r<value_type>::value))
             .on(ref);
     auto d_bicg_factory =
         gko::solver::Bicg<value_type>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(50u).on(exec),
-                gko::stop::ResidualNorm<value_type>::build()
-                    .with_reduction_factor(::r<value_type>::value)
-                    .on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(50u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(::r<value_type>::value))
             .on(exec);
     auto solver = bicg_factory->generate(std::move(mtx));
     auto d_solver = d_bicg_factory->generate(std::move(d_mtx));
@@ -271,19 +267,15 @@ TEST_F(Bicg, ApplyWithSuiteSparseMatrixIsEquivalentToRef)
     auto d_b = gko::clone(exec, b);
     auto bicg_factory =
         gko::solver::Bicg<value_type>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(50u).on(ref),
-                gko::stop::ResidualNorm<value_type>::build()
-                    .with_reduction_factor(::r<value_type>::value)
-                    .on(ref))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(50u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(::r<value_type>::value))
             .on(ref);
     auto d_bicg_factory =
         gko::solver::Bicg<value_type>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(50u).on(exec),
-                gko::stop::ResidualNorm<value_type>::build()
-                    .with_reduction_factor(::r<value_type>::value)
-                    .on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(50u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(::r<value_type>::value))
             .on(exec);
     auto solver = bicg_factory->generate(std::move(mtx_ani));
     auto d_solver = d_bicg_factory->generate(std::move(d_mtx_ani));

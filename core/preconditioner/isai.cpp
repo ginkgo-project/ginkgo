@@ -230,17 +230,15 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
                 excess_solver_factory =
                     Gmres::build()
                         .with_preconditioner(
-                            Bj::build().with_max_block_size(32u).on(exec))
+                            Bj::build().with_max_block_size(32u))
                         .with_criteria(
-                            gko::stop::Iteration::build()
-                                .with_max_iters(excess_dim)
-                                .on(exec),
+                            gko::stop::Iteration::build().with_max_iters(
+                                excess_dim),
                             gko::stop::ResidualNorm<ValueType>::build()
                                 .with_baseline(gko::stop::mode::rhs_norm)
                                 .with_reduction_factor(
                                     remove_complex<ValueType>{
-                                        excess_solver_reduction})
-                                .on(exec))
+                                        excess_solver_reduction}))
                         .on(exec);
                 excess_solution->copy_from(excess_rhs);
             } else if (is_lower) {
