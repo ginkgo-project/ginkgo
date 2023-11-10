@@ -34,19 +34,19 @@ Supported systems and requirements:
   + Apple Clang: 14.0 is tested. Earlier versions might also work.
   + NVHPC: 22.7+
   + Cray Compiler: 14.0.1+
-  + CUDA module: CMake 3.18+, and CUDA 10.0+ or NVHPC 22.7+
+  + CUDA module: CMake 3.18+, and CUDA 10.1+ or NVHPC 22.7+
   + HIP module: ROCm 4.5+
   + DPC++ module: Intel OneAPI 2022.1+ with oneMKL and oneDPL. Set the CXX compiler to `dpcpp` or `icpx`.
   + MPI: standard version 3.1+, ideally GPU Aware, for best performance
 + Windows
   + MinGW: GCC 5.5+
   + Microsoft Visual Studio: VS 2019+
-  + CUDA module: CUDA 10.0+, Microsoft Visual Studio
+  + CUDA module: CUDA 10.1+, Microsoft Visual Studio
   + OpenMP module: MinGW.
 
 ### Version support changes
 
-+ CUDA 9.2 is no longer supported [#1382](https://github.com/ginkgo-project/ginkgo/pull/1382)
++ CUDA 9.2 is no longer supported and 10.0 is untested [#1382](https://github.com/ginkgo-project/ginkgo/pull/1382)
 + Ginkgo now requires CMake version 3.16 (and 3.18 for CUDA) [#1368](https://github.com/ginkgo-project/ginkgo/pull/1368)
 
 ### Interface changes
@@ -55,23 +55,24 @@ Supported systems and requirements:
 
 ### New Deprecations
 
-+ The `device_reset` parameter of CUDA and HIP executors no longer has an effect, and its `allocation_mode` parameters have been deprecated in favor of the `Allocator` interface [#1315](https://github.com/ginkgo-project/ginkgo/pull/1315)
++ The `device_reset` parameter of CUDA and HIP executors no longer has an effect, and its `allocation_mode` parameters have been deprecated in favor of the `Allocator` interface. [#1315](https://github.com/ginkgo-project/ginkgo/pull/1315)
 + The CMake parameter `GINKGO_BUILD_DPCPP` has been deprecated in favor of `GINKGO_BUILD_SYCL`. [#1350](https://github.com/ginkgo-project/ginkgo/pull/1350)
-+ The `gko::reorder::Rcm` interface has been deprecated in favor of `gko::experimental::reorder::Rcm` based on `Permutation` [#1418](https://github.com/ginkgo-project/ginkgo/pull/1418)
++ The `gko::reorder::Rcm` interface has been deprecated in favor of `gko::experimental::reorder::Rcm` based on `Permutation`. [#1418](https://github.com/ginkgo-project/ginkgo/pull/1418)
++ The Permutation class' `permute_mask` functionality. [#1415](https://github.com/ginkgo-project/ginkgo/pull/1415)
++ Multiple functions with typos (`set_complex_subpsace()`, range functions such as `conj_operaton` etc). [#1348](https://github.com/ginkgo-project/ginkgo/pull/1348)
 
 ### Summary of previous deprecations
-+ The class `AmgxPgm` is deprecated in favor of `Pgm`.
 + `gko::lend()` is not necessary anymore.
-+ Default constructors for the CSR `load_balance` and `automatical` strategies
 + The classes `RelativeResidualNorm` and `AbsoluteResidualNorm` are deprecated in favor of `ResidualNorm`.
++ The class `AmgxPgm` is deprecated in favor of `Pgm`.
++ Default constructors for the CSR `load_balance` and `automatical` strategies
 + The PolymorphicObject's move-semantic `copy_from` variant
 + The templated `SolverBase` class.
++ The class `MachineTopology` is deprecated in favor of `machine_topology`.
 + Logger constructors and create functions with the `executor` parameter.
 + The virtual, protected, Dense functions `compute_norm1_impl`, `add_scaled_impl`, etc.
 + Logger events for solvers and criterion without the additional `implicit_tau_sq` parameter.
-+ The Permutation class' `permute_mask` functionality
 + The global `gko::solver::default_krylov_dim`, use instead `gko::solver::gmres_default_krylov_dim`.
-+ Multiple functions with typos (`set_complex_subpsace()`, range functions such as `conj_operaton` etc).
 
 ### Added features
 
