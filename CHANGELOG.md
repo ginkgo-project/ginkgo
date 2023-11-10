@@ -36,7 +36,7 @@ Supported systems and requirements:
   + Cray Compiler: 14.0.1+
   + CUDA module: CMake 3.18+, and CUDA 10.1+ or NVHPC 22.7+
   + HIP module: ROCm 4.5+
-  + DPC++ module: Intel OneAPI 2022.1+ with oneMKL and oneDPL. Set the CXX compiler to `dpcpp` or `icpx`.
+  + DPC++ module: Intel oneAPI 2022.1+ with oneMKL and oneDPL. Set the CXX compiler to `dpcpp` or `icpx`.
   + MPI: standard version 3.1+, ideally GPU Aware, for best performance
 + Windows
   + MinGW: GCC 5.5+
