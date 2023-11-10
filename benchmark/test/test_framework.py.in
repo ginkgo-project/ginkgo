@@ -22,8 +22,7 @@ denumberify_paths = [
     "rhs_norm",
     "max_relative_norm2",
 ]
-detypenameify_key_starts = [
-    "generate(", "apply(", "advanced_apply(", "copy(", "check("]
+detypenameify_key_starts = ["generate(", "apply(", "advanced_apply(", "copy(", "check("]
 empty_string_paths = ["filename"]
 empty_array_paths = [
     "recurrent_residuals",
@@ -149,7 +148,9 @@ def compare_output_impl(
         )
     )
     ignore_patterns = [
-        "    the .* module is",  # version numbers
+        "This is Ginkgo",  # version numbers + tag
+        "    the .* module is",  # version numbers + tag
+        "    running with core module",  # version numbers + tag
         "DEBUG: (begin|end  ) (allocate|free)",  # allocations
     ]
     typename_patterns = [
@@ -178,8 +179,7 @@ def compare_output_impl(
         ignore_patterns=ignore_patterns,
         replace_patterns=typename_patterns,
     )
-    expected_stdout_processed = sanitize_json_text(
-        open(expected_stdout).read())
+    expected_stdout_processed = sanitize_json_text(open(expected_stdout).read())
     expected_stderr_processed = sanitize_text(
         open(expected_stderr).read(),
         ignore_patterns=ignore_patterns,
@@ -190,8 +190,7 @@ def compare_output_impl(
         print("FAIL: stdout differs")
         print(
             "\n".join(
-                difflib.unified_diff(
-                    expected_stdout_processed, result_stdout_processed)
+                difflib.unified_diff(expected_stdout_processed, result_stdout_processed)
             )
         )
         failed = True
@@ -199,8 +198,7 @@ def compare_output_impl(
         print("FAIL: stderr differs")
         print(
             "\n".join(
-                difflib.unified_diff(
-                    expected_stderr_processed, result_stderr_processed)
+                difflib.unified_diff(expected_stderr_processed, result_stderr_processed)
             )
         )
         failed = True
