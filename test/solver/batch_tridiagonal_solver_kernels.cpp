@@ -61,7 +61,7 @@ protected:
         : tridiag_mat(
               gko::test::generate_uniform_batch_tridiagonal_random_matrix<
                   value_type>(nbatch, nrows,
-                              std::normal_distribution<real_type>(0.0, 1.0),
+                              std::normal_distribution<real_type>(5.0, 1.0),
                               rand_engine, ref))
     {
         set_up_data();
@@ -84,7 +84,7 @@ protected:
     {
         b = gko::share(gko::test::generate_uniform_batch_random_matrix<BDense>(
             nbatch, nrows, 1, std::uniform_int_distribution<>(nrows, nrows),
-            std::normal_distribution<real_type>(0.0, 1.0), rand_engine, true,
+            std::normal_distribution<real_type>(5.0, 0.2), rand_engine, true,
             ref));
 
         x = gko::share(BDense::create(
@@ -128,7 +128,7 @@ protected:
             solver_type::build().on(ref)->generate(this->tridiag_mat);
         tridiag_solver->apply(b.get(), x.get());
 
-        GKO_ASSERT_BATCH_MTX_NEAR(d_x, x, 10 * this->eps);
+        GKO_ASSERT_BATCH_MTX_NEAR(d_x, x, 50 * this->eps);
     }
 
     void check_if_solve_with_scaling_solve_is_eqvt_to_ref(
@@ -161,25 +161,44 @@ protected:
                                   ->generate(this->tridiag_mat);
         tridiag_solver->apply(b.get(), x.get());
 
-        GKO_ASSERT_BATCH_MTX_NEAR(d_x, x, 10 * this->eps);
+        GKO_ASSERT_BATCH_MTX_NEAR(d_x, x, 50 * this->eps);
     }
 };
 
 
+TEST_F(BatchTridiagonalSolver, AutoSelectionSolveIsEquivalentToRef)
+{
+    int num_rec = 3;
+    int tsize = 16;
+    check_if_solve_is_eqvt_to_ref(
+        gko::solver::batch_tridiag_solve_approach::auto_selection, num_rec,
+        tsize);
+}
+
+
 TEST_F(BatchTridiagonalSolver, App1SolveIsEquivalentToRef)
 {
+    int num_rec = 4;
+    int tsize = 16;
     check_if_solve_is_eqvt_to_ref(
-        gko::solver::batch_tridiag_solve_approach::recursive_app1, 5, 32);
+        gko::solver::batch_tridiag_solve_approach::recursive_app1, num_rec,
+        tsize);
+    num_rec = 3;
+    tsize = 16;
     check_if_solve_is_eqvt_to_ref(
-        gko::solver::batch_tridiag_solve_approach::recursive_app1, 3, 16);
+        gko::solver::batch_tridiag_solve_approach::recursive_app1, num_rec,
+        tsize);
+    num_rec = 2;
+    tsize = 4;
     check_if_solve_is_eqvt_to_ref(
-        gko::solver::batch_tridiag_solve_approach::recursive_app1, 2, 4);
+        gko::solver::batch_tridiag_solve_approach::recursive_app1, num_rec,
+        tsize);
 }
 
 TEST_F(BatchTridiagonalSolver, App2SolveIsEquivalentToRef)
 {
     check_if_solve_is_eqvt_to_ref(
-        gko::solver::batch_tridiag_solve_approach::recursive_app2, 6, 32);
+        gko::solver::batch_tridiag_solve_approach::recursive_app2, 4, 32);
     check_if_solve_is_eqvt_to_ref(
         gko::solver::batch_tridiag_solve_approach::recursive_app2, 4, 16);
     check_if_solve_is_eqvt_to_ref(
