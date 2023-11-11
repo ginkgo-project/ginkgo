@@ -1,3 +1,4 @@
+ginkgo_create_test(batch_band_solver_kernels)
 ginkgo_create_test(batch_bicgstab_kernels)
 ginkgo_create_test(batch_cg_kernels)
 ginkgo_create_test(batch_direct_kernels)

@@ -55,6 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/par_ict_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
+#include "core/matrix/batch_band_kernels.hpp"
 #include "core/matrix/batch_csr_kernels.hpp"
 #include "core/matrix/batch_dense_kernels.hpp"
 #include "core/matrix/batch_diagonal_kernels.hpp"
@@ -79,6 +80,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/preconditioner/isai_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/reorder/rcm_kernels.hpp"
+#include "core/solver/batch_band_solver_kernels.hpp"
 #include "core/solver/batch_bicgstab_kernels.hpp"
 #include "core/solver/batch_cg_kernels.hpp"
 #include "core/solver/batch_direct_kernels.hpp"
@@ -741,6 +743,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 }  // namespace batch_tridiagonal_solver
 
 
+namespace batch_band_solver {
+
+template <typename ValueType>
+GKO_DECLARE_BATCH_BAND_SOLVER_APPLY_KERNEL(ValueType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_BAND_SOLVER_APPLY_KERNEL);
+
+
+}  // namespace batch_band_solver
+
+
 namespace batch_upper_trs {
 
 
@@ -929,6 +942,9 @@ GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BATCH_CSR_ADD_SCALED_IDENTITY_KERNEL);
 
 
 namespace batch_tridiagonal {}  // namespace batch_tridiagonal
+
+
+namespace batch_band {}  // namespace batch_band
 
 
 namespace batch_ell {

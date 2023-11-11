@@ -109,6 +109,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/log/record.hpp>
 #include <ginkgo/core/log/stream.hpp>
 
+#include <ginkgo/core/matrix/batch_band.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_diagonal.hpp>
@@ -148,6 +149,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/reorder/reordering_base.hpp>
 #include <ginkgo/core/reorder/scaled_reordered.hpp>
 
+#include <ginkgo/core/solver/batch_band_solver.hpp>
 #include <ginkgo/core/solver/batch_bicgstab.hpp>
 #include <ginkgo/core/solver/batch_cg.hpp>
 #include <ginkgo/core/solver/batch_direct.hpp>

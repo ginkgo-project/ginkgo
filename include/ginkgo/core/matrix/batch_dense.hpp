@@ -55,10 +55,8 @@ namespace matrix {
 template <typename ValueType>
 class BatchDiagonal;
 
-
 template <typename ValueType, typename IndexType>
 class BatchCsr;
-
 
 /**
  * BatchDense is a batch matrix format which explicitly stores all values of the

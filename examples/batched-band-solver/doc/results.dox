@@ -1,0 +1,10 @@
+<h1>Results</h1>
+The following is the expected result on the reference executor:
+
+@code{.cpp}
+
+The entire solve took 0.223 milliseconds.
+
+@endcode
+
+<h3> Comments about programming and debugging </h3>
