@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/batch_band.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 
+
 #include "core/matrix/batch_csr_kernels.hpp"
 
 

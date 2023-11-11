@@ -32,8 +32,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/batch_band_solver_kernels.hpp"
 
+
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/math.hpp>
+
+
 #include "core/matrix/batch_struct.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/exception.cuh"

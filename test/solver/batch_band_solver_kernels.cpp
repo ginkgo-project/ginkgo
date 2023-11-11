@@ -59,7 +59,7 @@ protected:
     using Dense = BDense::unbatch_type;
     using BDiag = gko::matrix::BatchDiagonal<value_type>;
     using solver_type = gko::solver::BatchBandSolver<value_type>;
-   
+
     BatchBandSolver()
         : band_mat_1(get_band_matrix(KL_1, KU_1)),
           band_mat_2(get_band_matrix(KL_2, KU_2)),
@@ -105,9 +105,10 @@ protected:
 
     std::shared_ptr<BBand> get_band_matrix(const size_t KL, const size_t KU)
     {
-        return gko::test::generate_uniform_batch_band_random_matrix<value_type>(this->nbatch, 
-        this->nrows, KL, KU, std::normal_distribution<real_type>(0.0, 1.0), 
-        this->rand_engine, this->ref);
+        return gko::test::generate_uniform_batch_band_random_matrix<value_type>(
+            this->nbatch, this->nrows, KL, KU,
+            std::normal_distribution<real_type>(0.0, 1.0), this->rand_engine,
+            this->ref);
     }
 
     void set_up_data()
@@ -116,7 +117,7 @@ protected:
             nbatch, nrows, 1, std::uniform_int_distribution<>(nrows, nrows),
             std::normal_distribution<real_type>(0.0, 1.0), rand_engine, true,
             ref));
-        
+
         x = gko::share(BDense::create(
             ref, gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrows, 1))));
 
@@ -132,10 +133,11 @@ protected:
                 nbatch, nrows, nrows,
                 std::uniform_int_distribution<>(nrows, nrows),
                 std::normal_distribution<real_type>(0.0, 1.0), rand_engine,
-                true, ref));        
+                true, ref));
     }
 
-    void check_if_solve_is_eqvt_to_ref(std::shared_ptr<BBand> band_mtx, 
+    void check_if_solve_is_eqvt_to_ref(
+        std::shared_ptr<BBand> band_mtx,
         gko::solver::batch_band_solve_approach approach,
         const int blocked_solve_panel_size = 1)
     {
@@ -143,17 +145,21 @@ protected:
         auto d_b = gko::share(gko::clone(exec, this->b.get()));
         auto d_x = gko::share(gko::clone(exec, this->x.get()));
 
-        auto d_band_solver = solver_type::build()
-         .with_batch_band_solution_approach(approach)
-         .with_blocked_solve_panel_size(blocked_solve_panel_size)
-         .on(this->exec)->generate(d_band_mtx);
+        auto d_band_solver =
+            solver_type::build()
+                .with_batch_band_solution_approach(approach)
+                .with_blocked_solve_panel_size(blocked_solve_panel_size)
+                .on(this->exec)
+                ->generate(d_band_mtx);
 
         d_band_solver->apply(d_b.get(), d_x.get());
 
-        auto band_solver = solver_type::build()
-         .with_batch_band_solution_approach(approach)
-         .with_blocked_solve_panel_size(blocked_solve_panel_size)
-         .on(this->ref)->generate(band_mtx);
+        auto band_solver =
+            solver_type::build()
+                .with_batch_band_solution_approach(approach)
+                .with_blocked_solve_panel_size(blocked_solve_panel_size)
+                .on(this->ref)
+                ->generate(band_mtx);
 
         band_solver->apply(b.get(), x.get());
 
@@ -161,7 +167,8 @@ protected:
     }
 
 
-    void check_if_solve_with_scaling_is_eqvt_to_ref(std::shared_ptr<BBand> band_mtx, 
+    void check_if_solve_with_scaling_is_eqvt_to_ref(
+        std::shared_ptr<BBand> band_mtx,
         gko::solver::batch_band_solve_approach approach,
         const int blocked_solve_panel_size = 1)
     {
@@ -169,113 +176,134 @@ protected:
         auto d_b = gko::share(gko::clone(exec, this->b.get()));
         auto d_x = gko::share(gko::clone(exec, this->x.get()));
 
-        auto d_band_solver = solver_type::build()
-         .with_batch_band_solution_approach(approach)
-         .with_blocked_solve_panel_size(blocked_solve_panel_size)
-         .with_left_scaling_op(left_scale)
-         .with_right_scaling_op(right_scale)
-         .on(this->exec)->generate(d_band_mtx);
+        auto d_band_solver =
+            solver_type::build()
+                .with_batch_band_solution_approach(approach)
+                .with_blocked_solve_panel_size(blocked_solve_panel_size)
+                .with_left_scaling_op(left_scale)
+                .with_right_scaling_op(right_scale)
+                .on(this->exec)
+                ->generate(d_band_mtx);
 
         d_band_solver->apply(d_b.get(), d_x.get());
 
-        auto band_solver = solver_type::build()
-         .with_batch_band_solution_approach(approach)
-         .with_blocked_solve_panel_size(blocked_solve_panel_size)
-         .with_left_scaling_op(left_scale)
-         .with_right_scaling_op(right_scale)
-         .on(this->ref)->generate(band_mtx);
+        auto band_solver =
+            solver_type::build()
+                .with_batch_band_solution_approach(approach)
+                .with_blocked_solve_panel_size(blocked_solve_panel_size)
+                .with_left_scaling_op(left_scale)
+                .with_right_scaling_op(right_scale)
+                .on(this->ref)
+                ->generate(band_mtx);
 
         band_solver->apply(b.get(), x.get());
 
         GKO_ASSERT_BATCH_MTX_NEAR(d_x, x, 100 * this->eps);
     }
 
-    void check_if_blocked_solve_and_unblocked_solve_are_eqvt(std::shared_ptr<BBand> band_mtx, 
-        const int blocked_solve_panel_size = 1)
+    void check_if_blocked_solve_and_unblocked_solve_are_eqvt(
+        std::shared_ptr<BBand> band_mtx, const int blocked_solve_panel_size = 1)
     {
         auto d_band_mtx = gko::share(gko::clone(exec, band_mtx.get()));
         auto d_b = gko::share(gko::clone(exec, this->b.get()));
         auto d_x_bl = gko::share(gko::clone(exec, this->x.get()));
         auto d_x_ubl = gko::share(gko::clone(exec, this->x.get()));
 
-        auto d_bl_band_solver = solver_type::build()
-         .with_batch_band_solution_approach(gko::solver::batch_band_solve_approach::blocked)
-         .with_blocked_solve_panel_size(blocked_solve_panel_size)
-         .on(this->exec)->generate(d_band_mtx);
+        auto d_bl_band_solver =
+            solver_type::build()
+                .with_batch_band_solution_approach(
+                    gko::solver::batch_band_solve_approach::blocked)
+                .with_blocked_solve_panel_size(blocked_solve_panel_size)
+                .on(this->exec)
+                ->generate(d_band_mtx);
 
         d_bl_band_solver->apply(d_b.get(), d_x_bl.get());
 
-        auto d_ubl_band_solver = solver_type::build()
-         .with_batch_band_solution_approach(gko::solver::batch_band_solve_approach::unblocked)
-         .on(this->exec)->generate(d_band_mtx);
+        auto d_ubl_band_solver =
+            solver_type::build()
+                .with_batch_band_solution_approach(
+                    gko::solver::batch_band_solve_approach::unblocked)
+                .on(this->exec)
+                ->generate(d_band_mtx);
 
         d_ubl_band_solver->apply(d_b.get(), d_x_ubl.get());
 
         GKO_ASSERT_BATCH_MTX_NEAR(d_x_bl, d_x_ubl, 100 * this->eps);
     }
-
 };
 
 
 TEST_F(BatchBandSolver, UnblockedSolve_KV_less_than_N_minus_1_IsEquivalentToRef)
-{   
-   check_if_solve_is_eqvt_to_ref(this->band_mat_1, gko::solver::batch_band_solve_approach::unblocked);
+{
+    check_if_solve_is_eqvt_to_ref(
+        this->band_mat_1, gko::solver::batch_band_solve_approach::unblocked);
 }
 
 
 TEST_F(BatchBandSolver, UnblockedSolve_KV_more_than_N_minus_1_IsEquivalentToRef)
-{   
-   check_if_solve_is_eqvt_to_ref(this->band_mat_2, gko::solver::batch_band_solve_approach::unblocked);
+{
+    check_if_solve_is_eqvt_to_ref(
+        this->band_mat_2, gko::solver::batch_band_solve_approach::unblocked);
 }
 
 TEST_F(BatchBandSolver, BlockedSolve_KV_less_than_N_minus_1_IsEquivalentToRef)
-{   
-   check_if_solve_is_eqvt_to_ref(this->band_mat_1, gko::solver::batch_band_solve_approach::blocked, 3);
+{
+    check_if_solve_is_eqvt_to_ref(
+        this->band_mat_1, gko::solver::batch_band_solve_approach::blocked, 3);
 }
 
 TEST_F(BatchBandSolver, BlockedSolve_KV_more_than_N_minus_1_IsEquivalentToRef)
-{   
-   check_if_solve_is_eqvt_to_ref(this->band_mat_2, gko::solver::batch_band_solve_approach::blocked, 4);
+{
+    check_if_solve_is_eqvt_to_ref(
+        this->band_mat_2, gko::solver::batch_band_solve_approach::blocked, 4);
 }
 
-TEST_F(BatchBandSolver, BlockedSolve_KV_less_than_N_minus_1_IsEquivalentTo_Unblocked)
-{   
+TEST_F(BatchBandSolver,
+       BlockedSolve_KV_less_than_N_minus_1_IsEquivalentTo_Unblocked)
+{
     check_if_blocked_solve_and_unblocked_solve_are_eqvt(this->band_mat_1, 1);
     check_if_blocked_solve_and_unblocked_solve_are_eqvt(this->band_mat_1, 4);
 }
 
-TEST_F(BatchBandSolver, BlockedSolve_KV_more_than_N_minus_1_IsEquivalentTo_Unblocked)
-{   
+TEST_F(BatchBandSolver,
+       BlockedSolve_KV_more_than_N_minus_1_IsEquivalentTo_Unblocked)
+{
     check_if_blocked_solve_and_unblocked_solve_are_eqvt(this->band_mat_1, 1);
     check_if_blocked_solve_and_unblocked_solve_are_eqvt(this->band_mat_1, 7);
 }
 
 TEST_F(BatchBandSolver, BandSolverWorksForLowerTriangularBandMat)
-{   
-   check_if_solve_is_eqvt_to_ref(this->band_mat_5, gko::solver::batch_band_solve_approach::unblocked);
-   check_if_solve_is_eqvt_to_ref(this->band_mat_5, gko::solver::batch_band_solve_approach::blocked, 3);
-   check_if_blocked_solve_and_unblocked_solve_are_eqvt(this->band_mat_5, 4);
- 
+{
+    check_if_solve_is_eqvt_to_ref(
+        this->band_mat_5, gko::solver::batch_band_solve_approach::unblocked);
+    check_if_solve_is_eqvt_to_ref(
+        this->band_mat_5, gko::solver::batch_band_solve_approach::blocked, 3);
+    check_if_blocked_solve_and_unblocked_solve_are_eqvt(this->band_mat_5, 4);
 }
 
 TEST_F(BatchBandSolver, BandSolverWorksForUpperTriangularBandMat)
-{   
-    check_if_solve_is_eqvt_to_ref(this->band_mat_6, gko::solver::batch_band_solve_approach::unblocked);
-    check_if_solve_is_eqvt_to_ref(this->band_mat_6, gko::solver::batch_band_solve_approach::blocked, 3);
+{
+    check_if_solve_is_eqvt_to_ref(
+        this->band_mat_6, gko::solver::batch_band_solve_approach::unblocked);
+    check_if_solve_is_eqvt_to_ref(
+        this->band_mat_6, gko::solver::batch_band_solve_approach::blocked, 3);
     check_if_blocked_solve_and_unblocked_solve_are_eqvt(this->band_mat_6, 6);
- 
 }
 
 
 TEST_F(BatchBandSolver, UnblockedSolve_Tridiag_and_Diag_IsEquivalentToRef)
-{   
-   check_if_solve_is_eqvt_to_ref(this->band_mat_3, gko::solver::batch_band_solve_approach::unblocked);
-   check_if_solve_is_eqvt_to_ref(this->band_mat_4, gko::solver::batch_band_solve_approach::unblocked);
-   check_if_solve_is_eqvt_to_ref(this->band_mat_3, gko::solver::batch_band_solve_approach::blocked, 1);
-   check_if_solve_is_eqvt_to_ref(this->band_mat_4, gko::solver::batch_band_solve_approach::blocked, 2);
-   check_if_blocked_solve_and_unblocked_solve_are_eqvt(this->band_mat_3, 1);
+{
+    check_if_solve_is_eqvt_to_ref(
+        this->band_mat_3, gko::solver::batch_band_solve_approach::unblocked);
+    check_if_solve_is_eqvt_to_ref(
+        this->band_mat_4, gko::solver::batch_band_solve_approach::unblocked);
+    check_if_solve_is_eqvt_to_ref(
+        this->band_mat_3, gko::solver::batch_band_solve_approach::blocked, 1);
+    check_if_solve_is_eqvt_to_ref(
+        this->band_mat_4, gko::solver::batch_band_solve_approach::blocked, 2);
+    check_if_blocked_solve_and_unblocked_solve_are_eqvt(this->band_mat_3, 1);
 }
 
-//TODO: Add tests for scaled solves
+// TODO: Add tests for scaled solves
 
 #endif
