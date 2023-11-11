@@ -114,6 +114,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/batch_diagonal.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
 #include <ginkgo/core/matrix/batch_identity.hpp>
+#include <ginkgo/core/matrix/batch_tridiagonal.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -154,6 +155,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/batch_idr.hpp>
 #include <ginkgo/core/solver/batch_richardson.hpp>
 #include <ginkgo/core/solver/batch_solver.hpp>
+#include <ginkgo/core/solver/batch_tridiagonal_solver.hpp>
 #include <ginkgo/core/solver/bicg.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cb_gmres.hpp>

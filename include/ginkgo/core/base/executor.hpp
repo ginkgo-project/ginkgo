@@ -1016,6 +1016,7 @@ protected:
         std::vector<int> closest_pu_ids{};
     };
 
+public:
     /**
      * Gets the exec info struct
      *
@@ -1023,6 +1024,7 @@ protected:
      */
     const exec_info& get_exec_info() const { return this->exec_info_; }
 
+protected:
     /**
      * Allocates raw memory in this Executor.
      *
@@ -1312,9 +1314,9 @@ public:
      *
      * @param device_reset  whether to allow a device reset or not
      */
-    [
-        [deprecated("device_reset is no longer supported, call "
-                    "cudaDeviceReset/hipDeviceReset manually")]] void
+    [[deprecated(
+        "device_reset is no longer supported, call "
+        "cudaDeviceReset/hipDeviceReset manually")]] void
     set_device_reset(bool device_reset)
     {}
 
@@ -1323,9 +1325,9 @@ public:
      *
      * @return the current status of the device reset boolean for this executor.
      */
-    [
-        [deprecated("device_reset is no longer supported, call "
-                    "cudaDeviceReset/hipDeviceReset manually")]] bool
+    [[deprecated(
+        "device_reset is no longer supported, call "
+        "cudaDeviceReset/hipDeviceReset manually")]] bool
     get_device_reset()
     {
         return false;
@@ -1339,10 +1341,10 @@ protected:
      */
     EnableDeviceReset() {}
 
-    [
-        [deprecated("device_reset is no longer supported, call "
-                    "cudaDeviceReset/hipDeviceReset "
-                    "manually")]] EnableDeviceReset(bool device_reset)
+    [[deprecated(
+        "device_reset is no longer supported, call "
+        "cudaDeviceReset/hipDeviceReset "
+        "manually")]] EnableDeviceReset(bool device_reset)
     {}
 };
 

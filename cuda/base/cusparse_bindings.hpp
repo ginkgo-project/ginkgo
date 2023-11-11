@@ -1490,6 +1490,84 @@ GKO_BIND_CUSPARSE_IC0(std::complex<double>, cusparseZcsric02);
 #undef GKO_BIND_CUSPARSE_IC0
 
 
+template <typename ValueType>
+void gtsv2StridedBatched_buffer_size(
+    cusparseHandle_t handle, const int nrows, const ValueType* const batched_a,
+    const ValueType* const batched_b, const ValueType* const batched_c,
+    ValueType* const batched_d, const int batch_size, const int batch_stride,
+    size_type& bufferSizeInBytes) GKO_NOT_IMPLEMENTED;
+
+#define GKO_BIND_CUSPARSE_GTSV2_STRIDED_BATCH_BUFFER_SIZE(ValueType,           \
+                                                          CusparseName)        \
+    template <>                                                                \
+    inline void gtsv2StridedBatched_buffer_size<ValueType>(                    \
+        cusparseHandle_t handle, const int nrows,                              \
+        const ValueType* const batched_a, const ValueType* const batched_b,    \
+        const ValueType* const batched_c, ValueType* const batched_d,          \
+        const int batch_size, const int batch_stride,                          \
+        size_type& bufferSizeInBytes)                                          \
+    {                                                                          \
+        size_t tmp_buffer_size{};                                              \
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(                                         \
+            CusparseName(handle, nrows, as_culibs_type(batched_a),             \
+                         as_culibs_type(batched_b), as_culibs_type(batched_c), \
+                         as_culibs_type(batched_d), batch_size, batch_stride,  \
+                         &tmp_buffer_size));                                   \
+                                                                               \
+        bufferSizeInBytes = tmp_buffer_size;                                   \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
+
+GKO_BIND_CUSPARSE_GTSV2_STRIDED_BATCH_BUFFER_SIZE(
+    float, cusparseSgtsv2StridedBatch_bufferSizeExt);
+GKO_BIND_CUSPARSE_GTSV2_STRIDED_BATCH_BUFFER_SIZE(
+    double, cusparseDgtsv2StridedBatch_bufferSizeExt);
+GKO_BIND_CUSPARSE_GTSV2_STRIDED_BATCH_BUFFER_SIZE(
+    std::complex<float>, cusparseCgtsv2StridedBatch_bufferSizeExt);
+GKO_BIND_CUSPARSE_GTSV2_STRIDED_BATCH_BUFFER_SIZE(
+    std::complex<double>, cusparseZgtsv2StridedBatch_bufferSizeExt);
+
+#undef GKO_BIND_CUSPARSE_GTSV2_STRIDED_BATCH_BUFFER_SIZE
+
+
+template <typename ValueType>
+void gtsv2StridedBatch(cusparseHandle_t handle, const int nrows,
+                       const ValueType* const batched_a,
+                       const ValueType* const batched_b,
+                       const ValueType* const batched_c,
+                       ValueType* const batched_d, const int batch_size,
+                       const int batch_stride,
+                       void* buffer_ptr) GKO_NOT_IMPLEMENTED;
+
+#define GKO_BIND_CUSPARSE_GTSV2_STRIDED_BATCH(ValueType, CusparseName)         \
+    template <>                                                                \
+    inline void gtsv2StridedBatch<ValueType>(                                  \
+        cusparseHandle_t handle, const int nrows,                              \
+        const ValueType* const batched_a, const ValueType* const batched_b,    \
+        const ValueType* const batched_c, ValueType* const batched_d,          \
+        const int batch_size, const int batch_stride, void* buffer_ptr)        \
+    {                                                                          \
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(CusparseName(                            \
+            handle, nrows, as_culibs_type(batched_a),                          \
+            as_culibs_type(batched_b), as_culibs_type(batched_c),              \
+            as_culibs_type(batched_d), batch_size, batch_stride, buffer_ptr)); \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
+
+GKO_BIND_CUSPARSE_GTSV2_STRIDED_BATCH(float, cusparseSgtsv2StridedBatch);
+GKO_BIND_CUSPARSE_GTSV2_STRIDED_BATCH(double, cusparseDgtsv2StridedBatch);
+GKO_BIND_CUSPARSE_GTSV2_STRIDED_BATCH(std::complex<float>,
+                                      cusparseCgtsv2StridedBatch);
+GKO_BIND_CUSPARSE_GTSV2_STRIDED_BATCH(std::complex<double>,
+                                      cusparseZgtsv2StridedBatch);
+
+#undef GKO_BIND_CUSPARSE_GTSV2_STRIDED_BATCH
+
+
 }  // namespace cusparse
 }  // namespace cuda
 }  // namespace kernels

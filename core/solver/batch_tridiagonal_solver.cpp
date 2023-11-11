@@ -1,0 +1,207 @@
+/*******************************<GINKGO LICENSE>******************************
+Copyright (c) 2017-2023, the Ginkgo authors
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+******************************<GINKGO LICENSE>*******************************/
+
+#include <ginkgo/core/solver/batch_tridiagonal_solver.hpp>
+
+
+#include <ginkgo/core/matrix/batch_csr.hpp>
+#include <ginkgo/core/matrix/batch_dense.hpp>
+#include <ginkgo/core/matrix/batch_ell.hpp>
+#include <ginkgo/core/matrix/batch_tridiagonal.hpp>
+
+
+#include "core/matrix/batch_csr_kernels.hpp"
+#include "core/matrix/batch_dense_kernels.hpp"
+#include "core/matrix/batch_tridiagonal_kernels.hpp"
+#include "core/solver/batch_tridiagonal_solver_kernels.hpp"
+
+
+namespace gko {
+namespace solver {
+namespace batch_tridiagonal_solver {
+
+
+GKO_REGISTER_OPERATION(apply, batch_tridiagonal_solver::apply);
+
+
+}  // namespace batch_tridiagonal_solver
+
+
+template <typename ValueType>
+std::unique_ptr<BatchLinOp> BatchTridiagonalSolver<ValueType>::transpose() const
+{
+    return build()
+        .with_left_scaling_op(share(
+            as<BatchTransposable>(this->get_left_scaling_op())->transpose()))
+        .with_right_scaling_op(share(
+            as<BatchTransposable>(this->get_right_scaling_op())->transpose()))
+        .with_num_recursive_steps(parameters_.num_recursive_steps)
+        .with_tile_size(parameters_.tile_size)
+        .with_batch_tridiagonal_solution_approach(
+            parameters_.batch_tridiagonal_solution_approach)
+        .on(this->get_executor())
+        ->generate(share(
+            as<BatchTransposable>(this->get_system_matrix())->transpose()));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<BatchLinOp> BatchTridiagonalSolver<ValueType>::conj_transpose()
+    const
+{
+    return build()
+        .with_left_scaling_op(
+            share(as<BatchTransposable>(this->get_left_scaling_op())
+                      ->conj_transpose()))
+        .with_right_scaling_op(
+            share(as<BatchTransposable>(this->get_right_scaling_op())
+                      ->conj_transpose()))
+        .with_num_recursive_steps(parameters_.num_recursive_steps)
+        .with_tile_size(parameters_.tile_size)
+        .with_batch_tridiagonal_solution_approach(
+            parameters_.batch_tridiagonal_solution_approach)
+        .on(this->get_executor())
+        ->generate(share(as<BatchTransposable>(this->get_system_matrix())
+                             ->conj_transpose()));
+}
+
+/**
+ * Note: We restrict the type of system matrix in this solver to batched
+ * tridiagonal rather than having a provision to convert other matrix types such
+ * as BatchDense, BatchCsr or BatchEll to BatchTridiagonal, as the conversion
+ * might not always be possible, due to the presence of elements outside the
+ * trdiagonal sparsity pattern in such matrices.
+ */
+template <typename ValueType>
+void BatchTridiagonalSolver<ValueType>::apply_impl(const BatchLinOp* b,
+                                                   BatchLinOp* x) const
+{
+    using BDiag = matrix::BatchDiagonal<ValueType>;
+    using Vector = matrix::BatchDense<ValueType>;
+    using real_type = remove_complex<ValueType>;
+
+    auto app = this->parameters_.batch_tridiagonal_solution_approach;
+    const auto tile_size = this->parameters_.tile_size;
+
+    if (this->parameters_.batch_tridiagonal_solution_approach ==
+        batch_tridiag_solve_approach::auto_selection) {
+        this->parameters_.batch_tridiagonal_solution_approach =
+            batch_tridiag_solve_approach::recursive_app2;
+        this->parameters_.tile_size =
+            std::min(static_cast<int>(b->get_size().at(0)[0]),
+                     this->get_executor()->get_exec_info().max_subgroup_size);
+        this->parameters_.num_recursive_steps = 1;
+        while (pow(2, this->parameters_.num_recursive_steps) <
+               2 * this->parameters_.tile_size) {
+            this->parameters_.num_recursive_steps++;
+        }
+        this->parameters_.num_recursive_steps =
+            this->parameters_.num_recursive_steps - 1;
+    }
+
+    if (app == batch_tridiag_solve_approach::recursive_app1) {
+        const int final_group_size =
+            pow(2, this->parameters_.num_recursive_steps);
+        if (final_group_size > tile_size) GKO_NOT_IMPLEMENTED;
+    } else if (app == batch_tridiag_solve_approach::recursive_app2) {
+        const int final_group_size =
+            pow(2, this->parameters_.num_recursive_steps);
+        if (final_group_size > 2 * tile_size) GKO_NOT_IMPLEMENTED;
+    }
+
+    if (!this->system_matrix_->get_size().stores_equal_sizes()) {
+        GKO_NOT_IMPLEMENTED;
+    }
+
+    auto exec = this->get_executor();
+
+    // The only matrix type allowed is batched tridiagonal matrix.
+    auto system_matrix_tridiagonal =
+        as<const matrix_type>(this->system_matrix_);
+
+    const bool to_scale = std::dynamic_pointer_cast<const BDiag>(
+                              this->parameters_.left_scaling_op) &&
+                          std::dynamic_pointer_cast<const BDiag>(
+                              this->parameters_.right_scaling_op);
+
+    auto dense_b = as<const Vector>(b);
+    auto dense_x = as<Vector>(x);
+
+    auto b_scaled = Vector::create(exec);
+    const Vector* b_scaled_ptr{};
+
+    // copies to scale
+    if (to_scale) {
+        b_scaled->copy_from(dense_b);
+        as<const BDiag>(this->left_scaling_)
+            ->apply(b_scaled.get(), b_scaled.get());
+        b_scaled_ptr = b_scaled.get();
+    } else {
+        b_scaled_ptr = dense_b;
+    }
+
+    exec->run(batch_tridiagonal_solver::make_apply(
+        system_matrix_tridiagonal.get(), b_scaled_ptr, dense_x,
+        this->workspace_.get_num_elems(), this->workspace_.get_data(),
+        parameters_.num_recursive_steps, parameters_.tile_size,
+        parameters_.batch_tridiagonal_solution_approach,
+        this->preprocess_time_));
+
+    if (to_scale) {
+        as<const BDiag>(this->parameters_.right_scaling_op)
+            ->apply(dense_x, dense_x);
+    }
+}
+
+
+template <typename ValueType>
+void BatchTridiagonalSolver<ValueType>::apply_impl(const BatchLinOp* alpha,
+                                                   const BatchLinOp* b,
+                                                   const BatchLinOp* beta,
+                                                   BatchLinOp* x) const
+{
+    auto dense_x = as<matrix::BatchDense<ValueType>>(x);
+
+    auto x_clone = dense_x->clone();
+    this->apply(b, x_clone.get());
+    dense_x->scale(beta);
+    dense_x->add_scaled(alpha, x_clone.get());
+}
+
+
+#define GKO_DECLARE_BATCH_TRIDIAGONAL_SOLVER(_type) \
+    class BatchTridiagonalSolver<_type>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_TRIDIAGONAL_SOLVER);
+
+
+}  // namespace solver
+}  // namespace gko

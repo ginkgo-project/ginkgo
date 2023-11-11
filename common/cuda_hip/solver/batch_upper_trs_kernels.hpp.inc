@@ -336,7 +336,9 @@ __global__ void apply_kernel(const BatchMatrixType U,
 
 #if defined(__HIP_DEVICE_COMPILE__) && !defined(__CUDA_ARCH__)
         // L * x = b
-        naive_upper_trsv(U_entry, b_entry, x_entry);
+        naive_upper_trsv(U_entry, b_entry,
+                         x_entry);  // Note: warp_synchronous_upper_trsv
+                                    // deadlocks on AMD GPUs
         return;
 #endif
 

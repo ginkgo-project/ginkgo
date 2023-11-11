@@ -59,6 +59,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/batch_dense_kernels.hpp"
 #include "core/matrix/batch_diagonal_kernels.hpp"
 #include "core/matrix/batch_ell_kernels.hpp"
+#include "core/matrix/batch_tridiagonal_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
@@ -85,6 +86,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/batch_idr_kernels.hpp"
 #include "core/solver/batch_lower_trs_kernels.hpp"
 #include "core/solver/batch_richardson_kernels.hpp"
+#include "core/solver/batch_tridiagonal_solver_kernels.hpp"
 #include "core/solver/batch_upper_trs_kernels.hpp"
 #include "core/solver/bicg_kernels.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
@@ -727,6 +729,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_LOWER_TRS_APPLY_KERNEL);
 }  // namespace batch_lower_trs
 
 
+namespace batch_tridiagonal_solver {
+
+template <typename ValueType>
+GKO_DECLARE_BATCH_TRIDIAGONAL_SOLVER_APPLY_KERNEL(ValueType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_TRIDIAGONAL_SOLVER_APPLY_KERNEL);
+
+
+}  // namespace batch_tridiagonal_solver
+
+
 namespace batch_upper_trs {
 
 
@@ -912,6 +926,9 @@ GKO_STUB_VALUE_AND_INDEX_TYPE(
 GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BATCH_CSR_ADD_SCALED_IDENTITY_KERNEL);
 
 }  // namespace batch_csr
+
+
+namespace batch_tridiagonal {}  // namespace batch_tridiagonal
 
 
 namespace batch_ell {
