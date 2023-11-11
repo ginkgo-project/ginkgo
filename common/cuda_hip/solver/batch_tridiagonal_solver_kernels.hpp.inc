@@ -227,11 +227,11 @@ __device__ __forceinline__ void backward_substitution(
 
 template <int subwarp_size, typename ValueType>
 __global__
-    __launch_bounds__(default_block_size) void recursive_kernel_approach_1(
-        const int num_recursive_steps, const size_type nbatch, const int nrows,
-        const ValueType* const __restrict__ a,
-        const ValueType* const __restrict__ b, ValueType* const __restrict__ c,
-        ValueType* const __restrict__ d, ValueType* const __restrict__ x)
+__launch_bounds__(default_block_size) void recursive_kernel_approach_1(
+    const int num_recursive_steps, const size_type nbatch, const int nrows,
+    const ValueType* const __restrict__ a,
+    const ValueType* const __restrict__ b, ValueType* const __restrict__ c,
+    ValueType* const __restrict__ d, ValueType* const __restrict__ x)
 {
     auto subwarpgrp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
@@ -722,11 +722,11 @@ __device__ __forceinline__ void backward_substitution(
 
 template <typename ValueType, int subwarp_size>
 __global__
-    __launch_bounds__(default_block_size) void recursive_kernel_approach_2(
-        const int num_recursive_steps, const size_type nbatch, const int nrows,
-        const ValueType* const __restrict__ a,
-        const ValueType* const __restrict__ b, ValueType* const __restrict__ c,
-        ValueType* const __restrict__ d, ValueType* const __restrict__ x)
+__launch_bounds__(default_block_size) void recursive_kernel_approach_2(
+    const int num_recursive_steps, const size_type nbatch, const int nrows,
+    const ValueType* const __restrict__ a,
+    const ValueType* const __restrict__ b, ValueType* const __restrict__ c,
+    ValueType* const __restrict__ d, ValueType* const __restrict__ x)
 {
     using Valuetype2 = recursive_approach2::ValueType2<ValueType>;
 
