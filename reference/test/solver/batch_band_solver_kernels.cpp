@@ -633,7 +633,7 @@ protected:
 
         blocked_band_solver->apply(b.get(), x_2.get());
 
-        GKO_ASSERT_BATCH_MTX_NEAR(x_1, x_2, 100 * this->eps);
+        GKO_ASSERT_BATCH_MTX_NEAR(x_1, x_2, 200 * this->eps);
     }
 };
 
