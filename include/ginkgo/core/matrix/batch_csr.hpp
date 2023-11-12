@@ -15,7 +15,6 @@
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
-#include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
@@ -193,8 +192,8 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_values_for_item(
-        size_type batch_id) const noexcept
+    const value_type* get_const_values_for_item(size_type batch_id) const
+        noexcept
     {
         GKO_ASSERT(batch_id < this->get_num_batch_items());
         GKO_ASSERT(values_.get_size() >=
@@ -211,7 +210,6 @@ public:
      *
      * @param exec  the executor to create the matrix on
      * @param size  the dimensions of the matrix
-     * @param num_elems_per_row  the number of elements to be stored in each row
      * @param values  the value array of the matrix
      * @param col_idxs the col_idxs array of a single batch item of the matrix.
      * @param row_ptrs  the row_ptrs array of a single batch item of the matrix.
