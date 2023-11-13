@@ -16,7 +16,7 @@ Replace `[OPTIONS]` with desired cmake options for your build.
 Ginkgo adds the following additional switches to control what is being built:
 
 *   `-DGINKGO_DEVEL_TOOLS={ON, OFF}` sets up the build system for development
-    (requires clang-format, will also download git-cmake-format),
+    (requires pre-commit, will also download the clang-format pre-commit hook),
     default is `OFF`. The default behavior installs a pre-commit hook, which
     disables git commits.  If it is set to `ON`, a new pre-commit hook for
     formatting will be installed (enabling commits again). In both cases the
@@ -207,9 +207,6 @@ packages can be turned off by disabling the relevant options.
 + GINKGO_BUILD_BENCHMARKS=ON: For argument management we use
   [gflags](https://github.com/gflags/gflags) and for JSON parsing we use
   [nlohmann-json](https://github.com/nlohmann/json);
-+ GINKGO_DEVEL_TOOLS=ON:
-  [git-cmake-format](https://github.com/gflegar/git-cmake-format) is our CMake
-  helper for code formatting.
 + GINKGO_BUILD_HWLOC=ON:
   [hwloc](https://www.open-mpi.org/projects/hwloc) to detect and control cores
   and devices.
