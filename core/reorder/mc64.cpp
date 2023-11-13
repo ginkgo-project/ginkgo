@@ -183,10 +183,10 @@ void shortest_augmenting_path(
     std::vector<IndexType>& q_j, ValueType tolerance)
 {
     constexpr auto inf = std::numeric_limits<ValueType>::infinity();
-    const auto nnz = row_ptrs[num_rows];
     auto weights = weights_array.get_data();
     auto dual_u = dual_u_array.get_data();
     auto distance = distance_array.get_data();
+    auto num_rows_s = static_cast<IndexType>(num_rows);
 
     auto p = permutation.get_data();
     auto ip = inv_permutation.get_data();
@@ -249,7 +249,7 @@ void shortest_augmenting_path(
             } else {
                 distance[col] = dnew;
                 parents[col] = row;
-                generation[col] = num_rows + root;
+                generation[col] = num_rows_s + root;
                 if (dnew < lsp) {
                     lsp = dnew;
                 }
@@ -264,9 +264,9 @@ void shortest_augmenting_path(
         const auto col = col_idxs[idx];
         const auto dist = distance[col];
         const auto gen = generation[col];
-        if (dist < lsap && gen == num_rows + root) {
+        if (dist < lsap && gen == num_rows_s + root) {
             if (abs(dist - lsp) < tolerance) {
-                generation[col] = -num_rows - root;
+                generation[col] = -num_rows_s - root;
                 q_j.push_back(col);
             } else {
                 generation[col] = root;
@@ -341,14 +341,14 @@ void shortest_augmenting_path(
                     parents[col] = row;
                 } else {
                     if ((gen != root || dnew < distance[col]) &&
-                        gen != -num_rows - root) {
+                        gen != -num_rows_s - root) {
                         distance[col] = dnew;
                         parents[col] = row;
                         if (abs(dnew - lsp) < tolerance) {
                             // dnew is the shortest currently possible distance,
                             // so col can be put into q_j and be marked
                             // accordingly.
-                            generation[col] = -num_rows - root;
+                            generation[col] = -num_rows_s - root;
                             q_j.push_back(col);
                         } else if (gen != root) {
                             // col was not encountered before.
