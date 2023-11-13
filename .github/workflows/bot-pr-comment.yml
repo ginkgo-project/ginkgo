@@ -10,7 +10,7 @@ jobs:
     if: github.event.issue.pull_request != '' && github.event.comment.body == 'label!' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
     steps:
     - name: Checkout the latest code (shallow clone)
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         ref: develop
     - name: Add appropriate labels
@@ -29,7 +29,7 @@ jobs:
     if: github.event.issue.pull_request != '' && github.event.comment.body == 'format!' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
     steps:
     - name: Checkout the latest code (shallow clone)
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         ref: develop
         persist-credentials: false
@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout the latest code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         ref: develop
         fetch-depth: 0
@@ -60,7 +60,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - name: Checkout the latest code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         ref: develop
         fetch-depth: 0

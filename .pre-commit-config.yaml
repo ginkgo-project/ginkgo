@@ -1,7 +1,7 @@
 repos:
--   repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: 'v14.0.0'  # The default in Ubuntu 22.04, which is used in our CI
-    hooks:
-        -   id: clang-format
-            types_or: [c, c++, cuda, inc]
-            exclude: third_party/SuiteSparse/AMD/.*
+- repo: https://github.com/pre-commit/mirrors-clang-format
+  rev: 'v14.0.0'  # The default in Ubuntu 22.04, which is used in our CI
+  hooks:
+  - id: clang-format
+    types_or: [c, c++, cuda, inc]
+    exclude: third_party/SuiteSparse/AMD/.*
