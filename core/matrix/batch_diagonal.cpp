@@ -48,9 +48,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/diagonal.hpp>
 
 
+#include "core/matrix/batch_diagonal_kernels.hpp"
+
+
 namespace gko {
 namespace batch {
 namespace matrix {
+namespace diagonal {
+namespace {
+
+
+GKO_REGISTER_OPERATION(simple_apply, batch_diagonal::simple_apply);
+
+
+}  // namespace
+}  // namespace diagonal
 
 
 template <typename ValueType>
@@ -169,7 +181,7 @@ template <typename ValueType>
 void Diagonal<ValueType>::apply_impl(const MultiVector<ValueType>* b,
                                      MultiVector<ValueType>* x) const
 {
-    x->copy_from(b);
+    this->get_executor()->run(diagonal::make_simple_apply(this, b, x));
 }
 
 
@@ -179,8 +191,10 @@ void Diagonal<ValueType>::apply_impl(const MultiVector<ValueType>* alpha,
                                      const MultiVector<ValueType>* beta,
                                      MultiVector<ValueType>* x) const
 {
+    auto x_clone = x->clone();
+    this->apply(b, x_clone.get());
     x->scale(beta);
-    x->add_scaled(alpha, b);
+    x->add_scaled(alpha, x_clone.get());
 }
 
 
