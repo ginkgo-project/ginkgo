@@ -297,6 +297,7 @@ CURRENT_YEAR=$(date +%Y)
 echo "${GINKGO_LICENSE_BEGIN} 2017-${CURRENT_YEAR} The Ginkgo authors" > "$1"
 echo "//" >> "$1"
 echo "${GINKGO_LICENSE_END} BSD-3-Clause" >> "$1"
+echo "" >> "$1"
 
 # Write the definition of header according to path
 if [ -n "${IFNDEF}" ] && [ -n "${DEFINE}" ]; then
