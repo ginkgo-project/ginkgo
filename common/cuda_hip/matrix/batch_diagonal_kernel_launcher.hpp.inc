@@ -30,57 +30,21 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/batch_diagonal_kernels.hpp"
-
-
-#include <algorithm>
-
-
-#include <ginkgo/core/base/batch_multi_vector.hpp>
-#include <ginkgo/core/matrix/batch_diagonal.hpp>
-
-
-#include "core/base/batch_struct.hpp"
-#include "core/matrix/batch_struct.hpp"
-#include "cuda/base/batch_struct.hpp"
-#include "cuda/matrix/batch_struct.hpp"
-
-
-namespace gko {
-namespace kernels {
-namespace cuda {
-/**
- * @brief The Diagonal matrix format namespace.
- * @ref Diagonal
- * @ingroup batch_diagonal
- */
-namespace batch_diagonal {
-
-
-constexpr auto default_block_size = 256;
-constexpr int sm_oversubscription = 4;
-
-
-template <typename T>
-auto as_device_type(T ptr)
+template <typename ValueType>
+void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
+                  const batch::matrix::Diagonal<ValueType>* mat,
+                  const batch::MultiVector<ValueType>* b,
+                  batch::MultiVector<ValueType>* x)
 {
-    return as_cuda_type(ptr);
+    const auto num_blocks = mat->get_num_batch_items();
+    simple_apply_kernel<<<num_blocks, default_block_size, 0,
+                          exec->get_stream()>>>(
+        num_blocks, static_cast<int>(mat->get_common_size()[0]),
+        as_device_type(mat->get_const_values()),
+        static_cast<int>(b->get_common_size()[1]), b->get_common_size()[1],
+        as_device_type(b->get_const_values()), x->get_common_size()[1],
+        as_device_type(x->get_values()));
 }
 
-
-// clang-format off
-
-// NOTE: DO NOT CHANGE THE ORDERING OF THE INCLUDES
-
-#include "common/cuda_hip/matrix/batch_diagonal_kernels.hpp.inc"
-
-
-#include "common/cuda_hip/matrix/batch_diagonal_kernel_launcher.hpp.inc"
-
-// clang-format on
-
-
-}  // namespace batch_diagonal
-}  // namespace cuda
-}  // namespace kernels
-}  // namespace gko
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_DIAGONAL_SIMPLE_APPLY_KERNEL);

@@ -57,14 +57,27 @@ namespace hip {
 namespace batch_diagonal {
 
 
-template <typename ValueType>
-void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
-                  const batch::matrix::Diagonal<ValueType>* mat,
-                  const batch::MultiVector<ValueType>* b,
-                  batch::MultiVector<ValueType>* x) GKO_NOT_IMPLEMENTED;
+constexpr auto default_block_size = 256;
+constexpr int sm_oversubscription = 4;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BATCH_DIAGONAL_SIMPLE_APPLY_KERNEL);
+
+template <typename T>
+auto as_device_type(T ptr)
+{
+    return as_hip_type(ptr);
+}
+
+
+// clang-format off
+
+// NOTE: DO NOT CHANGE THE ORDERING OF THE INCLUDES
+
+#include "common/cuda_hip/matrix/batch_diagonal_kernels.hpp.inc"
+
+
+#include "common/cuda_hip/matrix/batch_diagonal_kernel_launcher.hpp.inc"
+
+// clang-format on
 
 
 }  // namespace batch_diagonal
