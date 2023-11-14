@@ -193,7 +193,8 @@ if [ ! -f "$1" ]; then
     exit 1
 fi
 
-GINKGO_LICENSE_BEACON="******************************<GINKGO LICENSE>******************************"
+GINKGO_LICENSE_BEGIN="// SPDX-FileCopyrightText:"
+GINKGO_LICENSE_END="// SPDX-License-Identifier:"
 
 CONTENT="content.cpp" # Store the residual part (start from namespace)
 BEFORE="before.cpp" # Store the main header and the #ifdef/#define of header file
@@ -230,9 +231,9 @@ CONSIDER_REGEX="${START_BLOCK_REX}|${END_BLOCK_REX}|${COMMENT_REGEX}|${INCLUDE_R
 
 # This part capture the main header and give the possible fail arrangement information
 while IFS='' read -r line || [ -n "$line" ]; do
-    if [ "${line}" = "/*${GINKGO_LICENSE_BEACON}" ] || [ "${DURING_LICENSE}" = "true" ]; then
+    if [[ "${line}" =~ ${GINKGO_LICENSE_BEGIN}  ]] || [ "${DURING_LICENSE}" = "true" ]; then
         DURING_LICENSE="true"
-        if [ "${line}" = "${GINKGO_LICENSE_BEACON}*/" ]; then
+        if [[ "${line}" =~ ${GINKGO_LICENSE_END} ]]; then
             DURING_LICENSE="false"
             SKIP="true"
         fi
@@ -292,9 +293,10 @@ if [ "${ALARM}" = "true" ]; then
 fi
 
 # Write license
-echo "/*${GINKGO_LICENSE_BEACON}" > "$1"
-cat LICENSE >> "$1"
-echo "${GINKGO_LICENSE_BEACON}*/" >> "$1"
+CURRENT_YEAR=$(date +%Y)
+echo "${GINKGO_LICENSE_BEGIN} 2017-${CURRENT_YEAR} The Ginkgo authors" > "$1"
+echo "//" >> "$1"
+echo "${GINKGO_LICENSE_END} BSD-3-Clause" >> "$1"
 echo "" >> "$1"
 
 # Write the definition of header according to path

@@ -17,6 +17,7 @@ check_closed() {
     fi
 }
 
-GINKGO_LICENSE_BEACON="******************************<GINKGO LICENSE>******************************"
+GINKGO_LICENSE_BEGIN="// SPDX-FileCopyrightText:"
+GINKGO_LICENSE_END="// SPDX-License-Identifier:"
 HOST_SUFFIX="_AUTOHOSTFUNC"
 MAP_FILE="map_list"
