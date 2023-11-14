@@ -86,8 +86,8 @@ struct test_impl<gko::xstd::void_t<decltype(T(std::declval<Args>()...))>, T,
 
 // specialization for DF2 with_factory_list
 template <typename... Args>
-struct test_impl<gko::xstd::void_t<decltype(DF2::param{}.with_factory_list(
-                     std::declval<Args>()...))>,
+struct test_impl<gko::xstd::void_t<decltype(
+                     DF2::param{}.with_factory_list(std::declval<Args>()...))>,
                  DummyFlag, Args...> : std::true_type {};
 
 // test the object can be constructable or not with Args.
