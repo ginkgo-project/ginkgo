@@ -9,6 +9,8 @@ pipx run pre-commit run --show-diff-on-failure --color=always --from-ref "origin
 
 echo -n "Collecting information on changed files"
 
+git checkout -- dev_tools/scripts/*.sh
+
 # check for changed files, replace newlines by \n
 LIST_FILES=$(git diff --name-only | sed '$!s/$/\\n/' | tr -d '\n')
 echo -n .
