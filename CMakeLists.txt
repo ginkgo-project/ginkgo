@@ -235,7 +235,7 @@ endif()
 set(GINKGO_HAVE_GPU_AWARE_MPI OFF)
 set(GINKGO_FORCE_SPMV_BLOCKING_COMM OFF)
 if(GINKGO_BUILD_MPI)
-    find_package(MPI 3.1 COMPONENTS CXX REQUIRED)
+    find_package(MPI 3.1 REQUIRED)
     if(GINKGO_FORCE_GPU_AWARE_MPI)
         set(GINKGO_HAVE_GPU_AWARE_MPI ON)
     else()
@@ -247,14 +247,14 @@ if(GINKGO_BUILD_MPI)
         ${Ginkgo_BINARY_DIR}
         ${Ginkgo_SOURCE_DIR}/cmake/openmpi_test.cpp
                 COMPILE_DEFINITIONS -DCHECK_HAS_OPEN_MPI=1
-        LINK_LIBRARIES MPI::MPI_CXX
+        LINK_LIBRARIES MPI::MPI_C
         )
     if(uses_openmpi)
         try_compile(valid_openmpi_version
                     ${Ginkgo_BINARY_DIR}
                     ${Ginkgo_SOURCE_DIR}/cmake/openmpi_test.cpp
                     COMPILE_DEFINITIONS -DCHECK_OPEN_MPI_VERSION=1
-                    LINK_LIBRARIES MPI::MPI_CXX
+                    LINK_LIBRARIES MPI::MPI_C
         )
         if(NOT valid_openmpi_version)
             message(WARNING

@@ -137,7 +137,7 @@ if(GINKGO_HAVE_METIS)
 endif()
 
 if(GINKGO_BUILD_MPI)
-    target_link_libraries(ginkgo PUBLIC MPI::MPI_CXX)
+    target_link_libraries(ginkgo PUBLIC MPI::MPI_C)
 endif()
 
 # Since we have a public dependency on HIP, this dependency appears

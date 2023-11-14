@@ -4,7 +4,7 @@ if(GINKGO_BUILD_EXTLIB_EXAMPLE)
     cmake_minimum_required(VERSION 3.16)
     project(DEAL_II_EXAMPLE LANGUAGES CXX)
 
-    find_package(MPI 3.1 COMPONENTS CXX REQUIRED)
+    find_package(MPI 3.1 REQUIRED)
 
     set(deal.II_DIR "/path/to/deal.ii/installation")
     find_package(deal.II 9.0.0 REQUIRED
