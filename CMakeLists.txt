@@ -377,11 +377,6 @@ if(GINKGO_DEVEL_TOOLS)
                       COMMAND bash -c "${PRE_COMMIT} run"
                       WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR}
                       VERBATIM)
-
-    add_custom_target(add_license
-                      COMMAND ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/add_license.sh
-                      WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR})
-    add_dependencies(format add_license)
 endif()
 
 # MacOS needs to install bash, gnu-sed, findutils and coreutils
