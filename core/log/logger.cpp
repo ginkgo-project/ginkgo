@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/log/logger.hpp>
+#include "ginkgo/core/log/logger.hpp"
 
 
 namespace gko {

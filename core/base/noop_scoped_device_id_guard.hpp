@@ -6,7 +6,7 @@
 #define GINKGO_CORE_BASE_NOOP_SCOPED_DEVICE_ID_GUARD_HPP
 
 
-#include <ginkgo/core/base/scoped_device_id_guard.hpp>
+#include "ginkgo/core/base/scoped_device_id_guard.hpp"
 
 
 namespace gko {

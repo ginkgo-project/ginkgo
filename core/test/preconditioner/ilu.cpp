@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/preconditioner/ilu.hpp>
+#include "ginkgo/core/preconditioner/ilu.hpp"
 
 
 GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS

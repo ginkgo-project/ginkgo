@@ -8,7 +8,7 @@ GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
 // force-top: off
 
 
-#include <ginkgo/core/log/logger.hpp>
+#include "ginkgo/core/log/logger.hpp"
 
 
 #include <memory>
