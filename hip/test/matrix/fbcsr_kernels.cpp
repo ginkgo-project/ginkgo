@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/matrix/fbcsr.hpp>
+#include "ginkgo/core/matrix/fbcsr.hpp"
 
 
 #include <random>

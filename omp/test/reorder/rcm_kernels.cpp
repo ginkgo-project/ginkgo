@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/reorder/rcm.hpp>
+#include "ginkgo/core/reorder/rcm.hpp"
 
 
 #include <algorithm>

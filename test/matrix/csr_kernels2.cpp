@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/matrix/csr.hpp>
+#include "ginkgo/core/matrix/csr.hpp"
 
 
 #include <random>

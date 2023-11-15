@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/utils.hpp>
+#include "ginkgo/core/base/utils.hpp"
 
 
 #include <gtest/gtest.h>

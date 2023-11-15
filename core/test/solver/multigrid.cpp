@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/solver/multigrid.hpp>
+#include "ginkgo/core/solver/multigrid.hpp"
 
 
 #include <vector>

@@ -6,7 +6,7 @@
 #define GKO_CORE_MATRIX_ELL_KERNELS_HPP_
 
 
-#include <ginkgo/core/matrix/ell.hpp>
+#include "ginkgo/core/matrix/ell.hpp"
 
 
 #include <ginkgo/core/matrix/csr.hpp>

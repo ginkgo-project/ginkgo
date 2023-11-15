@@ -6,7 +6,7 @@
 #define GKO_CORE_BASE_INDEX_SET_KERNELS_HPP_
 
 
-#include <ginkgo/core/base/index_set.hpp>
+#include "ginkgo/core/base/index_set.hpp"
 
 
 #include <memory>

@@ -6,7 +6,7 @@
 #define GKO_CORE_MATRIX_PERMUTATION_HPP_
 
 
-#include <ginkgo/core/matrix/permutation.hpp>
+#include "ginkgo/core/matrix/permutation.hpp"
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>

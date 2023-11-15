@@ -6,7 +6,7 @@
 #define GKO_CORE_MATRIX_BATCH_ELL_KERNELS_HPP_
 
 
-#include <ginkgo/core/matrix/batch_ell.hpp>
+#include "ginkgo/core/matrix/batch_ell.hpp"
 
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>

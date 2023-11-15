@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/reorder/amd.hpp>
+#include "ginkgo/core/reorder/amd.hpp"
 
 
 #include <cstddef>

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/stop/residual_norm.hpp>
+#include "ginkgo/core/stop/residual_norm.hpp"
 
 
 #include <type_traits>

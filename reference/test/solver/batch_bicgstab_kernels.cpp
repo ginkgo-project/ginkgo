@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/solver/batch_bicgstab.hpp>
+#include "ginkgo/core/solver/batch_bicgstab.hpp"
 
 
 #include <memory>

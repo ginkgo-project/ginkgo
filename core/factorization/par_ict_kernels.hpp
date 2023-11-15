@@ -6,7 +6,7 @@
 #define GKO_CORE_FACTORIZATION_PAR_ICT_KERNELS_HPP_
 
 
-#include <ginkgo/core/factorization/par_ict.hpp>
+#include "ginkgo/core/factorization/par_ict.hpp"
 
 
 #include <memory>

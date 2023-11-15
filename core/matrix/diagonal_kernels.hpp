@@ -6,7 +6,7 @@
 #define GKO_CORE_MATRIX_DIAGONAL_KERNELS_HPP_
 
 
-#include <ginkgo/core/matrix/diagonal.hpp>
+#include "ginkgo/core/matrix/diagonal.hpp"
 
 
 #include <ginkgo/core/base/types.hpp>

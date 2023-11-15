@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/solver/fcg.hpp>
+#include "ginkgo/core/solver/fcg.hpp"
 
 
 #include <ginkgo/core/base/exception.hpp>

@@ -6,7 +6,7 @@
 #define GKO_CORE_MATRIX_FBCSR_KERNELS_HPP_
 
 
-#include <ginkgo/core/matrix/fbcsr.hpp>
+#include "ginkgo/core/matrix/fbcsr.hpp"
 
 
 #include <ginkgo/core/base/array.hpp>

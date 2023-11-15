@@ -6,7 +6,7 @@
 #define GKO_CORE_REORDER_RCM_KERNELS_HPP_
 
 
-#include <ginkgo/core/reorder/rcm.hpp>
+#include "ginkgo/core/reorder/rcm.hpp"
 
 
 #include <memory>

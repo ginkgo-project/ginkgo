@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/batch_multi_vector.hpp>
+#include "ginkgo/core/base/batch_multi_vector.hpp"
 
 
 #include <gtest/gtest.h>
