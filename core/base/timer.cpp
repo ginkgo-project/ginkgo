@@ -96,7 +96,7 @@ void CpuTimer::wait(time_point& time) {}
 std::chrono::nanoseconds CpuTimer::difference_async(const time_point& start,
                                                     const time_point& stop)
 {
-    return std::chrono::duration_cast<std::chrono::nanoseconds, int64>(
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(
         stop.data_.chrono - start.data_.chrono);
 }
 
