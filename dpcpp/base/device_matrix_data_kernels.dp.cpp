@@ -2,10 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-// force-top: on
+
 // oneDPL needs to be first to avoid issues with libstdc++ TBB impl
 #include <oneapi/dpl/algorithm>
-// force-top: off
 
 
 #include "core/base/device_matrix_data_kernels.hpp"
