@@ -5,11 +5,9 @@
 #ifndef GKO_DPCPP_BASE_ONEDPL_HPP_
 #define GKO_DPCPP_BASE_ONEDPL_HPP_
 
-
-// force-top: on
+// clang-format off
 #include <oneapi/dpl/execution>
-// force-top: off
-
+// clang-format on
 
 #include <ginkgo/core/base/executor.hpp>
 

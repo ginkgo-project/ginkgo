@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-// force-top: on
+// clang-format off
 #include <ginkgo/core/base/types.hpp>
-// force-top: off
+// clang-format on
 
 
 #include <ginkgo/core/matrix/identity.hpp>

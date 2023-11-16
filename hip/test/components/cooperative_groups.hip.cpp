@@ -2,10 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-// force-top: on
+
+// clang-format off
 // TODO remove when the HIP includes are fixed
 #include <hip/hip_runtime.h>
-// force-top: off
+// clang-format on
 
 
 #include <cstring>
