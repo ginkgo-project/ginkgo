@@ -115,12 +115,13 @@ void threshold_filter_nnz(dim3 grid, dim3 block,
                           remove_complex<ValueType> threshold, IndexType* nnz,
                           bool lower)
 {
-    queue->parallel_for(
-        sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subgroup_size)]] {
-            threshold_filter_nnz<subgroup_size>(
-                row_ptrs, vals, num_rows, threshold, nnz, lower, item_ct1);
-        });
+    queue->parallel_for(sycl_nd_range(grid, block),
+                        [=](sycl::nd_item<3> item_ct1)
+                            [[sycl::reqd_sub_group_size(subgroup_size)]] {
+                                threshold_filter_nnz<subgroup_size>(
+                                    row_ptrs, vals, num_rows, threshold, nnz,
+                                    lower, item_ct1);
+                            });
 }
 
 
@@ -152,14 +153,15 @@ void threshold_filter(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                       const IndexType* new_row_ptrs, IndexType* new_row_idxs,
                       IndexType* new_col_idxs, ValueType* new_vals, bool lower)
 {
-    queue->parallel_for(
-        sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subgroup_size)]] {
-            threshold_filter<subgroup_size>(
-                old_row_ptrs, old_col_idxs, old_vals, num_rows, threshold,
-                new_row_ptrs, new_row_idxs, new_col_idxs, new_vals, lower,
-                item_ct1);
-        });
+    queue->parallel_for(sycl_nd_range(grid, block),
+                        [=](sycl::nd_item<3> item_ct1)
+                            [[sycl::reqd_sub_group_size(subgroup_size)]] {
+                                threshold_filter<subgroup_size>(
+                                    old_row_ptrs, old_col_idxs, old_vals,
+                                    num_rows, threshold, new_row_ptrs,
+                                    new_row_idxs, new_col_idxs, new_vals, lower,
+                                    item_ct1);
+                            });
 }
 
 
@@ -183,12 +185,13 @@ void bucket_filter_nnz(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                        const BucketType* buckets, IndexType num_rows,
                        BucketType bucket, IndexType* nnz)
 {
-    queue->parallel_for(
-        sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subgroup_size)]] {
-            bucket_filter_nnz<subgroup_size>(row_ptrs, buckets, num_rows,
-                                             bucket, nnz, item_ct1);
-        });
+    queue->parallel_for(sycl_nd_range(grid, block),
+                        [=](sycl::nd_item<3> item_ct1)
+                            [[sycl::reqd_sub_group_size(subgroup_size)]] {
+                                bucket_filter_nnz<subgroup_size>(
+                                    row_ptrs, buckets, num_rows, bucket, nnz,
+                                    item_ct1);
+                            });
 }
 
 
@@ -222,13 +225,15 @@ void bucket_filter(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                    IndexType* new_row_idxs, IndexType* new_col_idxs,
                    ValueType* new_vals)
 {
-    queue->parallel_for(
-        sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subgroup_size)]] {
-            bucket_filter<subgroup_size>(
-                old_row_ptrs, old_col_idxs, old_vals, buckets, num_rows, bucket,
-                new_row_ptrs, new_row_idxs, new_col_idxs, new_vals, item_ct1);
-        });
+    queue->parallel_for(sycl_nd_range(grid, block),
+                        [=](sycl::nd_item<3> item_ct1)
+                            [[sycl::reqd_sub_group_size(subgroup_size)]] {
+                                bucket_filter<subgroup_size>(
+                                    old_row_ptrs, old_col_idxs, old_vals,
+                                    buckets, num_rows, bucket, new_row_ptrs,
+                                    new_row_idxs, new_col_idxs, new_vals,
+                                    item_ct1);
+                            });
 }
 
 

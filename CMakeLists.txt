@@ -354,13 +354,34 @@ if(GINKGO_BUILD_BENCHMARKS)
 endif()
 
 if(GINKGO_DEVEL_TOOLS)
-    add_custom_target(add_license
-        COMMAND ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/add_license.sh
-        WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR})
-    # if git-cmake-format can not build format target, do not add the dependencies
-    if(TARGET format)
-        add_dependencies(format add_license)
+    find_program(PRE_COMMIT pre-commit)
+    if(NOT PRE_COMMIT)
+        message(FATAL_ERROR "The pre-commit command was not found. It is necessary if you want to commit changes to Ginkgo. "
+                "If that is not the case, set GINKGO_DEVEL_TOOLS=OFF. "
+                "Otherwise install pre-commit via pipx (or pip) using:\n"
+                "    pipx install pre-commit")
     endif()
+
+    execute_process(COMMAND "${PRE_COMMIT}" "install"
+                    WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR}
+                    RESULT_VARIABLE pre-commit-result
+                    OUTPUT_VARIABLE pre-commit-output
+                    ERROR_VARIABLE pre-commit-error)
+    if(pre-commit-result)
+        message(FATAL_ERROR
+                "Failed to install the git hooks via pre-commit. Please check the error message:\n"
+                "${pre-commit-output}\n${pre-commit-error}")
+    endif()
+
+    add_custom_target(format
+                      COMMAND bash -c "${PRE_COMMIT} run"
+                      WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR}
+                      VERBATIM)
+
+    add_custom_target(add_license
+                      COMMAND ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/add_license.sh
+                      WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR})
+    add_dependencies(format add_license)
 endif()
 
 # MacOS needs to install bash, gnu-sed, findutils and coreutils
