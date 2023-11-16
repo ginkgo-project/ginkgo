@@ -9,3 +9,10 @@ repos:
         third_party/SuiteSparse/AMD/.*|
         third_party/identify_stream_usage/.*
       )
+- repo: local
+  hooks:
+    - id: update-ginkgo-header
+      name: update ginkgo.hpp header
+      language: system
+      entry: python3 dev_tools/scripts/update-ginkgo-header.py
+      files: \.hpp$

@@ -6,8 +6,6 @@ from pathlib import Path
 files = set(f[len("include/"):] for f in sys.argv[1:] if f.startswith("include/ginkgo/") and f.endswith(".hpp"))
 files -= {"ginkgo/ginkgo.hpp", "config.hpp.in", "ginkgo.hpp.in"}
 
-print(files)
-
 if not files:
     exit(0)
 
