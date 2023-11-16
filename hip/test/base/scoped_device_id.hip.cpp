@@ -2,10 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-// force-top: on
+
+// clang-format off
 // prevent compilation failure related to disappearing assert(...) statements
 #include <hip/hip_runtime.h>
-// force-top: off
+// clang-format on
 
 
 #include <gtest/gtest.h>
