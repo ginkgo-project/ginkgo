@@ -9,8 +9,8 @@ DIFF_COMMAND="git diff --name-only --no-renames --diff-filter=AM HEAD~ | grep -E
 
 # do the formatting rebase
 git rebase --rebase-merges --empty=drop --no-keep-empty \
-    --exec "cp /tmp/add_license.sh /tmp/update_ginkgo_header.sh dev_tools/scripts/ && \
-            dev_tools/scripts/add_license.sh && dev_tools/scripts/update_ginkgo_header.sh && \
+    --exec "cp /tmp/add_license.sh dev_tools/scripts/ && \
+            dev_tools/scripts/add_license.sh && \
             pipx run pre-commit run && \
             git checkout dev_tools/scripts && (git diff >> /tmp/difflog; true) && (git diff --quiet || git commit -a --amend --no-edit --allow-empty)" \
     base/$BASE_BRANCH 2>&1 || bot_error "Rebase failed, see the related [Action]($JOB_URL) for details"
