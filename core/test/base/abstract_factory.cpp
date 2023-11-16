@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/base/abstract_factory.hpp"
 
-
 #include <gtest/gtest.h>
 
 

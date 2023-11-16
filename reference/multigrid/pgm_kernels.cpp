@@ -4,11 +4,9 @@
 
 #include "core/multigrid/pgm_kernels.hpp"
 
-
 #include <algorithm>
 #include <memory>
 #include <tuple>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -17,7 +15,6 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/multigrid/pgm.hpp>
-
 
 #include "core/base/allocator.hpp"
 #include "core/base/iterator_factory.hpp"

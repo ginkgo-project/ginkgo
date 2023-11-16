@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/base/dense_cache.hpp"
 
-
 #include <ginkgo/core/matrix/dense.hpp>
 
 

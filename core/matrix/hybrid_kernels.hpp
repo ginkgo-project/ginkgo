@@ -8,9 +8,7 @@
 
 #include "ginkgo/core/matrix/hybrid.hpp"
 
-
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/base/kernel_declaration.hpp"
 

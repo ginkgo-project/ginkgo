@@ -4,12 +4,9 @@
 
 #include "ginkgo/core/multigrid/fixed_coarsening.hpp"
 
-
 #include <memory>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -24,7 +21,6 @@
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 #include <ginkgo/core/stop/time.hpp>
-
 
 #include "core/test/utils.hpp"
 

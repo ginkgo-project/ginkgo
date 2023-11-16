@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/stop/criterion.hpp"
 
-
 #include "core/stop/criterion_kernels.hpp"
 
 

@@ -4,13 +4,10 @@
 
 #include "core/test/utils/matrix_generator.hpp"
 
-
 #include <cmath>
 #include <random>
 
-
 #include <gtest/gtest.h>
-
 
 #include "core/base/utils.hpp"
 #include "core/test/utils.hpp"

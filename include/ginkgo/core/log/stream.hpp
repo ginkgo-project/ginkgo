@@ -9,7 +9,6 @@
 #include <fstream>
 #include <iostream>
 
-
 #include <ginkgo/core/log/logger.hpp>
 
 

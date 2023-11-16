@@ -4,7 +4,6 @@
 
 #include <ginkgo/core/matrix/csr.hpp>
 
-
 #include "core/factorization/elimination_forest.hpp"
 
 

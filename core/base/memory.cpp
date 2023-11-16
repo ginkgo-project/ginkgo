@@ -4,9 +4,7 @@
 
 #include "ginkgo/core/base/memory.hpp"
 
-
 #include <new>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 

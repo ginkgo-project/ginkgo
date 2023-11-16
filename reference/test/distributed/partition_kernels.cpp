@@ -4,18 +4,14 @@
 
 #include "ginkgo/core/distributed/partition.hpp"
 
-
 #include <algorithm>
 #include <memory>
 #include <vector>
 
-
 #include <gtest/gtest-typed-test.h>
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/executor.hpp>
-
 
 #include "core/distributed/partition_kernels.hpp"
 #include "core/test/utils.hpp"

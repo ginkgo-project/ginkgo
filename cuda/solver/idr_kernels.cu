@@ -4,14 +4,11 @@
 
 #include "core/solver/idr_kernels.hpp"
 
-
 #include <ctime>
 #include <random>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "core/components/fill_array_kernels.hpp"
 #include "cuda/base/config.hpp"

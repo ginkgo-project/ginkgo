@@ -10,15 +10,12 @@
 #include <iostream>
 #include <memory>
 
-
 #include <cuda.h>
 #include <cusparse.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"

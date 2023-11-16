@@ -4,16 +4,13 @@
 
 #include "core/components/format_conversion_kernels.hpp"
 
-
 #include <cstring>
 #include <limits>
 #include <memory>
 #include <random>
 #include <vector>
 
-
 #include <gtest/gtest.h>
-
 
 #include "core/test/utils.hpp"
 

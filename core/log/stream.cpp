@@ -4,9 +4,7 @@
 
 #include "ginkgo/core/log/stream.hpp"
 
-
 #include <iomanip>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>

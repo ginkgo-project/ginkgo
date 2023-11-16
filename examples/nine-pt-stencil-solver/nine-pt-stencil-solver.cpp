@@ -43,11 +43,12 @@ hand side vector changes when increasing the dimension.
 
 #include <array>
 #include <chrono>
-#include <ginkgo/ginkgo.hpp>
 #include <iostream>
 #include <map>
 #include <string>
 #include <vector>
+
+#include <ginkgo/ginkgo.hpp>
 
 // Stencil values. Ordering can be seen in the main function
 // Can also be changed by passing additional parameter when executing

@@ -4,18 +4,14 @@
 
 #include "core/factorization/lu_kernels.hpp"
 
-
 #include <algorithm>
 #include <memory>
-
 
 #include <thrust/copy.h>
 #include <thrust/iterator/transform_output_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
 
-
 #include <ginkgo/core/matrix/csr.hpp>
-
 
 #include "core/base/allocator.hpp"
 #include "core/matrix/csr_lookup.hpp"

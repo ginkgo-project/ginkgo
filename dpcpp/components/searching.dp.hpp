@@ -8,7 +8,6 @@
 
 #include <CL/sycl.hpp>
 
-
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dpct.hpp"
 #include "dpcpp/components/intrinsics.dp.hpp"

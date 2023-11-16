@@ -17,9 +17,7 @@
 #include <type_traits>
 #include <typeinfo>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/batch_multi_vector.hpp>
@@ -27,7 +25,6 @@
 #include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/base/batch_utilities.hpp"
 #include "core/base/extended_float.hpp"

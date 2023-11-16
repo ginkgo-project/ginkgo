@@ -8,7 +8,6 @@
 
 #include <complex>
 
-
 #include <ginkgo/core/base/math.hpp>
 
 

@@ -4,19 +4,15 @@
 
 #include "ginkgo/core/base/mtx_io.hpp"
 
-
 #include <cstring>
 #include <sstream>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/test/utils.hpp"
 

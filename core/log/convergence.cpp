@@ -4,14 +4,12 @@
 
 #include "ginkgo/core/log/convergence.hpp"
 
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
-
 
 #include "core/base/dispatch_helper.hpp"
 #include "core/distributed/helpers.hpp"

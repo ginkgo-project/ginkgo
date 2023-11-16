@@ -4,14 +4,11 @@
 
 #include "ginkgo/core/matrix/batch_ell.hpp"
 
-
 #include <complex>
 #include <memory>
 #include <random>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/exception.hpp>
@@ -19,7 +16,6 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
-
 
 #include "core/matrix/batch_ell_kernels.hpp"
 #include "core/test/utils.hpp"

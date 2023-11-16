@@ -4,13 +4,10 @@
 
 #include "ginkgo/core/matrix/dense.hpp"
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/range.hpp>
-
 
 #include "core/test/utils.hpp"
 

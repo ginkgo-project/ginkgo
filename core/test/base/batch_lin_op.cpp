@@ -4,14 +4,11 @@
 
 #include "ginkgo/core/base/batch_lin_op.hpp"
 
-
 #include <complex>
 #include <memory>
 #include <type_traits>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>

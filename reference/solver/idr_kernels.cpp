@@ -4,11 +4,9 @@
 
 #include "core/solver/idr_kernels.hpp"
 
-
 #include <algorithm>
 #include <ctime>
 #include <random>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>

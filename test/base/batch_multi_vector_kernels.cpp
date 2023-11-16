@@ -4,16 +4,12 @@
 
 #include "ginkgo/core/base/batch_multi_vector.hpp"
 
-
 #include <memory>
 #include <random>
 
-
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "core/base/batch_multi_vector_kernels.hpp"
 #include "core/base/batch_utilities.hpp"

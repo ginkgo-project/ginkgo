@@ -4,12 +4,9 @@
 
 #include "ginkgo/core/base/timer.hpp"
 
-
 #include <hip/hip_runtime.h>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
-
 
 #include "hip/base/scoped_device_id.hip.hpp"
 

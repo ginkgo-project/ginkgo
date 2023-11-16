@@ -11,7 +11,6 @@
 #include <memory>
 #include <utility>
 
-
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>

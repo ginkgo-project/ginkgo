@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/stop/time.hpp"
 
-
 #include <chrono>
 #include <thread>
 #if defined(_WIN32) || defined(__CYGWIN__)

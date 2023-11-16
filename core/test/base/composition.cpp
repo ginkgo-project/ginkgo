@@ -4,12 +4,9 @@
 
 #include "ginkgo/core/base/composition.hpp"
 
-
 #include <vector>
 
-
 #include <gtest/gtest.h>
-
 
 #include "core/test/utils.hpp"
 

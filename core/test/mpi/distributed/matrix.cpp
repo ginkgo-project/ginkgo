@@ -4,7 +4,6 @@
 
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
@@ -16,7 +15,6 @@
 #include <ginkgo/core/matrix/fbcsr.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
-
 
 #include "core/test/utils.hpp"
 

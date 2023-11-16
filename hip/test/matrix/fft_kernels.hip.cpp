@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/matrix/fft.hpp"
 
-
 #include <hip/hip_runtime.h>
 #if HIP_VERSION >= 50200000
 #include <hipfft/hipfft.h>
@@ -14,7 +13,6 @@
 
 
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>

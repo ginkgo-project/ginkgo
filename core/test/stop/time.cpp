@@ -4,10 +4,8 @@
 
 #include "ginkgo/core/stop/time.hpp"
 
-
 #include <chrono>
 #include <thread>
-
 
 #include <gtest/gtest.h>
 

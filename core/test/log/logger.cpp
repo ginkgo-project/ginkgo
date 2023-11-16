@@ -10,12 +10,9 @@ GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
 
 #include "ginkgo/core/log/logger.hpp"
 
-
 #include <memory>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/log/convergence.hpp>
 #include <ginkgo/core/log/record.hpp>

@@ -5,13 +5,10 @@
 #include <algorithm>
 #include <numeric>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
-
 
 #include "core/test/utils.hpp"
 #include "test/utils/executor.hpp"

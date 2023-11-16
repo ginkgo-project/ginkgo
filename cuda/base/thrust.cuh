@@ -9,7 +9,6 @@
 #include <thrust/execution_policy.h>
 #include <thrust/system/cuda/detail/execution_policy.h>
 
-
 #include <ginkgo/core/base/executor.hpp>
 
 

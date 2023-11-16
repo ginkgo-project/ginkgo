@@ -8,16 +8,13 @@
 
 #include "ginkgo/core/multigrid/pgm.hpp"
 
-
 #include <memory>
-
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
-
 
 #include "core/base/kernel_declaration.hpp"
 

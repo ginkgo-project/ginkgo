@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/base/mtx_io.hpp"
 
-
 #include <algorithm>
 #include <cctype>
 #include <cstring>
@@ -13,7 +12,6 @@
 #include <regex>
 #include <string>
 #include <type_traits>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>

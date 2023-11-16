@@ -4,7 +4,6 @@
 
 #include "core/components/reduce_array_kernels.hpp"
 
-
 #include <numeric>
 
 

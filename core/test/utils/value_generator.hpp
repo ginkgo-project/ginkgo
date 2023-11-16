@@ -9,7 +9,6 @@
 #include <random>
 #include <type_traits>
 
-
 #include <ginkgo/core/base/math.hpp>
 
 

@@ -4,8 +4,11 @@
 
 #include "core/distributed/matrix_kernels.hpp"
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
+
+#include "common/unified/base/kernel_launch.hpp"
+#include "core/components/fill_array_kernels.hpp"
+#include "dpcpp/base/onedpl.hpp"
 
 
 namespace gko {

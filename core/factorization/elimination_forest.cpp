@@ -4,7 +4,6 @@
 
 #include "core/factorization/elimination_forest.hpp"
 
-
 #include <ginkgo/core/base/types.hpp>
 
 

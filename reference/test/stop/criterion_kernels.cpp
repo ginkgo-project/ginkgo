@@ -4,9 +4,7 @@
 
 #include "ginkgo/core/stop/criterion.hpp"
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/stop/iteration.hpp>
 

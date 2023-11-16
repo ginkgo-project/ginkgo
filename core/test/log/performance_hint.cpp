@@ -4,16 +4,12 @@
 
 #include "ginkgo/core/log/performance_hint.hpp"
 
-
 #include <iomanip>
 #include <sstream>
 
-
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/executor.hpp>
-
 
 #include "core/test/utils.hpp"
 

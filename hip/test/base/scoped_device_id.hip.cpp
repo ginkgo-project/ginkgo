@@ -2,20 +2,18 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-
 // clang-format off
 // prevent compilation failure related to disappearing assert(...) statements
 #include <hip/hip_runtime.h>
 // clang-format on
 
 
-#include <gtest/gtest.h>
+#include "hip/base/scoped_device_id.hip.hpp"
 
+#include <gtest/gtest.h>
 
 #include <ginkgo/core/base/executor.hpp>
 
-
-#include "hip/base/scoped_device_id.hip.hpp"
 #include "hip/test/utils.hip.hpp"
 
 

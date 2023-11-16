@@ -13,7 +13,6 @@
 #include <type_traits>
 #include <utility>
 
-
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>

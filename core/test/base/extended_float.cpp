@@ -4,10 +4,8 @@
 
 #include "core/base/extended_float.hpp"
 
-
 #include <bitset>
 #include <string>
-
 
 #include <gtest/gtest.h>
 

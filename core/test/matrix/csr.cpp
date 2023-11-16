@@ -4,9 +4,7 @@
 
 #include "ginkgo/core/matrix/csr.hpp"
 
-
 #include <gtest/gtest.h>
-
 
 #include "core/test/utils.hpp"
 

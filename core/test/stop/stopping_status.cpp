@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/stop/stopping_status.hpp"
 
-
 #include <gtest/gtest.h>
 
 

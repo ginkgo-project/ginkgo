@@ -15,7 +15,6 @@
 #include <memory>
 #include <unordered_map>
 
-
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/dim.hpp>

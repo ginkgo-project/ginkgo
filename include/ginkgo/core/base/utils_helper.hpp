@@ -10,7 +10,6 @@
 #include <memory>
 #include <type_traits>
 
-
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>

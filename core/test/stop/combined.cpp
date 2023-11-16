@@ -4,13 +4,10 @@
 
 #include "ginkgo/core/stop/combined.hpp"
 
-
 #include <thread>
 #include <vector>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/time.hpp>

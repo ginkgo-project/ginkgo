@@ -4,9 +4,7 @@
 
 #include "ginkgo/core/base/batch_dim.hpp"
 
-
 #include <memory>
-
 
 #include <gtest/gtest.h>
 

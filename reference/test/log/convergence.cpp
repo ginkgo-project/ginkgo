@@ -4,15 +4,12 @@
 
 #include "ginkgo/core/log/convergence.hpp"
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
-
 
 #include "core/test/utils.hpp"
 

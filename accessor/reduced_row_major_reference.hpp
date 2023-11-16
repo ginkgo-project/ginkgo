@@ -9,7 +9,6 @@
 #include <cmath>
 #include <type_traits>
 
-
 #include "math.hpp"
 #include "reference_helper.hpp"
 #include "utils.hpp"

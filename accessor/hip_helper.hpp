@@ -8,9 +8,7 @@
 
 #include <type_traits>
 
-
 #include <thrust/complex.h>
-
 
 #include "block_col_major.hpp"
 #include "reduced_row_major.hpp"

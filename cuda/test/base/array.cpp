@@ -4,12 +4,9 @@
 
 #include "ginkgo/core/base/array.hpp"
 
-
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/executor.hpp>
-
 
 #include "cuda/test/utils.hpp"
 

@@ -8,13 +8,10 @@
 
 #include "ginkgo/core/factorization/ic.hpp"
 
-
 #include <memory>
-
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-
 
 #include "core/base/kernel_declaration.hpp"
 

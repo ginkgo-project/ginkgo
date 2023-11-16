@@ -4,14 +4,11 @@
 
 #include "ginkgo/core/factorization/ic.hpp"
 
-
 #include <memory>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
-
 
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/ic_kernels.hpp"

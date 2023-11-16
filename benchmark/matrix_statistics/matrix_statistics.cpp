@@ -2,16 +2,13 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <cmath>
 #include <exception>
 #include <iostream>
 
+#include <ginkgo/ginkgo.hpp>
 
 #include <ginkgo/core/base/executor.hpp>
-
 
 #include "benchmark/utils/general_matrix.hpp"
 #include "benchmark/utils/generator.hpp"

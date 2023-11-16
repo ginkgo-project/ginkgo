@@ -4,9 +4,7 @@
 
 #include "core/multigrid/pgm_kernels.hpp"
 
-
 #include <memory>
-
 
 #include <thrust/device_ptr.h>
 #include <thrust/iterator/zip_iterator.h>
@@ -14,11 +12,9 @@
 #include <thrust/sort.h>
 #include <thrust/tuple.h>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/multigrid/pgm.hpp>
-
 
 #include "hip/base/thrust.hip.hpp"
 #include "hip/base/types.hip.hpp"

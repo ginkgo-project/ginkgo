@@ -4,22 +4,18 @@
 
 #include "ginkgo/core/matrix/fbcsr.hpp"
 
-
 #include <algorithm>
 #include <numeric>
 #include <random>
 #include <vector>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
 
 #include "core/matrix/fbcsr_kernels.hpp"
 #include "core/test/matrix/fbcsr_sample.hpp"

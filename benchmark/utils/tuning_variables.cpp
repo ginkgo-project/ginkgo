@@ -2,10 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/types.hpp>
-
-
 #include "benchmark/utils/tuning_variables.hpp"
+
+#include <ginkgo/core/base/types.hpp>
 
 
 namespace gko {

@@ -4,17 +4,13 @@
 
 #include "ginkgo/core/base/index_set.hpp"
 
-
 #include <algorithm>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/range.hpp>
-
 
 #include "core/test/utils.hpp"
 

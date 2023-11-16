@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/distributed/partition.hpp"
 
-
 #include "core/distributed/partition_kernels.hpp"
 
 

@@ -4,10 +4,8 @@
 
 #include "ginkgo/core/matrix/batch_identity.hpp"
 
-
 #include <algorithm>
 #include <type_traits>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/batch_dim.hpp>

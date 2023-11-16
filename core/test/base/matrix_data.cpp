@@ -4,9 +4,7 @@
 
 #include "ginkgo/core/base/matrix_data.hpp"
 
-
 #include <random>
-
 
 #include <gtest/gtest.h>
 

@@ -4,13 +4,10 @@
 
 #include "core/matrix/diagonal_kernels.hpp"
 
-
 #include <CL/sycl.hpp>
-
 
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"

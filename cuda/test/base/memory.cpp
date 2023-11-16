@@ -4,18 +4,14 @@
 
 #include "ginkgo/core/base/memory.hpp"
 
-
 #include <memory>
 #include <type_traits>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
-
 
 #include "cuda/test/utils.hpp"
 

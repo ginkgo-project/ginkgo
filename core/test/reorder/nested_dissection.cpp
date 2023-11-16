@@ -4,15 +4,11 @@
 
 #include "ginkgo/core/reorder/nested_dissection.hpp"
 
-
 #include <memory>
-
 
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/executor.hpp>
-
 
 #include "core/test/utils.hpp"
 

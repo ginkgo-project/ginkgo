@@ -9,9 +9,7 @@
 #include <cuda.h>
 #include <cusparse.h>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
-
 
 #include "cuda/base/types.hpp"
 

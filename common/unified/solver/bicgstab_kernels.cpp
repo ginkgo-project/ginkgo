@@ -4,9 +4,7 @@
 
 #include "core/solver/bicgstab_kernels.hpp"
 
-
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "common/unified/base/kernel_launch_solver.hpp"
 

@@ -2,15 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "ginkgo/core/base/executor.hpp"
-
-
 #include <memory>
 #include <type_traits>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -19,6 +14,7 @@
 #include "common/cuda_hip/base/executor.hpp.inc"
 #include "cuda/base/scoped_device_id.hpp"
 #include "cuda/test/utils.hpp"
+#include "ginkgo/core/base/executor.hpp"
 
 
 namespace {

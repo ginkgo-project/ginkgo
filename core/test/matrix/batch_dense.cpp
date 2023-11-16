@@ -4,15 +4,12 @@
 
 #include "ginkgo/core/matrix/batch_dense.hpp"
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/base/batch_utilities.hpp"
 #include "core/test/utils.hpp"

@@ -4,9 +4,7 @@
 
 #include "ginkgo/core/factorization/par_ilut.hpp"
 
-
 #include <memory>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -14,7 +12,6 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-
 
 #include "core/base/utils.hpp"
 #include "core/components/format_conversion_kernels.hpp"

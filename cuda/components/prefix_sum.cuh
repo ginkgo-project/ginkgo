@@ -8,7 +8,6 @@
 
 #include <type_traits>
 
-
 #include "cuda/base/cublas_bindings.hpp"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/reduction.cuh"

@@ -4,10 +4,8 @@
 
 #include "core/factorization/cholesky_kernels.hpp"
 
-
 #include <algorithm>
 #include <memory>
-
 
 #include <thrust/execution_policy.h>
 #include <thrust/functional.h>
@@ -16,9 +14,7 @@
 #include <thrust/transform.h>
 #include <thrust/tuple.h>
 
-
 #include <ginkgo/core/matrix/csr.hpp>
-
 
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"

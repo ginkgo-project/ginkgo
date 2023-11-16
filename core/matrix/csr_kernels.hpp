@@ -8,7 +8,6 @@
 
 #include "ginkgo/core/matrix/csr.hpp"
 
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -19,7 +18,6 @@
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
 
 #include "core/base/kernel_declaration.hpp"
 #include "core/matrix/csr_lookup.hpp"

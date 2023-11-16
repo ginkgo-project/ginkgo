@@ -4,11 +4,9 @@
 
 #include "ginkgo/core/matrix/fft.hpp"
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/matrix/fft_kernels.hpp"
 

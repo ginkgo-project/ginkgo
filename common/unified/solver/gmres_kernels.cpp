@@ -4,10 +4,8 @@
 
 #include "core/solver/gmres_kernels.hpp"
 
-
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
-
 
 #include "common/unified/base/kernel_launch.hpp"
 

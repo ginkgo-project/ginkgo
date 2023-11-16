@@ -4,12 +4,10 @@
 
 #include "ginkgo/core/base/math.hpp"
 
-
 #include <cmath>
 #include <complex>
 #include <limits>
 #include <type_traits>
-
 
 #include <gtest/gtest.h>
 

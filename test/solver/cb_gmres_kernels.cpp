@@ -4,14 +4,11 @@
 
 #include "core/solver/cb_gmres_kernels.hpp"
 
-
 #include <algorithm>
 #include <cmath>
 #include <random>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -20,7 +17,6 @@
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
-
 
 #include "core/solver/cb_gmres_accessor.hpp"
 #include "core/test/utils.hpp"

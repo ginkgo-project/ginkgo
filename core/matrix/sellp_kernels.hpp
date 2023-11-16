@@ -8,11 +8,9 @@
 
 #include "ginkgo/core/matrix/sellp.hpp"
 
-
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
-
 
 #include "core/base/kernel_declaration.hpp"
 

@@ -4,12 +4,9 @@
 
 #include "ginkgo/core/base/dense_cache.hpp"
 
-
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/test/utils.hpp"
 

@@ -4,13 +4,10 @@
 
 #include "ginkgo/core/base/timer.hpp"
 
-
 #include <map>
 #include <thread>
 
-
 #include <gtest/gtest.h>
-
 
 #include "core/test/utils/assertions.hpp"
 #include "test/utils/executor.hpp"

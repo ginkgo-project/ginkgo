@@ -4,7 +4,6 @@
 
 #include "cuda/factorization/par_ilut_select_common.cuh"
 
-
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
 #include "cuda/base/math.hpp"

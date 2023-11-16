@@ -7,8 +7,6 @@
 
 
 #include <ginkgo/config.hpp>
-
-
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/batch_dim.hpp>
@@ -50,18 +48,14 @@
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/base/version.hpp>
-
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/lin_op.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/partition_helpers.hpp>
 #include <ginkgo/core/distributed/polymorphic_object.hpp>
-
 #include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
-
 #include <ginkgo/core/distributed/vector.hpp>
-
 #include <ginkgo/core/factorization/cholesky.hpp>
 #include <ginkgo/core/factorization/factorization.hpp>
 #include <ginkgo/core/factorization/ic.hpp>
@@ -71,7 +65,6 @@
 #include <ginkgo/core/factorization/par_ict.hpp>
 #include <ginkgo/core/factorization/par_ilu.hpp>
 #include <ginkgo/core/factorization/par_ilut.hpp>
-
 #include <ginkgo/core/log/batch_logger.hpp>
 #include <ginkgo/core/log/convergence.hpp>
 #include <ginkgo/core/log/logger.hpp>
@@ -80,7 +73,6 @@
 #include <ginkgo/core/log/profiler_hook.hpp>
 #include <ginkgo/core/log/record.hpp>
 #include <ginkgo/core/log/stream.hpp>
-
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
 #include <ginkgo/core/matrix/batch_identity.hpp>
@@ -98,23 +90,19 @@
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
 #include <ginkgo/core/multigrid/fixed_coarsening.hpp>
 #include <ginkgo/core/multigrid/multigrid_level.hpp>
 #include <ginkgo/core/multigrid/pgm.hpp>
-
 #include <ginkgo/core/preconditioner/ic.hpp>
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
-
 #include <ginkgo/core/reorder/amd.hpp>
 #include <ginkgo/core/reorder/mc64.hpp>
 #include <ginkgo/core/reorder/nested_dissection.hpp>
 #include <ginkgo/core/reorder/rcm.hpp>
 #include <ginkgo/core/reorder/reordering_base.hpp>
 #include <ginkgo/core/reorder/scaled_reordered.hpp>
-
 #include <ginkgo/core/solver/batch_bicgstab.hpp>
 #include <ginkgo/core/solver/batch_solver_base.hpp>
 #include <ginkgo/core/solver/bicg.hpp>
@@ -133,7 +121,6 @@
 #include <ginkgo/core/solver/solver_traits.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/solver/workspace.hpp>
-
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
@@ -141,7 +128,6 @@
 #include <ginkgo/core/stop/residual_norm.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
 #include <ginkgo/core/stop/time.hpp>
-
 #include <ginkgo/core/synthesizer/containers.hpp>
 
 

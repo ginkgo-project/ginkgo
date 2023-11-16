@@ -9,18 +9,14 @@
 // clang-format on
 
 
-#include <ginkgo/core/base/executor.hpp>
-
-
 #include <memory>
 #include <type_traits>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/executor.hpp>
 
 #include "common/cuda_hip/base/executor.hpp.inc"
 #include "hip/base/scoped_device_id.hip.hpp"

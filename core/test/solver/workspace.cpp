@@ -4,16 +4,12 @@
 
 #include "ginkgo/core/solver/workspace.hpp"
 
-
 #include <typeinfo>
-
 
 #include <gtest/gtest-death-test.h>
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/executor.hpp>
-
 
 #include "core/test/utils.hpp"
 

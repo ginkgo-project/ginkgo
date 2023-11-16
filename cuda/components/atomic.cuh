@@ -8,7 +8,6 @@
 
 #include <type_traits>
 
-
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
 

@@ -4,10 +4,8 @@
 
 #include "ginkgo/core/base/executor.hpp"
 
-
 #include <cstdlib>
 #include <cstring>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>

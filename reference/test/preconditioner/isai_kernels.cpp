@@ -4,15 +4,12 @@
 
 #include "ginkgo/core/preconditioner/isai.hpp"
 
-
 #include <algorithm>
 #include <fstream>
 #include <memory>
 #include <type_traits>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
@@ -21,7 +18,6 @@
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
-
 
 #include "core/base/utils.hpp"
 #include "core/preconditioner/isai_kernels.hpp"

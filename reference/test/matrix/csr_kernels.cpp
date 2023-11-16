@@ -4,12 +4,9 @@
 
 #include "ginkgo/core/matrix/csr.hpp"
 
-
 #include <algorithm>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
@@ -25,7 +22,6 @@
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
 
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"

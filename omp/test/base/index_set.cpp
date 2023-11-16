@@ -4,15 +4,12 @@
 
 #include "ginkgo/core/base/index_set.hpp"
 
-
 #include <random>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/base/index_set_kernels.hpp"
 #include "core/test/utils.hpp"

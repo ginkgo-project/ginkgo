@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/base/lin_op.hpp"
 
-
 #include "cuda/test/utils.hpp"
 
 

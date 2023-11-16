@@ -4,9 +4,7 @@
 
 #include "core/distributed/vector_kernels.hpp"
 
-
 #include <functional>
-
 
 #include <thrust/binary_search.h>
 #include <thrust/execution_policy.h>
@@ -15,9 +13,7 @@
 #include <thrust/scatter.h>
 #include <thrust/tuple.h>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
-
 
 #include "hip/base/thrust.hip.hpp"
 

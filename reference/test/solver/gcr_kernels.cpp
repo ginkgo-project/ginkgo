@@ -4,13 +4,10 @@
 
 #include "ginkgo/core/solver/gcr.hpp"
 
-
 #include <algorithm>
 #include <limits>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -21,7 +18,6 @@
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 #include <ginkgo/core/stop/time.hpp>
-
 
 #include "core/solver/gcr_kernels.hpp"
 #include "core/test/utils.hpp"

@@ -11,7 +11,6 @@
 #include <hip/hip_runtime.h>
 #include <thrust/tuple.h>
 
-
 #include "accessor/hip_helper.hpp"
 #include "hip/base/types.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"

@@ -3,14 +3,14 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 // This is the main ginkgo header file.
-#include <ginkgo/ginkgo.hpp>
-
 #include <chrono>
 #include <cmath>
 #include <fstream>
 #include <iostream>
 #include <map>
 #include <string>
+
+#include <ginkgo/ginkgo.hpp>
 
 
 // Helper function which measures the time of `solver->apply(b, x)` in seconds

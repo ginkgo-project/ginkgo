@@ -9,7 +9,6 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
-
 #include "accessor/index_span.hpp"
 #include "accessor/reduced_row_major.hpp"
 #include "accessor/utils.hpp"

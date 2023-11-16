@@ -4,12 +4,9 @@
 
 #include "core/base/device_matrix_data_kernels.hpp"
 
-
 #include <algorithm>
 
-
 #include <omp.h>
-
 
 #include "core/base/allocator.hpp"
 #include "core/components/format_conversion_kernels.hpp"

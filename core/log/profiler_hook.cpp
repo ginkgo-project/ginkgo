@@ -4,17 +4,14 @@
 
 #include "ginkgo/core/log/profiler_hook.hpp"
 
-
 #include <memory>
 #include <mutex>
 #include <sstream>
-
 
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
-
 
 #include "core/log/profiler_hook.hpp"
 

@@ -4,19 +4,15 @@
 
 #include "ginkgo/core/log/papi.hpp"
 
-
 #include <stdexcept>
-
 
 #include <gtest/gtest.h>
 #include <papi.h>
-
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
-
 
 #include "core/test/utils.hpp"
 

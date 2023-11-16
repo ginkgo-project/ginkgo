@@ -4,12 +4,9 @@
 
 #include "ginkgo/core/solver/multigrid.hpp"
 
-
 #include <vector>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -18,7 +15,6 @@
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
-
 
 #include "core/test/utils.hpp"
 

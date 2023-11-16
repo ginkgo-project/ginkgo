@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/stop/iteration.hpp"
 
-
 #include <gtest/gtest.h>
 
 

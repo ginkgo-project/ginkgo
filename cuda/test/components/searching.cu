@@ -4,18 +4,14 @@
 
 #include "cuda/components/searching.cuh"
 
-
 #include <memory>
 #include <numeric>
 #include <vector>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
-
 
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/test/utils.hpp"

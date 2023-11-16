@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/base/exception_helpers.hpp"
 
-
 #include <gtest/gtest.h>
 
 

@@ -4,18 +4,14 @@
 
 #include "ginkgo/core/base/math.hpp"
 
-
 #include <cmath>
 #include <complex>
 #include <memory>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
-
 
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"

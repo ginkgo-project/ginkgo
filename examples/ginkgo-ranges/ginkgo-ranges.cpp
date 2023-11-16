@@ -2,9 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/ginkgo.hpp>
 #include <iomanip>
 #include <iostream>
+
+#include <ginkgo/ginkgo.hpp>
 
 
 // LU factorization implementation using Ginkgo ranges

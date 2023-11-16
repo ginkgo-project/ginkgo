@@ -4,9 +4,7 @@
 
 #include "ginkgo/core/base/exception.hpp"
 
-
 #include <string>
-
 
 #include <hip/hip_runtime.h>
 #if HIP_VERSION >= 50200000

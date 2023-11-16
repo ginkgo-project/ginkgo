@@ -4,16 +4,12 @@
 
 #include "core/matrix/batch_ell_kernels.hpp"
 
-
 #include <algorithm>
-
 
 #include <CL/sycl.hpp>
 
-
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
-
 
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"

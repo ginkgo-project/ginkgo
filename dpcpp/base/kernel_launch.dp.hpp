@@ -10,7 +10,6 @@
 
 #include <tuple>
 
-
 #include <CL/sycl.hpp>
 
 

@@ -6,11 +6,10 @@
 #define GKO_BENCHMARK_UTILS_TIMER_IMPL_HPP_
 
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <chrono>
 #include <memory>
+
+#include <ginkgo/ginkgo.hpp>
 
 
 class MpiWrappedTimer;

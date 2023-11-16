@@ -4,9 +4,7 @@
 
 #include "ginkgo/core/base/version.hpp"
 
-
 #include <sstream>
-
 
 #include <gtest/gtest.h>
 

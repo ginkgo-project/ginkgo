@@ -4,9 +4,7 @@
 
 #include "core/multigrid/pgm_kernels.hpp"
 
-
 #include <memory>
-
 
 #include <cuda.h>
 #include <cusparse.h>
@@ -16,11 +14,9 @@
 #include <thrust/sort.h>
 #include <thrust/tuple.h>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/multigrid/pgm.hpp>
-
 
 #include "cuda/base/thrust.cuh"
 #include "cuda/base/types.hpp"

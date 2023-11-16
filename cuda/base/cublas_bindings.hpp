@@ -8,9 +8,7 @@
 
 #include <cublas_v2.h>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
-
 
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"

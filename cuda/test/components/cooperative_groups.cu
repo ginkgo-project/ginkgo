@@ -4,16 +4,12 @@
 
 #include "cuda/components/cooperative_groups.cuh"
 
-
 #include <memory>
-
 
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
-
 
 #include "cuda/base/config.hpp"
 #include "cuda/test/utils.hpp"

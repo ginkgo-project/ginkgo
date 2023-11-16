@@ -9,7 +9,6 @@
 #include <memory>
 #include <type_traits>
 
-
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/exception.hpp>

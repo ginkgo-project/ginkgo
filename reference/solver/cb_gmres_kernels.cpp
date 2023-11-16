@@ -4,14 +4,11 @@
 
 #include "core/solver/cb_gmres_kernels.hpp"
 
-
 #include <type_traits>
-
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
-
 
 #include "core/solver/cb_gmres_accessor.hpp"
 

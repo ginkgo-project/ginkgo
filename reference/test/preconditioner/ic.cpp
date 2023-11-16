@@ -4,12 +4,9 @@
 
 #include "ginkgo/core/preconditioner/ic.hpp"
 
-
 #include <memory>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/exception.hpp>
@@ -18,7 +15,6 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
-
 
 #include "core/test/utils.hpp"
 

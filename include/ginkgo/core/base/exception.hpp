@@ -9,7 +9,6 @@
 #include <exception>
 #include <string>
 
-
 #include <ginkgo/core/base/types.hpp>
 
 

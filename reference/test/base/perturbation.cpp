@@ -4,15 +4,11 @@
 
 #include "ginkgo/core/base/perturbation.hpp"
 
-
 #include <memory>
-
 
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/test/utils.hpp"
 

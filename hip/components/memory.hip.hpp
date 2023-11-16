@@ -8,9 +8,7 @@
 
 #include <type_traits>
 
-
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "hip/base/types.hip.hpp"
 

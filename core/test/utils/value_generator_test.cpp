@@ -4,14 +4,11 @@
 
 #include "core/test/utils/value_generator.hpp"
 
-
 #include <cmath>
 #include <random>
 #include <type_traits>
 
-
 #include <gtest/gtest.h>
-
 
 #include "core/test/utils.hpp"
 

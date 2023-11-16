@@ -6,18 +6,13 @@
 #define GKO_TEST_UTILS_MPI_EXECUTOR_HPP_
 
 
-#include "ginkgo/core/base/executor.hpp"
-
-
 #include <memory>
-
 
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/mpi.hpp>
 
-
+#include "ginkgo/core/base/executor.hpp"
 #include "test/utils/executor.hpp"
 
 

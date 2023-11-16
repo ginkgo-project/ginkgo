@@ -4,11 +4,9 @@
 
 #include "ginkgo/core/distributed/matrix.hpp"
 
-
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-
 
 #include "core/distributed/matrix_kernels.hpp"
 

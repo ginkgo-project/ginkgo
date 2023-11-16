@@ -8,9 +8,7 @@
 
 #include "ginkgo/core/base/index_set.hpp"
 
-
 #include <memory>
-
 
 #include "core/base/kernel_declaration.hpp"
 

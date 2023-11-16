@@ -2,9 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <algorithm>
 #include <chrono>
 #include <cstdlib>
@@ -14,6 +11,7 @@
 #include <iostream>
 #include <typeinfo>
 
+#include <ginkgo/ginkgo.hpp>
 
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"

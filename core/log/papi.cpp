@@ -4,10 +4,8 @@
 
 #include "ginkgo/core/log/papi.hpp"
 
-
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/distributed/helpers.hpp"
 

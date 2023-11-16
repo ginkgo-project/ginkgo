@@ -4,9 +4,7 @@
 
 #include "ginkgo/core/reorder/rcm.hpp"
 
-
 #include <gtest/gtest.h>
-
 
 #include "core/test/utils/assertions.hpp"
 #include "cuda/test/utils.hpp"

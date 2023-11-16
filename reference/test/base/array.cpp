@@ -4,15 +4,11 @@
 
 #include "ginkgo/core/base/array.hpp"
 
-
 #include <algorithm>
-
 
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/executor.hpp>
-
 
 #include "core/test/utils.hpp"
 

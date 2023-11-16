@@ -8,7 +8,6 @@
 
 #include <typeinfo>
 
-
 #include <ginkgo/core/matrix/dense.hpp>
 
 

@@ -10,7 +10,6 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/synthesizer/containers.hpp>
 
-
 #include "core/base/types.hpp"
 
 

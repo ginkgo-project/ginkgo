@@ -8,12 +8,10 @@
 
 #include <memory>
 
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
-
 
 #include "core/base/kernel_declaration.hpp"
 

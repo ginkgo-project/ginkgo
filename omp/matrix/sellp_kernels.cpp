@@ -4,12 +4,9 @@
 
 #include "core/matrix/sellp_kernels.hpp"
 
-
 #include <array>
 
-
 #include <omp.h>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 

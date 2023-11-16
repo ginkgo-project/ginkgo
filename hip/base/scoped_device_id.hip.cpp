@@ -2,17 +2,14 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "hip/base/scoped_device_id.hip.hpp"
+
 #include <exception>
 #include <utility>
 
-
 #include <hip/hip_runtime.h>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
-
-
-#include "hip/base/scoped_device_id.hip.hpp"
 
 
 namespace gko {

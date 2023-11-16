@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/base/executor.hpp"
 
-
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>

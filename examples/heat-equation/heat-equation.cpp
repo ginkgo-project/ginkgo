@@ -36,16 +36,14 @@ vector initialization, solver setup and the use of Ginkgo in a more complex
 setting.
 *****************************<DESCRIPTION>**********************************/
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <chrono>
 #include <fstream>
 #include <iostream>
 
-
 #include <opencv2/core.hpp>
 #include <opencv2/videoio.hpp>
+
+#include <ginkgo/ginkgo.hpp>
 
 
 // This function implements a simple Ginkgo-themed clamped color mapping for

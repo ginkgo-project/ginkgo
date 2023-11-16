@@ -4,10 +4,8 @@
 
 #include "ginkgo/core/base/batch_multi_vector.hpp"
 
-
 #include <algorithm>
 #include <type_traits>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
@@ -17,7 +15,6 @@
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
-
 
 #include "core/base/batch_multi_vector_kernels.hpp"
 

@@ -4,21 +4,17 @@
 
 #include "ginkgo/core/factorization/par_ilu.hpp"
 
-
 #include <algorithm>
 #include <initializer_list>
 #include <memory>
 #include <vector>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"

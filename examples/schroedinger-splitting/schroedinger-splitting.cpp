@@ -47,8 +47,6 @@ to the non-linear part, which turns it into the Gross–Pitaevskii equation.
 
 *****************************<DESCRIPTION>**********************************/
 
-#include <ginkgo/ginkgo.hpp>
-
 #include <algorithm>
 #include <chrono>
 #include <fstream>
@@ -57,6 +55,8 @@ to the non-linear part, which turns it into the Gross–Pitaevskii equation.
 
 #include <opencv2/core.hpp>
 #include <opencv2/videoio.hpp>
+
+#include <ginkgo/ginkgo.hpp>
 
 
 // This function implements a simple Ginkgo-themed clamped color mapping for

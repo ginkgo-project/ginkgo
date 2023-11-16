@@ -13,12 +13,10 @@
 #include <type_traits>
 #include <vector>
 
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/test/utils/value_generator.hpp"
 

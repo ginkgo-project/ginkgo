@@ -8,7 +8,6 @@
 #include <unordered_map>
 #include <vector>
 
-
 #include "core/log/profiler_hook.hpp"
 
 

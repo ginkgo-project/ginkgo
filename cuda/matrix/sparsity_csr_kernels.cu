@@ -4,12 +4,9 @@
 
 #include "core/matrix/sparsity_csr_kernels.hpp"
 
-
 #include <thrust/sort.h>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
-
 
 #include "accessor/cuda_helper.hpp"
 #include "accessor/reduced_row_major.hpp"

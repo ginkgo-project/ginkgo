@@ -16,7 +16,6 @@
 #include <type_traits>
 #include <vector>
 
-
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>

@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-
 // clang-format off
 // TODO remove when the HIP includes are fixed
 #include <hip/hip_runtime.h>
@@ -11,17 +10,13 @@
 
 #include "hip/components/cooperative_groups.hip.hpp"
 
-
 #include <cstring>
 #include <memory>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
-
 
 #include "hip/base/types.hip.hpp"
 #include "hip/test/utils.hip.hpp"

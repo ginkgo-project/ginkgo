@@ -4,10 +4,8 @@
 
 #include "ginkgo/core/matrix/batch_ell.hpp"
 
-
 #include <algorithm>
 #include <type_traits>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
@@ -16,7 +14,6 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
-
 
 #include "core/matrix/batch_ell_kernels.hpp"
 

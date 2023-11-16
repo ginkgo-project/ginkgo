@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/log/performance_hint.hpp"
 
-
 #include <iomanip>
 #include <sstream>
 

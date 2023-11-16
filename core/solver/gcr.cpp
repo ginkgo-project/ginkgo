@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/solver/gcr.hpp"
 
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -14,7 +13,6 @@
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
-
 
 #include "core/distributed/helpers.hpp"
 #include "core/solver/gcr_kernels.hpp"

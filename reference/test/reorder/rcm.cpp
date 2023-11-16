@@ -4,20 +4,16 @@
 
 #include "ginkgo/core/reorder/rcm.hpp"
 
-
 #include <algorithm>
 #include <fstream>
 #include <memory>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"

@@ -4,16 +4,13 @@
 
 #include "core/preconditioner/isai_kernels.hpp"
 
-
 #include <algorithm>
 #include <memory>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-
 
 #include "core/matrix/csr_builder.hpp"
 

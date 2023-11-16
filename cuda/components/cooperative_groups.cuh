@@ -8,10 +8,8 @@
 
 #include <type_traits>
 
-
 #include <cooperative_groups.h>
 #include <cuda.h>
-
 
 #include "cuda/base/config.hpp"
 

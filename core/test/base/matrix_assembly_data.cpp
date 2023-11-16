@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/base/matrix_assembly_data.hpp"
 
-
 #include <gtest/gtest.h>
 
 

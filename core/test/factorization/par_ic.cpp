@@ -4,12 +4,9 @@
 
 #include "ginkgo/core/factorization/par_ic.hpp"
 
-
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/executor.hpp>
-
 
 #include "core/test/utils.hpp"
 

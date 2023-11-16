@@ -4,7 +4,6 @@
 
 #include <ginkgo/core/base/mpi.hpp>
 
-
 #include "benchmark/utils/timer_impl.hpp"
 
 

@@ -6,12 +6,9 @@
 #include <memory>
 #include <random>
 
-
 #include <mpi.h>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/array.hpp>
@@ -28,7 +25,6 @@
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
-
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/matrix_generator.hpp"

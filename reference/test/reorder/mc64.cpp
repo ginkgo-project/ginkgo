@@ -4,14 +4,11 @@
 
 #include "ginkgo/core/reorder/mc64.hpp"
 
-
 #include <algorithm>
 #include <fstream>
 #include <memory>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -20,7 +17,6 @@
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"

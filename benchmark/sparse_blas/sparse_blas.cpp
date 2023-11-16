@@ -2,9 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <algorithm>
 #include <exception>
 #include <functional>
@@ -15,6 +12,7 @@
 #include <random>
 #include <typeinfo>
 
+#include <ginkgo/ginkgo.hpp>
 
 #include "benchmark/sparse_blas/operations.hpp"
 #include "benchmark/utils/general_matrix.hpp"

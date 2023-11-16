@@ -4,12 +4,9 @@
 
 #include "core/factorization/ilu_kernels.hpp"
 
-
 #include <hip/hip_runtime.h>
 
-
 #include <ginkgo/core/base/array.hpp>
-
 
 #include "hip/base/hipsparse_bindings.hip.hpp"
 

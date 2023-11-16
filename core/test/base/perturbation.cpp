@@ -4,9 +4,7 @@
 
 #include "ginkgo/core/base/perturbation.hpp"
 
-
 #include <memory>
-
 
 #include <gtest/gtest.h>
 

@@ -8,14 +8,11 @@
 
 #include "ginkgo/core/factorization/par_ilu.hpp"
 
-
 #include <memory>
-
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-
 
 #include "core/base/kernel_declaration.hpp"
 

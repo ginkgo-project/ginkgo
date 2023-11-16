@@ -8,7 +8,6 @@
 
 #include <type_traits>
 
-
 #include "cuda/base/config.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/cooperative_groups.cuh"

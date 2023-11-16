@@ -4,12 +4,9 @@
 
 #include "core/preconditioner/jacobi_kernels.hpp"
 
-
 #include <hip/hip_runtime.h>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
-
 
 #include "core/base/extended_float.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"

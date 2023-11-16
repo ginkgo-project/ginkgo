@@ -10,7 +10,6 @@
 #include <type_traits>
 #include <utility>
 
-
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/dim.hpp>

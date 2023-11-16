@@ -4,16 +4,13 @@
 
 #include "ginkgo/core/base/executor.hpp"
 
-
 #include <algorithm>
 #include <cctype>
 #include <iostream>
 #include <map>
 #include <string>
 
-
 #include <CL/sycl.hpp>
-
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>

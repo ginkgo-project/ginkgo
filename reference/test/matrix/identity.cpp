@@ -4,12 +4,9 @@
 
 #include "ginkgo/core/matrix/identity.hpp"
 
-
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/test/utils.hpp"
 

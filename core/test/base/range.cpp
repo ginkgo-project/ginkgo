@@ -4,9 +4,7 @@
 
 #include "ginkgo/core/base/range.hpp"
 
-
 #include <array>
-
 
 #include <gtest/gtest.h>
 

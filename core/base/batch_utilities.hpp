@@ -9,7 +9,6 @@
 #include <algorithm>
 #include <type_traits>
 
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/exception.hpp>

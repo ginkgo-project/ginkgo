@@ -8,13 +8,12 @@
 // clang-format on
 
 
-#include <gtest/gtest.h>
+#include "cuda/base/scoped_device_id.hpp"
 
+#include <gtest/gtest.h>
 
 #include <ginkgo/core/base/executor.hpp>
 
-
-#include "cuda/base/scoped_device_id.hpp"
 #include "cuda/test/utils.hpp"
 
 

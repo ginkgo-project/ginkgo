@@ -4,9 +4,7 @@
 
 #include "core/factorization/ilu_kernels.hpp"
 
-
 #include <ginkgo/core/base/array.hpp>
-
 
 #include "cuda/base/cusparse_bindings.hpp"
 

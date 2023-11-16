@@ -4,9 +4,7 @@
 
 #include "ginkgo/core/solver/cb_gmres.hpp"
 
-
 #include <type_traits>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
@@ -17,7 +15,6 @@
 #include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/base/extended_float.hpp"
 #include "core/solver/cb_gmres_accessor.hpp"

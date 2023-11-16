@@ -4,9 +4,7 @@
 
 #include "core/solver/lower_trs_kernels.hpp"
 
-
 #include <memory>
-
 
 #include <hip/hip_runtime.h>
 #if HIP_VERSION >= 50200000
@@ -19,7 +17,6 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
-
 
 #include "hip/base/hipsparse_bindings.hip.hpp"
 #include "hip/base/math.hip.hpp"

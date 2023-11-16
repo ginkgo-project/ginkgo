@@ -4,9 +4,7 @@
 
 #include "ginkgo/core/matrix/hybrid.hpp"
 
-
 #include <gtest/gtest.h>
-
 
 #include "core/test/utils.hpp"
 

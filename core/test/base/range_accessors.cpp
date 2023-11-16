@@ -4,12 +4,9 @@
 
 #include "ginkgo/core/base/range_accessors.hpp"
 
-
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/types.hpp>
-
 
 #include "core/test/utils.hpp"
 

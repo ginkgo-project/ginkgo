@@ -4,16 +4,12 @@
 
 #include "ginkgo/core/matrix/fbcsr.hpp"
 
-
 #include <algorithm>
 #include <limits>
 
-
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/types.hpp>
-
 
 #include "accessor/block_col_major.hpp"
 #include "accessor/range.hpp"

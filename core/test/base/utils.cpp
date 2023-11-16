@@ -4,9 +4,7 @@
 
 #include "ginkgo/core/base/utils.hpp"
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/polymorphic_object.hpp>
 
