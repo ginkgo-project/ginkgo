@@ -17,7 +17,6 @@
 #                    CMake's step is not required if copying the ginkgo config.hpp from another ginkgo build into "${ROOT_DIR}/include/ginkgo/".
 #   ROOT_BUILD_DIR: the complete path for build folder. The default is "${ROOT_DIR}/${BUILD_DIR}"
 #   GTEST_HEADER_DIR: the gtest header folder. The default is "${ROOT_BUILD_DIR}/_deps/googletest-src/googletest/include"
-#   CLANG_FORMAT: the clang-format exec. The default is "clang-format"
 #   VERBOSE: if it is set as 1, script will output the path information
 CURRENT_DIR="$( pwd )"
 cd "$( dirname "${BASH_SOURCE[0]}" )"
@@ -30,7 +29,6 @@ BUILD_DIR="${BUILD_DIR:="build"}"
 ROOT_BUILD_DIR="${ROOT_BUILD_DIR:="${ROOT_DIR}/${BUILD_DIR}"}"
 CUDA_HEADER_DIR="${CUDA_HEADER_DIR}"
 GTEST_HEADER_DIR="${GTEST_HEADER_DIR:="${ROOT_BUILD_DIR}/_deps/googletest-src/googletest/include"}"
-CLANG_FORMAT=${CLANG_FORMAT:="clang-format"}
 if [[ "${VERBOSE}" == 1 ]]; then
     echo "#####################"
     echo "# Environment Setting:"
@@ -40,7 +38,6 @@ if [[ "${VERBOSE}" == 1 ]]; then
     echo "ROOT_BUILD_DIR ${ROOT_BUILD_DIR}"
     echo "GTEST_HEADER_DIR ${GTEST_HEADER_DIR}"
     echo "CUDA_HEADER_DIR ${CUDA_HEADER_DIR}"
-    echo "CLANG_FORMAT ${CLANG_FORMAT}"
     echo "#####################"
 fi
 if [[ "${CUDA_HEADER_DIR}" == "" ]]; then
@@ -166,9 +163,8 @@ if [[ "${VERBOSE}" == 1 ]]; then
 fi
 rm "${OUTPUT_FILE}"
 echo "#define GET_QUEUE 0" >> "${OUTPUT_FILE}"
-# add empty ginkgo license such that format_header recognize some header before header def macro
 CURRENT_YEAR=$(date +%Y)
-echo "${GINKGO_LICENSE_BEGIN} 2017-${CURRENT_YEAR} The Ginkgo authors" >> "${OUTPUT_FILE}"
+echo "${GINKGO_LICENSE_BEGIN} ${CURRENT_YEAR} The Ginkgo authors" >> "${OUTPUT_FILE}"
 echo "//" >> "${OUTPUT_FILE}"
 echo "${GINKGO_LICENSE_END} BSD-3-Clause" >> "${OUTPUT_FILE}"
 rm "${GLOBAL_FILE}"
@@ -190,9 +186,6 @@ while IFS='' read -r line; do
         echo "${line}" >> "${EMBED_FILE}"
     fi
 done < "${UNFORMAT_FILE}"
-
-# Call clang-format for better formatting.
-${CLANG_FORMAT} -style=file "${EMBED_FILE}" > "${FORMAT_FILE}"
 
 # Add an extra host function so that the converted DPC++ code will look like CUDA.
 "${SCRIPT_DIR}/add_host_function.sh" "${FORMAT_FILE}" > "${EMBED_HOST_FILE}"
