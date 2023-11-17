@@ -9,10 +9,6 @@ git remote add fork "$HEAD_URL"
 git fetch fork "$HEAD_BRANCH"
 git fetch origin "$BASE_BRANCH"
 
-# checkout current PR head
-LOCAL_BRANCH=format-tmp-$HEAD_BRANCH
-git checkout -b $LOCAL_BRANCH fork/$HEAD_BRANCH
-
 git config user.email "ginkgo.library@gmail.com"
 git config user.name "ginkgo-bot"
 
