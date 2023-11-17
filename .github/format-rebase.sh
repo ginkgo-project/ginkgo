@@ -9,7 +9,7 @@ DIFF_COMMAND="git diff --name-only --no-renames --diff-filter=AM HEAD~ | grep -E
 
 # do the formatting rebase
 git rebase --rebase-merges --empty=drop --no-keep-empty \
-    --exec "cp /tmp/add_license.sh dev_tools/scripts/ && \
+    --exec "cp /tmp/add_license.sh /tmp/update-ginkgo-header.py dev_tools/scripts/ && \
             dev_tools/scripts/add_license.sh && \
             pipx run pre-commit run && \
             git checkout dev_tools/scripts && (git diff >> /tmp/difflog; true) && (git diff --quiet || git commit -a --amend --no-edit --allow-empty)" \

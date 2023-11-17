@@ -14,7 +14,7 @@ git config user.name "ginkgo-bot"
 
 # save scripts from develop
 pushd dev_tools/scripts || exit 1
-cp add_license.sh /tmp
+cp add_license.sh update-ginkgo-header.py /tmp
 popd || exit 1
 
 # checkout current PR head
@@ -23,3 +23,4 @@ git checkout -b $LOCAL_BRANCH fork/$HEAD_BRANCH
 
 # restore files from develop
 cp /tmp/add_license.sh dev_tools/scripts/
+cp /tmp/update-ginkgo-header.py dev_tools/scripts/

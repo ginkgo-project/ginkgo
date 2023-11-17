@@ -15,7 +15,7 @@ dev_tools/scripts/add_license.sh
 pipx run pre-commit run --files $TO_FORMAT || true
 
 # restore formatting scripts so they don't appear in the diff
-git checkout -- dev_tools/scripts/*.sh
+git checkout -- dev_tools/scripts/*.sh dev_tools/scripts/update-ginkgo-header.py
 
 # check for changed files, replace newlines by \n
 CHANGES=$(git diff --name-only | sed '$!s/$/\\n/' | tr -d '\n')
