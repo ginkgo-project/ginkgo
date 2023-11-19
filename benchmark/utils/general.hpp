@@ -289,7 +289,7 @@ void backup_results(json& results)
         return;
     }
     std::ofstream ofs(filenames[next]);
-    ofs << results;
+    ofs << std::setw(4) << results;
     next = 1 - next;
 }
 
