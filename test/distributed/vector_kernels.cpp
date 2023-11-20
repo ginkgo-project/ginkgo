@@ -4,19 +4,15 @@
 
 #include "core/distributed/vector_kernels.hpp"
 
-
 #include <algorithm>
 #include <memory>
 #include <vector>
 
-
 #include <gtest/gtest-typed-test.h>
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
-
 
 #include "core/test/utils.hpp"
 #include "test/utils/executor.hpp"

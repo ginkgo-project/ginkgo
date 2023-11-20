@@ -8,9 +8,7 @@
 #include <tuple>
 #include <type_traits>
 
-
 #include <gtest/gtest.h>
-
 
 #include "accessor/index_span.hpp"
 #include "accessor/range.hpp"

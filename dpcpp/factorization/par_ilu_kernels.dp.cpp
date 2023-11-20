@@ -4,12 +4,9 @@
 
 #include "core/factorization/par_ilu_kernels.hpp"
 
-
 #include <CL/sycl.hpp>
 
-
 #include <ginkgo/core/matrix/coo.hpp>
-
 
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"

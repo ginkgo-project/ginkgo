@@ -2,11 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/reorder/rcm.hpp>
-
+#include "ginkgo/core/reorder/rcm.hpp"
 
 #include <gtest/gtest.h>
-
 
 #include "core/test/utils/assertions.hpp"
 #include "cuda/test/utils.hpp"

@@ -16,7 +16,6 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 
-
 #include "hip/base/hipsparse_bindings.hip.hpp"
 #include "hip/base/types.hip.hpp"
 

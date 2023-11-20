@@ -8,7 +8,6 @@
 
 #include <ginkgo/core/matrix/batch_identity.hpp>
 
-
 #include "core/matrix/batch_struct.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/reduction.hip.hpp"

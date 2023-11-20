@@ -4,16 +4,12 @@
 
 #include "core/components/addressable_pq.hpp"
 
-
 #include <algorithm>
 #include <type_traits>
 
-
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/executor.hpp>
-
 
 #include "core/test/utils.hpp"
 

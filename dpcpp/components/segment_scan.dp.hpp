@@ -8,7 +8,6 @@
 
 #include <CL/sycl.hpp>
 
-
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"

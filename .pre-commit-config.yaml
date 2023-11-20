@@ -4,4 +4,8 @@ repos:
   hooks:
   - id: clang-format
     types_or: [c, c++, cuda, inc]
-    exclude: third_party/SuiteSparse/AMD/.*
+    exclude: |
+      (?x)^(
+        third_party/SuiteSparse/AMD/.*|
+        third_party/identify_stream_usage/.*
+      )

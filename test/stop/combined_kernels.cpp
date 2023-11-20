@@ -4,10 +4,8 @@
 
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
-
 
 #include "test/utils/executor.hpp"
 

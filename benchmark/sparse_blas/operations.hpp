@@ -2,11 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <tuple>
 
+#include <ginkgo/ginkgo.hpp>
 
 #include "benchmark/utils/json.hpp"
 #include "benchmark/utils/types.hpp"

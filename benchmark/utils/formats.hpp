@@ -6,16 +6,13 @@
 #define GKO_BENCHMARK_UTILS_FORMATS_HPP_
 
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <algorithm>
 #include <map>
 #include <string>
 
-
 #include <gflags/gflags.h>
 
+#include <ginkgo/ginkgo.hpp>
 
 #include "benchmark/utils/sparselib_linops.hpp"
 #include "benchmark/utils/types.hpp"

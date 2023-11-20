@@ -4,9 +4,7 @@
 
 #include "core/factorization/ic_kernels.hpp"
 
-
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "core/base/allocator.hpp"
 

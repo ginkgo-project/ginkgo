@@ -4,17 +4,13 @@
 
 #include "cuda/components/sorting.cuh"
 
-
 #include <memory>
 #include <random>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
-
 
 #include "cuda/test/utils.hpp"
 

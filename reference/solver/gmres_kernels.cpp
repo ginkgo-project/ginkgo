@@ -4,7 +4,6 @@
 
 #include "core/solver/gmres_kernels.hpp"
 
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>

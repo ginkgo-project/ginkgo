@@ -8,10 +8,8 @@
 
 #include <utility>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/synthesizer/containers.hpp>
-
 
 #include "dpcpp/base/config.hpp"
 

@@ -4,15 +4,12 @@
 
 #include "core/base/iterator_factory.hpp"
 
-
 #include <algorithm>
 #include <complex>
 #include <numeric>
 #include <vector>
 
-
 #include <gtest/gtest.h>
-
 
 #include "core/test/utils.hpp"
 

@@ -8,7 +8,6 @@
 
 #include <type_traits>
 
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>

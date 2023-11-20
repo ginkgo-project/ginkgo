@@ -12,7 +12,6 @@
 #include <ginkgo/core/matrix/batch_ell.hpp>
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
 
-
 #include "core/base/kernel_declaration.hpp"
 
 

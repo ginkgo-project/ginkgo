@@ -4,14 +4,12 @@
 
 #include "core/reorder/rcm_kernels.hpp"
 
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
 
 #include "hip/base/math.hip.hpp"
 #include "hip/base/types.hip.hpp"

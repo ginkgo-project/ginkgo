@@ -8,7 +8,6 @@
 
 #include <iostream>
 
-
 #include <ginkgo/core/base/types.hpp>
 
 

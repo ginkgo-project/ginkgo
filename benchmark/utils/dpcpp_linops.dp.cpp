@@ -2,14 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <memory>
-
 
 #include <oneapi/mkl.hpp>
 
+#include <ginkgo/ginkgo.hpp>
 
 #include "benchmark/utils/sparselib_linops.hpp"
 #include "benchmark/utils/types.hpp"

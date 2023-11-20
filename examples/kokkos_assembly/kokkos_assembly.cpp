@@ -6,10 +6,11 @@
 #include <map>
 #include <string>
 
-
 #include <omp.h>
-#include <ginkgo/ginkgo.hpp>
+
 #include <Kokkos_Core.hpp>
+
+#include <ginkgo/ginkgo.hpp>
 
 
 // Creates a stencil matrix in CSR format for the given number of discretization

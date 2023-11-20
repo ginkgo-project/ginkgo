@@ -4,14 +4,11 @@
 
 #include "core/factorization/par_ic_kernels.hpp"
 
-
 #include <CL/sycl.hpp>
-
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-
 
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"

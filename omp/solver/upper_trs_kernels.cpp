@@ -4,12 +4,9 @@
 
 #include "core/solver/upper_trs_kernels.hpp"
 
-
 #include <memory>
 
-
 #include <omp.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>

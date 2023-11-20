@@ -4,9 +4,7 @@
 
 #include "core/stop/criterion_kernels.hpp"
 
-
 #include <CL/sycl.hpp>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 

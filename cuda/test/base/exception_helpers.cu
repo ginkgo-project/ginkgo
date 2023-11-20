@@ -2,15 +2,13 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/exception_helpers.hpp>
-
+#include "ginkgo/core/base/exception_helpers.hpp"
 
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
 #include <cufft.h>
 #include <curand.h>
 #include <cusparse.h>
-
 
 #include <gtest/gtest.h>
 

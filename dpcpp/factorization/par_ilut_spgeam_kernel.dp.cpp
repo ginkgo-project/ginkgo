@@ -2,14 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "core/factorization/par_ilut_kernels.hpp"
-
-
 #include <limits>
 
-
 #include <CL/sycl.hpp>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -17,8 +12,8 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
-
 #include "core/components/prefix_sum_kernels.hpp"
+#include "core/factorization/par_ilut_kernels.hpp"
 #include "core/matrix/coo_builder.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/matrix/csr_kernels.hpp"

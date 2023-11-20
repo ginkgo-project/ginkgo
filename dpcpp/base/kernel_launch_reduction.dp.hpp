@@ -10,7 +10,6 @@
 
 #include <algorithm>
 
-
 #include "core/synthesizer/implementation_selection.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"

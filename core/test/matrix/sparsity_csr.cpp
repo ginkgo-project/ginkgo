@@ -2,18 +2,14 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/matrix/sparsity_csr.hpp>
-
+#include "ginkgo/core/matrix/sparsity_csr.hpp"
 
 #include <memory>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/dim.hpp>
-
 
 #include "core/test/utils.hpp"
 

@@ -4,7 +4,6 @@
 
 #include <hip/hip_runtime.h>
 
-
 #include <ginkgo/config.hpp>
 
 

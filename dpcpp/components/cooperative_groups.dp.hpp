@@ -8,9 +8,7 @@
 
 #include <type_traits>
 
-
 #include <ginkgo/config.hpp>
-
 
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dpct.hpp"

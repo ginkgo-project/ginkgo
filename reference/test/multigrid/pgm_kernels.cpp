@@ -2,14 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/multigrid/pgm.hpp>
-
+#include "ginkgo/core/multigrid/pgm.hpp"
 
 #include <memory>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -23,7 +20,6 @@
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 #include <ginkgo/core/stop/time.hpp>
-
 
 #include "core/multigrid/pgm_kernels.hpp"
 #include "core/test/utils.hpp"

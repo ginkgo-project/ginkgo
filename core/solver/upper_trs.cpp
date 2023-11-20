@@ -13,7 +13,6 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 
-
 #include "core/solver/upper_trs_kernels.hpp"
 
 

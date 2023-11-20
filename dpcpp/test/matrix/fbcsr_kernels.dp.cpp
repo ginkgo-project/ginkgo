@@ -4,9 +4,7 @@
 
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/executor.hpp>
-
 
 #include "core/test/matrix/fbcsr_sample.hpp"
 #include "core/test/utils.hpp"

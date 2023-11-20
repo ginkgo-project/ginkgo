@@ -8,9 +8,7 @@
 
 #include <limits>
 
-
 #include <ginkgo/core/matrix/csr.hpp>
-
 
 #include "core/base/utils.hpp"
 

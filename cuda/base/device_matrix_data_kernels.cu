@@ -4,7 +4,6 @@
 
 #include "core/base/device_matrix_data_kernels.hpp"
 
-
 #include <thrust/copy.h>
 #include <thrust/count.h>
 #include <thrust/device_ptr.h>
@@ -12,7 +11,6 @@
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/sort.h>
 #include <thrust/tuple.h>
-
 
 #include "cuda/base/thrust.cuh"
 #include "cuda/base/types.hpp"

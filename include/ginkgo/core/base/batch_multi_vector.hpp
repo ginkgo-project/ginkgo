@@ -9,7 +9,6 @@
 #include <initializer_list>
 #include <vector>
 
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/batch_dim.hpp>
 #include <ginkgo/core/base/dim.hpp>

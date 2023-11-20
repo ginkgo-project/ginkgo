@@ -16,7 +16,6 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 
-
 #include "hip/base/math.hip.hpp"
 #include "hip/base/types.hip.hpp"
 

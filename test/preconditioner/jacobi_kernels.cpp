@@ -4,14 +4,11 @@
 
 #include <random>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
-
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/unsort_matrix.hpp"

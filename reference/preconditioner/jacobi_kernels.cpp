@@ -4,18 +4,15 @@
 
 #include "core/preconditioner/jacobi_kernels.hpp"
 
-
 #include <algorithm>
 #include <cmath>
 #include <iterator>
 #include <numeric>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/base/allocator.hpp"
 #include "core/base/extended_float.hpp"

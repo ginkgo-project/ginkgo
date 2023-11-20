@@ -4,9 +4,7 @@
 
 #include "core/matrix/csr_kernels.hpp"
 
-
 #include <algorithm>
-
 
 #include <thrust/copy.h>
 #include <thrust/count.h>
@@ -16,7 +14,6 @@
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/sort.h>
 
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -25,7 +22,6 @@
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
-
 
 #include "accessor/cuda_helper.hpp"
 #include "core/base/mixed_precision_types.hpp"

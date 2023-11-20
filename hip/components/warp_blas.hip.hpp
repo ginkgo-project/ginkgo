@@ -9,9 +9,7 @@
 #include <cassert>
 #include <type_traits>
 
-
 #include <ginkgo/config.hpp>
-
 
 #include "hip/base/math.hip.hpp"
 #include "hip/components/reduction.hip.hpp"

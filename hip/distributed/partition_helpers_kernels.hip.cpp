@@ -4,12 +4,10 @@
 
 #include "core/distributed/partition_helpers_kernels.hpp"
 
-
 #include <thrust/device_ptr.h>
 #include <thrust/execution_policy.h>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/sort.h>
-
 
 #include "hip/base/thrust.hip.hpp"
 

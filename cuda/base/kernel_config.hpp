@@ -8,7 +8,6 @@
 
 #include <cuda_runtime.h>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 

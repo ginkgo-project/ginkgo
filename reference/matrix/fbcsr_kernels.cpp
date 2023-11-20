@@ -4,18 +4,15 @@
 
 #include "core/matrix/fbcsr_kernels.hpp"
 
-
 #include <algorithm>
 #include <iterator>
 #include <numeric>
 #include <utility>
 
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "accessor/block_col_major.hpp"
 #include "core/base/allocator.hpp"

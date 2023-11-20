@@ -4,23 +4,19 @@
 
 #include "core/factorization/par_ict_kernels.hpp"
 
-
 #include <algorithm>
 #include <fstream>
 #include <memory>
 #include <random>
 #include <string>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"

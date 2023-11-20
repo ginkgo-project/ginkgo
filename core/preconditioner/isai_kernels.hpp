@@ -6,11 +6,9 @@
 #define GKO_CORE_PRECONDITIONER_ISAI_KERNELS_HPP_
 
 
-#include <ginkgo/core/preconditioner/isai.hpp>
-
+#include "ginkgo/core/preconditioner/isai.hpp"
 
 #include <ginkgo/core/matrix/csr.hpp>
-
 
 #include "core/base/kernel_declaration.hpp"
 

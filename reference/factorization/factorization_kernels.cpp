@@ -4,14 +4,11 @@
 
 #include "core/factorization/factorization_kernels.hpp"
 
-
 #include <algorithm>
 #include <memory>
 
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-
 
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"

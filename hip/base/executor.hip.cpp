@@ -2,19 +2,15 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/executor.hpp>
-
+#include "ginkgo/core/base/executor.hpp"
 
 #include <iostream>
 
-
 #include <hip/hip_runtime.h>
-
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/device.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
-
 
 #include "hip/base/config.hip.hpp"
 #include "hip/base/hipblas_bindings.hip.hpp"

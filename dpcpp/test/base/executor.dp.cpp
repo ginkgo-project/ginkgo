@@ -2,19 +2,15 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/executor.hpp>
-
+#include "ginkgo/core/base/executor.hpp"
 
 #include <exception>
 #include <memory>
 #include <type_traits>
 
-
 #include <CL/sycl.hpp>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>

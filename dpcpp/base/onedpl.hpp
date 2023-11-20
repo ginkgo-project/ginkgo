@@ -6,10 +6,7 @@
 #define GKO_DPCPP_BASE_ONEDPL_HPP_
 
 
-// force-top: on
 #include <oneapi/dpl/execution>
-// force-top: off
-
 
 #include <ginkgo/core/base/executor.hpp>
 

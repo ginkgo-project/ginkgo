@@ -8,7 +8,6 @@
 
 #include <ginkgo/core/base/array.hpp>
 
-
 #include "core/components/fill_array_kernels.hpp"
 #include "hip/base/config.hip.hpp"
 #include "hip/components/atomic.hip.hpp"

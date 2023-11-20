@@ -13,7 +13,6 @@ TO_FORMAT="$(echo "$PR_FILES" | grep -E $EXTENSION_REGEX || true)"
 # format files
 dev_tools/scripts/add_license.sh
 dev_tools/scripts/update_ginkgo_header.sh
-for f in $(echo "$TO_FORMAT" | grep -E $FORMAT_HEADER_REGEX); do dev_tools/scripts/format_header.sh "$f"; done
 pipx run pre-commit run --files $TO_FORMAT || true
 
 # restore formatting scripts so they don't appear in the diff

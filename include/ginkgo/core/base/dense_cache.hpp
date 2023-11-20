@@ -8,7 +8,6 @@
 
 #include <memory>
 
-
 #include <ginkgo/core/base/executor.hpp>
 
 

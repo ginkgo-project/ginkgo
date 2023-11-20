@@ -11,7 +11,6 @@
 #include <type_traits>
 #include <utility>
 
-
 #include "accessor_helper.hpp"
 #include "index_span.hpp"
 #include "range.hpp"

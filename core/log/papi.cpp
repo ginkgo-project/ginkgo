@@ -2,12 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/log/papi.hpp>
-
+#include "ginkgo/core/log/papi.hpp"
 
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/distributed/helpers.hpp"
 

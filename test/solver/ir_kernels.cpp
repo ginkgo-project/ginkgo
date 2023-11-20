@@ -4,12 +4,9 @@
 
 #include "core/solver/ir_kernels.hpp"
 
-
 #include <random>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -18,7 +15,6 @@
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
-
 
 #include "core/test/utils.hpp"
 #include "test/utils/executor.hpp"

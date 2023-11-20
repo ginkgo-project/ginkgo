@@ -4,17 +4,13 @@
 
 #include "core/components/fill_array_kernels.hpp"
 
-
 #include <memory>
 #include <random>
 #include <vector>
 
-
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/array.hpp>
-
 
 #include "core/test/utils.hpp"
 

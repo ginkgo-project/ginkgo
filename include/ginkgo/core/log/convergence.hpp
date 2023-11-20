@@ -8,7 +8,6 @@
 
 #include <memory>
 
-
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/criterion.hpp>

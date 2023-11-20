@@ -8,10 +8,8 @@
 
 #include <type_traits>
 
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
-
 
 #include "cuda/base/config.hpp"
 #include "cuda/base/types.hpp"

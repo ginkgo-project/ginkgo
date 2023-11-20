@@ -4,12 +4,9 @@
 
 #include "core/factorization/ilu_kernels.hpp"
 
-
 #include <algorithm>
 
-
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "core/base/allocator.hpp"
 

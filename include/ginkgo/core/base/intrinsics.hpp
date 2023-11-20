@@ -8,7 +8,6 @@
 
 #include <bitset>
 
-
 #include <ginkgo/core/base/types.hpp>
 
 

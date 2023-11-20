@@ -10,7 +10,6 @@
 
 #include <tuple>
 
-
 #include "core/synthesizer/implementation_selection.hpp"
 
 

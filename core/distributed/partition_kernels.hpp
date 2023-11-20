@@ -8,7 +8,6 @@
 
 #include <ginkgo/core/distributed/partition.hpp>
 
-
 #include "core/base/kernel_declaration.hpp"
 
 

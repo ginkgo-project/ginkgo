@@ -6,12 +6,9 @@
 #include <memory>
 #include <random>
 
-
 #include <mpi.h>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/array.hpp>
@@ -21,7 +18,6 @@
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-
 
 #include "core/test/utils.hpp"
 #include "test/utils/mpi/executor.hpp"

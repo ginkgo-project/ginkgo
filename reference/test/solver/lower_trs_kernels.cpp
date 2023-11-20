@@ -2,11 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "core/solver/lower_trs_kernels.hpp"
+
 #include <memory>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -18,8 +18,6 @@
 #include <ginkgo/core/stop/residual_norm.hpp>
 #include <ginkgo/core/stop/time.hpp>
 
-
-#include "core/solver/lower_trs_kernels.hpp"
 #include "core/test/utils.hpp"
 
 

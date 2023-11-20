@@ -8,7 +8,6 @@
 
 #include <vector>
 
-
 #include <ginkgo/core/base/lin_op.hpp>
 
 

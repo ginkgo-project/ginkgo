@@ -2,11 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/array.hpp>
-
+#include "ginkgo/core/base/array.hpp"
 
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/precision_conversion_kernels.hpp"

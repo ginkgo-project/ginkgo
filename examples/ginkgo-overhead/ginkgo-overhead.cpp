@@ -2,12 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <chrono>
 #include <cmath>
 #include <iostream>
+
+#include <ginkgo/ginkgo.hpp>
 
 
 [[noreturn]] void print_usage_and_exit(const char* name)

@@ -5,9 +5,7 @@
 #include <gtest/gtest-typed-test.h>
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/executor.hpp>
-
 
 #include "core/base/iterator_factory.hpp"
 #include "core/distributed/partition_helpers_kernels.hpp"

@@ -10,7 +10,6 @@
 
 #include <thrust/tuple.h>
 
-
 #include "accessor/cuda_helper.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/thread_ids.cuh"

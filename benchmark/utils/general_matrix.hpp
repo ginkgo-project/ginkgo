@@ -6,11 +6,9 @@
 #define GKO_BENCHMARK_UTILS_GENERAL_MATRIX_HPP_
 
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <gflags/gflags.h>
 
+#include <ginkgo/ginkgo.hpp>
 
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/generator.hpp"

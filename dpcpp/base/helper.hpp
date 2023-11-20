@@ -8,13 +8,10 @@
 
 #include <utility>
 
-
 #include <CL/sycl.hpp>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/types.hpp>
-
 
 #include "core/base/types.hpp"
 #include "dpcpp/base/dim3.dp.hpp"

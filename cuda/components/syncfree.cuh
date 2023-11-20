@@ -8,7 +8,6 @@
 
 #include <ginkgo/core/base/array.hpp>
 
-
 #include "core/components/fill_array_kernels.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/components/atomic.cuh"

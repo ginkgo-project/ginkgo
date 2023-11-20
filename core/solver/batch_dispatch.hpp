@@ -11,7 +11,6 @@
 #include <ginkgo/core/matrix/batch_identity.hpp>
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
 
-
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
 

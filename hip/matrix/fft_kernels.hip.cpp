@@ -4,9 +4,7 @@
 
 #include "core/matrix/fft_kernels.hpp"
 
-
 #include <array>
-
 
 #include <hip/hip_runtime.h>
 #if HIP_VERSION >= 50200000

@@ -4,9 +4,7 @@
 
 #include "core/matrix/dense_kernels.hpp"
 
-
 #include <hip/hip_runtime.h>
-
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
@@ -18,7 +16,6 @@
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
 
 #include "core/base/utils.hpp"
 #include "core/components/prefix_sum_kernels.hpp"

@@ -4,21 +4,17 @@
 
 #include "core/factorization/par_ilut_kernels.hpp"
 
-
 #include <algorithm>
 #include <tuple>
 #include <unordered_map>
 #include <unordered_set>
 
-
 #include <CL/sycl.hpp>
-
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/base/utils.hpp"
 #include "core/components/prefix_sum_kernels.hpp"

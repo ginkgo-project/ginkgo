@@ -2,8 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/executor.hpp>
-
+#include "ginkgo/core/base/executor.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -11,9 +10,7 @@
 #include <map>
 #include <string>
 
-
 #include <CL/sycl.hpp>
-
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>

@@ -41,11 +41,12 @@ use Ginkgo, and the only part where Ginkgo is introduced is inside the
 `solve_system` function.
 *****************************<DESCRIPTION>**********************************/
 
-#include <ginkgo/ginkgo.hpp>
 #include <iostream>
 #include <map>
 #include <string>
 #include <vector>
+
+#include <ginkgo/ginkgo.hpp>
 
 
 // Creates a stencil matrix in CSR format for the given number of discretization

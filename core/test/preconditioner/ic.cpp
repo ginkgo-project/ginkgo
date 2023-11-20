@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/preconditioner/ic.hpp>
+#include "ginkgo/core/preconditioner/ic.hpp"
 
 
 GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
@@ -10,14 +10,11 @@ GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
 
 #include <memory>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/factorization/par_ic.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
-
 
 #include "core/test/utils.hpp"
 

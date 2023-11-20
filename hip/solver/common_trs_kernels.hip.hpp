@@ -9,7 +9,6 @@
 #include <functional>
 #include <memory>
 
-
 #include <hip/hip_runtime.h>
 #if HIP_VERSION >= 50200000
 #include <hipsparse/hipsparse.h>
@@ -20,7 +19,6 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"

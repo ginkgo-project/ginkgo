@@ -8,9 +8,7 @@
 
 #include <type_traits>
 
-
 #include <CL/sycl.hpp>
-
 
 #include "core/base/types.hpp"
 #include "dpcpp/base/dim3.dp.hpp"

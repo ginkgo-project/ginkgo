@@ -10,7 +10,6 @@
 #include <type_traits>
 #include <utility>
 
-
 #include <ginkgo/config.hpp>
 
 

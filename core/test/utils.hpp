@@ -13,15 +13,12 @@
 #include <tuple>
 #include <type_traits>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
-
 
 #include "core/base/extended_float.hpp"
 #include "core/test/utils/array_generator.hpp"

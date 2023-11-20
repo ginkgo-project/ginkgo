@@ -4,7 +4,6 @@
 
 #include "core/matrix/scaled_permutation_kernels.hpp"
 
-
 #include <ginkgo/core/matrix/dense.hpp>
 
 

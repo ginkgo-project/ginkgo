@@ -4,15 +4,12 @@
 
 #include "core/solver/cb_gmres_kernels.hpp"
 
-
 #include <omp.h>
-
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/solver/cb_gmres.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
-
 
 #include "common/unified/base/kernel_launch_reduction.hpp"
 #include "core/solver/cb_gmres_accessor.hpp"

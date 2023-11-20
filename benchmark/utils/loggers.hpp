@@ -6,15 +6,13 @@
 #define GKO_BENCHMARK_UTILS_LOGGERS_HPP_
 
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <chrono>
 #include <cmath>
 #include <mutex>
 #include <regex>
 #include <unordered_map>
 
+#include <ginkgo/ginkgo.hpp>
 
 #include "benchmark/utils/general.hpp"
 #include "core/distributed/helpers.hpp"

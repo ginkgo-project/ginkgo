@@ -10,7 +10,6 @@
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
-
 #include "core/components/disjoint_sets.hpp"
 
 

@@ -6,15 +6,12 @@
 #define GKO_BENCHMARK_UTILS_PRECONDITIONERS_HPP_
 
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <map>
 #include <string>
 
-
 #include <gflags/gflags.h>
 
+#include <ginkgo/ginkgo.hpp>
 
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/overhead_linop.hpp"

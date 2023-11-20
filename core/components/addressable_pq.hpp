@@ -9,10 +9,8 @@
 #include <algorithm>
 #include <vector>
 
-
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
-
 
 #include "core/base/allocator.hpp"
 

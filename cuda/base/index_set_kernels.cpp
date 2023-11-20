@@ -4,9 +4,7 @@
 
 #include "core/base/index_set_kernels.hpp"
 
-
 #include <memory>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>

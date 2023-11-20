@@ -6,14 +6,11 @@
 #define GKO_BENCHMARK_UTILS_TIMER_HPP_
 
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <memory>
-
 
 #include <gflags/gflags.h>
 
+#include <ginkgo/ginkgo.hpp>
 
 #include "benchmark/utils/timer_impl.hpp"
 

@@ -4,12 +4,9 @@
 
 #include "core/matrix/fbcsr_builder.hpp"
 
-
 #include <memory>
 
-
 #include <gtest/gtest.h>
-
 
 #include "core/test/utils.hpp"
 

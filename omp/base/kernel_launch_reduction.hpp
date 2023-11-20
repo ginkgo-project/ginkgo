@@ -10,7 +10,6 @@
 
 #include <numeric>
 
-
 #include <omp.h>
 
 

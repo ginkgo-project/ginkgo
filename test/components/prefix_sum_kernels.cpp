@@ -4,19 +4,15 @@
 
 #include "core/components/prefix_sum_kernels.hpp"
 
-
 #include <limits>
 #include <memory>
 #include <random>
 #include <type_traits>
 #include <vector>
 
-
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/array.hpp>
-
 
 #include "core/test/utils.hpp"
 #include "test/utils/executor.hpp"

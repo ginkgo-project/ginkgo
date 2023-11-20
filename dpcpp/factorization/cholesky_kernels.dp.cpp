@@ -4,16 +4,12 @@
 
 #include "core/factorization/cholesky_kernels.hpp"
 
-
 #include <algorithm>
 #include <memory>
 
-
 #include <CL/sycl.hpp>
 
-
 #include <ginkgo/core/matrix/csr.hpp>
-
 
 #include "core/factorization/elimination_forest.hpp"
 

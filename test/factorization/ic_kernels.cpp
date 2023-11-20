@@ -7,14 +7,11 @@
 #include <random>
 #include <string>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/factorization/ic.hpp>
 #include <ginkgo/core/factorization/par_ic.hpp>
-
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/unsort_matrix.hpp"

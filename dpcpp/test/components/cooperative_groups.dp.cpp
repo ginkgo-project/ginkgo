@@ -4,21 +4,16 @@
 
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 
-
 #include <iostream>
 #include <memory>
 
-
 #include <CL/sycl.hpp>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
-
 
 #include "core/base/types.hpp"
 #include "core/synthesizer/implementation_selection.hpp"

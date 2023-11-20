@@ -4,12 +4,10 @@
 
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
-
 
 #include "core/test/utils.hpp"
 

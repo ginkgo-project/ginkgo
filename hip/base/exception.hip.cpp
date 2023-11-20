@@ -2,11 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/exception.hpp>
-
+#include "ginkgo/core/base/exception.hpp"
 
 #include <string>
-
 
 #include <hip/hip_runtime.h>
 #if HIP_VERSION >= 50200000

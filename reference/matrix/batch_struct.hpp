@@ -6,15 +6,12 @@
 #define GKO_REFERENCE_MATRIX_BATCH_STRUCT_HPP_
 
 
-#include "core/matrix/batch_struct.hpp"
-
-
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
 
-
 #include "core/base/batch_struct.hpp"
+#include "core/matrix/batch_struct.hpp"
 
 
 namespace gko {

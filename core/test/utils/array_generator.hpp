@@ -10,7 +10,6 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
-
 #include "core/test/utils/value_generator.hpp"
 
 

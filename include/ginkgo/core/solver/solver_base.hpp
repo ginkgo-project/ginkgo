@@ -10,7 +10,6 @@
 #include <type_traits>
 #include <utility>
 
-
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/log/logger.hpp>

@@ -5,7 +5,6 @@
 #include <iomanip>
 #include <thread>
 
-
 #include <ginkgo/core/base/executor.hpp>
 
 

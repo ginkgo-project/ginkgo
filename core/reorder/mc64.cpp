@@ -2,12 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/reorder/mc64.hpp>
-
+#include "ginkgo/core/reorder/mc64.hpp"
 
 #include <chrono>
 #include <memory>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -19,7 +17,6 @@
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
 
 #include "core/components/addressable_pq.hpp"
 #include "core/components/fill_array_kernels.hpp"

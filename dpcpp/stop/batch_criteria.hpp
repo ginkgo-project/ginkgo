@@ -10,7 +10,6 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
 
-
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"

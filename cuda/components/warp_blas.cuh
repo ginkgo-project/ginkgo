@@ -9,9 +9,7 @@
 #include <cassert>
 #include <type_traits>
 
-
 #include <ginkgo/config.hpp>
-
 
 #include "cuda/base/math.hpp"
 #include "cuda/components/reduction.cuh"

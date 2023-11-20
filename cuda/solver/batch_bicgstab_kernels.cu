@@ -4,14 +4,11 @@
 
 #include "core/solver/batch_bicgstab_kernels.hpp"
 
-
 #include <thrust/functional.h>
 #include <thrust/transform.h>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"

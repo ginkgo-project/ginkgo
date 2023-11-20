@@ -8,7 +8,6 @@
 
 #include <unordered_map>
 
-
 #include <ginkgo/core/base/polymorphic_object.hpp>
 
 

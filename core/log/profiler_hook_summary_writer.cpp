@@ -5,7 +5,6 @@
 #include <iomanip>
 #include <numeric>
 
-
 #include <ginkgo/core/log/profiler_hook.hpp>
 
 

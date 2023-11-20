@@ -4,19 +4,15 @@
 
 #include "core/matrix/sparsity_csr_kernels.hpp"
 
-
 #include <algorithm>
 #include <numeric>
 #include <utility>
 
-
 #include <omp.h>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/base/mixed_precision_types.hpp"
 #include "core/components/fill_array_kernels.hpp"

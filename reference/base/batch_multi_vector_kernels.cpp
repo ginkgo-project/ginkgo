@@ -4,14 +4,11 @@
 
 #include "core/base/batch_multi_vector_kernels.hpp"
 
-
 #include <algorithm>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
-
 
 #include "core/base/batch_struct.hpp"
 #include "reference/base/batch_struct.hpp"

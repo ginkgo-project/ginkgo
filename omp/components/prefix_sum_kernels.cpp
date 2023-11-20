@@ -4,13 +4,10 @@
 
 #include "core/components/prefix_sum_kernels.hpp"
 
-
 #include <algorithm>
 #include <limits>
 
-
 #include <omp.h>
-
 
 #include "core/base/allocator.hpp"
 

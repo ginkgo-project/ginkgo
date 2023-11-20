@@ -2,14 +2,13 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "benchmark/sparse_blas/operations.hpp"
+
 #include <map>
 #include <unordered_set>
 
-
 #include <gflags/gflags.h>
 
-
-#include "benchmark/sparse_blas/operations.hpp"
 #include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/symbolic.hpp"
 #include "core/matrix/csr_kernels.hpp"

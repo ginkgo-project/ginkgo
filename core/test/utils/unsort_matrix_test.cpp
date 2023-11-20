@@ -4,14 +4,11 @@
 
 #include "core/test/utils/unsort_matrix.hpp"
 
-
 #include <cmath>
 #include <memory>
 #include <random>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/dim.hpp>
@@ -19,7 +16,6 @@
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/test/utils.hpp"
 

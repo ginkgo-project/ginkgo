@@ -2,14 +2,12 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/math.hpp>
-
+#include "ginkgo/core/base/math.hpp"
 
 #include <cmath>
 #include <complex>
 #include <limits>
 #include <type_traits>
-
 
 #include <gtest/gtest.h>
 

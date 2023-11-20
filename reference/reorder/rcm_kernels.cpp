@@ -4,14 +4,12 @@
 
 #include "core/reorder/rcm_kernels.hpp"
 
-
 #include <algorithm>
 #include <iterator>
 #include <memory>
 #include <queue>
 #include <utility>
 #include <vector>
-
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/array.hpp>
@@ -21,7 +19,6 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
 
 #include "core/base/allocator.hpp"
 

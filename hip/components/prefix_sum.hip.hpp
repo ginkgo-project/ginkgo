@@ -8,7 +8,6 @@
 
 #include <type_traits>
 
-
 #include "hip/base/hipblas_bindings.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/reduction.hip.hpp"

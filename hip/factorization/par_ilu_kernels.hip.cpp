@@ -4,13 +4,10 @@
 
 #include "core/factorization/par_ilu_kernels.hpp"
 
-
 #include <hip/hip_runtime.h>
-
 
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
-
 
 #include "hip/base/math.hip.hpp"
 #include "hip/base/types.hip.hpp"

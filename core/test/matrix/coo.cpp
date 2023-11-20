@@ -2,11 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/matrix/coo.hpp>
-
+#include "ginkgo/core/matrix/coo.hpp"
 
 #include <gtest/gtest.h>
-
 
 #include "core/test/utils.hpp"
 

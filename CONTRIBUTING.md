@@ -339,64 +339,54 @@ Thus, contributors should be aware of the following rules for blank lines:
 
 ### Include statement grouping
 
+The concrete ordering will be done by `clang-format`.
+Here are the rules that `clang-format` will follow.
 In general, all include statements should be present on the top of the file,
-ordered in the following groups, with two blank lines between each group:
+ordered in the following groups, with *one* blank lines between each group:
 
-1. Related header file (e.g. `core/foo/bar.hpp` included in `core/foo/bar.cpp`,
+1. Main header file (e.g. `core/foo/bar.hpp` included in `core/foo/bar.cpp`,
    or in the unit test`core/test/foo/bar.cpp`)
 2. Standard library headers (e.g. `vector`)
 3. Executor specific library headers (e.g. `omp.h`)
 4. System third-party library headers (e.g. `papi.h`)
-5. Local third-party library headers
-6. Public Ginkgo headers
-7. Private Ginkgo headers
+5. Public Ginkgo headers
+6. Local headers
 
 _Example_: A file `core/base/my_file.cpp` might have an include list like this:
 
 ```c++
-#include <ginkgo/core/base/my_file.hpp>
-
+#include "ginkgo/core/base/my_file.hpp"
 
 #include <algorithm>
 #include <vector>
 #include <tuple>
 
-
 #include <omp.h>
-
 
 #include <papi.h>
 
-
-#include "third_party/blas/cblas.hpp"
-#include "third_party/lapack/lapack.hpp"
-
+#include <third_party/blas/cblas.hpp>
+#include <third_party/lapack/lapack.hpp>
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
-
 
 #include "core/base/my_file_kernels.hpp"
 ```
 
 #### Main header
 
-This section presents general rules used to define the main header attributed to
-the file. In the previous example, this would be ` #include
-<ginkgo/core/base/my_file.hpp>`.
+This section presents the handling of the main header attributed to a file.
+For a given file, the main header is the header that contains the declarations of the
+functions, classes, etc., which are implemented in this file.
+In the previous example, this would be ` #include
+"ginkgo/core/base/my_file.hpp"`.
+The `clang-format` tool figures out the main header. The only intervention form 
+a contributor is to *always* include the main header using `"..."`.
 
-General rules:
-1. Some fixed main header.
-2. components:
-  - with `_kernel` suffix looks for the header in the same folder.
-  - without `_kernel` suffix looks for the header in `core`.
-3. `test/utils`: looks for the header in `core`
-4. `core`: looks for the header in `ginkgo`
-5. `test` or `base`: looks for the header in `ginkgo/core`
-6. others: looks for the header in `core`
+Please note that this only applies to implementation files, so files ending in `.cpp` or `.cu`.
 
-_Note_: Please see the detail in the `dev_tools/scripts/config`.
 
 #### Some general comments.
 
@@ -404,13 +394,6 @@ _Note_: Please see the detail in the `dev_tools/scripts/config`.
 2. It is a good idea to keep the headers self-sufficient, See [Google Style guide for reasoning](https://google.github.io/styleguide/cppguide.html#Self_contained_Headers).
 When compiling with `GINKGO_CHECK_CIRCULAR_DEPS` enabled, this property is explicitly checked.
 3. The recommendations of the `iwyu` (Include what you use) tool can be used to make sure that the headers are self-sufficient and that the compiled files ( `.cu`, `.cpp`, `.hip.cpp` ) include only what they use. A [CI pipeline](https://gitlab.com/ginkgo-project/ginkgo-public-ci/-/jobs/584358356) is available that runs with the `iwyu` tool. Please be aware that this tool can be incorrect in some cases.
-
-#### Automatic header arrangement
-
-1. `dev_tools/script/format_header.sh` will take care of the group/sorting of
-   headers according to this guideline.
-2. `make format_header` arranges the header of the modified files in the branch.
-3. `make format_header_all` arranges the header of all files.
 
 
 ### Other Code Formatting not handled by ClangFormat

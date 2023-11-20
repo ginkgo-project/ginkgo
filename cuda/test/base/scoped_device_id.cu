@@ -2,19 +2,18 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-// force-top: on
+// clang-format off
 // prevent compilation failure related to disappearing assert(...) statements
 #include <cuda_runtime.h>
-// force-top: off
-
-
-#include <gtest/gtest.h>
-
-
-#include <ginkgo/core/base/executor.hpp>
+// clang-format on
 
 
 #include "cuda/base/scoped_device_id.hpp"
+
+#include <gtest/gtest.h>
+
+#include <ginkgo/core/base/executor.hpp>
+
 #include "cuda/test/utils.hpp"
 
 

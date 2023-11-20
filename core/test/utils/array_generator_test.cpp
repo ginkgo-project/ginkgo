@@ -4,13 +4,10 @@
 
 #include "core/test/utils/array_generator.hpp"
 
-
 #include <cmath>
 #include <random>
 
-
 #include <gtest/gtest.h>
-
 
 #include "core/test/utils.hpp"
 

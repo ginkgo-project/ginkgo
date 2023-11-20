@@ -4,15 +4,12 @@
 
 #include "core/matrix/dense_kernels.hpp"
 
-
 #include <algorithm>
 #include <numeric>
 #include <random>
 #include <vector>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -26,7 +23,6 @@
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
 
 #include "core/components/fill_array_kernels.hpp"
 #include "core/test/utils.hpp"

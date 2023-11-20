@@ -4,15 +4,12 @@
 
 #include "core/test/utils/fb_matrix_generator.hpp"
 
-
 #include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <random>
 
-
 #include <gtest/gtest.h>
-
 
 #include "accessor/block_col_major.hpp"
 #include "core/base/utils.hpp"

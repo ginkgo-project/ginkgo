@@ -2,14 +2,13 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/mpi.hpp>
+#include "ginkgo/core/base/mpi.hpp"
 
 
 #if GINKGO_BUILD_MPI
 
 
 #include <string>
-
 
 #include <mpi.h>
 

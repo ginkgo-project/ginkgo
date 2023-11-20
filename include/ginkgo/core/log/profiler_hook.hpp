@@ -9,7 +9,6 @@
 #include <iostream>
 #include <unordered_map>
 
-
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/timer.hpp>
 #include <ginkgo/core/log/logger.hpp>

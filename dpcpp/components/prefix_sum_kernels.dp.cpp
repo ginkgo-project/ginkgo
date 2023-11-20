@@ -4,12 +4,9 @@
 
 #include "core/components/prefix_sum_kernels.hpp"
 
-
 #include <CL/sycl.hpp>
 
-
 #include <ginkgo/core/base/types.hpp>
-
 
 #include "core/base/types.hpp"
 #include "dpcpp/base/helper.hpp"

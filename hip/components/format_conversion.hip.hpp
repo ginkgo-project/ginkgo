@@ -8,10 +8,8 @@
 
 #include <hip/hip_runtime.h>
 
-
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/executor.hpp>
-
 
 #include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"

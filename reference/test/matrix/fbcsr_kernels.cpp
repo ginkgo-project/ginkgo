@@ -2,15 +2,12 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/matrix/fbcsr.hpp>
-
+#include "ginkgo/core/matrix/fbcsr.hpp"
 
 #include <algorithm>
 #include <iostream>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
@@ -20,7 +17,6 @@
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
 
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/fbcsr_kernels.hpp"

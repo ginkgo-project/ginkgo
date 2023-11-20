@@ -2,20 +2,17 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-// force-top: on
+// clang-format off
 #include <ginkgo/core/base/types.hpp>
 GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
-// force-top: off
+// clang-format on
 
 
-#include <ginkgo/core/log/logger.hpp>
-
+#include "ginkgo/core/log/logger.hpp"
 
 #include <memory>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/log/convergence.hpp>
 #include <ginkgo/core/log/record.hpp>

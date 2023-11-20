@@ -4,12 +4,9 @@
 
 #include "core/matrix/sparsity_csr_kernels.hpp"
 
-
 #include <CL/sycl.hpp>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
-
 
 #include "accessor/reduced_row_major.hpp"
 #include "core/base/mixed_precision_types.hpp"

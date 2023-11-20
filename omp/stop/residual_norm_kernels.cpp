@@ -4,9 +4,7 @@
 
 #include "core/stop/residual_norm_kernels.hpp"
 
-
 #include <omp.h>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>

@@ -8,9 +8,7 @@
 #include <random>
 #include <vector>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
@@ -27,7 +25,6 @@
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
-
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/matrix_generator.hpp"

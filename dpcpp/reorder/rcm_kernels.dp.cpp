@@ -4,9 +4,7 @@
 
 #include "core/reorder/rcm_kernels.hpp"
 
-
 #include <CL/sycl.hpp>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>

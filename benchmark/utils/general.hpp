@@ -6,9 +6,6 @@
 #define GKO_BENCHMARK_UTILS_GENERAL_HPP_
 
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <algorithm>
 #include <array>
 #include <fstream>
@@ -24,12 +21,11 @@
 #include <utility>
 #include <vector>
 
-
 #include <gflags/gflags.h>
 
+#include <ginkgo/ginkgo.hpp>
 
 #include <ginkgo/core/base/memory.hpp>
-
 
 #include "benchmark/utils/json.hpp"
 #include "benchmark/utils/timer.hpp"

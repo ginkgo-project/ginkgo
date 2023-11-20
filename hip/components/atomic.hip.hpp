@@ -8,7 +8,6 @@
 
 #include <type_traits>
 
-
 #include "hip/base/math.hip.hpp"
 #include "hip/base/types.hip.hpp"
 
