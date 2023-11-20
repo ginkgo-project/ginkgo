@@ -1,0 +1,48 @@
+[
+    {
+        "filename": "mtx",
+        "spmv": {
+            "coo": {
+                "storage": 1000,
+                "max_relative_norm2": 1.0,
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            },
+            "csr": {
+                "storage": 1000,
+                "max_relative_norm2": 1.0,
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            },
+            "ell": {
+                "storage": 1000,
+                "max_relative_norm2": 1.0,
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            },
+            "sellp": {
+                "storage": 1000,
+                "max_relative_norm2": 1.0,
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            },
+            "hybrid": {
+                "storage": 1000,
+                "max_relative_norm2": 1.0,
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true
+            }
+        },
+        "rows": 36,
+        "cols": 36,
+        "nonzeros": 208,
+        "optimal": {
+            "spmv": "coo"
+        }
+    }
+]
