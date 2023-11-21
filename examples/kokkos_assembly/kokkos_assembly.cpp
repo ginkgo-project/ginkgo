@@ -27,14 +27,14 @@ void generate_stencil_matrix(gko::matrix::Csr<ValueType, IndexType>* matrix)
                                                      discretization_points * 3);
 
     // Create Kokkos views on Ginkgo data.
-    Kokkos::View<IndexType*> v_row_idxs(md.get_row_idxs(), md.get_num_elems());
-    Kokkos::View<IndexType*> v_col_idxs(md.get_col_idxs(), md.get_num_elems());
-    Kokkos::View<ValueType*> v_values(md.get_values(), md.get_num_elems());
+    Kokkos::View<IndexType*> v_row_idxs(md.get_row_idxs(), md.get_size());
+    Kokkos::View<IndexType*> v_col_idxs(md.get_col_idxs(), md.get_size());
+    Kokkos::View<ValueType*> v_values(md.get_values(), md.get_size());
 
     // Create the matrix entries. This also creates zero entries for the
     // first and second row to handle all rows uniformly.
     Kokkos::parallel_for(
-        "generate_stencil_matrix", md.get_num_elems(), KOKKOS_LAMBDA(int i) {
+        "generate_stencil_matrix", md.get_size(), KOKKOS_LAMBDA(int i) {
             const ValueType coefs[] = {-1, 2, -1};
             auto ofs = static_cast<IndexType>((i % 3) - 1);
             auto row = static_cast<IndexType>(i / 3);

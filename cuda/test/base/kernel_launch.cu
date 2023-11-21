@@ -111,7 +111,7 @@ void run1d(std::shared_ptr<gko::CudaExecutor> exec, size_type dim, int* data)
 
 TEST_F(KernelLaunch, Runs1D)
 {
-    run1d(exec, zero_array.get_num_elems(), zero_array.get_data());
+    run1d(exec, zero_array.get_size(), zero_array.get_data());
 
     GKO_ASSERT_ARRAY_EQ(zero_array, iota_array);
 }
@@ -132,7 +132,7 @@ void run1d(std::shared_ptr<gko::CudaExecutor> exec, gko::array<int>& data)
                 d[i] = 0;
             }
         },
-        data.get_num_elems(), data, data.get_const_data(), move_only_val);
+        data.get_size(), data, data.get_const_data(), move_only_val);
 }
 
 TEST_F(KernelLaunch, Runs1DArray)

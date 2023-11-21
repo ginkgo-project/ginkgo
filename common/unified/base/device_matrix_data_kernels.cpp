@@ -48,7 +48,7 @@ void aos_to_soa(std::shared_ptr<const DefaultExecutor> exec,
             cols[i] = in[i].column;
             vals[i] = unpack_member(in[i].value);
         },
-        in.get_num_elems(), in, out.get_row_idxs(), out.get_col_idxs(),
+        in.get_size(), in, out.get_row_idxs(), out.get_col_idxs(),
         out.get_values());
 }
 

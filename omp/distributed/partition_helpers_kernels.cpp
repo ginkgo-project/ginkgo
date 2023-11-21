@@ -21,7 +21,7 @@ void sort_by_range_start(
     array<experimental::distributed::comm_index_type>& part_ids)
 {
     auto part_ids_d = part_ids.get_data();
-    auto num_parts = part_ids.get_num_elems();
+    auto num_parts = part_ids.get_size();
     auto start_it = detail::make_permute_iterator(
         range_start_ends.get_data(), [](const auto i) { return 2 * i; });
     auto end_it = detail::make_permute_iterator(

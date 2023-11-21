@@ -279,7 +279,7 @@ void CbGmres<ValueType>::apply_dense_impl(
         array<bool> fully_converged_rhs(exec->get_master(), num_rhs);
         array<stopping_status> host_stop_status(
             this->get_executor()->get_master(), stop_status);
-        for (size_type i = 0; i < stop_encountered_rhs.get_num_elems(); ++i) {
+        for (size_type i = 0; i < stop_encountered_rhs.get_size(); ++i) {
             stop_encountered_rhs.get_data()[i] = false;
             fully_converged_rhs.get_data()[i] = false;
         }
@@ -318,7 +318,7 @@ void CbGmres<ValueType>::apply_dense_impl(
                 if (one_changed || all_changed) {
                     host_stop_status = stop_status;
                     bool host_array_changed{false};
-                    for (size_type i = 0; i < host_stop_status.get_num_elems();
+                    for (size_type i = 0; i < host_stop_status.get_size();
                          ++i) {
                         auto local_status = host_stop_status.get_data() + i;
                         // Ignore all actually converged ones!
@@ -350,8 +350,8 @@ void CbGmres<ValueType>::apply_dense_impl(
                     forced_iterations = 0;
 
                 } else {
-                    for (size_type i = 0;
-                         i < stop_encountered_rhs.get_num_elems(); ++i) {
+                    for (size_type i = 0; i < stop_encountered_rhs.get_size();
+                         ++i) {
                         stop_encountered_rhs.get_data()[i] = false;
                     }
                 }

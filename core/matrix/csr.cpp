@@ -448,7 +448,7 @@ void Csr<ValueType, IndexType>::read(device_mat_data&& data)
     const auto row_idxs = std::move(arrays.row_idxs);
     auto local_row_idxs = make_temporary_clone(exec, &row_idxs);
     exec->run(csr::make_convert_idxs_to_ptrs(local_row_idxs->get_const_data(),
-                                             local_row_idxs->get_num_elems(),
+                                             local_row_idxs->get_size(),
                                              size[0], this->get_row_ptrs()));
     this->make_srow();
 }
@@ -805,7 +805,7 @@ Csr<ValueType, IndexType>::create_submatrix(
 {
     using Mat = Csr<ValueType, IndexType>;
     auto exec = this->get_executor();
-    if (!row_index_set.get_num_elems() || !col_index_set.get_num_elems()) {
+    if (!row_index_set.get_size() || !col_index_set.get_size()) {
         return Mat::create(exec);
     }
     if (row_index_set.is_contiguous() && col_index_set.is_contiguous()) {
@@ -821,8 +821,8 @@ Csr<ValueType, IndexType>::create_submatrix(
         return this->create_submatrix(span(row_st, row_end),
                                       span(col_st, col_end));
     } else {
-        auto submat_num_rows = row_index_set.get_num_elems();
-        auto submat_num_cols = col_index_set.get_num_elems();
+        auto submat_num_rows = row_index_set.get_size();
+        auto submat_num_cols = col_index_set.get_size();
         auto sub_mat_size = gko::dim<2>(submat_num_rows, submat_num_cols);
         array<IndexType> row_ptrs(exec, submat_num_rows + 1);
         exec->run(csr::make_calculate_nonzeros_per_row_in_index_set(

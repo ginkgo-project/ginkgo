@@ -59,7 +59,7 @@ void agg_to_restrict(std::shared_ptr<const Executor> exec, IndexType num_agg,
                      const gko::array<IndexType>& agg, IndexType* row_ptrs,
                      IndexType* col_idxs)
 {
-    const IndexType num = agg.get_num_elems();
+    const IndexType num = agg.get_size();
     gko::array<IndexType> row_idxs(exec, agg);
     exec->run(pgm::make_fill_seq_array(col_idxs, num));
     // sort the pair (int, agg) to (row_idxs, col_idxs)
@@ -139,7 +139,7 @@ void Pgm<ValueType, IndexType>::generate()
         this->set_fine_op(pgm_op_shared_ptr);
     }
     // Initial agg = -1
-    exec->run(pgm::make_fill_array(agg_.get_data(), agg_.get_num_elems(),
+    exec->run(pgm::make_fill_array(agg_.get_data(), agg_.get_size(),
                                    -one<IndexType>()));
     IndexType num_unagg = num_rows;
     IndexType num_unagg_prev = num_rows;
@@ -189,7 +189,7 @@ void Pgm<ValueType, IndexType>::generate()
     // prolong_row_gather is the lightway implementation for prolongation
     auto prolong_row_gather = share(matrix::RowGatherer<IndexType>::create(
         exec, gko::dim<2>{fine_dim, coarse_dim}));
-    exec->copy_from(exec, agg_.get_num_elems(), agg_.get_const_data(),
+    exec->copy_from(exec, agg_.get_size(), agg_.get_const_data(),
                     prolong_row_gather->get_row_idxs());
     auto restrict_sparsity =
         share(matrix::SparsityCsr<ValueType, IndexType>::create(

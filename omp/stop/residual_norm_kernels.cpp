@@ -47,7 +47,7 @@ void residual_norm(std::shared_ptr<const OmpExecutor> exec,
     // But it's parallel so does it matter?
     bool local_all_converged = true;
 #pragma omp parallel for reduction(&& : local_all_converged)
-    for (size_type i = 0; i < stop_status->get_num_elems(); ++i) {
+    for (size_type i = 0; i < stop_status->get_size(); ++i) {
         if (!stop_status->get_const_data()[i].has_stopped()) {
             local_all_converged = false;
         }
@@ -92,7 +92,7 @@ void implicit_residual_norm(
     // But it's parallel so does it matter?
     bool local_all_converged = true;
 #pragma omp parallel for reduction(&& : local_all_converged)
-    for (size_type i = 0; i < stop_status->get_num_elems(); ++i) {
+    for (size_type i = 0; i < stop_status->get_size(); ++i) {
         if (!stop_status->get_const_data()[i].has_stopped()) {
             local_all_converged = false;
         }

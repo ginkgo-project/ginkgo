@@ -41,7 +41,7 @@ void aos_to_soa(std::shared_ptr<const DefaultExecutor> exec,
                 const array<matrix_data_entry<ValueType, IndexType>>& in,
                 device_matrix_data<ValueType, IndexType>& out)
 {
-    for (size_type i = 0; i < in.get_num_elems(); i++) {
+    for (size_type i = 0; i < in.get_size(); i++) {
         const auto entry = in.get_const_data()[i];
         out.get_row_idxs()[i] = entry.row;
         out.get_col_idxs()[i] = entry.column;
@@ -58,7 +58,7 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
                   array<ValueType>& values, array<IndexType>& row_idxs,
                   array<IndexType>& col_idxs)
 {
-    auto size = values.get_num_elems();
+    auto size = values.get_size();
     auto nnz = static_cast<size_type>(
         std::count_if(values.get_const_data(), values.get_const_data() + size,
                       is_nonzero<ValueType>));
@@ -92,7 +92,7 @@ void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec, size_type,
 {
     auto row = invalid_index<IndexType>();
     auto col = invalid_index<IndexType>();
-    const auto size = values.get_num_elems();
+    const auto size = values.get_size();
     size_type count_unique{};
     for (size_type i = 0; i < size; i++) {
         const auto new_row = row_idxs.get_const_data()[i];
@@ -141,7 +141,7 @@ void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
     array<matrix_data_entry<ValueType, IndexType>> tmp{exec,
                                                        data.get_num_elems()};
     soa_to_aos(exec, data, tmp);
-    std::sort(tmp.get_data(), tmp.get_data() + tmp.get_num_elems());
+    std::sort(tmp.get_data(), tmp.get_data() + tmp.get_size());
     aos_to_soa(exec, tmp, data);
 }
 

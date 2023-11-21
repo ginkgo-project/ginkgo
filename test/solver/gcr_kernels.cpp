@@ -89,11 +89,11 @@ protected:
 
 
         stop_status = gko::array<gko::stopping_status>(ref, nrhs);
-        for (size_t i = 0; i < stop_status.get_num_elems(); ++i) {
+        for (size_t i = 0; i < stop_status.get_size(); ++i) {
             stop_status.get_data()[i].reset();
         }
         final_iter_nums = gko::array<gko::size_type>(ref, nrhs);
-        for (size_t i = 0; i < final_iter_nums.get_num_elems(); ++i) {
+        for (size_t i = 0; i < final_iter_nums.get_size(); ++i) {
             final_iter_nums.get_data()[i] = 5;
         }
 

@@ -31,7 +31,7 @@ void scalar_conj(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto elem, auto diag, auto conj_diag) {
             conj_diag[elem] = conj(diag[elem]);
         },
-        diag.get_num_elems(), diag, conj_diag);
+        diag.get_size(), diag, conj_diag);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_SCALAR_CONJ_KERNEL);
@@ -46,7 +46,7 @@ void invert_diagonal(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto elem, auto diag, auto inv_diag) {
             inv_diag[elem] = safe_divide(one(diag[elem]), diag[elem]);
         },
-        diag.get_num_elems(), diag, inv_diag);
+        diag.get_size(), diag, inv_diag);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_INVERT_DIAGONAL_KERNEL);

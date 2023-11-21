@@ -104,7 +104,7 @@ TYPED_TEST(PartitionHelpers, CanCompressRanges)
     using itype = typename TestFixture::global_index_type;
     auto range_start_ends = this->default_range_start_ends;
     gko::array<itype> range_offsets{this->ref,
-                                    range_start_ends.get_num_elems() / 2 + 1};
+                                    range_start_ends.get_size() / 2 + 1};
     gko::array<itype> expected_range_offsets{this->ref, {0, 4, 7, 9, 11}};
 
     gko::kernels::reference::partition_helpers::compress_ranges(

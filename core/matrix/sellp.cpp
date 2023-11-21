@@ -215,8 +215,8 @@ void Sellp<ValueType, IndexType>::read(const device_mat_data& data)
     exec->run(sellp::make_compute_slice_sets(
         row_ptrs, this->get_slice_size(), this->get_stride_factor(),
         slice_sets_.get_data(), slice_lengths_.get_data()));
-    const auto total_cols = exec->copy_val_to_host(
-        slice_sets_.get_data() + slice_sets_.get_num_elems() - 1);
+    const auto total_cols = exec->copy_val_to_host(slice_sets_.get_data() +
+                                                   slice_sets_.get_size() - 1);
     values_.resize_and_reset(total_cols * slice_size_);
     col_idxs_.resize_and_reset(total_cols * slice_size_);
     exec->run(sellp::make_fill_in_matrix_data(*local_data,

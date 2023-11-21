@@ -60,14 +60,14 @@ std::unique_ptr<MatrixType> generate_random_batch_matrix(
     auto sp_mat = generate_random_device_matrix_data<value_type, index_type>(
         num_rows, num_cols, nonzero_dist, value_dist, engine,
         exec->get_master());
-    auto row_idxs = gko::array<index_type>::const_view(
-                        exec->get_master(), sp_mat.get_num_elems(),
-                        sp_mat.get_const_row_idxs())
-                        .copy_to_array();
-    auto col_idxs = gko::array<index_type>::const_view(
-                        exec->get_master(), sp_mat.get_num_elems(),
-                        sp_mat.get_const_col_idxs())
-                        .copy_to_array();
+    auto row_idxs =
+        gko::array<index_type>::const_view(
+            exec->get_master(), sp_mat.get_size(), sp_mat.get_const_row_idxs())
+            .copy_to_array();
+    auto col_idxs =
+        gko::array<index_type>::const_view(
+            exec->get_master(), sp_mat.get_size(), sp_mat.get_const_col_idxs())
+            .copy_to_array();
 
     for (size_type b = 0; b < num_batch_items; b++) {
         auto rand_mat =

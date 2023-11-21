@@ -103,7 +103,7 @@ TYPED_TEST(FormatConversion, ConvertIdxsToPtrsIsEquivalentToRef)
     this->ptrs.fill(-1);
 
     gko::kernels::EXEC_NAMESPACE::components::convert_idxs_to_ptrs(
-        this->exec, this->idxs.get_const_data(), this->idxs.get_num_elems(),
+        this->exec, this->idxs.get_const_data(), this->idxs.get_size(),
         this->size, this->ptrs.get_data());
 
     GKO_ASSERT_ARRAY_EQ(this->ptrs, ref_ptrs);

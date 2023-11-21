@@ -43,7 +43,7 @@ void match_edge(std::shared_ptr<const ReferenceExecutor> exec,
 {
     auto agg_vals = agg.get_data();
     auto strongest_neighbor_vals = strongest_neighbor.get_const_data();
-    for (size_type i = 0; i < agg.get_num_elems(); i++) {
+    for (size_type i = 0; i < agg.get_size(); i++) {
         if (agg_vals[i] == -1) {
             auto neighbor = strongest_neighbor_vals[i];
             // i < neighbor always holds when neighbor is not -1
@@ -65,7 +65,7 @@ void count_unagg(std::shared_ptr<const ReferenceExecutor> exec,
                  const array<IndexType>& agg, IndexType* num_unagg)
 {
     IndexType unagg = 0;
-    for (size_type i = 0; i < agg.get_num_elems(); i++) {
+    for (size_type i = 0; i < agg.get_size(); i++) {
         unagg += (agg.get_const_data()[i] == -1);
     }
     *num_unagg = unagg;
@@ -78,7 +78,7 @@ template <typename IndexType>
 void renumber(std::shared_ptr<const ReferenceExecutor> exec,
               array<IndexType>& agg, IndexType* num_agg)
 {
-    const auto num = agg.get_num_elems();
+    const auto num = agg.get_size();
     array<IndexType> agg_map(exec, num + 1);
     auto agg_vals = agg.get_data();
     auto agg_map_vals = agg_map.get_data();
@@ -172,7 +172,7 @@ void find_strongest_neighbor(
     const auto col_idxs = weight_mtx->get_const_col_idxs();
     const auto vals = weight_mtx->get_const_values();
     const auto diag_vals = diag->get_const_values();
-    for (size_type row = 0; row < agg.get_num_elems(); row++) {
+    for (size_type row = 0; row < agg.get_size(); row++) {
         auto max_weight_unagg = zero<ValueType>();
         auto max_weight_agg = zero<ValueType>();
         IndexType strongest_unagg = -1;
@@ -227,11 +227,11 @@ void assign_to_exist_agg(std::shared_ptr<const ReferenceExecutor> exec,
     const auto col_idxs = weight_mtx->get_const_col_idxs();
     const auto vals = weight_mtx->get_const_values();
     const auto agg_const_val = agg.get_const_data();
-    auto agg_val = (intermediate_agg.get_num_elems() > 0)
+    auto agg_val = (intermediate_agg.get_size() > 0)
                        ? intermediate_agg.get_data()
                        : agg.get_data();
     const auto diag_vals = diag->get_const_values();
-    for (IndexType row = 0; row < agg.get_num_elems(); row++) {
+    for (IndexType row = 0; row < agg.get_size(); row++) {
         if (agg_const_val[row] != -1) {
             continue;
         }
@@ -258,7 +258,7 @@ void assign_to_exist_agg(std::shared_ptr<const ReferenceExecutor> exec,
         }
     }
 
-    if (intermediate_agg.get_num_elems() > 0) {
+    if (intermediate_agg.get_size() > 0) {
         // Copy the intermediate_agg to agg
         agg = intermediate_agg;
     }

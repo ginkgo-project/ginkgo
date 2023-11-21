@@ -21,7 +21,7 @@ void check_consecutive_ranges(std::shared_ptr<const DefaultExecutor> exec,
                               bool& result)
 {
     array<uint32> result_uint32{exec, 1};
-    auto num_ranges = range_start_ends.get_num_elems() / 2;
+    auto num_ranges = range_start_ends.get_size() / 2;
     // need additional guard because DPCPP doesn't return the initial value for
     // empty inputs
     if (num_ranges > 1) {
@@ -60,7 +60,7 @@ void compress_ranges(std::shared_ptr<const DefaultExecutor> exec,
             }
             offsets[i + 1] = start_ends[2 * i + 1];
         },
-        range_offsets.get_num_elems() - 1, range_start_ends.get_const_data(),
+        range_offsets.get_size() - 1, range_start_ends.get_const_data(),
         range_offsets.get_data());
 }
 

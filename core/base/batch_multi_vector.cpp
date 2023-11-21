@@ -128,7 +128,7 @@ MultiVector<ValueType>::create_const(
 template <typename ValueType>
 void MultiVector<ValueType>::fill(ValueType value)
 {
-    GKO_ASSERT(this->values_.get_num_elems() > 0);
+    GKO_ASSERT(this->values_.get_size() > 0);
     this->values_.fill(value);
 }
 

@@ -106,7 +106,7 @@ Permutation<IndexType>::create_const(
     mask_type enabled_permute)
 {
     GKO_ASSERT_EQ(enabled_permute, row_permute);
-    GKO_ASSERT_EQ(size, perm_idxs.get_num_elems());
+    GKO_ASSERT_EQ(size, perm_idxs.get_size());
     return create_const(std::move(exec), std::move(perm_idxs));
 }
 
@@ -135,8 +135,7 @@ Permutation<IndexType>::Permutation(std::shared_ptr<const Executor> exec,
 template <typename IndexType>
 Permutation<IndexType>::Permutation(std::shared_ptr<const Executor> exec,
                                     array<index_type> permutation_indices)
-    : EnableLinOp<Permutation>(exec,
-                               dim<2>{permutation_indices.get_num_elems()}),
+    : EnableLinOp<Permutation>(exec, dim<2>{permutation_indices.get_size()}),
       permutation_{exec, std::move(permutation_indices)}
 {}
 

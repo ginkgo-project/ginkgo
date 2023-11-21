@@ -174,7 +174,7 @@ public:
      */
     size_type get_num_stored_elements() const noexcept
     {
-        return values_.get_num_elems();
+        return values_.get_size();
     }
 
     /**
@@ -354,9 +354,9 @@ protected:
           stride_{stride}
     {
         GKO_ASSERT_EQ(num_stored_elements_per_row_ * stride_,
-                      values_.get_num_elems());
+                      values_.get_size());
         GKO_ASSERT_EQ(num_stored_elements_per_row_ * stride_,
-                      col_idxs_.get_num_elems());
+                      col_idxs_.get_size());
     }
 
     /**

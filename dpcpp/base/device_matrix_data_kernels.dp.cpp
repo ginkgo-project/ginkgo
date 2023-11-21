@@ -29,7 +29,7 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
                   array<IndexType>& col_idxs)
 {
     using nonzero_type = matrix_data_entry<ValueType, IndexType>;
-    auto size = values.get_num_elems();
+    auto size = values.get_size();
     auto policy = onedpl_policy(exec);
     auto nnz = std::count_if(
         policy, values.get_const_data(), values.get_const_data() + size,
@@ -65,7 +65,7 @@ void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec, size_type,
                     array<IndexType>& col_idxs)
 {
     using nonzero_type = matrix_data_entry<ValueType, IndexType>;
-    auto size = values.get_num_elems();
+    auto size = values.get_size();
     if (size == 0) {
         return;
     }
@@ -111,11 +111,10 @@ void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
     auto policy = onedpl_policy(exec);
     auto input_it = oneapi::dpl::make_zip_iterator(
         data.get_row_idxs(), data.get_col_idxs(), data.get_values());
-    std::sort(policy, input_it, input_it + data.get_num_elems(),
-              [](auto a, auto b) {
-                  return std::tie(std::get<0>(a), std::get<1>(a)) <
-                         std::tie(std::get<0>(b), std::get<1>(b));
-              });
+    std::sort(policy, input_it, input_it + data.get_size(), [](auto a, auto b) {
+        return std::tie(std::get<0>(a), std::get<1>(a)) <
+               std::tie(std::get<0>(b), std::get<1>(b));
+    });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

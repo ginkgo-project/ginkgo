@@ -83,7 +83,7 @@ protected:
         }
         gko::array<gko::int32> block_ptrs(ref, block_pointers);
         gko::array<gko::precision_reduction> block_prec(ref, block_precisions);
-        if (block_prec.get_num_elems() == 0) {
+        if (block_prec.get_size() == 0) {
             bj_factory = Bj::build()
                              .with_max_block_size(max_block_size)
                              .with_block_pointers(block_ptrs)

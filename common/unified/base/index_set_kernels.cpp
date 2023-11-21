@@ -33,7 +33,7 @@ void compute_validity(std::shared_ptr<const DefaultExecutor> exec,
             validity_array[elem] =
                 local_indices[elem] != invalid_index<IndexType>();
         },
-        local_indices->get_num_elems(), *local_indices, *validity_array);
+        local_indices->get_size(), *local_indices, *validity_array);
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(

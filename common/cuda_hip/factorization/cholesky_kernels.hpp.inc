@@ -219,7 +219,7 @@ void build_children_from_parents(
     std::shared_ptr<const DefaultExecutor> exec,
     gko::factorization::elimination_forest<IndexType>& forest)
 {
-    const auto num_rows = forest.parents.get_num_elems();
+    const auto num_rows = forest.parents.get_size();
     // build COO representation of the tree
     array<IndexType> col_idx_array{exec, num_rows};
     const auto col_idxs = col_idx_array.get_data();

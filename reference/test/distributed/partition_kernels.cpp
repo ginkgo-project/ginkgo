@@ -68,7 +68,7 @@ TYPED_TEST(Partition, BuildsFromMapping)
     auto partition =
         part_type::build_from_mapping(this->ref, mapping, num_parts);
 
-    EXPECT_EQ(partition->get_size(), mapping.get_num_elems());
+    EXPECT_EQ(partition->get_size(), mapping.get_size());
     EXPECT_EQ(partition->get_num_ranges(), num_ranges);
     EXPECT_EQ(partition->get_num_parts(), num_parts);
     EXPECT_EQ(partition->get_num_empty_parts(), 0);
@@ -93,7 +93,7 @@ TYPED_TEST(Partition, BuildsFromMappingWithEmptyParts)
     auto partition =
         part_type::build_from_mapping(this->ref, mapping, num_parts);
 
-    EXPECT_EQ(partition->get_size(), mapping.get_num_elems());
+    EXPECT_EQ(partition->get_size(), mapping.get_size());
     EXPECT_EQ(partition->get_num_ranges(), num_ranges);
     EXPECT_EQ(partition->get_num_parts(), num_parts);
     EXPECT_EQ(partition->get_num_empty_parts(), 2);
@@ -115,10 +115,9 @@ TYPED_TEST(Partition, BuildsFromRanges)
 
     auto partition = part_type::build_from_contiguous(this->ref, ranges);
 
-    EXPECT_EQ(partition->get_size(),
-              ranges.get_data()[ranges.get_num_elems() - 1]);
-    EXPECT_EQ(partition->get_num_ranges(), ranges.get_num_elems() - 1);
-    EXPECT_EQ(partition->get_num_parts(), ranges.get_num_elems() - 1);
+    EXPECT_EQ(partition->get_size(), ranges.get_data()[ranges.get_size() - 1]);
+    EXPECT_EQ(partition->get_num_ranges(), ranges.get_size() - 1);
+    EXPECT_EQ(partition->get_num_parts(), ranges.get_size() - 1);
     EXPECT_EQ(partition->get_num_empty_parts(), 1);
     assert_equal_data(partition->get_range_bounds(), {0, 5, 5, 7, 9, 10});
     assert_equal_data(partition->get_part_ids(), {0, 1, 2, 3, 4});
@@ -153,10 +152,9 @@ TYPED_TEST(Partition, BuildsFromRangesWithPartIds)
     auto partition =
         part_type::build_from_contiguous(this->ref, ranges, part_id);
 
-    EXPECT_EQ(partition->get_size(),
-              ranges.get_data()[ranges.get_num_elems() - 1]);
-    EXPECT_EQ(partition->get_num_ranges(), ranges.get_num_elems() - 1);
-    EXPECT_EQ(partition->get_num_parts(), ranges.get_num_elems() - 1);
+    EXPECT_EQ(partition->get_size(), ranges.get_data()[ranges.get_size() - 1]);
+    EXPECT_EQ(partition->get_num_ranges(), ranges.get_size() - 1);
+    EXPECT_EQ(partition->get_num_parts(), ranges.get_size() - 1);
     EXPECT_EQ(partition->get_num_empty_parts(), 1);
     assert_equal_data(partition->get_range_bounds(), {0, 5, 5, 7, 9, 10});
     assert_equal_data(partition->get_part_ids(), {0, 4, 3, 1, 2});

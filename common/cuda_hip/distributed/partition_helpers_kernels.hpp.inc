@@ -8,7 +8,7 @@ void sort_by_range_start(
     array<GlobalIndexType>& range_start_ends,
     array<experimental::distributed::comm_index_type>& part_ids)
 {
-    auto num_ranges = range_start_ends.get_num_elems() / 2;
+    auto num_ranges = range_start_ends.get_size() / 2;
     auto strided_indices = thrust::make_transform_iterator(
         thrust::make_counting_iterator(0),
         [] __host__ __device__(const int i) { return 2 * i; });

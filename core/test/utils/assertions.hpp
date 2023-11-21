@@ -481,8 +481,8 @@ template <typename ValueType>
     const std::string& first_expression, const std::string& second_expression,
     const array<ValueType>& first, const array<ValueType>& second)
 {
-    const auto num_elems1 = first.get_num_elems();
-    const auto num_elems2 = second.get_num_elems();
+    const auto num_elems1 = first.get_size();
+    const auto num_elems2 = second.get_size();
     if (num_elems1 != num_elems2) {
         auto fail = ::testing::AssertionFailure();
         fail << "Array " << first_expression << " contains " << num_elems1

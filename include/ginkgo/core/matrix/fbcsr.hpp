@@ -272,7 +272,7 @@ public:
      */
     size_type get_num_stored_elements() const noexcept
     {
-        return values_.get_num_elems();
+        return values_.get_size();
     }
 
     /**
@@ -280,7 +280,7 @@ public:
      */
     size_type get_num_stored_blocks() const noexcept
     {
-        return col_idxs_.get_num_elems();
+        return col_idxs_.get_size();
     }
 
     /**
@@ -423,9 +423,8 @@ protected:
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
           row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)}
     {
-        GKO_ASSERT_EQ(values_.get_num_elems(),
-                      col_idxs_.get_num_elems() * bs_ * bs_);
-        GKO_ASSERT_EQ(this->get_size()[0] / bs_ + 1, row_ptrs_.get_num_elems());
+        GKO_ASSERT_EQ(values_.get_size(), col_idxs_.get_size() * bs_ * bs_);
+        GKO_ASSERT_EQ(this->get_size()[0] / bs_ + 1, row_ptrs_.get_size());
     }
 
     void apply_impl(const LinOp* b, LinOp* x) const override;

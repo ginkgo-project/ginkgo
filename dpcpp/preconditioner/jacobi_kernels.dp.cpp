@@ -369,13 +369,13 @@ void initialize_precisions(std::shared_ptr<const DefaultExecutor> exec,
                            array<precision_reduction>& precisions)
 {
     const auto block_size = default_num_warps * config::warp_size;
-    const auto grid_size = min(
-        default_grid_size,
-        static_cast<int32>(ceildiv(precisions.get_num_elems(), block_size)));
+    const auto grid_size =
+        min(default_grid_size,
+            static_cast<int32>(ceildiv(precisions.get_size(), block_size)));
     if (grid_size > 0) {
         duplicate_array(grid_size, block_size, 0, exec->get_queue(),
-                        source.get_const_data(), source.get_num_elems(),
-                        precisions.get_data(), precisions.get_num_elems());
+                        source.get_const_data(), source.get_size(),
+                        precisions.get_data(), precisions.get_size());
     }
 }
 
