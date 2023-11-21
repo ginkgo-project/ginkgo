@@ -83,7 +83,7 @@ void build_local_nonlocal(
     vector<local_nonzero> local_entries(exec);
 
     auto num_threads = static_cast<size_type>(omp_get_max_threads());
-    auto num_input = input.get_num_elems();
+    auto num_input = input.get_size();
     auto size_per_thread = (num_input + num_threads - 1) / num_threads;
     std::vector<size_type> local_entry_offsets(num_threads, 0);
     std::vector<size_type> non_local_entry_offsets(num_threads, 0);
@@ -203,8 +203,7 @@ void build_local_nonlocal(
 
     // build local-to-global map for non-local columns
     non_local_to_global.resize_and_reset(num_non_local_cols);
-    std::fill_n(non_local_to_global.get_data(),
-                non_local_to_global.get_num_elems(),
+    std::fill_n(non_local_to_global.get_data(), non_local_to_global.get_size(),
                 invalid_index<GlobalIndexType>());
     for (const auto& key_value : non_local_global_to_local) {
         const auto global_idx = key_value.first;

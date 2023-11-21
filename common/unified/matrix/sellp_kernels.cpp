@@ -30,7 +30,7 @@ void compute_slice_sets(std::shared_ptr<const DefaultExecutor> exec,
                         size_type stride_factor, size_type* slice_sets,
                         size_type* slice_lengths)
 {
-    const auto num_rows = row_ptrs.get_num_elems() - 1;
+    const auto num_rows = row_ptrs.get_size() - 1;
     const auto num_slices =
         static_cast<size_type>(ceildiv(num_rows, slice_size));
     run_kernel_row_reduction(

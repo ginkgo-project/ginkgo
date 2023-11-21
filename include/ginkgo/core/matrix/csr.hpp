@@ -243,7 +243,7 @@ public:
                 row_ptrs_host = mtx_row_ptrs;
                 row_ptrs = row_ptrs_host.get_const_data();
             }
-            auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
+            auto num_rows = mtx_row_ptrs.get_size() - 1;
             max_length_per_row_ = 0;
             for (size_type i = 0; i < num_rows; i++) {
                 max_length_per_row_ = std::max(max_length_per_row_,
@@ -409,7 +409,7 @@ public:
         void process(const array<index_type>& mtx_row_ptrs,
                      array<index_type>* mtx_srow) override
         {
-            auto nwarps = mtx_srow->get_num_elems();
+            auto nwarps = mtx_srow->get_size();
 
             if (nwarps > 0) {
                 auto host_srow_exec = mtx_srow->get_executor()->get_master();
@@ -437,7 +437,7 @@ public:
                 for (size_type i = 0; i < nwarps; i++) {
                     srow[i] = 0;
                 }
-                const auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
+                const auto num_rows = mtx_row_ptrs.get_size() - 1;
                 const auto num_elems = row_ptrs[num_rows];
                 const auto bucket_divider =
                     num_elems > 0 ? ceildiv(num_elems, warp_size_) : 1;
@@ -624,7 +624,7 @@ public:
                 row_ptrs_host = mtx_row_ptrs;
                 row_ptrs = row_ptrs_host.get_const_data();
             }
-            const auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
+            const auto num_rows = mtx_row_ptrs.get_size() - 1;
             if (row_ptrs[num_rows] > nnz_limit) {
                 load_balance actual_strategy(nwarps_, warp_size_,
                                              cuda_strategy_, strategy_name_);
@@ -925,7 +925,7 @@ public:
      */
     size_type get_num_srow_elements() const noexcept
     {
-        return srow_.get_num_elems();
+        return srow_.get_size();
     }
 
     /**
@@ -935,7 +935,7 @@ public:
      */
     size_type get_num_stored_elements() const noexcept
     {
-        return values_.get_num_elems();
+        return values_.get_size();
     }
 
     /** Returns the strategy
@@ -1160,8 +1160,8 @@ protected:
           srow_(exec),
           strategy_(strategy->copy())
     {
-        GKO_ASSERT_EQ(values_.get_num_elems(), col_idxs_.get_num_elems());
-        GKO_ASSERT_EQ(this->get_size()[0] + 1, row_ptrs_.get_num_elems());
+        GKO_ASSERT_EQ(values_.get_size(), col_idxs_.get_size());
+        GKO_ASSERT_EQ(this->get_size()[0] + 1, row_ptrs_.get_size());
         this->make_srow();
     }
 
@@ -1316,7 +1316,7 @@ protected:
      */
     void make_srow()
     {
-        srow_.resize_and_reset(strategy_->clac_size(values_.get_num_elems()));
+        srow_.resize_and_reset(strategy_->clac_size(values_.get_size()));
         strategy_->process(row_ptrs_, &srow_);
     }
 

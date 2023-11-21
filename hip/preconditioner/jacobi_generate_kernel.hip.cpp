@@ -67,7 +67,7 @@ void generate(std::shared_ptr<const HipExecutor> exec,
               array<precision_reduction>& block_precisions,
               const array<IndexType>& block_pointers, array<ValueType>& blocks)
 {
-    components::fill_array(exec, blocks.get_data(), blocks.get_num_elems(),
+    components::fill_array(exec, blocks.get_data(), blocks.get_size(),
                            zero<ValueType>());
     select_generate(
         compiled_kernels(),

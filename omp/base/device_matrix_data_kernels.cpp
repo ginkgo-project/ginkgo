@@ -27,7 +27,7 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
                   array<ValueType>& values, array<IndexType>& row_idxs,
                   array<IndexType>& col_idxs)
 {
-    const auto size = values.get_num_elems();
+    const auto size = values.get_size();
     const auto num_threads = omp_get_max_threads();
     const auto per_thread = static_cast<size_type>(ceildiv(size, num_threads));
     vector<size_type> partial_counts(num_threads, {exec});
@@ -81,11 +81,11 @@ void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec,
                     size_type num_rows, array<ValueType>& values,
                     array<IndexType>& row_idxs, array<IndexType>& col_idxs)
 {
-    const auto size = values.get_num_elems();
+    const auto size = values.get_size();
     array<int64> row_ptrs_array{exec, num_rows + 1};
     array<int64> out_row_ptrs_array{exec, num_rows + 1};
     components::convert_idxs_to_ptrs(exec, row_idxs.get_const_data(),
-                                     row_idxs.get_num_elems(), num_rows,
+                                     row_idxs.get_size(), num_rows,
                                      row_ptrs_array.get_data());
     const auto row_ptrs = row_ptrs_array.get_const_data();
     const auto out_row_ptrs = out_row_ptrs_array.get_data();
@@ -138,10 +138,9 @@ template <typename ValueType, typename IndexType>
 void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
                     device_matrix_data<ValueType, IndexType>& data)
 {
-    array<matrix_data_entry<ValueType, IndexType>> tmp{exec,
-                                                       data.get_num_elems()};
+    array<matrix_data_entry<ValueType, IndexType>> tmp{exec, data.get_size()};
     soa_to_aos(exec, data, tmp);
-    std::sort(tmp.get_data(), tmp.get_data() + tmp.get_num_elems());
+    std::sort(tmp.get_data(), tmp.get_data() + tmp.get_size());
     aos_to_soa(exec, tmp, data);
 }
 

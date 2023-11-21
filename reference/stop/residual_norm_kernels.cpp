@@ -44,7 +44,7 @@ void residual_norm(std::shared_ptr<const ReferenceExecutor> exec,
             *one_changed = true;
         }
     }
-    for (size_type i = 0; i < stop_status->get_num_elems(); ++i) {
+    for (size_type i = 0; i < stop_status->get_size(); ++i) {
         if (!stop_status->get_const_data()[i].has_stopped()) {
             *all_converged = false;
             break;
@@ -84,7 +84,7 @@ void implicit_residual_norm(
             *one_changed = true;
         }
     }
-    for (size_type i = 0; i < stop_status->get_num_elems(); ++i) {
+    for (size_type i = 0; i < stop_status->get_size(); ++i) {
         if (!stop_status->get_const_data()[i].has_stopped()) {
             *all_converged = false;
             break;

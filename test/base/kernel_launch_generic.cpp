@@ -120,7 +120,7 @@ void run1d(std::shared_ptr<gko::EXEC_TYPE> exec, size_type dim, int* data)
 
 TEST_F(KernelLaunch, Runs1D)
 {
-    run1d(exec, zero_array.get_num_elems(), zero_array.get_data());
+    run1d(exec, zero_array.get_size(), zero_array.get_data());
 
     GKO_ASSERT_ARRAY_EQ(zero_array, iota_array);
 }
@@ -141,7 +141,7 @@ void run1d(std::shared_ptr<gko::EXEC_TYPE> exec, gko::array<int>& data)
                 d[i] = 0;
             }
         },
-        data.get_num_elems(), data, data.get_const_data(), move_only_val);
+        data.get_size(), data, data.get_const_data(), move_only_val);
 }
 
 TEST_F(KernelLaunch, Runs1DArray)
@@ -354,7 +354,7 @@ void run1d_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
                   static_cast<int64>(size));
         // The temporary storage (used for partial sums) must be smaller than
         // the input array
-        ASSERT_LE(temp.get_num_elems(), size * sizeof(int64));
+        ASSERT_LE(temp.get_size(), size * sizeof(int64));
     }
 }
 
@@ -449,7 +449,7 @@ void run2d_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
                   static_cast<int64>(dim[0] + dim[1]));
         // The temporary storage (used for partial sums) must be smaller than
         // the input array
-        ASSERT_LE(temp.get_num_elems(), dim[0] * dim[1] * sizeof(int64));
+        ASSERT_LE(temp.get_size(), dim[0] * dim[1] * sizeof(int64));
     }
 }
 
@@ -528,7 +528,7 @@ void run2d_row_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
         gko::array<int64> host_ref{exec->get_master(), dim[0]};
         gko::array<int64> output{exec, host_ref};
         temp.clear();
-        for (int64 i = 0; i < host_ref.get_num_elems(); ++i) {
+        for (int64 i = 0; i < host_ref.get_size(); ++i) {
             host_ref.get_data()[i] = dim[1] + i + 1;
         }
 
@@ -541,7 +541,7 @@ void run2d_row_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
         GKO_ASSERT_ARRAY_EQ(host_ref, output);
         // The temporary storage (used for partial sums) must be smaller than
         // the input array
-        ASSERT_LE(temp.get_num_elems(), dim[0] * dim[1] * sizeof(int64));
+        ASSERT_LE(temp.get_size(), dim[0] * dim[1] * sizeof(int64));
     }
 }
 
@@ -621,7 +621,7 @@ void run2d_col_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
         gko::array<int64> host_ref{exec->get_master(), dim[1]};
         gko::array<int64> output{exec, host_ref};
         temp.clear();
-        for (int64 i = 0; i < host_ref.get_num_elems(); ++i) {
+        for (int64 i = 0; i < host_ref.get_size(); ++i) {
             host_ref.get_data()[i] = dim[0] + i + 1;
         }
 
@@ -632,7 +632,7 @@ void run2d_col_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
             dim, temp);
 
         GKO_ASSERT_ARRAY_EQ(host_ref, output);
-        ASSERT_LE(temp.get_num_elems(), dim[0] * dim[1] * sizeof(int64));
+        ASSERT_LE(temp.get_size(), dim[0] * dim[1] * sizeof(int64));
     }
 }
 

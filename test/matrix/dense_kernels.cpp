@@ -607,7 +607,7 @@ TEST_F(Dense, CalculateNNZPerRowIsEquivalentToRef)
         exec, dx.get(), dnnz_per_row.get_data());
 
     auto tmp = gko::array<gko::size_type>(ref, dnnz_per_row);
-    for (gko::size_type i = 0; i < nnz_per_row.get_num_elems(); i++) {
+    for (gko::size_type i = 0; i < nnz_per_row.get_size(); i++) {
         ASSERT_EQ(nnz_per_row.get_const_data()[i], tmp.get_const_data()[i]);
     }
 }
@@ -1204,7 +1204,7 @@ TEST_F(Dense, CanGatherRowsIntoDenseCrossExecutor)
     auto sub_x = x->create_submatrix(row_span, col_span);
     auto sub_dx = dx->create_submatrix(row_span, col_span);
     auto gather_size =
-        gko::dim<2>{rgather_idxs->get_num_elems(), sub_x->get_size()[1]};
+        gko::dim<2>{rgather_idxs->get_size(), sub_x->get_size()[1]};
     auto r_gather = Mtx::create(ref, gather_size);
     // test make_temporary_clone and non-default stride
     auto dr_gather = Mtx::create(ref, gather_size, sub_x->get_size()[1] + 2);
@@ -1224,7 +1224,7 @@ TEST_F(Dense, CanAdvancedGatherRowsIntoDenseCrossExecutor)
     auto sub_x = x->create_submatrix(row_span, col_span);
     auto sub_dx = dx->create_submatrix(row_span, col_span);
     auto gather_size =
-        gko::dim<2>{rgather_idxs->get_num_elems(), sub_x->get_size()[1]};
+        gko::dim<2>{rgather_idxs->get_size(), sub_x->get_size()[1]};
     auto r_gather = gen_mtx<Mtx>(gather_size[0], gather_size[1]);
     // test make_temporary_clone and non-default stride
     auto dr_gather = Mtx::create(ref, gather_size, sub_x->get_size()[1] + 2);
@@ -1245,7 +1245,7 @@ TEST_F(Dense, CanGatherRowsIntoMixedDenseCrossExecutor)
     auto sub_x = x->create_submatrix(row_span, col_span);
     auto sub_dx = dx->create_submatrix(row_span, col_span);
     auto gather_size =
-        gko::dim<2>{rgather_idxs->get_num_elems(), sub_x->get_size()[1]};
+        gko::dim<2>{rgather_idxs->get_size(), sub_x->get_size()[1]};
     auto r_gather = MixedMtx::create(ref, gather_size);
     // test make_temporary_clone and non-default stride
     auto dr_gather =
@@ -1266,7 +1266,7 @@ TEST_F(Dense, CanAdvancedGatherRowsIntoMixedDenseCrossExecutor)
     auto sub_x = x->create_submatrix(row_span, col_span);
     auto sub_dx = dx->create_submatrix(row_span, col_span);
     auto gather_size =
-        gko::dim<2>{rgather_idxs->get_num_elems(), sub_x->get_size()[1]};
+        gko::dim<2>{rgather_idxs->get_size(), sub_x->get_size()[1]};
     auto r_gather = gen_mtx<MixedMtx>(gather_size[0], gather_size[1]);
     // test make_temporary_clone and non-default stride
     auto dr_gather =

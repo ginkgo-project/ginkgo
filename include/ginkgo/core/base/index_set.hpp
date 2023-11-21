@@ -116,7 +116,7 @@ public:
                        const bool is_sorted = false)
         : exec_(std::move(exec)), index_space_size_(size)
     {
-        GKO_ASSERT(index_space_size_ >= indices.get_num_elems());
+        GKO_ASSERT(index_space_size_ >= indices.get_size());
         this->populate_subsets(indices, is_sorted);
     }
 
@@ -371,7 +371,7 @@ public:
      */
     index_type get_num_subsets() const
     {
-        return this->subsets_begin_.get_num_elems();
+        return this->subsets_begin_.get_size();
     }
 
     /**

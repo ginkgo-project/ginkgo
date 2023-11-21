@@ -184,7 +184,7 @@ public:
      */
     size_type get_num_stored_elements() const noexcept
     {
-        return values_.get_num_elems();
+        return values_.get_size();
     }
 
     /**
@@ -387,7 +387,7 @@ protected:
     {
         // Ensure that the values array has the correct size
         auto num_elems = compute_num_elems(size);
-        GKO_ENSURE_IN_BOUNDS(num_elems, values_.get_num_elems() + 1);
+        GKO_ENSURE_IN_BOUNDS(num_elems, values_.get_size() + 1);
     }
 
     /**

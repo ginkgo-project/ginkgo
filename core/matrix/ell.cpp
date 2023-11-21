@@ -86,9 +86,9 @@ Ell<ValueType, IndexType>& Ell<ValueType, IndexType>::operator=(
         auto exec_this_view =
             Ell{exec,
                 this->get_size(),
-                make_array_view(exec, exec_values_array->get_num_elems(),
+                make_array_view(exec, exec_values_array->get_size(),
                                 exec_values_array->get_data()),
-                make_array_view(exec, exec_cols_array->get_num_elems(),
+                make_array_view(exec, exec_cols_array->get_size(),
                                 exec_cols_array->get_data()),
                 this->get_num_stored_elements_per_row(),
                 this->get_stride()};

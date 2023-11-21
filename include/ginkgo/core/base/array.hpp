@@ -93,6 +93,14 @@ public:
      *
      * @return the number of elements in the array view
      */
+    size_type get_size() const noexcept { return num_elems_; }
+
+    /**
+     * Returns the number of elements in the array view.
+     *
+     * @return the number of elements in the array view
+     */
+    GKO_DEPRECATED("use get_size() instead")
     size_type get_num_elems() const noexcept { return num_elems_; }
 
     /**
@@ -389,8 +397,7 @@ public:
      */
     array<ValueType> as_view()
     {
-        return view(this->get_executor(), this->get_num_elems(),
-                    this->get_data());
+        return view(this->get_executor(), this->get_size(), this->get_data());
     }
 
     /**
@@ -399,7 +406,7 @@ public:
      */
     detail::const_array_view<ValueType> as_const_view() const
     {
-        return const_view(this->get_executor(), this->get_num_elems(),
+        return const_view(this->get_executor(), this->get_size(),
                           this->get_const_data());
     }
 
@@ -434,12 +441,11 @@ public:
         }
 
         if (this->is_owning()) {
-            this->resize_and_reset(other.get_num_elems());
+            this->resize_and_reset(other.get_size());
         } else {
-            GKO_ENSURE_COMPATIBLE_BOUNDS(other.get_num_elems(),
-                                         this->num_elems_);
+            GKO_ENSURE_COMPATIBLE_BOUNDS(other.get_size(), this->num_elems_);
         }
-        exec_->copy_from(other.get_executor(), other.get_num_elems(),
+        exec_->copy_from(other.get_executor(), other.get_size(),
                          other.get_const_data(), this->get_data());
         return *this;
     }
@@ -530,10 +536,9 @@ public:
         }
 
         if (this->is_owning()) {
-            this->resize_and_reset(other.get_num_elems());
+            this->resize_and_reset(other.get_size());
         } else {
-            GKO_ENSURE_COMPATIBLE_BOUNDS(other.get_num_elems(),
-                                         this->num_elems_);
+            GKO_ENSURE_COMPATIBLE_BOUNDS(other.get_size(), this->num_elems_);
         }
         array<OtherValueType> tmp{this->exec_};
         const OtherValueType* source = other.get_const_data();
@@ -542,7 +547,7 @@ public:
             tmp = other;
             source = tmp.get_const_data();
         }
-        detail::convert_data(this->exec_, other.get_num_elems(), source,
+        detail::convert_data(this->exec_, other.get_size(), source,
                              this->get_data());
         return *this;
     }
@@ -606,6 +611,14 @@ public:
      *
      * @return the number of elements in the array
      */
+    size_type get_size() const noexcept { return num_elems_; }
+
+    /**
+     * Returns the number of elements in the array.
+     *
+     * @return the number of elements in the array
+     */
+    GKO_DEPRECATED("use get_size() instead")
     size_type get_num_elems() const noexcept { return num_elems_; }
 
     /**
@@ -766,8 +779,7 @@ struct temporary_clone_helper<array<T>> {
         if (copy_data) {
             return std::make_unique<array<T>>(std::move(exec), *ptr);
         } else {
-            return std::make_unique<array<T>>(std::move(exec),
-                                              ptr->get_num_elems());
+            return std::make_unique<array<T>>(std::move(exec), ptr->get_size());
         }
     }
 };
@@ -828,7 +840,7 @@ template <typename ValueType>
 array<ValueType> array_const_cast(const_array_view<ValueType> view)
 {
     return array<ValueType>::view(
-        view.get_executor(), view.get_num_elems(),
+        view.get_executor(), view.get_size(),
         const_cast<ValueType*>(view.get_const_data()));
 }
 
@@ -836,9 +848,8 @@ array<ValueType> array_const_cast(const_array_view<ValueType> view)
 template <typename ValueType>
 array<ValueType> const_array_view<ValueType>::copy_to_array() const
 {
-    array<ValueType> result(this->get_executor(), this->get_num_elems());
-    result.get_executor()->copy_from(this->get_executor(),
-                                     this->get_num_elems(),
+    array<ValueType> result(this->get_executor(), this->get_size());
+    result.get_executor()->copy_from(this->get_executor(), this->get_size(),
                                      this->get_const_data(), result.get_data());
     return result;
 }

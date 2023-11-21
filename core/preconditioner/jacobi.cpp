@@ -221,7 +221,7 @@ std::unique_ptr<LinOp> Jacobi<ValueType, IndexType>::transpose() const
     res->set_size(this->get_size());
     res->storage_scheme_ = storage_scheme_;
     res->num_blocks_ = num_blocks_;
-    res->blocks_.resize_and_reset(blocks_.get_num_elems());
+    res->blocks_.resize_and_reset(blocks_.get_size());
     res->conditioning_ = conditioning_;
     res->parameters_ = parameters_;
     if (parameters_.max_block_size == 1) {
@@ -247,7 +247,7 @@ std::unique_ptr<LinOp> Jacobi<ValueType, IndexType>::conj_transpose() const
     res->set_size(this->get_size());
     res->storage_scheme_ = storage_scheme_;
     res->num_blocks_ = num_blocks_;
-    res->blocks_.resize_and_reset(blocks_.get_num_elems());
+    res->blocks_.resize_and_reset(blocks_.get_size());
     res->conditioning_ = conditioning_;
     res->parameters_ = parameters_;
     if (parameters_.max_block_size == 1) {
@@ -299,7 +299,7 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
         auto temp =
             make_array_view(diag_vt->get_executor(), diag_vt->get_size()[0],
                             diag_vt->get_values());
-        this->blocks_ = array<ValueType>(exec, temp.get_num_elems());
+        this->blocks_ = array<ValueType>(exec, temp.get_size());
         exec->run(jacobi::make_invert_diagonal(temp, this->blocks_));
         this->num_blocks_ = diag_vt->get_size()[0];
     } else {
@@ -320,7 +320,7 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
                     gko::array<precision_reduction>(exec, {all_block_opt});
             }
             array<precision_reduction> tmp(
-                exec, parameters_.block_pointers.get_num_elems() - 1);
+                exec, parameters_.block_pointers.get_size() - 1);
             exec->run(jacobi::make_initialize_precisions(precisions, tmp));
             precisions = std::move(tmp);
             conditioning_.resize_and_reset(num_blocks_);

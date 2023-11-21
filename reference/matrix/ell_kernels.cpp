@@ -133,7 +133,7 @@ void compute_max_row_nnz(std::shared_ptr<const DefaultExecutor> exec,
 {
     max_nnz = 0;
     const auto ptrs = row_ptrs.get_const_data();
-    for (size_type i = 1; i < row_ptrs.get_num_elems(); i++) {
+    for (size_type i = 1; i < row_ptrs.get_size(); i++) {
         max_nnz = std::max<size_type>(max_nnz, ptrs[i] - ptrs[i - 1]);
     }
 }

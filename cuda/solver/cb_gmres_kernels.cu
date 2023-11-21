@@ -400,10 +400,10 @@ void arnoldi(std::shared_ptr<const DefaultExecutor> exec,
 {
     increase_final_iteration_numbers_kernel<<<
         static_cast<unsigned int>(
-            ceildiv(final_iter_nums->get_num_elems(), default_block_size)),
+            ceildiv(final_iter_nums->get_size(), default_block_size)),
         default_block_size, 0, exec->get_stream()>>>(
         as_device_type(final_iter_nums->get_data()),
-        stop_status->get_const_data(), final_iter_nums->get_num_elems());
+        stop_status->get_const_data(), final_iter_nums->get_size());
     finish_arnoldi_CGS(exec, next_krylov_basis, krylov_bases, hessenberg_iter,
                        buffer_iter, arnoldi_norm, iter,
                        stop_status->get_const_data(), reorth_status->get_data(),

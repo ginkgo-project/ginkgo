@@ -224,7 +224,7 @@ protected:
         : EnableLinOp<Diagonal>(exec, dim<2>(size)),
           values_{exec, std::forward<ValuesArray>(values)}
     {
-        GKO_ENSURE_IN_BOUNDS(size - 1, values_.get_num_elems());
+        GKO_ENSURE_IN_BOUNDS(size - 1, values_.get_size());
     }
 
     void apply_impl(const LinOp* b, LinOp* x) const override;

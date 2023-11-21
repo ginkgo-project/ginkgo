@@ -157,7 +157,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         static_cast<size_type>(row_partition->get_part_size(local_part));
     const auto num_local_cols =
         static_cast<size_type>(col_partition->get_part_size(local_part));
-    const auto num_non_local_cols = non_local_to_global_.get_num_elems();
+    const auto num_non_local_cols = non_local_to_global_.get_size();
     device_matrix_data<value_type, local_index_type> local_data{
         exec, dim<2>{num_local_rows, num_local_cols}, std::move(local_row_idxs),
         std::move(local_col_idxs), std::move(local_values)};

@@ -266,7 +266,7 @@ TEST_F(CooperativeGroups, ShuffleSumDouble)
     gko::array<double> value(ref, config::warp_size);
     gko::array<double> answer(ref, config::warp_size);
     gko::array<double> dvalue(exec);
-    for (int i = 0; i < value.get_num_elems(); i++) {
+    for (int i = 0; i < value.get_size(); i++) {
         value.get_data()[i] = x_dbl;
         answer.get_data()[i] = value.get_data()[i] * (1 << num);
     }
@@ -289,7 +289,7 @@ TEST_F(CooperativeGroups, ShuffleSumComplexDouble)
     gko::array<std::complex<double>> value(ref, config::warp_size);
     gko::array<std::complex<double>> answer(ref, config::warp_size);
     gko::array<std::complex<double>> dvalue(exec);
-    for (int i = 0; i < value.get_num_elems(); i++) {
+    for (int i = 0; i < value.get_size(); i++) {
         value.get_data()[i] = std::complex<double>{x_dbl, x_dbl};
         answer.get_data()[i] =
             std::complex<double>{x_dbl * (1 << num), x_dbl * (1 << num)};

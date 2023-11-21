@@ -250,7 +250,7 @@ protected:
         : Permutation{exec, array<IndexType>{exec, std::forward<IndicesArray>(
                                                        permutation_indices)}}
     {
-        GKO_ASSERT_EQ(size[0], permutation_.get_num_elems());
+        GKO_ASSERT_EQ(size[0], permutation_.get_size());
         GKO_ASSERT_IS_SQUARE_MATRIX(size);
     }
 
@@ -264,7 +264,7 @@ protected:
                                                  permutation_indices)}}
     {
         GKO_ASSERT_EQ(enabled_permute, row_permute);
-        GKO_ASSERT_EQ(size[0], permutation_.get_num_elems());
+        GKO_ASSERT_EQ(size[0], permutation_.get_size());
         GKO_ASSERT_IS_SQUARE_MATRIX(size);
     }
 

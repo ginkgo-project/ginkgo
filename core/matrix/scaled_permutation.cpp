@@ -39,13 +39,12 @@ template <typename ValueType, typename IndexType>
 ScaledPermutation<ValueType, IndexType>::ScaledPermutation(
     std::shared_ptr<const Executor> exec, array<value_type> scaling_factors,
     array<index_type> permutation_indices)
-    : EnableLinOp<ScaledPermutation>(exec,
-                                     dim<2>{scaling_factors.get_num_elems(),
-                                            scaling_factors.get_num_elems()}),
+    : EnableLinOp<ScaledPermutation>(
+          exec, dim<2>{scaling_factors.get_size(), scaling_factors.get_size()}),
       scale_{exec, std::move(scaling_factors)},
       permutation_{exec, std::move(permutation_indices)}
 {
-    GKO_ASSERT_EQ(scale_.get_num_elems(), permutation_.get_num_elems());
+    GKO_ASSERT_EQ(scale_.get_size(), permutation_.get_size());
 }
 
 

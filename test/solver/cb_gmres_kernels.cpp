@@ -59,8 +59,8 @@ protected:
             std::uniform_int_distribution<index_type>(num_cols, num_cols),
             std::normal_distribution<storage_type>(-1.0, 1.0), rand_engine,
             ref);
-        std::copy_n(temp_krylov_bases->get_const_values(),
-                    bases.get_num_elems(), bases.get_data());
+        std::copy_n(temp_krylov_bases->get_const_values(), bases.get_size(),
+                    bases.get_data());
         // Only useful when the Accessor actually has a scale
         auto range = helper.get_range();
         auto dist = std::normal_distribution<value_type>(-1, 1);
@@ -101,20 +101,20 @@ protected:
         givens_cos = gen_mtx(default_krylov_dim_mixed, n);
         stop_status =
             std::make_unique<gko::array<gko::stopping_status>>(ref, n);
-        for (size_t i = 0; i < stop_status->get_num_elems(); ++i) {
+        for (size_t i = 0; i < stop_status->get_size(); ++i) {
             stop_status->get_data()[i].reset();
         }
         reorth_status =
             std::make_unique<gko::array<gko::stopping_status>>(ref, n);
-        for (size_t i = 0; i < reorth_status->get_num_elems(); ++i) {
+        for (size_t i = 0; i < reorth_status->get_size(); ++i) {
             reorth_status->get_data()[i].reset();
         }
         final_iter_nums = std::make_unique<gko::array<gko::size_type>>(ref, n);
-        for (size_t i = 0; i < final_iter_nums->get_num_elems(); ++i) {
+        for (size_t i = 0; i < final_iter_nums->get_size(); ++i) {
             final_iter_nums->get_data()[i] = 5;
         }
         num_reorth = std::make_unique<gko::array<gko::size_type>>(ref, n);
-        for (size_t i = 0; i < num_reorth->get_num_elems(); ++i) {
+        for (size_t i = 0; i < num_reorth->get_size(); ++i) {
             num_reorth->get_data()[i] = 5;
         }
 
@@ -151,7 +151,7 @@ protected:
         d_to_host = d_range_helper.get_bases();
         const auto tolerance = r<storage_type>::value;
         using std::abs;
-        for (gko::size_type i = 0; i < krylov_bases.get_num_elems(); ++i) {
+        for (gko::size_type i = 0; i < krylov_bases.get_size(); ++i) {
             const auto ref_value = krylov_bases.get_const_data()[i];
             const auto dev_value = d_to_host.get_const_data()[i];
             ASSERT_LE(abs(dev_value - ref_value), tolerance);

@@ -111,7 +111,7 @@ public:
      */
     size_type get_num_ranges() const noexcept
     {
-        return offsets_.get_num_elems() - 1;
+        return offsets_.get_size() - 1;
     }
 
     /**

@@ -155,7 +155,7 @@ void kcycle_check_stop(std::shared_ptr<const DefaultExecutor> exec,
                        const ValueType rel_tol, bool& is_stop)
 {
     gko::array<bool> dis_stop(exec, 1);
-    components::fill_array(exec, dis_stop.get_data(), dis_stop.get_num_elems(),
+    components::fill_array(exec, dis_stop.get_data(), dis_stop.get_size(),
                            true);
     const auto nrhs = new_norm->get_size()[1];
     const auto grid = ceildiv(nrhs, default_block_size);

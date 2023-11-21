@@ -146,7 +146,7 @@ public:
     array<ValueType>& create_or_get_array(int array_id, size_type size)
     {
         auto& result = init_or_get_array<ValueType>(array_id);
-        if (result.get_num_elems() != size) {
+        if (result.get_size() != size) {
             result.resize_and_reset(size);
         }
         return result;

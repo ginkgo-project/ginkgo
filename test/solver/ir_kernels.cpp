@@ -49,7 +49,7 @@ protected:
 TEST_F(Ir, InitializeIsEquivalentToRef)
 {
     auto stop_status = gko::array<gko::stopping_status>(ref, 43);
-    for (size_t i = 0; i < stop_status.get_num_elems(); ++i) {
+    for (size_t i = 0; i < stop_status.get_size(); ++i) {
         stop_status.get_data()[i].reset();
     }
     auto d_stop_status = gko::array<gko::stopping_status>(exec, stop_status);
@@ -58,7 +58,7 @@ TEST_F(Ir, InitializeIsEquivalentToRef)
     gko::kernels::EXEC_NAMESPACE::ir::initialize(exec, &d_stop_status);
 
     auto tmp = gko::array<gko::stopping_status>(ref, d_stop_status);
-    for (int i = 0; i < stop_status.get_num_elems(); ++i) {
+    for (int i = 0; i < stop_status.get_size(); ++i) {
         ASSERT_EQ(stop_status.get_const_data()[i], tmp.get_const_data()[i]);
     }
 }

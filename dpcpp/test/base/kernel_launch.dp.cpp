@@ -116,7 +116,7 @@ TEST_F(KernelLaunch, Runs1D)
             static_assert(is_same<decltype(dummy), int64>::value, "dummy");
             d[i] = i;
         },
-        zero_array.get_num_elems(), zero_array.get_data(), move_only_val);
+        zero_array.get_size(), zero_array.get_data(), move_only_val);
 
     GKO_ASSERT_ARRAY_EQ(zero_array, iota_array);
 }
@@ -137,7 +137,7 @@ TEST_F(KernelLaunch, Runs1DArray)
                 d[i] = 0;
             }
         },
-        zero_array.get_num_elems(), zero_array, zero_array.get_const_data(),
+        zero_array.get_size(), zero_array, zero_array.get_const_data(),
         move_only_val);
 
     GKO_ASSERT_ARRAY_EQ(zero_array, iota_array);

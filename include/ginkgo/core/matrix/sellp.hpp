@@ -203,7 +203,7 @@ public:
      */
     size_type get_total_cols() const noexcept
     {
-        return values_.get_num_elems() / slice_size_;
+        return values_.get_size() / slice_size_;
     }
 
     /**
@@ -213,7 +213,7 @@ public:
      */
     size_type get_num_stored_elements() const noexcept
     {
-        return values_.get_num_elems();
+        return values_.get_size();
     }
 
     /**

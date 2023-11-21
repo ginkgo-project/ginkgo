@@ -30,9 +30,9 @@ void compute_coo_row_ptrs(std::shared_ptr<const DefaultExecutor> exec,
             coo_row_ptrs[i] = max(int64{}, static_cast<int64>(row_nnz[i]) -
                                                static_cast<int64>(ell_lim));
         },
-        row_nnz.get_num_elems(), row_nnz, ell_lim, coo_row_ptrs);
+        row_nnz.get_size(), row_nnz, ell_lim, coo_row_ptrs);
     components::prefix_sum_nonnegative(exec, coo_row_ptrs,
-                                       row_nnz.get_num_elems() + 1);
+                                       row_nnz.get_size() + 1);
 }
 
 
@@ -44,7 +44,7 @@ void compute_row_nnz(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto i, auto row_ptrs, auto row_nnzs) {
             row_nnzs[i] = row_ptrs[i + 1] - row_ptrs[i];
         },
-        row_ptrs.get_num_elems() - 1, row_ptrs, row_nnzs);
+        row_ptrs.get_size() - 1, row_ptrs, row_nnzs);
 }
 
 

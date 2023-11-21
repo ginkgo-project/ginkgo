@@ -77,7 +77,7 @@ public:
     {
         array<ValueType> h_scale{exec->get_master(),
                                  krylov_dim[0] * krylov_dim[2]};
-        for (size_type i = 0; i < h_scale.get_num_elems(); ++i) {
+        for (size_type i = 0; i < h_scale.get_size(); ++i) {
             h_scale.get_data()[i] = one<ValueType>();
         }
         scale_ = h_scale;

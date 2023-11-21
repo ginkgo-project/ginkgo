@@ -42,7 +42,7 @@ void compute_validity(std::shared_ptr<const DefaultExecutor> exec,
                       const array<IndexType>* local_indices,
                       array<bool>* validity_array)
 {
-    auto num_elems = local_indices->get_num_elems();
+    auto num_elems = local_indices->get_size();
     for (size_type i = 0; i < num_elems; ++i) {
         validity_array->get_data()[i] =
             local_indices->get_const_data()[i] != invalid_index<IndexType>();
@@ -82,7 +82,7 @@ void populate_subsets(std::shared_ptr<const DefaultExecutor> exec,
                       array<IndexType>* subset_end,
                       array<IndexType>* superset_indices, const bool is_sorted)
 {
-    auto num_indices = indices->get_num_elems();
+    auto num_indices = indices->get_size();
     auto tmp_indices = gko::array<IndexType>(*indices);
     // Sort the indices if not sorted.
     if (!is_sorted) {

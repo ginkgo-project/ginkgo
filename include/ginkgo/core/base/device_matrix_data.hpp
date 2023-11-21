@@ -80,8 +80,8 @@ public:
           col_idxs_{exec, std::forward<ColIndexArray>(col_idxs)},
           values_{exec, std::forward<ValueArray>(values)}
     {
-        GKO_ASSERT_EQ(values_.get_num_elems(), row_idxs_.get_num_elems());
-        GKO_ASSERT_EQ(values_.get_num_elems(), col_idxs_.get_num_elems());
+        GKO_ASSERT_EQ(values_.get_size(), row_idxs_.get_size());
+        GKO_ASSERT_EQ(values_.get_size(), col_idxs_.get_size());
     }
 
     /**
@@ -147,7 +147,7 @@ public:
      *
      * @return the number of stored elements of the matrix.
      */
-    size_type get_num_elems() const { return values_.get_num_elems(); }
+    size_type get_num_elems() const { return values_.get_size(); }
 
     /**
      * Returns a pointer to the row index array

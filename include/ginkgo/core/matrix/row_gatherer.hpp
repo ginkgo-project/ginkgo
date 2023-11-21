@@ -128,7 +128,7 @@ protected:
         : EnableLinOp<RowGatherer>(exec, size),
           row_idxs_{exec, std::forward<IndicesArray>(row_idxs)}
     {
-        GKO_ASSERT_EQ(size[0], row_idxs_.get_num_elems());
+        GKO_ASSERT_EQ(size[0], row_idxs_.get_size());
     }
 
     void apply_impl(const LinOp* in, LinOp* out) const override;

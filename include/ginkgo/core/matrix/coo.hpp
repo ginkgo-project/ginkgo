@@ -175,7 +175,7 @@ public:
      */
     size_type get_num_stored_elements() const noexcept
     {
-        return values_.get_num_elems();
+        return values_.get_size();
     }
 
     /**
@@ -316,8 +316,8 @@ protected:
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
           row_idxs_{exec, std::forward<RowIdxsArray>(row_idxs)}
     {
-        GKO_ASSERT_EQ(values_.get_num_elems(), col_idxs_.get_num_elems());
-        GKO_ASSERT_EQ(values_.get_num_elems(), row_idxs_.get_num_elems());
+        GKO_ASSERT_EQ(values_.get_size(), col_idxs_.get_size());
+        GKO_ASSERT_EQ(values_.get_size(), row_idxs_.get_size());
     }
 
     /**
