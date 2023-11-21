@@ -249,4 +249,4 @@ def compare_main(args: list):
 
 
 if __name__ == "__main__":
-    compare(sys.argv)
+    compare_main(sys.argv)
