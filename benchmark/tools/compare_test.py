@@ -203,8 +203,6 @@ def test_complex(capsys):
     captured = capsys.readouterr()
     ref_out = {
         "results": [
-            {"blas": {"axpy": {"time.ratio": 1.0}}, "k": 2, "m": 3, "n": 1, "r": 4},
-            {"size": 100, "spmv": {"csr": {"time.ratio": 1.0}}, "stencil": "7pt"},
             {
                 "filename": "mtx",
                 "solver": {
@@ -218,6 +216,8 @@ def test_complex(capsys):
                     }
                 },
             },
+            {"blas": {"axpy": {"time.ratio": 1.0}}, "k": 2, "m": 3, "n": 1, "r": 4},
+            {"size": 100, "spmv": {"csr": {"time.ratio": 1.0}}, "stencil": "7pt"},
         ],
         "outliers": {},
     }

@@ -160,7 +160,7 @@ def compare_main(args: list):
 
     results = {}
 
-    for key in set(baseline_json.keys()).intersection(comparison_json.keys()):
+    for key in sorted_key_intersection(baseline_json, comparison_json):
         results[key] = compare(baseline_json[key], comparison_json[key])
 
     outliers = {}
