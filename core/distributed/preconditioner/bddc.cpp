@@ -91,6 +91,9 @@ GKO_REGISTER_OPERATION(static_condensation2,
 namespace {
 
 
+enum dof_type { inner, corner, edge };
+
+
 template <typename IndexType>
 inline auto find_part(
     std::shared_ptr<
@@ -428,6 +431,15 @@ void Bddc<ValueType, IndexType>::generate_constraints()
     auto host = exec->get_master();
     auto comm = global_system_matrix_->get_communicator();
     auto rank = comm.rank();
+
+    std::map<IndexType, dof_type> dof_types;
+    std::map<IndexType, IndexType> global_to_inner;
+    std::map<IndexType, IndexType> global_to_gamma;
+    for (auto i = 0; i < inner_idxs_.size(); i++) {
+        dof_types.emplace(inner_idxs_[i], dof_type::inner);
+        global_to_inner.emplace(inner_idxs_[i], i);
+    }
+
     // Count interface dofs on rank
     size_t num_interfaces{};
     size_t num_interface_dofs{};
@@ -454,14 +466,79 @@ void Bddc<ValueType, IndexType>::generate_constraints()
         }
     }
 
-    corners_ = array<IndexType>(host, corners.begin(), corners.end());
-    edges_ = array<IndexType>(host, edges.begin(), edges.end());
+    for (auto i = 0; i < corner_idxs.size(); i++) {
+        dof_types.emplace(corner_idxs[i], dof_type::corner);
+        global_to_gamma.emplace(corner_idxs[i], i);
+    }
 
-    std::cout << "RANK: " << corners.size() << " CORNERS, " << edges.size()
-              << " EDGES" << std::endl;
+    size_t e_idx = corner_idxs.size();
+    for (auto i = 0; i < edge_idxs.size(); i++) {
+        dof_types.emplace(edge_idxs[i], dof_type::edge);
+        global_to_gamma.emplace(edge_idxs[i], e_idx);
+        e_idx++;
+    }
 
     auto mat_data = global_system_matrix_->get_matrix_data().copy_to_host();
     mat_data.ensure_row_major_order();
+
+    matrix_data<ValueType, IndexType> ii_data(
+        dim<2>(inner_idxs_.size(), inner_idxs_.size()));
+    matrix_data<ValueType, IndexType> ig_data(
+        dim<2>(inner_idxs_.size(), num_interface_dofs));
+    matrix_data<ValueType, IndexType> gi_data(
+        dim<2>(num_interface_dofs, inner_idxs_.size()));
+    matrix_data<ValueType, IndexType> gg_data(
+        dim<2>(num_interface_dofs, num_interface_dofs));
+    for (auto i = 0; i < mat_data.nonzeros.size(); i++) {
+        auto entry = mat_data.nonzeros[i];
+        auto row_type = dof_types.at(entry.row);
+        if (row_type == dof_type::inner) {
+            auto col_type = dof_types.at(entry.column);
+            if (col_type == dof_type::inner) {
+                ii_data.nonzeros.emplace_back(global_to_inner.at(entry.row),
+                                              global_to_inner.at(entry.column),
+                                              entry.value);
+            } else if (col_type == dof_type::corner ||
+                       col_type == dof_type::edge) {
+                ig_data.nonzeros.emplace_back(global_to_inner.at(entry.row),
+                                              global_to_gamma.at(entry.column),
+                                              entry.value);
+            }
+        } else if (row_type == dof_type::corner || row_type == dof_type::edge) {
+            auto col_type = dof_types.at(entry.column);
+            if (col_type == dof_type::inner) {
+                gi_data.nonzeros.emplace_back(global_to_gamma.at(entry.row),
+                                              global_to_inner.at(entry.column),
+                                              entry.value);
+            } else if (col_type == dof_type::corner ||
+                       col_type == dof_type::edge) {
+                gg_data.nonzeros.emplace_back(global_to_gamma.at(entry.row),
+                                              global_to_gamma.at(entry.column),
+                                              entry.value);
+            }
+        }
+    }
+
+    // Read matrix blocks
+    A_ii = matrix_type::create(exec);
+    A_ii->read(ii_data);
+    A_ig = vec_type::create(exec);
+    A_ig->read(ig_data);
+    A_gi = matrix_type::create(exec);
+    A_gi->read(gi_data);
+    auto A_gg = matrix_type::create(exec);
+    A_gg->read(gg_data);
+
+    // Generate inner solver
+    P_i = parameters_.local_solver_factory->generate(A_ii);
+
+    // Generate Schur complement to be preconditioned by BDDC
+    auto rhs =
+        vec_type::create(exec, dim<2>(inner_idxs_.size(), num_interface_dofs));
+    P_i->apply(A_ig, rhs);
+    auto schur =
+        vec_type::create(exec, dim<2>(num_interface_dofs, num_interface_dofs));
+    A_gi->apply(rhs, schur);
 
     std::vector<IndexType> local_rows{};
     IndexType local_row = -1;
@@ -477,7 +554,6 @@ void Bddc<ValueType, IndexType>::generate_constraints()
     std::vector<IndexType> non_local_to_local{};
     std::vector<IndexType> local_idxs{};
     std::vector<IndexType> local_to_local{};
-    std::vector<IndexType> inner_idxs{};
     std::vector<IndexType> outer_idxs{};
     std::vector<IndexType> local_to_inner{};
     std::vector<IndexType> local_to_outer{};
@@ -565,21 +641,13 @@ void Bddc<ValueType, IndexType>::generate_constraints()
 
     for (auto i = 0; i < local_idxs.size(); i++) {
         if (inner_vec[local_to_local[i]] == 1) {
-            inner_idxs.emplace_back(local_idxs[i]);
             inner_to_local.emplace_back(i);
-            local_to_inner.emplace_back(inner_idxs.size() - 1);
             local_to_outer.emplace_back(-1);
         } else {
             outer_idxs.emplace_back(local_idxs[i]);
             local_to_inner.emplace_back(-1);
             local_to_outer.emplace_back(outer_idxs.size() - 1);
         }
-    }
-
-    std::string I_name = "INNER" + std::to_string(comm.rank()) + ".txt";
-    std::ofstream I{I_name};
-    for (auto i = 0; i < inner_idxs.size(); i++) {
-        I << inner_idxs[i] << std::endl;
     }
 
     std::vector<comm_index_type> send_sizes, send_offsets;
@@ -652,30 +720,36 @@ void Bddc<ValueType, IndexType>::generate_constraints()
                 local_data.nonzeros.emplace_back(i, j, nnz.value);
                 auto row_corner =
                     std::find(corner_idxs.begin(), corner_idxs.end(), nnz.row);
-                auto col_corner = std::find(corner_idxs.begin(),
-                                            corner_idxs.end(), nnz.column);
-                auto row_edge =
-                    std::find(edge_idxs.begin(), edge_idxs.end(), nnz.row);
-                auto col_edge =
-                    std::find(edge_idxs.begin(), edge_idxs.end(), nnz.column);
                 if (row_corner != corner_idxs.end()) {
+                    auto col_corner = std::find(corner_idxs.begin(),
+                                                corner_idxs.end(), nnz.column);
                     if (col_corner != corner_idxs.end()) {
                         cc_data.nonzeros.emplace_back(
                             std::distance(corner_idxs.begin(), row_corner),
                             std::distance(corner_idxs.begin(), col_corner),
                             nnz.value);
-                    } else if (col_edge != edge_idxs.end()) {
-                        ce_data.nonzeros.emplace_back(
-                            std::distance(corner_idxs.begin(), row_corner),
-                            std::distance(edge_idxs.begin(), col_edge),
-                            nnz.value);
+                    } else {
+                        auto col_edge = std::find(edge_idxs.begin(),
+                                                  edge_idxs.end(), nnz.column);
+                        if (col_edge != edge_idxs.end()) {
+                            ce_data.nonzeros.emplace_back(
+                                std::distance(corner_idxs.begin(), row_corner),
+                                std::distance(edge_idxs.begin(), col_edge),
+                                nnz.value);
+                        }
                     }
-                } else if (row_edge != edge_idxs.end()) {
-                    if (col_edge != edge_idxs.end()) {
-                        ee_data.nonzeros.emplace_back(
-                            std::distance(edge_idxs.begin(), row_edge),
-                            std::distance(edge_idxs.begin(), col_edge),
-                            nnz.value);
+                } else {
+                    auto row_edge =
+                        std::find(edge_idxs.begin(), edge_idxs.end(), nnz.row);
+                    if (row_edge != edge_idxs.end()) {
+                        auto col_edge = std::find(edge_idxs.begin(),
+                                                  edge_idxs.end(), nnz.column);
+                        if (col_edge != edge_idxs.end()) {
+                            ee_data.nonzeros.emplace_back(
+                                std::distance(edge_idxs.begin(), row_edge),
+                                std::distance(edge_idxs.begin(), col_edge),
+                                nnz.value);
+                        }
                     }
                 }
             }
@@ -687,41 +761,44 @@ void Bddc<ValueType, IndexType>::generate_constraints()
         i++;
     }
 
-    CC = matrix::Csr<ValueType, IndexType>::create(exec);
+    cc_data.ensure_row_major_order();
+    CC = share(matrix::Csr<ValueType, IndexType>::create(exec));
     CC->read(cc_data);
-    CE = matrix::Dense<ValueType>::create(exec);
+    ce_data.ensure_row_major_order();
+    CE = share(matrix::Dense<ValueType>::create(exec));
     CE->read(ce_data);
     EC = share(as<matrix::Dense<ValueType>>(CE->transpose()));
-    EE = matrix::Csr<ValueType, IndexType>::create(exec);
+    ee_data.ensure_row_major_order();
+    EE = share(matrix::Csr<ValueType, IndexType>::create(exec));
     EE->read(ee_data);
-    std::ofstream EE_stream{"EE_" + std::to_string(comm.rank()) + ".mtx"};
-    write(EE_stream, EE, gko::layout_type::coordinate);
+    // std::ofstream EE_stream{"EE_" + std::to_string(comm.rank()) + ".mtx"};
+    // write(EE_stream, EE, layout_type::coordinate);
 
     std::for_each(dbcs.begin(), dbcs.end(), [&local_data](int i) {
         local_data.nonzeros.emplace_back(i, i, one<ValueType>());
     });
 
-    matrix_data<ValueType, IndexType> inner_data{
-        dim<2>{inner_idxs.size(), inner_idxs.size()}};
+    /*matrix_data<ValueType, IndexType> inner_data{
+        dim<2>{inner_idxs_.size(), inner_idxs_.size()}};
     i = 0;
     idx = 0;
     nnz = mat_data.nonzeros[idx];
     std::set<IndexType> inner_dbcs{};
-    while (i < inner_idxs.size()) {
-        while (nnz.row < inner_idxs[i]) {
+    while (i < inner_idxs_.size()) {
+        while (nnz.row < inner_idxs_[i]) {
             idx++;
             nnz = mat_data.nonzeros[idx];
         }
-        while (nnz.row == inner_idxs[i] && idx < mat_data.nonzeros.size()) {
+        while (nnz.row == inner_idxs_[i] && idx < mat_data.nonzeros.size()) {
             auto found =
-                std::find(inner_idxs.begin(), inner_idxs.end(), nnz.column);
-            if (found != inner_idxs.end()) {
+                std::find(inner_idxs_.begin(), inner_idxs_.end(), nnz.column);
+            if (found != inner_idxs_.end()) {
                 if (parameters_.boundary_idxs.find(nnz.row) !=
                     parameters_.boundary_idxs.end()) {
                     inner_dbcs.insert(i);
                 } else if (parameters_.boundary_idxs.find(nnz.column) ==
                            parameters_.boundary_idxs.end()) {
-                    auto j = std::distance(inner_idxs.begin(), found);
+                    auto j = std::distance(inner_idxs_.begin(), found);
                     inner_data.nonzeros.emplace_back(i, j, nnz.value);
                 }
             }
@@ -739,7 +816,7 @@ void Bddc<ValueType, IndexType>::generate_constraints()
 
     inner_data.ensure_row_major_order();
     inner_system_matrix_ = matrix::Csr<ValueType, IndexType>::create(exec);
-    inner_system_matrix_->read(inner_data);
+    inner_system_matrix_->read(inner_data);*/
 
     // outer_data.ensure_row_major_order();
     // outer_system_matrix_ = matrix::Csr<ValueType, IndexType>::create(exec);
@@ -767,7 +844,6 @@ void Bddc<ValueType, IndexType>::generate_constraints()
     recv_buffer_ = array<ValueType>(exec, recv_offsets.back());
     recv_buffer_.fill(zero<ValueType>());
     global_idx_to_recv_buffer_ = global_idx_to_recv_buffer;
-    inner_idxs_ = inner_idxs;
     local_to_inner_ =
         array<IndexType>(exec, local_to_inner.begin(), local_to_inner.end());
     inner_to_local_ =
@@ -861,6 +937,7 @@ void Bddc<ValueType, IndexType>::schur_complement_solve()
     auto comm = global_system_matrix_->get_communicator();
     auto n_rows = local_system_matrix_->get_size()[0];
     auto n_cols = n_rows - local_rows_.size();
+
     auto lhs = matrix::Dense<ValueType>::create(exec, dim<2>{n_rows, n_cols});
     lhs->fill(zero<ValueType>());
     auto host_rhs = clone(host, lhs);
@@ -881,11 +958,8 @@ void Bddc<ValueType, IndexType>::schur_complement_solve()
         initialize<matrix::Dense<ValueType>>({-one<ValueType>()}, exec);
     local_coarse_matrix_->scale(neg_one.get());
 
-    auto LHS = clone(exec, EC);
-    EE_solver->apply(EC, LHS);
     auto ID = matrix::Dense<ValueType>::create(
         host, dim<2>{edges_.get_num_elems(), edges_.get_num_elems()});
-    edge_constraints->apply(LHS, ID);
     for (auto i = 0; i < ID->get_size()[0]; i++) {
         ID->at(i, i) -= one<ValueType>();
     }
@@ -1360,7 +1434,30 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
 
     auto part = global_system_matrix_->get_row_partition();
 
-    restrict_residual(dense_b);
+    dense_x->fill(zero<ValueType>());
+    auto global_solution =
+        as<experimental::distributed::Vector<ValueType>>(dense_x)
+            ->get_local_values();
+    if (parameters_.static_condensation) {
+        intermediate_->copy_from(
+            as<experimental::distributed::Vector<ValueType>>(dense_b));
+        auto r1 = intermediate_->get_local_vector();
+
+        exec->run(bddc::make_static_condensation1(r1, local_to_inner_,
+                                                  inner_residual_.get()));
+        inner_solution_->fill(zero<ValueType>());
+        inner_solver_->apply(inner_residual_.get(), inner_solution_.get());
+
+
+        exec->run(bddc::make_static_condensation2(
+            inner_solution_.get(), local_to_inner_, global_solution));
+        comm.synchronize();
+        global_system_matrix_->apply(neg_one_op_, dense_x, one_op_,
+                                     intermediate_);
+        restrict_residual(intermediate_.get());
+    } else {
+        restrict_residual(dense_b);
+    }
 
     coarsen_residual();
     coarse_solver_->apply(coarse_residual_.get(), coarse_solution_.get());
@@ -1401,26 +1498,23 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
         send_buffer_.set_executor(exec);
     }
 
-    auto global_solution =
-        as<experimental::distributed::Vector<ValueType>>(dense_x)
-            ->get_local_values();
     exec->run(bddc::make_finalize2(send_buffer_, local_idx_to_send_buffer_,
                                    local_to_local_, local_solution_.get(),
                                    global_solution));
 
-    static int cnt = 0;
-    if (parameters_.static_condensation || true && cnt == 0) {
+    // static int cnt = 0;
+    if (parameters_.static_condensation) {
         intermediate_->copy_from(
             as<experimental::distributed::Vector<ValueType>>(dense_b));
         global_system_matrix_->apply(neg_one_op_.get(), dense_x, one_op_.get(),
                                      intermediate_.get());
-        auto r1 = intermediate_->get_local_vector();
+        // auto r1 = intermediate_->get_local_vector();
 
-        intermediate_->compute_norm2(resnorm);
-    }
-    if (parameters_.static_condensation && cnt < 100000000) {
+        // intermediate_->compute_norm2(resnorm);
+        //}
+        // if (parameters_.static_condensation && cnt < 100000000) {
         auto r1 = intermediate_->get_local_vector();
-        auto resnorm2 = gko::clone(exec->get_master(), one_op_);
+        // auto resnorm2 = gko::clone(exec->get_master(), one_op_);
 
         exec->run(bddc::make_static_condensation1(r1, local_to_inner_,
                                                   inner_residual_.get()));
@@ -1435,8 +1529,6 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
             as<experimental::distributed::Vector<ValueType>>(dense_b));
         global_system_matrix_->apply(neg_one_op_, dense_x, one_op_,
                                      intermediate_);
-        intermediate_->compute_norm2(resnorm2);
-        cnt++;
     }
 }
 
@@ -1462,6 +1554,7 @@ void Bddc<ValueType, IndexType>::generate()
     auto exec = this->get_executor();
     auto host = exec->get_master();
     auto comm = global_system_matrix_->get_communicator();
+    inner_idxs_ = parameters_.interior_dofs;
     if (parameters_.interface_dofs.size() > 0 &&
         parameters_.interface_dof_ranks.size() > 0) {
         interface_dofs_ = parameters_.interface_dofs;
@@ -1480,8 +1573,43 @@ void Bddc<ValueType, IndexType>::generate()
         parameters_.local_solver_factory->generate(local_system_matrix_);
     std::cout << "RANK " << comm.rank() << " DONE WITH LOCAL SOLVER"
               << std::endl;
-    EE_solver = parameters_.local_solver_factory->generate(EE);
+    /*EE_solver = parameters_.local_solver_factory->generate(EE);
     std::cout << "RANK " << comm.rank() << " DONE WITH EE SOLVER" << std::endl;
+    auto SCHUR_RHS = matrix::Dense<ValueType>::create(exec);
+    as<matrix::Csr<ValueType,
+    IndexType>>(edge_constraints->transpose())->convert_to(SCHUR_RHS); auto
+    SCHUR_SOL = clone(SCHUR_RHS); std::cout << "RANK " << comm.rank() << " SCHUR
+    RHS: " << SCHUR_RHS->get_size() << std::endl; EE_solver->apply(SCHUR_RHS,
+    SCHUR_SOL); std::cout << "RANK " << comm.rank() << " DONE WITH EE" <<
+    std::endl; auto dense_schur_complement =
+    matrix::Dense<ValueType>::create(exec,
+    gko::dim<2>{edge_constraints->get_size()[0],
+            edge_constraints->get_size()[0]});
+    edge_constraints->apply(SCHUR_SOL, dense_schur_complement);
+    std::cout << "RANK " << comm.rank() << " DONE WITH DENSE SC" << std::endl;
+    schur_complement = matrix::Csr<ValueType, IndexType>::create(exec);
+    dense_schur_complement->convert_to(schur_complement);
+    schur_complement_solver_ =
+    parameters_.local_solver_factory->generate(schur_complement); std::cout <<
+    "RANK " << comm.rank() << " DONE WITH SCHUR SOLVER" << std::endl; auto LHS =
+    clone(EC); EE_solver->apply(EC, LHS); std::cout << "RANK " << comm.rank() <<
+    " DONE WITH EE SOLVE" << std::endl; auto RHS =
+    matrix::Dense<ValueType>::create(exec,
+    dim<2>{edge_constraints->get_size()[0], LHS->get_size()[1]});
+    edge_constraints->apply(LHS, RHS);
+    auto HOST_RHS = clone(host, RHS);
+    for (auto i = 0; i < RHS->get_size()[0]; i++) {
+        HOST_RHS->at(RHS->get_size()[0] - i, RHS->get_size()[1] - i) -= 1;
+    }
+    RHS->copy_from(HOST_RHS.get());
+    auto LAMBDA_E = matrix::Dense<ValueType>::create(exec,
+    dim<2>{schur_complement->get_size()[1], RHS->get_size()[1]});
+    schur_complement_solver_->apply(RHS, LAMBDA_E);
+    std::ofstream schur_stream{"schur_" + std::to_string(comm.rank()) + ".mtx"};
+    write(schur_stream, schur_complement, layout_type::coordinate);
+    std::cout << "RANK " << comm.rank() << " DONE WITH SCHUR SETUP, " <<
+    RHS->get_size() << std::endl;*/
+
     schur_complement_solve();
     std::cout << "RANK " << comm.rank() << " DONE WITH SCHUR SOLVE"
               << std::endl;

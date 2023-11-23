@@ -151,6 +151,11 @@ public:
         std::vector<std::vector<index_type>> GKO_FACTORY_PARAMETER_VECTOR(
             interface_dof_ranks, 0);
 
+        /**
+         * A rank local list of interior dofs.
+         */
+        std::vector<index_type> GKO_FACTORY_PARAMETER_VECTOR(interior_dofs, 0);
+
         std::set<index_type> GKO_FACTORY_PARAMETER_VECTOR(boundary_idxs, {});
     };
     GKO_ENABLE_LIN_OP_FACTORY(Bddc, parameters, Factory);
@@ -220,11 +225,22 @@ protected:
 private:
     array<index_type> corners_;
     array<index_type> edges_;
+    array<index_type> corner_idxs_;
+    array<index_type> edge_idxs_;
+    std::shared_ptr<matrix_type> A_ii;
+    std::shared_ptr<vec_type> A_ig;
+    std::shared_ptr<matrix_type> A_gi;
+    std::shared_ptr<matrix_type> A_cc;
+    std::shared_ptr<matrix_type> A_ce;
+    std::shared_ptr<matrix_type> A_ec;
+    std::shared_ptr<matrix_type> A_ee;
+    std::shared_ptr<const LinOp> P_i;
     std::shared_ptr<matrix_type> CC;
     std::shared_ptr<vec_type> CE;
     std::shared_ptr<vec_type> EC;
     std::shared_ptr<matrix_type> EE;
     std::shared_ptr<matrix_type> edge_constraints;
+    std::shared_ptr<matrix_type> schur_complement;
     std::shared_ptr<const LinOp> EE_solver;
     std::shared_ptr<const global_matrix_type> global_system_matrix_;
     std::shared_ptr<global_matrix_type> global_coarse_matrix_;
