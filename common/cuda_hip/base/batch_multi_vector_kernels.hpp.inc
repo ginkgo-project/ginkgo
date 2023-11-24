@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-
 template <typename ValueType, typename Mapping>
 __device__ __forceinline__ void scale(
     const gko::batch::multi_vector::batch_item<const ValueType>& alpha,
