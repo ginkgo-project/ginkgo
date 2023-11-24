@@ -24,7 +24,7 @@ git checkout -b $LOCAL_BRANCH fork/$HEAD_BRANCH
 
 # restore files from develop
 cp /tmp/.clang-format .
-cp /tmp/.pre-commit-config .
+cp /tmp/.pre-commit-config.yaml .
 cp /tmp/add_license.sh dev_tools/scripts/
 cp /tmp/format_header.sh dev_tools/scripts/
 cp /tmp/update_ginkgo_header.sh dev_tools/scripts/
