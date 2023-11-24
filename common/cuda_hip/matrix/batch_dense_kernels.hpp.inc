@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-
 template <typename ValueType>
 __device__ __forceinline__ void simple_apply(
     const gko::batch::matrix::dense::batch_item<const ValueType>& mat,

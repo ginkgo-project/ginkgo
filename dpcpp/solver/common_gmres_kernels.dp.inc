@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-
 // Must be called with at least `max(stride_b * num_rows, krylov_dim *
 // num_cols)` threads in total.
 template <size_type block_size, typename ValueType>

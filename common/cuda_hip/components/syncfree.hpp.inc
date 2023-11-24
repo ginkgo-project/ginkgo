@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-
 struct syncfree_storage {
     using status_word = int;
 

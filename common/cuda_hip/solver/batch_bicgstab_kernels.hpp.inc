@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-
 template <typename Group, typename BatchMatrixType_entry, typename ValueType>
 __device__ __forceinline__ void initialize(
     Group subgroup, const int num_rows, const BatchMatrixType_entry& mat_entry,
