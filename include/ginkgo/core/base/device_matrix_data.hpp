@@ -147,7 +147,15 @@ public:
      *
      * @return the number of stored elements of the matrix.
      */
-    size_type get_num_elems() const { return values_.get_size(); }
+    GKO_DEPRECATED("use get_num_stored_elements()")
+    size_type get_num_elems() const { return get_num_stored_elements(); }
+
+    /**
+     * Returns the number of stored elements of the matrix.
+     *
+     * @return the number of stored elements of the matrix.
+     */
+    size_type get_num_stored_elements() const { return values_.get_size(); }
 
     /**
      * Returns a pointer to the row index array
@@ -256,7 +264,8 @@ struct temporary_clone_helper<device_matrix_data<ValueType, IndexType>> {
                 std::move(exec), *ptr);
         } else {
             return std::make_unique<device_matrix_data<ValueType, IndexType>>(
-                std::move(exec), ptr->get_size(), ptr->get_num_elems());
+                std::move(exec), ptr->get_size(),
+                ptr->get_num_stored_elements());
         }
     }
 };

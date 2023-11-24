@@ -244,7 +244,7 @@ void Ell<ValueType, IndexType>::read(const device_mat_data& data)
     array<int64> row_ptrs(exec, data.get_size()[0] + 1);
     auto local_data = make_temporary_clone(exec, &data);
     exec->run(ell::make_convert_idxs_to_ptrs(
-        local_data->get_const_row_idxs(), local_data->get_num_elems(),
+        local_data->get_const_row_idxs(), local_data->get_num_stored_elements(),
         data.get_size()[0], row_ptrs.get_data()));
     size_type max_nnz{};
     exec->run(ell::make_compute_max_row_nnz(row_ptrs, max_nnz));

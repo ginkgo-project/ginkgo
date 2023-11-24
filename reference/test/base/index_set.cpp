@@ -329,7 +329,7 @@ TYPED_TEST(index_set, CanGetLocalIndexFromSortedArrays)
 
     auto idx_set_lidx = idx_set.map_global_to_local(gidx_arr, true);
 
-    this->assert_equal_arrays(lidx_arr.get_num_elems(),
+    this->assert_equal_arrays(lidx_arr.get_size(),
                               idx_set_lidx.get_const_data(),
                               lidx_arr.get_const_data());
 }
@@ -345,7 +345,7 @@ TYPED_TEST(index_set, CanGetLocalIndexFromUnsortedArrays)
 
     auto idx_set_lidx = idx_set.map_global_to_local(gidx_arr);
 
-    this->assert_equal_arrays(lidx_arr.get_num_elems(),
+    this->assert_equal_arrays(lidx_arr.get_size(),
                               idx_set_lidx.get_const_data(),
                               lidx_arr.get_const_data());
 }

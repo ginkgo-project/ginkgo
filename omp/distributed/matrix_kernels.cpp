@@ -83,7 +83,7 @@ void build_local_nonlocal(
     vector<local_nonzero> local_entries(exec);
 
     auto num_threads = static_cast<size_type>(omp_get_max_threads());
-    auto num_input = input.get_size();
+    auto num_input = input.get_num_stored_elements();
     auto size_per_thread = (num_input + num_threads - 1) / num_threads;
     std::vector<size_type> local_entry_offsets(num_threads, 0);
     std::vector<size_type> non_local_entry_offsets(num_threads, 0);

@@ -52,7 +52,7 @@ void build_local_nonlocal(
         col_partition->get_range_starting_indices();
     const auto num_row_ranges = row_partition->get_num_ranges();
     const auto num_col_ranges = col_partition->get_num_ranges();
-    const auto num_input_elements = input.get_num_elems();
+    const auto num_input_elements = input.get_num_stored_elements();
 
     // precompute the row and column range id of each input element
     auto input_row_idxs = input.get_const_row_idxs();
@@ -62,7 +62,7 @@ void build_local_nonlocal(
                         row_range_bounds + num_row_ranges + 1, input_row_idxs,
                         input_row_idxs + num_input_elements,
                         row_range_ids.get_data());
-    array<size_type> col_range_ids{exec, input.get_num_elems()};
+    array<size_type> col_range_ids{exec, input.get_num_stored_elements()};
     thrust::upper_bound(thrust_policy(exec), col_range_bounds + 1,
                         col_range_bounds + num_col_ranges + 1, input_col_idxs,
                         input_col_idxs + num_input_elements,
@@ -128,8 +128,8 @@ void build_local_nonlocal(
             return thrust::make_tuple(local_row, local_col, input.val);
         });
     thrust::copy_if(
-        thrust_policy(exec), local_it, local_it + input.get_num_elems(),
-        range_ids_it,
+        thrust_policy(exec), local_it,
+        local_it + input.get_num_stored_elements(), range_ids_it,
         thrust::make_zip_iterator(thrust::make_tuple(local_row_idxs.get_data(),
                                                      local_col_idxs.get_data(),
                                                      local_values.get_data())),
@@ -157,8 +157,8 @@ void build_local_nonlocal(
                                       input.col_range);
         });
     thrust::copy_if(
-        thrust_policy(exec), non_local_it, non_local_it + input.get_num_elems(),
-        range_ids_it,
+        thrust_policy(exec), non_local_it,
+        non_local_it + input.get_num_stored_elements(), range_ids_it,
         thrust::make_zip_iterator(thrust::make_tuple(
             non_local_row_idxs.get_data(), non_local_global_col_idxs.get_data(),
             non_local_values.get_data(), non_local_col_part_ids.get_data(),

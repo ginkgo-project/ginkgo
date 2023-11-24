@@ -133,9 +133,9 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
                          array<IndexType>& col_idxs, array<ValueType>& values)
 {
     array<matrix_data_entry<ValueType, IndexType>> block_ordered{
-        exec, data.get_num_elems()};
+        exec, data.get_num_stored_elements()};
     components::soa_to_aos(exec, data, block_ordered);
-    const auto in_nnz = data.get_num_elems();
+    const auto in_nnz = data.get_num_stored_elements();
     auto block_ordered_ptr = block_ordered.get_data();
     std::stable_sort(
         block_ordered_ptr, block_ordered_ptr + in_nnz,

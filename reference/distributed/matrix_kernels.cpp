@@ -68,7 +68,7 @@ void build_local_nonlocal(
     vector<global_nonzero> non_local_entries(exec);
     size_type row_range_id = 0;
     size_type col_range_id = 0;
-    for (size_type i = 0; i < input.get_num_elems(); ++i) {
+    for (size_type i = 0; i < input.get_num_stored_elements(); ++i) {
         auto global_row = input_row_idxs[i];
         row_range_id = find_range(global_row, row_partition, row_range_id);
         if (row_part_ids[row_range_id] == local_part) {

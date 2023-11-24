@@ -209,9 +209,9 @@ void Sellp<ValueType, IndexType>::read(const device_mat_data& data)
     this->set_size(size);
     array<int64> row_ptrs{exec, size[0] + 1};
     auto local_data = make_temporary_clone(exec, &data);
-    exec->run(sellp::make_convert_idxs_to_ptrs(local_data->get_const_row_idxs(),
-                                               local_data->get_num_elems(),
-                                               size[0], row_ptrs.get_data()));
+    exec->run(sellp::make_convert_idxs_to_ptrs(
+        local_data->get_const_row_idxs(), local_data->get_num_stored_elements(),
+        size[0], row_ptrs.get_data()));
     exec->run(sellp::make_compute_slice_sets(
         row_ptrs, this->get_slice_size(), this->get_stride_factor(),
         slice_sets_.get_data(), slice_lengths_.get_data()));

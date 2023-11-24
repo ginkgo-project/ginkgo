@@ -25,7 +25,7 @@ void soa_to_aos(std::shared_ptr<const DefaultExecutor> exec,
                 const device_matrix_data<ValueType, IndexType>& in,
                 array<matrix_data_entry<ValueType, IndexType>>& out)
 {
-    for (size_type i = 0; i < in.get_num_elems(); i++) {
+    for (size_type i = 0; i < in.get_num_stored_elements(); i++) {
         out.get_data()[i] = {in.get_const_row_idxs()[i],
                              in.get_const_col_idxs()[i],
                              in.get_const_values()[i]};
@@ -138,8 +138,8 @@ template <typename ValueType, typename IndexType>
 void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
                     device_matrix_data<ValueType, IndexType>& data)
 {
-    array<matrix_data_entry<ValueType, IndexType>> tmp{exec,
-                                                       data.get_num_elems()};
+    array<matrix_data_entry<ValueType, IndexType>> tmp{
+        exec, data.get_num_stored_elements()};
     soa_to_aos(exec, data, tmp);
     std::sort(tmp.get_data(), tmp.get_data() + tmp.get_size());
     aos_to_soa(exec, tmp, data);
