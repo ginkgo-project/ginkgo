@@ -550,7 +550,7 @@ TYPED_TEST(ImplicitResidualNorm, CheckIfResZeroConverges)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::ValueType;
-    using mode = typename gko::stop::mode;
+    using gko::stop::mode;
     std::shared_ptr<gko::LinOp> mtx = gko::initialize<Mtx>({1.0}, this->exec);
     std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({0.0}, this->exec);
     std::shared_ptr<gko::LinOp> x = gko::initialize<Mtx>({0.0}, this->exec);
