@@ -28,8 +28,8 @@ void soa_to_aos(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto i, auto rows, auto cols, auto vals, auto out) {
             out[i] = {rows[i], cols[i], vals[i]};
         },
-        in.get_num_elems(), in.get_const_row_idxs(), in.get_const_col_idxs(),
-        in.get_const_values(), out);
+        in.get_num_stored_elements(), in.get_const_row_idxs(),
+        in.get_const_col_idxs(), in.get_const_values(), out);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

@@ -187,7 +187,7 @@ TYPED_TEST(DeviceMatrixData, CreatesFromHost)
     ASSERT_EQ(data.get_size(), this->host_data.size);
     auto host_device_data = gko::device_matrix_data<value_type, index_type>(
         this->exec->get_master(), data);
-    for (gko::size_type i = 0; i < data.get_num_elems(); i++) {
+    for (gko::size_type i = 0; i < data.get_num_stored_elements(); i++) {
         const auto entry = this->host_data.nonzeros[i];
         ASSERT_EQ(host_device_data.get_const_row_idxs()[i], entry.row);
         ASSERT_EQ(host_device_data.get_const_col_idxs()[i], entry.column);

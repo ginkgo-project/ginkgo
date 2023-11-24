@@ -111,7 +111,7 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
                          const device_matrix_data<ValueType, IndexType>& data,
                          matrix::Diagonal<ValueType>* output)
 {
-    for (size_type i = 0; i < data.get_num_elems(); i++) {
+    for (size_type i = 0; i < data.get_num_stored_elements(); i++) {
         const auto row = data.get_const_row_idxs()[i];
         if (row == data.get_const_col_idxs()[i]) {
             output->get_values()[row] = data.get_const_values()[i];

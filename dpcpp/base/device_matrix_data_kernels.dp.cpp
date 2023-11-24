@@ -111,10 +111,11 @@ void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
     auto policy = onedpl_policy(exec);
     auto input_it = oneapi::dpl::make_zip_iterator(
         data.get_row_idxs(), data.get_col_idxs(), data.get_values());
-    std::sort(policy, input_it, input_it + data.get_size(), [](auto a, auto b) {
-        return std::tie(std::get<0>(a), std::get<1>(a)) <
-               std::tie(std::get<0>(b), std::get<1>(b));
-    });
+    std::sort(policy, input_it, input_it + data.get_num_stored_elements(),
+              [](auto a, auto b) {
+                  return std::tie(std::get<0>(a), std::get<1>(a)) <
+                         std::tie(std::get<0>(b), std::get<1>(b));
+              });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

@@ -49,7 +49,7 @@ void build_local(
 
     size_type range_id_hint = 0;
 #pragma omp parallel for firstprivate(range_id_hint)
-    for (size_type i = 0; i < input.get_size(); ++i) {
+    for (size_type i = 0; i < input.get_num_stored_elements(); ++i) {
         auto range_id = find_range(row_idxs[i], range_id_hint);
         range_id_hint = range_id;
         auto part_id = range_parts[range_id];

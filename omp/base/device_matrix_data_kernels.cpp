@@ -138,7 +138,8 @@ template <typename ValueType, typename IndexType>
 void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
                     device_matrix_data<ValueType, IndexType>& data)
 {
-    array<matrix_data_entry<ValueType, IndexType>> tmp{exec, data.get_size()};
+    array<matrix_data_entry<ValueType, IndexType>> tmp{
+        exec, data.get_num_stored_elements()};
     soa_to_aos(exec, data, tmp);
     std::sort(tmp.get_data(), tmp.get_data() + tmp.get_size());
     aos_to_soa(exec, tmp, data);

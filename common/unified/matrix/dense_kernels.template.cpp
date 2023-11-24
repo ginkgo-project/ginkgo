@@ -63,7 +63,7 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto i, auto row, auto col, auto val, auto output) {
             output(row[i], col[i]) = val[i];
         },
-        data.get_num_elems(), data.get_const_row_idxs(),
+        data.get_num_stored_elements(), data.get_const_row_idxs(),
         data.get_const_col_idxs(), data.get_const_values(), output);
 }
 

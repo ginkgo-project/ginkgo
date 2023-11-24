@@ -92,8 +92,8 @@ void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
     auto it = thrust::make_zip_iterator(
         thrust::make_tuple(data.get_row_idxs(), data.get_col_idxs()));
     auto vals = as_device_type(data.get_values());
-    thrust::sort_by_key(thrust_policy(exec), it, it + data.get_num_elems(),
-                        vals);
+    thrust::sort_by_key(thrust_policy(exec), it,
+                        it + data.get_num_stored_elements(), vals);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

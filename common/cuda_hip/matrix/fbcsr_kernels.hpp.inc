@@ -131,7 +131,7 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
                          array<ValueType>& block_value_array)
 {
     using tuple_type = thrust::tuple<IndexType, IndexType>;
-    const auto nnz = data.get_num_elems();
+    const auto nnz = data.get_num_stored_elements();
     const auto bs = block_size;
     auto block_row_ptrs = block_row_ptr_array.get_data();
     auto num_block_rows = block_row_ptr_array.get_size() - 1;

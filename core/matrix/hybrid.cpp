@@ -233,8 +233,8 @@ void Hybrid<ValueType, IndexType>::read(const device_mat_data& data)
     auto local_data = make_temporary_clone(exec, &data);
     array<int64> row_ptrs{exec, num_rows + 1};
     exec->run(hybrid::make_convert_idxs_to_ptrs(
-        local_data->get_const_row_idxs(), local_data->get_num_elems(), num_rows,
-        row_ptrs.get_data()));
+        local_data->get_const_row_idxs(), local_data->get_num_stored_elements(),
+        num_rows, row_ptrs.get_data()));
     array<size_type> row_nnz{exec, data.get_size()[0]};
     exec->run(hybrid::make_compute_row_nnz(row_ptrs, row_nnz.get_data()));
     size_type ell_max_nnz{};

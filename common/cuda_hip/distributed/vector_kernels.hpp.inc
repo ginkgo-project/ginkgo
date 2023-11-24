@@ -16,12 +16,12 @@ void build_local(
     const auto* part_ids = partition->get_part_ids();
     const auto num_ranges = partition->get_num_ranges();
 
-    array<size_type> range_id{exec, input.get_num_elems()};
-    thrust::upper_bound(thrust_policy(exec), range_bounds + 1,
-                        range_bounds + num_ranges + 1,
-                        input.get_const_row_idxs(),
-                        input.get_const_row_idxs() + input.get_num_elems(),
-                        range_id.get_data(), thrust::less<GlobalIndexType>());
+    array<size_type> range_id{exec, input.get_num_stored_elements()};
+    thrust::upper_bound(
+        thrust_policy(exec), range_bounds + 1, range_bounds + num_ranges + 1,
+        input.get_const_row_idxs(),
+        input.get_const_row_idxs() + input.get_num_stored_elements(),
+        range_id.get_data(), thrust::less<GlobalIndexType>());
 
     // write values with local rows into the local matrix at the correct index
     // this needs the following iterators:
@@ -57,10 +57,10 @@ void build_local(
         [part_ids, local_part] __host__ __device__(const size_type rid) {
             return part_ids[rid] == local_part;
         };
-    thrust::scatter_if(thrust_policy(exec), input.get_const_values(),
-                       input.get_const_values() + input.get_num_elems(),
-                       flat_idx_it, range_id.get_data(),
-                       local_mtx->get_values(), is_local_row);
+    thrust::scatter_if(
+        thrust_policy(exec), input.get_const_values(),
+        input.get_const_values() + input.get_num_stored_elements(), flat_idx_it,
+        range_id.get_data(), local_mtx->get_values(), is_local_row);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
