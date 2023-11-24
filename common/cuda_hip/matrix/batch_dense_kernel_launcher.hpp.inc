@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-
 template <typename ValueType>
 void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
                   const batch::matrix::Dense<ValueType>* mat,

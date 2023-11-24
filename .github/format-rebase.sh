@@ -10,8 +10,8 @@ DIFF_COMMAND="git diff --name-only --no-renames --diff-filter=AM HEAD~ | grep -E
 # do the formatting rebase
 git rebase --rebase-merges --empty=drop --no-keep-empty \
     --exec "cp /tmp/.clang-format /tmp/.pre-commit-config.yaml . && \
-            cp /tmp/add_license.sh /tmp/format_header.sh /tmp/update_ginkgo_header.sh dev_tools/scripts/ && \
-            dev_tools/scripts/add_license.sh && dev_tools/scripts/update_ginkgo_header.sh && \
+            cp /tmp/format_header.sh /tmp/update_ginkgo_header.sh dev_tools/scripts/ && \
+            dev_tools/scripts/update_ginkgo_header.sh && \
             for f in \$($DIFF_COMMAND | grep -E '$FORMAT_HEADER_REGEX'); do dev_tools/scripts/format_header.sh \$f; done && \
             pipx run pre-commit run && \
             git checkout dev_tools/scripts && (git diff >> /tmp/difflog; true) && (git diff --quiet || git commit -a --amend --no-edit --allow-empty)" \

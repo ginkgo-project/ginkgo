@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-
 /**
  * @see reference/stop/batch_criteria.hpp
  */

@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-
 template <typename ValueType>
 void scale(std::shared_ptr<const DefaultExecutor> exec,
            const batch::MultiVector<ValueType>* const alpha,

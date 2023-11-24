@@ -12,11 +12,11 @@
 #if GKO_HAVE_PAPI_SDE
 
 
+#include <sde_lib.h>
 #include <cstddef>
 #include <iostream>
 #include <map>
 #include <mutex>
-#include <sde_lib.h>
 
 
 #include <ginkgo/core/base/polymorphic_object.hpp>
