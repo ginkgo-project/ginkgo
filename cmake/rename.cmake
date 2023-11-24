@@ -13,8 +13,9 @@ macro(gko_rename_cache deprecated actual type doc_string)
         else()
             # Only set `deprecated`, move it to `actual`.
             message(WARNING "${deprecated} was deprecated, please use ${actual} instead.  "
-                "We copy ${${deprecated}} to ${actual}")
+                "We copy ${${deprecated}} to ${actual} and remove the old variable")
             set(${actual} ${${deprecated}} CACHE ${type} "${doc_string}")
+            unset(${${deprecated}} CACHE)
         endif()
     endif()
 endmacro()
