@@ -6,6 +6,7 @@
 #define GKO_HIP_COMPONENTS_MEMORY_HIP_HPP_
 
 
+#include <cstring>
 #include <type_traits>
 
 
@@ -20,59 +21,146 @@ namespace kernels {
 namespace hip {
 
 
-#include "common/cuda_hip/components/memory.hpp.inc"
+#if GINKGO_HIP_PLATFORM_NVCC
 
 
-template <typename ValueType>
-__device__ __forceinline__ ValueType load_relaxed(const ValueType* ptr)
+#include "common/cuda_hip/components/memory.nvidia.hpp.inc"
+
+
+#else
+
+
+template <typename T>
+struct gcc_atomic_intrinsic_type_map {};
+
+
+template <>
+struct gcc_atomic_intrinsic_type_map<int32> {
+    using type = int32;
+};
+
+
+template <>
+struct gcc_atomic_intrinsic_type_map<float> {
+    using type = int32;
+};
+
+
+template <>
+struct gcc_atomic_intrinsic_type_map<int64> {
+    using type = int64;
+};
+
+
+template <>
+struct gcc_atomic_intrinsic_type_map<double> {
+    using type = int64;
+};
+
+
+template <int memorder, typename ValueType>
+__device__ __forceinline__ ValueType load_generic(const ValueType* ptr)
 {
-    return load(ptr, 0);
-}
-
-
-template <typename ValueType>
-__device__ __forceinline__ ValueType load_acquire(const ValueType* ptr)
-{
-    auto result = load(ptr, 0);
-    __threadfence();
+    using atomic_type = typename gcc_atomic_intrinsic_type_map<ValueType>::type;
+    static_assert(sizeof(atomic_type) == sizeof(ValueType), "invalid map");
+    static_assert(alignof(atomic_type) == sizeof(ValueType), "invalid map");
+    auto cast_value =
+        __atomic_load_n(reinterpret_cast<const atomic_type*>(ptr), memorder);
+    ValueType result{};
+    memcpy(&result, &cast_value, sizeof(ValueType));
     return result;
 }
 
-template <typename ValueType>
+
+template <typename ValueType,
+          gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
+__device__ __forceinline__ ValueType load_relaxed(const ValueType* ptr)
+{
+    return load_generic<__ATOMIC_RELAXED>(ptr);
+}
+
+
+template <typename ValueType,
+          gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
+__device__ __forceinline__ ValueType load_acquire(const ValueType* ptr)
+{
+    return load_generic<__ATOMIC_ACQUIRE>(ptr);
+}
+
+
+template <int memorder, typename ValueType>
+__device__ __forceinline__ void store_generic(ValueType* ptr, ValueType value)
+{
+    using atomic_type = typename gcc_atomic_intrinsic_type_map<ValueType>::type;
+    static_assert(sizeof(atomic_type) == sizeof(ValueType), "invalid map");
+    static_assert(alignof(atomic_type) == sizeof(ValueType), "invalid map");
+    atomic_type cast_value{};
+    memcpy(&cast_value, &value, sizeof(ValueType));
+    return __atomic_store_n(reinterpret_cast<atomic_type*>(ptr), cast_value,
+                            memorder);
+}
+
+
+template <typename ValueType,
+          gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
 __device__ __forceinline__ void store_relaxed(ValueType* ptr, ValueType value)
 {
-    store(ptr, 0, value);
+    return store_generic<__ATOMIC_RELAXED>(ptr, value);
+}
+
+
+template <typename ValueType,
+          gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
+__device__ __forceinline__ void store_release(ValueType* ptr, ValueType value)
+{
+    return store_generic<__ATOMIC_RELEASE>(ptr, value);
 }
 
 
 template <typename ValueType>
-__device__ __forceinline__ void store_release(ValueType* ptr, ValueType value)
+__device__ __forceinline__ thrust::complex<ValueType> load_relaxed(
+    const thrust::complex<ValueType>* ptr)
 {
-    __threadfence();
-    store(ptr, 0, value);
+    auto real_ptr = reinterpret_cast<const ValueType*>(ptr);
+    auto real = load_relaxed(real_ptr);
+    auto imag = load_relaxed(real_ptr + 1);
+    return {real, imag};
 }
+
+
+template <typename ValueType,
+          gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
+__device__ __forceinline__ void store_relaxed(thrust::complex<ValueType>* ptr,
+                                              thrust::complex<ValueType> value)
+{
+    auto real_ptr = reinterpret_cast<ValueType*>(ptr);
+    store_relaxed(real_ptr, value.real());
+    store_relaxed(real_ptr + 1, value.imag());
+}
+
+
+// we can't annotate pointers with shared easily, so we don't try to be clever
 
 
 template <typename ValueType>
 __device__ __forceinline__ ValueType load_relaxed_shared(const ValueType* ptr)
 {
-    return load(ptr, 0);
+    return load_relaxed(ptr);
 }
 
 
 template <typename ValueType>
 __device__ __forceinline__ ValueType load_acquire_shared(const ValueType* ptr)
 {
-    auto result = load(ptr, 0);
-    __threadfence();
-    return result;
+    return load_acquire(ptr);
 }
+
 
 template <typename ValueType>
 __device__ __forceinline__ void store_relaxed_shared(ValueType* ptr,
                                                      ValueType value)
 {
-    store(ptr, 0, value);
+    store_relaxed(ptr, value);
 }
 
 
@@ -80,9 +168,11 @@ template <typename ValueType>
 __device__ __forceinline__ void store_release_shared(ValueType* ptr,
                                                      ValueType value)
 {
-    __threadfence();
-    store(ptr, 0, value);
+    store_release(ptr, value);
 }
+
+
+#endif  // !GINKGO_HIP_PLATFORM_NVCC
 
 
 }  // namespace hip
