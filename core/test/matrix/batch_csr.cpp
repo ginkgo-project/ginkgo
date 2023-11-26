@@ -301,7 +301,7 @@ TYPED_TEST(Csr, CanBeConstructedFromCsrMatricesByDuplication)
     auto m =
         gko::batch::create_from_item<BatchCsrMtx>(this->exec, 3, mat1.get(), 2);
 
-    GKO_ASSERT_BATCH_MTX_NEAR(bat_m.get(), m.get(), 1e-14);
+    GKO_ASSERT_BATCH_MTX_NEAR(bat_m.get(), m.get(), 0.);
 }
 
 
@@ -324,7 +324,7 @@ TYPED_TEST(Csr, CanBeConstructedByDuplicatingCsrMatrices)
 
     auto m2 = gko::batch::duplicate<BatchCsrMtx>(this->exec, 3, m.get(), 2);
 
-    GKO_ASSERT_BATCH_MTX_NEAR(m2.get(), m_ref.get(), 1e-14);
+    GKO_ASSERT_BATCH_MTX_NEAR(m2.get(), m_ref.get(), 0.);
 }
 
 
@@ -349,7 +349,6 @@ TYPED_TEST(Csr, CanBeListConstructed)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using BatchCsrMtx = typename TestFixture::BatchCsrMtx;
-    using CsrMtx = typename TestFixture::CsrMtx;
 
     auto m = gko::batch::initialize<BatchCsrMtx>({{0.0, -1.0}, {0.0, -5.0}},
                                                  this->exec, 1);
@@ -452,7 +451,6 @@ TYPED_TEST(Csr, ThrowsForDataWithDifferentNnz)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    using BatchCsrMtx = typename TestFixture::BatchCsrMtx;
     auto vec_data = std::vector<gko::matrix_data<value_type, index_type>>{};
     vec_data.emplace_back(
         gko::matrix_data<value_type, index_type>({2, 3}, {
@@ -474,7 +472,6 @@ TYPED_TEST(Csr, ThrowsForDataWithDifferentSparsity)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    using BatchCsrMtx = typename TestFixture::BatchCsrMtx;
     auto vec_data = std::vector<gko::matrix_data<value_type, index_type>>{};
     vec_data.emplace_back(
         gko::matrix_data<value_type, index_type>({2, 3}, {
