@@ -47,7 +47,6 @@ get_batch_struct(const batch::matrix::Csr<ValueType, IndexType>* const op)
             op->get_const_col_idxs(),
             op->get_const_row_ptrs(),
             op->get_num_batch_items(),
-            static_cast<IndexType>(op->get_common_size()[1]),
             static_cast<IndexType>(op->get_common_size()[0]),
             static_cast<IndexType>(op->get_common_size()[1]),
             static_cast<IndexType>(op->get_num_elements_per_item())};
@@ -65,7 +64,6 @@ inline batch::matrix::csr::uniform_batch<ValueType, IndexType> get_batch_struct(
             op->get_col_idxs(),
             op->get_row_ptrs(),
             op->get_num_batch_items(),
-            static_cast<IndexType>(op->get_common_size()[1]),
             static_cast<IndexType>(op->get_common_size()[0]),
             static_cast<IndexType>(op->get_common_size()[1]),
             static_cast<IndexType>(op->get_num_elements_per_item())};
