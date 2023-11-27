@@ -24,3 +24,19 @@ repos:
         third_party/identify_stream_usage/.*|
         examples/external-lib-interfacing/external-lib-interfacing.cpp
       )$
+  - id: format-headers
+    name: format headers
+    entry: dev_tools/scripts/format_header.sh
+    language: script
+    types: [c, c++, cuda]
+    exclude: |
+        (?x)^(
+          third_party/SuiteSparse/AMD/.*|
+          third_party/identify_stream_usage/.*
+        )$
+  - id: update-ginkgo-header
+    name: update ginkgo header
+    entry: dev_tools/scripts/update_ginkgo_header.sh
+    language: script
+    types: [header]
+    files: ^include/ginkgo/core
