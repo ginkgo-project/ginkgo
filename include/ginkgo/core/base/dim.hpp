@@ -57,8 +57,8 @@ struct dim {
      * @param first  first dimension
      * @param rest  other dimensions
      */
-    template <typename... Rest,
-              std::enable_if_t<sizeof...(Rest) >= 1>* = nullptr>
+    template <typename... Rest, std::enable_if_t<sizeof...(Rest) ==
+                                                 Dimensionality - 1>* = nullptr>
     constexpr GKO_ATTRIBUTES dim(const dimension_type& first,
                                  const Rest&... rest)
         : first_{first}, rest_{static_cast<dimension_type>(rest)...}
