@@ -95,6 +95,7 @@ GKO_REGISTER_OPERATION(inv_scale, csr::inv_scale);
 GKO_REGISTER_OPERATION(add_scaled_identity, csr::add_scaled_identity);
 GKO_REGISTER_OPERATION(check_diagonal_entries,
                        csr::check_diagonal_entries_exist);
+GKO_REGISTER_OPERATION(aos_to_soa, components::aos_to_soa);
 
 
 }  // anonymous namespace
@@ -423,15 +424,49 @@ void Csr<ValueType, IndexType>::move_to(Fbcsr<ValueType, IndexType>* result)
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::read(const mat_data& data)
 {
-    this->read(device_mat_data::create_from_host(this->get_executor(), data));
+    auto size = data.size;
+    auto exec = this->get_executor();
+    row_ptrs_.resize_and_reset(size[0] + 1);
+    col_idxs_.resize_and_reset(data.nonzeros.size());
+    values_.resize_and_reset(data.nonzeros.size());
+    device_mat_data view{exec, size,
+                         array<IndexType>{exec, data.nonzeros.size()},
+                         col_idxs_.as_view(), values_.as_view()};
+    const auto host_data =
+        make_array_view(exec->get_master(), data.nonzeros.size(),
+                        const_cast<matrix_data_entry<ValueType, IndexType>*>(
+                            data.nonzeros.data()));
+    exec->run(
+        csr::make_aos_to_soa(*make_temporary_clone(exec, &host_data), view));
+    exec->run(csr::make_convert_idxs_to_ptrs(view.get_const_row_idxs(),
+                                             view.get_num_stored_elements(),
+                                             size[0], get_row_ptrs()));
+    this->make_srow();
 }
 
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::read(const device_mat_data& data)
 {
-    // make a copy, read the data in
-    this->read(device_mat_data{this->get_executor(), data});
+    auto size = data.get_size();
+    auto exec = this->get_executor();
+    this->row_ptrs_.resize_and_reset(size[0] + 1);
+    this->set_size(size);
+    this->values_ = make_const_array_view(data.get_executor(),
+                                          data.get_num_stored_elements(),
+                                          data.get_const_values());
+    this->col_idxs_ = make_const_array_view(data.get_executor(),
+                                            data.get_num_stored_elements(),
+                                            data.get_const_col_idxs());
+    const auto row_idxs = make_const_array_view(data.get_executor(),
+                                                data.get_num_stored_elements(),
+                                                data.get_const_row_idxs())
+                              .copy_to_array();
+    auto local_row_idxs = make_temporary_clone(exec, &row_idxs);
+    exec->run(csr::make_convert_idxs_to_ptrs(local_row_idxs->get_const_data(),
+                                             local_row_idxs->get_size(),
+                                             size[0], this->get_row_ptrs()));
+    this->make_srow();
 }
 
 
@@ -441,7 +476,7 @@ void Csr<ValueType, IndexType>::read(device_mat_data&& data)
     auto size = data.get_size();
     auto exec = this->get_executor();
     auto arrays = data.empty_out();
-    this->row_ptrs_.resize_and_reset(size[0] + 1);
+    this->row_ptrs_ = array<IndexType>{exec, size[0] + 1};
     this->set_size(size);
     this->values_ = std::move(arrays.values);
     this->col_idxs_ = std::move(arrays.col_idxs);
