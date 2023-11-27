@@ -3,17 +3,10 @@
 cp .github/bot-pr-format-base.sh /tmp
 source /tmp/bot-pr-format-base.sh
 
-echo "Retrieving PR file list"
-PR_FILES=$(bot_get_all_changed_files ${PR_URL})
-NUM=$(echo "${PR_FILES}" | wc -l)
-echo "PR has ${NUM} changed files"
-
-TO_FORMAT="$(echo "$PR_FILES" | grep -E $EXTENSION_REGEX || true)"
-
 # format files
-dev_tools/scripts/update_ginkgo_header.sh
-for f in $(echo "$TO_FORMAT" | grep -E $FORMAT_HEADER_REGEX); do dev_tools/scripts/format_header.sh "$f"; done
-pipx run pre-commit run --files $TO_FORMAT || true
+echo "Formatting files"
+
+pipx run pre-commit run --from-ref "origin/$BASE_BRANCH" --to-ref HEAD || true
 
 # restore formatting scripts so they don't appear in the diff
 git restore --staged .pre-commit-config.yaml
