@@ -12,7 +12,7 @@ jobs:
         run: cp .github/check-format.sh /tmp && /tmp/check-format.sh
         id: pre-commit
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
       - name: Upload code formatting patch
         if: ${{ failure() }}
         uses: actions/upload-artifact@v3
