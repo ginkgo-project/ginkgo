@@ -27,3 +27,6 @@ cp /tmp/.clang-format .
 cp /tmp/.pre-commit-config.yaml .
 cp /tmp/format_header.sh dev_tools/scripts/
 cp /tmp/update_ginkgo_header.sh dev_tools/scripts/
+
+# make base pre-commit config available
+git add .pre-commit-config.yaml
