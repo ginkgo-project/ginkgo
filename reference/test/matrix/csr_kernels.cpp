@@ -2418,7 +2418,7 @@ TYPED_TEST(Csr, CanGetSubmatrix2)
 }
 
 
-TYPED_TEST(Csr, CanGetSubmatrixWithindex_set)
+TYPED_TEST(Csr, CanGetSubmatrixWithIndexSet)
 {
     using Vec = typename TestFixture::Vec;
     using Mtx = typename TestFixture::Mtx;
