@@ -821,8 +821,8 @@ Csr<ValueType, IndexType>::create_submatrix(
         return this->create_submatrix(span(row_st, row_end),
                                       span(col_st, col_end));
     } else {
-        auto submat_num_rows = row_index_set.get_size();
-        auto submat_num_cols = col_index_set.get_size();
+        auto submat_num_rows = row_index_set.get_num_elems();
+        auto submat_num_cols = col_index_set.get_num_elems();
         auto sub_mat_size = gko::dim<2>(submat_num_rows, submat_num_cols);
         array<IndexType> row_ptrs(exec, submat_num_rows + 1);
         exec->run(csr::make_calculate_nonzeros_per_row_in_index_set(

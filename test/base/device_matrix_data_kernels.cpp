@@ -102,7 +102,7 @@ TYPED_TEST(DeviceMatrixData, DefaultConstructsCorrectly)
 
     ASSERT_EQ((gko::dim<2>{0, 0}), local_data.get_size());
     ASSERT_EQ(this->exec, local_data.get_executor());
-    ASSERT_EQ(local_data.get_size(), 0);
+    ASSERT_EQ(local_data.get_num_stored_elements(), 0);
 }
 
 
@@ -116,7 +116,7 @@ TYPED_TEST(DeviceMatrixData, ConstructsCorrectly)
 
     ASSERT_EQ((gko::dim<2>{4, 3}), local_data.get_size());
     ASSERT_EQ(this->exec, local_data.get_executor());
-    ASSERT_EQ(local_data.get_size(), 10);
+    ASSERT_EQ(local_data.get_num_stored_elements(), 10);
 }
 
 
@@ -156,7 +156,7 @@ TYPED_TEST(DeviceMatrixData, ResizesCorrectly)
 
     local_data.resize_and_reset(12);
 
-    ASSERT_EQ(local_data.get_size(), 12);
+    ASSERT_EQ(local_data.get_num_stored_elements(), 12);
     ASSERT_EQ(local_data.get_size(), gko::dim<2>(4, 3));
 }
 
@@ -170,7 +170,7 @@ TYPED_TEST(DeviceMatrixData, ResizesDimensionsCorrectly)
 
     local_data.resize_and_reset(gko::dim<2>{5, 4}, 12);
 
-    ASSERT_EQ(local_data.get_size(), 12);
+    ASSERT_EQ(local_data.get_num_stored_elements(), 12);
     ASSERT_EQ(local_data.get_size(), gko::dim<2>(5, 4));
 }
 
@@ -210,7 +210,7 @@ TYPED_TEST(DeviceMatrixData, EmptiesOut)
     auto arrays = data.empty_out();
 
     ASSERT_EQ(data.get_size(), gko::dim<2>{});
-    ASSERT_EQ(data.get_size(), 0);
+    ASSERT_EQ(data.get_num_stored_elements(), 0);
     ASSERT_NE(data.get_const_row_idxs(), original_ptr1);
     ASSERT_NE(data.get_const_col_idxs(), original_ptr2);
     ASSERT_NE(data.get_const_values(), original_ptr3);
