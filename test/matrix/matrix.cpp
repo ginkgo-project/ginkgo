@@ -1234,7 +1234,7 @@ TYPED_TEST(Matrix, DeviceReadMoveIsEquivalentToHostRef)
         dev_result->read(std::move(ref_device_data));
 
         ASSERT_EQ(ref_device_data.get_size(), gko::dim<2>{});
-        ASSERT_EQ(ref_device_data.get_num_elems(), gko::dim<2>{});
+        ASSERT_EQ(ref_device_data.get_num_elems(), 0);
         GKO_ASSERT_MTX_NEAR(ref_result, dev_result, 0.0);
         GKO_ASSERT_MTX_EQ_SPARSITY(ref_result, dev_result);
     });
