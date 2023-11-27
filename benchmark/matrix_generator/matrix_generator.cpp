@@ -87,7 +87,7 @@ gko::matrix_data<etype, itype> generate_block_diagonal(
     auto block = gko::matrix_data<etype, itype>(
         gko::dim<2>(block_size),
         std::uniform_real_distribution<rc_etype>(-1.0, 1.0), engine);
-    return gko::matrix_data<etype, itype>::diag(num_blocks, block);
+    return gko::matrix_data<etype, itype>::diag(gko::dim<2>{num_blocks}, block);
 }
 
 
