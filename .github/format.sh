@@ -16,7 +16,8 @@ for f in $(echo "$TO_FORMAT" | grep -E $FORMAT_HEADER_REGEX); do dev_tools/scrip
 pipx run pre-commit run --files $TO_FORMAT || true
 
 # restore formatting scripts so they don't appear in the diff
-git checkout -- dev_tools/scripts/*.sh
+git restore --staged .pre-commit-config.yaml
+git checkout -- dev_tools/scripts/*.sh .pre-commit-config.yaml .clang-format
 
 # check for changed files, replace newlines by \n
 CHANGES=$(git diff --name-only | sed '$!s/$/\\n/' | tr -d '\n')

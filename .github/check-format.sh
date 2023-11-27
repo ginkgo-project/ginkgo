@@ -3,13 +3,14 @@
 cp .github/bot-pr-format-base.sh /tmp
 source /tmp/bot-pr-format-base.sh
 
-echo -n "Run Pre-Commit checks"
+echo "Run Pre-Commit checks"
 
 pipx run pre-commit run --show-diff-on-failure --color=always --from-ref "origin/$BASE_BRANCH" --to-ref HEAD || true
 
 echo -n "Collecting information on changed files"
 
-git checkout -- dev_tools/scripts/*.sh
+git restore --staged .pre-commit-config.yaml
+git checkout -- dev_tools/scripts/*.sh .pre-commit-config.yaml .clang-format
 
 # check for changed files, replace newlines by \n
 LIST_FILES=$(git diff --name-only | sed '$!s/$/\\n/' | tr -d '\n')
