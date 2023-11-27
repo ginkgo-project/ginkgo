@@ -1,0 +1,39 @@
+[
+    {
+        "stencil": "7pt",
+        "size": 100,
+        "spmv": {
+            "csr": {
+                "time": 0.5
+            }
+        }
+    },
+    {
+        "n": 1,
+        "k": 2,
+        "m": 3,
+        "r": 4,
+        "blas": {
+            "axpy": {
+                "time": 100
+            }
+        }
+    },
+    {
+        "filename": "mtx",
+        "solver": {
+            "gmres": {
+                "apply": {
+                    "time": 1.0,
+                    "components": {
+                        "foo": 2.0
+                    },
+                    "iterations": 10
+                },
+                "generate": {
+                    "time": 2.0
+                }
+            }
+        }
+    }
+]
