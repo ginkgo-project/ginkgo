@@ -36,7 +36,7 @@ def parse_json_matrix(filename: str) -> dict:
                 f"WARNING: Duplicate key {json.dumps(dict_key)}",
                 file=sys.stderr,
             )
-        result[frozendict(dict_key)] = case
+        result[dict_key] = case
     return result
 
 
@@ -128,7 +128,7 @@ def extract_benchmark_results(
 
 
 def is_outlier(value: float, args) -> bool:
-    """returns true iff the value exceeds 1.0 above the outlier threshold"""
+    """returns true iff the is more than the outlier threshold away from 1.0"""
     return math.fabs(math.log(value)) > math.log(1.0 + args.outlier_threshold / 100)
 
 
