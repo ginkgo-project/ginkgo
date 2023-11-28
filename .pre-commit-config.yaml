@@ -26,9 +26,9 @@ repos:
       )$
   - id: format-headers
     name: format headers
-    entry: dev_tools/scripts/format_header.sh
-    language: script
-    types: [c, c++, cuda]
+    entry: env CLANG_FORMAT=dev_tools/scripts/clang-format.sh dev_tools/scripts/format_header.sh
+    language: system
+    types_or: [c, c++, cuda]
     exclude: |
         (?x)^(
           third_party/SuiteSparse/AMD/.*|
