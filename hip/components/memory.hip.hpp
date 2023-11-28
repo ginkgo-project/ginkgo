@@ -58,14 +58,30 @@ struct gcc_atomic_intrinsic_type_map<double> {
 };
 
 
+#if HIP_VERSION >= 50100000
+#define HIP_ATOMIC_LOAD(ptr, memorder, scope) \
+    __hip_atomic_load(ptr, memorder, scope)
+#define HIP_ATOMIC_STORE(ptr, value, memorder, scope) \
+    __hip_atomic_store(ptr, value, memorder, scope)
+#define HIP_SCOPE_GPU __HIP_MEMORY_SCOPE_AGENT
+#define HIP_SCOPE_THREADBLOCK __HIP_MEMORY_SCOPE_WORKGROUP
+#else
+#define HIP_ATOMIC_LOAD(ptr, memorder, scope) __atomic_load_n(ptr, memorder)
+#define HIP_ATOMIC_STORE(ptr, value, memorder, scope) \
+    __atomic_store_n(ptr, value, memorder)
+#define HIP_SCOPE_GPU -1
+#define HIP_SCOPE_THREADBLOCK -1
+#endif
+
+
 template <int memorder, int scope, typename ValueType>
 __device__ __forceinline__ ValueType load_generic(const ValueType* ptr)
 {
     using atomic_type = typename gcc_atomic_intrinsic_type_map<ValueType>::type;
     static_assert(sizeof(atomic_type) == sizeof(ValueType), "invalid map");
     static_assert(alignof(atomic_type) == sizeof(ValueType), "invalid map");
-    auto cast_value = __hip_atomic_load(
-        reinterpret_cast<const atomic_type*>(ptr), memorder, scope);
+    auto cast_value = HIP_ATOMIC_LOAD(reinterpret_cast<const atomic_type*>(ptr),
+                                      memorder, scope);
     ValueType result{};
     memcpy(&result, &cast_value, sizeof(ValueType));
     return result;
@@ -80,8 +96,8 @@ __device__ __forceinline__ void store_generic(ValueType* ptr, ValueType value)
     static_assert(alignof(atomic_type) == sizeof(ValueType), "invalid map");
     atomic_type cast_value{};
     memcpy(&cast_value, &value, sizeof(ValueType));
-    return __hip_atomic_store(reinterpret_cast<atomic_type*>(ptr), cast_value,
-                              memorder, scope);
+    HIP_ATOMIC_STORE(reinterpret_cast<atomic_type*>(ptr), cast_value, memorder,
+                     scope);
 }
 
 
@@ -89,7 +105,7 @@ template <typename ValueType,
           gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
 __device__ __forceinline__ ValueType load_relaxed(const ValueType* ptr)
 {
-    return load_generic<__ATOMIC_RELAXED, __HIP_MEMORY_SCOPE_AGENT>(ptr);
+    return load_generic<__ATOMIC_RELAXED, HIP_SCOPE_GPU>(ptr);
 }
 
 
@@ -97,7 +113,7 @@ template <typename ValueType,
           gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
 __device__ __forceinline__ ValueType load_relaxed_shared(const ValueType* ptr)
 {
-    return load_generic<__ATOMIC_RELAXED, __HIP_MEMORY_SCOPE_WORKGROUP>(ptr);
+    return load_generic<__ATOMIC_RELAXED, HIP_SCOPE_THREADBLOCK>(ptr);
 }
 
 
@@ -105,7 +121,7 @@ template <typename ValueType,
           gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
 __device__ __forceinline__ ValueType load_acquire(const ValueType* ptr)
 {
-    return load_generic<__ATOMIC_ACQUIRE, __HIP_MEMORY_SCOPE_AGENT>(ptr);
+    return load_generic<__ATOMIC_ACQUIRE, HIP_SCOPE_GPU>(ptr);
 }
 
 
@@ -113,7 +129,7 @@ template <typename ValueType,
           gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
 __device__ __forceinline__ ValueType load_acquire_shared(const ValueType* ptr)
 {
-    return load_generic<__ATOMIC_ACQUIRE, __HIP_MEMORY_SCOPE_WORKGROUP>(ptr);
+    return load_generic<__ATOMIC_ACQUIRE, HIP_SCOPE_THREADBLOCK>(ptr);
 }
 
 
@@ -121,8 +137,7 @@ template <typename ValueType,
           gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
 __device__ __forceinline__ void store_relaxed(ValueType* ptr, ValueType value)
 {
-    return store_generic<__ATOMIC_RELAXED, __HIP_MEMORY_SCOPE_AGENT>(ptr,
-                                                                     value);
+    store_generic<__ATOMIC_RELAXED, HIP_SCOPE_GPU>(ptr, value);
 }
 
 
@@ -131,8 +146,7 @@ template <typename ValueType,
 __device__ __forceinline__ void store_relaxed_shared(ValueType* ptr,
                                                      ValueType value)
 {
-    return store_generic<__ATOMIC_RELAXED, __HIP_MEMORY_SCOPE_WORKGROUP>(ptr,
-                                                                         value);
+    store_generic<__ATOMIC_RELAXED, HIP_SCOPE_THREADBLOCK>(ptr, value);
 }
 
 
@@ -140,8 +154,7 @@ template <typename ValueType,
           gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
 __device__ __forceinline__ void store_release(ValueType* ptr, ValueType value)
 {
-    return store_generic<__ATOMIC_RELEASE, __HIP_MEMORY_SCOPE_AGENT>(ptr,
-                                                                     value);
+    store_generic<__ATOMIC_RELEASE, HIP_SCOPE_GPU>(ptr, value);
 }
 
 
@@ -150,8 +163,7 @@ template <typename ValueType,
 __device__ __forceinline__ void store_release_shared(ValueType* ptr,
                                                      ValueType value)
 {
-    return store_generic<__ATOMIC_RELEASE, __HIP_MEMORY_SCOPE_WORKGROUP>(ptr,
-                                                                         value);
+    store_generic<__ATOMIC_RELEASE, HIP_SCOPE_THREADBLOCK>(ptr, value);
 }
 
 
@@ -195,6 +207,12 @@ __device__ __forceinline__ void store_relaxed_shared(
     store_relaxed_shared(real_ptr, value.real());
     store_relaxed_shared(real_ptr + 1, value.imag());
 }
+
+
+#undef HIP_ATOMIC_LOAD
+#undef HIP_ATOMIC_STORE
+#undef HIP_SCOPE_GPU
+#undef HIP_SCOPE_THREADBLOCK
 
 
 #endif  // !GINKGO_HIP_PLATFORM_NVCC
