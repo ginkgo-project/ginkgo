@@ -14,30 +14,13 @@
 #include <ginkgo/core/base/utils.hpp>
 
 
+#include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/cg_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
 
 
 namespace gko {
-namespace config {
-
-
-template <>
-deferred_factory_parameter<gko::LinOpFactory>
-build_from_config<static_cast<int>(LinOpFactoryType::Cg)>(
-    const pnode& config, const registry& context,
-    gko::config::type_descriptor td)
-{
-    auto updated = update_type(config, td);
-    return dispatch<gko::LinOpFactory, gko::solver::Cg>(
-        updated.first, config, context, updated, value_type_list());
-}
-
-
-}  // namespace config
-
-
 namespace solver {
 namespace cg {
 namespace {
@@ -58,21 +41,7 @@ typename Cg<ValueType>::parameters_type Cg<ValueType>::build_from_config(
     config::type_descriptor td_for_child)
 {
     auto factory = solver::Cg<ValueType>::build();
-    // The following will be moved to the common solver function in another pr
-    if (auto& obj = config.get("generated_preconditioner")) {
-        factory.with_generated_preconditioner(
-            gko::config::get_pointer<const LinOp>(obj, context, td_for_child));
-    }
-    if (auto& obj = config.get("criteria")) {
-        factory.with_criteria(
-            gko::config::get_factory_vector<const stop::CriterionFactory>(
-                obj, context, td_for_child));
-    }
-    if (auto& obj = config.get("preconditioner")) {
-        factory.with_preconditioner(
-            gko::config::get_factory<const LinOpFactory>(obj, context,
-                                                         td_for_child));
-    }
+    common_solver_configure(factory, config, context, td_for_child);
     return factory;
 }
 

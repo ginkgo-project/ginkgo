@@ -7,6 +7,8 @@
 
 
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/factorization/factorization.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
@@ -64,6 +66,10 @@ public:
     };
     GKO_ENABLE_LIN_OP_FACTORY(Direct, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
+
+    static parameters_type build_from_config(
+        const config::pnode& config, const config::registry& context,
+        config::type_descriptor td_for_child);
 
     /** Creates a copy of the solver. */
     Direct(const Direct&);

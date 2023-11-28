@@ -13,9 +13,26 @@
 #include <ginkgo/core/solver/solver_base.hpp>
 
 
+#include "core/config/config.hpp"
+
+
 namespace gko {
 namespace experimental {
 namespace solver {
+
+
+template <typename ValueType, typename IndexType>
+typename Direct<ValueType, IndexType>::parameters_type
+Direct<ValueType, IndexType>::build_from_config(
+    const config::pnode& config, const config::registry& context,
+    config::type_descriptor td_for_child)
+{
+    auto factory = Direct<ValueType, IndexType>::build();
+    SET_VALUE(factory, size_type, num_rhs, config);
+    SET_FACTORY(factory, const LinOpFactory, factorization, config, context,
+                td_for_child);
+    return factory;
+}
 
 
 template <typename ValueType, typename IndexType>
