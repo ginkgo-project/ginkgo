@@ -185,11 +185,11 @@ void Coo<ValueType, IndexType>::read(const mat_data& data)
     auto size = data.size;
     auto exec = this->get_executor();
     this->set_size(size);
-    row_idxs_.resize_and_reset(data.nonzeros.size());
-    col_idxs_.resize_and_reset(data.nonzeros.size());
-    values_.resize_and_reset(data.nonzeros.size());
-    device_mat_data view{exec, size, row_idxs_.as_view(), col_idxs_.as_view(),
-                         values_.as_view()};
+    this->row_idxs_.resize_and_reset(data.nonzeros.size());
+    this->col_idxs_.resize_and_reset(data.nonzeros.size());
+    this->values_.resize_and_reset(data.nonzeros.size());
+    device_mat_data view{exec, size, this->row_idxs_.as_view(),
+                         this->col_idxs_.as_view(), this->values_.as_view()};
     const auto host_data =
         make_array_view(exec->get_master(), data.nonzeros.size(),
                         const_cast<matrix_data_entry<ValueType, IndexType>*>(
@@ -203,6 +203,9 @@ template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::read(const device_mat_data& data)
 {
     this->set_size(data.get_size());
+    // copy the arrays from device matrix data into the arrays of
+    // this. Compared to the read(device_mat_data&&) version, the internal
+    // arrays keep their current ownership status
     this->values_ = make_const_array_view(data.get_executor(),
                                           data.get_num_stored_elements(),
                                           data.get_const_values());

@@ -551,7 +551,7 @@ public:
     }
 
     /**
-     * Copies or converts data from a const_array_view.
+     * Copies data from a const_array_view.
      *
      * In the case of an array target, the array is resized to match the
      * source's size. In the case of a view target, if the dimensions are not
@@ -564,14 +564,10 @@ public:
      * executor, it will inherit the executor of other.
      *
      * @param other  the const_array_view to copy from
-     * @tparam OtherValueType  the value type of `other`
      *
      * @return this
      */
-    template <typename OtherValueType>
-    std::enable_if_t<std::is_convertible<OtherValueType, ValueType>::value,
-                     array>&
-    operator=(const detail::const_array_view<OtherValueType>& other)
+    array& operator=(const detail::const_array_view<ValueType>& other)
     {
         if (this->exec_ == nullptr) {
             this->exec_ = other.get_executor();
@@ -587,20 +583,15 @@ public:
         } else {
             GKO_ENSURE_COMPATIBLE_BOUNDS(other.get_size(), this->get_size());
         }
-        array<OtherValueType> tmp{this->exec_};
-        const OtherValueType* source = other.get_const_data();
-        // if we are on different executors: copy, then convert
+        array tmp{this->exec_};
+        const ValueType* source = other.get_const_data();
+        // if we are on different executors: copy
         if (this->exec_ != other.get_executor()) {
             tmp = other.copy_to_array();
             source = tmp.get_const_data();
         }
-        if (std::is_same<OtherValueType, ValueType>::value) {
-            exec_->copy_from(other.get_executor(), other.get_size(),
-                             other.get_const_data(), this->get_data());
-        } else {
-            detail::convert_data(this->exec_, other.get_size(), source,
-                                 this->get_data());
-        }
+        exec_->copy_from(other.get_executor(), other.get_size(), source,
+                         this->get_data());
         return *this;
     }
 
