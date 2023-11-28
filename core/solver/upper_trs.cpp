@@ -14,6 +14,7 @@
 #include <ginkgo/core/solver/triangular.hpp>
 
 
+#include "core/config/config.hpp"
 #include "core/solver/upper_trs_kernels.hpp"
 
 
@@ -31,6 +32,31 @@ GKO_REGISTER_OPERATION(solve, upper_trs::solve);
 
 }  // anonymous namespace
 }  // namespace upper_trs
+
+
+template <typename ValueType, typename IndexType>
+typename UpperTrs<ValueType, IndexType>::parameters_type
+UpperTrs<ValueType, IndexType>::parse(
+    const config::pnode& config, const config::registry& context,
+    config::type_descriptor td_for_child)
+{
+    auto factory = UpperTrs<ValueType, IndexType>::build();
+    // duplicate?
+    SET_VALUE(factory, size_type, num_rhs, config);
+    SET_VALUE(factory, bool, unit_diagonal, config);
+    if (config.contains("algorithm")) {
+        using gko::solver::trisolve_algorithm;
+        auto str = config.at("algorithm").get_data<std::string>();
+        if (str == "sparselib") {
+            factory.with_algorithm(trisolve_algorithm::sparselib);
+        } else if (str == "syncfree") {
+            factory.with_algorithm(trisolve_algorithm::syncfree);
+        } else {
+            GKO_INVALID_STATE("Wrong value for algorithm");
+        }
+    }
+    return factory;
+}
 
 
 template <typename ValueType, typename IndexType>

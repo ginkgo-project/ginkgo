@@ -10,6 +10,7 @@
 #include <ginkgo/core/solver/solver_base.hpp>
 
 
+#include "core/config/config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/ir_kernels.hpp"
 #include "core/solver/solver_base.hpp"
@@ -27,6 +28,25 @@ GKO_REGISTER_OPERATION(initialize, ir::initialize);
 
 }  // anonymous namespace
 }  // namespace ir
+
+
+template <typename ValueType>
+typename Ir<ValueType>::parameters_type Ir<ValueType>::parse(
+    const config::pnode& config, const config::registry& context,
+    config::type_descriptor td_for_child)
+{
+    auto factory = solver::Ir<ValueType>::build();
+    SET_FACTORY_VECTOR(factory, const stop::CriterionFactory, criteria, config,
+                       context, td_for_child);
+    SET_FACTORY(factory, const LinOpFactory, solver, config, context,
+                td_for_child);
+    SET_POINTER(factory, const LinOp, generated_solver, config, context,
+                td_for_child);
+    SET_VALUE(factory, ValueType, relaxation_factor, config);
+    SET_VALUE(factory, solver::initial_guess_mode, default_initial_guess,
+              config);
+    return factory;
+}
 
 
 template <typename ValueType>

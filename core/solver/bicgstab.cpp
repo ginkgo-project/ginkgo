@@ -14,6 +14,7 @@
 #include <ginkgo/core/solver/solver_base.hpp>
 
 
+#include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
@@ -34,6 +35,18 @@ GKO_REGISTER_OPERATION(finalize, bicgstab::finalize);
 
 }  // anonymous namespace
 }  // namespace bicgstab
+
+
+template <typename ValueType>
+typename Bicgstab<ValueType>::parameters_type
+Bicgstab<ValueType>::parse(const config::pnode& config,
+                                       const config::registry& context,
+                                       config::type_descriptor td_for_child)
+{
+    auto factory = solver::Bicgstab<ValueType>::build();
+    common_solver_configure(factory, config, context, td_for_child);
+    return factory;
+}
 
 
 template <typename ValueType>
