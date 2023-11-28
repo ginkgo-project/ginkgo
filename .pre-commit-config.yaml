@@ -27,12 +27,14 @@ repos:
   - id: format-headers
     name: format headers
     entry: env CLANG_FORMAT=dev_tools/scripts/clang-format.sh dev_tools/scripts/format_header.sh
+    require_serial: true
     language: system
     types_or: [c, c++, cuda]
     exclude: |
         (?x)^(
           third_party/SuiteSparse/AMD/.*|
-          third_party/identify_stream_usage/.*
+          third_party/identify_stream_usage/.*|
+          include/ginkgo/ginkgo.hpp
         )$
   - id: update-ginkgo-header
     name: update ginkgo header
