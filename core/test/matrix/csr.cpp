@@ -8,8 +8,10 @@
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/base/device_matrix_data.hpp>
+
+
 #include "core/test/utils.hpp"
-#include "ginkgo/core/base/device_matrix_data.hpp"
 
 
 namespace {
