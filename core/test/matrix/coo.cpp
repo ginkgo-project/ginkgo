@@ -217,6 +217,22 @@ TYPED_TEST(Coo, CanBeReadFromMatrixDataIntoViews)
 }
 
 
+TYPED_TEST(Coo, ThrowsOnIncompatibleReadFromMatrixDataIntoViews)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto row_idxs = gko::array<index_type>(this->exec, 1);
+    auto col_idxs = gko::array<index_type>(this->exec, 1);
+    auto values = gko::array<value_type>(this->exec, 1);
+    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
+                         col_idxs.as_view(), row_idxs.as_view());
+
+    ASSERT_THROW(m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 3.0}}}),
+                 gko::NotSupported);
+}
+
+
 TYPED_TEST(Coo, CanBeReadFromMatrixAssemblyData)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -255,7 +271,7 @@ TYPED_TEST(Coo, CanBeReadFromDeviceMatrixData)
     this->assert_equal_to_original_mtx(m);
     ASSERT_EQ(device_data.get_num_stored_elements(),
               m->get_num_stored_elements());
-    GKO_ASSERT_EQUAL_DIMENSIONS(&device_data, m);
+    ASSERT_EQ(device_data.get_size(), m->get_size());
 }
 
 
@@ -287,6 +303,27 @@ TYPED_TEST(Coo, CanBeReadFromDeviceMatrixDataIntoViews)
 }
 
 
+TYPED_TEST(Coo, ThrowsOnIncompatibleReadFromDeviceMatrixDataIntoViews)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto row_idxs = gko::array<index_type>(this->exec, 1);
+    auto col_idxs = gko::array<index_type>(this->exec, 1);
+    auto values = gko::array<value_type>(this->exec, 1);
+    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
+                         col_idxs.as_view(), row_idxs.as_view());
+    gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
+    data.set_value(0, 0, 1.0);
+    data.set_value(0, 1, 3.0);
+    auto device_data =
+        gko::device_matrix_data<value_type, index_type>::create_from_host(
+            this->exec, data.get_ordered_data());
+
+    ASSERT_THROW(m->read(device_data), gko::OutOfBoundsError);
+}
+
+
 TYPED_TEST(Coo, CanBeReadFromMovedDeviceMatrixData)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -305,7 +342,7 @@ TYPED_TEST(Coo, CanBeReadFromMovedDeviceMatrixData)
     m->read(std::move(device_data));
 
     this->assert_equal_to_original_mtx(m);
-    GKO_ASSERT_EQUAL_DIMENSIONS(&device_data, gko::dim<2>{});
+    ASSERT_EQ(device_data.get_size(), gko::dim<2>{});
     ASSERT_EQ(device_data.get_num_stored_elements(), 0);
 }
 
@@ -315,9 +352,9 @@ TYPED_TEST(Coo, CanBeReadFromMovedDeviceMatrixDataIntoViews)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto row_idxs = gko::array<index_type>(this->exec, 4);
-    auto col_idxs = gko::array<index_type>(this->exec, 4);
-    auto values = gko::array<value_type>(this->exec, 4);
+    auto row_idxs = gko::array<index_type>(this->exec, 2);
+    auto col_idxs = gko::array<index_type>(this->exec, 2);
+    auto values = gko::array<value_type>(this->exec, 2);
     row_idxs.fill(0);
     col_idxs.fill(0);
     values.fill(gko::zero<value_type>());
@@ -331,13 +368,16 @@ TYPED_TEST(Coo, CanBeReadFromMovedDeviceMatrixDataIntoViews)
     auto device_data =
         gko::device_matrix_data<value_type, index_type>::create_from_host(
             this->exec, data.get_ordered_data());
+    auto orig_row_idxs = device_data.get_row_idxs();
+    auto orig_col_idxs = device_data.get_col_idxs();
+    auto orig_values = device_data.get_values();
 
     m->read(std::move(device_data));
 
     this->assert_equal_to_original_mtx(m);
-    ASSERT_NE(row_idxs.get_data(), m->get_row_idxs());
-    ASSERT_NE(col_idxs.get_data(), m->get_col_idxs());
-    ASSERT_NE(values.get_data(), m->get_values());
+    ASSERT_EQ(orig_row_idxs, m->get_row_idxs());
+    ASSERT_EQ(orig_col_idxs, m->get_col_idxs());
+    ASSERT_EQ(orig_values, m->get_values());
 }
 
 

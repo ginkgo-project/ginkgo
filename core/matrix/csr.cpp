@@ -426,12 +426,16 @@ void Csr<ValueType, IndexType>::read(const mat_data& data)
 {
     auto size = data.size;
     auto exec = this->get_executor();
-    row_ptrs_.resize_and_reset(size[0] + 1);
-    col_idxs_.resize_and_reset(data.nonzeros.size());
-    values_.resize_and_reset(data.nonzeros.size());
+    this->set_size(size);
+    this->row_ptrs_.resize_and_reset(size[0] + 1);
+    this->col_idxs_.resize_and_reset(data.nonzeros.size());
+    this->values_.resize_and_reset(data.nonzeros.size());
+    // the device matrix data contains views on the column indices
+    // and values array of this matrix, and an owning array for the
+    // row indices (which doesn't exist in this matrix)
     device_mat_data view{exec, size,
                          array<IndexType>{exec, data.nonzeros.size()},
-                         col_idxs_.as_view(), values_.as_view()};
+                         this->col_idxs_.as_view(), this->values_.as_view()};
     const auto host_data =
         make_array_view(exec->get_master(), data.nonzeros.size(),
                         const_cast<matrix_data_entry<ValueType, IndexType>*>(
@@ -440,7 +444,7 @@ void Csr<ValueType, IndexType>::read(const mat_data& data)
         csr::make_aos_to_soa(*make_temporary_clone(exec, &host_data), view));
     exec->run(csr::make_convert_idxs_to_ptrs(view.get_const_row_idxs(),
                                              view.get_num_stored_elements(),
-                                             size[0], get_row_ptrs()));
+                                             size[0], this->get_row_ptrs()));
     this->make_srow();
 }
 
@@ -452,6 +456,9 @@ void Csr<ValueType, IndexType>::read(const device_mat_data& data)
     auto exec = this->get_executor();
     this->row_ptrs_.resize_and_reset(size[0] + 1);
     this->set_size(size);
+    // copy the column indices and values array from the device matrix data
+    // into this. Compared to the read(device_mat_data&&) version, the internal
+    // arrays keep their current ownership status.
     this->values_ = make_const_array_view(data.get_executor(),
                                           data.get_num_stored_elements(),
                                           data.get_const_values());
@@ -476,7 +483,7 @@ void Csr<ValueType, IndexType>::read(device_mat_data&& data)
     auto size = data.get_size();
     auto exec = this->get_executor();
     auto arrays = data.empty_out();
-    this->row_ptrs_ = array<IndexType>{exec, size[0] + 1};
+    this->row_ptrs_.resize_and_reset(size[0] + 1);
     this->set_size(size);
     this->values_ = std::move(arrays.values);
     this->col_idxs_ = std::move(arrays.col_idxs);
