@@ -58,37 +58,21 @@ struct gcc_atomic_intrinsic_type_map<double> {
 };
 
 
-template <int memorder, typename ValueType>
+template <int memorder, int scope, typename ValueType>
 __device__ __forceinline__ ValueType load_generic(const ValueType* ptr)
 {
     using atomic_type = typename gcc_atomic_intrinsic_type_map<ValueType>::type;
     static_assert(sizeof(atomic_type) == sizeof(ValueType), "invalid map");
     static_assert(alignof(atomic_type) == sizeof(ValueType), "invalid map");
-    auto cast_value =
-        __atomic_load_n(reinterpret_cast<const atomic_type*>(ptr), memorder);
+    auto cast_value = __hip_atomic_load(
+        reinterpret_cast<const atomic_type*>(ptr), memorder, scope);
     ValueType result{};
     memcpy(&result, &cast_value, sizeof(ValueType));
     return result;
 }
 
 
-template <typename ValueType,
-          gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
-__device__ __forceinline__ ValueType load_relaxed(const ValueType* ptr)
-{
-    return load_generic<__ATOMIC_RELAXED>(ptr);
-}
-
-
-template <typename ValueType,
-          gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
-__device__ __forceinline__ ValueType load_acquire(const ValueType* ptr)
-{
-    return load_generic<__ATOMIC_ACQUIRE>(ptr);
-}
-
-
-template <int memorder, typename ValueType>
+template <int memorder, int scope, typename ValueType>
 __device__ __forceinline__ void store_generic(ValueType* ptr, ValueType value)
 {
     using atomic_type = typename gcc_atomic_intrinsic_type_map<ValueType>::type;
@@ -96,8 +80,40 @@ __device__ __forceinline__ void store_generic(ValueType* ptr, ValueType value)
     static_assert(alignof(atomic_type) == sizeof(ValueType), "invalid map");
     atomic_type cast_value{};
     memcpy(&cast_value, &value, sizeof(ValueType));
-    return __atomic_store_n(reinterpret_cast<atomic_type*>(ptr), cast_value,
-                            memorder);
+    return __hip_atomic_store(reinterpret_cast<atomic_type*>(ptr), cast_value,
+                              memorder, scope);
+}
+
+
+template <typename ValueType,
+          gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
+__device__ __forceinline__ ValueType load_relaxed(const ValueType* ptr)
+{
+    return load_generic<__ATOMIC_RELAXED, __HIP_MEMORY_SCOPE_AGENT>(ptr);
+}
+
+
+template <typename ValueType,
+          gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
+__device__ __forceinline__ ValueType load_relaxed_shared(const ValueType* ptr)
+{
+    return load_generic<__ATOMIC_RELAXED, __HIP_MEMORY_SCOPE_WORKGROUP>(ptr);
+}
+
+
+template <typename ValueType,
+          gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
+__device__ __forceinline__ ValueType load_acquire(const ValueType* ptr)
+{
+    return load_generic<__ATOMIC_ACQUIRE, __HIP_MEMORY_SCOPE_AGENT>(ptr);
+}
+
+
+template <typename ValueType,
+          gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
+__device__ __forceinline__ ValueType load_acquire_shared(const ValueType* ptr)
+{
+    return load_generic<__ATOMIC_ACQUIRE, __HIP_MEMORY_SCOPE_WORKGROUP>(ptr);
 }
 
 
@@ -105,7 +121,18 @@ template <typename ValueType,
           gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
 __device__ __forceinline__ void store_relaxed(ValueType* ptr, ValueType value)
 {
-    return store_generic<__ATOMIC_RELAXED>(ptr, value);
+    return store_generic<__ATOMIC_RELAXED, __HIP_MEMORY_SCOPE_AGENT>(ptr,
+                                                                     value);
+}
+
+
+template <typename ValueType,
+          gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
+__device__ __forceinline__ void store_relaxed_shared(ValueType* ptr,
+                                                     ValueType value)
+{
+    return store_generic<__ATOMIC_RELAXED, __HIP_MEMORY_SCOPE_WORKGROUP>(ptr,
+                                                                         value);
 }
 
 
@@ -113,7 +140,18 @@ template <typename ValueType,
           gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
 __device__ __forceinline__ void store_release(ValueType* ptr, ValueType value)
 {
-    return store_generic<__ATOMIC_RELEASE>(ptr, value);
+    return store_generic<__ATOMIC_RELEASE, __HIP_MEMORY_SCOPE_AGENT>(ptr,
+                                                                     value);
+}
+
+
+template <typename ValueType,
+          gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
+__device__ __forceinline__ void store_release_shared(ValueType* ptr,
+                                                     ValueType value)
+{
+    return store_generic<__ATOMIC_RELEASE, __HIP_MEMORY_SCOPE_WORKGROUP>(ptr,
+                                                                         value);
 }
 
 
@@ -128,8 +166,18 @@ __device__ __forceinline__ thrust::complex<ValueType> load_relaxed(
 }
 
 
-template <typename ValueType,
-          gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
+template <typename ValueType>
+__device__ __forceinline__ thrust::complex<ValueType> load_relaxed_shared(
+    const thrust::complex<ValueType>* ptr)
+{
+    auto real_ptr = reinterpret_cast<const ValueType*>(ptr);
+    auto real = load_relaxed_shared(real_ptr);
+    auto imag = load_relaxed_shared(real_ptr + 1);
+    return {real, imag};
+}
+
+
+template <typename ValueType>
 __device__ __forceinline__ void store_relaxed(thrust::complex<ValueType>* ptr,
                                               thrust::complex<ValueType> value)
 {
@@ -139,36 +187,13 @@ __device__ __forceinline__ void store_relaxed(thrust::complex<ValueType>* ptr,
 }
 
 
-// we can't annotate pointers with shared easily, so we don't try to be clever
-
-
 template <typename ValueType>
-__device__ __forceinline__ ValueType load_relaxed_shared(const ValueType* ptr)
+__device__ __forceinline__ void store_relaxed_shared(
+    thrust::complex<ValueType>* ptr, thrust::complex<ValueType> value)
 {
-    return load_relaxed(ptr);
-}
-
-
-template <typename ValueType>
-__device__ __forceinline__ ValueType load_acquire_shared(const ValueType* ptr)
-{
-    return load_acquire(ptr);
-}
-
-
-template <typename ValueType>
-__device__ __forceinline__ void store_relaxed_shared(ValueType* ptr,
-                                                     ValueType value)
-{
-    store_relaxed(ptr, value);
-}
-
-
-template <typename ValueType>
-__device__ __forceinline__ void store_release_shared(ValueType* ptr,
-                                                     ValueType value)
-{
-    store_release(ptr, value);
+    auto real_ptr = reinterpret_cast<ValueType*>(ptr);
+    store_relaxed_shared(real_ptr, value.real());
+    store_relaxed_shared(real_ptr + 1, value.imag());
 }
 
 
