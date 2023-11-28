@@ -13,6 +13,7 @@
 #include <ginkgo/core/solver/solver_base.hpp>
 
 
+#include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/idr_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
@@ -33,6 +34,21 @@ GKO_REGISTER_OPERATION(compute_omega, idr::compute_omega);
 
 }  // anonymous namespace
 }  // namespace idr
+
+
+template <typename ValueType>
+typename Idr<ValueType>::parameters_type Idr<ValueType>::parse(
+    const config::pnode& config, const config::registry& context,
+    config::type_descriptor td_for_child)
+{
+    auto factory = solver::Idr<ValueType>::build();
+    common_solver_configure(factory, config, context, td_for_child);
+    SET_VALUE(factory, size_type, subspace_dim, config);
+    SET_VALUE(factory, remove_complex<ValueType>, kappa, config);
+    SET_VALUE(factory, bool, deterministic, config);
+    SET_VALUE(factory, bool, complex_subspace, config);
+    return factory;
+}
 
 
 template <typename ValueType>

@@ -16,6 +16,7 @@
 #include <ginkgo/core/matrix/identity.hpp>
 
 
+#include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/gcr_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
@@ -34,6 +35,18 @@ GKO_REGISTER_OPERATION(step_1, gcr::step_1);
 
 }  // anonymous namespace
 }  // namespace gcr
+
+
+template <typename ValueType>
+typename Gcr<ValueType>::parameters_type Gcr<ValueType>::parse(
+    const config::pnode& config, const config::registry& context,
+    config::type_descriptor td_for_child)
+{
+    auto factory = solver::Gcr<ValueType>::build();
+    common_solver_configure(factory, config, context, td_for_child);
+    SET_VALUE(factory, size_type, krylov_dim, config);
+    return factory;
+}
 
 
 template <typename ValueType>

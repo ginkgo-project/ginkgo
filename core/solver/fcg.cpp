@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/utils.hpp>
 
 
+#include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/fcg_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
@@ -31,6 +32,17 @@ GKO_REGISTER_OPERATION(step_2, fcg::step_2);
 
 }  // anonymous namespace
 }  // namespace fcg
+
+
+template <typename ValueType>
+typename Fcg<ValueType>::parameters_type Fcg<ValueType>::parse(
+    const config::pnode& config, const config::registry& context,
+    config::type_descriptor td_for_child)
+{
+    auto factory = solver::Fcg<ValueType>::build();
+    common_solver_configure(factory, config, context, td_for_child);
+    return factory;
+}
 
 
 template <typename ValueType>

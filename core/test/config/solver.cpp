@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <typeinfo>
 
@@ -76,28 +48,28 @@ struct SolverConfigTest {
 
     static void change_template(pnode& config)
     {
-        config.get_list()["ValueType"] = pnode{"float"};
+        config.get_map()["ValueType"] = pnode{"float"};
     }
 
     template <bool from_reg, typename ParamType>
     static void set(pnode& config, ParamType& param, registry reg,
                     std::shared_ptr<const gko::Executor> exec)
     {
-        config.get_list()["generated_preconditioner"] = pnode{"linop"};
+        config.get_map()["generated_preconditioner"] = pnode{"linop"};
         param.with_generated_preconditioner(
             reg.search_data<gko::LinOp>("linop"));
         if (from_reg) {
-            config.get_list()["criteria"] = pnode{"criterion_factory"};
+            config.get_map()["criteria"] = pnode{"criterion_factory"};
             param.with_criteria(reg.search_data<gko::stop::CriterionFactory>(
                 "criterion_factory"));
-            config.get_list()["preconditioner"] = pnode{"linop_factory"};
+            config.get_map()["preconditioner"] = pnode{"linop_factory"};
             param.with_preconditioner(
                 reg.search_data<gko::LinOpFactory>("linop_factory"));
         } else {
-            config.get_list()["criteria"] =
-                pnode{{{"Type", pnode{"Iteration"}}}};
+            config.get_map()["criteria"] = pnode{
+                std::map<std::string, pnode>{{"Type", pnode{"Iteration"}}}};
             param.with_criteria(DummyStop::build().on(exec));
-            config.get_list()["preconditioner"] =
+            config.get_map()["preconditioner"] =
                 pnode{{{"Type", pnode{"Cg"}}, {"ValueType", pnode{"double"}}}};
             param.with_preconditioner(DummySolver::build().on(exec));
         }
@@ -129,59 +101,77 @@ struct SolverConfigTest {
 
 
 struct Cg : SolverConfigTest<gko::solver::Cg<float>, gko::solver::Cg<double>> {
-    static pnode setup_base() { return pnode{{{"Type", pnode{"Cg"}}}}; }
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"Cg"}}}};
+    }
 };
 
 
 struct Cgs
     : SolverConfigTest<gko::solver::Cgs<float>, gko::solver::Cgs<double>> {
-    static pnode setup_base() { return pnode{{{"Type", pnode{"Cgs"}}}}; }
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"Cgs"}}}};
+    }
 };
 
 
 struct Fcg
     : SolverConfigTest<gko::solver::Fcg<float>, gko::solver::Fcg<double>> {
-    static pnode setup_base() { return pnode{{{"Type", pnode{"Fcg"}}}}; }
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"Fcg"}}}};
+    }
 };
 
 
 struct Bicg
     : SolverConfigTest<gko::solver::Bicg<float>, gko::solver::Bicg<double>> {
-    static pnode setup_base() { return pnode{{{"Type", pnode{"Bicg"}}}}; }
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"Bicg"}}}};
+    }
 };
 
 
 struct Bicgstab : SolverConfigTest<gko::solver::Bicgstab<float>,
                                    gko::solver::Bicgstab<double>> {
-    static pnode setup_base() { return pnode{{{"Type", pnode{"Bicgstab"}}}}; }
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"Bicgstab"}}}};
+    }
 };
 
 
 struct Ir : SolverConfigTest<gko::solver::Ir<float>, gko::solver::Ir<double>> {
-    static pnode setup_base() { return pnode{{{"Type", pnode{"Ir"}}}}; }
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"Ir"}}}};
+    }
 
     template <bool from_reg, typename ParamType>
     static void set(pnode& config, ParamType& param, registry reg,
                     std::shared_ptr<const gko::Executor> exec)
     {
-        config.get_list()["generated_solver"] = pnode{"linop"};
+        config.get_map()["generated_solver"] = pnode{"linop"};
         param.with_generated_solver(reg.search_data<gko::LinOp>("linop"));
-        config.get_list()["relaxation_factor"] = pnode{1.2};
-        param.with_relaxation_factor(1.2);
-        config.get_list()["default_initial_guess"] = pnode{"zero"};
+        config.get_map()["relaxation_factor"] = pnode{1.2};
+        param.with_relaxation_factor(decltype(param.relaxation_factor){1.2});
+        config.get_map()["default_initial_guess"] = pnode{"zero"};
         param.with_default_initial_guess(gko::solver::initial_guess_mode::zero);
         if (from_reg) {
-            config.get_list()["criteria"] = pnode{"criterion_factory"};
+            config.get_map()["criteria"] = pnode{"criterion_factory"};
             param.with_criteria(reg.search_data<gko::stop::CriterionFactory>(
                 "criterion_factory"));
-            config.get_list()["solver"] = pnode{"linop_factory"};
+            config.get_map()["solver"] = pnode{"linop_factory"};
             param.with_solver(
                 reg.search_data<gko::LinOpFactory>("linop_factory"));
         } else {
-            config.get_list()["criteria"] =
-                pnode{{{"Type", pnode{"Iteration"}}}};
+            config.get_map()["criteria"] = pnode{
+                std::map<std::string, pnode>{{"Type", pnode{"Iteration"}}}};
             param.with_criteria(DummyStop::build().on(exec));
-            config.get_list()["solver"] =
+            config.get_map()["solver"] =
                 pnode{{{"Type", pnode{"Cg"}}, {"ValueType", pnode{"double"}}}};
             param.with_solver(DummySolver::build().on(exec));
         }
@@ -216,20 +206,23 @@ struct Ir : SolverConfigTest<gko::solver::Ir<float>, gko::solver::Ir<double>> {
 
 struct Idr
     : SolverConfigTest<gko::solver::Idr<float>, gko::solver::Idr<double>> {
-    static pnode setup_base() { return pnode{{{"Type", pnode{"Idr"}}}}; }
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"Idr"}}}};
+    }
 
     template <bool from_reg, typename ParamType>
     static void set(pnode& config, ParamType& param, registry reg,
                     std::shared_ptr<const gko::Executor> exec)
     {
         solver_config_test::template set<from_reg>(config, param, reg, exec);
-        config.get_list()["subspace_dim"] = pnode{3};
+        config.get_map()["subspace_dim"] = pnode{3};
         param.with_subspace_dim(3u);
-        config.get_list()["kappa"] = pnode{0.9};
-        param.with_kappa(0.9);
-        config.get_list()["deterministic"] = pnode{true};
+        config.get_map()["kappa"] = pnode{0.9};
+        param.with_kappa(decltype(param.kappa){0.9});
+        config.get_map()["deterministic"] = pnode{true};
         param.with_deterministic(true);
-        config.get_list()["complex_subspace"] = pnode{true};
+        config.get_map()["complex_subspace"] = pnode{true};
         param.with_complex_subspace(true);
     }
 
@@ -250,14 +243,17 @@ struct Idr
 
 struct Gcr
     : SolverConfigTest<gko::solver::Gcr<float>, gko::solver::Gcr<double>> {
-    static pnode setup_base() { return pnode{{{"Type", pnode{"Gcr"}}}}; }
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"Gcr"}}}};
+    }
 
     template <bool from_reg, typename ParamType>
     static void set(pnode& config, ParamType& param, registry reg,
                     std::shared_ptr<const gko::Executor> exec)
     {
         solver_config_test::template set<from_reg>(config, param, reg, exec);
-        config.get_list()["krylov_dim"] = pnode{3};
+        config.get_map()["krylov_dim"] = pnode{3};
         param.with_krylov_dim(3u);
     }
 
@@ -275,16 +271,19 @@ struct Gcr
 
 struct Gmres
     : SolverConfigTest<gko::solver::Gmres<float>, gko::solver::Gmres<double>> {
-    static pnode setup_base() { return pnode{{{"Type", pnode{"Gmres"}}}}; }
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"Gmres"}}}};
+    }
 
     template <bool from_reg, typename ParamType>
     static void set(pnode& config, ParamType& param, registry reg,
                     std::shared_ptr<const gko::Executor> exec)
     {
         solver_config_test::template set<from_reg>(config, param, reg, exec);
-        config.get_list()["krylov_dim"] = pnode{3};
+        config.get_map()["krylov_dim"] = pnode{3};
         param.with_krylov_dim(3u);
-        config.get_list()["flexible"] = pnode{true};
+        config.get_map()["flexible"] = pnode{true};
         param.with_flexible(true);
     }
 
@@ -303,16 +302,19 @@ struct Gmres
 
 struct CbGmres : SolverConfigTest<gko::solver::CbGmres<float>,
                                   gko::solver::CbGmres<double>> {
-    static pnode setup_base() { return pnode{{{"Type", pnode{"CbGmres"}}}}; }
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"CbGmres"}}}};
+    }
 
     template <bool from_reg, typename ParamType>
     static void set(pnode& config, ParamType& param, registry reg,
                     std::shared_ptr<const gko::Executor> exec)
     {
         solver_config_test::template set<from_reg>(config, param, reg, exec);
-        config.get_list()["krylov_dim"] = pnode{3};
+        config.get_map()["krylov_dim"] = pnode{3};
         param.with_krylov_dim(3u);
-        config.get_list()["storage_precision"] = pnode{"reduce2"};
+        config.get_map()["storage_precision"] = pnode{"reduce2"};
         param.with_storage_precision(
             gko::solver::cb_gmres::storage_precision::reduce2);
     }
@@ -333,26 +335,29 @@ struct CbGmres : SolverConfigTest<gko::solver::CbGmres<float>,
 struct Direct
     : SolverConfigTest<gko::experimental::solver::Direct<float, gko::int64>,
                        gko::experimental::solver::Direct<double, int>> {
-    static pnode setup_base() { return pnode{{{"Type", pnode{"Direct"}}}}; }
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"Direct"}}}};
+    }
 
     static void change_template(pnode& config)
     {
-        config.get_list()["ValueType"] = pnode{"float"};
-        config.get_list()["IndexType"] = pnode{"int64"};
+        config.get_map()["ValueType"] = pnode{"float"};
+        config.get_map()["IndexType"] = pnode{"int64"};
     }
 
     template <bool from_reg, typename ParamType>
     static void set(pnode& config, ParamType& param, registry reg,
                     std::shared_ptr<const gko::Executor> exec)
     {
-        config.get_list()["num_rhs"] = pnode{3};
+        config.get_map()["num_rhs"] = pnode{3};
         param.with_num_rhs(3u);
         if (from_reg) {
-            config.get_list()["factorization"] = pnode{"linop_factory"};
+            config.get_map()["factorization"] = pnode{"linop_factory"};
             param.with_factorization(
                 reg.search_data<gko::LinOpFactory>("linop_factory"));
         } else {
-            config.get_list()["factorization"] =
+            config.get_map()["factorization"] =
                 pnode{{{"Type", pnode{"Cg"}}, {"ValueType", pnode{"double"}}}};
             param.with_factorization(DummySolver::build().on(exec));
         }
@@ -381,19 +386,19 @@ template <template <class, class> class Trs>
 struct TrsHelper : SolverConfigTest<Trs<float, gko::int64>, Trs<double, int>> {
     static void change_template(pnode& config)
     {
-        config.get_list()["ValueType"] = pnode{"float"};
-        config.get_list()["IndexType"] = pnode{"int64"};
+        config.get_map()["ValueType"] = pnode{"float"};
+        config.get_map()["IndexType"] = pnode{"int64"};
     }
 
     template <bool from_reg, typename ParamType>
     static void set(pnode& config, ParamType& param, registry reg,
                     std::shared_ptr<const gko::Executor> exec)
     {
-        config.get_list()["num_rhs"] = pnode{3};
+        config.get_map()["num_rhs"] = pnode{3};
         param.with_num_rhs(3u);
-        config.get_list()["unit_diagonal"] = pnode{true};
+        config.get_map()["unit_diagonal"] = pnode{true};
         param.with_unit_diagonal(true);
-        config.get_list()["algorithm"] = pnode{"syncfree"};
+        config.get_map()["algorithm"] = pnode{"syncfree"};
         param.with_algorithm(gko::solver::trisolve_algorithm::syncfree);
     }
 
@@ -411,12 +416,18 @@ struct TrsHelper : SolverConfigTest<Trs<float, gko::int64>, Trs<double, int>> {
 
 
 struct LowerTrs : TrsHelper<gko::solver::LowerTrs> {
-    static pnode setup_base() { return pnode{{{"Type", pnode{"LowerTrs"}}}}; }
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"LowerTrs"}}}};
+    }
 };
 
 
 struct UpperTrs : TrsHelper<gko::solver::UpperTrs> {
-    static pnode setup_base() { return pnode{{{"Type", pnode{"UpperTrs"}}}}; }
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"UpperTrs"}}}};
+    }
 };
 
 
@@ -460,7 +471,7 @@ TYPED_TEST(Solver, CreateDefault)
     using Config = typename TestFixture::Config;
     auto config = Config::setup_base();
 
-    auto res = parse(config, this->reg, this->exec, this->td);
+    auto res = parse(config, this->reg, this->td).on(this->exec);
     auto ans = Config::default_type::build().on(this->exec);
 
     Config::template validate<true>(res.get(), ans.get());
@@ -473,7 +484,7 @@ TYPED_TEST(Solver, ExplicitTemplate)
     auto config = Config::setup_base();
     Config::change_template(config);
 
-    auto res = parse(config, this->reg, this->exec, this->td);
+    auto res = parse(config, this->reg, this->td).on(this->exec);
     auto ans = Config::solver_type::build().on(this->exec);
 
     Config::template validate<true>(res.get(), ans.get());
@@ -488,7 +499,7 @@ TYPED_TEST(Solver, SetFromRegistry)
     auto param = Config::solver_type::build();
     Config::template set<true>(config, param, this->reg, this->exec);
 
-    auto res = parse(config, this->reg, this->exec, this->td);
+    auto res = parse(config, this->reg, this->td).on(this->exec);
     auto ans = param.on(this->exec);
 
     Config::template validate<true>(res.get(), ans.get());
@@ -503,7 +514,7 @@ TYPED_TEST(Solver, SetFromConfig)
     auto param = Config::solver_type::build();
     Config::template set<false>(config, param, this->reg, this->exec);
 
-    auto res = parse(config, this->reg, this->exec, this->td);
+    auto res = parse(config, this->reg, this->td).on(this->exec);
     auto ans = param.on(this->exec);
 
     Config::template validate<false>(res.get(), ans.get());
