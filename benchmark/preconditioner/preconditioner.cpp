@@ -159,9 +159,10 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
 
         state.system_matrix =
             formats::matrix_factory(FLAGS_formats, exec, data);
-        state.b = Generator::create_multi_vector_random(exec, data.size[0]);
-        state.x = Generator::create_multi_vector(exec, data.size[0],
-                                                 gko::zero<etype>());
+        state.b = Generator::create_multi_vector_random(
+            exec, gko::dim<2>{data.size[0]});
+        state.x = Generator::create_multi_vector(
+            exec, gko::dim<2>{data.size[0]}, gko::zero<etype>());
 
         std::clog << "Matrix is of size (" << data.size[0] << ", "
                   << data.size[1] << "), " << data.nonzeros.size() << std::endl;
