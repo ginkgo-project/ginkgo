@@ -9,6 +9,7 @@
 
 
 #include "core/test/utils.hpp"
+#include "ginkgo/core/base/device_matrix_data.hpp"
 
 
 namespace {
@@ -50,14 +51,9 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Mtx> mtx;
 
-    void assert_equal_to_original_mtx(gko::ptr_param<const Mtx> m)
+    void assert_equal_to_original_mtx(const index_type* r, const index_type* c,
+                                      const value_type* v)
     {
-        auto v = m->get_const_values();
-        auto c = m->get_const_col_idxs();
-        auto r = m->get_const_row_ptrs();
-        auto s = m->get_const_srow();
-        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
-        ASSERT_EQ(m->get_num_stored_elements(), 4);
         EXPECT_EQ(r[0], 0);
         EXPECT_EQ(r[1], 3);
         EXPECT_EQ(r[2], 4);
@@ -69,6 +65,17 @@ protected:
         EXPECT_EQ(v[1], value_type{3.0});
         EXPECT_EQ(v[2], value_type{2.0});
         EXPECT_EQ(v[3], value_type{5.0});
+    }
+
+    void assert_equal_to_original_mtx(gko::ptr_param<const Mtx> m)
+    {
+        auto v = m->get_const_values();
+        auto c = m->get_const_col_idxs();
+        auto r = m->get_const_row_ptrs();
+        auto s = m->get_const_srow();
+        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
+        ASSERT_EQ(m->get_num_stored_elements(), 4);
+        assert_equal_to_original_mtx(r, c, v);
         EXPECT_EQ(s[0], 0);
     }
 
@@ -211,6 +218,27 @@ TYPED_TEST(Csr, CanBeReadFromMatrixData)
 }
 
 
+TYPED_TEST(Csr, CanBeReadFromMatrixDataIntoViews)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto row_ptrs = gko::array<index_type>(this->exec, 3);
+    auto col_idxs = gko::array<index_type>(this->exec, 4);
+    auto values = gko::array<value_type>(this->exec, 4);
+    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
+                         col_idxs.as_view(), row_ptrs.as_view(),
+                         std::make_shared<typename Mtx::load_balance>(2));
+
+    m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
+
+    this->assert_equal_to_original_mtx(m);
+    ASSERT_EQ(row_ptrs.get_data(), m->get_row_ptrs());
+    ASSERT_EQ(col_idxs.get_data(), m->get_col_idxs());
+    ASSERT_EQ(values.get_data(), m->get_values());
+}
+
+
 TYPED_TEST(Csr, CanBeReadFromMatrixAssemblyData)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -227,6 +255,116 @@ TYPED_TEST(Csr, CanBeReadFromMatrixAssemblyData)
     m->read(data);
 
     this->assert_equal_to_original_mtx(m);
+}
+
+
+TYPED_TEST(Csr, CanBeReadFromDeviceMatrixData)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto m = Mtx::create(this->exec,
+                         std::make_shared<typename Mtx::load_balance>(2));
+    gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
+    data.set_value(0, 0, 1.0);
+    data.set_value(0, 1, 3.0);
+    data.set_value(0, 2, 2.0);
+    data.set_value(1, 1, 5.0);
+    auto device_data =
+        gko::device_matrix_data<value_type, index_type>::create_from_host(
+            this->exec, data.get_ordered_data());
+
+    m->read(device_data);
+
+    this->assert_equal_to_original_mtx(m);
+    ASSERT_EQ(device_data.get_num_stored_elements(),
+              m->get_num_stored_elements());
+    GKO_ASSERT_EQUAL_DIMENSIONS(&device_data, m);
+}
+
+
+TYPED_TEST(Csr, CanBeReadFromDeviceMatrixDataIntoViews)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto row_ptrs = gko::array<index_type>(this->exec, 3);
+    auto col_idxs = gko::array<index_type>(this->exec, 4);
+    auto values = gko::array<value_type>(this->exec, 4);
+    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
+                         col_idxs.as_view(), row_ptrs.as_view(),
+                         std::make_shared<typename Mtx::load_balance>(2));
+    gko::matrix_assembly_data<value_type, index_type> data(m->get_size());
+    data.set_value(0, 0, 1.0);
+    data.set_value(0, 1, 3.0);
+    data.set_value(0, 2, 2.0);
+    data.set_value(1, 1, 5.0);
+    auto device_data =
+        gko::device_matrix_data<value_type, index_type>::create_from_host(
+            this->exec, data.get_ordered_data());
+
+    m->read(device_data);
+
+    this->assert_equal_to_original_mtx(m);
+    ASSERT_EQ(row_ptrs.get_data(), m->get_row_ptrs());
+    ASSERT_EQ(col_idxs.get_data(), m->get_col_idxs());
+    ASSERT_EQ(values.get_data(), m->get_values());
+}
+
+
+TYPED_TEST(Csr, CanBeReadFromMovedDeviceMatrixData)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto m = Mtx::create(this->exec,
+                         std::make_shared<typename Mtx::load_balance>(2));
+    gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
+    data.set_value(0, 0, 1.0);
+    data.set_value(0, 1, 3.0);
+    data.set_value(0, 2, 2.0);
+    data.set_value(1, 1, 5.0);
+    auto device_data =
+        gko::device_matrix_data<value_type, index_type>::create_from_host(
+            this->exec, data.get_ordered_data());
+
+    m->read(std::move(device_data));
+
+    this->assert_equal_to_original_mtx(m);
+    GKO_ASSERT_EQUAL_DIMENSIONS(&device_data, gko::dim<2>{});
+    ASSERT_EQ(device_data.get_num_stored_elements(), 0);
+}
+
+
+TYPED_TEST(Csr, CanBeReadFromMovedDeviceMatrixDataIntoViews)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto row_ptrs = gko::array<index_type>(this->exec, 3);
+    auto col_idxs = gko::array<index_type>(this->exec, 4);
+    auto values = gko::array<value_type>(this->exec, 4);
+    row_ptrs.fill(0);
+    col_idxs.fill(0);
+    values.fill(gko::zero<value_type>());
+    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
+                         col_idxs.as_view(), row_ptrs.as_view(),
+                         std::make_shared<typename Mtx::load_balance>(2));
+    gko::matrix_assembly_data<value_type, index_type> data(m->get_size());
+    data.set_value(0, 0, 1.0);
+    data.set_value(0, 1, 3.0);
+    data.set_value(0, 2, 2.0);
+    data.set_value(1, 1, 5.0);
+    auto device_data =
+        gko::device_matrix_data<value_type, index_type>::create_from_host(
+            this->exec, data.get_ordered_data());
+
+    m->read(std::move(device_data));
+
+    this->assert_equal_to_original_mtx(m);
+    ASSERT_NE(row_ptrs.get_data(), m->get_row_ptrs());
+    ASSERT_NE(col_idxs.get_data(), m->get_col_idxs());
+    ASSERT_NE(values.get_data(), m->get_values());
 }
 
 
