@@ -41,4 +41,5 @@ repos:
     entry: dev_tools/scripts/update_ginkgo_header.sh
     language: script
     types: [header]
+    pass_filenames: false
     files: ^include/ginkgo/core
