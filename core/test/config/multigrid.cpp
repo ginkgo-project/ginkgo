@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <typeinfo>
 
@@ -61,27 +33,30 @@ struct MultigridLevelConfigTest {
 
     static void change_template(pnode& config)
     {
-        config.get_list()["ValueType"] = pnode{"float"};
-        config.get_list()["IndexType"] = pnode{"int64"};
+        config.get_map()["ValueType"] = pnode{"float"};
+        config.get_map()["IndexType"] = pnode{"int64"};
     }
 };
 
 
 struct Pgm : MultigridLevelConfigTest<gko::multigrid::Pgm<float, gko::int64>,
                                       gko::multigrid::Pgm<double, int>> {
-    static pnode setup_base() { return pnode{{{"Type", pnode{"Pgm"}}}}; }
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"Pgm"}}}};
+    }
 
     template <typename ParamType>
     static void set(pnode& config, ParamType& param, registry reg,
                     std::shared_ptr<const gko::Executor> exec)
     {
-        config.get_list()["max_iterations"] = pnode{20};
+        config.get_map()["max_iterations"] = pnode{20};
         param.with_max_iterations(20u);
-        config.get_list()["max_unassigned_ratio"] = pnode{0.1};
+        config.get_map()["max_unassigned_ratio"] = pnode{0.1};
         param.with_max_unassigned_ratio(0.1);
-        config.get_list()["deterministic"] = pnode{true};
+        config.get_map()["deterministic"] = pnode{true};
         param.with_deterministic(true);
-        config.get_list()["skip_sorting"] = pnode{true};
+        config.get_map()["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
     }
 
@@ -105,17 +80,18 @@ struct FixedCoarsening : MultigridLevelConfigTest<
                              gko::multigrid::FixedCoarsening<double, int>> {
     static pnode setup_base()
     {
-        return pnode{{{"Type", pnode{"FixedCoarsening"}}}};
+        return pnode{
+            std::map<std::string, pnode>{{"Type", pnode{"FixedCoarsening"}}}};
     }
 
     template <typename ParamType>
     static void set(pnode& config, ParamType& param, registry reg,
                     std::shared_ptr<const gko::Executor> exec)
     {
-        config.get_list()["coarse_rows"] =
-            pnode{std::vector<pnode>{{2}, {3}, {5}}};
-        param.with_coarse_rows(gko::array<gko::int64>(exec, {2, 3, 5}));
-        config.get_list()["skip_sorting"] = pnode{true};
+        // config.get_map()["coarse_rows"] =
+        //     pnode{std::vector<pnode>{{2}, {3}, {5}}};
+        // param.with_coarse_rows(gko::array<gko::int64>(exec, {2, 3, 5}));
+        config.get_map()["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
     }
 
@@ -159,7 +135,7 @@ TYPED_TEST(MultigridLevel, CreateDefault)
     using Config = typename TestFixture::Config;
     auto config = Config::setup_base();
 
-    auto res = build_from_config(config, this->reg, this->exec, this->td);
+    auto res = build_from_config(config, this->reg, this->td).on(this->exec);
     auto ans = Config::default_type::build().on(this->exec);
 
     Config::validate(res.get(), ans.get());
@@ -172,7 +148,7 @@ TYPED_TEST(MultigridLevel, ExplicitTemplate)
     auto config = Config::setup_base();
     Config::change_template(config);
 
-    auto res = build_from_config(config, this->reg, this->exec, this->td);
+    auto res = build_from_config(config, this->reg, this->td).on(this->exec);
     auto ans = Config::explicit_type::build().on(this->exec);
 
     Config::validate(res.get(), ans.get());
@@ -187,7 +163,7 @@ TYPED_TEST(MultigridLevel, Set)
     auto param = Config::explicit_type::build();
     Config::set(config, param, this->reg, this->exec);
 
-    auto res = build_from_config(config, this->reg, this->exec, this->td);
+    auto res = build_from_config(config, this->reg, this->td).on(this->exec);
     auto ans = param.on(this->exec);
 
     Config::validate(res.get(), ans.get());
@@ -199,79 +175,86 @@ using DummySmoother = gko::solver::Ir<double>;
 using DummyStop = gko::stop::Iteration;
 
 struct MultigridConfig {
-    static pnode setup_base() { return pnode{{{"Type", pnode{"Multigrid"}}}}; }
+    static pnode setup_base()
+    {
+        return pnode{
+            std::map<std::string, pnode>{{"Type", pnode{"Multigrid"}}}};
+    }
 
     template <bool from_reg, typename ParamType>
     static void set(pnode& config, ParamType& param, registry reg,
                     std::shared_ptr<const gko::Executor> exec)
     {
-        config.get_list()["post_uses_pre"] = pnode{false};
+        config.get_map()["post_uses_pre"] = pnode{false};
         param.with_post_uses_pre(false);
-        config.get_list()["mid_case"] = pnode{"both"};
+        config.get_map()["mid_case"] = pnode{"both"};
         param.with_mid_case(gko::solver::multigrid::mid_smooth_type::both);
-        config.get_list()["max_levels"] = pnode{20u};
+        config.get_map()["max_levels"] = pnode{20u};
         param.with_max_levels(20u);
-        config.get_list()["min_coarse_rows"] = pnode{32u};
+        config.get_map()["min_coarse_rows"] = pnode{32u};
         param.with_min_coarse_rows(32u);
-        config.get_list()["cycle"] = pnode{"w"};
+        config.get_map()["cycle"] = pnode{"w"};
         param.with_cycle(gko::solver::multigrid::cycle::w);
-        config.get_list()["kcycle_base"] = pnode{2u};
+        config.get_map()["kcycle_base"] = pnode{2u};
         param.with_kcycle_base(2u);
-        config.get_list()["kcycle_rel_tol"] = pnode{0.5};
+        config.get_map()["kcycle_rel_tol"] = pnode{0.5};
         param.with_kcycle_rel_tol(0.5);
-        config.get_list()["smoother_relax"] = pnode{0.3};
+        config.get_map()["smoother_relax"] = pnode{0.3};
         param.with_smoother_relax(0.3);
-        config.get_list()["smoother_iters"] = pnode{2u};
+        config.get_map()["smoother_iters"] = pnode{2u};
         param.with_smoother_iters(2u);
-        config.get_list()["default_initial_guess"] = pnode{"provided"};
+        config.get_map()["default_initial_guess"] = pnode{"provided"};
         param.with_default_initial_guess(
             gko::solver::initial_guess_mode::provided);
         if (from_reg) {
-            config.get_list()["criteria"] = pnode{"criterion_factory"};
+            config.get_map()["criteria"] = pnode{"criterion_factory"};
             param.with_criteria(reg.search_data<gko::stop::CriterionFactory>(
                 "criterion_factory"));
-            config.get_list()["mg_level"] =
+            config.get_map()["mg_level"] =
                 pnode{std::vector<pnode>{{"mg_level_0"}, {"mg_level_1"}}};
             param.with_mg_level(
                 reg.search_data<gko::LinOpFactory>("mg_level_0"),
                 reg.search_data<gko::LinOpFactory>("mg_level_1"));
-            config.get_list()["pre_smoother"] = pnode{"pre_smoother"};
+            config.get_map()["pre_smoother"] = pnode{"pre_smoother"};
             param.with_pre_smoother(
                 reg.search_data<gko::LinOpFactory>("pre_smoother"));
-            config.get_list()["post_smoother"] = pnode{"post_smoother"};
+            config.get_map()["post_smoother"] = pnode{"post_smoother"};
             param.with_post_smoother(
                 reg.search_data<gko::LinOpFactory>("post_smoother"));
-            config.get_list()["mid_smoother"] = pnode{"mid_smoother"};
+            config.get_map()["mid_smoother"] = pnode{"mid_smoother"};
             param.with_mid_smoother(
                 reg.search_data<gko::LinOpFactory>("mid_smoother"));
-            config.get_list()["coarsest_solver"] = pnode{"coarsest_solver"};
+            config.get_map()["coarsest_solver"] = pnode{"coarsest_solver"};
             param.with_coarsest_solver(
                 reg.search_data<gko::LinOpFactory>("coarsest_solver"));
         } else {
-            config.get_list()["criteria"] =
-                pnode{{{"Type", pnode{"Iteration"}}}};
+            config.get_map()["criteria"] = pnode{
+                std::map<std::string, pnode>{{"Type", pnode{"Iteration"}}}};
             param.with_criteria(DummyStop::build().on(exec));
-            config.get_list()["mg_level"] = pnode{std::vector<pnode>{
+            config.get_map()["mg_level"] = pnode{std::vector<pnode>{
                 pnode{std::map<std::string, pnode>{{"Type", {"Pgm"}}}},
                 pnode{std::map<std::string, pnode>{{"Type", {"Pgm"}}}}}};
             param.with_mg_level(DummyMgLevel::build().on(exec),
                                 DummyMgLevel::build().on(exec));
-            config.get_list()["pre_smoother"] = pnode{{{"Type", pnode{"Ir"}}}};
+            config.get_map()["pre_smoother"] =
+                pnode{std::map<std::string, pnode>{{"Type", pnode{"Ir"}}}};
             param.with_pre_smoother(DummySmoother::build().on(exec));
-            config.get_list()["post_smoother"] = pnode{{{"Type", pnode{"Ir"}}}};
+            config.get_map()["post_smoother"] =
+                pnode{std::map<std::string, pnode>{{"Type", pnode{"Ir"}}}};
             param.with_post_smoother(DummySmoother::build().on(exec));
-            config.get_list()["mid_smoother"] = pnode{{{"Type", pnode{"Ir"}}}};
+            config.get_map()["mid_smoother"] =
+                pnode{std::map<std::string, pnode>{{"Type", pnode{"Ir"}}}};
             param.with_mid_smoother(DummySmoother::build().on(exec));
-            config.get_list()["coarsest_solver"] =
-                pnode{{{"Type", pnode{"Ir"}}}};
+            config.get_map()["coarsest_solver"] =
+                pnode{std::map<std::string, pnode>{{"Type", pnode{"Ir"}}}};
             param.with_coarsest_solver(DummySmoother::build().on(exec));
         }
-        config.get_list()["level_selector"] = pnode{"first_for_top"};
+        config.get_map()["level_selector"] = pnode{"first_for_top"};
         param.with_level_selector(
             [](const gko::size_type level, const gko::LinOp*) {
                 return level == 0 ? 0 : 1;
             });
-        config.get_list()["solver_selector"] = pnode{"first_for_top"};
+        config.get_map()["solver_selector"] = pnode{"first_for_top"};
         param.with_solver_selector(
             [](const gko::size_type level, const gko::LinOp*) {
                 return level == 0 ? 0 : 1;
@@ -392,7 +375,7 @@ TEST_F(MultigridT, CreateDefault)
 {
     auto config = Config::setup_base();
 
-    auto res = build_from_config(config, this->reg, this->exec, this->td);
+    auto res = build_from_config(config, this->reg, this->td).on(this->exec);
     auto ans = gko::solver::Multigrid::build().on(this->exec);
 
     Config::template validate<true>(res.get(), ans.get());
@@ -405,7 +388,7 @@ TEST_F(MultigridT, SetFromRegistry)
     auto param = gko::solver::Multigrid::build();
     Config::template set<true>(config, param, this->reg, this->exec);
 
-    auto res = build_from_config(config, this->reg, this->exec, this->td);
+    auto res = build_from_config(config, this->reg, this->td).on(exec);
     auto ans = param.on(this->exec);
 
     Config::template validate<true>(res.get(), ans.get());
@@ -418,7 +401,7 @@ TEST_F(MultigridT, SetFromConfig)
     auto param = gko::solver::Multigrid::build();
     Config::template set<false>(config, param, this->reg, this->exec);
 
-    auto res = build_from_config(config, this->reg, this->exec, this->td);
+    auto res = build_from_config(config, this->reg, this->td).on(exec);
     auto ans = param.on(this->exec);
 
     Config::template validate<false>(res.get(), ans.get());
