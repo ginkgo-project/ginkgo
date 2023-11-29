@@ -18,6 +18,7 @@
 
 
 #include "core/components/format_conversion_kernels.hpp"
+#include "core/config/config.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/par_ic_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
@@ -42,6 +43,21 @@ GKO_REGISTER_OPERATION(convert_ptrs_to_idxs, components::convert_ptrs_to_idxs);
 
 }  // anonymous namespace
 }  // namespace par_ic_factorization
+
+
+template <typename ValueType, typename IndexType>
+typename ParIc<ValueType, IndexType>::parameters_type
+ParIc<ValueType, IndexType>::build_from_config(
+    const config::pnode& config, const config::registry& context,
+    config::type_descriptor td_for_child)
+{
+    using matrix_type = typename ParIc<ValueType, IndexType>::matrix_type;
+    auto factory = ParIc<ValueType, IndexType>::build();
+    SET_VALUE(factory, size_type, iterations, config);
+    SET_VALUE(factory, bool, skip_sorting, config);
+    SET_VALUE(factory, bool, both_factors, config);
+    return factory;
+}
 
 
 template <typename ValueType, typename IndexType>

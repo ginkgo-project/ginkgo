@@ -16,6 +16,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "core/config/config.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
@@ -39,6 +40,20 @@ GKO_REGISTER_OPERATION(csr_transpose, csr::transpose);
 
 }  // anonymous namespace
 }  // namespace par_ilu_factorization
+
+
+template <typename ValueType, typename IndexType>
+typename ParIlu<ValueType, IndexType>::parameters_type
+ParIlu<ValueType, IndexType>::build_from_config(
+    const config::pnode& config, const config::registry& context,
+    config::type_descriptor td_for_child)
+{
+    using matrix_type = typename ParIlu<ValueType, IndexType>::matrix_type;
+    auto factory = ParIlu<ValueType, IndexType>::build();
+    SET_VALUE(factory, size_type, iterations, config);
+    SET_VALUE(factory, bool, skip_sorting, config);
+    return factory;
+}
 
 
 template <typename ValueType, typename IndexType>

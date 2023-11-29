@@ -11,6 +11,7 @@
 
 
 #include "core/components/fill_array_kernels.hpp"
+#include "core/config/config.hpp"
 #include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/lu_kernels.hpp"
 #include "core/factorization/symbolic.hpp"
@@ -45,6 +46,34 @@ Lu<ValueType, IndexType>::Lu(std::shared_ptr<const Executor> exec,
     : EnablePolymorphicObject<Lu, LinOpFactory>(std::move(exec)),
       parameters_(params)
 {}
+
+
+template <typename ValueType, typename IndexType>
+typename Lu<ValueType, IndexType>::parameters_type
+Lu<ValueType, IndexType>::build_from_config(
+    const config::pnode& config, const config::registry& context,
+    config::type_descriptor td_for_child)
+{
+    using sparsity_pattern_type =
+        typename Lu<ValueType, IndexType>::sparsity_pattern_type;
+    auto factory = Lu<ValueType, IndexType>::build();
+    SET_POINTER(factory, const sparsity_pattern_type, symbolic_factorization,
+                config, context, td_for_child);
+    if (auto& obj = config.get("symbolic_algorithm")) {
+        auto str = obj.get_data<std::string>();
+        if (str == "general") {
+            factory.with_symbolic_algorithm(symbolic_type::general);
+        } else if (str == "near_symmetric") {
+            factory.with_symbolic_algorithm(symbolic_type::near_symmetric);
+        } else if (str == "symmetric") {
+            factory.with_symbolic_algorithm(symbolic_type::symmetric);
+        } else {
+            GKO_INVALID_STATE("Not valid symbolic_algorithm " + str);
+        }
+    }
+    SET_VALUE(factory, bool, skip_sorting, config);
+    return factory;
+}
 
 
 template <typename ValueType, typename IndexType>

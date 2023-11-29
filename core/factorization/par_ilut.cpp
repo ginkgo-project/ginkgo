@@ -18,6 +18,7 @@
 
 #include "core/base/utils.hpp"
 #include "core/components/format_conversion_kernels.hpp"
+#include "core/config/config.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
@@ -157,6 +158,23 @@ struct ParIlutState {
 
 
 }  // namespace
+
+
+template <typename ValueType, typename IndexType>
+typename ParIlut<ValueType, IndexType>::parameters_type
+ParIlut<ValueType, IndexType>::build_from_config(
+    const config::pnode& config, const config::registry& context,
+    config::type_descriptor td_for_child)
+{
+    using matrix_type = typename ParIlut<ValueType, IndexType>::matrix_type;
+    auto factory = ParIlut<ValueType, IndexType>::build();
+    SET_VALUE(factory, size_type, iterations, config);
+    SET_VALUE(factory, bool, skip_sorting, config);
+    SET_VALUE(factory, bool, approximate_select, config);
+    SET_VALUE(factory, bool, deterministic_sample, config);
+    SET_VALUE(factory, double, fill_in_limit, config);
+    return factory;
+}
 
 
 template <typename ValueType, typename IndexType>

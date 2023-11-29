@@ -22,6 +22,7 @@
 
 
 #include "core/base/utils.hpp"
+#include "core/config/config.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/preconditioner/isai_kernels.hpp"
 
@@ -87,6 +88,24 @@ std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor>& exec,
     // combine acc and id_power again
     id_power->apply(acc, tmp);
     return {std::move(tmp)};
+}
+
+
+template <isai_type IsaiType, typename ValueType, typename IndexType>
+typename Isai<IsaiType, ValueType, IndexType>::parameters_type
+Isai<IsaiType, ValueType, IndexType>::build_from_config(
+    const config::pnode& config, const config::registry& context,
+    config::type_descriptor td_for_child)
+{
+    auto factory = Isai<IsaiType, ValueType, IndexType>::build();
+    SET_VALUE(factory, bool, skip_sorting, config);
+    SET_VALUE(factory, int, sparsity_power, config);
+    SET_VALUE(factory, size_type, excess_limit, config);
+    SET_FACTORY(factory, const LinOpFactory, excess_solver_factory, config,
+                context, td_for_child);
+    SET_VALUE(factory, remove_complex<ValueType>, excess_solver_reduction,
+              config);
+    return factory;
 }
 
 
@@ -194,7 +213,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
             // solve it after transposing
             auto system_copy = gko::clone(exec->get_master(), excess_system);
             auto rhs_copy = gko::clone(exec->get_master(), excess_rhs);
-            std::shared_ptr<LinOpFactory> excess_solver_factory;
+            std::shared_ptr<const LinOpFactory> excess_solver_factory;
             if (parameters_.excess_solver_factory) {
                 excess_solver_factory = parameters_.excess_solver_factory;
                 excess_solution->copy_from(excess_rhs);

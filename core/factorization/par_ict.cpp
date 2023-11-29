@@ -18,6 +18,7 @@
 
 #include "core/base/utils.hpp"
 #include "core/components/format_conversion_kernels.hpp"
+#include "core/config/config.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/par_ict_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
@@ -141,6 +142,24 @@ struct ParIctState {
 
 
 }  // namespace
+
+
+template <typename ValueType, typename IndexType>
+typename ParIct<ValueType, IndexType>::parameters_type
+ParIct<ValueType, IndexType>::build_from_config(
+    const config::pnode& config, const config::registry& context,
+    config::type_descriptor td_for_child)
+{
+    using matrix_type = typename ParIct<ValueType, IndexType>::matrix_type;
+    auto factory = ParIct<ValueType, IndexType>::build();
+    SET_VALUE(factory, size_type, iterations, config);
+    SET_VALUE(factory, bool, skip_sorting, config);
+    SET_VALUE(factory, bool, approximate_select, config);
+    SET_VALUE(factory, bool, deterministic_sample, config);
+    SET_VALUE(factory, double, fill_in_limit, config);
+    // TODO: CSR strategy without exec
+    return factory;
+}
 
 
 template <typename ValueType, typename IndexType>

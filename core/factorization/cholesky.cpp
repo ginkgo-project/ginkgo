@@ -11,6 +11,7 @@
 
 
 #include "core/components/fill_array_kernels.hpp"
+#include "core/config/config.hpp"
 #include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/symbolic.hpp"
@@ -41,6 +42,22 @@ Cholesky<ValueType, IndexType>::Cholesky(std::shared_ptr<const Executor> exec,
     : EnablePolymorphicObject<Cholesky, LinOpFactory>(std::move(exec)),
       parameters_(params)
 {}
+
+
+template <typename ValueType, typename IndexType>
+typename Cholesky<ValueType, IndexType>::parameters_type
+Cholesky<ValueType, IndexType>::build_from_config(
+    const config::pnode& config, const config::registry& context,
+    config::type_descriptor td_for_child)
+{
+    using sparsity_pattern_type =
+        typename Cholesky<ValueType, IndexType>::sparsity_pattern_type;
+    auto factory = Cholesky<ValueType, IndexType>::build();
+    SET_POINTER(factory, const sparsity_pattern_type, symbolic_factorization,
+                config, context, td_for_child);
+    SET_VALUE(factory, bool, skip_sorting, config);
+    return factory;
+}
 
 
 template <typename ValueType, typename IndexType>

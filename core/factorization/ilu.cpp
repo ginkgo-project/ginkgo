@@ -12,6 +12,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include "core/config/config.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/ilu_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
@@ -33,6 +34,19 @@ GKO_REGISTER_OPERATION(initialize_l_u, factorization::initialize_l_u);
 
 }  // anonymous namespace
 }  // namespace ilu_factorization
+
+
+template <typename ValueType, typename IndexType>
+typename Ilu<ValueType, IndexType>::parameters_type
+Ilu<ValueType, IndexType>::build_from_config(
+    const config::pnode& config, const config::registry& context,
+    config::type_descriptor td_for_child)
+{
+    using matrix_type = typename Ilu<ValueType, IndexType>::matrix_type;
+    auto factory = Ilu<ValueType, IndexType>::build();
+    SET_VALUE(factory, bool, skip_sorting, config);
+    return factory;
+}
 
 
 template <typename ValueType, typename IndexType>

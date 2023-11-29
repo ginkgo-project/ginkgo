@@ -108,11 +108,10 @@ configure_implicit_residual(const pnode& config, const registry& context,
 }
 
 
-template <>
-deferred_factory_parameter<const stop::CriterionFactory>
-get_factory<const stop::CriterionFactory>(const pnode& config,
-                                          const registry& context,
-                                          type_descriptor td)
+template <typename T>
+std::enable_if_t<std::is_same<T, const stop::CriterionFactory>::value,
+                 deferred_factory_parameter<T>>
+get_factory(const pnode& config, const registry& context, type_descriptor td)
 {
     deferred_factory_parameter<const stop::CriterionFactory> ptr;
     if (config.is(pnode::status_t::data)) {
@@ -134,6 +133,10 @@ get_factory<const stop::CriterionFactory>(const pnode& config,
     assert(!ptr.is_empty());
     return std::move(ptr);
 }
+
+template deferred_factory_parameter<const stop::CriterionFactory>
+get_factory<const stop::CriterionFactory>(const pnode&, const registry&,
+                                          type_descriptor);
 
 // template <>
 // std::vector<std::shared_ptr<const stop::CriterionFactory>>

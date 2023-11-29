@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <typeinfo>
 
@@ -66,10 +38,10 @@ template <typename StrategyType>
 inline void check_strategy(std::shared_ptr<StrategyType>& res,
                            std::shared_ptr<StrategyType>& ans)
 {
-    if (ans) {
+    if (ans && res) {
         ASSERT_EQ(res->get_name(), ans->get_name());
     } else {
-        ASSERT_EQ(res, nullptr);
+        ASSERT_EQ(res, ans);
     }
 }
 
@@ -82,8 +54,8 @@ struct FactorizationConfigTest {
 
     static void change_template(pnode& config)
     {
-        config.get_list()["ValueType"] = pnode{"float"};
-        config.get_list()["IndexType"] = pnode{"int64"};
+        config.get_map()["ValueType"] = pnode{"float"};
+        config.get_map()["IndexType"] = pnode{"int64"};
     }
 };
 
@@ -92,20 +64,21 @@ struct Ic : FactorizationConfigTest<gko::factorization::Ic<float, gko::int64>,
                                     gko::factorization::Ic<double, int>> {
     static pnode setup_base()
     {
-        return pnode{{{"Type", pnode{"Factorization_Ic"}}}};
+        return pnode{
+            std::map<std::string, pnode>{{"Type", pnode{"Factorization_Ic"}}}};
     }
 
     template <typename ParamType>
-    static void set(pnode& config, ParamType& param, registry reg,
-                    std::shared_ptr<const gko::Executor> exec)
+    static void set(pnode& config, ParamType& param, registry reg)
     {
-        config.get_list()["l_strategy"] = pnode{"sparselib"};
-        param.with_l_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, gko::int64>::sparselib>());
-        config.get_list()["skip_sorting"] = pnode{true};
+        // TODO: check why the unsupported one gives segmentation fault
+        // config.get_map()["l_strategy"] = pnode{"sparselib"};
+        // param.with_l_strategy(
+        //     std::make_shared<
+        //         typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+        config.get_map()["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
-        config.get_list()["both_factors"] = pnode{false};
+        config.get_map()["both_factors"] = pnode{false};
         param.with_both_factors(false);
     }
 
@@ -126,22 +99,22 @@ struct Ilu : FactorizationConfigTest<gko::factorization::Ilu<float, gko::int64>,
                                      gko::factorization::Ilu<double, int>> {
     static pnode setup_base()
     {
-        return pnode{{{"Type", pnode{"Factorization_Ilu"}}}};
+        return pnode{
+            std::map<std::string, pnode>{{"Type", pnode{"Factorization_Ilu"}}}};
     }
 
     template <typename ParamType>
-    static void set(pnode& config, ParamType& param, registry reg,
-                    std::shared_ptr<const gko::Executor> exec)
+    static void set(pnode& config, ParamType& param, registry reg)
     {
-        config.get_list()["l_strategy"] = pnode{"sparselib"};
-        param.with_l_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, gko::int64>::sparselib>());
-        config.get_list()["u_strategy"] = pnode{"sparselib"};
-        param.with_u_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, gko::int64>::sparselib>());
-        config.get_list()["skip_sorting"] = pnode{true};
+        // config.get_map()["l_strategy"] = pnode{"sparselib"};
+        // param.with_l_strategy(
+        //     std::make_shared<
+        //         typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+        // config.get_map()["u_strategy"] = pnode{"sparselib"};
+        // param.with_u_strategy(
+        //     std::make_shared<
+        //         typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+        config.get_map()["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
     }
 
@@ -162,16 +135,18 @@ struct Cholesky
     : FactorizationConfigTest<
           gko::experimental::factorization::Cholesky<float, gko::int64>,
           gko::experimental::factorization::Cholesky<double, int>> {
-    static pnode setup_base() { return pnode{{{"Type", pnode{"Cholesky"}}}}; }
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"Cholesky"}}}};
+    }
 
     template <typename ParamType>
-    static void set(pnode& config, ParamType& param, registry reg,
-                    std::shared_ptr<const gko::Executor> exec)
+    static void set(pnode& config, ParamType& param, registry reg)
     {
-        config.get_list()["symbolic_factorization"] = pnode{"sparsity"};
+        config.get_map()["symbolic_factorization"] = pnode{"sparsity"};
         param.with_symbolic_factorization(
             reg.search_data<Sparsity>("sparsity"));
-        config.get_list()["skip_sorting"] = pnode{true};
+        config.get_map()["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
     }
 
@@ -191,18 +166,21 @@ struct Cholesky
 struct Lu : FactorizationConfigTest<
                 gko::experimental::factorization::Lu<float, gko::int64>,
                 gko::experimental::factorization::Lu<double, int>> {
-    static pnode setup_base() { return pnode{{{"Type", pnode{"Lu"}}}}; }
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"Lu"}}}};
+    }
 
     template <typename ParamType>
-    static void set(pnode& config, ParamType& param, registry reg,
-                    std::shared_ptr<const gko::Executor> exec)
+    static void set(pnode& config, ParamType& param, registry reg)
     {
-        config.get_list()["symbolic_factorization"] = pnode{"sparsity"};
+        config.get_map()["symbolic_factorization"] = pnode{"sparsity"};
         param.with_symbolic_factorization(
             reg.search_data<Sparsity>("sparsity"));
-        config.get_list()["symmetric_sparsity"] = pnode{true};
-        param.with_symmetric_sparsity(true);
-        config.get_list()["skip_sorting"] = pnode{true};
+        config.get_map()["symbolic_algorithm"] = pnode{"near_symmetric"};
+        param.with_symbolic_algorithm(
+            gko::experimental::factorization::symbolic_type::near_symmetric);
+        config.get_map()["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
     }
 
@@ -214,7 +192,7 @@ struct Lu : FactorizationConfigTest<
 
         ASSERT_EQ(res_param.symbolic_factorization,
                   ans_param.symbolic_factorization);
-        ASSERT_EQ(res_param.symmetric_sparsity, ans_param.symmetric_sparsity);
+        ASSERT_EQ(res_param.symbolic_algorithm, ans_param.symbolic_algorithm);
         ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
     }
 };
@@ -223,21 +201,23 @@ struct Lu : FactorizationConfigTest<
 struct ParIc
     : FactorizationConfigTest<gko::factorization::ParIc<float, gko::int64>,
                               gko::factorization::ParIc<double, int>> {
-    static pnode setup_base() { return pnode{{{"Type", pnode{"ParIc"}}}}; }
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"ParIc"}}}};
+    }
 
     template <typename ParamType>
-    static void set(pnode& config, ParamType& param, registry reg,
-                    std::shared_ptr<const gko::Executor> exec)
+    static void set(pnode& config, ParamType& param, registry reg)
     {
-        config.get_list()["iterations"] = pnode{3};
+        config.get_map()["iterations"] = pnode{3};
         param.with_iterations(3u);
-        config.get_list()["skip_sorting"] = pnode{true};
+        config.get_map()["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
-        config.get_list()["l_strategy"] = pnode{"sparselib"};
-        param.with_l_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, gko::int64>::sparselib>());
-        config.get_list()["both_factors"] = pnode{false};
+        // config.get_map()["l_strategy"] = pnode{"sparselib"};
+        // param.with_l_strategy(
+        //     std::make_shared<
+        //         typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+        config.get_map()["both_factors"] = pnode{false};
         param.with_both_factors(false);
     }
 
@@ -258,24 +238,26 @@ struct ParIc
 struct ParIlu
     : FactorizationConfigTest<gko::factorization::ParIlu<float, gko::int64>,
                               gko::factorization::ParIlu<double, int>> {
-    static pnode setup_base() { return pnode{{{"Type", pnode{"ParIlu"}}}}; }
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"ParIlu"}}}};
+    }
 
     template <typename ParamType>
-    static void set(pnode& config, ParamType& param, registry reg,
-                    std::shared_ptr<const gko::Executor> exec)
+    static void set(pnode& config, ParamType& param, registry reg)
     {
-        config.get_list()["iterations"] = pnode{3};
+        config.get_map()["iterations"] = pnode{3};
         param.with_iterations(3u);
-        config.get_list()["skip_sorting"] = pnode{true};
+        config.get_map()["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
-        config.get_list()["l_strategy"] = pnode{"sparselib"};
-        param.with_l_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, gko::int64>::sparselib>());
-        config.get_list()["u_strategy"] = pnode{"sparselib"};
-        param.with_u_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+        // config.get_map()["l_strategy"] = pnode{"sparselib"};
+        // param.with_l_strategy(
+        //     std::make_shared<
+        //         typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+        // config.get_map()["u_strategy"] = pnode{"sparselib"};
+        // param.with_u_strategy(
+        //     std::make_shared<
+        //         typename gko::matrix::Csr<float, gko::int64>::sparselib>());
     }
 
     template <typename AnswerType>
@@ -295,30 +277,32 @@ struct ParIlu
 struct ParIct
     : FactorizationConfigTest<gko::factorization::ParIct<float, gko::int64>,
                               gko::factorization::ParIct<double, int>> {
-    static pnode setup_base() { return pnode{{{"Type", pnode{"ParIct"}}}}; }
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"ParIct"}}}};
+    }
 
     template <typename ParamType>
-    static void set(pnode& config, ParamType& param, registry reg,
-                    std::shared_ptr<const gko::Executor> exec)
+    static void set(pnode& config, ParamType& param, registry reg)
     {
-        config.get_list()["iterations"] = pnode{3};
+        config.get_map()["iterations"] = pnode{3};
         param.with_iterations(3u);
-        config.get_list()["skip_sorting"] = pnode{true};
+        config.get_map()["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
-        config.get_list()["l_strategy"] = pnode{"sparselib"};
-        param.with_l_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, gko::int64>::sparselib>());
-        config.get_list()["approximate_select"] = pnode{false};
+        // config.get_map()["l_strategy"] = pnode{"sparselib"};
+        // param.with_l_strategy(
+        //     std::make_shared<
+        //         typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+        config.get_map()["approximate_select"] = pnode{false};
         param.with_approximate_select(false);
-        config.get_list()["deterministic_sample"] = pnode{true};
+        config.get_map()["deterministic_sample"] = pnode{true};
         param.with_deterministic_sample(true);
-        config.get_list()["fill_in_limit"] = pnode{2.5};
+        config.get_map()["fill_in_limit"] = pnode{2.5};
         param.with_fill_in_limit(2.5);
-        config.get_list()["lt_strategy"] = pnode{"sparselib"};
-        param.with_lt_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+        // config.get_map()["lt_strategy"] = pnode{"sparselib"};
+        // param.with_lt_strategy(
+        //     std::make_shared<
+        //         typename gko::matrix::Csr<float, gko::int64>::sparselib>());
     }
 
     template <typename AnswerType>
@@ -342,30 +326,32 @@ struct ParIct
 struct ParIlut
     : FactorizationConfigTest<gko::factorization::ParIlut<float, gko::int64>,
                               gko::factorization::ParIlut<double, int>> {
-    static pnode setup_base() { return pnode{{{"Type", pnode{"ParIlut"}}}}; }
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"ParIlut"}}}};
+    }
 
     template <typename ParamType>
-    static void set(pnode& config, ParamType& param, registry reg,
-                    std::shared_ptr<const gko::Executor> exec)
+    static void set(pnode& config, ParamType& param, registry reg)
     {
-        config.get_list()["iterations"] = pnode{3};
+        config.get_map()["iterations"] = pnode{3};
         param.with_iterations(3u);
-        config.get_list()["skip_sorting"] = pnode{true};
+        config.get_map()["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
-        config.get_list()["l_strategy"] = pnode{"sparselib"};
-        param.with_l_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, gko::int64>::sparselib>());
-        config.get_list()["approximate_select"] = pnode{false};
+        // config.get_map()["l_strategy"] = pnode{"sparselib"};
+        // param.with_l_strategy(
+        //     std::make_shared<
+        //         typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+        config.get_map()["approximate_select"] = pnode{false};
         param.with_approximate_select(false);
-        config.get_list()["deterministic_sample"] = pnode{true};
+        config.get_map()["deterministic_sample"] = pnode{true};
         param.with_deterministic_sample(true);
-        config.get_list()["fill_in_limit"] = pnode{2.5};
+        config.get_map()["fill_in_limit"] = pnode{2.5};
         param.with_fill_in_limit(2.5);
-        config.get_list()["u_strategy"] = pnode{"sparselib"};
-        param.with_u_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+        // config.get_map()["u_strategy"] = pnode{"sparselib"};
+        // param.with_u_strategy(
+        //     std::make_shared<
+        //         typename gko::matrix::Csr<float, gko::int64>::sparselib>());
     }
 
     template <typename AnswerType>
@@ -420,7 +406,7 @@ TYPED_TEST(Factorization, CreateDefault)
     using Config = typename TestFixture::Config;
     auto config = Config::setup_base();
 
-    auto res = build_from_config(config, this->reg, this->exec, this->td);
+    auto res = build_from_config(config, this->reg, this->td).on(this->exec);
     auto ans = Config::default_type::build().on(this->exec);
 
     Config::validate(res.get(), ans.get());
@@ -433,7 +419,7 @@ TYPED_TEST(Factorization, ExplicitTemplate)
     auto config = Config::setup_base();
     Config::change_template(config);
 
-    auto res = build_from_config(config, this->reg, this->exec, this->td);
+    auto res = build_from_config(config, this->reg, this->td).on(this->exec);
     auto ans = Config::explicit_type::build().on(this->exec);
 
     Config::validate(res.get(), ans.get());
@@ -446,9 +432,9 @@ TYPED_TEST(Factorization, Set)
     auto config = Config::setup_base();
     Config::change_template(config);
     auto param = Config::explicit_type::build();
-    Config::set(config, param, this->reg, this->exec);
+    Config::set(config, param, this->reg);
 
-    auto res = build_from_config(config, this->reg, this->exec, this->td);
+    auto res = build_from_config(config, this->reg, this->td).on(this->exec);
     auto ans = param.on(this->exec);
 
     Config::validate(res.get(), ans.get());

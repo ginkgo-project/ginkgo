@@ -20,6 +20,7 @@
 
 #include "core/base/extended_float.hpp"
 #include "core/base/utils.hpp"
+#include "core/config/config.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 
@@ -48,6 +49,42 @@ GKO_REGISTER_OPERATION(initialize_precisions, jacobi::initialize_precisions);
 
 }  // anonymous namespace
 }  // namespace jacobi
+
+
+template <typename ValueType, typename IndexType>
+typename Jacobi<ValueType, IndexType>::parameters_type
+Jacobi<ValueType, IndexType>::build_from_config(
+    const config::pnode& config, const config::registry& context,
+    config::type_descriptor td_for_child)
+{
+    auto factory = Jacobi<ValueType, IndexType>::build();
+    SET_VALUE(factory, uint32, max_block_size, config);
+    SET_VALUE(factory, uint32, max_block_stride, config);
+    SET_VALUE(factory, bool, skip_sorting, config);
+    // TODO: Array without exec
+    // storage_optimization_type is not public. It uses precision_reduction
+    // as input. Also, it allows value and array input
+    // Each precision_reduction is created by two values.
+    // [x, y] -> one precision_reduction (value mode)
+    // [[x, y], ...] -> array mode
+    if (config.contains("storage_optimization")) {
+        const auto& subconfig = config.at("storage_optimization");
+        if (subconfig.is(config::pnode::status_t::array)) {
+            if (subconfig.at(0).is(config::pnode::status_t::data)) {
+                factory.with_storage_optimization(
+                    config::get_value<precision_reduction>(subconfig));
+            } else {
+                // TODO: more than one precision_reduction -> array mode.
+                GKO_INVALID_STATE(
+                    "Not support more than one precision_reduction");
+            }
+        } else {
+            GKO_INVALID_STATE("Not valid storage_optimization");
+        }
+    }
+    SET_VALUE(factory, remove_complex<ValueType>, accuracy, config);
+    return factory;
+}
 
 
 template <typename ValueType, typename IndexType>

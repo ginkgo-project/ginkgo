@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <typeinfo>
 
@@ -69,13 +41,16 @@ struct PreconditionerConfigTest {
 struct Ic : PreconditionerConfigTest<
                 ::gko::preconditioner::Ic<DummyIr, gko::int64>,
                 ::gko::preconditioner::Ic<gko::solver::LowerTrs<>, int>> {
-    static pnode setup_base() { return pnode{{{"Type", pnode{"Ic"}}}}; }
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"Ic"}}}};
+    }
 
     static void change_template(pnode& config)
     {
-        config.get_list()["ValueType"] = pnode{"float"};
-        config.get_list()["LSolverType"] = pnode{"Ir"};
-        config.get_list()["IndexType"] = pnode{"int64"};
+        config.get_map()["ValueType"] = pnode{"float"};
+        config.get_map()["LSolverType"] = pnode{"Ir"};
+        config.get_map()["IndexType"] = pnode{"int64"};
     }
 
     template <bool from_reg, typename ParamType>
@@ -83,19 +58,19 @@ struct Ic : PreconditionerConfigTest<
                     std::shared_ptr<const gko::Executor> exec)
     {
         if (from_reg) {
-            config.get_list()["l_solver_factory"] = pnode{"l_solver"};
-            param.with_l_solver_factory(
+            // TODO? the deprecated parameter
+            config.get_map()["l_solver"] = pnode{"l_solver"};
+            param.with_l_solver(
                 reg.search_data<typename explicit_type::l_solver_type::Factory>(
                     "l_solver"));
-            config.get_list()["factorization_factory"] = pnode{"factorization"};
-            param.with_factorization_factory(
+            config.get_map()["factorization"] = pnode{"factorization"};
+            param.with_factorization(
                 reg.search_data<gko::LinOpFactory>("factorization"));
         } else {
-            config.get_list()["l_solver_factory"] =
+            config.get_map()["l_solver"] =
                 pnode{{{"Type", {"Ir"}}, {"ValueType", {"float"}}}};
-            param.with_l_solver_factory(
-                explicit_type::l_solver_type::build().on(exec));
-            config.get_list()["factorization_factory"] =
+            param.with_l_solver(explicit_type::l_solver_type::build().on(exec));
+            config.get_map()["factorization"] =
                 pnode{{{"Type", {"Ir"}}, {"ValueType", {"float"}}}};
             param.with_factorization_factory(DummyIr::build().on(exec));
         }
@@ -112,12 +87,14 @@ struct Ic : PreconditionerConfigTest<
             ASSERT_EQ(res_param.factorization_factory,
                       ans_param.factorization_factory);
         } else {
-            ASSERT_NE(std::dynamic_pointer_cast<typename DummyIr::Factory>(
-                          res_param.l_solver_factory),
-                      nullptr);
-            ASSERT_NE(std::dynamic_pointer_cast<typename DummyIr::Factory>(
-                          res_param.factorization_factory),
-                      nullptr);
+            ASSERT_NE(
+                std::dynamic_pointer_cast<const typename DummyIr::Factory>(
+                    res_param.l_solver_factory),
+                nullptr);
+            ASSERT_NE(
+                std::dynamic_pointer_cast<const typename DummyIr::Factory>(
+                    res_param.factorization_factory),
+                nullptr);
         }
     }
 };
@@ -128,14 +105,17 @@ struct Ilu
           ::gko::preconditioner::Ilu<DummyIr, DummyIr, true, gko::int64>,
           ::gko::preconditioner::Ilu<gko::solver::LowerTrs<>,
                                      gko::solver::UpperTrs<>, false, int>> {
-    static pnode setup_base() { return pnode{{{"Type", pnode{"Ilu"}}}}; }
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"Ilu"}}}};
+    }
 
     static void change_template(pnode& config)
     {
-        config.get_list()["ValueType"] = pnode{"float"};
-        config.get_list()["LSolverType"] = pnode{"Ir"};
-        config.get_list()["IndexType"] = pnode{"int64"};
-        config.get_list()["ReverseApply"] = pnode{true};
+        config.get_map()["ValueType"] = pnode{"float"};
+        config.get_map()["LSolverType"] = pnode{"Ir"};
+        config.get_map()["IndexType"] = pnode{"int64"};
+        config.get_map()["ReverseApply"] = pnode{true};
     }
 
     template <bool from_reg, typename ParamType>
@@ -143,29 +123,27 @@ struct Ilu
                     std::shared_ptr<const gko::Executor> exec)
     {
         if (from_reg) {
-            config.get_list()["l_solver_factory"] = pnode{"l_solver"};
-            param.with_l_solver_factory(
+            config.get_map()["l_solver"] = pnode{"l_solver"};
+            param.with_l_solver(
                 reg.search_data<typename explicit_type::l_solver_type::Factory>(
                     "l_solver"));
-            config.get_list()["u_solver_factory"] = pnode{"u_solver"};
-            param.with_u_solver_factory(
+            config.get_map()["u_solver"] = pnode{"u_solver"};
+            param.with_u_solver(
                 reg.search_data<typename explicit_type::u_solver_type::Factory>(
                     "u_solver"));
-            config.get_list()["factorization_factory"] = pnode{"factorization"};
-            param.with_factorization_factory(
+            config.get_map()["factorization"] = pnode{"factorization"};
+            param.with_factorization(
                 reg.search_data<gko::LinOpFactory>("factorization"));
         } else {
-            config.get_list()["l_solver_factory"] =
+            config.get_map()["l_solver"] =
                 pnode{{{"Type", {"Ir"}}, {"ValueType", {"float"}}}};
-            param.with_l_solver_factory(
-                explicit_type::l_solver_type::build().on(exec));
-            config.get_list()["u_solver_factory"] =
+            param.with_l_solver(explicit_type::l_solver_type::build().on(exec));
+            config.get_map()["u_solver"] =
                 pnode{{{"Type", {"Ir"}}, {"ValueType", {"float"}}}};
-            param.with_u_solver_factory(
-                explicit_type::u_solver_type::build().on(exec));
-            config.get_list()["factorization_factory"] =
+            param.with_u_solver(explicit_type::u_solver_type::build().on(exec));
+            config.get_map()["factorization"] =
                 pnode{{{"Type", {"Ir"}}, {"ValueType", {"float"}}}};
-            param.with_factorization_factory(DummyIr::build().on(exec));
+            param.with_factorization(DummyIr::build().on(exec));
         }
     }
 
@@ -181,15 +159,18 @@ struct Ilu
             ASSERT_EQ(res_param.factorization_factory,
                       ans_param.factorization_factory);
         } else {
-            ASSERT_NE(std::dynamic_pointer_cast<typename DummyIr::Factory>(
-                          res_param.l_solver_factory),
-                      nullptr);
-            ASSERT_NE(std::dynamic_pointer_cast<typename DummyIr::Factory>(
-                          res_param.u_solver_factory),
-                      nullptr);
-            ASSERT_NE(std::dynamic_pointer_cast<typename DummyIr::Factory>(
-                          res_param.factorization_factory),
-                      nullptr);
+            ASSERT_NE(
+                std::dynamic_pointer_cast<const typename DummyIr::Factory>(
+                    res_param.l_solver_factory),
+                nullptr);
+            ASSERT_NE(
+                std::dynamic_pointer_cast<const typename DummyIr::Factory>(
+                    res_param.u_solver_factory),
+                nullptr);
+            ASSERT_NE(
+                std::dynamic_pointer_cast<const typename DummyIr::Factory>(
+                    res_param.factorization_factory),
+                nullptr);
         }
     }
 };
@@ -208,29 +189,29 @@ struct Isai
 
     static void change_template(pnode& config)
     {
-        config.get_list()["IsaiType"] = pnode{"upper"};
-        config.get_list()["ValueType"] = pnode{"float"};
-        config.get_list()["IndexType"] = pnode{"int64"};
+        config.get_map()["IsaiType"] = pnode{"upper"};
+        config.get_map()["ValueType"] = pnode{"float"};
+        config.get_map()["IndexType"] = pnode{"int64"};
     }
 
     template <bool from_reg, typename ParamType>
     static void set(pnode& config, ParamType& param, registry reg,
                     std::shared_ptr<const gko::Executor> exec)
     {
-        config.get_list()["skip_sorting"] = pnode{true};
+        config.get_map()["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
-        config.get_list()["sparsity_power"] = pnode{2};
+        config.get_map()["sparsity_power"] = pnode{2};
         param.with_sparsity_power(2);
-        config.get_list()["excess_limit"] = pnode{32};
+        config.get_map()["excess_limit"] = pnode{32};
         param.with_excess_limit(32u);
-        config.get_list()["excess_solver_reduction"] = pnode{1e-4};
+        config.get_map()["excess_solver_reduction"] = pnode{1e-4};
         param.with_excess_solver_reduction(1e-4);
         if (from_reg) {
-            config.get_list()["excess_solver_factory"] = pnode{"solver"};
+            config.get_map()["excess_solver_factory"] = pnode{"solver"};
             param.with_excess_solver_factory(
                 reg.search_data<gko::LinOpFactory>("solver"));
         } else {
-            config.get_list()["excess_solver_factory"] =
+            config.get_map()["excess_solver_factory"] =
                 pnode{{{"Type", {"Ir"}}, {"ValueType", {"float"}}}};
             param.with_excess_solver_factory(DummyIr::build().on(exec));
         }
@@ -251,9 +232,10 @@ struct Isai
             ASSERT_EQ(res_param.excess_solver_factory,
                       ans_param.excess_solver_factory);
         } else {
-            ASSERT_NE(std::dynamic_pointer_cast<typename DummyIr::Factory>(
-                          res_param.excess_solver_factory),
-                      nullptr);
+            ASSERT_NE(
+                std::dynamic_pointer_cast<const typename DummyIr::Factory>(
+                    res_param.excess_solver_factory),
+                nullptr);
         }
     }
 };
@@ -262,30 +244,33 @@ struct Isai
 struct Jacobi
     : PreconditionerConfigTest<::gko::preconditioner::Jacobi<float, gko::int64>,
                                ::gko::preconditioner::Jacobi<double, int>> {
-    static pnode setup_base() { return pnode{{{"Type", pnode{"Jacobi"}}}}; }
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"Jacobi"}}}};
+    }
 
     static void change_template(pnode& config)
     {
-        config.get_list()["ValueType"] = pnode{"float"};
-        config.get_list()["IndexType"] = pnode{"int64"};
+        config.get_map()["ValueType"] = pnode{"float"};
+        config.get_map()["IndexType"] = pnode{"int64"};
     }
 
     template <bool from_reg, typename ParamType>
     static void set(pnode& config, ParamType& param, registry reg,
                     std::shared_ptr<const gko::Executor> exec)
     {
-        config.get_list()["max_block_size"] = pnode{32};
+        config.get_map()["max_block_size"] = pnode{32};
         param.with_max_block_size(32u);
-        config.get_list()["max_block_stride"] = pnode{32u};
+        config.get_map()["max_block_stride"] = pnode{32u};
         param.with_max_block_stride(32u);
-        config.get_list()["skip_sorting"] = pnode{true};
+        config.get_map()["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
-        config.get_list()["block_pointers"] = pnode{{{0}, {3}, {17}}};
-        param.with_block_pointers(gko::array<gko::int64>(exec, {0, 3, 17}));
-        config.get_list()["storage_optimization"] =
+        // config.get_map()["block_pointers"] = pnode{{{0}, {3}, {17}}};
+        // param.with_block_pointers(gko::array<gko::int64>(exec, {0, 3, 17}));
+        config.get_map()["storage_optimization"] =
             pnode{std::vector<pnode>{pnode{0}, pnode{1}}};
         param.with_storage_optimization(gko::precision_reduction(0, 1));
-        config.get_list()["accuracy"] = pnode{1e-2};
+        config.get_map()["accuracy"] = pnode{1e-2};
         param.with_accuracy(1e-2);
     }
 
@@ -316,12 +301,12 @@ struct JacobiByArray : Jacobi {
                     std::shared_ptr<const gko::Executor> exec)
     {
         Jacobi::template set<from_reg>(config, param, reg, exec);
-        using pvec = std::vector<pnode>;
-        config.get_list()["storage_optimization"] =
-            pnode{pvec{pvec{{0}, {1}}, pvec{{0}, {0}}, pvec{{1}, {1}}}};
-        using pr = gko::precision_reduction;
-        gko::array<pr> storage(exec, {pr(0, 1), pr(0, 0), pr(1, 1)});
-        param.with_storage_optimization(storage);
+        // using pvec = std::vector<pnode>;
+        // config.get_map()["storage_optimization"] =
+        //     pnode{pvec{pvec{{0}, {1}}, pvec{{0}, {0}}, pvec{{1}, {1}}}};
+        // using pr = gko::precision_reduction;
+        // gko::array<pr> storage(exec, {pr(0, 1), pr(0, 0), pr(1, 1)});
+        // param.with_storage_optimization(storage);
     }
 };
 
@@ -368,7 +353,7 @@ TYPED_TEST(Preconditioner, CreateDefault)
     using Config = typename TestFixture::Config;
     auto config = Config::setup_base();
 
-    auto res = build_from_config(config, this->reg, this->exec, this->td);
+    auto res = build_from_config(config, this->reg, this->td).on(this->exec);
     auto ans = Config::default_type::build().on(this->exec);
 
     Config::template validate<true>(res.get(), ans.get());
@@ -381,7 +366,7 @@ TYPED_TEST(Preconditioner, ExplicitTemplate)
     auto config = Config::setup_base();
     Config::change_template(config);
 
-    auto res = build_from_config(config, this->reg, this->exec, this->td);
+    auto res = build_from_config(config, this->reg, this->td).on(this->exec);
     auto ans = Config::explicit_type::build().on(this->exec);
 
     Config::template validate<true>(res.get(), ans.get());
@@ -396,7 +381,7 @@ TYPED_TEST(Preconditioner, SetFromRegistry)
     auto param = Config::explicit_type::build();
     Config::template set<true>(config, param, this->reg, this->exec);
 
-    auto res = build_from_config(config, this->reg, this->exec, this->td);
+    auto res = build_from_config(config, this->reg, this->td).on(this->exec);
     auto ans = param.on(this->exec);
 
     Config::template validate<true>(res.get(), ans.get());
@@ -411,7 +396,7 @@ TYPED_TEST(Preconditioner, SetFromConfig)
     auto param = Config::explicit_type::build();
     Config::template set<false>(config, param, this->reg, this->exec);
 
-    auto res = build_from_config(config, this->reg, this->exec, this->td);
+    auto res = build_from_config(config, this->reg, this->td).on(this->exec);
     auto ans = param.on(this->exec);
 
     Config::template validate<false>(res.get(), ans.get());

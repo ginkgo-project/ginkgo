@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include "core/config/config.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/ic_kernels.hpp"
 
@@ -33,6 +34,20 @@ GKO_REGISTER_OPERATION(initialize_l, factorization::initialize_l);
 
 }  // anonymous namespace
 }  // namespace ic_factorization
+
+
+template <typename ValueType, typename IndexType>
+typename Ic<ValueType, IndexType>::parameters_type
+Ic<ValueType, IndexType>::build_from_config(
+    const config::pnode& config, const config::registry& context,
+    config::type_descriptor td_for_child)
+{
+    using matrix_type = typename Ic<ValueType, IndexType>::matrix_type;
+    auto factory = Ic<ValueType, IndexType>::build();
+    SET_VALUE(factory, bool, skip_sorting, config);
+    SET_VALUE(factory, bool, both_factors, config);
+    return factory;
+}
 
 
 template <typename ValueType, typename IndexType>

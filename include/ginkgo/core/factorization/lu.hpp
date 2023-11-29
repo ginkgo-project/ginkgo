@@ -8,6 +8,8 @@
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
+#include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/factorization/factorization.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
@@ -117,6 +119,10 @@ public:
 
     /** Creates a new parameter_type to set up the factory. */
     static parameters_type build() { return {}; }
+
+    static parameters_type build_from_config(
+        const config::pnode& config, const config::registry& context,
+        config::type_descriptor td_for_child);
 
     const parameters_type& get_parameters() const { return parameters_; }
 
