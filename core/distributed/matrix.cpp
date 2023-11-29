@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/distributed/matrix.hpp>
+#include "ginkgo/core/distributed/matrix.hpp"
 
 
 #include <ginkgo/core/base/precision_dispatch.hpp>

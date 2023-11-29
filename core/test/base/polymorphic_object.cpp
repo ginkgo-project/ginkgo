@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/polymorphic_object.hpp>
+#include "ginkgo/core/base/polymorphic_object.hpp"
 
 
 #include <gtest/gtest.h>

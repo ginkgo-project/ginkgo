@@ -6,7 +6,7 @@
 #define GKO_CORE_BASE_BATCH_MULTI_VECTOR_KERNELS_HPP_
 
 
-#include <ginkgo/core/base/batch_multi_vector.hpp>
+#include "ginkgo/core/base/batch_multi_vector.hpp"
 
 
 #include <ginkgo/core/base/math.hpp>

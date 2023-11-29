@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/reorder/nested_dissection.hpp>
+#include "ginkgo/core/reorder/nested_dissection.hpp"
 
 
 #include <memory>

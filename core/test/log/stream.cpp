@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/log/stream.hpp>
+#include "ginkgo/core/log/stream.hpp"
 
 
 #include <iomanip>

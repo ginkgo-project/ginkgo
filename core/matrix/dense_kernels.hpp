@@ -6,7 +6,7 @@
 #define GKO_CORE_MATRIX_DENSE_KERNELS_HPP_
 
 
-#include <ginkgo/core/matrix/dense.hpp>
+#include "ginkgo/core/matrix/dense.hpp"
 
 
 #include <memory>

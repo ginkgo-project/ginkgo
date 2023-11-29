@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/solver/gmres.hpp>
+#include "ginkgo/core/solver/gmres.hpp"
 
 
 #include <algorithm>

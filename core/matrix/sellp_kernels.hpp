@@ -6,7 +6,7 @@
 #define GKO_CORE_MATRIX_SELLP_KERNELS_HPP_
 
 
-#include <ginkgo/core/matrix/sellp.hpp>
+#include "ginkgo/core/matrix/sellp.hpp"
 
 
 #include <ginkgo/core/matrix/csr.hpp>

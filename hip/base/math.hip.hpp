@@ -6,7 +6,7 @@
 #define GKO_HIP_BASE_MATH_HIP_HPP_
 
 
-#include <ginkgo/core/base/math.hpp>
+#include "ginkgo/core/base/math.hpp"
 
 
 #include <thrust/complex.h>

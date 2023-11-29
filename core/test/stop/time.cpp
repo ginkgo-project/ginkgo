@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/stop/time.hpp>
+#include "ginkgo/core/stop/time.hpp"
 
 
 #include <chrono>

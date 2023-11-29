@@ -6,7 +6,7 @@
 #define GKO_CORE_BASE_DEVICE_MATRIX_DATA_KERNELS_HPP_
 
 
-#include <ginkgo/core/base/device_matrix_data.hpp>
+#include "ginkgo/core/base/device_matrix_data.hpp"
 
 
 #include <memory>

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/abstract_factory.hpp>
+#include "ginkgo/core/base/abstract_factory.hpp"
 
 
 #include <gtest/gtest.h>

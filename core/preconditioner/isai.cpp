@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/preconditioner/isai.hpp>
+#include "ginkgo/core/preconditioner/isai.hpp"
 
 
 #include <functional>

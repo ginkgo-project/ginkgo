@@ -6,7 +6,7 @@
 #define GKO_CORE_PRECONDITIONER_JACOBI_KERNELS_HPP_
 
 
-#include <ginkgo/core/preconditioner/jacobi.hpp>
+#include "ginkgo/core/preconditioner/jacobi.hpp"
 
 
 #include <ginkgo/core/matrix/csr.hpp>

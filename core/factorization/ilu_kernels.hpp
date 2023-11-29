@@ -6,7 +6,7 @@
 #define GKO_CORE_FACTORIZATION_ILU_KERNELS_HPP_
 
 
-#include <ginkgo/core/factorization/ilu.hpp>
+#include "ginkgo/core/factorization/ilu.hpp"
 
 
 #include <memory>

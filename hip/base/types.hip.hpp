@@ -6,7 +6,7 @@
 #define GKO_HIP_BASE_TYPES_HIP_HPP_
 
 
-#include <ginkgo/core/base/types.hpp>
+#include "ginkgo/core/base/types.hpp"
 
 
 #include <type_traits>

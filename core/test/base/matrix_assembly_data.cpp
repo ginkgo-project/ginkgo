@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/matrix_assembly_data.hpp>
+#include "ginkgo/core/base/matrix_assembly_data.hpp"
 
 
 #include <gtest/gtest.h>

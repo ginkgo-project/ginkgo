@@ -6,7 +6,7 @@
 #define GKO_CORE_FACTORIZATION_PAR_ILU_KERNELS_HPP_
 
 
-#include <ginkgo/core/factorization/par_ilu.hpp>
+#include "ginkgo/core/factorization/par_ilu.hpp"
 
 
 #include <memory>

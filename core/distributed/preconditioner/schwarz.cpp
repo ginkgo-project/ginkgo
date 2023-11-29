@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
+#include "ginkgo/core/distributed/preconditioner/schwarz.hpp"
 
 
 #include <memory>

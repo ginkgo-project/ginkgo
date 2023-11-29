@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/reorder/mc64.hpp>
+#include "ginkgo/core/reorder/mc64.hpp"
 
 
 #include <chrono>

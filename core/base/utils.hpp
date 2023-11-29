@@ -6,7 +6,7 @@
 #define GKO_CORE_BASE_UTILS_HPP_
 
 
-#include <ginkgo/core/base/utils.hpp>
+#include "ginkgo/core/base/utils.hpp"
 
 
 #include <memory>

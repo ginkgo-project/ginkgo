@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/multigrid/fixed_coarsening.hpp>
+#include "ginkgo/core/multigrid/fixed_coarsening.hpp"
 
 
 #include <ginkgo/core/base/array.hpp>

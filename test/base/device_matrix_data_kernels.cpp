@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/device_matrix_data.hpp>
+#include "ginkgo/core/base/device_matrix_data.hpp"
 
 
 #include <memory>

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/log/convergence.hpp>
+#include "ginkgo/core/log/convergence.hpp"
 
 
 #include <ginkgo/core/base/array.hpp>

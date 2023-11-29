@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/stop/stopping_status.hpp>
+#include "ginkgo/core/stop/stopping_status.hpp"
 
 
 #include <gtest/gtest.h>

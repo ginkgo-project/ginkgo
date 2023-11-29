@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/factorization/cholesky.hpp>
+#include "ginkgo/core/factorization/cholesky.hpp"
 
 
 #include <algorithm>

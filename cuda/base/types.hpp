@@ -6,7 +6,7 @@
 #define GKO_CUDA_BASE_TYPES_HPP_
 
 
-#include <ginkgo/core/base/types.hpp>
+#include "ginkgo/core/base/types.hpp"
 
 
 #include <type_traits>

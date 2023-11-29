@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/factorization/par_ict.hpp>
+#include "ginkgo/core/factorization/par_ict.hpp"
 
 
 #include <gtest/gtest.h>

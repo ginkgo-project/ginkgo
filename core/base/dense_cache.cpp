@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/dense_cache.hpp>
+#include "ginkgo/core/base/dense_cache.hpp"
 
 
 #include <ginkgo/core/matrix/dense.hpp>

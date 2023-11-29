@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/matrix/ell.hpp>
+#include "ginkgo/core/matrix/ell.hpp"
 
 
 #include <gtest/gtest.h>
