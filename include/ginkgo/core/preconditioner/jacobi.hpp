@@ -8,6 +8,8 @@
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
@@ -498,6 +500,10 @@ public:
     };
     GKO_ENABLE_LIN_OP_FACTORY(Jacobi, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
+
+    static parameters_type build_from_config(
+        const config::pnode& config, const config::registry& context,
+        config::type_descriptor td_for_child);
 
 protected:
     /**
