@@ -130,48 +130,42 @@ __device__ __forceinline__ void store_generic(ValueType* ptr, ValueType value)
 }
 
 
-template <typename ValueType,
-          gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
+template <typename ValueType>
 __device__ __forceinline__ ValueType load_relaxed(const ValueType* ptr)
 {
     return load_generic<__ATOMIC_RELAXED, HIP_SCOPE_GPU>(ptr);
 }
 
 
-template <typename ValueType,
-          gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
+template <typename ValueType>
 __device__ __forceinline__ ValueType load_relaxed_shared(const ValueType* ptr)
 {
     return load_generic<__ATOMIC_RELAXED, HIP_SCOPE_THREADBLOCK>(ptr);
 }
 
 
-template <typename ValueType,
-          gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
+template <typename ValueType>
 __device__ __forceinline__ ValueType load_acquire(const ValueType* ptr)
 {
     return load_generic<__ATOMIC_ACQUIRE, HIP_SCOPE_GPU>(ptr);
 }
 
 
-template <typename ValueType,
-          gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
+template <typename ValueType>
 __device__ __forceinline__ ValueType load_acquire_shared(const ValueType* ptr)
 {
     return load_generic<__ATOMIC_ACQUIRE, HIP_SCOPE_THREADBLOCK>(ptr);
 }
 
 
-template <typename ValueType,
-          gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
+template <typename ValueType>
 __device__ __forceinline__ void store_relaxed(ValueType* ptr, ValueType value)
 {
     store_generic<__ATOMIC_RELAXED, HIP_SCOPE_GPU>(ptr, value);
 }
 
 
-template <typename ValueType,
-          gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
+template <typename ValueType>
 __device__ __forceinline__ void store_relaxed_shared(ValueType* ptr,
                                                      ValueType value)
 {
@@ -179,16 +173,14 @@ __device__ __forceinline__ void store_relaxed_shared(ValueType* ptr,
 }
 
 
-template <typename ValueType,
-          gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
+template <typename ValueType>
 __device__ __forceinline__ void store_release(ValueType* ptr, ValueType value)
 {
     store_generic<__ATOMIC_RELEASE, HIP_SCOPE_GPU>(ptr, value);
 }
 
 
-template <typename ValueType,
-          gcc_atomic_intrinsic_type_map<ValueType>* = nullptr>
+template <typename ValueType>
 __device__ __forceinline__ void store_release_shared(ValueType* ptr,
                                                      ValueType value)
 {
