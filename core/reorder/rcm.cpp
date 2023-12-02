@@ -30,7 +30,6 @@ namespace {
 
 
 GKO_REGISTER_OPERATION(get_permutation, rcm::get_permutation);
-GKO_REGISTER_OPERATION(get_degree_of_nodes, rcm::get_degree_of_nodes);
 
 
 }  // anonymous namespace
@@ -44,12 +43,9 @@ void rcm_reorder(const matrix::SparsityCsr<ValueType, IndexType>* mtx,
 {
     const auto exec = mtx->get_executor();
     const IndexType num_rows = mtx->get_size()[0];
-    array<IndexType> degrees{exec, mtx->get_size()[0]};
-    exec->run(rcm::make_get_degree_of_nodes(num_rows, mtx->get_const_row_ptrs(),
-                                            degrees.get_data()));
-    exec->run(rcm::make_get_permutation(
-        num_rows, mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
-        degrees.get_const_data(), permutation, inv_permutation, strategy));
+    exec->run(rcm::make_get_permutation(num_rows, mtx->get_const_row_ptrs(),
+                                        mtx->get_const_col_idxs(), permutation,
+                                        inv_permutation, strategy));
 }
 
 
