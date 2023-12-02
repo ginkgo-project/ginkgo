@@ -2,15 +2,13 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <fstream>
 #include <iostream>
 #include <map>
 #include <string>
-#include "ginkgo/core/matrix/permutation.hpp"
+
+
+#include <ginkgo/ginkgo.hpp>
 
 
 int main(int argc, char* argv[])
@@ -24,7 +22,10 @@ int main(int argc, char* argv[])
     using real_vec = gko::matrix::Dense<RealValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using cg = gko::solver::Cg<ValueType>;
-    using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
+    using ilu =
+        gko::preconditioner::Ilu<gko::solver::LowerTrs<ValueType, IndexType>,
+                                 gko::solver::UpperTrs<ValueType, IndexType>,
+                                 false, IndexType>;
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
@@ -81,9 +82,7 @@ int main(int argc, char* argv[])
             .with_criteria(gko::stop::Iteration::build().with_max_iters(20u),
                            gko::stop::ResidualNorm<ValueType>::build()
                                .with_reduction_factor(reduction_factor))
-            // Add preconditioner, these 2 lines are the only
-            // difference from the simple solver example
-            .with_preconditioner(bj::build().with_max_block_size(8u))
+            .with_preconditioner(ilu::build())
             .on(exec);
     // Create solver
     auto solver = solver_gen->generate(A_reordered);
