@@ -54,20 +54,6 @@ namespace rcm {
 #define GKO_MM_PAUSE()
 #endif  // defined __x86_64__
 
-template <typename IndexType>
-void get_degree_of_nodes(std::shared_ptr<const OmpExecutor> exec,
-                         const IndexType num_vertices,
-                         const IndexType* const row_ptrs,
-                         IndexType* const degrees)
-{
-#pragma omp parallel for
-    for (IndexType i = 0; i < num_vertices; ++i) {
-        degrees[i] = row_ptrs[i + 1] - row_ptrs[i];
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL);
-
 
 // This constant controls how many nodes can be dequeued from the
 // UbfsLinearQueue at once at most. Increasing it reduces lock contention and
@@ -760,11 +746,17 @@ template <typename IndexType>
 void get_permutation(std::shared_ptr<const OmpExecutor> exec,
                      const IndexType num_vertices,
                      const IndexType* const row_ptrs,
-                     const IndexType* const col_idxs,
-                     const IndexType* const degrees, IndexType* const perm,
+                     const IndexType* const col_idxs, IndexType* const perm,
                      IndexType* const inv_perm,
                      const gko::reorder::starting_strategy strategy)
 {
+    // compute node degrees
+    array<IndexType> degree_array{exec, static_cast<size_type>(num_vertices)};
+    const auto degrees = degree_array.get_data();
+#pragma omp parallel for
+    for (IndexType i = 0; i < num_vertices; ++i) {
+        degrees[i] = row_ptrs[i + 1] - row_ptrs[i];
+    }
     // Initialize the perm to all "signal value".
     std::fill(perm, perm + num_vertices, perm_untouched);
 

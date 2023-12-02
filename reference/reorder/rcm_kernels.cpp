@@ -37,20 +37,6 @@ namespace reference {
 namespace rcm {
 
 
-template <typename IndexType>
-void get_degree_of_nodes(std::shared_ptr<const ReferenceExecutor> exec,
-                         const IndexType num_vertices,
-                         const IndexType* const row_ptrs,
-                         IndexType* const degrees)
-{
-    for (IndexType i = 0; i < num_vertices; ++i) {
-        degrees[i] = row_ptrs[i + 1] - row_ptrs[i];
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL);
-
-
 /**
  * Computes a level structure rooted at `root`, returning a node of minimal
  * degree in its last level, along with the height of the structure.
@@ -198,11 +184,16 @@ void get_permutation(std::shared_ptr<const ReferenceExecutor> exec,
                      const IndexType num_vertices,
                      const IndexType* const row_ptrs,
                      const IndexType* const col_idxs,
-                     const IndexType* const degrees,
                      IndexType* const permutation,
                      IndexType* const inv_permutation,
                      const gko::reorder::starting_strategy strategy)
 {
+    // compute node degrees
+    array<IndexType> degree_array{exec, static_cast<size_type>(num_vertices)};
+    const auto degrees = degree_array.get_data();
+    for (IndexType i = 0; i < num_vertices; ++i) {
+        degrees[i] = row_ptrs[i + 1] - row_ptrs[i];
+    }
     // Storing vertices left to proceess.
     array<IndexType> linear_queue(exec, num_vertices);
     auto linear_queue_p = linear_queue.get_data();
