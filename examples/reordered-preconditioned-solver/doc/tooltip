@@ -1,1 +1,1 @@
-Use a reordering in Ginkgo. Solve a linear system with a preconditioner.
+Use a reordering in Ginkgo. Solve a reordered linear system with a preconditioner.
