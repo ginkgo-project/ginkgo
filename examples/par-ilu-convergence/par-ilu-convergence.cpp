@@ -2,15 +2,15 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <fstream>
 #include <functional>
 #include <iostream>
 #include <map>
 #include <memory>
 #include <string>
+
+
+#include <ginkgo/ginkgo.hpp>
 
 
 const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
