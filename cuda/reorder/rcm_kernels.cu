@@ -29,14 +29,7 @@ namespace cuda {
 namespace rcm {
 
 
-template <typename IndexType>
-void get_permutation(
-    std::shared_ptr<const CudaExecutor> exec, const IndexType num_vertices,
-    const IndexType* const row_ptrs, const IndexType* const col_idxs,
-    IndexType* const permutation, IndexType* const inv_permutation,
-    const gko::reorder::starting_strategy strategy) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL);
+#include "common/cuda_hip/reorder/rcm_kernels.hpp.inc"
 
 
 }  // namespace rcm
