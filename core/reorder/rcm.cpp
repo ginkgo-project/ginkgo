@@ -62,14 +62,13 @@ Rcm<ValueType, IndexType>::Rcm(const Factory* factory,
           factory->get_executor()),
       parameters_{factory->get_parameters()}
 {
-    // Always execute the reordering on the cpu.
-    const auto is_gpu_executor =
-        this->get_executor() != this->get_executor()->get_master();
-    auto cpu_exec = is_gpu_executor ? this->get_executor()->get_master()
-                                    : this->get_executor();
+    // The reordering is not supported on DPC++, use the host instead
+    const auto is_dpcpp_executor = bool(
+        std::dynamic_pointer_cast<const DpcppExecutor>(this->get_executor()));
+    auto work_exec = is_dpcpp_executor ? this->get_executor()->get_master()
+                                       : this->get_executor();
 
-    auto adjacency_matrix = SparsityMatrix::create(cpu_exec);
-    array<IndexType> degrees;
+    auto adjacency_matrix = SparsityMatrix::create(work_exec);
 
     // The adjacency matrix has to be square.
     GKO_ASSERT_IS_SQUARE_MATRIX(args.system_matrix);
@@ -77,19 +76,19 @@ Rcm<ValueType, IndexType>::Rcm(const Factory* factory,
     // convert if the existing matrix is empty.
     if (args.system_matrix->get_size()) {
         auto tmp =
-            copy_and_convert_to<SparsityMatrix>(cpu_exec, args.system_matrix);
+            copy_and_convert_to<SparsityMatrix>(work_exec, args.system_matrix);
         // This function provided within the Sparsity matrix format removes
         // the diagonal elements and outputs an adjacency matrix.
         adjacency_matrix = tmp->to_adjacency_matrix();
     }
 
     auto const size = adjacency_matrix->get_size()[0];
-    permutation_ = PermutationMatrix::create(cpu_exec, size);
+    permutation_ = PermutationMatrix::create(work_exec, size);
 
     // To make it explicit.
     inv_permutation_ = nullptr;
     if (parameters_.construct_inverse_permutation) {
-        inv_permutation_ = PermutationMatrix::create(cpu_exec, size);
+        inv_permutation_ = PermutationMatrix::create(work_exec, size);
     }
 
     rcm_reorder(
@@ -98,7 +97,7 @@ Rcm<ValueType, IndexType>::Rcm(const Factory* factory,
         parameters_.strategy);
 
     // Copy back results to gpu if necessary.
-    if (is_gpu_executor) {
+    if (is_dpcpp_executor) {
         const auto gpu_exec = this->get_executor();
         auto gpu_perm = share(PermutationMatrix::create(gpu_exec, size));
         gpu_perm->copy_from(permutation_);
@@ -153,7 +152,11 @@ std::unique_ptr<LinOp> Rcm<IndexType>::generate_impl(
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
     const auto exec = this->get_executor();
-    const auto host_exec = exec->get_master();
+    // The reordering is not supported on DPC++, use the host instead
+    const auto is_dpcpp_executor = bool(
+        std::dynamic_pointer_cast<const DpcppExecutor>(this->get_executor()));
+    auto work_exec = is_dpcpp_executor ? this->get_executor()->get_master()
+                                       : this->get_executor();
     const auto num_rows = system_matrix->get_size()[0];
     using sparsity_mtx = matrix::SparsityCsr<float, IndexType>;
     std::unique_ptr<LinOp> converted;
@@ -166,7 +169,7 @@ std::unique_ptr<LinOp> Rcm<IndexType>::generate_impl(
         using Identity = matrix::Identity<ValueType>;
         using Mtx = matrix::Csr<ValueType, IndexType>;
         using Scalar = matrix::Dense<ValueType>;
-        auto conv_csr = Mtx::create(host_exec);
+        auto conv_csr = Mtx::create(work_exec);
         as<ConvertibleTo<Mtx>>(op)->convert_to(conv_csr);
         if (!parameters_.skip_symmetrize) {
             auto scalar = initialize<Scalar>({one<ValueType>()}, exec);
@@ -174,8 +177,8 @@ std::unique_ptr<LinOp> Rcm<IndexType>::generate_impl(
             // compute A^T + A
             conv_csr->transpose()->apply(scalar, id, scalar, conv_csr);
         }
-        if (exec != host_exec) {
-            conv_csr = gko::clone(host_exec, std::move(conv_csr));
+        if (exec != work_exec) {
+            conv_csr = gko::clone(work_exec, std::move(conv_csr));
         }
         nnz = conv_csr->get_num_stored_elements();
         row_ptrs = conv_csr->get_const_row_ptrs();
@@ -190,13 +193,13 @@ std::unique_ptr<LinOp> Rcm<IndexType>::generate_impl(
         convert(system_matrix, std::complex<float>{});
     }
 
-    array<IndexType> permutation(host_exec, num_rows);
+    array<IndexType> permutation(work_exec, num_rows);
 
     // remove diagonal entries
     auto pattern = sparsity_mtx::create_const(
-        host_exec, gko::dim<2>{num_rows, num_rows},
-        make_const_array_view(host_exec, nnz, col_idxs),
-        make_const_array_view(host_exec, num_rows + 1, row_ptrs));
+        work_exec, gko::dim<2>{num_rows, num_rows},
+        make_const_array_view(work_exec, nnz, col_idxs),
+        make_const_array_view(work_exec, num_rows + 1, row_ptrs));
     pattern = pattern->to_adjacency_matrix();
     rcm_reorder(pattern.get(), permutation.get_data(),
                 static_cast<IndexType*>(nullptr), parameters_.strategy);
