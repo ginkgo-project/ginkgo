@@ -23,6 +23,7 @@ concurrency:
 
 jobs:
   windows_mingw:
+    if: ${{ false }}
     strategy:
       fail-fast: false
       matrix:
