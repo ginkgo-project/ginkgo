@@ -618,7 +618,7 @@ public:
      * If the array is not assigned an executor, an exception will be thrown.
      *
      * @param size  the amount of memory (expressed as the number of
-     *                   `value_type` elements) allocated on the Executor
+     *              `value_type` elements) allocated on the Executor
      */
     void resize_and_reset(size_type size)
     {
