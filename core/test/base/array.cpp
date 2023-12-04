@@ -300,6 +300,43 @@ TYPED_TEST(Array, MovedFromArrayDifferentExecutorIsEmpty)
 }
 
 
+TYPED_TEST(Array, CanGetValue)
+{
+    gko::array<TypeParam> a{this->exec, {2, 4}};
+
+    ASSERT_EQ(a.get_value(0), TypeParam{2});
+    ASSERT_EQ(a.get_value(1), TypeParam{4});
+}
+
+
+TYPED_TEST(Array, CanSetValue)
+{
+    gko::array<TypeParam> a{this->exec, {2, 4}};
+
+    a.set_value(1, TypeParam{0});
+
+    ASSERT_EQ(a.get_value(1), TypeParam{0});
+}
+
+
+TYPED_TEST(Array, GetValueThrowsOutOfBounds)
+{
+    gko::array<TypeParam> a{this->exec, {2, 4}};
+
+    ASSERT_THROW(a.get_value(2), gko::OutOfBoundsError);
+    // TODO2.0 add bounds check test for negative indices
+}
+
+
+TYPED_TEST(Array, SetValueThrowsOutOfBounds)
+{
+    gko::array<TypeParam> a{this->exec, {2, 4}};
+
+    ASSERT_THROW(a.set_value(2, TypeParam{0}), gko::OutOfBoundsError);
+    // TODO2.0 add bounds check test for negative indices
+}
+
+
 TYPED_TEST(Array, CanCreateTemporaryCloneOnSameExecutor)
 {
     auto tmp_clone = make_temporary_clone(this->exec, &this->x);

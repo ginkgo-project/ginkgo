@@ -61,11 +61,32 @@ TYPED_TEST(Array, CanCopyBackTemporaryCloneOnDifferentExecutor)
 }
 
 
+TYPED_TEST(Array, CanGetValue)
+{
+    using T = TypeParam;
+    auto arr = gko::array<T>(this->exec, I<T>{4, 6});
+
+    ASSERT_EQ(arr.get_value(0), T{4});
+    ASSERT_EQ(arr.get_value(1), T{6});
+}
+
+
+TYPED_TEST(Array, CanSetValue)
+{
+    using T = TypeParam;
+    auto arr = gko::array<T>(this->exec, I<T>{4, 6});
+
+    arr.set_value(1, 0);
+
+    ASSERT_EQ(arr.get_value(1), T{0});
+}
+
+
 TYPED_TEST(Array, CanBeReduced)
 {
     using T = TypeParam;
-    auto arr = gko::array<TypeParam>(this->exec, I<T>{4, 6});
-    auto out = gko::array<TypeParam>(this->exec, I<T>{2});
+    auto arr = gko::array<T>(this->exec, I<T>{4, 6});
+    auto out = gko::array<T>(this->exec, I<T>{2});
 
     gko::reduce_add(arr, out);
 
@@ -77,7 +98,7 @@ TYPED_TEST(Array, CanBeReduced)
 TYPED_TEST(Array, CanBeReduced2)
 {
     using T = TypeParam;
-    auto arr = gko::array<TypeParam>(this->exec, I<T>{4, 6});
+    auto arr = gko::array<T>(this->exec, I<T>{4, 6});
 
     auto out = gko::reduce_add(arr, T{3});
 
