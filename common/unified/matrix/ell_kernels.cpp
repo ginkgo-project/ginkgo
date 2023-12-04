@@ -35,7 +35,7 @@ void compute_max_row_nnz(std::shared_ptr<const DefaultExecutor> exec,
             return row_ptrs[i + 1] - row_ptrs[i];
         },
         GKO_KERNEL_REDUCE_MAX(size_type), result.get_data(),
-        row_ptrs.get_num_elems() - 1, row_ptrs);
+        row_ptrs.get_size() - 1, row_ptrs);
     max_nnz = exec->copy_val_to_host(result.get_const_data());
 }
 

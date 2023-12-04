@@ -164,7 +164,7 @@ TYPED_TEST(index_set, CanBeConstructedFromIndices)
 
     ASSERT_EQ(idx_set.get_size(), 10);
     ASSERT_EQ(idx_set.get_num_subsets(), 3);
-    ASSERT_EQ(idx_set.get_num_subsets(), begin_comp.get_num_elems());
+    ASSERT_EQ(idx_set.get_num_subsets(), begin_comp.get_size());
     auto num_subsets = idx_set.get_num_subsets();
     this->assert_equal_arrays(num_subsets, idx_set.get_subsets_begin(),
                               begin_comp.get_data());
@@ -200,7 +200,7 @@ TYPED_TEST(index_set, CanBeConstructedFromNonSortedIndices)
 
     ASSERT_EQ(idx_set.get_size(), 10);
     ASSERT_EQ(idx_set.get_num_subsets(), 3);
-    ASSERT_EQ(idx_set.get_num_subsets(), begin_comp.get_num_elems());
+    ASSERT_EQ(idx_set.get_num_subsets(), begin_comp.get_size());
     auto num_subsets = idx_set.get_num_subsets();
     this->assert_equal_arrays(num_subsets, idx_set.get_subsets_begin(),
                               begin_comp.get_data());
@@ -271,7 +271,7 @@ TYPED_TEST(index_set, CanGetGlobalIndexFromSortedArrays)
 
     auto idx_set_gidx = idx_set.map_local_to_global(lidx_arr, true);
 
-    this->assert_equal_arrays(gidx_arr.get_num_elems(),
+    this->assert_equal_arrays(gidx_arr.get_size(),
                               idx_set_gidx.get_const_data(),
                               gidx_arr.get_const_data());
 }
@@ -287,7 +287,7 @@ TYPED_TEST(index_set, CanGetGlobalIndexFromUnsortedArrays)
 
     auto idx_set_gidx = idx_set.map_local_to_global(lidx_arr);
 
-    this->assert_equal_arrays(gidx_arr.get_num_elems(),
+    this->assert_equal_arrays(gidx_arr.get_size(),
                               idx_set_gidx.get_const_data(),
                               gidx_arr.get_const_data());
 }
@@ -329,7 +329,7 @@ TYPED_TEST(index_set, CanGetLocalIndexFromSortedArrays)
 
     auto idx_set_lidx = idx_set.map_global_to_local(gidx_arr, true);
 
-    this->assert_equal_arrays(lidx_arr.get_num_elems(),
+    this->assert_equal_arrays(lidx_arr.get_size(),
                               idx_set_lidx.get_const_data(),
                               lidx_arr.get_const_data());
 }
@@ -345,7 +345,7 @@ TYPED_TEST(index_set, CanGetLocalIndexFromUnsortedArrays)
 
     auto idx_set_lidx = idx_set.map_global_to_local(gidx_arr);
 
-    this->assert_equal_arrays(lidx_arr.get_num_elems(),
+    this->assert_equal_arrays(lidx_arr.get_size(),
                               idx_set_lidx.get_const_data(),
                               lidx_arr.get_const_data());
 }

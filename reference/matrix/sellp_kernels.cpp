@@ -108,7 +108,7 @@ void compute_slice_sets(std::shared_ptr<const DefaultExecutor> exec,
                         size_type stride_factor, size_type* slice_sets,
                         size_type* slice_lengths)
 {
-    const auto num_rows = row_ptrs.get_num_elems() - 1;
+    const auto num_rows = row_ptrs.get_size() - 1;
     const auto num_slices = ceildiv(num_rows, slice_size);
     const auto row_ptrs_ptr = row_ptrs.get_const_data();
     for (size_type slice = 0; slice < num_slices; slice++) {

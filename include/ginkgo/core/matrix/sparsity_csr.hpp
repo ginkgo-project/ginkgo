@@ -184,10 +184,7 @@ public:
      *
      * @return the number of elements explicitly stored in the matrix
      */
-    size_type get_num_nonzeros() const noexcept
-    {
-        return col_idxs_.get_num_elems();
-    }
+    size_type get_num_nonzeros() const noexcept { return col_idxs_.get_size(); }
 
     /**
      * Creates a constant (immutable) SparsityCsr matrix from constant arrays.
@@ -287,7 +284,7 @@ protected:
           row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)},
           value_{exec, {value}}
     {
-        GKO_ASSERT_EQ(this->get_size()[0] + 1, row_ptrs_.get_num_elems());
+        GKO_ASSERT_EQ(this->get_size()[0] + 1, row_ptrs_.get_size());
     }
 
     /**

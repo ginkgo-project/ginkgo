@@ -38,7 +38,7 @@ void ScaledReordered<ValueType, IndexType>::apply_impl(const LinOp* b,
                                             cache_.intermediate);
                 std::swap(cache_.inner_x, cache_.intermediate);
             }
-            if (permutation_array_.get_num_elems() > 0) {
+            if (permutation_array_.get_size() > 0) {
                 cache_.inner_b->row_permute(&permutation_array_,
                                             cache_.intermediate);
                 std::swap(cache_.inner_b, cache_.intermediate);
@@ -52,7 +52,7 @@ void ScaledReordered<ValueType, IndexType>::apply_impl(const LinOp* b,
             inner_operator_->apply(cache_.inner_b, cache_.inner_x);
 
             // Permute and scale the solution vector back.
-            if (permutation_array_.get_num_elems() > 0) {
+            if (permutation_array_.get_size() > 0) {
                 cache_.inner_x->inverse_row_permute(&permutation_array_,
                                                     cache_.intermediate);
                 std::swap(cache_.inner_x, cache_.intermediate);

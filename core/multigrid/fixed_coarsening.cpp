@@ -60,8 +60,8 @@ void FixedCoarsening<ValueType, IndexType>::generate()
     }
 
     GKO_ASSERT(parameters_.coarse_rows.get_data() != nullptr);
-    GKO_ASSERT(parameters_.coarse_rows.get_num_elems() > 0);
-    size_type coarse_dim = parameters_.coarse_rows.get_num_elems();
+    GKO_ASSERT(parameters_.coarse_rows.get_size() > 0);
+    size_type coarse_dim = parameters_.coarse_rows.get_size();
 
     auto fine_dim = system_matrix_->get_size()[0];
     auto restrict_op = share(

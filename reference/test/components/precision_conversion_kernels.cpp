@@ -100,7 +100,7 @@ TEST_F(PrecisionConversion, ConvertsRealFromView)
     gko::array<double> tmp{ref};
     gko::array<float> out{ref};
 
-    tmp = gko::make_array_view(ref, vals.get_num_elems(), vals.get_data());
+    tmp = gko::make_array_view(ref, vals.get_size(), vals.get_data());
     out = tmp;
 
     GKO_ASSERT_ARRAY_EQ(vals, out);

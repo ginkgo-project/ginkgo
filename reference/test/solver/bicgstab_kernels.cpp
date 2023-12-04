@@ -92,8 +92,7 @@ protected:
         stopped.stop(1, false);
         finalized.stop(1, true);
         non_stopped.reset();
-        std::fill_n(small_stop.get_data(), small_stop.get_num_elems(),
-                    non_stopped);
+        std::fill_n(small_stop.get_data(), small_stop.get_size(), non_stopped);
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
@@ -145,7 +144,7 @@ TYPED_TEST(Bicgstab, KernelInitialize)
     this->small_beta->fill(0);
     this->small_gamma->fill(0);
     this->small_omega->fill(0);
-    std::fill_n(this->small_stop.get_data(), this->small_stop.get_num_elems(),
+    std::fill_n(this->small_stop.get_data(), this->small_stop.get_size(),
                 this->stopped);
 
     gko::kernels::reference::bicgstab::initialize(

@@ -395,7 +395,7 @@ void fill_in_matrix_data(std::shared_ptr<const ReferenceExecutor> exec,
                          const device_matrix_data<ValueType, IndexType>& data,
                          matrix::Dense<ValueType>* output)
 {
-    for (size_type i = 0; i < data.get_num_elems(); i++) {
+    for (size_type i = 0; i < data.get_num_stored_elements(); i++) {
         output->at(data.get_const_row_idxs()[i], data.get_const_col_idxs()[i]) =
             data.get_const_values()[i];
     }

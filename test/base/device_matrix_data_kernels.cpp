@@ -53,7 +53,7 @@ protected:
                                             gko::zero<value_type>());
         }
         // remove duplicate nonzero locations
-        host_data.ensure_row_major_order();
+        host_data.sort_row_major();
         host_data.nonzeros.erase(
             std::unique(host_data.nonzeros.begin(), host_data.nonzeros.end(),
                         [](nonzero_type nz1, nonzero_type nz2) {
@@ -102,7 +102,7 @@ TYPED_TEST(DeviceMatrixData, DefaultConstructsCorrectly)
 
     ASSERT_EQ((gko::dim<2>{0, 0}), local_data.get_size());
     ASSERT_EQ(this->exec, local_data.get_executor());
-    ASSERT_EQ(local_data.get_num_elems(), 0);
+    ASSERT_EQ(local_data.get_num_stored_elements(), 0);
 }
 
 
@@ -116,7 +116,7 @@ TYPED_TEST(DeviceMatrixData, ConstructsCorrectly)
 
     ASSERT_EQ((gko::dim<2>{4, 3}), local_data.get_size());
     ASSERT_EQ(this->exec, local_data.get_executor());
-    ASSERT_EQ(local_data.get_num_elems(), 10);
+    ASSERT_EQ(local_data.get_num_stored_elements(), 10);
 }
 
 
@@ -132,7 +132,8 @@ TYPED_TEST(DeviceMatrixData, CopyConstructsOnOtherExecutorCorrectly)
         this->exec->get_master(), device_data};
 
     ASSERT_EQ(device_data.get_size(), host_data.get_size());
-    ASSERT_EQ(device_data.get_num_elems(), host_data.get_num_elems());
+    ASSERT_EQ(device_data.get_num_stored_elements(),
+              host_data.get_num_stored_elements());
     auto device_arrays = device_data.empty_out();
     auto host_arrays = host_data.empty_out();
     GKO_ASSERT_ARRAY_EQ(device_arrays.row_idxs, host_arrays.row_idxs);
@@ -156,7 +157,7 @@ TYPED_TEST(DeviceMatrixData, ResizesCorrectly)
 
     local_data.resize_and_reset(12);
 
-    ASSERT_EQ(local_data.get_num_elems(), 12);
+    ASSERT_EQ(local_data.get_num_stored_elements(), 12);
     ASSERT_EQ(local_data.get_size(), gko::dim<2>(4, 3));
 }
 
@@ -170,7 +171,7 @@ TYPED_TEST(DeviceMatrixData, ResizesDimensionsCorrectly)
 
     local_data.resize_and_reset(gko::dim<2>{5, 4}, 12);
 
-    ASSERT_EQ(local_data.get_num_elems(), 12);
+    ASSERT_EQ(local_data.get_num_stored_elements(), 12);
     ASSERT_EQ(local_data.get_size(), gko::dim<2>(5, 4));
 }
 
@@ -187,7 +188,7 @@ TYPED_TEST(DeviceMatrixData, CreatesFromHost)
     ASSERT_EQ(data.get_size(), this->host_data.size);
     auto host_device_data = gko::device_matrix_data<value_type, index_type>(
         this->exec->get_master(), data);
-    for (gko::size_type i = 0; i < data.get_num_elems(); i++) {
+    for (gko::size_type i = 0; i < data.get_num_stored_elements(); i++) {
         const auto entry = this->host_data.nonzeros[i];
         ASSERT_EQ(host_device_data.get_const_row_idxs()[i], entry.row);
         ASSERT_EQ(host_device_data.get_const_col_idxs()[i], entry.column);
@@ -210,7 +211,7 @@ TYPED_TEST(DeviceMatrixData, EmptiesOut)
     auto arrays = data.empty_out();
 
     ASSERT_EQ(data.get_size(), gko::dim<2>{});
-    ASSERT_EQ(data.get_num_elems(), 0);
+    ASSERT_EQ(data.get_num_stored_elements(), 0);
     ASSERT_NE(data.get_const_row_idxs(), original_ptr1);
     ASSERT_NE(data.get_const_col_idxs(), original_ptr2);
     ASSERT_NE(data.get_const_values(), original_ptr3);
@@ -220,7 +221,7 @@ TYPED_TEST(DeviceMatrixData, EmptiesOut)
     arrays.row_idxs.set_executor(this->exec->get_master());
     arrays.col_idxs.set_executor(this->exec->get_master());
     arrays.values.set_executor(this->exec->get_master());
-    for (gko::size_type i = 0; i < arrays.values.get_num_elems(); i++) {
+    for (gko::size_type i = 0; i < arrays.values.get_size(); i++) {
         const auto entry = this->host_data.nonzeros[i];
         ASSERT_EQ(arrays.row_idxs.get_const_data()[i], entry.row);
         ASSERT_EQ(arrays.col_idxs.get_const_data()[i], entry.column);
@@ -318,7 +319,7 @@ TYPED_TEST(DeviceMatrixData, SumsDuplicates)
     GKO_ASSERT_ARRAY_EQ(arrays.col_idxs, ref_arrays.col_idxs);
     double max_error{};
     arrays.values.set_executor(this->exec->get_master());
-    for (int i = 0; i < arrays.values.get_num_elems(); i++) {
+    for (int i = 0; i < arrays.values.get_size(); i++) {
         max_error = std::max<double>(
             max_error, std::abs(arrays.values.get_const_data()[i] -
                                 ref_arrays.values.get_const_data()[i]));

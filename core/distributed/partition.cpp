@@ -51,16 +51,16 @@ Partition<LocalIndexType, GlobalIndexType>::build_from_contiguous(
     std::shared_ptr<const Executor> exec, const array<GlobalIndexType>& ranges,
     const array<comm_index_type>& part_ids)
 {
-    GKO_ASSERT(part_ids.get_num_elems() == 0 ||
-               part_ids.get_num_elems() + 1 == ranges.get_num_elems());
+    GKO_ASSERT(part_ids.get_size() == 0 ||
+               part_ids.get_size() + 1 == ranges.get_size());
 
     array<comm_index_type> empty(exec);
     auto local_ranges = make_temporary_clone(exec, &ranges);
     auto local_part_ids = make_temporary_clone(
-        exec, part_ids.get_num_elems() > 0 ? &part_ids : &empty);
+        exec, part_ids.get_size() > 0 ? &part_ids : &empty);
     auto result = Partition::create(
-        exec, static_cast<comm_index_type>(ranges.get_num_elems() - 1),
-        ranges.get_num_elems() - 1);
+        exec, static_cast<comm_index_type>(ranges.get_size() - 1),
+        ranges.get_size() - 1);
     exec->run(partition::make_build_from_contiguous(
         *local_ranges, *local_part_ids, result->offsets_.get_data(),
         result->part_ids_.get_data()));

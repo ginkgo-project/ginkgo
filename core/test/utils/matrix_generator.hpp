@@ -58,14 +58,14 @@ matrix_data<ValueType, IndexType> fill_random_matrix_data(
     auto host_row_indices = make_temporary_clone(host_exec, &row_indices);
     auto host_col_indices = make_temporary_clone(host_exec, &col_indices);
 
-    for (int nnz = 0; nnz < row_indices.get_num_elems(); ++nnz) {
+    for (int nnz = 0; nnz < row_indices.get_size(); ++nnz) {
         data.nonzeros.emplace_back(
             host_row_indices->get_const_data()[nnz],
             host_col_indices->get_const_data()[nnz],
             detail::get_rand_value<ValueType>(value_dist, engine));
     }
 
-    data.ensure_row_major_order();
+    data.sort_row_major();
     return data;
 }
 
@@ -143,7 +143,7 @@ matrix_data<ValueType, IndexType> generate_random_matrix_data(
         }
     }
 
-    data.ensure_row_major_order();
+    data.sort_row_major();
     return data;
 }
 
@@ -204,8 +204,8 @@ std::unique_ptr<MatrixType> fill_random_matrix(
     using value_type = typename MatrixType::value_type;
     using index_type = IndexType;
 
-    GKO_ASSERT(row_idxs.get_num_elems() == col_idxs.get_num_elems());
-    GKO_ASSERT(row_idxs.get_num_elems() <= (num_rows * num_cols));
+    GKO_ASSERT(row_idxs.get_size() == col_idxs.get_size());
+    GKO_ASSERT(row_idxs.get_size() <= (num_rows * num_cols));
     auto result = MatrixType::create(exec, std::forward<MatrixArgs>(args)...);
     result->read(fill_random_matrix_data<value_type, index_type>(
         num_rows, num_cols, row_idxs, col_idxs,
@@ -378,7 +378,7 @@ matrix_data<ValueType, IndexType> generate_random_triangular_matrix_data(
         }
     }
 
-    data.ensure_row_major_order();
+    data.sort_row_major();
     return data;
 }
 

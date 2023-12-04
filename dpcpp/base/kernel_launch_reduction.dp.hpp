@@ -147,7 +147,7 @@ void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
     auto queue = exec->get_queue();
     if (num_workgroups > 1) {
         const auto required_storage = sizeof(ValueType) * num_workgroups;
-        if (tmp.get_num_elems() < required_storage) {
+        if (tmp.get_size() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
         queue->submit([&](sycl::handler& cgh) {
@@ -194,7 +194,7 @@ void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
     auto queue = exec->get_queue();
     if (num_workgroups > 1) {
         const auto required_storage = sizeof(ValueType) * num_workgroups;
-        if (tmp.get_num_elems() < required_storage) {
+        if (tmp.get_size() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
         queue->submit([&](sycl::handler& cgh) {
@@ -498,7 +498,7 @@ void run_generic_col_reduction_small(syn::value_list<int, ssg_size>,
         });
     } else {
         const auto required_storage = sizeof(ValueType) * row_blocks * cols;
-        if (tmp.get_num_elems() < required_storage) {
+        if (tmp.get_size() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
         queue->submit([&](sycl::handler& cgh) {
@@ -544,7 +544,7 @@ void run_kernel_row_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
     if (rows * cols > resources && rows < cols) {
         const auto col_blocks = ceildiv(rows * cols, resources);
         const auto required_storage = sizeof(ValueType) * col_blocks * rows;
-        if (tmp.get_num_elems() < required_storage) {
+        if (tmp.get_size() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
         generic_kernel_row_reduction_2d<cfg, sg_size>(
@@ -617,7 +617,7 @@ void run_kernel_col_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
             });
         } else {
             const auto required_storage = sizeof(ValueType) * row_blocks * cols;
-            if (tmp.get_num_elems() < required_storage) {
+            if (tmp.get_size() < required_storage) {
                 tmp.resize_and_reset(required_storage);
             }
             queue->submit([&](sycl::handler& cgh) {

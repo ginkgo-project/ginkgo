@@ -21,7 +21,7 @@ void sort_by_range_start(
     array<experimental::distributed::comm_index_type>& part_ids)
 {
     auto part_ids_d = part_ids.get_data();
-    auto num_parts = part_ids.get_num_elems();
+    auto num_parts = part_ids.get_size();
     auto start_it = detail::make_permute_iterator(
         range_start_ends.get_data(), [](const auto i) { return 2 * i; });
     auto end_it = detail::make_permute_iterator(
@@ -42,7 +42,7 @@ void check_consecutive_ranges(std::shared_ptr<const DefaultExecutor> exec,
                               const array<GlobalIndexType>& range_start_ends,
                               bool& result)
 {
-    auto num_parts = range_start_ends.get_num_elems() / 2;
+    auto num_parts = range_start_ends.get_size() / 2;
     auto start_it =
         detail::make_permute_iterator(range_start_ends.get_const_data() + 2,
                                       [](const auto i) { return 2 * i; });
@@ -70,7 +70,7 @@ void compress_ranges(std::shared_ptr<const DefaultExecutor> exec,
                      array<GlobalIndexType>& range_offsets)
 {
     range_offsets.get_data()[0] = range_start_ends.get_const_data()[0];
-    for (int i = 0; i < range_offsets.get_num_elems() - 1; ++i) {
+    for (int i = 0; i < range_offsets.get_size() - 1; ++i) {
         range_offsets.get_data()[i + 1] =
             range_start_ends.get_const_data()[2 * i + 1];
     }

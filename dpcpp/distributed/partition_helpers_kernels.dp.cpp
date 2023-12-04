@@ -48,7 +48,7 @@ void sort_by_range_start(
 {
     auto policy =
         oneapi::dpl::execution::make_device_policy(*exec->get_queue());
-    auto num_ranges = range_start_ends.get_num_elems() / 2;
+    auto num_ranges = range_start_ends.get_size() / 2;
 
     auto start_it = oneapi::dpl::make_permutation_iterator(
         range_start_ends.get_data(), stride{});

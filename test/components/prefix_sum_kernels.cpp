@@ -75,7 +75,7 @@ TYPED_TEST(PrefixSum, WorksCloseToOverflow)
     gko::array<TypeParam> data{this->exec, I<TypeParam>({max - 1, 1, 0})};
 
     gko::kernels::EXEC_NAMESPACE::components::prefix_sum_nonnegative(
-        this->exec, data.get_data(), data.get_num_elems());
+        this->exec, data.get_data(), data.get_size());
 
     GKO_ASSERT_ARRAY_EQ(data, I<TypeParam>({0, max - 1, max}));
 }
@@ -87,7 +87,7 @@ TYPED_TEST(PrefixSum, DoesntOverflowFromLastElement)
     gko::array<TypeParam> data{this->exec, I<TypeParam>({2, max - 1})};
 
     gko::kernels::EXEC_NAMESPACE::components::prefix_sum_nonnegative(
-        this->exec, data.get_data(), data.get_num_elems());
+        this->exec, data.get_data(), data.get_size());
 
     GKO_ASSERT_ARRAY_EQ(data, I<TypeParam>({0, 2}));
 }
@@ -104,7 +104,7 @@ TYPED_TEST(PrefixSum, ThrowsOnOverflow)
 
     ASSERT_THROW(
         gko::kernels::EXEC_NAMESPACE::components::prefix_sum_nonnegative(
-            this->exec, data.get_data(), data.get_num_elems()),
+            this->exec, data.get_data(), data.get_size()),
         gko::OverflowError);
 }
 

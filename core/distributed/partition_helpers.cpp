@@ -65,7 +65,7 @@ build_partition_from_local_range(std::shared_ptr<const Executor> exec,
     // make_sort_by_range_start
     array<comm_index_type> part_ids(exec, comm.size());
     exec->run(components::make_fill_seq_array(part_ids.get_data(),
-                                              part_ids.get_num_elems()));
+                                              part_ids.get_size()));
     exec->run(partition_helpers::make_sort_by_range_start(ranges_start_end,
                                                           part_ids));
 

@@ -3,13 +3,15 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <iostream>
+#include <Kokkos_Core.hpp>
 #include <map>
 #include <string>
 
 
 #include <omp.h>
+
+
 #include <ginkgo/ginkgo.hpp>
-#include <Kokkos_Core.hpp>
 
 
 // Creates a stencil matrix in CSR format for the given number of discretization
@@ -27,14 +29,18 @@ void generate_stencil_matrix(gko::matrix::Csr<ValueType, IndexType>* matrix)
                                                      discretization_points * 3);
 
     // Create Kokkos views on Ginkgo data.
-    Kokkos::View<IndexType*> v_row_idxs(md.get_row_idxs(), md.get_num_elems());
-    Kokkos::View<IndexType*> v_col_idxs(md.get_col_idxs(), md.get_num_elems());
-    Kokkos::View<ValueType*> v_values(md.get_values(), md.get_num_elems());
+    Kokkos::View<IndexType*> v_row_idxs(md.get_row_idxs(),
+                                        md.get_num_stored_elements());
+    Kokkos::View<IndexType*> v_col_idxs(md.get_col_idxs(),
+                                        md.get_num_stored_elements());
+    Kokkos::View<ValueType*> v_values(md.get_values(),
+                                      md.get_num_stored_elements());
 
     // Create the matrix entries. This also creates zero entries for the
     // first and second row to handle all rows uniformly.
     Kokkos::parallel_for(
-        "generate_stencil_matrix", md.get_num_elems(), KOKKOS_LAMBDA(int i) {
+        "generate_stencil_matrix", md.get_num_stored_elements(),
+        KOKKOS_LAMBDA(int i) {
             const ValueType coefs[] = {-1, 2, -1};
             auto ofs = static_cast<IndexType>((i % 3) - 1);
             auto row = static_cast<IndexType>(i / 3);

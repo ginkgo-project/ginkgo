@@ -70,7 +70,8 @@ protected:
         solve_lambda;
 };
 
-TYPED_TEST_SUITE(BatchBicgstab, gko::test::RealValueTypes);
+TYPED_TEST_SUITE(BatchBicgstab, gko::test::RealValueTypes,
+                 TypenameNameGenerator);
 
 
 TYPED_TEST(BatchBicgstab, SolvesStencilSystem)

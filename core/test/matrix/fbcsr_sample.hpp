@@ -218,7 +218,7 @@ public:
         mdata.nonzeros.push_back({2, 3, 0.0});
         mdata.nonzeros.push_back({2, 5, 0.0});
         mdata.nonzeros.push_back({3, 6, 0.0});
-        mdata.ensure_row_major_order();
+        mdata.sort_row_major();
         return mdata;
     }
 

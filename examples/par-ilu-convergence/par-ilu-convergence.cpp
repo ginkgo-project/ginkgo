@@ -2,15 +2,15 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <fstream>
 #include <functional>
 #include <iostream>
 #include <map>
 #include <memory>
 #include <string>
+
+
+#include <ginkgo/ginkgo.hpp>
 
 
 const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
@@ -53,8 +53,8 @@ double compute_ilu_residual_norm(
     gko::matrix_data<ValueType, IndexType> mtx_data;
     residual->write(residual_data);
     mtx->write(mtx_data);
-    residual_data.ensure_row_major_order();
-    mtx_data.ensure_row_major_order();
+    residual_data.sort_row_major();
+    mtx_data.sort_row_major();
     auto it = mtx_data.nonzeros.begin();
     double residual_norm{};
     for (auto entry : residual_data.nonzeros) {

@@ -133,9 +133,9 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
                          array<IndexType>& col_idxs, array<ValueType>& values)
 {
     array<matrix_data_entry<ValueType, IndexType>> block_ordered{
-        exec, data.get_num_elems()};
+        exec, data.get_num_stored_elements()};
     components::soa_to_aos(exec, data, block_ordered);
-    const auto in_nnz = data.get_num_elems();
+    const auto in_nnz = data.get_num_stored_elements();
     auto block_ordered_ptr = block_ordered.get_data();
     std::stable_sort(
         block_ordered_ptr, block_ordered_ptr + in_nnz,
@@ -169,7 +169,7 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
         value_vec[value_vec.size() - block_size * block_size + local_row +
                   local_col * block_size] = entry.value;
     }
-    while (block_row < static_cast<int64>(row_ptrs.get_num_elems() - 1)) {
+    while (block_row < static_cast<int64>(row_ptrs.get_size() - 1)) {
         // we finished row block_row, so store its end pointer
         row_ptrs_ptr[block_row + 1] = col_idx_vec.size();
         ++block_row;

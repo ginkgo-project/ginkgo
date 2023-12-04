@@ -136,8 +136,8 @@ protected:
     void assert_array_near(const gko::array<real_type>& a,
                            const gko::array<real_type>& b, std::string name)
     {
-        ASSERT_EQ(a.get_num_elems(), b.get_num_elems());
-        for (gko::size_type i = 0; i < a.get_num_elems(); i++) {
+        ASSERT_EQ(a.get_size(), b.get_size());
+        for (gko::size_type i = 0; i < a.get_size(); i++) {
             if (std::isfinite(a.get_const_data()[i]) ||
                 std::isfinite(b.get_const_data()[i])) {
                 ASSERT_NEAR(a.get_const_data()[i], b.get_const_data()[i],

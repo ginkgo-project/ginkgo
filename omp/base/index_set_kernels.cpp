@@ -66,7 +66,7 @@ void populate_subsets(std::shared_ptr<const DefaultExecutor> exec,
                       array<IndexType>* subset_end,
                       array<IndexType>* superset_indices, const bool is_sorted)
 {
-    auto num_indices = indices->get_num_elems();
+    auto num_indices = indices->get_size();
     auto tmp_indices = gko::array<IndexType>(*indices);
     // Sort the indices if not sorted.
     if (!is_sorted) {

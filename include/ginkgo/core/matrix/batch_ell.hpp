@@ -151,7 +151,7 @@ public:
      */
     size_type get_num_stored_elements() const noexcept
     {
-        return values_.get_num_elems();
+        return values_.get_size();
     }
 
     /**
@@ -330,9 +330,8 @@ private:
         // Ensure that the value and col_idxs arrays have the correct size
         auto num_elems = this->get_common_size()[0] * num_elems_per_row *
                          this->get_num_batch_items();
-        GKO_ASSERT_EQ(num_elems, values_.get_num_elems());
-        GKO_ASSERT_EQ(this->get_num_elements_per_item(),
-                      col_idxs_.get_num_elems());
+        GKO_ASSERT_EQ(num_elems, values_.get_size());
+        GKO_ASSERT_EQ(this->get_num_elements_per_item(), col_idxs_.get_size());
     }
 
     void apply_impl(const MultiVector<value_type>* b,

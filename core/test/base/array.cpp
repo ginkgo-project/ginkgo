@@ -33,7 +33,7 @@ protected:
     static void assert_equal_to_original_x(gko::array<T>& a,
                                            bool check_zero = true)
     {
-        ASSERT_EQ(a.get_num_elems(), 2);
+        ASSERT_EQ(a.get_size(), 2);
         if (check_zero) EXPECT_EQ(a.get_data()[0], T{5});
         EXPECT_EQ(a.get_data()[1], T{2});
         if (check_zero) EXPECT_EQ(a.get_const_data()[0], T{5});
@@ -52,7 +52,7 @@ TYPED_TEST(Array, CanBeCreatedWithoutAnExecutor)
     gko::array<TypeParam> a;
 
     ASSERT_EQ(a.get_executor(), nullptr);
-    ASSERT_EQ(a.get_num_elems(), 0);
+    ASSERT_EQ(a.get_size(), 0);
 }
 
 
@@ -60,7 +60,7 @@ TYPED_TEST(Array, CanBeEmpty)
 {
     gko::array<TypeParam> a(this->exec);
 
-    ASSERT_EQ(a.get_num_elems(), 0);
+    ASSERT_EQ(a.get_size(), 0);
 }
 
 
@@ -78,7 +78,7 @@ TYPED_TEST(Array, CanBeCreatedFromExistingData)
     gko::array<TypeParam> a{this->exec, 3, new TypeParam[3],
                             std::default_delete<TypeParam[]>{}};
 
-    EXPECT_EQ(a.get_num_elems(), 3);
+    EXPECT_EQ(a.get_size(), 3);
 }
 
 
@@ -87,7 +87,7 @@ TYPED_TEST(Array, CanBeCreatedFromDataOnExecutor)
     gko::array<TypeParam> a{this->exec, 3,
                             this->exec->template alloc<TypeParam>(3)};
 
-    EXPECT_EQ(a.get_num_elems(), 3);
+    EXPECT_EQ(a.get_size(), 3);
 }
 
 
@@ -114,7 +114,7 @@ TYPED_TEST(Array, CanBeCreatedFromInitializerList)
 }
 
 
-TYPED_TEST(Array, KnowsItsSize) { ASSERT_EQ(this->x.get_num_elems(), 2); }
+TYPED_TEST(Array, KnowsItsSize) { ASSERT_EQ(this->x.get_size(), 2); }
 
 
 TYPED_TEST(Array, ReturnsValidDataPtr)
@@ -177,7 +177,7 @@ TYPED_TEST(Array, MoveConstructedFromArrayExecutorlessIsEmpty)
     a = std::move(this->x);
 
     ASSERT_EQ(this->x.get_executor(), this->exec);
-    ASSERT_EQ(this->x.get_num_elems(), 0);
+    ASSERT_EQ(this->x.get_size(), 0);
 }
 
 
@@ -186,7 +186,7 @@ TYPED_TEST(Array, MoveConstructedFromArraySameExecutorIsEmpty)
     gko::array<TypeParam> a{this->exec, std::move(this->x)};
 
     ASSERT_EQ(this->x.get_executor(), this->exec);
-    ASSERT_EQ(this->x.get_num_elems(), 0);
+    ASSERT_EQ(this->x.get_size(), 0);
 }
 
 
@@ -196,7 +196,7 @@ TYPED_TEST(Array, MoveConstructedFromArrayDifferentExecutorIsEmpty)
                             std::move(this->x)};
 
     ASSERT_EQ(this->x.get_executor(), this->exec);
-    ASSERT_EQ(this->x.get_num_elems(), 0);
+    ASSERT_EQ(this->x.get_size(), 0);
 }
 
 
@@ -230,7 +230,7 @@ TYPED_TEST(Array, CanBeCopiedFromExecutorlessArray)
     this->x = a;
 
     ASSERT_EQ(this->x.get_executor(), this->exec);
-    ASSERT_EQ(this->x.get_num_elems(), 0);
+    ASSERT_EQ(this->x.get_size(), 0);
 }
 
 
@@ -263,7 +263,7 @@ TYPED_TEST(Array, CanBeMovedFromExecutorlessArray)
     this->x = std::move(a);
 
     ASSERT_EQ(this->x.get_executor(), this->exec);
-    ASSERT_EQ(this->x.get_num_elems(), 0);
+    ASSERT_EQ(this->x.get_size(), 0);
 }
 
 
@@ -274,7 +274,7 @@ TYPED_TEST(Array, MovedFromArrayExecutorlessIsEmpty)
     a = std::move(this->x);
 
     ASSERT_EQ(this->x.get_executor(), this->exec);
-    ASSERT_EQ(this->x.get_num_elems(), 0);
+    ASSERT_EQ(this->x.get_size(), 0);
 }
 
 
@@ -285,7 +285,7 @@ TYPED_TEST(Array, MovedFromArraySameExecutorIsEmpty)
     a = std::move(this->x);
 
     ASSERT_EQ(this->x.get_executor(), this->exec);
-    ASSERT_EQ(this->x.get_num_elems(), 0);
+    ASSERT_EQ(this->x.get_size(), 0);
 }
 
 
@@ -296,7 +296,7 @@ TYPED_TEST(Array, MovedFromArrayDifferentExecutorIsEmpty)
     a = std::move(this->x);
 
     ASSERT_EQ(this->x.get_executor(), this->exec);
-    ASSERT_EQ(this->x.get_num_elems(), 0);
+    ASSERT_EQ(this->x.get_size(), 0);
 }
 
 
@@ -353,7 +353,7 @@ TYPED_TEST(Array, CanCreateTemporaryOutputCloneOnDifferentExecutors)
         tmp_clone->get_data()[1] = 5;
 
         // there is no reliable way to check the memory is uninitialized
-        ASSERT_EQ(tmp_clone->get_num_elems(), this->x.get_num_elems());
+        ASSERT_EQ(tmp_clone->get_size(), this->x.get_size());
         ASSERT_EQ(tmp_clone->get_executor(), other);
         ASSERT_EQ(this->x.get_executor(), this->exec);
         ASSERT_EQ(this->x.get_data()[0], TypeParam{5});
@@ -368,7 +368,7 @@ TYPED_TEST(Array, CanBeCleared)
 {
     this->x.clear();
 
-    ASSERT_EQ(this->x.get_num_elems(), 0);
+    ASSERT_EQ(this->x.get_size(), 0);
     ASSERT_EQ(this->x.get_data(), nullptr);
     ASSERT_EQ(this->x.get_const_data(), nullptr);
 }
@@ -394,7 +394,7 @@ TYPED_TEST(Array, ViewCannotBeResized)
     auto view = gko::make_array_view(this->exec, 3, data);
 
     EXPECT_THROW(view.resize_and_reset(1), gko::NotSupported);
-    EXPECT_EQ(view.get_num_elems(), 3);
+    EXPECT_EQ(view.get_size(), 3);
     ASSERT_EQ(view.get_data()[0], TypeParam{1});
 }
 
@@ -423,7 +423,7 @@ TYPED_TEST(Array, CustomDeleterCannotBeResized)
         this->exec, 3, data, my_null_deleter<TypeParam[]>{});
 
     EXPECT_THROW(view_custom_deleter.resize_and_reset(1), gko::NotSupported);
-    EXPECT_EQ(view_custom_deleter.get_num_elems(), 3);
+    EXPECT_EQ(view_custom_deleter.get_size(), 3);
     ASSERT_EQ(view_custom_deleter.get_data()[0], TypeParam{1});
 }
 
@@ -459,7 +459,7 @@ TYPED_TEST(Array, ViewModifiesOriginalData)
     EXPECT_EQ(data[0], TypeParam{5});
     EXPECT_EQ(data[1], TypeParam{4});
     EXPECT_EQ(data[2], TypeParam{2});
-    ASSERT_EQ(view.get_num_elems(), 3);
+    ASSERT_EQ(view.get_size(), 3);
 }
 
 
@@ -474,9 +474,9 @@ TYPED_TEST(Array, CopyArrayToArray)
     EXPECT_EQ(array.get_data()[1], TypeParam{4});
     EXPECT_EQ(array.get_data()[2], TypeParam{2});
     EXPECT_EQ(array.get_data()[3], TypeParam{1});
-    EXPECT_EQ(array.get_num_elems(), 4);
+    EXPECT_EQ(array.get_size(), 4);
     EXPECT_NE(array.get_data(), array2.get_data());
-    ASSERT_EQ(array2.get_num_elems(), 4);
+    ASSERT_EQ(array2.get_size(), 4);
 }
 
 
@@ -495,8 +495,8 @@ TYPED_TEST(Array, CopyViewToView)
     EXPECT_EQ(data[0], TypeParam{5});
     EXPECT_EQ(data[1], TypeParam{4});
     EXPECT_EQ(data[2], TypeParam{2});
-    EXPECT_EQ(view.get_num_elems(), 3);
-    EXPECT_EQ(view2.get_num_elems(), 3);
+    EXPECT_EQ(view.get_size(), 3);
+    EXPECT_EQ(view2.get_size(), 3);
     EXPECT_EQ(view2.get_data()[0], TypeParam{2});
     ASSERT_THROW(view2 = view_size4, gko::OutOfBoundsError);
 }
@@ -515,8 +515,8 @@ TYPED_TEST(Array, CopyViewToArray)
     EXPECT_EQ(array.get_data()[1], TypeParam{2});
     EXPECT_EQ(array.get_data()[2], TypeParam{3});
     EXPECT_EQ(array.get_data()[3], TypeParam{4});
-    EXPECT_EQ(array.get_num_elems(), 4);
-    ASSERT_EQ(view.get_num_elems(), 4);
+    EXPECT_EQ(array.get_size(), 4);
+    ASSERT_EQ(view.get_size(), 4);
 }
 
 
@@ -532,8 +532,8 @@ TYPED_TEST(Array, CopyArrayToView)
     EXPECT_EQ(data[0], TypeParam{5});
     EXPECT_EQ(data[1], TypeParam{4});
     EXPECT_EQ(data[2], TypeParam{3});
-    EXPECT_EQ(view.get_num_elems(), 3);
-    EXPECT_EQ(array_size2.get_num_elems(), 2);
+    EXPECT_EQ(view.get_size(), 3);
+    EXPECT_EQ(array_size2.get_size(), 2);
     ASSERT_THROW(view = array_size4, gko::OutOfBoundsError);
 }
 
@@ -551,9 +551,9 @@ TYPED_TEST(Array, MoveArrayToArray)
     EXPECT_EQ(array.get_data()[1], TypeParam{4});
     EXPECT_EQ(array.get_data()[2], TypeParam{2});
     EXPECT_EQ(array.get_data()[3], TypeParam{1});
-    EXPECT_EQ(array.get_num_elems(), 4);
+    EXPECT_EQ(array.get_size(), 4);
     EXPECT_EQ(array2.get_data(), nullptr);
-    ASSERT_EQ(array2.get_num_elems(), 0);
+    ASSERT_EQ(array2.get_size(), 0);
 }
 
 
@@ -570,9 +570,9 @@ TYPED_TEST(Array, MoveViewToView)
     EXPECT_EQ(view.get_data()[0], TypeParam{5});
     EXPECT_EQ(view.get_data()[1], TypeParam{4});
     EXPECT_EQ(view.get_data()[2], TypeParam{2});
-    EXPECT_EQ(view.get_num_elems(), 3);
+    EXPECT_EQ(view.get_size(), 3);
     EXPECT_EQ(view2.get_data(), nullptr);
-    EXPECT_EQ(view2.get_num_elems(), 0);
+    EXPECT_EQ(view2.get_size(), 0);
     EXPECT_NE(data, nullptr);
     EXPECT_EQ(data[0], TypeParam{1});
     EXPECT_EQ(data[1], TypeParam{2});
@@ -594,13 +594,13 @@ TYPED_TEST(Array, MoveViewToArray)
     EXPECT_EQ(array.get_data()[1], TypeParam{2});
     EXPECT_EQ(array.get_data()[2], TypeParam{3});
     EXPECT_EQ(array.get_data()[3], TypeParam{4});
-    EXPECT_EQ(array.get_num_elems(), 4);
+    EXPECT_EQ(array.get_size(), 4);
     EXPECT_EQ(data[0], TypeParam{1});
     EXPECT_EQ(data[1], TypeParam{2});
     EXPECT_EQ(data[2], TypeParam{3});
     EXPECT_EQ(data[3], TypeParam{4});
     EXPECT_EQ(view.get_data(), nullptr);
-    ASSERT_EQ(view.get_num_elems(), 0);
+    ASSERT_EQ(view.get_size(), 0);
 }
 
 
@@ -617,27 +617,27 @@ TYPED_TEST(Array, MoveArrayToView)
 
     EXPECT_EQ(view.get_data()[0], TypeParam{5});
     EXPECT_EQ(view.get_data()[1], TypeParam{4});
-    EXPECT_EQ(view.get_num_elems(), 2);
+    EXPECT_EQ(view.get_size(), 2);
     EXPECT_NE(view.get_data(), data);
     EXPECT_EQ(view.get_data(), size2_ptr);
     EXPECT_NO_THROW(view = std::move(array_size4));
     EXPECT_EQ(view.get_data(), size4_ptr);
     EXPECT_EQ(array_size2.get_data(), nullptr);
-    ASSERT_EQ(array_size2.get_num_elems(), 0);
+    ASSERT_EQ(array_size2.get_size(), 0);
 }
 
 
 TYPED_TEST(Array, AsView)
 {
     auto ptr = this->x.get_data();
-    auto size = this->x.get_num_elems();
+    auto size = this->x.get_size();
     auto exec = this->x.get_executor();
     auto view = this->x.as_view();
 
     ASSERT_EQ(ptr, this->x.get_data());
     ASSERT_EQ(ptr, view.get_data());
-    ASSERT_EQ(size, this->x.get_num_elems());
-    ASSERT_EQ(size, view.get_num_elems());
+    ASSERT_EQ(size, this->x.get_size());
+    ASSERT_EQ(size, view.get_size());
     ASSERT_EQ(exec, this->x.get_executor());
     ASSERT_EQ(exec, view.get_executor());
     ASSERT_TRUE(this->x.is_owning());
@@ -648,14 +648,14 @@ TYPED_TEST(Array, AsView)
 TYPED_TEST(Array, AsConstView)
 {
     auto ptr = this->x.get_data();
-    auto size = this->x.get_num_elems();
+    auto size = this->x.get_size();
     auto exec = this->x.get_executor();
     auto view = this->x.as_const_view();
 
     ASSERT_EQ(ptr, this->x.get_data());
     ASSERT_EQ(ptr, view.get_const_data());
-    ASSERT_EQ(size, this->x.get_num_elems());
-    ASSERT_EQ(size, view.get_num_elems());
+    ASSERT_EQ(size, this->x.get_size());
+    ASSERT_EQ(size, view.get_size());
     ASSERT_EQ(exec, this->x.get_executor());
     ASSERT_EQ(exec, view.get_executor());
     ASSERT_TRUE(this->x.is_owning());
@@ -666,7 +666,7 @@ TYPED_TEST(Array, AsConstView)
 TYPED_TEST(Array, ArrayConstCastWorksOnView)
 {
     auto ptr = this->x.get_data();
-    auto size = this->x.get_num_elems();
+    auto size = this->x.get_size();
     auto exec = this->x.get_executor();
     auto const_view = this->x.as_const_view();
     auto view = gko::detail::array_const_cast(std::move(const_view));
@@ -674,12 +674,12 @@ TYPED_TEST(Array, ArrayConstCastWorksOnView)
                   "wrong return type");
 
     ASSERT_EQ(nullptr, const_view.get_const_data());
-    ASSERT_EQ(0, const_view.get_num_elems());
+    ASSERT_EQ(0, const_view.get_size());
     ASSERT_EQ(exec, const_view.get_executor());
     ASSERT_EQ(ptr, this->x.get_data());
     ASSERT_EQ(ptr, view.get_const_data());
-    ASSERT_EQ(size, this->x.get_num_elems());
-    ASSERT_EQ(size, view.get_num_elems());
+    ASSERT_EQ(size, this->x.get_size());
+    ASSERT_EQ(size, view.get_size());
     ASSERT_EQ(exec, this->x.get_executor());
     ASSERT_EQ(exec, view.get_executor());
     ASSERT_TRUE(this->x.is_owning());

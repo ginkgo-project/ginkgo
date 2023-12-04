@@ -52,7 +52,7 @@ int main(int argc, char** argv)
     bool binary = std::string{argv[1]} == "-b";
 
     auto data = gko::read_generic_raw<value_type, gko::int64>(std::cin);
-    data.ensure_row_major_order();
+    data.sort_row_major();
     for (int argi = binary ? 2 : 1; argi < argc; argi++) {
         std::string arg{argv[argi]};
         if (arg == "lower-triangular") {

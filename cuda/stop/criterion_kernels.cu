@@ -45,11 +45,11 @@ void set_all_statuses(std::shared_ptr<const CudaExecutor> exec,
                       array<stopping_status>* stop_status)
 {
     const auto block_size = default_block_size;
-    const auto grid_size = ceildiv(stop_status->get_num_elems(), block_size);
+    const auto grid_size = ceildiv(stop_status->get_size(), block_size);
 
     if (grid_size > 0) {
         set_all_statuses<<<grid_size, block_size, 0, exec->get_stream()>>>(
-            stop_status->get_num_elems(), stoppingId, setFinalized,
+            stop_status->get_size(), stoppingId, setFinalized,
             as_device_type(stop_status->get_data()));
     }
 }

@@ -88,8 +88,7 @@ protected:
         small_stop = gko::array<gko::stopping_status>(exec, small_size[1]);
         stopped.stop(1);
         non_stopped.reset();
-        std::fill_n(small_stop.get_data(), small_stop.get_num_elems(),
-                    non_stopped);
+        std::fill_n(small_stop.get_data(), small_stop.get_size(), non_stopped);
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
@@ -130,7 +129,7 @@ TYPED_TEST(Fcg, KernelInitialize)
     this->small_prev_rho->fill(0);
     this->small_rho->fill(1);
     this->small_rho_t->fill(0);
-    std::fill_n(this->small_stop.get_data(), this->small_stop.get_num_elems(),
+    std::fill_n(this->small_stop.get_data(), this->small_stop.get_size(),
                 this->stopped);
 
     gko::kernels::reference::fcg::initialize(

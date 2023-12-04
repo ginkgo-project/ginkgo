@@ -62,14 +62,14 @@ template <typename ValueType>
 void array<ValueType>::fill(const ValueType value)
 {
     this->get_executor()->run(array_kernels::make_fill_array(
-        this->get_data(), this->get_num_elems(), value));
+        this->get_data(), this->get_size(), value));
 }
 
 
 template <typename ValueType>
 void reduce_add(const array<ValueType>& input_arr, array<ValueType>& result)
 {
-    GKO_ASSERT(result.get_num_elems() == 1);
+    GKO_ASSERT(result.get_size() == 1);
     auto exec = input_arr.get_executor();
     exec->run(array_kernels::make_reduce_add_array(input_arr, result));
 }

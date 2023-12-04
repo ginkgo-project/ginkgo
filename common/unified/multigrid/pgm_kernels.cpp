@@ -43,8 +43,7 @@ void match_edge(std::shared_ptr<const DefaultExecutor> exec,
                 agg_vals[neighbor] = tidx;
             }
         },
-        agg.get_num_elems(), strongest_neighbor.get_const_data(),
-        agg.get_data());
+        agg.get_size(), strongest_neighbor.get_const_data(), agg.get_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_MATCH_EDGE_KERNEL);
@@ -57,8 +56,8 @@ void count_unagg(std::shared_ptr<const DefaultExecutor> exec,
     array<IndexType> d_result(exec, 1);
     run_kernel_reduction(
         exec, [] GKO_KERNEL(auto i, auto array) { return array[i] == -1; },
-        GKO_KERNEL_REDUCE_SUM(IndexType), d_result.get_data(),
-        agg.get_num_elems(), agg);
+        GKO_KERNEL_REDUCE_SUM(IndexType), d_result.get_data(), agg.get_size(),
+        agg);
 
     *num_unagg = exec->copy_val_to_host(d_result.get_const_data());
 }
@@ -70,7 +69,7 @@ template <typename IndexType>
 void renumber(std::shared_ptr<const DefaultExecutor> exec,
               array<IndexType>& agg, IndexType* num_agg)
 {
-    const auto num = agg.get_num_elems();
+    const auto num = agg.get_size();
     array<IndexType> agg_map(exec, num + 1);
     run_kernel(
         exec,
@@ -84,7 +83,7 @@ void renumber(std::shared_ptr<const DefaultExecutor> exec,
         num, agg.get_const_data(), agg_map.get_data());
 
     components::prefix_sum_nonnegative(exec, agg_map.get_data(),
-                                       agg_map.get_num_elems());
+                                       agg_map.get_size());
 
     run_kernel(
         exec,
@@ -214,7 +213,7 @@ void find_strongest_neighbor(
                 strongest_neighbor[row] = row;
             }
         },
-        agg.get_num_elems(), weight_mtx->get_const_row_ptrs(),
+        agg.get_size(), weight_mtx->get_const_row_ptrs(),
         weight_mtx->get_const_col_idxs(), weight_mtx->get_const_values(),
         diag->get_const_values(), agg.get_data(),
         strongest_neighbor.get_data());
@@ -230,8 +229,8 @@ void assign_to_exist_agg(std::shared_ptr<const DefaultExecutor> exec,
                          array<IndexType>& agg,
                          array<IndexType>& intermediate_agg)
 {
-    const auto num = agg.get_num_elems();
-    if (intermediate_agg.get_num_elems() > 0) {
+    const auto num = agg.get_size();
+    if (intermediate_agg.get_size() > 0) {
         // deterministic kernel
         run_kernel(
             exec,

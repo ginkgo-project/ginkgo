@@ -131,10 +131,10 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
                          array<ValueType>& block_value_array)
 {
     using tuple_type = thrust::tuple<IndexType, IndexType>;
-    const auto nnz = data.get_num_elems();
+    const auto nnz = data.get_num_stored_elements();
     const auto bs = block_size;
     auto block_row_ptrs = block_row_ptr_array.get_data();
-    auto num_block_rows = block_row_ptr_array.get_num_elems() - 1;
+    auto num_block_rows = block_row_ptr_array.get_size() - 1;
     if (nnz == 0) {
         components::fill_array(exec, block_row_ptrs, num_block_rows + 1,
                                IndexType{});
@@ -187,7 +187,7 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
         });
     // build row pointers from row indices
     components::convert_idxs_to_ptrs(exec, block_row_idx_array.get_const_data(),
-                                     block_row_idx_array.get_num_elems(),
+                                     block_row_idx_array.get_size(),
                                      num_block_rows, block_row_ptrs);
     // fill in values
     components::fill_array(exec, block_value_array.get_data(),

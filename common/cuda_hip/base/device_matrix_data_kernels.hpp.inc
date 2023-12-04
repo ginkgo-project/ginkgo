@@ -9,7 +9,7 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
 {
     using device_value_type = device_type<ValueType>;
     auto value_ptr = as_device_type(values.get_const_data());
-    auto size = values.get_num_elems();
+    auto size = values.get_size();
     // count nonzeros
     auto nnz = thrust::count_if(
         thrust_policy(exec), value_ptr, value_ptr + size,
@@ -47,7 +47,7 @@ void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec, size_type,
                     array<ValueType>& values, array<IndexType>& row_idxs,
                     array<IndexType>& col_idxs)
 {
-    const auto size = values.get_num_elems();
+    const auto size = values.get_size();
     const auto rows = row_idxs.get_const_data();
     const auto cols = col_idxs.get_const_data();
     auto iota = thrust::make_counting_iterator(size_type{});
@@ -92,8 +92,8 @@ void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
     auto it = thrust::make_zip_iterator(
         thrust::make_tuple(data.get_row_idxs(), data.get_col_idxs()));
     auto vals = as_device_type(data.get_values());
-    thrust::sort_by_key(thrust_policy(exec), it, it + data.get_num_elems(),
-                        vals);
+    thrust::sort_by_key(thrust_policy(exec), it,
+                        it + data.get_num_stored_elements(), vals);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

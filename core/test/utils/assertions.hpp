@@ -481,8 +481,8 @@ template <typename ValueType>
     const std::string& first_expression, const std::string& second_expression,
     const array<ValueType>& first, const array<ValueType>& second)
 {
-    const auto num_elems1 = first.get_num_elems();
-    const auto num_elems2 = second.get_num_elems();
+    const auto num_elems1 = first.get_size();
+    const auto num_elems2 = second.get_size();
     if (num_elems1 != num_elems2) {
         auto fail = ::testing::AssertionFailure();
         fail << "Array " << first_expression << " contains " << num_elems1
@@ -705,8 +705,8 @@ template <typename Mat1, typename Mat2>
     }
 
     for (size_type b = 0; b < first_data.size(); ++b) {
-        first_data[b].ensure_row_major_order();
-        second_data[b].ensure_row_major_order();
+        first_data[b].sort_row_major();
+        second_data[b].sort_row_major();
     }
 
     return detail::batch_matrices_near_impl(
@@ -770,8 +770,8 @@ template <typename LinOp1, typename LinOp2>
     first->write(first_data);
     second->write(second_data);
 
-    first_data.ensure_row_major_order();
-    second_data.ensure_row_major_order();
+    first_data.sort_row_major();
+    second_data.sort_row_major();
 
     return detail::matrices_near_impl(
         detail::remove_pointer_wrapper(first_expression),
@@ -954,8 +954,8 @@ template <typename LinOp1, typename LinOp2>
     first->write(first_data);
     second->write(second_data);
 
-    first_data.ensure_row_major_order();
-    second_data.ensure_row_major_order();
+    first_data.sort_row_major();
+    second_data.sort_row_major();
     // make sure if we write data to disk, it only contains ones.
     for (auto& entry : first_data.nonzeros) {
         entry.value = one<typename LinOp1::value_type>();

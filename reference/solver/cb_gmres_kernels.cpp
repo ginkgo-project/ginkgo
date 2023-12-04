@@ -387,7 +387,7 @@ void arnoldi(std::shared_ptr<const ReferenceExecutor> exec,
         std::is_same<ValueType,
                      typename Accessor3d::accessor::arithmetic_type>::value,
         "ValueType must match arithmetic_type of accessor!");
-    for (size_type i = 0; i < final_iter_nums->get_num_elems(); ++i) {
+    for (size_type i = 0; i < final_iter_nums->get_size(); ++i) {
         final_iter_nums->get_data()[i] +=
             (1 - static_cast<size_type>(
                      stop_status->get_const_data()[i].has_stopped()));

@@ -86,9 +86,9 @@ Ell<ValueType, IndexType>& Ell<ValueType, IndexType>::operator=(
         auto exec_this_view =
             Ell{exec,
                 this->get_size(),
-                make_array_view(exec, exec_values_array->get_num_elems(),
+                make_array_view(exec, exec_values_array->get_size(),
                                 exec_values_array->get_data()),
-                make_array_view(exec, exec_cols_array->get_num_elems(),
+                make_array_view(exec, exec_cols_array->get_size(),
                                 exec_cols_array->get_data()),
                 this->get_num_stored_elements_per_row(),
                 this->get_stride()};
@@ -244,7 +244,7 @@ void Ell<ValueType, IndexType>::read(const device_mat_data& data)
     array<int64> row_ptrs(exec, data.get_size()[0] + 1);
     auto local_data = make_temporary_clone(exec, &data);
     exec->run(ell::make_convert_idxs_to_ptrs(
-        local_data->get_const_row_idxs(), local_data->get_num_elems(),
+        local_data->get_const_row_idxs(), local_data->get_num_stored_elements(),
         data.get_size()[0], row_ptrs.get_data()));
     size_type max_nnz{};
     exec->run(ell::make_compute_max_row_nnz(row_ptrs, max_nnz));

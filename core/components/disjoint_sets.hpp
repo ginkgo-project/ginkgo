@@ -138,7 +138,7 @@ public:
      *
      * @return the number of elements represented in this data structure.
      */
-    IndexType get_size() const { return parents_.get_num_elems(); }
+    IndexType get_size() const { return parents_.get_size(); }
 
 private:
     const IndexType& parent(IndexType x) const

@@ -343,13 +343,13 @@ public:
 
     gko::size_type get_memory() const override
     {
-        return 2 * sizeof(IndexType) * array_.get_num_elems();
+        return 2 * sizeof(IndexType) * array_.get_size();
     }
 
     void run() override
     {
-        array_.get_executor()->run(make_prefix_sum_nonnegative(
-            array_.get_data(), array_.get_num_elems()));
+        array_.get_executor()->run(
+            make_prefix_sum_nonnegative(array_.get_data(), array_.get_size()));
     }
 
 private:

@@ -36,10 +36,10 @@ DEFINE_int32(
     "Maximum distance for row swaps to avoid rows with disjoint column ranges");
 
 DEFINE_string(spgemm_mode, "normal",
-              R"(Which matrix B should be used to compute A * B: normal, 
+              R"(Which matrix B should be used to compute A * B: normal,
 transposed, sparse, dense
 normal: B = A for A square, A^T otherwise\ntransposed: B = A^T
-sparse: B is a sparse matrix with dimensions of A^T with uniformly 
+sparse: B is a sparse matrix with dimensions of A^T with uniformly
         random values, at most -spgemm_rowlength non-zeros per row
 dense: B is a 'dense' sparse matrix with -spgemm_rowlength columns
        and non-zeros per row)");
@@ -123,7 +123,7 @@ public:
                                                            get_engine()));
                 }
             }
-            data.ensure_row_major_order();
+            data.sort_row_major();
             mtx2_ = Mtx::create(exec, size2);
             mtx2_->read(data);
         } else if (mode_str == "dense") {
@@ -131,7 +131,7 @@ public:
             std::uniform_real_distribution<gko::remove_complex<etype>> dist(
                 -1.0, 1.0);
             gko::matrix_data<etype, itype> data{size2, dist, get_engine()};
-            data.ensure_row_major_order();
+            data.sort_row_major();
             mtx2_ = Mtx::create(exec, size2);
             mtx2_->read(data);
         } else {
@@ -433,7 +433,7 @@ public:
         // read sparsity pattern and row pointers once, write lookup structures
         return mtx_->get_num_stored_elements() * sizeof(itype) +
                mtx_->get_size()[0] * (2 * sizeof(itype) + sizeof(gko::int64)) +
-               storage_.get_num_elems() * sizeof(gko::int32);
+               storage_.get_size() * sizeof(gko::int32);
     }
 
     void run() override
@@ -518,7 +518,7 @@ public:
         // column index and write a result
         return mtx_->get_size()[0] * (2 * sizeof(itype) + sizeof(gko::int64) +
                                       sample_size_ * 2 * sizeof(itype)) +
-               storage_.get_num_elems() * sizeof(gko::int32);
+               storage_.get_size() * sizeof(gko::int32);
     }
 
     void run() override

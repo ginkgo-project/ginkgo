@@ -42,8 +42,8 @@ void initialize_precisions(std::shared_ptr<const OmpExecutor> exec,
                            const array<precision_reduction>& source,
                            array<precision_reduction>& precisions)
 {
-    const auto source_size = source.get_num_elems();
-    for (auto i = 0u; i < precisions.get_num_elems(); ++i) {
+    const auto source_size = source.get_size();
+    for (auto i = 0u; i < precisions.get_size(); ++i) {
         precisions.get_data()[i] = source.get_const_data()[i % source_size];
     }
 }

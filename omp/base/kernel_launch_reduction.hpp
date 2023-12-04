@@ -40,7 +40,7 @@ void run_kernel_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
     const auto work_per_thread =
         ceildiv(ssize, std::max<int64>(num_threads, 1));
     const auto required_storage = sizeof(ValueType) * num_threads;
-    if (tmp.get_num_elems() < required_storage) {
+    if (tmp.get_size() < required_storage) {
         tmp.resize_and_reset(required_storage);
     }
     const auto partial = reinterpret_cast<ValueType*>(tmp.get_data());
@@ -80,7 +80,7 @@ void run_kernel_reduction_sized_impl(syn::value_list<int, remainder_cols>,
     const auto num_threads = std::min<int64>(omp_get_max_threads(), rows);
     const auto work_per_thread = ceildiv(rows, std::max<int64>(num_threads, 1));
     const auto required_storage = sizeof(ValueType) * num_threads;
-    if (tmp.get_num_elems() < required_storage) {
+    if (tmp.get_size() < required_storage) {
         tmp.resize_and_reset(required_storage);
     }
     const auto partial = reinterpret_cast<ValueType*>(tmp.get_data());
@@ -216,7 +216,7 @@ void run_kernel_row_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
         const auto temp_elems_per_row = num_threads;
         const auto required_storage =
             sizeof(ValueType) * rows * temp_elems_per_row;
-        if (tmp.get_num_elems() < required_storage) {
+        if (tmp.get_size() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
         const auto partial = reinterpret_cast<ValueType*>(tmp.get_data());
@@ -321,7 +321,7 @@ void run_kernel_col_reduction_sized_impl(
         const auto rows_per_thread =
             ceildiv(rows, std::max<int64>(reduction_size, 1));
         const auto required_storage = sizeof(ValueType) * cols * reduction_size;
-        if (tmp.get_num_elems() < required_storage) {
+        if (tmp.get_size() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
         const auto partial = reinterpret_cast<ValueType*>(tmp.get_data());

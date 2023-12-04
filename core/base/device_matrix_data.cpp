@@ -54,7 +54,7 @@ matrix_data<ValueType, IndexType>
 device_matrix_data<ValueType, IndexType>::copy_to_host() const
 {
     const auto exec = values_.get_executor();
-    const auto nnz = this->get_num_elems();
+    const auto nnz = this->get_num_stored_elements();
     matrix_data<ValueType, IndexType> result{this->get_size()};
     result.nonzeros.resize(nnz);
     auto host_view =

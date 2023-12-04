@@ -86,7 +86,7 @@ gko::device_matrix_data<ValueType, IndexType> generate_random_matrix_data_array(
         num_rows, num_cols, std::forward<NonzeroDistribution>(nonzero_dist),
         std::forward<ValueDistribution>(value_dist),
         std::forward<Engine>(engine));
-    md.ensure_row_major_order();
+    md.sort_row_major();
     return gko::device_matrix_data<ValueType, IndexType>::create_from_host(exec,
                                                                            md);
 }

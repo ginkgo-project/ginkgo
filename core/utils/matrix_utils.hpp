@@ -85,7 +85,7 @@ void make_unit_diagonal(matrix_data<ValueType, IndexType>& data)
     for (gko::int64 i = 0; i < num_diags; i++) {
         data.nonzeros.emplace_back(i, i, one<ValueType>());
     }
-    data.ensure_row_major_order();
+    data.sort_row_major();
 }
 
 
@@ -194,7 +194,7 @@ void make_diag_dominant(matrix_data<ValueType, IndexType>& data,
             }
         }
     }
-    data.ensure_row_major_order();
+    data.sort_row_major();
 }
 
 

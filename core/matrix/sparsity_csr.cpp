@@ -187,8 +187,8 @@ void SparsityCsr<ValueType, IndexType>::read(device_mat_data&& data)
     const auto row_idxs = std::move(arrays.row_idxs);
     auto local_row_idxs = make_temporary_clone(exec, &row_idxs);
     exec->run(sparsity_csr::make_convert_idxs_to_ptrs(
-        local_row_idxs->get_const_data(), local_row_idxs->get_num_elems(),
-        size[0], this->get_row_ptrs()));
+        local_row_idxs->get_const_data(), local_row_idxs->get_size(), size[0],
+        this->get_row_ptrs()));
 }
 
 

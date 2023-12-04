@@ -54,7 +54,7 @@ struct log_data final {
         const size_type workspace_size =
             num_batch_items * (sizeof(real_type) + sizeof(int));
         if (num_batch_items > 0 && !workspace.is_owning() &&
-            workspace.get_num_elems() >= workspace_size) {
+            workspace.get_size() >= workspace_size) {
             iter_counts =
                 array<int>::view(exec, num_batch_items,
                                  reinterpret_cast<int*>(workspace.get_data()));
