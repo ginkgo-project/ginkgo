@@ -246,8 +246,8 @@ SparsityCsr<ValueType, IndexType>::to_adjacency_matrix() const
     array<IndexType> diag_prefix_sum{exec, num_rows + 1};
     exec->run(sparsity_csr::make_diagonal_element_prefix_sum(
         this, diag_prefix_sum.get_data()));
-    const auto num_diagonal_elements = static_cast<size_type>(
-        exec->copy_val_to_host(diag_prefix_sum.get_const_data() + num_rows));
+    const auto num_diagonal_elements =
+        static_cast<size_type>(diag_prefix_sum.get_value(num_rows));
     auto adj_mat =
         SparsityCsr::create(exec, this->get_size(),
                             this->get_num_nonzeros() - num_diagonal_elements);

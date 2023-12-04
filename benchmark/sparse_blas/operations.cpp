@@ -393,8 +393,7 @@ public:
         exec->run(make_build_lookup_offsets(
             mtx_->get_const_row_ptrs(), mtx_->get_const_col_idxs(), num_rows,
             allowed_sparsity_, storage_offsets_.get_data()));
-        storage_.resize_and_reset(exec->copy_val_to_host(
-            storage_offsets_.get_const_data() + num_rows));
+        storage_.resize_and_reset(storage_offsets_.get_value(num_rows));
     }
 
     std::pair<bool, double> validate() const override
@@ -479,8 +478,7 @@ public:
         exec->run(make_build_lookup_offsets(
             mtx_->get_const_row_ptrs(), mtx_->get_const_col_idxs(), num_rows,
             allowed_sparsity_, storage_offsets_.get_data()));
-        storage_.resize_and_reset(exec->copy_val_to_host(
-            storage_offsets_.get_const_data() + num_rows));
+        storage_.resize_and_reset(storage_offsets_.get_value(num_rows));
         exec->run(make_build_lookup(
             mtx_->get_const_row_ptrs(), mtx_->get_const_col_idxs(), num_rows,
             allowed_sparsity_, storage_offsets_.get_const_data(),

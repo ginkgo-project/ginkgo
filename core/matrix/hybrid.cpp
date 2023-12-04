@@ -191,9 +191,9 @@ void Hybrid<ValueType, IndexType>::convert_to(
         exec->run(hybrid::make_convert_idxs_to_ptrs(
             this->get_const_coo_row_idxs(), this->get_coo_num_stored_elements(),
             num_rows, coo_row_ptrs.get_data()));
-        const auto nnz = static_cast<size_type>(
-            exec->copy_val_to_host(ell_row_ptrs.get_const_data() + num_rows) +
-            exec->copy_val_to_host(coo_row_ptrs.get_const_data() + num_rows));
+        const auto nnz =
+            static_cast<size_type>(ell_row_ptrs.get_value(num_rows) +
+                                   coo_row_ptrs.get_value(num_rows));
         tmp->row_ptrs_.resize_and_reset(num_rows + 1);
         tmp->col_idxs_.resize_and_reset(nnz);
         tmp->values_.resize_and_reset(nnz);
@@ -248,7 +248,7 @@ void Hybrid<ValueType, IndexType>::read(const device_mat_data& data)
     array<int64> coo_row_ptrs{exec, num_rows + 1};
     exec->run(hybrid::make_compute_coo_row_ptrs(row_nnz, ell_max_nnz,
                                                 coo_row_ptrs.get_data()));
-    coo_nnz = exec->copy_val_to_host(coo_row_ptrs.get_const_data() + num_rows);
+    coo_nnz = coo_row_ptrs.get_value(num_rows);
     this->resize(data.get_size(), ell_max_nnz, coo_nnz);
     exec->run(
         hybrid::make_fill_in_matrix_data(*local_data, row_ptrs.get_const_data(),

@@ -60,7 +60,7 @@ IndexType index_set<IndexType>::get_global_index(const IndexType index) const
     auto global_idx =
         array<IndexType>(exec, this->map_local_to_global(local_idx, true));
 
-    return exec->copy_val_to_host(global_idx.get_data());
+    return global_idx.get_value(0);
 }
 
 
@@ -73,7 +73,7 @@ IndexType index_set<IndexType>::get_local_index(const IndexType index) const
     auto local_idx =
         array<IndexType>(exec, this->map_global_to_local(global_idx, true));
 
-    return exec->copy_val_to_host(local_idx.get_data());
+    return local_idx.get_value(0);
 }
 
 
