@@ -489,7 +489,7 @@ void Csr<ValueType, IndexType>::read(device_mat_data&& data)
     if (this->values_.is_owning()) {
         this->values_ = std::move(arrays.values);
     } else {
-        if (this->values_.get_num_elems() == arrays.values.get_num_elems()) {
+        if (this->values_.get_size() == arrays.values.get_size()) {
             this->values_ = arrays.values;
         } else {
             GKO_INVALID_STATE("Input values view is of incorrect size!");
@@ -498,8 +498,7 @@ void Csr<ValueType, IndexType>::read(device_mat_data&& data)
     if (this->col_idxs_.is_owning()) {
         this->col_idxs_ = std::move(arrays.col_idxs);
     } else {
-        if (this->col_idxs_.get_num_elems() ==
-            arrays.col_idxs.get_num_elems()) {
+        if (this->col_idxs_.get_size() == arrays.col_idxs.get_size()) {
             this->col_idxs_ = arrays.col_idxs;
         } else {
             GKO_INVALID_STATE("Input col_idxs view is of incorrect size!");
