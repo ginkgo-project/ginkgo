@@ -278,8 +278,7 @@ void compute_max_nnz_per_row(std::shared_ptr<const DefaultExecutor> exec,
         GKO_KERNEL_REDUCE_MAX(size_type),
         partial.get_data() + source->get_size()[0], source->get_size()[0],
         partial);
-    result = exec->copy_val_to_host(partial.get_const_data() +
-                                    source->get_size()[0]);
+    result = partial.get_value(source->get_size()[0]);
 }
 
 

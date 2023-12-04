@@ -81,8 +81,7 @@ template <typename IndexType>
 array<IndexType> index_set<IndexType>::to_global_indices() const
 {
     auto exec = this->get_executor();
-    auto num_elems = exec->copy_val_to_host(
-        this->superset_cumulative_indices_.get_const_data() +
+    auto num_elems = this->superset_cumulative_indices_.get_value(
         this->superset_cumulative_indices_.get_size() - 1);
     auto decomp_indices = gko::array<IndexType>(exec, num_elems);
     exec->run(idx_set::make_to_global_indices(

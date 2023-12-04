@@ -132,8 +132,7 @@ void SparsityCsr<ValueType, IndexType>::convert_to(
     result->row_ptrs_ = this->row_ptrs_;
     result->col_idxs_ = this->col_idxs_;
     result->values_.resize_and_reset(this->get_num_nonzeros());
-    result->values_.fill(
-        this->get_executor()->copy_val_to_host(this->get_const_value()));
+    result->values_.fill(this->value_.get_value(0));
     result->set_size(this->get_size());
     result->make_srow();
 }
