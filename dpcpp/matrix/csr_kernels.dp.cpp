@@ -2629,7 +2629,7 @@ void is_sorted_by_column_index(
             }
         });
     });
-    *is_sorted = exec->copy_val_to_host(is_sorted_device);
+    *is_sorted = is_sorted_device_array.get_value(0);
 };
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
