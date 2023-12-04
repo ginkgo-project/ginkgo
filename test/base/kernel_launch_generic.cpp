@@ -313,15 +313,14 @@ void run1d_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
         SCOPED_TRACE("Size 0");
         run_reduction(int64{0}, size_type{0});
 
-        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), int64{0});
+        ASSERT_EQ(output.get_value(0), int64{0});
     }
 
     {
         SCOPED_TRACE("Size 100000");
         run_reduction(int64{0}, size_type{100000});
 
-        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()),
-                  int64{10000100000});
+        ASSERT_EQ(output.get_value(0), int64{10000100000});
     }
 
     {
@@ -329,8 +328,7 @@ void run1d_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
         run_reduction(int64{0}, size_type{100});
 
         // 2 * sum i=0...99 (i+1)
-        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()),
-                  int64{10100});
+        ASSERT_EQ(output.get_value(0), int64{10100});
     }
 }
 
@@ -350,8 +348,7 @@ void run1d_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
             [] GKO_KERNEL(auto j) { return j; }, int64{}, output.get_data(),
             size, temp);
 
-        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()),
-                  static_cast<int64>(size));
+        ASSERT_EQ(output.get_value(0), static_cast<int64>(size));
         // The temporary storage (used for partial sums) must be smaller than
         // the input array
         ASSERT_LE(temp.get_size(), size * sizeof(int64));
@@ -393,21 +390,21 @@ void run2d_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
         SCOPED_TRACE("Dim 0x0");
         run_reduction(int64{0}, gko::dim<2>{0, 0});
 
-        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), int64{0});
+        ASSERT_EQ(output.get_value(0), int64{0});
     }
 
     {
         SCOPED_TRACE("Dim 0x10");
         run_reduction(int64{0}, gko::dim<2>{0, 10});
 
-        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), int64{0});
+        ASSERT_EQ(output.get_value(0), int64{0});
     }
 
     {
         SCOPED_TRACE("Dim 10x0");
         run_reduction(int64{0}, gko::dim<2>{10, 0});
 
-        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), int64{0});
+        ASSERT_EQ(output.get_value(0), int64{0});
     }
 
     {
@@ -415,8 +412,7 @@ void run2d_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
         run_reduction(int64{0}, gko::dim<2>{1000, 100});
 
         // 4 * sum i=0...999 sum j=0...99 of (i+1)*(j+1)
-        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()),
-                  int64{10110100000});
+        ASSERT_EQ(output.get_value(0), int64{10110100000});
     }
 
     {
@@ -424,8 +420,7 @@ void run2d_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
         run_reduction(int64{0}, gko::dim<2>{10, 10});
 
         // 4 * sum i=0...9 sum j=0...9 of (i+1)*(j+1)
-        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()),
-                  int64{12100});
+        ASSERT_EQ(output.get_value(0), int64{12100});
     }
 }
 
@@ -445,8 +440,7 @@ void run2d_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
             [] GKO_KERNEL(auto j) { return j; }, int64{}, output.get_data(),
             dim, temp);
 
-        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()),
-                  static_cast<int64>(dim[0] + dim[1]));
+        ASSERT_EQ(output.get_value(0), static_cast<int64>(dim[0] + dim[1]));
         // The temporary storage (used for partial sums) must be smaller than
         // the input array
         ASSERT_LE(temp.get_size(), dim[0] * dim[1] * sizeof(int64));

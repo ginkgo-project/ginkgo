@@ -96,8 +96,8 @@ std::unique_ptr<LinOp> Cholesky<ValueType, IndexType>::generate_impl(
     exec->run(make_build_lookup_offsets(
         factors->get_const_row_ptrs(), factors->get_const_col_idxs(), num_rows,
         allowed_sparsity, storage_offsets.get_data()));
-    const auto storage_size = static_cast<size_type>(
-        exec->copy_val_to_host(storage_offsets.get_const_data() + num_rows));
+    const auto storage_size =
+        static_cast<size_type>(storage_offsets.get_value(num_rows));
     array<int32> storage{exec, storage_size};
     exec->run(make_build_lookup(
         factors->get_const_row_ptrs(), factors->get_const_col_idxs(), num_rows,

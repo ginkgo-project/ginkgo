@@ -49,10 +49,10 @@ Factorization<ValueType, IndexType>::unpack() const
         const auto mtx = this->get_combined();
         exec->run(make_initialize_row_ptrs_l_u(mtx.get(), l_row_ptrs.get_data(),
                                                u_row_ptrs.get_data()));
-        const auto l_nnz = static_cast<size_type>(
-            exec->copy_val_to_host(l_row_ptrs.get_const_data() + size[0]));
-        const auto u_nnz = static_cast<size_type>(
-            exec->copy_val_to_host(u_row_ptrs.get_const_data() + size[0]));
+        const auto l_nnz =
+            static_cast<size_type>(l_row_ptrs.get_value(size[0]));
+        const auto u_nnz =
+            static_cast<size_type>(u_row_ptrs.get_value(size[0]));
         // create matrices
         auto l_mtx = matrix_type::create(
             exec, size, array<value_type>{exec, l_nnz},
@@ -70,8 +70,8 @@ Factorization<ValueType, IndexType>::unpack() const
         array<index_type> l_row_ptrs{exec, size[0] + 1};
         const auto mtx = this->get_combined();
         exec->run(make_initialize_row_ptrs_l(mtx.get(), l_row_ptrs.get_data()));
-        const auto l_nnz = static_cast<size_type>(
-            exec->copy_val_to_host(l_row_ptrs.get_const_data() + size[0]));
+        const auto l_nnz =
+            static_cast<size_type>(l_row_ptrs.get_value(size[0]));
         // create matrices
         auto l_mtx = matrix_type::create(
             exec, size, array<value_type>{exec, l_nnz},
