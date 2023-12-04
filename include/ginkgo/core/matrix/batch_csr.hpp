@@ -156,7 +156,7 @@ public:
      */
     size_type get_num_stored_elements() const noexcept
     {
-        return values_.get_num_elems();
+        return values_.get_size();
     }
 
     /**
@@ -180,7 +180,7 @@ public:
     value_type* get_values_for_item(size_type batch_id) noexcept
     {
         GKO_ASSERT(batch_id < this->get_num_batch_items());
-        GKO_ASSERT(values_.get_num_elems() >=
+        GKO_ASSERT(values_.get_size() >=
                    batch_id * this->get_num_elements_per_item());
         return values_.get_data() +
                batch_id * this->get_num_elements_per_item();
@@ -197,7 +197,7 @@ public:
         size_type batch_id) const noexcept
     {
         GKO_ASSERT(batch_id < this->get_num_batch_items());
-        GKO_ASSERT(values_.get_num_elems() >=
+        GKO_ASSERT(values_.get_size() >=
                    batch_id * this->get_num_elements_per_item());
         return values_.get_const_data() +
                batch_id * this->get_num_elements_per_item();
@@ -314,11 +314,9 @@ private:
         auto max_num_elems = this->get_common_size()[0] *
                              this->get_common_size()[1] *
                              this->get_num_batch_items();
-        GKO_ASSERT(values_.get_num_elems() <= max_num_elems);
-        GKO_ASSERT_EQ(row_ptrs_.get_num_elems(),
-                      this->get_common_size()[0] + 1);
-        GKO_ASSERT_EQ(this->get_num_elements_per_item(),
-                      col_idxs_.get_num_elems());
+        GKO_ASSERT(values_.get_size() <= max_num_elems);
+        GKO_ASSERT_EQ(row_ptrs_.get_size(), this->get_common_size()[0] + 1);
+        GKO_ASSERT_EQ(this->get_num_elements_per_item(), col_idxs_.get_size());
     }
 
     void apply_impl(const MultiVector<value_type>* b,
