@@ -469,7 +469,7 @@ struct matrix_data {
      */
     GKO_DEPRECATED("Use sort_row_major() instead") void ensure_row_major_order()
     {
-        sort_row_major();
+        this->sort_row_major();
     }
 
     /**
@@ -489,7 +489,7 @@ struct matrix_data {
      */
     void sum_duplicates()
     {
-        sort_row_major();
+        this->sort_row_major();
         std::vector<nonzero_type> new_nonzeros;
         if (!nonzeros.empty()) {
             new_nonzeros.emplace_back(nonzeros.front().row,
