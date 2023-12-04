@@ -132,7 +132,8 @@ TYPED_TEST(DeviceMatrixData, CopyConstructsOnOtherExecutorCorrectly)
         this->exec->get_master(), device_data};
 
     ASSERT_EQ(device_data.get_size(), host_data.get_size());
-    ASSERT_EQ(device_data.get_size(), host_data.get_size());
+    ASSERT_EQ(device_data.get_num_stored_elements(),
+              host_data.get_num_stored_elements());
     auto device_arrays = device_data.empty_out();
     auto host_arrays = host_data.empty_out();
     GKO_ASSERT_ARRAY_EQ(device_arrays.row_idxs, host_arrays.row_idxs);
