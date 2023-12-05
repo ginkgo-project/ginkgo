@@ -23,3 +23,7 @@ if(GINKGO_EXTENSION_KOKKOS)
 endif()
 
 ginkgo_install_library(ginkgo_ext)
+
+if (GINKGO_BUILD_TESTS)
+    add_subdirectory(test)
+endif ()
