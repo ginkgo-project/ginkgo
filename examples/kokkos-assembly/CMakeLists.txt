@@ -9,7 +9,5 @@ if(NOT GINKGO_EXTENSION_KOKKOS)
     message(FATAL_ERROR "The Kokkos examples requires that GINKGO_EXTENSION_KOKKOS=ON is set.")
 endif()
 
-find_package(Kokkos 3.7 REQUIRED)
-
-add_executable(kokkos-assembly kokkos_assembly.cpp)
-target_link_libraries(kokkos-assembly Ginkgo::ginkgo Kokkos::kokkos)
+add_executable(kokkos-assembly kokkos-assembly.cpp)
+target_link_libraries(kokkos-assembly Ginkgo::ginkgo Ginkgo::ext::kokkos)
