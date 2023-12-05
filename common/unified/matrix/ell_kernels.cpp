@@ -36,7 +36,7 @@ void compute_max_row_nnz(std::shared_ptr<const DefaultExecutor> exec,
         },
         GKO_KERNEL_REDUCE_MAX(size_type), result.get_data(),
         row_ptrs.get_size() - 1, row_ptrs);
-    max_nnz = result.get_value(0);
+    max_nnz = result.load_value(0);
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ELL_COMPUTE_MAX_ROW_NNZ_KERNEL);

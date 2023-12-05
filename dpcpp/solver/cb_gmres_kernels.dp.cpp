@@ -1118,7 +1118,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const DpcppExecutor> exec,
         stride_arnoldi, hessenberg_iter->get_values(), stride_hessenberg,
         iter + 1, krylov_bases, stop_status, reorth_status,
         num_reorth->get_data());
-    num_reorth_host = num_reorth->get_value(0);
+    num_reorth_host = num_reorth->load_value(0);
     // num_reorth_host := number of next_krylov vector to be reorthogonalization
     for (size_type l = 1; (num_reorth_host > 0) && (l < 3); l++) {
         zero_matrix(exec, iter + 1, dim_size[1], stride_buffer,
@@ -1172,7 +1172,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const DpcppExecutor> exec,
             stride_arnoldi, hessenberg_iter->get_values(), stride_hessenberg,
             iter + 1, krylov_bases, stop_status, reorth_status,
             num_reorth->get_data());
-        num_reorth_host = num_reorth->get_value(0);
+        num_reorth_host = num_reorth->load_value(0);
     }
 
     update_krylov_next_krylov_kernel<default_block_size>(

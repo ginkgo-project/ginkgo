@@ -194,7 +194,7 @@ public:
      */
     local_index_type get_part_size(comm_index_type part) const
     {
-        return this->part_sizes_.get_value(part);
+        return this->part_sizes_.load_value(part);
     }
 
     /**

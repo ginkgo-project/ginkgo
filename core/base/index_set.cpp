@@ -60,7 +60,7 @@ IndexType index_set<IndexType>::get_global_index(const IndexType index) const
     auto global_idx =
         array<IndexType>(exec, this->map_local_to_global(local_idx, true));
 
-    return global_idx.get_value(0);
+    return global_idx.load_value(0);
 }
 
 
@@ -73,7 +73,7 @@ IndexType index_set<IndexType>::get_local_index(const IndexType index) const
     auto local_idx =
         array<IndexType>(exec, this->map_global_to_local(global_idx, true));
 
-    return local_idx.get_value(0);
+    return local_idx.load_value(0);
 }
 
 
@@ -81,7 +81,7 @@ template <typename IndexType>
 array<IndexType> index_set<IndexType>::to_global_indices() const
 {
     auto exec = this->get_executor();
-    auto num_elems = this->superset_cumulative_indices_.get_value(
+    auto num_elems = this->superset_cumulative_indices_.load_value(
         this->superset_cumulative_indices_.get_size() - 1);
     auto decomp_indices = gko::array<IndexType>(exec, num_elems);
     exec->run(idx_set::make_to_global_indices(
