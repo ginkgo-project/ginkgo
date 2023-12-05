@@ -296,7 +296,7 @@ void run1d_reduction(std::shared_ptr<gko::CudaExecutor> exec)
         size_type{100000}, output, move_only_val);
 
     // 2 * sum i=0...99999 (i+1)
-    ASSERT_EQ(output.get_value(0), 10000100000LL);
+    ASSERT_EQ(output.load_value(0), 10000100000LL);
 
     gko::kernels::cuda::run_kernel_reduction(
         exec,
@@ -318,7 +318,7 @@ void run1d_reduction(std::shared_ptr<gko::CudaExecutor> exec)
         int64{}, output.get_data(), size_type{100}, output, move_only_val);
 
     // 2 * sum i=0...99 (i+1)
-    ASSERT_EQ(output.get_value(0), 10100LL);
+    ASSERT_EQ(output.load_value(0), 10100LL);
 }
 
 TEST_F(KernelLaunch, Reduction1D) { run1d_reduction(exec); }
@@ -350,7 +350,7 @@ void run2d_reduction(std::shared_ptr<gko::CudaExecutor> exec)
         move_only_val);
 
     // 4 * sum i=0...999 sum j=0...99 of (i+1)*(j+1)
-    ASSERT_EQ(output.get_value(0), 10110100000LL);
+    ASSERT_EQ(output.load_value(0), 10110100000LL);
 
     gko::kernels::cuda::run_kernel_reduction(
         exec,
@@ -373,7 +373,7 @@ void run2d_reduction(std::shared_ptr<gko::CudaExecutor> exec)
         int64{}, output.get_data(), gko::dim<2>{10, 10}, output, move_only_val);
 
     // 4 * sum i=0...9 sum j=0...9 of (i+1)*(j+1)
-    ASSERT_EQ(output.get_value(0), 12100LL);
+    ASSERT_EQ(output.load_value(0), 12100LL);
 }
 
 TEST_F(KernelLaunch, Reduction2D) { run2d_reduction(exec); }

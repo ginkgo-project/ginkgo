@@ -206,7 +206,7 @@ void Ell<ValueType, IndexType>::convert_to(
         exec->run(ell::make_prefix_sum_nonnegative(tmp->row_ptrs_.get_data(),
                                                    num_rows + 1));
         const auto nnz =
-            static_cast<size_type>(tmp->row_ptrs_.get_value(num_rows));
+            static_cast<size_type>(tmp->row_ptrs_.load_value(num_rows));
         tmp->col_idxs_.resize_and_reset(nnz);
         tmp->values_.resize_and_reset(nnz);
         tmp->set_size(this->get_size());

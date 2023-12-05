@@ -692,7 +692,7 @@ public:
      * @param index  the array element index.
      * @return the value at index.
      */
-    value_type get_value(size_type index) const
+    value_type load_value(size_type index) const
     {
         // TODO2.0 add bounds check for negative indices
         if (index >= this->get_size()) {
@@ -712,7 +712,7 @@ public:
      * @param index  the array element index.
      * @param value  the new value.
      */
-    void set_value(size_type index, value_type value)
+    void store_value(size_type index, value_type value)
     {
         // TODO2.0 add bounds check for negative indices
         if (index >= this->get_size()) {

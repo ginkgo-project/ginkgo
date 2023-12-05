@@ -90,7 +90,7 @@ void Partition<LocalIndexType, GlobalIndexType>::finalize_construction()
         offsets_.get_const_data(), part_ids_.get_const_data(), get_num_ranges(),
         get_num_parts(), num_empty_parts_, starting_indices_.get_data(),
         part_sizes_.get_data()));
-    size_ = offsets_.get_value(get_num_ranges());
+    size_ = offsets_.load_value(get_num_ranges());
 }
 
 

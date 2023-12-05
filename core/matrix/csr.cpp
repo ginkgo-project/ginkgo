@@ -300,7 +300,7 @@ void Csr<ValueType, IndexType>::convert_to(
     }
     exec->run(csr::make_compute_hybrid_coo_row_ptrs(row_nnz, ell_lim,
                                                     coo_row_ptrs.get_data()));
-    coo_nnz = coo_row_ptrs.get_value(num_rows);
+    coo_nnz = coo_row_ptrs.load_value(num_rows);
     auto tmp = make_temporary_clone(exec, result);
     tmp->resize(this->get_size(), ell_lim, coo_nnz);
     exec->run(csr::make_convert_to_hybrid(this, coo_row_ptrs.get_const_data(),
@@ -826,7 +826,7 @@ Csr<ValueType, IndexType>::create_submatrix(const gko::span& row_span,
         this, row_span, column_span, &row_ptrs));
     exec->run(csr::make_prefix_sum_nonnegative(row_ptrs.get_data(),
                                                row_span.length() + 1));
-    auto num_nnz = row_ptrs.get_value(sub_mat_size[0]);
+    auto num_nnz = row_ptrs.load_value(sub_mat_size[0]);
     auto sub_mat = Mat::create(exec, sub_mat_size,
                                std::move(array<ValueType>(exec, num_nnz)),
                                std::move(array<IndexType>(exec, num_nnz)),
@@ -870,7 +870,7 @@ Csr<ValueType, IndexType>::create_submatrix(
             this, row_index_set, col_index_set, row_ptrs.get_data()));
         exec->run(csr::make_prefix_sum_nonnegative(row_ptrs.get_data(),
                                                    submat_num_rows + 1));
-        auto num_nnz = row_ptrs.get_value(sub_mat_size[0]);
+        auto num_nnz = row_ptrs.load_value(sub_mat_size[0]);
         auto sub_mat = Mat::create(exec, sub_mat_size,
                                    std::move(array<ValueType>(exec, num_nnz)),
                                    std::move(array<IndexType>(exec, num_nnz)),

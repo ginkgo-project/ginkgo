@@ -287,7 +287,7 @@ TEST_F(KernelLaunch, Reduction1D)
         int64{}, output.get_data(), size_type{100000}, output, move_only_val);
 
     // 2 * sum i=0...99999 (i+1)
-    EXPECT_EQ(output.get_value(0), 10000100000LL);
+    EXPECT_EQ(output.load_value(0), 10000100000LL);
 
     gko::kernels::dpcpp::run_kernel_reduction(
         exec,
@@ -309,7 +309,7 @@ TEST_F(KernelLaunch, Reduction1D)
         int64{}, output.get_data(), size_type{100}, output, move_only_val);
 
     // 2 * sum i=0...99 (i+1)
-    EXPECT_EQ(output.get_value(0), 10100LL);
+    EXPECT_EQ(output.load_value(0), 10100LL);
 }
 
 
@@ -339,7 +339,7 @@ TEST_F(KernelLaunch, Reduction2D)
         move_only_val);
 
     // 4 * sum i=0...999 sum j=0...99 of (i+1)*(j+1)
-    EXPECT_EQ(output.get_value(0), 10110100000LL);
+    EXPECT_EQ(output.load_value(0), 10110100000LL);
 
     gko::kernels::dpcpp::run_kernel_reduction(
         exec,
@@ -362,7 +362,7 @@ TEST_F(KernelLaunch, Reduction2D)
         int64{}, output.get_data(), gko::dim<2>{10, 10}, output, move_only_val);
 
     // 4 * sum i=0...9 sum j=0...9 of (i+1)*(j+1)
-    ASSERT_EQ(output.get_value(0), 12100LL);
+    ASSERT_EQ(output.load_value(0), 12100LL);
 }
 
 
