@@ -37,13 +37,13 @@ protected:
     Csr()
         : exec(gko::ReferenceExecutor::create()),
           mtx_0(gko::batch::initialize<BMtx>(
-              {{I<T>({1.0, -1.0, 1.5}), I<T>({-2.0, 2.0, 3.0})},
-               {{1.0, -2.0, -0.5}, {1.0, -2.5, 4.0}}},
-              exec, 6)),
+              {{I<T>({1.0, -1.0, 0.0}), I<T>({-2.0, 2.0, 3.0})},
+               {{1.0, -2.0, 0.0}, {1.0, -2.5, 4.0}}},
+              exec, 5)),
           mtx_00(gko::initialize<CsrMtx>(
-              {I<T>({1.0, -1.0, 1.5}), I<T>({-2.0, 2.0, 3.0})}, exec)),
+              {I<T>({1.0, -1.0, 0.0}), I<T>({-2.0, 2.0, 3.0})}, exec)),
           mtx_01(gko::initialize<CsrMtx>(
-              {I<T>({1.0, -2.0, -0.5}), I<T>({1.0, -2.5, 4.0})}, exec)),
+              {I<T>({1.0, -2.0, 0.0}), I<T>({1.0, -2.5, 4.0})}, exec)),
           b_0(gko::batch::initialize<BMVec>(
               {{I<T>({1.0, 0.0, 1.0}), I<T>({2.0, 0.0, 1.0}),
                 I<T>({1.0, 0.0, 2.0})},
@@ -81,7 +81,6 @@ protected:
 
     std::ranlux48 rand_engine;
 };
-
 
 TYPED_TEST_SUITE(Csr, gko::test::ValueTypes, TypenameNameGenerator);
 

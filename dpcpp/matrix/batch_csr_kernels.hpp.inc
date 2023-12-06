@@ -37,8 +37,8 @@ __dpct_inline__ void advanced_apply_kernel(
         auto temp = zero<ValueType>();
         for (auto nnz = mat.row_ptrs[row]; nnz < mat.row_ptrs[row + 1]; nnz++) {
             const auto col_idx = col[nnz];
-            temp += alpha * val[nnz] * b[col_idx];
+            temp += val[nnz] * b[col_idx];
         }
-        x[row] = temp + beta * x[row];
+        x[row] = alpha * temp + beta * x[row];
     }
 }
