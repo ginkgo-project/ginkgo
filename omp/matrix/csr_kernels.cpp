@@ -126,6 +126,112 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
 
 
+/**
+ * Computes the begin offsets into A and B for the specific diagonal
+ */
+template <typename IndexType>
+inline void MergePathSearch(
+    const int         diagonal,           ///< [in]The diagonal to search
+    const IndexType*        A,                  ///< [in]List A
+    const int         A_len,              ///< [in]Length of A
+    const int         B_len,              ///< [in]Length of B
+    int&              path_coordinate_x,  ///< [out] (x) coordinate where diagonal intersects the merge path
+    int&              path_coordinate_y)  ///< [out] (y) coordinate where diagonal intersects the merge path
+{
+    auto x_min = std::max(diagonal - B_len, 0);
+    auto x_max = std::min(diagonal, A_len);
+
+    while (x_min < x_max) {
+        auto x_pivot = (x_min + x_max) >> 1;
+        if (A[x_pivot] <= (diagonal - x_pivot - 1)) {
+            x_min = x_pivot + 1;    // Contract range up A (down B)
+	} else {
+            x_max = x_pivot;        // Contract range down A (up B)
+	}
+    }
+
+    path_coordinate_x = std::min(x_min, A_len);
+    path_coordinate_y = diagonal - x_min;
+}
+
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
+void merge_spmv(std::shared_ptr<const OmpExecutor> exec,
+          const matrix::Csr<MatrixValueType, IndexType>* a,
+          const matrix::Dense<InputValueType>* b,
+          matrix::Dense<OutputValueType>* c)
+{
+    using arithmetic_type =
+        highest_precision<MatrixValueType, InputValueType, OutputValueType>;
+
+    auto row_ptrs = a->get_const_row_ptrs();
+    auto col_idxs = a->get_const_col_idxs();
+
+    const auto a_vals =
+        acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
+    const auto b_vals =
+        acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
+    auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
+
+    // Merge-SpMV variables
+    const auto num_rows = a->get_size()[0];
+    const auto nnz = a->get_num_stored_elements();
+    const size_type num_threads = omp_get_max_threads();
+    const IndexType* row_end_offsets = row_ptrs + 1; // Merge list A: row end offsets
+    const auto num_merge_items = num_rows + nnz; // Merge path total length
+    const auto items_per_thread = (num_merge_items + num_threads - 1) / num_threads; // Merge items per thread
+    array<IndexType> row_carry_out{exec, num_threads};
+    array<arithmetic_type> value_carry_out{exec, num_threads};
+    auto row_carry_out_ptr = row_carry_out.get_data();
+    auto value_carry_out_ptr = value_carry_out.get_data();
+
+    for (size_type j = 0; j < c->get_size()[1]; ++j) {
+#pragma omp parallel for schedule(static)
+        for (size_type tid = 0; tid < num_threads; tid++) {
+            const auto start_diagonal = std::min(items_per_thread * tid, num_merge_items);
+            const auto end_diagonal = std::min(start_diagonal + items_per_thread, num_merge_items);
+            int thread_coord_x, thread_coord_y, thread_coord_end_x, thread_coord_end_y;
+
+            MergePathSearch(start_diagonal, row_end_offsets, num_rows, nnz, thread_coord_x, thread_coord_y);
+            MergePathSearch(end_diagonal, row_end_offsets, num_rows, nnz, thread_coord_end_x, thread_coord_end_y);
+
+            // Consume merge items, whole rows first
+            for (; thread_coord_x < thread_coord_end_x; thread_coord_x++) {
+                auto sum = zero<arithmetic_type>();
+                for (; thread_coord_y < row_end_offsets[thread_coord_x]; thread_coord_y++) {
+                    arithmetic_type val = a_vals(thread_coord_y);
+                    auto col = col_idxs[thread_coord_y];
+                    sum += val * b_vals(col, j);
+		}
+                c_vals(thread_coord_x, j) = sum;
+	    }
+
+            // Consume partial portion of thread's last row
+            auto sum = zero<arithmetic_type>();
+            for (; thread_coord_y < thread_coord_end_y; thread_coord_y++) {
+                arithmetic_type val = a_vals(thread_coord_y);
+                auto col = col_idxs[thread_coord_y];
+                sum += val * b_vals(col, j);
+	    }
+
+            // Save carry-outs
+            row_carry_out_ptr[tid] = thread_coord_end_x;
+            value_carry_out_ptr[tid] = sum;
+          }
+
+        // Carry-out fix-up (rows spanning multiple threads)
+        for (int tid = 0; tid < num_threads - 1; tid++) {
+	    if (row_carry_out_ptr[tid] < num_rows) {
+                c_vals(row_carry_out_ptr[tid], j) += value_carry_out_ptr[tid];
+	    }
+	}
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_MERGE_SPMV_KERNEL);
+
+
 namespace {
 
 

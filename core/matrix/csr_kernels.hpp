@@ -45,6 +45,13 @@ namespace kernels {
                        const matrix::Dense<OutputValueType>* beta,            \
                        matrix::Dense<OutputValueType>* c)
 
+#define GKO_DECLARE_CSR_MERGE_SPMV_KERNEL(MatrixValueType, InputValueType, \
+                                    OutputValueType, IndexType)            \
+    void merge_spmv(std::shared_ptr<const DefaultExecutor> exec,           \
+              const matrix::Csr<MatrixValueType, IndexType>* a,            \
+              const matrix::Dense<InputValueType>* b,                      \
+              matrix::Dense<OutputValueType>* c)
+
 #define GKO_DECLARE_CSR_SPGEMM_KERNEL(ValueType, IndexType)  \
     void spgemm(std::shared_ptr<const DefaultExecutor> exec, \
                 const matrix::Csr<ValueType, IndexType>* a,  \
