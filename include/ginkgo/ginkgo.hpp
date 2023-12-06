@@ -19,6 +19,7 @@
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/device.hpp>
 #include <ginkgo/core/base/device_matrix_data.hpp>
+#include <ginkgo/core/base/device_reference.hpp>
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
