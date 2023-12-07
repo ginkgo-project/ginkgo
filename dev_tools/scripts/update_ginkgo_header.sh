@@ -42,6 +42,7 @@ fi
 # Put all header files as a list (separated by newlines) in the file ${HEADER_LIST}
 # Requires detected files (including the path) to not contain newlines
 if ! find "${TOP_HEADER_FOLDER}" -name '*.hpp' -type f -print | \
+        grep -v 'ginkgo/extensions/' | \
         grep -v 'residual_norm_reduction.hpp' | \
         grep -v 'solver/.*_trs.hpp' > "${HEADER_LIST}"; then
     echo "${WARNING_PREFIX} "'The `find` command returned with an error!' 1>&2
