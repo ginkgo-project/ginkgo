@@ -46,6 +46,176 @@ namespace omp {
 namespace csr {
 
 
+void spmv_sve(std::shared_ptr<const OmpExecutor> exec,
+          const matrix::Csr<double, int32>* a,
+          const matrix::Dense<double>* b,
+          matrix::Dense<double>* c)
+{
+    const svbool_t true_vec = svptrue_b64();
+    const svfloat64_t zeros = svdup_n_f64(0);
+
+    using arithmetic_type = double;
+
+    auto row_ptrs = a->get_const_row_ptrs();
+    auto col_idxs = a->get_const_col_idxs();
+
+    const auto a_vals = a->get_const_values();
+    const auto b_vals = b->get_const_values();
+    auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
+
+    // OMP+SVE currently doesnt work with GCC due to the known issues https://gcc.gnu.org/bugzilla//show_bug.cgi?id=101018
+//#pragma omp parallel for
+    for (size_type row = 0; row < a->get_size()[0]; ++row) {
+        for (size_type j = 0; j < c->get_size()[1]; ++j) {
+            svfloat64_t sum = zeros;
+            for (size_type k = row_ptrs[row]; k < static_cast<size_type>(row_ptrs[row + 1]); k+=svcntd()){
+                svbool_t pg = svwhilelt_b64(k, static_cast<size_type>(row_ptrs[row + 1]));
+                svfloat64_t val = svld1(pg, &a_vals[k]);
+                svuint64_t col = svld1sw_u64(pg, &col_idxs[k]);
+                svfloat64_t b_vals_vec = svld1_gather_index(pg, &b_vals[0], col);
+                sum = svmla_m(pg, sum, val, b_vals_vec);
+            }
+            c_vals(row, j) = svaddv(true_vec, sum);
+        }
+    }
+}
+
+inline void merge_path_search(
+    const int         diagonal,           ///< [in]The diagonal to search
+    const int32*      A,                  ///< [in]List A
+    const int         A_len,              ///< [in]Length of A
+    const int         B_len,              ///< [in]Length of B
+    int&              path_coordinate_x,  ///< [out] (x) coordinate where diagonal intersects the merge path
+    int&              path_coordinate_y)  ///< [out] (y) coordinate where diagonal intersects the merge path
+{
+    auto x_min = std::max(diagonal - B_len, 0);
+    auto x_max = std::min(diagonal, A_len);
+    while (x_min < x_max) {
+	auto x_pivot = x_min + ((x_max - x_min) / 2);
+        if (A[x_pivot] <= (diagonal - x_pivot - 1)) {
+            x_min = x_pivot + 1;    // Contract range up A (down B)
+        } else {
+            x_max = x_pivot;        // Contract range down A (up B)
+        }
+    }
+    path_coordinate_x = std::min(x_min, A_len);
+    path_coordinate_y = diagonal - x_min;
+}
+
+void merge_spmv_sve(std::shared_ptr<const OmpExecutor> exec,
+          const matrix::Csr<double, int32>* a,
+          const matrix::Dense<double>* b,
+          matrix::Dense<double>* c)
+{
+    const svbool_t true_vec = svptrue_b64();
+    const svfloat64_t zeros = svdup_n_f64(0);
+
+    using arithmetic_type = double;
+
+    auto row_ptrs = a->get_const_row_ptrs();
+    auto col_idxs = a->get_const_col_idxs();
+
+    const auto a_vals = a->get_const_values();
+    const auto b_vals = b->get_const_values();
+    auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
+
+    // Merge-spmv variables
+    const auto num_rows = a->get_size()[0];
+    const auto nnz = a->get_num_stored_elements();
+    const size_type num_threads = omp_get_max_threads();
+    const int32* row_end_offsets = row_ptrs + 1; // Merge list A: row end offsets
+    const auto num_merge_items = num_rows + nnz; // Merge path total length
+    const auto items_per_thread = (num_merge_items + num_threads - 1) / num_threads; // Merge items per thread
+    array<int32> row_carry_out{exec, num_threads};
+    array<arithmetic_type> value_carry_out{exec, num_threads};
+    auto row_carry_out_ptr = row_carry_out.get_data();
+    auto value_carry_out_ptr = value_carry_out.get_data();
+
+    for (size_type j = 0; j < c->get_size()[1]; ++j) {
+        // OMP+SVE currently doesnt work with GCC due to the known issues https://gcc.gnu.org/bugzilla//show_bug.cgi?id=101018
+        //#pragma omp parallel for schedule(static)
+        for (size_type tid = 0; tid < num_threads; tid++) {
+            const auto start_diagonal = std::min(items_per_thread * tid, num_merge_items);
+            const auto end_diagonal = std::min(start_diagonal + items_per_thread, num_merge_items);
+            int thread_coord_x, thread_coord_y, thread_coord_end_x, thread_coord_end_y;
+
+            merge_path_search(start_diagonal, row_end_offsets, num_rows, nnz, thread_coord_x, thread_coord_y);
+            merge_path_search(end_diagonal, row_end_offsets, num_rows, nnz, thread_coord_end_x, thread_coord_end_y);
+
+            // Consume merge items, whole rows first
+            for (; thread_coord_x < thread_coord_end_x; thread_coord_x++) {
+                svfloat64_t sum = zeros;
+                for (; thread_coord_y < row_end_offsets[thread_coord_x]; thread_coord_y+=svcntd()) {
+                    svbool_t pg = svwhilelt_b64(thread_coord_y, row_end_offsets[thread_coord_x]);
+                    svfloat64_t val = svld1(pg, &a_vals[thread_coord_y]);
+                    svuint64_t col = svld1sw_u64(pg, &col_idxs[thread_coord_y]);
+                    svfloat64_t b_vals_vec = svld1_gather_index(pg, &b_vals[0], col);
+                    sum = svmla_m(pg, sum, val, b_vals_vec);
+                }
+                c_vals(thread_coord_x, j) = svaddv(true_vec, sum);
+                thread_coord_y = row_end_offsets[thread_coord_x];
+            }
+
+            // Consume partial portion of thread's last row
+            svfloat64_t sum = zeros;
+            for (; thread_coord_y < thread_coord_end_y; thread_coord_y+=svcntd()) {
+                svbool_t pg = svwhilelt_b64(thread_coord_y, thread_coord_end_y);
+                svfloat64_t val = svld1(pg, &a_vals[thread_coord_y]);
+                svuint64_t col = svld1sw_u64(pg, &col_idxs[thread_coord_y]);
+                svfloat64_t b_vals_vec = svld1_gather_index(pg, &b_vals[0], col);
+                sum = svmla_m(pg, sum, val, b_vals_vec);
+            }
+
+            // Save carry-outs
+            row_carry_out_ptr[tid] = thread_coord_end_x;
+            value_carry_out_ptr[tid] = svaddv(true_vec, sum);
+          }
+
+        // Carry-out fix-up (rows spanning multiple threads)
+        for (int tid = 0; tid < num_threads - 1; tid++) {
+            if (row_carry_out_ptr[tid] < num_rows) {
+              c_vals(row_carry_out_ptr[tid], j) += value_carry_out_ptr[tid];
+            }
+        }
+    }
+}
+
+void spmv_sve(std::shared_ptr<const OmpExecutor> exec,
+          const matrix::Csr<double, int64>* a,
+          const matrix::Dense<double>* b,
+          matrix::Dense<double>* c)
+{}
+void spmv_sve(std::shared_ptr<const OmpExecutor> exec,
+          const matrix::Csr<float, int32>* a,
+          const matrix::Dense<float>* b,
+          matrix::Dense<float>* c)
+{}
+void spmv_sve(std::shared_ptr<const OmpExecutor> exec,
+          const matrix::Csr<float, int64>* a,
+          const matrix::Dense<float>* b,
+          matrix::Dense<float>* c)
+{}
+void spmv_sve(std::shared_ptr<const OmpExecutor> exec,
+          const matrix::Csr<std::complex<float>, int32>* a,
+          const matrix::Dense<std::complex<float>>* b,
+          matrix::Dense<std::complex<float>>* c)
+{}
+void spmv_sve(std::shared_ptr<const OmpExecutor> exec,
+          const matrix::Csr<std::complex<float>, int64>* a,
+          const matrix::Dense<std::complex<float>>* b,
+          matrix::Dense<std::complex<float>>* c)
+{}
+void spmv_sve(std::shared_ptr<const OmpExecutor> exec,
+          const matrix::Csr<std::complex<double>, int32>* a,
+          const matrix::Dense<std::complex<double>>* b,
+          matrix::Dense<std::complex<double>>* c)
+{}
+void spmv_sve(std::shared_ptr<const OmpExecutor> exec,
+          const matrix::Csr<std::complex<double>, int64>* a,
+          const matrix::Dense<std::complex<double>>* b,
+          matrix::Dense<std::complex<double>>* c)
+{}
+
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const OmpExecutor> exec,
@@ -53,32 +223,8 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
           const matrix::Dense<InputValueType>* b,
           matrix::Dense<OutputValueType>* c)
 {
-    using arithmetic_type =
-        highest_precision<MatrixValueType, InputValueType, OutputValueType>;
-
-    auto row_ptrs = a->get_const_row_ptrs();
-    auto col_idxs = a->get_const_col_idxs();
-
-    const auto a_vals =
-        acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
-    const auto b_vals =
-        acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
-    auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
-
-#pragma omp parallel for
-    for (size_type row = 0; row < a->get_size()[0]; ++row) {
-        for (size_type j = 0; j < c->get_size()[1]; ++j) {
-            auto sum = zero<arithmetic_type>();
-            for (size_type k = row_ptrs[row];
-                 k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
-                arithmetic_type val = a_vals(k);
-                auto col = col_idxs[k];
-
-                sum += val * b_vals(col, j);
-            }
-            c_vals(row, j) = sum;
-        }
-    }
+      spmv_sve(exec, a, b, c);
+      //merge_spmv_sve(exec, a, b, c);
 }
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
