@@ -17,6 +17,12 @@ if(GINKGO_EXTENSION_KOKKOS)
     target_link_libraries(ginkgo_ext INTERFACE ginkgo_ext_kokkos)
 
     ginkgo_install_library(ginkgo_ext_kokkos)
+    install(DIRECTORY "${Ginkgo_SOURCE_DIR}/include/ginkgo/extensions/kokkos"
+            DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/ginkgo/extensions"
+    )
+    install(FILES "${Ginkgo_SOURCE_DIR}/include/ginkgo/extensions/kokkos.hpp"
+            DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/ginkgo/extensions"
+    )
 endif()
 
 ginkgo_install_library(ginkgo_ext)

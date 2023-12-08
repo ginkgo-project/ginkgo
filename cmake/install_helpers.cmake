@@ -79,10 +79,11 @@ function(ginkgo_install)
 
     # install the public header files
     install(DIRECTORY "${Ginkgo_SOURCE_DIR}/include/"
-        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
-        COMPONENT Ginkgo_Development
-        FILES_MATCHING PATTERN "*.hpp"
-        )
+            DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+            COMPONENT Ginkgo_Development
+            FILES_MATCHING PATTERN "*.hpp"
+            PATTERN "extensions" EXCLUDE
+    )
     install(FILES "${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp"
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/ginkgo"
         COMPONENT Ginkgo_Development
