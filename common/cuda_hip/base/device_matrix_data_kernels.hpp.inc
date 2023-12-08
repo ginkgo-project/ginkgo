@@ -98,3 +98,20 @@ void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DEVICE_MATRIX_DATA_SORT_ROW_MAJOR_KERNEL);
+
+
+template <typename ValueType>
+void scale(std::shared_ptr<const DefaultExecutor> exec, ValueType s,
+           array<ValueType>& values)
+{
+    auto nnz = values.get_num_elems();
+    auto vals = as_device_type(values.get_data());
+
+    auto grid_dim = ceildiv(nnz, config::warp_size);
+    kernel::scale<<<grid_dim, config::warp_size>>>(nnz, as_device_type(s),
+                                                   vals);
+}
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_DEVICE_MATRIX_DATA_SCALE_KERNEL);
