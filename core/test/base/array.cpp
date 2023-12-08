@@ -523,7 +523,7 @@ TYPED_TEST(Array, CopyViewToArray)
 TYPED_TEST(Array, CopyArrayToView)
 {
     TypeParam data[] = {1, 2, 3};
-    auto view = gko::make_array_view(this->exec, 3, data);
+    auto view = gko::make_array_view(this->exec, 2, data);
     gko::array<TypeParam> array_size2(this->exec, {5, 4});
     gko::array<TypeParam> array_size4(this->exec, {5, 4, 2, 1});
 
@@ -531,12 +531,48 @@ TYPED_TEST(Array, CopyArrayToView)
 
     EXPECT_EQ(data[0], TypeParam{5});
     EXPECT_EQ(data[1], TypeParam{4});
-    EXPECT_EQ(data[2], TypeParam{3});
-    EXPECT_EQ(view.get_size(), 3);
+    EXPECT_EQ(view.get_size(), 2);
     EXPECT_EQ(array_size2.get_size(), 2);
     ASSERT_THROW(view = array_size4, gko::OutOfBoundsError);
 }
 
+
+TYPED_TEST(Array, CopyConstViewToArray)
+{
+    TypeParam data[] = {1, 2, 3, 4};
+    auto const_view = gko::make_const_array_view(this->exec, 4, data);
+    gko::array<TypeParam> array(this->exec, {5, 4, 2});
+
+    array = const_view;
+    data[1] = 7;
+
+    EXPECT_EQ(array.get_data()[0], TypeParam{1});
+    EXPECT_EQ(array.get_data()[1], TypeParam{2});
+    EXPECT_EQ(array.get_data()[2], TypeParam{3});
+    EXPECT_EQ(array.get_data()[3], TypeParam{4});
+    EXPECT_EQ(array.get_size(), 4);
+    ASSERT_EQ(const_view.get_size(), 4);
+}
+
+
+TYPED_TEST(Array, CopyConstViewToView)
+{
+    TypeParam data1[] = {1, 2, 3, 4};
+    TypeParam data2[] = {5, 4, 2};
+    auto view = gko::make_array_view(this->exec, 3, data2);
+    auto const_view3 = gko::make_const_array_view(this->exec, 3, data1);
+    auto const_view4 = gko::make_const_array_view(this->exec, 4, data1);
+
+    view = const_view3;
+    data1[1] = 7;
+
+    EXPECT_EQ(view.get_data()[0], TypeParam{1});
+    EXPECT_EQ(view.get_data()[1], TypeParam{2});
+    EXPECT_EQ(view.get_data()[2], TypeParam{3});
+    EXPECT_EQ(view.get_size(), 3);
+    EXPECT_EQ(const_view3.get_size(), 3);
+    ASSERT_THROW(view = const_view4, gko::OutOfBoundsError);
+}
 
 TYPED_TEST(Array, MoveArrayToArray)
 {

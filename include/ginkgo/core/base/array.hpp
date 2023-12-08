@@ -551,6 +551,51 @@ public:
     }
 
     /**
+     * Copies data from a const_array_view.
+     *
+     * In the case of an array target, the array is resized to match the
+     * source's size. In the case of a view target, if the dimensions are not
+     * compatible a gko::OutOfBoundsError is thrown.
+     *
+     * This does not invoke the constructors of the elements, instead they are
+     * copied as POD types.
+     *
+     * The executor of this is preserved. In case this does not have an assigned
+     * executor, it will inherit the executor of other.
+     *
+     * @param other  the const_array_view to copy from
+     *
+     * @return this
+     */
+    array& operator=(const detail::const_array_view<ValueType>& other)
+    {
+        if (this->exec_ == nullptr) {
+            this->exec_ = other.get_executor();
+            this->data_ = data_manager{nullptr, default_deleter{this->exec_}};
+        }
+        if (other.get_executor() == nullptr) {
+            this->clear();
+            return *this;
+        }
+
+        if (this->is_owning()) {
+            this->resize_and_reset(other.get_size());
+        } else {
+            GKO_ENSURE_COMPATIBLE_BOUNDS(other.get_size(), this->get_size());
+        }
+        array tmp{this->exec_};
+        const ValueType* source = other.get_const_data();
+        // if we are on different executors: copy
+        if (this->exec_ != other.get_executor()) {
+            tmp = other.copy_to_array();
+            source = tmp.get_const_data();
+        }
+        exec_->copy_from(other.get_executor(), other.get_size(), source,
+                         this->get_data());
+        return *this;
+    }
+
+    /**
      * Deallocates all data used by the array.
      *
      * The array is left in a valid, but empty state, so the same array can be
