@@ -54,6 +54,22 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DEVICE_MATRIX_DATA_AOS_TO_SOA_KERNEL);
 
 
+template <typename ValueType>
+void scale(std::shared_ptr<const DefaultExecutor> exec, ValueType s, array<ValueType>& values)
+{
+    run_kernel(
+        exec,
+        []GKO_KERNEL(auto i, auto s, auto vals) {
+            vals[i] *= s;
+        },
+        values.get_size(), s, values.get_data());
+}
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_DEVICE_MATRIX_DATA_SCALE_KERNEL);
+
+
 }  // namespace components
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
