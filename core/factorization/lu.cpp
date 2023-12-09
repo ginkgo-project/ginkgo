@@ -110,7 +110,7 @@ std::unique_ptr<LinOp> Lu<ValueType, IndexType>::generate_impl(
         factors->get_const_row_ptrs(), factors->get_const_col_idxs(), num_rows,
         allowed_sparsity, storage_offsets.get_data()));
     const auto storage_size =
-        static_cast<size_type>(storage_offsets.load_value(num_rows));
+        static_cast<size_type>(storage_offsets.get_access()[num_rows]);
     array<int32> storage{exec, storage_size};
     exec->run(make_build_lookup(
         factors->get_const_row_ptrs(), factors->get_const_col_idxs(), num_rows,

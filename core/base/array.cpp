@@ -83,7 +83,7 @@ ValueType reduce_add(const array<ValueType>& input_arr,
     auto value = array<ValueType>(exec, 1);
     value.fill(ValueType{0});
     exec->run(array_kernels::make_reduce_add_array(input_arr, value));
-    return init_value + value.load_value(0);
+    return init_value + ValueType{value.get_access()[0]};
 }
 
 

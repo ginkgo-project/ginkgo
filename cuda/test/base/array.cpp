@@ -66,8 +66,8 @@ TYPED_TEST(Array, CanGetValue)
     using T = TypeParam;
     auto arr = gko::array<T>(this->exec, I<T>{4, 6});
 
-    ASSERT_EQ(arr.load_value(0), T{4});
-    ASSERT_EQ(arr.load_value(1), T{6});
+    ASSERT_EQ(arr.get_access()[0], T{4});
+    ASSERT_EQ(arr.get_access()[1], T{6});
 }
 
 
@@ -76,9 +76,9 @@ TYPED_TEST(Array, CanSetValue)
     using T = TypeParam;
     auto arr = gko::array<T>(this->exec, I<T>{4, 6});
 
-    arr.store_value(1, 0);
+    arr.get_access()[1] = 0;
 
-    ASSERT_EQ(arr.load_value(1), T{0});
+    ASSERT_EQ(arr.get_access()[1], T{0});
 }
 
 

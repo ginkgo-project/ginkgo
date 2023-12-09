@@ -384,7 +384,7 @@ void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
     components::prefix_sum_nonnegative(exec, row_ptrs_add, row_ptrs_size);
     exec->synchronize();
 
-    auto total_additions = row_ptrs_addition.load_value(row_ptrs_size - 1);
+    auto total_additions = row_ptrs_addition.get_access()[row_ptrs_size - 1];
     size_type new_num_elems = static_cast<size_type>(total_additions) +
                               mtx->get_num_stored_elements();
 

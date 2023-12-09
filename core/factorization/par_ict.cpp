@@ -166,7 +166,8 @@ ParIct<ValueType, IndexType>::generate_l_lt(
     auto l_row_ptrs = l_row_ptrs_array.get_data();
     exec->run(make_initialize_row_ptrs_l(csr_system_matrix.get(), l_row_ptrs));
 
-    auto l_nnz = static_cast<size_type>(l_row_ptrs_array.load_value(num_rows));
+    auto l_nnz =
+        static_cast<size_type>(l_row_ptrs_array.get_access()[num_rows]);
 
     auto mtx_size = csr_system_matrix->get_size();
     auto l = CsrMatrix::create(exec, mtx_size, array<ValueType>{exec, l_nnz},
