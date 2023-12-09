@@ -157,7 +157,7 @@ if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)
 endif()
 
-if(GINKGO_DEVEL_TOOLS)
+if(GINKGO_DEVEL_TOOLS AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND BUILD_SHARED_LIBS)
     # Copy pretty-printer next to library
     add_custom_command(TARGET ginkgo POST_BUILD
         COMMAND "${CMAKE_COMMAND}" -E copy

@@ -131,7 +131,7 @@ function(ginkgo_install)
         export(PACKAGE Ginkgo)
     endif()
 
-    if (GINKGO_INSTALL_GDB_PRETTY_PRINTER AND BUILD_SHARED_LIBS)
+    if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND BUILD_SHARED_LIBS)
         install(FILES
             "${Ginkgo_SOURCE_DIR}/dev_tools/scripts/gdb-ginkgo.py"
             DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
