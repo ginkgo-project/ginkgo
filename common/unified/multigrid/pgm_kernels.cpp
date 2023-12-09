@@ -59,7 +59,7 @@ void count_unagg(std::shared_ptr<const DefaultExecutor> exec,
         GKO_KERNEL_REDUCE_SUM(IndexType), d_result.get_data(), agg.get_size(),
         agg);
 
-    *num_unagg = d_result.load_value(0);
+    *num_unagg = d_result.get_access()[0];
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_COUNT_UNAGG_KERNEL);
@@ -91,7 +91,7 @@ void renumber(std::shared_ptr<const DefaultExecutor> exec,
             agg[tidx] = map[agg[tidx]];
         },
         num, agg_map.get_const_data(), agg.get_data());
-    *num_agg = agg_map.load_value(num);
+    *num_agg = agg_map.get_access()[num];
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_RENUMBER_KERNEL);
@@ -149,7 +149,7 @@ void count_unrepeated_nnz(std::shared_ptr<const DefaultExecutor> exec,
             },
             GKO_KERNEL_REDUCE_SUM(IndexType), d_result.get_data(), nnz - 1,
             row_idxs, col_idxs);
-        *coarse_nnz = static_cast<size_type>(d_result.load_value(0) + 1);
+        *coarse_nnz = static_cast<size_type>(d_result.get_access()[0] + 1);
     } else {
         *coarse_nnz = nnz;
     }

@@ -13,6 +13,7 @@
 #include <utility>
 
 
+#include <ginkgo/core/base/device_reference.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -683,44 +684,105 @@ public:
     const value_type* get_const_data() const noexcept { return data_.get(); }
 
     /**
-     * Returns a single value from the array.
+     * An accessor allowing read access to entries in the array.
      *
-     * This involves a bounds check, polymorphic calls and potentially a
-     * device-to-host copy, so it is not suitable for accessing many elements
-     * in performance-critical code.
-     *
-     * @param index  the array element index.
-     * @return the value at index.
+     * Reading an  element involves a bounds check, polymorphic calls and
+     * potentially a host-to-device copy, so it is not suitable for accessing
+     * many elements in performance-critical code.
      */
-    value_type load_value(size_type index) const
-    {
-        // TODO2.0 add bounds check for negative indices
-        if (index >= this->get_size()) {
-            throw OutOfBoundsError{__FILE__, __LINE__, index, this->get_size()};
+    class const_array_accessor {
+    public:
+        /**
+         * Returns the value at a given index.
+         *
+         * Throws an OutOfBoundsError if the index is out of bounds.
+         *
+         * @param index  the index
+         * @return the value at this index.
+         */
+        value_type operator[](size_type index) const
+        {
+            // TODO2.0 add bounds check for negative indices
+            if (index >= array_->get_size()) {
+                throw OutOfBoundsError{__FILE__, __LINE__, index,
+                                       array_->get_size()};
+            }
+            return device_reference<const value_type>{
+                array_->get_executor().get(), array_->get_const_data() + index};
         }
-        return this->get_executor()->copy_val_to_host(this->get_const_data() +
-                                                      index);
+
+        const_array_accessor& operator=(const_array_accessor&&) = delete;
+        const_array_accessor& operator=(const const_array_accessor&) = delete;
+        // TODO17: Remove once RVO is guaranteed
+        const_array_accessor(const_array_accessor&&) = default;
+        const_array_accessor(const const_array_accessor&) = delete;
+
+    private:
+        friend class array;
+
+        const_array_accessor(const array* arr) : array_{arr} {}
+
+        const array* array_;
+    };
+
+    /**
+     * An accessor allowing read and write access to entries in the array.
+     *
+     * Reading or writing an element involves a bounds check, polymorphic calls
+     * and potentially a host-to-device or device-to-host copy, so it is not
+     * suitable for accessing many elements in performance-critical code.
+     */
+    class array_accessor {
+    public:
+        /**
+         * Returns a device_reference to the value at a given index.
+         *
+         * Throws an OutOfBoundsError if the index is out of bounds.
+         *
+         * @param index  the index
+         * @return a device_reference to the value at this index.
+         */
+        device_reference<value_type> operator[](size_type index) const
+        {
+            // TODO2.0 add bounds check for negative indices
+            if (index >= array_->get_size()) {
+                throw OutOfBoundsError{__FILE__, __LINE__, index,
+                                       array_->get_size()};
+            }
+            return device_reference<value_type>{array_->get_executor().get(),
+                                                array_->get_data() + index};
+        }
+
+        array_accessor& operator=(array_accessor&&) = delete;
+        array_accessor& operator=(const array_accessor&) = delete;
+        // TODO17: Remove once RVO is guaranteed
+        array_accessor(array_accessor&&) = default;
+        array_accessor(const array_accessor&) = delete;
+
+    private:
+        friend class array;
+
+        array_accessor(array* arr) : array_{arr} {}
+
+        array* array_;
+    };
+
+    /**
+     * Returns a constant accessor for this array.
+     *
+     * @return a constant accessor for this array.
+     */
+    const_array_accessor get_access() const
+    {
+        return const_array_accessor{this};
     }
 
     /**
-     * Sets a single entry in the array to a new value.
+     * Returns a mutable accessor for this array.
      *
-     * This involves a bounds check, polymorphic calls and potentially a
-     * host-to-device copy, so it is not suitable for accessing many elements
-     * in performance-critical code.
-     *
-     * @param index  the array element index.
-     * @param value  the new value.
+     * @return a mutable accessor for this array.
      */
-    void store_value(size_type index, value_type value)
-    {
-        // TODO2.0 add bounds check for negative indices
-        if (index >= this->get_size()) {
-            throw OutOfBoundsError{__FILE__, __LINE__, index, this->get_size()};
-        }
-        this->get_executor()->copy_from(this->get_executor()->get_master(), 1,
-                                        &value, this->get_data() + index);
-    }
+    array_accessor get_access() { return array_accessor{this}; }
 
     /**
      * Returns the Executor associated with the array.
