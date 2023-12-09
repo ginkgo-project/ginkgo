@@ -5,6 +5,18 @@
 #include "core/reorder/rcm_kernels.hpp"
 
 
+#include <thrust/binary_search.h>
+#include <thrust/copy.h>
+#include <thrust/count.h>
+#include <thrust/iterator/discard_iterator.h>
+#include <thrust/iterator/permutation_iterator.h>
+#include <thrust/iterator/zip_iterator.h>
+#include <thrust/reduce.h>
+#include <thrust/sequence.h>
+#include <thrust/sort.h>
+#include <thrust/transform.h>
+
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -13,9 +25,9 @@
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
-#include "hip/base/math.hip.hpp"
-#include "hip/base/types.hip.hpp"
-#include "hip/components/prefix_sum.hip.hpp"
+#include "core/base/array_access.hpp"
+#include "hip/base/thrust.hip.hpp"
+#include "hip/components/thread_ids.hip.hpp"
 
 
 namespace gko {
@@ -27,6 +39,9 @@ namespace hip {
  * @ingroup reorder
  */
 namespace rcm {
+
+
+constexpr int default_block_size = 512;
 
 
 #include "common/cuda_hip/reorder/rcm_kernels.hpp.inc"
