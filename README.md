@@ -1,19 +1,15 @@
-![Ginkgo](/assets/logo.png)
+  <p align="center"><img src="/assets/logo.png" alt="Ginkgo" width="60%" height="60%"></p>
 
-[![Build status](https://gitlab.com/ginkgo-project/ginkgo-public-ci/badges/master/pipeline.svg)](https://github.com/ginkgo-project/ginkgo/commits/master)
-[![OSX-build](https://github.com/ginkgo-project/ginkgo/actions/workflows/osx.yml/badge.svg)](https://github.com/ginkgo-project/ginkgo/actions/workflows/osx.yml)
-[![Windows-build](https://github.com/ginkgo-project/ginkgo/actions/workflows/windows-msvc-ref.yml/badge.svg)](https://github.com/ginkgo-project/ginkgo/actions/workflows/windows-msvc-ref.yml)
-[![codecov](https://codecov.io/gh/ginkgo-project/ginkgo/branch/master/graph/badge.svg)](https://codecov.io/gh/ginkgo-project/ginkgo)
-[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=ginkgo-project_ginkgo&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=ginkgo-project_ginkgo)
-[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=ginkgo-project_ginkgo&metric=reliability_rating)](https://sonarcloud.io/dashboard?id=ginkgo-project_ginkgo)
+License|C++ Standard|Documentation|JOSS paper
+:--:|:--:|:--:|:--:
+[![License](https://img.shields.io/github/license/ginkgo-project/ginkgo.svg)](./LICENSE)|[![c++ standard](https://img.shields.io/badge/c%2B%2B-14-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization)|[![Documentation](https://img.shields.io/badge/Documentation-latest-blue.svg)](https://ginkgo-project.github.io/ginkgo-generated-documentation/doc/master/)|[![DOI](https://joss.theoj.org/papers/10.21105/joss.02260/status.svg)](https://doi.org/10.21105/joss.02260)
 
-[![CDash dashboard](https://img.shields.io/badge/CDash-Access-blue.svg)](https://my.cdash.org/index.php?project=Ginkgo+Project)
-[![Documentation](https://img.shields.io/badge/Documentation-latest-blue.svg)](https://ginkgo-project.github.io/ginkgo-generated-documentation/doc/master/)
-[![License](https://img.shields.io/github/license/ginkgo-project/ginkgo.svg)](./LICENSE)
-[![c++ standard](https://img.shields.io/badge/c%2B%2B-14-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization)
-[![DOI](https://joss.theoj.org/papers/10.21105/joss.02260/status.svg)](https://doi.org/10.21105/joss.02260)
+CI builds|Coverage| Maintainability|Reliability|Dashboard
+:--:|:--:|:--:|:--:|:--:
+[![Build status](https://gitlab.com/ginkgo-project/ginkgo-public-ci/badges/master/pipeline.svg)](https://github.com/ginkgo-project/ginkgo/commits/master)[![OSX-build](https://github.com/ginkgo-project/ginkgo/actions/workflows/osx.yml/badge.svg)](https://github.com/ginkgo-project/ginkgo/actions/workflows/osx.yml)[![Windows-build](https://github.com/ginkgo-project/ginkgo/actions/workflows/windows-msvc-ref.yml/badge.svg)](https://github.com/ginkgo-project/ginkgo/actions/workflows/windows-msvc-ref.yml)|[![codecov](https://codecov.io/gh/ginkgo-project/ginkgo/branch/master/graph/badge.svg)](https://codecov.io/gh/ginkgo-project/ginkgo)|[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=ginkgo-project_ginkgo&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=ginkgo-project_ginkgo)|[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=ginkgo-project_ginkgo&metric=reliability_rating)](https://sonarcloud.io/dashboard?id=ginkgo-project_ginkgo)|[![CDash dashboard](https://img.shields.io/badge/CDash-Access-blue.svg)](https://my.cdash.org/index.php?project=Ginkgo+Project)
 
-Ginkgo is a high-performance linear algebra library for manycore systems, with a
+
+Ginkgo is a high-performance linear algebra library for many-core systems, with a
 focus on the solution of sparse linear systems. It is implemented using modern C++
 (you will need an at least C++14 compliant compiler to build it), with GPU kernels
 implemented in CUDA, HIP, and DPC++(SYCL).
@@ -24,7 +20,7 @@ Performance
 
 An extensive database of up-to-date benchmark results is available in the
 [performance data repository](https://github.com/ginkgo-project/ginkgo-data).
-Visualizations of the database can be interactively generated using the
+Visualisations of the database can be interactively generated using the
 [Ginkgo Performance Explorer web application](https://ginkgo-project.github.io/gpe).
 The benchmark results are automatically updated using the CI system to always
 reflect the current state of the library.
@@ -73,7 +69,7 @@ The Ginkgo DPC++(SYCL) module has the following __additional__ requirements:
 
 The Ginkgo MPI module has the following __additional__ requirements:
 
-* MPI 3.1+, ideally with GPUDirect support for best performance
+* MPI 3.1+, ideally GPU-Aware, for best performance
 
 In addition, if you want to contribute code to Ginkgo, you will also need the
 following:
