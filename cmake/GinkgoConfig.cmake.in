@@ -203,7 +203,7 @@ endif()
 
 # Check that the same compilers as for Ginkgo are used
 function(_ginkgo_check_compiler lang)
-    if(NOT "${CMAKE_${lang}_COMPILER}" STREQUAL "${GINKGO_${lang}_COMPILER}")
+    if(DEFINED CMAKE_${lang}_COMPILER AND (NOT "${CMAKE_${lang}_COMPILER}" STREQUAL "${GINKGO_${lang}_COMPILER}"))
         set(_compiler_short "${CMAKE_${lang}_COMPILER_ID}:${CMAKE_${lang}_COMPILER_VERSION}")
         if(NOT "${_compiler_short}" STREQUAL "${GINKGO_${lang}_COMPILER_SHORT}")
             message(WARNING "The currently used ${lang} compiler: ${CMAKE_${lang}_COMPILER} does not match the compiler used to "
