@@ -51,6 +51,7 @@ struct components_data {
 };
 
 
+// Attach each node to a smaller neighbor
 template <typename IndexType>
 __global__
 __launch_bounds__(default_block_size) void connected_components_attach(
@@ -58,39 +59,136 @@ __launch_bounds__(default_block_size) void connected_components_attach(
     const IndexType* __restrict__ col_idxs, IndexType num_rows,
     IndexType* __restrict__ components)
 {
-    const auto row = thread::get_thread_id_flat();
+    const auto row = thread::get_thread_id_flat<IndexType>();
     if (row >= num_rows) {
         return;
     }
     const auto begin = row_ptrs[row];
     const auto end = row_ptrs[row + 1];
-    auto parent = static_cast<IndexType>(row);
+    auto parent = row;
     for (auto nz = begin; nz < end; nz++) {
         const auto col = col_idxs[nz];
-        parent = min(col, parent);
+        if (col < parent) {
+            parent = col;
+            break;
+        }
     }
     components[row] = parent;
 }
 
 
-__global__ void reset_flag(bool* finished) { *finished = true; }
+// Returns the representative of a (partial) component with path compression
+// For details, see J. Jaiganesh and M. Burtscher.
+// "A High-Performance Connected Components Implementation for GPUs."
+// Proceedings of the 2018 ACM International Symposium on High-Performance
+// Parallel and Distributed Computing. June 2018
+template <typename IndexType>
+__device__ __forceinline__ IndexType disjoint_set_find(IndexType node,
+                                                       IndexType* parents)
+{
+    auto parent = parents[node];
+    if (node != parent) {
+        // here we use atomics with threadblock-local coherence
+        // to avoid the L2 performance penalty at the cost of a few additional
+        // iterations
+        // TODO we can probably replace < by !=
+        for (auto grandparent = load_relaxed_local(parents + parent);
+             grandparent < parent;
+             grandparent = load_relaxed_local(parents + parent)) {
+            // pointer doubling
+            // node --> parent --> grandparent
+            // turns into
+            // node -------------> grandparent
+            //                       |
+            //          parent ------/
+            // This operation is safe, because only the representative of each
+            // set will be changed in subsequent operations, and this only
+            // shortens paths along intermediate nodes
+            store_relaxed_local(parents + node, grandparent);
+            node = parent;
+            parent = grandparent;
+        }
+    }
+    return parent;
+}
+
+
+template <typename IndexType>
+struct atomic_map {};
+
+
+template <>
+struct atomic_map<int32> {
+    using type = int;
+};
+
+
+template <>
+struct atomic_map<int64> {
+    using type = unsigned long long;
+};
 
 
 template <typename IndexType>
 __global__
-__launch_bounds__(default_block_size) void connected_components_path_compress(
-    IndexType num_rows, IndexType* components, bool* finished)
+__launch_bounds__(default_block_size) void connected_components_combine(
+    const IndexType* __restrict__ row_ptrs,
+    const IndexType* __restrict__ col_idxs, IndexType num_rows,
+    IndexType* __restrict__ parents)
 {
-    const auto row = thread::get_thread_id_flat();
+    using atomic_type = typename atomic_map<IndexType>::type;
+    const auto row = thread::get_thread_id_flat<IndexType>();
     if (row >= num_rows) {
         return;
     }
-    const auto old_value = components[row];
-    const auto new_value = components[old_value];
-    if (old_value != new_value && *finished) {
-        *finished = false;
+    const auto begin = row_ptrs[row];
+    const auto end = row_ptrs[row + 1];
+    auto parent = disjoint_set_find(row, parents);
+    for (auto nz = begin; nz < end; nz++) {
+        const auto col = col_idxs[nz];
+        // handle every edge only in one direction
+        if (col < row) {
+            auto col_parent = disjoint_set_find(col, parents);
+            bool repeat = false;
+            do {
+                repeat = false;
+                auto& min_parent = col_parent < parent ? col_parent : parent;
+                auto& max_parent = col_parent < parent ? parent : col_parent;
+                // attempt to attach the (assumed unattached) larger node to the
+                // smaller node
+                const auto old_parent = static_cast<IndexType>(atomicCAS(
+                    reinterpret_cast<atomic_type*>(parents + max_parent),
+                    static_cast<atomic_type>(max_parent),
+                    static_cast<atomic_type>(min_parent)));
+                // if unsuccessful, proceed with the parent of the (now known
+                // attached) node
+                if (old_parent != max_parent) {
+                    max_parent = old_parent;
+                    repeat = true;
+                }
+            } while (repeat);
+        }
     }
-    components[row] = new_value;
+}
+
+
+// Replace each node's parent by its representative
+template <typename IndexType>
+__global__
+__launch_bounds__(default_block_size) void connected_components_path_compress(
+    IndexType num_rows, IndexType* parents)
+{
+    const auto row = thread::get_thread_id_flat<IndexType>();
+    if (row >= num_rows) {
+        return;
+    }
+    auto current = row;
+    // TODO we can probably replace < by !=
+    for (auto parent = load_relaxed_local(parents + current); parent < current;
+         parent = load_relaxed_local(parents + current)) {
+        current = parent;
+    }
+    parents[row] = current;
 }
 
 
@@ -126,22 +224,21 @@ components_data<IndexType> compute_connected_components(
 {
     const auto policy = thrust_policy(exec);
     components_data<IndexType> result{exec, static_cast<size_type>(num_rows)};
-    array<bool> finished_array{exec, 1};
     const auto node_component = result.node_component.get_data();
     const auto nodes = result.nodes.get_data();
-    const auto finished = finished_array.get_data();
-    // attach every node to its minimum neighbor
+    // attach every node to a smaller neighbor
     const auto num_blocks = ceildiv(num_rows, default_block_size);
     connected_components_attach<<<num_blocks, default_block_size, 0,
                                   exec->get_stream()>>>(
         row_ptrs, col_idxs, num_rows, node_component);
-    // double pointers until all paths are loops or edges
-    do {
-        reset_flag<<<1, 1, 0, exec->get_stream()>>>(finished);
-        connected_components_path_compress<<<num_blocks, default_block_size, 0,
-                                             exec->get_stream()>>>(
-            num_rows, node_component, finished);
-    } while (!exec->copy_val_to_host(finished));
+    // combine connected components along edges
+    connected_components_combine<<<num_blocks, default_block_size, 0,
+                                   exec->get_stream()>>>(
+        row_ptrs, col_idxs, num_rows, node_component);
+    // compress paths to edges
+    connected_components_path_compress<<<num_blocks, default_block_size, 0,
+                                         exec->get_stream()>>>(num_rows,
+                                                               node_component);
     // group nodes by component ID
     result.sorted_ids = result.node_component;
     const auto sorted_component_ids = result.sorted_ids.get_data();
@@ -191,22 +288,6 @@ struct ubfs_levels {
           nodes{exec, num_rows},
           ptrs{exec, num_rows + 1}
     {}
-};
-
-
-template <typename IndexType>
-struct atomic_map {};
-
-
-template <>
-struct atomic_map<int32> {
-    using type = int;
-};
-
-
-template <>
-struct atomic_map<int64> {
-    using type = unsigned long long;
 };
 
 
