@@ -47,14 +47,15 @@ function(ginkgo_install_library name)
     install(TARGETS "${name}"
         EXPORT Ginkgo
         LIBRARY
-        DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
-        COMPONENT Runtime
+            DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
+            COMPONENT Ginkgo_Runtime
+            NAMELINK_COMPONENT Ginkgo_Development
         RUNTIME
-        DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}"
-        COMPONENT Runtime
+            DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}"
+            COMPONENT Ginkgo_Runtime
         ARCHIVE
-        DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
-        COMPONENT Development
+            DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
+            COMPONENT Ginkgo_Development
         )
 endfunction()
 
@@ -63,17 +64,17 @@ function(ginkgo_install)
     install(FILES ${Ginkgo_BINARY_DIR}/ginkgo_$<CONFIG>.pc
         DESTINATION "${GINKGO_INSTALL_PKGCONFIG_DIR}"
         RENAME ginkgo.pc
-        COMPONENT Development)
+        COMPONENT Ginkgo_Development)
 
     # install the public header files
     install(DIRECTORY "${Ginkgo_SOURCE_DIR}/include/"
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}"
-        COMPONENT Development
+        COMPONENT Ginkgo_Development
         FILES_MATCHING PATTERN "*.hpp"
         )
     install(FILES "${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp"
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/ginkgo"
-        COMPONENT Development
+        COMPONENT Ginkgo_Development
         )
 
     if  (GINKGO_HAVE_HWLOC AND NOT HWLOC_FOUND)
@@ -81,23 +82,23 @@ function(ginkgo_install)
         file(GLOB HWLOC_LIBS "${HWLOC_LIB_PATH}/libhwloc*")
         install(FILES ${HWLOC_LIBS}
             DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
-            COMPONENT Runtime
+            COMPONENT Ginkgo_Runtime
             )
         # We only use hwloc and not netloc
         install(DIRECTORY "${HWLOC_INCLUDE_DIRS}/hwloc"
             DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}"
-            COMPONENT Development
+            COMPONENT Ginkgo_Development
             )
         install(FILES "${HWLOC_INCLUDE_DIRS}/hwloc.h"
             DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}"
-            COMPONENT Development
+            COMPONENT Ginkgo_Development
             )
     endif()
 
     # Install CMake modules
     install(DIRECTORY "${Ginkgo_SOURCE_DIR}/cmake/Modules/"
         DESTINATION "${GINKGO_INSTALL_MODULE_DIR}"
-        COMPONENT Development
+        COMPONENT Ginkgo_Development
         FILES_MATCHING PATTERN "*.cmake"
         )
 
@@ -117,12 +118,12 @@ function(ginkgo_install)
         "${Ginkgo_BINARY_DIR}/GinkgoConfig.cmake"
         "${Ginkgo_BINARY_DIR}/GinkgoConfigVersion.cmake"
         DESTINATION "${GINKGO_INSTALL_CONFIG_DIR}"
-        COMPONENT Development)
+        COMPONENT Ginkgo_Development)
     install(EXPORT Ginkgo
         NAMESPACE Ginkgo::
         FILE GinkgoTargets.cmake
         DESTINATION "${GINKGO_INSTALL_CONFIG_DIR}"
-        COMPONENT Development)
+        COMPONENT Ginkgo_Development)
 
     # Export package for use from the build tree
     if (GINKGO_EXPORT_BUILD_DIR)
@@ -134,6 +135,6 @@ function(ginkgo_install)
             "${Ginkgo_SOURCE_DIR}/dev_tools/scripts/gdb-ginkgo.py"
             DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
             RENAME "$<TARGET_FILE_NAME:ginkgo>-gdb.py"
-            COMPONENT Development)
+            COMPONENT Ginkgo_Development)
     endif()
 endfunction()
