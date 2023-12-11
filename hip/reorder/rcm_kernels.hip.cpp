@@ -27,6 +27,7 @@
 
 #include "core/base/array_access.hpp"
 #include "hip/base/thrust.hip.hpp"
+#include "hip/components/memory.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 
 

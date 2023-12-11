@@ -27,6 +27,7 @@
 
 #include "core/base/array_access.hpp"
 #include "cuda/base/thrust.cuh"
+#include "cuda/components/memory.cuh"
 #include "cuda/components/thread_ids.cuh"
 
 
