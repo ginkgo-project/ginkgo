@@ -126,19 +126,6 @@ void generate_rhs(Closure f, ValueType u0, ValueType u1,
 }
 
 
-// Prints the solution `u`.
-template <typename ValueType>
-void print_solution(ValueType u0, ValueType u1,
-                    const gko::matrix::Dense<ValueType>* u)
-{
-    std::cout << u0 << '\n';
-    for (int i = 0; i < u->get_size()[0]; ++i) {
-        std::cout << u->get_const_values()[i] << '\n';
-    }
-    std::cout << u1 << std::endl;
-}
-
-
 // Computes the 1-norm of the error given the computed `u` and the correct
 // solution function `correct_u`.
 template <typename Closure, typename ValueType>
