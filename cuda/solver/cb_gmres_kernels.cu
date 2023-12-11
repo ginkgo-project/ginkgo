@@ -271,7 +271,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const DefaultExecutor> exec,
             stride_hessenberg, iter + 1, acc::as_cuda_range(krylov_bases),
             as_device_type(stop_status), as_device_type(reorth_status),
             as_device_type(num_reorth->get_data()));
-    num_reorth_host = num_reorth->get_access()[0];
+    num_reorth_host = num_reorth->load_value(0);
     // num_reorth_host := number of next_krylov vector to be reorthogonalization
     for (size_type l = 1; (num_reorth_host > 0) && (l < 3); l++) {
         zero_matrix(exec, iter + 1, dim_size[1], stride_buffer,
@@ -337,7 +337,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const DefaultExecutor> exec,
                 stride_hessenberg, iter + 1, acc::as_cuda_range(krylov_bases),
                 as_device_type(stop_status), as_device_type(reorth_status),
                 num_reorth->get_data());
-        num_reorth_host = num_reorth->get_access()[0];
+        num_reorth_host = num_reorth->load_value(0);
     }
 
     update_krylov_next_krylov_kernel<default_block_size>

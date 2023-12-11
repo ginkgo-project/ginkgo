@@ -70,7 +70,7 @@ __host__ ValueType reduce_add_array(std::shared_ptr<const HipExecutor> exec,
     reduce_add_array<<<1, default_reduce_block_size, 0, exec->get_stream()>>>(
         grid_dim, as_device_type(block_results_val),
         as_device_type(d_result.get_data()));
-    auto answer = d_result.get_access()[0];
+    auto answer = d_result.load_value(0);
     return answer;
 }
 

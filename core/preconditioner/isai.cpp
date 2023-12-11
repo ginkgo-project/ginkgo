@@ -118,7 +118,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
 
         // Get nnz from device memory
         auto inverted_nnz =
-            static_cast<size_type>(inverted_row_ptrs.get_access()[num_rows]);
+            static_cast<size_type>(inverted_row_ptrs.load_value(num_rows));
 
         // Init arrays
         array<IndexType> inverted_col_idxs{exec, inverted_nnz};

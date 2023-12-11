@@ -2629,7 +2629,7 @@ void is_sorted_by_column_index(
             }
         });
     });
-    *is_sorted = is_sorted_device_array.get_access()[0];
+    *is_sorted = is_sorted_device_array.load_value(0);
 };
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -2674,7 +2674,7 @@ void check_diagonal_entries_exist(
             num_blocks, default_block_size, 0, exec->get_queue(), num_diag,
             mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
             has_diags.get_data());
-        has_all_diags = has_diags.get_access()[0];
+        has_all_diags = has_diags.load_value(0);
     } else {
         has_all_diags = true;
     }
