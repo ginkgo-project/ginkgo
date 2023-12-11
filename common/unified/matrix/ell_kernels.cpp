@@ -10,6 +10,7 @@
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "common/unified/base/kernel_launch_reduction.hpp"
+#include "core/base/array_access.hpp"
 #include "core/matrix/dense_kernels.hpp"
 
 
@@ -36,7 +37,7 @@ void compute_max_row_nnz(std::shared_ptr<const DefaultExecutor> exec,
         },
         GKO_KERNEL_REDUCE_MAX(size_type), result.get_data(),
         row_ptrs.get_size() - 1, row_ptrs);
-    max_nnz = result.load_value(0);
+    max_nnz = get_element(result, 0);
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ELL_COMPUTE_MAX_ROW_NNZ_KERNEL);

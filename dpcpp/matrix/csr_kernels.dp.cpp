@@ -22,6 +22,7 @@
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
+#include "core/base/array_access.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
@@ -2629,7 +2630,7 @@ void is_sorted_by_column_index(
             }
         });
     });
-    *is_sorted = is_sorted_device_array.load_value(0);
+    *is_sorted = get_element(is_sorted_device_array, 0);
 };
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -2674,7 +2675,7 @@ void check_diagonal_entries_exist(
             num_blocks, default_block_size, 0, exec->get_queue(), num_diag,
             mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
             has_diags.get_data());
-        has_all_diags = has_diags.load_value(0);
+        has_all_diags = get_element(has_diags, 0);
     } else {
         has_all_diags = true;
     }

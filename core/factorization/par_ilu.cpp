@@ -16,6 +16,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "core/base/array_access.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
@@ -77,8 +78,8 @@ ParIlu<ValueType, IndexType>::generate_l_u(
         csr_system_matrix.get(), l_row_ptrs.get_data(), u_row_ptrs.get_data()));
 
     // Get nnz from device memory
-    auto l_nnz = static_cast<size_type>(l_row_ptrs.load_value(number_rows));
-    auto u_nnz = static_cast<size_type>(u_row_ptrs.load_value(number_rows));
+    auto l_nnz = static_cast<size_type>(get_element(l_row_ptrs, number_rows));
+    auto u_nnz = static_cast<size_type>(get_element(u_row_ptrs, number_rows));
 
     // Since `row_ptrs` of L and U is already created, the matrix can be
     // directly created with it

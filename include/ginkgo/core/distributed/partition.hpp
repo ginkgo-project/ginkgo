@@ -192,10 +192,7 @@ public:
      *
      * @return  size of part.
      */
-    local_index_type get_part_size(comm_index_type part) const
-    {
-        return this->part_sizes_.load_value(part);
-    }
+    local_index_type get_part_size(comm_index_type part) const;
 
     /**
      * Checks if each part has no more than one contiguous range.

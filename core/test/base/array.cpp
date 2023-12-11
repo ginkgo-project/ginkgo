@@ -15,6 +15,7 @@
 #include <ginkgo/core/base/executor.hpp>
 
 
+#include "core/base/array_access.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -300,39 +301,39 @@ TYPED_TEST(Array, MovedFromArrayDifferentExecutorIsEmpty)
 }
 
 
-TYPED_TEST(Array, CanGetValue)
+TYPED_TEST(Array, CanGetElement)
 {
     gko::array<TypeParam> a{this->exec, {2, 4}};
 
-    ASSERT_EQ(a.load_value(0), TypeParam{2});
-    ASSERT_EQ(a.load_value(1), TypeParam{4});
+    ASSERT_EQ(get_element(a, 0), TypeParam{2});
+    ASSERT_EQ(get_element(a, 1), TypeParam{4});
 }
 
 
-TYPED_TEST(Array, CanSetValue)
+TYPED_TEST(Array, CanSetElement)
 {
     gko::array<TypeParam> a{this->exec, {2, 4}};
 
-    a.store_value(1, TypeParam{0});
+    set_element(a, 1, TypeParam{0});
 
-    ASSERT_EQ(a.load_value(1), TypeParam{0});
+    ASSERT_EQ(get_element(a, 1), TypeParam{0});
 }
 
 
-TYPED_TEST(Array, GetValueThrowsOutOfBounds)
+TYPED_TEST(Array, GetElementThrowsOutOfBounds)
 {
     gko::array<TypeParam> a{this->exec, {2, 4}};
 
-    ASSERT_THROW(a.load_value(2), gko::OutOfBoundsError);
+    ASSERT_THROW(get_element(a, 2), gko::OutOfBoundsError);
     // TODO2.0 add bounds check test for negative indices
 }
 
 
-TYPED_TEST(Array, SetValueThrowsOutOfBounds)
+TYPED_TEST(Array, SetElementThrowsOutOfBounds)
 {
     gko::array<TypeParam> a{this->exec, {2, 4}};
 
-    ASSERT_THROW(a.store_value(2, TypeParam{0}), gko::OutOfBoundsError);
+    ASSERT_THROW(set_element(a, 2, TypeParam{0}), gko::OutOfBoundsError);
     // TODO2.0 add bounds check test for negative indices
 }
 

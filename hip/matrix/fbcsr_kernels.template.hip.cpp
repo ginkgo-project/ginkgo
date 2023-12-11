@@ -26,6 +26,7 @@
 
 
 #include "common/unified/base/kernel_launch.hpp"
+#include "core/base/array_access.hpp"
 #include "core/base/block_sizes.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"

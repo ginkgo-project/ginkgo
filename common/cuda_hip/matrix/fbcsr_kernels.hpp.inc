@@ -327,7 +327,7 @@ void is_sorted_by_column_index(
                 to_check->get_const_row_ptrs(), to_check->get_const_col_idxs(),
                 num_brows, gpu_array.get_data());
     }
-    *is_sorted = gpu_array.load_value(0);
+    *is_sorted = get_element(gpu_array, 0);
 }
 
 
