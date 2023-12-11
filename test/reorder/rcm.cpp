@@ -2,9 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/reorder/rcm.hpp>
-
-
 #include <algorithm>
 #include <deque>
 #include <fstream>
@@ -17,17 +14,19 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
+#include <ginkgo/core/reorder/rcm.hpp>
 
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
 #include "matrices/config.hpp"
+#include "test/utils/executor.hpp"
 
 
 namespace {
 
 
-class Rcm : public ::testing::Test {
+class Rcm : public CommonTestFixture {
 protected:
     using v_type = double;
     using i_type = int;
@@ -38,14 +37,12 @@ protected:
     using perm_type = gko::matrix::Permutation<i_type>;
 
     Rcm()
-        : ref(gko::ReferenceExecutor::create()),
-          omp(gko::OmpExecutor::create()),
-          o_1138_bus_mtx(gko::read<CsrMtx>(
+        : o_1138_bus_mtx(gko::read<CsrMtx>(
               std::ifstream(gko::matrices::location_1138_bus_mtx, std::ios::in),
               ref)),
           d_1138_bus_mtx(gko::read<CsrMtx>(
               std::ifstream(gko::matrices::location_1138_bus_mtx, std::ios::in),
-              omp))
+              exec))
     {}
 
     static void ubfs_reference(
@@ -81,14 +78,12 @@ protected:
         }
     }
 
-    static bool is_valid_start_node(std::shared_ptr<CsrMtx> mtx,
-                                    const i_type* permutation, i_type start,
-                                    std::vector<bool>& already_visited,
-                                    gko::reorder::starting_strategy strategy)
+    static void check_valid_start_node(std::shared_ptr<CsrMtx> mtx,
+                                       const i_type* permutation, i_type start,
+                                       std::vector<bool>& already_visited,
+                                       gko::reorder::starting_strategy strategy)
     {
-        if (already_visited[start]) {
-            return false;
-        }
+        ASSERT_FALSE(already_visited[start]) << start;
 
         const auto n = mtx->get_size()[0];
         auto degrees = std::vector<i_type>(n);
@@ -105,9 +100,7 @@ protected:
                     min_degree = degrees[i];
                 }
             }
-            if (min_degree != degrees[start]) {
-                return false;
-            }
+            ASSERT_EQ(min_degree, degrees[start]) << start;
             break;
         }
 
@@ -157,19 +150,20 @@ protected:
                     }
                 }
                 if (contender_height <= current_height) {
-                    return true;
+                    return;
                 }
             }
-            return false;
+            GTEST_FAIL() << "there is a contender with larger height";
         }
         }
-        return true;
     }
 
-    static bool is_rcm_ordered(std::shared_ptr<CsrMtx> mtx,
-                               const i_type* permutation,
-                               gko::reorder::starting_strategy strategy)
+    static void check_rcm_ordered(std::shared_ptr<CsrMtx> mtx,
+                                  const perm_type* d_permutation,
+                                  gko::reorder::starting_strategy strategy)
     {
+        const auto host_permutation = d_permutation->clone(mtx->get_executor());
+        const auto permutation = host_permutation->get_const_permutation();
         const auto n = mtx->get_size()[0];
         const auto row_ptrs = mtx->get_const_row_ptrs();
         const auto col_idxs = mtx->get_const_col_idxs();
@@ -180,8 +174,7 @@ protected:
         }
 
         // Following checks for cm ordering, therefore create a reversed perm.
-        auto perm = std::vector<i_type>(n);
-        std::copy_n(permutation, n, perm.begin());
+        std::vector<i_type> perm(permutation, permutation + n);
         std::reverse(perm.begin(), perm.end());
 
         // Now check for cm ordering.
@@ -190,10 +183,8 @@ protected:
         std::vector<bool> already_visited(n);
         while (base_offset != n) {
             // Assert valid start node.
-            if (!is_valid_start_node(mtx, permutation, perm[base_offset],
-                                     already_visited, strategy)) {
-                return false;
-            }
+            check_valid_start_node(mtx, permutation, perm[base_offset],
+                                   already_visited, strategy);
 
             // Assert valid level structure.
             // Also update base_offset and mark as visited while at it.
@@ -218,7 +209,8 @@ protected:
                         ++current_level;
                         continue;
                     }
-                    return false;
+                    GTEST_FAIL() << "Level structure invalid at node " << node
+                                 << ", level " << current_level;
                 }
             }
 
@@ -267,22 +259,24 @@ protected:
                 // Assert the ... is not after the ... in the previous level.
                 if (std::find(perm.begin(), perm.end(), y_first_neighbour) <
                     std::find(perm.begin(), perm.end(), x_first_neighbour)) {
-                    return false;
+                    GTEST_FAIL()
+                        << "First neighbor ordering violated between nodes "
+                        << x << " and " << y << ", first neighbors were "
+                        << x_first_neighbour << " and " << y_first_neighbour;
                 }
 
                 if (y_first_neighbour == x_first_neighbour) {
                     if (degrees[y] < degrees[x]) {
-                        return false;
+                        GTEST_FAIL()
+                            << "Degree ordering violated between nodes " << x
+                            << " and " << y << ", degrees were " << degrees[x]
+                            << " and " << degrees[y];
                     }
                 }
             }
         }
-
-        return true;
     }
 
-    std::shared_ptr<const gko::Executor> ref;
-    std::shared_ptr<const gko::Executor> omp;
     std::shared_ptr<CsrMtx> o_1138_bus_mtx;
     std::shared_ptr<CsrMtx> d_1138_bus_mtx;
     // Can't std::move parameter when using ASSERT_PREDN, no perfect forwarding.
@@ -290,36 +284,36 @@ protected:
     std::shared_ptr<reorder_type> d_reorder_op;
 };
 
-TEST_F(Rcm, OmpPermutationIsRcmOrdered)
+TEST_F(Rcm, PermutationIsRcmOrdered)
 {
-    d_reorder_op = reorder_type::build().on(omp)->generate(d_1138_bus_mtx);
+    d_reorder_op = reorder_type::build().on(exec)->generate(d_1138_bus_mtx);
 
     auto perm = d_reorder_op->get_permutation();
 
-    ASSERT_PRED3(is_rcm_ordered, d_1138_bus_mtx, perm->get_const_permutation(),
-                 d_reorder_op->get_parameters().strategy);
+    check_rcm_ordered(o_1138_bus_mtx, perm.get(),
+                      d_reorder_op->get_parameters().strategy);
 }
 
-TEST_F(Rcm, OmpPermutationIsRcmOrderedMinDegree)
+TEST_F(Rcm, PermutationIsRcmOrderedMinDegree)
 {
     d_reorder_op =
         reorder_type::build()
             .with_strategy(gko::reorder::starting_strategy::minimum_degree)
-            .on(omp)
+            .on(exec)
             ->generate(d_1138_bus_mtx);
 
     auto perm = d_reorder_op->get_permutation();
 
-    ASSERT_PRED3(is_rcm_ordered, d_1138_bus_mtx, perm->get_const_permutation(),
-                 d_reorder_op->get_parameters().strategy);
+    check_rcm_ordered(o_1138_bus_mtx, perm.get(),
+                      d_reorder_op->get_parameters().strategy);
 }
 
-TEST_F(Rcm, OmpPermutationIsRcmOrderedNewInterface)
+TEST_F(Rcm, PermutationIsRcmOrderedNewInterface)
 {
-    auto perm = new_reorder_type::build().on(omp)->generate(d_1138_bus_mtx);
+    auto perm = new_reorder_type::build().on(exec)->generate(d_1138_bus_mtx);
 
-    ASSERT_PRED3(is_rcm_ordered, d_1138_bus_mtx, perm->get_const_permutation(),
-                 gko::reorder::starting_strategy::pseudo_peripheral);
+    check_rcm_ordered(o_1138_bus_mtx, perm.get(),
+                      gko::reorder::starting_strategy::pseudo_peripheral);
 }
 
 }  // namespace
