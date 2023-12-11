@@ -19,6 +19,7 @@ set(EXAMPLES_EXEC_LIST
 
 set(EXAMPLES_LIST
     ${EXAMPLES_EXEC_LIST}
+    spblas-format
     custom-stopping-criterion
     ginkgo-overhead
     minimal-cuda-solver
