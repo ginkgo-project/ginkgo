@@ -13,6 +13,7 @@
 
 
 #include "core/base/allocator.hpp"
+#include "core/base/array_access.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
@@ -59,7 +60,7 @@ void symbolic_cholesky(
     exec->run(make_symbolic_count(mtx, *forest, row_ptrs.get_data(), tmp));
     exec->run(make_prefix_sum_nonnegative(row_ptrs.get_data(), num_rows + 1));
     const auto factor_nnz =
-        static_cast<size_type>(row_ptrs.load_value(num_rows));
+        static_cast<size_type>(get_element(row_ptrs, num_rows));
     factors = matrix_type::create(
         exec, mtx->get_size(), array<ValueType>{exec, factor_nnz},
         array<IndexType>{exec, factor_nnz}, std::move(row_ptrs));
@@ -126,7 +127,7 @@ void symbolic_lu_near_symm(
         symm_factors->get_const_row_ptrs(), symm_factors->get_const_col_idxs(),
         size[0], allowed_sparsity, storage_offsets.get_data()));
     const auto storage_size =
-        static_cast<size_type>(storage_offsets.load_value(size[0]));
+        static_cast<size_type>(get_element(storage_offsets, size[0]));
     array<int32> storage{exec, storage_size};
     exec->run(make_build_lookup(
         symm_factors->get_const_row_ptrs(), symm_factors->get_const_col_idxs(),
@@ -143,7 +144,7 @@ void symbolic_lu_near_symm(
     exec->run(
         make_prefix_sum_nonnegative(factor_row_ptrs.get_data(), size[0] + 1));
     const auto factor_nnz =
-        static_cast<size_type>(factor_row_ptrs.load_value(size[0]));
+        static_cast<size_type>(get_element(factor_row_ptrs, size[0]));
     // copy over nonzero columns
     array<IndexType> factor_cols{exec, factor_nnz};
     exec->run(make_symbolic_factorize_simple_finalize(symm_factors.get(),

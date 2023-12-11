@@ -166,7 +166,7 @@ void kcycle_check_stop(std::shared_ptr<const DefaultExecutor> exec,
             as_device_type(new_norm->get_const_values()), rel_tol,
             as_device_type(dis_stop.get_data()));
     }
-    is_stop = dis_stop.load_value(0);
+    is_stop = get_element(dis_stop, 0);
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(

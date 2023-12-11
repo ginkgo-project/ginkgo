@@ -16,6 +16,7 @@
 #include <ginkgo/core/base/executor.hpp>
 
 
+#include "core/base/array_access.hpp"
 #include "hip/base/types.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
@@ -70,7 +71,7 @@ __host__ ValueType reduce_add_array(std::shared_ptr<const HipExecutor> exec,
     reduce_add_array<<<1, default_reduce_block_size, 0, exec->get_stream()>>>(
         grid_dim, as_device_type(block_results_val),
         as_device_type(d_result.get_data()));
-    auto answer = d_result.load_value(0);
+    auto answer = get_element(d_result, 0);
     return answer;
 }
 

@@ -10,6 +10,7 @@
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 
+#include "core/base/array_access.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/thread_ids.cuh"
@@ -87,8 +88,8 @@ void residual_norm(std::shared_ptr<const CudaExecutor> exec,
     }
 
     /* Represents all_converged, one_changed */
-    *all_converged = device_storage->load_value(0);
-    *one_changed = device_storage->load_value(1);
+    *all_converged = get_element(*device_storage, 0);
+    *one_changed = get_element(*device_storage, 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
@@ -167,8 +168,8 @@ void implicit_residual_norm(
     }
 
     /* Represents all_converged, one_changed */
-    *all_converged = device_storage->load_value(0);
-    *one_changed = device_storage->load_value(1);
+    *all_converged = get_element(*device_storage, 0);
+    *one_changed = get_element(*device_storage, 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL);

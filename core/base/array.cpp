@@ -8,6 +8,7 @@
 #include <ginkgo/core/base/math.hpp>
 
 
+#include "core/base/array_access.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/precision_conversion_kernels.hpp"
 #include "core/components/reduce_array_kernels.hpp"
@@ -83,7 +84,7 @@ ValueType reduce_add(const array<ValueType>& input_arr,
     auto value = array<ValueType>(exec, 1);
     value.fill(ValueType{0});
     exec->run(array_kernels::make_reduce_add_array(input_arr, value));
-    return init_value + value.load_value(0);
+    return init_value + get_element(value, 0);
 }
 
 

@@ -14,6 +14,7 @@
 #include <ginkgo/core/base/types.hpp>
 
 
+#include "core/base/array_access.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "hip/base/types.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"

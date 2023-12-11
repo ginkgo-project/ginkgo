@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/array.hpp>
 
 
+#include "core/base/array_access.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "dpcpp/base/config.hpp"
@@ -526,7 +527,7 @@ void add_diagonal_elements(std::shared_ptr<const DpcppExecutor> exec,
     components::prefix_sum_nonnegative(exec, dpcpp_row_ptrs_add, row_ptrs_size);
     exec->synchronize();
 
-    auto total_additions = row_ptrs_addition.load_value(row_ptrs_size - 1);
+    auto total_additions = get_element(row_ptrs_addition, row_ptrs_size - 1);
     size_type new_num_elems = static_cast<size_type>(total_additions) +
                               mtx->get_num_stored_elements();
 

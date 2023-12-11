@@ -17,6 +17,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "core/base/array_access.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/par_ic_kernels.hpp"
@@ -77,7 +78,7 @@ std::unique_ptr<Composition<ValueType>> ParIc<ValueType, IndexType>::generate(
         csr_system_matrix.get(), l_row_ptrs.get_data()));
 
     // Get nnz from device memory
-    auto l_nnz = static_cast<size_type>(l_row_ptrs.load_value(number_rows));
+    auto l_nnz = static_cast<size_type>(get_element(l_row_ptrs, number_rows));
 
     // Since `row_ptrs` of L is already created, the matrix can be
     // directly created with it

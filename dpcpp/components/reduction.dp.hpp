@@ -17,6 +17,7 @@
 #include <ginkgo/core/synthesizer/containers.hpp>
 
 
+#include "core/base/array_access.hpp"
 #include "core/base/types.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "dpcpp/base/config.hpp"
@@ -257,7 +258,7 @@ ValueType reduce_add_array(std::shared_ptr<const DpcppExecutor> exec,
 
     reduce_add_array_call(cfg, 1, wg_size, 0, exec->get_queue(), grid_dim,
                           block_results_val, d_result.get_data());
-    answer = d_result.load_value(0);
+    answer = get_element(d_result, 0);
     return answer;
 }
 

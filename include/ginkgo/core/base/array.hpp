@@ -683,46 +683,6 @@ public:
     const value_type* get_const_data() const noexcept { return data_.get(); }
 
     /**
-     * Returns a single value from the array.
-     *
-     * This involves a bounds check, polymorphic calls and potentially a
-     * device-to-host copy, so it is not suitable for accessing many elements
-     * in performance-critical code.
-     *
-     * @param index  the array element index.
-     * @return the value at index.
-     */
-    value_type load_value(size_type index) const
-    {
-        // TODO2.0 add bounds check for negative indices
-        if (index >= this->get_size()) {
-            throw OutOfBoundsError{__FILE__, __LINE__, index, this->get_size()};
-        }
-        return this->get_executor()->copy_val_to_host(this->get_const_data() +
-                                                      index);
-    }
-
-    /**
-     * Sets a single entry in the array to a new value.
-     *
-     * This involves a bounds check, polymorphic calls and potentially a
-     * host-to-device copy, so it is not suitable for accessing many elements
-     * in performance-critical code.
-     *
-     * @param index  the array element index.
-     * @param value  the new value.
-     */
-    void store_value(size_type index, value_type value)
-    {
-        // TODO2.0 add bounds check for negative indices
-        if (index >= this->get_size()) {
-            throw OutOfBoundsError{__FILE__, __LINE__, index, this->get_size()};
-        }
-        this->get_executor()->copy_from(this->get_executor()->get_master(), 1,
-                                        &value, this->get_data() + index);
-    }
-
-    /**
      * Returns the Executor associated with the array.
      *
      * @return the Executor associated with the array
