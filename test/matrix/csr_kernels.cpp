@@ -187,7 +187,7 @@ void assert_lookup_correct(std::shared_ptr<const gko::EXEC_TYPE> exec,
         },
         num_rows, num_cols, row_ptrs, col_idxs, storage_offsets, storage,
         row_descs, correct);
-    ASSERT_TRUE(correct.get_access()[0]);
+    ASSERT_TRUE(correct.load_value(0));
 }
 
 

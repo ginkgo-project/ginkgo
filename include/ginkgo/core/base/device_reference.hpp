@@ -46,32 +46,6 @@ public:
 
     value_type copy() const { return *this; }
 
-#define GKO_BINARY_OPERATOR_OVERLOAD(_return_type, _operator)         \
-    friend _return_type operator _operator(const device_reference& a, \
-                                           const value_type& b)       \
-    {                                                                 \
-        return a.copy() _operator b;                                  \
-    }                                                                 \
-    friend _return_type operator _operator(const device_reference& a, \
-                                           const device_reference& b) \
-    {                                                                 \
-        return a.copy() _operator b.copy();                           \
-    }                                                                 \
-    friend _return_type operator _operator(const value_type& a,       \
-                                           const device_reference& b) \
-    {                                                                 \
-        return a _operator b.copy();                                  \
-    }
-
-    GKO_BINARY_OPERATOR_OVERLOAD(bool, ==);
-    GKO_BINARY_OPERATOR_OVERLOAD(bool, !=);
-    GKO_BINARY_OPERATOR_OVERLOAD(bool, <);
-    GKO_BINARY_OPERATOR_OVERLOAD(bool, <=);
-    GKO_BINARY_OPERATOR_OVERLOAD(bool, >);
-    GKO_BINARY_OPERATOR_OVERLOAD(bool, >=);
-
-#undef GKO_BINARY_OPERATOR_OVERLOAD
-
 private:
     const Executor* exec_;
     ValueType* ptr_;

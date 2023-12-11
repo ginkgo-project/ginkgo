@@ -1746,7 +1746,7 @@ void check_diagonal_entries_exist(
                                          exec->get_stream()>>>(
             num_diag, mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
             has_diags.get_data());
-        has_all_diags = has_diags.get_access()[0];
+        has_all_diags = has_diags.load_value(0);
     } else {
         has_all_diags = true;
     }

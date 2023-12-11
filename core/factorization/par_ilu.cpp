@@ -77,8 +77,8 @@ ParIlu<ValueType, IndexType>::generate_l_u(
         csr_system_matrix.get(), l_row_ptrs.get_data(), u_row_ptrs.get_data()));
 
     // Get nnz from device memory
-    auto l_nnz = static_cast<size_type>(l_row_ptrs.get_access()[number_rows]);
-    auto u_nnz = static_cast<size_type>(u_row_ptrs.get_access()[number_rows]);
+    auto l_nnz = static_cast<size_type>(l_row_ptrs.load_value(number_rows));
+    auto u_nnz = static_cast<size_type>(u_row_ptrs.load_value(number_rows));
 
     // Since `row_ptrs` of L and U is already created, the matrix can be
     // directly created with it

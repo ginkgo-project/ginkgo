@@ -541,7 +541,7 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
     }
 
 #if GKO_VERBOSE_LEVEL >= 1
-    if (nan_produced.get_access()[0]) {
+    if (nan_produced.load_value(0)) {
         std::cerr
             << "Error: triangular solve produced NaN, either not all diagonal "
                "elements are nonzero, or the system is very ill-conditioned. "

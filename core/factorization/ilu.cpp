@@ -70,8 +70,8 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
         u_row_ptrs.get_data()));
 
     // Get nnz from device memory
-    auto l_nnz = static_cast<size_type>(l_row_ptrs.get_access()[num_rows]);
-    auto u_nnz = static_cast<size_type>(u_row_ptrs.get_access()[num_rows]);
+    auto l_nnz = static_cast<size_type>(l_row_ptrs.load_value(num_rows));
+    auto u_nnz = static_cast<size_type>(u_row_ptrs.load_value(num_rows));
 
     // Init arrays
     array<IndexType> l_col_idxs{exec, l_nnz};

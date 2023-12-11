@@ -132,7 +132,7 @@ void SparsityCsr<ValueType, IndexType>::convert_to(
     result->row_ptrs_ = this->row_ptrs_;
     result->col_idxs_ = this->col_idxs_;
     result->values_.resize_and_reset(this->get_num_nonzeros());
-    result->values_.fill(this->value_.get_access()[0]);
+    result->values_.fill(this->value_.load_value(0));
     result->set_size(this->get_size());
     result->make_srow();
 }
@@ -246,7 +246,7 @@ SparsityCsr<ValueType, IndexType>::to_adjacency_matrix() const
     exec->run(sparsity_csr::make_diagonal_element_prefix_sum(
         this, diag_prefix_sum.get_data()));
     const auto num_diagonal_elements =
-        static_cast<size_type>(diag_prefix_sum.get_access()[num_rows]);
+        static_cast<size_type>(diag_prefix_sum.load_value(num_rows));
     auto adj_mat =
         SparsityCsr::create(exec, this->get_size(),
                             this->get_num_nonzeros() - num_diagonal_elements);
