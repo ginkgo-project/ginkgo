@@ -426,7 +426,9 @@ void find_pseudo_peripheral_nodes(std::shared_ptr<const DefaultExecutor> exec,
     const auto compare_fn = node_compare_functor<IndexType>{
         candidate_nodes, node_levels, level_nodes, best_levels,
         improved.get_data()};
-    // initialize best_levels to the initial nodes at level 0
+    // initialize best_levels and levels to the initial nodes at level 0
+    thrust::copy_n(policy, components.min_deg_node.get_const_data(),
+                   num_components, level_nodes);
     thrust::fill_n(policy, best_levels, num_components, IndexType{});
     do {
         ubfs(exec, num_rows, row_ptrs, col_idxs, levels);
