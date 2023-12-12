@@ -1,19 +1,16 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GINKGO_SPACES_HPP
-#define GINKGO_SPACES_HPP
-
-#include <ginkgo/config.hpp>
-
-
-#if GINKGO_EXTENSION_KOKKOS
-
+#ifndef GINKGO_EXTENSIONS_KOKKOS_SPACES_HPP
+#define GINKGO_EXTENSIONS_KOKKOS_SPACES_HPP
 
 #include <Kokkos_Core.hpp>
 
 
+#include <ginkgo/config.hpp>
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 
 
@@ -35,25 +32,26 @@ struct compatible_space
                                        Kokkos::has_shared_host_pinned_space> {};
 
 template <>
-struct compatible_space<Kokkos::HostSpace, gko::ReferenceExecutor>
-    : std::true_type {};
+struct compatible_space<Kokkos::HostSpace, ReferenceExecutor> : std::true_type {
+};
 
 template <typename MemorySpace>
-struct compatible_space<MemorySpace, gko::ReferenceExecutor> {
+struct compatible_space<MemorySpace, ReferenceExecutor> {
     // need manual implementation of std::integral_constant because,
     // while compiling for cuda, somehow bool is replaced by __nv_bool
     static constexpr bool value =
         Kokkos::SpaceAccessibility<Kokkos::HostSpace, MemorySpace>::accessible;
 };
+
 #ifdef KOKKOS_ENABLE_OPENMP
 template <typename MemorySpace>
-struct compatible_space<MemorySpace, gko::OmpExecutor>
-    : compatible_space<MemorySpace, gko::ReferenceExecutor> {};
+struct compatible_space<MemorySpace, OmpExecutor>
+    : compatible_space<MemorySpace, ReferenceExecutor> {};
 #endif
 
 #ifdef KOKKOS_ENABLE_CUDA
 template <typename MemorySpace>
-struct compatible_space<MemorySpace, gko::CudaExecutor> {
+struct compatible_space<MemorySpace, CudaExecutor> {
     static constexpr bool value =
         Kokkos::SpaceAccessibility<Kokkos::Cuda, MemorySpace>::accessible;
 };
@@ -61,7 +59,7 @@ struct compatible_space<MemorySpace, gko::CudaExecutor> {
 
 #ifdef KOKKOS_ENABLE_HIP
 template <typename MemorySpace>
-struct compatible_space<MemorySpace, gko::HipExecutor> {
+struct compatible_space<MemorySpace, HipExecutor> {
     static constexpr bool value =
         Kokkos::SpaceAccessibility<Kokkos::HIP, MemorySpace>::accessible;
 };
@@ -69,7 +67,7 @@ struct compatible_space<MemorySpace, gko::HipExecutor> {
 
 #ifdef KOKKOS_ENABLE_SYCL
 template <typename MemorySpace>
-struct compatible_space<MemorySpace, gko::DpcppExecutor> {
+struct compatible_space<MemorySpace, DpcppExecutor> {
     static constexpr bool value =
         Kokkos::SpaceAccessibility<Kokkos::Experimental::SYCL,
                                    MemorySpace>::accessible;
@@ -88,7 +86,7 @@ struct compatible_space<MemorySpace, gko::DpcppExecutor> {
 template <typename MemorySpace, typename ExecType>
 inline bool check_compatibility(std::shared_ptr<const ExecType>)
 {
-    return detail::compatible_space<MemorySpace, ExecType>::value;
+    return compatible_space<MemorySpace, ExecType>::value;
 }
 
 
@@ -127,15 +125,14 @@ inline bool check_compatibility(std::shared_ptr<const Executor> exec)
  * Throws if the memory space is ~not~ accessible by the executor associated
  * with the passed in Ginkgo object.
  *
- * @tparam MemorySpace  A Kokkos memory space type..
+ * @tparam MemorySpace  A Kokkos memory space type.
  * @tparam T  A Ginkgo type that has the member function `get_executor`.
  *
  * @param obj  Object which executor is used to check the access to the memory
  * space.
- * @param space  The Kokkos memory space to compare agains.
  */
 template <typename MemorySpace, typename T>
-inline void assert_compatibility(T&& obj, MemorySpace space)
+inline void assert_compatibility(T&& obj)
 {
     GKO_THROW_IF_INVALID(check_compatibility<MemorySpace>(obj.get_executor()),
                          "Executor type and memory space are incompatible");
@@ -154,20 +151,16 @@ inline void assert_compatibility(T&& obj, MemorySpace space)
  */
 inline std::shared_ptr<Executor> create_default_host_executor()
 {
-    static std::mutex mutex{};
-    std::lock_guard<std::mutex> guard(mutex);
 #ifdef KOKKOS_ENABLE_SERIAL
     if constexpr (std::is_same_v<Kokkos::DefaultHostExecutionSpace,
                                  Kokkos::Serial>) {
-        static auto exec = ReferenceExecutor::create();
-        return exec;
+        return ReferenceExecutor::create();
     }
 #endif
 #ifdef KOKKOS_ENABLE_OPENMP
     if constexpr (std::is_same_v<Kokkos::DefaultHostExecutionSpace,
                                  Kokkos::OpenMP>) {
-        static auto exec = OmpExecutor::create();
-        return exec;
+        return OmpExecutor::create();
     }
 #endif
     GKO_NOT_IMPLEMENTED;
@@ -188,6 +181,10 @@ inline std::shared_ptr<Executor> create_default_host_executor()
  * constructor.
  *
  * @tparam ExecSpace  A supported Kokkos ExecutionSpace.
+ * @tparam MemorySpace  A supported Kokkos MemorySpace. Defaults to the one
+ *                      defined in the ExecSpace.
+ *
+ * @param ex  the execution space
  *
  * @return  An executor matching the type of the ExecSpace.
  */
@@ -197,8 +194,6 @@ inline std::shared_ptr<Executor> create_executor(ExecSpace ex, MemorySpace = {})
 {
     static_assert(
         Kokkos::SpaceAccessibility<ExecSpace, MemorySpace>::accessible);
-    static std::mutex mutex{};
-    std::lock_guard<std::mutex> guard(mutex);
 #ifdef KOKKOS_ENABLE_SERIAL
     if constexpr (std::is_same_v<ExecSpace, Kokkos::Serial>) {
         return ReferenceExecutor::create();
@@ -214,20 +209,19 @@ inline std::shared_ptr<Executor> create_executor(ExecSpace ex, MemorySpace = {})
         if constexpr (std::is_same_v<MemorySpace, Kokkos::CudaSpace>) {
             return CudaExecutor::create(
                 Kokkos::device_id(), create_default_host_executor(),
-                std::make_shared<gko::CudaAllocator>(), ex.cuda_stream());
+                std::make_shared<CudaAllocator>(), ex.cuda_stream());
         }
         if constexpr (std::is_same_v<MemorySpace, Kokkos::CudaUVMSpace>) {
             return CudaExecutor::create(
                 Kokkos::device_id(), create_default_host_executor(),
-                std::make_shared<gko::CudaUnifiedAllocator>(
-                    Kokkos::device_id()),
+                std::make_shared<CudaUnifiedAllocator>(Kokkos::device_id()),
                 ex.cuda_stream());
         }
         if constexpr (std::is_same_v<MemorySpace,
                                      Kokkos::CudaHostPinnedSpace>) {
             return CudaExecutor::create(
                 Kokkos::device_id(), create_default_host_executor(),
-                std::make_shared<gko::CudaHostAllocator>(Kokkos::device_id()),
+                std::make_shared<CudaHostAllocator>(Kokkos::device_id()),
                 ex.cuda_stream());
         }
     }
@@ -237,18 +231,18 @@ inline std::shared_ptr<Executor> create_executor(ExecSpace ex, MemorySpace = {})
         if constexpr (std::is_same_v<MemorySpace, Kokkos::HIPSpace>) {
             return HipExecutor::create(
                 Kokkos::device_id(), create_default_host_executor(),
-                std::make_shared<gko::HipAllocator>(), ex.hip_stream());
+                std::make_shared<HipAllocator>(), ex.hip_stream());
         }
         if constexpr (std::is_same_v<MemorySpace, Kokkos::HIPManagedSpace>) {
             return HipExecutor::create(
                 Kokkos::device_id(), create_default_host_executor(),
-                std::make_shared<gko::HipUnifiedAllocator>(Kokkos::device_id()),
+                std::make_shared<HipUnifiedAllocator>(Kokkos::device_id()),
                 ex.hip_stream());
         }
         if constexpr (std::is_same_v<MemorySpace, Kokkos::HIPHostPinnedSpace>) {
             return HipExecutor::create(
                 Kokkos::device_id(), create_default_host_executor(),
-                std::make_shared<gko::HipHostAllocator>(Kokkos::device_id()),
+                std::make_shared<HipHostAllocator>(Kokkos::device_id()),
                 ex.hip_stream());
         }
     }
@@ -283,5 +277,4 @@ inline std::shared_ptr<Executor> create_default_executor(
 }  // namespace gko
 
 
-#endif  // GINKGO_EXTENSION_KOKKOS
-#endif  // GINKGO_SPACES_HPP
+#endif  // GINKGO_EXTENSIONS_KOKKOS_SPACES_HPP

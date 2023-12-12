@@ -5,16 +5,16 @@
 #ifndef GINKGO_EXTENSIONS_KOKKOS_TYPES_HPP
 #define GINKGO_EXTENSIONS_KOKKOS_TYPES_HPP
 
-#include <ginkgo/config.hpp>
-
-#if GINKGO_EXTENSION_KOKKOS
-
 #include <Kokkos_Complex.hpp>
+
+
 #include <Kokkos_Core.hpp>
 
 
+#include <ginkgo/config.hpp>
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/extensions/kokkos/config.hpp>
 
 
 namespace gko {
@@ -66,11 +66,24 @@ template <typename T>
 using value_type_t = typename value_type<T>::type;
 
 
+/**
+ * Maps ginkgo types to the corresponding kokkos type
+ *
+ * @tparam T  A ginkgo type to map
+ * @tparam MemorySpace  A kokkos MemorySpace which the resulting type will use
+ *
+ * @warning  The MemorySpace has to match the internally used executor of T.
+ *
+ * @note  This only describes the interface of the mapper class. The actual
+ *        implementation is done via specialization of this class.
+ */
 template <typename T, typename MemorySpace>
 struct mapper {
     static auto map(T&);
+
     static auto map(const T&);
 };
+
 
 /**
  * Type that maps a Ginkgo array to an unmanaged 1D Kokkos::View.
@@ -87,36 +100,74 @@ struct mapper<array<ValueType>, MemorySpace> {
         Kokkos::View<typename value_type<ValueType_c>::type*, MemorySpace,
                      Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
 
+    /**
+     * Constructor based on size and raw pointer
+     *
+     * @tparam ValueType_c  The same type as ValueType, but possible
+     *                      const-qualified
+     * @param data  The pointer to the data
+     * @param size  The size of the array
+     * @return  A Kokkos 1D-view to the data
+     */
     template <typename ValueType_c>
-    static type<ValueType_c> map(ValueType_c* data, size_type size)
-    {
-        return type<ValueType_c>{
-            reinterpret_cast<value_type_t<ValueType_c>*>(data), size};
-    }
+    static type<ValueType_c> map(ValueType_c* data, size_type size);
 
-    static type<ValueType> map(array<ValueType>& arr)
-    {
-        assert_compatibility(arr, MemorySpace{});
+    /**
+     * Maps a mutable array.
+     */
+    static type<ValueType> map(array<ValueType>& arr);
 
-        return map(arr.get_data(), arr.get_size());
-    }
+    /**
+     * Maps a const array.
+     */
+    static type<const ValueType> map(const array<ValueType>& arr);
 
-    static type<const ValueType> map(const array<ValueType>& arr)
-    {
-        assert_compatibility(arr, MemorySpace{});
-
-        return map(arr.get_const_data(), arr.get_size());
-    }
-
-
+    /**
+     * Maps a const_array_view (same as mapping a const array).
+     */
     static type<const ValueType> map(
-        const ::gko::detail::const_array_view<ValueType>& arr)
-    {
-        assert_compatibility(arr, MemorySpace{});
-
-        return map(arr.get_const_data(), arr.get_size());
-    }
+        const ::gko::detail::const_array_view<ValueType>& arr);
 };
+
+template <typename ValueType, typename MemorySpace>
+template <typename ValueType_c>
+typename mapper<array<ValueType>, MemorySpace>::template type<ValueType_c>
+mapper<array<ValueType>, MemorySpace>::map(ValueType_c* data, size_type size)
+{
+    return type<ValueType_c>{reinterpret_cast<value_type_t<ValueType_c>*>(data),
+                             size};
+}
+
+
+template <typename ValueType, typename MemorySpace>
+typename mapper<array<ValueType>, MemorySpace>::template type<ValueType>
+mapper<array<ValueType>, MemorySpace>::map(array<ValueType>& arr)
+{
+    assert_compatibility<MemorySpace>(arr);
+
+    return map(arr.get_data(), arr.get_size());
+}
+
+
+template <typename ValueType, typename MemorySpace>
+typename mapper<array<ValueType>, MemorySpace>::template type<const ValueType>
+mapper<array<ValueType>, MemorySpace>::map(const array<ValueType>& arr)
+{
+    assert_compatibility<MemorySpace>(arr);
+
+    return map(arr.get_const_data(), arr.get_size());
+}
+
+
+template <typename ValueType, typename MemorySpace>
+typename mapper<array<ValueType>, MemorySpace>::template type<const ValueType>
+mapper<array<ValueType>, MemorySpace>::map(
+    const ::gko::detail::const_array_view<ValueType>& arr)
+{
+    assert_compatibility<MemorySpace>(arr);
+
+    return map(arr.get_const_data(), arr.get_size());
+}
 
 
 /**
@@ -134,62 +185,48 @@ struct mapper<matrix::Dense<ValueType>, MemorySpace> {
                               Kokkos::LayoutStride, MemorySpace,
                               Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
 
-    static type<ValueType> map(matrix::Dense<ValueType>& m)
-    {
-        assert_compatibility(m, MemorySpace{});
+    /**
+     * Maps a mutable dense matrix.
+     */
+    static type<ValueType> map(matrix::Dense<ValueType>& m);
 
-        auto size = m.get_size();
-
-        return type<ValueType>{
-            reinterpret_cast<value_type_t<ValueType>*>(m.get_values()),
-            Kokkos::LayoutStride{size[0], m.get_stride(), size[1], 1}};
-    }
-
-    static type<const ValueType> map(const matrix::Dense<ValueType>& m)
-    {
-        assert_compatibility(m, MemorySpace{});
-
-        auto size = m.get_size();
-
-        return type<const ValueType>{
-            reinterpret_cast<const value_type_t<ValueType>*>(
-                m.get_const_values()),
-            Kokkos::LayoutStride{size[0], m.get_stride(), size[1], 1}};
-    }
+    /**
+     * Maps a const dense matrix.
+     */
+    static type<const ValueType> map(const matrix::Dense<ValueType>& m);
 };
+
+template <typename ValueType, typename MemorySpace>
+typename mapper<matrix::Dense<ValueType>, MemorySpace>::template type<ValueType>
+mapper<matrix::Dense<ValueType>, MemorySpace>::map(matrix::Dense<ValueType>& m)
+{
+    assert_compatibility<MemorySpace>(m);
+
+    auto size = m.get_size();
+
+    return type<ValueType>{
+        reinterpret_cast<value_type_t<ValueType>*>(m.get_values()),
+        Kokkos::LayoutStride{size[0], m.get_stride(), size[1], 1}};
+}
+
+
+template <typename ValueType, typename MemorySpace>
+typename mapper<matrix::Dense<ValueType>,
+                MemorySpace>::template type<const ValueType>
+mapper<matrix::Dense<ValueType>, MemorySpace>::map(
+    const matrix::Dense<ValueType>& m)
+{
+    assert_compatibility<MemorySpace>(m);
+
+    auto size = m.get_size();
+
+    return type<const ValueType>{
+        reinterpret_cast<const value_type_t<ValueType>*>(m.get_const_values()),
+        Kokkos::LayoutStride{size[0], m.get_stride(), size[1], 1}};
+}
 
 
 }  // namespace detail
-
-
-//!< specialization of gko::native for Kokkos
-template <typename MemorySpace>
-struct kokkos_type {
-    template <typename T>
-    static auto map(T* data)
-    {
-        return map(*data);
-    }
-
-    template <typename T>
-    static auto map(const std::unique_ptr<T>& data)
-    {
-        return map(*data);
-    }
-
-    template <typename T>
-    static auto map(const std::shared_ptr<T>& data)
-    {
-        return map(*data);
-    }
-
-    template <typename T>
-    static auto map(T&& data)
-    {
-        return detail::mapper<std::decay_t<T>, MemorySpace>::map(
-            std::forward<T>(data));
-    }
-};
 
 
 /**
@@ -202,41 +239,42 @@ struct kokkos_type {
  *
  * @return  A wrapper for the Ginkgo object that is compatible with Kokkos
  */
-template <typename T,
-          typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
-inline auto map_data(T* data, MemorySpace = {})
+template <typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space,
+          typename T>
+inline auto map_data(T&& data)
 {
-    return kokkos_type<MemorySpace>::map(*data);
+    return detail::mapper<std::decay_t<T>, MemorySpace>::map(
+        std::forward<T>(data));
 }
 
 /**
- * @copydoc map_data(T*, MemorySpace)
+ * @copydoc map_data(T&&, MemorySpace)
  */
-template <typename T,
-          typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
-inline auto map_data(std::unique_ptr<T>& data, MemorySpace = {})
+template <typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space,
+          typename T>
+inline auto map_data(T* data)
 {
-    return kokkos_type<MemorySpace>::map(*data);
+    return map_data<MemorySpace>(*data);
 }
 
 /**
- * @copydoc map_data(T*, MemorySpace)
+ * @copydoc map_data(T&&, MemorySpace)
  */
-template <typename T,
-          typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
-inline auto map_data(std::shared_ptr<T>& data, MemorySpace = {})
+template <typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space,
+          typename T>
+inline auto map_data(std::unique_ptr<T>& data)
 {
-    return kokkos_type<MemorySpace>::map(*data);
+    return map_data<MemorySpace>(*data);
 }
 
 /**
- * @copydoc map_data(T*, MemorySpace)
+ * @copydoc map_data(T&&, MemorySpace)
  */
-template <typename T,
-          typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space>
-inline auto map_data(T&& data, MemorySpace = {})
+template <typename MemorySpace = Kokkos::DefaultExecutionSpace::memory_space,
+          typename T>
+inline auto map_data(std::shared_ptr<T>& data)
 {
-    return kokkos_type<MemorySpace>::map(data);
+    return map_data<MemorySpace>(*data);
 }
 
 
@@ -245,5 +283,4 @@ inline auto map_data(T&& data, MemorySpace = {})
 }  // namespace gko
 
 
-#endif  // GINKGO_EXTENSION_KOKKOS
 #endif  // GINKGO_EXTENSIONS_KOKKOS_TYPES_HPP

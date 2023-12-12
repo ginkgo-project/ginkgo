@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,6 +6,7 @@
 #define GKO_PUBLIC_EXTENSIONS_KOKKOS_HPP_
 
 
+#include <ginkgo/extensions/kokkos/config.hpp>
 #include <ginkgo/extensions/kokkos/spaces.hpp>
 #include <ginkgo/extensions/kokkos/types.hpp>
 

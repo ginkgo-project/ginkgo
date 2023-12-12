@@ -6,6 +6,9 @@
 #include <sstream>
 
 
+#include <Kokkos_Core.hpp>
+
+
 #include <gtest/gtest.h>
 
 
@@ -18,6 +21,7 @@
 
 
 using DefaultMemorySpace = Kokkos::DefaultExecutionSpace::memory_space;
+
 
 template <typename ValueType>
 class ArrayMapper : public ::testing::Test {
@@ -40,13 +44,19 @@ TYPED_TEST(ArrayMapper, CanMapDefault)
 
     auto mapped_array = gko::ext::kokkos::map_data(this->array);
 
-    using array_type =
+    using mapped_type =
         std::remove_cv_t<std::remove_reference_t<decltype(mapped_array)>>;
     static_assert(
-        std::is_same_v<array_type,
+        std::is_same_v<mapped_type,
                        Kokkos::View<kokkos_value_type*, DefaultMemorySpace,
                                     Kokkos::MemoryTraits<Kokkos::Unmanaged>>>);
+    ASSERT_EQ(reinterpret_cast<std::uintptr_t>(mapped_array.data()),
+              reinterpret_cast<std::uintptr_t>(this->array.get_data()));
+    ASSERT_EQ(mapped_array.extent(0), this->array.get_size());
+    ASSERT_EQ(mapped_array.size(), this->array.get_size());
+    ASSERT_EQ(mapped_array.stride(0), 1);
 }
+
 
 TYPED_TEST(ArrayMapper, CanMapConst)
 {
@@ -57,12 +67,17 @@ TYPED_TEST(ArrayMapper, CanMapConst)
     auto mapped_array = gko::ext::kokkos::map_data(
         const_cast<const gko::array<value_type>&>(this->array));
 
-    using array_type =
+    using mapped_type =
         std::remove_cv_t<std::remove_reference_t<decltype(mapped_array)>>;
     static_assert(std::is_same_v<
-                  array_type,
+                  mapped_type,
                   Kokkos::View<const kokkos_value_type*, DefaultMemorySpace,
                                Kokkos::MemoryTraits<Kokkos::Unmanaged>>>);
+    ASSERT_EQ(reinterpret_cast<std::uintptr_t>(mapped_array.data()),
+              reinterpret_cast<std::uintptr_t>(this->array.get_data()));
+    ASSERT_EQ(mapped_array.extent(0), this->array.get_size());
+    ASSERT_EQ(mapped_array.size(), this->array.get_size());
+    ASSERT_EQ(mapped_array.stride(0), 1);
 }
 
 
@@ -89,14 +104,24 @@ TYPED_TEST(DenseMapper, CanMapDefault)
 
     auto mapped_mtx = gko::ext::kokkos::map_data(this->mtx);
 
-    using mtx_type =
+    using mapped_type =
         std::remove_cv_t<std::remove_reference_t<decltype(mapped_mtx)>>;
     static_assert(
-        std::is_same_v<mtx_type,
+        std::is_same_v<mapped_type,
                        Kokkos::View<kokkos_value_type**, Kokkos::LayoutStride,
                                     DefaultMemorySpace,
                                     Kokkos::MemoryTraits<Kokkos::Unmanaged>>>);
+    ASSERT_EQ(reinterpret_cast<std::uintptr_t>(mapped_mtx.data()),
+              reinterpret_cast<std::uintptr_t>(this->mtx->get_values()));
+    ASSERT_EQ(mapped_mtx.extent(0), this->mtx->get_size()[0]);
+    ASSERT_EQ(mapped_mtx.extent(1), this->mtx->get_size()[1]);
+    ASSERT_EQ(mapped_mtx.size(),
+              this->mtx->get_size()[0] * this->mtx->get_size()[1]);
+    ASSERT_EQ(mapped_mtx.span(), this->mtx->get_num_stored_elements());
+    ASSERT_EQ(mapped_mtx.stride(0), this->mtx->get_stride());
+    ASSERT_EQ(mapped_mtx.stride(1), 1);
 }
+
 
 TYPED_TEST(DenseMapper, CanMapConst)
 {
@@ -107,11 +132,50 @@ TYPED_TEST(DenseMapper, CanMapConst)
     auto mapped_mtx = gko::ext::kokkos::map_data(
         const_cast<const gko::matrix::Dense<value_type>*>(this->mtx.get()));
 
-    using mtx_type =
+    using mapped_type =
         std::remove_cv_t<std::remove_reference_t<decltype(mapped_mtx)>>;
     static_assert(
-        std::is_same_v<mtx_type,
+        std::is_same_v<mapped_type,
                        Kokkos::View<const kokkos_value_type**,
                                     Kokkos::LayoutStride, DefaultMemorySpace,
                                     Kokkos::MemoryTraits<Kokkos::Unmanaged>>>);
+    ASSERT_EQ(reinterpret_cast<std::uintptr_t>(mapped_mtx.data()),
+              reinterpret_cast<std::uintptr_t>(this->mtx->get_values()));
+    ASSERT_EQ(mapped_mtx.extent(0), this->mtx->get_size()[0]);
+    ASSERT_EQ(mapped_mtx.extent(1), this->mtx->get_size()[1]);
+    ASSERT_EQ(mapped_mtx.size(),
+              this->mtx->get_size()[0] * this->mtx->get_size()[1]);
+    ASSERT_EQ(mapped_mtx.span(), this->mtx->get_num_stored_elements());
+    ASSERT_EQ(mapped_mtx.stride(0), this->mtx->get_stride());
+    ASSERT_EQ(mapped_mtx.stride(1), 1);
+}
+
+
+TYPED_TEST(DenseMapper, CanMapStrided)
+{
+    using mtx_type = typename TestFixture::mtx_type;
+    using value_type = typename TestFixture::value_type;
+    using kokkos_value_type =
+        typename gko::ext::kokkos::detail::value_type<value_type>::type;
+    std::unique_ptr<mtx_type> mtx = mtx_type ::create(
+        this->exec, gko::dim<2>{2, 2},
+        gko::array<value_type>{this->exec, {1, 2, -1, 3, 4, -10}}, 3);
+
+    auto mapped_mtx = gko::ext::kokkos::map_data(mtx);
+
+    using mapped_type =
+        std::remove_cv_t<std::remove_reference_t<decltype(mapped_mtx)>>;
+    static_assert(
+        std::is_same_v<mapped_type,
+                       Kokkos::View<kokkos_value_type**, Kokkos::LayoutStride,
+                                    DefaultMemorySpace,
+                                    Kokkos::MemoryTraits<Kokkos::Unmanaged>>>);
+    ASSERT_EQ(reinterpret_cast<std::uintptr_t>(mapped_mtx.data()),
+              reinterpret_cast<std::uintptr_t>(mtx->get_values()));
+    ASSERT_EQ(mapped_mtx.extent(0), mtx->get_size()[0]);
+    ASSERT_EQ(mapped_mtx.extent(1), mtx->get_size()[1]);
+    ASSERT_EQ(mapped_mtx.size(), mtx->get_size()[0] * mtx->get_size()[1]);
+    ASSERT_EQ(mapped_mtx.span(), mtx->get_num_stored_elements());
+    ASSERT_EQ(mapped_mtx.stride(0), mtx->get_stride());
+    ASSERT_EQ(mapped_mtx.stride(1), 1);
 }

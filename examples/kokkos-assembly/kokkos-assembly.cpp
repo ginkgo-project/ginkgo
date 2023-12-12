@@ -3,8 +3,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <iostream>
-#include <Kokkos_Core.hpp>
 #include <string>
+
+
+#include <Kokkos_Core.hpp>
 
 
 #include <ginkgo/extensions/kokkos.hpp>
@@ -47,8 +49,9 @@ struct mapper<device_matrix_data<ValueType, IndexType>, MemorySpace> {
          * @param row_idxs  Pointer to the row indices
          * @param col_idxs  Pointer to the column indices
          * @param values  Pointer to the values
+         *
          * @return  An object which has each gko::array of the
-         *          devive_matrix_data mapped to a Kokkos view
+         *          device_matrix_data mapped to a Kokkos view
          */
         static type map(size_type size, IndexType_c* row_idxs,
                         IndexType_c* col_idxs, ValueType_c* values)
@@ -66,7 +69,7 @@ struct mapper<device_matrix_data<ValueType, IndexType>, MemorySpace> {
     static type<ValueType, IndexType> map(
         device_matrix_data<ValueType, IndexType>& md)
     {
-        assert_compatibility(md, MemorySpace{});
+        assert_compatibility<MemorySpace>(md);
         return type<ValueType, IndexType>::map(
             md.get_num_stored_elements(), md.get_row_idxs(), md.get_col_idxs(),
             md.get_values());
@@ -75,7 +78,7 @@ struct mapper<device_matrix_data<ValueType, IndexType>, MemorySpace> {
     static type<const ValueType, const IndexType> map(
         const device_matrix_data<ValueType, IndexType>& md)
     {
-        assert_compatibility(md, MemorySpace{});
+        assert_compatibility<MemorySpace>(md);
         return type<const ValueType, const IndexType>::map(
             md.get_num_stored_elements(), md.get_const_row_idxs(),
             md.get_const_col_idxs(), md.get_const_values());
