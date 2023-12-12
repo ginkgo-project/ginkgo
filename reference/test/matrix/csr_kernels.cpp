@@ -81,7 +81,7 @@ protected:
         this->create_mtx3(mtx3_sorted.get(), mtx3_unsorted.get());
     }
 
-    void create_mtx(Mtx* m)
+    void create_mtx(gko::ptr_param<Mtx> m)
     {
         value_type* v = m->get_values();
         index_type* c = m->get_col_idxs();
@@ -105,7 +105,7 @@ protected:
         s[0] = 0;
     }
 
-    void create_mtx2(Mtx* m)
+    void create_mtx2(gko::ptr_param<Mtx> m)
     {
         value_type* v = m->get_values();
         index_type* c = m->get_col_idxs();
@@ -130,7 +130,7 @@ protected:
         v[4] = 5.0;
     }
 
-    void create_mtx3(Mtx* sorted, Mtx* unsorted)
+    void create_mtx3(gko::ptr_param<Mtx> sorted, gko::ptr_param<Mtx> unsorted)
     {
         auto vals_s = sorted->get_values();
         auto cols_s = sorted->get_col_idxs();
@@ -2251,86 +2251,6 @@ TYPED_TEST(Csr, ScaleCsrAddIdentityThrowsOnZeroDiagonal)
 }
 
 
-template <typename ValueIndexType>
-class CsrComplex : public ::testing::Test {
-protected:
-    using value_type =
-        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
-    using index_type =
-        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using Mtx = gko::matrix::Csr<value_type, index_type>;
-};
-
-TYPED_TEST_SUITE(CsrComplex, gko::test::ComplexValueIndexTypes,
-                 PairTypenameNameGenerator);
-
-
-TYPED_TEST(CsrComplex, MtxIsConjugateTransposable)
-{
-    using Csr = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-
-    auto exec = gko::ReferenceExecutor::create();
-    // clang-format off
-    auto mtx2 = gko::initialize<Csr>(
-        {{T{1.0, 2.0}, T{3.0, 0.0}, T{2.0, 0.0}},
-         {T{0.0, 0.0}, T{5.0, - 3.5}, T{0.0,0.0}},
-         {T{0.0, 0.0}, T{0.0, 1.5}, T{2.0,0.0}}}, exec);
-    // clang-format on
-
-    auto trans_as_csr = gko::as<Csr>(mtx2->conj_transpose());
-
-    // clang-format off
-    GKO_ASSERT_MTX_NEAR(trans_as_csr,
-                        l({{T{1.0, - 2.0}, T{0.0, 0.0}, T{0.0, 0.0}},
-                           {T{3.0, 0.0}, T{5.0, 3.5}, T{0.0, - 1.5}},
-                           {T{2.0, 0.0}, T{0.0, 0.0}, T{2.0 + 0.0}}}), 0.0);
-    // clang-format on
-}
-
-
-TYPED_TEST(CsrComplex, InplaceAbsolute)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    auto exec = gko::ReferenceExecutor::create();
-    // clang-format off
-    auto mtx = gko::initialize<Mtx>(
-        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
-         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
-         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
-    // clang-format on
-
-    mtx->compute_absolute_inplace();
-
-    GKO_ASSERT_MTX_NEAR(
-        mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
-}
-
-
-TYPED_TEST(CsrComplex, OutplaceAbsolute)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    auto exec = gko::ReferenceExecutor::create();
-    // clang-format off
-    auto mtx = gko::initialize<Mtx>(
-        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
-         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
-         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
-    // clang-format on
-
-    auto abs_mtx = mtx->compute_absolute();
-
-    GKO_ASSERT_MTX_NEAR(
-        abs_mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
-    ASSERT_EQ(mtx->get_strategy()->get_name(),
-              abs_mtx->get_strategy()->get_name());
-}
-
-
 TYPED_TEST(Csr, CanGetSubmatrix)
 {
     using Vec = typename TestFixture::Vec;
@@ -2555,6 +2475,118 @@ TYPED_TEST(Csr, CanGetSubmatrixWithIndexSet)
 
         GKO_EXPECT_MTX_NEAR(sub_mat1, ref1, 0.0);
     }
+}
+
+
+TYPED_TEST(Csr, CanComputeRowWiseSum)
+{
+    using value_type = typename TestFixture::value_type;
+    gko::array<value_type> sum(this->exec, this->mtx3_sorted->get_size()[0]);
+    this->create_mtx3(this->mtx3_sorted, this->mtx3_unsorted);
+    this->mtx3_sorted->scale(gko::initialize<gko::matrix::Dense<value_type>>(
+        {-gko::one<value_type>()}, this->exec));
+
+    gko::kernels::reference::csr::row_wise_sum(
+        this->exec, this->mtx3_sorted.get(), sum, false);
+
+    gko::array<value_type> sum_result(this->exec, {-3, -12, -5});
+    GKO_ASSERT_ARRAY_EQ(sum, sum_result);
+}
+
+
+TYPED_TEST(Csr, CanComputeRowWiseAbsoluteSum)
+{
+    using value_type = typename TestFixture::value_type;
+    gko::array<value_type> sum(this->exec, this->mtx3_sorted->get_size()[0]);
+    this->create_mtx3(this->mtx3_sorted, this->mtx3_unsorted);
+    this->mtx3_sorted->scale(gko::initialize<gko::matrix::Dense<value_type>>(
+        {-gko::one<value_type>()}, this->exec));
+
+    gko::kernels::reference::csr::row_wise_sum(
+        this->exec, this->mtx3_sorted.get(), sum, true);
+
+    gko::array<value_type> sum_result(this->exec, {3, 12, 5});
+    GKO_ASSERT_ARRAY_EQ(sum, sum_result);
+}
+
+
+template <typename ValueIndexType>
+class CsrComplex : public ::testing::Test {
+protected:
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using Mtx = gko::matrix::Csr<value_type, index_type>;
+};
+
+TYPED_TEST_SUITE(CsrComplex, gko::test::ComplexValueIndexTypes,
+                 PairTypenameNameGenerator);
+
+
+TYPED_TEST(CsrComplex, MtxIsConjugateTransposable)
+{
+    using Csr = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+
+    auto exec = gko::ReferenceExecutor::create();
+    // clang-format off
+    auto mtx2 = gko::initialize<Csr>(
+        {{T{1.0, 2.0}, T{3.0, 0.0}, T{2.0, 0.0}},
+         {T{0.0, 0.0}, T{5.0, - 3.5}, T{0.0,0.0}},
+         {T{0.0, 0.0}, T{0.0, 1.5}, T{2.0,0.0}}}, exec);
+    // clang-format on
+
+    auto trans_as_csr = gko::as<Csr>(mtx2->conj_transpose());
+
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(trans_as_csr,
+                        l({{T{1.0, - 2.0}, T{0.0, 0.0}, T{0.0, 0.0}},
+                           {T{3.0, 0.0}, T{5.0, 3.5}, T{0.0, - 1.5}},
+                           {T{2.0, 0.0}, T{0.0, 0.0}, T{2.0 + 0.0}}}), 0.0);
+    // clang-format on
+}
+
+
+TYPED_TEST(CsrComplex, InplaceAbsolute)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto exec = gko::ReferenceExecutor::create();
+    // clang-format off
+    auto mtx = gko::initialize<Mtx>(
+        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
+         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
+         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
+    // clang-format on
+
+    mtx->compute_absolute_inplace();
+
+    GKO_ASSERT_MTX_NEAR(
+        mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
+}
+
+
+TYPED_TEST(CsrComplex, OutplaceAbsolute)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto exec = gko::ReferenceExecutor::create();
+    // clang-format off
+    auto mtx = gko::initialize<Mtx>(
+        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
+         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
+         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
+    // clang-format on
+
+    auto abs_mtx = mtx->compute_absolute();
+
+    GKO_ASSERT_MTX_NEAR(
+        abs_mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
+    ASSERT_EQ(mtx->get_strategy()->get_name(),
+              abs_mtx->get_strategy()->get_name());
 }
 
 
