@@ -54,7 +54,6 @@ set(GINKGO_HIP_SOURCES
     reorder/rcm_kernels.hip.cpp
     solver/async_jacobi_kernels.hip.cpp
     solver/batch_bicgstab_kernels.hip.cpp
-    solver/gmres_kernels.hip.cpp
     solver/cb_gmres_kernels.hip.cpp
     solver/idr_kernels.hip.cpp
     solver/lower_trs_kernels.hip.cpp

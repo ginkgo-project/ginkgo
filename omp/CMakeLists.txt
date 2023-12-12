@@ -40,7 +40,6 @@ target_sources(ginkgo_omp
     reorder/rcm_kernels.cpp
     solver/async_jacobi_kernels.cpp
     solver/batch_bicgstab_kernels.cpp
-    solver/gmres_kernels.cpp
     solver/cb_gmres_kernels.cpp
     solver/idr_kernels.cpp
     solver/lower_trs_kernels.cpp
