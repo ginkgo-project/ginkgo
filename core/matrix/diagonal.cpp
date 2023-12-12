@@ -327,6 +327,14 @@ Diagonal<ValueType>::compute_absolute() const
 }
 
 
+template <typename ValueType>
+std::unique_ptr<Diagonal<ValueType>> Diagonal<ValueType>::extract_diagonal()
+    const
+{
+    return Diagonal::create(this->get_executor(), this->get_size()[0], values_);
+}
+
+
 #define GKO_DECLARE_DIAGONAL_MATRIX(value_type) class Diagonal<value_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_MATRIX);
 
