@@ -29,8 +29,6 @@ class Dense;
  * require one array to store their values.
  *
  * @tparam ValueType  precision of matrix elements
- * @tparam IndexType  precision of matrix indexes of a CSR matrix the diagonal
- *                    is applied or converted to.
  *
  * @ingroup diagonal
  * @ingroup mat_formats
@@ -47,7 +45,8 @@ class Diagonal
       public WritableToMatrixData<ValueType, int64>,
       public ReadableFromMatrixData<ValueType, int32>,
       public ReadableFromMatrixData<ValueType, int64>,
-      public EnableAbsoluteComputation<remove_complex<Diagonal<ValueType>>> {
+      public EnableAbsoluteComputation<remove_complex<Diagonal<ValueType>>>,
+      public DiagonalExtractable<ValueType> {
     friend class EnablePolymorphicObject<Diagonal, LinOp>;
     friend class Csr<ValueType, int32>;
     friend class Csr<ValueType, int64>;
@@ -92,6 +91,8 @@ public:
     std::unique_ptr<absolute_type> compute_absolute() const override;
 
     void compute_absolute_inplace() override;
+
+    std::unique_ptr<Diagonal> extract_diagonal() const override;
 
     /**
      * Returns a pointer to the array of values of the matrix.
