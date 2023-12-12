@@ -53,7 +53,7 @@ void initialize_weights(const matrix::Csr<ValueType, IndexType>* host_mtx,
         for (IndexType row = 0; row < num_rows; row++) {
             const auto row_begin = row_ptrs[row];
             const auto row_end = row_ptrs[row + 1];
-            auto row_max = -inf;
+            auto row_max = static_cast<remove_complex<ValueType>>(-inf);
             for (IndexType idx = row_begin; idx < row_end; idx++) {
                 const auto weight = calculate_weight(values[idx]);
                 weights[idx] = weight;
@@ -70,11 +70,13 @@ void initialize_weights(const matrix::Csr<ValueType, IndexType>* host_mtx,
             }
         }
     };
-    if (strategy ==
-        gko::experimental::reorder::mc64_strategy::max_diagonal_sum) {
-        run_computation([](ValueType a) { return abs(a); });
+    if (strategy == mc64_strategy::max_diagonal_sum) {
+        run_computation(
+            [](ValueType a) -> remove_complex<ValueType> { return abs(a); });
     } else {
-        run_computation([](ValueType a) { return std::log2(abs(a)); });
+        run_computation([](ValueType a) -> remove_complex<ValueType> {
+            return std::log2(abs(a));
+        });
     }
 }
 
