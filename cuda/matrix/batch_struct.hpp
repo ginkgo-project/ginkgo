@@ -33,6 +33,41 @@ namespace cuda {
 
 
 /**
+ * Generates an immutable uniform batch struct from a batch of csr matrices.
+ */
+template <typename ValueType, typename IndexType>
+inline batch::matrix::csr::uniform_batch<const cuda_type<ValueType>,
+                                         const IndexType>
+get_batch_struct(const batch::matrix::Csr<ValueType, IndexType>* const op)
+{
+    return {as_cuda_type(op->get_const_values()),
+            op->get_const_col_idxs(),
+            op->get_const_row_ptrs(),
+            op->get_num_batch_items(),
+            static_cast<IndexType>(op->get_common_size()[0]),
+            static_cast<IndexType>(op->get_common_size()[1]),
+            static_cast<IndexType>(op->get_num_elements_per_item())};
+}
+
+
+/**
+ * Generates a uniform batch struct from a batch of csr matrices.
+ */
+template <typename ValueType, typename IndexType>
+inline batch::matrix::csr::uniform_batch<cuda_type<ValueType>, IndexType>
+get_batch_struct(batch::matrix::Csr<ValueType, IndexType>* const op)
+{
+    return {as_cuda_type(op->get_values()),
+            op->get_col_idxs(),
+            op->get_row_ptrs(),
+            op->get_num_batch_items(),
+            static_cast<IndexType>(op->get_common_size()[0]),
+            static_cast<IndexType>(op->get_common_size()[1]),
+            static_cast<IndexType>(op->get_num_elements_per_item())};
+}
+
+
+/**
  * Generates an immutable uniform batch struct from a batch of dense matrices.
  */
 template <typename ValueType>

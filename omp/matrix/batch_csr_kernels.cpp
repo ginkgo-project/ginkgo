@@ -2,14 +2,14 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "core/matrix/batch_ell_kernels.hpp"
+#include "core/matrix/batch_csr_kernels.hpp"
 
 
 #include <algorithm>
 
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
-#include <ginkgo/core/matrix/batch_ell.hpp>
+#include <ginkgo/core/matrix/batch_csr.hpp>
 
 
 #include "core/base/batch_struct.hpp"
@@ -22,19 +22,19 @@ namespace gko {
 namespace kernels {
 namespace omp {
 /**
- * @brief The Ell matrix format namespace.
- * @ref Ell
- * @ingroup batch_ell
+ * @brief The Csr matrix format namespace.
+ * @ref Csr
+ * @ingroup batch_csr
  */
-namespace batch_ell {
+namespace batch_csr {
 
 
-#include "reference/matrix/batch_ell_kernels.hpp.inc"
+#include "reference/matrix/batch_csr_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>
 void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
-                  const batch::matrix::Ell<ValueType, IndexType>* mat,
+                  const batch::matrix::Csr<ValueType, IndexType>* mat,
                   const batch::MultiVector<ValueType>* b,
                   batch::MultiVector<ValueType>* x)
 {
@@ -51,13 +51,13 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
-    GKO_DECLARE_BATCH_ELL_SIMPLE_APPLY_KERNEL);
+    GKO_DECLARE_BATCH_CSR_SIMPLE_APPLY_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
 void advanced_apply(std::shared_ptr<const DefaultExecutor> exec,
                     const batch::MultiVector<ValueType>* alpha,
-                    const batch::matrix::Ell<ValueType, IndexType>* mat,
+                    const batch::matrix::Csr<ValueType, IndexType>* mat,
                     const batch::MultiVector<ValueType>* b,
                     const batch::MultiVector<ValueType>* beta,
                     batch::MultiVector<ValueType>* x)
@@ -80,10 +80,10 @@ void advanced_apply(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
-    GKO_DECLARE_BATCH_ELL_ADVANCED_APPLY_KERNEL);
+    GKO_DECLARE_BATCH_CSR_ADVANCED_APPLY_KERNEL);
 
 
-}  // namespace batch_ell
+}  // namespace batch_csr
 }  // namespace omp
 }  // namespace kernels
 }  // namespace gko
