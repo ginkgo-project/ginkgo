@@ -437,6 +437,8 @@ struct Schwarz
         config_map["generated_local_solver"] = pnode{"linop"};
         param.with_generated_local_solver(
             detail::registry_accessor::get_data<gko::LinOp>(reg, "linop"));
+        config_map["l1_smoother"] = pnode{true};
+        param.with_l1_smoother(true);
     }
 
     template <bool from_reg, typename AnswerType>
