@@ -11,6 +11,7 @@
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "common/unified/base/kernel_launch_reduction.hpp"
+#include "core/base/array_access.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 
@@ -278,8 +279,7 @@ void compute_max_nnz_per_row(std::shared_ptr<const DefaultExecutor> exec,
         GKO_KERNEL_REDUCE_MAX(size_type),
         partial.get_data() + source->get_size()[0], source->get_size()[0],
         partial);
-    result = exec->copy_val_to_host(partial.get_const_data() +
-                                    source->get_size()[0]);
+    result = get_element(partial, source->get_size()[0]);
 }
 
 

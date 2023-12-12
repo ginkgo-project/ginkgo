@@ -7,6 +7,7 @@
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "common/unified/base/kernel_launch_reduction.hpp"
+#include "core/base/array_access.hpp"
 
 
 namespace gko {
@@ -36,8 +37,7 @@ void check_consecutive_ranges(std::shared_ptr<const DefaultExecutor> exec,
             [] GKO_KERNEL(auto x) { return x; }, static_cast<uint32>(true),
             result_uint32.get_data(), num_ranges - 1,
             range_start_ends.get_const_data() + 1);
-        result =
-            static_cast<bool>(exec->copy_val_to_host(result_uint32.get_data()));
+        result = static_cast<bool>(get_element(result_uint32, 0));
     } else {
         result = true;
     }

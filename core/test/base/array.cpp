@@ -15,6 +15,7 @@
 #include <ginkgo/core/base/executor.hpp>
 
 
+#include "core/base/array_access.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -297,6 +298,43 @@ TYPED_TEST(Array, MovedFromArrayDifferentExecutorIsEmpty)
 
     ASSERT_EQ(this->x.get_executor(), this->exec);
     ASSERT_EQ(this->x.get_size(), 0);
+}
+
+
+TYPED_TEST(Array, CanGetElement)
+{
+    gko::array<TypeParam> a{this->exec, {2, 4}};
+
+    ASSERT_EQ(get_element(a, 0), TypeParam{2});
+    ASSERT_EQ(get_element(a, 1), TypeParam{4});
+}
+
+
+TYPED_TEST(Array, CanSetElement)
+{
+    gko::array<TypeParam> a{this->exec, {2, 4}};
+
+    set_element(a, 1, TypeParam{0});
+
+    ASSERT_EQ(get_element(a, 1), TypeParam{0});
+}
+
+
+TYPED_TEST(Array, GetElementThrowsOutOfBounds)
+{
+    gko::array<TypeParam> a{this->exec, {2, 4}};
+
+    ASSERT_THROW(get_element(a, 2), gko::OutOfBoundsError);
+    // TODO2.0 add bounds check test for negative indices
+}
+
+
+TYPED_TEST(Array, SetElementThrowsOutOfBounds)
+{
+    gko::array<TypeParam> a{this->exec, {2, 4}};
+
+    ASSERT_THROW(set_element(a, 2, TypeParam{0}), gko::OutOfBoundsError);
+    // TODO2.0 add bounds check test for negative indices
 }
 
 

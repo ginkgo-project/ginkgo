@@ -18,6 +18,7 @@
 #include "accessor/range.hpp"
 #include "accessor/reduced_row_major.hpp"
 #include "accessor/scaled_reduced_row_major.hpp"
+#include "core/base/array_access.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/solver/cb_gmres_accessor.hpp"
@@ -274,7 +275,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const DefaultExecutor> exec,
             stride_hessenberg, iter + 1, acc::as_hip_range(krylov_bases),
             as_device_type(stop_status), as_device_type(reorth_status),
             as_device_type(num_reorth->get_data()));
-    num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
+    num_reorth_host = get_element(*num_reorth, 0);
     // num_reorth_host := number of next_krylov vector to be reorthogonalization
     for (size_type l = 1; (num_reorth_host > 0) && (l < 3); l++) {
         zero_matrix(exec, iter + 1, dim_size[1], stride_buffer,
@@ -340,7 +341,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const DefaultExecutor> exec,
                 stride_hessenberg, iter + 1, acc::as_hip_range(krylov_bases),
                 as_device_type(stop_status), as_device_type(reorth_status),
                 num_reorth->get_data());
-        num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
+        num_reorth_host = get_element(*num_reorth, 0);
         // num_reorth_host := number of next_krylov vector to be
         // reorthogonalization
     }

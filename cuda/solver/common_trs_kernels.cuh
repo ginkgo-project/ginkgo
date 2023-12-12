@@ -20,6 +20,7 @@
 #include <ginkgo/core/base/math.hpp>
 
 
+#include "core/base/array_access.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
@@ -541,7 +542,7 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
     }
 
 #if GKO_VERBOSE_LEVEL >= 1
-    if (exec->copy_val_to_host(nan_produced.get_const_data())) {
+    if (get_element(nan_produced, 0)) {
         std::cerr
             << "Error: triangular solve produced NaN, either not all diagonal "
                "elements are nonzero, or the system is very ill-conditioned. "

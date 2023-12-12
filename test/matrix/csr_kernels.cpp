@@ -19,6 +19,7 @@
 
 
 #include "common/unified/base/kernel_launch.hpp"
+#include "core/base/array_access.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "test/utils/executor.hpp"
@@ -187,7 +188,7 @@ void assert_lookup_correct(std::shared_ptr<const gko::EXEC_TYPE> exec,
         },
         num_rows, num_cols, row_ptrs, col_idxs, storage_offsets, storage,
         row_descs, correct);
-    ASSERT_TRUE(exec->copy_val_to_host(correct.get_const_data()));
+    ASSERT_TRUE(get_element(correct, 0));
 }
 
 
