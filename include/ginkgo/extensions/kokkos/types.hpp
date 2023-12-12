@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GINKGO_TYPES_HPP
-#define GINKGO_TYPES_HPP
+#ifndef GINKGO_EXTENSIONS_KOKKOS_TYPES_HPP
+#define GINKGO_EXTENSIONS_KOKKOS_TYPES_HPP
 
 #include <ginkgo/config.hpp>
 
@@ -20,8 +20,6 @@
 namespace gko {
 namespace ext {
 namespace kokkos {
-
-
 namespace detail {
 
 
@@ -31,18 +29,33 @@ namespace detail {
  * @tparam T  An arithmetic type.
  */
 template <typename T>
-struct value_type {
+struct value_type_impl {
     using type = T;
 };
 
 template <typename T>
-struct value_type<std::complex<T>> {
-    using type = Kokkos::complex<T>;
+struct value_type_impl<const T> {
+    using type = const typename value_type_impl<T>::type;
 };
 
 template <typename T>
-struct value_type<const std::complex<T>> {
-    using type = const Kokkos::complex<T>;
+struct value_type_impl<std::complex<T>> {
+    using type = Kokkos::complex<T>;
+};
+
+
+template <typename T>
+struct value_type {
+    using type = typename value_type_impl<T>::type;
+
+    static_assert(sizeof(std::decay_t<T>) == sizeof(std::decay_t<type>),
+                  "Can't handle C++ data type and corresponding Kokkos "
+                  "type with mismatching type sizes.");
+    static_assert(
+        alignof(std::decay_t<T>) == alignof(std::decay_t<type>),
+        "Can't handle C++ data type and corresponding Kokkos type with "
+        "mismatching alignments. If std::complex is used, please make sure "
+        "to configure Kokkos with `KOKKOS_ENABLE_COMPLEX_ALIGN=ON`");
 };
 
 template <typename T>
@@ -73,14 +86,6 @@ struct mapper<array<ValueType>, MemorySpace> {
     template <typename ValueType_c>
     static type<ValueType_c> map(ValueType_c* data, size_type size)
     {
-        static_assert(sizeof(ValueType_c) == sizeof(value_type_t<ValueType_c>),
-                      "Can't handle C++ data type and corresponding Kokkos "
-                      "type with mismatching type sizes.");
-        // a similar check for alignment is not possible, since the alignment
-        // of kokkos::complex can be changed, but not through spack. Thus
-        // changing the alignment after an assertion failure requires building
-        // kokkos from source.
-
         return type<ValueType_c>{
             reinterpret_cast<value_type_t<ValueType_c>*>(data), size};
     }
@@ -118,7 +123,6 @@ struct mapper<array<ValueType>, MemorySpace> {
  *
  * @tparam MemorySpace  The memory space type the mapped object should use.
  */
-
 template <typename ValueType, typename MemorySpace>
 struct mapper<matrix::Dense<ValueType>, MemorySpace> {
     template <typename ValueType_c>
@@ -128,10 +132,6 @@ struct mapper<matrix::Dense<ValueType>, MemorySpace> {
 
     static type<ValueType> map(matrix::Dense<ValueType>& m)
     {
-        static_assert(sizeof(ValueType) == sizeof(value_type_t<ValueType>),
-                      "Can't handle C++ data type and corresponding Kokkos "
-                      "type with mismatching type sizes.");
-
         assert_compatibility(m, MemorySpace{});
 
         auto size = m.get_size();
@@ -143,10 +143,6 @@ struct mapper<matrix::Dense<ValueType>, MemorySpace> {
 
     static type<const ValueType> map(const matrix::Dense<ValueType>& m)
     {
-        static_assert(sizeof(ValueType) == sizeof(value_type_t<ValueType>),
-                      "Can't handle C++ data type and corresponding Kokkos "
-                      "type with mismatching type sizes.");
-
         assert_compatibility(m, MemorySpace{});
 
         auto size = m.get_size();
@@ -289,4 +285,4 @@ inline auto map_data(T&& data, MemorySpace = {})
 
 
 #endif  // GINKGO_EXTENSION_KOKKOS
-#endif  // GINKGO_TYPES_HPP
+#endif  // GINKGO_EXTENSIONS_KOKKOS_TYPES_HPP

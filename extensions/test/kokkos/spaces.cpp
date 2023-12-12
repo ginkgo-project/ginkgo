@@ -2,6 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <Kokkos_Core.hpp>
+
+
 #include <gtest/gtest.h>
 
 
@@ -44,22 +47,27 @@ TEST(Executor, CanCreateExecutorWithExecutorSpace)
 }
 
 
-// void shared_memory_access()
-// {
-//     auto exec = gko::ext::kokkos::create_executor(
-//         Kokkos::DefaultExecutionSpace{}, Kokkos::SharedSpace{});
-//     auto data = exec->alloc<int>(1);
-//
-//     *data = 10;
-//
-//     exec->free(data);
-// }
-//
-//
-// TEST(Executor, CanCreateExecutorWithMemorySpace)
-// {
-// #if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
-//     ASSERT_EXIT(shared_memory_access(), testing::ExitedWithCode(0),
-//     "Success");
-// #endif
-// }
+void shared_memory_access()
+{
+    auto exec = gko::ext::kokkos::create_executor(
+        Kokkos::DefaultExecutionSpace{}, Kokkos::SharedSpace{});
+    auto data = exec->alloc<int>(1);
+
+    // If `create_executor` would not use the UVM allocators, than this
+    // would crash the program. Otherwise, the device memory is accessible
+    // on the CPU without issues.
+    *data = 10;
+
+    exec->free(data);
+    std::exit(EXIT_SUCCESS);
+}
+
+
+TEST(Executor, CanCreateExecutorWithMemorySpace)
+{
+    GTEST_FLAG_SET(death_test_style, "threadsafe");
+#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
+    EXPECT_EXIT(shared_memory_access(), testing::ExitedWithCode(EXIT_SUCCESS),
+                "");
+#endif
+}

@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <cstring>
+#include <Kokkos_Core.hpp>
 #include <sstream>
 
 
@@ -18,6 +19,7 @@
 
 
 using DefaultMemorySpace = Kokkos::DefaultExecutionSpace::memory_space;
+
 
 template <typename ValueType>
 class ArrayMapper : public ::testing::Test {
@@ -47,6 +49,7 @@ TYPED_TEST(ArrayMapper, CanMapDefault)
                        Kokkos::View<kokkos_value_type*, DefaultMemorySpace,
                                     Kokkos::MemoryTraits<Kokkos::Unmanaged>>>);
 }
+
 
 TYPED_TEST(ArrayMapper, CanMapConst)
 {
@@ -97,6 +100,7 @@ TYPED_TEST(DenseMapper, CanMapDefault)
                                     DefaultMemorySpace,
                                     Kokkos::MemoryTraits<Kokkos::Unmanaged>>>);
 }
+
 
 TYPED_TEST(DenseMapper, CanMapConst)
 {
