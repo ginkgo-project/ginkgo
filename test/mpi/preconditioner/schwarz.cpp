@@ -36,13 +36,6 @@
 #include "test/utils/mpi/executor.hpp"
 
 
-#if GINKGO_DPCPP_SINGLE_MODE
-using solver_value_type = float;
-#else
-using solver_value_type = double;
-#endif  // GINKGO_DPCPP_SINGLE_MODE
-
-
 template <typename ValueLocalGlobalIndexType>
 class SchwarzPreconditioner : public CommonMpiTestFixture {
 protected:
@@ -296,6 +289,30 @@ TYPED_TEST(SchwarzPreconditioner, CanAdvancedApplyPreconditioner)
                    this->dist_x.get());
     local_precond->apply(two.get(), this->non_dist_b.get(), one.get(),
                          this->non_dist_x.get());
+
+    this->assert_equal_to_non_distributed_vector(this->dist_x,
+                                                 this->non_dist_x);
+}
+
+
+TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionerWithL1Smoother)
+{
+    using value_type = typename TestFixture::value_type;
+    using prec = typename TestFixture::dist_prec_type;
+    auto non_dist_diag_with_l1 =
+        gko::share(gko::matrix::Diagonal<value_type>::create(
+            this->exec, 8u,
+            gko::array<value_type>(this->exec, {2, 3, 3, 3, 3, 2, 2, 2})));
+    auto precond_factory = prec::build()
+                               .with_local_solver(this->local_solver_factory)
+                               .with_l1_smoother(true)
+                               .on(this->exec);
+    auto local_precond =
+        this->local_solver_factory->generate(non_dist_diag_with_l1);
+    auto precond = precond_factory->generate(this->dist_mat);
+
+    precond->apply(this->dist_b.get(), this->dist_x.get());
+    local_precond->apply(this->non_dist_b.get(), this->non_dist_x.get());
 
     this->assert_equal_to_non_distributed_vector(this->dist_x,
                                                  this->non_dist_x);
