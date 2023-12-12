@@ -262,6 +262,12 @@ namespace kernels {
                           IndexType sample_size, IndexType* result)
 
 
+#define GKO_DECLARE_CSR_ROW_WISE_SUM(ValueType, IndexType)           \
+    void row_wise_sum(std::shared_ptr<const DefaultExecutor> exec,   \
+                      const matrix::Csr<ValueType, IndexType>* orig, \
+                      array<ValueType>& sum, bool absolute)
+
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
     template <typename MatrixValueType, typename InputValueType,            \
               typename OutputValueType, typename IndexType>                 \
@@ -340,7 +346,9 @@ namespace kernels {
     template <typename IndexType>                                           \
     GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL(IndexType);                         \
     template <typename IndexType>                                           \
-    GKO_DECLARE_CSR_BENCHMARK_LOOKUP_KERNEL(IndexType)
+    GKO_DECLARE_CSR_BENCHMARK_LOOKUP_KERNEL(IndexType);                    \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_ROW_WISE_SUM(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(csr, GKO_DECLARE_ALL_AS_TEMPLATES);
