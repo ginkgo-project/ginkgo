@@ -13,6 +13,7 @@
 
 
 #include <ginkgo/core/base/dim.hpp>
+#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
@@ -39,7 +40,7 @@ template <typename ValueType, typename Distribution, typename Generator>
 typename std::enable_if<!is_complex_s<ValueType>::value, ValueType>::type
 get_rand_value(Distribution&& dist, Generator&& gen)
 {
-    return dist(gen);
+    return ValueType(dist(gen));
 }
 
 

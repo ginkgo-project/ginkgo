@@ -19,18 +19,130 @@
 #include <thrust/complex.h>
 
 
+#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 
 
+// thrust calls the c function not the function from std
+// Maybe override the function from thrust directlry
+GKO_ATTRIBUTES GKO_INLINE __half hypot(__half a, __half b)
+{
+    return hypot(static_cast<float>(a), static_cast<float>(b));
+}
+
+GKO_ATTRIBUTES GKO_INLINE thrust::complex<__half> sqrt(
+    thrust::complex<__half> a)
+{
+    return sqrt(static_cast<thrust::complex<float>>(a));
+}
+
+
+namespace thrust {
+
+
+// Dircetly call float versrion from here?
+template <>
+GKO_ATTRIBUTES GKO_INLINE __half abs<__half>(const complex<__half>& z)
+{
+    return abs(static_cast<complex<float>>(z));
+}
+
+
+}  // namespace thrust
+
+
+#define THRUST_HALF_FRIEND_OPERATOR(_op, _opeq)                               \
+    GKO_ATTRIBUTES GKO_INLINE thrust::complex<__half> operator _op(           \
+        const thrust::complex<__half> lhs, const thrust::complex<__half> rhs) \
+    {                                                                         \
+        return thrust::complex<float>{lhs} _op thrust::complex<float>(rhs);   \
+    }
+
+THRUST_HALF_FRIEND_OPERATOR(+, +=)
+THRUST_HALF_FRIEND_OPERATOR(-, -=)
+THRUST_HALF_FRIEND_OPERATOR(*, *=)
+THRUST_HALF_FRIEND_OPERATOR(/, /=)
+
+
 namespace gko {
+
+// It is required by NVHPC 23.3, isnan is undefined when NVHPC are only as host
+// compiler.
+#ifdef __CUDACC__
+
+// from the cuda_fp16.hpp
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 530
+
+
+template <>
+__device__ __forceinline__ bool is_nan(const __half& val)
+{
+    return __hisnan(val);
+}
+
+
+#else
+
+
+template <>
+__device__ __forceinline__ bool is_nan(const __half& val)
+{
+    return isnan(static_cast<float>(val));
+}
+
+
+#endif
+
+
+template <>
+__device__ __forceinline__ bool is_nan(const thrust::complex<__half>& val)
+{
+    return is_nan(val.real()) || is_nan(val.imag());
+}
+
+
+#endif
 
 
 namespace kernels {
 namespace cuda {
 
 
-namespace detail {
+#ifdef __CUDACC__
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 530
 
+#if CUDA_VERSION >= 10020
+__device__ __forceinline__ __half abs(const __half& val) { return __habs(val); }
+#else
+__device__ __forceinline__ __half abs(const __half& val)
+{
+    return abs(static_cast<float>(val));
+}
+#endif
+
+
+__device__ __forceinline__ __half sqrt(const __half& val) { return hsqrt(val); }
+
+
+#else
+
+
+__device__ __forceinline__ __half abs(const __half& val)
+{
+    return abs(static_cast<float>(val));
+}
+
+
+__device__ __forceinline__ __half sqrt(const __half& val)
+{
+    return sqrt(static_cast<float>(val));
+}
+
+
+#endif
+#endif
+
+namespace detail {
 
 /**
  * @internal
@@ -128,6 +240,17 @@ struct culibs_type_impl<std::complex<double>> {
     using type = cuDoubleComplex;
 };
 
+
+template <>
+struct culibs_type_impl<half> {
+    using type = __half;
+};
+
+template <>
+struct culibs_type_impl<std::complex<half>> {
+    using type = __half2;
+};
+
 template <typename T>
 struct culibs_type_impl<thrust::complex<T>> {
     using type = typename culibs_type_impl<std::complex<T>>::type;
@@ -158,9 +281,14 @@ struct cuda_type_impl<volatile T> {
     using type = volatile typename cuda_type_impl<T>::type;
 };
 
+template <>
+struct cuda_type_impl<half> {
+    using type = __half;
+};
+
 template <typename T>
 struct cuda_type_impl<std::complex<T>> {
-    using type = thrust::complex<T>;
+    using type = thrust::complex<typename cuda_type_impl<T>::type>;
 };
 
 template <>
@@ -173,6 +301,11 @@ struct cuda_type_impl<cuComplex> {
     using type = thrust::complex<float>;
 };
 
+template <>
+struct cuda_type_impl<__half2> {
+    using type = thrust::complex<__half>;
+};
+
 template <typename T>
 struct cuda_struct_member_type_impl {
     using type = T;
@@ -180,7 +313,12 @@ struct cuda_struct_member_type_impl {
 
 template <typename T>
 struct cuda_struct_member_type_impl<std::complex<T>> {
-    using type = fake_complex<T>;
+    using type = fake_complex<typename cuda_struct_member_type_impl<T>::type>;
+};
+
+template <>
+struct cuda_struct_member_type_impl<gko::half> {
+    using type = __half;
 };
 
 template <typename ValueType, typename IndexType>
@@ -204,6 +342,7 @@ GKO_CUDA_DATA_TYPE(float, CUDA_R_32F);
 GKO_CUDA_DATA_TYPE(double, CUDA_R_64F);
 GKO_CUDA_DATA_TYPE(std::complex<float>, CUDA_C_32F);
 GKO_CUDA_DATA_TYPE(std::complex<double>, CUDA_C_64F);
+GKO_CUDA_DATA_TYPE(std::complex<float16>, CUDA_C_16F);
 GKO_CUDA_DATA_TYPE(int32, CUDA_R_32I);
 GKO_CUDA_DATA_TYPE(int8, CUDA_R_8I);
 

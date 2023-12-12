@@ -49,7 +49,7 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake  -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_CXX_FLAGS_DEBUG='/MDd /Zi /Ob1 /O1 /Od /RTC1' -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_OMP=OFF ..
+        cmake  -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_CXX_FLAGS_DEBUG='/MDd /Zi /Ob1 /O1 /Od /RTC1' -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_OMP=OFF -DGINKGO_ENABLE_HALF=${{ matrix.config.half }}..
         cmake --build . -j4 --config ${{ matrix.config.build_type }}
         ctest . -C ${{ matrix.config.build_type }} --output-on-failure
 
