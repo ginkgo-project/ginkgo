@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -341,6 +341,14 @@ Diagonal<ValueType>::compute_absolute() const
         abs_diagonal->get_values()));
 
     return abs_diagonal;
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Diagonal<ValueType>> Diagonal<ValueType>::extract_diagonal()
+    const
+{
+    return Diagonal::create(this->get_executor(), this->get_size()[0], values_);
 }
 
 
