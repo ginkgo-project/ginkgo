@@ -46,14 +46,17 @@ ValueType get_element(const array<ValueType>& array, size_type index)
  * @param index  the array element index.
  * @param value  the new value.
  * @tparam ValueType  the value type of the array.
+ * @tparam ParameterType  the type of the value to be assigned.
  */
-template <typename ValueType>
-void set_element(array<ValueType>& array, size_type index, ValueType value)
+template <typename ValueType, typename ParameterType>
+void set_element(array<ValueType>& array, size_type index, ParameterType value)
 {
+    auto converted_value = static_cast<ValueType>(value);
     // TODO2.0 add bounds check for negative indices
     GKO_ENSURE_IN_BOUNDS(index, array.get_size());
     auto exec = array.get_executor();
-    exec->copy_from(exec->get_master(), 1, &value, array.get_data() + index);
+    exec->copy_from(exec->get_master(), 1, &converted_value,
+                    array.get_data() + index);
 }
 
 
