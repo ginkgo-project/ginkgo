@@ -116,7 +116,6 @@ TYPED_TEST(Csr, ConstAppliesToBatchMultiVector)
 
 TYPED_TEST(Csr, AppliesLinearCombinationToBatchMultiVector)
 {
-    using BMtx = typename TestFixture::BMtx;
     using BMVec = typename TestFixture::BMVec;
     using DenseMtx = typename TestFixture::DenseMtx;
     using T = typename TestFixture::value_type;

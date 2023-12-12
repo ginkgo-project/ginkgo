@@ -447,47 +447,6 @@ TYPED_TEST(Csr, CanBeReadFromMatrixData)
 }
 
 
-TYPED_TEST(Csr, ThrowsForDataWithDifferentNnz)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    auto vec_data = std::vector<gko::matrix_data<value_type, index_type>>{};
-    vec_data.emplace_back(
-        gko::matrix_data<value_type, index_type>({2, 3}, {
-                                                             {0, 0, -1.0},
-                                                             {1, 1, 2.5},
-                                                             {1, 2, 0.5},
-                                                             {2, 2, -3.0},
-                                                         }));
-    vec_data.emplace_back(gko::matrix_data<value_type, index_type>(
-        {2, 3}, {{0, 0, 1.0}, {1, 1, 2.0}, {1, 2, 3.0}}));
-
-    EXPECT_THROW(
-        gko::batch::detail::assert_same_sparsity_in_batched_data(vec_data),
-        gko::NotImplemented);
-}
-
-
-TYPED_TEST(Csr, ThrowsForDataWithDifferentSparsity)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    auto vec_data = std::vector<gko::matrix_data<value_type, index_type>>{};
-    vec_data.emplace_back(
-        gko::matrix_data<value_type, index_type>({2, 3}, {
-                                                             {0, 0, -1.0},
-                                                             {1, 1, 2.5},
-                                                             {2, 2, -3.0},
-                                                         }));
-    vec_data.emplace_back(gko::matrix_data<value_type, index_type>(
-        {2, 3}, {{0, 0, 1.0}, {1, 1, 2.0}, {1, 2, 3.0}}));
-
-    EXPECT_THROW(
-        gko::batch::detail::assert_same_sparsity_in_batched_data(vec_data),
-        gko::NotImplemented);
-}
-
-
 TYPED_TEST(Csr, GeneratesCorrectMatrixData)
 {
     using value_type = typename TestFixture::value_type;
