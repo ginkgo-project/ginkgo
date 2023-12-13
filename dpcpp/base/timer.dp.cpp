@@ -15,12 +15,11 @@ namespace gko {
 
 
 DpcppTimer::DpcppTimer(std::shared_ptr<const DpcppExecutor> exec)
-    : exec_{std::move(exec)}
+    : queue_{exec->get_queue()}
 {
-    if (!exec_->get_queue()
-             ->template has_property<
-                 sycl::property::queue::enable_profiling>()) {
-        GKO_NOT_SUPPORTED(exec_);
+    if (!queue_->template has_property<
+            sycl::property::queue::enable_profiling>()) {
+        GKO_NOT_SUPPORTED(exec);
     }
 }
 
@@ -35,10 +34,9 @@ void DpcppTimer::init_time_point(time_point& time)
 void DpcppTimer::record(time_point& time)
 {
     GKO_ASSERT(time.type_ == time_point::type::dpcpp);
-    *time.data_.dpcpp_event =
-        exec_->get_queue()->submit([&](sycl::handler& cgh) {
-            cgh.parallel_for(1, [=](sycl::id<1> id) {});
-        });
+    *time.data_.dpcpp_event = queue_->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(1, [=](sycl::id<1> id) {});
+    });
 }
 
 
