@@ -63,3 +63,13 @@ TEST_F(Timer, Works)
 
     ASSERT_GT(timer->difference(start, stop), std::chrono::seconds{1});
 }
+
+
+TEST_F(Timer, DoesntOwnExecutor)
+{
+    const auto old_use_count = this->exec.use_count();
+
+    auto timer = gko::Timer::create_for_executor(this->exec);
+
+    ASSERT_EQ(this->exec.use_count(), old_use_count);
+}
