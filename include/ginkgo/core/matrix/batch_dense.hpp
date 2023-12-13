@@ -216,6 +216,16 @@ public:
     }
 
     /**
+     * Returns the number of stored elements in each batch item.
+     *
+     * @return the number of stored elements per batch item.
+     */
+    size_type get_num_elements_per_item() const noexcept
+    {
+        return this->get_num_stored_elements() / this->get_num_batch_items();
+    }
+
+    /**
      * Creates a constant (immutable) batch dense matrix from a constant
      * array.
      *
@@ -336,6 +346,12 @@ private:
 
     array<value_type> values_;
 };
+
+
+template <typename ValueType>
+void two_sided_scale(const array<ValueType>& left,
+                     const array<ValueType>& right,
+                     std::shared_ptr<batch::matrix::Dense<ValueType>>& inout);
 
 
 }  // namespace matrix

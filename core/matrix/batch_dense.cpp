@@ -30,6 +30,7 @@ namespace {
 
 GKO_REGISTER_OPERATION(simple_apply, batch_dense::simple_apply);
 GKO_REGISTER_OPERATION(advanced_apply, batch_dense::advanced_apply);
+GKO_REGISTER_OPERATION(scale, batch_dense::scale);
 
 
 }  // namespace
@@ -187,6 +188,28 @@ void Dense<ValueType>::move_to(Dense<next_precision<ValueType>>* result)
 
 #define GKO_DECLARE_BATCH_DENSE_MATRIX(_type) class Dense<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_MATRIX);
+
+
+template <typename ValueType>
+void two_sided_scale(const array<ValueType>& col_scale,
+                     const array<ValueType>& row_scale,
+                     std::shared_ptr<batch::matrix::Dense<ValueType>>& inout)
+{
+    GKO_ASSERT_EQ(col_scale.get_size(),
+                  (inout->get_common_size()[1] * inout->get_num_batch_items()));
+    GKO_ASSERT_EQ(row_scale.get_size(),
+                  (inout->get_common_size()[0] * inout->get_num_batch_items()));
+    inout->get_executor()->run(
+        dense::make_scale(&col_scale, &row_scale, inout.get()));
+}
+
+
+#define GKO_DECLARE_TWO_SIDED_BATCH_SCALE(_type)        \
+    void two_sided_scale(const array<_type>& col_scale, \
+                         const array<_type>& row_scale, \
+                         std::shared_ptr<batch::matrix::Dense<_type>>& inout)
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_TWO_SIDED_BATCH_SCALE);
 
 
 }  // namespace matrix
