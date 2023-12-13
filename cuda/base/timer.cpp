@@ -19,13 +19,13 @@ namespace gko {
 
 
 CudaTimer::CudaTimer(std::shared_ptr<const CudaExecutor> exec)
-    : exec_{std::move(exec)}
+    : device_id_{exec->get_device_id()}, stream_{exec->get_stream()}
 {}
 
 
 void CudaTimer::init_time_point(time_point& time)
 {
-    detail::cuda_scoped_device_id_guard guard{exec_->get_device_id()};
+    detail::cuda_scoped_device_id_guard guard{device_id_};
     time.type_ = time_point::type::cuda;
     GKO_ASSERT_NO_CUDA_ERRORS(cudaEventCreate(&time.data_.cuda_event));
 }
@@ -33,16 +33,15 @@ void CudaTimer::init_time_point(time_point& time)
 
 void CudaTimer::record(time_point& time)
 {
-    detail::cuda_scoped_device_id_guard guard{exec_->get_device_id()};
+    detail::cuda_scoped_device_id_guard guard{device_id_};
     GKO_ASSERT(time.type_ == time_point::type::cuda);
-    GKO_ASSERT_NO_CUDA_ERRORS(
-        cudaEventRecord(time.data_.cuda_event, exec_->get_stream()));
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaEventRecord(time.data_.cuda_event, stream_));
 }
 
 
 void CudaTimer::wait(time_point& time)
 {
-    detail::cuda_scoped_device_id_guard guard{exec_->get_device_id()};
+    detail::cuda_scoped_device_id_guard guard{device_id_};
     GKO_ASSERT(time.type_ == time_point::type::cuda);
     GKO_ASSERT_NO_CUDA_ERRORS(cudaEventSynchronize(time.data_.cuda_event));
 }
@@ -51,7 +50,7 @@ void CudaTimer::wait(time_point& time)
 std::chrono::nanoseconds CudaTimer::difference_async(const time_point& start,
                                                      const time_point& stop)
 {
-    detail::cuda_scoped_device_id_guard guard{exec_->get_device_id()};
+    detail::cuda_scoped_device_id_guard guard{device_id_};
     GKO_ASSERT(start.type_ == time_point::type::cuda);
     GKO_ASSERT(stop.type_ == time_point::type::cuda);
     GKO_ASSERT_NO_CUDA_ERRORS(cudaEventSynchronize(stop.data_.cuda_event));
