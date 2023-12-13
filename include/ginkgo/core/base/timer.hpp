@@ -160,6 +160,7 @@ protected:
 
 /**
  * A timer using events for timing on a CudaExecutor.
+ *
  * @note When using a CudaExecutor with a custom stream, make sure that the
  *       stream's lifetime is longer than the lifetime of this timer.
  */
@@ -185,6 +186,7 @@ private:
 
 /**
  * A timer using events for timing on a HipExecutor.
+ *
  * @note When using a HipExecutor with a custom stream, make sure that the
  *       stream's lifetime is longer than the lifetime of this timer.
  */
