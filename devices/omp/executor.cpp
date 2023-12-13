@@ -16,12 +16,10 @@
 namespace gko {
 
 
-void OmpExecutor::populate_exec_info(const machine_topology* mach_topo)
+void OmpExecutor::populate_exec_info()
 {
-    auto num_cores =
-        (mach_topo->get_num_cores() == 0 ? 1 : mach_topo->get_num_cores());
-    auto num_pus =
-        (mach_topo->get_num_pus() == 0 ? 1 : mach_topo->get_num_pus());
+    auto num_cores = 1;
+    auto num_pus = 1;
     this->get_exec_info().num_computing_units = num_cores;
     this->get_exec_info().num_pu_per_cu = num_pus / num_cores;
 }

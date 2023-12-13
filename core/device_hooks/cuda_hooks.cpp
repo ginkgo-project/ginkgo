@@ -100,7 +100,7 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
 }
 
 
-void CudaExecutor::populate_exec_info(const machine_topology* mach_topo)
+void CudaExecutor::populate_exec_info()
 {
     // This method is always called, so cannot throw when not compiled.
 }

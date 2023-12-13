@@ -28,6 +28,9 @@
 #include <ginkgo/core/synthesizer/containers.hpp>
 
 
+GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
+
+
 namespace gko {
 
 
@@ -1073,7 +1076,10 @@ protected:
      *
      * @param mach_topo the machine topology object.
      */
+    GKO_DEPRECATED("please use populate_exec_info()")
     virtual void populate_exec_info(const machine_topology* mach_topo) = 0;
+
+    virtual void populate_exec_info() { populate_exec_info(nullptr); }
 
     /**
      * Gets the modifiable exec info object
@@ -1373,10 +1379,12 @@ protected:
     OmpExecutor(std::shared_ptr<CpuAllocatorBase> alloc)
         : alloc_{std::move(alloc)}
     {
-        this->OmpExecutor::populate_exec_info(machine_topology::get_instance());
+        this->OmpExecutor::populate_exec_info();
     }
 
-    void populate_exec_info(const machine_topology* mach_topo) override;
+    void populate_exec_info(const machine_topology* mach_topo) override {}
+
+    void populate_exec_info() override;
 
     void* raw_alloc(size_type size) const override;
 
@@ -1439,11 +1447,12 @@ protected:
     ReferenceExecutor(std::shared_ptr<CpuAllocatorBase> alloc)
         : OmpExecutor{std::move(alloc)}
     {
-        this->ReferenceExecutor::populate_exec_info(
-            machine_topology::get_instance());
+        this->ReferenceExecutor::populate_exec_info();
     }
 
-    void populate_exec_info(const machine_topology*) override
+    void populate_exec_info(const machine_topology* mach_topo) override {}
+
+    void populate_exec_info() override
     {
         this->get_exec_info().device_id = -1;
         this->get_exec_info().num_computing_units = 1;
@@ -1645,8 +1654,7 @@ protected:
         this->get_exec_info().device_id = device_id;
         this->get_exec_info().num_computing_units = 0;
         this->get_exec_info().num_pu_per_cu = 0;
-        this->CudaExecutor::populate_exec_info(
-            machine_topology::get_instance());
+        this->CudaExecutor::populate_exec_info();
         this->set_gpu_property();
         this->init_handles();
     }
@@ -1667,7 +1675,9 @@ protected:
 
     bool verify_memory_to(const CudaExecutor* dest_exec) const override;
 
-    void populate_exec_info(const machine_topology* mach_topo) override;
+    void populate_exec_info(const machine_topology* mach_topo) override {}
+
+    void populate_exec_info() override;
 
 private:
     std::shared_ptr<Executor> master_;
@@ -1845,7 +1855,7 @@ protected:
         this->get_exec_info().device_id = device_id;
         this->get_exec_info().num_computing_units = 0;
         this->get_exec_info().num_pu_per_cu = 0;
-        this->HipExecutor::populate_exec_info(machine_topology::get_instance());
+        this->HipExecutor::populate_exec_info();
         this->set_gpu_property();
         this->init_handles();
     }
@@ -1866,7 +1876,9 @@ protected:
 
     bool verify_memory_to(const HipExecutor* dest_exec) const override;
 
-    void populate_exec_info(const machine_topology* mach_topo) override;
+    void populate_exec_info(const machine_topology* mach_topo) override {}
+
+    void populate_exec_info() override;
 
 private:
     std::shared_ptr<Executor> master_;
@@ -2027,7 +2039,9 @@ protected:
         this->set_device_property(property);
     }
 
-    void populate_exec_info(const machine_topology* mach_topo) override;
+    void populate_exec_info(const machine_topology* mach_topo) override {}
+
+    void populate_exec_info() override;
 
     void* raw_alloc(size_type size) const override;
 
@@ -2066,5 +2080,7 @@ using DefaultExecutor = DpcppExecutor;
 
 }  // namespace gko
 
+
+GKO_END_DISABLE_DEPRECATION_WARNINGS
 
 #endif  // GKO_PUBLIC_CORE_BASE_EXECUTOR_HPP_
