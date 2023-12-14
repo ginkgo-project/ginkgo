@@ -30,6 +30,7 @@ namespace {
 
 GKO_REGISTER_OPERATION(simple_apply, batch_csr::simple_apply);
 GKO_REGISTER_OPERATION(advanced_apply, batch_csr::advanced_apply);
+GKO_REGISTER_OPERATION(scale, batch_csr::scale);
 
 
 }  // namespace
@@ -202,6 +203,29 @@ void Csr<ValueType, IndexType>::move_to(
 
 #define GKO_DECLARE_BATCH_CSR_MATRIX(ValueType) class Csr<ValueType, int32>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_CSR_MATRIX);
+
+
+template <typename ValueType, typename IndexType>
+void two_sided_scale(
+    const array<ValueType>& col_scale, const array<ValueType>& row_scale,
+    std::shared_ptr<batch::matrix::Csr<ValueType, IndexType>>& inout)
+{
+    GKO_ASSERT_EQ(col_scale.get_size(),
+                  (inout->get_common_size()[1] * inout->get_num_batch_items()));
+    GKO_ASSERT_EQ(row_scale.get_size(),
+                  (inout->get_common_size()[0] * inout->get_num_batch_items()));
+    inout->get_executor()->run(
+        csr::make_scale(&col_scale, &row_scale, inout.get()));
+}
+
+
+#define GKO_DECLARE_TWO_SIDED_BATCH_SCALE(_vtype, _itype)               \
+    void two_sided_scale(                                               \
+        const array<_vtype>& col_scale, const array<_vtype>& row_scale, \
+        std::shared_ptr<batch::matrix::Csr<_vtype, _itype>>& inout)
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
+    GKO_DECLARE_TWO_SIDED_BATCH_SCALE);
 
 
 }  // namespace matrix

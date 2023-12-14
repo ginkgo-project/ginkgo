@@ -69,7 +69,7 @@ protected:
     {}
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
-    std::unique_ptr<BMtx> mtx_0;
+    std::shared_ptr<BMtx> mtx_0;
     std::unique_ptr<CsrMtx> mtx_00;
     std::unique_ptr<CsrMtx> mtx_01;
     std::unique_ptr<BMVec> b_0;
@@ -162,6 +162,27 @@ TYPED_TEST(Csr, ConstAppliesLinearCombinationToBatchMultiVector)
     auto res = gko::batch::unbatch<gko::batch::MultiVector<T>>(this->x_0.get());
     GKO_ASSERT_MTX_NEAR(res[0].get(), this->x_00.get(), r<T>::value);
     GKO_ASSERT_MTX_NEAR(res[1].get(), this->x_01.get(), r<T>::value);
+}
+
+
+TYPED_TEST(Csr, CanTwoSidedScale)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = gko::int32;
+    using BMtx = typename TestFixture::BMtx;
+    auto col_scale = gko::array<value_type>(this->exec, 3 * 2);
+    auto row_scale = gko::array<value_type>(this->exec, 2 * 2);
+    col_scale.fill(2);
+    row_scale.fill(3);
+
+    gko::batch::matrix::two_sided_scale<value_type, index_type>(
+        col_scale, row_scale, this->mtx_0);
+
+    auto scaled_mtx_0 =
+        gko::batch::initialize<BMtx>({{{6.0, -6.0, 0.0}, {-12.0, 12.0, 18.0}},
+                                      {{6.0, -12.0, 0.0}, {6.0, -15.0, 24.0}}},
+                                     this->exec, 5);
+    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx_0.get(), scaled_mtx_0.get(), 0.);
 }
 
 

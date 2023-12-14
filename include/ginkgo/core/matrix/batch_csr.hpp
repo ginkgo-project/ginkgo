@@ -331,6 +331,12 @@ private:
 };
 
 
+template <typename ValueType, typename IndexType>
+void two_sided_scale(
+    const array<ValueType>& left, const array<ValueType>& right,
+    std::shared_ptr<batch::matrix::Csr<ValueType, IndexType>>& inout);
+
+
 }  // namespace matrix
 }  // namespace batch
 }  // namespace gko
