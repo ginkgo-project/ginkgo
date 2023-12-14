@@ -282,6 +282,8 @@ struct ubfs_levels {
     array<IndexType> nodes;
     /** Pointers into nodes for each level */
     array<IndexType> ptrs;
+    /** How many levels are there? */
+    IndexType num_levels;
 
     ubfs_levels(std::shared_ptr<const DefaultExecutor> exec, size_type num_rows)
         : node_level{exec, num_rows},
@@ -355,7 +357,7 @@ IndexType ubfs(std::shared_ptr<const DefaultExecutor> exec,
         level_begin =
             std::exchange(level_end, exec->copy_val_to_host(level_end_ptr));
     }
-    return level;
+    levels.num_levels = level;
 }
 
 
@@ -427,8 +429,6 @@ void find_pseudo_peripheral_nodes(std::shared_ptr<const DefaultExecutor> exec,
         candidate_nodes, node_levels, level_nodes, best_levels,
         improved.get_data()};
     // initialize best_levels and levels to the initial nodes at level 0
-    thrust::copy_n(policy, components.min_deg_node.get_const_data(),
-                   num_components, level_nodes);
     thrust::fill_n(policy, best_levels, num_components, IndexType{});
     do {
         ubfs(exec, num_rows, row_ptrs, col_idxs, levels);
@@ -490,7 +490,7 @@ template <typename IndexType>
 void sort_levels(std::shared_ptr<const DefaultExecutor> exec,
                  const IndexType num_rows, const IndexType* const row_ptrs,
                  const IndexType* const col_idxs,
-                 const IndexType* const degrees, const IndexType num_levels,
+                 const IndexType* const degrees,
                  const components_data<IndexType>& comps,
                  ubfs_levels<IndexType>& levels, IndexType* const permutation)
 {
@@ -499,6 +499,7 @@ void sort_levels(std::shared_ptr<const DefaultExecutor> exec,
                                            static_cast<size_type>(num_rows)};
     array<IndexType> key_array{exec, static_cast<size_type>(num_rows)};
     levels.ptrs.set_executor(exec->get_master());
+    const auto num_levels = levels.num_levels;
     const auto level_ptrs = levels.ptrs.get_data();
     const auto level_nodes = levels.nodes.get_data();
     const auto node_levels = levels.node_level.get_const_data();
@@ -566,13 +567,17 @@ void get_permutation(std::shared_ptr<const DefaultExecutor> exec,
     ubfs_levels<IndexType> levels{exec, static_cast<size_type>(num_rows)};
     set_element(levels.ptrs, 0, 0);
     set_element(levels.ptrs, 1, num_components);
+    // copy min degree nodes to level 0
+    thrust::copy_n(thrust_policy(exec), comps.min_deg_node.get_const_data(),
+                   num_components, levels.nodes.get_data());
     if (strategy == reorder::starting_strategy::pseudo_peripheral) {
         find_pseudo_peripheral_nodes(exec, num_rows, row_ptrs, col_idxs,
                                      degrees.get_const_data(), comps, levels);
+    } else {
+        ubfs(exec, num_rows, row_ptrs, col_idxs, levels);
     }
-    const auto num_levels = ubfs(exec, num_rows, row_ptrs, col_idxs, levels);
     sort_levels(exec, num_rows, row_ptrs, col_idxs, degrees.get_const_data(),
-                num_levels, comps, levels, permutation);
+                comps, levels, permutation);
     thrust::reverse(thrust_policy(exec), permutation, permutation + num_rows);
 }
 
