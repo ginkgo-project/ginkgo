@@ -372,6 +372,15 @@ if(GINKGO_DEVEL_TOOLS)
                 "Failed to install the git hooks via pre-commit. Please check the error message:\n"
                 "${pre-commit-output}\n${pre-commit-error}")
     endif()
+    if(pre-commit-output MATCHES "^Running in migration mode with existing hooks")
+        message(WARNING
+                "An existing git hook was encountered during `pre-commit install`. The old git hook "
+                "will also be executed. Consider removing it with `pre-commit install -f`")
+    elseif(NOT pre-commit-output MATCHES "^pre-commit installed at")
+        message(WARNING
+                "`pre-commit install` did not exit normally. Please check the output message:\n"
+                "${pre-commit-output}")
+    endif()
 
     add_custom_target(format
                       COMMAND bash -c "${PRE_COMMIT} run"
