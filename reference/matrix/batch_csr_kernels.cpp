@@ -82,7 +82,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void scale(std::shared_ptr<const ReferenceExecutor> exec,
+void scale(std::shared_ptr<const DefaultExecutor> exec,
            const array<ValueType>* col_scale, const array<ValueType>* row_scale,
            batch::matrix::Csr<ValueType, IndexType>* input)
 {

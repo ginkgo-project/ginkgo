@@ -82,7 +82,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void scale(std::shared_ptr<const ReferenceExecutor> exec,
+void scale(std::shared_ptr<const DefaultExecutor> exec,
            const array<ValueType>* col_scale, const array<ValueType>* row_scale,
            batch::matrix::Dense<ValueType>* input)
 {
