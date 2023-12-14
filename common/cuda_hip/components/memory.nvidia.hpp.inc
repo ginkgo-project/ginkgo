@@ -55,6 +55,16 @@ __device__ __forceinline__ void membar_acq_rel_shared()
 }
 
 
+__device__ __forceinline__ void membar_acq_rel_local()
+{
+#if __CUDA_ARCH__ < 700
+    asm volatile("membar.cta;" ::: "memory");
+#else
+    asm volatile("fence.acq_rel.cta;" ::: "memory");
+#endif
+}
+
+
 __device__ __forceinline__ int32 load_relaxed_shared(const int32* ptr)
 {
     int32 result;
