@@ -6,6 +6,7 @@
 #include <deque>
 #include <fstream>
 #include <memory>
+#include <random>
 
 
 #include <gtest/gtest.h>
@@ -37,7 +38,8 @@ protected:
     using perm_type = gko::matrix::Permutation<i_type>;
 
     Rcm()
-        : o_1138_bus_mtx(gko::read<CsrMtx>(
+        : rng{63749},
+          o_1138_bus_mtx(gko::read<CsrMtx>(
               std::ifstream(gko::matrices::location_1138_bus_mtx, std::ios::in),
               ref)),
           d_1138_bus_mtx(gko::read<CsrMtx>(
@@ -277,6 +279,7 @@ protected:
         }
     }
 
+    std::default_random_engine rng;
     std::shared_ptr<CsrMtx> o_1138_bus_mtx;
     std::shared_ptr<CsrMtx> d_1138_bus_mtx;
     // Can't std::move parameter when using ASSERT_PREDN, no perfect forwarding.
@@ -314,6 +317,42 @@ TEST_F(Rcm, PermutationIsRcmOrderedNewInterface)
 
     check_rcm_ordered(o_1138_bus_mtx, perm.get(),
                       gko::reorder::starting_strategy::pseudo_peripheral);
+}
+
+TEST_F(Rcm, PermutationIsRcmOrderedMultipleConnectedComponents)
+{
+    gko::matrix_data<v_type, i_type> data;
+    d_1138_bus_mtx->write(data);
+    const auto num_rows = data.size[0];
+    const int num_copies = 5;
+    data.size[0] *= num_copies;
+    data.size[1] *= num_copies;
+    for (gko::size_type i = 0; i < num_rows; i++) {
+        const auto entry = data.nonzeros[i];
+        // create copies of the matrix
+        for (int i = 1; i < num_copies; i++) {
+            data.nonzeros.emplace_back(entry.row + i * num_rows,
+                                       entry.column + i * num_rows,
+                                       entry.value);
+        }
+    }
+    std::vector<i_type> permutation(data.size[0]);
+    std::iota(permutation.begin(), permutation.end(), 0);
+    std::shuffle(permutation.begin(), permutation.end(), rng);
+    for (auto& entry : data.nonzeros) {
+        entry.row = permutation[entry.row];
+        entry.column = permutation[entry.column];
+    }
+    data.sort_row_major();
+    d_1138_bus_mtx->read(data);
+    o_1138_bus_mtx->read(data);
+
+    d_reorder_op = reorder_type::build().on(exec)->generate(d_1138_bus_mtx);
+
+    auto perm = d_reorder_op->get_permutation();
+
+    check_rcm_ordered(o_1138_bus_mtx, perm.get(),
+                      d_reorder_op->get_parameters().strategy);
 }
 
 }  // namespace
