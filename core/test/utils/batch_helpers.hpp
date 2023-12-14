@@ -14,7 +14,6 @@
 #include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/log/batch_logger.hpp>
-#include <ginkgo/core/matrix/batch_diagonal.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -39,34 +38,6 @@ std::vector<std::shared_ptr<T>> share(std::vector<std::unique_ptr<T>>&& objs)
         out.push_back(std::move(obj));
     }
     return out;
-}
-
-
-/**
- * Generates a batch of random diagonal matrices.
- */
-template <typename ValueType, typename ValueDistribution, typename Engine>
-std::unique_ptr<batch::matrix::Diagonal<ValueType>>
-generate_random_batch_diagonal_matrix(const size_type num_batch_items,
-                                      const size_type num_rows,
-                                      ValueDistribution&& value_dist,
-                                      Engine&& engine,
-                                      std::shared_ptr<const Executor> exec)
-{
-    using MatrixType = batch::matrix::Diagonal<ValueType>;
-    using value_type = ValueType;
-    auto result = MatrixType::create(
-        exec, batch_dim<2>(num_batch_items, dim<2>(num_rows, num_rows)));
-    auto vals = result->get_values();
-    for (int b = 0; b < num_batch_items; b++) {
-        for (int i = 0; i < num_rows; i++) {
-            vals[b * num_rows + i] =
-                gko::test::detail::get_rand_value<ValueType>(value_dist,
-                                                             engine);
-        }
-    }
-
-    return result;
 }
 
 

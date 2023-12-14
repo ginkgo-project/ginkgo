@@ -31,7 +31,6 @@
 #include "core/factorization/par_ilut_kernels.hpp"
 #include "core/matrix/batch_csr_kernels.hpp"
 #include "core/matrix/batch_dense_kernels.hpp"
-#include "core/matrix/batch_diagonal_kernels.hpp"
 #include "core/matrix/batch_ell_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
@@ -302,15 +301,6 @@ GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL);
 
 
 }  // namespace batch_dense
-
-
-namespace batch_diagonal {
-
-
-GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_DIAGONAL_SIMPLE_APPLY_KERNEL);
-
-
-}  // namespace batch_diagonal
 
 
 namespace batch_ell {

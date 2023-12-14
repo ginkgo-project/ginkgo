@@ -10,7 +10,6 @@
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
-#include <ginkgo/core/matrix/batch_diagonal.hpp>
 
 
 #include "core/base/batch_struct.hpp"
