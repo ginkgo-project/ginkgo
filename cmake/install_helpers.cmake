@@ -77,24 +77,6 @@ function(ginkgo_install)
         COMPONENT Ginkgo_Development
         )
 
-    if  (GINKGO_HAVE_HWLOC AND NOT HWLOC_FOUND)
-        get_filename_component(HWLOC_LIB_PATH ${HWLOC_LIBRARIES} DIRECTORY)
-        file(GLOB HWLOC_LIBS "${HWLOC_LIB_PATH}/libhwloc*")
-        install(FILES ${HWLOC_LIBS}
-            DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
-            COMPONENT Ginkgo_Runtime
-            )
-        # We only use hwloc and not netloc
-        install(DIRECTORY "${HWLOC_INCLUDE_DIRS}/hwloc"
-            DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}"
-            COMPONENT Ginkgo_Development
-            )
-        install(FILES "${HWLOC_INCLUDE_DIRS}/hwloc.h"
-            DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}"
-            COMPONENT Ginkgo_Development
-            )
-    endif()
-
     # Install CMake modules
     install(DIRECTORY "${Ginkgo_SOURCE_DIR}/cmake/Modules/"
         DESTINATION "${GINKGO_INSTALL_MODULE_DIR}"

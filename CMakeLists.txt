@@ -14,7 +14,7 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/Modules/")
 include(cmake/autodetect_system_libs.cmake)
 
 # rename helper
-include(cmake/rename.cmake)
+include(cmake/cache.cmake)
 
 # Ginkgo configuration options
 option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" OFF)
@@ -81,11 +81,7 @@ option(GINKGO_SPLIT_TEMPLATE_INSTANTIATIONS "Split template instantiations for s
 mark_as_advanced(GINKGO_SPLIT_TEMPLATE_INSTANTIATIONS)
 option(GINKGO_JACOBI_FULL_OPTIMIZATIONS "Use all the optimizations for the CUDA Jacobi algorithm" OFF)
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
-if(MSVC OR WIN32 OR CYGWIN OR APPLE)
-    option(GINKGO_BUILD_HWLOC "Build Ginkgo with HWLOC. Default is OFF. Ginkgo does not support HWLOC on Windows/MacOS" OFF)
-else()
-    option(GINKGO_BUILD_HWLOC "Build Ginkgo with HWLOC. Enabled if a system installation is found." ${HWLOC_FOUND})
-endif()
+gko_deprecate_cache(GINKGO_BUILD_HWLOC)
 option(GINKGO_BUILD_PAPI_SDE "Build Ginkgo with PAPI SDE. Enabled if a system installation is found." ${PAPI_SDE_FOUND})
 option(GINKGO_DPCPP_SINGLE_MODE "Do not compile double kernels for the DPC++ backend." OFF)
 option(GINKGO_INSTALL_RPATH "Set the RPATH when installing its libraries." ON)
@@ -226,12 +222,6 @@ if(GINKGO_BUILD_HIP AND ROCTX_FOUND)
     set(GINKGO_HAVE_ROCTX 1)
 endif()
 
-# Switch off HWLOC for Windows and MacOS
-if(GINKGO_BUILD_HWLOC AND (MSVC OR WIN32 OR CYGWIN OR APPLE))
-    set(GINKGO_BUILD_HWLOC OFF CACHE BOOL "Build Ginkgo with HWLOC. Default is OFF. Ginkgo does not support HWLOC on Windows/MacOS" FORCE)
-    message(WARNING "Ginkgo does not support HWLOC on Windows/MacOS, switch GINKGO_BUILD_HWLOC to OFF")
-endif()
-
 set(GINKGO_HAVE_GPU_AWARE_MPI OFF)
 set(GINKGO_FORCE_SPMV_BLOCKING_COMM OFF)
 if(GINKGO_BUILD_MPI)
@@ -273,18 +263,6 @@ endif()
 if(GINKGO_BUILD_BENCHMARKS)
     find_package(gflags 2.2.2 QUIET)
     find_package(nlohmann_json 3.9.1 QUIET)
-endif()
-
-# System provided, third party libraries (not bundled!)
-set(GINKGO_HAVE_HWLOC 0)
-if(GINKGO_BUILD_HWLOC)
-    find_package(HWLOC 2.1)
-    if (HWLOC_FOUND)
-        set(GINKGO_HAVE_HWLOC 1)
-    else()
-        message(WARNING "HWLOC could not be found. HWLOC support will be disabled.")
-        set(GINKGO_BUILD_HWLOC OFF CACHE BOOL "HWLOC support was disabled because a system package could not be found." FORCE)
-    endif()
 endif()
 
 set(GINKGO_HAVE_PAPI_SDE 0)

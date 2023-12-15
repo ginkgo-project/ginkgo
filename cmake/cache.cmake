@@ -1,3 +1,10 @@
+macro(gko_deprecate_cache deprecated)
+    if(DEFINED ${deprecated})
+        message(WARNING "${deprecated} was deprecated. We removed the old variable.")
+        unset(${deprecated} CACHE)
+    endif()
+endmacro()
+
 # Only for CACHE variable (option)
 macro(gko_rename_cache deprecated actual type doc_string)
     if(DEFINED ${deprecated})

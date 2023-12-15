@@ -198,14 +198,6 @@ if(TARGET PAPI::PAPI)
     ginkgo_print_flags(${detailed_log} "PAPI_LIBRARY")
 endif()
 
-ginkgo_print_variable(${minimal_log} "GINKGO_BUILD_HWLOC")
-ginkgo_print_variable(${detailed_log} "GINKGO_BUILD_HWLOC")
-if(TARGET hwloc)
-    ginkgo_print_variable(${detailed_log} "HWLOC_VERSION")
-    ginkgo_print_variable(${detailed_log} "HWLOC_LIBRARIES")
-    ginkgo_print_variable(${detailed_log} "HWLOC_INCLUDE_DIRS")
-endif()
-
 _minimal(
     "
 --\n--  Detailed information (More compiler flags, module configuration) can be found in detailed.log

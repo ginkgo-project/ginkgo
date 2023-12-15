@@ -52,9 +52,6 @@ Ginkgo adds the following additional switches to control what is being built:
     `OFF` otherwise.
 *   `-DGINKGO_HIP_AMDGPU="gpuarch1;gpuarch2"` the amdgpu_target(s) variable
     passed to hipcc for the `hcc` HIP backend. The default is none (auto).
-*   `-DGINKGO_BUILD_HWLOC={ON, OFF}` builds Ginkgo with HWLOC. If system HWLOC
-    is not found, Ginkgo will try to build it. Default is `ON` on Linux. Ginkgo
-    does not support HWLOC on Windows/MacOS, so the default is `OFF` on Windows/MacOS.
 *   `-DGINKGO_BUILD_DOC={ON, OFF}` creates an HTML version of Ginkgo's documentation
     from inline comments in the code. The default is `OFF`.
 *   `-DGINKGO_DOC_GENERATE_EXAMPLES={ON, OFF}` generates the documentation of examples
@@ -210,9 +207,6 @@ packages can be turned off by disabling the relevant options.
 + GINKGO_BUILD_HWLOC=ON:
   [hwloc](https://www.open-mpi.org/projects/hwloc) to detect and control cores
   and devices.
-+ GINKGO_BUILD_HWLOC=ON and GINKGO_BUILD_TESTS=ON:
-  [libnuma](https://www.man7.org/linux/man-pages/man3/numa.3.html) is required
-  when testing the functions provided through MachineTopology.
 + GINKGO_BUILD_EXAMPLES=ON:
   [OpenCV](https://opencv.org/) is required for some examples, they are disabled when OpenCV is not available.
 + GINKGO_BUILD_DOC=ON:

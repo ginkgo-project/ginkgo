@@ -9,12 +9,6 @@ function(ginkgo_default_includes name)
             $<BUILD_INTERFACE:${Ginkgo_SOURCE_DIR}>
             $<INSTALL_INTERFACE:include>
         )
-    if(GINKGO_HAVE_HWLOC)
-      target_include_directories("${name}"
-        PUBLIC
-        $<BUILD_INTERFACE:${HWLOC_INCLUDE_DIRS}>
-        )
-    endif()
 endfunction()
 
 function(ginkgo_compile_features name)
