@@ -18,6 +18,7 @@
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -281,6 +282,14 @@ public:
                        ptr_param<const MultiVector<value_type>> b,
                        ptr_param<const MultiVector<value_type>> beta,
                        ptr_param<MultiVector<value_type>> x) const;
+
+    /**
+     * Performs the operation a = alpha*a + b.
+     *
+     * Performs the operation in-place for this batch matrix
+     */
+    void scale_add(ptr_param<const MultiVector<value_type>> alpha,
+                   ptr_param<const batch::matrix::Dense<value_type>> b);
 
 private:
     inline size_type compute_num_elems(const batch_dim<2>& size)

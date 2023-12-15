@@ -63,3 +63,12 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL);
+
+
+template <typename ValueType>
+void scale_add(std::shared_ptr<const DefaultExecutor> exec,
+               const batch::MultiVector<ValueType>* alpha,
+               const batch::matrix::Dense<ValueType>* mat,
+               batch::matrix::Dense<ValueType>* input) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_ADD_KERNEL);

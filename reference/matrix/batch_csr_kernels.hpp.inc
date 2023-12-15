@@ -60,3 +60,20 @@ inline void scale(
         }
     }
 }
+
+
+template <typename ValueType, typename IndexType>
+inline void scale_add_kernel(
+    const ValueType alpha,
+    const gko::batch::matrix::csr::batch_item<const ValueType, const IndexType>&
+        b,
+    const gko::batch::matrix::csr::batch_item<ValueType, IndexType>& mat)
+{
+    for (int row = 0; row < mat.num_rows; row++) {
+        for (int col = mat.row_ptrs[row]; col < mat.row_ptrs[row + 1]; col++) {
+            mat.values[col] =
+                alpha * mat.values[col] +
+                ((mat.col_idxs[col] == b.col_idxs[col]) ? b.values[col] : 0);
+        }
+    }
+}

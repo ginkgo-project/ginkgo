@@ -31,6 +31,7 @@ namespace {
 GKO_REGISTER_OPERATION(simple_apply, batch_csr::simple_apply);
 GKO_REGISTER_OPERATION(advanced_apply, batch_csr::advanced_apply);
 GKO_REGISTER_OPERATION(scale, batch_csr::scale);
+GKO_REGISTER_OPERATION(scale_add, batch_csr::scale_add);
 
 
 }  // namespace
@@ -179,6 +180,20 @@ void Csr<ValueType, IndexType>::apply_impl(const MultiVector<ValueType>* alpha,
 {
     this->get_executor()->run(
         csr::make_advanced_apply(alpha, this, b, beta, x));
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::scale_add(
+    ptr_param<const MultiVector<ValueType>> alpha,
+    ptr_param<const batch::matrix::Csr<ValueType, IndexType>> b)
+{
+    GKO_ASSERT_BATCH_EQUAL_NUM_ITEMS(alpha, b);
+    GKO_ASSERT_BATCH_EQUAL_NUM_ITEMS(this, b);
+    GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(this, b);
+    auto exec = this->get_executor();
+    exec->run(csr::make_scale_add(make_temporary_clone(exec, alpha).get(),
+                                  make_temporary_clone(exec, b).get(), this));
 }
 
 

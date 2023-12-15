@@ -41,13 +41,21 @@ namespace kernels {
                const array<_vtype>* right_scale,            \
                batch::matrix::Csr<_vtype, _itype>* input)
 
+#define GKO_DECLARE_BATCH_CSR_SCALE_ADD_KERNEL(_vtype, _itype)    \
+    void scale_add(std::shared_ptr<const DefaultExecutor> exec,   \
+                   const batch::MultiVector<_vtype>* alpha,       \
+                   const batch::matrix::Csr<_vtype, _itype>* mat, \
+                   batch::matrix::Csr<_vtype, _itype>* input)
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                   \
     template <typename ValueType, typename IndexType>                  \
     GKO_DECLARE_BATCH_CSR_SIMPLE_APPLY_KERNEL(ValueType, IndexType);   \
     template <typename ValueType, typename IndexType>                  \
     GKO_DECLARE_BATCH_CSR_ADVANCED_APPLY_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>                  \
-    GKO_DECLARE_BATCH_CSR_SCALE_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_BATCH_CSR_SCALE_KERNEL(ValueType, IndexType);          \
+    template <typename ValueType, typename IndexType>                  \
+    GKO_DECLARE_BATCH_CSR_SCALE_ADD_KERNEL(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(batch_csr,
