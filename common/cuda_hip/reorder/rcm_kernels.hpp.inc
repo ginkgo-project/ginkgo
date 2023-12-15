@@ -328,9 +328,9 @@ __global__ __launch_bounds__(default_block_size) void ubfs_level_kernel(
 
 
 template <typename IndexType>
-IndexType ubfs(std::shared_ptr<const DefaultExecutor> exec,
-               const IndexType num_rows, const IndexType* const row_ptrs,
-               const IndexType* const col_idxs, ubfs_levels<IndexType>& levels)
+void ubfs(std::shared_ptr<const DefaultExecutor> exec, const IndexType num_rows,
+          const IndexType* const row_ptrs, const IndexType* const col_idxs,
+          ubfs_levels<IndexType>& levels)
 {
     const auto policy = thrust_policy(exec);
     const auto node_levels = levels.node_level.get_data();
