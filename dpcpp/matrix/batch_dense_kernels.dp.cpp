@@ -144,6 +144,48 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_ADVANCED_APPLY_KERNEL);
 
 
+template <typename ValueType>
+void scale(std::shared_ptr<const DefaultExecutor> exec,
+           const array<ValueType>* col_scale, const array<ValueType>* row_scale,
+           batch::matrix::Dense<ValueType>* input)
+{
+    const auto col_scale_vals = col_scale->get_const_data();
+    const auto row_scale_vals = row_scale->get_const_data();
+    auto input_vals = input->get_values();
+    const auto num_rows = static_cast<int>(input->get_common_size()[0]);
+    const auto num_cols = static_cast<int>(input->get_common_size()[1]);
+    const auto stride = input->get_common_size()[1];
+    const auto mat_ub = get_batch_struct(input);
+
+    const auto num_batch_items = mat_ub.num_batch_items;
+    auto device = exec->get_queue()->get_device();
+    auto group_size =
+        device.get_info<sycl::info::device::max_work_group_size>();
+
+    const dim3 block(group_size);
+    const dim3 grid(num_batch_items);
+
+    // Launch a kernel that has nbatches blocks, each block has max group size
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                config::warp_size)]] {
+                auto group = item_ct1.get_group();
+                auto group_id = group.get_group_linear_id();
+                const auto col_scale_b = col_scale_vals + num_cols * group_id;
+                const auto row_scale_b = row_scale_vals + num_rows * group_id;
+                const auto input_mat =
+                    input_vals + input->get_num_elements_per_item() * group_id;
+                scale_kernel(num_rows, num_cols, stride, col_scale_b,
+                             row_scale_b, input_mat, item_ct1);
+            });
+    });
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL);
+
+
 }  // namespace batch_dense
 }  // namespace dpcpp
 }  // namespace kernels
