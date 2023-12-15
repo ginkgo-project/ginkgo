@@ -178,6 +178,13 @@ protected:
         // Following checks for cm ordering, therefore create a reversed perm.
         std::vector<i_type> perm(permutation, permutation + n);
         std::reverse(perm.begin(), perm.end());
+        std::vector<i_type> inv_perm(n, gko::invalid_index<i_type>());
+        for (gko::size_type i = 0; i < n; i++) {
+            ASSERT_GE(perm[i], 0) << i;
+            ASSERT_LT(perm[i], n) << i;
+            ASSERT_EQ(inv_perm[perm[i]], gko::invalid_index<i_type>()) << i;
+            inv_perm[perm[i]] = i;
+        }
 
         // Now check for cm ordering.
 
@@ -235,9 +242,8 @@ protected:
                      x_neighbour_idx < x_row_end; ++x_neighbour_idx) {
                     const auto x_neighbour = col_idxs[x_neighbour_idx];
                     if (levels[x_neighbour] == level - 1) {
-                        if (std::find(perm.begin(), perm.end(), x_neighbour) <
-                            std::find(perm.begin(), perm.end(),
-                                      x_first_neighbour)) {
+                        if (inv_perm[x_neighbour] <
+                            inv_perm[x_first_neighbour]) {
                             x_first_neighbour = x_neighbour;
                         }
                     }
@@ -250,33 +256,58 @@ protected:
                      y_neighbour_idx < y_row_end; ++y_neighbour_idx) {
                     const auto y_neighbour = col_idxs[y_neighbour_idx];
                     if (levels[y_neighbour] == level - 1) {
-                        if (std::find(perm.begin(), perm.end(), y_neighbour) <
-                            std::find(perm.begin(), perm.end(),
-                                      y_first_neighbour)) {
+                        if (inv_perm[y_neighbour] <
+                            inv_perm[y_first_neighbour]) {
                             y_first_neighbour = y_neighbour;
                         }
                     }
                 }
 
                 // Assert the ... is not after the ... in the previous level.
-                if (std::find(perm.begin(), perm.end(), y_first_neighbour) <
-                    std::find(perm.begin(), perm.end(), x_first_neighbour)) {
-                    GTEST_FAIL()
-                        << "First neighbor ordering violated between nodes "
-                        << x << " and " << y << ", first neighbors were "
-                        << x_first_neighbour << " and " << y_first_neighbour;
-                }
+                ASSERT_GE(inv_perm[y_first_neighbour],
+                          inv_perm[x_first_neighbour])
+                    << "First neighbor ordering violated between nodes " << x
+                    << " and " << y << ", first neighbors were "
+                    << x_first_neighbour << " and " << y_first_neighbour;
 
                 if (y_first_neighbour == x_first_neighbour) {
-                    if (degrees[y] < degrees[x]) {
-                        GTEST_FAIL()
-                            << "Degree ordering violated between nodes " << x
-                            << " and " << y << ", degrees were " << degrees[x]
-                            << " and " << degrees[y];
-                    }
+                    ASSERT_GE(degrees[y], degrees[x])
+                        << "Degree ordering violated between nodes " << x
+                        << " and " << y << ", degrees were " << degrees[x]
+                        << " and " << degrees[y];
                 }
             }
         }
+    }
+
+    void build_multiple_connected_components()
+    {
+        gko::matrix_data<v_type, i_type> data;
+        d_1138_bus_mtx->write(data);
+        const auto num_rows = data.size[0];
+        const auto nnz = data.nonzeros.size();
+        const int num_copies = 5;
+        data.size[0] *= num_copies;
+        data.size[1] *= num_copies;
+        for (gko::size_type i = 0; i < nnz; i++) {
+            const auto entry = data.nonzeros[i];
+            // create copies of the matrix
+            for (int copy = 1; copy < num_copies; copy++) {
+                data.nonzeros.emplace_back(entry.row + copy * num_rows,
+                                           entry.column + copy * num_rows,
+                                           entry.value);
+            }
+        }
+        std::vector<i_type> permutation(data.size[0]);
+        std::iota(permutation.begin(), permutation.end(), 0);
+        std::shuffle(permutation.begin(), permutation.end(), rng);
+        for (auto& entry : data.nonzeros) {
+            entry.row = permutation[entry.row];
+            entry.column = permutation[entry.column];
+        }
+        data.sort_row_major();
+        d_1138_bus_mtx->read(data);
+        o_1138_bus_mtx->read(data);
     }
 
     std::default_random_engine rng;
@@ -321,36 +352,27 @@ TEST_F(Rcm, PermutationIsRcmOrderedNewInterface)
 
 TEST_F(Rcm, PermutationIsRcmOrderedMultipleConnectedComponents)
 {
-    gko::matrix_data<v_type, i_type> data;
-    d_1138_bus_mtx->write(data);
-    const auto num_rows = data.size[0];
-    const int num_copies = 5;
-    data.size[0] *= num_copies;
-    data.size[1] *= num_copies;
-    for (gko::size_type i = 0; i < num_rows; i++) {
-        const auto entry = data.nonzeros[i];
-        // create copies of the matrix
-        for (int i = 1; i < num_copies; i++) {
-            data.nonzeros.emplace_back(entry.row + i * num_rows,
-                                       entry.column + i * num_rows,
-                                       entry.value);
-        }
-    }
-    std::vector<i_type> permutation(data.size[0]);
-    std::iota(permutation.begin(), permutation.end(), 0);
-    std::shuffle(permutation.begin(), permutation.end(), rng);
-    for (auto& entry : data.nonzeros) {
-        entry.row = permutation[entry.row];
-        entry.column = permutation[entry.column];
-    }
-    data.sort_row_major();
-    d_1138_bus_mtx->read(data);
-    o_1138_bus_mtx->read(data);
+    this->build_multiple_connected_components();
 
     d_reorder_op = reorder_type::build().on(exec)->generate(d_1138_bus_mtx);
 
     auto perm = d_reorder_op->get_permutation();
+    check_rcm_ordered(o_1138_bus_mtx, perm.get(),
+                      d_reorder_op->get_parameters().strategy);
+}
 
+
+TEST_F(Rcm, PermutationIsRcmOrderedMinDegreeMultipleConnectedComponents)
+{
+    this->build_multiple_connected_components();
+
+    d_reorder_op =
+        reorder_type::build()
+            .with_strategy(gko::reorder::starting_strategy::minimum_degree)
+            .on(exec)
+            ->generate(d_1138_bus_mtx);
+
+    auto perm = d_reorder_op->get_permutation();
     check_rcm_ordered(o_1138_bus_mtx, perm.get(),
                       d_reorder_op->get_parameters().strategy);
 }
