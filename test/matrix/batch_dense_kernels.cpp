@@ -128,7 +128,7 @@ TEST_F(Dense, TwoSidedScaleIsEquivalentToRef)
     set_up_apply_data(257);
 
     gko::batch::matrix::two_sided_scale(col_scale, row_scale, mat);
-    gko::batch::matrix::two_sided_scale(col_scale, row_scale, dmat);
+    gko::batch::matrix::two_sided_scale(dcol_scale, drow_scale, dmat);
 
     GKO_ASSERT_BATCH_MTX_NEAR(dmat, mat, r<value_type>::value);
 }
