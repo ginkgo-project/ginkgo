@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -24,6 +24,7 @@
 #include "common/cuda_hip/components/reduction.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/components/uninitialized_array.hpp"
+#include "core/base/mixed_precision_types.hpp"
 #include "core/base/utils.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 
@@ -429,6 +430,34 @@ __global__ __launch_bounds__(default_block_size) void fill_in_sellp(
             col_idxs[i] = invalid_index<IndexType>();
         }
     }
+}
+
+
+template <typename ValueType, typename OutputType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void row_scatter(
+    size_type num_sets, IndexType* __restrict__ row_set_begins,
+    IndexType* __restrict__ row_set_offsets, size_type orig_num_rows,
+    size_type num_cols, size_type orig_stride,
+    const ValueType* __restrict__ orig_values, size_type target_stride,
+    OutputType* __restrict__ target_values)
+{
+    auto id = thread::get_thread_id_flat();
+    auto row = id / num_cols;
+    auto col = id % num_cols;
+
+    if (row >= orig_num_rows) {
+        return;
+    }
+
+    auto set_id =
+        binary_search<size_type>(
+            0, num_sets + 1, [=](auto i) { return row < row_set_offsets[i]; }) -
+        1;
+    auto set_local_row = row - row_set_offsets[set_id];
+    auto target_row = set_local_row + row_set_begins[set_id];
+
+    target_values[target_row * target_stride + col] =
+        orig_values[row * orig_stride + col];
 }
 
 
@@ -838,6 +867,29 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CONJ_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType, typename OutputType, typename IndexType>
+void row_scatter(std::shared_ptr<const DefaultExecutor> exec,
+                 const index_set<IndexType>* row_idxs,
+                 const matrix::Dense<ValueType>* orig,
+                 matrix::Dense<OutputType>* target)
+{
+    auto size = orig->get_size();
+    if (size) {
+        constexpr auto block_size = default_block_size;
+        auto num_blocks = ceildiv(size[0] * size[1], block_size);
+        kernel::row_scatter<<<num_blocks, block_size, 0, exec->get_stream()>>>(
+            row_idxs->get_num_subsets(),
+            as_device_type(row_idxs->get_subsets_begin()),
+            as_device_type(row_idxs->get_superset_indices()), size[0], size[1],
+            orig->get_stride(), as_device_type(orig->get_const_values()),
+            target->get_stride(), as_device_type(target->get_values()));
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
+    GKO_DECLARE_DENSE_ROW_SCATTER_INDEX_SET_KERNEL);
 
 
 }  // namespace dense

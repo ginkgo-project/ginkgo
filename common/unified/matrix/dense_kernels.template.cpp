@@ -480,7 +480,7 @@ void row_scatter(std::shared_ptr<const DefaultExecutor> exec,
                       auto scattered) {
             scattered(rows[row], col) = orig(row, col);
         },
-        dim<2>{row_idxs->get_num_elems(), orig->get_size()[1]}, orig, *row_idxs,
+        dim<2>{row_idxs->get_size(), orig->get_size()[1]}, orig, *row_idxs,
         target);
 }
 
