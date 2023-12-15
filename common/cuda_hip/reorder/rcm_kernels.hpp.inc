@@ -205,13 +205,25 @@ struct adj_not_predicate {
 
 template <typename IndexType>
 struct node_min_degree_reduction {
-    __device__ __forceinline__ IndexType operator()(IndexType u, IndexType v)
+    __device__ __forceinline__ IndexType operator()(IndexType u,
+                                                    IndexType v) const
     {
+#ifdef GKO_COMPILING_HIP
+        // guard against out-of-bounds values, since rocThrust has a bug
+        // https://github.com/ROCm/rocThrust/issues/352
+        if (u < 0 || u >= size) {
+            u = 0;
+        }
+        if (v < 0 || v >= size) {
+            v = 0;
+        }
+#endif
         return thrust::make_pair(degree[u], u) < thrust::make_pair(degree[v], v)
                    ? u
                    : v;
     }
 
+    IndexType size;
     const IndexType* degree;
 };
 
@@ -259,10 +271,10 @@ components_data<IndexType> compute_connected_components(
     // find minimum degree node for each component
     array<IndexType> component_id_array{exec, num_components};
     const auto component_ids = component_id_array.get_data();
-    thrust::reduce_by_key(policy, sorted_component_ids,
-                          sorted_component_ids + num_rows, nodes, component_ids,
-                          min_deg_node, thrust::equal_to<IndexType>{},
-                          node_min_degree_reduction<IndexType>{node_degrees});
+    thrust::reduce_by_key(
+        policy, sorted_component_ids, sorted_component_ids + num_rows, nodes,
+        component_ids, min_deg_node, thrust::equal_to<IndexType>{},
+        node_min_degree_reduction<IndexType>{num_rows, node_degrees});
     // map component IDs to consecutive indexing
     array<IndexType> compacted_node_component{exec,
                                               static_cast<size_type>(num_rows)};
@@ -363,8 +375,19 @@ void ubfs(std::shared_ptr<const DefaultExecutor> exec, const IndexType num_rows,
 
 template <typename IndexType>
 struct node_max_level_min_degree_reduction {
-    __device__ __forceinline__ IndexType operator()(IndexType u, IndexType v)
+    __device__ __forceinline__ IndexType operator()(IndexType u,
+                                                    IndexType v) const
     {
+#ifdef GKO_COMPILING_HIP
+        // guard against out-of-bounds values, since rocThrust has a bug
+        // https://github.com/ROCm/rocThrust/issues/352
+        if (u < 0 || u >= size) {
+            u = 0;
+        }
+        if (v < 0 || v >= size) {
+            v = 0;
+        }
+#endif
         // return node with larger level (smaller degree or ID as tie-breakers)
         return thrust::make_tuple(level[v], degree[u], u) <
                        thrust::make_tuple(level[u], degree[v], v)
@@ -372,6 +395,7 @@ struct node_max_level_min_degree_reduction {
                    : v;
     }
 
+    IndexType size;
     const IndexType* degree;
     const IndexType* level;
 };
@@ -421,7 +445,7 @@ void find_pseudo_peripheral_nodes(std::shared_ptr<const DefaultExecutor> exec,
     const auto component_nodes = components.nodes.get_const_data();
     const auto sorted_component_ids = components.sorted_ids.get_const_data();
     const auto reduction = node_max_level_min_degree_reduction<IndexType>{
-        node_degrees, node_levels};
+        num_rows, node_degrees, node_levels};
     const auto discard_it = thrust::discard_iterator<IndexType>{};
     const auto eq_op = thrust::equal_to<IndexType>{};
     const auto counting_it = thrust::make_counting_iterator(IndexType{});
