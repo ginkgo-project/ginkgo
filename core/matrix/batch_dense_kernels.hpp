@@ -45,6 +45,12 @@ namespace kernels {
                    const batch::matrix::Dense<_type>* mat,      \
                    batch::matrix::Dense<_type>* input)
 
+#define GKO_DECLARE_BATCH_DENSE_ADD_SCALED_IDENTITY_KERNEL(_vtype)        \
+    void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec, \
+                             const batch::MultiVector<_vtype>* alpha,     \
+                             const batch::MultiVector<_vtype>* beta,      \
+                             batch::matrix::Dense<_vtype>* mat)
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                          \
     template <typename ValueType>                             \
     GKO_DECLARE_BATCH_DENSE_SIMPLE_APPLY_KERNEL(ValueType);   \
@@ -53,7 +59,9 @@ namespace kernels {
     template <typename ValueType>                             \
     GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL(ValueType);          \
     template <typename ValueType>                             \
-    GKO_DECLARE_BATCH_DENSE_SCALE_ADD_KERNEL(ValueType)
+    GKO_DECLARE_BATCH_DENSE_SCALE_ADD_KERNEL(ValueType);      \
+    template <typename ValueType>                             \
+    GKO_DECLARE_BATCH_DENSE_ADD_SCALED_IDENTITY_KERNEL(ValueType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(batch_dense,

@@ -291,6 +291,14 @@ public:
     void scale_add(ptr_param<const MultiVector<value_type>> alpha,
                    ptr_param<const batch::matrix::Dense<value_type>> b);
 
+    /**
+     * Performs the operation a = alpha*I + beta*a.
+     *
+     * Performs the operation in-place for this batch matrix
+     */
+    void add_scaled_identity(ptr_param<const MultiVector<value_type>> alpha,
+                             ptr_param<const MultiVector<value_type>> beta);
+
 private:
     inline size_type compute_num_elems(const batch_dim<2>& size)
     {

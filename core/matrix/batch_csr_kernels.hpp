@@ -10,6 +10,7 @@
 
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
+#include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 
@@ -47,6 +48,13 @@ namespace kernels {
                    const batch::matrix::Csr<_vtype, _itype>* mat, \
                    batch::matrix::Csr<_vtype, _itype>* input)
 
+#define GKO_DECLARE_BATCH_CSR_ADD_SCALED_IDENTITY_KERNEL(_vtype, _itype)  \
+    void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec, \
+                             const batch::MultiVector<_vtype>* alpha,     \
+                             const batch::MultiVector<_vtype>* beta,      \
+                             batch::matrix::Csr<_vtype, _itype>* mat)
+
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                   \
     template <typename ValueType, typename IndexType>                  \
     GKO_DECLARE_BATCH_CSR_SIMPLE_APPLY_KERNEL(ValueType, IndexType);   \
@@ -55,7 +63,9 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                  \
     GKO_DECLARE_BATCH_CSR_SCALE_KERNEL(ValueType, IndexType);          \
     template <typename ValueType, typename IndexType>                  \
-    GKO_DECLARE_BATCH_CSR_SCALE_ADD_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_BATCH_CSR_SCALE_ADD_KERNEL(ValueType, IndexType);      \
+    template <typename ValueType, typename IndexType>                  \
+    GKO_DECLARE_BATCH_CSR_ADD_SCALED_IDENTITY_KERNEL(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(batch_csr,

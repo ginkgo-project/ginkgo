@@ -134,6 +134,29 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
     GKO_DECLARE_BATCH_CSR_SCALE_ADD_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
+                         const batch::MultiVector<ValueType>* alpha,
+                         const batch::MultiVector<ValueType>* beta,
+                         batch::matrix::Csr<ValueType, IndexType>* mat)
+{
+    const auto mat_ub = host::get_batch_struct(mat);
+    const auto alpha_ub = host::get_batch_struct(alpha);
+    const auto beta_ub = host::get_batch_struct(beta);
+#pragma omp parallel for
+    for (size_type batch_id = 0; batch_id < mat->get_num_batch_items();
+         ++batch_id) {
+        const auto alpha_b = batch::extract_batch_item(alpha_ub, batch_id);
+        const auto beta_b = batch::extract_batch_item(beta_ub, batch_id);
+        const auto mat_b = batch::matrix::extract_batch_item(mat_ub, batch_id);
+        add_scaled_identity_kernel(alpha_b.values[0], beta_b.values[0], mat_b);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
+    GKO_DECLARE_BATCH_CSR_ADD_SCALED_IDENTITY_KERNEL);
+
+
 }  // namespace batch_csr
 }  // namespace omp
 }  // namespace kernels

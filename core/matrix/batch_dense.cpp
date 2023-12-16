@@ -33,6 +33,7 @@ GKO_REGISTER_OPERATION(simple_apply, batch_dense::simple_apply);
 GKO_REGISTER_OPERATION(advanced_apply, batch_dense::advanced_apply);
 GKO_REGISTER_OPERATION(scale, batch_dense::scale);
 GKO_REGISTER_OPERATION(scale_add, batch_dense::scale_add);
+GKO_REGISTER_OPERATION(add_scaled_identity, batch_dense::add_scaled_identity);
 
 
 }  // namespace
@@ -164,6 +165,20 @@ void Dense<ValueType>::scale_add(
     auto exec = this->get_executor();
     exec->run(dense::make_scale_add(make_temporary_clone(exec, alpha).get(),
                                     make_temporary_clone(exec, b).get(), this));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::add_scaled_identity(
+    ptr_param<const MultiVector<ValueType>> alpha,
+    ptr_param<const MultiVector<ValueType>> beta)
+{
+    GKO_ASSERT_BATCH_EQUAL_NUM_ITEMS(alpha, beta);
+    GKO_ASSERT_BATCH_EQUAL_NUM_ITEMS(this, beta);
+    auto exec = this->get_executor();
+    exec->run(dense::make_add_scaled_identity(
+        make_temporary_clone(exec, alpha).get(),
+        make_temporary_clone(exec, beta).get(), this));
 }
 
 

@@ -274,6 +274,14 @@ public:
         ptr_param<const MultiVector<value_type>> alpha,
         ptr_param<const batch::matrix::Csr<value_type, index_type>> b);
 
+    /**
+     * Performs the operation a = alpha*I + beta*a.
+     *
+     * Performs the operation in-place for this batch matrix
+     */
+    void add_scaled_identity(ptr_param<const MultiVector<value_type>> alpha,
+                             ptr_param<const MultiVector<value_type>> beta);
+
 private:
     /**
      * Creates an uninitialized Csr matrix of the specified size.
