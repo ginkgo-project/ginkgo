@@ -366,9 +366,9 @@ private:
 
 
 template <typename ValueType>
-void two_sided_scale(const array<ValueType>& left,
-                     const array<ValueType>& right,
-                     std::shared_ptr<batch::matrix::Dense<ValueType>>& in_out);
+void two_sided_scale(const array<ValueType>& col_scale,
+                     const array<ValueType>& row_scale,
+                     batch::matrix::Dense<ValueType>* in_out);
 
 
 }  // namespace matrix

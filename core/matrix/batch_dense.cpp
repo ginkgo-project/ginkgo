@@ -224,21 +224,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_MATRIX);
 template <typename ValueType>
 void two_sided_scale(const array<ValueType>& col_scale,
                      const array<ValueType>& row_scale,
-                     std::shared_ptr<batch::matrix::Dense<ValueType>>& in_out)
+                     batch::matrix::Dense<ValueType>* in_out)
 {
     GKO_ASSERT_EQ(col_scale.get_size(), (in_out->get_common_size()[1] *
                                          in_out->get_num_batch_items()));
     GKO_ASSERT_EQ(row_scale.get_size(), (in_out->get_common_size()[0] *
                                          in_out->get_num_batch_items()));
     in_out->get_executor()->run(
-        dense::make_scale(&col_scale, &row_scale, in_out.get()));
+        dense::make_scale(&col_scale, &row_scale, in_out));
 }
 
 
 #define GKO_DECLARE_TWO_SIDED_BATCH_SCALE(_type)        \
     void two_sided_scale(const array<_type>& col_scale, \
                          const array<_type>& row_scale, \
-                         std::shared_ptr<batch::matrix::Dense<_type>>& in_out)
+                         batch::matrix::Dense<_type>* in_out)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_TWO_SIDED_BATCH_SCALE);
 

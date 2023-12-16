@@ -134,7 +134,7 @@ TYPED_TEST(Dense, CanTwoSidedScale)
     row_scale.fill(3);
 
     gko::batch::matrix::two_sided_scale<value_type>(col_scale, row_scale,
-                                                    this->mtx_0);
+                                                    this->mtx_0.get());
 
     auto scaled_mtx_0 =
         gko::batch::initialize<BMtx>({{{6.0, -6.0, 9.0}, {-12.0, 12.0, 18.0}},
