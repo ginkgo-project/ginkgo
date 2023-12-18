@@ -48,7 +48,7 @@ namespace csr {
 
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
-void spmv(std::shared_ptr<const OmpExecutor> exec,
+void classical_spmv(std::shared_ptr<const OmpExecutor> exec,
           const matrix::Csr<MatrixValueType, IndexType>* a,
           const matrix::Dense<InputValueType>* b,
           matrix::Dense<OutputValueType>* c)
@@ -80,9 +80,6 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
         }
     }
 }
-
-GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_SPMV_KERNEL);
 
 
 template <typename MatrixValueType, typename InputValueType,
@@ -130,7 +127,7 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
  * Computes the begin offsets into A and B for the specific diagonal
  */
 template <typename IndexType>
-inline void MergePathSearch(
+inline void merge_path_search(
     const int         diagonal,           ///< [in]The diagonal to search
     const IndexType*        A,                  ///< [in]List A
     const int         A_len,              ///< [in]Length of A
@@ -142,7 +139,7 @@ inline void MergePathSearch(
     auto x_max = std::min(diagonal, A_len);
 
     while (x_min < x_max) {
-        auto x_pivot = (x_min + x_max) >> 1;
+	auto x_pivot = x_min + ((x_max - x_min) / 2);
         if (A[x_pivot] <= (diagonal - x_pivot - 1)) {
             x_min = x_pivot + 1;    // Contract range up A (down B)
 	} else {
@@ -192,8 +189,8 @@ void merge_spmv(std::shared_ptr<const OmpExecutor> exec,
             const auto end_diagonal = std::min(start_diagonal + items_per_thread, num_merge_items);
             int thread_coord_x, thread_coord_y, thread_coord_end_x, thread_coord_end_y;
 
-            MergePathSearch(start_diagonal, row_end_offsets, num_rows, nnz, thread_coord_x, thread_coord_y);
-            MergePathSearch(end_diagonal, row_end_offsets, num_rows, nnz, thread_coord_end_x, thread_coord_end_y);
+            merge_path_search(start_diagonal, row_end_offsets, num_rows, nnz, thread_coord_x, thread_coord_y);
+            merge_path_search(end_diagonal, row_end_offsets, num_rows, nnz, thread_coord_end_x, thread_coord_end_y);
 
             // Consume merge items, whole rows first
             for (; thread_coord_x < thread_coord_end_x; thread_coord_x++) {
@@ -228,8 +225,25 @@ void merge_spmv(std::shared_ptr<const OmpExecutor> exec,
     }
 }
 
+
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
+void spmv(std::shared_ptr<const OmpExecutor> exec,
+          const matrix::Csr<MatrixValueType, IndexType>* a,
+          const matrix::Dense<InputValueType>* b,
+          matrix::Dense<OutputValueType>* c)
+{
+    if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
+        // empty output: nothing to do
+    } else if (a->get_strategy()->get_name() == "merge_path") {
+        merge_spmv(exec, a, b, c);
+    } else {
+        classical_spmv(exec, a, b, c);
+    }
+}
+
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_MERGE_SPMV_KERNEL);
+    GKO_DECLARE_CSR_SPMV_KERNEL);
 
 
 namespace {
