@@ -75,6 +75,7 @@
 #include <ginkgo/core/log/batch_logger.hpp>
 #include <ginkgo/core/log/convergence.hpp>
 #include <ginkgo/core/log/logger.hpp>
+#include <ginkgo/core/log/memory_footprint.hpp>
 #include <ginkgo/core/log/papi.hpp>
 #include <ginkgo/core/log/performance_hint.hpp>
 #include <ginkgo/core/log/profiler_hook.hpp>

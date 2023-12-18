@@ -32,6 +32,7 @@ target_sources(ginkgo
     log/batch_logger.cpp
     log/convergence.cpp
     log/logger.cpp
+    log/memory_footprint.cpp
     log/performance_hint.cpp
     log/profiler_hook.cpp
     log/profiler_hook_summary.cpp
