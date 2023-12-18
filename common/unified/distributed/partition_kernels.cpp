@@ -7,6 +7,7 @@
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "common/unified/base/kernel_launch_reduction.hpp"
+#include "core/base/array_access.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 
 
@@ -31,7 +32,7 @@ void count_ranges(std::shared_ptr<const DefaultExecutor> exec,
         },
         GKO_KERNEL_REDUCE_SUM(size_type), result.get_data(), mapping.get_size(),
         mapping);
-    num_ranges = exec->copy_val_to_host(result.get_const_data());
+    num_ranges = get_element(result, 0);
 }
 
 
@@ -144,8 +145,7 @@ void has_ordered_parts(
         },
         [] GKO_KERNEL(const auto a) { return a; }, uint32(1),
         result_uint32.get_data(), num_ranges - 1, part_ids);
-    *result = static_cast<bool>(
-        exec->copy_val_to_host(result_uint32.get_const_data()));
+    *result = static_cast<bool>(get_element(result_uint32, 0));
 }
 
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(

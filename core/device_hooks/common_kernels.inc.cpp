@@ -29,6 +29,7 @@
 #include "core/factorization/par_ict_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
+#include "core/matrix/batch_csr_kernels.hpp"
 #include "core/matrix/batch_dense_kernels.hpp"
 #include "core/matrix/batch_ell_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
@@ -279,6 +280,16 @@ GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_MULTI_VECTOR_COPY_KERNEL);
 
 
 }  // namespace batch_multi_vector
+
+
+namespace batch_csr {
+
+
+GKO_STUB_VALUE_AND_INT32_TYPE(GKO_DECLARE_BATCH_CSR_SIMPLE_APPLY_KERNEL);
+GKO_STUB_VALUE_AND_INT32_TYPE(GKO_DECLARE_BATCH_CSR_ADVANCED_APPLY_KERNEL);
+
+
+}  // namespace batch_csr
 
 
 namespace batch_dense {

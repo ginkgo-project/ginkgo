@@ -1,3 +1,4 @@
+ginkgo_create_test(batch_csr_kernels)
 ginkgo_create_test(batch_dense_kernels)
 ginkgo_create_test(batch_ell_kernels)
 ginkgo_create_test(coo_kernels)

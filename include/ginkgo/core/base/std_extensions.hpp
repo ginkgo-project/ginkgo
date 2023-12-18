@@ -45,7 +45,8 @@ using void_t = typename detail::make_void<Ts...>::type;
 // Disable deprecation warnings when using standard > C++14
 inline bool uncaught_exception() noexcept
 {
-#if __cplusplus > 201402L
+// MSVC uses _MSVC_LANG as __cplusplus
+#if (defined(_MSVC_LANG) && _MSVC_LANG > 201402L) || __cplusplus > 201402L
     return std::uncaught_exceptions() > 0;
 #else
     return std::uncaught_exception();

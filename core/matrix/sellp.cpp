@@ -15,6 +15,7 @@
 
 
 #include "core/base/allocator.hpp"
+#include "core/base/array_access.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
@@ -181,8 +182,8 @@ void Sellp<ValueType, IndexType>::convert_to(
             this, tmp->row_ptrs_.get_data()));
         exec->run(sellp::make_prefix_sum_nonnegative(tmp->row_ptrs_.get_data(),
                                                      num_rows + 1));
-        const auto nnz = static_cast<size_type>(
-            exec->copy_val_to_host(tmp->row_ptrs_.get_const_data() + num_rows));
+        const auto nnz =
+            static_cast<size_type>(get_element(tmp->row_ptrs_, num_rows));
         tmp->col_idxs_.resize_and_reset(nnz);
         tmp->values_.resize_and_reset(nnz);
         tmp->set_size(this->get_size());
@@ -215,8 +216,8 @@ void Sellp<ValueType, IndexType>::read(const device_mat_data& data)
     exec->run(sellp::make_compute_slice_sets(
         row_ptrs, this->get_slice_size(), this->get_stride_factor(),
         slice_sets_.get_data(), slice_lengths_.get_data()));
-    const auto total_cols = exec->copy_val_to_host(slice_sets_.get_data() +
-                                                   slice_sets_.get_size() - 1);
+    const auto total_cols =
+        get_element(slice_sets_, slice_sets_.get_size() - 1);
     values_.resize_and_reset(total_cols * slice_size_);
     col_idxs_.resize_and_reset(total_cols * slice_size_);
     exec->run(sellp::make_fill_in_matrix_data(*local_data,

@@ -10,6 +10,7 @@
 
 
 #include "benchmark/sparse_blas/operations.hpp"
+#include "core/base/array_access.hpp"
 #include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/symbolic.hpp"
 #include "core/matrix/csr_kernels.hpp"
@@ -393,8 +394,7 @@ public:
         exec->run(make_build_lookup_offsets(
             mtx_->get_const_row_ptrs(), mtx_->get_const_col_idxs(), num_rows,
             allowed_sparsity_, storage_offsets_.get_data()));
-        storage_.resize_and_reset(exec->copy_val_to_host(
-            storage_offsets_.get_const_data() + num_rows));
+        storage_.resize_and_reset(get_element(storage_offsets_, num_rows));
     }
 
     std::pair<bool, double> validate() const override
@@ -479,8 +479,7 @@ public:
         exec->run(make_build_lookup_offsets(
             mtx_->get_const_row_ptrs(), mtx_->get_const_col_idxs(), num_rows,
             allowed_sparsity_, storage_offsets_.get_data()));
-        storage_.resize_and_reset(exec->copy_val_to_host(
-            storage_offsets_.get_const_data() + num_rows));
+        storage_.resize_and_reset(get_element(storage_offsets_, num_rows));
         exec->run(make_build_lookup(
             mtx_->get_const_row_ptrs(), mtx_->get_const_col_idxs(), num_rows,
             allowed_sparsity_, storage_offsets_.get_const_data(),

@@ -21,6 +21,7 @@
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 
+#include "core/base/array_access.hpp"
 #include "core/base/utils.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/preconditioner/isai_kernels.hpp"
@@ -117,8 +118,8 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
             to_invert.get(), inverted_row_ptrs.get_data()));
 
         // Get nnz from device memory
-        auto inverted_nnz = static_cast<size_type>(
-            exec->copy_val_to_host(inverted_row_ptrs.get_data() + num_rows));
+        auto inverted_nnz =
+            static_cast<size_type>(get_element(inverted_row_ptrs, num_rows));
 
         // Init arrays
         array<IndexType> inverted_col_idxs{exec, inverted_nnz};

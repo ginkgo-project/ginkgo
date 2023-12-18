@@ -9,7 +9,7 @@
 
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
-#include <ginkgo/core/matrix/batch_dense.hpp>
+#include <ginkgo/core/matrix/batch_ell.hpp>
 
 
 #include "core/base/batch_struct.hpp"

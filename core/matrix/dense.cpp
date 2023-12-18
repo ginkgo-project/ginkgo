@@ -29,6 +29,7 @@
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "core/base/array_access.hpp"
 #include "core/base/dispatch_helper.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
@@ -616,8 +617,7 @@ void Dense<ValueType>::convert_impl(Coo<ValueType, IndexType>* result) const
     exec->run(dense::make_count_nonzeros_per_row(this, row_ptrs.get_data()));
     exec->run(
         dense::make_prefix_sum_nonnegative(row_ptrs.get_data(), num_rows + 1));
-    const auto nnz =
-        exec->copy_val_to_host(row_ptrs.get_const_data() + num_rows);
+    const auto nnz = get_element(row_ptrs, num_rows);
     result->resize(this->get_size(), nnz);
     exec->run(
         dense::make_convert_to_coo(this, row_ptrs.get_const_data(),
@@ -818,7 +818,7 @@ void Dense<ValueType>::convert_impl(Hybrid<ValueType, IndexType>* result) const
     }
     exec->run(dense::make_compute_hybrid_coo_row_ptrs(row_nnz, ell_lim,
                                                       coo_row_ptrs.get_data()));
-    coo_nnz = exec->copy_val_to_host(coo_row_ptrs.get_const_data() + num_rows);
+    coo_nnz = get_element(coo_row_ptrs, num_rows);
     auto tmp = make_temporary_clone(exec, result);
     tmp->resize(this->get_size(), ell_lim, coo_nnz);
     exec->run(dense::make_convert_to_hybrid(this, coo_row_ptrs.get_const_data(),
@@ -921,8 +921,7 @@ void Dense<ValueType>::convert_impl(
         dense::make_count_nonzeros_per_row(this, tmp->row_ptrs_.get_data()));
     exec->run(dense::make_prefix_sum_nonnegative(tmp->row_ptrs_.get_data(),
                                                  num_rows + 1));
-    const auto nnz =
-        exec->copy_val_to_host(tmp->row_ptrs_.get_const_data() + num_rows);
+    const auto nnz = get_element(tmp->row_ptrs_, num_rows);
     tmp->col_idxs_.resize_and_reset(nnz);
     tmp->value_.fill(one<ValueType>());
     tmp->set_size(this->get_size());

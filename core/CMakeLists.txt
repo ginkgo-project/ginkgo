@@ -40,6 +40,7 @@ target_sources(ginkgo
     log/vtune.cpp
     log/record.cpp
     log/stream.cpp
+    matrix/batch_csr.cpp
     matrix/batch_dense.cpp
     matrix/batch_ell.cpp
     matrix/batch_identity.cpp
@@ -155,4 +156,13 @@ endif()
 
 if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)
+endif()
+
+if(GINKGO_DEVEL_TOOLS AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND BUILD_SHARED_LIBS)
+    # Copy pretty-printer next to library
+    add_custom_command(TARGET ginkgo POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" -E copy
+        "${Ginkgo_SOURCE_DIR}/dev_tools/scripts/gdb-ginkgo.py"
+        "$<TARGET_FILE:ginkgo>-gdb.py"
+        COMMENT "Copying pretty-printer to output directory")
 endif()

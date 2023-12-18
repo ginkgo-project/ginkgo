@@ -5,6 +5,7 @@
 #include <ginkgo/core/distributed/partition.hpp>
 
 
+#include "core/base/array_access.hpp"
 #include "core/distributed/partition_kernels.hpp"
 
 
@@ -90,8 +91,14 @@ void Partition<LocalIndexType, GlobalIndexType>::finalize_construction()
         offsets_.get_const_data(), part_ids_.get_const_data(), get_num_ranges(),
         get_num_parts(), num_empty_parts_, starting_indices_.get_data(),
         part_sizes_.get_data()));
-    size_ = offsets_.get_executor()->copy_val_to_host(
-        offsets_.get_const_data() + get_num_ranges());
+    size_ = get_element(offsets_, get_num_ranges());
+}
+
+template <typename LocalIndexType, typename GlobalIndexType>
+LocalIndexType Partition<LocalIndexType, GlobalIndexType>::get_part_size(
+    comm_index_type part) const
+{
+    return get_element(this->part_sizes_, part);
 }
 
 
