@@ -358,7 +358,7 @@ std::pair<IndexType, IndexType> rls_contender_and_height(
     // Implement this through a tie-max reduction. First reduce local ...
     const int32 num_threads = omp_get_max_threads();
     const auto initial_value =
-        std::make_pair(std::make_pair(levels[0], degrees[0]), 0);
+        std::make_pair(std::make_pair(levels[start], degrees[start]), start);
     vector<contending> local_contenders(num_threads, initial_value, exec);
 
 #pragma omp parallel num_threads(num_threads)
@@ -368,9 +368,10 @@ std::pair<IndexType, IndexType> rls_contender_and_height(
 
 #pragma omp for schedule(static)
         for (IndexType i = 1; i < num_vertices; ++i) {
-            if (std::tie(levels[i], degrees[i]) >
-                std::tie(local_contender.first.first,
-                         local_contender.first.second)) {
+            if (levels[i] != std::numeric_limits<IndexType>::max() &&
+                std::tie(levels[i], degrees[i]) >
+                    std::tie(local_contender.first.first,
+                             local_contender.first.second)) {
                 local_contender.first = std::make_pair(levels[i], degrees[i]);
                 local_contender.second = i;
             }

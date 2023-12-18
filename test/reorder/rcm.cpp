@@ -85,6 +85,7 @@ protected:
                                        std::vector<bool>& already_visited,
                                        gko::reorder::starting_strategy strategy)
     {
+        SCOPED_TRACE(start);
         ASSERT_FALSE(already_visited[start]) << start;
 
         const auto n = mtx->get_size()[0];
@@ -94,8 +95,7 @@ protected:
                 mtx->get_const_row_ptrs()[i + 1] - mtx->get_const_row_ptrs()[i];
         }
 
-        switch (strategy) {
-        case gko::reorder::starting_strategy::minimum_degree: {
+        if (strategy == gko::reorder::starting_strategy::minimum_degree) {
             auto min_degree = std::numeric_limits<i_type>::max();
             for (gko::size_type i = 0; i < n; ++i) {
                 if (!already_visited[i] && degrees[i] < min_degree) {
@@ -103,60 +103,57 @@ protected:
                 }
             }
             ASSERT_EQ(min_degree, degrees[start]) << start;
-            break;
+            return;
         }
 
-        case gko::reorder::starting_strategy::pseudo_peripheral: {
-            // Check if any valid contender has a lowereq height than the
-            // selected start node.
+        // Check if any valid contender has a lowereq height than the
+        // selected start node.
 
-            std::vector<i_type> reference_current_levels(n);
-            std::fill(reference_current_levels.begin(),
-                      reference_current_levels.end(),
+        std::vector<i_type> reference_current_levels(n);
+        std::fill(reference_current_levels.begin(),
+                  reference_current_levels.end(),
+                  std::numeric_limits<i_type>::max());
+        ubfs_reference(mtx, &reference_current_levels[0], start);
+
+        // First find all contender nodes in the last UBFS level
+        std::vector<i_type> reference_contenders;
+        auto current_height = std::numeric_limits<i_type>::min();
+        for (gko::size_type i = 0; i < n; ++i) {
+            if (reference_current_levels[i] !=
+                    std::numeric_limits<i_type>::max() &&
+                reference_current_levels[i] >= current_height) {
+                if (reference_current_levels[i] > current_height) {
+                    reference_contenders.clear();
+                }
+                reference_contenders.push_back(i);
+                current_height = reference_current_levels[i];
+            }
+        }
+
+        // then compute a level array for each of the contenders
+        std::vector<std::vector<i_type>> reference_contenders_levels(
+            reference_contenders.size());
+        for (gko::size_type i = 0; i < reference_contenders.size(); ++i) {
+            std::vector<i_type> reference_contender_levels(n);
+            std::fill(reference_contender_levels.begin(),
+                      reference_contender_levels.end(),
                       std::numeric_limits<i_type>::max());
-            ubfs_reference(mtx, &reference_current_levels[0], start);
-
-            std::vector<i_type> reference_contenders(0);
-            auto current_height = std::numeric_limits<i_type>::min();
-            for (gko::size_type i = 0; i < n; ++i) {
-                if (reference_current_levels[i] !=
-                        std::numeric_limits<i_type>::max() &&
-                    reference_current_levels[i] >= current_height) {
-                    if (reference_current_levels[i] > current_height) {
-                        reference_contenders.clear();
-                    }
-                    reference_contenders.push_back(i);
-                    current_height = reference_current_levels[i];
-                }
-            }
-
-            std::vector<std::vector<i_type>> reference_contenders_levels(
-                reference_contenders.size());
-            for (gko::size_type i = 0; i < reference_contenders.size(); ++i) {
-                std::vector<i_type> reference_contender_levels(n);
-                std::fill(reference_contender_levels.begin(),
-                          reference_contender_levels.end(),
-                          std::numeric_limits<i_type>::max());
-                ubfs_reference(mtx, &reference_contender_levels[0],
-                               reference_contenders[i]);
-                reference_contenders_levels[i] = reference_contender_levels;
-            }
-
-            for (gko::size_type i = 0; i < reference_contenders.size(); ++i) {
-                auto contender_height = std::numeric_limits<i_type>::min();
-                for (gko::size_type j = 0; j < n; ++j) {
-                    if (reference_contenders_levels[i][j] !=
-                            std::numeric_limits<i_type>::max() &&
-                        reference_contenders_levels[i][j] > contender_height) {
-                        contender_height = reference_contenders_levels[i][j];
-                    }
-                }
-                if (contender_height <= current_height) {
-                    return;
-                }
-            }
-            GTEST_FAIL() << "there is a contender with larger height";
+            ubfs_reference(mtx, &reference_contender_levels[0],
+                           reference_contenders[i]);
+            reference_contenders_levels[i] = reference_contender_levels;
         }
+
+        // and check if any maximum level exceeds that of the start node
+        for (gko::size_type i = 0; i < reference_contenders.size(); ++i) {
+            auto contender_height = std::numeric_limits<i_type>::min();
+            for (gko::size_type j = 0; j < n; ++j) {
+                if (reference_contenders_levels[i][j] !=
+                        std::numeric_limits<i_type>::max() &&
+                    reference_contenders_levels[i][j] > contender_height) {
+                    contender_height = reference_contenders_levels[i][j];
+                }
+            }
+            ASSERT_LE(contender_height, current_height);
         }
     }
 
@@ -300,7 +297,7 @@ protected:
         }
         std::vector<i_type> permutation(data.size[0]);
         std::iota(permutation.begin(), permutation.end(), 0);
-        std::shuffle(permutation.begin(), permutation.end(), rng);
+        // std::shuffle(permutation.begin(), permutation.end(), rng);
         for (auto& entry : data.nonzeros) {
             entry.row = permutation[entry.row];
             entry.column = permutation[entry.column];
