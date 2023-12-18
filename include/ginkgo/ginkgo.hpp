@@ -79,6 +79,7 @@
 #include <ginkgo/core/log/performance_hint.hpp>
 #include <ginkgo/core/log/profiler_hook.hpp>
 #include <ginkgo/core/log/record.hpp>
+#include <ginkgo/core/log/stack_capture.hpp>
 #include <ginkgo/core/log/stream.hpp>
 
 #include <ginkgo/core/matrix/batch_csr.hpp>
