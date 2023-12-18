@@ -19,6 +19,7 @@
 
 
 #include "core/base/allocator.hpp"
+#include "core/base/array_access.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
@@ -205,8 +206,8 @@ void Ell<ValueType, IndexType>::convert_to(
             ell::make_count_nonzeros_per_row(this, tmp->row_ptrs_.get_data()));
         exec->run(ell::make_prefix_sum_nonnegative(tmp->row_ptrs_.get_data(),
                                                    num_rows + 1));
-        const auto nnz = static_cast<size_type>(
-            exec->copy_val_to_host(tmp->row_ptrs_.get_const_data() + num_rows));
+        const auto nnz =
+            static_cast<size_type>(get_element(tmp->row_ptrs_, num_rows));
         tmp->col_idxs_.resize_and_reset(nnz);
         tmp->values_.resize_and_reset(nnz);
         tmp->set_size(this->get_size());

@@ -10,6 +10,7 @@
 #include <ginkgo/core/base/types.hpp>
 
 
+#include "core/base/array_access.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/lu_kernels.hpp"
@@ -109,8 +110,8 @@ std::unique_ptr<LinOp> Lu<ValueType, IndexType>::generate_impl(
     exec->run(make_build_lookup_offsets(
         factors->get_const_row_ptrs(), factors->get_const_col_idxs(), num_rows,
         allowed_sparsity, storage_offsets.get_data()));
-    const auto storage_size = static_cast<size_type>(
-        exec->copy_val_to_host(storage_offsets.get_const_data() + num_rows));
+    const auto storage_size =
+        static_cast<size_type>(get_element(storage_offsets, num_rows));
     array<int32> storage{exec, storage_size};
     exec->run(make_build_lookup(
         factors->get_const_row_ptrs(), factors->get_const_col_idxs(), num_rows,

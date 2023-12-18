@@ -36,6 +36,7 @@ target_sources(ginkgo_dpcpp
     factorization/par_ilut_select_kernel.dp.cpp
     factorization/par_ilut_spgeam_kernel.dp.cpp
     factorization/par_ilut_sweep_kernel.dp.cpp
+    matrix/batch_csr_kernels.dp.cpp
     matrix/batch_dense_kernels.dp.cpp
     matrix/batch_ell_kernels.dp.cpp
     matrix/coo_kernels.dp.cpp

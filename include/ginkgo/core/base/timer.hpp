@@ -158,7 +158,12 @@ protected:
 };
 
 
-/** A timer using events for timing on a CudaExecutor. */
+/**
+ * A timer using events for timing on a CudaExecutor.
+ *
+ * @note When using a CudaExecutor with a custom stream, make sure that the
+ *       stream's lifetime is longer than the lifetime of this timer.
+ */
 class CudaTimer : public Timer {
 public:
     void record(time_point& time) override;
@@ -174,11 +179,17 @@ protected:
     void init_time_point(time_point& time) override;
 
 private:
-    std::shared_ptr<const CudaExecutor> exec_;
+    int device_id_;
+    CUstream_st* stream_;
 };
 
 
-/** A timer using events for timing on a HipExecutor. */
+/**
+ * A timer using events for timing on a HipExecutor.
+ *
+ * @note When using a HipExecutor with a custom stream, make sure that the
+ *       stream's lifetime is longer than the lifetime of this timer.
+ */
 class HipTimer : public Timer {
 public:
     void record(time_point& time) override;
@@ -194,7 +205,8 @@ protected:
     void init_time_point(time_point& time) override;
 
 private:
-    std::shared_ptr<const HipExecutor> exec_;
+    int device_id_;
+    GKO_HIP_STREAM_STRUCT* stream_;
 };
 
 
@@ -214,7 +226,7 @@ protected:
     void init_time_point(time_point& time) override;
 
 private:
-    std::shared_ptr<const DpcppExecutor> exec_;
+    sycl::queue* queue_;
 };
 
 

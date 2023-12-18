@@ -16,6 +16,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "core/base/array_access.hpp"
 #include "core/base/utils.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"
@@ -167,7 +168,7 @@ ParIct<ValueType, IndexType>::generate_l_lt(
     exec->run(make_initialize_row_ptrs_l(csr_system_matrix.get(), l_row_ptrs));
 
     auto l_nnz =
-        static_cast<size_type>(exec->copy_val_to_host(l_row_ptrs + num_rows));
+        static_cast<size_type>(get_element(l_row_ptrs_array, num_rows));
 
     auto mtx_size = csr_system_matrix->get_size();
     auto l = CsrMatrix::create(exec, mtx_size, array<ValueType>{exec, l_nnz},

@@ -29,6 +29,7 @@
 
 
 #include "accessor/hip_helper.hpp"
+#include "core/base/array_access.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
