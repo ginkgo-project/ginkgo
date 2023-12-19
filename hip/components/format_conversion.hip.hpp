@@ -6,9 +6,6 @@
 #define GKO_HIP_COMPONENTS_FORMAT_CONVERSION_HIP_HPP_
 
 
-#include <hip/hip_runtime.h>
-
-
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/executor.hpp>
 

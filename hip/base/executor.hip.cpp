@@ -8,9 +8,6 @@
 #include <iostream>
 
 
-#include <hip/hip_runtime.h>
-
-
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/device.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>

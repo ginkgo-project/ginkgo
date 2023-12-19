@@ -6,7 +6,6 @@
 #define GKO_HIP_BASE_HIPBLAS_BINDINGS_HIP_HPP_
 
 
-#include <hip/hip_runtime.h>
 #if HIP_VERSION >= 50200000
 #include <hipblas/hipblas.h>
 #else

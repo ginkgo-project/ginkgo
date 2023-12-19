@@ -5,9 +5,6 @@
 #include "core/factorization/factorization_kernels.hpp"
 
 
-#include <hip/hip_runtime.h>
-
-
 #include <ginkgo/core/base/array.hpp>
 
 

@@ -5,7 +5,6 @@
 #include "core/matrix/batch_ell_kernels.hpp"
 
 
-#include <hip/hip_runtime.h>
 #include <thrust/functional.h>
 
 

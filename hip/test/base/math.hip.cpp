@@ -2,12 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-// force-top: on
-// prevent compilation failure related to disappearing assert(...) statements
-#include <hip/hip_runtime.h>
-// force-top: off
-
-
 #include <ginkgo/core/base/math.hpp>
 
 

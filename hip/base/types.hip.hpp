@@ -14,7 +14,6 @@
 
 #include <hip/hip_complex.h>
 #include <hip/hip_fp16.h>
-#include <hip/hip_runtime.h>
 #if HIP_VERSION >= 50200000
 #include <hipblas/hipblas.h>
 #else

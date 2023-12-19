@@ -6,9 +6,6 @@
 #include <utility>
 
 
-#include <hip/hip_runtime.h>
-
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 

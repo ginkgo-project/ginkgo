@@ -5,9 +5,6 @@
 #include <ginkgo/core/base/memory.hpp>
 
 
-#include <hip/hip_runtime.h>
-
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 

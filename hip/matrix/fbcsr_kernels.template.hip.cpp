@@ -8,7 +8,6 @@
 #include <algorithm>
 
 
-#include <hip/hip_runtime.h>
 #include <thrust/copy.h>
 #include <thrust/count.h>
 #include <thrust/device_ptr.h>

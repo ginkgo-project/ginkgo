@@ -5,7 +5,6 @@
 #include "core/matrix/sparsity_csr_kernels.hpp"
 
 
-#include <hip/hip_runtime.h>
 #include <thrust/sort.h>
 
 

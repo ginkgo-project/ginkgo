@@ -5,7 +5,6 @@
 #include "core/base/batch_multi_vector_kernels.hpp"
 
 
-#include <hip/hip_runtime.h>
 #include <thrust/functional.h>
 #include <thrust/transform.h>
 

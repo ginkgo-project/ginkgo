@@ -8,9 +8,6 @@
 #endif
 
 
-#include <hip/hip_runtime.h>
-
-
 namespace gko {
 namespace kernels {
 namespace hip {
