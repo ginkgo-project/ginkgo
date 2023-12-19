@@ -20,9 +20,9 @@
 #include <ginkgo/core/solver/triangular.hpp>
 
 
+#include "common/cuda_hip/base/math.hpp"
+#include "common/cuda_hip/base/types.hpp"
 #include "hip/base/hipsparse_bindings.hip.hpp"
-#include "hip/base/math.hip.hpp"
-#include "hip/base/types.hip.hpp"
 #include "hip/solver/common_trs_kernels.hip.hpp"
 
 

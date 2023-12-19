@@ -13,16 +13,16 @@
 #include <ginkgo/core/base/range_accessors.hpp>
 
 
+#include "common/cuda_hip/base/thrust.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/reduction.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/cuda_hip/components/uninitialized_array.hpp"
 #include "core/base/batch_struct.hpp"
 #include "cuda/base/batch_struct.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/cublas_bindings.hpp"
 #include "cuda/base/pointer_mode_guard.hpp"
-#include "cuda/base/thrust.cuh"
-#include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/reduction.cuh"
-#include "cuda/components/thread_ids.cuh"
-#include "cuda/components/uninitialized_array.hpp"
 
 
 namespace gko {

@@ -8,7 +8,7 @@
 // force-top: off
 
 
-#include "hip/components/cooperative_groups.hip.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 
 
 #include <cstring>
@@ -22,7 +22,7 @@
 #include <ginkgo/core/base/executor.hpp>
 
 
-#include "hip/base/types.hip.hpp"
+#include "common/cuda_hip/base/types.hpp"
 #include "hip/test/utils.hip.hpp"
 
 

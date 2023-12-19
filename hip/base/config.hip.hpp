@@ -15,7 +15,7 @@
 #include <ginkgo/core/base/types.hpp>
 
 
-#include "hip/base/math.hip.hpp"
+#include "common/cuda_hip/base/math.hpp"
 
 
 namespace gko {

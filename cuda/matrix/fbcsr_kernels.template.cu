@@ -24,6 +24,16 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "common/cuda_hip/base/math.hpp"
+#include "common/cuda_hip/base/thrust.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/atomic.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/merging.hpp"
+#include "common/cuda_hip/components/prefix_sum.hpp"
+#include "common/cuda_hip/components/reduction.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/cuda_hip/components/uninitialized_array.hpp"
 #include "common/unified/base/kernel_launch.hpp"
 #include "core/base/array_access.hpp"
 #include "core/base/block_sizes.hpp"
@@ -37,17 +47,7 @@
 #include "cuda/base/cublas_bindings.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/cusparse_block_bindings.hpp"
-#include "cuda/base/math.hpp"
 #include "cuda/base/pointer_mode_guard.hpp"
-#include "cuda/base/thrust.cuh"
-#include "cuda/base/types.hpp"
-#include "cuda/components/atomic.cuh"
-#include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/merging.cuh"
-#include "cuda/components/prefix_sum.cuh"
-#include "cuda/components/reduction.cuh"
-#include "cuda/components/thread_ids.cuh"
-#include "cuda/components/uninitialized_array.hpp"
 
 
 namespace gko {

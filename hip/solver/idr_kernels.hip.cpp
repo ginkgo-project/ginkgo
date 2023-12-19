@@ -13,15 +13,15 @@
 #include <ginkgo/core/base/math.hpp>
 
 
+#include "common/cuda_hip/base/math.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/atomic.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/reduction.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "hip/base/hipblas_bindings.hip.hpp"
 #include "hip/base/hiprand_bindings.hip.hpp"
-#include "hip/base/math.hip.hpp"
-#include "hip/base/types.hip.hpp"
-#include "hip/components/atomic.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/components/reduction.hip.hpp"
-#include "hip/components/thread_ids.hip.hpp"
 
 
 namespace gko {

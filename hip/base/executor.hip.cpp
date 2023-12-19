@@ -13,7 +13,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
-#include "hip/base/config.hip.hpp"
+#include "common/cuda_hip/base/config.hpp"
 #include "hip/base/hipblas_bindings.hip.hpp"
 #include "hip/base/hipsparse_bindings.hip.hpp"
 #include "hip/base/scoped_device_id.hip.hpp"

@@ -17,8 +17,8 @@
 #include <ginkgo/core/base/executor.hpp>
 
 
-#include "hip/base/math.hip.hpp"
-#include "hip/base/types.hip.hpp"
+#include "common/cuda_hip/base/math.hpp"
+#include "common/cuda_hip/base/types.hpp"
 
 
 namespace gko {

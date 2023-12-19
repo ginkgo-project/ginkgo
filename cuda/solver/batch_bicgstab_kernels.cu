@@ -13,18 +13,18 @@
 #include <ginkgo/core/base/math.hpp>
 
 
+#include "common/cuda_hip/base/thrust.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/reduction.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/cuda_hip/components/uninitialized_array.hpp"
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
 #include "core/solver/batch_dispatch.hpp"
 #include "cuda/base/batch_struct.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/kernel_config.hpp"
-#include "cuda/base/thrust.cuh"
-#include "cuda/base/types.hpp"
-#include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/reduction.cuh"
-#include "cuda/components/thread_ids.cuh"
-#include "cuda/components/uninitialized_array.hpp"
 #include "cuda/matrix/batch_struct.hpp"
 
 
@@ -47,7 +47,6 @@ namespace batch_bicgstab {
 
 
 #include "common/cuda_hip/base/batch_multi_vector_kernels.hpp.inc"
-#include "common/cuda_hip/components/uninitialized_array.hpp.inc"
 #include "common/cuda_hip/matrix/batch_csr_kernels.hpp.inc"
 #include "common/cuda_hip/matrix/batch_dense_kernels.hpp.inc"
 #include "common/cuda_hip/matrix/batch_ell_kernels.hpp.inc"

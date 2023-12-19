@@ -6,7 +6,6 @@ list(APPEND GKO_UNIFIED_COMMON_SOURCES ${PROJECT_SOURCE_DIR}/common/unified/matr
 set(GINKGO_HIP_SOURCES
     base/batch_multi_vector_kernels.hip.cpp
     base/device.hip.cpp
-    base/device_matrix_data_kernels.hip.cpp
     base/exception.hip.cpp
     base/executor.hip.cpp
     base/index_set_kernels.hip.cpp
@@ -16,17 +15,9 @@ set(GINKGO_HIP_SOURCES
     base/stream.hip.cpp
     base/timer.hip.cpp
     base/version.hip.cpp
-    components/prefix_sum_kernels.hip.cpp
-    distributed/matrix_kernels.hip.cpp
-    distributed/partition_helpers_kernels.hip.cpp
-    distributed/partition_kernels.hip.cpp
-    distributed/vector_kernels.hip.cpp
     factorization/cholesky_kernels.hip.cpp
-    factorization/factorization_kernels.hip.cpp
     factorization/ic_kernels.hip.cpp
     factorization/ilu_kernels.hip.cpp
-    factorization/lu_kernels.hip.cpp
-    factorization/par_ic_kernels.hip.cpp
     factorization/par_ict_kernels.hip.cpp
     factorization/par_ilu_kernels.hip.cpp
     factorization/par_ilut_approx_filter_kernel.hip.cpp
@@ -38,30 +29,24 @@ set(GINKGO_HIP_SOURCES
     matrix/batch_csr_kernels.hip.cpp
     matrix/batch_dense_kernels.hip.cpp
     matrix/batch_ell_kernels.hip.cpp
-    matrix/coo_kernels.hip.cpp
     ${CSR_INSTANTIATE}
     matrix/dense_kernels.hip.cpp
-    matrix/diagonal_kernels.hip.cpp
     matrix/ell_kernels.hip.cpp
     ${FBCSR_INSTANTIATE}
-    matrix/sellp_kernels.hip.cpp
     matrix/sparsity_csr_kernels.hip.cpp
-    multigrid/pgm_kernels.hip.cpp
-    preconditioner/isai_kernels.hip.cpp
     preconditioner/jacobi_advanced_apply_kernel.hip.cpp
     preconditioner/jacobi_generate_kernel.hip.cpp
     preconditioner/jacobi_kernels.hip.cpp
     preconditioner/jacobi_simple_apply_kernel.hip.cpp
-    reorder/rcm_kernels.hip.cpp
     solver/batch_bicgstab_kernels.hip.cpp
     solver/cb_gmres_kernels.hip.cpp
     solver/idr_kernels.hip.cpp
     solver/lower_trs_kernels.hip.cpp
-    solver/multigrid_kernels.hip.cpp
     solver/upper_trs_kernels.hip.cpp
     stop/criterion_kernels.hip.cpp
     stop/residual_norm_kernels.hip.cpp
     ${GKO_UNIFIED_COMMON_SOURCES}
+    ${GKO_CUDA_HIP_COMMON_SOURCES}
     )
 
 if(hipfft_FOUND)

@@ -15,11 +15,13 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "common/unified/base/config.hpp"
+
+
 #if defined(GKO_COMPILING_CUDA)
 
-#define GKO_DEVICE_NAMESPACE cuda
 #define GKO_KERNEL __device__
-#include "cuda/base/types.hpp"
+#include "common/cuda_hip/base/types.hpp"
 
 
 namespace gko {
@@ -44,7 +46,6 @@ GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 
 #elif defined(GKO_COMPILING_HIP)
 
-#define GKO_DEVICE_NAMESPACE hip
 #define GKO_KERNEL __device__
 #include "hip/base/types.hip.hpp"
 
@@ -71,7 +72,6 @@ GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 
 #elif defined(GKO_COMPILING_DPCPP)
 
-#define GKO_DEVICE_NAMESPACE dpcpp
 #define GKO_KERNEL
 
 
@@ -106,7 +106,6 @@ GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 
 #elif defined(GKO_COMPILING_OMP)
 
-#define GKO_DEVICE_NAMESPACE omp
 #define GKO_KERNEL
 
 

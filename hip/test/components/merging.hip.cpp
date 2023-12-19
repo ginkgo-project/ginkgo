@@ -8,7 +8,7 @@
 // force-top: off
 
 
-#include "hip/components/merging.hip.hpp"
+#include "common/cuda_hip/components/merging.hpp"
 
 
 #include <algorithm>
@@ -24,7 +24,7 @@
 #include <ginkgo/core/base/executor.hpp>
 
 
-#include "hip/components/cooperative_groups.hip.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "hip/test/utils.hip.hpp"
 
 

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "cuda/components/cooperative_groups.cuh"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 
 
 #include <memory>

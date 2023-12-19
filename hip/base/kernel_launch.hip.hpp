@@ -12,8 +12,8 @@
 
 
 #include "accessor/hip_helper.hpp"
-#include "hip/base/types.hip.hpp"
-#include "hip/components/thread_ids.hip.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
 
 
 namespace gko {

@@ -13,8 +13,8 @@
 #include <ginkgo/core/matrix/batch_ell.hpp>
 
 
+#include "common/cuda_hip/base/types.hpp"
 #include "core/base/batch_struct.hpp"
-#include "hip/base/types.hip.hpp"
 
 
 namespace gko {

@@ -9,6 +9,9 @@
 #include <type_traits>
 
 
+#include <hip/hip_runtime.h>
+
+
 #include <gtest/gtest.h>
 
 

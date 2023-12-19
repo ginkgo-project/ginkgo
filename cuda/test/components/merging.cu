@@ -2,9 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "cuda/components/merging.cuh"
-
-
 #include <algorithm>
 #include <memory>
 #include <random>
@@ -18,7 +15,8 @@
 #include <ginkgo/core/base/executor.hpp>
 
 
-#include "cuda/components/cooperative_groups.cuh"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/merging.hpp"
 #include "cuda/test/utils.hpp"
 
 

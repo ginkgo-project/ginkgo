@@ -13,19 +13,19 @@
 
 #include "accessor/hip_helper.hpp"
 #include "accessor/reduced_row_major.hpp"
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/math.hpp"
+#include "common/cuda_hip/base/thrust.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/reduction.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/cuda_hip/components/uninitialized_array.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "hip/base/config.hip.hpp"
 #include "hip/base/hipsparse_bindings.hip.hpp"
-#include "hip/base/math.hip.hpp"
-#include "hip/base/thrust.hip.hpp"
-#include "hip/base/types.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/components/reduction.hip.hpp"
-#include "hip/components/thread_ids.hip.hpp"
-#include "hip/components/uninitialized_array.hip.hpp"
 
 
 namespace gko {

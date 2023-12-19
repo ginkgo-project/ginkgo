@@ -12,8 +12,8 @@
 
 
 #include "accessor/cuda_helper.hpp"
-#include "cuda/base/types.hpp"
-#include "cuda/components/thread_ids.cuh"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
 
 
 namespace gko {

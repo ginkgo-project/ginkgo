@@ -10,8 +10,8 @@
 #include <ginkgo/core/base/executor.hpp>
 
 
-#include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/components/thread_ids.hip.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
 
 
 #ifdef GINKGO_BENCHMARK_ENABLE_TUNING

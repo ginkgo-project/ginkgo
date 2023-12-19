@@ -20,19 +20,19 @@
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "common/cuda_hip/base/math.hpp"
+#include "common/cuda_hip/base/thrust.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/intrinsics.hpp"
+#include "common/cuda_hip/components/reduction.hpp"
+#include "common/cuda_hip/components/syncfree.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/lu_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
 #include "hip/base/hipsparse_bindings.hip.hpp"
-#include "hip/base/math.hip.hpp"
-#include "hip/base/thrust.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/components/intrinsics.hip.hpp"
-#include "hip/components/reduction.hip.hpp"
-#include "hip/components/syncfree.hip.hpp"
-#include "hip/components/thread_ids.hip.hpp"
 
 
 namespace gko {

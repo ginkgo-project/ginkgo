@@ -8,10 +8,10 @@
 #include <ginkgo/core/matrix/coo.hpp>
 
 
-#include "cuda/base/math.hpp"
-#include "cuda/base/types.hpp"
+#include "common/cuda_hip/base/math.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
 #include "cuda/components/memory.cuh"
-#include "cuda/components/thread_ids.cuh"
 
 
 namespace gko {

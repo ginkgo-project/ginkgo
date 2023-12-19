@@ -10,9 +10,9 @@
 #include <ginkgo/core/stop/stopping_status.hpp>
 
 
-#include "hip/base/math.hip.hpp"
-#include "hip/base/types.hip.hpp"
-#include "hip/components/thread_ids.hip.hpp"
+#include "common/cuda_hip/base/math.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
 
 
 namespace gko {

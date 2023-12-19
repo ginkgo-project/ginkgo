@@ -17,8 +17,8 @@
 #include <ginkgo/core/base/executor.hpp>
 
 
-#include "cuda/base/math.hpp"
-#include "cuda/base/types.hpp"
+#include "common/cuda_hip/base/math.hpp"
+#include "common/cuda_hip/base/types.hpp"
 #include "cuda/test/utils.hpp"
 
 

@@ -10,9 +10,9 @@
 #include <ginkgo/core/base/math.hpp>
 
 
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/types.hpp"
 #include "core/base/batch_struct.hpp"
-#include "hip/base/config.hip.hpp"
-#include "hip/base/types.hip.hpp"
 
 
 namespace gko {
