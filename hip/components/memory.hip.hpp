@@ -60,6 +60,12 @@ struct gcc_atomic_intrinsic_type_map<double> {
 };
 
 
+template <>
+struct gcc_atomic_intrinsic_type_map<__half> {
+    using type = int16;
+};
+
+
 #if HIP_VERSION >= 50100000
 // These intrinsics can be found used in clang/test/SemaCUDA/atomic-ops.cu
 // in the LLVM source code
