@@ -603,6 +603,12 @@ void get_permutation(std::shared_ptr<const DefaultExecutor> exec,
     sort_levels(exec, num_rows, row_ptrs, col_idxs, degrees.get_const_data(),
                 comps, levels, permutation);
     thrust::reverse(thrust_policy(exec), permutation, permutation + num_rows);
+    if (inv_permutation) {
+        thrust::copy_n(
+            thrust_policy(exec), thrust::make_counting_iterator(IndexType{}),
+            num_rows,
+            thrust::make_permutation_iterator(inv_permutation, permutation));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL);
