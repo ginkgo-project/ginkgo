@@ -324,7 +324,6 @@ __global__ __launch_bounds__(default_block_size) void ubfs_level_kernel(
     atomic_type unsigned_unattached{};
     const auto unattached = invalid_index<IndexType>();
     memcpy(&unsigned_unattached, &unattached, sizeof(IndexType));
-    auto parent = static_cast<IndexType>(row);
     for (auto nz = begin; nz < end; nz++) {
         const auto col = col_idxs[nz];
         if (node_levels[col] == unattached &&
