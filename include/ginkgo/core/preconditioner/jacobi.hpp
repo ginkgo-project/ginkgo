@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_PUBLIC_CORE_PRECONDITIONER_JACOBI_HPP_
 #define GKO_PUBLIC_CORE_PRECONDITIONER_JACOBI_HPP_
@@ -288,7 +260,7 @@ public:
      */
     size_type get_num_stored_elements() const noexcept
     {
-        return blocks_.get_num_elems();
+        return blocks_.get_size();
     }
 
     void convert_to(matrix::Dense<value_type>* result) const override;
@@ -407,13 +379,13 @@ public:
 
             storage_optimization_type(
                 const array<precision_reduction>& block_wise_opt)
-                : is_block_wise{block_wise_opt.get_num_elems() > 0},
+                : is_block_wise{block_wise_opt.get_size() > 0},
                   block_wise{block_wise_opt}
             {}
 
             storage_optimization_type(
                 array<precision_reduction>&& block_wise_opt)
-                : is_block_wise{block_wise_opt.get_num_elems() > 0},
+                : is_block_wise{block_wise_opt.get_size() > 0},
                   block_wise{std::move(block_wise_opt)}
             {}
 
@@ -557,10 +529,10 @@ protected:
           parameters_{factory->get_parameters()},
           storage_scheme_{this->compute_storage_scheme(
               parameters_.max_block_size, parameters_.max_block_stride)},
-          num_blocks_{parameters_.block_pointers.get_num_elems() - 1},
+          num_blocks_{parameters_.block_pointers.get_size() - 1},
           blocks_(factory->get_executor(),
                   storage_scheme_.compute_storage_space(
-                      parameters_.block_pointers.get_num_elems() - 1)),
+                      parameters_.block_pointers.get_size() - 1)),
           conditioning_(factory->get_executor())
     {
         parameters_.block_pointers.set_executor(this->get_executor());

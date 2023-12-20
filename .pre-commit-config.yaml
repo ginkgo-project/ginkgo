@@ -1,0 +1,45 @@
+repos:
+- repo: https://github.com/pre-commit/mirrors-clang-format
+  rev: 'v14.0.0'  # The default in Ubuntu 22.04, which is used in our CI
+  hooks:
+  - id: clang-format
+    types_or: [c, c++, cuda, inc]
+    exclude: |
+      (?x)^(
+        third_party/SuiteSparse/AMD/.*|
+        third_party/identify_stream_usage/.*
+      )
+- repo: local
+  hooks:
+  # The official reuse hook only supports calling lint, so we need our own hook
+  - id: reuse-annotate
+    name: reuse-annotate
+    entry: reuse annotate --license BSD-3-Clause --copyright 'The Ginkgo authors' --year 2017-2023 --style c
+    language: python
+    additional_dependencies: [reuse]
+    types_or: [c, c++, cuda, inc]
+    exclude: |
+      (?x)^(
+        third_party/SuiteSparse/AMD/.*|
+        third_party/identify_stream_usage/.*|
+        examples/external-lib-interfacing/external-lib-interfacing.cpp
+      )$
+  - id: format-headers
+    name: format headers
+    entry: env CLANG_FORMAT=dev_tools/scripts/clang-format.sh dev_tools/scripts/format_header.sh
+    require_serial: true
+    language: system
+    types_or: [c, c++, cuda]
+    exclude: |
+        (?x)^(
+          third_party/SuiteSparse/AMD/.*|
+          third_party/identify_stream_usage/.*|
+          include/ginkgo/ginkgo.hpp
+        )$
+  - id: update-ginkgo-header
+    name: update ginkgo header
+    entry: dev_tools/scripts/update_ginkgo_header.sh
+    language: script
+    types: [header]
+    pass_filenames: false
+    files: ^include/ginkgo/core

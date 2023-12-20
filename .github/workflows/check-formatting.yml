@@ -1,0 +1,21 @@
+name: Check formatting
+on: workflow_call
+
+jobs:
+  pre-commit:
+    name: Run pre-commit hooks
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout the latest code (shallow clone)
+        uses: actions/checkout@v4
+      - name: Run Pre-Commit checks
+        run: cp .github/check-format.sh /tmp && /tmp/check-format.sh
+        id: pre-commit
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+      - name: Upload code formatting patch
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: patch
+          path: format.patch

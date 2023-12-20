@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/multigrid/pgm.hpp>
 
@@ -87,7 +59,7 @@ void agg_to_restrict(std::shared_ptr<const Executor> exec, IndexType num_agg,
                      const gko::array<IndexType>& agg, IndexType* row_ptrs,
                      IndexType* col_idxs)
 {
-    const IndexType num = agg.get_num_elems();
+    const IndexType num = agg.get_size();
     gko::array<IndexType> row_idxs(exec, agg);
     exec->run(pgm::make_fill_seq_array(col_idxs, num));
     // sort the pair (int, agg) to (row_idxs, col_idxs)
@@ -167,7 +139,7 @@ void Pgm<ValueType, IndexType>::generate()
         this->set_fine_op(pgm_op_shared_ptr);
     }
     // Initial agg = -1
-    exec->run(pgm::make_fill_array(agg_.get_data(), agg_.get_num_elems(),
+    exec->run(pgm::make_fill_array(agg_.get_data(), agg_.get_size(),
                                    -one<IndexType>()));
     IndexType num_unagg = num_rows;
     IndexType num_unagg_prev = num_rows;
@@ -217,7 +189,7 @@ void Pgm<ValueType, IndexType>::generate()
     // prolong_row_gather is the lightway implementation for prolongation
     auto prolong_row_gather = share(matrix::RowGatherer<IndexType>::create(
         exec, gko::dim<2>{fine_dim, coarse_dim}));
-    exec->copy_from(exec, agg_.get_num_elems(), agg_.get_const_data(),
+    exec->copy_from(exec, agg_.get_size(), agg_.get_const_data(),
                     prolong_row_gather->get_row_idxs());
     auto restrict_sparsity =
         share(matrix::SparsityCsr<ValueType, IndexType>::create(

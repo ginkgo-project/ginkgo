@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_PUBLIC_CORE_BASE_ARRAY_HPP_
 #define GKO_PUBLIC_CORE_BASE_ARRAY_HPP_
@@ -90,12 +62,12 @@ public:
      * Constructs an array view from existing data.
      *
      * @param exec  the executor in whose memory space the data resides.
-     * @param num_elems  the number of elements in this array view.
+     * @param size  the number of elements in this array view.
      * @param data  a pointer to the first element of this array view.
      */
-    const_array_view(std::shared_ptr<const Executor> exec, size_type num_elems,
+    const_array_view(std::shared_ptr<const Executor> exec, size_type size,
                      const ValueType* data)
-        : exec_{std::move(exec)}, num_elems_{num_elems}, data_{data}
+        : exec_{std::move(exec)}, size_{size}, data_{data}
     {}
 
     /*
@@ -110,9 +82,9 @@ public:
      * to guaranteed RVO.
      */
     const_array_view(const_array_view&& other)
-        : const_array_view{other.exec_, other.num_elems_, other.data_}
+        : const_array_view{other.exec_, other.size_, other.data_}
     {
-        other.num_elems_ = 0;
+        other.size_ = 0;
         other.data_ = nullptr;
     }
 
@@ -121,7 +93,15 @@ public:
      *
      * @return the number of elements in the array view
      */
-    size_type get_num_elems() const noexcept { return num_elems_; }
+    size_type get_size() const noexcept { return size_; }
+
+    /**
+     * Returns the number of elements in the array view.
+     *
+     * @return the number of elements in the array view
+     */
+    GKO_DEPRECATED("use get_size() instead")
+    size_type get_num_elems() const noexcept { return get_size(); }
 
     /**
      * Returns a constant pointer to the first element of this array view.
@@ -154,7 +134,7 @@ public:
 
 private:
     std::shared_ptr<const Executor> exec_;
-    size_type num_elems_;
+    size_type size_;
     const ValueType* data_;
 };
 
@@ -215,9 +195,7 @@ public:
      * the executor of the source array.
      */
     array() noexcept
-        : num_elems_(0),
-          data_(nullptr, default_deleter{nullptr}),
-          exec_(nullptr)
+        : size_(0), data_(nullptr, default_deleter{nullptr}), exec_(nullptr)
     {}
 
     /**
@@ -226,7 +204,7 @@ public:
      * @param exec  the Executor where the array data is allocated
      */
     explicit array(std::shared_ptr<const Executor> exec) noexcept
-        : num_elems_(0),
+        : size_(0),
           data_(nullptr, default_deleter{exec}),
           exec_(std::move(exec))
     {}
@@ -235,16 +213,16 @@ public:
      * Creates an array on the specified Executor.
      *
      * @param exec  the Executor where the array data will be allocated
-     * @param num_elems  the amount of memory (expressed as the number of
-     *                   `value_type` elements) allocated on the Executor
+     * @param size  the amount of memory (expressed as the number of
+     *              `value_type` elements) allocated on the Executor
      */
-    array(std::shared_ptr<const Executor> exec, size_type num_elems)
-        : num_elems_(num_elems),
+    array(std::shared_ptr<const Executor> exec, size_type size)
+        : size_(size),
           data_(nullptr, default_deleter{exec}),
           exec_(std::move(exec))
     {
-        if (num_elems > 0) {
-            data_.reset(exec_->alloc<value_type>(num_elems));
+        if (size > 0) {
+            data_.reset(exec_->alloc<value_type>(size));
         }
     }
 
@@ -258,7 +236,7 @@ public:
      * @tparam DeleterType  type of the deleter
      *
      * @param exec  executor where `data` is located
-     * @param num_elems  number of elements in `data`
+     * @param size  number of elements in `data`
      * @param data  chunk of memory used to create the array
      * @param deleter  the deleter used to free the memory
      *
@@ -267,9 +245,9 @@ public:
      *      deallocate the memory using Executor::free() method
      */
     template <typename DeleterType>
-    array(std::shared_ptr<const Executor> exec, size_type num_elems,
+    array(std::shared_ptr<const Executor> exec, size_type size,
           value_type* data, DeleterType deleter)
-        : num_elems_{num_elems}, data_(data, deleter), exec_{exec}
+        : size_{size}, data_(data, deleter), exec_{exec}
     {}
 
     /**
@@ -279,12 +257,12 @@ public:
      * Executor::free method.
      *
      * @param exec  executor where `data` is located
-     * @param num_elems  number of elements in `data`
+     * @param size  number of elements in `data`
      * @param data  chunk of memory used to create the array
      */
-    array(std::shared_ptr<const Executor> exec, size_type num_elems,
+    array(std::shared_ptr<const Executor> exec, size_type size,
           value_type* data)
-        : array(exec, num_elems, data, default_deleter{exec})
+        : array(exec, size, data, default_deleter{exec})
     {}
 
     /**
@@ -380,15 +358,15 @@ public:
      * `resize_and_reset` since it does not own the data it should resize.
      *
      * @param exec  executor where `data` is located
-     * @param num_elems  number of elements in `data`
+     * @param size  number of elements in `data`
      * @param data  chunk of memory used to create the array
      *
      * @return an array constructed from `data`
      */
-    static array view(std::shared_ptr<const Executor> exec, size_type num_elems,
+    static array view(std::shared_ptr<const Executor> exec, size_type size,
                       value_type* data)
     {
-        return array{exec, num_elems, data, view_deleter{}};
+        return array{exec, size, data, view_deleter{}};
     }
 
     /**
@@ -399,16 +377,16 @@ public:
      * `resize_and_reset` since it does not own the data it should resize.
      *
      * @param exec  executor where `data` is located
-     * @param num_elems  number of elements in `data`
+     * @param size  number of elements in `data`
      * @param data  chunk of memory used to create the array
      *
      * @return an array constructed from `data`
      */
     static detail::const_array_view<ValueType> const_view(
-        std::shared_ptr<const Executor> exec, size_type num_elems,
+        std::shared_ptr<const Executor> exec, size_type size,
         const value_type* data)
     {
-        return {exec, num_elems, data};
+        return {exec, size, data};
     }
 
     /**
@@ -417,8 +395,7 @@ public:
      */
     array<ValueType> as_view()
     {
-        return view(this->get_executor(), this->get_num_elems(),
-                    this->get_data());
+        return view(this->get_executor(), this->get_size(), this->get_data());
     }
 
     /**
@@ -427,7 +404,7 @@ public:
      */
     detail::const_array_view<ValueType> as_const_view() const
     {
-        return const_view(this->get_executor(), this->get_num_elems(),
+        return const_view(this->get_executor(), this->get_size(),
                           this->get_const_data());
     }
 
@@ -462,12 +439,11 @@ public:
         }
 
         if (this->is_owning()) {
-            this->resize_and_reset(other.get_num_elems());
+            this->resize_and_reset(other.get_size());
         } else {
-            GKO_ENSURE_COMPATIBLE_BOUNDS(other.get_num_elems(),
-                                         this->num_elems_);
+            GKO_ENSURE_COMPATIBLE_BOUNDS(other.get_size(), this->get_size());
         }
-        exec_->copy_from(other.get_executor(), other.get_num_elems(),
+        exec_->copy_from(other.get_executor(), other.get_size(),
                          other.get_const_data(), this->get_data());
         return *this;
     }
@@ -518,7 +494,7 @@ public:
             // same device, only move the pointer
             data_ = std::exchange(
                 other.data_, data_manager{nullptr, default_deleter{exec_}});
-            num_elems_ = std::exchange(other.num_elems_, 0);
+            size_ = std::exchange(other.size_, 0);
         } else {
             // different device, copy the data
             *this = other;
@@ -558,10 +534,9 @@ public:
         }
 
         if (this->is_owning()) {
-            this->resize_and_reset(other.get_num_elems());
+            this->resize_and_reset(other.get_size());
         } else {
-            GKO_ENSURE_COMPATIBLE_BOUNDS(other.get_num_elems(),
-                                         this->num_elems_);
+            GKO_ENSURE_COMPATIBLE_BOUNDS(other.get_size(), this->get_size());
         }
         array<OtherValueType> tmp{this->exec_};
         const OtherValueType* source = other.get_const_data();
@@ -570,8 +545,53 @@ public:
             tmp = other;
             source = tmp.get_const_data();
         }
-        detail::convert_data(this->exec_, other.get_num_elems(), source,
+        detail::convert_data(this->exec_, other.get_size(), source,
                              this->get_data());
+        return *this;
+    }
+
+    /**
+     * Copies data from a const_array_view.
+     *
+     * In the case of an array target, the array is resized to match the
+     * source's size. In the case of a view target, if the dimensions are not
+     * compatible a gko::OutOfBoundsError is thrown.
+     *
+     * This does not invoke the constructors of the elements, instead they are
+     * copied as POD types.
+     *
+     * The executor of this is preserved. In case this does not have an assigned
+     * executor, it will inherit the executor of other.
+     *
+     * @param other  the const_array_view to copy from
+     *
+     * @return this
+     */
+    array& operator=(const detail::const_array_view<ValueType>& other)
+    {
+        if (this->exec_ == nullptr) {
+            this->exec_ = other.get_executor();
+            this->data_ = data_manager{nullptr, default_deleter{this->exec_}};
+        }
+        if (other.get_executor() == nullptr) {
+            this->clear();
+            return *this;
+        }
+
+        if (this->is_owning()) {
+            this->resize_and_reset(other.get_size());
+        } else {
+            GKO_ENSURE_COMPATIBLE_BOUNDS(other.get_size(), this->get_size());
+        }
+        array tmp{this->exec_};
+        const ValueType* source = other.get_const_data();
+        // if we are on different executors: copy
+        if (this->exec_ != other.get_executor()) {
+            tmp = other.copy_to_array();
+            source = tmp.get_const_data();
+        }
+        exec_->copy_from(other.get_executor(), other.get_size(), source,
+                         this->get_data());
         return *this;
     }
 
@@ -584,7 +604,7 @@ public:
      */
     void clear() noexcept
     {
-        num_elems_ = 0;
+        size_ = 0;
         data_.reset(nullptr);
     }
 
@@ -597,12 +617,12 @@ public:
      *
      * If the array is not assigned an executor, an exception will be thrown.
      *
-     * @param num_elems  the amount of memory (expressed as the number of
-     *                   `value_type` elements) allocated on the Executor
+     * @param size  the amount of memory (expressed as the number of
+     *              `value_type` elements) allocated on the Executor
      */
-    void resize_and_reset(size_type num_elems)
+    void resize_and_reset(size_type size)
     {
-        if (num_elems == num_elems_) {
+        if (size == size_) {
             return;
         }
         if (exec_ == nullptr) {
@@ -614,9 +634,9 @@ public:
                                     "Non owning gko::array cannot be resized.");
         }
 
-        if (num_elems > 0 && this->is_owning()) {
-            num_elems_ = num_elems;
-            data_.reset(exec_->alloc<value_type>(num_elems));
+        if (size > 0 && this->is_owning()) {
+            size_ = size;
+            data_.reset(exec_->alloc<value_type>(size));
         } else {
             this->clear();
         }
@@ -634,7 +654,15 @@ public:
      *
      * @return the number of elements in the array
      */
-    size_type get_num_elems() const noexcept { return num_elems_; }
+    size_type get_size() const noexcept { return size_; }
+
+    /**
+     * Returns the number of elements in the array.
+     *
+     * @return the number of elements in the array
+     */
+    GKO_DEPRECATED("use get_size() instead")
+    size_type get_num_elems() const noexcept { return get_size(); }
 
     /**
      * Returns a pointer to the block of memory used to store the elements of
@@ -707,7 +735,7 @@ private:
     using data_manager =
         std::unique_ptr<value_type[], std::function<void(value_type[])>>;
 
-    size_type num_elems_;
+    size_type size_;
     data_manager data_;
     std::shared_ptr<const Executor> exec_;
 };
@@ -794,8 +822,7 @@ struct temporary_clone_helper<array<T>> {
         if (copy_data) {
             return std::make_unique<array<T>>(std::move(exec), *ptr);
         } else {
-            return std::make_unique<array<T>>(std::move(exec),
-                                              ptr->get_num_elems());
+            return std::make_unique<array<T>>(std::move(exec), ptr->get_size());
         }
     }
 };
@@ -856,7 +883,7 @@ template <typename ValueType>
 array<ValueType> array_const_cast(const_array_view<ValueType> view)
 {
     return array<ValueType>::view(
-        view.get_executor(), view.get_num_elems(),
+        view.get_executor(), view.get_size(),
         const_cast<ValueType*>(view.get_const_data()));
 }
 
@@ -864,9 +891,8 @@ array<ValueType> array_const_cast(const_array_view<ValueType> view)
 template <typename ValueType>
 array<ValueType> const_array_view<ValueType>::copy_to_array() const
 {
-    array<ValueType> result(this->get_executor(), this->get_num_elems());
-    result.get_executor()->copy_from(this->get_executor(),
-                                     this->get_num_elems(),
+    array<ValueType> result(this->get_executor(), this->get_size());
+    result.get_executor()->copy_from(this->get_executor(), this->get_size(),
                                      this->get_const_data(), result.get_data());
     return result;
 }

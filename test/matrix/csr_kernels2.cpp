@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/matrix/csr.hpp>
 
@@ -1376,7 +1348,7 @@ TEST_F(Csr, ComputeSubmatrixIsEquivalentToRef)
     gko::kernels::reference::csr::calculate_nonzeros_per_row_in_span(
         this->ref, this->mtx2.get(), rspan, cspan, &row_nnz);
     gko::kernels::reference::components::prefix_sum_nonnegative(
-        this->ref, row_nnz.get_data(), row_nnz.get_num_elems());
+        this->ref, row_nnz.get_data(), row_nnz.get_size());
     auto num_nnz = row_nnz.get_data()[rspan.length()];
     auto drow_nnz = gko::array<int>(this->exec, row_nnz);
     auto smat1 =
@@ -1413,7 +1385,7 @@ TEST_F(Csr, CalculateNnzPerRowInIndexSetIsEquivalentToRef)
                                     {42, 22, 24, 26, 28, 30, 81, 82, 83, 88}};
     gko::index_set<index_type> drset(this->exec, rset);
     gko::index_set<index_type> dcset(this->exec, cset);
-    auto row_nnz = gko::array<int>(this->ref, rset.get_num_elems() + 1);
+    auto row_nnz = gko::array<int>(this->ref, rset.get_size() + 1);
     row_nnz.fill(gko::zero<int>());
     auto drow_nnz = gko::array<int>(this->exec, row_nnz);
 
@@ -1436,24 +1408,24 @@ TEST_F(Csr, ComputeSubmatrixFromIndexSetIsEquivalentToRef)
                                     {42, 22, 24, 26, 28, 30, 81, 82, 83, 88}};
     gko::index_set<index_type> drset(this->exec, rset);
     gko::index_set<index_type> dcset(this->exec, cset);
-    auto row_nnz = gko::array<int>(this->ref, rset.get_num_elems() + 1);
+    auto row_nnz = gko::array<int>(this->ref, rset.get_size() + 1);
     row_nnz.fill(gko::zero<int>());
     gko::kernels::reference::csr::calculate_nonzeros_per_row_in_index_set(
         this->ref, this->mtx2.get(), rset, cset, row_nnz.get_data());
     gko::kernels::reference::components::prefix_sum_nonnegative(
-        this->ref, row_nnz.get_data(), row_nnz.get_num_elems());
-    auto num_nnz = row_nnz.get_data()[rset.get_num_elems()];
+        this->ref, row_nnz.get_data(), row_nnz.get_size());
+    auto num_nnz = row_nnz.get_data()[rset.get_size()];
     auto drow_nnz = gko::array<int>(this->exec, row_nnz);
-    auto smat1 = Mtx::create(
-        this->ref, gko::dim<2>(rset.get_num_elems(), cset.get_num_elems()),
-        std::move(gko::array<value_type>(this->ref, num_nnz)),
-        std::move(gko::array<index_type>(this->ref, num_nnz)),
-        std::move(row_nnz));
-    auto sdmat1 = Mtx::create(
-        this->exec, gko::dim<2>(rset.get_num_elems(), cset.get_num_elems()),
-        std::move(gko::array<value_type>(this->exec, num_nnz)),
-        std::move(gko::array<index_type>(this->exec, num_nnz)),
-        std::move(drow_nnz));
+    auto smat1 =
+        Mtx::create(this->ref, gko::dim<2>(rset.get_size(), cset.get_size()),
+                    std::move(gko::array<value_type>(this->ref, num_nnz)),
+                    std::move(gko::array<index_type>(this->ref, num_nnz)),
+                    std::move(row_nnz));
+    auto sdmat1 =
+        Mtx::create(this->exec, gko::dim<2>(rset.get_size(), cset.get_size()),
+                    std::move(gko::array<value_type>(this->exec, num_nnz)),
+                    std::move(gko::array<index_type>(this->exec, num_nnz)),
+                    std::move(drow_nnz));
 
     gko::kernels::reference::csr::compute_submatrix_from_index_set(
         this->ref, this->mtx2.get(), rset, cset, smat1.get());

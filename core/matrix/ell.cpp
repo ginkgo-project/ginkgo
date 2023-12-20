@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/matrix/ell.hpp>
 
@@ -47,6 +19,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/allocator.hpp"
+#include "core/base/array_access.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
@@ -114,9 +87,9 @@ Ell<ValueType, IndexType>& Ell<ValueType, IndexType>::operator=(
         auto exec_this_view =
             Ell{exec,
                 this->get_size(),
-                make_array_view(exec, exec_values_array->get_num_elems(),
+                make_array_view(exec, exec_values_array->get_size(),
                                 exec_values_array->get_data()),
-                make_array_view(exec, exec_cols_array->get_num_elems(),
+                make_array_view(exec, exec_cols_array->get_size(),
                                 exec_cols_array->get_data()),
                 this->get_num_stored_elements_per_row(),
                 this->get_stride()};
@@ -233,8 +206,8 @@ void Ell<ValueType, IndexType>::convert_to(
             ell::make_count_nonzeros_per_row(this, tmp->row_ptrs_.get_data()));
         exec->run(ell::make_prefix_sum_nonnegative(tmp->row_ptrs_.get_data(),
                                                    num_rows + 1));
-        const auto nnz = static_cast<size_type>(
-            exec->copy_val_to_host(tmp->row_ptrs_.get_const_data() + num_rows));
+        const auto nnz =
+            static_cast<size_type>(get_element(tmp->row_ptrs_, num_rows));
         tmp->col_idxs_.resize_and_reset(nnz);
         tmp->values_.resize_and_reset(nnz);
         tmp->set_size(this->get_size());
@@ -272,7 +245,7 @@ void Ell<ValueType, IndexType>::read(const device_mat_data& data)
     array<int64> row_ptrs(exec, data.get_size()[0] + 1);
     auto local_data = make_temporary_clone(exec, &data);
     exec->run(ell::make_convert_idxs_to_ptrs(
-        local_data->get_const_row_idxs(), local_data->get_num_elems(),
+        local_data->get_const_row_idxs(), local_data->get_num_stored_elements(),
         data.get_size()[0], row_ptrs.get_data()));
     size_type max_nnz{};
     exec->run(ell::make_compute_max_row_nnz(row_ptrs, max_nnz));

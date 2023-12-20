@@ -1,29 +1,19 @@
+name: OnSyncPR
+
 on:
   pull_request_target:
     types: [opened,synchronize]
-name: OnSyncPR
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
   cancel-in-progress: true
+
 jobs:
   check-format:
-    runs-on: ubuntu-22.04
     if: github.event.pull_request.author_association == 'COLLABORATOR' || github.event.pull_request.author_association == 'MEMBER' || github.event.pull_request.author_association == 'OWNER'
-    steps:
-      - name: Checkout the latest code (shallow clone)
-        uses: actions/checkout@v3
-        with:
-          ref: develop
-      - name: Check for formatting changes
-        env:
-          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
-        run: cp .github/check-format.sh /tmp && /tmp/check-format.sh
-      - name: Upload code formatting patch
-        if: failure()
-        uses: actions/upload-artifact@v3
-        with:
-          name: patch
-          path: format.patch
+    uses: ./.github/workflows/check-formatting.yml
+    secrets: inherit
+
   abidiff:
     runs-on: ubuntu-latest
     if: github.event.pull_request.author_association == 'COLLABORATOR' || github.event.pull_request.author_association == 'MEMBER' || github.event.pull_request.author_association == 'OWNER'
@@ -31,12 +21,12 @@ jobs:
       CMAKE_FLAGS: -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=DEBUG -DGINKGO_BUILD_TESTS=OFF -DGINKGO_BUILD_EXAMPLES=OFF -DGINKGO_BUILD_BENCHMARKS=OFF -DGINKGO_BUILD_HWLOC=OFF -DGINKGO_BUILD_REFERENCE=OFF -DGINKGO_BUILD_OMP=OFF -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_HIP=OFF -DGINKGO_BUILD_SYCL=OFF
     steps:
       - name: Checkout the new code (shallow clone)
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: new
           ref: ${{ github.event.pull_request.head.ref }}
       - name: Checkout the old code (shallow clone)
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: old
           ref: ${{ github.event.pull_request.base.ref }}
@@ -58,14 +48,15 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v3
         with:
-            name: abi
-            path: abi.diff
+          name: abi
+          path: abi.diff
+
   check-wiki-changelog:
     runs-on: ubuntu-latest
     if: github.event.pull_request.author_association == 'COLLABORATOR' || github.event.pull_request.author_association == 'MEMBER' || github.event.pull_request.author_association == 'OWNER'
     steps:
     - name: Checkout the latest code (shallow clone)
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         ref: develop
     - name: Check if PR number exists in wiki/Changelog

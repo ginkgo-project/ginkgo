@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -57,6 +29,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "core/base/array_access.hpp"
 #include "core/base/dispatch_helper.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
@@ -574,7 +547,7 @@ Dense<ValueType>& Dense<ValueType>::operator=(const Dense& other)
         // matrix on the array to avoid special-casing cross-executor copies
         auto exec_this_view =
             Dense{exec, this->get_size(),
-                  make_array_view(exec, exec_values_array->get_num_elems(),
+                  make_array_view(exec, exec_values_array->get_size(),
                                   exec_values_array->get_data()),
                   this->get_stride()};
         exec->run(dense::make_copy(&other, &exec_this_view));
@@ -644,8 +617,7 @@ void Dense<ValueType>::convert_impl(Coo<ValueType, IndexType>* result) const
     exec->run(dense::make_count_nonzeros_per_row(this, row_ptrs.get_data()));
     exec->run(
         dense::make_prefix_sum_nonnegative(row_ptrs.get_data(), num_rows + 1));
-    const auto nnz =
-        exec->copy_val_to_host(row_ptrs.get_const_data() + num_rows);
+    const auto nnz = get_element(row_ptrs, num_rows);
     result->resize(this->get_size(), nnz);
     exec->run(
         dense::make_convert_to_coo(this, row_ptrs.get_const_data(),
@@ -846,7 +818,7 @@ void Dense<ValueType>::convert_impl(Hybrid<ValueType, IndexType>* result) const
     }
     exec->run(dense::make_compute_hybrid_coo_row_ptrs(row_nnz, ell_lim,
                                                       coo_row_ptrs.get_data()));
-    coo_nnz = exec->copy_val_to_host(coo_row_ptrs.get_const_data() + num_rows);
+    coo_nnz = get_element(coo_row_ptrs, num_rows);
     auto tmp = make_temporary_clone(exec, result);
     tmp->resize(this->get_size(), ell_lim, coo_nnz);
     exec->run(dense::make_convert_to_hybrid(this, coo_row_ptrs.get_const_data(),
@@ -949,8 +921,7 @@ void Dense<ValueType>::convert_impl(
         dense::make_count_nonzeros_per_row(this, tmp->row_ptrs_.get_data()));
     exec->run(dense::make_prefix_sum_nonnegative(tmp->row_ptrs_.get_data(),
                                                  num_rows + 1));
-    const auto nnz =
-        exec->copy_val_to_host(tmp->row_ptrs_.get_const_data() + num_rows);
+    const auto nnz = get_element(tmp->row_ptrs_, num_rows);
     tmp->col_idxs_.resize_and_reset(nnz);
     tmp->value_.fill(one<ValueType>());
     tmp->set_size(this->get_size());
@@ -1289,7 +1260,7 @@ void Dense<ValueType>::row_gather_impl(const array<IndexType>* row_idxs,
                                        Dense<OutputType>* row_collection) const
 {
     auto exec = this->get_executor();
-    dim<2> expected_dim{row_idxs->get_num_elems(), this->get_size()[1]};
+    dim<2> expected_dim{row_idxs->get_size(), this->get_size()[1]};
     GKO_ASSERT_EQUAL_DIMENSIONS(expected_dim, row_collection);
 
     exec->run(dense::make_row_gather(
@@ -1305,7 +1276,7 @@ void Dense<ValueType>::row_gather_impl(const Dense<ValueType>* alpha,
                                        Dense<OutputType>* row_collection) const
 {
     auto exec = this->get_executor();
-    dim<2> expected_dim{row_idxs->get_num_elems(), this->get_size()[1]};
+    dim<2> expected_dim{row_idxs->get_size(), this->get_size()[1]};
     GKO_ASSERT_EQUAL_DIMENSIONS(expected_dim, row_collection);
 
     exec->run(dense::make_advanced_row_gather(
@@ -1526,7 +1497,7 @@ std::unique_ptr<Dense<ValueType>> Dense<ValueType>::row_gather(
     const array<int32>* row_idxs) const
 {
     auto exec = this->get_executor();
-    dim<2> out_dim{row_idxs->get_num_elems(), this->get_size()[1]};
+    dim<2> out_dim{row_idxs->get_size(), this->get_size()[1]};
     auto result = Dense::create(exec, out_dim);
     this->row_gather(row_idxs, result);
     return result;
@@ -1537,7 +1508,7 @@ std::unique_ptr<Dense<ValueType>> Dense<ValueType>::row_gather(
     const array<int64>* row_idxs) const
 {
     auto exec = this->get_executor();
-    dim<2> out_dim{row_idxs->get_num_elems(), this->get_size()[1]};
+    dim<2> out_dim{row_idxs->get_size(), this->get_size()[1]};
     auto result = Dense::create(exec, out_dim);
     this->row_gather(row_idxs, result);
     return result;

@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 namespace kernel {
 
@@ -96,13 +68,13 @@ void build_searchtree(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                        sycl::access::target::local>
             sh_samples_acc_ct1(sycl::range<1>(1024 /*sample_size*/), cgh);
 
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=
-        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                            config::warp_size)]] {
-                build_searchtree(input, size, tree_output, item_ct1,
-                                 sh_samples_acc_ct1.get_pointer());
-            });
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1)
+                             [[sycl::reqd_sub_group_size(config::warp_size)]] {
+                                 build_searchtree(
+                                     input, size, tree_output, item_ct1,
+                                     sh_samples_acc_ct1.get_pointer());
+                             });
     });
 }
 
@@ -284,12 +256,13 @@ void block_prefix_sum(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                               cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=
-        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                            config::warp_size)]] {
-                block_prefix_sum(counters, totals, num_blocks, item_ct1,
-                                 (IndexType*)warp_sums_acc_ct1.get_pointer());
-            });
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1)
+                [[sycl::reqd_sub_group_size(config::warp_size)]] {
+                    block_prefix_sum(
+                        counters, totals, num_blocks, item_ct1,
+                        (IndexType*)warp_sums_acc_ct1.get_pointer());
+                });
     });
 }
 
@@ -391,12 +364,12 @@ void basecase_select(dim3 grid, dim3 block, size_type dynamic_shared_memory,
             sh_local_acc_ct1(sycl::range<1>(1024 /*basecase_size*/), cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=
-        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                            config::warp_size)]] {
-                basecase_select(input, size, rank, out, item_ct1,
-                                (ValueType*)sh_local_acc_ct1.get_pointer());
-            });
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1)
+                [[sycl::reqd_sub_group_size(config::warp_size)]] {
+                    basecase_select(input, size, rank, out, item_ct1,
+                                    (ValueType*)sh_local_acc_ct1.get_pointer());
+                });
     });
 }
 
@@ -431,12 +404,11 @@ template <typename IndexType>
 void find_bucket(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                  sycl::queue* queue, IndexType* prefix_sum, IndexType rank)
 {
-    queue->parallel_for(
-        sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                        config::warp_size)]] {
-            find_bucket(prefix_sum, rank, item_ct1);
-        });
+    queue->parallel_for(sycl_nd_range(grid, block),
+                        [=](sycl::nd_item<3> item_ct1)
+                            [[sycl::reqd_sub_group_size(config::warp_size)]] {
+                                find_bucket(prefix_sum, rank, item_ct1);
+                            });
 }
 
 

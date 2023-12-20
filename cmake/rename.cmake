@@ -5,7 +5,8 @@ macro(gko_rename_cache deprecated actual type doc_string)
             message("actual ${actual} and deprecated ${deprecated}")
             if("${${actual}}" STREQUAL "${${deprecated}}")
                 # They are the same, so only throw warning
-                message(WARNING "${deprecated} was deprecated, please only use ${actual} instead.")
+                message(WARNING "${deprecated} was deprecated, please only use ${actual} instead. We removed the old variable.")
+                unset(${deprecated} CACHE)
             else()
                 # They are different
                 message(FATAL_ERROR "Both ${deprecated} and ${actual} were specified differently, please only use ${actual} instead.")
@@ -13,8 +14,9 @@ macro(gko_rename_cache deprecated actual type doc_string)
         else()
             # Only set `deprecated`, move it to `actual`.
             message(WARNING "${deprecated} was deprecated, please use ${actual} instead.  "
-                "We copy ${${deprecated}} to ${actual}")
+                "We copied ${${deprecated}} to ${actual} and removed the old variable.")
             set(${actual} ${${deprecated}} CACHE ${type} "${doc_string}")
+            unset(${deprecated} CACHE)
         endif()
     endif()
 endmacro()

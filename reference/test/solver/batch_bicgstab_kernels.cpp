@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/solver/batch_bicgstab.hpp>
 
@@ -42,6 +14,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/log/batch_logger.hpp>
+#include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
 
@@ -61,6 +34,7 @@ protected:
     using solver_type = gko::batch::solver::Bicgstab<value_type>;
     using Mtx = gko::batch::matrix::Dense<value_type>;
     using EllMtx = gko::batch::matrix::Ell<value_type>;
+    using CsrMtx = gko::batch::matrix::Csr<value_type>;
     using MVec = gko::batch::MultiVector<value_type>;
     using RealMVec = gko::batch::MultiVector<real_type>;
     using Settings = gko::kernels::batch_bicgstab::settings<real_type>;
@@ -98,7 +72,8 @@ protected:
         solve_lambda;
 };
 
-TYPED_TEST_SUITE(BatchBicgstab, gko::test::RealValueTypes);
+TYPED_TEST_SUITE(BatchBicgstab, gko::test::RealValueTypes,
+                 TypenameNameGenerator);
 
 
 TYPED_TEST(BatchBicgstab, SolvesStencilSystem)
@@ -258,6 +233,42 @@ TYPED_TEST(BatchBicgstab, CanSolveEllSystem)
     auto stencil_mat =
         gko::share(gko::test::generate_3pt_stencil_batch_matrix<Mtx>(
             this->exec, num_batch_items, num_rows, 3));
+    auto linear_system =
+        gko::test::generate_batch_linear_system(stencil_mat, num_rhs);
+    auto solver = gko::share(solver_factory->generate(linear_system.matrix));
+
+    auto res =
+        gko::test::solve_linear_system(this->exec, linear_system, solver);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 10);
+    for (size_t i = 0; i < num_batch_items; i++) {
+        ASSERT_LE(res.host_res_norm->get_const_values()[i] /
+                      linear_system.host_rhs_norm->get_const_values()[i],
+                  tol * 10);
+    }
+}
+
+
+TYPED_TEST(BatchBicgstab, CanSolveCsrSystem)
+{
+    using value_type = typename TestFixture::value_type;
+    using real_type = gko::remove_complex<value_type>;
+    using Solver = typename TestFixture::solver_type;
+    using Mtx = typename TestFixture::CsrMtx;
+    const real_type tol = 1e-5;
+    const int max_iters = 1000;
+    auto solver_factory =
+        Solver::build()
+            .with_max_iterations(max_iters)
+            .with_tolerance(tol)
+            .with_tolerance_type(gko::batch::stop::tolerance_type::relative)
+            .on(this->exec);
+    const int num_rows = 13;
+    const size_t num_batch_items = 2;
+    const int num_rhs = 1;
+    auto stencil_mat =
+        gko::share(gko::test::generate_3pt_stencil_batch_matrix<Mtx>(
+            this->exec, num_batch_items, num_rows, (num_rows * 3 - 2)));
     auto linear_system =
         gko::test::generate_batch_linear_system(stencil_mat, num_rhs);
     auto solver = gko::share(solver_factory->generate(linear_system.matrix));

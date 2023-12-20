@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/matrix/csr.hpp>
 
@@ -51,6 +23,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "core/base/array_access.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
@@ -123,6 +96,7 @@ GKO_REGISTER_OPERATION(inv_scale, csr::inv_scale);
 GKO_REGISTER_OPERATION(add_scaled_identity, csr::add_scaled_identity);
 GKO_REGISTER_OPERATION(check_diagonal_entries,
                        csr::check_diagonal_entries_exist);
+GKO_REGISTER_OPERATION(aos_to_soa, components::aos_to_soa);
 
 
 }  // anonymous namespace
@@ -327,7 +301,7 @@ void Csr<ValueType, IndexType>::convert_to(
     }
     exec->run(csr::make_compute_hybrid_coo_row_ptrs(row_nnz, ell_lim,
                                                     coo_row_ptrs.get_data()));
-    coo_nnz = exec->copy_val_to_host(coo_row_ptrs.get_const_data() + num_rows);
+    coo_nnz = get_element(coo_row_ptrs, num_rows);
     auto tmp = make_temporary_clone(exec, result);
     tmp->resize(this->get_size(), ell_lim, coo_nnz);
     exec->run(csr::make_convert_to_hybrid(this, coo_row_ptrs.get_const_data(),
@@ -451,15 +425,56 @@ void Csr<ValueType, IndexType>::move_to(Fbcsr<ValueType, IndexType>* result)
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::read(const mat_data& data)
 {
-    this->read(device_mat_data::create_from_host(this->get_executor(), data));
+    auto size = data.size;
+    auto exec = this->get_executor();
+    this->set_size(size);
+    this->row_ptrs_.resize_and_reset(size[0] + 1);
+    this->col_idxs_.resize_and_reset(data.nonzeros.size());
+    this->values_.resize_and_reset(data.nonzeros.size());
+    // the device matrix data contains views on the column indices
+    // and values array of this matrix, and an owning array for the
+    // row indices (which doesn't exist in this matrix)
+    device_mat_data view{exec, size,
+                         array<IndexType>{exec, data.nonzeros.size()},
+                         this->col_idxs_.as_view(), this->values_.as_view()};
+    const auto host_data =
+        make_array_view(exec->get_master(), data.nonzeros.size(),
+                        const_cast<matrix_data_entry<ValueType, IndexType>*>(
+                            data.nonzeros.data()));
+    exec->run(
+        csr::make_aos_to_soa(*make_temporary_clone(exec, &host_data), view));
+    exec->run(csr::make_convert_idxs_to_ptrs(view.get_const_row_idxs(),
+                                             view.get_num_stored_elements(),
+                                             size[0], this->get_row_ptrs()));
+    this->make_srow();
 }
 
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::read(const device_mat_data& data)
 {
-    // make a copy, read the data in
-    this->read(device_mat_data{this->get_executor(), data});
+    auto size = data.get_size();
+    auto exec = this->get_executor();
+    this->row_ptrs_.resize_and_reset(size[0] + 1);
+    this->set_size(size);
+    // copy the column indices and values array from the device matrix data
+    // into this. Compared to the read(device_mat_data&&) version, the internal
+    // arrays keep their current ownership status.
+    this->values_ = make_const_array_view(data.get_executor(),
+                                          data.get_num_stored_elements(),
+                                          data.get_const_values());
+    this->col_idxs_ = make_const_array_view(data.get_executor(),
+                                            data.get_num_stored_elements(),
+                                            data.get_const_col_idxs());
+    const auto row_idxs = make_const_array_view(data.get_executor(),
+                                                data.get_num_stored_elements(),
+                                                data.get_const_row_idxs())
+                              .copy_to_array();
+    auto local_row_idxs = make_temporary_clone(exec, &row_idxs);
+    exec->run(csr::make_convert_idxs_to_ptrs(local_row_idxs->get_const_data(),
+                                             local_row_idxs->get_size(),
+                                             size[0], this->get_row_ptrs()));
+    this->make_srow();
 }
 
 
@@ -476,7 +491,7 @@ void Csr<ValueType, IndexType>::read(device_mat_data&& data)
     const auto row_idxs = std::move(arrays.row_idxs);
     auto local_row_idxs = make_temporary_clone(exec, &row_idxs);
     exec->run(csr::make_convert_idxs_to_ptrs(local_row_idxs->get_const_data(),
-                                             local_row_idxs->get_num_elems(),
+                                             local_row_idxs->get_size(),
                                              size[0], this->get_row_ptrs()));
     this->make_srow();
 }
@@ -812,8 +827,7 @@ Csr<ValueType, IndexType>::create_submatrix(const gko::span& row_span,
         this, row_span, column_span, &row_ptrs));
     exec->run(csr::make_prefix_sum_nonnegative(row_ptrs.get_data(),
                                                row_span.length() + 1));
-    auto num_nnz =
-        exec->copy_val_to_host(row_ptrs.get_data() + sub_mat_size[0]);
+    auto num_nnz = get_element(row_ptrs, sub_mat_size[0]);
     auto sub_mat = Mat::create(exec, sub_mat_size,
                                std::move(array<ValueType>(exec, num_nnz)),
                                std::move(array<IndexType>(exec, num_nnz)),
@@ -833,7 +847,7 @@ Csr<ValueType, IndexType>::create_submatrix(
 {
     using Mat = Csr<ValueType, IndexType>;
     auto exec = this->get_executor();
-    if (!row_index_set.get_num_elems() || !col_index_set.get_num_elems()) {
+    if (!row_index_set.get_size() || !col_index_set.get_size()) {
         return Mat::create(exec);
     }
     if (row_index_set.is_contiguous() && col_index_set.is_contiguous()) {
@@ -857,8 +871,7 @@ Csr<ValueType, IndexType>::create_submatrix(
             this, row_index_set, col_index_set, row_ptrs.get_data()));
         exec->run(csr::make_prefix_sum_nonnegative(row_ptrs.get_data(),
                                                    submat_num_rows + 1));
-        auto num_nnz =
-            exec->copy_val_to_host(row_ptrs.get_data() + sub_mat_size[0]);
+        auto num_nnz = get_element(row_ptrs, sub_mat_size[0]);
         auto sub_mat = Mat::create(exec, sub_mat_size,
                                    std::move(array<ValueType>(exec, num_nnz)),
                                    std::move(array<IndexType>(exec, num_nnz)),

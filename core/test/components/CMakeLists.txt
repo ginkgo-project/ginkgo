@@ -1,1 +1,2 @@
+ginkgo_create_test(addressable_pq)
 ginkgo_create_test(disjoint_sets)

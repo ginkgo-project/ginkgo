@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 namespace kernel {
 
@@ -1007,7 +979,7 @@ void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
                                      source->get_size()[0],
                                      in_row_idxs.get_data());
     auto block_row_ptrs = block_row_ptr_array.get_data();
-    auto num_block_rows = block_row_ptr_array.get_num_elems() - 1;
+    auto num_block_rows = block_row_ptr_array.get_size() - 1;
     if (nnz == 0) {
         components::fill_array(exec, block_row_ptrs, num_block_rows + 1,
                                IndexType{});
@@ -1060,7 +1032,7 @@ void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
         });
     // build row pointers from row indices
     components::convert_idxs_to_ptrs(exec, block_row_idx_array.get_const_data(),
-                                     block_row_idx_array.get_num_elems(),
+                                     block_row_idx_array.get_size(),
                                      num_block_rows, block_row_ptrs);
     // fill in values
     components::fill_array(exec, block_value_array.get_data(),
@@ -1774,7 +1746,7 @@ void check_diagonal_entries_exist(
                                          exec->get_stream()>>>(
             num_diag, mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
             has_diags.get_data());
-        has_all_diags = exec->copy_val_to_host(has_diags.get_const_data());
+        has_all_diags = get_element(has_diags, 0);
     } else {
         has_all_diags = true;
     }

@@ -1,38 +1,11 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/distributed/partition.hpp>
 
 
+#include "core/base/array_access.hpp"
 #include "core/distributed/partition_kernels.hpp"
 
 
@@ -79,16 +52,16 @@ Partition<LocalIndexType, GlobalIndexType>::build_from_contiguous(
     std::shared_ptr<const Executor> exec, const array<GlobalIndexType>& ranges,
     const array<comm_index_type>& part_ids)
 {
-    GKO_ASSERT(part_ids.get_num_elems() == 0 ||
-               part_ids.get_num_elems() + 1 == ranges.get_num_elems());
+    GKO_ASSERT(part_ids.get_size() == 0 ||
+               part_ids.get_size() + 1 == ranges.get_size());
 
     array<comm_index_type> empty(exec);
     auto local_ranges = make_temporary_clone(exec, &ranges);
     auto local_part_ids = make_temporary_clone(
-        exec, part_ids.get_num_elems() > 0 ? &part_ids : &empty);
+        exec, part_ids.get_size() > 0 ? &part_ids : &empty);
     auto result = Partition::create(
-        exec, static_cast<comm_index_type>(ranges.get_num_elems() - 1),
-        ranges.get_num_elems() - 1);
+        exec, static_cast<comm_index_type>(ranges.get_size() - 1),
+        ranges.get_size() - 1);
     exec->run(partition::make_build_from_contiguous(
         *local_ranges, *local_part_ids, result->offsets_.get_data(),
         result->part_ids_.get_data()));
@@ -118,8 +91,14 @@ void Partition<LocalIndexType, GlobalIndexType>::finalize_construction()
         offsets_.get_const_data(), part_ids_.get_const_data(), get_num_ranges(),
         get_num_parts(), num_empty_parts_, starting_indices_.get_data(),
         part_sizes_.get_data()));
-    size_ = offsets_.get_executor()->copy_val_to_host(
-        offsets_.get_const_data() + get_num_ranges());
+    size_ = get_element(offsets_, get_num_ranges());
+}
+
+template <typename LocalIndexType, typename GlobalIndexType>
+LocalIndexType Partition<LocalIndexType, GlobalIndexType>::get_part_size(
+    comm_index_type part) const
+{
+    return get_element(this->part_sizes_, part);
 }
 
 

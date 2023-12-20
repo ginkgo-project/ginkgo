@@ -1,46 +1,36 @@
+name: OnCommentPR
+
 on:
   issue_comment:
     types: [created]
-name: OnCommentPR
+
 jobs:
   label:
     runs-on: ubuntu-latest
     if: github.event.issue.pull_request != '' && github.event.comment.body == 'label!' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
     steps:
     - name: Checkout the latest code (shallow clone)
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         ref: develop
     - name: Add appropriate labels
       env:
         GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
       run: cp --preserve .github/label.sh /tmp && /tmp/label.sh
+
   check_format:
     name: check-format
-    runs-on: ubuntu-22.04
     if: github.event.issue.pull_request != '' && github.event.comment.body == 'check-format!' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
-    steps:
-    - name: Checkout the latest code (shallow clone)
-      uses: actions/checkout@v3
-      with:
-        ref: develop
-    - name: Check for formatting changes
-      env:
-        GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
-      run: cp --preserve .github/check-format.sh /tmp && /tmp/check-format.sh
-    - name: Upload code formatting patch
-      if: failure()
-      uses: actions/upload-artifact@v3
-      with:
-          name: patch
-          path: format.patch
+    uses: ./.github/workflows/check-formatting.yml
+    secrets: inherit
+
   format:
     name: format
     runs-on: ubuntu-22.04
     if: github.event.issue.pull_request != '' && github.event.comment.body == 'format!' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
     steps:
     - name: Checkout the latest code (shallow clone)
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         ref: develop
         persist-credentials: false
@@ -48,39 +38,3 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
       run: cp --preserve .github/format.sh /tmp && /tmp/format.sh
-  rebase:
-    name: rebase
-    if: github.event.issue.pull_request != '' && github.event.comment.body == 'rebase!' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout the latest code
-      uses: actions/checkout@v3
-      with:
-        ref: develop
-        fetch-depth: 0
-        persist-credentials: false
-    - name: Automatic Rebase
-      env:
-        GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
-      run: cp --preserve .github/rebase.sh /tmp && /tmp/rebase.sh
-  format-rebase:
-    name: format-rebase
-    if: github.event.issue.pull_request != '' && github.event.comment.body == 'format-rebase!' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
-    runs-on: ubuntu-22.04
-    steps:
-    - name: Checkout the latest code
-      uses: actions/checkout@v3
-      with:
-        ref: develop
-        fetch-depth: 0
-        persist-credentials: false
-    - name: Automatic Formatting Rebase
-      env:
-        GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
-      run: cp --preserve .github/format-rebase.sh /tmp && /tmp/format-rebase.sh
-    - name: Upload code formatting diffs
-      if: success()
-      uses: actions/upload-artifact@v3
-      with:
-          name: patch
-          path: diff.patch

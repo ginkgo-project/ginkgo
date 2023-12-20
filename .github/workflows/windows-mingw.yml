@@ -23,6 +23,7 @@ concurrency:
 
 jobs:
   windows_mingw:
+    if: ${{ false }}
     strategy:
       fail-fast: false
       matrix:
@@ -32,7 +33,7 @@ jobs:
     runs-on: [windows-latest]
     steps:
     - name: Checkout the latest code (shallow clone)
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Debug over SSH (tmate)
       uses: mxschmitt/action-tmate@v3.5

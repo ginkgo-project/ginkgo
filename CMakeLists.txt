@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(Ginkgo LANGUAGES C CXX VERSION 1.7.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
+project(Ginkgo LANGUAGES CXX VERSION 1.8.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
 set(Ginkgo_VERSION_TAG "develop")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 # Cuda and Hip also look for Threads. Set it before any find_package to ensure the Threads setting is not changed.
@@ -354,13 +354,38 @@ if(GINKGO_BUILD_BENCHMARKS)
 endif()
 
 if(GINKGO_DEVEL_TOOLS)
-    add_custom_target(add_license
-        COMMAND ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/add_license.sh
-        WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR})
-    # if git-cmake-format can not build format target, do not add the dependencies
-    if(TARGET format)
-        add_dependencies(format add_license)
+    find_program(PRE_COMMIT pre-commit)
+    if(NOT PRE_COMMIT)
+        message(FATAL_ERROR "The pre-commit command was not found. It is necessary if you want to commit changes to Ginkgo. "
+                "If that is not the case, set GINKGO_DEVEL_TOOLS=OFF. "
+                "Otherwise install pre-commit via pipx (or pip) using:\n"
+                "    pipx install pre-commit")
     endif()
+
+    execute_process(COMMAND "${PRE_COMMIT}" "install"
+                    WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR}
+                    RESULT_VARIABLE pre-commit-result
+                    OUTPUT_VARIABLE pre-commit-output
+                    ERROR_VARIABLE pre-commit-error)
+    if(pre-commit-result)
+        message(FATAL_ERROR
+                "Failed to install the git hooks via pre-commit. Please check the error message:\n"
+                "${pre-commit-output}\n${pre-commit-error}")
+    endif()
+    if(pre-commit-output MATCHES "^Running in migration mode with existing hooks")
+        message(WARNING
+                "An existing git hook was encountered during `pre-commit install`. The old git hook "
+                "will also be executed. Consider removing it with `pre-commit install -f`")
+    elseif(NOT pre-commit-output MATCHES "^pre-commit installed at")
+        message(WARNING
+                "`pre-commit install` did not exit normally. Please check the output message:\n"
+                "${pre-commit-output}")
+    endif()
+
+    add_custom_target(format
+                      COMMAND bash -c "${PRE_COMMIT} run"
+                      WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR}
+                      VERBATIM)
 endif()
 
 # MacOS needs to install bash, gnu-sed, findutils and coreutils

@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/multigrid/pgm_kernels.hpp"
 
@@ -38,6 +10,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "common/unified/base/kernel_launch_reduction.hpp"
+#include "core/base/array_access.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 
 
@@ -71,8 +44,7 @@ void match_edge(std::shared_ptr<const DefaultExecutor> exec,
                 agg_vals[neighbor] = tidx;
             }
         },
-        agg.get_num_elems(), strongest_neighbor.get_const_data(),
-        agg.get_data());
+        agg.get_size(), strongest_neighbor.get_const_data(), agg.get_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_MATCH_EDGE_KERNEL);
@@ -85,10 +57,10 @@ void count_unagg(std::shared_ptr<const DefaultExecutor> exec,
     array<IndexType> d_result(exec, 1);
     run_kernel_reduction(
         exec, [] GKO_KERNEL(auto i, auto array) { return array[i] == -1; },
-        GKO_KERNEL_REDUCE_SUM(IndexType), d_result.get_data(),
-        agg.get_num_elems(), agg);
+        GKO_KERNEL_REDUCE_SUM(IndexType), d_result.get_data(), agg.get_size(),
+        agg);
 
-    *num_unagg = exec->copy_val_to_host(d_result.get_const_data());
+    *num_unagg = get_element(d_result, 0);
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_COUNT_UNAGG_KERNEL);
@@ -98,7 +70,7 @@ template <typename IndexType>
 void renumber(std::shared_ptr<const DefaultExecutor> exec,
               array<IndexType>& agg, IndexType* num_agg)
 {
-    const auto num = agg.get_num_elems();
+    const auto num = agg.get_size();
     array<IndexType> agg_map(exec, num + 1);
     run_kernel(
         exec,
@@ -112,7 +84,7 @@ void renumber(std::shared_ptr<const DefaultExecutor> exec,
         num, agg.get_const_data(), agg_map.get_data());
 
     components::prefix_sum_nonnegative(exec, agg_map.get_data(),
-                                       agg_map.get_num_elems());
+                                       agg_map.get_size());
 
     run_kernel(
         exec,
@@ -120,7 +92,7 @@ void renumber(std::shared_ptr<const DefaultExecutor> exec,
             agg[tidx] = map[agg[tidx]];
         },
         num, agg_map.get_const_data(), agg.get_data());
-    *num_agg = exec->copy_val_to_host(agg_map.get_const_data() + num);
+    *num_agg = get_element(agg_map, num);
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_RENUMBER_KERNEL);
@@ -178,8 +150,7 @@ void count_unrepeated_nnz(std::shared_ptr<const DefaultExecutor> exec,
             },
             GKO_KERNEL_REDUCE_SUM(IndexType), d_result.get_data(), nnz - 1,
             row_idxs, col_idxs);
-        *coarse_nnz = static_cast<size_type>(
-            exec->copy_val_to_host(d_result.get_const_data()) + 1);
+        *coarse_nnz = static_cast<size_type>(get_element(d_result, 0) + 1);
     } else {
         *coarse_nnz = nnz;
     }
@@ -242,7 +213,7 @@ void find_strongest_neighbor(
                 strongest_neighbor[row] = row;
             }
         },
-        agg.get_num_elems(), weight_mtx->get_const_row_ptrs(),
+        agg.get_size(), weight_mtx->get_const_row_ptrs(),
         weight_mtx->get_const_col_idxs(), weight_mtx->get_const_values(),
         diag->get_const_values(), agg.get_data(),
         strongest_neighbor.get_data());
@@ -258,8 +229,8 @@ void assign_to_exist_agg(std::shared_ptr<const DefaultExecutor> exec,
                          array<IndexType>& agg,
                          array<IndexType>& intermediate_agg)
 {
-    const auto num = agg.get_num_elems();
-    if (intermediate_agg.get_num_elems() > 0) {
+    const auto num = agg.get_size();
+    if (intermediate_agg.get_size() > 0) {
         // deterministic kernel
         run_kernel(
             exec,

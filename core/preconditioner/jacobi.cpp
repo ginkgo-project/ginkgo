@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 
@@ -249,7 +221,7 @@ std::unique_ptr<LinOp> Jacobi<ValueType, IndexType>::transpose() const
     res->set_size(this->get_size());
     res->storage_scheme_ = storage_scheme_;
     res->num_blocks_ = num_blocks_;
-    res->blocks_.resize_and_reset(blocks_.get_num_elems());
+    res->blocks_.resize_and_reset(blocks_.get_size());
     res->conditioning_ = conditioning_;
     res->parameters_ = parameters_;
     if (parameters_.max_block_size == 1) {
@@ -275,7 +247,7 @@ std::unique_ptr<LinOp> Jacobi<ValueType, IndexType>::conj_transpose() const
     res->set_size(this->get_size());
     res->storage_scheme_ = storage_scheme_;
     res->num_blocks_ = num_blocks_;
-    res->blocks_.resize_and_reset(blocks_.get_num_elems());
+    res->blocks_.resize_and_reset(blocks_.get_size());
     res->conditioning_ = conditioning_;
     res->parameters_ = parameters_;
     if (parameters_.max_block_size == 1) {
@@ -327,7 +299,7 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
         auto temp =
             make_array_view(diag_vt->get_executor(), diag_vt->get_size()[0],
                             diag_vt->get_values());
-        this->blocks_ = array<ValueType>(exec, temp.get_num_elems());
+        this->blocks_ = array<ValueType>(exec, temp.get_size());
         exec->run(jacobi::make_invert_diagonal(temp, this->blocks_));
         this->num_blocks_ = diag_vt->get_size()[0];
     } else {
@@ -348,7 +320,7 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
                     gko::array<precision_reduction>(exec, {all_block_opt});
             }
             array<precision_reduction> tmp(
-                exec, parameters_.block_pointers.get_num_elems() - 1);
+                exec, parameters_.block_pointers.get_size() - 1);
             exec->run(jacobi::make_initialize_precisions(precisions, tmp));
             precisions = std::move(tmp);
             conditioning_.resize_and_reset(num_blocks_);

@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/matrix/hybrid.hpp>
 
@@ -45,6 +17,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/array_access.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
@@ -219,9 +192,9 @@ void Hybrid<ValueType, IndexType>::convert_to(
         exec->run(hybrid::make_convert_idxs_to_ptrs(
             this->get_const_coo_row_idxs(), this->get_coo_num_stored_elements(),
             num_rows, coo_row_ptrs.get_data()));
-        const auto nnz = static_cast<size_type>(
-            exec->copy_val_to_host(ell_row_ptrs.get_const_data() + num_rows) +
-            exec->copy_val_to_host(coo_row_ptrs.get_const_data() + num_rows));
+        const auto nnz =
+            static_cast<size_type>(get_element(ell_row_ptrs, num_rows) +
+                                   get_element(coo_row_ptrs, num_rows));
         tmp->row_ptrs_.resize_and_reset(num_rows + 1);
         tmp->col_idxs_.resize_and_reset(nnz);
         tmp->values_.resize_and_reset(nnz);
@@ -261,8 +234,8 @@ void Hybrid<ValueType, IndexType>::read(const device_mat_data& data)
     auto local_data = make_temporary_clone(exec, &data);
     array<int64> row_ptrs{exec, num_rows + 1};
     exec->run(hybrid::make_convert_idxs_to_ptrs(
-        local_data->get_const_row_idxs(), local_data->get_num_elems(), num_rows,
-        row_ptrs.get_data()));
+        local_data->get_const_row_idxs(), local_data->get_num_stored_elements(),
+        num_rows, row_ptrs.get_data()));
     array<size_type> row_nnz{exec, data.get_size()[0]};
     exec->run(hybrid::make_compute_row_nnz(row_ptrs, row_nnz.get_data()));
     size_type ell_max_nnz{};
@@ -276,7 +249,7 @@ void Hybrid<ValueType, IndexType>::read(const device_mat_data& data)
     array<int64> coo_row_ptrs{exec, num_rows + 1};
     exec->run(hybrid::make_compute_coo_row_ptrs(row_nnz, ell_max_nnz,
                                                 coo_row_ptrs.get_data()));
-    coo_nnz = exec->copy_val_to_host(coo_row_ptrs.get_const_data() + num_rows);
+    coo_nnz = get_element(coo_row_ptrs, num_rows);
     this->resize(data.get_size(), ell_max_nnz, coo_nnz);
     exec->run(
         hybrid::make_fill_in_matrix_data(*local_data, row_ptrs.get_const_data(),

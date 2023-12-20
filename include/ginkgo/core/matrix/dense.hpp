@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_PUBLIC_CORE_MATRIX_DENSE_HPP_
 #define GKO_PUBLIC_CORE_MATRIX_DENSE_HPP_
@@ -657,7 +629,7 @@ public:
      * @param gather_indices  pointer to an array containing row indices
      *                        from this matrix. It may contain duplicates.
      * @return  Dense matrix on the same executor with the same number of
-     *          columns and `gather_indices->get_num_elems()` rows containing
+     *          columns and `gather_indices->get_size()` rows containing
      *          the gathered rows from this matrix:
      *          `output(i,j) = input(gather_indices(i), j)`
      */
@@ -678,7 +650,7 @@ public:
      *                        `row_collection(i,j)
      *                         = input(gather_indices(i), j)`
      *                        It must have the same number of columns as this
-     *                        matrix and `gather_indices->get_num_elems()` rows.
+     *                        matrix and `gather_indices->get_size()` rows.
      */
     void row_gather(const array<int32>* gather_indices,
                     ptr_param<LinOp> row_collection) const;
@@ -700,7 +672,7 @@ public:
      *             gathered rows:
      *             `row_collection(i,j) = input(gather_indices(i), j)`
      *             It must have the same number of columns as this
-     *             matrix and `gather_indices->get_num_elems()` rows.
+     *             matrix and `gather_indices->get_size()` rows.
      */
     void row_gather(ptr_param<const LinOp> alpha,
                     const array<int32>* gather_indices,
@@ -881,7 +853,7 @@ public:
      */
     size_type get_num_stored_elements() const noexcept
     {
-        return values_.get_num_elems();
+        return values_.get_size();
     }
 
     /**
@@ -1258,7 +1230,7 @@ protected:
     {
         if (size[0] > 0 && size[1] > 0) {
             GKO_ENSURE_IN_BOUNDS((size[0] - 1) * stride + size[1] - 1,
-                                 values_.get_num_elems());
+                                 values_.get_size());
         }
     }
 
