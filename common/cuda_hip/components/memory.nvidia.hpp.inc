@@ -55,6 +55,16 @@ __device__ __forceinline__ void membar_acq_rel_shared()
 }
 
 
+__device__ __forceinline__ void membar_acq_rel_local()
+{
+#if __CUDA_ARCH__ < 700
+    asm volatile("membar.cta;" ::: "memory");
+#else
+    asm volatile("fence.acq_rel.cta;" ::: "memory");
+#endif
+}
+
+
 __device__ __forceinline__ int32 load_relaxed_shared(const int32* ptr)
 {
     int32 result;
@@ -338,6 +348,258 @@ __device__ __forceinline__ void store_release_shared(double* ptr, double result)
     asm volatile("st.release.cta.shared.f64 [%0], %1;" ::"r"(
                      convert_generic_ptr_to_smem_ptr(ptr)),
                  "d"(result)
+                 : "memory");
+#endif
+}
+
+
+__device__ __forceinline__ int32 load_relaxed_local(const int32* ptr)
+{
+    int32 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("ld.volatile.s32 %0, [%1];"
+                 : "=r"(result)
+                 : "l"(const_cast<int32*>(ptr))
+                 : "memory");
+#else
+    asm volatile("ld.relaxed.cta.s32 %0, [%1];"
+                 : "=r"(result)
+                 : "l"(const_cast<int32*>(ptr))
+                 : "memory");
+#endif
+
+    return result;
+}
+
+
+__device__ __forceinline__ void store_relaxed_local(int32* ptr, int32 result)
+{
+#if __CUDA_ARCH__ < 700
+    asm volatile("st.volatile.s32 [%0], %1;" ::"l"(ptr), "r"(result)
+                 : "memory");
+#else
+    asm volatile("st.relaxed.cta.s32 [%0], %1;" ::"l"(ptr), "r"(result)
+                 : "memory");
+#endif
+}
+
+
+__device__ __forceinline__ int64 load_relaxed_local(const int64* ptr)
+{
+    int64 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("ld.volatile.s64 %0, [%1];"
+                 : "=l"(result)
+                 : "l"(const_cast<int64*>(ptr))
+                 : "memory");
+#else
+    asm volatile("ld.relaxed.cta.s64 %0, [%1];"
+                 : "=l"(result)
+                 : "l"(const_cast<int64*>(ptr))
+                 : "memory");
+#endif
+
+    return result;
+}
+
+
+__device__ __forceinline__ void store_relaxed_local(int64* ptr, int64 result)
+{
+#if __CUDA_ARCH__ < 700
+    asm volatile("st.volatile.s64 [%0], %1;" ::"l"(ptr), "l"(result)
+                 : "memory");
+#else
+    asm volatile("st.relaxed.cta.s64 [%0], %1;" ::"l"(ptr), "l"(result)
+                 : "memory");
+#endif
+}
+
+
+__device__ __forceinline__ float load_relaxed_local(const float* ptr)
+{
+    float result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("ld.volatile.f32 %0, [%1];"
+                 : "=f"(result)
+                 : "l"(const_cast<float*>(ptr))
+                 : "memory");
+#else
+    asm volatile("ld.relaxed.cta.f32 %0, [%1];"
+                 : "=f"(result)
+                 : "l"(const_cast<float*>(ptr))
+                 : "memory");
+#endif
+
+    return result;
+}
+
+
+__device__ __forceinline__ void store_relaxed_local(float* ptr, float result)
+{
+#if __CUDA_ARCH__ < 700
+    asm volatile("st.volatile.f32 [%0], %1;" ::"l"(ptr), "f"(result)
+                 : "memory");
+#else
+    asm volatile("st.relaxed.cta.f32 [%0], %1;" ::"l"(ptr), "f"(result)
+                 : "memory");
+#endif
+}
+
+
+__device__ __forceinline__ double load_relaxed_local(const double* ptr)
+{
+    double result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("ld.volatile.f64 %0, [%1];"
+                 : "=d"(result)
+                 : "l"(const_cast<double*>(ptr))
+                 : "memory");
+#else
+    asm volatile("ld.relaxed.cta.f64 %0, [%1];"
+                 : "=d"(result)
+                 : "l"(const_cast<double*>(ptr))
+                 : "memory");
+#endif
+
+    return result;
+}
+
+
+__device__ __forceinline__ void store_relaxed_local(double* ptr, double result)
+{
+#if __CUDA_ARCH__ < 700
+    asm volatile("st.volatile.f64 [%0], %1;" ::"l"(ptr), "d"(result)
+                 : "memory");
+#else
+    asm volatile("st.relaxed.cta.f64 [%0], %1;" ::"l"(ptr), "d"(result)
+                 : "memory");
+#endif
+}
+
+
+__device__ __forceinline__ int32 load_acquire_local(const int32* ptr)
+{
+    int32 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("ld.volatile.s32 %0, [%1];"
+                 : "=r"(result)
+                 : "l"(const_cast<int32*>(ptr))
+                 : "memory");
+#else
+    asm volatile("ld.acquire.cta.s32 %0, [%1];"
+                 : "=r"(result)
+                 : "l"(const_cast<int32*>(ptr))
+                 : "memory");
+#endif
+    membar_acq_rel_local();
+    return result;
+}
+
+
+__device__ __forceinline__ void store_release_local(int32* ptr, int32 result)
+{
+    membar_acq_rel_local();
+#if __CUDA_ARCH__ < 700
+    asm volatile("st.volatile.s32 [%0], %1;" ::"l"(ptr), "r"(result)
+                 : "memory");
+#else
+    asm volatile("st.release.cta.s32 [%0], %1;" ::"l"(ptr), "r"(result)
+                 : "memory");
+#endif
+}
+
+
+__device__ __forceinline__ int64 load_acquire_local(const int64* ptr)
+{
+    int64 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("ld.volatile.s64 %0, [%1];"
+                 : "=l"(result)
+                 : "l"(const_cast<int64*>(ptr))
+                 : "memory");
+#else
+    asm volatile("ld.acquire.cta.s64 %0, [%1];"
+                 : "=l"(result)
+                 : "l"(const_cast<int64*>(ptr))
+                 : "memory");
+#endif
+    membar_acq_rel_local();
+    return result;
+}
+
+
+__device__ __forceinline__ void store_release_local(int64* ptr, int64 result)
+{
+    membar_acq_rel_local();
+#if __CUDA_ARCH__ < 700
+    asm volatile("st.volatile.s64 [%0], %1;" ::"l"(ptr), "l"(result)
+                 : "memory");
+#else
+    asm volatile("st.release.cta.s64 [%0], %1;" ::"l"(ptr), "l"(result)
+                 : "memory");
+#endif
+}
+
+
+__device__ __forceinline__ float load_acquire_local(const float* ptr)
+{
+    float result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("ld.volatile.f32 %0, [%1];"
+                 : "=f"(result)
+                 : "l"(const_cast<float*>(ptr))
+                 : "memory");
+#else
+    asm volatile("ld.acquire.cta.f32 %0, [%1];"
+                 : "=f"(result)
+                 : "l"(const_cast<float*>(ptr))
+                 : "memory");
+#endif
+    membar_acq_rel_local();
+    return result;
+}
+
+
+__device__ __forceinline__ void store_release_local(float* ptr, float result)
+{
+    membar_acq_rel_local();
+#if __CUDA_ARCH__ < 700
+    asm volatile("st.volatile.f32 [%0], %1;" ::"l"(ptr), "f"(result)
+                 : "memory");
+#else
+    asm volatile("st.release.cta.f32 [%0], %1;" ::"l"(ptr), "f"(result)
+                 : "memory");
+#endif
+}
+
+
+__device__ __forceinline__ double load_acquire_local(const double* ptr)
+{
+    double result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("ld.volatile.f64 %0, [%1];"
+                 : "=d"(result)
+                 : "l"(const_cast<double*>(ptr))
+                 : "memory");
+#else
+    asm volatile("ld.acquire.cta.f64 %0, [%1];"
+                 : "=d"(result)
+                 : "l"(const_cast<double*>(ptr))
+                 : "memory");
+#endif
+    membar_acq_rel_local();
+    return result;
+}
+
+
+__device__ __forceinline__ void store_release_local(double* ptr, double result)
+{
+    membar_acq_rel_local();
+#if __CUDA_ARCH__ < 700
+    asm volatile("st.volatile.f64 [%0], %1;" ::"l"(ptr), "d"(result)
+                 : "memory");
+#else
+    asm volatile("st.release.cta.f64 [%0], %1;" ::"l"(ptr), "d"(result)
                  : "memory");
 #endif
 }
@@ -677,6 +939,80 @@ __device__ __forceinline__ void store_relaxed_shared(
 }
 
 
+__device__ __forceinline__ thrust::complex<float> load_relaxed_local(
+    const thrust::complex<float>* ptr)
+{
+    float real_result;
+    float imag_result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("ld.volatile.v2.f32 {%0, %1}, [%2];"
+                 : "=f"(real_result), "=f"(imag_result)
+                 : "l"(const_cast<thrust::complex<float>*>(ptr))
+                 : "memory");
+#else
+    asm volatile("ld.relaxed.cta.v2.f32 {%0, %1}, [%2];"
+                 : "=f"(real_result), "=f"(imag_result)
+                 : "l"(const_cast<thrust::complex<float>*>(ptr))
+                 : "memory");
+#endif
+    return thrust::complex<float>{real_result, imag_result};
+}
+
+
+__device__ __forceinline__ void store_relaxed_local(
+    thrust::complex<float>* ptr, thrust::complex<float> result)
+{
+    auto real_result = result.real();
+    auto imag_result = result.imag();
+#if __CUDA_ARCH__ < 700
+    asm volatile("st.volatile.v2.f32 [%0], {%1, %2};" ::"l"(ptr),
+                 "f"(real_result), "f"(imag_result)
+                 : "memory");
+#else
+    asm volatile("st.relaxed.cta.v2.f32 [%0], {%1, %2};" ::"l"(ptr),
+                 "f"(real_result), "f"(imag_result)
+                 : "memory");
+#endif
+}
+
+
+__device__ __forceinline__ thrust::complex<double> load_relaxed_local(
+    const thrust::complex<double>* ptr)
+{
+    double real_result;
+    double imag_result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("ld.volatile.v2.f64 {%0, %1}, [%2];"
+                 : "=d"(real_result), "=d"(imag_result)
+                 : "l"(const_cast<thrust::complex<double>*>(ptr))
+                 : "memory");
+#else
+    asm volatile("ld.relaxed.cta.v2.f64 {%0, %1}, [%2];"
+                 : "=d"(real_result), "=d"(imag_result)
+                 : "l"(const_cast<thrust::complex<double>*>(ptr))
+                 : "memory");
+#endif
+    return thrust::complex<double>{real_result, imag_result};
+}
+
+
+__device__ __forceinline__ void store_relaxed_local(
+    thrust::complex<double>* ptr, thrust::complex<double> result)
+{
+    auto real_result = result.real();
+    auto imag_result = result.imag();
+#if __CUDA_ARCH__ < 700
+    asm volatile("st.volatile.v2.f64 [%0], {%1, %2};" ::"l"(ptr),
+                 "d"(real_result), "d"(imag_result)
+                 : "memory");
+#else
+    asm volatile("st.relaxed.cta.v2.f64 [%0], {%1, %2};" ::"l"(ptr),
+                 "d"(real_result), "d"(imag_result)
+                 : "memory");
+#endif
+}
+
+
 __device__ __forceinline__ thrust::complex<float> load_relaxed(
     const thrust::complex<float>* ptr)
 {
@@ -748,4 +1084,936 @@ __device__ __forceinline__ void store_relaxed(thrust::complex<double>* ptr,
                  "d"(real_result), "d"(imag_result)
                  : "memory");
 #endif
+}
+
+
+__device__ __forceinline__ int32 atomic_cas_relaxed_shared(const int32* ptr,
+                                                           int32 old_value,
+                                                           int32 new_value)
+{
+    int32 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.shared.cas.s32 %0, [%1], %2, %3;"
+                 : "=r"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "r"(old_value),
+                   "r"(new_value)
+                 : "memory");
+#else
+    asm volatile("atom.relaxed.cta.shared.cas.s32 %0, [%1], %2, %3;"
+                 : "=r"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "r"(old_value),
+                   "r"(new_value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int32 atomic_add_relaxed_shared(const int32* ptr,
+                                                           int32 value)
+{
+    int32 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.shared.add.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "r"(value)
+                 : "memory");
+#else
+    asm volatile("atom.relaxed.cta.shared.add.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "r"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int32 atomic_min_relaxed_shared(const int32* ptr,
+                                                           int32 value)
+{
+    int32 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.shared.min.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "r"(value)
+                 : "memory");
+#else
+    asm volatile("atom.relaxed.cta.shared.min.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "r"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int32 atomic_max_relaxed_shared(const int32* ptr,
+                                                           int32 value)
+{
+    int32 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.shared.max.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "r"(value)
+                 : "memory");
+#else
+    asm volatile("atom.relaxed.cta.shared.max.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "r"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int64 atomic_cas_relaxed_shared(const int64* ptr,
+                                                           int64 old_value,
+                                                           int64 new_value)
+{
+    int64 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.shared.cas.s64 %0, [%1], %2, %3;"
+                 : "=l"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "l"(old_value),
+                   "l"(new_value)
+                 : "memory");
+#else
+    asm volatile("atom.relaxed.cta.shared.cas.s64 %0, [%1], %2, %3;"
+                 : "=l"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "l"(old_value),
+                   "l"(new_value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int64 atomic_add_relaxed_shared(const int64* ptr,
+                                                           int64 value)
+{
+    int64 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.shared.add.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "l"(value)
+                 : "memory");
+#else
+    asm volatile("atom.relaxed.cta.shared.add.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "l"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int64 atomic_min_relaxed_shared(const int64* ptr,
+                                                           int64 value)
+{
+    int64 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.shared.min.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "l"(value)
+                 : "memory");
+#else
+    asm volatile("atom.relaxed.cta.shared.min.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "l"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int64 atomic_max_relaxed_shared(const int64* ptr,
+                                                           int64 value)
+{
+    int64 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.shared.max.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "l"(value)
+                 : "memory");
+#else
+    asm volatile("atom.relaxed.cta.shared.max.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "l"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int32 atomic_cas_acqrel_shared(const int32* ptr,
+                                                          int32 old_value,
+                                                          int32 new_value)
+{
+    int32 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.shared.cas.s32 %0, [%1], %2, %3;"
+                 : "=r"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "r"(old_value),
+                   "r"(new_value)
+                 : "memory");
+#else
+    asm volatile("atom.acq_rel.cta.shared.cas.s32 %0, [%1], %2, %3;"
+                 : "=r"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "r"(old_value),
+                   "r"(new_value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int32 atomic_add_acqrel_shared(const int32* ptr,
+                                                          int32 value)
+{
+    int32 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.shared.add.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "r"(value)
+                 : "memory");
+#else
+    asm volatile("atom.acq_rel.cta.shared.add.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "r"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int32 atomic_min_acqrel_shared(const int32* ptr,
+                                                          int32 value)
+{
+    int32 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.shared.min.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "r"(value)
+                 : "memory");
+#else
+    asm volatile("atom.acq_rel.cta.shared.min.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "r"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int32 atomic_max_acqrel_shared(const int32* ptr,
+                                                          int32 value)
+{
+    int32 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.shared.max.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "r"(value)
+                 : "memory");
+#else
+    asm volatile("atom.acq_rel.cta.shared.max.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "r"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int64 atomic_cas_acqrel_shared(const int64* ptr,
+                                                          int64 old_value,
+                                                          int64 new_value)
+{
+    int64 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.shared.cas.s64 %0, [%1], %2, %3;"
+                 : "=l"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "l"(old_value),
+                   "l"(new_value)
+                 : "memory");
+#else
+    asm volatile("atom.acq_rel.cta.shared.cas.s64 %0, [%1], %2, %3;"
+                 : "=l"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "l"(old_value),
+                   "l"(new_value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int64 atomic_add_acqrel_shared(const int64* ptr,
+                                                          int64 value)
+{
+    int64 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.shared.add.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "l"(value)
+                 : "memory");
+#else
+    asm volatile("atom.acq_rel.cta.shared.add.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "l"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int64 atomic_min_acqrel_shared(const int64* ptr,
+                                                          int64 value)
+{
+    int64 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.shared.min.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "l"(value)
+                 : "memory");
+#else
+    asm volatile("atom.acq_rel.cta.shared.min.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "l"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int64 atomic_max_acqrel_shared(const int64* ptr,
+                                                          int64 value)
+{
+    int64 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.shared.max.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "l"(value)
+                 : "memory");
+#else
+    asm volatile("atom.acq_rel.cta.shared.max.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "l"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int32 atomic_cas_relaxed_local(const int32* ptr,
+                                                          int32 old_value,
+                                                          int32 new_value)
+{
+    int32 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.cas.s32 %0, [%1], %2, %3;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(old_value), "r"(new_value)
+                 : "memory");
+#else
+    asm volatile("atom.relaxed.cta.cas.s32 %0, [%1], %2, %3;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(old_value), "r"(new_value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int32 atomic_add_relaxed_local(const int32* ptr,
+                                                          int32 value)
+{
+    int32 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.add.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(value)
+                 : "memory");
+#else
+    asm volatile("atom.relaxed.cta.add.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int32 atomic_min_relaxed_local(const int32* ptr,
+                                                          int32 value)
+{
+    int32 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.min.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(value)
+                 : "memory");
+#else
+    asm volatile("atom.relaxed.cta.min.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int32 atomic_max_relaxed_local(const int32* ptr,
+                                                          int32 value)
+{
+    int32 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.max.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(value)
+                 : "memory");
+#else
+    asm volatile("atom.relaxed.cta.max.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int64 atomic_cas_relaxed_local(const int64* ptr,
+                                                          int64 old_value,
+                                                          int64 new_value)
+{
+    int64 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.cas.s64 %0, [%1], %2, %3;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(old_value), "l"(new_value)
+                 : "memory");
+#else
+    asm volatile("atom.relaxed.cta.cas.s64 %0, [%1], %2, %3;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(old_value), "l"(new_value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int64 atomic_add_relaxed_local(const int64* ptr,
+                                                          int64 value)
+{
+    int64 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.add.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(value)
+                 : "memory");
+#else
+    asm volatile("atom.relaxed.cta.add.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int64 atomic_min_relaxed_local(const int64* ptr,
+                                                          int64 value)
+{
+    int64 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.min.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(value)
+                 : "memory");
+#else
+    asm volatile("atom.relaxed.cta.min.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int64 atomic_max_relaxed_local(const int64* ptr,
+                                                          int64 value)
+{
+    int64 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.max.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(value)
+                 : "memory");
+#else
+    asm volatile("atom.relaxed.cta.max.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int32 atomic_cas_acqrel_local(const int32* ptr,
+                                                         int32 old_value,
+                                                         int32 new_value)
+{
+    int32 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.cas.s32 %0, [%1], %2, %3;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(old_value), "r"(new_value)
+                 : "memory");
+#else
+    asm volatile("atom.acq_rel.cta.cas.s32 %0, [%1], %2, %3;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(old_value), "r"(new_value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int32 atomic_add_acqrel_local(const int32* ptr,
+                                                         int32 value)
+{
+    int32 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.add.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(value)
+                 : "memory");
+#else
+    asm volatile("atom.acq_rel.cta.add.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int32 atomic_min_acqrel_local(const int32* ptr,
+                                                         int32 value)
+{
+    int32 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.min.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(value)
+                 : "memory");
+#else
+    asm volatile("atom.acq_rel.cta.min.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int32 atomic_max_acqrel_local(const int32* ptr,
+                                                         int32 value)
+{
+    int32 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.max.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(value)
+                 : "memory");
+#else
+    asm volatile("atom.acq_rel.cta.max.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int64 atomic_cas_acqrel_local(const int64* ptr,
+                                                         int64 old_value,
+                                                         int64 new_value)
+{
+    int64 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.cas.s64 %0, [%1], %2, %3;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(old_value), "l"(new_value)
+                 : "memory");
+#else
+    asm volatile("atom.acq_rel.cta.cas.s64 %0, [%1], %2, %3;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(old_value), "l"(new_value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int64 atomic_add_acqrel_local(const int64* ptr,
+                                                         int64 value)
+{
+    int64 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.add.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(value)
+                 : "memory");
+#else
+    asm volatile("atom.acq_rel.cta.add.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int64 atomic_min_acqrel_local(const int64* ptr,
+                                                         int64 value)
+{
+    int64 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.min.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(value)
+                 : "memory");
+#else
+    asm volatile("atom.acq_rel.cta.min.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int64 atomic_max_acqrel_local(const int64* ptr,
+                                                         int64 value)
+{
+    int64 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.max.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(value)
+                 : "memory");
+#else
+    asm volatile("atom.acq_rel.cta.max.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int32 atomic_cas_relaxed(const int32* ptr,
+                                                    int32 old_value,
+                                                    int32 new_value)
+{
+    int32 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.cas.s32 %0, [%1], %2, %3;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(old_value), "r"(new_value)
+                 : "memory");
+#else
+    asm volatile("atom.relaxed.gpu.cas.s32 %0, [%1], %2, %3;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(old_value), "r"(new_value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int32 atomic_add_relaxed(const int32* ptr,
+                                                    int32 value)
+{
+    int32 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.add.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(value)
+                 : "memory");
+#else
+    asm volatile("atom.relaxed.gpu.add.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int32 atomic_min_relaxed(const int32* ptr,
+                                                    int32 value)
+{
+    int32 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.min.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(value)
+                 : "memory");
+#else
+    asm volatile("atom.relaxed.gpu.min.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int32 atomic_max_relaxed(const int32* ptr,
+                                                    int32 value)
+{
+    int32 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.max.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(value)
+                 : "memory");
+#else
+    asm volatile("atom.relaxed.gpu.max.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int64 atomic_cas_relaxed(const int64* ptr,
+                                                    int64 old_value,
+                                                    int64 new_value)
+{
+    int64 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.cas.s64 %0, [%1], %2, %3;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(old_value), "l"(new_value)
+                 : "memory");
+#else
+    asm volatile("atom.relaxed.gpu.cas.s64 %0, [%1], %2, %3;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(old_value), "l"(new_value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int64 atomic_add_relaxed(const int64* ptr,
+                                                    int64 value)
+{
+    int64 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.add.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(value)
+                 : "memory");
+#else
+    asm volatile("atom.relaxed.gpu.add.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int64 atomic_min_relaxed(const int64* ptr,
+                                                    int64 value)
+{
+    int64 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.min.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(value)
+                 : "memory");
+#else
+    asm volatile("atom.relaxed.gpu.min.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int64 atomic_max_relaxed(const int64* ptr,
+                                                    int64 value)
+{
+    int64 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.max.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(value)
+                 : "memory");
+#else
+    asm volatile("atom.relaxed.gpu.max.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int32 atomic_cas_acqrel(const int32* ptr,
+                                                   int32 old_value,
+                                                   int32 new_value)
+{
+    int32 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.cas.s32 %0, [%1], %2, %3;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(old_value), "r"(new_value)
+                 : "memory");
+#else
+    asm volatile("atom.acq_rel.gpu.cas.s32 %0, [%1], %2, %3;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(old_value), "r"(new_value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int32 atomic_add_acqrel(const int32* ptr,
+                                                   int32 value)
+{
+    int32 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.add.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(value)
+                 : "memory");
+#else
+    asm volatile("atom.acq_rel.gpu.add.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int32 atomic_min_acqrel(const int32* ptr,
+                                                   int32 value)
+{
+    int32 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.min.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(value)
+                 : "memory");
+#else
+    asm volatile("atom.acq_rel.gpu.min.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int32 atomic_max_acqrel(const int32* ptr,
+                                                   int32 value)
+{
+    int32 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.max.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(value)
+                 : "memory");
+#else
+    asm volatile("atom.acq_rel.gpu.max.s32 %0, [%1], %2;"
+                 : "=r"(result)
+                 : "l"(ptr), "r"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int64 atomic_cas_acqrel(const int64* ptr,
+                                                   int64 old_value,
+                                                   int64 new_value)
+{
+    int64 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.cas.s64 %0, [%1], %2, %3;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(old_value), "l"(new_value)
+                 : "memory");
+#else
+    asm volatile("atom.acq_rel.gpu.cas.s64 %0, [%1], %2, %3;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(old_value), "l"(new_value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int64 atomic_add_acqrel(const int64* ptr,
+                                                   int64 value)
+{
+    int64 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.add.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(value)
+                 : "memory");
+#else
+    asm volatile("atom.acq_rel.gpu.add.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int64 atomic_min_acqrel(const int64* ptr,
+                                                   int64 value)
+{
+    int64 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.min.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(value)
+                 : "memory");
+#else
+    asm volatile("atom.acq_rel.gpu.min.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(value)
+                 : "memory");
+#endif
+    return result;
+}
+
+
+__device__ __forceinline__ int64 atomic_max_acqrel(const int64* ptr,
+                                                   int64 value)
+{
+    int64 result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile.max.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(value)
+                 : "memory");
+#else
+    asm volatile("atom.acq_rel.gpu.max.s64 %0, [%1], %2;"
+                 : "=l"(result)
+                 : "l"(ptr), "l"(value)
+                 : "memory");
+#endif
+    return result;
 }

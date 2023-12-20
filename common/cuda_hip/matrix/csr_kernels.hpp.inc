@@ -1202,7 +1202,8 @@ __global__ __launch_bounds__(default_block_size) void build_csr_lookup(
         }
 #else
         if (i < row_len) {
-            while (atomicCAS(local_storage + hash, empty, i) != empty) {
+            while (atomic_cas_relaxed_local(local_storage + hash, empty, i) !=
+                   empty) {
                 hash++;
                 if (hash >= available_storage) {
                     hash = 0;
