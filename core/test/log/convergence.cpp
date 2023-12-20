@@ -57,6 +57,9 @@ TYPED_TEST(Convergence, CanGetEmptyData)
     ASSERT_EQ(logger->get_residual(), nullptr);
     ASSERT_EQ(logger->get_residual_norm(), nullptr);
     ASSERT_EQ(logger->get_implicit_sq_resnorm(), nullptr);
+    ASSERT_TRUE(logger->get_residual_history().empty());
+    ASSERT_TRUE(logger->get_residual_norm_history().empty());
+    ASSERT_TRUE(logger->get_implicit_sq_resnorm_history().empty());
 }
 
 
@@ -96,6 +99,10 @@ TYPED_TEST(Convergence, DoesNotLogIfNotStopped)
     ASSERT_EQ(logger->get_num_iterations(), 0);
     ASSERT_EQ(logger->get_residual(), nullptr);
     ASSERT_EQ(logger->get_residual_norm(), nullptr);
+    ASSERT_EQ(logger->get_implicit_sq_resnorm(), nullptr);
+    ASSERT_TRUE(logger->get_residual_history().empty());
+    ASSERT_TRUE(logger->get_residual_norm_history().empty());
+    ASSERT_TRUE(logger->get_implicit_sq_resnorm_history().empty());
 }
 
 
@@ -124,6 +131,91 @@ TYPED_TEST(Convergence, CanComputeResidualNormFromSolution)
 
     GKO_ASSERT_MTX_NEAR(gko::as<AbsoluteDense>(logger->get_residual_norm()),
                         this->residual_norm, r<TypeParam>::value);
+}
+
+
+TYPED_TEST(Convergence, CanLogDataWithNormHistory)
+{
+    using AbsoluteDense = gko::matrix::Dense<gko::remove_complex<TypeParam>>;
+    auto logger = gko::log::Convergence<TypeParam>::create(
+        gko::convergence_history::norm);
+
+    logger->template on<gko::log::Logger::iteration_complete>(
+        this->system.get(), nullptr, nullptr, 100, nullptr,
+        this->residual_norm.get(), this->implicit_sq_resnorm.get(), nullptr,
+        false);
+    logger->template on<gko::log::Logger::iteration_complete>(
+        this->system.get(), nullptr, nullptr, 101, nullptr,
+        this->residual_norm.get(), this->implicit_sq_resnorm.get(),
+        &this->status, true);
+
+    ASSERT_EQ(logger->get_residual_history().size(), 0);
+    ASSERT_EQ(logger->get_residual_norm_history().size(), 2);
+    ASSERT_EQ(logger->get_implicit_sq_resnorm_history().size(), 2);
+    for (int i : {0, 1}) {
+        GKO_ASSERT_MTX_NEAR(
+            gko::as<AbsoluteDense>(logger->get_residual_norm_history()[i]),
+            this->residual_norm, 0);
+        GKO_ASSERT_MTX_NEAR(gko::as<AbsoluteDense>(
+                                logger->get_implicit_sq_resnorm_history()[i]),
+                            this->implicit_sq_resnorm, 0);
+    }
+}
+
+
+TYPED_TEST(Convergence, CanLogDataWithFullHistory)
+{
+    using Dense = gko::matrix::Dense<TypeParam>;
+    using AbsoluteDense = gko::matrix::Dense<gko::remove_complex<TypeParam>>;
+    auto logger = gko::log::Convergence<TypeParam>::create(
+        gko::convergence_history::full);
+
+    logger->template on<gko::log::Logger::iteration_complete>(
+        this->system.get(), nullptr, nullptr, 100, this->residual.get(),
+        this->residual_norm.get(), this->implicit_sq_resnorm.get(), nullptr,
+        false);
+    logger->template on<gko::log::Logger::iteration_complete>(
+        this->system.get(), nullptr, nullptr, 101, this->residual.get(),
+        this->residual_norm.get(), this->implicit_sq_resnorm.get(),
+        &this->status, true);
+
+    ASSERT_EQ(logger->get_residual_history().size(), 2);
+    ASSERT_EQ(logger->get_residual_norm_history().size(), 2);
+    ASSERT_EQ(logger->get_implicit_sq_resnorm_history().size(), 2);
+    for (int i : {0, 1}) {
+        GKO_ASSERT_MTX_NEAR(gko::as<Dense>(logger->get_residual_history()[i]),
+                            this->residual, 0);
+        GKO_ASSERT_MTX_NEAR(
+            gko::as<AbsoluteDense>(logger->get_residual_norm_history()[i]),
+            this->residual_norm, 0);
+        GKO_ASSERT_MTX_NEAR(gko::as<AbsoluteDense>(
+                                logger->get_implicit_sq_resnorm_history()[i]),
+                            this->implicit_sq_resnorm, 0);
+    }
+}
+
+
+TYPED_TEST(Convergence, CanClearHistory)
+{
+    auto logger = gko::log::Convergence<TypeParam>::create(
+        gko::convergence_history::full);
+
+    logger->template on<gko::log::Logger::iteration_complete>(
+        this->system.get(), nullptr, nullptr, 100, this->residual.get(),
+        this->residual_norm.get(), this->implicit_sq_resnorm.get(), nullptr,
+        false);
+    logger->template on<gko::log::Logger::iteration_complete>(
+        this->system.get(), nullptr, nullptr, 101, this->residual.get(),
+        this->residual_norm.get(), this->implicit_sq_resnorm.get(),
+        &this->status, true);
+    logger->template on<gko::log::Logger::iteration_complete>(
+        this->system.get(), nullptr, nullptr, 0, this->residual.get(),
+        this->residual_norm.get(), this->implicit_sq_resnorm.get(), nullptr,
+        false);
+
+    ASSERT_EQ(logger->get_residual_history().size(), 1);
+    ASSERT_EQ(logger->get_residual_norm_history().size(), 1);
+    ASSERT_EQ(logger->get_implicit_sq_resnorm_history().size(), 1);
 }
 
 
