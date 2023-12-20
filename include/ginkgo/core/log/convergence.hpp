@@ -15,6 +15,15 @@
 
 
 namespace gko {
+
+
+enum class convergence_history {
+    none,  //!< keep no history
+    norm,  //!< keep history of vector norms
+    full   //!< keep history of vector norms and vectors
+};
+
+
 /**
  * @brief The logger namespace .
  * @ref log
@@ -64,7 +73,6 @@ public:
      * Creates a convergence logger. This dynamically allocates the memory,
      * constructs the object and returns an std::unique_ptr to this object.
      *
-     * @param exec  the executor
      * @param enabled_events  the events enabled for this logger. By default all
      *                        events.
      *
@@ -77,16 +85,17 @@ public:
     GKO_DEPRECATED("use single-parameter create")
     static std::unique_ptr<Convergence> create(
         std::shared_ptr<const Executor>,
-        const mask_type& enabled_events = Logger::criterion_events_mask |
-                                          Logger::iteration_complete_mask)
+        const mask_type& enabled_events = criterion_events_mask |
+                                          iteration_complete_mask)
     {
-        return std::unique_ptr<Convergence>(new Convergence(enabled_events));
+        return create(enabled_events);
     }
 
     /**
      * Creates a convergence logger. This dynamically allocates the memory,
      * constructs the object and returns an std::unique_ptr to this object.
      *
+     * @param history  decide how the convergence history should be handled
      * @param enabled_events  the events enabled for this logger. By default all
      *                        events.
      *
@@ -97,10 +106,34 @@ public:
      * shouldn't be a problem.
      */
     static std::unique_ptr<Convergence> create(
-        const mask_type& enabled_events = Logger::criterion_events_mask |
-                                          Logger::iteration_complete_mask)
+        convergence_history history = convergence_history::none,
+        const mask_type& enabled_events = criterion_events_mask |
+                                          iteration_complete_mask)
     {
-        return std::unique_ptr<Convergence>(new Convergence(enabled_events));
+        return std::unique_ptr<Convergence>(
+            new Convergence(history, enabled_events));
+    }
+
+    /**
+     * Creates a convergence logger. This dynamically allocates the memory,
+     * constructs the object and returns an std::unique_ptr to this object.
+     *
+     * @param enabled_events  the events enabled for this logger. By default all
+     *                        events.
+     *
+     * @note No history will be kept. Only the vectors and norms of the final
+     *       iteration are accessible.
+     *
+     * @return an std::unique_ptr to the the constructed object
+     *
+     * @internal here I cannot use EnableCreateMethod due to complex circular
+     * dependencies. At the same time, this method is short enough that it
+     * shouldn't be a problem.
+     */
+    static std::unique_ptr<Convergence> create(const mask_type& enabled_events)
+    {
+        return std::unique_ptr<Convergence>(
+            new Convergence(convergence_history::none, enabled_events));
     }
 
     /**
@@ -113,7 +146,7 @@ public:
     /**
      * Resets the convergence status to false.
      */
-    void reset_convergence_status() { this->convergence_status_ = false; }
+    void reset_convergence_status() { convergence_status_ = false; }
 
     /**
      * Returns the number of iterations
@@ -126,66 +159,107 @@ public:
     }
 
     /**
-     * Returns the residual
+     * Returns the residual of the final iteration.
      *
      * @return the residual
      */
-    const LinOp* get_residual() const noexcept { return residual_.get(); }
+    const LinOp* get_residual() const noexcept
+    {
+        return residual_.back().get();
+    }
 
     /**
-     * Returns the residual norm
+     * Returns the full history of the residuals.
+     *
+     * This will only have a length > 1 if convergence_history::full was set.
+     *
+     * @return  the residual history
+     */
+    const std::vector<std::unique_ptr<LinOp>>& get_residual_history()
+        const noexcept
+    {
+        return residual_;
+    }
+
+    /**
+     * Returns the residual norm of the final iteration.
      *
      * @return the residual norm
      */
     const LinOp* get_residual_norm() const noexcept
     {
-        return residual_norm_.get();
+        return residual_norm_.back().get();
     }
 
     /**
-     * Returns the implicit squared residual norm
+     *
+     * Returns the full history of the residual norms.
+     *
+     * This will only have a length > 1 if convergence_history::norm or
+     * convergence_history::full was set.
+     *
+     * @return  the residual norm history
+     */
+    const std::vector<std::unique_ptr<LinOp>>& get_residual_norm_history()
+        const noexcept
+    {
+        return residual_norm_;
+    }
+
+    /**
+     * Returns the implicit squared residual norm of the final iteration.
      *
      * @return the implicit squared residual norm
      */
     const LinOp* get_implicit_sq_resnorm() const noexcept
     {
-        return implicit_sq_resnorm_.get();
+        return implicit_sq_resnorm_.back().get();
     }
+
+    /**
+     *
+     * Returns the full history of the implicit squared residual norm.
+     *
+     * This will only have a length > 1 if convergence_history::norm or
+     * convergence_history::full was set.
+     *
+     * @return  the implicit squared residual norm history
+     */
+    const std::vector<std::unique_ptr<LinOp>>& get_implicit_sq_resnorm_history()
+        const noexcept
+    {
+        return implicit_sq_resnorm_;
+    }
+
+    /**
+     * Clears the stored history.
+     *
+     * After this, the histories will have length 1, and the only element
+     * will be a nullptr.
+     */
+    void clear_history() const;
 
 protected:
     /**
      * Creates a Convergence logger.
      *
-     * @param exec  the executor
+     * @param history  decide how the convergence history should be handled
      * @param enabled_events  the events enabled for this logger. By default all
      *                        events.
      */
-    GKO_DEPRECATED("use single-parameter constructor")
-    explicit Convergence(
-        std::shared_ptr<const gko::Executor>,
-        const mask_type& enabled_events = Logger::criterion_events_mask |
-                                          Logger::iteration_complete_mask)
-        : Logger(enabled_events)
-    {}
-
-    /**
-     * Creates a Convergence logger.
-     *
-     * @param enabled_events  the events enabled for this logger. By default all
-     *                        events.
-     */
-    explicit Convergence(
-        const mask_type& enabled_events = Logger::criterion_events_mask |
-                                          Logger::iteration_complete_mask)
-        : Logger(enabled_events)
+    explicit Convergence(convergence_history history,
+                         const mask_type& enabled_events =
+                             criterion_events_mask | iteration_complete_mask)
+        : Logger(enabled_events), history_(history)
     {}
 
 private:
+    convergence_history history_;
     mutable bool convergence_status_{false};
     mutable size_type num_iterations_{};
-    mutable std::unique_ptr<LinOp> residual_{};
-    mutable std::unique_ptr<LinOp> residual_norm_{};
-    mutable std::unique_ptr<LinOp> implicit_sq_resnorm_{};
+    mutable std::vector<std::unique_ptr<LinOp>> residual_{nullptr};
+    mutable std::vector<std::unique_ptr<LinOp>> residual_norm_{nullptr};
+    mutable std::vector<std::unique_ptr<LinOp>> implicit_sq_resnorm_{nullptr};
 };
 
 

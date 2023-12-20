@@ -57,57 +57,81 @@ void Convergence<ValueType>::on_iteration_complete(
     const LinOp* residual_norm, const LinOp* implicit_resnorm_sq,
     const array<stopping_status>* status, const bool stopped) const
 {
+    auto update_history = [&](auto& container, auto&& new_val, bool is_norm) {
+        if (history_ == convergence_history::none && stopped) {
+            container.back().reset(std::move(new_val));
+            return;
+        }
+        if (is_norm || history_ == convergence_history::full) {
+            container.emplace_back(std::move(new_val));
+        }
+    };
     if (stopped) {
         array<stopping_status> tmp(status->get_executor()->get_master(),
                                    *status);
-        this->convergence_status_ = true;
+        convergence_status_ = true;
         for (int i = 0; i < status->get_size(); i++) {
             if (!tmp.get_data()[i].has_converged()) {
-                this->convergence_status_ = false;
+                convergence_status_ = false;
                 break;
             }
         }
-        this->num_iterations_ = num_iterations;
-        if (residual != nullptr) {
-            this->residual_.reset(residual->clone().release());
-        }
-        if (implicit_resnorm_sq != nullptr) {
-            this->implicit_sq_resnorm_.reset(
-                implicit_resnorm_sq->clone().release());
-        }
-        if (residual_norm != nullptr) {
-            this->residual_norm_.reset(residual_norm->clone().release());
-        } else if (residual != nullptr) {
-            using NormVector = matrix::Dense<remove_complex<ValueType>>;
-            detail::vector_dispatch<ValueType>(
-                residual, [&](const auto* dense_r) {
-                    this->residual_norm_ =
-                        NormVector::create(residual->get_executor(),
-                                           dim<2>{1, residual->get_size()[1]});
-                    dense_r->compute_norm2(this->residual_norm_);
-                });
-        } else if (dynamic_cast<const solver::detail::SolverBaseLinOp*>(
-                       solver) &&
-                   b != nullptr && x != nullptr) {
-            auto system_mtx =
-                dynamic_cast<const solver::detail::SolverBaseLinOp*>(solver)
-                    ->get_system_matrix();
-            using Vector = matrix::Dense<ValueType>;
-            using NormVector = matrix::Dense<remove_complex<ValueType>>;
-            detail::vector_dispatch<ValueType>(b, [&](const auto* dense_b) {
-                detail::vector_dispatch<ValueType>(x, [&](const auto* dense_x) {
-                    auto exec = system_mtx->get_executor();
-                    auto residual = dense_b->clone();
-                    this->residual_norm_ = NormVector::create(
-                        exec, dim<2>{1, residual->get_size()[1]});
-                    system_mtx->apply(initialize<Vector>({-1.0}, exec), dense_x,
-                                      initialize<Vector>({1.0}, exec),
-                                      residual);
-                    residual->compute_norm2(this->residual_norm_);
-                });
-            });
-        }
+        num_iterations_ = num_iterations;
     }
+    if (residual != nullptr) {
+        update_history(residual_, residual->clone(), false);
+    }
+    if (implicit_resnorm_sq != nullptr) {
+        update_history(implicit_sq_resnorm_, implicit_resnorm_sq->clone(),
+                       true);
+    }
+    if (residual_norm != nullptr) {
+        update_history(residual_norm_, residual_norm->clone(), true);
+    } else if (residual != nullptr) {
+        using NormVector = matrix::Dense<remove_complex<ValueType>>;
+        detail::vector_dispatch<ValueType>(residual, [&](const auto* dense_r) {
+            update_history(
+                residual_norm_,
+                NormVector::create(residual->get_executor(),
+                                   dim<2>{1, residual->get_size()[1]}),
+                true);
+            dense_r->compute_norm2(residual_norm_.back());
+        });
+    } else if (dynamic_cast<const solver::detail::SolverBaseLinOp*>(solver) &&
+               b != nullptr && x != nullptr) {
+        auto system_mtx =
+            dynamic_cast<const solver::detail::SolverBaseLinOp*>(solver)
+                ->get_system_matrix();
+        using Vector = matrix::Dense<ValueType>;
+        using NormVector = matrix::Dense<remove_complex<ValueType>>;
+        detail::vector_dispatch<ValueType>(b, [&](const auto* dense_b) {
+            detail::vector_dispatch<ValueType>(x, [&](const auto* dense_x) {
+                auto exec = system_mtx->get_executor();
+                update_history(residual_, dense_b->clone(), false);
+                system_mtx->apply(initialize<Vector>({-1.0}, exec), dense_x,
+                                  initialize<Vector>({1.0}, exec),
+                                  residual_.back());
+                update_history(
+                    residual_norm_,
+                    NormVector::create(
+                        exec, dim<2>{1, residual_.back()->get_size()[1]}),
+                    true);
+                detail::vector_dispatch<ValueType>(
+                    residual_.back(), [&](const auto* actual_residual) {
+                        actual_residual->compute_norm2(residual_norm_.back());
+                    });
+            });
+        });
+    }
+}
+
+
+template <typename ValueType>
+void Convergence<ValueType>::clear_history() const
+{
+    residual_ = {nullptr};
+    residual_norm_ = {nullptr};
+    implicit_sq_resnorm_ = {nullptr};
 }
 
 

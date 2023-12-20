@@ -131,4 +131,31 @@ TYPED_TEST(Convergence, CanComputeResidualNormFromSolution)
 }
 
 
+TYPED_TEST(Convergence, CanLogDataWithNormHistory)
+{
+    using Dense = gko::matrix::Dense<TypeParam>;
+    using AbsoluteDense = gko::matrix::Dense<gko::remove_complex<TypeParam>>;
+    auto logger = gko::log::Convergence<TypeParam>::create(
+        gko::convergence_history::norm);
+
+    logger->template on<gko::log::Logger::iteration_complete>(
+        this->system.get(), nullptr, nullptr, 100, nullptr,
+        this->residual_norm.get(), this->implicit_sq_resnorm.get(), nullptr,
+        false);
+    logger->template on<gko::log::Logger::iteration_complete>(
+        this->system.get(), nullptr, nullptr, 101, nullptr,
+        this->residual_norm.get(), this->implicit_sq_resnorm.get(), nullptr,
+        false);
+
+    ASSERT_EQ(logger->get_residual_history.size(), 1);
+    ASSERT_EQ(logger->get_residual_norm_history.size(), 2);
+    ASSERT_EQ(logger->get_implicit_sq_resnorm_history.size(), 2);
+    GKO_ASSERT_MTX_NEAR(gko::as<AbsoluteDense>(logger->get_residual_norm()),
+                        this->residual_norm, 0);
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<AbsoluteDense>(logger->get_implicit_sq_resnorm()),
+        this->implicit_sq_resnorm, 0);
+}
+
+
 }  // namespace
