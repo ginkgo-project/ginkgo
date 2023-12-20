@@ -31,7 +31,6 @@ class Rcm : public CommonTestFixture {
 protected:
     using v_type = double;
     using i_type = int;
-    using Mtx = gko::matrix::Dense<v_type>;
     using CsrMtx = gko::matrix::Csr<v_type, i_type>;
     using reorder_type = gko::reorder::Rcm<v_type, i_type>;
     using new_reorder_type = gko::experimental::reorder::Rcm<i_type>;
@@ -81,7 +80,7 @@ protected:
     }
 
     static void check_valid_start_node(std::shared_ptr<CsrMtx> mtx,
-                                       const i_type* permutation, i_type start,
+                                       i_type start,
                                        std::vector<bool>& already_visited,
                                        gko::reorder::starting_strategy strategy)
     {
@@ -125,7 +124,7 @@ protected:
                 if (reference_current_levels[i] > current_height) {
                     reference_contenders.clear();
                 }
-                reference_contenders.push_back(i);
+                reference_contenders.push_back(static_cast<i_type>(i));
                 current_height = reference_current_levels[i];
             }
         }
@@ -180,7 +179,7 @@ protected:
             ASSERT_GE(perm[i], 0) << i;
             ASSERT_LT(perm[i], n) << i;
             ASSERT_EQ(inv_perm[perm[i]], gko::invalid_index<i_type>()) << i;
-            inv_perm[perm[i]] = i;
+            inv_perm[perm[i]] = static_cast<i_type>(i);
         }
 
         // Now check for cm ordering.
@@ -189,8 +188,8 @@ protected:
         std::vector<bool> already_visited(n);
         while (base_offset != n) {
             // Assert valid start node.
-            check_valid_start_node(mtx, permutation, perm[base_offset],
-                                   already_visited, strategy);
+            check_valid_start_node(mtx, perm[base_offset], already_visited,
+                                   strategy);
 
             // Assert valid level structure.
             // Also update base_offset and mark as visited while at it.
