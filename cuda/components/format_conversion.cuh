@@ -75,7 +75,7 @@ __host__ size_type calculate_nwarps(std::shared_ptr<const CudaExecutor> exec,
                                     const size_type nnz)
 {
     size_type warps_per_sm =
-        exec->get_num_warps_per_sm() * config::warp_size / subwarp_size;
+        exec->get_num_warps_per_sm() * exec->get_warp_size() / subwarp_size;
     size_type nwarps_in_cuda = exec->get_num_multiprocessor() * warps_per_sm;
     size_type multiple = 8;
     if (nnz >= 2e8) {
@@ -93,7 +93,7 @@ __host__ size_type calculate_nwarps(std::shared_ptr<const CudaExecutor> exec,
     }
 #endif  // GINKGO_BENCHMARK_ENABLE_TUNING
     return std::min(multiple * nwarps_in_cuda,
-                    size_type(ceildiv(nnz, config::warp_size)));
+                    size_type(ceildiv(nnz, exec->get_warp_size())));
 }
 
 

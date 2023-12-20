@@ -274,7 +274,7 @@ void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
                    const matrix::Fbcsr<ValueType, IndexType>* source,
                    matrix::Dense<ValueType>* result)
 {
-    constexpr auto warps_per_block = default_block_size / config::warp_size;
+    constexpr auto warps_per_block = default_block_size / exec->get_warp_size();
     const auto num_blocks =
         ceildiv(source->get_num_block_rows(), warps_per_block);
     if (num_blocks > 0) {
@@ -293,7 +293,7 @@ void convert_to_csr(const std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Fbcsr<ValueType, IndexType>* const source,
                     matrix::Csr<ValueType, IndexType>* const result)
 {
-    constexpr auto warps_per_block = default_block_size / config::warp_size;
+    constexpr auto warps_per_block = default_block_size / exec->get_warp_size();
     const auto num_blocks =
         ceildiv(source->get_num_block_rows(), warps_per_block);
     if (num_blocks > 0) {

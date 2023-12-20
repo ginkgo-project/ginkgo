@@ -130,7 +130,7 @@ TEST_F(Merging, MergeStep)
 {
     for (int i = 0; i < rng_runs; ++i) {
         init_data(i);
-        test_merge_step<<<1, config::warp_size, 0, exec->get_stream()>>>(
+        test_merge_step<<<1, exec->get_warp_size(), 0, exec->get_stream()>>>(
             ddata1.get_const_data(), ddata2.get_const_data(),
             doutdata.get_data());
 
@@ -158,7 +158,7 @@ TEST_F(Merging, FullMerge)
     for (int i = 0; i < rng_runs; ++i) {
         init_data(i);
         for (auto size : sizes) {
-            test_merge<<<1, config::warp_size, 0, exec->get_stream()>>>(
+            test_merge<<<1, exec->get_warp_size(), 0, exec->get_stream()>>>(
                 ddata1.get_const_data(), ddata2.get_const_data(), size,
                 doutdata.get_data());
 
@@ -229,7 +229,8 @@ TEST_F(Merging, FullMergeIdxs)
     for (int i = 0; i < rng_runs; ++i) {
         init_data(i);
         for (auto size : sizes) {
-            test_merge_idxs<<<1, config::warp_size, 0, exec->get_stream()>>>(
+            test_merge_idxs<<<1, exec->get_warp_size(), 0,
+                              exec->get_stream()>>>(
                 ddata1.get_const_data(), ddata2.get_const_data(), size,
                 doutdata.get_data(), didxs1.get_data(), didxs2.get_data(),
                 didxs3.get_data(), drefidxs1.get_data(), drefidxs2.get_data(),

@@ -97,7 +97,7 @@ void symbolic_count(std::shared_ptr<const DefaultExecutor> exec,
     // count nonzeros per row of L
     {
         const auto num_blocks =
-            ceildiv(num_rows, default_block_size / config::warp_size);
+            ceildiv(num_rows, default_block_size / exec->get_warp_size());
         kernel::symbolic_count<config::warp_size>
             <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
                 num_rows, row_ptrs, lower_ends, inv_postorder, postorder_cols,

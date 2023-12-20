@@ -46,7 +46,7 @@ void apply_to_csr(std::shared_ptr<const DefaultExecutor> exec,
     const auto csr_row_ptrs = c->get_const_row_ptrs();
 
     const auto grid_dim =
-        ceildiv(num_rows * config::warp_size, default_block_size);
+        ceildiv(num_rows * exec->get_warp_size(), default_block_size);
     if (grid_dim > 0) {
         kernel::apply_to_csr<<<grid_dim, default_block_size, 0,
                                exec->get_stream()>>>(

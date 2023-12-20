@@ -60,7 +60,7 @@ int get_num_threads_per_block(std::shared_ptr<const DefaultExecutor> exec,
                               const int num_rows)
 {
     int num_warps = std::max(num_rows / 4, 2);
-    constexpr int warp_sz = static_cast<int>(config::warp_size);
+    const auto warp_sz = exec->get_warp_size();
     const int min_block_size = 2 * warp_sz;
     const int device_max_threads =
         ((std::max(num_rows, min_block_size)) / warp_sz) * warp_sz;
@@ -155,7 +155,7 @@ public:
             get_num_threads_per_block<StopType, PrecType, LogType,
                                       BatchMatrixType, value_type>(
                 exec_, mat.num_rows);
-        GKO_ASSERT(block_size >= 2 * config::warp_size);
+        GKO_ASSERT(block_size >= 2 * exec->get_warp_size());
 
         const size_t prec_size =
             PrecType::dynamic_work_size(padded_num_rows,

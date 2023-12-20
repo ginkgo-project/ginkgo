@@ -73,7 +73,7 @@ protected:
         ref_warp = ref_shared;
         std::sort(ref_shared.get_data(), ref_shared.get_data() + num_elements);
         std::sort(ref_warp.get_data(),
-                  ref_warp.get_data() + (config::warp_size * num_local));
+                  ref_warp.get_data() + (exec->get_warp_size() * num_local));
     }
 
     std::default_random_engine rng;
@@ -85,7 +85,7 @@ protected:
 
 TEST_F(Sorting, CudaBitonicSortWarp)
 {
-    test_sort_warp<<<1, config::warp_size, 0, exec->get_stream()>>>(
+    test_sort_warp<<<1, exec->get_warp_size(), 0, exec->get_stream()>>>(
         ddata.get_data());
     ddata.set_executor(ref);
     auto data_ptr = ddata.get_const_data();

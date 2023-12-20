@@ -203,7 +203,7 @@ void symbolic_factorize(
     const auto out_row_ptrs = l_factor->get_const_row_ptrs();
     const auto out_cols = l_factor->get_col_idxs();
     const auto num_blocks =
-        ceildiv(num_rows, default_block_size / config::warp_size);
+        ceildiv(num_rows, default_block_size / exec->get_warp_size());
     kernel::symbolic_factorize<config::warp_size>
         <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
             num_rows, row_ptrs, lower_ends, inv_postorder, postorder_cols,
@@ -319,7 +319,7 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
     if (num_rows > 0) {
         syncfree_storage storage(exec, tmp_storage, num_rows);
         const auto num_blocks =
-            ceildiv(num_rows, default_block_size / config::warp_size);
+            ceildiv(num_rows, default_block_size / exec->get_warp_size());
         kernel::factorize<<<num_blocks, default_block_size, 0,
                             exec->get_stream()>>>(
             factors->get_const_row_ptrs(), factors->get_const_col_idxs(),

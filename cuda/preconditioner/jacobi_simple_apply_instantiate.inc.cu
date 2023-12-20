@@ -56,7 +56,7 @@ void apply(syn::value_list<int, max_block_size>,
            size_type x_stride)
 {
     constexpr int subwarp_size = get_larger_power(max_block_size);
-    constexpr int blocks_per_warp = config::warp_size / subwarp_size;
+    const auto blocks_per_warp = exec->get_warp_size() / subwarp_size;
     const auto grid_size =
         ceildiv(num_blocks, warps_per_block * blocks_per_warp);
     const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);

@@ -78,8 +78,8 @@ __host__ size_type calculate_nwarps(std::shared_ptr<const HipExecutor> exec,
                                     const size_type nnz)
 {
     size_type nwarps_in_hip = exec->get_num_multiprocessor() *
-                              exec->get_num_warps_per_sm() * config::warp_size /
-                              subwarp_size;
+                              exec->get_num_warps_per_sm() *
+                              exec->get_warp_size() / subwarp_size;
 #if GINKGO_HIP_PLATFORM_NVCC
     size_type multiple = 8;
     if (nnz >= 2e8) {
@@ -105,7 +105,7 @@ __host__ size_type calculate_nwarps(std::shared_ptr<const HipExecutor> exec,
     }
 #endif  // GINKGO_BENCHMARK_ENABLE_TUNING
     return std::min(multiple * nwarps_in_hip,
-                    size_type(ceildiv(nnz, config::warp_size)));
+                    size_type(ceildiv(nnz, exec->get_warp_size())));
 }
 
 

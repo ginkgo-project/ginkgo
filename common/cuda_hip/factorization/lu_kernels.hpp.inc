@@ -199,7 +199,7 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_rows = mtx->get_size()[0];
     if (num_rows > 0) {
         const auto num_blocks =
-            ceildiv(num_rows, default_block_size / config::warp_size);
+            ceildiv(num_rows, default_block_size / exec->get_warp_size());
         kernel::initialize<<<num_blocks, default_block_size, 0,
                              exec->get_stream()>>>(
             mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
@@ -224,7 +224,7 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
     if (num_rows > 0) {
         syncfree_storage storage(exec, tmp_storage, num_rows);
         const auto num_blocks =
-            ceildiv(num_rows, default_block_size / config::warp_size);
+            ceildiv(num_rows, default_block_size / exec->get_warp_size());
         kernel::factorize<<<num_blocks, default_block_size, 0,
                             exec->get_stream()>>>(
             factors->get_const_row_ptrs(), factors->get_const_col_idxs(),
@@ -253,7 +253,7 @@ void symbolic_factorize_simple(
     if (num_rows > 0) {
         syncfree_storage dep_storage(exec, tmp_storage, num_rows);
         const auto num_blocks =
-            ceildiv(num_rows, default_block_size / config::warp_size);
+            ceildiv(num_rows, default_block_size / exec->get_warp_size());
         kernel::symbolic_factorize_simple<<<num_blocks, default_block_size, 0,
                                             exec->get_stream()>>>(
             row_ptrs, col_idxs, factor_row_ptrs, factor_cols, lookup_offsets,

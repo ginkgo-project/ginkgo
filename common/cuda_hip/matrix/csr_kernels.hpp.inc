@@ -1225,7 +1225,7 @@ void build_lookup(std::shared_ptr<const DefaultExecutor> exec,
                   int32* storage)
 {
     const auto num_blocks =
-        ceildiv(num_rows, default_block_size / config::warp_size);
+        ceildiv(num_rows, default_block_size / exec->get_warp_size());
     kernel::build_csr_lookup<config::warp_size>
         <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
             row_ptrs, col_idxs, num_rows, allowed, storage_offsets, row_desc,
@@ -1296,7 +1296,7 @@ void spgeam(std::shared_ptr<const DefaultExecutor> exec,
         spgeam_kernels(),
         [&](int compiled_subwarp_size) {
             return compiled_subwarp_size >= nnz_per_row ||
-                   compiled_subwarp_size == config::warp_size;
+                   compiled_subwarp_size == exec->get_warp_size();
         },
         syn::value_list<int>(), syn::type_list<>(), exec,
         alpha->get_const_values(), a->get_const_row_ptrs(),
@@ -1345,7 +1345,7 @@ void inv_symm_permute(std::shared_ptr<const DefaultExecutor> exec,
     components::prefix_sum_nonnegative(exec, permuted->get_row_ptrs(),
                                        num_rows + 1);
     auto copy_num_blocks =
-        ceildiv(num_rows, default_block_size / config::warp_size);
+        ceildiv(num_rows, default_block_size / exec->get_warp_size());
     if (copy_num_blocks > 0) {
         kernel::inv_symm_permute<config::warp_size>
             <<<copy_num_blocks, default_block_size, 0, exec->get_stream()>>>(
@@ -1375,7 +1375,7 @@ void inv_nonsymm_permute(std::shared_ptr<const DefaultExecutor> exec,
     components::prefix_sum_nonnegative(exec, permuted->get_row_ptrs(),
                                        num_rows + 1);
     auto copy_num_blocks =
-        ceildiv(num_rows, default_block_size / config::warp_size);
+        ceildiv(num_rows, default_block_size / exec->get_warp_size());
     if (copy_num_blocks > 0) {
         kernel::inv_nonsymm_permute<config::warp_size>
             <<<copy_num_blocks, default_block_size, 0, exec->get_stream()>>>(
@@ -1405,7 +1405,7 @@ void row_permute(std::shared_ptr<const DefaultExecutor> exec,
     components::prefix_sum_nonnegative(exec, row_permuted->get_row_ptrs(),
                                        num_rows + 1);
     auto copy_num_blocks =
-        ceildiv(num_rows, default_block_size / config::warp_size);
+        ceildiv(num_rows, default_block_size / exec->get_warp_size());
     if (copy_num_blocks > 0) {
         kernel::row_permute<config::warp_size>
             <<<copy_num_blocks, default_block_size, 0, exec->get_stream()>>>(
@@ -1435,7 +1435,7 @@ void inv_row_permute(std::shared_ptr<const DefaultExecutor> exec,
     components::prefix_sum_nonnegative(exec, row_permuted->get_row_ptrs(),
                                        num_rows + 1);
     auto copy_num_blocks =
-        ceildiv(num_rows, default_block_size / config::warp_size);
+        ceildiv(num_rows, default_block_size / exec->get_warp_size());
     if (copy_num_blocks > 0) {
         kernel::inv_row_permute<config::warp_size>
             <<<copy_num_blocks, default_block_size, 0, exec->get_stream()>>>(
@@ -1465,7 +1465,7 @@ void inv_symm_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
     components::prefix_sum_nonnegative(exec, permuted->get_row_ptrs(),
                                        num_rows + 1);
     auto copy_num_blocks =
-        ceildiv(num_rows, default_block_size / config::warp_size);
+        ceildiv(num_rows, default_block_size / exec->get_warp_size());
     if (copy_num_blocks > 0) {
         kernel::inv_symm_scale_permute<config::warp_size>
             <<<copy_num_blocks, default_block_size, 0, exec->get_stream()>>>(
@@ -1498,7 +1498,7 @@ void inv_nonsymm_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
     components::prefix_sum_nonnegative(exec, permuted->get_row_ptrs(),
                                        num_rows + 1);
     auto copy_num_blocks =
-        ceildiv(num_rows, default_block_size / config::warp_size);
+        ceildiv(num_rows, default_block_size / exec->get_warp_size());
     if (copy_num_blocks > 0) {
         kernel::inv_nonsymm_scale_permute<config::warp_size>
             <<<copy_num_blocks, default_block_size, 0, exec->get_stream()>>>(
@@ -1529,7 +1529,7 @@ void row_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
     components::prefix_sum_nonnegative(exec, row_permuted->get_row_ptrs(),
                                        num_rows + 1);
     auto copy_num_blocks =
-        ceildiv(num_rows, default_block_size / config::warp_size);
+        ceildiv(num_rows, default_block_size / exec->get_warp_size());
     if (copy_num_blocks > 0) {
         kernel::row_scale_permute<config::warp_size>
             <<<copy_num_blocks, default_block_size, 0, exec->get_stream()>>>(
@@ -1559,7 +1559,7 @@ void inv_row_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
     components::prefix_sum_nonnegative(exec, row_permuted->get_row_ptrs(),
                                        num_rows + 1);
     auto copy_num_blocks =
-        ceildiv(num_rows, default_block_size / config::warp_size);
+        ceildiv(num_rows, default_block_size / exec->get_warp_size());
     if (copy_num_blocks > 0) {
         kernel::inv_row_scale_permute<config::warp_size>
             <<<copy_num_blocks, default_block_size, 0, exec->get_stream()>>>(
@@ -1715,7 +1715,7 @@ void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,
     const auto nnz = orig->get_num_stored_elements();
     const auto diag_size = diag->get_size()[0];
     const auto num_blocks =
-        ceildiv(config::warp_size * diag_size, default_block_size);
+        ceildiv(exec->get_warp_size() * diag_size, default_block_size);
 
     const auto orig_values = orig->get_const_values();
     const auto orig_row_ptrs = orig->get_const_row_ptrs();
@@ -1740,7 +1740,7 @@ void check_diagonal_entries_exist(
         std::min(mtx->get_size()[0], mtx->get_size()[1]));
     if (num_diag > 0) {
         const IndexType num_blocks =
-            ceildiv(num_diag, default_block_size / config::warp_size);
+            ceildiv(num_diag, default_block_size / exec->get_warp_size());
         array<bool> has_diags(exec, {true});
         kernel::check_diagonal_entries<<<num_blocks, default_block_size, 0,
                                          exec->get_stream()>>>(
@@ -1763,7 +1763,7 @@ void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
     if (nrows == 0) {
         return;
     }
-    const auto nthreads = nrows * config::warp_size;
+    const auto nthreads = nrows * exec->get_warp_size();
     const auto nblocks = ceildiv(nthreads, default_block_size);
     kernel::add_scaled_identity<<<nblocks, default_block_size, 0,
                                   exec->get_stream()>>>(

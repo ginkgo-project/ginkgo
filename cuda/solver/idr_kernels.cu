@@ -326,8 +326,8 @@ void compute_omega(
     const matrix::Dense<remove_complex<ValueType>>* residual_norm,
     matrix::Dense<ValueType>* omega, const array<stopping_status>* stop_status)
 {
-    const auto grid_dim = ceildiv(nrhs, config::warp_size);
-    compute_omega_kernel<<<grid_dim, config::warp_size, 0,
+    const auto grid_dim = ceildiv(nrhs, exec->get_warp_size());
+    compute_omega_kernel<<<grid_dim, exec->get_warp_size(), 0,
                            exec->get_stream()>>>(
         nrhs, as_device_type(kappa), as_device_type(tht->get_const_values()),
         as_device_type(residual_norm->get_const_values()),

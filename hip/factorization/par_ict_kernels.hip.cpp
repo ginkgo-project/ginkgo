@@ -155,7 +155,7 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
         compiled_kernels(),
         [&](int compiled_subwarp_size) {
             return total_nnz_per_row <= compiled_subwarp_size ||
-                   compiled_subwarp_size == config::warp_size;
+                   compiled_subwarp_size == exec->get_warp_size();
         },
         syn::value_list<int>(), syn::type_list<>(), exec, llh, a, l, l_new);
 }
@@ -177,7 +177,7 @@ void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
         compiled_kernels(),
         [&](int compiled_subwarp_size) {
             return total_nnz_per_row <= compiled_subwarp_size ||
-                   compiled_subwarp_size == config::warp_size;
+                   compiled_subwarp_size == exec->get_warp_size();
         },
         syn::value_list<int>(), syn::type_list<>(), exec, a, l, l_coo);
 }

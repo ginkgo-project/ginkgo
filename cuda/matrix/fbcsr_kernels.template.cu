@@ -220,7 +220,7 @@ void transpose_blocks_impl(syn::value_list<int, mat_blk_sz>,
                            std::shared_ptr<const DefaultExecutor> exec,
                            matrix::Fbcsr<ValueType, IndexType>* const mat)
 {
-    constexpr int subwarp_size = config::warp_size;
+    const auto subwarp_size = exec->get_warp_size();
     const auto nbnz = mat->get_num_stored_blocks();
     const auto numthreads = nbnz * subwarp_size;
     const auto block_size = default_block_size;

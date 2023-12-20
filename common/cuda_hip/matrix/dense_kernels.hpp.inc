@@ -411,7 +411,7 @@ void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
     auto stride = source->get_stride();
 
     const auto grid_dim =
-        ceildiv(num_rows, default_block_size / config::warp_size);
+        ceildiv(num_rows, default_block_size / exec->get_warp_size());
     if (grid_dim > 0) {
         kernel::fill_in_coo<<<grid_dim, default_block_size, 0,
                               exec->get_stream()>>>(
@@ -440,7 +440,7 @@ void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
     auto stride = source->get_stride();
 
     const auto grid_dim =
-        ceildiv(num_rows, default_block_size / config::warp_size);
+        ceildiv(num_rows, default_block_size / exec->get_warp_size());
     if (grid_dim > 0) {
         kernel::fill_in_csr<<<grid_dim, default_block_size, 0,
                               exec->get_stream()>>>(
@@ -471,7 +471,7 @@ void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,
     auto result_stride = result->get_stride();
 
     const auto grid_dim =
-        ceildiv(num_rows, default_block_size / config::warp_size);
+        ceildiv(num_rows, default_block_size / exec->get_warp_size());
     if (grid_dim > 0) {
         kernel::fill_in_ell<<<grid_dim, default_block_size, 0,
                               exec->get_stream()>>>(
@@ -493,7 +493,7 @@ void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_block_rows = result->get_num_block_rows();
     if (num_block_rows > 0) {
         const auto num_blocks =
-            ceildiv(num_block_rows, default_block_size / config::warp_size);
+            ceildiv(num_block_rows, default_block_size / exec->get_warp_size());
         kernel::convert_to_fbcsr<<<num_blocks, default_block_size, 0,
                                    exec->get_stream()>>>(
             num_block_rows, result->get_num_block_cols(), source->get_stride(),
@@ -517,7 +517,7 @@ void count_nonzero_blocks_per_row(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_block_cols = source->get_size()[1] / bs;
     if (num_block_rows > 0) {
         const auto num_blocks =
-            ceildiv(num_block_rows, default_block_size / config::warp_size);
+            ceildiv(num_block_rows, default_block_size / exec->get_warp_size());
         kernel::count_nonzero_blocks_per_row<<<num_blocks, default_block_size,
                                                0, exec->get_stream()>>>(
             num_block_rows, num_block_cols, source->get_stride(), bs,
@@ -547,7 +547,8 @@ void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
     auto coo_col_idxs = result->get_coo_col_idxs();
     auto coo_values = result->get_coo_values();
 
-    auto grid_dim = ceildiv(num_rows, default_block_size / config::warp_size);
+    auto grid_dim =
+        ceildiv(num_rows, default_block_size / exec->get_warp_size());
     if (grid_dim > 0) {
         kernel::fill_in_hybrid<<<grid_dim, default_block_size, 0,
                                  exec->get_stream()>>>(
@@ -578,7 +579,8 @@ void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
     const auto slice_size = result->get_slice_size();
     const auto stride_factor = result->get_stride_factor();
 
-    auto grid_dim = ceildiv(num_rows, default_block_size / config::warp_size);
+    auto grid_dim =
+        ceildiv(num_rows, default_block_size / exec->get_warp_size());
     if (grid_dim > 0) {
         kernel::fill_in_sellp<<<grid_dim, default_block_size, 0,
                                 exec->get_stream()>>>(
@@ -607,7 +609,7 @@ void convert_to_sparsity_csr(std::shared_ptr<const DefaultExecutor> exec,
     auto stride = source->get_stride();
 
     const auto grid_dim =
-        ceildiv(num_rows, default_block_size / config::warp_size);
+        ceildiv(num_rows, default_block_size / exec->get_warp_size());
     if (grid_dim > 0) {
         kernel::fill_in_sparsity_csr<<<grid_dim, default_block_size, 0,
                                        exec->get_stream()>>>(

@@ -288,7 +288,7 @@ void load_balance_spmv(std::shared_ptr<const DefaultExecutor> exec,
     }
     const IndexType nwarps = a->get_num_srow_elements();
     if (nwarps > 0) {
-        const dim3 csr_block(config::warp_size, warps_in_block, 1);
+        const dim3 csr_block(exec->get_warp_size(), warps_in_block, 1);
         const dim3 csr_grid(ceildiv(nwarps, warps_in_block), b->get_size()[1]);
         const auto a_vals =
             acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
@@ -827,7 +827,7 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
         spgeam_kernels(),
         [&](int compiled_subwarp_size) {
             return compiled_subwarp_size >= nnz_per_row ||
-                   compiled_subwarp_size == config::warp_size;
+                   compiled_subwarp_size == exec->get_warp_size();
         },
         syn::value_list<int>(), syn::type_list<>(), exec,
         alpha->get_const_values(), c_tmp_row_ptrs_array.get_const_data(),

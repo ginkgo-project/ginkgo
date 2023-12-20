@@ -228,14 +228,14 @@ void spmv2(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto nnz = a->get_num_stored_elements();
     const auto b_ncols = b->get_size()[1];
-    const dim3 coo_block(config::warp_size, warps_in_block, 1);
+    const dim3 coo_block(exec->get_warp_size(), warps_in_block, 1);
     const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
 
     if (nwarps > 0 && b_ncols > 0) {
         // TODO: b_ncols needs to be tuned for ROCm.
         if (b_ncols < 4) {
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
-            int num_lines = ceildiv(nnz, nwarps * config::warp_size);
+            int num_lines = ceildiv(nnz, nwarps * exec->get_warp_size());
 
             abstract_spmv<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
                 nnz, num_lines, as_device_type(a->get_const_values()),
@@ -244,10 +244,10 @@ void spmv2(std::shared_ptr<const DefaultExecutor> exec,
                 as_device_type(b->get_const_values()), b->get_stride(),
                 as_device_type(c->get_values()), c->get_stride());
         } else {
-            int num_elems =
-                ceildiv(nnz, nwarps * config::warp_size) * config::warp_size;
+            int num_elems = ceildiv(nnz, nwarps * exec->get_warp_size()) *
+                            exec->get_warp_size();
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
-                                ceildiv(b_ncols, config::warp_size));
+                                ceildiv(b_ncols, exec->get_warp_size()));
 
             abstract_spmm<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
                 nnz, num_elems, as_device_type(a->get_const_values()),
@@ -271,13 +271,13 @@ void advanced_spmv2(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto nnz = a->get_num_stored_elements();
     const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
-    const dim3 coo_block(config::warp_size, warps_in_block, 1);
+    const dim3 coo_block(exec->get_warp_size(), warps_in_block, 1);
     const auto b_ncols = b->get_size()[1];
 
     if (nwarps > 0 && b_ncols > 0) {
         // TODO: b_ncols needs to be tuned for ROCm.
         if (b_ncols < 4) {
-            int num_lines = ceildiv(nnz, nwarps * config::warp_size);
+            int num_lines = ceildiv(nnz, nwarps * exec->get_warp_size());
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
 
             abstract_spmv<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
@@ -287,10 +287,10 @@ void advanced_spmv2(std::shared_ptr<const DefaultExecutor> exec,
                 as_device_type(b->get_const_values()), b->get_stride(),
                 as_device_type(c->get_values()), c->get_stride());
         } else {
-            int num_elems =
-                ceildiv(nnz, nwarps * config::warp_size) * config::warp_size;
+            int num_elems = ceildiv(nnz, nwarps * exec->get_warp_size()) *
+                            exec->get_warp_size();
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
-                                ceildiv(b_ncols, config::warp_size));
+                                ceildiv(b_ncols, exec->get_warp_size()));
 
             abstract_spmm<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
                 nnz, num_elems, as_device_type(alpha->get_const_values()),

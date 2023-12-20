@@ -200,9 +200,9 @@ size_type find_natural_blocks(std::shared_ptr<const DefaultExecutor> exec,
     // FIXME: num_rows == 0 bug
     array<bool> matching_next_row(exec, mtx->get_size()[0] - 1);
 
-    const auto block_size = config::warp_size;
+    const auto block_size = exec->get_warp_size();
     const auto grid_size =
-        ceildiv(mtx->get_size()[0] * config::warp_size, block_size);
+        ceildiv(mtx->get_size()[0] * exec->get_warp_size(), block_size);
 
     if (grid_size > 0) {
         compare_adjacent_rows<<<grid_size, block_size, 0, exec->get_stream()>>>(
@@ -239,7 +239,7 @@ void initialize_precisions(std::shared_ptr<const DefaultExecutor> exec,
                            const array<precision_reduction>& source,
                            array<precision_reduction>& precisions)
 {
-    const auto block_size = default_num_warps * config::warp_size;
+    const auto block_size = default_num_warps * exec->get_warp_size();
     const auto grid_size =
         min(default_grid_size,
             static_cast<int32>(ceildiv(precisions.get_size(), block_size)));
@@ -282,7 +282,7 @@ void transpose_jacobi(
     ValueType* out_blocks)
 {
     constexpr int subwarp_size = get_larger_power(max_block_size);
-    constexpr int blocks_per_warp = config::warp_size / subwarp_size;
+    constexpr int blocks_per_warp = exec->get_warp_size() / subwarp_size;
     const auto grid_size =
         ceildiv(num_blocks, warps_per_block * blocks_per_warp);
     const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);

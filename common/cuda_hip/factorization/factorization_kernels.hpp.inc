@@ -342,7 +342,7 @@ void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
 {
     // TODO: Runtime can be optimized by choosing a appropriate size for the
     //       subwarp dependent on the matrix properties
-    constexpr int subwarp_size = config::warp_size;
+    constexpr int subwarp_size = exec->get_warp_size();
     auto mtx_size = mtx->get_size();
     auto num_rows = static_cast<IndexType>(mtx_size[0]);
     auto num_cols = static_cast<IndexType>(mtx_size[1]);

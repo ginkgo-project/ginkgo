@@ -409,15 +409,15 @@ void run_kernel_row_reduction_cached(
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
     const auto resources =
-        exec->get_num_warps() * config::warp_size * oversubscription;
+        exec->get_num_warps() * exec->get_warp_size() * oversubscription;
     if (rows * cols > resources && rows < cols) {
         const auto col_blocks = ceildiv(rows * cols, resources);
         const auto required_storage = sizeof(ValueType) * col_blocks * rows;
         if (tmp.get_size() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
-        const auto num_blocks =
-            ceildiv(rows * col_blocks * config::warp_size, default_block_size);
+        const auto num_blocks = ceildiv(
+            rows * col_blocks * exec->get_warp_size(), default_block_size);
         // no need to guard this kernel, as rows * cols > resources
         generic_kernel_row_reduction_2d<config::warp_size>
             <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
@@ -437,7 +437,7 @@ void run_kernel_row_reduction_cached(
             subwarp_sizes(),
             [cols](int compiled_subwarp_size) {
                 return compiled_subwarp_size >= cols ||
-                       compiled_subwarp_size == config::warp_size;
+                       compiled_subwarp_size == exec->get_warp_size();
             },
             syn::value_list<int>(), syn::type_list<>(), exec, rows, cols, 1, fn,
             op, finalize, identity, result, static_cast<int64>(result_stride),
@@ -458,24 +458,24 @@ void run_kernel_col_reduction_cached(
     constexpr int oversubscription = 16;
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
-    const auto max_blocks = exec->get_num_warps() * config::warp_size *
+    const auto max_blocks = exec->get_num_warps() * exec->get_warp_size() *
                             oversubscription / default_block_size;
-    if (cols <= config::warp_size) {
+    if (cols <= exec->get_warp_size()) {
         select_generic_col_reduction_small(
             subwarp_sizes(),
             [cols](int compiled_subwarp_size) {
                 return compiled_subwarp_size >= cols ||
-                       compiled_subwarp_size == config::warp_size;
+                       compiled_subwarp_size == exec->get_warp_size();
             },
             syn::value_list<int>(), syn::type_list<>(), max_blocks, exec, fn,
             op, finalize, identity, result, size, tmp, map_to_device(args)...);
     } else {
-        const auto col_blocks = ceildiv(cols, config::warp_size);
-        const auto row_blocks =
-            ceildiv(std::min<int64>(
-                        ceildiv(rows * config::warp_size, default_block_size),
-                        max_blocks),
-                    col_blocks);
+        const auto col_blocks = ceildiv(cols, exec->get_warp_size());
+        const auto row_blocks = ceildiv(
+            std::min<int64>(
+                ceildiv(rows * exec->get_warp_size(), default_block_size),
+                max_blocks),
+            col_blocks);
         if (row_blocks <= 1) {
             generic_kernel_col_reduction_2d_blocked<<<dim3(1, col_blocks),
                                                       default_block_size, 0,

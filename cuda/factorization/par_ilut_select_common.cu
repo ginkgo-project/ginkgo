@@ -74,7 +74,7 @@ sampleselect_bucket<IndexType> sampleselect_find_bucket(
     std::shared_ptr<const DefaultExecutor> exec, IndexType* prefix_sum,
     IndexType rank)
 {
-    kernel::find_bucket<<<1, config::warp_size, 0, exec->get_stream()>>>(
+    kernel::find_bucket<<<1, exec->get_warp_size(), 0, exec->get_stream()>>>(
         prefix_sum, rank);
     IndexType values[3]{};
     exec->get_master()->copy_from(exec, 3, prefix_sum, values);

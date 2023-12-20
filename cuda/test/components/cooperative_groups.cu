@@ -36,7 +36,7 @@ protected:
     template <typename Kernel>
     void test(Kernel kernel)
     {
-        kernel<<<1, config::warp_size, 0, exec->get_stream()>>>(
+        kernel<<<1, exec->get_warp_size(), 0, exec->get_stream()>>>(
             dresult.get_data());
         result = dresult;
         auto success = *result.get_const_data();
@@ -47,7 +47,7 @@ protected:
     template <typename Kernel>
     void test_subwarp(Kernel kernel)
     {
-        kernel<<<1, config::warp_size / 2, 0, exec->get_stream()>>>(
+        kernel<<<1, exec->get_warp_size() / 2, 0, exec->get_stream()>>>(
             dresult.get_data());
         result = dresult;
         auto success = *result.get_const_data();

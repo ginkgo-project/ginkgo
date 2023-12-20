@@ -40,7 +40,7 @@ protected:
     {
         *result.get_data() = true;
         dresult = result;
-        kernel<<<num_blocks, config::warp_size, 0, exec->get_stream()>>>(
+        kernel<<<num_blocks, exec->get_warp_size(), 0, exec->get_stream()>>>(
             dresult.get_data(), offset, size);
         result = dresult;
         auto success = *result.get_const_data();
@@ -82,12 +82,12 @@ __global__ void test_binary_search(bool* success, int offset, int size)
 
 TEST_F(Searching, BinaryNoOffset)
 {
-    run_test(test_binary_search, 0, config::warp_size);
+    run_test(test_binary_search, 0, exec->get_warp_size());
 }
 
 TEST_F(Searching, BinaryOffset)
 {
-    run_test(test_binary_search, 5, config::warp_size);
+    run_test(test_binary_search, 5, exec->get_warp_size());
 }
 
 
@@ -132,7 +132,7 @@ __global__ void test_sync_binary_search(bool* success, int, int size)
 
 TEST_F(Searching, SyncBinary)
 {
-    run_test(test_sync_binary_search, 0, config::warp_size);
+    run_test(test_sync_binary_search, 0, exec->get_warp_size());
 }
 
 
@@ -148,7 +148,7 @@ __global__ void test_empty_sync_binary_search(bool* success, int, int)
 
 TEST_F(Searching, EmptySyncBinary)
 {
-    run_test(test_empty_sync_binary_search, 0, config::warp_size);
+    run_test(test_empty_sync_binary_search, 0, exec->get_warp_size());
 }
 
 
