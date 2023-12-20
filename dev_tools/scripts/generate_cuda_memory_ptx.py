@@ -15,6 +15,8 @@ class space:
 class ordering:
     ptx_load_suffix: str
     fn_load_suffix: str
+    ptx_loadstore_suffix: str
+    fn_loadstore_suffix: str
     ptx_store_suffix: str
     fn_store_suffix: str
     is_relaxed: bool
@@ -28,23 +30,57 @@ class type_desc:
 
 
 memory_spaces = [
-    space(ptx_space_suffix=".shared", ptx_scope_suffix=".cta", fn_suffix="_shared",
-          ptr_expr="convert_generic_ptr_to_smem_ptr({ptr})", ptr_constraint="r"),
-    space(ptx_space_suffix="", ptx_scope_suffix=".cta", fn_suffix="_local",
-          ptr_expr="{ptr}", ptr_constraint="l"),
-    space(ptx_space_suffix="", ptx_scope_suffix=".gpu", fn_suffix="", ptr_expr="{ptr}", ptr_constraint="l")]
-memory_orderings = [
-    ordering(ptx_load_suffix=".relaxed", fn_load_suffix="_relaxed",
-             ptx_store_suffix=".relaxed", fn_store_suffix="_relaxed", is_relaxed=True),
-    ordering(ptx_load_suffix=".acquire", fn_load_suffix="_acquire",
-             ptx_store_suffix=".release", fn_store_suffix="_release", is_relaxed=False)
+    space(
+        ptx_space_suffix=".shared",
+        ptx_scope_suffix=".cta",
+        fn_suffix="_shared",
+        ptr_expr="convert_generic_ptr_to_smem_ptr({ptr})",
+        ptr_constraint="r",
+    ),
+    space(
+        ptx_space_suffix="",
+        ptx_scope_suffix=".cta",
+        fn_suffix="_local",
+        ptr_expr="{ptr}",
+        ptr_constraint="l",
+    ),
+    space(
+        ptx_space_suffix="",
+        ptx_scope_suffix=".gpu",
+        fn_suffix="",
+        ptr_expr="{ptr}",
+        ptr_constraint="l",
+    ),
 ]
-types = [type_desc(ptx_type_suffix=".s32", val_constraint="r", name="int32"),
-         type_desc(ptx_type_suffix=".s64", val_constraint="l", name="int64"),
-         type_desc(ptx_type_suffix=".f32", val_constraint="f", name="float"),
-         type_desc(ptx_type_suffix=".f64", val_constraint="d", name="double")]
+memory_orderings = [
+    ordering(
+        ptx_load_suffix=".relaxed",
+        fn_load_suffix="_relaxed",
+        ptx_loadstore_suffix=".relaxed",
+        fn_loadstore_suffix="_relaxed",
+        ptx_store_suffix=".relaxed",
+        fn_store_suffix="_relaxed",
+        is_relaxed=True,
+    ),
+    ordering(
+        ptx_load_suffix=".acquire",
+        fn_load_suffix="_acquire",
+        ptx_loadstore_suffix=".acq_rel",
+        fn_loadstore_suffix="_acqrel",
+        ptx_store_suffix=".release",
+        fn_store_suffix="_release",
+        is_relaxed=False,
+    ),
+]
+types = [
+    type_desc(ptx_type_suffix=".s32", val_constraint="r", name="int32"),
+    type_desc(ptx_type_suffix=".s64", val_constraint="l", name="int64"),
+    type_desc(ptx_type_suffix=".f32", val_constraint="f", name="float"),
+    type_desc(ptx_type_suffix=".f64", val_constraint="d", name="double"),
+]
 # header
-print("""// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+print(
+    """// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -109,17 +145,20 @@ __device__ __forceinline__ void membar_acq_rel_local()
     asm volatile("fence.acq_rel.cta;" ::: "memory");
 #endif
 }
-""")
+"""
+)
 
-# relaxed
+# relaxed/acquire-release
 for s in memory_spaces:
     for o in memory_orderings:
         for t in types:
-            membar_expression = "" if o.is_relaxed else f"membar_acq_rel{s.fn_suffix}();"
-            const_ptr_expr = s.ptr_expr.format(
-                ptr=f"const_cast<{t.name}*>(ptr)")
+            membar_expression = (
+                "" if o.is_relaxed else f"membar_acq_rel{s.fn_suffix}();"
+            )
+            const_ptr_expr = s.ptr_expr.format(ptr=f"const_cast<{t.name}*>(ptr)")
             mut_ptr_expr = s.ptr_expr.format(ptr="ptr")
-            print(f"""
+            print(
+                f"""
 __device__ __forceinline__ {t.name} load{o.fn_load_suffix}{s.fn_suffix}(const {t.name}* ptr)
 {{
     {t.name} result;
@@ -152,17 +191,23 @@ __device__ __forceinline__ void store{o.fn_store_suffix}{s.fn_suffix}({t.name}* 
                  : "memory");
 #endif
 }}
-""")
+"""
+            )
+
 
 # vectorized relaxed loads for thrust::complex
-types = [type_desc(ptx_type_suffix=".f32", val_constraint="f", name="float"),
-         type_desc(ptx_type_suffix=".f64", val_constraint="d", name="double")]
+types = [
+    type_desc(ptx_type_suffix=".f32", val_constraint="f", name="float"),
+    type_desc(ptx_type_suffix=".f64", val_constraint="d", name="double"),
+]
 for s in memory_spaces:
     for t in types:
         const_ptr_expr = s.ptr_expr.format(
-            ptr=f"const_cast<thrust::complex<{t.name}>*>(ptr)")
+            ptr=f"const_cast<thrust::complex<{t.name}>*>(ptr)"
+        )
         mut_ptr_expr = s.ptr_expr.format(ptr="ptr")
-        print(f"""
+        print(
+            f"""
 __device__ __forceinline__ thrust::complex<{t.name}> load_relaxed{s.fn_suffix}(const thrust::complex<{t.name}>* ptr)
 {{
     {t.name} real_result;
@@ -196,4 +241,57 @@ __device__ __forceinline__ void store_relaxed{s.fn_suffix}(thrust::complex<{t.na
                  : "memory");
 #endif
 }}
-""")
+"""
+        )
+
+
+# relaxed/acqrel CAS/add/min/max
+types = [
+    type_desc(ptx_type_suffix=".s32", val_constraint="r", name="int32"),
+    type_desc(ptx_type_suffix=".s64", val_constraint="l", name="int64"),
+]
+for s in memory_spaces:
+    for o in memory_orderings:
+        for t in types:
+            mut_ptr_expr = s.ptr_expr.format(ptr="ptr")
+            print(
+                f"""
+__device__ __forceinline__ {t.name} atomic_cas{o.fn_loadstore_suffix}{s.fn_suffix}(const {t.name}* ptr, {t.name} old_value, {t.name} new_value)
+{{
+    {t.name} result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile{s.ptx_space_suffix}.cas{t.ptx_type_suffix} %0, [%1], %2, %3;"
+                 : "={t.val_constraint}"(result)
+                 : "{s.ptr_constraint}"({mut_ptr_expr}), "{t.val_constraint}"(old_value), "{t.val_constraint}"(new_value)
+                 : "memory");
+#else
+    asm volatile("atom{o.ptx_loadstore_suffix}{s.ptx_scope_suffix}{s.ptx_space_suffix}.cas{t.ptx_type_suffix} %0, [%1], %2, %3;"
+                 : "={t.val_constraint}"(result)
+                 : "{s.ptr_constraint}"({mut_ptr_expr}), "{t.val_constraint}"(old_value), "{t.val_constraint}"(new_value)
+                 : "memory");
+#endif
+    return result;
+}}
+"""
+            )
+            for op in ["add", "min", "max"]:
+                print(
+                    f"""
+__device__ __forceinline__ {t.name} atomic_{op}{o.fn_loadstore_suffix}{s.fn_suffix}(const {t.name}* ptr, {t.name} value)
+{{
+    {t.name} result;
+#if __CUDA_ARCH__ < 700
+    asm volatile("atom.volatile{s.ptx_space_suffix}.{op}{t.ptx_type_suffix} %0, [%1], %2;"
+                 : "={t.val_constraint}"(result)
+                 : "{s.ptr_constraint}"({mut_ptr_expr}), "{t.val_constraint}"(value)
+                 : "memory");
+#else
+    asm volatile("atom{o.ptx_loadstore_suffix}{s.ptx_scope_suffix}{s.ptx_space_suffix}.{op}{t.ptx_type_suffix} %0, [%1], %2;"
+                 : "={t.val_constraint}"(result)
+                 : "{s.ptr_constraint}"({mut_ptr_expr}), "{t.val_constraint}"(value)
+                 : "memory");
+#endif
+    return result;
+}}
+"""
+                )
