@@ -1,1 +1,0 @@
-ginkgo_create_test(rcm_kernels RESOURCE_TYPE cudagpu)
