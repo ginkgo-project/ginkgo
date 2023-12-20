@@ -70,12 +70,32 @@ struct gcc_atomic_intrinsic_type_map<double> {
     __hip_atomic_load(ptr, memorder, scope)
 #define HIP_ATOMIC_STORE(ptr, value, memorder, scope) \
     __hip_atomic_store(ptr, value, memorder, scope)
+#define HIP_ATOMIC_CAS(ptr, value_ptr, new_value, success_memorder, \
+                       fail_memorder, scope)                        \
+    __hip_atomic_compare_exchange_strong(                           \
+        ptr, value_ptr, new_value, success_memorder, fail_memorder, scope)
+#define HIP_ATOMIC_ADD(ptr, value, memorder, scope) \
+    __hip_atomic_fetch_add(ptr, value, memorder, scope)
+#define HIP_ATOMIC_MIN(ptr, value, memorder, scope) \
+    __hip_atomic_fetch_min(ptr, value, memorder, scope)
+#define HIP_ATOMIC_MAX(ptr, value, memorder, scope) \
+    __hip_atomic_fetch_max(ptr, value, memorder, scope)
 #define HIP_SCOPE_GPU __HIP_MEMORY_SCOPE_AGENT
 #define HIP_SCOPE_THREADBLOCK __HIP_MEMORY_SCOPE_WORKGROUP
 #else
 #define HIP_ATOMIC_LOAD(ptr, memorder, scope) __atomic_load_n(ptr, memorder)
 #define HIP_ATOMIC_STORE(ptr, value, memorder, scope) \
     __atomic_store_n(ptr, value, memorder)
+#define HIP_ATOMIC_CAS(ptr, value_ptr, new_value, success_memorder,          \
+                       fail_memorder, scope)                                 \
+    __atomic_compare_exchange_n(ptr, value_ptr, new_value, success_memorder, \
+                                fail_memorder)
+#define HIP_ATOMIC_ADD(ptr, value, memorder, scope) \
+    __atomic_fetch_add(ptr, value, memorder)
+#define HIP_ATOMIC_MIN(ptr, value, memorder, scope) \
+    __atomic_fetch_min(ptr, value, memorder)
+#define HIP_ATOMIC_MAX(ptr, value, memorder, scope) \
+    __atomic_fetch_max(ptr, value, memorder)
 #define HIP_SCOPE_GPU -1
 #define HIP_SCOPE_THREADBLOCK -1
 #endif
@@ -85,12 +105,13 @@ struct gcc_atomic_intrinsic_type_map<double> {
  * Loads a value from memory using an atomic operation.
  *
  * @tparam memorder  The GCC memory ordering type
- * (https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html) to use
- * for this atomic operation.
- * @tparam scope  The visibility of this operation, i.e. which threads may have
- * written to this memory location before. HIP_SCOPE_GPU means that we want to
- * observe writes from all threads on this device, HIP_SCOPE_THREADBLOCK means
- * we want to observe only writes from within the same threadblock.
+ * (https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html) to
+ * use for this atomic operation.
+ * @tparam scope  The visibility of this operation, i.e. which threads may
+ * have written to this memory location before. HIP_SCOPE_GPU means that we
+ * want to observe writes from all threads on this device,
+ * HIP_SCOPE_THREADBLOCK means we want to observe only writes from within
+ * the same threadblock.
  */
 template <int memorder, int scope, typename ValueType>
 __device__ __forceinline__ ValueType load_generic(const ValueType* ptr)
@@ -281,8 +302,302 @@ __device__ __forceinline__ void store_relaxed_local(
 }
 
 
+/**
+ * Performs an atomic compare-and-exchange (CAS) operation on a memory location.
+ *
+ * @tparam memorder  The GCC memory ordering type
+ * (https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html) to use
+ * for this atomic operation.
+ * @tparam scope  The visibility of this operation, i.e. which threads may
+ * observe the modification to this memory location. HIP_SCOPE_GPU means that we
+ * want to all threads on this device to observe it, HIP_SCOPE_THREADBLOCK means
+ * we want only threads within the same threadblock to observe it.
+ */
+template <int memorder, int scope, typename ValueType>
+__device__ __forceinline__ ValueType atomic_cas_generic(const ValueType* ptr,
+                                                        ValueType old_value,
+                                                        ValueType new_value)
+{
+    HIP_ATOMIC_CAS(ptr, &old_value, new_value, memorder, memorder, scope);
+    return old_value;
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType atomic_cas_relaxed(const ValueType* ptr,
+                                                        ValueType old_value,
+                                                        ValueType new_value)
+{
+    return atomic_cas_generic<__ATOMIC_RELAXED, HIP_SCOPE_GPU>(ptr, old_value,
+                                                               new_value);
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType atomic_cas_relaxed_shared(
+    const ValueType* ptr, ValueType old_value, ValueType new_value)
+{
+    return atomic_cas_generic<__ATOMIC_RELAXED, HIP_SCOPE_THREADBLOCK>(
+        ptr, old_value, new_value);
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType atomic_cas_relaxed_local(
+    const ValueType* ptr, ValueType old_value, ValueType new_value)
+{
+    return atomic_cas_generic<__ATOMIC_RELAXED, HIP_SCOPE_THREADBLOCK>(
+        ptr, old_value, new_value);
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType atomic_cas_acqrel(const ValueType* ptr,
+                                                       ValueType old_value,
+                                                       ValueType new_value)
+{
+    return atomic_cas_generic<__ATOMIC_ACQ_REL, HIP_SCOPE_GPU>(ptr, old_value,
+                                                               new_value);
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType atomic_cas_acqrel_shared(
+    const ValueType* ptr, ValueType old_value, ValueType new_value)
+{
+    return atomic_cas_generic<__ATOMIC_ACQ_REL, HIP_SCOPE_THREADBLOCK>(
+        ptr, old_value, new_value);
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType atomic_cas_acqrel_local(
+    const ValueType* ptr, ValueType old_value, ValueType new_value)
+{
+    return atomic_cas_generic<__ATOMIC_ACQ_REL, HIP_SCOPE_THREADBLOCK>(
+        ptr, old_value, new_value);
+}
+
+
+/**
+ * Performs an atomic add operation on a memory location.
+ *
+ * @tparam memorder  The GCC memory ordering type
+ * (https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html) to use
+ * for this atomic operation.
+ * @tparam scope  The visibility of this operation, i.e. which threads may
+ * observe the modification to this memory location. HIP_SCOPE_GPU means that we
+ * want to all threads on this device to observe it, HIP_SCOPE_THREADBLOCK means
+ * we want only threads within the same threadblock to observe it.
+ */
+template <int memorder, int scope, typename ValueType>
+__device__ __forceinline__ ValueType atomic_add_generic(const ValueType* ptr,
+                                                        ValueType value)
+{
+    return HIP_ATOMIC_ADD(ptr, value, memorder, scope);
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType atomic_add_relaxed(const ValueType* ptr,
+                                                        ValueType value)
+{
+    return atomic_add_generic<__ATOMIC_RELAXED, HIP_SCOPE_GPU>(ptr, value);
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType
+atomic_add_relaxed_shared(const ValueType* ptr, ValueType value)
+{
+    return atomic_add_generic<__ATOMIC_RELAXED, HIP_SCOPE_THREADBLOCK>(ptr,
+                                                                       value);
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType
+atomic_add_relaxed_local(const ValueType* ptr, ValueType value)
+{
+    return atomic_add_generic<__ATOMIC_RELAXED, HIP_SCOPE_THREADBLOCK>(ptr,
+                                                                       value);
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType atomic_add_acqrel(const ValueType* ptr,
+                                                       ValueType value)
+{
+    return atomic_add_generic<__ATOMIC_ACQ_REL, HIP_SCOPE_GPU>(ptr, value);
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType
+atomic_add_acqrel_shared(const ValueType* ptr, ValueType value)
+{
+    return atomic_add_generic<__ATOMIC_ACQ_REL, HIP_SCOPE_THREADBLOCK>(ptr,
+                                                                       value);
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType
+atomic_add_acqrel_local(const ValueType* ptr, ValueType value)
+{
+    return atomic_add_generic<__ATOMIC_ACQ_REL, HIP_SCOPE_THREADBLOCK>(ptr,
+                                                                       value);
+}
+
+
+/**
+ * Performs an atomic min operation on a memory location.
+ *
+ * @tparam memorder  The GCC memory ordering type
+ * (https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html) to use
+ * for this atomic operation.
+ * @tparam scope  The visibility of this operation, i.e. which threads may
+ * observe the modification to this memory location. HIP_SCOPE_GPU means that we
+ * want to all threads on this device to observe it, HIP_SCOPE_THREADBLOCK means
+ * we want only threads within the same threadblock to observe it.
+ */
+template <int memorder, int scope, typename ValueType>
+__device__ __forceinline__ ValueType atomic_min_generic(const ValueType* ptr,
+                                                        ValueType value)
+{
+    return HIP_ATOMIC_ADD(ptr, value, memorder, scope);
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType atomic_min_relaxed(const ValueType* ptr,
+                                                        ValueType value)
+{
+    return atomic_min_generic<__ATOMIC_RELAXED, HIP_SCOPE_GPU>(ptr, value);
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType
+atomic_min_relaxed_shared(const ValueType* ptr, ValueType value)
+{
+    return atomic_min_generic<__ATOMIC_RELAXED, HIP_SCOPE_THREADBLOCK>(ptr,
+                                                                       value);
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType
+atomic_min_relaxed_local(const ValueType* ptr, ValueType value)
+{
+    return atomic_min_generic<__ATOMIC_RELAXED, HIP_SCOPE_THREADBLOCK>(ptr,
+                                                                       value);
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType atomic_min_acqrel(const ValueType* ptr,
+                                                       ValueType value)
+{
+    return atomic_min_generic<__ATOMIC_ACQ_REL, HIP_SCOPE_GPU>(ptr, value);
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType
+atomic_min_acqrel_shared(const ValueType* ptr, ValueType value)
+{
+    return atomic_min_generic<__ATOMIC_ACQ_REL, HIP_SCOPE_THREADBLOCK>(ptr,
+                                                                       value);
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType
+atomic_min_acqrel_local(const ValueType* ptr, ValueType value)
+{
+    return atomic_min_generic<__ATOMIC_ACQ_REL, HIP_SCOPE_THREADBLOCK>(ptr,
+                                                                       value);
+}
+
+
+/**
+ * Performs an atomic max operation on a memory location.
+ *
+ * @tparam memorder  The GCC memory ordering type
+ * (https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html) to use
+ * for this atomic operation.
+ * @tparam scope  The visibility of this operation, i.e. which threads may
+ * observe the modification to this memory location. HIP_SCOPE_GPU means that we
+ * want to all threads on this device to observe it, HIP_SCOPE_THREADBLOCK means
+ * we want only threads within the same threadblock to observe it.
+ */
+template <int memorder, int scope, typename ValueType>
+__device__ __forceinline__ ValueType atomic_max_generic(const ValueType* ptr,
+                                                        ValueType value)
+{
+    return HIP_ATOMIC_ADD(ptr, value, memorder, scope);
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType atomic_add_relaxed(const ValueType* ptr,
+                                                        ValueType value)
+{
+    return atomic_max_generic<__ATOMIC_RELAXED, HIP_SCOPE_GPU>(ptr, value);
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType
+atomic_max_relaxed_shared(const ValueType* ptr, ValueType value)
+{
+    return atomic_max_generic<__ATOMIC_RELAXED, HIP_SCOPE_THREADBLOCK>(ptr,
+                                                                       value);
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType
+atomic_max_relaxed_local(const ValueType* ptr, ValueType value)
+{
+    return atomic_max_generic<__ATOMIC_RELAXED, HIP_SCOPE_THREADBLOCK>(ptr,
+                                                                       value);
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType atomic_max_acqrel(const ValueType* ptr,
+                                                       ValueType value)
+{
+    return atomic_max_generic<__ATOMIC_ACQ_REL, HIP_SCOPE_GPU>(ptr, value);
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType
+atomic_max_acqrel_shared(const ValueType* ptr, ValueType value)
+{
+    return atomic_max_generic<__ATOMIC_ACQ_REL, HIP_SCOPE_THREADBLOCK>(ptr,
+                                                                       value);
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType
+atomic_max_acqrel_local(const ValueType* ptr, ValueType value)
+{
+    return atomic_max_generic<__ATOMIC_ACQ_REL, HIP_SCOPE_THREADBLOCK>(ptr,
+                                                                       value);
+}
+
+
 #undef HIP_ATOMIC_LOAD
 #undef HIP_ATOMIC_STORE
+#undef HIP_ATOMIC_CAS
+#undef HIP_ATOMIC_ADD
+#undef HIP_ATOMIC_MIN
+#undef HIP_ATOMIC_MAX
 #undef HIP_SCOPE_GPU
 #undef HIP_SCOPE_THREADBLOCK
 
