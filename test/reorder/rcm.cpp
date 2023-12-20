@@ -317,12 +317,17 @@ protected:
 
 TEST_F(Rcm, PermutationIsRcmOrdered)
 {
-    d_reorder_op = reorder_type::build().on(exec)->generate(d_1138_bus_mtx);
+    d_reorder_op = reorder_type::build()
+                       .with_construct_inverse_permutation(true)
+                       .on(exec)
+                       ->generate(d_1138_bus_mtx);
 
     auto perm = d_reorder_op->get_permutation();
 
     check_rcm_ordered(o_1138_bus_mtx, perm.get(),
                       d_reorder_op->get_parameters().strategy);
+    GKO_ASSERT_MTX_EQ_SPARSITY(perm->compute_inverse(),
+                               d_reorder_op->get_inverse_permutation());
 }
 
 TEST_F(Rcm, PermutationIsRcmOrderedMinDegree)
@@ -337,6 +342,7 @@ TEST_F(Rcm, PermutationIsRcmOrderedMinDegree)
 
     check_rcm_ordered(o_1138_bus_mtx, perm.get(),
                       d_reorder_op->get_parameters().strategy);
+    ASSERT_EQ(d_reorder_op->get_inverse_permutation(), nullptr);
 }
 
 TEST_F(Rcm, PermutationIsRcmOrderedNewInterface)
