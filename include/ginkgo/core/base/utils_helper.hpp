@@ -295,6 +295,35 @@ inline typename std::enable_if<!detail::have_ownership_s<Pointer>::value,
 
 
 /**
+ * This is a deleter that does not delete the object.
+ *
+ * It is useful where the object has been allocated elsewhere and will be
+ * deleted manually.
+ */
+template <typename T>
+class null_deleter {
+public:
+    using pointer = T*;
+
+    /**
+     * Deletes the object.
+     *
+     * @param ptr  pointer to the object being deleted
+     */
+    void operator()(pointer) const noexcept {}
+};
+
+// a specialization for arrays
+template <typename T>
+class null_deleter<T[]> {
+public:
+    using pointer = T[];
+
+    void operator()(pointer) const noexcept {}
+};
+
+
+/**
  * Performs polymorphic type conversion.
  *
  * @tparam T  requested result type
@@ -406,6 +435,19 @@ inline std::unique_ptr<std::decay_t<T>> as(std::unique_ptr<U>&& obj)
     }
 }
 
+template <typename T, typename U>
+inline std::unique_ptr<const std::decay_t<T>,
+                       null_deleter<const std::decay_t<T>>>
+as(const std::unique_ptr<U>& obj)
+{
+    if (auto p = dynamic_cast<const std::decay_t<T>*>(obj.get())) {
+        return {p, null_deleter<const std::decay_t<T>>{}};
+    } else {
+        throw NotSupported(__FILE__, __LINE__, __func__,
+                           name_demangling::get_type_name(typeid(*obj)));
+    }
+}
+
 
 /**
  * Performs polymorphic type conversion of a shared_ptr.
@@ -455,35 +497,6 @@ inline std::shared_ptr<const std::decay_t<T>> as(std::shared_ptr<const U> obj)
                            name_demangling::get_type_name(typeid(*obj)));
     }
 }
-
-
-/**
- * This is a deleter that does not delete the object.
- *
- * It is useful where the object has been allocated elsewhere and will be
- * deleted manually.
- */
-template <typename T>
-class null_deleter {
-public:
-    using pointer = T*;
-
-    /**
-     * Deletes the object.
-     *
-     * @param ptr  pointer to the object being deleted
-     */
-    void operator()(pointer) const noexcept {}
-};
-
-// a specialization for arrays
-template <typename T>
-class null_deleter<T[]> {
-public:
-    using pointer = T[];
-
-    void operator()(pointer) const noexcept {}
-};
 
 
 }  // namespace gko
