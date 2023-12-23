@@ -1,35 +1,8 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
+// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
-
+// Copyright (c) 2017-2023, the Ginkgo authors
 #ifndef C_API_H
 #define C_API_H
 
@@ -92,10 +65,9 @@ enum _GKO_DATATYPE_CONST {
         delete array_st_ptr;                                                   \
     }                                                                          \
                                                                                \
-    size_t ginkgo_array_##_name##_get_num_elems(                               \
-        gko_array_##_name array_st_ptr)                                        \
+    size_t ginkgo_array_##_name##_get_size(gko_array_##_name array_st_ptr)     \
     {                                                                          \
-        return (*array_st_ptr).arr.get_num_elems();                            \
+        return (*array_st_ptr).arr.get_size();                                 \
     }
 
 /**
@@ -110,7 +82,7 @@ enum _GKO_DATATYPE_CONST {
     gko_array_##_name ginkgo_array_##_name##_create_view(                     \
         gko_executor exec_st_ptr, size_t size, _ctype* data_ptr);             \
     void ginkgo_array_##_name##_delete(gko_array_##_name array_st_ptr);       \
-    size_t ginkgo_array_##_name##_get_num_elems(gko_array_##_name array_st_ptr);
+    size_t ginkgo_array_##_name##_get_size(gko_array_##_name array_st_ptr);
 
 
 /**
@@ -124,147 +96,349 @@ enum _GKO_DATATYPE_CONST {
  * @param _name  Name of the datatype of the dense matrix
  *
  */
-
-#define DEFINE_DENSE_OVERLOAD(_ctype, _cpptype, _name)                    \
-    struct gko_matrix_dense_##_name##_st {                                \
-        std::shared_ptr<gko::matrix::Dense<_cpptype>> mat;                \
-    };                                                                    \
-                                                                          \
-    gko_matrix_dense_##_name ginkgo_matrix_dense_##_name##_create(        \
-        gko_executor exec, gko_dim2_st size)                              \
-    {                                                                     \
-        return new gko_matrix_dense_##_name##_st{                         \
-            gko::matrix::Dense<_cpptype>::create(                         \
-                (*exec).shared_ptr, gko::dim<2>{size.rows, size.cols})};  \
-    }                                                                     \
-                                                                          \
-    void ginkgo_matrix_dense_##_name##_delete(                            \
-        gko_matrix_dense_##_name mat_st_ptr)                              \
-    {                                                                     \
-        delete mat_st_ptr;                                                \
-    }                                                                     \
-                                                                          \
-    void ginkgo_matrix_dense_##_name##_fill(                              \
-        gko_matrix_dense_##_name mat_st_ptr, _ctype value)                \
-    {                                                                     \
-        (*mat_st_ptr).mat->fill(value);                                   \
-    }                                                                     \
-                                                                          \
-    _ctype ginkgo_matrix_dense_##_name##_at(                              \
-        gko_matrix_dense_##_name mat_st_ptr, size_t row, size_t col)      \
-    {                                                                     \
-        return (*mat_st_ptr).mat->at(row, col);                           \
-    }                                                                     \
-                                                                          \
-    gko_dim2_st ginkgo_matrix_dense_##_name##_get_size(                   \
-        gko_matrix_dense_##_name mat_st_ptr)                              \
-    {                                                                     \
-        auto dim = (*mat_st_ptr).mat->get_size();                         \
-        return gko_dim2_st{dim[0], dim[1]};                               \
-    }                                                                     \
-                                                                          \
-    size_t ginkgo_matrix_dense_##_name##_get_num_stored_elements(         \
-        gko_matrix_dense_##_name mat_st_ptr)                              \
-    {                                                                     \
-        return (*mat_st_ptr).mat->get_num_stored_elements();              \
-    }                                                                     \
-                                                                          \
-    size_t ginkgo_matrix_dense_##_name##_get_stride(                      \
-        gko_matrix_dense_##_name mat_st_ptr)                              \
-    {                                                                     \
-        return (*mat_st_ptr).mat->get_stride();                           \
-    }                                                                     \
-                                                                          \
-    void ginkgo_matrix_dense_##_name##_compute_dot(                       \
-        gko_matrix_dense_##_name mat_st_ptr1,                             \
-        gko_matrix_dense_##_name mat_st_ptr2,                             \
-        gko_matrix_dense_##_name mat_st_ptr_res)                          \
-    {                                                                     \
-        (*mat_st_ptr1)                                                    \
-            .mat->compute_dot((*mat_st_ptr2).mat, (*mat_st_ptr_res).mat); \
-    }                                                                     \
-    void ginkgo_matrix_dense_##_name##_compute_norm1(                     \
-        gko_matrix_dense_##_name mat_st_ptr1,                             \
-        gko_matrix_dense_##_name mat_st_ptr2)                             \
-    {                                                                     \
-        (*mat_st_ptr1).mat->compute_norm1((*mat_st_ptr2).mat);            \
-    }                                                                     \
-                                                                          \
-    void ginkgo_matrix_dense_##_name##_compute_norm2(                     \
-        gko_matrix_dense_##_name mat_st_ptr1,                             \
-        gko_matrix_dense_##_name mat_st_ptr2)                             \
-    {                                                                     \
-        (*mat_st_ptr1).mat->compute_norm2((*mat_st_ptr2).mat);            \
-    }                                                                     \
-                                                                          \
-    gko_matrix_dense_##_name ginkgo_matrix_dense_##_name##_read(          \
-        const char* str_ptr, gko_executor exec)                           \
-    {                                                                     \
-        std::string filename(str_ptr);                                    \
-        std::ifstream ifs(filename, std::ifstream::in);                   \
-                                                                          \
-        return new gko_matrix_dense_##_name##_st{                         \
-            gko::read<gko::matrix::Dense<_cpptype>>(std::move(ifs),       \
-                                                    (*exec).shared_ptr)}; \
-    }                                                                     \
-                                                                          \
-    char* ginkgo_matrix_dense_##_name##_write_mtx(                        \
-        gko_matrix_dense_##_name mat_st_ptr)                              \
-    {                                                                     \
-        auto cout_buff = std::cout.rdbuf();                               \
-                                                                          \
-        std::ostringstream local;                                         \
-        std::cout.rdbuf(local.rdbuf());                                   \
-        gko::write(std::cout, (*mat_st_ptr).mat);                         \
-                                                                          \
-        std::cout.rdbuf(cout_buff);                                       \
-                                                                          \
-        std::string str = local.str();                                    \
-        char* cstr = new char[str.length() + 1];                          \
-        std::strcpy(cstr, str.c_str());                                   \
-        return cstr;                                                      \
+#define DEFINE_DENSE_OVERLOAD(_ctype, _cpptype, _name)                      \
+    struct gko_matrix_dense_##_name##_st {                                  \
+        std::shared_ptr<gko::matrix::Dense<_cpptype>> mat;                  \
+    };                                                                      \
+                                                                            \
+    gko_matrix_dense_##_name ginkgo_matrix_dense_##_name##_create(          \
+        gko_executor exec, gko_dim2_st size)                                \
+    {                                                                       \
+        return new gko_matrix_dense_##_name##_st{                           \
+            gko::matrix::Dense<_cpptype>::create(                           \
+                (*exec).shared_ptr, gko::dim<2>{size.rows, size.cols})};    \
+    }                                                                       \
+                                                                            \
+    gko_matrix_dense_##_name ginkgo_matrix_dense_##_name##_create_view(     \
+        gko_executor exec, gko_dim2_st size, _ctype* values, size_t stride) \
+    {                                                                       \
+        return new gko_matrix_dense_##_name##_st{                           \
+            gko::matrix::Dense<_ctype>::create(                             \
+                (*exec).shared_ptr, gko::dim<2>{size.rows, size.cols},      \
+                gko::array<_ctype>::view((*exec).shared_ptr, size.rows,     \
+                                         values),                           \
+                stride)};                                                   \
+    }                                                                       \
+                                                                            \
+    void ginkgo_matrix_dense_##_name##_delete(                              \
+        gko_matrix_dense_##_name mat_st_ptr)                                \
+    {                                                                       \
+        delete mat_st_ptr;                                                  \
+    }                                                                       \
+                                                                            \
+    void ginkgo_matrix_dense_##_name##_fill(                                \
+        gko_matrix_dense_##_name mat_st_ptr, _ctype value)                  \
+    {                                                                       \
+        (*mat_st_ptr).mat->fill(value);                                     \
+    }                                                                       \
+                                                                            \
+    _ctype ginkgo_matrix_dense_##_name##_at(                                \
+        gko_matrix_dense_##_name mat_st_ptr, size_t row, size_t col)        \
+    {                                                                       \
+        return (*mat_st_ptr).mat->at(row, col);                             \
+    }                                                                       \
+                                                                            \
+    gko_dim2_st ginkgo_matrix_dense_##_name##_get_size(                     \
+        gko_matrix_dense_##_name mat_st_ptr)                                \
+    {                                                                       \
+        auto dim = (*mat_st_ptr).mat->get_size();                           \
+        return gko_dim2_st{dim[0], dim[1]};                                 \
+    }                                                                       \
+                                                                            \
+    _ctype* ginkgo_matrix_dense_##_name##_get_values(                       \
+        gko_matrix_dense_##_name mat_st_ptr)                                \
+    {                                                                       \
+        return (*mat_st_ptr).mat->get_values();                             \
+    }                                                                       \
+                                                                            \
+    const _ctype* ginkgo_matrix_dense_##_name##_get_const_values(           \
+        gko_matrix_dense_##_name mat_st_ptr)                                \
+    {                                                                       \
+        return (*mat_st_ptr).mat->get_const_values();                       \
+    }                                                                       \
+                                                                            \
+    size_t ginkgo_matrix_dense_##_name##_get_num_stored_elements(           \
+        gko_matrix_dense_##_name mat_st_ptr)                                \
+    {                                                                       \
+        return (*mat_st_ptr).mat->get_num_stored_elements();                \
+    }                                                                       \
+                                                                            \
+    size_t ginkgo_matrix_dense_##_name##_get_stride(                        \
+        gko_matrix_dense_##_name mat_st_ptr)                                \
+    {                                                                       \
+        return (*mat_st_ptr).mat->get_stride();                             \
+    }                                                                       \
+                                                                            \
+    void ginkgo_matrix_dense_##_name##_compute_dot(                         \
+        gko_matrix_dense_##_name mat_st_ptr1,                               \
+        gko_matrix_dense_##_name mat_st_ptr2,                               \
+        gko_matrix_dense_##_name mat_st_ptr_res)                            \
+    {                                                                       \
+        (*mat_st_ptr1)                                                      \
+            .mat->compute_dot((*mat_st_ptr2).mat, (*mat_st_ptr_res).mat);   \
+    }                                                                       \
+    void ginkgo_matrix_dense_##_name##_compute_norm1(                       \
+        gko_matrix_dense_##_name mat_st_ptr1,                               \
+        gko_matrix_dense_##_name mat_st_ptr2)                               \
+    {                                                                       \
+        (*mat_st_ptr1).mat->compute_norm1((*mat_st_ptr2).mat);              \
+    }                                                                       \
+                                                                            \
+    void ginkgo_matrix_dense_##_name##_compute_norm2(                       \
+        gko_matrix_dense_##_name mat_st_ptr1,                               \
+        gko_matrix_dense_##_name mat_st_ptr2)                               \
+    {                                                                       \
+        (*mat_st_ptr1).mat->compute_norm2((*mat_st_ptr2).mat);              \
+    }                                                                       \
+                                                                            \
+    gko_matrix_dense_##_name ginkgo_matrix_dense_##_name##_read(            \
+        const char* str_ptr, gko_executor exec)                             \
+    {                                                                       \
+        std::string filename(str_ptr);                                      \
+        std::ifstream ifs(filename, std::ifstream::in);                     \
+                                                                            \
+        return new gko_matrix_dense_##_name##_st{                           \
+            gko::read<gko::matrix::Dense<_cpptype>>(std::move(ifs),         \
+                                                    (*exec).shared_ptr)};   \
+    }                                                                       \
+                                                                            \
+    char* ginkgo_matrix_dense_##_name##_write_mtx(                          \
+        gko_matrix_dense_##_name mat_st_ptr)                                \
+    {                                                                       \
+        auto cout_buff = std::cout.rdbuf();                                 \
+                                                                            \
+        std::ostringstream local;                                           \
+        std::cout.rdbuf(local.rdbuf());                                     \
+        gko::write(std::cout, (*mat_st_ptr).mat);                           \
+                                                                            \
+        std::cout.rdbuf(cout_buff);                                         \
+                                                                            \
+        std::string str = local.str();                                      \
+        char* cstr = new char[str.length() + 1];                            \
+        std::strcpy(cstr, str.c_str());                                     \
+        return cstr;                                                        \
     }
 
 /**
  * @brief A build instruction for declaring gko::matrix::Dense<T> in the C API
  * header file
  */
-#define DECLARE_DENSE_OVERLOAD(_ctype, _cpptype, _name)                     \
-    struct gko_matrix_dense_##_name##_st;                                   \
-    typedef struct gko_matrix_dense_##_name##_st* gko_matrix_dense_##_name; \
-    gko_matrix_dense_##_name ginkgo_matrix_dense_##_name##_create(          \
-        gko_executor exec, gko_dim2_st size);                               \
-    void ginkgo_matrix_dense_##_name##_delete(                              \
-        gko_matrix_dense_##_name mat_st_ptr);                               \
-    void ginkgo_matrix_dense_##_name##_fill(                                \
-        gko_matrix_dense_##_name mat_st_ptr, _ctype value);                 \
-    _ctype ginkgo_matrix_dense_##_name##_at(                                \
-        gko_matrix_dense_##_name mat_st_ptr, size_t row, size_t col);       \
-    gko_dim2_st ginkgo_matrix_dense_##_name##_get_size(                     \
-        gko_matrix_dense_##_name mat_st_ptr);                               \
-    size_t ginkgo_matrix_dense_##_name##_get_num_stored_elements(           \
-        gko_matrix_dense_##_name mat_st_ptr);                               \
-    size_t ginkgo_matrix_dense_##_name##_get_stride(                        \
-        gko_matrix_dense_##_name mat_st_ptr);                               \
-    void ginkgo_matrix_dense_##_name##_compute_dot(                         \
-        gko_matrix_dense_##_name mat_st_ptr1,                               \
-        gko_matrix_dense_##_name mat_st_ptr2,                               \
-        gko_matrix_dense_##_name mat_st_ptr_res);                           \
-    void ginkgo_matrix_dense_##_name##_compute_norm1(                       \
-        gko_matrix_dense_##_name mat_st_ptr1,                               \
-        gko_matrix_dense_##_name mat_st_ptr2);                              \
-    void ginkgo_matrix_dense_##_name##_compute_norm2(                       \
-        gko_matrix_dense_##_name mat_st_ptr1,                               \
-        gko_matrix_dense_##_name mat_st_ptr2);                              \
-    gko_matrix_dense_##_name ginkgo_matrix_dense_##_name##_read(            \
-        const char* str_ptr, gko_executor exec);                            \
-    char* ginkgo_matrix_dense_##_name##_write_mtx(                          \
+#define DECLARE_DENSE_OVERLOAD(_ctype, _cpptype, _name)                      \
+    struct gko_matrix_dense_##_name##_st;                                    \
+    typedef struct gko_matrix_dense_##_name##_st* gko_matrix_dense_##_name;  \
+    gko_matrix_dense_##_name ginkgo_matrix_dense_##_name##_create(           \
+        gko_executor exec, gko_dim2_st size);                                \
+    gko_matrix_dense_##_name ginkgo_matrix_dense_##_name##_create_view(      \
+        gko_executor exec, gko_dim2_st size, _ctype* values, size_t stride); \
+    void ginkgo_matrix_dense_##_name##_delete(                               \
+        gko_matrix_dense_##_name mat_st_ptr);                                \
+    void ginkgo_matrix_dense_##_name##_fill(                                 \
+        gko_matrix_dense_##_name mat_st_ptr, _ctype value);                  \
+    _ctype ginkgo_matrix_dense_##_name##_at(                                 \
+        gko_matrix_dense_##_name mat_st_ptr, size_t row, size_t col);        \
+    gko_dim2_st ginkgo_matrix_dense_##_name##_get_size(                      \
+        gko_matrix_dense_##_name mat_st_ptr);                                \
+    _ctype* ginkgo_matrix_dense_##_name##_get_values(                        \
+        gko_matrix_dense_##_name mat_st_ptr);                                \
+    const _ctype* ginkgo_matrix_dense_##_name##_get_const_values(            \
+        gko_matrix_dense_##_name mat_st_ptr);                                \
+    size_t ginkgo_matrix_dense_##_name##_get_num_stored_elements(            \
+        gko_matrix_dense_##_name mat_st_ptr);                                \
+    size_t ginkgo_matrix_dense_##_name##_get_stride(                         \
+        gko_matrix_dense_##_name mat_st_ptr);                                \
+    void ginkgo_matrix_dense_##_name##_compute_dot(                          \
+        gko_matrix_dense_##_name mat_st_ptr1,                                \
+        gko_matrix_dense_##_name mat_st_ptr2,                                \
+        gko_matrix_dense_##_name mat_st_ptr_res);                            \
+    void ginkgo_matrix_dense_##_name##_compute_norm1(                        \
+        gko_matrix_dense_##_name mat_st_ptr1,                                \
+        gko_matrix_dense_##_name mat_st_ptr2);                               \
+    void ginkgo_matrix_dense_##_name##_compute_norm2(                        \
+        gko_matrix_dense_##_name mat_st_ptr1,                                \
+        gko_matrix_dense_##_name mat_st_ptr2);                               \
+    gko_matrix_dense_##_name ginkgo_matrix_dense_##_name##_read(             \
+        const char* str_ptr, gko_executor exec);                             \
+    char* ginkgo_matrix_dense_##_name##_write_mtx(                           \
         gko_matrix_dense_##_name mat_st_ptr);
+
+
+/**
+ * @brief A build instruction for defining gko::matrix::Csr<Tv, Ti>, simplifying
+ * its construction by removing the repetitive typing of array's name.
+ *
+ * @param _ctype_value  Type name of the element type in C
+ *
+ * @param _ctype_index  Type name of the index type in C
+ *
+ * @param _cpptype_value  Type name of the element type in C++
+ *
+ * @param _cpptype_index  Type name of the index type in C++
+ *
+ * @param _name  Name of the datatype of the sparse CSR matrix
+ *
+ * @param _name_dense Name of the datatype of the dense matrix for apply
+ * function
+ */
+#define DEFINE_CSR_OVERLOAD(_ctype_value, _ctype_index, _cpptype_value,        \
+                            _cpptype_index, _name, _name_dense)                \
+    struct gko_matrix_csr_##_name##_st {                                       \
+        std::shared_ptr<gko::matrix::Csr<_cpptype_value, _cpptype_index>> mat; \
+    };                                                                         \
+                                                                               \
+    gko_matrix_csr_##_name ginkgo_matrix_csr_##_name##_create(                 \
+        gko_executor exec, gko_dim2_st size, size_t nnz)                       \
+    {                                                                          \
+        return new gko_matrix_csr_##_name##_st{                                \
+            gko::matrix::Csr<_cpptype_value, _cpptype_index>::create(          \
+                (*exec).shared_ptr, gko::dim<2>{size.rows, size.cols}, nnz)};  \
+    }                                                                          \
+                                                                               \
+    gko_matrix_csr_##_name ginkgo_matrix_csr_##_name##_create_view(            \
+        gko_executor exec, gko_dim2_st size, size_t nnz,                       \
+        _ctype_index* row_ptrs, _ctype_index* col_idxs, _ctype_value* values)  \
+    {                                                                          \
+        return new gko_matrix_csr_##_name##_st{                                \
+            gko::matrix::Csr<_cpptype_value, _cpptype_index>::create(          \
+                (*exec).shared_ptr, gko::dim<2>{size.rows, size.cols},         \
+                gko::array<_cpptype_value>::view((*exec).shared_ptr, nnz,      \
+                                                 values),                      \
+                gko::array<_cpptype_index>::view((*exec).shared_ptr, nnz,      \
+                                                 col_idxs),                    \
+                gko::array<_cpptype_index>::view((*exec).shared_ptr,           \
+                                                 size.rows + 1, row_ptrs))};   \
+    }                                                                          \
+                                                                               \
+    void ginkgo_matrix_csr_##_name##_delete(gko_matrix_csr_##_name mat_st_ptr) \
+    {                                                                          \
+        delete mat_st_ptr;                                                     \
+    }                                                                          \
+                                                                               \
+    gko_matrix_csr_##_name ginkgo_matrix_csr_##_name##_read(                   \
+        const char* str_ptr, gko_executor exec)                                \
+    {                                                                          \
+        std::string filename(str_ptr);                                         \
+        std::ifstream ifs(filename, std::ifstream::in);                        \
+                                                                               \
+        return new gko_matrix_csr_##_name##_st{                                \
+            gko::read<gko::matrix::Csr<_cpptype_value, _cpptype_index>>(       \
+                std::move(ifs), (*exec).shared_ptr)};                          \
+    }                                                                          \
+                                                                               \
+    size_t ginkgo_matrix_csr_##_name##_get_num_stored_elements(                \
+        gko_matrix_csr_##_name mat_st_ptr)                                     \
+    {                                                                          \
+        return (*mat_st_ptr).mat->get_num_stored_elements();                   \
+    }                                                                          \
+                                                                               \
+    size_t ginkgo_matrix_csr_##_name##_get_num_srow_elements(                  \
+        gko_matrix_csr_##_name mat_st_ptr)                                     \
+    {                                                                          \
+        return (*mat_st_ptr).mat->get_num_srow_elements();                     \
+    }                                                                          \
+                                                                               \
+    gko_dim2_st ginkgo_matrix_csr_##_name##_get_size(                          \
+        gko_matrix_csr_##_name mat_st_ptr)                                     \
+    {                                                                          \
+        auto dim = (*mat_st_ptr).mat->get_size();                              \
+        return gko_dim2_st{dim[0], dim[1]};                                    \
+    }                                                                          \
+                                                                               \
+    const _ctype_value* ginkgo_matrix_csr_##_name##_get_const_values(          \
+        gko_matrix_csr_##_name mat_st_ptr)                                     \
+    {                                                                          \
+        return (*mat_st_ptr).mat->get_const_values();                          \
+    }                                                                          \
+                                                                               \
+    const _ctype_index* ginkgo_matrix_csr_##_name##_get_const_col_idxs(        \
+        gko_matrix_csr_##_name mat_st_ptr)                                     \
+    {                                                                          \
+        return (*mat_st_ptr).mat->get_const_col_idxs();                        \
+    }                                                                          \
+                                                                               \
+    const _ctype_index* ginkgo_matrix_csr_##_name##_get_const_row_ptrs(        \
+        gko_matrix_csr_##_name mat_st_ptr)                                     \
+    {                                                                          \
+        return (*mat_st_ptr).mat->get_const_row_ptrs();                        \
+    }                                                                          \
+                                                                               \
+    const _ctype_index* ginkgo_matrix_csr_##_name##_get_const_srow(            \
+        gko_matrix_csr_##_name mat_st_ptr)                                     \
+    {                                                                          \
+        return (*mat_st_ptr).mat->get_const_srow();                            \
+    }                                                                          \
+                                                                               \
+    void ginkgo_matrix_csr_##_name##_apply(                                    \
+        gko_matrix_csr_##_name mat_st_ptr,                                     \
+        gko_matrix_dense_##_name_dense alpha,                                  \
+        gko_matrix_dense_##_name_dense x, gko_matrix_dense_##_name_dense beta, \
+        gko_matrix_dense_##_name_dense y)                                      \
+    {                                                                          \
+        mat_st_ptr->mat->apply(alpha->mat, x->mat, beta->mat, y->mat);         \
+    }                                                                          \
+    void ginkgo_solver_cg_solve_##_name(                                       \
+        gko_executor exec_st_ptr, gko_matrix_csr_##_name A_st_ptr,             \
+        gko_matrix_dense_##_name_dense b_st_ptr,                               \
+        gko_matrix_dense_##_name_dense x_st_ptr, int maxiter,                  \
+        double reduction)                                                      \
+    {                                                                          \
+        auto solver_gen =                                                      \
+            gko::solver::Cg<_cpptype_value>::build()                           \
+                .with_criteria(                                                \
+                    gko::stop::Iteration::build().with_max_iters(maxiter),     \
+                    gko::stop::ResidualNorm<_cpptype_value>::build()           \
+                        .with_reduction_factor(reduction))                     \
+                .on(exec_st_ptr->shared_ptr);                                  \
+                                                                               \
+        auto solver = solver_gen->generate(A_st_ptr->mat);                     \
+                                                                               \
+        solver->apply(b_st_ptr->mat, x_st_ptr->mat);                           \
+    }
+
+/**
+ * @brief A build instruction for declaring gko::matrix::Csr<Tv,Ti> in the C API
+ * header file
+ */
+#define DECLARE_CSR_OVERLOAD(_ctype_value, _ctype_index, _cpptype_value,       \
+                             _cpptype_index, _name, _name_dense)               \
+    struct gko_matrix_csr_##_name##_st;                                        \
+    typedef struct gko_matrix_csr_##_name##_st* gko_matrix_csr_##_name;        \
+    gko_matrix_csr_##_name ginkgo_matrix_csr_##_name##_create(                 \
+        gko_executor exec, gko_dim2_st size, size_t nnz);                      \
+    gko_matrix_csr_##_name ginkgo_matrix_csr_##_name##_create_view(            \
+        gko_executor exec, gko_dim2_st size, size_t nnz,                       \
+        _ctype_index* row_ptrs, _ctype_index* col_idxs, _ctype_value* values); \
+    void ginkgo_matrix_csr_##_name##_delete(                                   \
+        gko_matrix_csr_##_name mat_st_ptr);                                    \
+    gko_matrix_csr_##_name ginkgo_matrix_csr_##_name##_read(                   \
+        const char* str_ptr, gko_executor exec);                               \
+    size_t ginkgo_matrix_csr_##_name##_get_num_stored_elements(                \
+        gko_matrix_csr_##_name mat_st_ptr);                                    \
+    size_t ginkgo_matrix_csr_##_name##_get_num_srow_elements(                  \
+        gko_matrix_csr_##_name mat_st_ptr);                                    \
+    gko_dim2_st ginkgo_matrix_csr_##_name##_get_size(                          \
+        gko_matrix_csr_##_name mat_st_ptr);                                    \
+    const _ctype_value* ginkgo_matrix_csr_##_name##_get_const_values(          \
+        gko_matrix_csr_##_name mat_st_ptr);                                    \
+    const _ctype_index* ginkgo_matrix_csr_##_name##_get_const_col_idxs(        \
+        gko_matrix_csr_##_name mat_st_ptr);                                    \
+    const _ctype_index* ginkgo_matrix_csr_##_name##_get_const_row_ptrs(        \
+        gko_matrix_csr_##_name mat_st_ptr);                                    \
+    const _ctype_index* ginkgo_matrix_csr_##_name##_get_const_srow(            \
+        gko_matrix_csr_##_name mat_st_ptr);                                    \
+    void ginkgo_matrix_csr_##_name##_apply(                                    \
+        gko_matrix_csr_##_name mat_st_ptr,                                     \
+        gko_matrix_dense_##_name_dense alpha,                                  \
+        gko_matrix_dense_##_name_dense x, gko_matrix_dense_##_name_dense beta, \
+        gko_matrix_dense_##_name_dense y);                                     \
+    void ginkgo_solver_cg_solve_##_name(                                       \
+        gko_executor exec_st_ptr, gko_matrix_csr_##_name A_st_ptr,             \
+        gko_matrix_dense_##_name_dense b_st_ptr,                               \
+        gko_matrix_dense_##_name_dense x_st_ptr, int maxiter,                  \
+        double reduction);
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 /* ----------------------------------------------------------------------
  * C memory management
@@ -343,9 +517,9 @@ gko_executor ginkgo_executor_reference_create();
 /* ----------------------------------------------------------------------
  * Library functions for creating arrays and array operations in GINKGO
  * ---------------------------------------------------------------------- */
-DECLARE_ARRAY_OVERLOAD(short, short, i16);
+DECLARE_ARRAY_OVERLOAD(__int16_t, __int16_t, i16);
 DECLARE_ARRAY_OVERLOAD(int, int, i32);
-DECLARE_ARRAY_OVERLOAD(long long, long long, i64);
+DECLARE_ARRAY_OVERLOAD(__int64_t, std::int64_t, i64);
 DECLARE_ARRAY_OVERLOAD(float, float, f32);
 DECLARE_ARRAY_OVERLOAD(double, double, f64);
 // DECLARE_ARRAY_OVERLOAD(float complex, std::complex<float>, cf32);
@@ -359,47 +533,18 @@ DECLARE_DENSE_OVERLOAD(float, float, f32);
 DECLARE_DENSE_OVERLOAD(double, double, f64);
 // DECLARE_DENSE_OVERLOAD(float _Complex, std::complex<float>, cf32);
 // DECLARE_DENSE_OVERLOAD(double _Complex, std::complex<double>, cf64);
-// DECLARE_DENSE_OVERLOAD(short, short, i16);
+// DECLARE_DENSE_OVERLOAD(__int16_t, std::int16_t, i16);
 // DECLARE_DENSE_OVERLOAD(int, int, i32);
-// DECLARE_DENSE_OVERLOAD(long long, long long, i64);
+// DECLARE_DENSE_OVERLOAD(__int64_t, std::int64_t, i64);
 
-struct gko_matrix_csr_f32_i32_st;
-typedef struct gko_matrix_csr_f32_i32_st* gko_matrix_csr_f32_i32;
-gko_matrix_csr_f32_i32 ginkgo_matrix_csr_f32_i32_create(gko_executor exec,
-                                                        gko_dim2_st size,
-                                                        size_t nnz);
-void ginkgo_matrix_csr_f32_i32_delete(gko_matrix_csr_f32_i32 mat_st_ptr);
-gko_matrix_csr_f32_i32 ginkgo_matrix_csr_f32_i32_read(const char* str_ptr,
-                                                      gko_executor exec);
-size_t ginkgo_matrix_csr_f32_i32_get_num_stored_elements(
-    gko_matrix_csr_f32_i32 mat_st_ptr);
-size_t ginkgo_matrix_csr_f32_i32_get_num_srow_elements(
-    gko_matrix_csr_f32_i32 mat_st_ptr);
-gko_dim2_st ginkgo_matrix_csr_f32_i32_get_size(
-    gko_matrix_csr_f32_i32 mat_st_ptr);
-const float* ginkgo_matrix_csr_f32_i32_get_const_values(
-    gko_matrix_csr_f32_i32 mat_st_ptr);
-const int* ginkgo_matrix_csr_f32_i32_get_const_col_idxs(
-    gko_matrix_csr_f32_i32 mat_st_ptr);
-const int* ginkgo_matrix_csr_f32_i32_get_const_row_ptrs(
-    gko_matrix_csr_f32_i32 mat_st_ptr);
-const int* ginkgo_matrix_csr_f32_i32_get_const_srow(
-    gko_matrix_csr_f32_i32 mat_st_ptr);
-
-/**
- * @brief Performs an SpMM product
- *
- * @param mat_st_ptr
- * @param alpha
- * @param x
- * @param beta
- * @param y
- */
-void ginkgo_matrix_csr_f32_i32_apply(gko_matrix_csr_f32_i32 mat_st_ptr,
-                                     gko_matrix_dense_f32 alpha,
-                                     gko_matrix_dense_f32 x,
-                                     gko_matrix_dense_f32 beta,
-                                     gko_matrix_dense_f32 y);
+DECLARE_CSR_OVERLOAD(float, int, float, int, f32_i32, f32);
+DECLARE_CSR_OVERLOAD(float, __int64_t, float, std::int64_t, f32_i64, f32);
+DECLARE_CSR_OVERLOAD(double, int, double, int, f64_i32, f64);
+DECLARE_CSR_OVERLOAD(double, __int64_t, double, std::int64_t, f64_i64, f64);
+// DECLARE_CSR_OVERLOAD(double, __int16_t, double, std::int16_t, f64_i16, f64);
+// DECLARE_CSR_OVERLOAD(float _Complex, int, std::complex<float>, int,
+// cf32_i32); DECLARE_CSR_OVERLOAD(double _Complex, int, std::complex<double>,
+// int, cf64_i32);
 
 
 /* ----------------------------------------------------------------------
@@ -410,11 +555,11 @@ void ginkgo_matrix_csr_f32_i32_apply(gko_matrix_csr_f32_i32 mat_st_ptr,
 /* ----------------------------------------------------------------------
  * Library functions for iterative solvers in GINKGO
  * ---------------------------------------------------------------------- */
-void ginkgo_solver_cg_solve(gko_executor exec_st_ptr,
-                            gko_matrix_csr_f32_i32 A_st_ptr,
-                            gko_matrix_dense_f32 b_st_ptr,
-                            gko_matrix_dense_f32 x_st_ptr, int maxiter,
-                            double reduction);
+// void ginkgo_solver_cg_solve_f32_i32(gko_executor exec_st_ptr,
+//                             gko_matrix_csr_f32_i32 A_st_ptr,
+//                             gko_matrix_dense_f32 b_st_ptr,
+//                             gko_matrix_dense_f32 x_st_ptr, int maxiter,
+//                             double reduction);
 
 /* ----------------------------------------------------------------------
  * Library functions for retrieving configuration information in GINKGO
