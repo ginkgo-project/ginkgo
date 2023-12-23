@@ -114,7 +114,7 @@ int main(int argc, char* argv[])
                        : broadcast_json_input(get_input_stream(), comm);
     auto test_cases = json::parse(json_input);
 
-    run_test_cases(SolverBenchmark<Generator>{Generator{comm}}, exec,
+    run_test_cases(SolverBenchmark<Generator>{Generator{comm}, do_print}, exec,
                    get_mpi_timer(exec, comm, FLAGS_gpu_timer), test_cases);
 
     if (do_print) {

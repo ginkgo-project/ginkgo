@@ -363,8 +363,10 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
     std::vector<std::string> precond_solvers;
     std::map<std::string, std::pair<std::string, std::string>> decoder;
     Generator generator;
+    bool do_print;
 
-    SolverBenchmark(Generator generator) : name{"solver"}, generator{generator}
+    SolverBenchmark(Generator generator, bool do_print = true)
+        : name{"solver"}, generator{generator}, do_print{do_print}
     {
         auto solvers = split(FLAGS_solvers, ',');
         auto preconds = split(FLAGS_preconditioners, ',');
@@ -383,7 +385,7 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
         return precond_solvers;
     }
 
-    bool should_print() const override { return true; }
+    bool should_print() const override { return do_print; }
 
     std::string get_example_config() const override
     {
