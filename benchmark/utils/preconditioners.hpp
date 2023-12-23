@@ -295,6 +295,15 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  .with_sparsity_power(FLAGS_isai_power)
                  .on(exec);
          }},
+        {"schwarz-jacobi",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return gko::experimental::distributed::preconditioner::Schwarz<
+                        etype, itype>::build()
+                 .with_local_solver(
+                     gko::preconditioner::Jacobi<etype>::build()
+                         .with_max_block_size(FLAGS_jacobi_max_block_size))
+                 .on(exec);
+         }},
         {"overhead", [](std::shared_ptr<const gko::Executor> exec) {
              return gko::Overhead<etype>::build()
                  .with_criteria(gko::stop::ResidualNorm<etype>::build()
