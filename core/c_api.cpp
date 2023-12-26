@@ -86,34 +86,34 @@ gko_executor ginkgo_executor_reference_create()
 /* ----------------------------------------------------------------------
  * Library functions for creating arrays and array operations in GINKGO
  * ---------------------------------------------------------------------- */
-DEFINE_ARRAY_OVERLOAD(short, short, i16);
-DEFINE_ARRAY_OVERLOAD(int, int, i32);
-DEFINE_ARRAY_OVERLOAD(__int64_t, std::int64_t, i64);
-DEFINE_ARRAY_OVERLOAD(float, float, f32);
-DEFINE_ARRAY_OVERLOAD(double, double, f64);
-// DEFINE_ARRAY_OVERLOAD(float _Complex, std::complex<float>, cf32);
-// DEFINE_ARRAY_OVERLOAD(double _Complex, std::complex<double>, cf64);
+DEFINE_ARRAY_OVERLOAD(short, short, i16)
+DEFINE_ARRAY_OVERLOAD(int, int, i32)
+DEFINE_ARRAY_OVERLOAD(__int64_t, std::int64_t, i64)
+DEFINE_ARRAY_OVERLOAD(float, float, f32)
+DEFINE_ARRAY_OVERLOAD(double, double, f64)
+// DEFINE_ARRAY_OVERLOAD(float _Complex, std::complex<float>, cf32)
+// DEFINE_ARRAY_OVERLOAD(double _Complex, std::complex<double>, cf64)
 
 
 /* ----------------------------------------------------------------------
  * Library functions for creating matrices and matrix operations in GINKGO
  * ---------------------------------------------------------------------- */
-DEFINE_DENSE_OVERLOAD(float, float, f32);
-DEFINE_DENSE_OVERLOAD(double, double, f64);
-// DEFINE_DENSE_OVERLOAD(float _Complex, std::complex<float>, cf32);
-// DEFINE_DENSE_OVERLOAD(double _Complex, std::complex<double>, cf64);
-// DEFINE_DENSE_OVERLOAD(short, short, i16);
-// DEFINE_DENSE_OVERLOAD(int, int, i32);
-// DEFINE_DENSE_OVERLOAD(__int64_t, __int64_t, i64);
+DEFINE_DENSE_OVERLOAD(float, float, f32)
+DEFINE_DENSE_OVERLOAD(double, double, f64)
+// DEFINE_DENSE_OVERLOAD(float _Complex, std::complex<float>, cf32)
+// DEFINE_DENSE_OVERLOAD(double _Complex, std::complex<double>, cf64)
+// DEFINE_DENSE_OVERLOAD(short, short, i16)
+// DEFINE_DENSE_OVERLOAD(int, int, i32)
+// DEFINE_DENSE_OVERLOAD(__int64_t, __int64_t, i64)
 
-DEFINE_CSR_OVERLOAD(float, int, float, int, f32_i32, f32);
-DEFINE_CSR_OVERLOAD(float, __int64_t, float, std::int64_t, f32_i64, f32);
-DEFINE_CSR_OVERLOAD(double, int, double, int, f64_i32, f64);
-DEFINE_CSR_OVERLOAD(double, __int64_t, double, std::int64_t, f64_i64, f64);
-// DEFINE_CSR_OVERLOAD(double, __int16_t, double, std::int16_t, f64_i16, f64);
+DEFINE_CSR_OVERLOAD(float, int, float, int, f32_i32, f32)
+DEFINE_CSR_OVERLOAD(float, __int64_t, float, std::int64_t, f32_i64, f32)
+DEFINE_CSR_OVERLOAD(double, int, double, int, f64_i32, f64)
+DEFINE_CSR_OVERLOAD(double, __int64_t, double, std::int64_t, f64_i64, f64)
+// DEFINE_CSR_OVERLOAD(double, __int16_t, double, std::int16_t, f64_i16, f64)
 // DEFINE_CSR_OVERLOAD(float _Complex, int, std::complex<float>, int, cf32_i32,
 // cf32); DEFINE_CSR_OVERLOAD(double _Complex, int, std::complex<double>, int,
-// cf64_i32, cf64);
+// cf64_i32, cf64)
 
 /* ----------------------------------------------------------------------
  * Library functions for BLAS linop in GINKGO
