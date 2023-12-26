@@ -7,8 +7,8 @@
 #define C_API_H
 
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
-
 /* ----------------------------------------------------------------------
  * Data type constants in GINKGO
  * ---------------------------------------------------------------------- */
@@ -517,9 +517,9 @@ gko_executor ginkgo_executor_reference_create();
 /* ----------------------------------------------------------------------
  * Library functions for creating arrays and array operations in GINKGO
  * ---------------------------------------------------------------------- */
-DECLARE_ARRAY_OVERLOAD(__int16_t, __int16_t, i16)
+DECLARE_ARRAY_OVERLOAD(int16_t, int16_t, i16)
 DECLARE_ARRAY_OVERLOAD(int, int, i32)
-DECLARE_ARRAY_OVERLOAD(__int64_t, std::int64_t, i64)
+DECLARE_ARRAY_OVERLOAD(int64_t, std::int64_t, i64)
 DECLARE_ARRAY_OVERLOAD(float, float, f32)
 DECLARE_ARRAY_OVERLOAD(double, double, f64)
 // DECLARE_ARRAY_OVERLOAD(float complex, std::complex<float>, cf32)
@@ -533,15 +533,15 @@ DECLARE_DENSE_OVERLOAD(float, float, f32)
 DECLARE_DENSE_OVERLOAD(double, double, f64)
 // DECLARE_DENSE_OVERLOAD(float _Complex, std::complex<float>, cf32)
 // DECLARE_DENSE_OVERLOAD(double _Complex, std::complex<double>, cf64)
-// DECLARE_DENSE_OVERLOAD(__int16_t, std::int16_t, i16)
+// DECLARE_DENSE_OVERLOAD(int16_t, std::int16_t, i16)
 // DECLARE_DENSE_OVERLOAD(int, int, i32)
-// DECLARE_DENSE_OVERLOAD(__int64_t, std::int64_t, i64)
+// DECLARE_DENSE_OVERLOAD(int64_t, std::int64_t, i64)
 
 DECLARE_CSR_OVERLOAD(float, int, float, int, f32_i32, f32)
-DECLARE_CSR_OVERLOAD(float, __int64_t, float, std::int64_t, f32_i64, f32)
+DECLARE_CSR_OVERLOAD(float, int64_t, float, std::int64_t, f32_i64, f32)
 DECLARE_CSR_OVERLOAD(double, int, double, int, f64_i32, f64)
-DECLARE_CSR_OVERLOAD(double, __int64_t, double, std::int64_t, f64_i64, f64)
-// DECLARE_CSR_OVERLOAD(double, __int16_t, double, std::int16_t, f64_i16, f64)
+DECLARE_CSR_OVERLOAD(double, int64_t, double, std::int64_t, f64_i64, f64)
+// DECLARE_CSR_OVERLOAD(double, int16_t, double, std::int16_t, f64_i16, f64)
 // DECLARE_CSR_OVERLOAD(float _Complex, int, std::complex<float>, int,
 // cf32_i32); DECLARE_CSR_OVERLOAD(double _Complex, int, std::complex<double>,
 // int, cf64_i32)
