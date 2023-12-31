@@ -152,12 +152,16 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
     }
 
     for (auto it = interface_map.begin(); it != interface_map.end(); it++) {
-        std::vector<IndexType> interf;
-        for (auto i = 0; i < it->second.size(); i++) {
-            interf.emplace_back(it->second[i]);
+        for (auto rt = it->first.begin(); rt != it->first.end(); rt++) {
+            std::vector<IndexType> interf;
+            for (auto i = 0; i < it->second.size(); i++) {
+                if (find_part(partition, it->second[i]) == *rt) {
+                    interf.emplace_back(it->second[i]);
+                }
+            }
+            interface_dof_ranks_.emplace_back(it->first);
+            interface_dofs_.emplace_back(interf);
         }
-        interface_dof_ranks_.emplace_back(it->first);
-        interface_dofs_.emplace_back(interf);
     }
 
     if (comm.rank() == 0) {
@@ -285,7 +289,9 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
     comm.synchronize();
     RCT->apply(coarse_residual, coarse_b);
     coarse_x->fill(zero<ValueType>());
+    comm.synchronize();
     coarse_solver->apply(coarse_b, coarse_x);
+    comm.synchronize();
     RC->apply(coarse_x, coarse_solution);
     phi->apply(coarse_sol, coarse_2);
     // coarse_2->fill(zero<ValueType>());
@@ -317,6 +323,7 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
         cT->apply(neg_one_op, mue, one_op, ge);
     }
     edge_solver->apply(ge, qe);
+    comm.synchronize();
     coarse_2->add_scaled(one_op, coarse_3);
     comm.synchronize();
 
@@ -423,6 +430,9 @@ void Bddc<ValueType, IndexType>::generate()
     size_type n_edges = edges.size();
     size_type n_corners = corners.size();
     size_type n_e_idxs = edge_idxs.size();
+
+    std::cout << "RANK " << rank << ": " << n_corners << " / " << n_edges
+              << " / " << n_e_idxs << std::endl;
     for (size_type i = 0; i < edge_idxs.size(); i++) {
         dof_types.emplace(edge_idxs[i], dof_type::edge);
         global_to_local.emplace(edge_idxs[i], n_inner + i);
@@ -629,7 +639,14 @@ void Bddc<ValueType, IndexType>::generate()
     auto interm = vec_type::create(exec, dim<2>{n_inner + n_e_idxs, n_edges});
     auto local_schur_complement =
         vec_type::create(exec, dim<2>{n_edges, n_edges});
-    global_edge_solver->apply(CCT, interm);
+    for (size_t edge = 0; edge < n_edges; edge++) {
+        auto CCT_edge = CCT->create_submatrix(span{0, n_inner + n_e_idxs},
+                                              span{edge, edge + 1});
+        auto interm_edge = interm->create_submatrix(span{0, n_inner + n_e_idxs},
+                                                    span{edge, edge + 1});
+        global_edge_solver->apply(CCT_edge, interm_edge);
+    }
+    // global_edge_solver->apply(CCT, interm);
     if (n_edges > 0) {
         C->apply(interm, local_schur_complement);
         auto ls = share(matrix_type::create(exec));
@@ -780,6 +797,25 @@ void Bddc<ValueType, IndexType>::generate()
                                                weights_vec->get_const_values());
     weights = clone(
         diag_type::create_const(exec, local_size, std::move(weights_array)));
+    std::ofstream out{"weights_" + std::to_string(comm.rank()) + ".mtx"};
+    write(out, weights);
+
+    std::ofstream interface_stream{"interfaces_" + std::to_string(comm.rank()) +
+                                   ".txt"};
+    std::ofstream rank_stream{"ranks_" + std::to_string(comm.rank()) + ".txt"};
+    for (auto i = 0; i < edges.size(); i++) {
+        for (auto j = 0; j < interface_dofs_[edges[i]].size(); j++) {
+            interface_stream << interface_dofs_[edges[i]][j] << " ";
+        }
+        for (auto j = 0; j < interface_dof_ranks_[edges[i]].size(); j++) {
+            rank_stream << interface_dof_ranks_[edges[i]][j] << " ";
+        }
+        rank_stream << std::endl;
+        interface_stream << std::endl;
+    }
+    for (auto i = 0; i < corners.size(); i++) {
+        interface_stream << interface_dofs_[corners[i]][0] << std::endl;
+    }
 
     comm.synchronize();
     restricted_solution = global_vec_type::create(
