@@ -14,14 +14,19 @@
 #include <thrust/tuple.h>
 
 
+#include "hip/base/config.hip.hpp"
 #include "hip/base/thrust.hip.hpp"
 #include "hip/base/types.hip.hpp"
+#include "hip/components/thread_ids.hip.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace hip {
 namespace components {
+
+
+constexpr int default_block_size = 512;
 
 
 #include "common/cuda_hip/base/device_matrix_data_kernels.hpp.inc"

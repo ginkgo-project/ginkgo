@@ -2,6 +2,24 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+namespace kernel {
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void scale(size_type nnz,
+                                                            ValueType s,
+                                                            ValueType* vals)
+{
+    const auto idx = thread::get_thread_id_flat();
+
+    if (idx < nnz) {
+        vals[idx] *= s;
+    }
+}
+
+
+}  // namespace kernel
+
 template <typename ValueType, typename IndexType>
 void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
                   array<ValueType>& values, array<IndexType>& row_idxs,
