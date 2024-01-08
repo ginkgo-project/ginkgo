@@ -7,7 +7,7 @@
 # Copyright 2012-2013 Mathieu Faverge
 # Copyright 2012      Cedric Castagnede
 # Copyright 2013-2020 Florent Pruvost
-# Copyright 2020-2023 Ginkgo Project
+# Copyright 2020 - 2024 Ginkgo Project
 #
 # Distributed under the OSI-approved BSD License (the "License");
 # see accompanying file MORSE-Copyright.txt for details.

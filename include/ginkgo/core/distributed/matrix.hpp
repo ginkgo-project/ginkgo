@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -403,7 +403,7 @@ protected:
 
     /**
      * Creates an empty distributed matrix with specified type
-     * for local matricies.
+     * for local matrices.
      *
      * @note This is mainly a convenience wrapper for
      *       Matrix(std::shared_ptr<const Executor>, mpi::communicator, const
@@ -475,7 +475,7 @@ protected:
 
     /**
      * Creates an empty distributed matrix with specified type
-     * for local matricies.
+     * for local matrices.
      *
      * @note It internally clones the passed in matrix_template. Therefore, the
      *       LinOp should be empty.
