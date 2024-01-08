@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -129,6 +129,15 @@ sparse_communicator::sparse_communicator(
     };
     fill_size_offsets(recv_sizes_, recv_offsets_, part->get_recv_indices());
     fill_size_offsets(send_sizes_, send_offsets_, part->get_send_indices());
+
+    send_idxs_ = array<IndexType>(exec, send_offsets_.back());
+    for (int i = 0; i < part->get_send_indices().get_num_groups(); ++i) {
+        make_array_view(exec, send_sizes_[i],
+                        std::get<array<IndexType>>(send_idxs_).get_data() +
+                            send_offsets_[i]) =
+            part->get_send_indices().get_indices(i);
+    }
+
     part_ = std::move(part);
 }
 
@@ -160,20 +169,14 @@ mpi::request sparse_communicator::communicate_impl_(
 
     send_buffer.init(exec,
                      {send_idxs.get_num_elems(), local_vector->get_size()[1]});
-    size_type offset = 0;
-    for (int i = 0; i < send_idxs.get_num_groups(); ++i) {
-        // need direct support for index_set
-        auto full_idxs = send_idxs.get_indices(i);
-        local_vector->row_gather(
-            &full_idxs, send_buffer.get()->create_submatrix(
-                            {offset, offset + full_idxs.get_num_elems()},
-                            {0, local_vector->get_size()[1]}));
-        offset += full_idxs.get_num_elems();
-    }
+
+    auto& full_send_idxs = std::get<array<IndexType>>(send_idxs_);
+    local_vector->row_gather(&full_send_idxs, send_buffer.get());
 
     auto recv_ptr = recv_buffer->get_values();
     auto send_ptr = send_buffer->get_values();
 
+    exec->synchronize();
     mpi::contiguous_type type(local_vector->get_size()[1],
                               mpi::type_impl<ValueType>::get_type());
     mpi::request req;
