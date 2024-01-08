@@ -219,7 +219,8 @@ int main(int argc, char* argv[])
     ValueType t_end = gko::experimental::mpi::get_walltime();
 
     // Get the residual.
-    auto res_norm = gko::as<vec>(logger->get_residual_norm());
+    auto res_norm = gko::clone(exec->get_master(),
+                               gko::as<vec>(logger->get_residual_norm()));
 
     // @sect3{Printing Results}
     // Print the achieved residual norm and timings on rank 0.
@@ -227,7 +228,7 @@ int main(int argc, char* argv[])
         // clang-format off
         std::cout << "\nNum rows in matrix: " << num_rows
                   << "\nNum ranks: " << comm.size()
-                  << "\nFinal Res norm: " << *res_norm->get_const_values()
+                  << "\nFinal Res norm: " << res_norm->at(0, 0)
                   << "\nIteration count: " << logger->get_num_iterations()
                   << "\nInit time: " << t_init_end - t_init
                   << "\nRead time: " << t_read_setup_end - t_init
