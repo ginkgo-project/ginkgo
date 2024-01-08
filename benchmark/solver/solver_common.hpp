@@ -6,6 +6,9 @@
 #define GINKGO_BENCHMARK_SOLVER_SOLVER_COMMON_HPP
 
 
+#include <chrono>
+
+
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/general_matrix.hpp"
@@ -27,6 +30,13 @@ DEFINE_uint32(max_iters, 1000,
 
 DEFINE_uint32(warmup_max_iters, 100,
               "Maximal number of warmup iterations the solver will be run for");
+
+DEFINE_string(max_time, "0s",
+              "Maximal runtime the solver will run for. Without suffix the "
+              "time is specified in seconds. Alternatively,  suffixes as "
+              "defined by the chrono_literals within the std::chrono library "
+              "can be used to change the duration. Zero or negative duration"
+              "will disable stopping based on the runtime.");
 
 DEFINE_double(rel_res_goal, 1e-6, "The relative residual goal of the solver");
 
@@ -94,9 +104,52 @@ std::string solver_example_config = R"(
 )";
 
 
-std::shared_ptr<const gko::stop::CriterionFactory> create_criterion(
+inline std::chrono::nanoseconds parse_max_time()
+{
+    using namespace std::literals::chrono_literals;
+    if (FLAGS_max_time.empty()) {
+        return 0ns;
+    }
+    auto suffixes = std::string("hmsun");
+    auto suffix_it =
+        std::find_first_of(FLAGS_max_time.begin(), FLAGS_max_time.end(),
+                           suffixes.begin(), suffixes.end());
+    auto suffix = std::string(suffix_it, FLAGS_max_time.end());
+    auto value = std::stol(std::string{FLAGS_max_time.begin(), suffix_it});
+    if (suffix == "h") {
+        return std::chrono::hours{value};
+    }
+    if (suffix == "min") {
+        return std::chrono::minutes{value};
+    }
+    if (suffix == "s" || suffix.empty()) {
+        return std::chrono::seconds{value};
+    }
+    if (suffix == "ms") {
+        return std::chrono::milliseconds{value};
+    }
+    if (suffix == "us") {
+        return std::chrono::microseconds{value};
+    }
+    if (suffix == "ns") {
+        return std::chrono::nanoseconds{value};
+    }
+    throw std::invalid_argument{std::string{"The argument max_time="} +
+                                FLAGS_max_time +
+                                " can't be parsed. Please use only suffixes as "
+                                "defined by the chrono_literals."};
+}
+
+
+inline std::shared_ptr<const gko::stop::CriterionFactory> create_criterion(
     std::shared_ptr<const gko::Executor> exec, std::uint32_t max_iters)
 {
+    std::shared_ptr<const gko::stop::CriterionFactory> time_stop;
+    auto max_time = parse_max_time();
+    if (max_time > std::chrono::nanoseconds{0}) {
+        time_stop = gko::share(
+            gko::stop::Time::build().with_time_limit(max_time).on(exec));
+    }
     std::shared_ptr<const gko::stop::CriterionFactory> residual_stop;
     if (FLAGS_rel_residual) {
         residual_stop =
@@ -116,7 +169,7 @@ std::shared_ptr<const gko::stop::CriterionFactory> create_criterion(
     auto iteration_stop = gko::share(
         gko::stop::Iteration::build().with_max_iters(max_iters).on(exec));
     std::vector<std::shared_ptr<const gko::stop::CriterionFactory>>
-        criterion_vector{residual_stop, iteration_stop};
+        criterion_vector{residual_stop, iteration_stop, time_stop};
     return gko::stop::combine(criterion_vector);
 }
 
