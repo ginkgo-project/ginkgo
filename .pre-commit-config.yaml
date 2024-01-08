@@ -14,7 +14,7 @@ repos:
   # The official reuse hook only supports calling lint, so we need our own hook
   - id: reuse-annotate
     name: reuse-annotate
-    entry: reuse annotate --license BSD-3-Clause --copyright 'The Ginkgo authors' --year 2017-2023 --style c
+    entry: reuse annotate --license BSD-3-Clause --copyright 'The Ginkgo authors' --year 2024 --style c --merge-copyright
     language: python
     additional_dependencies: [reuse]
     types_or: [c, c++, cuda, inc]

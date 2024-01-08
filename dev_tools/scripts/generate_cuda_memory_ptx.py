@@ -42,7 +42,7 @@ types = [type_desc(ptx_type_suffix=".s32", val_constraint="r", name="int32"),
          type_desc(ptx_type_suffix=".f32", val_constraint="f", name="float"),
          type_desc(ptx_type_suffix=".f64", val_constraint="d", name="double")]
 # header
-print("""// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+print("""// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 

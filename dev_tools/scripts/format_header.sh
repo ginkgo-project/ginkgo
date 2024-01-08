@@ -295,7 +295,7 @@ for current_file in $@; do
 
     # Write license
     CURRENT_YEAR=$(date +%Y)
-    echo "${GINKGO_LICENSE_BEGIN} 2017-${CURRENT_YEAR} The Ginkgo authors" > "${current_file}"
+    echo "${GINKGO_LICENSE_BEGIN} 2017 - ${CURRENT_YEAR} The Ginkgo authors" > "${current_file}"
     echo "//" >> "${current_file}"
     echo "${GINKGO_LICENSE_END} BSD-3-Clause" >> "${current_file}"
     echo "" >> "${current_file}"
