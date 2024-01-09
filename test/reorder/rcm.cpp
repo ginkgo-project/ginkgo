@@ -18,6 +18,7 @@
 #include <ginkgo/core/reorder/rcm.hpp>
 
 
+#include "core/components/disjoint_sets.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
 #include "matrices/config.hpp"
@@ -74,13 +75,29 @@ protected:
         }
     }
 
+    static gko::disjoint_sets<index_type> connected_components_reference(
+        std::shared_ptr<CsrMtx> mtx)
+    {
+        auto num_rows = static_cast<index_type>(mtx->get_size()[0]);
+        const auto row_ptrs = mtx->get_const_row_ptrs();
+        const auto cols = mtx->get_const_col_idxs();
+        gko::disjoint_sets<index_type> sets{mtx->get_executor(), num_rows};
+        for (index_type row = 0; row < num_rows; row++) {
+            for (auto nz = row_ptrs[row]; nz < row_ptrs[row + 1]; nz++) {
+                const auto col = cols[nz];
+                sets.join(row, col);
+            }
+        }
+        return sets;
+    }
+
     static void check_valid_start_node(std::shared_ptr<CsrMtx> mtx,
                                        index_type start,
-                                       std::vector<bool>& already_visited,
+                                       const gko::disjoint_sets<index_type>& cc,
                                        gko::reorder::starting_strategy strategy)
     {
         SCOPED_TRACE(start);
-        ASSERT_FALSE(already_visited[start]) << start;
+        const auto start_rep = cc.const_find(start);
 
         const auto n = mtx->get_size()[0];
         auto degrees = std::vector<index_type>(n);
@@ -92,7 +109,7 @@ protected:
         if (strategy == gko::reorder::starting_strategy::minimum_degree) {
             auto min_degree = std::numeric_limits<index_type>::max();
             for (gko::size_type i = 0; i < n; ++i) {
-                if (!already_visited[i] && degrees[i] < min_degree) {
+                if (cc.const_find(i) == start_rep && degrees[i] < min_degree) {
                     min_degree = degrees[i];
                 }
             }
@@ -113,8 +130,7 @@ protected:
         std::vector<index_type> reference_contenders;
         auto current_height = std::numeric_limits<index_type>::min();
         for (gko::size_type i = 0; i < n; ++i) {
-            if (reference_current_levels[i] !=
-                    std::numeric_limits<index_type>::max() &&
+            if (cc.const_find(i) == start_rep &&
                 reference_current_levels[i] >= current_height) {
                 if (reference_current_levels[i] > current_height) {
                     reference_contenders.clear();
@@ -140,9 +156,9 @@ protected:
         // and check if any maximum level exceeds that of the start node
         for (gko::size_type i = 0; i < reference_contenders.size(); ++i) {
             auto contender_height = std::numeric_limits<index_type>::min();
+            index_type contender_degree = 0;
             for (gko::size_type j = 0; j < n; ++j) {
-                if (reference_contenders_levels[i][j] !=
-                        std::numeric_limits<index_type>::max() &&
+                if (cc.const_find(j) == start_rep &&
                     reference_contenders_levels[i][j] > contender_height) {
                     contender_height = reference_contenders_levels[i][j];
                 }
@@ -165,6 +181,7 @@ protected:
             degrees[i] =
                 mtx->get_const_row_ptrs()[i + 1] - mtx->get_const_row_ptrs()[i];
         }
+        const auto cc = connected_components_reference(mtx);
 
         // Following checks for cm ordering, therefore create a reversed perm.
         std::vector<index_type> perm(permutation, permutation + n);
@@ -183,8 +200,7 @@ protected:
         std::vector<bool> already_visited(n);
         while (base_offset != n) {
             // Assert valid start node.
-            check_valid_start_node(mtx, perm[base_offset], already_visited,
-                                   strategy);
+            check_valid_start_node(mtx, perm[base_offset], cc, strategy);
 
             // Assert valid level structure.
             // Also update base_offset and mark as visited while at it.
