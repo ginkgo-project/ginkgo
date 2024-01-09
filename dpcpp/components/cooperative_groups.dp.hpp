@@ -212,7 +212,8 @@ public:
     {
         // todo: change it when OneAPI update the mask related api
         return sycl::reduce_over_group(
-            *this, (predicate != 0) ? mask_type(1) << data_.rank : mask_type(0),
+            static_cast<sycl::sub_group>(*this),
+            (predicate != 0) ? mask_type(1) << data_.rank : mask_type(0),
             sycl::plus<mask_type>());
     }
 
