@@ -5,10 +5,12 @@
 #include <ginkgo/core/distributed/matrix.hpp>
 
 
+#include <set>
+
+
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <set>
 
 
 #include "core/distributed/matrix_kernels.hpp"
@@ -302,14 +304,26 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                 dense_x->get_local_vector()->get_stride());
 
             auto comm = this->get_communicator();
-            auto req = sparse_comm_->communicate(dense_b->get_local_vector(),
-                                                 send_buffer_, recv_buffer_);
-            local_mtx_->apply(dense_b->get_local_vector(), local_x);
-            req.wait();
 
             auto exec = this->get_executor();
             auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+
+            auto req = [&] {
+                if (use_host_buffer) {
+                    return sparse_comm_->communicate(
+                        dense_b->get_local_vector(), host_send_buffer_,
+                        host_recv_buffer_);
+                } else {
+                    return sparse_comm_->communicate(
+                        dense_b->get_local_vector(), send_buffer_,
+                        recv_buffer_);
+                }
+            }();
+            local_mtx_->apply(dense_b->get_local_vector(), local_x);
+            req.wait();
+
             if (use_host_buffer) {
+                recv_buffer_.init_from(host_recv_buffer_.get());
                 recv_buffer_->copy_from(host_recv_buffer_.get());
             }
             non_local_mtx_->apply(one_scalar_.get(), recv_buffer_.get(),
@@ -336,15 +350,27 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                 dense_x->get_local_vector()->get_stride());
 
             auto comm = this->get_communicator();
-            auto req = sparse_comm_->communicate(dense_b->get_local_vector(),
-                                                 send_buffer_, recv_buffer_);
+
+            auto exec = this->get_executor();
+            auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+
+            auto req = [&] {
+                if (use_host_buffer) {
+                    return sparse_comm_->communicate(
+                        dense_b->get_local_vector(), host_send_buffer_,
+                        host_recv_buffer_);
+                } else {
+                    return sparse_comm_->communicate(
+                        dense_b->get_local_vector(), send_buffer_,
+                        recv_buffer_);
+                }
+            }();
             local_mtx_->apply(local_alpha, dense_b->get_local_vector(),
                               local_beta, local_x);
             req.wait();
 
-            auto exec = this->get_executor();
-            auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
             if (use_host_buffer) {
+                recv_buffer_.init_from(host_recv_buffer_.get());
                 recv_buffer_->copy_from(host_recv_buffer_.get());
             }
             non_local_mtx_->apply(local_alpha, recv_buffer_.get(),
