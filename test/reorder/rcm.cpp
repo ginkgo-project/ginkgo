@@ -24,9 +24,6 @@
 #include "test/utils/executor.hpp"
 
 
-namespace {
-
-
 class Rcm : public CommonTestFixture {
 protected:
     using CsrMtx = gko::matrix::Csr<value_type, index_type>;
@@ -312,6 +309,7 @@ protected:
     std::shared_ptr<reorder_type> d_reorder_op;
 };
 
+
 TEST_F(Rcm, PermutationIsRcmOrdered)
 {
     d_reorder_op = reorder_type::build()
@@ -326,6 +324,7 @@ TEST_F(Rcm, PermutationIsRcmOrdered)
     GKO_ASSERT_MTX_EQ_SPARSITY(perm->compute_inverse(),
                                d_reorder_op->get_inverse_permutation());
 }
+
 
 TEST_F(Rcm, PermutationIsRcmOrderedMinDegree)
 {
@@ -342,6 +341,7 @@ TEST_F(Rcm, PermutationIsRcmOrderedMinDegree)
     ASSERT_EQ(d_reorder_op->get_inverse_permutation(), nullptr);
 }
 
+
 TEST_F(Rcm, PermutationIsRcmOrderedNewInterface)
 {
     auto perm = new_reorder_type::build().on(exec)->generate(d_1138_bus_mtx);
@@ -349,6 +349,7 @@ TEST_F(Rcm, PermutationIsRcmOrderedNewInterface)
     check_rcm_ordered(o_1138_bus_mtx, perm.get(),
                       gko::reorder::starting_strategy::pseudo_peripheral);
 }
+
 
 TEST_F(Rcm, PermutationIsRcmOrderedMultipleConnectedComponents)
 {
@@ -376,5 +377,3 @@ TEST_F(Rcm, PermutationIsRcmOrderedMinDegreeMultipleConnectedComponents)
     check_rcm_ordered(o_1138_bus_mtx, perm.get(),
                       d_reorder_op->get_parameters().strategy);
 }
-
-}  // namespace
