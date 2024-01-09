@@ -27,16 +27,16 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL(IndexType)                   \
-    void get_permutation(std::shared_ptr<const DefaultExecutor> exec,       \
-                         IndexType num_vertices, const IndexType* row_ptrs, \
-                         const IndexType* col_idxs, IndexType* permutation, \
-                         IndexType* inv_permutation,                        \
-                         gko::reorder::starting_strategy strategy)
+#define GKO_DECLARE_RCM_COMPUTE_PERMUTATION_KERNEL(IndexType)                \
+    void compute_permutation(                                                \
+        std::shared_ptr<const DefaultExecutor> exec, IndexType num_vertices, \
+        const IndexType* row_ptrs, const IndexType* col_idxs,                \
+        IndexType* permutation, IndexType* inv_permutation,                  \
+        gko::reorder::starting_strategy strategy)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES \
     template <typename IndexType>    \
-    GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL(IndexType)
+    GKO_DECLARE_RCM_COMPUTE_PERMUTATION_KERNEL(IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(rcm, GKO_DECLARE_ALL_AS_TEMPLATES);

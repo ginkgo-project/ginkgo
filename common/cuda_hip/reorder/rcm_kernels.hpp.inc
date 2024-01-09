@@ -573,12 +573,13 @@ void sort_levels(std::shared_ptr<const DefaultExecutor> exec,
 
 
 template <typename IndexType>
-void get_permutation(std::shared_ptr<const DefaultExecutor> exec,
-                     const IndexType num_rows, const IndexType* const row_ptrs,
-                     const IndexType* const col_idxs,
-                     IndexType* const permutation,
-                     IndexType* const inv_permutation,
-                     const gko::reorder::starting_strategy strategy)
+void compute_permutation(std::shared_ptr<const DefaultExecutor> exec,
+                         const IndexType num_rows,
+                         const IndexType* const row_ptrs,
+                         const IndexType* const col_idxs,
+                         IndexType* const permutation,
+                         IndexType* const inv_permutation,
+                         const gko::reorder::starting_strategy strategy)
 {
     if (num_rows == 0) {
         return;
@@ -610,4 +611,4 @@ void get_permutation(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_COMPUTE_PERMUTATION_KERNEL);

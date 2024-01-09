@@ -744,12 +744,12 @@ IndexType handle_isolated_nodes(std::shared_ptr<const OmpExecutor> exec,
  * Computes a rcm permutation, employing the parallel unordered rcm algorithm.
  */
 template <typename IndexType>
-void get_permutation(std::shared_ptr<const OmpExecutor> exec,
-                     const IndexType num_vertices,
-                     const IndexType* const row_ptrs,
-                     const IndexType* const col_idxs, IndexType* const perm,
-                     IndexType* const inv_perm,
-                     const gko::reorder::starting_strategy strategy)
+void compute_permutation(std::shared_ptr<const OmpExecutor> exec,
+                         const IndexType num_vertices,
+                         const IndexType* const row_ptrs,
+                         const IndexType* const col_idxs, IndexType* const perm,
+                         IndexType* const inv_perm,
+                         const gko::reorder::starting_strategy strategy)
 {
     // compute node degrees
     array<IndexType> degree_array{exec, static_cast<size_type>(num_vertices)};
@@ -831,7 +831,7 @@ void get_permutation(std::shared_ptr<const OmpExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_COMPUTE_PERMUTATION_KERNEL);
 
 
 }  // namespace rcm
