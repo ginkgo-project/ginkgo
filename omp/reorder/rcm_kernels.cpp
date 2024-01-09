@@ -368,10 +368,10 @@ std::pair<IndexType, IndexType> rls_contender_and_height(
 
 #pragma omp for schedule(static)
         for (IndexType i = 1; i < num_vertices; ++i) {
+            // choose maximum level and minimum degree
             if (levels[i] != std::numeric_limits<IndexType>::max() &&
-                std::tie(levels[i], degrees[i]) >
-                    std::tie(local_contender.first.first,
-                             local_contender.first.second)) {
+                std::tie(levels[i], local_contender.first.second) >
+                    std::tie(local_contender.first.first, degrees[i])) {
                 local_contender.first = std::make_pair(levels[i], degrees[i]);
                 local_contender.second = i;
             }
