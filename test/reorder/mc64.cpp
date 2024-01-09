@@ -18,12 +18,11 @@ namespace {
 
 class Mc64 : public CommonTestFixture {
 protected:
-    using v_type = double;
-    using i_type = int;
-    using CsrMtx = gko::matrix::Csr<v_type, i_type>;
-    using reorder_type = gko::experimental::reorder::Mc64<v_type, i_type>;
-    using result_type = gko::Composition<v_type>;
-    using perm_type = gko::matrix::ScaledPermutation<v_type, i_type>;
+    using CsrMtx = gko::matrix::Csr<value_type, index_type>;
+    using reorder_type =
+        gko::experimental::reorder::Mc64<value_type, index_type>;
+    using result_type = gko::Composition<value_type>;
+    using perm_type = gko::matrix::ScaledPermutation<value_type, index_type>;
 
     Mc64()
         : mtx(gko::initialize<CsrMtx>({{1.0, 2.0, 0.0, -1.3, 2.1},

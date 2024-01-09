@@ -29,12 +29,10 @@ namespace {
 
 class Rcm : public CommonTestFixture {
 protected:
-    using v_type = double;
-    using i_type = int;
-    using CsrMtx = gko::matrix::Csr<v_type, i_type>;
-    using reorder_type = gko::reorder::Rcm<v_type, i_type>;
-    using new_reorder_type = gko::experimental::reorder::Rcm<i_type>;
-    using perm_type = gko::matrix::Permutation<i_type>;
+    using CsrMtx = gko::matrix::Csr<value_type, index_type>;
+    using reorder_type = gko::reorder::Rcm<value_type, index_type>;
+    using new_reorder_type = gko::experimental::reorder::Rcm<index_type>;
+    using perm_type = gko::matrix::Permutation<index_type>;
 
     Rcm()
         : rng{63749},
@@ -48,14 +46,14 @@ protected:
 
     static void ubfs_reference(
         std::shared_ptr<CsrMtx> mtx,
-        i_type* const
+        index_type* const
             levels,  // Must be inf/max in all nodes connected to source
-        const i_type start)
+        const index_type start)
     {
         const auto row_ptrs = mtx->get_const_row_ptrs();
         const auto col_idxs = mtx->get_const_col_idxs();
 
-        std::deque<i_type> q(0);
+        std::deque<index_type> q(0);
         q.push_back(start);
         levels[start] = 0;
 
@@ -80,7 +78,7 @@ protected:
     }
 
     static void check_valid_start_node(std::shared_ptr<CsrMtx> mtx,
-                                       i_type start,
+                                       index_type start,
                                        std::vector<bool>& already_visited,
                                        gko::reorder::starting_strategy strategy)
     {
@@ -88,14 +86,14 @@ protected:
         ASSERT_FALSE(already_visited[start]) << start;
 
         const auto n = mtx->get_size()[0];
-        auto degrees = std::vector<i_type>(n);
+        auto degrees = std::vector<index_type>(n);
         for (gko::size_type i = 0; i < n; ++i) {
             degrees[i] =
                 mtx->get_const_row_ptrs()[i + 1] - mtx->get_const_row_ptrs()[i];
         }
 
         if (strategy == gko::reorder::starting_strategy::minimum_degree) {
-            auto min_degree = std::numeric_limits<i_type>::max();
+            auto min_degree = std::numeric_limits<index_type>::max();
             for (gko::size_type i = 0; i < n; ++i) {
                 if (!already_visited[i] && degrees[i] < min_degree) {
                     min_degree = degrees[i];
@@ -108,35 +106,35 @@ protected:
         // Check if any valid contender has a lowereq height than the
         // selected start node.
 
-        std::vector<i_type> reference_current_levels(n);
+        std::vector<index_type> reference_current_levels(n);
         std::fill(reference_current_levels.begin(),
                   reference_current_levels.end(),
-                  std::numeric_limits<i_type>::max());
+                  std::numeric_limits<index_type>::max());
         ubfs_reference(mtx, &reference_current_levels[0], start);
 
         // First find all contender nodes in the last UBFS level
-        std::vector<i_type> reference_contenders;
-        auto current_height = std::numeric_limits<i_type>::min();
+        std::vector<index_type> reference_contenders;
+        auto current_height = std::numeric_limits<index_type>::min();
         for (gko::size_type i = 0; i < n; ++i) {
             if (reference_current_levels[i] !=
-                    std::numeric_limits<i_type>::max() &&
+                    std::numeric_limits<index_type>::max() &&
                 reference_current_levels[i] >= current_height) {
                 if (reference_current_levels[i] > current_height) {
                     reference_contenders.clear();
                 }
-                reference_contenders.push_back(static_cast<i_type>(i));
+                reference_contenders.push_back(static_cast<index_type>(i));
                 current_height = reference_current_levels[i];
             }
         }
 
         // then compute a level array for each of the contenders
-        std::vector<std::vector<i_type>> reference_contenders_levels(
+        std::vector<std::vector<index_type>> reference_contenders_levels(
             reference_contenders.size());
         for (gko::size_type i = 0; i < reference_contenders.size(); ++i) {
-            std::vector<i_type> reference_contender_levels(n);
+            std::vector<index_type> reference_contender_levels(n);
             std::fill(reference_contender_levels.begin(),
                       reference_contender_levels.end(),
-                      std::numeric_limits<i_type>::max());
+                      std::numeric_limits<index_type>::max());
             ubfs_reference(mtx, &reference_contender_levels[0],
                            reference_contenders[i]);
             reference_contenders_levels[i] = reference_contender_levels;
@@ -144,10 +142,10 @@ protected:
 
         // and check if any maximum level exceeds that of the start node
         for (gko::size_type i = 0; i < reference_contenders.size(); ++i) {
-            auto contender_height = std::numeric_limits<i_type>::min();
+            auto contender_height = std::numeric_limits<index_type>::min();
             for (gko::size_type j = 0; j < n; ++j) {
                 if (reference_contenders_levels[i][j] !=
-                        std::numeric_limits<i_type>::max() &&
+                        std::numeric_limits<index_type>::max() &&
                     reference_contenders_levels[i][j] > contender_height) {
                     contender_height = reference_contenders_levels[i][j];
                 }
@@ -165,21 +163,21 @@ protected:
         const auto n = mtx->get_size()[0];
         const auto row_ptrs = mtx->get_const_row_ptrs();
         const auto col_idxs = mtx->get_const_col_idxs();
-        auto degrees = std::vector<i_type>(n);
+        auto degrees = std::vector<index_type>(n);
         for (gko::size_type i = 0; i < n; ++i) {
             degrees[i] =
                 mtx->get_const_row_ptrs()[i + 1] - mtx->get_const_row_ptrs()[i];
         }
 
         // Following checks for cm ordering, therefore create a reversed perm.
-        std::vector<i_type> perm(permutation, permutation + n);
+        std::vector<index_type> perm(permutation, permutation + n);
         std::reverse(perm.begin(), perm.end());
-        std::vector<i_type> inv_perm(n, gko::invalid_index<i_type>());
+        std::vector<index_type> inv_perm(n, gko::invalid_index<index_type>());
         for (gko::size_type i = 0; i < n; i++) {
             ASSERT_GE(perm[i], 0) << i;
             ASSERT_LT(perm[i], n) << i;
-            ASSERT_EQ(inv_perm[perm[i]], gko::invalid_index<i_type>()) << i;
-            inv_perm[perm[i]] = static_cast<i_type>(i);
+            ASSERT_EQ(inv_perm[perm[i]], gko::invalid_index<index_type>()) << i;
+            inv_perm[perm[i]] = static_cast<index_type>(i);
         }
 
         // Now check for cm ordering.
@@ -193,16 +191,16 @@ protected:
 
             // Assert valid level structure.
             // Also update base_offset and mark as visited while at it.
-            std::vector<i_type> levels(n);
+            std::vector<index_type> levels(n);
             std::fill(levels.begin(), levels.end(),
-                      std::numeric_limits<i_type>::max());
+                      std::numeric_limits<index_type>::max());
             ubfs_reference(mtx, &levels[0], perm[base_offset]);
 
-            i_type current_level = 0;
+            index_type current_level = 0;
             const auto previous_base_offset = base_offset;
             for (gko::size_type i = 0; i < n; ++i) {
                 const auto node = perm[i];
-                if (levels[node] != std::numeric_limits<i_type>::max() &&
+                if (levels[node] != std::numeric_limits<index_type>::max() &&
                     !already_visited[node]) {
                     already_visited[node] = true;
                     ++base_offset;
@@ -278,7 +276,7 @@ protected:
 
     void build_multiple_connected_components()
     {
-        gko::matrix_data<v_type, i_type> data;
+        gko::matrix_data<value_type, index_type> data;
         d_1138_bus_mtx->write(data);
         const auto num_rows = data.size[0];
         const auto nnz = data.nonzeros.size();
@@ -294,7 +292,7 @@ protected:
                                            entry.value);
             }
         }
-        std::vector<i_type> permutation(data.size[0]);
+        std::vector<index_type> permutation(data.size[0]);
         std::iota(permutation.begin(), permutation.end(), 0);
         // std::shuffle(permutation.begin(), permutation.end(), rng);
         for (auto& entry : data.nonzeros) {
