@@ -286,6 +286,7 @@ components_data<IndexType> compute_connected_components(
 }
 
 
+/** level structure for unordered breadth first search. */
 template <typename IndexType>
 struct ubfs_levels {
     /** Mapping node -> level */
