@@ -307,7 +307,7 @@ protected:
         }
         std::vector<index_type> permutation(data.size[0]);
         std::iota(permutation.begin(), permutation.end(), 0);
-        // std::shuffle(permutation.begin(), permutation.end(), rng);
+        std::shuffle(permutation.begin(), permutation.end(), rng);
         for (auto& entry : data.nonzeros) {
             entry.row = permutation[entry.row];
             entry.column = permutation[entry.column];
