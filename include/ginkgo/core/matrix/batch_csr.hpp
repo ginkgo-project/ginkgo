@@ -48,11 +48,18 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class Csr final
     : public EnableBatchLinOp<Csr<ValueType, IndexType>>,
       public EnableCreateMethod<Csr<ValueType, IndexType>>,
+#if GINKGO_ENABLE_HALF
+      public ConvertibleTo<
+          Csr<next_precision<next_precision<ValueType>>, IndexType>>,
+#endif
       public ConvertibleTo<Csr<next_precision<ValueType>, IndexType>> {
     friend class EnableCreateMethod<Csr>;
     friend class EnablePolymorphicObject<Csr, BatchLinOp>;
     friend class Csr<to_complex<ValueType>, IndexType>;
     friend class Csr<next_precision<ValueType>, IndexType>;
+#if GINKGO_ENABLE_HALF
+    friend class Csr<next_precision<next_precision<ValueType>>, IndexType>;
+#endif
     static_assert(std::is_same<IndexType, int32>::value,
                   "IndexType must be a 32 bit integer");
 
@@ -69,7 +76,13 @@ public:
     void convert_to(
         Csr<next_precision<ValueType>, IndexType>* result) const override;
 
+    void convert_to(Csr<next_precision<next_precision<ValueType>>, IndexType>*
+                        result) const override;
+
     void move_to(Csr<next_precision<ValueType>, IndexType>* result) override;
+
+    void move_to(Csr<next_precision<next_precision<ValueType>>, IndexType>*
+                     result) override;
 
     /**
      * Creates a mutable view (of matrix::Csr type) of one item of the
