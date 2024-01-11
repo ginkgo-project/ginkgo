@@ -162,7 +162,8 @@ auto run(T obj, Func&& f, Args&&... args)
     // smart pointer. unique_ptr is used because it can be converted into a
     // shared_ptr, but not the other way around.
 #if __cplusplus < 201703L
-    using ReturnType = std::result_of<Func(std::unique_ptr<Base<K>>, Args...)>;
+    using ReturnType =
+        std::result_of_t<Func(std::unique_ptr<Base<K>>, Args...)>;
 #else
     using ReturnType =
         std::invoke_result_t<Func, std::unique_ptr<Base<K>>, Args...>;
