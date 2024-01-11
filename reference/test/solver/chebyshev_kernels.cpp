@@ -33,11 +33,9 @@ protected:
           chebyshev_factory(
               Solver::build()
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(30u).on(
-                          exec),
+                      gko::stop::Iteration::build().with_max_iters(30u),
                       gko::stop::ResidualNorm<value_type>::build()
-                          .with_reduction_factor(r<value_type>::value)
-                          .on(exec))
+                          .with_reduction_factor(r<value_type>::value))
                   .with_foci(value_type{0.9}, value_type{1.1})
                   .on(exec))
     {}
@@ -60,8 +58,7 @@ TYPED_TEST(Chebyshev, CheckDefaultNumAlphaBetaWithoutIteration)
     auto factory =
         Solver::build()
             .with_criteria(gko::stop::ResidualNorm<value_type>::build()
-                               .with_reduction_factor(r<value_type>::value)
-                               .on(this->exec))
+                               .with_reduction_factor(r<value_type>::value))
             .with_foci(lower, upper)
             .on(this->exec);
     auto solver = factory->generate(this->mtx);
@@ -90,11 +87,9 @@ TYPED_TEST(Chebyshev, CheckDefaultNumAlphaBetaWithLessIteration)
     auto lower = value_type{0.9};
     auto factory =
         Solver::build()
-            .with_criteria(
-                gko::stop::ResidualNorm<value_type>::build()
-                    .with_reduction_factor(r<value_type>::value)
-                    .on(this->exec),
-                gko::stop::Iteration::build().with_max_iters(1u).on(this->exec))
+            .with_criteria(gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value),
+                           gko::stop::Iteration::build().with_max_iters(1u))
             .with_foci(lower, upper)
             .on(this->exec);
     auto solver = factory->generate(this->mtx);
@@ -123,8 +118,7 @@ TYPED_TEST(Chebyshev, CheckStoredAlphaBeta)
     auto lower = value_type{0.9};
     auto factory =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(6u).on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(6u))
             .with_foci(lower, upper)
             .on(this->exec);
     auto solver = factory->generate(this->mtx);
@@ -156,7 +150,7 @@ TYPED_TEST(Chebyshev, CheckStoredAlphaBeta)
 }
 
 
-TYPED_TEST(Chebyshev, NumAlphaBetaFromChangingCriterion)
+TYPED_TEST(Chebyshev, AlphaBetaFromChangingCriterion)
 {
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
@@ -165,11 +159,9 @@ TYPED_TEST(Chebyshev, NumAlphaBetaFromChangingCriterion)
     auto lower = value_type{0.9};
     auto factory =
         Solver::build()
-            .with_criteria(
-                gko::stop::ResidualNorm<value_type>::build()
-                    .with_reduction_factor(r<value_type>::value)
-                    .on(this->exec),
-                gko::stop::Iteration::build().with_max_iters(6u).on(this->exec))
+            .with_criteria(gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value),
+                           gko::stop::Iteration::build().with_max_iters(6u))
             .with_foci(lower, upper)
             .on(this->exec);
     auto solver = factory->generate(this->mtx);
@@ -183,6 +175,8 @@ TYPED_TEST(Chebyshev, NumAlphaBetaFromChangingCriterion)
         solver->get_workspace_op(gko::solver::workspace_traits<Solver>::alpha));
     auto beta = gko::as<gko::matrix::Dense<value_type>>(
         solver->get_workspace_op(gko::solver::workspace_traits<Solver>::beta));
+    auto alpha_ref = alpha->clone();
+    auto beta_ref = beta->clone();
     // if the iteration limit is less than the default value, it will use the
     // default value.
     ASSERT_EQ(alpha->get_size(), (gko::dim<2>{1, 7}));
@@ -206,6 +200,8 @@ TYPED_TEST(Chebyshev, NumAlphaBetaFromChangingCriterion)
         ASSERT_EQ(beta_tmp->get_size(), (gko::dim<2>{1, 7}));
         ASSERT_EQ(alpha_tmp->get_const_values(), alpha->get_const_values());
         ASSERT_EQ(beta_tmp->get_const_values(), beta->get_const_values());
+        GKO_ASSERT_MTX_NEAR(alpha_tmp, alpha_ref, 0.0);
+        GKO_ASSERT_MTX_NEAR(beta_tmp, beta_ref, 0.0);
     }
     {
         // Set more iteration limit
@@ -220,8 +216,8 @@ TYPED_TEST(Chebyshev, NumAlphaBetaFromChangingCriterion)
         auto beta_tmp =
             gko::as<gko::matrix::Dense<value_type>>(solver->get_workspace_op(
                 gko::solver::workspace_traits<Solver>::beta));
-        // if the iteration limit is less than the previous one, it keeps the
-        // storage.
+        // if the iteration limit is more than the previous one, it regenerates
+        // workspace
         ASSERT_EQ(alpha_tmp->get_size(), (gko::dim<2>{1, 11}));
         ASSERT_EQ(beta_tmp->get_size(), (gko::dim<2>{1, 11}));
         ASSERT_NE(alpha_tmp->get_const_values(), alpha->get_const_values());
@@ -306,22 +302,17 @@ TYPED_TEST(Chebyshev, SolvesTriangularSystemWithIterativeInnerSolver)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
-
     const gko::remove_complex<value_type> inner_reduction_factor = 1e-2;
     auto precond_factory = gko::share(
         gko::solver::Gmres<value_type>::build()
             .with_criteria(gko::stop::ResidualNorm<value_type>::build()
-                               .with_reduction_factor(inner_reduction_factor)
-                               .on(this->exec))
+                               .with_reduction_factor(inner_reduction_factor))
             .on(this->exec));
-
     auto solver_factory =
         gko::solver::Chebyshev<value_type>::build()
-            .with_criteria(gko::stop::Iteration::build().with_max_iters(30u).on(
-                               this->exec),
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(30u),
                            gko::stop::ResidualNorm<value_type>::build()
-                               .with_reduction_factor(r<value_type>::value)
-                               .on(this->exec))
+                               .with_reduction_factor(r<value_type>::value))
             .with_preconditioner(precond_factory)
             .with_foci(value_type{0.9}, value_type{1.1})
             .on(this->exec);
@@ -489,8 +480,7 @@ TYPED_TEST(Chebyshev, ApplyWithGivenInitialGuessModeIsEquivalentToRef)
     using initial_guess_mode = gko::solver::initial_guess_mode;
     auto ref_solver =
         gko::solver::Chebyshev<value_type>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
             .with_foci(value_type{0.9}, value_type{1.1})
             .on(this->exec)
             ->generate(this->mtx);
@@ -499,9 +489,7 @@ TYPED_TEST(Chebyshev, ApplyWithGivenInitialGuessModeIsEquivalentToRef)
                        initial_guess_mode::zero}) {
         auto solver =
             gko::solver::Chebyshev<value_type>::build()
-                .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(1u).on(
-                        this->exec))
+                .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
                 .with_foci(value_type{0.9}, value_type{1.1})
                 .with_default_initial_guess(guess)
                 .on(this->exec)

@@ -33,10 +33,9 @@ protected:
           chebyshev_factory(
               Solver::build()
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(3u).on(exec),
+                      gko::stop::Iteration::build().with_max_iters(3u),
                       gko::stop::ResidualNorm<value_type>::build()
-                          .with_reduction_factor(r<value_type>::value)
-                          .on(exec))
+                          .with_reduction_factor(r<value_type>::value))
                   .on(exec)),
           solver(chebyshev_factory->generate(mtx))
     {}
@@ -70,8 +69,9 @@ TYPED_TEST(Chebyshev, ChebyshevFactoryKnowsItsExecutor)
 TYPED_TEST(Chebyshev, ChebyshevFactoryCreatesCorrectSolver)
 {
     using Solver = typename TestFixture::Solver;
-    ASSERT_EQ(this->solver->get_size(), gko::dim<2>(3, 3));
     auto solver = static_cast<Solver*>(this->solver.get());
+
+    ASSERT_EQ(this->solver->get_size(), gko::dim<2>(3, 3));
     ASSERT_NE(solver->get_system_matrix(), nullptr);
     ASSERT_EQ(solver->get_system_matrix(), this->mtx);
 }
@@ -111,6 +111,7 @@ TYPED_TEST(Chebyshev, CanBeCloned)
 {
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
+
     auto clone = this->solver->clone();
 
     ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
@@ -123,6 +124,7 @@ TYPED_TEST(Chebyshev, CanBeCloned)
 TYPED_TEST(Chebyshev, CanBeCleared)
 {
     using Solver = typename TestFixture::Solver;
+
     this->solver->clear();
 
     ASSERT_EQ(this->solver->get_size(), gko::dim<2>(0, 0));
@@ -142,10 +144,10 @@ TYPED_TEST(Chebyshev, CanSetEigenRegion)
 {
     using Solver = typename TestFixture::Solver;
     using value_type = typename TestFixture::value_type;
+
     std::shared_ptr<Solver> chebyshev_solver =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .with_foci(value_type{0.2}, value_type{1.2})
             .on(this->exec)
             ->generate(this->mtx);
@@ -159,16 +161,12 @@ TYPED_TEST(Chebyshev, CanSetInnerSolverInFactory)
 {
     using Solver = typename TestFixture::Solver;
     using value_type = typename TestFixture::value_type;
+
     auto chebyshev_factory =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
-            .with_preconditioner(
-                Solver::build()
-                    .with_criteria(
-                        gko::stop::Iteration::build().with_max_iters(3u).on(
-                            this->exec))
-                    .on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
+            .with_preconditioner(Solver::build().with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u)))
             .on(this->exec);
     auto solver = chebyshev_factory->generate(this->mtx);
     auto preconditioner = dynamic_cast<const Solver*>(
@@ -185,15 +183,13 @@ TYPED_TEST(Chebyshev, CanSetGeneratedInnerSolverInFactory)
     using Solver = typename TestFixture::Solver;
     std::shared_ptr<Solver> chebyshev_solver =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(this->mtx);
 
     auto chebyshev_factory =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .with_generated_preconditioner(chebyshev_solver)
             .on(this->exec);
     auto solver = chebyshev_factory->generate(this->mtx);
@@ -237,15 +233,13 @@ TYPED_TEST(Chebyshev, ThrowsOnWrongInnerSolverInFactory)
         Mtx::create(this->exec, gko::dim<2>{2, 2});
     std::shared_ptr<Solver> chebyshev_solver =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(wrong_sized_mtx);
 
     auto chebyshev_factory =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .with_generated_preconditioner(chebyshev_solver)
             .on(this->exec);
 
@@ -259,15 +253,13 @@ TYPED_TEST(Chebyshev, CanSetInnerSolver)
     using Solver = typename TestFixture::Solver;
     std::shared_ptr<Solver> chebyshev_solver =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(this->mtx);
 
     auto chebyshev_factory =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec);
     auto solver = chebyshev_factory->generate(this->mtx);
     solver->set_preconditioner(chebyshev_solver);
@@ -283,13 +275,12 @@ TYPED_TEST(Chebyshev, CanSetApplyWithInitialGuessMode)
     using Solver = typename TestFixture::Solver;
     using value_type = typename TestFixture::value_type;
     using initial_guess_mode = gko::solver::initial_guess_mode;
+
     for (auto guess : {initial_guess_mode::provided, initial_guess_mode::rhs,
                        initial_guess_mode::zero}) {
         auto chebyshev_factory =
             Solver::build()
-                .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(3u).on(
-                        this->exec))
+                .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
                 .with_default_initial_guess(guess)
                 .on(this->exec);
         auto solver = chebyshev_factory->generate(this->mtx);
@@ -308,15 +299,13 @@ TYPED_TEST(Chebyshev, ThrowOnWrongInnerSolverSet)
         Mtx::create(this->exec, gko::dim<2>{2, 2});
     std::shared_ptr<Solver> chebyshev_solver =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec)
             ->generate(wrong_sized_mtx);
 
     auto chebyshev_factory =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(this->exec);
     auto solver = chebyshev_factory->generate(this->mtx);
 
