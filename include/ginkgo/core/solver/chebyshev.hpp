@@ -53,12 +53,14 @@ namespace solver {
 
 
 /**
- * Chebyshev iteration is an iterative method that uses another inner
- * solver to approximate the error of the current solution via the current
- * residual. It has another term for the difference of solution. Moreover, this
- * method requires knowledge about the spectrum of the matrix. This
- * implementation follows the algorithm in "Templates for the Solution of Linear
- * Systems: Building Blocks for Iterative Methods, 2nd Edition".
+ * Chebyshev iteration is an iterative method that can solving nonsymeetric
+ * problems. Chebyshev Iterations avoids the inner products for computation
+ * which may be the bottleneck for distributed system. Chebyshev Iteration is
+ * developed based on the Chebyshev polynomials of the first kind. Moreover,
+ * this method requires knowledge about the spectrum of the preconditioned
+ * matrix. This implementation follows the algorithm in "Templates for the
+ * Solution of Linear Systems: Building Blocks for Iterative Methods, 2nd
+ * Edition".
  *
  * ```
  * solution = initial_guess
@@ -136,28 +138,11 @@ public:
      */
     Chebyshev(Chebyshev&&);
 
-    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
-    {
-        /**
-         * Criterion factories.
-         */
-        std::vector<std::shared_ptr<const stop::CriterionFactory>>
-            GKO_FACTORY_PARAMETER_VECTOR(criteria, nullptr);
+    class Factory;
 
-        /**
-         * Preconditioner factory. If not provided this will
-         * result in a non-preconditioned Chebyshev iteration.
-         */
-        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
-            preconditioner, nullptr);
-
-        /**
-         * Already generated preconditioner. If one is provided, the factory
-         * `preconditioner` will be ignored.
-         */
-        std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(
-            generated_preconditioner, nullptr);
-
+    struct parameters_type
+        : enable_preconditioned_iterative_solver_factory_parameters<
+              parameters_type, Factory> {
         /**
          * The pair of foci of ellipse, which covers the eigenvalues of
          * preconditioned system. It is usually be {lower bound of eigval, upper
@@ -173,6 +158,7 @@ public:
         initial_guess_mode GKO_FACTORY_PARAMETER_SCALAR(
             default_initial_guess, initial_guess_mode::provided);
     };
+
     GKO_ENABLE_LIN_OP_FACTORY(Chebyshev, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
@@ -205,12 +191,12 @@ protected:
 
 private:
     std::shared_ptr<const LinOp> solver_{};
-    // num_generated_scalar_ is to track the number of generated scalar alpha
+    // num_generated_scalar_ tracks the number of generated scalar alpha
     // and beta.
-    mutable size_type num_generated_scalar_;
-    // num_max_generation_ is the number of keeping the generated scalar in
+    mutable size_type num_generated_scalar_ = 0;
+    // num_max_generation_ is the number of generated scalar kept in the
     // workspace.
-    mutable size_type num_max_generation_;
+    mutable size_type num_max_generation_ = 3;
     ValueType center_;
     ValueType foci_direction_;
 };
