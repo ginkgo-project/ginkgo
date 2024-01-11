@@ -42,9 +42,6 @@ Chebyshev<ValueType>::Chebyshev(const Factory* factory,
     foci_direction_ =
         (std::get<1>(parameters_.foci) - std::get<0>(parameters_.foci)) /
         ValueType{2};
-    // if changing the lower/upper eig, need to reset it to zero
-    num_generated_scalar_ = 0;
-    num_max_generation_ = 3;
 }
 
 
@@ -56,9 +53,6 @@ Chebyshev<ValueType>& Chebyshev<ValueType>::operator=(const Chebyshev& other)
         EnablePreconditionedIterativeSolver<
             ValueType, Chebyshev<ValueType>>::operator=(other);
         this->parameters_ = other.parameters_;
-        // the workspace is not copied.
-        this->num_generated_scalar_ = 0;
-        this->num_max_generation_ = 3;
     }
     return *this;
 }
@@ -71,9 +65,6 @@ Chebyshev<ValueType>& Chebyshev<ValueType>::operator=(Chebyshev&& other)
         EnableLinOp<Chebyshev>::operator=(std::move(other));
         EnablePreconditionedIterativeSolver<
             ValueType, Chebyshev<ValueType>>::operator=(std::move(other));
-        // the workspace is not moved.
-        this->num_generated_scalar_ = 0;
-        this->num_max_generation_ = 3;
     }
     return *this;
 }
@@ -147,6 +138,20 @@ void Chebyshev<ValueType>::apply_with_initial_guess_impl(
 }
 
 
+template <typename Fn>
+void visit_criteria(Fn&& fn,
+                    std::shared_ptr<const gko::stop::CriterionFactory> c)
+{
+    fn(c);
+    if (auto combined =
+            std::dynamic_pointer_cast<const stop::Combined::Factory>(c)) {
+        for (const auto& factory : combined->get_parameters().criteria) {
+            visit_criteria(std::forward<Fn>(fn), factory);
+        }
+    }
+}
+
+
 template <typename ValueType>
 template <typename VectorType>
 void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
@@ -166,22 +171,15 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
     auto old_num_max_generation = num_max_generation_;
     // Use the scalar first
     // get the iteration information from stopping criterion.
-    if (auto combined =
-            std::dynamic_pointer_cast<const gko::stop::Combined::Factory>(
-                this->get_stop_criterion_factory())) {
-        for (const auto& factory : combined->get_parameters().criteria) {
-            if (auto iter_stop = std::dynamic_pointer_cast<
+    visit_criteria(
+        [&](auto factory) {
+            if (auto iter = std::dynamic_pointer_cast<
                     const gko::stop::Iteration::Factory>(factory)) {
                 num_max_generation_ = std::max(
-                    num_max_generation_, iter_stop->get_parameters().max_iters);
+                    num_max_generation_, iter->get_parameters().max_iters);
             }
-        }
-    } else if (auto iter_stop = std::dynamic_pointer_cast<
-                   const gko::stop::Iteration::Factory>(
-                   this->get_stop_criterion_factory())) {
-        num_max_generation_ = std::max(num_max_generation_,
-                                       iter_stop->get_parameters().max_iters);
-    }
+        },
+        this->get_stop_criterion_factory());
     // Regenerate the vector if we realloc the memory.
     if (old_num_max_generation != num_max_generation_) {
         num_generated_scalar_ = 0;
