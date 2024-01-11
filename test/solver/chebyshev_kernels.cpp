@@ -110,7 +110,6 @@ TEST_F(Chebyshev, ApplyWithIterativeInnerSolverIsEquivalentToRef)
     auto d_mtx = clone(exec, mtx);
     auto d_x = clone(exec, x);
     auto d_b = clone(exec, b);
-
     auto chebyshev_factory =
         gko::solver::Chebyshev<value_type>::build()
             .with_preconditioner(

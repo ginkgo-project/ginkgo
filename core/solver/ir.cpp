@@ -239,7 +239,6 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
             break;
         }
 
-
         if (solver_->apply_uses_initial_guess()) {
             // Use the inner solver to solve
             // A * inner_solution = residual
