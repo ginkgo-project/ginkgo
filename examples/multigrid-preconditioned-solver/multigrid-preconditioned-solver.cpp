@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
 
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
     const auto coarse_type = argc >= 3 ? argv[2] : "pgm";
-    const unsigned num_jumps = argc >= 4 ? std::atoi(argv[3]) : 2u;
+    const unsigned coarse_skip = argc >= 4 ? std::atoi(argv[3]) : 2u;
     const unsigned grid_dim = argc >= 5 ? std::atoi(argv[4]) : 20u;
 
     // Figure out where to run the code
@@ -145,7 +145,7 @@ int main(int argc, char* argv[])
         gko::share(pgm::build().with_deterministic(true).on(exec));
     // Create MultigridLevel factory
     auto coarse_unif_gen = gko::share(
-        uniform_coarsening::build().with_num_jumps(num_jumps).on(exec));
+        uniform_coarsening::build().with_coarse_skip(coarse_skip).on(exec));
 
     // Create CoarsestSolver factory
     auto coarsest_gen = gko::share(

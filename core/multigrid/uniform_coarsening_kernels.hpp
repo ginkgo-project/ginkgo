@@ -31,7 +31,7 @@ namespace uniform_coarsening {
 
 #define GKO_DECLARE_UNIFORM_COARSENING_FILL_INCREMENTAL_INDICES(IndexType)     \
     void fill_incremental_indices(std::shared_ptr<const DefaultExecutor> exec, \
-                                  size_type num_jumps,                         \
+                                  size_type coarse_skip,                       \
                                   array<IndexType>* coarse_rows)
 
 

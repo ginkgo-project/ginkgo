@@ -64,15 +64,16 @@ void UniformCoarsening<ValueType, IndexType>::generate()
         this->set_fine_op(uniform_coarsening_op_shared_ptr);
     }
     // Use -1 as sentinel value
-    coarse_rows_ = Array<IndexType>(exec, num_rows);
+    coarse_rows_ = array<IndexType>(exec, num_rows);
     coarse_rows_.fill(-one<IndexType>());
 
     // Fill with incremental local indices.
     exec->run(uniform_coarsening::make_fill_incremental_indices(
-        parameters_.num_jumps, &coarse_rows_));
+        parameters_.coarse_skip, &coarse_rows_));
 
     gko::dim<2>::dimension_type coarse_dim =
-        (coarse_rows_.get_num_elems() + 1) / parameters_.num_jumps;
+        (coarse_rows_.get_size() + parameters_.coarse_skip - 1) /
+        parameters_.coarse_skip;
     auto fine_dim = system_matrix_->get_size()[0];
     auto restrict_op = share(
         csr_type::create(exec, gko::dim<2>{coarse_dim, fine_dim}, coarse_dim,
