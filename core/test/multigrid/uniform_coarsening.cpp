@@ -33,7 +33,7 @@ protected:
     UniformCoarseningFactory()
         : exec(gko::ReferenceExecutor::create()),
           uniform_coarsening1_factory(
-              MgLevel::build().with_num_jumps(4u).with_skip_sorting(true).on(
+              MgLevel::build().with_coarse_skip(4u).with_skip_sorting(true).on(
                   exec))
     {}
 
@@ -56,14 +56,14 @@ TYPED_TEST(UniformCoarseningFactory, DefaultSetting)
     using MgLevel = typename TestFixture::MgLevel;
     auto factory = MgLevel::build().on(this->exec);
 
-    ASSERT_EQ(factory->get_parameters().num_jumps, 2u);
+    ASSERT_EQ(factory->get_parameters().coarse_skip, 2u);
     ASSERT_EQ(factory->get_parameters().skip_sorting, false);
 }
 
 
 TYPED_TEST(UniformCoarseningFactory, SetNumJumps)
 {
-    ASSERT_EQ(this->uniform_coarsening1_factory->get_parameters().num_jumps,
+    ASSERT_EQ(this->uniform_coarsening1_factory->get_parameters().coarse_skip,
               4u);
 }
 

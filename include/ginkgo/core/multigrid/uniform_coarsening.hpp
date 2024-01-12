@@ -77,10 +77,9 @@ public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
-         * The number of jumps between the rows to be selected. For example if
-         * set to 2, every second row is selected in the coarse grid matrix.
+         * The number of rows to skip for the coarse matrix generation
          */
-        unsigned GKO_FACTORY_PARAMETER_SCALAR(num_jumps, 2u);
+        unsigned GKO_FACTORY_PARAMETER_SCALAR(coarse_skip, 2u);
 
         /**
          * The `system_matrix`, which will be given to this factory, must be
