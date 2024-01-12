@@ -371,6 +371,15 @@ private:
 };
 
 
+/**
+ * Performs in-place row and column scaling for a given matrix.
+ *
+ * @param col_scale  the column scalars
+ * @param row_scale  the row scalars
+ * @param in_out  the matrix to be scaled
+ *
+ * @note the operation is performed in-place
+ */
 template <typename ValueType>
 void two_sided_scale(const array<ValueType>& col_scale,
                      const array<ValueType>& row_scale,
