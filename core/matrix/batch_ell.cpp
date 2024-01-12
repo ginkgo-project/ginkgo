@@ -184,6 +184,15 @@ void Ell<ValueType, IndexType>::apply_impl(const MultiVector<ValueType>* alpha,
 
 
 template <typename ValueType, typename IndexType>
+void Ell<ValueType, IndexType>::scale_add(
+    ptr_param<const MultiVector<ValueType>> alpha,
+    ptr_param<const batch::matrix::Ell<ValueType, IndexType>> b)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+
+template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::add_scaled_identity(
     ptr_param<const MultiVector<ValueType>> alpha,
     ptr_param<const MultiVector<ValueType>> beta)

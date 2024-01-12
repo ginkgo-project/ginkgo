@@ -284,6 +284,15 @@ public:
                      ptr_param<MultiVector<value_type>> x) const;
 
     /**
+     * Performs the operation a = alpha*a + b.
+     *
+     * Performs the operation in-place for this batch matrix
+     */
+    void scale_add(
+        ptr_param<const MultiVector<value_type>> alpha,
+        ptr_param<const batch::matrix::Ell<value_type, index_type>> b);
+
+    /**
      * Performs the operation a = alpha*I + beta*a.
      *
      * Performs the operation in-place for this batch matrix

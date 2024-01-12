@@ -108,29 +108,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void scale_add(std::shared_ptr<const DefaultExecutor> exec,
-               const batch::MultiVector<ValueType>* alpha,
-               const batch::matrix::Csr<ValueType, IndexType>* mat,
-               batch::matrix::Csr<ValueType, IndexType>* input)
-{
-    const auto mat_ub = host::get_batch_struct(mat);
-    const auto in_mat_ub = host::get_batch_struct(input);
-    const auto alpha_ub = host::get_batch_struct(alpha);
-    for (size_type batch_id = 0; batch_id < input->get_num_batch_items();
-         ++batch_id) {
-        const auto alpha_b = batch::extract_batch_item(alpha_ub, batch_id);
-        const auto mat_b = batch::matrix::extract_batch_item(mat_ub, batch_id);
-        const auto input_mat_b =
-            batch::matrix::extract_batch_item(in_mat_ub, batch_id);
-        scale_add_kernel(alpha_b.values[0], mat_b, input_mat_b);
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
-    GKO_DECLARE_BATCH_CSR_SCALE_ADD_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
                          const batch::MultiVector<ValueType>* alpha,
                          const batch::MultiVector<ValueType>* beta,
