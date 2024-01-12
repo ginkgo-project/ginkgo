@@ -67,12 +67,10 @@ __dpct_inline__ void advanced_apply_kernel(
 
 
 template <typename ValueType>
-__dpct_inline__ void scale_kernel(const int num_rows, const int num_cols,
-                                  const size_type stride,
-                                  const ValueType* const col_scale,
-                                  const ValueType* const row_scale,
-                                  ValueType* const mat,
-                                  sycl::nd_item<3>& item_ct1)
+__dpct_inline__ void scale_kernel(
+    const ValueType* const col_scale, const ValueType* const row_scale,
+    gko::batch::matrix::dense::batch_item<ValueType>& mat,
+    sycl::nd_item<3>& item_ct1)
 {
     constexpr auto tile_size = config::warp_size;
     auto subg =
@@ -82,11 +80,11 @@ __dpct_inline__ void scale_kernel(const int num_rows, const int num_cols,
     const int subgroup_size = subgroup.get_local_range().size();
     const int num_subgroup = subgroup.get_group_range().size();
 
-    for (int row = subgroup_id; row < num_rows; row += num_subgroup) {
+    for (int row = subgroup_id; row < mat.num_rows; row += num_subgroup) {
         const ValueType row_scalar = row_scale[row];
-        for (int col = subgroup.get_local_id(); col < num_cols;
+        for (int col = subgroup.get_local_id(); col < mat.num_cols;
              col += subgroup_size) {
-            mat[row * stride + col] *= row_scalar * col_scale[col];
+            mat.values[row * mat.stride + col] *= row_scalar * col_scale[col];
         }
     }
 }

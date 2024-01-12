@@ -151,11 +151,10 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto col_scale_vals = col_scale->get_const_data();
     const auto row_scale_vals = row_scale->get_const_data();
-    auto input_vals = input->get_values();
     const auto num_rows = static_cast<int>(input->get_common_size()[0]);
     const auto num_cols = static_cast<int>(input->get_common_size()[1]);
     const auto stride = input->get_common_size()[1];
-    const auto mat_ub = get_batch_struct(input);
+    auto mat_ub = get_batch_struct(input);
 
     const auto num_batch_items = mat_ub.num_batch_items;
     auto device = exec->get_queue()->get_device();
@@ -169,17 +168,18 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                config::warp_size)]] {
-                auto group = item_ct1.get_group();
-                auto group_id = group.get_group_linear_id();
-                const auto col_scale_b = col_scale_vals + num_cols * group_id;
-                const auto row_scale_b = row_scale_vals + num_rows * group_id;
-                const auto input_mat =
-                    input_vals + input->get_num_elements_per_item() * group_id;
-                scale_kernel(num_rows, num_cols, stride, col_scale_b,
-                             row_scale_b, input_mat, item_ct1);
-            });
+            [=](sycl::nd_item<3> item_ct1)
+                [[sycl::reqd_sub_group_size(config::warp_size)]] {
+                    auto group = item_ct1.get_group();
+                    auto group_id = group.get_group_linear_id();
+                    const auto col_scale_b =
+                        col_scale_vals + num_cols * group_id;
+                    const auto row_scale_b =
+                        row_scale_vals + num_rows * group_id;
+                    auto input_mat =
+                        batch::matrix::extract_batch_item(mat_ub, group_id);
+                    scale_kernel(col_scale_b, row_scale_b, input_mat, item_ct1);
+                });
     });
 }
 
