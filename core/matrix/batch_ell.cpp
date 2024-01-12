@@ -30,6 +30,7 @@ namespace {
 
 GKO_REGISTER_OPERATION(simple_apply, batch_ell::simple_apply);
 GKO_REGISTER_OPERATION(advanced_apply, batch_ell::advanced_apply);
+GKO_REGISTER_OPERATION(add_scaled_identity, batch_ell::add_scaled_identity);
 
 
 }  // namespace
@@ -179,6 +180,20 @@ void Ell<ValueType, IndexType>::apply_impl(const MultiVector<ValueType>* alpha,
 {
     this->get_executor()->run(
         ell::make_advanced_apply(alpha, this, b, beta, x));
+}
+
+
+template <typename ValueType, typename IndexType>
+void Ell<ValueType, IndexType>::add_scaled_identity(
+    ptr_param<const MultiVector<ValueType>> alpha,
+    ptr_param<const MultiVector<ValueType>> beta)
+{
+    GKO_ASSERT_BATCH_EQUAL_NUM_ITEMS(alpha, beta);
+    GKO_ASSERT_BATCH_EQUAL_NUM_ITEMS(this, beta);
+    auto exec = this->get_executor();
+    exec->run(ell::make_add_scaled_identity(
+        make_temporary_clone(exec, alpha).get(),
+        make_temporary_clone(exec, beta).get(), this));
 }
 
 
