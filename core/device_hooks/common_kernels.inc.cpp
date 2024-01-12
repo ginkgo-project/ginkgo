@@ -45,6 +45,7 @@
 #include "core/matrix/sellp_kernels.hpp"
 #include "core/matrix/sparsity_csr_kernels.hpp"
 #include "core/multigrid/pgm_kernels.hpp"
+#include "core/multigrid/uniform_coarsening_kernels.hpp"
 #include "core/preconditioner/batch_jacobi_kernels.hpp"
 #include "core/preconditioner/isai_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
@@ -961,6 +962,16 @@ GKO_STUB_INDEX_TYPE(GKO_DECLARE_PGM_GATHER_INDEX);
 
 
 }  // namespace pgm
+
+
+namespace uniform_coarsening {
+
+
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_UNIFORM_COARSENING_FILL_RESTRICT_OP);
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_UNIFORM_COARSENING_FILL_INCREMENTAL_INDICES);
+
+
+}  // namespace uniform_coarsening
 
 
 namespace set_all_statuses {
