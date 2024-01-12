@@ -61,6 +61,7 @@ target_sources(ginkgo
     matrix/sparsity_csr.cpp
     multigrid/pgm.cpp
     multigrid/fixed_coarsening.cpp
+    multigrid/uniform_coarsening.cpp
     preconditioner/isai.cpp
     preconditioner/jacobi.cpp
     reorder/amd.cpp
