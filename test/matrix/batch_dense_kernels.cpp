@@ -44,14 +44,17 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    void set_up_apply_data(gko::size_type num_rows, gko::size_type num_vecs = 1)
+    void set_up_apply_data(gko::size_type num_rows,
+                           gko::size_type num_cols = 32,
+                           gko::size_type num_vecs = 1)
     {
-        const gko::size_type num_cols = 32;
         mat = gen_mtx<BMtx>(batch_size, num_rows, num_cols);
+        mat2 = gen_mtx<BMtx>(batch_size, num_rows, num_cols);
         y = gen_mtx<BMVec>(batch_size, num_cols, num_vecs);
         alpha = gen_mtx<BMVec>(batch_size, 1, 1);
         beta = gen_mtx<BMVec>(batch_size, 1, 1);
         dmat = gko::clone(exec, mat);
+        dmat2 = gko::clone(exec, mat2);
         dy = gko::clone(exec, y);
         dalpha = gko::clone(exec, alpha);
         dbeta = gko::clone(exec, beta);
@@ -74,12 +77,14 @@ protected:
 
     const gko::size_type batch_size = 11;
     std::shared_ptr<BMtx> mat;
+    std::shared_ptr<BMtx> mat2;
     std::unique_ptr<BMVec> y;
     std::unique_ptr<BMVec> alpha;
     std::unique_ptr<BMVec> beta;
     std::unique_ptr<BMVec> expected;
     std::unique_ptr<BMVec> dresult;
     std::shared_ptr<BMtx> dmat;
+    std::shared_ptr<BMtx> dmat2;
     std::unique_ptr<BMVec> dy;
     std::unique_ptr<BMVec> dalpha;
     std::unique_ptr<BMVec> dbeta;
@@ -129,6 +134,28 @@ TEST_F(Dense, TwoSidedScaleIsEquivalentToRef)
 
     gko::batch::matrix::two_sided_scale(col_scale, row_scale, mat.get());
     gko::batch::matrix::two_sided_scale(dcol_scale, drow_scale, dmat.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dmat, mat, r<value_type>::value);
+}
+
+
+TEST_F(Dense, ScaleAddIsEquivalentToRef)
+{
+    set_up_apply_data(42, 42, 15);
+
+    mat->scale_add(alpha, mat2);
+    dmat->scale_add(dalpha, dmat2);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dmat, mat, r<value_type>::value);
+}
+
+
+TEST_F(Dense, AddScaledIdentityIsEquivalentToRef)
+{
+    set_up_apply_data(42, 42, 15);
+
+    mat->add_scaled_identity(alpha, beta);
+    dmat->add_scaled_identity(dalpha, dbeta);
 
     GKO_ASSERT_BATCH_MTX_NEAR(dmat, mat, r<value_type>::value);
 }
