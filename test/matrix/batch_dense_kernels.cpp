@@ -139,6 +139,8 @@ TEST_F(Dense, TwoSidedScaleIsEquivalentToRef)
 }
 
 
+#if defined(GKO_COMPILING_OMP)
+
 TEST_F(Dense, ScaleAddIsEquivalentToRef)
 {
     set_up_apply_data(42, 42, 15);
@@ -159,3 +161,5 @@ TEST_F(Dense, AddScaledIdentityIsEquivalentToRef)
 
     GKO_ASSERT_BATCH_MTX_NEAR(dmat, mat, r<value_type>::value);
 }
+
+#endif

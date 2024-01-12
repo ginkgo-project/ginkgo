@@ -139,6 +139,8 @@ TEST_F(Csr, TwoSidedScaleIsEquivalentToRef)
 }
 
 
+#if defined(GKO_COMPILING_OMP)
+
 TEST_F(Csr, AddScaledIdentityIsEquivalentToRef)
 {
     set_up_apply_data(2, 5, 151, 151);
@@ -148,3 +150,5 @@ TEST_F(Csr, AddScaledIdentityIsEquivalentToRef)
 
     GKO_ASSERT_BATCH_MTX_NEAR(dmat, mat, r<value_type>::value);
 }
+
+#endif
