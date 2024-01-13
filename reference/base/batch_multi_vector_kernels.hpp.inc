@@ -24,6 +24,19 @@ inline void scale_kernel(
 
 
 template <typename ValueType>
+inline void element_wise_scale_kernel(
+    const gko::batch::multi_vector::batch_item<const ValueType>& alpha,
+    const gko::batch::multi_vector::batch_item<ValueType>& x)
+{
+    for (int i = 0; i < x.num_rows; ++i) {
+        for (int j = 0; j < x.num_rhs; ++j) {
+            x.values[i * x.stride + j] *= alpha.values[i * alpha.stride + j];
+        }
+    }
+}
+
+
+template <typename ValueType>
 inline void add_scaled_kernel(
     const gko::batch::multi_vector::batch_item<const ValueType>& alpha,
     const gko::batch::multi_vector::batch_item<const ValueType>& x,
