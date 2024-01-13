@@ -35,9 +35,6 @@ class Identity final : public EnableBatchLinOp<Identity<ValueType>>,
     friend class EnablePolymorphicObject<Identity, BatchLinOp>;
 
 public:
-    using EnableBatchLinOp<Identity>::convert_to;
-    using EnableBatchLinOp<Identity>::move_to;
-
     using value_type = ValueType;
     using index_type = int32;
     using unbatch_type = gko::matrix::Identity<ValueType>;
