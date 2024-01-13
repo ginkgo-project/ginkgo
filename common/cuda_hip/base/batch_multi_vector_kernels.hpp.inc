@@ -17,6 +17,7 @@ __device__ __forceinline__ void scale(
     }
 }
 
+
 template <typename ValueType, typename Mapping>
 __global__
 __launch_bounds__(default_block_size, sm_oversubscription) void scale_kernel(
@@ -28,6 +29,45 @@ __launch_bounds__(default_block_size, sm_oversubscription) void scale_kernel(
         const auto alpha_b = gko::batch::extract_batch_item(alpha, batch_id);
         const auto x_b = gko::batch::extract_batch_item(x, batch_id);
         scale(alpha_b, x_b, map);
+    }
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ void elem_wise_scale(
+    const gko::batch::multi_vector::batch_item<const ValueType>& alpha,
+    const gko::batch::multi_vector::batch_item<ValueType>& x)
+{
+    const int max_li = x.num_rows * x.num_rhs;
+    for (int li = threadIdx.x; li < max_li; li += blockDim.x) {
+        const int row = li / x.num_rhs;
+        const int col = li % x.num_rhs;
+
+        x.values[row * x.stride + col] *=
+            alpha.values[row * alpha.stride + col];
+    }
+}
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(
+    default_block_size,
+    sm_oversubscription) void elem_wise_scale_kernel(const gko::batch::
+                                                         multi_vector::
+                                                             uniform_batch<
+                                                                 const ValueType>
+                                                                 alpha,
+                                                     const gko::batch::
+                                                         multi_vector::
+                                                             uniform_batch<
+                                                                 ValueType>
+                                                                 x)
+{
+    for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_items;
+         batch_id += gridDim.x) {
+        const auto alpha_b = gko::batch::extract_batch_item(alpha, batch_id);
+        const auto x_b = gko::batch::extract_batch_item(x, batch_id);
+        elem_wise_scale(alpha_b, x_b);
     }
 }
 
@@ -47,6 +87,7 @@ __device__ __forceinline__ void add_scaled(
             alpha.values[map(col)] * x.values[row * x.stride + col];
     }
 }
+
 
 template <typename ValueType, typename Mapping>
 __global__ __launch_bounds__(
