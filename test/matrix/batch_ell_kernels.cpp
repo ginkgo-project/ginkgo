@@ -57,10 +57,10 @@ protected:
     }
 
     void set_up_apply_data(gko::size_type num_vecs = 1,
-                           int num_elems_per_row = 5)
+                           int num_elems_per_row = 5,
+                           gko::size_type num_rows = 252,
+                           gko::size_type num_cols = 32)
     {
-        const gko::size_type num_rows = 252;
-        const gko::size_type num_cols = 32;
         GKO_ASSERT(num_elems_per_row <= num_cols);
         mat = gen_mtx<BMtx>(batch_size, num_rows, num_cols, num_elems_per_row);
         y = gen_mvec(batch_size, num_cols, num_vecs);

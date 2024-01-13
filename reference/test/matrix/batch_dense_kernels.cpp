@@ -67,7 +67,7 @@ protected:
     {}
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
-    std::unique_ptr<BMtx> mtx_0;
+    std::shared_ptr<BMtx> mtx_0;
     std::unique_ptr<DenseMtx> mtx_00;
     std::unique_ptr<DenseMtx> mtx_01;
     std::unique_ptr<BMVec> b_0;
@@ -121,6 +121,26 @@ TYPED_TEST(Dense, AppliesLinearCombinationToBatchMultiVector)
     auto res = gko::batch::unbatch<gko::batch::MultiVector<T>>(this->x_0.get());
     GKO_ASSERT_MTX_NEAR(res[0].get(), this->x_00.get(), 0.);
     GKO_ASSERT_MTX_NEAR(res[1].get(), this->x_01.get(), 0.);
+}
+
+
+TYPED_TEST(Dense, CanTwoSidedScale)
+{
+    using value_type = typename TestFixture::value_type;
+    using BMtx = typename TestFixture::BMtx;
+    auto col_scale = gko::array<value_type>(this->exec, 3 * 2);
+    auto row_scale = gko::array<value_type>(this->exec, 2 * 2);
+    col_scale.fill(2);
+    row_scale.fill(3);
+
+    gko::batch::matrix::two_sided_scale<value_type>(col_scale, row_scale,
+                                                    this->mtx_0.get());
+
+    auto scaled_mtx_0 =
+        gko::batch::initialize<BMtx>({{{6.0, -6.0, 9.0}, {-12.0, 12.0, 18.0}},
+                                      {{6.0, -12.0, -3.0}, {6.0, -15.0, 24.0}}},
+                                     this->exec);
+    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx_0.get(), scaled_mtx_0.get(), 0.);
 }
 
 
