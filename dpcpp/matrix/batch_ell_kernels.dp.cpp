@@ -142,6 +142,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
     GKO_DECLARE_BATCH_ELL_ADVANCED_APPLY_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void scale(std::shared_ptr<const DefaultExecutor> exec,
+           const array<ValueType>* col_scale, const array<ValueType>* row_scale,
+           batch::matrix::Ell<ValueType, IndexType>* input)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
+    GKO_DECLARE_BATCH_ELL_SCALE_KERNEL);
+
+
 }  // namespace batch_ell
 }  // namespace dpcpp
 }  // namespace kernels

@@ -81,6 +81,32 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
     GKO_DECLARE_BATCH_ELL_ADVANCED_APPLY_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void scale(std::shared_ptr<const DefaultExecutor> exec,
+           const array<ValueType>* col_scale, const array<ValueType>* row_scale,
+           batch::matrix::Ell<ValueType, IndexType>* input)
+{
+    const auto col_scale_vals = col_scale->get_const_data();
+    const auto row_scale_vals = row_scale->get_const_data();
+    auto input_vals = input->get_values();
+    const auto num_rows = static_cast<int>(input->get_common_size()[0]);
+    const auto num_cols = static_cast<int>(input->get_common_size()[1]);
+    const auto stride = input->get_common_size()[1];
+    const auto mat_ub = host::get_batch_struct(input);
+    for (size_type batch_id = 0; batch_id < input->get_num_batch_items();
+         ++batch_id) {
+        const auto col_scale_b = col_scale_vals + num_cols * batch_id;
+        const auto row_scale_b = row_scale_vals + num_rows * batch_id;
+        const auto mat_item =
+            batch::matrix::extract_batch_item(mat_ub, batch_id);
+        scale(col_scale_b, row_scale_b, mat_item);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
+    GKO_DECLARE_BATCH_ELL_SCALE_KERNEL);
+
+
 }  // namespace batch_ell
 }  // namespace reference
 }  // namespace kernels
