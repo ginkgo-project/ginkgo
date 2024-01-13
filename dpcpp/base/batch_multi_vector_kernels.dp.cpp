@@ -100,6 +100,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
+void element_wise_scale(std::shared_ptr<const DefaultExecutor> exec,
+                        const batch::MultiVector<ValueType>* alpha,
+                        batch::MultiVector<ValueType>* x) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_MULTI_VECTOR_ELEMENT_WISE_SCALE_KERNEL);
+
+
+template <typename ValueType>
 void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
                 const batch::MultiVector<ValueType>* const alpha,
                 const batch::MultiVector<ValueType>* const x,

@@ -29,6 +29,8 @@ namespace {
 
 
 GKO_REGISTER_OPERATION(scale, batch_multi_vector::scale);
+GKO_REGISTER_OPERATION(element_wise_scale,
+                       batch_multi_vector::element_wise_scale);
 GKO_REGISTER_OPERATION(add_scaled, batch_multi_vector::add_scaled);
 GKO_REGISTER_OPERATION(compute_dot, batch_multi_vector::compute_dot);
 GKO_REGISTER_OPERATION(compute_conj_dot, batch_multi_vector::compute_conj_dot);
@@ -154,15 +156,23 @@ void MultiVector<ValueType>::scale(
     ptr_param<const MultiVector<ValueType>> alpha)
 {
     GKO_ASSERT_EQ(alpha->get_num_batch_items(), this->get_num_batch_items());
-    GKO_ASSERT_EQUAL_ROWS(alpha->get_common_size(), dim<2>(1, 1));
-    if (alpha->get_common_size()[1] != 1) {
-        // different alpha for each column
-        GKO_ASSERT_EQUAL_COLS(this->get_common_size(),
-                              alpha->get_common_size());
+    if (alpha->get_common_size()[0] == 1) {
+        if (alpha->get_common_size()[1] != 1) {
+            // different alpha for each column
+            GKO_ASSERT_EQUAL_COLS(this->get_common_size(),
+                                  alpha->get_common_size());
+        }
+        auto exec = this->get_executor();
+        exec->run(multi_vector::make_scale(
+            make_temporary_clone(exec, alpha).get(), this));
+    } else if (alpha->get_common_size() == this->get_common_size()) {
+        auto exec = this->get_executor();
+        exec->run(multi_vector::make_element_wise_scale(
+            make_temporary_clone(exec, alpha).get(), this));
+
+    } else {
+        GKO_NOT_IMPLEMENTED;
     }
-    auto exec = this->get_executor();
-    exec->run(multi_vector::make_scale(make_temporary_clone(exec, alpha).get(),
-                                       this));
 }
 
 
