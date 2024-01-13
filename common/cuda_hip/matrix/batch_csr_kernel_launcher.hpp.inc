@@ -48,3 +48,20 @@ void advanced_apply(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
     GKO_DECLARE_BATCH_CSR_ADVANCED_APPLY_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void scale(std::shared_ptr<const DefaultExecutor> exec,
+           const array<ValueType>* col_scale, const array<ValueType>* row_scale,
+           batch::matrix::Csr<ValueType, IndexType>* input)
+{
+    const auto num_blocks = input->get_num_batch_items();
+    const auto col_scale_vals = col_scale->get_const_data();
+    const auto row_scale_vals = row_scale->get_const_data();
+    const auto mat_ub = get_batch_struct(input);
+    scale_kernel<<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+        as_device_type(col_scale_vals), as_device_type(row_scale_vals), mat_ub);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
+    GKO_DECLARE_BATCH_CSR_SCALE_KERNEL);

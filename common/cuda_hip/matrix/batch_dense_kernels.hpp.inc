@@ -133,3 +133,40 @@ __global__ __launch_bounds__(
                        x_b.values);
     }
 }
+
+
+template <typename ValueType>
+__device__ __forceinline__ void scale(const int num_rows, const int stride,
+                                      const int num_cols,
+                                      const ValueType* const col_scale,
+                                      const ValueType* const row_scale,
+                                      ValueType* const mat)
+{
+    for (int iz = threadIdx.x; iz < num_rows * num_cols; iz += blockDim.x) {
+        const int row = iz / stride;
+        const int col = iz % stride;
+        mat[row * stride + col] *= col_scale[col] * row_scale[row];
+    }
+}
+
+
+template <typename ValueType>
+__global__ void scale_kernel(
+    const ValueType* const __restrict__ col_scale_vals,
+    const ValueType* const __restrict__ row_scale_vals,
+    const gko::batch::matrix::dense::uniform_batch<ValueType> mat)
+{
+    const int num_rows = mat.num_rows;
+    const int stride = mat.stride;
+    const int num_cols = mat.num_cols;
+    const size_type num_batch_items = mat.num_batch_items;
+    for (size_type batch_id = blockIdx.x; batch_id < num_batch_items;
+         batch_id += gridDim.x) {
+        const auto col_scale_b = col_scale_vals + num_cols * batch_id;
+        const auto row_scale_b = row_scale_vals + num_rows * batch_id;
+        const auto mat_b =
+            gko::batch::matrix::extract_batch_item(mat, batch_id);
+        scale(num_rows, stride, num_cols, col_scale_b, row_scale_b,
+              mat_b.values);
+    }
+}
