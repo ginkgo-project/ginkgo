@@ -50,3 +50,19 @@ inline void advanced_apply_kernel(
         }
     }
 }
+
+
+template <typename ValueType, typename IndexType>
+inline void add_scaled_identity_kernel(
+    const ValueType alpha, const ValueType beta,
+    const gko::batch::matrix::ell::batch_item<ValueType, IndexType>& mat)
+{
+    for (int row = 0; row < mat.num_rows; row++) {
+        for (int k = 0; k < mat.num_stored_elems_per_row; k++) {
+            mat.values[row + k * mat.stride] *= beta;
+            if (row == mat.col_idxs[row + k * mat.stride]) {
+                mat.values[row + k * mat.stride] += alpha;
+            }
+        }
+    }
+}
