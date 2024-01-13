@@ -20,6 +20,24 @@ __dpct_inline__ void scale_kernel(
 }
 
 
+template <typename ValueType>
+__dpct_inline__ void elem_wise_scale_kernel(
+    const gko::batch::multi_vector::batch_item<const ValueType>& alpha,
+    const gko::batch::multi_vector::batch_item<ValueType>& x,
+    sycl::nd_item<3>& item_ct1)
+{
+    const int max_li = x.num_rows * x.num_rhs;
+    for (int li = item_ct1.get_local_linear_id(); li < max_li;
+         li += item_ct1.get_local_range().size()) {
+        const int row = li / x.num_rhs;
+        const int col = li % x.num_rhs;
+
+        x.values[row * x.stride + col] *=
+            alpha.values[row * alpha.stride + col];
+    }
+}
+
+
 template <typename ValueType, typename Mapping>
 __dpct_inline__ void add_scaled_kernel(
     const gko::batch::multi_vector::batch_item<const ValueType>& alpha,

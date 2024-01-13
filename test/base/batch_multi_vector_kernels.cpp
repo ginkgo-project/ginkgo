@@ -42,6 +42,15 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
+    void set_up_elem_scale_vector_data(gko::size_type num_vecs,
+                                       const int num_rows = 252)
+    {
+        x = gen_mtx<Mtx>(batch_size, num_rows, num_vecs);
+        alpha = gen_mtx<Mtx>(batch_size, num_rows, num_vecs);
+        dx = gko::clone(exec, x);
+        dalpha = gko::clone(exec, alpha);
+    }
+
     void set_up_vector_data(gko::size_type num_vecs, const int num_rows = 252,
                             bool different_alpha = false)
     {
@@ -148,6 +157,17 @@ TEST_F(MultiVector, MultipleVectorScaleIsEquivalentToRef)
 TEST_F(MultiVector, MultipleVectorScaleWithDifferentAlphaIsEquivalentToRef)
 {
     set_up_vector_data(20, true);
+
+    x->scale(alpha.get());
+    dx->scale(dalpha.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 5 * r<value_type>::value);
+}
+
+
+TEST_F(MultiVector, MultipleVectorElemWiseScaleIsEquivalentToRef)
+{
+    set_up_elem_scale_vector_data(20);
 
     x->scale(alpha.get());
     dx->scale(dalpha.get());

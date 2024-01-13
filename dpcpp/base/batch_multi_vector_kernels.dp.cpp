@@ -102,7 +102,37 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void element_wise_scale(std::shared_ptr<const DefaultExecutor> exec,
                         const batch::MultiVector<ValueType>* alpha,
-                        batch::MultiVector<ValueType>* x) GKO_NOT_IMPLEMENTED;
+                        batch::MultiVector<ValueType>* x)
+{
+    const auto alpha_ub = get_batch_struct(alpha);
+    const auto x_ub = get_batch_struct(x);
+
+    const int num_rows = x->get_common_size()[0];
+    constexpr int max_subgroup_size = config::warp_size;
+    const auto num_batches = x_ub.num_batch_items;
+    auto device = exec->get_queue()->get_device();
+    long max_group_size =
+        device.get_info<sycl::info::device::max_work_group_size>();
+    int group_size =
+        std::min(ceildiv(num_rows, max_subgroup_size) * max_subgroup_size,
+                 max_group_size);
+
+    const dim3 block(group_size);
+    const dim3 grid(num_batches);
+
+    // Launch a kernel that has nbatches blocks, each block has max group size
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                auto group = item_ct1.get_group();
+                auto group_id = group.get_group_linear_id();
+                const auto alpha_b =
+                    batch::extract_batch_item(alpha_ub, group_id);
+                const auto x_b = batch::extract_batch_item(x_ub, group_id);
+                elem_wise_scale_kernel(alpha_b, x_b, item_ct1);
+            });
+    });
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_MULTI_VECTOR_ELEMENT_WISE_SCALE_KERNEL);
