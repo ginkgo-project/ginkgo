@@ -111,3 +111,47 @@ __global__ __launch_bounds__(
                        x_b.values);
     }
 }
+
+
+template <typename ValueType, typename IndexType>
+__device__ __forceinline__ void scale(
+    const int num_rows, const ValueType* const __restrict__ col_scale,
+    const ValueType* const __restrict__ row_scale,
+    const IndexType* const __restrict__ col_idxs,
+    const IndexType* const __restrict__ row_ptrs,
+    ValueType* const __restrict__ values)
+{
+    constexpr auto warp_size = config::warp_size;
+    const auto tile =
+        group::tiled_partition<warp_size>(group::this_thread_block());
+    const int tile_rank = threadIdx.x / warp_size;
+    const int num_tiles = (blockDim.x - 1) / warp_size + 1;
+
+    for (int row = tile_rank; row < num_rows; row += num_tiles) {
+        const ValueType rscale = row_scale[row];
+        for (int col = row_ptrs[row] + tile.thread_rank();
+             col < row_ptrs[row + 1]; col += warp_size) {
+            values[col] *= rscale * col_scale[col_idxs[col]];
+        }
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ void scale_kernel(
+    const ValueType* const __restrict__ col_scale_vals,
+    const ValueType* const __restrict__ row_scale_vals,
+    const gko::batch::matrix::csr::uniform_batch<ValueType, IndexType> mat)
+{
+    auto num_rows = mat.num_rows;
+    auto num_cols = mat.num_cols;
+    for (size_type batch_id = blockIdx.x; batch_id < mat.num_batch_items;
+         batch_id += gridDim.x) {
+        const auto mat_b =
+            gko::batch::matrix::extract_batch_item(mat, batch_id);
+        const auto col_scale_b = col_scale_vals + num_cols * batch_id;
+        const auto row_scale_b = row_scale_vals + num_rows * batch_id;
+        scale(mat.num_rows, col_scale_b, row_scale_b, mat_b.col_idxs,
+              mat_b.row_ptrs, mat_b.values);
+    }
+}
