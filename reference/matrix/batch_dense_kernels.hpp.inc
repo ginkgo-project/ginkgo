@@ -58,3 +58,17 @@ inline void advanced_apply_kernel(
         }
     }
 }
+
+
+template <typename ValueType>
+inline void scale(const int num_rows, const int num_cols,
+                  const size_type stride, const ValueType* const col_scale,
+                  const ValueType* const row_scale, ValueType* const mat)
+{
+    for (int row = 0; row < num_rows; row++) {
+        const ValueType row_scalar = row_scale[row];
+        for (int col = 0; col < num_cols; col++) {
+            mat[row * stride + col] *= row_scalar * col_scale[col];
+        }
+    }
+}
