@@ -125,3 +125,43 @@ __global__ __launch_bounds__(
                        x_b.values);
     }
 }
+
+
+template <typename ValueType, typename IndexType>
+__device__ __forceinline__ void scale(
+    const ValueType* const __restrict__ col_scale,
+    const ValueType* const __restrict__ row_scale,
+    const gko::batch::matrix::ell::batch_item<ValueType, IndexType>& mat)
+{
+    for (int tidx = threadIdx.x; tidx < mat.num_rows; tidx += blockDim.x) {
+        auto r_scale = row_scale[tidx];
+        for (size_type idx = 0; idx < mat.num_stored_elems_per_row; idx++) {
+            const auto ind = tidx + idx * mat.stride;
+            const auto col_idx = mat.col_idxs[ind];
+            if (col_idx == invalid_index<IndexType>()) {
+                break;
+            } else {
+                mat.values[ind] *= r_scale * col_scale[col_idx];
+            }
+        }
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ void scale_kernel(
+    const ValueType* const __restrict__ col_scale_vals,
+    const ValueType* const __restrict__ row_scale_vals,
+    const gko::batch::matrix::ell::uniform_batch<ValueType, IndexType> mat)
+{
+    auto num_rows = mat.num_rows;
+    auto num_cols = mat.num_cols;
+    for (size_type batch_id = blockIdx.x; batch_id < mat.num_batch_items;
+         batch_id += gridDim.x) {
+        const auto mat_b =
+            gko::batch::matrix::extract_batch_item(mat, batch_id);
+        const auto col_scale_b = col_scale_vals + num_cols * batch_id;
+        const auto row_scale_b = row_scale_vals + num_rows * batch_id;
+        scale(col_scale_b, row_scale_b, mat_b);
+    }
+}
