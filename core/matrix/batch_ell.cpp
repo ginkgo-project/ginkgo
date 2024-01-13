@@ -205,6 +205,24 @@ void Ell<ValueType, IndexType>::move_to(
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_ELL_MATRIX);
 
 
+template <typename ValueType, typename IndexType>
+void two_sided_scale(const array<ValueType>& col_scale,
+                     const array<ValueType>& row_scale,
+                     batch::matrix::Ell<ValueType, IndexType>* in_out)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+
+#define GKO_DECLARE_TWO_SIDED_BATCH_SCALE(_vtype, _itype) \
+    void two_sided_scale(const array<_vtype>& col_scale,  \
+                         const array<_vtype>& row_scale,  \
+                         batch::matrix::Ell<_vtype, _itype>* in_out)
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
+    GKO_DECLARE_TWO_SIDED_BATCH_SCALE);
+
+
 }  // namespace matrix
 }  // namespace batch
 }  // namespace gko

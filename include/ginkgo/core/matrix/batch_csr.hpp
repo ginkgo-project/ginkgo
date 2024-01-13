@@ -15,7 +15,6 @@
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
-#include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
@@ -211,7 +210,6 @@ public:
      *
      * @param exec  the executor to create the matrix on
      * @param size  the dimensions of the matrix
-     * @param num_elems_per_row  the number of elements to be stored in each row
      * @param values  the value array of the matrix
      * @param col_idxs the col_idxs array of a single batch item of the matrix.
      * @param row_ptrs  the row_ptrs array of a single batch item of the matrix.
@@ -266,6 +264,29 @@ public:
                      ptr_param<const MultiVector<value_type>> b,
                      ptr_param<const MultiVector<value_type>> beta,
                      ptr_param<MultiVector<value_type>> x) const;
+
+    /**
+     * Performs the operation this = alpha*this + b.
+     *
+     * @param alpha the scalar to multiply this matrix
+     * @param b  the matrix to add
+     *
+     * @note Performs the operation in-place for this batch matrix
+     */
+    void scale_add(
+        ptr_param<const MultiVector<value_type>> alpha,
+        ptr_param<const batch::matrix::Csr<value_type, index_type>> b);
+
+    /**
+     * Performs the operation this = alpha*I + beta*this.
+     *
+     * @param alpha the scalar for identity
+     * @param beta  the scalar to multiply this matrix
+     *
+     * @note Performs the operation in-place for this batch matrix
+     */
+    void add_scaled_identity(ptr_param<const MultiVector<value_type>> alpha,
+                             ptr_param<const MultiVector<value_type>> beta);
 
 private:
     /**
@@ -331,6 +352,21 @@ private:
     array<index_type> col_idxs_;
     array<index_type> row_ptrs_;
 };
+
+
+/**
+ * Performs in-place row and column scaling for a given matrix.
+ *
+ * @param col_scale  the column scalars
+ * @param row_scale  the row scalars
+ * @param in_out  the matrix to be scaled
+ *
+ * @note the operation is performed in-place
+ */
+template <typename ValueType, typename IndexType>
+void two_sided_scale(const array<ValueType>& col_scale,
+                     const array<ValueType>& row_scale,
+                     batch::matrix::Csr<ValueType, IndexType>* in_out);
 
 
 }  // namespace matrix

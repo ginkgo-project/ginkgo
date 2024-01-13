@@ -18,6 +18,7 @@
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -216,6 +217,16 @@ public:
     }
 
     /**
+     * Returns the number of stored elements in each batch item.
+     *
+     * @return the number of stored elements per batch item.
+     */
+    size_type get_num_elements_per_item() const noexcept
+    {
+        return this->get_num_stored_elements() / this->get_num_batch_items();
+    }
+
+    /**
      * Creates a constant (immutable) batch dense matrix from a constant
      * array.
      *
@@ -271,6 +282,28 @@ public:
                        ptr_param<const MultiVector<value_type>> b,
                        ptr_param<const MultiVector<value_type>> beta,
                        ptr_param<MultiVector<value_type>> x) const;
+
+    /**
+     * Performs the operation this = alpha*this + b.
+     *
+     * @param alpha the scalar to multiply this matrix
+     * @param b  the matrix to add
+     *
+     * @note Performs the operation in-place for this batch matrix
+     */
+    void scale_add(ptr_param<const MultiVector<value_type>> alpha,
+                   ptr_param<const batch::matrix::Dense<value_type>> b);
+
+    /**
+     * Performs the operation this = alpha*I + beta*this.
+     *
+     * @param alpha the scalar for identity
+     * @param beta  the scalar to multiply this matrix
+     *
+     * @note Performs the operation in-place for this batch matrix
+     */
+    void add_scaled_identity(ptr_param<const MultiVector<value_type>> alpha,
+                             ptr_param<const MultiVector<value_type>> beta);
 
 private:
     inline size_type compute_num_elems(const batch_dim<2>& size)
@@ -336,6 +369,21 @@ private:
 
     array<value_type> values_;
 };
+
+
+/**
+ * Performs in-place row and column scaling for a given matrix.
+ *
+ * @param col_scale  the column scalars
+ * @param row_scale  the row scalars
+ * @param in_out  the matrix to be scaled
+ *
+ * @note the operation is performed in-place
+ */
+template <typename ValueType>
+void two_sided_scale(const array<ValueType>& col_scale,
+                     const array<ValueType>& row_scale,
+                     batch::matrix::Dense<ValueType>* in_out);
 
 
 }  // namespace matrix

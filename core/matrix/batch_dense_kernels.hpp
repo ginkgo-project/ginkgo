@@ -34,11 +34,18 @@ namespace kernels {
                         const batch::MultiVector<_type>* beta,       \
                         batch::MultiVector<_type>* c)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                        \
-    template <typename ValueType>                           \
-    GKO_DECLARE_BATCH_DENSE_SIMPLE_APPLY_KERNEL(ValueType); \
-    template <typename ValueType>                           \
-    GKO_DECLARE_BATCH_DENSE_ADVANCED_APPLY_KERNEL(ValueType)
+#define GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL(_type)                          \
+    void scale(std::shared_ptr<const DefaultExecutor> exec,                  \
+               const array<_type>* col_scale, const array<_type>* row_scale, \
+               batch::matrix::Dense<_type>* input)
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                          \
+    template <typename ValueType>                             \
+    GKO_DECLARE_BATCH_DENSE_SIMPLE_APPLY_KERNEL(ValueType);   \
+    template <typename ValueType>                             \
+    GKO_DECLARE_BATCH_DENSE_ADVANCED_APPLY_KERNEL(ValueType); \
+    template <typename ValueType>                             \
+    GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL(ValueType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(batch_dense,
