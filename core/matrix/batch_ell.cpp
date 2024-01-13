@@ -30,6 +30,7 @@ namespace {
 
 GKO_REGISTER_OPERATION(simple_apply, batch_ell::simple_apply);
 GKO_REGISTER_OPERATION(advanced_apply, batch_ell::advanced_apply);
+GKO_REGISTER_OPERATION(scale, batch_ell::scale);
 
 
 }  // namespace
@@ -210,7 +211,12 @@ void two_sided_scale(const array<ValueType>& col_scale,
                      const array<ValueType>& row_scale,
                      batch::matrix::Ell<ValueType, IndexType>* in_out)
 {
-    GKO_NOT_IMPLEMENTED;
+    GKO_ASSERT_EQ(col_scale.get_size(), (in_out->get_common_size()[1] *
+                                         in_out->get_num_batch_items()));
+    GKO_ASSERT_EQ(row_scale.get_size(), (in_out->get_common_size()[0] *
+                                         in_out->get_num_batch_items()));
+    in_out->get_executor()->run(
+        ell::make_scale(&col_scale, &row_scale, in_out));
 }
 
 
