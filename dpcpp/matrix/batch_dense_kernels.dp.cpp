@@ -190,7 +190,38 @@ template <typename ValueType>
 void scale_add(std::shared_ptr<const DefaultExecutor> exec,
                const batch::MultiVector<ValueType>* alpha,
                const batch::matrix::Dense<ValueType>* mat,
-               batch::matrix::Dense<ValueType>* input) GKO_NOT_IMPLEMENTED;
+               batch::matrix::Dense<ValueType>* in_out)
+{
+    const auto alpha_ub = get_batch_struct(alpha);
+    const auto mat_ub = get_batch_struct(mat);
+    const auto in_out_ub = get_batch_struct(in_out);
+
+    const auto num_batch_items = mat_ub.num_batch_items;
+    auto device = exec->get_queue()->get_device();
+    auto group_size =
+        device.get_info<sycl::info::device::max_work_group_size>();
+
+    const dim3 block(group_size);
+    const dim3 grid(num_batch_items);
+
+    // Launch a kernel that has nbatches blocks, each block has max group size
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                config::warp_size)]] {
+                auto group = item_ct1.get_group();
+                auto group_id = group.get_group_linear_id();
+                const auto alpha_b =
+                    gko::batch::extract_batch_item(alpha_ub, group_id);
+                const auto mat_b =
+                    gko::batch::matrix::extract_batch_item(mat_ub, group_id);
+                const auto in_out_b =
+                    gko::batch::matrix::extract_batch_item(in_out_ub, group_id);
+                scale_add_kernel(alpha_b.values[0], mat_b, in_out_b, item_ct1);
+            });
+    });
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_ADD_KERNEL);
 
@@ -200,7 +231,38 @@ void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
                          const batch::MultiVector<ValueType>* alpha,
                          const batch::MultiVector<ValueType>* beta,
                          batch::matrix::Dense<ValueType>* mat)
-    GKO_NOT_IMPLEMENTED;
+{
+    const auto alpha_ub = get_batch_struct(alpha);
+    const auto beta_ub = get_batch_struct(beta);
+    const auto mat_ub = get_batch_struct(mat);
+
+    const auto num_batch_items = mat_ub.num_batch_items;
+    auto device = exec->get_queue()->get_device();
+    auto group_size =
+        device.get_info<sycl::info::device::max_work_group_size>();
+
+    const dim3 block(group_size);
+    const dim3 grid(num_batch_items);
+
+    // Launch a kernel that has nbatches blocks, each block has max group size
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1)
+                [[sycl::reqd_sub_group_size(config::warp_size)]] {
+                    auto group = item_ct1.get_group();
+                    auto group_id = group.get_group_linear_id();
+                    const auto alpha_b =
+                        gko::batch::extract_batch_item(alpha_ub, group_id);
+                    const auto beta_b =
+                        gko::batch::extract_batch_item(beta_ub, group_id);
+                    const auto mat_b = gko::batch::matrix::extract_batch_item(
+                        mat_ub, group_id);
+                    add_scaled_identity_kernel(
+                        alpha_b.values[0], beta_b.values[0], mat_b, item_ct1);
+                });
+    });
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_ADD_SCALED_IDENTITY_KERNEL);
