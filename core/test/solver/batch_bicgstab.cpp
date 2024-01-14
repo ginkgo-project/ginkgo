@@ -255,6 +255,7 @@ TYPED_TEST(BatchBicgstab, CanSetScalingVectors)
     col_scale.fill(0.5);
     auto row_scale = gko::array<value_type>(this->exec, scale_size);
     row_scale.fill(0.8);
+
     auto solver_factory = Solver::build()
                               .with_max_iterations(22)
                               .with_tolerance(static_cast<real_type>(0.25))
