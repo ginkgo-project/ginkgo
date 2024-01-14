@@ -37,7 +37,7 @@ protected:
     Csr()
         : exec(gko::ReferenceExecutor::create()),
           mtx_0(gko::batch::initialize<BMtx>(
-              {{I<T>({1.0, -1.0, 0.0}), I<T>({-2.0, 2.0, 3.0})},
+              {{{1.0, -1.0, 0.0}, {-2.0, 2.0, 3.0}},
                {{1.0, -2.0, 0.0}, {1.0, -2.5, 4.0}}},
               exec, 5)),
           mtx_00(gko::initialize<CsrMtx>(
@@ -181,6 +181,25 @@ TYPED_TEST(Csr, CanTwoSidedScale)
     auto scaled_mtx_0 =
         gko::batch::initialize<BMtx>({{{6.0, -6.0, 0.0}, {-12.0, 12.0, 18.0}},
                                       {{6.0, -12.0, 0.0}, {6.0, -15.0, 24.0}}},
+                                     this->exec, 5);
+    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx_0.get(), scaled_mtx_0.get(), 0.);
+}
+
+
+TYPED_TEST(Csr, CanTwoSidedScaleWithDifferentAlpha)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = gko::int32;
+    using BMtx = typename TestFixture::BMtx;
+    auto col_scale = gko::array<value_type>(this->exec, {1, 2, 1, 2, 2, 3});
+    auto row_scale = gko::array<value_type>(this->exec, {2, 4, 3, 1});
+
+    gko::batch::matrix::two_sided_scale<value_type, index_type>(
+        col_scale, row_scale, this->mtx_0.get());
+
+    auto scaled_mtx_0 =
+        gko::batch::initialize<BMtx>({{{2.0, -4.0, 0.0}, {-8.0, 16.0, 12.0}},
+                                      {{6.0, -12.0, 0.0}, {2.0, -5.0, 12.0}}},
                                      this->exec, 5);
     GKO_ASSERT_BATCH_MTX_NEAR(this->mtx_0.get(), scaled_mtx_0.get(), 0.);
 }
