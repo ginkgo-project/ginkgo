@@ -137,3 +137,14 @@ TEST_F(Csr, TwoSidedScaleIsEquivalentToRef)
 
     GKO_ASSERT_BATCH_MTX_NEAR(dmat, mat, r<value_type>::value);
 }
+
+
+TEST_F(Csr, AddScaledIdentityIsEquivalentToRef)
+{
+    set_up_apply_data(2, 5, 151, 151);
+
+    mat->add_scaled_identity(alpha, beta);
+    dmat->add_scaled_identity(dalpha, dbeta);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dmat, mat, r<value_type>::value);
+}
