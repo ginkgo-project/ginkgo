@@ -155,3 +155,44 @@ __global__ void scale_kernel(
               mat_b.row_ptrs, mat_b.values);
     }
 }
+
+
+template <typename ValueType, typename IndexType>
+__device__ __forceinline__ void add_scaled_identity(
+    const ValueType alpha, const ValueType beta,
+    const gko::batch::matrix::csr::batch_item<ValueType, IndexType>& mat)
+{
+    constexpr auto warp_size = config::warp_size;
+    const auto tile =
+        group::tiled_partition<warp_size>(group::this_thread_block());
+    const int tile_rank = threadIdx.x / warp_size;
+    const int num_tiles = (blockDim.x - 1) / warp_size + 1;
+
+    for (int row = tile_rank; row < mat.num_rows; row += num_tiles) {
+        for (int nnz = mat.row_ptrs[row] + tile.thread_rank();
+             nnz < mat.row_ptrs[row + 1]; nnz += warp_size) {
+            mat.values[nnz] *= beta;
+            if (row == mat.col_idxs[nnz]) {
+                mat.values[nnz] += alpha;
+            }
+        }
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ void add_scaled_identity_kernel(
+    const gko::batch::multi_vector::uniform_batch<const ValueType> alpha,
+    const gko::batch::multi_vector::uniform_batch<const ValueType> beta,
+    const gko::batch::matrix::csr::uniform_batch<ValueType, IndexType> mat)
+{
+    const size_type num_batch_items = mat.num_batch_items;
+    for (size_type batch_id = blockIdx.x; batch_id < num_batch_items;
+         batch_id += gridDim.x) {
+        const auto alpha_b = gko::batch::extract_batch_item(alpha, batch_id);
+        const auto beta_b = gko::batch::extract_batch_item(beta, batch_id);
+        const auto mat_b =
+            gko::batch::matrix::extract_batch_item(mat, batch_id);
+        add_scaled_identity(alpha_b.values[0], beta_b.values[0], mat_b);
+    }
+}
