@@ -133,3 +133,25 @@ TEST_F(Dense, TwoSidedScaleIsEquivalentToRef)
 
     GKO_ASSERT_BATCH_MTX_NEAR(dmat, mat, r<value_type>::value);
 }
+
+
+TEST_F(Dense, ScaleAddIsEquivalentToRef)
+{
+    set_up_apply_data(42, 42, 15);
+
+    mat->scale_add(alpha, mat2);
+    dmat->scale_add(dalpha, dmat2);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dmat, mat, r<value_type>::value);
+}
+
+
+TEST_F(Dense, AddScaledIdentityIsEquivalentToRef)
+{
+    set_up_apply_data(42, 42, 15);
+
+    mat->add_scaled_identity(alpha, beta);
+    dmat->add_scaled_identity(dalpha, dbeta);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dmat, mat, r<value_type>::value);
+}
