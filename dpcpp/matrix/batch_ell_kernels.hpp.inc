@@ -66,3 +66,26 @@ __dpct_inline__ void scale_kernel(
         }
     }
 }
+
+
+template <typename ValueType, typename IndexType>
+__dpct_inline__ void add_scaled_identity_kernel(
+    const ValueType alpha, const ValueType beta,
+    const gko::batch::matrix::ell::batch_item<ValueType, IndexType>& mat,
+    sycl::nd_item<3>& item_ct1)
+{
+    for (int row = item_ct1.get_local_linear_id(); row < mat.num_rows;
+         row += item_ct1.get_local_range().size()) {
+        for (auto k = 0; k < mat.num_stored_elems_per_row; k++) {
+            auto col_idx = mat.col_idxs[row + mat.stride * k];
+            mat.values[row + k * mat.stride] *= beta;
+            if (col_idx == invalid_index<IndexType>()) {
+                break;
+            } else {
+                if (row == col_idx) {
+                    mat.values[row + k * mat.stride] += alpha;
+                }
+            }
+        }
+    }
+}

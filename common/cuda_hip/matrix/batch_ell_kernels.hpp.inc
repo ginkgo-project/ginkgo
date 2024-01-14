@@ -165,3 +165,43 @@ __global__ void scale_kernel(
         scale(col_scale_b, row_scale_b, mat_b);
     }
 }
+
+
+template <typename ValueType, typename IndexType>
+__device__ __forceinline__ void add_scaled_identity(
+    const ValueType alpha, const ValueType beta,
+    const gko::batch::matrix::ell::batch_item<ValueType, IndexType>& mat)
+{
+    for (int tidx = threadIdx.x; tidx < mat.num_rows; tidx += blockDim.x) {
+        for (size_type idx = 0; idx < mat.num_stored_elems_per_row; idx++) {
+            const auto ind = tidx + idx * mat.stride;
+            mat.values[ind] *= beta;
+            const auto col_idx = mat.col_idxs[ind];
+            if (col_idx == invalid_index<IndexType>()) {
+                break;
+            } else {
+                if (tidx == col_idx) {
+                    mat.values[ind] += alpha;
+                }
+            }
+        }
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ void add_scaled_identity_kernel(
+    const gko::batch::multi_vector::uniform_batch<const ValueType> alpha,
+    const gko::batch::multi_vector::uniform_batch<const ValueType> beta,
+    const gko::batch::matrix::ell::uniform_batch<ValueType, IndexType> mat)
+{
+    const size_type num_batch_items = mat.num_batch_items;
+    for (size_type batch_id = blockIdx.x; batch_id < num_batch_items;
+         batch_id += gridDim.x) {
+        const auto alpha_b = gko::batch::extract_batch_item(alpha, batch_id);
+        const auto beta_b = gko::batch::extract_batch_item(beta, batch_id);
+        const auto mat_b =
+            gko::batch::matrix::extract_batch_item(mat, batch_id);
+        add_scaled_identity(alpha_b.values[0], beta_b.values[0], mat_b);
+    }
+}
