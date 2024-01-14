@@ -60,3 +60,19 @@ inline void scale(
         }
     }
 }
+
+
+template <typename ValueType, typename IndexType>
+inline void add_scaled_identity_kernel(
+    const ValueType alpha, const ValueType beta,
+    const gko::batch::matrix::csr::batch_item<ValueType, IndexType>& mat)
+{
+    for (int row = 0; row < mat.num_rows; row++) {
+        for (int nnz = mat.row_ptrs[row]; nnz < mat.row_ptrs[row + 1]; nnz++) {
+            mat.values[nnz] *= beta;
+            if (row == mat.col_idxs[nnz]) {
+                mat.values[nnz] += alpha;
+            }
+        }
+    }
+}

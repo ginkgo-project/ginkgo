@@ -72,3 +72,36 @@ inline void scale(const int num_rows, const int num_cols,
         }
     }
 }
+
+
+template <typename ValueType>
+inline void scale_add_kernel(
+    const ValueType alpha,
+    const gko::batch::matrix::dense::batch_item<const ValueType>& b,
+    const gko::batch::matrix::dense::batch_item<ValueType>& in_out)
+{
+    for (int row = 0; row < b.num_rows; row++) {
+        for (int col = 0; col < b.num_cols; col++) {
+            in_out.values[row * in_out.stride + col] =
+                alpha * in_out.values[row * in_out.stride + col] +
+                b.values[row * b.stride + col];
+        }
+    }
+}
+
+
+template <typename ValueType>
+inline void add_scaled_identity_kernel(
+    const ValueType alpha, const ValueType beta,
+    const gko::batch::matrix::dense::batch_item<ValueType>& mat)
+{
+    for (int row = 0; row < mat.num_rows; row++) {
+        for (int col = 0; col < mat.num_cols; col++) {
+            auto nnz = row * mat.stride + col;
+            mat.values[nnz] *= beta;
+            if (row == col) {
+                mat.values[nnz] += alpha;
+            }
+        }
+    }
+}
