@@ -14,8 +14,9 @@ __dpct_inline__ void scale_kernel(
         const int row = li / x.num_rhs;
         const int col = li % x.num_rhs;
 
-        x.values[row * x.stride + col] = alpha.values[map(row, col, stride)] *
-                                         x.values[row * x.stride + col];
+        x.values[row * x.stride + col] =
+            alpha.values[map(row, col, alpha.stride)] *
+            x.values[row * x.stride + col];
     }
 }
 
