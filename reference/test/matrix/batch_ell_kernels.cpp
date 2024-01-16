@@ -177,8 +177,8 @@ TYPED_TEST(Ell, CanTwoSidedScale)
     col_scale.fill(2);
     row_scale.fill(3);
 
-    gko::batch::matrix::two_sided_scale<value_type, index_type>(
-        col_scale, row_scale, this->mtx_0.get());
+    gko::batch::matrix::two_sided_scale(col_scale, row_scale,
+                                        this->mtx_0.get());
 
     auto scaled_mtx_0 =
         gko::batch::initialize<BMtx>({{{6.0, -6.0, 9.0}, {-12.0, 12.0, 18.0}},
@@ -188,7 +188,7 @@ TYPED_TEST(Ell, CanTwoSidedScale)
 }
 
 
-TYPED_TEST(Ell, CanTwoSidedScaleWithDifferentAlpha)
+TYPED_TEST(Ell, CanTwoSidedScaleWithDifferentValues)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = gko::int32;
@@ -196,8 +196,8 @@ TYPED_TEST(Ell, CanTwoSidedScaleWithDifferentAlpha)
     auto col_scale = gko::array<value_type>(this->exec, {1, 2, 1, 2, 2, 3});
     auto row_scale = gko::array<value_type>(this->exec, {2, 4, 3, 1});
 
-    gko::batch::matrix::two_sided_scale<value_type, index_type>(
-        col_scale, row_scale, this->mtx_0.get());
+    gko::batch::matrix::two_sided_scale(col_scale, row_scale,
+                                        this->mtx_0.get());
 
     auto scaled_mtx_0 =
         gko::batch::initialize<BMtx>({{{2.0, -4.0, 3.0}, {-8.0, 16.0, 12.0}},

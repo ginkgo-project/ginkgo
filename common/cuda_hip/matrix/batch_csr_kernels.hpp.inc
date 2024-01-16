@@ -125,13 +125,13 @@ __device__ __forceinline__ void scale(
     const auto tile =
         group::tiled_partition<warp_size>(group::this_thread_block());
     const int tile_rank = threadIdx.x / warp_size;
-    const int num_tiles = (blockDim.x - 1) / warp_size + 1;
+    const int num_tiles = ceildiv(blockDim.x, warp_size);
 
     for (int row = tile_rank; row < num_rows; row += num_tiles) {
-        const ValueType rscale = row_scale[row];
+        const ValueType row_scalar = row_scale[row];
         for (int col = row_ptrs[row] + tile.thread_rank();
              col < row_ptrs[row + 1]; col += warp_size) {
-            values[col] *= rscale * col_scale[col_idxs[col]];
+            values[col] *= row_scalar * col_scale[col_idxs[col]];
         }
     }
 }

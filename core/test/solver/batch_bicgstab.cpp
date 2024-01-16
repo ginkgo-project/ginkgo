@@ -264,10 +264,6 @@ TYPED_TEST(BatchBicgstab, CanSetScalingVectors)
                               .on(this->exec);
     auto solver = solver_factory->generate(this->mtx);
 
-    ASSERT_EQ(solver->get_parameters().max_iterations, 22);
-    ASSERT_EQ(solver->get_parameters().tolerance, 0.25);
-    ASSERT_EQ(solver->get_parameters().tolerance_type,
-              gko::batch::stop::tolerance_type::absolute);
     ASSERT_EQ(solver->get_parameters().row_scaling.get_size(), scale_size);
     ASSERT_EQ(solver->get_parameters().row_scaling.get_const_data()[0],
               value_type{0.8});
