@@ -89,13 +89,13 @@ protected:
     std::default_random_engine rand_engine;
 
     const gko::size_type batch_size = 11;
-    std::shared_ptr<BMtx> mat;
+    std::unique_ptr<BMtx> mat;
     std::unique_ptr<BMVec> y;
     std::unique_ptr<BMVec> alpha;
     std::unique_ptr<BMVec> beta;
     std::unique_ptr<BMVec> expected;
     std::unique_ptr<BMVec> dresult;
-    std::shared_ptr<BMtx> dmat;
+    std::unique_ptr<BMtx> dmat;
     std::unique_ptr<BMVec> dy;
     std::unique_ptr<BMVec> dalpha;
     std::unique_ptr<BMVec> dbeta;
@@ -132,8 +132,8 @@ TEST_F(Csr, TwoSidedScaleIsEquivalentToRef)
 {
     set_up_apply_data(257);
 
-    gko::batch::matrix::scale_in_place(col_scale, row_scale, mat.get());
-    gko::batch::matrix::scale_in_place(dcol_scale, drow_scale, dmat.get());
+    mat->scale(dcol_scale, drow_scale);
+    dmat->scale(dcol_scale, drow_scale);
 
     GKO_ASSERT_BATCH_MTX_NEAR(dmat, mat, r<value_type>::value);
 }

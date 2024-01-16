@@ -11,9 +11,6 @@
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/log/batch_logger.hpp>
-#include <ginkgo/core/matrix/batch_csr.hpp>
-#include <ginkgo/core/matrix/batch_dense.hpp>
-#include <ginkgo/core/matrix/batch_ell.hpp>
 #include <ginkgo/core/matrix/batch_identity.hpp>
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
 
@@ -191,16 +188,6 @@ struct enable_preconditioned_iterative_solver_factory_parameters
      */
     std::shared_ptr<const BatchLinOp> GKO_FACTORY_PARAMETER_SCALAR(
         generated_preconditioner, nullptr);
-
-    /**
-     * Column scaling vector
-     */
-    array<ValueType> GKO_FACTORY_PARAMETER_SCALAR(col_scaling, {});
-
-    /**
-     * Row scaling vector
-     */
-    array<ValueType> GKO_FACTORY_PARAMETER_SCALAR(row_scaling, {});
 };
 
 
@@ -291,28 +278,6 @@ protected:
         using value_type = typename ConcreteSolver::value_type;
         using Identity = matrix::Identity<value_type>;
         using real_type = remove_complex<value_type>;
-        using batch_dense = matrix::Dense<value_type>;
-        using batch_csr = matrix::Csr<value_type>;
-        using batch_ell = matrix::Ell<value_type>;
-
-        if (params.col_scaling.get_executor() &&
-            params.row_scaling.get_executor()) {
-            GKO_ASSERT_EQ(params.col_scaling.get_size(),
-                          system_matrix->get_common_size()[0] *
-                              system_matrix->get_num_batch_items());
-            GKO_ASSERT_EQ(params.col_scaling.get_size(),
-                          params.row_scaling.get_size());
-            if (auto mat = as<batch_dense>(system_matrix)) {
-                matrix::scale_in_place(params.col_scaling, params.row_scaling,
-                                       const_cast<batch_dense*>(mat.get()));
-            } else if (auto mat = as<batch_csr>(system_matrix)) {
-                matrix::scale_in_place(params.col_scaling, params.row_scaling,
-                                       const_cast<batch_csr*>(mat.get()));
-            } else if (auto mat = as<batch_ell>(system_matrix)) {
-                matrix::scale_in_place(params.col_scaling, params.row_scaling,
-                                       const_cast<batch_ell*>(mat.get()));
-            }
-        }
 
         if (params.generated_preconditioner) {
             GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(params.generated_preconditioner,

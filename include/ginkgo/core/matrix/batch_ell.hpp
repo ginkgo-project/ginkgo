@@ -18,6 +18,7 @@
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 
 
@@ -283,6 +284,15 @@ public:
                      ptr_param<const MultiVector<value_type>> beta,
                      ptr_param<MultiVector<value_type>> x) const;
 
+    /**
+     * Performs in-place row and column scaling for this matrix.
+     *
+     * @param col_scale  the column scalars
+     * @param row_scale  the row scalars
+     */
+    void scale(const array<value_type>& col_scale,
+               const array<value_type>& row_scale);
+
 private:
     size_type compute_num_elems(const batch_dim<2>& size,
                                 IndexType num_elems_per_row)
@@ -346,21 +356,6 @@ private:
     array<value_type> values_;
     array<index_type> col_idxs_;
 };
-
-
-/**
- * Performs in-place row and column scaling for a given matrix.
- *
- * @param col_scale  the column scalars
- * @param row_scale  the row scalars
- * @param in_out  the matrix to be scaled
- *
- * @note the operation is performed in-place
- */
-template <typename ValueType, typename IndexType>
-void scale_in_place(const array<ValueType>& col_scale,
-                    const array<ValueType>& row_scale,
-                    batch::matrix::Ell<ValueType, IndexType>* in_out);
 
 
 }  // namespace matrix

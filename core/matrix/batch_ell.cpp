@@ -184,6 +184,21 @@ void Ell<ValueType, IndexType>::apply_impl(const MultiVector<ValueType>* alpha,
 
 
 template <typename ValueType, typename IndexType>
+void Ell<ValueType, IndexType>::scale(const array<ValueType>& col_scale,
+                                      const array<ValueType>& row_scale)
+{
+    GKO_ASSERT_EQ(col_scale.get_size(),
+                  (this->get_common_size()[1] * this->get_num_batch_items()));
+    GKO_ASSERT_EQ(row_scale.get_size(),
+                  (this->get_common_size()[0] * this->get_num_batch_items()));
+    auto exec = this->get_executor();
+    exec->run(ell::make_scale(make_temporary_clone(exec, &col_scale).get(),
+                              make_temporary_clone(exec, &row_scale).get(),
+                              this));
+}
+
+
+template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::convert_to(
     Ell<next_precision<ValueType>, IndexType>* result) const
 {
@@ -206,29 +221,13 @@ void Ell<ValueType, IndexType>::move_to(
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_ELL_MATRIX);
 
 
-template <typename ValueType, typename IndexType>
-void scale_in_place(const array<ValueType>& col_scale,
-                    const array<ValueType>& row_scale,
-                    batch::matrix::Ell<ValueType, IndexType>* in_out)
-{
-    GKO_ASSERT_EQ(col_scale.get_size(), (in_out->get_common_size()[1] *
-                                         in_out->get_num_batch_items()));
-    GKO_ASSERT_EQ(row_scale.get_size(), (in_out->get_common_size()[0] *
-                                         in_out->get_num_batch_items()));
-    auto exec = in_out->get_executor();
-    exec->run(ell::make_scale(make_temporary_clone(exec, &col_scale).get(),
-                              make_temporary_clone(exec, &row_scale).get(),
-                              in_out));
-}
+// #define GKO_DECLARE_BATCH_ELL_TWO_SIDED_BATCH_SCALE(_vtype, _itype) \
+//     void scale(const array<_vtype>& col_scale,             \
+//                         const array<_vtype>& row_scale,             \
+//                         ptr_param<batch::matrix::Ell<_vtype, _itype>> in_out)
 
-
-#define GKO_DECLARE_TWO_SIDED_BATCH_SCALE(_vtype, _itype) \
-    void scale_in_place(const array<_vtype>& col_scale,   \
-                        const array<_vtype>& row_scale,   \
-                        batch::matrix::Ell<_vtype, _itype>* in_out)
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
-    GKO_DECLARE_TWO_SIDED_BATCH_SCALE);
+// GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
+//     GKO_DECLARE_BATCH_ELL_TWO_SIDED_BATCH_SCALE);
 
 
 }  // namespace matrix
