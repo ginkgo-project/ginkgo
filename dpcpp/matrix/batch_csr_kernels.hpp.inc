@@ -55,9 +55,9 @@ __dpct_inline__ void scale_kernel(const int num_rows,
 {
     for (int row = item_ct1.get_local_linear_id(); row < num_rows;
          row += item_ct1.get_local_range().size()) {
-        const ValueType rscale = row_scale[row];
+        const ValueType row_scalar = row_scale[row];
         for (auto nnz = row_ptrs[row]; nnz < row_ptrs[row + 1]; nnz++) {
-            values[nnz] *= rscale * col_scale[col_idxs[nnz]];
+            values[nnz] *= row_scalar * col_scale[col_idxs[nnz]];
         }
     }
 }

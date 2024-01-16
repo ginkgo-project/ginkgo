@@ -12,10 +12,17 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
     const auto x_ub = get_batch_struct(x);
     if (alpha->get_common_size()[1] == 1) {
         scale_kernel<<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
-            alpha_ub, x_ub, [] __device__(int col) { return 0; });
+            alpha_ub, x_ub,
+            [] __device__(int row, int col, int stride) { return 0; });
+    } else if (alpha->get_common_size() == x->get_common_size()) {
+        scale_kernel<<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+            alpha_ub, x_ub, [] __device__(int row, int col, int stride) {
+                return row * stride + col;
+            });
     } else {
         scale_kernel<<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
-            alpha_ub, x_ub, [] __device__(int col) { return col; });
+            alpha_ub, x_ub,
+            [] __device__(int row, int col, int stride) { return col; });
     }
 }
 
@@ -31,8 +38,10 @@ void element_wise_scale(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_blocks = x->get_num_batch_items();
     const auto alpha_ub = get_batch_struct(alpha);
     const auto x_ub = get_batch_struct(x);
-    elem_wise_scale_kernel<<<num_blocks, default_block_size, 0,
-                             exec->get_stream()>>>(alpha_ub, x_ub);
+    scale_kernel<<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+        alpha_ub, x_ub, [] __device__(int row, int col, int stride) {
+            return row * stride + col;
+        });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(

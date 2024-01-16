@@ -214,8 +214,10 @@ void two_sided_scale(const array<ValueType>& col_scale,
                                          in_out->get_num_batch_items()));
     GKO_ASSERT_EQ(row_scale.get_size(), (in_out->get_common_size()[0] *
                                          in_out->get_num_batch_items()));
-    in_out->get_executor()->run(
-        csr::make_scale(&col_scale, &row_scale, in_out));
+    auto exec = in_out->get_executor();
+    exec->run(csr::make_scale(make_temporary_clone(exec, &col_scale).get(),
+                              make_temporary_clone(exec, &row_scale).get(),
+                              in_out));
 }
 
 

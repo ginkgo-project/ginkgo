@@ -291,9 +291,9 @@ protected:
         using value_type = typename ConcreteSolver::value_type;
         using Identity = matrix::Identity<value_type>;
         using real_type = remove_complex<value_type>;
-        using batch_dense = batch::matrix::Dense<value_type>;
-        using batch_csr = batch::matrix::Csr<value_type>;
-        using batch_ell = batch::matrix::Ell<value_type>;
+        using batch_dense = matrix::Dense<value_type>;
+        using batch_csr = matrix::Csr<value_type>;
+        using batch_ell = matrix::Ell<value_type>;
 
         if (params.col_scaling.get_executor() &&
             params.row_scaling.get_executor()) {
@@ -303,17 +303,14 @@ protected:
             GKO_ASSERT_EQ(params.col_scaling.get_size(),
                           params.row_scaling.get_size());
             if (auto mat = as<batch_dense>(system_matrix)) {
-                gko::batch::matrix::two_sided_scale(
-                    params.col_scaling, params.row_scaling,
-                    const_cast<batch_dense*>(mat.get()));
+                matrix::two_sided_scale(params.col_scaling, params.row_scaling,
+                                        const_cast<batch_dense*>(mat.get()));
             } else if (auto mat = as<batch_csr>(system_matrix)) {
-                gko::batch::matrix::two_sided_scale(
-                    params.col_scaling, params.row_scaling,
-                    const_cast<batch_csr*>(mat.get()));
+                matrix::two_sided_scale(params.col_scaling, params.row_scaling,
+                                        const_cast<batch_csr*>(mat.get()));
             } else if (auto mat = as<batch_ell>(system_matrix)) {
-                gko::batch::matrix::two_sided_scale(
-                    params.col_scaling, params.row_scaling,
-                    const_cast<batch_ell*>(mat.get()));
+                matrix::two_sided_scale(params.col_scaling, params.row_scaling,
+                                        const_cast<batch_ell*>(mat.get()));
             }
         }
 

@@ -18,7 +18,6 @@
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
-#include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 

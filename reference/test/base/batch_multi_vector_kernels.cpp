@@ -159,6 +159,26 @@ TYPED_TEST(MultiVector, ScalesDataWithMultipleScalars)
 }
 
 
+TYPED_TEST(MultiVector, ElemWiseScalesData)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto alpha =
+        gko::batch::initialize<Mtx>({{{1.0, -1.0, 2.2}, {-2.0, 2.0, -0.5}},
+                                     {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}},
+                                    this->exec);
+
+    this->mtx_1->scale(alpha.get());
+
+    auto res =
+        gko::batch::initialize<Mtx>({{{1.0, 1.0, 4.84}, {4.0, 4.0, 0.25}},
+                                     {{1.0, 6.25, 9.0}, {1.0, 4.0, 9.0}}},
+                                    this->exec);
+    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx_1.get(), res.get(),
+                              r<value_type>::value);
+}
+
+
 TYPED_TEST(MultiVector, AddsScaled)
 {
     using Mtx = typename TestFixture::Mtx;

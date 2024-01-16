@@ -54,13 +54,14 @@ __dpct_inline__ void scale_kernel(
 {
     for (int row = item_ct1.get_local_linear_id(); row < mat.num_rows;
          row += item_ct1.get_local_range().size()) {
-        const ValueType rscale = row_scale[row];
+        const ValueType row_scalar = row_scale[row];
         for (auto k = 0; k < mat.num_stored_elems_per_row; k++) {
             auto col_idx = mat.col_idxs[row + mat.stride * k];
             if (col_idx == invalid_index<IndexType>()) {
                 break;
             } else {
-                mat.values[row + mat.stride * k] *= rscale * col_scale[col_idx];
+                mat.values[row + mat.stride * k] *=
+                    row_scalar * col_scale[col_idx];
             }
         }
     }
