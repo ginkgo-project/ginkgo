@@ -216,6 +216,7 @@ Pgm<ValueType, IndexType>::generate_local(
 }
 
 
+#if GINKGO_BUILD_MPI
 template <typename IndexType>
 void communicate(
     std::shared_ptr<const experimental::distributed::MatrixBase<IndexType>>
@@ -265,6 +266,7 @@ void communicate(
     }
     return;
 }
+#endif
 
 
 template <typename IndexType>
@@ -303,7 +305,7 @@ void Pgm<ValueType, IndexType>::generate()
         auto non_local_matrix = matrix->get_non_local_matrix();
         auto non_local_size = non_local_matrix->get_size()[1];
         array<IndexType> non_local_agg(exec, non_local_size);
-        // prolong, restrict, only needs the local infomation
+        // prolong, restrict, only needs the local information
         // get agg information (prolong_row_gather row idx)
         communicate(matrix, agg_, non_local_agg);
         // generate non_local_col_map
@@ -327,7 +329,7 @@ void Pgm<ValueType, IndexType>::generate()
         // add additional in tail such that the offset easily handle it.
         array<IndexType> renumber(exec->get_master(), non_local_size + 1);
         renumber.get_data()[0] = 0;
-        // renumber (prefix_sum) with not eqaul <part_id, local_agg>
+        // renumber (prefix_sum) with not equal <part_id, local_agg>
         for (int i = 1; i < non_local_size; i++) {
             if (part_id.get_data()[i] != part_id.get_data()[i - 1] ||
                 non_local_agg.get_data()[i] !=
