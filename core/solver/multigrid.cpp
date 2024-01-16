@@ -15,6 +15,8 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
+#include <ginkgo/core/distributed/matrix.hpp>
+#include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/factorization/lu.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
@@ -27,6 +29,7 @@
 
 #include "core/base/dispatch_helper.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "core/distributed/helpers.hpp"
 #include "core/solver/ir_kernels.hpp"
 #include "core/solver/multigrid_kernels.hpp"
 #include "core/solver/solver_base.hpp"
@@ -78,26 +81,6 @@ std::enable_if_t<!is_complex_s<ValueType>::value && is_complex_s<T>::value,
 casting(const T& x)
 {
     return static_cast<ValueType>(real(x));
-}
-
-/**
- * as_vec gives a shortcut for casting pointer to dense.
- */
-template <typename ValueType>
-auto as_vec(std::shared_ptr<LinOp> x)
-{
-    return std::static_pointer_cast<matrix::Dense<ValueType>>(x);
-}
-
-
-/**
- * as_real_vec gives a shortcut for casting pointer to dense with real type.
- */
-template <typename ValueType>
-auto as_real_vec(std::shared_ptr<LinOp> x)
-{
-    return std::static_pointer_cast<matrix::Dense<remove_complex<ValueType>>>(
-        x);
 }
 
 
@@ -212,16 +195,42 @@ struct MultigridState {
     /**
      * allocate_memory is a helper function to allocate the memory of one level
      *
-     * @tparam ValueType  the value type of memory
+     * @tparam VectorType  the vector type
      *
      * @param level  the current level index
      * @param cycle  the multigrid cycle
      * @param current_nrows  the number of rows of current fine matrix
      * @param next_nrows  the number of rows of next coarse matrix
      */
-    template <typename ValueType>
+    template <typename VectorType>
     void allocate_memory(int level, multigrid::cycle cycle,
                          size_type current_nrows, size_type next_nrows);
+
+#if GINKGO_BUILD_MPI
+    /**
+     * allocate_memory is a helper function to allocate the memory of one level
+     *
+     * @tparam VectorType  the vector type
+     *
+     * @param level  the current level index
+     * @param cycle  the multigrid cycle
+     * @param current_comm  the communicator of the current fine matrix
+     * @param next_comm  the communicator of the next coarse matrix
+     * @param current_nrows  the number of rows of the current fine matrix
+     * @param next_nrows  the number of rows of the next coarse matrix
+     * @param current_local_nrows  the number of rows of the local operator of
+     *                             the current fine matrix
+     * @param next_local_nrows  the number of rows of the local operator of the
+     *                          next coarse matrix
+     */
+    template <typename VectorType>
+    void allocate_memory(int level, multigrid::cycle cycle,
+                         experimental::mpi::communicator& current_comm,
+                         experimental::mpi::communicator& next_comm,
+                         size_type current_nrows, size_type next_nrows,
+                         size_type current_local_nrows,
+                         size_type next_local_nrows);
+#endif
 
     /**
      * run the cycle of the level
@@ -240,11 +249,11 @@ struct MultigridState {
     /**
      * @copydoc run_cycle
      *
-     * @tparam ValueType  the value type
+     * @tparam VectorType  the vector type
      *
      * @note it is the version with known ValueType
      */
-    template <typename ValueType>
+    template <typename VectorType>
     void run_cycle(multigrid::cycle cycle, size_type level,
                    const std::shared_ptr<const LinOp>& matrix, const LinOp* b,
                    LinOp* x, cycle_mode mode);
@@ -291,13 +300,44 @@ void MultigridState::generate(const LinOp* system_matrix_in,
             mg_level,
             [&, this](auto mg_level, auto i, auto cycle, auto current_nrows,
                       auto next_nrows) {
-                using value_type =
-                    typename std::decay_t<decltype(*mg_level)>::value_type;
-                using vec = matrix::Dense<value_type>;
-                this->allocate_memory<value_type>(i, cycle, current_nrows,
-                                                  next_nrows);
-                auto exec = as<LinOp>(multigrid->get_mg_level_list().at(i))
-                                ->get_executor();
+#if GINKGO_BUILD_MPI
+                if (gko::detail::is_distributed(system_matrix_in)) {
+                    using value_type =
+                        typename std::decay_t<decltype(*mg_level)>::value_type;
+                    using VectorType =
+                        experimental::distributed::Vector<value_type>;
+                    auto fine = mg_level->get_fine_op().get();
+                    auto coarse = mg_level->get_coarse_op().get();
+                    auto current_comm =
+                        dynamic_cast<
+                            const experimental::distributed::DistributedBase*>(
+                            fine)
+                            ->get_communicator();
+                    auto next_comm =
+                        dynamic_cast<
+                            const experimental::distributed::DistributedBase*>(
+                            coarse)
+                            ->get_communicator();
+                    auto current_local_nrows =
+                        dynamic_cast<const experimental::distributed::
+                                         DistributedLocalSize*>(fine)
+                            ->get_local_size()[0];
+                    auto next_local_nrows =
+                        dynamic_cast<const experimental::distributed::
+                                         DistributedLocalSize*>(coarse)
+                            ->get_local_size()[0];
+                    this->allocate_memory<VectorType>(
+                        i, cycle, current_comm, next_comm, current_nrows,
+                        next_nrows, current_local_nrows, next_local_nrows);
+                } else
+#endif
+                {
+                    using value_type =
+                        typename std::decay_t<decltype(*mg_level)>::value_type;
+                    using VectorType = matrix::Dense<value_type>;
+                    this->allocate_memory<VectorType>(i, cycle, current_nrows,
+                                                      next_nrows);
+                }
             },
             i, cycle, current_nrows, next_nrows);
 
@@ -306,13 +346,13 @@ void MultigridState::generate(const LinOp* system_matrix_in,
 }
 
 
-template <typename ValueType>
+template <class VectorType>
 void MultigridState::allocate_memory(int level, multigrid::cycle cycle,
                                      size_type current_nrows,
                                      size_type next_nrows)
 {
-    using vec = matrix::Dense<ValueType>;
-    using norm_vec = matrix::Dense<remove_complex<ValueType>>;
+    using value_type = typename VectorType::value_type;
+    using vec = matrix::Dense<value_type>;
 
     auto exec =
         as<LinOp>(multigrid->get_mg_level_list().at(level))->get_executor();
@@ -321,17 +361,68 @@ void MultigridState::allocate_memory(int level, multigrid::cycle cycle,
         // allocate the previous level
         g_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
         e_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
-        next_one_list.emplace_back(initialize<vec>({one<ValueType>()}, exec));
+        next_one_list.emplace_back(initialize<vec>({one<value_type>()}, exec));
     }
     if (level + 1 == multigrid->get_mg_level_list().size()) {
         // the last level allocate the g, e for coarsest solver
         g_list.emplace_back(vec::create(exec, dim<2>{next_nrows, nrhs}));
         e_list.emplace_back(vec::create(exec, dim<2>{next_nrows, nrhs}));
-        next_one_list.emplace_back(initialize<vec>({one<ValueType>()}, exec));
+        next_one_list.emplace_back(initialize<vec>({one<value_type>()}, exec));
     }
-    one_list.emplace_back(initialize<vec>({one<ValueType>()}, exec));
-    neg_one_list.emplace_back(initialize<vec>({-one<ValueType>()}, exec));
+    one_list.emplace_back(initialize<vec>({one<value_type>()}, exec));
+    neg_one_list.emplace_back(initialize<vec>({-one<value_type>()}, exec));
 }
+
+
+#if GINKGO_BUILD_MPI
+
+
+template <typename VectorType>
+void MultigridState::allocate_memory(
+    int level, multigrid::cycle cycle,
+    experimental::mpi::communicator& current_comm,
+    experimental::mpi::communicator& next_comm, size_type current_nrows,
+    size_type next_nrows, size_type current_local_nrows,
+    size_type next_local_nrows)
+{
+    using value_type = typename VectorType::value_type;
+    using vec = VectorType;
+    using dense_vec = matrix::Dense<value_type>;
+
+    auto exec =
+        as<LinOp>(multigrid->get_mg_level_list().at(level))->get_executor();
+    r_list.emplace_back(vec::create(exec, current_comm,
+                                    dim<2>{current_nrows, nrhs},
+                                    dim<2>{current_local_nrows, nrhs}));
+    if (level != 0) {
+        // allocate the previous level
+        g_list.emplace_back(vec::create(exec, current_comm,
+                                        dim<2>{current_nrows, nrhs},
+                                        dim<2>{current_local_nrows, nrhs}));
+        e_list.emplace_back(vec::create(exec, current_comm,
+                                        dim<2>{current_nrows, nrhs},
+                                        dim<2>{current_local_nrows, nrhs}));
+        next_one_list.emplace_back(
+            initialize<dense_vec>({one<value_type>()}, exec));
+    }
+    if (level + 1 == multigrid->get_mg_level_list().size()) {
+        // the last level allocate the g, e for coarsest solver
+        g_list.emplace_back(vec::create(exec, next_comm,
+                                        dim<2>{next_nrows, nrhs},
+                                        dim<2>{next_local_nrows, nrhs}));
+        e_list.emplace_back(vec::create(exec, next_comm,
+                                        dim<2>{next_nrows, nrhs},
+                                        dim<2>{next_local_nrows, nrhs}));
+        next_one_list.emplace_back(
+            initialize<dense_vec>({one<value_type>()}, exec));
+    }
+    one_list.emplace_back(initialize<dense_vec>({one<value_type>()}, exec));
+    neg_one_list.emplace_back(
+        initialize<dense_vec>({-one<value_type>()}, exec));
+}
+
+
+#endif
 
 
 void MultigridState::run_mg_cycle(multigrid::cycle cycle, size_type level,
@@ -346,23 +437,36 @@ void MultigridState::run_mg_cycle(multigrid::cycle cycle, size_type level,
     run<gko::multigrid::EnableMultigridLevel, float, double,
         std::complex<float>, std::complex<double>>(
         mg_level, [&, this](auto mg_level) {
-            using value_type =
-                typename std::decay_t<decltype(*mg_level)>::value_type;
-            this->run_cycle<value_type>(cycle, level, matrix, b, x, mode);
+#if GINKGO_BUILD_MPI
+            if (gko::detail::is_distributed(matrix.get())) {
+                using value_type =
+                    typename std::decay_t<decltype(*mg_level)>::value_type;
+                this->run_cycle<
+                    typename experimental::distributed::Vector<value_type>>(
+                    cycle, level, matrix, b, x, mode);
+            } else
+#endif
+            {
+                using value_type =
+                    typename std::decay_t<decltype(*mg_level)>::value_type;
+                this->run_cycle<typename matrix::Dense<value_type>>(
+                    cycle, level, matrix, b, x, mode);
+            }
         });
 }
 
 
-template <typename ValueType>
+template <typename VectorType>
 void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
                                const std::shared_ptr<const LinOp>& matrix,
                                const LinOp* b, LinOp* x, cycle_mode mode)
 {
+    using value_type = typename VectorType::value_type;
     auto total_level = multigrid->get_mg_level_list().size();
 
     auto r = r_list.at(level);
     auto g = g_list.at(level);
-    auto e = e_list.at(level);
+    auto e = as<VectorType>(e_list.at(level));
     // get mg_level
     auto mg_level = multigrid->get_mg_level_list().at(level);
     // get the pre_smoother
@@ -392,8 +496,7 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
             } else {
                 // x in first level is already filled by zero outside.
                 if (level != 0) {
-                    dynamic_cast<matrix::Dense<ValueType>*>(x)->fill(
-                        zero<ValueType>());
+                    dynamic_cast<VectorType*>(x)->fill(zero<value_type>());
                 }
                 pre_smoother->apply(b, x);
             }
@@ -414,7 +517,7 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     // next level
     if (level + 1 == total_level) {
         // the coarsest solver use the last level valuetype
-        as_vec<ValueType>(e)->fill(zero<ValueType>());
+        e->fill(zero<value_type>());
     }
     auto next_level_matrix =
         (level + 1 < total_level)
