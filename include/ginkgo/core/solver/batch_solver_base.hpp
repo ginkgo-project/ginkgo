@@ -303,14 +303,14 @@ protected:
             GKO_ASSERT_EQ(params.col_scaling.get_size(),
                           params.row_scaling.get_size());
             if (auto mat = as<batch_dense>(system_matrix)) {
-                matrix::two_sided_scale(params.col_scaling, params.row_scaling,
-                                        const_cast<batch_dense*>(mat.get()));
+                matrix::scale_in_place(params.col_scaling, params.row_scaling,
+                                       const_cast<batch_dense*>(mat.get()));
             } else if (auto mat = as<batch_csr>(system_matrix)) {
-                matrix::two_sided_scale(params.col_scaling, params.row_scaling,
-                                        const_cast<batch_csr*>(mat.get()));
+                matrix::scale_in_place(params.col_scaling, params.row_scaling,
+                                       const_cast<batch_csr*>(mat.get()));
             } else if (auto mat = as<batch_ell>(system_matrix)) {
-                matrix::two_sided_scale(params.col_scaling, params.row_scaling,
-                                        const_cast<batch_ell*>(mat.get()));
+                matrix::scale_in_place(params.col_scaling, params.row_scaling,
+                                       const_cast<batch_ell*>(mat.get()));
             }
         }
 

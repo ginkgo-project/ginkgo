@@ -132,8 +132,8 @@ TEST_F(Csr, TwoSidedScaleIsEquivalentToRef)
 {
     set_up_apply_data(257);
 
-    gko::batch::matrix::two_sided_scale(col_scale, row_scale, mat.get());
-    gko::batch::matrix::two_sided_scale(dcol_scale, drow_scale, dmat.get());
+    gko::batch::matrix::scale_in_place(col_scale, row_scale, mat.get());
+    gko::batch::matrix::scale_in_place(dcol_scale, drow_scale, dmat.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dmat, mat, r<value_type>::value);
 }

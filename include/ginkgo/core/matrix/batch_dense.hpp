@@ -358,9 +358,9 @@ private:
  * @note the operation is performed in-place
  */
 template <typename ValueType>
-void two_sided_scale(const array<ValueType>& col_scale,
-                     const array<ValueType>& row_scale,
-                     batch::matrix::Dense<ValueType>* in_out);
+void scale_in_place(const array<ValueType>& col_scale,
+                    const array<ValueType>& row_scale,
+                    batch::matrix::Dense<ValueType>* in_out);
 
 
 }  // namespace matrix
