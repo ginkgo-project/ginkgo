@@ -245,34 +245,6 @@ TYPED_TEST(BatchBicgstab, CanSetTolType)
 }
 
 
-TYPED_TEST(BatchBicgstab, CanSetScalingVectors)
-{
-    using Solver = typename TestFixture::Solver;
-    using value_type = typename TestFixture::value_type;
-    using real_type = typename TestFixture::real_type;
-    auto scale_size = this->num_batch_items * this->num_rows;
-    auto col_scale = gko::array<value_type>(this->exec, scale_size);
-    col_scale.fill(0.5);
-    auto row_scale = gko::array<value_type>(this->exec, scale_size);
-    row_scale.fill(0.8);
-
-    auto solver_factory = Solver::build()
-                              .with_max_iterations(22)
-                              .with_tolerance(static_cast<real_type>(0.25))
-                              .with_col_scaling(col_scale)
-                              .with_row_scaling(row_scale)
-                              .on(this->exec);
-    auto solver = solver_factory->generate(this->mtx);
-
-    ASSERT_EQ(solver->get_parameters().row_scaling.get_size(), scale_size);
-    ASSERT_EQ(solver->get_parameters().row_scaling.get_const_data()[0],
-              value_type{0.8});
-    ASSERT_EQ(solver->get_parameters().col_scaling.get_size(), scale_size);
-    ASSERT_EQ(solver->get_parameters().col_scaling.get_const_data()[0],
-              value_type{0.5});
-}
-
-
 TYPED_TEST(BatchBicgstab, ThrowsOnRectangularMatrixInFactory)
 {
     using Mtx = typename TestFixture::Mtx;

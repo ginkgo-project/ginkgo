@@ -282,6 +282,15 @@ public:
                        ptr_param<const MultiVector<value_type>> beta,
                        ptr_param<MultiVector<value_type>> x) const;
 
+    /**
+     * Performs in-place row and column scaling for this matrix.
+     *
+     * @param col_scale  the column scalars
+     * @param row_scale  the row scalars
+     */
+    void scale(const array<value_type>& col_scale,
+               const array<value_type>& row_scale);
+
 private:
     inline size_type compute_num_elems(const batch_dim<2>& size)
     {
@@ -346,21 +355,6 @@ private:
 
     array<value_type> values_;
 };
-
-
-/**
- * Performs in-place row and column scaling for a given matrix.
- *
- * @param col_scale  the column scalars
- * @param row_scale  the row scalars
- * @param in_out  the matrix to be scaled
- *
- * @note the operation is performed in-place
- */
-template <typename ValueType>
-void scale_in_place(const array<ValueType>& col_scale,
-                    const array<ValueType>& row_scale,
-                    batch::matrix::Dense<ValueType>* in_out);
 
 
 }  // namespace matrix

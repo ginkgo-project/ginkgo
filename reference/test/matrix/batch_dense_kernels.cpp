@@ -133,7 +133,7 @@ TYPED_TEST(Dense, CanTwoSidedScale)
     col_scale.fill(2);
     row_scale.fill(3);
 
-    gko::batch::matrix::scale_in_place(col_scale, row_scale, this->mtx_0.get());
+    this->mtx_0->scale(col_scale, row_scale);
 
     auto scaled_mtx_0 =
         gko::batch::initialize<BMtx>({{{6.0, -6.0, 9.0}, {-12.0, 12.0, 18.0}},
@@ -150,7 +150,7 @@ TYPED_TEST(Dense, CanTwoSidedScaleWithDifferentValues)
     auto col_scale = gko::array<value_type>(this->exec, {1, 2, 1, 2, 2, 3});
     auto row_scale = gko::array<value_type>(this->exec, {2, 4, 3, 1});
 
-    gko::batch::matrix::scale_in_place(col_scale, row_scale, this->mtx_0.get());
+    this->mtx_0->scale(col_scale, row_scale);
 
     auto scaled_mtx_0 =
         gko::batch::initialize<BMtx>({{{2.0, -4.0, 3.0}, {-8.0, 16.0, 12.0}},

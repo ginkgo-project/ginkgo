@@ -172,6 +172,21 @@ void Dense<ValueType>::apply_impl(const MultiVector<ValueType>* alpha,
 
 
 template <typename ValueType>
+void Dense<ValueType>::scale(const array<ValueType>& col_scale,
+                             const array<ValueType>& row_scale)
+{
+    GKO_ASSERT_EQ(col_scale.get_size(),
+                  (this->get_common_size()[1] * this->get_num_batch_items()));
+    GKO_ASSERT_EQ(row_scale.get_size(),
+                  (this->get_common_size()[0] * this->get_num_batch_items()));
+    auto exec = this->get_executor();
+    exec->run(dense::make_scale(make_temporary_clone(exec, &col_scale).get(),
+                                make_temporary_clone(exec, &row_scale).get(),
+                                this));
+}
+
+
+template <typename ValueType>
 void Dense<ValueType>::convert_to(
     Dense<next_precision<ValueType>>* result) const
 {
@@ -189,30 +204,6 @@ void Dense<ValueType>::move_to(Dense<next_precision<ValueType>>* result)
 
 #define GKO_DECLARE_BATCH_DENSE_MATRIX(_type) class Dense<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_MATRIX);
-
-
-template <typename ValueType>
-void scale_in_place(const array<ValueType>& col_scale,
-                    const array<ValueType>& row_scale,
-                    batch::matrix::Dense<ValueType>* in_out)
-{
-    GKO_ASSERT_EQ(col_scale.get_size(), (in_out->get_common_size()[1] *
-                                         in_out->get_num_batch_items()));
-    GKO_ASSERT_EQ(row_scale.get_size(), (in_out->get_common_size()[0] *
-                                         in_out->get_num_batch_items()));
-    auto exec = in_out->get_executor();
-    exec->run(dense::make_scale(make_temporary_clone(exec, &col_scale).get(),
-                                make_temporary_clone(exec, &row_scale).get(),
-                                in_out));
-}
-
-
-#define GKO_DECLARE_TWO_SIDED_BATCH_SCALE(_type)       \
-    void scale_in_place(const array<_type>& col_scale, \
-                        const array<_type>& row_scale, \
-                        batch::matrix::Dense<_type>* in_out)
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_TWO_SIDED_BATCH_SCALE);
 
 
 }  // namespace matrix
