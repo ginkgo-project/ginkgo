@@ -126,9 +126,7 @@ function(ginkgo_install)
         COMPONENT Ginkgo_Development)
 
     # Export package for use from the build tree
-    if (GINKGO_EXPORT_BUILD_DIR)
-        export(PACKAGE Ginkgo)
-    endif()
+    export(PACKAGE Ginkgo)
 
     if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND BUILD_SHARED_LIBS)
         install(FILES
