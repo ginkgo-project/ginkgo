@@ -294,8 +294,9 @@ protected:
         const auto num_rows = data.size[0];
         const auto nnz = data.nonzeros.size();
         const int num_copies = 5;
-        data.size[0] *= num_copies;
-        data.size[1] *= num_copies;
+        data.size[0] =
+            num_rows * num_copies + 10;  // add a handful of isolated vertices
+        data.size[1] = data.size[0];
         for (gko::size_type i = 0; i < nnz; i++) {
             const auto entry = data.nonzeros[i];
             // create copies of the matrix
