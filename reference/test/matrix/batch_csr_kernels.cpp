@@ -203,8 +203,6 @@ TYPED_TEST(Csr, CanTwoSidedScaleWithDifferentValues)
 
 TYPED_TEST(Csr, CanAddScaledIdentity)
 {
-    using value_type = typename TestFixture::value_type;
-    using index_type = gko::int32;
     using BMtx = typename TestFixture::BMtx;
     using BMVec = typename TestFixture::BMVec;
     auto alpha = gko::batch::initialize<BMVec>({{2.0}, {-1.0}}, this->exec);

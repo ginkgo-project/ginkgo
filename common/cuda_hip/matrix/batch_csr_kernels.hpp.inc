@@ -166,7 +166,7 @@ __device__ __forceinline__ void add_scaled_identity(
     const auto tile =
         group::tiled_partition<warp_size>(group::this_thread_block());
     const int tile_rank = threadIdx.x / warp_size;
-    const int num_tiles = (blockDim.x - 1) / warp_size + 1;
+    const int num_tiles = ceildiv(blockDim.x, warp_size);
 
     for (int row = tile_rank; row < mat.num_rows; row += num_tiles) {
         for (int nnz = mat.row_ptrs[row] + tile.thread_rank();

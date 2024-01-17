@@ -294,18 +294,6 @@ public:
                const array<value_type>& col_scale);
 
     /**
-     * Performs the operation this = alpha*this + b.
-     *
-     * @param alpha the scalar to multiply this matrix
-     * @param b  the matrix to add
-     *
-     * @note Performs the operation in-place for this batch matrix
-     */
-    void scale_add(
-        ptr_param<const MultiVector<value_type>> alpha,
-        ptr_param<const batch::matrix::Ell<value_type, index_type>> b);
-
-    /**
      * Performs the operation this = alpha*I + beta*this.
      *
      * @param alpha the scalar for identity
