@@ -260,12 +260,12 @@ public:
      *
      * @note If alpha is 1x1 MultiVector matrix, the entire multi-vector
      *      (all batches) is scaled by alpha.
-     *      If it is a MultiVector row
-     *      vector of values, then i-th column of the vector is scaled with the
-     *      i-th element of alpha (the number of columns of alpha has to match
-     *      the number of columns of the multi-vector).
+     *      If it is a MultiVector row vector of values, then i-th column of the
+     *      vector is scaled with the i-th element of alpha (the number of
+     *      columns of alpha has to match the number of columns of the
+     *      multi-vector).
      *      If it is a MultiVector of the same size as this, then an element
-     *      wise scaling is performed
+     *      wise scaling is performed.
      */
     void scale(ptr_param<const MultiVector<ValueType>> alpha);
 

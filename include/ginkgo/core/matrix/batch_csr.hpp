@@ -268,11 +268,11 @@ public:
     /**
      * Performs in-place row and column scaling for this matrix.
      *
-     * @param col_scale  the column scalars
      * @param row_scale  the row scalars
+     * @param col_scale  the column scalars
      */
-    void scale(const array<value_type>& col_scale,
-               const array<value_type>& row_scale);
+    void scale(const array<value_type>& row_scale,
+               const array<value_type>& col_scale);
 
 private:
     /**
