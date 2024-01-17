@@ -1,4 +1,4 @@
-ginkgo_create_test(array RESOURCE_TYPE cudagpu)
+ginkgo_create_test(array EXECUTABLE_NAME array_test RESOURCE_TYPE cudagpu) # array collides with C++ stdlib header
 ginkgo_create_cuda_test(cuda_executor)
 ginkgo_create_test(index_set RESOURCE_TYPE cudagpu)
 if(GINKGO_HAVE_HWLOC)
