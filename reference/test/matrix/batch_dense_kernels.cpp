@@ -162,8 +162,6 @@ TYPED_TEST(Dense, CanTwoSidedScaleWithDifferentValues)
 
 TYPED_TEST(Dense, CanScaleAdd)
 {
-    using value_type = typename TestFixture::value_type;
-    using index_type = gko::int32;
     using BMtx = typename TestFixture::BMtx;
     using BMVec = typename TestFixture::BMVec;
     auto alpha = gko::batch::initialize<BMVec>({{2.0}, {-1.0}}, this->exec);
@@ -188,8 +186,6 @@ TYPED_TEST(Dense, CanScaleAdd)
 
 TYPED_TEST(Dense, CanAddScaledIdentity)
 {
-    using value_type = typename TestFixture::value_type;
-    using index_type = gko::int32;
     using BMtx = typename TestFixture::BMtx;
     using BMVec = typename TestFixture::BMVec;
     auto alpha = gko::batch::initialize<BMVec>({{2.0}, {-1.0}}, this->exec);

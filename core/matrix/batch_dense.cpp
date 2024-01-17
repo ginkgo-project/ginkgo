@@ -209,6 +209,8 @@ void Dense<ValueType>::add_scaled_identity(
 {
     GKO_ASSERT_BATCH_EQUAL_NUM_ITEMS(alpha, beta);
     GKO_ASSERT_BATCH_EQUAL_NUM_ITEMS(this, beta);
+    GKO_ASSERT_EQUAL_DIMENSIONS(alpha->get_common_size(), gko::dim<2>(1, 1));
+    GKO_ASSERT_EQUAL_DIMENSIONS(beta->get_common_size(), gko::dim<2>(1, 1));
     auto exec = this->get_executor();
     exec->run(dense::make_add_scaled_identity(
         make_temporary_clone(exec, alpha).get(),
