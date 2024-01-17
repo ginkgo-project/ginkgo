@@ -35,9 +35,6 @@ option(GINKGO_TEST_NONDEFAULT_STREAM "Uses non-default streams in CUDA and HIP t
 option(GINKGO_MIXED_PRECISION "Instantiate true mixed-precision kernels (otherwise they will be conversion-based using implicit temporary storage)" OFF)
 option(GINKGO_SKIP_DEPENDENCY_UPDATE
     "Do not update dependencies each time the project is rebuilt" ON)
-option(GINKGO_EXPORT_BUILD_DIR
-    "Make Ginkgo export its build directory to the CMake package registry."
-    OFF)
 option(GINKGO_WITH_CLANG_TIDY "Make Ginkgo call `clang-tidy` to find programming issues." OFF)
 option(GINKGO_WITH_IWYU "Make Ginkgo call `iwyu` (Include What You Use) to find include issues." OFF)
 option(GINKGO_WITH_CCACHE "Use ccache if available to speed up C++ and CUDA rebuilds by caching compilations." ON)
@@ -515,8 +512,7 @@ add_custom_target(test_exportbuild
     --build ${GINKGO_TEST_EXPORTBUILD_BIN_DIR}
     --config $<CONFIG>
     COMMAND ${GINKGO_TEST_EXPORTBUILD_CMD}
-    COMMENT "Running a test on Ginkgo's exported build directory. "
-    "This requires compiling Ginkgo with `-DGINKGO_EXPORT_BUILD_DIR=ON` first.")
+    COMMENT "Running a test on Ginkgo's exported build directory.")
 
 add_custom_target(test_pkgconfig
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} ${TOOLSET}
