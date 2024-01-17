@@ -102,21 +102,23 @@ function(ginkgo_install)
         FILES_MATCHING PATTERN "*.cmake"
         )
 
+    set(GINKGO_EXPORT_BINARY_DIR OFF)
+
     # export configuration file for importing
     write_basic_package_version_file(
-        "${Ginkgo_BINARY_DIR}/GinkgoConfigVersion.cmake"
+        "${Ginkgo_BINARY_DIR}/cmake/GinkgoConfigVersion.cmake"
         VERSION "${PROJECT_VERSION}"
         COMPATIBILITY SameMajorVersion
         )
     configure_package_config_file(
         "${Ginkgo_SOURCE_DIR}/cmake/GinkgoConfig.cmake.in"
-        "${Ginkgo_BINARY_DIR}/GinkgoConfig.cmake"
+        "${Ginkgo_BINARY_DIR}/cmake/GinkgoConfig.cmake"
         INSTALL_DESTINATION "${GINKGO_INSTALL_CONFIG_DIR}"
         PATH_VARS CMAKE_INSTALL_FULL_INCLUDEDIR CMAKE_INSTALL_FULL_LIBDIR CMAKE_INSTALL_PREFIX GINKGO_INSTALL_MODULE_DIR
         )
     install(FILES
-        "${Ginkgo_BINARY_DIR}/GinkgoConfig.cmake"
-        "${Ginkgo_BINARY_DIR}/GinkgoConfigVersion.cmake"
+        "${Ginkgo_BINARY_DIR}/cmake/GinkgoConfig.cmake"
+        "${Ginkgo_BINARY_DIR}/cmake/GinkgoConfigVersion.cmake"
         DESTINATION "${GINKGO_INSTALL_CONFIG_DIR}"
         COMPONENT Ginkgo_Development)
     install(EXPORT Ginkgo
@@ -125,9 +127,6 @@ function(ginkgo_install)
         DESTINATION "${GINKGO_INSTALL_CONFIG_DIR}"
         COMPONENT Ginkgo_Development)
 
-    # Export package for use from the build tree
-    export(PACKAGE Ginkgo)
-
     if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND BUILD_SHARED_LIBS)
         install(FILES
             "${Ginkgo_SOURCE_DIR}/dev_tools/scripts/gdb-ginkgo.py"
@@ -135,4 +134,33 @@ function(ginkgo_install)
             RENAME "$<TARGET_FILE_NAME:ginkgo>-gdb.py"
             COMPONENT Ginkgo_Development)
     endif()
+endfunction()
+
+
+function(ginkgo_export_binary_dir)
+    # export targets
+    export(EXPORT Ginkgo
+           NAMESPACE Ginkgo::
+           FILE "${Ginkgo_BINARY_DIR}/GinkgoTargets.cmake"
+    )
+
+    set(GINKGO_EXPORT_BINARY_DIR ON)
+    set(GINKGO_INSTALL_MODULE_DIR "${Ginkgo_SOURCE_DIR}/cmake/Modules/")
+
+    # export configuration file for importing
+    write_basic_package_version_file(
+      "${Ginkgo_BINARY_DIR}/GinkgoConfigVersion.cmake"
+      VERSION "${PROJECT_VERSION}"
+      COMPATIBILITY SameMajorVersion
+    )
+    configure_package_config_file(
+      "${Ginkgo_SOURCE_DIR}/cmake/GinkgoConfig.cmake.in"
+      "${Ginkgo_BINARY_DIR}/GinkgoConfig.cmake"
+      INSTALL_DESTINATION "${GINKGO_INSTALL_CONFIG_DIR}"
+      PATH_VARS GINKGO_INSTALL_MODULE_DIR
+      INSTALL_PREFIX ${Ginkgo_BINARY_DIR}
+    )
+
+    # Export package for use from the build tree
+    export(PACKAGE Ginkgo)
 endfunction()
