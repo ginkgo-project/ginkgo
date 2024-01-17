@@ -118,7 +118,7 @@ enum class layout_type {
  */
 template <typename ValueType, typename IndexType>
 void write_raw(std::ostream& os, const matrix_data<ValueType, IndexType>& data,
-               layout_type layout = layout_type::array);
+               layout_type layout = layout_type::coordinate);
 
 
 /**
