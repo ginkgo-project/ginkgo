@@ -61,7 +61,7 @@ public:
 
     struct parameters_type
         : enable_preconditioned_iterative_solver_factory_parameters<
-              ValueType, parameters_type, Factory> {};
+              parameters_type, Factory> {};
     GKO_ENABLE_BATCH_LIN_OP_FACTORY(Bicgstab, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 

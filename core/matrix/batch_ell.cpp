@@ -184,8 +184,8 @@ void Ell<ValueType, IndexType>::apply_impl(const MultiVector<ValueType>* alpha,
 
 
 template <typename ValueType, typename IndexType>
-void Ell<ValueType, IndexType>::scale(const array<ValueType>& col_scale,
-                                      const array<ValueType>& row_scale)
+void Ell<ValueType, IndexType>::scale(const array<ValueType>& row_scale,
+                                      const array<ValueType>& col_scale)
 {
     GKO_ASSERT_EQ(col_scale.get_size(),
                   (this->get_common_size()[1] * this->get_num_batch_items()));
@@ -219,15 +219,6 @@ void Ell<ValueType, IndexType>::move_to(
 
 #define GKO_DECLARE_BATCH_ELL_MATRIX(ValueType) class Ell<ValueType, int32>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_ELL_MATRIX);
-
-
-// #define GKO_DECLARE_BATCH_ELL_TWO_SIDED_BATCH_SCALE(_vtype, _itype) \
-//     void scale(const array<_vtype>& col_scale,             \
-//                         const array<_vtype>& row_scale,             \
-//                         ptr_param<batch::matrix::Ell<_vtype, _itype>> in_out)
-
-// GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
-//     GKO_DECLARE_BATCH_ELL_TWO_SIDED_BATCH_SCALE);
 
 
 }  // namespace matrix

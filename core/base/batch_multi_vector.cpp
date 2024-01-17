@@ -159,6 +159,11 @@ void MultiVector<ValueType>::scale(
         GKO_ASSERT_EQUAL_COLS(this->get_common_size(),
                               alpha->get_common_size());
     }
+    // element wise scaling requires same size
+    if (alpha->get_common_size()[0] != 1) {
+        GKO_ASSERT_EQUAL_DIMENSIONS(this->get_common_size(),
+                                    alpha->get_common_size());
+    }
     auto exec = this->get_executor();
     exec->run(multi_vector::make_scale(make_temporary_clone(exec, alpha).get(),
                                        this));

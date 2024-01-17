@@ -183,8 +183,8 @@ void Csr<ValueType, IndexType>::apply_impl(const MultiVector<ValueType>* alpha,
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::scale(const array<ValueType>& col_scale,
-                                      const array<ValueType>& row_scale)
+void Csr<ValueType, IndexType>::scale(const array<ValueType>& row_scale,
+                                      const array<ValueType>& col_scale)
 {
     GKO_ASSERT_EQ(col_scale.get_size(),
                   (this->get_common_size()[1] * this->get_num_batch_items()));

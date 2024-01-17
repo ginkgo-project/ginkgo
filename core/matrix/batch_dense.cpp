@@ -172,8 +172,8 @@ void Dense<ValueType>::apply_impl(const MultiVector<ValueType>* alpha,
 
 
 template <typename ValueType>
-void Dense<ValueType>::scale(const array<ValueType>& col_scale,
-                             const array<ValueType>& row_scale)
+void Dense<ValueType>::scale(const array<ValueType>& row_scale,
+                             const array<ValueType>& col_scale)
 {
     GKO_ASSERT_EQ(col_scale.get_size(),
                   (this->get_common_size()[1] * this->get_num_batch_items()));

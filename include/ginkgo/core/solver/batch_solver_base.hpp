@@ -149,7 +149,7 @@ protected:
 };
 
 
-template <typename ValueType, typename Parameters, typename Factory>
+template <typename Parameters, typename Factory>
 struct enable_preconditioned_iterative_solver_factory_parameters
     : enable_parameters_type<Parameters, Factory> {
     /**
