@@ -240,7 +240,7 @@ void compute_permutation(std::shared_ptr<const ReferenceExecutor> exec,
         }
 
         // Sort all just-added neighbors by degree.
-        std::sort(
+        std::stable_sort(
             linear_queue_p + prev_head_offset, linear_queue_p + head_offset,
             [&](IndexType i, IndexType j) { return degrees[i] < degrees[j]; });
 
