@@ -730,19 +730,6 @@ subdir-build:
     CI_PROJECT_PATH_SUFFIX: "/test_subdir"
   allow_failure: no
 
-# Ensure Ginkgo can be used when exporting the build directory
-export-build:
-  stage: code_quality
-  extends:
-    - .build_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-nocuda-nompi-gnu9-llvm8
-  variables:
-    BUILD_OMP: "ON"
-    EXPORT_BUILD_DIR: "ON"
-  allow_failure: no
-
 # Run clang-tidy and iwyu
 clang-tidy:
   stage: code_quality

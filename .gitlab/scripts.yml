@@ -51,11 +51,8 @@
         -DGINKGO_RUN_EXAMPLES=${RUN_EXAMPLES}
         -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
         -DGINKGO_DPCPP_SINGLE_MODE=${DPCPP_SINGLE_MODE}
-        -DGINKGO_EXPORT_BUILD_DIR=${EXPORT_BUILD_DIR}
     - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT} install
     - awk '!/^#/ { print ($2 - $1)/1000 " " $4 }' .ninja_log | sort -nr
-    - if [ "${EXPORT_BUILD_DIR}" == "ON" ]; then ninja test_exportbuild; fi
-    - LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH ninja test_pkgconfig
   dependencies: []
 
 .build_and_test_template:
@@ -95,12 +92,12 @@
         -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
         -DGINKGO_DPCPP_SINGLE_MODE=${DPCPP_SINGLE_MODE}
         -DGINKGO_RUN_EXAMPLES=${RUN_EXAMPLES}
-        -DGINKGO_EXPORT_BUILD_DIR=${EXPORT_BUILD_DIR}
     - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT} install
     - awk '!/^#/ { print ($2 - $1)/1000 " " $4 }' .ninja_log | sort -nr
     - |
         (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
     - ctest --output-on-failure --timeout 6000 ${CTEST_EXTRA_ARGS}
+    - ninja test_exportbuild
     - ninja test_install
     - pushd test/test_install
     - ninja install
@@ -128,7 +125,6 @@
       fi
     - if [ -n "${SYCL_DEVICE_TYPE}" ]; then unset SYCL_DEVICE_TYPE; fi
     - if [ -n "${SYCL_DEVICE_FILTER}" ]; then unset SYCL_DEVICE_FILTER; fi
-    - if [ "${EXPORT_BUILD_DIR}" == "ON" ]; then ninja test_exportbuild; fi
     - LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH ninja test_pkgconfig
   dependencies: []
 
@@ -153,10 +149,12 @@
     - |
         (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
     - ctest --output-on-failure --timeout 6000 ${CTEST_EXTRA_ARGS}
+    - ninja test_exportbuild
     - ninja test_install
     - pushd test/test_install
     - ninja install
     - popd
+    - LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH ninja test_pkgconfig
   cache: []
 
 
