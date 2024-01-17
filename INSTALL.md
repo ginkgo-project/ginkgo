@@ -6,9 +6,8 @@ Use the standard CMake build procedure:
 
 ```sh
 mkdir build; cd build
-cmake -G "Unix Makefiles" [OPTIONS] .. && make
+cmake [OPTIONS] .. && cmake --build .
 ```
-Use `cmake --build .` in some systems like MinGW or Microsoft Visual Studio which do not use `make`.
 
 For Microsoft Visual Studio, use `cmake --build . --config <build_type>` to decide the build type. The possible options are `Debug`, `Release`, `RelWithDebInfo` and `MinSizeRel`.
 
@@ -63,8 +62,6 @@ Ginkgo adds the following additional switches to control what is being built:
     documentation from inline comments in the code. The default is `OFF`.
 *   `-DGINKGO_DOC_GENERATE_DEV={ON, OFF}` generates the developer version of
     Ginkgo's documentation. The default is `OFF`.
-*   `-DGINKGO_EXPORT_BUILD_DIR={ON, OFF}` adds the Ginkgo build directory to the
-    CMake package registry. The default is `OFF`.
 *   `-DGINKGO_WITH_CLANG_TIDY={ON, OFF}` makes Ginkgo call `clang-tidy` to find
     programming issues. The path can be manually controlled with the CMake
     variable `-DGINKGO_CLANG_TIDY_PATH=<path>`. The default is `OFF`.
@@ -122,10 +119,15 @@ Ginkgo adds the following additional switches to control what is being built:
     [`ARCHITECTURES` specification list](https://github.com/ginkgo-project/CudaArchitectureSelector/blob/master/CudaArchitectureSelector.cmake#L58)
     section in the documentation of the CudaArchitectureSelector CMake module.
 
+Additionally, the following CMake options have effect on the build process:
+
+*  `-DCMAKE_EXPORT_PACKAGE_REGISTRY={ON,OFF}` if set to `ON` the build directory will
+   be stored in the current user's CMake package registry.
+
 For example, to build everything (in debug mode), use:
 
 ```cmake
-cmake  -G "Unix Makefiles" -H. -BDebug -DCMAKE_BUILD_TYPE=Debug -DGINKGO_DEVEL_TOOLS=ON \
+cmake .. -BDebug -DCMAKE_BUILD_TYPE=Debug -DGINKGO_DEVEL_TOOLS=ON \
     -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_REFERENCE=ON -DGINKGO_BUILD_OMP=ON \
     -DGINKGO_BUILD_CUDA=ON -DGINKGO_BUILD_HIP=ON
 cmake --build Debug
