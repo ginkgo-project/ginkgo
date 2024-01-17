@@ -1,5 +1,5 @@
 set(gko_test_resource_args "RESOURCE_LOCAL_CORES;RESOURCE_TYPE")
-set(gko_test_single_args "MPI_SIZE;${gko_test_resource_args}")
+set(gko_test_single_args "MPI_SIZE;EXECUTABLE_NAME;${gko_test_resource_args}")
 set(gko_test_multi_args "DISABLE_EXECUTORS;ADDITIONAL_LIBRARIES;ADDITIONAL_INCLUDES")
 set(gko_test_option_args "NO_RESOURCES")
 
@@ -80,9 +80,13 @@ endfunction()
 function(ginkgo_add_test test_name test_target_name)
     cmake_parse_arguments(PARSE_ARGV 2 add_test "" "${gko_test_single_args}" "${gko_test_multi_args}")
     file(RELATIVE_PATH REL_BINARY_DIR ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
-    set_target_properties(${test_target_name} PROPERTIES OUTPUT_NAME ${test_name})
+    set(test_binary_name ${test_name})
+    if (add_test_EXECUTABLE_NAME)
+        set(test_binary_name ${add_test_EXECUTABLE_NAME})
+    endif()
+    set_target_properties(${test_target_name} PROPERTIES OUTPUT_NAME ${test_binary_name})
     if (add_test_MPI_SIZE)
-        add_test(NAME ${REL_BINARY_DIR}/${test_name}
+        add_test(NAME ${REL_BINARY_DIR}/${test_binary_name}
                  COMMAND
                      ${MPIEXEC_EXECUTABLE}
                      ${MPIEXEC_NUMPROC_FLAG}
@@ -90,12 +94,12 @@ function(ginkgo_add_test test_name test_target_name)
                      "$<TARGET_FILE:${test_target_name}>"
                  WORKING_DIRECTORY "$<TARGET_FILE_DIR:ginkgo>")
     else()
-        add_test(NAME ${REL_BINARY_DIR}/${test_name}
+        add_test(NAME ${REL_BINARY_DIR}/${test_binary_name}
                  COMMAND ${test_target_name}
                  WORKING_DIRECTORY "$<TARGET_FILE_DIR:ginkgo>")
     endif()
 
-    ginkgo_add_resource_requirement(${REL_BINARY_DIR}/${test_name} ${ARGN})
+    ginkgo_add_resource_requirement(${REL_BINARY_DIR}/${test_binary_name} ${ARGN})
 
     set(test_preload)
     if (GINKGO_TEST_NONDEFAULT_STREAM AND GINKGO_BUILD_CUDA)
@@ -105,7 +109,7 @@ function(ginkgo_add_test test_name test_target_name)
         set(test_preload $<TARGET_FILE:identify_stream_usage_hip>:${test_preload})
     endif()
     if(test_preload)
-        set_tests_properties(${REL_BINARY_DIR}/${test_name} PROPERTIES ENVIRONMENT LD_PRELOAD=${test_preload})
+        set_tests_properties(${REL_BINARY_DIR}/${test_binary_name} PROPERTIES ENVIRONMENT LD_PRELOAD=${test_preload})
     endif()
 endfunction()
 
