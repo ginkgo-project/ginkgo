@@ -14,6 +14,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -30,6 +31,7 @@ namespace {
 
 GKO_REGISTER_OPERATION(simple_apply, batch_dense::simple_apply);
 GKO_REGISTER_OPERATION(advanced_apply, batch_dense::advanced_apply);
+GKO_REGISTER_OPERATION(scale, batch_dense::scale);
 
 
 }  // namespace
@@ -166,6 +168,21 @@ void Dense<ValueType>::apply_impl(const MultiVector<ValueType>* alpha,
 {
     this->get_executor()->run(
         dense::make_advanced_apply(alpha, this, b, beta, x));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::scale(const array<ValueType>& row_scale,
+                             const array<ValueType>& col_scale)
+{
+    GKO_ASSERT_EQ(col_scale.get_size(),
+                  (this->get_common_size()[1] * this->get_num_batch_items()));
+    GKO_ASSERT_EQ(row_scale.get_size(),
+                  (this->get_common_size()[0] * this->get_num_batch_items()));
+    auto exec = this->get_executor();
+    exec->run(dense::make_scale(make_temporary_clone(exec, &col_scale).get(),
+                                make_temporary_clone(exec, &row_scale).get(),
+                                this));
 }
 
 

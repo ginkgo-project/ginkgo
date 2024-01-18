@@ -142,6 +142,48 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
     GKO_DECLARE_BATCH_ELL_ADVANCED_APPLY_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void scale(std::shared_ptr<const DefaultExecutor> exec,
+           const array<ValueType>* col_scale, const array<ValueType>* row_scale,
+           batch::matrix::Ell<ValueType, IndexType>* input)
+{
+    const auto col_scale_vals = col_scale->get_const_data();
+    const auto row_scale_vals = row_scale->get_const_data();
+    const auto num_rows = static_cast<int>(input->get_common_size()[0]);
+    const auto num_cols = static_cast<int>(input->get_common_size()[1]);
+    auto mat_ub = get_batch_struct(input);
+
+    const auto num_batch_items = mat_ub.num_batch_items;
+    auto device = exec->get_queue()->get_device();
+    // TODO: use runtime selection of group size based on num_rows.
+    auto group_size =
+        device.get_info<sycl::info::device::max_work_group_size>();
+
+    const dim3 block(group_size);
+    const dim3 grid(num_batch_items);
+
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1)
+                [[sycl::reqd_sub_group_size(config::warp_size)]] {
+                    auto group = item_ct1.get_group();
+                    auto group_id = group.get_group_linear_id();
+                    const auto col_scale_b =
+                        col_scale_vals + num_cols * group_id;
+                    const auto row_scale_b =
+                        row_scale_vals + num_rows * group_id;
+                    auto mat_item =
+                        batch::matrix::extract_batch_item(mat_ub, group_id);
+                    scale_kernel(col_scale_b, row_scale_b, mat_item, item_ct1);
+                });
+    });
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
+    GKO_DECLARE_BATCH_ELL_SCALE_KERNEL);
+
+
 }  // namespace batch_ell
 }  // namespace dpcpp
 }  // namespace kernels

@@ -154,11 +154,15 @@ void MultiVector<ValueType>::scale(
     ptr_param<const MultiVector<ValueType>> alpha)
 {
     GKO_ASSERT_EQ(alpha->get_num_batch_items(), this->get_num_batch_items());
-    GKO_ASSERT_EQUAL_ROWS(alpha->get_common_size(), dim<2>(1, 1));
     if (alpha->get_common_size()[1] != 1) {
         // different alpha for each column
         GKO_ASSERT_EQUAL_COLS(this->get_common_size(),
                               alpha->get_common_size());
+    }
+    // element wise scaling requires same size
+    if (alpha->get_common_size()[0] != 1) {
+        GKO_ASSERT_EQUAL_DIMENSIONS(this->get_common_size(),
+                                    alpha->get_common_size());
     }
     auto exec = this->get_executor();
     exec->run(multi_vector::make_scale(make_temporary_clone(exec, alpha).get(),

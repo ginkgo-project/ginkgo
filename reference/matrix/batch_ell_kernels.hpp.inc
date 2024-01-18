@@ -50,3 +50,23 @@ inline void advanced_apply_kernel(
         }
     }
 }
+
+
+template <typename ValueType, typename IndexType>
+inline void scale(
+    const ValueType* const col_scale, const ValueType* const row_scale,
+    const gko::batch::matrix::ell::batch_item<ValueType, IndexType>& mat)
+{
+    for (int row = 0; row < mat.num_rows; row++) {
+        const ValueType r_scalar = row_scale[row];
+        for (auto k = 0; k < mat.num_stored_elems_per_row; ++k) {
+            auto col_idx = mat.col_idxs[row + mat.stride * k];
+            if (col_idx == invalid_index<IndexType>()) {
+                break;
+            } else {
+                mat.values[row + mat.stride * k] *=
+                    r_scalar * col_scale[col_idx];
+            }
+        }
+    }
+}

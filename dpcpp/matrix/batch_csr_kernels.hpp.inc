@@ -42,3 +42,22 @@ __dpct_inline__ void advanced_apply_kernel(
         x[row] = alpha * temp + beta * x[row];
     }
 }
+
+
+template <typename ValueType, typename IndexType>
+__dpct_inline__ void scale_kernel(const int num_rows,
+                                  const ValueType* const col_scale,
+                                  const ValueType* const row_scale,
+                                  const IndexType* const col_idxs,
+                                  const IndexType* const row_ptrs,
+                                  ValueType* const values,
+                                  sycl::nd_item<3>& item_ct1)
+{
+    for (int row = item_ct1.get_local_linear_id(); row < num_rows;
+         row += item_ct1.get_local_range().size()) {
+        const ValueType row_scalar = row_scale[row];
+        for (auto nnz = row_ptrs[row]; nnz < row_ptrs[row + 1]; nnz++) {
+            values[nnz] *= row_scalar * col_scale[col_idxs[nnz]];
+        }
+    }
+}

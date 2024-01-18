@@ -30,6 +30,7 @@ namespace {
 
 GKO_REGISTER_OPERATION(simple_apply, batch_ell::simple_apply);
 GKO_REGISTER_OPERATION(advanced_apply, batch_ell::advanced_apply);
+GKO_REGISTER_OPERATION(scale, batch_ell::scale);
 
 
 }  // namespace
@@ -179,6 +180,21 @@ void Ell<ValueType, IndexType>::apply_impl(const MultiVector<ValueType>* alpha,
 {
     this->get_executor()->run(
         ell::make_advanced_apply(alpha, this, b, beta, x));
+}
+
+
+template <typename ValueType, typename IndexType>
+void Ell<ValueType, IndexType>::scale(const array<ValueType>& row_scale,
+                                      const array<ValueType>& col_scale)
+{
+    GKO_ASSERT_EQ(col_scale.get_size(),
+                  (this->get_common_size()[1] * this->get_num_batch_items()));
+    GKO_ASSERT_EQ(row_scale.get_size(),
+                  (this->get_common_size()[0] * this->get_num_batch_items()));
+    auto exec = this->get_executor();
+    exec->run(ell::make_scale(make_temporary_clone(exec, &col_scale).get(),
+                              make_temporary_clone(exec, &row_scale).get(),
+                              this));
 }
 
 

@@ -167,6 +167,42 @@ TYPED_TEST(Ell, ConstAppliesLinearCombinationToBatchMultiVector)
 }
 
 
+TYPED_TEST(Ell, CanTwoSidedScale)
+{
+    using value_type = typename TestFixture::value_type;
+    using BMtx = typename TestFixture::BMtx;
+    auto col_scale = gko::array<value_type>(this->exec, 3 * 2);
+    auto row_scale = gko::array<value_type>(this->exec, 2 * 2);
+    col_scale.fill(2);
+    row_scale.fill(3);
+
+    this->mtx_0->scale(row_scale, col_scale);
+
+    auto scaled_mtx_0 =
+        gko::batch::initialize<BMtx>({{{6.0, -6.0, 9.0}, {-12.0, 12.0, 18.0}},
+                                      {{6.0, -12.0, -3.0}, {6.0, -15.0, 24.0}}},
+                                     this->exec);
+    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx_0.get(), scaled_mtx_0.get(), 0.);
+}
+
+
+TYPED_TEST(Ell, CanTwoSidedScaleWithDifferentValues)
+{
+    using value_type = typename TestFixture::value_type;
+    using BMtx = typename TestFixture::BMtx;
+    auto col_scale = gko::array<value_type>(this->exec, {1, 2, 1, 2, 2, 3});
+    auto row_scale = gko::array<value_type>(this->exec, {2, 4, 3, 1});
+
+    this->mtx_0->scale(row_scale, col_scale);
+
+    auto scaled_mtx_0 =
+        gko::batch::initialize<BMtx>({{{2.0, -4.0, 3.0}, {-8.0, 16.0, 12.0}},
+                                      {{6.0, -12.0, -4.5}, {2.0, -5.0, 12.0}}},
+                                     this->exec);
+    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx_0.get(), scaled_mtx_0.get(), 0.);
+}
+
+
 TYPED_TEST(Ell, ApplyFailsOnWrongNumberOfResultCols)
 {
     using BMVec = typename TestFixture::BMVec;

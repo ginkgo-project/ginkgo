@@ -20,6 +20,7 @@
 
 #include "core/base/batch_utilities.hpp"
 #include "core/test/utils.hpp"
+#include "core/test/utils/array_generator.hpp"
 #include "core/test/utils/assertions.hpp"
 #include "core/test/utils/batch_helpers.hpp"
 #include "test/utils/executor.hpp"
@@ -43,9 +44,10 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    void set_up_apply_data(gko::size_type num_rows, gko::size_type num_vecs = 1)
+    void set_up_apply_data(gko::size_type num_rows,
+                           gko::size_type num_cols = 32,
+                           gko::size_type num_vecs = 1)
     {
-        const gko::size_type num_cols = 32;
         mat = gen_mtx<BMtx>(batch_size, num_rows, num_cols);
         y = gen_mtx<BMVec>(batch_size, num_cols, num_vecs);
         alpha = gen_mtx<BMVec>(batch_size, 1, 1);
@@ -54,6 +56,14 @@ protected:
         dy = gko::clone(exec, y);
         dalpha = gko::clone(exec, alpha);
         dbeta = gko::clone(exec, beta);
+        row_scale = gko::test::generate_random_array<value_type>(
+            num_rows * batch_size, std::normal_distribution<>(2.0, 0.5),
+            rand_engine, ref);
+        col_scale = gko::test::generate_random_array<value_type>(
+            num_cols * batch_size, std::normal_distribution<>(4.0, 0.5),
+            rand_engine, ref);
+        drow_scale = gko::array<value_type>(exec, row_scale);
+        dcol_scale = gko::array<value_type>(exec, col_scale);
         expected = BMVec::create(
             ref,
             gko::batch_dim<2>(batch_size, gko::dim<2>{num_rows, num_vecs}));
@@ -74,6 +84,10 @@ protected:
     std::unique_ptr<BMVec> dy;
     std::unique_ptr<BMVec> dalpha;
     std::unique_ptr<BMVec> dbeta;
+    gko::array<value_type> row_scale;
+    gko::array<value_type> col_scale;
+    gko::array<value_type> drow_scale;
+    gko::array<value_type> dcol_scale;
 };
 
 
@@ -107,4 +121,15 @@ TEST_F(Dense, SingleVectorAdvancedApplyIsEquivalentToRef)
     dmat->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dresult, expected, r<value_type>::value);
+}
+
+
+TEST_F(Dense, TwoSidedScaleIsEquivalentToRef)
+{
+    set_up_apply_data(257);
+
+    mat->scale(row_scale, col_scale);
+    dmat->scale(drow_scale, dcol_scale);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dmat, mat, r<value_type>::value);
 }

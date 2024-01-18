@@ -216,6 +216,16 @@ public:
     }
 
     /**
+     * Returns the number of stored elements in each batch item.
+     *
+     * @return the number of stored elements per batch item.
+     */
+    size_type get_num_elements_per_item() const noexcept
+    {
+        return this->get_num_stored_elements() / this->get_num_batch_items();
+    }
+
+    /**
      * Creates a constant (immutable) batch dense matrix from a constant
      * array.
      *
@@ -271,6 +281,15 @@ public:
                        ptr_param<const MultiVector<value_type>> b,
                        ptr_param<const MultiVector<value_type>> beta,
                        ptr_param<MultiVector<value_type>> x) const;
+
+    /**
+     * Performs in-place row and column scaling for this matrix.
+     *
+     * @param row_scale  the row scalars
+     * @param col_scale  the column scalars
+     */
+    void scale(const array<value_type>& row_scale,
+               const array<value_type>& col_scale);
 
 private:
     inline size_type compute_num_elems(const batch_dim<2>& size)

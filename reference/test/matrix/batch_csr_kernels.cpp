@@ -37,7 +37,7 @@ protected:
     Csr()
         : exec(gko::ReferenceExecutor::create()),
           mtx_0(gko::batch::initialize<BMtx>(
-              {{I<T>({1.0, -1.0, 0.0}), I<T>({-2.0, 2.0, 3.0})},
+              {{{1.0, -1.0, 0.0}, {-2.0, 2.0, 3.0}},
                {{1.0, -2.0, 0.0}, {1.0, -2.5, 4.0}}},
               exec, 5)),
           mtx_00(gko::initialize<CsrMtx>(
@@ -162,6 +162,42 @@ TYPED_TEST(Csr, ConstAppliesLinearCombinationToBatchMultiVector)
     auto res = gko::batch::unbatch<gko::batch::MultiVector<T>>(this->x_0.get());
     GKO_ASSERT_MTX_NEAR(res[0].get(), this->x_00.get(), r<T>::value);
     GKO_ASSERT_MTX_NEAR(res[1].get(), this->x_01.get(), r<T>::value);
+}
+
+
+TYPED_TEST(Csr, CanTwoSidedScale)
+{
+    using value_type = typename TestFixture::value_type;
+    using BMtx = typename TestFixture::BMtx;
+    auto col_scale = gko::array<value_type>(this->exec, 3 * 2);
+    auto row_scale = gko::array<value_type>(this->exec, 2 * 2);
+    col_scale.fill(2);
+    row_scale.fill(3);
+
+    this->mtx_0->scale(row_scale, col_scale);
+
+    auto scaled_mtx_0 =
+        gko::batch::initialize<BMtx>({{{6.0, -6.0, 0.0}, {-12.0, 12.0, 18.0}},
+                                      {{6.0, -12.0, 0.0}, {6.0, -15.0, 24.0}}},
+                                     this->exec, 5);
+    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx_0.get(), scaled_mtx_0.get(), 0.);
+}
+
+
+TYPED_TEST(Csr, CanTwoSidedScaleWithDifferentValues)
+{
+    using value_type = typename TestFixture::value_type;
+    using BMtx = typename TestFixture::BMtx;
+    auto col_scale = gko::array<value_type>(this->exec, {1, 2, 1, 2, 2, 3});
+    auto row_scale = gko::array<value_type>(this->exec, {2, 4, 3, 1});
+
+    this->mtx_0->scale(row_scale, col_scale);
+
+    auto scaled_mtx_0 =
+        gko::batch::initialize<BMtx>({{{2.0, -4.0, 0.0}, {-8.0, 16.0, 12.0}},
+                                      {{6.0, -12.0, 0.0}, {2.0, -5.0, 12.0}}},
+                                     this->exec, 5);
+    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx_0.get(), scaled_mtx_0.get(), 0.);
 }
 
 

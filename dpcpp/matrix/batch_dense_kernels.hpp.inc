@@ -64,3 +64,27 @@ __dpct_inline__ void advanced_apply_kernel(
         }
     }
 }
+
+
+template <typename ValueType>
+__dpct_inline__ void scale_kernel(
+    const ValueType* const col_scale, const ValueType* const row_scale,
+    gko::batch::matrix::dense::batch_item<ValueType>& mat,
+    sycl::nd_item<3>& item_ct1)
+{
+    constexpr auto tile_size = config::warp_size;
+    auto subg =
+        group::tiled_partition<tile_size>(group::this_thread_block(item_ct1));
+    const auto subgroup = static_cast<sycl::sub_group>(subg);
+    const int subgroup_id = subgroup.get_group_id();
+    const int subgroup_size = subgroup.get_local_range().size();
+    const int num_subgroup = subgroup.get_group_range().size();
+
+    for (int row = subgroup_id; row < mat.num_rows; row += num_subgroup) {
+        const ValueType row_scalar = row_scale[row];
+        for (int col = subgroup.get_local_id(); col < mat.num_cols;
+             col += subgroup_size) {
+            mat.values[row * mat.stride + col] *= row_scalar * col_scale[col];
+        }
+    }
+}

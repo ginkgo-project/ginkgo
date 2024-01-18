@@ -15,7 +15,6 @@
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
-#include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
@@ -211,7 +210,6 @@ public:
      *
      * @param exec  the executor to create the matrix on
      * @param size  the dimensions of the matrix
-     * @param num_elems_per_row  the number of elements to be stored in each row
      * @param values  the value array of the matrix
      * @param col_idxs the col_idxs array of a single batch item of the matrix.
      * @param row_ptrs  the row_ptrs array of a single batch item of the matrix.
@@ -266,6 +264,15 @@ public:
                      ptr_param<const MultiVector<value_type>> b,
                      ptr_param<const MultiVector<value_type>> beta,
                      ptr_param<MultiVector<value_type>> x) const;
+
+    /**
+     * Performs in-place row and column scaling for this matrix.
+     *
+     * @param row_scale  the row scalars
+     * @param col_scale  the column scalars
+     */
+    void scale(const array<value_type>& row_scale,
+               const array<value_type>& col_scale);
 
 private:
     /**

@@ -13,6 +13,13 @@ inline void scale_kernel(
                 x.values[i * x.stride + j] *= alpha.values[0];
             }
         }
+    } else if (alpha.num_rows == x.num_rows) {
+        for (int i = 0; i < x.num_rows; ++i) {
+            for (int j = 0; j < x.num_rhs; ++j) {
+                x.values[i * x.stride + j] *=
+                    alpha.values[i * alpha.stride + j];
+            }
+        }
     } else {
         for (int i = 0; i < x.num_rows; ++i) {
             for (int j = 0; j < x.num_rhs; ++j) {

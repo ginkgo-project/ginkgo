@@ -331,6 +331,7 @@ protected:
             this->reset_max_iterations(other.get_max_iterations());
             this->reset_tolerance_type(other.get_tolerance_type());
         }
+
         return *this;
     }
 
