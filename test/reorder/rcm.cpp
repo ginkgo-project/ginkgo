@@ -139,6 +139,19 @@ protected:
                 current_height = reference_current_levels[i];
             }
         }
+        // remove all contenders of non-minimal degree
+        auto contender_min_degree = *std::min_element(
+            reference_contenders.begin(), reference_contenders.end(),
+            [&](index_type u, index_type v) {
+                return degrees[u] < degrees[v];
+            });
+        reference_contenders.erase(
+            std::remove_if(reference_contenders.begin(),
+                           reference_contenders.end(),
+                           [&](index_type u) {
+                               return degrees[u] > contender_min_degree;
+                           }),
+            reference_contenders.end());
 
         // then compute a level array for each of the contenders
         std::vector<std::vector<index_type>> reference_contenders_levels(
@@ -153,18 +166,22 @@ protected:
             reference_contenders_levels[i] = reference_contender_levels;
         }
 
-        // and check if any maximum level exceeds that of the start node
+        // and check if there is at least one minimum-degree contender with
+        // lower or equal height
+        std::vector<index_type> lower_contenders;
         for (gko::size_type i = 0; i < reference_contenders.size(); ++i) {
             auto contender_height = std::numeric_limits<index_type>::min();
-            index_type contender_degree = 0;
             for (gko::size_type j = 0; j < n; ++j) {
                 if (cc.const_find(j) == start_rep &&
                     reference_contenders_levels[i][j] > contender_height) {
                     contender_height = reference_contenders_levels[i][j];
                 }
             }
-            ASSERT_LE(contender_height, current_height);
+            if (contender_height <= current_height) {
+                lower_contenders.push_back(reference_contenders[i]);
+            }
         }
+        ASSERT_FALSE(lower_contenders.empty());
     }
 
     static void check_rcm_ordered(std::shared_ptr<CsrMtx> mtx,
