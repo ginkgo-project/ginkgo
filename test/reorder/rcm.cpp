@@ -380,6 +380,20 @@ TEST_F(Rcm, PermutationIsRcmOrderedMultipleConnectedComponents)
 }
 
 
+TEST_F(Rcm, PermutationIsRcmOrderedShuffledFromFile)
+{
+    o_1138_bus_mtx = gko::read<CsrMtx>(
+        std::ifstream{gko::matrices::location_1138_bus_shuffled_mtx}, ref);
+    d_1138_bus_mtx = gko::clone(exec, o_1138_bus_mtx);
+
+    d_reorder_op = reorder_type::build().on(exec)->generate(d_1138_bus_mtx);
+
+    auto perm = d_reorder_op->get_permutation();
+    check_rcm_ordered(o_1138_bus_mtx, perm.get(),
+                      d_reorder_op->get_parameters().strategy);
+}
+
+
 TEST_F(Rcm, PermutationIsRcmOrderedMinDegreeMultipleConnectedComponents)
 {
     this->build_multiple_connected_components();
