@@ -2,7 +2,6 @@
 .default_variables:
   variables:
     BENCHMARK_SERVER: "FINECI"
-    C_COMPILER: "gcc"
     CXX_COMPILER: "g++"
     CUDA_COMPILER: "nvcc"
     BUILD_TYPE: "Debug"
@@ -15,7 +14,6 @@
     BUILD_HWLOC: "ON"
     BUILD_PAPI_SDE: "OFF"
     BUILD_MPI: "OFF"
-    GKO_COMPILER_FLAGS: ""
     MPI_AS_ROOT: "OFF"
     FAST_TESTS: "OFF"
     NONDEFAULT_STREAM: "OFF"
@@ -23,6 +21,6 @@
     MIXED_PRECISION: "ON"
     RUN_EXAMPLES: "OFF"
     CONFIG_LOG: "ON"
-    CXX_FLAGS: ""
+    CXX_FLAGS: "-Wpedantic"
     EXTRA_CMAKE_FLAGS: ""
     CI_PROJECT_DIR_SUFFIX: ""
