@@ -398,7 +398,7 @@ unset(BASH CACHE)
 
 # Installation
 include(cmake/information_helpers.cmake)
-ginkgo_interface_information()
+ginkgo_pkg_information()
 ginkgo_git_information()
 
 include(cmake/get_info.cmake)
