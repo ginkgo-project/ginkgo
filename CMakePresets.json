@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-${presetName}"
+    },
+    {
+      "name": "release",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "warnings": {
+        "dev": false
+      }
+    },
+    {
+      "name": "develop",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_FLAGS": "$env{CXXFLAGS} -Wpedantic"
+      }
+    },
+    {
+      "name": "develop-msvc",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_FLAGS": "$env{CXXFLAGS} /permissive-"
+      }
+    }
+  ]
+}
