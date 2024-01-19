@@ -22,65 +22,69 @@ endfunction()
 macro(ginkgo_interface_libraries_recursively INTERFACE_LIBS)
     # always add the interface to the list to keep the order information 
     # Currently, it does not support the circular dependence and MSVC.
-    foreach(_libs ${INTERFACE_LIBS})
-        if (TARGET ${_libs})
-            if("${_libs}" MATCHES "ginkgo.*")
-                set(GINKGO_INTERFACE_LIB_NAME "-l${_libs}$<$<CONFIG:Debug>:${CMAKE_DEBUG_POSTFIX}>")
-                list(APPEND GINKGO_INTERFACE_LIBS_FOUND "${GINKGO_INTERFACE_LIB_NAME}")
-            endif()
-            # Get the link flags and treat them
-            get_target_property(GINKGO_INTERFACE_LIBS_LINK_FLAGS "${_libs}"
-                INTERFACE_LINK_OPTIONS)
-            if (GINKGO_INTERFACE_LIBS_LINK_FLAGS)
-                filter_generator_expressions("${GINKGO_INTERFACE_LIBS_LINK_FLAGS}"
-                    GINKGO_INTERFACE_LIB_NAME)
-            endif()
-            # Get the imported library
-            get_target_property(_libs_type "${_libs}" TYPE)
-            get_target_property(_libs_imported "${_libs}" IMPORTED)
-            if (_libs_imported AND NOT ${_libs_type} STREQUAL "INTERFACE_LIBRARY")
-                get_target_property(GINKGO_LIBS_IMPORTED_LIBS "${_libs}" IMPORTED_LOCATION_RELEASE)
-                if (NOT GINKGO_LIBS_IMPORTED_LIBS)
-                    get_target_property(GINKGO_LIBS_IMPORTED_LIBS "${_libs}" IMPORTED_LOCATION)
+    foreach(_lib ${INTERFACE_LIBS})
+        # hash library, so we don't get any duplicates, based on
+        # https://gitlab.kitware.com/cmake/cmake/-/blob/v3.28.1/Modules/CMakeFindDependencyMacro.cmake#L57
+        string(SHA256 _gko_interface_lib_hash "${_lib}")
+        if(_GKO_${_gko_interface_lib_hash}_FOUND)
+            unset(_gko_interface_lib_hash)
+        else()
+            set("_GKO_${_gko_interface_lib_hash}_FOUND" ON)
+            if(TARGET ${_lib})
+                if("${_lib}" MATCHES "ginkgo.*")
+                    set(GINKGO_INTERFACE_LIB_NAME "-l${_lib}$<$<CONFIG:Debug>:${CMAKE_DEBUG_POSTFIX}>")
+                    list(APPEND GINKGO_INTERFACE_LIBS_FOUND "${GINKGO_INTERFACE_LIB_NAME}")
                 endif()
-                if (GINKGO_LIBS_IMPORTED_LIBS)
-                    list(APPEND GINKGO_INTERFACE_LIBS_FOUND "${GINKGO_LIBS_IMPORTED_LIBS}")
+                # Get the link flags and treat them
+                get_target_property(GINKGO_INTERFACE_LIBS_LINK_FLAGS "${_lib}" INTERFACE_LINK_OPTIONS)
+                if (GINKGO_INTERFACE_LIBS_LINK_FLAGS)
+                    filter_generator_expressions("${GINKGO_INTERFACE_LIBS_LINK_FLAGS}"
+                        GINKGO_INTERFACE_LIB_NAME)
                 endif()
-            endif()
-            # Populate the include directories
-            get_target_property(GINKGO_LIBS_INTERFACE_INCS "${_libs}"
-                INTERFACE_INCLUDE_DIRECTORIES)
-            foreach(_incs ${GINKGO_LIBS_INTERFACE_INCS})
-                filter_generator_expressions("${_incs}" GINKGO_INTERFACE_INC_FILTERED)
-                if (GINKGO_INTERFACE_INC_FILTERED AND NOT
-                        "-I${GINKGO_INTERFACE_INC_FILTERED}" IN_LIST GINKGO_INTERFACE_CFLAGS_FOUND)
-                    list(APPEND GINKGO_INTERFACE_CFLAGS_FOUND "-I${GINKGO_INTERFACE_INC_FILTERED}")
+                # Get the imported library
+                get_target_property(_lib_type "${_lib}" TYPE)
+                get_target_property(_lib_imported "${_lib}" IMPORTED)
+                if (_lib_imported AND NOT ${_lib_type} STREQUAL "INTERFACE_LIBRARY")
+                    get_target_property(GINKGO_LIBS_IMPORTED_LIBS "${_lib}" IMPORTED_LOCATION_RELEASE)
+                    if (NOT GINKGO_LIBS_IMPORTED_LIBS)
+                        get_target_property(GINKGO_LIBS_IMPORTED_LIBS "${_lib}" IMPORTED_LOCATION)
+                    endif()
+                    if (GINKGO_LIBS_IMPORTED_LIBS)
+                        list(APPEND GINKGO_INTERFACE_LIBS_FOUND "${GINKGO_LIBS_IMPORTED_LIBS}")
+                    endif()
                 endif()
-            endforeach()
+                # Populate the include directories
+                get_target_property(GINKGO_LIBS_INTERFACE_INCS "${_lib}" INTERFACE_INCLUDE_DIRECTORIES)
+                foreach(_incs ${GINKGO_LIBS_INTERFACE_INCS})
+                    filter_generator_expressions("${_incs}" GINKGO_INTERFACE_INC_FILTERED)
+                    if (GINKGO_INTERFACE_INC_FILTERED AND NOT
+                            "-I${GINKGO_INTERFACE_INC_FILTERED}" IN_LIST GINKGO_INTERFACE_CFLAGS_FOUND)
+                        list(APPEND GINKGO_INTERFACE_CFLAGS_FOUND "-I${GINKGO_INTERFACE_INC_FILTERED}")
+                    endif()
+                endforeach()
 
-            # Populate the compiler options and definitions if needed
-            get_target_property(GINKGO_LIBS_INTERFACE_DEFS "${_libs}"
-                INTERFACE_COMPILE_DEFINITIONS)
-            if (GINKGO_LIBS_INTERFACE_DEFS)
-                list(APPEND GINKGO_INTERFACE_CFLAGS_FOUND "${GINKGO_LIBS_INTERFACE_DEFS}")
-            endif()
-            get_target_property(GINKGO_LIBS_INTERFACE_OPTS "${_libs}"
-                INTERFACE_COMPILE_OPTIONS)
-            filter_generator_expressions("${GINKGO_LIBS_INTERFACE_OPTS}" GINKGO_LIBS_INTERFACE_OPTS_FILTERED)
-            if (GINKGO_LIBS_INTERFACE_OPTS)
-                list(APPEND GINKGO_INTERFACE_CFLAGS_FOUND "${GINKGO_LIBS_INTERFACE_OPTS_FILTERED}")
-            endif()
+                # Populate the compiler options and definitions if needed
+                get_target_property(GINKGO_LIBS_INTERFACE_DEFS "${_lib}" INTERFACE_COMPILE_DEFINITIONS)
+                if (GINKGO_LIBS_INTERFACE_DEFS)
+                    list(APPEND GINKGO_INTERFACE_CFLAGS_FOUND "${GINKGO_LIBS_INTERFACE_DEFS}")
+                endif()
+                get_target_property(GINKGO_LIBS_INTERFACE_OPTS "${_lib}"
+                    INTERFACE_COMPILE_OPTIONS)
+                filter_generator_expressions("${GINKGO_LIBS_INTERFACE_OPTS}" GINKGO_LIBS_INTERFACE_OPTS_FILTERED)
+                if (GINKGO_LIBS_INTERFACE_OPTS)
+                    list(APPEND GINKGO_INTERFACE_CFLAGS_FOUND "${GINKGO_LIBS_INTERFACE_OPTS_FILTERED}")
+                endif()
 
-            # Keep recursing through the libraries
-            get_target_property(GINKGO_LIBS_INTERFACE_LIBS "${_libs}"
-                INTERFACE_LINK_LIBRARIES)
-            # removing $<LINK_ONLY:>
-            list(TRANSFORM GINKGO_LIBS_INTERFACE_LIBS REPLACE "\\$<LINK_ONLY:(.*)>" "\\1")
-            ginkgo_interface_libraries_recursively("${GINKGO_LIBS_INTERFACE_LIBS}")
-        elseif(EXISTS "${_libs}")
-            list(APPEND GINKGO_INTERFACE_LIBS_FOUND "${_libs}")
-        elseif("${_libs}" STREQUAL "${CMAKE_DL_LIBS}")
-            list(APPEND GINKGO_INTERFACE_LIBS_FOUND "-l${_libs}")
+                # Keep recursing through the libraries
+                get_target_property(GINKGO_LIBS_INTERFACE_LIBS "${_lib}" INTERFACE_LINK_LIBRARIES)
+                # removing $<LINK_ONLY:>
+                list(TRANSFORM GINKGO_LIBS_INTERFACE_LIBS REPLACE "\\$<LINK_ONLY:(.*)>" "\\1")
+                ginkgo_interface_libraries_recursively("${GINKGO_LIBS_INTERFACE_LIBS}")
+            elseif(EXISTS "${_lib}")
+                list(APPEND GINKGO_INTERFACE_LIBS_FOUND "${_lib}")
+            elseif("${_lib}" STREQUAL "${CMAKE_DL_LIBS}")
+                list(APPEND GINKGO_INTERFACE_LIBS_FOUND "-l${_lib}")
+            endif()
         endif()
     endforeach()
 endmacro()
@@ -99,10 +103,6 @@ macro(ginkgo_interface_information)
     get_target_property(GINKGO_INTERFACE_LINK_LIBRARIES ginkgo INTERFACE_LINK_LIBRARIES)
     ginkgo_interface_libraries_recursively("${GINKGO_INTERFACE_LINK_LIBRARIES}")
     # Format and store the interface libraries found
-    # remove duplicates on the reversed list to keep the dependency in the end of list.
-    list(REVERSE GINKGO_INTERFACE_LIBS_FOUND)
-    list(REMOVE_DUPLICATES GINKGO_INTERFACE_LIBS_FOUND)
-    list(REVERSE GINKGO_INTERFACE_LIBS_FOUND)
     list(REMOVE_ITEM GINKGO_INTERFACE_LIBS_FOUND "")
     # keep it as list 
     set(GINKGO_INTERFACE_LINK_FLAGS
