@@ -22,9 +22,9 @@ namespace multigrid {
 
 
 /**
- * UniformCoarsening is a very simple coarse grid generation algorithm. It
- * selects the coarse matrix from the fine matrix by either constant jumps or
- * with a user-specified index_set of rows.
+ * UniformCoarsening is a simple coarse grid generation algorithm. It
+ * selects the coarse matrix from the fine matrix by constant jumps that can be
+ * specified by the user.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes

@@ -93,8 +93,8 @@ void UniformCoarsening<ValueType, IndexType>::generate()
     coarse_matrix->set_strategy(uniform_coarsening_op->get_strategy());
     auto tmp = csr_type::create(exec, gko::dim<2>{fine_dim, coarse_dim});
     tmp->set_strategy(uniform_coarsening_op->get_strategy());
-    uniform_coarsening_op->apply(prolong_op.get(), tmp.get());
-    restrict_op->apply(tmp.get(), coarse_matrix.get());
+    uniform_coarsening_op->apply(prolong_op, tmp);
+    restrict_op->apply(tmp, coarse_matrix);
 
     this->set_multigrid_level(prolong_op, coarse_matrix, restrict_op);
 }
