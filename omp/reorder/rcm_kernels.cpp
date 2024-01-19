@@ -54,20 +54,6 @@ namespace rcm {
 #define GKO_MM_PAUSE()
 #endif  // defined __x86_64__
 
-template <typename IndexType>
-void get_degree_of_nodes(std::shared_ptr<const OmpExecutor> exec,
-                         const IndexType num_vertices,
-                         const IndexType* const row_ptrs,
-                         IndexType* const degrees)
-{
-#pragma omp parallel for
-    for (IndexType i = 0; i < num_vertices; ++i) {
-        degrees[i] = row_ptrs[i + 1] - row_ptrs[i];
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL);
-
 
 // This constant controls how many nodes can be dequeued from the
 // UbfsLinearQueue at once at most. Increasing it reduces lock contention and
@@ -372,7 +358,7 @@ std::pair<IndexType, IndexType> rls_contender_and_height(
     // Implement this through a tie-max reduction. First reduce local ...
     const int32 num_threads = omp_get_max_threads();
     const auto initial_value =
-        std::make_pair(std::make_pair(levels[0], degrees[0]), 0);
+        std::make_pair(std::make_pair(levels[start], degrees[start]), start);
     vector<contending> local_contenders(num_threads, initial_value, exec);
 
 #pragma omp parallel num_threads(num_threads)
@@ -382,9 +368,10 @@ std::pair<IndexType, IndexType> rls_contender_and_height(
 
 #pragma omp for schedule(static)
         for (IndexType i = 1; i < num_vertices; ++i) {
-            if (std::tie(levels[i], degrees[i]) >
-                std::tie(local_contender.first.first,
-                         local_contender.first.second)) {
+            // choose maximum level and minimum degree
+            if (levels[i] != std::numeric_limits<IndexType>::max() &&
+                std::tie(levels[i], local_contender.first.second) >
+                    std::tie(local_contender.first.first, degrees[i])) {
                 local_contender.first = std::make_pair(levels[i], degrees[i]);
                 local_contender.second = i;
             }
@@ -757,14 +744,20 @@ IndexType handle_isolated_nodes(std::shared_ptr<const OmpExecutor> exec,
  * Computes a rcm permutation, employing the parallel unordered rcm algorithm.
  */
 template <typename IndexType>
-void get_permutation(std::shared_ptr<const OmpExecutor> exec,
-                     const IndexType num_vertices,
-                     const IndexType* const row_ptrs,
-                     const IndexType* const col_idxs,
-                     const IndexType* const degrees, IndexType* const perm,
-                     IndexType* const inv_perm,
-                     const gko::reorder::starting_strategy strategy)
+void compute_permutation(std::shared_ptr<const OmpExecutor> exec,
+                         const IndexType num_vertices,
+                         const IndexType* const row_ptrs,
+                         const IndexType* const col_idxs, IndexType* const perm,
+                         IndexType* const inv_perm,
+                         const gko::reorder::starting_strategy strategy)
 {
+    // compute node degrees
+    array<IndexType> degree_array{exec, static_cast<size_type>(num_vertices)};
+    const auto degrees = degree_array.get_data();
+#pragma omp parallel for
+    for (IndexType i = 0; i < num_vertices; ++i) {
+        degrees[i] = row_ptrs[i + 1] - row_ptrs[i];
+    }
     // Initialize the perm to all "signal value".
     std::fill(perm, perm + num_vertices, perm_untouched);
 
@@ -838,7 +831,7 @@ void get_permutation(std::shared_ptr<const OmpExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_COMPUTE_PERMUTATION_KERNEL);
 
 
 }  // namespace rcm

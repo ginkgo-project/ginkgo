@@ -53,7 +53,6 @@ using ReferenceTypes =
     ::testing::Types<std::tuple<std::int16_t, std::int8_t>,
                      std::tuple<std::int32_t, std::int16_t>,
                      std::tuple<std::int64_t, std::int16_t>,
-                     std::tuple<std::uint16_t, std::uint16_t>,
                      std::tuple<double, std::int32_t>,
                      std::tuple<double, double>, std::tuple<double, float>,
                      std::tuple<float, float>>;

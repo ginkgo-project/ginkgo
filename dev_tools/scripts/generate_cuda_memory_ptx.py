@@ -30,6 +30,8 @@ class type_desc:
 memory_spaces = [
     space(ptx_space_suffix=".shared", ptx_scope_suffix=".cta", fn_suffix="_shared",
           ptr_expr="convert_generic_ptr_to_smem_ptr({ptr})", ptr_constraint="r"),
+    space(ptx_space_suffix="", ptx_scope_suffix=".cta", fn_suffix="_local",
+          ptr_expr="{ptr}", ptr_constraint="l"),
     space(ptx_space_suffix="", ptx_scope_suffix=".gpu", fn_suffix="", ptr_expr="{ptr}", ptr_constraint="l")]
 memory_orderings = [
     ordering(ptx_load_suffix=".relaxed", fn_load_suffix="_relaxed",
@@ -90,6 +92,16 @@ __device__ __forceinline__ void membar_acq_rel()
 
 
 __device__ __forceinline__ void membar_acq_rel_shared()
+{
+#if __CUDA_ARCH__ < 700
+    asm volatile("membar.cta;" ::: "memory");
+#else
+    asm volatile("fence.acq_rel.cta;" ::: "memory");
+#endif
+}
+
+
+__device__ __forceinline__ void membar_acq_rel_local()
 {
 #if __CUDA_ARCH__ < 700
     asm volatile("membar.cta;" ::: "memory");
