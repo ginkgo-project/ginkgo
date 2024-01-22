@@ -140,7 +140,7 @@ __global__ __launch_bounds__(block_size) void restart_f_2_kernel(
     const auto value = inside_limits
                            ? residual[row_idx * stride_residual + col_idx] /
                                  residual_norm[col_idx]
-                           : zero<ValueType>();
+                           : std::numeric_limits<ValueType>::min();
     krylov_bases.template compress_gpu_function<block_size>(0, row_idx, col_idx,
                                                             value);
     if (inside_limits) {
@@ -822,7 +822,7 @@ __launch_bounds__(block_size) void update_krylov_next_krylov_f_kernel(
 
         const auto next_krylov_value =
             row_inside ? next_krylov_basis[next_krylov_idx] / hessenberg
-                       : zero<ValueType>();
+                       : std::numeric_limits<ValueType>::min();
 
         if (row_inside) {
             next_krylov_basis[next_krylov_idx] = next_krylov_value;

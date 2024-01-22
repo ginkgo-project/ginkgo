@@ -119,7 +119,10 @@ public:
     // compression with the given size
     static GKO_ACC_ATTRIBUTES std::size_t num_elements_required(dim_type size)
     {
-        return size[2] * size[0] * (size[1] + size[1] % max_exp_block_size);
+        return size[2] * size[0] *
+               (size[1] / max_exp_block_size +
+                bool(size[1] % max_exp_block_size > 0)) *
+               max_exp_block_size;
     }
 
     // Returns the size in Byte that `size` requires for the FRSZ2 compression
@@ -136,8 +139,13 @@ public:
      */
     constexpr GKO_ACC_ATTRIBUTES frsz2(dim_type size, std::uint8_t* storage)
         : size_(size),
-          acc_pattern_({size[0] * (size[1] + (size[1] % max_exp_block_size)),
-                        size[1] + (size[1] % max_exp_block_size)}),
+          acc_pattern_({size[0] *
+                            (size[1] / max_exp_block_size +
+                             bool(size[1] % max_exp_block_size > 0)) *
+                            max_exp_block_size,
+                        (size[1] / max_exp_block_size +
+                         bool(size[1] % max_exp_block_size > 0)) *
+                            max_exp_block_size}),
           compressor_(storage, num_elements_required(size))
     {}
 
