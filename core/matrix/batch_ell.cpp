@@ -216,11 +216,11 @@ void Ell<ValueType, IndexType>::add_scaled_identity(
     auto csr_mat = gko::matrix::Csr<ValueType, IndexType>::create(exec);
     this->create_const_view_for_item(0)->convert_to(csr_mat);
 
-    bool has_diags{false};
-    exec->run(ell::make_check_diagonal_entries(csr_mat.get(), has_diags));
-    if (!has_diags) {
+    bool has_all_diags{false};
+    exec->run(ell::make_check_diagonal_entries(csr_mat.get(), has_all_diags));
+    if (!has_all_diags) {
         GKO_UNSUPPORTED_MATRIX_PROPERTY(
-            "The matrix has one or more structurally zero diagonal entries!");
+            "The matrix is missing one or more diagonal entries!");
     }
     exec->run(ell::make_add_scaled_identity(
         make_temporary_clone(exec, alpha).get(),

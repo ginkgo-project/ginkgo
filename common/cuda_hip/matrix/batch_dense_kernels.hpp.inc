@@ -178,10 +178,11 @@ __device__ __forceinline__ void scale_add(
     const gko::batch::matrix::dense::batch_item<const ValueType>& mat,
     const gko::batch::matrix::dense::batch_item<ValueType>& in_out)
 {
+    // TODO: add stride support
     for (int iz = threadIdx.x; iz < mat.num_rows * mat.num_cols;
          iz += blockDim.x) {
-        const int row = iz / mat.stride;
-        const int col = iz % mat.stride;
+        const int row = iz / mat.num_cols;
+        const int col = iz % mat.num_cols;
         in_out.values[row * in_out.stride + col] =
             alpha * in_out.values[row * in_out.stride + col] +
             mat.values[row * mat.stride + col];
@@ -213,10 +214,11 @@ __device__ __forceinline__ void add_scaled_identity(
     const ValueType alpha, const ValueType beta,
     const gko::batch::matrix::dense::batch_item<ValueType>& mat)
 {
+    // TODO: add stride support
     for (int iz = threadIdx.x; iz < mat.num_rows * mat.num_cols;
          iz += blockDim.x) {
-        const int row = iz / mat.stride;
-        const int col = iz % mat.stride;
+        const int row = iz / mat.num_cols;
+        const int col = iz % mat.num_cols;
         mat.values[row * mat.stride + col] *= beta;
         if (row == col) {
             mat.values[row * mat.stride + col] += alpha;
