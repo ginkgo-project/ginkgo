@@ -159,3 +159,14 @@ TEST_F(Dense, AddScaledIdentityIsEquivalentToRef)
 
     GKO_ASSERT_BATCH_MTX_NEAR(dmat, mat, r<value_type>::value);
 }
+
+
+TEST_F(Dense, AddScaledIdentityRectMatIsEquivalentToRef)
+{
+    set_up_apply_data(42, 40, 15);
+
+    mat->add_scaled_identity(alpha, beta);
+    dmat->add_scaled_identity(dalpha, dbeta);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dmat, mat, r<value_type>::value);
+}
