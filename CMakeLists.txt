@@ -35,9 +35,6 @@ option(GINKGO_TEST_NONDEFAULT_STREAM "Uses non-default streams in CUDA and HIP t
 option(GINKGO_MIXED_PRECISION "Instantiate true mixed-precision kernels (otherwise they will be conversion-based using implicit temporary storage)" OFF)
 option(GINKGO_SKIP_DEPENDENCY_UPDATE
     "Do not update dependencies each time the project is rebuilt" ON)
-option(GINKGO_EXPORT_BUILD_DIR
-    "Make Ginkgo export its build directory to the CMake package registry."
-    OFF)
 option(GINKGO_WITH_CLANG_TIDY "Make Ginkgo call `clang-tidy` to find programming issues." OFF)
 option(GINKGO_WITH_IWYU "Make Ginkgo call `iwyu` (Include What You Use) to find include issues." OFF)
 option(GINKGO_WITH_CCACHE "Use ccache if available to speed up C++ and CUDA rebuilds by caching compilations." ON)
@@ -450,6 +447,7 @@ ginkgo_modify_flags(CMAKE_CUDA_FLAGS)
 ginkgo_modify_flags(CMAKE_CUDA_FLAGS_DEBUG)
 ginkgo_modify_flags(CMAKE_CUDA_FLAGS_RELEASE)
 ginkgo_install()
+ginkgo_export_binary_dir()
 
 set(GINKGO_TEST_INSTALL_SRC_DIR "${Ginkgo_SOURCE_DIR}/test/test_install/")
 set(GINKGO_TEST_INSTALL_BIN_DIR "${Ginkgo_BINARY_DIR}/test/test_install/")
@@ -483,7 +481,6 @@ add_custom_target(test_install
     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
     -DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX}
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-    -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
     -DCMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}
     -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
     # `--config cfg` is ignored by single-configuration generator.
@@ -504,9 +501,9 @@ add_custom_target(test_exportbuild
     -S${GINKGO_TEST_EXPORTBUILD_SRC_DIR}
     -B${GINKGO_TEST_EXPORTBUILD_BIN_DIR}
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-    -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
     -DCMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}
     -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+    -DGinkgo_ROOT=${Ginkgo_BINARY_DIR}
     # `--config cfg` is ignored by single-configuration generator.
     # `$<CONFIG>` is always be the same as `CMAKE_BUILD_TYPE` in
     # single-configuration generator.
@@ -514,15 +511,13 @@ add_custom_target(test_exportbuild
     --build ${GINKGO_TEST_EXPORTBUILD_BIN_DIR}
     --config $<CONFIG>
     COMMAND ${GINKGO_TEST_EXPORTBUILD_CMD}
-    COMMENT "Running a test on Ginkgo's exported build directory. "
-    "This requires compiling Ginkgo with `-DGINKGO_EXPORT_BUILD_DIR=ON` first.")
+    COMMENT "Running a test on Ginkgo's exported build directory.")
 
 add_custom_target(test_pkgconfig
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} ${TOOLSET}
     -S${GINKGO_TEST_PKGCONFIG_SRC_DIR}
     -B${GINKGO_TEST_PKGCONFIG_BIN_DIR}
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-    -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
     -DCMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}
     -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
     # `--config cfg` is ignored by single-configuration generator.
