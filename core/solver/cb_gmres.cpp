@@ -5,19 +5,19 @@
 #include <ginkgo/core/solver/cb_gmres.hpp>
 
 
+#include <fstream>
 #include <functional>
 #include <iomanip>
 #include <ios>
 #include <iostream>
+#include <libpressio_ext/cpp/json.h>
+#include <libpressio_ext/cpp/libpressio.h>
+#include <libpressio_meta.h>  //provides frsz
 #include <string>
 #include <type_traits>
 #include <vector>
 
 
-#include <libpressio_ext/cpp/json.h>
-#include <libpressio_ext/cpp/libpressio.h>
-#include <libpressio_meta.h>  //provides frsz
-#include <fstream>
 #include <nlohmann/json.hpp>
 
 
@@ -47,6 +47,10 @@ GKO_REGISTER_OPERATION(initialize, cb_gmres::initialize);
 GKO_REGISTER_OPERATION(restart, cb_gmres::restart);
 GKO_REGISTER_OPERATION(arnoldi, cb_gmres::arnoldi);
 GKO_REGISTER_OPERATION(solve_krylov, cb_gmres::solve_krylov);
+
+GKO_REGISTER_OPERATION(restart_f, cb_gmres::restart_f);
+GKO_REGISTER_OPERATION(arnoldi_f, cb_gmres::arnoldi_f);
+GKO_REGISTER_OPERATION(solve_krylov_f, cb_gmres::solve_krylov_f);
 
 
 }  // anonymous namespace

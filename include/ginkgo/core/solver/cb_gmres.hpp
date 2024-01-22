@@ -67,7 +67,7 @@ enum class storage_precision {
     ireduce1,
     ireduce2,
     use_pressio,
-    use_frsz
+    use_frsz2
 };
 
 
@@ -160,6 +160,12 @@ public:
          */
         std::function<void(void*)> GKO_FACTORY_PARAMETER_SCALAR(init_compressor,
                                                                 nullptr);
+
+        /**
+         * The bits-per-value parameter of the FRSZ2 compressor if
+         * `storage_precision` is set to `use_frsz2`.
+         */
+        int GKO_FACTORY_PARAMETER_SCALAR(bits_per_value, 32);
     };
 
     GKO_ENABLE_LIN_OP_FACTORY(CbGmres, parameters, Factory);

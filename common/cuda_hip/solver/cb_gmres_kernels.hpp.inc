@@ -83,6 +83,71 @@ __global__ __launch_bounds__(block_size) void restart_2_kernel(
 }
 
 
+// Must be called with at least `num_rows * stride_krylov` threads in total.
+template <size_type block_size, typename ValueType, typename FrszCompressor>
+__global__ __launch_bounds__(block_size) void restart_f_1_kernel(
+    size_type num_rows, size_type num_rhs, size_type krylov_dim,
+    FrszCompressor krylov_bases,
+    ValueType* __restrict__ residual_norm_collection,
+    size_type stride_residual_nc)
+{
+    const auto global_id = thread::get_thread_id_flat();
+    const auto krylov_stride = krylov_bases.get_stride();
+    // krylov indices
+    const auto krylov_idx = global_id / krylov_stride[0];
+    const auto reminder = global_id % krylov_stride[0];
+    const auto krylov_row = reminder / krylov_stride[1];
+    const auto rhs = reminder % krylov_stride[1];
+
+    // residual_norm indices (separated for better coalesced access)
+    const auto residual_row = global_id / stride_residual_nc;
+    const auto residual_col = global_id % stride_residual_nc;
+
+    if (krylov_idx < krylov_dim + 1 && krylov_row < num_rows && rhs < num_rhs) {
+        krylov_bases.template compress_gpu_function<block_size>(
+            krylov_idx, krylov_row, rhs, zero<ValueType>());
+    }
+
+    if (residual_row < krylov_dim + 1 && residual_col < num_rhs) {
+        residual_norm_collection[residual_row * stride_residual_nc +
+                                 residual_col] = zero<ValueType>();
+    }
+}
+
+
+// Must be called with at least `num_rows * num_rhs` threads in total.
+template <size_type block_size, typename ValueType, typename FrszCompressor>
+__global__ __launch_bounds__(block_size) void restart_f_2_kernel(
+    size_type num_rows, size_type num_rhs,
+    const ValueType* __restrict__ residual, size_type stride_residual,
+    const remove_complex<ValueType>* __restrict__ residual_norm,
+    ValueType* __restrict__ residual_norm_collection,
+    FrszCompressor krylov_bases, ValueType* __restrict__ next_krylov_basis,
+    size_type stride_next_krylov, size_type* __restrict__ final_iter_nums)
+{
+    const auto global_id = thread::get_thread_id_flat();
+    const auto krylov_stride = krylov_bases.get_stride();
+    const auto row_idx = global_id / krylov_stride[1];
+    const auto col_idx = global_id % krylov_stride[1];
+
+    if (global_id < num_rhs) {
+        residual_norm_collection[global_id] = residual_norm[global_id];
+        final_iter_nums[global_id] = 0;
+    }
+
+    const bool inside_limits = row_idx < num_rows && col_idx < num_rhs;
+    const auto value = inside_limits
+                           ? residual[row_idx * stride_residual + col_idx] /
+                                 residual_norm[col_idx]
+                           : zero<ValueType>();
+    krylov_bases.template compress_gpu_function<block_size>(0, row_idx, col_idx,
+                                                            value);
+    if (inside_limits) {
+        next_krylov_basis[row_idx * stride_next_krylov + col_idx] = value;
+    }
+}
+
+
 __global__
 __launch_bounds__(default_block_size) void increase_final_iteration_numbers_kernel(
     size_type* __restrict__ final_iter_nums,
@@ -371,6 +436,115 @@ __global__ __launch_bounds__(block_size) void singledot_kernel(
 }
 
 
+template <int dot_dim, typename ValueType, typename FrszCompressor>
+__global__ __launch_bounds__(dot_dim* dot_dim) void multidot_f_kernel(
+    size_type num_rows, size_type num_cols,
+    const ValueType* __restrict__ next_krylov_basis,
+    size_type stride_next_krylov, const FrszCompressor krylov_bases,
+    ValueType* __restrict__ hessenberg_iter, size_type stride_hessenberg,
+    const stopping_status* __restrict__ stop_status)
+{
+    /*
+     * In general in this kernel:
+     * grid_dim
+     *   x: for col_idx (^= which right hand side)
+     *   y: for row_idx
+     *   z: for num_iters (number of krylov vectors)
+     * block_dim
+     *   x: for col_idx (must be < dot_dim)
+     *   y: for row_idx (must be < dot_dim)
+     *   (z not used, must be set to 1 in dim)
+     */
+    const size_type tidx = threadIdx.x;
+    const size_type tidy = threadIdx.y;
+    const size_type col_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    const size_type num_rows_per_thread = ceildiv(num_rows, gridDim.y);
+    const size_type start_row = blockIdx.y * num_rows_per_thread + threadIdx.y;
+    const auto end_row = min((blockIdx.y + 1) * num_rows_per_thread, num_rows);
+    const size_type k = blockIdx.z;
+    // Used that way to get around dynamic initialization warning and
+    // template error when using `reduction_helper_array` directly in `reduce`
+    __shared__ uninitialized_array<ValueType, dot_dim * dot_dim>
+        reduction_helper_array;
+    ValueType* __restrict__ reduction_helper = reduction_helper_array;
+
+    ValueType local_res = zero<ValueType>();
+    if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
+        for (size_type i = start_row; i < end_row; i += blockDim.y) {
+            const auto next_krylov_idx = i * stride_next_krylov + col_idx;
+            local_res += next_krylov_basis[next_krylov_idx] *
+                         conj(krylov_bases.read_element(k, i, col_idx));
+        }
+    }
+    // Transpose local_res, so each warp contains a local_res from the same
+    // right hand side
+    reduction_helper[tidx * dot_dim + tidy] = local_res;
+    auto thread_block = group::this_thread_block();
+    thread_block.sync();
+    local_res = reduction_helper[tidy * dot_dim + tidx];
+    const auto new_col_idx = blockIdx.x * blockDim.x + tidy;
+    const auto tile_block = group::tiled_partition<dot_dim>(thread_block);
+    const auto sum =
+        reduce(tile_block, local_res,
+               [](const ValueType& a, const ValueType& b) { return a + b; });
+    if (tidx == 0 && new_col_idx < num_cols &&
+        !stop_status[new_col_idx].has_stopped()) {
+        const auto hessenberg_idx = k * stride_hessenberg + new_col_idx;
+        atomic_add(hessenberg_iter + hessenberg_idx, sum);
+    }
+}
+
+
+template <int block_size, typename ValueType, typename FrszCompressor>
+__global__ __launch_bounds__(block_size) void singledot_f_kernel(
+    size_type num_rows, const ValueType* __restrict__ next_krylov_basis,
+    size_type stride_next_krylov, const FrszCompressor krylov_bases,
+    ValueType* __restrict__ hessenberg_iter, size_type stride_hessenberg,
+    const stopping_status* __restrict__ stop_status)
+{
+    /*
+     * In general in this kernel:
+     * grid_dim
+     *   x: for row_idx
+     *   y: for num_iters (number of krylov vectors)
+     * block_dim
+     *   x: for row_idx (must be block_size)
+     *   (y and z not used, must be set to 1 in dim)
+     */
+    const size_type tidx = threadIdx.x;
+    constexpr size_type col_idx{0};
+    const size_type k = blockIdx.y;
+    const size_type num_rows_per_thread = ceildiv(num_rows, gridDim.x);
+    const size_type start_row = blockIdx.x * num_rows_per_thread + threadIdx.x;
+    const auto end_row = min((blockIdx.x + 1) * num_rows_per_thread, num_rows);
+    // Used that way to get around dynamic initialization warning and
+    // template error when using `reduction_helper_array` directly in `reduce`
+    __shared__ uninitialized_array<ValueType, block_size>
+        reduction_helper_array;
+    ValueType* __restrict__ reduction_helper = reduction_helper_array;
+
+    ValueType local_res = zero<ValueType>();
+    if (!stop_status[col_idx].has_stopped()) {
+        for (size_type i = start_row; i < end_row; i += block_size) {
+            const auto next_krylov_idx = i * stride_next_krylov + col_idx;
+            local_res += next_krylov_basis[next_krylov_idx] *
+                         conj(krylov_bases.read_element(k, i, col_idx));
+        }
+    }
+    // Transpose local_res, so each warp contains a local_res from the same
+    // right hand side
+    reduction_helper[tidx] = local_res;
+    auto thread_block = group::this_thread_block();
+    thread_block.sync();
+    reduce(thread_block, reduction_helper,
+           [](const ValueType& a, const ValueType& b) { return a + b; });
+    if (tidx == 0 && !stop_status[col_idx].has_stopped()) {
+        const auto hessenberg_idx = k * stride_hessenberg + col_idx;
+        atomic_add(hessenberg_iter + hessenberg_idx, reduction_helper[0]);
+    }
+}
+
+
 // Must be called with at least `num_rows * stride_next_krylov` threads in
 // total.
 template <int block_size, typename ValueType, typename Accessor3d>
@@ -394,6 +568,35 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_kernel(
 
             local_res -= hessenberg_iter[hessenberg_idx] *
                          krylov_bases(k, row_idx, col_idx);
+        }
+        next_krylov_basis[next_krylov_idx] = local_res;
+    }
+}
+
+
+// Must be called with at least `num_rows * stride_next_krylov` threads in
+// total.
+template <int block_size, typename ValueType, typename FrszCompressor>
+__global__ __launch_bounds__(block_size) void update_next_krylov_f_kernel(
+    size_type num_iters, size_type num_rows, size_type num_cols,
+    ValueType* __restrict__ next_krylov_basis, size_type stride_next_krylov,
+    const FrszCompressor krylov_bases,
+    const ValueType* __restrict__ hessenberg_iter, size_type stride_hessenberg,
+    const stopping_status* __restrict__ stop_status)
+{
+    const auto global_id = thread::get_thread_id_flat();
+    const auto row_idx = global_id / stride_next_krylov;
+    const auto col_idx = global_id % stride_next_krylov;
+
+    if (row_idx < num_rows && col_idx < num_cols &&
+        !stop_status[col_idx].has_stopped()) {
+        const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
+        auto local_res = next_krylov_basis[next_krylov_idx];
+        for (size_type k = 0; k < num_iters; ++k) {
+            const auto hessenberg_idx = k * stride_hessenberg + col_idx;
+
+            local_res -= hessenberg_iter[hessenberg_idx] *
+                         krylov_bases.read_element(k, row_idx, col_idx);
         }
         next_krylov_basis[next_krylov_idx] = local_res;
     }
@@ -434,6 +637,41 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_and_add_kernel(
 }
 
 
+// Must be called with at least `num_rows * stride_next_krylov` threads in
+// total.
+template <int block_size, typename ValueType, typename FrszCompressor>
+__global__
+__launch_bounds__(block_size) void update_next_krylov_and_add_f_kernel(
+    size_type num_iters, size_type num_rows, size_type num_cols,
+    ValueType* __restrict__ next_krylov_basis, size_type stride_next_krylov,
+    const FrszCompressor krylov_bases, ValueType* __restrict__ hessenberg_iter,
+    size_type stride_hessenberg, const ValueType* __restrict__ buffer_iter,
+    size_type stride_buffer, const stopping_status* __restrict__ stop_status,
+    const stopping_status* __restrict__ reorth_status)
+{
+    const auto global_id = thread::get_thread_id_flat();
+    const auto row_idx = global_id / stride_next_krylov;
+    const auto col_idx = global_id % stride_next_krylov;
+
+    if (row_idx < num_rows && col_idx < num_cols &&
+        !stop_status[col_idx].has_stopped() &&
+        !reorth_status[col_idx].has_stopped()) {
+        const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
+        auto local_res = next_krylov_basis[next_krylov_idx];
+        for (size_type k = 0; k < num_iters; ++k) {
+            const auto hessenberg_idx = k * stride_hessenberg + col_idx;
+            const auto buffer_idx = k * stride_buffer + col_idx;
+            local_res -= buffer_iter[buffer_idx] *
+                         krylov_bases.read_element(k, row_idx, col_idx);
+            if ((row_idx == 0) && !reorth_status[col_idx].has_stopped()) {
+                hessenberg_iter[hessenberg_idx] += buffer_iter[buffer_idx];
+            }
+        }
+        next_krylov_basis[next_krylov_idx] = local_res;
+    }
+}
+
+
 // Must be called with at least `num_rhs` threads
 template <int block_size, typename ValueType, typename Accessor3d>
 __global__ __launch_bounds__(block_size) void check_arnoldi_norms(
@@ -465,6 +703,35 @@ __global__ __launch_bounds__(block_size) void check_arnoldi_norms(
         hessenberg_iter[iter * stride_hessenberg + col_idx] = num11;
         gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
             krylov_bases, iter, col_idx, num2 / num11);
+    }
+}
+
+
+// Must be called with at least `num_rhs` threads
+template <int block_size, typename ValueType>
+__global__ __launch_bounds__(block_size) void check_arnoldi_norms_f(
+    size_type num_rhs, remove_complex<ValueType>* __restrict__ arnoldi_norm,
+    size_type stride_norm, ValueType* __restrict__ hessenberg_iter,
+    size_type stride_hessenberg, size_type iter,
+    const stopping_status* __restrict__ stop_status,
+    stopping_status* __restrict__ reorth_status,
+    size_type* __restrict__ num_reorth)
+{
+    const remove_complex<ValueType> eta_squared = 1.0 / 2.0;
+    const auto col_idx = thread::get_thread_id_flat();
+
+    if (col_idx < num_rhs && !stop_status[col_idx].has_stopped()) {
+        const auto num0 = (sqrt(eta_squared * arnoldi_norm[col_idx]));
+        const auto num11 = sqrt(arnoldi_norm[col_idx + stride_norm]);
+        if (num11 < num0) {
+            reorth_status[col_idx].reset();
+            atomic_add(num_reorth, one<size_type>());
+        } else {
+            reorth_status[col_idx].stop(1);
+        }
+        arnoldi_norm[col_idx] = num0;
+        arnoldi_norm[col_idx + stride_norm] = num11;
+        hessenberg_iter[iter * stride_hessenberg + col_idx] = num11;
     }
 }
 
@@ -529,6 +796,40 @@ __global__ __launch_bounds__(block_size) void update_krylov_next_krylov_kernel(
 }
 
 
+// Must be called with at least `num_rows * stride_next_krylov` threads in
+// total.
+template <int block_size, typename ValueType, typename FrszCompressor>
+__global__
+__launch_bounds__(block_size) void update_krylov_next_krylov_f_kernel(
+    size_type iter, size_type num_rows, size_type num_cols,
+    ValueType* __restrict__ next_krylov_basis, size_type stride_next_krylov,
+    FrszCompressor krylov_bases, const ValueType* __restrict__ hessenberg_iter,
+    size_type stride_hessenberg,
+    const stopping_status* __restrict__ stop_status)
+{
+    const auto global_id = thread::get_thread_id_flat();
+    const auto dividing_stride = krylov_bases.get_stride()[1];
+    const auto row_idx = global_id / dividing_stride;
+    const auto col_idx = global_id % dividing_stride;
+    const auto hessenberg =
+        hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx];
+
+    if (row_idx < num_rows && col_idx < num_cols &&
+        !stop_status[col_idx].has_stopped()) {
+        const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
+
+        const auto next_krylov_value =
+            next_krylov_basis[next_krylov_idx] / hessenberg;
+
+        next_krylov_basis[next_krylov_idx] = next_krylov_value;
+        // FIXME This might deadlock because it is waiting for a sync that
+        //       wasn't called because of the `if`
+        krylov_bases.template compress_gpu_function<block_size>(
+            iter + 1, row_idx, col_idx, next_krylov_value);
+    }
+}
+
+
 // Must be called with at least `stride_preconditioner * num_rows` threads
 // in total.
 template <size_type block_size, typename ValueType, typename Accessor3d>
@@ -547,6 +848,31 @@ __global__ __launch_bounds__(block_size) void calculate_Qy_kernel(
         ValueType temp = zero<ValueType>();
         for (size_type j = 0; j < final_iter_nums[col_id]; ++j) {
             temp += krylov_bases(j, row_id, col_id) * y[j * stride_y + col_id];
+        }
+        before_preconditioner[global_id] = temp;
+    }
+}
+
+
+// Must be called with at least `stride_preconditioner * num_rows` threads
+// in total.
+template <size_type block_size, typename ValueType, typename FrszCompressor>
+__global__ __launch_bounds__(block_size) void calculate_Qy_f_kernel(
+    size_type num_rows, size_type num_cols, const FrszCompressor krylov_bases,
+    const ValueType* __restrict__ y, size_type stride_y,
+    ValueType* __restrict__ before_preconditioner,
+    size_type stride_preconditioner,
+    const size_type* __restrict__ final_iter_nums)
+{
+    const auto global_id = thread::get_thread_id_flat();
+    const auto row_id = global_id / stride_preconditioner;
+    const auto col_id = global_id % stride_preconditioner;
+
+    if (row_id < num_rows && col_id < num_cols) {
+        ValueType temp = zero<ValueType>();
+        for (size_type j = 0; j < final_iter_nums[col_id]; ++j) {
+            temp += krylov_bases.read_element(j, row_id, col_id) *
+                    y[j * stride_y + col_id];
         }
         before_preconditioner[global_id] = temp;
     }

@@ -120,7 +120,6 @@ ginkgo_compile_features(ginkgo)
 find_package(LibPressio REQUIRED)
 find_package(LibPressioTools REQUIRED)
 find_package(std_compat REQUIRED)
-find_package(frsz REQUIRED)
 find_package(nlohmann_json 3.2.0 REQUIRED)
 
 # add a namespace alias so Ginkgo can always be included as Ginkgo::ginkgo

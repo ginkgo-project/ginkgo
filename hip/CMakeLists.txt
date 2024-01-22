@@ -133,6 +133,9 @@ endif()
 target_compile_options(ginkgo_hip PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
 
 
+# Added for additional CB-GMRES compression
+target_link_libraries(ginkgo_hip PRIVATE frsz::frsz)
+
 ginkgo_compile_features(ginkgo_hip)
 ginkgo_default_includes(ginkgo_hip)
 ginkgo_install_library(ginkgo_hip)

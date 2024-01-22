@@ -497,6 +497,309 @@ GKO_INSTANTIATE_FOR_EACH_CB_GMRES_CONST_TYPE(
     GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_KERNEL);
 
 
+template <typename ValueType, typename FrszCompressor>
+void restart_f(std::shared_ptr<const DefaultExecutor> exec,
+               const matrix::Dense<ValueType>* residual,
+               matrix::Dense<remove_complex<ValueType>>* residual_norm,
+               matrix::Dense<ValueType>* residual_norm_collection,
+               matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
+               FrszCompressor krylov_bases,
+               matrix::Dense<ValueType>* next_krylov_basis,
+               array<size_type>* final_iter_nums, array<char>& reduction_tmp,
+               size_type krylov_dim)
+{
+    // TODO: Increase this dynamically depending on max_exp_block_size
+    //       BUT this requires a more intelligent compress function that can
+    //       deal with multiple exp_blocks where multiple of them might be
+    //       padding
+    // Maybe already add this padding to the allocation & the
+    // num_elements_required() function
+    constexpr auto block_size = FrszCompressor::max_exp_block_size;
+    const auto num_rows = residual->get_size()[0];
+    const auto num_rhs = residual->get_size()[1];
+    // TODO: this is not done yet!
+    const auto krylov_stride = krylov_bases.get_stride();
+    const auto grid_dim_1 =
+        ceildiv((krylov_dim + 1) * krylov_stride[0], block_size);
+    const auto block_dim = block_size;
+    const auto stride_arnoldi = arnoldi_norm->get_stride();
+
+    restart_f_1_kernel<block_size>
+        <<<grid_dim_1, block_dim, 0, exec->get_stream()>>>(
+            residual->get_size()[0], residual->get_size()[1], krylov_dim,
+            krylov_bases,
+            as_device_type(residual_norm_collection->get_values()),
+            residual_norm_collection->get_stride());
+    kernels::cuda::dense::compute_norm2_dispatch(exec, residual, residual_norm,
+                                                 reduction_tmp);
+
+    const auto grid_dim_2 = ceildiv(
+        std::max<size_type>(num_rows, 1) * krylov_stride[1], block_size);
+    restart_f_2_kernel<block_size>
+        <<<grid_dim_2, block_dim, 0, exec->get_stream()>>>(
+            residual->get_size()[0], residual->get_size()[1],
+            as_device_type(residual->get_const_values()),
+            residual->get_stride(),
+            as_device_type(residual_norm->get_const_values()),
+            as_device_type(residual_norm_collection->get_values()),
+            krylov_bases, as_device_type(next_krylov_basis->get_values()),
+            next_krylov_basis->get_stride(),
+            as_device_type(final_iter_nums->get_data()));
+}
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_F_TYPE(GKO_DECLARE_CB_GMRES_RESTART_F_KERNEL);
+
+
+template <typename ValueType, typename FrszCompressor>
+void finish_arnoldi_CGS_f(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::Dense<ValueType>* next_krylov_basis, FrszCompressor krylov_bases,
+    matrix::Dense<ValueType>* hessenberg_iter,
+    matrix::Dense<ValueType>* buffer_iter,
+    matrix::Dense<remove_complex<ValueType>>* arnoldi_norm, size_type iter,
+    const stopping_status* stop_status, stopping_status* reorth_status,
+    array<size_type>* num_reorth)
+{
+    constexpr bool use_scalar = false;
+    // TODO: Increase this as well
+    constexpr auto write_krylov_bases_block_size =
+        FrszCompressor::max_exp_block_size;
+    const auto dim_size = next_krylov_basis->get_size();
+    if (dim_size[1] == 0) {
+        return;
+    }
+    using non_complex = remove_complex<ValueType>;
+    // optimization parameter
+    constexpr int singledot_block_size = default_dot_dim;
+    const auto stride_next_krylov = next_krylov_basis->get_stride();
+    const auto stride_hessenberg = hessenberg_iter->get_stride();
+    const auto stride_buffer = buffer_iter->get_stride();
+    const auto stride_arnoldi = arnoldi_norm->get_stride();
+    const dim3 grid_size(ceildiv(dim_size[1], default_dot_dim),
+                         exec->get_num_multiprocessor() * 2);
+    const dim3 grid_size_num_iters(ceildiv(dim_size[1], default_dot_dim),
+                                   exec->get_num_multiprocessor() * 2,
+                                   iter + 1);
+    const dim3 block_size(default_dot_dim, default_dot_dim);
+    const dim3 grid_size_iters_single(exec->get_num_multiprocessor() * 2,
+                                      iter + 1);
+    const auto block_size_iters_single = singledot_block_size;
+    size_type num_reorth_host;
+
+    components::fill_array(exec, arnoldi_norm->get_values(), dim_size[1],
+                           zero<non_complex>());
+    multinorm2_kernel<<<grid_size, block_size, 0, exec->get_stream()>>>(
+        dim_size[0], dim_size[1],
+        as_device_type(next_krylov_basis->get_const_values()),
+        stride_next_krylov, as_device_type(arnoldi_norm->get_values()),
+        as_device_type(stop_status));
+    zero_matrix(exec, iter + 1, dim_size[1], stride_hessenberg,
+                hessenberg_iter->get_values());
+    if (dim_size[1] > 1) {
+        multidot_f_kernel<default_dot_dim>
+            <<<grid_size_num_iters, block_size, 0, exec->get_stream()>>>(
+                dim_size[0], dim_size[1],
+                as_device_type(next_krylov_basis->get_const_values()),
+                stride_next_krylov, krylov_bases,
+                as_device_type(hessenberg_iter->get_values()),
+                stride_hessenberg, as_device_type(stop_status));
+    } else {
+        singledot_f_kernel<singledot_block_size>
+            <<<grid_size_iters_single, block_size_iters_single, 0,
+               exec->get_stream()>>>(
+                dim_size[0],
+                as_device_type(next_krylov_basis->get_const_values()),
+                stride_next_krylov, krylov_bases,
+                as_device_type(hessenberg_iter->get_values()),
+                stride_hessenberg, as_device_type(stop_status));
+    }
+    // for i in 1:iter
+    //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
+    // end
+    update_next_krylov_f_kernel<default_block_size>
+        <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
+           default_block_size, 0, exec->get_stream()>>>(
+            iter + 1, dim_size[0], dim_size[1],
+            as_device_type(next_krylov_basis->get_values()), stride_next_krylov,
+            krylov_bases, as_device_type(hessenberg_iter->get_const_values()),
+            stride_hessenberg, as_device_type(stop_status));
+
+    // for i in 1:iter
+    //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
+    // end
+    components::fill_array(exec, arnoldi_norm->get_values() + stride_arnoldi,
+                           dim_size[1], zero<non_complex>());
+    multinorm2_inf_kernel<use_scalar>
+        <<<grid_size, block_size, 0, exec->get_stream()>>>(
+            dim_size[0], dim_size[1],
+            as_device_type(next_krylov_basis->get_const_values()),
+            stride_next_krylov,
+            as_device_type(arnoldi_norm->get_values() + stride_arnoldi),
+            as_device_type(arnoldi_norm->get_values() + 2 * stride_arnoldi),
+            as_device_type(stop_status));
+    // nrmN = norm(next_krylov_basis)
+    components::fill_array(exec, num_reorth->get_data(), 1, zero<size_type>());
+    check_arnoldi_norms_f<default_block_size>
+        <<<ceildiv(dim_size[1], default_block_size), default_block_size, 0,
+           exec->get_stream()>>>(
+            dim_size[1], as_device_type(arnoldi_norm->get_values()),
+            stride_arnoldi, as_device_type(hessenberg_iter->get_values()),
+            stride_hessenberg, iter + 1, as_device_type(stop_status),
+            as_device_type(reorth_status),
+            as_device_type(num_reorth->get_data()));
+    num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
+    // num_reorth_host := number of next_krylov vector to be reorthogonalization
+    for (size_type l = 1; (num_reorth_host > 0) && (l < 3); l++) {
+        zero_matrix(exec, iter + 1, dim_size[1], stride_buffer,
+                    buffer_iter->get_values());
+        if (dim_size[1] > 1) {
+            multidot_f_kernel<default_dot_dim>
+                <<<grid_size_num_iters, block_size, 0, exec->get_stream()>>>(
+                    dim_size[0], dim_size[1],
+                    as_device_type(next_krylov_basis->get_const_values()),
+                    stride_next_krylov, krylov_bases,
+                    as_device_type(buffer_iter->get_values()), stride_buffer,
+                    as_device_type(stop_status));
+        } else {
+            singledot_f_kernel<singledot_block_size>
+                <<<grid_size_iters_single, block_size_iters_single, 0,
+                   exec->get_stream()>>>(
+                    dim_size[0],
+                    as_device_type(next_krylov_basis->get_const_values()),
+                    stride_next_krylov, krylov_bases,
+                    as_device_type(buffer_iter->get_values()), stride_buffer,
+                    as_device_type(stop_status));
+        }
+        // for i in 1:iter
+        //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
+        // end
+        update_next_krylov_and_add_f_kernel<default_block_size>
+            <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
+               default_block_size, 0, exec->get_stream()>>>(
+                iter + 1, dim_size[0], dim_size[1],
+                as_device_type(next_krylov_basis->get_values()),
+                stride_next_krylov, krylov_bases,
+                as_device_type(hessenberg_iter->get_values()),
+                stride_hessenberg,
+                as_device_type(buffer_iter->get_const_values()), stride_buffer,
+                as_device_type(stop_status), as_device_type(reorth_status));
+        // for i in 1:iter
+        //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
+        // end
+        components::fill_array(exec,
+                               arnoldi_norm->get_values() + stride_arnoldi,
+                               dim_size[1], zero<non_complex>());
+        multinorm2_inf_kernel<use_scalar>
+            <<<grid_size, block_size, 0, exec->get_stream()>>>(
+                dim_size[0], dim_size[1],
+                as_device_type(next_krylov_basis->get_const_values()),
+                stride_next_krylov,
+                as_device_type(arnoldi_norm->get_values() + stride_arnoldi),
+                as_device_type(arnoldi_norm->get_values() + 2 * stride_arnoldi),
+                as_device_type(stop_status));
+        // nrmN = norm(next_krylov_basis)
+        components::fill_array(exec, num_reorth->get_data(), 1,
+                               zero<size_type>());
+        check_arnoldi_norms_f<default_block_size>
+            <<<ceildiv(dim_size[1], default_block_size), default_block_size, 0,
+               exec->get_stream()>>>(
+                dim_size[1], as_device_type(arnoldi_norm->get_values()),
+                stride_arnoldi, as_device_type(hessenberg_iter->get_values()),
+                stride_hessenberg, iter + 1, as_device_type(stop_status),
+                as_device_type(reorth_status), num_reorth->get_data());
+        num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
+    }
+
+    update_krylov_next_krylov_f_kernel<write_krylov_bases_block_size>
+        <<<ceildiv(dim_size[0] * krylov_bases.get_stride()[1],
+                   write_krylov_bases_block_size),
+           write_krylov_bases_block_size, 0, exec->get_stream()>>>(
+            iter, dim_size[0], dim_size[1],
+            as_device_type(next_krylov_basis->get_values()), stride_next_krylov,
+            krylov_bases, as_device_type(hessenberg_iter->get_const_values()),
+            stride_hessenberg, as_device_type(stop_status));
+    // next_krylov_basis /= hessenberg(iter, iter + 1)
+    // krylov_bases(:, iter + 1) = next_krylov_basis
+    // End of arnoldi
+}
+
+template <typename ValueType, typename Frsz2Compressor>
+void arnoldi_f(std::shared_ptr<const DefaultExecutor> exec,
+               matrix::Dense<ValueType>* next_krylov_basis,
+               matrix::Dense<ValueType>* givens_sin,
+               matrix::Dense<ValueType>* givens_cos,
+               matrix::Dense<remove_complex<ValueType>>* residual_norm,
+               matrix::Dense<ValueType>* residual_norm_collection,
+               Frsz2Compressor krylov_bases,
+               matrix::Dense<ValueType>* hessenberg_iter,
+               matrix::Dense<ValueType>* buffer_iter,
+               matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
+               size_type iter, array<size_type>* final_iter_nums,
+               const array<stopping_status>* stop_status,
+               array<stopping_status>* reorth_status,
+               array<size_type>* num_reorth)
+{
+    increase_final_iteration_numbers_kernel<<<
+        static_cast<unsigned int>(
+            ceildiv(final_iter_nums->get_size(), default_block_size)),
+        default_block_size, 0, exec->get_stream()>>>(
+        as_device_type(final_iter_nums->get_data()),
+        stop_status->get_const_data(), final_iter_nums->get_size());
+    finish_arnoldi_CGS_f(exec, next_krylov_basis, krylov_bases, hessenberg_iter,
+                         buffer_iter, arnoldi_norm, iter,
+                         stop_status->get_const_data(),
+                         reorth_status->get_data(), num_reorth);
+    givens_rotation(exec, givens_sin, givens_cos, hessenberg_iter,
+                    residual_norm, residual_norm_collection, iter, stop_status);
+}
+
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_F_TYPE(GKO_DECLARE_CB_GMRES_ARNOLDI_F_KERNEL);
+
+
+template <typename ValueType, typename Frsz2Compressor>
+void solve_krylov_f(std::shared_ptr<const DefaultExecutor> exec,
+                    const matrix::Dense<ValueType>* residual_norm_collection,
+                    const Frsz2Compressor krylov_bases,
+                    const matrix::Dense<ValueType>* hessenberg,
+                    matrix::Dense<ValueType>* y,
+                    matrix::Dense<ValueType>* before_preconditioner,
+                    const array<size_type>* final_iter_nums)
+{
+    if (before_preconditioner->get_size()[1] == 0) {
+        return;
+    }
+    // since hessenberg has dims:  iters x iters * num_rhs
+    // krylov_bases has dims:  (iters + 1) x sysmtx[0] x num_rhs
+    const auto iters =
+        hessenberg->get_size()[1] / before_preconditioner->get_size()[1];
+    const auto num_krylov_bases = iters + 1;
+    solve_upper_triangular(exec, residual_norm_collection, hessenberg, y,
+                           final_iter_nums);
+    // calculate_qy
+    const auto num_rows = before_preconditioner->get_size()[0];
+    const auto num_cols = before_preconditioner->get_size()[1];
+    const auto stride_before_preconditioner =
+        before_preconditioner->get_stride();
+
+    constexpr auto block_size = default_block_size;
+    const auto grid_dim = static_cast<unsigned int>(
+        ceildiv(num_rows * stride_before_preconditioner, block_size));
+    const auto block_dim = block_size;
+
+    calculate_Qy_f_kernel<block_size>
+        <<<grid_dim, block_dim, 0, exec->get_stream()>>>(
+            num_rows, num_cols, krylov_bases,
+            as_device_type(y->get_const_values()), y->get_stride(),
+            as_device_type(before_preconditioner->get_values()),
+            stride_before_preconditioner,
+            as_device_type(final_iter_nums->get_const_data()));
+    // Calculate qy
+    // before_preconditioner = krylov_bases * y
+}
+
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_F_TYPE(
+    GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_F_KERNEL);
+
+
 }  // namespace cb_gmres
 }  // namespace cuda
 }  // namespace kernels

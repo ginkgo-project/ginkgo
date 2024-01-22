@@ -288,6 +288,9 @@ configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/extensions/kokkos/config.hpp.
         @ONLY
 )
 
+# Added for additional CB-GMRES compression
+find_package(frsz REQUIRED)
+
 # Ginkgo core libraries
 # Needs to be first in order for `CMAKE_CUDA_DEVICE_LINK_EXECUTABLE` to be
 # propagated to the other parts of Ginkgo in case of building as static libraries

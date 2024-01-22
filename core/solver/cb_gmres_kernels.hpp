@@ -13,6 +13,7 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "accessor/frsz2.hpp"
 #include "accessor/reduced_row_major.hpp"
 #include "accessor/scaled_reduced_row_major.hpp"
 #include "core/base/extended_float.hpp"
@@ -93,6 +94,13 @@
     GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE_HELPER(_macro, const)
 
 
+#define GKO_INSTANTIATE_FOR_EACH_CB_GMRES_F_TYPE(_macro)             \
+    template _macro(double, GKO_UNPACK(acc::frsz2<32, 32, double>)); \
+    template _macro(double, GKO_UNPACK(acc::frsz2<21, 32, double>)); \
+    template _macro(float, GKO_UNPACK(acc::frsz2<32, 32, float>));   \
+    template _macro(float, GKO_UNPACK(acc::frsz2<21, 32, float>))
+
+
 namespace gko {
 namespace kernels {
 
@@ -116,6 +124,17 @@ namespace kernels {
                  array<size_type>* final_iter_nums,                    \
                  array<char>& reduction_tmp, size_type krylov_dim)
 
+#define GKO_DECLARE_CB_GMRES_RESTART_F_KERNEL(_type1, _frsz2)            \
+    void restart_f(std::shared_ptr<const DefaultExecutor> exec,          \
+                   const matrix::Dense<_type1>* residual,                \
+                   matrix::Dense<remove_complex<_type1>>* residual_norm, \
+                   matrix::Dense<_type1>* residual_norm_collection,      \
+                   matrix::Dense<remove_complex<_type1>>* arnoldi_norm,  \
+                   _frsz2 krylov_bases,                                  \
+                   matrix::Dense<_type1>* next_krylov_basis,             \
+                   array<size_type>* final_iter_nums,                    \
+                   array<char>& reduction_tmp, size_type krylov_dim)
+
 
 #define GKO_DECLARE_CB_GMRES_ARNOLDI_KERNEL(_type1, _range)                   \
     void arnoldi(                                                             \
@@ -131,6 +150,21 @@ namespace kernels {
         const array<stopping_status>* stop_status,                            \
         array<stopping_status>* reorth_status, array<size_type>* num_reorth)
 
+#define GKO_DECLARE_CB_GMRES_ARNOLDI_F_KERNEL(_type1, _frsz2)                 \
+    void arnoldi_f(                                                           \
+        std::shared_ptr<const DefaultExecutor> exec,                          \
+        matrix::Dense<_type1>* next_krylov_basis,                             \
+        matrix::Dense<_type1>* givens_sin, matrix::Dense<_type1>* givens_cos, \
+        matrix::Dense<remove_complex<_type1>>* residual_norm,                 \
+        matrix::Dense<_type1>* residual_norm_collection, _frsz2 krylov_bases, \
+        matrix::Dense<_type1>* hessenberg_iter,                               \
+        matrix::Dense<_type1>* buffer_iter,                                   \
+        matrix::Dense<remove_complex<_type1>>* arnoldi_norm, size_type iter,  \
+        array<size_type>* final_iter_nums,                                    \
+        const array<stopping_status>* stop_status,                            \
+        array<stopping_status>* reorth_status, array<size_type>* num_reorth)
+
+
 #define GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_KERNEL(_type1, _range)             \
     void solve_krylov(std::shared_ptr<const DefaultExecutor> exec,           \
                       const matrix::Dense<_type1>* residual_norm_collection, \
@@ -140,16 +174,31 @@ namespace kernels {
                       matrix::Dense<_type1>* before_preconditioner,          \
                       const array<size_type>* final_iter_nums)
 
+#define GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_F_KERNEL(_type1, _frsz2)             \
+    void solve_krylov_f(std::shared_ptr<const DefaultExecutor> exec,           \
+                        const matrix::Dense<_type1>* residual_norm_collection, \
+                        _frsz2 krylov_bases,                                   \
+                        const matrix::Dense<_type1>* hessenberg,               \
+                        matrix::Dense<_type1>* y,                              \
+                        matrix::Dense<_type1>* before_preconditioner,          \
+                        const array<size_type>* final_iter_nums)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                            \
-    template <typename ValueType>                               \
-    GKO_DECLARE_CB_GMRES_INITIALIZE_KERNEL(ValueType);          \
-    template <typename ValueType, typename Accessor3d>          \
-    GKO_DECLARE_CB_GMRES_RESTART_KERNEL(ValueType, Accessor3d); \
-    template <typename ValueType, typename Accessor3d>          \
-    GKO_DECLARE_CB_GMRES_ARNOLDI_KERNEL(ValueType, Accessor3d); \
-    template <typename ValueType, typename Accessor3d>          \
-    GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_KERNEL(ValueType, Accessor3d)
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                 \
+    template <typename ValueType>                                    \
+    GKO_DECLARE_CB_GMRES_INITIALIZE_KERNEL(ValueType);               \
+    template <typename ValueType, typename Accessor3d>               \
+    GKO_DECLARE_CB_GMRES_RESTART_KERNEL(ValueType, Accessor3d);      \
+    template <typename ValueType, typename Accessor3d>               \
+    GKO_DECLARE_CB_GMRES_ARNOLDI_KERNEL(ValueType, Accessor3d);      \
+    template <typename ValueType, typename Accessor3d>               \
+    GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_KERNEL(ValueType, Accessor3d); \
+    template <typename ValueType, typename AccessorFrsz>             \
+    GKO_DECLARE_CB_GMRES_RESTART_F_KERNEL(ValueType, AccessorFrsz);  \
+    template <typename ValueType, typename AccessorFrsz>             \
+    GKO_DECLARE_CB_GMRES_ARNOLDI_F_KERNEL(ValueType, AccessorFrsz);  \
+    template <typename ValueType, typename AccessorFrsz>             \
+    GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_F_KERNEL(ValueType, AccessorFrsz)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(cb_gmres, GKO_DECLARE_ALL_AS_TEMPLATES);

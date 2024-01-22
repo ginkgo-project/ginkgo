@@ -14,8 +14,8 @@
 #include <utility>
 
 
-#include "index_span.hpp"
-#include "utils.hpp"
+#include "./index_span.hpp"
+#include "./utils.hpp"
 
 
 namespace gko {
@@ -60,6 +60,17 @@ struct row_major_helper_s {
                    row_major_helper_s<IndexType, total_dim, current_iter + 1>::
                        compute(size, stride, std::forward<Indices>(idxs)...);
     }
+
+    // Implementation without the size check
+    template <typename SizeType, typename... Indices>
+    static constexpr GKO_ACC_ATTRIBUTES IndexType compute(
+        const std::array<SizeType, (total_dim > 1 ? total_dim - 1 : 0)>& stride,
+        IndexType first, Indices&&... idxs)
+    {
+        return first * static_cast<IndexType>(stride[dim_idx]) +
+               row_major_helper_s<IndexType, total_dim, current_iter + 1>::
+                   compute(stride, std::forward<Indices>(idxs)...);
+    }
 };
 
 template <typename IndexType, size_type total_dim>
@@ -73,6 +84,15 @@ struct row_major_helper_s<IndexType, total_dim, total_dim> {
         return GKO_ACC_ASSERT(first <
                               static_cast<IndexType>(size[total_dim - 1])),
                first;
+    }
+
+    // Implementation without the size check
+    template <typename SizeType>
+    static constexpr GKO_ACC_ATTRIBUTES IndexType
+    compute(const std::array<SizeType, (total_dim > 1 ? total_dim - 1 : 0)>,
+            IndexType first)
+    {
+        return first;
     }
 };
 

@@ -1,6 +1,6 @@
 find_package(MKL CONFIG REQUIRED HINTS "$ENV{MKLROOT}" "$ENV{MKL_ROOT}")
 find_package(oneDPL REQUIRED HINTS "$ENV{DPL_ROOT}" "$ENV{DPLROOT}")
-# use the parameter from cmake 
+# use the parameter from cmake
 set(GINKGO_MKL_ROOT "${MKL_DIR}" PARENT_SCOPE)
 set(GINKGO_DPL_ROOT "${oneDPL_DIR}" PARENT_SCOPE)
 
@@ -121,6 +121,9 @@ target_link_libraries(ginkgo_dpcpp PRIVATE MKL::MKL_DPCPP oneDPL)
 if (GINKGO_DPCPP_SINGLE_MODE)
     target_compile_definitions(ginkgo_dpcpp PRIVATE GINKGO_DPCPP_SINGLE_MODE=1)
 endif()
+
+# Added for additional CB-GMRES compression
+target_link_libraries(ginkgo_dpcpp PRIVATE frsz::frsz)
 
 ginkgo_default_includes(ginkgo_dpcpp)
 ginkgo_install_library(ginkgo_dpcpp)

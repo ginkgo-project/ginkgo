@@ -129,6 +129,9 @@ target_link_libraries(ginkgo_cuda PRIVATE CUDA::cudart CUDA::cublas CUDA::cuspar
 # NVTX3 is header-only and requires dlopen/dlclose in static builds
 target_link_libraries(ginkgo_cuda PUBLIC ginkgo_device ${CMAKE_DL_LIBS})
 
+# Added for additional CB-GMRES compression
+target_link_libraries(ginkgo_cuda PRIVATE frsz::frsz)
+
 ginkgo_default_includes(ginkgo_cuda)
 ginkgo_install_library(ginkgo_cuda)
 

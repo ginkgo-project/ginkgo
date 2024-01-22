@@ -90,6 +90,9 @@ target_link_libraries(ginkgo_omp PRIVATE ginkgo_hip)
 target_link_libraries(ginkgo_omp PRIVATE ginkgo_dpcpp)
 target_link_libraries(ginkgo_omp PUBLIC ginkgo_device)
 
+# Added for additional CB-GMRES compression
+target_link_libraries(ginkgo_omp PRIVATE frsz::frsz)
+
 ginkgo_default_includes(ginkgo_omp)
 ginkgo_install_library(ginkgo_omp)
 
