@@ -70,6 +70,11 @@ option(GINKGO_EXTENSION_KOKKOS_CHECK_TYPE_ALIGNMENT "Enables mapping to Kokkos t
 gko_rename_cache(GINKGO_COMPILER_FLAGS CMAKE_CXX_FLAGS BOOL "Flags used by the CXX compiler during all build types.")
 gko_rename_cache(GINKGO_CUDA_COMPILER_FLAGS CMAKE_CUDA_FLAGS BOOL "Flags used by the CUDA compiler during all build types.")
 
+if(NOT DEFINED BUILD_SHARED_LIBS)
+    message(STATUS "BUILD_SHARED_LIBS is not set, so enabling it by default.")
+    set(BUILD_SHARED_LIBS ON)
+endif()
+
 # load executor-specific configuration
 if(GINKGO_BUILD_CUDA)
     include(cmake/cuda.cmake)
