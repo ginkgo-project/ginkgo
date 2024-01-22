@@ -94,16 +94,17 @@ __global__ __launch_bounds__(block_size) void restart_f_1_kernel(
     const auto global_id = thread::get_thread_id_flat();
     const auto krylov_stride = krylov_bases.get_stride();
     // krylov indices
-    const auto krylov_idx = global_id / krylov_stride[0];
+    const auto rhs = global_id / krylov_stride[0];
     const auto reminder = global_id % krylov_stride[0];
-    const auto krylov_row = reminder / krylov_stride[1];
-    const auto rhs = reminder % krylov_stride[1];
+    const auto krylov_idx = reminder / krylov_stride[1];
+    const auto krylov_row = reminder % krylov_stride[1];
 
     // residual_norm indices (separated for better coalesced access)
     const auto residual_row = global_id / stride_residual_nc;
     const auto residual_col = global_id % stride_residual_nc;
 
-    if (krylov_idx < krylov_dim + 1 && krylov_row < num_rows && rhs < num_rhs) {
+    if (krylov_idx < krylov_dim + 1 && krylov_row < krylov_stride[1] &&
+        rhs < num_rhs) {
         krylov_bases.template compress_gpu_function<block_size>(
             krylov_idx, krylov_row, rhs, zero<ValueType>());
     }
@@ -127,8 +128,8 @@ __global__ __launch_bounds__(block_size) void restart_f_2_kernel(
 {
     const auto global_id = thread::get_thread_id_flat();
     const auto krylov_stride = krylov_bases.get_stride();
-    const auto row_idx = global_id / krylov_stride[1];
-    const auto col_idx = global_id % krylov_stride[1];
+    const auto row_idx = global_id % krylov_stride[1];
+    const auto col_idx = global_id / krylov_stride[1];
 
     if (global_id < num_rhs) {
         residual_norm_collection[global_id] = residual_norm[global_id];
@@ -809,21 +810,23 @@ __launch_bounds__(block_size) void update_krylov_next_krylov_f_kernel(
 {
     const auto global_id = thread::get_thread_id_flat();
     const auto dividing_stride = krylov_bases.get_stride()[1];
-    const auto row_idx = global_id / dividing_stride;
-    const auto col_idx = global_id % dividing_stride;
+    const auto col_idx = global_id / dividing_stride;
+    const auto row_idx = global_id % dividing_stride;
     const auto hessenberg =
         hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx];
 
-    if (row_idx < num_rows && col_idx < num_cols &&
+    if (row_idx < dividing_stride && col_idx < num_cols &&
         !stop_status[col_idx].has_stopped()) {
+        const bool row_inside = row_idx < num_rows;
         const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
 
         const auto next_krylov_value =
-            next_krylov_basis[next_krylov_idx] / hessenberg;
+            row_inside ? next_krylov_basis[next_krylov_idx] / hessenberg
+                       : zero<ValueType>();
 
-        next_krylov_basis[next_krylov_idx] = next_krylov_value;
-        // FIXME This might deadlock because it is waiting for a sync that
-        //       wasn't called because of the `if`
+        if (row_inside) {
+            next_krylov_basis[next_krylov_idx] = next_krylov_value;
+        }
         krylov_bases.template compress_gpu_function<block_size>(
             iter + 1, row_idx, col_idx, next_krylov_value);
     }

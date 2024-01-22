@@ -517,10 +517,8 @@ void restart_f(std::shared_ptr<const DefaultExecutor> exec,
     constexpr auto block_size = FrszCompressor::max_exp_block_size;
     const auto num_rows = residual->get_size()[0];
     const auto num_rhs = residual->get_size()[1];
-    // TODO: this is not done yet!
     const auto krylov_stride = krylov_bases.get_stride();
-    const auto grid_dim_1 =
-        ceildiv((krylov_dim + 1) * krylov_stride[0], block_size);
+    const auto grid_dim_1 = ceildiv(num_rhs * krylov_stride[0], block_size);
     const auto block_dim = block_size;
     const auto stride_arnoldi = arnoldi_norm->get_stride();
 
@@ -533,8 +531,8 @@ void restart_f(std::shared_ptr<const DefaultExecutor> exec,
     kernels::cuda::dense::compute_norm2_dispatch(exec, residual, residual_norm,
                                                  reduction_tmp);
 
-    const auto grid_dim_2 = ceildiv(
-        std::max<size_type>(num_rows, 1) * krylov_stride[1], block_size);
+    const auto grid_dim_2 =
+        ceildiv(std::max<size_type>(krylov_stride[1], 1) * num_rhs, block_size);
     restart_f_2_kernel<block_size>
         <<<grid_dim_2, block_dim, 0, exec->get_stream()>>>(
             residual->get_size()[0], residual->get_size()[1],
@@ -710,7 +708,7 @@ void finish_arnoldi_CGS_f(
     }
 
     update_krylov_next_krylov_f_kernel<write_krylov_bases_block_size>
-        <<<ceildiv(dim_size[0] * krylov_bases.get_stride()[1],
+        <<<ceildiv(dim_size[1] * krylov_bases.get_stride()[1],
                    write_krylov_bases_block_size),
            write_krylov_bases_block_size, 0, exec->get_stream()>>>(
             iter, dim_size[0], dim_size[1],
