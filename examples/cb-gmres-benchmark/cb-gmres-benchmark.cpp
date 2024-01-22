@@ -1,37 +1,9 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
+// SPDX-FileCopyrightText: 2017-2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
-
-// This is the main ginkgo header file.
 #include <ginkgo/ginkgo.hpp>
+
 
 #include <chrono>
 #include <cinttypes>
@@ -48,6 +20,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdexcept>
 #include <string>
 #include <vector>
+
 
 #include <libpressio_ext/cpp/json.h>
 #include <libpressio_ext/cpp/libpressio.h>
@@ -525,6 +498,15 @@ void run_benchmarks(const user_launch_parameter& launch_param)
             results.push_back(get_result_json(
                 f_info::get_descr(), b_object.benchmark_solver(cur_settings)));
         }
+    } else if (full_file_name == "frsz2_21" || full_file_name == "frsz2_32") {
+        auto cur_settings = default_ss;
+        cur_settings.storage_prec =
+            full_file_name == "frsz2_21"
+                ? gko::solver::cb_gmres::storage_precision::use_frsz2_21
+                : gko::solver::cb_gmres::storage_precision::use_frsz2_32;
+        using f_info = float_information<reduce_float_by_t<ValueType, 0>>;
+        results.push_back(get_result_json(
+            full_file_name, b_object.benchmark_solver(cur_settings)));
     } else if (file_extension != ".json") {
         std::cerr << launch_param.compression_json_file
                   << " is not a JSON file! It must have the '.json' ending!\n";

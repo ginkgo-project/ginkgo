@@ -14,8 +14,8 @@
 #include <utility>
 
 
-#include "./index_span.hpp"
-#include "./utils.hpp"
+#include "index_span.hpp"
+#include "utils.hpp"
 
 
 namespace gko {

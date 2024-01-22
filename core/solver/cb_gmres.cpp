@@ -142,6 +142,12 @@ struct helper {
         case cb_gmres::storage_precision::use_pressio:
             callable(ValueType{1});
             break;
+        case cb_gmres::storage_precision::use_frsz2_21:
+            callable(ValueType{21});
+            break;
+        case cb_gmres::storage_precision::use_frsz2_32:
+            callable(ValueType{32});
+            break;
         default:
             callable(ValueType{});
         }
@@ -170,6 +176,8 @@ struct helper<std::complex<T>> {
         case cb_gmres::storage_precision::ireduce1:
         case cb_gmres::storage_precision::ireduce2:
         case cb_gmres::storage_precision::use_pressio:
+        case cb_gmres::storage_precision::use_frsz2_21:
+        case cb_gmres::storage_precision::use_frsz2_32:
             GKO_NOT_SUPPORTED(st);
             break;
         default:
@@ -193,13 +201,29 @@ void CbGmres<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 }
 
 
-bool check_for_sz(double value) { return value == 1.0; }
-bool check_for_sz(float value) { return value == 1.0; }
+bool check_for_pressio(double value) { return value == 1.0; }
+bool check_for_pressio(float value) { return value == 1.0; }
 
 template <typename T>
-bool check_for_sz(T value)
+bool check_for_pressio(T value)
 {
     return false;
+}
+
+
+int check_for_frsz2(double value)
+{
+    return value == 21.0 ? 21 : value == 32.0 ? 32 : 0;
+}
+int check_for_frsz2(float value)
+{
+    return value == 21.0 ? 21 : value == 32.0 ? 32 : 0;
+}
+
+template <typename T>
+int check_for_frsz2(T value)
+{
+    return 0;
 }
 
 
@@ -303,6 +327,58 @@ private:
     std::vector<pressio_data> p_data_vec_;
 };
 
+template <typename ValueType>
+struct run_frsz2 {
+public:
+    run_frsz2(std::shared_ptr<const Executor> exec) : exec_(std::move(exec)) {}
+
+    template <typename... Args>
+    void restart_f(Args&&... args) const
+    {
+        exec_->run(cb_gmres::make_restart_f(std::forward<Args>(args)...));
+    }
+
+    template <typename... Args>
+    void solve_krylov_f(Args&&... args) const
+    {
+        exec_->run(cb_gmres::make_solve_krylov_f(std::forward<Args>(args)...));
+    }
+
+    template <typename... Args>
+    void arnoldi_f(Args&&... args) const
+    {
+        exec_->run(cb_gmres::make_arnoldi_f(std::forward<Args>(args)...));
+    }
+
+private:
+    std::shared_ptr<const Executor> exec_;
+};
+
+
+template <typename NcValueType>
+struct run_frsz2<std::complex<NcValueType>> {
+public:
+    run_frsz2(std::shared_ptr<const Executor>) {}
+
+    template <typename... Args>
+    void restart_f(Args&&... args) const
+    {
+        GKO_NOT_IMPLEMENTED;
+    }
+
+    template <typename... Args>
+    void solve_krylov_f(Args&&... args) const
+    {
+        GKO_NOT_IMPLEMENTED;
+    }
+
+    template <typename... Args>
+    void arnoldi_f(Args&&... args) const
+    {
+        GKO_NOT_IMPLEMENTED;
+    }
+};
+
 
 template <typename Range>
 void print_krylov_vectors(Range&& curr, size_type num_vecs, size_type iteration)
@@ -334,12 +410,18 @@ void CbGmres<ValueType>::apply_dense_impl(
     // the type of `value` matters, the content does not)
     auto apply_templated = [&](auto value) {
         using storage_type = decltype(value);
-        const bool use_pressio = check_for_sz(value);
+        using rc_value_type = remove_complex<ValueType>;
+        const bool use_pressio = check_for_pressio(value);
+        const auto which_frsz2 = check_for_frsz2(value);
 
         using Vector = matrix::Dense<ValueType>;
-        using VectorNorms = matrix::Dense<remove_complex<ValueType>>;
+        using VectorNorms = matrix::Dense<rc_value_type>;
         using Range3dHelper =
             gko::cb_gmres::Range3dHelper<ValueType, storage_type>;
+        using Frsz2Compressor21 = acc::frsz2<21, 32, rc_value_type>;
+        using Frsz2Compressor32 = acc::frsz2<32, 32, rc_value_type>;
+        array<uint8> compressed_storage(this->get_executor());
+
 
         constexpr uint8 RelativeStoppingId{1};
 
@@ -361,6 +443,32 @@ void CbGmres<ValueType>::apply_dense_impl(
         const dim<3> krylov_bases_dim{krylov_dim + 1, num_rows, num_rhs};
         Range3dHelper helper(exec, krylov_bases_dim);
         auto krylov_bases_range = helper.get_range();
+
+        // Added
+        const std::array<acc::size_type, 3> krylov_bases_dim_a{
+            static_cast<acc::size_type>(krylov_bases_dim[0]),
+            static_cast<acc::size_type>(krylov_bases_dim[1]),
+            static_cast<acc::size_type>(krylov_bases_dim[2])};
+        if (which_frsz2 == 21) {
+            compressed_storage.resize_and_reset(
+                Frsz2Compressor21::memory_requirement(krylov_bases_dim_a));
+            this->average_bit_rate_ = compressed_storage.get_size() /
+                                      krylov_bases_dim[0] *
+                                      krylov_bases_dim[1] * krylov_bases_dim[2];
+        } else if (which_frsz2 == 32) {
+            compressed_storage.resize_and_reset(
+                Frsz2Compressor32::memory_requirement(krylov_bases_dim_a));
+            this->average_bit_rate_ = compressed_storage.get_size() /
+                                      krylov_bases_dim[0] *
+                                      krylov_bases_dim[1] * krylov_bases_dim[2];
+        } else {
+            GKO_NOT_IMPLEMENTED;
+        }
+        Frsz2Compressor21 krylov_bases_frsz2_21(krylov_bases_dim_a,
+                                                compressed_storage.get_data());
+        Frsz2Compressor32 krylov_bases_frsz2_32(krylov_bases_dim_a,
+                                                compressed_storage.get_data());
+        run_frsz2<ValueType> run_f_helper(this->get_executor());
 
         // ADDED
         compression_helper<ValueType, storage_type> comp_helper(
@@ -414,10 +522,28 @@ void CbGmres<ValueType>::apply_dense_impl(
         this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
         // residual = residual - Ax
 
-        exec->run(cb_gmres::make_restart(
-            residual.get(), residual_norm.get(), residual_norm_collection.get(),
-            arnoldi_norm.get(), krylov_bases_range, next_krylov_basis.get(),
-            &final_iter_nums, reduction_tmp, krylov_dim));
+        if (which_frsz2 == 0) {
+            exec->run(cb_gmres::make_restart(
+                residual.get(), residual_norm.get(),
+                residual_norm_collection.get(), arnoldi_norm.get(),
+                krylov_bases_range, next_krylov_basis.get(), &final_iter_nums,
+                reduction_tmp, krylov_dim));
+            comp_helper.compress(0, helper);  // ADDED
+        } else if (which_frsz2 == 21) {
+            run_f_helper.restart_f(residual.get(), residual_norm.get(),
+                                   residual_norm_collection.get(),
+                                   arnoldi_norm.get(), krylov_bases_frsz2_21,
+                                   next_krylov_basis.get(), &final_iter_nums,
+                                   reduction_tmp, krylov_dim);
+        } else if (which_frsz2 == 32) {
+            run_f_helper.restart_f(residual.get(), residual_norm.get(),
+                                   residual_norm_collection.get(),
+                                   arnoldi_norm.get(), krylov_bases_frsz2_32,
+                                   next_krylov_basis.get(), &final_iter_nums,
+                                   reduction_tmp, krylov_dim);
+        } else {
+            GKO_NOT_IMPLEMENTED;
+        }
         // ADDED stop_compression
         // residual_norm_host->copy_from(residual_norm.get());
         // last_residual_norm_host->copy_from(residual_norm_host.get());
@@ -426,7 +552,6 @@ void CbGmres<ValueType>::apply_dense_impl(
         // krylov_bases(:, 1) = residual / residual_norm
         // next_krylov_basis = residual / residual_norm
         // final_iter_nums = {0, ..., 0}
-        comp_helper.compress(0, helper);  // ADDED
 
         auto stop_criterion = this->get_stop_criterion_factory()->generate(
             this->get_system_matrix(),
@@ -544,11 +669,25 @@ void CbGmres<ValueType>::apply_dense_impl(
 
                 // print_krylov_vectors(krylov_bases_range, restart_iter + 1,
                 //                     total_iter);
-                exec->run(cb_gmres::make_solve_krylov(
-                    residual_norm_collection.get(),
-                    krylov_bases_range.get_accessor().to_const(),
-                    hessenberg_view.get(), y.get(), before_preconditioner.get(),
-                    &final_iter_nums));
+                if (which_frsz2 == 0) {
+                    exec->run(cb_gmres::make_solve_krylov(
+                        residual_norm_collection.get(),
+                        krylov_bases_range.get_accessor().to_const(),
+                        hessenberg_view.get(), y.get(),
+                        before_preconditioner.get(), &final_iter_nums));
+                } else if (which_frsz2 == 21) {
+                    run_f_helper.solve_krylov_f(
+                        residual_norm_collection.get(), krylov_bases_frsz2_21,
+                        hessenberg_view.get(), y.get(),
+                        before_preconditioner.get(), &final_iter_nums);
+                } else if (which_frsz2 == 32) {
+                    run_f_helper.solve_krylov_f(
+                        residual_norm_collection.get(), krylov_bases_frsz2_32,
+                        hessenberg_view.get(), y.get(),
+                        before_preconditioner.get(), &final_iter_nums);
+                } else {
+                    GKO_NOT_IMPLEMENTED;
+                }
                 // Solve upper triangular.
                 // y = hessenberg \ residual_norm_collection
 
@@ -562,11 +701,27 @@ void CbGmres<ValueType>::apply_dense_impl(
                 this->get_system_matrix()->apply(neg_one_op, dense_x, one_op,
                                                  residual);
                 // residual = residual - Ax
-                exec->run(cb_gmres::make_restart(
-                    residual.get(), residual_norm.get(),
-                    residual_norm_collection.get(), arnoldi_norm.get(),
-                    krylov_bases_range, next_krylov_basis.get(),
-                    &final_iter_nums, reduction_tmp, krylov_dim));
+                if (which_frsz2 == 0) {
+                    exec->run(cb_gmres::make_restart(
+                        residual.get(), residual_norm.get(),
+                        residual_norm_collection.get(), arnoldi_norm.get(),
+                        krylov_bases_range, next_krylov_basis.get(),
+                        &final_iter_nums, reduction_tmp, krylov_dim));
+                } else if (which_frsz2 == 21) {
+                    run_f_helper.restart_f(
+                        residual.get(), residual_norm.get(),
+                        residual_norm_collection.get(), arnoldi_norm.get(),
+                        krylov_bases_frsz2_21, next_krylov_basis.get(),
+                        &final_iter_nums, reduction_tmp, krylov_dim);
+                } else if (which_frsz2 == 32) {
+                    run_f_helper.restart_f(
+                        residual.get(), residual_norm.get(),
+                        residual_norm_collection.get(), arnoldi_norm.get(),
+                        krylov_bases_frsz2_32, next_krylov_basis.get(),
+                        &final_iter_nums, reduction_tmp, krylov_dim);
+                } else {
+                    GKO_NOT_IMPLEMENTED;
+                }
                 // residual_norm = norm(residual)
                 // residual_norm_collection = {residual_norm, 0, ..., 0}
                 // krylov_bases(:, 1) = residual / residual_norm
@@ -594,12 +749,33 @@ void CbGmres<ValueType>::apply_dense_impl(
             this->get_system_matrix()->apply(preconditioned_vector,
                                              next_krylov_basis);
             // next_krylov_basis = A * preconditioned_vector
-            exec->run(cb_gmres::make_arnoldi(
-                next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
-                residual_norm.get(), residual_norm_collection.get(),
-                krylov_bases_range, hessenberg_iter.get(), buffer_iter.get(),
-                arnoldi_norm.get(), restart_iter, &final_iter_nums,
-                &stop_status, &reorth_status, &num_reorth));
+            if (which_frsz2 == 0) {
+                exec->run(cb_gmres::make_arnoldi(
+                    next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
+                    residual_norm.get(), residual_norm_collection.get(),
+                    krylov_bases_range, hessenberg_iter.get(),
+                    buffer_iter.get(), arnoldi_norm.get(), restart_iter,
+                    &final_iter_nums, &stop_status, &reorth_status,
+                    &num_reorth));
+            } else if (which_frsz2 == 21) {
+                run_f_helper.arnoldi_f(
+                    next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
+                    residual_norm.get(), residual_norm_collection.get(),
+                    krylov_bases_frsz2_21, hessenberg_iter.get(),
+                    buffer_iter.get(), arnoldi_norm.get(), restart_iter,
+                    &final_iter_nums, &stop_status, &reorth_status,
+                    &num_reorth);
+            } else if (which_frsz2 == 32) {
+                run_f_helper.arnoldi_f(
+                    next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
+                    residual_norm.get(), residual_norm_collection.get(),
+                    krylov_bases_frsz2_32, hessenberg_iter.get(),
+                    buffer_iter.get(), arnoldi_norm.get(), restart_iter,
+                    &final_iter_nums, &stop_status, &reorth_status,
+                    &num_reorth);
+            } else {
+                GKO_NOT_IMPLEMENTED;
+            }
             // for i in 0:restart_iter
             //     hessenberg(restart_iter, i) = next_krylov_basis' *
             //     krylov_bases(:, i) next_krylov_basis  -=
@@ -631,11 +807,25 @@ void CbGmres<ValueType>::apply_dense_impl(
         auto hessenberg_small = hessenberg->create_submatrix(
             span{0, restart_iter}, span{0, num_rhs * restart_iter});
 
-        exec->run(cb_gmres::make_solve_krylov(
-            residual_norm_collection.get(),
-            krylov_bases_range.get_accessor().to_const(),
-            hessenberg_small.get(), y.get(), before_preconditioner.get(),
-            &final_iter_nums));
+        if (which_frsz2 == 0) {
+            exec->run(cb_gmres::make_solve_krylov(
+                residual_norm_collection.get(),
+                krylov_bases_range.get_accessor().to_const(),
+                hessenberg_small.get(), y.get(), before_preconditioner.get(),
+                &final_iter_nums));
+        } else if (which_frsz2 == 21) {
+            run_f_helper.solve_krylov_f(
+                residual_norm_collection.get(), krylov_bases_frsz2_21,
+                hessenberg_small.get(), y.get(), before_preconditioner.get(),
+                &final_iter_nums);
+        } else if (which_frsz2 == 32) {
+            run_f_helper.solve_krylov_f(
+                residual_norm_collection.get(), krylov_bases_frsz2_32,
+                hessenberg_small.get(), y.get(), before_preconditioner.get(),
+                &final_iter_nums);
+        } else {
+            GKO_NOT_IMPLEMENTED;
+        }
         // Solve upper triangular.
         // y = hessenberg \ residual_norm_collection
         this->get_preconditioner()->apply(before_preconditioner,
@@ -644,7 +834,10 @@ void CbGmres<ValueType>::apply_dense_impl(
         // Solve x
         // x = x + get_preconditioner() * krylov_bases * y
         comp_helper.print_metrics();  // ADDED
-        this->average_bit_rate_ = comp_helper.get_average_bit_rate();
+        if (which_frsz2 == 0) {
+            this->average_bit_rate_ = comp_helper.get_average_bit_rate();
+        }
+        // If it was using frsz2, it was already set
     };  // End of apply_lambda
 
     // Look which precision to use as the storage type

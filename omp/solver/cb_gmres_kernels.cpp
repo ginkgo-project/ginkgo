@@ -468,7 +468,7 @@ GKO_INSTANTIATE_FOR_EACH_CB_GMRES_CONST_TYPE(
 
 
 template <typename ValueType, typename FrszCompressor>
-void restart_f(std::shared_ptr<const DefaultExecutor> exec,
+void restart_f(std::shared_ptr<const OmpExecutor> exec,
                const matrix::Dense<ValueType>* residual,
                matrix::Dense<remove_complex<ValueType>>* residual_norm,
                matrix::Dense<ValueType>* residual_norm_collection,
@@ -483,7 +483,7 @@ void restart_f(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_CB_GMRES_F_TYPE(GKO_DECLARE_CB_GMRES_RESTART_F_KERNEL);
 
 template <typename ValueType, typename Frsz2Compressor>
-void arnoldi_f(std::shared_ptr<const DefaultExecutor> exec,
+void arnoldi_f(std::shared_ptr<const OmpExecutor> exec,
                matrix::Dense<ValueType>* next_krylov_basis,
                matrix::Dense<ValueType>* givens_sin,
                matrix::Dense<ValueType>* givens_cos,

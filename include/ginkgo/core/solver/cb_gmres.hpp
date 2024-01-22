@@ -67,7 +67,8 @@ enum class storage_precision {
     ireduce1,
     ireduce2,
     use_pressio,
-    use_frsz2
+    use_frsz2_21,
+    use_frsz2_32
 };
 
 
