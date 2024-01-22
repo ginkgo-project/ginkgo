@@ -2,7 +2,7 @@
 macro(gko_rename_cache deprecated actual type doc_string)
     if(DEFINED ${deprecated})
         if(DEFINED ${actual})
-            message("actual ${actual} and deprecated ${deprecated}")
+            message(TRACE "actual ${actual} and deprecated ${deprecated}")
             if("${${actual}}" STREQUAL "${${deprecated}}")
                 # They are the same, so only throw warning
                 message(
