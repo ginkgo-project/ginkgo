@@ -53,8 +53,8 @@ std::unique_ptr<ScaledPermutation<ValueType, IndexType>>
 ScaledPermutation<ValueType, IndexType>::create(
     std::shared_ptr<const Executor> exec, size_type size)
 {
-    return std::unique_ptr<ScaledPermutation>(
-        new ScaledPermutation{exec, size});
+    return std::unique_ptr<ScaledPermutation>{
+        new ScaledPermutation{exec, size}};
 }
 
 
@@ -79,8 +79,8 @@ ScaledPermutation<ValueType, IndexType>::create(
     std::shared_ptr<const Executor> exec, array<value_type> scaling_factors,
     array<index_type> permutation_indices)
 {
-    return std::unique_ptr<ScaledPermutation>(new ScaledPermutation{
-        exec, std::move(scaling_factors), std::move(permutation_indices)});
+    return std::unique_ptr<ScaledPermutation>{new ScaledPermutation{
+        exec, std::move(scaling_factors), std::move(permutation_indices)}};
 }
 
 
