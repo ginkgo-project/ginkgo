@@ -48,7 +48,6 @@ class Hybrid;
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
-            public EnableCreateMethod<Coo<ValueType, IndexType>>,
             public ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>,
             public ConvertibleTo<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
@@ -57,7 +56,6 @@ class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
             public WritableToMatrixData<ValueType, IndexType>,
             public EnableAbsoluteComputation<
                 remove_complex<Coo<ValueType, IndexType>>> {
-    friend class EnableCreateMethod<Coo>;
     friend class EnablePolymorphicObject<Coo, LinOp>;
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
@@ -188,26 +186,12 @@ public:
      *
      * @return this
      */
-    LinOp* apply2(ptr_param<const LinOp> b, ptr_param<LinOp> x)
-    {
-        this->validate_application_parameters(b.get(), x.get());
-        auto exec = this->get_executor();
-        this->apply2_impl(make_temporary_clone(exec, b).get(),
-                          make_temporary_clone(exec, x).get());
-        return this;
-    }
+    LinOp* apply2(ptr_param<const LinOp> b, ptr_param<LinOp> x);
 
     /**
      * @copydoc apply2(cost LinOp *, LinOp *)
      */
-    const LinOp* apply2(ptr_param<const LinOp> b, ptr_param<LinOp> x) const
-    {
-        this->validate_application_parameters(b.get(), x.get());
-        auto exec = this->get_executor();
-        this->apply2_impl(make_temporary_clone(exec, b).get(),
-                          make_temporary_clone(exec, x).get());
-        return this;
-    }
+    const LinOp* apply2(ptr_param<const LinOp> b, ptr_param<LinOp> x) const;
 
     /**
      * Performs the operation x = alpha * Coo * b + x.
@@ -219,73 +203,26 @@ public:
      * @return this
      */
     LinOp* apply2(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
-                  ptr_param<LinOp> x)
-    {
-        this->validate_application_parameters(b.get(), x.get());
-        GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
-        auto exec = this->get_executor();
-        this->apply2_impl(make_temporary_clone(exec, alpha).get(),
-                          make_temporary_clone(exec, b).get(),
-                          make_temporary_clone(exec, x).get());
-        return this;
-    }
+                  ptr_param<LinOp> x);
 
     /**
      * @copydoc apply2(const LinOp *, const LinOp *, LinOp *)
      */
     const LinOp* apply2(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
-                        ptr_param<LinOp> x) const
-    {
-        this->validate_application_parameters(b.get(), x.get());
-        GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
-        auto exec = this->get_executor();
-        this->apply2_impl(make_temporary_clone(exec, alpha).get(),
-                          make_temporary_clone(exec, b).get(),
-                          make_temporary_clone(exec, x).get());
-        return this;
-    }
+                        ptr_param<LinOp> x) const;
 
-    /**
-     * Creates a constant (immutable) Coo matrix from a set of constant arrays.
-     *
-     * @param exec  the executor to create the matrix on
-     * @param size  the dimensions of the matrix
-     * @param values  the value array of the matrix
-     * @param col_idxs  the column index array of the matrix
-     * @param row_ptrs  the row index array of the matrix
-     * @returns A smart pointer to the constant matrix wrapping the input arrays
-     *          (if they reside on the same executor as the matrix) or a copy of
-     *          these arrays on the correct executor.
-     */
-    static std::unique_ptr<const Coo> create_const(
-        std::shared_ptr<const Executor> exec, const dim<2>& size,
-        gko::detail::const_array_view<ValueType>&& values,
-        gko::detail::const_array_view<IndexType>&& col_idxs,
-        gko::detail::const_array_view<IndexType>&& row_idxs)
-    {
-        // cast const-ness away, but return a const object afterwards,
-        // so we can ensure that no modifications take place.
-        return std::unique_ptr<const Coo>(new Coo{
-            exec, size, gko::detail::array_const_cast(std::move(values)),
-            gko::detail::array_const_cast(std::move(col_idxs)),
-            gko::detail::array_const_cast(std::move(row_idxs))});
-    }
-
-protected:
     /**
      * Creates an uninitialized COO matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param num_nonzeros  number of nonzeros
+     *
+     * @return A smart pointer to the newly created matrix.
      */
-    Coo(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{},
-        size_type num_nonzeros = {})
-        : EnableLinOp<Coo>(exec, size),
-          values_(exec, num_nonzeros),
-          col_idxs_(exec, num_nonzeros),
-          row_idxs_(exec, num_nonzeros)
-    {}
+    static std::unique_ptr<Coo> create(std::shared_ptr<const Executor> exec,
+                                       const dim<2>& size = dim<2>{},
+                                       size_type num_nonzeros = {});
 
     /**
      * Creates a COO matrix from already allocated (and initialized) row
@@ -306,19 +243,56 @@ protected:
      *       is on the wrong executor, an internal copy of that array will be
      *       created, and the original array data will not be used in the
      *       matrix.
+     *
+     * @return A smart pointer to the matrix wrapping the input arrays
+     *         (if they reside on the same executor as the matrix) or a copy of
+     *         these arrays on the correct executor.
      */
-    template <typename ValuesArray, typename ColIdxsArray,
-              typename RowIdxsArray>
-    Coo(std::shared_ptr<const Executor> exec, const dim<2>& size,
-        ValuesArray&& values, ColIdxsArray&& col_idxs, RowIdxsArray&& row_idxs)
-        : EnableLinOp<Coo>(exec, size),
-          values_{exec, std::forward<ValuesArray>(values)},
-          col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
-          row_idxs_{exec, std::forward<RowIdxsArray>(row_idxs)}
+    static std::unique_ptr<Coo> create(std::shared_ptr<const Executor> exec,
+                                       const dim<2>& size,
+                                       array<value_type> values,
+                                       array<index_type> col_idxs,
+                                       array<index_type> row_idxs);
+
+    template <typename InputValueType, typename InputColumnIndexType,
+              typename InputRowIndexType>
+    static std::unique_ptr<Coo> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        std::initializer_list<InputValueType> values,
+        std::initializer_list<InputColumnIndexType> col_idxs,
+        std::initializer_list<InputRowIndexType> row_idxs)
     {
-        GKO_ASSERT_EQ(values_.get_size(), col_idxs_.get_size());
-        GKO_ASSERT_EQ(values_.get_size(), row_idxs_.get_size());
+        return create(exec, size, array<value_type>{exec, std::move(values)},
+                      array<index_type>{exec, std::move(col_idxs)},
+                      array<index_type>{exec, std::move(row_idxs)});
     }
+
+    /**
+     * Creates a constant (immutable) Coo matrix from a set of constant arrays.
+     *
+     * @param exec  the executor to create the matrix on
+     * @param size  the dimensions of the matrix
+     * @param values  the value array of the matrix
+     * @param col_idxs  the column index array of the matrix
+     * @param row_ptrs  the row index array of the matrix
+     *
+     * @return A smart pointer to the constant matrix wrapping the input arrays
+     *         (if they reside on the same executor as the matrix) or a copy of
+     *         these arrays on the correct executor.
+     */
+    static std::unique_ptr<const Coo> create_const(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        gko::detail::const_array_view<ValueType>&& values,
+        gko::detail::const_array_view<IndexType>&& col_idxs,
+        gko::detail::const_array_view<IndexType>&& row_idxs);
+
+protected:
+    Coo(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{},
+        size_type num_nonzeros = {});
+
+    Coo(std::shared_ptr<const Executor> exec, const dim<2>& size,
+        array<value_type> values, array<index_type> col_idxs,
+        array<index_type> row_idxs);
 
     /**
      * Resizes the matrix and associated storage to the given sizes.
