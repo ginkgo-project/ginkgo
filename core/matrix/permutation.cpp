@@ -99,6 +99,65 @@ std::ostream& operator<<(std::ostream& stream, permute_mode mode)
 
 
 template <typename IndexType>
+std::unique_ptr<Permutation<IndexType>> Permutation<IndexType>::create(
+    std::shared_ptr<const Executor> exec, size_type size)
+{
+    return std::unique_ptr<Permutation>{new Permutation{exec, size}};
+}
+
+
+template <typename IndexType>
+std::unique_ptr<Permutation<IndexType>> Permutation<IndexType>::create(
+    std::shared_ptr<const Executor> exec, array<IndexType> permutation_indices)
+{
+    return std::unique_ptr<Permutation>{
+        new Permutation{exec, std::move(permutation_indices)}};
+}
+
+
+template <typename IndexType>
+std::unique_ptr<Permutation<IndexType>> Permutation<IndexType>::create(
+    std::shared_ptr<const Executor> exec, const dim<2>& size)
+{
+    GKO_ASSERT_IS_SQUARE_MATRIX(size);
+    return create(exec, size[0]);
+}
+
+
+template <typename IndexType>
+std::unique_ptr<Permutation<IndexType>> Permutation<IndexType>::create(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    const mask_type& enabled_permute)
+{
+    GKO_ASSERT_IS_SQUARE_MATRIX(size);
+    GKO_ASSERT_EQ(enabled_permute, row_permute);
+    return create(exec, size[0]);
+}
+
+
+template <typename IndexType>
+std::unique_ptr<Permutation<IndexType>> Permutation<IndexType>::create(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    array<IndexType> permutation_indices)
+{
+    GKO_ASSERT_IS_SQUARE_MATRIX(size);
+    GKO_ASSERT_EQ(size[0], permutation_indices.get_size());
+    return create(exec, std::move(permutation_indices));
+}
+
+
+template <typename IndexType>
+std::unique_ptr<Permutation<IndexType>> Permutation<IndexType>::create(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    array<index_type> permutation_indices, const mask_type& enabled_permute)
+{
+    GKO_ASSERT_EQ(enabled_permute, row_permute);
+    GKO_ASSERT_EQ(size[0], permutation_indices.get_size());
+    return create(exec, std::move(permutation_indices));
+}
+
+
+template <typename IndexType>
 std::unique_ptr<const Permutation<IndexType>>
 Permutation<IndexType>::create_const(
     std::shared_ptr<const Executor> exec, size_type size,
@@ -119,9 +178,8 @@ Permutation<IndexType>::create_const(
 {
     // cast const-ness away, but return a const object afterwards,
     // so we can ensure that no modifications take place.
-    return std::unique_ptr<const Permutation<IndexType>>(
-        new Permutation<IndexType>{
-            exec, gko::detail::array_const_cast(std::move(perm_idxs))});
+    return std::unique_ptr<const Permutation>{new Permutation{
+        exec, gko::detail::array_const_cast(std::move(perm_idxs))}};
 }
 
 
@@ -156,6 +214,31 @@ Permutation<IndexType>::Permutation(std::shared_ptr<const Executor> exec,
     : Permutation{exec, size[0]}
 {
     GKO_ASSERT_EQ(enabled_permute, row_permute);
+    GKO_ASSERT_IS_SQUARE_MATRIX(size);
+}
+
+
+template <typename IndexType>
+Permutation<IndexType>::Permutation(std::shared_ptr<const Executor> exec,
+                                    const dim<2>& size,
+                                    array<IndexType> permutation_indices)
+    : Permutation{exec, array<IndexType>{exec, std::move(permutation_indices)}}
+{
+    GKO_ASSERT_EQ(size[0], permutation_.get_size());
+    GKO_ASSERT_IS_SQUARE_MATRIX(size);
+}
+
+
+template <typename IndexType>
+Permutation<IndexType>::Permutation(std::shared_ptr<const Executor> exec,
+                                    const dim<2>& size,
+                                    array<index_type> permutation_indices,
+                                    const mask_type& enabled_permute)
+    : Permutation{std::move(exec),
+                  array<IndexType>{exec, std::move(permutation_indices)}}
+{
+    GKO_ASSERT_EQ(enabled_permute, row_permute);
+    GKO_ASSERT_EQ(size[0], permutation_.get_size());
     GKO_ASSERT_IS_SQUARE_MATRIX(size);
 }
 
