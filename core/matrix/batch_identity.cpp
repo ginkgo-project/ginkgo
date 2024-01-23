@@ -35,6 +35,14 @@ Identity<ValueType>::Identity(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType>
+std::unique_ptr<Identity<ValueType>> Identity<ValueType>::create(
+    std::shared_ptr<const Executor> exec, const batch_dim<2>& size)
+{
+    return std::unique_ptr<Identity>{new Identity{exec, size}};
+}
+
+
+template <typename ValueType>
 Identity<ValueType>* Identity<ValueType>::apply(
     ptr_param<const MultiVector<ValueType>> b,
     ptr_param<MultiVector<ValueType>> x)
