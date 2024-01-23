@@ -52,9 +52,7 @@ namespace matrix {
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Ell final
     : public EnableBatchLinOp<Ell<ValueType, IndexType>>,
-      public EnableCreateMethod<Ell<ValueType, IndexType>>,
       public ConvertibleTo<Ell<next_precision<ValueType>, IndexType>> {
-    friend class EnableCreateMethod<Ell>;
     friend class EnablePolymorphicObject<Ell, BatchLinOp>;
     friend class Ell<to_complex<ValueType>, IndexType>;
     friend class Ell<next_precision<ValueType>, IndexType>;
@@ -224,6 +222,57 @@ public:
     }
 
     /**
+     * Creates an uninitialized Ell matrix of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param num_elems_per_row  the number of elements to be stored in each row
+     */
+    static std::unique_ptr<Ell> create(
+        std::shared_ptr<const Executor> exec,
+        const batch_dim<2>& size = batch_dim<2>{},
+        const IndexType num_elems_per_row = 0);
+
+    /**
+     * Creates a Ell matrix from an already allocated (and initialized)
+     * array. The column indices array needs to be the same for all batch items.
+     *
+     * @tparam ValuesArray  type of array of values
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param num_elems_per_row  the number of elements to be stored in each row
+     * @param values  array of matrix values
+     * @param col_idxs the col_idxs array of a single batch item of the matrix.
+     *
+     * @note If `values` is not an rvalue, not an array of ValueType, or is on
+     *       the wrong executor, an internal copy will be created, and the
+     *       original array data will not be used in the matrix.
+     */
+    static std::unique_ptr<Ell> create(std::shared_ptr<const Executor> exec,
+                                       const batch_dim<2>& size,
+                                       const IndexType num_elems_per_row,
+                                       array<value_type> values,
+                                       array<index_type> col_idxs);
+
+    /**
+     * @copydoc std::unique_ptr<Ell> create(std::shared_ptr<const Executor>,
+     * const batch_dim<2>&, const IndexType, array<value_type>,
+     * array<index_type>)
+     */
+    template <typename InputValueType, typename ColIndexType>
+    static std::unique_ptr<Ell> create(
+        std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+        const IndexType num_elems_per_row,
+        std::initializer_list<InputValueType> values,
+        std::initializer_list<ColIndexType> col_idxs)
+    {
+        return create(exec, size, num_elems_per_row,
+                      array<value_type>{exec, std::move(values)},
+                      array<index_type>{exec, std::move(col_idxs)});
+    }
+
+    /**
      * Creates a constant (immutable) batch ell matrix from a constant
      * array. The column indices array needs to be the same for all batch items.
      *
@@ -314,48 +363,13 @@ private:
                num_elems_per_row;
     }
 
-    /**
-     * Creates an uninitialized Ell matrix of the specified size.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param num_elems_per_row  the number of elements to be stored in each row
-     */
     Ell(std::shared_ptr<const Executor> exec,
         const batch_dim<2>& size = batch_dim<2>{},
         const IndexType num_elems_per_row = 0);
 
-    /**
-     * Creates a Ell matrix from an already allocated (and initialized)
-     * array. The column indices array needs to be the same for all batch items.
-     *
-     * @tparam ValuesArray  type of array of values
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param num_elems_per_row  the number of elements to be stored in each row
-     * @param values  array of matrix values
-     * @param col_idxs the col_idxs array of a single batch item of the matrix.
-     *
-     * @note If `values` is not an rvalue, not an array of ValueType, or is on
-     *       the wrong executor, an internal copy will be created, and the
-     *       original array data will not be used in the matrix.
-     */
-    template <typename ValuesArray, typename IndicesArray>
     Ell(std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
-        const IndexType num_elems_per_row, ValuesArray&& values,
-        IndicesArray&& col_idxs)
-        : EnableBatchLinOp<Ell>(exec, size),
-          num_elems_per_row_{num_elems_per_row},
-          values_{exec, std::forward<ValuesArray>(values)},
-          col_idxs_{exec, std::forward<IndicesArray>(col_idxs)}
-    {
-        // Ensure that the value and col_idxs arrays have the correct size
-        auto num_elems = this->get_common_size()[0] * num_elems_per_row *
-                         this->get_num_batch_items();
-        GKO_ASSERT_EQ(num_elems, values_.get_size());
-        GKO_ASSERT_EQ(this->get_num_elements_per_item(), col_idxs_.get_size());
-    }
+        const IndexType num_elems_per_row, array<value_type> values,
+        array<index_type> col_idxs);
 
     void apply_impl(const MultiVector<value_type>* b,
                     MultiVector<value_type>* x) const;
