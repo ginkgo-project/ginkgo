@@ -404,10 +404,6 @@ public:
      *                     memory overhead of this logger.
      *
      * @return an std::unique_ptr to the the constructed object
-     *
-     * @internal here I cannot use EnableCreateMethod due to complex circular
-     * dependencies. At the same time, this method is short enough that it
-     * shouldn't be a problem.
      */
     GKO_DEPRECATED("use two-parameter create")
     static std::unique_ptr<Record> create(
@@ -431,10 +427,6 @@ public:
      *                     memory overhead of this logger.
      *
      * @return an std::unique_ptr to the the constructed object
-     *
-     * @internal here I cannot use EnableCreateMethod due to complex circular
-     * dependencies. At the same time, this method is short enough that it
-     * shouldn't be a problem.
      */
     static std::unique_ptr<Record> create(
         const mask_type& enabled_events = Logger::all_events_mask,
