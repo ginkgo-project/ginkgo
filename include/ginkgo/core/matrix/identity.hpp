@@ -32,11 +32,8 @@ namespace matrix {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Identity : public EnableLinOp<Identity<ValueType>>,
-                 public EnableCreateMethod<Identity<ValueType>>,
-                 public Transposable {
+class Identity : public EnableLinOp<Identity<ValueType>>, public Transposable {
     friend class EnablePolymorphicObject<Identity, LinOp>;
-    friend class EnableCreateMethod<Identity>;
 
 public:
     using EnableLinOp<Identity>::convert_to;
@@ -49,36 +46,27 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
-
-protected:
-    /**
-     * Creates an empty Identity matrix.
-     *
-     * @param exec  Executor associated to the matrix
-     */
-    explicit Identity(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Identity>(exec)
-    {}
-
     /**
      * Creates an Identity matrix of the specified size.
      *
      * @param size  size of the matrix (must be square)
      */
-    Identity(std::shared_ptr<const Executor> exec, dim<2> size)
-        : EnableLinOp<Identity>(exec, size)
-    {
-        GKO_ASSERT_IS_SQUARE_MATRIX(this);
-    }
+    GKO_DEPRECATED("use the version taking a size_type instead of dim<2>")
+    static std::unique_ptr<Identity> create(
+        std::shared_ptr<const Executor> exec, dim<2> size);
 
     /**
      * Creates an Identity matrix of the specified size.
      *
      * @param size  size of the matrix
      */
-    Identity(std::shared_ptr<const Executor> exec, size_type size)
-        : EnableLinOp<Identity>(exec, dim<2>{size})
-    {}
+    static std::unique_ptr<Identity> create(
+        std::shared_ptr<const Executor> exec, size_type size = 0);
+
+protected:
+    explicit Identity(std::shared_ptr<const Executor> exec, size_type size = 0);
+
+    explicit Identity(std::shared_ptr<const Executor> exec, dim<2> size);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
