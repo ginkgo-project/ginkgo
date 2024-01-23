@@ -95,6 +95,45 @@ Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
     local_vector->move_to(&local_);
 }
 
+template <typename ValueType>
+std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create(
+    std::shared_ptr<const Executor> exec, mpi::communicator comm,
+    dim<2> global_size, dim<2> local_size, size_type stride)
+{
+    return std::unique_ptr<Vector>{
+        new Vector{exec, comm, global_size, local_size, stride}};
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create(
+    std::shared_ptr<const Executor> exec, mpi::communicator comm,
+    dim<2> global_size, dim<2> local_size)
+{
+    return std::unique_ptr<Vector>{
+        new Vector{exec, comm, global_size, local_size}};
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create(
+    std::shared_ptr<const Executor> exec, mpi::communicator comm,
+    dim<2> global_size, std::unique_ptr<local_vector_type> local_vector)
+{
+    return std::unique_ptr<Vector>{
+        new Vector{exec, comm, global_size, std::move(local_vector)}};
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create(
+    std::shared_ptr<const Executor> exec, mpi::communicator comm,
+    std::unique_ptr<local_vector_type> local_vector)
+{
+    return std::unique_ptr<Vector>{
+        new Vector{exec, comm, std::move(local_vector)}};
+}
+
 
 template <typename ValueType>
 std::unique_ptr<const Vector<ValueType>> Vector<ValueType>::create_const(
