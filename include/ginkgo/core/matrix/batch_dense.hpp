@@ -47,9 +47,7 @@ namespace matrix {
  */
 template <typename ValueType = default_precision>
 class Dense final : public EnableBatchLinOp<Dense<ValueType>>,
-                    public EnableCreateMethod<Dense<ValueType>>,
                     public ConvertibleTo<Dense<next_precision<ValueType>>> {
-    friend class EnableCreateMethod<Dense>;
     friend class EnablePolymorphicObject<Dense, BatchLinOp>;
     friend class Dense<to_complex<ValueType>>;
     friend class Dense<next_precision<ValueType>>;
@@ -226,6 +224,46 @@ public:
     }
 
     /**
+     * Creates an uninitialized Dense matrix of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     */
+    static std::unique_ptr<Dense> create(
+        std::shared_ptr<const Executor> exec,
+        const batch_dim<2>& size = batch_dim<2>{});
+
+    /**
+     * Creates a Dense matrix from an already allocated (and initialized)
+     * array.
+     *
+     * @tparam ValuesArray  type of array of values
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  sizes of the batch matrices in a batch_dim object
+     * @param values  array of matrix values
+     *
+     * @note If `values` is not an rvalue, not an array of ValueType, or is on
+     *       the wrong executor, an internal copy will be created, and the
+     *       original array data will not be used in the matrix.
+     */
+    static std::unique_ptr<Dense> create(std::shared_ptr<const Executor> exec,
+                                         const batch_dim<2>& size,
+                                         array<value_type> values);
+
+    /**
+     * @copydoc std::unique_ptr<Dense> create(std::shared_ptr<const Executor>,
+     * const batch_dim<2>&, array<value_type>)
+     */
+    template <typename InputValueType>
+    static std::unique_ptr<Dense> create(
+        std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+        std::initializer_list<InputValueType> values)
+    {
+        return create(exec, size, array<value_type>{exec, std::move(values)});
+    }
+
+    /**
      * Creates a constant (immutable) batch dense matrix from a constant
      * array.
      *
@@ -237,7 +275,7 @@ public:
      * array (if it resides on the same executor as the matrix) or a copy of the
      * array on the correct executor.
      */
-    static std::unique_ptr<const Dense<value_type>> create_const(
+    static std::unique_ptr<const Dense> create_const(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
         gko::detail::const_array_view<ValueType>&& values);
 
@@ -343,16 +381,8 @@ private:
      *       the wrong executor, an internal copy will be created, and the
      *       original array data will not be used in the matrix.
      */
-    template <typename ValuesArray>
     Dense(std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
-          ValuesArray&& values)
-        : EnableBatchLinOp<Dense>(exec, size),
-          values_{exec, std::forward<ValuesArray>(values)}
-    {
-        // Ensure that the values array has the correct size
-        auto num_elems = compute_num_elems(size);
-        GKO_ENSURE_IN_BOUNDS(num_elems, values_.get_size() + 1);
-    }
+          array<value_type> values);
 
     void apply_impl(const MultiVector<value_type>* b,
                     MultiVector<value_type>* x) const;
