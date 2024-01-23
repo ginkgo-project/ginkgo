@@ -39,7 +39,6 @@ class Dense;
 template <typename ValueType = default_precision>
 class Diagonal
     : public EnableLinOp<Diagonal<ValueType>>,
-      public EnableCreateMethod<Diagonal<ValueType>>,
       public ConvertibleTo<Csr<ValueType, int32>>,
       public ConvertibleTo<Csr<ValueType, int64>>,
       public ConvertibleTo<Diagonal<next_precision<ValueType>>>,
@@ -50,7 +49,6 @@ class Diagonal
       public ReadableFromMatrixData<ValueType, int64>,
       public EnableAbsoluteComputation<remove_complex<Diagonal<ValueType>>> {
     friend class EnablePolymorphicObject<Diagonal, LinOp>;
-    friend class EnableCreateMethod<Diagonal>;
     friend class Csr<ValueType, int32>;
     friend class Csr<ValueType, int64>;
     friend class Diagonal<to_complex<ValueType>>;
@@ -165,34 +163,12 @@ public:
     void write(mat_data32& data) const override;
 
     /**
-     * Creates a constant (immutable) Diagonal matrix from a constant array.
-     *
-     * @param exec  the executor to create the matrix on
-     * @param size  the size of the square matrix
-     * @param values  the value array of the matrix
-     * @returns A smart pointer to the constant matrix wrapping the input array
-     *          (if it resides on the same executor as the matrix) or a copy of
-     *          the array on the correct executor.
-     */
-    static std::unique_ptr<const Diagonal> create_const(
-        std::shared_ptr<const Executor> exec, size_type size,
-        gko::detail::const_array_view<ValueType>&& values)
-    {
-        // cast const-ness away, but return a const object afterwards,
-        // so we can ensure that no modifications take place.
-        return std::unique_ptr<const Diagonal>(new Diagonal{
-            exec, size, gko::detail::array_const_cast(std::move(values))});
-    }
-
-protected:
-    /**
      * Creates an empty Diagonal matrix.
      *
      * @param exec  Executor associated to the matrix
      */
-    explicit Diagonal(std::shared_ptr<const Executor> exec)
-        : Diagonal(std::move(exec), size_type{})
-    {}
+    static std::unique_ptr<Diagonal> create(
+        std::shared_ptr<const Executor> exec);
 
     /**
      * Creates an Diagonal matrix of the specified size.
@@ -200,9 +176,8 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      */
-    Diagonal(std::shared_ptr<const Executor> exec, size_type size)
-        : EnableLinOp<Diagonal>(exec, dim<2>{size}), values_(exec, size)
-    {}
+    static std::unique_ptr<Diagonal> create(
+        std::shared_ptr<const Executor> exec, size_type size);
 
     /**
      * Creates a Diagonal matrix from an already allocated (and initialized)
@@ -218,14 +193,39 @@ protected:
      *       the wrong executor, an internal copy will be created, and the
      *       original array data will not be used in the matrix.
      */
-    template <typename ValuesArray>
-    Diagonal(std::shared_ptr<const Executor> exec, const size_type size,
-             ValuesArray&& values)
-        : EnableLinOp<Diagonal>(exec, dim<2>(size)),
-          values_{exec, std::forward<ValuesArray>(values)}
+    static std::unique_ptr<Diagonal> create(
+        std::shared_ptr<const Executor> exec, const size_type size,
+        array<value_type> values);
+
+    template <typename InputValueType>
+    static std::unique_ptr<Diagonal> create(
+        std::shared_ptr<const Executor> exec, const size_type size,
+        std::initializer_list<InputValueType> values)
     {
-        GKO_ENSURE_IN_BOUNDS(size - 1, values_.get_size());
+        return create(exec, size, array<value_type>{exec, std::move(values)});
     }
+
+    /**
+     * Creates a constant (immutable) Diagonal matrix from a constant array.
+     *
+     * @param exec  the executor to create the matrix on
+     * @param size  the size of the square matrix
+     * @param values  the value array of the matrix
+     * @returns A smart pointer to the constant matrix wrapping the input array
+     *          (if it resides on the same executor as the matrix) or a copy of
+     *          the array on the correct executor.
+     */
+    static std::unique_ptr<const Diagonal> create_const(
+        std::shared_ptr<const Executor> exec, size_type size,
+        gko::detail::const_array_view<ValueType>&& values);
+
+protected:
+    explicit Diagonal(std::shared_ptr<const Executor> exec);
+
+    Diagonal(std::shared_ptr<const Executor> exec, size_type size);
+
+    Diagonal(std::shared_ptr<const Executor> exec, const size_type size,
+             array<value_type> values);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
