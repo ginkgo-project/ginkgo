@@ -288,8 +288,9 @@ public:
                                        size_type stride);
 
     /**
-     * @copydoc create(std::shared_ptr<const Executor>, const dim<2>&,
-     * array<value_type>, array<index_type>, size_type, size_type)
+     * @copydoc std::unique_ptr<Ell> create(std::shared_ptr<const Executor>,
+     * const dim<2>&, array<value_type>, array<index_type>, size_type,
+     * size_type)
      */
     template <typename InputValueType, typename InputColumnIndexType>
     static std::unique_ptr<Ell> create(
