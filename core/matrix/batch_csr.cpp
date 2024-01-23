@@ -76,6 +76,27 @@ Csr<ValueType, IndexType>::create_const_view_for_item(size_type item_id) const
 
 
 template <typename ValueType, typename IndexType>
+std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::create(
+    std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+    size_type num_nonzeros_per_item)
+{
+    return std::unique_ptr<Csr>{new Csr{exec, size, num_nonzeros_per_item}};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::create(
+    std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+    array<value_type> values, array<index_type> col_idxs,
+    array<index_type> row_ptrs)
+{
+    return std::unique_ptr<Csr>{new Csr{exec, size, std::move(values),
+                                        std::move(col_idxs),
+                                        std::move(row_ptrs)}};
+}
+
+
+template <typename ValueType, typename IndexType>
 std::unique_ptr<const Csr<ValueType, IndexType>>
 Csr<ValueType, IndexType>::create_const(
     std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,

@@ -47,9 +47,7 @@ namespace matrix {
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Csr final
     : public EnableBatchLinOp<Csr<ValueType, IndexType>>,
-      public EnableCreateMethod<Csr<ValueType, IndexType>>,
       public ConvertibleTo<Csr<next_precision<ValueType>, IndexType>> {
-    friend class EnableCreateMethod<Csr>;
     friend class EnablePolymorphicObject<Csr, BatchLinOp>;
     friend class Csr<to_complex<ValueType>, IndexType>;
     friend class Csr<next_precision<ValueType>, IndexType>;
@@ -203,6 +201,62 @@ public:
     }
 
     /**
+     * Creates an uninitialized Csr matrix of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param num_nonzeros_per_item  number of nonzeros in each item of the
+     * batch matrix
+     *
+     * @internal It is necessary to pass in the correct nnz_per_item to ensure
+     * that the arrays are allocated correctly. An incorrect value will result
+     * in a runtime failure when the user tries to use any batch matrix
+     * utilities such as create_view_from_item etc.
+     */
+    static std::unique_ptr<Csr> create(
+        std::shared_ptr<const Executor> exec,
+        const batch_dim<2>& size = batch_dim<2>{},
+        size_type num_nonzeros_per_item = {});
+
+    /**
+     * Creates a Csr matrix from an already allocated (and initialized)
+     * array. The column indices array needs to be the same for all batch items.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param values  array of matrix values
+     * @param col_idxs  the col_idxs array of a single batch item of the matrix.
+     * @param row_ptrs  the row_ptrs array of a single batch item of the matrix.
+     *
+     * @note If `values` is not an rvalue, not an array of ValueType, or is on
+     *       the wrong executor, an internal copy will be created, and the
+     *       original array data will not be used in the matrix.
+     */
+    static std::unique_ptr<Csr> create(std::shared_ptr<const Executor> exec,
+                                       const batch_dim<2>& size,
+                                       array<value_type> values,
+                                       array<index_type> col_idxs,
+                                       array<index_type> row_ptrs);
+
+    /**
+     * @copydoc std::unique_ptr<Csr> create(std::shared_ptr<const Executor>,
+     * const batch_dim<2>&, array<value_type>, array<index_type>,
+     * array<index_type>)
+     */
+    template <typename InputValueType, typename ColIndexType,
+              typename RowPtrType>
+    static std::unique_ptr<Csr> create(
+        std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+        std::initializer_list<InputValueType> values,
+        std::initializer_list<ColIndexType> col_idxs,
+        std::initializer_list<RowPtrType> row_ptrs)
+    {
+        return create(exec, size, array<value_type>{exec, std::move(values)},
+                      array<index_type>{exec, std::move(col_idxs)},
+                      array<index_type>{exec, std::move(row_ptrs)});
+    }
+
+    /**
      * Creates a constant (immutable) batch csr matrix from a constant
      * array. Only a single sparsity pattern (column indices and row pointers)
      * is stored and hence the user needs to ensure that each batch item has the
@@ -288,47 +342,17 @@ public:
                              ptr_param<const MultiVector<value_type>> beta);
 
 private:
-    /**
-     * Creates an uninitialized Csr matrix of the specified size.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param num_nonzeros_per_item  number of nonzeros in each item of the
-     * batch matrix
-     *
-     * @internal It is necessary to pass in the correct nnz_per_item to ensure
-     * that the arrays are allocated correctly. An incorrect value will result
-     * in a runtime failure when the user tries to use any batch matrix
-     * utilities such as create_view_from_item etc.
-     */
     Csr(std::shared_ptr<const Executor> exec,
         const batch_dim<2>& size = batch_dim<2>{},
         size_type num_nonzeros_per_item = {});
 
-    /**
-     * Creates a Csr matrix from an already allocated (and initialized)
-     * array. The column indices array needs to be the same for all batch items.
-     *
-     * @tparam ValuesArray  type of array of values
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param values  array of matrix values
-     * @param col_idxs  the col_idxs array of a single batch item of the matrix.
-     * @param row_ptrs  the row_ptrs array of a single batch item of the matrix.
-     *
-     * @note If `values` is not an rvalue, not an array of ValueType, or is on
-     *       the wrong executor, an internal copy will be created, and the
-     *       original array data will not be used in the matrix.
-     */
-    template <typename ValuesArray, typename ColIdxsArray,
-              typename RowPtrsArray>
     Csr(std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
-        ValuesArray&& values, ColIdxsArray&& col_idxs, RowPtrsArray&& row_ptrs)
+        array<value_type> values, array<index_type> col_idxs,
+        array<index_type> row_ptrs)
         : EnableBatchLinOp<Csr>(exec, size),
-          values_{exec, std::forward<ValuesArray>(values)},
-          col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
-          row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)}
+          values_{exec, std::move(values)},
+          col_idxs_{exec, std::move(col_idxs)},
+          row_ptrs_{exec, std::move(row_ptrs)}
     {
         // Ensure that the value and col_idxs arrays have the correct size
         auto max_num_elems = this->get_common_size()[0] *
