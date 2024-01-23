@@ -354,9 +354,9 @@ public:
                                          array<index_type> row_ptrs);
 
     /**
-     * @copydoc create(std::shared_ptr<const Executor>, const dim<2>& size, int
-     * block_size, array<value_type> values, array<index_type> col_idxs,
-     * array<index_type>)
+     * @copydoc std::unique_ptr<Fbcsr> create(std::shared_ptr<const Executor>,
+     * const dim<2>& size, int block_size, array<value_type> values,
+     * array<index_type> col_idxs, array<index_type>)
      */
     template <typename InputValueType, typename InputColumnIndexType,
               typename InputRowPtrType>
