@@ -65,3 +65,22 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
     GKO_DECLARE_BATCH_ELL_SCALE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
+                         const batch::MultiVector<ValueType>* alpha,
+                         const batch::MultiVector<ValueType>* beta,
+                         batch::matrix::Ell<ValueType, IndexType>* mat)
+{
+    const auto num_blocks = mat->get_num_batch_items();
+    const auto alpha_ub = get_batch_struct(alpha);
+    const auto beta_ub = get_batch_struct(beta);
+    const auto mat_ub = get_batch_struct(mat);
+    add_scaled_identity_kernel<<<num_blocks, default_block_size, 0,
+                                 exec->get_stream()>>>(alpha_ub, beta_ub,
+                                                       mat_ub);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
+    GKO_DECLARE_BATCH_ELL_ADD_SCALED_IDENTITY_KERNEL);

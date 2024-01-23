@@ -274,6 +274,19 @@ public:
     void scale(const array<value_type>& row_scale,
                const array<value_type>& col_scale);
 
+    /**
+     * Performs the operation this = alpha*I + beta*this.
+     *
+     * @param alpha the scalar for identity
+     * @param beta  the scalar to multiply this matrix
+     *
+     * @note Performs the operation in-place for this batch matrix
+     * @note This operation fails in case this matrix does not have all its
+     *       diagonal entries.
+     */
+    void add_scaled_identity(ptr_param<const MultiVector<value_type>> alpha,
+                             ptr_param<const MultiVector<value_type>> beta);
+
 private:
     /**
      * Creates an uninitialized Csr matrix of the specified size.

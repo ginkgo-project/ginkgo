@@ -291,6 +291,28 @@ public:
     void scale(const array<value_type>& row_scale,
                const array<value_type>& col_scale);
 
+    /**
+     * Performs the operation this = alpha*this + b.
+     *
+     * @param alpha the scalar to multiply this matrix
+     * @param b  the matrix to add
+     *
+     * @note Performs the operation in-place for this batch matrix
+     */
+    void scale_add(ptr_param<const MultiVector<value_type>> alpha,
+                   ptr_param<const batch::matrix::Dense<value_type>> b);
+
+    /**
+     * Performs the operation this = alpha*I + beta*this.
+     *
+     * @param alpha the scalar for identity
+     * @param beta  the scalar to multiply this matrix
+     *
+     * @note Performs the operation in-place for this batch matrix
+     */
+    void add_scaled_identity(ptr_param<const MultiVector<value_type>> alpha,
+                             ptr_param<const MultiVector<value_type>> beta);
+
 private:
     inline size_type compute_num_elems(const batch_dim<2>& size)
     {

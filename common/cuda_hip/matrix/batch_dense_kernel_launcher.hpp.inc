@@ -63,3 +63,39 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL);
+
+
+template <typename ValueType>
+void scale_add(std::shared_ptr<const DefaultExecutor> exec,
+               const batch::MultiVector<ValueType>* alpha,
+               const batch::matrix::Dense<ValueType>* mat,
+               batch::matrix::Dense<ValueType>* in_out)
+{
+    const auto num_blocks = mat->get_num_batch_items();
+    const auto alpha_ub = get_batch_struct(alpha);
+    const auto mat_ub = get_batch_struct(mat);
+    const auto in_out_ub = get_batch_struct(in_out);
+    scale_add_kernel<<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+        alpha_ub, mat_ub, in_out_ub);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_ADD_KERNEL);
+
+
+template <typename ValueType>
+void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
+                         const batch::MultiVector<ValueType>* alpha,
+                         const batch::MultiVector<ValueType>* beta,
+                         batch::matrix::Dense<ValueType>* mat)
+{
+    const auto num_blocks = mat->get_num_batch_items();
+    const auto alpha_ub = get_batch_struct(alpha);
+    const auto beta_ub = get_batch_struct(beta);
+    const auto mat_ub = get_batch_struct(mat);
+    add_scaled_identity_kernel<<<num_blocks, default_block_size, 0,
+                                 exec->get_stream()>>>(alpha_ub, beta_ub,
+                                                       mat_ub);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_DENSE_ADD_SCALED_IDENTITY_KERNEL);

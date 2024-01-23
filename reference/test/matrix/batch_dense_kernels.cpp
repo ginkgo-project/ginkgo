@@ -160,6 +160,72 @@ TYPED_TEST(Dense, CanTwoSidedScaleWithDifferentValues)
 }
 
 
+TYPED_TEST(Dense, CanScaleAdd)
+{
+    using BMtx = typename TestFixture::BMtx;
+    using BMVec = typename TestFixture::BMVec;
+    auto alpha = gko::batch::initialize<BMVec>({{2.0}, {-1.0}}, this->exec);
+    auto mat = gko::batch::initialize<BMtx>(
+        {{{1.0, 2.0, 0.0}, {3.0, 1.0, 1.0}, {0.0, 1.0, 1.0}},
+         {{2.0, -2.0, 0.0}, {1.0, -1.0, 2.0}, {0.0, 2.0, 1.0}}},
+        this->exec);
+    auto mat2 = gko::batch::initialize<BMtx>(
+        {{{1.0, 2.0, 0.0}, {3.0, 1.0, 1.0}, {0.0, 2.0, 1.0}},
+         {{2.0, 2.0, 0.0}, {-1.0, -1.0, 2.0}, {0.0, -1.0, 1.0}}},
+        this->exec);
+
+    mat->scale_add(alpha, mat2);
+
+    auto result_mat = gko::batch::initialize<BMtx>(
+        {{{3.0, 6.0, 0.0}, {9.0, 3.0, 3.0}, {0.0, 4.0, 3.0}},
+         {{0.0, 4.0, 0.0}, {-2.0, 0.0, 0.0}, {0.0, -3.0, 0.0}}},
+        this->exec);
+    GKO_ASSERT_BATCH_MTX_NEAR(mat.get(), result_mat.get(), 0.);
+}
+
+
+TYPED_TEST(Dense, CanAddScaledIdentity)
+{
+    using BMtx = typename TestFixture::BMtx;
+    using BMVec = typename TestFixture::BMVec;
+    auto alpha = gko::batch::initialize<BMVec>({{2.0}, {-1.0}}, this->exec);
+    auto beta = gko::batch::initialize<BMVec>({{3.0}, {-2.0}}, this->exec);
+    auto mat = gko::batch::initialize<BMtx>(
+        {{{1.0, 2.0, 0.0}, {3.0, 1.0, 1.0}, {0.0, 1.0, 1.0}},
+         {{2.0, -2.0, 0.0}, {1.0, -1.0, 2.0}, {0.0, 2.0, 1.0}}},
+        this->exec);
+
+    mat->add_scaled_identity(alpha, beta);
+
+    auto result_mat = gko::batch::initialize<BMtx>(
+        {{{5.0, 6.0, 0.0}, {9.0, 5.0, 3.0}, {0.0, 3.0, 5.0}},
+         {{-5.0, 4.0, 0.0}, {-2.0, 1.0, -4.0}, {0.0, -4.0, -3.0}}},
+        this->exec);
+    GKO_ASSERT_BATCH_MTX_NEAR(mat.get(), result_mat.get(), 0.);
+}
+
+
+TYPED_TEST(Dense, CanAddScaledIdentityRectangular)
+{
+    using BMtx = typename TestFixture::BMtx;
+    using BMVec = typename TestFixture::BMVec;
+    auto alpha = gko::batch::initialize<BMVec>({{2.0}, {-1.0}}, this->exec);
+    auto beta = gko::batch::initialize<BMVec>({{3.0}, {-2.0}}, this->exec);
+    auto mat =
+        gko::batch::initialize<BMtx>({{{1.0, 2.0, 0.0}, {3.0, 1.0, 1.0}},
+                                      {{2.0, -2.0, 0.0}, {1.0, -1.0, 2.0}}},
+                                     this->exec);
+
+    mat->add_scaled_identity(alpha, beta);
+
+    auto result_mat =
+        gko::batch::initialize<BMtx>({{{5.0, 6.0, 0.0}, {9.0, 5.0, 3.0}},
+                                      {{-5.0, 4.0, 0.0}, {-2.0, 1.0, -4.0}}},
+                                     this->exec);
+    GKO_ASSERT_BATCH_MTX_NEAR(mat.get(), result_mat.get(), 0.);
+}
+
+
 TYPED_TEST(Dense, ApplyFailsOnWrongNumberOfResultCols)
 {
     using BMVec = typename TestFixture::BMVec;

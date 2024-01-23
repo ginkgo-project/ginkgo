@@ -49,10 +49,12 @@ protected:
                            gko::size_type num_vecs = 1)
     {
         mat = gen_mtx<BMtx>(batch_size, num_rows, num_cols);
+        mat2 = gen_mtx<BMtx>(batch_size, num_rows, num_cols);
         y = gen_mtx<BMVec>(batch_size, num_cols, num_vecs);
         alpha = gen_mtx<BMVec>(batch_size, 1, 1);
         beta = gen_mtx<BMVec>(batch_size, 1, 1);
         dmat = gko::clone(exec, mat);
+        dmat2 = gko::clone(exec, mat2);
         dy = gko::clone(exec, y);
         dalpha = gko::clone(exec, alpha);
         dbeta = gko::clone(exec, beta);
@@ -75,12 +77,14 @@ protected:
 
     const gko::size_type batch_size = 11;
     std::unique_ptr<BMtx> mat;
+    std::unique_ptr<BMtx> mat2;
     std::unique_ptr<BMVec> y;
     std::unique_ptr<BMVec> alpha;
     std::unique_ptr<BMVec> beta;
     std::unique_ptr<BMVec> expected;
     std::unique_ptr<BMVec> dresult;
     std::unique_ptr<BMtx> dmat;
+    std::unique_ptr<BMtx> dmat2;
     std::unique_ptr<BMVec> dy;
     std::unique_ptr<BMVec> dalpha;
     std::unique_ptr<BMVec> dbeta;
@@ -130,6 +134,39 @@ TEST_F(Dense, TwoSidedScaleIsEquivalentToRef)
 
     mat->scale(row_scale, col_scale);
     dmat->scale(drow_scale, dcol_scale);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dmat, mat, r<value_type>::value);
+}
+
+
+TEST_F(Dense, ScaleAddIsEquivalentToRef)
+{
+    set_up_apply_data(42, 42, 15);
+
+    mat->scale_add(alpha, mat2);
+    dmat->scale_add(dalpha, dmat2);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dmat, mat, r<value_type>::value);
+}
+
+
+TEST_F(Dense, AddScaledIdentityIsEquivalentToRef)
+{
+    set_up_apply_data(42, 42, 15);
+
+    mat->add_scaled_identity(alpha, beta);
+    dmat->add_scaled_identity(dalpha, dbeta);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dmat, mat, r<value_type>::value);
+}
+
+
+TEST_F(Dense, AddScaledIdentityRectMatIsEquivalentToRef)
+{
+    set_up_apply_data(42, 40, 15);
+
+    mat->add_scaled_identity(alpha, beta);
+    dmat->add_scaled_identity(dalpha, dbeta);
 
     GKO_ASSERT_BATCH_MTX_NEAR(dmat, mat, r<value_type>::value);
 }

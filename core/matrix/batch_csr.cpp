@@ -19,6 +19,7 @@
 
 
 #include "core/matrix/batch_csr_kernels.hpp"
+#include "core/matrix/csr_kernels.hpp"
 
 
 namespace gko {
@@ -31,6 +32,9 @@ namespace {
 GKO_REGISTER_OPERATION(simple_apply, batch_csr::simple_apply);
 GKO_REGISTER_OPERATION(advanced_apply, batch_csr::advanced_apply);
 GKO_REGISTER_OPERATION(scale, batch_csr::scale);
+GKO_REGISTER_OPERATION(check_diagonal_entries,
+                       csr::check_diagonal_entries_exist);
+GKO_REGISTER_OPERATION(add_scaled_identity, batch_csr::add_scaled_identity);
 
 
 }  // namespace
@@ -194,6 +198,31 @@ void Csr<ValueType, IndexType>::scale(const array<ValueType>& row_scale,
     exec->run(csr::make_scale(make_temporary_clone(exec, &col_scale).get(),
                               make_temporary_clone(exec, &row_scale).get(),
                               this));
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::add_scaled_identity(
+    ptr_param<const MultiVector<ValueType>> alpha,
+    ptr_param<const MultiVector<ValueType>> beta)
+{
+    GKO_ASSERT_BATCH_EQUAL_NUM_ITEMS(alpha, beta);
+    GKO_ASSERT_BATCH_EQUAL_NUM_ITEMS(this, beta);
+    GKO_ASSERT_EQUAL_DIMENSIONS(alpha->get_common_size(), gko::dim<2>(1, 1));
+    GKO_ASSERT_EQUAL_DIMENSIONS(beta->get_common_size(), gko::dim<2>(1, 1));
+    auto exec = this->get_executor();
+
+    auto csr_mat = this->create_const_view_for_item(0);
+
+    bool has_all_diags{false};
+    exec->run(csr::make_check_diagonal_entries(csr_mat.get(), has_all_diags));
+    if (!has_all_diags) {
+        GKO_UNSUPPORTED_MATRIX_PROPERTY(
+            "The matrix is missing one or more diagonal entries!");
+    }
+    exec->run(csr::make_add_scaled_identity(
+        make_temporary_clone(exec, alpha).get(),
+        make_temporary_clone(exec, beta).get(), this));
 }
 
 
