@@ -256,6 +256,10 @@ private:
     Partition(std::shared_ptr<const Executor> exec,
               comm_index_type num_parts = 0, size_type num_ranges = 0);
 
+    static std::unique_ptr<Partition> create(
+        std::shared_ptr<const Executor> exec, comm_index_type num_parts = 0,
+        size_type num_ranges = 0);
+
     /**
      * Finalizes the construction in the create_* methods, by computing the
      * range_starting_indices_ and part_sizes_ based on the current
