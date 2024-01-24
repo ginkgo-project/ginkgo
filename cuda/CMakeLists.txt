@@ -18,9 +18,6 @@ target_sources(ginkgo_cuda
     base/stream.cpp
     base/timer.cpp
     base/version.cpp
-    factorization/cholesky_kernels.cu
-    factorization/ic_kernels.cu
-    factorization/ilu_kernels.cu
     matrix/batch_csr_kernels.cu
     matrix/batch_dense_kernels.cu
     matrix/batch_ell_kernels.cu

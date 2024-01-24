@@ -948,7 +948,7 @@ inline csrilu02Info_t create_ilu0_info()
 }
 
 
-inline void destroy(csrilu02Info_t info)
+inline void destroy_ilu0_info(csrilu02Info_t info)
 {
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyCsrilu02Info(info));
 }
@@ -962,7 +962,7 @@ inline csric02Info_t create_ic0_info()
 }
 
 
-inline void destroy(csric02Info_t info)
+inline void destroy_ic0_info(csric02Info_t info)
 {
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyCsric02Info(info));
 }
@@ -1463,6 +1463,15 @@ GKO_BIND_CUSPARSE_IC0(std::complex<double>, cusparseZcsric02);
 
 
 }  // namespace cusparse
+
+
+namespace sparselib {
+
+
+using namespace cusparse;
+
+
+}
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

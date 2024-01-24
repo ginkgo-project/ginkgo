@@ -8,12 +8,12 @@
 #include <ginkgo/core/base/array.hpp>
 
 
-#include "hip/base/hipsparse_bindings.hip.hpp"
+#include "common/cuda_hip/base/sparselib_bindings.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The ic factorization namespace.
  *
@@ -22,43 +22,54 @@ namespace hip {
 namespace ic_factorization {
 
 
+#ifdef GKO_COMPILING_CUDA
+#define SOLVE_POLICY CUSPARSE_SOLVE_POLICY_USE_LEVEL
+#else
+#define SOLVE_POLICY HIPSPARSE_SOLVE_POLICY_USE_LEVEL
+#endif
+
+
 template <typename ValueType, typename IndexType>
 void compute(std::shared_ptr<const DefaultExecutor> exec,
              matrix::Csr<ValueType, IndexType>* m)
 {
     const auto id = exec->get_device_id();
-    auto handle = exec->get_hipsparse_handle();
-    auto desc = hipsparse::create_mat_descr();
-    auto info = hipsparse::create_ic0_info();
+    auto handle = exec->get_sparselib_handle();
+    auto desc = sparselib::create_mat_descr();
+    auto info = sparselib::create_ic0_info();
 
     // get buffer size for IC
     IndexType num_rows = m->get_size()[0];
     IndexType nnz = m->get_num_stored_elements();
     size_type buffer_size{};
-    hipsparse::ic0_buffer_size(handle, num_rows, nnz, desc,
+    sparselib::ic0_buffer_size(handle, num_rows, nnz, desc,
                                m->get_const_values(), m->get_const_row_ptrs(),
                                m->get_const_col_idxs(), info, buffer_size);
 
     array<char> buffer{exec, buffer_size};
 
     // set up IC(0)
-    hipsparse::ic0_analysis(handle, num_rows, nnz, desc, m->get_const_values(),
+    sparselib::ic0_analysis(handle, num_rows, nnz, desc, m->get_const_values(),
                             m->get_const_row_ptrs(), m->get_const_col_idxs(),
-                            info, HIPSPARSE_SOLVE_POLICY_USE_LEVEL,
-                            buffer.get_data());
+                            info, SOLVE_POLICY, buffer.get_data());
 
-    hipsparse::ic0(handle, num_rows, nnz, desc, m->get_values(),
+    sparselib::ic0(handle, num_rows, nnz, desc, m->get_values(),
                    m->get_const_row_ptrs(), m->get_const_col_idxs(), info,
-                   HIPSPARSE_SOLVE_POLICY_USE_LEVEL, buffer.get_data());
+                   SOLVE_POLICY, buffer.get_data());
 
-    hipsparse::destroy_ic0_info(info);
-    hipsparse::destroy(desc);
+    // CUDA 11.4 has a use-after-free bug on Turing
+#if defined(GKO_COMPILING_CUDA) && (CUDA_VERSION >= 11040)
+    exec->synchronize();
+#endif
+
+    sparselib::destroy_ic0_info(info);
+    sparselib::destroy(desc);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_IC_COMPUTE_KERNEL);
 
 
 }  // namespace ic_factorization
-}  // namespace hip
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko

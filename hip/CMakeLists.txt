@@ -15,9 +15,6 @@ set(GINKGO_HIP_SOURCES
     base/stream.hip.cpp
     base/timer.hip.cpp
     base/version.hip.cpp
-    factorization/cholesky_kernels.hip.cpp
-    factorization/ic_kernels.hip.cpp
-    factorization/ilu_kernels.hip.cpp
     matrix/batch_csr_kernels.hip.cpp
     matrix/batch_dense_kernels.hip.cpp
     matrix/batch_ell_kernels.hip.cpp

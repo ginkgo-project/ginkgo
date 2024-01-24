@@ -1609,6 +1609,14 @@ public:
     }
 
     /**
+     * @copydoc get_cusparse_handle()
+     */
+    cusparseContext* get_sparselib_handle() const
+    {
+        return get_cusparse_handle();
+    }
+
+    /**
      * Get the closest PUs
      *
      * @return  the array of PUs closest to this device
@@ -1811,6 +1819,14 @@ public:
     hipsparseContext* get_hipsparse_handle() const
     {
         return hipsparse_handle_.get();
+    }
+
+    /**
+     * @copydoc get_hipsparse_handle()
+     */
+    hipsparseContext* get_sparselib_handle() const
+    {
+        return get_hipsparse_handle();
     }
 
     /**
