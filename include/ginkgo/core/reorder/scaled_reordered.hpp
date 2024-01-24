@@ -148,7 +148,7 @@ protected:
                 parameters_.inner_operator->generate(system_matrix_);
         } else {
             inner_operator_ = gko::matrix::Identity<value_type>::create(
-                exec, this->get_size());
+                exec, this->get_size()[0]);
         }
     }
 
