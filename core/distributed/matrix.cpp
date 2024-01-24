@@ -31,15 +31,9 @@ GKO_REGISTER_OPERATION(build_local_nonlocal,
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm)
-    : Matrix(exec, comm, with_matrix_type<gko::matrix::Csr>())
-{}
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
-    std::shared_ptr<const Executor> exec, mpi::communicator comm,
-    ptr_param<const LinOp> local_matrix_template)
-    : Matrix(exec, comm, local_matrix_template, local_matrix_template)
+    : Matrix(exec, comm,
+             gko::matrix::Csr<ValueType, LocalIndexType>::create(exec),
+             gko::matrix::Csr<ValueType, LocalIndexType>::create(exec))
 {}
 
 
@@ -69,6 +63,37 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
             non_local_mtx_.get())));
     one_scalar_.init(exec, dim<2>{1, 1});
     one_scalar_->fill(one<value_type>());
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+std::unique_ptr<Matrix<ValueType, LocalIndexType, GlobalIndexType>>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
+    std::shared_ptr<const Executor> exec, mpi::communicator comm)
+{
+    return std::unique_ptr<Matrix>{new Matrix{exec, comm}};
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+std::unique_ptr<Matrix<ValueType, LocalIndexType, GlobalIndexType>>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
+    std::shared_ptr<const Executor> exec, mpi::communicator comm,
+    ptr_param<const LinOp> matrix_template)
+{
+    return create(exec, comm, matrix_template, matrix_template);
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+std::unique_ptr<Matrix<ValueType, LocalIndexType, GlobalIndexType>>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
+    std::shared_ptr<const Executor> exec, mpi::communicator comm,
+    ptr_param<const LinOp> local_matrix_template,
+    ptr_param<const LinOp> non_local_matrix_template)
+{
+    return std::unique_ptr<Matrix>{new Matrix{exec, comm, local_matrix_template,
+                                              non_local_matrix_template}};
 }
 
 
