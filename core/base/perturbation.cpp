@@ -99,6 +99,32 @@ Perturbation<ValueType>::Perturbation(std::shared_ptr<const LinOp> scalar,
 
 
 template <typename ValueType>
+std::unique_ptr<Perturbation<ValueType>> Perturbation<ValueType>::create(
+    std::shared_ptr<const Executor> exec)
+{
+    return std::unique_ptr<Perturbation>{new Perturbation{exec}};
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Perturbation<ValueType>> Perturbation<ValueType>::create(
+    std::shared_ptr<const LinOp> scalar, std::shared_ptr<const LinOp> basis)
+{
+    return std::unique_ptr<Perturbation>{new Perturbation{scalar, basis}};
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Perturbation<ValueType>> Perturbation<ValueType>::create(
+    std::shared_ptr<const LinOp> scalar, std::shared_ptr<const LinOp> basis,
+    std::shared_ptr<const LinOp> projector)
+{
+    return std::unique_ptr<Perturbation>{
+        new Perturbation{scalar, basis, projector}};
+}
+
+
+template <typename ValueType>
 void Perturbation<ValueType>::validate_perturbation()
 {
     GKO_ASSERT_CONFORMANT(basis_, projector_);
