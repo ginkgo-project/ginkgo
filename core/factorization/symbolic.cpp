@@ -110,7 +110,7 @@ void symbolic_lu_near_symm(
         // compute A + A^T symbolically
         const auto scalar = gko::initialize<scalar_type>({one<float>()}, exec);
         const auto symm_mtx = as<float_matrix_type>(float_mtx->transpose());
-        const auto id = id_type::create(exec, size);
+        const auto id = id_type::create(exec, size[0]);
         float_mtx->apply(scalar, id, scalar, symm_mtx);
         // compute Cholesky factorization
         std::unique_ptr<elimination_forest<IndexType>> forest;
