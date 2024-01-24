@@ -213,14 +213,15 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
         policy = CUSPARSE_SOLVE_POLICY_USE_LEVEL;
 
         size_type work_size{};
-
+        // TODO: In nullptr is considered nullptr_t not casted to const
+        // it does not work in cuda110/100 images
         cusparse::buffer_size_ext(
             handle, algorithm, CUSPARSE_OPERATION_NON_TRANSPOSE,
             CUSPARSE_OPERATION_TRANSPOSE, matrix->get_size()[0], num_rhs,
             matrix->get_num_stored_elements(), one<ValueType>(), factor_descr,
             matrix->get_const_values(), matrix->get_const_row_ptrs(),
-            matrix->get_const_col_idxs(), nullptr, num_rhs, solve_info, policy,
-            &work_size);
+            matrix->get_const_col_idxs(), (const ValueType*)(nullptr), num_rhs,
+            solve_info, policy, &work_size);
 
         // allocate workspace
         work.resize_and_reset(work_size);
@@ -230,8 +231,8 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
             CUSPARSE_OPERATION_TRANSPOSE, matrix->get_size()[0], num_rhs,
             matrix->get_num_stored_elements(), one<ValueType>(), factor_descr,
             matrix->get_const_values(), matrix->get_const_row_ptrs(),
-            matrix->get_const_col_idxs(), nullptr, num_rhs, solve_info, policy,
-            work.get_data());
+            matrix->get_const_col_idxs(), (const ValueType*)(nullptr), num_rhs,
+            solve_info, policy, work.get_data());
     }
 
     void solve(const matrix::Csr<ValueType, IndexType>* matrix,
@@ -458,7 +459,8 @@ __global__ void sptrsv_naive_legacy_kernel(
     const auto row_end = is_upper ? rowptrs[row] - 1 : rowptrs[row + 1];
     const int row_step = is_upper ? -1 : 1;
 
-    ValueType sum = 0.0;
+    // no constructor from double to thrust<__half>
+    ValueType sum = zero<ValueType>();
     auto j = row_begin;
     auto col = colidxs[j];
     while (j != row_end) {
@@ -512,7 +514,7 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
     const auto nrhs = b->get_size()[1];
 
     // Initialize x to all NaNs.
-    dense::fill(exec, x, nan<ValueType>());
+    dense::fill(exec, x, ValueType(nan<ValueType>()));
 
     array<bool> nan_produced(exec, 1);
     array<IndexType> atomic_counter(exec, 1);

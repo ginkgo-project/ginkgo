@@ -147,7 +147,7 @@ TYPED_TEST(Composition, AppliesSingleToMixedVector)
         cmp = [ -9 -2 ]
               [ 27 26 ]
     */
-    using Mtx = gko::matrix::Dense<gko::next_precision<TypeParam>>;
+    using Mtx = gko::matrix::Dense<next_precision<TypeParam>>;
     using value_type = typename Mtx::value_type;
     auto cmp = gko::Composition<TypeParam>::create(this->product);
     auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
@@ -187,7 +187,7 @@ TYPED_TEST(Composition, AppliesSingleToMixedComplexVector)
         cmp = [ -9 -2 ]
               [ 27 26 ]
     */
-    using value_type = gko::next_precision<gko::to_complex<TypeParam>>;
+    using value_type = next_precision<gko::to_complex<TypeParam>>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto cmp = gko::Composition<TypeParam>::create(this->product);
     auto x = gko::initialize<Mtx>(
@@ -227,7 +227,7 @@ TYPED_TEST(Composition, AppliesSingleLinearCombinationToMixedVector)
         cmp = [ -9 -2 ]
               [ 27 26 ]
     */
-    using value_type = gko::next_precision<TypeParam>;
+    using value_type = next_precision<TypeParam>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto cmp = gko::Composition<TypeParam>::create(this->product);
     auto alpha = gko::initialize<Mtx>({3.0}, this->exec);
@@ -272,7 +272,7 @@ TYPED_TEST(Composition, AppliesSingleLinearCombinationToMixedComplexVector)
         cmp = [ -9 -2 ]
               [ 27 26 ]
     */
-    using MixedDense = gko::matrix::Dense<gko::next_precision<TypeParam>>;
+    using MixedDense = gko::matrix::Dense<next_precision<TypeParam>>;
     using MixedDenseComplex = gko::to_complex<MixedDense>;
     using value_type = typename MixedDenseComplex::value_type;
     auto cmp = gko::Composition<TypeParam>::create(this->product);
