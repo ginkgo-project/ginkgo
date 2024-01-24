@@ -8,9 +8,6 @@
 // force-top: off
 
 
-#include "common/cuda_hip/components/merging.hpp"
-
-
 #include <algorithm>
 #include <memory>
 #include <random>
@@ -25,6 +22,7 @@
 
 
 #include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/merging.hpp"
 #include "hip/test/utils.hip.hpp"
 
 

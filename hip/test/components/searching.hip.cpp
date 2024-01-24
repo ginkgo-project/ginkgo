@@ -8,9 +8,6 @@
 // force-top: off
 
 
-#include "common/cuda_hip/components/searching.hpp"
-
-
 #include <memory>
 #include <numeric>
 #include <vector>
@@ -24,6 +21,7 @@
 
 
 #include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/searching.hpp"
 #include "hip/test/utils.hip.hpp"
 
 

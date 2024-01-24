@@ -6,10 +6,8 @@
 #define GKO_HIP_BASE_CONFIG_HIP_HPP_
 
 
-#include <hip/hip_runtime.h>
-
-
 #include <hip/device_functions.h>
+#include <hip/hip_runtime.h>
 
 
 #include <ginkgo/core/base/types.hpp>

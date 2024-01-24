@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_COMMON_CUDA_HIP_LOG_BATCH_LOGGER_HPP_INC_
-#define GKO_COMMON_CUDA_HIP_LOG_BATCH_LOGGER_HPP_INC_
+#ifndef GKO_COMMON_CUDA_HIP_LOG_BATCH_LOGGER_HPP_
+#define GKO_COMMON_CUDA_HIP_LOG_BATCH_LOGGER_HPP_
 
 
 #include <ginkgo/core/base/types.hpp>
@@ -49,4 +49,4 @@ private:
 }  // namespace kernels
 }  // namespace gko
 
-#endif  // GKO_COMMON_CUDA_HIP_LOG_BATCH_LOGGER_HPP_INC_
+#endif  // GKO_COMMON_CUDA_HIP_LOG_BATCH_LOGGER_HPP_

@@ -8,9 +8,6 @@
 // force-top: off
 
 
-#include "common/cuda_hip/components/cooperative_groups.hpp"
-
-
 #include <cstring>
 #include <memory>
 
@@ -23,6 +20,7 @@
 
 
 #include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "hip/test/utils.hip.hpp"
 
 
