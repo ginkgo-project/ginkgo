@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_HIP_FACTORIZATION_PAR_ILUT_SELECT_COMMON_HIP_HPP_
-#define GKO_HIP_FACTORIZATION_PAR_ILUT_SELECT_COMMON_HIP_HPP_
+#ifndef GKO_COMMON_CUDA_HIP_FACTORIZATION_PAR_ILUT_SELECT_COMMON_HPP_
+#define GKO_COMMON_CUDA_HIP_FACTORIZATION_PAR_ILUT_SELECT_COMMON_HPP_
 
 
 #include <ginkgo/core/base/executor.hpp>
@@ -13,7 +13,7 @@
 
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace GKO_DEVICE_NAMESPACE {
 namespace par_ilut_factorization {
 
 
@@ -43,9 +43,9 @@ sampleselect_bucket<IndexType> sampleselect_find_bucket(
 
 
 }  // namespace par_ilut_factorization
-}  // namespace hip
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
 
 
-#endif  // GKO_HIP_FACTORIZATION_PAR_ILUT_SELECT_COMMON_HIP_HPP_
+#endif  // GKO_COMMON_CUDA_HIP_FACTORIZATION_PAR_ILUT_SELECT_COMMON_HPP_

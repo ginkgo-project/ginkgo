@@ -8,6 +8,14 @@ set(CUDA_HIP_SOURCES
     factorization/factorization_kernels.cpp
     factorization/lu_kernels.cpp
     factorization/par_ic_kernels.cpp
+    factorization/par_ict_kernels.cpp
+    factorization/par_ilu_kernels.cpp
+    factorization/par_ilut_approx_filter_kernel.cpp
+    factorization/par_ilut_filter_kernel.cpp
+    factorization/par_ilut_select_common.cpp
+    factorization/par_ilut_select_kernel.cpp
+    factorization/par_ilut_spgeam_kernel.cpp
+    factorization/par_ilut_sweep_kernel.cpp
     matrix/coo_kernels.cpp
     matrix/diagonal_kernels.cpp
     matrix/sellp_kernels.cpp
@@ -15,6 +23,8 @@ set(CUDA_HIP_SOURCES
     preconditioner/isai_kernels.cpp
     reorder/rcm_kernels.cpp
     solver/multigrid_kernels.cpp
+    stop/criterion_kernels.cpp
+    stop/residual_norm_kernels.cpp
     )
 list(TRANSFORM CUDA_HIP_SOURCES PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
 set(GKO_CUDA_HIP_COMMON_SOURCES ${CUDA_HIP_SOURCES} PARENT_SCOPE)

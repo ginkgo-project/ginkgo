@@ -17,7 +17,7 @@
 
 namespace gko {
 namespace kernels {
-namespace cuda {
+namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The Set all statuses namespace.
  * @ref set_status
@@ -40,7 +40,7 @@ __global__ __launch_bounds__(default_block_size) void set_all_statuses(
 }
 
 
-void set_all_statuses(std::shared_ptr<const CudaExecutor> exec,
+void set_all_statuses(std::shared_ptr<const DefaultExecutor> exec,
                       uint8 stoppingId, bool setFinalized,
                       array<stopping_status>* stop_status)
 {
@@ -56,6 +56,6 @@ void set_all_statuses(std::shared_ptr<const CudaExecutor> exec,
 
 
 }  // namespace set_all_statuses
-}  // namespace cuda
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko

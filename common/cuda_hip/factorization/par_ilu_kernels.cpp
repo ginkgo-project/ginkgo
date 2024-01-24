@@ -2,6 +2,33 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "core/factorization/par_ilu_kernels.hpp"
+
+
+#include <ginkgo/core/base/std_extensions.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
+
+
+#include "common/cuda_hip/base/math.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/memory.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
+
+
+namespace gko {
+namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
+/**
+ * @brief The parallel ilu factorization namespace.
+ *
+ * @ingroup factor
+ */
+namespace par_ilu_factorization {
+
+
+constexpr int default_block_size{512};
+
+
 namespace kernel {
 
 
@@ -85,3 +112,9 @@ void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILU_COMPUTE_L_U_FACTORS_KERNEL);
+
+
+}  // namespace par_ilu_factorization
+}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace kernels
+}  // namespace gko

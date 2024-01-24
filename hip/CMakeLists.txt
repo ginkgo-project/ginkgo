@@ -18,14 +18,6 @@ set(GINKGO_HIP_SOURCES
     factorization/cholesky_kernels.hip.cpp
     factorization/ic_kernels.hip.cpp
     factorization/ilu_kernels.hip.cpp
-    factorization/par_ict_kernels.hip.cpp
-    factorization/par_ilu_kernels.hip.cpp
-    factorization/par_ilut_approx_filter_kernel.hip.cpp
-    factorization/par_ilut_filter_kernel.hip.cpp
-    factorization/par_ilut_select_common.hip.cpp
-    factorization/par_ilut_select_kernel.hip.cpp
-    factorization/par_ilut_spgeam_kernel.hip.cpp
-    factorization/par_ilut_sweep_kernel.hip.cpp
     matrix/batch_csr_kernels.hip.cpp
     matrix/batch_dense_kernels.hip.cpp
     matrix/batch_ell_kernels.hip.cpp
@@ -43,8 +35,6 @@ set(GINKGO_HIP_SOURCES
     solver/idr_kernels.hip.cpp
     solver/lower_trs_kernels.hip.cpp
     solver/upper_trs_kernels.hip.cpp
-    stop/criterion_kernels.hip.cpp
-    stop/residual_norm_kernels.hip.cpp
     ${GKO_UNIFIED_COMMON_SOURCES}
     ${GKO_CUDA_HIP_COMMON_SOURCES}
     )

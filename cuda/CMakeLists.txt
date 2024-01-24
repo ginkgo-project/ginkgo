@@ -21,14 +21,6 @@ target_sources(ginkgo_cuda
     factorization/cholesky_kernels.cu
     factorization/ic_kernels.cu
     factorization/ilu_kernels.cu
-    factorization/par_ict_kernels.cu
-    factorization/par_ilu_kernels.cu
-    factorization/par_ilut_approx_filter_kernel.cu
-    factorization/par_ilut_filter_kernel.cu
-    factorization/par_ilut_select_common.cu
-    factorization/par_ilut_select_kernel.cu
-    factorization/par_ilut_spgeam_kernel.cu
-    factorization/par_ilut_sweep_kernel.cu
     matrix/batch_csr_kernels.cu
     matrix/batch_dense_kernels.cu
     matrix/batch_ell_kernels.cu
@@ -47,8 +39,6 @@ target_sources(ginkgo_cuda
     solver/idr_kernels.cu
     solver/lower_trs_kernels.cu
     solver/upper_trs_kernels.cu
-    stop/criterion_kernels.cu
-    stop/residual_norm_kernels.cu
     ${GKO_UNIFIED_COMMON_SOURCES}
     ${GKO_CUDA_HIP_COMMON_SOURCES}
     )
