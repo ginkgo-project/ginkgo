@@ -23,10 +23,8 @@ target_sources(ginkgo_cuda
     matrix/batch_ell_kernels.cu
     ${CSR_INSTANTIATE}
     matrix/dense_kernels.cu
-    matrix/ell_kernels.cu
     ${FBCSR_INSTANTIATE}
     matrix/fft_kernels.cu
-    matrix/sparsity_csr_kernels.cu
     preconditioner/jacobi_advanced_apply_kernel.cu
     preconditioner/jacobi_generate_kernel.cu
     preconditioner/jacobi_kernels.cu

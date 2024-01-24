@@ -21,7 +21,9 @@ set(CUDA_HIP_SOURCES
     factorization/par_ilut_sweep_kernel.cpp
     matrix/coo_kernels.cpp
     matrix/diagonal_kernels.cpp
+    matrix/ell_kernels.cpp
     matrix/sellp_kernels.cpp
+    matrix/sparsity_csr_kernels.cpp
     multigrid/pgm_kernels.cpp
     preconditioner/isai_kernels.cpp
     reorder/rcm_kernels.cpp

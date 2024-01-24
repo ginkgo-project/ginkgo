@@ -15,11 +15,14 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "accessor/cuda_helper.hpp"
+#include "accessor/cuda_hip_helper.hpp"
 #include "accessor/reduced_row_major.hpp"
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/sparselib_bindings.hpp"
 #include "common/cuda_hip/base/types.hpp"
 #include "common/cuda_hip/components/atomic.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/format_conversion.hpp"
 #include "common/cuda_hip/components/reduction.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "core/base/mixed_precision_types.hpp"
@@ -27,14 +30,11 @@
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "cuda/base/config.hpp"
-#include "cuda/base/cusparse_bindings.hpp"
-#include "cuda/components/format_conversion.cuh"
 
 
 namespace gko {
 namespace kernels {
-namespace cuda {
+namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The ELL matrix format namespace.
  *
@@ -77,7 +77,135 @@ constexpr int max_thread_per_worker = 32;
 using compiled_kernels = syn::value_list<int, 0, 1, 2, 4, 8, 16, 32>;
 
 
-#include "common/cuda_hip/matrix/ell_kernels.hpp.inc"
+namespace kernel {
+
+
+template <int num_thread_per_worker, bool atomic, typename b_accessor,
+          typename a_accessor, typename OutputValueType, typename IndexType,
+          typename Closure>
+__device__ void spmv_kernel(
+    const size_type num_rows, const int num_worker_per_row,
+    acc::range<a_accessor> val, const IndexType* __restrict__ col,
+    const size_type stride, const size_type num_stored_elements_per_row,
+    acc::range<b_accessor> b, OutputValueType* __restrict__ c,
+    const size_type c_stride, Closure op)
+{
+    using arithmetic_type = typename a_accessor::arithmetic_type;
+    const auto tidx = thread::get_thread_id_flat();
+    const decltype(tidx) column_id = blockIdx.y;
+    if (num_thread_per_worker == 1) {
+        // Specialize the num_thread_per_worker = 1. It doesn't need the shared
+        // memory, __syncthreads, and atomic_add
+        if (tidx < num_rows) {
+            auto temp = zero<arithmetic_type>();
+            for (size_type idx = 0; idx < num_stored_elements_per_row; idx++) {
+                const auto ind = tidx + idx * stride;
+                const auto col_idx = col[ind];
+                if (col_idx == invalid_index<IndexType>()) {
+                    break;
+                } else {
+                    temp += val(ind) * b(col_idx, column_id);
+                }
+            }
+            const auto c_ind = tidx * c_stride + column_id;
+            c[c_ind] = op(temp, c[c_ind]);
+        }
+    } else {
+        if (tidx < num_worker_per_row * num_rows) {
+            const auto idx_in_worker = threadIdx.y;
+            const auto x = tidx % num_rows;
+            const auto worker_id = tidx / num_rows;
+            const auto step_size = num_worker_per_row * num_thread_per_worker;
+            __shared__ uninitialized_array<
+                arithmetic_type, default_block_size / num_thread_per_worker>
+                storage;
+            if (idx_in_worker == 0) {
+                storage[threadIdx.x] = 0;
+            }
+            __syncthreads();
+            auto temp = zero<arithmetic_type>();
+            for (size_type idx =
+                     worker_id * num_thread_per_worker + idx_in_worker;
+                 idx < num_stored_elements_per_row; idx += step_size) {
+                const auto ind = x + idx * stride;
+                const auto col_idx = col[ind];
+                if (col_idx == invalid_index<IndexType>()) {
+                    break;
+                } else {
+                    temp += val(ind) * b(col_idx, column_id);
+                }
+            }
+            atomic_add(&storage[threadIdx.x], temp);
+            __syncthreads();
+            if (idx_in_worker == 0) {
+                const auto c_ind = x * c_stride + column_id;
+                if (atomic) {
+                    atomic_add(&(c[c_ind]), op(storage[threadIdx.x], c[c_ind]));
+                } else {
+                    c[c_ind] = op(storage[threadIdx.x], c[c_ind]);
+                }
+            }
+        }
+    }
+}
+
+
+template <int num_thread_per_worker, bool atomic = false, typename b_accessor,
+          typename a_accessor, typename OutputValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void spmv(
+    const size_type num_rows, const int num_worker_per_row,
+    acc::range<a_accessor> val, const IndexType* __restrict__ col,
+    const size_type stride, const size_type num_stored_elements_per_row,
+    acc::range<b_accessor> b, OutputValueType* __restrict__ c,
+    const size_type c_stride)
+{
+    spmv_kernel<num_thread_per_worker, atomic>(
+        num_rows, num_worker_per_row, val, col, stride,
+        num_stored_elements_per_row, b, c, c_stride,
+        [](const auto& x, const OutputValueType& y) {
+            return static_cast<OutputValueType>(x);
+        });
+}
+
+
+template <int num_thread_per_worker, bool atomic = false, typename b_accessor,
+          typename a_accessor, typename OutputValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void spmv(
+    const size_type num_rows, const int num_worker_per_row,
+    acc::range<a_accessor> alpha, acc::range<a_accessor> val,
+    const IndexType* __restrict__ col, const size_type stride,
+    const size_type num_stored_elements_per_row, acc::range<b_accessor> b,
+    const OutputValueType* __restrict__ beta, OutputValueType* __restrict__ c,
+    const size_type c_stride)
+{
+    using arithmetic_type = typename a_accessor::arithmetic_type;
+    const auto alpha_val = alpha(0);
+    const OutputValueType beta_val = beta[0];
+    if (atomic) {
+        // Because the atomic operation changes the values of c during
+        // computation, it can not directly do alpha * a * b + beta * c
+        // operation. The beta * c needs to be done before calling this kernel.
+        // Then, this kernel only adds alpha * a * b when it uses atomic
+        // operation.
+        spmv_kernel<num_thread_per_worker, atomic>(
+            num_rows, num_worker_per_row, val, col, stride,
+            num_stored_elements_per_row, b, c, c_stride,
+            [&alpha_val](const auto& x, const OutputValueType& y) {
+                return static_cast<OutputValueType>(alpha_val * x);
+            });
+    } else {
+        spmv_kernel<num_thread_per_worker, atomic>(
+            num_rows, num_worker_per_row, val, col, stride,
+            num_stored_elements_per_row, b, c, c_stride,
+            [&alpha_val, &beta_val](const auto& x, const OutputValueType& y) {
+                return static_cast<OutputValueType>(
+                    alpha_val * x + static_cast<arithmetic_type>(beta_val * y));
+            });
+    }
+}
+
+
+}  // namespace kernel
 
 
 namespace {
@@ -130,9 +258,9 @@ void abstract_spmv(syn::value_list<int, info>,
         if (grid_size.x > 0 && grid_size.y > 0) {
             kernel::spmv<num_thread_per_worker, atomic>
                 <<<grid_size, block_size, 0, exec->get_stream()>>>(
-                    nrows, num_worker_per_row, acc::as_cuda_range(a_vals),
+                    nrows, num_worker_per_row, acc::as_device_range(a_vals),
                     a->get_const_col_idxs(), stride,
-                    num_stored_elements_per_row, acc::as_cuda_range(b_vals),
+                    num_stored_elements_per_row, acc::as_device_range(b_vals),
                     as_device_type(c->get_values()), c->get_stride());
         }
     } else if (alpha != nullptr && beta != nullptr) {
@@ -141,9 +269,10 @@ void abstract_spmv(syn::value_list<int, info>,
         if (grid_size.x > 0 && grid_size.y > 0) {
             kernel::spmv<num_thread_per_worker, atomic>
                 <<<grid_size, block_size, 0, exec->get_stream()>>>(
-                    nrows, num_worker_per_row, acc::as_cuda_range(alpha_val),
-                    acc::as_cuda_range(a_vals), a->get_const_col_idxs(), stride,
-                    num_stored_elements_per_row, acc::as_cuda_range(b_vals),
+                    nrows, num_worker_per_row, acc::as_device_range(alpha_val),
+                    acc::as_device_range(a_vals), a->get_const_col_idxs(),
+                    stride, num_stored_elements_per_row,
+                    acc::as_device_range(b_vals),
                     as_device_type(beta->get_const_values()),
                     as_device_type(c->get_values()), c->get_stride());
         }
@@ -157,7 +286,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_abstract_spmv, abstract_spmv);
 
 template <typename ValueType, typename IndexType>
 std::array<int, 3> compute_thread_worker_and_atomicity(
-    std::shared_ptr<const CudaExecutor> exec,
+    std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Ell<ValueType, IndexType>* a)
 {
     int num_thread_per_worker = 1;
@@ -201,7 +330,7 @@ std::array<int, 3> compute_thread_worker_and_atomicity(
 
 template <typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
-void spmv(std::shared_ptr<const CudaExecutor> exec,
+void spmv(std::shared_ptr<const DefaultExecutor> exec,
           const matrix::Ell<MatrixValueType, IndexType>* a,
           const matrix::Dense<InputValueType>* b,
           matrix::Dense<OutputValueType>* c)
@@ -212,7 +341,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
     const int num_worker_per_row = std::get<2>(data);
 
     /**
-     * info is the parameter for selecting the cuda kernel.
+     * info is the parameter for selecting the device kernel.
      * for info == 0, it uses the kernel by warp_size threads with atomic
      * operation for other value, it uses the kernel without atomic_add
      */
@@ -233,7 +362,7 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 
 template <typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
+void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
                    const matrix::Dense<MatrixValueType>* alpha,
                    const matrix::Ell<MatrixValueType, IndexType>* a,
                    const matrix::Dense<InputValueType>* b,
@@ -246,7 +375,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
     const int num_worker_per_row = std::get<2>(data);
 
     /**
-     * info is the parameter for selecting the cuda kernel.
+     * info is the parameter for selecting the device kernel.
      * for info == 0, it uses the kernel by warp_size threads with atomic
      * operation for other value, it uses the kernel without atomic_add
      */
@@ -266,6 +395,6 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace ell
-}  // namespace cuda
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
