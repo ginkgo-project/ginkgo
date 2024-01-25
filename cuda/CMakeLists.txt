@@ -17,25 +17,14 @@ target_sources(ginkgo_cuda
     base/timer.cpp
     base/version.cpp
     ${CSR_INSTANTIATE}
-    matrix/dense_kernels.cu
     ${FBCSR_INSTANTIATE}
     matrix/fft_kernels.cu
-    preconditioner/jacobi_advanced_apply_kernel.cu
-    preconditioner/jacobi_generate_kernel.cu
-    preconditioner/jacobi_kernels.cu
-    preconditioner/jacobi_simple_apply_kernel.cu
     solver/batch_bicgstab_kernels.cu
-    solver/cb_gmres_kernels.cu
-    solver/idr_kernels.cu
     solver/lower_trs_kernels.cu
     solver/upper_trs_kernels.cu
     ${GKO_UNIFIED_COMMON_SOURCES}
     ${GKO_CUDA_HIP_COMMON_SOURCES}
     )
-# override the default language mapping for the common files, set them to CUDA
-foreach(source_file IN LISTS GKO_UNIFIED_COMMON_SOURCES GKO_CUDA_HIP_COMMON_SOURCES)
-    set_source_files_properties(${source_file} PROPERTIES LANGUAGE CUDA)
-endforeach(source_file)
 if(GINKGO_JACOBI_FULL_OPTIMIZATIONS)
     set(GKO_CUDA_JACOBI_BLOCK_SIZES)
     foreach(blocksize RANGE 1 32)
@@ -46,20 +35,15 @@ else()
 endif()
 set(GKO_CUDA_JACOBI_SOURCES)
 foreach(GKO_JACOBI_BLOCK_SIZE IN LISTS GKO_CUDA_JACOBI_BLOCK_SIZES)
-    configure_file(
-        preconditioner/jacobi_generate_instantiate.inc.cu
-        preconditioner/jacobi_generate_instantiate.${GKO_JACOBI_BLOCK_SIZE}.cu)
-    configure_file(
-        preconditioner/jacobi_simple_apply_instantiate.inc.cu
-        preconditioner/jacobi_simple_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.cu)
-    configure_file(
-        preconditioner/jacobi_advanced_apply_instantiate.inc.cu
-        preconditioner/jacobi_advanced_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.cu)
     list(APPEND GKO_CUDA_JACOBI_SOURCES
-        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_generate_instantiate.${GKO_JACOBI_BLOCK_SIZE}.cu
-        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_simple_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.cu
-        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_advanced_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.cu)
+        ${CMAKE_CURRENT_BINARY_DIR}/../common/cuda_hip/preconditioner/jacobi_generate_instantiate.${GKO_JACOBI_BLOCK_SIZE}.cpp
+        ${CMAKE_CURRENT_BINARY_DIR}/../common/cuda_hip/preconditioner/jacobi_simple_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.cpp
+        ${CMAKE_CURRENT_BINARY_DIR}/../common/cuda_hip/preconditioner/jacobi_advanced_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.cpp)
 endforeach()
+# override the default language mapping for the common files, set them to CUDA
+foreach(source_file IN LISTS GKO_UNIFIED_COMMON_SOURCES GKO_CUDA_HIP_COMMON_SOURCES GKO_CUDA_JACOBI_SOURCES)
+    set_source_files_properties(${source_file} PROPERTIES LANGUAGE CUDA)
+endforeach(source_file)
 target_sources(ginkgo_cuda PRIVATE ${GKO_CUDA_JACOBI_SOURCES})
 string(REPLACE ";" "," GKO_CUDA_JACOBI_BLOCK_SIZES_CODE "${GKO_CUDA_JACOBI_BLOCK_SIZES}")
 configure_file(preconditioner/jacobi_common.hpp.in preconditioner/jacobi_common.hpp)

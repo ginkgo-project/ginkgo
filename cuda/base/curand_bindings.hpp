@@ -85,6 +85,15 @@ GKO_BIND_CURAND_RANDOM_VECTOR(std::complex<double>, curandGenerateNormalDouble);
 
 
 }  // namespace curand
+
+
+namespace randlib {
+
+
+using namespace curand;
+
+
+}  // namespace randlib
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

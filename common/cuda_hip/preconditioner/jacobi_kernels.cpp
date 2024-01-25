@@ -2,6 +2,46 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "core/preconditioner/jacobi_kernels.hpp"
+
+
+#include <ginkgo/core/base/exception_helpers.hpp>
+
+
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/math.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/cuda_hip/preconditioner/jacobi_common.hpp"
+#include "common/unified/base/config.hpp"
+#include "core/base/extended_float.hpp"
+#include "core/preconditioner/jacobi_utils.hpp"
+#include "core/synthesizer/implementation_selection.hpp"
+
+
+namespace gko {
+namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
+/**
+ * @brief The Jacobi preconditioner namespace.
+ * @ref Jacobi
+ * @ingroup jacobi
+ */
+namespace jacobi {
+
+
+// a total of 32/16 warps (1024 threads)
+#if defined(GKO_COMPILING_HIP) && GINKGO_HIP_PLATFORM_HCC
+constexpr int default_num_warps = 16;
+#else  // GINKGO_HIP_PLATFORM_NVCC
+constexpr int default_num_warps = 32;
+#endif
+// with current architectures, at most 32 warps can be scheduled per SM (and
+// current GPUs have at most 84 SMs)
+constexpr int default_grid_size = 32 * 32 * 128;
+
+
 namespace {
 
 
@@ -369,3 +409,9 @@ void convert_to_dense(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL);
+
+
+}  // namespace jacobi
+}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace kernels
+}  // namespace gko

@@ -269,10 +269,8 @@ typename to_device_type_impl<T>::type map_to_device(T&& param)
 }  // namespace gko
 
 
-#if defined(GKO_COMPILING_CUDA)
-#include "cuda/base/kernel_launch.cuh"
-#elif defined(GKO_COMPILING_HIP)
-#include "hip/base/kernel_launch.hip.hpp"
+#if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP)
+#include "common/cuda_hip/base/kernel_launch.hpp"
 #elif defined(GKO_COMPILING_DPCPP)
 #include "dpcpp/base/kernel_launch.dp.hpp"
 #elif defined(GKO_COMPILING_OMP)

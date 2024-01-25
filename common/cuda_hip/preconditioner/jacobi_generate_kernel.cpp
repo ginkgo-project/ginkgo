@@ -9,33 +9,21 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
-#include "common/cuda_hip/base/config.hpp"
-#include "common/cuda_hip/base/math.hpp"
-#include "common/cuda_hip/base/types.hpp"
-#include "common/cuda_hip/components/cooperative_groups.hpp"
-#include "common/cuda_hip/components/diagonal_block_manipulation.hpp"
-#include "common/cuda_hip/components/thread_ids.hpp"
-#include "common/cuda_hip/components/uninitialized_array.hpp"
-#include "common/cuda_hip/components/warp_blas.hpp"
-#include "core/base/extended_float.hpp"
+#include "common/unified/base/config.hpp"
 #include "core/components/fill_array_kernels.hpp"
-#include "core/preconditioner/jacobi_utils.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "hip/preconditioner/jacobi_common.hip.hpp"
+#include "common/cuda_hip/preconditioner/jacobi_common.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The Jacobi preconditioner namespace.
  * @ref Jacobi
  * @ingroup jacobi
  */
 namespace jacobi {
-
-
-#include "common/cuda_hip/preconditioner/jacobi_generate_kernel.hpp.inc"
 
 
 template <int warps_per_block, int max_block_size, typename ValueType,
@@ -54,7 +42,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_generate, generate);
 
 
 template <typename ValueType, typename IndexType>
-void generate(std::shared_ptr<const HipExecutor> exec,
+void generate(std::shared_ptr<const DefaultExecutor> exec,
               const matrix::Csr<ValueType, IndexType>* system_matrix,
               size_type num_blocks, uint32 max_block_size,
               remove_complex<ValueType> accuracy,

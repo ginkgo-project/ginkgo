@@ -14,15 +14,8 @@ set(GINKGO_HIP_SOURCES
     base/timer.hip.cpp
     base/version.hip.cpp
     ${CSR_INSTANTIATE}
-    matrix/dense_kernels.hip.cpp
     ${FBCSR_INSTANTIATE}
-    preconditioner/jacobi_advanced_apply_kernel.hip.cpp
-    preconditioner/jacobi_generate_kernel.hip.cpp
-    preconditioner/jacobi_kernels.hip.cpp
-    preconditioner/jacobi_simple_apply_kernel.hip.cpp
     solver/batch_bicgstab_kernels.hip.cpp
-    solver/cb_gmres_kernels.hip.cpp
-    solver/idr_kernels.hip.cpp
     solver/lower_trs_kernels.hip.cpp
     solver/upper_trs_kernels.hip.cpp
     ${GKO_UNIFIED_COMMON_SOURCES}

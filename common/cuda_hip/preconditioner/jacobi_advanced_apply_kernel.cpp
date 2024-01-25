@@ -10,12 +10,13 @@
 
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "hip/preconditioner/jacobi_common.hip.hpp"
+#include "common/cuda_hip/preconditioner/jacobi_common.hpp"
+#include "common/unified/base/config.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The Jacobi preconditioner namespace.
  * @ref Jacobi

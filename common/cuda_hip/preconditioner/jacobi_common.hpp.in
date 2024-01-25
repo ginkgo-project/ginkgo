@@ -7,11 +7,12 @@
 
 
 #include "common/cuda_hip/base/config.hpp"
+#include "common/unified/base/config.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace GKO_DEVICE_NAMESPACE {
 namespace jacobi {
 
 

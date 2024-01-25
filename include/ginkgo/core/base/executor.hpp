@@ -1599,6 +1599,11 @@ public:
     cublasContext* get_cublas_handle() const { return cublas_handle_.get(); }
 
     /**
+     * @copydoc get_cublas_handle()
+     */
+    cublasContext* get_blas_handle() const { return get_cublas_handle(); }
+
+    /**
      * Get the cusparse handle for this executor
      *
      * @return the cusparse handle (cusparseContext*) for this executor
@@ -1810,6 +1815,11 @@ public:
      * @return  the hipblas handle (hipblasContext*) for this executor
      */
     hipblasContext* get_hipblas_handle() const { return hipblas_handle_.get(); }
+
+    /**
+     * @copydoc get_hipblas_handle()
+     */
+    hipblasContext* get_blas_handle() const { return get_hipblas_handle(); }
 
     /**
      * Get the hipsparse handle for this executor

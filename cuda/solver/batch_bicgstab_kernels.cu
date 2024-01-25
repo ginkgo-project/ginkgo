@@ -22,10 +22,10 @@
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
 #include "core/solver/batch_dispatch.hpp"
-#include "cuda/base/batch_struct.hpp"
-#include "cuda/base/config.hpp"
-#include "cuda/base/kernel_config.hpp"
-#include "cuda/matrix/batch_struct.hpp"
+#include "common/cuda_hip/matrix/batch_struct.hpp"
+#include "common/cuda_hip/base/batch_struct.hpp"
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/math.hpp"
 
 
 namespace gko {
