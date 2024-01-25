@@ -1,5 +1,7 @@
 set(CUDA_HIP_SOURCES
+    base/batch_multi_vector_kernels.cpp
     base/device_matrix_data_kernels.cpp
+    base/index_set_kernels.cpp
     components/prefix_sum_kernels.cpp
     distributed/matrix_kernels.cpp
     distributed/partition_helpers_kernels.cpp
@@ -19,6 +21,9 @@ set(CUDA_HIP_SOURCES
     factorization/par_ilut_select_kernel.cpp
     factorization/par_ilut_spgeam_kernel.cpp
     factorization/par_ilut_sweep_kernel.cpp
+    matrix/batch_csr_kernels.cpp
+    matrix/batch_dense_kernels.cpp
+    matrix/batch_ell_kernels.cpp
     matrix/coo_kernels.cpp
     matrix/diagonal_kernels.cpp
     matrix/ell_kernels.cpp

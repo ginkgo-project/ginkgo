@@ -249,6 +249,15 @@ inline void destroy(cublasHandle_t handle)
 
 
 }  // namespace cublas
+
+
+namespace blas {
+
+
+using namespace cublas;
+
+
+}  // namespace blas
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

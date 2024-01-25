@@ -20,6 +20,7 @@
 #include "common/cuda_hip/components/reduction.hpp"
 #include "common/cuda_hip/components/searching.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/unified/base/config.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/coo_builder.hpp"
 #include "core/matrix/csr_builder.hpp"

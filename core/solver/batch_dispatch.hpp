@@ -21,9 +21,9 @@
 
 #include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "common/cuda_hip/log/batch_logger.hpp"
+#include "common/cuda_hip/matrix/batch_struct.hpp"
 #include "common/cuda_hip/stop/batch_criteria.hpp"
 #include "cuda/base/batch_struct.hpp"
-#include "cuda/matrix/batch_struct.hpp"
 #include "cuda/preconditioner/batch_preconditioners.cuh"
 
 
@@ -47,11 +47,11 @@ using DeviceValueType = typename gko::kernels::cuda::cuda_type<ValueType>;
 #elif defined GKO_COMPILING_HIP
 
 
+#include "common/cuda_hip/base/batch_struct.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "common/cuda_hip/log/batch_logger.hpp"
+#include "common/cuda_hip/matrix/batch_struct.hpp"
 #include "common/cuda_hip/stop/batch_criteria.hpp"
-#include "hip/base/batch_struct.hip.hpp"
-#include "hip/matrix/batch_struct.hip.hpp"
 #include "hip/preconditioner/batch_preconditioners.hip.hpp"
 
 

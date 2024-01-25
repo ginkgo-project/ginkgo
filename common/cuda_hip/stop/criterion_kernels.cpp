@@ -13,6 +13,7 @@
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/types.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/unified/base/config.hpp"
 
 
 namespace gko {

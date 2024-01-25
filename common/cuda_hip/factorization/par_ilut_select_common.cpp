@@ -10,6 +10,7 @@
 #include "common/cuda_hip/components/sorting.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/factorization/par_ilut_select_common.hpp"
+#include "common/unified/base/config.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
 

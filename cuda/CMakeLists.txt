@@ -7,20 +7,15 @@ add_instantiation_files(. matrix/fbcsr_kernels.instantiate.cu FBCSR_INSTANTIATE)
 list(APPEND GKO_UNIFIED_COMMON_SOURCES ${PROJECT_SOURCE_DIR}/common/unified/matrix/dense_kernels.instantiate.cpp)
 target_sources(ginkgo_cuda
     PRIVATE
-    base/batch_multi_vector_kernels.cu
     base/device.cpp
     base/exception.cpp
     base/executor.cpp
-    base/index_set_kernels.cpp
     base/memory.cpp
     base/nvtx.cpp
     base/scoped_device_id.cpp
     base/stream.cpp
     base/timer.cpp
     base/version.cpp
-    matrix/batch_csr_kernels.cu
-    matrix/batch_dense_kernels.cu
-    matrix/batch_ell_kernels.cu
     ${CSR_INSTANTIATE}
     matrix/dense_kernels.cu
     ${FBCSR_INSTANTIATE}

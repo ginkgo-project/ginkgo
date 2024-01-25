@@ -4,20 +4,15 @@ add_instantiation_files(. matrix/fbcsr_kernels.instantiate.hip.cpp FBCSR_INSTANT
 # we don't split up the dense kernels into distinct compilations
 list(APPEND GKO_UNIFIED_COMMON_SOURCES ${PROJECT_SOURCE_DIR}/common/unified/matrix/dense_kernels.instantiate.cpp)
 set(GINKGO_HIP_SOURCES
-    base/batch_multi_vector_kernels.hip.cpp
     base/device.hip.cpp
     base/exception.hip.cpp
     base/executor.hip.cpp
-    base/index_set_kernels.hip.cpp
     base/memory.hip.cpp
     base/roctx.hip.cpp
     base/scoped_device_id.hip.cpp
     base/stream.hip.cpp
     base/timer.hip.cpp
     base/version.hip.cpp
-    matrix/batch_csr_kernels.hip.cpp
-    matrix/batch_dense_kernels.hip.cpp
-    matrix/batch_ell_kernels.hip.cpp
     ${CSR_INSTANTIATE}
     matrix/dense_kernels.hip.cpp
     ${FBCSR_INSTANTIATE}

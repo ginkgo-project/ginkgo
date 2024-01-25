@@ -25,6 +25,7 @@
 #include "common/cuda_hip/components/format_conversion.hpp"
 #include "common/cuda_hip/components/reduction.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/unified/base/config.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"

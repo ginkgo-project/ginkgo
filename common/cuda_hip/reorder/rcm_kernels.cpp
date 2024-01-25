@@ -31,6 +31,7 @@
 #include "common/cuda_hip/components/memory.hpp"
 #include "common/cuda_hip/components/prefix_sum.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/unified/base/config.hpp"
 #include "core/base/array_access.hpp"
 
 

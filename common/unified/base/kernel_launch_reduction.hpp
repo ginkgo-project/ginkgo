@@ -6,6 +6,7 @@
 #define GKO_COMMON_UNIFIED_BASE_KERNEL_LAUNCH_REDUCTION_HPP_
 
 
+#include "common/unified/base/config.hpp"
 #include "common/unified/base/kernel_launch.hpp"
 
 

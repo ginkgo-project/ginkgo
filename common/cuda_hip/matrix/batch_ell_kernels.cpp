@@ -2,37 +2,39 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "core/matrix/batch_dense_kernels.hpp"
+#include "core/matrix/batch_ell_kernels.hpp"
 
 
 #include <thrust/functional.h>
 
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
-#include <ginkgo/core/matrix/batch_dense.hpp>
+#include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/batch_ell.hpp>
 
 
+#include "common/cuda_hip/base/batch_struct.hpp"
+#include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/thrust.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "common/cuda_hip/components/reduction.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/components/uninitialized_array.hpp"
+#include "common/cuda_hip/matrix/batch_struct.hpp"
+#include "common/unified/base/config.hpp"
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
-#include "cuda/base/batch_struct.hpp"
-#include "cuda/base/config.hpp"
-#include "cuda/matrix/batch_struct.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace cuda {
+namespace GKO_DEVICE_NAMESPACE {
 /**
- * @brief The Dense matrix format namespace.
- *
- * @ingroup batch_dense
+ * @brief The Ell matrix format namespace.
+ * @ref Ell
+ * @ingroup batch_ell
  */
-namespace batch_dense {
+namespace batch_ell {
 
 
 constexpr auto default_block_size = 256;
@@ -42,16 +44,15 @@ constexpr int sm_oversubscription = 4;
 
 // NOTE: DO NOT CHANGE THE ORDERING OF THE INCLUDES
 
-#include "common/cuda_hip/matrix/batch_dense_kernels.hpp.inc"
+#include "common/cuda_hip/matrix/batch_ell_kernels.hpp.inc"
 
 
-#include "common/cuda_hip/matrix/batch_dense_kernel_launcher.hpp.inc"
-
+#include "common/cuda_hip/matrix/batch_ell_kernel_launcher.hpp.inc"
 
 // clang-format on
 
 
-}  // namespace batch_dense
-}  // namespace cuda
+}  // namespace batch_ell
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko

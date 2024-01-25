@@ -11,6 +11,9 @@
 #include <ginkgo/core/base/types.hpp>
 
 
+#include "common/unified/base/config.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {

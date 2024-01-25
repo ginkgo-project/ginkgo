@@ -9,6 +9,7 @@
 
 
 #include "common/cuda_hip/base/sparselib_bindings.hpp"
+#include "common/unified/base/config.hpp"
 
 
 namespace gko {

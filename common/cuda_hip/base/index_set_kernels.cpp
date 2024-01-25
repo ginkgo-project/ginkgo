@@ -13,14 +13,12 @@
 #include <ginkgo/core/base/types.hpp>
 
 
+#include "common/unified/base/config.hpp"
+
+
 namespace gko {
 namespace kernels {
-/**
- * @brief The Cuda namespace.
- *
- * @ingroup cuda
- */
-namespace cuda {
+namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The index_set namespace.
  *
@@ -80,6 +78,6 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 
 }  // namespace idx_set
-}  // namespace cuda
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko

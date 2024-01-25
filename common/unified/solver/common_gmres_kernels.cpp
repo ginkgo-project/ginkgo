@@ -8,6 +8,7 @@
 #include <ginkgo/core/base/math.hpp>
 
 
+#include "common/unified/base/config.hpp"
 #include "common/unified/base/kernel_launch.hpp"
 #include "core/solver/cb_gmres_kernels.hpp"
 

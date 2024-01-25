@@ -2,38 +2,39 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "core/matrix/batch_ell_kernels.hpp"
+#include "core/base/batch_multi_vector_kernels.hpp"
 
 
 #include <thrust/functional.h>
+#include <thrust/transform.h>
 
 
-#include <ginkgo/core/base/batch_multi_vector.hpp>
-#include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/matrix/batch_ell.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/range_accessors.hpp>
 
 
+#include "common/cuda_hip/base/batch_struct.hpp"
+#include "common/cuda_hip/base/blas_bindings.hpp"
 #include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/pointer_mode_guard.hpp"
 #include "common/cuda_hip/base/thrust.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "common/cuda_hip/components/reduction.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/components/uninitialized_array.hpp"
+#include "common/unified/base/config.hpp"
 #include "core/base/batch_struct.hpp"
-#include "core/matrix/batch_struct.hpp"
-#include "hip/base/batch_struct.hip.hpp"
-#include "hip/matrix/batch_struct.hip.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace GKO_DEVICE_NAMESPACE {
 /**
- * @brief The Ell matrix format namespace.
- * @ref Ell
- * @ingroup batch_ell
+ * @brief The MultiVector matrix format namespace.
+ *
+ * @ingroup batch_multi_vector
  */
-namespace batch_ell {
+namespace batch_multi_vector {
 
 
 constexpr auto default_block_size = 256;
@@ -43,15 +44,15 @@ constexpr int sm_oversubscription = 4;
 
 // NOTE: DO NOT CHANGE THE ORDERING OF THE INCLUDES
 
-#include "common/cuda_hip/matrix/batch_ell_kernels.hpp.inc"
+#include "common/cuda_hip/base/batch_multi_vector_kernels.hpp.inc"
 
 
-#include "common/cuda_hip/matrix/batch_ell_kernel_launcher.hpp.inc"
+#include "common/cuda_hip/base/batch_multi_vector_kernel_launcher.hpp.inc"
 
 // clang-format on
 
 
-}  // namespace batch_ell
-}  // namespace hip
+}  // namespace batch_multi_vector
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
