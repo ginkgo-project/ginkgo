@@ -164,7 +164,7 @@ foreach(log_type ${log_types})
     )
     ginkgo_print_module_footer(${${log_type}} "  Tests, benchmarks and examples:")
     ginkgo_print_foreach_variable(${${log_type}}
-        "GINKGO_BUILD_TESTS;GINKGO_FAST_TESTS;GINKGO_BUILD_EXAMPLES;GINKGO_EXTLIB_EXAMPLE;GINKGO_BUILD_BENCHMARKS;GINKGO_BENCHMARK_ENABLE_TUNING"
+        "GINKGO_BUILD_TESTS;GINKGO_FAST_TESTS;GINKGO_BUILD_EXAMPLES;GINKGO_BUILD_EXTLIB_EXAMPLE;GINKGO_BUILD_BENCHMARKS;GINKGO_BENCHMARK_ENABLE_TUNING"
     )
     ginkgo_print_module_footer(${${log_type}} "  Documentation:")
     ginkgo_print_foreach_variable(${${log_type}} "GINKGO_BUILD_DOC;GINKGO_VERBOSE_LEVEL")
