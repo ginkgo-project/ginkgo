@@ -452,15 +452,19 @@ void CbGmres<ValueType>::apply_dense_impl(
         if (which_frsz2 == 21) {
             compressed_storage.resize_and_reset(
                 Frsz2Compressor21::memory_requirement(krylov_bases_dim_a));
-            this->average_bit_rate_ = compressed_storage.get_size() /
-                                      krylov_bases_dim[0] *
-                                      krylov_bases_dim[1] * krylov_bases_dim[2];
+            this->average_bit_rate_ =
+                static_cast<double>(compressed_storage.get_size() * CHAR_BIT) /
+                (krylov_bases_dim[0] * krylov_bases_dim[1] *
+                 krylov_bases_dim[2]);
         } else if (which_frsz2 == 32) {
             compressed_storage.resize_and_reset(
                 Frsz2Compressor32::memory_requirement(krylov_bases_dim_a));
-            this->average_bit_rate_ = compressed_storage.get_size() /
-                                      krylov_bases_dim[0] *
-                                      krylov_bases_dim[1] * krylov_bases_dim[2];
+            this->average_bit_rate_ =
+                static_cast<double>(compressed_storage.get_size() * CHAR_BIT) /
+                (krylov_bases_dim[0] * krylov_bases_dim[1] *
+                 krylov_bases_dim[2]);
+        } else if (which_frsz2 == 0) {
+            // Valid state which will be processed later on
         } else {
             GKO_NOT_IMPLEMENTED;
         }
