@@ -115,20 +115,27 @@ private:
     frsz2_compressor compressor_;
 
 public:
+    static GKO_ACC_ATTRIBUTES std::array<index_type, 2> get_required_stride(
+        dim_type size)
+    {
+        const auto stride_1 = (size[1] / max_exp_block_size +
+                               int(size[1] % max_exp_block_size > 0)) *
+                              max_exp_block_size;
+        return {size[0] * stride_1, stride_1};
+    }
+
     // Returns the total number of elements that will be required for the FRSZ2
     // compression with the given size
     static GKO_ACC_ATTRIBUTES std::size_t num_elements_required(dim_type size)
     {
-        return size[2] * size[0] *
-               (size[1] / max_exp_block_size +
-                bool(size[1] % max_exp_block_size > 0)) *
-               max_exp_block_size;
+        return size[2] * get_required_stride(size)[0];
     }
 
     // Returns the size in Byte that `size` requires for the FRSZ2 compression
     static GKO_ACC_ATTRIBUTES std::size_t memory_requirement(dim_type size)
     {
-        return num_elements_required(size);
+        return frsz2_compressor::compute_compressed_memory_size_byte(
+            num_elements_required(size));
     }
 
     /**
@@ -139,13 +146,7 @@ public:
      */
     constexpr GKO_ACC_ATTRIBUTES frsz2(dim_type size, std::uint8_t* storage)
         : size_(size),
-          acc_pattern_({size[0] *
-                            (size[1] / max_exp_block_size +
-                             bool(size[1] % max_exp_block_size > 0)) *
-                            max_exp_block_size,
-                        (size[1] / max_exp_block_size +
-                         bool(size[1] % max_exp_block_size > 0)) *
-                            max_exp_block_size}),
+          acc_pattern_(get_required_stride(size)),
           compressor_(storage, num_elements_required(size))
     {}
 
@@ -174,6 +175,17 @@ public:
         index_type krylov_vec, index_type vec_idx, index_type vec_rhs) const
     {
 #if defined(__CUDA_ARCH__)
+        if (krylov_vec >= size_[0] || vec_idx >= get_stride()[1] ||
+            vec_rhs >= size_[2]) {
+            printf(
+                "b %d (%d), t %d (%d): illegal read access: kv %lld / %lld, vi "
+                "%lld / %lld (%lld), vr %lld / %lld\n",
+                int(blockIdx.x), int(gridDim.x), int(threadIdx.x),
+                int(blockDim.x), std::int64_t(krylov_vec),
+                std::int64_t(size_[0]), std::int64_t(vec_idx),
+                std::int64_t(size_[1]), std::int64_t(get_stride()[1]),
+                std::int64_t(vec_rhs), std::int64_t(size_[2]));
+        }
         return compressor_.decompress_gpu_element(
             acc_pattern_.get_linear_index(krylov_vec, vec_idx, vec_rhs));
 #else
@@ -189,6 +201,17 @@ public:
                                           index_type vec_rhs,
                                           const arithmetic_type fp_input_value)
     {
+        if (krylov_vec >= size_[0] || vec_idx >= get_stride()[1] ||
+            vec_rhs >= size_[2]) {
+            printf(
+                "b %d (%d), t %d (%d): illegal read access: kv %lld / %lld, vi "
+                "%lld / %lld (%lld), vr %lld / %lld\n",
+                int(blockIdx.x), int(gridDim.x), int(threadIdx.x),
+                int(blockDim.x), std::int64_t(krylov_vec),
+                std::int64_t(size_[0]), std::int64_t(vec_idx),
+                std::int64_t(size_[1]), std::int64_t(get_stride()[1]),
+                std::int64_t(vec_rhs), std::int64_t(size_[2]));
+        }
         compressor_.template compress_gpu_function<block_size>(
             acc_pattern_.get_linear_index(krylov_vec, vec_idx, vec_rhs),
             fp_input_value);
