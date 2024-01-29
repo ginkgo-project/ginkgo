@@ -175,17 +175,18 @@ public:
         index_type krylov_vec, index_type vec_idx, index_type vec_rhs) const
     {
 #if defined(__CUDA_ARCH__)
-        if (krylov_vec >= size_[0] || vec_idx >= get_stride()[1] ||
-            vec_rhs >= size_[2]) {
-            printf(
-                "b %d (%d), t %d (%d): illegal read access: kv %lld / %lld, vi "
-                "%lld / %lld (%lld), vr %lld / %lld\n",
-                int(blockIdx.x), int(gridDim.x), int(threadIdx.x),
-                int(blockDim.x), std::int64_t(krylov_vec),
-                std::int64_t(size_[0]), std::int64_t(vec_idx),
-                std::int64_t(size_[1]), std::int64_t(get_stride()[1]),
-                std::int64_t(vec_rhs), std::int64_t(size_[2]));
-        }
+        // if (krylov_vec >= size_[0] || vec_idx >= get_stride()[1] ||
+        //     vec_rhs >= size_[2]) {
+        //     printf(
+        //         "b %d (%d), t %d (%d): illegal read access: kv %lld / %lld,
+        //         vi "
+        //         "%lld / %lld (%lld), vr %lld / %lld\n",
+        //         int(blockIdx.x), int(gridDim.x), int(threadIdx.x),
+        //         int(blockDim.x), std::int64_t(krylov_vec),
+        //         std::int64_t(size_[0]), std::int64_t(vec_idx),
+        //         std::int64_t(size_[1]), std::int64_t(get_stride()[1]),
+        //         std::int64_t(vec_rhs), std::int64_t(size_[2]));
+        // }
         return compressor_.decompress_gpu_element(
             acc_pattern_.get_linear_index(krylov_vec, vec_idx, vec_rhs));
 #else
@@ -201,17 +202,18 @@ public:
                                           index_type vec_rhs,
                                           const arithmetic_type fp_input_value)
     {
-        if (krylov_vec >= size_[0] || vec_idx >= get_stride()[1] ||
-            vec_rhs >= size_[2]) {
-            printf(
-                "b %d (%d), t %d (%d): illegal read access: kv %lld / %lld, vi "
-                "%lld / %lld (%lld), vr %lld / %lld\n",
-                int(blockIdx.x), int(gridDim.x), int(threadIdx.x),
-                int(blockDim.x), std::int64_t(krylov_vec),
-                std::int64_t(size_[0]), std::int64_t(vec_idx),
-                std::int64_t(size_[1]), std::int64_t(get_stride()[1]),
-                std::int64_t(vec_rhs), std::int64_t(size_[2]));
-        }
+        // if (krylov_vec >= size_[0] || vec_idx >= get_stride()[1] ||
+        //     vec_rhs >= size_[2]) {
+        //     printf(
+        //         "b %d (%d), t %d (%d): illegal read access: kv %lld / %lld,
+        //         vi "
+        //         "%lld / %lld (%lld), vr %lld / %lld\n",
+        //         int(blockIdx.x), int(gridDim.x), int(threadIdx.x),
+        //         int(blockDim.x), std::int64_t(krylov_vec),
+        //         std::int64_t(size_[0]), std::int64_t(vec_idx),
+        //         std::int64_t(size_[1]), std::int64_t(get_stride()[1]),
+        //         std::int64_t(vec_rhs), std::int64_t(size_[2]));
+        // }
         compressor_.template compress_gpu_function<block_size>(
             acc_pattern_.get_linear_index(krylov_vec, vec_idx, vec_rhs),
             fp_input_value);
