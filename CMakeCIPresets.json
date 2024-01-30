@@ -1,0 +1,573 @@
+{
+    "version": 4,
+    "configurePresets": [
+        {
+            "name": "base-ci",
+            "hidden": true,
+            "binaryDir": "${sourceDir}/build-${presetName}",
+            "generator": "Ninja",
+            "environment": {
+                "MPI_AS_ROOT": "OFF"
+            },
+            "cacheVariables": {
+                "CMAKE_CXX_FLAGS": "",
+                "GINKGO_BUILD_SHARED_LIBS": "ON",
+                "GINKGO_BUILD_REFERENCE": "ON",
+                "GINKGO_BUILD_OMP": "OFF",
+                "GINKGO_BUILD_CUDA": "OFF",
+                "GINKGO_BUILD_HIP": "OFF",
+                "GINKGO_BUILD_SYCL": "OFF",
+                "GINKGO_BUILD_HWLOC": "ON",
+                "GINKGO_BUILD_PAPI_SDE": "OFF",
+                "GINKGO_BUILD_MPI": "OFF",
+                "GINKGO_BUILD_TESTS": "ON",
+                "GINKGO_CONFIG_LOG_DETAILED": "ON",
+                "GINKGO_DEVEL_TOOLS": "OFF",
+                "GINKGO_DPCPP_SINGLE_MODE": "OFF",
+                "GINKGO_FAST_TESTS": "OFF",
+                "GINKGO_MIXED_PRECISION": "ON",
+                "GINKGO_TEST_NONDEFAULT_STREAM": "OFF",
+                "GINKGO_RUN_EXAMPLES": "OFF"
+            }
+        },
+        {
+            "name": "enable-release",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_CONFIGURATION_TYPES": "Release"
+            }
+        },
+        {
+            "name": "enable-debug",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_CONFIGURATION_TYPES": "Debug"
+            }
+        },
+        {
+            "name": "enable-cuda",
+            "hidden": true,
+            "cacheVariables": {
+                "GINKGO_BUILD_CUDA": "ON",
+                "CMAKE_CUDA_COMPILER": "nvcc",
+                "CMAKE_CUDA_ARCHITECTURES": "$env{CUDA_ARCH}"
+            }
+        },
+        {
+            "name": "enable-sycl",
+            "hidden": true,
+            "cacheVariables": {
+                "GINKGO_BUILD_SYCL": "ON",
+                "CMAKE_CXX_FLAGS": "-Wpedantic -ffp-model=precise",
+                "GINKGO_DPCPP_SINGLE_MODE": "ON"
+            }
+        },
+        {
+            "name": "enable-hip",
+            "hidden": true,
+            "cacheVariables": {
+                "GINKGO_BUILD_HIP": "ON"
+            }
+        },
+        {
+            "name": "enable-openmp",
+            "hidden": true,
+            "cacheVariables": {
+                "GINKGO_BUILD_OMP": "ON"
+            }
+        },
+        {
+            "name": "enable-mpi",
+            "hidden": true,
+            "environment": {
+                "MPI_AS_ROOT": "ON"
+            },
+            "cacheVariables": {
+                "GINKGO_BUILD_MPI": "ON"
+            }
+        },
+        {
+            "name": "enable-gcc",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "g++"
+            }
+        },
+        {
+            "name": "enable-clang",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "clang++"
+            }
+        },
+        {
+            "name": "enable-intel",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "icpx"
+            }
+        },
+        {
+            "name": "enable-dpcpp",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "dpcpp"
+            }
+        },
+        {
+            "name": "enable-nvhpc",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "nvc++",
+                "CMAKE_CXX_FLAGS": "--diag_suppress=useless_using_declaration,declared_but_not_referenced",
+                "CMAKE_CUDA_FLAGS": "-diag-suppress=177"
+            }
+        },
+        {
+            "name": "enable-msvc",
+            "hidden": true,
+            "generator": "Visual Studio 17 2022",
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "msvc",
+                "CMAKE_CXX_FLAGS_DEBUG": "/MDd /Zi /Ob1 /O1 /Od /RTC1"
+            }
+        },
+        {
+            "name": "ci-cuda-msvc-nompi-release",
+            "inherits": [
+                "enable-cuda",
+                "enable-msvc",
+                "enable-release",
+                "base-ci"
+            ]
+        },
+        {
+            "name": "ci-cuda+omp-gcc-mpi-release-shared",
+            "inherits": [
+                "enable-cuda",
+                "enable-openmp",
+                "enable-gcc",
+                "enable-release",
+                "base-ci"
+            ]
+        },
+        {
+            "name": "ci-cuda+omp-gcc-mpi-debug-fasttest-nondefault_stream",
+            "inherits": [
+                "enable-cuda",
+                "enable-openmp",
+                "enable-gcc",
+                "enable-debug",
+                "base-ci"
+            ],
+            "cacheVariables": {
+                "GINKGO_FAST_TESTS": "ON",
+                "GINKGO_TEST_NONDEFAULT_STREAM": "ON"
+            }
+        },
+        {
+            "name": "ci-cuda+omp-clang-nompi-release-static",
+            "inherits": [
+                "enable-cuda",
+                "enable-openmp",
+                "enable-clang",
+                "enable-release",
+                "base-ci"
+            ],
+            "cacheVariables": {
+                "GINKGO_BUILD_SHARED_LIBS": "OFF"
+            }
+        },
+        {
+            "name": "ci-cuda+omp-clang-nompi-release-fasttest-shared",
+            "inherits": [
+                "enable-cuda",
+                "enable-openmp",
+                "enable-clang",
+                "enable-release",
+                "base-ci"
+            ],
+            "cacheVariables": {
+                "GINKGO_FAST_TESTS": "ON",
+                "CMAKE_CXX_FLAGS": "-Wno-error=maybe-uninitialized",
+                "CMAKE_CUDA_FLAGS": "-diag-suppress=177"
+            }
+        },
+        {
+            "name": "ci-cuda+omp-gcc-nompi-debug-fasttest",
+            "inherits": [
+                "enable-cuda",
+                "enable-openmp",
+                "enable-gcc",
+                "enable-debug",
+                "base-ci"
+            ],
+            "cacheVariables": {
+                "GINKGO_FAST_TESTS": "ON",
+                "CMAKE_CXX_FLAGS": "-Wno-error=maybe-uninitialized",
+                "CMAKE_CUDA_FLAGS": "-diag-suppress=177"
+            }
+        },
+        {
+            "name": "ci-cuda+omp-nvhpc-nompi-release-static-fasttest",
+            "inherits": [
+                "enable-cuda",
+                "enable-openmp",
+                "enable-nvhpc",
+                "enable-release",
+                "base-ci"
+            ],
+            "cacheVariables": {
+                "GINKGO_FAST_TESTS": "ON",
+                "GINKGO_BUILD_SHARED_LIBS": "OFF"
+            }
+        },
+        {
+            "name": "ci-cuda+omp-nvhpc-nompi-debug-fasttest",
+            "inherits": [
+                "enable-cuda",
+                "enable-openmp",
+                "enable-nvhpc",
+                "enable-debug",
+                "base-ci"
+            ],
+            "cacheVariables": {
+                "GINKGO_FAST_TESTS": "ON"
+            }
+        },
+        {
+            "name": "ci-cuda-msvc-nompi-release-shared",
+            "inherits": [
+                "enable-cuda",
+                "enable-msvc",
+                "enable-release",
+                "base-ci"
+            ]
+        },
+        {
+            "name": "ci-hip+omp-gcc-nompi-debug-static",
+            "inherits": [
+                "enable-hip",
+                "enable-openmp",
+                "enable-gcc",
+                "enable-debug",
+                "base-ci"
+            ],
+            "cacheVariables": {
+                "GINKGO_BUILD_SHARED_LIBS": "OFF",
+                "GINKGO_RUN_EXAMPLES": "ON"
+            }
+        },
+        {
+            "name": "ci-hip+omp-gcc-nompi-release-fasttest-nondefault_stream",
+            "inherits": [
+                "enable-hip",
+                "enable-openmp",
+                "enable-gcc",
+                "enable-release",
+                "base-ci"
+            ],
+            "cacheVariables": {
+                "GINKGO_FAST_TESTS": "ON",
+                "GINKGO_TEST_NONDEFAULT_STREAM": "ON",
+                "GINKGO_RUN_EXAMPLES": "ON"
+            }
+        },
+        {
+            "name": "ci-hip+omp-clang-nompi-debug",
+            "inherits": [
+                "enable-hip",
+                "enable-openmp",
+                "enable-clang",
+                "enable-debug",
+                "base-ci"
+            ],
+            "cacheVariables": {
+                "GINKGO_RUN_EXAMPLES": "ON"
+            }
+        },
+        {
+            "name": "ci-hip+omp-clang-nompi-release",
+            "inherits": [
+                "enable-hip",
+                "enable-openmp",
+                "enable-clang",
+                "enable-release",
+                "base-ci"
+            ],
+            "cacheVariables": {
+                "GINKGO_RUN_EXAMPLES": "ON"
+            }
+        },
+        {
+            "name": "ci-hip+omp-clang-nompi-release-static",
+            "inherits": [
+                "ci-hip+omp-clang-nompi-release"
+            ],
+            "cacheVariables": {
+                "GINKGO_BUILD_SHARED_LIBS": "OFF",
+                "GINKGO_RUN_EXAMPLES": "ON"
+            }
+        },
+        {
+            "name": "ci-hip-gcc-nompi-release",
+            "inherits": [
+                "enable-hip",
+                "enable-gcc",
+                "enable-release",
+                "base-ci"
+            ],
+            "cacheVariables": {
+                "GINKGO_RUN_EXAMPLES": "ON"
+            }
+        },
+        {
+            "name": "ci-ref-clang-nompi-release",
+            "inherits": [
+                "enable-clang",
+                "enable-release",
+                "base-ci"
+            ]
+        },
+        {
+            "name": "ci-ref-gcc-nompi-debug-static-fasttest",
+            "inherits": [
+                "enable-clang",
+                "enable-release",
+                "base-ci"
+            ],
+            "cacheVariables": {
+                "GINKGO_FAST_TESTS": "ON",
+                "GINKGO_BUILD_SHARED_LIBS": "OFF"
+            }
+        },
+        {
+            "name": "ci-ref-msvc-nompi-release",
+            "generator": "Visual Studio 17 2022",
+            "inherits": [
+                "enable-msvc",
+                "enable-release",
+                "base-ci"
+            ]
+        },
+        {
+            "name": "ci-ref-msvc-nompi-release-static",
+            "generator": "Visual Studio 17 2022",
+            "inherits": [
+                "ci-ref-msvc-nompi-release"
+            ],
+            "cacheVariables": {
+                "GINKGO_BUILD_SHARED_LIBS": "OFF"
+            }
+        },
+        {
+            "name": "ci-omp-clang-mpi-debug-static-fasttest",
+            "inherits": [
+                "enable-openmp",
+                "enable-clang",
+                "enable-mpi",
+                "enable-debug",
+                "base-ci"
+            ],
+            "cacheVariables": {
+                "GINKGO_BUILD_SHARED_LIBS": "OFF",
+                "GINKGO_FAST_TESTS": "ON"
+            }
+        },
+        {
+            "name": "ci-omp-clang-mpi-glibcxx+debug-release",
+            "inherits": [
+                "enable-openmp",
+                "enable-clang",
+                "enable-mpi",
+                "enable-debug",
+                "base-ci"
+            ],
+            "cacheVariables": {
+                "CMAKE_CXX_FLAGS": "-Wpedantic -D_GLIBCXX_DEBUG=1"
+            }
+        },
+        {
+            "name": "ci-omp-clang-nompi-debug-nomixed",
+            "inherits": [
+                "enable-openmp",
+                "enable-clang",
+                "enable-mpi",
+                "enable-debug",
+                "base-ci"
+            ],
+            "cacheVariables": {
+                "GINKGO_MIXED_PRECISION": "OFF"
+            }
+        },
+        {
+            "name": "ci-omp-clang-nompi-debug-static-nomixed",
+            "inherits": [
+                "ci-omp-clang-nompi-debug-nomixed"
+            ],
+            "cacheVariables": {
+                "GINKGO_BUILD_SHARED_LIBS": "OFF"
+            }
+        },
+        {
+            "name": "ci-omp-clang-nompi-release-static",
+            "inherits": [
+                "enable-openmp",
+                "enable-clang",
+                "enable-mpi",
+                "enable-release",
+                "base-ci"
+            ],
+            "cacheVariables": {
+                "GINKGO_BUILD_SHARED_LIBS": "OFF"
+            }
+        },
+        {
+            "name": "ci-omp-clang-nompi-release-static-nomixed",
+            "inherits": [
+                "ci-omp-clang-nompi-release-static"
+            ],
+            "cacheVariables": {
+                "GINKGO_MIXED_PRECISION": "OFF"
+            }
+        },
+        {
+            "name": "ci-omp-gcc-nompi-release",
+            "inherits": [
+                "enable-openmp",
+                "enable-gcc",
+                "enable-release",
+                "base-ci"
+            ]
+        },
+        {
+            "name": "ci-omp-gcc-nompi-release-static",
+            "inherits": [
+                "ci-omp-gcc-nompi-release"
+            ],
+            "cacheVariables": {
+                "GINKGO_BUILD_SHARED_LIBS": "OFF"
+            }
+        },
+        {
+            "name": "ci-omp-gcc-mpi-release-nomixed",
+            "inherits": [
+                "enable-openmp",
+                "enable-clang",
+                "enable-mpi",
+                "enable-release",
+                "base-ci"
+            ],
+            "cacheVariables": {
+                "GINKGO_MIXED_PRECISION": "OFF"
+            }
+        },
+        {
+            "name": "ci-omp-mingwgcc-nompi-release-static",
+            "generator": "MinGW Makefiles",
+            "inherits": [
+                "enable-openmp",
+                "enable-gcc",
+                "enable-release",
+                "base-ci"
+            ],
+            "cacheVariables": {
+                "GINKGO_BUILD_SHARED_LIBS": "OFF"
+            }
+        },
+        {
+            "name": "ci-sycl-icpx-nompi-release-shared-singlemode",
+            "inherits": [
+                "enable-sycl",
+                "enable-intel",
+                "enable-mpi",
+                "enable-release",
+                "base-ci"
+            ]
+        },
+        {
+            "name": "ci-sycl-dpcpp-nompi-release-singlemode",
+            "inherits": [
+                "enable-sycl",
+                "enable-dpcpp",
+                "enable-mpi",
+                "enable-release",
+                "base-ci"
+            ]
+        },
+        {
+            "name": "ci-sycl-dpcpp-nompi-release-static-singlemode",
+            "inherits": [
+                "ci-sycl-dpcpp-nompi-release-singlemode"
+            ],
+            "cacheVariables": {
+                "GINKGO_BUILD_SHARED_LIBS": "OFF"
+            }
+        },
+        {
+            "name": "ci-sycl-icpx-nompi-release-singlemode-nomixed",
+            "inherits": [
+                "ci-sycl-icpx-nompi-release-singlemode"
+            ],
+            "cacheVariables": {
+                "GINKGO_MIXED_PRECISION": "OFF"
+            }
+        },
+        {
+            "name": "ci-warnings",
+            "inherits": [
+                "enable-cuda",
+                "enable-hip",
+                "enable-openmp",
+                "base-ci"
+            ],
+            "cacheVariables": {
+                "CMAKE_CXX_FLAGS": "-Wpedantic -Werror=pedantic -pedantic-errors"
+            }
+        },
+        {
+            "name": "ci-no_circular_deps",
+            "inherits": [
+                "enable-cuda",
+                "enable-hip",
+                "enable-openmp",
+                "base-ci"
+            ],
+            "cacheVariables": {
+                "GINKGO_CHECK_CIRCULAR_DEPS": "ON"
+            }
+        },
+        {
+            "name": "ci-subdir_build",
+            "inherits": [
+                "enable-openmp",
+                "base-ci"
+            ]
+        },
+        {
+            "name": "ci-clang_tidy",
+            "inherits": [
+                "enable-cuda",
+                "enable-hip",
+                "enable-openmp",
+                "base-ci"
+            ],
+            "cacheVariables": {
+                "GINKGO_WITH_CLANG_TIDY": "ON"
+            }
+        },
+        {
+            "name": "ci-iwyu",
+            "inherits": [
+                "enable-cuda",
+                "enable-openmp",
+                "base-ci"
+            ],
+            "cacheVariables": {
+                "GINKGO_WITH_IWYU": "ON"
+            }
+        }
+    ]
+}
