@@ -38,12 +38,6 @@
     - mkdir -p ${CI_JOB_NAME} && cd ${CI_JOB_NAME}
     - *environment_script
     - |
-      apt update
-      apt install -y python3-pip python3-venv doxygen
-      python3 -m pip install pipx
-      pipx install pre-commit
-      export PATH=$HOME/.local/bin:$PATH
-    - |
       cmake -S ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX} -B . \
       -DGINKGO_BUILD_REFERENCE=ON -DGINKGO_BUILD_OMP=ON \
       -DGINKGO_BUILD_MPI=${BUILD_MPI} -DGINKGO_BUILD_CUDA=${BUILD_CUDA} \
@@ -55,7 +49,7 @@
       -DGINKGO_CHECK_CIRCULAR_DEPS=ON -DGINKGO_WITH_CCACHE=ON \
       -DGINKGO_BUILD_PAPI_SDE=OFF -DGINKGO_BUILD_HWLOC=ON \
       -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON \
-      -DGINKGO_BUILD_DOC=ON
+      -DGINKGO_BUILD_DOC=OFF
   dependencies: []
 
 .build_template:
