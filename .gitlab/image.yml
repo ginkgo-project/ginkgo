@@ -25,10 +25,10 @@
     - controller
 
 .use_gko-cuda101-openmpi-gnu8-llvm7-intel2019:
-  image: ginkgohub/cuda:101-openmpi-gnu8-llvm7-intel2019
+  image: localhost:5000/update-jre-21_e5a3faf8_gko-cuda101-openmpi-gnu8-llvm7-intel2019 
   tags:
     - private_ci
-    - controller
+    - amdci
     - cpu
 
 .use_gko-cuda101-openmpi-gnu8-llvm13-intel2019:
