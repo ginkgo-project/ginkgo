@@ -1,6 +1,6 @@
 find_package(MKL CONFIG REQUIRED HINTS "$ENV{MKLROOT}" "$ENV{MKL_ROOT}")
 find_package(oneDPL REQUIRED HINTS "$ENV{DPL_ROOT}" "$ENV{DPLROOT}")
-# use the parameter from cmake 
+# use the parameter from cmake
 set(GINKGO_MKL_ROOT "${MKL_DIR}" PARENT_SCOPE)
 set(GINKGO_DPL_ROOT "${oneDPL_DIR}" PARENT_SCOPE)
 
@@ -69,6 +69,9 @@ target_sources(ginkgo_dpcpp
     ${GKO_UNIFIED_COMMON_SOURCES}
     ${DENSE_INSTANTIATE}
     )
+if(GINKGO_BENCHMARK_ENABLE_TUNING)
+    target_sources(ginkgo_dpcpp PRIVATE ${Ginkgo_SOURCE_DIR}/benchmark/utils/tuning_variables.cpp)
+endif()
 
 # TODO: adjust it when dpcpp jacobi supports more block size
 set(GKO_DPCPP_JACOBI_BLOCK_SIZES 32)

@@ -28,6 +28,9 @@ set(GINKGO_HIP_SOURCES
     ${GKO_UNIFIED_COMMON_SOURCES}
     ${GKO_CUDA_HIP_COMMON_SOURCES}
     )
+if(GINKGO_BENCHMARK_ENABLE_TUNING)
+    list(APPEND GINKGO_HIP_SOURCES ${Ginkgo_SOURCE_DIR}/benchmark/utils/tuning_variables.cpp)
+endif()
 
 if(hipfft_FOUND)
     list(APPEND GINKGO_HIP_SOURCES matrix/fft_kernels.hip.cpp)

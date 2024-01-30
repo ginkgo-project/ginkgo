@@ -48,7 +48,7 @@ size_type calculate_nwarps(std::shared_ptr<const DpcppExecutor> exec,
         multiple = 32;
     }
 #ifdef GINKGO_BENCHMARK_ENABLE_TUNING
-    if (_tuning_flag) {
+    if (_tuning_flag && _tuned_value > 0) {
         multiple = _tuned_value;
     }
 #endif  // GINKGO_BENCHMARK_ENABLE_TUNING

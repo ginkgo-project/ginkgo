@@ -44,8 +44,9 @@ option(GINKGO_CHECK_CIRCULAR_DEPS
 option(GINKGO_CONFIG_LOG_DETAILED
     "Enable printing of detailed configuration log to screen in addition to the writing of files," OFF)
 option(GINKGO_BENCHMARK_ENABLE_TUNING
-    "Enable tuning variables in the benchmarks. For specific use cases, manual code changes could be required."
+    "Enable tuning variables in the benchmarks. For specific use cases, manual code changes could be required. WARNING: It is not possible to install Ginkgo with this option enabled."
     OFF)
+mark_as_advanced(GINKGO_BENCHMARK_ENABLE_TUNING)
 set(GINKGO_VERBOSE_LEVEL "1" CACHE STRING
     "Verbosity level. Put 0 to turn off. 1 activates a few important messages.")
 set(GINKGO_CUDA_ARCHITECTURES "Auto" CACHE STRING
@@ -123,13 +124,6 @@ if(GINKGO_WITH_CCACHE)
             set(CMAKE_CUDA_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
         endif()
     endif()
-endif()
-
-if(GINKGO_BENCHMARK_ENABLE_TUNING)
-    # In this state, the tests and examples cannot be compiled without extra
-    # complexity/intrusiveness, so we simply disable them.
-    set(GINKGO_BUILD_TESTS OFF)
-    set(GINKGO_BUILD_EXAMPLES OFF)
 endif()
 
 if(GINKGO_BUILD_TESTS)
