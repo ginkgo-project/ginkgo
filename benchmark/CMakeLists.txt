@@ -6,7 +6,7 @@ endif()
 
 function(ginkgo_benchmark_add_tuning_maybe name)
     if(GINKGO_BENCHMARK_ENABLE_TUNING)
-        target_sources(${name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../utils/tuning_variables.cpp)
+        target_sources(${name} PRIVATE ${Ginkgo_SOURCE_DIR}/benchmark/utils/tuning_variables.cpp)
     endif()
 endfunction()
 

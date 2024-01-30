@@ -135,7 +135,6 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
 
         // tuning run
 #ifdef GINKGO_BENCHMARK_ENABLE_TUNING
-        auto& format_case = spmv_case[format_name];
         format_case["tuning"] = json::object();
         auto& tuning_case = format_case["tuning"];
         tuning_case["time"] = json::array();
