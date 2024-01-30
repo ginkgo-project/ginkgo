@@ -44,8 +44,9 @@ option(GINKGO_CHECK_CIRCULAR_DEPS
 option(GINKGO_CONFIG_LOG_DETAILED
     "Enable printing of detailed configuration log to screen in addition to the writing of files," OFF)
 option(GINKGO_BENCHMARK_ENABLE_TUNING
-    "Enable tuning variables in the benchmarks. For specific use cases, manual code changes could be required."
+    "Enable tuning variables in the benchmarks. For specific use cases, manual code changes could be required. WARNING: It is not possible to install Ginkgo with this option enabled."
     OFF)
+mark_as_advanced(GINKGO_BENCHMARK_ENABLE_TUNING)
 set(GINKGO_VERBOSE_LEVEL "1" CACHE STRING
     "Verbosity level. Put 0 to turn off. 1 activates a few important messages.")
 if(MSVC)
@@ -54,11 +55,11 @@ if(MSVC)
 elseif(GINKGO_BUILD_SYCL OR CMAKE_CXX_COMPILER MATCHES "dpcpp|icpx")
     # For now always use `-ffp-model=precise` with DPC++. This can be removed when
     # the floating point issues are fixed.
-    set(GINKGO_COMPILER_FLAGS "-Wpedantic;-ffp-model=precise" CACHE STRING
-        "Set the required CXX compiler flags, mainly used for warnings. Current default is `-Wpedantic;-ffp-model=precise`")
+    set(GINKGO_COMPILER_FLAGS "-ffp-model=precise" CACHE STRING
+        "Set the required CXX compiler flags, mainly used for warnings. Current default is `-ffp-model=precise`")
 else()
-    set(GINKGO_COMPILER_FLAGS "-Wpedantic" CACHE STRING
-        "Set the required CXX compiler flags, mainly used for warnings. Current default is `-Wpedantic`")
+    set(GINKGO_COMPILER_FLAGS "" CACHE STRING
+        "Set the required CXX compiler flags, mainly used for warnings. Current default is ``")
 endif()
 set(GINKGO_CUDA_COMPILER_FLAGS "" CACHE STRING
     "Set the required NVCC compiler flags, mainly used for warnings. Current default is an empty string")
@@ -77,7 +78,6 @@ set(GINKGO_HIP_AMDGPU "" CACHE STRING
 option(GINKGO_SPLIT_TEMPLATE_INSTANTIATIONS "Split template instantiations for slow-to-compile files. This improves parallel build performance" ON)
 mark_as_advanced(GINKGO_SPLIT_TEMPLATE_INSTANTIATIONS)
 option(GINKGO_JACOBI_FULL_OPTIMIZATIONS "Use all the optimizations for the CUDA Jacobi algorithm" OFF)
-option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
 if(MSVC OR WIN32 OR CYGWIN OR APPLE)
     option(GINKGO_BUILD_HWLOC "Build Ginkgo with HWLOC. Default is OFF. Ginkgo does not support HWLOC on Windows/MacOS" OFF)
 else()
@@ -92,6 +92,11 @@ option(GINKGO_FORCE_GPU_AWARE_MPI "Assert that the MPI library is GPU aware. Thi
      catastrophically in case the MPI implementation is not GPU Aware, and GPU aware functionality has been forced" OFF)
 set(GINKGO_CI_TEST_OMP_PARALLELISM "4" CACHE STRING
     "The number of OpenMP threads to use for a test binary during CTest resource file-constrained test.")
+
+if(NOT DEFINED BUILD_SHARED_LIBS)
+    message(STATUS "BUILD_SHARED_LIBS is not set, so enabling it by default.")
+    set(BUILD_SHARED_LIBS ON)
+endif()
 
 # load executor-specific configuration
 if(GINKGO_BUILD_CUDA)
@@ -141,13 +146,6 @@ if(GINKGO_WITH_CCACHE)
             set(CMAKE_CUDA_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
         endif()
     endif()
-endif()
-
-if(GINKGO_BENCHMARK_ENABLE_TUNING)
-    # In this state, the tests and examples cannot be compiled without extra
-    # complexity/intrusiveness, so we simply disable them.
-    set(GINKGO_BUILD_TESTS OFF)
-    set(GINKGO_BUILD_EXAMPLES OFF)
 endif()
 
 if(GINKGO_BUILD_TESTS)

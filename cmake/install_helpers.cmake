@@ -1,6 +1,13 @@
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 
+if(GINKGO_BENCHMARK_ENABLE_TUNING)
+    install(CODE [=[
+            message(FATAL_ERROR
+                    "Skipping install configuration due to enabled GINKGO_BENCHMARK_ENABLE_TUNING. "
+                    "Please deactivate that variable if you want to install Ginkgo")
+            ]=])
+endif()
 
 set(GINKGO_INSTALL_PKGCONFIG_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/pkgconfig")
 set(GINKGO_INSTALL_CONFIG_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/cmake/Ginkgo")

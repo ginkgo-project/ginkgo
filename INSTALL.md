@@ -89,7 +89,7 @@ Ginkgo adds the following additional switches to control what is being built:
     `COVERAGE`, `ASAN` (AddressSanitizer), `LSAN` (LeakSanitizer), `TSAN`
     (ThreadSanitizer) and `UBSAN` (undefined behavior sanitizer) types.
 *   `-DBUILD_SHARED_LIBS={ON, OFF}` builds ginkgo as shared libraries (`OFF`)
-    or as dynamic libraries (`ON`), default is `ON`.
+    or as dynamic libraries (`ON`), default is `ON`, see https://cmake.org/cmake/help/latest/variable/BUILD_SHARED_LIBS.html.
 *   `-DGINKGO_JACOBI_FULL_OPTIMIZATIONS={ON, OFF}` use all the optimizations
     for the CUDA Jacobi algorithm. `OFF` by default. Setting this option to `ON`
     may lead to very slow compile time (>20 minutes) for the

@@ -63,6 +63,9 @@ set(GINKGO_HIP_SOURCES
     stop/residual_norm_kernels.hip.cpp
     ${GKO_UNIFIED_COMMON_SOURCES}
     )
+if(GINKGO_BENCHMARK_ENABLE_TUNING)
+    list(APPEND GINKGO_HIP_SOURCES ${Ginkgo_SOURCE_DIR}/benchmark/utils/tuning_variables.cpp)
+endif()
 
 if(hipfft_FOUND)
     list(APPEND GINKGO_HIP_SOURCES matrix/fft_kernels.hip.cpp)

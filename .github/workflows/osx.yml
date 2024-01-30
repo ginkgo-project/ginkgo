@@ -27,9 +27,9 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - {shared: "ON", build_type: "Debug", name: "omp/debug/shared", "mixed": "OFF"}
-        - {shared: "OFF", build_type: "Release", name: "omp/release/static", "mixed": "ON"}
-    name: ${{ matrix.config.name }}
+          - { preset: "ci-omp-clang-nompi-debug-nomixed" }
+          - { preset: "ci-omp-clang-nompi-release-static" }
+    name: ${{ matrix.config.preset }}
     runs-on: [macos-latest]
 
     steps:
@@ -42,7 +42,7 @@ jobs:
 
     - name: info
       run: |
-        g++ -v
+        clang++ -v
         cmake --version
 
     - name: Debug over SSH (tmate)
@@ -53,12 +53,12 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake .. -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_MIXED_PRECISION=${{ matrix.config.mixed }}
-        make -j8
+        cmake -S .. -B . --preset ${{ matrix.config.preset }}
+        cmake --build . -j8
         ctest -j10 --output-on-failure
 
     - name: install
       run: |
         cd build
-        make install
-        make test_install
+        cmake --install .
+        cmake --build . --target test_install
