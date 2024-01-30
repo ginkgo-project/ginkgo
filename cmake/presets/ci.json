@@ -11,7 +11,7 @@
             },
             "cacheVariables": {
                 "CMAKE_CXX_FLAGS": "",
-                "GINKGO_BUILD_SHARED_LIBS": "ON",
+                "BUILD_SHARED_LIBS": "ON",
                 "GINKGO_BUILD_REFERENCE": "ON",
                 "GINKGO_BUILD_OMP": "OFF",
                 "GINKGO_BUILD_CUDA": "OFF",
@@ -177,7 +177,7 @@
                 "base-ci"
             ],
             "cacheVariables": {
-                "GINKGO_BUILD_SHARED_LIBS": "OFF"
+                "BUILD_SHARED_LIBS": "OFF"
             }
         },
         {
@@ -221,7 +221,7 @@
             ],
             "cacheVariables": {
                 "GINKGO_FAST_TESTS": "ON",
-                "GINKGO_BUILD_SHARED_LIBS": "OFF"
+                "BUILD_SHARED_LIBS": "OFF"
             }
         },
         {
@@ -256,7 +256,7 @@
                 "base-ci"
             ],
             "cacheVariables": {
-                "GINKGO_BUILD_SHARED_LIBS": "OFF",
+                "BUILD_SHARED_LIBS": "OFF",
                 "GINKGO_RUN_EXAMPLES": "ON"
             }
         },
@@ -307,7 +307,7 @@
                 "ci-hip+omp-clang-nompi-release"
             ],
             "cacheVariables": {
-                "GINKGO_BUILD_SHARED_LIBS": "OFF",
+                "BUILD_SHARED_LIBS": "OFF",
                 "GINKGO_RUN_EXAMPLES": "ON"
             }
         },
@@ -340,7 +340,7 @@
             ],
             "cacheVariables": {
                 "GINKGO_FAST_TESTS": "ON",
-                "GINKGO_BUILD_SHARED_LIBS": "OFF"
+                "BUILD_SHARED_LIBS": "OFF"
             }
         },
         {
@@ -359,7 +359,7 @@
                 "ci-ref-msvc-nompi-release"
             ],
             "cacheVariables": {
-                "GINKGO_BUILD_SHARED_LIBS": "OFF"
+                "BUILD_SHARED_LIBS": "OFF"
             }
         },
         {
@@ -372,7 +372,7 @@
                 "base-ci"
             ],
             "cacheVariables": {
-                "GINKGO_BUILD_SHARED_LIBS": "OFF",
+                "BUILD_SHARED_LIBS": "OFF",
                 "GINKGO_FAST_TESTS": "ON"
             }
         },
@@ -398,6 +398,7 @@
                 "enable-debug",
                 "base-ci"
             ],
+            "generator": "Unix Makefiles",
             "cacheVariables": {
                 "GINKGO_MIXED_PRECISION": "OFF"
             }
@@ -408,7 +409,7 @@
                 "ci-omp-clang-nompi-debug-nomixed"
             ],
             "cacheVariables": {
-                "GINKGO_BUILD_SHARED_LIBS": "OFF"
+                "BUILD_SHARED_LIBS": "OFF"
             }
         },
         {
@@ -420,8 +421,9 @@
                 "enable-release",
                 "base-ci"
             ],
+            "generator": "Unix Makefiles",
             "cacheVariables": {
-                "GINKGO_BUILD_SHARED_LIBS": "OFF"
+                "BUILD_SHARED_LIBS": "OFF"
             }
         },
         {
@@ -448,7 +450,7 @@
                 "ci-omp-gcc-nompi-release"
             ],
             "cacheVariables": {
-                "GINKGO_BUILD_SHARED_LIBS": "OFF"
+                "BUILD_SHARED_LIBS": "OFF"
             }
         },
         {
@@ -474,7 +476,7 @@
                 "base-ci"
             ],
             "cacheVariables": {
-                "GINKGO_BUILD_SHARED_LIBS": "OFF"
+                "BUILD_SHARED_LIBS": "OFF"
             }
         },
         {
@@ -495,7 +497,8 @@
                 "enable-mpi",
                 "enable-release",
                 "base-ci"
-            ]
+            ],
+            "generator": "Unix Makefiles"
         },
         {
             "name": "ci-sycl-dpcpp-nompi-release-static-singlemode",
@@ -503,7 +506,7 @@
                 "ci-sycl-dpcpp-nompi-release-singlemode"
             ],
             "cacheVariables": {
-                "GINKGO_BUILD_SHARED_LIBS": "OFF"
+                "BUILD_SHARED_LIBS": "OFF"
             }
         },
         {
@@ -511,6 +514,7 @@
             "inherits": [
                 "ci-sycl-icpx-nompi-release-singlemode"
             ],
+            "generator": "Unix Makefiles",
             "cacheVariables": {
                 "GINKGO_MIXED_PRECISION": "OFF"
             }

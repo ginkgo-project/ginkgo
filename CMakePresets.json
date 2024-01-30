@@ -1,6 +1,6 @@
 {
     "version": 4,
-    "include": ["CMakeCIPresets.json"],
+    "include": ["cmake/presets/ci.json"],
     "configurePresets": [
         {
             "name": "base",
