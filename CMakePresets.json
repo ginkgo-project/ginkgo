@@ -1,13 +1,14 @@
 {
-  "version": 1,
-  "configurePresets": [
-    {
-      "name": "base",
-      "hidden": true,
-      "binaryDir": "${sourceDir}/build-${presetName}"
-    },
-    {
-      "name": "base-dev",
+    "version": 4,
+    "include": ["cmake/presets/ci.json"],
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "binaryDir": "${sourceDir}/build-${presetName}"
+        },
+        {
+            "name": "base-dev",
             "hidden": true,
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
@@ -36,40 +37,40 @@
         },
         {
             "name": "release",
-      "inherits": "base",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
-      },
-      "warnings": {
-        "dev": false
-      }
-    },
-    {
-      "name": "develop-gcc",
-      "inherits": ["base", "base-dev", "base-dev-gcc-like"],
-      "cacheVariables": {
-        "CMAKE_CXX_COMPILER": "g++"
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            },
+            "warnings": {
+                "dev": false
             }
+        },
+        {
+            "name": "develop-gcc",
+            "inherits": ["base", "base-dev", "base-dev-gcc-like"],
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "g++"
+                }
         },
         {
             "name": "develop-clang",
             "inherits": ["base", "base-dev", "base-dev-gcc-like"],
             "cacheVariables": {
                 "CMAKE_CXX_COMPILER": "clang++"
-      }
-    },
-    {
-      "name": "develop-msvc",
-      "inherits": ["base", "base-dev"],
+            }
+        },
+        {
+            "name": "develop-msvc",
+            "inherits": ["base", "base-dev"],
             "cacheVariables": {
                 "CMAKE_CXX_COMPILER": "msvc",
-                "CMAKE_CXX_FLAGS": "$env{CXXFLAGS} /permissive- /Oy-"
+                "CMAKE_CXX_FLAGS": "$env{CXXFLAGS} /permissive-/Oy-"
             },
             "condition": {
                 "type": "equals",
                 "lhs": "${hostSystemName}",
                 "rhs": "Windows"
-      }
-    }
-  ]
+            }
+        }
+    ]
 }
