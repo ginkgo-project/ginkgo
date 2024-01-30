@@ -97,7 +97,7 @@ __host__ size_type calculate_nwarps(std::shared_ptr<const HipExecutor> exec,
     }
 #endif  // GINKGO_HIP_PLATFORM_NVCC
 #ifdef GINKGO_BENCHMARK_ENABLE_TUNING
-    if (_tuning_flag) {
+    if (_tuning_flag && _tuned_value > 0) {
         multiple = _tuned_value;
     }
 #endif  // GINKGO_BENCHMARK_ENABLE_TUNING

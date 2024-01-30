@@ -40,6 +40,13 @@ target_sources(
         ${GKO_UNIFIED_COMMON_SOURCES}
         ${GKO_CUDA_HIP_COMMON_SOURCES}
 )
+if(GINKGO_BENCHMARK_ENABLE_TUNING)
+    target_sources(ginkgo_cuda PRIVATE ${Ginkgo_SOURCE_DIR}/benchmark/utils/tuning_variables.cpp)
+endif()
+# override the default language mapping for the common files, set them to CUDA
+foreach(source_file IN LISTS GKO_UNIFIED_COMMON_SOURCES)
+    set_source_files_properties(${source_file} PROPERTIES LANGUAGE CUDA)
+endforeach(source_file)
 if(GINKGO_JACOBI_FULL_OPTIMIZATIONS)
     set(GKO_CUDA_JACOBI_BLOCK_SIZES)
     foreach(blocksize RANGE 1 32)
