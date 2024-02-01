@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017-2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -95,7 +95,13 @@ public:
         std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
             coarse_solver_factory, nullptr);
 
-        bool GKO_FACTORY_PARAMETER_SCALAR(static_condensation, true);
+        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
+            lower_solver, nullptr);
+
+        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
+            upper_solver, nullptr);
+
+        bool GKO_FACTORY_PARAMETER_SCALAR(constant_nullspace, false);
 
         /**
          * A list of all interfaces in the global matrix. An interface can
@@ -115,7 +121,7 @@ public:
          */
         std::vector<index_type> GKO_FACTORY_PARAMETER_VECTOR(interior_dofs, 0);
 
-        std::set<index_type> GKO_FACTORY_PARAMETER_VECTOR(boundary_idxs, {});
+        std::set<index_type> GKO_FACTORY_PARAMETER_VECTOR(boundary_idxs);
 
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting_interfaces, false);
     };
@@ -188,6 +194,7 @@ private:
     std::shared_ptr<global_matrix_type> RGT;
     std::shared_ptr<global_matrix_type> RC;
     std::shared_ptr<global_matrix_type> RCT;
+    std::shared_ptr<global_matrix_type> IDG;
     std::shared_ptr<const LinOp> inner_solver;
     std::shared_ptr<const LinOp> edge_solver;
     std::shared_ptr<const LinOp> local_schur_solver;
@@ -200,6 +207,7 @@ private:
     std::vector<index_type> edge_idxs;
     std::shared_ptr<vec_type> one_op;
     std::shared_ptr<vec_type> neg_one_op;
+    std::shared_ptr<vec_type> scale_op;
     std::vector<std::vector<index_type>> interface_dofs_;
     std::vector<std::vector<index_type>> interface_dof_ranks_;
     std::shared_ptr<global_vec_type> restricted_residual;
@@ -210,6 +218,10 @@ private:
     std::shared_ptr<global_vec_type> coarse_solution;
     std::shared_ptr<global_vec_type> coarse_b;
     std::shared_ptr<global_vec_type> coarse_x;
+    std::shared_ptr<global_vec_type> nullspace;
+    std::shared_ptr<global_vec_type> neg_nullspace;
+    std::shared_ptr<global_vec_type> nullspace_interm;
+    std::shared_ptr<global_vec_type> orig_rhs;
     std::shared_ptr<vec_type> inner_intermediate;
     std::shared_ptr<const LinOp> global_schur;
     std::shared_ptr<vec_type> coarse_1;
