@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017-2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -14,14 +14,19 @@
 #include <thrust/tuple.h>
 
 
+#include "cuda/base/config.hpp"
 #include "cuda/base/thrust.cuh"
 #include "cuda/base/types.hpp"
+#include "cuda/components/thread_ids.cuh"
 
 
 namespace gko {
 namespace kernels {
 namespace cuda {
 namespace components {
+
+
+constexpr int default_block_size = 512;
 
 
 #include "common/cuda_hip/base/device_matrix_data_kernels.hpp.inc"
