@@ -118,11 +118,11 @@ struct array {
 
     [[nodiscard]] size_type size() const { return elems_.size(); }
 
-    iterator begin() { return elems_.begin(); }
-    const_iterator begin() const { return elems_.begin(); }
+    iterator begin() { return elems_.data(); }
+    const_iterator begin() const { return elems_.data(); }
 
-    iterator end() { return elems_.end(); }
-    const_iterator end() const { return elems_.end(); }
+    iterator end() { return begin() + elems_.size(); }
+    const_iterator end() const { return begin() + elems_.size(); }
 
     [[nodiscard]] bool empty() const { return elems_.empty(); }
 
@@ -365,49 +365,127 @@ private:
 };
 
 
-// template <typename IndexType>
-// IndexType compute_compressed_col(
-//     const overlap_indices<array<IndexType>>& remote_send_idxs,
-//     comm_index_type process_id, IndexType local_col_id)
-// {
-//     // this is actually the recv offset.
-//     IndexType offset = 0;
-//     for (comm_index_type pid = 0; pid < process_id; ++pid) {
-//         offset += remote_send_idxs.get_indices(pid).get_size();
-//     }
-//     return offset + local_col_id;
-// }
-//
-//
-// template <typename IndexType>
-// struct semi_global_index {
-//     comm_index_type proc_id;
-//     IndexType local_idx;
-// };
-//
-// template <typename LocalIndexType, typename GlobalIndexType = int64>
-// struct NonLocalIndexMap {
-//     GlobalIndexType get_global(LocalIndexType id) GKO_NOT_IMPLEMENTED;
-//
-//     LocalIndexType get_local(comm_index_type process_id,
-//                              LocalIndexType local_id);
-//
-//     array<LocalIndexType> get_local(
-//         const array<comm_index_type>& process_ids,
-//         const flat_container<array<comm_index_type>>& local_ids);
-//
-//     array<LocalIndexType> get_local();
-//
-//
-//     std::unique_ptr<NonLocalIndexMap> create(
-//         std::shared_ptr<const Executor>,
-//         ptr_param<const localized_partition<LocalIndexType>> part)
-//     {}
-//
-// private:
-//     overlap_indices<array<LocalIndexType>> remote_send_idxs_;
-//     overlap_indices<array<LocalIndexType>> send_idxs_;
-// };
+template <typename IndexType>
+struct semi_global_index {
+    comm_index_type proc_id;
+    IndexType local_idx;
+};
+
+template <typename LocalIndexType, typename GlobalIndexType = int64>
+struct NonLocalIndexMap {
+    GlobalIndexType get_global(LocalIndexType id) GKO_NOT_IMPLEMENTED;
+
+    LocalIndexType get_local(comm_index_type process_id,
+                             LocalIndexType semi_global_id)
+    {
+        auto exec = target_ids_.get_executor();
+        auto host_process_ids =
+            make_temporary_clone(exec->get_master(), &target_ids_);
+        auto set_id =
+            std::distance(target_ids_.get_data(),
+                          std::lower_bound(host_process_ids->get_data(),
+                                           host_process_ids->get_data() +
+                                               host_process_ids->get_size(),
+                                           process_id));
+
+        auto& remote_idxs = remote_send_idxs_[set_id];
+
+        return local_id_offsets[set_id] +
+               std::distance(remote_idxs.get_data(),
+                             std::lower_bound(remote_idxs.get_data(),
+                                              remote_idxs.get_data() +
+                                                  remote_idxs.get_size(),
+                                              semi_global_id));
+    }
+
+
+    array<LocalIndexType> get_local(
+        comm_index_type process_id,
+        const array<LocalIndexType>& semi_global_ids)
+    {
+        auto exec = semi_global_ids.get_executor();
+        auto host_semi_global_ids =
+            make_temporary_clone(exec->get_master(), &semi_global_ids);
+
+        array<LocalIndexType> local_ids{exec->get_master(),
+                                        semi_global_ids.get_size()};
+
+        auto set_id = std::distance(
+            target_ids_.get_data(),
+            std::lower_bound(target_ids_.get_data(),
+                             target_ids_.get_data() + target_ids_.get_size(),
+                             process_id));
+
+        for (size_type i = 0; i < host_semi_global_ids->get_size(); ++i) {
+            auto current_set = remote_send_idxs_[set_id];
+            local_ids.get_data()[i] =
+                local_id_offsets[set_id] +
+                std::distance(
+                    current_set.get_data(),
+                    std::lower_bound(
+                        current_set.get_data(),
+                        current_set.get_data() + current_set.get_size(),
+                        host_semi_global_ids->get_const_data()[i]));
+        }
+
+        return local_ids;
+    }
+
+    array<LocalIndexType> get_local(
+        const array<comm_index_type>& process_ids,
+        const collection::array<LocalIndexType>& semi_global_ids)
+    {
+        auto exec = process_ids.get_executor();
+        auto host_process_ids = clone(exec->get_master(), &process_ids);
+
+        array<LocalIndexType> local_ids{exec->get_master(),
+                                        semi_global_ids.get_flat().get_size()};
+
+        std::vector<size_type> query_size_offsets(semi_global_ids.size() + 1);
+        std::partial_sum(
+            semi_global_ids.begin(), semi_global_ids.end(),
+            query_size_offsets.begin() + 1,
+            [](const auto& acc, const auto& a) { return acc + a.get_size(); });
+
+        for (size_type i = 0; i < host_process_ids->get_size(); ++i) {
+            auto pid = host_process_ids->get_data()[i];
+
+            auto current_result = make_array_view(
+                exec->get_master(), semi_global_ids[i].get_size(),
+                local_ids.get_data() + query_size_offsets[i]);
+            current_result = get_local(pid, semi_global_ids[i]);
+        }
+    }
+
+
+    // this one will need communication
+    std::unique_ptr<NonLocalIndexMap> create(
+        std::shared_ptr<const Executor>,
+        ptr_param<const localized_partition<LocalIndexType>> part)
+    {}
+
+    NonLocalIndexMap(std::shared_ptr<const Executor>,
+                     ptr_param<const localized_partition<LocalIndexType>> part,
+                     const collection::array<LocalIndexType>& remote)
+        : target_ids_(part->get_send_indices().target_ids),
+          remote_send_idxs_(remote),
+          send_idxs_(part->get_send_indices().idxs),
+          local_id_offsets(remote_send_idxs_.size() + 1)
+    {
+        std::inclusive_scan(
+            remote_send_idxs_.begin(), remote_send_idxs_.end(),
+            local_id_offsets.begin() + 1,
+            [](const auto& acc, const auto& a) { return acc + a.get_size(); },
+            0);
+    }
+
+
+private:
+    array<comm_index_type> target_ids_;
+    collection::array<LocalIndexType> remote_send_idxs_;
+    collection::array<LocalIndexType> send_idxs_;
+    std::vector<LocalIndexType> local_id_offsets;
+};
 
 
 /**
