@@ -15,11 +15,11 @@
 
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/distributed/localized_partition.hpp>
 
 
 #include "core/distributed/partition_kernels.hpp"
 #include "core/test/utils.hpp"
-
 
 namespace {
 
@@ -285,5 +285,75 @@ TYPED_TEST(Partition, IsOrderedFail)
     ASSERT_FALSE(part->has_ordered_parts());
 }
 
+
+class LocalizedPartition : public ::testing::Test {
+protected:
+    using local_index_type = gko::int32;
+    using global_index_type = gko::int64;
+    using part_type =
+        gko::experimental::distributed::localized_partition<local_index_type>;
+    using map_type =
+        gko::experimental::distributed::NonLocalIndexMap<local_index_type,
+                                                         global_index_type>;
+
+    LocalizedPartition() : ref(gko::ReferenceExecutor::create()) {}
+
+    std::shared_ptr<const gko::ReferenceExecutor> ref;
+};
+
+
+TEST_F(LocalizedPartition, CanMapSingleId)
+{
+    auto part = part_type::build_from_blocked_recv(
+        ref, 2,
+        {
+            std::make_pair(gko::array<int>(ref, {0, 1}), 1),
+            std::make_pair(gko::array<int>(ref, {0, 1}), 2),
+        },
+        {ref, {1, 2}}, {2, 1});
+    auto map = map_type(ref, part,
+                        gko::collection::array<gko::int32>{
+                            {ref, {0, 1, 1}}, std::vector<int>{2, 1}});
+
+    auto r0 = map.get_local(1, 0);
+    auto r1 = map.get_local(0, 1);
+    auto r2 = map.get_local(2, 1);
+
+    ASSERT_EQ(r0, 0);
+    ASSERT_EQ(r1, 1);
+    ASSERT_EQ(r2, 2);
+}
+
+
+TEST_F(LocalizedPartition, CanMapSingleArrayOfIds)
+{
+    auto part = part_type::build_from_blocked_recv(
+        ref, 2,
+        {
+            std::make_pair(gko::array<int>(ref, {0, 1}), 1),
+            std::make_pair(gko::array<int>(ref, {0, 1}), 2),
+        },
+        {ref, {1, 2}}, {2, 1});
+    auto map = map_type(ref, part,
+                        gko::collection::array<gko::int32>{
+                            {ref, {0, 1, 1}}, std::vector<int>{2, 1}});
+
+    {
+        auto semi_gid = gko::array<int>{ref, {0, 1, 1, 0}};
+
+        auto result = map.get_local(1, semi_gid);
+
+        auto expected = gko::array<int>{ref, {0, 1, 1, 0}};
+        GKO_ASSERT_ARRAY_EQ(result, expected);
+    }
+    {
+        auto semi_gid = gko::array<int>{ref, {1, 1}};
+
+        auto result = map.get_local(2, semi_gid);
+
+        auto expected = gko::array<int>{ref, {2, 2}};
+        GKO_ASSERT_ARRAY_EQ(result, expected);
+    }
+}
 
 }  // namespace
