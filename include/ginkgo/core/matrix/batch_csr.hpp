@@ -249,6 +249,9 @@ public:
      */
     template <typename InputValueType, typename ColIndexType,
               typename RowPtrType>
+    GKO_DEPRECATED(
+        "explicitly construct the gko::array arguments instead of passing "
+        "initializer lists")
     static std::unique_ptr<Csr> create(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
         std::initializer_list<InputValueType> values,

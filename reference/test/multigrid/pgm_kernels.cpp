@@ -518,12 +518,14 @@ TYPED_TEST(Pgm, GenerateMgLevelOnUnsortedMatrix)
      *  0 -3  0  5  0
      *  0 -2 -2  0  5
      */
-    auto mtx_values = {-3, -3, 5, -3, -2, -1, 5, -3, -1, 5, 5, -3, -2, -2, 5};
-    auto mtx_col_idxs = {1, 2, 0, 0, 3, 4, 1, 0, 4, 2, 1, 3, 1, 2, 4};
-    auto mtx_row_ptrs = {0, 3, 7, 10, 12, 15};
-    auto matrix = gko::share(
-        Mtx::create(this->exec, gko::dim<2>{5, 5}, std::move(mtx_values),
-                    std::move(mtx_col_idxs), std::move(mtx_row_ptrs)));
+    auto matrix = gko::share(Mtx::create(
+        this->exec, gko::dim<2>{5, 5},
+        gko::array<value_type>{
+            this->exec,
+            {-3, -3, 5, -3, -2, -1, 5, -3, -1, 5, 5, -3, -2, -2, 5}},
+        gko::array<index_type>{this->exec,
+                               {1, 2, 0, 0, 3, 4, 1, 0, 4, 2, 1, 3, 1, 2, 4}},
+        gko::array<index_type>{this->exec, {0, 3, 7, 10, 12, 15}}));
     auto prolong_op = gko::share(Mtx::create(this->exec, gko::dim<2>{5, 2}, 0));
     // 0-2-4, 1-3
     prolong_op->read(

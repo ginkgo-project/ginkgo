@@ -363,6 +363,9 @@ public:
      */
     template <typename InputValueType, typename InputColumnIndexType,
               typename InputRowPtrType>
+    GKO_DEPRECATED(
+        "explicitly construct the gko::array argument instead of passing "
+        "initializer lists")
     static std::unique_ptr<Fbcsr> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         int block_size, std::initializer_list<InputValueType> values,

@@ -350,6 +350,9 @@ public:
      * Executor>, const batch_dim<2>&, array<value_type>)
      */
     template <typename InputValueType>
+    GKO_DEPRECATED(
+        "explicitly construct the gko::array argument instead of passing an "
+        "initializer list")
     static std::unique_ptr<MultiVector> create(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
         std::initializer_list<InputValueType> values)
