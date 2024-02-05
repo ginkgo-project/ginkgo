@@ -310,51 +310,6 @@ private:
 };
 
 
-// template <typename IndexType>
-// IndexType compute_compressed_col(
-//     const overlap_indices<array<IndexType>>& remote_send_idxs,
-//     comm_index_type process_id, IndexType local_col_id)
-// {
-//     // this is actually the recv offset.
-//     IndexType offset = 0;
-//     for (comm_index_type pid = 0; pid < process_id; ++pid) {
-//         offset += remote_send_idxs.get_indices(pid).get_size();
-//     }
-//     return offset + local_col_id;
-// }
-//
-//
-// template <typename IndexType>
-// struct semi_global_index {
-//     comm_index_type proc_id;
-//     IndexType local_idx;
-// };
-//
-// template <typename LocalIndexType, typename GlobalIndexType = int64>
-// struct NonLocalIndexMap {
-//     GlobalIndexType get_global(LocalIndexType id) GKO_NOT_IMPLEMENTED;
-//
-//     LocalIndexType get_local(comm_index_type process_id,
-//                              LocalIndexType local_id);
-//
-//     array<LocalIndexType> get_local(
-//         const array<comm_index_type>& process_ids,
-//         const flat_container<array<comm_index_type>>& local_ids);
-//
-//     array<LocalIndexType> get_local();
-//
-//
-//     std::unique_ptr<NonLocalIndexMap> create(
-//         std::shared_ptr<const Executor>,
-//         ptr_param<const localized_partition<LocalIndexType>> part)
-//     {}
-//
-// private:
-//     overlap_indices<array<LocalIndexType>> remote_send_idxs_;
-//     overlap_indices<array<LocalIndexType>> send_idxs_;
-// };
-
-
 /**
  * Get all rows of the input vector that are local to this process.
  */
