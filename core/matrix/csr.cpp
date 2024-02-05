@@ -121,20 +121,6 @@ Csr<ValueType, IndexType>::create_const(
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<const Csr<ValueType, IndexType>>
-Csr<ValueType, IndexType>::create_const(
-    std::shared_ptr<const Executor> exec, const dim<2>& size,
-    gko::detail::const_array_view<ValueType>&& values,
-    gko::detail::const_array_view<IndexType>&& col_idxs,
-    gko::detail::const_array_view<IndexType>&& row_ptrs)
-{
-    return Csr::create_const(exec, size, std::move(values), std::move(col_idxs),
-                             std::move(row_ptrs),
-                             Csr::make_default_strategy(exec));
-}
-
-
-template <typename ValueType, typename IndexType>
 std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::create(
     std::shared_ptr<const Executor> exec,
     std::shared_ptr<strategy_type> strategy)
@@ -156,15 +142,6 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::create(
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::create(
     std::shared_ptr<const Executor> exec, const dim<2>& size,
-    size_type num_nonzeros)
-{
-    return std::unique_ptr<Csr>{new Csr{exec, size, num_nonzeros}};
-}
-
-
-template <typename ValueType, typename IndexType>
-std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::create(
-    std::shared_ptr<const Executor> exec, const dim<2>& size,
     array<value_type> values, array<index_type> col_idxs,
     array<index_type> row_ptrs, std::shared_ptr<strategy_type> strategy)
 {
@@ -175,45 +152,19 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::create(
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::create(
-    std::shared_ptr<const Executor> exec, const dim<2>& size,
-    array<value_type> values, array<index_type> col_idxs,
-    array<index_type> row_ptrs)
-{
-    return std::unique_ptr<Csr>{new Csr{exec, size, std::move(values),
-                                        std::move(col_idxs),
-                                        std::move(row_ptrs)}};
-}
-
-
-template <typename ValueType, typename IndexType>
-Csr<ValueType, IndexType>::Csr(std::shared_ptr<const Executor> exec,
-                               std::shared_ptr<strategy_type> strategy)
-    : Csr(std::move(exec), dim<2>{}, {}, std::move(strategy))
-{}
-
-
-template <typename ValueType, typename IndexType>
 Csr<ValueType, IndexType>::Csr(std::shared_ptr<const Executor> exec,
                                const dim<2>& size, size_type num_nonzeros,
                                std::shared_ptr<strategy_type> strategy)
     : EnableLinOp<Csr>(exec, size),
+      strategy_(strategy ? strategy->copy() : Csr::make_default_strategy(exec)),
       values_(exec, num_nonzeros),
       col_idxs_(exec, num_nonzeros),
       row_ptrs_(exec, size[0] + 1),
-      srow_(exec, strategy->clac_size(num_nonzeros)),
-      strategy_(strategy->copy())
+      srow_(exec, strategy_->clac_size(num_nonzeros))
 {
     row_ptrs_.fill(0);
     this->make_srow();
 }
-
-
-template <typename ValueType, typename IndexType>
-Csr<ValueType, IndexType>::Csr(std::shared_ptr<const Executor> exec,
-                               const dim<2>& size, size_type num_nonzeros)
-    : Csr{exec, size, num_nonzeros, Csr::make_default_strategy(exec)}
-{}
 
 
 template <typename ValueType, typename IndexType>
@@ -223,30 +174,16 @@ Csr<ValueType, IndexType>::Csr(std::shared_ptr<const Executor> exec,
                                array<index_type> row_ptrs,
                                std::shared_ptr<strategy_type> strategy)
     : EnableLinOp<Csr>(exec, size),
+      strategy_(strategy ? strategy->copy() : Csr::make_default_strategy(exec)),
       values_{exec, std::move(values)},
       col_idxs_{exec, std::move(col_idxs)},
       row_ptrs_{exec, std::move(row_ptrs)},
-      srow_(exec),
-      strategy_(strategy->copy())
+      srow_(exec)
 {
     GKO_ASSERT_EQ(values_.get_size(), col_idxs_.get_size());
     GKO_ASSERT_EQ(this->get_size()[0] + 1, row_ptrs_.get_size());
     this->make_srow();
 }
-
-
-template <typename ValueType, typename IndexType>
-Csr<ValueType, IndexType>::Csr(std::shared_ptr<const Executor> exec,
-                               const dim<2>& size, array<value_type> values,
-                               array<index_type> col_idxs,
-                               array<index_type> row_ptrs)
-    : Csr{exec,
-          size,
-          std::move(values),
-          std::move(col_idxs),
-          std::move(row_ptrs),
-          Csr::make_default_strategy(exec)}
-{}
 
 
 template <typename ValueType, typename IndexType>

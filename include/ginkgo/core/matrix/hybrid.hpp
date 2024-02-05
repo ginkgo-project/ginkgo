@@ -616,6 +616,8 @@ public:
      *
      * @param exec  Executor associated to the matrix
      * @param strategy  strategy of deciding the Hybrid config
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Hybrid> create(
         std::shared_ptr<const Executor> exec,
@@ -630,6 +632,8 @@ public:
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param strategy  strategy of deciding the Hybrid config
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Hybrid> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
@@ -645,6 +649,8 @@ public:
      * @param num_stored_elements_per_row   the number of stroed elements per
      *                                      row
      * @param strategy  strategy of deciding the Hybrid config
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Hybrid> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
@@ -661,6 +667,8 @@ public:
      *                                      row
      * @param stride  stride of the rows
      * @param strategy  strategy of deciding the Hybrid config
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Hybrid> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
@@ -677,6 +685,8 @@ public:
      * @param stride  stride of the rows
      * @param num_nonzeros  number of nonzeros
      * @param strategy  strategy of deciding the Hybrid config
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Hybrid> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
@@ -712,26 +722,9 @@ public:
     Hybrid(Hybrid&&);
 
 protected:
-    Hybrid(std::shared_ptr<const Executor> exec,
-           std::shared_ptr<strategy_type> strategy =
-               std::make_shared<automatic>());
-
-    Hybrid(std::shared_ptr<const Executor> exec, const dim<2>& size,
-           std::shared_ptr<strategy_type> strategy =
-               std::make_shared<automatic>());
-
-    Hybrid(std::shared_ptr<const Executor> exec, const dim<2>& size,
-           size_type num_stored_elements_per_row,
-           std::shared_ptr<strategy_type> strategy =
-               std::make_shared<automatic>());
-
-    Hybrid(std::shared_ptr<const Executor> exec, const dim<2>& size,
-           size_type num_stored_elements_per_row, size_type stride,
-           std::shared_ptr<strategy_type> strategy);
-
-    Hybrid(std::shared_ptr<const Executor> exec, const dim<2>& size,
-           size_type num_stored_elements_per_row, size_type stride,
-           size_type num_nonzeros = {},
+    Hybrid(std::shared_ptr<const Executor> exec, const dim<2>& size = {},
+           size_type num_stored_elements_per_row = 0, size_type stride = 0,
+           size_type num_nonzeros = 0,
            std::shared_ptr<strategy_type> strategy =
                std::make_shared<automatic>());
 

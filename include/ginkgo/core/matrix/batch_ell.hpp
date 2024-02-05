@@ -227,6 +227,8 @@ public:
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param num_elems_per_row  the number of elements to be stored in each row
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Ell> create(
         std::shared_ptr<const Executor> exec,
@@ -237,8 +239,6 @@ public:
      * Creates a Ell matrix from an already allocated (and initialized)
      * array. The column indices array needs to be the same for all batch items.
      *
-     * @tparam ValuesArray  type of array of values
-     *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param num_elems_per_row  the number of elements to be stored in each row
@@ -248,6 +248,8 @@ public:
      * @note If `values` is not an rvalue, not an array of ValueType, or is on
      *       the wrong executor, an internal copy will be created, and the
      *       original array data will not be used in the matrix.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Ell> create(std::shared_ptr<const Executor> exec,
                                        const batch_dim<2>& size,
@@ -285,6 +287,8 @@ public:
      * @return A smart pointer to the constant matrix wrapping the input
      * array (if it resides on the same executor as the matrix) or a copy of the
      * array on the correct executor.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<const Ell> create_const(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,

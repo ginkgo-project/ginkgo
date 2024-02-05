@@ -107,14 +107,6 @@ Sellp<ValueType, IndexType>::Sellp(Sellp&& other) : Sellp(other.get_executor())
 
 template <typename ValueType, typename IndexType>
 Sellp<ValueType, IndexType>::Sellp(std::shared_ptr<const Executor> exec,
-                                   const dim<2>& size)
-    : Sellp(std::move(exec), size,
-            ceildiv(size[0], default_slice_size) * size[1])
-{}
-
-
-template <typename ValueType, typename IndexType>
-Sellp<ValueType, IndexType>::Sellp(std::shared_ptr<const Executor> exec,
                                    const dim<2>& size, size_type total_cols)
     : Sellp(std::move(exec), size, default_slice_size, default_stride_factor,
             total_cols)
@@ -136,15 +128,6 @@ Sellp<ValueType, IndexType>::Sellp(std::shared_ptr<const Executor> exec,
 {
     slice_sets_.fill(0);
     slice_lengths_.fill(0);
-}
-
-
-template <typename ValueType, typename IndexType>
-std::unique_ptr<Sellp<ValueType, IndexType>>
-Sellp<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
-                                    const dim<2>& size)
-{
-    return std::unique_ptr<Sellp>{new Sellp{exec, size}};
 }
 
 

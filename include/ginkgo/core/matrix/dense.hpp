@@ -1133,26 +1133,18 @@ public:
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
-     */
-    static std::unique_ptr<Dense> create(std::shared_ptr<const Executor> exec,
-                                         const dim<2>& size = dim<2>{});
-
-    /**
-     * Creates an uninitialized Dense matrix of the specified size.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
      * @param stride  stride of the rows (i.e. offset between the first
      *                  elements of two consecutive rows, expressed as the
      *                  number of matrix elements)
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Dense> create(std::shared_ptr<const Executor> exec,
-                                         const dim<2>& size, size_type stride);
+                                         const dim<2>& size = {},
+                                         size_type stride = 0);
 
     /**
      * Creates a Dense matrix from an already allocated (and initialized) array.
-     *
-     * @tparam ValuesArray  type of array of values
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
@@ -1164,12 +1156,18 @@ public:
      * @note If `values` is not an rvalue, not an array of ValueType, or is on
      *       the wrong executor, an internal copy will be created, and the
      *       original array data will not be used in the matrix.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Dense> create(std::shared_ptr<const Executor> exec,
                                          const dim<2>& size,
                                          array<value_type> values,
                                          size_type stride);
 
+    /**
+     * @copydoc std::unique_ptr<Dense> create(std::shared_ptr<const Executor>,
+     * const dim<2>&, array<value_type>, size_type)
+     */
     template <typename InputValueType>
     static std::unique_ptr<Dense> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
@@ -1221,10 +1219,8 @@ public:
     Dense(Dense&&);
 
 protected:
-    Dense(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{});
-
-    Dense(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          size_type stride);
+    Dense(std::shared_ptr<const Executor> exec, const dim<2>& size = {},
+          size_type stride = 0);
 
     Dense(std::shared_ptr<const Executor> exec, const dim<2>& size,
           array<value_type> values, size_type stride);
@@ -1452,8 +1448,8 @@ protected:
                          Dense<OutputType>* row_collection) const;
 
 private:
-    array<value_type> values_;
     size_type stride_;
+    array<value_type> values_;
 
     void add_scaled_identity_impl(const LinOp* a, const LinOp* b) override;
 };

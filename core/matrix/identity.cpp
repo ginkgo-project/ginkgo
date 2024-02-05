@@ -60,14 +60,6 @@ std::unique_ptr<LinOp> Identity<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-Identity<ValueType>::Identity(std::shared_ptr<const Executor> exec, dim<2> size)
-    : EnableLinOp<Identity>(exec, size)
-{
-    GKO_ASSERT_IS_SQUARE_MATRIX(this);
-}
-
-
-template <typename ValueType>
 Identity<ValueType>::Identity(std::shared_ptr<const Executor> exec,
                               size_type size)
     : EnableLinOp<Identity>(exec, dim<2>{size})
@@ -78,7 +70,8 @@ template <typename ValueType>
 std::unique_ptr<Identity<ValueType>> Identity<ValueType>::create(
     std::shared_ptr<const Executor> exec, dim<2> size)
 {
-    return std::unique_ptr<Identity>{new Identity{exec, size}};
+    GKO_ASSERT_IS_SQUARE_MATRIX(size);
+    return std::unique_ptr<Identity>{new Identity{exec, size[0]}};
 }
 
 

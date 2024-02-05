@@ -335,24 +335,6 @@ Ell<ValueType, IndexType>::compute_absolute() const
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Ell<ValueType, IndexType>> Ell<ValueType, IndexType>::create(
-    std::shared_ptr<const Executor> exec, const dim<2>& size)
-{
-    return std::unique_ptr<Ell>{new Ell{exec, size}};
-}
-
-
-template <typename ValueType, typename IndexType>
-std::unique_ptr<Ell<ValueType, IndexType>> Ell<ValueType, IndexType>::create(
-    std::shared_ptr<const Executor> exec, const dim<2>& size,
-    size_type num_stored_elements_per_row)
-{
-    return std::unique_ptr<Ell>{
-        new Ell{exec, size, num_stored_elements_per_row}};
-}
-
-
-template <typename ValueType, typename IndexType>
-std::unique_ptr<Ell<ValueType, IndexType>> Ell<ValueType, IndexType>::create(
     std::shared_ptr<const Executor> exec, const dim<2>& size,
     size_type num_stored_elements_per_row, size_type stride)
 {
@@ -392,29 +374,14 @@ Ell<ValueType, IndexType>::create_const(
 
 template <typename ValueType, typename IndexType>
 Ell<ValueType, IndexType>::Ell(std::shared_ptr<const Executor> exec,
-                               const dim<2>& size)
-    : Ell(std::move(exec), size, size[1])
-{}
-
-
-template <typename ValueType, typename IndexType>
-Ell<ValueType, IndexType>::Ell(std::shared_ptr<const Executor> exec,
-                               const dim<2>& size,
-                               size_type num_stored_elements_per_row)
-    : Ell(std::move(exec), size, num_stored_elements_per_row, size[0])
-{}
-
-
-template <typename ValueType, typename IndexType>
-Ell<ValueType, IndexType>::Ell(std::shared_ptr<const Executor> exec,
                                const dim<2>& size,
                                size_type num_stored_elements_per_row,
                                size_type stride)
     : EnableLinOp<Ell>(exec, size),
-      values_(exec, stride * num_stored_elements_per_row),
-      col_idxs_(exec, stride * num_stored_elements_per_row),
-      num_stored_elements_per_row_(num_stored_elements_per_row),
-      stride_(stride)
+      stride_(stride == 0 ? size[0] : stride),
+      values_(exec, stride_ * num_stored_elements_per_row),
+      col_idxs_(exec, stride_ * num_stored_elements_per_row),
+      num_stored_elements_per_row_(num_stored_elements_per_row)
 {}
 
 

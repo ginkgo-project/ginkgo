@@ -308,6 +308,8 @@ public:
      * @param exec  Executor associated to the matrix
      * @param block_size  The desired size of the dense square nonzero blocks;
      *                    defaults to 1.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Fbcsr> create(std::shared_ptr<const Executor> exec,
                                          int block_size = 1);
@@ -320,6 +322,8 @@ public:
      * @param num_nonzeros  number of stored nonzeros. It needs to be a multiple
      *                      of block_size * block_size.
      * @param block_size  size of the small dense square blocks
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Fbcsr> create(std::shared_ptr<const Executor> exec,
                                          const dim<2>& size,
@@ -330,22 +334,21 @@ public:
      * Creates a FBCSR matrix from already allocated (and initialized) row
      * pointer, column index and value arrays.
      *
-     * @tparam ValuesArray  type of `values` array
-     * @tparam ColIdxsArray  type of `col_idxs` array
-     * @tparam RowPtrsArray  type of `row_ptrs` array
-     *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param block_size  Size of the small square dense nonzero blocks
-     * @param values  array of matrix values
-     * @param col_idxs  array of column indexes
-     * @param row_ptrs  array of row pointers
+     * @param values  the value array of the matrix, stored in column-major
+     *                order for each block
+     * @param col_idxs  the block column index array of the matrix
+     * @param row_ptrs  the block row pointer array of the matrix
      *
      * @note If one of `row_ptrs`, `col_idxs` or `values` is not an rvalue, not
      *       an array of IndexType, IndexType and ValueType, respectively, or
      *       is on the wrong executor, an internal copy of that array will be
      *       created, and the original array data will not be used in the
      *       matrix.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Fbcsr> create(std::shared_ptr<const Executor> exec,
                                          const dim<2>& size, int block_size,
@@ -355,8 +358,8 @@ public:
 
     /**
      * @copydoc std::unique_ptr<Fbcsr> create(std::shared_ptr<const Executor>,
-     * const dim<2>& size, int block_size, array<value_type> values,
-     * array<index_type> col_idxs, array<index_type>)
+     * const dim<2>&, int, array<value_type>, array<index_type>,
+     * array<index_type>)
      */
     template <typename InputValueType, typename InputColumnIndexType,
               typename InputRowPtrType>
@@ -378,7 +381,8 @@ public:
      * @param exec  the executor to create the matrix on
      * @param size  the dimensions of the matrix
      * @param blocksize  the block size of the matrix
-     * @param values  the value array of the matrix
+     * @param values  the value array of the matrix, stored in column-major
+     *                order for each block
      * @param col_idxs  the block column index array of the matrix
      * @param row_ptrs  the block row pointer array of the matrix
      * @returns A smart pointer to the constant matrix wrapping the input arrays

@@ -109,6 +109,8 @@ public:
      *
      * @param exec  Executor associated to the matrix
      * @param size  dimensions of the (square) scaled permutation matrix
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<ScaledPermutation> create(
         std::shared_ptr<const Executor> exec, size_type size = 0);
@@ -118,7 +120,8 @@ public:
      * The permutation will be copied, the scaling factors are all set to 1.0.
      *
      * @param permutation  the permutation
-     * @return  the scaled permutation.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<ScaledPermutation> create(
         ptr_param<const Permutation<IndexType>> permutation);
@@ -129,6 +132,8 @@ public:
      * @param exec  Executor associated to the matrix
      * @param permutation_indices  array of permutation indices
      * @param scaling_factors  array of scaling factors
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<ScaledPermutation> create(
         std::shared_ptr<const Executor> exec, array<value_type> scaling_factors,
