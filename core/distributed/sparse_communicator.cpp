@@ -128,8 +128,6 @@ sparse_communicator::sparse_communicator(
     fill_size_offsets(recv_sizes_, recv_offsets_, part->get_recv_indices());
     fill_size_offsets(send_sizes_, send_offsets_, part->get_send_indices());
 
-    send_idxs_ = part->get_send_indices().idxs.get_flat();
-
     part_ = std::move(part);
 }
 
@@ -162,8 +160,7 @@ mpi::request sparse_communicator::communicate_impl_(
     send_buffer.init(exec, {collection::get_size(send_idxs.idxs),
                             local_vector->get_size()[1]});
 
-    auto& full_send_idxs = std::get<array<IndexType>>(send_idxs_);
-    local_vector->row_gather(&full_send_idxs, send_buffer.get());
+    local_vector->row_gather(&send_idxs.idxs.get_flat(), send_buffer.get());
 
     auto recv_ptr = recv_buffer->get_values();
     auto send_ptr = send_buffer->get_values();

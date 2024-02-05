@@ -183,7 +183,6 @@ private:
     std::vector<comm_index_type> send_offsets_;
     std::vector<comm_index_type> recv_sizes_;
     std::vector<comm_index_type> recv_offsets_;
-    std::variant<array<int32>, array<int64>> send_idxs_;
 };
 
 
