@@ -1,12 +1,11 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/distributed/localized_partition.hpp>
 
 
-// Copyright (c) 2017-2023, the Ginkgo authors
-#include "core/components/max_array_kernels.hpp"
+#include "core/components/min_max_array_kernels.hpp"
 
 
 namespace gko::experimental::distributed {
@@ -14,9 +13,10 @@ namespace array_kernels {
 
 
 GKO_REGISTER_OPERATION(max, components::max_array);
+GKO_REGISTER_OPERATION(min, components::min_array);
 
 
-}
+}  // namespace array_kernels
 
 
 namespace detail {

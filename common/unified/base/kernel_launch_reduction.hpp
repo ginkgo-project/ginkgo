@@ -17,6 +17,10 @@
     [] GKO_KERNEL(auto a, auto b) { return a > b ? a : b; }, \
         [] GKO_KERNEL(auto a) { return a; }, ValueType       \
     {}
+#define GKO_KERNEL_REDUCE_MIN(ValueType)                     \
+    [] GKO_KERNEL(auto a, auto b) { return a < b ? a : b; }, \
+        [] GKO_KERNEL(auto a) { return a; }, ValueType       \
+    {}
 
 
 #if defined(GKO_COMPILING_CUDA)
