@@ -19,7 +19,7 @@ void max_array(std::shared_ptr<const DefaultExecutor> exec,
                const array<IndexType>& arr, IndexType& val)
 {
     if (arr.get_size() == 0) {
-        val == std::numeric_limits<IndexType>::min();
+        val = std::numeric_limits<IndexType>::min();
     } else {
         val = *std::max_element(arr.get_const_data(),
                                 arr.get_const_data() + arr.get_size());
@@ -34,7 +34,7 @@ void min_array(std::shared_ptr<const DefaultExecutor> exec,
                const array<IndexType>& arr, IndexType& val)
 {
     if (arr.get_size() == 0) {
-        val == std::numeric_limits<IndexType>::max();
+        val = std::numeric_limits<IndexType>::max();
     } else {
         val = *std::min_element(arr.get_const_data(),
                                 arr.get_const_data() + arr.get_size());
