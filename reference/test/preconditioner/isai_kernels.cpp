@@ -89,85 +89,104 @@ protected:
           u_csr_inv{Csr::create(exec)},
           spd_csr{Csr::create(exec)},
           spd_csr_inv{Csr::create(exec)},
-          l_sparse{Csr::create(exec, gko::dim<2>(4, 4),
-                               I<value_type>{-1., 2., 4., 5., -4., 8., -8.},
-                               I<index_type>{0, 0, 1, 1, 2, 2, 3},
-                               I<index_type>{0, 1, 3, 5, 7})},
-          l_s_unsorted{Csr::create(exec, gko::dim<2>(4, 4),
-                                   I<value_type>{-1., 4., 2., 5., -4., -8., 8.},
-                                   I<index_type>{0, 1, 0, 1, 2, 3, 2},
-                                   I<index_type>{0, 1, 3, 5, 7})},
+          l_sparse{Csr::create(
+              exec, gko::dim<2>(4, 4),
+              gko::array<value_type>{exec, {-1., 2., 4., 5., -4., 8., -8.}},
+              gko::array<index_type>{exec, {0, 0, 1, 1, 2, 2, 3}},
+              gko::array<index_type>{exec, {0, 1, 3, 5, 7}})},
+          l_s_unsorted{Csr::create(
+              exec, gko::dim<2>(4, 4),
+              gko::array<value_type>{exec, {-1., 4., 2., 5., -4., -8., 8.}},
+              gko::array<index_type>{exec, {0, 1, 0, 1, 2, 3, 2}},
+              gko::array<index_type>{exec, {0, 1, 3, 5, 7}})},
           l_sparse_inv{
               Csr::create(exec, gko::dim<2>(4, 4),
-                          I<value_type>{-1., .5, .25, .3125, -.25, -.25, -.125},
-                          I<index_type>{0, 0, 1, 1, 2, 2, 3},
-                          I<index_type>{0, 1, 3, 5, 7})},
-          l_sparse_inv2{Csr::create(exec, gko::dim<2>(4, 4),
-                                    I<value_type>{-1., .5, .25, .625, .3125,
-                                                  -.25, .3125, -.25, -.125},
-                                    I<index_type>{0, 0, 1, 0, 1, 2, 1, 2, 3},
-                                    I<index_type>{0, 1, 3, 6, 9})},
-          l_sparse_inv3{
-              Csr::create(exec, gko::dim<2>(4, 4),
-                          I<value_type>{-1., .5, .25, .625, .3125, -.25, .625,
-                                        .3125, -.25, -.125},
-                          I<index_type>{0, 0, 1, 0, 1, 2, 0, 1, 2, 3},
-                          I<index_type>{0, 1, 3, 6, 10})},
-          l_sparse2{Csr::create(exec, gko::dim<2>(4, 4),
-                                I<value_type>{-2, 1, 4, 1, -2, 1, -1, 1, 2},
-                                I<index_type>{0, 0, 1, 1, 2, 0, 1, 2, 3},
-                                I<index_type>{0, 1, 3, 5, 9})},
-          l_sparse2_inv{Csr::create(exec, gko::dim<2>(4, 4),
-                                    I<value_type>{-.5, .125, .25, .125, -.5,
-                                                  .28125, .0625, 0.25, 0.5},
-                                    I<index_type>{0, 0, 1, 1, 2, 0, 1, 2, 3},
-                                    I<index_type>{0, 1, 3, 5, 9})},
-          u_sparse{
-              Csr::create(exec, gko::dim<2>(4, 4),
-                          I<value_type>{-2., 1., -1., 1., 4., 1., -2., 1., 2.},
-                          I<index_type>{0, 1, 2, 3, 1, 2, 2, 3, 3},
-                          I<index_type>{0, 4, 6, 8, 9})},
-          u_s_unsorted{
-              Csr::create(exec, gko::dim<2>(4, 4),
-                          I<value_type>{-2., -1., 1., 1., 1., 4., -2., 1., 2.},
-                          I<index_type>{0, 2, 1, 3, 2, 1, 2, 3, 3},
-                          I<index_type>{0, 4, 6, 8, 9})},
+                          gko::array<value_type>{
+                              exec, {-1., .5, .25, .3125, -.25, -.25, -.125}},
+                          gko::array<index_type>{exec, {0, 0, 1, 1, 2, 2, 3}},
+                          gko::array<index_type>{exec, {0, 1, 3, 5, 7}})},
+          l_sparse_inv2{Csr::create(
+              exec, gko::dim<2>(4, 4),
+              gko::array<value_type>{
+                  exec, {-1., .5, .25, .625, .3125, -.25, .3125, -.25, -.125}},
+              gko::array<index_type>{exec, {0, 0, 1, 0, 1, 2, 1, 2, 3}},
+              gko::array<index_type>{exec, {0, 1, 3, 6, 9}})},
+          l_sparse_inv3{Csr::create(
+              exec, gko::dim<2>(4, 4),
+              gko::array<value_type>{
+                  exec,
+                  {-1., .5, .25, .625, .3125, -.25, .625, .3125, -.25, -.125}},
+              gko::array<index_type>{exec, {0, 0, 1, 0, 1, 2, 0, 1, 2, 3}},
+              gko::array<index_type>{exec, {0, 1, 3, 6, 10}})},
+          l_sparse2{Csr::create(
+              exec, gko::dim<2>(4, 4),
+              gko::array<value_type>{exec, {-2, 1, 4, 1, -2, 1, -1, 1, 2}},
+              gko::array<index_type>{exec, {0, 0, 1, 1, 2, 0, 1, 2, 3}},
+              gko::array<index_type>{exec, {0, 1, 3, 5, 9}})},
+          l_sparse2_inv{Csr::create(
+              exec, gko::dim<2>(4, 4),
+              gko::array<value_type>{
+                  exec, {-.5, .125, .25, .125, -.5, .28125, .0625, 0.25, 0.5}},
+              gko::array<index_type>{exec, {0, 0, 1, 1, 2, 0, 1, 2, 3}},
+              gko::array<index_type>{exec, {0, 1, 3, 5, 9}})},
+          u_sparse{Csr::create(
+              exec, gko::dim<2>(4, 4),
+              gko::array<value_type>{exec,
+                                     {-2., 1., -1., 1., 4., 1., -2., 1., 2.}},
+              gko::array<index_type>{exec, {0, 1, 2, 3, 1, 2, 2, 3, 3}},
+              gko::array<index_type>{exec, {0, 4, 6, 8, 9}})},
+          u_s_unsorted{Csr::create(
+              exec, gko::dim<2>(4, 4),
+              gko::array<value_type>{exec,
+                                     {-2., -1., 1., 1., 1., 4., -2., 1., 2.}},
+              gko::array<index_type>{exec, {0, 2, 1, 3, 2, 1, 2, 3, 3}},
+              gko::array<index_type>{exec, {0, 4, 6, 8, 9}})},
           u_sparse_inv{Csr::create(
               exec, gko::dim<2>(4, 4),
-              I<value_type>{-.5, .125, .3125, .09375, .25, .125, -.5, .25, .5},
-              I<index_type>{0, 1, 2, 3, 1, 2, 2, 3, 3},
-              I<index_type>{0, 4, 6, 8, 9})},
-          u_sparse_inv2{Csr::create(exec, gko::dim<2>(4, 4),
-                                    I<value_type>{-.5, .125, .3125, .09375, .25,
-                                                  .125, -.0625, -.5, .25, .5},
-                                    I<index_type>{0, 1, 2, 3, 1, 2, 3, 2, 3, 3},
-                                    I<index_type>{0, 4, 7, 9, 10})},
-          a_sparse{
-              Csr::create(exec, gko::dim<2>{4, 4},
-                          I<value_type>{1., 4., 1., 4., 2., 1., 2., 1., 1.},
-                          I<index_type>{0, 3, 0, 1, 3, 1, 2, 2, 3},
-                          I<index_type>{0, 2, 5, 7, 9})},
-          a_s_unsorted{
-              Csr::create(exec, gko::dim<2>{4, 4},
-                          I<value_type>{4., 1., 1., 2., 4., 2., 1., 1., 1.},
-                          I<index_type>{3, 0, 0, 3, 1, 2, 1, 2, 3},
-                          I<index_type>{0, 2, 5, 7, 9})},
+              gko::array<value_type>{
+                  exec, {-.5, .125, .3125, .09375, .25, .125, -.5, .25, .5}},
+              gko::array<index_type>{exec, {0, 1, 2, 3, 1, 2, 2, 3, 3}},
+              gko::array<index_type>{exec, {0, 4, 6, 8, 9}})},
+          u_sparse_inv2{Csr::create(
+              exec, gko::dim<2>(4, 4),
+              gko::array<value_type>{
+                  exec,
+                  {-.5, .125, .3125, .09375, .25, .125, -.0625, -.5, .25, .5}},
+              gko::array<index_type>{exec, {0, 1, 2, 3, 1, 2, 3, 2, 3, 3}},
+              gko::array<index_type>{exec, {0, 4, 7, 9, 10}})},
+          a_sparse{Csr::create(
+              exec, gko::dim<2>{4, 4},
+              gko::array<value_type>{exec,
+                                     {1., 4., 1., 4., 2., 1., 2., 1., 1.}},
+              gko::array<index_type>{exec, {0, 3, 0, 1, 3, 1, 2, 2, 3}},
+              gko::array<index_type>{exec, {0, 2, 5, 7, 9}})},
+          a_s_unsorted{Csr::create(
+              exec, gko::dim<2>{4, 4},
+              gko::array<value_type>{exec,
+                                     {4., 1., 1., 2., 4., 2., 1., 1., 1.}},
+              gko::array<index_type>{exec, {3, 0, 0, 3, 1, 2, 1, 2, 3}},
+              gko::array<index_type>{exec, {0, 2, 5, 7, 9}})},
           a_sparse_inv{Csr::create(
               exec, gko::dim<2>{4, 4},
-              I<value_type>{1., -4, -.25, .25, .5, -.125, .5, -.5, 1},
-              I<index_type>{0, 3, 0, 1, 3, 1, 2, 2, 3},
-              I<index_type>{0, 2, 5, 7, 9})},
-          spd_sparse{Csr::create(exec, gko::dim<2>{4, 4},
-                                 I<value_type>{.25, -.25, -.25, .5, 4., 4.},
-                                 I<index_type>{0, 1, 0, 1, 2, 3},
-                                 I<index_type>{0, 2, 4, 5, 6})},
-          spd_s_unsorted{Csr::create(exec, gko::dim<2>{4, 4},
-                                     I<value_type>{-.25, .25, .5, -.25, 4., 4.},
-                                     I<index_type>{1, 0, 1, 0, 2, 3},
-                                     I<index_type>{0, 2, 4, 5, 6})},
-          spd_sparse_inv{Csr::create(
-              exec, gko::dim<2>{4, 4}, I<value_type>{2., 2., 2., .5, .5},
-              I<index_type>{0, 0, 1, 2, 3}, I<index_type>{0, 1, 3, 4, 5})}
+              gko::array<value_type>{
+                  exec, {1., -4., -.25, .25, .5, -.125, .5, -.5, 1.}},
+              gko::array<index_type>{exec, {0, 3, 0, 1, 3, 1, 2, 2, 3}},
+              gko::array<index_type>{exec, {0, 2, 5, 7, 9}})},
+          spd_sparse{Csr::create(
+              exec, gko::dim<2>{4, 4},
+              gko::array<value_type>{exec, {.25, -.25, -.25, .5, 4., 4.}},
+              gko::array<index_type>{exec, {0, 1, 0, 1, 2, 3}},
+              gko::array<index_type>{exec, {0, 2, 4, 5, 6}})},
+          spd_s_unsorted{Csr::create(
+              exec, gko::dim<2>{4, 4},
+              gko::array<value_type>{exec, {-.25, .25, .5, -.25, 4., 4.}},
+              gko::array<index_type>{exec, {1, 0, 1, 0, 2, 3}},
+              gko::array<index_type>{exec, {0, 2, 4, 5, 6}})},
+          spd_sparse_inv{
+              Csr::create(exec, gko::dim<2>{4, 4},
+                          gko::array<value_type>{exec, {2., 2., 2., .5, .5}},
+                          gko::array<index_type>{exec, {0, 0, 1, 2, 3}},
+                          gko::array<index_type>{exec, {0, 1, 3, 4, 5}})}
     {
         lower_isai_factory = LowerIsai::build().on(exec);
         upper_isai_factory = UpperIsai::build().on(exec);
@@ -562,8 +581,10 @@ TYPED_TEST(Isai, KernelGenerateLsparse3)
     // (only one value changes compared to u_sparse_inv->transpose())
     const auto expected = Csr::create(
         this->exec, gko::dim<2>(4, 4),
-        I<value_type>{-.5, .125, .25, .3125, .125, -.5, .125, .25, .5},
-        I<index_type>{0, 0, 1, 0, 1, 2, 0, 2, 3}, I<index_type>{0, 1, 3, 6, 9});
+        gko::array<value_type>{
+            this->exec, {-.5, .125, .25, .3125, .125, -.5, .125, .25, .5}},
+        gko::array<index_type>{this->exec, {0, 0, 1, 0, 1, 2, 0, 2, 3}},
+        gko::array<index_type>{this->exec, {0, 1, 3, 6, 9}});
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
     GKO_ASSERT_MTX_NEAR(result, expected, r<value_type>::value);
     // no row above the size limit -> zero array
@@ -740,8 +761,10 @@ TYPED_TEST(Isai, KernelGenerateUsparse2)
     // (only one value changes compared to l_sparse2_inv->transpose())
     const auto expected = Csr::create(
         this->exec, gko::dim<2>(4, 4),
-        I<value_type>{-.5, .125, .3125, .25, .125, .0625, -.5, .25, .5},
-        I<index_type>{0, 1, 3, 1, 2, 3, 2, 3, 3}, I<index_type>{0, 3, 6, 8, 9});
+        gko::array<value_type>{
+            this->exec, {-.5, .125, .3125, .25, .125, .0625, -.5, .25, .5}},
+        gko::array<index_type>{this->exec, {0, 1, 3, 1, 2, 3, 2, 3, 3}},
+        gko::array<index_type>{this->exec, {0, 3, 6, 8, 9}});
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
     GKO_ASSERT_MTX_NEAR(result, expected, r<value_type>::value);
     // no row above the size limit -> zero array
@@ -947,18 +970,22 @@ TYPED_TEST(Isai, KernelScatterExcessSolution)
     using Dense = typename TestFixture::Dense;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    gko::array<index_type> ptrs{this->exec, I<index_type>{0, 0, 2, 2, 5, 7, 7}};
-    auto mtx = Csr::create(this->exec, gko::dim<2>{6, 6},
-                           I<value_type>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
-                           I<index_type>{0, 0, 1, 0, 0, 1, 2, 0, 1, 0},
-                           I<index_type>{0, 1, 3, 4, 7, 9, 10});
-    auto expect =
-        Csr::create(this->exec, gko::dim<2>{6, 6},
-                    I<value_type>{1, 11, 12, 4, 13, 14, 15, 16, 17, 10},
-                    I<index_type>{0, 0, 1, 0, 0, 1, 2, 0, 1, 0},
-                    I<index_type>{0, 1, 3, 4, 7, 9, 10});
-    auto sol = Dense::create(this->exec, gko::dim<2>(7, 1),
-                             I<value_type>{11, 12, 13, 14, 15, 16, 17}, 1);
+    gko::array<index_type> ptrs{
+        this->exec, gko::array<index_type>{this->exec, {0, 0, 2, 2, 5, 7, 7}}};
+    auto mtx = Csr::create(
+        this->exec, gko::dim<2>{6, 6},
+        gko::array<value_type>{this->exec, {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
+        gko::array<index_type>{this->exec, {0, 0, 1, 0, 0, 1, 2, 0, 1, 0}},
+        gko::array<index_type>{this->exec, {0, 1, 3, 4, 7, 9, 10}});
+    auto expect = Csr::create(
+        this->exec, gko::dim<2>{6, 6},
+        gko::array<value_type>{this->exec,
+                               {1, 11, 12, 4, 13, 14, 15, 16, 17, 10}},
+        gko::array<index_type>{this->exec, {0, 0, 1, 0, 0, 1, 2, 0, 1, 0}},
+        gko::array<index_type>{this->exec, {0, 1, 3, 4, 7, 9, 10}});
+    auto sol = Dense::create(
+        this->exec, gko::dim<2>(7, 1),
+        gko::array<value_type>{this->exec, {11, 12, 13, 14, 15, 16, 17}}, 1);
 
     gko::kernels::reference::isai::scatter_excess_solution(
         this->exec, ptrs.get_const_data(), sol.get(), mtx.get(), 0, 6);

@@ -263,6 +263,9 @@ public:
      * array<index_type>)
      */
     template <typename InputValueType, typename ColIndexType>
+    GKO_DEPRECATED(
+        "explicitly construct the gko::array arguments instead of passing "
+        "initializer lists")
     static std::unique_ptr<Ell> create(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
         const IndexType num_elems_per_row,

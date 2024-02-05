@@ -196,6 +196,9 @@ public:
      * Executor>, const size_type, array<value_type>)
      */
     template <typename InputValueType>
+    GKO_DEPRECATED(
+        "explicitly construct the gko::array argument instead of passing an"
+        "initializer list")
     static std::unique_ptr<Diagonal> create(
         std::shared_ptr<const Executor> exec, const size_type size,
         std::initializer_list<InputValueType> values)
