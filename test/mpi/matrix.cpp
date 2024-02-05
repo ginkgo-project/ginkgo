@@ -106,19 +106,19 @@ protected:
                 {std::make_pair(gko::array<local_index_type>(exec, {0, 1}), 1),
                  std::make_pair(gko::array<local_index_type>(exec, {1}), 2)},
                 gko::array<comm_index_type>(exec, {1, 2}),
-                gko::array<comm_index_type>(exec, {1, 1})),
+                std::vector<comm_index_type>{1, 1}),
             local_partition::build_from_blocked_recv(
                 exec, 2,
                 {std::make_pair(gko::array<local_index_type>(exec, {1}), 0),
                  std::make_pair(gko::array<local_index_type>(exec, {0}), 2)},
                 gko::array<comm_index_type>(exec, {0, 2}),
-                gko::array<comm_index_type>(exec, {2, 1})),
+                std::vector<comm_index_type>{2, 1}),
             local_partition::build_from_blocked_recv(
                 exec, 1,
                 {std::make_pair(gko::array<local_index_type>(exec, {0}), 0),
                  std::make_pair(gko::array<local_index_type>(exec, {0}), 1)},
                 gko::array<comm_index_type>(exec, {0, 1}),
-                gko::array<comm_index_type>(exec, {1, 1}))};
+                std::vector<comm_index_type>{1, 1})};
 
         dist_mat = dist_mtx_type::create(
             exec, comm, gko::with_matrix_type<gko::matrix::Csr>(),

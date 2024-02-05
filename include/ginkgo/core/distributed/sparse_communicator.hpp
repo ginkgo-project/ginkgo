@@ -28,6 +28,47 @@ namespace gko::experimental::distributed {
 
 
 /**
+ * \brief This provides Gather implementations based on a sparse
+ * topology.
+ */
+struct SparseGather : EnableDistributedLinOp<SparseGather> {
+    std::unique_ptr<SparseGather> create(
+        std::shared_ptr<Executor> exec, mpi::communicator comm,
+        std::shared_ptr<const localized_partition<int32>> part);
+    std::unique_ptr<SparseGather> create(
+        std::shared_ptr<Executor> exec, mpi::communicator comm,
+        std::shared_ptr<const localized_partition<int64>> part);
+
+protected:
+    void apply_impl(const LinOp* b, LinOp* x) const override;
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override;
+
+private:
+    using partition_i32_type = localized_partition<int32>;
+    using partition_i64_type = localized_partition<int64>;
+
+    SparseGather(std::shared_ptr<const Executor> exec, mpi::communicator comm);
+
+    template <typename IndexType>
+    SparseGather(std::shared_ptr<const Executor> exec, mpi::communicator comm,
+                 std::shared_ptr<const localized_partition<IndexType>> part);
+
+    mpi::communicator default_comm_;
+
+    std::variant<std::shared_ptr<const partition_i32_type>,
+                 std::shared_ptr<const partition_i64_type>>
+        part_;
+
+    std::vector<comm_index_type> send_sizes_;
+    std::vector<comm_index_type> send_offsets_;
+    std::vector<comm_index_type> recv_sizes_;
+    std::vector<comm_index_type> recv_offsets_;
+    std::variant<array<int32>, array<int64>> send_idxs_;
+};
+
+
+/**
  * Simplified MPI communicator that handles only neighborhood all-to-all
  * communication.
  *
@@ -80,8 +121,8 @@ public:
     template <typename ValueType>
     mpi::request communicate(
         const matrix::Dense<ValueType>* local_vector,
-        const detail::DenseCache<ValueType>& send_buffer,
-        const detail::DenseCache<ValueType>& recv_buffer) const;
+        const ::gko::detail::DenseCache<ValueType>& send_buffer,
+        const ::gko::detail::DenseCache<ValueType>& recv_buffer) const;
 
     template <typename IndexType>
     std::shared_ptr<const localized_partition<IndexType>> get_partition() const
@@ -129,8 +170,8 @@ private:
         MPI_Comm comm,
         std::shared_ptr<const localized_partition<IndexType>> part,
         const matrix::Dense<ValueType>* local_vector,
-        const detail::DenseCache<ValueType>& send_buffer,
-        const detail::DenseCache<ValueType>& recv_buffer) const;
+        const ::gko::detail::DenseCache<ValueType>& send_buffer,
+        const ::gko::detail::DenseCache<ValueType>& recv_buffer) const;
 
     mpi::communicator default_comm_;
 

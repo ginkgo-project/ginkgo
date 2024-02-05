@@ -5,25 +5,9 @@
 #include <ginkgo/core/distributed/sparse_communicator.hpp>
 
 
-// Copyright (c) 2017-2023, the Ginkgo authors
 namespace gko {
 namespace experimental {
 namespace distributed {
-
-
-/**
- * Get all rows of the input vector that are local to this process.
- */
-template <typename ValueType, typename IndexType>
-std::unique_ptr<gko::matrix::Dense<ValueType>> get_submatrix(
-    gko::matrix::Dense<ValueType>* vector,
-    const overlap_indices<index_block<IndexType>>* idxs)
-{
-    return vector->create_submatrix(
-        span{static_cast<size_type>(idxs->get_begin()),
-             static_cast<size_type>(idxs->get_end())},
-        span{0, vector->get_size()[1]});
-}
 
 
 /**
@@ -37,9 +21,8 @@ mpi::communicator create_neighborhood_comm(
     mpi::communicator base, const array<comm_index_type>& sources,
     const array<comm_index_type>& destinations)
 {
-    auto in_degree = static_cast<comm_index_type>(sources.get_num_elems());
-    auto out_degree =
-        static_cast<comm_index_type>(destinations.get_num_elems());
+    auto in_degree = static_cast<comm_index_type>(sources.get_size());
+    auto out_degree = static_cast<comm_index_type>(destinations.get_size());
 
     auto sources_host =
         make_temporary_clone(sources.get_executor()->get_master(), &sources);
@@ -78,8 +61,8 @@ mpi::communicator create_neighborhood_comm(
 template <typename ValueType>
 mpi::request sparse_communicator::communicate(
     const matrix::Dense<ValueType>* local_vector,
-    const detail::DenseCache<ValueType>& send_buffer,
-    const detail::DenseCache<ValueType>& recv_buffer) const
+    const ::gko::detail::DenseCache<ValueType>& send_buffer,
+    const ::gko::detail::DenseCache<ValueType>& recv_buffer) const
 {
     return std::visit(
         [&, this](const auto& part) {
@@ -95,11 +78,11 @@ mpi::request sparse_communicator::communicate(
         part_);
 }
 
-#define GKO_DECLARE_COMMUNICATE(ValueType)                \
-    mpi::request sparse_communicator::communicate(        \
-        const matrix::Dense<ValueType>* local_vector,     \
-        const detail::DenseCache<ValueType>& send_buffer, \
-        const detail::DenseCache<ValueType>& recv_buffer) const
+#define GKO_DECLARE_COMMUNICATE(ValueType)                       \
+    mpi::request sparse_communicator::communicate(               \
+        const matrix::Dense<ValueType>* local_vector,            \
+        const ::gko::detail::DenseCache<ValueType>& send_buffer, \
+        const ::gko::detail::DenseCache<ValueType>& recv_buffer) const
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_COMMUNICATE);
 
@@ -110,33 +93,28 @@ template <typename IndexType>
 sparse_communicator::sparse_communicator(
     mpi::communicator comm,
     std::shared_ptr<const localized_partition<IndexType>> part)
-    : default_comm_(create_neighborhood_comm(
-          comm, part->get_recv_indices().get_target_ids(),
-          part->get_send_indices().get_target_ids())),
-      send_sizes_(part->get_send_indices().get_num_groups()),
-      send_offsets_(part->get_send_indices().get_num_groups() + 1),
-      recv_sizes_(part->get_recv_indices().get_num_groups()),
-      recv_offsets_(part->get_recv_indices().get_num_groups() + 1)
+    : default_comm_(
+          create_neighborhood_comm(comm, part->get_recv_indices().target_ids,
+                                   part->get_send_indices().target_ids)),
+      send_sizes_(part->get_send_indices().idxs.size()),
+      send_offsets_(part->get_send_indices().idxs.size() + 1),
+      recv_sizes_(part->get_recv_indices().idxs.size()),
+      recv_offsets_(part->get_recv_indices().idxs.size() + 1)
 {
     auto exec = part->get_executor();
     auto host_exec = exec->get_master();
     auto fill_size_offsets = [&](std::vector<int>& sizes,
-                                 std::vector<int>& offsets, const auto& idxs) {
-        for (int i = 0; i < idxs.get_num_groups(); ++i) {
-            sizes[i] = idxs.get_indices(i).get_num_elems();
+                                 std::vector<int>& offsets,
+                                 const auto& remote_idxs) {
+        for (int i = 0; i < remote_idxs.idxs.size(); ++i) {
+            sizes[i] = detail::get_size(remote_idxs.idxs[i]);
         }
         std::partial_sum(sizes.begin(), sizes.end(), offsets.begin() + 1);
     };
     fill_size_offsets(recv_sizes_, recv_offsets_, part->get_recv_indices());
     fill_size_offsets(send_sizes_, send_offsets_, part->get_send_indices());
 
-    send_idxs_ = array<IndexType>(exec, send_offsets_.back());
-    for (int i = 0; i < part->get_send_indices().get_num_groups(); ++i) {
-        make_array_view(exec, send_sizes_[i],
-                        std::get<array<IndexType>>(send_idxs_).get_data() +
-                            send_offsets_[i]) =
-            part->get_send_indices().get_indices(i);
-    }
+    send_idxs_ = part->get_send_indices().idxs.get_flat();
 
     part_ = std::move(part);
 }
@@ -154,8 +132,8 @@ template <typename ValueType, typename IndexType>
 mpi::request sparse_communicator::communicate_impl_(
     MPI_Comm comm, std::shared_ptr<const localized_partition<IndexType>> part,
     const matrix::Dense<ValueType>* local_vector,
-    const detail::DenseCache<ValueType>& send_buffer,
-    const detail::DenseCache<ValueType>& recv_buffer) const
+    const ::gko::detail::DenseCache<ValueType>& send_buffer,
+    const ::gko::detail::DenseCache<ValueType>& recv_buffer) const
 {
     GKO_ASSERT(part->get_local_end() == local_vector->get_size()[0]);
 
@@ -164,11 +142,11 @@ mpi::request sparse_communicator::communicate_impl_(
     auto send_idxs = part->get_send_indices();
     auto recv_idxs = part->get_recv_indices();
 
-    recv_buffer.init(exec,
-                     {recv_idxs.get_num_elems(), local_vector->get_size()[1]});
+    recv_buffer.init(
+        exec, {detail::get_size(recv_idxs.idxs), local_vector->get_size()[1]});
 
-    send_buffer.init(exec,
-                     {send_idxs.get_num_elems(), local_vector->get_size()[1]});
+    send_buffer.init(
+        exec, {detail::get_size(send_idxs.idxs), local_vector->get_size()[1]});
 
     auto& full_send_idxs = std::get<array<IndexType>>(send_idxs_);
     local_vector->row_gather(&full_send_idxs, send_buffer.get());
@@ -191,8 +169,8 @@ mpi::request sparse_communicator::communicate_impl_(
         MPI_Comm comm,                                                         \
         std::shared_ptr<const localized_partition<IndexType>> part,            \
         const matrix::Dense<ValueType>* local_vector,                          \
-        const detail::DenseCache<ValueType>& send_buffer,                      \
-        const detail::DenseCache<ValueType>& recv_buffer) const
+        const ::gko::detail::DenseCache<ValueType>& send_buffer,               \
+        const ::gko::detail::DenseCache<ValueType>& recv_buffer) const
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COMMUNICATE_IMPL);
 

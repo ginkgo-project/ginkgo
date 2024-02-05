@@ -1,41 +1,12 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
+#ifndef GKO_PUBLIC_CORE_DISTRIBUTED_LOCALIZED_PARTITION_HPP_
+#define GKO_PUBLIC_CORE_DISTRIBUTED_LOCALIZED_PARTITION_HPP_
 
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
-
-#ifndef GKO_PUBLIC_CORE_DISTRIBUTED_OVERLAPPING_PARTITION_HPP_
-#define GKO_PUBLIC_CORE_DISTRIBUTED_OVERLAPPING_PARTITION_HPP_
 
 #include <ginkgo/config.hpp>
-
-
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/distributed/base.hpp>
@@ -44,32 +15,172 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko::experimental::distributed {
+namespace detail {
 
 
-/**
- * Thin wrapper around span to handle it uniformly with index_set
- */
-template <typename IndexType = int32>
-class index_block {
-public:
-    using value_type = IndexType;
-
-    value_type get_size() const { return idxs_.end; }
-
-    value_type get_num_elems() const { return idxs_.length(); }
-
-    span get_span() const { return idxs_; }
-
-    explicit index_block(span idxs) : idxs_(idxs) {}
-
-    index_block(IndexType begin, IndexType end)
-        : idxs_(static_cast<size_type>(begin), static_cast<size_type>(end))
+template <typename T>
+struct template_span {
+    /**
+     * Creates a span representing a point `point`.
+     *
+     * The `begin` of this span is set to `point`, and the `end` to `point + 1`.
+     *
+     * @param point  the point which the span represents
+     */
+    GKO_ATTRIBUTES constexpr template_span(T point) noexcept
+        : template_span{point, point + 1}
     {}
 
+    GKO_ATTRIBUTES constexpr template_span(T begin, T end) noexcept
+        : begin(begin), end(end)
+    {}
+    /**
+     * Checks if a span is valid.
+     *
+     * @return true if and only if `this->begin <= this->end`
+     */
+    GKO_ATTRIBUTES constexpr bool is_valid() const { return begin <= end; }
+
+    /**
+     * Returns the length of a span.
+     *
+     * @return `this->end - this->begin`
+     */
+    GKO_ATTRIBUTES constexpr size_type length() const { return end - begin; }
+
+    /**
+     * Beginning of the span.
+     */
+    T begin;
+
+    /**
+     * End of the span.
+     */
+    T end;
+};
+}  // namespace detail
+
+
+template <typename T>
+using span_collection = std::vector<detail::template_span<T>>;
+
+
+template <typename T>
+struct array_collection {
+    using iterator = array<T>*;
+    using const_iterator = const array<T>*;
+
+    template <typename SizeType>
+    array_collection(std::shared_ptr<const Executor> exec,
+                     const std::vector<SizeType>& sizes)
+        : array_collection(
+              array<T>(exec, std::accumulate(sizes.begin(), sizes.end(), 0)),
+              sizes)
+    {}
+
+    template <typename SizeType>
+    array_collection(array<T> buffer, const std::vector<SizeType>& sizes)
+        : buffer_(std::move(buffer))
+    {
+        auto exec = buffer_.get_executor();
+        std::vector<size_type> offsets(sizes.size() + 1);
+        std::partial_sum(sizes.begin(), sizes.end(), offsets.begin() + 1);
+        buffer_.resize_and_reset(offsets.back());
+        for (size_type i = 0; i < sizes.size(); ++i) {
+            elems_.push_back(make_array_view(exec, sizes[i],
+                                             buffer_.get_data() + offsets[i]));
+        }
+    }
+
+    array<T>& operator[](size_type i) { return elems_[i]; }
+    const array<T>& operator[](size_type i) const { return elems_[i]; }
+
+    size_type size() const { return elems_.size(); }
+
+    iterator begin() { return elems_.begin(); }
+    const_iterator begin() const { return elems_.begin(); }
+
+    iterator end() { return elems_.end(); }
+    const_iterator end() const { return elems_.end(); }
+
+    bool empty() const { return elems_.empty(); }
+
+    array<T>& get_flat() { return buffer_; }
+    const array<T>& get_flat() const { return buffer_; }
+
 private:
-    span idxs_;
+    array<T> buffer_;
+    std::vector<array<T>> elems_;
 };
 
+
+namespace detail {
+
+template <typename IndexType>
+IndexType get_min(const span_collection<IndexType>& spans)
+{
+    if (spans.empty()) {
+        return std::numeric_limits<IndexType>::max();
+    }
+    return std::min_element(
+               spans.begin(), spans.end(),
+               [](const auto& a, const auto& b) { return a.begin < b.begin; })
+        ->begin;
+}
+
+
+template <typename IndexType>
+IndexType get_max(const span_collection<IndexType>& spans)
+{
+    if (spans.empty()) {
+        return std::numeric_limits<IndexType>::min();
+    }
+    return std::max_element(
+               spans.begin(), spans.end(),
+               [](const auto& a, const auto& b) { return a.end < b.end; })
+        ->end;
+}
+
+
+template <typename IndexType>
+size_type get_size(const span_collection<IndexType>& spans)
+{
+    if (spans.empty()) {
+        return 0;
+    }
+    return get_max(spans) - get_min(spans);
+}
+
+
+template <typename IndexType>
+size_type get_size(const template_span<IndexType>& span)
+{
+    return span.length();
+}
+
+
+template <typename IndexType>
+IndexType get_min(const array_collection<IndexType>& arrs);
+
+
+template <typename IndexType>
+IndexType get_max(const array_collection<IndexType>& arrs);
+
+
+template <typename IndexType>
+size_type get_size(const array_collection<IndexType>& arrs)
+{
+    return arrs.get_flat().get_size();
+}
+
+
+template <typename IndexType>
+size_type get_size(const array<IndexType>& arr)
+{
+    return arr.get_size();
+}
+
+}  // namespace detail
 
 /**
  * A representation of indices that are shared with other processes.
@@ -84,37 +195,23 @@ private:
  *
  * @tparam IndexType  the type of the indices.
  */
-template <typename IndexStorageType>
-class overlap_indices {
-public:
-    using index_type = typename IndexStorageType::value_type;
+template <typename IndexType, template <class> class StorageMap>
+struct remote_indices_pair {
+    remote_indices_pair(array<comm_index_type> target_ids_,
+                        StorageMap<IndexType> idxs_)
+        : target_ids(std::move(target_ids_)),
+          idxs(std::move(idxs_)),
+          begin(idxs.empty() ? 0 : detail::get_min(idxs)),
+          end(idxs.empty() ? 0 : detail::get_max(idxs))
+    {
+        GKO_THROW_IF_INVALID(target_ids.get_size() == idxs.size(),
+                             "target_ids and idxs need to have the same size");
+    }
 
-    overlap_indices(array<comm_index_type> target_ids,
-                    std::vector<IndexStorageType> idxs);
-
-    // @todo correctly handle cross-executor indices
-    overlap_indices(std::shared_ptr<const Executor> exec,
-                    overlap_indices&& other);
-
-    size_type get_num_elems() const { return num_local_indices_; }
-
-    index_type get_end() const { return end_; }
-
-    index_type get_begin() const { return begin_; }
-
-    const array<comm_index_type>& get_target_ids() const { return target_ids_; }
-
-    const IndexStorageType& get_indices(size_type i) const { return idxs_[i]; }
-
-    size_type get_num_groups() const { return target_ids_.get_num_elems(); }
-
-private:
-    array<comm_index_type> target_ids_;
-    std::vector<IndexStorageType> idxs_;
-
-    size_type num_local_indices_;
-    index_type begin_;
-    index_type end_;
+    array<comm_index_type> target_ids;
+    StorageMap<IndexType> idxs;
+    IndexType begin;
+    IndexType end;
 };
 
 
@@ -144,17 +241,17 @@ template <typename IndexType = int32>
 class localized_partition {
 public:
     using index_type = IndexType;
-    using send_storage_type = array<index_type>;
-    using recv_storage_type = index_block<index_type>;
+    using send_indices_type = remote_indices_pair<IndexType, array_collection>;
+    using recv_indices_type = remote_indices_pair<IndexType, span_collection>;
 
     size_type get_local_end() const { return local_end_; }
 
-    const overlap_indices<send_storage_type>& get_send_indices() const
+    const send_indices_type& get_send_indices() const
     {
         return overlap_send_idxs_;
     }
 
-    const overlap_indices<recv_storage_type>& get_recv_indices() const
+    const recv_indices_type& get_recv_indices() const
     {
         return overlap_recv_idxs_;
     }
@@ -165,9 +262,9 @@ public:
      */
     size_type get_end() const
     {
-        return std::max(local_end_, static_cast<size_type>(std::max(
-                                        overlap_send_idxs_.get_end(),
-                                        overlap_recv_idxs_.get_end())));
+        return std::max(local_end_,
+                        static_cast<size_type>(std::max(
+                            overlap_send_idxs_.end, overlap_recv_idxs_.end)));
     }
 
     std::shared_ptr<const Executor> get_executor() const { return exec_; }
@@ -209,25 +306,26 @@ public:
      */
     static std::shared_ptr<localized_partition> build_from_blocked_recv(
         std::shared_ptr<const Executor> exec, size_type local_size,
-        std::vector<std::pair<array<index_type>, comm_index_type>> send_idxs,
+        const std::vector<std::pair<array<index_type>, comm_index_type>>&
+            send_idxs,
         const array<comm_index_type>& recv_ids,
-        const array<comm_index_type>& recv_sizes);
+        const std::vector<comm_index_type>& recv_sizes);
 
     static std::shared_ptr<localized_partition> build_from_remote_send_indices(
         std::shared_ptr<const Executor> exec, mpi::communicator comm,
         size_type local_size, const array<comm_index_type>& recv_ids,
-        const array<comm_index_type>& recv_sizes,
+        const std::vector<comm_index_type>& recv_sizes,
         const array<IndexType>& remote_send_indices);
 
 private:
     localized_partition(std::shared_ptr<const Executor> exec,
                         size_type local_size,
-                        overlap_indices<send_storage_type> overlap_send_idxs,
-                        overlap_indices<recv_storage_type> overlap_recv_idxs)
+                        send_indices_type overlap_send_idxs,
+                        recv_indices_type overlap_recv_idxs)
         : exec_(exec),
           local_end_(local_size),
-          overlap_send_idxs_(exec, std::move(overlap_send_idxs)),
-          overlap_recv_idxs_(exec, std::move(overlap_recv_idxs))
+          overlap_send_idxs_(std::move(overlap_send_idxs)),
+          overlap_recv_idxs_(std::move(overlap_recv_idxs))
     {}
 
     std::shared_ptr<const Executor> exec_;
@@ -235,10 +333,55 @@ private:
     // owned by this process, interval [0, local_size_) (exclusively or shared)
     size_type local_end_;
     // owned by this and used by other processes (subset of local_idxs_)
-    overlap_indices<send_storage_type> overlap_send_idxs_;
+    send_indices_type overlap_send_idxs_;
     // owned by other processes (doesn't exclude this also owning them)
-    overlap_indices<recv_storage_type> overlap_recv_idxs_;
+    recv_indices_type overlap_recv_idxs_;
 };
+
+
+// template <typename IndexType>
+// IndexType compute_compressed_col(
+//     const overlap_indices<array<IndexType>>& remote_send_idxs,
+//     comm_index_type process_id, IndexType local_col_id)
+// {
+//     // this is actually the recv offset.
+//     IndexType offset = 0;
+//     for (comm_index_type pid = 0; pid < process_id; ++pid) {
+//         offset += remote_send_idxs.get_indices(pid).get_size();
+//     }
+//     return offset + local_col_id;
+// }
+//
+//
+// template <typename IndexType>
+// struct semi_global_index {
+//     comm_index_type proc_id;
+//     IndexType local_idx;
+// };
+//
+// template <typename LocalIndexType, typename GlobalIndexType = int64>
+// struct NonLocalIndexMap {
+//     GlobalIndexType get_global(LocalIndexType id) GKO_NOT_IMPLEMENTED;
+//
+//     LocalIndexType get_local(comm_index_type process_id,
+//                              LocalIndexType local_id);
+//
+//     array<LocalIndexType> get_local(
+//         const array<comm_index_type>& process_ids,
+//         const flat_container<array<comm_index_type>>& local_ids);
+//
+//     array<LocalIndexType> get_local();
+//
+//
+//     std::unique_ptr<NonLocalIndexMap> create(
+//         std::shared_ptr<const Executor>,
+//         ptr_param<const localized_partition<LocalIndexType>> part)
+//     {}
+//
+// private:
+//     overlap_indices<array<LocalIndexType>> remote_send_idxs_;
+//     overlap_indices<array<LocalIndexType>> send_idxs_;
+// };
 
 
 /**
@@ -273,4 +416,4 @@ std::unique_ptr<gko::matrix::Dense<ValueType>> get_non_local(
 }  // namespace gko::experimental::distributed
 
 
-#endif  // GKO_PUBLIC_CORE_DISTRIBUTED_OVERLAPPING_PARTITION_HPP_
+#endif  // GKO_PUBLIC_CORE_DISTRIBUTED_LOCALIZED_PARTITION_HPP_
