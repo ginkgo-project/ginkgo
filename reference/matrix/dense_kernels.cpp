@@ -949,7 +949,7 @@ void row_scatter(std::shared_ptr<const ReferenceExecutor> exec,
                  matrix::Dense<OutputType>* target)
 {
     auto rows = row_idxs->get_const_data();
-    for (size_type i = 0; i < row_idxs->get_num_elems(); ++i) {
+    for (size_type i = 0; i < row_idxs->get_size(); ++i) {
         for (size_type j = 0; j < orig->get_size()[1]; ++j) {
             target->at(rows[i], j) = orig->at(i, j);
         }
