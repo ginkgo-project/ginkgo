@@ -392,6 +392,8 @@ public:
      * @param exec  Executor associated with this matrix.
      * @param comm  Communicator associated with this matrix.
      *              The default is the MPI_COMM_WORLD.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Matrix> create(std::shared_ptr<const Executor> exec,
                                           mpi::communicator comm);
@@ -413,6 +415,8 @@ public:
      * @param matrix_template  the local matrices will be constructed with the
      *                         same type as `create` returns. It should be the
      *                         return value of make_matrix_template.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     template <typename MatrixType,
               typename = std::enable_if_t<detail::is_matrix_type_builder<
@@ -451,6 +455,8 @@ public:
      *                                   constructed with the same type as
      *                                   `create` returns. It should be the
      *                                   return value of make_matrix_template.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     template <typename LocalMatrixType, typename NonLocalMatrixType,
               typename = std::enable_if_t<
@@ -482,6 +488,8 @@ public:
      * @param comm  Communicator associated with this matrix.
      * @param matrix_template  the local matrices will be constructed with the
      *                         same runtime type.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Matrix> create(
         std::shared_ptr<const Executor> exec, mpi::communicator comm,
@@ -500,6 +508,8 @@ public:
      *                               with the same runtime type.
      * @param non_local_matrix_template  the non-local matrix will be
      *                                   constructed with the same runtime type.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Matrix> create(
         std::shared_ptr<const Executor> exec, mpi::communicator comm,

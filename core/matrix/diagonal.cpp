@@ -328,12 +328,6 @@ Diagonal<ValueType>::compute_absolute() const
 
 
 template <typename ValueType>
-Diagonal<ValueType>::Diagonal(std::shared_ptr<const Executor> exec)
-    : Diagonal(std::move(exec), size_type{})
-{}
-
-
-template <typename ValueType>
 Diagonal<ValueType>::Diagonal(std::shared_ptr<const Executor> exec,
                               size_type size)
     : EnableLinOp<Diagonal>(exec, dim<2>{size}), values_(exec, size)
@@ -347,14 +341,6 @@ Diagonal<ValueType>::Diagonal(std::shared_ptr<const Executor> exec,
       values_{exec, std::move(values)}
 {
     GKO_ENSURE_IN_BOUNDS(size - 1, values_.get_size());
-}
-
-
-template <typename ValueType>
-std::unique_ptr<Diagonal<ValueType>> Diagonal<ValueType>::create(
-    std::shared_ptr<const Executor> exec)
-{
-    return std::unique_ptr<Diagonal>{new Diagonal{exec}};
 }
 
 

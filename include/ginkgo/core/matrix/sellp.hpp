@@ -272,26 +272,17 @@ public:
 
     /**
      * Creates an uninitialized Sellp matrix of the specified size.
-     *    (The total_cols is set to be the number of slice times the number
-     *     of cols of the matrix.)
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     */
-    static std::unique_ptr<Sellp> create(std::shared_ptr<const Executor> exec,
-                                         const dim<2>& size = dim<2>{});
-
-    /**
-     * Creates an uninitialized Sellp matrix of the specified size.
-     *    (The slice_size and stride_factor are set to the default values.)
+     * (The slice_size and stride_factor are set to the default values.)
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param total_cols   number of the sum of all cols in every slice.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Sellp> create(std::shared_ptr<const Executor> exec,
-                                         const dim<2>& size,
-                                         size_type total_cols);
+                                         const dim<2>& size = {},
+                                         size_type total_cols = 0);
 
     /**
      * Creates an uninitialized Sellp matrix of the specified size.
@@ -302,6 +293,8 @@ public:
      * @param stride_factor  factor for the stride in each slice (strides
      *                        should be multiples of the stride_factor)
      * @param total_cols   number of the sum of all cols in every slice.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Sellp> create(std::shared_ptr<const Executor> exec,
                                          const dim<2>& size,
@@ -336,10 +329,8 @@ public:
     Sellp(Sellp&&);
 
 protected:
-    Sellp(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{});
-
-    Sellp(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          size_type total_cols);
+    Sellp(std::shared_ptr<const Executor> exec, const dim<2>& size = {},
+          size_type total_cols = {});
 
     Sellp(std::shared_ptr<const Executor> exec, const dim<2>& size,
           size_type slice_size, size_type stride_factor, size_type total_cols);

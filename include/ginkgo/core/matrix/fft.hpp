@@ -78,6 +78,8 @@ public:
      * Creates an empty Fourier matrix.
      *
      * @param exec  Executor associated to the matrix
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Fft> create(std::shared_ptr<const Executor> exec);
 
@@ -86,15 +88,15 @@ public:
      *
      * @param size  size of the matrix
      * @param inverse  true to compute an inverse DFT instead of a normal DFT
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Fft> create(std::shared_ptr<const Executor> exec,
                                        size_type size = 0,
                                        bool inverse = false);
 
 protected:
-    explicit Fft(std::shared_ptr<const Executor> exec);
-
-    Fft(std::shared_ptr<const Executor> exec, size_type size,
+    Fft(std::shared_ptr<const Executor> exec, size_type size = 0,
         bool inverse = false);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
@@ -174,6 +176,8 @@ public:
      * Creates an empty Fourier matrix.
      *
      * @param exec  Executor associated to the matrix
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Fft2> create(std::shared_ptr<const Executor> exec);
 
@@ -181,6 +185,8 @@ public:
      * Creates an Fourier matrix with the given dimensions.
      *
      * @param size  size of both FFT dimensions
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Fft2> create(std::shared_ptr<const Executor> exec,
                                         size_type size);
@@ -191,18 +197,16 @@ public:
      * @param size1  size of the first FFT dimension
      * @param size2  size of the second FFT dimension
      * @param inverse  true to compute an inverse DFT instead of a normal DFT
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Fft2> create(std::shared_ptr<const Executor> exec,
                                         size_type size1, size_type size2,
                                         bool inverse = false);
 
 protected:
-    explicit Fft2(std::shared_ptr<const Executor> exec);
-
-    Fft2(std::shared_ptr<const Executor> exec, size_type size);
-
-    Fft2(std::shared_ptr<const Executor> exec, size_type size1, size_type size2,
-         bool inverse = false);
+    Fft2(std::shared_ptr<const Executor> exec, size_type size1 = 0,
+         size_type size2 = 0, bool inverse = false);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
@@ -284,6 +288,8 @@ public:
      * Creates an empty Fourier matrix.
      *
      * @param exec  Executor associated to the matrix
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Fft3> create(std::shared_ptr<const Executor> exec);
 
@@ -291,6 +297,8 @@ public:
      * Creates an Fourier matrix with the given dimensions.
      *
      * @param size  size of all FFT dimensions
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Fft3> create(std::shared_ptr<const Executor> exec,
                                         size_type size);
@@ -302,18 +310,16 @@ public:
      * @param size2  size of the second FFT dimension
      * @param size3  size of the third FFT dimension
      * @param inverse  true to compute an inverse DFT instead of a normal DFT
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Fft3> create(std::shared_ptr<const Executor> exec,
                                         size_type size1, size_type size2,
                                         size_type size3, bool inverse = false);
 
 protected:
-    explicit Fft3(std::shared_ptr<const Executor> exec);
-
-    Fft3(std::shared_ptr<const Executor> exec, size_type size);
-
-    Fft3(std::shared_ptr<const Executor> exec, size_type size1, size_type size2,
-         size_type size3, bool inverse = false);
+    Fft3(std::shared_ptr<const Executor> exec, size_type size1 = 0,
+         size_type size2 = 0, size_type size3 = 0, bool inverse = false);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 

@@ -1982,14 +1982,6 @@ std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_submatrix_impl(
 
 template <typename ValueType>
 std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create(
-    std::shared_ptr<const Executor> exec, const dim<2>& size)
-{
-    return std::unique_ptr<Dense>{new Dense{exec, size}};
-}
-
-
-template <typename ValueType>
-std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create(
     std::shared_ptr<const Executor> exec, const dim<2>& size, size_type stride)
 {
     return std::unique_ptr<Dense>{new Dense{exec, size, stride}};
@@ -2020,17 +2012,10 @@ std::unique_ptr<const Dense<ValueType>> Dense<ValueType>::create_const(
 
 template <typename ValueType>
 Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
-                        const dim<2>& size)
-    : Dense(std::move(exec), size, size[1])
-{}
-
-
-template <typename ValueType>
-Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
                         const dim<2>& size, size_type stride)
     : EnableLinOp<Dense>(exec, size),
-      values_(exec, size[0] * stride),
-      stride_(stride)
+      stride_(stride == 0 ? size[1] : stride),
+      values_(exec, size[0] * stride_)
 {}
 
 

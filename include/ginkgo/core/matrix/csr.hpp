@@ -983,43 +983,31 @@ public:
      *
      * @param exec  Executor associated to the matrix
      * @param strategy  the strategy of CSR
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Csr> create(std::shared_ptr<const Executor> exec,
                                        std::shared_ptr<strategy_type> strategy);
 
     /**
-     * Creates an uninitialized CSR matrix of the specified size with a user
-     * chosen strategy.
+     * Creates an uninitialized CSR matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param num_nonzeros  number of nonzeros
-     * @param strategy  the strategy of CSR
-     */
-    static std::unique_ptr<Csr> create(std::shared_ptr<const Executor> exec,
-                                       const dim<2>& size,
-                                       size_type num_nonzeros,
-                                       std::shared_ptr<strategy_type> strategy);
-
-    /**
-     * Creates an uninitialized CSR matrix of the specified size with a
-     * default strategy.
+     * @param strategy  the strategy of CSR, or the default strategy if set to
+     *                  nullptr
      *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param num_nonzeros  number of nonzeros
+     * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Csr> create(std::shared_ptr<const Executor> exec,
-                                       const dim<2>& size = {},
-                                       size_type num_nonzeros = {});
+    static std::unique_ptr<Csr> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size = {},
+        size_type num_nonzeros = {},
+        std::shared_ptr<strategy_type> strategy = nullptr);
 
     /**
      * Creates a CSR matrix from already allocated (and initialized) row
      * pointer, column index and value arrays.
-     *
-     * @tparam ValuesArray  type of `values` array
-     * @tparam ColIdxsArray  type of `col_idxs` array
-     * @tparam RowPtrsArray  type of `row_ptrs` array
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
@@ -1033,39 +1021,18 @@ public:
      *       is on the wrong executor, an internal copy of that array will be
      *       created, and the original array data will not be used in the
      *       matrix.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Csr> create(std::shared_ptr<const Executor> exec,
-                                       const dim<2>& size,
-                                       array<value_type> values,
-                                       array<index_type> col_idxs,
-                                       array<index_type> row_ptrs,
-                                       std::shared_ptr<strategy_type> strategy);
+    static std::unique_ptr<Csr> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        array<value_type> values, array<index_type> col_idxs,
+        array<index_type> row_ptrs,
+        std::shared_ptr<strategy_type> strategy = nullptr);
 
     /**
-     * Creates a CSR matrix from already allocated (and initialized) row
-     * pointer, column index and value arrays.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param values  array of matrix values
-     * @param col_idxs  array of column indexes
-     * @param row_ptrs  array of row pointers
-     *
-     * @note If one of `row_ptrs`, `col_idxs` or `values` is not an rvalue, not
-     *       an array of IndexType, IndexType and ValueType, respectively, or
-     *       is on the wrong executor, an internal copy of that array will be
-     *       created, and the original array data will not be used in the
-     *       matrix.
-     */
-    static std::unique_ptr<Csr> create(std::shared_ptr<const Executor> exec,
-                                       const dim<2>& size,
-                                       array<value_type> values,
-                                       array<index_type> col_idxs,
-                                       array<index_type> row_idxs);
-
-    /**
-     * @copydoc create(std::shared_ptr<const Executor>, const dim<2>&,
-     * array<value_type>, array<index_type>, array<index_type>)
+     * @copydoc std::unique_ptr<Csr> create(std::shared_ptr<const Executor>,
+     * const dim<2>&, array<value_type>, array<index_type>, array<index_type>)
      */
     template <typename InputValueType, typename InputColumnIndexType,
               typename InputRowPtrType>
@@ -1092,22 +1059,15 @@ public:
      * @returns A smart pointer to the constant matrix wrapping the input arrays
      *          (if they reside on the same executor as the matrix) or a copy of
      *          these arrays on the correct executor.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<const Csr> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         gko::detail::const_array_view<ValueType>&& values,
         gko::detail::const_array_view<IndexType>&& col_idxs,
         gko::detail::const_array_view<IndexType>&& row_ptrs,
-        std::shared_ptr<strategy_type> strategy);
-
-    /**
-     * This is version of create_const with a default strategy.
-     */
-    static std::unique_ptr<const Csr> create_const(
-        std::shared_ptr<const Executor> exec, const dim<2>& size,
-        gko::detail::const_array_view<ValueType>&& values,
-        gko::detail::const_array_view<IndexType>&& col_idxs,
-        gko::detail::const_array_view<IndexType>&& row_ptrs);
+        std::shared_ptr<strategy_type> strategy = nullptr);
 
     /**
      * Creates a submatrix from this Csr matrix given row and column index_set
@@ -1164,22 +1124,14 @@ public:
     Csr(Csr&&);
 
 protected:
-    Csr(std::shared_ptr<const Executor> exec,
-        std::shared_ptr<strategy_type> strategy);
-
-    Csr(std::shared_ptr<const Executor> exec, const dim<2>& size,
-        size_type num_nonzeros, std::shared_ptr<strategy_type> strategy);
-
     Csr(std::shared_ptr<const Executor> exec, const dim<2>& size = {},
-        size_type num_nonzeros = {});
+        size_type num_nonzeros = {},
+        std::shared_ptr<strategy_type> strategy = nullptr);
 
     Csr(std::shared_ptr<const Executor> exec, const dim<2>& size,
         array<value_type> values, array<index_type> col_idxs,
-        array<index_type> row_ptrs, std::shared_ptr<strategy_type> strategy);
-
-    Csr(std::shared_ptr<const Executor> exec, const dim<2>& size,
-        array<value_type> values, array<index_type> col_idxs,
-        array<index_type> row_ptrs);
+        array<index_type> row_ptrs,
+        std::shared_ptr<strategy_type> strategy = nullptr);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
@@ -1334,11 +1286,11 @@ protected:
     virtual void inv_scale_impl(const LinOp* alpha);
 
 private:
+    std::shared_ptr<strategy_type> strategy_;
     array<value_type> values_;
     array<index_type> col_idxs_;
     array<index_type> row_ptrs_;
     array<index_type> srow_;
-    std::shared_ptr<strategy_type> strategy_;
 
     void add_scaled_identity_impl(const LinOp* a, const LinOp* b) override;
 };

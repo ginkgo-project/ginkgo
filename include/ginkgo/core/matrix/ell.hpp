@@ -223,49 +223,22 @@ public:
 
     /**
      * Creates an uninitialized Ell matrix of the specified size.
-     *    (The stride is set to the number of rows of the matrix.
-     *     The num_stored_elements_per_row is set to the number of cols of the
-     * matrix.)
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     */
-    static std::unique_ptr<Ell> create(std::shared_ptr<const Executor> exec,
-                                       const dim<2>& size = dim<2>{});
-
-    /**
-     * Creates an uninitialized Ell matrix of the specified size.
-     *    (The stride is set to the number of rows of the matrix.)
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param num_stored_elements_per_row   the number of stored elements per
-     *                                      row
-     */
-    static std::unique_ptr<Ell> create(std::shared_ptr<const Executor> exec,
-                                       const dim<2>& size,
-                                       size_type num_stored_elements_per_row);
-
-    /**
-     * Creates an uninitialized Ell matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param num_stored_elements_per_row   the number of stored elements per
      *                                      row
      * @param stride                stride of the rows
+     *
+     * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Ell> create(std::shared_ptr<const Executor> exec,
-                                       const dim<2>& size,
-                                       size_type num_stored_elements_per_row,
-                                       size_type stride);
+    static std::unique_ptr<Ell> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size = {},
+        size_type num_stored_elements_per_row = 0, size_type stride = 0);
 
     /**
      * Creates an ELL matrix from already allocated (and initialized)
      * column index and value arrays.
-     *
-     * @tparam ValuesArray  type of `values` array
-     * @tparam ColIdxsArray  type of `col_idxs` array
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
@@ -279,6 +252,8 @@ public:
      *       IndexType and ValueType, respectively, or is on the wrong executor,
      *       an internal copy of that array will be created, and the original
      *       array data will not be used in the matrix.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Ell> create(std::shared_ptr<const Executor> exec,
                                        const dim<2>& size,
@@ -350,13 +325,8 @@ public:
     Ell(Ell&&);
 
 protected:
-    Ell(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{});
-
-    Ell(std::shared_ptr<const Executor> exec, const dim<2>& size,
-        size_type num_stored_elements_per_row);
-
-    Ell(std::shared_ptr<const Executor> exec, const dim<2>& size,
-        size_type num_stored_elements_per_row, size_type stride);
+    Ell(std::shared_ptr<const Executor> exec, const dim<2>& size = {},
+        size_type num_stored_elements_per_row = 0, size_type stride = 0);
 
     Ell(std::shared_ptr<const Executor> exec, const dim<2>& size,
         array<value_type> values, array<index_type> col_idxs,
@@ -384,10 +354,10 @@ protected:
     }
 
 private:
-    array<value_type> values_;
-    array<index_type> col_idxs_;
     size_type num_stored_elements_per_row_;
     size_type stride_;
+    array<value_type> values_;
+    array<index_type> col_idxs_;
 };
 
 

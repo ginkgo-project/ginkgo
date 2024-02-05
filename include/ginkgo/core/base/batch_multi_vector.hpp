@@ -322,6 +322,8 @@ public:
      *
      * @param exec  Executor associated to the vector
      * @param size  size of the batch multi vector
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<MultiVector> create(
         std::shared_ptr<const Executor> exec,
@@ -330,8 +332,6 @@ public:
     /**
      * Creates a MultiVector from an already allocated (and
      * initialized) array.
-     *
-     * @tparam ValuesArray  type of array of values
      *
      * @param exec  Executor associated to the vector
      * @param size  sizes of the batch matrices in a batch_dim object

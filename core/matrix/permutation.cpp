@@ -199,51 +199,6 @@ Permutation<IndexType>::Permutation(std::shared_ptr<const Executor> exec,
 
 
 template <typename IndexType>
-Permutation<IndexType>::Permutation(std::shared_ptr<const Executor> exec,
-                                    const dim<2>& size)
-    : Permutation{exec, size[0]}
-{
-    GKO_ASSERT_IS_SQUARE_MATRIX(size);
-}
-
-
-template <typename IndexType>
-Permutation<IndexType>::Permutation(std::shared_ptr<const Executor> exec,
-                                    const dim<2>& size,
-                                    const mask_type& enabled_permute)
-    : Permutation{exec, size[0]}
-{
-    GKO_ASSERT_EQ(enabled_permute, row_permute);
-    GKO_ASSERT_IS_SQUARE_MATRIX(size);
-}
-
-
-template <typename IndexType>
-Permutation<IndexType>::Permutation(std::shared_ptr<const Executor> exec,
-                                    const dim<2>& size,
-                                    array<IndexType> permutation_indices)
-    : Permutation{exec, array<IndexType>{exec, std::move(permutation_indices)}}
-{
-    GKO_ASSERT_EQ(size[0], permutation_.get_size());
-    GKO_ASSERT_IS_SQUARE_MATRIX(size);
-}
-
-
-template <typename IndexType>
-Permutation<IndexType>::Permutation(std::shared_ptr<const Executor> exec,
-                                    const dim<2>& size,
-                                    array<index_type> permutation_indices,
-                                    const mask_type& enabled_permute)
-    : Permutation{std::move(exec),
-                  array<IndexType>{exec, std::move(permutation_indices)}}
-{
-    GKO_ASSERT_EQ(enabled_permute, row_permute);
-    GKO_ASSERT_EQ(size[0], permutation_.get_size());
-    GKO_ASSERT_IS_SQUARE_MATRIX(size);
-}
-
-
-template <typename IndexType>
 size_type Permutation<IndexType>::get_permutation_size() const noexcept
 {
     return this->get_size()[0];

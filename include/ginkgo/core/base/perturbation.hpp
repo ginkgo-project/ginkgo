@@ -86,6 +86,8 @@ public:
      * Creates an empty perturbation operator (0x0 operator).
      *
      * @param exec  Executor associated to the perturbation
+     *
+     * @return A smart pointer to the newly created perturbation.
      */
     static std::unique_ptr<Perturbation> create(
         std::shared_ptr<const Executor> exec);
@@ -97,6 +99,8 @@ public:
      *
      * @param scalar  scaling of the movement
      * @param basis  the direction basis
+     *
+     * @return A smart pointer to the newly created perturbation.
      */
     static std::unique_ptr<Perturbation> create(
         std::shared_ptr<const LinOp> scalar,
@@ -108,6 +112,8 @@ public:
      * @param scalar  scaling of the movement
      * @param basis  the direction basis
      * @param projector  decides the coefficient of basis
+     *
+     * @return A smart pointer to the newly created perturbation.
      */
     static std::unique_ptr<Perturbation> create(
         std::shared_ptr<const LinOp> scalar, std::shared_ptr<const LinOp> basis,
