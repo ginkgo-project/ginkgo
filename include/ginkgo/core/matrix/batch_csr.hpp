@@ -212,6 +212,8 @@ public:
      * that the arrays are allocated correctly. An incorrect value will result
      * in a runtime failure when the user tries to use any batch matrix
      * utilities such as create_view_from_item etc.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Csr> create(
         std::shared_ptr<const Executor> exec,
@@ -231,6 +233,8 @@ public:
      * @note If `values` is not an rvalue, not an array of ValueType, or is on
      *       the wrong executor, an internal copy will be created, and the
      *       original array data will not be used in the matrix.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Csr> create(std::shared_ptr<const Executor> exec,
                                        const batch_dim<2>& size,
@@ -271,6 +275,8 @@ public:
      * @return A smart pointer to the constant matrix wrapping the input
      * array (if it resides on the same executor as the matrix) or a copy of the
      * array on the correct executor.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<const Csr> create_const(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,

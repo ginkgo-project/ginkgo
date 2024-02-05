@@ -163,27 +163,19 @@ public:
     void write(mat_data32& data) const override;
 
     /**
-     * Creates an empty Diagonal matrix.
-     *
-     * @param exec  Executor associated to the matrix
-     */
-    static std::unique_ptr<Diagonal> create(
-        std::shared_ptr<const Executor> exec);
-
-    /**
      * Creates an Diagonal matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Diagonal> create(
-        std::shared_ptr<const Executor> exec, size_type size);
+        std::shared_ptr<const Executor> exec, size_type size = 0);
 
     /**
      * Creates a Diagonal matrix from an already allocated (and initialized)
      * array.
-     *
-     * @tparam ValuesArray  type of array of values
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
@@ -192,11 +184,17 @@ public:
      * @note If `values` is not an rvalue, not an array of ValueType, or is on
      *       the wrong executor, an internal copy will be created, and the
      *       original array data will not be used in the matrix.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Diagonal> create(
         std::shared_ptr<const Executor> exec, const size_type size,
         array<value_type> values);
 
+    /**
+     * @copydoc std::unique_ptr<Diagonal> create(std::shared_ptr<const
+     * Executor>, const size_type, array<value_type>)
+     */
     template <typename InputValueType>
     static std::unique_ptr<Diagonal> create(
         std::shared_ptr<const Executor> exec, const size_type size,
@@ -220,9 +218,7 @@ public:
         gko::detail::const_array_view<ValueType>&& values);
 
 protected:
-    explicit Diagonal(std::shared_ptr<const Executor> exec);
-
-    Diagonal(std::shared_ptr<const Executor> exec, size_type size);
+    Diagonal(std::shared_ptr<const Executor> exec, size_type size = 0);
 
     Diagonal(std::shared_ptr<const Executor> exec, const size_type size,
              array<value_type> values);

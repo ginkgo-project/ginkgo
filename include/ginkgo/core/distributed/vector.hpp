@@ -482,6 +482,8 @@ public:
      * @param global_size  Global size of the vector
      * @param local_size  Processor-local size of the vector
      * @param stride  Stride of the local vector.
+     *
+     * @return A smart pointer to the newly created vector.
      */
     static std::unique_ptr<Vector> create(std::shared_ptr<const Executor> exec,
                                           mpi::communicator comm,
@@ -496,6 +498,8 @@ public:
      * @param global_size  Global size of the vector
      * @param local_size  Processor-local size of the vector, uses local_size[1]
      *                    as the stride
+     *
+     * @return A smart pointer to the newly created vector.
      */
     static std::unique_ptr<Vector> create(std::shared_ptr<const Executor> exec,
                                           mpi::communicator comm,
@@ -516,6 +520,8 @@ public:
      * @param global_size  The global size of the vector
      * @param local_vector  The underlying local vector, the data will be moved
      *                      into this
+     *
+     * @return A smart pointer to the newly created vector.
      */
     static std::unique_ptr<Vector> create(
         std::shared_ptr<const Executor> exec, mpi::communicator comm,
@@ -536,6 +542,8 @@ public:
      * @param comm  Communicator associated with this vector
      * @param local_vector  The underlying local vector, the data will be moved
      *                      into this.
+     *
+     * @return A smart pointer to the newly created vector.
      */
     static std::unique_ptr<Vector> create(
         std::shared_ptr<const Executor> exec, mpi::communicator comm,
@@ -550,6 +558,8 @@ public:
      * @param global_size  The global size of the vector
      * @param local_vector  The underlying local vector, of which a view is
      *                      created
+     *
+     * @return A smart pointer to the newly created vector.
      */
     static std::unique_ptr<const Vector> create_const(
         std::shared_ptr<const Executor> exec, mpi::communicator comm,
@@ -565,71 +575,24 @@ public:
      * @param comm  Communicator associated with this vector
      * @param local_vector  The underlying local vector, of which a view is
      *                      created
+     *
+     * @return A smart pointer to the newly created vector.
      */
     static std::unique_ptr<const Vector> create_const(
         std::shared_ptr<const Executor> exec, mpi::communicator comm,
         std::unique_ptr<const local_vector_type> local_vector);
 
 protected:
-    /**
-     * Creates an empty distributed vector with a specified size
-     *
-     * @param exec  Executor associated with vector
-     * @param comm  Communicator associated with vector
-     * @param global_size  Global size of the vector
-     * @param local_size  Processor-local size of the vector
-     * @param stride  Stride of the local vector.
-     */
     Vector(std::shared_ptr<const Executor> exec, mpi::communicator comm,
            dim<2> global_size, dim<2> local_size, size_type stride);
 
-    /**
-     * Creates an empty distributed vector with a specified size
-     *
-     * @param exec  Executor associated with vector
-     * @param comm  Communicator associated with vector
-     * @param global_size  Global size of the vector
-     * @param local_size  Processor-local size of the vector, uses local_size[1]
-     *                    as the stride
-     */
     explicit Vector(std::shared_ptr<const Executor> exec,
                     mpi::communicator comm, dim<2> global_size = {},
                     dim<2> local_size = {});
 
-    /**
-     * Creates a distributed vector from local vectors with a specified size.
-     *
-     * @note  The data form the local_vector will be moved into the new
-     *        distributed vector. You could either move in a std::unique_ptr
-     *        directly, copy a local vector with gko::clone, or create a
-     *        unique non-owining view of a given local vector with
-     *        gko::make_dense_view.
-     *
-     * @param exec  Executor associated with this vector
-     * @param comm  Communicator associated with this vector
-     * @param global_size  The global size of the vector
-     * @param local_vector  The underlying local vector, the data will be moved
-     *                      into this
-     */
     Vector(std::shared_ptr<const Executor> exec, mpi::communicator comm,
            dim<2> global_size, std::unique_ptr<local_vector_type> local_vector);
 
-    /**
-     * Creates a distributed vector from local vectors. The global size will
-     * be deduced from the local sizes, which will incur a collective
-     * communication.
-     *
-     * @note  The data form the local_vector will be moved into the new
-     *        distributed vector. You could either move in a std::unique_ptr
-     *        directly, copy a local vector with gko::clone, or create a
-     *        unique non-owining view of a given local vector with
-     *        gko::make_dense_view.
-     *
-     * @param exec  Executor associated with this vector
-     * @param comm  Communicator associated with this vector
-     * @param local_vector  The underlying local vector, the data will be moved
-     *                      into this.
-     */
     Vector(std::shared_ptr<const Executor> exec, mpi::communicator comm,
            std::unique_ptr<local_vector_type> local_vector);
 

@@ -105,42 +105,6 @@ Hybrid<ValueType, IndexType>::Hybrid(Hybrid&& other)
 
 template <typename ValueType, typename IndexType>
 Hybrid<ValueType, IndexType>::Hybrid(std::shared_ptr<const Executor> exec,
-                                     std::shared_ptr<strategy_type> strategy)
-    : Hybrid(std::move(exec), dim<2>{}, std::move(strategy))
-{}
-
-
-template <typename ValueType, typename IndexType>
-Hybrid<ValueType, IndexType>::Hybrid(std::shared_ptr<const Executor> exec,
-                                     const dim<2>& size,
-                                     std::shared_ptr<strategy_type> strategy)
-    : Hybrid(std::move(exec), size, size[1], std::move(strategy))
-{}
-
-
-template <typename ValueType, typename IndexType>
-Hybrid<ValueType, IndexType>::Hybrid(std::shared_ptr<const Executor> exec,
-                                     const dim<2>& size,
-                                     size_type num_stored_elements_per_row,
-                                     std::shared_ptr<strategy_type> strategy)
-    : Hybrid(std::move(exec), size, num_stored_elements_per_row, size[0], {},
-             std::move(strategy))
-{}
-
-
-template <typename ValueType, typename IndexType>
-Hybrid<ValueType, IndexType>::Hybrid(std::shared_ptr<const Executor> exec,
-                                     const dim<2>& size,
-                                     size_type num_stored_elements_per_row,
-                                     size_type stride,
-                                     std::shared_ptr<strategy_type> strategy)
-    : Hybrid(std::move(exec), size, num_stored_elements_per_row, stride, {},
-             std::move(strategy))
-{}
-
-
-template <typename ValueType, typename IndexType>
-Hybrid<ValueType, IndexType>::Hybrid(std::shared_ptr<const Executor> exec,
                                      const dim<2>& size,
                                      size_type num_stored_elements_per_row,
                                      size_type stride, size_type num_nonzeros,
@@ -148,7 +112,7 @@ Hybrid<ValueType, IndexType>::Hybrid(std::shared_ptr<const Executor> exec,
     : EnableLinOp<Hybrid>(exec, size),
       ell_(ell_type::create(exec, size, num_stored_elements_per_row, stride)),
       coo_(coo_type::create(exec, size, num_nonzeros)),
-      strategy_(std::move(strategy))
+      strategy_(strategy ? std::move(strategy) : std::make_shared<automatic>())
 {}
 
 
@@ -157,7 +121,7 @@ std::unique_ptr<Hybrid<ValueType, IndexType>>
 Hybrid<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
                                      std::shared_ptr<strategy_type> strategy)
 {
-    return std::unique_ptr<Hybrid>{new Hybrid{exec, strategy}};
+    return std::unique_ptr<Hybrid>{new Hybrid{exec, {}, 0, 0, 0, strategy}};
 }
 
 
@@ -167,7 +131,7 @@ Hybrid<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
                                      const dim<2>& size,
                                      std::shared_ptr<strategy_type> strategy)
 {
-    return std::unique_ptr<Hybrid>{new Hybrid{exec, size, strategy}};
+    return std::unique_ptr<Hybrid>{new Hybrid{exec, size, 0, 0, 0, strategy}};
 }
 
 
@@ -179,7 +143,7 @@ Hybrid<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
                                      std::shared_ptr<strategy_type> strategy)
 {
     return std::unique_ptr<Hybrid>{
-        new Hybrid{exec, size, num_stored_elements_per_row, strategy}};
+        new Hybrid{exec, size, num_stored_elements_per_row, 0, 0, strategy}};
 }
 
 
@@ -191,8 +155,8 @@ Hybrid<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
                                      size_type stride,
                                      std::shared_ptr<strategy_type> strategy)
 {
-    return std::unique_ptr<Hybrid>{
-        new Hybrid{exec, size, num_stored_elements_per_row, stride, strategy}};
+    return std::unique_ptr<Hybrid>{new Hybrid{
+        exec, size, num_stored_elements_per_row, stride, 0, strategy}};
 }
 
 

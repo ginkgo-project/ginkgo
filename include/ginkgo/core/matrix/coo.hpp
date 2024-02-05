@@ -228,10 +228,6 @@ public:
      * Creates a COO matrix from already allocated (and initialized) row
      * index, column index and value arrays.
      *
-     * @tparam ValuesArray  type of `values` array
-     * @tparam ColIdxsArray  type of `col_idxs` array
-     * @tparam RowIdxArray  type of `row_idxs` array
-     *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param values  array of matrix values
@@ -254,6 +250,10 @@ public:
                                        array<index_type> col_idxs,
                                        array<index_type> row_idxs);
 
+    /**
+     * @copydoc std::unique_ptr<Coo> create(std::shared_ptr<const Executor>,
+     * const dim<2>&, array<value_type>, array<index_type>, array<index_type>)
+     */
     template <typename InputValueType, typename InputColumnIndexType,
               typename InputRowIndexType>
     static std::unique_ptr<Coo> create(

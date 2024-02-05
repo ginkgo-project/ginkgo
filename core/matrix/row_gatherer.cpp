@@ -16,12 +16,6 @@ namespace matrix {
 
 
 template <typename IndexType>
-RowGatherer<IndexType>::RowGatherer(std::shared_ptr<const Executor> exec)
-    : RowGatherer(std::move(exec), dim<2>{})
-{}
-
-
-template <typename IndexType>
 RowGatherer<IndexType>::RowGatherer(std::shared_ptr<const Executor> exec,
                                     const dim<2>& size)
     : EnableLinOp<RowGatherer>(exec, size), row_idxs_(exec, size[0])
@@ -35,14 +29,6 @@ RowGatherer<IndexType>::RowGatherer(std::shared_ptr<const Executor> exec,
     : EnableLinOp<RowGatherer>(exec, size), row_idxs_{exec, std::move(row_idxs)}
 {
     GKO_ASSERT_EQ(size[0], row_idxs_.get_size());
-}
-
-
-template <typename IndexType>
-std::unique_ptr<RowGatherer<IndexType>> RowGatherer<IndexType>::create(
-    std::shared_ptr<const Executor> exec)
-{
-    return std::unique_ptr<RowGatherer>{new RowGatherer{exec}};
 }
 
 

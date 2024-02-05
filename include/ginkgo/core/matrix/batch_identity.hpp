@@ -84,6 +84,8 @@ public:
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the batch matrices in a batch_dim object
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Identity> create(
         std::shared_ptr<const Executor> exec,

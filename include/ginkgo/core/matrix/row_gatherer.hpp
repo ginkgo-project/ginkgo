@@ -67,21 +67,15 @@ public:
     }
 
     /**
-     * Creates an uninitialized RowGatherer arrays on the specified executor.
-     *
-     * @param exec  Executor associated to the LinOp
-     */
-    static std::unique_ptr<RowGatherer> create(
-        std::shared_ptr<const Executor> exec);
-
-    /**
      * Creates uninitialized RowGatherer arrays of the specified size.
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the RowGatherable matrix
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<RowGatherer> create(
-        std::shared_ptr<const Executor> exec, const dim<2>& size);
+        std::shared_ptr<const Executor> exec, const dim<2>& size = {});
 
     /**
      * Creates a RowGatherer matrix from an already allocated (and initialized)
@@ -94,6 +88,8 @@ public:
      * @note If `row_idxs` is not an rvalue, not an array of
      * IndexType, or is on the wrong executor, an internal copy will be created,
      * and the original array data will not be used in the matrix.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<RowGatherer> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
@@ -114,9 +110,7 @@ public:
         gko::detail::const_array_view<IndexType>&& row_idxs);
 
 protected:
-    RowGatherer(std::shared_ptr<const Executor> exec);
-
-    RowGatherer(std::shared_ptr<const Executor> exec, const dim<2>& size);
+    RowGatherer(std::shared_ptr<const Executor> exec, const dim<2>& size = {});
 
     RowGatherer(std::shared_ptr<const Executor> exec, const dim<2>& size,
                 array<index_type> row_idxs);
