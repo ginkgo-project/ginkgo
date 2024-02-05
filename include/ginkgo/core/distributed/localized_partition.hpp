@@ -85,6 +85,7 @@ size_type get_size(const span<IndexType>& spans)
 
 template <typename T>
 struct array {
+    using value_type = T;
     using iterator = gko::array<T>*;
     using const_iterator = const gko::array<T>*;
     using reference = gko::array<T>&;
@@ -153,6 +154,48 @@ size_type get_size(const array<IndexType>& arrs)
 
 
 namespace experimental::distributed {
+namespace constraints {
+
+
+template <typename, typename = void>
+struct collection_has_get_min : std::false_type {};
+
+template <typename T>
+struct collection_has_get_min<
+    T, std::void_t<decltype(::gko::collection::get_min(std::declval<T>()))>>
+    : std::true_type {};
+
+template <typename T>
+constexpr bool collection_has_get_min_v = collection_has_get_min<T>::value;
+
+
+template <typename, typename = void>
+struct collection_has_get_max : std::false_type {};
+
+template <typename T>
+struct collection_has_get_max<
+    T, std::void_t<decltype(::gko::collection::get_max(std::declval<T>()))>>
+    : std::true_type {};
+
+template <typename T>
+constexpr bool collection_has_get_max_v = collection_has_get_max<T>::value;
+
+
+template <typename, typename = void>
+struct collection_has_get_size : std::false_type {};
+
+template <typename T>
+struct collection_has_get_size<
+    T, std::void_t<decltype(::gko::collection::get_size(std::declval<T>()))>>
+    : std::true_type {};
+
+template <typename T>
+constexpr bool collection_has_get_size_v = collection_has_get_size<T>::value;
+
+
+}  // namespace constraints
+
+
 /**
  * A representation of indices that are shared with other processes.
  *
@@ -168,6 +211,18 @@ namespace experimental::distributed {
  */
 template <typename IndexType, template <class> class StorageMap>
 struct remote_indices_pair {
+    static_assert(constraints::collection_has_get_min_v<StorageMap<IndexType>>,
+                  "StorageMap type needs to provide an overload for "
+                  "`gko::collection::get_min`.");
+    static_assert(constraints::collection_has_get_max_v<StorageMap<IndexType>>,
+                  "StorageMap type needs to provide an overload for "
+                  "`gko::collection::get_max`.");
+    static_assert(constraints::collection_has_get_size_v<StorageMap<IndexType>>,
+                  "StorageMap type needs to provide an overload for "
+                  "`gko::collection::get_size`.");
+
+    using index_storage_type = StorageMap<IndexType>;
+
     remote_indices_pair(array<comm_index_type> target_ids_,
                         StorageMap<IndexType> idxs_)
         : target_ids(std::move(target_ids_)),
@@ -180,7 +235,7 @@ struct remote_indices_pair {
     }
 
     array<comm_index_type> target_ids;
-    StorageMap<IndexType> idxs;
+    index_storage_type idxs;
     IndexType begin;
     IndexType end;
 };
