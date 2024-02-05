@@ -331,11 +331,10 @@ namespace distributed {
  * experimental::distributed::Vector type to convert the input LinOp.
  */
 template <typename ValueType>
-::gko::detail::temporary_conversion<
-    experimental::distributed::Vector<ValueType>>
+detail::temporary_conversion<experimental::distributed::Vector<ValueType>>
 make_temporary_conversion(LinOp* matrix)
 {
-    auto result = ::gko::detail::temporary_conversion<
+    auto result = detail::temporary_conversion<
         experimental::distributed::Vector<ValueType>>::
         template create<
             experimental::distributed::Vector<next_precision<ValueType>>>(
@@ -351,11 +350,10 @@ make_temporary_conversion(LinOp* matrix)
  * @copydoc make_temporary_conversion
  */
 template <typename ValueType>
-::gko::detail::temporary_conversion<
-    const experimental::distributed::Vector<ValueType>>
+detail::temporary_conversion<const experimental::distributed::Vector<ValueType>>
 make_temporary_conversion(const LinOp* matrix)
 {
-    auto result = ::gko::detail::temporary_conversion<
+    auto result = detail::temporary_conversion<
         const experimental::distributed::Vector<ValueType>>::
         template create<
             experimental::distributed::Vector<next_precision<ValueType>>>(

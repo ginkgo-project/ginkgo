@@ -445,7 +445,7 @@ protected:
      *                         return value of make_matrix_template.
      */
     template <typename MatrixType,
-              typename = std::enable_if_t<::gko::detail::is_matrix_type_builder<
+              typename = std::enable_if_t<detail::is_matrix_type_builder<
                   MatrixType, ValueType, LocalIndexType>::value>>
     explicit Matrix(std::shared_ptr<const Executor> exec,
                     mpi::communicator comm, MatrixType matrix_template)
@@ -481,11 +481,11 @@ protected:
      *                                   return value of make_matrix_template.
      */
     template <typename LocalMatrixType, typename NonLocalMatrixType,
-              typename = std::enable_if_t<::gko::detail::is_matrix_type_builder<
-                  LocalMatrixType, ValueType, LocalIndexType>::value&& ::gko::
-                                              detail::is_matrix_type_builder<
-                                                  NonLocalMatrixType, ValueType,
-                                                  LocalIndexType>::value>>
+              typename = std::enable_if_t<
+                  detail::is_matrix_type_builder<LocalMatrixType, ValueType,
+                                                 LocalIndexType>::value &&
+                  detail::is_matrix_type_builder<NonLocalMatrixType, ValueType,
+                                                 LocalIndexType>::value>>
     explicit Matrix(std::shared_ptr<const Executor> exec,
                     mpi::communicator comm,
                     LocalMatrixType local_matrix_template,

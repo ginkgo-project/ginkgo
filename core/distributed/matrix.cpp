@@ -100,7 +100,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
 {
     auto recv_idxs =
         sparse_comm->get_partition<GlobalIndexType>()->get_recv_indices();
-    GKO_ASSERT(detail::get_size(recv_idxs.idxs) ==
+    GKO_ASSERT(collection::get_size(recv_idxs.idxs) ==
                non_local_mtx_->get_size()[1]);
 }
 
@@ -150,7 +150,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     GKO_ASSERT_EQUAL_ROWS(local_data.get_size(), non_local_data.get_size());
     GKO_ASSERT_EQ(local_data.get_size()[1], part->get_local_end());
     GKO_ASSERT_EQ(non_local_data.get_size()[1],
-                  detail::get_size(part->get_recv_indices().idxs));
+                  collection::get_size(part->get_recv_indices().idxs));
 
     as<ReadableFromMatrixData<ValueType, LocalIndexType>>(local_mtx_)
         ->read(std::move(local_data));

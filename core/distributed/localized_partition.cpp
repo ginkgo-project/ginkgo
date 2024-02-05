@@ -8,7 +8,7 @@
 #include "core/components/min_max_array_kernels.hpp"
 
 
-namespace gko::experimental::distributed {
+namespace gko {
 namespace array_kernels {
 
 
@@ -20,8 +20,6 @@ GKO_REGISTER_OPERATION(min, components::min_array);
 
 
 namespace detail {
-
-
 template <typename IndexType>
 IndexType get_max(const array<IndexType>& arr)
 {
@@ -42,38 +40,47 @@ IndexType get_min(const array<IndexType>& arr)
 }
 
 
+}  // namespace detail
+
+
+namespace collection {
+
+
 template <typename IndexType>
-IndexType get_max(const array_collection<IndexType>& arrs)
+IndexType get_max(const array<IndexType>& arrs)
 {
-    return get_max(arrs.get_flat());
+    return detail::get_max(arrs.get_flat());
 }
 
 #define GKO_DECLARE_GET_MAX_ARRS(IndexType) \
-    IndexType get_max(const array_collection<IndexType>& arrs)
+    IndexType get_max(const collection::array<IndexType>& arrs)
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_GET_MAX_ARRS);
 
 
 template <typename IndexType>
-IndexType get_min(const array_collection<IndexType>& arrs)
+IndexType get_min(const array<IndexType>& arrs)
 {
-    return get_min(arrs.get_flat());
+    return detail::get_min(arrs.get_flat());
 }
 
 #define GKO_DECLARE_GET_MIN_ARRS(IndexType) \
-    IndexType get_min(const array_collection<IndexType>& arrs)
+    IndexType get_min(const collection::array<IndexType>& arrs)
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_GET_MIN_ARRS);
 
 
-}  // namespace detail
+}  // namespace collection
+
+
+namespace experimental::distributed {
 
 
 template <typename IndexType>
-span_collection<IndexType> compute_span_collection(
+collection::span<IndexType> compute_span_collection(
     size_type local_size, const std::vector<comm_index_type> sizes)
 {
-    span_collection<IndexType> blocks;
+    collection::span<IndexType> blocks;
     auto offset = static_cast<IndexType>(local_size);
     for (IndexType current_size : sizes) {
         blocks.emplace_back(offset, offset + current_size);
@@ -107,7 +114,7 @@ localized_partition<IndexType>::build_from_blocked_recv(
     std::transform(send_idxs.begin(), send_idxs.end(), num_send_idxs.begin(),
                    [](const auto& a) { return a.first.get_size(); });
 
-    array_collection<IndexType> send_idxs_arrs(exec, num_send_idxs);
+    collection::array<IndexType> send_idxs_arrs(exec, num_send_idxs);
     array<comm_index_type> send_target_ids(exec->get_master(),
                                            send_idxs.size());
     for (int i = 0; i < send_idxs.size(); ++i) {
@@ -209,7 +216,7 @@ localized_partition<IndexType>::build_from_remote_send_indices(
     auto send_ids = std::move(std::get<0>(send_envelope));
     auto send_sizes = std::move(std::get<1>(send_envelope));
 
-    array_collection<IndexType> send_idxs(
+    collection::array<IndexType> send_idxs(
         communicate_send_gather_idxs(comm, remote_send_indices, recv_ids,
                                      recv_sizes, send_ids, send_sizes),
         send_sizes);
@@ -231,4 +238,5 @@ localized_partition<IndexType>::build_from_remote_send_indices(
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_LOCALIZED_PARTITION);
 
 
-}  // namespace gko::experimental::distributed
+}  // namespace experimental::distributed
+}  // namespace gko

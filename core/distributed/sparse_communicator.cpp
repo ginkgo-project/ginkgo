@@ -61,8 +61,8 @@ mpi::communicator create_neighborhood_comm(
 template <typename ValueType>
 mpi::request sparse_communicator::communicate(
     const matrix::Dense<ValueType>* local_vector,
-    const ::gko::detail::DenseCache<ValueType>& send_buffer,
-    const ::gko::detail::DenseCache<ValueType>& recv_buffer) const
+    const detail::DenseCache<ValueType>& send_buffer,
+    const detail::DenseCache<ValueType>& recv_buffer) const
 {
     return std::visit(
         [&, this](const auto& part) {
@@ -78,15 +78,29 @@ mpi::request sparse_communicator::communicate(
         part_);
 }
 
-#define GKO_DECLARE_COMMUNICATE(ValueType)                       \
-    mpi::request sparse_communicator::communicate(               \
-        const matrix::Dense<ValueType>* local_vector,            \
-        const ::gko::detail::DenseCache<ValueType>& send_buffer, \
-        const ::gko::detail::DenseCache<ValueType>& recv_buffer) const
+#define GKO_DECLARE_COMMUNICATE(ValueType)                \
+    mpi::request sparse_communicator::communicate(        \
+        const matrix::Dense<ValueType>* local_vector,     \
+        const detail::DenseCache<ValueType>& send_buffer, \
+        const detail::DenseCache<ValueType>& recv_buffer) const
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_COMMUNICATE);
 
 #undef GKO_DECLARE_COMMUNICATE
+
+
+template <typename IndexType>
+size_type get_size(const typed_span<IndexType>& s)
+{
+    return s.length();
+}
+
+
+template <typename IndexType>
+size_type get_size(const array<IndexType>& arr)
+{
+    return arr.get_size();
+}
 
 
 template <typename IndexType>
@@ -107,7 +121,7 @@ sparse_communicator::sparse_communicator(
                                  std::vector<int>& offsets,
                                  const auto& remote_idxs) {
         for (int i = 0; i < remote_idxs.idxs.size(); ++i) {
-            sizes[i] = detail::get_size(remote_idxs.idxs[i]);
+            sizes[i] = get_size(remote_idxs.idxs[i]);
         }
         std::partial_sum(sizes.begin(), sizes.end(), offsets.begin() + 1);
     };
@@ -132,8 +146,8 @@ template <typename ValueType, typename IndexType>
 mpi::request sparse_communicator::communicate_impl_(
     MPI_Comm comm, std::shared_ptr<const localized_partition<IndexType>> part,
     const matrix::Dense<ValueType>* local_vector,
-    const ::gko::detail::DenseCache<ValueType>& send_buffer,
-    const ::gko::detail::DenseCache<ValueType>& recv_buffer) const
+    const detail::DenseCache<ValueType>& send_buffer,
+    const detail::DenseCache<ValueType>& recv_buffer) const
 {
     GKO_ASSERT(part->get_local_end() == local_vector->get_size()[0]);
 
@@ -142,11 +156,11 @@ mpi::request sparse_communicator::communicate_impl_(
     auto send_idxs = part->get_send_indices();
     auto recv_idxs = part->get_recv_indices();
 
-    recv_buffer.init(
-        exec, {detail::get_size(recv_idxs.idxs), local_vector->get_size()[1]});
+    recv_buffer.init(exec, {collection::get_size(recv_idxs.idxs),
+                            local_vector->get_size()[1]});
 
-    send_buffer.init(
-        exec, {detail::get_size(send_idxs.idxs), local_vector->get_size()[1]});
+    send_buffer.init(exec, {collection::get_size(send_idxs.idxs),
+                            local_vector->get_size()[1]});
 
     auto& full_send_idxs = std::get<array<IndexType>>(send_idxs_);
     local_vector->row_gather(&full_send_idxs, send_buffer.get());
@@ -169,8 +183,8 @@ mpi::request sparse_communicator::communicate_impl_(
         MPI_Comm comm,                                                         \
         std::shared_ptr<const localized_partition<IndexType>> part,            \
         const matrix::Dense<ValueType>* local_vector,                          \
-        const ::gko::detail::DenseCache<ValueType>& send_buffer,               \
-        const ::gko::detail::DenseCache<ValueType>& recv_buffer) const
+        const detail::DenseCache<ValueType>& send_buffer,                      \
+        const detail::DenseCache<ValueType>& recv_buffer) const
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COMMUNICATE_IMPL);
 

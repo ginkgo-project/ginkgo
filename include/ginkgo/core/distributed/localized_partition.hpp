@@ -14,110 +14,41 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-namespace gko::experimental::distributed {
-namespace detail {
-
-
-template <typename T>
-struct template_span {
-    /**
-     * Creates a span representing a point `point`.
-     *
-     * The `begin` of this span is set to `point`, and the `end` to `point + 1`.
-     *
-     * @param point  the point which the span represents
-     */
-    GKO_ATTRIBUTES constexpr template_span(T point) noexcept
-        : template_span{point, point + 1}
+namespace gko {
+/**
+ * \brief Same as span, but templated
+ * \tparam IntegerType an integer type to store the span
+ */
+template <typename IntegerType>
+struct typed_span {
+    GKO_ATTRIBUTES constexpr typed_span(IntegerType point) noexcept
+        : typed_span{point, point + 1}
     {}
 
-    GKO_ATTRIBUTES constexpr template_span(T begin, T end) noexcept
+    GKO_ATTRIBUTES constexpr typed_span(IntegerType begin,
+                                        IntegerType end) noexcept
         : begin(begin), end(end)
     {}
-    /**
-     * Checks if a span is valid.
-     *
-     * @return true if and only if `this->begin <= this->end`
-     */
+
     GKO_ATTRIBUTES constexpr bool is_valid() const { return begin <= end; }
 
-    /**
-     * Returns the length of a span.
-     *
-     * @return `this->end - this->begin`
-     */
-    GKO_ATTRIBUTES constexpr size_type length() const { return end - begin; }
+    GKO_ATTRIBUTES constexpr IntegerType length() const { return end - begin; }
 
-    /**
-     * Beginning of the span.
-     */
-    T begin;
+    IntegerType begin;
 
-    /**
-     * End of the span.
-     */
-    T end;
-};
-}  // namespace detail
-
-
-template <typename T>
-using span_collection = std::vector<detail::template_span<T>>;
-
-
-template <typename T>
-struct array_collection {
-    using iterator = array<T>*;
-    using const_iterator = const array<T>*;
-
-    template <typename SizeType>
-    array_collection(std::shared_ptr<const Executor> exec,
-                     const std::vector<SizeType>& sizes)
-        : array_collection(
-              array<T>(exec, std::accumulate(sizes.begin(), sizes.end(), 0)),
-              sizes)
-    {}
-
-    template <typename SizeType>
-    array_collection(array<T> buffer, const std::vector<SizeType>& sizes)
-        : buffer_(std::move(buffer))
-    {
-        auto exec = buffer_.get_executor();
-        std::vector<size_type> offsets(sizes.size() + 1);
-        std::partial_sum(sizes.begin(), sizes.end(), offsets.begin() + 1);
-        buffer_.resize_and_reset(offsets.back());
-        for (size_type i = 0; i < sizes.size(); ++i) {
-            elems_.push_back(make_array_view(exec, sizes[i],
-                                             buffer_.get_data() + offsets[i]));
-        }
-    }
-
-    array<T>& operator[](size_type i) { return elems_[i]; }
-    const array<T>& operator[](size_type i) const { return elems_[i]; }
-
-    size_type size() const { return elems_.size(); }
-
-    iterator begin() { return elems_.begin(); }
-    const_iterator begin() const { return elems_.begin(); }
-
-    iterator end() { return elems_.end(); }
-    const_iterator end() const { return elems_.end(); }
-
-    bool empty() const { return elems_.empty(); }
-
-    array<T>& get_flat() { return buffer_; }
-    const array<T>& get_flat() const { return buffer_; }
-
-private:
-    array<T> buffer_;
-    std::vector<array<T>> elems_;
+    IntegerType end;
 };
 
 
-namespace detail {
+namespace collection {
+
+
+template <typename T>
+using span = std::vector<typed_span<T>>;
+
 
 template <typename IndexType>
-IndexType get_min(const span_collection<IndexType>& spans)
+IndexType get_min(const span<IndexType>& spans)
 {
     if (spans.empty()) {
         return std::numeric_limits<IndexType>::max();
@@ -130,7 +61,7 @@ IndexType get_min(const span_collection<IndexType>& spans)
 
 
 template <typename IndexType>
-IndexType get_max(const span_collection<IndexType>& spans)
+IndexType get_max(const span<IndexType>& spans)
 {
     if (spans.empty()) {
         return std::numeric_limits<IndexType>::min();
@@ -143,7 +74,7 @@ IndexType get_max(const span_collection<IndexType>& spans)
 
 
 template <typename IndexType>
-size_type get_size(const span_collection<IndexType>& spans)
+size_type get_size(const span<IndexType>& spans)
 {
     if (spans.empty()) {
         return 0;
@@ -152,36 +83,76 @@ size_type get_size(const span_collection<IndexType>& spans)
 }
 
 
-template <typename IndexType>
-size_type get_size(const template_span<IndexType>& span)
-{
-    return span.length();
-}
+template <typename T>
+struct array {
+    using iterator = gko::array<T>*;
+    using const_iterator = const gko::array<T>*;
+    using reference = gko::array<T>&;
+    using const_reference = const gko::array<T>&;
+
+    template <typename SizeType>
+    array(std::shared_ptr<const Executor> exec,
+          const std::vector<SizeType>& sizes)
+        : array(gko::array<T>(exec,
+                              std::accumulate(sizes.begin(), sizes.end(), 0)),
+                sizes)
+    {}
+
+    template <typename SizeType>
+    array(gko::array<T> buffer, const std::vector<SizeType>& sizes)
+        : buffer_(std::move(buffer))
+    {
+        auto exec = buffer_.get_executor();
+        std::vector<size_type> offsets(sizes.size() + 1);
+        std::partial_sum(sizes.begin(), sizes.end(), offsets.begin() + 1);
+        buffer_.resize_and_reset(offsets.back());
+        for (size_type i = 0; i < sizes.size(); ++i) {
+            elems_.push_back(make_array_view(exec, sizes[i],
+                                             buffer_.get_data() + offsets[i]));
+        }
+    }
+
+    reference operator[](size_type i) { return elems_[i]; }
+    const_reference operator[](size_type i) const { return elems_[i]; }
+
+    [[nodiscard]] size_type size() const { return elems_.size(); }
+
+    iterator begin() { return elems_.begin(); }
+    const_iterator begin() const { return elems_.begin(); }
+
+    iterator end() { return elems_.end(); }
+    const_iterator end() const { return elems_.end(); }
+
+    [[nodiscard]] bool empty() const { return elems_.empty(); }
+
+    reference get_flat() { return buffer_; }
+    const_reference get_flat() const { return buffer_; }
+
+private:
+    gko::array<T> buffer_;
+    std::vector<gko::array<T>> elems_;
+};
 
 
 template <typename IndexType>
-IndexType get_min(const array_collection<IndexType>& arrs);
+IndexType get_min(const array<IndexType>& arrs);
 
 
 template <typename IndexType>
-IndexType get_max(const array_collection<IndexType>& arrs);
+IndexType get_max(const array<IndexType>& arrs);
 
 
 template <typename IndexType>
-size_type get_size(const array_collection<IndexType>& arrs)
+size_type get_size(const array<IndexType>& arrs)
 {
     return arrs.get_flat().get_size();
 }
 
 
-template <typename IndexType>
-size_type get_size(const array<IndexType>& arr)
-{
-    return arr.get_size();
-}
+}  // namespace collection
 
-}  // namespace detail
 
+namespace experimental::distributed {
 /**
  * A representation of indices that are shared with other processes.
  *
@@ -201,8 +172,8 @@ struct remote_indices_pair {
                         StorageMap<IndexType> idxs_)
         : target_ids(std::move(target_ids_)),
           idxs(std::move(idxs_)),
-          begin(idxs.empty() ? 0 : detail::get_min(idxs)),
-          end(idxs.empty() ? 0 : detail::get_max(idxs))
+          begin(idxs.empty() ? 0 : collection::get_min(idxs)),
+          end(idxs.empty() ? 0 : collection::get_max(idxs))
     {
         GKO_THROW_IF_INVALID(target_ids.get_size() == idxs.size(),
                              "target_ids and idxs need to have the same size");
@@ -241,8 +212,8 @@ template <typename IndexType = int32>
 class localized_partition {
 public:
     using index_type = IndexType;
-    using send_indices_type = remote_indices_pair<IndexType, array_collection>;
-    using recv_indices_type = remote_indices_pair<IndexType, span_collection>;
+    using send_indices_type = remote_indices_pair<IndexType, collection::array>;
+    using recv_indices_type = remote_indices_pair<IndexType, collection::span>;
 
     size_type get_local_end() const { return local_end_; }
 
@@ -413,7 +384,8 @@ std::unique_ptr<gko::matrix::Dense<ValueType>> get_non_local(
 }
 
 
-}  // namespace gko::experimental::distributed
+}  // namespace experimental::distributed
+}  // namespace gko
 
 
 #endif  // GKO_PUBLIC_CORE_DISTRIBUTED_LOCALIZED_PARTITION_HPP_

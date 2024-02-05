@@ -121,8 +121,8 @@ public:
     template <typename ValueType>
     mpi::request communicate(
         const matrix::Dense<ValueType>* local_vector,
-        const ::gko::detail::DenseCache<ValueType>& send_buffer,
-        const ::gko::detail::DenseCache<ValueType>& recv_buffer) const;
+        const detail::DenseCache<ValueType>& send_buffer,
+        const detail::DenseCache<ValueType>& recv_buffer) const;
 
     template <typename IndexType>
     std::shared_ptr<const localized_partition<IndexType>> get_partition() const
@@ -170,8 +170,8 @@ private:
         MPI_Comm comm,
         std::shared_ptr<const localized_partition<IndexType>> part,
         const matrix::Dense<ValueType>* local_vector,
-        const ::gko::detail::DenseCache<ValueType>& send_buffer,
-        const ::gko::detail::DenseCache<ValueType>& recv_buffer) const;
+        const detail::DenseCache<ValueType>& send_buffer,
+        const detail::DenseCache<ValueType>& recv_buffer) const;
 
     mpi::communicator default_comm_;
 
