@@ -80,6 +80,9 @@ public:
      */
     template <typename InputValueType, typename RowIndexType,
               typename ColIndexType>
+    GKO_DEPRECATED(
+        "explicitly construct the gko::array arguments instead of passing "
+        "initializer lists")
     device_matrix_data(std::shared_ptr<const Executor> exec, dim<2> size,
                        std::initializer_list<RowIndexType> row_idxs,
                        std::initializer_list<ColIndexType> col_idxs,

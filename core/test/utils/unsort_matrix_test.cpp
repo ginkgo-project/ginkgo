@@ -53,18 +53,20 @@ protected:
      */
     std::unique_ptr<Csr> get_sorted_csr()
     {
-        return Csr::create(exec, gko::dim<2>{5, 5},
-                           I<value_type>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
-                           I<index_type>{0, 1, 0, 1, 2, 3, 2, 2, 3, 4},
-                           I<index_type>{0, 2, 2, 6, 7, 10});
+        return Csr::create(
+            exec, gko::dim<2>{5, 5},
+            gko::array<value_type>{exec, {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
+            gko::array<index_type>{exec, {0, 1, 0, 1, 2, 3, 2, 2, 3, 4}},
+            gko::array<index_type>{exec, {0, 2, 2, 6, 7, 10}});
     }
 
     std::unique_ptr<Coo> get_sorted_coo()
     {
-        return Coo::create(exec, gko::dim<2>{5, 5},
-                           I<value_type>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
-                           I<index_type>{0, 1, 0, 1, 2, 3, 2, 2, 3, 4},
-                           I<index_type>{0, 0, 2, 2, 2, 2, 3, 4, 4, 4});
+        return Coo::create(
+            exec, gko::dim<2>{5, 5},
+            gko::array<value_type>{exec, {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
+            gko::array<index_type>{exec, {0, 1, 0, 1, 2, 3, 2, 2, 3, 4}},
+            gko::array<index_type>{exec, {0, 0, 2, 2, 2, 2, 3, 4, 4, 4}});
     }
 
     bool is_coo_matrix_sorted(gko::ptr_param<Coo> mtx)

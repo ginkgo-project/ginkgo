@@ -268,6 +268,9 @@ public:
      * size_type)
      */
     template <typename InputValueType, typename InputColumnIndexType>
+    GKO_DEPRECATED(
+        "explicitly construct the gko::array argument instead of passing "
+        "initializer lists")
     static std::unique_ptr<Ell> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         std::initializer_list<InputValueType> values,

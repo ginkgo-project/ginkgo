@@ -223,6 +223,9 @@ public:
      * value_type)
      */
     template <typename ColIndexType, typename RowPtrType>
+    GKO_DEPRECATED(
+        "explicitly construct the gko::array argument instead of passing "
+        "initializer lists")
     static std::unique_ptr<SparsityCsr> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         std::initializer_list<ColIndexType> col_idxs,
