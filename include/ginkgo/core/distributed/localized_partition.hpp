@@ -399,8 +399,14 @@ struct semi_global_index {
 };
 
 template <typename LocalIndexType, typename GlobalIndexType = int64>
-struct NonLocalIndexMap {
+struct index_map {
     GlobalIndexType get_global(LocalIndexType id) GKO_NOT_IMPLEMENTED;
+
+    LocalIndexType get_semi_global(comm_index_type process_id,
+                                   LocalIndexType id) GKO_NOT_IMPLEMENTED;
+
+    array<LocalIndexType> get_semi_global(comm_index_type process_id)
+        GKO_NOT_IMPLEMENTED;
 
     LocalIndexType get_local(comm_index_type process_id,
                              LocalIndexType semi_global_id)
@@ -463,37 +469,41 @@ struct NonLocalIndexMap {
         const collection::array<LocalIndexType>& semi_global_ids)
     {
         auto exec = process_ids.get_executor();
-        auto host_process_ids = clone(exec->get_master(), &process_ids);
+        auto host_process_ids =
+            make_temporary_clone(exec->get_master(), &process_ids);
 
         array<LocalIndexType> local_ids{exec->get_master(),
                                         semi_global_ids.get_flat().get_size()};
 
-        std::vector<size_type> query_size_offsets(semi_global_ids.size() + 1);
-        std::partial_sum(
+        std::vector<size_type> query_size_offsets(semi_global_ids.size());
+        std::exclusive_scan(
             semi_global_ids.begin(), semi_global_ids.end(),
-            query_size_offsets.begin() + 1,
+            query_size_offsets.begin(), 0,
             [](const auto& acc, const auto& a) { return acc + a.get_size(); });
 
         for (size_type i = 0; i < host_process_ids->get_size(); ++i) {
-            auto pid = host_process_ids->get_data()[i];
+            auto pid = host_process_ids->get_const_data()[i];
 
-            auto current_result = make_array_view(
+            auto current_view = make_array_view(
                 exec->get_master(), semi_global_ids[i].get_size(),
                 local_ids.get_data() + query_size_offsets[i]);
-            current_result = get_local(pid, semi_global_ids[i]);
+            auto current_result = get_local(pid, semi_global_ids[i]);
+            current_view = current_result;
         }
+
+        return local_ids;
     }
 
 
     // this one will need communication
-    std::unique_ptr<NonLocalIndexMap> create(
+    std::unique_ptr<index_map> create(
         std::shared_ptr<const Executor>,
         ptr_param<const localized_partition<LocalIndexType>> part)
-    {}
+        GKO_NOT_IMPLEMENTED;
 
-    NonLocalIndexMap(std::shared_ptr<const Executor>,
-                     ptr_param<const localized_partition<LocalIndexType>> part,
-                     const collection::array<LocalIndexType>& remote)
+    index_map(std::shared_ptr<const Executor>,
+              ptr_param<const localized_partition<LocalIndexType>> part,
+              const collection::array<LocalIndexType>& remote)
         : target_ids_(part->get_send_indices().target_ids),
           remote_send_idxs_(remote),
           send_idxs_(part->get_send_indices().idxs),
@@ -506,10 +516,12 @@ struct NonLocalIndexMap {
             0);
     }
 
+    index_map() = default;
 
 private:
     array<comm_index_type> target_ids_;
-    collection::array<LocalIndexType> remote_send_idxs_;
+    collection::array<LocalIndexType>
+        remote_send_idxs_;  // need to find more general names
     collection::array<LocalIndexType> send_idxs_;
     std::vector<LocalIndexType> local_id_offsets;
 };
