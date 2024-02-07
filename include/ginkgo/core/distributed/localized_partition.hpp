@@ -91,7 +91,31 @@ struct array {
     using reference = gko::array<T>&;
     using const_reference = const gko::array<T>&;
 
-    template <typename SizeType>
+    array() = default;
+
+    // needs special care to make sure elems_ stay views
+    array(const array& other) { *this = other; }
+
+    array& operator=(const array& other)
+    {
+        if (this != &other) {
+            buffer_ = other.buffer_;
+            elems_.resize(other.elems_.size());
+            for (size_type i = 0; i < elems_.size(); ++i) {
+                elems_[i] = make_array_view(
+                    buffer_.get_executor(), other[i].get_size(),
+                    buffer_.get_data() +
+                        std::distance(other.buffer_.get_const_data(),
+                                      other[i].get_const_data()));
+            }
+        }
+        return *this;
+    }
+
+    array(array&&) noexcept = default;
+    array& operator=(array&&) noexcept = default;
+
+    template <typename SizeType = std::size_t>
     array(std::shared_ptr<const Executor> exec,
           const std::vector<SizeType>& sizes)
         : array(gko::array<T>(exec,
@@ -99,7 +123,7 @@ struct array {
                 sizes)
     {}
 
-    template <typename SizeType>
+    template <typename SizeType = std::size_t>
     array(gko::array<T> buffer, const std::vector<SizeType>& sizes)
         : buffer_(std::move(buffer))
     {
@@ -107,9 +131,12 @@ struct array {
         std::vector<size_type> offsets(sizes.size() + 1);
         std::partial_sum(sizes.begin(), sizes.end(), offsets.begin() + 1);
         buffer_.resize_and_reset(offsets.back());
+        // can't use emplace/push_back because then the view will get copied
+        // into owning arrays
+        elems_.resize(sizes.size());
         for (size_type i = 0; i < sizes.size(); ++i) {
-            elems_.push_back(make_array_view(exec, sizes[i],
-                                             buffer_.get_data() + offsets[i]));
+            elems_[i] = make_array_view(exec, sizes[i],
+                                        buffer_.get_data() + offsets[i]);
         }
     }
 
