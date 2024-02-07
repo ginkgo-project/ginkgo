@@ -151,8 +151,8 @@ mpi::request sparse_communicator::communicate_impl_(
 
     auto exec = local_vector->get_executor();
 
-    auto send_idxs = part->get_send_indices();
-    auto recv_idxs = part->get_recv_indices();
+    auto& send_idxs = part->get_send_indices();
+    auto& recv_idxs = part->get_recv_indices();
 
     recv_buffer.init(exec, {collection::get_size(recv_idxs.idxs),
                             local_vector->get_size()[1]});
