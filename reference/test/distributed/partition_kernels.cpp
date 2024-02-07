@@ -293,8 +293,8 @@ protected:
     using part_type =
         gko::experimental::distributed::localized_partition<local_index_type>;
     using map_type =
-        gko::experimental::distributed::NonLocalIndexMap<local_index_type,
-                                                         global_index_type>;
+        gko::experimental::distributed::index_map<local_index_type,
+                                                  global_index_type>;
 
     LocalizedPartition() : ref(gko::ReferenceExecutor::create()) {}
 
@@ -355,5 +355,28 @@ TEST_F(LocalizedPartition, CanMapSingleArrayOfIds)
         GKO_ASSERT_ARRAY_EQ(result, expected);
     }
 }
+
+
+TEST_F(LocalizedPartition, CanMapMultipleArrayOfIds)
+{
+    auto part = part_type::build_from_blocked_recv(
+        ref, 2,
+        {
+            std::make_pair(gko::array<int>(ref, {0, 1}), 1),
+            std::make_pair(gko::array<int>(ref, {0, 1}), 2),
+        },
+        {ref, {1, 2}}, {2, 1});
+    auto map = map_type(ref, part,
+                        gko::collection::array<gko::int32>{
+                            {ref, {0, 1, 1}}, std::vector<int>{2, 1}});
+
+    auto result = map.get_local(
+        {ref, {1, 2}}, gko::collection::array<int>({ref, {0, 1, 1, 0, 1, 1}},
+                                                   std::vector<int>{4, 2}));
+
+    auto expected = gko::array<int>{ref, {0, 1, 1, 0, 2, 2}};
+    GKO_ASSERT_ARRAY_EQ(result, expected);
+}
+
 
 }  // namespace

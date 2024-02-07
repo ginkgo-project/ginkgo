@@ -15,6 +15,7 @@
 
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/distributed/localized_partition.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
 
 
@@ -358,4 +359,143 @@ TYPED_TEST(Partition, IsOrderedRandom)
     auto dpart = part_type::build_from_mapping(this->exec, mapping, num_parts);
 
     ASSERT_EQ(part->has_ordered_parts(), dpart->has_ordered_parts());
+}
+
+
+class IndexMap : public CommonTestFixture {
+public:
+    using local_index_type = gko::int32;
+    using global_index_type = gko::int64;
+    using part_type =
+        gko::experimental::distributed::localized_partition<local_index_type>;
+    using map_type =
+        gko::experimental::distributed::index_map<local_index_type,
+                                                  global_index_type>;
+
+    IndexMap()
+    {
+        std::vector recv_sizes{recv_size, recv_size, recv_size};
+        remote_send_idxs =
+            gko::collection::array<local_index_type>{ref, recv_sizes};
+        for (auto& remote_send_idx : remote_send_idxs) {
+            auto disable_move = gko::test::generate_random_array<int>(
+                recv_size, std::uniform_int_distribution<int>(0, local_size),
+                engine, ref);
+            remote_send_idx = disable_move;
+        }
+        dremote_send_idxs = gko::collection::array<local_index_type>{
+            gko::array<local_index_type>(exec, remote_send_idxs.get_flat()),
+            recv_sizes};
+
+        std::vector send_idxs{
+            std::make_pair(gko::array<local_index_type>{ref, {0}}, 1),
+            std::make_pair(gko::array<local_index_type>{ref, {1}}, 2),
+            std::make_pair(gko::array<local_index_type>{ref, {2}}, 3)};
+        std::vector dsend_idxs{
+            std::make_pair(gko::array<local_index_type>{exec, {0}}, 1),
+            std::make_pair(gko::array<local_index_type>{exec, {1}}, 2),
+            std::make_pair(gko::array<local_index_type>{exec, {2}}, 3)};
+
+        part = part_type::build_from_blocked_recv(
+            ref, local_size, send_idxs, {ref, {1, 2, 3}},
+            {recv_size, recv_size, recv_size});
+        dpart = part_type::build_from_blocked_recv(
+            exec, local_size, dsend_idxs, {exec, {1, 2, 3}},
+            {recv_size, recv_size, recv_size});
+
+        map = map_type(ref, part, remote_send_idxs);
+        dmap = map_type(exec, part, remote_send_idxs);
+    }
+
+
+    local_index_type local_size = 64;
+    comm_index_type recv_size = 5;
+
+    gko::collection::array<local_index_type> remote_send_idxs;
+    gko::collection::array<local_index_type> dremote_send_idxs;
+
+    std::shared_ptr<part_type> part;
+    std::shared_ptr<part_type> dpart;
+    map_type map;
+    map_type dmap;
+    std::default_random_engine engine;
+};
+
+TEST_F(IndexMap, GetSingleIdSameAsRef)
+{
+    comm_index_type process_id = 2;
+    auto local_id = remote_send_idxs[1].get_data()[0];
+
+    auto result = map.get_local(process_id, local_id);
+    auto dresult = dmap.get_local(process_id, local_id);
+
+    ASSERT_EQ(result, dresult);
+}
+
+template <typename It, typename OutIt, typename Engine>
+void sample_with_replacement(It b, It e, OutIt o, size_t n, Engine&& engine)
+{
+    // Number of elements in range.
+    const auto s = std::distance(b, e);
+    std::uniform_int_distribution<std::ptrdiff_t> dist(0, s);
+    // Generate n samples.
+    for (size_t i = 0; i < n; ++i) {
+        // Write into output
+        *(o++) = *(b + dist(engine));
+    }
+}
+
+
+TEST_F(IndexMap, GetSingleProcessIdMultipleLocalIdsSameAsRef)
+{
+    comm_index_type process_id = 2;
+    auto& local_ids = remote_send_idxs[1];
+    gko::array<local_index_type> query_ids(
+        ref, static_cast<gko::size_type>(local_ids.get_size() * 2.3));
+    sample_with_replacement(local_ids.get_const_data(),
+                            local_ids.get_const_data() + local_ids.get_size(),
+                            query_ids.get_data(), query_ids.get_size(), engine);
+    gko::array<local_index_type> dquery_ids(exec, query_ids);
+
+
+    auto result = map.get_local(process_id, query_ids);
+    auto dresult = dmap.get_local(process_id, query_ids);
+
+    GKO_ASSERT_ARRAY_EQ(result, dresult);
+}
+
+
+TEST_F(IndexMap, GetMultipleProcessIdMultipleLocalIdsSameAsRef)
+{
+    std::array perm{1, 0, 2};
+    gko::array<comm_index_type> process_ids{
+        ref, {perm[0] + 1, perm[1] + 1, perm[2] + 1}};
+    gko::array<comm_index_type> dprocess_ids{exec, process_ids};
+    gko::collection::array<local_index_type> query_ids_coll(
+        ref,
+        {
+            static_cast<size_t>(remote_send_idxs[perm[0]].get_size() * 2.3),
+            static_cast<size_t>(remote_send_idxs[perm[1]].get_size() * 2.3),
+            static_cast<size_t>(remote_send_idxs[perm[2]].get_size() * 2.3),
+        });
+    for (auto set_id : {0, 1, 2}) {
+        auto& local_ids = remote_send_idxs[perm[set_id]];
+        sample_with_replacement(
+            local_ids.get_const_data(),
+            local_ids.get_const_data() + local_ids.get_size(),
+            query_ids_coll[perm[set_id]].get_data(),
+            query_ids_coll[perm[set_id]].get_size(), engine);
+    }
+    gko::collection::array<local_index_type> dquery_ids_coll(
+        gko::array{exec, query_ids_coll.get_flat()},
+        {
+            static_cast<size_t>(remote_send_idxs[1].get_size() * 2.3),
+            static_cast<size_t>(remote_send_idxs[0].get_size() * 2.3),
+            static_cast<size_t>(remote_send_idxs[2].get_size() * 2.3),
+        });
+
+    auto result = map.get_local(process_ids, query_ids_coll);
+    auto dresult = dmap.get_local(dprocess_ids, dquery_ids_coll);
+
+    GKO_ASSERT_ARRAY_EQ(result, dresult);
 }
