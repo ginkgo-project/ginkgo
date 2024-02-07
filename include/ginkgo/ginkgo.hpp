@@ -15,6 +15,7 @@
 #include <ginkgo/core/base/batch_lin_op.hpp>
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/block_operator.hpp>
+#include <ginkgo/core/base/collection.hpp>
 #include <ginkgo/core/base/combination.hpp>
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/dense_cache.hpp>

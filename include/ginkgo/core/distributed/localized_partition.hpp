@@ -6,7 +6,11 @@
 #define GKO_PUBLIC_CORE_DISTRIBUTED_LOCALIZED_PARTITION_HPP_
 
 
+#include <partition.hpp>
+
+
 #include <ginkgo/config.hpp>
+#include <ginkgo/core/base/collection.hpp>
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/distributed/base.hpp>
@@ -15,171 +19,6 @@
 
 
 namespace gko {
-/**
- * \brief Same as span, but templated
- * \tparam IntegerType an integer type to store the span
- */
-template <typename IntegerType>
-struct typed_span {
-    GKO_ATTRIBUTES constexpr typed_span(IntegerType point) noexcept
-        : typed_span{point, point + 1}
-    {}
-
-    GKO_ATTRIBUTES constexpr typed_span(IntegerType begin,
-                                        IntegerType end) noexcept
-        : begin(begin), end(end)
-    {}
-
-    GKO_ATTRIBUTES constexpr bool is_valid() const { return begin <= end; }
-
-    GKO_ATTRIBUTES constexpr IntegerType length() const { return end - begin; }
-
-    IntegerType begin;
-
-    IntegerType end;
-};
-
-
-namespace collection {
-
-
-template <typename T>
-using span = std::vector<typed_span<T>>;
-
-
-template <typename IndexType>
-IndexType get_min(const span<IndexType>& spans)
-{
-    if (spans.empty()) {
-        return std::numeric_limits<IndexType>::max();
-    }
-    return std::min_element(
-               spans.begin(), spans.end(),
-               [](const auto& a, const auto& b) { return a.begin < b.begin; })
-        ->begin;
-}
-
-
-template <typename IndexType>
-IndexType get_max(const span<IndexType>& spans)
-{
-    if (spans.empty()) {
-        return std::numeric_limits<IndexType>::min();
-    }
-    return std::max_element(
-               spans.begin(), spans.end(),
-               [](const auto& a, const auto& b) { return a.end < b.end; })
-        ->end;
-}
-
-
-template <typename IndexType>
-size_type get_size(const span<IndexType>& spans)
-{
-    if (spans.empty()) {
-        return 0;
-    }
-    return get_max(spans) - get_min(spans);
-}
-
-
-template <typename T>
-struct array {
-    using value_type = T;
-    using iterator = gko::array<T>*;
-    using const_iterator = const gko::array<T>*;
-    using reference = gko::array<T>&;
-    using const_reference = const gko::array<T>&;
-
-    array() = default;
-
-    // needs special care to make sure elems_ stay views
-    array(const array& other) { *this = other; }
-
-    array& operator=(const array& other)
-    {
-        if (this != &other) {
-            buffer_ = other.buffer_;
-            elems_.resize(other.elems_.size());
-            for (size_type i = 0; i < elems_.size(); ++i) {
-                elems_[i] = make_array_view(
-                    buffer_.get_executor(), other[i].get_size(),
-                    buffer_.get_data() +
-                        std::distance(other.buffer_.get_const_data(),
-                                      other[i].get_const_data()));
-            }
-        }
-        return *this;
-    }
-
-    array(array&&) noexcept = default;
-    array& operator=(array&&) noexcept = default;
-
-    template <typename SizeType = std::size_t>
-    array(std::shared_ptr<const Executor> exec,
-          const std::vector<SizeType>& sizes)
-        : array(gko::array<T>(exec,
-                              std::accumulate(sizes.begin(), sizes.end(), 0)),
-                sizes)
-    {}
-
-    template <typename SizeType = std::size_t>
-    array(gko::array<T> buffer, const std::vector<SizeType>& sizes)
-        : buffer_(std::move(buffer))
-    {
-        auto exec = buffer_.get_executor();
-        std::vector<size_type> offsets(sizes.size() + 1);
-        std::partial_sum(sizes.begin(), sizes.end(), offsets.begin() + 1);
-        buffer_.resize_and_reset(offsets.back());
-        // can't use emplace/push_back because then the view will get copied
-        // into owning arrays
-        elems_.resize(sizes.size());
-        for (size_type i = 0; i < sizes.size(); ++i) {
-            elems_[i] = make_array_view(exec, sizes[i],
-                                        buffer_.get_data() + offsets[i]);
-        }
-    }
-
-    reference operator[](size_type i) { return elems_[i]; }
-    const_reference operator[](size_type i) const { return elems_[i]; }
-
-    [[nodiscard]] size_type size() const { return elems_.size(); }
-
-    iterator begin() { return elems_.data(); }
-    const_iterator begin() const { return elems_.data(); }
-
-    iterator end() { return begin() + elems_.size(); }
-    const_iterator end() const { return begin() + elems_.size(); }
-
-    [[nodiscard]] bool empty() const { return elems_.empty(); }
-
-    reference get_flat() { return buffer_; }
-    const_reference get_flat() const { return buffer_; }
-
-private:
-    gko::array<T> buffer_;
-    std::vector<gko::array<T>> elems_;
-};
-
-
-template <typename IndexType>
-IndexType get_min(const array<IndexType>& arrs);
-
-
-template <typename IndexType>
-IndexType get_max(const array<IndexType>& arrs);
-
-
-template <typename IndexType>
-size_type get_size(const array<IndexType>& arrs)
-{
-    return arrs.get_flat().get_size();
-}
-
-
-}  // namespace collection
-
-
 namespace experimental::distributed {
 namespace constraints {
 
@@ -398,132 +237,59 @@ struct semi_global_index {
     IndexType local_idx;
 };
 
+
 template <typename LocalIndexType, typename GlobalIndexType = int64>
 struct index_map {
-    GlobalIndexType get_global(LocalIndexType id) GKO_NOT_IMPLEMENTED;
+    using part_type = Partition<LocalIndexType, GlobalIndexType>;
 
-    LocalIndexType get_semi_global(comm_index_type process_id,
-                                   LocalIndexType id) GKO_NOT_IMPLEMENTED;
-
-    array<LocalIndexType> get_semi_global(comm_index_type process_id)
-        GKO_NOT_IMPLEMENTED;
+    semi_global_index<LocalIndexType> get_semi_global(GlobalIndexType id) const;
 
     LocalIndexType get_local(comm_index_type process_id,
-                             LocalIndexType semi_global_id)
-    {
-        auto exec = target_ids_.get_executor();
-        auto host_process_ids =
-            make_temporary_clone(exec->get_master(), &target_ids_);
-        auto set_id =
-            std::distance(target_ids_.get_data(),
-                          std::lower_bound(host_process_ids->get_data(),
-                                           host_process_ids->get_data() +
-                                               host_process_ids->get_size(),
-                                           process_id));
-
-        auto& remote_idxs = remote_send_idxs_[set_id];
-
-        return local_id_offsets[set_id] +
-               std::distance(remote_idxs.get_data(),
-                             std::lower_bound(remote_idxs.get_data(),
-                                              remote_idxs.get_data() +
-                                                  remote_idxs.get_size(),
-                                              semi_global_id));
-    }
-
+                             LocalIndexType semi_global_id) const;
 
     array<LocalIndexType> get_local(
         comm_index_type process_id,
-        const array<LocalIndexType>& semi_global_ids)
-    {
-        auto exec = semi_global_ids.get_executor();
-        auto host_semi_global_ids =
-            make_temporary_clone(exec->get_master(), &semi_global_ids);
-
-        array<LocalIndexType> local_ids{exec->get_master(),
-                                        semi_global_ids.get_size()};
-
-        auto set_id = std::distance(
-            target_ids_.get_data(),
-            std::lower_bound(target_ids_.get_data(),
-                             target_ids_.get_data() + target_ids_.get_size(),
-                             process_id));
-
-        for (size_type i = 0; i < host_semi_global_ids->get_size(); ++i) {
-            auto current_set = remote_send_idxs_[set_id];
-            local_ids.get_data()[i] =
-                local_id_offsets[set_id] +
-                std::distance(
-                    current_set.get_data(),
-                    std::lower_bound(
-                        current_set.get_data(),
-                        current_set.get_data() + current_set.get_size(),
-                        host_semi_global_ids->get_const_data()[i]));
-        }
-
-        return local_ids;
-    }
+        const array<LocalIndexType>& semi_global_ids) const;
 
     array<LocalIndexType> get_local(
         const array<comm_index_type>& process_ids,
-        const collection::array<LocalIndexType>& semi_global_ids)
-    {
-        auto exec = process_ids.get_executor();
-        auto host_process_ids =
-            make_temporary_clone(exec->get_master(), &process_ids);
+        const collection::array<LocalIndexType>& semi_global_ids) const;
 
-        array<LocalIndexType> local_ids{exec->get_master(),
-                                        semi_global_ids.get_flat().get_size()};
+    array<LocalIndexType> get_local(const GlobalIndexType global_ids) const;
 
-        std::vector<size_type> query_size_offsets(semi_global_ids.size());
-        std::exclusive_scan(
-            semi_global_ids.begin(), semi_global_ids.end(),
-            query_size_offsets.begin(), 0,
-            [](const auto& acc, const auto& a) { return acc + a.get_size(); });
+    array<LocalIndexType> get_local(
+        const array<GlobalIndexType>& global_ids) const GKO_NOT_IMPLEMENTED;
 
-        for (size_type i = 0; i < host_process_ids->get_size(); ++i) {
-            auto pid = host_process_ids->get_const_data()[i];
-
-            auto current_view = make_array_view(
-                exec->get_master(), semi_global_ids[i].get_size(),
-                local_ids.get_data() + query_size_offsets[i]);
-            auto current_result = get_local(pid, semi_global_ids[i]);
-            current_view = current_result;
-        }
-
-        return local_ids;
-    }
-
-
-    // this one will need communication
-    std::unique_ptr<index_map> create(
-        std::shared_ptr<const Executor>,
-        ptr_param<const localized_partition<LocalIndexType>> part)
-        GKO_NOT_IMPLEMENTED;
-
-    index_map(std::shared_ptr<const Executor>,
-              ptr_param<const localized_partition<LocalIndexType>> part,
-              const collection::array<LocalIndexType>& remote)
-        : target_ids_(part->get_send_indices().target_ids),
-          remote_send_idxs_(remote),
-          send_idxs_(part->get_send_indices().idxs),
-          local_id_offsets(remote_send_idxs_.size() + 1)
-    {
-        std::inclusive_scan(
-            remote_send_idxs_.begin(), remote_send_idxs_.end(),
-            local_id_offsets.begin() + 1,
-            [](const auto& acc, const auto& a) { return acc + a.get_size(); },
-            0);
-    }
+    index_map(std::shared_ptr<const Executor> exec,
+              std::shared_ptr<const part_type> part,
+              const array<GlobalIndexType>& recv_connections,
+              const collection::array<LocalIndexType>& send_connections);
 
     index_map() = default;
 
+    const collection::array<GlobalIndexType>& get_remote_global_idxs() const
+    {
+        return remote_global_idxs_;
+    }
+
+    const collection::array<LocalIndexType>& get_remote_local_idxs() const
+    {
+        return remote_local_idxs_;
+    }
+
 private:
+    std::shared_ptr<const Executor> exec_;
+    std::shared_ptr<const part_type> partition_;
+    comm_index_type rank_;
+
     array<comm_index_type> target_ids_;
     collection::array<LocalIndexType>
-        remote_send_idxs_;  // need to find more general names
-    collection::array<LocalIndexType> send_idxs_;
-    std::vector<LocalIndexType> local_id_offsets;
+        remote_local_idxs_;  // need to find more general names
+    collection::array<GlobalIndexType>
+        remote_global_idxs_;  // need to find more general names
+    collection::array<LocalIndexType> local_idxs_;
+    std::vector<comm_index_type> id_set_size_;
+    std::vector<LocalIndexType> id_set_offsets_;
 };
 
 
