@@ -325,7 +325,7 @@ index_map<LocalIndexType, GlobalIndexType>::index_map(
     std::transform(remote_local_idxs_.begin(), remote_local_idxs_.end(),
                    recv_sizes.begin(),
                    [](const auto& a) { return a.get_size(); });
-    recv_set_offsets_.set_executor(exec->get_master());
+    recv_set_offsets_.set_executor(exec_->get_master());
     recv_set_offsets_.resize_and_reset(recv_sizes.size() + 1);
     recv_set_offsets_.fill(0);
     std::partial_sum(recv_sizes.begin(), recv_sizes.end(),
@@ -355,7 +355,7 @@ index_map<LocalIndexType, GlobalIndexType>::index_map(
     std::transform(remote_local_idxs_.begin(), remote_local_idxs_.end(),
                    recv_sizes.begin(),
                    [](const auto& a) { return a.get_size(); });
-    recv_set_offsets_.set_executor(exec->get_master());
+    recv_set_offsets_.set_executor(exec_->get_master());
     recv_set_offsets_.resize_and_reset(recv_sizes.size() + 1);
     recv_set_offsets_.fill(0);
     std::partial_sum(recv_sizes.begin(), recv_sizes.end(),
@@ -363,7 +363,7 @@ index_map<LocalIndexType, GlobalIndexType>::index_map(
     recv_set_offsets_.set_executor(exec_);
 
     auto send_envelope =
-        communicate_inverse_envelope(exec, comm, recv_target_ids_, recv_sizes);
+        communicate_inverse_envelope(exec_, comm, recv_target_ids_, recv_sizes);
     send_target_ids_ = std::move(std::get<0>(send_envelope));
     auto send_sizes = std::move(std::get<1>(send_envelope));
 

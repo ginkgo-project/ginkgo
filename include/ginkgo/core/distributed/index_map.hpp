@@ -168,7 +168,7 @@ struct index_map {
         const array<comm_index_type>& process_ids,
         const collection::array<LocalIndexType>& semi_global_ids) const;
 
-    array<LocalIndexType> get_local(const GlobalIndexType global_ids) const;
+    array<LocalIndexType> get_local(GlobalIndexType global_ids) const;
 
     array<LocalIndexType> get_local(
         const array<GlobalIndexType>& global_ids) const GKO_NOT_IMPLEMENTED;
