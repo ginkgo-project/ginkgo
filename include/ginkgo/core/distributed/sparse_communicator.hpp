@@ -25,47 +25,48 @@
 
 
 namespace gko::experimental::distributed {
-
-
-/**
- * \brief This provides Gather implementations based on a sparse
- * topology.
- */
-struct SparseGather : EnableDistributedLinOp<SparseGather> {
-    std::unique_ptr<SparseGather> create(
-        std::shared_ptr<Executor> exec, mpi::communicator comm,
-        std::shared_ptr<const localized_partition<int32>> part);
-    std::unique_ptr<SparseGather> create(
-        std::shared_ptr<Executor> exec, mpi::communicator comm,
-        std::shared_ptr<const localized_partition<int64>> part);
-
-protected:
-    void apply_impl(const LinOp* b, LinOp* x) const override;
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
-
-private:
-    using partition_i32_type = localized_partition<int32>;
-    using partition_i64_type = localized_partition<int64>;
-
-    SparseGather(std::shared_ptr<const Executor> exec, mpi::communicator comm);
-
-    template <typename IndexType>
-    SparseGather(std::shared_ptr<const Executor> exec, mpi::communicator comm,
-                 std::shared_ptr<const localized_partition<IndexType>> part);
-
-    mpi::communicator default_comm_;
-
-    std::variant<std::shared_ptr<const partition_i32_type>,
-                 std::shared_ptr<const partition_i64_type>>
-        part_;
-
-    std::vector<comm_index_type> send_sizes_;
-    std::vector<comm_index_type> send_offsets_;
-    std::vector<comm_index_type> recv_sizes_;
-    std::vector<comm_index_type> recv_offsets_;
-    std::variant<array<int32>, array<int64>> send_idxs_;
-};
+// /**
+//  * \brief This provides Gather implementations based on a sparse
+//  * topology.
+//  */
+// struct SparseGather : EnableDistributedLinOp<SparseGather> {
+//     template <typename LocalIndexType, typename GlobalIndexType>
+//     std::shared_ptr<SparseGather> create(
+//         std::shared_ptr<Executor> exec, mpi::communicator comm,
+//         std::shared_ptr<const index_map<LocalIndexType, GlobalIndexType>>
+//         imap)
+//     {
+//         return std::shared_ptr<SparseGather>(new
+//         SparseGather(std::move(exec), std::move(comm), std::move(imap)));
+//     }
+//
+// protected:
+//     void apply_impl(const LinOp* b, LinOp* x) const override;
+//     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+//                     LinOp* x) const override;
+//
+// private:
+//     using imap_i32_i32_type = index_map<int32, int32>;
+//     using imap_i32_i64_type = index_map<int32, int64>;
+//     using imap_i64_i64_type = index_map<int64, int64>;
+//
+//     SparseGather(std::shared_ptr<const Executor> exec, mpi::communicator
+//     comm);
+//
+//     template <typename LocalIndexType, typename GlobalIndexType>
+//     SparseGather(
+//         std::shared_ptr<Executor> exec, mpi::communicator comm,
+//         std::shared_ptr<const index_map<LocalIndexType, GlobalIndexType>>
+//         imap);
+//
+//     mpi::communicator default_comm_;
+//
+//     std::vector<comm_index_type> send_sizes_;
+//     std::vector<comm_index_type> send_offsets_;
+//     std::vector<comm_index_type> recv_sizes_;
+//     std::vector<comm_index_type> recv_offsets_;
+//     std::variant<array<int32>, array<int64>> send_idxs_;
+// };
 
 
 /**
@@ -78,20 +79,13 @@ private:
 class sparse_communicator
     : public std::enable_shared_from_this<sparse_communicator> {
 public:
+    template <typename LocalIndexType, typename GlobalIndexType>
     static std::shared_ptr<sparse_communicator> create(
         mpi::communicator comm,
-        std::shared_ptr<const localized_partition<int32>> part)
+        std::shared_ptr<const index_map<LocalIndexType, GlobalIndexType>> imap)
     {
         return std::shared_ptr<sparse_communicator>{
-            new sparse_communicator(std::move(comm), std::move(part))};
-    }
-
-    static std::shared_ptr<sparse_communicator> create(
-        mpi::communicator comm,
-        std::shared_ptr<const localized_partition<int64>> part)
-    {
-        return std::shared_ptr<sparse_communicator>{
-            new sparse_communicator(std::move(comm), std::move(part))};
+            new sparse_communicator(std::move(comm), std::move(imap))};
     }
 
     /**
@@ -124,11 +118,13 @@ public:
         const detail::DenseCache<ValueType>& send_buffer,
         const detail::DenseCache<ValueType>& recv_buffer) const;
 
-    template <typename IndexType>
-    std::shared_ptr<const localized_partition<IndexType>> get_partition() const
+    template <typename LocalIndexType, typename GlobalIndexType>
+    std::shared_ptr<const index_map<LocalIndexType, GlobalIndexType>>
+    get_partition() const
     {
-        return std::get<std::shared_ptr<const localized_partition<IndexType>>>(
-            part_);
+        return std::get<
+            std::shared_ptr<const index_map<LocalIndexType, GlobalIndexType>>>(
+            imap_);
     }
 
     const std::vector<comm_index_type>& get_recv_sizes() const
@@ -154,38 +150,38 @@ public:
     mpi::communicator get_communicator() const { return default_comm_; }
 
 private:
-    using partition_i32_type = localized_partition<int32>;
-    using partition_i64_type = localized_partition<int64>;
+    using imap_i32_i32_type = index_map<int32, int32>;
+    using imap_i32_i64_type = index_map<int32, int64>;
+    using imap_i64_i64_type = index_map<int64, int64>;
 
     /**
      * Creates sparse communicator from overlapping_partition
      */
-    template <typename IndexType>
+    template <typename LocalIndexType, typename GlobalIndexType>
     sparse_communicator(
         mpi::communicator comm,
-        std::shared_ptr<const localized_partition<IndexType>> part);
+        std::shared_ptr<const index_map<LocalIndexType, GlobalIndexType>> imap);
 
-    template <typename ValueType, typename IndexType>
+    template <typename ValueType, typename LocalIndexType>
     mpi::request communicate_impl_(
-        MPI_Comm comm,
-        std::shared_ptr<const localized_partition<IndexType>> part,
+        MPI_Comm comm, const array<LocalIndexType>& send_idxs,
         const matrix::Dense<ValueType>* local_vector,
         const detail::DenseCache<ValueType>& send_buffer,
         const detail::DenseCache<ValueType>& recv_buffer) const;
 
     mpi::communicator default_comm_;
 
-    std::variant<std::monostate, std::shared_ptr<const partition_i32_type>,
-                 std::shared_ptr<const partition_i64_type>>
-        part_;
+    std::variant<std::shared_ptr<const imap_i32_i32_type>,
+                 std::shared_ptr<const imap_i32_i64_type>,
+                 std::shared_ptr<const imap_i64_i64_type>>
+        imap_;
 
     std::vector<comm_index_type> send_sizes_;
     std::vector<comm_index_type> send_offsets_;
     std::vector<comm_index_type> recv_sizes_;
     std::vector<comm_index_type> recv_offsets_;
+    std::variant<std::monostate, array<int32>, array<int64>> send_idxs_;
 };
-
-
 }  // namespace gko::experimental::distributed
 
 #endif

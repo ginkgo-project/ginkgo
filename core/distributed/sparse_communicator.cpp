@@ -8,8 +8,6 @@
 namespace gko {
 namespace experimental {
 namespace distributed {
-
-
 /**
  * Creates a distributed graph communicator based on the input sources and
  * destinations.
@@ -45,19 +43,6 @@ mpi::communicator create_neighborhood_comm(
 }
 
 
-/**
- * Creates a distributed graph communicator based on the input
- * overlapping_partition.
- */
-template <typename IndexType>
-mpi::communicator create_neighborhood_comm(
-    mpi::communicator base, const localized_partition<IndexType>* part)
-{
-    return create_neighborhood_comm(base, part->get_recv_indices().target_ids_,
-                                    part->get_send_indices().target_ids_);
-}
-
-
 template <typename ValueType>
 mpi::request sparse_communicator::communicate(
     const matrix::Dense<ValueType>* local_vector,
@@ -65,17 +50,17 @@ mpi::request sparse_communicator::communicate(
     const detail::DenseCache<ValueType>& recv_buffer) const
 {
     return std::visit(
-        [&, this](const auto& part) {
-            if constexpr (std::is_same_v<std::decay_t<decltype(part)>,
+        [&, this](const auto& send_idxs) {
+            if constexpr (std::is_same_v<std::decay_t<decltype(send_idxs)>,
                                          std::monostate>) {
                 return mpi::request{};
             } else {
-                return communicate_impl_(default_comm_.get(), part,
+                return communicate_impl_(default_comm_.get(), send_idxs,
                                          local_vector, send_buffer,
                                          recv_buffer);
             }
         },
-        part_);
+        send_idxs_);
 }
 
 #define GKO_DECLARE_COMMUNICATE(ValueType)                \
@@ -89,78 +74,59 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_COMMUNICATE);
 #undef GKO_DECLARE_COMMUNICATE
 
 
-template <typename IndexType>
-size_type get_size(const typed_span<IndexType>& s)
-{
-    return s.length();
-}
-
-
-template <typename IndexType>
-size_type get_size(const array<IndexType>& arr)
-{
-    return arr.get_size();
-}
-
-
-template <typename IndexType>
+template <typename LocalIndexType, typename GlobalIndexType>
 sparse_communicator::sparse_communicator(
     mpi::communicator comm,
-    std::shared_ptr<const localized_partition<IndexType>> part)
-    : default_comm_(
-          create_neighborhood_comm(comm, part->get_recv_indices().target_ids,
-                                   part->get_send_indices().target_ids)),
-      send_sizes_(part->get_send_indices().idxs.size()),
-      send_offsets_(part->get_send_indices().idxs.size() + 1),
-      recv_sizes_(part->get_recv_indices().idxs.size()),
-      recv_offsets_(part->get_recv_indices().idxs.size() + 1)
+    std::shared_ptr<const index_map<LocalIndexType, GlobalIndexType>> imap)
+    : default_comm_(create_neighborhood_comm(comm, imap->get_recv_target_ids(),
+                                             imap->get_send_target_ids())),
+      send_sizes_(imap->get_local_shared_idxs().size()),
+      send_offsets_(send_sizes_.size() + 1),
+      recv_sizes_(imap->get_remote_local_idxs().size()),
+      recv_offsets_(recv_sizes_.size() + 1)
 {
-    auto exec = part->get_executor();
+    auto exec = imap->get_executor();
     auto host_exec = exec->get_master();
     auto fill_size_offsets = [&](std::vector<int>& sizes,
                                  std::vector<int>& offsets,
                                  const auto& remote_idxs) {
-        for (int i = 0; i < remote_idxs.idxs.size(); ++i) {
-            sizes[i] = get_size(remote_idxs.idxs[i]);
+        for (int i = 0; i < remote_idxs.size(); ++i) {
+            sizes[i] = remote_idxs[i].get_size();
         }
         std::partial_sum(sizes.begin(), sizes.end(), offsets.begin() + 1);
     };
-    fill_size_offsets(recv_sizes_, recv_offsets_, part->get_recv_indices());
-    fill_size_offsets(send_sizes_, send_offsets_, part->get_send_indices());
+    fill_size_offsets(recv_sizes_, recv_offsets_,
+                      imap->get_remote_local_idxs());
+    fill_size_offsets(send_sizes_, send_offsets_,
+                      imap->get_local_shared_idxs());
 
-    part_ = std::move(part);
+    send_idxs_ = imap->get_local_shared_idxs().get_flat();
 }
 
-#define GKO_DECLARE_SPARSE_COMMUNICATOR(IndexType) \
-    sparse_communicator::sparse_communicator(      \
-        mpi::communicator comm,                    \
-        std::shared_ptr<const localized_partition<IndexType>> part)
+#define GKO_DECLARE_SPARSE_COMMUNICATOR(LocalIndexType, GlobalIndexType)  \
+    sparse_communicator::sparse_communicator(                             \
+        mpi::communicator comm,                                           \
+        std::shared_ptr<const index_map<LocalIndexType, GlobalIndexType>> \
+            imap)
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_SPARSE_COMMUNICATOR);
+GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_SPARSE_COMMUNICATOR);
 
 #undef GKO_DECLARE_SPARSE_COMMUNICATOR
 
-template <typename ValueType, typename IndexType>
+template <typename ValueType, typename LocalIndexType>
 mpi::request sparse_communicator::communicate_impl_(
-    MPI_Comm comm, std::shared_ptr<const localized_partition<IndexType>> part,
+    MPI_Comm comm, const array<LocalIndexType>& send_idxs,
     const matrix::Dense<ValueType>* local_vector,
     const detail::DenseCache<ValueType>& send_buffer,
     const detail::DenseCache<ValueType>& recv_buffer) const
 {
-    GKO_ASSERT(part->get_local_end() == local_vector->get_size()[0]);
-
     auto exec = local_vector->get_executor();
 
-    auto& send_idxs = part->get_send_indices();
-    auto& recv_idxs = part->get_recv_indices();
+    recv_buffer.init(exec, {recv_offsets_.back(), local_vector->get_size()[1]});
+    send_buffer.init(exec, {send_offsets_.back(), local_vector->get_size()[1]});
 
-    recv_buffer.init(exec, {collection::get_size(recv_idxs.idxs),
-                            local_vector->get_size()[1]});
-
-    send_buffer.init(exec, {collection::get_size(send_idxs.idxs),
-                            local_vector->get_size()[1]});
-
-    local_vector->row_gather(&send_idxs.idxs.get_flat(), send_buffer.get());
+    local_vector->row_gather(&send_idxs, send_buffer.get());
 
     auto recv_ptr = recv_buffer->get_values();
     auto send_ptr = send_buffer->get_values();
@@ -175,19 +141,16 @@ mpi::request sparse_communicator::communicate_impl_(
     return req;
 }
 
-#define GKO_DECLARE_COMMUNICATE_IMPL(ValueType, IndexType)                     \
-    mpi::request sparse_communicator::communicate_impl_<ValueType, IndexType>( \
-        MPI_Comm comm,                                                         \
-        std::shared_ptr<const localized_partition<IndexType>> part,            \
-        const matrix::Dense<ValueType>* local_vector,                          \
-        const detail::DenseCache<ValueType>& send_buffer,                      \
+#define GKO_DECLARE_COMMUNICATE_IMPL(ValueType, LocalIndexType) \
+    mpi::request sparse_communicator::communicate_impl_(        \
+        MPI_Comm comm, const array<LocalIndexType>& send_idxs,  \
+        const matrix::Dense<ValueType>* local_vector,           \
+        const detail::DenseCache<ValueType>& send_buffer,       \
         const detail::DenseCache<ValueType>& recv_buffer) const
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COMMUNICATE_IMPL);
 
 #undef GKO_DECLARE_COMMUNICATE_IMPL
-
-
 }  // namespace distributed
 }  // namespace experimental
 }  // namespace gko

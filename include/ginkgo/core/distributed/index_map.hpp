@@ -19,8 +19,6 @@
 namespace gko {
 namespace experimental::distributed {
 namespace constraints {
-
-
 template <typename, typename = void>
 struct collection_has_get_min : std::false_type {};
 
@@ -55,8 +53,6 @@ struct collection_has_get_size<
 
 template <typename T>
 constexpr bool collection_has_get_size_v = collection_has_get_size<T>::value;
-
-
 }  // namespace constraints
 
 
@@ -105,135 +101,54 @@ struct remote_indices_pair {
 };
 
 
-/**
- * A partition of the local interval [0, n) into different classes of index
- * ownership.
- *
- * The following classes are used:
- * - receive indices: these indices are owned by other processes and not by this
- * process.
- * - send indices: these indices are owned by this process and needed by other
- * processes (which might also own them).
- * - local indices: these indices are owned by this process.
- * Sets from the indices of the different classes need not be disjoint. The send
- * and local indices are explicitly not disjoint. Receive and send indices may
- * also overlap.
- *
- * Provides optimized storage formats for different scenarios through the type
- * overlap_indices.
- *
- * @note Future work: support index weights to account for non-exclusive
- * ownership.
- *
- * @tparam IndexType  the type of the indices.
- */
-template <typename IndexType = int32>
-class localized_partition {
-public:
-    using index_type = IndexType;
-    using send_indices_type = remote_indices_pair<IndexType, collection::array>;
-    using recv_indices_type = remote_indices_pair<IndexType, collection::span>;
-
-    size_type get_local_end() const { return local_end_; }
-
-    const send_indices_type& get_send_indices() const
-    {
-        return overlap_send_idxs_;
-    }
-
-    const recv_indices_type& get_recv_indices() const
-    {
-        return overlap_recv_idxs_;
-    }
-
-    /**
-     * The end sentinel of the partition.
-     * @return
-     */
-    size_type get_end() const
-    {
-        return std::max(local_end_,
-                        static_cast<size_type>(std::max(
-                            overlap_send_idxs_.end, overlap_recv_idxs_.end)));
-    }
-
-    std::shared_ptr<const Executor> get_executor() const { return exec_; }
-
-    /*
-     * Creates an overlapping partition where the receiving indices are
-     * blocked at the end.
-     *
-     * The partition covers the interval `[0, n)` where `n = local_size +
-     * sum(target_sizes)`. The local indices are the interval `[0, local_size)`,
-     * and the recv indices are the interval `[local_size, sum(target_sizes))`.
-     * The last interval is composed of the sub-intervals ´[local_size,
-     * local_size + target_sizes[0])`,
-     * `[local_size + target_sizes[0], local_size + target_sizes[0] +
-     * target_sizes[1])`, etc. The process-id for each group is denoted in
-     * target_ids.
-     *
-     * The send indices are not blocked, so they have to be specified as a
-     * vector of index_set and process-id pairs.
-     *
-     * Example:
-     * ```c++
-     * size_type local_size = 6;
-     * std::vector<...> send_idxs{
-     *   std::make_pair(index_set(exec, {1, 2}), 2),
-     *   std::make_pair(index_set(exec, {2, 3, 4}), 1)};
-     * array<comm_index_type> target_ids{exec, {1, 2}};
-     * array<size_type> target_sizes{exec, {3, 2}};
-     *
-     * auto part = overlapping_partition<>::build_from_blocked_recv(
-     *   exec, local_size, send_idxs,
-     *   target_ids, target_sizes);
-     *
-     * // resulting indices:
-     * // partition = [0, 11);
-     * // recv_idxs = [6, 9) /1/, [9, 11) /2/
-     * // send_idxs = {1, 2} /2/, {2, 3, 4} /1/
-     * ```
-     */
-    static std::shared_ptr<localized_partition> build_from_blocked_recv(
-        std::shared_ptr<const Executor> exec, size_type local_size,
-        const std::vector<std::pair<array<index_type>, comm_index_type>>&
-            send_idxs,
-        const array<comm_index_type>& recv_ids,
-        const std::vector<comm_index_type>& recv_sizes);
-
-    static std::shared_ptr<localized_partition> build_from_remote_send_indices(
-        std::shared_ptr<const Executor> exec, mpi::communicator comm,
-        size_type local_size, const array<comm_index_type>& recv_ids,
-        const std::vector<comm_index_type>& recv_sizes,
-        const array<IndexType>& remote_send_indices);
-
-private:
-    localized_partition(std::shared_ptr<const Executor> exec,
-                        size_type local_size,
-                        send_indices_type overlap_send_idxs,
-                        recv_indices_type overlap_recv_idxs)
-        : exec_(exec),
-          local_end_(local_size),
-          overlap_send_idxs_(std::move(overlap_send_idxs)),
-          overlap_recv_idxs_(std::move(overlap_recv_idxs))
-    {}
-
-    std::shared_ptr<const Executor> exec_;
-
-    // owned by this process, interval [0, local_size_) (exclusively or shared)
-    size_type local_end_;
-    // owned by this and used by other processes (subset of local_idxs_)
-    send_indices_type overlap_send_idxs_;
-    // owned by other processes (doesn't exclude this also owning them)
-    recv_indices_type overlap_recv_idxs_;
-};
-
-
 template <typename IndexType>
 struct semi_global_index {
     comm_index_type proc_id;
     IndexType local_idx;
 };
+
+
+// template <typename LocalIndexType>
+// struct localized_index_map {
+//     LocalIndexType get_local(comm_index_type process_id,
+//                              LocalIndexType semi_global_id) const;
+//
+//     array<LocalIndexType> get_local(
+//         comm_index_type process_id,
+//         const array<LocalIndexType>& semi_global_ids) const;
+//
+//     array<LocalIndexType> get_local(
+//         const array<comm_index_type>& process_ids,
+//         const collection::array<LocalIndexType>& semi_global_ids) const;
+//
+//     size_type get_local_size() const
+//     {
+//         return local_size_;
+//     }
+//
+//     localized_index_map(std::shared_ptr<const Executor> exec,
+//               std::shared_ptr<const part_type> part,
+//               const array<GlobalIndexType>& recv_connections,
+//               const collection::array<LocalIndexType>& send_connections);
+//
+//     localized_index_map() = default;
+//
+//     const collection::array<LocalIndexType>& get_remote_local_idxs() const
+//     {
+//         return remote_local_idxs_;
+//     }
+//
+// private:
+//     std::shared_ptr<const Executor> exec_;
+//     LocalIndexType local_size_;
+//
+//     array<comm_index_type> target_ids_;
+//     collection::array<LocalIndexType>
+//         remote_local_idxs_;  // need to find more general names
+//     collection::array<LocalIndexType> local_idxs_;
+//     std::vector<comm_index_type> id_set_size_;
+//     std::vector<LocalIndexType> id_set_offsets_;
+// };
 
 
 template <typename LocalIndexType, typename GlobalIndexType = int64>
@@ -258,10 +173,25 @@ struct index_map {
     array<LocalIndexType> get_local(
         const array<GlobalIndexType>& global_ids) const GKO_NOT_IMPLEMENTED;
 
+    [[nodiscard]] size_type get_local_size() const
+    {
+        return partition_->get_part_size(rank_);
+    }
+
+    [[nodiscard]] size_type get_extended_local_size() const
+    {
+        return get_local_size() + remote_global_idxs_.get_flat().get_size();
+    }
+
     index_map(std::shared_ptr<const Executor> exec,
-              std::shared_ptr<const part_type> part,
+              std::shared_ptr<const part_type> part, comm_index_type rank,
               const array<GlobalIndexType>& recv_connections,
+              const array<comm_index_type>& send_target_ids,
               const collection::array<LocalIndexType>& send_connections);
+
+    index_map(std::shared_ptr<const Executor> exec, mpi::communicator comm,
+              std::shared_ptr<const part_type> part,
+              const array<GlobalIndexType>& recv_connections);
 
     index_map() = default;
 
@@ -275,51 +205,69 @@ struct index_map {
         return remote_local_idxs_;
     }
 
+    const collection::array<LocalIndexType>& get_local_shared_idxs() const
+    {
+        return local_idxs_;
+    }
+
+    const array<comm_index_type>& get_recv_target_ids() const
+    {
+        return recv_target_ids_;
+    }
+
+    const array<comm_index_type>& get_send_target_ids() const
+    {
+        return send_target_ids_;
+    }
+
+    [[nodiscard]] std::shared_ptr<const Executor> get_executor() const
+    {
+        return exec_;
+    }
+
 private:
     std::shared_ptr<const Executor> exec_;
     std::shared_ptr<const part_type> partition_;
     comm_index_type rank_;
 
-    array<comm_index_type> target_ids_;
+    array<comm_index_type> recv_target_ids_;
     collection::array<LocalIndexType>
         remote_local_idxs_;  // need to find more general names
     collection::array<GlobalIndexType>
         remote_global_idxs_;  // need to find more general names
+    array<LocalIndexType> recv_set_offsets_;
+    array<comm_index_type> send_target_ids_;
     collection::array<LocalIndexType> local_idxs_;
-    std::vector<comm_index_type> id_set_size_;
-    std::vector<LocalIndexType> id_set_offsets_;
 };
 
 
-/**
- * Get all rows of the input vector that are local to this process.
- */
-template <typename ValueType, typename IndexType>
-std::unique_ptr<gko::matrix::Dense<ValueType>> get_local(
-    gko::matrix::Dense<ValueType>* vector,
-    const localized_partition<IndexType>* part)
-{
-    GKO_ASSERT(vector->get_size()[0] == part->get_end());
-    return vector->create_submatrix(span{0, part->get_local_end()},
-                                    span{0, vector->get_size()[1]});
-}
-
-
-/**
- * Get all rows of the input vector that are not local to this process.
- */
-template <typename ValueType, typename IndexType>
-std::unique_ptr<gko::matrix::Dense<ValueType>> get_non_local(
-    gko::matrix::Dense<ValueType>* vector,
-    const localized_partition<IndexType>* part)
-{
-    GKO_ASSERT(vector->get_size()[0] == part->get_end());
-    return vector->create_submatrix(
-        span{part->get_local_end(), vector->get_size()[0]},
-        span{0, vector->get_size()[1]});
-}
-
-
+// /**
+//  * Get all rows of the input vector that are local to this process.
+//  */
+// template <typename ValueType, typename IndexType>
+// std::unique_ptr<gko::matrix::Dense<ValueType>> get_local(
+//     gko::matrix::Dense<ValueType>* vector,
+//     const localized_partition<IndexType>* part)
+// {
+//     GKO_ASSERT(vector->get_size()[0] == part->get_end());
+//     return vector->create_submatrix(span{0, part->get_local_end()},
+//                                     span{0, vector->get_size()[1]});
+// }
+//
+//
+// /**
+//  * Get all rows of the input vector that are not local to this process.
+//  */
+// template <typename ValueType, typename IndexType>
+// std::unique_ptr<gko::matrix::Dense<ValueType>> get_non_local(
+//     gko::matrix::Dense<ValueType>* vector,
+//     const localized_partition<IndexType>* part)
+// {
+//     GKO_ASSERT(vector->get_size()[0] == part->get_end());
+//     return vector->create_submatrix(
+//         span{part->get_local_end(), vector->get_size()[0]},
+//         span{0, vector->get_size()[1]});
+// }
 }  // namespace experimental::distributed
 }  // namespace gko
 

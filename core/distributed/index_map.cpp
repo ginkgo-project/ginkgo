@@ -5,6 +5,9 @@
 #include <ginkgo/core/distributed/index_map.hpp>
 
 
+#include <sys/socket.h>
+
+
 #include "core/components/min_max_array_kernels.hpp"
 #include "core/distributed/index_map_kernels.hpp"
 
@@ -100,50 +103,6 @@ collection::span<IndexType> compute_span_collection(
 }
 
 
-template <typename IndexType>
-std::shared_ptr<localized_partition<IndexType>>
-localized_partition<IndexType>::build_from_blocked_recv(
-    std::shared_ptr<const Executor> exec, size_type local_size,
-    const std::vector<std::pair<array<index_type>, comm_index_type>>& send_idxs,
-    const array<comm_index_type>& recv_ids,
-    const std::vector<comm_index_type>& recv_sizes)
-{
-    // make sure shared indices are a subset of local indices
-    GKO_ASSERT(send_idxs.empty() || send_idxs.size() == 0 ||
-               local_size >=
-                   detail::get_max(
-                       std::max_element(send_idxs.begin(), send_idxs.end(),
-                                        [](const auto& a, const auto& b) {
-                                            return detail::get_max(a.first) <
-                                                   detail::get_max(b.first);
-                                        })
-                           ->first));
-    GKO_ASSERT(recv_ids.get_size() == recv_sizes.size());
-
-    std::vector<size_type> num_send_idxs(send_idxs.size());
-    std::transform(send_idxs.begin(), send_idxs.end(), num_send_idxs.begin(),
-                   [](const auto& a) { return a.first.get_size(); });
-
-    collection::array<IndexType> send_idxs_arrs(exec, num_send_idxs);
-    array<comm_index_type> send_target_ids(exec->get_master(),
-                                           send_idxs.size());
-    for (int i = 0; i < send_idxs.size(); ++i) {
-        send_idxs_arrs[i] = send_idxs[i].first;
-        send_target_ids.get_data()[i] = send_idxs[i].second;
-    }
-
-    send_target_ids.set_executor(exec);
-
-    auto intervals = compute_span_collection<IndexType>(local_size, recv_sizes);
-
-    return std::shared_ptr<localized_partition>{new localized_partition{
-        exec, local_size,
-        send_indices_type{std::move(send_target_ids),
-                          std::move(send_idxs_arrs)},
-        recv_indices_type{recv_ids, std::move(intervals)}}};
-}
-
-
 std::tuple<array<comm_index_type>, std::vector<comm_index_type>>
 communicate_inverse_envelope(std::shared_ptr<const Executor> exec,
                              mpi::communicator comm,
@@ -211,39 +170,6 @@ array<LocalIndexType> communicate_send_gather_idxs(
     return send_gather_idxs;
 }
 
-template <typename IndexType>
-std::shared_ptr<localized_partition<IndexType>>
-localized_partition<IndexType>::build_from_remote_send_indices(
-    std::shared_ptr<const Executor> exec, mpi::communicator comm,
-    size_type local_size, const array<comm_index_type>& recv_ids,
-    const std::vector<comm_index_type>& recv_sizes,
-    const array<IndexType>& remote_send_indices)
-{
-    GKO_ASSERT(recv_ids.get_size() == recv_sizes.size());
-
-    auto send_envelope =
-        communicate_inverse_envelope(exec, comm, recv_ids, recv_sizes);
-    auto send_ids = std::move(std::get<0>(send_envelope));
-    auto send_sizes = std::move(std::get<1>(send_envelope));
-
-    collection::array<IndexType> send_idxs(
-        communicate_send_gather_idxs(comm, remote_send_indices, recv_ids,
-                                     recv_sizes, send_ids, send_sizes),
-        send_sizes);
-
-    std::vector<comm_index_type> send_offsets(send_sizes.size() + 1, 0);
-    std::partial_sum(send_sizes.begin(), send_sizes.end(),
-                     send_offsets.begin() + 1);
-
-    auto intervals = compute_span_collection<IndexType>(local_size, recv_sizes);
-
-    return std::shared_ptr<localized_partition<IndexType>>(
-        new localized_partition(
-            exec, local_size,
-            send_indices_type{std::move(send_ids), std::move(send_idxs)},
-            recv_indices_type{recv_ids, std::move(intervals)}));
-}
-
 
 template <typename LocalIndexType, typename GlobalIndexType>
 semi_global_index<LocalIndexType>
@@ -275,11 +201,11 @@ template <typename LocalIndexType, typename GlobalIndexType>
 LocalIndexType index_map<LocalIndexType, GlobalIndexType>::get_local(
     comm_index_type process_id, LocalIndexType semi_global_id) const
 {
-    auto exec = target_ids_.get_executor();
+    auto exec = recv_target_ids_.get_executor();
     auto host_process_ids =
-        make_temporary_clone(exec->get_master(), &target_ids_);
+        make_temporary_clone(exec->get_master(), &recv_target_ids_);
     auto set_id =
-        std::distance(target_ids_.get_const_data(),
+        std::distance(recv_target_ids_.get_const_data(),
                       std::lower_bound(host_process_ids->get_const_data(),
                                        host_process_ids->get_const_data() +
                                            host_process_ids->get_size(),
@@ -287,7 +213,10 @@ LocalIndexType index_map<LocalIndexType, GlobalIndexType>::get_local(
 
     auto& remote_idxs = remote_local_idxs_[set_id];
 
-    return id_set_offsets_[set_id] +
+    auto host_recv_offsets =
+        make_temporary_clone(exec->get_master(), &recv_set_offsets_);
+
+    return host_recv_offsets->get_const_data()[set_id] +
            std::distance(remote_idxs.get_const_data(),
                          std::lower_bound(remote_idxs.get_const_data(),
                                           remote_idxs.get_const_data() +
@@ -308,16 +237,20 @@ array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::get_local(
     array<LocalIndexType> local_ids{exec->get_master(),
                                     semi_global_ids.get_size()};
 
-    auto set_id = std::distance(
-        target_ids_.get_const_data(),
-        std::lower_bound(target_ids_.get_const_data(),
-                         target_ids_.get_const_data() + target_ids_.get_size(),
-                         process_id));
+    auto set_id =
+        std::distance(recv_target_ids_.get_const_data(),
+                      std::lower_bound(recv_target_ids_.get_const_data(),
+                                       recv_target_ids_.get_const_data() +
+                                           recv_target_ids_.get_size(),
+                                       process_id));
+
+    auto host_recv_offsets =
+        make_temporary_clone(exec->get_master(), &recv_set_offsets_);
 
     for (size_type i = 0; i < host_semi_global_ids->get_size(); ++i) {
         auto current_set = remote_local_idxs_[set_id];
         local_ids.get_data()[i] =
-            id_set_offsets_[set_id] +
+            host_recv_offsets->get_const_data()[set_id] +
             std::distance(current_set.get_data(),
                           std::lower_bound(
                               current_set.get_data(),
@@ -367,39 +300,82 @@ array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::get_local(
 template <typename LocalIndexType, typename GlobalIndexType>
 index_map<LocalIndexType, GlobalIndexType>::index_map(
     std::shared_ptr<const Executor> exec, std::shared_ptr<const part_type> part,
-    const array<GlobalIndexType>& recv_connections,
+    comm_index_type rank, const array<GlobalIndexType>& recv_connections,
+    const array<comm_index_type>& send_target_ids,
     const collection::array<LocalIndexType>& send_connections)
     : exec_(std::move(exec)),
-      target_ids_(exec_),
+      partition_(std::move(part)),
+      rank_(rank),
+      recv_target_ids_(exec_),
       remote_local_idxs_(exec_),
-      remote_global_idxs_(exec_)
+      remote_global_idxs_(exec_),
+      recv_set_offsets_(exec_),
+      send_target_ids_(send_target_ids),
+      local_idxs_(send_connections)
 {
+    GKO_THROW_IF_INVALID(send_target_ids_.get_size() == local_idxs_.size(),
+                         "The size of the send_targets_ids and "
+                         "send_connections doesn't match up");
+
     exec_->run(index_map_kernels::make_build_mapping(
-        part.get(), recv_connections, target_ids_, remote_local_idxs_,
-        remote_global_idxs_));
+        partition_.get(), recv_connections, recv_target_ids_,
+        remote_local_idxs_, remote_global_idxs_));
 
     std::vector<comm_index_type> recv_sizes(remote_local_idxs_.size());
     std::transform(remote_local_idxs_.begin(), remote_local_idxs_.end(),
                    recv_sizes.begin(),
                    [](const auto& a) { return a.get_size(); });
+    recv_set_offsets_.set_executor(exec->get_master());
+    recv_set_offsets_.resize_and_reset(recv_sizes.size() + 1);
+    recv_set_offsets_.fill(0);
+    std::partial_sum(recv_sizes.begin(), recv_sizes.end(),
+                     recv_set_offsets_.get_data() + 1);
+}
 
-    // auto send_envelope =
-    //     communicate_inverse_envelope(exec, comm, target_ids_, recv_sizes);
-    // auto send_ids = std::move(std::get<0>(send_envelope));
-    // auto send_sizes = std::move(std::get<1>(send_envelope));
-    //
-    // local_idxs_ =
-    //     collection::array(communicate_send_gather_idxs(
-    //                           comm, remote_local_idxs_.get_flat(),
-    //                           target_ids_, recv_sizes, send_ids, send_sizes),
-    //                       send_sizes);
+template <typename LocalIndexType, typename GlobalIndexType>
+index_map<LocalIndexType, GlobalIndexType>::index_map(
+    std::shared_ptr<const Executor> exec, mpi::communicator comm,
+    std::shared_ptr<const part_type> part,
+    const array<GlobalIndexType>& recv_connections)
+    : exec_(std::move(exec)),
+      partition_(std::move(part)),
+      rank_(comm.rank()),
+      recv_target_ids_(exec_),
+      remote_local_idxs_(exec_),
+      remote_global_idxs_(exec_),
+      recv_set_offsets_(exec_),
+      send_target_ids_(exec_),
+      local_idxs_(exec_)
+{
+    exec_->run(index_map_kernels::make_build_mapping(
+        partition_.get(), recv_connections, recv_target_ids_,
+        remote_local_idxs_, remote_global_idxs_));
+
+    std::vector<comm_index_type> recv_sizes(remote_local_idxs_.size());
+    std::transform(remote_local_idxs_.begin(), remote_local_idxs_.end(),
+                   recv_sizes.begin(),
+                   [](const auto& a) { return a.get_size(); });
+    recv_set_offsets_.set_executor(exec->get_master());
+    recv_set_offsets_.resize_and_reset(recv_sizes.size() + 1);
+    recv_set_offsets_.fill(0);
+    std::partial_sum(recv_sizes.begin(), recv_sizes.end(),
+                     recv_set_offsets_.get_data() + 1);
+    recv_set_offsets_.set_executor(exec_);
+
+    auto send_envelope =
+        communicate_inverse_envelope(exec, comm, recv_target_ids_, recv_sizes);
+    send_target_ids_ = std::move(std::get<0>(send_envelope));
+    auto send_sizes = std::move(std::get<1>(send_envelope));
+
+    local_idxs_ = collection::array(
+        communicate_send_gather_idxs(comm, remote_local_idxs_.get_flat(),
+                                     recv_target_ids_, recv_sizes,
+                                     send_target_ids_, send_sizes),
+        send_sizes);
 }
 
 #define GKO_DECLARE_INDEX_MAP(_ltype, _gtype) class index_map<_ltype, _gtype>
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_INDEX_MAP);
-
-#define GKO_DECLARE_LOCALIZED_PARTITION(_type) class localized_partition<_type>
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_LOCALIZED_PARTITION);
 
 
 }  // namespace experimental::distributed
