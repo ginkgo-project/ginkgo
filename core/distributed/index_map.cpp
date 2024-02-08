@@ -296,6 +296,35 @@ template <typename LocalIndexType, typename GlobalIndexType>
 array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::get_local(
     const GlobalIndexType global_ids) const GKO_NOT_IMPLEMENTED;
 
+template <typename LocalIndexType, typename GlobalIndexType>
+array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::get_local(
+    const array<GlobalIndexType>& global_ids) const
+{
+    auto host_global_ids =
+        make_temporary_clone(exec_->get_master(), &global_ids);
+    auto host_remote_global_idxs = make_temporary_clone(
+        exec_->get_master(), &remote_global_idxs_.get_flat());
+
+    array<LocalIndexType> local_ids(exec_->get_master(), global_ids.get_size());
+    for (size_type i = 0; i < global_ids.get_size(); ++i) {
+        auto gid = host_global_ids->get_const_data()[i];
+
+        auto it = std::lower_bound(host_remote_global_idxs->get_const_data(),
+                                   host_remote_global_idxs->get_const_data() +
+                                       host_remote_global_idxs->get_size(),
+                                   gid);
+        auto lid = *it == gid
+                       ? static_cast<LocalIndexType>(
+                             get_local_size() +
+                             std::distance(
+                                 host_remote_global_idxs->get_const_data(), it))
+                       : invalid_index<LocalIndexType>();
+        local_ids.get_data()[i] = lid;
+    }
+    local_ids.set_executor(exec_);
+    return local_ids;
+}
+
 
 template <typename LocalIndexType, typename GlobalIndexType>
 index_map<LocalIndexType, GlobalIndexType>::index_map(

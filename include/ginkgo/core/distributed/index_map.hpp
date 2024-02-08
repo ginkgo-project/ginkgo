@@ -171,7 +171,7 @@ struct index_map {
     array<LocalIndexType> get_local(GlobalIndexType global_ids) const;
 
     array<LocalIndexType> get_local(
-        const array<GlobalIndexType>& global_ids) const GKO_NOT_IMPLEMENTED;
+        const array<GlobalIndexType>& global_ids) const;
 
     [[nodiscard]] size_type get_local_size() const
     {
