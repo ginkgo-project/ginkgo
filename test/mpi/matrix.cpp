@@ -47,8 +47,6 @@ protected:
     using Partition =
         gko::experimental::distributed::Partition<local_index_type,
                                                   global_index_type>;
-    using local_partition =
-        gko::experimental::distributed::localized_partition<local_index_type>;
     using matrix_data = gko::matrix_data<value_type, global_index_type>;
     using local_matrix_data = gko::matrix_data<value_type, local_index_type>;
 
@@ -100,26 +98,6 @@ protected:
                                         I<comm_index_type>{1, 1, 2, 0, 0}),
             3);
 
-        part = {
-            local_partition::build_from_blocked_recv(
-                exec, 2,
-                {std::make_pair(gko::array<local_index_type>(exec, {0, 1}), 1),
-                 std::make_pair(gko::array<local_index_type>(exec, {1}), 2)},
-                gko::array<comm_index_type>(exec, {1, 2}),
-                std::vector<comm_index_type>{1, 1}),
-            local_partition::build_from_blocked_recv(
-                exec, 2,
-                {std::make_pair(gko::array<local_index_type>(exec, {1}), 0),
-                 std::make_pair(gko::array<local_index_type>(exec, {0}), 2)},
-                gko::array<comm_index_type>(exec, {0, 2}),
-                std::vector<comm_index_type>{2, 1}),
-            local_partition::build_from_blocked_recv(
-                exec, 1,
-                {std::make_pair(gko::array<local_index_type>(exec, {0}), 0),
-                 std::make_pair(gko::array<local_index_type>(exec, {0}), 1)},
-                gko::array<comm_index_type>(exec, {0, 1}),
-                std::vector<comm_index_type>{1, 1})};
-
         dist_mat = dist_mtx_type::create(
             exec, comm, gko::with_matrix_type<gko::matrix::Csr>(),
             gko::with_matrix_type<gko::matrix::Csr>());
@@ -135,8 +113,6 @@ protected:
     gko::matrix_data<value_type, global_index_type> mat_input;
     std::array<matrix_data, 3> dist_input;
     std::array<std::pair<local_matrix_data, local_matrix_data>, 3> local_input;
-
-    std::array<std::shared_ptr<local_partition>, 3> part;
 
     std::unique_ptr<dist_mtx_type> dist_mat;
 
@@ -206,29 +182,31 @@ TYPED_TEST(MatrixCreation, ReadsDistributedWithColPartition)
 
 TYPED_TEST(MatrixCreation, ReadsDistributedWithSplitInput)
 {
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::local_index_type;
-    using csr = typename TestFixture::local_matrix_type;
-    I<I<value_type>> res_local[] = {{{2, 0}, {0, 0}}, {{0, 5}, {0, 0}}, {{0}}};
-    I<I<value_type>> res_non_local[] = {
-        {{1, 0}, {3, 4}}, {{0, 0, 6}, {8, 7, 0}}, {{10, 9}}};
-    auto rank = this->dist_mat->get_communicator().rank();
-    auto sparse_comm =
-        gko::experimental::distributed::sparse_communicator::create(
-            this->comm, this->part[rank]);
-    auto local_data =
-        gko::device_matrix_data<value_type, index_type>::create_from_host(
-            this->exec, this->local_input[rank].first);
-    auto non_local_data =
-        gko::device_matrix_data<value_type, index_type>::create_from_host(
-            this->exec, this->local_input[rank].second);
-
-    this->dist_mat->read_distributed(local_data, non_local_data, sparse_comm);
-
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
-                        res_local[rank], 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_non_local_matrix()),
-                        res_non_local[rank], 0);
+    ASSERT_TRUE(false);
+    // using value_type = typename TestFixture::value_type;
+    // using index_type = typename TestFixture::local_index_type;
+    // using csr = typename TestFixture::local_matrix_type;
+    // I<I<value_type>> res_local[] = {{{2, 0}, {0, 0}}, {{0, 5}, {0, 0}},
+    // {{0}}}; I<I<value_type>> res_non_local[] = {
+    //     {{1, 0}, {3, 4}}, {{0, 0, 6}, {8, 7, 0}}, {{10, 9}}};
+    // auto rank = this->dist_mat->get_communicator().rank();
+    // auto sparse_comm =
+    //     gko::experimental::distributed::sparse_communicator::create(
+    //         this->comm, this->part[rank]);
+    // auto local_data =
+    //     gko::device_matrix_data<value_type, index_type>::create_from_host(
+    //         this->exec, this->local_input[rank].first);
+    // auto non_local_data =
+    //     gko::device_matrix_data<value_type, index_type>::create_from_host(
+    //         this->exec, this->local_input[rank].second);
+    //
+    // this->dist_mat->read_distributed(local_data, non_local_data,
+    // sparse_comm);
+    //
+    // GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
+    //                     res_local[rank], 0);
+    // GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_non_local_matrix()),
+    //                     res_non_local[rank], 0);
 }
 
 
@@ -367,10 +345,10 @@ public:
 
     gko::dim<2> size;
 
-    std::unique_ptr<part_type> row_part;
-    std::unique_ptr<part_type> col_part;
-    std::unique_ptr<part_type> row_part_large;
-    std::unique_ptr<part_type> col_part_large;
+    std::shared_ptr<part_type> row_part;
+    std::shared_ptr<part_type> col_part;
+    std::shared_ptr<part_type> row_part_large;
+    std::shared_ptr<part_type> col_part_large;
 
     std::unique_ptr<dist_mtx_type> dist_mat;
     std::unique_ptr<dist_mtx_type> dist_mat_large;

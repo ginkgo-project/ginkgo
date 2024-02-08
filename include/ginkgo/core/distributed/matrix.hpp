@@ -302,9 +302,9 @@ public:
      * @param data  The device_matrix_data structure.
      * @param partition  The global row and column partition.
      */
-    void read_distributed(
+    index_map<local_index_type, global_index_type> read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
-        ptr_param<const Partition<local_index_type, global_index_type>>
+        std::shared_ptr<const Partition<local_index_type, global_index_type>>
             partition);
 
     /**
@@ -316,9 +316,9 @@ public:
      * @note For efficiency it is advised to use the device_matrix_data
      * overload.
      */
-    void read_distributed(
+    index_map<local_index_type, global_index_type> read_distributed(
         const matrix_data<value_type, global_index_type>& data,
-        ptr_param<const Partition<local_index_type, global_index_type>>
+        std::shared_ptr<const Partition<local_index_type, global_index_type>>
             partition);
 
     /**
@@ -335,12 +335,14 @@ public:
      * @param data  The device_matrix_data structure.
      * @param row_partition  The global row partition.
      * @param col_partition  The global col partition.
+     *
+     * @return the index_map induced by the partitions and the matrix structure
      */
-    void read_distributed(
+    index_map<local_index_type, global_index_type> read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
-        ptr_param<const Partition<local_index_type, global_index_type>>
+        std::shared_ptr<const Partition<local_index_type, global_index_type>>
             row_partition,
-        ptr_param<const Partition<local_index_type, global_index_type>>
+        std::shared_ptr<const Partition<local_index_type, global_index_type>>
             col_partition);
 
     /**
@@ -352,11 +354,11 @@ public:
      * @note For efficiency it is advised to use the device_matrix_data
      * overload.
      */
-    void read_distributed(
+    index_map<local_index_type, global_index_type> read_distributed(
         const matrix_data<value_type, global_index_type>& data,
-        ptr_param<const Partition<local_index_type, global_index_type>>
+        std::shared_ptr<const Partition<local_index_type, global_index_type>>
             row_partition,
-        ptr_param<const Partition<local_index_type, global_index_type>>
+        std::shared_ptr<const Partition<local_index_type, global_index_type>>
             col_partition);
 
     /**
@@ -544,7 +546,6 @@ protected:
                     LinOp* x) const override;
 
 private:
-    array<global_index_type> non_local_to_global_;
     gko::detail::DenseCache<value_type> one_scalar_;
     gko::detail::DenseCache<value_type> host_send_buffer_;
     gko::detail::DenseCache<value_type> host_recv_buffer_;
