@@ -82,7 +82,7 @@ public:
     template <typename LocalIndexType, typename GlobalIndexType>
     static std::shared_ptr<sparse_communicator> create(
         mpi::communicator comm,
-        std::shared_ptr<const index_map<LocalIndexType, GlobalIndexType>> imap)
+        const index_map<LocalIndexType, GlobalIndexType>& imap)
     {
         return std::shared_ptr<sparse_communicator>{
             new sparse_communicator(std::move(comm), std::move(imap))};
@@ -118,15 +118,6 @@ public:
         const detail::DenseCache<ValueType>& send_buffer,
         const detail::DenseCache<ValueType>& recv_buffer) const;
 
-    template <typename LocalIndexType, typename GlobalIndexType>
-    std::shared_ptr<const index_map<LocalIndexType, GlobalIndexType>>
-    get_partition() const
-    {
-        return std::get<
-            std::shared_ptr<const index_map<LocalIndexType, GlobalIndexType>>>(
-            imap_);
-    }
-
     const std::vector<comm_index_type>& get_recv_sizes() const
     {
         return recv_sizes_;
@@ -158,9 +149,8 @@ private:
      * Creates sparse communicator from overlapping_partition
      */
     template <typename LocalIndexType, typename GlobalIndexType>
-    sparse_communicator(
-        mpi::communicator comm,
-        std::shared_ptr<const index_map<LocalIndexType, GlobalIndexType>> imap);
+    sparse_communicator(mpi::communicator comm,
+                        const index_map<LocalIndexType, GlobalIndexType>& imap);
 
     template <typename ValueType, typename LocalIndexType>
     mpi::request communicate_impl_(
@@ -170,11 +160,6 @@ private:
         const detail::DenseCache<ValueType>& recv_buffer) const;
 
     mpi::communicator default_comm_;
-
-    std::variant<std::shared_ptr<const imap_i32_i32_type>,
-                 std::shared_ptr<const imap_i32_i64_type>,
-                 std::shared_ptr<const imap_i64_i64_type>>
-        imap_;
 
     std::vector<comm_index_type> send_sizes_;
     std::vector<comm_index_type> send_offsets_;

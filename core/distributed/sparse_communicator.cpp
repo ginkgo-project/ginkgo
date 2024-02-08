@@ -77,15 +77,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_COMMUNICATE);
 template <typename LocalIndexType, typename GlobalIndexType>
 sparse_communicator::sparse_communicator(
     mpi::communicator comm,
-    std::shared_ptr<const index_map<LocalIndexType, GlobalIndexType>> imap)
-    : default_comm_(create_neighborhood_comm(comm, imap->get_recv_target_ids(),
-                                             imap->get_send_target_ids())),
-      send_sizes_(imap->get_local_shared_idxs().size()),
+    const index_map<LocalIndexType, GlobalIndexType>& imap)
+    : default_comm_(create_neighborhood_comm(comm, imap.get_recv_target_ids(),
+                                             imap.get_send_target_ids())),
+      send_sizes_(imap.get_local_shared_idxs().size()),
       send_offsets_(send_sizes_.size() + 1),
-      recv_sizes_(imap->get_remote_local_idxs().size()),
+      recv_sizes_(imap.get_remote_local_idxs().size()),
       recv_offsets_(recv_sizes_.size() + 1)
 {
-    auto exec = imap->get_executor();
+    auto exec = imap.get_executor();
     auto host_exec = exec->get_master();
     auto fill_size_offsets = [&](std::vector<int>& sizes,
                                  std::vector<int>& offsets,
@@ -95,19 +95,16 @@ sparse_communicator::sparse_communicator(
         }
         std::partial_sum(sizes.begin(), sizes.end(), offsets.begin() + 1);
     };
-    fill_size_offsets(recv_sizes_, recv_offsets_,
-                      imap->get_remote_local_idxs());
-    fill_size_offsets(send_sizes_, send_offsets_,
-                      imap->get_local_shared_idxs());
+    fill_size_offsets(recv_sizes_, recv_offsets_, imap.get_remote_local_idxs());
+    fill_size_offsets(send_sizes_, send_offsets_, imap.get_local_shared_idxs());
 
-    send_idxs_ = imap->get_local_shared_idxs().get_flat();
+    send_idxs_ = imap.get_local_shared_idxs().get_flat();
 }
 
-#define GKO_DECLARE_SPARSE_COMMUNICATOR(LocalIndexType, GlobalIndexType)  \
-    sparse_communicator::sparse_communicator(                             \
-        mpi::communicator comm,                                           \
-        std::shared_ptr<const index_map<LocalIndexType, GlobalIndexType>> \
-            imap)
+#define GKO_DECLARE_SPARSE_COMMUNICATOR(LocalIndexType, GlobalIndexType) \
+    sparse_communicator::sparse_communicator(                            \
+        mpi::communicator comm,                                          \
+        const index_map<LocalIndexType, GlobalIndexType>& imap)
 
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_SPARSE_COMMUNICATOR);
@@ -123,8 +120,10 @@ mpi::request sparse_communicator::communicate_impl_(
 {
     auto exec = local_vector->get_executor();
 
-    recv_buffer.init(exec, {recv_offsets_.back(), local_vector->get_size()[1]});
-    send_buffer.init(exec, {send_offsets_.back(), local_vector->get_size()[1]});
+    recv_buffer.init(exec, {static_cast<size_type>(recv_offsets_.back()),
+                            local_vector->get_size()[1]});
+    send_buffer.init(exec, {static_cast<size_type>(send_offsets_.back()),
+                            local_vector->get_size()[1]});
 
     local_vector->row_gather(&send_idxs, send_buffer.get());
 
