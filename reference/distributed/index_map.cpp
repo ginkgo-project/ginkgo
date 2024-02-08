@@ -95,19 +95,28 @@ void build_mapping(
                    full_part_ids.begin(),
                    [&](const auto idx) { return find_part(idx); });
 
-    std::vector<size_type> remote_sizes(part->get_num_parts());
-    for (size_type i = 0; i < full_part_ids.size(); ++i) {
-        remote_sizes[full_part_ids[i]]++;
-    }
-
     std::vector unique_part_ids(full_part_ids);
     auto unique_part_ids_end =
         std::unique(unique_part_ids.begin(), unique_part_ids.end());
 
-    remote_part_ids.resize_and_reset(
-        std::distance(unique_part_ids.begin(), unique_part_ids_end));
+    auto unique_part_ids_size =
+        std::distance(unique_part_ids.begin(), unique_part_ids_end);
+    remote_part_ids.resize_and_reset(unique_part_ids_size);
     std::copy(unique_part_ids.begin(), unique_part_ids_end,
               remote_part_ids.get_data());
+
+    // get recv size per part
+    std::vector<size_type> full_remote_sizes(part->get_num_parts());
+    for (size_type i = 0; i < full_part_ids.size(); ++i) {
+        full_remote_sizes[full_part_ids[i]]++;
+    }
+    std::vector<size_type> remote_sizes;
+    for (auto size : full_remote_sizes) {
+        if (size) {
+            remote_sizes.push_back(size);
+        }
+    }
+    GKO_ASSERT(remote_sizes.size() == unique_part_ids_size);
 
     remote_global_idxs = collection::array<GlobalIndexType>(
         std::move(flat_remote_global_idxs), remote_sizes);
