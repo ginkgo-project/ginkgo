@@ -62,3 +62,22 @@ TEST_F(IndexMap, CanBuildMapping)
     GKO_ASSERT_ARRAY_EQ(imap.get_local_shared_idxs().get_flat(),
                         expected_shared_local[rank]);
 }
+
+
+TEST_F(IndexMap, CanGetLocal)
+{
+    auto rank = comm.rank();
+    auto imap = map_type(exec, comm, part, remote_idxs[rank]);
+    std::array query = {
+        gko::array<global_index_type>{exec, {3, 3, 2, 5, 3}},
+        gko::array<global_index_type>{exec, {0, 1, 0, 1, 4}},
+        gko::array<global_index_type>{exec, {3, 0, 3, 1, 1}},
+    };
+
+    auto result = imap.get_local(query[rank]);
+
+    std::array expected = {gko::array<local_index_type>{exec, {3, 3, 2, 4, 3}},
+                           gko::array<local_index_type>{exec, {2, 3, 2, 3, 4}},
+                           gko::array<local_index_type>{exec, {4, 2, 4, 3, 3}}};
+    GKO_ASSERT_ARRAY_EQ(result, expected[rank]);
+}
