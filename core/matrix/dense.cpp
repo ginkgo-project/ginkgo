@@ -1294,7 +1294,7 @@ void Dense<ValueType>::row_scatter_impl(const array<IndexType>* row_idxs,
                                         Dense<OutputType>* target) const
 {
     auto exec = this->get_executor();
-    dim<2> expected_dim{row_idxs->get_num_elems(), this->get_size()[1]};
+    dim<2> expected_dim{row_idxs->get_size(), this->get_size()[1]};
     GKO_ASSERT_EQUAL_DIMENSIONS(expected_dim, this);
     GKO_ASSERT_EQUAL_COLS(this, target);
     // @todo check that indices are inbounds for target
