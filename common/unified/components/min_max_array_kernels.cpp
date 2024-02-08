@@ -27,7 +27,7 @@ void max_array(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel_reduction(
         exec, [] GKO_KERNEL(auto i, auto arr) { return arr[i]; },
         GKO_KERNEL_REDUCE_MAX(IndexType), device_result.get_data(),
-        arr.get_num_elems(), arr);
+        arr.get_size(), arr);
     result = exec->copy_val_to_host(device_result.get_const_data());
 }
 
@@ -43,7 +43,7 @@ void min_array(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel_reduction(
         exec, [] GKO_KERNEL(auto i, auto arr) { return arr[i]; },
         GKO_KERNEL_REDUCE_MIN(IndexType), device_result.get_data(),
-        arr.get_num_elems(), arr);
+        arr.get_size(), arr);
     result = exec->copy_val_to_host(device_result.get_const_data());
 }
 
