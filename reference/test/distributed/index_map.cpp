@@ -26,16 +26,6 @@ namespace {
 using comm_index_type = gko::experimental::distributed::comm_index_type;
 
 
-template <typename T, typename U>
-void assert_equal_data(const T* data, std::initializer_list<U> reference_data)
-{
-    std::vector<U> ref(std::move(reference_data));
-    for (auto i = 0; i < ref.size(); ++i) {
-        EXPECT_EQ(data[i], ref[i]);
-    }
-}
-
-
 class IndexMap : public ::testing::Test {
 protected:
     using local_index_type = gko::int32;
@@ -55,7 +45,7 @@ protected:
 };
 
 
-TEST_F(IndexMap, CanConstruct)
+TEST_F(IndexMap, CanBuildMapping)
 {
     gko::array<comm_index_type> target_ids(ref);
     gko::collection::array<local_index_type> remote_local_idxs(ref);
