@@ -2,11 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_PUBLIC_CORE_DISTRIBUTED_LOCALIZED_PARTITION_HPP_
-#define GKO_PUBLIC_CORE_DISTRIBUTED_LOCALIZED_PARTITION_HPP_
-
-
-#include <partition.hpp>
+#ifndef GKO_PUBLIC_CORE_DISTRIBUTED_INDEX_MAP_HPP_
+#define GKO_PUBLIC_CORE_DISTRIBUTED_INDEX_MAP_HPP_
 
 
 #include <ginkgo/config.hpp>
@@ -15,6 +12,7 @@
 #include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/lin_op.hpp>
+#include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -326,4 +324,4 @@ std::unique_ptr<gko::matrix::Dense<ValueType>> get_non_local(
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_CORE_DISTRIBUTED_LOCALIZED_PARTITION_HPP_
+#endif  // GKO_PUBLIC_CORE_DISTRIBUTED_INDEX_MAP_HPP_

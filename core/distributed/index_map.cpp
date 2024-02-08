@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/distributed/localized_partition.hpp>
+#include <ginkgo/core/distributed/index_map.hpp>
 
 
 #include "core/components/min_max_array_kernels.hpp"

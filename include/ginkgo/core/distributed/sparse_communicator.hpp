@@ -19,8 +19,8 @@
 #include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
+#include <ginkgo/core/distributed/index_map.hpp>
 #include <ginkgo/core/distributed/lin_op.hpp>
-#include <ginkgo/core/distributed/localized_partition.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
