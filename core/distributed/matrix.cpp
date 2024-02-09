@@ -210,7 +210,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     auto imap = index_map<local_index_type, global_index_type>(
         exec, comm, col_partition, global_non_local_col_idxs);
 
-    auto non_local_col_idxs = imap.get_non_local(global_non_local_col_idxs);
+    auto non_local_col_idxs =
+        imap.get_local(global_non_local_col_idxs, index_space::non_local);
 
     // read the local matrix data
     const auto num_local_rows =
