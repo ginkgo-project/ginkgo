@@ -304,16 +304,43 @@ array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::get_non_local(
         make_temporary_clone(exec_->get_master(), &global_ids);
     auto host_remote_global_idxs = make_temporary_clone(
         exec_->get_master(), &remote_global_idxs_.get_flat());
+    auto host_recv_target_ids =
+        make_temporary_clone(exec_->get_master(), &recv_target_ids_);
+    auto part = make_temporary_clone(exec_->get_master(), partition_);
+    auto part_ids = part->get_part_ids();
+    auto range_bounds = part->get_range_bounds();
+
+    auto find_range = [](GlobalIndexType idx, const auto* partition) {
+        auto range_bounds = partition->get_range_bounds();
+        auto num_ranges = partition->get_num_ranges();
+        auto it = std::upper_bound(range_bounds + 1,
+                                   range_bounds + num_ranges + 1, idx);
+        return static_cast<size_type>(std::distance(range_bounds + 1, it));
+    };
 
     array<LocalIndexType> local_ids(exec_->get_master(), global_ids.get_size());
     for (size_type i = 0; i < global_ids.get_size(); ++i) {
         auto gid = host_global_ids->get_const_data()[i];
 
-        auto it = std::lower_bound(host_remote_global_idxs->get_const_data(),
-                                   host_remote_global_idxs->get_const_data() +
-                                       host_remote_global_idxs->get_size(),
-                                   gid);
-        auto lid = *it == gid
+        auto range_id = find_range(gid, part.get());
+        auto part_id = part_ids[range_id];
+
+        auto set_id = std::distance(
+            host_recv_target_ids->get_const_data(),
+            std::lower_bound(host_recv_target_ids->get_const_data(),
+                             host_recv_target_ids->get_const_data() +
+                                 host_recv_target_ids->get_size(),
+                             part_id));
+
+        auto remote_global_begin =
+            host_remote_global_idxs->get_const_data() +
+            std::distance(remote_global_idxs_.get_flat().get_const_data(),
+                          remote_global_idxs_[set_id].get_const_data());
+        auto remote_global_end =
+            remote_global_begin + remote_global_idxs_[set_id].get_size();
+
+        auto it = std::lower_bound(remote_global_begin, remote_global_end, gid);
+        auto lid = it != remote_global_end && *it == gid
                        ? static_cast<LocalIndexType>(std::distance(
                              host_remote_global_idxs->get_const_data(), it))
                        : invalid_index<LocalIndexType>();
