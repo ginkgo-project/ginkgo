@@ -79,6 +79,12 @@ namespace gko::experimental::distributed {
 class sparse_communicator
     : public std::enable_shared_from_this<sparse_communicator> {
 public:
+    static std::shared_ptr<sparse_communicator> create(mpi::communicator comm)
+    {
+        return std::shared_ptr<sparse_communicator>(
+            new sparse_communicator(std::move(comm)));
+    }
+
     template <typename LocalIndexType, typename GlobalIndexType>
     static std::shared_ptr<sparse_communicator> create(
         mpi::communicator comm,
@@ -144,6 +150,10 @@ private:
     using imap_i32_i32_type = index_map<int32, int32>;
     using imap_i32_i64_type = index_map<int32, int64>;
     using imap_i64_i64_type = index_map<int64, int64>;
+
+
+    explicit sparse_communicator(mpi::communicator comm) : default_comm_(comm)
+    {}
 
     /**
      * Creates sparse communicator from overlapping_partition

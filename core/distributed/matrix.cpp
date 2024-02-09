@@ -58,7 +58,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       DistributedBase{comm},
       one_scalar_{},
       local_mtx_{local_matrix_template->clone(exec)},
-      non_local_mtx_{non_local_matrix_template->clone(exec)}
+      non_local_mtx_{non_local_matrix_template->clone(exec)},
+      sparse_comm_(sparse_communicator::create(comm))
 {
     GKO_ASSERT(
         (dynamic_cast<ReadableFromMatrixData<ValueType, LocalIndexType>*>(
