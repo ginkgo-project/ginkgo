@@ -166,6 +166,8 @@ array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::get_local(
         exec_->get_master(), &remote_global_idxs_.get_flat());
     auto host_recv_target_ids =
         make_temporary_clone(exec_->get_master(), &recv_target_ids_);
+    auto host_recv_set_offsets =
+        make_temporary_clone(exec_->get_master(), &recv_set_offsets_);
     auto part = make_temporary_clone(exec_->get_master(), partition_);
     auto part_ids = part->get_part_ids();
     auto range_bounds = part->get_range_bounds();
@@ -188,7 +190,8 @@ array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::get_local(
             auto range_id = find_range(gid, part.get());
             auto part_id = part_ids[range_id];
 
-            auto lid = part_id == rank_ ? gid - range_starting_idxs[range_id]
+            auto lid = part_id == rank_ ? gid - range_bounds[range_id] +
+                                              range_starting_idxs[range_id]
                                         : invalid_index<LocalIndexType>();
             local_ids.get_data()[i] = lid;
         }
@@ -232,9 +235,9 @@ array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::get_local(
 
 
             if (part_id == rank_) {
-                auto lid = part_id == rank_
-                               ? gid - range_starting_idxs[range_id]
-                               : invalid_index<LocalIndexType>();
+                auto lid = part_id == rank_ ? gid - range_bounds[range_id] +
+                                                  range_starting_idxs[range_id]
+                                            : invalid_index<LocalIndexType>();
                 local_ids.get_data()[i] = lid;
             } else {
                 auto set_id = std::distance(
@@ -257,7 +260,7 @@ array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::get_local(
                 auto lid =
                     it != remote_global_end && *it == gid
                         ? static_cast<LocalIndexType>(
-                              recv_set_offsets_[set_id] +
+                              part->get_part_size(rank_) +
                               std::distance(
                                   host_remote_global_idxs->get_const_data(),
                                   it))
