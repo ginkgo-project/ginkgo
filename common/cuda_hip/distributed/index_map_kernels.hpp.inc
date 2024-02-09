@@ -56,7 +56,7 @@ void build_mapping(
 
     auto policy = thrust_policy(exec);
 
-    // precompute the row and column range id of each input element
+    // precompute the range id of each input element
     array<size_type> range_ids{exec, input_size};
     auto it_range_ids = range_ids.get_data();
     thrust::upper_bound(policy, range_bounds + 1, range_bounds + num_ranges + 1,
