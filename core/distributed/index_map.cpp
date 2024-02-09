@@ -324,9 +324,25 @@ index_map<LocalIndexType, GlobalIndexType>::index_map(
       send_target_ids_(exec_),
       local_idxs_(exec_)
 {
-    exec_->run(index_map_kernels::make_build_mapping(
-        partition_.get(), recv_connections, recv_target_ids_,
-        remote_local_idxs_, remote_global_idxs_));
+    {
+        auto host_exec = exec_->get_master();
+        auto host_partition = make_temporary_clone(host_exec, partition_);
+        auto host_recv_connections =
+            make_temporary_clone(host_exec, &recv_connections);
+        auto host_recv_target_ids =
+            make_temporary_clone(host_exec, &recv_target_ids_);
+        auto host_remote_local_idxs =
+            make_temporary_clone(host_exec, &remote_local_idxs_);
+        auto host_remote_global_idxs =
+            make_temporary_clone(host_exec, &remote_global_idxs_);
+
+        host_exec->run(index_map_kernels::make_build_mapping(
+            host_partition.get(), *host_recv_connections, *host_recv_target_ids,
+            *host_remote_local_idxs, *host_remote_global_idxs));
+    }
+    // exec_->run(index_map_kernels::make_build_mapping(
+    // partition_.get(), recv_connections, recv_target_ids_,
+    // remote_local_idxs_, remote_global_idxs_));
 
     std::vector<comm_index_type> recv_sizes(remote_local_idxs_.size());
     std::transform(remote_local_idxs_.begin(), remote_local_idxs_.end(),

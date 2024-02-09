@@ -154,6 +154,11 @@ struct array {
     reference get_flat() { return buffer_; }
     const_reference get_flat() const { return buffer_; }
 
+    std::shared_ptr<const Executor> get_executor() const
+    {
+        return buffer_.get_executor();
+    }
+
 private:
     gko::array<T> buffer_;
     std::vector<gko::array<T>> elems_;
@@ -176,4 +181,70 @@ size_type get_size(const array<IndexType>& arrs)
 
 
 }  // namespace collection
+
+
+namespace detail {
+template <typename T>
+struct temporary_clone_helper<collection::array<T>> {
+    static std::unique_ptr<collection::array<T>> create(
+        std::shared_ptr<const Executor> exec, collection::array<T>* ptr,
+        bool copy_data)
+    {
+        std::vector<size_type> sizes(ptr->size());
+        std::transform(ptr->begin(), ptr->end(), sizes.begin(),
+                       [](const auto& a) { return a.get_size(); });
+        if (copy_data) {
+            return std::make_unique<collection::array<T>>(
+                array<T>{exec, ptr->get_flat()}, sizes);
+        } else {
+            return std::make_unique<collection::array<T>>(std::move(exec),
+                                                          sizes);
+        }
+    }
+};
+
+template <typename T>
+struct temporary_clone_helper<const collection::array<T>> {
+    static std::unique_ptr<const collection::array<T>> create(
+        std::shared_ptr<const Executor> exec, const collection::array<T>* ptr,
+        bool)
+    {
+        std::vector<size_type> sizes(ptr->size());
+        std::transform(ptr->begin(), ptr->end(), sizes.begin(),
+                       [](const auto& a) { return a.get_size(); });
+        return std::make_unique<collection::array<T>>(
+            array<T>{exec, ptr->get_flat()}, sizes);
+    }
+};
+
+
+// specialization for non-constant arrays, copying back via assignment
+template <typename T>
+class copy_back_deleter<collection::array<T>> {
+public:
+    using pointer = collection::array<T>*;
+
+    /**
+     * Creates a new deleter object.
+     *
+     * @param original  the origin object where the data will be copied before
+     *                  deletion
+     */
+    copy_back_deleter(pointer original) : original_{original} {}
+
+    /**
+     * Copies back the pointed-to object to the original and deletes it.
+     *
+     * @param ptr  pointer to the object to be copied back and deleted
+     */
+    void operator()(pointer ptr) const
+    {
+        *original_ = *ptr;
+        delete ptr;
+    }
+
+private:
+    pointer original_;
+};
+}  // namespace detail
 }  // namespace gko
