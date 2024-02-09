@@ -157,20 +157,20 @@ struct index_map {
 
     semi_global_index<LocalIndexType> get_semi_global(GlobalIndexType id) const;
 
-    LocalIndexType get_local(comm_index_type process_id,
-                             LocalIndexType semi_global_id) const;
+    LocalIndexType get_non_local(comm_index_type process_id,
+                                 LocalIndexType semi_global_id) const;
 
-    array<LocalIndexType> get_local(
+    array<LocalIndexType> get_non_local(
         comm_index_type process_id,
         const array<LocalIndexType>& semi_global_ids) const;
 
-    array<LocalIndexType> get_local(
+    array<LocalIndexType> get_non_local(
         const array<comm_index_type>& process_ids,
         const collection::array<LocalIndexType>& semi_global_ids) const;
 
-    array<LocalIndexType> get_local(GlobalIndexType global_ids) const;
+    array<LocalIndexType> get_non_local(GlobalIndexType global_ids) const;
 
-    array<LocalIndexType> get_local(
+    array<LocalIndexType> get_non_local(
         const array<GlobalIndexType>& global_ids) const;
 
     [[nodiscard]] size_type get_local_size() const

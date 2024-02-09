@@ -198,7 +198,7 @@ index_map<LocalIndexType, GlobalIndexType>::get_semi_global(
 
 
 template <typename LocalIndexType, typename GlobalIndexType>
-LocalIndexType index_map<LocalIndexType, GlobalIndexType>::get_local(
+LocalIndexType index_map<LocalIndexType, GlobalIndexType>::get_non_local(
     comm_index_type process_id, LocalIndexType semi_global_id) const
 {
     auto exec = recv_target_ids_.get_executor();
@@ -226,7 +226,7 @@ LocalIndexType index_map<LocalIndexType, GlobalIndexType>::get_local(
 
 
 template <typename LocalIndexType, typename GlobalIndexType>
-array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::get_local(
+array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::get_non_local(
     comm_index_type process_id,
     const array<LocalIndexType>& semi_global_ids) const
 {
@@ -263,7 +263,7 @@ array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::get_local(
 
 
 template <typename LocalIndexType, typename GlobalIndexType>
-array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::get_local(
+array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::get_non_local(
     const array<comm_index_type>& process_ids,
     const collection::array<LocalIndexType>& semi_global_ids) const
 {
@@ -286,18 +286,18 @@ array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::get_local(
         auto current_view =
             make_array_view(exec->get_master(), semi_global_ids[i].get_size(),
                             local_ids.get_data() + query_size_offsets[i]);
-        auto current_result = get_local(pid, semi_global_ids[i]);
+        auto current_result = get_non_local(pid, semi_global_ids[i]);
         current_view = current_result;
     }
 
     return local_ids;
 }
 template <typename LocalIndexType, typename GlobalIndexType>
-array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::get_local(
+array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::get_non_local(
     const GlobalIndexType global_ids) const GKO_NOT_IMPLEMENTED;
 
 template <typename LocalIndexType, typename GlobalIndexType>
-array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::get_local(
+array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::get_non_local(
     const array<GlobalIndexType>& global_ids) const
 {
     auto host_global_ids =
@@ -314,10 +314,8 @@ array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::get_local(
                                        host_remote_global_idxs->get_size(),
                                    gid);
         auto lid = *it == gid
-                       ? static_cast<LocalIndexType>(
-                             get_local_size() +
-                             std::distance(
-                                 host_remote_global_idxs->get_const_data(), it))
+                       ? static_cast<LocalIndexType>(std::distance(
+                             host_remote_global_idxs->get_const_data(), it))
                        : invalid_index<LocalIndexType>();
         local_ids.get_data()[i] = lid;
     }
