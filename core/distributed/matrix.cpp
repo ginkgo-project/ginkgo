@@ -68,6 +68,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
             non_local_mtx_.get())));
     one_scalar_.init(exec, dim<2>{1, 1});
     one_scalar_->fill(one<value_type>());
+    recv_buffer_.init(exec, {}, nullptr);
+    send_buffer_.init(exec, {}, nullptr);
 }
 
 
@@ -89,6 +91,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     //     sparse_comm->get_partition<GlobalIndexType>()->get_recv_indices();
     // GKO_ASSERT(collection::get_size(recv_idxs.idxs) ==
     //            non_local_mtx_->get_size()[1]);
+    recv_buffer_.init(exec, {}, nullptr);
+    send_buffer_.init(exec, {}, nullptr);
 }
 
 
