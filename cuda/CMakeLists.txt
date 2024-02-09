@@ -20,6 +20,7 @@ target_sources(ginkgo_cuda
     base/timer.cpp
     base/version.cpp
     components/prefix_sum_kernels.cu
+  distributed/index_map_kernels.cu
     distributed/matrix_kernels.cu
     distributed/partition_helpers_kernels.cu
     distributed/partition_kernels.cu

@@ -2,13 +2,23 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "common/unified/base/kernel_launch.hpp"
 #include "core/distributed/index_map_kernels.hpp"
+
+
+#include <omp.h>
+
+
+#include <ginkgo/core/base/exception_helpers.hpp>
+
+
+#include "core/base/allocator.hpp"
+#include "core/base/device_matrix_data_kernels.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace GKO_DEVICE_NAMESPACE {
+namespace omp {
 namespace index_map {
 
 
@@ -22,12 +32,11 @@ void build_mapping(
     collection::array<LocalIndexType>& remote_local_idxs,
     collection::array<GlobalIndexType>& remote_global_idxs) GKO_NOT_IMPLEMENTED;
 
-
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_INDEX_MAP_BUILD_MAPPING);
 
 
 }  // namespace index_map
-}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace omp
 }  // namespace kernels
 }  // namespace gko

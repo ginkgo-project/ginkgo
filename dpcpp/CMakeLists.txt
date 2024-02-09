@@ -1,6 +1,6 @@
 find_package(MKL CONFIG REQUIRED HINTS "$ENV{MKLROOT}" "$ENV{MKL_ROOT}")
 find_package(oneDPL REQUIRED HINTS "$ENV{DPL_ROOT}" "$ENV{DPLROOT}")
-# use the parameter from cmake 
+# use the parameter from cmake
 set(GINKGO_MKL_ROOT "${MKL_DIR}" PARENT_SCOPE)
 set(GINKGO_DPL_ROOT "${oneDPL_DIR}" PARENT_SCOPE)
 
@@ -18,6 +18,7 @@ target_sources(ginkgo_dpcpp
     base/timer.dp.cpp
     base/version.dp.cpp
     components/prefix_sum_kernels.dp.cpp
+  distributed/index_map_kernels.dp.cpp
     distributed/matrix_kernels.dp.cpp
     distributed/partition_helpers_kernels.dp.cpp
     distributed/partition_kernels.dp.cpp
