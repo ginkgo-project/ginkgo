@@ -70,19 +70,6 @@ template <typename LocalIndexType, typename GlobalIndexType = int64>
 struct index_map {
     using part_type = Partition<LocalIndexType, GlobalIndexType>;
 
-    semi_global_index<LocalIndexType> get_semi_global(GlobalIndexType id) const;
-
-    LocalIndexType get_non_local(comm_index_type process_id,
-                                 LocalIndexType semi_global_id) const;
-
-    array<LocalIndexType> get_non_local(
-        comm_index_type process_id,
-        const array<LocalIndexType>& semi_global_ids) const;
-
-    array<LocalIndexType> get_non_local(
-        const array<comm_index_type>& process_ids,
-        const collection::array<LocalIndexType>& semi_global_ids) const;
-
     /**
      * \brief Maps global indices to local indices
      * \param global_ids the global indices to map
