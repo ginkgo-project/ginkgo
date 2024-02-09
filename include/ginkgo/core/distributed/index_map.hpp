@@ -125,8 +125,9 @@ struct index_map {
     index_map() = default;
 
     /**
-     * \brief get the index set $R_k$ for this rank, blocked by their owning
-     *        rank.
+     * \brief get the index set $R_k$ for this rank.
+     *
+     * The indices are orderd by their owning rank and global index.
      */
     const collection::array<GlobalIndexType>& get_remote_global_idxs() const
     {
@@ -135,7 +136,9 @@ struct index_map {
 
     /**
      * \brief get the index set $R_k$, but mapped to their respective local
-     *        index space, blocked by their owning rank.
+     *        index space.
+     *
+     * The indices are in the same way as get_remote_global_idxs.
      *
      * The set $R_k = \hat{I}_k \setminus I_k$ can also be written as the union
      * of the intersection of $\hat{I}_k$ with other disjoint sets
@@ -183,6 +186,9 @@ struct index_map {
         return send_target_ids_;
     }
 
+    /**
+     * \brief get the associated executor.
+     */
     [[nodiscard]] std::shared_ptr<const Executor> get_executor() const
     {
         return exec_;
