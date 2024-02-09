@@ -74,10 +74,10 @@ TEST_F(IndexMap, CanGetLocal)
         gko::array<global_index_type>{exec, {3, 0, 3, 1, 1}},
     };
 
-    auto result = imap.get_local(query[rank]);
+    auto result = imap.get_non_local(query[rank]);
 
-    std::array expected = {gko::array<local_index_type>{exec, {3, 3, 2, 4, 3}},
-                           gko::array<local_index_type>{exec, {2, 3, 2, 3, 4}},
-                           gko::array<local_index_type>{exec, {4, 2, 4, 3, 3}}};
+    std::array expected = {gko::array<local_index_type>{exec, {1, 1, 0, 2, 1}},
+                           gko::array<local_index_type>{exec, {0, 1, 0, 1, 2}},
+                           gko::array<local_index_type>{exec, {2, 0, 2, 1, 1}}};
     GKO_ASSERT_ARRAY_EQ(result, expected[rank]);
 }
