@@ -69,15 +69,120 @@ TEST_F(IndexMap, CanGetLocal)
     auto rank = comm.rank();
     auto imap = map_type(exec, comm, part, remote_idxs[rank]);
     std::array query = {
+        gko::array<global_index_type>{exec, {0, 1, 0}},
+        gko::array<global_index_type>{exec, {2, 3, 2}},
+        gko::array<global_index_type>{exec, {5, 5, 4, 4}},
+    };
+
+    auto result = imap.get_local(
+        query[rank], gko::experimental::distributed::index_space::local);
+
+    std::array expected = {gko::array<local_index_type>{exec, {0, 1, 0}},
+                           gko::array<local_index_type>{exec, {0, 1, 0}},
+                           gko::array<local_index_type>{exec, {1, 1, 0, 0}}};
+    GKO_ASSERT_ARRAY_EQ(result, expected[rank]);
+}
+
+
+TEST_F(IndexMap, CanGetLocalWithInvalidIndex)
+{
+    auto rank = comm.rank();
+    auto imap = map_type(exec, comm, part, remote_idxs[rank]);
+    std::array query = {
+        gko::array<global_index_type>{exec, {0, 1, 0, 2, 3}},
+        gko::array<global_index_type>{exec, {0, 1, 2, 3, 2}},
+        gko::array<global_index_type>{exec, {5, 5, 1, 2, 4, 4}},
+    };
+
+    auto result = imap.get_local(
+        query[rank], gko::experimental::distributed::index_space::local);
+
+    std::array expected = {
+        gko::array<local_index_type>{exec, {0, 1, 0, -1, -1}},
+        gko::array<local_index_type>{exec, {-1, -1, 0, 1, 0}},
+        gko::array<local_index_type>{exec, {1, 1, -1, -1, 0, 0}}};
+    GKO_ASSERT_ARRAY_EQ(result, expected[rank]);
+}
+
+
+TEST_F(IndexMap, CanGetNonLocal)
+{
+    auto rank = comm.rank();
+    auto imap = map_type(exec, comm, part, remote_idxs[rank]);
+    std::array query = {
         gko::array<global_index_type>{exec, {3, 3, 2, 5, 3}},
         gko::array<global_index_type>{exec, {0, 1, 0, 1, 4}},
         gko::array<global_index_type>{exec, {3, 0, 3, 1, 1}},
     };
 
-    auto result = imap.get_non_local(query[rank]);
+    auto result = imap.get_local(
+        query[rank], gko::experimental::distributed::index_space::non_local);
 
     std::array expected = {gko::array<local_index_type>{exec, {1, 1, 0, 2, 1}},
                            gko::array<local_index_type>{exec, {0, 1, 0, 1, 2}},
                            gko::array<local_index_type>{exec, {2, 0, 2, 1, 1}}};
+    GKO_ASSERT_ARRAY_EQ(result, expected[rank]);
+}
+
+
+TEST_F(IndexMap, CanGetNonLocalWithInvalidIndex)
+{
+    auto rank = comm.rank();
+    auto imap = map_type(exec, comm, part, remote_idxs[rank]);
+    std::array query = {
+        gko::array<global_index_type>{exec, {0, 1, 3, 3, 2, 5, 3}},
+        gko::array<global_index_type>{exec, {0, 1, 0, 1, 4, 2, 5}},
+        gko::array<global_index_type>{exec, {3, 0, 3, 2, 2, 1, 1}},
+    };
+
+    auto result = imap.get_local(
+        query[rank], gko::experimental::distributed::index_space::non_local);
+
+    std::array expected = {
+        gko::array<local_index_type>{exec, {-1, -1, 1, 1, 0, 2, 1}},
+        gko::array<local_index_type>{exec, {0, 1, 0, 1, 2, -1, -1}},
+        gko::array<local_index_type>{exec, {2, 0, 2, -1, -1, 1, 1}}};
+    GKO_ASSERT_ARRAY_EQ(result, expected[rank]);
+}
+
+
+TEST_F(IndexMap, CanGetCombined)
+{
+    auto rank = comm.rank();
+    auto imap = map_type(exec, comm, part, remote_idxs[rank]);
+    std::array query = {
+        gko::array<global_index_type>{exec, {3, 3, 1, 2, 5, 0, 3}},
+        gko::array<global_index_type>{exec, {0, 1, 0, 1, 4, 2, 2}},
+        gko::array<global_index_type>{exec, {5, 4, 3, 0, 3, 1, 1}},
+    };
+
+    auto result = imap.get_local(
+        query[rank], gko::experimental::distributed::index_space::combined);
+
+    std::array expected = {
+        gko::array<local_index_type>{exec, {3, 3, 1, 2, 4, 0, 3}},
+        gko::array<local_index_type>{exec, {2, 3, 2, 3, 4, 0, 0}},
+        gko::array<local_index_type>{exec, {1, 0, 4, 2, 4, 3, 3}}};
+    GKO_ASSERT_ARRAY_EQ(result, expected[rank]);
+}
+
+
+TEST_F(IndexMap, CanGetCombinedWithInvalidIndex)
+{
+    auto rank = comm.rank();
+    auto imap = map_type(exec, comm, part, remote_idxs[rank]);
+    std::array query = {
+        gko::array<global_index_type>{exec, {3, 3, 1, 2, 5, 0, 3, 4}},
+        gko::array<global_index_type>{exec, {5, 0, 1, 0, 1, 4, 2, 2}},
+        gko::array<global_index_type>{exec, {5, 4, 3, 2, 0, 3, 1, 1}},
+    };
+
+    auto result = imap.get_local(
+        query[rank], gko::experimental::distributed::index_space::combined);
+
+    std::array expected = {
+        gko::array<local_index_type>{exec, {3, 3, 1, 2, 4, 0, 3, -1}},
+        gko::array<local_index_type>{exec, {-1, 2, 3, 2, 3, 4, 0, 0}},
+        gko::array<local_index_type>{exec, {1, 0, 4, -1, 2, 4, 3, 3}}};
     GKO_ASSERT_ARRAY_EQ(result, expected[rank]);
 }
