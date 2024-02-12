@@ -131,6 +131,10 @@ if (GINKGO_HAVE_ROCTX)
     target_link_libraries(ginkgo_hip PRIVATE roc::roctx)
 endif()
 
+if(GINKGO_BUILD_MPI)
+    target_link_libraries(ginkgo_hip PRIVATE MPI::MPI_CXX)
+endif()
+
 target_compile_options(ginkgo_hip PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
 
 if(GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")

@@ -121,6 +121,10 @@ if (GINKGO_DPCPP_SINGLE_MODE)
     target_compile_definitions(ginkgo_dpcpp PRIVATE GINKGO_DPCPP_SINGLE_MODE=1)
 endif()
 
+if(GINKGO_BUILD_MPI)
+    target_link_libraries(ginkgo_dpcpp PRIVATE MPI::MPI_CXX)
+endif()
+
 ginkgo_default_includes(ginkgo_dpcpp)
 ginkgo_install_library(ginkgo_dpcpp)
 
