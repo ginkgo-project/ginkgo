@@ -8,6 +8,9 @@
 #include <ginkgo/core/distributed/index_map.hpp>
 
 
+#include "reference/distributed/partition_helpers.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace reference {
@@ -145,14 +148,6 @@ void get_local(
     auto part_ids = partition->get_part_ids();
     auto range_bounds = partition->get_range_bounds();
     auto range_starting_idxs = partition->get_range_starting_indices();
-
-    auto find_range = [](GlobalIndexType idx, const auto* partition) {
-        auto range_bounds = partition->get_range_bounds();
-        auto num_ranges = partition->get_num_ranges();
-        auto it = std::upper_bound(range_bounds + 1,
-                                   range_bounds + num_ranges + 1, idx);
-        return static_cast<size_type>(std::distance(range_bounds + 1, it));
-    };
 
     local_ids.resize_and_reset(global_ids.get_size());
 
