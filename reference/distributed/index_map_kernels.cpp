@@ -156,23 +156,17 @@ void get_local(
 
     local_ids.resize_and_reset(global_ids.get_size());
 
-    if (is == experimental::distributed::index_space::local) {
-        for (size_type i = 0; i < global_ids.get_size(); ++i) {
-            auto gid = global_ids.get_const_data()[i];
+    auto map_local = [&](const auto gid) {
+        auto range_id = find_range(gid, partition);
+        auto part_id = part_ids[range_id];
 
-            auto range_id = find_range(gid, partition);
-            auto part_id = part_ids[range_id];
-
-            auto lid = part_id == rank ? gid - range_bounds[range_id] +
-                                             range_starting_idxs[range_id]
-                                       : invalid_index<LocalIndexType>();
-            local_ids.get_data()[i] = lid;
-        }
-    }
-    if (is == experimental::distributed::index_space::non_local) {
-        for (size_type i = 0; i < global_ids.get_size(); ++i) {
-            auto gid = global_ids.get_const_data()[i];
-
+        return part_id == rank
+                   ? static_cast<LocalIndexType>(gid - range_bounds[range_id]) +
+                         range_starting_idxs[range_id]
+                   : invalid_index<LocalIndexType>();
+    };
+    auto create_map_non_local = [&](const LocalIndexType offset) {
+        return [&, offset](const auto gid) {
             auto range_id = find_range(gid, partition);
             auto part_id = part_ids[range_id];
 
@@ -188,6 +182,10 @@ void get_local(
                                      remote_targed_ids.get_size(),
                                  part_id));
 
+            if (set_id == remote_targed_ids.get_size()) {
+                return invalid_index<LocalIndexType>();
+            }
+
             auto remote_global_begin =
                 remote_global_idxs[set_id].get_const_data();
             auto remote_global_end =
@@ -198,51 +196,47 @@ void get_local(
             // to this rank
             auto it =
                 std::lower_bound(remote_global_begin, remote_global_end, gid);
-            auto lid =
-                it != remote_global_end && *it == gid
-                    ? static_cast<LocalIndexType>(std::distance(
-                          remote_global_idxs.get_flat().get_const_data(), it))
-                    : invalid_index<LocalIndexType>();
-            local_ids.get_data()[i] = lid;
+            return it != remote_global_end && *it == gid
+                       ? static_cast<LocalIndexType>(
+                             std::distance(
+                                 remote_global_idxs.get_flat().get_const_data(),
+                                 it) +
+                             offset)
+                       : invalid_index<LocalIndexType>();
+        };
+    };
+    auto map_non_local = create_map_non_local(0);
+
+    auto combined_map_non_local =
+        create_map_non_local(partition->get_part_size(rank));
+    auto map_combined = [&](const auto gid) {
+        auto range_id = find_range(gid, partition);
+        auto part_id = part_ids[range_id];
+
+        if (part_id == rank) {
+            return map_local(gid);
+        } else {
+            return combined_map_non_local(gid);
+        }
+    };
+
+    if (is == experimental::distributed::index_space::local) {
+        for (size_type i = 0; i < global_ids.get_size(); ++i) {
+            auto gid = global_ids.get_const_data()[i];
+
+            local_ids.get_data()[i] = map_local(gid);
+        }
+    }
+    if (is == experimental::distributed::index_space::non_local) {
+        for (size_type i = 0; i < global_ids.get_size(); ++i) {
+            auto gid = global_ids.get_const_data()[i];
+            local_ids.get_data()[i] = map_non_local(gid);
         }
     }
     if (is == experimental::distributed::index_space::combined) {
         for (size_type i = 0; i < global_ids.get_size(); ++i) {
             auto gid = global_ids.get_const_data()[i];
-
-            auto range_id = find_range(gid, partition);
-            auto part_id = part_ids[range_id];
-
-
-            if (part_id == rank) {
-                auto lid = part_id == rank ? gid - range_bounds[range_id] +
-                                                 range_starting_idxs[range_id]
-                                           : invalid_index<LocalIndexType>();
-                local_ids.get_data()[i] = lid;
-            } else {
-                auto set_id = std::distance(
-                    remote_targed_ids.get_const_data(),
-                    std::lower_bound(remote_targed_ids.get_const_data(),
-                                     remote_targed_ids.get_const_data() +
-                                         remote_targed_ids.get_size(),
-                                     part_id));
-
-                auto remote_global_begin =
-                    remote_global_idxs[set_id].get_const_data();
-                auto remote_global_end =
-                    remote_global_begin + remote_global_idxs[set_id].get_size();
-
-                auto it = std::lower_bound(remote_global_begin,
-                                           remote_global_end, gid);
-                auto lid = it != remote_global_end && *it == gid
-                               ? static_cast<LocalIndexType>(
-                                     partition->get_part_size(rank) +
-                                     std::distance(remote_global_idxs.get_flat()
-                                                       .get_const_data(),
-                                                   it))
-                               : invalid_index<LocalIndexType>();
-                local_ids.get_data()[i] = lid;
-            }
+            local_ids.get_data()[i] = map_combined(gid);
         }
     }
 }
