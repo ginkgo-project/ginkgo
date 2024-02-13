@@ -412,6 +412,7 @@ build/amd/nompi/gcc/rocm45/release/shared:
     NONDEFAULT_STREAM: "ON"
     RUN_EXAMPLES: "ON"
     BUILD_TYPE: "Release"
+    BUILD_HWLOC: "OFF"
 
 build/amd/nompi/clang/rocm45/release/static:
   extends:
@@ -603,6 +604,7 @@ build/dpcpp/2022-1/cpu/release/shared:
     SYCL_DEVICE_FILTER: "*:cpu"
     SLURM_PARTITION: "cpu"
     SLURM_TIME: "2:00:00"
+    BUILD_HWLOC: "OFF"
     # This job is not in exclusive mode
 
 # It gives two available backends of GPU on tests
@@ -621,6 +623,7 @@ build/dpcpp/igpu/release/shared:
     BUILD_SHARED_LIBS: "ON"
     DPCPP_SINGLE_MODE: "ON"
     ONEAPI_DEVICE_SELECTOR: "*:gpu"
+    BUILD_HWLOC: "OFF"
 
 # TODO: Enable when debug shared library size issues are fixed
 # build/dpcpp/level_zero_igpu/debug/shared:
@@ -655,6 +658,7 @@ build/dpcpp/dgpu/release/static:
     BUILD_SHARED_LIBS: "OF"
     DPCPP_SINGLE_MODE: "ON"
     ONEAPI_DEVICE_SELECTOR: "*:gpu"
+    BUILD_HWLOC: "OFF"
 
 build/dpcpp/level_zero_dgpu/release/shared:
   extends:
@@ -670,6 +674,7 @@ build/dpcpp/level_zero_dgpu/release/shared:
     BUILD_TYPE: "Release"
     DPCPP_SINGLE_MODE: "ON"
     ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
+    BUILD_HWLOC: "OFF"
 
 build/icpx/level_zero_dgpu/release/shared:
   extends:
@@ -685,6 +690,7 @@ build/icpx/level_zero_dgpu/release/shared:
     BUILD_TYPE: "Release"
     DPCPP_SINGLE_MODE: "ON"
     ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
+    BUILD_HWLOC: "OFF"
 
 # Job with important warnings as error
 warnings:
