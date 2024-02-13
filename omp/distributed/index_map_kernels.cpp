@@ -14,7 +14,7 @@
 #include "core/base/allocator.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
 #include "core/base/iterator_factory.hpp"
-#include "core/components/prefix_sum_kernels.hpp"
+#include "reference/distributed/partition_helpers.hpp"
 
 
 namespace gko {
@@ -44,26 +44,6 @@ void build_mapping(
 
     auto recv_connections_copy = recv_connections;
     auto recv_connections_ptr = recv_connections_copy.get_data();
-
-    auto find_range = [](GlobalIndexType idx, const partition_type* partition,
-                         size_type hint) {
-        auto range_bounds = partition->get_range_bounds();
-        auto num_ranges = partition->get_num_ranges();
-        if (range_bounds[hint] <= idx && idx < range_bounds[hint + 1]) {
-            return hint;
-        } else {
-            auto it = std::upper_bound(range_bounds + 1,
-                                       range_bounds + num_ranges + 1, idx);
-            return static_cast<size_type>(std::distance(range_bounds + 1, it));
-        }
-    };
-    auto map_to_local = [](GlobalIndexType idx, const partition_type* partition,
-                           size_type range_id) {
-        auto range_bounds = partition->get_range_bounds();
-        auto range_starting_indices = partition->get_range_starting_indices();
-        return static_cast<LocalIndexType>(idx - range_bounds[range_id]) +
-               range_starting_indices[range_id];
-    };
 
     // precompute the range id and part id of each input element
     vector<size_type> range_ids(input_size, exec);
@@ -157,28 +137,23 @@ void get_local(
     auto range_bounds = partition->get_range_bounds();
     auto range_starting_idxs = partition->get_range_starting_indices();
 
-    auto find_range = [](GlobalIndexType idx, const auto* partition) {
-        auto range_bounds = partition->get_range_bounds();
-        auto num_ranges = partition->get_num_ranges();
-        auto it = std::upper_bound(range_bounds + 1,
-                                   range_bounds + num_ranges + 1, idx);
-        return static_cast<size_type>(std::distance(range_bounds + 1, it));
-    };
-
     local_ids.resize_and_reset(global_ids.get_size());
 
-    auto map_local = [&](const auto gid) {
-        auto range_id = find_range(gid, partition);
+    auto map_local = [&](const auto gid, const auto range_id_hint) {
+        auto range_id = find_range(gid, partition, range_id_hint);
         auto part_id = part_ids[range_id];
 
-        return part_id == rank
-                   ? static_cast<LocalIndexType>(gid - range_bounds[range_id]) +
-                         range_starting_idxs[range_id]
-                   : invalid_index<LocalIndexType>();
+        return std::make_pair(
+            part_id == rank
+                ? static_cast<LocalIndexType>(gid - range_bounds[range_id]) +
+                      range_starting_idxs[range_id]
+                : invalid_index<LocalIndexType>(),
+            range_id);
     };
+
     auto create_map_non_local = [&](const LocalIndexType offset) {
-        return [&, offset](const auto gid) {
-            auto range_id = find_range(gid, partition);
+        return [&, offset](const auto gid, const auto range_id_hint) {
+            auto range_id = find_range(gid, partition, range_id_hint);
             auto part_id = part_ids[range_id];
 
             // can't do binary search on whole remote_target_idxs array,
@@ -194,7 +169,8 @@ void get_local(
                                  part_id));
 
             if (set_id == remote_targed_ids.get_size()) {
-                return invalid_index<LocalIndexType>();
+                return std::make_pair(invalid_index<LocalIndexType>(),
+                                      range_id);
             }
 
             auto remote_global_begin =
@@ -207,50 +183,62 @@ void get_local(
             // to this rank
             auto it =
                 std::lower_bound(remote_global_begin, remote_global_end, gid);
-            return it != remote_global_end && *it == gid
-                       ? static_cast<LocalIndexType>(
-                             std::distance(
-                                 remote_global_idxs.get_flat().get_const_data(),
-                                 it) +
-                             offset)
-                       : invalid_index<LocalIndexType>();
+            return std::make_pair(
+                it != remote_global_end && *it == gid
+                    ? static_cast<LocalIndexType>(
+                          std::distance(
+                              remote_global_idxs.get_flat().get_const_data(),
+                              it) +
+                          offset)
+                    : invalid_index<LocalIndexType>(),
+                range_id);
         };
     };
     auto map_non_local = create_map_non_local(0);
 
     auto combined_map_non_local =
         create_map_non_local(partition->get_part_size(rank));
-    auto map_combined = [&](const auto gid) {
-        auto range_id = find_range(gid, partition);
+    auto map_combined = [&](const auto gid, const auto range_id_hint) {
+        auto range_id = find_range(gid, partition, range_id_hint);
         auto part_id = part_ids[range_id];
 
         if (part_id == rank) {
-            return map_local(gid);
+            return map_local(gid, range_id_hint);
         } else {
-            return combined_map_non_local(gid);
+            return combined_map_non_local(gid, range_id_hint);
         }
     };
 
+    size_type range_id = 0;
     if (is == experimental::distributed::index_space::local) {
-#pragma omp parallel for
+#pragma omp parallel for firstprivate(range_id)
         for (size_type i = 0; i < global_ids.get_size(); ++i) {
             auto gid = global_ids.get_const_data()[i];
 
-            local_ids.get_data()[i] = map_local(gid);
+            auto result = map_local(gid, range_id);
+            range_id = result.second;
+
+            local_ids.get_data()[i] = result.first;
         }
     }
     if (is == experimental::distributed::index_space::non_local) {
-#pragma omp parallel for
+#pragma omp parallel for firstprivate(range_id)
         for (size_type i = 0; i < global_ids.get_size(); ++i) {
             auto gid = global_ids.get_const_data()[i];
-            local_ids.get_data()[i] = map_non_local(gid);
+            auto result = map_non_local(gid, range_id);
+            range_id = result.second;
+
+            local_ids.get_data()[i] = result.first;
         }
     }
     if (is == experimental::distributed::index_space::combined) {
-#pragma omp parallel for
+#pragma omp parallel for firstprivate(range_id)
         for (size_type i = 0; i < global_ids.get_size(); ++i) {
             auto gid = global_ids.get_const_data()[i];
-            local_ids.get_data()[i] = map_combined(gid);
+            auto result = map_combined(gid, range_id);
+            range_id = result.second;
+
+            local_ids.get_data()[i] = result.first;
         }
     }
 }
