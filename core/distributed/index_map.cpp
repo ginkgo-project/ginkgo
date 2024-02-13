@@ -27,9 +27,9 @@ namespace index_map_kernels {
 
 
 GKO_REGISTER_OPERATION(build_mapping, index_map::build_mapping);
+GKO_REGISTER_OPERATION(get_local, index_map::get_local);
 
-
-}
+}  // namespace index_map_kernels
 
 
 namespace detail {
@@ -160,116 +160,12 @@ template <typename LocalIndexType, typename GlobalIndexType>
 array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::get_local(
     const array<GlobalIndexType>& global_ids, index_space is) const
 {
-    auto host_global_ids =
-        make_temporary_clone(exec_->get_master(), &global_ids);
-    auto host_remote_global_idxs = make_temporary_clone(
-        exec_->get_master(), &remote_global_idxs_.get_flat());
-    auto host_recv_target_ids =
-        make_temporary_clone(exec_->get_master(), &recv_target_ids_);
-    auto host_recv_set_offsets =
-        make_temporary_clone(exec_->get_master(), &recv_set_offsets_);
-    auto part = make_temporary_clone(exec_->get_master(), partition_);
-    auto part_ids = part->get_part_ids();
-    auto range_bounds = part->get_range_bounds();
-    auto range_starting_idxs = part->get_range_starting_indices();
+    array<LocalIndexType> local_ids(exec_);
 
-    auto find_range = [](GlobalIndexType idx, const auto* partition) {
-        auto range_bounds = partition->get_range_bounds();
-        auto num_ranges = partition->get_num_ranges();
-        auto it = std::upper_bound(range_bounds + 1,
-                                   range_bounds + num_ranges + 1, idx);
-        return static_cast<size_type>(std::distance(range_bounds + 1, it));
-    };
+    exec_->run(index_map_kernels::make_get_local(
+        partition_.get(), recv_target_ids_, remote_global_idxs_, rank_,
+        global_ids, is, local_ids));
 
-    array<LocalIndexType> local_ids(exec_->get_master(), global_ids.get_size());
-
-    if (is == index_space::local) {
-        for (size_type i = 0; i < global_ids.get_size(); ++i) {
-            auto gid = host_global_ids->get_const_data()[i];
-
-            auto range_id = find_range(gid, part.get());
-            auto part_id = part_ids[range_id];
-
-            auto lid = part_id == rank_ ? gid - range_bounds[range_id] +
-                                              range_starting_idxs[range_id]
-                                        : invalid_index<LocalIndexType>();
-            local_ids.get_data()[i] = lid;
-        }
-    }
-    if (is == index_space::non_local) {
-        for (size_type i = 0; i < global_ids.get_size(); ++i) {
-            auto gid = host_global_ids->get_const_data()[i];
-
-            auto range_id = find_range(gid, part.get());
-            auto part_id = part_ids[range_id];
-
-            auto set_id = std::distance(
-                host_recv_target_ids->get_const_data(),
-                std::lower_bound(host_recv_target_ids->get_const_data(),
-                                 host_recv_target_ids->get_const_data() +
-                                     host_recv_target_ids->get_size(),
-                                 part_id));
-
-            auto remote_global_begin =
-                host_remote_global_idxs->get_const_data() +
-                std::distance(remote_global_idxs_.get_flat().get_const_data(),
-                              remote_global_idxs_[set_id].get_const_data());
-            auto remote_global_end =
-                remote_global_begin + remote_global_idxs_[set_id].get_size();
-
-            auto it =
-                std::lower_bound(remote_global_begin, remote_global_end, gid);
-            auto lid = it != remote_global_end && *it == gid
-                           ? static_cast<LocalIndexType>(std::distance(
-                                 host_remote_global_idxs->get_const_data(), it))
-                           : invalid_index<LocalIndexType>();
-            local_ids.get_data()[i] = lid;
-        }
-    }
-    if (is == index_space::combined) {
-        for (size_type i = 0; i < global_ids.get_size(); ++i) {
-            auto gid = host_global_ids->get_const_data()[i];
-
-            auto range_id = find_range(gid, part.get());
-            auto part_id = part_ids[range_id];
-
-
-            if (part_id == rank_) {
-                auto lid = part_id == rank_ ? gid - range_bounds[range_id] +
-                                                  range_starting_idxs[range_id]
-                                            : invalid_index<LocalIndexType>();
-                local_ids.get_data()[i] = lid;
-            } else {
-                auto set_id = std::distance(
-                    host_recv_target_ids->get_const_data(),
-                    std::lower_bound(host_recv_target_ids->get_const_data(),
-                                     host_recv_target_ids->get_const_data() +
-                                         host_recv_target_ids->get_size(),
-                                     part_id));
-
-                auto remote_global_begin =
-                    host_remote_global_idxs->get_const_data() +
-                    std::distance(
-                        remote_global_idxs_.get_flat().get_const_data(),
-                        remote_global_idxs_[set_id].get_const_data());
-                auto remote_global_end = remote_global_begin +
-                                         remote_global_idxs_[set_id].get_size();
-
-                auto it = std::lower_bound(remote_global_begin,
-                                           remote_global_end, gid);
-                auto lid =
-                    it != remote_global_end && *it == gid
-                        ? static_cast<LocalIndexType>(
-                              part->get_part_size(rank_) +
-                              std::distance(
-                                  host_remote_global_idxs->get_const_data(),
-                                  it))
-                        : invalid_index<LocalIndexType>();
-                local_ids.get_data()[i] = lid;
-            }
-        }
-    }
-    local_ids.set_executor(exec_);
     return local_ids;
 }
 
