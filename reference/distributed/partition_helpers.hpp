@@ -20,7 +20,7 @@ size_type find_range(
     GlobalIndexType idx,
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         partition,
-    const size_type range_id_hint)
+    const size_type range_id_hint = 0)
 {
     auto range_bounds = partition->get_range_bounds();
     auto num_ranges = partition->get_num_ranges();
