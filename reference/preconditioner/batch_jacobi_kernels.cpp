@@ -44,8 +44,9 @@ void apply_jacobi(
         prec.apply(r_b, z_b);
     }
 }
-// Note: Do not change the ordering
 
+
+// Note: Do not change the ordering
 #include "reference/preconditioner/batch_jacobi_kernels.hpp.inc"
 
 
