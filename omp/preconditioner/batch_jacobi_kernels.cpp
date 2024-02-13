@@ -8,7 +8,6 @@
 #include "core/base/batch_struct.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/batch_struct.hpp"
-#include "core/solver/batch_dispatch.hpp"
 #include "reference/base/batch_struct.hpp"
 #include "reference/matrix/batch_struct.hpp"
 #include "reference/preconditioner/batch_block_jacobi.hpp"
@@ -119,9 +118,8 @@ void compute_cumulative_block_storage(
                                        num_blocks + 1);
 }
 
-template void compute_cumulative_block_storage<int>(
-    std::shared_ptr<const DefaultExecutor>, const size_type, const int32* const,
-    int32* const);
+GKO_INSTANTIATE_FOR_INT32_TYPE(
+    GKO_DECLARE_BATCH_BLOCK_JACOBI_COMPUTE_CUMULATIVE_BLOCK_STORAGE);
 
 
 template <typename IndexType>
@@ -139,10 +137,8 @@ void find_row_is_part_of_which_block(
     }
 }
 
-// instantiate for index type int32
-template void find_row_is_part_of_which_block<int>(
-    std::shared_ptr<const DefaultExecutor>, const size_type, const int32* const,
-    int32* const);
+GKO_INSTANTIATE_FOR_INT32_TYPE(
+    GKO_DECLARE_BATCH_BLOCK_JACOBI_FIND_ROW_IS_PART_OF_WHICH_BLOCK);
 
 
 template <typename ValueType, typename IndexType>
