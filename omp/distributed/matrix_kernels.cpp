@@ -13,7 +13,7 @@
 
 #include "core/base/allocator.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
-#include "core/components/prefix_sum_kernels.hpp"
+#include "reference/distributed/partition_helpers.hpp"
 
 
 namespace gko {
@@ -93,26 +93,6 @@ void build_local_nonlocal(
     size_type col_range_id_hint = 0;
     // zero recv_sizes values
     std::fill_n(recv_sizes_ptr, num_parts, comm_index_type{});
-
-    auto find_range = [](GlobalIndexType idx, const partition_type* partition,
-                         size_type hint) {
-        auto range_bounds = partition->get_range_bounds();
-        auto num_ranges = partition->get_num_ranges();
-        if (range_bounds[hint] <= idx && idx < range_bounds[hint + 1]) {
-            return hint;
-        } else {
-            auto it = std::upper_bound(range_bounds + 1,
-                                       range_bounds + num_ranges + 1, idx);
-            return static_cast<size_type>(std::distance(range_bounds + 1, it));
-        }
-    };
-    auto map_to_local = [](GlobalIndexType idx, const partition_type* partition,
-                           size_type range_id) {
-        auto range_bounds = partition->get_range_bounds();
-        auto range_starting_indices = partition->get_range_starting_indices();
-        return static_cast<LocalIndexType>(idx - range_bounds[range_id]) +
-               range_starting_indices[range_id];
-    };
 
     // store non-local entries with global column idxs
     vector<global_nonzero> non_local_entries(exec);
