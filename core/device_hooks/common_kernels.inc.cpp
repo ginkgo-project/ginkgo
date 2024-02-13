@@ -258,9 +258,10 @@ namespace index_map {
 
 
 GKO_STUB_LOCAL_GLOBAL_TYPE(GKO_DECLARE_INDEX_MAP_BUILD_MAPPING);
+GKO_STUB_LOCAL_GLOBAL_TYPE(GKO_DECLARE_INDEX_MAP_GET_LOCAL_FROM_GLOBAL_ARRAY);
 
 
-}
+}  // namespace index_map
 
 
 namespace distributed_vector {

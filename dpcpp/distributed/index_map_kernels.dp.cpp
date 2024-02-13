@@ -28,6 +28,22 @@ GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_INDEX_MAP_BUILD_MAPPING);
 
 
+template <typename LocalIndexType, typename GlobalIndexType>
+void get_local(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
+        partition,
+    const array<experimental::distributed::comm_index_type>& remote_targed_ids,
+    const collection::array<GlobalIndexType>& remote_global_idxs,
+    experimental::distributed::comm_index_type rank,
+    const array<GlobalIndexType>& global_ids,
+    experimental::distributed::index_space is,
+    array<LocalIndexType>& local_ids) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_INDEX_MAP_GET_LOCAL_FROM_GLOBAL_ARRAY);
+
+
 }  // namespace index_map
 }  // namespace dpcpp
 }  // namespace kernels
