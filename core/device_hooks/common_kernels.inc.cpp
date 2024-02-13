@@ -45,6 +45,7 @@
 #include "core/matrix/sellp_kernels.hpp"
 #include "core/matrix/sparsity_csr_kernels.hpp"
 #include "core/multigrid/pgm_kernels.hpp"
+#include "core/preconditioner/batch_jacobi_kernels.hpp"
 #include "core/preconditioner/isai_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/reorder/rcm_kernels.hpp"
@@ -770,6 +771,23 @@ GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SELLP_EXTRACT_DIAGONAL_KERNEL);
 
 
 }  // namespace sellp
+
+
+namespace batch_jacobi {
+
+
+GKO_STUB_INDEX_TYPE(
+    GKO_DECLARE_BATCH_BLOCK_JACOBI_COMPUTE_CUMULATIVE_BLOCK_STORAGE);
+GKO_STUB_INDEX_TYPE(
+    GKO_DECLARE_BATCH_BLOCK_JACOBI_FIND_ROW_IS_PART_OF_WHICH_BLOCK);
+GKO_STUB_VALUE_AND_INT32_TYPE(
+    GKO_DECLARE_BATCH_BLOCK_JACOBI_EXTRACT_PATTERN_KERNEL);
+GKO_STUB_VALUE_AND_INT32_TYPE(GKO_DECLARE_BATCH_BLOCK_JACOBI_COMPUTE_KERNEL);
+GKO_STUB_VALUE_AND_INT32_TYPE(GKO_DECLARE_BATCH_JACOBI_APPLY_KERNEL);
+GKO_STUB_VALUE_AND_INT32_TYPE(GKO_DECLARE_BATCH_JACOBI_ELL_APPLY_KERNEL);
+
+
+}  // namespace batch_jacobi
 
 
 namespace jacobi {
