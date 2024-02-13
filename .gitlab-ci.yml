@@ -217,6 +217,7 @@ build/cuda102/nompi/clang/all/release/static:
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
+    BUILD_HWLOC: "OFF"
 
 build/cuda102/nompi/intel/cuda/debug/static:
   extends:
@@ -233,6 +234,7 @@ build/cuda102/nompi/intel/cuda/debug/static:
     FAST_TESTS: "ON"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
+    BUILD_HWLOC: "OFF"
 
 # cuda 11.0 and friends on HoreKa with tests
 build/cuda110/mvapich2/gcc/cuda/debug/shared:
