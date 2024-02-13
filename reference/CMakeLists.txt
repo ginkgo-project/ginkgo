@@ -13,7 +13,7 @@ target_sources(ginkgo_reference
     components/reduce_array_kernels.cpp
     components/precision_conversion_kernels.cpp
     components/prefix_sum_kernels.cpp
-  distributed/index_map.cpp
+  distributed/index_map_kernels.cpp
     distributed/matrix_kernels.cpp
     distributed/partition_helpers_kernels.cpp
     distributed/partition_kernels.cpp
