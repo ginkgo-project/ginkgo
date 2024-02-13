@@ -154,7 +154,7 @@ inline void compute_block_jacobi_impl(
                                                                block_pointers) +
                                col];  // data locality
             if (idx >= 0) {
-                assert(idx < A_entry.num_nnz);
+                assert(idx < A_entry.get_single_item_num_nnz());
                 to_write = A_entry.values[idx];
             }
             temp_dense_block[row * bsize + col] = to_write;  // data locality
