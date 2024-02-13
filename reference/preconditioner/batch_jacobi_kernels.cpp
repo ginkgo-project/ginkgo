@@ -115,9 +115,8 @@ void compute_cumulative_block_storage(
     }
 }
 
-template void compute_cumulative_block_storage<int>(
-    std::shared_ptr<const DefaultExecutor>, const size_type, const int32* const,
-    int32* const);
+GKO_INSTANTIATE_FOR_INT32_TYPE(
+    GKO_DECLARE_BATCH_BLOCK_JACOBI_COMPUTE_CUMULATIVE_BLOCK_STORAGE);
 
 
 template <typename IndexType>
@@ -134,10 +133,8 @@ void find_row_is_part_of_which_block(
     }
 }
 
-// instantiate for index type int32
-template void find_row_is_part_of_which_block<int>(
-    std::shared_ptr<const DefaultExecutor>, const size_type, const int32* const,
-    int32* const);
+GKO_INSTANTIATE_FOR_INT32_TYPE(
+    GKO_DECLARE_BATCH_BLOCK_JACOBI_FIND_ROW_IS_PART_OF_WHICH_BLOCK);
 
 
 template <typename ValueType, typename IndexType>
