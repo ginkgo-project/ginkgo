@@ -98,6 +98,7 @@ struct array {
     {
         if (this != &other) {
             buffer_ = other.buffer_;
+            offsets_ = other.offsets_;
             elems_.resize(other.elems_.size());
             for (size_type i = 0; i < elems_.size(); ++i) {
                 elems_[i] = make_array_view(
@@ -126,16 +127,18 @@ struct array {
         : buffer_(std::move(buffer))
     {
         auto exec = buffer_.get_executor();
-        std::vector<size_type> offsets(sizes.size() + 1);
-        std::partial_sum(sizes.begin(), sizes.end(), offsets.begin() + 1);
-        buffer_.resize_and_reset(offsets.back());
+        offsets_ = gko::array<size_type>(exec->get_master(), sizes.size() + 1);
+        offsets_.fill(0);
+        std::partial_sum(sizes.begin(), sizes.end(), offsets_.get_data() + 1);
+        buffer_.resize_and_reset(offsets_.get_data()[sizes.size()]);
         // can't use emplace/push_back because then the view will get copied
         // into owning arrays
         elems_.resize(sizes.size());
         for (size_type i = 0; i < sizes.size(); ++i) {
-            elems_[i] = make_array_view(exec, sizes[i],
-                                        buffer_.get_data() + offsets[i]);
+            elems_[i] = make_array_view(
+                exec, sizes[i], buffer_.get_data() + offsets_.get_data()[i]);
         }
+        offsets_.set_executor(exec);
     }
 
     reference operator[](size_type i) { return elems_[i]; }
@@ -154,6 +157,8 @@ struct array {
     reference get_flat() { return buffer_; }
     const_reference get_flat() const { return buffer_; }
 
+    const gko::array<size_type>& get_offsets() const { return offsets_; }
+
     std::shared_ptr<const Executor> get_executor() const
     {
         return buffer_.get_executor();
@@ -161,6 +166,7 @@ struct array {
 
 private:
     gko::array<T> buffer_;
+    gko::array<size_type> offsets_;
     std::vector<gko::array<T>> elems_;
 };
 
