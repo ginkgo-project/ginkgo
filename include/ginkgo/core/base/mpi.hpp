@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -452,6 +452,14 @@ public:
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Comm_split(comm.get(), color, key, &comm_out));
         this->comm_.reset(new MPI_Comm(comm_out), comm_deleter{});
+    }
+
+    static communicator create_owning(const MPI_Comm& comm,
+                                      bool force_host_buffer = false)
+    {
+        communicator comm_out(MPI_COMM_NULL, force_host_buffer);
+        comm_out.comm_.reset(new MPI_Comm(comm), comm_deleter{});
+        return comm_out;
     }
 
     /**
