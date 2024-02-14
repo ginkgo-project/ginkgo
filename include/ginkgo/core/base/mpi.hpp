@@ -454,6 +454,14 @@ public:
         this->comm_.reset(new MPI_Comm(comm_out), comm_deleter{});
     }
 
+    static communicator create_owning(const MPI_Comm& comm,
+                                      bool force_host_buffer = false)
+    {
+        communicator comm_out(MPI_COMM_NULL, force_host_buffer);
+        comm_out.comm_.reset(new MPI_Comm(comm), comm_deleter{});
+        return comm_out;
+    }
+
     /**
      * Return the underlying MPI_Comm object.
      *
