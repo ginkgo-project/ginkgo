@@ -17,6 +17,7 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/multigrid/multigrid_level.hpp>
 
+
 namespace gko {
 namespace multigrid {
 
@@ -160,6 +161,11 @@ protected:
     }
 
     void generate();
+
+    std::tuple<std::shared_ptr<LinOp>, std::shared_ptr<LinOp>,
+               std::shared_ptr<LinOp>>
+    generate_local(
+        std::shared_ptr<const matrix::Csr<ValueType, IndexType>> local_matrix);
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};

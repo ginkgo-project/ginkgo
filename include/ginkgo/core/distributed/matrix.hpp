@@ -127,6 +127,22 @@ template <typename ValueType>
 class Vector;
 
 
+// TODO: move the data into this class
+template <typename IndexType>
+class MatrixBase {
+public:
+    virtual std::vector<comm_index_type> get_recv_sizes() const = 0;
+    virtual std::vector<comm_index_type> get_send_sizes() const = 0;
+    virtual std::vector<comm_index_type> get_recv_offsets() const = 0;
+    virtual std::vector<comm_index_type> get_send_offsets() const = 0;
+    virtual std::shared_ptr<const LinOp> get_non_local_matrix() const = 0;
+    virtual std::shared_ptr<const LinOp> get_local_matrix() const = 0;
+    virtual array<IndexType> get_gather_idxs() const = 0;
+    virtual array<IndexType> get_recv_gather_idxs() const = 0;
+    // TODO: use type tag?
+    virtual bool is_using_index(size_t index_size) const = 0;
+};
+
 /**
  * The Matrix class defines a (MPI-)distributed matrix.
  *
@@ -240,7 +256,8 @@ class Matrix
           Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
       public ConvertibleTo<
           Matrix<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
-      public DistributedBase {
+      public DistributedBase,
+      public MatrixBase<LocalIndexType> {
     friend class EnableCreateMethod<Matrix>;
     friend class EnableDistributedPolymorphicObject<Matrix, LinOp>;
     friend class Matrix<next_precision<ValueType>, LocalIndexType,
@@ -344,14 +361,17 @@ public:
      *
      * @return  Shared pointer to the stored local matrix
      */
-    std::shared_ptr<const LinOp> get_local_matrix() const { return local_mtx_; }
+    std::shared_ptr<const LinOp> get_local_matrix() const override
+    {
+        return local_mtx_;
+    }
 
     /**
      * Get read access to the stored non-local matrix.
      *
      * @return  Shared pointer to the stored non-local matrix
      */
-    std::shared_ptr<const LinOp> get_non_local_matrix() const
+    std::shared_ptr<const LinOp> get_non_local_matrix() const override
     {
         return non_local_mtx_;
     }
@@ -389,6 +409,36 @@ public:
      * @return  this.
      */
     Matrix& operator=(Matrix&& other);
+
+    std::vector<comm_index_type> get_recv_sizes() const override
+    {
+        return recv_sizes_;
+    };
+    std::vector<comm_index_type> get_send_sizes() const override
+    {
+        return send_sizes_;
+    };
+    std::vector<comm_index_type> get_recv_offsets() const override
+    {
+        return recv_offsets_;
+    };
+    std::vector<comm_index_type> get_send_offsets() const override
+    {
+        return send_offsets_;
+    }
+    array<local_index_type> get_gather_idxs() const override
+    {
+        return gather_idxs_;
+    }
+    array<local_index_type> get_recv_gather_idxs() const override
+    {
+        return recv_gather_idxs_;
+    }
+
+    bool is_using_index(size_t index_size) const override
+    {
+        return sizeof(GlobalIndexType) == index_size;
+    };
 
 protected:
     /**
@@ -508,6 +558,20 @@ protected:
                     ptr_param<const LinOp> local_matrix_template,
                     ptr_param<const LinOp> non_local_matrix_template);
 
+    // build local only matrix from existed data
+    explicit Matrix(std::shared_ptr<const Executor> exec,
+                    mpi::communicator comm, dim<2> size,
+                    std::shared_ptr<LinOp> local_linop);
+
+    // build matrix from existed data
+    explicit Matrix(std::shared_ptr<const Executor> exec,
+                    mpi::communicator comm, dim<2> size,
+                    std::shared_ptr<LinOp> local_linop,
+                    std::shared_ptr<LinOp> non_local_linop,
+                    std::vector<comm_index_type> recv_sizes,
+                    std::vector<comm_index_type> recv_offsets,
+                    array<local_index_type> recv_gather_idxs);
+
     /**
      * Starts a non-blocking communication of the values of b that are shared
      * with other processors.
@@ -529,6 +593,7 @@ private:
     std::vector<comm_index_type> recv_offsets_;
     std::vector<comm_index_type> recv_sizes_;
     array<local_index_type> gather_idxs_;
+    array<local_index_type> recv_gather_idxs_;
     array<global_index_type> non_local_to_global_;
     gko::detail::DenseCache<value_type> one_scalar_;
     gko::detail::DenseCache<value_type> host_send_buffer_;
