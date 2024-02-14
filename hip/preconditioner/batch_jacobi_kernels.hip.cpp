@@ -5,16 +5,14 @@
 #include "core/preconditioner/batch_jacobi_kernels.hpp"
 
 
-#include <hip/base/batch_struct.hpp>
-#include <hip/matrix/batch_struct.hpp>
-
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
 #include "core/base/batch_struct.hpp"
 #include "core/base/utils.hpp"
 #include "core/matrix/batch_struct.hpp"
+#include "hip/base/batch_struct.hip.hpp"
+#include "hip/matrix/batch_struct.hip.hpp"
 
 
 namespace gko {

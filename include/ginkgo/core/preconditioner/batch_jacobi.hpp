@@ -43,8 +43,8 @@ struct batched_jacobi_blocks_storage_scheme {
     /**
      * Returns the offset of the batch with id "batch_id"
      *
-     * @param batch_id the index of the batch entry in the batch
-     * @param num_blocks  number of blocks in an individual matrix entry
+     * @param batch_id  the index of the batch entry in the batch
+     * @param num_blocks  number of blocks in an individual matrix item
      * @param block_storage_cumulative  the cumulative block storage array
      *
      * @return the offset of the group belonging to block with ID `block_id`
@@ -60,9 +60,9 @@ struct batched_jacobi_blocks_storage_scheme {
      * Returns the (local) offset of the block with id: "block_id" within its
      * batch entry
      *
-     * @param block_id the id of the block from the perspective of individual
-     * batch entry
-     * @param blocks_storage_cumulative the cumulative block storage array
+     * @param block_id  the id of the block from the perspective of individual
+     *                  batch item
+     * @param blocks_storage_cumulative  the cumulative block storage array
      *
      * @return the offset of the block with id: `block_id` within its batch
      * entry
@@ -79,9 +79,9 @@ struct batched_jacobi_blocks_storage_scheme {
      * with index = batch_id and has local id = "block_id" within its batch
      * entry
      *
-     * @param batch_id the index of the batch entry in the batch
-     * @param num_blocks number of blocks in an individual matrix entry
-     * @param block_id the id of the block from the perspective of individual
+     * @param batch_id  the index of the batch entry in the batch
+     * @param num_blocks  number of blocks in an individual matrix entry
+     * @param block_id  the id of the block from the perspective of individual
      * batch entry
      * @param block_storage_cumulative  the cumulative block storage array
      *
@@ -102,9 +102,9 @@ struct batched_jacobi_blocks_storage_scheme {
     /**
      * Returns the stride between the rows of the block.
      *
-     * @param block_idx the id of the block from the perspective of individual
+     * @param block_idx  the id of the block from the perspective of individual
      * batch entry
-     * @param block_ptrs the block pointers array
+     * @param block_ptrs  the block pointers array
      *
      * @return stride between rows of the block
      */
@@ -121,9 +121,20 @@ struct batched_jacobi_blocks_storage_scheme {
  * by inverting the diagonal blocks (stored in a dense row major fashion) of the
  * source operator.
  *
- * Note: Batched Preconditioners do not support user facing apply.
+ * With the batched preconditioners, it is required that all items in the batch
+ * have the same sparsity pattern. The detection of the blocks and the block
+ * pointers require that the sparsity pattern of all the items be the same.
+ * Other cases is undefined behaviour. The input batch matrix must be in
+ * batch::Csr matrix format or must be convertible to batch::Csr matrix format.
+ * The block detection algorithm and the conversion to dense blocks kernels
+ * require this assumption.
  *
- * @tparam ValueType  precision of matrix elements
+ * @note In a fashion similar to the non-batched Jacobi preconditioner, the
+ * maximum possible size of the diagonal blocks is equal to the maximum warp
+ * size on the device (32 for NVIDIA GPUs, 64 for AMD GPUs).
+ *
+ * @tparam ValueType  value precision of matrix elements
+ * @tparam IndexType  index precision of matrix elements
  *
  * @ingroup jacobi
  * @ingroup precond
@@ -244,13 +255,13 @@ public:
     }
 
     /**
-     * Returns the number of elements explicitly stored in the matrix.
+     * Returns the number of elements explicitly stored in the dense blocks.
      *
      * @note Returns 0 in case of scalar jacobi preconditioner as the
      * preconditioner is generated inside the batched solver kernels, hence,
      * blocks array storage is not required.
      *
-     * @return the number of elements explicitly stored in the matrix.
+     * @return the number of elements explicitly stored in the dense blocks.
      */
     size_type get_num_stored_elements() const noexcept
     {
@@ -269,8 +280,12 @@ public:
          * efficiency, when the max_block_size is set to 1, specialized kernels
          * are used and the additional objects (block_ptrs etc) are set to null
          * values.
+         *
+         * @note Unlike the regular block Jacobi preconditioner, for the batched
+         * preconditioner, smaller blocks are more efficient, as the matrices
+         * themselves are considerably smaller.
          */
-        uint32 GKO_FACTORY_PARAMETER_SCALAR(max_block_size, 32u);
+        uint32 GKO_FACTORY_PARAMETER_SCALAR(max_block_size, 8u);
 
         /**
          * Starting (row / column) indexes of individual blocks.
@@ -304,11 +319,6 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    /**
-     * Creates an empty Jacobi preconditioner.
-     *
-     * @param exec  the executor this object is assigned to
-     */
     explicit Jacobi(std::shared_ptr<const Executor> exec)
         : EnableBatchLinOp<Jacobi>(exec),
           num_blocks_{},
@@ -321,13 +331,6 @@ protected:
         parameters_.block_pointers.set_executor(this->get_executor());
     }
 
-    /**
-     * Creates a Jacobi preconditioner from a matrix using a Jacobi::Factory.
-     *
-     * @param factory  the factory to use to create the preconditioner
-     * @param system_matrix  the matrix this preconditioner should be created
-     *                       from
-     */
     explicit Jacobi(const Factory* factory,
                     std::shared_ptr<const BatchLinOp> system_matrix)
         : EnableBatchLinOp<Jacobi>(factory->get_executor(),
@@ -347,19 +350,10 @@ protected:
         this->generate_precond(system_matrix.get());
     }
 
-    /**
-     * Generates the preconditioner.
-     *
-     */
     void generate_precond(const BatchLinOp* const system_matrix);
 
 private:
     /**
-     * Computes the storage space required for the requested number of blocks.
-     *
-     * @return the total memory (as the number of elements) that need to be
-     *         allocated for the scheme
-     *
      * @note  To simplify using the method in situations where the number of
      *        blocks is not known, for a special input `size_type{} - 1`
      *        the method returns `0` to avoid overallocation of memory.
@@ -374,9 +368,6 @@ private:
                              num_blocks_));
     }
 
-    /**
-     * Detects the diagonal blocks
-     */
     void detect_blocks(
         const size_type num_batch,
         const gko::matrix::Csr<ValueType, IndexType>* system_matrix);
