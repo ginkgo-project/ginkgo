@@ -38,9 +38,11 @@ protected:
     gko::array<index_type> block_pointers;
 };
 
+
 TEST_F(BatchJacobiFactory, KnowsItsExecutor)
 {
     auto batch_jacobi_factory = batch_jacobi_prec::build().on(this->exec);
+
     ASSERT_EQ(batch_jacobi_factory->get_executor(), this->exec);
 }
 
