@@ -324,7 +324,7 @@ protected:
     /**
      * Creates a Jacobi preconditioner from a matrix using a Jacobi::Factory.
      *
-     * @param factory  the factory to use to create the preconditoner
+     * @param factory  the factory to use to create the preconditioner
      * @param system_matrix  the matrix this preconditioner should be created
      *                       from
      */
@@ -348,7 +348,7 @@ protected:
     }
 
     /**
-     * Generates the preconditoner.
+     * Generates the preconditioner.
      *
      */
     void generate_precond(const BatchLinOp* const system_matrix);

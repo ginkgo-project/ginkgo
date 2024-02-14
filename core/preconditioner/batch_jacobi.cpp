@@ -105,7 +105,7 @@ void Jacobi<ValueType, IndexType>::generate_precond(
         num_blocks_, parameters_.block_pointers.get_const_data(),
         row_part_of_which_block_info_.get_data()));
 
-    // Note: Row-major order offers advanatge in terms of
+    // Note: Row-major order offers advantage in terms of
     // performance in both preconditioner generation and application for both
     // reference and cuda backend. Note: The pattern blocks in block_pattern are
     // also stored in a similar way.
