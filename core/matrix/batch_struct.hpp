@@ -32,6 +32,11 @@ struct batch_item {
     const index_type* row_ptrs;
     index_type num_rows;
     index_type num_cols;
+
+    inline size_type get_single_item_num_nnz() const
+    {
+        return static_cast<size_type>(num_nnz_per_item);
+    }
 };
 
 
@@ -75,6 +80,11 @@ struct batch_item {
     int32 stride;
     int32 num_rows;
     int32 num_cols;
+
+    inline size_type get_single_item_num_nnz() const
+    {
+        return static_cast<size_type>(stride * num_rows);
+    }
 };
 
 
@@ -119,6 +129,11 @@ struct batch_item {
     index_type num_rows;
     index_type num_cols;
     index_type num_stored_elems_per_row;
+
+    inline size_type get_single_item_num_nnz() const
+    {
+        return static_cast<size_type>(stride * num_stored_elems_per_row);
+    }
 };
 
 
