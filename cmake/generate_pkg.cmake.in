@@ -1,0 +1,35 @@
+# This is run as a standalone script. Thus no cmake variables related to Ginkgo are
+# available through the ${...} syntax. Instead, the file containing the actual values
+# of the necessary variables is generated through `configure_file`. But this leaves
+# generator expressions unresolved, so another pass through `file(GENERATE ...)` is
+# necessary. That call can't be put into this file, since the script is used as part
+# of `install(SCRIPT ...)` which doesn't support generator expressions in the script
+# content
+
+# add escape character '\' for space
+string(REPLACE " " "\ " GINKGO_PKG_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
+# add escape character '\' for space in regex mode
+string(REPLACE ";" "\ " GINKGO_INTERFACE_LINK_FLAGS "@GINKGO_INTERFACE_LINK_FLAGS@")
+string(REPLACE ";" "\ " GINKGO_INTERFACE_CXX_FLAGS "@GINKGO_INTERFACE_CXX_FLAGS@")
+
+set(GINKGO_INSTALL_LIBDIR "@CMAKE_INSTALL_LIBDIR@")
+set(GINKGO_INSTALL_INCLUDEDIR "@CMAKE_INSTALL_INCLUDEDIR@")
+set(GINKGO_PROJECT_NAME "@CMAKE_PROJECT_NAME@")
+set(GINKGO_DESCRIPTION "@Ginkgo_DESCRIPTION@")
+set(GINKGO_VERSION "@Ginkgo_VERSION@")
+
+set(GINKGO_INSTALL_PKGCONFIG_DIR "${GINKGO_PKG_INSTALL_PREFIX}/${GINKGO_INSTALL_LIBDIR}/pkgconfig")
+
+set(GINKGO_SOURCE_DIR "@Ginkgo_SOURCE_DIR@")
+set(GINKGO_BINARY_DIR "@Ginkgo_BINARY_DIR@")
+
+
+message(STATUS "Installing: ${GINKGO_INSTALL_PKGCONFIG_DIR}/ginkgo_$<CONFIG>.pc")
+configure_file(${GINKGO_SOURCE_DIR}/cmake/ginkgo.pc.in
+               ${GINKGO_INSTALL_PKGCONFIG_DIR}/ginkgo_$<CONFIG>.pc
+               @ONLY)
+
+message(STATUS "Installing: ${GINKGO_INSTALL_PKGCONFIG_DIR}/ginkgo.pc")
+configure_file(${GINKGO_SOURCE_DIR}/cmake/ginkgo.pc.in
+               ${GINKGO_INSTALL_PKGCONFIG_DIR}/ginkgo.pc
+               @ONLY)
