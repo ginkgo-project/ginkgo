@@ -16,6 +16,7 @@ target_sources(ginkgo
     base/mpi.cpp
     base/mtx_io.cpp
     base/perturbation.cpp
+    base/segmented_array.cpp
     base/timer.cpp
     base/version.cpp
     config/property_tree.cpp

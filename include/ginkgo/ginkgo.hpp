@@ -42,6 +42,7 @@
 #include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/scoped_device_id_guard.hpp>
+#include <ginkgo/core/base/segmented_array.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/stream.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
