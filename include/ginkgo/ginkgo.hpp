@@ -66,6 +66,7 @@
 #include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
 
 #include <ginkgo/core/distributed/row_gatherer.hpp>
+#include <ginkgo/core/distributed/sparse_communicator.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 
 #include <ginkgo/core/factorization/cholesky.hpp>

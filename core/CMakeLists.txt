@@ -110,6 +110,10 @@ if(GINKGO_BUILD_MPI)
         distributed/partition_helpers.cpp
         distributed/vector.cpp
         distributed/preconditioner/schwarz.cpp)
+    if (GINKGO_HAVE_CXX17)
+        target_sources(ginkgo PRIVATE
+                distributed/sparse_communicator.cpp)
+    endif ()
 endif()
 
 ginkgo_compile_features(ginkgo)
