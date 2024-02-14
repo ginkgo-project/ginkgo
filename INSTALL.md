@@ -45,7 +45,9 @@ Ginkgo adds the following additional switches to control what is being built:
 *   `-DGINKGO_BUILD_SYCL={ON, OFF}` builds optimized SYCL versions of the
     kernels (requires `CMAKE_CXX_COMPILER` to be set to the `dpcpp` or `icpx` compiler).
     The default is `ON` if `CMAKE_CXX_COMPILER` is a SYCL compiler, `OFF`
-    otherwise.
+    otherwise. Due to some differences in IEEE 754 floating point numberhandling in the Intel
+    SYCL compilers, Ginkgo tests may fail unless compiled with
+    `-DCMAKE_CXX_FLAGS=-ffp-model=precise`
 *   `-DGINKGO_BUILD_HIP={ON, OFF}` builds optimized HIP versions of the kernels
     (requires HIP), default is `ON` if an installation of HIP could be detected,
     `OFF` otherwise.
