@@ -107,7 +107,8 @@ void Jacobi<ValueType, IndexType>::generate_precond(
 
     // Note: Row-major order offers advantage in terms of
     // performance in both preconditioner generation and application for both
-    // reference and cuda backend. Note: The pattern blocks in block_pattern are
+    // reference and cuda backend.
+    // Note: The pattern blocks in block_pattern are
     // also stored in a similar way.
 
     // array for storing the common pattern of the diagonal blocks

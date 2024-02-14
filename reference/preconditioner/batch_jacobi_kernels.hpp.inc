@@ -49,6 +49,7 @@ inline void swap_numbers(T& a, T& b)
     b = tmp;
 }
 
+
 template <typename ValueType>
 inline void swap_rows(const int size, std::vector<ValueType>& mat,
                       const int row1, const int row2)
@@ -57,6 +58,7 @@ inline void swap_rows(const int size, std::vector<ValueType>& mat,
         swap_numbers(mat[row1 * size + c], mat[row2 * size + c]);
     }
 }
+
 
 template <typename ValueType>
 inline int choose_pivot(const int k, const int block_size,
@@ -75,43 +77,44 @@ inline int choose_pivot(const int k, const int block_size,
     return piv;
 }
 
+
 template <typename ValueType>
 inline void invert_dense_block(const int block_size,
                                std::vector<ValueType>& temp_dense_block,
                                std::vector<int>& col_perm)
 {
-    // the block is stored in the row-major order, with row stride = block_size
-
     // Gauss-Jordan elimination with pivoting
-
+    // the block is stored in the row-major order, with row stride = block_size
     for (int k = 0; k < block_size; k++) {
         const int piv = choose_pivot(k, block_size, temp_dense_block);
         if (k != piv) {
             swap_rows(block_size, temp_dense_block, k, piv);
             swap_numbers(col_perm[piv], col_perm[k]);
         }
-
         const ValueType d = temp_dense_block[k * block_size + k];
 
         // SCAL (scaling the kth col)
+        // uncoalesced accesses
         for (int r = 0; r < block_size; r++) {
             temp_dense_block[r * block_size + k] /= -d;
-        }  // uncoalesced accesses
+        }
         temp_dense_block[k * block_size + k] = zero<ValueType>();
 
         // GER (Note: the kth row and kth col do not change)
+        // data-locality
         for (int r = 0; r < block_size; r++) {
             for (int c = 0; c < block_size; c++) {
                 temp_dense_block[r * block_size + c] +=
                     temp_dense_block[r * block_size + k] *
                     temp_dense_block[k * block_size + c];
             }
-        }  // data-locality
+        }
 
         // SCAL (scaling the kth row)
+        // data-locality
         for (int c = 0; c < block_size; c++) {
             temp_dense_block[k * block_size + c] /= d;
-        }  // data-locality
+        }
         temp_dense_block[k * block_size + k] = one<ValueType>() / d;
     }
 }
@@ -131,15 +134,14 @@ inline void compute_block_jacobi_impl(
     const auto offset_indiv =
         storage_scheme.get_block_offset(block_idx, cumulative_block_storage);
     const auto stride = storage_scheme.get_stride(block_idx, block_pointers);
-    ValueType* dense_block_ptr =
-        blocks + offset_batch +
-        offset_indiv;  // the blocks are in row-major order
+    // the blocks are in row-major order
+    ValueType* dense_block_ptr = blocks + offset_batch + offset_indiv;
 
     const auto bsize =
         block_pointers[block_idx + 1] - block_pointers[block_idx];
 
-    std::vector<ValueType> temp_dense_block(bsize *
-                                            bsize);  // also in row-major order
+    // also in row-major order
+    std::vector<ValueType> temp_dense_block(bsize * bsize);
     std::vector<int> col_perm(bsize);
     for (int i = 0; i < bsize; i++) {
         col_perm[i] = i;
@@ -148,16 +150,18 @@ inline void compute_block_jacobi_impl(
     for (int row = 0; row < bsize; row++) {
         for (int col = 0; col < bsize; col++) {
             auto to_write = zero<ValueType>();
+            // data locality
             const auto idx =
                 blocks_pattern[offset_indiv +
                                row * storage_scheme.get_stride(block_idx,
                                                                block_pointers) +
-                               col];  // data locality
+                               col];
             if (idx >= 0) {
                 assert(idx < A_entry.get_single_item_num_nnz());
                 to_write = A_entry.values[idx];
             }
-            temp_dense_block[row * bsize + col] = to_write;  // data locality
+            // data locality
+            temp_dense_block[row * bsize + col] = to_write;
         }
     }
 
@@ -190,10 +194,10 @@ void batch_jacobi_apply_helper(
     const auto rub = gko::kernels::host::get_batch_struct(r);
     const auto zub = gko::kernels::host::get_batch_struct(z);
 
-    using scalar_jacobi_prec =
-        gko::kernels::host::BatchScalarJacobi<ValueType, int>;
-    using block_jacobi_prec =
-        gko::kernels::host::BatchBlockJacobi<ValueType, int>;
+    using scalar_jacobi_prec = gko::kernels::host::BatchScalarJacobi<
+        ValueType, typename BatchMatrixType::index_type>;
+    using block_jacobi_prec = gko::kernels::host::BatchBlockJacobi<
+        ValueType, typename BatchMatrixType::index_type>;
 
     if (max_block_size == 1) {
         scalar_jacobi_prec prec;

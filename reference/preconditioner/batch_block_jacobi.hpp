@@ -19,7 +19,7 @@ namespace host {
 
 
 /**
- * BlockBlockJacobi preconditioner for batch solvers.
+ * BatchBlockJacobi preconditioner for batch solvers.
  */
 template <typename ValueType, typename IndexType>
 class BatchBlockJacobi final {
@@ -57,7 +57,6 @@ public:
           blocks_arr_batch_{blocks_arr_batch},
           block_ptrs_arr_{block_ptrs_arr},
           blocks_arr_entry_{}
-
     {}
 
     /**
