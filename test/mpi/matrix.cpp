@@ -403,10 +403,10 @@ public:
 
     gko::dim<2> size;
 
-    std::unique_ptr<part_type> row_part;
-    std::unique_ptr<part_type> col_part;
-    std::unique_ptr<part_type> row_part_large;
-    std::unique_ptr<part_type> col_part_large;
+    std::shared_ptr<part_type> row_part;
+    std::shared_ptr<part_type> col_part;
+    std::shared_ptr<part_type> row_part_large;
+    std::shared_ptr<part_type> col_part_large;
 
     std::unique_ptr<dist_mtx_type> dist_mat;
     std::unique_ptr<dist_mtx_type> dist_mat_large;

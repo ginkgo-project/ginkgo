@@ -71,7 +71,7 @@ protected:
                       exec, I<global_index_type>{0, 2, 4, 8}));
 
         dist_mat = dist_mtx_type::create(exec, comm);
-        dist_mat->read_distributed(mat_input, row_part.get());
+        dist_mat->read_distributed(mat_input, row_part);
     }
 
     void SetUp() override { ASSERT_EQ(comm.size(), 3); }
