@@ -583,7 +583,7 @@ build/dpcpp/2022-1/cpu/release/shared:
     - .use_gko-oneapi-cpu
   variables:
     CXX_COMPILER: "dpcpp"
-    CXX_FLAGS: "-Wpedantic;-ffp-model=precise"
+    CXX_FLAGS: "-Wpedantic -ffp-model=precise"
     BUILD_SYCL: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "ON"
@@ -602,7 +602,7 @@ build/dpcpp/igpu/release/shared:
     - .use_gko-oneapi-igpu
   variables:
     CXX_COMPILER: "dpcpp"
-    CXX_FLAGS: "-Wpedantic;-ffp-model=precise"
+    CXX_FLAGS: "-Wpedantic -ffp-model=precise"
     BUILD_SYCL: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "ON"
@@ -619,7 +619,7 @@ build/dpcpp/igpu/release/shared:
 #     - .use_gko-oneapi-igpu
 #   variables:
 #     CXX_COMPILER: "dpcpp"
-#     CXX_FLAGS: "-Wpedantic;-ffp-model=precise"
+#     CXX_FLAGS: "-Wpedantic -ffp-model=precise"
 #     BUILD_SYCL: "ON"
 #     BUILD_TYPE: "Debug"
 #     BUILD_SHARED_LIBS: "ON"
@@ -635,7 +635,7 @@ build/dpcpp/dgpu/release/static:
     - .use_gko-oneapi-igpu
   variables:
     CXX_COMPILER: "dpcpp"
-    CXX_FLAGS: "-Wpedantic;-ffp-model=precise"
+    CXX_FLAGS: "-Wpedantic -ffp-model=precise"
     BUILD_SYCL: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OF"
@@ -651,7 +651,7 @@ build/dpcpp/level_zero_dgpu/release/shared:
     - .use_gko-oneapi-dgpu
   variables:
     CXX_COMPILER: "dpcpp"
-    CXX_FLAGS: "-Wpedantic;-ffp-model=precise"
+    CXX_FLAGS: "-Wpedantic -ffp-model=precise"
     BUILD_SYCL: "ON"
     BUILD_TYPE: "Release"
     DPCPP_SINGLE_MODE: "ON"
@@ -666,6 +666,7 @@ build/icpx/level_zero_dgpu/release/shared:
     - .use_gko-oneapi-dgpu
   variables:
     CXX_COMPILER: "icpx"
+    CXX_FLAGS: "-Wpedantic -ffp-model=precise"
     BUILD_SYCL: "ON"
     BUILD_TYPE: "Release"
     DPCPP_SINGLE_MODE: "ON"
