@@ -48,20 +48,6 @@ option(GINKGO_BENCHMARK_ENABLE_TUNING
     OFF)
 set(GINKGO_VERBOSE_LEVEL "1" CACHE STRING
     "Verbosity level. Put 0 to turn off. 1 activates a few important messages.")
-if(MSVC)
-    set(GINKGO_COMPILER_FLAGS "" CACHE STRING
-        "Set the required CXX compiler flags, mainly used for warnings. Current default is ``")
-elseif(GINKGO_BUILD_SYCL OR CMAKE_CXX_COMPILER MATCHES "dpcpp|icpx")
-    # For now always use `-ffp-model=precise` with DPC++. This can be removed when
-    # the floating point issues are fixed.
-    set(GINKGO_COMPILER_FLAGS "-Wpedantic;-ffp-model=precise" CACHE STRING
-        "Set the required CXX compiler flags, mainly used for warnings. Current default is `-Wpedantic;-ffp-model=precise`")
-else()
-    set(GINKGO_COMPILER_FLAGS "-Wpedantic" CACHE STRING
-        "Set the required CXX compiler flags, mainly used for warnings. Current default is `-Wpedantic`")
-endif()
-set(GINKGO_CUDA_COMPILER_FLAGS "" CACHE STRING
-    "Set the required NVCC compiler flags, mainly used for warnings. Current default is an empty string")
 set(GINKGO_CUDA_ARCHITECTURES "Auto" CACHE STRING
     "A list of target NVIDIA GPU architectures. See README.md for more detail.")
 # the details of fine/coarse grain memory and unsafe atomic are available https://docs.olcf.ornl.gov/systems/crusher_quick_start_guide.html#floating-point-fp-atomic-operations-and-coarse-fine-grained-memory-allocations
@@ -88,6 +74,8 @@ option(GINKGO_FORCE_GPU_AWARE_MPI "Assert that the MPI library is GPU aware. Thi
      catastrophically in case the MPI implementation is not GPU Aware, and GPU aware functionality has been forced" OFF)
 set(GINKGO_CI_TEST_OMP_PARALLELISM "4" CACHE STRING
     "The number of OpenMP threads to use for a test binary during CTest resource file-constrained test.")
+gko_rename_cache(GINKGO_COMPILER_FLAGS CMAKE_CXX_FLAGS BOOL "Flags used by the CXX compiler during all build types.")
+gko_rename_cache(GINKGO_CUDA_COMPILER_FLAGS CMAKE_CUDA_FLAGS BOOL "Flags used by the CUDA compiler during all build types.")
 
 # load executor-specific configuration
 if(GINKGO_BUILD_CUDA)
