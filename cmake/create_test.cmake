@@ -32,7 +32,6 @@ function(ginkgo_set_test_target_properties test_target_name test_library_suffix)
     else()
         target_link_libraries(${test_target_name} PRIVATE ginkgo_gtest_main${test_library_suffix})
     endif()
-    target_compile_features(${test_target_name} PUBLIC cxx_std_14)
     # we set these properties regardless of the enabled backends,
     # because unknown properties are ignored
     set_target_properties(${test_target_name} PROPERTIES HIP_STANDARD 14)
