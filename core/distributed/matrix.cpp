@@ -51,11 +51,13 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     : EnableDistributedLinOp<
           Matrix<value_type, local_index_type, global_index_type>>{exec},
       DistributedBase{comm},
+#if !GINKGO_HAVE_CXX17
       send_offsets_(comm.size() + 1),
       send_sizes_(comm.size()),
       recv_offsets_(comm.size() + 1),
       recv_sizes_(comm.size()),
       gather_idxs_{exec},
+#endif
       one_scalar_{},
       local_mtx_{local_matrix_template->clone(exec)},
       non_local_mtx_{non_local_matrix_template->clone(exec)},
@@ -81,11 +83,15 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
                result->get_communicator().size());
     result->local_mtx_->copy_from(this->local_mtx_);
     result->non_local_mtx_->copy_from(this->non_local_mtx_);
+#if GINKGO_HAVE_CXX17
+    result->spcomm_ = this->spcomm_;
+#else
     result->gather_idxs_ = this->gather_idxs_;
     result->send_offsets_ = this->send_offsets_;
     result->recv_offsets_ = this->recv_offsets_;
     result->recv_sizes_ = this->recv_sizes_;
     result->send_sizes_ = this->send_sizes_;
+#endif
     result->set_size(this->get_size());
 }
 
@@ -99,11 +105,15 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
                result->get_communicator().size());
     result->local_mtx_->move_from(this->local_mtx_);
     result->non_local_mtx_->move_from(this->non_local_mtx_);
+#if GINKGO_HAVE_CXX17
+    result->spcomm_ = std::move(this->spcomm_);
+#else
     result->gather_idxs_ = std::move(this->gather_idxs_);
     result->send_offsets_ = std::move(this->send_offsets_);
     result->recv_offsets_ = std::move(this->recv_offsets_);
     result->recv_sizes_ = std::move(this->recv_sizes_);
     result->send_sizes_ = std::move(this->send_sizes_);
+#endif
     result->set_size(this->get_size());
     this->set_size({});
 }
@@ -176,6 +186,9 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->non_local_mtx_)
         ->read(std::move(non_local_data));
 
+#if GINKGO_HAVE_CXX17
+    spcomm_ = sparse_communicator{comm, imap};
+#else
     // exchange step 1: determine recv_sizes, send_sizes, send_offsets
     auto host_recv_targets =
         make_temporary_clone(exec->get_master(), &imap.get_remote_target_ids());
@@ -208,6 +221,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     if (use_host_buffer) {
         gather_idxs_.set_executor(exec);
     }
+#endif
 
     return imap;
 }
@@ -253,7 +267,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     return this->read_distributed(data, partition, partition);
 }
 
-
+#if !GINKGO_HAVE_CXX17
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 mpi::request Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
     const local_vector_type* local_b) const
@@ -296,6 +310,7 @@ mpi::request Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
         recv_sizes_.data(), recv_offsets_.data(), type.get());
 #endif
 }
+#endif
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
@@ -313,13 +328,23 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                     dense_x->get_local_values()),
                 dense_x->get_local_vector()->get_stride());
 
+            auto exec = this->get_executor();
             auto comm = this->get_communicator();
+            auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+#if GINKGO_HAVE_CXX17
+            auto req =
+                use_host_buffer
+                    ? this->spcomm_.communicate(dense_b->get_local_vector(),
+                                                host_send_buffer_,
+                                                host_recv_buffer_)
+                    : this->spcomm_.communicate(dense_b->get_local_vector(),
+                                                send_buffer_, recv_buffer_);
+#else
             auto req = this->communicate(dense_b->get_local_vector());
+#endif
             local_mtx_->apply(dense_b->get_local_vector(), local_x);
             req.wait();
 
-            auto exec = this->get_executor();
-            auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
             if (use_host_buffer) {
                 recv_buffer_->copy_from(host_recv_buffer_.get());
             }
@@ -346,14 +371,24 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                     dense_x->get_local_values()),
                 dense_x->get_local_vector()->get_stride());
 
+            auto exec = this->get_executor();
             auto comm = this->get_communicator();
+            auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+#if GINKGO_HAVE_CXX17
+            auto req =
+                use_host_buffer
+                    ? this->spcomm_.communicate(dense_b->get_local_vector(),
+                                                host_send_buffer_,
+                                                host_recv_buffer_)
+                    : this->spcomm_.communicate(dense_b->get_local_vector(),
+                                                send_buffer_, recv_buffer_);
+#else
             auto req = this->communicate(dense_b->get_local_vector());
+#endif
             local_mtx_->apply(local_alpha, dense_b->get_local_vector(),
                               local_beta, local_x);
             req.wait();
 
-            auto exec = this->get_executor();
-            auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
             if (use_host_buffer) {
                 recv_buffer_->copy_from(host_recv_buffer_.get());
             }
@@ -398,11 +433,15 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         this->set_size(other.get_size());
         local_mtx_->copy_from(other.local_mtx_);
         non_local_mtx_->copy_from(other.non_local_mtx_);
+#if GINKGO_HAVE_CXX17
+        spcomm_ = other.spcomm_;
+#else
         gather_idxs_ = other.gather_idxs_;
         send_offsets_ = other.send_offsets_;
         recv_offsets_ = other.recv_offsets_;
         send_sizes_ = other.send_sizes_;
         recv_sizes_ = other.recv_sizes_;
+#endif
         one_scalar_.init(this->get_executor(), dim<2>{1, 1});
         one_scalar_->fill(one<value_type>());
     }
@@ -421,11 +460,15 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
         other.set_size({});
         local_mtx_->move_from(other.local_mtx_);
         non_local_mtx_->move_from(other.non_local_mtx_);
+#if GINKGO_HAVE_CXX17
+        spcomm_ = std::move(other.spcomm_);
+#else
         gather_idxs_ = std::move(other.gather_idxs_);
         send_offsets_ = std::move(other.send_offsets_);
         recv_offsets_ = std::move(other.recv_offsets_);
         send_sizes_ = std::move(other.send_sizes_);
         recv_sizes_ = std::move(other.recv_sizes_);
+#endif
         one_scalar_.init(this->get_executor(), dim<2>{1, 1});
         one_scalar_->fill(one<value_type>());
     }

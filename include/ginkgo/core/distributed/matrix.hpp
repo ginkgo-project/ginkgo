@@ -17,6 +17,7 @@
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/index_map.hpp>
 #include <ginkgo/core/distributed/lin_op.hpp>
+#include <ginkgo/core/distributed/sparse_communicator.hpp>
 
 
 namespace gko {
@@ -513,6 +514,7 @@ protected:
                     ptr_param<const LinOp> local_matrix_template,
                     ptr_param<const LinOp> non_local_matrix_template);
 
+#if !GINKGO_HAVE_CXX17
     /**
      * Starts a non-blocking communication of the values of b that are shared
      * with other processors.
@@ -522,6 +524,7 @@ protected:
      * @return  MPI request for the non-blocking communication.
      */
     mpi::request communicate(const local_vector_type* local_b) const;
+#endif
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
@@ -529,11 +532,15 @@ protected:
                     LinOp* x) const override;
 
 private:
+#if GINKGO_HAVE_CXX17
+    sparse_communicator spcomm_;
+#else
     std::vector<comm_index_type> send_offsets_;
     std::vector<comm_index_type> send_sizes_;
     std::vector<comm_index_type> recv_offsets_;
     std::vector<comm_index_type> recv_sizes_;
     array<local_index_type> gather_idxs_;
+#endif
     gko::detail::DenseCache<value_type> one_scalar_;
     gko::detail::DenseCache<value_type> host_send_buffer_;
     gko::detail::DenseCache<value_type> host_recv_buffer_;
