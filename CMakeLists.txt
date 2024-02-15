@@ -98,7 +98,7 @@ include(cmake/build_type_helpers.cmake)
 include(cmake/build_helpers.cmake)
 include(cmake/install_helpers.cmake)
 
-# Store the used CMAKE_CXX_STANDARD or fallback to C++14
+# Store the used CMAKE_CXX_STANDARD or fallback to the highest supported standard of (c++14, c++17)
 ginkgo_set_cxx_standard()
 
 if(MSVC)

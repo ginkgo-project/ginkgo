@@ -112,4 +112,10 @@
 // clang-format on
 
 
+/* Do we support C++17? */
+// clang-format off
+#cmakedefine01 GINKGO_HAVE_CXX17
+// clang-format on
+
+
 #endif  // GKO_INCLUDE_CONFIG_H
