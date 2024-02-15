@@ -1,5 +1,23 @@
 set(GINKGO_LIBRARY_PATH "${PROJECT_BINARY_DIR}/lib")
 
+macro(ginkgo_set_cxx_standard)
+    set(GINKGO_CXX_STANDARD ${CMAKE_CXX_STANDARD})
+    if(NOT GINKGO_CXX_STANDARD)
+        set(GINKGO_CXX_STANDARD 14)
+    endif ()
+    if(GINKGO_CXX_STANDARD EQUAL 23)
+        set(GINKGO_CXX_STANDARD_FEATURE cxx_std_23)
+    elseif (GINKGO_CXX_STANDARD EQUAL 20)
+        set(GINKGO_CXX_STANDARD_FEATURE cxx_std_20)
+    elseif (GINKGO_CXX_STANDARD EQUAL 17)
+        set(GINKGO_CXX_STANDARD_FEATURE cxx_std_14)
+    elseif (GINKGO_CXX_STANDARD EQUAL 14)
+        set(GINKGO_CXX_STANDARD_FEATURE cxx_std_14)
+    else ()
+        message(FATAL_ERROR "Unsupported CXX standard: ${GINKGO_CXX_STANDARD}.")
+    endif ()
+endmacro()
+
 function(ginkgo_default_includes name)
     # set include path depending on used interface
     target_include_directories("${name}"
@@ -18,7 +36,7 @@ function(ginkgo_default_includes name)
 endfunction()
 
 function(ginkgo_compile_features name)
-    target_compile_features("${name}" PUBLIC cxx_std_14)
+    target_compile_features("${name}" PUBLIC ${GINKGO_CXX_STANDARD_FEATURE})
     if(GINKGO_WITH_CLANG_TIDY AND GINKGO_CLANG_TIDY_PATH)
         set_property(TARGET "${name}" PROPERTY CXX_CLANG_TIDY "${GINKGO_CLANG_TIDY_PATH};-checks=*")
     endif()
