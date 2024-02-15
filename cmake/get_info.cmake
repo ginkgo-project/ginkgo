@@ -110,7 +110,7 @@ set(log_types "detailed_log;minimal_log")
 foreach(log_type ${log_types})
     ginkgo_print_module_footer(${${log_type}} "Ginkgo configuration:")
     ginkgo_print_foreach_variable(${${log_type}}
-        "CMAKE_BUILD_TYPE;BUILD_SHARED_LIBS;CMAKE_INSTALL_PREFIX"
+        "GINKGO_CXX_STANDARD;CMAKE_BUILD_TYPE;BUILD_SHARED_LIBS;CMAKE_INSTALL_PREFIX"
         "PROJECT_SOURCE_DIR;PROJECT_BINARY_DIR")
     string(SUBSTRING
         "

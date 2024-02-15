@@ -110,7 +110,7 @@ macro(ginkgo_pkg_information)
     # Prepare recursively populated library list
     list(APPEND GINKGO_INTERFACE_LIBS_FOUND "-lginkgo$<$<CONFIG:Debug>:${CMAKE_DEBUG_POSTFIX}>")
     # Prepare recursively populated include directory list
-    list(APPEND GINKGO_INTERFACE_CFLAGS_FOUND "-I\\\${prefix}/${CMAKE_INSTALL_INCLUDEDIR}")
+    list(APPEND GINKGO_INTERFACE_CFLAGS_FOUND "-std=c++${GINKGO_CXX_STANDARD}" "-I\\\${prefix}/${CMAKE_INSTALL_INCLUDEDIR}")
 
     # Call the recursive interface libraries macro
     get_target_property(GINKGO_INTERFACE_LINK_LIBRARIES ginkgo INTERFACE_LINK_LIBRARIES)

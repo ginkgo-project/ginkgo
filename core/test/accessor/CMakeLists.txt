@@ -6,7 +6,7 @@ function(create_accessor_test test_name)
         ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
     string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
     add_executable("${TEST_TARGET_NAME}" "${test_name}.cpp")
-    target_compile_features("${TEST_TARGET_NAME}" PUBLIC cxx_std_14)
+    target_compile_features("${TEST_TARGET_NAME}" PUBLIC ${GINKGO_CXX_STANDARD_FEATURE})
     target_include_directories("${TEST_TARGET_NAME}"
         PRIVATE
         "${Ginkgo_SOURCE_DIR}"
