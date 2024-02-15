@@ -90,6 +90,9 @@ include(cmake/build_type_helpers.cmake)
 include(cmake/build_helpers.cmake)
 include(cmake/install_helpers.cmake)
 
+# Store the used CMAKE_CXX_STANDARD or fallback to C++14
+ginkgo_set_cxx_standard()
+
 if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
 endif()
