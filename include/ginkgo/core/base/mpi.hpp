@@ -319,11 +319,15 @@ private:
  */
 class request {
 public:
+    using hook_function = std::function<void(MPI_Request, status)>;
+
     /**
      * The default constructor. It creates a null MPI_Request of
      * MPI_REQUEST_NULL type.
      */
-    request() : req_(MPI_REQUEST_NULL) {}
+    explicit request(hook_function hook = [](MPI_Request, status) {})
+        : req_(MPI_REQUEST_NULL), hook_(std::move(hook))
+    {}
 
     request(const request&) = delete;
 
@@ -335,6 +339,7 @@ public:
     {
         if (this != &o) {
             this->req_ = std::exchange(o.req_, MPI_REQUEST_NULL);
+            this->hook_ = std::exchange(o.hook_, [](MPI_Request, status) {});
         }
         return *this;
     }
@@ -357,21 +362,21 @@ public:
     MPI_Request* get() { return &this->req_; }
 
     /**
-     * Allows a rank to wait on a particular request handle.
+     * Waits on the stored request handle.
      *
-     * @param req  The request to wait on.
-     * @param status  The status variable that can be queried.
+     *  @return the returned status of the MPI call
      */
     status wait()
     {
         status status;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Wait(&req_, status.get()));
+        hook_(req_, status);
         return status;
     }
 
-
 private:
     MPI_Request req_;
+    hook_function hook_;
 };
 
 
