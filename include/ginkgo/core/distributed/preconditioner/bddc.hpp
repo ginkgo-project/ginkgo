@@ -123,6 +123,8 @@ public:
 
         std::set<index_type> GKO_FACTORY_PARAMETER_VECTOR(boundary_idxs);
 
+        bool GKO_FACTORY_PARAMETER_SCALAR(enforce_corner, false);
+
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting_interfaces, false);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Bddc, parameters, Factory);
@@ -220,7 +222,7 @@ private:
     std::shared_ptr<global_vec_type> coarse_x;
     std::shared_ptr<global_vec_type> nullspace;
     std::shared_ptr<global_vec_type> neg_nullspace;
-    std::shared_ptr<global_vec_type> nullspace_interm;
+    std::shared_ptr<global_vec_type> intermediate;
     std::shared_ptr<global_vec_type> orig_rhs;
     std::shared_ptr<vec_type> inner_intermediate;
     std::shared_ptr<const LinOp> global_schur;
