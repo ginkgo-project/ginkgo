@@ -46,8 +46,9 @@ TEST_F(SparseCommunicator, CanDefaultConstruct)
     auto req = spcomm.communicate(empty.get(), send_buffer, recv_buffer);
     req.wait();
 
-    ASSERT_EQ(send_buffer.get(), nullptr);
-    ASSERT_EQ(recv_buffer.get(), nullptr);
+    gko::dim<2> zero{};
+    GKO_ASSERT_EQUAL_DIMENSIONS(send_buffer.get(), zero);
+    GKO_ASSERT_EQUAL_DIMENSIONS(recv_buffer.get(), zero);
 }
 
 TEST_F(SparseCommunicator, CanConstructFromIndexMap)

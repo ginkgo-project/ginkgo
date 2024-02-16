@@ -29,8 +29,7 @@ namespace distributed {
  * Simplified MPI communicator that handles only neighborhood all-to-all
  * communication.
  */
-class sparse_communicator
-    : public std::enable_shared_from_this<sparse_communicator> {
+class sparse_communicator {
 public:
     sparse_communicator()
         : default_comm_(MPI_COMM_SELF), send_offsets_{0}, recv_offsets_{0}
