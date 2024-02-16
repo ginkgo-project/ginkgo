@@ -31,6 +31,13 @@ namespace distributed {
  */
 class sparse_communicator {
 public:
+    using hook_function = std::function<void(LinOp*)>;
+
+    static hook_function default_hook()
+    {
+        return [](LinOp*) {};
+    }
+
     sparse_communicator()
         : default_comm_(MPI_COMM_SELF), send_offsets_{0}, recv_offsets_{0}
     {}
@@ -40,7 +47,9 @@ public:
      */
     template <typename LocalIndexType, typename GlobalIndexType>
     sparse_communicator(mpi::communicator comm,
-                        const index_map<LocalIndexType, GlobalIndexType>& imap);
+                        const index_map<LocalIndexType, GlobalIndexType>& imap,
+                        hook_function pre_hook = default_hook(),
+                        hook_function post_hook = default_hook());
 
     /**
      * Executes non-blocking neighborhood all-to-all.
@@ -77,6 +86,9 @@ private:
     std::vector<comm_index_type> recv_sizes_;
     std::vector<comm_index_type> recv_offsets_;
     std::variant<std::monostate, array<int32>, array<int64>> send_idxs_;
+
+    hook_function pre_hook_;
+    hook_function post_hook_;
 };
 
 

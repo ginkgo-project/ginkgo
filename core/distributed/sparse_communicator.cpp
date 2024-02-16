@@ -143,10 +143,13 @@ mpi::communicator create_neighborhood_comm(
 template <typename LocalIndexType, typename GlobalIndexType>
 sparse_communicator::sparse_communicator(
     mpi::communicator comm,
-    const index_map<LocalIndexType, GlobalIndexType>& imap)
+    const index_map<LocalIndexType, GlobalIndexType>& imap,
+    hook_function pre_hook, hook_function post_hook)
     : default_comm_(MPI_COMM_NULL),
       recv_sizes_(imap.get_remote_local_idxs().size()),
-      recv_offsets_(recv_sizes_.size() + 1)
+      recv_offsets_(recv_sizes_.size() + 1),
+      pre_hook_(std::move(pre_hook)),
+      post_hook_(std::move(post_hook))
 {
     auto exec = imap.get_executor();
 
@@ -176,7 +179,8 @@ sparse_communicator::sparse_communicator(
 #define GKO_DECLARE_SPARSE_COMMUNICATOR(LocalIndexType, GlobalIndexType) \
     sparse_communicator::sparse_communicator(                            \
         mpi::communicator comm,                                          \
-        const index_map<LocalIndexType, GlobalIndexType>& imap)
+        const index_map<LocalIndexType, GlobalIndexType>& imap,          \
+        hook_function pre_hook, hook_function post_hook)
 
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_SPARSE_COMMUNICATOR);
@@ -243,13 +247,16 @@ mpi::request sparse_communicator::communicate_impl_(
 
     local_vector->row_gather(&send_idxs, send_buffer.get());
 
+    pre_hook_(send_buffer.get());
+
     auto recv_ptr = recv_buffer->get_values();
     auto send_ptr = send_buffer->get_values();
 
     exec->synchronize();
     mpi::contiguous_type type(local_vector->get_size()[1],
                               mpi::type_impl<ValueType>::get_type());
-    mpi::request req;
+    mpi::request req{[hook = post_hook_, data = recv_buffer.get()](
+                         MPI_Request, mpi::status) { hook(data); }};
     auto g = mpi_exec->get_scoped_device_id_guard();
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Ineighbor_alltoallv(
         send_ptr, send_sizes_.data(), send_offsets_.data(), type.get(),
