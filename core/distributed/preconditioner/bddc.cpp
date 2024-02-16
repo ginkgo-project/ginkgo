@@ -5,9 +5,8 @@
 #include <ginkgo/core/distributed/preconditioner/bddc.hpp>
 
 
-#include <fstream>
 #include <memory>
-#include <string>
+#include <vector>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -25,10 +24,6 @@
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/solver/direct.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
-
-
-#include "core/base/utils.hpp"
-#include "core/distributed/helpers.hpp"
 
 
 namespace gko {
@@ -139,7 +134,9 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
     comm.all_to_all(exec, send_mask.data(), recv_buffer.size(),
                     recv_mask.data(), recv_buffer.size());
 
-    std::map<std::vector<IndexType>, std::vector<IndexType>> interface_map{};
+    /* std::map<std::vector<IndexType>, std::vector<IndexType>> interface_map{};
+     */
+    std::map<std::vector<IndexType>, std::set<IndexType>> interface_map{};
     for (auto i = 0; i < recv_buffer.size(); i++) {
         std::vector<IndexType> ranks{};
         for (auto j = 0; j < comm.size(); j++) {
@@ -148,39 +145,119 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
             }
         }
         std::stable_sort(ranks.begin(), ranks.end());
-        interface_map[ranks].emplace_back(recv_buffer[i]);
+        interface_map[ranks].emplace(recv_buffer[i]);
     }
 
-    for (auto it = interface_map.begin(); it != interface_map.end(); it++) {
-        // This is a bit specific to the EMI model where a corner-dof is split
-        // into one for each subdomain sharing it. However, splitting very small
-        // faces or edges into corners won't hurt us generally.
-        if (it->second.size() <= it->first.size()) {
-            for (auto i = 0; i < it->second.size(); i++) {
-                local_rows.erase(it->second[i]);
-                interface_dofs_.emplace_back(
-                    std::vector<IndexType>{it->second[i]});
-                interface_dof_ranks_.emplace_back(it->first);
+    comm.synchronize();
+
+    // For interfaces between more than two subdomains, determine if there are
+    // any corners present. If not, identify the minimal diagonal entry of the
+    // local stiffness matrix and use all dofs with that value on the diagonal
+    // as a corner.
+    std::vector<IndexType> additional_corners{};
+    if (parameters_.enforce_corner) {
+        for (auto pair : interface_map) {
+            if (pair.second.size() >
+                pair.first.size()) {  //&& pair.first.size() > 2) {
+                auto min_val = std::numeric_limits<ValueType>::max();
+                IndexType min_idx = -1;
+                for (auto dof : pair.second) {
+                    for (auto i = 0; i < mat_data.nonzeros.size(); i++) {
+                        if (mat_data.nonzeros[i].row == dof &&
+                            mat_data.nonzeros[i].column == dof) {
+                            if (abs(mat_data.nonzeros[i].value) <
+                                abs(min_val)) {
+                                min_val = mat_data.nonzeros[i].value;
+                                min_idx = dof;
+                            }
+                        }
+                    }
+                }
+                if (min_idx != -1) {
+                    additional_corners.emplace_back(min_idx);
+                }
             }
-        } else {
-            for (auto i = 0; i < it->second.size(); i++) {
-                local_rows.erase(it->second[i]);
-            }
-            interface_dofs_.emplace_back(it->second);
-            interface_dof_ranks_.emplace_back(it->first);
         }
     }
 
+    comm.synchronize();
+
+    // exchange information about additional corners
+    std::vector<int> send_sizes_corners(comm.size(), additional_corners.size());
+    send_sizes_corners[rank] = 0;
+    std::vector<int> send_offsets_corners(comm.size() + 1, 0);
+    std::partial_sum(send_sizes_corners.begin(), send_sizes_corners.end(),
+                     send_offsets_corners.begin() + 1);
+    std::vector<int> count_buffer_corners(comm.size(), 0);
+    comm.all_to_all(exec, send_sizes_corners.data(), 1,
+                    count_buffer_corners.data(), 1);
+    std::vector<int> recv_offsets_corners(comm.size() + 1, 0);
+    std::partial_sum(count_buffer_corners.begin(), count_buffer_corners.end(),
+                     recv_offsets_corners.begin() + 1);
+    std::vector<IndexType> send_buffer_corners(
+        additional_corners.size() * (comm.size() - 1), 0);
+    for (auto i = 0; i < send_buffer_corners.size(); i++) {
+        send_buffer_corners[i] =
+            additional_corners[i % additional_corners.size()];
+    }
+    std::vector<IndexType> recv_buffer_corners(
+        recv_offsets_corners[comm.size()]);
+    comm.all_to_all_v(exec, send_buffer_corners.data(),
+                      send_sizes_corners.data(), send_offsets_corners.data(),
+                      recv_buffer_corners.data(), count_buffer_corners.data(),
+                      recv_offsets_corners.data());
+
+    for (auto recv : recv_buffer_corners) {
+        additional_corners.emplace_back(recv);
+    }
+
+    std::sort(additional_corners.begin(), additional_corners.end());
+
+    // identify additional corners and remove them from the according interfaces
+    int final_corner_count = 0;
+    for (auto pair : interface_map) {
+        // This is a bit specific to the EMI model where a corner-dof is split
+        // into one for each subdomain sharing it. However, splitting very small
+        // faces or edges into corners won't hurt us generally.
+        if (pair.second.size() <= pair.first.size()) {
+            for (auto dof : pair.second) {
+                local_rows.erase(dof);
+                interface_dofs_.emplace_back(std::vector<IndexType>{dof});
+                interface_dof_ranks_.emplace_back(pair.first);
+                final_corner_count++;
+            }
+        } else {
+            std::vector<IndexType> interf{};
+            for (auto corner : additional_corners) {
+                if (pair.second.count(corner) > 0) {
+                    interface_dofs_.emplace_back(
+                        std::vector<IndexType>{corner});
+                    interface_dof_ranks_.emplace_back(pair.first);
+                    pair.second.erase(corner);
+                    local_rows.erase(corner);
+                    final_corner_count++;
+                }
+            }
+            for (auto dof : pair.second) {
+                local_rows.erase(dof);
+                interf.emplace_back(dof);
+            }
+            interface_dofs_.emplace_back(interf);
+            interface_dof_ranks_.emplace_back(pair.first);
+        }
+    }
+
+    // inner idxs are all not involved in any interfaces
     inner_idxs_ = std::vector<IndexType>();
     std::for_each(local_rows.begin(), local_rows.end(),
                   [this](IndexType lr) { inner_idxs_.emplace_back(lr); });
 
+    comm.synchronize();
     if (comm.rank() == 0) {
-        int total = 0;
-        for (auto i = 0; i < interface_dofs_.size(); i++) {
-            total += interface_dofs_[i].size();
-        }
+        std::cout << "Coarse Dim: " << interface_dofs_.size() << std::endl;
+        std::cout << "Primal DOFs: " << final_corner_count << std::endl;
     }
+    comm.synchronize();
 }
 
 
@@ -192,11 +269,6 @@ void Bddc<ValueType, IndexType>::pre_solve(const LinOp* b, LinOp* x) const
     auto sol = as<global_vec_type>(x);
     auto comm = rhs->get_communicator();
     auto rank = comm.rank();
-    sol->fill(zero<ValueType>());
-    restricted_solution->fill(zero<ValueType>());
-    restricted_residual->fill(zero<ValueType>());
-    schur_solution->fill(zero<ValueType>());
-    inner_intermediate->fill(zero<ValueType>());
     IDG->apply(rhs, sol);
     R->apply(rhs, restricted_residual);
     comm.synchronize();
@@ -217,6 +289,9 @@ void Bddc<ValueType, IndexType>::pre_solve(const LinOp* b, LinOp* x) const
                         schur_solution->get_local_values()),
         1);
     comm.synchronize();
+    if (inner_solver->apply_uses_initial_guess()) {
+        inner_intermediate->fill(zero<ValueType>());
+    }
     inner_solver->apply(inner_rhs, inner_intermediate);
     A_gi->apply(inner_intermediate, local_schur_sol);
     comm.synchronize();
@@ -233,8 +308,6 @@ void Bddc<ValueType, IndexType>::post_solve(const LinOp* b, LinOp* x) const
     auto sol = as<global_vec_type>(x);
     auto comm = rhs->get_communicator();
     auto rank = comm.rank();
-    restricted_solution->fill(zero<ValueType>());
-    restricted_residual->fill(zero<ValueType>());
     R->apply(rhs, restricted_residual);
     R->apply(sol, restricted_solution);
     comm.synchronize();
@@ -258,18 +331,16 @@ void Bddc<ValueType, IndexType>::post_solve(const LinOp* b, LinOp* x) const
         span{inner_idxs_.size(), local_sol->get_size()[0]}, span{0, 1});
     comm.synchronize();
     A_ig->apply(neg_one_op, bound_sol, one_op, inner_rhs);
+    if (inner_solver->apply_uses_initial_guess()) {
+        inner_sol->fill(zero<ValueType>());
+    }
     inner_solver->apply(inner_rhs, inner_sol);
     bound_sol->fill(zero<ValueType>());
     comm.synchronize();
     RT->apply(one_op, restricted_solution, one_op, sol);
-    comm.synchronize();
     if (parameters_.constant_nullspace) {
         sol->compute_dot(nullspace, scale_op);
-        exec->synchronize();
-        comm.synchronize();
         sol->add_scaled(scale_op, neg_nullspace);
-        exec->synchronize();
-        comm.synchronize();
     }
 }
 
@@ -279,26 +350,11 @@ template <typename VectorType>
 void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
                                                   VectorType* dense_x) const
 {
-    dense_x->fill(zero<ValueType>());
-    nullspace_interm->fill(zero<ValueType>());
-    coarse_b->fill(zero<ValueType>());
-    coarse_x->fill(zero<ValueType>());
-    coarse_1->fill(zero<ValueType>());
-    coarse_2->fill(zero<ValueType>());
-    coarse_3->fill(zero<ValueType>());
-    local_1->fill(zero<ValueType>());
-    local_2->fill(zero<ValueType>());
-    local_3->fill(zero<ValueType>());
-    restricted_solution->fill(zero<ValueType>());
-    restricted_residual->fill(zero<ValueType>());
-    schur_residual->fill(zero<ValueType>());
-    schur_solution->fill(zero<ValueType>());
-    coarse_residual->fill(zero<ValueType>());
-    coarse_solution->fill(zero<ValueType>());
     auto exec = this->get_executor();
     auto sol = as<global_vec_type>(dense_x);
-    auto rhs = nullspace_interm.get();
+    auto rhs = intermediate.get();
     auto comm = rhs->get_communicator();
+    dense_x->fill(zero<ValueType>());
     pre_solve(dense_b, rhs);
 
     // Coarse grid correction
@@ -322,7 +378,6 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
                         restricted_solution->get_local_vector()->get_size()[0],
                         restricted_solution->get_local_values()),
         1);
-    comm.synchronize();
     weights->apply(restricted_residual->get_local_vector(), coarse_1);
     auto qii =
         coarse_1->create_submatrix(span{0, inner_idxs_.size()}, span{0, 1});
@@ -330,21 +385,21 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
     phi_t->apply(coarse_1, coarse_rhs);
     comm.synchronize();
     RCT->apply(coarse_residual, coarse_b);
-    comm.synchronize();
+    if (coarse_solver->apply_uses_initial_guess()) {
+        coarse_x->fill(zero<ValueType>());
+    }
     coarse_solver->apply(coarse_b, coarse_x);
-    comm.synchronize();
     RC->apply(coarse_x, coarse_solution);
-    comm.synchronize();
     phi->apply(coarse_sol, coarse_2);
 
     // Subdomain correction
-    coarse_3->fill(zero<ValueType>());
     auto qe = coarse_3->create_submatrix(
         span{inner_idxs_.size(), inner_idxs_.size() + edge_idxs.size()},
         span{0, 1});
     auto qc = coarse_3->create_submatrix(
         span{inner_idxs_.size() + edge_idxs.size(), coarse_3->get_size()[0]},
         span{0, 1});
+    qc->fill(zero<ValueType>());
     auto qi =
         local_sol->create_submatrix(span{0, inner_idxs_.size()}, span{0, 1});
     auto ge = coarse_1->create_submatrix(
@@ -354,22 +409,26 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
         span{inner_idxs_.size(), inner_idxs_.size() + edge_idxs.size()},
         span{0, 1});
     if (c->get_size()[0] > 0) {
-        im->fill(zero<ValueType>());
+        if (edge_solver->apply_uses_initial_guess()) {
+            im->fill(zero<ValueType>());
+        }
         edge_solver->apply(ge, im);
         auto schur_rhs =
             local_2->create_submatrix(span{0, c->get_size()[0]}, span{0, 1});
         auto mue =
             local_3->create_submatrix(span{0, c->get_size()[0]}, span{0, 1});
-        mue->fill(zero<ValueType>());
         c->apply(im, schur_rhs);
+        if (local_schur_solver->apply_uses_initial_guess()) {
+            mue->fill(zero<ValueType>());
+        }
         local_schur_solver->apply(schur_rhs, mue);
         cT->apply(neg_one_op, mue, one_op, ge);
     }
-    exec->synchronize();
+    if (edge_solver->apply_uses_initial_guess()) {
+        qe->fill(zero<ValueType>());
+    }
     edge_solver->apply(ge, qe);
-    comm.synchronize();
     coarse_2->add_scaled(one_op, coarse_3);
-    comm.synchronize();
 
     weights->apply(coarse_2, local_sol);
     qi->fill(zero<ValueType>());
@@ -419,17 +478,12 @@ void Bddc<ValueType, IndexType>::generate()
         const gko::experimental::distributed::Partition<IndexType, IndexType>>
         partition = share(
             clone(host, global_system_matrix_->get_row_partition().get()));
-    std::cout << "RANK " << rank
-              << " IDOFS: " << parameters_.interface_dofs.size()
-              << ", RANKS: " << parameters_.interface_dof_ranks.size()
-              << std::endl;
     if (parameters_.interface_dofs.size() > 0 &&
         parameters_.interface_dof_ranks.size() > 0) {
         inner_idxs_ = parameters_.interior_dofs;
         interface_dofs_ = parameters_.interface_dofs;
         interface_dof_ranks_ = parameters_.interface_dof_ranks;
     } else {
-        std::cout << "HERE" << std::endl;
         generate_interfaces();
     }
     auto n_inner = inner_idxs_.size();
@@ -451,14 +505,11 @@ void Bddc<ValueType, IndexType>::generate()
     }
     auto n_interfaces = interface_dofs_.size();
 
-    std::ofstream glstream{"global_to_local_" + std::to_string(comm.rank()) +
-                           ".txt"};
     std::map<IndexType, dof_type> dof_types;
     std::map<IndexType, IndexType> global_to_local;
     for (size_type i = 0; i < n_inner; i++) {
         dof_types.emplace(inner_idxs_[i], dof_type::inner);
         global_to_local.emplace(inner_idxs_[i], i);
-        glstream << inner_idxs_[i] << " " << i << std::endl;
     }
 
     // Count interface dofs on rank
@@ -490,19 +541,13 @@ void Bddc<ValueType, IndexType>::generate()
     for (size_type i = 0; i < edge_idxs.size(); i++) {
         dof_types.emplace(edge_idxs[i], dof_type::edge);
         global_to_local.emplace(edge_idxs[i], n_inner + i);
-        glstream << edge_idxs[i] << " " << n_inner + i << std::endl;
     }
 
     for (size_type i = 0; i < corner_idxs.size(); i++) {
         dof_types.emplace(corner_idxs[i], dof_type::corner);
         global_to_local.emplace(corner_idxs[i], n_inner + n_e_idxs + i);
-        glstream << corner_idxs[i] << " " << n_inner + n_e_idxs + i
-                 << std::endl;
     }
     size_type n_interface_idxs = n_e_idxs + n_corners;
-    std::cout << "RANK " << rank << ": " << n_corners << " / " << n_edges
-              << " / " << n_e_idxs << " / " << n_inner << " / "
-              << n_interface_idxs + n_inner << std::endl;
 
     // Set up Restriction Operator
     IndexType local_size = n_inner + n_e_idxs + n_corners;
@@ -545,8 +590,6 @@ void Bddc<ValueType, IndexType>::generate()
                                      one<ValueType>());
         RT_data.nonzeros.emplace_back(inner_idxs_[i], range_bounds[rank] + i,
                                       one<ValueType>());
-        // IDG_data.nonzeros.emplace_back(inner_idxs_[i], inner_idxs_[i],
-        // zero<ValueType>());
     }
     for (size_type i = 0; i < n_e_idxs; i++) {
         R_data.nonzeros.emplace_back(range_bounds[rank] + n_inner + i,
@@ -633,8 +676,6 @@ void Bddc<ValueType, IndexType>::generate()
         auto gid = global_to_local.at(bd_idx);
         bool inner = std::find(inner_idxs_.begin(), inner_idxs_.end(),
                                bd_idx) != inner_idxs_.end();
-        std::cout << "RANK " << comm.rank() << ": " << bd_idx << " / " << gid
-                  << ": " << inner << std::endl;
         local_data.nonzeros.emplace_back(gid, gid, one<ValueType>());
     }
 
@@ -698,6 +739,9 @@ void Bddc<ValueType, IndexType>::generate()
     CCT->copy_from(CT);
 
     // Generate edge and local Schur complement solvers
+    /* auto AMD = share( */
+    /*     reorder::Amd<IndexType>::build().on(exec)->generate(A_ee)); */
+    /* auto A_ee_amd = share(A_ee->permute(AMD)); */
     auto Fact_ee = share(
         as<fact_type>(parameters_.local_factorization_factory->generate(A_ee))
             ->unpack());
@@ -785,15 +829,16 @@ void Bddc<ValueType, IndexType>::generate()
     if (n_corners > 0) {
         A_ec->apply(phi_c, rhs);
         rhs->scale(neg_one_op);
+        for (auto i = 0; i < n_corners + n_edges; i++) {
+            auto rhs_edge = rhs->create_submatrix(span{0, n_inner + n_e_idxs},
+                                                  span{i, i + 1});
+            auto interm_edge = schur_interm->create_submatrix(
+                span{0, n_inner + n_e_idxs}, span{i, i + 1});
+            global_edge_solver->apply(rhs_edge, interm_edge);
+        }
     } else {
         rhs->fill(zero<ValueType>());
-    }
-    for (auto i = 0; i < n_corners + n_edges; i++) {
-        auto rhs_edge =
-            rhs->create_submatrix(span{0, n_inner + n_e_idxs}, span{i, i + 1});
-        auto interm_edge = schur_interm->create_submatrix(
-            span{0, n_inner + n_e_idxs}, span{i, i + 1});
-        global_edge_solver->apply(rhs_edge, interm_edge);
+        schur_interm->fill(zero<ValueType>());
     }
     // global_edge_solver_1->apply(rhs, schur_interm);
     if (n_edges > 0) {
@@ -915,22 +960,6 @@ void Bddc<ValueType, IndexType>::generate()
     weights = clone(
         diag_type::create_const(exec, local_size, std::move(weights_array)));
 
-    std::ofstream interface_stream{"interfaces_" + std::to_string(comm.rank()) +
-                                   ".txt"};
-    std::ofstream rank_stream{"ranks_" + std::to_string(comm.rank()) + ".txt"};
-    for (auto i = 0; i < edges.size(); i++) {
-        for (auto j = 0; j < interface_dofs_[edges[i]].size(); j++) {
-            interface_stream << interface_dofs_[edges[i]][j] << " ";
-        }
-        for (auto j = 0; j < interface_dof_ranks_[edges[i]].size(); j++) {
-            rank_stream << interface_dof_ranks_[edges[i]][j] << " ";
-        }
-        rank_stream << std::endl;
-        interface_stream << std::endl;
-    }
-    for (auto i = 0; i < corners.size(); i++) {
-        interface_stream << interface_dofs_[corners[i]][0] << std::endl;
-    }
 
     comm.synchronize();
     restricted_solution = global_vec_type::create(
@@ -959,11 +988,7 @@ void Bddc<ValueType, IndexType>::generate()
     local_2 = vec_type::create(exec, dim<2>{local_size, 1});
     local_3 = vec_type::create(exec, dim<2>{local_size, 1});
 
-    if (comm.rank() == 0) {
-        std::cout << "COARSE SIZE: " << global_coarse_matrix_->get_size()
-                  << std::endl;
-    }
-    nullspace_interm = global_vec_type::create(
+    intermediate = global_vec_type::create(
         exec, comm, dim<2>{global_system_matrix_->get_size()[0], 1},
         dim<2>{global_system_matrix_->get_local_matrix()->get_size()[0], 1});
     if (parameters_.constant_nullspace) {
@@ -971,7 +996,6 @@ void Bddc<ValueType, IndexType>::generate()
             exec, comm, dim<2>{global_system_matrix_->get_size()[0], 1},
             dim<2>{global_system_matrix_->get_local_matrix()->get_size()[0],
                    1});
-        // nullspace_interm = clone(nullspace);
         nullspace->fill(one<ValueType>());
         scale_op = clone(one_op);
         nullspace->compute_norm2(scale_op);
@@ -980,11 +1004,6 @@ void Bddc<ValueType, IndexType>::generate()
         neg_nullspace->scale(neg_one_op);
     }
     comm.synchronize();
-
-    std::ofstream phi_out{"phi_" + std::to_string(comm.rank()) + ".mtx"};
-    write(phi_out, phi);
-    std::ofstream lambda_out{"lambda_" + std::to_string(comm.rank()) + ".mtx"};
-    write(lambda_out, lambda);
 }
 
 
