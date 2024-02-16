@@ -86,3 +86,47 @@ TEST_F(SparseCommunicator, CanConstructFromIndexMap)
     auto expected = Dense::create(ref, recv_dim, values[rank], 1);
     GKO_ASSERT_MTX_NEAR(recv_buffer.get(), expected, 0.0);
 }
+
+
+TEST_F(SparseCommunicator, CanConstructWithHooks)
+{
+    auto part = gko::share(part_type::build_from_global_size_uniform(
+        ref, comm.size(), comm.size() * 3));
+    gko::array<long> recv_connections[] = {{ref, {3, 5, 10, 11}},
+                                           {ref, {0, 1, 7, 12, 13}},
+                                           {ref, {3, 4, 17}},
+                                           {ref, {1, 2, 12, 14}},
+                                           {ref, {4, 5, 9, 10, 15, 16}},
+                                           {ref, {8, 12, 13, 14}}};
+    auto imap = map_type{ref, part, comm.rank(), recv_connections[comm.rank()]};
+
+    gko::experimental::distributed::sparse_communicator spcomm{
+        comm, imap,
+        [this](gko::LinOp* v) {
+            gko::as<Dense>(v)->scale(gko::initialize<Dense>({-1.0}, ref));
+        },
+        [this](gko::LinOp* v) {
+            gko::as<Dense>(v)->scale(gko::initialize<Dense>({2}, ref));
+        }};
+
+    auto req = spcomm.communicate(buffer.get(), send_buffer, recv_buffer);
+    req.wait();
+    ASSERT_NE(send_buffer.get(), nullptr);
+    ASSERT_NE(recv_buffer.get(), nullptr);
+    auto recv_size = recv_connections[rank].get_size();
+    gko::size_type send_size[] = {4, 6, 2, 4, 7, 3};
+    auto send_dim = gko::dim<2>{send_size[rank], 1};
+    auto recv_dim = gko::dim<2>{recv_size, 1};
+    GKO_ASSERT_EQUAL_DIMENSIONS(send_buffer.get(), send_dim);
+    GKO_ASSERT_EQUAL_DIMENSIONS(recv_buffer.get(), recv_dim);
+    // repeat recv_connections, since there is no conversion between long and
+    // double
+    gko::array<double> values[] = {{ref, {-6, -10, -20, -22}},
+                                   {ref, {0, -2, -14, -24, -26}},
+                                   {ref, {-6, -8, -34}},
+                                   {ref, {-2, -4, -24, -28}},
+                                   {ref, {-8, -10, -18, -20, -30, -32}},
+                                   {ref, {-16, -24, -26, -28}}};
+    auto expected = Dense::create(ref, recv_dim, values[rank], 1);
+    GKO_ASSERT_MTX_NEAR(recv_buffer.get(), expected, 0.0);
+}
