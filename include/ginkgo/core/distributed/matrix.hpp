@@ -523,7 +523,10 @@ protected:
      *                 shared values is automatically extracted.
      * @return  MPI request for the non-blocking communication.
      */
-    mpi::request communicate(const local_vector_type* local_b) const;
+    [[deprecated(
+        "The pre-C++17 interface of the distributed::Matrix is "
+        "deprecated, please update your C++ standard to 17. ")]] mpi::request
+    communicate(const local_vector_type* local_b) const;
 #endif
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
