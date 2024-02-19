@@ -1135,7 +1135,8 @@ public:
      * @param size  size of the matrix
      * @param stride  stride of the rows (i.e. offset between the first
      *                  elements of two consecutive rows, expressed as the
-     *                  number of matrix elements)
+     *                  number of matrix elements).
+     *                  If it is set to 0, size[1] will be used instead.
      *
      * @return A smart pointer to the newly created matrix.
      */
