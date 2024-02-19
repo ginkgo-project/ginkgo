@@ -53,9 +53,7 @@ template <typename ValueType = default_precision>
 class MultiVector
     : public EnablePolymorphicObject<MultiVector<ValueType>>,
       public EnablePolymorphicAssignment<MultiVector<ValueType>>,
-      public EnableCreateMethod<MultiVector<ValueType>>,
       public ConvertibleTo<MultiVector<next_precision<ValueType>>> {
-    friend class EnableCreateMethod<MultiVector>;
     friend class EnablePolymorphicObject<MultiVector>;
     friend class MultiVector<to_complex<ValueType>>;
     friend class MultiVector<next_precision<ValueType>>;
@@ -319,6 +317,50 @@ public:
         ptr_param<MultiVector<remove_complex<ValueType>>> result) const;
 
     /**
+     * Creates an uninitialized multi-vector of the specified
+     * size.
+     *
+     * @param exec  Executor associated to the vector
+     * @param size  size of the batch multi vector
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<MultiVector> create(
+        std::shared_ptr<const Executor> exec,
+        const batch_dim<2>& size = batch_dim<2>{});
+
+    /**
+     * Creates a MultiVector from an already allocated (and
+     * initialized) array.
+     *
+     * @param exec  Executor associated to the vector
+     * @param size  sizes of the batch matrices in a batch_dim object
+     * @param values  array of values
+     *
+     * @note If `values` is not an rvalue, not an array of ValueType, or is on
+     *       the wrong executor, an internal copy will be created, and the
+     *       original array data will not be used in the vector.
+     */
+    static std::unique_ptr<MultiVector> create(
+        std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+        array<value_type> values);
+
+    /**
+     * @copydoc std::unique_ptr<MultiVector> create(std::shared_ptr<const
+     * Executor>, const batch_dim<2>&, array<value_type>)
+     */
+    template <typename InputValueType>
+    GKO_DEPRECATED(
+        "explicitly construct the gko::array argument instead of passing an "
+        "initializer list")
+    static std::unique_ptr<MultiVector> create(
+        std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+        std::initializer_list<InputValueType> values)
+    {
+        return create(exec, size, array<index_type>{exec, std::move(values)});
+    }
+
+    /**
      * Creates a constant (immutable) batch multi-vector from a constant
      * array.
      *
@@ -331,7 +373,7 @@ public:
      * array (if it resides on the same executor as the vector) or a copy of the
      * array on the correct executor.
      */
-    static std::unique_ptr<const MultiVector<ValueType>> create_const(
+    static std::unique_ptr<const MultiVector> create_const(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
         gko::detail::const_array_view<ValueType>&& values);
 
@@ -357,41 +399,11 @@ protected:
      */
     void set_size(const batch_dim<2>& value) noexcept;
 
-    /**
-     * Creates an uninitialized multi-vector of the specified
-     * size.
-     *
-     * @param exec  Executor associated to the vector
-     * @param size  size of the batch multi vector
-     */
     MultiVector(std::shared_ptr<const Executor> exec,
                 const batch_dim<2>& size = batch_dim<2>{});
 
-    /**
-     * Creates a MultiVector from an already allocated (and
-     * initialized) array.
-     *
-     * @tparam ValuesArray  type of array of values
-     *
-     * @param exec  Executor associated to the vector
-     * @param size  sizes of the batch matrices in a batch_dim object
-     * @param values  array of values
-     *
-     * @note If `values` is not an rvalue, not an array of ValueType, or is on
-     *       the wrong executor, an internal copy will be created, and the
-     *       original array data will not be used in the vector.
-     */
-    template <typename ValuesArray>
     MultiVector(std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
-                ValuesArray&& values)
-        : EnablePolymorphicObject<MultiVector<ValueType>>(exec),
-          batch_size_(size),
-          values_{exec, std::forward<ValuesArray>(values)}
-    {
-        // Ensure that the values array has the correct size
-        auto num_elems = compute_num_elems(size);
-        GKO_ENSURE_IN_BOUNDS(num_elems, values_.get_size() + 1);
-    }
+                array<value_type> values);
 
     /**
      * Creates a MultiVector with the same configuration as the

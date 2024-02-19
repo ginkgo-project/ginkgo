@@ -333,6 +333,75 @@ Ell<ValueType, IndexType>::compute_absolute() const
 }
 
 
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Ell<ValueType, IndexType>> Ell<ValueType, IndexType>::create(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    size_type num_stored_elements_per_row, size_type stride)
+{
+    return std::unique_ptr<Ell>{
+        new Ell{exec, size, num_stored_elements_per_row, stride}};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Ell<ValueType, IndexType>> Ell<ValueType, IndexType>::create(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    array<value_type> values, array<index_type> col_idxs,
+    size_type num_stored_elements_per_row, size_type stride)
+{
+    return std::unique_ptr<Ell>{new Ell{exec, size, std::move(values),
+                                        std::move(col_idxs),
+                                        num_stored_elements_per_row, stride}};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<const Ell<ValueType, IndexType>>
+Ell<ValueType, IndexType>::create_const(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    gko::detail::const_array_view<ValueType>&& values,
+    gko::detail::const_array_view<IndexType>&& col_idxs,
+    size_type num_stored_elements_per_row, size_type stride)
+{
+    // cast const-ness away, but return a const object afterwards,
+    // so we can ensure that no modifications take place.
+    return std::unique_ptr<const Ell>{
+        new Ell{exec, size, gko::detail::array_const_cast(std::move(values)),
+                gko::detail::array_const_cast(std::move(col_idxs)),
+                num_stored_elements_per_row, stride}};
+}
+
+
+template <typename ValueType, typename IndexType>
+Ell<ValueType, IndexType>::Ell(std::shared_ptr<const Executor> exec,
+                               const dim<2>& size,
+                               size_type num_stored_elements_per_row,
+                               size_type stride)
+    : EnableLinOp<Ell>(exec, size),
+      stride_(stride == 0 ? size[0] : stride),
+      values_(exec, stride_ * num_stored_elements_per_row),
+      col_idxs_(exec, stride_ * num_stored_elements_per_row),
+      num_stored_elements_per_row_(num_stored_elements_per_row)
+{}
+
+
+template <typename ValueType, typename IndexType>
+Ell<ValueType, IndexType>::Ell(std::shared_ptr<const Executor> exec,
+                               const dim<2>& size, array<value_type> values,
+                               array<index_type> col_idxs,
+                               size_type num_stored_elements_per_row,
+                               size_type stride)
+    : EnableLinOp<Ell>(exec, size),
+      values_{exec, std::move(values)},
+      col_idxs_{exec, std::move(col_idxs)},
+      num_stored_elements_per_row_{num_stored_elements_per_row},
+      stride_{stride}
+{
+    GKO_ASSERT_EQ(num_stored_elements_per_row_ * stride_, values_.get_size());
+    GKO_ASSERT_EQ(num_stored_elements_per_row_ * stride_, col_idxs_.get_size());
+}
+
+
 #define GKO_DECLARE_ELL_MATRIX(ValueType, IndexType) \
     class Ell<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_MATRIX);

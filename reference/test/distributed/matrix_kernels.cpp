@@ -86,7 +86,9 @@ protected:
         std::vector<gko::array<comm_index_type>> ref_recv_sizes;
 
         auto input = gko::device_matrix_data<value_type, global_index_type>{
-            ref, size, input_rows, input_cols, input_vals};
+            ref, size, gko::array<global_index_type>{ref, input_rows},
+            gko::array<global_index_type>{ref, input_cols},
+            gko::array<value_type>{ref, input_vals}};
         this->recv_sizes.resize_and_reset(
             static_cast<gko::size_type>(row_partition->get_num_parts()));
         for (auto entry : local_entries) {
@@ -139,9 +141,9 @@ protected:
     {
         return gko::device_matrix_data<value_type, global_index_type>{
             this->ref, gko::dim<2>{7, 7},
-            I<global_index_type>{0, 0, 2, 3, 3, 4, 4, 5, 5, 6},
-            I<global_index_type>{0, 3, 2, 0, 3, 4, 6, 4, 5, 5},
-            I<value_type>{1, 2, 5, 6, 7, 8, 9, 10, 11, 12}};
+            gko::array<global_index_type>{ref, {0, 0, 2, 3, 3, 4, 4, 5, 5, 6}},
+            gko::array<global_index_type>{ref, {0, 3, 2, 0, 3, 4, 6, 4, 5, 5}},
+            gko::array<value_type>{ref, {1, 2, 5, 6, 7, 8, 9, 10, 11, 12}}};
     }
 
     gko::device_matrix_data<value_type, global_index_type>
@@ -149,9 +151,12 @@ protected:
     {
         return gko::device_matrix_data<value_type, global_index_type>{
             this->ref, gko::dim<2>{7, 7},
-            I<global_index_type>{0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6},
-            I<global_index_type>{0, 3, 1, 2, 2, 0, 3, 4, 6, 4, 5, 5},
-            I<value_type>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}};
+            gko::array<global_index_type>{ref,
+                                          {0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6}},
+            gko::array<global_index_type>{ref,
+                                          {0, 3, 1, 2, 2, 0, 3, 4, 6, 4, 5, 5}},
+            gko::array<value_type>{ref,
+                                   {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}}};
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;

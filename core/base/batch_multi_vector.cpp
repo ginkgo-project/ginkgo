@@ -100,6 +100,20 @@ MultiVector<ValueType>::MultiVector(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType>
+MultiVector<ValueType>::MultiVector(std::shared_ptr<const Executor> exec,
+                                    const batch_dim<2>& size,
+                                    array<value_type> values)
+    : EnablePolymorphicObject<MultiVector<ValueType>>(exec),
+      batch_size_(size),
+      values_{exec, std::move(values)}
+{
+    // Ensure that the values array has the correct size
+    auto num_elems = compute_num_elems(size);
+    GKO_ENSURE_IN_BOUNDS(num_elems, values_.get_size() + 1);
+}
+
+
+template <typename ValueType>
 std::unique_ptr<MultiVector<ValueType>>
 MultiVector<ValueType>::create_with_config_of(
     ptr_param<const MultiVector> other)
@@ -109,6 +123,24 @@ MultiVector<ValueType>::create_with_config_of(
     // CUDA 10.1.
     // Otherwise, it results in a compile error.
     return (*other).create_with_same_config();
+}
+
+
+template <typename ValueType>
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::create(
+    std::shared_ptr<const Executor> exec, const batch_dim<2>& size)
+{
+    return std::unique_ptr<MultiVector<ValueType>>{new MultiVector{exec, size}};
+}
+
+
+template <typename ValueType>
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::create(
+    std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+    array<value_type> values)
+{
+    return std::unique_ptr<MultiVector<ValueType>>{
+        new MultiVector{exec, size, std::move(values)}};
 }
 
 

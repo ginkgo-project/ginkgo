@@ -477,7 +477,8 @@ TYPED_TEST(Dense, AddsScaledDiag)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
-    auto diag = gko::matrix::Diagonal<T>::create(this->exec, 2, I<T>{3.0, 2.0});
+    auto diag = gko::matrix::Diagonal<T>::create(
+        this->exec, 2, gko::array<T>{this->exec, {3.0, 2.0}});
 
     this->mtx2->add_scaled(alpha, diag);
 
@@ -493,7 +494,8 @@ TYPED_TEST(Dense, SubtractsScaledDiag)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto alpha = gko::initialize<Mtx>({-2.0}, this->exec);
-    auto diag = gko::matrix::Diagonal<T>::create(this->exec, 2, I<T>{3.0, 2.0});
+    auto diag = gko::matrix::Diagonal<T>::create(
+        this->exec, 2, gko::array<T>{this->exec, {3.0, 2.0}});
 
     this->mtx2->sub_scaled(alpha, diag);
 

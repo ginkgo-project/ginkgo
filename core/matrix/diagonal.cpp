@@ -327,6 +327,53 @@ Diagonal<ValueType>::compute_absolute() const
 }
 
 
+template <typename ValueType>
+Diagonal<ValueType>::Diagonal(std::shared_ptr<const Executor> exec,
+                              size_type size)
+    : EnableLinOp<Diagonal>(exec, dim<2>{size}), values_(exec, size)
+{}
+
+
+template <typename ValueType>
+Diagonal<ValueType>::Diagonal(std::shared_ptr<const Executor> exec,
+                              const size_type size, array<value_type> values)
+    : EnableLinOp<Diagonal>(exec, dim<2>(size)),
+      values_{exec, std::move(values)}
+{
+    GKO_ENSURE_IN_BOUNDS(size - 1, values_.get_size());
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Diagonal<ValueType>> Diagonal<ValueType>::create(
+    std::shared_ptr<const Executor> exec, size_type size)
+{
+    return std::unique_ptr<Diagonal>{new Diagonal{exec, size}};
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Diagonal<ValueType>> Diagonal<ValueType>::create(
+    std::shared_ptr<const Executor> exec, const size_type size,
+    array<value_type> values)
+{
+    return std::unique_ptr<Diagonal>{
+        new Diagonal{exec, size, std::move(values)}};
+}
+
+
+template <typename ValueType>
+std::unique_ptr<const Diagonal<ValueType>> Diagonal<ValueType>::create_const(
+    std::shared_ptr<const Executor> exec, size_type size,
+    gko::detail::const_array_view<ValueType>&& values)
+{
+    // cast const-ness away, but return a const object afterwards,
+    // so we can ensure that no modifications take place.
+    return std::unique_ptr<const Diagonal>{new Diagonal{
+        exec, size, gko::detail::array_const_cast(std::move(values))}};
+}
+
+
 #define GKO_DECLARE_DIAGONAL_MATRIX(value_type) class Diagonal<value_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_MATRIX);
 
