@@ -226,9 +226,9 @@ public:
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
-     * @param num_stored_elements_per_row   the number of stored elements per
-     *                                      row
-     * @param stride                stride of the rows
+     * @param num_stored_elements_per_row  the number of stored elements per row
+     * @param stride  stride of the columns. If it is set to 0, size[0] will be
+     *                used instead.
      *
      * @return A smart pointer to the newly created matrix.
      */
