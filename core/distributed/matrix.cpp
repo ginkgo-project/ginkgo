@@ -342,6 +342,23 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+std::shared_ptr<LinOp>
+Matrix<ValueType, LocalIndexType,
+       GlobalIndexType>::get_overlapping_local_matrix(size_type overlap)
+{
+    using Csr = gko::matrix::Csr<ValueType, LocalIndexType>;
+    auto exec = this->get_executor();
+    auto host_local =
+        make_temporary_clone(exec->get_master(), as<Csr>(local_mtx_));
+    auto host_non_local =
+        make_temporary_clone(exec->get_master(), as<Csr>(non_local_mtx_));
+
+    auto& send_idxs = spcomm_.get_send_idxs<LocalIndexType>();
+    auto host_send_idxs = make_temporary_clone(exec->get_master(), &send_idxs);
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(const Matrix& other)
     : EnableDistributedLinOp<Matrix<value_type, local_index_type,
                                     global_index_type>>{other.get_executor()},

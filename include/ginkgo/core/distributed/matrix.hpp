@@ -370,6 +370,8 @@ public:
         return imap_;
     }
 
+    std::shared_ptr<LinOp> get_overlapping_local_matrix(size_type overlap);
+
     /**
      * Copy constructs a Matrix.
      *

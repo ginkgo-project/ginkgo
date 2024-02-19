@@ -74,6 +74,8 @@ public:
          */
         std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(
             generated_local_solver, nullptr);
+
+        size_type GKO_FACTORY_PARAMETER_SCALAR(overlap, 0);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Schwarz, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
