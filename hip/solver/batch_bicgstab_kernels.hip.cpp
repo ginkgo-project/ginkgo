@@ -5,7 +5,6 @@
 #include "core/solver/batch_bicgstab_kernels.hpp"
 
 
-#include <hip/hip_runtime.h>
 #include <thrust/functional.h>
 #include <thrust/transform.h>
 
@@ -14,19 +13,19 @@
 #include <ginkgo/core/base/math.hpp>
 
 
+#include "common/cuda_hip/base/batch_struct.hpp"
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/math.hpp"
+#include "common/cuda_hip/base/thrust.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/reduction.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/cuda_hip/components/uninitialized_array.hpp"
+#include "common/cuda_hip/matrix/batch_struct.hpp"
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
 #include "core/solver/batch_dispatch.hpp"
-#include "hip/base/batch_struct.hip.hpp"
-#include "hip/base/config.hip.hpp"
-#include "hip/base/math.hip.hpp"
-#include "hip/base/thrust.hip.hpp"
-#include "hip/base/types.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/components/reduction.hip.hpp"
-#include "hip/components/thread_ids.hip.hpp"
-#include "hip/components/uninitialized_array.hip.hpp"
-#include "hip/matrix/batch_struct.hip.hpp"
 
 
 namespace gko {
@@ -46,7 +45,6 @@ namespace batch_bicgstab {
 
 
 #include "common/cuda_hip/base/batch_multi_vector_kernels.hpp.inc"
-#include "common/cuda_hip/components/uninitialized_array.hpp.inc"
 #include "common/cuda_hip/matrix/batch_csr_kernels.hpp.inc"
 #include "common/cuda_hip/matrix/batch_dense_kernels.hpp.inc"
 #include "common/cuda_hip/matrix/batch_ell_kernels.hpp.inc"

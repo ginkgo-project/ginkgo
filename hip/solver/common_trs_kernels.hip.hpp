@@ -10,7 +10,6 @@
 #include <memory>
 
 
-#include <hip/hip_runtime.h>
 #if HIP_VERSION >= 50200000
 #include <hipsparse/hipsparse.h>
 #else
@@ -22,12 +21,12 @@
 #include <ginkgo/core/base/math.hpp>
 
 
+#include "common/cuda_hip/base/math.hpp"
+#include "common/cuda_hip/base/types.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "hip/base/hipsparse_bindings.hip.hpp"
-#include "hip/base/math.hip.hpp"
 #include "hip/base/pointer_mode_guard.hip.hpp"
-#include "hip/base/types.hip.hpp"
 
 
 namespace gko {

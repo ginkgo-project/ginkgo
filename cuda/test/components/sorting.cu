@@ -2,9 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "cuda/components/sorting.cuh"
-
-
 #include <memory>
 #include <random>
 
@@ -16,6 +13,7 @@
 #include <ginkgo/core/base/executor.hpp>
 
 
+#include "common/cuda_hip/components/sorting.hpp"
 #include "cuda/test/utils.hpp"
 
 

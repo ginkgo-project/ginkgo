@@ -8,9 +8,6 @@
 // force-top: off
 
 
-#include "hip/components/searching.hip.hpp"
-
-
 #include <memory>
 #include <numeric>
 #include <vector>
@@ -23,7 +20,8 @@
 #include <ginkgo/core/base/executor.hpp>
 
 
-#include "hip/components/cooperative_groups.hip.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/searching.hpp"
 #include "hip/test/utils.hip.hpp"
 
 

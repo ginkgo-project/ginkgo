@@ -9,7 +9,7 @@
 #include <ginkgo/core/base/types.hpp>
 
 
-#include "cuda/base/math.hpp"
+#include "common/cuda_hip/base/math.hpp"
 
 
 namespace gko {

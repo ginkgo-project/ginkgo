@@ -9,6 +9,7 @@
 #include <ginkgo/core/stop/stopping_status.hpp>
 
 
+#include "common/unified/base/config.hpp"
 #include "common/unified/base/kernel_launch.hpp"
 
 

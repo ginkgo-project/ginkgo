@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "common/unified/base/config.hpp"
 #include "common/unified/matrix/dense_kernels.template.cpp"
 
 

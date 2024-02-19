@@ -2,9 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "cuda/components/cooperative_groups.cuh"
-
-
 #include <memory>
 
 
@@ -15,6 +12,7 @@
 #include <ginkgo/core/base/executor.hpp>
 
 
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/test/utils.hpp"
 

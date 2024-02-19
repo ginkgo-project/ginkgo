@@ -8,7 +8,6 @@
 #include <array>
 
 
-#include <hip/hip_runtime.h>
 #if HIP_VERSION >= 50200000
 #include <hipfft/hipfft.h>
 #else

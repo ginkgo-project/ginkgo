@@ -6,7 +6,6 @@
 #define GKO_HIP_BASE_HIPSPARSE_BINDINGS_HIP_HPP_
 
 
-#include <hip/hip_runtime.h>
 #if HIP_VERSION >= 50200000
 #include <hipsparse/hipsparse.h>
 #else
@@ -955,6 +954,15 @@ GKO_BIND_HIPSPARSE_IC0(std::complex<double>, hipsparseZcsric02);
 
 
 }  // namespace hipsparse
+
+
+namespace sparselib {
+
+
+using namespace hipsparse;
+
+
+}
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko

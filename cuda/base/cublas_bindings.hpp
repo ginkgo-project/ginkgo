@@ -12,7 +12,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
-#include "cuda/base/math.hpp"
+#include "common/cuda_hip/base/math.hpp"
 #include "cuda/base/types.hpp"
 
 
@@ -249,6 +249,15 @@ inline void destroy(cublasHandle_t handle)
 
 
 }  // namespace cublas
+
+
+namespace blas {
+
+
+using namespace cublas;
+
+
+}  // namespace blas
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko
