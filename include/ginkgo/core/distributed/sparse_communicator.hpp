@@ -63,6 +63,12 @@ public:
 
     sparse_communicator& operator=(sparse_communicator&&) = default;
 
+    template <typename IndexType>
+    const array<IndexType>& get_send_idxs() const
+    {
+        return std::get<array<IndexType>>(send_idxs_);
+    }
+
 private:
     template <typename ValueType, typename LocalIndexType>
     mpi::request communicate_impl_(
