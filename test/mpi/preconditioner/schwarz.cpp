@@ -350,6 +350,7 @@ public:
     map_type imap;
 };
 
+
 TEST_F(Overlap, CanGetNonLocalRows)
 {
     auto result = gko::experimental::distributed::preconditioner::get_recv_rows(
@@ -458,30 +459,30 @@ TEST_F(Overlap, CanCreateOverlapOp)
                         0.0);
 }
 
+
 TEST_F(Overlap, CanApplyOverlapOp)
 {
     auto rank = comm.rank();
     using Dense = dense_vec_type;
-    std::unique_ptr<Dense> b[] = {
-        gko::initialize<Dense>({1, 2, -1}, exec),
-        gko::initialize<Dense>({3, 4, -1, -1}, exec),
-        gko::initialize<Dense>({5, 6, -1}, exec),
+    using Vector = dist_vec_type;
+    std::unique_ptr<Dense> local_b[] = {
+        gko::initialize<Dense>({1, 2}, exec),
+        gko::initialize<Dense>({3, 4}, exec),
+        gko::initialize<Dense>({5, 6}, exec),
     };
-    std::unique_ptr<Dense> x[] = {
-        gko::initialize<Dense>({0, 0, 0}, exec),
-        gko::initialize<Dense>({0, 0, 0, 0}, exec),
-        gko::initialize<Dense>({0, 0, 0}, exec),
-    };
-
+    auto b =
+        Vector::create(exec, comm, gko::dim<2>{6, 1}, std::move(local_b[rank]));
+    auto x = Vector::create(exec, comm, gko::dim<2>{6, 1}, gko::dim<2>{2, 1});
     auto ovlp =
         gko::experimental::distributed::preconditioner::OverlappingOperator<
             value_type, local_index_type>::create(dist_mat.get(), imap);
-    ovlp->apply(b[rank], x[rank]);
+
+    ovlp->apply(b, x);
 
     std::unique_ptr<Dense> expected[] = {
-        gko::initialize<Dense>({0, 0, 4}, exec),
-        gko::initialize<Dense>({0, 0, 1, 6}, exec),
-        gko::initialize<Dense>({0, 7, 3}, exec),
+        gko::initialize<Dense>({0, 0}, exec),
+        gko::initialize<Dense>({0, 0}, exec),
+        gko::initialize<Dense>({0, 7}, exec),
     };
-    GKO_ASSERT_MTX_NEAR(x[rank], expected[rank], 0.0);
+    GKO_ASSERT_MTX_NEAR(x->get_local_vector(), expected[rank], 0.0);
 }
