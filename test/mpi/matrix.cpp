@@ -625,3 +625,120 @@ TEST_F(Overlap, CanGetNonLocalRows)
         EXPECT_EQ(a, b);
     }
 }
+
+
+template <typename LocalIndexType, typename GlobalIndexType, typename ValueType>
+std::vector<gko::matrix_data_entry<ValueType, GlobalIndexType>>
+filter_non_relevant(
+    const std::vector<gko::matrix_data_entry<ValueType, GlobalIndexType>>&
+        input,
+    const gko::experimental::distributed::index_map<LocalIndexType,
+                                                    GlobalIndexType>& imap)
+{
+    std::vector<gko::matrix_data_entry<ValueType, GlobalIndexType>> result;
+    std::copy_if(input.begin(), input.end(), std::back_inserter(result),
+                 [&](const auto& a) {
+                     auto is =
+                         gko::experimental::distributed::index_space::combined;
+                     return imap.is_within_index_space(a.row, is) &&
+                            imap.is_within_index_space(a.column, is);
+                 });
+    return result;
+}
+
+
+TEST_F(Overlap, CanFilterNonRelevant)
+{
+    auto recv_rows = dist_mat->get_overlapping_local_matrix(0, imap);
+
+    auto result = filter_non_relevant(recv_rows, imap);
+    std::sort(result.begin(), result.end());
+
+    auto rank = comm.rank();
+    std::vector<matrix_data::nonzero_type> expected[] = {
+        {{2, 1, -1}, {2, 2, 2}},
+        {{1, 1, 2}, {1, 2, -1}, {4, 3, -1}, {4, 4, 2}},
+        {{3, 3, 2}, {3, 4, -1}}};
+    std::sort(expected[rank].begin(), expected[rank].end());
+    EXPECT_EQ(result.size(), expected[rank].size());
+    for (std::size_t i = 0; i < std::max(result.size(), expected[rank].size());
+         ++i) {
+        auto& a = result[std::min(i, result.size() - 1)];
+        auto& b = expected[rank][std::min(i, expected[rank].size() - 1)];
+
+        EXPECT_EQ(a, b);
+    }
+}
+
+
+template <typename LocalIndexType, typename GlobalIndexType, typename ValueType>
+gko::matrix_data<ValueType, LocalIndexType> combine_overlap(
+    const gko::experimental::distributed::Matrix<ValueType, LocalIndexType,
+                                                 GlobalIndexType>* mat,
+    const std::vector<gko::matrix_data_entry<ValueType, GlobalIndexType>>&
+        recv_rows,
+    const gko::experimental::distributed::index_map<LocalIndexType,
+                                                    GlobalIndexType>& imap)
+{
+    using md = gko::matrix_data<ValueType, LocalIndexType>;
+    md local;
+    md non_local;
+
+    gko::as<gko::WritableToMatrixData<ValueType, LocalIndexType>>(
+        mat->get_local_matrix())
+        ->write(local);
+    gko::as<gko::WritableToMatrixData<ValueType, LocalIndexType>>(
+        mat->get_non_local_matrix())
+        ->write(non_local);
+
+    for (auto& e : non_local.nonzeros) {
+        auto is = gko::experimental::distributed::index_space::non_local;
+        e.column = imap.get_combined_local(e.column, is);
+    }
+
+    md local_recv_rows;
+    std::transform(
+        recv_rows.begin(), recv_rows.end(),
+        std::back_inserter(local_recv_rows.nonzeros), [&](const auto& e) {
+            auto is = gko::experimental::distributed::index_space::combined;
+            return gko::matrix_data_entry<ValueType, LocalIndexType>{
+                imap.get_local(e.row, is), imap.get_local(e.column, is),
+                e.value};
+        });
+
+    auto combined_size = imap.get_local_size() + imap.get_non_local_size();
+    md combined{gko::dim<2>{combined_size, combined_size}};
+    std::copy(local.nonzeros.begin(), local.nonzeros.end(),
+              std::back_inserter(combined.nonzeros));
+    std::copy(non_local.nonzeros.begin(), non_local.nonzeros.end(),
+              std::back_inserter(combined.nonzeros));
+    std::copy(local_recv_rows.nonzeros.begin(), local_recv_rows.nonzeros.end(),
+              std::back_inserter(combined.nonzeros));
+    return combined;
+}
+
+TEST_F(Overlap, CanCombineMatrices)
+{
+    auto recv_rows = dist_mat->get_overlapping_local_matrix(0, imap);
+    recv_rows = filter_non_relevant(recv_rows, imap);
+
+    auto result = combine_overlap(dist_mat.get(), recv_rows, imap);
+    std::sort(result.nonzeros.begin(), result.nonzeros.end());
+
+    auto rank = comm.rank();
+    matrix_data expected[] = {{{2, -1, 0}, {-1, 2, -1}, {0, -1, 2}},
+                              {
+                                  {2, -1, -1, 0},
+                                  {-1, 2, 0, -1},
+                                  {-1, 0, 2, 0},
+                                  {0, -1, 0, 2},
+                              },
+                              {
+
+                                  {2, -1, -1}, {-1, 2, 0}, {-1, 0, 2}}};
+    auto result_op = dense_vec_type::create(exec);
+    result_op->read(result);
+    auto expected_op = dense_vec_type::create(exec);
+    expected_op->read(expected[rank]);
+    GKO_ASSERT_MTX_NEAR(result_op, expected_op, 0.0);
+}

@@ -72,8 +72,12 @@ struct index_map {
      *         specified index space is mapped to invalid_index.
      */
     [[nodiscard]] GlobalIndexType get_global(
-        const LocalIndexType& global_ids,
+        const LocalIndexType global_ids,
         index_space is = index_space::combined) const;
+
+
+    [[nodiscard]] bool is_within_index_space(const GlobalIndexType id,
+                                             index_space is) const;
 
     /**
      * \brief Maps global indices to local indices
@@ -87,6 +91,16 @@ struct index_map {
     [[nodiscard]] array<LocalIndexType> get_local(
         const array<GlobalIndexType>& global_ids,
         index_space is = index_space::combined) const;
+
+
+    [[nodiscard]] LocalIndexType get_local(
+        GlobalIndexType global_ids,
+        index_space is = index_space::combined) const;
+
+
+    [[nodiscard]] LocalIndexType get_combined_local(
+        const LocalIndexType local_id, index_space from_is) const;
+
 
     /**
      * \brief get size of index_space::local
