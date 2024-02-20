@@ -63,10 +63,22 @@ public:
 
     sparse_communicator& operator=(sparse_communicator&&) = default;
 
+    mpi::communicator get_communicator() const { return default_comm_; }
+
     template <typename IndexType>
     const array<IndexType>& get_send_idxs() const
     {
         return std::get<array<IndexType>>(send_idxs_);
+    }
+
+    const std::vector<comm_index_type>& get_send_offsets() const
+    {
+        return send_offsets_;
+    }
+
+    const std::vector<comm_index_type>& get_recv_offsets() const
+    {
+        return recv_offsets_;
     }
 
 private:
