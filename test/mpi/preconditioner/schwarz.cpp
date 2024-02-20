@@ -30,6 +30,7 @@
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 
+#include "core/distributed/preconditioner/schwarz_ovlp.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/matrix_generator.hpp"
 #include "core/utils/matrix_utils.hpp"
@@ -299,4 +300,188 @@ TYPED_TEST(SchwarzPreconditioner, CanAdvancedApplyPreconditioner)
 
     this->assert_equal_to_non_distributed_vector(this->dist_x,
                                                  this->non_dist_x);
+}
+
+
+class Overlap : public CommonMpiTestFixture {
+public:
+    using value_type = double;
+    using local_index_type = gko::int32;
+    using global_index_type = gko::int64;
+    using part_type =
+        gko::experimental::distributed::Partition<local_index_type,
+                                                  global_index_type>;
+    using map_type =
+        gko::experimental::distributed::index_map<local_index_type,
+                                                  global_index_type>;
+    using csr_mtx_type = gko::matrix::Csr<value_type, global_index_type>;
+    using dist_mtx_type =
+        gko::experimental::distributed::Matrix<value_type, local_index_type,
+                                               global_index_type>;
+    using dist_vec_type = gko::experimental::distributed::Vector<value_type>;
+    using local_matrix_type = gko::matrix::Csr<value_type, local_index_type>;
+    using dense_vec_type = gko::matrix::Dense<value_type>;
+    using matrix_data = gko::matrix_data<value_type, global_index_type>;
+
+    Overlap()
+    {
+        part = part_type::build_from_global_size_uniform(exec, 3, 6);
+
+        dist_mat = dist_mtx_type::create(exec, comm);
+
+        gko::matrix_data<value_type, global_index_type> mat_input{
+            {{2, -1, 0, 0, 0, 0},
+             {-1, 2, -1, 0, 0, 0},
+             {0, -1, 2, -1, 0, 0},
+             {0, 0, -1, 2, -1, 0},
+             {0, 0, 0, -1, 2, -1},
+             {0, 0, 0, 0, -1, 2}}};
+        imap = dist_mat->read_distributed(mat_input, this->part);
+    }
+
+    void SetUp() override { ASSERT_EQ(comm.size(), 3); }
+
+
+    gko::dim<2> size;
+
+    std::shared_ptr<part_type> part;
+
+    std::unique_ptr<dist_mtx_type> dist_mat;
+    map_type imap;
+};
+
+TEST_F(Overlap, CanGetNonLocalRows)
+{
+    auto result = gko::experimental::distributed::preconditioner::get_recv_rows(
+        dist_mat.get(), imap);
+    std::sort(result.begin(), result.end());
+
+    auto rank = comm.rank();
+    std::vector<matrix_data::nonzero_type> expected[] = {
+        {{2, 1, -1}, {2, 2, 2}, {2, 3, -1}},
+        {{1, 0, -1}, {1, 1, 2}, {1, 2, -1}, {4, 3, -1}, {4, 4, 2}, {4, 5, -1}},
+        {{3, 2, -1}, {3, 3, 2}, {3, 4, -1}}};
+    std::sort(expected[rank].begin(), expected[rank].end());
+    EXPECT_EQ(result.size(), expected[rank].size());
+    for (std::size_t i = 0; i < std::max(result.size(), expected[rank].size());
+         ++i) {
+        auto& a = result[std::min(i, result.size() - 1)];
+        auto& b = expected[rank][std::min(i, expected[rank].size() - 1)];
+
+        EXPECT_EQ(a, b);
+    }
+}
+
+
+TEST_F(Overlap, CanFilterNonRelevant)
+{
+    auto recv_rows =
+        gko::experimental::distributed::preconditioner::get_recv_rows(
+            dist_mat.get(), imap);
+
+    auto result =
+        gko::experimental::distributed::preconditioner::filter_non_relevant(
+            recv_rows, imap);
+    std::sort(result.begin(), result.end());
+
+    auto rank = comm.rank();
+    std::vector<matrix_data::nonzero_type> expected[] = {
+        {{2, 1, -1}, {2, 2, 2}},
+        {{1, 1, 2}, {1, 2, -1}, {4, 3, -1}, {4, 4, 2}},
+        {{3, 3, 2}, {3, 4, -1}}};
+    std::sort(expected[rank].begin(), expected[rank].end());
+    EXPECT_EQ(result.size(), expected[rank].size());
+    for (std::size_t i = 0; i < std::max(result.size(), expected[rank].size());
+         ++i) {
+        auto& a = result[std::min(i, result.size() - 1)];
+        auto& b = expected[rank][std::min(i, expected[rank].size() - 1)];
+
+        EXPECT_EQ(a, b);
+    }
+}
+
+
+TEST_F(Overlap, CanCombineMatrices)
+{
+    auto recv_rows =
+        gko::experimental::distributed::preconditioner::get_recv_rows(
+            dist_mat.get(), imap);
+    recv_rows =
+        gko::experimental::distributed::preconditioner::filter_non_relevant(
+            recv_rows, imap);
+
+    auto result =
+        gko::experimental::distributed::preconditioner::combine_overlap(
+            dist_mat.get(), recv_rows, imap);
+    std::sort(result.nonzeros.begin(), result.nonzeros.end());
+
+    auto rank = comm.rank();
+    matrix_data expected[] = {{{2, -1, 0}, {-1, 2, -1}, {0, -1, 2}},
+                              {
+                                  {2, -1, -1, 0},
+                                  {-1, 2, 0, -1},
+                                  {-1, 0, 2, 0},
+                                  {0, -1, 0, 2},
+                              },
+                              {
+
+                                  {2, -1, -1}, {-1, 2, 0}, {-1, 0, 2}}};
+    auto result_op = dense_vec_type::create(exec);
+    result_op->read(result);
+    auto expected_op = dense_vec_type::create(exec);
+    expected_op->read(expected[rank]);
+    GKO_ASSERT_MTX_NEAR(result_op, expected_op, 0.0);
+}
+
+
+TEST_F(Overlap, CanCreateOverlapOp)
+{
+    using Csr = gko::matrix::Csr<value_type, local_index_type>;
+    auto result =
+        gko::experimental::distributed::preconditioner::OverlappingOperator<
+            value_type, local_index_type>::create(dist_mat.get(), imap);
+
+    auto rank = comm.rank();
+    using Dense = dense_vec_type;
+    std::unique_ptr<Dense> expected[] = {
+        gko::initialize<Dense>({{2, -1, 0}, {-1, 2, -1}, {0, -1, 2}}, exec),
+        gko::initialize<Dense>(
+            {
+                {2, -1, -1, 0},
+                {-1, 2, 0, -1},
+                {-1, 0, 2, 0},
+                {0, -1, 0, 2},
+            },
+            exec),
+        gko::initialize<Dense>({{2, -1, -1}, {-1, 2, 0}, {-1, 0, 2}}, exec)};
+    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(result->get_matrix()), expected[rank],
+                        0.0);
+}
+
+TEST_F(Overlap, CanApplyOverlapOp)
+{
+    auto rank = comm.rank();
+    using Dense = dense_vec_type;
+    std::unique_ptr<Dense> b[] = {
+        gko::initialize<Dense>({1, 2, -1}, exec),
+        gko::initialize<Dense>({3, 4, -1, -1}, exec),
+        gko::initialize<Dense>({5, 6, -1}, exec),
+    };
+    std::unique_ptr<Dense> x[] = {
+        gko::initialize<Dense>({0, 0, 0}, exec),
+        gko::initialize<Dense>({0, 0, 0, 0}, exec),
+        gko::initialize<Dense>({0, 0, 0}, exec),
+    };
+
+    auto ovlp =
+        gko::experimental::distributed::preconditioner::OverlappingOperator<
+            value_type, local_index_type>::create(dist_mat.get(), imap);
+    ovlp->apply(b[rank], x[rank]);
+
+    std::unique_ptr<Dense> expected[] = {
+        gko::initialize<Dense>({0, 0, 4}, exec),
+        gko::initialize<Dense>({0, 0, 1, 6}, exec),
+        gko::initialize<Dense>({0, 7, 3}, exec),
+    };
+    GKO_ASSERT_MTX_NEAR(x[rank], expected[rank], 0.0);
 }
