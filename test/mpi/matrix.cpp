@@ -556,3 +556,72 @@ TEST_F(MatrixGpuAwareCheck, AdvancedApplyCopiesToHostOnlyIfNecessary)
     ASSERT_EQ(logger->get_transfer_count() > transfer_count_before,
               needs_transfers(exec));
 }
+
+
+class Overlap : public CommonMpiTestFixture {
+public:
+    using value_type = double;
+    using local_index_type = gko::int32;
+    using global_index_type = gko::int64;
+    using part_type =
+        gko::experimental::distributed::Partition<local_index_type,
+                                                  global_index_type>;
+    using map_type =
+        gko::experimental::distributed::index_map<local_index_type,
+                                                  global_index_type>;
+    using csr_mtx_type = gko::matrix::Csr<value_type, global_index_type>;
+    using dist_mtx_type =
+        gko::experimental::distributed::Matrix<value_type, local_index_type,
+                                               global_index_type>;
+    using dist_vec_type = gko::experimental::distributed::Vector<value_type>;
+    using local_matrix_type = gko::matrix::Csr<value_type, local_index_type>;
+    using dense_vec_type = gko::matrix::Dense<value_type>;
+    using matrix_data = gko::matrix_data<value_type, global_index_type>;
+
+    Overlap()
+    {
+        part = part_type::build_from_global_size_uniform(exec, 3, 6);
+
+        dist_mat = dist_mtx_type::create(exec, comm);
+
+        gko::matrix_data<value_type, global_index_type> mat_input{
+            {{2, -1, 0, 0, 0, 0},
+             {-1, 2, -1, 0, 0, 0},
+             {0, -1, 2, -1, 0, 0},
+             {0, 0, -1, 2, -1, 0},
+             {0, 0, 0, -1, 2, -1},
+             {0, 0, 0, 0, -1, 2}}};
+        imap = dist_mat->read_distributed(mat_input, this->part);
+    }
+
+    void SetUp() override { ASSERT_EQ(comm.size(), 3); }
+
+
+    gko::dim<2> size;
+
+    std::shared_ptr<part_type> part;
+
+    std::unique_ptr<dist_mtx_type> dist_mat;
+    map_type imap;
+};
+
+TEST_F(Overlap, CanGetNonLocalRows)
+{
+    auto result = dist_mat->get_overlapping_local_matrix(0, imap);
+    std::sort(result.begin(), result.end());
+
+    auto rank = comm.rank();
+    std::vector<matrix_data::nonzero_type> expected[] = {
+        {{2, 1, -1}, {2, 2, 2}, {2, 3, -1}},
+        {{1, 0, -1}, {1, 1, 2}, {1, 2, -1}, {4, 3, -1}, {4, 4, 2}, {4, 5, -1}},
+        {{3, 2, -1}, {3, 3, 2}, {3, 4, -1}}};
+    std::sort(expected[rank].begin(), expected[rank].end());
+    EXPECT_EQ(result.size(), expected[rank].size());
+    for (std::size_t i = 0; i < std::max(result.size(), expected[rank].size());
+         ++i) {
+        auto& a = result[std::min(i, result.size() - 1)];
+        auto& b = expected[rank][std::min(i, expected[rank].size() - 1)];
+
+        EXPECT_EQ(a, b);
+    }
+}
