@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
+#include <ginkgo/core/distributed/sparse_communicator.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -179,6 +180,7 @@ class OverlappingOperator
     friend class EnableDistributedPolymorphicObject<OverlappingOperator, LinOp>;
 
     using Dense = matrix::Dense<ValueType>;
+    using Vec = Vector<ValueType>;
 
 public:
     using value_type = ValueType;
@@ -191,14 +193,15 @@ public:
         auto recv_rows = get_recv_rows(mtx, imap);
         recv_rows = filter_non_relevant(recv_rows, imap);
         auto ovlp_md = combine_overlap(mtx, recv_rows, imap);
-        ovlp_md.sort_row_major_order();
+        ovlp_md.sort_row_major();
 
         using Csr = matrix::Csr<ValueType, IndexType>;
         auto ovlp_mtx = Csr::create(mtx->get_executor());
         ovlp_mtx->read(std::move(ovlp_md));
 
         return std::unique_ptr<OverlappingOperator>(new OverlappingOperator(
-            std::move(ovlp_mtx), mtx->get_sparse_communicator()));
+            std::move(ovlp_mtx), mtx->get_sparse_communicator(),
+            mtx->get_size()));
     }
 
     std::shared_ptr<const LinOp> get_matrix() const { return mtx_; }
@@ -206,23 +209,20 @@ public:
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override
     {
-        auto dense_b = as<Dense>(b);
-        auto copy_b = clone(dense_b);
+        auto dense_b = as<Vec>(b);
+        auto dense_x = as<Vec>(x);
 
-        auto exec = this->get_executor();
-        auto non_local_size =
-            static_cast<size_type>(spcomm_.get_recv_offsets().back());
-        auto local_size = dense_b->get_size()[0] - non_local_size;
-        auto combined_size = dense_b->get_size()[0];
-        recv_buffer_.init(exec, dim<2>{non_local_size, dense_b->get_size()[1]});
-        recv_buffer_->move_from(copy_b->create_submatrix(
-            {local_size, combined_size}, {0, dense_b->get_size()[1]}));
+        init_cache(dense_b, restricted_in_);
+        init_cache(dense_x, restricted_out_);
 
-        auto req = spcomm_.communicate(dense_b, send_buffer_, recv_buffer_);
+        auto req = restrict(dense_b, restricted_in_.get());
         req.wait();
 
-        mtx_->apply(copy_b, x);
+        mtx_->apply(restricted_in_.get(), restricted_out_.get());
+
+        interpolate(restricted_out_.get(), dense_x);
     }
+
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override GKO_NOT_IMPLEMENTED;
 
@@ -234,18 +234,64 @@ private:
     {}
 
     OverlappingOperator(std::shared_ptr<const LinOp> mtx,
-                        sparse_communicator spcomm)
+                        sparse_communicator spcomm, dim<2> global_size)
         : EnableDistributedLinOp<OverlappingOperator>(mtx->get_executor(),
-                                                      mtx->get_size()),
+                                                      global_size),
           DistributedBase(spcomm.get_communicator()),
           mtx_(std::move(mtx)),
           spcomm_(std::move(spcomm))
     {}
 
+    void init_cache(const Vector<ValueType>* template_vec,
+                    const detail::DenseCache<value_type>& out) const
+    {
+        auto non_local_size =
+            static_cast<size_type>(spcomm_.get_recv_offsets().back());
+        auto local_size = template_vec->get_local_vector()->get_size()[0];
+        auto combined_size = local_size + non_local_size;
 
-    void restrict(const Dense* in, Dense* out) {}
+        auto exec = template_vec->get_executor();
+        out.init(exec, dim<2>{combined_size, template_vec->get_size()[1]});
+    }
 
-    void interpolate(const Dense* in, Dense* out) {}
+    mpi::request restrict(const Vec* in, Dense* out) const
+    {
+        auto exec = in->get_executor();
+
+        auto local_size = in->get_local_vector()->get_size()[0];
+        out->create_submatrix({0, local_size}, {0, in->get_size()[1]})
+            ->copy_from(in->get_local_vector());
+
+        auto non_local_size =
+            static_cast<size_type>(spcomm_.get_recv_offsets().back());
+        recv_buffer_.init(exec, dim<2>{non_local_size, in->get_size()[1]});
+        recv_buffer_->move_from(out->create_submatrix(
+            {local_size, out->get_size()[0]}, {0, out->get_size()[1]}));
+
+        auto req = spcomm_.communicate(in->get_local_vector(), send_buffer_,
+                                       recv_buffer_);
+        return req;
+    }
+
+    void interpolate(const Dense* in, Vec* out) const
+    {
+        auto exec = out->get_executor();
+        auto local_out = out->get_local_vector();
+        auto non_local_size =
+            static_cast<size_type>(spcomm_.get_recv_offsets().back());
+        dim<2> expected_dim{local_out->get_size()[0] + non_local_size,
+                            local_out->get_size()[1]};
+        GKO_ASSERT_EQUAL_DIMENSIONS(in, expected_dim);
+        auto mutable_out = Dense::create(
+            exec, local_out->get_size(),
+            make_array_view(exec, local_out->get_num_stored_elements(),
+                            out->get_local_values()),
+            local_out->get_stride());
+        const_cast<Dense*>(in)
+            ->create_submatrix({0, local_out->get_size()[0]},
+                               {0, out->get_size()[1]})
+            ->convert_to(mutable_out);
+    }
 
 
     std::shared_ptr<const LinOp> mtx_;
@@ -253,6 +299,8 @@ private:
 
     detail::DenseCache<value_type> send_buffer_;
     detail::DenseCache<value_type> recv_buffer_;
+    detail::DenseCache<value_type> restricted_in_;
+    detail::DenseCache<value_type> restricted_out_;
 };
 
 
