@@ -21,6 +21,7 @@
 
 #include "core/base/utils.hpp"
 #include "core/distributed/helpers.hpp"
+#include "core/distributed/preconditioner/schwarz_ovlp.hpp"
 
 
 namespace gko {
@@ -49,8 +50,8 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
     using Vector = matrix::Dense<ValueType>;
     auto exec = this->get_executor();
     if (this->local_solver_ != nullptr) {
-        this->local_solver_->apply(gko::detail::get_local(dense_b),
-                                   gko::detail::get_local(dense_x));
+        this->local_solver_->apply(detail::get_local(dense_b),
+                                   detail::get_local(dense_x));
     }
 }
 
@@ -77,7 +78,7 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::set_solver(
     auto exec = this->get_executor();
     if (new_solver) {
         if (new_solver->get_executor() != exec) {
-            new_solver = gko::clone(exec, new_solver);
+            new_solver = clone(exec, new_solver);
         }
     }
     this->local_solver_ = new_solver;
@@ -99,9 +100,9 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     }
 
     if (parameters_.local_solver) {
-        this->set_solver(gko::share(parameters_.local_solver->generate(
-            as<experimental::distributed::Matrix<
-                ValueType, LocalIndexType, GlobalIndexType>>(system_matrix)
+        this->set_solver(share(parameters_.local_solver->generate(
+            as<distributed::Matrix<ValueType, LocalIndexType, GlobalIndexType>>(
+                system_matrix)
                 ->get_local_matrix())));
 
     } else {
