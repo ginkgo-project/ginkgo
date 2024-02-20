@@ -742,3 +742,119 @@ TEST_F(Overlap, CanCombineMatrices)
     expected_op->read(expected[rank]);
     GKO_ASSERT_MTX_NEAR(result_op, expected_op, 0.0);
 }
+
+template <typename ValueType, typename IndexType>
+class OverlappingOperator
+    : public gko::experimental::EnableDistributedLinOp<
+          OverlappingOperator<ValueType, IndexType>>,
+      public gko::experimental::distributed::DistributedBase {
+    friend class gko::experimental::EnableDistributedPolymorphicObject<
+        OverlappingOperator, gko::LinOp>;
+
+    using Dense = gko::matrix::Dense<ValueType>;
+
+public:
+    using value_type = ValueType;
+
+    static std::unique_ptr<OverlappingOperator> create(
+        std::shared_ptr<const gko::Executor> exec,
+        std::shared_ptr<const gko::LinOp> mtx,
+        gko::experimental::distributed::sparse_communicator spcomm)
+    {
+        return std::unique_ptr<OverlappingOperator>(new OverlappingOperator(
+            std::move(exec), std::move(mtx), std::move(spcomm)));
+    }
+
+protected:
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
+    {
+        auto dense_b = gko::as<Dense>(b);
+        auto copy_b = gko::clone(dense_b);
+
+        auto exec = this->get_executor();
+        auto non_local_size =
+            static_cast<gko::size_type>(spcomm_.get_recv_offsets().back());
+        auto local_size = dense_b->get_size()[0] - non_local_size;
+        auto combined_size = dense_b->get_size()[0];
+        recv_buffer_.init(exec,
+                          gko::dim<2>{non_local_size, dense_b->get_size()[1]});
+        recv_buffer_->move_from(copy_b->create_submatrix(
+            {local_size, combined_size}, {0, dense_b->get_size()[1]}));
+
+        auto req = spcomm_.communicate(dense_b, send_buffer_, recv_buffer_);
+        req.wait();
+
+        mtx_->apply(copy_b, x);
+    }
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta,
+                    gko::LinOp* x) const override GKO_NOT_IMPLEMENTED;
+
+private:
+    OverlappingOperator(std::shared_ptr<const gko::Executor> exec,
+                        gko::experimental::mpi::communicator comm)
+        : gko::experimental::EnableDistributedLinOp<OverlappingOperator>(
+              std::move(exec)),
+          gko::experimental::distributed::DistributedBase(std::move(comm))
+    {}
+
+    OverlappingOperator(
+        std::shared_ptr<const gko::Executor> exec,
+        std::shared_ptr<const gko::LinOp> mtx,
+        gko::experimental::distributed::sparse_communicator spcomm)
+        : gko::experimental::EnableDistributedLinOp<OverlappingOperator>(
+              std::move(exec), mtx->get_size()),
+          gko::experimental::distributed::DistributedBase(
+              spcomm.get_communicator()),
+          mtx_(std::move(mtx)),
+          spcomm_(std::move(spcomm))
+    {}
+
+
+    void restrict(const Dense* in, Dense* out) {}
+
+    void interpolate(const Dense* in, Dense* out) {}
+
+
+    std::shared_ptr<const gko::LinOp> mtx_;
+    gko::experimental::distributed::sparse_communicator spcomm_;
+
+    gko::detail::DenseCache<value_type> send_buffer_;
+    gko::detail::DenseCache<value_type> recv_buffer_;
+};
+
+
+TEST_F(Overlap, CanApplyOverlapOp)
+{
+    auto rank = comm.rank();
+    using Dense = dense_vec_type;
+    std::unique_ptr<Dense> b[] = {
+        gko::initialize<Dense>({1, 2, -1}, exec),
+        gko::initialize<Dense>({3, 4, -1, -1}, exec),
+        gko::initialize<Dense>({5, 6, -1}, exec),
+    };
+    std::unique_ptr<Dense> x[] = {
+        gko::initialize<Dense>({0, 0, 0}, exec),
+        gko::initialize<Dense>({0, 0, 0, 0}, exec),
+        gko::initialize<Dense>({0, 0, 0}, exec),
+    };
+    auto recv_rows = dist_mat->get_overlapping_local_matrix(0, imap);
+    recv_rows = filter_non_relevant(recv_rows, imap);
+    auto combined = combine_overlap(dist_mat.get(), recv_rows, imap);
+    combined.sort_row_major();
+    using Csr = gko::matrix::Csr<value_type, local_index_type>;
+    auto mtx = gko::share(Csr::create(exec));
+    mtx->read(std::move(combined));
+
+    auto ovlp = OverlappingOperator<value_type, local_index_type>::create(
+        exec, mtx,
+        gko::experimental::distributed::sparse_communicator{comm, imap});
+    ovlp->apply(b[rank], x[rank]);
+
+    std::unique_ptr<Dense> expected[] = {
+        gko::initialize<Dense>({0, 0, 4}, exec),
+        gko::initialize<Dense>({0, 0, 1, 6}, exec),
+        gko::initialize<Dense>({0, 7, 3}, exec),
+    };
+    GKO_ASSERT_MTX_NEAR(x[rank], expected[rank], 0.0);
+}
