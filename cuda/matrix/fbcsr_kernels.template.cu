@@ -133,13 +133,13 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
         const auto in_stride = b->get_stride();
         const auto out_stride = c->get_stride();
         if (nrhs == 1 && in_stride == 1 && out_stride == 1) {
-            sparselib::bsrmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, mb, nb,
+            sparselib::bsrmv(handle, SPARSELIB_OPERATION_NON_TRANSPOSE, mb, nb,
                              nnzb, &alpha, descr, values, row_ptrs, col_idxs,
                              bs, b->get_const_values(), &beta, c->get_values());
         } else {
             const auto trans_stride = nrows;
             auto trans_c = array<ValueType>(exec, nrows * nrhs);
-            sparselib::bsrmm(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+            sparselib::bsrmm(handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
                              CUSPARSE_OPERATION_TRANSPOSE, mb, nrhs, nb, nnzb,
                              &alpha, descr, values, row_ptrs, col_idxs, bs,
                              b->get_const_values(), in_stride, &beta,
@@ -189,7 +189,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
         const auto in_stride = b->get_stride();
         const auto out_stride = c->get_stride();
         if (nrhs == 1 && in_stride == 1 && out_stride == 1) {
-            sparselib::bsrmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, mb, nb,
+            sparselib::bsrmv(handle, SPARSELIB_OPERATION_NON_TRANSPOSE, mb, nb,
                              nnzb, alphp, descr, values, row_ptrs, col_idxs, bs,
                              b->get_const_values(), betap, c->get_values());
         } else {
@@ -197,7 +197,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
             auto trans_c = array<ValueType>(exec, nrows * nrhs);
             dense_transpose(exec, nrows, nrhs, out_stride, c->get_values(),
                             trans_stride, trans_c.get_data());
-            sparselib::bsrmm(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+            sparselib::bsrmm(handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
                              CUSPARSE_OPERATION_TRANSPOSE, mb, nrhs, nb, nnzb,
                              alphp, descr, values, row_ptrs, col_idxs, bs,
                              b->get_const_values(), in_stride, betap,

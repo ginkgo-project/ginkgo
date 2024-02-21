@@ -44,12 +44,12 @@ void compute_lu(std::shared_ptr<const DefaultExecutor> exec,
     // set up ILU(0)
     sparselib::ilu0_analysis(handle, num_rows, nnz, desc, m->get_const_values(),
                              m->get_const_row_ptrs(), m->get_const_col_idxs(),
-                             info, CUSPARSE_SOLVE_POLICY_USE_LEVEL,
+                             info, SPARSELIB_SOLVE_POLICY_USE_LEVEL,
                              buffer.get_data());
 
     sparselib::ilu0(handle, num_rows, nnz, desc, m->get_values(),
                     m->get_const_row_ptrs(), m->get_const_col_idxs(), info,
-                    CUSPARSE_SOLVE_POLICY_USE_LEVEL, buffer.get_data());
+                    SPARSELIB_SOLVE_POLICY_USE_LEVEL, buffer.get_data());
 
     // CUDA 11.4 has a use-after-free bug on Turing
 #if (CUDA_VERSION >= 11040)

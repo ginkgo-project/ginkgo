@@ -47,12 +47,12 @@ void compute(std::shared_ptr<const DefaultExecutor> exec,
     // set up IC(0)
     sparselib::ic0_analysis(handle, num_rows, nnz, desc, m->get_const_values(),
                             m->get_const_row_ptrs(), m->get_const_col_idxs(),
-                            info, HIPSPARSE_SOLVE_POLICY_USE_LEVEL,
+                            info, SPARSELIB_SOLVE_POLICY_USE_LEVEL,
                             buffer.get_data());
 
     sparselib::ic0(handle, num_rows, nnz, desc, m->get_values(),
                    m->get_const_row_ptrs(), m->get_const_col_idxs(), info,
-                   HIPSPARSE_SOLVE_POLICY_USE_LEVEL, buffer.get_data());
+                   SPARSELIB_SOLVE_POLICY_USE_LEVEL, buffer.get_data());
 
     sparselib::destroy_ic0_info(info);
     sparselib::destroy(desc);

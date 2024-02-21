@@ -358,7 +358,7 @@ bool try_general_sparselib_spmv(std::shared_ptr<const HipExecutor> exec,
         auto col_idxs = a->get_const_col_idxs();
 
         sparselib::spmv(exec->get_sparselib_handle(),
-                        HIPSPARSE_OPERATION_NON_TRANSPOSE, a->get_size()[0],
+                        SPARSELIB_OPERATION_NON_TRANSPOSE, a->get_size()[0],
                         a->get_size()[1], a->get_num_stored_elements(), alpha,
                         descr, a->get_const_values(), row_ptrs, col_idxs,
                         b->get_const_values(), beta, c->get_values());

@@ -134,7 +134,7 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
                 blas::pointer_mode_guard pm_guard(handle);
                 auto alpha = one<ValueType>();
                 auto beta = zero<ValueType>();
-                blas::gemm(handle, HIPBLAS_OP_N, HIPBLAS_OP_N, c->get_size()[1],
+                blas::gemm(handle, BLAS_OP_N, BLAS_OP_N, c->get_size()[1],
                            c->get_size()[0], a->get_size()[1], &alpha,
                            b->get_const_values(), b->get_stride(),
                            a->get_const_values(), a->get_stride(), &beta,
@@ -160,7 +160,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     if (blas::is_supported<ValueType>::value) {
         if (c->get_size()[0] > 0 && c->get_size()[1] > 0) {
             if (a->get_size()[1] > 0) {
-                blas::gemm(exec->get_blas_handle(), HIPBLAS_OP_N, HIPBLAS_OP_N,
+                blas::gemm(exec->get_blas_handle(), BLAS_OP_N, BLAS_OP_N,
                            c->get_size()[1], c->get_size()[0], a->get_size()[1],
                            alpha->get_const_values(), b->get_const_values(),
                            b->get_stride(), a->get_const_values(),
@@ -189,7 +189,7 @@ void transpose(std::shared_ptr<const DefaultExecutor> exec,
             blas::pointer_mode_guard pm_guard(handle);
             auto alpha = one<ValueType>();
             auto beta = zero<ValueType>();
-            blas::geam(handle, HIPBLAS_OP_T, HIPBLAS_OP_N, orig->get_size()[0],
+            blas::geam(handle, BLAS_OP_T, BLAS_OP_N, orig->get_size()[0],
                        orig->get_size()[1], &alpha, orig->get_const_values(),
                        orig->get_stride(), &beta, trans->get_const_values(),
                        trans->get_stride(), trans->get_values(),
@@ -214,7 +214,7 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
             blas::pointer_mode_guard pm_guard(handle);
             auto alpha = one<ValueType>();
             auto beta = zero<ValueType>();
-            blas::geam(handle, HIPBLAS_OP_C, HIPBLAS_OP_N, orig->get_size()[0],
+            blas::geam(handle, BLAS_OP_C, BLAS_OP_N, orig->get_size()[0],
                        orig->get_size()[1], &alpha, orig->get_const_values(),
                        orig->get_stride(), &beta, trans->get_values(),
                        trans->get_stride(), trans->get_values(),

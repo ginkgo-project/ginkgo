@@ -72,7 +72,7 @@ void initialize_subspace_vectors(std::shared_ptr<const DefaultExecutor> exec,
 {
     if (!deterministic) {
         auto gen = randlib::rand_generator(std::random_device{}(),
-                                           HIPRAND_RNG_PSEUDO_DEFAULT,
+                                           RANDLIB_RNG_PSEUDO_DEFAULT,
                                            exec->get_stream());
         randlib::rand_vector(
             gen,

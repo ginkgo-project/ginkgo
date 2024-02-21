@@ -340,7 +340,7 @@ bool try_general_sparselib_spmv(std::shared_ptr<const DefaultExecutor> exec,
     auto descr = sparselib::create_mat_descr();
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
-    sparselib::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, a->get_size()[0],
+    sparselib::spmv(handle, SPARSELIB_OPERATION_NON_TRANSPOSE, a->get_size()[0],
                     a->get_size()[1], a->get_num_stored_elements(), alpha,
                     descr, a->get_const_values(), row_ptrs, col_idxs,
                     b->get_const_values(), beta, c->get_values());
@@ -351,7 +351,7 @@ bool try_general_sparselib_spmv(std::shared_ptr<const DefaultExecutor> exec,
     if (a->get_size()[1] == 0) {
         return false;
     }
-    cusparseOperation_t trans = CUSPARSE_OPERATION_NON_TRANSPOSE;
+    cusparseOperation_t trans = SPARSELIB_OPERATION_NON_TRANSPOSE;
     auto row_ptrs = const_cast<IndexType*>(a->get_const_row_ptrs());
     auto col_idxs = const_cast<IndexType*>(a->get_const_col_idxs());
     auto values = const_cast<ValueType*>(a->get_const_values());

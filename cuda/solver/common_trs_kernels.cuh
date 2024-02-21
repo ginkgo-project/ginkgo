@@ -210,7 +210,7 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
             factor_descr,
             unit_diag ? CUSPARSE_DIAG_TYPE_UNIT : CUSPARSE_DIAG_TYPE_NON_UNIT);
         algorithm = 0;
-        policy = CUSPARSE_SOLVE_POLICY_USE_LEVEL;
+        policy = SPARSELIB_SOLVE_POLICY_USE_LEVEL;
 
         size_type work_size{};
 

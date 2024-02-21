@@ -63,7 +63,7 @@ struct SolveStruct : gko::solver::SolveStruct {
             factor_descr, unit_diag ? HIPSPARSE_DIAG_TYPE_UNIT
                                     : HIPSPARSE_DIAG_TYPE_NON_UNIT));
         GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseCreateCsrsv2Info(&solve_info));
-        policy = HIPSPARSE_SOLVE_POLICY_USE_LEVEL;
+        policy = SPARSELIB_SOLVE_POLICY_USE_LEVEL;
     }
 
     SolveStruct(const SolveStruct&) = delete;
