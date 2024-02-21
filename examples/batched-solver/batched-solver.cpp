@@ -93,7 +93,7 @@ void appl_clean_up(ApplSysData& appl_data, std::shared_ptr<gko::Executor> exec);
 int main(int argc, char* argv[])
 {
     // Print the ginkgo version information.
-    if (!(std::string(argv[5]) == "time"))
+    if (!(std::string(argv[4]) == "time"))
         std::cout << gko::version_info::get() << std::endl;
 
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
@@ -256,6 +256,10 @@ int main(int argc, char* argv[])
     auto res_norm = real_vec_type::create(exec->get_master(), norm_dim);
     res_norm->fill(0.0);
     res->compute_norm2(res_norm);
+    auto host_log_resid = gko::make_temporary_clone(
+        exec->get_master(), &logger->get_residual_norm());
+    auto host_log_iters = gko::make_temporary_clone(
+        exec->get_master(), &logger->get_num_iterations());
 
     if (print_residuals) {
         std::cout << "Residual norm sqrt(r^T r):\n";
@@ -268,10 +272,9 @@ int main(int argc, char* argv[])
             std::cout << " System no. " << i
                       << ": residual norm = " << unb_res[i]->at(0, 0)
                       << ", internal residual norm = "
-                      << logger->get_residual_norm().get_const_data()[i]
+                      << host_log_resid->get_const_data()[i]
                       << ", iterations = "
-                      << logger->get_num_iterations().get_const_data()[i]
-                      << std::endl;
+                      << host_log_iters->get_const_data()[i] << std::endl;
             const real_type relresnorm =
                 unb_res[i]->at(0, 0) / unb_bnorm[i]->at(0, 0);
             if (!(relresnorm <= reduction_factor)) {
