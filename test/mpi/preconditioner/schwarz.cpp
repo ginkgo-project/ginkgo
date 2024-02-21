@@ -303,6 +303,72 @@ TYPED_TEST(SchwarzPreconditioner, CanAdvancedApplyPreconditioner)
 }
 
 
+struct NoOpFactory
+    : gko::EnablePolymorphicObject<NoOpFactory, gko::LinOpFactory> {
+    struct NoOp : gko::EnableLinOp<NoOp> {
+        explicit NoOp(std::shared_ptr<const gko::Executor> exec,
+                      gko::dim<2> size = {})
+            : EnableLinOp(std::move(exec), size)
+        {}
+
+    protected:
+        void apply_impl(const LinOp* b, LinOp* x) const override {}
+        void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                        LinOp* x) const override
+        {}
+    };
+
+    explicit NoOpFactory(std::shared_ptr<const gko::Executor> exec)
+        : EnablePolymorphicObject<NoOpFactory, LinOpFactory>(exec)
+    {}
+
+protected:
+    std::unique_ptr<gko::LinOp> generate_impl(
+        std::shared_ptr<const gko::LinOp> base) const override
+    {
+        return std::make_unique<NoOp>(base->get_executor(), base->get_size());
+    }
+};
+
+
+struct CopyLogger : public gko::log::Logger {
+    void on_copy_started(const gko::Executor* exec_from,
+                         const gko::Executor* exec_to,
+                         const gko::uintptr& loc_from,
+                         const gko::uintptr& loc_to,
+                         const gko::size_type& num_bytes) const override
+    {
+        if (exec_from != exec_to) {
+            copy_count++;
+        }
+    }
+
+    explicit CopyLogger()
+        : gko::log::Logger(gko::log::Logger::copy_started_mask)
+    {}
+
+    mutable int copy_count = 0;
+};
+
+
+TYPED_TEST(SchwarzPreconditioner, NoCopyWithZeroOverlap)
+{
+    using prec = typename TestFixture::dist_prec_type;
+    auto logger = std::make_shared<CopyLogger>();
+    this->exec->add_logger(logger);
+    auto before_count = logger->copy_count;
+
+    auto precond_factory =
+        prec::build()
+            .with_local_solver(std::make_unique<NoOpFactory>(this->exec))
+            .on(this->exec);
+    auto precond = precond_factory->generate(this->dist_mat);
+    precond->apply(this->dist_b.get(), this->dist_x.get());
+
+    ASSERT_EQ(logger->copy_count, before_count);
+}
+
+
 class Overlap : public CommonMpiTestFixture {
 public:
     using value_type = double;
