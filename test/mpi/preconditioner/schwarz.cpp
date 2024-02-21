@@ -20,9 +20,11 @@
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
+#include <ginkgo/core/factorization/ilu.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
@@ -400,6 +402,42 @@ TYPED_TEST(SchwarzPreconditioner, ApplyJacobiWithOverlapSameAsWithoutOverlap)
             .with_overlap(1u)
             .with_local_solver(local_prec_type::build().with_max_block_size(1u))
             .on(this->exec);
+    auto precond_factory =
+        prec::build()
+            .with_overlap(0u)
+            .with_local_solver(local_prec_type::build().with_max_block_size(1u))
+            .on(this->exec);
+    auto ovlp_precond = ovlp_precond_factory->generate(this->dist_mat);
+    auto precond = precond_factory->generate(this->dist_mat);
+    auto ovlp_dist_x = gko::clone(this->dist_x);
+
+    ovlp_precond->apply(this->dist_b.get(), ovlp_dist_x.get());
+    precond->apply(this->dist_b.get(), this->dist_x.get());
+
+    GKO_ASSERT_MTX_NEAR(ovlp_dist_x->get_local_vector(),
+                        this->dist_x->get_local_vector(), 0.0);
+}
+
+
+TYPED_TEST(SchwarzPreconditioner, CanApplyIluWithOverlap)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    using local_prec_type =
+        gko::preconditioner::Jacobi<value_type, local_index_type>;
+    using Csr = typename TestFixture::local_matrix_type;
+    using prec = typename TestFixture::dist_prec_type;
+    auto local_precond =
+        gko::preconditioner::Ilu<
+            gko::solver::LowerTrs<value_type, local_index_type>,
+            gko::solver::UpperTrs<value_type, local_index_type>, false,
+            local_index_type>::build()
+            .with_factorization(
+                gko::factorization::Ilu<value_type, local_index_type>::build());
+    auto ovlp_precond_factory = prec::build()
+                                    .with_overlap(1u)
+                                    .with_local_solver(local_precond)
+                                    .on(this->exec);
     auto precond_factory =
         prec::build()
             .with_overlap(0u)
