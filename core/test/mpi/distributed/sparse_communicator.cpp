@@ -46,8 +46,12 @@ TEST_F(SparseCommunicator, CanDefaultConstruct)
     auto req = spcomm.communicate(empty.get(), send_buffer, recv_buffer);
     req.wait();
 
-    ASSERT_EQ(send_buffer.get(), nullptr);
-    ASSERT_EQ(recv_buffer.get(), nullptr);
+    ASSERT_NE(send_buffer.get(), nullptr);
+    ASSERT_NE(recv_buffer.get(), nullptr);
+    auto send_dim = gko::dim<2>{0, 0};
+    auto recv_dim = gko::dim<2>{0, 0};
+    GKO_ASSERT_EQUAL_DIMENSIONS(send_buffer.get(), send_dim);
+    GKO_ASSERT_EQUAL_DIMENSIONS(recv_buffer.get(), recv_dim);
 }
 
 TEST_F(SparseCommunicator, CanConstructFromIndexMap)
@@ -84,4 +88,24 @@ TEST_F(SparseCommunicator, CanConstructFromIndexMap)
                                    {ref, {8, 12, 13, 14}}};
     auto expected = Dense::create(ref, recv_dim, values[rank], 1);
     GKO_ASSERT_MTX_NEAR(recv_buffer.get(), expected, 0.0);
+}
+
+
+TEST_F(SparseCommunicator, CanConstructFromIndexMapWithoutConnections)
+{
+    auto part = gko::share(part_type::build_from_global_size_uniform(
+        ref, comm.size(), comm.size() * 3));
+    gko::array<long> recv_connections{ref, 0};
+    auto imap = map_type{ref, part, comm.rank(), recv_connections};
+
+    gko::experimental::distributed::sparse_communicator spcomm{comm, imap};
+
+    auto req = spcomm.communicate(buffer.get(), send_buffer, recv_buffer);
+    req.wait();
+    ASSERT_NE(send_buffer.get(), nullptr);
+    ASSERT_NE(recv_buffer.get(), nullptr);
+    auto send_dim = gko::dim<2>{0, 1};
+    auto recv_dim = gko::dim<2>{0, 1};
+    GKO_ASSERT_EQUAL_DIMENSIONS(send_buffer.get(), send_dim);
+    GKO_ASSERT_EQUAL_DIMENSIONS(recv_buffer.get(), recv_dim);
 }
