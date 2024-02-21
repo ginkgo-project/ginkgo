@@ -211,7 +211,20 @@ public:
             mtx->get_size()));
     }
 
+    static std::unique_ptr<OverlappingOperator> create(
+        std::shared_ptr<const LinOp> mtx, sparse_communicator spcomm,
+        dim<2> global_size)
+    {
+        return std::unique_ptr<OverlappingOperator>(new OverlappingOperator(
+            std::move(mtx), std::move(spcomm), global_size));
+    }
+
     std::shared_ptr<const LinOp> get_matrix() const { return mtx_; }
+
+    const sparse_communicator& get_sparse_communicator() const
+    {
+        return spcomm_;
+    }
 
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override

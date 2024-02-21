@@ -182,6 +182,25 @@ TYPED_TEST(SchwarzPreconditioner, GenerateFailsIfNoSolverProvided)
 }
 
 
+TYPED_TEST(SchwarzPreconditioner,
+           GenerateFailsGeneratedSolverAndOverlapProvided)
+{
+    using value_type = typename TestFixture::value_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    using local_prec_type =
+        gko::preconditioner::Jacobi<value_type, global_index_type>;
+    using prec = typename TestFixture::dist_prec_type;
+    auto local_solver = gko::share(
+        local_prec_type::build().on(this->exec)->generate(this->non_dist_mat));
+    auto schwarz = prec::build()
+                       .with_generated_local_solver(local_solver)
+                       .with_overlap(1u)
+                       .on(this->exec);
+
+    ASSERT_THROW(schwarz->generate(this->dist_mat), gko::InvalidStateError);
+}
+
+
 TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionedSolver)
 {
     using value_type = typename TestFixture::value_type;
@@ -368,6 +387,34 @@ TYPED_TEST(SchwarzPreconditioner, NoCopyWithZeroOverlap)
     ASSERT_EQ(logger->copy_count, before_count);
 }
 
+
+TYPED_TEST(SchwarzPreconditioner, ApplyJacobiWithOverlapSameAsWithoutOverlap)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    using local_prec_type =
+        gko::preconditioner::Jacobi<value_type, local_index_type>;
+    using prec = typename TestFixture::dist_prec_type;
+    auto ovlp_precond_factory =
+        prec::build()
+            .with_overlap(1u)
+            .with_local_solver(local_prec_type::build().with_max_block_size(1u))
+            .on(this->exec);
+    auto precond_factory =
+        prec::build()
+            .with_overlap(0u)
+            .with_local_solver(local_prec_type::build().with_max_block_size(1u))
+            .on(this->exec);
+    auto ovlp_precond = ovlp_precond_factory->generate(this->dist_mat);
+    auto precond = precond_factory->generate(this->dist_mat);
+    auto ovlp_dist_x = gko::clone(this->dist_x);
+
+    ovlp_precond->apply(this->dist_b.get(), ovlp_dist_x.get());
+    precond->apply(this->dist_b.get(), this->dist_x.get());
+
+    GKO_ASSERT_MTX_NEAR(ovlp_dist_x->get_local_vector(),
+                        this->dist_x->get_local_vector(), 0.0);
+}
 
 class Overlap : public CommonMpiTestFixture {
 public:
