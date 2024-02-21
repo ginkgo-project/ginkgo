@@ -8,9 +8,9 @@
 #endif
 
 
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "hip/base/types.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 

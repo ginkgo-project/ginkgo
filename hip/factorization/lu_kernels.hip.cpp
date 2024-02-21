@@ -17,11 +17,11 @@
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "core/base/allocator.hpp"
 #include "core/matrix/csr_lookup.hpp"
 #include "hip/base/thrust.hip.hpp"
-#include "hip/base/types.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
 #include "hip/components/syncfree.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"

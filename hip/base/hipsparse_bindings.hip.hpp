@@ -6,7 +6,7 @@
 #define GKO_HIP_BASE_HIPSPARSE_BINDINGS_HIP_HPP_
 
 
-#include <hip/hip_runtime.h>
+#include "common/cuda_hip/base/runtime.hpp"
 #if HIP_VERSION >= 50200000
 #include <hipsparse/hipsparse.h>
 #else
@@ -18,7 +18,7 @@
 #include <ginkgo/core/base/executor.hpp>
 
 
-#include "hip/base/types.hip.hpp"
+#include "common/cuda_hip/base/types.hpp"
 
 
 namespace gko {
@@ -955,6 +955,20 @@ GKO_BIND_HIPSPARSE_IC0(std::complex<double>, hipsparseZcsric02);
 
 
 }  // namespace hipsparse
+
+
+namespace sparselib {
+
+
+using namespace hipsparse;
+
+
+#define SPARSELIB_OPERATION_TRANSPOSE HIPSPARSE_OPERATION_TRANSPOSE
+#define SPARSELIB_OPERATION_NON_TRANSPOSE HIPSPARSE_OPERATION_NON_TRANSPOSE
+#define SPARSELIB_SOLVE_POLICY_USE_LEVEL HIPSPARSE_SOLVE_POLICY_USE_LEVEL
+
+
+}  // namespace sparselib
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko

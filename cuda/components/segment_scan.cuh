@@ -6,7 +6,7 @@
 #define GKO_CUDA_COMPONENTS_SEGMENT_SCAN_CUH_
 
 
-#include "cuda/components/cooperative_groups.cuh"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 
 
 namespace gko {

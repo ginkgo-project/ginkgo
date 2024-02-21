@@ -2,10 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <hip/hip_runtime.h>
-
-
 #include <ginkgo/config.hpp>
+
+
+#include "common/cuda_hip/base/runtime.hpp"
 
 
 #if GINKGO_HIP_PLATFORM_HCC && GKO_HAVE_ROCTX

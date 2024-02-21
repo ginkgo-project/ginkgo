@@ -13,8 +13,8 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include "common/cuda_hip/base/types.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
-#include "cuda/base/types.hpp"
 
 
 namespace gko {

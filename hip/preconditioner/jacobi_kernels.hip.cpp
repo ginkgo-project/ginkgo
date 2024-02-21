@@ -5,19 +5,17 @@
 #include "core/preconditioner/jacobi_kernels.hpp"
 
 
-#include <hip/hip_runtime.h>
-
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "core/base/extended_float.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "hip/base/config.hip.hpp"
 #include "hip/base/math.hip.hpp"
-#include "hip/base/types.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 #include "hip/preconditioner/jacobi_common.hip.hpp"
 
@@ -34,9 +32,9 @@ namespace jacobi {
 
 
 // a total of 32/16 warps (1024 threads)
-#if GINKGO_HIP_PLATFORM_HCC
+#if defined(GKO_COMPILING_HIP) && GINKGO_HIP_PLATFORM_HCC
 constexpr int default_num_warps = 16;
-#else  // GINKGO_HIP_PLATFORM_NVCC
+#else  // !defined(GKO_COMPILING_HIP) || GINKGO_HIP_PLATFORM_NVCC
 constexpr int default_num_warps = 32;
 #endif
 // with current architectures, at most 32 warps can be scheduled per SM (and

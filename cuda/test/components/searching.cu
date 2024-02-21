@@ -17,7 +17,7 @@
 #include <ginkgo/core/base/executor.hpp>
 
 
-#include "cuda/components/cooperative_groups.cuh"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "cuda/test/utils.hpp"
 
 

@@ -14,7 +14,9 @@
 
 #include <hip/hip_complex.h>
 #include <hip/hip_fp16.h>
-#include <hip/hip_runtime.h>
+
+
+#include "common/cuda_hip/base/runtime.hpp"
 #if HIP_VERSION >= 50200000
 #include <hipblas/hipblas.h>
 #else
@@ -428,6 +430,10 @@ GKO_INLINE GKO_ATTRIBUTES constexpr
 {
     return detail::fake_complex_unpack_impl<T>::unpack(v);
 }
+
+
+using gpuComplex = hipComplex;
+using gpuDoubleComplex = hipDoubleComplex;
 
 
 }  // namespace hip

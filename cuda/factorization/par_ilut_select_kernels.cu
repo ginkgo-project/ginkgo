@@ -8,28 +8,26 @@
 #include <algorithm>
 
 
-#include <hip/hip_runtime.h>
-
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "common/cuda_hip/base/runtime.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
-#include "hip/base/math.hip.hpp"
-#include "hip/components/atomic.hip.hpp"
-#include "hip/components/intrinsics.hip.hpp"
-#include "hip/components/prefix_sum.hip.hpp"
-#include "hip/components/searching.hip.hpp"
-#include "hip/components/sorting.hip.hpp"
-#include "hip/components/thread_ids.hip.hpp"
-#include "hip/factorization/par_ilut_select_common.hip.hpp"
+#include "cuda/base/math.hpp"
+#include "cuda/components/atomic.cuh"
+#include "cuda/components/intrinsics.cuh"
+#include "cuda/components/prefix_sum.cuh"
+#include "cuda/components/searching.cuh"
+#include "cuda/components/sorting.cuh"
+#include "cuda/components/thread_ids.cuh"
+#include "cuda/factorization/par_ilut_select_common.cuh"
 
 
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace cuda {
 /**
  * @brief The parallel ILUT factorization namespace.
  *
@@ -159,6 +157,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace par_ilut_factorization
-}  // namespace hip
+}  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

@@ -8,25 +8,25 @@
 #include <algorithm>
 
 
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
 
 
-#include "accessor/cuda_helper.hpp"
+#include "accessor/cuda_hip_helper.hpp"
 #include "accessor/range.hpp"
 #include "accessor/reduced_row_major.hpp"
 #include "accessor/scaled_reduced_row_major.hpp"
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "core/base/array_access.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/solver/cb_gmres_accessor.hpp"
-#include "cuda/base/config.hpp"
 #include "cuda/base/math.hpp"
-#include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
-#include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/thread_ids.cuh"
 #include "cuda/components/uninitialized_array.hpp"
@@ -44,6 +44,8 @@ namespace cb_gmres {
 
 
 constexpr int default_block_size = 512;
+// default_dot_dim can not be 64 in hip because 64 * 64 exceeds their max block
+// size limit.
 constexpr int default_dot_dim = 32;
 constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 
@@ -116,7 +118,7 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
     restart_1_kernel<block_size>
         <<<grid_dim_1, block_dim, 0, exec->get_stream()>>>(
             residual->get_size()[0], residual->get_size()[1], krylov_dim,
-            acc::as_cuda_range(krylov_bases),
+            acc::as_device_range(krylov_bases),
             as_device_type(residual_norm_collection->get_values()),
             residual_norm_collection->get_stride());
     kernels::cuda::dense::compute_norm2_dispatch(exec, residual, residual_norm,
@@ -145,7 +147,7 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
                 residual_norm->get_stride(),
                 as_device_type(arnoldi_norm->get_const_values() +
                                2 * stride_arnoldi),
-                stride_arnoldi, acc::as_cuda_range(krylov_bases));
+                stride_arnoldi, acc::as_device_range(krylov_bases));
     }
 
     const auto grid_dim_2 =
@@ -158,7 +160,7 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
             residual->get_stride(),
             as_device_type(residual_norm->get_const_values()),
             as_device_type(residual_norm_collection->get_values()),
-            acc::as_cuda_range(krylov_bases),
+            acc::as_device_range(krylov_bases),
             as_device_type(next_krylov_basis->get_values()),
             next_krylov_basis->get_stride(),
             as_device_type(final_iter_nums->get_data()));
@@ -212,6 +214,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const DefaultExecutor> exec,
         as_device_type(next_krylov_basis->get_const_values()),
         stride_next_krylov, as_device_type(arnoldi_norm->get_values()),
         as_device_type(stop_status));
+    // nrmP = norm(next_krylov_basis)
     zero_matrix(exec, iter + 1, dim_size[1], stride_hessenberg,
                 hessenberg_iter->get_values());
     if (dim_size[1] > 1) {
@@ -219,7 +222,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const DefaultExecutor> exec,
             <<<grid_size_num_iters, block_size, 0, exec->get_stream()>>>(
                 dim_size[0], dim_size[1],
                 as_device_type(next_krylov_basis->get_const_values()),
-                stride_next_krylov, acc::as_cuda_range(krylov_bases),
+                stride_next_krylov, acc::as_device_range(krylov_bases),
                 as_device_type(hessenberg_iter->get_values()),
                 stride_hessenberg, as_device_type(stop_status));
     } else {
@@ -228,7 +231,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const DefaultExecutor> exec,
                exec->get_stream()>>>(
                 dim_size[0],
                 as_device_type(next_krylov_basis->get_const_values()),
-                stride_next_krylov, acc::as_cuda_range(krylov_bases),
+                stride_next_krylov, acc::as_device_range(krylov_bases),
                 as_device_type(hessenberg_iter->get_values()),
                 stride_hessenberg, as_device_type(stop_status));
     }
@@ -240,7 +243,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const DefaultExecutor> exec,
            default_block_size, 0, exec->get_stream()>>>(
             iter + 1, dim_size[0], dim_size[1],
             as_device_type(next_krylov_basis->get_values()), stride_next_krylov,
-            acc::as_cuda_range(krylov_bases),
+            acc::as_device_range(krylov_bases),
             as_device_type(hessenberg_iter->get_const_values()),
             stride_hessenberg, as_device_type(stop_status));
 
@@ -269,7 +272,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const DefaultExecutor> exec,
            exec->get_stream()>>>(
             dim_size[1], as_device_type(arnoldi_norm->get_values()),
             stride_arnoldi, as_device_type(hessenberg_iter->get_values()),
-            stride_hessenberg, iter + 1, acc::as_cuda_range(krylov_bases),
+            stride_hessenberg, iter + 1, acc::as_device_range(krylov_bases),
             as_device_type(stop_status), as_device_type(reorth_status),
             as_device_type(num_reorth->get_data()));
     num_reorth_host = get_element(*num_reorth, 0);
@@ -282,7 +285,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const DefaultExecutor> exec,
                 <<<grid_size_num_iters, block_size, 0, exec->get_stream()>>>(
                     dim_size[0], dim_size[1],
                     as_device_type(next_krylov_basis->get_const_values()),
-                    stride_next_krylov, acc::as_cuda_range(krylov_bases),
+                    stride_next_krylov, acc::as_device_range(krylov_bases),
                     as_device_type(buffer_iter->get_values()), stride_buffer,
                     as_device_type(stop_status));
         } else {
@@ -291,7 +294,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const DefaultExecutor> exec,
                    exec->get_stream()>>>(
                     dim_size[0],
                     as_device_type(next_krylov_basis->get_const_values()),
-                    stride_next_krylov, acc::as_cuda_range(krylov_bases),
+                    stride_next_krylov, acc::as_device_range(krylov_bases),
                     as_device_type(buffer_iter->get_values()), stride_buffer,
                     as_device_type(stop_status));
         }
@@ -303,7 +306,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const DefaultExecutor> exec,
                default_block_size, 0, exec->get_stream()>>>(
                 iter + 1, dim_size[0], dim_size[1],
                 as_device_type(next_krylov_basis->get_values()),
-                stride_next_krylov, acc::as_cuda_range(krylov_bases),
+                stride_next_krylov, acc::as_device_range(krylov_bases),
                 as_device_type(hessenberg_iter->get_values()),
                 stride_hessenberg,
                 as_device_type(buffer_iter->get_const_values()), stride_buffer,
@@ -335,18 +338,19 @@ void finish_arnoldi_CGS(std::shared_ptr<const DefaultExecutor> exec,
                exec->get_stream()>>>(
                 dim_size[1], as_device_type(arnoldi_norm->get_values()),
                 stride_arnoldi, as_device_type(hessenberg_iter->get_values()),
-                stride_hessenberg, iter + 1, acc::as_cuda_range(krylov_bases),
+                stride_hessenberg, iter + 1, acc::as_device_range(krylov_bases),
                 as_device_type(stop_status), as_device_type(reorth_status),
                 num_reorth->get_data());
         num_reorth_host = get_element(*num_reorth, 0);
+        // num_reorth_host := number of next_krylov vector to be
+        // reorthogonalization
     }
-
     update_krylov_next_krylov_kernel<default_block_size>
         <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
            default_block_size, 0, exec->get_stream()>>>(
             iter, dim_size[0], dim_size[1],
             as_device_type(next_krylov_basis->get_values()), stride_next_krylov,
-            acc::as_cuda_range(krylov_bases),
+            acc::as_device_range(krylov_bases),
             as_device_type(hessenberg_iter->get_const_values()),
             stride_hessenberg, as_device_type(stop_status));
     // next_krylov_basis /= hessenberg(iter, iter + 1)
@@ -460,7 +464,7 @@ void calculate_qy(std::shared_ptr<const DefaultExecutor> exec,
 
     calculate_Qy_kernel<block_size>
         <<<grid_dim, block_dim, 0, exec->get_stream()>>>(
-            num_rows, num_cols, acc::as_cuda_range(krylov_bases),
+            num_rows, num_cols, acc::as_device_range(krylov_bases),
             as_device_type(y->get_const_values()), y->get_stride(),
             as_device_type(before_preconditioner->get_values()),
             stride_before_preconditioner,

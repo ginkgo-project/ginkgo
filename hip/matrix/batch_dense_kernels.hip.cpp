@@ -5,19 +5,21 @@
 #include "core/matrix/batch_dense_kernels.hpp"
 
 
-#include <hip/hip_runtime.h>
 #include <thrust/functional.h>
 
 
+#include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/batch_dense.hpp>
 
 
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
 #include "hip/base/batch_struct.hip.hpp"
-#include "hip/base/config.hip.hpp"
 #include "hip/base/thrust.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 #include "hip/components/uninitialized_array.hip.hpp"

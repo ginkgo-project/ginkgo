@@ -8,7 +8,7 @@
 #include <string>
 
 
-#include <hip/hip_runtime.h>
+#include "common/cuda_hip/base/runtime.hpp"
 #if HIP_VERSION >= 50200000
 #include <hipblas/hipblas.h>
 #include <hiprand/hiprand.h>

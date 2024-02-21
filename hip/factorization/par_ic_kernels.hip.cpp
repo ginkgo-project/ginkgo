@@ -10,9 +10,9 @@
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/memory.hpp"
 #include "hip/base/math.hip.hpp"
-#include "hip/base/types.hip.hpp"
-#include "hip/components/memory.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 
 

@@ -10,12 +10,13 @@
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
-#include "cuda/base/config.hpp"
 #include "cuda/base/math.hpp"
-#include "cuda/base/types.hpp"
-#include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/merging.cuh"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/thread_ids.cuh"

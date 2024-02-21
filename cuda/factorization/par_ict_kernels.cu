@@ -12,6 +12,8 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/components/memory.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/coo_builder.hpp"
 #include "core/matrix/csr_builder.hpp"
@@ -19,7 +21,6 @@
 #include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/components/intrinsics.cuh"
-#include "cuda/components/memory.cuh"
 #include "cuda/components/merging.cuh"
 #include "cuda/components/prefix_sum.cuh"
 #include "cuda/components/reduction.cuh"
@@ -46,8 +47,7 @@ using compiled_kernels =
     syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
 
 
-#include "common/cuda_hip/factorization/par_ict_spgeam_kernels.hpp.inc"
-#include "common/cuda_hip/factorization/par_ict_sweep_kernels.hpp.inc"
+#include "common/cuda_hip/factorization/par_ict_kernels.hpp.inc"
 
 
 namespace {

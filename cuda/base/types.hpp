@@ -394,6 +394,10 @@ GKO_INLINE GKO_ATTRIBUTES constexpr
 }
 
 
+using gpuComplex = cuComplex;
+using gpuDoubleComplex = cuDoubleComplex;
+
+
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

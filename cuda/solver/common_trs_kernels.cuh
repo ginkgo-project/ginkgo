@@ -20,15 +20,15 @@
 #include <ginkgo/core/base/math.hpp>
 
 
+#include "common/cuda_hip/base/pointer_mode_guard.hpp"
+#include "common/cuda_hip/base/sparselib_bindings.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/memory.hpp"
 #include "core/base/array_access.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/math.hpp"
-#include "cuda/base/pointer_mode_guard.hpp"
-#include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
-#include "cuda/components/memory.cuh"
 #include "cuda/components/thread_ids.cuh"
 #include "cuda/components/uninitialized_array.hpp"
 
@@ -75,18 +75,18 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
         if (num_rhs == 0) {
             return;
         }
-        cusparse::pointer_mode_guard pm_guard(handle);
-        spsm_descr = cusparse::create_spsm_descr();
-        descr_a = cusparse::create_csr(
+        sparselib::pointer_mode_guard pm_guard(handle);
+        spsm_descr = sparselib::create_spsm_descr();
+        descr_a = sparselib::create_csr(
             matrix->get_size()[0], matrix->get_size()[1],
             matrix->get_num_stored_elements(),
             const_cast<IndexType*>(matrix->get_const_row_ptrs()),
             const_cast<IndexType*>(matrix->get_const_col_idxs()),
             const_cast<ValueType*>(matrix->get_const_values()));
-        cusparse::set_attribute<cusparseFillMode_t>(
+        sparselib::set_attribute<cusparseFillMode_t>(
             descr_a, CUSPARSE_SPMAT_FILL_MODE,
             is_upper ? CUSPARSE_FILL_MODE_UPPER : CUSPARSE_FILL_MODE_LOWER);
-        cusparse::set_attribute<cusparseDiagType_t>(
+        sparselib::set_attribute<cusparseDiagType_t>(
             descr_a, CUSPARSE_SPMAT_DIAG_TYPE,
             unit_diag ? CUSPARSE_DIAG_TYPE_UNIT : CUSPARSE_DIAG_TYPE_NON_UNIT);
 
@@ -94,28 +94,28 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
         // workaround suggested by NVIDIA engineers: for some reason
         // cusparse needs non-nullptr input vectors even for analysis
         // also make sure they are aligned by 16 bytes
-        auto descr_b = cusparse::create_dnmat(
+        auto descr_b = sparselib::create_dnmat(
             dim<2>{matrix->get_size()[0], num_rhs}, matrix->get_size()[1],
             reinterpret_cast<ValueType*>(0xDEAD0));
-        auto descr_c = cusparse::create_dnmat(
+        auto descr_c = sparselib::create_dnmat(
             dim<2>{matrix->get_size()[0], num_rhs}, matrix->get_size()[1],
             reinterpret_cast<ValueType*>(0xDEAF0));
 
-        auto work_size = cusparse::spsm_buffer_size(
+        auto work_size = sparselib::spsm_buffer_size(
             handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
             CUSPARSE_OPERATION_NON_TRANSPOSE, one<ValueType>(), descr_a,
             descr_b, descr_c, CUSPARSE_SPSM_ALG_DEFAULT, spsm_descr);
 
         work.resize_and_reset(work_size);
 
-        cusparse::spsm_analysis(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                                CUSPARSE_OPERATION_NON_TRANSPOSE,
-                                one<ValueType>(), descr_a, descr_b, descr_c,
-                                CUSPARSE_SPSM_ALG_DEFAULT, spsm_descr,
-                                work.get_data());
+        sparselib::spsm_analysis(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+                                 CUSPARSE_OPERATION_NON_TRANSPOSE,
+                                 one<ValueType>(), descr_a, descr_b, descr_c,
+                                 CUSPARSE_SPSM_ALG_DEFAULT, spsm_descr,
+                                 work.get_data());
 
-        cusparse::destroy(descr_b);
-        cusparse::destroy(descr_c);
+        sparselib::destroy(descr_b);
+        sparselib::destroy(descr_c);
     }
 
     void solve(const matrix::Csr<ValueType, IndexType>*,
@@ -134,30 +134,30 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
                 "provided at generation time. Check the value specified in "
                 ".with_num_rhs(...)."};
         }
-        cusparse::pointer_mode_guard pm_guard(handle);
-        auto descr_b = cusparse::create_dnmat(
+        sparselib::pointer_mode_guard pm_guard(handle);
+        auto descr_b = sparselib::create_dnmat(
             input->get_size(), input->get_stride(),
             const_cast<ValueType*>(input->get_const_values()));
-        auto descr_c = cusparse::create_dnmat(
+        auto descr_c = sparselib::create_dnmat(
             output->get_size(), output->get_stride(), output->get_values());
 
-        cusparse::spsm_solve(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                             CUSPARSE_OPERATION_NON_TRANSPOSE, one<ValueType>(),
-                             descr_a, descr_b, descr_c,
-                             CUSPARSE_SPSM_ALG_DEFAULT, spsm_descr);
+        sparselib::spsm_solve(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+                              CUSPARSE_OPERATION_NON_TRANSPOSE,
+                              one<ValueType>(), descr_a, descr_b, descr_c,
+                              CUSPARSE_SPSM_ALG_DEFAULT, spsm_descr);
 
-        cusparse::destroy(descr_b);
-        cusparse::destroy(descr_c);
+        sparselib::destroy(descr_b);
+        sparselib::destroy(descr_c);
     }
 
     ~CudaSolveStruct()
     {
         if (descr_a) {
-            cusparse::destroy(descr_a);
+            sparselib::destroy(descr_a);
             descr_a = nullptr;
         }
         if (spsm_descr) {
-            cusparse::destroy(spsm_descr);
+            sparselib::destroy(spsm_descr);
             spsm_descr = nullptr;
         }
     }
@@ -200,21 +200,21 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
         if (num_rhs == 0) {
             return;
         }
-        cusparse::pointer_mode_guard pm_guard(handle);
-        factor_descr = cusparse::create_mat_descr();
-        solve_info = cusparse::create_solve_info();
-        cusparse::set_mat_fill_mode(
+        sparselib::pointer_mode_guard pm_guard(handle);
+        factor_descr = sparselib::create_mat_descr();
+        solve_info = sparselib::create_solve_info();
+        sparselib::set_mat_fill_mode(
             factor_descr,
             is_upper ? CUSPARSE_FILL_MODE_UPPER : CUSPARSE_FILL_MODE_LOWER);
-        cusparse::set_mat_diag_type(
+        sparselib::set_mat_diag_type(
             factor_descr,
             unit_diag ? CUSPARSE_DIAG_TYPE_UNIT : CUSPARSE_DIAG_TYPE_NON_UNIT);
         algorithm = 0;
-        policy = CUSPARSE_SOLVE_POLICY_USE_LEVEL;
+        policy = SPARSELIB_SOLVE_POLICY_USE_LEVEL;
 
         size_type work_size{};
 
-        cusparse::buffer_size_ext(
+        sparselib::buffer_size_ext(
             handle, algorithm, CUSPARSE_OPERATION_NON_TRANSPOSE,
             CUSPARSE_OPERATION_TRANSPOSE, matrix->get_size()[0], num_rhs,
             matrix->get_num_stored_elements(), one<ValueType>(), factor_descr,
@@ -225,7 +225,7 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
         // allocate workspace
         work.resize_and_reset(work_size);
 
-        cusparse::csrsm2_analysis(
+        sparselib::csrsm2_analysis(
             handle, algorithm, CUSPARSE_OPERATION_NON_TRANSPOSE,
             CUSPARSE_OPERATION_TRANSPOSE, matrix->get_size()[0], num_rhs,
             matrix->get_num_stored_elements(), one<ValueType>(), factor_descr,
@@ -250,9 +250,9 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
                 "provided at generation time. Check the value specified in "
                 ".with_num_rhs(...)."};
         }
-        cusparse::pointer_mode_guard pm_guard(handle);
+        sparselib::pointer_mode_guard pm_guard(handle);
         dense::copy(exec, input, output);
-        cusparse::csrsm2_solve(
+        sparselib::csrsm2_solve(
             handle, algorithm, CUSPARSE_OPERATION_NON_TRANSPOSE,
             CUSPARSE_OPERATION_TRANSPOSE, matrix->get_size()[0],
             output->get_stride(), matrix->get_num_stored_elements(),
@@ -265,11 +265,11 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
     ~CudaSolveStruct()
     {
         if (factor_descr) {
-            cusparse::destroy(factor_descr);
+            sparselib::destroy(factor_descr);
             factor_descr = nullptr;
         }
         if (solve_info) {
-            cusparse::destroy(solve_info);
+            sparselib::destroy(solve_info);
             solve_info = nullptr;
         }
     }
@@ -304,7 +304,7 @@ void generate_kernel(std::shared_ptr<const CudaExecutor> exec,
     if (matrix->get_size()[0] == 0) {
         return;
     }
-    if (cusparse::is_supported<ValueType, IndexType>::value) {
+    if (sparselib::is_supported<ValueType, IndexType>::value) {
         solve_struct = std::make_shared<CudaSolveStruct<ValueType, IndexType>>(
             exec, matrix, num_rhs, is_upper, unit_diag);
     } else {
@@ -327,7 +327,7 @@ void solve_kernel(std::shared_ptr<const CudaExecutor> exec,
     }
     using vec = matrix::Dense<ValueType>;
 
-    if (cusparse::is_supported<ValueType, IndexType>::value) {
+    if (sparselib::is_supported<ValueType, IndexType>::value) {
         if (auto cuda_solve_struct =
                 dynamic_cast<const CudaSolveStruct<ValueType, IndexType>*>(
                     solve_struct)) {

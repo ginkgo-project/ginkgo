@@ -9,8 +9,8 @@
 #include <type_traits>
 
 
-#include "cuda/base/cublas_bindings.hpp"
-#include "cuda/components/cooperative_groups.cuh"
+#include "common/cuda_hip/base/blas_bindings.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/thread_ids.cuh"
 

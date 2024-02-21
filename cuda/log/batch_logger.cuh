@@ -23,4 +23,5 @@ namespace batch_log {
 }  // namespace kernels
 }  // namespace gko
 
+
 #endif  // GKO_CUDA_LOG_BATCH_LOGGER_CUH_

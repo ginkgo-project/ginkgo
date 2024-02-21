@@ -6,9 +6,9 @@
 #define GKO_HIP_PRECONDITIONER_BATCH_PRECONDITIONERS_HIP_HPP_
 
 
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "core/matrix/batch_struct.hpp"
 #include "core/preconditioner/batch_jacobi_helpers.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
 
 

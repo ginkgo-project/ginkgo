@@ -9,8 +9,8 @@
 #include <type_traits>
 
 
-#include "hip/base/hipblas_bindings.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
+#include "common/cuda_hip/base/blas_bindings.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "hip/components/reduction.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 

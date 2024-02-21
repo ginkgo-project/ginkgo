@@ -6,17 +6,12 @@
 #define GKO_HIP_COMPONENTS_THREAD_IDS_HIP_HPP_
 
 
-#include "hip/base/config.hip.hpp"
+#include "common/cuda_hip/base/config.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace hip {
-/**
- * @brief The HIP thread namespace.
- *
- * @ingroup hip_thread
- */
 namespace thread {
 
 
