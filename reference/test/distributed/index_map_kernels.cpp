@@ -64,6 +64,25 @@ TEST_F(IndexMap, CanBuildMapping)
 }
 
 
+TEST_F(IndexMap, CanBuildMappingWithoutRecvConnections)
+{
+    gko::array<comm_index_type> target_ids(ref);
+    gko::collection::array<local_index_type> remote_local_idxs(ref);
+    gko::collection::array<global_index_type> remote_global_idxs(ref);
+
+    gko::kernels::reference::index_map::build_mapping(
+        ref, part.get(), {ref, 0}, target_ids, remote_local_idxs,
+        remote_global_idxs);
+
+    auto expected_global = gko::array<global_index_type>{ref, 0};
+    auto expected_local = gko::array<local_index_type>{ref, 0};
+    auto expected_ids = gko::array<comm_index_type>{ref, 0};
+    GKO_ASSERT_ARRAY_EQ(target_ids, expected_ids);
+    GKO_ASSERT_ARRAY_EQ(remote_global_idxs.get_flat(), expected_global);
+    GKO_ASSERT_ARRAY_EQ(remote_local_idxs.get_flat(), expected_local);
+}
+
+
 TEST_F(IndexMap, CanGetLocalWithNonLocalIS)
 {
     gko::array<global_index_type> global_ids(ref, {1, 1, 4, 0, 4});
