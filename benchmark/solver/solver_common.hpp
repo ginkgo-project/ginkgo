@@ -471,7 +471,7 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
             auto range = annotate("warmup", FLAGS_warmup > 0);
             for (auto _ : ic.warmup_run()) {
                 auto x_clone = clone(state.x);
-                auto precond = precond_factory.at(precond_name)(exec);
+                auto precond = get_precond(precond_name)(exec);
                 solver = generate_solver(exec, give(precond), solver_name,
                                          FLAGS_warmup_max_iters)
                              ->generate(state.system_matrix);
@@ -494,7 +494,7 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                     exec->get_master()->add_logger(gen_logger);
                 }
 
-                auto precond = precond_factory.at(precond_name)(exec);
+                auto precond = get_precond(precond_name)(exec);
                 solver = generate_solver(exec, give(precond), solver_name,
                                          FLAGS_max_iters)
                              ->generate(state.system_matrix);
@@ -559,7 +559,7 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
 
             exec->synchronize();
             generate_timer->tic();
-            auto precond = precond_factory.at(precond_name)(exec);
+            auto precond = get_precond(precond_name)(exec);
             solver = generate_solver(exec, give(precond), solver_name,
                                      FLAGS_max_iters)
                          ->generate(state.system_matrix);
