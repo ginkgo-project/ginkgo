@@ -179,6 +179,18 @@ struct index_map {
     }
 
     /**
+     * @note this is mostly used to create a index map without remote
+     *       connections, perhaps an alternative could be to construct
+     *       that map directly.
+     *
+     * \return global partition used by the index map
+     */
+    std::shared_ptr<const part_type> get_partition() const
+    {
+        return partition_;
+    }
+
+    /**
      * \brief get the associated executor.
      */
     [[nodiscard]] std::shared_ptr<const Executor> get_executor() const
