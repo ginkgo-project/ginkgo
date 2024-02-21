@@ -34,25 +34,7 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
     const LinOp* b, LinOp* x) const
 {
-    precision_dispatch_real_complex_distributed<ValueType>(
-        [this](auto dense_b, auto dense_x) {
-            this->apply_dense_impl(dense_b, dense_x);
-        },
-        b, x);
-}
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-template <typename VectorType>
-void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
-    const VectorType* dense_b, VectorType* dense_x) const
-{
-    using Vector = matrix::Dense<ValueType>;
-    auto exec = this->get_executor();
-    if (this->local_solver_ != nullptr) {
-        this->local_solver_->apply(detail::get_local(dense_b),
-                                   detail::get_local(dense_x));
-    }
+    this->local_solver_->apply(b, x);
 }
 
 
@@ -63,7 +45,7 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
     precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             auto x_clone = dense_x->clone();
-            this->apply_dense_impl(dense_b, x_clone.get());
+            this->apply_impl(dense_b, x_clone.get());
             dense_x->scale(dense_beta);
             dense_x->add_scaled(dense_alpha, x_clone.get());
         },
@@ -81,7 +63,7 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::set_solver(
             new_solver = clone(exec, new_solver);
         }
     }
-    this->local_solver_ = new_solver;
+    local_solver_ = new_solver;
 }
 
 
@@ -99,15 +81,45 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
             "Requires either a generated solver or an solver factory");
     }
 
-    if (parameters_.local_solver) {
-        this->set_solver(share(parameters_.local_solver->generate(
-            as<distributed::Matrix<ValueType, LocalIndexType, GlobalIndexType>>(
-                system_matrix)
-                ->get_local_matrix())));
-
-    } else {
-        this->set_solver(parameters_.generated_local_solver);
+    if (parameters_.overlap && parameters_.generated_local_solver) {
+        GKO_INVALID_STATE("Can't set both overlap and generated solver");
     }
+
+    using Ovlp = OverlappingOperator<ValueType, LocalIndexType>;
+
+    auto exec = this->get_executor();
+
+    auto dist_mat =
+        as<Matrix<ValueType, LocalIndexType, GlobalIndexType>>(system_matrix);
+    auto comm = dist_mat->get_communicator();
+    auto imap = dist_mat->get_index_map();
+
+    if (parameters_.generated_local_solver) {
+        sparse_communicator self_comm{
+            MPI_COMM_SELF,
+            index_map<LocalIndexType, GlobalIndexType>{
+                exec, imap.get_partition(), comm.rank(), {exec, 0}}};
+        this->set_solver(Ovlp::create(parameters_.generated_local_solver,
+                                      self_comm, dist_mat->get_size()));
+        return;
+    }
+
+    if (parameters_.overlap == 0) {
+        sparse_communicator self_comm{
+            MPI_COMM_SELF,
+            index_map<LocalIndexType, GlobalIndexType>{
+                exec, imap.get_partition(), comm.rank(), {exec, 0}}};
+        this->set_solver(Ovlp::create(
+            parameters_.local_solver->generate(dist_mat->get_local_matrix()),
+            self_comm, dist_mat->get_size()));
+        return;
+    }
+    if (parameters_.overlap == 1) {
+        this->set_solver(
+            Ovlp::create(dist_mat.get(), dist_mat->get_index_map()));
+        return;
+    }
+    GKO_NOT_IMPLEMENTED;
 }
 
 
