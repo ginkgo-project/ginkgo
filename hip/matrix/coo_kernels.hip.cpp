@@ -5,9 +5,6 @@
 #include "core/matrix/coo_kernels.hpp"
 
 
-#include <hip/hip_runtime.h>
-
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -15,25 +12,21 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/base/sparselib_bindings.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/format_conversion.hpp"
 #include "core/matrix/dense_kernels.hpp"
-#include "hip/base/config.hip.hpp"
-#include "hip/base/hipsparse_bindings.hip.hpp"
 #include "hip/base/math.hip.hpp"
-#include "hip/base/types.hip.hpp"
 #include "hip/components/atomic.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/components/format_conversion.hip.hpp"
 #include "hip/components/segment_scan.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 
 
 namespace gko {
 namespace kernels {
-/**
- * @brief The HIP namespace.
- *
- * @ingroup hip
- */
 namespace hip {
 /**
  * @brief The Coordinate matrix format namespace.

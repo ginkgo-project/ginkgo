@@ -1603,6 +1603,11 @@ public:
     cublasContext* get_cublas_handle() const { return cublas_handle_.get(); }
 
     /**
+     * @copydoc get_cublas_handle()
+     */
+    cublasContext* get_blas_handle() const { return get_cublas_handle(); }
+
+    /**
      * Get the cusparse handle for this executor
      *
      * @return the cusparse handle (cusparseContext*) for this executor
@@ -1610,6 +1615,14 @@ public:
     cusparseContext* get_cusparse_handle() const
     {
         return cusparse_handle_.get();
+    }
+
+    /**
+     * @copydoc get_cusparse_handle()
+     */
+    cusparseContext* get_sparselib_handle() const
+    {
+        return get_cusparse_handle();
     }
 
     /**
@@ -1808,6 +1821,11 @@ public:
     hipblasContext* get_hipblas_handle() const { return hipblas_handle_.get(); }
 
     /**
+     * @copydoc get_hipblas_handle()
+     */
+    hipblasContext* get_blas_handle() const { return get_hipblas_handle(); }
+
+    /**
      * Get the hipsparse handle for this executor
      *
      * @return the hipsparse handle (hipsparseContext*) for this executor
@@ -1815,6 +1833,14 @@ public:
     hipsparseContext* get_hipsparse_handle() const
     {
         return hipsparse_handle_.get();
+    }
+
+    /**
+     * @copydoc get_hipsparse_handle()
+     */
+    hipsparseContext* get_sparselib_handle() const
+    {
+        return get_hipsparse_handle();
     }
 
     /**

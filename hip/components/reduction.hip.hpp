@@ -9,16 +9,15 @@
 #include <type_traits>
 
 
-#include <hip/hip_runtime.h>
-
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 
 
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "core/base/array_access.hpp"
-#include "hip/base/types.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 #include "hip/components/uninitialized_array.hip.hpp"
 
@@ -56,7 +55,6 @@ __host__ ValueType reduce_add_array(std::shared_ptr<const HipExecutor> exec,
             (n <= default_reduce_block_size) ? n : default_reduce_block_size;
 
         block_results.resize_and_reset(grid_dim);
-
 
         reduce_add_array<<<grid_dim, default_reduce_block_size, 0,
                            exec->get_stream()>>>(

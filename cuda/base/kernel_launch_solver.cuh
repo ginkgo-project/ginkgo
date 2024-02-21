@@ -8,6 +8,9 @@
 #endif
 
 
+#include "common/cuda_hip/base/runtime.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace cuda {

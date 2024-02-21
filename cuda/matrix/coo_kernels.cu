@@ -12,25 +12,21 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/base/sparselib_bindings.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/format_conversion.hpp"
 #include "core/matrix/dense_kernels.hpp"
-#include "cuda/base/config.hpp"
-#include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/math.hpp"
-#include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
-#include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/format_conversion.cuh"
 #include "cuda/components/segment_scan.cuh"
 #include "cuda/components/thread_ids.cuh"
 
 
 namespace gko {
 namespace kernels {
-/**
- * @brief The CUDA namespace.
- *
- * @ingroup cuda
- */
 namespace cuda {
 /**
  * @brief The Coordinate matrix format namespace.

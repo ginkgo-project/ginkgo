@@ -5,21 +5,19 @@
 #include "core/preconditioner/jacobi_kernels.hpp"
 
 
-#include <hip/hip_runtime.h>
-
-
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "core/base/extended_float.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "hip/base/config.hip.hpp"
 #include "hip/base/math.hip.hpp"
-#include "hip/base/types.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/diagonal_block_manipulation.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 #include "hip/components/uninitialized_array.hip.hpp"
@@ -38,7 +36,7 @@ namespace hip {
 namespace jacobi {
 
 
-#include "common/cuda_hip/preconditioner/jacobi_generate_kernel.hpp.inc"
+#include <common/cuda_hip/preconditioner/jacobi_generate_kernel.hpp.inc>
 
 
 template <int warps_per_block, int max_block_size, typename ValueType,

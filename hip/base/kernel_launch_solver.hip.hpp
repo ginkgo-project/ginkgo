@@ -8,7 +8,7 @@
 #endif
 
 
-#include <hip/hip_runtime.h>
+#include "common/cuda_hip/base/runtime.hpp"
 
 
 namespace gko {

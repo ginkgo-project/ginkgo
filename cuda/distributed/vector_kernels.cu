@@ -5,6 +5,9 @@
 #include "core/distributed/vector_kernels.hpp"
 
 
+#include <functional>
+
+
 #include <thrust/binary_search.h>
 #include <thrust/execution_policy.h>
 #include <thrust/iterator/transform_iterator.h>

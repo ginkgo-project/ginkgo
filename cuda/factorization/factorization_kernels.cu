@@ -8,12 +8,13 @@
 #include <ginkgo/core/base/array.hpp>
 
 
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "core/base/array_access.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
-#include "cuda/base/config.hpp"
-#include "cuda/base/types.hpp"
-#include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/intrinsics.cuh"
 #include "cuda/components/searching.cuh"
 #include "cuda/components/thread_ids.cuh"

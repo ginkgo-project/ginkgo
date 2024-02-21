@@ -6,7 +6,7 @@
 #include <ginkgo/core/synthesizer/containers.hpp>
 
 
-#include "cuda/base/config.hpp"
+#include "common/cuda_hip/base/config.hpp"
 
 namespace gko {
 namespace kernels {

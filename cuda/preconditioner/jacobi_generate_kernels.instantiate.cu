@@ -9,14 +9,14 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "core/base/extended_float.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "cuda/base/config.hpp"
 #include "cuda/base/math.hpp"
-#include "cuda/base/types.hpp"
-#include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/diagonal_block_manipulation.cuh"
 #include "cuda/components/thread_ids.cuh"
 #include "cuda/components/uninitialized_array.hpp"
@@ -35,7 +35,7 @@ namespace cuda {
 namespace jacobi {
 
 
-#include "common/cuda_hip/preconditioner/jacobi_generate_kernel.hpp.inc"
+#include <common/cuda_hip/preconditioner/jacobi_generate_kernel.hpp.inc>
 
 
 // clang-format off

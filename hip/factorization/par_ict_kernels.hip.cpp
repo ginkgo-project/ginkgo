@@ -5,9 +5,6 @@
 #include "core/factorization/par_ict_kernels.hpp"
 
 
-#include <hip/hip_runtime.h>
-
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
@@ -15,6 +12,8 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/components/memory.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/coo_builder.hpp"
 #include "core/matrix/csr_builder.hpp"
@@ -22,7 +21,6 @@
 #include "core/synthesizer/implementation_selection.hpp"
 #include "hip/base/math.hip.hpp"
 #include "hip/components/intrinsics.hip.hpp"
-#include "hip/components/memory.hip.hpp"
 #include "hip/components/merging.hip.hpp"
 #include "hip/components/prefix_sum.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
@@ -49,8 +47,7 @@ using compiled_kernels =
     syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
 
 
-#include "common/cuda_hip/factorization/par_ict_spgeam_kernels.hpp.inc"
-#include "common/cuda_hip/factorization/par_ict_sweep_kernels.hpp.inc"
+#include "common/cuda_hip/factorization/par_ict_kernels.hpp.inc"
 
 
 namespace {

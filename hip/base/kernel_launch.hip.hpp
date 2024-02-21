@@ -8,12 +8,12 @@
 #endif
 
 
-#include <hip/hip_runtime.h>
 #include <thrust/tuple.h>
 
 
-#include "accessor/hip_helper.hpp"
-#include "hip/base/types.hip.hpp"
+#include "accessor/cuda_hip_helper.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/base/types.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 
 
@@ -24,21 +24,21 @@ namespace hip {
 
 template <typename AccessorType>
 struct to_device_type_impl<gko::acc::range<AccessorType>&> {
-    using type = std::decay_t<decltype(gko::acc::as_hip_range(
+    using type = std::decay_t<decltype(gko::acc::as_device_range(
         std::declval<gko::acc::range<AccessorType>>()))>;
     static type map_to_device(gko::acc::range<AccessorType>& range)
     {
-        return gko::acc::as_hip_range(range);
+        return gko::acc::as_device_range(range);
     }
 };
 
 template <typename AccessorType>
 struct to_device_type_impl<const gko::acc::range<AccessorType>&> {
-    using type = std::decay_t<decltype(gko::acc::as_hip_range(
+    using type = std::decay_t<decltype(gko::acc::as_device_range(
         std::declval<gko::acc::range<AccessorType>>()))>;
     static type map_to_device(const gko::acc::range<AccessorType>& range)
     {
-        return gko::acc::as_hip_range(range);
+        return gko::acc::as_device_range(range);
     }
 };
 

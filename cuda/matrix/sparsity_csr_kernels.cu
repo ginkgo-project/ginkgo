@@ -11,18 +11,19 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
-#include "accessor/cuda_helper.hpp"
+#include "accessor/cuda_hip_helper.hpp"
 #include "accessor/reduced_row_major.hpp"
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/base/sparselib_bindings.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "cuda/base/config.hpp"
-#include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/thrust.cuh"
-#include "cuda/base/types.hpp"
-#include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/thread_ids.cuh"
 #include "cuda/components/uninitialized_array.hpp"
@@ -41,7 +42,11 @@ namespace sparsity_csr {
 
 constexpr int classical_oversubscription = 32;
 constexpr int default_block_size = 512;
+#ifdef GKO_COMPILING_HIP
+constexpr int spmv_block_size = 256;
+#else
 constexpr int spmv_block_size = 128;
+#endif
 constexpr int warps_in_block = 4;
 
 
@@ -105,16 +110,16 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
                 a->get_size()[0], as_device_type(a->get_const_value()),
                 a->get_const_col_idxs(),
                 as_device_type(a->get_const_row_ptrs()),
-                acc::as_cuda_range(b_vals), acc::as_cuda_range(c_vals));
+                acc::as_device_range(b_vals), acc::as_device_range(c_vals));
     } else if (alpha != nullptr && beta != nullptr) {
         kernel::abstract_classical_spmv<subwarp_size>
             <<<grid, block, 0, exec->get_stream()>>>(
                 a->get_size()[0], as_device_type(alpha->get_const_values()),
                 as_device_type(a->get_const_value()), a->get_const_col_idxs(),
                 as_device_type(a->get_const_row_ptrs()),
-                acc::as_cuda_range(b_vals),
+                acc::as_device_range(b_vals),
                 as_device_type(beta->get_const_values()),
-                acc::as_cuda_range(c_vals));
+                acc::as_device_range(c_vals));
     } else {
         GKO_KERNEL_NOT_FOUND;
     }
@@ -168,21 +173,21 @@ void sort_by_column_index(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_cols = static_cast<IndexType>(to_sort->get_size()[1]);
     const auto row_ptrs = to_sort->get_const_row_ptrs();
     const auto col_idxs = to_sort->get_col_idxs();
-    if (cusparse::is_supported<ValueType, IndexType>::value) {
-        const auto handle = exec->get_cusparse_handle();
-        auto descr = cusparse::create_mat_descr();
+    if (sparselib::is_supported<ValueType, IndexType>::value) {
+        const auto handle = exec->get_sparselib_handle();
+        auto descr = sparselib::create_mat_descr();
         array<IndexType> permutation_array(exec, to_sort->get_num_nonzeros());
         auto permutation = permutation_array.get_data();
         components::fill_seq_array(exec, permutation,
                                    to_sort->get_num_nonzeros());
         size_type buffer_size{};
-        cusparse::csrsort_buffer_size(handle, num_rows, num_cols, nnz, row_ptrs,
-                                      col_idxs, buffer_size);
+        sparselib::csrsort_buffer_size(handle, num_rows, num_cols, nnz,
+                                       row_ptrs, col_idxs, buffer_size);
         array<char> buffer_array{exec, buffer_size};
         auto buffer = buffer_array.get_data();
-        cusparse::csrsort(handle, num_rows, num_cols, nnz, descr, row_ptrs,
-                          col_idxs, permutation, buffer);
-        cusparse::destroy(descr);
+        sparselib::csrsort(handle, num_rows, num_cols, nnz, descr, row_ptrs,
+                           col_idxs, permutation, buffer);
+        sparselib::destroy(descr);
     } else {
         fallback_sort(exec, to_sort);
     }

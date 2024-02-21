@@ -20,15 +20,15 @@
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "common/cuda_hip/base/sparselib_bindings.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/lu_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
-#include "hip/base/hipsparse_bindings.hip.hpp"
 #include "hip/base/math.hip.hpp"
 #include "hip/base/thrust.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/intrinsics.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
 #include "hip/components/syncfree.hip.hpp"
@@ -80,19 +80,19 @@ void symbolic_count(std::shared_ptr<const DefaultExecutor> exec,
     }
     // sort postorder_cols inside rows
     {
-        const auto handle = exec->get_hipsparse_handle();
-        auto descr = hipsparse::create_mat_descr();
+        const auto handle = exec->get_sparselib_handle();
+        auto descr = sparselib::create_mat_descr();
         array<IndexType> permutation_array(exec, mtx_nnz);
         auto permutation = permutation_array.get_data();
         components::fill_seq_array(exec, permutation, mtx_nnz);
         size_type buffer_size{};
-        hipsparse::csrsort_buffer_size(handle, num_rows, num_rows, mtx_nnz,
+        sparselib::csrsort_buffer_size(handle, num_rows, num_rows, mtx_nnz,
                                        row_ptrs, postorder_cols, buffer_size);
         array<char> buffer_array{exec, buffer_size};
         auto buffer = buffer_array.get_data();
-        hipsparse::csrsort(handle, num_rows, num_rows, mtx_nnz, descr, row_ptrs,
+        sparselib::csrsort(handle, num_rows, num_rows, mtx_nnz, descr, row_ptrs,
                            postorder_cols, permutation, buffer);
-        hipsparse::destroy(descr);
+        sparselib::destroy(descr);
     }
     // count nonzeros per row of L
     {

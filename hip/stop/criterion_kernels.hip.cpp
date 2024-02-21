@@ -10,8 +10,8 @@
 #include <ginkgo/core/stop/stopping_status.hpp>
 
 
+#include "common/cuda_hip/base/types.hpp"
 #include "hip/base/math.hip.hpp"
-#include "hip/base/types.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 
 

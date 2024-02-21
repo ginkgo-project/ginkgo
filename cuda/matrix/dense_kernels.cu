@@ -17,12 +17,13 @@
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "common/cuda_hip/base/blas_bindings.hpp"
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/pointer_mode_guard.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "core/base/utils.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
-#include "cuda/base/config.hpp"
-#include "cuda/base/cublas_bindings.hpp"
-#include "cuda/base/pointer_mode_guard.hpp"
-#include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/intrinsics.cuh"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/thread_ids.cuh"
@@ -53,11 +54,11 @@ void compute_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                           matrix::Dense<ValueType>* result, array<char>& tmp)
 {
     if (x->get_size()[1] == 1 && y->get_size()[1] == 1) {
-        if (cublas::is_supported<ValueType>::value) {
-            auto handle = exec->get_cublas_handle();
-            cublas::dot(handle, x->get_size()[0], x->get_const_values(),
-                        x->get_stride(), y->get_const_values(), y->get_stride(),
-                        result->get_values());
+        if (blas::is_supported<ValueType>::value) {
+            auto handle = exec->get_blas_handle();
+            blas::dot(handle, x->get_size()[0], x->get_const_values(),
+                      x->get_stride(), y->get_const_values(), y->get_stride(),
+                      result->get_values());
         } else {
             compute_dot(exec, x, y, result, tmp);
         }
@@ -78,11 +79,11 @@ void compute_conj_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                                array<char>& tmp)
 {
     if (x->get_size()[1] == 1 && y->get_size()[1] == 1) {
-        if (cublas::is_supported<ValueType>::value) {
-            auto handle = exec->get_cublas_handle();
-            cublas::conj_dot(handle, x->get_size()[0], x->get_const_values(),
-                             x->get_stride(), y->get_const_values(),
-                             y->get_stride(), result->get_values());
+        if (blas::is_supported<ValueType>::value) {
+            auto handle = exec->get_blas_handle();
+            blas::conj_dot(handle, x->get_size()[0], x->get_const_values(),
+                           x->get_stride(), y->get_const_values(),
+                           y->get_stride(), result->get_values());
         } else {
             compute_conj_dot(exec, x, y, result, tmp);
         }
@@ -102,10 +103,10 @@ void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                             array<char>& tmp)
 {
     if (x->get_size()[1] == 1) {
-        if (cublas::is_supported<ValueType>::value) {
-            auto handle = exec->get_cublas_handle();
-            cublas::norm2(handle, x->get_size()[0], x->get_const_values(),
-                          x->get_stride(), result->get_values());
+        if (blas::is_supported<ValueType>::value) {
+            auto handle = exec->get_blas_handle();
+            blas::norm2(handle, x->get_size()[0], x->get_const_values(),
+                        x->get_stride(), result->get_values());
         } else {
             compute_norm2(exec, x, result, tmp);
         }
@@ -124,18 +125,18 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
                   const matrix::Dense<ValueType>* b,
                   matrix::Dense<ValueType>* c)
 {
-    if (cublas::is_supported<ValueType>::value) {
-        auto handle = exec->get_cublas_handle();
+    if (blas::is_supported<ValueType>::value) {
+        auto handle = exec->get_blas_handle();
         if (c->get_size()[0] > 0 && c->get_size()[1] > 0) {
             if (a->get_size()[1] > 0) {
-                cublas::pointer_mode_guard pm_guard(handle);
+                blas::pointer_mode_guard pm_guard(handle);
                 auto alpha = one<ValueType>();
                 auto beta = zero<ValueType>();
-                cublas::gemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, c->get_size()[1],
-                             c->get_size()[0], a->get_size()[1], &alpha,
-                             b->get_const_values(), b->get_stride(),
-                             a->get_const_values(), a->get_stride(), &beta,
-                             c->get_values(), c->get_stride());
+                blas::gemm(handle, BLAS_OP_N, BLAS_OP_N, c->get_size()[1],
+                           c->get_size()[0], a->get_size()[1], &alpha,
+                           b->get_const_values(), b->get_stride(),
+                           a->get_const_values(), a->get_stride(), &beta,
+                           c->get_values(), c->get_stride());
             } else {
                 dense::fill(exec, c, zero<ValueType>());
             }
@@ -154,15 +155,15 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            const matrix::Dense<ValueType>* a, const matrix::Dense<ValueType>* b,
            const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* c)
 {
-    if (cublas::is_supported<ValueType>::value) {
+    if (blas::is_supported<ValueType>::value) {
         if (c->get_size()[0] > 0 && c->get_size()[1] > 0) {
             if (a->get_size()[1] > 0) {
-                cublas::gemm(
-                    exec->get_cublas_handle(), CUBLAS_OP_N, CUBLAS_OP_N,
-                    c->get_size()[1], c->get_size()[0], a->get_size()[1],
-                    alpha->get_const_values(), b->get_const_values(),
-                    b->get_stride(), a->get_const_values(), a->get_stride(),
-                    beta->get_const_values(), c->get_values(), c->get_stride());
+                blas::gemm(exec->get_blas_handle(), BLAS_OP_N, BLAS_OP_N,
+                           c->get_size()[1], c->get_size()[0], a->get_size()[1],
+                           alpha->get_const_values(), b->get_const_values(),
+                           b->get_stride(), a->get_const_values(),
+                           a->get_stride(), beta->get_const_values(),
+                           c->get_values(), c->get_stride());
             } else {
                 dense::scale(exec, beta, c);
             }
@@ -180,17 +181,17 @@ void transpose(std::shared_ptr<const DefaultExecutor> exec,
                const matrix::Dense<ValueType>* orig,
                matrix::Dense<ValueType>* trans)
 {
-    if (cublas::is_supported<ValueType>::value) {
-        auto handle = exec->get_cublas_handle();
+    if (blas::is_supported<ValueType>::value) {
+        auto handle = exec->get_blas_handle();
         if (orig->get_size()[0] > 0 && orig->get_size()[1] > 0) {
-            cublas::pointer_mode_guard pm_guard(handle);
+            blas::pointer_mode_guard pm_guard(handle);
             auto alpha = one<ValueType>();
             auto beta = zero<ValueType>();
-            cublas::geam(handle, CUBLAS_OP_T, CUBLAS_OP_N, orig->get_size()[0],
-                         orig->get_size()[1], &alpha, orig->get_const_values(),
-                         orig->get_stride(), &beta, trans->get_values(),
-                         trans->get_stride(), trans->get_values(),
-                         trans->get_stride());
+            blas::geam(handle, BLAS_OP_T, BLAS_OP_N, orig->get_size()[0],
+                       orig->get_size()[1], &alpha, orig->get_const_values(),
+                       orig->get_stride(), &beta, trans->get_const_values(),
+                       trans->get_stride(), trans->get_values(),
+                       trans->get_stride());
         }
     } else {
         GKO_NOT_IMPLEMENTED;
@@ -205,17 +206,17 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Dense<ValueType>* orig,
                     matrix::Dense<ValueType>* trans)
 {
-    if (cublas::is_supported<ValueType>::value) {
-        auto handle = exec->get_cublas_handle();
+    if (blas::is_supported<ValueType>::value) {
+        auto handle = exec->get_blas_handle();
         if (orig->get_size()[0] > 0 && orig->get_size()[1] > 0) {
-            cublas::pointer_mode_guard pm_guard(handle);
+            blas::pointer_mode_guard pm_guard(handle);
             auto alpha = one<ValueType>();
             auto beta = zero<ValueType>();
-            cublas::geam(handle, CUBLAS_OP_C, CUBLAS_OP_N, orig->get_size()[0],
-                         orig->get_size()[1], &alpha, orig->get_const_values(),
-                         orig->get_stride(), &beta, trans->get_values(),
-                         trans->get_stride(), trans->get_values(),
-                         trans->get_stride());
+            blas::geam(handle, BLAS_OP_C, BLAS_OP_N, orig->get_size()[0],
+                       orig->get_size()[1], &alpha, orig->get_const_values(),
+                       orig->get_stride(), &beta, trans->get_const_values(),
+                       trans->get_stride(), trans->get_values(),
+                       trans->get_stride());
         }
     } else {
         GKO_NOT_IMPLEMENTED;

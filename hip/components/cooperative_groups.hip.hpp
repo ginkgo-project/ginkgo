@@ -9,8 +9,8 @@
 #include <type_traits>
 
 
-#include "hip/base/config.hip.hpp"
-#include "hip/base/types.hip.hpp"
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/types.hpp"
 
 
 namespace gko {

@@ -19,7 +19,7 @@
 
 #define GKO_DEVICE_NAMESPACE cuda
 #define GKO_KERNEL __device__
-#include "cuda/base/types.hpp"
+#include "common/cuda_hip/base/types.hpp"
 
 
 namespace gko {
@@ -46,7 +46,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 
 #define GKO_DEVICE_NAMESPACE hip
 #define GKO_KERNEL __device__
-#include "hip/base/types.hip.hpp"
+#include "common/cuda_hip/base/types.hpp"
 
 
 namespace gko {

@@ -8,8 +8,6 @@
 #include <memory>
 
 
-#include <cuda.h>
-#include <cusparse.h>
 #include <thrust/device_ptr.h>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/reduce.h>
@@ -21,8 +19,8 @@
 #include <ginkgo/core/base/math.hpp>
 
 
+#include "common/cuda_hip/base/types.hpp"
 #include "cuda/base/thrust.cuh"
-#include "cuda/base/types.hpp"
 
 
 namespace gko {

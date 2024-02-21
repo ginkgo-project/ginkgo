@@ -13,12 +13,13 @@
 #include <ginkgo/core/matrix/batch_ell.hpp>
 
 
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
 #include "cuda/base/batch_struct.hpp"
-#include "cuda/base/config.hpp"
 #include "cuda/base/thrust.cuh"
-#include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/thread_ids.cuh"
 #include "cuda/components/uninitialized_array.hpp"

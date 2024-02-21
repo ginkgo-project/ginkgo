@@ -5,21 +5,18 @@
 #include "core/preconditioner/isai_kernels.hpp"
 
 
-#include <hip/hip_runtime.h>
-
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
-#include "hip/base/config.hip.hpp"
 #include "hip/base/math.hip.hpp"
-#include "hip/base/types.hip.hpp"
-#include "hip/components/atomic.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/merging.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"

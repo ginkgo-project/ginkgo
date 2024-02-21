@@ -6,7 +6,7 @@
 #define GKO_CUDA_COMPONENTS_SEARCHING_CUH_
 
 
-#include "cuda/base/config.hpp"
+#include "common/cuda_hip/base/config.hpp"
 #include "cuda/components/intrinsics.cuh"
 
 

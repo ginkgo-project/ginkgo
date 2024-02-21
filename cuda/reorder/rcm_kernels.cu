@@ -25,9 +25,9 @@
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "common/cuda_hip/components/memory.hpp"
 #include "core/base/array_access.hpp"
 #include "cuda/base/thrust.cuh"
-#include "cuda/components/memory.cuh"
 #include "cuda/components/thread_ids.cuh"
 
 

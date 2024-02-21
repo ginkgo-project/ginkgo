@@ -10,9 +10,9 @@
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 
+#include "common/cuda_hip/base/types.hpp"
 #include "core/base/array_access.hpp"
 #include "cuda/base/math.hpp"
-#include "cuda/base/types.hpp"
 #include "cuda/components/thread_ids.cuh"
 
 

@@ -11,9 +11,10 @@
 #include <ginkgo/core/base/types.hpp>
 
 
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/base/types.hpp"
 #include "core/base/array_access.hpp"
 #include "core/components/fill_array_kernels.hpp"
-#include "cuda/base/types.hpp"
 #include "cuda/components/thread_ids.cuh"
 
 

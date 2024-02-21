@@ -5,9 +5,6 @@
 #include "core/factorization/par_ilut_kernels.hpp"
 
 
-#include <hip/hip_runtime.h>
-
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
@@ -15,24 +12,25 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/components/memory.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/coo_builder.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "hip/base/math.hip.hpp"
-#include "hip/components/intrinsics.hip.hpp"
-#include "hip/components/memory.hip.hpp"
-#include "hip/components/merging.hip.hpp"
-#include "hip/components/prefix_sum.hip.hpp"
-#include "hip/components/reduction.hip.hpp"
-#include "hip/components/searching.hip.hpp"
-#include "hip/components/thread_ids.hip.hpp"
+#include "cuda/base/math.hpp"
+#include "cuda/components/intrinsics.cuh"
+#include "cuda/components/merging.cuh"
+#include "cuda/components/prefix_sum.cuh"
+#include "cuda/components/reduction.cuh"
+#include "cuda/components/searching.cuh"
+#include "cuda/components/thread_ids.cuh"
 
 
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace cuda {
 /**
  * @brief The parallel ILUT factorization namespace.
  *
@@ -85,7 +83,6 @@ void compute_l_u_factors(syn::value_list<int, subwarp_size>,
     }
 }
 
-
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_compute_l_u_factors,
                                     compute_l_u_factors);
 
@@ -121,6 +118,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace par_ilut_factorization
-}  // namespace hip
+}  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

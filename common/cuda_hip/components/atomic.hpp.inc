@@ -196,3 +196,35 @@ GKO_BIND_ATOMIC_MAX(unsigned long long int);
 
 
 #undef GKO_BIND_ATOMIC_MAX
+
+
+/**
+ * @internal
+ *
+ * @note It is not 'real' complex<float> atomic add operation
+ */
+__forceinline__ __device__ thrust::complex<float> atomic_add(
+    thrust::complex<float>* __restrict__ address, thrust::complex<float> val)
+{
+    auto addr = reinterpret_cast<float*>(address);
+    // Separate to real part and imag part
+    auto real = atomic_add(addr, val.real());
+    auto imag = atomic_add(addr + 1, val.imag());
+    return {real, imag};
+}
+
+
+/**
+ * @internal
+ *
+ * @note It is not 'real' complex<double> atomic add operation
+ */
+__forceinline__ __device__ thrust::complex<double> atomic_add(
+    thrust::complex<double>* __restrict__ address, thrust::complex<double> val)
+{
+    auto addr = reinterpret_cast<double*>(address);
+    // Separate to real part and imag part
+    auto real = atomic_add(addr, val.real());
+    auto imag = atomic_add(addr + 1, val.imag());
+    return {real, imag};
+}
