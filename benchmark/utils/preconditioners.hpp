@@ -21,11 +21,22 @@
 #include "benchmark/utils/types.hpp"
 
 
+#if GINKGO_BUILD_MPI
+DEFINE_string(preconditioners, "none",
+              "A comma-separated list of preconditioners to use. "
+              "Supported values are: none, jacobi, paric, parict, parilu, "
+              "parilut, ic, ilu, paric-isai, parict-isai, parilu-isai, "
+              "parilut-isai, ic-isai, ilu-isai, schwarz-[any-precond], "
+              "overhead");
+
+DEFINE_uint32(overlap, 0, "The overlap size");
+#else
 DEFINE_string(preconditioners, "none",
               "A comma-separated list of preconditioners to use. "
               "Supported values are: none, jacobi, paric, parict, parilu, "
               "parilut, ic, ilu, paric-isai, parict-isai, parilu-isai, "
               "parilut-isai, ic-isai, ilu-isai, overhead");
+#endif
 
 DEFINE_uint32(parilu_iterations, 5,
               "The number of iterations for ParIC(T)/ParILU(T)");
@@ -301,6 +312,47 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                                     .with_reduction_factor(rc_etype{}))
                  .on(exec);
          }}};
+
+
+#if GINKGO_BUILD_MPI
+
+
+inline std::function<
+    std::unique_ptr<gko::LinOpFactory>(std::shared_ptr<const gko::Executor>)>
+schwarz_factory(const std::string& precond)
+{
+    std::string prefix = "schwarz-";
+    auto local_precond = precond.substr(prefix.length());
+    return [local_precond](std::shared_ptr<const gko::Executor> exec) {
+        return gko::experimental::distributed::preconditioner::Schwarz<
+                   etype, itype, global_itype>::build()
+            .with_local_solver(precond_factory.at(local_precond)(exec))
+            .with_overlap(FLAGS_overlap)
+            .on(exec);
+    };
+}
+
+
+#endif
+
+
+inline std::function<
+    std::unique_ptr<gko::LinOpFactory>(std::shared_ptr<const gko::Executor>)>
+get_precond(const std::string& name)
+{
+    auto starts_with = [](const std::string& s, const std::string& prefix) {
+        if (s.length() < prefix.length()) {
+            return false;
+        }
+        return s.substr(0, prefix.length()) == prefix;
+    };
+#if GINKGO_BUILD_MPI
+    if (starts_with(name, "schwarz-")) {
+        return schwarz_factory(name);
+    }
+#endif
+    return precond_factory.at(name);
+}
 
 
 #endif  // GKO_BENCHMARK_UTILS_PRECONDITIONERS_HPP_
