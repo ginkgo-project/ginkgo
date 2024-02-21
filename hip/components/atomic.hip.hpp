@@ -29,7 +29,7 @@ namespace hip {
 __forceinline__ __device__ thrust::complex<float> atomic_add(
     thrust::complex<float>* __restrict__ address, thrust::complex<float> val)
 {
-    hipComplex* addr = reinterpret_cast<hipComplex*>(address);
+    gpuComplex* addr = reinterpret_cast<gpuComplex*>(address);
     // Separate to real part and imag part
     auto real = atomic_add(static_cast<float*>(&(addr->x)), val.real());
     auto imag = atomic_add(static_cast<float*>(&(addr->y)), val.imag());
@@ -45,7 +45,7 @@ __forceinline__ __device__ thrust::complex<float> atomic_add(
 __forceinline__ __device__ thrust::complex<double> atomic_add(
     thrust::complex<double>* __restrict__ address, thrust::complex<double> val)
 {
-    hipDoubleComplex* addr = reinterpret_cast<hipDoubleComplex*>(address);
+    gpuDoubleComplex* addr = reinterpret_cast<gpuDoubleComplex*>(address);
     // Separate to real part and imag part
     auto real = atomic_add(static_cast<double*>(&(addr->x)), val.real());
     auto imag = atomic_add(static_cast<double*>(&(addr->y)), val.imag());

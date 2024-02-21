@@ -29,7 +29,7 @@ namespace cuda {
 __forceinline__ __device__ thrust::complex<float> atomic_add(
     thrust::complex<float>* __restrict__ address, thrust::complex<float> val)
 {
-    cuComplex* addr = reinterpret_cast<cuComplex*>(address);
+    gpuComplex* addr = reinterpret_cast<gpuComplex*>(address);
     // Separate to real part and imag part
     auto real = atomic_add(&(addr->x), val.real());
     auto imag = atomic_add(&(addr->y), val.imag());
@@ -45,7 +45,7 @@ __forceinline__ __device__ thrust::complex<float> atomic_add(
 __forceinline__ __device__ thrust::complex<double> atomic_add(
     thrust::complex<double>* __restrict__ address, thrust::complex<double> val)
 {
-    cuDoubleComplex* addr = reinterpret_cast<cuDoubleComplex*>(address);
+    gpuDoubleComplex* addr = reinterpret_cast<gpuDoubleComplex*>(address);
     // Separate to real part and imag part
     auto real = atomic_add(&(addr->x), val.real());
     auto imag = atomic_add(&(addr->y), val.imag());
