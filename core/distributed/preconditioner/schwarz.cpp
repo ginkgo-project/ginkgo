@@ -94,6 +94,11 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     auto comm = dist_mat->get_communicator();
     auto imap = dist_mat->get_index_map();
 
+    if (dynamic_cast<const Ovlp*>(parameters_.generated_local_solver.get())) {
+        this->set_solver(parameters_.generated_local_solver);
+        return;
+    }
+
     if (parameters_.generated_local_solver) {
         sparse_communicator self_comm{
             MPI_COMM_SELF,
@@ -104,22 +109,22 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
         return;
     }
 
+    std::shared_ptr<Ovlp> ovlp_mtx;
     if (parameters_.overlap == 0) {
         sparse_communicator self_comm{
             MPI_COMM_SELF,
             index_map<LocalIndexType, GlobalIndexType>{
                 exec, imap.get_partition(), comm.rank(), {exec, 0}}};
-        this->set_solver(Ovlp::create(
-            parameters_.local_solver->generate(dist_mat->get_local_matrix()),
-            self_comm, dist_mat->get_size()));
-        return;
+        ovlp_mtx = Ovlp::create(dist_mat->get_local_matrix(), self_comm,
+                                dist_mat->get_size());
+    } else if (parameters_.overlap == 1) {
+        ovlp_mtx = Ovlp::create(dist_mat.get(), dist_mat->get_index_map());
+    } else {
+        GKO_NOT_IMPLEMENTED;
     }
-    if (parameters_.overlap == 1) {
-        this->set_solver(
-            Ovlp::create(dist_mat.get(), dist_mat->get_index_map()));
-        return;
-    }
-    GKO_NOT_IMPLEMENTED;
+    this->set_solver(Ovlp::create(
+        parameters_.local_solver->generate(ovlp_mtx->get_matrix()),
+        ovlp_mtx->get_sparse_communicator(), dist_mat->get_size()));
 }
 
 
