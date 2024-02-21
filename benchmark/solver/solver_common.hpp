@@ -344,6 +344,8 @@ struct SolverGenerator : DefaultSystemGenerator<> {
         return gko::initialize<Vec>(std::move(il), std::move(exec));
     }
 
+    bool should_print() const { return true; }
+
     std::default_random_engine engine = get_engine();
 };
 
@@ -383,7 +385,7 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
         return precond_solvers;
     }
 
-    bool should_print() const override { return true; }
+    bool should_print() const override { return generator.should_print(); }
 
     std::string get_example_config() const override
     {
@@ -428,9 +430,11 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                 exec, state.system_matrix.get(), state.b.get());
         }
 
-        std::clog << "Matrix is of size (" << state.system_matrix->get_size()[0]
-                  << ", " << state.system_matrix->get_size()[1] << ")"
-                  << std::endl;
+        if (should_print()) {
+            std::clog << "Matrix is of size ("
+                      << state.system_matrix->get_size()[0] << ", "
+                      << state.system_matrix->get_size()[1] << ")" << std::endl;
+        }
         test_case["rows"] = state.system_matrix->get_size()[0];
         test_case["cols"] = state.system_matrix->get_size()[1];
         return state;

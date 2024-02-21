@@ -46,6 +46,8 @@ struct Generator : public DistributedDefaultSystemGenerator<SolverGenerator> {
                 exec, gko::as<Mtx>(system_matrix)->get_local_matrix().get(),
                 rhs->get_local_vector()));
     }
+
+    bool should_print() const { return comm.rank() == 0; }
 };
 
 
