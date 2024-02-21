@@ -30,7 +30,7 @@ void compute(std::shared_ptr<const DefaultExecutor> exec,
              matrix::Csr<ValueType, IndexType>* m)
 {
     const auto id = exec->get_device_id();
-    auto handle = exec->get_hipsparse_handle();
+    auto handle = exec->get_sparselib_handle();
     auto desc = sparselib::create_mat_descr();
     auto info = sparselib::create_ic0_info();
 

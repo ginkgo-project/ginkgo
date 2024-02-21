@@ -120,7 +120,7 @@ void generate_kernel(std::shared_ptr<const HipExecutor> exec,
         if (auto hip_solve_struct =
                 std::dynamic_pointer_cast<solver::hip::SolveStruct>(
                     solve_struct)) {
-            auto handle = exec->get_hipsparse_handle();
+            auto handle = exec->get_sparselib_handle();
 
             {
                 sparselib::pointer_mode_guard pm_guard(handle);
@@ -174,7 +174,7 @@ void solve_kernel(std::shared_ptr<const HipExecutor> exec,
         if (auto hip_solve_struct =
                 dynamic_cast<const solver::hip::SolveStruct*>(solve_struct)) {
             ValueType one = 1.0;
-            auto handle = exec->get_hipsparse_handle();
+            auto handle = exec->get_sparselib_handle();
 
             {
                 sparselib::pointer_mode_guard pm_guard(handle);

@@ -54,7 +54,7 @@ void compute_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
 {
     if (x->get_size()[1] == 1 && y->get_size()[1] == 1) {
         if (blas::is_supported<ValueType>::value) {
-            auto handle = exec->get_cublas_handle();
+            auto handle = exec->get_blas_handle();
             blas::dot(handle, x->get_size()[0], x->get_const_values(),
                       x->get_stride(), y->get_const_values(), y->get_stride(),
                       result->get_values());
@@ -79,7 +79,7 @@ void compute_conj_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
 {
     if (x->get_size()[1] == 1 && y->get_size()[1] == 1) {
         if (blas::is_supported<ValueType>::value) {
-            auto handle = exec->get_cublas_handle();
+            auto handle = exec->get_blas_handle();
             blas::conj_dot(handle, x->get_size()[0], x->get_const_values(),
                            x->get_stride(), y->get_const_values(),
                            y->get_stride(), result->get_values());
@@ -103,7 +103,7 @@ void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec,
 {
     if (x->get_size()[1] == 1) {
         if (blas::is_supported<ValueType>::value) {
-            auto handle = exec->get_cublas_handle();
+            auto handle = exec->get_blas_handle();
             blas::norm2(handle, x->get_size()[0], x->get_const_values(),
                         x->get_stride(), result->get_values());
         } else {
@@ -125,7 +125,7 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
                   matrix::Dense<ValueType>* c)
 {
     if (blas::is_supported<ValueType>::value) {
-        auto handle = exec->get_cublas_handle();
+        auto handle = exec->get_blas_handle();
         if (c->get_size()[0] > 0 && c->get_size()[1] > 0) {
             if (a->get_size()[1] > 0) {
                 blas::pointer_mode_guard pm_guard(handle);
@@ -157,7 +157,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     if (blas::is_supported<ValueType>::value) {
         if (c->get_size()[0] > 0 && c->get_size()[1] > 0) {
             if (a->get_size()[1] > 0) {
-                blas::gemm(exec->get_cublas_handle(), CUBLAS_OP_N, CUBLAS_OP_N,
+                blas::gemm(exec->get_blas_handle(), CUBLAS_OP_N, CUBLAS_OP_N,
                            c->get_size()[1], c->get_size()[0], a->get_size()[1],
                            alpha->get_const_values(), b->get_const_values(),
                            b->get_stride(), a->get_const_values(),
@@ -181,7 +181,7 @@ void transpose(std::shared_ptr<const DefaultExecutor> exec,
                matrix::Dense<ValueType>* trans)
 {
     if (blas::is_supported<ValueType>::value) {
-        auto handle = exec->get_cublas_handle();
+        auto handle = exec->get_blas_handle();
         if (orig->get_size()[0] > 0 && orig->get_size()[1] > 0) {
             blas::pointer_mode_guard pm_guard(handle);
             auto alpha = one<ValueType>();
@@ -206,7 +206,7 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
                     matrix::Dense<ValueType>* trans)
 {
     if (blas::is_supported<ValueType>::value) {
-        auto handle = exec->get_cublas_handle();
+        auto handle = exec->get_blas_handle();
         if (orig->get_size()[0] > 0 && orig->get_size()[1] > 0) {
             blas::pointer_mode_guard pm_guard(handle);
             auto alpha = one<ValueType>();

@@ -147,9 +147,8 @@ void update_g_and_u(std::shared_ptr<const DefaultExecutor> exec,
                 as_device_type(alpha->get_values()),
                 stop_status->get_const_data());
         } else {
-            blas::dot(exec->get_hipblas_handle(), size, p_i, 1,
-                      g_k->get_values(), g_k->get_stride(),
-                      alpha->get_values());
+            blas::dot(exec->get_blas_handle(), size, p_i, 1, g_k->get_values(),
+                      g_k->get_stride(), alpha->get_values());
         }
         update_g_k_and_u_kernel<default_block_size>
             <<<ceildiv(size * g_k->get_stride(), default_block_size),
@@ -198,7 +197,7 @@ void update_m(std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
                 as_device_type(g_k->get_const_values()), g_k->get_stride(),
                 as_device_type(m_i), stop_status->get_const_data());
         } else {
-            blas::dot(exec->get_hipblas_handle(), size, p_i, 1,
+            blas::dot(exec->get_blas_handle(), size, p_i, 1,
                       g_k->get_const_values(), g_k->get_stride(), m_i);
         }
     }

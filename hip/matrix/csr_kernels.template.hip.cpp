@@ -357,7 +357,7 @@ bool try_general_sparselib_spmv(std::shared_ptr<const HipExecutor> exec,
         auto row_ptrs = a->get_const_row_ptrs();
         auto col_idxs = a->get_const_col_idxs();
 
-        sparselib::spmv(exec->get_hipsparse_handle(),
+        sparselib::spmv(exec->get_sparselib_handle(),
                         HIPSPARSE_OPERATION_NON_TRANSPOSE, a->get_size()[0],
                         a->get_size()[1], a->get_num_stored_elements(), alpha,
                         descr, a->get_const_values(), row_ptrs, col_idxs,
@@ -397,7 +397,7 @@ bool try_sparselib_spmv(std::shared_ptr<const HipExecutor> exec,
         return try_general_sparselib_spmv(exec, alpha->get_const_values(), a, b,
                                           beta->get_const_values(), c);
     } else {
-        auto handle = exec->get_hipsparse_handle();
+        auto handle = exec->get_sparselib_handle();
         sparselib::pointer_mode_guard pm_guard(handle);
         const auto valpha = one<ValueType>();
         const auto vbeta = zero<ValueType>();
@@ -536,7 +536,7 @@ void spgemm(std::shared_ptr<const HipExecutor> exec,
             matrix::Csr<ValueType, IndexType>* c)
 {
     if (sparselib::is_supported<ValueType, IndexType>::value) {
-        auto handle = exec->get_hipsparse_handle();
+        auto handle = exec->get_sparselib_handle();
         sparselib::pointer_mode_guard pm_guard(handle);
         auto a_descr = sparselib::create_mat_descr();
         auto b_descr = sparselib::create_mat_descr();
@@ -612,7 +612,7 @@ void advanced_spgemm(std::shared_ptr<const HipExecutor> exec,
                      matrix::Csr<ValueType, IndexType>* c)
 {
     if (sparselib::is_supported<ValueType, IndexType>::value) {
-        auto handle = exec->get_hipsparse_handle();
+        auto handle = exec->get_sparselib_handle();
         sparselib::pointer_mode_guard pm_guard(handle);
         auto a_descr = sparselib::create_mat_descr();
         auto b_descr = sparselib::create_mat_descr();
@@ -706,7 +706,7 @@ void transpose(std::shared_ptr<const HipExecutor> exec,
         hipsparseIndexBase_t idxBase = HIPSPARSE_INDEX_BASE_ZERO;
 
         sparselib::transpose(
-            exec->get_hipsparse_handle(), orig->get_size()[0],
+            exec->get_sparselib_handle(), orig->get_size()[0],
             orig->get_size()[1], orig->get_num_stored_elements(),
             orig->get_const_values(), orig->get_const_row_ptrs(),
             orig->get_const_col_idxs(), trans->get_values(),
@@ -733,7 +733,7 @@ void conj_transpose(std::shared_ptr<const HipExecutor> exec,
         hipsparseIndexBase_t idxBase = HIPSPARSE_INDEX_BASE_ZERO;
 
         sparselib::transpose(
-            exec->get_hipsparse_handle(), orig->get_size()[0],
+            exec->get_sparselib_handle(), orig->get_size()[0],
             orig->get_size()[1], orig->get_num_stored_elements(),
             orig->get_const_values(), orig->get_const_row_ptrs(),
             orig->get_const_col_idxs(), trans->get_values(),
@@ -754,7 +754,7 @@ void sort_by_column_index(std::shared_ptr<const HipExecutor> exec,
                           matrix::Csr<ValueType, IndexType>* to_sort)
 {
     if (sparselib::is_supported<ValueType, IndexType>::value) {
-        auto handle = exec->get_hipsparse_handle();
+        auto handle = exec->get_sparselib_handle();
         auto descr = sparselib::create_mat_descr();
         auto m = IndexType(to_sort->get_size()[0]);
         auto n = IndexType(to_sort->get_size()[1]);

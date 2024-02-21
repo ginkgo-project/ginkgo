@@ -82,7 +82,7 @@ void dense_transpose(std::shared_ptr<const CudaExecutor> exec,
         return;
     }
     if (blas::is_supported<ValueType>::value) {
-        auto handle = exec->get_cublas_handle();
+        auto handle = exec->get_blas_handle();
         {
             blas::pointer_mode_guard pm_guard(handle);
             auto alpha = one<ValueType>();
@@ -115,7 +115,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
         return;
     }
     if (sparselib::is_supported<ValueType, IndexType>::value) {
-        auto handle = exec->get_cusparse_handle();
+        auto handle = exec->get_sparselib_handle();
         sparselib::pointer_mode_guard pm_guard(handle);
         const auto alpha = one<ValueType>();
         const auto beta = zero<ValueType>();
@@ -172,7 +172,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
         return;
     }
     if (sparselib::is_supported<ValueType, IndexType>::value) {
-        auto handle = exec->get_cusparse_handle();
+        auto handle = exec->get_sparselib_handle();
         const auto alphp = alpha->get_const_values();
         const auto betap = beta->get_const_values();
         auto descr = sparselib::create_mat_descr();
@@ -251,13 +251,13 @@ void transpose(const std::shared_ptr<const CudaExecutor> exec,
         cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
         cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
         const IndexType buffer_size = sparselib::bsr_transpose_buffersize(
-            exec->get_cusparse_handle(), orig->get_num_block_rows(),
+            exec->get_sparselib_handle(), orig->get_num_block_rows(),
             orig->get_num_block_cols(), nnzb, orig->get_const_values(),
             orig->get_const_row_ptrs(), orig->get_const_col_idxs(), bs, bs);
         array<char> buffer_array(exec, buffer_size);
         auto buffer = buffer_array.get_data();
         sparselib::bsr_transpose(
-            exec->get_cusparse_handle(), orig->get_num_block_rows(),
+            exec->get_sparselib_handle(), orig->get_num_block_rows(),
             orig->get_num_block_cols(), nnzb, orig->get_const_values(),
             orig->get_const_row_ptrs(), orig->get_const_col_idxs(), bs, bs,
             trans->get_values(), trans->get_col_idxs(), trans->get_row_ptrs(),

@@ -169,7 +169,7 @@ void sort_by_column_index(std::shared_ptr<const DefaultExecutor> exec,
     const auto row_ptrs = to_sort->get_const_row_ptrs();
     const auto col_idxs = to_sort->get_col_idxs();
     if (sparselib::is_supported<ValueType, IndexType>::value) {
-        const auto handle = exec->get_cusparse_handle();
+        const auto handle = exec->get_sparselib_handle();
         auto descr = sparselib::create_mat_descr();
         array<IndexType> permutation_array(exec, to_sort->get_num_nonzeros());
         auto permutation = permutation_array.get_data();

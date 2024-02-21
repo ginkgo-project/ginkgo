@@ -80,7 +80,7 @@ void symbolic_count(std::shared_ptr<const DefaultExecutor> exec,
     }
     // sort postorder_cols inside rows
     {
-        const auto handle = exec->get_hipsparse_handle();
+        const auto handle = exec->get_sparselib_handle();
         auto descr = sparselib::create_mat_descr();
         array<IndexType> permutation_array(exec, mtx_nnz);
         auto permutation = permutation_array.get_data();

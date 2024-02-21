@@ -83,7 +83,7 @@ void dense_transpose(std::shared_ptr<const HipExecutor> exec,
         return;
     }
     if (blas::is_supported<ValueType>::value) {
-        auto handle = exec->get_hipblas_handle();
+        auto handle = exec->get_blas_handle();
         {
             blas::pointer_mode_guard pm_guard(handle);
             auto alpha = one<ValueType>();
@@ -117,7 +117,7 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
         return;
     }
     if (sparselib::is_supported<ValueType, IndexType>::value) {
-        auto handle = exec->get_hipsparse_handle();
+        auto handle = exec->get_sparselib_handle();
         sparselib::pointer_mode_guard pm_guard(handle);
         const auto alpha = one<ValueType>();
         const auto beta = zero<ValueType>();
@@ -174,7 +174,7 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
         return;
     }
     if (sparselib::is_supported<ValueType, IndexType>::value) {
-        auto handle = exec->get_hipsparse_handle();
+        auto handle = exec->get_sparselib_handle();
         const auto alphp = alpha->get_const_values();
         const auto betap = beta->get_const_values();
         auto descr = sparselib::create_mat_descr();

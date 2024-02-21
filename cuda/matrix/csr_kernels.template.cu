@@ -329,7 +329,7 @@ bool try_general_sparselib_spmv(std::shared_ptr<const DefaultExecutor> exec,
                                 const ValueType* beta,
                                 matrix::Dense<ValueType>* c)
 {
-    auto handle = exec->get_cusparse_handle();
+    auto handle = exec->get_sparselib_handle();
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
     if (!sparselib::is_supported<ValueType, IndexType>::value ||
         b->get_stride() != 1 || c->get_stride() != 1 || b->get_size()[0] == 0 ||
@@ -437,7 +437,7 @@ bool try_sparselib_spmv(std::shared_ptr<const DefaultExecutor> exec,
         return try_general_sparselib_spmv(exec, alpha->get_const_values(), a, b,
                                           beta->get_const_values(), c);
     } else {
-        auto handle = exec->get_cusparse_handle();
+        auto handle = exec->get_sparselib_handle();
         sparselib::pointer_mode_guard pm_guard(handle);
         const auto valpha = one<ValueType>();
         const auto vbeta = zero<ValueType>();
@@ -583,7 +583,7 @@ void spgemm(std::shared_ptr<const DefaultExecutor> exec,
     auto b_col_idxs = b->get_const_col_idxs();
     auto c_row_ptrs = c->get_row_ptrs();
 
-    auto handle = exec->get_cusparse_handle();
+    auto handle = exec->get_sparselib_handle();
     sparselib::pointer_mode_guard pm_guard(handle);
 
     auto alpha = one<ValueType>();
@@ -702,7 +702,7 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
                      const matrix::Csr<ValueType, IndexType>* d,
                      matrix::Csr<ValueType, IndexType>* c)
 {
-    auto handle = exec->get_cusparse_handle();
+    auto handle = exec->get_sparselib_handle();
     sparselib::pointer_mode_guard pm_guard(handle);
 
     auto valpha = exec->copy_val_to_host(alpha->get_const_values());
@@ -853,7 +853,7 @@ void transpose(std::shared_ptr<const DefaultExecutor> exec,
         cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
 
         sparselib::transpose(
-            exec->get_cusparse_handle(), orig->get_size()[0],
+            exec->get_sparselib_handle(), orig->get_size()[0],
             orig->get_size()[1], orig->get_num_stored_elements(),
             orig->get_const_values(), orig->get_const_row_ptrs(),
             orig->get_const_col_idxs(), trans->get_values(),
@@ -866,7 +866,7 @@ void transpose(std::shared_ptr<const DefaultExecutor> exec,
         cusparseCsr2CscAlg_t alg = CUSPARSE_CSR2CSC_ALG1;
         size_type buffer_size = 0;
         sparselib::transpose_buffersize(
-            exec->get_cusparse_handle(), orig->get_size()[0],
+            exec->get_sparselib_handle(), orig->get_size()[0],
             orig->get_size()[1], orig->get_num_stored_elements(),
             orig->get_const_values(), orig->get_const_row_ptrs(),
             orig->get_const_col_idxs(), trans->get_values(),
@@ -875,7 +875,7 @@ void transpose(std::shared_ptr<const DefaultExecutor> exec,
         array<char> buffer_array(exec, buffer_size);
         auto buffer = buffer_array.get_data();
         sparselib::transpose(
-            exec->get_cusparse_handle(), orig->get_size()[0],
+            exec->get_sparselib_handle(), orig->get_size()[0],
             orig->get_size()[1], orig->get_num_stored_elements(),
             orig->get_const_values(), orig->get_const_row_ptrs(),
             orig->get_const_col_idxs(), trans->get_values(),
@@ -905,7 +905,7 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
         cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
 
         sparselib::transpose(
-            exec->get_cusparse_handle(), orig->get_size()[0],
+            exec->get_sparselib_handle(), orig->get_size()[0],
             orig->get_size()[1], orig->get_num_stored_elements(),
             orig->get_const_values(), orig->get_const_row_ptrs(),
             orig->get_const_col_idxs(), trans->get_values(),
@@ -918,7 +918,7 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
         cusparseCsr2CscAlg_t alg = CUSPARSE_CSR2CSC_ALG1;
         size_type buffer_size = 0;
         sparselib::transpose_buffersize(
-            exec->get_cusparse_handle(), orig->get_size()[0],
+            exec->get_sparselib_handle(), orig->get_size()[0],
             orig->get_size()[1], orig->get_num_stored_elements(),
             orig->get_const_values(), orig->get_const_row_ptrs(),
             orig->get_const_col_idxs(), trans->get_values(),
@@ -927,7 +927,7 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
         array<char> buffer_array(exec, buffer_size);
         auto buffer = buffer_array.get_data();
         sparselib::transpose(
-            exec->get_cusparse_handle(), orig->get_size()[0],
+            exec->get_sparselib_handle(), orig->get_size()[0],
             orig->get_size()[1], orig->get_num_stored_elements(),
             orig->get_const_values(), orig->get_const_row_ptrs(),
             orig->get_const_col_idxs(), trans->get_values(),
@@ -950,7 +950,7 @@ void sort_by_column_index(std::shared_ptr<const DefaultExecutor> exec,
                           matrix::Csr<ValueType, IndexType>* to_sort)
 {
     if (sparselib::is_supported<ValueType, IndexType>::value) {
-        auto handle = exec->get_cusparse_handle();
+        auto handle = exec->get_sparselib_handle();
         auto descr = sparselib::create_mat_descr();
         auto m = IndexType(to_sort->get_size()[0]);
         auto n = IndexType(to_sort->get_size()[1]);
