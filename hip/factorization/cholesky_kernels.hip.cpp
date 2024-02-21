@@ -81,18 +81,18 @@ void symbolic_count(std::shared_ptr<const DefaultExecutor> exec,
     // sort postorder_cols inside rows
     {
         const auto handle = exec->get_hipsparse_handle();
-        auto descr = hipsparse::create_mat_descr();
+        auto descr = sparselib::create_mat_descr();
         array<IndexType> permutation_array(exec, mtx_nnz);
         auto permutation = permutation_array.get_data();
         components::fill_seq_array(exec, permutation, mtx_nnz);
         size_type buffer_size{};
-        hipsparse::csrsort_buffer_size(handle, num_rows, num_rows, mtx_nnz,
+        sparselib::csrsort_buffer_size(handle, num_rows, num_rows, mtx_nnz,
                                        row_ptrs, postorder_cols, buffer_size);
         array<char> buffer_array{exec, buffer_size};
         auto buffer = buffer_array.get_data();
-        hipsparse::csrsort(handle, num_rows, num_rows, mtx_nnz, descr, row_ptrs,
+        sparselib::csrsort(handle, num_rows, num_rows, mtx_nnz, descr, row_ptrs,
                            postorder_cols, permutation, buffer);
-        hipsparse::destroy(descr);
+        sparselib::destroy(descr);
     }
     // count nonzeros per row of L
     {

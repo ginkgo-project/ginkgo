@@ -169,21 +169,21 @@ void sort_by_column_index(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_cols = static_cast<IndexType>(to_sort->get_size()[1]);
     const auto row_ptrs = to_sort->get_const_row_ptrs();
     const auto col_idxs = to_sort->get_col_idxs();
-    if (hipsparse::is_supported<ValueType, IndexType>::value) {
+    if (sparselib::is_supported<ValueType, IndexType>::value) {
         const auto handle = exec->get_hipsparse_handle();
-        auto descr = hipsparse::create_mat_descr();
+        auto descr = sparselib::create_mat_descr();
         array<IndexType> permutation_array(exec, to_sort->get_num_nonzeros());
         auto permutation = permutation_array.get_data();
         components::fill_seq_array(exec, permutation,
                                    to_sort->get_num_nonzeros());
         size_type buffer_size{};
-        hipsparse::csrsort_buffer_size(handle, num_rows, num_cols, nnz,
+        sparselib::csrsort_buffer_size(handle, num_rows, num_cols, nnz,
                                        row_ptrs, col_idxs, buffer_size);
         array<char> buffer_array{exec, buffer_size};
         auto buffer = buffer_array.get_data();
-        hipsparse::csrsort(handle, num_rows, num_cols, nnz, descr, row_ptrs,
+        sparselib::csrsort(handle, num_rows, num_cols, nnz, descr, row_ptrs,
                            col_idxs, permutation, buffer);
-        hipsparse::destroy(descr);
+        sparselib::destroy(descr);
     } else {
         fallback_sort(exec, to_sort);
     }

@@ -56,11 +56,11 @@ void compute_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                           matrix::Dense<ValueType>* result, array<char>& tmp)
 {
     if (x->get_size()[1] == 1 && y->get_size()[1] == 1) {
-        if (hipblas::is_supported<ValueType>::value) {
+        if (blas::is_supported<ValueType>::value) {
             auto handle = exec->get_hipblas_handle();
-            hipblas::dot(handle, x->get_size()[0], x->get_const_values(),
-                         x->get_stride(), y->get_const_values(),
-                         y->get_stride(), result->get_values());
+            blas::dot(handle, x->get_size()[0], x->get_const_values(),
+                      x->get_stride(), y->get_const_values(), y->get_stride(),
+                      result->get_values());
         } else {
             compute_dot(exec, x, y, result, tmp);
         }
@@ -81,11 +81,11 @@ void compute_conj_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                                array<char>& tmp)
 {
     if (x->get_size()[1] == 1 && y->get_size()[1] == 1) {
-        if (hipblas::is_supported<ValueType>::value) {
+        if (blas::is_supported<ValueType>::value) {
             auto handle = exec->get_hipblas_handle();
-            hipblas::conj_dot(handle, x->get_size()[0], x->get_const_values(),
-                              x->get_stride(), y->get_const_values(),
-                              y->get_stride(), result->get_values());
+            blas::conj_dot(handle, x->get_size()[0], x->get_const_values(),
+                           x->get_stride(), y->get_const_values(),
+                           y->get_stride(), result->get_values());
         } else {
             compute_conj_dot(exec, x, y, result, tmp);
         }
@@ -105,10 +105,10 @@ void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                             array<char>& tmp)
 {
     if (x->get_size()[1] == 1) {
-        if (hipblas::is_supported<ValueType>::value) {
+        if (blas::is_supported<ValueType>::value) {
             auto handle = exec->get_hipblas_handle();
-            hipblas::norm2(handle, x->get_size()[0], x->get_const_values(),
-                           x->get_stride(), result->get_values());
+            blas::norm2(handle, x->get_size()[0], x->get_const_values(),
+                        x->get_stride(), result->get_values());
         } else {
             compute_norm2(exec, x, result, tmp);
         }
@@ -127,19 +127,18 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
                   const matrix::Dense<ValueType>* b,
                   matrix::Dense<ValueType>* c)
 {
-    if (hipblas::is_supported<ValueType>::value) {
+    if (blas::is_supported<ValueType>::value) {
         auto handle = exec->get_hipblas_handle();
         if (c->get_size()[0] > 0 && c->get_size()[1] > 0) {
             if (a->get_size()[1] > 0) {
-                hipblas::pointer_mode_guard pm_guard(handle);
+                blas::pointer_mode_guard pm_guard(handle);
                 auto alpha = one<ValueType>();
                 auto beta = zero<ValueType>();
-                hipblas::gemm(handle, HIPBLAS_OP_N, HIPBLAS_OP_N,
-                              c->get_size()[1], c->get_size()[0],
-                              a->get_size()[1], &alpha, b->get_const_values(),
-                              b->get_stride(), a->get_const_values(),
-                              a->get_stride(), &beta, c->get_values(),
-                              c->get_stride());
+                blas::gemm(handle, HIPBLAS_OP_N, HIPBLAS_OP_N, c->get_size()[1],
+                           c->get_size()[0], a->get_size()[1], &alpha,
+                           b->get_const_values(), b->get_stride(),
+                           a->get_const_values(), a->get_stride(), &beta,
+                           c->get_values(), c->get_stride());
             } else {
                 dense::fill(exec, c, zero<ValueType>());
             }
@@ -158,10 +157,10 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            const matrix::Dense<ValueType>* a, const matrix::Dense<ValueType>* b,
            const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* c)
 {
-    if (hipblas::is_supported<ValueType>::value) {
+    if (blas::is_supported<ValueType>::value) {
         if (c->get_size()[0] > 0 && c->get_size()[1] > 0) {
             if (a->get_size()[1] > 0) {
-                hipblas::gemm(
+                blas::gemm(
                     exec->get_hipblas_handle(), HIPBLAS_OP_N, HIPBLAS_OP_N,
                     c->get_size()[1], c->get_size()[0], a->get_size()[1],
                     alpha->get_const_values(), b->get_const_values(),
@@ -184,17 +183,17 @@ void transpose(std::shared_ptr<const DefaultExecutor> exec,
                const matrix::Dense<ValueType>* orig,
                matrix::Dense<ValueType>* trans)
 {
-    if (hipblas::is_supported<ValueType>::value) {
+    if (blas::is_supported<ValueType>::value) {
         auto handle = exec->get_hipblas_handle();
         if (orig->get_size()[0] > 0 && orig->get_size()[1] > 0) {
-            hipblas::pointer_mode_guard pm_guard(handle);
+            blas::pointer_mode_guard pm_guard(handle);
             auto alpha = one<ValueType>();
             auto beta = zero<ValueType>();
-            hipblas::geam(handle, HIPBLAS_OP_T, HIPBLAS_OP_N,
-                          orig->get_size()[0], orig->get_size()[1], &alpha,
-                          orig->get_const_values(), orig->get_stride(), &beta,
-                          trans->get_const_values(), trans->get_stride(),
-                          trans->get_values(), trans->get_stride());
+            blas::geam(handle, HIPBLAS_OP_T, HIPBLAS_OP_N, orig->get_size()[0],
+                       orig->get_size()[1], &alpha, orig->get_const_values(),
+                       orig->get_stride(), &beta, trans->get_const_values(),
+                       trans->get_stride(), trans->get_values(),
+                       trans->get_stride());
         }
     } else {
         GKO_NOT_IMPLEMENTED;
@@ -209,17 +208,17 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Dense<ValueType>* orig,
                     matrix::Dense<ValueType>* trans)
 {
-    if (hipblas::is_supported<ValueType>::value) {
+    if (blas::is_supported<ValueType>::value) {
         auto handle = exec->get_hipblas_handle();
         if (orig->get_size()[0] > 0 && orig->get_size()[1] > 0) {
-            hipblas::pointer_mode_guard pm_guard(handle);
+            blas::pointer_mode_guard pm_guard(handle);
             auto alpha = one<ValueType>();
             auto beta = zero<ValueType>();
-            hipblas::geam(handle, HIPBLAS_OP_C, HIPBLAS_OP_N,
-                          orig->get_size()[0], orig->get_size()[1], &alpha,
-                          orig->get_const_values(), orig->get_stride(), &beta,
-                          trans->get_values(), trans->get_stride(),
-                          trans->get_values(), trans->get_stride());
+            blas::geam(handle, HIPBLAS_OP_C, HIPBLAS_OP_N, orig->get_size()[0],
+                       orig->get_size()[1], &alpha, orig->get_const_values(),
+                       orig->get_stride(), &beta, trans->get_values(),
+                       trans->get_stride(), trans->get_values(),
+                       trans->get_stride());
         }
     } else {
         GKO_NOT_IMPLEMENTED;

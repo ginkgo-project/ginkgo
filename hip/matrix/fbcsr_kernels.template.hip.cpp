@@ -82,15 +82,15 @@ void dense_transpose(std::shared_ptr<const HipExecutor> exec,
     if (nrows == 0) {
         return;
     }
-    if (hipblas::is_supported<ValueType>::value) {
+    if (blas::is_supported<ValueType>::value) {
         auto handle = exec->get_hipblas_handle();
         {
-            hipblas::pointer_mode_guard pm_guard(handle);
+            blas::pointer_mode_guard pm_guard(handle);
             auto alpha = one<ValueType>();
             auto beta = zero<ValueType>();
-            hipblas::geam(handle, HIPBLAS_OP_T, HIPBLAS_OP_N, nrows, ncols,
-                          &alpha, orig, orig_stride, &beta, trans, trans_stride,
-                          trans, trans_stride);
+            blas::geam(handle, HIPBLAS_OP_T, HIPBLAS_OP_N, nrows, ncols, &alpha,
+                       orig, orig_stride, &beta, trans, trans_stride, trans,
+                       trans_stride);
         }
     } else {
         GKO_NOT_IMPLEMENTED;
@@ -116,12 +116,12 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
         dense::fill(exec, c, zero<ValueType>());
         return;
     }
-    if (hipsparse::is_supported<ValueType, IndexType>::value) {
+    if (sparselib::is_supported<ValueType, IndexType>::value) {
         auto handle = exec->get_hipsparse_handle();
-        hipsparse::pointer_mode_guard pm_guard(handle);
+        sparselib::pointer_mode_guard pm_guard(handle);
         const auto alpha = one<ValueType>();
         const auto beta = zero<ValueType>();
-        auto descr = hipsparse::create_mat_descr();
+        auto descr = sparselib::create_mat_descr();
         const auto row_ptrs = a->get_const_row_ptrs();
         const auto col_idxs = a->get_const_col_idxs();
         const auto values = a->get_const_values();
@@ -135,13 +135,13 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
         const auto in_stride = b->get_stride();
         const auto out_stride = c->get_stride();
         if (nrhs == 1 && in_stride == 1 && out_stride == 1) {
-            hipsparse::bsrmv(handle, HIPSPARSE_OPERATION_NON_TRANSPOSE, mb, nb,
+            sparselib::bsrmv(handle, HIPSPARSE_OPERATION_NON_TRANSPOSE, mb, nb,
                              nnzb, &alpha, descr, values, row_ptrs, col_idxs,
                              bs, b->get_const_values(), &beta, c->get_values());
         } else {
             const auto trans_stride = nrows;
             auto trans_c = array<ValueType>(exec, nrows * nrhs);
-            hipsparse::bsrmm(handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
+            sparselib::bsrmm(handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
                              HIPSPARSE_OPERATION_TRANSPOSE, mb, nrhs, nb, nnzb,
                              &alpha, descr, values, row_ptrs, col_idxs, bs,
                              b->get_const_values(), in_stride, &beta,
@@ -149,7 +149,7 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
             dense_transpose(exec, nrhs, nrows, trans_stride, trans_c.get_data(),
                             out_stride, c->get_values());
         }
-        hipsparse::destroy(descr);
+        sparselib::destroy(descr);
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -173,11 +173,11 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
         dense::scale(exec, beta, c);
         return;
     }
-    if (hipsparse::is_supported<ValueType, IndexType>::value) {
+    if (sparselib::is_supported<ValueType, IndexType>::value) {
         auto handle = exec->get_hipsparse_handle();
         const auto alphp = alpha->get_const_values();
         const auto betap = beta->get_const_values();
-        auto descr = hipsparse::create_mat_descr();
+        auto descr = sparselib::create_mat_descr();
         const auto row_ptrs = a->get_const_row_ptrs();
         const auto col_idxs = a->get_const_col_idxs();
         const auto values = a->get_const_values();
@@ -191,7 +191,7 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
         const auto in_stride = b->get_stride();
         const auto out_stride = c->get_stride();
         if (nrhs == 1 && in_stride == 1 && out_stride == 1) {
-            hipsparse::bsrmv(handle, HIPSPARSE_OPERATION_NON_TRANSPOSE, mb, nb,
+            sparselib::bsrmv(handle, HIPSPARSE_OPERATION_NON_TRANSPOSE, mb, nb,
                              nnzb, alphp, descr, values, row_ptrs, col_idxs, bs,
                              b->get_const_values(), betap, c->get_values());
         } else {
@@ -199,7 +199,7 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
             auto trans_c = array<ValueType>(exec, nrows * nrhs);
             dense_transpose(exec, nrows, nrhs, out_stride, c->get_values(),
                             trans_stride, trans_c.get_data());
-            hipsparse::bsrmm(handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
+            sparselib::bsrmm(handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
                              HIPSPARSE_OPERATION_TRANSPOSE, mb, nrhs, nb, nnzb,
                              alphp, descr, values, row_ptrs, col_idxs, bs,
                              b->get_const_values(), in_stride, betap,
@@ -207,7 +207,7 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
             dense_transpose(exec, nrhs, nrows, trans_stride, trans_c.get_data(),
                             out_stride, c->get_values());
         }
-        hipsparse::destroy(descr);
+        sparselib::destroy(descr);
     } else {
         GKO_NOT_IMPLEMENTED;
     }

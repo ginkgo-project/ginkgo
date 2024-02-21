@@ -71,14 +71,14 @@ void initialize_subspace_vectors(std::shared_ptr<const DefaultExecutor> exec,
                                  bool deterministic)
 {
     if (!deterministic) {
-        auto gen = hiprand::rand_generator(std::random_device{}(),
+        auto gen = randlib::rand_generator(std::random_device{}(),
                                            HIPRAND_RNG_PSEUDO_DEFAULT,
                                            exec->get_stream());
-        hiprand::rand_vector(
+        randlib::rand_vector(
             gen,
             subspace_vectors->get_size()[0] * subspace_vectors->get_stride(),
             0.0, 1.0, subspace_vectors->get_values());
-        hiprand::destroy(gen);
+        randlib::destroy(gen);
     }
 }
 
@@ -147,9 +147,9 @@ void update_g_and_u(std::shared_ptr<const DefaultExecutor> exec,
                 as_device_type(alpha->get_values()),
                 stop_status->get_const_data());
         } else {
-            hipblas::dot(exec->get_hipblas_handle(), size, p_i, 1,
-                         g_k->get_values(), g_k->get_stride(),
-                         alpha->get_values());
+            blas::dot(exec->get_hipblas_handle(), size, p_i, 1,
+                      g_k->get_values(), g_k->get_stride(),
+                      alpha->get_values());
         }
         update_g_k_and_u_kernel<default_block_size>
             <<<ceildiv(size * g_k->get_stride(), default_block_size),
@@ -198,8 +198,8 @@ void update_m(std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
                 as_device_type(g_k->get_const_values()), g_k->get_stride(),
                 as_device_type(m_i), stop_status->get_const_data());
         } else {
-            hipblas::dot(exec->get_hipblas_handle(), size, p_i, 1,
-                         g_k->get_const_values(), g_k->get_stride(), m_i);
+            blas::dot(exec->get_hipblas_handle(), size, p_i, 1,
+                      g_k->get_const_values(), g_k->get_stride(), m_i);
         }
     }
 }

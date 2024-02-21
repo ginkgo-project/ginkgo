@@ -114,7 +114,7 @@ void generate_kernel(std::shared_ptr<const HipExecutor> exec,
     if (matrix->get_size()[0] == 0) {
         return;
     }
-    if (hipsparse::is_supported<ValueType, IndexType>::value) {
+    if (sparselib::is_supported<ValueType, IndexType>::value) {
         solve_struct =
             std::make_shared<solver::hip::SolveStruct>(is_upper, unit_diag);
         if (auto hip_solve_struct =
@@ -123,8 +123,8 @@ void generate_kernel(std::shared_ptr<const HipExecutor> exec,
             auto handle = exec->get_hipsparse_handle();
 
             {
-                hipsparse::pointer_mode_guard pm_guard(handle);
-                hipsparse::csrsv2_buffer_size(
+                sparselib::pointer_mode_guard pm_guard(handle);
+                sparselib::csrsv2_buffer_size(
                     handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
                     matrix->get_size()[0], matrix->get_num_stored_elements(),
                     hip_solve_struct->factor_descr, matrix->get_const_values(),
@@ -139,7 +139,7 @@ void generate_kernel(std::shared_ptr<const HipExecutor> exec,
                 hip_solve_struct->factor_work_vec =
                     exec->alloc<void*>(hip_solve_struct->factor_work_size);
 
-                hipsparse::csrsv2_analysis(
+                sparselib::csrsv2_analysis(
                     handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
                     matrix->get_size()[0], matrix->get_num_stored_elements(),
                     hip_solve_struct->factor_descr, matrix->get_const_values(),
@@ -170,16 +170,16 @@ void solve_kernel(std::shared_ptr<const HipExecutor> exec,
     }
     using vec = matrix::Dense<ValueType>;
 
-    if (hipsparse::is_supported<ValueType, IndexType>::value) {
+    if (sparselib::is_supported<ValueType, IndexType>::value) {
         if (auto hip_solve_struct =
                 dynamic_cast<const solver::hip::SolveStruct*>(solve_struct)) {
             ValueType one = 1.0;
             auto handle = exec->get_hipsparse_handle();
 
             {
-                hipsparse::pointer_mode_guard pm_guard(handle);
+                sparselib::pointer_mode_guard pm_guard(handle);
                 if (b->get_stride() == 1) {
-                    hipsparse::csrsv2_solve(
+                    sparselib::csrsv2_solve(
                         handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
                         matrix->get_size()[0],
                         matrix->get_num_stored_elements(), &one,
@@ -194,7 +194,7 @@ void solve_kernel(std::shared_ptr<const HipExecutor> exec,
                     dense::transpose(exec, b, trans_b);
                     dense::transpose(exec, x, trans_x);
                     for (IndexType i = 0; i < trans_b->get_size()[0]; i++) {
-                        hipsparse::csrsv2_solve(
+                        sparselib::csrsv2_solve(
                             handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
                             matrix->get_size()[0],
                             matrix->get_num_stored_elements(), &one,
