@@ -12,7 +12,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
-#include "cuda/base/math.hpp"
+#include "common/cuda_hip/base/math.hpp"
 #include "cuda/base/types.hpp"
 
 

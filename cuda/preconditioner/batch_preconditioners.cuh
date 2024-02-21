@@ -9,9 +9,9 @@
 #include <ginkgo/core/matrix/batch_identity.hpp>
 
 
+#include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/reduction.hpp"
 #include "core/matrix/batch_struct.hpp"
-#include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/reduction.cuh"
 
 
 namespace gko {

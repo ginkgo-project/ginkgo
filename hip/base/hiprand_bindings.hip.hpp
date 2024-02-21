@@ -6,7 +6,6 @@
 #define GKO_HIP_BASE_HIPRAND_BINDINGS_HIP_HPP_
 
 
-#include <hip/hip_runtime.h>
 #if HIP_VERSION >= 50200000
 #include <hiprand/hiprand.h>
 #else
@@ -17,8 +16,8 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
-#include "hip/base/math.hip.hpp"
-#include "hip/base/types.hip.hpp"
+#include "common/cuda_hip/base/math.hpp"
+#include "common/cuda_hip/base/types.hpp"
 
 
 namespace gko {

@@ -2,9 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <hip/hip_runtime.h>
-
-
 #include <ginkgo/config.hpp>
 
 
