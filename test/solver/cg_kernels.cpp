@@ -114,7 +114,7 @@ TEST_F(Cg, CgInitializeIsEquivalentToRef)
     gko::kernels::reference::cg::initialize(ref, b.get(), r.get(), z.get(),
                                             p.get(), q.get(), prev_rho.get(),
                                             rho.get(), stop_status.get());
-    gko::kernels::EXEC_NAMESPACE::cg::initialize(
+    gko::kernels::GKO_DEVICE_NAMESPACE::cg::initialize(
         exec, d_b.get(), d_r.get(), d_z.get(), d_p.get(), d_q.get(),
         d_prev_rho.get(), d_rho.get(), d_stop_status.get());
 
@@ -134,9 +134,9 @@ TEST_F(Cg, CgStep1IsEquivalentToRef)
 
     gko::kernels::reference::cg::step_1(ref, p.get(), z.get(), rho.get(),
                                         prev_rho.get(), stop_status.get());
-    gko::kernels::EXEC_NAMESPACE::cg::step_1(exec, d_p.get(), d_z.get(),
-                                             d_rho.get(), d_prev_rho.get(),
-                                             d_stop_status.get());
+    gko::kernels::GKO_DEVICE_NAMESPACE::cg::step_1(
+        exec, d_p.get(), d_z.get(), d_rho.get(), d_prev_rho.get(),
+        d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_p, p, ::r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_z, z, ::r<value_type>::value);
@@ -149,9 +149,9 @@ TEST_F(Cg, CgStep2IsEquivalentToRef)
     gko::kernels::reference::cg::step_2(ref, x.get(), r.get(), p.get(), q.get(),
                                         beta.get(), rho.get(),
                                         stop_status.get());
-    gko::kernels::EXEC_NAMESPACE::cg::step_2(exec, d_x.get(), d_r.get(),
-                                             d_p.get(), d_q.get(), d_beta.get(),
-                                             d_rho.get(), d_stop_status.get());
+    gko::kernels::GKO_DEVICE_NAMESPACE::cg::step_2(
+        exec, d_x.get(), d_r.get(), d_p.get(), d_q.get(), d_beta.get(),
+        d_rho.get(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_r, r, ::r<value_type>::value);

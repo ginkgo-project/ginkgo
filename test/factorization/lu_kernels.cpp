@@ -156,7 +156,7 @@ TYPED_TEST(Lu, KernelInitializeIsEquivalentToRef)
         std::fill_n(this->mtx_lu->get_values(),
                     this->mtx_lu->get_num_stored_elements(),
                     gko::zero<value_type>());
-        gko::kernels::EXEC_NAMESPACE::components::fill_array(
+        gko::kernels::GKO_DEVICE_NAMESPACE::components::fill_array(
             this->exec, this->dmtx_lu->get_values(),
             this->dmtx_lu->get_num_stored_elements(), gko::zero<value_type>());
         gko::array<index_type> diag_idxs{this->ref, this->num_rows};
@@ -166,7 +166,7 @@ TYPED_TEST(Lu, KernelInitializeIsEquivalentToRef)
             this->ref, this->mtx.get(), this->storage_offsets.get_const_data(),
             this->row_descs.get_const_data(), this->storage.get_const_data(),
             diag_idxs.get_data(), this->mtx_lu.get());
-        gko::kernels::EXEC_NAMESPACE::lu_factorization::initialize(
+        gko::kernels::GKO_DEVICE_NAMESPACE::lu_factorization::initialize(
             this->exec, this->dmtx.get(),
             this->dstorage_offsets.get_const_data(),
             this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
@@ -191,7 +191,7 @@ TYPED_TEST(Lu, KernelFactorizeIsEquivalentToRef)
             this->ref, this->mtx.get(), this->storage_offsets.get_const_data(),
             this->row_descs.get_const_data(), this->storage.get_const_data(),
             diag_idxs.get_data(), this->mtx_lu.get());
-        gko::kernels::EXEC_NAMESPACE::lu_factorization::initialize(
+        gko::kernels::GKO_DEVICE_NAMESPACE::lu_factorization::initialize(
             this->exec, this->dmtx.get(),
             this->dstorage_offsets.get_const_data(),
             this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
@@ -201,7 +201,7 @@ TYPED_TEST(Lu, KernelFactorizeIsEquivalentToRef)
             this->ref, this->storage_offsets.get_const_data(),
             this->row_descs.get_const_data(), this->storage.get_const_data(),
             diag_idxs.get_const_data(), this->mtx_lu.get(), tmp);
-        gko::kernels::EXEC_NAMESPACE::lu_factorization::factorize(
+        gko::kernels::GKO_DEVICE_NAMESPACE::lu_factorization::factorize(
             this->exec, this->dstorage_offsets.get_const_data(),
             this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
             ddiag_idxs.get_const_data(), this->dmtx_lu.get(), dtmp);

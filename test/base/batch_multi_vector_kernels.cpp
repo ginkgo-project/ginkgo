@@ -312,8 +312,8 @@ TEST_F(MultiVector, CopySingleIsEquivalentToRef)
 
     gko::kernels::reference::batch_multi_vector::copy(this->ref, x.get(),
                                                       y.get());
-    gko::kernels::EXEC_NAMESPACE::batch_multi_vector::copy(this->exec, dx.get(),
-                                                           dy.get());
+    gko::kernels::GKO_DEVICE_NAMESPACE::batch_multi_vector::copy(
+        this->exec, dx.get(), dy.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dy, y, 0.0);
 }
@@ -325,8 +325,8 @@ TEST_F(MultiVector, CopyIsEquivalentToRef)
 
     gko::kernels::reference::batch_multi_vector::copy(this->ref, x.get(),
                                                       y.get());
-    gko::kernels::EXEC_NAMESPACE::batch_multi_vector::copy(this->exec, dx.get(),
-                                                           dy.get());
+    gko::kernels::GKO_DEVICE_NAMESPACE::batch_multi_vector::copy(
+        this->exec, dx.get(), dy.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dy, y, 0.0);
 }

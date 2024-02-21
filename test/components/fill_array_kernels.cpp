@@ -47,7 +47,7 @@ TYPED_TEST_SUITE(FillArray, gko::test::ValueAndIndexTypes,
 TYPED_TEST(FillArray, EqualsReference)
 {
     using T = typename TestFixture::value_type;
-    gko::kernels::EXEC_NAMESPACE::components::fill_array(
+    gko::kernels::GKO_DEVICE_NAMESPACE::components::fill_array(
         this->exec, this->dvals.get_data(), this->total_size, T(1523));
 
     GKO_ASSERT_ARRAY_EQ(this->vals, this->dvals);
@@ -57,7 +57,7 @@ TYPED_TEST(FillArray, EqualsReference)
 TYPED_TEST(FillArray, FillSeqEqualsReference)
 {
     using T = typename TestFixture::value_type;
-    gko::kernels::EXEC_NAMESPACE::components::fill_seq_array(
+    gko::kernels::GKO_DEVICE_NAMESPACE::components::fill_seq_array(
         this->exec, this->dvals.get_data(), this->total_size);
 
     GKO_ASSERT_ARRAY_EQ(this->seqs, this->dvals);

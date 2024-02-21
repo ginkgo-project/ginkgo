@@ -168,7 +168,7 @@ ginkgo_default_includes(ginkgo_hip)
 ginkgo_install_library(ginkgo_hip "${GKO_HIP_RPATH}")
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
-    ginkgo_check_headers(ginkgo_hip GKO_COMPILING_HIP)
+    ginkgo_check_headers(ginkgo_hip "GKO_COMPILING_HIP;GKO_GKO_DEVICE_NAMESPACE=hip")
 endif()
 
 if(GINKGO_BUILD_TESTS)

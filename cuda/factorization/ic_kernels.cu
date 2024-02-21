@@ -56,7 +56,7 @@ void compute(std::shared_ptr<const DefaultExecutor> exec,
     exec->synchronize();
 #endif
 
-    cusparse::destroy(info);
+    cusparse::destroy_ic0_info(info);
     cusparse::destroy(desc);
 }
 

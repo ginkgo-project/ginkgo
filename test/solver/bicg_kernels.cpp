@@ -139,7 +139,7 @@ TEST_F(Bicg, BicgInitializeIsEquivalentToRef)
     gko::kernels::reference::bicg::initialize(
         ref, b.get(), r.get(), z.get(), p.get(), q.get(), prev_rho.get(),
         rho.get(), r2.get(), z2.get(), p2.get(), q2.get(), stop_status.get());
-    gko::kernels::EXEC_NAMESPACE::bicg::initialize(
+    gko::kernels::GKO_DEVICE_NAMESPACE::bicg::initialize(
         exec, d_b.get(), d_r.get(), d_z.get(), d_p.get(), d_q.get(),
         d_prev_rho.get(), d_rho.get(), d_r2.get(), d_z2.get(), d_p2.get(),
         d_q2.get(), d_stop_status.get());
@@ -165,7 +165,7 @@ TEST_F(Bicg, BicgStep1IsEquivalentToRef)
     gko::kernels::reference::bicg::step_1(ref, p.get(), z.get(), p2.get(),
                                           z2.get(), rho.get(), prev_rho.get(),
                                           stop_status.get());
-    gko::kernels::EXEC_NAMESPACE::bicg::step_1(
+    gko::kernels::GKO_DEVICE_NAMESPACE::bicg::step_1(
         exec, d_p.get(), d_z.get(), d_p2.get(), d_z2.get(), d_rho.get(),
         d_prev_rho.get(), d_stop_status.get());
 
@@ -183,7 +183,7 @@ TEST_F(Bicg, BicgStep2IsEquivalentToRef)
     gko::kernels::reference::bicg::step_2(
         ref, x.get(), r.get(), r2.get(), p.get(), q.get(), q2.get(), beta.get(),
         rho.get(), stop_status.get());
-    gko::kernels::EXEC_NAMESPACE::bicg::step_2(
+    gko::kernels::GKO_DEVICE_NAMESPACE::bicg::step_2(
         exec, d_x.get(), d_r.get(), d_r2.get(), d_p.get(), d_q.get(),
         d_q2.get(), d_beta.get(), d_rho.get(), d_stop_status.get());
 

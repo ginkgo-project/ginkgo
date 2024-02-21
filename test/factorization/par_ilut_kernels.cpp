@@ -151,8 +151,8 @@ protected:
 
         gko::kernels::reference::par_ilut_factorization::threshold_select(
             ref, mtx.get(), rank, tmp, tmp2, res);
-        gko::kernels::EXEC_NAMESPACE::par_ilut_factorization::threshold_select(
-            exec, dmtx.get(), rank, dtmp, dtmp2, dres);
+        gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::
+            threshold_select(exec, dmtx.get(), rank, dtmp, dtmp2, dres);
 
         ASSERT_NEAR(res, dres, tolerance);
     }
@@ -174,9 +174,9 @@ protected:
 
         gko::kernels::reference::par_ilut_factorization::threshold_filter(
             ref, local_mtx.get(), threshold, res.get(), res_coo.get(), lower);
-        gko::kernels::EXEC_NAMESPACE::par_ilut_factorization::threshold_filter(
-            exec, local_dmtx.get(), threshold, dres.get(), dres_coo.get(),
-            lower);
+        gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::
+            threshold_filter(exec, local_dmtx.get(), threshold, dres.get(),
+                             dres_coo.get(), lower);
 
         GKO_ASSERT_MTX_NEAR(res, dres, 0);
         GKO_ASSERT_MTX_EQ_SPARSITY(res, dres);
@@ -208,7 +208,7 @@ protected:
         gko::kernels::reference::par_ilut_factorization::
             threshold_filter_approx(ref, mtx.get(), rank, tmp, threshold,
                                     res.get(), res_coo.get());
-        gko::kernels::EXEC_NAMESPACE::par_ilut_factorization::
+        gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::
             threshold_filter_approx(exec, dmtx.get(), rank, dtmp, dthreshold,
                                     dres.get(), dres_coo.get());
 
@@ -283,8 +283,9 @@ TYPED_TEST(ParIlut, KernelThresholdFilterNullptrCooIsEquivalentToRef)
 
     gko::kernels::reference::par_ilut_factorization::threshold_filter(
         this->ref, this->mtx_l.get(), 0.5, res.get(), null_coo, true);
-    gko::kernels::EXEC_NAMESPACE::par_ilut_factorization::threshold_filter(
-        this->exec, this->dmtx_l.get(), 0.5, dres.get(), null_coo, true);
+    gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::
+        threshold_filter(this->exec, this->dmtx_l.get(), 0.5, dres.get(),
+                         null_coo, true);
 
     GKO_ASSERT_MTX_NEAR(res, dres, 0);
     GKO_ASSERT_MTX_EQ_SPARSITY(res, dres);
@@ -346,7 +347,7 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxNullptrCooIsEquivalentToRef)
     gko::kernels::reference::par_ilut_factorization::threshold_filter_approx(
         this->ref, this->mtx_l.get(), rank, tmp, threshold, res.get(),
         null_coo);
-    gko::kernels::EXEC_NAMESPACE::par_ilut_factorization::
+    gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::
         threshold_filter_approx(this->exec, this->dmtx_l.get(), rank, dtmp,
                                 dthreshold, dres.get(), null_coo);
 
@@ -393,7 +394,7 @@ TYPED_TEST(ParIlut, KernelAddCandidatesIsEquivalentToRef)
     gko::kernels::reference::par_ilut_factorization::add_candidates(
         this->ref, mtx_lu.get(), this->mtx_square.get(), this->mtx_l2.get(),
         this->mtx_u.get(), res_mtx_l.get(), res_mtx_u.get());
-    gko::kernels::EXEC_NAMESPACE::par_ilut_factorization::add_candidates(
+    gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::add_candidates(
         this->exec, dmtx_lu.get(), this->dmtx_square.get(), this->dmtx_l2.get(),
         this->dmtx_u.get(), dres_mtx_l.get(), dres_mtx_u.get());
 
@@ -422,7 +423,7 @@ TYPED_TEST(ParIlut, KernelComputeLUIsEquivalentToRef)
         this->ref, this->mtx_ani.get(), this->mtx_l_ani.get(), mtx_l_coo.get(),
         this->mtx_u_ani.get(), mtx_u_coo.get(), this->mtx_ut_ani.get());
     for (int i = 0; i < 20; ++i) {
-        gko::kernels::EXEC_NAMESPACE::par_ilut_factorization::
+        gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::
             compute_l_u_factors(this->exec, this->dmtx_ani.get(),
                                 this->dmtx_l_ani.get(), dmtx_l_coo.get(),
                                 this->dmtx_u_ani.get(), dmtx_u_coo.get(),

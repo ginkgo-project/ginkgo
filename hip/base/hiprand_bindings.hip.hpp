@@ -90,6 +90,15 @@ GKO_BIND_HIPRAND_RANDOM_VECTOR(std::complex<double>,
 
 
 }  // namespace hiprand
+
+
+namespace randlib {
+
+
+using namespace hiprand;
+
+
+}  // namespace randlib
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko

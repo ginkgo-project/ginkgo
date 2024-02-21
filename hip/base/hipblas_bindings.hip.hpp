@@ -260,6 +260,15 @@ inline void destroy_hipblas_handle(hipblasContext* handle)
 
 
 }  // namespace hipblas
+
+
+namespace blas {
+
+
+using namespace hipblas;
+
+
+}  // namespace blas
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko

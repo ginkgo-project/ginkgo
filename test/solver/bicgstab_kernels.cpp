@@ -176,7 +176,7 @@ TEST_F(Bicgstab, BicgstabInitializeIsEquivalentToRef)
         ref, b.get(), r.get(), rr.get(), y.get(), s.get(), t.get(), z.get(),
         v.get(), p.get(), prev_rho.get(), rho.get(), alpha.get(), beta.get(),
         gamma.get(), omega.get(), stop_status.get());
-    gko::kernels::EXEC_NAMESPACE::bicgstab::initialize(
+    gko::kernels::GKO_DEVICE_NAMESPACE::bicgstab::initialize(
         exec, d_b.get(), d_r.get(), d_rr.get(), d_y.get(), d_s.get(), d_t.get(),
         d_z.get(), d_v.get(), d_p.get(), d_prev_rho.get(), d_rho.get(),
         d_alpha.get(), d_beta.get(), d_gamma.get(), d_omega.get(),
@@ -207,7 +207,7 @@ TEST_F(Bicgstab, BicgstabStep1IsEquivalentToRef)
     gko::kernels::reference::bicgstab::step_1(
         ref, r.get(), p.get(), v.get(), rho.get(), prev_rho.get(), alpha.get(),
         omega.get(), stop_status.get());
-    gko::kernels::EXEC_NAMESPACE::bicgstab::step_1(
+    gko::kernels::GKO_DEVICE_NAMESPACE::bicgstab::step_1(
         exec, d_r.get(), d_p.get(), d_v.get(), d_rho.get(), d_prev_rho.get(),
         d_alpha.get(), d_omega.get(), d_stop_status.get());
 
@@ -222,7 +222,7 @@ TEST_F(Bicgstab, BicgstabStep2IsEquivalentToRef)
     gko::kernels::reference::bicgstab::step_2(ref, r.get(), s.get(), v.get(),
                                               rho.get(), alpha.get(),
                                               beta.get(), stop_status.get());
-    gko::kernels::EXEC_NAMESPACE::bicgstab::step_2(
+    gko::kernels::GKO_DEVICE_NAMESPACE::bicgstab::step_2(
         exec, d_r.get(), d_s.get(), d_v.get(), d_rho.get(), d_alpha.get(),
         d_beta.get(), d_stop_status.get());
 
@@ -238,7 +238,7 @@ TEST_F(Bicgstab, BicgstabStep3IsEquivalentToRef)
     gko::kernels::reference::bicgstab::step_3(
         ref, x.get(), r.get(), s.get(), t.get(), y.get(), z.get(), alpha.get(),
         beta.get(), gamma.get(), omega.get(), stop_status.get());
-    gko::kernels::EXEC_NAMESPACE::bicgstab::step_3(
+    gko::kernels::GKO_DEVICE_NAMESPACE::bicgstab::step_3(
         exec, d_x.get(), d_r.get(), d_s.get(), d_t.get(), d_y.get(), d_z.get(),
         d_alpha.get(), d_beta.get(), d_gamma.get(), d_omega.get(),
         d_stop_status.get());

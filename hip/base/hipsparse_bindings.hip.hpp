@@ -912,6 +912,15 @@ GKO_BIND_HIPSPARSE_IC0(std::complex<double>, hipsparseZcsric02);
 
 
 }  // namespace hipsparse
+
+
+namespace sparselib {
+
+
+using namespace hipsparse;
+
+
+}
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko

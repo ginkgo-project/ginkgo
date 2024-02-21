@@ -56,7 +56,7 @@ void compute_lu(std::shared_ptr<const DefaultExecutor> exec,
     exec->synchronize();
 #endif
 
-    cusparse::destroy(info);
+    cusparse::destroy_ilu0_info(info);
     cusparse::destroy(desc);
 }
 

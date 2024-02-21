@@ -119,7 +119,7 @@ endif()
 target_compile_options(ginkgo_cuda PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_COMPILER_FLAGS}>)
 target_compile_options(ginkgo_cuda PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
 ginkgo_compile_features(ginkgo_cuda)
-target_compile_definitions(ginkgo_cuda PRIVATE GKO_COMPILING_CUDA)
+target_compile_definitions(ginkgo_cuda PRIVATE GKO_COMPILING_CUDA GKO_DEVICE_NAMESPACE=cuda)
 
 # include path for generated headers like jacobi_common.hpp
 target_include_directories(ginkgo_cuda
@@ -132,7 +132,7 @@ ginkgo_default_includes(ginkgo_cuda)
 ginkgo_install_library(ginkgo_cuda)
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
-    ginkgo_check_headers(ginkgo_cuda GKO_COMPILING_CUDA)
+    ginkgo_check_headers(ginkgo_cuda "GKO_COMPILING_CUDA;GKO_DEVICE_NAMESPACE=cuda")
 endif()
 
 if(GINKGO_BUILD_TESTS)

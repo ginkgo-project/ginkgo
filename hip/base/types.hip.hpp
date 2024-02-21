@@ -430,6 +430,10 @@ GKO_INLINE GKO_ATTRIBUTES constexpr
 }
 
 
+using gpuComplex = hipComplex;
+using gpuDoubleComplex = hipDoubleComplex;
+
+
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko

@@ -1329,7 +1329,7 @@ TEST_F(Csr, CalculateNnzPerRowInSpanIsEquivalentToRef)
 
     gko::kernels::reference::csr::calculate_nonzeros_per_row_in_span(
         this->ref, this->mtx2.get(), rspan, cspan, &row_nnz);
-    gko::kernels::EXEC_NAMESPACE::csr::calculate_nonzeros_per_row_in_span(
+    gko::kernels::GKO_DEVICE_NAMESPACE::csr::calculate_nonzeros_per_row_in_span(
         this->exec, this->dmtx2.get(), rspan, cspan, &drow_nnz);
 
     GKO_ASSERT_ARRAY_EQ(row_nnz, drow_nnz);
@@ -1365,7 +1365,7 @@ TEST_F(Csr, ComputeSubmatrixIsEquivalentToRef)
 
     gko::kernels::reference::csr::compute_submatrix(this->ref, this->mtx2.get(),
                                                     rspan, cspan, smat1.get());
-    gko::kernels::EXEC_NAMESPACE::csr::compute_submatrix(
+    gko::kernels::GKO_DEVICE_NAMESPACE::csr::compute_submatrix(
         this->exec, this->dmtx2.get(), rspan, cspan, sdmat1.get());
 
     GKO_ASSERT_MTX_NEAR(sdmat1, smat1, 0.0);
@@ -1391,8 +1391,9 @@ TEST_F(Csr, CalculateNnzPerRowInIndexSetIsEquivalentToRef)
 
     gko::kernels::reference::csr::calculate_nonzeros_per_row_in_index_set(
         this->ref, this->mtx2.get(), rset, cset, row_nnz.get_data());
-    gko::kernels::EXEC_NAMESPACE::csr::calculate_nonzeros_per_row_in_index_set(
-        this->exec, this->dmtx2.get(), drset, dcset, drow_nnz.get_data());
+    gko::kernels::GKO_DEVICE_NAMESPACE::csr::
+        calculate_nonzeros_per_row_in_index_set(
+            this->exec, this->dmtx2.get(), drset, dcset, drow_nnz.get_data());
 
     GKO_ASSERT_ARRAY_EQ(row_nnz, drow_nnz);
 }
@@ -1429,7 +1430,7 @@ TEST_F(Csr, ComputeSubmatrixFromIndexSetIsEquivalentToRef)
 
     gko::kernels::reference::csr::compute_submatrix_from_index_set(
         this->ref, this->mtx2.get(), rset, cset, smat1.get());
-    gko::kernels::EXEC_NAMESPACE::csr::compute_submatrix_from_index_set(
+    gko::kernels::GKO_DEVICE_NAMESPACE::csr::compute_submatrix_from_index_set(
         this->exec, this->dmtx2.get(), drset, dcset, sdmat1.get());
 
     GKO_ASSERT_MTX_NEAR(sdmat1, smat1, 0.0);
@@ -1484,7 +1485,7 @@ TEST_F(Csr, CanDetectMissingDiagonalEntry)
     auto mtx = gko::clone(exec, ref_mtx);
     bool has_diags = true;
 
-    gko::kernels::EXEC_NAMESPACE::csr::check_diagonal_entries_exist(
+    gko::kernels::GKO_DEVICE_NAMESPACE::csr::check_diagonal_entries_exist(
         exec, mtx.get(), has_diags);
 
     ASSERT_FALSE(has_diags);
@@ -1499,7 +1500,7 @@ TEST_F(Csr, CanDetectWhenAllDiagonalEntriesArePresent)
     auto mtx = gko::clone(exec, ref_mtx);
     bool has_diags = true;
 
-    gko::kernels::EXEC_NAMESPACE::csr::check_diagonal_entries_exist(
+    gko::kernels::GKO_DEVICE_NAMESPACE::csr::check_diagonal_entries_exist(
         exec, mtx.get(), has_diags);
 
     ASSERT_TRUE(has_diags);
