@@ -190,17 +190,24 @@ public:
         const Matrix<ValueType, IndexType, GlobalIndexType>* mtx,
         const index_map<IndexType, GlobalIndexType>& imap)
     {
-        auto recv_rows = get_recv_rows(mtx, imap);
-        recv_rows = filter_non_relevant(recv_rows, imap);
-        auto ovlp_md = combine_overlap(mtx, recv_rows, imap);
-        ovlp_md.sort_row_major();
-
         using Csr = matrix::Csr<ValueType, IndexType>;
         auto ovlp_mtx = Csr::create(mtx->get_executor());
-        ovlp_mtx->read(std::move(ovlp_md));
+
+        if (imap.get_non_local_size() > 0) {
+            auto recv_rows = get_recv_rows(mtx, imap);
+            recv_rows = filter_non_relevant(recv_rows, imap);
+            auto ovlp_md = combine_overlap(mtx, recv_rows, imap);
+            ovlp_md.sort_row_major();
+
+            ovlp_mtx->read(std::move(ovlp_md));
+        } else {
+            as<ConvertibleTo<Csr>>(mtx->get_local_matrix())
+                ->convert_to(ovlp_mtx);
+        }
 
         return std::unique_ptr<OverlappingOperator>(new OverlappingOperator(
-            std::move(ovlp_mtx), mtx->get_sparse_communicator(),
+            std::move(ovlp_mtx),
+            sparse_communicator{mtx->get_communicator(), imap},
             mtx->get_size()));
     }
 
@@ -251,19 +258,32 @@ private:
         auto combined_size = local_size + non_local_size;
 
         auto exec = template_vec->get_executor();
-        out.init(exec, dim<2>{combined_size, template_vec->get_size()[1]});
+        if (non_local_size > 0) {
+            out.init(exec, dim<2>{combined_size, template_vec->get_size()[1]});
+        } else {
+            out.init(exec, dim<2>{});
+            // const_cast is safe here, because the restricted_in_ will not
+            // be written to, and the template_vec for restricted_out_ is not
+            // actually const
+            out->move_from(make_dense_view(
+                const_cast<Dense*>(template_vec->get_local_vector())));
+        }
     }
 
     mpi::request restrict(const Vec* in, Dense* out) const
     {
         auto exec = in->get_executor();
 
-        auto local_size = in->get_local_vector()->get_size()[0];
-        out->create_submatrix({0, local_size}, {0, in->get_size()[1]})
-            ->copy_from(in->get_local_vector());
-
         auto non_local_size =
             static_cast<size_type>(spcomm_.get_recv_offsets().back());
+        auto local_size = in->get_local_vector()->get_size()[0];
+
+        if (non_local_size > 0) {
+            out->create_submatrix({0, local_size}, {0, in->get_size()[1]})
+                ->copy_from(in->get_local_vector());
+        }
+
+        // pre-initialize so that the recv buffer will be a view of out
         recv_buffer_.init(exec, dim<2>{non_local_size, in->get_size()[1]});
         recv_buffer_->move_from(out->create_submatrix(
             {local_size, out->get_size()[0]}, {0, out->get_size()[1]}));
@@ -279,6 +299,11 @@ private:
         auto local_out = out->get_local_vector();
         auto non_local_size =
             static_cast<size_type>(spcomm_.get_recv_offsets().back());
+
+        if (non_local_size == 0) {
+            return;
+        }
+
         dim<2> expected_dim{local_out->get_size()[0] + non_local_size,
                             local_out->get_size()[1]};
         GKO_ASSERT_EQUAL_DIMENSIONS(in, expected_dim);
