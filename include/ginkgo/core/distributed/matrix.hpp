@@ -367,6 +367,11 @@ public:
         return spcomm_;
     }
 
+    const index_map<local_index_type, global_index_type>& get_index_map() const
+    {
+        return imap_;
+    }
+
     /**
      * Copy constructs a Matrix.
      *
@@ -549,6 +554,7 @@ private:
     std::vector<comm_index_type> recv_sizes_;
     array<local_index_type> gather_idxs_;
 #endif
+    index_map<local_index_type, global_index_type> imap_;
     gko::detail::DenseCache<value_type> one_scalar_;
     gko::detail::DenseCache<value_type> host_send_buffer_;
     gko::detail::DenseCache<value_type> host_recv_buffer_;

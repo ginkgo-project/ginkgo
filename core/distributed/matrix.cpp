@@ -136,7 +136,6 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     auto local_part = comm.rank();
 
     // set up LinOp sizes
-    auto num_parts = static_cast<size_type>(row_partition->get_num_parts());
     auto global_num_rows = row_partition->get_size();
     auto global_num_cols = col_partition->get_size();
     dim<2> global_dim{global_num_rows, global_num_cols};
@@ -160,11 +159,11 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         local_row_idxs, local_col_idxs, local_values, non_local_row_idxs,
         global_non_local_col_idxs, non_local_values));
 
-    auto imap = index_map<local_index_type, global_index_type>(
+    imap_ = index_map<local_index_type, global_index_type>(
         exec, col_partition, comm.rank(), global_non_local_col_idxs);
 
     auto non_local_col_idxs =
-        imap.get_local(global_non_local_col_idxs, index_space::non_local);
+        imap_.get_local(global_non_local_col_idxs, index_space::non_local);
 
     // read the local matrix data
     const auto num_local_rows =
@@ -177,7 +176,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     device_matrix_data<value_type, local_index_type> non_local_data{
         exec,
         dim<2>{num_local_rows,
-               imap.get_remote_global_idxs().get_flat().get_size()},
+               imap_.get_remote_global_idxs().get_flat().get_size()},
         std::move(non_local_row_idxs), std::move(non_local_col_idxs),
         std::move(non_local_values)};
     as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->local_mtx_)
@@ -186,7 +185,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         ->read(std::move(non_local_data));
 
 #if GINKGO_HAVE_CXX17
-    spcomm_ = sparse_communicator{comm, imap};
+    spcomm_ = sparse_communicator{comm, imap_};
 #else
     // exchange step 1: determine recv_sizes, send_sizes, send_offsets
     auto host_recv_targets =
@@ -222,7 +221,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     }
 #endif
 
-    return imap;
+    return imap_;
 }
 
 
