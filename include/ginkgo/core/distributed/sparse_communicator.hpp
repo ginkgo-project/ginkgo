@@ -81,6 +81,7 @@ public:
         return recv_offsets_;
     }
 
+
 private:
     template <typename ValueType, typename LocalIndexType>
     mpi::request communicate_impl_(
@@ -90,6 +91,7 @@ private:
         const detail::DenseCache<ValueType>& recv_buffer) const;
 
     mpi::communicator default_comm_;
+    mpi::communicator inverse_comm_;
 
     std::vector<comm_index_type> send_sizes_;
     std::vector<comm_index_type> send_offsets_;

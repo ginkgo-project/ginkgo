@@ -113,7 +113,7 @@ array<LocalIndexType> communicate_send_gather_idxs(
  * The graph is unweighted and has the same rank ordering as the input
  * communicator.
  */
-mpi::communicator create_neighborhood_comm(
+std::pair<mpi::communicator, mpi::communicator> create_neighborhood_comm(
     mpi::communicator base, const array<comm_index_type>& sources,
     const array<comm_index_type>& destinations)
 {
@@ -127,16 +127,24 @@ mpi::communicator create_neighborhood_comm(
 
     // adjacent constructor guarantees that querying sources/destinations
     // will result in the array having the same order as defined here
-    MPI_Comm new_comm;
+    MPI_Comm default_comm;
+    MPI_Comm inverse_comm;
     MPI_Info info;
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Info_dup(MPI_INFO_ENV, &info));
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Dist_graph_create_adjacent(
         base.get(), in_degree, sources_host->get_const_data(), MPI_UNWEIGHTED,
         out_degree, destinations_host->get_const_data(), MPI_UNWEIGHTED, info,
-        false, &new_comm));
+        false, &default_comm));
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Dist_graph_create_adjacent(
+        base.get(), out_degree, destinations_host->get_const_data(),
+        MPI_UNWEIGHTED, in_degree, sources_host->get_const_data(),
+        MPI_UNWEIGHTED, info, false, &inverse_comm));
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Info_free(&info));
 
-    return mpi::communicator::create_owning(new_comm, base.force_host_buffer());
+    return {mpi::communicator::create_owning(default_comm,
+                                             base.force_host_buffer()),
+            mpi::communicator::create_owning(inverse_comm,
+                                             base.force_host_buffer())};
 }
 
 
@@ -145,6 +153,7 @@ sparse_communicator::sparse_communicator(
     mpi::communicator comm,
     const index_map<LocalIndexType, GlobalIndexType>& imap)
     : default_comm_(MPI_COMM_NULL),
+      inverse_comm_(MPI_COMM_NULL),
       recv_sizes_(imap.get_remote_local_idxs().size()),
       recv_offsets_(recv_sizes_.size() + 1)
 {
@@ -169,8 +178,10 @@ sparse_communicator::sparse_communicator(
         comm, imap.get_remote_local_idxs().get_flat(), recv_target_ids,
         recv_sizes_, send_target_ids, send_sizes_);
 
-    default_comm_ =
+    auto comms =
         create_neighborhood_comm(comm, recv_target_ids, send_target_ids);
+    default_comm_ = std::move(comms.first);
+    inverse_comm_ = std::move(comms.second);
 }
 
 #define GKO_DECLARE_SPARSE_COMMUNICATOR(LocalIndexType, GlobalIndexType) \
@@ -242,6 +253,39 @@ mpi::request sparse_communicator::communicate_impl_(
     auto mpi_exec = get_mpi_exec(exec, default_comm_);
 
     local_vector->row_gather(&send_idxs, send_buffer.get());
+
+    auto recv_ptr = recv_buffer->get_values();
+    auto send_ptr = send_buffer->get_values();
+
+    exec->synchronize();
+    mpi::contiguous_type type(local_vector->get_size()[1],
+                              mpi::type_impl<ValueType>::get_type());
+    mpi::request req;
+    auto g = mpi_exec->get_scoped_device_id_guard();
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Ineighbor_alltoallv(
+        send_ptr, send_sizes_.data(), send_offsets_.data(), type.get(),
+        recv_ptr, recv_sizes_.data(), recv_offsets_.data(), type.get(),
+        comm.get(), req.get()));
+    return req;
+}
+
+
+template <typename ValueType, typename LocalIndexType>
+mpi::request sparse_communicator::communicate_inverse_impl_(
+    mpi::communicator comm, const array<LocalIndexType>& send_idxs,
+    const matrix::Dense<ValueType>* local_vector,
+    const detail::DenseCache<ValueType>& send_buffer,
+    const detail::DenseCache<ValueType>& recv_buffer) const
+{
+    auto exec = local_vector->get_executor();
+
+    auto mpi_exec = get_mpi_exec(exec, default_comm_);
+
+    send_buffer
+        ->copy_from(const_cast<matrix::Dense<ValueType>*>(local_vector)
+                        ->create_submatrix({}))
+
+            local_vector->row_gather(&send_idxs, send_buffer.get());
 
     auto recv_ptr = recv_buffer->get_values();
     auto send_ptr = send_buffer->get_values();
