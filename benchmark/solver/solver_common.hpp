@@ -39,7 +39,7 @@ DEFINE_string(solvers, "cg",
               "Supported values are: bicgstab, bicg, cb_gmres_keep, "
               "cb_gmres_reduce1, cb_gmres_reduce2, cb_gmres_integer, "
               "cb_gmres_ireduce1, cb_gmres_ireduce2, cg, cgs, fcg, gmres, idr, "
-              "lower_trs, upper_trs, spd_direct, symm_direct, "
+              "ir, lower_trs, upper_trs, spd_direct, symm_direct, "
               "near_symm_direct, direct, overhead");
 
 DEFINE_uint32(
@@ -58,6 +58,8 @@ DEFINE_uint32(idr_subspace_dim, 2,
 DEFINE_double(
     idr_kappa, 0.7,
     "the number to check whether Av_n and v_n are too close or not in IDR");
+
+DEFINE_double(ir_relaxation, 1.2, "The relaxation factor for Ir.");
 
 DEFINE_string(
     rhs_generation, "1",
@@ -132,6 +134,17 @@ std::unique_ptr<gko::LinOpFactory> add_criteria_precond_finalize(
 }
 
 
+inline std::unique_ptr<gko::LinOpFactory> add_criteria_precond_finalize(
+    gko::solver::Ir<etype>::parameters_type inter,
+    const std::shared_ptr<const gko::Executor>& exec,
+    std::shared_ptr<const gko::LinOpFactory> precond, std::uint32_t max_iters)
+{
+    return inter.with_criteria(create_criterion(exec, max_iters))
+        .with_solver(give(precond))
+        .on(exec);
+}
+
+
 template <typename Solver>
 std::unique_ptr<gko::LinOpFactory> add_criteria_precond_finalize(
     const std::shared_ptr<const gko::Executor>& exec,
@@ -194,6 +207,11 @@ std::unique_ptr<gko::LinOpFactory> generate_solver(
             gko::solver::Idr<etype>::build()
                 .with_subspace_dim(FLAGS_idr_subspace_dim)
                 .with_kappa(static_cast<rc_etype>(FLAGS_idr_kappa)),
+            exec, precond, max_iters);
+    } else if (description == "ir") {
+        return add_criteria_precond_finalize(
+            gko::solver::Ir<etype>::build().with_relaxation_factor(
+                FLAGS_ir_relaxation),
             exec, precond, max_iters);
     } else if (description == "gmres") {
         return add_criteria_precond_finalize(
