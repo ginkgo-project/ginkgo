@@ -141,7 +141,7 @@ struct batched_jacobi_blocks_storage_scheme {
  * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Jacobi : public EnableBatchLinOp<Jacobi<ValueType, IndexType>> {
+class Jacobi final : public EnableBatchLinOp<Jacobi<ValueType, IndexType>> {
     friend class EnableBatchLinOp<Jacobi>;
     friend class EnablePolymorphicObject<Jacobi, BatchLinOp>;
 
@@ -156,7 +156,6 @@ public:
      * Returns the storage scheme used for storing Batched Jacobi blocks.
      *
      * @return the storage scheme used for storing Batched Jacobi blocks
-     *
      */
     const batched_jacobi_blocks_storage_scheme<index_type>&
     get_blocks_storage_scheme() const noexcept
@@ -172,26 +171,19 @@ public:
      */
     const index_type* get_const_block_pointers() const noexcept
     {
-        if (parameters_.max_block_size == 1) {
-            return nullptr;
-        }
         return parameters_.block_pointers.get_const_data();
     }
 
     /**
-     *  Returns information about which blocks are the rows of the matrix part
+     * Returns information about which blocks are the rows of the matrix part
      * of.
      *
-     *  @note Returns nullptr in case of a scalar jacobi preconditioner
+     * @note Returns nullptr in case of a scalar jacobi preconditioner
      * (max_block_size = 1).
-     *
      */
-    const index_type* get_const_row_is_part_of_which_block_info() const noexcept
+    const index_type* get_const_row_block_map_info() const noexcept
     {
-        if (parameters_.max_block_size == 1) {
-            return nullptr;
-        }
-        return row_part_of_which_block_info_.get_const_data();
+        return row_block_map_info_.get_const_data();
     }
 
     /**
@@ -199,13 +191,9 @@ public:
      *
      *  @note Returns nullptr in case of a scalar jacobi preconditioner
      * (max_block_size = 1).
-     *
      */
     const index_type* get_const_blocks_cumulative_storage() const noexcept
     {
-        if (parameters_.max_block_size == 1) {
-            return nullptr;
-        }
         return blocks_cumulative_storage_.get_const_data();
     }
 
@@ -223,10 +211,8 @@ public:
      * Returns the number of blocks in an individual batch entry.
      *
      * @return the number of blocks in an individual batch entry.
-     *
      */
     size_type get_num_blocks() const noexcept { return num_blocks_; }
-
 
     /**
      * Returns the pointer to the memory used for storing the block data.
@@ -244,13 +230,9 @@ public:
      * solver kernel.
      *
      * @return the pointer to the memory used for storing the block data
-     *
      */
     const value_type* get_const_blocks() const noexcept
     {
-        if (parameters_.max_block_size == 1) {
-            return nullptr;
-        }
         return blocks_.get_const_data();
     }
 
@@ -318,54 +300,22 @@ public:
     GKO_ENABLE_BATCH_LIN_OP_FACTORY(Jacobi, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
-protected:
-    explicit Jacobi(std::shared_ptr<const Executor> exec)
-        : EnableBatchLinOp<Jacobi>(exec),
-          num_blocks_{},
-          blocks_(exec),
-          row_part_of_which_block_info_(exec),
-          blocks_cumulative_storage_(exec),
-          blocks_storage_scheme_{
-              batched_jacobi_blocks_storage_scheme<index_type>()}
-    {
-        parameters_.block_pointers.set_executor(this->get_executor());
-    }
+private:
+    explicit Jacobi(std::shared_ptr<const Executor> exec);
 
     explicit Jacobi(const Factory* factory,
-                    std::shared_ptr<const BatchLinOp> system_matrix)
-        : EnableBatchLinOp<Jacobi>(factory->get_executor(),
-                                   gko::transpose(system_matrix->get_size())),
-          parameters_{factory->get_parameters()},
-          num_blocks_{parameters_.block_pointers.get_size() - 1},
-          blocks_(factory->get_executor()),
-          row_part_of_which_block_info_(factory->get_executor(),
-                                        system_matrix->get_common_size()[0]),
-          blocks_cumulative_storage_(factory->get_executor(), num_blocks_ + 1),
-          blocks_storage_scheme_{
-              batched_jacobi_blocks_storage_scheme<index_type>()}
-
-    {
-        parameters_.block_pointers.set_executor(this->get_executor());
-        GKO_ASSERT_BATCH_HAS_SQUARE_DIMENSIONS(system_matrix);
-        this->generate_precond(system_matrix.get());
-    }
+                    std::shared_ptr<const BatchLinOp> system_matrix);
 
     void generate_precond(const BatchLinOp* const system_matrix);
 
-private:
-    /**
-     * @note  To simplify using the method in situations where the number of
-     *        blocks is not known, for a special input `size_type{} - 1`
-     *        the method returns `0` to avoid overallocation of memory.
-     */
     size_type compute_storage_space(const size_type num_batch) const noexcept
     {
-        return (num_blocks_ + 1 == size_type{0})
-                   ? size_type{0}
-                   : num_batch *
+        return (num_blocks_ > 0)
+                   ? num_batch *
                          (this->get_executor()->copy_val_to_host(
                              blocks_cumulative_storage_.get_const_data() +
-                             num_blocks_));
+                             num_blocks_))
+                   : size_type{0};
     }
 
     void detect_blocks(
@@ -375,7 +325,7 @@ private:
     batched_jacobi_blocks_storage_scheme<index_type> blocks_storage_scheme_;
     size_type num_blocks_;
     array<value_type> blocks_;
-    array<index_type> row_part_of_which_block_info_;
+    array<index_type> row_block_map_info_;
     array<index_type> blocks_cumulative_storage_;
 };
 

@@ -22,12 +22,11 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_BATCH_BLOCK_JACOBI_FIND_ROW_IS_PART_OF_WHICH_BLOCK( \
-    IndexType)                                                          \
-    void find_row_is_part_of_which_block(                               \
-        std::shared_ptr<const DefaultExecutor> exec,                    \
-        const size_type num_blocks, const IndexType* block_pointers,    \
-        IndexType* row_part_of_which_block_info)
+#define GKO_DECLARE_BATCH_BLOCK_JACOBI_FIND_ROW_BLOCK_MAP(IndexType)     \
+    void find_row_block_map(std::shared_ptr<const DefaultExecutor> exec, \
+                            const size_type num_blocks,                  \
+                            const IndexType* block_pointers,             \
+                            IndexType* row_block_map_info)
 
 #define GKO_DECLARE_BATCH_BLOCK_JACOBI_COMPUTE_CUMULATIVE_BLOCK_STORAGE( \
     IndexType)                                                           \
@@ -36,17 +35,16 @@ namespace kernels {
         const size_type num_blocks, const IndexType* block_pointers,     \
         IndexType* blocks_cumulative_storage)
 
-#define GKO_DECLARE_BATCH_BLOCK_JACOBI_EXTRACT_PATTERN_KERNEL(ValueType,   \
-                                                              IndexType)   \
-    void extract_common_blocks_pattern(                                    \
-        std::shared_ptr<const DefaultExecutor> exec,                       \
-        const matrix::Csr<ValueType, IndexType>* first_sys_csr,            \
-        const size_type num_blocks,                                        \
-        const batch::preconditioner::batched_jacobi_blocks_storage_scheme< \
-            IndexType>& storage_scheme,                                    \
-        const IndexType* cumulative_block_storage,                         \
-        const IndexType* block_pointers,                                   \
-        const IndexType* row_part_of_which_block_info,                     \
+#define GKO_DECLARE_BATCH_BLOCK_JACOBI_EXTRACT_PATTERN_KERNEL(ValueType,      \
+                                                              IndexType)      \
+    void extract_common_blocks_pattern(                                       \
+        std::shared_ptr<const DefaultExecutor> exec,                          \
+        const matrix::Csr<ValueType, IndexType>* first_sys_csr,               \
+        const size_type num_blocks,                                           \
+        const batch::preconditioner::batched_jacobi_blocks_storage_scheme<    \
+            IndexType>& storage_scheme,                                       \
+        const IndexType* cumulative_block_storage,                            \
+        const IndexType* block_pointers, const IndexType* row_block_map_info, \
         IndexType* blocks_pattern)
 
 
@@ -80,7 +78,7 @@ namespace kernels {
             batched_jacobi_blocks_storage_scheme<IndexType>& storage_scheme, \
         const IndexType* cumulative_block_storage,                           \
         const ValueType* blocks_array, const IndexType* block_ptrs,          \
-        const IndexType* row_part_of_which_block_info,                       \
+        const IndexType* row_block_map_info,                                 \
         const batch::MultiVector<ValueType>* r,                              \
         batch::MultiVector<ValueType>* z)
 
@@ -93,24 +91,24 @@ namespace kernels {
             batched_jacobi_blocks_storage_scheme<IndexType>& storage_scheme, \
         const IndexType* cumulative_block_storage,                           \
         const ValueType* blocks_array, const IndexType* block_ptrs,          \
-        const IndexType* row_part_of_which_block_info,                       \
+        const IndexType* row_block_map_info,                                 \
         const batch::MultiVector<ValueType>* r,                              \
         batch::MultiVector<ValueType>* z)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                           \
-    template <typename IndexType>                                              \
-    GKO_DECLARE_BATCH_BLOCK_JACOBI_COMPUTE_CUMULATIVE_BLOCK_STORAGE(           \
-        IndexType);                                                            \
-    template <typename IndexType>                                              \
-    GKO_DECLARE_BATCH_BLOCK_JACOBI_FIND_ROW_IS_PART_OF_WHICH_BLOCK(IndexType); \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_BATCH_BLOCK_JACOBI_EXTRACT_PATTERN_KERNEL(ValueType,           \
-                                                          IndexType);          \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_BATCH_BLOCK_JACOBI_COMPUTE_KERNEL(ValueType, IndexType);       \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_BATCH_JACOBI_ELL_APPLY_KERNEL(ValueType, IndexType);           \
-    template <typename ValueType, typename IndexType>                          \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                     \
+    template <typename IndexType>                                        \
+    GKO_DECLARE_BATCH_BLOCK_JACOBI_COMPUTE_CUMULATIVE_BLOCK_STORAGE(     \
+        IndexType);                                                      \
+    template <typename IndexType>                                        \
+    GKO_DECLARE_BATCH_BLOCK_JACOBI_FIND_ROW_BLOCK_MAP(IndexType);        \
+    template <typename ValueType, typename IndexType>                    \
+    GKO_DECLARE_BATCH_BLOCK_JACOBI_EXTRACT_PATTERN_KERNEL(ValueType,     \
+                                                          IndexType);    \
+    template <typename ValueType, typename IndexType>                    \
+    GKO_DECLARE_BATCH_BLOCK_JACOBI_COMPUTE_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                    \
+    GKO_DECLARE_BATCH_JACOBI_ELL_APPLY_KERNEL(ValueType, IndexType);     \
+    template <typename ValueType, typename IndexType>                    \
     GKO_DECLARE_BATCH_JACOBI_APPLY_KERNEL(ValueType, IndexType)
 
 

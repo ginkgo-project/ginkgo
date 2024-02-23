@@ -30,7 +30,7 @@ void batch_jacobi_apply(
         IndexType>& storage_scheme,
     const IndexType* const cumulative_block_storage,
     const ValueType* const blocks_array, const IndexType* const block_ptrs,
-    const IndexType* const row_part_of_which_block_info,
+    const IndexType* const row_block_map_info,
     const batch::MultiVector<ValueType>* const r,
     batch::MultiVector<ValueType>* const z) GKO_NOT_IMPLEMENTED;
 
@@ -47,7 +47,7 @@ void batch_jacobi_apply(
         IndexType>& storage_scheme,
     const IndexType* const cumulative_block_storage,
     const ValueType* const blocks_array, const IndexType* const block_ptrs,
-    const IndexType* const row_part_of_which_block_info,
+    const IndexType* const row_block_map_info,
     const batch::MultiVector<ValueType>* const r,
     batch::MultiVector<ValueType>* const z) GKO_NOT_IMPLEMENTED;
 
@@ -66,13 +66,13 @@ GKO_INSTANTIATE_FOR_INT32_TYPE(
 
 
 template <typename IndexType>
-void find_row_is_part_of_which_block(
+void find_row_block_map(
     std::shared_ptr<const DefaultExecutor> exec, const size_type num_blocks,
     const IndexType* const block_pointers,
-    IndexType* const row_part_of_which_block_info) GKO_NOT_IMPLEMENTED;
+    IndexType* const row_block_map_info) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_INT32_TYPE(
-    GKO_DECLARE_BATCH_BLOCK_JACOBI_FIND_ROW_IS_PART_OF_WHICH_BLOCK);
+    GKO_DECLARE_BATCH_BLOCK_JACOBI_FIND_ROW_BLOCK_MAP);
 
 
 template <typename ValueType, typename IndexType>

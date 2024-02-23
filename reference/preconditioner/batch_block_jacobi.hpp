@@ -23,15 +23,6 @@ namespace host {
  */
 template <typename ValueType, typename IndexType>
 class BatchBlockJacobi final {
-private:
-    inline void common_generate_for_all_system_matrix_types(size_type batch_id)
-    {
-        blocks_arr_entry_ =
-            blocks_arr_batch_ +
-            storage_scheme_.get_batch_offset(batch_id, num_blocks_,
-                                             blocks_cumulative_storage_);
-    }
-
 public:
     using value_type = ValueType;
 
@@ -72,7 +63,7 @@ public:
                                                             const IndexType>&,
                   ValueType* const)
     {
-        common_generate_for_all_system_matrix_types(batch_id);
+        common_generate(batch_id);
     }
 
     void generate(size_type batch_id,
@@ -80,14 +71,14 @@ public:
                                                             const IndexType>&,
                   ValueType* const)
     {
-        common_generate_for_all_system_matrix_types(batch_id);
+        common_generate(batch_id);
     }
 
     void generate(size_type batch_id,
                   const gko::batch::matrix::dense::batch_item<const ValueType>&,
                   ValueType* const)
     {
-        common_generate_for_all_system_matrix_types(batch_id);
+        common_generate(batch_id);
     }
 
     void apply(const gko::batch::multi_vector::batch_item<const ValueType>& r,
@@ -119,6 +110,14 @@ public:
     }
 
 private:
+    inline void common_generate(size_type batch_id)
+    {
+        blocks_arr_entry_ =
+            blocks_arr_batch_ +
+            storage_scheme_.get_batch_offset(batch_id, num_blocks_,
+                                             blocks_cumulative_storage_);
+    }
+
     const size_type num_blocks_;
     const gko::batch::preconditioner::batched_jacobi_blocks_storage_scheme<int>
         storage_scheme_;

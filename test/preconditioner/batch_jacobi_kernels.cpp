@@ -42,7 +42,7 @@ void is_equivalent_to_ref(
     const auto& ref_storage_scheme = ref_prec->get_blocks_storage_scheme();
     const auto& d_storage_scheme = d_prec->get_blocks_storage_scheme();
 
-    const auto tol = 100000 * r<ValueType>::value;
+    const auto tol = 10 * r<ValueType>::value;
 
     gko::array<int> d_block_pointers_copied_to_ref(ref, num_blocks + 1);
     ref->copy_from(exec.get(), num_blocks + 1,
@@ -130,20 +130,23 @@ protected:
                                     .on(ref)
                                     ->generate(ref_mtx);
 
-        // so that the block pointers are exactly the same for ref and device
-        const int* block_pointers_generated_by_ref =
-            ref_block_jacobi_prec->get_const_block_pointers();
-        const auto num_blocks_generated_by_ref =
-            ref_block_jacobi_prec->get_num_blocks();
+        // TODO (before merging device kernels): Check if it is the same for
+        // other device kernels
+        // // so that the block pointers are exactly the same for ref and device
+        // const int* block_pointers_generated_by_ref =
+        //     ref_block_jacobi_prec->get_const_block_pointers();
+        // const auto num_blocks_generated_by_ref =
+        //     ref_block_jacobi_prec->get_num_blocks();
 
-        gko::array<int> block_pointers_for_device(
-            this->exec, block_pointers_generated_by_ref,
-            block_pointers_generated_by_ref + num_blocks_generated_by_ref + 1);
+        // gko::array<int> block_pointers_for_device(
+        //     this->exec, block_pointers_generated_by_ref,
+        //     block_pointers_generated_by_ref + num_blocks_generated_by_ref +
+        //     1);
 
         d_block_jacobi_prec =
             BJ::build()
                 .with_max_block_size(max_blk_sz)
-                .with_block_pointers(block_pointers_for_device)
+                // .with_block_pointers(block_pointers_for_device)
                 .on(exec)
                 ->generate(d_mtx);
     }
@@ -172,24 +175,24 @@ TYPED_TEST(BatchJacobi, BatchScalarJacobiApplyToSingleVectorIsEquivalentToRef)
     auto& ref_prec = this->ref_scalar_jacobi_prec;
     value_type* blocks_arr_ref = nullptr;
     int* block_ptr_ref = nullptr;
-    int* row_part_of_which_block_ref = nullptr;
+    int* row_block_map_ref = nullptr;
     int* cumul_block_storage_ref = nullptr;
     auto& d_prec = this->d_scalar_jacobi_prec;
     value_type* blocks_arr_d = nullptr;
     int* block_ptr_d = nullptr;
-    int* row_part_of_which_block_d = nullptr;
+    int* row_block_map_d = nullptr;
     int* cumul_block_storage_d = nullptr;
 
     gko::kernels::reference::batch_jacobi::batch_jacobi_apply(
         this->ref, this->ref_mtx.get(), ref_prec->get_num_blocks(),
         ref_prec->get_max_block_size(), ref_prec->get_blocks_storage_scheme(),
         cumul_block_storage_ref, blocks_arr_ref, block_ptr_ref,
-        row_part_of_which_block_ref, this->ref_b.get(), this->ref_x.get());
+        row_block_map_ref, this->ref_b.get(), this->ref_x.get());
     gko::kernels::EXEC_NAMESPACE::batch_jacobi::batch_jacobi_apply(
         this->exec, this->d_mtx.get(), d_prec->get_num_blocks(),
         d_prec->get_max_block_size(), d_prec->get_blocks_storage_scheme(),
-        cumul_block_storage_d, blocks_arr_d, block_ptr_d,
-        row_part_of_which_block_d, this->d_b.get(), this->d_x.get());
+        cumul_block_storage_d, blocks_arr_d, block_ptr_d, row_block_map_d,
+        this->d_b.get(), this->d_x.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(this->ref_x.get(), this->d_x.get(),
                               r<value_type>::value);
@@ -216,16 +219,16 @@ TYPED_TEST(BatchJacobi, BatchBlockJacobiApplyToSingleVectorIsEquivalentToRef)
         ref_prec->get_max_block_size(), ref_prec->get_blocks_storage_scheme(),
         ref_prec->get_const_blocks_cumulative_storage(),
         ref_prec->get_const_blocks(), ref_prec->get_const_block_pointers(),
-        ref_prec->get_const_row_is_part_of_which_block_info(),
-        this->ref_b.get(), this->ref_x.get());
+        ref_prec->get_const_row_block_map_info(), this->ref_b.get(),
+        this->ref_x.get());
     gko::kernels::EXEC_NAMESPACE::batch_jacobi::batch_jacobi_apply(
         this->exec, this->d_mtx.get(), d_prec->get_num_blocks(),
         d_prec->get_max_block_size(), d_prec->get_blocks_storage_scheme(),
         d_prec->get_const_blocks_cumulative_storage(),
         d_prec->get_const_blocks(), d_prec->get_const_block_pointers(),
-        d_prec->get_const_row_is_part_of_which_block_info(), this->d_b.get(),
+        d_prec->get_const_row_block_map_info(), this->d_b.get(),
         this->d_x.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(this->ref_x.get(), this->d_x.get(),
-                              5000 * r<value_type>::value);
+                              10 * r<value_type>::value);
 }
