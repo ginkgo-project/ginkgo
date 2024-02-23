@@ -44,10 +44,15 @@ public:
         for (int i = 0; i < mat.num_rows; i++) {
             for (int j = 0; j < mat.num_stored_elems_per_row; j++) {
                 const auto idx = i + j * mat.stride;
-                if (mat.col_idxs[idx] == i &&
-                    mat.values[idx] != -one<ValueType>()) {
-                    work_[i] = one<ValueType>() / mat.values[idx];
-                    break;
+                if (mat.col_idxs[idx] == i) {
+                    // For zero diagonal, set the inverse to 1
+                    if (mat.values[idx] == zero<ValueType>()) {
+                        work_[i] = one<ValueType>();
+                        break;
+                    } else if (mat.values[idx] != zero<ValueType>()) {
+                        work_[i] = one<ValueType>() / mat.values[idx];
+                        break;
+                    }
                 }
             }
         }
@@ -70,10 +75,15 @@ public:
         work_ = work;
         for (int i = 0; i < mat.num_rows; i++) {
             for (int j = mat.row_ptrs[i]; j < mat.row_ptrs[i + 1]; j++) {
-                if (mat.col_idxs[j] == i &&
-                    mat.values[j] != zero<ValueType>()) {
-                    work_[i] = one<ValueType>() / mat.values[j];
-                    break;
+                if (mat.col_idxs[j] == i) {
+                    // For zero diagonal, set the inverse to 1
+                    if (mat.values[j] == zero<ValueType>()) {
+                        work_[i] = one<ValueType>();
+                        break;
+                    } else if (mat.values[j] != zero<ValueType>()) {
+                        work_[i] = one<ValueType>() / mat.values[j];
+                        break;
+                    }
                 }
             }
         }
@@ -95,7 +105,10 @@ public:
     {
         work_ = work;
         for (int i = 0; i < mat.num_rows; i++) {
-            work_[i] = one<ValueType>() / mat.values[i * mat.stride + i];
+            work_[i] = one<ValueType>() /
+                       (mat.values[i * mat.stride + i] == zero<ValueType>()
+                            ? one<ValueType>()
+                            : mat.values[i * mat.stride + i]);
         }
     }
 

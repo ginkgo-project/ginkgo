@@ -113,21 +113,51 @@ protected:
         int* const row_ptrs = mat->get_row_ptrs();
         int* const col_idxs = mat->get_col_idxs();
         value_type* const vals = mat->get_values();
-        // clang-format off
-		row_ptrs[0] = 0; row_ptrs[1] = 2; row_ptrs[2] = 4; row_ptrs[3] = 6; 
-        row_ptrs[4] = 8; row_ptrs[5] = 10; row_ptrs[6] = 12;
+        row_ptrs[0] = 0;
+        row_ptrs[1] = 2;
+        row_ptrs[2] = 4;
+        row_ptrs[3] = 6;
+        row_ptrs[4] = 8;
+        row_ptrs[5] = 10;
+        row_ptrs[6] = 12;
 
-		col_idxs[0] = 0; col_idxs[1] = 1;  col_idxs[2] = 0; col_idxs[3] = 1;
-		col_idxs[4] = 0; col_idxs[5] = 2;  col_idxs[6] = 1; col_idxs[7] = 3;
-        col_idxs[8] = 2; col_idxs[9] = 4; col_idxs[10] = 3; col_idxs[11] = 5;
+        col_idxs[0] = 0;
+        col_idxs[1] = 1;
+        col_idxs[2] = 0;
+        col_idxs[3] = 1;
+        col_idxs[4] = 0;
+        col_idxs[5] = 2;
+        col_idxs[6] = 1;
+        col_idxs[7] = 3;
+        col_idxs[8] = 2;
+        col_idxs[9] = 4;
+        col_idxs[10] = 3;
+        col_idxs[11] = 5;
 
-		vals[0] = 2.0; vals[1] = 0.25; vals[2] = -1.0; vals[3] = -3.0;
-		vals[4] = 2.0; vals[5] = 0.2;  vals[6] = -1.5; vals[7] = 0.55; 
-        vals[8] = -1.0; vals[9] = 4.0; vals[10] = 2.0; vals[11] = -0.25;
-        vals[12] = 5.0; vals[13] = 4.25; vals[14] = -7.0; vals[15] = -3.0;
-		vals[16] = 2.0; vals[17] = 0.28; vals[18] = -1.5; vals[19] = 1.55; 
-        vals[20] = -1.0; vals[21] = 4.0; vals[22] = 21.0; vals[23] = -0.95;
-        // clang-format on
+        vals[0] = 2.0;
+        vals[1] = 0.25;
+        vals[2] = -1.0;
+        vals[3] = -3.0;
+        vals[4] = 2.0;
+        vals[5] = 0.2;
+        vals[6] = -1.5;
+        vals[7] = 0.55;
+        vals[8] = -1.0;
+        vals[9] = 4.0;
+        vals[10] = 2.0;
+        vals[11] = -0.25;
+        vals[12] = 5.0;
+        vals[13] = 4.25;
+        vals[14] = -7.0;
+        vals[15] = -3.0;
+        vals[16] = 2.0;
+        vals[17] = 0.28;
+        vals[18] = -1.5;
+        vals[19] = 1.55;
+        vals[20] = -1.0;
+        vals[21] = 4.0;
+        vals[22] = 21.0;
+        vals[23] = -0.95;
         return mat;
     }
 };
@@ -156,13 +186,13 @@ TYPED_TEST(BatchJacobi,
     auto prec = prec_fact->generate(this->mtx);
     value_type* blocks_arr = nullptr;
     int* block_ptr = nullptr;
-    int* row_part_of_which_block_arr = nullptr;
+    int* row_block_map_arr = nullptr;
     int* cumul_block_storage = nullptr;
 
     gko::kernels::reference::batch_jacobi::batch_jacobi_apply(
         this->exec, this->mtx.get(), prec->get_num_blocks(),
         prec->get_max_block_size(), prec->get_blocks_storage_scheme(),
-        cumul_block_storage, blocks_arr, block_ptr, row_part_of_which_block_arr,
+        cumul_block_storage, blocks_arr, block_ptr, row_block_map_arr,
         this->b.get(), this->x.get());
 
     auto xs = gko::batch::unbatch<BMVec>(this->x.get());
@@ -226,9 +256,8 @@ TYPED_TEST(BatchJacobi,
         this->exec, this->mtx.get(), prec->get_num_blocks(),
         prec->get_max_block_size(), prec->get_blocks_storage_scheme(),
         prec->get_const_blocks_cumulative_storage(), prec->get_const_blocks(),
-        prec->get_const_block_pointers(),
-        prec->get_const_row_is_part_of_which_block_info(), this->b.get(),
-        this->x.get());
+        prec->get_const_block_pointers(), prec->get_const_row_block_map_info(),
+        this->b.get(), this->x.get());
 
     auto xs = gko::batch::unbatch<BMVec>(this->x.get());
     for (size_t i = 0; i < umtxs.size(); i++) {

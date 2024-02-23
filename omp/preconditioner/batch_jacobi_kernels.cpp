@@ -29,20 +29,21 @@ void apply_jacobi(
     const gko::batch::multi_vector::uniform_batch<const ValueType>& rub,
     const gko::batch::multi_vector::uniform_batch<ValueType>& zub)
 {
-#pragma omp parallel for firstprivate(prec)
-    for (size_type batch_id = 0; batch_id < sys_mat_batch.num_batch_items;
-         batch_id++) {
-        const auto sys_mat_entry =
-            gko::batch::matrix::extract_batch_item(sys_mat_batch, batch_id);
-        const auto r_b = gko::batch::extract_batch_item(rub, batch_id);
-        const auto z_b = gko::batch::extract_batch_item(zub, batch_id);
-
+#pragma omp parallel firstprivate(prec)
+    {
         const auto work_arr_size = PrecType::dynamic_work_size(
             sys_mat_batch.num_rows, sys_mat_batch.get_single_item_num_nnz());
         std::vector<ValueType> work(work_arr_size);
+        for (size_type batch_id = 0; batch_id < sys_mat_batch.num_batch_items;
+             batch_id++) {
+            const auto sys_mat_entry =
+                gko::batch::matrix::extract_batch_item(sys_mat_batch, batch_id);
+            const auto r_b = gko::batch::extract_batch_item(rub, batch_id);
+            const auto z_b = gko::batch::extract_batch_item(zub, batch_id);
 
-        prec.generate(batch_id, sys_mat_entry, work.data());
-        prec.apply(r_b, z_b);
+            prec.generate(batch_id, sys_mat_entry, work.data());
+            prec.apply(r_b, z_b);
+        }
     }
 }
 
@@ -63,15 +64,15 @@ void batch_jacobi_apply(
         IndexType>& storage_scheme,
     const IndexType* const cumulative_block_storage,
     const ValueType* const blocks_array, const IndexType* const block_ptrs,
-    const IndexType* const row_part_of_which_block_info,
+    const IndexType* const row_block_map_info,
     const batch::MultiVector<ValueType>* const r,
     batch::MultiVector<ValueType>* const z)
 {
     const auto sys_mat_batch = host::get_batch_struct(sys_mat);
     batch_jacobi_apply_helper(sys_mat_batch, num_blocks, max_block_size,
                               storage_scheme, cumulative_block_storage,
-                              blocks_array, block_ptrs,
-                              row_part_of_which_block_info, r, z);
+                              blocks_array, block_ptrs, row_block_map_info, r,
+                              z);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
@@ -87,15 +88,15 @@ void batch_jacobi_apply(
         IndexType>& storage_scheme,
     const IndexType* const cumulative_block_storage,
     const ValueType* const blocks_array, const IndexType* const block_ptrs,
-    const IndexType* const row_part_of_which_block_info,
+    const IndexType* const row_block_map_info,
     const batch::MultiVector<ValueType>* const r,
     batch::MultiVector<ValueType>* const z)
 {
     const auto sys_mat_batch = host::get_batch_struct(sys_mat);
     batch_jacobi_apply_helper(sys_mat_batch, num_blocks, max_block_size,
                               storage_scheme, cumulative_block_storage,
-                              blocks_array, block_ptrs,
-                              row_part_of_which_block_info, r, z);
+                              blocks_array, block_ptrs, row_block_map_info, r,
+                              z);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
@@ -123,22 +124,22 @@ GKO_INSTANTIATE_FOR_INT32_TYPE(
 
 
 template <typename IndexType>
-void find_row_is_part_of_which_block(
-    std::shared_ptr<const DefaultExecutor> exec, const size_type num_blocks,
-    const IndexType* const block_pointers,
-    IndexType* const row_part_of_which_block_info)
+void find_row_block_map(std::shared_ptr<const DefaultExecutor> exec,
+                        const size_type num_blocks,
+                        const IndexType* const block_pointers,
+                        IndexType* const row_block_map_info)
 {
 #pragma omp parallel for
     for (size_type block_idx = 0; block_idx < num_blocks; block_idx++) {
         for (IndexType i = block_pointers[block_idx];
              i < block_pointers[block_idx + 1]; i++) {
-            row_part_of_which_block_info[i] = block_idx;
+            row_block_map_info[i] = block_idx;
         }
     }
 }
 
 GKO_INSTANTIATE_FOR_INT32_TYPE(
-    GKO_DECLARE_BATCH_BLOCK_JACOBI_FIND_ROW_IS_PART_OF_WHICH_BLOCK);
+    GKO_DECLARE_BATCH_BLOCK_JACOBI_FIND_ROW_BLOCK_MAP);
 
 
 template <typename ValueType, typename IndexType>

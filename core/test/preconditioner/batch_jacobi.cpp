@@ -59,14 +59,11 @@ TEST_F(BatchJacobiFactory, CanSetMaxBlockSize)
 
 TEST_F(BatchJacobiFactory, CanSetBlockPointers)
 {
-    gko::array<index_type> block_ptrs(this->exec->get_master(), 4);
-    block_ptrs.get_data()[0] = 0;
-    block_ptrs.get_data()[1] = 2;
-    block_ptrs.get_data()[2] = 5;
-    block_ptrs.get_data()[3] = 9;
+    gko::array<index_type> block_ptrs_copy(this->exec->get_master(),
+                                           this->block_pointers);
 
     auto batch_jacobi_factory = batch_jacobi_prec::build()
-                                    .with_block_pointers(block_ptrs)
+                                    .with_block_pointers(block_ptrs_copy)
                                     .on(this->exec);
 
     for (int i = 0; i < this->block_pointers.get_size(); i++) {
