@@ -156,13 +156,13 @@ TYPED_TEST(BatchJacobi,
     auto prec = prec_fact->generate(this->mtx);
     value_type* blocks_arr = nullptr;
     int* block_ptr = nullptr;
-    int* row_part_of_which_block_arr = nullptr;
+    int* row_block_map_arr = nullptr;
     int* cumul_block_storage = nullptr;
 
     gko::kernels::reference::batch_jacobi::batch_jacobi_apply(
         this->exec, this->mtx.get(), prec->get_num_blocks(),
         prec->get_max_block_size(), prec->get_blocks_storage_scheme(),
-        cumul_block_storage, blocks_arr, block_ptr, row_part_of_which_block_arr,
+        cumul_block_storage, blocks_arr, block_ptr, row_block_map_arr,
         this->b.get(), this->x.get());
 
     auto xs = gko::batch::unbatch<BMVec>(this->x.get());
@@ -226,9 +226,8 @@ TYPED_TEST(BatchJacobi,
         this->exec, this->mtx.get(), prec->get_num_blocks(),
         prec->get_max_block_size(), prec->get_blocks_storage_scheme(),
         prec->get_const_blocks_cumulative_storage(), prec->get_const_blocks(),
-        prec->get_const_block_pointers(),
-        prec->get_const_row_is_part_of_which_block_info(), this->b.get(),
-        this->x.get());
+        prec->get_const_block_pointers(), prec->get_const_row_block_map_info(),
+        this->b.get(), this->x.get());
 
     auto xs = gko::batch::unbatch<BMVec>(this->x.get());
     for (size_t i = 0; i < umtxs.size(); i++) {

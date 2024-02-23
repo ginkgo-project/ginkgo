@@ -22,13 +22,47 @@ GKO_REGISTER_OPERATION(extract_common_blocks_pattern,
                        batch_jacobi::extract_common_blocks_pattern);
 GKO_REGISTER_OPERATION(compute_block_jacobi,
                        batch_jacobi::compute_block_jacobi);
-GKO_REGISTER_OPERATION(find_row_is_part_of_which_block,
-                       batch_jacobi::find_row_is_part_of_which_block);
+GKO_REGISTER_OPERATION(find_row_block_map, batch_jacobi::find_row_block_map);
 GKO_REGISTER_OPERATION(compute_cumulative_block_storage,
                        batch_jacobi::compute_cumulative_block_storage);
 
 
 }  // namespace jacobi
+
+
+template <typename ValueType, typename IndexType>
+Jacobi<ValueType, IndexType>::Jacobi(std::shared_ptr<const Executor> exec)
+    : EnableBatchLinOp<Jacobi>(exec),
+      num_blocks_{},
+      blocks_(exec),
+      row_block_map_info_(exec),
+      blocks_cumulative_storage_(exec),
+      blocks_storage_scheme_{batched_jacobi_blocks_storage_scheme<index_type>()}
+{
+    parameters_.block_pointers.set_executor(this->get_executor());
+}
+
+
+template <typename ValueType, typename IndexType>
+Jacobi<ValueType, IndexType>::Jacobi(
+    const Factory* factory, std::shared_ptr<const BatchLinOp> system_matrix)
+    : EnableBatchLinOp<Jacobi>(factory->get_executor(),
+                               gko::transpose(system_matrix->get_size())),
+      parameters_{factory->get_parameters()},
+      num_blocks_{parameters_.block_pointers.get_size() > 0
+                      ? parameters_.block_pointers.get_size() - 1
+                      : 0},
+      blocks_(factory->get_executor()),
+      row_block_map_info_(factory->get_executor(),
+                          system_matrix->get_common_size()[0]),
+      blocks_cumulative_storage_(factory->get_executor(), num_blocks_ + 1),
+      blocks_storage_scheme_{batched_jacobi_blocks_storage_scheme<index_type>()}
+
+{
+    parameters_.block_pointers.set_executor(this->get_executor());
+    GKO_ASSERT_BATCH_HAS_SQUARE_DIMENSIONS(system_matrix);
+    this->generate_precond(system_matrix.get());
+}
 
 
 template <typename ValueType, typename IndexType>
@@ -101,9 +135,9 @@ void Jacobi<ValueType, IndexType>::generate_precond(
 
     blocks_.resize_and_reset(this->compute_storage_space(num_batch));
 
-    exec->run(jacobi::make_find_row_is_part_of_which_block(
+    exec->run(jacobi::make_find_row_block_map(
         num_blocks_, parameters_.block_pointers.get_const_data(),
-        row_part_of_which_block_info_.get_data()));
+        row_block_map_info_.get_data()));
 
     // Note: Row-major order offers advantage in terms of
     // performance in both preconditioner generation and application for both
@@ -125,8 +159,7 @@ void Jacobi<ValueType, IndexType>::generate_precond(
         first_sys_csr.get(), num_blocks_, blocks_storage_scheme_,
         blocks_cumulative_storage_.get_const_data(),
         parameters_.block_pointers.get_const_data(),
-        row_part_of_which_block_info_.get_const_data(),
-        blocks_pattern.get_data()));
+        row_block_map_info_.get_const_data(), blocks_pattern.get_data()));
 
     exec->run(jacobi::make_compute_block_jacobi(
         sys_csr.get(), parameters_.max_block_size, num_blocks_,

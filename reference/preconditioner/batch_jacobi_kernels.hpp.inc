@@ -41,21 +41,12 @@ inline void extract_block_pattern_impl(
 }
 
 
-template <typename T>
-inline void swap_numbers(T& a, T& b)
-{
-    T tmp = a;
-    a = b;
-    b = tmp;
-}
-
-
 template <typename ValueType>
 inline void swap_rows(const int size, std::vector<ValueType>& mat,
                       const int row1, const int row2)
 {
     for (int c = 0; c < size; c++) {
-        swap_numbers(mat[row1 * size + c], mat[row2 * size + c]);
+        std::swap(mat[row1 * size + c], mat[row2 * size + c]);
     }
 }
 
@@ -89,7 +80,7 @@ inline void invert_dense_block(const int block_size,
         const int piv = choose_pivot(k, block_size, temp_dense_block);
         if (k != piv) {
             swap_rows(block_size, temp_dense_block, k, piv);
-            swap_numbers(col_perm[piv], col_perm[k]);
+            std::swap(col_perm[piv], col_perm[k]);
         }
         const ValueType d = temp_dense_block[k * block_size + k];
 
@@ -186,7 +177,7 @@ void batch_jacobi_apply_helper(
         storage_scheme,
     const int* const cumulative_block_storage,
     const ValueType* const blocks_array, const int* const block_ptrs,
-    const int* const row_part_of_which_block_info,
+    const int* const row_block_map_info,
     const batch::MultiVector<ValueType>* const r,
     batch::MultiVector<ValueType>* const z)
 {
@@ -205,7 +196,7 @@ void batch_jacobi_apply_helper(
     } else {
         block_jacobi_prec prec(max_block_size, num_blocks, storage_scheme,
                                cumulative_block_storage, blocks_array,
-                               block_ptrs, row_part_of_which_block_info);
+                               block_ptrs, row_block_map_info);
         apply_jacobi(sys_mat_batch, prec, rub, zub);
     }
 }
