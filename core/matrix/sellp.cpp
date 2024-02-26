@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -102,6 +102,53 @@ template <typename ValueType, typename IndexType>
 Sellp<ValueType, IndexType>::Sellp(Sellp&& other) : Sellp(other.get_executor())
 {
     *this = std::move(other);
+}
+
+
+template <typename ValueType, typename IndexType>
+Sellp<ValueType, IndexType>::Sellp(std::shared_ptr<const Executor> exec,
+                                   const dim<2>& size, size_type total_cols)
+    : Sellp(std::move(exec), size, default_slice_size, default_stride_factor,
+            total_cols)
+{}
+
+
+template <typename ValueType, typename IndexType>
+Sellp<ValueType, IndexType>::Sellp(std::shared_ptr<const Executor> exec,
+                                   const dim<2>& size, size_type slice_size,
+                                   size_type stride_factor,
+                                   size_type total_cols)
+    : EnableLinOp<Sellp>(exec, size),
+      values_(exec, slice_size * total_cols),
+      col_idxs_(exec, slice_size * total_cols),
+      slice_lengths_(exec, ceildiv(size[0], slice_size)),
+      slice_sets_(exec, ceildiv(size[0], slice_size) + 1),
+      slice_size_(slice_size),
+      stride_factor_(stride_factor)
+{
+    slice_sets_.fill(0);
+    slice_lengths_.fill(0);
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Sellp<ValueType, IndexType>>
+Sellp<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
+                                    const dim<2>& size, size_type total_cols)
+{
+    return std::unique_ptr<Sellp>{new Sellp{exec, size, total_cols}};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Sellp<ValueType, IndexType>>
+Sellp<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
+                                    const dim<2>& size, size_type slice_size,
+                                    size_type stride_factor,
+                                    size_type total_cols)
+{
+    return std::unique_ptr<Sellp>{
+        new Sellp{exec, size, slice_size, stride_factor, total_cols}};
 }
 
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -100,6 +100,77 @@ Hybrid<ValueType, IndexType>::Hybrid(Hybrid&& other)
     : Hybrid(other.get_executor())
 {
     *this = std::move(other);
+}
+
+
+template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>::Hybrid(std::shared_ptr<const Executor> exec,
+                                     const dim<2>& size,
+                                     size_type num_stored_elements_per_row,
+                                     size_type stride, size_type num_nonzeros,
+                                     std::shared_ptr<strategy_type> strategy)
+    : EnableLinOp<Hybrid>(exec, size),
+      ell_(ell_type::create(exec, size, num_stored_elements_per_row, stride)),
+      coo_(coo_type::create(exec, size, num_nonzeros)),
+      strategy_(strategy ? std::move(strategy) : std::make_shared<automatic>())
+{}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Hybrid<ValueType, IndexType>>
+Hybrid<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
+                                     std::shared_ptr<strategy_type> strategy)
+{
+    return std::unique_ptr<Hybrid>{new Hybrid{exec, {}, 0, 0, 0, strategy}};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Hybrid<ValueType, IndexType>>
+Hybrid<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
+                                     const dim<2>& size,
+                                     std::shared_ptr<strategy_type> strategy)
+{
+    return std::unique_ptr<Hybrid>{new Hybrid{exec, size, 0, 0, 0, strategy}};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Hybrid<ValueType, IndexType>>
+Hybrid<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
+                                     const dim<2>& size,
+                                     size_type num_stored_elements_per_row,
+                                     std::shared_ptr<strategy_type> strategy)
+{
+    return std::unique_ptr<Hybrid>{
+        new Hybrid{exec, size, num_stored_elements_per_row, 0, 0, strategy}};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Hybrid<ValueType, IndexType>>
+Hybrid<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
+                                     const dim<2>& size,
+                                     size_type num_stored_elements_per_row,
+                                     size_type stride,
+                                     std::shared_ptr<strategy_type> strategy)
+{
+    return std::unique_ptr<Hybrid>{new Hybrid{
+        exec, size, num_stored_elements_per_row, stride, 0, strategy}};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Hybrid<ValueType, IndexType>>
+Hybrid<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
+                                     const dim<2>& size,
+                                     size_type num_stored_elements_per_row,
+                                     size_type stride, size_type num_nonzeros,
+                                     std::shared_ptr<strategy_type> strategy)
+{
+    return std::unique_ptr<Hybrid>{new Hybrid{exec, size,
+                                              num_stored_elements_per_row,
+                                              stride, num_nonzeros, strategy}};
 }
 
 

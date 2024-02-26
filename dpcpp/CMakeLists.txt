@@ -98,7 +98,6 @@ target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_DPCPP_FLAGS}")
 # If we would like to use SOURCES, please use the new files copied from GKO_UNIFIED_COMMON_SOURCES.
 # Otherwise, the source's properties will be changed by add_sycl_to_target
 gko_add_sycl_to_target(TARGET ginkgo_dpcpp)
-target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_COMPILER_FLAGS}")
 # Note: add MKL as PRIVATE not PUBLIC (MKL example shows) to avoid propagating
 # find_package(MKL) everywhere when linking ginkgo (see the MKL example
 # https://software.intel.com/content/www/us/en/develop/documentation/onemkl-windows-developer-guide/top/getting-started/cmake-config-for-onemkl.html)

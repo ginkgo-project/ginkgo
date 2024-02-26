@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -118,7 +118,7 @@ enum class layout_type {
  */
 template <typename ValueType, typename IndexType>
 void write_raw(std::ostream& os, const matrix_data<ValueType, IndexType>& data,
-               layout_type layout = layout_type::array);
+               layout_type layout = layout_type::coordinate);
 
 
 /**

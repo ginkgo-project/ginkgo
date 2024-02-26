@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -31,6 +31,14 @@ Identity<ValueType>::Identity(std::shared_ptr<const Executor> exec,
     : EnableBatchLinOp<Identity<ValueType>>(exec, size)
 {
     GKO_ASSERT_BATCH_HAS_SQUARE_DIMENSIONS(this->get_size());
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Identity<ValueType>> Identity<ValueType>::create(
+    std::shared_ptr<const Executor> exec, const batch_dim<2>& size)
+{
+    return std::unique_ptr<Identity>{new Identity{exec, size}};
 }
 
 

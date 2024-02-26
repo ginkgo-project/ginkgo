@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -123,6 +123,75 @@ SparsityCsr<ValueType, IndexType>::SparsityCsr(
     : SparsityCsr{other.get_executor()}
 {
     *this = std::move(other);
+}
+
+
+template <typename ValueType, typename IndexType>
+SparsityCsr<ValueType, IndexType>::SparsityCsr(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    size_type num_nonzeros)
+    : EnableLinOp<SparsityCsr>(exec, size),
+      col_idxs_(exec, num_nonzeros),
+      row_ptrs_(exec, size[0] + 1),
+      value_(exec, {one<ValueType>()})
+{
+    row_ptrs_.fill(0);
+}
+
+
+template <typename ValueType, typename IndexType>
+SparsityCsr<ValueType, IndexType>::SparsityCsr(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    array<index_type> col_idxs, array<index_type> row_ptrs, value_type value)
+    : EnableLinOp<SparsityCsr>(exec, size),
+      col_idxs_{exec, std::move(col_idxs)},
+      row_ptrs_{exec, std::move(row_ptrs)},
+      value_{exec, {value}}
+{
+    GKO_ASSERT_EQ(this->get_size()[0] + 1, row_ptrs_.get_size());
+}
+
+
+template <typename ValueType, typename IndexType>
+SparsityCsr<ValueType, IndexType>::SparsityCsr(
+    std::shared_ptr<const Executor> exec, std::shared_ptr<const LinOp> matrix)
+    : EnableLinOp<SparsityCsr>(exec, matrix->get_size())
+{
+    auto tmp_ = copy_and_convert_to<SparsityCsr>(exec, matrix);
+    this->copy_from(tmp_);
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<SparsityCsr<ValueType, IndexType>>
+SparsityCsr<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
+                                          const dim<2>& size,
+                                          size_type num_nonzeros)
+{
+    return std::unique_ptr<SparsityCsr>{
+        new SparsityCsr{exec, size, num_nonzeros}};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<SparsityCsr<ValueType, IndexType>>
+SparsityCsr<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
+                                          const dim<2>& size,
+                                          array<index_type> col_idxs,
+                                          array<index_type> row_ptrs,
+                                          value_type value)
+{
+    return std::unique_ptr<SparsityCsr>{new SparsityCsr{
+        exec, size, std::move(col_idxs), std::move(row_ptrs), value}};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<SparsityCsr<ValueType, IndexType>>
+SparsityCsr<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
+                                          std::shared_ptr<const LinOp> matrix)
+{
+    return std::unique_ptr<SparsityCsr>{new SparsityCsr{exec, matrix}};
 }
 
 

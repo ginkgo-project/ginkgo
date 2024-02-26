@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -79,6 +79,74 @@ void advanced_apply(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_ADVANCED_APPLY_KERNEL);
+
+
+template <typename ValueType>
+void scale(std::shared_ptr<const DefaultExecutor> exec,
+           const array<ValueType>* col_scale, const array<ValueType>* row_scale,
+           batch::matrix::Dense<ValueType>* input)
+{
+    const auto col_scale_vals = col_scale->get_const_data();
+    const auto row_scale_vals = row_scale->get_const_data();
+    auto input_vals = input->get_values();
+    const auto num_rows = static_cast<int>(input->get_common_size()[0]);
+    const auto num_cols = static_cast<int>(input->get_common_size()[1]);
+    const auto stride = input->get_common_size()[1];
+    for (size_type batch_id = 0; batch_id < input->get_num_batch_items();
+         ++batch_id) {
+        const auto col_scale_b = col_scale_vals + num_cols * batch_id;
+        const auto row_scale_b = row_scale_vals + num_rows * batch_id;
+        const auto input_mat =
+            input_vals + input->get_num_elements_per_item() * batch_id;
+        scale(num_rows, num_cols, stride, col_scale_b, row_scale_b, input_mat);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL);
+
+
+template <typename ValueType>
+void scale_add(std::shared_ptr<const DefaultExecutor> exec,
+               const batch::MultiVector<ValueType>* alpha,
+               const batch::matrix::Dense<ValueType>* mat,
+               batch::matrix::Dense<ValueType>* input)
+{
+    const auto mat_ub = host::get_batch_struct(mat);
+    const auto in_mat_ub = host::get_batch_struct(input);
+    const auto alpha_ub = host::get_batch_struct(alpha);
+    for (size_type batch_id = 0; batch_id < input->get_num_batch_items();
+         ++batch_id) {
+        const auto alpha_b = batch::extract_batch_item(alpha_ub, batch_id);
+        const auto mat_b = batch::matrix::extract_batch_item(mat_ub, batch_id);
+        const auto input_mat_b =
+            batch::matrix::extract_batch_item(in_mat_ub, batch_id);
+        scale_add_kernel(alpha_b.values[0], mat_b, input_mat_b);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_ADD_KERNEL);
+
+
+template <typename ValueType>
+void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
+                         const batch::MultiVector<ValueType>* alpha,
+                         const batch::MultiVector<ValueType>* beta,
+                         batch::matrix::Dense<ValueType>* mat)
+{
+    const auto mat_ub = host::get_batch_struct(mat);
+    const auto alpha_ub = host::get_batch_struct(alpha);
+    const auto beta_ub = host::get_batch_struct(beta);
+    for (size_type batch_id = 0; batch_id < mat->get_num_batch_items();
+         ++batch_id) {
+        const auto alpha_b = batch::extract_batch_item(alpha_ub, batch_id);
+        const auto beta_b = batch::extract_batch_item(beta_ub, batch_id);
+        const auto mat_b = batch::matrix::extract_batch_item(mat_ub, batch_id);
+        add_scaled_identity_kernel(alpha_b.values[0], beta_b.values[0], mat_b);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_DENSE_ADD_SCALED_IDENTITY_KERNEL);
 
 
 }  // namespace batch_dense

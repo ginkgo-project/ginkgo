@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -642,7 +642,7 @@ TEST(MatrixData, WritesDoubleRealMatrixToMatrixMarketArray)
     // clang-format on
     std::ostringstream oss{};
 
-    write_raw(oss, data);
+    write_raw(oss, data, gko::layout_type::array);
 
     ASSERT_EQ(oss.str(),
               "%%MatrixMarket matrix array real general\n"
@@ -666,7 +666,7 @@ TEST(MatrixData, WritesFloatRealMatrixToMatrixMarketCoordinate)
     // clang-format on
     std::ostringstream oss{};
 
-    write_raw(oss, data, gko::layout_type::coordinate);
+    write_raw(oss, data);
 
     ASSERT_EQ(oss.str(),
               "%%MatrixMarket matrix coordinate real general\n"
@@ -689,7 +689,7 @@ TEST(MatrixData, WritesDoubleRealMatrixToMatrixMarketArrayWith64Index)
     // clang-format on
     std::ostringstream oss{};
 
-    write_raw(oss, data);
+    write_raw(oss, data, gko::layout_type::array);
 
     ASSERT_EQ(oss.str(),
               "%%MatrixMarket matrix array real general\n"
@@ -713,7 +713,7 @@ TEST(MatrixData, WritesFloatRealMatrixToMatrixMarketCoordinateWith64Index)
     // clang-format on
     std::ostringstream oss{};
 
-    write_raw(oss, data, gko::layout_type::coordinate);
+    write_raw(oss, data);
 
     ASSERT_EQ(oss.str(),
               "%%MatrixMarket matrix coordinate real general\n"
@@ -736,7 +736,7 @@ TEST(MatrixData, WritesComplexDoubleMatrixToMatrixMarketArray)
     // clang-format on
     std::ostringstream oss{};
 
-    write_raw(oss, data);
+    write_raw(oss, data, gko::layout_type::array);
 
     ASSERT_EQ(oss.str(),
               "%%MatrixMarket matrix array complex general\n"
@@ -760,7 +760,7 @@ TEST(MatrixData, WritesComplexFloatMatrixToMatrixMarketCoordinate)
     // clang-format on
     std::ostringstream oss{};
 
-    write_raw(oss, data, gko::layout_type::coordinate);
+    write_raw(oss, data);
 
     ASSERT_EQ(oss.str(),
               "%%MatrixMarket matrix coordinate complex general\n"
@@ -783,7 +783,7 @@ TEST(MatrixData, WritesComplexDoubleMatrixToMatrixMarketArrayWith64Index)
     // clang-format on
     std::ostringstream oss{};
 
-    write_raw(oss, data);
+    write_raw(oss, data, gko::layout_type::array);
 
     ASSERT_EQ(oss.str(),
               "%%MatrixMarket matrix array complex general\n"
@@ -807,7 +807,7 @@ TEST(MatrixData, WritesComplexFloatMatrixToMatrixMarketCoordinateWith64Index)
     // clang-format on
     std::ostringstream oss{};
 
-    write_raw(oss, data, gko::layout_type::coordinate);
+    write_raw(oss, data);
 
     ASSERT_EQ(oss.str(),
               "%%MatrixMarket matrix coordinate complex general\n"

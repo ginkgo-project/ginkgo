@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -772,6 +772,20 @@ inline T ensure_allocated_impl(T ptr, const std::string& file, int line,
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
+
+
+/**
+ * Ensures that an access is within the specified 2D dimensions.
+ *
+ * @param _row  the row access
+ * @param _col  the column access
+ * @param _bound  the dimension bound
+ *
+ * @throw OutOfBoundsError  if `_row >= _bound[0] || _col >= _bound[1]`
+ */
+#define GKO_ENSURE_IN_DIMENSION_BOUNDS(_row, _col, _bound)          \
+    GKO_ENSURE_IN_BOUNDS(_row, ::gko::detail::get_size(_bound)[0]); \
+    GKO_ENSURE_IN_BOUNDS(_col, ::gko::detail::get_size(_bound)[1])
 
 
 /**

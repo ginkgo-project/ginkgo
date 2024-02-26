@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -110,9 +110,7 @@ static constexpr mask_type inverse_permute = mask_type{1 << 3};
  */
 template <typename IndexType = int32>
 class Permutation : public EnableLinOp<Permutation<IndexType>>,
-                    public EnableCreateMethod<Permutation<IndexType>>,
                     public WritableToMatrixData<default_precision, IndexType> {
-    friend class EnableCreateMethod<Permutation>;
     friend class EnablePolymorphicObject<Permutation, LinOp>;
 
 public:
@@ -180,6 +178,57 @@ public:
     void write(gko::matrix_data<value_type, index_type>& data) const override;
 
     /**
+     * Creates an uninitialized Permutation arrays on the specified executor.
+     *
+     * @param exec  Executor associated to the LinOp
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Permutation> create(
+        std::shared_ptr<const Executor> exec, size_type size = 0);
+
+    /**
+     * Creates a Permutation matrix from an already allocated (and initialized)
+     * row and column permutation arrays.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the permutation array.
+     * @param permutation_indices array of permutation array
+     * @param enabled_permute  mask for the type of permutation to apply.
+     *
+     * @note If `permutation_indices` is not an rvalue, not an array of
+     * IndexType, or is on the wrong executor, an internal copy will be created,
+     * and the original array data will not be used in the matrix.
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Permutation> create(
+        std::shared_ptr<const Executor> exec,
+        array<IndexType> permutation_indices);
+
+    GKO_DEPRECATED(
+        "dim<2> is no longer supported as a dimension parameter, use size_type "
+        "instead")
+    static std::unique_ptr<Permutation> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size);
+
+    GKO_DEPRECATED("permute mask is no longer supported")
+    static std::unique_ptr<Permutation> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        const mask_type& enabled_permute);
+
+    GKO_DEPRECATED("use the overload without dimensions")
+    static std::unique_ptr<Permutation> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        array<IndexType> permutation_indices);
+
+    GKO_DEPRECATED("permute mask is no longer supported")
+    static std::unique_ptr<Permutation> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        array<index_type> permutation_indices,
+        const mask_type& enabled_permute);
+
+    /**
      * Creates a constant (immutable) Permutation matrix from a constant array.
      *
      * @param exec  the executor to create the matrix on
@@ -211,62 +260,10 @@ public:
         gko::detail::const_array_view<IndexType>&& perm_idxs);
 
 protected:
-    /**
-     * Creates an uninitialized Permutation arrays on the specified executor.
-     *
-     * @param exec  Executor associated to the LinOp
-     */
     Permutation(std::shared_ptr<const Executor> exec, size_type = 0);
 
-    /**
-     * Creates a Permutation matrix from an already allocated (and initialized)
-     * row and column permutation arrays.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the permutation array.
-     * @param permutation_indices array of permutation array
-     * @param enabled_permute  mask for the type of permutation to apply.
-     *
-     * @note If `permutation_indices` is not an rvalue, not an array of
-     * IndexType, or is on the wrong executor, an internal copy will be created,
-     * and the original array data will not be used in the matrix.
-     */
     Permutation(std::shared_ptr<const Executor> exec,
                 array<IndexType> permutation_indices);
-
-    GKO_DEPRECATED(
-        "dim<2> is no longer supported as a dimension parameter, use size_type "
-        "instead")
-    Permutation(std::shared_ptr<const Executor> exec, const dim<2>& size);
-
-    GKO_DEPRECATED("permute mask is no longer supported")
-    Permutation(std::shared_ptr<const Executor> exec, const dim<2>& size,
-                const mask_type& enabled_permute);
-
-    template <typename IndicesArray>
-    GKO_DEPRECATED("use the overload without dimensions")
-    Permutation(std::shared_ptr<const Executor> exec, const dim<2>& size,
-                IndicesArray&& permutation_indices)
-        : Permutation{exec, array<IndexType>{exec, std::forward<IndicesArray>(
-                                                       permutation_indices)}}
-    {
-        GKO_ASSERT_EQ(size[0], permutation_.get_size());
-        GKO_ASSERT_IS_SQUARE_MATRIX(size);
-    }
-
-    template <typename IndicesArray>
-    GKO_DEPRECATED("permute mask is no longer supported")
-    Permutation(std::shared_ptr<const Executor> exec, const dim<2>& size,
-                IndicesArray&& permutation_indices,
-                const mask_type& enabled_permute)
-        : Permutation{std::move(exec),
-                      array<IndexType>{exec, std::forward<IndicesArray>(
-                                                 permutation_indices)}}
-    {
-        GKO_ASSERT_EQ(enabled_permute, row_permute);
-        GKO_ASSERT_EQ(size[0], permutation_.get_size());
-        GKO_ASSERT_IS_SQUARE_MATRIX(size);
-    }
 
     void apply_impl(const LinOp* in, LinOp* out) const override;
 

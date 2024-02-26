@@ -5,6 +5,7 @@ target_sources(ginkgo
     PRIVATE
     base/array.cpp
     base/batch_multi_vector.cpp
+    base/block_operator.cpp
     base/combination.cpp
     base/composition.cpp
     base/dense_cache.cpp
@@ -110,8 +111,6 @@ if(GINKGO_BUILD_MPI)
 endif()
 
 ginkgo_compile_features(ginkgo)
-
-target_compile_options(ginkgo PRIVATE "${GINKGO_COMPILER_FLAGS}")
 
 # add a namespace alias so Ginkgo can always be included as Ginkgo::ginkgo
 # regardless of whether it is installed or added as a subdirectory

@@ -35,9 +35,6 @@ option(GINKGO_TEST_NONDEFAULT_STREAM "Uses non-default streams in CUDA and HIP t
 option(GINKGO_MIXED_PRECISION "Instantiate true mixed-precision kernels (otherwise they will be conversion-based using implicit temporary storage)" OFF)
 option(GINKGO_SKIP_DEPENDENCY_UPDATE
     "Do not update dependencies each time the project is rebuilt" ON)
-option(GINKGO_EXPORT_BUILD_DIR
-    "Make Ginkgo export its build directory to the CMake package registry."
-    OFF)
 option(GINKGO_WITH_CLANG_TIDY "Make Ginkgo call `clang-tidy` to find programming issues." OFF)
 option(GINKGO_WITH_IWYU "Make Ginkgo call `iwyu` (Include What You Use) to find include issues." OFF)
 option(GINKGO_WITH_CCACHE "Use ccache if available to speed up C++ and CUDA rebuilds by caching compilations." ON)
@@ -51,20 +48,6 @@ option(GINKGO_BENCHMARK_ENABLE_TUNING
     OFF)
 set(GINKGO_VERBOSE_LEVEL "1" CACHE STRING
     "Verbosity level. Put 0 to turn off. 1 activates a few important messages.")
-if(MSVC)
-    set(GINKGO_COMPILER_FLAGS "" CACHE STRING
-        "Set the required CXX compiler flags, mainly used for warnings. Current default is ``")
-elseif(GINKGO_BUILD_SYCL OR CMAKE_CXX_COMPILER MATCHES "dpcpp|icpx")
-    # For now always use `-ffp-model=precise` with DPC++. This can be removed when
-    # the floating point issues are fixed.
-    set(GINKGO_COMPILER_FLAGS "-Wpedantic;-ffp-model=precise" CACHE STRING
-        "Set the required CXX compiler flags, mainly used for warnings. Current default is `-Wpedantic;-ffp-model=precise`")
-else()
-    set(GINKGO_COMPILER_FLAGS "-Wpedantic" CACHE STRING
-        "Set the required CXX compiler flags, mainly used for warnings. Current default is `-Wpedantic`")
-endif()
-set(GINKGO_CUDA_COMPILER_FLAGS "" CACHE STRING
-    "Set the required NVCC compiler flags, mainly used for warnings. Current default is an empty string")
 set(GINKGO_CUDA_ARCHITECTURES "Auto" CACHE STRING
     "A list of target NVIDIA GPU architectures. See README.md for more detail.")
 # the details of fine/coarse grain memory and unsafe atomic are available https://docs.olcf.ornl.gov/systems/crusher_quick_start_guide.html#floating-point-fp-atomic-operations-and-coarse-fine-grained-memory-allocations
@@ -81,11 +64,7 @@ option(GINKGO_SPLIT_TEMPLATE_INSTANTIATIONS "Split template instantiations for s
 mark_as_advanced(GINKGO_SPLIT_TEMPLATE_INSTANTIATIONS)
 option(GINKGO_JACOBI_FULL_OPTIMIZATIONS "Use all the optimizations for the CUDA Jacobi algorithm" OFF)
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
-if(MSVC OR WIN32 OR CYGWIN OR APPLE)
-    option(GINKGO_BUILD_HWLOC "Build Ginkgo with HWLOC. Default is OFF. Ginkgo does not support HWLOC on Windows/MacOS" OFF)
-else()
-    option(GINKGO_BUILD_HWLOC "Build Ginkgo with HWLOC. Enabled if a system installation is found." ${HWLOC_FOUND})
-endif()
+option(GINKGO_BUILD_HWLOC "Build Ginkgo with HWLOC. Default is OFF." OFF)
 option(GINKGO_BUILD_PAPI_SDE "Build Ginkgo with PAPI SDE. Enabled if a system installation is found." ${PAPI_SDE_FOUND})
 option(GINKGO_DPCPP_SINGLE_MODE "Do not compile double kernels for the DPC++ backend." OFF)
 option(GINKGO_INSTALL_RPATH "Set the RPATH when installing its libraries." ON)
@@ -95,6 +74,8 @@ option(GINKGO_FORCE_GPU_AWARE_MPI "Assert that the MPI library is GPU aware. Thi
      catastrophically in case the MPI implementation is not GPU Aware, and GPU aware functionality has been forced" OFF)
 set(GINKGO_CI_TEST_OMP_PARALLELISM "4" CACHE STRING
     "The number of OpenMP threads to use for a test binary during CTest resource file-constrained test.")
+gko_rename_cache(GINKGO_COMPILER_FLAGS CMAKE_CXX_FLAGS BOOL "Flags used by the CXX compiler during all build types.")
+gko_rename_cache(GINKGO_CUDA_COMPILER_FLAGS CMAKE_CUDA_FLAGS BOOL "Flags used by the CUDA compiler during all build types.")
 
 # load executor-specific configuration
 if(GINKGO_BUILD_CUDA)
@@ -278,13 +259,9 @@ endif()
 # System provided, third party libraries (not bundled!)
 set(GINKGO_HAVE_HWLOC 0)
 if(GINKGO_BUILD_HWLOC)
-    find_package(HWLOC 2.1)
-    if (HWLOC_FOUND)
-        set(GINKGO_HAVE_HWLOC 1)
-    else()
-        message(WARNING "HWLOC could not be found. HWLOC support will be disabled.")
-        set(GINKGO_BUILD_HWLOC OFF CACHE BOOL "HWLOC support was disabled because a system package could not be found." FORCE)
-    endif()
+    find_package(HWLOC 2.1 REQUIRED)
+    set(GINKGO_HAVE_HWLOC 1)
+    message(WARNING "The GINKGO_BUILD_HWLOC option has no beneficial effect. Consider setting it to GINKGO_BUILD_HWLOC=OFF.")
 endif()
 
 set(GINKGO_HAVE_PAPI_SDE 0)
@@ -421,7 +398,7 @@ unset(BASH CACHE)
 
 # Installation
 include(cmake/information_helpers.cmake)
-ginkgo_interface_information()
+ginkgo_pkg_information()
 ginkgo_git_information()
 
 include(cmake/get_info.cmake)
@@ -431,18 +408,6 @@ if(GINKGO_BUILD_DOC)
 endif()
 
 
-# add escape character '\' for space
-string(REPLACE " " "\ " PKG_CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
-# add escape character '\' for space in regex mode
-list(TRANSFORM GINKGO_INTERFACE_LINK_FLAGS REPLACE " " "\\\\ ")
-list(TRANSFORM GINKGO_INTERFACE_CXX_FLAGS REPLACE " " "\\\\ ")
-# convert the list to string
-string(REPLACE ";" " " GINKGO_INTERFACE_CXX_FLAGS "${GINKGO_INTERFACE_CXX_FLAGS}")
-string(REPLACE ";" " " GINKGO_INTERFACE_LINK_FLAGS "${GINKGO_INTERFACE_LINK_FLAGS}")
-configure_file(${Ginkgo_SOURCE_DIR}/cmake/ginkgo.pc.in
-    ${Ginkgo_BINARY_DIR}/ginkgo.pc.in @ONLY)
-file(GENERATE OUTPUT ${Ginkgo_BINARY_DIR}/ginkgo_$<CONFIG>.pc
-    INPUT ${Ginkgo_BINARY_DIR}/ginkgo.pc.in)
 
 # WINDOWS NVCC has " inside the string, add escape character
 # to avoid config problem.
@@ -450,6 +415,7 @@ ginkgo_modify_flags(CMAKE_CUDA_FLAGS)
 ginkgo_modify_flags(CMAKE_CUDA_FLAGS_DEBUG)
 ginkgo_modify_flags(CMAKE_CUDA_FLAGS_RELEASE)
 ginkgo_install()
+ginkgo_export_binary_dir()
 
 set(GINKGO_TEST_INSTALL_SRC_DIR "${Ginkgo_SOURCE_DIR}/test/test_install/")
 set(GINKGO_TEST_INSTALL_BIN_DIR "${Ginkgo_BINARY_DIR}/test/test_install/")
@@ -483,7 +449,6 @@ add_custom_target(test_install
     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
     -DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX}
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-    -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
     -DCMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}
     -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
     # `--config cfg` is ignored by single-configuration generator.
@@ -504,9 +469,9 @@ add_custom_target(test_exportbuild
     -S${GINKGO_TEST_EXPORTBUILD_SRC_DIR}
     -B${GINKGO_TEST_EXPORTBUILD_BIN_DIR}
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-    -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
     -DCMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}
     -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+    -DGinkgo_ROOT=${Ginkgo_BINARY_DIR}
     # `--config cfg` is ignored by single-configuration generator.
     # `$<CONFIG>` is always be the same as `CMAKE_BUILD_TYPE` in
     # single-configuration generator.
@@ -514,15 +479,13 @@ add_custom_target(test_exportbuild
     --build ${GINKGO_TEST_EXPORTBUILD_BIN_DIR}
     --config $<CONFIG>
     COMMAND ${GINKGO_TEST_EXPORTBUILD_CMD}
-    COMMENT "Running a test on Ginkgo's exported build directory. "
-    "This requires compiling Ginkgo with `-DGINKGO_EXPORT_BUILD_DIR=ON` first.")
+    COMMENT "Running a test on Ginkgo's exported build directory.")
 
 add_custom_target(test_pkgconfig
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} ${TOOLSET}
     -S${GINKGO_TEST_PKGCONFIG_SRC_DIR}
     -B${GINKGO_TEST_PKGCONFIG_BIN_DIR}
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-    -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
     -DCMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}
     -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
     # `--config cfg` is ignored by single-configuration generator.

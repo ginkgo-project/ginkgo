@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -121,6 +121,108 @@ TYPED_TEST(Dense, AppliesLinearCombinationToBatchMultiVector)
     auto res = gko::batch::unbatch<gko::batch::MultiVector<T>>(this->x_0.get());
     GKO_ASSERT_MTX_NEAR(res[0].get(), this->x_00.get(), 0.);
     GKO_ASSERT_MTX_NEAR(res[1].get(), this->x_01.get(), 0.);
+}
+
+
+TYPED_TEST(Dense, CanTwoSidedScale)
+{
+    using value_type = typename TestFixture::value_type;
+    using BMtx = typename TestFixture::BMtx;
+    auto col_scale = gko::array<value_type>(this->exec, 3 * 2);
+    auto row_scale = gko::array<value_type>(this->exec, 2 * 2);
+    col_scale.fill(2);
+    row_scale.fill(3);
+
+    this->mtx_0->scale(row_scale, col_scale);
+
+    auto scaled_mtx_0 =
+        gko::batch::initialize<BMtx>({{{6.0, -6.0, 9.0}, {-12.0, 12.0, 18.0}},
+                                      {{6.0, -12.0, -3.0}, {6.0, -15.0, 24.0}}},
+                                     this->exec);
+    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx_0.get(), scaled_mtx_0.get(), 0.);
+}
+
+
+TYPED_TEST(Dense, CanTwoSidedScaleWithDifferentValues)
+{
+    using value_type = typename TestFixture::value_type;
+    using BMtx = typename TestFixture::BMtx;
+    auto col_scale = gko::array<value_type>(this->exec, {1, 2, 1, 2, 2, 3});
+    auto row_scale = gko::array<value_type>(this->exec, {2, 4, 3, 1});
+
+    this->mtx_0->scale(row_scale, col_scale);
+
+    auto scaled_mtx_0 =
+        gko::batch::initialize<BMtx>({{{2.0, -4.0, 3.0}, {-8.0, 16.0, 12.0}},
+                                      {{6.0, -12.0, -4.5}, {2.0, -5.0, 12.0}}},
+                                     this->exec);
+    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx_0.get(), scaled_mtx_0.get(), 0.);
+}
+
+
+TYPED_TEST(Dense, CanScaleAdd)
+{
+    using BMtx = typename TestFixture::BMtx;
+    using BMVec = typename TestFixture::BMVec;
+    auto alpha = gko::batch::initialize<BMVec>({{2.0}, {-1.0}}, this->exec);
+    auto mat = gko::batch::initialize<BMtx>(
+        {{{1.0, 2.0, 0.0}, {3.0, 1.0, 1.0}, {0.0, 1.0, 1.0}},
+         {{2.0, -2.0, 0.0}, {1.0, -1.0, 2.0}, {0.0, 2.0, 1.0}}},
+        this->exec);
+    auto mat2 = gko::batch::initialize<BMtx>(
+        {{{1.0, 2.0, 0.0}, {3.0, 1.0, 1.0}, {0.0, 2.0, 1.0}},
+         {{2.0, 2.0, 0.0}, {-1.0, -1.0, 2.0}, {0.0, -1.0, 1.0}}},
+        this->exec);
+
+    mat->scale_add(alpha, mat2);
+
+    auto result_mat = gko::batch::initialize<BMtx>(
+        {{{3.0, 6.0, 0.0}, {9.0, 3.0, 3.0}, {0.0, 4.0, 3.0}},
+         {{0.0, 4.0, 0.0}, {-2.0, 0.0, 0.0}, {0.0, -3.0, 0.0}}},
+        this->exec);
+    GKO_ASSERT_BATCH_MTX_NEAR(mat.get(), result_mat.get(), 0.);
+}
+
+
+TYPED_TEST(Dense, CanAddScaledIdentity)
+{
+    using BMtx = typename TestFixture::BMtx;
+    using BMVec = typename TestFixture::BMVec;
+    auto alpha = gko::batch::initialize<BMVec>({{2.0}, {-1.0}}, this->exec);
+    auto beta = gko::batch::initialize<BMVec>({{3.0}, {-2.0}}, this->exec);
+    auto mat = gko::batch::initialize<BMtx>(
+        {{{1.0, 2.0, 0.0}, {3.0, 1.0, 1.0}, {0.0, 1.0, 1.0}},
+         {{2.0, -2.0, 0.0}, {1.0, -1.0, 2.0}, {0.0, 2.0, 1.0}}},
+        this->exec);
+
+    mat->add_scaled_identity(alpha, beta);
+
+    auto result_mat = gko::batch::initialize<BMtx>(
+        {{{5.0, 6.0, 0.0}, {9.0, 5.0, 3.0}, {0.0, 3.0, 5.0}},
+         {{-5.0, 4.0, 0.0}, {-2.0, 1.0, -4.0}, {0.0, -4.0, -3.0}}},
+        this->exec);
+    GKO_ASSERT_BATCH_MTX_NEAR(mat.get(), result_mat.get(), 0.);
+}
+
+
+TYPED_TEST(Dense, CanAddScaledIdentityRectangular)
+{
+    using BMtx = typename TestFixture::BMtx;
+    using BMVec = typename TestFixture::BMVec;
+    auto alpha = gko::batch::initialize<BMVec>({{2.0}, {-1.0}}, this->exec);
+    auto beta = gko::batch::initialize<BMVec>({{3.0}, {-2.0}}, this->exec);
+    auto mat =
+        gko::batch::initialize<BMtx>({{{1.0, 2.0, 0.0}, {3.0, 1.0, 1.0}},
+                                      {{2.0, -2.0, 0.0}, {1.0, -1.0, 2.0}}},
+                                     this->exec);
+
+    mat->add_scaled_identity(alpha, beta);
+
+    auto result_mat =
+        gko::batch::initialize<BMtx>({{{5.0, 6.0, 0.0}, {9.0, 5.0, 3.0}},
+                                      {{-5.0, 4.0, 0.0}, {-2.0, 1.0, -4.0}}},
+                                     this->exec);
+    GKO_ASSERT_BATCH_MTX_NEAR(mat.get(), result_mat.get(), 0.);
 }
 
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -81,8 +81,9 @@ TEST_F(BatchBicgstab, SolvesStencilSystem)
     const int num_rhs = 1;
     const real_type tol = 1e-5;
     const int max_iters = 100;
-    auto mat = gko::share(gko::test::generate_3pt_stencil_batch_matrix<Mtx>(
-        exec, num_batch_items, num_rows));
+    auto mat =
+        gko::share(gko::test::generate_3pt_stencil_batch_matrix<const Mtx>(
+            exec, num_batch_items, num_rows));
     auto linear_system = setup_linsys_and_solver(mat, num_rhs, tol, max_iters);
 
     auto res = gko::test::solve_linear_system(exec, solve_lambda,
@@ -104,8 +105,9 @@ TEST_F(BatchBicgstab, StencilSystemLoggerLogsResidual)
     const int num_rhs = 1;
     const real_type tol = 1e-5;
     const int max_iters = 100;
-    auto mat = gko::share(gko::test::generate_3pt_stencil_batch_matrix<Mtx>(
-        exec, num_batch_items, num_rows));
+    auto mat =
+        gko::share(gko::test::generate_3pt_stencil_batch_matrix<const Mtx>(
+            exec, num_batch_items, num_rows));
     auto linear_system = setup_linsys_and_solver(mat, num_rhs, tol, max_iters);
 
     auto res = gko::test::solve_linear_system(exec, solve_lambda,
@@ -127,8 +129,9 @@ TEST_F(BatchBicgstab, StencilSystemLoggerLogsIterations)
     const int num_rows = 33;
     const int num_rhs = 1;
     const int ref_iters = 5;
-    auto mat = gko::share(gko::test::generate_3pt_stencil_batch_matrix<Mtx>(
-        exec, num_batch_items, num_rows));
+    auto mat =
+        gko::share(gko::test::generate_3pt_stencil_batch_matrix<const Mtx>(
+            exec, num_batch_items, num_rows));
     auto linear_system = setup_linsys_and_solver(mat, num_rhs, 0, ref_iters);
 
     auto res = gko::test::solve_linear_system(exec, solve_lambda,
@@ -148,8 +151,9 @@ TEST_F(BatchBicgstab, CanSolve3ptStencilSystem)
     const int num_rhs = 1;
     const real_type tol = 1e-5;
     const int max_iters = 500;
-    auto mat = gko::share(gko::test::generate_3pt_stencil_batch_matrix<Mtx>(
-        exec, num_batch_items, num_rows));
+    auto mat =
+        gko::share(gko::test::generate_3pt_stencil_batch_matrix<const Mtx>(
+            exec, num_batch_items, num_rows));
     auto linear_system = setup_linsys_and_solver(mat, num_rhs, tol, max_iters);
     auto solver = gko::share(solver_factory->generate(linear_system.matrix));
 
@@ -172,8 +176,9 @@ TEST_F(BatchBicgstab, CanSolveLargeBatchSizeHpdSystem)
     const real_type tol = 1e-5;
     const int max_iters = num_rows * 2;
     std::shared_ptr<Logger> logger = Logger::create();
-    auto mat = gko::share(gko::test::generate_diag_dominant_batch_matrix<Mtx>(
-        exec, num_batch_items, num_rows, true));
+    auto mat =
+        gko::share(gko::test::generate_diag_dominant_batch_matrix<const Mtx>(
+            exec, num_batch_items, num_rows, true));
     auto linear_system = setup_linsys_and_solver(mat, num_rhs, tol, max_iters);
     auto solver = gko::share(solver_factory->generate(linear_system.matrix));
     solver->add_logger(logger);
@@ -207,8 +212,9 @@ TEST_F(BatchBicgstab, CanSolveLargeMatrixSizeHpdSystem)
     const real_type tol = 1e-5;
     const int max_iters = num_rows * 2;
     std::shared_ptr<Logger> logger = Logger::create();
-    auto mat = gko::share(gko::test::generate_diag_dominant_batch_matrix<Mtx>(
-        exec, num_batch_items, num_rows, true));
+    auto mat =
+        gko::share(gko::test::generate_diag_dominant_batch_matrix<const Mtx>(
+            exec, num_batch_items, num_rows, true));
     auto linear_system = setup_linsys_and_solver(mat, num_rhs, tol, max_iters);
     auto solver = gko::share(solver_factory->generate(linear_system.matrix));
     solver->add_logger(logger);

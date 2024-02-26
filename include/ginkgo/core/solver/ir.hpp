@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -222,7 +222,7 @@ protected:
                 parameters_.solver->generate(this->get_system_matrix()));
         } else {
             this->set_solver(matrix::Identity<ValueType>::create(
-                this->get_executor(), this->get_size()));
+                this->get_executor(), this->get_size()[0]));
         }
         this->set_default_initial_guess(parameters_.default_initial_guess);
         relaxation_factor_ = gko::initialize<matrix::Dense<ValueType>>(

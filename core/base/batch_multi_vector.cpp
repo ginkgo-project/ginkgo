@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -100,6 +100,20 @@ MultiVector<ValueType>::MultiVector(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType>
+MultiVector<ValueType>::MultiVector(std::shared_ptr<const Executor> exec,
+                                    const batch_dim<2>& size,
+                                    array<value_type> values)
+    : EnablePolymorphicObject<MultiVector<ValueType>>(exec),
+      batch_size_(size),
+      values_{exec, std::move(values)}
+{
+    // Ensure that the values array has the correct size
+    auto num_elems = compute_num_elems(size);
+    GKO_ENSURE_IN_BOUNDS(num_elems, values_.get_size() + 1);
+}
+
+
+template <typename ValueType>
 std::unique_ptr<MultiVector<ValueType>>
 MultiVector<ValueType>::create_with_config_of(
     ptr_param<const MultiVector> other)
@@ -109,6 +123,24 @@ MultiVector<ValueType>::create_with_config_of(
     // CUDA 10.1.
     // Otherwise, it results in a compile error.
     return (*other).create_with_same_config();
+}
+
+
+template <typename ValueType>
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::create(
+    std::shared_ptr<const Executor> exec, const batch_dim<2>& size)
+{
+    return std::unique_ptr<MultiVector<ValueType>>{new MultiVector{exec, size}};
+}
+
+
+template <typename ValueType>
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::create(
+    std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+    array<value_type> values)
+{
+    return std::unique_ptr<MultiVector<ValueType>>{
+        new MultiVector{exec, size, std::move(values)}};
 }
 
 
@@ -154,11 +186,15 @@ void MultiVector<ValueType>::scale(
     ptr_param<const MultiVector<ValueType>> alpha)
 {
     GKO_ASSERT_EQ(alpha->get_num_batch_items(), this->get_num_batch_items());
-    GKO_ASSERT_EQUAL_ROWS(alpha->get_common_size(), dim<2>(1, 1));
     if (alpha->get_common_size()[1] != 1) {
         // different alpha for each column
         GKO_ASSERT_EQUAL_COLS(this->get_common_size(),
                               alpha->get_common_size());
+    }
+    // element wise scaling requires same size
+    if (alpha->get_common_size()[0] != 1) {
+        GKO_ASSERT_EQUAL_DIMENSIONS(this->get_common_size(),
+                                    alpha->get_common_size());
     }
     auto exec = this->get_executor();
     exec->run(multi_vector::make_scale(make_temporary_clone(exec, alpha).get(),

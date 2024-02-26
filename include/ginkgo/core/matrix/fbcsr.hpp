@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -97,7 +97,6 @@ inline IndexType get_num_blocks(const int block_size, const IndexType size)
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Fbcsr : public EnableLinOp<Fbcsr<ValueType, IndexType>>,
-              public EnableCreateMethod<Fbcsr<ValueType, IndexType>>,
               public ConvertibleTo<Fbcsr<next_precision<ValueType>, IndexType>>,
               public ConvertibleTo<Dense<ValueType>>,
               public ConvertibleTo<Csr<ValueType, IndexType>>,
@@ -108,7 +107,6 @@ class Fbcsr : public EnableLinOp<Fbcsr<ValueType, IndexType>>,
               public Transposable,
               public EnableAbsoluteComputation<
                   remove_complex<Fbcsr<ValueType, IndexType>>> {
-    friend class EnableCreateMethod<Fbcsr>;
     friend class EnablePolymorphicObject<Fbcsr, LinOp>;
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
@@ -305,12 +303,89 @@ public:
     }
 
     /**
+     * Creates an uninitialized FBCSR matrix with the given block size.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param block_size  The desired size of the dense square nonzero blocks;
+     *                    defaults to 1.
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Fbcsr> create(std::shared_ptr<const Executor> exec,
+                                         int block_size = 1);
+
+    /**
+     * Creates an uninitialized FBCSR matrix of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param num_nonzeros  number of stored nonzeros. It needs to be a multiple
+     *                      of block_size * block_size.
+     * @param block_size  size of the small dense square blocks
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Fbcsr> create(std::shared_ptr<const Executor> exec,
+                                         const dim<2>& size,
+                                         size_type num_nonzeros,
+                                         int block_size);
+
+    /**
+     * Creates a FBCSR matrix from already allocated (and initialized) row
+     * pointer, column index and value arrays.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param block_size  Size of the small square dense nonzero blocks
+     * @param values  the value array of the matrix, stored in column-major
+     *                order for each block
+     * @param col_idxs  the block column index array of the matrix
+     * @param row_ptrs  the block row pointer array of the matrix
+     *
+     * @note If one of `row_ptrs`, `col_idxs` or `values` is not an rvalue, not
+     *       an array of IndexType, IndexType and ValueType, respectively, or
+     *       is on the wrong executor, an internal copy of that array will be
+     *       created, and the original array data will not be used in the
+     *       matrix.
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Fbcsr> create(std::shared_ptr<const Executor> exec,
+                                         const dim<2>& size, int block_size,
+                                         array<value_type> values,
+                                         array<index_type> col_idxs,
+                                         array<index_type> row_ptrs);
+
+    /**
+     * @copydoc std::unique_ptr<Fbcsr> create(std::shared_ptr<const Executor>,
+     * const dim<2>&, int, array<value_type>, array<index_type>,
+     * array<index_type>)
+     */
+    template <typename InputValueType, typename InputColumnIndexType,
+              typename InputRowPtrType>
+    GKO_DEPRECATED(
+        "explicitly construct the gko::array argument instead of passing "
+        "initializer lists")
+    static std::unique_ptr<Fbcsr> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        int block_size, std::initializer_list<InputValueType> values,
+        std::initializer_list<InputColumnIndexType> col_idxs,
+        std::initializer_list<InputRowPtrType> row_ptrs)
+    {
+        return create(exec, size, block_size,
+                      array<value_type>{exec, std::move(values)},
+                      array<index_type>{exec, std::move(col_idxs)},
+                      array<index_type>{exec, std::move(row_ptrs)});
+    }
+
+    /**
      * Creates a constant (immutable) Fbcsr matrix from a constant array.
      *
      * @param exec  the executor to create the matrix on
      * @param size  the dimensions of the matrix
      * @param blocksize  the block size of the matrix
-     * @param values  the value array of the matrix
+     * @param values  the value array of the matrix, stored in column-major
+     *                order for each block
      * @param col_idxs  the block column index array of the matrix
      * @param row_ptrs  the block row pointer array of the matrix
      * @returns A smart pointer to the constant matrix wrapping the input arrays
@@ -321,16 +396,7 @@ public:
         std::shared_ptr<const Executor> exec, const dim<2>& size, int blocksize,
         gko::detail::const_array_view<ValueType>&& values,
         gko::detail::const_array_view<IndexType>&& col_idxs,
-        gko::detail::const_array_view<IndexType>&& row_ptrs)
-    {
-        // cast const-ness away, but return a const object afterwards,
-        // so we can ensure that no modifications take place.
-        return std::unique_ptr<const Fbcsr>(
-            new Fbcsr{exec, size, blocksize,
-                      gko::detail::array_const_cast(std::move(values)),
-                      gko::detail::array_const_cast(std::move(col_idxs)),
-                      gko::detail::array_const_cast(std::move(row_ptrs))});
-    }
+        gko::detail::const_array_view<IndexType>&& row_ptrs);
 
     /**
      * Copy-assigns an Fbcsr matrix. Preserves the executor, copies data and
@@ -358,74 +424,14 @@ public:
     Fbcsr(Fbcsr&&);
 
 protected:
-    /**
-     * Creates an uninitialized FBCSR matrix with the given block size.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param block_size  The desired size of the dense square nonzero blocks;
-     *                    defaults to 1.
-     */
-    Fbcsr(std::shared_ptr<const Executor> exec, int block_size = 1)
-        : Fbcsr(std::move(exec), dim<2>{}, {}, block_size)
-    {}
+    Fbcsr(std::shared_ptr<const Executor> exec, int block_size = 1);
 
-    /**
-     * Creates an uninitialized FBCSR matrix of the specified size.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param num_nonzeros  number of stored nonzeros. It needs to be a multiple
-     *                      of block_size * block_size.
-     * @param block_size  size of the small dense square blocks
-     */
     Fbcsr(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          size_type num_nonzeros, int block_size)
-        : EnableLinOp<Fbcsr>(exec, size),
-          bs_{block_size},
-          values_(exec, num_nonzeros),
-          col_idxs_(exec, detail::get_num_blocks(block_size * block_size,
-                                                 num_nonzeros)),
-          row_ptrs_(exec, detail::get_num_blocks(block_size, size[0]) + 1)
-    {
-        GKO_ASSERT_BLOCK_SIZE_CONFORMANT(size[1], bs_);
-        row_ptrs_.fill(0);
-    }
+          size_type num_nonzeros, int block_size);
 
-    /**
-     * Creates a FBCSR matrix from already allocated (and initialized) row
-     * pointer, column index and value arrays.
-     *
-     * @tparam ValuesArray  type of `values` array
-     * @tparam ColIdxsArray  type of `col_idxs` array
-     * @tparam RowPtrsArray  type of `row_ptrs` array
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param block_size  Size of the small square dense nonzero blocks
-     * @param values  array of matrix values
-     * @param col_idxs  array of column indexes
-     * @param row_ptrs  array of row pointers
-     *
-     * @note If one of `row_ptrs`, `col_idxs` or `values` is not an rvalue, not
-     *       an array of IndexType, IndexType and ValueType, respectively, or
-     *       is on the wrong executor, an internal copy of that array will be
-     *       created, and the original array data will not be used in the
-     *       matrix.
-     */
-    template <typename ValuesArray, typename ColIdxsArray,
-              typename RowPtrsArray>
     Fbcsr(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          int block_size, ValuesArray&& values, ColIdxsArray&& col_idxs,
-          RowPtrsArray&& row_ptrs)
-        : EnableLinOp<Fbcsr>(exec, size),
-          bs_{block_size},
-          values_{exec, std::forward<ValuesArray>(values)},
-          col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
-          row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)}
-    {
-        GKO_ASSERT_EQ(values_.get_size(), col_idxs_.get_size() * bs_ * bs_);
-        GKO_ASSERT_EQ(this->get_size()[0] / bs_ + 1, row_ptrs_.get_size());
-    }
+          int block_size, array<value_type> values, array<index_type> col_idxs,
+          array<index_type> row_ptrs);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 

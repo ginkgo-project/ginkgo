@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -42,6 +42,36 @@ inline void advanced_apply_kernel(
             for (int j = 0; j < c.num_rhs; ++j) {
                 c.values[row * c.stride + j] +=
                     alpha * val * b.values[col * b.stride + j];
+            }
+        }
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+inline void scale(
+    const ValueType* const col_scale, const ValueType* const row_scale,
+    const gko::batch::matrix::csr::batch_item<ValueType, IndexType>& mat)
+{
+    for (int row = 0; row < mat.num_rows; row++) {
+        const ValueType r_scalar = row_scale[row];
+        for (int col = mat.row_ptrs[row]; col < mat.row_ptrs[row + 1]; col++) {
+            mat.values[col] *= r_scalar * col_scale[mat.col_idxs[col]];
+        }
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+inline void add_scaled_identity_kernel(
+    const ValueType alpha, const ValueType beta,
+    const gko::batch::matrix::csr::batch_item<ValueType, IndexType>& mat)
+{
+    for (int row = 0; row < mat.num_rows; row++) {
+        for (int nnz = mat.row_ptrs[row]; nnz < mat.row_ptrs[row + 1]; nnz++) {
+            mat.values[nnz] *= beta;
+            if (row == mat.col_idxs[nnz]) {
+                mat.values[nnz] += alpha;
             }
         }
     }

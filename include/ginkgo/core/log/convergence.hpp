@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -69,10 +69,6 @@ public:
      *                        events.
      *
      * @return an std::unique_ptr to the the constructed object
-     *
-     * @internal here I cannot use EnableCreateMethod due to complex circular
-     * dependencies. At the same time, this method is short enough that it
-     * shouldn't be a problem.
      */
     GKO_DEPRECATED("use single-parameter create")
     static std::unique_ptr<Convergence> create(
@@ -91,10 +87,6 @@ public:
      *                        events.
      *
      * @return an std::unique_ptr to the the constructed object
-     *
-     * @internal here I cannot use EnableCreateMethod due to complex circular
-     * dependencies. At the same time, this method is short enough that it
-     * shouldn't be a problem.
      */
     static std::unique_ptr<Convergence> create(
         const mask_type& enabled_events = Logger::criterion_events_mask |

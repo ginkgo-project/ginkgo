@@ -6,9 +6,8 @@ Use the standard CMake build procedure:
 
 ```sh
 mkdir build; cd build
-cmake -G "Unix Makefiles" [OPTIONS] .. && make
+cmake [OPTIONS] .. && cmake --build .
 ```
-Use `cmake --build .` in some systems like MinGW or Microsoft Visual Studio which do not use `make`.
 
 For Microsoft Visual Studio, use `cmake --build . --config <build_type>` to decide the build type. The possible options are `Debug`, `Release`, `RelWithDebInfo` and `MinSizeRel`.
 
@@ -46,15 +45,15 @@ Ginkgo adds the following additional switches to control what is being built:
 *   `-DGINKGO_BUILD_SYCL={ON, OFF}` builds optimized SYCL versions of the
     kernels (requires `CMAKE_CXX_COMPILER` to be set to the `dpcpp` or `icpx` compiler).
     The default is `ON` if `CMAKE_CXX_COMPILER` is a SYCL compiler, `OFF`
-    otherwise.
+    otherwise. Due to some differences in IEEE 754 floating point numberhandling in the Intel
+    SYCL compilers, Ginkgo tests may fail unless compiled with
+    `-DCMAKE_CXX_FLAGS=-ffp-model=precise`
 *   `-DGINKGO_BUILD_HIP={ON, OFF}` builds optimized HIP versions of the kernels
     (requires HIP), default is `ON` if an installation of HIP could be detected,
     `OFF` otherwise.
 *   `-DGINKGO_HIP_AMDGPU="gpuarch1;gpuarch2"` the amdgpu_target(s) variable
     passed to hipcc for the `hcc` HIP backend. The default is none (auto).
-*   `-DGINKGO_BUILD_HWLOC={ON, OFF}` builds Ginkgo with HWLOC. If system HWLOC
-    is not found, Ginkgo will try to build it. Default is `ON` on Linux. Ginkgo
-    does not support HWLOC on Windows/MacOS, so the default is `OFF` on Windows/MacOS.
+*   `-DGINKGO_BUILD_HWLOC={ON, OFF}` builds Ginkgo with HWLOC. Default is `OFF`.
 *   `-DGINKGO_BUILD_DOC={ON, OFF}` creates an HTML version of Ginkgo's documentation
     from inline comments in the code. The default is `OFF`.
 *   `-DGINKGO_DOC_GENERATE_EXAMPLES={ON, OFF}` generates the documentation of examples
@@ -63,8 +62,6 @@ Ginkgo adds the following additional switches to control what is being built:
     documentation from inline comments in the code. The default is `OFF`.
 *   `-DGINKGO_DOC_GENERATE_DEV={ON, OFF}` generates the developer version of
     Ginkgo's documentation. The default is `OFF`.
-*   `-DGINKGO_EXPORT_BUILD_DIR={ON, OFF}` adds the Ginkgo build directory to the
-    CMake package registry. The default is `OFF`.
 *   `-DGINKGO_WITH_CLANG_TIDY={ON, OFF}` makes Ginkgo call `clang-tidy` to find
     programming issues. The path can be manually controlled with the CMake
     variable `-DGINKGO_CLANG_TIDY_PATH=<path>`. The default is `OFF`.
@@ -122,10 +119,15 @@ Ginkgo adds the following additional switches to control what is being built:
     [`ARCHITECTURES` specification list](https://github.com/ginkgo-project/CudaArchitectureSelector/blob/master/CudaArchitectureSelector.cmake#L58)
     section in the documentation of the CudaArchitectureSelector CMake module.
 
+Additionally, the following CMake options have effect on the build process:
+
+*  `-DCMAKE_EXPORT_PACKAGE_REGISTRY={ON,OFF}` if set to `ON` the build directory will
+   be stored in the current user's CMake package registry.
+
 For example, to build everything (in debug mode), use:
 
 ```cmake
-cmake  -G "Unix Makefiles" -H. -BDebug -DCMAKE_BUILD_TYPE=Debug -DGINKGO_DEVEL_TOOLS=ON \
+cmake .. -BDebug -DCMAKE_BUILD_TYPE=Debug -DGINKGO_DEVEL_TOOLS=ON \
     -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_REFERENCE=ON -DGINKGO_BUILD_OMP=ON \
     -DGINKGO_BUILD_CUDA=ON -DGINKGO_BUILD_HIP=ON
 cmake --build Debug

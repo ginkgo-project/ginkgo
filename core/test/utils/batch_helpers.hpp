@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -93,7 +93,7 @@ std::unique_ptr<MatrixType> generate_random_batch_matrix(
  * @param args  The create args to be forwarded to the matrix
  */
 template <typename MatrixType, typename... MatrixArgs>
-std::unique_ptr<const MatrixType> generate_3pt_stencil_batch_matrix(
+std::unique_ptr<MatrixType> generate_3pt_stencil_batch_matrix(
     std::shared_ptr<const Executor> exec, const size_type num_batch_items,
     const int num_rows, MatrixArgs&&... args)
 {
@@ -122,7 +122,7 @@ std::unique_ptr<const MatrixType> generate_3pt_stencil_batch_matrix(
 
 
 template <typename MatrixType, typename... MatrixArgs>
-std::unique_ptr<const MatrixType> generate_diag_dominant_batch_matrix(
+std::unique_ptr<MatrixType> generate_diag_dominant_batch_matrix(
     std::shared_ptr<const gko::Executor> exec, const size_type num_batch_items,
     const int num_rows, const bool is_hermitian, MatrixArgs&&... args)
 {

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -43,8 +43,9 @@ protected:
 
     BatchBicgstab()
         : exec(gko::ReferenceExecutor::create()),
-          mat(gko::share(gko::test::generate_3pt_stencil_batch_matrix<Mtx>(
-              exec, num_batch_items, num_rows))),
+          mat(gko::share(
+              gko::test::generate_3pt_stencil_batch_matrix<const Mtx>(
+                  exec, num_batch_items, num_rows))),
           linear_system(gko::test::generate_batch_linear_system(mat, num_rhs))
     {
         auto executor = this->exec;
@@ -151,7 +152,7 @@ TYPED_TEST(BatchBicgstab, CanSolveDenseSystem)
     const size_t num_batch_items = 5;
     const int num_rhs = 1;
     auto stencil_mat =
-        gko::share(gko::test::generate_3pt_stencil_batch_matrix<Mtx>(
+        gko::share(gko::test::generate_3pt_stencil_batch_matrix<const Mtx>(
             this->exec, num_batch_items, num_rows));
     auto linear_system =
         gko::test::generate_batch_linear_system(stencil_mat, num_rhs);
@@ -189,7 +190,7 @@ TYPED_TEST(BatchBicgstab, ApplyLogsResAndIters)
     const int num_rhs = 1;
     std::shared_ptr<Logger> logger = Logger::create();
     auto stencil_mat =
-        gko::share(gko::test::generate_3pt_stencil_batch_matrix<Mtx>(
+        gko::share(gko::test::generate_3pt_stencil_batch_matrix<const Mtx>(
             this->exec, num_batch_items, num_rows));
     auto linear_system =
         gko::test::generate_batch_linear_system(stencil_mat, num_rhs);
@@ -231,7 +232,7 @@ TYPED_TEST(BatchBicgstab, CanSolveEllSystem)
     const size_t num_batch_items = 2;
     const int num_rhs = 1;
     auto stencil_mat =
-        gko::share(gko::test::generate_3pt_stencil_batch_matrix<Mtx>(
+        gko::share(gko::test::generate_3pt_stencil_batch_matrix<const Mtx>(
             this->exec, num_batch_items, num_rows, 3));
     auto linear_system =
         gko::test::generate_batch_linear_system(stencil_mat, num_rhs);
@@ -267,7 +268,7 @@ TYPED_TEST(BatchBicgstab, CanSolveCsrSystem)
     const size_t num_batch_items = 2;
     const int num_rhs = 1;
     auto stencil_mat =
-        gko::share(gko::test::generate_3pt_stencil_batch_matrix<Mtx>(
+        gko::share(gko::test::generate_3pt_stencil_batch_matrix<const Mtx>(
             this->exec, num_batch_items, num_rows, (num_rows * 3 - 2)));
     auto linear_system =
         gko::test::generate_batch_linear_system(stencil_mat, num_rhs);
@@ -303,7 +304,7 @@ TYPED_TEST(BatchBicgstab, CanSolveDenseHpdSystem)
     const gko::size_type num_batch_items = 5;
     const int num_rhs = 1;
     auto diag_dom_mat =
-        gko::share(gko::test::generate_diag_dominant_batch_matrix<Mtx>(
+        gko::share(gko::test::generate_diag_dominant_batch_matrix<const Mtx>(
             this->exec, num_batch_items, num_rows, true));
     auto linear_system =
         gko::test::generate_batch_linear_system(diag_dom_mat, num_rhs);

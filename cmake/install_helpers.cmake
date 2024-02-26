@@ -2,9 +2,8 @@ include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 
 
-set(GINKGO_INSTALL_PKGCONFIG_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/pkgconfig")
-set(GINKGO_INSTALL_CONFIG_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/cmake/Ginkgo")
-set(GINKGO_INSTALL_MODULE_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/cmake/Ginkgo/Modules")
+set(GINKGO_INSTALL_CONFIG_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/Ginkgo")
+set(GINKGO_INSTALL_MODULE_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/Ginkgo/Modules")
 
 # This function adds the correct RPATH properties to a Ginkgo target.
 #
@@ -47,34 +46,42 @@ function(ginkgo_install_library name)
     install(TARGETS "${name}"
         EXPORT Ginkgo
         LIBRARY
-            DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
+            DESTINATION "${CMAKE_INSTALL_LIBDIR}"
             COMPONENT Ginkgo_Runtime
             NAMELINK_COMPONENT Ginkgo_Development
         RUNTIME
-            DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}"
+            DESTINATION "${CMAKE_INSTALL_BINDIR}"
             COMPONENT Ginkgo_Runtime
         ARCHIVE
-            DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
+            DESTINATION "${CMAKE_INSTALL_LIBDIR}"
             COMPONENT Ginkgo_Development
         )
 endfunction()
 
 function(ginkgo_install)
-    # pkg-config file
-    install(FILES ${Ginkgo_BINARY_DIR}/ginkgo_$<CONFIG>.pc
-        DESTINATION "${GINKGO_INSTALL_PKGCONFIG_DIR}"
-        RENAME ginkgo.pc
+    # generate pkg-config file, a three-step process is necessary to include the correct install prefix
+    # Step 1: substitute project variables in the generation script
+    configure_file("${Ginkgo_SOURCE_DIR}/cmake/generate_pkg.cmake.in"
+                   "${Ginkgo_BINARY_DIR}/cmake/generate_pkg.cmake"
+                   @ONLY)
+    # Step 2: substitute generator expressions
+    file(GENERATE OUTPUT ${Ginkgo_BINARY_DIR}/cmake/generate_pkg_$<CONFIG>.cmake
+         INPUT ${Ginkgo_BINARY_DIR}/cmake/generate_pkg.cmake)
+    # Step 3: at install time, call the generation script which has all variables
+    #         except the install prefix already replaced. Use the install prefix
+    #         that is specified at install time
+    install(SCRIPT "${Ginkgo_BINARY_DIR}/cmake/generate_pkg_$<CONFIG>.cmake"
         COMPONENT Ginkgo_Development)
 
     # install the public header files
     install(DIRECTORY "${Ginkgo_SOURCE_DIR}/include/"
-        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}"
+        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
         COMPONENT Ginkgo_Development
         FILES_MATCHING PATTERN "*.hpp"
                        PATTERN "*.h"   # C API header
         )
     install(FILES "${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp"
-        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/ginkgo"
+        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/ginkgo"
         COMPONENT Ginkgo_Development
         )
 
@@ -82,16 +89,16 @@ function(ginkgo_install)
         get_filename_component(HWLOC_LIB_PATH ${HWLOC_LIBRARIES} DIRECTORY)
         file(GLOB HWLOC_LIBS "${HWLOC_LIB_PATH}/libhwloc*")
         install(FILES ${HWLOC_LIBS}
-            DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
+            DESTINATION "${CMAKE_INSTALL_LIBDIR}"
             COMPONENT Ginkgo_Runtime
             )
         # We only use hwloc and not netloc
         install(DIRECTORY "${HWLOC_INCLUDE_DIRS}/hwloc"
-            DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}"
+            DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
             COMPONENT Ginkgo_Development
             )
         install(FILES "${HWLOC_INCLUDE_DIRS}/hwloc.h"
-            DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}"
+            DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
             COMPONENT Ginkgo_Development
             )
     endif()
@@ -103,21 +110,23 @@ function(ginkgo_install)
         FILES_MATCHING PATTERN "*.cmake"
         )
 
+    set(GINKGO_EXPORT_BINARY_DIR OFF)
+
     # export configuration file for importing
     write_basic_package_version_file(
-        "${Ginkgo_BINARY_DIR}/GinkgoConfigVersion.cmake"
+        "${Ginkgo_BINARY_DIR}/cmake/GinkgoConfigVersion.cmake"
         VERSION "${PROJECT_VERSION}"
         COMPATIBILITY SameMajorVersion
         )
     configure_package_config_file(
         "${Ginkgo_SOURCE_DIR}/cmake/GinkgoConfig.cmake.in"
-        "${Ginkgo_BINARY_DIR}/GinkgoConfig.cmake"
+        "${Ginkgo_BINARY_DIR}/cmake/GinkgoConfig.cmake"
         INSTALL_DESTINATION "${GINKGO_INSTALL_CONFIG_DIR}"
-        PATH_VARS CMAKE_INSTALL_FULL_INCLUDEDIR CMAKE_INSTALL_FULL_LIBDIR CMAKE_INSTALL_PREFIX GINKGO_INSTALL_MODULE_DIR
+        PATH_VARS CMAKE_INSTALL_INCLUDEDIR CMAKE_INSTALL_LIBDIR CMAKE_INSTALL_PREFIX GINKGO_INSTALL_MODULE_DIR
         )
     install(FILES
-        "${Ginkgo_BINARY_DIR}/GinkgoConfig.cmake"
-        "${Ginkgo_BINARY_DIR}/GinkgoConfigVersion.cmake"
+        "${Ginkgo_BINARY_DIR}/cmake/GinkgoConfig.cmake"
+        "${Ginkgo_BINARY_DIR}/cmake/GinkgoConfigVersion.cmake"
         DESTINATION "${GINKGO_INSTALL_CONFIG_DIR}"
         COMPONENT Ginkgo_Development)
     install(EXPORT Ginkgo
@@ -126,16 +135,40 @@ function(ginkgo_install)
         DESTINATION "${GINKGO_INSTALL_CONFIG_DIR}"
         COMPONENT Ginkgo_Development)
 
-    # Export package for use from the build tree
-    if (GINKGO_EXPORT_BUILD_DIR)
-        export(PACKAGE Ginkgo)
-    endif()
-
     if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND BUILD_SHARED_LIBS)
         install(FILES
             "${Ginkgo_SOURCE_DIR}/dev_tools/scripts/gdb-ginkgo.py"
-            DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
+            DESTINATION "${CMAKE_INSTALL_LIBDIR}"
             RENAME "$<TARGET_FILE_NAME:ginkgo>-gdb.py"
             COMPONENT Ginkgo_Development)
     endif()
+endfunction()
+
+
+function(ginkgo_export_binary_dir)
+    # export targets
+    export(EXPORT Ginkgo
+           NAMESPACE Ginkgo::
+           FILE "${Ginkgo_BINARY_DIR}/GinkgoTargets.cmake"
+    )
+
+    set(GINKGO_EXPORT_BINARY_DIR ON)
+    set(GINKGO_INSTALL_MODULE_DIR "${Ginkgo_SOURCE_DIR}/cmake/Modules/")
+
+    # export configuration file for importing
+    write_basic_package_version_file(
+      "${Ginkgo_BINARY_DIR}/GinkgoConfigVersion.cmake"
+      VERSION "${PROJECT_VERSION}"
+      COMPATIBILITY SameMajorVersion
+    )
+    configure_package_config_file(
+      "${Ginkgo_SOURCE_DIR}/cmake/GinkgoConfig.cmake.in"
+      "${Ginkgo_BINARY_DIR}/GinkgoConfig.cmake"
+      INSTALL_DESTINATION "${GINKGO_INSTALL_CONFIG_DIR}"
+      PATH_VARS GINKGO_INSTALL_MODULE_DIR
+      INSTALL_PREFIX ${Ginkgo_BINARY_DIR}
+    )
+
+    # Export package for use from the build tree
+    export(PACKAGE Ginkgo)
 endfunction()

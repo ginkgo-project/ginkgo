@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -20,6 +20,7 @@
 
 #include "core/base/batch_utilities.hpp"
 #include "core/test/utils.hpp"
+#include "core/test/utils/array_generator.hpp"
 #include "core/test/utils/assertions.hpp"
 #include "core/test/utils/batch_helpers.hpp"
 #include "test/utils/executor.hpp"
@@ -36,14 +37,21 @@ protected:
     std::unique_ptr<BMtxType> gen_mtx(const gko::size_type num_batch_items,
                                       gko::size_type num_rows,
                                       gko::size_type num_cols,
-                                      int num_elems_per_row)
+                                      int num_elems_per_row,
+                                      bool diag_dominant = false)
     {
-        return gko::test::generate_random_batch_matrix<BMtxType>(
-            num_batch_items, num_rows, num_cols,
-            std::uniform_int_distribution<>(num_elems_per_row,
-                                            num_elems_per_row),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref,
-            num_elems_per_row * num_rows);
+        if (diag_dominant) {
+            return gko::test::generate_diag_dominant_batch_matrix<BMtxType>(
+                ref, num_batch_items, num_rows, false, 4 * num_rows - 3);
+
+        } else {
+            return gko::test::generate_random_batch_matrix<BMtxType>(
+                num_batch_items, num_rows, num_cols,
+                std::uniform_int_distribution<>(num_elems_per_row,
+                                                num_elems_per_row),
+                std::normal_distribution<>(-1.0, 1.0), rand_engine, ref,
+                num_elems_per_row * num_rows);
+        }
     }
 
     std::unique_ptr<BMVec> gen_mvec(const gko::size_type num_batch_items,
@@ -57,12 +65,15 @@ protected:
     }
 
     void set_up_apply_data(gko::size_type num_vecs = 1,
-                           int num_elems_per_row = 5)
+                           int num_elems_per_row = 5,
+                           gko::size_type num_rows = 252,
+                           gko::size_type num_cols = 32,
+                           bool diag_dominant = false)
     {
-        const gko::size_type num_rows = 252;
-        const gko::size_type num_cols = 32;
         GKO_ASSERT(num_elems_per_row <= num_cols);
-        mat = gen_mtx<BMtx>(batch_size, num_rows, num_cols, num_elems_per_row);
+
+        mat = gen_mtx<BMtx>(batch_size, num_rows, num_cols, num_elems_per_row,
+                            diag_dominant);
         y = gen_mvec(batch_size, num_cols, num_vecs);
         alpha = gen_mvec(batch_size, 1, 1);
         beta = gen_mvec(batch_size, 1, 1);
@@ -70,6 +81,14 @@ protected:
         dy = gko::clone(exec, y);
         dalpha = gko::clone(exec, alpha);
         dbeta = gko::clone(exec, beta);
+        row_scale = gko::test::generate_random_array<value_type>(
+            num_rows * batch_size, std::normal_distribution<>(2.0, 0.5),
+            rand_engine, ref);
+        col_scale = gko::test::generate_random_array<value_type>(
+            num_cols * batch_size, std::normal_distribution<>(4.0, 0.5),
+            rand_engine, ref);
+        drow_scale = gko::array<value_type>(exec, row_scale);
+        dcol_scale = gko::array<value_type>(exec, col_scale);
         expected = BMVec::create(
             ref,
             gko::batch_dim<2>(batch_size, gko::dim<2>{num_rows, num_vecs}));
@@ -90,6 +109,10 @@ protected:
     std::unique_ptr<BMVec> dy;
     std::unique_ptr<BMVec> dalpha;
     std::unique_ptr<BMVec> dbeta;
+    gko::array<value_type> row_scale;
+    gko::array<value_type> col_scale;
+    gko::array<value_type> drow_scale;
+    gko::array<value_type> dcol_scale;
 };
 
 
@@ -112,4 +135,37 @@ TEST_F(Csr, SingleVectorAdvancedApplyIsEquivalentToRef)
     dmat->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dresult, expected, r<value_type>::value);
+}
+
+
+TEST_F(Csr, TwoSidedScaleIsEquivalentToRef)
+{
+    set_up_apply_data(257);
+
+    mat->scale(row_scale, col_scale);
+    dmat->scale(drow_scale, dcol_scale);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dmat, mat, r<value_type>::value);
+}
+
+
+TEST_F(Csr, AddScaledIdentityIsEquivalentToRef)
+{
+    set_up_apply_data(2, 5, 151, 151, true);
+
+    mat->add_scaled_identity(alpha, beta);
+    dmat->add_scaled_identity(dalpha, dbeta);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dmat, mat, r<value_type>::value);
+}
+
+
+TEST_F(Csr, AddScaledIdentityWithRecMatIsEquivalentToRef)
+{
+    set_up_apply_data(2, 5, 151, 148, true);
+
+    mat->add_scaled_identity(alpha, beta);
+    dmat->add_scaled_identity(dalpha, dbeta);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dmat, mat, r<value_type>::value);
 }

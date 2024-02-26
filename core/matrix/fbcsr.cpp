@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -386,6 +386,97 @@ Fbcsr<ValueType, IndexType>::compute_absolute() const
         abs_fbcsr->get_values()));
 
     return abs_fbcsr;
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Fbcsr<ValueType, IndexType>>
+Fbcsr<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
+                                    int block_size)
+{
+    return std::unique_ptr<Fbcsr>{new Fbcsr{exec, block_size}};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Fbcsr<ValueType, IndexType>>
+Fbcsr<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
+                                    const dim<2>& size, size_type num_nonzeros,
+                                    int block_size)
+{
+    return std::unique_ptr<Fbcsr>{
+        new Fbcsr{exec, size, num_nonzeros, block_size}};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Fbcsr<ValueType, IndexType>>
+Fbcsr<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
+                                    const dim<2>& size, int block_size,
+                                    array<value_type> values,
+                                    array<index_type> col_idxs,
+                                    array<index_type> row_ptrs)
+{
+    return std::unique_ptr<Fbcsr>{
+        new Fbcsr{exec, size, block_size, std::move(values),
+                  std::move(col_idxs), std::move(row_ptrs)}};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<const Fbcsr<ValueType, IndexType>>
+Fbcsr<ValueType, IndexType>::create_const(
+    std::shared_ptr<const Executor> exec, const dim<2>& size, int blocksize,
+    gko::detail::const_array_view<ValueType>&& values,
+    gko::detail::const_array_view<IndexType>&& col_idxs,
+    gko::detail::const_array_view<IndexType>&& row_ptrs)
+{
+    // cast const-ness away, but return a const object afterwards,
+    // so we can ensure that no modifications take place.
+    return std::unique_ptr<const Fbcsr>{new Fbcsr{
+        exec, size, blocksize, gko::detail::array_const_cast(std::move(values)),
+        gko::detail::array_const_cast(std::move(col_idxs)),
+        gko::detail::array_const_cast(std::move(row_ptrs))}};
+}
+
+
+template <typename ValueType, typename IndexType>
+Fbcsr<ValueType, IndexType>::Fbcsr(std::shared_ptr<const Executor> exec,
+                                   int block_size)
+    : Fbcsr(std::move(exec), dim<2>{}, {}, block_size)
+{}
+
+
+template <typename ValueType, typename IndexType>
+Fbcsr<ValueType, IndexType>::Fbcsr(std::shared_ptr<const Executor> exec,
+                                   const dim<2>& size, size_type num_nonzeros,
+                                   int block_size)
+    : EnableLinOp<Fbcsr>(exec, size),
+      bs_{block_size},
+      values_(exec, num_nonzeros),
+      col_idxs_(exec,
+                detail::get_num_blocks(block_size * block_size, num_nonzeros)),
+      row_ptrs_(exec, detail::get_num_blocks(block_size, size[0]) + 1)
+{
+    GKO_ASSERT_BLOCK_SIZE_CONFORMANT(size[1], bs_);
+    row_ptrs_.fill(0);
+}
+
+
+template <typename ValueType, typename IndexType>
+Fbcsr<ValueType, IndexType>::Fbcsr(std::shared_ptr<const Executor> exec,
+                                   const dim<2>& size, int block_size,
+                                   array<value_type> values,
+                                   array<index_type> col_idxs,
+                                   array<index_type> row_ptrs)
+    : EnableLinOp<Fbcsr>(exec, size),
+      bs_{block_size},
+      values_{exec, std::move(values)},
+      col_idxs_{exec, std::move(col_idxs)},
+      row_ptrs_{exec, std::move(row_ptrs)}
+{
+    GKO_ASSERT_EQ(values_.get_size(), col_idxs_.get_size() * bs_ * bs_);
+    GKO_ASSERT_EQ(this->get_size()[0] / bs_ + 1, row_ptrs_.get_size());
 }
 
 

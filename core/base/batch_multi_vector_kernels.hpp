@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -24,6 +24,11 @@ namespace kernels {
     void scale(std::shared_ptr<const DefaultExecutor> exec, \
                const batch::MultiVector<_type>* alpha,      \
                batch::MultiVector<_type>* x)
+
+#define GKO_DECLARE_BATCH_MULTI_VECTOR_ELEMENT_WISE_SCALE_KERNEL(_type)  \
+    void element_wise_scale(std::shared_ptr<const DefaultExecutor> exec, \
+                            const batch::MultiVector<_type>* alpha,      \
+                            batch::MultiVector<_type>* x)
 
 #define GKO_DECLARE_BATCH_MULTI_VECTOR_ADD_SCALED_KERNEL(_type)  \
     void add_scaled(std::shared_ptr<const DefaultExecutor> exec, \
@@ -54,18 +59,20 @@ namespace kernels {
               batch::MultiVector<_type>* result)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                   \
-    template <typename ValueType>                                      \
-    GKO_DECLARE_BATCH_MULTI_VECTOR_SCALE_KERNEL(ValueType);            \
-    template <typename ValueType>                                      \
-    GKO_DECLARE_BATCH_MULTI_VECTOR_ADD_SCALED_KERNEL(ValueType);       \
-    template <typename ValueType>                                      \
-    GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_DOT_KERNEL(ValueType);      \
-    template <typename ValueType>                                      \
-    GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_CONJ_DOT_KERNEL(ValueType); \
-    template <typename ValueType>                                      \
-    GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_NORM2_KERNEL(ValueType);    \
-    template <typename ValueType>                                      \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                     \
+    template <typename ValueType>                                        \
+    GKO_DECLARE_BATCH_MULTI_VECTOR_SCALE_KERNEL(ValueType);              \
+    template <typename ValueType>                                        \
+    GKO_DECLARE_BATCH_MULTI_VECTOR_ELEMENT_WISE_SCALE_KERNEL(ValueType); \
+    template <typename ValueType>                                        \
+    GKO_DECLARE_BATCH_MULTI_VECTOR_ADD_SCALED_KERNEL(ValueType);         \
+    template <typename ValueType>                                        \
+    GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_DOT_KERNEL(ValueType);        \
+    template <typename ValueType>                                        \
+    GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_CONJ_DOT_KERNEL(ValueType);   \
+    template <typename ValueType>                                        \
+    GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_NORM2_KERNEL(ValueType);      \
+    template <typename ValueType>                                        \
     GKO_DECLARE_BATCH_MULTI_VECTOR_COPY_KERNEL(ValueType)
 
 

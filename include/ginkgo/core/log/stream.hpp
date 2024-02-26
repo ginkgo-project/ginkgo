@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -166,10 +166,6 @@ public:
      *                 which can give a large output.
      *
      * @return an std::unique_ptr to the the constructed object
-     *
-     * @internal here I cannot use EnableCreateMethod due to complex circular
-     * dependencies. At the same time, this method is short enough that it
-     * shouldn't be a problem.
      */
     GKO_DEPRECATED("use three-parameter create")
     static std::unique_ptr<Stream> create(
@@ -193,10 +189,6 @@ public:
      *                 which can give a large output.
      *
      * @return an std::unique_ptr to the the constructed object
-     *
-     * @internal here I cannot use EnableCreateMethod due to complex circular
-     * dependencies. At the same time, this method is short enough that it
-     * shouldn't be a problem.
      */
     static std::unique_ptr<Stream> create(
         const Logger::mask_type& enabled_events = Logger::all_events_mask,

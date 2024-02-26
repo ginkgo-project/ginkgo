@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -47,6 +47,21 @@ device_matrix_data<ValueType, IndexType>::device_matrix_data(
       col_idxs_{exec, data.col_idxs_},
       values_{exec, data.values_}
 {}
+
+
+template <typename ValueType, typename IndexType>
+device_matrix_data<ValueType, IndexType>::device_matrix_data(
+    std::shared_ptr<const Executor> exec, dim<2> size,
+    array<index_type> row_idxs, array<index_type> col_idxs,
+    array<value_type> values)
+    : size_{size},
+      row_idxs_{exec, std::move(row_idxs)},
+      col_idxs_{exec, std::move(col_idxs)},
+      values_{exec, std::move(values)}
+{
+    GKO_ASSERT_EQ(values_.get_size(), row_idxs_.get_size());
+    GKO_ASSERT_EQ(values_.get_size(), col_idxs_.get_size());
+}
 
 
 template <typename ValueType, typename IndexType>

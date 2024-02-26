@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -1977,6 +1977,60 @@ std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_submatrix_impl(
         this->get_executor(), dim<2>{sub_range.length(0), sub_range.length(1)},
         make_array_view(this->get_executor(), storage_size, sub_range->data),
         stride);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create(
+    std::shared_ptr<const Executor> exec, const dim<2>& size, size_type stride)
+{
+    return std::unique_ptr<Dense>{new Dense{exec, size, stride}};
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    array<value_type> values, size_type stride)
+{
+    return std::unique_ptr<Dense>{
+        new Dense{exec, size, std::move(values), stride}};
+}
+
+
+template <typename ValueType>
+std::unique_ptr<const Dense<ValueType>> Dense<ValueType>::create_const(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    gko::detail::const_array_view<ValueType>&& values, size_type stride)
+{
+    // cast const-ness away, but return a const object afterwards,
+    // so we can ensure that no modifications take place.
+    return std::unique_ptr<const Dense>{new Dense{
+        exec, size, gko::detail::array_const_cast(std::move(values)), stride}};
+}
+
+
+template <typename ValueType>
+Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
+                        const dim<2>& size, size_type stride)
+    : EnableLinOp<Dense>(exec, size),
+      stride_(stride == 0 ? size[1] : stride),
+      values_(exec, size[0] * stride_)
+{}
+
+
+template <typename ValueType>
+Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
+                        const dim<2>& size, array<value_type> values,
+                        size_type stride)
+    : EnableLinOp<Dense>(exec, size),
+      values_{exec, std::move(values)},
+      stride_{stride}
+{
+    if (size[0] > 0 && size[1] > 0) {
+        GKO_ENSURE_IN_BOUNDS((size[0] - 1) * stride + size[1] - 1,
+                             values_.get_size());
+    }
 }
 
 

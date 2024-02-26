@@ -76,7 +76,6 @@ function(ginkgo_add_single_benchmark_executable name use_lib_linops macro_def ty
         target_link_libraries(${name} mpi_timer)
     endif()
     target_compile_definitions("${name}" PRIVATE "${macro_def}")
-    target_compile_options("${name}" PRIVATE ${GINKGO_COMPILER_FLAGS})
     ginkgo_benchmark_add_tuning_maybe("${name}")
     if("${use_lib_linops}")
         if (GINKGO_BUILD_CUDA)

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -49,6 +49,122 @@ GKO_REGISTER_OPERATION(aos_to_soa, components::aos_to_soa);
 
 }  // anonymous namespace
 }  // namespace coo
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Coo<ValueType, IndexType>> Coo<ValueType, IndexType>::create(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    size_type num_nonzeros)
+{
+    return std::unique_ptr<Coo>{new Coo{exec, size, num_nonzeros}};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Coo<ValueType, IndexType>> Coo<ValueType, IndexType>::create(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    array<value_type> values, array<index_type> col_idxs,
+    array<index_type> row_idxs)
+{
+    return std::unique_ptr<Coo>{new Coo{exec, size, std::move(values),
+                                        std::move(col_idxs),
+                                        std::move(row_idxs)}};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<const Coo<ValueType, IndexType>>
+Coo<ValueType, IndexType>::create_const(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    gko::detail::const_array_view<ValueType>&& values,
+    gko::detail::const_array_view<IndexType>&& col_idxs,
+    gko::detail::const_array_view<IndexType>&& row_idxs)
+{
+    // cast const-ness away, but return a const object afterwards,
+    // so we can ensure that no modifications take place.
+    return create(exec, size, gko::detail::array_const_cast(std::move(values)),
+                  gko::detail::array_const_cast(std::move(col_idxs)),
+                  gko::detail::array_const_cast(std::move(row_idxs)));
+}
+
+
+template <typename ValueType, typename IndexType>
+Coo<ValueType, IndexType>::Coo(std::shared_ptr<const Executor> exec,
+                               const dim<2>& size, size_type num_nonzeros)
+    : EnableLinOp<Coo>(exec, size),
+      values_(exec, num_nonzeros),
+      col_idxs_(exec, num_nonzeros),
+      row_idxs_(exec, num_nonzeros)
+{}
+
+
+template <typename ValueType, typename IndexType>
+Coo<ValueType, IndexType>::Coo(std::shared_ptr<const Executor> exec,
+                               const dim<2>& size, array<value_type> values,
+                               array<index_type> col_idxs,
+                               array<index_type> row_idxs)
+    : EnableLinOp<Coo>(exec, size),
+      values_{exec, std::move(values)},
+      col_idxs_{exec, std::move(col_idxs)},
+      row_idxs_{exec, std::move(row_idxs)}
+{
+    GKO_ASSERT_EQ(values_.get_size(), col_idxs_.get_size());
+    GKO_ASSERT_EQ(values_.get_size(), row_idxs_.get_size());
+}
+
+
+template <typename ValueType, typename IndexType>
+LinOp* Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> b,
+                                         ptr_param<LinOp> x)
+{
+    this->validate_application_parameters(b.get(), x.get());
+    auto exec = this->get_executor();
+    this->apply2_impl(make_temporary_clone(exec, b).get(),
+                      make_temporary_clone(exec, x).get());
+    return this;
+}
+
+
+template <typename ValueType, typename IndexType>
+const LinOp* Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> b,
+                                               ptr_param<LinOp> x) const
+{
+    this->validate_application_parameters(b.get(), x.get());
+    auto exec = this->get_executor();
+    this->apply2_impl(make_temporary_clone(exec, b).get(),
+                      make_temporary_clone(exec, x).get());
+    return this;
+}
+
+
+template <typename ValueType, typename IndexType>
+LinOp* Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> alpha,
+                                         ptr_param<const LinOp> b,
+                                         ptr_param<LinOp> x)
+{
+    this->validate_application_parameters(b.get(), x.get());
+    GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
+    auto exec = this->get_executor();
+    this->apply2_impl(make_temporary_clone(exec, alpha).get(),
+                      make_temporary_clone(exec, b).get(),
+                      make_temporary_clone(exec, x).get());
+    return this;
+}
+
+
+template <typename ValueType, typename IndexType>
+const LinOp* Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> alpha,
+                                               ptr_param<const LinOp> b,
+                                               ptr_param<LinOp> x) const
+{
+    this->validate_application_parameters(b.get(), x.get());
+    GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
+    auto exec = this->get_executor();
+    this->apply2_impl(make_temporary_clone(exec, alpha).get(),
+                      make_temporary_clone(exec, b).get(),
+                      make_temporary_clone(exec, x).get());
+    return this;
+}
 
 
 template <typename ValueType, typename IndexType>

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -35,20 +35,6 @@ namespace reference {
  * @ingroup reorder
  */
 namespace rcm {
-
-
-template <typename IndexType>
-void get_degree_of_nodes(std::shared_ptr<const ReferenceExecutor> exec,
-                         const IndexType num_vertices,
-                         const IndexType* const row_ptrs,
-                         IndexType* const degrees)
-{
-    for (IndexType i = 0; i < num_vertices; ++i) {
-        degrees[i] = row_ptrs[i + 1] - row_ptrs[i];
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL);
 
 
 /**
@@ -194,15 +180,20 @@ IndexType find_starting_node(std::shared_ptr<const ReferenceExecutor> exec,
  * Computes a RCM reordering using a naive sequential algorithm.
  */
 template <typename IndexType>
-void get_permutation(std::shared_ptr<const ReferenceExecutor> exec,
-                     const IndexType num_vertices,
-                     const IndexType* const row_ptrs,
-                     const IndexType* const col_idxs,
-                     const IndexType* const degrees,
-                     IndexType* const permutation,
-                     IndexType* const inv_permutation,
-                     const gko::reorder::starting_strategy strategy)
+void compute_permutation(std::shared_ptr<const ReferenceExecutor> exec,
+                         const IndexType num_vertices,
+                         const IndexType* const row_ptrs,
+                         const IndexType* const col_idxs,
+                         IndexType* const permutation,
+                         IndexType* const inv_permutation,
+                         const gko::reorder::starting_strategy strategy)
 {
+    // compute node degrees
+    array<IndexType> degree_array{exec, static_cast<size_type>(num_vertices)};
+    const auto degrees = degree_array.get_data();
+    for (IndexType i = 0; i < num_vertices; ++i) {
+        degrees[i] = row_ptrs[i + 1] - row_ptrs[i];
+    }
     // Storing vertices left to proceess.
     array<IndexType> linear_queue(exec, num_vertices);
     auto linear_queue_p = linear_queue.get_data();
@@ -249,7 +240,7 @@ void get_permutation(std::shared_ptr<const ReferenceExecutor> exec,
         }
 
         // Sort all just-added neighbors by degree.
-        std::sort(
+        std::stable_sort(
             linear_queue_p + prev_head_offset, linear_queue_p + head_offset,
             [&](IndexType i, IndexType j) { return degrees[i] < degrees[j]; });
 
@@ -264,7 +255,7 @@ void get_permutation(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_COMPUTE_PERMUTATION_KERNEL);
 
 
 }  // namespace rcm

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -117,8 +117,7 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
     std::vector<std::string> preconditioners;
     std::map<std::string, std::string> precond_decoder;
 
-    PreconditionerBenchmark()
-        : name{"preconditioner"}, preconditioners{split(FLAGS_preconditioners)}
+    PreconditionerBenchmark() : name{"preconditioner"}
     {
         for (auto precond : split(FLAGS_preconditioners)) {
             preconditioners.push_back(encode_parameters(precond.c_str()));

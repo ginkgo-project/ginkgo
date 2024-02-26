@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -156,6 +156,26 @@ TYPED_TEST(MultiVector, ScalesDataWithMultipleScalars)
         gko::batch::unbatch<gko::batch::MultiVector<T>>(this->mtx_1.get());
     GKO_ASSERT_MTX_NEAR(res[0].get(), this->mtx_10.get(), 0.);
     GKO_ASSERT_MTX_NEAR(res[1].get(), this->mtx_11.get(), 0.);
+}
+
+
+TYPED_TEST(MultiVector, ElemWiseScalesData)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto alpha =
+        gko::batch::initialize<Mtx>({{{1.0, -1.0, 2.2}, {-2.0, 2.0, -0.5}},
+                                     {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}},
+                                    this->exec);
+
+    this->mtx_1->scale(alpha.get());
+
+    auto res =
+        gko::batch::initialize<Mtx>({{{1.0, 1.0, 4.84}, {4.0, 4.0, 0.25}},
+                                     {{1.0, 6.25, 9.0}, {1.0, 4.0, 9.0}}},
+                                    this->exec);
+    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx_1.get(), res.get(),
+                              r<value_type>::value);
 }
 
 

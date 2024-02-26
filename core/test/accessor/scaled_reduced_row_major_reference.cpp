@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -53,7 +53,6 @@ using ReferenceTypes =
     ::testing::Types<std::tuple<std::int16_t, std::int8_t>,
                      std::tuple<std::int32_t, std::int16_t>,
                      std::tuple<std::int64_t, std::int16_t>,
-                     std::tuple<std::uint16_t, std::uint16_t>,
                      std::tuple<double, std::int32_t>,
                      std::tuple<double, double>, std::tuple<double, float>,
                      std::tuple<float, float>>;

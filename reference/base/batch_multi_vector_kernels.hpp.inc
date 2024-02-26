@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -11,6 +11,13 @@ inline void scale_kernel(
         for (int i = 0; i < x.num_rows; ++i) {
             for (int j = 0; j < x.num_rhs; ++j) {
                 x.values[i * x.stride + j] *= alpha.values[0];
+            }
+        }
+    } else if (alpha.num_rows == x.num_rows) {
+        for (int i = 0; i < x.num_rows; ++i) {
+            for (int j = 0; j < x.num_rhs; ++j) {
+                x.values[i * x.stride + j] *=
+                    alpha.values[i * alpha.stride + j];
             }
         }
     } else {

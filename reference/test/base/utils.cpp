@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -38,13 +38,16 @@ protected:
     ConvertToWithSorting()
         : ref{gko::ReferenceExecutor::create()},
           mtx{gko::initialize<Dense>({{1, 2, 3}, {6, 0, 7}, {-1, 8, 0}}, ref)},
-          unsorted_coo{Coo::create(ref, gko::dim<2>{3, 3},
-                                   I<value_type>{1, 3, 2, 7, 6, -1, 8},
-                                   I<index_type>{0, 2, 1, 2, 0, 0, 1},
-                                   I<index_type>{0, 0, 0, 1, 1, 2, 2})},
-          unsorted_csr{Csr::create(
-              ref, gko::dim<2>{3, 3}, I<value_type>{1, 3, 2, 7, 6, -1, 8},
-              I<index_type>{0, 2, 1, 2, 0, 0, 1}, I<index_type>{0, 3, 5, 7})}
+          unsorted_coo{
+              Coo::create(ref, gko::dim<2>{3, 3},
+                          gko::array<value_type>{ref, {1, 3, 2, 7, 6, -1, 8}},
+                          gko::array<index_type>{ref, {0, 2, 1, 2, 0, 0, 1}},
+                          gko::array<index_type>{ref, {0, 0, 0, 1, 1, 2, 2}})},
+          unsorted_csr{
+              Csr::create(ref, gko::dim<2>{3, 3},
+                          gko::array<value_type>{ref, {1, 3, 2, 7, 6, -1, 8}},
+                          gko::array<index_type>{ref, {0, 2, 1, 2, 0, 0, 1}},
+                          gko::array<index_type>{ref, {0, 3, 5, 7}})}
 
     {}
 

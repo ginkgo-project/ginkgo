@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -48,7 +48,9 @@ protected:
     {
         std::vector<I<I<value_type>>> ref_outputs;
         auto input = gko::device_matrix_data<value_type, global_index_type>{
-            ref, size, input_rows, input_cols, input_vals};
+            ref, size, gko::array<global_index_type>{ref, input_rows},
+            gko::array<global_index_type>{ref, input_cols},
+            gko::array<value_type>{ref, input_vals}};
         for (auto entry : output_entries) {
             ref_outputs.emplace_back(entry);
         }

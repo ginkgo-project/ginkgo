@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -318,12 +318,14 @@ TYPED_TEST(FixedCoarsening, GenerateMgLevelOnUnsortedCsrMatrix)
      *  0 -3  0  5  0
      *  0 -2 -2  0  5
      */
-    auto mtx_values = {-3, -3, 5, -3, -2, -1, 5, -3, -1, 5, -3, 5, -2, -2, 5};
-    auto mtx_col_idxs = {1, 2, 0, 0, 3, 4, 1, 0, 4, 2, 1, 3, 1, 2, 4};
-    auto mtx_row_ptrs = {0, 3, 7, 10, 12, 15};
-    auto matrix = gko::share(
-        Mtx::create(this->exec, gko::dim<2>{5, 5}, std::move(mtx_values),
-                    std::move(mtx_col_idxs), std::move(mtx_row_ptrs)));
+    auto matrix = gko::share(Mtx::create(
+        this->exec, gko::dim<2>{5, 5},
+        gko::array<value_type>{
+            this->exec,
+            {-3, -3, 5, -3, -2, -1, 5, -3, -1, 5, -3, 5, -2, -2, 5}},
+        gko::array<index_type>{this->exec,
+                               {1, 2, 0, 0, 3, 4, 1, 0, 4, 2, 1, 3, 1, 2, 4}},
+        gko::array<index_type>{this->exec, {0, 3, 7, 10, 12, 15}}));
     auto prolong_op = gko::share(Mtx::create(this->exec, gko::dim<2>{5, 3}, 0));
     // 0-2-3
     prolong_op->read({{5, 3}, {{0, 0, 1}, {2, 1, 1}, {3, 2, 1}}});
@@ -357,12 +359,15 @@ TYPED_TEST(FixedCoarsening, GenerateMgLevelOnUnsortedCooMatrix)
      *  0 -3  0  5  0
      *  0 -2 -2  0  5
      */
-    auto mtx_values = {-3, -3, 5, -3, -2, -1, 5, -3, -1, 5, -3, 5, -2, -2, 5};
-    auto mtx_col_idxs = {1, 2, 0, 0, 3, 4, 1, 0, 4, 2, 1, 3, 1, 2, 4};
-    auto mtx_row_idxs = {0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 4, 4, 4};
-    auto matrix = gko::share(
-        CooMtx::create(this->exec, gko::dim<2>{5, 5}, std::move(mtx_values),
-                       std::move(mtx_col_idxs), std::move(mtx_row_idxs)));
+    auto matrix = gko::share(CooMtx::create(
+        this->exec, gko::dim<2>{5, 5},
+        gko::array<value_type>{
+            this->exec,
+            {-3, -3, 5, -3, -2, -1, 5, -3, -1, 5, -3, 5, -2, -2, 5}},
+        gko::array<index_type>{this->exec,
+                               {1, 2, 0, 0, 3, 4, 1, 0, 4, 2, 1, 3, 1, 2, 4}},
+        gko::array<index_type>{this->exec,
+                               {0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 4, 4, 4}}));
     auto prolong_op = gko::share(Mtx::create(this->exec, gko::dim<2>{5, 3}, 0));
     // 0-2-3
     prolong_op->read({{5, 3}, {{0, 0, 1}, {2, 1, 1}, {3, 2, 1}}});

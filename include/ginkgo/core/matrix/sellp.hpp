@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -41,7 +41,6 @@ class Csr;
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Sellp : public EnableLinOp<Sellp<ValueType, IndexType>>,
-              public EnableCreateMethod<Sellp<ValueType, IndexType>>,
               public ConvertibleTo<Sellp<next_precision<ValueType>, IndexType>>,
               public ConvertibleTo<Dense<ValueType>>,
               public ConvertibleTo<Csr<ValueType, IndexType>>,
@@ -50,7 +49,6 @@ class Sellp : public EnableLinOp<Sellp<ValueType, IndexType>>,
               public WritableToMatrixData<ValueType, IndexType>,
               public EnableAbsoluteComputation<
                   remove_complex<Sellp<ValueType, IndexType>>> {
-    friend class EnableCreateMethod<Sellp>;
     friend class EnablePolymorphicObject<Sellp, LinOp>;
     friend class Dense<ValueType>;
     friend class Csr<ValueType, IndexType>;
@@ -273,6 +271,38 @@ public:
     }
 
     /**
+     * Creates an uninitialized Sellp matrix of the specified size.
+     * (The slice_size and stride_factor are set to the default values.)
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param total_cols   number of the sum of all cols in every slice.
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Sellp> create(std::shared_ptr<const Executor> exec,
+                                         const dim<2>& size = {},
+                                         size_type total_cols = 0);
+
+    /**
+     * Creates an uninitialized Sellp matrix of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param slice_size  number of rows in each slice
+     * @param stride_factor  factor for the stride in each slice (strides
+     *                        should be multiples of the stride_factor)
+     * @param total_cols   number of the sum of all cols in every slice.
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Sellp> create(std::shared_ptr<const Executor> exec,
+                                         const dim<2>& size,
+                                         size_type slice_size,
+                                         size_type stride_factor,
+                                         size_type total_cols);
+
+    /**
      * Copy-assigns a Sellp matrix. Preserves the executor, copies the data and
      * parameters.
      */
@@ -299,56 +329,11 @@ public:
     Sellp(Sellp&&);
 
 protected:
-    /**
-     * Creates an uninitialized Sellp matrix of the specified size.
-     *    (The total_cols is set to be the number of slice times the number
-     *     of cols of the matrix.)
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     */
-    Sellp(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{})
-        : Sellp(std::move(exec), size,
-                ceildiv(size[0], default_slice_size) * size[1])
-    {}
+    Sellp(std::shared_ptr<const Executor> exec, const dim<2>& size = {},
+          size_type total_cols = {});
 
-    /**
-     * Creates an uninitialized Sellp matrix of the specified size.
-     *    (The slice_size and stride_factor are set to the default values.)
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param total_cols   number of the sum of all cols in every slice.
-     */
     Sellp(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          size_type total_cols)
-        : Sellp(std::move(exec), size, default_slice_size,
-                default_stride_factor, total_cols)
-    {}
-
-    /**
-     * Creates an uninitialized Sellp matrix of the specified size.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param slice_size  number of rows in each slice
-     * @param stride_factor  factor for the stride in each slice (strides
-     *                        should be multiples of the stride_factor)
-     * @param total_cols   number of the sum of all cols in every slice.
-     */
-    Sellp(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          size_type slice_size, size_type stride_factor, size_type total_cols)
-        : EnableLinOp<Sellp>(exec, size),
-          values_(exec, slice_size * total_cols),
-          col_idxs_(exec, slice_size * total_cols),
-          slice_lengths_(exec, ceildiv(size[0], slice_size)),
-          slice_sets_(exec, ceildiv(size[0], slice_size) + 1),
-          slice_size_(slice_size),
-          stride_factor_(stride_factor)
-    {
-        slice_sets_.fill(0);
-        slice_lengths_.fill(0);
-    }
+          size_type slice_size, size_type stride_factor, size_type total_cols);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 

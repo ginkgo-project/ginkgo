@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -145,6 +145,13 @@ __device__ __forceinline__ ValueType load_relaxed_shared(const ValueType* ptr)
 
 
 template <typename ValueType>
+__device__ __forceinline__ ValueType load_relaxed_local(const ValueType* ptr)
+{
+    return load_generic<__ATOMIC_RELAXED, HIP_SCOPE_THREADBLOCK>(ptr);
+}
+
+
+template <typename ValueType>
 __device__ __forceinline__ ValueType load_acquire(const ValueType* ptr)
 {
     return load_generic<__ATOMIC_ACQUIRE, HIP_SCOPE_GPU>(ptr);
@@ -153,6 +160,13 @@ __device__ __forceinline__ ValueType load_acquire(const ValueType* ptr)
 
 template <typename ValueType>
 __device__ __forceinline__ ValueType load_acquire_shared(const ValueType* ptr)
+{
+    return load_generic<__ATOMIC_ACQUIRE, HIP_SCOPE_THREADBLOCK>(ptr);
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType load_acquire_local(const ValueType* ptr)
 {
     return load_generic<__ATOMIC_ACQUIRE, HIP_SCOPE_THREADBLOCK>(ptr);
 }
@@ -174,6 +188,14 @@ __device__ __forceinline__ void store_relaxed_shared(ValueType* ptr,
 
 
 template <typename ValueType>
+__device__ __forceinline__ void store_relaxed_local(ValueType* ptr,
+                                                    ValueType value)
+{
+    store_generic<__ATOMIC_RELAXED, HIP_SCOPE_THREADBLOCK>(ptr, value);
+}
+
+
+template <typename ValueType>
 __device__ __forceinline__ void store_release(ValueType* ptr, ValueType value)
 {
     store_generic<__ATOMIC_RELEASE, HIP_SCOPE_GPU>(ptr, value);
@@ -183,6 +205,14 @@ __device__ __forceinline__ void store_release(ValueType* ptr, ValueType value)
 template <typename ValueType>
 __device__ __forceinline__ void store_release_shared(ValueType* ptr,
                                                      ValueType value)
+{
+    store_generic<__ATOMIC_RELEASE, HIP_SCOPE_THREADBLOCK>(ptr, value);
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ void store_release_local(ValueType* ptr,
+                                                    ValueType value)
 {
     store_generic<__ATOMIC_RELEASE, HIP_SCOPE_THREADBLOCK>(ptr, value);
 }
@@ -211,6 +241,17 @@ __device__ __forceinline__ thrust::complex<ValueType> load_relaxed_shared(
 
 
 template <typename ValueType>
+__device__ __forceinline__ thrust::complex<ValueType> load_relaxed_local(
+    const thrust::complex<ValueType>* ptr)
+{
+    auto real_ptr = reinterpret_cast<const ValueType*>(ptr);
+    auto real = load_relaxed_local(real_ptr);
+    auto imag = load_relaxed_local(real_ptr + 1);
+    return {real, imag};
+}
+
+
+template <typename ValueType>
 __device__ __forceinline__ void store_relaxed(thrust::complex<ValueType>* ptr,
                                               thrust::complex<ValueType> value)
 {
@@ -227,6 +268,16 @@ __device__ __forceinline__ void store_relaxed_shared(
     auto real_ptr = reinterpret_cast<ValueType*>(ptr);
     store_relaxed_shared(real_ptr, value.real());
     store_relaxed_shared(real_ptr + 1, value.imag());
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ void store_relaxed_local(
+    thrust::complex<ValueType>* ptr, thrust::complex<ValueType> value)
+{
+    auto real_ptr = reinterpret_cast<ValueType*>(ptr);
+    store_relaxed_local(real_ptr, value.real());
+    store_relaxed_local(real_ptr + 1, value.imag());
 }
 
 
