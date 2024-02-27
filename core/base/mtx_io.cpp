@@ -679,9 +679,9 @@ private:
 
         std::smatch match{};
         GKO_CHECK_MATCH(
-            regex_match(
+            regex_search(
                 description_line, match,
-                std::regex("%%matrixmarket matrix "
+                std::regex("^%%matrixmarket matrix "
                            "(coordinate|array) "
                            "(real|integer|complex|pattern) "
                            "(general|symmetric|skew-symmetric|hermitian)")),
@@ -693,7 +693,9 @@ private:
             "    <LAYOUT-TYPE>     is one of: coordinate, array\n"
             "    <VALUE-TYPE>      is one of: real, integer, complex, pattern\n"
             "    <LAYOUT-MODIFIER> is one of: general, symmetric, "
-            "skew-symmetric, hermitian\n");
+            "skew-symmetric, hermitian\n"
+            "Found the following header instead: " +
+                description_line);
 
         data.layout = layout_map.at(match[1]);
         data.entry = format_map.at(match[2]);
