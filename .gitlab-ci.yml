@@ -127,7 +127,6 @@ build/cuda101/openmpi/gcc/all/debug/shared:
     BUILD_HIP: "ON"
     BUILD_TYPE: "Debug"
     BUILD_PAPI_SDE: "ON"
-    RUN_EXAMPLES: "ON"
     CUDA_ARCH: 35
 
 build/cuda101/nompi/clang/all/release/static:
@@ -404,7 +403,6 @@ build/amd/nompi/gcc/rocm45/release/shared:
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
     NONDEFAULT_STREAM: "ON"
-    RUN_EXAMPLES: "ON"
     BUILD_TYPE: "Release"
     BUILD_HWLOC: "OFF"
 
@@ -418,7 +416,6 @@ build/amd/nompi/clang/rocm45/release/static:
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
-    RUN_EXAMPLES: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
 
@@ -432,7 +429,6 @@ build/amd/nompi/clang/rocm45/debug/shared:
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
-    RUN_EXAMPLES: "ON"
     BUILD_TYPE: "Debug"
 
 # ROCm 5.0.2 and friends
@@ -445,7 +441,6 @@ build/amd/nompi/gcc/rocm502/debug/static:
   variables:
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
-    RUN_EXAMPLES: "ON"
     BUILD_TYPE: "Debug"
     BUILD_SHARED_LIBS: "OFF"
 
@@ -459,7 +454,6 @@ build/amd/nompi/clang/rocm502/release/shared:
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
-    RUN_EXAMPLES: "ON"
     BUILD_TYPE: "Release"
 
 # without omp
@@ -473,7 +467,6 @@ build/amd/nompi/gcc/rocm502_wo_omp/release/shared:
     BUILD_OMP: "OFF"
     BUILD_MPI: "OFF"
     BUILD_HIP: "ON"
-    RUN_EXAMPLES: "ON"
     BUILD_TYPE: "Release"
 
 # no cuda but latest gcc and clang
