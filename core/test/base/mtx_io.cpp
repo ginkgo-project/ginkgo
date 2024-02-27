@@ -390,6 +390,22 @@ TEST(MtxReader, ReadsSparseComplexHermitianMtx)
 }
 
 
+TEST(MtxReader, ReadIgnoresExtraCharacters)
+{
+    using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix array real general ??? whateve\r\n"
+        "1 1\n"
+        "0.1\n");
+
+    auto data = gko::read_raw<double, gko::int32>(iss);
+
+    ASSERT_EQ(data.size, gko::dim<2>(1, 1));
+    auto& v = data.nonzeros;
+    ASSERT_EQ(v[0], tpl(0, 0, 0.1));
+}
+
+
 std::array<gko::uint64, 20> build_binary_complex_data()
 {
     gko::uint64 int_val{};
