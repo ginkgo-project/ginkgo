@@ -11,6 +11,7 @@
 
 
 #include <ginkgo/config.hpp>
+#include <ginkgo/core/matrix/permutation.hpp>
 
 
 #if GINKGO_BUILD_MPI
@@ -26,6 +27,7 @@
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/factorization/factorization.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/permutation.hpp>
 
 
 namespace gko {
@@ -37,6 +39,9 @@ namespace distributed {
  * @ingroup precond
  */
 namespace preconditioner {
+
+
+enum coarse_type { corner, edge, face };
 
 
 template <typename ValueType = default_precision, typename IndexType = int32>
@@ -61,6 +66,7 @@ public:
         ValueType, IndexType, IndexType>;
     using fact_type =
         gko::experimental::factorization::Factorization<ValueType, IndexType>;
+    using perm_type = matrix::Permutation<IndexType>;
 
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
@@ -75,7 +81,7 @@ public:
          * Local solver factory.
          */
         std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
-            local_factorization_factory, nullptr);
+            local_solver_factory, nullptr);
 
         /**
          * Schur complement solver factory.
@@ -84,22 +90,10 @@ public:
             schur_complement_solver_factory, nullptr);
 
         /**
-         * Inner solver factory.
-         */
-        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
-            inner_solver_factory, nullptr);
-
-        /**
          * Coarse solver factory.
          */
         std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
             coarse_solver_factory, nullptr);
-
-        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
-            lower_solver, nullptr);
-
-        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
-            upper_solver, nullptr);
 
         bool GKO_FACTORY_PARAMETER_SCALAR(constant_nullspace, false);
 
@@ -126,6 +120,14 @@ public:
         bool GKO_FACTORY_PARAMETER_SCALAR(enforce_corner, false);
 
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting_interfaces, false);
+
+        bool GKO_FACTORY_PARAMETER_SCALAR(use_amd, false);
+
+        bool GKO_FACTORY_PARAMETER_SCALAR(use_corners, true);
+
+        bool GKO_FACTORY_PARAMETER_SCALAR(use_edges, true);
+
+        bool GKO_FACTORY_PARAMETER_SCALAR(use_faces, false);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Bddc, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -212,6 +214,7 @@ private:
     std::shared_ptr<vec_type> scale_op;
     std::vector<std::vector<index_type>> interface_dofs_;
     std::vector<std::vector<index_type>> interface_dof_ranks_;
+    std::vector<coarse_type> coarse_types;
     std::shared_ptr<global_vec_type> restricted_residual;
     std::shared_ptr<global_vec_type> restricted_solution;
     std::shared_ptr<global_vec_type> schur_residual;
@@ -222,7 +225,9 @@ private:
     std::shared_ptr<global_vec_type> coarse_x;
     std::shared_ptr<global_vec_type> nullspace;
     std::shared_ptr<global_vec_type> neg_nullspace;
-    std::shared_ptr<global_vec_type> intermediate;
+    std::shared_ptr<global_vec_type> intermediate_1;
+    std::shared_ptr<global_vec_type> intermediate_2;
+    std::shared_ptr<global_vec_type> static_condensate;
     std::shared_ptr<global_vec_type> orig_rhs;
     std::shared_ptr<vec_type> inner_intermediate;
     std::shared_ptr<const LinOp> global_schur;
@@ -232,6 +237,16 @@ private:
     std::shared_ptr<vec_type> local_1;
     std::shared_ptr<vec_type> local_2;
     std::shared_ptr<vec_type> local_3;
+    std::shared_ptr<perm_type> AMD_inner;
+    std::shared_ptr<vec_type> inner_buf1;
+    std::shared_ptr<vec_type> inner_buf2;
+    std::shared_ptr<perm_type> AMD_edge;
+    std::shared_ptr<vec_type> edge_buf1;
+    std::shared_ptr<vec_type> edge_buf2;
+    std::shared_ptr<matrix_type> e_perm;
+    std::shared_ptr<matrix_type> e_perm_t;
+    std::shared_ptr<vec_type> e_buf1;
+    std::shared_ptr<vec_type> e_buf2;
 };
 
 
