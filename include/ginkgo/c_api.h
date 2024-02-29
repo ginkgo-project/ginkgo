@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -324,6 +324,15 @@ enum _GKO_DATATYPE_CONST {
                 std::move(ifs), (*exec).shared_ptr)};                          \
     }                                                                          \
                                                                                \
+    void ginkgo_write_csr_##_name##_in_coo(const char* str_ptr,                \
+                                           gko_matrix_csr_##_name mat_st_ptr)  \
+    {                                                                          \
+        std::string filename(str_ptr);                                         \
+        std::ofstream stream{filename};                                        \
+        std::cerr << "Writing " << filename << std::endl;                      \
+        gko::write(stream, (*mat_st_ptr).mat, gko::layout_type::coordinate);   \
+    }                                                                          \
+                                                                               \
     size_t ginkgo_matrix_csr_##_name##_get_num_stored_elements(                \
         gko_matrix_csr_##_name mat_st_ptr)                                     \
     {                                                                          \
@@ -374,24 +383,6 @@ enum _GKO_DATATYPE_CONST {
         gko_matrix_dense_##_name_dense y)                                      \
     {                                                                          \
         mat_st_ptr->mat->apply(alpha->mat, x->mat, beta->mat, y->mat);         \
-    }                                                                          \
-    void ginkgo_solver_cg_solve_##_name(                                       \
-        gko_executor exec_st_ptr, gko_matrix_csr_##_name A_st_ptr,             \
-        gko_matrix_dense_##_name_dense b_st_ptr,                               \
-        gko_matrix_dense_##_name_dense x_st_ptr, int maxiter,                  \
-        double reduction)                                                      \
-    {                                                                          \
-        auto solver_gen =                                                      \
-            gko::solver::Cg<_cpptype_value>::build()                           \
-                .with_criteria(                                                \
-                    gko::stop::Iteration::build().with_max_iters(maxiter),     \
-                    gko::stop::ResidualNorm<_cpptype_value>::build()           \
-                        .with_reduction_factor(reduction))                     \
-                .on(exec_st_ptr->shared_ptr);                                  \
-                                                                               \
-        auto solver = solver_gen->generate(A_st_ptr->mat);                     \
-                                                                               \
-        solver->apply(b_st_ptr->mat, x_st_ptr->mat);                           \
     }
 
 /**
@@ -411,6 +402,8 @@ enum _GKO_DATATYPE_CONST {
         gko_matrix_csr_##_name mat_st_ptr);                                    \
     gko_matrix_csr_##_name ginkgo_matrix_csr_##_name##_read(                   \
         const char* str_ptr, gko_executor exec);                               \
+    void ginkgo_write_csr_##_name##_in_coo(const char* str_ptr,                \
+                                           gko_matrix_csr_##_name mat_st_ptr); \
     size_t ginkgo_matrix_csr_##_name##_get_num_stored_elements(                \
         gko_matrix_csr_##_name mat_st_ptr);                                    \
     size_t ginkgo_matrix_csr_##_name##_get_num_srow_elements(                  \
@@ -429,17 +422,11 @@ enum _GKO_DATATYPE_CONST {
         gko_matrix_csr_##_name mat_st_ptr,                                     \
         gko_matrix_dense_##_name_dense alpha,                                  \
         gko_matrix_dense_##_name_dense x, gko_matrix_dense_##_name_dense beta, \
-        gko_matrix_dense_##_name_dense y);                                     \
-    void ginkgo_solver_cg_solve_##_name(                                       \
-        gko_executor exec_st_ptr, gko_matrix_csr_##_name A_st_ptr,             \
-        gko_matrix_dense_##_name_dense b_st_ptr,                               \
-        gko_matrix_dense_##_name_dense x_st_ptr, int maxiter,                  \
-        double reduction);
+        gko_matrix_dense_##_name_dense y);
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 /* ----------------------------------------------------------------------
  * C memory management
  * ---------------------------------------------------------------------- */
@@ -555,11 +542,48 @@ DECLARE_CSR_OVERLOAD(double, int64_t, double, std::int64_t, f64_i64, f64)
 /* ----------------------------------------------------------------------
  * Library functions for iterative solvers in GINKGO
  * ---------------------------------------------------------------------- */
-// void ginkgo_solver_cg_solve_f32_i32(gko_executor exec_st_ptr,
-//                             gko_matrix_csr_f32_i32 A_st_ptr,
-//                             gko_matrix_dense_f32 b_st_ptr,
-//                             gko_matrix_dense_f32 x_st_ptr, int maxiter,
-//                             double reduction)
+struct gko_linop_st;
+typedef struct gko_linop_st* gko_linop;
+
+void ginkgo_linop_delete(gko_linop linop_st_ptr);
+
+void ginkgo_linop_apply(gko_linop solver, gko_linop b_st_ptr,
+                        gko_linop x_st_ptr);
+
+gko_linop ginkgo_linop_cg_f64_create(gko_executor exec_st_ptr,
+                                     gko_linop A_st_ptr, double reduction,
+                                     int maxiter);
+
+/**
+ * @brief Struct containing the shared pointer to a ginkgo deferred factory
+ * parameter
+ *
+ */
+struct gko_deferred_factory_parameter_st;
+
+/**
+ * @brief Type of the pointer to the wrapped `gko_deferred_factory_parameter_st`
+ * struct
+ *
+ */
+typedef struct gko_deferred_factory_parameter_st*
+    gko_deferred_factory_parameter;
+
+/**
+ * @brief Deallocates memory for the parameter used for preconditioner
+ *
+ * @param deferred_fac_param_st_ptr Raw pointer to the shared pointer of the
+ * preconditioner parameter object to be deleted
+ */
+void ginkgo_deferred_factory_parameter_delete(
+    gko_deferred_factory_parameter deferred_fac_param_st_ptr);
+
+gko_deferred_factory_parameter ginkgo_preconditioner_jacobi_f64_i32_create(
+    int blocksize);
+
+gko_linop ginkgo_linop_cg_preconditioned_f64_create(
+    gko_executor exec_st_ptr, gko_linop A_st_ptr,
+    gko_deferred_factory_parameter dfp_st_ptr, double reduction, int maxiter);
 
 /* ----------------------------------------------------------------------
  * Library functions for retrieving configuration information in GINKGO
