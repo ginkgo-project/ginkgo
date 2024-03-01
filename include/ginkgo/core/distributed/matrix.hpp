@@ -543,6 +543,27 @@ protected:
                     ptr_param<const LinOp> local_matrix_template,
                     ptr_param<const LinOp> non_local_matrix_template);
 
+    explicit Matrix(std::shared_ptr<const Executor> exec,
+                    mpi::communicator comm, dim<2> size,
+                    std::shared_ptr<LinOp> local_linop)
+        : EnableDistributedLinOp<
+              Matrix<value_type, local_index_type, global_index_type>>{exec},
+          DistributedBase{comm},
+          send_offsets_(comm.size() + 1),
+          send_sizes_(comm.size()),
+          recv_offsets_(comm.size() + 1),
+          recv_sizes_(comm.size()),
+          gather_idxs_{exec},
+          recv_gather_idxs_{exec},
+          non_local_to_global_{exec},
+          one_scalar_{}
+    {
+        this->set_size(size);
+        one_scalar_.init(exec, dim<2>{1, 1});
+        one_scalar_->fill(one<value_type>());
+        local_mtx_ = local_linop;
+    }
+
     /**
      * Starts a non-blocking communication of the values of b that are shared
      * with other processors.
@@ -564,6 +585,7 @@ private:
     std::vector<comm_index_type> recv_offsets_;
     std::vector<comm_index_type> recv_sizes_;
     array<local_index_type> gather_idxs_;
+    array<local_index_type> recv_gather_idxs_;
     array<global_index_type> non_local_to_global_;
     gko::detail::DenseCache<value_type> one_scalar_;
     gko::detail::DenseCache<value_type> host_send_buffer_;
