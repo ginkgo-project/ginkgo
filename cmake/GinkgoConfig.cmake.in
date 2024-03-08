@@ -63,16 +63,10 @@ set(GINKGO_JACOBI_FULL_OPTIMIZATIONS @GINKGO_JACOBI_FULL_OPTIMIZATIONS@)
 set(GINKGO_CUDA_ARCHITECTURES "@CMAKE_CUDA_ARCHITECTURES@")
 set(GINKGO_CUDA_HOST_COMPILER "@CMAKE_CUDA_HOST_COMPILER@")
 
-set(GINKGO_HIP_COMPILER_FLAGS "@GINKGO_HIP_COMPILER_FLAGS@")
-set(GINKGO_HIP_HCC_COMPILER_FLAGS "@GINKGO_HIP_HCC_COMPILER_FLAGS@")
-set(GINKGO_HIP_NVCC_COMPILER_FLAGS "@GINKGO_HIP_NVCC_COMPILER_FLAGS@")
-set(GINKGO_HIP_CLANG_COMPILER_FLAGS "@GINKGO_HIP_CLANG_COMPILER_FLAGS@")
-set(GINKGO_HIP_PLATFORM @GINKGO_HIP_PLATFORM@)
-set(GINKGO_HIP_PLATFORM_AMD_REGEX "@HIP_PLATFORM_AMD_REGEX@")
-set(GINKGO_HIP_PLATFORM_NVIDIA_REGEX "@HIP_PLATFORM_NVIDIA_REGEX@")
-set(GINKGO_HIP_AMDGPU "@GINKGO_HIP_AMDGPU@")
-set(GINKGO_HIP_VERSION @GINKGO_HIP_VERSION@)
-set(GINKGO_AMD_ARCH_FLAGS "@GINKGO_AMD_ARCH_FLAGS@")
+set(GINKGO_HIP_COMPILER_FLAGS "@CMAKE_HIP_COMPILER_FLAGS@")
+set(GINKGO_HIP_PLATFORM "@GINKGO_HIP_PLATFORM@")
+set(GINKGO_HIP_VERSION "@GINKGO_HIP_VERSION@")
+set(GINKGO_HIP_ARCHITECTURES "@CMAKE_HIP_ARCHITECTURES@")
 
 set(GINKGO_DPCPP_VERSION @GINKGO_DPCPP_VERSION@)
 set(GINKGO_DPCPP_MAJOR_VERSION @GINKGO_DPCPP_MAJOR_VERSION@)
@@ -100,8 +94,8 @@ set(GINKGO_CUDA_HOST_COMPILER_SHORT "")  # dummy value to stay consistent
 set(GINKGO_EXPORT_BINARY_DIR "@GINKGO_EXPORT_BINARY_DIR@")
 if(NOT GINKGO_EXPORT_BINARY_DIR)
     set_and_check(GINKGO_INSTALL_PREFIX "@PACKAGE_CMAKE_INSTALL_PREFIX@")
-    set_and_check(GINKGO_INSTALL_INCLUDE_DIR "@PACKAGE_CMAKE_INSTALL_FULL_INCLUDEDIR@")
-    set_and_check(GINKGO_INSTALL_LIBRARY_DIR "@PACKAGE_CMAKE_INSTALL_FULL_LIBDIR@")
+    set_and_check(GINKGO_INSTALL_INCLUDE_DIR "@PACKAGE_CMAKE_INSTALL_INCLUDEDIR@")
+    set_and_check(GINKGO_INSTALL_LIBRARY_DIR "@PACKAGE_CMAKE_INSTALL_LIBDIR@")
     set(GINKGO_INSTALL_RPATH_FOR_HIP "-Wl,-rpath,${GINKGO_INSTALL_LIBRARY_DIR}")
     set(GINKGO_INSTALL_RPATH @GINKGO_INSTALL_RPATH@)
     set(GINKGO_INSTALL_RPATH_USE_ORIGIN @GINKGO_INSTALL_RPATH_USE_ORIGIN@)
@@ -147,60 +141,59 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 # NOTE: we do not export benchmarks, examples, tests or devel tools
 #     so `third_party` libraries are currently unneeded.
 
+include(CMakeFindDependencyMacro)
 if(GINKGO_HAVE_PAPI_SDE)
-    find_package(PAPI REQUIRED COMPONENTS sde)
+    find_dependency(PAPI 7.0.1.0 COMPONENTS sde)
 endif()
 
 if(GINKGO_HAVE_HWLOC)
-    find_package(HWLOC REQUIRED)
+    find_dependency(HWLOC)
 endif()
 
 # Check for MPI if it is enabled
 if(GINKGO_BUILD_MPI)
-    find_package(MPI 3.1 COMPONENTS CXX REQUIRED)
+    find_dependency(MPI 3.1 COMPONENTS CXX)
 endif()
 
 # HIP and OpenMP depend on Threads::Threads in some circumstances, but don't find it
 if (GINKGO_BUILD_HIP OR GINKGO_BUILD_OMP)
-    find_package(Threads REQUIRED)
+    find_dependency(Threads)
 endif()
 
 # Needed because of a known issue with CUDA while linking statically.
 # For details, see https://gitlab.kitware.com/cmake/cmake/issues/18614
 if((NOT GINKGO_BUILD_SHARED_LIBS) AND GINKGO_BUILD_CUDA)
     enable_language(CUDA)
-    find_package(CUDAToolkit REQUIRED)
-    find_package(NVTX REQUIRED)
+    find_dependency(CUDAToolkit)
+    find_dependency(NVTX)
 endif()
 
 if((NOT GINKGO_BUILD_SHARED_LIBS) AND GINKGO_BUILD_HIP)
-    find_package(HIP REQUIRED)
-    find_package(hipblas REQUIRED)
-    find_package(hipfft) # optional
-    find_package(hiprand REQUIRED)
-    find_package(hipsparse REQUIRED)
-    find_package(rocrand REQUIRED)
-    set(ROCTRACER_PATH "@ROCTRACER_PATH@")
-    if(GINKGO_HAVE_ROCTX)
-        find_package(ROCTX REQUIRED)
-    endif()
+    enable_language(HIP)
+    find_dependency(hipblas)
+    find_dependency(hipfft)
+    find_dependency(hiprand)
+    find_dependency(hipsparse)
+    find_dependency(rocrand)
+    set_and_check(ROCTRACER_PATH "@ROCTRACER_PATH@")
+    find_dependency(ROCTX)
 endif()
 
 if((NOT GINKGO_BUILD_SHARED_LIBS) AND GINKGO_BUILD_SYCL)
-    find_package(MKL CONFIG REQUIRED HINTS "${GINKGO_MKL_ROOT}")
-    find_package(oneDPL REQUIRED HINTS "${GINKGO_DPL_ROOT}")
+    find_dependency(MKL CONFIG HINTS "${GINKGO_MKL_ROOT}")
+    find_dependency(oneDPL HINTS "${GINKGO_DPL_ROOT}")
 endif()
 
 if(GINKGO_HAVE_VTUNE)
-    find_package(VTune REQUIRED)
+    find_dependency(VTune)
 endif()
 
 if((NOT GINKGO_BUILD_SHARED_LIBS) AND GINKGO_HAVE_METIS)
-    find_package(METIS REQUIRED)
+    find_dependency(METIS)
 endif()
 
 if((NOT GINKGO_BUILD_SHARED_LIBS) AND GINKGO_HAVE_TAU)
-    find_package(PerfStubs REQUIRED)
+    find_dependency(PerfStubs)
 endif()
 
 # Check that the same compilers as for Ginkgo are used

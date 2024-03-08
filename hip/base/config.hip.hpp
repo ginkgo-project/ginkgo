@@ -27,21 +27,13 @@ struct config {
     /**
      * The type containing a bitmask over all lanes of a warp.
      */
-#if GINKGO_HIP_PLATFORM_HCC
     using lane_mask_type = uint64;
-#else  // GINKGO_HIP_PLATFORM_NVCC
-    using lane_mask_type = uint32;
-#endif
 
     /**
      * The number of threads within a HIP warp. Here, we use the definition from
      * `device_functions.h`.
      */
-#if GINKGO_HIP_PLATFORM_HCC
     static constexpr uint32 warp_size = warpSize;
-#else  // GINKGO_HIP_PLATFORM_NVCC
-    static constexpr uint32 warp_size = 32;
-#endif
 
     /**
      * The bitmask of the entire warp.

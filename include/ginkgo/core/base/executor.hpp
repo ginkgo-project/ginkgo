@@ -63,33 +63,9 @@ enum class log_propagation_mode {
 enum class allocation_mode { device, unified_global, unified_host };
 
 
-#ifdef NDEBUG
-
-// When in release, prefer device allocations
 constexpr allocation_mode default_cuda_alloc_mode = allocation_mode::device;
 
 constexpr allocation_mode default_hip_alloc_mode = allocation_mode::device;
-
-#else
-
-// When in debug, always UM allocations.
-constexpr allocation_mode default_cuda_alloc_mode =
-    allocation_mode::unified_global;
-
-#if (GINKGO_HIP_PLATFORM_HCC == 1)
-
-// HIP on AMD GPUs does not support UM, so always prefer device allocations.
-constexpr allocation_mode default_hip_alloc_mode = allocation_mode::device;
-
-#else
-
-// HIP on NVIDIA GPUs supports UM, so prefer UM allocations.
-constexpr allocation_mode default_hip_alloc_mode =
-    allocation_mode::unified_global;
-
-#endif
-
-#endif
 
 
 }  // namespace gko
@@ -1718,13 +1694,13 @@ public:
     static std::shared_ptr<HipExecutor> create(
         int device_id, std::shared_ptr<Executor> master, bool device_reset,
         allocation_mode alloc_mode = default_hip_alloc_mode,
-        GKO_HIP_STREAM_STRUCT* stream = nullptr);
+        ihipStream_t* stream = nullptr);
 
     static std::shared_ptr<HipExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
         std::shared_ptr<HipAllocatorBase> alloc =
             std::make_shared<HipAllocator>(),
-        GKO_HIP_STREAM_STRUCT* stream = nullptr);
+        ihipStream_t* stream = nullptr);
 
     std::shared_ptr<Executor> get_master() noexcept override;
 
@@ -1830,7 +1806,7 @@ public:
         return this->get_exec_info().closest_pu_ids;
     }
 
-    GKO_HIP_STREAM_STRUCT* get_stream() const { return stream_; }
+    ihipStream_t* get_stream() const { return stream_; }
 
 protected:
     void set_gpu_property();
@@ -1838,8 +1814,7 @@ protected:
     void init_handles();
 
     HipExecutor(int device_id, std::shared_ptr<Executor> master,
-                std::shared_ptr<HipAllocatorBase> alloc,
-                GKO_HIP_STREAM_STRUCT* stream)
+                std::shared_ptr<HipAllocatorBase> alloc, ihipStream_t* stream)
         : master_{std::move(master)}, alloc_{std::move(alloc)}, stream_{stream}
     {
         this->get_exec_info().device_id = device_id;
@@ -1876,7 +1851,7 @@ private:
     handle_manager<hipblasContext> hipblas_handle_;
     handle_manager<hipsparseContext> hipsparse_handle_;
     std::shared_ptr<HipAllocatorBase> alloc_;
-    GKO_HIP_STREAM_STRUCT* stream_;
+    ihipStream_t* stream_;
 };
 
 

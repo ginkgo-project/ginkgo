@@ -45,12 +45,12 @@ Ginkgo adds the following additional switches to control what is being built:
 *   `-DGINKGO_BUILD_SYCL={ON, OFF}` builds optimized SYCL versions of the
     kernels (requires `CMAKE_CXX_COMPILER` to be set to the `dpcpp` or `icpx` compiler).
     The default is `ON` if `CMAKE_CXX_COMPILER` is a SYCL compiler, `OFF`
-    otherwise.
+    otherwise. Due to some differences in IEEE 754 floating point numberhandling in the Intel
+    SYCL compilers, Ginkgo tests may fail unless compiled with
+    `-DCMAKE_CXX_FLAGS=-ffp-model=precise`
 *   `-DGINKGO_BUILD_HIP={ON, OFF}` builds optimized HIP versions of the kernels
     (requires HIP), default is `ON` if an installation of HIP could be detected,
     `OFF` otherwise.
-*   `-DGINKGO_HIP_AMDGPU="gpuarch1;gpuarch2"` the amdgpu_target(s) variable
-    passed to hipcc for the `hcc` HIP backend. The default is none (auto).
 *   `-DGINKGO_BUILD_HWLOC={ON, OFF}` builds Ginkgo with HWLOC. If system HWLOC
     is not found, Ginkgo will try to build it. Default is `ON` on Linux. Ginkgo
     does not support HWLOC on Windows/MacOS, so the default is `OFF` on Windows/MacOS.
@@ -190,13 +190,6 @@ environment variable `HIP_PLATFORM` like so:
 ```bash
 export HIP_PLATFORM=nvcc # or nvidia for ROCM >= 4.1
 ```
-
-#### Setting platform specific compilation flags
-Platform specific compilation flags can be given through the following CMake
-variables:
-+ `-DGINKGO_HIP_COMPILER_FLAGS=`: compilation flags given to all platforms.
-+ `-DGINKGO_HIP_NVCC_COMPILER_FLAGS=`: compilation flags given to NVIDIA platforms.
-+ `-DGINKGO_HIP_CLANG_COMPILER_FLAGS=`: compilation flags given to AMD clang compiler.
 
 
 ### Third party libraries and packages

@@ -21,6 +21,8 @@
     - .before_script_template
   script:
     - mkdir -p ${CI_JOB_NAME} && cd ${CI_JOB_NAME}
+    - mkdir install_prefix
+    - export INSTALL_PREFIX=`pwd`/install_prefix
     - if [ -n "${CUDA_ARCH}" ]; then
       export CUDA_ARCH_STR=-DGINKGO_CUDA_ARCHITECTURES=${CUDA_ARCH};
       fi
@@ -31,13 +33,13 @@
     - if [[ "${BUILD_MPI}" == "ON" ]]; then
       MPI_STR=-DGINKGO_MPI_EXEC_SUFFIX=${MPI_SUFFIX};
       fi
-    - export CC=${C_COMPILER} CXX=${CXX_COMPILER} CUDAHOSTCXX=${CXX_COMPILER} CUDACXX=${CUDA_COMPILER}
+    - export CXX=${CXX_COMPILER} CUDAHOSTCXX=${CXX_COMPILER} CUDACXX=${CUDA_COMPILER}
     - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
         -GNinja
         -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+        -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}
         -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
         ${EXTRA_CMAKE_FLAGS} ${CUDA_ARCH_STR}
-        -DGINKGO_COMPILER_FLAGS=${GKO_COMPILER_FLAGS}
         -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP} -DGINKGO_BUILD_SYCL=${BUILD_SYCL}
@@ -61,6 +63,8 @@
     - .before_script_template
   script:
     - mkdir -p ${CI_JOB_NAME} && cd ${CI_JOB_NAME}
+    - mkdir install_prefix
+    - export INSTALL_PREFIX=`pwd`/install_prefix
     - if [ -n "${CUDA_ARCH}" ]; then
       export CUDA_ARCH_STR=-DGINKGO_CUDA_ARCHITECTURES=${CUDA_ARCH};
       fi
@@ -74,12 +78,12 @@
     - if [[ "${BUILD_MPI}" == "ON" ]]; then
       MPI_STR=-DGINKGO_MPI_EXEC_SUFFIX=${MPI_SUFFIX};
       fi
-    - export CC=${C_COMPILER} CXX=${CXX_COMPILER} CUDAHOSTCXX=${CXX_COMPILER} CUDACXX=${CUDA_COMPILER}
+    - export CXX=${CXX_COMPILER} CUDAHOSTCXX=${CXX_COMPILER} CUDACXX=${CUDA_COMPILER}
     - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
         -GNinja -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+        -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}
         -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
         ${EXTRA_CMAKE_FLAGS} ${CUDA_ARCH_STR}
-        -DGINKGO_COMPILER_FLAGS=${GKO_COMPILER_FLAGS}
         -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP} -DGINKGO_BUILD_SYCL=${BUILD_SYCL}
@@ -125,7 +129,7 @@
       fi
     - if [ -n "${SYCL_DEVICE_TYPE}" ]; then unset SYCL_DEVICE_TYPE; fi
     - if [ -n "${SYCL_DEVICE_FILTER}" ]; then unset SYCL_DEVICE_FILTER; fi
-    - LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH ninja test_pkgconfig
+    - PKG_CONFIG_PATH=${INSTALL_PREFIX}/lib/pkgconfig:$PKG_CONFIG_PATH LD_LIBRARY_PATH=${INSTALL_PREFIX}/lib:$LD_LIBRARY_PATH ninja test_pkgconfig
   dependencies: []
 
 
