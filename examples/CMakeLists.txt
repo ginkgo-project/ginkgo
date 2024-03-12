@@ -78,10 +78,11 @@ if(GINKGO_BUILD_TESTS)
     if(GINKGO_BUILD_REFERENCE)
         list(APPEND executors reference)
     endif()
-    if(GINKGO_BUILD_CUDA)
+    # OpenMP support is needed for some host kernels
+    if(GINKGO_BUILD_CUDA AND GINKGO_BUILD_OMP)
         list(APPEND executors cuda)
     endif()
-    if(GINKGO_BUILD_HIP)
+    if(GINKGO_BUILD_HIP AND GINKGO_BUILD_OMP)
         list(APPEND executors hip)
     endif()
     # DPC++ support is incomplete
