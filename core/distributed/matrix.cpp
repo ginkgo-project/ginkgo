@@ -192,7 +192,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
                 interfaces,
             std::shared_ptr<LinOp> mtx) {
             auto combination = gko::share(
-                gko::Combination<ValueType>::create(exec), mtx->get_size());
+                gko::Combination<ValueType>::create(exec, mtx->get_size()));
             for (auto& interface : interfaces) {
                 as<ReadableFromMatrixData<ValueType, LocalIndexType>>(mtx)
                     ->read(std::move(interface));
