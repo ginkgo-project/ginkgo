@@ -91,9 +91,6 @@ public:
      */
     Combination(Combination&&);
 
-protected:
-    void add_operators() {}
-
     template <typename... Rest>
     void add_operators(std::shared_ptr<const LinOp> coef,
                        std::shared_ptr<const LinOp> oper, Rest&&... rest)
@@ -111,6 +108,10 @@ protected:
         }
         add_operators(std::forward<Rest>(rest)...);
     }
+
+protected:
+    void add_operators() {}
+
 
     /**
      * Creates an empty linear combination (0x0 operator).

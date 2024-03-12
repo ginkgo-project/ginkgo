@@ -187,11 +187,13 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 
     // TODO implement without the temporary copy
     auto init_combination =
-        [this, exec](std::vector<device_matrix_data<ValueType, LocalIndexType>>&
-                         interfaces,
-                     std::shared_ptr<LinOp> mtx) {
+        [this, exec](
+            const std::vector<device_matrix_data<ValueType, LocalIndexType>>&
+                interfaces,
+            std::shared_ptr<LinOp> mtx) {
             auto combination =
                 gko::share(gko::Combination<ValueType>::create(exec));
+            combination->set_size(mtx->get_size());
             for (auto& interface : interfaces) {
                 as<ReadableFromMatrixData<ValueType, LocalIndexType>>(mtx)
                     ->read(std::move(interface));
