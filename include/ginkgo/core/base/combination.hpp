@@ -123,7 +123,7 @@ protected:
     {}
 
     /**
-     * Creates an empty linear combination (0x0 operator).
+     * Creates an empty linear combination with given size.
      *
      * @param exec  Executor associated to the linear combination
      */

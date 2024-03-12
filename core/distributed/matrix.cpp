@@ -191,8 +191,9 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
             const std::vector<device_matrix_data<ValueType, LocalIndexType>>&
                 interfaces,
             std::shared_ptr<LinOp> mtx) {
-            auto combination = gko::share(
-                gko::Combination<ValueType>::create(exec, mtx->get_size()));
+            auto combination = gko::share(gko::Combination<ValueType>::create(
+                exec, interfaces[0].get_size()));
+
             for (auto& interface : interfaces) {
                 as<ReadableFromMatrixData<ValueType, LocalIndexType>>(mtx)
                     ->read(std::move(interface));
@@ -201,8 +202,10 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
                     gko::initialize<gko::matrix::Dense<ValueType>>({1}, exec),
                     gko::share(mtx->clone()));
             }
+
             return combination;
         };
+
 
     local_mtx_ = init_combination(local_data, this->local_mtx_);
     non_local_mtx_ = init_combination(non_local_data, this->non_local_mtx_);
