@@ -289,6 +289,27 @@ public:
 
 
     /**
+     * Reads a matrix that is split into local data that only operates on local
+     * DOFs and non_local_data that needs input from non-local DOFs.
+     *
+     * local_data and non_local_data must have the same number of rows.
+     * Additionally, it is assumed that no column of non_local_data is
+     * completely zero. The number of columns in non_local_data must the same as
+     * the number of receiving indices in the communication pattern.
+     *
+     * @param local_data  The matrix data for the local block.
+     * @param non_local_data  The matrix data for the non-local block.
+     * @param sparse_comm  The communication pattern
+     */
+    void read_distributed(
+        const std::vector<device_matrix_data<value_type, local_index_type>>&
+            local_data,
+        const std::vector<device_matrix_data<value_type, local_index_type>>&
+            non_local_data,
+        std::shared_ptr<const sparse_communicator> sparse_comm);
+
+
+    /**
      * Reads a square matrix from the device_matrix_data structure and a global
      * partition.
      *
