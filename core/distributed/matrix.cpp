@@ -170,6 +170,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         local_data,
     const std::vector<device_matrix_data<value_type, local_index_type>>&
         non_local_data,
+    std::shared_ptr<LinOp> in,
     std::shared_ptr<const sparse_communicator> sparse_comm)
 {
     sparse_comm_ = std::move(sparse_comm);
@@ -195,12 +196,13 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
                 exec, interfaces[0].get_size()));
 
             for (auto& interface : interfaces) {
-                as<ReadableFromMatrixData<ValueType, LocalIndexType>>(mtx)
+                auto tmp_clone = gko::share(in->clone());
+                as<ReadableFromMatrixData<ValueType, LocalIndexType>>(tmp_clone)
                     ->read(std::move(interface));
 
                 combination->add_operators(
                     gko::initialize<gko::matrix::Dense<ValueType>>({1}, exec),
-                    gko::share(mtx->clone()));
+                    tmp_clone);
             }
 
             return combination;

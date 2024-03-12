@@ -306,6 +306,7 @@ public:
             local_data,
         const std::vector<device_matrix_data<value_type, local_index_type>>&
             non_local_data,
+        std::shared_ptr<LinOp> in,
         std::shared_ptr<const sparse_communicator> sparse_comm);
 
 
