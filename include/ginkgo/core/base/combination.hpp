@@ -123,6 +123,18 @@ protected:
     {}
 
     /**
+     * Creates an empty linear combination (0x0 operator).
+     *
+     * @param exec  Executor associated to the linear combination
+     */
+    explicit Combination(std::shared_ptr<const Executor> exec,
+                         const gko::dim<2>& size)
+        : EnableLinOp<Combination>(exec)
+    {
+        this->set_size(size);
+    }
+
+    /**
      * Creates a linear combination of operators using the specified list of
      * coefficients and operators.
      *
