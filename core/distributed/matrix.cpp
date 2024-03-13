@@ -188,7 +188,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 
     // TODO implement without the temporary copy
     auto init_combination =
-        [this, exec](
+        [this, exec, in](
             const std::vector<device_matrix_data<ValueType, LocalIndexType>>&
                 interfaces,
             std::shared_ptr<LinOp> mtx) {
