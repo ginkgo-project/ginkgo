@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -121,11 +121,19 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_classical_spmv(
     using type = typename output_accessor::arithmetic_type;
     const type alpha_val = alpha[0];
     const type beta_val = beta[0];
-    device_classical_spmv<subwarp_size>(
-        num_rows, val, col_idxs, row_ptrs, b, c,
-        [&alpha_val, &beta_val](const type& x, const type& y) {
-            return alpha_val * x + beta_val * y;
-        });
+    if (is_zero(beta_val)) {
+        device_classical_spmv<subwarp_size>(
+            num_rows, val, col_idxs, row_ptrs, b, c,
+            [&alpha_val](const type& x, const type& y) {
+                return alpha_val * x;
+            });
+    } else {
+        device_classical_spmv<subwarp_size>(
+            num_rows, val, col_idxs, row_ptrs, b, c,
+            [&alpha_val, &beta_val](const type& x, const type& y) {
+                return alpha_val * x + beta_val * y;
+            });
+    }
 }
 
 
