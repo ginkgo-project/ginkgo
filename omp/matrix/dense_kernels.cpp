@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -120,7 +120,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
 #pragma omp parallel for
         for (size_type row = 0; row < c->get_size()[0]; ++row) {
             for (size_type col = 0; col < c->get_size()[1]; ++col) {
-                c->at(row, col) *= zero<ValueType>();
+                c->at(row, col) = zero<ValueType>();
             }
         }
     }
