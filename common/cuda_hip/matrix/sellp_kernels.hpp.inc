@@ -51,7 +51,9 @@ __global__ __launch_bounds__(default_block_size) void advanced_spmv_kernel(
             }
         }
         c[row * c_stride + column_id] =
-            beta[0] * c[row * c_stride + column_id] + alpha[0] * val;
+            is_zero(beta[0])
+                ? alpha[0] * val
+                : beta[0] * c[row * c_stride + column_id] + alpha[0] * val;
     }
 }
 

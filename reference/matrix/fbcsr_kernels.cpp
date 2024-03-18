@@ -103,7 +103,11 @@ void advanced_spmv(const std::shared_ptr<const ReferenceExecutor>,
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
         for (IndexType row = ibrow * bs; row < (ibrow + 1) * bs; ++row) {
             for (IndexType rhs = 0; rhs < nvecs; rhs++) {
-                c->at(row, rhs) *= vbeta;
+                if (is_zero(vbeta)) {
+                    c->at(row, rhs) = zero(vbeta);
+                } else {
+                    c->at(row, rhs) *= vbeta;
+                }
             }
         }
 

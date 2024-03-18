@@ -77,7 +77,7 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec,
     } else {
         for (size_type row = 0; row < c->get_size()[0]; ++row) {
             for (size_type col = 0; col < c->get_size()[1]; ++col) {
-                c->at(row, col) *= zero<ValueType>();
+                c->at(row, col) = zero<ValueType>();
             }
         }
     }
@@ -133,7 +133,11 @@ void scale(std::shared_ptr<const ReferenceExecutor> exec,
     if (alpha->get_size()[1] == 1) {
         for (size_type i = 0; i < x->get_size()[0]; ++i) {
             for (size_type j = 0; j < x->get_size()[1]; ++j) {
-                x->at(i, j) *= alpha->at(0, 0);
+                if (is_zero(alpha->at(0, 0))) {
+                    x->at(i, j) = zero<ValueType>();
+                } else {
+                    x->at(i, j) *= alpha->at(0, 0);
+                }
             }
         }
     } else {
@@ -178,9 +182,11 @@ void add_scaled(std::shared_ptr<const ReferenceExecutor> exec,
                 const matrix::Dense<ValueType>* x, matrix::Dense<ValueType>* y)
 {
     if (alpha->get_size()[1] == 1) {
-        for (size_type i = 0; i < x->get_size()[0]; ++i) {
-            for (size_type j = 0; j < x->get_size()[1]; ++j) {
-                y->at(i, j) += alpha->at(0, 0) * x->at(i, j);
+        if (is_nonzero(alpha->at(0, 0))) {
+            for (size_type i = 0; i < x->get_size()[0]; ++i) {
+                for (size_type j = 0; j < x->get_size()[1]; ++j) {
+                    y->at(i, j) += alpha->at(0, 0) * x->at(i, j);
+                }
             }
         }
     } else {
@@ -202,9 +208,11 @@ void sub_scaled(std::shared_ptr<const ReferenceExecutor> exec,
                 const matrix::Dense<ValueType>* x, matrix::Dense<ValueType>* y)
 {
     if (alpha->get_size()[1] == 1) {
-        for (size_type i = 0; i < x->get_size()[0]; ++i) {
-            for (size_type j = 0; j < x->get_size()[1]; ++j) {
-                y->at(i, j) -= alpha->at(0, 0) * x->at(i, j);
+        if (is_nonzero(alpha->at(0, 0))) {
+            for (size_type i = 0; i < x->get_size()[0]; ++i) {
+                for (size_type j = 0; j < x->get_size()[1]; ++j) {
+                    y->at(i, j) -= alpha->at(0, 0) * x->at(i, j);
+                }
             }
         }
     } else {
@@ -227,8 +235,10 @@ void add_scaled_diag(std::shared_ptr<const ReferenceExecutor> exec,
                      matrix::Dense<ValueType>* y)
 {
     const auto diag_values = x->get_const_values();
-    for (size_type i = 0; i < x->get_size()[0]; i++) {
-        y->at(i, i) += alpha->at(0, 0) * diag_values[i];
+    if (is_nonzero(alpha->at(0, 0))) {
+        for (size_type i = 0; i < x->get_size()[0]; i++) {
+            y->at(i, i) += alpha->at(0, 0) * diag_values[i];
+        }
     }
 }
 
@@ -242,8 +252,10 @@ void sub_scaled_diag(std::shared_ptr<const ReferenceExecutor> exec,
                      matrix::Dense<ValueType>* y)
 {
     const auto diag_values = x->get_const_values();
-    for (size_type i = 0; i < x->get_size()[0]; i++) {
-        y->at(i, i) -= alpha->at(0, 0) * diag_values[i];
+    if (is_nonzero(alpha->at(0, 0))) {
+        for (size_type i = 0; i < x->get_size()[0]; i++) {
+            y->at(i, i) -= alpha->at(0, 0) * diag_values[i];
+        }
     }
 }
 
