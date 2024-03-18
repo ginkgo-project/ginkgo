@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -106,7 +106,7 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel for
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
         for (size_type j = 0; j < c->get_size()[1]; ++j) {
-            auto sum = c_vals(row, j) * vbeta;
+            auto sum = is_zero(vbeta) ? zero(vbeta) : c_vals(row, j) * vbeta;
             for (size_type k = row_ptrs[row];
                  k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
                 arithmetic_type val = a_vals(k);

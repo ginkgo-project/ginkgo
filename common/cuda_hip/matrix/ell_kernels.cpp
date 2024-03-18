@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -192,13 +192,24 @@ __global__ __launch_bounds__(default_block_size) void spmv(
                 return static_cast<OutputValueType>(alpha_val * x);
             });
     } else {
-        spmv_kernel<num_thread_per_worker, atomic>(
-            num_rows, num_worker_per_row, val, col, stride,
-            num_stored_elements_per_row, b, c, c_stride,
-            [&alpha_val, &beta_val](const auto& x, const OutputValueType& y) {
-                return static_cast<OutputValueType>(
-                    alpha_val * x + static_cast<arithmetic_type>(beta_val * y));
-            });
+        if (is_zero(beta_val)) {
+            spmv_kernel<num_thread_per_worker, atomic>(
+                num_rows, num_worker_per_row, val, col, stride,
+                num_stored_elements_per_row, b, c, c_stride,
+                [&alpha_val](const auto& x, const OutputValueType& y) {
+                    return static_cast<OutputValueType>(alpha_val * x);
+                });
+        } else {
+            spmv_kernel<num_thread_per_worker, atomic>(
+                num_rows, num_worker_per_row, val, col, stride,
+                num_stored_elements_per_row, b, c, c_stride,
+                [&alpha_val, &beta_val](const auto& x,
+                                        const OutputValueType& y) {
+                    return static_cast<OutputValueType>(
+                        alpha_val * x +
+                        static_cast<arithmetic_type>(beta_val * y));
+                });
+        }
     }
 }
 
