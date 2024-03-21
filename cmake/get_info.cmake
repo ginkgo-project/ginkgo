@@ -2,21 +2,21 @@ SET(detailed_log "${PROJECT_BINARY_DIR}/detailed.log")
 SET(minimal_log  "${PROJECT_BINARY_DIR}/minimal.log")
 FILE(REMOVE ${detailed_log} ${minimal_log})
 
-MACRO(_both)
+macro(_both)
     # Write to both log files:
     FILE(APPEND ${detailed_log} "${ARGN}")
     FILE(APPEND ${minimal_log} "${ARGN}")
-ENDMACRO()
+endmacro()
 
-MACRO(_detailed)
+macro(_detailed)
     # Only write to detailed.log:
     FILE(APPEND ${detailed_log} "${ARGN}")
-ENDMACRO()
+endmacro()
 
-MACRO(_minimal)
+macro(_minimal)
     # Only write to minimal.log:
     FILE(APPEND ${minimal_log} "${ARGN}")
-ENDMACRO()
+endmacro()
 
 function(ginkgo_print_generic_header log_type optional_string)
     set(upd_string
@@ -45,7 +45,7 @@ function(ginkgo_print_module_footer log_type optional_string)
     FILE(APPEND ${log_type} "${upd_string}")
 endfunction()
 
-FUNCTION(ginkgo_print_flags log_type var_name)
+function(ginkgo_print_flags log_type var_name)
     string(TOUPPER "${CMAKE_BUILD_TYPE}" suff)
     set(var_string "${var_name}_${suff}")
     if(${var_string} STREQUAL "")
@@ -57,7 +57,7 @@ FUNCTION(ginkgo_print_flags log_type var_name)
 --        ${var_string}:                                                        " 0 55 upd_string)
     string(APPEND upd_string "${str_value}")
     FILE(APPEND ${log_type} ${upd_string})
-ENDFUNCTION()
+endfunction()
 
 function(ginkgo_print_variable log_type var_name)
     string(SUBSTRING
@@ -93,18 +93,18 @@ macro(ginkgo_print_foreach_variable log_type)
     endforeach()
 endmacro()
 
-IF("${GINKGO_GIT_SHORTREV}" STREQUAL "")
+if("${GINKGO_GIT_SHORTREV}" STREQUAL "")
     set(to_print "Summary of Configuration for Ginkgo (version ${Ginkgo_VERSION} with tag ${Ginkgo_VERSION_TAG})
 --"
         )
     ginkgo_print_generic_header(${detailed_log} "${to_print}")
     ginkgo_print_generic_header(${minimal_log} "${to_print}")
-ELSE()
+else()
     set(to_print "Summary of Configuration for Ginkgo (version ${Ginkgo_VERSION} with tag ${Ginkgo_VERSION_TAG}, shortrev ${GINKGO_GIT_SHORTREV})"
         )
     ginkgo_print_generic_header(${detailed_log} "${to_print}")
     ginkgo_print_generic_header(${minimal_log} "${to_print}")
-ENDIF()
+endif()
 
 set(log_types "detailed_log;minimal_log")
 foreach(log_type ${log_types})
@@ -147,29 +147,29 @@ ginkgo_print_generic_header(${detailed_log} "${to_print}")
 
 include(core/get_info.cmake)
 
-IF(GINKGO_BUILD_REFERENCE)
+if(GINKGO_BUILD_REFERENCE)
     include(reference/get_info.cmake)
-ENDIF()
+endif()
 
-IF(GINKGO_BUILD_OMP)
+if(GINKGO_BUILD_OMP)
     include(omp/get_info.cmake)
-ENDIF()
+endif()
 
-IF(GINKGO_BUILD_MPI)
+if(GINKGO_BUILD_MPI)
     include(core/mpi/get_info.cmake)
-ENDIF()
+endif()
 
-IF(GINKGO_BUILD_CUDA)
+if(GINKGO_BUILD_CUDA)
     include(cuda/get_info.cmake)
-ENDIF()
+endif()
 
-IF(GINKGO_BUILD_HIP)
+if(GINKGO_BUILD_HIP)
     include(hip/get_info.cmake)
-ENDIF()
+endif()
 
-IF(GINKGO_BUILD_SYCL)
+if(GINKGO_BUILD_SYCL)
     include(dpcpp/get_info.cmake)
-ENDIF()
+endif()
 
 ginkgo_print_generic_header(${minimal_log} "  Developer Tools:")
 ginkgo_print_generic_header(${detailed_log} "  Developer Tools:")
@@ -197,7 +197,6 @@ if(TARGET PAPI::PAPI)
     ginkgo_print_variable(${detailed_log} "PAPI_INCLUDE_DIR")
     ginkgo_print_flags(${detailed_log} "PAPI_LIBRARY")
 endif()
-
 ginkgo_print_variable(${minimal_log} "GINKGO_BUILD_HWLOC")
 ginkgo_print_variable(${detailed_log} "GINKGO_BUILD_HWLOC")
 if(TARGET hwloc)
@@ -205,13 +204,25 @@ if(TARGET hwloc)
     ginkgo_print_variable(${detailed_log} "HWLOC_LIBRARIES")
     ginkgo_print_variable(${detailed_log} "HWLOC_INCLUDE_DIRS")
 endif()
+ginkgo_print_module_footer(${detailed_log} "")
+
+block()
+    set(Kokkos_VERSION ${GINKGO_Kokkos_VERSION})
+    set(Kokkos_DEVICES ${GINKGO_Kokkos_DEVICES})
+    ginkgo_print_generic_header(${minimal_log} "  Extensions:")
+    ginkgo_print_generic_header(${detailed_log} "  Extensions:")
+    ginkgo_print_variable(${minimal_log} "GINKGO_EXTENSION_KOKKOS")
+    ginkgo_print_variable(${detailed_log} "GINKGO_EXTENSION_KOKKOS")
+    ginkgo_print_variable(${detailed_log} "Kokkos_VERSION")
+    ginkgo_print_variable(${detailed_log} "Kokkos_DEVICES")
+endblock()
 
 _minimal(
-    "
+        "
 --\n--  Detailed information (More compiler flags, module configuration) can be found in detailed.log
 --   ")
 _both(
-    "\n--\n--  Now, run  cmake --build .  to compile Ginkgo!\n"
-    )
+        "\n--\n--  Now, run  cmake --build .  to compile Ginkgo!\n"
+)
 _both("--
 ---------------------------------------------------------------------------------------------------------\n")
