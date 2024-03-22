@@ -290,7 +290,7 @@ protected:
             preconditioner_ = std::move(id);
         }
         const size_type workspace_size = system_matrix->get_num_batch_items() *
-                                         (sizeof(real_type) + sizeof(int));
+                                         (sizeof(real_type) + sizeof(int64));
         workspace_.set_executor(exec);
         workspace_.resize_and_reset(workspace_size);
     }
