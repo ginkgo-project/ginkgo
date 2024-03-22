@@ -566,7 +566,7 @@ protected:
      * @param residual_norms  the array storing the residual norms.
      */
     virtual void on_batch_solver_completed(
-        const array<int>& iters, const array<double>& residual_norms) const
+        const array<int64>& iters, const array<double>& residual_norms) const
     {}
 
     /**
@@ -577,7 +577,7 @@ protected:
      * @param residual_norms  the array storing the residual norms.
      */
     virtual void on_batch_solver_completed(
-        const array<int>& iters, const array<float>& residual_norms) const
+        const array<int64>& iters, const array<float>& residual_norms) const
     {}
 
 public:
