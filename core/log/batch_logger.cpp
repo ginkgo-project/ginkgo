@@ -17,12 +17,12 @@ namespace log {
 
 template <typename ValueType>
 void BatchConvergence<ValueType>::on_batch_solver_completed(
-    const array<int>& iteration_count,
+    const array<int64>& iteration_count,
     const array<remove_complex<ValueType>>& residual_norm) const
 {
     if (this->iteration_count_.get_size() == 0) {
-        this->iteration_count_ = gko::array<int>(iteration_count.get_executor(),
-                                                 iteration_count.get_size());
+        this->iteration_count_ = gko::array<int64>(
+            iteration_count.get_executor(), iteration_count.get_size());
     }
     if (this->residual_norm_.get_size() == 0) {
         this->residual_norm_ = gko::array<remove_complex<ValueType>>(
