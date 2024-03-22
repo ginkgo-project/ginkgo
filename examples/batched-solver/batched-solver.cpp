@@ -16,10 +16,7 @@
 
 
 // @sect3{Type aliases for convenience}
-// Use some shortcuts. In Ginkgo, vectors are seen as a gko::matrix::Dense
-// with one column/one row. The advantage of this concept is that using
-// multiple vectors is a now a natural extension of adding columns/rows are
-// necessary.
+// Use some shortcuts.
 using value_type = double;
 using real_type = gko::remove_complex<value_type>;
 using index_type = int;
@@ -55,7 +52,8 @@ auto unbatch(const InputType* batch_object)
 //
 // We use raw pointers below to demonstrate how to handle the situation when
 // the application only gives us raw pointers. Ideally, one should use
-// Ginkgo's gko::Array class here.
+// Ginkgo's gko::Array class here. In this example, we assume that the data is
+// in a format that can directly be given to a batch::matrix::Csr object.
 struct ApplSysData {
     // Number of small systems in the batch.
     size_type nsystems;
@@ -92,12 +90,15 @@ void appl_clean_up(ApplSysData& appl_data, std::shared_ptr<gko::Executor> exec);
 
 int main(int argc, char* argv[])
 {
-    // Print the ginkgo version information.
+    // Print the ginkgo version information, only when the example is not being
+    // timed.
     if (!(std::string(argv[4]) == "time"))
         std::cout << gko::version_info::get() << std::endl;
 
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
-        std::cerr << "Usage: " << argv[0] << " [executor] " << std::endl;
+        std::cerr << "Usage: " << argv[0]
+                  << " [executor] [num_systems] [time] [residuals] [num_reps]"
+                  << std::endl;
         std::exit(-1);
     }
 
@@ -106,8 +107,9 @@ int main(int argc, char* argv[])
     // we have support for an gko::OmpExecutor, which uses OpenMP
     // multi-threading in most of its kernels,
     // a gko::ReferenceExecutor, a single threaded specialization of
-    // the OpenMP executor and a gko::CudaExecutor which runs the code on a
-    // NVIDIA GPU if available.
+    // the OpenMP executor, gko::CudaExecutor, gko::HipExecutor,
+    // gko::DpcppExecutor which runs the code on a NVIDIA, AMD and Intel GPUs,
+    // respectively.
     // @note With the help of C++, you see that you only ever need to change the
     // executor and all the other functions/ routines within Ginkgo should
     // automatically work and run on the executor with any other changes.
@@ -136,10 +138,13 @@ int main(int argc, char* argv[])
 
     const size_type num_systems = argc >= 3 ? std::atoi(argv[2]) : 2;
     const int num_rows = argc >= 4 ? std::atoi(argv[3]) : 32;  // per system
+    // Whether to print the time or not.
     const bool print_time =
         argc >= 5 ? (std::string(argv[4]) == "time") : false;
+    // Whether to print the residuals or not.
     const bool print_residuals =
         argc >= 6 ? (std::string(argv[5]) == "residuals") : false;
+    // The number of repetitions for the timing.
     const int num_reps = argc >= 7 ? std::atoi(argv[6]) : 20;
     // @sect3{Generate data}
     // The "application" generates the batch of linear systems on the device
@@ -190,13 +195,9 @@ int main(int argc, char* argv[])
     // Create a batched solver factory with relevant parameters.
     auto solver =
         bicgstab::build()
-            .with_max_iterations(500)
+            .with_max_iterations(500u)
             .with_tolerance(reduction_factor)
             .with_tolerance_type(gko::batch::stop::tolerance_type::relative)
-            // .with_preconditioner(
-            //     gko::preconditioner::BatchJacobi<value_type>::build()
-            //         .with_max_block_size(1u)
-            //         .on(exec))
             .on(exec)
             ->generate(A);
 
@@ -222,9 +223,11 @@ int main(int argc, char* argv[])
     double apply_time = 0.0;
     for (int i = 0; i < num_reps; ++i) {
         x_clone->copy_from(x.get());
+        exec->synchronize();
         std::chrono::steady_clock::time_point t1 =
             std::chrono::steady_clock::now();
         solver->apply(b, x_clone);
+        exec->synchronize();
         std::chrono::steady_clock::time_point t2 =
             std::chrono::steady_clock::now();
         auto time_span =
