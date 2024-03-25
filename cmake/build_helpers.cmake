@@ -1,5 +1,53 @@
 set(GINKGO_LIBRARY_PATH "${PROJECT_BINARY_DIR}/lib")
 
+function(ginkgo_check_std_available std)
+    if (std EQUAL 23)
+        set(__std_macro 202302L)
+    elseif (std EQUAL 20)
+        set(__std_macro 202002L)
+    elseif (std EQUAL 17)
+        set(__std_macro 201703L)
+    elseif (std EQUAL 14)
+        set(__std_macro 201402L)
+    else ()
+        message(FATAL_ERROR "Unsupported CXX standard: ${std}.")
+    endif ()
+    try_compile(GINKGO_HAVE_CXX${std}
+            ${Ginkgo_BINARY_DIR}
+            ${Ginkgo_SOURCE_DIR}/cmake/cxx_std_check.cpp
+            CMAKE_FLAGS -DCMAKE_CXX_STANDARD=${std}
+            COMPILE_DEFINITIONS -DCXX_STD=${__std_macro}
+    )
+    set(GINKGO_HAVE_CXX${std} PARENT_SCOPE)
+endfunction()
+
+macro(ginkgo_set_cxx_standard)
+    set(GINKGO_CXX_STANDARD ${CMAKE_CXX_STANDARD})
+    if(NOT GINKGO_CXX_STANDARD)
+        ginkgo_check_std_available(14)
+        if (GINKGO_HAVE_CXX14)
+            set(GINKGO_CXX_STANDARD 14)
+        endif ()
+        ginkgo_check_std_available(17)
+        if (GINKGO_HAVE_CXX17)
+            set(GINKGO_CXX_STANDARD 17)
+        endif ()
+    endif ()
+    set(__supported_cxx_std 14 17 20 23)
+    if(NOT GINKGO_CXX_STANDARD IN_LIST __supported_cxx_std)
+        message(FATAL_ERROR "Unsupported CXX standard: ${GINKGO_CXX_STANDARD}.")
+    endif ()
+    foreach (__std IN LISTS __supported_cxx_std)
+        if (GINKGO_CXX_STANDARD GREATER_EQUAL __std)
+            set(GINKGO_HAVE_CXX${__std} ON)
+            set(GINKGO_CXX_STANDARD_FEATURE cxx_std_${__std})
+        else ()
+            set(GINKGO_HAVE_CXX${__std} OFF)
+        endif ()
+    endforeach ()
+    unset(__supported_cxx_std)
+endmacro()
+
 function(ginkgo_default_includes name)
     # set include path depending on used interface
     target_include_directories("${name}"
@@ -18,7 +66,7 @@ function(ginkgo_default_includes name)
 endfunction()
 
 function(ginkgo_compile_features name)
-    target_compile_features("${name}" PUBLIC cxx_std_14)
+    target_compile_features("${name}" PUBLIC ${GINKGO_CXX_STANDARD_FEATURE})
     if(GINKGO_WITH_CLANG_TIDY AND GINKGO_CLANG_TIDY_PATH)
         set_property(TARGET "${name}" PROPERTY CXX_CLANG_TIDY "${GINKGO_CLANG_TIDY_PATH};-checks=*")
     endif()
