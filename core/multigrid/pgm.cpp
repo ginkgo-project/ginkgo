@@ -22,6 +22,7 @@
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
+#include "core/config/config.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/multigrid/pgm_kernels.hpp"
 
@@ -113,6 +114,21 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
 
 
 }  // namespace
+
+
+template <typename ValueType, typename IndexType>
+typename Pgm<ValueType, IndexType>::parameters_type
+Pgm<ValueType, IndexType>::build_from_config(
+    const config::pnode& config, const config::registry& context,
+    config::type_descriptor td_for_child)
+{
+    auto factory = Pgm<ValueType, IndexType>::build();
+    SET_VALUE(factory, unsigned, max_iterations, config);
+    SET_VALUE(factory, double, max_unassigned_ratio, config);
+    SET_VALUE(factory, bool, deterministic, config);
+    SET_VALUE(factory, bool, skip_sorting, config);
+    return factory;
+}
 
 
 template <typename ValueType, typename IndexType>

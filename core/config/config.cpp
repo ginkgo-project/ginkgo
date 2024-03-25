@@ -44,7 +44,11 @@ buildfromconfig_map generate_config_map()
             {"Ic", build_from_config<LinOpFactoryType::Ic>},
             {"Ilu", build_from_config<LinOpFactoryType::Ilu>},
             {"Isai", build_from_config<LinOpFactoryType::Isai>},
-            {"Jacobi", build_from_config<LinOpFactoryType::Jacobi>}};
+            {"Jacobi", build_from_config<LinOpFactoryType::Jacobi>},
+            {"Multigrid", build_from_config<LinOpFactoryType::Multigrid>},
+            {"Pgm", build_from_config<LinOpFactoryType::Pgm>},
+            {"FixedCoarsening",
+             build_from_config<LinOpFactoryType::FixedCoarsening>}};
 }
 
 

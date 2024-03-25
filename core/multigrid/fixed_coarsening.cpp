@@ -20,6 +20,7 @@
 
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "core/config/config.hpp"
 #include "core/matrix/csr_builder.hpp"
 
 
@@ -35,6 +36,19 @@ GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 
 }  // anonymous namespace
 }  // namespace fixed_coarsening
+
+
+template <typename ValueType, typename IndexType>
+typename FixedCoarsening<ValueType, IndexType>::parameters_type
+FixedCoarsening<ValueType, IndexType>::build_from_config(
+    const config::pnode& config, const config::registry& context,
+    config::type_descriptor td_for_child)
+{
+    auto factory = FixedCoarsening<ValueType, IndexType>::build();
+    // TODO: ARRAY
+    SET_VALUE(factory, bool, skip_sorting, config);
+    return factory;
+}
 
 
 template <typename ValueType, typename IndexType>
