@@ -1,0 +1,441 @@
+// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
+
+#include <typeinfo>
+
+
+#include <gtest/gtest.h>
+
+
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/factorization/cholesky.hpp>
+#include <ginkgo/core/factorization/ic.hpp>
+#include <ginkgo/core/factorization/ilu.hpp>
+#include <ginkgo/core/factorization/lu.hpp>
+#include <ginkgo/core/factorization/par_ic.hpp>
+#include <ginkgo/core/factorization/par_ict.hpp>
+#include <ginkgo/core/factorization/par_ilu.hpp>
+#include <ginkgo/core/factorization/par_ilut.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
+
+
+#include "core/config/config.hpp"
+#include "core/test/config/utils.hpp"
+#include "core/test/utils.hpp"
+
+
+using namespace gko::config;
+
+
+using Sparsity = gko::matrix::SparsityCsr<float, gko::int64>;
+
+
+template <typename StrategyType>
+inline void check_strategy(std::shared_ptr<StrategyType>& res,
+                           std::shared_ptr<StrategyType>& ans)
+{
+    if (ans && res) {
+        ASSERT_EQ(res->get_name(), ans->get_name());
+    } else {
+        ASSERT_EQ(res, ans);
+    }
+}
+
+
+template <typename ExplicitType, typename DefaultType>
+struct FactorizationConfigTest {
+    using explicit_type = ExplicitType;
+    using default_type = DefaultType;
+    using factorization_config_test = FactorizationConfigTest;
+
+    static void change_template(pnode& config)
+    {
+        config.get_map()["ValueType"] = pnode{"float"};
+        config.get_map()["IndexType"] = pnode{"int64"};
+    }
+};
+
+
+struct Ic : FactorizationConfigTest<gko::factorization::Ic<float, gko::int64>,
+                                    gko::factorization::Ic<double, int>> {
+    static pnode setup_base()
+    {
+        return pnode{
+            std::map<std::string, pnode>{{"Type", pnode{"Factorization_Ic"}}}};
+    }
+
+    template <typename ParamType>
+    static void set(pnode& config, ParamType& param, registry reg)
+    {
+        // TODO: check why the unsupported one gives segmentation fault
+        // config.get_map()["l_strategy"] = pnode{"sparselib"};
+        // param.with_l_strategy(
+        //     std::make_shared<
+        //         typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+        config.get_map()["skip_sorting"] = pnode{true};
+        param.with_skip_sorting(true);
+        config.get_map()["both_factors"] = pnode{false};
+        param.with_both_factors(false);
+    }
+
+    template <typename AnswerType>
+    static void validate(gko::LinOpFactory* result, AnswerType* answer)
+    {
+        auto res_param = gko::as<AnswerType>(result)->get_parameters();
+        auto ans_param = answer->get_parameters();
+
+        check_strategy(res_param.l_strategy, ans_param.l_strategy);
+        ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
+        ASSERT_EQ(res_param.both_factors, ans_param.both_factors);
+    }
+};
+
+
+struct Ilu : FactorizationConfigTest<gko::factorization::Ilu<float, gko::int64>,
+                                     gko::factorization::Ilu<double, int>> {
+    static pnode setup_base()
+    {
+        return pnode{
+            std::map<std::string, pnode>{{"Type", pnode{"Factorization_Ilu"}}}};
+    }
+
+    template <typename ParamType>
+    static void set(pnode& config, ParamType& param, registry reg)
+    {
+        // config.get_map()["l_strategy"] = pnode{"sparselib"};
+        // param.with_l_strategy(
+        //     std::make_shared<
+        //         typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+        // config.get_map()["u_strategy"] = pnode{"sparselib"};
+        // param.with_u_strategy(
+        //     std::make_shared<
+        //         typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+        config.get_map()["skip_sorting"] = pnode{true};
+        param.with_skip_sorting(true);
+    }
+
+    template <typename AnswerType>
+    static void validate(gko::LinOpFactory* result, AnswerType* answer)
+    {
+        auto res_param = gko::as<AnswerType>(result)->get_parameters();
+        auto ans_param = answer->get_parameters();
+
+        check_strategy(res_param.l_strategy, ans_param.l_strategy);
+        check_strategy(res_param.u_strategy, ans_param.u_strategy);
+        ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
+    }
+};
+
+
+struct Cholesky
+    : FactorizationConfigTest<
+          gko::experimental::factorization::Cholesky<float, gko::int64>,
+          gko::experimental::factorization::Cholesky<double, int>> {
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"Cholesky"}}}};
+    }
+
+    template <typename ParamType>
+    static void set(pnode& config, ParamType& param, registry reg)
+    {
+        config.get_map()["symbolic_factorization"] = pnode{"sparsity"};
+        param.with_symbolic_factorization(
+            reg.search_data<Sparsity>("sparsity"));
+        config.get_map()["skip_sorting"] = pnode{true};
+        param.with_skip_sorting(true);
+    }
+
+    template <typename AnswerType>
+    static void validate(gko::LinOpFactory* result, AnswerType* answer)
+    {
+        auto res_param = gko::as<AnswerType>(result)->get_parameters();
+        auto ans_param = answer->get_parameters();
+
+        ASSERT_EQ(res_param.symbolic_factorization,
+                  ans_param.symbolic_factorization);
+        ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
+    }
+};
+
+
+struct Lu : FactorizationConfigTest<
+                gko::experimental::factorization::Lu<float, gko::int64>,
+                gko::experimental::factorization::Lu<double, int>> {
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"Lu"}}}};
+    }
+
+    template <typename ParamType>
+    static void set(pnode& config, ParamType& param, registry reg)
+    {
+        config.get_map()["symbolic_factorization"] = pnode{"sparsity"};
+        param.with_symbolic_factorization(
+            reg.search_data<Sparsity>("sparsity"));
+        config.get_map()["symbolic_algorithm"] = pnode{"near_symmetric"};
+        param.with_symbolic_algorithm(
+            gko::experimental::factorization::symbolic_type::near_symmetric);
+        config.get_map()["skip_sorting"] = pnode{true};
+        param.with_skip_sorting(true);
+    }
+
+    template <typename AnswerType>
+    static void validate(gko::LinOpFactory* result, AnswerType* answer)
+    {
+        auto res_param = gko::as<AnswerType>(result)->get_parameters();
+        auto ans_param = answer->get_parameters();
+
+        ASSERT_EQ(res_param.symbolic_factorization,
+                  ans_param.symbolic_factorization);
+        ASSERT_EQ(res_param.symbolic_algorithm, ans_param.symbolic_algorithm);
+        ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
+    }
+};
+
+
+struct ParIc
+    : FactorizationConfigTest<gko::factorization::ParIc<float, gko::int64>,
+                              gko::factorization::ParIc<double, int>> {
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"ParIc"}}}};
+    }
+
+    template <typename ParamType>
+    static void set(pnode& config, ParamType& param, registry reg)
+    {
+        config.get_map()["iterations"] = pnode{3};
+        param.with_iterations(3u);
+        config.get_map()["skip_sorting"] = pnode{true};
+        param.with_skip_sorting(true);
+        // config.get_map()["l_strategy"] = pnode{"sparselib"};
+        // param.with_l_strategy(
+        //     std::make_shared<
+        //         typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+        config.get_map()["both_factors"] = pnode{false};
+        param.with_both_factors(false);
+    }
+
+    template <typename AnswerType>
+    static void validate(gko::LinOpFactory* result, AnswerType* answer)
+    {
+        auto res_param = gko::as<AnswerType>(result)->get_parameters();
+        auto ans_param = answer->get_parameters();
+
+        ASSERT_EQ(res_param.iterations, ans_param.iterations);
+        ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
+        check_strategy(res_param.l_strategy, ans_param.l_strategy);
+        ASSERT_EQ(res_param.both_factors, ans_param.both_factors);
+    }
+};
+
+
+struct ParIlu
+    : FactorizationConfigTest<gko::factorization::ParIlu<float, gko::int64>,
+                              gko::factorization::ParIlu<double, int>> {
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"ParIlu"}}}};
+    }
+
+    template <typename ParamType>
+    static void set(pnode& config, ParamType& param, registry reg)
+    {
+        config.get_map()["iterations"] = pnode{3};
+        param.with_iterations(3u);
+        config.get_map()["skip_sorting"] = pnode{true};
+        param.with_skip_sorting(true);
+        // config.get_map()["l_strategy"] = pnode{"sparselib"};
+        // param.with_l_strategy(
+        //     std::make_shared<
+        //         typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+        // config.get_map()["u_strategy"] = pnode{"sparselib"};
+        // param.with_u_strategy(
+        //     std::make_shared<
+        //         typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+    }
+
+    template <typename AnswerType>
+    static void validate(gko::LinOpFactory* result, AnswerType* answer)
+    {
+        auto res_param = gko::as<AnswerType>(result)->get_parameters();
+        auto ans_param = answer->get_parameters();
+
+        ASSERT_EQ(res_param.iterations, ans_param.iterations);
+        ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
+        check_strategy(res_param.l_strategy, ans_param.l_strategy);
+        check_strategy(res_param.u_strategy, ans_param.u_strategy);
+    }
+};
+
+
+struct ParIct
+    : FactorizationConfigTest<gko::factorization::ParIct<float, gko::int64>,
+                              gko::factorization::ParIct<double, int>> {
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"ParIct"}}}};
+    }
+
+    template <typename ParamType>
+    static void set(pnode& config, ParamType& param, registry reg)
+    {
+        config.get_map()["iterations"] = pnode{3};
+        param.with_iterations(3u);
+        config.get_map()["skip_sorting"] = pnode{true};
+        param.with_skip_sorting(true);
+        // config.get_map()["l_strategy"] = pnode{"sparselib"};
+        // param.with_l_strategy(
+        //     std::make_shared<
+        //         typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+        config.get_map()["approximate_select"] = pnode{false};
+        param.with_approximate_select(false);
+        config.get_map()["deterministic_sample"] = pnode{true};
+        param.with_deterministic_sample(true);
+        config.get_map()["fill_in_limit"] = pnode{2.5};
+        param.with_fill_in_limit(2.5);
+        // config.get_map()["lt_strategy"] = pnode{"sparselib"};
+        // param.with_lt_strategy(
+        //     std::make_shared<
+        //         typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+    }
+
+    template <typename AnswerType>
+    static void validate(gko::LinOpFactory* result, AnswerType* answer)
+    {
+        auto res_param = gko::as<AnswerType>(result)->get_parameters();
+        auto ans_param = answer->get_parameters();
+
+        ASSERT_EQ(res_param.iterations, ans_param.iterations);
+        ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
+        check_strategy(res_param.l_strategy, ans_param.l_strategy);
+        ASSERT_EQ(res_param.approximate_select, ans_param.approximate_select);
+        ASSERT_EQ(res_param.deterministic_sample,
+                  ans_param.deterministic_sample);
+        ASSERT_EQ(res_param.fill_in_limit, ans_param.fill_in_limit);
+        check_strategy(res_param.lt_strategy, ans_param.lt_strategy);
+    }
+};
+
+
+struct ParIlut
+    : FactorizationConfigTest<gko::factorization::ParIlut<float, gko::int64>,
+                              gko::factorization::ParIlut<double, int>> {
+    static pnode setup_base()
+    {
+        return pnode{std::map<std::string, pnode>{{"Type", pnode{"ParIlut"}}}};
+    }
+
+    template <typename ParamType>
+    static void set(pnode& config, ParamType& param, registry reg)
+    {
+        config.get_map()["iterations"] = pnode{3};
+        param.with_iterations(3u);
+        config.get_map()["skip_sorting"] = pnode{true};
+        param.with_skip_sorting(true);
+        // config.get_map()["l_strategy"] = pnode{"sparselib"};
+        // param.with_l_strategy(
+        //     std::make_shared<
+        //         typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+        config.get_map()["approximate_select"] = pnode{false};
+        param.with_approximate_select(false);
+        config.get_map()["deterministic_sample"] = pnode{true};
+        param.with_deterministic_sample(true);
+        config.get_map()["fill_in_limit"] = pnode{2.5};
+        param.with_fill_in_limit(2.5);
+        // config.get_map()["u_strategy"] = pnode{"sparselib"};
+        // param.with_u_strategy(
+        //     std::make_shared<
+        //         typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+    }
+
+    template <typename AnswerType>
+    static void validate(gko::LinOpFactory* result, AnswerType* answer)
+    {
+        auto res_param = gko::as<AnswerType>(result)->get_parameters();
+        auto ans_param = answer->get_parameters();
+
+        ASSERT_EQ(res_param.iterations, ans_param.iterations);
+        ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
+        check_strategy(res_param.l_strategy, ans_param.l_strategy);
+        ASSERT_EQ(res_param.approximate_select, ans_param.approximate_select);
+        ASSERT_EQ(res_param.deterministic_sample,
+                  ans_param.deterministic_sample);
+        ASSERT_EQ(res_param.fill_in_limit, ans_param.fill_in_limit);
+        check_strategy(res_param.u_strategy, ans_param.u_strategy);
+    }
+};
+
+
+template <typename T>
+class Factorization : public ::testing::Test {
+protected:
+    using Config = T;
+
+    Factorization()
+        : exec(gko::ReferenceExecutor::create()),
+          td("double", "int"),
+          sparsity(Sparsity::create(exec)),
+          reg(generate_config_map())
+    {
+        reg.emplace("sparsity", sparsity);
+    }
+
+    std::shared_ptr<const gko::Executor> exec;
+    type_descriptor td;
+    std::shared_ptr<Sparsity> sparsity;
+    registry reg;
+};
+
+
+using FactorizationTypes =
+    ::testing::Types<::Ic, ::Ilu, ::Cholesky, ::Lu, ::ParIc, ::ParIlu, ::ParIct,
+                     ::ParIlut>;
+
+
+TYPED_TEST_SUITE(Factorization, FactorizationTypes, TypenameNameGenerator);
+
+
+TYPED_TEST(Factorization, CreateDefault)
+{
+    using Config = typename TestFixture::Config;
+    auto config = Config::setup_base();
+
+    auto res = build_from_config(config, this->reg, this->td).on(this->exec);
+    auto ans = Config::default_type::build().on(this->exec);
+
+    Config::validate(res.get(), ans.get());
+}
+
+
+TYPED_TEST(Factorization, ExplicitTemplate)
+{
+    using Config = typename TestFixture::Config;
+    auto config = Config::setup_base();
+    Config::change_template(config);
+
+    auto res = build_from_config(config, this->reg, this->td).on(this->exec);
+    auto ans = Config::explicit_type::build().on(this->exec);
+
+    Config::validate(res.get(), ans.get());
+}
+
+
+TYPED_TEST(Factorization, Set)
+{
+    using Config = typename TestFixture::Config;
+    auto config = Config::setup_base();
+    Config::change_template(config);
+    auto param = Config::explicit_type::build();
+    Config::set(config, param, this->reg);
+
+    auto res = build_from_config(config, this->reg, this->td).on(this->exec);
+    auto ans = param.on(this->exec);
+
+    Config::validate(res.get(), ans.get());
+}

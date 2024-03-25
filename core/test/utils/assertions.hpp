@@ -491,6 +491,10 @@ template <typename ValueType>
         return fail;
     }
 
+    if (first.get_executor() == nullptr && second.get_executor() == nullptr) {
+        // both are empty
+        return ::testing::AssertionSuccess();
+    }
     auto exec = first.get_executor()->get_master();
     array<ValueType> first_array(exec, first);
     array<ValueType> second_array(exec, second);

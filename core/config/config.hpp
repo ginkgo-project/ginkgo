@@ -13,6 +13,7 @@
 #include <type_traits>
 
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -52,25 +53,42 @@ inline std::shared_ptr<T> get_pointer(const pnode& config,
 {
     std::shared_ptr<T> ptr;
     using T_non_const = std::remove_const_t<T>;
-    ptr = context.search_data<T_non_const>(config.get_data<std::string>());
+    if (config.is(pnode::status_t::data)) {
+        ptr = context.search_data<T_non_const>(config.get_data<std::string>());
+    }
     assert(ptr.get() != nullptr);
     return std::move(ptr);
 }
 
 
 template <typename T>
-inline deferred_factory_parameter<T> get_factory(const pnode& config,
-                                                 const registry& context,
-                                                 type_descriptor td);
-
-template <>
-inline deferred_factory_parameter<const LinOpFactory>
-get_factory<const LinOpFactory>(const pnode& config, const registry& context,
-                                type_descriptor td)
+inline std::enable_if_t<!std::is_same<T, const stop::CriterionFactory>::value &&
+                            !std::is_same<T, const LinOpFactory>::value,
+                        deferred_factory_parameter<T>>
+get_factory(const pnode& config, const registry& context, type_descriptor td)
 {
-    deferred_factory_parameter<const LinOpFactory> ptr;
+    deferred_factory_parameter<T> ptr;
     if (config.is(pnode::status_t::data)) {
-        ptr = context.search_data<LinOpFactory>(config.get_data<std::string>());
+        ptr = context.search_data<std::remove_const_t<T>>(
+            config.get_data<std::string>());
+    } else if (config.is(pnode::status_t::map)) {
+        ptr = T::product_type::build_from_config(config, context, td);
+    }
+    // handle object is config
+    assert(!ptr.is_empty());
+    return std::move(ptr);
+}
+
+
+template <typename T>
+inline std::enable_if_t<std::is_same<T, const LinOpFactory>::value,
+                        deferred_factory_parameter<T>>
+get_factory(const pnode& config, const registry& context, type_descriptor td)
+{
+    deferred_factory_parameter<T> ptr;
+    if (config.is(pnode::status_t::data)) {
+        ptr = context.search_data<std::remove_const_t<T>>(
+            config.get_data<std::string>());
     } else if (config.is(pnode::status_t::map)) {
         ptr = build_from_config(config, context, td);
     }
@@ -79,11 +97,11 @@ get_factory<const LinOpFactory>(const pnode& config, const registry& context,
     return std::move(ptr);
 }
 
-template <>
-deferred_factory_parameter<const stop::CriterionFactory>
-get_factory<const stop::CriterionFactory>(const pnode& config,
-                                          const registry& context,
-                                          type_descriptor td);
+
+template <typename T>
+std::enable_if_t<std::is_same<T, const stop::CriterionFactory>::value,
+                 deferred_factory_parameter<T>>
+get_factory(const pnode& config, const registry& context, type_descriptor td);
 
 
 template <typename T>
@@ -157,6 +175,18 @@ get_value(const pnode& config)
     GKO_INVALID_STATE("Can not get complex value");
 }
 
+template <typename Type>
+inline typename std::enable_if<std::is_same<Type, precision_reduction>::value,
+                               Type>::type
+get_value(const pnode& config)
+{
+    using T = typename Type::storage_type;
+    if (config.is(pnode::status_t::array) && config.get_array().size() == 2) {
+        return Type(get_value<T>(config.at(0)), get_value<T>(config.at(1)));
+    }
+    GKO_INVALID_STATE("should use size 2 array");
+}
+
 template <typename ValueType>
 inline typename std::enable_if<
     std::is_same<ValueType, solver::initial_guess_mode>::value,
@@ -198,7 +228,6 @@ get_value(const pnode& config)
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
-
 
 #define SET_FACTORY_VECTOR(_factory, _param_type, _param_name, _config,      \
                            _context, _td)                                    \
