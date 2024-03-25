@@ -5,12 +5,12 @@
 #include "core/distributed/index_map_kernels.hpp"
 
 
-#include "common/unified/base/kernel_launch.hpp"
+#include <ginkgo/core/base/exception_helpers.hpp>
 
 
 namespace gko {
 namespace kernels {
-namespace GKO_DEVICE_NAMESPACE {
+namespace dpcpp {
 namespace index_map {
 
 
@@ -45,6 +45,6 @@ GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
 
 
 }  // namespace index_map
-}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
