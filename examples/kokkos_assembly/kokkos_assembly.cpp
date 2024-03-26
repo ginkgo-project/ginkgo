@@ -14,6 +14,18 @@
 #include <ginkgo/ginkgo.hpp>
 
 
+// enable compatibility with both kokkos 3.7 and 4.x
+#if KOKKOS_VERSION / 10000 < 4
+namespace Kokkos {
+
+
+using Experimental::abs;
+
+
+}
+#endif
+
+
 // Creates a stencil matrix in CSR format for the given number of discretization
 // points.
 template <typename ValueType, typename IndexType>
@@ -102,9 +114,8 @@ double calculate_error(int discretization_points,
         KOKKOS_LAMBDA(int i, double& lsum) {
             const auto h = 1.0 / (discretization_points + 1);
             const auto xi = (i + 1) * h;
-            lsum += Kokkos::Experimental::abs(
-                (v_u(i) - correct_u(xi)) /
-                Kokkos::Experimental::abs(correct_u(xi)));
+            lsum += Kokkos::abs((v_u(i) - correct_u(xi)) /
+                                Kokkos::abs(correct_u(xi)));
         },
         error);
     return error;
