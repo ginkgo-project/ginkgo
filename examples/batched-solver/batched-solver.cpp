@@ -4,7 +4,6 @@
 
 // @sect3{Include files}
 
-// This is the main ginkgo header file.
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -12,6 +11,7 @@
 #include <string>
 
 
+// This is the main ginkgo header file.
 #include <ginkgo/ginkgo.hpp>
 
 
@@ -31,6 +31,7 @@ using bicgstab = gko::batch::solver::Bicgstab<value_type>;
 // Unbatch batch items into distinct Ginkgo types
 namespace detail {
 
+
 template <typename InputType>
 auto unbatch(const InputType* batch_object)
 {
@@ -42,6 +43,7 @@ auto unbatch(const InputType* batch_object)
     }
     return unbatched_mats;
 }
+
 
 }  // namespace detail
 
@@ -72,15 +74,17 @@ struct ApplSysData {
 };
 
 
-// Generates a batch of tridiagonal systems.
-//
-// @param nrows  Number of rows in each system.
-// @param nsystems  Number of systems in the batch.
-// @param exec  The device executor to use for the solver.
-//   Normally, the application may not deal with Ginkgo executors, nor do we
-//   need it to. Here, we use the executor for backend-independent device
-//   memory allocation. The application, for example, might assume Hip
-//   (for AMD GPUs) and use `hipMalloc` directly.
+/*
+ * Generates a batch of tridiagonal systems.
+ *
+ * @param nrows  Number of rows in each system.
+ * @param nsystems  Number of systems in the batch.
+ * @param exec  The device executor to use for the solver.
+ * @note  Normally, the application may not deal with Ginkgo executors, nor do
+ * we need it to. Here, we use the executor for backend-independent device
+ * memory allocation. The application, for example, might assume Hip (for AMD
+ * GPUs) and use `hipMalloc` directly.
+ */
 ApplSysData appl_generate_system(const int nrows, const size_type nsystems,
                                  std::shared_ptr<gko::Executor> exec);
 
@@ -90,14 +94,13 @@ void appl_clean_up(ApplSysData& appl_data, std::shared_ptr<gko::Executor> exec);
 
 int main(int argc, char* argv[])
 {
-    // Print the ginkgo version information, only when the example is not being
-    // timed.
-    if (!(std::string(argv[4]) == "time"))
-        std::cout << gko::version_info::get() << std::endl;
+    // Print ginkgo version information
+    std::cout << gko::version_info::get() << std::endl;
 
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
         std::cerr << "Usage: " << argv[0]
-                  << " [executor] [num_systems] [time] [residuals] [num_reps]"
+                  << " [executor] [num_systems] [num_rows] [print_residuals] "
+                     "[num_reps]"
                   << std::endl;
         std::exit(-1);
     }
@@ -138,14 +141,11 @@ int main(int argc, char* argv[])
 
     const size_type num_systems = argc >= 3 ? std::atoi(argv[2]) : 2;
     const int num_rows = argc >= 4 ? std::atoi(argv[3]) : 32;  // per system
-    // Whether to print the time or not.
-    const bool print_time =
-        argc >= 5 ? (std::string(argv[4]) == "time") : false;
     // Whether to print the residuals or not.
     const bool print_residuals =
-        argc >= 6 ? (std::string(argv[5]) == "residuals") : false;
+        argc >= 5 ? (std::string(argv[4]) == "true") : false;
     // The number of repetitions for the timing.
-    const int num_reps = argc >= 7 ? std::atoi(argv[6]) : 20;
+    const int num_reps = argc >= 6 ? std::atoi(argv[5]) : 20;
     // @sect3{Generate data}
     // The "application" generates the batch of linear systems on the device
     auto appl_sys = appl_generate_system(num_rows, num_systems, exec);
@@ -156,13 +156,9 @@ int main(int argc, char* argv[])
         gko::batch_dim<2>(num_systems, gko::dim<2>(num_rows, 1));
     // @sect3{Use of application-allocated memory}
     // We can either work on the existing memory allocated in the application,
-    //  or we can copy it for the linear solve.
-    //  Note: it is not possible to use data through a const pointer directly.
-    //  Because our pointers are not const, we can just 'wrap' the given
-    //  pointers into Ginkgo Array views so that we can create a Ginkgo matrix
-    //  out of them.
+    // or we can copy it for the linear solve.
     // Ginkgo expects the nonzero values for all the small matrices to be
-    //  allocated contiguously, one matrix after the other.
+    // allocated contiguously, one matrix after the other.
     auto vals_view = gko::array<value_type>::const_view(
         exec, num_systems * appl_sys.nnz, appl_sys.all_values);
     auto rowptrs_view = gko::array<index_type>::const_view(exec, num_rows + 1,
@@ -195,7 +191,7 @@ int main(int argc, char* argv[])
     // Create a batched solver factory with relevant parameters.
     auto solver =
         bicgstab::build()
-            .with_max_iterations(500u)
+            .with_max_iterations(500)
             .with_tolerance(reduction_factor)
             .with_tolerance_type(gko::batch::stop::tolerance_type::relative)
             .on(exec)
@@ -208,13 +204,12 @@ int main(int argc, char* argv[])
         logger = gko::batch::log::BatchConvergence<value_type>::create();
 
     // @sect3{Generate and solve}
-    // Generate the batch solver from the batch matrix
     // add the logger to the solver
     solver->add_logger(logger);
     // Solve the batch system
-    // Warmup
     auto x_clone = gko::clone(x);
 
+    // Warmup
     for (int i = 0; i < 3; ++i) {
         x_clone->copy_from(x.get());
         solver->apply(b, x_clone);
@@ -242,10 +237,10 @@ int main(int argc, char* argv[])
     // @sect3{Check result}
     // Compute norm of RHS on the device and automatically copy to host
     auto norm_dim = gko::batch_dim<2>(num_systems, gko::dim<2>(1, 1));
-    auto b_norm = real_vec_type::create(exec->get_master(), norm_dim);
-    b_norm->fill(0.0);
+    auto host_b_norm = real_vec_type::create(exec->get_master(), norm_dim);
+    host_b_norm->fill(0.0);
 
-    b->compute_norm2(b_norm);
+    b->compute_norm2(host_b_norm);
     // we need constants on the device
     auto one = vec_type::create(exec, norm_dim);
     one->fill(1.0);
@@ -256,9 +251,9 @@ int main(int argc, char* argv[])
     res->copy_from(b);
     A->apply(one, x, neg_one, res);
     // allocate and compute residual norm
-    auto res_norm = real_vec_type::create(exec->get_master(), norm_dim);
-    res_norm->fill(0.0);
-    res->compute_norm2(res_norm);
+    auto host_res_norm = real_vec_type::create(exec->get_master(), norm_dim);
+    host_res_norm->fill(0.0);
+    res->compute_norm2(host_res_norm);
     auto host_log_resid = gko::make_temporary_clone(
         exec->get_master(), &logger->get_residual_norm());
     auto host_log_iters = gko::make_temporary_clone(
@@ -267,14 +262,14 @@ int main(int argc, char* argv[])
     if (print_residuals) {
         std::cout << "Residual norm sqrt(r^T r):\n";
         // "unbatch" converts a batch object into a vector of objects of the
-        //   corresponding single type, eg. batch::matrix::Dense -->
-        //   std::vector<Dense>.
-        auto unb_res = detail::unbatch(res_norm.get());
-        auto unb_bnorm = detail::unbatch(b_norm.get());
+        // corresponding single type, eg. batch::matrix::Dense -->
+        // std::vector<Dense>.
+        auto unb_res = detail::unbatch(host_res_norm.get());
+        auto unb_bnorm = detail::unbatch(host_b_norm.get());
         for (size_type i = 0; i < num_systems; ++i) {
             std::cout << " System no. " << i
                       << ": residual norm = " << unb_res[i]->at(0, 0)
-                      << ", internal residual norm = "
+                      << ", implicit residual norm = "
                       << host_log_resid->get_const_data()[i]
                       << ", iterations = "
                       << host_log_iters->get_const_data()[i] << std::endl;
@@ -286,16 +281,12 @@ int main(int argc, char* argv[])
             }
         }
     }
-    if (print_time) {
-        std::cout << apply_time / num_reps << std::endl;
-    } else {
-        std::cout << "Solver type: "
-                  << "batch::bicgstab"
-                  << "\nMatrix size: " << A->get_common_size()
-                  << "\nNum batch entries: " << A->get_num_batch_items()
-                  << "\nEntire solve took: " << apply_time / num_reps
-                  << " seconds." << std::endl;
-    }
+    std::cout << "Solver type: "
+              << "batch::bicgstab"
+              << "\nMatrix size: " << A->get_common_size()
+              << "\nNum batch entries: " << A->get_num_batch_items()
+              << "\nEntire solve took: " << apply_time / num_reps << " seconds."
+              << std::endl;
 
     // Ginkgo objects are cleaned up automatically; but the "application" still
     //  needs to clean up its data in this case.
@@ -303,11 +294,14 @@ int main(int argc, char* argv[])
     return 0;
 }
 
+
+// Generate the matrix and the vectors. This function emulates the generation of
+// the data from the application.
 ApplSysData appl_generate_system(const int nrows, const size_type nsystems,
                                  std::shared_ptr<gko::Executor> exec)
 {
     const int nnz = nrows * 3 - 2;
-    std::ranlux48 rgen(15);
+    std::default_random_engine rgen(15);
     std::normal_distribution<real_type> distb(0.5, 0.1);
     std::vector<real_type> spacings(nsystems * nrows);
     std::generate(spacings.begin(), spacings.end(),
@@ -315,40 +309,40 @@ ApplSysData appl_generate_system(const int nrows, const size_type nsystems,
 
     std::vector<value_type> allvalues(nnz * nsystems);
     for (size_type isys = 0; isys < nsystems; isys++) {
-        allvalues[isys * nnz] = 2.0 / spacings[isys * nrows];
-        allvalues[isys * nnz + 1] = -1.0;
+        allvalues.at(isys * nnz) = 2.0 / spacings.at(isys * nrows);
+        allvalues.at(isys * nnz + 1) = -1.0;
         for (int irow = 0; irow < nrows - 2; irow++) {
-            allvalues[isys * nnz + 2 + irow * 3] = -1.0;
-            allvalues[isys * nnz + 2 + irow * 3 + 1] =
-                2.0 / spacings[isys * nrows + irow + 1];
-            allvalues[isys * nnz + 2 + irow * 3 + 2] = -1.0;
+            allvalues.at(isys * nnz + 2 + irow * 3) = -1.0;
+            allvalues.at(isys * nnz + 2 + irow * 3 + 1) =
+                2.0 / spacings.at(isys * nrows + irow + 1);
+            allvalues.at(isys * nnz + 2 + irow * 3 + 2) = -1.0;
         }
-        allvalues[isys * nnz + 2 + (nrows - 2) * 3] = -1.0;
-        allvalues[isys * nnz + 2 + (nrows - 2) * 3 + 1] =
-            2.0 / spacings[(isys + 1) * nrows - 1];
+        allvalues.at(isys * nnz + 2 + (nrows - 2) * 3) = -1.0;
+        allvalues.at(isys * nnz + 2 + (nrows - 2) * 3 + 1) =
+            2.0 / spacings.at((isys + 1) * nrows - 1);
         assert(isys * nnz + 2 + (nrows - 2) * 3 + 2 == (isys + 1) * nnz);
     }
 
     std::vector<index_type> rowptrs(nrows + 1);
-    rowptrs[0] = 0;
-    rowptrs[1] = 2;
+    rowptrs.at(0) = 0;
+    rowptrs.at(1) = 2;
     for (int i = 2; i < nrows; i++) {
-        rowptrs[i] = rowptrs[i - 1] + 3;
+        rowptrs.at(i) = rowptrs.at(i - 1) + 3;
     }
-    rowptrs[nrows] = rowptrs[nrows - 1] + 2;
-    assert(rowptrs[nrows] == nnz);
+    rowptrs.at(nrows) = rowptrs.at(nrows - 1) + 2;
+    assert(rowptrs.at(nrows) == nnz);
 
     std::vector<index_type> colidxs(nnz);
-    colidxs[0] = 0;
-    colidxs[1] = 1;
+    colidxs.at(0) = 0;
+    colidxs.at(1) = 1;
     const int nnz_per_row = 3;
     for (int irow = 1; irow < nrows - 1; irow++) {
-        colidxs[2 + (irow - 1) * nnz_per_row] = irow - 1;
-        colidxs[2 + (irow - 1) * nnz_per_row + 1] = irow;
-        colidxs[2 + (irow - 1) * nnz_per_row + 2] = irow + 1;
+        colidxs.at(2 + (irow - 1) * nnz_per_row) = irow - 1;
+        colidxs.at(2 + (irow - 1) * nnz_per_row + 1) = irow;
+        colidxs.at(2 + (irow - 1) * nnz_per_row + 2) = irow + 1;
     }
-    colidxs[2 + (nrows - 2) * nnz_per_row] = nrows - 2;
-    colidxs[2 + (nrows - 2) * nnz_per_row + 1] = nrows - 1;
+    colidxs.at(2 + (nrows - 2) * nnz_per_row) = nrows - 2;
+    colidxs.at(2 + (nrows - 2) * nnz_per_row + 1) = nrows - 1;
     assert(2 + (nrows - 2) * nnz_per_row + 1 == nnz - 1);
 
     std::vector<value_type> allb(nrows * nsystems);
