@@ -6,7 +6,7 @@ if(NOT GINKGO_BUILD_EXAMPLES)
     find_package(Ginkgo 1.8.0 REQUIRED)
 endif()
 
-find_package(Kokkos REQUIRED)
+find_package(Kokkos 3.7 REQUIRED)
 
 add_executable(kokkos-assembly kokkos_assembly.cpp)
 target_link_libraries(kokkos-assembly Ginkgo::ginkgo Kokkos::kokkos)
