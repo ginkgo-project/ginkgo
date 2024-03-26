@@ -48,8 +48,9 @@ void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec, size_type,
                     array<IndexType>& col_idxs)
 {
     const auto size = values.get_size();
-    const auto rows = row_idxs.get_const_data();
-    const auto cols = col_idxs.get_const_data();
+    // CUDA 12.4 has a bug that requires these pointers to be non-const
+    const auto rows = row_idxs.get_data();
+    const auto cols = col_idxs.get_data();
     auto iota = thrust::make_counting_iterator(size_type{});
     const auto new_size = static_cast<size_type>(thrust::count_if(
         thrust_policy(exec), iota, iota + size,
