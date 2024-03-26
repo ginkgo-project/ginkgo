@@ -756,6 +756,17 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 
 
 /**
+ * Instantiates a template for int32 type.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take one argument, which is replaced by the
+ *                value type.
+ */
+#define GKO_INSTANTIATE_FOR_INT32_TYPE(_macro) template _macro(int32)
+
+
+/**
  * Value for an invalid signed index type.
  */
 template <typename IndexType>
