@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,7 +7,9 @@
 
 
 #include <cassert>
+#include <cstdint>
 #include <exception>
+#include <limits>
 #include <map>
 #include <stdexcept>
 #include <string>
@@ -15,136 +17,191 @@
 #include <vector>
 
 
-#include <ginkgo/core/config/data.hpp>
-
-
 namespace gko {
 namespace config {
 
 
 /**
- * pnode is to describe the property tree
+ * pnode is to describe the property tree.
  */
 class pnode {
 public:
     using key_type = std::string;
-    using data_type = data;
+    using map_type = std::map<key_type, pnode>;
+    using array_type = std::vector<pnode>;
 
-    enum class status_t { empty, array, data, map };
+    /**
+     * status_t is the indicator for the current node storage.
+     */
+    enum class status_t { empty, array, boolean, real, integer, string, map };
 
-    pnode() : status_(status_t::empty) {}
+    /**
+     * Default constructor: create an empty node
+     */
+    pnode();
 
-    pnode(const data_type& d) : status_(status_t::data), data_(d) {}
+    /**
+     * Constructor for bool
+     *
+     * @param boolean  the bool type value
+     */
+    pnode(bool boolean);
 
-    pnode(const std::vector<pnode>& array)
-        : status_(status_t::array), array_(array)
-    {}
+    /**
+     * Constructor for integer with all integer type
+     *
+     * @tparam T  input type
+     *
+     * @param integer  the integer type value
+     */
+    template <typename T, typename = typename std::enable_if<
+                              std::is_integral<T>::value>::type>
+    pnode(T integer);
 
-    pnode(const std::map<key_type, pnode>& list)
-        : status_(status_t::map), list_(list)
-    {}
+    /**
+     * Constructor for string
+     *
+     * @param str  string type value
+     */
+    pnode(const std::string& str);
 
-    // bool conversion. It's true if and only if it contains data.
-    operator bool() const noexcept { return status_ != status_t::empty; }
+    /**
+     * Constructor for char* (otherwise, it will use bool)
+     *
+     * @param str  the string like "..."
+     */
+    pnode(const char* str);
 
-    const data_type& get_data() const
-    {
-        this->throw_if_not_contain(status_t::data);
-        return data_;
-    }
+    /**
+     * Constructor for double
+     *
+     * @param real  the floating point type value
+     */
+    pnode(double real);
 
-    std::vector<pnode>& get_array()
-    {
-        this->throw_if_not_contain(status_t::array, true);
-        status_ = status_t::array;
-        return array_;
-    }
+    /**
+     * Constructor for array
+     *
+     * @param array  an pnode array
+     */
+    pnode(const array_type& array);
 
-    const std::vector<pnode>& get_array() const
-    {
-        this->throw_if_not_contain(status_t::array);
-        return array_;
-    }
+    /**
+     * Constructor for map
+     *
+     * @param map  a (string, pnode)-map
+     */
+    pnode(const map_type& map);
 
-    std::map<key_type, pnode>& get_map()
-    {
-        this->throw_if_not_contain(status_t::map, true);
-        status_ = status_t::map;
-        return list_;
-    }
+    /**
+     * bool conversion. It's true if and only if it is not empty.
+     */
+    operator bool() const noexcept;
 
-    const std::map<key_type, pnode>& get_map() const
-    {
-        this->throw_if_not_contain(status_t::map);
-        return list_;
-    }
+    /**
+     * Get the current node status.
+     *
+     * @return the status
+     */
+    status_t get_status() const;
 
-    // Get the data of node's content
-    template <typename T>
-    T get_data() const
-    {
-        this->throw_if_not_contain(status_t::data);
-        return gko::config::get<T>(data_);
-    }
+    /**
+     * Get the array. It will throw error if the current node does not hold an
+     * array.
+     *
+     * @return the array const reference
+     */
+    const array_type& get_array() const;
 
-    pnode& at(const std::string& path)
-    {
-        this->throw_if_not_contain(status_t::map);
-        return list_.at(path);
-    }
+    /**
+     * Get the map. It will throw error if the current node does not hold an
+     * map.
+     *
+     * @return the map const reference
+     */
+    const map_type& get_map() const;
 
-    const pnode& at(const std::string& path) const
-    {
-        this->throw_if_not_contain(status_t::map);
-        return list_.at(path);
-    }
+    /**
+     * Get the boolean value. It will throw error if the current node does not
+     * hold an boolean value.
+     *
+     * @return the boolean value
+     */
+    bool get_boolean() const;
 
-    // Return the object if it is found. Otherwise, return empty object.
-    const pnode& get(const std::string& path) const
-    {
-        this->throw_if_not_contain(status_t::map);
-        if (this->contains(path)) {
-            return list_.at(path);
-        } else {
-            return pnode::empty_node();
-        }
-    }
+    /**
+     * Get the integer value. It will throw error if the current node does not
+     * hold an integer value.
+     *
+     * @return the integer value with type int64_t
+     */
+    std::int64_t get_integer() const;
 
-    pnode& at(int i)
-    {
-        this->throw_if_not_contain(status_t::array);
-        return array_.at(i);
-    }
+    /**
+     * Get the real floating point value. It will throw error if the current
+     * node does not hold an real value.
+     *
+     * @return the real value with type double
+     */
+    double get_real() const;
 
-    const pnode& at(int i) const
-    {
-        this->throw_if_not_contain(status_t::array);
-        return array_.at(i);
-    }
+    /**
+     * Get the string. It will throw error if the current node does not hold an
+     * string.
+     *
+     * @return the string
+     */
+    std::string get_string() const;
 
-    // Check the status
-    bool is(status_t s) const { return this->get_status() == s; }
+    /**
+     * This function is to access the data under the map. It will throw error
+     * when it does not hold a map. When access non-existent path in the map, it
+     * will return an empty node.
+     *
+     * @param path  the key of the map
+     *
+     * @return node const reference. If the map does not have the path, return
+     * an empty node.
+     */
+    const pnode& get(const std::string& path) const;
 
-    bool contains(std::string key) const
-    {
-        this->throw_if_not_contain(status_t::map);
-        auto it = list_.find(key);
-        return (it != list_.end());
-    }
+    /**
+     * This function is to access the data under the array. It will throw error
+     * when it does not hold an array or access out-of-bound index.
+     *
+     * @param index  the index for array
+     *
+     * @return node const reference.
+     */
+    const pnode& get(int index) const;
 
-    status_t get_status() const { return status_; }
-
-protected:
-    void throw_if_not_contain(status_t status, bool allow_empty = false) const;
+private:
+    void throw_if_not_contain(status_t status) const;
 
     static const pnode& empty_node();
 
-private:
-    std::vector<pnode> array_;        // for array
-    std::map<key_type, pnode> list_;  // for list
-    data_type data_;                  // for value
     status_t status_;
+    array_type array_;  // for array
+    map_type map_;      // for map
+    // value
+    std::string str_;
+    union {
+        std::int64_t integer_;
+        double real_;
+        bool boolean_;
+    } union_data_;
 };
+
+
+template <typename T,
+          typename = typename std::enable_if<std::is_integral<T>::value>::type>
+pnode::pnode(T integer) : status_(status_t::integer)
+{
+    if (integer > std::numeric_limits<std::int64_t>::max()) {
+        throw std::runtime_error("The input is larger than int64_t.");
+    }
+    union_data_.integer_ = static_cast<std::int64_t>(integer);
+}
 
 
 }  // namespace config

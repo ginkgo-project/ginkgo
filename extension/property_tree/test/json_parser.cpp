@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -27,7 +27,7 @@ TEST(JsonParser, ReadObject)
 
     json_parser(ptree, d);
 
-    ASSERT_EQ(ptree.at("base").get_data<std::string>(), "ReferenceExecutor");
+    ASSERT_EQ(ptree.get("base").get_string(), "ReferenceExecutor");
 }
 
 

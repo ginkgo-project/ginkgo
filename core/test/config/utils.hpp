@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -15,44 +15,35 @@
 namespace gko {
 namespace config {
 
-std::ostream& operator<<(std::ostream& stream, const data& d)
-{
-    if (holds_alternative<std::string>(d)) {
-        stream << '"' << get<std::string>(d) << '"';
-    } else if (holds_alternative<long long int>(d)) {
-        stream << get<long long int>(d);
-    } else if (holds_alternative<double>(d)) {
-        stream << get<double>(d);
-    } else if (holds_alternative<bool>(d)) {
-        stream << (get<bool>(d) ? "true" : "false");
-    } else if (holds_alternative<monostate>(d)) {
-        stream << "<empty>";
-    }
-    return stream;
-}
 
 // For debug usage
 void print(std::ostream& stream, const pnode& tree, int offset = 0)
 {
     std::string offset_str(offset, ' ');
-    if (tree.is(pnode::status_t::array)) {
+    if (tree.get_status() == pnode::status_t::array) {
         stream << "[" << std::endl;
         for (const auto node : tree.get_array()) {
             stream << offset_str << "  ";
             print(stream, node, offset + 2);
         }
         stream << offset_str << "]" << std::endl;
-    } else if (tree.is(pnode::status_t::map)) {
+    } else if (tree.get_status() == pnode::status_t::map) {
         stream << "{" << std::endl;
         for (const auto node : tree.get_map()) {
             stream << offset_str << "  " << node.first << ": ";
             print(stream, node.second, offset + 2);
         }
         stream << offset_str << "}" << std::endl;
-    } else if (tree.is(pnode::status_t::data)) {
-        stream << tree.get_data() << std::endl;
-    } else {
+    } else if (tree.get_status() == pnode::status_t::empty) {
         stream << "empty_node" << std::endl;
+    } else if (tree.get_status() == pnode::status_t::string) {
+        stream << '"' << tree.get_string() << '"' << std::endl;
+    } else if (tree.get_status() == pnode::status_t::boolean) {
+        stream << (tree.get_boolean() ? "true" : "false") << std::endl;
+    } else if (tree.get_status() == pnode::status_t::integer) {
+        stream << tree.get_integer() << std::endl;
+    } else if (tree.get_status() == pnode::status_t::real) {
+        stream << tree.get_real() << std::endl;
     }
 }
 
