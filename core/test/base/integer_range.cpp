@@ -16,14 +16,10 @@ TEST(IRange, KnowsItsProperties)
     ASSERT_EQ(range.size(), 10);
     ASSERT_EQ(range.begin_index(), 0);
     ASSERT_EQ(range.end_index(), 10);
-    ASSERT_EQ(range.mid_index(), 5);
     ASSERT_EQ(*range.begin(), 0);
-    ASSERT_EQ(*range.mid(), 5);
     // For other iterators, this would be illegal, but it is allowed for
     // irange::iterator
     ASSERT_EQ(*range.end(), 10);
-    ASSERT_EQ(range.lower_half(), gko::irange<int>(0, 5));
-    ASSERT_EQ(range.upper_half(), gko::irange<int>(5, 10));
     ASSERT_TRUE(range == gko::irange<int>(0, 10));
     ASSERT_TRUE(range != gko::irange<int>(1, 10));
     ASSERT_TRUE(range != gko::irange<int>(0, 9));
@@ -100,10 +96,19 @@ TEST(IRangeStrided, KnowsItsProperties)
     gko::irange_strided<int> range{0, 4, 3};
 
     ASSERT_EQ(range.begin_index(), 0);
-    ASSERT_EQ(range.end_index(), 4);
+    ASSERT_EQ(range.end_index(), 6);
     ASSERT_EQ(range.stride(), 3);
     ASSERT_EQ(*range.begin(), 0);
-    ASSERT_EQ(range.end().end, 4);
+    ASSERT_EQ(*range.end(), 6);
+}
+
+
+TEST(IRangeStrided, EndComputationIsCorrect)
+{
+    ASSERT_EQ(gko::irange_strided<int>(0, 3, 3).end_index(), 3);
+    ASSERT_EQ(gko::irange_strided<int>(0, 4, 3).end_index(), 6);
+    ASSERT_EQ(gko::irange_strided<int>(0, 5, 3).end_index(), 6);
+    ASSERT_EQ(gko::irange_strided<int>(0, 6, 3).end_index(), 6);
 }
 
 
@@ -137,3 +142,48 @@ TEST(IRangeStridedIterator, RangeFor)
 
     ASSERT_EQ(v, std::vector<int>({1, 3, 5, 7, 9}));
 }
+
+
+#ifndef NDEBUG
+
+
+bool check_assertion_exit_code(int exit_code)
+{
+#ifdef _MSC_VER
+    // MSVC picks up the exit code incorrectly,
+    // so we can only check that it exits
+    return true;
+#else
+    return exit_code != 0;
+#endif
+}
+
+
+TEST(DeathTest, Assertions)
+{
+    // integer_iterator
+    // stride > 0
+    EXPECT_EXIT((void)(gko::integer_iterator<int>{0, 0}),
+                check_assertion_exit_code, "");
+    // a.stride_ == b.stride_
+    EXPECT_EXIT((void)(gko::integer_iterator<int>{0, 1} -
+                       gko::integer_iterator<int>{0, 2}),
+                check_assertion_exit_code, "");
+    // (*a - *b) % a.stride_ == 0
+    EXPECT_EXIT((void)(gko::integer_iterator<int>{0, 2} -
+                       gko::integer_iterator<int>{1, 2}),
+                check_assertion_exit_code, "");
+    // irange
+    // end >= begin
+    EXPECT_EXIT((void)(gko::irange<int>{1, 0}), check_assertion_exit_code, "");
+    // irange_strided
+    // end >= begin
+    EXPECT_EXIT((void)(gko::irange_strided<int>{1, 0, 1}),
+                check_assertion_exit_code, "");
+    // stride > 0
+    EXPECT_EXIT((void)(gko::irange_strided<int>{0, 1, 0}),
+                check_assertion_exit_code, "");
+}
+
+
+#endif
