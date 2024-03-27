@@ -380,7 +380,9 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_merge_path_spmv(
     merge_path_spmv<items_per_thread>(
         num_rows, val, col_idxs, row_ptrs, srow, b, c, row_out, val_out,
         [&alpha_val](const type& x) { return alpha_val * x; },
-        [&beta_val](const type& x) { return beta_val * x; });
+        [&beta_val](const type& x) {
+            return is_zero(beta_val) ? zero(beta_val) : beta_val * x;
+        });
 }
 
 
@@ -480,7 +482,8 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_classical_spmv(
     device_classical_spmv<subwarp_size>(
         num_rows, val, col_idxs, row_ptrs, b, c,
         [&alpha_val, &beta_val](const type& x, const type& y) {
-            return alpha_val * x + beta_val * y;
+            return is_zero(beta_val) ? alpha_val * x
+                                     : alpha_val * x + beta_val * y;
         });
 }
 

@@ -96,7 +96,9 @@ void advanced_spmv_kernel(size_type num_rows, size_type num_right_hand_sides,
             }
         }
         c[row * c_stride + column_id] =
-            beta[0] * c[row * c_stride + column_id] + alpha[0] * val;
+            is_zero(beta[0])
+                ? alpha[0] * val
+                : alpha[0] * val + beta[0] * c[row * c_stride + column_id];
     }
 }
 

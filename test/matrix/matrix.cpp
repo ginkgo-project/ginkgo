@@ -887,6 +887,29 @@ TYPED_TEST(Matrix, AdvancedSpMVIsEquivalentToRef)
 }
 
 
+TYPED_TEST(Matrix, AdvancedSpMVWithZerosIgnoresNaNs)
+{
+    using value_type = typename TestFixture::value_type;
+    using Scalar = gko::matrix::Dense<value_type>;
+    this->forall_matrix_scenarios([&](auto mtx) {
+        this->forall_vector_scenarios(mtx, [&](auto b, auto x) {
+            x.dev->fill(gko::nan<value_type>());
+            auto alpha =
+                gko::initialize<Scalar>({gko::one<value_type>()}, this->exec);
+            auto beta =
+                gko::initialize<Scalar>({gko::zero<value_type>()}, this->exec);
+            auto expected_x = x.dev->clone();
+
+            mtx.dev->apply(alpha, b.dev, beta, x.dev);
+            mtx.dev->apply(b.dev, expected_x);
+
+            // can't use 0 tolerance here because of Hybrid
+            GKO_ASSERT_MTX_NEAR(x.dev, expected_x, this->tol());
+        });
+    });
+}
+
+
 #if !(GINKGO_COMMON_SINGLE_MODE)
 TYPED_TEST(Matrix, MixedSpMVIsEquivalentToRef)
 {
