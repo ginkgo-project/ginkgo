@@ -6,6 +6,7 @@
 
 
 #include "core/base/integer_range.hpp"
+#include "core/test/utils/death_test_helpers.hpp"
 
 
 TEST(IRange, KnowsItsProperties)
@@ -147,42 +148,25 @@ TEST(IRangeStridedIterator, RangeFor)
 #ifndef NDEBUG
 
 
-bool check_assertion_exit_code(int exit_code)
-{
-#ifdef _MSC_VER
-    // MSVC picks up the exit code incorrectly,
-    // so we can only check that it exits
-    return true;
-#else
-    return exit_code != 0;
-#endif
-}
-
-
 TEST(DeathTest, Assertions)
 {
     // integer_iterator
     // stride > 0
-    EXPECT_EXIT((void)(gko::integer_iterator<int>{0, 0}),
-                check_assertion_exit_code, "");
+    EXPECT_ASSERT_FAILURE(gko::integer_iterator<int>(0, 0));
     // a.stride_ == b.stride_
-    EXPECT_EXIT((void)(gko::integer_iterator<int>{0, 1} -
-                       gko::integer_iterator<int>{0, 2}),
-                check_assertion_exit_code, "");
+    EXPECT_ASSERT_FAILURE(gko::integer_iterator<int>(0, 1) -
+                          gko::integer_iterator<int>(0, 2));
     // (*a - *b) % a.stride_ == 0
-    EXPECT_EXIT((void)(gko::integer_iterator<int>{0, 2} -
-                       gko::integer_iterator<int>{1, 2}),
-                check_assertion_exit_code, "");
+    EXPECT_ASSERT_FAILURE(gko::integer_iterator<int>(0, 2) -
+                          gko::integer_iterator<int>(1, 2));
     // irange
     // end >= begin
-    EXPECT_EXIT((void)(gko::irange<int>{1, 0}), check_assertion_exit_code, "");
+    EXPECT_ASSERT_FAILURE(gko::irange<int>(1, 0));
     // irange_strided
     // end >= begin
-    EXPECT_EXIT((void)(gko::irange_strided<int>{1, 0, 1}),
-                check_assertion_exit_code, "");
+    EXPECT_ASSERT_FAILURE(gko::irange_strided<int>(1, 0, 1));
     // stride > 0
-    EXPECT_EXIT((void)(gko::irange_strided<int>{0, 1, 0}),
-                check_assertion_exit_code, "");
+    EXPECT_ASSERT_FAILURE(gko::irange_strided<int>(0, 1, 0));
 }
 
 
