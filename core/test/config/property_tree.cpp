@@ -17,9 +17,6 @@
 #include <ginkgo/core/base/exception.hpp>
 
 
-#include "core/test/config/utils.hpp"
-
-
 using namespace gko::config;
 
 
@@ -187,28 +184,4 @@ TEST(PropertyTree, UseInCondition)
 
     ASSERT_EQ(first, 2);
     ASSERT_EQ(second, 1);
-}
-
-
-TEST(PropertyTree, Print)
-{
-    pnode root{{{"p0", pnode{1.23}},
-                {"p1", pnode{1}},
-                {"p2", pnode::array_type{pnode{1}, pnode{2}, pnode{}}},
-                {"p3", pnode{}}}};
-    std::istringstream iss(
-        "{\n"
-        "  p0: 1.23\n"
-        "  p1: 1\n"
-        "  p2: [\n"
-        "    1\n"
-        "    2\n"
-        "    empty_node\n"
-        "  ]\n"
-        "  p3: empty_node\n"
-        "}\n");
-    std::ostringstream oss{};
-    print(oss, root);
-
-    ASSERT_EQ(oss.str(), iss.str());
 }

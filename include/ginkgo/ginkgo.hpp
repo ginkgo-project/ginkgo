@@ -52,7 +52,6 @@
 #include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/base/version.hpp>
 
-#include <ginkgo/core/config/data.hpp>
 #include <ginkgo/core/config/property_tree.hpp>
 
 #include <ginkgo/core/distributed/base.hpp>

@@ -16,12 +16,6 @@ if(GINKGO_BUILD_BENCHMARKS)
     endif()
 endif()
 
-if(GINKGO_BUILD_CONFIG_PARSER)
-    if (NOT nlohmann_json_FOUND)
-        add_subdirectory(nlohmann_json)
-    endif()
-endif()
-
 if (GINKGO_TEST_NONDEFAULT_STREAM)
     add_subdirectory(identify_stream_usage)
 endif()
