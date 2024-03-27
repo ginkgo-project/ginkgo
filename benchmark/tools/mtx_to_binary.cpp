@@ -15,6 +15,13 @@ template <typename ValueType>
 void process(const char* input, const char* output, bool validate)
 {
     std::ifstream is(input);
+    std::string discard;
+    // std::getline(is, discard);
+    // std::cout << discard << std::endl;
+    // std::getline(is, discard);
+    // std::cout << discard << std::endl;
+    // std::getline(is, discard);
+    // std::cout << discard << std::endl;
     std::cerr << "Reading from " << input << '\n';
     auto data = gko::read_raw<ValueType, gko::int64>(is);
     {
