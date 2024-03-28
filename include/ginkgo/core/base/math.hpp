@@ -616,7 +616,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr int64 ceildiv(int64 num, int64 den)
 }
 
 
-#if defined(__HIPCC__) && GINKGO_HIP_PLATFORM_HCC
+#if defined(__HIPCC__)
 
 
 /**
@@ -794,7 +794,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T one(const T&)
 }
 
 
-#endif  // defined(__HIPCC__) && GINKGO_HIP_PLATFORM_HCC
+#endif  // defined(__HIPCC__)
 
 
 #undef GKO_BIND_ZERO_ONE

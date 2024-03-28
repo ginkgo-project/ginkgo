@@ -77,8 +77,7 @@ protected:
      * @return true if and only if the allocator can be used by HipExecutor in
      *         the given environment.
      */
-    virtual bool check_environment(int device_id,
-                                   GKO_HIP_STREAM_STRUCT* stream) const
+    virtual bool check_environment(int device_id, ihipStream_t* stream) const
     {
         return true;
     }
@@ -186,14 +185,13 @@ public:
 
     void deallocate(void* ptr) override;
 
-    HipAsyncAllocator(GKO_HIP_STREAM_STRUCT* stream);
+    HipAsyncAllocator(ihipStream_t* stream);
 
 protected:
-    bool check_environment(int device_id,
-                           GKO_HIP_STREAM_STRUCT* stream) const override;
+    bool check_environment(int device_id, ihipStream_t* stream) const override;
 
 private:
-    GKO_HIP_STREAM_STRUCT* stream_;
+    ihipStream_t* stream_;
 };
 
 
@@ -211,8 +209,7 @@ public:
     HipUnifiedAllocator(int device_id, unsigned int flags);
 
 protected:
-    bool check_environment(int device_id,
-                           GKO_HIP_STREAM_STRUCT* stream) const override;
+    bool check_environment(int device_id, ihipStream_t* stream) const override;
 
 private:
     int device_id_;
@@ -232,8 +229,7 @@ public:
     HipHostAllocator(int device_id);
 
 protected:
-    bool check_environment(int device_id,
-                           GKO_HIP_STREAM_STRUCT* stream) const override;
+    bool check_environment(int device_id, ihipStream_t* stream) const override;
 
 private:
     int device_id_;

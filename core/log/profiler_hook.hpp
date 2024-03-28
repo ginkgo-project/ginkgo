@@ -110,7 +110,6 @@ public:
 namespace hip {
 
 
-#if (GINKGO_HIP_PLATFORM_NVCC == 0)
 class profiling_scope_guard : log::profiling_scope_guard {
 public:
     profiling_scope_guard(const char* name)
@@ -119,9 +118,6 @@ public:
                                      log::begin_roctx, log::end_nvtx}
     {}
 };
-#else
-using profiling_scope_guard = log::default_profiling_scope_guard;
-#endif
 
 
 }  // namespace hip

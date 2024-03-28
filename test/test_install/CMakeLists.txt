@@ -44,33 +44,14 @@ if(GINKGO_BUILD_CUDA)
 endif()
 
 if(GINKGO_BUILD_HIP)
-    find_package(HIP REQUIRED)
-
-    set_source_files_properties(test_install.cpp PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
-    # The library was compiled with `-fPIC` when in shared library mode
-    if (GINKGO_BUILD_SHARED_LIBS)
-        set (GINKGO_PIC_OPTION "-fPIC")
-        set (GINKGO_CUDA_PIC_OPTION "-Xcompiler '-fPIC'")
-    else()
-        set (GINKGO_PIC_OPTION "$<$<CONFIG:Debug>:-fPIC>")
-    endif()
-    if (CMAKE_CUDA_HOST_COMPILER)
-        set(TESTINSTALL_CUDA_HOST_COMPILER "-ccbin=${CMAKE_CUDA_HOST_COMPILER}")
-    endif()
-    hip_add_executable(test_install_hip test_install.cpp
-        HIPCC_OPTIONS "-std=c++14"
-        CLANG_OPTIONS "${GINKGO_PIC_OPTION}"
-        NVCC_OPTIONS "${GINKGO_CUDA_PIC_OPTION}" "${TESTINSTALL_CUDA_HOST_COMPILER}")
+    enable_language(HIP)
+    configure_file(test_install.cpp test_install.hip.cpp COPYONLY)
+    set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/test_install.hip.cpp PROPERTIES LANGUAGE HIP)
+    add_executable(test_install_hip ${CMAKE_CURRENT_BINARY_DIR}/test_install.hip.cpp)
 
     target_link_libraries(test_install_hip PRIVATE Ginkgo::ginkgo)
     target_compile_definitions(test_install_hip PRIVATE HAS_HIP=1)
     target_compile_definitions(test_install_hip PRIVATE HAS_REFERENCE=${HAS_REFERENCE})
-
-    # If we always link with CXX there is no RPATH issue
-    set_target_properties(test_install_hip PROPERTIES LINKER_LANGUAGE CXX)
-
-    # Instead of using CXX, it's possible to instead use
-    # target_link_libraries(test_install_hip PRIVATE ${GINKGO_INSTALL_RPATH_FOR_HIP})
 endif()
 
 # Installation step

@@ -119,7 +119,7 @@ GKO_BIND_ATOMIC_ADD(unsigned long long int);
 GKO_BIND_ATOMIC_ADD(float);
 
 // AMD
-#if defined(__HIPCC__) && GINKGO_HIP_PLATFORM_HCC
+#if defined(__HIPCC__)
 
 
 // the double atomicAdd is added after 4.3
@@ -157,7 +157,7 @@ GKO_BIND_ATOMIC_ADD(__half2);
         // (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600)))
 
 
-#endif  // defined(__HIPCC__) && GINKGO_HIP_PLATFORM_HCC
+#endif  // defined(__HIPCC__)
 
 
 #undef GKO_BIND_ATOMIC_ADD
@@ -179,20 +179,7 @@ __forceinline__ __device__ T atomic_max(T* __restrict__ addr, T val)
 
 GKO_BIND_ATOMIC_MAX(int);
 GKO_BIND_ATOMIC_MAX(unsigned int);
-
-#if !defined(__HIPCC__) || \
-    (defined(__HIP_DEVICE_COMPILE__) && GINKGO_HIP_PLATFORM_NVCC)
-
-
-#if defined(__CUDA_ARCH__) && (350 <= __CUDA_ARCH__)
-// Only Compute Capability 3.5 and higher supports 64-bit atomicMax
 GKO_BIND_ATOMIC_MAX(unsigned long long int);
-#endif
-
-#else   // Is HIP platform & on AMD hardware
-GKO_BIND_ATOMIC_MAX(unsigned long long int);
-#endif  // !defined(__HIPCC__) || (defined(__HIP_DEVICE_COMPILE__) &&
-        // GINKGO_HIP_PLATFORM_HCC)
 
 
 #undef GKO_BIND_ATOMIC_MAX
