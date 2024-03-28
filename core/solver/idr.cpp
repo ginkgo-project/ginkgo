@@ -13,6 +13,7 @@
 #include <ginkgo/core/solver/solver_base.hpp>
 
 
+#include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/idr_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
@@ -33,6 +34,30 @@ GKO_REGISTER_OPERATION(compute_omega, idr::compute_omega);
 
 }  // anonymous namespace
 }  // namespace idr
+
+
+template <typename ValueType>
+typename Idr<ValueType>::parameters_type Idr<ValueType>::build_from_config(
+    const config::pnode& config, const config::registry& context,
+    config::type_descriptor td_for_child)
+{
+    auto factory = solver::Idr<ValueType>::build();
+    common_solver_configure(factory, config, context, td_for_child);
+    if (auto& obj = config.get("subspace_dim")) {
+        factory.with_subspace_dim(gko::config::get_value<size_type>(obj));
+    }
+    if (auto& obj = config.get("kappa")) {
+        factory.with_kappa(
+            gko::config::get_value<remove_complex<ValueType>>(obj));
+    }
+    if (auto& obj = config.get("deterministic")) {
+        factory.with_deterministic(gko::config::get_value<bool>(obj));
+    }
+    if (auto& obj = config.get("complex_subspace")) {
+        factory.with_complex_subspace(gko::config::get_value<bool>(obj));
+    }
+    return factory;
+}
 
 
 template <typename ValueType>

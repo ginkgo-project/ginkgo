@@ -14,6 +14,7 @@
 #include <ginkgo/core/solver/triangular.hpp>
 
 
+#include "core/config/config.hpp"
 #include "core/solver/lower_trs_kernels.hpp"
 
 
@@ -31,6 +32,35 @@ GKO_REGISTER_OPERATION(solve, lower_trs::solve);
 
 }  // anonymous namespace
 }  // namespace lower_trs
+
+
+template <typename ValueType, typename IndexType>
+typename LowerTrs<ValueType, IndexType>::parameters_type
+LowerTrs<ValueType, IndexType>::build_from_config(
+    const config::pnode& config, const config::registry& context,
+    config::type_descriptor td_for_child)
+{
+    auto factory = LowerTrs<ValueType, IndexType>::build();
+    // duplicate?
+    if (auto& obj = config.get("num_rhs")) {
+        factory.with_num_rhs(gko::config::get_value<size_type>(obj));
+    }
+    if (auto& obj = config.get("unit_diagonal")) {
+        factory.with_unit_diagonal(gko::config::get_value<bool>(obj));
+    }
+    if (auto& obj = config.get("algorithm")) {
+        using gko::solver::trisolve_algorithm;
+        auto str = obj.get_string();
+        if (str == "sparselib") {
+            factory.with_algorithm(trisolve_algorithm::sparselib);
+        } else if (str == "syncfree") {
+            factory.with_algorithm(trisolve_algorithm::syncfree);
+        } else {
+            GKO_INVALID_STATE("Wrong value for algorithm");
+        }
+    }
+    return factory;
+}
 
 
 template <typename ValueType, typename IndexType>
