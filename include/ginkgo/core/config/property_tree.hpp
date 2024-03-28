@@ -54,8 +54,8 @@ public:
      *
      * @param integer  the integer type value
      */
-    template <typename T, typename = typename std::enable_if<
-                              std::is_integral<T>::value>::type>
+    template <typename T,
+              std::enable_if_t<std::is_integral<T>::value>* = nullptr>
     pnode(T integer);
 
     /**
@@ -193,8 +193,7 @@ private:
 };
 
 
-template <typename T,
-          typename = typename std::enable_if<std::is_integral<T>::value>::type>
+template <typename T, std::enable_if_t<std::is_integral<T>::value>*>
 pnode::pnode(T integer) : status_(status_t::integer)
 {
     if (integer > std::numeric_limits<std::int64_t>::max()) {
