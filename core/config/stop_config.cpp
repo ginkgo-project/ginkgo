@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -63,7 +63,7 @@ public:
         auto factory = stop::ResidualNorm<ValueType>::build();
         SET_VALUE(factory, remove_complex<ValueType>, reduction_factor, config);
         if (auto& obj = config.get("baseline")) {
-            factory.with_baseline(get_mode(obj.get_data<std::string>()));
+            factory.with_baseline(get_mode(obj.get_string()));
         }
         return factory;
     }
@@ -91,7 +91,7 @@ public:
         auto factory = stop::ImplicitResidualNorm<ValueType>::build();
         SET_VALUE(factory, remove_complex<ValueType>, reduction_factor, config);
         if (auto& obj = config.get("baseline")) {
-            factory.with_baseline(get_mode(obj.get_data<std::string>()));
+            factory.with_baseline(get_mode(obj.get_string()));
         }
         return factory;
     }
@@ -115,10 +115,9 @@ get_factory<const stop::CriterionFactory>(const pnode& config,
                                           type_descriptor td)
 {
     deferred_factory_parameter<const stop::CriterionFactory> ptr;
-    if (config.is(pnode::status_t::data)) {
-        return context.search_data<stop::CriterionFactory>(
-            config.get_data<std::string>());
-    } else if (config.is(pnode::status_t::map)) {
+    if (config.get_status() == pnode::status_t::string) {
+        return context.search_data<stop::CriterionFactory>(config.get_string());
+    } else if (config.get_status() == pnode::status_t::map) {
         static std::map<std::string,
                         std::function<deferred_factory_parameter<
                             gko::stop::CriterionFactory>(
@@ -128,8 +127,8 @@ get_factory<const stop::CriterionFactory>(const pnode& config,
                  {"Iteration", configure_iter},
                  {"ResidualNorm", configure_residual},
                  {"ImplicitResidualNorm", configure_implicit_residual}}};
-        return criterion_map.at(config.at("Type").get_data<std::string>())(
-            config, context, td);
+        return criterion_map.at(config.get("Type").get_string())(config,
+                                                                 context, td);
     }
     assert(!ptr.is_empty());
     return std::move(ptr);
