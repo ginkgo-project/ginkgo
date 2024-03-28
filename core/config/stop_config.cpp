@@ -24,7 +24,9 @@ inline deferred_factory_parameter<stop::CriterionFactory> configure_time(
     const pnode& config, const registry& context, type_descriptor td)
 {
     auto factory = stop::Time::build();
-    SET_VALUE(factory, long long int, time_limit, config);
+    if (auto& obj = config.get("time_limit")) {
+        factory.with_time_limit(gko::config::get_value<long long int>(obj));
+    }
     return factory;
 }
 
@@ -33,7 +35,9 @@ inline deferred_factory_parameter<stop::CriterionFactory> configure_iter(
     const pnode& config, const registry& context, type_descriptor td)
 {
     auto factory = stop::Iteration::build();
-    SET_VALUE(factory, size_type, max_iters, config);
+    if (auto& obj = config.get("max_iters")) {
+        factory.with_max_iters(gko::config::get_value<size_type>(obj));
+    }
     return factory;
 }
 
@@ -61,7 +65,10 @@ public:
                       gko::config::type_descriptor td_for_child)
     {
         auto factory = stop::ResidualNorm<ValueType>::build();
-        SET_VALUE(factory, remove_complex<ValueType>, reduction_factor, config);
+        if (auto& obj = config.get("reduction_factor")) {
+            factory.with_reduction_factor(
+                gko::config::get_value<remove_complex<ValueType>>(obj));
+        }
         if (auto& obj = config.get("baseline")) {
             factory.with_baseline(get_mode(obj.get_string()));
         }
@@ -89,7 +96,10 @@ public:
                       gko::config::type_descriptor td_for_child)
     {
         auto factory = stop::ImplicitResidualNorm<ValueType>::build();
-        SET_VALUE(factory, remove_complex<ValueType>, reduction_factor, config);
+        if (auto& obj = config.get("reduction_factor")) {
+            factory.with_reduction_factor(
+                gko::config::get_value<remove_complex<ValueType>>(obj));
+        }
         if (auto& obj = config.get("baseline")) {
             factory.with_baseline(get_mode(obj.get_string()));
         }
@@ -133,31 +143,6 @@ get_factory<const stop::CriterionFactory>(const pnode& config,
     assert(!ptr.is_empty());
     return std::move(ptr);
 }
-
-// template <>
-// std::vector<std::shared_ptr<const stop::CriterionFactory>>
-// get_pointer_vector<const stop::CriterionFactory>(
-//     const pnode& config, const registry& context,
-//     std::shared_ptr<const Executor> exec, type_descriptor td)
-// {
-//     std::vector<std::shared_ptr<const stop::CriterionFactory>> res;
-//     if (config.is(pnode::status_t::array)) {
-//         for (const auto& it : config.get_array()) {
-//             res.push_back(get_pointer<const stop::CriterionFactory>(it,
-//             context,
-//                                                                     exec,
-//                                                                     td));
-//         }
-//     } else {
-//         res.push_back(get_pointer<const stop::CriterionFactory>(config,
-//         context,
-//                                                                 exec, td));
-//     }
-//     // TODO: handle shortcut version by config.is(pnode::status_t::map) &&
-//     // !config.contains("Type")
-
-//     return res;
-// }
 
 
 }  // namespace config

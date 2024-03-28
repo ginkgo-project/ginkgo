@@ -103,12 +103,6 @@ inline std::vector<deferred_factory_parameter<T>> get_factory_vector(
     return res;
 }
 
-// template <>
-// std::vector<std::shared_ptr<const stop::CriterionFactory>>
-// get_pointer_vector<const stop::CriterionFactory>(
-//     const pnode& config, const registry& context,
-//     std::shared_ptr<const Executor> exec, type_descriptor td);
-
 
 template <typename IndexType>
 inline
@@ -146,57 +140,6 @@ get_value(const pnode& config)
     }
     GKO_INVALID_STATE("Can not get complex value");
 }
-
-
-#define SET_POINTER(_factory, _param_type, _param_name, _config, _context,   \
-                    _td)                                                     \
-    {                                                                        \
-        if (auto& obj = _config.get(#_param_name)) {                         \
-            _factory.with_##_param_name(                                     \
-                gko::config::get_pointer<_param_type>(obj, _context, _td));  \
-        }                                                                    \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
-
-#define SET_FACTORY(_factory, _param_type, _param_name, _config, _context,   \
-                    _td)                                                     \
-    {                                                                        \
-        if (auto& obj = _config.get(#_param_name)) {                         \
-            _factory.with_##_param_name(                                     \
-                gko::config::get_factory<_param_type>(obj, _context, _td));  \
-        }                                                                    \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
-
-
-#define SET_FACTORY_VECTOR(_factory, _param_type, _param_name, _config,      \
-                           _context, _td)                                    \
-    {                                                                        \
-        if (auto& obj = _config.get(#_param_name)) {                         \
-            _factory.with_##_param_name(                                     \
-                gko::config::get_factory_vector<_param_type>(obj, _context,  \
-                                                             _td));          \
-        }                                                                    \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
-
-
-#define SET_VALUE(_factory, _param_type, _param_name, _config)               \
-    {                                                                        \
-        if (auto& obj = _config.get(#_param_name)) {                         \
-            _factory.with_##_param_name(                                     \
-                gko::config::get_value<_param_type>(obj));                   \
-        }                                                                    \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
 
 
 // If we do not put the build_from_config in the class directly, the following

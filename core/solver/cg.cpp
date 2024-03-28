@@ -62,17 +62,21 @@ typename Cg<ValueType>::parameters_type Cg<ValueType>::build_from_config(
     config::type_descriptor td_for_child)
 {
     auto factory = solver::Cg<ValueType>::build();
-    SET_POINTER(factory, const LinOp, generated_preconditioner, config, context,
-                td_for_child);
-    // handle parameter requires exec
-    // criteria and preconditioner are almost in each solver -> to another
-    // function.
-    SET_FACTORY_VECTOR(factory, const stop::CriterionFactory, criteria, config,
-                       context, td_for_child);
-    SET_FACTORY(factory, const LinOpFactory, preconditioner, config, context,
-                td_for_child);
-    // can also handle preconditioner, criterion here if they are in
-    // context.
+    // The following will be moved to the common solver function in another pr
+    if (auto& obj = config.get("generated_preconditioner")) {
+        factory.with_generated_preconditioner(
+            gko::config::get_pointer<const LinOp>(obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("criteria")) {
+        factory.with_criteria(
+            gko::config::get_factory_vector<const stop::CriterionFactory>(
+                obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("preconditioner")) {
+        factory.with_preconditioner(
+            gko::config::get_factory<const LinOpFactory>(obj, context,
+                                                         td_for_child));
+    }
     return factory;
 }
 
