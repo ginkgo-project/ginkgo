@@ -109,7 +109,7 @@ template <typename ValueType>
 inline typename std::enable_if<std::is_same<ValueType, bool>::value, bool>::type
 get_value(const pnode& config)
 {
-    auto val = config.get_data<bool>();
+    auto val = config.get_boolean();
     return val;
 }
 
@@ -157,7 +157,7 @@ inline typename std::enable_if<
     solver::initial_guess_mode>::type
 get_value(const pnode& config)
 {
-    auto val = config.get_data<std::string>();
+    auto val = config.get_string();
     if (val == "zero") {
         return solver::initial_guess_mode::zero;
     } else if (val == "rhs") {

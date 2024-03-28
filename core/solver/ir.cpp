@@ -36,15 +36,26 @@ typename Ir<ValueType>::parameters_type Ir<ValueType>::build_from_config(
     config::type_descriptor td_for_child)
 {
     auto factory = solver::Ir<ValueType>::build();
-    SET_FACTORY_VECTOR(factory, const stop::CriterionFactory, criteria, config,
-                       context, td_for_child);
-    SET_FACTORY(factory, const LinOpFactory, solver, config, context,
-                td_for_child);
-    SET_POINTER(factory, const LinOp, generated_solver, config, context,
-                td_for_child);
-    SET_VALUE(factory, ValueType, relaxation_factor, config);
-    SET_VALUE(factory, solver::initial_guess_mode, default_initial_guess,
-              config);
+    if (auto& obj = config.get("criteria")) {
+        factory.with_criteria(
+            gko::config::get_factory_vector<const stop::CriterionFactory>(
+                obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("solver")) {
+        factory.with_solver(gko::config::get_factory<const LinOpFactory>(
+            obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("generated_solver")) {
+        factory.with_generated_solver(
+            gko::config::get_pointer<const LinOp>(obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("relaxation_factor")) {
+        factory.with_relaxation_factor(gko::config::get_value<ValueType>(obj));
+    }
+    if (auto& obj = config.get("default_initial_guess")) {
+        factory.with_default_initial_guess(
+            gko::config::get_value<solver::initial_guess_mode>(obj));
+    }
     return factory;
 }
 

@@ -42,11 +42,15 @@ UpperTrs<ValueType, IndexType>::build_from_config(
 {
     auto factory = UpperTrs<ValueType, IndexType>::build();
     // duplicate?
-    SET_VALUE(factory, size_type, num_rhs, config);
-    SET_VALUE(factory, bool, unit_diagonal, config);
-    if (config.contains("algorithm")) {
+    if (auto& obj = config.get("num_rhs")) {
+        factory.with_num_rhs(gko::config::get_value<size_type>(obj));
+    }
+    if (auto& obj = config.get("unit_diagonal")) {
+        factory.with_unit_diagonal(gko::config::get_value<bool>(obj));
+    }
+    if (auto& obj = config.get("algorithm")) {
         using gko::solver::trisolve_algorithm;
-        auto str = config.at("algorithm").get_data<std::string>();
+        auto str = obj.get_string();
         if (str == "sparselib") {
             factory.with_algorithm(trisolve_algorithm::sparselib);
         } else if (str == "syncfree") {

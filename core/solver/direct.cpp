@@ -28,9 +28,13 @@ Direct<ValueType, IndexType>::build_from_config(
     config::type_descriptor td_for_child)
 {
     auto factory = Direct<ValueType, IndexType>::build();
-    SET_VALUE(factory, size_type, num_rhs, config);
-    SET_FACTORY(factory, const LinOpFactory, factorization, config, context,
-                td_for_child);
+    if (auto& obj = config.get("num_rhs")) {
+        factory.with_num_rhs(gko::config::get_value<size_type>(obj));
+    }
+    if (auto& obj = config.get("factorization")) {
+        factory.with_factorization(gko::config::get_factory<const LinOpFactory>(
+            obj, context, td_for_child));
+    }
     return factory;
 }
 

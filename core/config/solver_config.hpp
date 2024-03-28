@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -22,12 +22,20 @@ inline void common_solver_configure(SolverFactory& factory, const pnode& config,
                                     const registry& context,
                                     type_descriptor td_for_child)
 {
-    SET_POINTER(factory, const LinOp, generated_preconditioner, config, context,
-                td_for_child);
-    SET_FACTORY_VECTOR(factory, const stop::CriterionFactory, criteria, config,
-                       context, td_for_child);
-    SET_FACTORY(factory, const LinOpFactory, preconditioner, config, context,
-                td_for_child);
+    if (auto& obj = config.get("generated_preconditioner")) {
+        factory.with_generated_preconditioner(
+            gko::config::get_pointer<const LinOp>(obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("criteria")) {
+        factory.with_criteria(
+            gko::config::get_factory_vector<const stop::CriterionFactory>(
+                obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("preconditioner")) {
+        factory.with_preconditioner(
+            gko::config::get_factory<const LinOpFactory>(obj, context,
+                                                         td_for_child));
+    }
 }
 
 

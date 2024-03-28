@@ -44,7 +44,9 @@ typename Gcr<ValueType>::parameters_type Gcr<ValueType>::build_from_config(
 {
     auto factory = solver::Gcr<ValueType>::build();
     common_solver_configure(factory, config, context, td_for_child);
-    SET_VALUE(factory, size_type, krylov_dim, config);
+    if (auto& obj = config.get("krylov_dim")) {
+        factory.with_krylov_dim(gko::config::get_value<size_type>(obj));
+    }
     return factory;
 }
 
