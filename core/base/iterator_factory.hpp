@@ -15,6 +15,7 @@
 
 
 #include "core/base/copy_assignable.hpp"
+#include "core/base/iterator_boilerplate.hpp"
 
 
 namespace gko {
@@ -130,7 +131,7 @@ public:
     using iterator_category = std::random_access_iterator_tag;
     using index_sequence = std::index_sequence_for<Iterators...>;
 
-    explicit zip_iterator() = default;
+    zip_iterator() = default;
 
     explicit zip_iterator(Iterators... its) : iterators_{its...} {}
 
@@ -138,57 +139,6 @@ public:
     {
         forall([i](auto& it) { it += i; });
         return *this;
-    }
-
-    zip_iterator& operator-=(difference_type i)
-    {
-        forall([i](auto& it) { it -= i; });
-        return *this;
-    }
-
-    zip_iterator& operator++()
-    {
-        forall([](auto& it) { it++; });
-        return *this;
-    }
-
-    zip_iterator operator++(int)
-    {
-        auto tmp = *this;
-        ++(*this);
-        return tmp;
-    }
-
-    zip_iterator& operator--()
-    {
-        forall([](auto& it) { it--; });
-        return *this;
-    }
-
-    zip_iterator operator--(int)
-    {
-        auto tmp = *this;
-        --(*this);
-        return tmp;
-    }
-
-    zip_iterator operator+(difference_type i) const
-    {
-        auto tmp = *this;
-        tmp += i;
-        return tmp;
-    }
-
-    friend zip_iterator operator+(difference_type i, const zip_iterator& iter)
-    {
-        return iter + i;
-    }
-
-    zip_iterator operator-(difference_type i) const
-    {
-        auto tmp = *this;
-        tmp -= i;
-        return tmp;
     }
 
     difference_type operator-(const zip_iterator& other) const
@@ -202,40 +152,7 @@ public:
         return deref_impl(std::index_sequence_for<Iterators...>{});
     }
 
-    reference operator[](difference_type i) const { return *(*this + i); }
-
-    bool operator==(const zip_iterator& other) const
-    {
-        return forall_check_consistent(
-            other, [](const auto& a, const auto& b) { return a == b; });
-    }
-
-    bool operator!=(const zip_iterator& other) const
-    {
-        return !(*this == other);
-    }
-
-    bool operator<(const zip_iterator& other) const
-    {
-        return forall_check_consistent(
-            other, [](const auto& a, const auto& b) { return a < b; });
-    }
-
-    bool operator<=(const zip_iterator& other) const
-    {
-        return forall_check_consistent(
-            other, [](const auto& a, const auto& b) { return a <= b; });
-    }
-
-    bool operator>(const zip_iterator& other) const
-    {
-        return !(*this <= other);
-    }
-
-    bool operator>=(const zip_iterator& other) const
-    {
-        return !(*this < other);
-    }
+    GKO_RANDOM_ACCESS_ITERATOR_BOILERPLATE(zip_iterator)
 
 private:
     template <std::size_t... idxs>
@@ -373,46 +290,6 @@ public:
         return *this;
     }
 
-    permute_iterator& operator-=(difference_type i) { return *this += -i; }
-
-    permute_iterator& operator++() { return *this += 1; }
-
-    permute_iterator operator++(int)
-    {
-        auto tmp = *this;
-        ++(*this);
-        return tmp;
-    }
-
-    permute_iterator& operator--() { return *this -= 1; }
-
-    permute_iterator operator--(int)
-    {
-        auto tmp = *this;
-        --(*this);
-        return tmp;
-    }
-
-    permute_iterator operator+(difference_type i) const
-    {
-        auto tmp = *this;
-        tmp += i;
-        return tmp;
-    }
-
-    friend permute_iterator operator+(difference_type i,
-                                      const permute_iterator& iter)
-    {
-        return iter + i;
-    }
-
-    permute_iterator operator-(difference_type i) const
-    {
-        auto tmp = *this;
-        tmp -= i;
-        return tmp;
-    }
-
     difference_type operator-(const permute_iterator& other) const
     {
         return idx_ - other.idx_;
@@ -420,37 +297,7 @@ public:
 
     reference operator*() const { return it_[perm_(idx_)]; }
 
-    reference operator[](difference_type i) const { return *(*this + i); }
-
-    bool operator==(const permute_iterator& other) const
-    {
-        return idx_ == other.idx_;
-    }
-
-    bool operator!=(const permute_iterator& other) const
-    {
-        return !(*this == other);
-    }
-
-    bool operator<(const permute_iterator& other) const
-    {
-        return idx_ < other.idx_;
-    }
-
-    bool operator<=(const permute_iterator& other) const
-    {
-        return idx_ <= other.idx_;
-    }
-
-    bool operator>(const permute_iterator& other) const
-    {
-        return !(*this <= other);
-    }
-
-    bool operator>=(const permute_iterator& other) const
-    {
-        return !(*this < other);
-    }
+    GKO_RANDOM_ACCESS_ITERATOR_BOILERPLATE(permute_iterator);
 
 private:
     IteratorType it_;

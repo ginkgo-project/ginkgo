@@ -11,6 +11,9 @@
 #include <type_traits>
 
 
+#include "core/base/iterator_boilerplate.hpp"
+
+
 namespace gko {
 
 
@@ -104,59 +107,9 @@ public:
         return *this;
     }
 
-    /** Iterator advance. */
-    constexpr friend integer_iterator operator+(integer_iterator a,
-                                                difference_type n)
-    {
-        return a += n;
-    }
-
-    /** Pre-increment. */
-    constexpr integer_iterator& operator++() { return *this += 1; }
-
-    /** Post-increment. */
-    constexpr integer_iterator operator++(int)
-    {
-        auto tmp{*this};
-        operator++();
-        return tmp;
-    }
-
-    // InputIterator requirements
-    /** Equality. */
-    constexpr friend bool operator==(integer_iterator a, integer_iterator b)
-    {
-        return (*a == *b);
-    }
-
     /** Dereference. */
     constexpr reference operator*() const { return idx_; }
 
-    // BidirectionalIterator requirements
-    /** Pre-decrement. */
-    constexpr integer_iterator& operator--() { return *this -= 1; }
-
-    /** Post-decrement. */
-    constexpr integer_iterator operator--(int)
-    {
-        auto tmp{*this};
-        operator--();
-        return tmp;
-    }
-
-    /** Iterator backwards advance. */
-    constexpr integer_iterator& operator-=(difference_type n)
-    {
-        idx_ += -n;
-        return *this;
-    }
-
-    /** Iterator backwards advance. */
-    constexpr friend integer_iterator operator-(integer_iterator a,
-                                                difference_type n)
-    {
-        return a + -n;
-    }
 
     /** Iterator difference. */
     constexpr friend difference_type operator-(integer_iterator a,
@@ -167,49 +120,10 @@ public:
         return (*a - *b) / a.stride_;
     }
 
-    /** Subscript. */
-    constexpr reference operator[](difference_type n) const
-    {
-        return *(*this + n);
-    }
+    /** Returns the stride of the iterator. */
+    constexpr index_type stride() const { return stride_; }
 
-    // Boilerplate comparison operators
-    /** non-equality */
-    constexpr friend bool operator!=(integer_iterator a, integer_iterator b)
-    {
-        return !(a == b);
-    }
-
-    /** reverse advance */
-    constexpr friend integer_iterator operator+(difference_type n,
-                                                integer_iterator a)
-    {
-        return a + n;
-    }
-
-    /** less than */
-    constexpr friend bool operator<(integer_iterator a, integer_iterator b)
-    {
-        return b - a > 0;
-    }
-
-    /** greater than */
-    constexpr friend bool operator>(integer_iterator a, integer_iterator b)
-    {
-        return b < a;
-    }
-
-    /** greater equal */
-    constexpr friend bool operator>=(integer_iterator a, integer_iterator b)
-    {
-        return !(a < b);
-    }
-
-    /** less equal */
-    constexpr friend bool operator<=(integer_iterator a, integer_iterator b)
-    {
-        return !(a > b);
-    }
+    GKO_RANDOM_ACCESS_ITERATOR_BOILERPLATE(integer_iterator);
 
 private:
     index_type idx_;
@@ -217,51 +131,72 @@ private:
 };
 
 
-template <typename IndexType>
-class irange_strided {
-    static_assert(std::is_signed<IndexType>::value &&
-                      std::is_integral<IndexType>::value,
-                  "Can only use irange with signed integral types!");
+template <typename IteratorType>
+class random_access_range {
+    static_assert(
+        std::is_same<
+            typename std::iterator_traits<IteratorType>::iterator_category,
+            std::random_access_iterator_tag>::value,
+        "IteratorType needs to be a random access iterator");
 
 public:
+    using iterator = IteratorType;
+    using value_type = typename std::iterator_traits<IteratorType>::value_type;
+    using difference_type =
+        typename std::iterator_traits<IteratorType>::difference_type;
+    using reference = typename std::iterator_traits<IteratorType>::reference;
+
+    constexpr explicit random_access_range(iterator begin, iterator end)
+        : begin_{begin}, end_{end}
+    {}
+
+    constexpr iterator begin() const { return begin_; }
+
+    constexpr iterator end() const { return end_; }
+
+    constexpr difference_type size() const { return end() - begin(); }
+
+    constexpr bool empty() const { return size() == 0; }
+
+    constexpr reference operator[](difference_type i) const
+    {
+        return begin()[i];
+    }
+
+private:
+    iterator begin_;
+    iterator end_;
+};
+
+
+template <typename IndexType>
+class irange_strided : public random_access_range<integer_iterator<IndexType>> {
+public:
     using index_type = IndexType;
-    using value_type = index_type;
-    using iterator = integer_iterator<index_type>;
+    using iterator =
+        typename random_access_range<integer_iterator<IndexType>>::iterator;
+    using value_type =
+        typename random_access_range<integer_iterator<IndexType>>::value_type;
+    using reference =
+        typename random_access_range<integer_iterator<IndexType>>::reference;
+    using difference_type = typename random_access_range<
+        integer_iterator<IndexType>>::difference_type;
 
     explicit irange_strided(index_type begin, index_type end, index_type stride)
-        : begin_{begin},
-          end_{begin + (end - begin) / stride * stride +
-               ((end - begin) % stride != 0 ? stride : 0)},
-          stride_{stride}
+        : random_access_range<integer_iterator<IndexType>>{
+              iterator{begin, stride},
+              iterator{begin + (end - begin) / stride * stride +
+                           ((end - begin) % stride != 0 ? stride : 0),
+                       stride}}
     {
         assert(end >= begin);
         assert(stride > 0);
     }
 
-    constexpr index_type begin_index() const { return begin_; }
-
-    constexpr index_type end_index() const { return end_; }
-
-    constexpr index_type stride() const { return stride_; }
-
-    constexpr index_type size() const
-    {
-        return (end_index() - begin_index()) / stride();
-    }
-
-    constexpr bool empty() const { return size() == 0; }
-
-    constexpr iterator begin() const
-    {
-        return iterator{begin_index(), stride()};
-    }
-
-    constexpr iterator end() const { return iterator{end_index(), stride()}; }
-
     constexpr friend bool operator==(irange_strided lhs, irange_strided rhs)
     {
-        return lhs.begin() == rhs.begin() && lhs.end() == rhs.end() &&
-               lhs.stride() == rhs.stride();
+        return lhs.stride() == rhs.stride() && *lhs.begin() == *rhs.begin() &&
+               *lhs.end() == *rhs.end();
     }
 
     constexpr friend bool operator!=(irange_strided lhs, irange_strided rhs)
@@ -269,42 +204,39 @@ public:
         return !(lhs == rhs);
     }
 
-private:
-    index_type begin_;
-    index_type end_;
-    index_type stride_;
+    constexpr index_type begin_index() const { return *this->begin(); }
+
+    constexpr index_type end_index() const { return *this->end(); }
+
+    constexpr index_type stride() const { return this->begin().stride(); }
 };
 
 
 template <typename IndexType>
-class irange {
-    static_assert(std::is_signed<IndexType>::value &&
-                      std::is_integral<IndexType>::value,
-                  "Can only use irange with signed integral types!");
-
+class irange : public random_access_range<integer_iterator<IndexType>> {
 public:
     using index_type = IndexType;
-    using value_type = index_type;
-    using iterator = integer_iterator<index_type>;
+    using iterator =
+        typename random_access_range<integer_iterator<IndexType>>::iterator;
+    using value_type =
+        typename random_access_range<integer_iterator<IndexType>>::value_type;
+    using reference =
+        typename random_access_range<integer_iterator<IndexType>>::reference;
+    using difference_type = typename random_access_range<
+        integer_iterator<IndexType>>::difference_type;
 
-    explicit irange(index_type begin, index_type end) : begin_{begin}, end_{end}
+    explicit irange(index_type begin, index_type end)
+        : random_access_range<integer_iterator<IndexType>>{iterator{begin, 1},
+                                                           iterator{end, 1}}
     {
         assert(end >= begin);
     }
 
     explicit irange(index_type end) : irange{0, end} {}
 
-    constexpr index_type begin_index() const { return begin_; }
+    constexpr index_type begin_index() const { return *this->begin(); }
 
-    constexpr index_type end_index() const { return end_; }
-
-    constexpr index_type size() const { return end_index() - begin_index(); }
-
-    constexpr bool empty() const { return size() == 0; }
-
-    constexpr iterator begin() const { return iterator{begin_index()}; }
-
-    constexpr iterator end() const { return iterator{end_index()}; }
+    constexpr index_type end_index() const { return *this->end(); }
 
     template <typename Group>
     constexpr irange_strided<index_type> striped(Group g) const
@@ -318,8 +250,8 @@ public:
     {
         assert(local_index >= 0);
         assert(local_index < group_size);
-        return irange_strided<index_type>{begin_ + local_index, end_,
-                                          group_size};
+        return irange_strided<index_type>{begin_index() + local_index,
+                                          end_index(), group_size};
     }
 
     constexpr friend bool operator==(irange lhs, irange rhs)
@@ -331,10 +263,6 @@ public:
     {
         return !(lhs == rhs);
     }
-
-private:
-    index_type begin_;
-    index_type end_;
 };
 
 
