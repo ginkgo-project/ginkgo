@@ -127,10 +127,10 @@ inline std::vector<deferred_factory_parameter<T>> parse_or_get_factory_vector(
  * This is specialization for bool type
  */
 template <typename ValueType>
-inline typename std::enable_if<std::is_same<ValueType, bool>::value, bool>::type
-get_value(const pnode& config)
+inline std::enable_if_t<std::is_same<ValueType, bool>::value, bool> get_value(
+    const pnode& config)
 {
-    auto val = config.get_data<bool>();
+    auto val = config.get_boolean();
     return val;
 }
 
@@ -141,7 +141,9 @@ get_value(const pnode& config)
  * This is specialization for integral type
  */
 template <typename IndexType>
-inline std::enable_if_t<std::is_integral<IndexType>::value, IndexType>
+inline std::enable_if_t<std::is_integral<IndexType>::value &&
+                            !std::is_same<IndexType, bool>::value,
+                        IndexType>
 get_value(const pnode& config)
 {
     auto val = config.get_integer();
@@ -207,12 +209,12 @@ get_value(const pnode& config)
  * This is specialization for initial_guess_mode
  */
 template <typename ValueType>
-inline typename std::enable_if<
+inline std::enable_if_t<
     std::is_same<ValueType, solver::initial_guess_mode>::value,
-    solver::initial_guess_mode>::type
+    solver::initial_guess_mode>
 get_value(const pnode& config)
 {
-    auto val = config.get_data<std::string>();
+    auto val = config.get_string();
     if (val == "zero") {
         return solver::initial_guess_mode::zero;
     } else if (val == "rhs") {

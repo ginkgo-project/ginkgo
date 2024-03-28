@@ -38,10 +38,9 @@ GKO_REGISTER_OPERATION(finalize, bicgstab::finalize);
 
 
 template <typename ValueType>
-typename Bicgstab<ValueType>::parameters_type
-Bicgstab<ValueType>::parse(const config::pnode& config,
-                                       const config::registry& context,
-                                       config::type_descriptor td_for_child)
+typename Bicgstab<ValueType>::parameters_type Bicgstab<ValueType>::parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child)
 {
     auto factory = solver::Bicgstab<ValueType>::build();
     common_solver_configure(factory, config, context, td_for_child);

@@ -160,15 +160,16 @@ struct helper<std::complex<T>> {
 
 
 template <typename ValueType>
-typename CbGmres<ValueType>::parameters_type
-CbGmres<ValueType>::parse(const config::pnode& config,
-                                      const config::registry& context,
-                                      config::type_descriptor td_for_child)
+typename CbGmres<ValueType>::parameters_type CbGmres<ValueType>::parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child)
 {
     auto factory = solver::CbGmres<ValueType>::build();
     common_solver_configure(factory, config, context, td_for_child);
-    SET_VALUE(factory, size_type, krylov_dim, config);
-    if (config.contains("storage_precision")) {
+    if (auto& obj = config.get("krylov_dim")) {
+        factory.with_krylov_dim(gko::config::get_value<size_type>(obj));
+    }
+    if (auto& obj = config.get("storage_precision")) {
         auto get_storage_precision = [](std::string str) {
             using gko::solver::cb_gmres::storage_precision;
             if (str == "keep") {
@@ -186,8 +187,7 @@ CbGmres<ValueType>::parse(const config::pnode& config,
             }
             GKO_INVALID_STATE("Wrong value for storage_precision");
         };
-        factory.with_storage_precision(get_storage_precision(
-            config.at("storage_precision").get_data<std::string>()));
+        factory.with_storage_precision(get_storage_precision(obj.get_string()));
     }
     return factory;
 }

@@ -40,11 +40,13 @@ GKO_REGISTER_OPERATION(step_1, gcr::step_1);
 template <typename ValueType>
 typename Gcr<ValueType>::parameters_type Gcr<ValueType>::parse(
     const config::pnode& config, const config::registry& context,
-    config::type_descriptor td_for_child)
+    const config::type_descriptor& td_for_child)
 {
     auto factory = solver::Gcr<ValueType>::build();
     common_solver_configure(factory, config, context, td_for_child);
-    SET_VALUE(factory, size_type, krylov_dim, config);
+    if (auto& obj = config.get("krylov_dim")) {
+        factory.with_krylov_dim(gko::config::get_value<size_type>(obj));
+    }
     return factory;
 }
 
