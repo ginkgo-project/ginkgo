@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -35,10 +35,10 @@ inline type_descriptor update_type(const pnode& config,
     type_descriptor updated = td;
 
     if (auto& obj = config.get("ValueType")) {
-        updated.first = obj.get_data<std::string>();
+        updated.first = obj.get_string();
     }
     if (auto& obj = config.get("IndexType")) {
-        updated.second = obj.get_data<std::string>();
+        updated.second = obj.get_string();
     }
     return updated;
 }
@@ -51,7 +51,7 @@ inline std::shared_ptr<T> get_pointer(const pnode& config,
 {
     std::shared_ptr<T> ptr;
     using T_non_const = std::remove_const_t<T>;
-    ptr = context.search_data<T_non_const>(config.get_data<std::string>());
+    ptr = context.search_data<T_non_const>(config.get_string());
     assert(ptr.get() != nullptr);
     return std::move(ptr);
 }
@@ -68,9 +68,9 @@ get_factory<const LinOpFactory>(const pnode& config, const registry& context,
                                 type_descriptor td)
 {
     deferred_factory_parameter<const LinOpFactory> ptr;
-    if (config.is(pnode::status_t::data)) {
-        ptr = context.search_data<LinOpFactory>(config.get_data<std::string>());
-    } else if (config.is(pnode::status_t::map)) {
+    if (config.get_status() == pnode::status_t::string) {
+        ptr = context.search_data<LinOpFactory>(config.get_string());
+    } else if (config.get_status() == pnode::status_t::map) {
         ptr = build_from_config(config, context, td);
     }
     // handle object is config
@@ -91,7 +91,7 @@ inline std::vector<deferred_factory_parameter<T>> get_factory_vector(
 {
     std::vector<deferred_factory_parameter<T>> res;
     // for loop in config
-    if (config.is(pnode::status_t::array)) {
+    if (config.get_status() == pnode::status_t::array) {
         for (const auto& it : config.get_array()) {
             res.push_back(get_factory<T>(it, context, td));
         }
@@ -115,7 +115,7 @@ inline
     typename std::enable_if<std::is_integral<IndexType>::value, IndexType>::type
     get_value(const pnode& config)
 {
-    auto val = config.get_data<long long int>();
+    auto val = config.get_integer();
     assert(val <= std::numeric_limits<IndexType>::max() &&
            val >= std::numeric_limits<IndexType>::min());
     return static_cast<IndexType>(val);
@@ -126,7 +126,7 @@ inline typename std::enable_if<std::is_floating_point<ValueType>::value,
                                ValueType>::type
 get_value(const pnode& config)
 {
-    auto val = config.get_data<double>();
+    auto val = config.get_real();
     assert(val <= std::numeric_limits<ValueType>::max() &&
            val >= -std::numeric_limits<ValueType>::max());
     return static_cast<ValueType>(val);
@@ -138,11 +138,11 @@ inline typename std::enable_if<gko::is_complex_s<ValueType>::value,
 get_value(const pnode& config)
 {
     using real_type = gko::remove_complex<ValueType>;
-    if (config.is(pnode::status_t::data)) {
+    if (config.get_status() == pnode::status_t::real) {
         return static_cast<ValueType>(get_value<real_type>(config));
-    } else if (config.is(pnode::status_t::array)) {
-        return ValueType{get_value<real_type>(config.at(0)),
-                         get_value<real_type>(config.at(1))};
+    } else if (config.get_status() == pnode::status_t::array) {
+        return ValueType{get_value<real_type>(config.get(0)),
+                         get_value<real_type>(config.get(1))};
     }
     GKO_INVALID_STATE("Can not get complex value");
 }

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -21,7 +21,6 @@
 
 
 #include "core/config/config.hpp"
-#include "core/test/config/utils.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -87,10 +86,12 @@ TEST_F(Config, GenerateObjectWithPreconditioner)
 {
     auto config_map = generate_config_map();
     auto reg = registry(config_map);
-
-    pnode p{{{"ValueType", pnode{"double"}}, {"criteria", this->stop_config}}};
-    p.get_map()["preconditioner"] =
+    auto precond_node =
         pnode{{{"Type", pnode{"Cg"}}, {"criteria", this->stop_config}}};
+    pnode p{{{"ValueType", pnode{"double"}},
+             {"criteria", this->stop_config},
+             {"preconditioner", precond_node}}};
+
     auto obj = build_from_config<0>(p, reg).on(this->exec);
 
     ASSERT_NE(dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get()),
@@ -112,10 +113,12 @@ TEST_F(Config, GenerateObjectWithCustomBuild)
             gko::stop::Iteration::build().with_max_iters(2u));
     };
     auto reg = registry(config_map);
-
-    pnode p{{{"ValueType", pnode{"double"}}, {"criteria", this->stop_config}}};
-    p.get_map()["preconditioner"] =
+    auto precond_node =
         pnode{std::map<std::string, pnode>{{"Type", pnode{"Custom"}}}};
+    pnode p{{{"ValueType", pnode{"double"}},
+             {"criteria", this->stop_config},
+             {"preconditioner", precond_node}}};
+
     auto obj = build_from_config<0>(p, reg, {"double", ""}).on(this->exec);
 
     ASSERT_NE(dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get()),
@@ -161,8 +164,7 @@ TEST(GetValue, ComplexType)
     double real = 1.0;
     double imag = -1.0;
     pnode config{real};
-    pnode array_config;
-    array_config.get_array() = {pnode{real}, pnode{imag}};
+    pnode array_config{pnode::array_type{real, imag}};
 
     // Only one value
     ASSERT_EQ(get_value<std::complex<float>>(config),
