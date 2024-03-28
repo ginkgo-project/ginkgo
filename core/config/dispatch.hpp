@@ -17,7 +17,7 @@
 #include <ginkgo/core/synthesizer/containers.hpp>
 
 
-#include "core/config/config.hpp"
+#include "core/config/config_helper.hpp"
 
 
 namespace gko {

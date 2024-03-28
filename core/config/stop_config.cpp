@@ -12,7 +12,7 @@
 #include <ginkgo/core/stop/time.hpp>
 
 
-#include "core/config/config.hpp"
+#include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"
 
 
