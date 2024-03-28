@@ -10,7 +10,7 @@
 #include <ginkgo/core/solver/solver_base.hpp>
 
 
-#include "core/config/config.hpp"
+#include "core/config/config_helper.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/ir_kernels.hpp"
 #include "core/solver/solver_base.hpp"
@@ -33,18 +33,30 @@ GKO_REGISTER_OPERATION(initialize, ir::initialize);
 template <typename ValueType>
 typename Ir<ValueType>::parameters_type Ir<ValueType>::parse(
     const config::pnode& config, const config::registry& context,
-    config::type_descriptor td_for_child)
+    const config::type_descriptor& td_for_child)
 {
     auto factory = solver::Ir<ValueType>::build();
-    SET_FACTORY_VECTOR(factory, const stop::CriterionFactory, criteria, config,
-                       context, td_for_child);
-    SET_FACTORY(factory, const LinOpFactory, solver, config, context,
-                td_for_child);
-    SET_POINTER(factory, const LinOp, generated_solver, config, context,
-                td_for_child);
-    SET_VALUE(factory, ValueType, relaxation_factor, config);
-    SET_VALUE(factory, solver::initial_guess_mode, default_initial_guess,
-              config);
+    if (auto& obj = config.get("criteria")) {
+        factory.with_criteria(
+            gko::config::build_or_get_factory_vector<
+                const stop::CriterionFactory>(obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("solver")) {
+        factory.with_solver(
+            gko::config::build_or_get_factory<const LinOpFactory>(
+                obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("generated_solver")) {
+        factory.with_generated_solver(
+            gko::config::get_stored_obj<const LinOp>(obj, context));
+    }
+    if (auto& obj = config.get("relaxation_factor")) {
+        factory.with_relaxation_factor(gko::config::get_value<ValueType>(obj));
+    }
+    if (auto& obj = config.get("default_initial_guess")) {
+        factory.with_default_initial_guess(
+            gko::config::get_value<solver::initial_guess_mode>(obj));
+    }
     return factory;
 }
 

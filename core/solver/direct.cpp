@@ -13,7 +13,7 @@
 #include <ginkgo/core/solver/solver_base.hpp>
 
 
-#include "core/config/config.hpp"
+#include "core/config/config_helper.hpp"
 
 
 namespace gko {
@@ -23,14 +23,19 @@ namespace solver {
 
 template <typename ValueType, typename IndexType>
 typename Direct<ValueType, IndexType>::parameters_type
-Direct<ValueType, IndexType>::parse(
-    const config::pnode& config, const config::registry& context,
-    config::type_descriptor td_for_child)
+Direct<ValueType, IndexType>::parse(const config::pnode& config,
+                                    const config::registry& context,
+                                    const config::type_descriptor& td_for_child)
 {
     auto factory = Direct<ValueType, IndexType>::build();
-    SET_VALUE(factory, size_type, num_rhs, config);
-    SET_FACTORY(factory, const LinOpFactory, factorization, config, context,
-                td_for_child);
+    if (auto& obj = config.get("num_rhs")) {
+        factory.with_num_rhs(gko::config::get_value<size_type>(obj));
+    }
+    if (auto& obj = config.get("factorization")) {
+        factory.with_factorization(
+            gko::config::build_or_get_factory<const LinOpFactory>(
+                obj, context, td_for_child));
+    }
     return factory;
 }
 

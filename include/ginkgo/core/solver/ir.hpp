@@ -184,9 +184,9 @@ public:
     GKO_ENABLE_LIN_OP_FACTORY(Ir, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
-    static parameters_type parse(
-        const config::pnode& config, const config::registry& context,
-        config::type_descriptor td_for_child);
+    static parameters_type parse(const config::pnode& config,
+                                 const config::registry& context,
+                                 const config::type_descriptor& td_for_child);
 
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;

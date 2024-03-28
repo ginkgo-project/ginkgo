@@ -44,12 +44,16 @@ GKO_REGISTER_OPERATION(multi_axpy, gmres::multi_axpy);
 template <typename ValueType>
 typename Gmres<ValueType>::parameters_type Gmres<ValueType>::parse(
     const config::pnode& config, const config::registry& context,
-    config::type_descriptor td_for_child)
+    const config::type_descriptor& td_for_child)
 {
     auto factory = solver::Gmres<ValueType>::build();
     common_solver_configure(factory, config, context, td_for_child);
-    SET_VALUE(factory, size_type, krylov_dim, config);
-    SET_VALUE(factory, bool, flexible, config);
+    if (auto& obj = config.get("krylov_dim")) {
+        factory.with_krylov_dim(gko::config::get_value<size_type>(obj));
+    }
+    if (auto& obj = config.get("flexible")) {
+        factory.with_flexible(gko::config::get_value<bool>(obj));
+    }
     return factory;
 }
 

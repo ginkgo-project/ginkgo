@@ -37,7 +37,7 @@ GKO_REGISTER_OPERATION(step_2, fcg::step_2);
 template <typename ValueType>
 typename Fcg<ValueType>::parameters_type Fcg<ValueType>::parse(
     const config::pnode& config, const config::registry& context,
-    config::type_descriptor td_for_child)
+    const config::type_descriptor& td_for_child)
 {
     auto factory = solver::Fcg<ValueType>::build();
     common_solver_configure(factory, config, context, td_for_child);

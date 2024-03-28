@@ -14,7 +14,7 @@
 #include <ginkgo/core/solver/triangular.hpp>
 
 
-#include "core/config/config.hpp"
+#include "core/config/config_helper.hpp"
 #include "core/solver/lower_trs_kernels.hpp"
 
 
@@ -38,15 +38,19 @@ template <typename ValueType, typename IndexType>
 typename LowerTrs<ValueType, IndexType>::parameters_type
 LowerTrs<ValueType, IndexType>::parse(
     const config::pnode& config, const config::registry& context,
-    config::type_descriptor td_for_child)
+    const config::type_descriptor& td_for_child)
 {
     auto factory = LowerTrs<ValueType, IndexType>::build();
     // duplicate?
-    SET_VALUE(factory, size_type, num_rhs, config);
-    SET_VALUE(factory, bool, unit_diagonal, config);
-    if (config.contains("algorithm")) {
+    if (auto& obj = config.get("num_rhs")) {
+        factory.with_num_rhs(gko::config::get_value<size_type>(obj));
+    }
+    if (auto& obj = config.get("unit_diagonal")) {
+        factory.with_unit_diagonal(gko::config::get_value<bool>(obj));
+    }
+    if (auto& obj = config.get("algorithm")) {
         using gko::solver::trisolve_algorithm;
-        auto str = config.at("algorithm").get_data<std::string>();
+        auto str = obj.get_string();
         if (str == "sparselib") {
             factory.with_algorithm(trisolve_algorithm::sparselib);
         } else if (str == "syncfree") {
