@@ -20,7 +20,7 @@
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 
-#include "core/config/config.hpp"
+#include "core/config/config_helper.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -56,7 +56,7 @@ TEST_F(Config, GenerateObjectWithoutDefault)
     auto reg = registry(config_map);
 
     pnode p{{{"ValueType", pnode{"double"}}, {"criteria", this->stop_config}}};
-    auto obj = build_from_config<0>(p, reg).on(this->exec);
+    auto obj = build_from_config<LinOpFactoryType::Cg>(p, reg).on(this->exec);
 
     ASSERT_NE(dynamic_cast<const gko::solver::Cg<double>::Factory*>(obj.get()),
               nullptr);
@@ -71,7 +71,8 @@ TEST_F(Config, GenerateObjectWithData)
 
     pnode p{{{"generated_preconditioner", pnode{"precond"}},
              {"criteria", this->stop_config}}};
-    auto obj = build_from_config<0>(p, reg, {"float", ""}).on(this->exec);
+    auto obj = build_from_config<LinOpFactoryType::Cg>(p, reg, {"float", ""})
+                   .on(this->exec);
 
     ASSERT_NE(dynamic_cast<gko::solver::Cg<float>::Factory*>(obj.get()),
               nullptr);
@@ -92,7 +93,7 @@ TEST_F(Config, GenerateObjectWithPreconditioner)
              {"criteria", this->stop_config},
              {"preconditioner", precond_node}}};
 
-    auto obj = build_from_config<0>(p, reg).on(this->exec);
+    auto obj = build_from_config<LinOpFactoryType::Cg>(p, reg).on(this->exec);
 
     ASSERT_NE(dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get()),
               nullptr);
@@ -119,7 +120,8 @@ TEST_F(Config, GenerateObjectWithCustomBuild)
              {"criteria", this->stop_config},
              {"preconditioner", precond_node}}};
 
-    auto obj = build_from_config<0>(p, reg, {"double", ""}).on(this->exec);
+    auto obj = build_from_config<LinOpFactoryType::Cg>(p, reg, {"double", ""})
+                   .on(this->exec);
 
     ASSERT_NE(dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get()),
               nullptr);

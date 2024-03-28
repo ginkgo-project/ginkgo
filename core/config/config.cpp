@@ -12,6 +12,9 @@
 #include <ginkgo/core/solver/solver_base.hpp>
 
 
+#include "core/config/config_helper.hpp"
+
+
 namespace gko {
 namespace config {
 

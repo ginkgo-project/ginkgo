@@ -21,23 +21,30 @@ namespace gko {
 namespace config {
 
 
-enum LinOpFactoryType : int { Cg = 0 };
-
-
-// It is only an intermediate step. If we do not provide the SolverType with VT,
-// IT selection, it can be in detail namespace or hide it by structure
-template <int flag>
+/**
+ * build_from_config is the main function for file config. It can read the
+ * property tree to create the desired type. `build_from_config(...).on(exec) ->
+ * LinOpFactory`.
+ *
+ * @param config  The property tree which must include `Type` for the class base
+ * and the corresponding template selection.
+ * @param context  The registry which stores the building function map and the
+ * storage for generated object.
+ * @param type_descriptor  The default common type. If the ValueType or
+ * IndexType is required by the class base but user does not provide it, this
+ * function will take this input as the default.
+ *
+ * @return deferred_factory_parameter, user can get LinOpFactory after giving
+ * the executor.
+ */
 deferred_factory_parameter<gko::LinOpFactory> build_from_config(
     const pnode& config, const registry& context,
     type_descriptor td = {"", ""});
 
 
-// The main function
-deferred_factory_parameter<gko::LinOpFactory> build_from_config(
-    const pnode& config, const registry& context,
-    type_descriptor td = {"", ""});
-
-
+/**
+ * Generate the configuration map.
+ */
 buildfromconfig_map generate_config_map();
 
 

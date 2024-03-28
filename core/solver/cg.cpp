@@ -16,7 +16,7 @@
 #include <ginkgo/core/stop/iteration.hpp>
 
 
-#include "core/config/config.hpp"
+#include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/cg_kernels.hpp"
@@ -29,9 +29,9 @@ namespace config {
 
 template <>
 deferred_factory_parameter<gko::LinOpFactory>
-build_from_config<static_cast<int>(LinOpFactoryType::Cg)>(
-    const pnode& config, const registry& context,
-    gko::config::type_descriptor td)
+build_from_config<LinOpFactoryType::Cg>(const pnode& config,
+                                        const registry& context,
+                                        gko::config::type_descriptor td)
 {
     auto updated = update_type(config, td);
     return dispatch<gko::LinOpFactory, gko::solver::Cg>(

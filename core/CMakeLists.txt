@@ -20,6 +20,7 @@ target_sources(ginkgo
     base/timer.cpp
     base/version.cpp
     config/config.cpp
+    config/config_helper.cpp
     config/property_tree.cpp
     config/stop_config.cpp
     distributed/index_map.cpp
