@@ -305,6 +305,11 @@ int main()
         auto test = gko::version_info::get().header_version;
     }
 
+    // core/config.config.hpp
+    {
+        auto test = gko::config::pnode();
+    }
+
     // core/factorization/par_ilu.hpp
     {
         auto test = gko::factorization::ParIlu<>::build().on(exec);
