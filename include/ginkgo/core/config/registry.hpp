@@ -41,36 +41,47 @@ using buildfromconfig_map =
 
 
 /**
- * map_type gives the map type according to the base type of given type.
- *
- * @tparam T  the type
+ * registry is the storage for file config usage. It stores the building
+ * function, linop, linop_factory, criterion
  */
-template <typename T, typename = void>
-struct map_type {
-    using type = void;
-};
-
-template <typename T>
-struct map_type<
-    T, typename std::enable_if<std::is_convertible<T*, LinOp*>::value>::type> {
-    using type = linop_map;
-};
-
-template <typename T>
-struct map_type<T, typename std::enable_if<
-                       std::is_convertible<T*, LinOpFactory*>::value>::type> {
-    using type = linopfactory_map;
-};
-
-template <typename T>
-struct map_type<T, typename std::enable_if<std::is_convertible<
-                       T*, stop::CriterionFactory*>::value>::type> {
-    using type = criterionfactory_map;
-};
-
-
 class registry {
+private:
+    /**
+     * map_type gives the map type according to the base type of given type.
+     *
+     * @tparam T  the type
+     */
+    template <typename T, typename = void>
+    struct map_type {
+        using type = void;
+    };
+
+    template <typename T>
+    struct map_type<T, typename std::enable_if<
+                           std::is_convertible<T*, LinOp*>::value>::type> {
+        using type = linop_map;
+    };
+
+    template <typename T>
+    struct map_type<T, typename std::enable_if<std::is_convertible<
+                           T*, LinOpFactory*>::value>::type> {
+        using type = linopfactory_map;
+    };
+
+    template <typename T>
+    struct map_type<T, typename std::enable_if<std::is_convertible<
+                           T*, stop::CriterionFactory*>::value>::type> {
+        using type = criterionfactory_map;
+    };
+
 public:
+    /**
+     * registry constructor
+     *
+     * @param build_map  the build map to dispatch the class base. Ginkgo
+     * provides `generate_config_map()` in config.hpp to provide the ginkgo
+     * build map. Users can extend this map to fit their own LinOpFactory.
+     */
     registry(buildfromconfig_map build_map) : build_map_(build_map) {}
 
     /**
@@ -82,11 +93,7 @@ public:
      * @param data  the shared pointer of the object
      */
     template <typename T>
-    bool emplace(std::string key, std::shared_ptr<T> data)
-    {
-        auto it = this->get_map<T>().emplace(key, data);
-        return it.second;
-    }
+    bool emplace(std::string key, std::shared_ptr<T> data);
 
     /**
      * search_data searches the key on the corresponding map.
@@ -98,11 +105,11 @@ public:
      * @return the shared pointer of the object
      */
     template <typename T>
-    std::shared_ptr<T> search_data(std::string key) const
-    {
-        return gko::as<T>(this->get_map<T>().at(key));
-    }
+    std::shared_ptr<T> search_data(std::string key) const;
 
+    /**
+     * get the stored build map
+     */
     const buildfromconfig_map& get_build_map() const { return build_map_; }
 
 protected:
@@ -114,16 +121,10 @@ protected:
      * @return the map
      */
     template <typename T>
-    typename map_type<T>::type& get_map()
-    {
-        return this->get_map_impl<typename map_type<T>::type>();
-    }
+    typename map_type<T>::type& get_map();
 
     template <typename T>
-    const typename map_type<T>::type& get_map() const
-    {
-        return this->get_map_impl<typename map_type<T>::type>();
-    }
+    const typename map_type<T>::type& get_map() const;
 
     /**
      * get_map_impl is the implementation of get_map
@@ -146,41 +147,31 @@ private:
 };
 
 
-template <>
-inline linop_map& registry::get_map_impl<linop_map>()
+template <typename T>
+inline bool registry::emplace(std::string key, std::shared_ptr<T> data)
 {
-    return linop_map_;
+    auto it = this->get_map<T>().emplace(key, data);
+    return it.second;
 }
 
-template <>
-inline linopfactory_map& registry::get_map_impl<linopfactory_map>()
+
+template <typename T>
+inline std::shared_ptr<T> registry::search_data(std::string key) const
 {
-    return linopfactory_map_;
+    return gko::as<T>(this->get_map<T>().at(key));
 }
 
-template <>
-inline criterionfactory_map& registry::get_map_impl<criterionfactory_map>()
+
+template <typename T>
+inline typename registry::map_type<T>::type& registry::get_map()
 {
-    return criterionfactory_map_;
+    return this->get_map_impl<typename map_type<T>::type>();
 }
 
-template <>
-inline const linop_map& registry::get_map_impl<linop_map>() const
+template <typename T>
+inline const typename registry::map_type<T>::type& registry::get_map() const
 {
-    return linop_map_;
-}
-
-template <>
-inline const linopfactory_map& registry::get_map_impl<linopfactory_map>() const
-{
-    return linopfactory_map_;
-}
-
-template <>
-inline const criterionfactory_map&
-registry::get_map_impl<criterionfactory_map>() const
-{
-    return criterionfactory_map_;
+    return this->get_map_impl<typename map_type<T>::type>();
 }
 
 
