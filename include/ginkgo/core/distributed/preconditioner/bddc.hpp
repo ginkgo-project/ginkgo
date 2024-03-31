@@ -115,6 +115,8 @@ public:
          */
         std::vector<index_type> GKO_FACTORY_PARAMETER_VECTOR(interior_dofs, 0);
 
+        std::vector<index_type> GKO_FACTORY_PARAMETER_VECTOR(interf_dofs, 0);
+
         std::set<index_type> GKO_FACTORY_PARAMETER_VECTOR(boundary_idxs);
 
         bool GKO_FACTORY_PARAMETER_SCALAR(enforce_corner, false);
