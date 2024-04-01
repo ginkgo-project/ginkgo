@@ -33,6 +33,29 @@ TEST(IRange, KnowsItsProperties)
 }
 
 
+TEST(IRange, RangeFor)
+{
+    std::vector<int> v;
+
+    for (auto i : gko::irange<int>(1, 4)) {
+        v.push_back(i);
+    }
+
+    ASSERT_EQ(v, std::vector<int>({1, 2, 3}));
+}
+
+
+TEST(IRange, WorksInAlgorithm)
+{
+    gko::irange<int> range(1, 15);
+
+    auto it = std::lower_bound(range.begin(), range.end(), 10);
+
+    ASSERT_EQ(*it, 10);
+    ASSERT_EQ(it - range.begin(), 9);
+}
+
+
 TEST(IRangeIterator, IteratorProperties)
 {
     gko::irange<int> range(0, 10);
@@ -66,29 +89,6 @@ TEST(IRangeIterator, IteratorProperties)
     ASSERT_FALSE((it + 1) < it);
     ASSERT_FALSE(it >= (it + 1));
     ASSERT_FALSE((it + 1) <= it);
-}
-
-
-TEST(IRangeIterator, RangeFor)
-{
-    std::vector<int> v;
-
-    for (auto i : gko::irange<int>(1, 4)) {
-        v.push_back(i);
-    }
-
-    ASSERT_EQ(v, std::vector<int>({1, 2, 3}));
-}
-
-
-TEST(IRangeIterator, WorksInAlgorithm)
-{
-    gko::irange<int> range(1, 15);
-
-    auto it = std::lower_bound(range.begin(), range.end(), 10);
-
-    ASSERT_EQ(*it, 10);
-    ASSERT_EQ(it - range.begin(), 9);
 }
 
 

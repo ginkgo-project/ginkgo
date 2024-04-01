@@ -171,16 +171,14 @@ private:
 
 template <typename IndexType>
 class irange_strided : public random_access_range<integer_iterator<IndexType>> {
+    using base = random_access_range<integer_iterator<IndexType>>;
+
 public:
     using index_type = IndexType;
-    using iterator =
-        typename random_access_range<integer_iterator<IndexType>>::iterator;
-    using value_type =
-        typename random_access_range<integer_iterator<IndexType>>::value_type;
-    using reference =
-        typename random_access_range<integer_iterator<IndexType>>::reference;
-    using difference_type = typename random_access_range<
-        integer_iterator<IndexType>>::difference_type;
+    using iterator = typename base::iterator;
+    using value_type = typename base::value_type;
+    using reference = typename base::reference;
+    using difference_type = typename base::difference_type;
 
     explicit irange_strided(index_type begin, index_type end, index_type stride)
         : random_access_range<integer_iterator<IndexType>>{
@@ -214,16 +212,14 @@ public:
 
 template <typename IndexType>
 class irange : public random_access_range<integer_iterator<IndexType>> {
+    using base = random_access_range<integer_iterator<IndexType>>;
+
 public:
     using index_type = IndexType;
-    using iterator =
-        typename random_access_range<integer_iterator<IndexType>>::iterator;
-    using value_type =
-        typename random_access_range<integer_iterator<IndexType>>::value_type;
-    using reference =
-        typename random_access_range<integer_iterator<IndexType>>::reference;
-    using difference_type = typename random_access_range<
-        integer_iterator<IndexType>>::difference_type;
+    using iterator = typename base::iterator;
+    using value_type = typename base::value_type;
+    using reference = typename base::reference;
+    using difference_type = typename base::difference_type;
 
     explicit irange(index_type begin, index_type end)
         : random_access_range<integer_iterator<IndexType>>{iterator{begin, 1},
