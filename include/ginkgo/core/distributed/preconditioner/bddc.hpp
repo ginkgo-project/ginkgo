@@ -210,6 +210,9 @@ private:
     std::shared_ptr<vec_type> phi_t;
     std::vector<index_type> interfaces_;
     std::vector<index_type> inner_idxs_;
+    std::vector<index_type> corners;
+    std::vector<index_type> corner_idxs;
+    std::vector<index_type> edges;
     std::vector<index_type> edge_idxs;
     std::shared_ptr<vec_type> one_op;
     std::shared_ptr<vec_type> neg_one_op;
