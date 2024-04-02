@@ -89,6 +89,7 @@ TYPED_TEST(IndexMap, CanMoveConstruct)
 {
     using map_type = typename TestFixture::map_type;
     using global_index_type = typename TestFixture::global_index_type;
+    using local_index_type = typename TestFixture::local_index_type;
     gko::array<global_index_type> connections(this->exec, {4, 3, 3, 4, 2});
     auto imap = map_type(this->exec, this->part, 0, connections);
     auto copy = imap;
@@ -112,6 +113,13 @@ TYPED_TEST(IndexMap, CanMoveConstruct)
               imap_remote_local_it);
     ASSERT_EQ(move.get_remote_global_idxs().get_const_flat_data(),
               imap_remote_global_it);
+    ASSERT_EQ(imap.get_global_size(), 0);
+    ASSERT_EQ(imap.get_local_size(), 0);
+    GKO_ASSERT_ARRAY_EQ(imap.get_remote_target_ids(), {});
+    assert_collection_eq(imap.get_remote_global_idxs(),
+                         gko::segmented_array<global_index_type>{this->exec});
+    assert_collection_eq(imap.get_remote_local_idxs(),
+                         gko::segmented_array<local_index_type>{this->exec});
 }
 
 
@@ -138,6 +146,7 @@ TYPED_TEST(IndexMap, CanMoveAssign)
 {
     using map_type = typename TestFixture::map_type;
     using global_index_type = typename TestFixture::global_index_type;
+    using local_index_type = typename TestFixture::local_index_type;
     gko::array<global_index_type> connections(this->exec, {4, 3, 3, 4, 2});
     auto imap = map_type(this->exec, this->part, 0, connections);
     auto copy = imap;
@@ -162,4 +171,11 @@ TYPED_TEST(IndexMap, CanMoveAssign)
               imap_remote_local_it);
     ASSERT_EQ(move.get_remote_global_idxs().get_const_flat_data(),
               imap_remote_global_it);
+    ASSERT_EQ(imap.get_global_size(), 0);
+    ASSERT_EQ(imap.get_local_size(), 0);
+    GKO_ASSERT_ARRAY_EQ(imap.get_remote_target_ids(), {});
+    assert_collection_eq(imap.get_remote_global_idxs(),
+                         gko::segmented_array<global_index_type>{this->exec});
+    assert_collection_eq(imap.get_remote_local_idxs(),
+                         gko::segmented_array<local_index_type>{this->exec});
 }

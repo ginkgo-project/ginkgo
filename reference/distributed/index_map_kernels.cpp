@@ -8,6 +8,7 @@
 #include <ginkgo/core/distributed/index_map.hpp>
 
 
+#include "core/base/allocator.hpp"
 #include "core/base/segmented_array.hpp"
 #include "reference/distributed/partition_helpers.hpp"
 
@@ -29,34 +30,11 @@ void build_mapping(
     array<GlobalIndexType>& remote_global_idxs, array<int64>& remote_sizes)
 {
     using experimental::distributed::comm_index_type;
-    using partition_type =
-        experimental::distributed::Partition<LocalIndexType, GlobalIndexType>;
     auto part_ids = part->get_part_ids();
 
-    std::vector<GlobalIndexType> unique_indices(recv_connections.get_size());
+    vector<GlobalIndexType> unique_indices(recv_connections.get_size(), {exec});
     std::copy_n(recv_connections.get_const_data(), recv_connections.get_size(),
                 unique_indices.begin());
-
-    auto find_range = [](GlobalIndexType idx, const partition_type* partition,
-                         size_type hint) {
-        auto range_bounds = partition->get_range_bounds();
-        auto num_ranges = partition->get_num_ranges();
-        if (range_bounds[hint] <= idx && idx < range_bounds[hint + 1]) {
-            return hint;
-        } else {
-            auto it = std::upper_bound(range_bounds + 1,
-                                       range_bounds + num_ranges + 1, idx);
-            return static_cast<size_type>(std::distance(range_bounds + 1, it));
-        }
-    };
-
-    auto map_to_local = [](GlobalIndexType idx, const partition_type* partition,
-                           size_type range_id) {
-        auto range_bounds = partition->get_range_bounds();
-        auto range_starting_indices = partition->get_range_starting_indices();
-        return static_cast<LocalIndexType>(idx - range_bounds[range_id]) +
-               range_starting_indices[range_id];
-    };
 
     auto find_part = [&](GlobalIndexType idx) {
         auto range_id = find_range(idx, part, 0);
@@ -97,12 +75,12 @@ void build_mapping(
                    });
 
     // get part-ids
-    std::vector<comm_index_type> full_part_ids(unique_size);
+    vector<comm_index_type> full_part_ids(unique_size, exec);
     std::transform(unique_indices.begin(), unique_indices_end,
                    full_part_ids.begin(),
                    [&](const auto idx) { return find_part(idx); });
 
-    std::vector<comm_index_type> unique_part_ids(full_part_ids);
+    vector<comm_index_type> unique_part_ids(full_part_ids, exec);
     auto unique_part_ids_end =
         std::unique(unique_part_ids.begin(), unique_part_ids.end());
 
@@ -113,7 +91,7 @@ void build_mapping(
               remote_part_ids.get_data());
 
     // get recv size per part
-    std::vector<size_type> full_remote_sizes(part->get_num_parts());
+    vector<size_type> full_remote_sizes(part->get_num_parts(), exec);
     for (size_type i = 0; i < full_part_ids.size(); ++i) {
         full_remote_sizes[full_part_ids[i]]++;
     }
@@ -127,11 +105,11 @@ GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
 
 
 template <typename LocalIndexType, typename GlobalIndexType>
-void get_local(
+void map_to_local(
     std::shared_ptr<const DefaultExecutor> exec,
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         partition,
-    const array<experimental::distributed::comm_index_type>& remote_targed_ids,
+    const array<experimental::distributed::comm_index_type>& remote_target_ids,
     device_segmented_array<const GlobalIndexType> remote_global_idxs,
     experimental::distributed::comm_index_type rank,
     const array<GlobalIndexType>& global_ids,
@@ -162,14 +140,14 @@ void get_local(
         // global index. As a result, the array is not sorted wrt.
         // the global indexing. So find the part-id that corresponds
         // to the global index first
-        auto set_id = std::distance(
-            remote_targed_ids.get_const_data(),
-            std::lower_bound(remote_targed_ids.get_const_data(),
-                             remote_targed_ids.get_const_data() +
-                                 remote_targed_ids.get_size(),
-                             part_id));
+        auto set_id =
+            std::distance(remote_target_ids.get_const_data(),
+                          std::lower_bound(remote_target_ids.get_const_data(),
+                                           remote_target_ids.get_const_data() +
+                                               remote_target_ids.get_size(),
+                                           part_id));
 
-        if (set_id == remote_targed_ids.get_size()) {
+        if (set_id == remote_target_ids.get_size()) {
             return invalid_index<LocalIndexType>();
         }
 
@@ -220,7 +198,8 @@ void get_local(
 }
 
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_INDEX_MAP_GET_LOCAL_FROM_GLOBAL_ARRAY);
+    GKO_DECLARE_INDEX_MAP_MAP_TO_LOCAL);
+
 
 }  // namespace index_map
 }  // namespace reference

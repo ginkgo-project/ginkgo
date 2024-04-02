@@ -17,6 +17,8 @@ namespace distributed {
 
 /**
  * \brief Index space classification for the locally stored indices.
+ *
+ * The definitions of the enum values is clarified in @ref index_map.
  */
 enum class index_space {
     local,      //!< indices that are locally owned
@@ -42,17 +44,20 @@ enum class index_space {
  * (index_space::non_local). The locally owned indices are defined as
  * $[0, \dots, |I_k|)$, and the non-locally owned as $[0, \dots, |R_k|)$.
  * With these index sets, the following mappings are defined:
+ *
  * - $c_k : \hat{I}_k \mapsto [0, \dots, |\hat{I}_k|)$ which maps global indices
- *   into the combined/full local index space,
+ *   into the combined/full local index space (denoted as
+ *   index_space::combined),
  * - $l_k: I_k \mapsto [0, \dots, |I_k|)$ which maps global indices into the
- *   locally owned index space,
+ *   locally owned index space (denoted as index_space::local),
  * - $r_k: R_k \mapsto [0, \dots, |R_k|)$ which maps global indices into the
- *   non-locally owned index space.
+ *   non-locally owned index space (denoted as index_space::non_local).
+ *
  * The required map can be selected by passing the appropriate type of an
  * index_space.
  *
  * The index map for $I_k$ has no knowledge about any other index maps for
- * $I_l, l \neq k$. In particular, any global index passed to the `get_local`
+ * $I_l, l \neq k$. In particular, any global index passed to the `map_to_local`
  * map that is not part of the specified index space, will be mapped to an
  * invalid_index.
  *
@@ -61,18 +66,19 @@ enum class index_space {
  */
 template <typename LocalIndexType, typename GlobalIndexType = int64>
 struct index_map {
-    using part_type = Partition<LocalIndexType, GlobalIndexType>;
+    using partition_type = Partition<LocalIndexType, GlobalIndexType>;
 
     /**
      * \brief Maps global indices to local indices
      *
-     * \param global_ids the global indices to map
-     * \param is the index space in which the returned local indices are defined
+     * \param global_ids  the global indices to map
+     * \param index_space_v  the index space in which the returned local indices
+     *                       are defined
      *
-     * \return the mapped local indices. Any global index that is not in the
-     *         specified index space is mapped to invalid_index.
+     * \return  the mapped local indices. Any global index that is not in the
+     *          specified index space is mapped to invalid_index.
      */
-    array<LocalIndexType> get_local(
+    array<LocalIndexType> map_to_local(
         const array<GlobalIndexType>& global_ids,
         index_space index_space_v = index_space::combined) const;
 
@@ -98,13 +104,14 @@ struct index_map {
      * filtered out.
      *
      * \param exec  the executor
-     * \param part  the partition of the global index set
+     * \param partition  the partition of the global index set
      * \param rank  the id of the global index space subset
      * \param recv_connections  the global indices that are not owned by this
      *                          rank, but accessed by it
      */
     index_map(std::shared_ptr<const Executor> exec,
-              std::shared_ptr<const part_type> part, comm_index_type rank,
+              std::shared_ptr<const partition_type> partition,
+              comm_index_type rank,
               const array<GlobalIndexType>& recv_connections);
 
     /**
@@ -123,7 +130,8 @@ struct index_map {
      * \brief get the index set $R_k$, but mapped to their respective local
      *        index space.
      *
-     * The indices are ordered by their owning rank and global index.
+     * The indices are grouped by their owning rank and sorted according to
+     * their global index within each group.
      *
      * The set $R_k = \hat{I}_k \setminus I_k$ can also be written as the union
      * of the intersection of $\hat{I}_k$ with other disjoint sets
@@ -157,7 +165,7 @@ struct index_map {
 
 private:
     std::shared_ptr<const Executor> exec_;
-    std::shared_ptr<const part_type> partition_;
+    std::shared_ptr<const partition_type> partition_;
     comm_index_type rank_;
 
     array<comm_index_type> remote_target_ids_;
