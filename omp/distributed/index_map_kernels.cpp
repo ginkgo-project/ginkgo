@@ -127,7 +127,7 @@ void get_local(
     std::shared_ptr<const DefaultExecutor> exec,
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         partition,
-    const array<experimental::distributed::comm_index_type>& remote_targed_ids,
+    const array<experimental::distributed::comm_index_type>& remote_target_ids,
     const collection::array<GlobalIndexType>& remote_global_idxs,
     experimental::distributed::comm_index_type rank,
     const array<GlobalIndexType>& global_ids,
@@ -162,13 +162,13 @@ void get_local(
             // the global indexing. So find the part-id that corresponds
             // to the global index first
             auto set_id = std::distance(
-                remote_targed_ids.get_const_data(),
-                std::lower_bound(remote_targed_ids.get_const_data(),
-                                 remote_targed_ids.get_const_data() +
-                                     remote_targed_ids.get_size(),
+                remote_target_ids.get_const_data(),
+                std::lower_bound(remote_target_ids.get_const_data(),
+                                 remote_target_ids.get_const_data() +
+                                     remote_target_ids.get_size(),
                                  part_id));
 
-            if (set_id == remote_targed_ids.get_size()) {
+            if (set_id == remote_target_ids.get_size()) {
                 return std::make_pair(invalid_index<LocalIndexType>(),
                                       range_id);
             }
