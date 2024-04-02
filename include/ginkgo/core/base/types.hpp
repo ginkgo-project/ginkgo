@@ -773,7 +773,7 @@ inline constexpr GKO_ATTRIBUTES IndexType invalid_index()
 
 
 namespace experimental {
-namespace distributed {
+namespace mpi {
 
 
 /**
@@ -782,6 +782,18 @@ namespace distributed {
  * Conforms to the MPI C interface of e.g. MPI rank or size
  */
 using comm_index_type = int;
+
+
+}  // namespace mpi
+
+
+namespace distributed {
+
+
+/**
+ * Make mpi::comm_index_type avaiable in this namespace
+ */
+using mpi::comm_index_type;
 
 
 /**
