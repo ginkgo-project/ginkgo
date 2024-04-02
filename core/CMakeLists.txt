@@ -108,8 +108,9 @@ if(GINKGO_BUILD_MPI)
         PRIVATE
         mpi/exception.cpp
         distributed/matrix.cpp
-        distributed/partition_helpers.cpp
         distributed/neighborhood_communicator.cpp
+        distributed/partition_helpers.cpp
+        distributed/row_gatherer.cpp
         distributed/vector.cpp
         distributed/preconditioner/schwarz.cpp)
 endif()
