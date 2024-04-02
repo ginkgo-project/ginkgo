@@ -20,8 +20,6 @@
 #include "core/distributed/index_map_kernels.hpp"
 #include "core/test/utils.hpp"
 
-namespace {
-
 
 using comm_index_type = gko::experimental::distributed::comm_index_type;
 
@@ -164,6 +162,3 @@ TEST_F(IndexMap, CanGetLocalWithCombinedISWithInvalid)
     gko::array<local_index_type> expected(ref, {2, 3, 0, 1, 2, 4, -1, 1});
     GKO_ASSERT_ARRAY_EQ(local_ids, expected);
 }
-
-
-}  // namespace
