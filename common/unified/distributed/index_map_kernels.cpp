@@ -30,7 +30,7 @@ GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
 
 
 template <typename LocalIndexType, typename GlobalIndexType>
-void get_local(
+void map_to_local(
     std::shared_ptr<const DefaultExecutor> exec,
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         partition,
@@ -42,7 +42,7 @@ void get_local(
     array<LocalIndexType>& local_ids) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_INDEX_MAP_GET_LOCAL_FROM_GLOBAL_ARRAY);
+    GKO_DECLARE_INDEX_MAP_MAP_TO_LOCAL);
 
 
 }  // namespace index_map

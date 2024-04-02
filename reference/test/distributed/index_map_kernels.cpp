@@ -20,8 +20,6 @@
 #include "core/distributed/index_map_kernels.hpp"
 #include "core/test/utils.hpp"
 
-namespace {
-
 
 using comm_index_type = gko::experimental::distributed::comm_index_type;
 
@@ -98,7 +96,7 @@ TEST_F(IndexMap, CanGetLocalWithNonLocalIS)
             {ref, {0, 1, 4}}, {ref, {2, 1}});
     gko::array<comm_index_type> remote_target_ids(ref, {0, 2});
 
-    gko::kernels::reference::index_map::get_local(
+    gko::kernels::reference::index_map::map_to_local(
         ref, part.get(), remote_target_ids, to_device_const(remote_global_idxs),
         1, global_ids, gko::experimental::distributed::index_space::non_local,
         local_ids);
@@ -117,7 +115,7 @@ TEST_F(IndexMap, CanGetLocalWithNonLocalISWithInvalid)
             {ref, {0, 1, 4}}, {ref, {2, 1}});
     gko::array<comm_index_type> remote_target_ids(ref, {0, 2});
 
-    gko::kernels::reference::index_map::get_local(
+    gko::kernels::reference::index_map::map_to_local(
         ref, part.get(), remote_target_ids, to_device_const(remote_global_idxs),
         1, global_ids, gko::experimental::distributed::index_space::non_local,
         local_ids);
@@ -136,7 +134,7 @@ TEST_F(IndexMap, CanGetLocalWithLocalIS)
             {ref, {0, 1, 4}}, {ref, {2, 1}});
     gko::array<comm_index_type> remote_target_ids(ref, {0, 2});
 
-    gko::kernels::reference::index_map::get_local(
+    gko::kernels::reference::index_map::map_to_local(
         ref, part.get(), remote_target_ids, to_device_const(remote_global_idxs),
         1, global_ids, gko::experimental::distributed::index_space::local,
         local_ids);
@@ -155,7 +153,7 @@ TEST_F(IndexMap, CanGetLocalWithLocalISWithInvalid)
             {ref, {0, 1, 4}}, {ref, {2, 1}});
     gko::array<comm_index_type> remote_target_ids(ref, {0, 2});
 
-    gko::kernels::reference::index_map::get_local(
+    gko::kernels::reference::index_map::map_to_local(
         ref, part.get(), remote_target_ids, to_device_const(remote_global_idxs),
         1, global_ids, gko::experimental::distributed::index_space::local,
         local_ids);
@@ -174,7 +172,7 @@ TEST_F(IndexMap, CanGetLocalWithCombinedIS)
             {ref, {0, 1, 4}}, {ref, {2, 1}});
     gko::array<comm_index_type> remote_target_ids(ref, {0, 2});
 
-    gko::kernels::reference::index_map::get_local(
+    gko::kernels::reference::index_map::map_to_local(
         ref, part.get(), remote_target_ids, to_device_const(remote_global_idxs),
         1, global_ids, gko::experimental::distributed::index_space::combined,
         local_ids);
@@ -193,7 +191,7 @@ TEST_F(IndexMap, CanGetLocalWithCombinedISWithInvalid)
             {ref, {0, 1, 4}}, {ref, {2, 1}});
     gko::array<comm_index_type> remote_target_ids(ref, {0, 2});
 
-    gko::kernels::reference::index_map::get_local(
+    gko::kernels::reference::index_map::map_to_local(
         ref, part.get(), remote_target_ids, to_device_const(remote_global_idxs),
         1, global_ids, gko::experimental::distributed::index_space::combined,
         local_ids);
@@ -201,6 +199,3 @@ TEST_F(IndexMap, CanGetLocalWithCombinedISWithInvalid)
     gko::array<local_index_type> expected(ref, {2, 3, 0, 1, 2, 4, -1, 1});
     GKO_ASSERT_ARRAY_EQ(local_ids, expected);
 }
-
-
-}  // namespace

@@ -13,7 +13,8 @@ namespace index_map_kernels {
 
 
 GKO_REGISTER_OPERATION(build_mapping, index_map::build_mapping);
-GKO_REGISTER_OPERATION(get_local, index_map::get_local);
+GKO_REGISTER_OPERATION(map_to_local, index_map::map_to_local);
+
 
 }  // namespace index_map_kernels
 
@@ -76,14 +77,14 @@ size_type index_map<LocalIndexType, GlobalIndexType>::get_global_size() const
 
 
 template <typename LocalIndexType, typename GlobalIndexType>
-array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::get_local(
-    const array<GlobalIndexType>& global_ids, index_space is) const
+array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::map_to_local(
+    const array<GlobalIndexType>& global_ids, index_space index_space_v) const
 {
     array<LocalIndexType> local_ids(exec_);
 
-    exec_->run(index_map_kernels::make_get_local(
+    exec_->run(index_map_kernels::make_map_to_local(
         partition_.get(), remote_target_ids_, to_device(remote_global_idxs_),
-        rank_, global_ids, is, local_ids));
+        rank_, global_ids, index_space_v, local_ids));
 
     return local_ids;
 }
@@ -91,10 +92,11 @@ array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::get_local(
 
 template <typename LocalIndexType, typename GlobalIndexType>
 index_map<LocalIndexType, GlobalIndexType>::index_map(
-    std::shared_ptr<const Executor> exec, std::shared_ptr<const part_type> part,
-    comm_index_type rank, const array<GlobalIndexType>& recv_connections)
+    std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const partition_type> partition, comm_index_type rank,
+    const array<GlobalIndexType>& recv_connections)
     : exec_(std::move(exec)),
-      partition_(std::move(part)),
+      partition_(std::move(partition)),
       rank_(rank),
       remote_target_ids_(exec_),
       remote_local_idxs_(exec_),
