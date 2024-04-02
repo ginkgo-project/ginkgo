@@ -2,13 +2,15 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef INDEX_MAP_KERNELS_HPP
-#define INDEX_MAP_KERNELS_HPP
+#ifndef GKO_CORE_DISTRIBUTED_INDEX_MAP_KERNELS_HPP_
+#define GKO_CORE_DISTRIBUTED_INDEX_MAP_KERNELS_HPP_
+
+
+#include <ginkgo/core/distributed/index_map.hpp>
 
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/collection.hpp>
-#include <ginkgo/core/distributed/index_map.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
 
 
@@ -34,7 +36,7 @@ namespace kernels {
         std::shared_ptr<const DefaultExecutor> exec,                           \
         const experimental::distributed::Partition<_ltype, _gtype>* partition, \
         const array<experimental::distributed::comm_index_type>&               \
-            remote_targed_ids,                                                 \
+            remote_target_ids,                                                 \
         const collection::array<_gtype>& remote_global_idxs,                   \
         experimental::distributed::comm_index_type rank,                       \
         const array<_gtype>& global_ids,                                       \
@@ -59,4 +61,4 @@ GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(index_map,
 }  // namespace kernels
 }  // namespace gko
 
-#endif  // INDEX_MAP_KERNELS_HPP
+#endif  // GKO_CORE_DISTRIBUTED_INDEX_MAP_KERNELS_HPP_

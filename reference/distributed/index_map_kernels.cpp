@@ -28,34 +28,11 @@ void build_mapping(
     collection::array<GlobalIndexType>& remote_global_idxs)
 {
     using experimental::distributed::comm_index_type;
-    using partition_type =
-        experimental::distributed::Partition<LocalIndexType, GlobalIndexType>;
     auto part_ids = part->get_part_ids();
 
     std::vector<GlobalIndexType> unique_indices(recv_connections.get_size());
     std::copy_n(recv_connections.get_const_data(), recv_connections.get_size(),
                 unique_indices.begin());
-
-    auto find_range = [](GlobalIndexType idx, const partition_type* partition,
-                         size_type hint) {
-        auto range_bounds = partition->get_range_bounds();
-        auto num_ranges = partition->get_num_ranges();
-        if (range_bounds[hint] <= idx && idx < range_bounds[hint + 1]) {
-            return hint;
-        } else {
-            auto it = std::upper_bound(range_bounds + 1,
-                                       range_bounds + num_ranges + 1, idx);
-            return static_cast<size_type>(std::distance(range_bounds + 1, it));
-        }
-    };
-
-    auto map_to_local = [](GlobalIndexType idx, const partition_type* partition,
-                           size_type range_id) {
-        auto range_bounds = partition->get_range_bounds();
-        auto range_starting_indices = partition->get_range_starting_indices();
-        return static_cast<LocalIndexType>(idx - range_bounds[range_id]) +
-               range_starting_indices[range_id];
-    };
 
     auto find_part = [&](GlobalIndexType idx) {
         auto range_id = find_range(idx, part, 0);
@@ -139,7 +116,7 @@ void get_local(
     std::shared_ptr<const DefaultExecutor> exec,
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         partition,
-    const array<experimental::distributed::comm_index_type>& remote_targed_ids,
+    const array<experimental::distributed::comm_index_type>& remote_target_ids,
     const collection::array<GlobalIndexType>& remote_global_idxs,
     experimental::distributed::comm_index_type rank,
     const array<GlobalIndexType>& global_ids,
@@ -171,13 +148,13 @@ void get_local(
             // the global indexing. So find the part-id that corresponds
             // to the global index first
             auto set_id = std::distance(
-                remote_targed_ids.get_const_data(),
-                std::lower_bound(remote_targed_ids.get_const_data(),
-                                 remote_targed_ids.get_const_data() +
-                                     remote_targed_ids.get_size(),
+                remote_target_ids.get_const_data(),
+                std::lower_bound(remote_target_ids.get_const_data(),
+                                 remote_target_ids.get_const_data() +
+                                     remote_target_ids.get_size(),
                                  part_id));
 
-            if (set_id == remote_targed_ids.get_size()) {
+            if (set_id == remote_target_ids.get_size()) {
                 return invalid_index<LocalIndexType>();
             }
 

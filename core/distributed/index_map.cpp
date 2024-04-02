@@ -24,13 +24,13 @@ namespace distributed {
 
 template <typename LocalIndexType, typename GlobalIndexType>
 array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::get_local(
-    const array<GlobalIndexType>& global_ids, index_space is) const
+    const array<GlobalIndexType>& global_ids, index_space index_space_v) const
 {
     array<LocalIndexType> local_ids(exec_);
 
     exec_->run(index_map_kernels::make_get_local(
         partition_.get(), remote_target_ids_, remote_global_idxs_, rank_,
-        global_ids, is, local_ids));
+        global_ids, index_space_v, local_ids));
 
     return local_ids;
 }
