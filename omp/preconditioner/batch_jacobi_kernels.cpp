@@ -60,8 +60,6 @@ void batch_jacobi_apply(
     std::shared_ptr<const DefaultExecutor> exec,
     const batch::matrix::Csr<ValueType, IndexType>* const sys_mat,
     const size_type num_blocks, const uint32 max_block_size,
-    const gko::batch::preconditioner::batched_jacobi_blocks_storage_scheme<
-        IndexType>& storage_scheme,
     const IndexType* const cumulative_block_storage,
     const ValueType* const blocks_array, const IndexType* const block_ptrs,
     const IndexType* const row_block_map_info,
@@ -70,9 +68,8 @@ void batch_jacobi_apply(
 {
     const auto sys_mat_batch = host::get_batch_struct(sys_mat);
     batch_jacobi_apply_helper(sys_mat_batch, num_blocks, max_block_size,
-                              storage_scheme, cumulative_block_storage,
-                              blocks_array, block_ptrs, row_block_map_info, r,
-                              z);
+                              cumulative_block_storage, blocks_array,
+                              block_ptrs, row_block_map_info, r, z);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
@@ -84,8 +81,6 @@ void batch_jacobi_apply(
     std::shared_ptr<const DefaultExecutor> exec,
     const batch::matrix::Ell<ValueType, IndexType>* const sys_mat,
     const size_type num_blocks, const uint32 max_block_size,
-    const gko::batch::preconditioner::batched_jacobi_blocks_storage_scheme<
-        IndexType>& storage_scheme,
     const IndexType* const cumulative_block_storage,
     const ValueType* const blocks_array, const IndexType* const block_ptrs,
     const IndexType* const row_block_map_info,
@@ -94,9 +89,8 @@ void batch_jacobi_apply(
 {
     const auto sys_mat_batch = host::get_batch_struct(sys_mat);
     batch_jacobi_apply_helper(sys_mat_batch, num_blocks, max_block_size,
-                              storage_scheme, cumulative_block_storage,
-                              blocks_array, block_ptrs, row_block_map_info, r,
-                              z);
+                              cumulative_block_storage, blocks_array,
+                              block_ptrs, row_block_map_info, r, z);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
@@ -146,18 +140,14 @@ template <typename ValueType, typename IndexType>
 void extract_common_blocks_pattern(
     std::shared_ptr<const DefaultExecutor> exec,
     const gko::matrix::Csr<ValueType, IndexType>* const first_sys_csr,
-    const size_type num_blocks,
-    const batch::preconditioner::batched_jacobi_blocks_storage_scheme<
-        IndexType>& storage_scheme,
-    const IndexType* const cumulative_block_storage,
+    const size_type num_blocks, const IndexType* const cumulative_block_storage,
     const IndexType* const block_pointers, const IndexType* const,
     IndexType* const blocks_pattern)
 {
 #pragma omp parallel for
     for (size_type k = 0; k < num_blocks; k++) {
-        extract_block_pattern_impl(k, first_sys_csr, storage_scheme,
-                                   cumulative_block_storage, block_pointers,
-                                   blocks_pattern);
+        extract_block_pattern_impl(k, first_sys_csr, cumulative_block_storage,
+                                   block_pointers, blocks_pattern);
     }
 }
 
@@ -169,10 +159,7 @@ template <typename ValueType, typename IndexType>
 void compute_block_jacobi(
     std::shared_ptr<const DefaultExecutor> exec,
     const batch::matrix::Csr<ValueType, IndexType>* const sys_csr, const uint32,
-    const size_type num_blocks,
-    const batch::preconditioner::batched_jacobi_blocks_storage_scheme<
-        IndexType>& storage_scheme,
-    const IndexType* const cumulative_block_storage,
+    const size_type num_blocks, const IndexType* const cumulative_block_storage,
     const IndexType* const block_pointers,
     const IndexType* const blocks_pattern, ValueType* const blocks)
 {
@@ -187,8 +174,8 @@ void compute_block_jacobi(
         const auto A_entry =
             gko::batch::matrix::extract_batch_item(A_batch, batch_idx);
         compute_block_jacobi_impl(batch_idx, block_idx, A_entry, num_blocks,
-                                  storage_scheme, cumulative_block_storage,
-                                  block_pointers, blocks_pattern, blocks);
+                                  cumulative_block_storage, block_pointers,
+                                  blocks_pattern, blocks);
     }
 }
 

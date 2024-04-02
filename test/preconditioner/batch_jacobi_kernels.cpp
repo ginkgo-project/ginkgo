@@ -39,9 +39,6 @@ void is_equivalent_to_ref(
     const auto num_blocks = ref_prec->get_num_blocks();
     const auto block_pointers_ref = ref_prec->get_const_block_pointers();
 
-    const auto& ref_storage_scheme = ref_prec->get_blocks_storage_scheme();
-    const auto& d_storage_scheme = d_prec->get_blocks_storage_scheme();
-
     const auto tol = 10 * r<ValueType>::value;
 
     gko::array<int> d_block_pointers_copied_to_ref(ref, num_blocks + 1);
@@ -61,17 +58,17 @@ void is_equivalent_to_ref(
 
             const auto ref_dense_block_ptr =
                 ref_prec->get_const_blocks() +
-                ref_storage_scheme.get_global_block_offset(
+                gko::detail::batch_jacobi::get_global_block_offset(
                     batch_id, ref_prec->get_num_blocks(), block_id,
                     ref_prec->get_const_blocks_cumulative_storage());
-            const auto ref_stride =
-                ref_storage_scheme.get_stride(block_id, block_pointers_ref);
+            const auto ref_stride = gko::detail::batch_jacobi::get_stride(
+                block_id, block_pointers_ref);
             const auto d_dense_block_ptr =
                 d_prec->get_const_blocks() +
-                d_storage_scheme.get_global_block_offset(
+                gko::detail::batch_jacobi::get_global_block_offset(
                     batch_id, d_prec->get_num_blocks(), block_id,
                     d_block_cumul_storage_copied_to_ref.get_const_data());
-            const auto d_stride = d_storage_scheme.get_stride(
+            const auto d_stride = gko::detail::batch_jacobi::get_stride(
                 block_id, d_block_pointers_copied_to_ref.get_const_data());
 
             for (int r = 0; r < bsize; r++) {
@@ -185,14 +182,12 @@ TYPED_TEST(BatchJacobi, BatchScalarJacobiApplyToSingleVectorIsEquivalentToRef)
 
     gko::kernels::reference::batch_jacobi::batch_jacobi_apply(
         this->ref, this->ref_mtx.get(), ref_prec->get_num_blocks(),
-        ref_prec->get_max_block_size(), ref_prec->get_blocks_storage_scheme(),
-        cumul_block_storage_ref, blocks_arr_ref, block_ptr_ref,
-        row_block_map_ref, this->ref_b.get(), this->ref_x.get());
+        ref_prec->get_max_block_size(), cumul_block_storage_ref, blocks_arr_ref,
+        block_ptr_ref, row_block_map_ref, this->ref_b.get(), this->ref_x.get());
     gko::kernels::EXEC_NAMESPACE::batch_jacobi::batch_jacobi_apply(
         this->exec, this->d_mtx.get(), d_prec->get_num_blocks(),
-        d_prec->get_max_block_size(), d_prec->get_blocks_storage_scheme(),
-        cumul_block_storage_d, blocks_arr_d, block_ptr_d, row_block_map_d,
-        this->d_b.get(), this->d_x.get());
+        d_prec->get_max_block_size(), cumul_block_storage_d, blocks_arr_d,
+        block_ptr_d, row_block_map_d, this->d_b.get(), this->d_x.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(this->ref_x.get(), this->d_x.get(),
                               r<value_type>::value);
@@ -216,14 +211,14 @@ TYPED_TEST(BatchJacobi, BatchBlockJacobiApplyToSingleVectorIsEquivalentToRef)
 
     gko::kernels::reference::batch_jacobi::batch_jacobi_apply(
         this->ref, this->ref_mtx.get(), ref_prec->get_num_blocks(),
-        ref_prec->get_max_block_size(), ref_prec->get_blocks_storage_scheme(),
+        ref_prec->get_max_block_size(),
         ref_prec->get_const_blocks_cumulative_storage(),
         ref_prec->get_const_blocks(), ref_prec->get_const_block_pointers(),
         ref_prec->get_const_row_block_map_info(), this->ref_b.get(),
         this->ref_x.get());
     gko::kernels::EXEC_NAMESPACE::batch_jacobi::batch_jacobi_apply(
         this->exec, this->d_mtx.get(), d_prec->get_num_blocks(),
-        d_prec->get_max_block_size(), d_prec->get_blocks_storage_scheme(),
+        d_prec->get_max_block_size(),
         d_prec->get_const_blocks_cumulative_storage(),
         d_prec->get_const_blocks(), d_prec->get_const_block_pointers(),
         d_prec->get_const_row_block_map_info(), this->d_b.get(),

@@ -36,8 +36,7 @@ Jacobi<ValueType, IndexType>::Jacobi(std::shared_ptr<const Executor> exec)
       num_blocks_{},
       blocks_(exec),
       row_block_map_info_(exec),
-      blocks_cumulative_storage_(exec),
-      blocks_storage_scheme_{batched_jacobi_blocks_storage_scheme<index_type>()}
+      blocks_cumulative_storage_(exec)
 {
     parameters_.block_pointers.set_executor(this->get_executor());
 }
@@ -55,8 +54,7 @@ Jacobi<ValueType, IndexType>::Jacobi(
       blocks_(factory->get_executor()),
       row_block_map_info_(factory->get_executor(),
                           system_matrix->get_common_size()[0]),
-      blocks_cumulative_storage_(factory->get_executor(), num_blocks_ + 1),
-      blocks_storage_scheme_{batched_jacobi_blocks_storage_scheme<index_type>()}
+      blocks_cumulative_storage_(factory->get_executor(), num_blocks_ + 1)
 
 {
     parameters_.block_pointers.set_executor(this->get_executor());
@@ -157,14 +155,14 @@ void Jacobi<ValueType, IndexType>::generate_precond(
     // corresponding to different batch entries are obtained by just filling in
     // values based on the common pattern.
     exec->run(jacobi::make_extract_common_blocks_pattern(
-        first_sys_csr.get(), num_blocks_, blocks_storage_scheme_,
+        first_sys_csr.get(), num_blocks_,
         blocks_cumulative_storage_.get_const_data(),
         parameters_.block_pointers.get_const_data(),
         row_block_map_info_.get_const_data(), blocks_pattern.get_data()));
 
     exec->run(jacobi::make_compute_block_jacobi(
         sys_csr, parameters_.max_block_size, num_blocks_,
-        blocks_storage_scheme_, blocks_cumulative_storage_.get_const_data(),
+        blocks_cumulative_storage_.get_const_data(),
         parameters_.block_pointers.get_const_data(),
         blocks_pattern.get_const_data(), blocks_.get_data()));
 }

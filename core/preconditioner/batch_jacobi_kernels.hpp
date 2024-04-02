@@ -16,6 +16,7 @@
 
 
 #include "core/base/kernel_declaration.hpp"
+#include "core/preconditioner/batch_jacobi_helpers.hpp"
 
 
 namespace gko {
@@ -35,16 +36,13 @@ namespace kernels {
         const size_type num_blocks, const IndexType* block_pointers,     \
         IndexType* blocks_cumulative_storage)
 
-#define GKO_DECLARE_BATCH_BLOCK_JACOBI_EXTRACT_PATTERN_KERNEL(ValueType,      \
-                                                              IndexType)      \
-    void extract_common_blocks_pattern(                                       \
-        std::shared_ptr<const DefaultExecutor> exec,                          \
-        const matrix::Csr<ValueType, IndexType>* first_sys_csr,               \
-        const size_type num_blocks,                                           \
-        const batch::preconditioner::batched_jacobi_blocks_storage_scheme<    \
-            IndexType>& storage_scheme,                                       \
-        const IndexType* cumulative_block_storage,                            \
-        const IndexType* block_pointers, const IndexType* row_block_map_info, \
+#define GKO_DECLARE_BATCH_BLOCK_JACOBI_EXTRACT_PATTERN_KERNEL(ValueType,       \
+                                                              IndexType)       \
+    void extract_common_blocks_pattern(                                        \
+        std::shared_ptr<const DefaultExecutor> exec,                           \
+        const matrix::Csr<ValueType, IndexType>* first_sys_csr,                \
+        const size_type num_blocks, const IndexType* cumulative_block_storage, \
+        const IndexType* block_pointers, const IndexType* row_block_map_info,  \
         IndexType* blocks_pattern)
 
 
@@ -53,8 +51,6 @@ namespace kernels {
         std::shared_ptr<const DefaultExecutor> exec,                        \
         const batch::matrix::Csr<ValueType, IndexType>* sys_csr,            \
         const uint32 max_block_size, const size_type num_blocks,            \
-        const batch::preconditioner::batched_jacobi_blocks_storage_scheme<  \
-            IndexType>& storage_scheme,                                     \
         const IndexType* cumulative_block_storage,                          \
         const IndexType* block_pointers, const IndexType* blocks_pattern,   \
         ValueType* blocks)
@@ -69,30 +65,26 @@ namespace kernels {
  * These functions are mostly meant only for experimentation and testing.
  *
  */
-#define GKO_DECLARE_BATCH_JACOBI_APPLY_KERNEL(ValueType, IndexType)          \
-    void batch_jacobi_apply(                                                 \
-        std::shared_ptr<const DefaultExecutor> exec,                         \
-        const batch::matrix::Csr<ValueType, IndexType>* sys_mat,             \
-        const size_type num_blocks, const uint32 max_block_size,             \
-        const gko::batch::preconditioner::                                   \
-            batched_jacobi_blocks_storage_scheme<IndexType>& storage_scheme, \
-        const IndexType* cumulative_block_storage,                           \
-        const ValueType* blocks_array, const IndexType* block_ptrs,          \
-        const IndexType* row_block_map_info,                                 \
-        const batch::MultiVector<ValueType>* r,                              \
+#define GKO_DECLARE_BATCH_JACOBI_APPLY_KERNEL(ValueType, IndexType) \
+    void batch_jacobi_apply(                                        \
+        std::shared_ptr<const DefaultExecutor> exec,                \
+        const batch::matrix::Csr<ValueType, IndexType>* sys_mat,    \
+        const size_type num_blocks, const uint32 max_block_size,    \
+        const IndexType* cumulative_block_storage,                  \
+        const ValueType* blocks_array, const IndexType* block_ptrs, \
+        const IndexType* row_block_map_info,                        \
+        const batch::MultiVector<ValueType>* r,                     \
         batch::MultiVector<ValueType>* z)
 
-#define GKO_DECLARE_BATCH_JACOBI_ELL_APPLY_KERNEL(ValueType, IndexType)      \
-    void batch_jacobi_apply(                                                 \
-        std::shared_ptr<const DefaultExecutor> exec,                         \
-        const batch::matrix::Ell<ValueType, IndexType>* sys_mat,             \
-        const size_type num_blocks, const uint32 max_block_size,             \
-        const gko::batch::preconditioner::                                   \
-            batched_jacobi_blocks_storage_scheme<IndexType>& storage_scheme, \
-        const IndexType* cumulative_block_storage,                           \
-        const ValueType* blocks_array, const IndexType* block_ptrs,          \
-        const IndexType* row_block_map_info,                                 \
-        const batch::MultiVector<ValueType>* r,                              \
+#define GKO_DECLARE_BATCH_JACOBI_ELL_APPLY_KERNEL(ValueType, IndexType) \
+    void batch_jacobi_apply(                                            \
+        std::shared_ptr<const DefaultExecutor> exec,                    \
+        const batch::matrix::Ell<ValueType, IndexType>* sys_mat,        \
+        const size_type num_blocks, const uint32 max_block_size,        \
+        const IndexType* cumulative_block_storage,                      \
+        const ValueType* blocks_array, const IndexType* block_ptrs,     \
+        const IndexType* row_block_map_info,                            \
+        const batch::MultiVector<ValueType>* r,                         \
         batch::MultiVector<ValueType>* z)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                     \

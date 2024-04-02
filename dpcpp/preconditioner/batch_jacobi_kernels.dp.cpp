@@ -26,8 +26,6 @@ void batch_jacobi_apply(
     std::shared_ptr<const DefaultExecutor> exec,
     const batch::matrix::Csr<ValueType, IndexType>* const sys_mat,
     const size_type num_blocks, const uint32 max_block_size,
-    const gko::batch::preconditioner::batched_jacobi_blocks_storage_scheme<
-        IndexType>& storage_scheme,
     const IndexType* const cumulative_block_storage,
     const ValueType* const blocks_array, const IndexType* const block_ptrs,
     const IndexType* const row_block_map_info,
@@ -43,8 +41,6 @@ void batch_jacobi_apply(
     std::shared_ptr<const DefaultExecutor> exec,
     const batch::matrix::Ell<ValueType, IndexType>* const sys_mat,
     const size_type num_blocks, const uint32 max_block_size,
-    const gko::batch::preconditioner::batched_jacobi_blocks_storage_scheme<
-        IndexType>& storage_scheme,
     const IndexType* const cumulative_block_storage,
     const ValueType* const blocks_array, const IndexType* const block_ptrs,
     const IndexType* const row_block_map_info,
@@ -79,10 +75,7 @@ template <typename ValueType, typename IndexType>
 void extract_common_blocks_pattern(
     std::shared_ptr<const DefaultExecutor> exec,
     const gko::matrix::Csr<ValueType, IndexType>* const first_sys_csr,
-    const size_type num_blocks,
-    const batch::preconditioner::batched_jacobi_blocks_storage_scheme<
-        IndexType>& storage_scheme,
-    const IndexType* const cumulative_block_storage,
+    const size_type num_blocks, const IndexType* const cumulative_block_storage,
     const IndexType* const block_pointers, const IndexType* const,
     IndexType* const blocks_pattern) GKO_NOT_IMPLEMENTED;
 
@@ -94,10 +87,7 @@ template <typename ValueType, typename IndexType>
 void compute_block_jacobi(
     std::shared_ptr<const DefaultExecutor> exec,
     const batch::matrix::Csr<ValueType, IndexType>* const sys_csr, const uint32,
-    const size_type num_blocks,
-    const batch::preconditioner::batched_jacobi_blocks_storage_scheme<
-        IndexType>& storage_scheme,
-    const IndexType* const cumulative_block_storage,
+    const size_type num_blocks, const IndexType* const cumulative_block_storage,
     const IndexType* const block_pointers,
     const IndexType* const blocks_pattern,
     ValueType* const blocks) GKO_NOT_IMPLEMENTED;

@@ -5,8 +5,6 @@
 template <typename ValueType>
 inline void extract_block_pattern_impl(
     const size_type k, const matrix::Csr<ValueType, int>* const first_sys_csr,
-    const batch::preconditioner::batched_jacobi_blocks_storage_scheme<int>&
-        storage_scheme,
     const int* const cumulative_block_storage, const int* const block_pointers,
     int* const blocks_pattern)
 {
@@ -17,8 +15,8 @@ inline void extract_block_pattern_impl(
     const int row_idx_end = block_pointers[k + 1];  // exclusive
 
     const auto offset =
-        storage_scheme.get_block_offset(k, cumulative_block_storage);
-    const auto stride = storage_scheme.get_stride(k, block_pointers);
+        detail::batch_jacobi::get_block_offset(k, cumulative_block_storage);
+    const auto stride = detail::batch_jacobi::get_stride(k, block_pointers);
 
     // pattern is stored in row-major order
     for (int row_idx = row_idx_st; row_idx < row_idx_end; row_idx++) {
@@ -113,17 +111,16 @@ template <typename ValueType>
 inline void compute_block_jacobi_impl(
     const size_type batch_idx, const size_type block_idx,
     const batch::matrix::csr::batch_item<const ValueType, const int>& A_entry,
-    const size_type num_blocks,
-    const batch::preconditioner::batched_jacobi_blocks_storage_scheme<int>&
-        storage_scheme,
-    const int* const cumulative_block_storage, const int* const block_pointers,
-    const int* const blocks_pattern, ValueType* const blocks)
+    const size_type num_blocks, const int* const cumulative_block_storage,
+    const int* const block_pointers, const int* const blocks_pattern,
+    ValueType* const blocks)
 {
-    const auto offset_batch = storage_scheme.get_batch_offset(
+    const auto offset_batch = detail::batch_jacobi::get_batch_offset(
         batch_idx, num_blocks, cumulative_block_storage);
-    const auto offset_indiv =
-        storage_scheme.get_block_offset(block_idx, cumulative_block_storage);
-    const auto stride = storage_scheme.get_stride(block_idx, block_pointers);
+    const auto offset_indiv = detail::batch_jacobi::get_block_offset(
+        block_idx, cumulative_block_storage);
+    const auto stride =
+        detail::batch_jacobi::get_stride(block_idx, block_pointers);
     // the blocks are in row-major order
     ValueType* dense_block_ptr = blocks + offset_batch + offset_indiv;
 
@@ -143,8 +140,8 @@ inline void compute_block_jacobi_impl(
             // data locality
             const auto idx =
                 blocks_pattern[offset_indiv +
-                               row * storage_scheme.get_stride(block_idx,
-                                                               block_pointers) +
+                               row * detail::batch_jacobi::get_stride(
+                                         block_idx, block_pointers) +
                                col];
             if (idx >= 0) {
                 assert(idx < A_entry.get_single_item_num_nnz());
@@ -169,16 +166,15 @@ inline void compute_block_jacobi_impl(
 
 
 template <typename BatchMatrixType, typename ValueType>
-void batch_jacobi_apply_helper(
-    const BatchMatrixType& sys_mat_batch, const size_type num_blocks,
-    const uint32 max_block_size,
-    const gko::batch::preconditioner::batched_jacobi_blocks_storage_scheme<int>&
-        storage_scheme,
-    const int* const cumulative_block_storage,
-    const ValueType* const blocks_array, const int* const block_ptrs,
-    const int* const row_block_map_info,
-    const batch::MultiVector<ValueType>* const r,
-    batch::MultiVector<ValueType>* const z)
+void batch_jacobi_apply_helper(const BatchMatrixType& sys_mat_batch,
+                               const size_type num_blocks,
+                               const uint32 max_block_size,
+                               const int* const cumulative_block_storage,
+                               const ValueType* const blocks_array,
+                               const int* const block_ptrs,
+                               const int* const row_block_map_info,
+                               const batch::MultiVector<ValueType>* const r,
+                               batch::MultiVector<ValueType>* const z)
 {
     const auto nbatch = sys_mat_batch.num_batch_items;
     const auto rub = gko::kernels::host::get_batch_struct(r);
@@ -193,7 +189,7 @@ void batch_jacobi_apply_helper(
         scalar_jacobi_prec prec;
         apply_jacobi(sys_mat_batch, prec, rub, zub);
     } else {
-        block_jacobi_prec prec(max_block_size, num_blocks, storage_scheme,
+        block_jacobi_prec prec(max_block_size, num_blocks,
                                cumulative_block_storage, blocks_array,
                                block_ptrs, row_block_map_info);
         apply_jacobi(sys_mat_batch, prec, rub, zub);
