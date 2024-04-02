@@ -1140,6 +1140,13 @@ __global__ __launch_bounds__(default_block_size) void build_csr_lookup(
         }
         return;
     }
+    // if hash lookup is not allowed, we are done here
+    if (!csr_lookup_allowed(allowed, sparsity_type::hash)) {
+        if (lane == 0) {
+            row_desc[row] = static_cast<int64>(sparsity_type::none);
+        }
+        return;
+    }
     // sparse hashmap storage
     // we need at least one unfilled entry to avoid infinite loops on search
     GKO_ASSERT(row_len < available_storage);

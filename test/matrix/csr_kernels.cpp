@@ -209,7 +209,8 @@ TYPED_TEST(CsrLookup, BuildLookupWorks)
     for (auto allowed :
          {sparsity_type::full | sparsity_type::bitmap | sparsity_type::hash,
           sparsity_type::bitmap | sparsity_type::hash,
-          sparsity_type::full | sparsity_type::hash, sparsity_type::hash}) {
+          sparsity_type::full | sparsity_type::hash, sparsity_type::hash,
+          sparsity_type::none}) {
         // check that storage offsets are calculated correctly
         // otherwise things might crash
         gko::kernels::reference::csr::build_lookup_offsets(

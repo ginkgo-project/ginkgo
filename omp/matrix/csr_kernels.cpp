@@ -1367,6 +1367,7 @@ void build_lookup(std::shared_ptr<const DefaultExecutor> exec,
                   const IndexType* storage_offsets, int64* row_desc,
                   int32* storage)
 {
+    using matrix::csr::sparsity_type;
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; row++) {
         const auto row_begin = row_ptrs[row];
@@ -1386,8 +1387,12 @@ void build_lookup(std::shared_ptr<const DefaultExecutor> exec,
                 row_desc[row], local_storage, local_cols);
         }
         if (!done) {
-            csr_lookup_build_hash(row_len, available_storage, row_desc[row],
-                                  local_storage, local_cols);
+            if (csr_lookup_allowed(allowed, sparsity_type::hash)) {
+                csr_lookup_build_hash(row_len, available_storage, row_desc[row],
+                                      local_storage, local_cols);
+            } else {
+                row_desc[row] = static_cast<int64>(sparsity_type::none);
+            }
         }
     }
 }
