@@ -26,6 +26,11 @@ namespace csr {
  */
 enum class sparsity_type {
     /**
+     * The row has no precomputed lookup-information associated with it, so the
+     * nonzero location needs to be located from the column indices explicitly.
+     */
+    none = 0,
+    /**
      * The row is dense, i.e. it contains all entries in
      * `[min_col, min_col + storage_size)`.
      * This means that the relative output index is `col - min_col`.
@@ -148,9 +153,9 @@ struct device_sparsity_lookup {
             return lookup_bitmap(col);
         case sparsity_type::hash:
             return lookup_hash(col);
+        default:
+            return lookup_search(col);
         }
-        GKO_ASSERT(false);
-        return invalid_index<IndexType>();
     }
 
     /**
@@ -176,7 +181,8 @@ struct device_sparsity_lookup {
             result = lookup_hash_unsafe(col);
             break;
         default:
-            GKO_ASSERT(false);
+            result = lookup_search_unsafe(col);
+            break;
         }
         GKO_ASSERT(local_cols[result] == col);
         return result;
@@ -289,6 +295,41 @@ private:
         }
         // out_idx is either correct or invalid_index, the hashmap sentinel
         return out_idx;
+    }
+
+    GKO_ATTRIBUTES GKO_INLINE IndexType
+    lookup_search_unsafe(IndexType col) const
+    {
+        // binary search through the column indices
+        auto length = row_nnz;
+        IndexType offset{};
+        while (length > 0) {
+            auto half_length = length / 2;
+            auto mid = offset + half_length;
+            // this finds the first index with column index >= col
+            auto pred = local_cols[mid] >= col;
+            length = pred ? half_length : length - (half_length + 1);
+            offset = pred ? offset : mid + 1;
+        }
+        return offset;
+    }
+
+    GKO_ATTRIBUTES GKO_INLINE IndexType lookup_search(IndexType col) const
+    {
+        // binary search through the column indices
+        auto length = row_nnz;
+        IndexType offset{};
+        while (length > 0) {
+            auto half_length = length / 2;
+            auto mid = offset + half_length;
+            // this finds the first index with column index >= col
+            auto pred = local_cols[mid] >= col;
+            length = pred ? half_length : length - (half_length + 1);
+            offset = pred ? offset : mid + 1;
+        }
+        return offset < row_nnz && local_cols[offset] == col
+                   ? offset
+                   : invalid_index<IndexType>();
     }
 };
 

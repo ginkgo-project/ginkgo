@@ -2799,6 +2799,7 @@ void build_lookup(std::shared_ptr<const DpcppExecutor> exec,
                   const IndexType* storage_offsets, int64* row_desc,
                   int32* storage)
 {
+    using matrix::csr::sparsity_type;
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
             const auto row = static_cast<size_type>(idx[0]);
@@ -2820,8 +2821,13 @@ void build_lookup(std::shared_ptr<const DpcppExecutor> exec,
                     row_desc[row], local_storage, local_cols);
             }
             if (!done) {
-                csr_lookup_build_hash(row_len, available_storage, row_desc[row],
-                                      local_storage, local_cols);
+                if (csr_lookup_allowed(allowed, sparsity_type::hash)) {
+                    csr_lookup_build_hash(row_len, available_storage,
+                                          row_desc[row], local_storage,
+                                          local_cols);
+                } else {
+                    row_desc[row] = static_cast<int64>(sparsity_type::none);
+                }
             }
         });
     });

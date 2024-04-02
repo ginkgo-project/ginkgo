@@ -31,6 +31,7 @@
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_accessor_helper.hpp"
 #include "core/matrix/csr_builder.hpp"
+#include "core/matrix/csr_lookup.hpp"
 #include "reference/components/csr_spgeam.hpp"
 
 
@@ -1297,8 +1298,10 @@ void build_lookup_offsets(std::shared_ptr<const ReferenceExecutor> exec,
             if (csr_lookup_allowed(allowed, sparsity_type::bitmap) &&
                 bitmap_storage <= hashmap_storage) {
                 storage_offsets[row] = bitmap_storage;
-            } else {
+            } else if (csr_lookup_allowed(allowed, sparsity_type::hash)) {
                 storage_offsets[row] = hashmap_storage;
+            } else {
+                storage_offsets[row] = 0;
             }
         }
     }
@@ -1397,6 +1400,7 @@ void build_lookup(std::shared_ptr<const ReferenceExecutor> exec,
                   const IndexType* storage_offsets, int64* row_desc,
                   int32* storage)
 {
+    using matrix::csr::sparsity_type;
     for (size_type row = 0; row < num_rows; row++) {
         const auto row_begin = row_ptrs[row];
         const auto row_len = row_ptrs[row + 1] - row_begin;
@@ -1415,8 +1419,12 @@ void build_lookup(std::shared_ptr<const ReferenceExecutor> exec,
                 row_desc[row], local_storage, local_cols);
         }
         if (!done) {
-            csr_lookup_build_hash(row_len, available_storage, row_desc[row],
-                                  local_storage, local_cols);
+            if (csr_lookup_allowed(allowed, sparsity_type::hash)) {
+                csr_lookup_build_hash(row_len, available_storage, row_desc[row],
+                                      local_storage, local_cols);
+            } else {
+                row_desc[row] = static_cast<int64>(sparsity_type::none);
+            }
         }
     }
 }
