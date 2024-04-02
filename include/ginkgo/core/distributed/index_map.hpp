@@ -66,11 +66,12 @@ struct index_map {
     /**
      * \brief Maps global indices to local indices
      *
-     * \param global_ids the global indices to map
-     * \param is the index space in which the returned local indices are defined
+     * \param global_ids  the global indices to map
+     * \param index_space_v  the index space in which the returned local indices
+     *                       are defined
      *
-     * \return the mapped local indices. Any global index that is not in the
-     *         specified index space is mapped to invalid_index.
+     * \return  the mapped local indices. Any global index that is not in the
+     *          specified index space is mapped to invalid_index.
      */
     [[nodiscard]] array<LocalIndexType> get_local(
         const array<GlobalIndexType>& global_ids,
