@@ -22,6 +22,7 @@ target_sources(ginkgo
     distributed/index_map.cpp
     distributed/neighborhood_communicator.cpp
     distributed/partition.cpp
+    distributed/row_gatherer.cpp
     factorization/cholesky.cpp
     factorization/elimination_forest.cpp
     factorization/factorization.cpp
