@@ -23,100 +23,6 @@ namespace preconditioner {
 
 
 /**
- * The storage scheme used by batched block-Jacobi blocks.
- *
- * @note All blocks are stored in row-major order as square matrices of size and
- * stride = actual block size, which could be found out using the block pointers
- * array.
- *
- * @note All the blocks corresponding to the first entry in the batch are
- * stored first, then all the blocks corresponding to the second entry and so
- * on.
- *
- * @ingroup precond
- * @ingroup batch_jacobi
- */
-template <typename IndexType = int32>
-struct batched_jacobi_blocks_storage_scheme {
-    batched_jacobi_blocks_storage_scheme() = default;
-
-    /**
-     * Returns the offset of the batch with id "batch_id"
-     *
-     * @param batch_id  the index of the batch entry in the batch
-     * @param num_blocks  number of blocks in an individual matrix item
-     * @param block_storage_cumulative  the cumulative block storage array
-     *
-     * @return the offset of the group belonging to block with ID `block_id`
-     */
-    GKO_ATTRIBUTES size_type get_batch_offset(
-        const size_type batch_id, const size_type num_blocks,
-        const IndexType* const block_storage_cumulative) const noexcept
-    {
-        return batch_id * block_storage_cumulative[num_blocks];
-    }
-
-    /**
-     * Returns the (local) offset of the block with id: "block_id" within its
-     * batch entry
-     *
-     * @param block_id  the id of the block from the perspective of individual
-     *                  batch item
-     * @param blocks_storage_cumulative  the cumulative block storage array
-     *
-     * @return the offset of the block with id: `block_id` within its batch
-     * entry
-     */
-    GKO_ATTRIBUTES size_type get_block_offset(
-        const size_type block_id,
-        const IndexType* const block_storage_cumulative) const noexcept
-    {
-        return block_storage_cumulative[block_id];
-    }
-
-    /**
-     * Returns the global offset of the block which belongs to the batch entry
-     * with index = batch_id and has local id = "block_id" within its batch
-     * entry
-     *
-     * @param batch_id  the index of the batch entry in the batch
-     * @param num_blocks  number of blocks in an individual matrix entry
-     * @param block_id  the id of the block from the perspective of individual
-     * batch entry
-     * @param block_storage_cumulative  the cumulative block storage array
-     *
-     * @return the global offset of the block which belongs to the batch entry
-     * with index = batch_id and has local id = "block_id" within its batch
-     * entry
-     */
-    GKO_ATTRIBUTES size_type get_global_block_offset(
-        const size_type batch_id, const size_type num_blocks,
-        const size_type block_id,
-        const IndexType* const block_storage_cumulative) const noexcept
-    {
-        return this->get_batch_offset(batch_id, num_blocks,
-                                      block_storage_cumulative) +
-               this->get_block_offset(block_id, block_storage_cumulative);
-    }
-
-    /**
-     * Returns the stride between the rows of the block.
-     *
-     * @param block_idx  the id of the block from the perspective of individual
-     * batch entry
-     * @param block_ptrs  the block pointers array
-     *
-     * @return stride between rows of the block
-     */
-    GKO_ATTRIBUTES size_type get_stride(
-        const int block_idx, const IndexType* const block_ptrs) const noexcept
-    {
-        return block_ptrs[block_idx + 1] - block_ptrs[block_idx];
-    }
-};
-
-
-/**
  * A block-Jacobi preconditioner is a block-diagonal linear operator, obtained
  * by inverting the diagonal blocks (stored in a dense row major fashion) of the
  * source operator.
@@ -151,17 +57,6 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using matrix_type = batch::matrix::Csr<ValueType, IndexType>;
-
-    /**
-     * Returns the storage scheme used for storing Batched Jacobi blocks.
-     *
-     * @return the storage scheme used for storing Batched Jacobi blocks
-     */
-    const batched_jacobi_blocks_storage_scheme<index_type>&
-    get_blocks_storage_scheme() const noexcept
-    {
-        return blocks_storage_scheme_;
-    }
 
     /**
      *  Returns the block pointers.
@@ -322,7 +217,6 @@ private:
         const size_type num_batch,
         const gko::matrix::Csr<ValueType, IndexType>* system_matrix);
 
-    batched_jacobi_blocks_storage_scheme<index_type> blocks_storage_scheme_;
     size_type num_blocks_;
     array<value_type> blocks_;
     array<index_type> row_block_map_info_;

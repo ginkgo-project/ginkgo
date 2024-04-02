@@ -11,6 +11,7 @@
 
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
+#include "core/preconditioner/batch_jacobi_helpers.hpp"
 
 
 namespace gko {
@@ -35,15 +36,11 @@ public:
      * @param block_ptrs_arr array of block pointers
      *
      */
-    BatchBlockJacobi(
-        const uint32, const size_type num_blocks,
-        const gko::batch::preconditioner::batched_jacobi_blocks_storage_scheme<
-            int>& storage_scheme,
-        const int* const blocks_cumulative_storage,
-        const value_type* const blocks_arr_batch,
-        const int* const block_ptrs_arr, const int* const)
+    BatchBlockJacobi(const uint32, const size_type num_blocks,
+                     const int* const blocks_cumulative_storage,
+                     const value_type* const blocks_arr_batch,
+                     const int* const block_ptrs_arr, const int* const)
         : num_blocks_{num_blocks},
-          storage_scheme_{storage_scheme},
           blocks_cumulative_storage_{blocks_cumulative_storage},
           blocks_arr_batch_{blocks_arr_batch},
           block_ptrs_arr_{block_ptrs_arr},
@@ -90,10 +87,10 @@ public:
             const int row_end = block_ptrs_arr_[bidx + 1];  // exclusive
             const int bsize = row_end - row_st;
 
-            const auto offset = storage_scheme_.get_block_offset(
+            const auto offset = detail::batch_jacobi::get_block_offset(
                 bidx, blocks_cumulative_storage_);
             const auto stride =
-                storage_scheme_.get_stride(bidx, block_ptrs_arr_);
+                detail::batch_jacobi::get_stride(bidx, block_ptrs_arr_);
 
             for (int row = row_st; row < row_end; row++) {
                 ValueType sum = zero<ValueType>();
@@ -114,13 +111,11 @@ private:
     {
         blocks_arr_entry_ =
             blocks_arr_batch_ +
-            storage_scheme_.get_batch_offset(batch_id, num_blocks_,
-                                             blocks_cumulative_storage_);
+            detail::batch_jacobi::get_batch_offset(batch_id, num_blocks_,
+                                                   blocks_cumulative_storage_);
     }
 
     const size_type num_blocks_;
-    const gko::batch::preconditioner::batched_jacobi_blocks_storage_scheme<int>
-        storage_scheme_;
     const int* const blocks_cumulative_storage_;
     const value_type* const blocks_arr_batch_;
     const value_type* blocks_arr_entry_;

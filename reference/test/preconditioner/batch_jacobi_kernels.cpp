@@ -36,8 +36,6 @@ void is_equivalent_to_unbatched(
     const auto num_blocks = batch_prec->get_num_blocks();
     const auto block_ptrs = batch_prec->get_const_block_pointers();
     const auto blocks_batch_arr = batch_prec->get_const_blocks();
-    const auto& batched_storage_scheme =
-        batch_prec->get_blocks_storage_scheme();
     const auto blocks_unbatch_arr = unbatch_prec->get_blocks();
     auto storage_scheme_unbatch = unbatch_prec->get_storage_scheme();
 
@@ -53,10 +51,11 @@ void is_equivalent_to_unbatched(
                          k))[r + storage_scheme_unbatch.get_stride() * c];
                 const auto batch_val =
                     (blocks_batch_arr +
-                     batched_storage_scheme.get_global_block_offset(
+                     gko::detail::batch_jacobi::get_global_block_offset(
                          batch_idx, num_blocks, k,
                          batch_prec->get_const_blocks_cumulative_storage()))
-                        [r * batched_storage_scheme.get_stride(k, block_ptrs) +
+                        [r * gko::detail::batch_jacobi::get_stride(k,
+                                                                   block_ptrs) +
                          c];
                 GKO_EXPECT_NEAR(unbatch_val, batch_val, tol);
             }
@@ -191,9 +190,8 @@ TYPED_TEST(BatchJacobi,
 
     gko::kernels::reference::batch_jacobi::batch_jacobi_apply(
         this->exec, this->mtx.get(), prec->get_num_blocks(),
-        prec->get_max_block_size(), prec->get_blocks_storage_scheme(),
-        cumul_block_storage, blocks_arr, block_ptr, row_block_map_arr,
-        this->b.get(), this->x.get());
+        prec->get_max_block_size(), cumul_block_storage, blocks_arr, block_ptr,
+        row_block_map_arr, this->b.get(), this->x.get());
 
     auto xs = gko::batch::unbatch<BMVec>(this->x.get());
     for (size_t i = 0; i < umtxs.size(); i++) {
@@ -254,10 +252,9 @@ TYPED_TEST(BatchJacobi,
 
     gko::kernels::reference::batch_jacobi::batch_jacobi_apply(
         this->exec, this->mtx.get(), prec->get_num_blocks(),
-        prec->get_max_block_size(), prec->get_blocks_storage_scheme(),
-        prec->get_const_blocks_cumulative_storage(), prec->get_const_blocks(),
-        prec->get_const_block_pointers(), prec->get_const_row_block_map_info(),
-        this->b.get(), this->x.get());
+        prec->get_max_block_size(), prec->get_const_blocks_cumulative_storage(),
+        prec->get_const_blocks(), prec->get_const_block_pointers(),
+        prec->get_const_row_block_map_info(), this->b.get(), this->x.get());
 
     auto xs = gko::batch::unbatch<BMVec>(this->x.get());
     for (size_t i = 0; i < umtxs.size(); i++) {
