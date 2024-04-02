@@ -55,6 +55,7 @@ array<size_type> compute_range_ids(
     return range_ids;
 }
 
+
 template <typename LocalIndexType, typename GlobalIndexType>
 void build_mapping(
     std::shared_ptr<const DefaultExecutor> exec,
@@ -161,7 +162,7 @@ void map_to_local(
     std::shared_ptr<const DefaultExecutor> exec,
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         partition,
-    const array<experimental::distributed::comm_index_type>& remote_targed_ids,
+    const array<experimental::distributed::comm_index_type>& remote_target_ids,
     device_segmented_array<const GlobalIndexType> remote_global_idxs,
     experimental::distributed::comm_index_type rank,
     const array<GlobalIndexType>& global_ids,
@@ -197,8 +198,8 @@ void map_to_local(
                        : invalid_index<LocalIndexType>();
         };
 
-    auto remote_target_ids_ptr = remote_targed_ids.get_const_data();
-    auto num_target_ids = remote_targed_ids.get_size();
+    auto remote_target_ids_ptr = remote_target_ids.get_const_data();
+    auto num_target_ids = remote_target_ids.get_size();
     auto remote_global_idxs_ptr = remote_global_idxs.flat_begin;
     auto offsets_ptr = remote_global_idxs.offsets_begin;
     auto map_non_local =
