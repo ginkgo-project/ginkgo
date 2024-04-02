@@ -28,6 +28,86 @@
 using comm_index_type = gko::experimental::distributed::comm_index_type;
 
 
+template <typename LocalIndexType, typename GlobalIndexType>
+gko::array<GlobalIndexType> generate_connection_idxs(
+    const std::shared_ptr<const gko::Executor>& exec, comm_index_type rank,
+    std::shared_ptr<gko::experimental::distributed::Partition<LocalIndexType,
+                                                              GlobalIndexType>>
+        partition,
+    std::default_random_engine engine, gko::size_type num_connections)
+{
+    auto ref = exec->get_master();
+    auto num_parts = partition->get_num_parts();
+    auto local_size =
+        static_cast<GlobalIndexType>(partition->get_part_size(rank));
+    // create vector with [0, ..., num_parts) excluding excluded_pid
+    std::vector<gko::size_type> part_ids(num_parts - 1);
+    std::iota(part_ids.begin(), part_ids.end(), rank + 1);
+    std::transform(part_ids.begin(), part_ids.end(), part_ids.begin(),
+                   [&](const auto pid) { return pid % num_parts; });
+    // get random connections
+    std::shuffle(part_ids.begin(), part_ids.end(), engine);
+    std::vector<gko::size_type> connected_ids(
+        part_ids.begin(), part_ids.begin() + num_connections);
+    // create global index space of connections
+    std::vector<GlobalIndexType> connections_index_space;
+    for (auto pid : connected_ids) {
+        for (GlobalIndexType i = 0; i < local_size; ++i) {
+            connections_index_space.push_back(
+                i + static_cast<GlobalIndexType>(pid * local_size));
+        }
+    }
+    // generate query from connection_index_space
+    std::uniform_int_distribution<> dist(0, connections_index_space.size() - 1);
+    gko::array<GlobalIndexType> connection_idxs{ref, 11};
+    std::generate_n(connection_idxs.get_data(), connection_idxs.get_size(),
+                    [&] { return connections_index_space[dist(engine)]; });
+    return {exec, std::move(connection_idxs)};
+}
+
+
+class IndexMapBuildMapping : public CommonTestFixture {};
+
+
+TEST_F(IndexMapBuildMapping, BuildMappingSameAsRef)
+{
+    using local_index_type = gko::int32;
+    using global_index_type = gko::int64;
+    using part_type =
+        gko::experimental::distributed::Partition<local_index_type,
+                                                  global_index_type>;
+    std::default_random_engine engine;
+    comm_index_type num_parts = 13;
+    global_index_type local_size = 41;
+    comm_index_type this_rank = 5;
+    std::shared_ptr<part_type> part = part_type::build_from_global_size_uniform(
+        ref, num_parts, num_parts * local_size);
+    std::shared_ptr<part_type> dpart = gko::clone(exec, part);
+    auto query = generate_connection_idxs(ref, this_rank, part, engine, 11);
+    auto dquery = gko::array<global_index_type>(exec, query);
+    gko::array<comm_index_type> target_ids{ref};
+    gko::array<local_index_type> remote_local_idxs{ref};
+    gko::array<global_index_type> remote_global_idxs{ref};
+    gko::array<gko::int64> remote_sizes{ref};
+    gko::array<comm_index_type> dtarget_ids{exec};
+    gko::array<local_index_type> dremote_local_idxs{exec};
+    gko::array<global_index_type> dremote_global_idxs{exec};
+    gko::array<gko::int64> dremote_sizes{exec};
+
+    gko::kernels::reference::index_map::build_mapping(
+        ref, part.get(), query, target_ids, remote_local_idxs,
+        remote_global_idxs, remote_sizes);
+    gko::kernels::EXEC_NAMESPACE::index_map::build_mapping(
+        exec, dpart.get(), dquery, dtarget_ids, dremote_local_idxs,
+        dremote_global_idxs, dremote_sizes);
+
+    GKO_ASSERT_ARRAY_EQ(remote_sizes, dremote_sizes);
+    GKO_ASSERT_ARRAY_EQ(target_ids, dtarget_ids);
+    GKO_ASSERT_ARRAY_EQ(remote_local_idxs, dremote_local_idxs);
+    GKO_ASSERT_ARRAY_EQ(remote_global_idxs, dremote_global_idxs);
+}
+
+
 class IndexMap : public CommonTestFixture {
 protected:
     using local_index_type = gko::int32;
@@ -41,7 +121,8 @@ protected:
 
     IndexMap()
     {
-        auto connections = generate_connection_idxs(ref, this_rank, 11);
+        auto connections =
+            generate_connection_idxs(ref, this_rank, part, engine, 11);
         auto dconnections = gko::array<global_index_type>(exec, connections);
 
         auto flat_remote_local_idxs = gko::array<local_index_type>(ref);
@@ -71,36 +152,6 @@ protected:
         dremote_global_idxs =
             gko::segmented_array<global_index_type>::create_from_sizes(
                 std::move(dflat_remote_global_idxs), dremote_sizes);
-    }
-
-    gko::array<global_index_type> generate_connection_idxs(
-        std::shared_ptr<const gko::Executor> exec, comm_index_type excluded_pid,
-        gko::size_type num_connections)
-    {
-        // create vector with [0, ..., num_parts) excluding excluded_pid
-        std::vector<gko::size_type> part_ids(num_parts - 1);
-        std::iota(part_ids.begin(), part_ids.end(), excluded_pid + 1);
-        std::transform(part_ids.begin(), part_ids.end(), part_ids.begin(),
-                       [&](const auto pid) { return pid % num_parts; });
-        // get random connections
-        std::shuffle(part_ids.begin(), part_ids.end(), engine);
-        std::vector<gko::size_type> connected_ids(
-            part_ids.begin(), part_ids.begin() + num_connections);
-        // create global index space of connections
-        std::vector<global_index_type> connections_index_space;
-        for (auto pid : connected_ids) {
-            for (global_index_type i = 0; i < local_size; ++i) {
-                connections_index_space.push_back(
-                    i + static_cast<global_index_type>(pid * local_size));
-            }
-        }
-        // generate query from connection_index_space
-        std::uniform_int_distribution<> dist(
-            0, connections_index_space.size() - 1);
-        gko::array<global_index_type> connection_idxs{ref, 11};
-        std::generate_n(connection_idxs.get_data(), connection_idxs.get_size(),
-                        [&] { return connections_index_space[dist(engine)]; });
-        return {std::move(exec), std::move(connection_idxs)};
     }
 
     gko::array<global_index_type> generate_query(
@@ -180,32 +231,6 @@ protected:
 
     std::default_random_engine engine;
 };
-
-TEST_F(IndexMap, BuildMappingSameAsRef)
-{
-    auto query = generate_connection_idxs(ref, this_rank, 11);
-    auto dquery = gko::array<global_index_type>(exec, query);
-    gko::array<comm_index_type> target_ids{ref};
-    gko::array<local_index_type> remote_local_idxs{ref};
-    gko::array<global_index_type> remote_global_idxs{ref};
-    gko::array<gko::int64> remote_sizes{ref};
-    gko::array<comm_index_type> dtarget_ids{exec};
-    gko::array<local_index_type> dremote_local_idxs{exec};
-    gko::array<global_index_type> dremote_global_idxs{exec};
-    gko::array<gko::int64> dremote_sizes{exec};
-
-    gko::kernels::reference::index_map::build_mapping(
-        ref, part.get(), query, target_ids, remote_local_idxs,
-        remote_global_idxs, remote_sizes);
-    gko::kernels::EXEC_NAMESPACE::index_map::build_mapping(
-        exec, dpart.get(), dquery, dtarget_ids, dremote_local_idxs,
-        dremote_global_idxs, dremote_sizes);
-
-    GKO_ASSERT_ARRAY_EQ(remote_sizes, dremote_sizes);
-    GKO_ASSERT_ARRAY_EQ(target_ids, dtarget_ids);
-    GKO_ASSERT_ARRAY_EQ(remote_local_idxs, dremote_local_idxs);
-    GKO_ASSERT_ARRAY_EQ(remote_global_idxs, dremote_global_idxs);
-}
 
 
 TEST_F(IndexMap, GetLocalWithLocalIndexSpaceSameAsRef)
