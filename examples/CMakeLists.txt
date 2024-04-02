@@ -27,6 +27,7 @@ set(EXAMPLES_LIST
     mixed-multigrid-preconditioned-solver
     multigrid-preconditioned-solver
     multigrid-preconditioned-solver-customized
+    multigrid-solver
     par-ilu-convergence
     performance-debugging
     preconditioner-export
