@@ -33,7 +33,7 @@ void get_local(
     std::shared_ptr<const DefaultExecutor> exec,
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         partition,
-    const array<experimental::distributed::comm_index_type>& remote_targed_ids,
+    const array<experimental::distributed::comm_index_type>& remote_target_ids,
     const collection::array<GlobalIndexType>& remote_global_idxs,
     experimental::distributed::comm_index_type rank,
     const array<GlobalIndexType>& global_ids,
