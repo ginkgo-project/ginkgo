@@ -106,11 +106,11 @@ std::unique_ptr<MatrixType> generate_3pt_stencil_batch_matrix(
         {}};
     for (int row = 0; row < num_rows; ++row) {
         if (row > 0) {
-            data.nonzeros.emplace_back(row - 1, row, value_type{-1.0});
+            data.nonzeros.emplace_back(row - 1, row, value_type{-0.5});
         }
         data.nonzeros.emplace_back(row, row, value_type{5.0});
         if (row < num_rows - 1) {
-            data.nonzeros.emplace_back(row, row + 1, value_type{-1.0});
+            data.nonzeros.emplace_back(row, row + 1, value_type{-0.5});
         }
     }
 
