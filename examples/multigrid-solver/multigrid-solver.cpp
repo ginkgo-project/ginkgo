@@ -28,19 +28,22 @@ int main(int argc, char* argv[])
     std::cout << gko::version_info::get() << std::endl;
     if (argc > 1 && argv[1] == std::string("--help")) {
         std::cout << "Usage:" << argv[0]
-                  << " executor, matrix, max_mg_levels, smoother(no option yet)"
+                  << " executor, matrix, rhs, max_mg_levels, is_export"
                   << std::endl;
         std::exit(-1);
     }
-    const auto executor_string = argc >= 2 ? argv[1] : "reference";
-    const auto matrix_string = argc >= 3 ? argv[2] : "data/A.mtx";
-    const auto max_mg_levels =
-        argc >= 4 ? static_cast<unsigned>(std::stoi(argv[3])) : 5u;
-    const auto smoother_string = argc >= 5 ? argv[4] : "ic_smoother";
+    const std::string executor_string = argc >= 2 ? argv[1] : "reference";
+    const std::string matrix_string = argc >= 3 ? argv[2] : "data/A.mtx";
+    const std::string rhs_string = argc >= 4 ? argv[3] : "ones";
+    const unsigned max_mg_levels =
+        argc >= 5 ? static_cast<unsigned>(std::stoi(argv[4])) : 5u;
+    const bool export_data =
+        argc >= 6 ? (argv[5] == std::string("true")) : false;
     std::cout << "executor: " << executor_string << std::endl;
     std::cout << "matrix: " << matrix_string << std::endl;
+    std::cout << "rhs: " << rhs_string << std::endl;
     std::cout << "max mg_levels: " << max_mg_levels << std::endl;
-    std::cout << "smoother: " << smoother_string << std::endl;
+    std::cout << "export intermediate data : " << export_data << std::endl;
     // Figure out where to run the code
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
@@ -76,7 +79,11 @@ int main(int argc, char* argv[])
     auto x = vec::create(exec);
     auto b = vec::create(exec);
     x->copy_from(host_x);
-    b->copy_from(host_b);
+    if (rhs_string == "ones") {
+        b->copy_from(host_b);
+    } else {
+        b->copy_from(gko::read<vec>(std::ifstream(rhs_string), exec));
+    }
 
     // Calculate initial residual by overwriting b
     auto one = gko::initialize<vec>({1.0}, exec);
@@ -139,6 +146,76 @@ int main(int argc, char* argv[])
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
         gko::log::Convergence<ValueType>::create();
     solver->add_logger(logger);
+
+    {
+        // information
+        std::cout << "multigrid information: " << std::endl;
+        auto mg_level_list = solver->get_mg_level_list();
+        std::cout << "Level: " << mg_level_list.size() << std::endl;
+        int total_n = solver->get_system_matrix()->get_size()[0];
+        int total_nnz = gko::as<mtx>(solver->get_system_matrix())
+                            ->get_num_stored_elements();
+        int prev_n = total_n;
+        int prev_nnz = total_nnz;
+        std::cout << "0, " << prev_n << ", " << prev_nnz
+                  << ", prev_n(%), prev_nnz(%), total_n(%), total_nnz(%)"
+                  << std::endl;
+        for (int i = 1; i < mg_level_list.size(); i++) {
+            auto op = mg_level_list.at(i)->get_fine_op();
+            int n = op->get_size()[0];
+            int num_stored_elements = 0;
+            auto csr = gko::as<mtx>(op);
+            if (export_data) {
+                std::string filename =
+                    "data/A_mg_" + std::to_string(i) + ".mtx";
+                std::ofstream ofs(filename);
+                gko::write(ofs, csr);
+            }
+            num_stored_elements = csr->get_num_stored_elements();
+            std::cout << i << ", " << n << ", " << num_stored_elements << ", "
+                      << float(n) / prev_n << ", "
+                      << float(num_stored_elements) / prev_nnz << ", "
+                      << float(n) / total_n << ", "
+                      << float(num_stored_elements) / total_nnz << std::endl;
+            prev_n = n;
+            prev_nnz = num_stored_elements;
+        }
+        {
+            // for coarse matrix
+            auto op =
+                mg_level_list.at(mg_level_list.size() - 1)->get_coarse_op();
+            auto csr = gko::as<mtx>(op);
+            int n = op->get_size()[0];
+            int num_stored_elements = csr->get_num_stored_elements();
+            std::cout << mg_level_list.size() << ", " << n << ", "
+                      << num_stored_elements << ", " << float(n) / prev_n
+                      << ", " << float(num_stored_elements) / prev_nnz << ", "
+                      << float(n) / total_n << ", "
+                      << float(num_stored_elements) / total_nnz << std::endl;
+            if (export_data) {
+                std::string filename = "data/A_mg_" +
+                                       std::to_string(mg_level_list.size()) +
+                                       ".mtx";
+                std::ofstream ofs(filename);
+                gko::write(ofs, csr);
+            }
+        }
+        // for smoother
+        auto presmoother_list = solver->get_pre_smoother_list();
+        std::cout << "extract presmooth list: " << presmoother_list.size()
+                  << std::endl;
+        for (int i = 0; i < presmoother_list.size(); i++) {
+            auto op = gko::as<ir>(presmoother_list.at(i));
+            auto l_matrix =
+                gko::as<mtx>(gko::as<gko::solver::LowerTrs<ValueType>>(
+                                 gko::as<ic>(op->get_solver())->get_l_solver())
+                                 ->get_system_matrix());
+            std::string filename = "data/A_l_" + std::to_string(i) + ".mtx";
+            std::ofstream ofs(filename);
+            gko::write(ofs, l_matrix);
+        }
+    }
+
 
     // Solve system
     exec->synchronize();
