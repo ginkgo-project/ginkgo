@@ -24,9 +24,9 @@ namespace solver {
 
 
 /**
- * Cg or the Bi-Conjugate Gradient-Stabilized is a Krylov subspace solver.
- * Being a generic solver, it is capable of solving general matrices, including
- * non-s.p.d matrices.
+ * Cg or the Conjugate Gradient-Stabilized is a Krylov subspace solver.
+ * It is a short recurrence solver that is generally used to solve linear
+ * systems with SPD matrices.
  *
  * This solver solves a batch of linear systems using the Cg algorithm.
  * Each linear system in the batch can converge independently.

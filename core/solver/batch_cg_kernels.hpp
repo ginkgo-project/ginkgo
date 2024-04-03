@@ -35,32 +35,26 @@ struct settings {
 
 
 /**
- * Calculates the amount of in-solver storage needed by batch-Cg.
+ * Calculates the amount of in-solver storage needed by batch::Cg.
  *
  * The calculation includes multivectors for
  * - r
- * - r_hat
+ * - z
  * - p
- * - p_hat
- * - v
- * - s
- * - s_hat
- * - t
+ * - Ap
  * - x
- * Note: small arrays for
+ * and small arrays for
  * - rho_old
  * - rho_new
- * - omega
  * - alpha
- * - temp
  * - rhs_norms
  * - res_norms
- * are currently not accounted for as they are in static shared memory.
  */
 template <typename ValueType>
 inline int local_memory_requirement(const int num_rows, const int num_rhs)
 {
-    return (9 * num_rows * num_rhs) * sizeof(ValueType);
+    return (5 * num_rows * num_rhs + 3 * num_rhs) * sizeof(ValueType) +
+           2 * num_rhs * sizeof(typename gko::remove_complex<ValueType>);
 }
 
 
@@ -97,22 +91,15 @@ void set_gmem_stride_bytes(storage_config& sconf,
  * Calculates the amount of in-solver storage needed by batch-Cg and
  * the split between shared and global memory.
  *
- * The calculation includes multivectors for
+The calculation includes multivectors for
  * - r
- * - r_hat
  * - p
- * - p_hat
- * - v
- * - s
- * - s_hat
- * - t
+ * - Ap
  * - x
  * In addition, small arrays are needed for
  * - rho_old
  * - rho_new
- * - omega
  * - alpha
- * - temp
  * - rhs_norms
  * - res_norms
  *
@@ -133,7 +120,7 @@ storage_config compute_shared_storage(const int available_shared_mem,
 {
     using real_type = remove_complex<ValueType>;
     const int vec_size = num_rows * num_rhs * sizeof(ValueType);
-    const int num_main_vecs = 9;
+    const int num_main_vecs = 5;
     const int prec_storage =
         Prectype::dynamic_work_size(num_rows, num_nz) * sizeof(ValueType);
     int rem_shared = available_shared_mem;
