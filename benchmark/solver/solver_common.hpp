@@ -84,12 +84,26 @@ DEFINE_bool(overhead, false,
 
 std::string solver_example_config = R"(
   [
-    {"filename": "my_file.mtx", "optimal": {"spmv": "ell-csr"},
-     "rhs": "my_file_rhs.mtx"},
-    {"filename": "my_file2.mtx", "optimal": {"spmv": "coo-coo"},
-     "rhs": "my_file_rhs.mtx"},
-    {"size": 100, "stencil": "7pt", "comm_pattern": "stencil",
-     "optimal": {"spmv": "csr-coo"}}
+    {
+      "filename": "my_file.mtx",
+      "optimal": {"spmv": "ell-csr"},
+      "rhs": "my_file_rhs.mtx"},
+    {
+      "filename": "my_file2.mtx",
+      "optimal": {"spmv": "coo-coo"},
+      "rhs": "my_file_rhs.mtx"},
+    {
+      "size": 100,
+      "stencil": "7pt",
+      "comm_pattern": "stencil",
+      "optimal": {"spmv": "csr-coo"},
+      "extra_structure": { // optional
+        "type": "arrow",   // allowed values: arrow
+        "size": "dim-0",   // required if type==arrow, allowed values: any
+                           // positive integer, dim-k (k = 0, 1, 2, 3)
+                           // for a size = n^d, then dim-k is equivalent to
+                           // using size = n^k
+    }
   ]
 )";
 

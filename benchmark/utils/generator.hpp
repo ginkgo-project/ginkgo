@@ -32,9 +32,7 @@ struct DefaultSystemGenerator {
             std::ifstream in(config["filename"].get<std::string>());
             data = gko::read_generic_raw<ValueType, IndexType>(in);
         } else if (config.contains("stencil")) {
-            data = generate_stencil<ValueType, IndexType>(
-                config["stencil"].get<std::string>(),
-                config["size"].get<gko::int64>());
+            data = generate_stencil<ValueType, IndexType>(config);
         } else {
             throw std::runtime_error(
                 "No known way to generate matrix data found.");
@@ -45,9 +43,26 @@ struct DefaultSystemGenerator {
 
     static std::string get_example_config()
     {
-        return json::
-            parse(R"([{"filename": "my_file.mtx"},{"filename": "my_file2.mtx"},{"size": 100, "stencil": "7pt"}])")
-                .dump(4);
+        return R"(
+  [
+    {
+      "filename": "my_file.mtx"
+    },
+    {
+      "filename": "my_file2.mtx"
+    },
+    {
+      "size": 100,
+      "stencil": "7pt",
+      "extra_structure": { // optional
+        "type": "arrow",   // allowed values: arrow
+        "size": "dim-0",   // required if type==arrow, allowed values: any
+                           // positive integer, dim-k (k = 0, 1, 2, 3)
+                           // for a size = n^d, then dim-k is equivalent to
+                           // using size = n^k
+    }
+  ]
+)";
     }
 
     static bool validate_config(const json& test_case)

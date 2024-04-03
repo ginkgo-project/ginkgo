@@ -340,6 +340,85 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
 }
 
 
+gko::size_type convert_to_arrow_head_size(gko::size_type orig_size,
+                                          gko::size_type problem_dim,
+                                          const std::string& size)
+{
+    if (size == "dim-0") {
+        return 1;
+    }
+
+    const auto n = static_cast<gko::size_type>(
+        closest_nth_root(orig_size, static_cast<int>(problem_dim)));
+
+    if (size == "dim-1") {
+        return n;
+    }
+    if (size == "dim-2") {
+        return n * n;
+    }
+    if (size == "dim-3") {
+        return n * n * n;
+    }
+
+    return static_cast<gko::size_type>(std::stoll(size));
+}
+
+
+template <typename ValueType, typename IndexType>
+gko::matrix_data<ValueType, IndexType> add_arrow(
+    const gko::matrix_data<ValueType, IndexType>& orig,
+    const std::string& arrow_head_size, gko::size_type problem_dim)
+{
+    GKO_ASSERT_IS_SQUARE_MATRIX(orig.size);
+    const auto size = orig.size[0];
+
+    const auto num_arrow_dofs =
+        convert_to_arrow_head_size(size, problem_dim, arrow_head_size);
+    const gko::size_type num_connection_per_arrow_dof = size / num_arrow_dofs;
+
+    // diagonal value will be 10
+    // offdiagonal values are -(10 / N) to keep pos. definiteness
+    const auto diag_value = static_cast<ValueType>(10);
+    const auto offidag_value =
+        -diag_value / static_cast<ValueType>(num_connection_per_arrow_dof);
+
+    gko::matrix_assembly_data<ValueType, IndexType> data{
+        {size + num_arrow_dofs, size + num_arrow_dofs}};
+
+    for (const auto& e : orig.nonzeros) {
+        data.set_value(e.row, e.column, e.value);
+    }
+
+    for (IndexType i = size; i < static_cast<IndexType>(size + num_arrow_dofs);
+         ++i) {
+        for (IndexType j = size;
+             j < static_cast<IndexType>(size + num_arrow_dofs); ++j) {
+            if (i == j) {
+                data.set_value(i, j, diag_value);
+            } else {
+                data.set_value(i, j, offidag_value);
+            }
+        }
+    }
+
+    for (gko::size_type arrow_dof = 0; arrow_dof < num_arrow_dofs;
+         ++arrow_dof) {
+        for (gko::size_type connection = 0;
+             connection < num_connection_per_arrow_dof; ++connection) {
+            data.set_value(
+                static_cast<IndexType>(size + arrow_dof),
+                static_cast<IndexType>(connection * num_arrow_dofs + arrow_dof),
+                offidag_value);
+            data.set_value(
+                static_cast<IndexType>(connection * num_arrow_dofs + arrow_dof),
+                static_cast<IndexType>(size + arrow_dof), offidag_value);
+        }
+    }
+    return data.get_ordered_data();
+}
+
+
 /**
  * Generates matrix data for the requested stencil.
  *
@@ -352,27 +431,47 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
  * @return  matrix data using the requested stencil.
  */
 template <typename ValueType, typename IndexType>
-gko::matrix_data<ValueType, IndexType> generate_stencil(
-    std::string stencil_name, const gko::size_type target_local_size)
+gko::matrix_data<ValueType, IndexType> generate_stencil(const json& config)
 {
+    auto stencil_name = config.at("stencil").get<std::string>();
+    auto target_local_size = config.at("size").get<gko::int64>();
+
+    gko::size_type problem_dim;
+    gko::matrix_data<ValueType, IndexType> data;
     if (stencil_name == "5pt") {
-        return generate_2d_stencil_box<ValueType, IndexType>(
+        problem_dim = 2;
+        data = generate_2d_stencil_box<ValueType, IndexType>(
             {1, 1}, {0, 0}, target_local_size, true);
     } else if (stencil_name == "9pt") {
-        return generate_2d_stencil_box<ValueType, IndexType>(
+        problem_dim = 2;
+        data = generate_2d_stencil_box<ValueType, IndexType>(
             {1, 1}, {0, 0}, target_local_size, false);
     } else if (stencil_name == "7pt") {
-        return generate_3d_stencil_box<ValueType, IndexType>(
+        problem_dim = 3;
+        data = generate_3d_stencil_box<ValueType, IndexType>(
             {1, 1, 1}, {0, 0, 0}, target_local_size, true);
     } else if (stencil_name == "27pt") {
-        return generate_3d_stencil_box<ValueType, IndexType>(
+        problem_dim = 3;
+        data = generate_3d_stencil_box<ValueType, IndexType>(
             {1, 1, 1}, {0, 0, 0}, target_local_size, false);
     } else {
         throw std::runtime_error("Stencil " + stencil_name +
                                  " not implemented");
     }
-}
 
+    if (config.contains("extra_structure")) {
+        auto type = config["extra_structure"].value("type", "none");
+        if (type == "arrow") {
+            auto size = config["extra_structure"].value("size", "1");
+            data = add_arrow(data, size, problem_dim);
+        } else if (type != "none") {
+            throw std::runtime_error("Requested extra structure <" + type +
+                                     "> not known.");
+        }
+    }
+
+    return data;
+}
 
 #if GINKGO_BUILD_MPI
 
