@@ -18,8 +18,10 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/preconditioner/batch_jacobi.hpp>
+#include <ginkgo/core/solver/batch_bicgstab.hpp>
 
 
+#include "core/solver/batch_bicgstab_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch_helpers.hpp"
 #include "test/utils/executor.hpp"
@@ -91,14 +93,21 @@ void is_equivalent_to_ref(
 }  // namespace detail
 
 
-template <typename T>
 class BatchJacobi : public CommonTestFixture {
 protected:
-    using value_type = T;
+    using value_type = double;
     using real_type = gko::remove_complex<value_type>;
     using Mtx = gko::batch::matrix::Csr<value_type, int>;
     using BMVec = gko::batch::MultiVector<value_type>;
     using BJ = gko::batch::preconditioner::Jacobi<value_type>;
+    using solver_type = gko::batch::solver::Bicgstab<value_type>;
+    using precond_type = gko::batch::preconditioner::Jacobi<value_type>;
+    using CsrMtx = gko::batch::matrix::Csr<value_type>;
+    using MVec = gko::batch::MultiVector<value_type>;
+    using RealMVec = gko::batch::MultiVector<real_type>;
+    using Settings = gko::kernels::batch_bicgstab::settings<real_type>;
+    using LogData = gko::batch::log::detail::log_data<real_type>;
+    using Logger = gko::batch::log::BatchConvergence<real_type>;
 
     BatchJacobi()
         : ref_mtx(
@@ -148,6 +157,39 @@ protected:
                 ->generate(d_mtx);
     }
 
+    template <typename MatrixType>
+    gko::test::LinearSystem<MatrixType> setup_linsys_and_solver(
+        std::shared_ptr<const MatrixType> mat, const int num_rhs,
+        const real_type tol, const int max_iters)
+    {
+        auto executor = exec;
+        solve_lambda = [executor](const Settings settings,
+                                  const gko::batch::BatchLinOp* prec,
+                                  const Mtx* mtx, const MVec* b, MVec* x,
+                                  LogData& log_data) {
+            gko::kernels::EXEC_NAMESPACE::batch_bicgstab::apply<
+                typename Mtx::value_type>(executor, settings, mtx, prec, b, x,
+                                          log_data);
+        };
+        solver_settings = Settings{max_iters, tol,
+                                   gko::batch::stop::tolerance_type::relative};
+        precond_solver_factory =
+            solver_type::build()
+                .with_max_iterations(max_iters)
+                .with_tolerance(tol)
+                .with_tolerance_type(gko::batch::stop::tolerance_type::relative)
+                .with_preconditioner(
+                    precond_type::build().with_max_block_size(2u))
+                .on(exec);
+        return gko::test::generate_batch_linear_system(mat, num_rhs);
+    }
+
+    std::function<void(const Settings, const gko::batch::BatchLinOp*,
+                       const Mtx*, const MVec*, MVec*, LogData&)>
+        solve_lambda;
+    Settings solver_settings{};
+    std::shared_ptr<typename solver_type::Factory> precond_solver_factory;
+
     const size_t nbatch = 3;
     const int nrows = 300;
     std::shared_ptr<Mtx> ref_mtx;
@@ -163,67 +205,48 @@ protected:
     std::unique_ptr<BJ> d_block_jacobi_prec;
 };
 
-TYPED_TEST_SUITE(BatchJacobi, gko::test::ValueTypes);
 
-
-TYPED_TEST(BatchJacobi, BatchScalarJacobiApplyToSingleVectorIsEquivalentToRef)
+TEST_F(BatchJacobi, BatchBlockJacobiGenerationIsEquivalentToRef)
 {
-    using value_type = typename TestFixture::value_type;
-    auto& ref_prec = this->ref_scalar_jacobi_prec;
-    value_type* blocks_arr_ref = nullptr;
-    int* block_ptr_ref = nullptr;
-    int* row_block_map_ref = nullptr;
-    int* cumul_block_storage_ref = nullptr;
-    auto& d_prec = this->d_scalar_jacobi_prec;
-    value_type* blocks_arr_d = nullptr;
-    int* block_ptr_d = nullptr;
-    int* row_block_map_d = nullptr;
-    int* cumul_block_storage_d = nullptr;
-
-    gko::kernels::reference::batch_jacobi::batch_jacobi_apply(
-        this->ref, this->ref_mtx.get(), ref_prec->get_num_blocks(),
-        ref_prec->get_max_block_size(), cumul_block_storage_ref, blocks_arr_ref,
-        block_ptr_ref, row_block_map_ref, this->ref_b.get(), this->ref_x.get());
-    gko::kernels::EXEC_NAMESPACE::batch_jacobi::batch_jacobi_apply(
-        this->exec, this->d_mtx.get(), d_prec->get_num_blocks(),
-        d_prec->get_max_block_size(), cumul_block_storage_d, blocks_arr_d,
-        block_ptr_d, row_block_map_d, this->d_b.get(), this->d_x.get());
-
-    GKO_ASSERT_BATCH_MTX_NEAR(this->ref_x.get(), this->d_x.get(),
-                              r<value_type>::value);
-}
-
-
-TYPED_TEST(BatchJacobi, BatchBlockJacobiGenerationIsEquivalentToRef)
-{
-    auto& ref_prec = this->ref_block_jacobi_prec;
-    auto& d_prec = this->d_block_jacobi_prec;
+    auto& ref_prec = ref_block_jacobi_prec;
+    auto& d_prec = d_block_jacobi_prec;
 
     detail::is_equivalent_to_ref(std::move(ref_prec), std::move(d_prec));
 }
 
 
-TYPED_TEST(BatchJacobi, BatchBlockJacobiApplyToSingleVectorIsEquivalentToRef)
+TEST_F(BatchJacobi, CanSolveLargeMatrixSizeHpdSystemWithBlockJacobi)
 {
-    using value_type = typename TestFixture::value_type;
-    auto& ref_prec = this->ref_block_jacobi_prec;
-    auto& d_prec = this->d_block_jacobi_prec;
+    const int num_batch_items = 12;
+    const int num_rows = 1025;
+    const int num_rhs = 1;
+    const real_type tol = 1e-5;
+    const int max_iters = num_rows * 2;
+    std::shared_ptr<Logger> logger = Logger::create();
+    auto mat =
+        gko::share(gko::test::generate_diag_dominant_batch_matrix<const CsrMtx>(
+            exec, num_batch_items, num_rows, false, (4 * num_rows - 3)));
+    auto linear_system = setup_linsys_and_solver(mat, num_rhs, tol, max_iters);
+    auto solver =
+        gko::share(precond_solver_factory->generate(linear_system.matrix));
+    solver->add_logger(logger);
 
-    gko::kernels::reference::batch_jacobi::batch_jacobi_apply(
-        this->ref, this->ref_mtx.get(), ref_prec->get_num_blocks(),
-        ref_prec->get_max_block_size(),
-        ref_prec->get_const_blocks_cumulative_storage(),
-        ref_prec->get_const_blocks(), ref_prec->get_const_block_pointers(),
-        ref_prec->get_const_row_block_map_info(), this->ref_b.get(),
-        this->ref_x.get());
-    gko::kernels::EXEC_NAMESPACE::batch_jacobi::batch_jacobi_apply(
-        this->exec, this->d_mtx.get(), d_prec->get_num_blocks(),
-        d_prec->get_max_block_size(),
-        d_prec->get_const_blocks_cumulative_storage(),
-        d_prec->get_const_blocks(), d_prec->get_const_block_pointers(),
-        d_prec->get_const_row_block_map_info(), this->d_b.get(),
-        this->d_x.get());
+    auto res = gko::test::solve_linear_system(exec, linear_system, solver);
 
-    GKO_ASSERT_BATCH_MTX_NEAR(this->ref_x.get(), this->d_x.get(),
-                              10 * r<value_type>::value);
+    solver->remove_logger(logger);
+    auto iter_counts = gko::make_temporary_clone(exec->get_master(),
+                                                 &logger->get_num_iterations());
+    auto res_norm = gko::make_temporary_clone(exec->get_master(),
+                                              &logger->get_residual_norm());
+    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 500);
+    for (size_t i = 0; i < num_batch_items; i++) {
+        auto comp_res_norm = res.host_res_norm->get_const_values()[i] /
+                             linear_system.host_rhs_norm->get_const_values()[i];
+        ASSERT_LE(iter_counts->get_const_data()[i], max_iters);
+        EXPECT_LE(res_norm->get_const_data()[i] /
+                      linear_system.host_rhs_norm->get_const_values()[i],
+                  tol);
+        EXPECT_GT(res_norm->get_const_data()[i], real_type{0.0});
+        ASSERT_LE(comp_res_norm, tol * 10);
+    }
 }

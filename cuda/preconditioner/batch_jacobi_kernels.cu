@@ -21,36 +21,6 @@ namespace cuda {
 namespace batch_jacobi {
 
 
-template <typename ValueType, typename IndexType>
-void batch_jacobi_apply(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const batch::matrix::Csr<ValueType, IndexType>* const sys_mat,
-    const size_type num_blocks, const uint32 max_block_size,
-    const IndexType* const cumulative_block_storage,
-    const ValueType* const blocks_array, const IndexType* const block_ptrs,
-    const IndexType* const row_block_map_info,
-    const batch::MultiVector<ValueType>* const r,
-    batch::MultiVector<ValueType>* const z) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
-    GKO_DECLARE_BATCH_JACOBI_APPLY_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void batch_jacobi_apply(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const batch::matrix::Ell<ValueType, IndexType>* const sys_mat,
-    const size_type num_blocks, const uint32 max_block_size,
-    const IndexType* const cumulative_block_storage,
-    const ValueType* const blocks_array, const IndexType* const block_ptrs,
-    const IndexType* const row_block_map_info,
-    const batch::MultiVector<ValueType>* const r,
-    batch::MultiVector<ValueType>* const z) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
-    GKO_DECLARE_BATCH_JACOBI_ELL_APPLY_KERNEL);
-
-
 template <typename IndexType>
 void compute_cumulative_block_storage(
     std::shared_ptr<const DefaultExecutor> exec, const size_type num_blocks,
