@@ -18,183 +18,261 @@ namespace {
 
 
 template <typename ValueType>
-class DenseCache : public ::testing::Test {
-protected:
-    using value_type = ValueType;
+struct DenseCacheConfig {
+    using cache_type = gko::detail::DenseCache<ValueType>;
+    using stored_type = gko::matrix::Dense<ValueType>;
 
-    DenseCache() {}
+    stored_type* get() { return cache.get(); }
 
-    void SetUp() { ref = gko::ReferenceExecutor::create(); }
+    void init_from(const stored_type* template_vec)
+    {
+        cache.init_from(template_vec);
+    }
 
-    void TearDown() {}
+    void init(std::shared_ptr<const gko::Executor> exec, gko::dim<2> size)
+    {
+        cache.init(std::move(exec), size);
+    }
 
-    void gen_cache(gko::dim<2> size) { cache.init(ref, size); }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    gko::detail::DenseCache<value_type> cache;
+    cache_type cache;
 };
 
 
-TYPED_TEST_SUITE(DenseCache, gko::test::ValueTypes, TypenameNameGenerator);
+struct AnyDenseCacheConfig {
+    using cache_type = gko::detail::AnyDenseCache;
+    using stored_type = gko::matrix::Dense<double>;
+
+    stored_type* get() { return cache.get<double>(); }
+
+    void init_from(const stored_type* template_vec)
+    {
+        cache.init_from(template_vec);
+    }
+
+    void init(std::shared_ptr<const gko::Executor> exec, gko::dim<2> size)
+    {
+        cache.init<double>(std::move(exec), size);
+    }
+
+    cache_type cache;
+};
 
 
-TYPED_TEST(DenseCache, CanDefaultConstruct)
+template <typename T>
+class Cache : public ::testing::Test {
+public:
+    using Config = T;
+    std::shared_ptr<gko::ReferenceExecutor> ref =
+        gko::ReferenceExecutor::create();
+
+    void gen_cache(gko::dim<2> size) { config.init(ref, size); }
+
+    Config config;
+};
+
+using CacheTypes =
+    ::testing::Types<DenseCacheConfig<double>, DenseCacheConfig<float>,
+                     DenseCacheConfig<std::complex<double>>,
+                     DenseCacheConfig<std::complex<float>>,
+                     AnyDenseCacheConfig>;
+TYPED_TEST_SUITE(Cache, CacheTypes, TypenameNameGenerator);
+
+
+TYPED_TEST(Cache, CanDefaultConstruct)
 {
-    using value_type = typename TestFixture::value_type;
-    gko::detail::DenseCache<value_type> cache;
-
-    ASSERT_EQ(cache.get(), nullptr);
+    ASSERT_EQ(this->config.get(), nullptr);
 }
 
 
-TYPED_TEST(DenseCache, CanInitWithSize)
+TYPED_TEST(Cache, CanInitWithSize)
 {
-    using value_type = typename TestFixture::value_type;
     gko::dim<2> size{4, 7};
 
-    this->cache.init(this->ref, size);
+    this->config.init(this->ref, size);
 
-    ASSERT_NE(this->cache.get(), nullptr);
-    GKO_ASSERT_EQUAL_DIMENSIONS(this->cache->get_size(), size);
-    ASSERT_EQ(this->cache->get_executor(), this->ref);
+    ASSERT_NE(this->config.get(), nullptr);
+    GKO_ASSERT_EQUAL_DIMENSIONS(this->config.get()->get_size(), size);
+    ASSERT_EQ(this->config.get()->get_executor(), this->ref);
 }
 
 
-TYPED_TEST(DenseCache, SecondInitWithSameSizeIsNoOp)
+TYPED_TEST(Cache, SecondInitWithSameSizeIsNoOp)
 {
-    using value_type = typename TestFixture::value_type;
     gko::dim<2> size{4, 7};
-    this->cache.init(this->ref, size);
-    auto first_ptr = this->cache.get();
+    this->config.init(this->ref, size);
+    auto first_ptr = this->config.get();
 
-    this->cache.init(this->ref, size);
+    this->config.init(this->ref, size);
 
-    ASSERT_NE(this->cache.get(), nullptr);
-    ASSERT_EQ(first_ptr, this->cache.get());
+    ASSERT_NE(this->config.get(), nullptr);
+    ASSERT_EQ(first_ptr, this->config.get());
 }
 
 
-TYPED_TEST(DenseCache, SecondInitWithDifferentSizeInitializes)
+TYPED_TEST(Cache, SecondInitWithDifferentSizeInitializes)
 {
-    using value_type = typename TestFixture::value_type;
     gko::dim<2> size{4, 7};
     gko::dim<2> second_size{7, 4};
-    this->cache.init(this->ref, size);
-    auto first_ptr = this->cache.get();
+    this->config.init(this->ref, size);
+    auto first_ptr = this->config.get();
 
-    this->cache.init(this->ref, second_size);
+    this->config.init(this->ref, second_size);
 
-    ASSERT_NE(this->cache.get(), nullptr);
-    ASSERT_NE(first_ptr, this->cache.get());
+    ASSERT_NE(this->config.get(), nullptr);
+    ASSERT_NE(first_ptr, this->config.get());
 }
 
 
-TYPED_TEST(DenseCache, CanInitFromDense)
+TYPED_TEST(Cache, CanInitFromDense)
 {
-    using value_type = typename TestFixture::value_type;
+    using Config = typename TestFixture::Config;
     gko::dim<2> size{5, 2};
-    auto dense = gko::matrix::Dense<value_type>::create(this->ref, size);
+    auto dense = Config::stored_type::create(this->ref, size);
 
-    this->cache.init_from(dense.get());
+    this->config.init_from(dense.get());
 
-    ASSERT_NE(this->cache.get(), nullptr);
-    GKO_ASSERT_EQUAL_DIMENSIONS(this->cache->get_size(), size);
-    ASSERT_EQ(this->cache->get_executor(), dense->get_executor());
+    ASSERT_NE(this->config.get(), nullptr);
+    GKO_ASSERT_EQUAL_DIMENSIONS(this->config.get()->get_size(), size);
+    ASSERT_EQ(this->config.get()->get_executor(), dense->get_executor());
 }
 
 
-TYPED_TEST(DenseCache, SecondInitFromSameDenseIsNoOp)
+TYPED_TEST(Cache, SecondInitFromSameDenseIsNoOp)
 {
-    using value_type = typename TestFixture::value_type;
+    using Config = typename TestFixture::Config;
     gko::dim<2> size{4, 7};
-    auto dense = gko::matrix::Dense<value_type>::create(this->ref, size);
-    this->cache.init_from(dense.get());
-    auto first_ptr = this->cache.get();
+    auto dense = Config::stored_type::create(this->ref, size);
+    this->config.init_from(dense.get());
+    auto first_ptr = this->config.get();
 
-    this->cache.init_from(dense.get());
+    this->config.init_from(dense.get());
 
-    ASSERT_NE(this->cache.get(), nullptr);
-    ASSERT_EQ(first_ptr, this->cache.get());
+    ASSERT_NE(this->config.get(), nullptr);
+    ASSERT_EQ(first_ptr, this->config.get());
 }
 
 
-TYPED_TEST(DenseCache, SecondInitFromDifferentDenseWithSameSizeIsNoOp)
+TYPED_TEST(Cache, SecondInitFromDifferentDenseWithSameSizeIsNoOp)
 {
-    using value_type = typename TestFixture::value_type;
+    using Config = typename TestFixture::Config;
     gko::dim<2> size{4, 7};
-    auto first_dense = gko::matrix::Dense<value_type>::create(this->ref, size);
-    auto second_dense = gko::matrix::Dense<value_type>::create(this->ref, size);
-    this->cache.init_from(first_dense.get());
-    auto first_ptr = this->cache.get();
+    auto first_dense = Config::stored_type::create(this->ref, size);
+    auto second_dense = Config::stored_type::create(this->ref, size);
+    this->config.init_from(first_dense.get());
+    auto first_ptr = this->config.get();
 
-    this->cache.init_from(second_dense.get());
+    this->config.init_from(second_dense.get());
 
-    ASSERT_NE(this->cache.get(), nullptr);
-    ASSERT_EQ(first_ptr, this->cache.get());
+    ASSERT_NE(this->config.get(), nullptr);
+    ASSERT_EQ(first_ptr, this->config.get());
 }
 
 
-TYPED_TEST(DenseCache, SecondInitFromDifferentDenseWithDifferentSizeInitializes)
+TYPED_TEST(Cache, SecondInitFromDifferentDenseWithDifferentSizeInitializes)
 {
-    using value_type = typename TestFixture::value_type;
+    using Config = typename TestFixture::Config;
     gko::dim<2> size{4, 7};
     gko::dim<2> second_size{7, 4};
-    auto first_dense = gko::matrix::Dense<value_type>::create(this->ref, size);
-    auto second_dense =
-        gko::matrix::Dense<value_type>::create(this->ref, second_size);
-    this->cache.init_from(first_dense.get());
-    auto first_ptr = this->cache.get();
+    auto first_dense = Config::stored_type::create(this->ref, size);
+    auto second_dense = Config::stored_type::create(this->ref, second_size);
+    this->config.init_from(first_dense.get());
+    auto first_ptr = this->config.get();
 
-    this->cache.init_from(second_dense.get());
+    this->config.init_from(second_dense.get());
 
-    ASSERT_NE(this->cache.get(), nullptr);
-    ASSERT_NE(first_ptr, this->cache.get());
+    ASSERT_NE(this->config.get(), nullptr);
+    ASSERT_NE(first_ptr, this->config.get());
 }
 
 
-TYPED_TEST(DenseCache, VectorIsNotCopied)
+TYPED_TEST(Cache, VectorIsNotCopied)
 {
-    using value_type = typename TestFixture::value_type;
+    using Config = typename TestFixture::Config;
     this->gen_cache({1, 1});
-    gko::detail::DenseCache<value_type> cache(this->cache);
+    Config config{this->config.cache};
 
-    ASSERT_EQ(cache.get(), nullptr);
-    GKO_ASSERT_EQUAL_DIMENSIONS(this->cache->get_size(), gko::dim<2>(1, 1));
+    ASSERT_EQ(config.get(), nullptr);
+    GKO_ASSERT_EQUAL_DIMENSIONS(this->config.get()->get_size(),
+                                gko::dim<2>(1, 1));
 }
 
 
-TYPED_TEST(DenseCache, VectorIsNotMoved)
+TYPED_TEST(Cache, VectorIsNotMoved)
 {
-    using value_type = typename TestFixture::value_type;
+    using Config = typename TestFixture::Config;
     this->gen_cache({1, 1});
-    gko::detail::DenseCache<value_type> cache(std::move(this->cache));
+    Config config{std::move(this->config.cache)};
 
-    ASSERT_EQ(cache.get(), nullptr);
-    GKO_ASSERT_EQUAL_DIMENSIONS(this->cache->get_size(), gko::dim<2>(1, 1));
+    ASSERT_EQ(config.get(), nullptr);
+    GKO_ASSERT_EQUAL_DIMENSIONS(this->config.get()->get_size(),
+                                gko::dim<2>(1, 1));
 }
 
 
-TYPED_TEST(DenseCache, VectorIsNotCopyAssigned)
+TYPED_TEST(Cache, VectorIsNotCopyAssigned)
 {
-    using value_type = typename TestFixture::value_type;
+    using Config = typename TestFixture::Config;
     this->gen_cache({1, 1});
-    gko::detail::DenseCache<value_type> cache;
-    cache = this->cache;
+    Config config;
+    config.cache = this->config.cache;
 
-    ASSERT_EQ(cache.get(), nullptr);
-    GKO_ASSERT_EQUAL_DIMENSIONS(this->cache->get_size(), gko::dim<2>(1, 1));
+    ASSERT_EQ(config.get(), nullptr);
+    GKO_ASSERT_EQUAL_DIMENSIONS(this->config.get()->get_size(),
+                                gko::dim<2>(1, 1));
 }
 
 
-TYPED_TEST(DenseCache, VectorIsNotMoveAssigned)
+TYPED_TEST(Cache, VectorIsNotMoveAssigned)
 {
-    using value_type = typename TestFixture::value_type;
+    using Config = typename TestFixture::Config;
     this->gen_cache({1, 1});
-    gko::detail::DenseCache<value_type> cache;
-    cache = std::move(this->cache);
+    Config config;
+    config.cache = std::move(this->config.cache);
 
-    ASSERT_EQ(cache.get(), nullptr);
-    GKO_ASSERT_EQUAL_DIMENSIONS(this->cache->get_size(), gko::dim<2>(1, 1));
+    ASSERT_EQ(config.get(), nullptr);
+    GKO_ASSERT_EQUAL_DIMENSIONS(this->config.get()->get_size(),
+                                gko::dim<2>(1, 1));
+}
+
+
+class AnyDenseCache : public ::testing::Test {
+public:
+    std::shared_ptr<gko::Executor> ref = gko::ReferenceExecutor::create();
+    gko::detail::AnyDenseCache cache;
+};
+
+
+TEST_F(AnyDenseCache, GetWithNonMatchingValueTypeReturnsNullptr)
+{
+    cache.init<double>(ref, gko::dim<2>{1, 1});
+
+    ASSERT_EQ(cache.get<float>(), nullptr);
+}
+
+
+TEST_F(AnyDenseCache, InitWithNonMatchingValueTypeInitializes)
+{
+    gko::dim<2> size{4, 7};
+    cache.init<double>(ref, size);
+
+    cache.init<float>(this->ref, size);
+
+    ASSERT_NE(cache.get<float>(), nullptr);
+    ASSERT_EQ(cache.get<double>(), nullptr);
+}
+
+
+TEST_F(AnyDenseCache, InitFromWithNonMatchingValueTypeInitializes)
+{
+    gko::dim<2> size{4, 7};
+    auto first_dense = gko::matrix::Dense<double>::create(this->ref, size);
+    auto second_dense = gko::matrix::Dense<float>::create(this->ref, size);
+    cache.init_from(first_dense.get());
+
+    cache.init_from(second_dense.get());
+
+    ASSERT_NE(cache.get<float>(), nullptr);
+    ASSERT_EQ(cache.get<double>(), nullptr);
 }
 
 
