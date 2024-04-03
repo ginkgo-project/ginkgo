@@ -231,8 +231,8 @@ void dispatch_dense(const LinOp* op, Functor fn)
 {
     using matrix::Dense;
     using std::complex;
-    run<const Dense<double>*, const Dense<float>*,
-        const Dense<complex<double>>*, const Dense<complex<float>>*>(op, fn);
+    run<Dense, double, float, std::complex<double>, std::complex<float>>(op,
+                                                                         fn);
 }
 
 
