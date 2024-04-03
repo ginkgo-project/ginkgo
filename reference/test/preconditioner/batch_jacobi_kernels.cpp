@@ -164,42 +164,6 @@ protected:
 TYPED_TEST_SUITE(BatchJacobi, gko::test::ValueTypes);
 
 
-TYPED_TEST(BatchJacobi,
-           BatchScalarJacobiApplyToSingleVectorIsEquivalentToUnbatched)
-{
-    using value_type = typename TestFixture::value_type;
-    using Mtx = typename TestFixture::Mtx;
-    using BMVec = typename TestFixture::BMVec;
-    using Jac = typename TestFixture::Jac;
-    using BJac = typename TestFixture::BJac;
-    auto umtxs = gko::test::share(gko::batch::unbatch<Mtx>(this->mtx.get()));
-    auto ub = gko::batch::unbatch<BMVec>(this->b.get());
-    auto ux = gko::batch::unbatch<BMVec>(this->x.get());
-    auto unbatch_prec_fact =
-        Jac::build().with_max_block_size(1u).on(this->exec);
-    for (size_t i = 0; i < umtxs.size(); i++) {
-        auto unbatch_prec = unbatch_prec_fact->generate(umtxs[i]);
-        unbatch_prec->apply(ub[i].get(), ux[i].get());
-    }
-    auto prec_fact = BJac::build().with_max_block_size(1u).on(this->exec);
-    auto prec = prec_fact->generate(this->mtx);
-    value_type* blocks_arr = nullptr;
-    int* block_ptr = nullptr;
-    int* row_block_map_arr = nullptr;
-    int* cumul_block_storage = nullptr;
-
-    gko::kernels::reference::batch_jacobi::batch_jacobi_apply(
-        this->exec, this->mtx.get(), prec->get_num_blocks(),
-        prec->get_max_block_size(), cumul_block_storage, blocks_arr, block_ptr,
-        row_block_map_arr, this->b.get(), this->x.get());
-
-    auto xs = gko::batch::unbatch<BMVec>(this->x.get());
-    for (size_t i = 0; i < umtxs.size(); i++) {
-        GKO_ASSERT_MTX_NEAR(ux[i], xs[i], r<value_type>::value);
-    }
-}
-
-
 TYPED_TEST(BatchJacobi, BatchBlockJacobGenerationIsEquivalentToUnbatched)
 {
     using value_type = typename TestFixture::value_type;
@@ -221,43 +185,5 @@ TYPED_TEST(BatchJacobi, BatchBlockJacobGenerationIsEquivalentToUnbatched)
     for (size_t i = 0; i < umtxs.size(); i++) {
         auto unbatch_prec = unbatch_prec_fact->generate(umtxs[i]);
         detail::is_equivalent_to_unbatched(i, prec, unbatch_prec);
-    }
-}
-
-
-TYPED_TEST(BatchJacobi,
-           BatchBlockJacobiApplyToSingleVectorIsEquivalentToUnbatched)
-{
-    using value_type = typename TestFixture::value_type;
-    using Mtx = typename TestFixture::Mtx;
-    using BMVec = typename TestFixture::BMVec;
-    using Jac = typename TestFixture::Jac;
-    using BJac = typename TestFixture::BJac;
-    auto umtxs = gko::test::share(gko::batch::unbatch<Mtx>(this->mtx.get()));
-    auto ub = gko::batch::unbatch<BMVec>(this->b.get());
-    auto ux = gko::batch::unbatch<BMVec>(this->x.get());
-    auto unbatch_prec_fact = Jac::build()
-                                 .with_max_block_size(this->max_block_size)
-                                 .with_block_pointers(this->block_ptrs)
-                                 .on(this->exec);
-    for (size_t i = 0; i < umtxs.size(); i++) {
-        auto unbatch_prec = unbatch_prec_fact->generate(umtxs[i]);
-        unbatch_prec->apply(ub[i].get(), ux[i].get());
-    }
-    auto prec_fact = BJac::build()
-                         .with_max_block_size(this->max_block_size)
-                         .with_block_pointers(this->block_ptrs)
-                         .on(this->exec);
-    auto prec = prec_fact->generate(this->mtx);
-
-    gko::kernels::reference::batch_jacobi::batch_jacobi_apply(
-        this->exec, this->mtx.get(), prec->get_num_blocks(),
-        prec->get_max_block_size(), prec->get_const_blocks_cumulative_storage(),
-        prec->get_const_blocks(), prec->get_const_block_pointers(),
-        prec->get_const_row_block_map_info(), this->b.get(), this->x.get());
-
-    auto xs = gko::batch::unbatch<BMVec>(this->x.get());
-    for (size_t i = 0; i < umtxs.size(); i++) {
-        GKO_ASSERT_MTX_NEAR(ux[i], xs[i], r<value_type>::value);
     }
 }

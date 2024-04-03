@@ -107,6 +107,7 @@ inline void invert_dense_block(const int block_size,
     }
 }
 
+
 template <typename ValueType>
 inline void compute_block_jacobi_impl(
     const size_type batch_idx, const size_type block_idx,
@@ -161,37 +162,5 @@ inline void compute_block_jacobi_impl(
             dense_block_ptr[row * stride + col_perm[col]] =
                 temp_dense_block[row * bsize + col];
         }
-    }
-}
-
-
-template <typename BatchMatrixType, typename ValueType>
-void batch_jacobi_apply_helper(const BatchMatrixType& sys_mat_batch,
-                               const size_type num_blocks,
-                               const uint32 max_block_size,
-                               const int* const cumulative_block_storage,
-                               const ValueType* const blocks_array,
-                               const int* const block_ptrs,
-                               const int* const row_block_map_info,
-                               const batch::MultiVector<ValueType>* const r,
-                               batch::MultiVector<ValueType>* const z)
-{
-    const auto nbatch = sys_mat_batch.num_batch_items;
-    const auto rub = gko::kernels::host::get_batch_struct(r);
-    const auto zub = gko::kernels::host::get_batch_struct(z);
-
-    using scalar_jacobi_prec = gko::kernels::host::BatchScalarJacobi<
-        ValueType, typename BatchMatrixType::index_type>;
-    using block_jacobi_prec = gko::kernels::host::BatchBlockJacobi<
-        ValueType, typename BatchMatrixType::index_type>;
-
-    if (max_block_size == 1) {
-        scalar_jacobi_prec prec;
-        apply_jacobi(sys_mat_batch, prec, rub, zub);
-    } else {
-        block_jacobi_prec prec(max_block_size, num_blocks,
-                               cumulative_block_storage, blocks_array,
-                               block_ptrs, row_block_map_info);
-        apply_jacobi(sys_mat_batch, prec, rub, zub);
     }
 }
