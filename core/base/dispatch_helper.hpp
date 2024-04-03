@@ -16,6 +16,11 @@ namespace gko {
 namespace detail {
 
 
+template <typename T, typename MaybeConstU>
+using with_same_constness_t = std::conditional_t<
+    std::is_const_v<typename std::remove_reference_t<MaybeConstU>>, const T, T>;
+
+
 /**
  *
  * @copydoc run<typename ReturnType, typename K, typename... Types, typename T,
@@ -24,7 +29,7 @@ namespace detail {
  * @note this is the end case
  */
 template <typename ReturnType, typename T, typename Func, typename... Args>
-ReturnType run_impl(T obj, Func&&, Args&&...)
+ReturnType run_impl(T* obj, Func&&, Args&&...)
 {
     GKO_NOT_SUPPORTED(obj);
 }
@@ -37,9 +42,9 @@ ReturnType run_impl(T obj, Func&&, Args&&...)
  */
 template <typename ReturnType, typename K, typename... Types, typename T,
           typename Func, typename... Args>
-ReturnType run_impl(T obj, Func&& f, Args&&... args)
+ReturnType run_impl(T* obj, Func&& f, Args&&... args)
 {
-    if (auto dobj = dynamic_cast<K>(obj)) {
+    if (auto dobj = dynamic_cast<with_same_constness_t<K, T>*>(obj)) {
         return f(dobj, std::forward<Args>(args)...);
     } else {
         return run_impl<ReturnType, Types...>(obj, std::forward<Func>(f),
@@ -120,15 +125,46 @@ ReturnType run_impl(T obj, Func&& f, Args&&... args)
  */
 template <typename K, typename... Types, typename T, typename Func,
           typename... Args>
-auto run(T obj, Func&& f, Args&&... args)
+auto run(T* obj, Func&& f, Args&&... args)
 {
 #if __cplusplus < 201703L
-    using ReturnType = std::result_of_t<Func(K, Args...)>;
+    using ReturnType =
+        std::result_of_t<Func(detail::with_same_constness_t<K, T>*, Args...)>;
 #else
-    using ReturnType = std::invoke_result_t<Func, K, Args...>;
+    using ReturnType =
+        std::invoke_result_t<Func, detail::with_same_constness_t<K, T>*,
+                             Args...>;
 #endif
     return detail::run_impl<ReturnType, K, Types...>(
         obj, std::forward<Func>(f), std::forward<Args>(args)...);
+}
+
+
+/**
+ * run uses template to go through the list and select the valid
+ * template and run it.
+ *
+ * @tparam Base  the Base class with one template
+ * @tparam K  the current template type of B. pointer of const Base<K> is tried
+ *            in the conversion.
+ * @tparam ...Types  the other types will be tried in the conversion if K fails
+ * @tparam T  the type of input object waiting converted
+ * @tparam Func  the function will run if the object can be converted to pointer
+ *               of const Base<K>
+ * @tparam ...Args  the additional arguments for the Func
+ *
+ * @param obj  the input object waiting converted
+ * @param f  the function will run if obj can be converted successfully
+ * @param args  the additional arguments for the function
+ *
+ * @return  the result of f invoked with obj cast to the first matching type
+ */
+template <template <class> class K, typename... Types, typename T,
+          typename Func, typename... Args>
+auto run(T* obj, Func&& f, Args&&... args)
+{
+    return run<K<Types>...>(obj, std::forward<Func>(f),
+                            std::forward<Args>(args)...);
 }
 
 
