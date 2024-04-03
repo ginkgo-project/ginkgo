@@ -18,7 +18,7 @@ namespace host {
 /**
  * (Scalar) Jacobi preconditioner for batch solvers.
  */
-template <typename ValueType, typename IndexType>
+template <typename ValueType, typename IndexType = int>
 class BatchScalarJacobi final {
 public:
     /**

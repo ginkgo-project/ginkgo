@@ -22,7 +22,7 @@ namespace host {
 /**
  * BatchBlockJacobi preconditioner for batch solvers.
  */
-template <typename ValueType, typename IndexType>
+template <typename ValueType, typename IndexType = int>
 class BatchBlockJacobi final {
 public:
     using value_type = ValueType;

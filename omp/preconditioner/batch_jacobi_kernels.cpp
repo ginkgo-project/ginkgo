@@ -29,21 +29,18 @@ void apply_jacobi(
     const gko::batch::multi_vector::uniform_batch<const ValueType>& rub,
     const gko::batch::multi_vector::uniform_batch<ValueType>& zub)
 {
-#pragma omp parallel firstprivate(prec)
-    {
-        const auto work_arr_size = PrecType::dynamic_work_size(
-            sys_mat_batch.num_rows, sys_mat_batch.get_single_item_num_nnz());
-        std::vector<ValueType> work(work_arr_size);
-        for (size_type batch_id = 0; batch_id < sys_mat_batch.num_batch_items;
-             batch_id++) {
-            const auto sys_mat_entry =
-                gko::batch::matrix::extract_batch_item(sys_mat_batch, batch_id);
-            const auto r_b = gko::batch::extract_batch_item(rub, batch_id);
-            const auto z_b = gko::batch::extract_batch_item(zub, batch_id);
+    const auto work_arr_size = PrecType::dynamic_work_size(
+        sys_mat_batch.num_rows, sys_mat_batch.get_single_item_num_nnz());
+    std::vector<ValueType> work(work_arr_size);
+    for (size_type batch_id = 0; batch_id < sys_mat_batch.num_batch_items;
+         batch_id++) {
+        const auto sys_mat_entry =
+            gko::batch::matrix::extract_batch_item(sys_mat_batch, batch_id);
+        const auto r_b = gko::batch::extract_batch_item(rub, batch_id);
+        const auto z_b = gko::batch::extract_batch_item(zub, batch_id);
 
-            prec.generate(batch_id, sys_mat_entry, work.data());
-            prec.apply(r_b, z_b);
-        }
+        prec.generate(batch_id, sys_mat_entry, work.data());
+        prec.apply(r_b, z_b);
     }
 }
 

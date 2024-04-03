@@ -105,7 +105,9 @@ using DeviceValueType = ValueType;
 #include "reference/base/batch_struct.hpp"
 #include "reference/log/batch_logger.hpp"
 #include "reference/matrix/batch_struct.hpp"
+#include "reference/preconditioner/batch_block_jacobi.hpp"
 #include "reference/preconditioner/batch_identity.hpp"
+#include "reference/preconditioner/batch_scalar_jacobi.hpp"
 #include "reference/stop/batch_criteria.hpp"
 
 
@@ -224,6 +226,33 @@ public:
                 logger, mat_item,
                 device::batch_preconditioner::Identity<device_value_type>(),
                 b_item, x_item);
+        } else if (auto prec =
+                       dynamic_cast<const preconditioner::Jacobi<value_type>*>(
+                           precond_)) {
+            const auto max_block_size = prec->get_max_block_size();
+            if (max_block_size == 1) {
+                dispatch_on_stop<device::BatchScalarJacobi<device_value_type>>(
+                    logger, mat_item,
+                    device::BatchScalarJacobi<device_value_type>(), b_item,
+                    x_item);
+            } else {
+                const auto num_blocks = prec->get_num_blocks();
+                const auto block_ptrs_arr = prec->get_const_block_pointers();
+                const auto row_block_map_arr =
+                    prec->get_const_row_block_map_info();
+                const auto blocks_arr =
+                    reinterpret_cast<DeviceValueType<const ValueType*>>(
+                        prec->get_const_blocks());
+                const auto blocks_cumul_storage =
+                    prec->get_const_blocks_cumulative_storage();
+
+                dispatch_on_stop<device::BatchBlockJacobi<device_value_type>>(
+                    logger, mat_item,
+                    device::BatchBlockJacobi<device_value_type>(
+                        max_block_size, num_blocks, blocks_cumul_storage,
+                        blocks_arr, block_ptrs_arr, row_block_map_arr),
+                    b_item, x_item);
+            }
         } else {
             GKO_NOT_IMPLEMENTED;
         }
