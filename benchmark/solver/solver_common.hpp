@@ -288,7 +288,7 @@ struct SolverGenerator : DefaultSystemGenerator<> {
     {
         if (config.contains("rhs")) {
             std::ifstream rhs_fd{config["rhs"].get<std::string>()};
-            return gko::read<Vec>(rhs_fd, std::move(exec));
+            return gko::read_generic<Vec>(rhs_fd, std::move(exec));
         } else {
             gko::dim<2> vec_size{system_matrix->get_size()[0], FLAGS_nrhs};
             if (FLAGS_rhs_generation == "1") {
