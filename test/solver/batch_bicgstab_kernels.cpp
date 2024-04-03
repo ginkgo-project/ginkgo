@@ -14,8 +14,10 @@
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/log/batch_logger.hpp>
+#include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
+#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 #include <ginkgo/core/solver/batch_bicgstab.hpp>
 
 
@@ -30,7 +32,9 @@ class BatchBicgstab : public CommonTestFixture {
 protected:
     using real_type = gko::remove_complex<value_type>;
     using solver_type = gko::batch::solver::Bicgstab<value_type>;
+    using precond_type = gko::batch::preconditioner::Jacobi<value_type>;
     using Mtx = gko::batch::matrix::Dense<value_type>;
+    using CsrMtx = gko::batch::matrix::Csr<value_type>;
     using EllMtx = gko::batch::matrix::Ell<value_type>;
     using MVec = gko::batch::MultiVector<value_type>;
     using RealMVec = gko::batch::MultiVector<real_type>;
@@ -56,7 +60,14 @@ protected:
         };
         solver_settings = Settings{max_iters, tol,
                                    gko::batch::stop::tolerance_type::relative};
-
+        precond_solver_factory =
+            solver_type::build()
+                .with_max_iterations(max_iters)
+                .with_tolerance(tol)
+                .with_tolerance_type(gko::batch::stop::tolerance_type::relative)
+                .with_preconditioner(
+                    precond_type::build().with_max_block_size(2u))
+                .on(exec);
         solver_factory =
             solver_type::build()
                 .with_max_iterations(max_iters)
@@ -71,6 +82,7 @@ protected:
         solve_lambda;
     Settings solver_settings{};
     std::shared_ptr<solver_type::Factory> solver_factory;
+    std::shared_ptr<solver_type::Factory> precond_solver_factory;
 };
 
 
@@ -217,6 +229,43 @@ TEST_F(BatchBicgstab, CanSolveLargeMatrixSizeHpdSystem)
             exec, num_batch_items, num_rows, true));
     auto linear_system = setup_linsys_and_solver(mat, num_rhs, tol, max_iters);
     auto solver = gko::share(solver_factory->generate(linear_system.matrix));
+    solver->add_logger(logger);
+
+    auto res = gko::test::solve_linear_system(exec, linear_system, solver);
+
+    solver->remove_logger(logger);
+    auto iter_counts = gko::make_temporary_clone(exec->get_master(),
+                                                 &logger->get_num_iterations());
+    auto res_norm = gko::make_temporary_clone(exec->get_master(),
+                                              &logger->get_residual_norm());
+    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 500);
+    for (size_t i = 0; i < num_batch_items; i++) {
+        auto comp_res_norm = res.host_res_norm->get_const_values()[i] /
+                             linear_system.host_rhs_norm->get_const_values()[i];
+        ASSERT_LE(iter_counts->get_const_data()[i], max_iters);
+        EXPECT_LE(res_norm->get_const_data()[i] /
+                      linear_system.host_rhs_norm->get_const_values()[i],
+                  tol);
+        EXPECT_GT(res_norm->get_const_data()[i], real_type{0.0});
+        ASSERT_LE(comp_res_norm, tol * 10);
+    }
+}
+
+
+TEST_F(BatchBicgstab, CanSolveLargeMatrixSizeHpdSystemWithBlockJacobi)
+{
+    const int num_batch_items = 12;
+    const int num_rows = 1025;
+    const int num_rhs = 1;
+    const real_type tol = 1e-5;
+    const int max_iters = num_rows * 2;
+    std::shared_ptr<Logger> logger = Logger::create();
+    auto mat =
+        gko::share(gko::test::generate_diag_dominant_batch_matrix<const CsrMtx>(
+            exec, num_batch_items, num_rows, false, (4 * num_rows - 3)));
+    auto linear_system = setup_linsys_and_solver(mat, num_rhs, tol, max_iters);
+    auto solver =
+        gko::share(precond_solver_factory->generate(linear_system.matrix));
     solver->add_logger(logger);
 
     auto res = gko::test::solve_linear_system(exec, linear_system, solver);
