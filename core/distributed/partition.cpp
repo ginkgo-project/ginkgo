@@ -108,8 +108,12 @@ Partition<LocalIndexType, GlobalIndexType>::build_from_global_size_uniform(
     GlobalIndexType global_size)
 {
     array<GlobalIndexType> ranges(exec, num_parts + 1);
-    exec->run(partition::make_build_ranges_from_global_size(
-        num_parts, global_size, ranges));
+    if (num_parts == 0) {
+        ranges.fill(0);
+    } else {
+        exec->run(partition::make_build_ranges_from_global_size(
+            num_parts, global_size, ranges));
+    }
     return Partition::build_from_contiguous(exec, ranges);
 }
 
