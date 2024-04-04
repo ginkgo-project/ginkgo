@@ -19,6 +19,7 @@ target_sources(ginkgo
     base/timer.cpp
     base/version.cpp
     config/property_tree.cpp
+    distributed/index_map.cpp
     distributed/partition.cpp
     factorization/cholesky.cpp
     factorization/elimination_forest.cpp
