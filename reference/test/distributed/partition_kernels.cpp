@@ -215,6 +215,23 @@ TYPED_TEST(Partition, BuildsFromGlobalSizeWithEmptyParts)
 }
 
 
+TYPED_TEST(Partition, BuildsFromGlobalSizeWithZeroParts)
+{
+    using part_type = typename TestFixture::part_type;
+
+    auto partition = part_type::build_from_global_size_uniform(this->ref, 0, 3);
+
+    EXPECT_EQ(partition->get_size(), 0);
+    EXPECT_EQ(partition->get_num_ranges(), 0);
+    EXPECT_EQ(partition->get_num_parts(), 0);
+    EXPECT_EQ(partition->get_num_empty_parts(), 0);
+    assert_equal_data(partition->get_range_bounds(), {0});
+    ASSERT_EQ(partition->get_part_ids(), nullptr);
+    ASSERT_EQ(partition->get_range_starting_indices(), nullptr);
+    ASSERT_EQ(partition->get_part_sizes(), nullptr);
+}
+
+
 TYPED_TEST(Partition, IsConnected)
 {
     using part_type = typename TestFixture::part_type;
