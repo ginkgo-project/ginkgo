@@ -22,6 +22,7 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/iterator_factory.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "matrices/config.hpp"
@@ -74,25 +75,11 @@ protected:
         auto values = mtx->get_values();
         auto col_idxs = mtx->get_col_idxs();
         const auto row_ptrs = mtx->get_const_row_ptrs();
-        for (int row = 0; row < num_rows; ++row) {
+        for (index_type row = 0; row < num_rows; ++row) {
             const auto row_start = row_ptrs[row];
             const auto row_end = row_ptrs[row + 1];
-            const int num_row_elements = row_end - row_start;
-            if (num_row_elements == 0) {
-                // nothing to do if the row is empty (avoid UB in the following
-                // initialization of idx_dist)
-                continue;
-            }
-            auto idx_dist = std::uniform_int_distribution<index_type>(
-                row_start, row_end - 1);
-            for (int i = 0; i < num_row_elements / 2; ++i) {
-                auto idx1 = idx_dist(rand_engine);
-                auto idx2 = idx_dist(rand_engine);
-                if (idx1 != idx2) {
-                    swap(values[idx1], values[idx2]);
-                    swap(col_idxs[idx1], col_idxs[idx2]);
-                }
-            }
+            const auto it = gko::detail::make_zip_iterator(col_idxs, values);
+            std::shuffle(it + row_start, it + row_end, rand_engine);
         }
         return mtx;
     }
