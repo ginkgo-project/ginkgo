@@ -1498,9 +1498,13 @@ public:
      * @param stream  the stream to execute operations on.
      */
     GKO_DEPRECATED(
-        "device_reset is deprecated entirely, call cudaDeviceReset directly. "
-        "alloc_mode was replaced by the Allocator type "
-        "hierarchy.")
+        "calling this CudaExecutor::create method is deprecated, because"
+        "device_reset has been deprecated"
+        "call CudaExecutor::create("
+        "  int device_id, std::shared_ptr<Executor> master,"
+        "  std::shared_ptr<CudaAllocatorBase> alloc,"
+        "  CUstream_st* stream);"
+        "instead")
     static std::shared_ptr<CudaExecutor> create(
         int device_id, std::shared_ptr<Executor> master, bool device_reset,
         allocation_mode alloc_mode = default_cuda_alloc_mode,
