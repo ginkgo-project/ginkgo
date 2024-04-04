@@ -31,13 +31,11 @@ __global__ __launch_bounds__(block_size) void restart_1_kernel(
     const auto krylov_stride =
         gko::cb_gmres::helper_functions_accessor<Accessor3d>::get_stride(
             krylov_bases);
-    const auto krylov_stride_access =
-        reinterpret_cast<const gko::acc::size_type*>(&krylov_stride);
     // krylov indices
-    const auto krylov_idx = global_id / krylov_stride_access[0];
-    const auto reminder = global_id % krylov_stride_access[0];
-    const auto krylov_row = reminder / krylov_stride_access[1];
-    const auto rhs = reminder % krylov_stride_access[1];
+    const auto krylov_idx = global_id / krylov_stride[0];
+    const auto reminder = global_id % krylov_stride[0];
+    const auto krylov_row = reminder / krylov_stride[1];
+    const auto rhs = reminder % krylov_stride[1];
 
     // residual_norm indices (separated for better coalesced access)
     const auto residual_row = global_id / stride_residual_nc;
@@ -68,10 +66,8 @@ __global__ __launch_bounds__(block_size) void restart_2_kernel(
     const auto krylov_stride =
         gko::cb_gmres::helper_functions_accessor<Accessor3d>::get_stride(
             krylov_bases);
-    const auto krylov_stride_access =
-        reinterpret_cast<const gko::acc::size_type*>(&krylov_stride);
-    const auto row_idx = global_id / krylov_stride_access[1];
-    const auto col_idx = global_id % krylov_stride_access[1];
+    const auto row_idx = global_id / krylov_stride[1];
+    const auto col_idx = global_id % krylov_stride[1];
 
     if (global_id < num_rhs) {
         residual_norm_collection[global_id] = residual_norm[global_id];
@@ -486,10 +482,8 @@ __global__ __launch_bounds__(block_size) void set_scalar_kernel(
     const auto krylov_stride =
         gko::cb_gmres::helper_functions_accessor<Accessor3d>::get_stride(
             krylov_bases);
-    const auto krylov_stride_access =
-        reinterpret_cast<const gko::acc::size_type*>(&krylov_stride);
-    const auto blk_idx = global_id / krylov_stride_access[1];
-    const auto col_idx = global_id % krylov_stride_access[1];
+    const auto blk_idx = global_id / krylov_stride[1];
+    const auto col_idx = global_id % krylov_stride[1];
 
     if (blk_idx < num_blocks && col_idx < num_rhs) {
         if (blk_idx == 0) {
