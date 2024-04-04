@@ -517,6 +517,21 @@ build/nocuda/openmpi/clang/omp/debug/static:
     FAST_TESTS: "ON"
     BUILD_SHARED_LIBS: "OFF"
 
+build/nocuda/openmpi/clang/omp/glibcxx-debug-release/shared:
+  extends:
+    - .build_and_test_template
+    - .default_variables
+    - .quick_test_condition
+    - .use_gko-nocuda-nompi-gnu9-llvm8
+  variables:
+    CXX_COMPILER: "clang++"
+    BUILD_OMP: "ON"
+    MPI_AS_ROOT: "ON"
+    BUILD_MPI: "ON"
+    CXX_FLAGS: "-Wpedantic -D_GLIBCXX_DEBUG=1"
+    # The tests are prohibitively slow in Debug
+    BUILD_TYPE: "Release"
+
 # nocuda with the oldest supported compiler
 build/nocuda/nompi/gcc/omp/release/static:
   extends:

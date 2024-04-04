@@ -674,7 +674,7 @@ void write_permutation(std::shared_ptr<const OmpExecutor> exec,
 
                 // Sort neighbours. Can not be more than there are nodes.
                 const IndexType size = valid_neighbours.size();
-                sort_small(&valid_neighbours[0], size,
+                sort_small(valid_neighbours.data(), size,
                            [&](IndexType l, IndexType r) {
                                return degrees[l] < degrees[r];
                            });
