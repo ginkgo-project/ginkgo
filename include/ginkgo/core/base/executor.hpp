@@ -1499,7 +1499,7 @@ public:
      */
     GKO_DEPRECATED(
         "calling this CudaExecutor::create method is deprecated, because"
-        "device_reset has been deprecated"
+        "device_reset no longer has an effect"
         "call CudaExecutor::create("
         "  int device_id, std::shared_ptr<Executor> master,"
         "  std::shared_ptr<CudaAllocatorBase> alloc,"
