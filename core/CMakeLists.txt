@@ -150,6 +150,7 @@ if(GINKGO_BUILD_MPI)
             distributed/dense_communicator.cpp
             distributed/matrix.cpp
             distributed/partition_helpers.cpp
+            distributed/neighborhood_communicator.cpp
             distributed/vector.cpp
             distributed/preconditioner/schwarz.cpp
     )
