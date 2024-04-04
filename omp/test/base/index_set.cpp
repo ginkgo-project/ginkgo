@@ -31,8 +31,7 @@ protected:
 
     gko::array<index_type> setup_random_indices(int num_indices = 100)
     {
-        std::random_device rd;
-        std::mt19937 gen(rd());
+        std::mt19937 gen(15);
         std::uniform_int_distribution<index_type> dist(0, num_indices);
         std::vector<index_type> index_vec(num_indices);
         for (auto& i : index_vec) {
