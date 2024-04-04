@@ -528,8 +528,8 @@ build/nocuda/openmpi/clang/omp/glibcxx-debug/shared:
     BUILD_OMP: "ON"
     MPI_AS_ROOT: "ON"
     BUILD_MPI: "ON"
-    CXX_FLAGS: "-Wpedantic -D_GLIBCXX_DEBUG=1"
-    FAST_TESTS: "ON"
+    # the tests are prohibitively slow with -O0
+    CXX_FLAGS: "-Wpedantic -D_GLIBCXX_DEBUG=1 -O1"
     BUILD_TYPE: "Debug"
 
 # nocuda with the oldest supported compiler
