@@ -145,7 +145,7 @@ struct UbfsLinearQueue {
                     break;
                 }
 
-                // No measureable effect on performance.
+                // No measurable effect on performance.
                 GKO_MM_PAUSE();
             }
 

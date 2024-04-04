@@ -67,7 +67,7 @@ SCOPE_END=".*\}.*"
 CHECK_GLOBAL_KEYWORD=".*${GLOBAL_KEYWORD}.*"
 FUNCTION_HANDLE=""
 DURING_FUNCNAME="false"
-ANAYSIS_FUNC=" *(template *<(.*)>)?.* (.*)\((.*)\)"
+ANALYSIS_FUNC=" *(template *<(.*)>)?.* (.*)\((.*)\)"
 START_BLOCK_REX="^( *\/\*| *\/\/)"
 END_BLOCK_REX="\*\/$| *\/\/"
 IN_BLOCK=0
@@ -147,7 +147,7 @@ while IFS='' read -r line || [ -n "$line" ]; do
                 # remove additional space
                 FUNCTION_HANDLE=$(echo "${FUNCTION_HANDLE}" | sed -E 's/ +/ /g;')
 
-                if [[ "${FUNCTION_HANDLE}" =~ $ANAYSIS_FUNC ]]; then
+                if [[ "${FUNCTION_HANDLE}" =~ $ANALYSIS_FUNC ]]; then
                     TEMPLATE="${BASH_REMATCH[1]}"
                     TEMPLATE_CONTENT="${BASH_REMATCH[2]}"
                     NAME="${BASH_REMATCH[3]}"
