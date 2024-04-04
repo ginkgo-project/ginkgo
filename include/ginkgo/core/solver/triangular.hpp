@@ -101,7 +101,7 @@ public:
          * cuSPARSE (sparselib) implementation. Default is sparselib.
          */
         trisolve_algorithm GKO_FACTORY_PARAMETER_SCALAR(
-            algorithm, trisolve_algorithm::sparselib);
+            algorithm, trisolve_algorithm::syncfree);
     };
     GKO_ENABLE_LIN_OP_FACTORY(LowerTrs, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
