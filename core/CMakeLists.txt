@@ -20,6 +20,7 @@ target_sources(ginkgo
     base/version.cpp
     config/property_tree.cpp
     distributed/index_map.cpp
+    distributed/neighborhood_communicator.cpp
     distributed/partition.cpp
     factorization/cholesky.cpp
     factorization/elimination_forest.cpp
