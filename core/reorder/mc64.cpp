@@ -300,8 +300,10 @@ void shortest_augmenting_path(
             while (generation[col] == -root && !queue.empty()) {
                 // If col is already marked because it previously was in q_j
                 // we have to disregard it.
-                col = queue.min_node();
                 queue.pop_min();
+                if (!queue.empty()) {
+                    col = queue.min_node();
+                }
             }
             if (queue.empty()) {
                 break;
