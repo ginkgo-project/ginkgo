@@ -78,6 +78,11 @@ protected:
             const auto row_start = row_ptrs[row];
             const auto row_end = row_ptrs[row + 1];
             const int num_row_elements = row_end - row_start;
+            if (num_row_elements == 0) {
+                // nothing to do if the row is empty (avoid UB in the following
+                // initialization of idx_dist)
+                continue;
+            }
             auto idx_dist = std::uniform_int_distribution<index_type>(
                 row_start, row_end - 1);
             for (int i = 0; i < num_row_elements / 2; ++i) {
