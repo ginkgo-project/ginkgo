@@ -16,6 +16,7 @@
 #include "core/components/precision_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/components/reduce_array_kernels.hpp"
+#include "core/distributed/index_map_kernels.hpp"
 #include "core/distributed/matrix_kernels.hpp"
 #include "core/distributed/partition_helpers_kernels.hpp"
 #include "core/distributed/partition_kernels.hpp"
@@ -250,6 +251,16 @@ GKO_STUB_INDEX_TYPE(GKO_DECLARE_PARTITION_HELPERS_COMPRESS_RANGES);
 
 
 }  // namespace partition_helpers
+
+
+namespace index_map {
+
+
+GKO_STUB_LOCAL_GLOBAL_TYPE(GKO_DECLARE_INDEX_MAP_BUILD_MAPPING);
+GKO_STUB_LOCAL_GLOBAL_TYPE(GKO_DECLARE_INDEX_MAP_GET_LOCAL_FROM_GLOBAL_ARRAY);
+
+
+}  // namespace index_map
 
 
 namespace distributed_vector {
