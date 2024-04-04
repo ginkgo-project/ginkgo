@@ -1,6 +1,6 @@
 add_subdirectory(device_hooks) # placeholders for disabled modules
 
-set(config_source 
+set(config_source
     config/factorization_config.cpp
     config/multigrid_config.cpp
     config/preconditioner_config.cpp
@@ -144,6 +144,7 @@ if(GINKGO_BUILD_MPI)
         distributed/vector_cache.cpp
         mpi/exception.cpp
         distributed/assembly.cpp
+        distributed/collective_communicator.cpp
         distributed/matrix.cpp
         distributed/partition_helpers.cpp
         distributed/vector.cpp
@@ -160,7 +161,7 @@ if((MSVC OR MINGW) AND BUILD_SHARED_LIBS)
     if(GINKGO_CHECK_CIRCULAR_DEPS)
         ginkgo_check_headers(ginkgo "")
     endif()
-else() 
+else()
     target_sources(${ginkgo_core} PRIVATE ${config_source})
 endif()
 
