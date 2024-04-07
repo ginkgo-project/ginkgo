@@ -197,6 +197,8 @@ int main(int argc, char* argv[])
                                        std::to_string(mg_level_list.size()) +
                                        ".mtx";
                 std::ofstream ofs(filename);
+                ofs << std::setprecision(std::numeric_limits<double>::digits10 +
+                                         1);
                 gko::write(ofs, csr);
             }
         }
@@ -212,7 +214,25 @@ int main(int argc, char* argv[])
                                  ->get_system_matrix());
             std::string filename = "data/A_l_" + std::to_string(i) + ".mtx";
             std::ofstream ofs(filename);
+            ofs << std::setprecision(std::numeric_limits<double>::digits10 + 1);
             gko::write(ofs, l_matrix);
+        }
+        {
+            // for Restrict/Prolong
+            auto mg_level_list = solver->get_mg_level_list();
+            for (int i = 0; i < mg_level_list.size(); i++) {
+                auto op =
+                    gko::as<gko::matrix::SparsityCsr<ValueType, IndexType>>(
+                        mg_level_list.at(i)->get_restrict_op());
+                if (export_data) {
+                    std::string filename =
+                        "data/A_mg_r_" + std::to_string(i) + ".mtx";
+                    std::ofstream ofs(filename);
+                    ofs << std::setprecision(
+                        std::numeric_limits<double>::digits10 + 1);
+                    gko::write(ofs, op);
+                }
+            }
         }
     }
 
