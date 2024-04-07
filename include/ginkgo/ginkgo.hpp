@@ -103,6 +103,7 @@
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
+#include <ginkgo/core/multigrid/custom_coarse.hpp>
 #include <ginkgo/core/multigrid/fixed_coarsening.hpp>
 #include <ginkgo/core/multigrid/multigrid_level.hpp>
 #include <ginkgo/core/multigrid/pgm.hpp>
