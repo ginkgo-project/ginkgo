@@ -363,7 +363,7 @@ protected:
     using value_type = ValueType;
 };
 
-TYPED_TEST_SUITE(PermuteIterator, gko::test::ValueAndIndexTypes,
+TYPED_TEST_SUITE(PermuteIterator, gko::test::ComplexAndPODTypes,
                  TypenameNameGenerator);
 
 
