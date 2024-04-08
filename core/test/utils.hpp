@@ -29,21 +29,136 @@
 
 namespace gko {
 namespace test {
+namespace detail {
 
 
-using ValueTypes =
-#if GINKGO_DPCPP_SINGLE_MODE
-    ::testing::Types<float, std::complex<float>>;
-#else
-    ::testing::Types<float, double, std::complex<float>, std::complex<double>>;
-#endif
+template <typename LeftList, typename RightList, typename... Result>
+struct cartesian_type_product {};
 
-using ComplexValueTypes =
-#if GINKGO_DPCPP_SINGLE_MODE
-    ::testing::Types<std::complex<float>>;
-#else
-    ::testing::Types<std::complex<float>, std::complex<double>>;
-#endif
+template <template <typename...> class OuterWrapper, typename FirstLeft,
+          typename... RemainingLeftArgs, typename... RightArgs,
+          typename... Result>
+struct cartesian_type_product<OuterWrapper<FirstLeft, RemainingLeftArgs...>,
+                              OuterWrapper<RightArgs...>, Result...>
+    : cartesian_type_product<OuterWrapper<RemainingLeftArgs...>,
+                             OuterWrapper<RightArgs...>, Result...,
+                             std::tuple<FirstLeft, RightArgs>...> {};
+
+template <template <typename...> class OuterWrapper, typename... RightArgs,
+          typename... Result>
+struct cartesian_type_product<OuterWrapper<>, OuterWrapper<RightArgs...>,
+                              Result...> {
+    using type = OuterWrapper<Result...>;
+};
+
+template <typename ExistingCombinationList, typename NewElementList,
+          typename... Result>
+struct add_to_cartesian_type_product {};
+
+template <template <typename...> class OuterWrapper,
+          typename... CurrentCombinationArgs,
+          typename... RemainingOldCombinations, typename... NewElementArgs,
+          typename... Result>
+struct add_to_cartesian_type_product<
+    OuterWrapper<std::tuple<CurrentCombinationArgs...>,
+                 RemainingOldCombinations...>,
+    OuterWrapper<NewElementArgs...>, Result...>
+    : add_to_cartesian_type_product<
+          OuterWrapper<RemainingOldCombinations...>,
+          OuterWrapper<NewElementArgs...>, Result...,
+          std::tuple<CurrentCombinationArgs..., NewElementArgs>...> {};
+
+template <template <typename...> class OuterWrapper, typename... NewElementArgs,
+          typename... Result>
+struct add_to_cartesian_type_product<
+    OuterWrapper<>, OuterWrapper<NewElementArgs...>, Result...> {
+    using type = OuterWrapper<Result...>;
+};
+
+template <typename NewElementList, typename ExistingCombinationList,
+          typename... Result>
+struct add_to_cartesian_type_product_left {};
+
+template <template <typename...> class OuterWrapper, typename... NewElementArgs,
+          typename... CurrentCombinationArgs,
+          typename... RemainingOldCombinations, typename... Result>
+struct add_to_cartesian_type_product_left<
+    OuterWrapper<NewElementArgs...>,
+    OuterWrapper<std::tuple<CurrentCombinationArgs...>,
+                 RemainingOldCombinations...>,
+    Result...>
+    : add_to_cartesian_type_product_left<
+          OuterWrapper<NewElementArgs...>,
+          OuterWrapper<RemainingOldCombinations...>, Result...,
+          std::tuple<NewElementArgs, CurrentCombinationArgs...>...> {};
+
+template <template <typename...> class OuterWrapper, typename... NewElementArgs,
+          typename... Result>
+struct add_to_cartesian_type_product_left<OuterWrapper<NewElementArgs...>,
+                                          OuterWrapper<>, Result...> {
+    using type = OuterWrapper<Result...>;
+};
+
+template <typename FirstList, typename SecondList>
+struct merge_type_list {};
+
+template <template <typename...> class OuterWrapper, typename... Args1,
+          typename... Args2>
+struct merge_type_list<OuterWrapper<Args1...>, OuterWrapper<Args2...>> {
+    using type = OuterWrapper<Args1..., Args2...>;
+};
+
+
+template <template <typename...> class NewOuterWrapper,
+          typename OldOuterWrapper>
+struct change_outer_wrapper {};
+
+template <template <typename...> class NewOuterWrapper,
+          template <typename...> class OldOuterWrapper, typename... Args>
+struct change_outer_wrapper<NewOuterWrapper, OldOuterWrapper<Args...>> {
+    using type = NewOuterWrapper<Args...>;
+};
+
+
+template <template <typename...> class NewInnerWrapper, typename ListType>
+struct add_internal_wrapper {};
+
+template <template <typename...> class NewInnerWrapper,
+          template <typename...> class OuterWrapper, typename... Args>
+struct add_internal_wrapper<NewInnerWrapper, OuterWrapper<Args...>> {
+    using type = OuterWrapper<NewInnerWrapper<Args>...>;
+};
+
+
+}  // namespace detail
+
+
+template <typename LeftList, typename RightList>
+using cartesian_type_product_t =
+    typename detail::cartesian_type_product<LeftList, RightList>::type;
+
+template <typename ExistingCombinationList, typename NewElementList>
+using add_to_cartesian_type_product_t =
+    typename detail::add_to_cartesian_type_product<ExistingCombinationList,
+                                                   NewElementList>::type;
+
+template <typename NewElementList, typename ExistingCombinationList>
+using add_to_cartesian_type_product_left_t =
+    typename detail::add_to_cartesian_type_product_left<
+        NewElementList, ExistingCombinationList>::type;
+
+template <typename FirstList, typename SecondList>
+using merge_type_list_t =
+    typename detail::merge_type_list<FirstList, SecondList>::type;
+
+template <template <typename...> class NewInnerWrapper, typename ListType>
+using add_internal_wrapper_t =
+    typename detail::add_internal_wrapper<NewInnerWrapper, ListType>::type;
+
+template <template <typename...> class NewOuterWrapper, typename ListType>
+using change_outer_wrapper_t =
+    typename detail::change_outer_wrapper<NewOuterWrapper, ListType>::type;
+
 
 using RealValueTypes =
 #if GINKGO_DPCPP_SINGLE_MODE
@@ -52,131 +167,38 @@ using RealValueTypes =
     ::testing::Types<float, double>;
 #endif
 
+using ComplexValueTypes = add_internal_wrapper_t<std::complex, RealValueTypes>;
 
-using IndexTypes = ::testing::Types<gko::int32, gko::int64>;
+using ValueTypes = merge_type_list_t<RealValueTypes, ComplexValueTypes>;
 
+using IndexTypes = ::testing::Types<int32, int64>;
 
 using LocalGlobalIndexTypes =
     ::testing::Types<std::tuple<int32, int32>, std::tuple<int32, int64>,
                      std::tuple<int64, int64>>;
 
-
 using PODTypes =
-#if GINKGO_DPCPP_SINGLE_MODE
-    ::testing::Types<float, gko::int32, gko::int64>;
-#else
-    ::testing::Types<float, double, gko::int32, gko::int64>;
-#endif
+    merge_type_list_t<merge_type_list_t<RealValueTypes, IndexTypes>,
+                      ::testing::Types<size_type>>;
 
+using ComplexAndPODTypes = merge_type_list_t<ComplexValueTypes, PODTypes>;
 
-using ValueAndIndexTypes =
-#if GINKGO_DPCPP_SINGLE_MODE
-    ::testing::Types<float, std::complex<float>, gko::int32, gko::int64,
-                     gko::size_type>;
-#else
-    ::testing::Types<float, double, std::complex<float>, std::complex<double>,
-                     gko::int32, gko::int64, gko::size_type>;
-#endif
-
-
-using RealValueAndIndexTypes =
-#if GINKGO_DPCPP_SINGLE_MODE
-    ::testing::Types<float, gko::int32, gko::int64, gko::size_type>;
-#else
-    ::testing::Types<float, double, gko::int32, gko::int64, gko::size_type>;
-#endif
-
-
-using ValueIndexTypes =
-#if GINKGO_DPCPP_SINGLE_MODE
-    ::testing::Types<std::tuple<float, gko::int32>,
-                     std::tuple<std::complex<float>, gko::int32>,
-                     std::tuple<float, gko::int64>,
-                     std::tuple<std::complex<float>, gko::int64>>;
-#else
-    ::testing::Types<
-        std::tuple<float, gko::int32>, std::tuple<double, gko::int32>,
-        std::tuple<std::complex<float>, gko::int32>,
-        std::tuple<std::complex<double>, gko::int32>,
-        std::tuple<float, gko::int64>, std::tuple<double, gko::int64>,
-        std::tuple<std::complex<float>, gko::int64>,
-        std::tuple<std::complex<double>, gko::int64>>;
-#endif
-
+using ValueIndexTypes = cartesian_type_product_t<ValueTypes, IndexTypes>;
 
 using RealValueIndexTypes =
-#if GINKGO_DPCPP_SINGLE_MODE
-    ::testing::Types<std::tuple<float, gko::int32>,
-                     std::tuple<float, gko::int64>>;
-#else
-    ::testing::Types<
-        std::tuple<float, gko::int32>, std::tuple<double, gko::int32>,
-        std::tuple<float, gko::int64>, std::tuple<double, gko::int64>>;
-#endif
-
+    cartesian_type_product_t<RealValueTypes, IndexTypes>;
 
 using ComplexValueIndexTypes =
-#if GINKGO_DPCPP_SINGLE_MODE
-    ::testing::Types<std::tuple<std::complex<float>, gko::int32>,
-                     std::tuple<std::complex<float>, gko::int64>>;
-#else
-    ::testing::Types<std::tuple<std::complex<float>, gko::int32>,
-                     std::tuple<std::complex<double>, gko::int32>,
-                     std::tuple<std::complex<float>, gko::int64>,
-                     std::tuple<std::complex<double>, gko::int64>>;
-#endif
+    cartesian_type_product_t<ComplexValueTypes, IndexTypes>;
 
-
-using TwoValueIndexType =
-#if GINKGO_DPCPP_SINGLE_MODE
-    ::testing::Types<
-        std::tuple<float, float, gko::int32>,
-        std::tuple<std::complex<float>, std::complex<float>, gko::int32>,
-        std::tuple<float, float, gko::int64>,
-        std::tuple<std::complex<float>, std::complex<float>, gko::int64>>;
-#else
-    ::testing::Types<
-        std::tuple<float, float, gko::int32>,
-        std::tuple<float, double, gko::int32>,
-        std::tuple<double, double, gko::int32>,
-        std::tuple<double, float, gko::int32>,
-        std::tuple<std::complex<float>, std::complex<float>, gko::int32>,
-        std::tuple<std::complex<float>, std::complex<double>, gko::int32>,
-        std::tuple<std::complex<double>, std::complex<double>, gko::int32>,
-        std::tuple<std::complex<double>, std::complex<float>, gko::int32>,
-        std::tuple<float, float, gko::int64>,
-        std::tuple<float, double, gko::int64>,
-        std::tuple<double, double, gko::int64>,
-        std::tuple<double, float, gko::int64>,
-        std::tuple<std::complex<float>, std::complex<float>, gko::int64>,
-        std::tuple<std::complex<float>, std::complex<double>, gko::int64>,
-        std::tuple<std::complex<double>, std::complex<double>, gko::int64>,
-        std::tuple<std::complex<double>, std::complex<float>, gko::int64>>;
-#endif
-
+using TwoValueIndexType = add_to_cartesian_type_product_t<
+    merge_type_list_t<
+        cartesian_type_product_t<RealValueTypes, RealValueTypes>,
+        cartesian_type_product_t<ComplexValueTypes, ComplexValueTypes>>,
+    IndexTypes>;
 
 using ValueLocalGlobalIndexTypes =
-#if GINKGO_DPCPP_SINGLE_MODE
-    ::testing::Types<std::tuple<float, gko::int32, int32>,
-                     std::tuple<float, gko::int32, int64>,
-                     std::tuple<float, gko::int64, int64>,
-                     std::tuple<std::complex<float>, gko::int32, int32>,
-                     std::tuple<std::complex<float>, gko::int32, int64>,
-                     std::tuple<std::complex<float>, gko::int64, int64>>;
-#else
-    ::testing::Types<std::tuple<float, gko::int32, int32>,
-                     std::tuple<float, gko::int32, int64>,
-                     std::tuple<float, gko::int64, int64>,
-                     std::tuple<double, gko::int32, int32>,
-                     std::tuple<double, gko::int32, int64>,
-                     std::tuple<double, gko::int64, int64>,
-                     std::tuple<std::complex<float>, gko::int32, int32>,
-                     std::tuple<std::complex<float>, gko::int32, int64>,
-                     std::tuple<std::complex<float>, gko::int64, int64>,
-                     std::tuple<std::complex<double>, gko::int32, int32>,
-                     std::tuple<std::complex<double>, gko::int32, int64>,
-                     std::tuple<std::complex<double>, gko::int64, int64>>;
-#endif
+    add_to_cartesian_type_product_left_t<ValueTypes, LocalGlobalIndexTypes>;
 
 
 template <typename Precision, typename OutputType>
