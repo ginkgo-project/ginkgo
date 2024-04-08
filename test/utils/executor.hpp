@@ -63,7 +63,7 @@ inline void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
 
 inline void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
                           std::shared_ptr<gko::HipExecutor>& exec,
-                          ihipStream_t* stream = nullptr)
+                          GKO_HIP_STREAM_STRUCT* stream = nullptr)
 {
     if (gko::HipExecutor::get_num_devices() == 0) {
         throw std::runtime_error{"No suitable HIP devices"};

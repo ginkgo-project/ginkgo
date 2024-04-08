@@ -336,10 +336,17 @@ TEST(Executor, CanVerifyMemory)
         ASSERT_EQ(false, gpu_dpcpp->memory_accessible(gpu_dpcpp_dup));
         ASSERT_EQ(false, gpu_dpcpp_dup->memory_accessible(gpu_dpcpp));
     }
+#if GINKGO_HIP_PLATFORM_NVCC
+    ASSERT_EQ(true, hip->memory_accessible(cuda));
+    ASSERT_EQ(true, cuda->memory_accessible(hip));
+    ASSERT_EQ(true, hip_1->memory_accessible(cuda_1));
+    ASSERT_EQ(true, cuda_1->memory_accessible(hip_1));
+#else
     ASSERT_EQ(false, hip->memory_accessible(cuda));
     ASSERT_EQ(false, cuda->memory_accessible(hip));
     ASSERT_EQ(false, hip_1->memory_accessible(cuda_1));
     ASSERT_EQ(false, cuda_1->memory_accessible(hip_1));
+#endif
     ASSERT_EQ(true, omp->memory_accessible(omp2));
     ASSERT_EQ(true, hip->memory_accessible(hip2));
     ASSERT_EQ(true, cuda->memory_accessible(cuda2));

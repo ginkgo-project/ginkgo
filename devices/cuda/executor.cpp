@@ -28,7 +28,11 @@ bool CudaExecutor::verify_memory_to(const CudaExecutor* dest_exec) const
 
 bool CudaExecutor::verify_memory_to(const HipExecutor* dest_exec) const
 {
+#if GINKGO_HIP_PLATFORM_NVCC
+    return this->get_device_id() == dest_exec->get_device_id();
+#else
     return false;
+#endif
 }
 
 

@@ -89,10 +89,10 @@ public:
      * Returns the native HIP stream handle.
      * In an empty hip_stream, this will return nullptr.
      */
-    ihipStream_t* get() const;
+    GKO_HIP_STREAM_STRUCT* get() const;
 
 private:
-    ihipStream_t* stream_;
+    GKO_HIP_STREAM_STRUCT* stream_;
 
     int device_id_;
 };

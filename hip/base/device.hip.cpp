@@ -28,7 +28,7 @@ void reset_device(int device_id)
 }
 
 
-void destroy_event(ihipEvent_t* event)
+void destroy_event(GKO_HIP_EVENT_STRUCT* event)
 {
     GKO_ASSERT_NO_HIP_ERRORS(hipEventDestroy(event));
 }
