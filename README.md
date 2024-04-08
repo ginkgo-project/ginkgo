@@ -63,6 +63,7 @@ The Ginkgo HIP module has the following __additional__ requirements:
     * _AMD_ backend (using the `clang` compiler)
     * _10.1 <= CUDA < 11_ backend
 * if the hipFFT package is available, it is used to implement the FFT LinOps.
+* _cmake 3.21+_
 
 The Ginkgo DPC++(SYCL) module has the following __additional__ requirements:
 

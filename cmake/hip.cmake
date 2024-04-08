@@ -1,3 +1,4 @@
+cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
 enable_language(HIP)
 if(CMAKE_HIP_COMPILER_ID STREQUAL "NVIDIA")
     set(GINKGO_HIP_PLATFORM "nvidia")
