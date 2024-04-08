@@ -67,6 +67,21 @@ private:
 };
 
 
+/**
+ * DistributedLocalSize is a feature class providing `get_local_size` which
+ * return the size of local operator.
+ */
+class DistributedLocalSize {
+public:
+    /**
+     * get the size of local operator
+     *
+     * @return the size of local operator
+     */
+    virtual dim<2> get_local_size() const = 0;
+};
+
+
 }  // namespace distributed
 }  // namespace experimental
 }  // namespace gko

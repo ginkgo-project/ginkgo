@@ -5,7 +5,7 @@
         "comm_pattern": "stencil",
         "spmv": {
             "csr-csr": {
-                "storage": 6420,
+                "storage": 6564,
                 "time": 1.0,
                 "repetitions": 1,
                 "completed": true

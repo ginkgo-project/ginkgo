@@ -326,6 +326,13 @@ void Vector<ValueType>::compute_absolute_inplace()
 
 
 template <typename ValueType>
+dim<2> Vector<ValueType>::get_local_size() const
+{
+    return local_.get_size();
+}
+
+
+template <typename ValueType>
 const typename Vector<ValueType>::local_vector_type*
 Vector<ValueType>::get_local_vector() const
 {

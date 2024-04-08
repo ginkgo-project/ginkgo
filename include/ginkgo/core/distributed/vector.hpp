@@ -60,7 +60,8 @@ class Vector
     : public EnableDistributedLinOp<Vector<ValueType>>,
       public ConvertibleTo<Vector<next_precision<ValueType>>>,
       public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
-      public DistributedBase {
+      public DistributedBase,
+      public DistributedLocalSize {
     friend class EnableDistributedPolymorphicObject<Vector, LinOp>;
     friend class Vector<to_complex<ValueType>>;
     friend class Vector<remove_complex<ValueType>>;
@@ -166,6 +167,8 @@ public:
     std::unique_ptr<absolute_type> compute_absolute() const override;
 
     void compute_absolute_inplace() override;
+
+    dim<2> get_local_size() const override;
 
     /**
      * Creates a complex copy of the original vectors. If the original vectors
