@@ -33,7 +33,7 @@ void* HipAllocator::allocate(size_type num_bytes) GKO_NOT_COMPILED(hip);
 void HipAllocator::deallocate(void* dev_ptr) GKO_NOT_COMPILED(hip);
 
 
-HipAsyncAllocator::HipAsyncAllocator(ihipStream_t* stream)
+HipAsyncAllocator::HipAsyncAllocator(GKO_HIP_STREAM_STRUCT* stream)
     GKO_NOT_COMPILED(hip);
 
 
@@ -44,7 +44,7 @@ void HipAsyncAllocator::deallocate(void* dev_ptr) GKO_NOT_COMPILED(hip);
 
 
 bool HipAsyncAllocator::check_environment(int device_id,
-                                          ihipStream_t* stream) const
+                                          GKO_HIP_STREAM_STRUCT* stream) const
     GKO_NOT_COMPILED(hip);
 
 
@@ -62,7 +62,7 @@ void HipUnifiedAllocator::deallocate(void* dev_ptr) GKO_NOT_COMPILED(hip);
 
 
 bool HipUnifiedAllocator::check_environment(int device_id,
-                                            ihipStream_t* stream) const
+                                            GKO_HIP_STREAM_STRUCT* stream) const
     GKO_NOT_COMPILED(hip);
 
 
@@ -76,13 +76,13 @@ void HipHostAllocator::deallocate(void* dev_ptr) GKO_NOT_COMPILED(hip);
 
 
 bool HipHostAllocator::check_environment(int device_id,
-                                         ihipStream_t* stream) const
+                                         GKO_HIP_STREAM_STRUCT* stream) const
     GKO_NOT_COMPILED(hip);
 
 
 std::shared_ptr<HipExecutor> HipExecutor::create(
     int device_id, std::shared_ptr<Executor> master, bool device_reset,
-    allocation_mode alloc_mode, ihipStream_t* stream)
+    allocation_mode alloc_mode, GKO_HIP_STREAM_STRUCT* stream)
 {
     return std::shared_ptr<HipExecutor>(
         new HipExecutor(device_id, std::move(master),
@@ -92,7 +92,7 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
 
 std::shared_ptr<HipExecutor> HipExecutor::create(
     int device_id, std::shared_ptr<Executor> master,
-    std::shared_ptr<HipAllocatorBase> alloc, ihipStream_t* stream)
+    std::shared_ptr<HipAllocatorBase> alloc, GKO_HIP_STREAM_STRUCT* stream)
 {
     return std::shared_ptr<HipExecutor>(
         new HipExecutor(device_id, std::move(master), alloc, stream));
@@ -204,7 +204,7 @@ hip_stream::~hip_stream() {}
 hip_stream::hip_stream(hip_stream&&) GKO_NOT_COMPILED(hip);
 
 
-ihipStream_t* hip_stream::get() const GKO_NOT_COMPILED(hip);
+GKO_HIP_STREAM_STRUCT* hip_stream::get() const GKO_NOT_COMPILED(hip);
 
 
 HipTimer::HipTimer(std::shared_ptr<const HipExecutor> exec)
@@ -232,7 +232,7 @@ namespace hip {
 void reset_device(int device_id) GKO_NOT_COMPILED(hip);
 
 
-void destroy_event(ihipEvent_t* event) GKO_NOT_COMPILED(hip);
+void destroy_event(GKO_HIP_EVENT_STRUCT* event) GKO_NOT_COMPILED(hip);
 
 
 }  // namespace hip

@@ -478,6 +478,7 @@ public:
                         multiple = 32;
                     }
                 }
+#if GINKGO_HIP_PLATFORM_HCC
                 if (!cuda_strategy_) {
                     multiple = 8;
                     if (nnz >= static_cast<int64_t>(1e7)) {
@@ -486,6 +487,7 @@ public:
                         multiple = 16;
                     }
                 }
+#endif  // GINKGO_HIP_PLATFORM_HCC
 
                 auto nwarps = nwarps_ * multiple;
                 return min(ceildiv(nnz, warp_size_), nwarps);
@@ -603,10 +605,12 @@ public:
                 nnz_limit = intel_nnz_limit;
                 row_len_limit = intel_row_len_limit;
             }
+#if GINKGO_HIP_PLATFORM_HCC
             if (!cuda_strategy_) {
                 nnz_limit = amd_nnz_limit;
                 row_len_limit = amd_row_len_limit;
             }
+#endif  // GINKGO_HIP_PLATFORM_HCC
             auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
             const bool is_mtx_on_host{host_mtx_exec ==
                                       mtx_row_ptrs.get_executor()};

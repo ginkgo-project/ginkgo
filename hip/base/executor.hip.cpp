@@ -131,7 +131,17 @@ void HipExecutor::raw_copy_to(const OmpExecutor*, size_type num_bytes,
 void HipExecutor::raw_copy_to(const CudaExecutor* dest, size_type num_bytes,
                               const void* src_ptr, void* dest_ptr) const
 {
+#if GINKGO_HIP_PLATFORM_NVCC == 1
+    if (num_bytes > 0) {
+        detail::hip_scoped_device_id_guard g(this->get_device_id());
+        GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyPeerAsync(
+            dest_ptr, dest->get_device_id(), src_ptr, this->get_device_id(),
+            num_bytes, this->get_stream()));
+        this->synchronize();
+    }
+#else
     GKO_NOT_SUPPORTED(dest);
+#endif
 }
 
 
@@ -212,9 +222,16 @@ void HipExecutor::set_gpu_property()
             this->get_device_id()));
         this->get_exec_info().max_workgroup_size = max_threads_per_block;
         this->get_exec_info().max_workitem_sizes = max_threads_per_block_dim;
+#if GINKGO_HIP_PLATFORM_NVCC
+        this->get_exec_info().num_pu_per_cu =
+            convert_sm_ver_to_cores(this->get_exec_info().major,
+                                    this->get_exec_info().minor) /
+            kernels::hip::config::warp_size;
+#else
         // In GCN (Graphics Core Next), each multiprocessor has 4 SIMD
         // Reference: https://en.wikipedia.org/wiki/Graphics_Core_Next
         this->get_exec_info().num_pu_per_cu = 4;
+#endif  // GINKGO_HIP_PLATFORM_NVCC
         this->get_exec_info().max_subgroup_size =
             kernels::hip::config::warp_size;
     }

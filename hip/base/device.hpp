@@ -18,7 +18,7 @@ void reset_device(int device_id);
 
 
 /** calls hipEventDestroy on the given event. */
-void destroy_event(ihipEvent_t* event);
+void destroy_event(GKO_HIP_EVENT_STRUCT* event);
 
 
 /** returns hipDeviceProp.name for the given device */

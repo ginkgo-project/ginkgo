@@ -54,7 +54,7 @@ private:
     type type_;
     union data_union {
         CUevent_st* cuda_event;
-        ihipEvent_t* hip_event;
+        GKO_HIP_EVENT_STRUCT* hip_event;
         sycl::event* dpcpp_event;
         std::chrono::steady_clock::time_point chrono;
 
@@ -206,7 +206,7 @@ protected:
 
 private:
     int device_id_;
-    ihipStream_t* stream_;
+    GKO_HIP_STREAM_STRUCT* stream_;
 };
 
 

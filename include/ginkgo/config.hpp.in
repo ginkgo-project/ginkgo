@@ -41,10 +41,10 @@
 
 /* What is HIP compiled for, hcc or nvcc? */
 // clang-format off
-#define GINKGO_HIP_PLATFORM_HCC 1
+#define GINKGO_HIP_PLATFORM_HCC @GINKGO_HIP_PLATFORM_HCC@
 
 
-#define GINKGO_HIP_PLATFORM_NVCC 0
+#define GINKGO_HIP_PLATFORM_NVCC @GINKGO_HIP_PLATFORM_NVCC@
 // clang-format on
 
 

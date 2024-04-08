@@ -164,7 +164,11 @@ TEST_F(HipExecutor, FailsWhenOverallocating)
 __global__ void check_data(int* data)
 {
     if (data[0] != 3 || data[1] != 8) {
+#if GINKGO_HIP_PLATFORM_HCC
         asm("s_trap 0x02;");
+#else  // GINKGO_HIP_PLATFORM_NVCC
+        asm("trap;");
+#endif
     }
 }
 
@@ -184,7 +188,11 @@ TEST_F(HipExecutor, CopiesDataToHip)
 __global__ void check_data2(int* data)
 {
     if (data[0] != 4 || data[1] != 8) {
+#if GINKGO_HIP_PLATFORM_HCC
         asm("s_trap 0x02;");
+#else  // GINKGO_HIP_PLATFORM_NVCC
+        asm("trap;");
+#endif
     }
 }
 
@@ -308,7 +316,11 @@ TEST_F(HipExecutor, ExecInfoSetsCorrectProperties)
         &max_threads_per_block, hipDeviceAttributeMaxThreadsPerBlock, dev_id));
     GKO_ASSERT_NO_HIP_ERRORS(
         hipDeviceGetAttribute(&warp_size, hipDeviceAttributeWarpSize, dev_id));
+#if GINKGO_HIP_PLATFORM_NVCC
+    auto num_cores = convert_sm_ver_to_cores(major, minor);
+#else
     auto num_cores = warp_size * 4;
+#endif
 
     ASSERT_EQ(hip->get_major_version(), major);
     ASSERT_EQ(hip->get_minor_version(), minor);

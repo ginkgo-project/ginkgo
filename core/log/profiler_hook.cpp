@@ -391,9 +391,11 @@ std::shared_ptr<ProfilerHook> ProfilerHook::create_for_executor(
     if (std::dynamic_pointer_cast<const CudaExecutor>(exec)) {
         return create_nvtx();
     }
+#if (GINKGO_HIP_PLATFORM_NVCC == 0)
     if (std::dynamic_pointer_cast<const HipExecutor>(exec)) {
         return create_roctx();
     }
+#endif
     if (std::dynamic_pointer_cast<const DpcppExecutor>(exec)) {
         return create_vtune();
     }

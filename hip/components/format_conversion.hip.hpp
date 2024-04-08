@@ -80,12 +80,25 @@ __host__ size_type calculate_nwarps(std::shared_ptr<const HipExecutor> exec,
     size_type nwarps_in_hip = exec->get_num_multiprocessor() *
                               exec->get_num_warps_per_sm() * config::warp_size /
                               subwarp_size;
+#if GINKGO_HIP_PLATFORM_NVCC
+    size_type multiple = 8;
+    if (nnz >= 2e8) {
+        multiple = 2048;
+    } else if (nnz >= 2e7) {
+        multiple = 512;
+    } else if (nnz >= 2e6) {
+        multiple = 128;
+    } else if (nnz >= 2e5) {
+        multiple = 32;
+    }
+#else
     size_type multiple = 2;
     if (nnz >= 1e7) {
         multiple = 32;
     } else if (nnz >= 1e5) {
         multiple = 8;
     }
+#endif  // GINKGO_HIP_PLATFORM_NVCC
 #ifdef GINKGO_BENCHMARK_ENABLE_TUNING
     if (_tuning_flag) {
         multiple = _tuned_value;
