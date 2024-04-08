@@ -142,7 +142,7 @@ endif()
 
 # Since we have a public dependency on HIP, this dependency appears
 # here as well
-if(GINKGO_BUILD_HIP AND GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
+if(GINKGO_BUILD_HIP AND GINKGO_HIP_PLATFORM_AMD)
     list(APPEND GKO_RPATH_ADDITIONS "${HIP_PATH}/lib")
 endif()
 

@@ -23,7 +23,7 @@ if(GINKGO_BUILD_CUDA)
                          ENVIRONMENT LD_PRELOAD=$<TARGET_FILE:identify_stream_usage_cuda>)
 endif()
 
-if(GINKGO_BUILD_HIP AND GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
+if(GINKGO_BUILD_HIP AND GINKGO_HIP_PLATFORM_AMD)
     find_package(hip REQUIRED)
     set_source_files_properties(identify_stream_usage.hip.cpp
                                 test_default_stream_identification.hip.cpp
