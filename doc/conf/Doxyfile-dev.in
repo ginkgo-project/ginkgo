@@ -9,3 +9,4 @@ SOURCE_BROWSER         = YES
 CALL_GRAPH             = YES
 CALLER_GRAPH           = YES
 EXCLUDE_SYMBOLS        = std::*
+EXTRA_PACKAGES         = mathtools amsfonts amsmath amssymb
