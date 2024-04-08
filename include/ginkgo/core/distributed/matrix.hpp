@@ -128,21 +128,6 @@ class Vector;
 
 
 /**
- * DistributedLocalSize is a feature class providing `get_local_size` which
- * return the size of local operator.
- */
-class DistributedLocalSize {
-public:
-    /**
-     * get the size of local operator
-     *
-     * @return the size of local operator
-     */
-    virtual dim<2> get_local_size() const = 0;
-};
-
-
-/**
  * The Matrix class defines a (MPI-)distributed matrix.
  *
  * The matrix is stored in a row-wise distributed format.
@@ -352,7 +337,7 @@ public:
         ptr_param<const Partition<local_index_type, global_index_type>>
             col_partition);
 
-    dim<2> get_local_size() const override { return local_mtx_->get_size(); }
+    dim<2> get_local_size() const override;
 
     /**
      * Get read access to the stored local matrix.
