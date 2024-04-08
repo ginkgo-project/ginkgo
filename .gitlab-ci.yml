@@ -123,7 +123,6 @@ build/cuda101/openmpi/gcc/all/debug/shared:
     BUILD_CUDA: "ON"
     BUILD_MPI: "ON"
     MPI_AS_ROOT: "ON"
-    BUILD_HIP: "ON"
     BUILD_TYPE: "Debug"
     BUILD_PAPI_SDE: "ON"
     CUDA_ARCH: 35
