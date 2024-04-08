@@ -279,7 +279,11 @@ void DpcppExecutor::set_device_property(dpcpp_queue_property property)
     // `wait()` would be needed after every call to a DPC++ function or kernel.
     // For example, without `in_order`, doing a copy, a kernel, and a copy, will
     // not necessarily happen in that order by default, which we need to avoid.
-    auto* queue = new sycl::queue{device, detail::get_property_list(property)};
+    // We need to create the context for each device. Otherwise, we get -999
+    // Unknown PI error after second device.
+    // Ref: https://github.com/intel/llvm/issues/10982
+    auto* queue = new sycl::queue{sycl::context(device), device,
+                                  detail::get_property_list(property)};
     queue_ = std::move(queue_manager<sycl::queue>{queue, detail::delete_queue});
 }
 
