@@ -106,7 +106,6 @@ build/cuda101/nompi/clang/cuda_wo_omp/release/shared:
   variables:
     CXX_COMPILER: "clang++"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
     BUILD_HWLOC: "OFF"
     BUILD_TYPE: "Release"
     CUDA_ARCH: 35
@@ -139,7 +138,6 @@ build/cuda101/nompi/clang/all/release/static:
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
@@ -190,7 +188,6 @@ build/cuda102/nompi/gcc/all/debug/shared:
   variables:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
     BUILD_HWLOC: "OFF"
@@ -207,7 +204,6 @@ build/cuda102/nompi/clang/all/release/static:
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
@@ -686,7 +682,6 @@ warnings:
   variables:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
     CXX_FLAGS: "-Werror=pedantic;-pedantic-errors"
   allow_failure: yes
 
@@ -701,7 +696,6 @@ no-circular-deps:
   variables:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
     EXTRA_CMAKE_FLAGS: '-DGINKGO_CHECK_CIRCULAR_DEPS=on'
   allow_failure: no
 
@@ -729,7 +723,6 @@ clang-tidy:
   variables:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
     EXTRA_CMAKE_FLAGS: '-DGINKGO_WITH_CLANG_TIDY=ON'
   allow_failure: yes
 
