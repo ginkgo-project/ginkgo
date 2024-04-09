@@ -223,7 +223,7 @@ packages can be turned off by disabling the relevant options.
 + [METIS](http://glaros.dtc.umn.edu/gkhome/metis/metis/overview) is required
   when using the `NestedDissection` reordering functionality.
   If METIS is not found, the functionality is disabled.
-+ [PAPI](https://icl.utk.edu/papi/) is required when using the `Papi` logger.
++ [PAPI](https://icl.utk.edu/papi/) (>= 7.1.0) is required when using the `Papi` logger.
   If PAPI is not found, the functionality is disabled.
 
 Ginkgo attempts to use pre-installed versions of these package if they match
