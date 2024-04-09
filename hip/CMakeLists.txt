@@ -129,15 +129,10 @@ endif()
 
 target_compile_options(ginkgo_hip PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
 
-# Try to find everything in /opt/rocm/lib first.
-set(GKO_HIP_RPATH "${ROCM_PATH}/lib" )
-list(APPEND GKO_HIP_RPATH "${HIP_PATH}/lib")
-list(APPEND GKO_HIP_RPATH "${HIPBLAS_PATH}/lib" "${HIPRAND_PATH}/lib"
-    "${HIPSPARSE_PATH}/lib" "${ROCRAND_PATH}/lib")
 
 ginkgo_compile_features(ginkgo_hip)
 ginkgo_default_includes(ginkgo_hip)
-ginkgo_install_library(ginkgo_hip "${GKO_HIP_RPATH}")
+ginkgo_install_library(ginkgo_hip)
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
     ginkgo_check_headers(ginkgo_hip GKO_COMPILING_HIP)

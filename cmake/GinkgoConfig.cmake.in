@@ -211,6 +211,9 @@ if(GINKGO_BUILD_CUDA)
     _ginkgo_check_compiler(CUDA)
     _ginkgo_check_compiler(CUDA_HOST)
 endif()
+if(GINKGO_BUILD_HIP)
+    _ginkgo_check_compiler(HIP)
+endif()
 
 include(${CMAKE_CURRENT_LIST_DIR}/GinkgoTargets.cmake)
 
