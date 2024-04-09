@@ -19,6 +19,10 @@ endfunction()
 
 function(ginkgo_compile_features name)
     target_compile_features("${name}" PUBLIC cxx_std_14)
+    # we set these properties regardless of the enabled backends,
+    # because unknown properties are ignored
+    set_target_properties("${name}" PROPERTIES HIP_STANDARD 14)
+    set_target_properties("${name}" PROPERTIES CUDA_STANDARD 14)
     if(GINKGO_WITH_CLANG_TIDY AND GINKGO_CLANG_TIDY_PATH)
         set_property(TARGET "${name}" PROPERTY CXX_CLANG_TIDY "${GINKGO_CLANG_TIDY_PATH};-checks=*")
     endif()
