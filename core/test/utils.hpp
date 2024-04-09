@@ -173,13 +173,13 @@ using ValueTypes = merge_type_list_t<RealValueTypes, ComplexValueTypes>;
 
 using IndexTypes = ::testing::Types<int32, int64>;
 
+using IntegerTypes = merge_type_list_t<IndexTypes, ::testing::Types<size_type>>;
+
 using LocalGlobalIndexTypes =
     ::testing::Types<std::tuple<int32, int32>, std::tuple<int32, int64>,
                      std::tuple<int64, int64>>;
 
-using PODTypes =
-    merge_type_list_t<merge_type_list_t<RealValueTypes, IndexTypes>,
-                      ::testing::Types<size_type>>;
+using PODTypes = merge_type_list_t<RealValueTypes, IntegerTypes>;
 
 using ComplexAndPODTypes = merge_type_list_t<ComplexValueTypes, PODTypes>;
 
