@@ -16,7 +16,7 @@ repos:
     name: reuse-annotate
     entry: reuse annotate --license BSD-3-Clause --copyright 'The Ginkgo authors' --style c --merge-copyright
     language: python
-    additional_dependencies: [reuse]
+    additional_dependencies: [reuse==2.1.0]
     types_or: [c, c++, cuda, inc]
     exclude: |
       (?x)^(
