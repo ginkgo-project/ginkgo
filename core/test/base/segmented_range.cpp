@@ -54,6 +54,22 @@ TEST(IndexedIterator, IteratorProperties)
 }
 
 
+TEST(IndexedIterator, CanAccessMemberOfStruct)
+{
+    struct value {
+        int i;
+    };
+    using iterator_type =
+        gko::indexed_iterator<std::vector<value>::const_iterator,
+                              gko::irange<int>::iterator>;
+    gko::irange_strided<int> range(0, 10, 2);
+    std::vector<value> values(10, value{4});
+
+    auto it = iterator_type{values.begin(), range.begin()};
+    ASSERT_EQ(it->i, 4);
+}
+
+
 TEST(IndexedRange, RangeForLoop)
 {
     gko::irange_strided<int> index_range(0, 10, 2);
@@ -101,6 +117,8 @@ TEST(EnumeratingIndexedIterator, IteratorProperties)
 
     auto it = iterator_type{values.begin(), range.begin()};
     it += 4;
+    ASSERT_EQ(it->value, 9);
+    ASSERT_EQ(it->index, 8);
     ASSERT_EQ(*it, tuple_type(8, 9));
     it -= 4;
     ASSERT_EQ(*it, tuple_type(0, 1));

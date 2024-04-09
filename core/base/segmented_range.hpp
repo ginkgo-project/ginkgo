@@ -54,6 +54,8 @@ public:
 
     constexpr reference operator*() const { return value_it_[index()]; }
 
+    constexpr pointer operator->() const { return &operator*(); }
+
     constexpr friend difference_type operator-(indexed_iterator a,
                                                indexed_iterator b)
     {
@@ -78,7 +80,7 @@ private:
 
 public:
     using base_value_type = typename base::value_type;
-    using index_type = typename base::value_type;
+    using index_type = typename base::index_type;
 
     struct enumerated {
         index_type index;
@@ -106,11 +108,17 @@ public:
                                    // the enumerated struct for lifetime safety
     using iterator_category = std::random_access_iterator_tag;
 
-    using base::indexed_iterator;
+    constexpr explicit enumerating_indexed_iterator(
+        typename base::value_iterator value_it,
+        typename base::index_iterator index_it)
+        : base{value_it, index_it},
+          enumerated_(base::index(), base::operator*())
+    {}
 
     constexpr enumerating_indexed_iterator& operator+=(difference_type n)
     {
-        this->base::operator+=(n);
+        base::operator+=(n);
+        this->enumerated_ = this->operator*();
         return *this;
     }
 
@@ -119,8 +127,13 @@ public:
         return enumerated{this->index(), this->base::operator*()};
     }
 
+    constexpr pointer operator->() const { return &enumerated_; }
+
     // override all boilerplate operators, in particular operator[]
     GKO_RANDOM_ACCESS_ITERATOR_BOILERPLATE(enumerating_indexed_iterator);
+
+private:
+    enumerated enumerated_;
 };
 
 
