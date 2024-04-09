@@ -127,6 +127,7 @@
     # build to test
     - cd ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
     - cd ${CI_JOB_NAME/test/build}
+    - export INSTALL_PREFIX=`pwd`/install_prefix
     - |
         (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
     - ctest --output-on-failure --timeout 6000 ${CTEST_EXTRA_ARGS}
@@ -135,7 +136,7 @@
     - pushd test/test_install
     - ninja install
     - popd
-    - LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH ninja test_pkgconfig
+    - PKG_CONFIG_PATH=${INSTALL_PREFIX}/lib/pkgconfig:$PKG_CONFIG_PATH LD_LIBRARY_PATH=${INSTALL_PREFIX}/lib:$LD_LIBRARY_PATH ninja test_pkgconfig
   cache: []
 
 

@@ -220,6 +220,11 @@ packages can be turned off by disabling the relevant options.
 + GINKGO_BUILD_DOC=ON:
   [doxygen](https://www.doxygen.nl/) is required to build the documentation and
   additionally [graphviz](https://graphviz.org/) is required to build the class hierarchy graphs.
++ [METIS](http://glaros.dtc.umn.edu/gkhome/metis/metis/overview) is required
+  when using the `NestedDissection` reordering functionality.
+  If METIS is not found, the functionality is disabled.
++ [PAPI](https://icl.utk.edu/papi/) (>= 7.1.0) is required when using the `Papi` logger.
+  If PAPI is not found, the functionality is disabled.
 
 Ginkgo attempts to use pre-installed versions of these package if they match
 version requirements using `find_package`. Otherwise, the configuration step
