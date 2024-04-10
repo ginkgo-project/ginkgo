@@ -131,8 +131,8 @@ TYPED_TEST(MatrixCreation, ReadsDistributedLocalNonLocalData)
         {{0, 2}, {4, 0}}, {{5, 0}, {0, 7}}, {{9}}};
     auto rank = this->dist_mat->get_communicator().rank();
     this->dist_mat->read_distributed(this->mat_input, this->row_part);
-    gko::matrix_data<value_type, index_type> local_data {};
-    gko::matrix_data<value_type, index_type> non_local_data {};
+    gko::matrix_data<value_type, index_type> local_data{};
+    gko::matrix_data<value_type, index_type> non_local_data{};
     gko::as<csr>(this->dist_mat->get_local_matrix())->write(local_data);
     gko::as<csr>(this->dist_mat->get_non_local_matrix())->write(non_local_data);
     auto dist_mat = mtx_type::create(this->exec, this->comm);
