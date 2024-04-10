@@ -119,7 +119,7 @@ target_include_directories(ginkgo_hip
 target_compile_definitions(ginkgo_hip PRIVATE GKO_COMPILING_HIP)
 
 target_link_libraries(ginkgo_hip PUBLIC ginkgo_device)
-target_link_libraries(ginkgo_hip PRIVATE roc::hipblas roc::hipsparse hip::hiprand roc::rocrand)
+target_link_libraries(ginkgo_hip PRIVATE hip::host roc::hipblas roc::hipsparse hip::hiprand roc::rocrand)
 if (hipfft_FOUND)
     target_link_libraries(ginkgo_hip PRIVATE hip::hipfft)
 endif()
