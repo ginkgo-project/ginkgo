@@ -65,13 +65,13 @@ void build_local_nonlocal_impl(
                range_starting_indices[range_id];
     };
     auto fill_matrix = [](auto& row_idxs, auto& col_idxs, auto& values,
-                          size_type num_entries, auto accesor) {
+                          size_type num_entries, auto accessor) {
         row_idxs.resize_and_reset(num_entries);
         col_idxs.resize_and_reset(num_entries);
         values.resize_and_reset(num_entries);
         for (size_type i = 0; i < num_entries; ++i) {
             std::tie(row_idxs.get_data()[i], col_idxs.get_data()[i],
-                     values.get_data()[i]) = accesor(i);
+                     values.get_data()[i]) = accessor(i);
         }
     };
     auto find_col_part = [&](GlobalIndexType idx) {
