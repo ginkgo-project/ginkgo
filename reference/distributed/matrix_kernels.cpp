@@ -190,6 +190,7 @@ void build_local_nonlocal_impl(
     }
 }
 
+
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void build_local_nonlocal(
     std::shared_ptr<const DefaultExecutor> exec,
@@ -214,98 +215,9 @@ void build_local_nonlocal(
         local_row_idxs, local_col_idxs, local_values, non_local_row_idxs,
         non_local_col_idxs, non_local_values, local_gather_idxs, recv_sizes,
         non_local_to_global);
-    // using partition_type =
-    //     experimental::distributed::Partition<LocalIndexType,
-    //     GlobalIndexType>;
-    // using global_nonzero = matrix_data_entry<ValueType, GlobalIndexType>;
-    // auto input_row_idxs = input.get_const_row_idxs();
-    // auto input_col_idxs = input.get_const_col_idxs();
-    // auto input_vals = input.get_const_values();
-    // auto row_part_ids = row_partition->get_part_ids();
-    // auto col_part_ids = col_partition->get_part_ids();
-    // auto num_parts = row_partition->get_num_parts();
-
-    // auto find_range = [](GlobalIndexType idx, const partition_type*
-    // partition,
-    //                      size_type hint) {
-    //     auto range_bounds = partition->get_range_bounds();
-    //     auto num_ranges = partition->get_num_ranges();
-    //     if (range_bounds[hint] <= idx && idx < range_bounds[hint + 1]) {
-    //         return hint;
-    //     } else {
-    //         auto it = std::upper_bound(range_bounds + 1,
-    //                                    range_bounds + num_ranges + 1, idx);
-    //         return static_cast<size_type>(std::distance(range_bounds + 1,
-    //         it));
-    //     }
-    // };
-    // local_row_idxs.resize_and_reset(input.get_num_elems());
-    // local_col_idxs.resize_and_reset(input.get_num_elems());
-    // local_values.resize_and_reset(input.get_num_elems());
-    // for (size_type i = 0; i < input.get_num_elems(); ++i) {
-    //     local_row_idxs.get_data()[i] = input.get_const_row_idxs()[i];
-    //     local_col_idxs.get_data()[i] = input.get_const_col_idxs()[i];
-    //     local_values.get_data()[i] = input.get_const_values()[i];
-    // }
-
-    // // 3. create mapping from unique_columns
-    // unordered_map<GlobalIndexType, LocalIndexType>
-    // non_local_column_map(exec); for (size_type i = 0; i <
-    // non_local_input.get_num_elems(); ++i) {
-    //     non_local_column_map[non_local_input.get_const_col_idxs()[i]] =
-    //         static_cast<LocalIndexType>(i);
-    // }
-
-    // // 3.5 copy unique_columns to array
-    // non_local_to_global.resize_and_reset(non_local_input.get_num_elems());
-    // for (size_type i = 0; i < non_local_input.get_num_elems(); ++i) {
-    //     non_local_to_global.get_data()[i] =
-    //         non_local_input.get_const_col_idxs()[i];
-    // }
-
-    // // 4. fill non_local_data
-    // non_local_row_idxs.resize_and_reset(non_local_input.get_num_elems());
-    // non_local_col_idxs.resize_and_reset(non_local_input.get_num_elems());
-    // non_local_values.resize_and_reset(non_local_input.get_num_elems());
-    // for (size_type i = 0; i < non_local_input.get_num_elems(); ++i) {
-    //     non_local_row_idxs.get_data()[i] =
-    //         non_local_input.get_const_row_idxs()[i];
-    //     non_local_col_idxs.get_data()[i] =
-    //         non_local_column_map[non_local_input.get_const_col_idxs()[i]];
-    //     non_local_values.get_data()[i] =
-    //     non_local_input.get_const_values()[i];
-    // }
-
-    // // compute gather idxs and recv_sizes
-    // local_gather_idxs.resize_and_reset(non_local_input.get_num_elems());
-    // std::fill_n(recv_sizes.get_data(), num_parts, 0);
-
-    // auto map_to_local = [](GlobalIndexType idx, const partition_type*
-    // partition,
-    //                        size_type range_id) {
-    //     auto range_bounds = partition->get_range_bounds();
-    //     auto range_starting_indices =
-    //     partition->get_range_starting_indices(); return
-    //     static_cast<LocalIndexType>(idx - range_bounds[range_id]) +
-    //            range_starting_indices[range_id];
-    // };
-
-    // auto find_col_part = [&](GlobalIndexType idx) {
-    //     auto range_id = find_range(idx, col_partition, 0);
-    //     return col_part_ids[range_id];
-    // };
-    // size_type col_range_id = 0;
-    // for (size_type i = 0; i < non_local_input.get_num_elems(); ++i) {
-    //     col_range_id = find_range(non_local_input.get_const_col_idxs()[i],
-    //                               col_partition, col_range_id);
-    //     local_gather_idxs.get_data()[i] =
-    //         map_to_local(non_local_input.get_const_col_idxs()[i],
-    //         col_partition,
-    //                      col_range_id);
-    //     recv_sizes.get_data()[find_col_part(
-    //         non_local_input.get_const_col_idxs()[i])]++;
-    // }
 }
+
+
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void build_local_nonlocal(
     std::shared_ptr<const DefaultExecutor> exec,
