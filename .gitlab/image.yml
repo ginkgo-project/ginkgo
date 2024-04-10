@@ -74,8 +74,8 @@
     - private_ci
     - amd-gpu
 
-.use_gko-rocm502-nompi-gnu11-llvm11:
-  image: ginkgohub/rocm:502-openmpi-gnu11-llvm11
+.use_gko-rocm514-nompi-gnu11-llvm11:
+  image: ginkgohub/rocm:514-openmpi-gnu11-llvm11
   tags:
     - private_ci
     - amd-gpu
