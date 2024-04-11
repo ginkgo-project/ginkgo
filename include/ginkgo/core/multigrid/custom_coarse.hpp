@@ -84,7 +84,7 @@ protected:
     {
         GKO_ASSERT(parameters_.restriction != nullptr);
         GKO_ASSERT(parameters_.prologation != nullptr);
-        GKO_ASSERT(parameters_.coarse != nullptr)
+        GKO_ASSERT(parameters_.coarse != nullptr);
         if (system_matrix_->get_size()[0] != 0) {
             this->set_multigrid_level(parameters_.prologation,
                                       parameters_.coarse,
