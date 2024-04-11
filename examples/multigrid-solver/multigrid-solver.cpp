@@ -27,9 +27,10 @@ int main(int argc, char* argv[])
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
     if (argc > 1 && argv[1] == std::string("--help")) {
-        std::cout << "Usage:" << argv[0]
-                  << " executor, matrix, rhs, max_mg_levels, is_export"
-                  << std::endl;
+        std::cout
+            << "Usage:" << argv[0]
+            << " executor, matrix, rhs, max_mg_levels, is_export, custom_prefix"
+            << std::endl;
         std::exit(-1);
     }
     const std::string executor_string = argc >= 2 ? argv[1] : "reference";
@@ -39,11 +40,13 @@ int main(int argc, char* argv[])
         argc >= 5 ? static_cast<unsigned>(std::stoi(argv[4])) : 5u;
     const bool export_data =
         argc >= 6 ? (argv[5] == std::string("true")) : false;
+    const std::string custom_prefix = argc >= 7 ? argv[6] : "none";
     std::cout << "executor: " << executor_string << std::endl;
     std::cout << "matrix: " << matrix_string << std::endl;
     std::cout << "rhs: " << rhs_string << std::endl;
     std::cout << "max mg_levels: " << max_mg_levels << std::endl;
     std::cout << "export intermediate data : " << export_data << std::endl;
+    std::cout << "custom hierarchy prefix: " << custom_prefix << std::endl;
     // Figure out where to run the code
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
@@ -76,14 +79,13 @@ int main(int argc, char* argv[])
         host_x->at(i, 0) = 0.;
         host_b->at(i, 0) = 1.;
     }
+    if (rhs_string != "ones") {
+        host_b->copy_from(gko::read<vec>(std::ifstream(rhs_string), exec));
+    }
     auto x = vec::create(exec);
     auto b = vec::create(exec);
     x->copy_from(host_x);
-    if (rhs_string == "ones") {
-        b->copy_from(host_b);
-    } else {
-        b->copy_from(gko::read<vec>(std::ifstream(rhs_string), exec));
-    }
+    b->copy_from(host_b);
 
     // Calculate initial residual by overwriting b
     auto one = gko::initialize<vec>({1.0}, exec);
@@ -103,7 +105,11 @@ int main(int argc, char* argv[])
                                    .with_baseline(gko::stop::mode::absolute)
                                    .with_reduction_factor(tolerance)
                                    .on(exec));
-
+    // LL' ~ A (IC)
+    // smoother(b, x)
+    // r = b - Ax
+    // LL'y = r solve y -> L'^-1(L^-1r)
+    // x += y
     // Create smoother factory (ir with ic)
     auto inner_gen = gko::share(
         ic::build()
@@ -112,8 +118,31 @@ int main(int argc, char* argv[])
     auto smoother_gen = gko::share(gko::solver::build_smoother(
         inner_gen, 1u, static_cast<ValueType>(1.0)));
     // Create RestrictProlong factory
-    auto mg_level_gen =
-        gko::share(pgm::build().with_deterministic(true).on(exec));
+    std::vector<std::shared_ptr<const gko::LinOpFactory>> mg_level_gen;
+    if (custom_prefix == std::string("none")) {
+        auto mg_level =
+            gko::share(pgm::build().with_deterministic(true).on(exec));
+        mg_level_gen.emplace_back(mg_level);
+    } else {
+        for (unsigned int i = 0; i < max_mg_levels; i++) {
+            auto coarse = share(
+                gko::read<mtx>(std::ifstream(custom_prefix + "_" +
+                                             std::to_string(i + 1) + ".mtx"),
+                               exec));
+            auto rst =
+                share(gko::read<mtx>(std::ifstream(custom_prefix + "_r_" +
+                                                   std::to_string(i) + ".mtx"),
+                                     exec));
+            auto prl = share(rst->conj_transpose());
+            auto mg_level =
+                share(gko::multigrid::CustomCoarse<ValueType>::build()
+                          .with_coarse(coarse)
+                          .with_restriction(rst)
+                          .with_prologation(prl)
+                          .on(exec));
+            mg_level_gen.emplace_back(mg_level);
+        }
+    }
     // Create CoarsesSolver factory
     auto coarsest_solver_gen = gko::share(
         gko::experimental::solver::Direct<ValueType, IndexType>::build()
@@ -202,35 +231,38 @@ int main(int argc, char* argv[])
                 gko::write(ofs, csr);
             }
         }
-        // for smoother
-        auto presmoother_list = solver->get_pre_smoother_list();
-        std::cout << "extract presmooth list: " << presmoother_list.size()
-                  << std::endl;
-        for (int i = 0; i < presmoother_list.size(); i++) {
-            auto op = gko::as<ir>(presmoother_list.at(i));
-            auto l_matrix =
-                gko::as<mtx>(gko::as<gko::solver::LowerTrs<ValueType>>(
-                                 gko::as<ic>(op->get_solver())->get_l_solver())
-                                 ->get_system_matrix());
-            std::string filename = "data/A_l_" + std::to_string(i) + ".mtx";
-            std::ofstream ofs(filename);
-            ofs << std::setprecision(std::numeric_limits<double>::digits10 + 1);
-            gko::write(ofs, l_matrix);
-        }
-        {
-            // for Restrict/Prolong
-            auto mg_level_list = solver->get_mg_level_list();
-            for (int i = 0; i < mg_level_list.size(); i++) {
-                auto op =
-                    gko::as<gko::matrix::SparsityCsr<ValueType, IndexType>>(
-                        mg_level_list.at(i)->get_restrict_op());
-                if (export_data) {
-                    std::string filename =
-                        "data/A_mg_r_" + std::to_string(i) + ".mtx";
-                    std::ofstream ofs(filename);
-                    ofs << std::setprecision(
-                        std::numeric_limits<double>::digits10 + 1);
-                    gko::write(ofs, op);
+        if (export_data) {
+            // for smoother
+            auto presmoother_list = solver->get_pre_smoother_list();
+            std::cout << "extract presmooth list: " << presmoother_list.size()
+                      << std::endl;
+            for (int i = 0; i < presmoother_list.size(); i++) {
+                auto op = gko::as<ir>(presmoother_list.at(i));
+                auto l_matrix = gko::as<mtx>(
+                    gko::as<gko::solver::LowerTrs<ValueType>>(
+                        gko::as<ic>(op->get_solver())->get_l_solver())
+                        ->get_system_matrix());
+                std::string filename = "data/A_l_" + std::to_string(i) + ".mtx";
+                std::ofstream ofs(filename);
+                ofs << std::setprecision(std::numeric_limits<double>::digits10 +
+                                         1);
+                gko::write(ofs, l_matrix);
+            }
+            {
+                // for Restrict/Prolong
+                auto mg_level_list = solver->get_mg_level_list();
+                for (int i = 0; i < mg_level_list.size(); i++) {
+                    auto op =
+                        gko::as<gko::matrix::SparsityCsr<ValueType, IndexType>>(
+                            mg_level_list.at(i)->get_restrict_op());
+                    if (export_data) {
+                        std::string filename =
+                            "data/A_mg_r_" + std::to_string(i) + ".mtx";
+                        std::ofstream ofs(filename);
+                        ofs << std::setprecision(
+                            std::numeric_limits<double>::digits10 + 1);
+                        gko::write(ofs, op);
+                    }
                 }
             }
         }
