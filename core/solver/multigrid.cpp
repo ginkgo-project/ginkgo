@@ -697,6 +697,16 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
             this->template log<log::Logger::iteration_complete>(
                 this, b, x, iter, nullptr, nullptr, nullptr, &stop_status,
                 all_stopped);
+            {
+                auto rhs = b->clone();
+                this->get_system_matrix()->apply(neg_one_op, x, one_op, rhs);
+                auto res_norm =
+                    matrix::Dense<value_type>::create(exec, dim<2>{1, 1});
+                rhs->compute_norm2(res_norm);
+                std::cout << iter << " "
+                          << exec->copy_val_to_host(res_norm->get_values())
+                          << std::endl;
+            }
             if (all_stopped) {
                 break;
             }
