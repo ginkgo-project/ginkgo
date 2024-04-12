@@ -467,7 +467,9 @@ add_custom_target(test_exportbuild
     COMMAND ${GINKGO_TEST_EXPORTBUILD_CMD}
     COMMENT "Running a test on Ginkgo's exported build directory.")
 
-if (BUILD_SHARED_LIBS)
+# static linking with pkg-config is not possible with HIP, since
+# some linker information cannot be expressed in pkg-config files
+if (BUILD_SHARED_LIBS OR NOT GINKGO_BUILD_HIP)
     add_custom_target(test_pkgconfig
         COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} ${TOOLSET}
         -S${GINKGO_TEST_PKGCONFIG_SRC_DIR}
