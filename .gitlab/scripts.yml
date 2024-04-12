@@ -106,7 +106,7 @@
     - popd
     - if [ -n "${SYCL_DEVICE_TYPE}" ]; then unset SYCL_DEVICE_TYPE; fi
     - if [ -n "${SYCL_DEVICE_FILTER}" ]; then unset SYCL_DEVICE_FILTER; fi
-    - if [[ "${BUILD_SHARED_LIBS}" == "ON" ]]; then
+    - if [[ "${BUILD_SHARED_LIBS}" == "ON" || "${BUILD_HIP}" != "ON" ]]; then
       PKG_CONFIG_PATH=${INSTALL_PREFIX}/lib/pkgconfig:$PKG_CONFIG_PATH LD_LIBRARY_PATH=${INSTALL_PREFIX}/lib:$LD_LIBRARY_PATH ninja test_pkgconfig;
       fi
   dependencies: []
@@ -138,7 +138,7 @@
     - pushd test/test_install
     - ninja install
     - popd
-    - if [[ "${BUILD_SHARED_LIBS}" == "ON" ]]; then
+    - if [[ "${BUILD_SHARED_LIBS}" == "ON" || "${BUILD_HIP}" != "ON" ]]; then
       PKG_CONFIG_PATH=${INSTALL_PREFIX}/lib/pkgconfig:$PKG_CONFIG_PATH LD_LIBRARY_PATH=${INSTALL_PREFIX}/lib:$LD_LIBRARY_PATH ninja test_pkgconfig;
       fi
   cache: []

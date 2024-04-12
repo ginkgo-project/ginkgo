@@ -59,7 +59,9 @@ function(ginkgo_install_library name)
 endfunction()
 
 function(ginkgo_install)
-    if (BUILD_SHARED_LIBS)
+    # static linking with pkg-config is not possible with HIP, since
+    # some linker information cannot be expressed in pkg-config files
+    if (BUILD_SHARED_LIBS OR NOT GINKGO_BUILD_HIP)
         # generate pkg-config file, a three-step process is necessary to include the correct install prefix
         # Step 1: substitute project variables in the generation script
         configure_file("${Ginkgo_SOURCE_DIR}/cmake/generate_pkg.cmake.in"
