@@ -52,14 +52,6 @@ set(GINKGO_CUDA_ARCHITECTURES "Auto" CACHE STRING
     "A list of target NVIDIA GPU architectures. See README.md for more detail.")
 # the details of fine/coarse grain memory and unsafe atomic are available https://docs.olcf.ornl.gov/systems/crusher_quick_start_guide.html#floating-point-fp-atomic-operations-and-coarse-fine-grained-memory-allocations
 option(GINKGO_HIP_AMD_UNSAFE_ATOMIC "Compiler uses unsafe floating point atomic (only for AMD GPU and ROCM >= 5). Default is ON because we use hipMalloc, which is always on coarse grain. Must turn off when allocating memory on fine grain" ON)
-set(GINKGO_HIP_COMPILER_FLAGS "" CACHE STRING
-    "Set the required HIP compiler flags. Current default is an empty string.")
-set(GINKGO_HIP_NVCC_COMPILER_FLAGS "" CACHE STRING
-    "Set the required HIP nvcc compiler flags. Current default is an empty string.")
-set(GINKGO_HIP_CLANG_COMPILER_FLAGS "" CACHE STRING
-    "Set the required HIP CLANG compiler flags. Current default is an empty string.")
-set(GINKGO_HIP_AMDGPU "" CACHE STRING
-    "The amdgpu_target(s) variable passed to hipcc. The default is none (auto).")
 option(GINKGO_SPLIT_TEMPLATE_INSTANTIATIONS "Split template instantiations for slow-to-compile files. This improves parallel build performance" ON)
 mark_as_advanced(GINKGO_SPLIT_TEMPLATE_INSTANTIATIONS)
 option(GINKGO_JACOBI_FULL_OPTIMIZATIONS "Use all the optimizations for the CUDA Jacobi algorithm" OFF)
@@ -142,12 +134,6 @@ endif()
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     message(STATUS "Setting build type to 'Release' as none was specified.")
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
-endif()
-
-if(BUILD_SHARED_LIBS)
-    set(GINKGO_STATIC_OR_SHARED SHARED)
-else()
-    set(GINKGO_STATIC_OR_SHARED STATIC)
 endif()
 
 # Ensure we have a debug postfix
@@ -481,22 +467,26 @@ add_custom_target(test_exportbuild
     COMMAND ${GINKGO_TEST_EXPORTBUILD_CMD}
     COMMENT "Running a test on Ginkgo's exported build directory.")
 
-add_custom_target(test_pkgconfig
-    COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} ${TOOLSET}
-    -S${GINKGO_TEST_PKGCONFIG_SRC_DIR}
-    -B${GINKGO_TEST_PKGCONFIG_BIN_DIR}
-    -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-    -DCMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}
-    -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
-    # `--config cfg` is ignored by single-configuration generator.
-    # `$<CONFIG>` is always be the same as `CMAKE_BUILD_TYPE` in
-    # single-configuration generator.
-    COMMAND ${CMAKE_COMMAND}
-    --build ${GINKGO_TEST_PKGCONFIG_BIN_DIR}
-    --config $<CONFIG>
-    COMMAND ${GINKGO_TEST_PKGCONFIG_CMD}
-    COMMENT "Running a test on Ginkgo's PkgConfig"
-    "This requires installing Ginkgo first")
+# static linking with pkg-config is not possible with HIP, since
+# some linker information cannot be expressed in pkg-config files
+if (BUILD_SHARED_LIBS OR NOT GINKGO_BUILD_HIP)
+    add_custom_target(test_pkgconfig
+        COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} ${TOOLSET}
+        -S${GINKGO_TEST_PKGCONFIG_SRC_DIR}
+        -B${GINKGO_TEST_PKGCONFIG_BIN_DIR}
+        -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+        -DCMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}
+        -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+        # `--config cfg` is ignored by single-configuration generator.
+        # `$<CONFIG>` is always be the same as `CMAKE_BUILD_TYPE` in
+        # single-configuration generator.
+        COMMAND ${CMAKE_COMMAND}
+        --build ${GINKGO_TEST_PKGCONFIG_BIN_DIR}
+        --config $<CONFIG>
+        COMMAND ${GINKGO_TEST_PKGCONFIG_CMD}
+        COMMENT "Running a test on Ginkgo's PkgConfig"
+        "This requires installing Ginkgo first")
+endif()
 
 
 # Setup CPack

@@ -51,8 +51,8 @@ Ginkgo adds the following additional switches to control what is being built:
 *   `-DGINKGO_BUILD_HIP={ON, OFF}` builds optimized HIP versions of the kernels
     (requires HIP), default is `ON` if an installation of HIP could be detected,
     `OFF` otherwise.
-*   `-DGINKGO_HIP_AMDGPU="gpuarch1;gpuarch2"` the amdgpu_target(s) variable
-    passed to hipcc for the `hcc` HIP backend. The default is none (auto).
+*   `-DCMAKE_HIP_ARCHITECTURES="gpuarch1;gpuarch2"` the AMDGPU targets to be passed to the compiler.
+    If empty, compiler chooses based on the available GPUs.
 *   `-DGINKGO_BUILD_HWLOC={ON, OFF}` builds Ginkgo with HWLOC. Default is `OFF`.
 *   `-DGINKGO_BUILD_DOC={ON, OFF}` creates an HTML version of Ginkgo's documentation
     from inline comments in the code. The default is `OFF`.
@@ -181,22 +181,13 @@ imposed by the `HIP` tool suite. The variables are the following:
 
 
 #### HIP platform detection of AMD and NVIDIA
-By default, Ginkgo uses the output of `/opt/rocm/hip/bin/hipconfig --platform`
-to select the backend. The accepted values are either `hcc` (`amd` with ROCM >=
-4.1) or `nvcc` (`nvidia` with ROCM >= 4.1). When on an AMD or NVIDIA system,
-this should output the correct platform by default. When on a system without
-GPUs, this should output `hcc` by default. To change this value, export the
-environment variable `HIP_PLATFORM` like so:
+Ginkgo relies on CMake to decide which compiler to use for HIP.
+To choose `nvcc` instead of the default ROCm `clang++`, set the corresponding
+environment variable:
 ```bash
-export HIP_PLATFORM=nvcc # or nvidia for ROCM >= 4.1
+export HIPCXX=nvcc
 ```
-
-#### Setting platform specific compilation flags
-Platform specific compilation flags can be given through the following CMake
-variables:
-+ `-DGINKGO_HIP_COMPILER_FLAGS=`: compilation flags given to all platforms.
-+ `-DGINKGO_HIP_NVCC_COMPILER_FLAGS=`: compilation flags given to NVIDIA platforms.
-+ `-DGINKGO_HIP_CLANG_COMPILER_FLAGS=`: compilation flags given to AMD clang compiler.
+Note that this option is currently not being tested in our CI pipelines.
 
 
 ### Third party libraries and packages

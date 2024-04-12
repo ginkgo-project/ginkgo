@@ -106,7 +106,6 @@ build/cuda101/nompi/clang/cuda_wo_omp/release/shared:
   variables:
     CXX_COMPILER: "clang++"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
     BUILD_HWLOC: "OFF"
     BUILD_TYPE: "Release"
     CUDA_ARCH: 35
@@ -124,7 +123,6 @@ build/cuda101/openmpi/gcc/all/debug/shared:
     BUILD_CUDA: "ON"
     BUILD_MPI: "ON"
     MPI_AS_ROOT: "ON"
-    BUILD_HIP: "ON"
     BUILD_TYPE: "Debug"
     BUILD_PAPI_SDE: "ON"
     CUDA_ARCH: 35
@@ -139,7 +137,6 @@ build/cuda101/nompi/clang/all/release/static:
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
@@ -190,7 +187,6 @@ build/cuda102/nompi/gcc/all/debug/shared:
   variables:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
     BUILD_HWLOC: "OFF"
@@ -207,7 +203,6 @@ build/cuda102/nompi/clang/all/release/static:
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
@@ -425,25 +420,25 @@ build/amd/nompi/clang/rocm45/debug/shared:
     BUILD_HIP: "ON"
     BUILD_TYPE: "Debug"
 
-# ROCm 5.0.2 and friends
-build/amd/nompi/gcc/rocm502/debug/static:
+# ROCm 5.1.4 and friends
+build/amd/nompi/gcc/rocm514/debug/static:
   extends:
     - .build_and_test_template
     - .default_variables
     - .full_test_condition
-    - .use_gko-rocm502-nompi-gnu11-llvm11
+    - .use_gko-rocm514-nompi-gnu11-llvm11
   variables:
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
     BUILD_TYPE: "Debug"
     BUILD_SHARED_LIBS: "OFF"
 
-build/amd/nompi/clang/rocm502/release/shared:
+build/amd/nompi/clang/rocm514/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
     - .quick_test_condition
-    - .use_gko-rocm502-nompi-gnu11-llvm11
+    - .use_gko-rocm514-nompi-gnu11-llvm11
   variables:
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
@@ -451,12 +446,12 @@ build/amd/nompi/clang/rocm502/release/shared:
     BUILD_TYPE: "Release"
 
 # without omp
-build/amd/nompi/gcc/rocm502_wo_omp/release/shared:
+build/amd/nompi/gcc/rocm514_wo_omp/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
     - .full_test_condition
-    - .use_gko-rocm502-nompi-gnu11-llvm11
+    - .use_gko-rocm514-nompi-gnu11-llvm11
   variables:
     BUILD_OMP: "OFF"
     BUILD_MPI: "OFF"
@@ -686,7 +681,6 @@ warnings:
   variables:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
     CXX_FLAGS: "-Werror=pedantic;-pedantic-errors"
   allow_failure: yes
 
@@ -701,7 +695,6 @@ no-circular-deps:
   variables:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
     EXTRA_CMAKE_FLAGS: '-DGINKGO_CHECK_CIRCULAR_DEPS=on'
   allow_failure: no
 
@@ -729,7 +722,6 @@ clang-tidy:
   variables:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
     EXTRA_CMAKE_FLAGS: '-DGINKGO_WITH_CLANG_TIDY=ON'
   allow_failure: yes
 

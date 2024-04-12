@@ -59,19 +59,23 @@ function(ginkgo_install_library name)
 endfunction()
 
 function(ginkgo_install)
-    # generate pkg-config file, a three-step process is necessary to include the correct install prefix
-    # Step 1: substitute project variables in the generation script
-    configure_file("${Ginkgo_SOURCE_DIR}/cmake/generate_pkg.cmake.in"
-                   "${Ginkgo_BINARY_DIR}/cmake/generate_pkg.cmake"
-                   @ONLY)
-    # Step 2: substitute generator expressions
-    file(GENERATE OUTPUT ${Ginkgo_BINARY_DIR}/cmake/generate_pkg_$<CONFIG>.cmake
-         INPUT ${Ginkgo_BINARY_DIR}/cmake/generate_pkg.cmake)
-    # Step 3: at install time, call the generation script which has all variables
-    #         except the install prefix already replaced. Use the install prefix
-    #         that is specified at install time
-    install(SCRIPT "${Ginkgo_BINARY_DIR}/cmake/generate_pkg_$<CONFIG>.cmake"
-        COMPONENT Ginkgo_Development)
+    # static linking with pkg-config is not possible with HIP, since
+    # some linker information cannot be expressed in pkg-config files
+    if (BUILD_SHARED_LIBS OR NOT GINKGO_BUILD_HIP)
+        # generate pkg-config file, a three-step process is necessary to include the correct install prefix
+        # Step 1: substitute project variables in the generation script
+        configure_file("${Ginkgo_SOURCE_DIR}/cmake/generate_pkg.cmake.in"
+                    "${Ginkgo_BINARY_DIR}/cmake/generate_pkg.cmake"
+                    @ONLY)
+        # Step 2: substitute generator expressions
+        file(GENERATE OUTPUT ${Ginkgo_BINARY_DIR}/cmake/generate_pkg_$<CONFIG>.cmake
+            INPUT ${Ginkgo_BINARY_DIR}/cmake/generate_pkg.cmake)
+        # Step 3: at install time, call the generation script which has all variables
+        #         except the install prefix already replaced. Use the install prefix
+        #         that is specified at install time
+        install(SCRIPT "${Ginkgo_BINARY_DIR}/cmake/generate_pkg_$<CONFIG>.cmake"
+            COMPONENT Ginkgo_Development)
+    endif()
 
     # install the public header files
     install(DIRECTORY "${Ginkgo_SOURCE_DIR}/include/"

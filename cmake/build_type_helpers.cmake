@@ -93,7 +93,7 @@ foreach(_LANG IN LISTS ENABLED_LANGUAGES ITEMS "HIP")
             set(${PROJECT_NAME}_${_LANG}_${_TYPE}_SUPPORTED FALSE)
         endif()
         if(${PROJECT_NAME}_${_LANG}_${_TYPE}_SUPPORTED)
-            if(_LANG STREQUAL "HIP" AND GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
+            if(_LANG STREQUAL "HIP" AND GINKGO_HIP_PLATFORM_NVIDIA)
                 set(CMAKE_${_LANG}_FLAGS_${_TYPE}
                     ${${PROJECT_NAME}_NVCC_${_TYPE}_COMPILER_FLAGS}
                     CACHE STRING "Flags used by the ${_LANG} compiler during ${_TYPE} builds." FORCE

@@ -116,10 +116,6 @@ ginkgo_compile_features(ginkgo)
 add_library(Ginkgo::ginkgo ALIAS ginkgo)
 target_link_libraries(ginkgo
     PUBLIC ginkgo_device ginkgo_omp ginkgo_cuda ginkgo_reference ginkgo_hip ginkgo_dpcpp)
-
-# The PAPI dependency needs to be exposed to the user.
-set(GKO_RPATH_ADDITIONS "")
-
 if(GINKGO_HAVE_PAPI_SDE)
     target_link_libraries(ginkgo PUBLIC PAPI::PAPI_SDE)
 endif()
@@ -140,14 +136,8 @@ if(GINKGO_BUILD_MPI)
     target_link_libraries(ginkgo PUBLIC MPI::MPI_CXX)
 endif()
 
-# Since we have a public dependency on HIP, this dependency appears
-# here as well
-if(GINKGO_BUILD_HIP AND GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
-    list(APPEND GKO_RPATH_ADDITIONS "${HIP_PATH}/lib")
-endif()
-
 ginkgo_default_includes(ginkgo)
-ginkgo_install_library(ginkgo "${GKO_RPATH_ADDITIONS}")
+ginkgo_install_library(ginkgo)
 
 if(GINKGO_CHECK_CIRCULAR_DEPS)
     ginkgo_check_headers(ginkgo "")

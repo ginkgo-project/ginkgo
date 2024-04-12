@@ -19,6 +19,10 @@ endfunction()
 
 function(ginkgo_compile_features name)
     target_compile_features("${name}" PUBLIC cxx_std_14)
+    # we set these properties regardless of the enabled backends,
+    # because unknown properties are ignored
+    set_target_properties("${name}" PROPERTIES HIP_STANDARD 14)
+    set_target_properties("${name}" PROPERTIES CUDA_STANDARD 14)
     if(GINKGO_WITH_CLANG_TIDY AND GINKGO_CLANG_TIDY_PATH)
         set_property(TARGET "${name}" PROPERTY CXX_CLANG_TIDY "${GINKGO_CLANG_TIDY_PATH};-checks=*")
     endif()
@@ -93,17 +97,12 @@ function(ginkgo_check_headers target defines)
         list(APPEND HIP_SOURCES "${HEADER_SOURCEFILE}")
     endforeach()
     if(HIP_SOURCES)
-        set_source_files_properties(${HIP_SOURCES} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
-        hip_add_library(${target}_headers_hip ${HIP_SOURCES}) # the compiler options get set by linking to ginkgo_hip
+        set_source_files_properties(${HIP_SOURCES} PROPERTIES LANGUAGE HIP)
+        add_library(${target}_headers_hip ${HIP_SOURCES}) # the compiler options get set by linking to ginkgo_hip
         target_link_libraries(${target}_headers_hip PRIVATE ${target} roc::hipblas roc::hipsparse hip::hiprand roc::rocrand)
         target_include_directories(${target}_headers_hip
             PRIVATE
-            "${CMAKE_CURRENT_SOURCE_DIR}"
-            "${GINKGO_HIP_THRUST_PATH}"
-            "${HIPBLAS_INCLUDE_DIRS}"
-            "${hiprand_INCLUDE_DIRS}"
-            "${HIPSPARSE_INCLUDE_DIRS}"
-            "${ROCPRIM_INCLUDE_DIRS}")
+            "${CMAKE_CURRENT_SOURCE_DIR}")
     endif()
 endfunction()
 
