@@ -7,8 +7,14 @@
 
 
 #include <ginkgo/core/base/batch_lin_op.hpp>
+#include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/log/batch_logger.hpp>
+#include <ginkgo/core/matrix/batch_csr.hpp>
+#include <ginkgo/core/matrix/batch_dense.hpp>
+#include <ginkgo/core/matrix/batch_ell.hpp>
 #include <ginkgo/core/matrix/batch_identity.hpp>
+#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
+#include <ginkgo/core/solver/batch_bicgstab.hpp>
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
 
 
@@ -226,15 +232,17 @@ public:
                 logger, mat_item,
                 device::batch_preconditioner::Identity<device_value_type>(),
                 b_item, x_item);
-        } else if (auto prec =
-                       dynamic_cast<const preconditioner::Jacobi<value_type>*>(
-                           precond_)) {
+        } else if (auto prec = dynamic_cast<
+                       const batch::preconditioner::Jacobi<value_type>*>(
+                       precond_)) {
             const auto max_block_size = prec->get_max_block_size();
             if (max_block_size == 1) {
-                dispatch_on_stop<device::BatchScalarJacobi<device_value_type>>(
+                dispatch_on_stop<device::batch_preconditioner::ScalarJacobi<
+                    device_value_type>>(
                     logger, mat_item,
-                    device::BatchScalarJacobi<device_value_type>(), b_item,
-                    x_item);
+                    device::batch_preconditioner::ScalarJacobi<
+                        device_value_type>(),
+                    b_item, x_item);
             } else {
                 const auto num_blocks = prec->get_num_blocks();
                 const auto block_ptrs_arr = prec->get_const_block_pointers();
@@ -246,11 +254,13 @@ public:
                 const auto blocks_cumul_storage =
                     prec->get_const_blocks_cumulative_storage();
 
-                dispatch_on_stop<device::BatchBlockJacobi<device_value_type>>(
+                dispatch_on_stop<device::batch_preconditioner::BlockJacobi<
+                    device_value_type>>(
                     logger, mat_item,
-                    device::BatchBlockJacobi<device_value_type>(
-                        max_block_size, num_blocks, blocks_cumul_storage,
-                        blocks_arr, block_ptrs_arr, row_block_map_arr),
+                    device::batch_preconditioner::BlockJacobi<
+                        device_value_type>(max_block_size, num_blocks,
+                                           blocks_cumul_storage, blocks_arr,
+                                           block_ptrs_arr, row_block_map_arr),
                     b_item, x_item);
             }
         } else {

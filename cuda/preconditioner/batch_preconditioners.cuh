@@ -20,7 +20,9 @@ namespace cuda {
 namespace batch_preconditioner {
 
 
+#include "common/cuda_hip/preconditioner/batch_block_jacobi.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_identity.hpp.inc"
+#include "common/cuda_hip/preconditioner/batch_scalar_jacobi.hpp.inc"
 
 
 }  // namespace batch_preconditioner

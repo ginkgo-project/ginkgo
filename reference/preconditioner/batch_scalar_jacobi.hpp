@@ -13,13 +13,14 @@
 namespace gko {
 namespace kernels {
 namespace host {
+namespace batch_preconditioner {
 
 
 /**
  * (Scalar) Jacobi preconditioner for batch solvers.
  */
 template <typename ValueType, typename IndexType = int>
-class BatchScalarJacobi final {
+class ScalarJacobi final {
 public:
     /**
      * The size of the work vector required in case of dynamic allocation.
@@ -128,6 +129,7 @@ private:
 };
 
 
+}  // namespace batch_preconditioner
 }  // namespace host
 }  // namespace kernels
 }  // namespace gko
