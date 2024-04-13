@@ -17,13 +17,14 @@
 namespace gko {
 namespace kernels {
 namespace host {
+namespace batch_preconditioner {
 
 
 /**
- * BatchBlockJacobi preconditioner for batch solvers.
+ * BlockJacobi preconditioner for batch solvers.
  */
 template <typename ValueType, typename IndexType = int>
-class BatchBlockJacobi final {
+class BlockJacobi final {
 public:
     using value_type = ValueType;
 
@@ -36,10 +37,10 @@ public:
      * @param block_ptrs_arr array of block pointers
      *
      */
-    BatchBlockJacobi(const uint32, const size_type num_blocks,
-                     const int* const blocks_cumulative_storage,
-                     const value_type* const blocks_arr_batch,
-                     const int* const block_ptrs_arr, const int* const)
+    BlockJacobi(const uint32, const size_type num_blocks,
+                const int* const blocks_cumulative_storage,
+                const value_type* const blocks_arr_batch,
+                const int* const block_ptrs_arr, const int* const)
         : num_blocks_{num_blocks},
           blocks_cumulative_storage_{blocks_cumulative_storage},
           blocks_arr_batch_{blocks_arr_batch},
@@ -123,6 +124,7 @@ private:
 };
 
 
+}  // namespace batch_preconditioner
 }  // namespace host
 }  // namespace kernels
 }  // namespace gko
