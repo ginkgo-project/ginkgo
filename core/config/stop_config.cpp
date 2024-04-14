@@ -125,9 +125,9 @@ get_factory<const stop::CriterionFactory>(const pnode& config,
                                           type_descriptor td)
 {
     deferred_factory_parameter<const stop::CriterionFactory> ptr;
-    if (config.get_status() == pnode::status_t::string) {
+    if (config.get_tag() == pnode::tag_t::string) {
         return context.search_data<stop::CriterionFactory>(config.get_string());
-    } else if (config.get_status() == pnode::status_t::map) {
+    } else if (config.get_tag() == pnode::tag_t::map) {
         static std::map<std::string,
                         std::function<deferred_factory_parameter<
                             gko::stop::CriterionFactory>(

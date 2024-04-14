@@ -36,9 +36,9 @@ deferred_factory_parameter<const LinOpFactory> get_factory<const LinOpFactory>(
     const pnode& config, const registry& context, type_descriptor td)
 {
     deferred_factory_parameter<const LinOpFactory> ptr;
-    if (config.get_status() == pnode::status_t::string) {
+    if (config.get_tag() == pnode::tag_t::string) {
         ptr = context.search_data<LinOpFactory>(config.get_string());
-    } else if (config.get_status() == pnode::status_t::map) {
+    } else if (config.get_tag() == pnode::tag_t::map) {
         ptr = build_from_config(config, context, td);
     }
     assert(!ptr.is_empty());
