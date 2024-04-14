@@ -225,8 +225,8 @@ struct MultigridState {
      */
     template <typename VectorType>
     void allocate_memory(int level, multigrid::cycle cycle,
-                         experimental::mpi::communicator& current_comm,
-                         experimental::mpi::communicator& next_comm,
+                         const experimental::mpi::communicator& current_comm,
+                         const experimental::mpi::communicator& next_comm,
                          size_type current_nrows, size_type next_nrows,
                          size_type current_local_nrows,
                          size_type next_local_nrows);
@@ -380,8 +380,8 @@ void MultigridState::allocate_memory(int level, multigrid::cycle cycle,
 template <typename VectorType>
 void MultigridState::allocate_memory(
     int level, multigrid::cycle cycle,
-    experimental::mpi::communicator& current_comm,
-    experimental::mpi::communicator& next_comm, size_type current_nrows,
+    const experimental::mpi::communicator& current_comm,
+    const experimental::mpi::communicator& next_comm, size_type current_nrows,
     size_type next_nrows, size_type current_local_nrows,
     size_type next_local_nrows)
 {
