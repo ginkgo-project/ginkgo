@@ -156,7 +156,7 @@ inline std::vector<deferred_factory_parameter<T>> get_factory_vector(
 {
     std::vector<deferred_factory_parameter<T>> res;
     // for loop in config
-    if (config.get_status() == pnode::status_t::array) {
+    if (config.get_tag() == pnode::tag_t::array) {
         for (const auto& it : config.get_array()) {
             res.push_back(get_factory<T>(it, context, td));
         }
@@ -202,9 +202,9 @@ inline typename std::enable_if<gko::is_complex_s<ValueType>::value,
 get_value(const pnode& config)
 {
     using real_type = gko::remove_complex<ValueType>;
-    if (config.get_status() == pnode::status_t::real) {
+    if (config.get_tag() == pnode::tag_t::real) {
         return static_cast<ValueType>(get_value<real_type>(config));
-    } else if (config.get_status() == pnode::status_t::array) {
+    } else if (config.get_tag() == pnode::tag_t::array) {
         return ValueType{get_value<real_type>(config.get(0)),
                          get_value<real_type>(config.get(1))};
     }

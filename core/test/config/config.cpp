@@ -166,7 +166,7 @@ TEST(GetValue, ComplexType)
     double real = 1.0;
     double imag = -1.0;
     pnode config{real};
-    pnode array_config{pnode::array_type{real, imag}};
+    pnode array_config{pnode::array_type{pnode{real}, pnode{imag}}};
 
     // Only one value
     ASSERT_EQ(get_value<std::complex<float>>(config),
