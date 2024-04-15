@@ -590,15 +590,15 @@ build/dpcpp/2022-1/cpu/release/shared:
     BUILD_HWLOC: "OFF"
     # This job is not in exclusive mode
 
-# It gives two available backends of GPU on tests
-build/dpcpp/igpu/release/shared:
+# spack oneapi 2023.1
+build/icpx20231/igpu/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
     - .quick_test_condition
-    - .use_gko-oneapi-igpu
+    - .use_gko-oneapi20231-igpu
   variables:
-    CXX_COMPILER: "dpcpp"
+    CXX_COMPILER: "icpx"
     CXX_FLAGS: "-Wpedantic -ffp-model=precise"
     BUILD_SYCL: "ON"
     BUILD_TYPE: "Release"
@@ -640,22 +640,7 @@ build/dpcpp/dgpu/release/static:
     ONEAPI_DEVICE_SELECTOR: "*:gpu"
     BUILD_HWLOC: "OFF"
 
-build/dpcpp/level_zero_dgpu/release/shared:
-  extends:
-    - .build_and_test_template
-    - .default_variables
-    - .quick_test_condition
-    - .use_gko-oneapi-dgpu
-  variables:
-    CXX_COMPILER: "dpcpp"
-    CXX_FLAGS: "-Wpedantic -ffp-model=precise"
-    BUILD_SYCL: "ON"
-    BUILD_TYPE: "Release"
-    DPCPP_SINGLE_MODE: "ON"
-    ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
-    BUILD_HWLOC: "OFF"
-
-build/icpx/level_zero_dgpu/release/shared:
+build/icpx/dgpu/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
@@ -667,7 +652,7 @@ build/icpx/level_zero_dgpu/release/shared:
     BUILD_SYCL: "ON"
     BUILD_TYPE: "Release"
     DPCPP_SINGLE_MODE: "ON"
-    ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
+    ONEAPI_DEVICE_SELECTOR: "opencl:gpu"
     BUILD_HWLOC: "OFF"
 
 # Job with important warnings as error
