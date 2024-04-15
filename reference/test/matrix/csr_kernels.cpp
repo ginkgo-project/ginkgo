@@ -2598,6 +2598,7 @@ TYPED_TEST_SUITE(CsrLookup, gko::test::ValueIndexTypes,
 TYPED_TEST(CsrLookup, GeneratesLookupDataOffsets)
 {
     using IndexType = typename TestFixture::index_type;
+    using gko::matrix::csr::csr_lookup_allowed;
     using gko::matrix::csr::sparsity_type;
     const auto num_rows = this->mtx->get_size()[0];
     gko::array<IndexType> storage_offset_array(this->exec, num_rows + 1);
@@ -2608,19 +2609,19 @@ TYPED_TEST(CsrLookup, GeneratesLookupDataOffsets)
     for (auto allowed :
          {sparsity_type::full | sparsity_type::bitmap | sparsity_type::hash,
           sparsity_type::bitmap | sparsity_type::hash,
-          sparsity_type::full | sparsity_type::hash, sparsity_type::hash}) {
+          sparsity_type::full | sparsity_type::hash, sparsity_type::hash,
+          sparsity_type::none}) {
         gko::kernels::reference::csr::build_lookup_offsets(
             this->exec, row_ptrs, col_idxs, num_rows, allowed, storage_offsets);
-        bool allow_full =
-            gko::matrix::csr::csr_lookup_allowed(allowed, sparsity_type::full);
-        bool allow_bitmap = gko::matrix::csr::csr_lookup_allowed(
-            allowed, sparsity_type::bitmap);
+        bool allow_full = csr_lookup_allowed(allowed, sparsity_type::full);
+        bool allow_bitmap = csr_lookup_allowed(allowed, sparsity_type::bitmap);
+        bool allow_hash = csr_lookup_allowed(allowed, sparsity_type::hash);
 
         for (gko::size_type row = 0; row < num_rows; row++) {
-            const auto expected_size =
-                std::min(allow_full ? this->full_sizes[row] : 1000,
-                         std::min(allow_bitmap ? this->bitmap_sizes[row] : 1000,
-                                  this->hash_sizes[row]));
+            const auto expected_size = std::min(
+                allow_full ? this->full_sizes[row] : 1000,
+                std::min(allow_bitmap ? this->bitmap_sizes[row] : 1000,
+                         allow_hash ? this->hash_sizes[row] : IndexType{}));
             const auto size = storage_offsets[row + 1] - storage_offsets[row];
 
             ASSERT_EQ(size, expected_size);
@@ -2644,16 +2645,21 @@ TYPED_TEST(CsrLookup, GeneratesLookupData)
     for (auto allowed :
          {sparsity_type::full | sparsity_type::bitmap | sparsity_type::hash,
           sparsity_type::bitmap | sparsity_type::hash,
-          sparsity_type::full | sparsity_type::hash, sparsity_type::hash}) {
+          sparsity_type::full | sparsity_type::hash, sparsity_type::hash,
+          sparsity_type::none}) {
         gko::kernels::reference::csr::build_lookup_offsets(
             this->exec, row_ptrs, col_idxs, num_rows, allowed, storage_offsets);
         gko::array<gko::int32> storage_array(this->exec,
                                              storage_offsets[num_rows]);
         const auto storage = storage_array.get_data();
+        const auto hash_equivalent =
+            csr_lookup_allowed(allowed, sparsity_type::hash)
+                ? sparsity_type::hash
+                : sparsity_type::none;
         const auto bitmap_equivalent =
             csr_lookup_allowed(allowed, sparsity_type::bitmap)
                 ? sparsity_type::bitmap
-                : sparsity_type::hash;
+                : hash_equivalent;
         const auto full_equivalent =
             csr_lookup_allowed(allowed, sparsity_type::full)
                 ? sparsity_type::full
@@ -2687,7 +2693,7 @@ TYPED_TEST(CsrLookup, GeneratesLookupData)
         ASSERT_EQ(row_descs[0] & 0xF, static_cast<int>(full_equivalent));
         ASSERT_EQ(row_descs[1] & 0xF, static_cast<int>(full_equivalent));
         ASSERT_EQ(row_descs[2] & 0xF, static_cast<int>(bitmap_equivalent));
-        ASSERT_EQ(row_descs[3] & 0xF, static_cast<int>(sparsity_type::hash));
+        ASSERT_EQ(row_descs[3] & 0xF, static_cast<int>(hash_equivalent));
         ASSERT_EQ(row_descs[4] & 0xF, static_cast<int>(full_equivalent));
         ASSERT_EQ(row_descs[5] & 0xF, static_cast<int>(full_equivalent));
     }
