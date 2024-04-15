@@ -316,17 +316,7 @@ private:
 
     GKO_ATTRIBUTES GKO_INLINE IndexType lookup_search(IndexType col) const
     {
-        // binary search through the column indices
-        auto length = row_nnz;
-        IndexType offset{};
-        while (length > 0) {
-            auto half_length = length / 2;
-            auto mid = offset + half_length;
-            // this finds the first index with column index >= col
-            auto pred = local_cols[mid] >= col;
-            length = pred ? half_length : length - (half_length + 1);
-            offset = pred ? offset : mid + 1;
-        }
+        const auto offset = lookup_search_unsafe(col);
         return offset < row_nnz && local_cols[offset] == col
                    ? offset
                    : invalid_index<IndexType>();
