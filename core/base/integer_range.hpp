@@ -180,7 +180,8 @@ public:
     using reference = typename base::reference;
     using difference_type = typename base::difference_type;
 
-    explicit irange_strided(index_type begin, index_type end, index_type stride)
+    constexpr explicit irange_strided(index_type begin, index_type end,
+                                      index_type stride)
         : random_access_range<integer_iterator<IndexType>>{
               iterator{begin, stride},
               iterator{begin + (end - begin) / stride * stride +
@@ -221,14 +222,14 @@ public:
     using reference = typename base::reference;
     using difference_type = typename base::difference_type;
 
-    explicit irange(index_type begin, index_type end)
+    constexpr explicit irange(index_type begin, index_type end)
         : random_access_range<integer_iterator<IndexType>>{iterator{begin, 1},
                                                            iterator{end, 1}}
     {
         assert(end >= begin);
     }
 
-    explicit irange(index_type end) : irange{0, end} {}
+    constexpr explicit irange(index_type end) : irange{0, end} {}
 
     constexpr index_type begin_index() const { return *this->begin(); }
 
