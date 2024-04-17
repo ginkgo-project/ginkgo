@@ -35,7 +35,8 @@ build_from_config<LinOpFactoryType::Cg>(const pnode& config,
 {
     auto updated = update_type(config, td);
     return dispatch<gko::LinOpFactory, gko::solver::Cg>(
-        updated.first, config, context, updated, value_type_list());
+        updated.get_value_typestr(), config, context, updated,
+        value_type_list());
 }
 
 

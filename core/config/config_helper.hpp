@@ -37,7 +37,7 @@ enum class LinOpFactoryType : int { Cg = 0 };
 template <LinOpFactoryType flag>
 deferred_factory_parameter<gko::LinOpFactory> build_from_config(
     const pnode& config, const registry& context,
-    type_descriptor td = {"", ""});
+    type_descriptor td = type_descriptor{"void", "void"});
 
 /**
  * This function is to update the default type setting from current config.
@@ -121,9 +121,7 @@ get_value(const pnode& config);
 
 // type_string providing the mapping from type to string.
 template <typename T>
-struct type_string {
-    static std::string str() { return "N"; };
-};
+struct type_string {};
 
 #define TYPE_STRING_OVERLOAD(_type, _str)         \
     template <>                                   \
@@ -131,10 +129,13 @@ struct type_string {
         static std::string str() { return _str; } \
     }
 
+TYPE_STRING_OVERLOAD(void, "void");
 TYPE_STRING_OVERLOAD(double, "double");
 TYPE_STRING_OVERLOAD(float, "float");
 TYPE_STRING_OVERLOAD(std::complex<double>, "complex<double>");
 TYPE_STRING_OVERLOAD(std::complex<float>, "complex<float>");
+TYPE_STRING_OVERLOAD(int32, "int");
+TYPE_STRING_OVERLOAD(int64, "int64");
 
 
 template <typename T>

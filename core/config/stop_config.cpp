@@ -82,7 +82,8 @@ inline deferred_factory_parameter<stop::CriterionFactory> configure_residual(
 {
     auto updated = update_type(config, td);
     return dispatch<stop::CriterionFactory, ResidualNormConfigurer>(
-        updated.first, config, context, updated, value_type_list());
+        updated.get_value_typestr(), config, context, updated,
+        value_type_list());
 }
 
 
@@ -114,7 +115,8 @@ configure_implicit_residual(const pnode& config, const registry& context,
 {
     auto updated = update_type(config, td);
     return dispatch<stop::CriterionFactory, ImplicitResidualNormConfigurer>(
-        updated.first, config, context, updated, value_type_list());
+        updated.get_value_typestr(), config, context, updated,
+        value_type_list());
 }
 
 

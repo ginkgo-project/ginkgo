@@ -27,13 +27,52 @@ namespace config {
 
 class registry;
 
+/**
+ * type_descriptor gives the initial default type for common type in ginkgo such
+ * as ValueType and IndexType. If the factory config does not specify these
+ * type, the configuration will use this as the default.
+ */
+class type_descriptor {
+public:
+    /**
+     * type_descriptor constructor. The correctness is checked in
+     * factory configuration. There is free function `make_type_descriptor` to
+     * create the object by template.
+     *
+     * @param value_typestr  the value type string. "void" means no default.
+     * @param index_typestr  the index type string. "void" means no default.
+     *
+     * @note there is no way to call the constructor with explicit template, so
+     * we create another free function to handle it.
+     */
+    explicit type_descriptor(std::string value_typestr = "void",
+                             std::string index_typestr = "void");
+
+    /**
+     * Get the value type string.
+     */
+    const std::string& get_value_typestr() const;
+
+    /**
+     * Get the index type string
+     */
+    const std::string& get_index_typestr() const;
+
+private:
+    std::string value_typestr_;
+    std::string index_typestr_;
+};
+
+
+template <typename ValueType = void, typename IndexType = void>
+type_descriptor make_type_descriptor();
+
 
 using linop_map = std::unordered_map<std::string, std::shared_ptr<LinOp>>;
 using linopfactory_map =
     std::unordered_map<std::string, std::shared_ptr<LinOpFactory>>;
 using criterionfactory_map =
     std::unordered_map<std::string, std::shared_ptr<stop::CriterionFactory>>;
-using type_descriptor = std::pair<std::string, std::string>;
 using buildfromconfig_map =
     std::map<std::string,
              std::function<deferred_factory_parameter<gko::LinOpFactory>(

@@ -39,7 +39,7 @@ namespace config {
  */
 deferred_factory_parameter<gko::LinOpFactory> build_from_config(
     const pnode& config, const registry& context,
-    type_descriptor td = {"", ""});
+    type_descriptor td = type_descriptor{"void", "void"});
 
 
 /**
