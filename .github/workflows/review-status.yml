@@ -1,0 +1,67 @@
+name: Update review status of a PR
+
+on:
+  pull_request:
+    types: [review_requested, review_request_removed]
+  pull_request_review:
+    types: [submitted, dismissed]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ (github.head_ref && github.ref) || github.run_id }}
+  cancel-in-progress: true
+
+
+jobs:
+  update-review-status:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get review states
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+          PR_NODE_ID: ${{ github.event.pull_request.node_id }}
+        run: |
+          gh api graphql -F id="$PR_NODE_ID" -f query='
+            query ($id: ID!) {
+              node(id: $id) {
+                ... on PullRequest {
+                reviewRequests {
+                totalCount
+                }
+                latestReviews(first: 10) {
+                  nodes {
+                  state
+                  }
+                }
+              }
+            }
+          }' > query
+          echo 'COUNT_PENDING='$(jq '.data.node.reviewRequests.totalCount' query) >> "$GITHUB_ENV"
+          echo 'COUNT_APPROVED='$(jq '.data.node.latestReviews.nodes | map(select(.state =="APPROVED")) | length' query) >> "$GITHUB_ENV"
+          echo 'COUNT_CHANGES_REQUESTED='$(jq '.data.node.latestReviews.nodes | map(select(.state =="CHANGES_REQUESTED")) | length' query) >> "$GITHUB_ENV"
+
+      - name: Print results
+        run: |
+          echo "pending: $COUNT_PENDING"
+          echo "approved: $COUNT_APPROVED"
+          echo "changes-requested: $COUNT_CHANGES_REQUESTED"
+
+      - name: Update status
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+          PR_NODE_ID: ${{ github.event.pull_request.node_id }}
+        run: |
+          if [[ $COUNT_CHANGES_REQUESTED -ge 1 ]]; then
+            .github/update-review-status.sh "Status" "in-progress"
+            exit
+          fi
+          if [[ $COUNT_APPROVED -ge 2 ]]; then
+            .github/update-review-status.sh "Status" "ready-to-merge"
+            exit
+          fi
+          if [[ $COUNT_PENDING -ge 1 ]]; then
+            .github/update-review-status.sh "Status" "in-review"
+            exit
+          fi
