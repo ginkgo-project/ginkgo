@@ -16,21 +16,23 @@ int main(int argc, char* argv[])
 {
     // Some shortcuts
     using ValueType = double;
+    using MixedType = float;
     using IndexType = int;
     using vec = gko::matrix::Dense<ValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using ir = gko::solver::Ir<ValueType>;
     using mg = gko::solver::Multigrid;
     using ic = gko::preconditioner::Ic<gko::solver::LowerTrs<ValueType>>;
+    using mixed_ic = gko::preconditioner::Ic<gko::solver::LowerTrs<MixedType>>;
     using pgm = gko::multigrid::Pgm<ValueType, IndexType>;
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
     if (argc > 1 && argv[1] == std::string("--help")) {
-        std::cout
-            << "Usage:" << argv[0]
-            << " executor, matrix, rhs, max_mg_levels, is_export, custom_prefix"
-            << std::endl;
+        std::cout << "Usage:" << argv[0]
+                  << " executor, matrix, rhs, max_mg_levels, lowerIC, "
+                     "is_export, custom_prefix"
+                  << std::endl;
         std::exit(-1);
     }
     const std::string executor_string = argc >= 2 ? argv[1] : "reference";
@@ -38,13 +40,15 @@ int main(int argc, char* argv[])
     const std::string rhs_string = argc >= 4 ? argv[3] : "ones";
     const unsigned max_mg_levels =
         argc >= 5 ? static_cast<unsigned>(std::stoi(argv[4])) : 5u;
+    const bool lower_ic = argc >= 6 ? (argv[5] == std::string("true")) : false;
     const bool export_data =
-        argc >= 6 ? (argv[5] == std::string("true")) : false;
-    const std::string custom_prefix = argc >= 7 ? argv[6] : "none";
+        argc >= 7 ? (argv[6] == std::string("true")) : false;
+    const std::string custom_prefix = argc >= 8 ? argv[7] : "none";
     std::cout << "executor: " << executor_string << std::endl;
     std::cout << "matrix: " << matrix_string << std::endl;
     std::cout << "rhs: " << rhs_string << std::endl;
     std::cout << "max mg_levels: " << max_mg_levels << std::endl;
+    std::cout << "lower precision smoother: " << lower_ic << std::endl;
     std::cout << "export intermediate data : " << export_data << std::endl;
     std::cout << "custom hierarchy prefix: " << custom_prefix << std::endl;
     // Figure out where to run the code
@@ -111,12 +115,25 @@ int main(int argc, char* argv[])
     // LL'y = r solve y -> L'^-1(L^-1r)
     // x += y
     // Create smoother factory (ir with ic)
-    auto inner_gen = gko::share(
-        ic::build()
-            .with_factorization(gko::factorization::Ic<ValueType, int>::build())
-            .on(exec));
+    std::shared_ptr<const gko::LinOpFactory> inner_gen;
+    if (lower_ic) {
+        inner_gen = gko::share(
+            mixed_ic::build()
+                .with_factorization(
+                    gko::factorization::Ic<MixedType, int>::build().on(exec))
+                // .with_factorization(
+                //     gko::factorization::Ic<ValueType, int>::build().on(exec))
+                // .with_l_solver_factory(gko::solver::LowerTrs<MixedType>::build().on(exec))
+                .on(exec));
+    } else {
+        inner_gen = gko::share(
+            ic::build()
+                .with_factorization(
+                    gko::factorization::Ic<ValueType, int>::build().on(exec))
+                .on(exec));
+    }
     auto smoother_gen = gko::share(gko::solver::build_smoother(
-        inner_gen, 1u, static_cast<ValueType>(1.0)));
+        inner_gen, 3u, static_cast<ValueType>(1.0)));
     // Create RestrictProlong factory
     std::vector<std::shared_ptr<const gko::LinOpFactory>> mg_level_gen;
     if (custom_prefix == std::string("none")) {
