@@ -306,6 +306,7 @@ protected:
         auto comp =
             std::dynamic_pointer_cast<const Composition<value_type>>(lin_op);
         std::shared_ptr<const LinOp> l_factor;
+        std::shared_ptr<const LinOp> fact;
 
         // build factorization if we weren't passed a composition
         if (!comp) {
@@ -316,20 +317,29 @@ protected:
                         .with_both_factors(false)
                         .on(exec);
             }
-            auto fact = std::shared_ptr<const LinOp>(
+            fact = std::shared_ptr<const LinOp>(
                 parameters_.factorization_factory->generate(lin_op));
             // ensure that the result is a composition
             comp =
                 std::dynamic_pointer_cast<const Composition<value_type>>(fact);
-            if (!comp) {
-                GKO_NOT_SUPPORTED(comp);
-            }
+            // if (!comp) {
+            //         GKO_NOT_SUPPORTED(comp);
+            // }
         }
         // comp must contain one or two factors
-        if (comp->get_operators().size() > 2 || comp->get_operators().empty()) {
-            GKO_NOT_SUPPORTED(comp);
+        // if (comp->get_operators().size() > 2 ||
+        // comp->get_operators().empty()) {
+        //     GKO_NOT_SUPPORTED(comp);
+        // }
+        if (comp) {
+            l_factor = comp->get_operators()[0];
+        } else if (auto comp2 = std::dynamic_pointer_cast<
+                       const Composition<next_precision<value_type>>>(fact)) {
+            l_factor = comp2->get_operators()[0];
+            std::cout << "generation on next precision" << std::endl;
+        } else {
+            GKO_NOT_SUPPORTED(fact);
         }
-        l_factor = comp->get_operators()[0];
         GKO_ASSERT_IS_SQUARE_MATRIX(l_factor);
 
         auto exec = this->get_executor();
