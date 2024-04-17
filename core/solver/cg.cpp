@@ -163,6 +163,21 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
             gko::detail::get_local(dense_x), gko::detail::get_local(r),
             gko::detail::get_local(p), gko::detail::get_local(q), beta, rho,
             &stop_status));
+
+        // check for CgErrorEstimator
+        all_stopped =
+            stop_criterion->update()
+                .num_iterations(iter)
+                .ignore_residual_check(true)
+                .implicit_sq_residual_norm(rho)
+                .cg_prec_vector_matrix_norm(beta)
+                .check(RelativeStoppingId, false, &stop_status, &one_changed);
+        this->template log<log::Logger::iteration_complete>(
+            this, dense_b, dense_x, iter, r, nullptr, rho, &stop_status,
+            all_stopped);
+        if (all_stopped) {
+            break;
+        }
         swap(prev_rho, rho);
     }
 }

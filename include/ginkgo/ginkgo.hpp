@@ -140,6 +140,7 @@
 #include <ginkgo/core/solver/workspace.hpp>
 
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
+#include <ginkgo/core/stop/cg_error_estimator.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 #include <ginkgo/core/stop/iteration.hpp>

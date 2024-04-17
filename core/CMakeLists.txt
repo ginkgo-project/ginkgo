@@ -83,6 +83,7 @@ target_sources(ginkgo
     solver/lower_trs.cpp
     solver/multigrid.cpp
     solver/upper_trs.cpp
+    stop/cg_error_estimator.cpp
     stop/combined.cpp
     stop/criterion.cpp
     stop/iteration.cpp

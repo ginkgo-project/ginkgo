@@ -102,6 +102,8 @@ public:
         GKO_UPDATER_REGISTER_PTR_PARAMETER(const LinOp, residual);
         GKO_UPDATER_REGISTER_PTR_PARAMETER(const LinOp, residual_norm);
         GKO_UPDATER_REGISTER_PTR_PARAMETER(const LinOp,
+                                           cg_prec_vector_matrix_norm);
+        GKO_UPDATER_REGISTER_PTR_PARAMETER(const LinOp,
                                            implicit_sq_residual_norm);
         GKO_UPDATER_REGISTER_PTR_PARAMETER(const LinOp, solution);
 
