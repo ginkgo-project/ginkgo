@@ -81,14 +81,14 @@ inline void invert_dense_block(const int block_size,
         }
         const ValueType d = temp_dense_block[k * block_size + k];
 
-        // SCAL (scaling the kth col)
+        // (scaling the kth col)
         // uncoalesced accesses
         for (int r = 0; r < block_size; r++) {
             temp_dense_block[r * block_size + k] /= -d;
         }
         temp_dense_block[k * block_size + k] = zero<ValueType>();
 
-        // GER (Note: the kth row and kth col do not change)
+        // rank-1 update (Note: the kth row and kth col do not change)
         // data-locality
         for (int r = 0; r < block_size; r++) {
             for (int c = 0; c < block_size; c++) {
@@ -98,7 +98,7 @@ inline void invert_dense_block(const int block_size,
             }
         }
 
-        // SCAL (scaling the kth row)
+        // (scaling the kth row)
         // data-locality
         for (int c = 0; c < block_size; c++) {
             temp_dense_block[k * block_size + c] /= d;
