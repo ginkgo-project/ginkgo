@@ -29,10 +29,11 @@ int main(int argc, char* argv[])
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
     if (argc > 1 && argv[1] == std::string("--help")) {
-        std::cout << "Usage:" << argv[0]
-                  << " executor, matrix, rhs, max_mg_levels, lowerIC, "
-                     "is_export, custom_prefix"
-                  << std::endl;
+        std::cout
+            << "Usage:" << argv[0]
+            << " executor, matrix, rhs, max_mg_levels, coarse_solver, lowerIC, "
+               "is_export, custom_prefix"
+            << std::endl;
         std::exit(-1);
     }
     const std::string executor_string = argc >= 2 ? argv[1] : "reference";
@@ -40,14 +41,16 @@ int main(int argc, char* argv[])
     const std::string rhs_string = argc >= 4 ? argv[3] : "ones";
     const unsigned max_mg_levels =
         argc >= 5 ? static_cast<unsigned>(std::stoi(argv[4])) : 5u;
-    const bool lower_ic = argc >= 6 ? (argv[5] == std::string("true")) : false;
+    const std::string coarse_string = argc >= 6 ? argv[5] : "direct";
+    const bool lower_ic = argc >= 7 ? (argv[6] == std::string("true")) : false;
     const bool export_data =
-        argc >= 7 ? (argv[6] == std::string("true")) : false;
-    const std::string custom_prefix = argc >= 8 ? argv[7] : "none";
+        argc >= 8 ? (argv[7] == std::string("true")) : false;
+    const std::string custom_prefix = argc >= 9 ? argv[8] : "none";
     std::cout << "executor: " << executor_string << std::endl;
     std::cout << "matrix: " << matrix_string << std::endl;
     std::cout << "rhs: " << rhs_string << std::endl;
     std::cout << "max mg_levels: " << max_mg_levels << std::endl;
+    std::cout << "coarse solver: " << coarse_string << std::endl;
     std::cout << "lower precision smoother: " << lower_ic << std::endl;
     std::cout << "export intermediate data : " << export_data << std::endl;
     std::cout << "custom hierarchy prefix: " << custom_prefix << std::endl;
@@ -161,12 +164,22 @@ int main(int argc, char* argv[])
         }
     }
     // Create CoarsesSolver factory
-    auto coarsest_solver_gen = gko::share(
-        gko::experimental::solver::Direct<ValueType, IndexType>::build()
-            .with_factorization(
-                gko::experimental::factorization::Cholesky<ValueType,
-                                                           IndexType>::build())
-            .on(exec));
+    std::shared_ptr<gko::LinOpFactory> coarsest_solver_gen = nullptr;
+    if (coarse_string == std::string("direct")) {
+        coarsest_solver_gen = gko::share(
+            gko::experimental::solver::Direct<ValueType, IndexType>::build()
+                .with_factorization(gko::experimental::factorization::Cholesky<
+                                    ValueType, IndexType>::build())
+                .on(exec));
+    } else {
+        // cg
+        coarsest_solver_gen = gko::share(
+            gko::solver::Cg<ValueType>::build()
+                .with_criteria(gko::stop::CgErrorEstimator<ValueType>::build()
+                                   .with_tolerance(1e-4)
+                                   .on(exec))
+                .on(exec));
+    }
     // Create multigrid factory
     auto multigrid_gen =
         gko::share(mg::build()
