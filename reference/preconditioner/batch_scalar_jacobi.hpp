@@ -43,6 +43,7 @@ public:
     {
         work_ = work;
         for (int i = 0; i < mat.num_rows; i++) {
+            work_[i] = one<ValueType>();
             for (int j = 0; j < mat.num_stored_elems_per_row; j++) {
                 const auto idx = i + j * mat.stride;
                 if (mat.col_idxs[idx] == i) {
@@ -75,6 +76,7 @@ public:
     {
         work_ = work;
         for (int i = 0; i < mat.num_rows; i++) {
+            work_[i] = one<ValueType>();
             for (int j = mat.row_ptrs[i]; j < mat.row_ptrs[i + 1]; j++) {
                 if (mat.col_idxs[j] == i) {
                     // For zero diagonal, set the inverse to 1

@@ -61,7 +61,7 @@ public:
     /**
      *  Returns the block pointers.
      *  @note Returns nullptr in case of a scalar jacobi preconditioner
-     * (max_block_size = 1).
+     *        (max_block_size = 1).
      *  @return the block pointers
      */
     const index_type* get_const_block_pointers() const noexcept
@@ -70,11 +70,10 @@ public:
     }
 
     /**
-     * Returns information about which blocks are the rows of the matrix part
-     * of.
+     * Returns the mapping between the blocks and the row id.
      *
      * @note Returns nullptr in case of a scalar jacobi preconditioner
-     * (max_block_size = 1).
+     *       (max_block_size = 1).
      */
     const index_type* get_const_row_block_map_info() const noexcept
     {
@@ -85,7 +84,7 @@ public:
      *  Returns the cumulative blocks storage array
      *
      *  @note Returns nullptr in case of a scalar jacobi preconditioner
-     * (max_block_size = 1).
+     *        (max_block_size = 1).
      */
     const index_type* get_const_blocks_cumulative_storage() const noexcept
     {
@@ -115,14 +114,15 @@ public:
      * Element (`i`, `j`) of the block, which belongs to the batch entry with
      * index = batch_id and has local id = "block_id" within its batch entry is
      * stored at the address = get_const_blocks() +
-     * storage_scheme.get_global_block_offset(batch_id, num_blocks, block_id,
-     * cumulative_blocks_storage) + i * storage_scheme.get_stride(block_id,
+     * detail::get_global_block_offset(batch_id, num_blocks, block_id,
+     * cumulative_blocks_storage) + i * detail::get_stride(block_id,
      * block_pointers) + j
      *
      * @note Returns nullptr in case of a scalar jacobi preconditioner
-     * (max_block_size = 1). The blocks array is empty in case of scalar jacobi
-     *  preconditioner as the preconditioner is generated inside the batched
-     * solver kernel.
+     *       (max_block_size = 1).
+     *       The blocks array is empty in case of scalar jacobi
+     *       preconditioner as the preconditioner is generated inside the
+     *       batched solver kernel.
      *
      * @return the pointer to the memory used for storing the block data
      */
@@ -142,9 +142,6 @@ public:
      */
     size_type get_num_stored_elements() const noexcept
     {
-        if (parameters_.max_block_size == 1) {
-            return 0;
-        }
         return blocks_.get_size();
     }
 
@@ -203,18 +200,9 @@ private:
 
     void generate_precond(const BatchLinOp* const system_matrix);
 
-    size_type compute_storage_space(const size_type num_batch) const noexcept
-    {
-        return (num_blocks_ > 0)
-                   ? num_batch *
-                         (this->get_executor()->copy_val_to_host(
-                             blocks_cumulative_storage_.get_const_data() +
-                             num_blocks_))
-                   : size_type{0};
-    }
+    size_type compute_storage_space(const size_type num_batch) const noexcept;
 
     void detect_blocks(
-        const size_type num_batch,
         const gko::matrix::Csr<ValueType, IndexType>* system_matrix);
 
     size_type num_blocks_;

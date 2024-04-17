@@ -60,14 +60,6 @@ protected:
         };
         solver_settings = Settings{max_iters, tol,
                                    gko::batch::stop::tolerance_type::relative};
-        precond_solver_factory =
-            solver_type::build()
-                .with_max_iterations(max_iters)
-                .with_tolerance(tol)
-                .with_tolerance_type(gko::batch::stop::tolerance_type::relative)
-                .with_preconditioner(
-                    precond_type::build().with_max_block_size(2u))
-                .on(exec);
         solver_factory =
             solver_type::build()
                 .with_max_iterations(max_iters)
@@ -82,7 +74,6 @@ protected:
         solve_lambda;
     Settings solver_settings{};
     std::shared_ptr<solver_type::Factory> solver_factory;
-    std::shared_ptr<solver_type::Factory> precond_solver_factory;
 };
 
 

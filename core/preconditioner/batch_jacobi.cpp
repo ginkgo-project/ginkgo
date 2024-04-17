@@ -18,8 +18,8 @@ namespace jacobi {
 
 
 GKO_REGISTER_OPERATION(find_blocks, jacobi::find_blocks);
-GKO_REGISTER_OPERATION(extract_common_blocks_pattern,
-                       batch_jacobi::extract_common_blocks_pattern);
+GKO_REGISTER_OPERATION(extract_common_block_nnz_idxs,
+                       batch_jacobi::extract_common_block_nnz_idxs);
 GKO_REGISTER_OPERATION(compute_block_jacobi,
                        batch_jacobi::compute_block_jacobi);
 GKO_REGISTER_OPERATION(find_row_block_map, batch_jacobi::find_row_block_map);
@@ -28,6 +28,18 @@ GKO_REGISTER_OPERATION(compute_cumulative_block_storage,
 
 
 }  // namespace jacobi
+
+
+template <typename ValueType, typename IndexType>
+size_type Jacobi<ValueType, IndexType>::compute_storage_space(
+    const size_type num_batch) const noexcept
+{
+    return (num_blocks_ > 0)
+               ? num_batch * (this->get_executor()->copy_val_to_host(
+                                 blocks_cumulative_storage_.get_const_data() +
+                                 num_blocks_))
+               : size_type{0};
+}
 
 
 template <typename ValueType, typename IndexType>
@@ -65,7 +77,6 @@ Jacobi<ValueType, IndexType>::Jacobi(
 
 template <typename ValueType, typename IndexType>
 void Jacobi<ValueType, IndexType>::detect_blocks(
-    const size_type num_batch,
     const gko::matrix::Csr<ValueType, IndexType>* first_system)
 {
     parameters_.block_pointers.resize_and_reset(first_system->get_size()[0] +
@@ -93,8 +104,7 @@ void Jacobi<ValueType, IndexType>::generate_precond(
         return;
     }
 
-    const matrix_type* sys_csr =
-        dynamic_cast<const matrix_type*>(system_matrix);
+    auto* sys_csr = dynamic_cast<const matrix_type*>(system_matrix);
     std::shared_ptr<const matrix_type> sys_csr_shared_ptr{};
 
     if (!sys_csr) {
@@ -122,7 +132,7 @@ void Jacobi<ValueType, IndexType>::generate_precond(
         std::move(sys_rows_view)));
 
     if (parameters_.block_pointers.get_data() == nullptr) {
-        this->detect_blocks(num_batch, first_sys_csr.get());
+        this->detect_blocks(first_sys_csr.get());
         exec->synchronize();
         blocks_cumulative_storage_.resize_and_reset(num_blocks_ + 1);
     }
@@ -145,8 +155,8 @@ void Jacobi<ValueType, IndexType>::generate_precond(
     // also stored in a similar way.
 
     // array for storing the common pattern of the diagonal blocks
-    gko::array<IndexType> blocks_pattern(exec, this->compute_storage_space(1));
-    blocks_pattern.fill(static_cast<IndexType>(-1));
+    gko::array<IndexType> block_nnz_idxs(exec, this->compute_storage_space(1));
+    block_nnz_idxs.fill(static_cast<IndexType>(-1));
 
     // Since all the matrices in the batch have the same sparsity pattern, it is
     // advantageous to extract the blocks only once instead of repeating
@@ -154,17 +164,17 @@ void Jacobi<ValueType, IndexType>::generate_precond(
     // blocks (corresponding to a batch entry) is extracted and then blocks
     // corresponding to different batch entries are obtained by just filling in
     // values based on the common pattern.
-    exec->run(jacobi::make_extract_common_blocks_pattern(
+    exec->run(jacobi::make_extract_common_block_nnz_idxs(
         first_sys_csr.get(), num_blocks_,
         blocks_cumulative_storage_.get_const_data(),
         parameters_.block_pointers.get_const_data(),
-        row_block_map_info_.get_const_data(), blocks_pattern.get_data()));
+        row_block_map_info_.get_const_data(), block_nnz_idxs.get_data()));
 
     exec->run(jacobi::make_compute_block_jacobi(
         sys_csr, parameters_.max_block_size, num_blocks_,
         blocks_cumulative_storage_.get_const_data(),
         parameters_.block_pointers.get_const_data(),
-        blocks_pattern.get_const_data(), blocks_.get_data()));
+        block_nnz_idxs.get_const_data(), blocks_.get_data()));
 }
 
 
