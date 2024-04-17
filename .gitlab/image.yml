@@ -87,13 +87,19 @@
     - fairrs
 
 .use_gko-oneapi-igpu:
-  image: ginkgohub/oneapi:latest
+  image: ginkgohub/oneapi:2024.0.2.20231213
+  tags:
+    - private_ci
+    - intel-igpu
+
+.use_gko-oneapi20231-igpu:
+  image: ginkgohub/spack-oneapi:20231-openmpi
   tags:
     - private_ci
     - intel-igpu
 
 .use_gko-oneapi-dgpu:
-  image: ginkgohub/oneapi:latest
+  image: ginkgohub/oneapi:2024.0.2.20231213
   tags:
     - private_ci
     - intel-dgpu
