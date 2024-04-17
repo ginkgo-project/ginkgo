@@ -284,7 +284,10 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
             dense_x->add_scaled(relaxation_factor_, inner_solution);
         } else {
             // x = x + relaxation_factor * A \ residual
-            solver_->apply(relaxation_factor_, residual_ptr, one_op, dense_x);
+            // solver_->apply(relaxation_factor_, residual_ptr, one_op,
+            // dense_x);
+            solver_->apply(residual_ptr, inner_solution);
+            dense_x->add_scaled(relaxation_factor_, inner_solution);
         }
     }
 }
