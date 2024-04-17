@@ -21,8 +21,8 @@ void build_mapping(
         part,
     const array<GlobalIndexType>& recv_connections,
     array<experimental::distributed::comm_index_type>& remote_part_ids,
-    collection::array<LocalIndexType>& remote_local_idxs,
-    collection::array<GlobalIndexType>& remote_global_idxs) GKO_NOT_IMPLEMENTED;
+    segmented_array<LocalIndexType>& remote_local_idxs,
+    segmented_array<GlobalIndexType>& remote_global_idxs) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_INDEX_MAP_BUILD_MAPPING);
@@ -34,7 +34,8 @@ void get_local(
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         partition,
     const array<experimental::distributed::comm_index_type>& remote_target_ids,
-    const collection::array<GlobalIndexType>& remote_global_idxs,
+    device::segmented_array<const xstd::type_identity_t<GlobalIndexType>>
+        remote_global_idxs,
     experimental::distributed::comm_index_type rank,
     const array<GlobalIndexType>& global_ids,
     experimental::distributed::index_space is,

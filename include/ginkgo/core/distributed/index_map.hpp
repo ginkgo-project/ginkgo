@@ -6,7 +6,7 @@
 #define GKO_PUBLIC_CORE_DISTRIBUTED_INDEX_MAP_HPP_
 
 
-#include <ginkgo/core/base/collection.hpp>
+#include <ginkgo/core/base/segmented_array.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
 
 
@@ -127,7 +127,7 @@ struct index_map {
      *
      * The indices are ordered by their owning rank and global index.
      */
-    const collection::array<GlobalIndexType>& get_remote_global_idxs() const
+    const segmented_array<GlobalIndexType>& get_remote_global_idxs() const
     {
         return remote_global_idxs_;
     }
@@ -145,7 +145,7 @@ struct index_map {
      * R_{k,j}$. The set $R_{k,j}$ can then be mapped by $l_j$ to get the local
      * indices wrt. part $j$. The indices here are mapped by $l_j$.
      */
-    const collection::array<LocalIndexType>& get_remote_local_idxs() const
+    const segmented_array<LocalIndexType>& get_remote_local_idxs() const
     {
         return remote_local_idxs_;
     }
@@ -183,8 +183,8 @@ private:
     comm_index_type rank_;
 
     array<comm_index_type> remote_target_ids_;
-    collection::array<LocalIndexType> remote_local_idxs_;
-    collection::array<GlobalIndexType> remote_global_idxs_;
+    segmented_array<LocalIndexType> remote_local_idxs_;
+    segmented_array<GlobalIndexType> remote_global_idxs_;
 };
 
 

@@ -111,6 +111,14 @@ struct conjunction<B1, Bn...>
     : std::conditional_t<bool(B1::value), conjunction<Bn...>, B1> {};
 
 
+template <typename T>
+struct type_identity {
+    using type = T;
+};
+
+template <typename T>
+using type_identity_t = typename type_identity<T>::type;
+
 }  // namespace xstd
 }  // namespace gko
 

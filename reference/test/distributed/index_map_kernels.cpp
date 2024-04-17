@@ -46,8 +46,8 @@ protected:
 TEST_F(IndexMap, CanBuildMapping)
 {
     gko::array<comm_index_type> target_ids(ref);
-    gko::collection::array<local_index_type> remote_local_idxs(ref);
-    gko::collection::array<global_index_type> remote_global_idxs(ref);
+    gko::segmented_array<local_index_type> remote_local_idxs(ref);
+    gko::segmented_array<global_index_type> remote_global_idxs(ref);
 
     gko::kernels::reference::index_map::build_mapping(
         ref, part.get(), {ref, {2, 3, 3, 5, 5}}, target_ids, remote_local_idxs,
@@ -66,12 +66,13 @@ TEST_F(IndexMap, CanGetLocalWithNonLocalIS)
 {
     gko::array<global_index_type> global_ids(ref, {1, 1, 4, 0, 4});
     gko::array<local_index_type> local_ids(ref);
-    gko::collection::array<global_index_type> remote_global_idxs(
-        gko::array<global_index_type>(ref, {0, 1, 4}), std::vector<int>{2, 1});
+    gko::segmented_array<global_index_type> remote_global_idxs(
+        gko::array<global_index_type>(ref, {0, 1, 4}), {2, 1});
     gko::array<comm_index_type> remote_target_ids(ref, {0, 2});
 
     gko::kernels::reference::index_map::get_local(
-        ref, part.get(), remote_target_ids, remote_global_idxs, 1, global_ids,
+        ref, part.get(), remote_target_ids,
+        gko::map_to_device_const(remote_global_idxs), 1, global_ids,
         gko::experimental::distributed::index_space::non_local, local_ids);
 
     gko::array<local_index_type> expected(ref, {1, 1, 2, 0, 2});
@@ -83,12 +84,13 @@ TEST_F(IndexMap, CanGetLocalWithNonLocalISWithInvalid)
 {
     gko::array<global_index_type> global_ids(ref, {1, 1, 4, 3, 0, 4});
     gko::array<local_index_type> local_ids(ref);
-    gko::collection::array<global_index_type> remote_global_idxs(
-        gko::array<global_index_type>(ref, {0, 1, 4}), std::vector<int>{2, 1});
+    gko::segmented_array<global_index_type> remote_global_idxs(
+        gko::array<global_index_type>(ref, {0, 1, 4}), {2, 1});
     gko::array<comm_index_type> remote_target_ids(ref, {0, 2});
 
     gko::kernels::reference::index_map::get_local(
-        ref, part.get(), remote_target_ids, remote_global_idxs, 1, global_ids,
+        ref, part.get(), remote_target_ids,
+        gko::map_to_device_const(remote_global_idxs), 1, global_ids,
         gko::experimental::distributed::index_space::non_local, local_ids);
 
     gko::array<local_index_type> expected(ref, {1, 1, 2, -1, 0, 2});
@@ -100,12 +102,13 @@ TEST_F(IndexMap, CanGetLocalWithLocalIS)
 {
     gko::array<global_index_type> global_ids(ref, {2, 3, 3, 2});
     gko::array<local_index_type> local_ids(ref);
-    gko::collection::array<global_index_type> remote_global_idxs(
-        gko::array<global_index_type>(ref, {0, 1, 4}), std::vector<int>{2, 1});
+    gko::segmented_array<global_index_type> remote_global_idxs(
+        gko::array<global_index_type>(ref, {0, 1, 4}), {2, 1});
     gko::array<comm_index_type> remote_target_ids(ref, {0, 2});
 
     gko::kernels::reference::index_map::get_local(
-        ref, part.get(), remote_target_ids, remote_global_idxs, 1, global_ids,
+        ref, part.get(), remote_target_ids,
+        gko::map_to_device_const(remote_global_idxs), 1, global_ids,
         gko::experimental::distributed::index_space::local, local_ids);
 
     gko::array<local_index_type> expected(ref, {0, 1, 1, 0});
@@ -117,12 +120,13 @@ TEST_F(IndexMap, CanGetLocalWithLocalISWithInvalid)
 {
     gko::array<global_index_type> global_ids(ref, {2, 4, 5, 3, 3, 2});
     gko::array<local_index_type> local_ids(ref);
-    gko::collection::array<global_index_type> remote_global_idxs(
-        gko::array<global_index_type>(ref, {0, 1, 4}), std::vector<int>{2, 1});
+    gko::segmented_array<global_index_type> remote_global_idxs(
+        gko::array<global_index_type>(ref, {0, 1, 4}), {2, 1});
     gko::array<comm_index_type> remote_target_ids(ref, {0, 2});
 
     gko::kernels::reference::index_map::get_local(
-        ref, part.get(), remote_target_ids, remote_global_idxs, 1, global_ids,
+        ref, part.get(), remote_target_ids,
+        gko::map_to_device_const(remote_global_idxs), 1, global_ids,
         gko::experimental::distributed::index_space::local, local_ids);
 
     gko::array<local_index_type> expected(ref, {0, -1, -1, 1, 1, 0});
@@ -134,12 +138,13 @@ TEST_F(IndexMap, CanGetLocalWithCombinedIS)
 {
     gko::array<global_index_type> global_ids(ref, {0, 1, 2, 3, 0, 4, 3});
     gko::array<local_index_type> local_ids(ref);
-    gko::collection::array<global_index_type> remote_global_idxs(
-        gko::array<global_index_type>(ref, {0, 1, 4}), std::vector<int>{2, 1});
+    gko::segmented_array<global_index_type> remote_global_idxs(
+        gko::array<global_index_type>(ref, {0, 1, 4}), {2, 1});
     gko::array<comm_index_type> remote_target_ids(ref, {0, 2});
 
     gko::kernels::reference::index_map::get_local(
-        ref, part.get(), remote_target_ids, remote_global_idxs, 1, global_ids,
+        ref, part.get(), remote_target_ids,
+        gko::map_to_device_const(remote_global_idxs), 1, global_ids,
         gko::experimental::distributed::index_space::combined, local_ids);
 
     gko::array<local_index_type> expected(ref, {2, 3, 0, 1, 2, 4, 1});
@@ -151,12 +156,13 @@ TEST_F(IndexMap, CanGetLocalWithCombinedISWithInvalid)
 {
     gko::array<global_index_type> global_ids(ref, {0, 1, 2, 3, 0, 4, 5, 3});
     gko::array<local_index_type> local_ids(ref);
-    gko::collection::array<global_index_type> remote_global_idxs(
-        gko::array<global_index_type>(ref, {0, 1, 4}), std::vector<int>{2, 1});
+    gko::segmented_array<global_index_type> remote_global_idxs(
+        gko::array<global_index_type>(ref, {0, 1, 4}), {2, 1});
     gko::array<comm_index_type> remote_target_ids(ref, {0, 2});
 
     gko::kernels::reference::index_map::get_local(
-        ref, part.get(), remote_target_ids, remote_global_idxs, 1, global_ids,
+        ref, part.get(), remote_target_ids,
+        gko::map_to_device_const(remote_global_idxs), 1, global_ids,
         gko::experimental::distributed::index_space::combined, local_ids);
 
     gko::array<local_index_type> expected(ref, {2, 3, 0, 1, 2, 4, -1, 1});

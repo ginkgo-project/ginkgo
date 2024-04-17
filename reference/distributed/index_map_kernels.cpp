@@ -24,8 +24,8 @@ void build_mapping(
         part,
     const array<GlobalIndexType>& recv_connections,
     array<experimental::distributed::comm_index_type>& remote_part_ids,
-    collection::array<LocalIndexType>& remote_local_idxs,
-    collection::array<GlobalIndexType>& remote_global_idxs)
+    segmented_array<LocalIndexType>& remote_local_idxs,
+    segmented_array<GlobalIndexType>& remote_global_idxs)
 {
     using experimental::distributed::comm_index_type;
     auto part_ids = part->get_part_ids();
@@ -89,11 +89,11 @@ void build_mapping(
               remote_part_ids.get_data());
 
     // get recv size per part
-    std::vector<size_type> full_remote_sizes(part->get_num_parts());
+    std::vector<int64> full_remote_sizes(part->get_num_parts());
     for (size_type i = 0; i < full_part_ids.size(); ++i) {
         full_remote_sizes[full_part_ids[i]]++;
     }
-    std::vector<size_type> remote_sizes;
+    std::vector<int64> remote_sizes;
     for (auto size : full_remote_sizes) {
         if (size) {
             remote_sizes.push_back(size);
@@ -101,9 +101,9 @@ void build_mapping(
     }
     GKO_ASSERT(remote_sizes.size() == unique_part_ids_size);
 
-    remote_global_idxs = collection::array<GlobalIndexType>(
+    remote_global_idxs = segmented_array<GlobalIndexType>(
         std::move(flat_remote_global_idxs), remote_sizes);
-    remote_local_idxs = collection::array<LocalIndexType>(
+    remote_local_idxs = segmented_array<LocalIndexType>(
         std::move(flat_remote_local_idxs), remote_sizes);
 }
 
@@ -117,7 +117,8 @@ void get_local(
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         partition,
     const array<experimental::distributed::comm_index_type>& remote_target_ids,
-    const collection::array<GlobalIndexType>& remote_global_idxs,
+    device::segmented_array<const xstd::type_identity_t<GlobalIndexType>>
+        remote_global_idxs,
     experimental::distributed::comm_index_type rank,
     const array<GlobalIndexType>& global_ids,
     experimental::distributed::index_space is, array<LocalIndexType>& local_ids)
@@ -158,22 +159,16 @@ void get_local(
                 return invalid_index<LocalIndexType>();
             }
 
-            auto remote_global_begin =
-                remote_global_idxs[set_id].get_const_data();
-            auto remote_global_end =
-                remote_global_begin + remote_global_idxs[set_id].get_size();
-
             // need to check if *it is actually the current global-id
             // since the global-id might not be registered as connected
             // to this rank
-            auto it =
-                std::lower_bound(remote_global_begin, remote_global_end, gid);
-            return it != remote_global_end && *it == gid
-                       ? static_cast<LocalIndexType>(
-                             std::distance(
-                                 remote_global_idxs.get_flat().get_const_data(),
-                                 it) +
-                             offset)
+            auto it = std::lower_bound(
+                remote_global_idxs.enumerate(set_id).begin(),
+                remote_global_idxs.enumerate(set_id).end(), gid,
+                [](const auto& a, const auto& b) { return a.value < b; });
+            return it != remote_global_idxs.enumerate(set_id).end() &&
+                           it->value == gid
+                       ? offset + static_cast<LocalIndexType>(it->index)
                        : invalid_index<LocalIndexType>();
         };
     };

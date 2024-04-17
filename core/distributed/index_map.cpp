@@ -29,8 +29,9 @@ array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::get_local(
     array<LocalIndexType> local_ids(exec_);
 
     exec_->run(index_map_kernels::make_get_local(
-        partition_.get(), remote_target_ids_, remote_global_idxs_, rank_,
-        global_ids, index_space_v, local_ids));
+        partition_.get(), remote_target_ids_,
+        map_to_device(remote_global_idxs_), rank_, global_ids, index_space_v,
+        local_ids));
 
     return local_ids;
 }

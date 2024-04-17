@@ -142,11 +142,11 @@ protected:
     }
 
     gko::array<comm_index_type> target_ids{ref};
-    gko::collection::array<local_index_type> remote_local_idxs{ref};
-    gko::collection::array<global_index_type> remote_global_idxs{ref};
+    gko::segmented_array<local_index_type> remote_local_idxs{ref};
+    gko::segmented_array<global_index_type> remote_global_idxs{ref};
     gko::array<comm_index_type> dtarget_ids{exec};
-    gko::collection::array<local_index_type> dremote_local_idxs{exec};
-    gko::collection::array<global_index_type> dremote_global_idxs{exec};
+    gko::segmented_array<local_index_type> dremote_local_idxs{exec};
+    gko::segmented_array<global_index_type> dremote_global_idxs{exec};
 
     comm_index_type num_parts = 13;
     global_index_type local_size = 41;
@@ -164,11 +164,11 @@ TEST_F(IndexMap, BuildMappingSameAsRef)
     auto query = generate_connection_idxs(ref, this_rank, 11);
     auto dquery = gko::array<global_index_type>(exec, query);
     gko::array<comm_index_type> target_ids{ref};
-    gko::collection::array<local_index_type> remote_local_idxs{ref};
-    gko::collection::array<global_index_type> remote_global_idxs{ref};
+    gko::segmented_array<local_index_type> remote_local_idxs{ref};
+    gko::segmented_array<global_index_type> remote_global_idxs{ref};
     gko::array<comm_index_type> dtarget_ids{exec};
-    gko::collection::array<local_index_type> dremote_local_idxs{exec};
-    gko::collection::array<global_index_type> dremote_global_idxs{exec};
+    gko::segmented_array<local_index_type> dremote_local_idxs{exec};
+    gko::segmented_array<global_index_type> dremote_global_idxs{exec};
 
     gko::kernels::reference::index_map::build_mapping(
         ref, part.get(), query, target_ids, remote_local_idxs,
@@ -196,10 +196,12 @@ TEST_F(IndexMap, GetLocalWithLocalIndexSpaceSameAsRef)
     auto dresult = gko::array<local_index_type>(exec);
 
     gko::kernels::reference::index_map::get_local(
-        ref, part.get(), target_ids, remote_global_idxs, this_rank, query,
+        ref, part.get(), target_ids,
+        gko::map_to_device_const(remote_global_idxs), this_rank, query,
         gko::experimental::distributed::index_space::local, result);
     gko::kernels::EXEC_NAMESPACE::index_map::get_local(
-        exec, dpart.get(), dtarget_ids, dremote_global_idxs, this_rank, dquery,
+        exec, dpart.get(), dtarget_ids,
+        gko::map_to_device_const(dremote_global_idxs), this_rank, dquery,
         gko::experimental::distributed::index_space::local, dresult);
 
     GKO_ASSERT_ARRAY_EQ(result, dresult);
@@ -222,10 +224,12 @@ TEST_F(IndexMap, GetLocalWithLocalIndexSpaceWithInvalidIndexSameAsRef)
     auto dresult = gko::array<local_index_type>(exec);
 
     gko::kernels::reference::index_map::get_local(
-        ref, part.get(), target_ids, remote_global_idxs, this_rank, query,
+        ref, part.get(), target_ids,
+        gko::map_to_device_const(remote_global_idxs), this_rank, query,
         gko::experimental::distributed::index_space::local, result);
     gko::kernels::EXEC_NAMESPACE::index_map::get_local(
-        exec, dpart.get(), dtarget_ids, dremote_global_idxs, this_rank, dquery,
+        exec, dpart.get(), dtarget_ids,
+        gko::map_to_device_const(dremote_global_idxs), this_rank, dquery,
         gko::experimental::distributed::index_space::local, dresult);
 
     GKO_ASSERT_ARRAY_EQ(result, dresult);
@@ -240,10 +244,12 @@ TEST_F(IndexMap, GetLocalWithNonLocalIndexSpaceSameAsRef)
     auto dresult = gko::array<local_index_type>(exec);
 
     gko::kernels::reference::index_map::get_local(
-        ref, part.get(), target_ids, remote_global_idxs, this_rank, query,
+        ref, part.get(), target_ids,
+        gko::map_to_device_const(remote_global_idxs), this_rank, query,
         gko::experimental::distributed::index_space::non_local, result);
     gko::kernels::EXEC_NAMESPACE::index_map::get_local(
-        exec, dpart.get(), dtarget_ids, dremote_global_idxs, this_rank, dquery,
+        exec, dpart.get(), dtarget_ids,
+        gko::map_to_device_const(dremote_global_idxs), this_rank, dquery,
         gko::experimental::distributed::index_space::non_local, dresult);
 
     GKO_ASSERT_ARRAY_EQ(result, dresult);
@@ -264,10 +270,12 @@ TEST_F(IndexMap, GetLocalWithNonLocalIndexSpaceWithInvalidIndexSameAsRef)
     auto dresult = gko::array<local_index_type>(exec);
 
     gko::kernels::reference::index_map::get_local(
-        ref, part.get(), target_ids, remote_global_idxs, this_rank, query,
+        ref, part.get(), target_ids,
+        gko::map_to_device_const(remote_global_idxs), this_rank, query,
         gko::experimental::distributed::index_space::non_local, result);
     gko::kernels::EXEC_NAMESPACE::index_map::get_local(
-        exec, dpart.get(), dtarget_ids, dremote_global_idxs, this_rank, dquery,
+        exec, dpart.get(), dtarget_ids,
+        gko::map_to_device_const(dremote_global_idxs), this_rank, dquery,
         gko::experimental::distributed::index_space::non_local, dresult);
 
     GKO_ASSERT_ARRAY_EQ(result, dresult);
@@ -287,10 +295,12 @@ TEST_F(IndexMap, GetLocalWithCombinedIndexSpaceSameAsRef)
     auto dresult = gko::array<local_index_type>(exec);
 
     gko::kernels::reference::index_map::get_local(
-        ref, part.get(), target_ids, remote_global_idxs, this_rank, query,
+        ref, part.get(), target_ids,
+        gko::map_to_device_const(remote_global_idxs), this_rank, query,
         gko::experimental::distributed::index_space::combined, result);
     gko::kernels::EXEC_NAMESPACE::index_map::get_local(
-        exec, dpart.get(), dtarget_ids, dremote_global_idxs, this_rank, dquery,
+        exec, dpart.get(), dtarget_ids,
+        gko::map_to_device_const(dremote_global_idxs), this_rank, dquery,
         gko::experimental::distributed::index_space::combined, dresult);
 
     GKO_ASSERT_ARRAY_EQ(result, dresult);
@@ -315,10 +325,12 @@ TEST_F(IndexMap, GetLocalWithCombinedIndexSpaceWithInvalidIndexSameAsRef)
     auto dresult = gko::array<local_index_type>(exec);
 
     gko::kernels::reference::index_map::get_local(
-        ref, part.get(), target_ids, remote_global_idxs, this_rank, query,
+        ref, part.get(), target_ids,
+        gko::map_to_device_const(remote_global_idxs), this_rank, query,
         gko::experimental::distributed::index_space::non_local, result);
     gko::kernels::EXEC_NAMESPACE::index_map::get_local(
-        exec, dpart.get(), dtarget_ids, dremote_global_idxs, this_rank, dquery,
+        exec, dpart.get(), dtarget_ids,
+        gko::map_to_device_const(dremote_global_idxs), this_rank, dquery,
         gko::experimental::distributed::index_space::non_local, dresult);
 
     GKO_ASSERT_ARRAY_EQ(result, dresult);

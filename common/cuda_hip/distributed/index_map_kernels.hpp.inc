@@ -62,8 +62,8 @@ void build_mapping(
         part,
     const array<GlobalIndexType>& recv_connections,
     array<experimental::distributed::comm_index_type>& remote_part_ids,
-    collection::array<LocalIndexType>& remote_local_idxs,
-    collection::array<GlobalIndexType>& remote_global_idxs)
+    segmented_array<LocalIndexType>& remote_local_idxs,
+    segmented_array<GlobalIndexType>& remote_global_idxs)
 {
     auto part_ids = part->get_part_ids();
     auto num_parts = static_cast<size_type>(part->get_num_parts());
@@ -144,7 +144,7 @@ void build_mapping(
 
     remote_part_ids.resize_and_reset(num_neighbors);
 
-    array<unsigned long long int> remote_sizes_arr(exec, num_neighbors);
+    array<int64> remote_sizes_arr(exec, num_neighbors);
     {
         auto counting_it = thrust::make_counting_iterator(0);
         auto copy_it = thrust::make_zip_iterator(
@@ -160,13 +160,13 @@ void build_mapping(
     }
 
     // copy sizes to master and create collections
-    std::vector<unsigned long long int> remote_sizes(num_neighbors);
+    std::vector<int64> remote_sizes(num_neighbors);
     exec->get_master()->copy_from(exec, num_neighbors,
                                   remote_sizes_arr.get_const_data(),
                                   remote_sizes.data());
-    remote_global_idxs = collection::array<GlobalIndexType>(
+    remote_global_idxs = segmented_array<GlobalIndexType>(
         std::move(flat_remote_global_idxs), remote_sizes);
-    remote_local_idxs = collection::array<LocalIndexType>(
+    remote_local_idxs = segmented_array<LocalIndexType>(
         std::move(flat_remote_local_idxs), remote_sizes);
 }
 
@@ -180,7 +180,8 @@ void get_local(
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         partition,
     const array<experimental::distributed::comm_index_type>& remote_target_ids,
-    const collection::array<GlobalIndexType>& remote_global_idxs,
+    device::segmented_array<const xstd::type_identity_t<GlobalIndexType>>
+        remote_global_idxs,
     experimental::distributed::comm_index_type rank,
     const array<GlobalIndexType>& global_ids,
     experimental::distributed::index_space is, array<LocalIndexType>& local_ids)
@@ -216,12 +217,9 @@ void get_local(
 
     auto remote_target_ids_ptr = remote_target_ids.get_const_data();
     auto num_target_ids = remote_target_ids.get_size();
-    auto remote_global_idxs_ptr =
-        remote_global_idxs.get_flat().get_const_data();
-    auto offsets_ptr = remote_global_idxs.get_offsets().get_const_data();
     auto create_map_non_local = [&](const LocalIndexType is_offset) {
-        return [num_target_ids, remote_target_ids_ptr, part_ids, offsets_ptr,
-                remote_global_idxs_ptr,
+        return [num_target_ids, remote_target_ids_ptr, part_ids,
+                remote_global_idxs,
                 is_offset] __device__(const thrust::tuple<GlobalIndexType,
                                                           size_type>& t) {
             auto gid = thrust::get<0>(t);
@@ -235,17 +233,19 @@ void get_local(
             if (set_id == num_target_ids) {
                 return invalid_index<LocalIndexType>();
             }
+            auto global_id_range = remote_global_idxs.enumerate(set_id);
 
             // need to check if *it is actually the current global-id
             // since the global-id might not be registered as connected
             // to this rank
             auto it = binary_search(
-                offsets_ptr[set_id],
-                offsets_ptr[set_id + 1] - offsets_ptr[set_id],
-                [=](const auto i) { return remote_global_idxs_ptr[i] >= gid; });
-            return it != offsets_ptr[set_id + 1] &&
-                           remote_global_idxs_ptr[it] == gid
-                       ? static_cast<LocalIndexType>(it) + is_offset
+                int64{0}, global_id_range.size(),
+                [=](const auto i) { return global_id_range[i].value >= gid; });
+            return it != global_id_range.size() &&
+                           global_id_range[it].value == gid
+                       ? static_cast<LocalIndexType>(
+                             global_id_range[it].index) +
+                             is_offset
                        : invalid_index<LocalIndexType>();
         };
     };

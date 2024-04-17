@@ -42,14 +42,12 @@ TYPED_TEST_SUITE(IndexMap, gko::test::LocalGlobalIndexTypes,
 
 
 template <typename T>
-void assert_collection_eq(const gko::collection::array<T>& a,
-                          const gko::collection::array<T>& b)
+void assert_collection_eq(const gko::segmented_array<T>& a,
+                          const gko::segmented_array<T>& b)
 {
     ASSERT_EQ(a.size(), b.size());
     GKO_ASSERT_ARRAY_EQ(a.get_flat(), b.get_flat());
-    for (int i = 0; i < a.size(); ++i) {
-        GKO_ASSERT_ARRAY_EQ(a[i], b[i]);
-    }
+    GKO_ASSERT_ARRAY_EQ(a.get_offsets(), b.get_offsets());
 }
 
 
