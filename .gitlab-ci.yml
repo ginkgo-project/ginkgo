@@ -604,7 +604,7 @@ build/icpx20231/igpu/release/shared:
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "ON"
     DPCPP_SINGLE_MODE: "ON"
-    ONEAPI_DEVICE_SELECTOR: "*:gpu"
+    ONEAPI_DEVICE_SELECTOR: "opencl:gpu"
     BUILD_HWLOC: "OFF"
 
 # TODO: Enable when debug shared library size issues are fixed
@@ -624,7 +624,7 @@ build/icpx20231/igpu/release/shared:
 #     ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
 
 # It gives two available backends of GPU on tests
-build/dpcpp/dgpu/release/static:
+build/icpx/igpu/release/static:
   extends:
     - .build_and_test_template
     - .default_variables
@@ -638,21 +638,6 @@ build/dpcpp/dgpu/release/static:
     BUILD_SHARED_LIBS: "OF"
     DPCPP_SINGLE_MODE: "ON"
     ONEAPI_DEVICE_SELECTOR: "*:gpu"
-    BUILD_HWLOC: "OFF"
-
-build/icpx/dgpu/release/shared:
-  extends:
-    - .build_and_test_template
-    - .default_variables
-    - .quick_test_condition
-    - .use_gko-oneapi-dgpu
-  variables:
-    CXX_COMPILER: "icpx"
-    CXX_FLAGS: "-Wpedantic -ffp-model=precise"
-    BUILD_SYCL: "ON"
-    BUILD_TYPE: "Release"
-    DPCPP_SINGLE_MODE: "ON"
-    ONEAPI_DEVICE_SELECTOR: "opencl:gpu"
     BUILD_HWLOC: "OFF"
 
 # Job with important warnings as error
