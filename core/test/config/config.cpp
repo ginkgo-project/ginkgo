@@ -71,7 +71,8 @@ TEST_F(Config, GenerateObjectWithData)
 
     pnode p{{{"generated_preconditioner", pnode{"precond"}},
              {"criteria", this->stop_config}}};
-    auto obj = build_from_config<LinOpFactoryType::Cg>(p, reg, {"float", ""})
+    auto obj = build_from_config<LinOpFactoryType::Cg>(
+                   p, reg, type_descriptor{"float", "void"})
                    .on(this->exec);
 
     ASSERT_NE(dynamic_cast<gko::solver::Cg<float>::Factory*>(obj.get()),
@@ -120,7 +121,8 @@ TEST_F(Config, GenerateObjectWithCustomBuild)
              {"criteria", this->stop_config},
              {"preconditioner", precond_node}}};
 
-    auto obj = build_from_config<LinOpFactoryType::Cg>(p, reg, {"double", ""})
+    auto obj = build_from_config<LinOpFactoryType::Cg>(
+                   p, reg, type_descriptor{"double", "void"})
                    .on(this->exec);
 
     ASSERT_NE(dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get()),
