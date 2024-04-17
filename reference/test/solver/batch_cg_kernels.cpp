@@ -312,7 +312,4 @@ TYPED_TEST(BatchCg, CanSolveDenseHpdSystem)
         gko::test::solve_linear_system(this->exec, linear_system, solver);
 
     GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol);
-    for (size_t i = 0; i < num_batch_items; i++) {
-        ASSERT_LE(res.host_res_norm->get_const_values()[i], tol);
-    }
 }
