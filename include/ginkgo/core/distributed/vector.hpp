@@ -60,8 +60,7 @@ class Vector
     : public EnableDistributedLinOp<Vector<ValueType>>,
       public ConvertibleTo<Vector<next_precision<ValueType>>>,
       public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
-      public DistributedBase,
-      public DistributedLocalSize {
+      public DistributedBase {
     friend class EnableDistributedPolymorphicObject<Vector, LinOp>;
     friend class Vector<to_complex<ValueType>>;
     friend class Vector<remove_complex<ValueType>>;

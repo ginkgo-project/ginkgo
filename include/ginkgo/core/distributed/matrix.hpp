@@ -238,8 +238,7 @@ class Matrix
           Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
       public ConvertibleTo<
           Matrix<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
-      public DistributedBase,
-      public DistributedLocalSize {
+      public DistributedBase {
     friend class EnableDistributedPolymorphicObject<Matrix, LinOp>;
     friend class Matrix<next_precision<ValueType>, LocalIndexType,
                         GlobalIndexType>;

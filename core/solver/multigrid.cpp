@@ -308,24 +308,18 @@ void MultigridState::generate(const LinOp* system_matrix_in,
                         experimental::distributed::Vector<value_type>;
                     auto fine = mg_level->get_fine_op().get();
                     auto coarse = mg_level->get_coarse_op().get();
-                    auto current_comm =
-                        dynamic_cast<
-                            const experimental::distributed::DistributedBase*>(
-                            fine)
-                            ->get_communicator();
-                    auto next_comm =
-                        dynamic_cast<
-                            const experimental::distributed::DistributedBase*>(
-                            coarse)
-                            ->get_communicator();
+                    auto distributed_fine = dynamic_cast<
+                        const experimental::distributed::DistributedBase*>(
+                        fine);
+                    auto distributed_coarse = dynamic_cast<
+                        const experimental::distributed::DistributedBase*>(
+                        coarse);
+                    auto current_comm = distributed_fine->get_communicator();
+                    auto next_comm = distributed_coarse->get_communicator();
                     auto current_local_nrows =
-                        dynamic_cast<const experimental::distributed::
-                                         DistributedLocalSize*>(fine)
-                            ->get_local_size()[0];
+                        distributed_fine->get_local_size()[0];
                     auto next_local_nrows =
-                        dynamic_cast<const experimental::distributed::
-                                         DistributedLocalSize*>(coarse)
-                            ->get_local_size()[0];
+                        distributed_coarse->get_local_size()[0];
                     this->allocate_memory<VectorType>(
                         i, cycle, current_comm, next_comm, current_nrows,
                         next_nrows, current_local_nrows, next_local_nrows);

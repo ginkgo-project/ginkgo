@@ -167,7 +167,6 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     array<local_index_type> non_local_row_idxs{exec};
     array<local_index_type> non_local_col_idxs{exec};
     array<value_type> non_local_values{exec};
-    // array<local_index_type> recv_gather_idxs{exec};
     array<comm_index_type> recv_sizes_array{exec, num_parts};
 
     // build local, non-local matrix data and communication structures
