@@ -116,6 +116,8 @@ struct DummyDistributedObject
         return *this;
     }
 
+    gko::dim<2> get_local_size() const override { return gko::dim<2>{0, 0}; }
+
     int x;
 };
 
