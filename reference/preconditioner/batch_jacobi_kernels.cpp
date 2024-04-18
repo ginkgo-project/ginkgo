@@ -34,13 +34,13 @@ template <typename IndexType>
 void compute_cumulative_block_storage(
     std::shared_ptr<const DefaultExecutor> exec, const size_type num_blocks,
     const IndexType* const block_pointers,
-    IndexType* const blocks_cumulative_storage)
+    IndexType* const blocks_cumulative_offsets)
 {
-    blocks_cumulative_storage[0] = 0;
+    blocks_cumulative_offsets[0] = 0;
     for (int i = 0; i < num_blocks; i++) {
         const auto bsize = block_pointers[i + 1] - block_pointers[i];
-        blocks_cumulative_storage[i + 1] =
-            blocks_cumulative_storage[i] + bsize * bsize;
+        blocks_cumulative_offsets[i + 1] =
+            blocks_cumulative_offsets[i] + bsize * bsize;
     }
 }
 

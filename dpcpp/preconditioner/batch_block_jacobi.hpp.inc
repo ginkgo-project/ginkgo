@@ -15,17 +15,17 @@ public:
      *
      * @param num_blocks  Number of diagonal blocks in a matrix
      * @param storage_scheme diagonal blocks storage scheme
-     * @param blocks_cumulative_storage the cumulative block storage array
+     * @param blocks_cumulative_offsets the cumulative block storage array
      * @param blocks_arr_batch array of diagonal blocks for the batch
      * @param block_ptrs_arr array of block pointers
      *
      */
     BlockJacobi(const uint32, const size_type num_blocks,
-                const int* const blocks_cumulative_storage,
+                const int* const blocks_cumulative_offsets,
                 const value_type* const blocks_arr_batch,
                 const int* const block_ptrs_arr, const int* const row_block_map)
         : num_blocks_{num_blocks},
-          blocks_cumulative_storage_{blocks_cumulative_storage},
+          blocks_cumulative_offsets_{blocks_cumulative_offsets},
           blocks_arr_batch_{blocks_arr_batch},
           block_ptrs_arr_{block_ptrs_arr},
           row_block_map_{row_block_map}
@@ -64,7 +64,7 @@ public:
 
 private:
     const size_type num_blocks_;
-    const int* const blocks_cumulative_storage_;
+    const int* const blocks_cumulative_offsets_;
     const value_type* const blocks_arr_batch_;
     const value_type* blocks_arr_entry_;
     const int* __restrict__ const block_ptrs_arr_;

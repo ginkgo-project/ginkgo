@@ -36,7 +36,7 @@ size_type Jacobi<ValueType, IndexType>::compute_storage_space(
 {
     return (num_blocks_ > 0)
                ? num_batch * (this->get_executor()->copy_val_to_host(
-                                 blocks_cumulative_storage_.get_const_data() +
+                                 blocks_cumulative_offsets_.get_const_data() +
                                  num_blocks_))
                : size_type{0};
 }
@@ -48,7 +48,7 @@ Jacobi<ValueType, IndexType>::Jacobi(std::shared_ptr<const Executor> exec)
       num_blocks_{},
       blocks_(exec),
       row_block_map_info_(exec),
-      blocks_cumulative_storage_(exec)
+      blocks_cumulative_offsets_(exec)
 {
     parameters_.block_pointers.set_executor(this->get_executor());
 }
@@ -66,7 +66,7 @@ Jacobi<ValueType, IndexType>::Jacobi(
       blocks_(factory->get_executor()),
       row_block_map_info_(factory->get_executor(),
                           system_matrix->get_common_size()[0]),
-      blocks_cumulative_storage_(factory->get_executor(), num_blocks_ + 1)
+      blocks_cumulative_offsets_(factory->get_executor(), num_blocks_ + 1)
 
 {
     parameters_.block_pointers.set_executor(this->get_executor());
@@ -134,13 +134,13 @@ void Jacobi<ValueType, IndexType>::generate_precond(
     if (parameters_.block_pointers.get_data() == nullptr) {
         this->detect_blocks(first_sys_csr.get());
         exec->synchronize();
-        blocks_cumulative_storage_.resize_and_reset(num_blocks_ + 1);
+        blocks_cumulative_offsets_.resize_and_reset(num_blocks_ + 1);
     }
 
     // cumulative block storage
     exec->run(jacobi::make_compute_cumulative_block_storage(
         num_blocks_, parameters_.block_pointers.get_const_data(),
-        blocks_cumulative_storage_.get_data()));
+        blocks_cumulative_offsets_.get_data()));
 
     blocks_.resize_and_reset(this->compute_storage_space(num_batch));
 
@@ -166,13 +166,13 @@ void Jacobi<ValueType, IndexType>::generate_precond(
     // values based on the common pattern.
     exec->run(jacobi::make_extract_common_blocks_pattern(
         first_sys_csr.get(), num_blocks_,
-        blocks_cumulative_storage_.get_const_data(),
+        blocks_cumulative_offsets_.get_const_data(),
         parameters_.block_pointers.get_const_data(),
         row_block_map_info_.get_const_data(), block_nnz_idxs.get_data()));
 
     exec->run(jacobi::make_compute_block_jacobi(
         sys_csr, parameters_.max_block_size, num_blocks_,
-        blocks_cumulative_storage_.get_const_data(),
+        blocks_cumulative_offsets_.get_const_data(),
         parameters_.block_pointers.get_const_data(),
         block_nnz_idxs.get_const_data(), blocks_.get_data()));
 }

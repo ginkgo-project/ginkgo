@@ -86,9 +86,9 @@ public:
      *  @note Returns nullptr in case of a scalar jacobi preconditioner
      *        (max_block_size = 1).
      */
-    const index_type* get_const_blocks_cumulative_storage() const noexcept
+    const index_type* get_const_blocks_cumulative_offsets() const noexcept
     {
-        return blocks_cumulative_storage_.get_const_data();
+        return blocks_cumulative_offsets_.get_const_data();
     }
 
     /**
@@ -208,7 +208,7 @@ private:
     size_type num_blocks_;
     array<value_type> blocks_;
     array<index_type> row_block_map_info_;
-    array<index_type> blocks_cumulative_storage_;
+    array<index_type> blocks_cumulative_offsets_;
 };
 
 
