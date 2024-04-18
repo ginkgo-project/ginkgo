@@ -66,7 +66,7 @@ public:
      */
     const index_type* get_const_block_pointers() const noexcept
     {
-        return parameters_.block_pointers.get_const_data();
+        return block_pointers_.get_const_data();
     }
 
     /**
@@ -205,6 +205,7 @@ private:
     void detect_blocks(
         const gko::matrix::Csr<ValueType, IndexType>* system_matrix);
 
+    array<index_type> block_pointers_;
     size_type num_blocks_;
     array<value_type> blocks_;
     array<index_type> row_block_map_info_;
