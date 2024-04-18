@@ -79,12 +79,12 @@ inline void invert_dense_block(const int block_size,
             swap_rows(block_size, temp_dense_block, k, piv);
             std::swap(col_perm[piv], col_perm[k]);
         }
-        const ValueType d = temp_dense_block[k * block_size + k];
+        const ValueType diag = temp_dense_block[k * block_size + k];
 
         // (scaling the kth col)
         // uncoalesced accesses
         for (int r = 0; r < block_size; r++) {
-            temp_dense_block[r * block_size + k] /= -d;
+            temp_dense_block[r * block_size + k] /= -diag;
         }
         temp_dense_block[k * block_size + k] = zero<ValueType>();
 
@@ -101,9 +101,9 @@ inline void invert_dense_block(const int block_size,
         // (scaling the kth row)
         // data-locality
         for (int c = 0; c < block_size; c++) {
-            temp_dense_block[k * block_size + c] /= d;
+            temp_dense_block[k * block_size + c] /= diag;
         }
-        temp_dense_block[k * block_size + k] = one<ValueType>() / d;
+        temp_dense_block[k * block_size + k] = one<ValueType>() / diag;
     }
 }
 
