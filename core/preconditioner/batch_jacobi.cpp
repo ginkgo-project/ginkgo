@@ -43,12 +43,63 @@ size_type Jacobi<ValueType, IndexType>::compute_storage_space(
 
 
 template <typename ValueType, typename IndexType>
+const IndexType* Jacobi<ValueType, IndexType>::get_const_block_pointers()
+    const noexcept
+{
+    return block_pointers_.get_const_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+const IndexType* Jacobi<ValueType, IndexType>::get_const_map_block_to_row()
+    const noexcept
+{
+    return map_block_to_row_.get_const_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+const IndexType* Jacobi<
+    ValueType, IndexType>::get_const_blocks_cumulative_offsets() const noexcept
+{
+    return blocks_cumulative_offsets_.get_const_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+uint32 Jacobi<ValueType, IndexType>::get_max_block_size() const noexcept
+{
+    return parameters_.max_block_size;
+}
+
+
+template <typename ValueType, typename IndexType>
+size_type Jacobi<ValueType, IndexType>::get_num_blocks() const noexcept
+{
+    return num_blocks_;
+}
+
+template <typename ValueType, typename IndexType>
+const ValueType* Jacobi<ValueType, IndexType>::get_const_blocks() const noexcept
+{
+    return blocks_.get_const_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+size_type Jacobi<ValueType, IndexType>::get_num_stored_elements() const noexcept
+{
+    return blocks_.get_size();
+}
+
+
+template <typename ValueType, typename IndexType>
 Jacobi<ValueType, IndexType>::Jacobi(std::shared_ptr<const Executor> exec)
     : EnableBatchLinOp<Jacobi>(exec),
-      num_blocks_{},
+      num_blocks_{0},
       block_pointers_(exec),
       blocks_(exec),
-      row_block_map_info_(exec),
+      map_block_to_row_(exec),
       blocks_cumulative_offsets_(exec)
 {}
 
@@ -63,8 +114,8 @@ Jacobi<ValueType, IndexType>::Jacobi(
       num_blocks_{
           block_pointers_.get_size() > 0 ? block_pointers_.get_size() - 1 : 0},
       blocks_(factory->get_executor()),
-      row_block_map_info_(factory->get_executor(),
-                          system_matrix->get_common_size()[0]),
+      map_block_to_row_(factory->get_executor(),
+                        system_matrix->get_common_size()[0]),
       blocks_cumulative_offsets_(factory->get_executor(), num_blocks_ + 1)
 {
     GKO_ASSERT_BATCH_HAS_SQUARE_DIMENSIONS(system_matrix);
@@ -128,6 +179,7 @@ void Jacobi<ValueType, IndexType>::generate_precond(
         std::move(sys_rows_view)));
 
     if (block_pointers_.get_data() == nullptr) {
+        block_pointers_.set_executor(exec);
         this->detect_blocks(first_sys_csr.get());
         exec->synchronize();
         blocks_cumulative_offsets_.resize_and_reset(num_blocks_ + 1);
@@ -142,7 +194,7 @@ void Jacobi<ValueType, IndexType>::generate_precond(
 
     exec->run(jacobi::make_find_row_block_map(num_blocks_,
                                               block_pointers_.get_const_data(),
-                                              row_block_map_info_.get_data()));
+                                              map_block_to_row_.get_data()));
 
     // Note: Row-major order offers advantage in terms of
     // performance in both preconditioner generation and application for both
@@ -163,7 +215,7 @@ void Jacobi<ValueType, IndexType>::generate_precond(
     exec->run(jacobi::make_extract_common_blocks_pattern(
         first_sys_csr.get(), num_blocks_,
         blocks_cumulative_offsets_.get_const_data(),
-        block_pointers_.get_const_data(), row_block_map_info_.get_const_data(),
+        block_pointers_.get_const_data(), map_block_to_row_.get_const_data(),
         block_nnz_idxs.get_data()));
 
     exec->run(jacobi::make_compute_block_jacobi(

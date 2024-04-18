@@ -17,7 +17,6 @@
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
-#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 #include <ginkgo/core/solver/batch_bicgstab.hpp>
 
 
@@ -32,7 +31,6 @@ class BatchBicgstab : public CommonTestFixture {
 protected:
     using real_type = gko::remove_complex<value_type>;
     using solver_type = gko::batch::solver::Bicgstab<value_type>;
-    using precond_type = gko::batch::preconditioner::Jacobi<value_type>;
     using Mtx = gko::batch::matrix::Dense<value_type>;
     using CsrMtx = gko::batch::matrix::Csr<value_type>;
     using EllMtx = gko::batch::matrix::Ell<value_type>;

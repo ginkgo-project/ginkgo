@@ -47,14 +47,10 @@ public:
             for (int j = 0; j < mat.num_stored_elems_per_row; j++) {
                 const auto idx = i + j * mat.stride;
                 if (mat.col_idxs[idx] == i) {
-                    // For zero diagonal, set the inverse to 1
-                    if (mat.values[idx] == zero<ValueType>()) {
-                        work_[i] = one<ValueType>();
-                        break;
-                    } else if (mat.values[idx] != zero<ValueType>()) {
+                    if (mat.values[idx] != zero<ValueType>()) {
                         work_[i] = one<ValueType>() / mat.values[idx];
-                        break;
                     }
+                    break;
                 }
             }
         }
@@ -79,14 +75,10 @@ public:
             work_[i] = one<ValueType>();
             for (int j = mat.row_ptrs[i]; j < mat.row_ptrs[i + 1]; j++) {
                 if (mat.col_idxs[j] == i) {
-                    // For zero diagonal, set the inverse to 1
-                    if (mat.values[j] == zero<ValueType>()) {
-                        work_[i] = one<ValueType>();
-                        break;
-                    } else if (mat.values[j] != zero<ValueType>()) {
+                    if (mat.values[j] != zero<ValueType>()) {
                         work_[i] = one<ValueType>() / mat.values[j];
-                        break;
                     }
+                    break;
                 }
             }
         }

@@ -31,10 +31,9 @@ public:
     /**
      *
      * @param num_blocks  Number of diagonal blocks in a matrix
-     * @param storage_scheme diagonal blocks storage scheme
-     * @param blocks_cumulative_offsets the cumulative block storage array
-     * @param blocks_arr_batch array of diagonal blocks for the batch
-     * @param block_ptrs_arr array of block pointers
+     * @param blocks_cumulative_offsets  the cumulative block storage array
+     * @param blocks_arr_batch  array of diagonal blocks for the batch
+     * @param block_ptrs_arr  array of block pointers
      *
      */
     BlockJacobi(const uint32, const size_type num_blocks,

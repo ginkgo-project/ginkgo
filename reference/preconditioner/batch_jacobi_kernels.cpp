@@ -52,12 +52,12 @@ template <typename IndexType>
 void find_row_block_map(std::shared_ptr<const DefaultExecutor> exec,
                         const size_type num_blocks,
                         const IndexType* const block_pointers,
-                        IndexType* const row_block_map_info)
+                        IndexType* const map_block_to_row)
 {
     for (size_type block_idx = 0; block_idx < num_blocks; block_idx++) {
         for (IndexType i = block_pointers[block_idx];
              i < block_pointers[block_idx + 1]; i++) {
-            row_block_map_info[i] = block_idx;
+            map_block_to_row[i] = block_idx;
         }
     }
 }

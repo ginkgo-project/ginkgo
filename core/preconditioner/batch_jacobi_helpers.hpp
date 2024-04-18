@@ -63,7 +63,7 @@ GKO_ATTRIBUTES static size_type get_block_offset(
  * @param block_storage_cumulative  the cumulative block storage array
  *
  * @return the global offset of the block which belongs to the batch entry
- * with index = batch_id and has local id = "block_id" within its batch
+ * with index = "batch_id" and has local id = "block_id" within its batch
  * entry
  */
 GKO_ATTRIBUTES static size_type get_global_block_offset(

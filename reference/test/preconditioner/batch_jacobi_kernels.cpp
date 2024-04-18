@@ -166,7 +166,6 @@ TYPED_TEST_SUITE(BatchJacobi, gko::test::ValueTypes);
 
 TYPED_TEST(BatchJacobi, BatchBlockJacobGenerationIsEquivalentToUnbatched)
 {
-    using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
     using Jac = typename TestFixture::Jac;
     using BJac = typename TestFixture::BJac;
@@ -175,12 +174,12 @@ TYPED_TEST(BatchJacobi, BatchBlockJacobGenerationIsEquivalentToUnbatched)
                          .with_max_block_size(this->max_block_size)
                          .with_block_pointers(this->block_ptrs)
                          .on(this->exec);
-    auto prec = prec_fact->generate(this->mtx);
-
     auto unbatch_prec_fact = Jac::build()
                                  .with_max_block_size(this->max_block_size)
                                  .with_block_pointers(this->block_ptrs)
                                  .on(this->exec);
+
+    auto prec = prec_fact->generate(this->mtx);
 
     for (size_t i = 0; i < umtxs.size(); i++) {
         auto unbatch_prec = unbatch_prec_fact->generate(umtxs[i]);

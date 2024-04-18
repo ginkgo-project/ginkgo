@@ -32,10 +32,10 @@ GKO_INSTANTIATE_FOR_INT32_TYPE(
 
 
 template <typename IndexType>
-void find_row_block_map(
-    std::shared_ptr<const DefaultExecutor> exec, const size_type num_blocks,
-    const IndexType* const block_pointers,
-    IndexType* const row_block_map_info) GKO_NOT_IMPLEMENTED;
+void find_row_block_map(std::shared_ptr<const DefaultExecutor> exec,
+                        const size_type num_blocks,
+                        const IndexType* const block_pointers,
+                        IndexType* const map_block_to_row) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_INT32_TYPE(
     GKO_DECLARE_BATCH_BLOCK_JACOBI_FIND_ROW_BLOCK_MAP);

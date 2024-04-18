@@ -530,11 +530,10 @@ template <typename ValueType>
 
 
 template <typename ValueType>
-::testing::AssertionResult array_near_impl(const std::string& first_expression,
-                                           const std::string& second_expression,
-                                           const array<ValueType>& first,
-                                           const array<ValueType>& second,
-                                           double tolerance)
+::testing::AssertionResult array_near_impl(
+    const std::string& first_expression, const std::string& second_expression,
+    const std::string& tolerance_expression, const array<ValueType>& first,
+    const array<ValueType>& second, double tolerance)
 {
     const auto num_elems1 = first.get_size();
     const auto num_elems2 = second.get_size();
@@ -556,8 +555,8 @@ template <typename ValueType>
             auto fail = ::testing::AssertionFailure();
             fail << "Array " << first_expression << " is different from "
                  << second_expression << " at index " << i
-                 << " with relative error: " << err
-                 << ", tolerance: " << tolerance << "\n";
+                 << " with relative error: " << err << ", expected "
+                 << tolerance_expression << " (which is " << tolerance << ")\n";
             return fail;
         }
     }
@@ -870,7 +869,7 @@ template <typename ValueType>
  * ASSERT_PRED_FORMAT2(gko::test::assertions::array_equal, array1, array2);
  * ```
  *
- * @see GKO_ASSERT_ARRAY_EQ
+ * @see GKO_ASSERT_ARRAY_NEAR
  */
 template <typename ValueType>
 ::testing::AssertionResult array_near(const std::string& first_expression,
@@ -880,8 +879,29 @@ template <typename ValueType>
                                       const array<ValueType>& second,
                                       double tolerance)
 {
-    return detail::array_near_impl(first_expression, second_expression, first,
-                                   second, tolerance);
+    return detail::array_near_impl(first_expression, second_expression,
+                                   tolerance_expression, first, second,
+                                   tolerance);
+}
+
+
+/**
+ * array_nearoverload: where both `first` and `second` are const_array_views.
+ * It creates array copies of the const_array_view and then compare `first` and
+ * `second`
+ *
+ * @copydoc array_near
+ */
+template <typename ValueType>
+::testing::AssertionResult array_near(
+    const std::string& first_expression, const std::string& second_expression,
+    const std::string& tolerance_expression,
+    const gko::detail::const_array_view<ValueType>& first,
+    const gko::detail::const_array_view<ValueType>& second, double tolerance)
+{
+    return detail::array_near_impl(first_expression, second_expression,
+                                   tolerance_expression, first.copy_to_array(),
+                                   second.copy_to_array(), tolerance);
 }
 
 
@@ -937,27 +957,6 @@ template <typename ValueType>
                                     second.copy_to_array());
 }
 
-// /**
-//  * array_equal overload: where both `first` and `second` are
-//  const_array_views.
-//  * It creates array copies of the const_array_view and then compare `first`
-//  and
-//  * `second`
-//  *
-//  * @copydoc array_equal
-//  */
-// template <typename ValueType>
-// ::testing::AssertionResult array_near(
-//     const std::string& first_expression, const std::string&
-//     second_expression, const std::string& tolerance_expression, const
-//     gko::detail::const_array_view<ValueType>& first, const
-//     gko::detail::const_array_view<ValueType>& second, double tolerance)
-// {
-//     return detail::array_near_impl(first_expression, second_expression,
-//                                    tolerance_expression,
-//                                    first.copy_to_array(),
-//                                    second.copy_to_array(), tolerance);
-// }
 
 /** array_equal overloads where one side is an initializer list .*/
 template <typename ValueType>
