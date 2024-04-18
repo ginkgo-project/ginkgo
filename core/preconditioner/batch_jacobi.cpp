@@ -18,8 +18,8 @@ namespace jacobi {
 
 
 GKO_REGISTER_OPERATION(find_blocks, jacobi::find_blocks);
-GKO_REGISTER_OPERATION(extract_common_block_nnz_idxs,
-                       batch_jacobi::extract_common_block_nnz_idxs);
+GKO_REGISTER_OPERATION(extract_common_blocks_pattern,
+                       batch_jacobi::extract_common_blocks_pattern);
 GKO_REGISTER_OPERATION(compute_block_jacobi,
                        batch_jacobi::compute_block_jacobi);
 GKO_REGISTER_OPERATION(find_row_block_map, batch_jacobi::find_row_block_map);
@@ -164,7 +164,7 @@ void Jacobi<ValueType, IndexType>::generate_precond(
     // blocks (corresponding to a batch entry) is extracted and then blocks
     // corresponding to different batch entries are obtained by just filling in
     // values based on the common pattern.
-    exec->run(jacobi::make_extract_common_block_nnz_idxs(
+    exec->run(jacobi::make_extract_common_blocks_pattern(
         first_sys_csr.get(), num_blocks_,
         blocks_cumulative_storage_.get_const_data(),
         parameters_.block_pointers.get_const_data(),

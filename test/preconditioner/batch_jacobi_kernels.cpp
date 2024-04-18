@@ -23,6 +23,7 @@
 
 #include "core/solver/batch_bicgstab_kernels.hpp"
 #include "core/test/utils.hpp"
+#include "core/test/utils/assertions.hpp"
 #include "core/test/utils/batch_helpers.hpp"
 #include "test/utils/executor.hpp"
 
@@ -39,54 +40,26 @@ void is_equivalent_to_ref(
     auto exec = d_prec->get_executor();
     const auto nbatch = ref_prec->get_num_batch_items();
     const auto num_blocks = ref_prec->get_num_blocks();
+    const auto cumul_block_size =
+        ref_prec->get_const_blocks_cumulative_storage()[num_blocks];
     const auto block_pointers_ref = ref_prec->get_const_block_pointers();
 
     const auto tol = 10 * r<ValueType>::value;
 
-    gko::array<int> d_block_pointers_copied_to_ref(ref, num_blocks + 1);
-    ref->copy_from(exec.get(), num_blocks + 1,
-                   d_prec->get_const_block_pointers(),
-                   d_block_pointers_copied_to_ref.get_data());
-
-    gko::array<int> d_block_cumul_storage_copied_to_ref(ref, num_blocks + 1);
-    ref->copy_from(exec.get(), num_blocks + 1,
-                   d_prec->get_const_blocks_cumulative_storage(),
-                   d_block_cumul_storage_copied_to_ref.get_data());
-
-    for (int batch_id = 0; batch_id < nbatch; batch_id++) {
-        for (int block_id = 0; block_id < num_blocks; block_id++) {
-            const auto bsize =
-                block_pointers_ref[block_id + 1] - block_pointers_ref[block_id];
-
-            const auto ref_dense_block_ptr =
-                ref_prec->get_const_blocks() +
-                gko::detail::batch_jacobi::get_global_block_offset(
-                    batch_id, ref_prec->get_num_blocks(), block_id,
-                    ref_prec->get_const_blocks_cumulative_storage());
-            const auto ref_stride = gko::detail::batch_jacobi::get_stride(
-                block_id, block_pointers_ref);
-            const auto d_dense_block_ptr =
-                d_prec->get_const_blocks() +
-                gko::detail::batch_jacobi::get_global_block_offset(
-                    batch_id, d_prec->get_num_blocks(), block_id,
-                    d_block_cumul_storage_copied_to_ref.get_const_data());
-            const auto d_stride = gko::detail::batch_jacobi::get_stride(
-                block_id, d_block_pointers_copied_to_ref.get_const_data());
-
-            for (int r = 0; r < bsize; r++) {
-                for (int c = 0; c < bsize; c++) {
-                    const auto ref_val_ptr =
-                        ref_dense_block_ptr + r * ref_stride + c;
-                    const auto d_val_ptr = d_dense_block_ptr + r * d_stride + c;
-
-                    ValueType val;
-                    exec->get_master()->copy_from(exec.get(), 1, d_val_ptr,
-                                                  &val);
-                    GKO_EXPECT_NEAR(*ref_val_ptr, val, tol);
-                }
-            }
-        }
-    }
+    GKO_ASSERT_ARRAY_EQ(
+        gko::array<int>::const_view(exec, num_blocks + 1,
+                                    d_prec->get_const_block_pointers())
+            .copy_to_array(),
+        gko::array<int>::const_view(exec, num_blocks + 1, block_pointers_ref)
+            .copy_to_array());
+    GKO_ASSERT_ARRAY_NEAR(
+        gko::array<ValueType>::const_view(exec, nbatch * cumul_block_size,
+                                          d_prec->get_const_blocks())
+            .copy_to_array(),
+        gko::array<ValueType>::const_view(exec, nbatch * cumul_block_size,
+                                          ref_prec->get_const_blocks())
+            .copy_to_array(),
+        tol);
 }
 
 
