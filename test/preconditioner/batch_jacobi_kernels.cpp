@@ -107,21 +107,20 @@ protected:
 
         // TODO (before merging device kernels): Check if it is the same for
         // other device kernels
-        // // so that the block pointers are exactly the same for ref and device
-        // const int* block_pointers_generated_by_ref =
-        //     ref_block_jacobi_prec->get_const_block_pointers();
-        // const auto num_blocks_generated_by_ref =
-        //     ref_block_jacobi_prec->get_num_blocks();
+        // so that the block pointers are exactly the same for ref and device
+        const int* block_pointers_generated_by_ref =
+            ref_block_jacobi_prec->get_const_block_pointers();
+        const auto num_blocks_generated_by_ref =
+            ref_block_jacobi_prec->get_num_blocks();
 
-        // gko::array<int> block_pointers_for_device(
-        //     this->exec, block_pointers_generated_by_ref,
-        //     block_pointers_generated_by_ref + num_blocks_generated_by_ref +
-        //     1);
+        gko::array<int> block_pointers_for_device(
+            this->exec, block_pointers_generated_by_ref,
+            block_pointers_generated_by_ref + num_blocks_generated_by_ref + 1);
 
         d_block_jacobi_prec =
             BJ::build()
                 .with_max_block_size(max_blk_sz)
-                // .with_block_pointers(block_pointers_for_device)
+                .with_block_pointers(block_pointers_for_device)
                 .on(exec)
                 ->generate(d_mtx);
     }
