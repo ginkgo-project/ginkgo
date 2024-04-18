@@ -41,7 +41,7 @@ void is_equivalent_to_ref(
     const auto nbatch = ref_prec->get_num_batch_items();
     const auto num_blocks = ref_prec->get_num_blocks();
     const auto cumul_block_size =
-        ref_prec->get_const_blocks_cumulative_storage()[num_blocks];
+        ref_prec->get_const_blocks_cumulative_offsets()[num_blocks];
     const auto block_pointers_ref = ref_prec->get_const_block_pointers();
 
     const auto tol = 10 * r<ValueType>::value;

@@ -53,7 +53,7 @@ void is_equivalent_to_unbatched(
                     (blocks_batch_arr +
                      gko::detail::batch_jacobi::get_global_block_offset(
                          batch_idx, num_blocks, k,
-                         batch_prec->get_const_blocks_cumulative_storage()))
+                         batch_prec->get_const_blocks_cumulative_offsets()))
                         [r * gko::detail::batch_jacobi::get_stride(k,
                                                                    block_ptrs) +
                          c];

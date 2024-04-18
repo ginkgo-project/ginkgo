@@ -32,17 +32,17 @@ public:
      *
      * @param num_blocks  Number of diagonal blocks in a matrix
      * @param storage_scheme diagonal blocks storage scheme
-     * @param blocks_cumulative_storage the cumulative block storage array
+     * @param blocks_cumulative_offsets the cumulative block storage array
      * @param blocks_arr_batch array of diagonal blocks for the batch
      * @param block_ptrs_arr array of block pointers
      *
      */
     BlockJacobi(const uint32, const size_type num_blocks,
-                const int* const blocks_cumulative_storage,
+                const int* const blocks_cumulative_offsets,
                 const value_type* const blocks_arr_batch,
                 const int* const block_ptrs_arr, const int* const)
         : num_blocks_{num_blocks},
-          blocks_cumulative_storage_{blocks_cumulative_storage},
+          blocks_cumulative_offsets_{blocks_cumulative_offsets},
           blocks_arr_batch_{blocks_arr_batch},
           block_ptrs_arr_{block_ptrs_arr},
           blocks_arr_entry_{}
@@ -89,7 +89,7 @@ public:
             const int bsize = row_end - row_st;
 
             const auto offset = detail::batch_jacobi::get_block_offset(
-                bidx, blocks_cumulative_storage_);
+                bidx, blocks_cumulative_offsets_);
             const auto stride =
                 detail::batch_jacobi::get_stride(bidx, block_ptrs_arr_);
 
@@ -113,11 +113,11 @@ private:
         blocks_arr_entry_ =
             blocks_arr_batch_ +
             detail::batch_jacobi::get_batch_offset(batch_id, num_blocks_,
-                                                   blocks_cumulative_storage_);
+                                                   blocks_cumulative_offsets_);
     }
 
     const size_type num_blocks_;
-    const int* const blocks_cumulative_storage_;
+    const int* const blocks_cumulative_offsets_;
     const value_type* const blocks_arr_batch_;
     const value_type* blocks_arr_entry_;
     const int* const block_ptrs_arr_;

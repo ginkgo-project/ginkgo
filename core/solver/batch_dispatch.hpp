@@ -252,7 +252,7 @@ public:
                     reinterpret_cast<DeviceValueType<const ValueType*>>(
                         prec->get_const_blocks());
                 const auto blocks_cumul_storage =
-                    prec->get_const_blocks_cumulative_storage();
+                    prec->get_const_blocks_cumulative_offsets();
 
                 dispatch_on_stop<device::batch_preconditioner::BlockJacobi<
                     device_value_type>>(

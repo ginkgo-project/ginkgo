@@ -25,7 +25,7 @@ template <typename IndexType>
 void compute_cumulative_block_storage(
     std::shared_ptr<const DefaultExecutor> exec, const size_type num_blocks,
     const IndexType* const block_pointers,
-    IndexType* const blocks_cumulative_storage) GKO_NOT_IMPLEMENTED;
+    IndexType* const blocks_cumulative_offsets) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_INT32_TYPE(
     GKO_DECLARE_BATCH_BLOCK_JACOBI_COMPUTE_CUMULATIVE_BLOCK_STORAGE);

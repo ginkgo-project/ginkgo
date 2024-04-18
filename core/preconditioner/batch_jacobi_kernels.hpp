@@ -34,7 +34,7 @@ namespace kernels {
     void compute_cumulative_block_storage(                               \
         std::shared_ptr<const DefaultExecutor> exec,                     \
         const size_type num_blocks, const IndexType* block_pointers,     \
-        IndexType* blocks_cumulative_storage)
+        IndexType* blocks_cumulative_offsets)
 
 #define GKO_DECLARE_BATCH_BLOCK_JACOBI_EXTRACT_PATTERN_KERNEL(ValueType,       \
                                                               IndexType)       \
