@@ -27,7 +27,7 @@ namespace kernels {
     void find_row_block_map(std::shared_ptr<const DefaultExecutor> exec, \
                             const size_type num_blocks,                  \
                             const IndexType* block_pointers,             \
-                            IndexType* row_block_map_info)
+                            IndexType* map_block_to_row)
 
 #define GKO_DECLARE_BATCH_BLOCK_JACOBI_COMPUTE_CUMULATIVE_BLOCK_STORAGE( \
     IndexType)                                                           \
@@ -42,7 +42,7 @@ namespace kernels {
         std::shared_ptr<const DefaultExecutor> exec,                           \
         const matrix::Csr<ValueType, IndexType>* first_sys_csr,                \
         const size_type num_blocks, const IndexType* cumulative_block_storage, \
-        const IndexType* block_pointers, const IndexType* row_block_map_info,  \
+        const IndexType* block_pointers, const IndexType* map_block_to_row,    \
         IndexType* blocks_pattern)
 
 

@@ -64,10 +64,7 @@ public:
      *        (max_block_size = 1).
      *  @return the block pointers
      */
-    const index_type* get_const_block_pointers() const noexcept
-    {
-        return block_pointers_.get_const_data();
-    }
+    const index_type* get_const_block_pointers() const noexcept;
 
     /**
      * Returns the mapping between the blocks and the row id.
@@ -75,10 +72,7 @@ public:
      * @note Returns nullptr in case of a scalar jacobi preconditioner
      *       (max_block_size = 1).
      */
-    const index_type* get_const_row_block_map_info() const noexcept
-    {
-        return row_block_map_info_.get_const_data();
-    }
+    const index_type* get_const_map_block_to_row() const noexcept;
 
     /**
      *  Returns the cumulative blocks storage array
@@ -86,34 +80,28 @@ public:
      *  @note Returns nullptr in case of a scalar jacobi preconditioner
      *        (max_block_size = 1).
      */
-    const index_type* get_const_blocks_cumulative_offsets() const noexcept
-    {
-        return blocks_cumulative_offsets_.get_const_data();
-    }
+    const index_type* get_const_blocks_cumulative_offsets() const noexcept;
 
     /**
      * Returns the max block size.
      *
      * @return the max block size
      */
-    uint32 get_max_block_size() const noexcept
-    {
-        return parameters_.max_block_size;
-    }
+    uint32 get_max_block_size() const noexcept;
 
     /**
      * Returns the number of blocks in an individual batch entry.
      *
      * @return the number of blocks in an individual batch entry.
      */
-    size_type get_num_blocks() const noexcept { return num_blocks_; }
+    size_type get_num_blocks() const noexcept;
 
     /**
      * Returns the pointer to the memory used for storing the block data.
      *
      * Element (`i`, `j`) of the block, which belongs to the batch entry with
-     * index = batch_id and has local id = "block_id" within its batch entry is
-     * stored at the address = get_const_blocks() +
+     * index = "batch_id" and has local id = "block_id" within its batch entry
+     * is stored at the address = get_const_blocks() +
      * detail::get_global_block_offset(batch_id, num_blocks, block_id,
      * cumulative_blocks_storage) + i * detail::get_stride(block_id,
      * block_pointers) + j
@@ -126,24 +114,18 @@ public:
      *
      * @return the pointer to the memory used for storing the block data
      */
-    const value_type* get_const_blocks() const noexcept
-    {
-        return blocks_.get_const_data();
-    }
+    const value_type* get_const_blocks() const noexcept;
 
     /**
      * Returns the number of elements explicitly stored in the dense blocks.
      *
      * @note Returns 0 in case of scalar jacobi preconditioner as the
-     * preconditioner is generated inside the batched solver kernels, hence,
-     * blocks array storage is not required.
+     *       preconditioner is generated inside the batched solver kernels,
+     *       hence, blocks array storage is not required.
      *
      * @return the number of elements explicitly stored in the dense blocks.
      */
-    size_type get_num_stored_elements() const noexcept
-    {
-        return blocks_.get_size();
-    }
+    size_type get_num_stored_elements() const noexcept;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -151,18 +133,19 @@ public:
          * Maximal size of diagonal blocks.
          *
          * @note This value has to be between 1 and 32 (NVIDIA)/64 (AMD). For
-         * efficiency, when the max_block_size is set to 1, specialized kernels
-         * are used and the additional objects (block_ptrs etc) are set to null
-         * values.
+         *       efficiency, when the max_block_size is set to 1, specialized
+         *       kernels are used and the additional objects (block_ptrs etc)
+         *       are set to null values.
          *
          * @note Unlike the regular block Jacobi preconditioner, for the batched
-         * preconditioner, smaller blocks are more efficient, as the matrices
-         * themselves are considerably smaller.
+         *       preconditioner, smaller blocks are more efficient, as the
+         *       matrices themselves are considerably smaller.
          */
         uint32 GKO_FACTORY_PARAMETER_SCALAR(max_block_size, 8u);
 
         /**
-         * Starting (row / column) indexes of individual blocks.
+         * Starting (row / column) indexes of individual blocks, for a single
+         * batch item.
          *
          * An index past the last block has to be supplied as the last value.
          * I.e. the size of the array has to be the number of blocks plus 1,
@@ -208,7 +191,7 @@ private:
     array<index_type> block_pointers_;
     size_type num_blocks_;
     array<value_type> blocks_;
-    array<index_type> row_block_map_info_;
+    array<index_type> map_block_to_row_;
     array<index_type> blocks_cumulative_offsets_;
 };
 

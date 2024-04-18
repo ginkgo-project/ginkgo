@@ -227,8 +227,7 @@ public:
     {
         if (!precond_ ||
             dynamic_cast<const matrix::Identity<value_type>*>(precond_)) {
-            dispatch_on_stop<
-                device::batch_preconditioner::Identity<device_value_type>>(
+            dispatch_on_stop(
                 logger, mat_item,
                 device::batch_preconditioner::Identity<device_value_type>(),
                 b_item, x_item);
@@ -237,25 +236,22 @@ public:
                        precond_)) {
             const auto max_block_size = prec->get_max_block_size();
             if (max_block_size == 1) {
-                dispatch_on_stop<device::batch_preconditioner::ScalarJacobi<
-                    device_value_type>>(
-                    logger, mat_item,
-                    device::batch_preconditioner::ScalarJacobi<
-                        device_value_type>(),
-                    b_item, x_item);
+                dispatch_on_stop(logger, mat_item,
+                                 device::batch_preconditioner::ScalarJacobi<
+                                     device_value_type>(),
+                                 b_item, x_item);
             } else {
                 const auto num_blocks = prec->get_num_blocks();
                 const auto block_ptrs_arr = prec->get_const_block_pointers();
                 const auto row_block_map_arr =
-                    prec->get_const_row_block_map_info();
+                    prec->get_const_map_block_to_row();
                 const auto blocks_arr =
                     reinterpret_cast<DeviceValueType<const ValueType*>>(
                         prec->get_const_blocks());
                 const auto blocks_cumul_storage =
                     prec->get_const_blocks_cumulative_offsets();
 
-                dispatch_on_stop<device::batch_preconditioner::BlockJacobi<
-                    device_value_type>>(
+                dispatch_on_stop(
                     logger, mat_item,
                     device::batch_preconditioner::BlockJacobi<
                         device_value_type>(max_block_size, num_blocks,

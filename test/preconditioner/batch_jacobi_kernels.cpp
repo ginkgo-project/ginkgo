@@ -48,17 +48,13 @@ void is_equivalent_to_ref(
 
     GKO_ASSERT_ARRAY_EQ(
         gko::array<int>::const_view(exec, num_blocks + 1,
-                                    d_prec->get_const_block_pointers())
-            .copy_to_array(),
-        gko::array<int>::const_view(exec, num_blocks + 1, block_pointers_ref)
-            .copy_to_array());
+                                    d_prec->get_const_block_pointers()),
+        gko::array<int>::const_view(exec, num_blocks + 1, block_pointers_ref));
     GKO_ASSERT_ARRAY_NEAR(
         gko::array<ValueType>::const_view(exec, nbatch * cumul_block_size,
-                                          d_prec->get_const_blocks())
-            .copy_to_array(),
+                                          d_prec->get_const_blocks()),
         gko::array<ValueType>::const_view(exec, nbatch * cumul_block_size,
-                                          ref_prec->get_const_blocks())
-            .copy_to_array(),
+                                          ref_prec->get_const_blocks()),
         tol);
 }
 
