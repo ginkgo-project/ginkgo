@@ -33,10 +33,8 @@ namespace detail {
 
 
 /**
- * This structure creates a cartesian product of the types in the left list with
- * the types of the right list and stores the combination in a std::tuple. The
- * resulting type is a list (it will be the same type wrapper as the left and
- * right list) of `std::tuple`.
+ * @see cartesian_type_product_t for details.
+ *
  * The wrapper / list type needs to be a structure that can take an arbitrary
  * amount of types. An example for this wrapper is std::tuple, but a simple
  * `template<typename... Args> struct wrapper {};` also works.
@@ -54,17 +52,6 @@ namespace detail {
  * parameter pack Result, which will be wrapped in the original OuterWrapper
  * after all parameters from the LeftList have been processed (in the last
  * specialization).
- *
- * Example:
- * ```
- * // Here, we use std::tuple as the outer type wrapper.
- * using left_list = std::tuple<a1, a2, a3>;
- * using right_list = std::tuple<b1, b2>;
- * using result = typename cartesian_type_product<left_list, right_list>::type;
- * // result = std::tuple<std::tuple<a1, b1>, std::tuple<a1, b2>,
- * //                     std::tuple<a2, b1>, std::tuple<a2, b2>,
- * //                     std::tuple<a3, b1>, std::tuple<a3, b2>>;
- * ```
  */
 template <typename LeftList, typename RightList, typename... Result>
 struct cartesian_type_product {};
@@ -87,25 +74,11 @@ struct cartesian_type_product<OuterWrapper<>, OuterWrapper<RightArgs...>,
 
 
 /**
- * This structure expects the left list to have all elements of the type
- * std::tuple and the right list of elements you want to add to those tuples. It
- * creates a new list where it adds all combinations of the std::tuple with the
- * new element list as a new member of the std::tuple to the right side.
+ * @see add_to_cartesian_type_product_t for details.
  *
- * It can be used to create a cartesian product with more than two lists by
- * using the cartesian_type_product initially for the left argument, followed by
- * this structure for each additional list.
- * Example:
- * ```
- * template<typename... Args>
- * using t = std::tuple<Args>;  // use this alias to increase readability
- * using left_combinations = t<t<a1, b1>, t<a1, b2>>;
- * using right_new = t<n1, n2>;
- * using new_list =
- *     typename add_to_cartesian_type_product<left_combinations,
- *                                            right_new>::type;
- * // new_list = t<t<a1, b1, n1>, t<a1, b1, n2>, t<a1, b2, n1>, t<a1, b2, n2>>;
- * ```
+ * Uses a similar technique to cartesian_type_product.
+ * It also uses the parameter pack Result to store the interim results, which
+ * will be put in the OuterWrapper after all inputs have been processed.
  */
 template <typename ExistingCombinationList, typename NewElementList,
           typename... Result>
@@ -133,19 +106,7 @@ struct add_to_cartesian_type_product<
 
 
 /**
- * Does the same as add_to_cartesian_type_product with the only difference that
- * the new element will be added to the left side. The template parameter order
- * is also flipped, so the new list is now on the left side.
- * Example:
- * ```
- * template<typename... Args> using t = std::tuple<Args>;
- * using right_combinations = t<t<a1, b1>, t<a1, b2>>;
- * using left_new = t<n1, n2>;
- * using new_list =
- *     typename add_to_cartesian_type_product_left<left_new,
- *                                                 right_combinations>::type;
- * // new_list = t<t<n1, a1, b1>, t<n2, a1, b1>, t<n1, a1, b2>, t<n2, a1, b2>>;
- * ```
+ * @see add_to_cartesian_type_product_left_t for details.
  */
 template <typename NewElementList, typename ExistingCombinationList,
           typename... Result>
@@ -173,11 +134,7 @@ struct add_to_cartesian_type_product_left<OuterWrapper<NewElementArgs...>,
 
 
 /**
- * Merges two lists into a single list.
- * The left and right list need to use the same type wrapper, which will also be
- * the resulting wrapper containing elements of both lists. The order of the
- * left and right list are preserved. The resulting list will have all elements
- * of the left list, followed by all elements of the right list.
+ * @see merge_type_lists_t for details.
  */
 template <typename FirstList, typename SecondList>
 struct merge_type_list {};
@@ -190,15 +147,7 @@ struct merge_type_list<OuterWrapper<Args1...>, OuterWrapper<Args2...>> {
 
 
 /**
- * This structure can change the outer type wrapper to the new, given one.
- * Example:
- * ```
- * template <typename... Args>
- * struct type_wrapper {};
- * using old_list = std::tuple<int, double, short>;
- * using new_list = typename change_outer_wrapper<type_wrapper, old_list>::type;
- * // new_list = type_wrapper<int, double, short>;
- * ```
+ * @see change_outer_wrapper_t for details.
  */
 template <template <typename...> class NewOuterWrapper,
           typename OldOuterWrapper>
@@ -212,20 +161,14 @@ struct change_outer_wrapper<NewOuterWrapper, OldOuterWrapper<Args...>> {
 
 
 /**
- * Creates a type list (the outer wrapper stays the same) where each original
- * type is wrapped into the given NewInnerWrapper. Example:
- * ```
- * using new_type =
- *     typename add_internal_wrapper<std::complex,
- *                                   std::tuple<float, double>>::type;
- * // new_type = std::tuple<std::complex<float>, std::complex<double>>;
+ * @see add_inner_wrapper_t for details.
  */
 template <template <typename...> class NewInnerWrapper, typename ListType>
-struct add_internal_wrapper {};
+struct add_inner_wrapper {};
 
 template <template <typename...> class NewInnerWrapper,
           template <typename...> class OuterWrapper, typename... Args>
-struct add_internal_wrapper<NewInnerWrapper, OuterWrapper<Args...>> {
+struct add_inner_wrapper<NewInnerWrapper, OuterWrapper<Args...>> {
     using type = OuterWrapper<NewInnerWrapper<Args>...>;
 };
 
@@ -251,7 +194,7 @@ struct add_internal_wrapper<NewInnerWrapper, OuterWrapper<Args...>> {
  *
  * @tparam LeftList  A wrapper type (like std::tuple) containing the list of
  *                   types that you want to create the cartesian product with.
- *                   The paremeters of this list will be the left type in the
+ *                   The parameters of this list will be the left type in the
  *                   resulting `std::tuple`
  * @tparam RightList  Similar to the LeftList. Must use the same outer wrapper
  *                    as the LeftList.
@@ -267,8 +210,8 @@ using cartesian_type_product_t =
  * This structure expects the left list to have all elements of the type
  * std::tuple (as it is returned from cartesian_type_product_t) and the right
  * list of elements you want to add to those tuples.
- * creates a new list where it adds all combinations of the std::tuple with the
- * new element list as a new member of the std::tuple to the right side.
+ * It creates a new list where it adds all combinations of the std::tuple with
+ * the new element list as a new member of the std::tuple to the right side.
  * Example:
  * ```
  * template<typename... Args>
@@ -359,7 +302,7 @@ using change_outer_wrapper_t =
  * Example:
  * ```
  * using new_type =
- *     add_internal_wrapper<std::complex, std::tuple<float, double>>;
+ *     add_inner_wrapper<std::complex, std::tuple<float, double>>;
  * // new_type = std::tuple<std::complex<float>, std::complex<double>>;
  * ```
  *
@@ -368,8 +311,8 @@ using change_outer_wrapper_t =
  * @tparam ListType  The list of types where you want to add a wrapper to each
  */
 template <template <typename...> class NewInnerWrapper, typename ListType>
-using add_internal_wrapper_t =
-    typename detail::add_internal_wrapper<NewInnerWrapper, ListType>::type;
+using add_inner_wrapper_t =
+    typename detail::add_inner_wrapper<NewInnerWrapper, ListType>::type;
 
 
 using RealValueTypes =
@@ -379,7 +322,7 @@ using RealValueTypes =
     ::testing::Types<float, double>;
 #endif
 
-using ComplexValueTypes = add_internal_wrapper_t<std::complex, RealValueTypes>;
+using ComplexValueTypes = add_inner_wrapper_t<std::complex, RealValueTypes>;
 
 using ValueTypes = merge_type_list_t<RealValueTypes, ComplexValueTypes>;
 
