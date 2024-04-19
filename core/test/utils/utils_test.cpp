@@ -22,16 +22,18 @@ using t_type = std::tuple<int>;
 using testing_types1 = testing::Types<double>;
 using testing_types2 = testing::Types<t_type, int>;
 using testing_types3 = testing::Types<i_type, short, float>;
+using testing_empty = testing::Types<>;
 
 using tuple_types1 = std::tuple<double>;
 using tuple_types2 = std::tuple<t_type, int>;
 using tuple_types3 = std::tuple<i_type, short, float>;
+using tuple_empty = std::tuple<>;
 
 template <typename... Args>
 struct type_list {};
 
 
-TEST(TypeListHelper, ChangeOuterWrapper1)
+TEST(TypeListHelper, ChangeOuterWrapperPredefined)
 {
     testing::StaticAssertTypeEq<
         gko::test::change_outer_wrapper_t<std::tuple, testing_types1>,
@@ -54,14 +56,28 @@ TEST(TypeListHelper, ChangeOuterWrapper1)
 }
 
 
-TEST(TypeListHelper, ChangeOuterWrapper2)
+TEST(TypeListHelper, ChangeOuterWrapperCustomType)
 {
-    using alternative_list1 = type_list<i_type, t_type, double>;
-    using expected_ow2 = testing::Types<i_type, t_type, double>;
+    using type_list1 = type_list<i_type, t_type, double>;
+    using testing_list1 = testing::Types<i_type, t_type, double>;
 
     testing::StaticAssertTypeEq<
-        gko::test::change_outer_wrapper_t<testing::Types, alternative_list1>,
-        expected_ow2>();
+        gko::test::change_outer_wrapper_t<testing::Types, type_list1>,
+        testing_list1>();
+    testing::StaticAssertTypeEq<
+        gko::test::change_outer_wrapper_t<type_list, testing_list1>,
+        type_list1>();
+}
+
+
+TEST(TypeListHelper, ChangeOuterWrapperEmpty)
+{
+    testing::StaticAssertTypeEq<
+        gko::test::change_outer_wrapper_t<testing::Types, tuple_empty>,
+        testing_empty>();
+    testing::StaticAssertTypeEq<
+        gko::test::change_outer_wrapper_t<std::tuple, testing_empty>,
+        tuple_empty>();
 }
 
 
@@ -69,11 +85,12 @@ TEST(TypeListHelper, AddInternalWrapperTuple)
 {
     using expected_iw1 = testing::Types<std::tuple<i_type>, std::tuple<short>,
                                         std::tuple<float>>;
+
     testing::StaticAssertTypeEq<
-        gko::test::add_internal_wrapper_t<std::tuple, testing_types3>,
+        gko::test::add_inner_wrapper_t<std::tuple, testing_types3>,
         expected_iw1>();
     testing::StaticAssertTypeEq<
-        gko::test::add_internal_wrapper_t<std::tuple, tuple_types3>,
+        gko::test::add_inner_wrapper_t<std::tuple, tuple_types3>,
         gko::test::change_outer_wrapper_t<std::tuple, expected_iw1>>();
 }
 
@@ -83,11 +100,21 @@ TEST(TypeListHelper, AddInternalWrapperComplex)
     using expected_iw2 = testing::Types<std::complex<double>>;
 
     testing::StaticAssertTypeEq<
-        gko::test::add_internal_wrapper_t<std::complex, testing_types1>,
+        gko::test::add_inner_wrapper_t<std::complex, testing_types1>,
         expected_iw2>();
     testing::StaticAssertTypeEq<
-        gko::test::add_internal_wrapper_t<std::complex, tuple_types1>,
+        gko::test::add_inner_wrapper_t<std::complex, tuple_types1>,
         gko::test::change_outer_wrapper_t<std::tuple, expected_iw2>>();
+}
+
+
+TEST(TypeListHelper, AddInternalWrapperEmpty)
+{
+    testing::StaticAssertTypeEq<
+        gko::test::add_inner_wrapper_t<std::tuple, testing_empty>,
+        testing_empty>();
+    testing::StaticAssertTypeEq<
+        gko::test::add_inner_wrapper_t<std::tuple, tuple_empty>, tuple_empty>();
 }
 
 
@@ -106,20 +133,18 @@ TEST(TypeListHelper, MergeTypeListLarge)
 
 TEST(TypeListHelper, MergeTypeListEmpty)
 {
-    using expected_m2 = testing::Types<double>;
-
     testing::StaticAssertTypeEq<
         gko::test::merge_type_list_t<testing_types1, testing::Types<>>,
-        expected_m2>();
+        testing_types1>();
     testing::StaticAssertTypeEq<
         gko::test::merge_type_list_t<tuple_types1, std::tuple<>>,
-        gko::test::change_outer_wrapper_t<std::tuple, expected_m2>>();
+        tuple_types1>();
     testing::StaticAssertTypeEq<
         gko::test::merge_type_list_t<testing::Types<>, testing_types1>,
-        expected_m2>();
+        testing_types1>();
     testing::StaticAssertTypeEq<
         gko::test::merge_type_list_t<std::tuple<>, tuple_types1>,
-        gko::test::change_outer_wrapper_t<std::tuple, expected_m2>>();
+        tuple_types1>();
 }
 
 
@@ -150,6 +175,29 @@ TEST(TypeListHelper, CartesianTypeProductSmall)
     testing::StaticAssertTypeEq<
         gko::test::cartesian_type_product_t<tuple_types1, tuple_types2>,
         gko::test::change_outer_wrapper_t<std::tuple, expected_c2>>();
+}
+
+
+TEST(TypeListHelper, CartesianTypeProductEmpty)
+{
+    testing::StaticAssertTypeEq<
+        gko::test::cartesian_type_product_t<testing_empty, testing_types2>,
+        testing_empty>();
+    testing::StaticAssertTypeEq<
+        gko::test::cartesian_type_product_t<testing_types1, testing_empty>,
+        testing_empty>();
+    testing::StaticAssertTypeEq<
+        gko::test::cartesian_type_product_t<testing_empty, testing_empty>,
+        testing_empty>();
+    testing::StaticAssertTypeEq<
+        gko::test::cartesian_type_product_t<tuple_empty, tuple_types2>,
+        tuple_empty>();
+    testing::StaticAssertTypeEq<
+        gko::test::cartesian_type_product_t<tuple_types1, tuple_empty>,
+        tuple_empty>();
+    testing::StaticAssertTypeEq<
+        gko::test::cartesian_type_product_t<tuple_empty, tuple_empty>,
+        tuple_empty>();
 }
 
 
@@ -193,6 +241,26 @@ TEST(TypeListHelper, AddToCartesianTypeProductSmall)
 }
 
 
+TEST(TypeListHelper, AddToCartesianTypeProductEmpty)
+{
+    using list3 = testing::Types<std::tuple<long>>;
+    using tlist3 = std::tuple<std::tuple<long>>;
+
+    testing::StaticAssertTypeEq<
+        gko::test::add_to_cartesian_type_product_t<list3, testing_empty>,
+        testing_empty>();
+    testing::StaticAssertTypeEq<gko::test::add_to_cartesian_type_product_t<
+                                    testing_empty, testing_types1>,
+                                testing_empty>();
+    testing::StaticAssertTypeEq<
+        gko::test::add_to_cartesian_type_product_t<tlist3, tuple_empty>,
+        tuple_empty>();
+    testing::StaticAssertTypeEq<
+        gko::test::add_to_cartesian_type_product_t<tuple_empty, tuple_types1>,
+        tuple_empty>();
+}
+
+
 TEST(TypeListHelper, AddToCartesianTypeProductLeftLarge)
 {
     using list1 = testing::Types<long, char>;
@@ -230,6 +298,26 @@ TEST(TypeListHelper, AddToCartesianTypeProductLeftSmall)
     testing::StaticAssertTypeEq<
         gko::test::add_to_cartesian_type_product_left_t<tlist3, tlist4>,
         gko::test::change_outer_wrapper_t<std::tuple, expected_a2>>();
+}
+
+
+TEST(TypeListHelper, AddToCartesianTypeProductLeftEmpty)
+{
+    using list3 = testing::Types<std::tuple<long>>;
+    using tlist3 = std::tuple<std::tuple<long>>;
+
+    testing::StaticAssertTypeEq<gko::test::add_to_cartesian_type_product_left_t<
+                                    testing_types1, testing_empty>,
+                                testing_empty>();
+    testing::StaticAssertTypeEq<
+        gko::test::add_to_cartesian_type_product_left_t<testing_empty, list3>,
+        testing_empty>();
+    testing::StaticAssertTypeEq<gko::test::add_to_cartesian_type_product_left_t<
+                                    tuple_types1, tuple_empty>,
+                                tuple_empty>();
+    testing::StaticAssertTypeEq<
+        gko::test::add_to_cartesian_type_product_left_t<tuple_empty, tlist3>,
+        tuple_empty>();
 }
 
 
