@@ -56,6 +56,11 @@ bool CgErrorEstimator<ValueType>::check_impl(
             ->get_const_values());
     auto delta_val =
         sq_implicit_residual * sq_implicit_residual / prec_vector_matrix_norm;
+    if (abs(prec_vector_matrix_norm) == zero<ValueType>()) {
+        this->set_all_statuses(stoppingId, setFinalized, stop_status);
+        *one_changed = true;
+        return true;
+    }
     auto tolerance = parameters_.tolerance;
     delta_.push_back(delta_val);
     curve_.push_back(0.0);
@@ -63,21 +68,25 @@ bool CgErrorEstimator<ValueType>::check_impl(
         e += delta_val;
     }
     if (updater.num_iterations_ > 0) {
-        auto safety_factor =
-            find_safety_factor(curve_, delta_, updater.num_iterations_);
+        auto safety_factor = find_safety_factor(curve_, delta_, k_);
         auto num = safety_factor * delta_val;
-        auto den = std::accumulate(delta_.begin() + k_, delta_.end(),
+        auto den = std::accumulate(delta_.begin() + k_, delta_.end() - 1,
                                    zero<ValueType>());
+        bool valid_upper_bound = false;
         // TODO: maybe it can be replaced by prefix_sum + search?
         while (d_ >= 0 && abs(num / den) <= parameters_.tau) {
+            valid_upper_bound = true;
             k_++;
             d_--;
-            den = std::accumulate(delta_.begin() + k_, delta_.end(),
+            den = std::accumulate(delta_.begin() + k_, delta_.end() - 1,
                                   zero<ValueType>());
         }
         d_++;
-        auto tol_upper_bound = sqrt(abs(den) / (1 - parameters_.tau));
-        result = tol_upper_bound < parameters_.tolerance;
+        // only check the criterion when it is valid
+        if (valid_upper_bound) {
+            auto tol_upper_bound = sqrt(abs(den) / (1 - parameters_.tau));
+            result = tol_upper_bound < parameters_.tolerance;
+        }
     }
     if (result) {
         this->set_all_statuses(stoppingId, setFinalized, stop_status);
