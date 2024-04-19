@@ -336,6 +336,8 @@ public:
         ptr_param<const Partition<local_index_type, global_index_type>>
             col_partition);
 
+    dim<2> get_local_size() const override;
+
     /**
      * Get read access to the stored local matrix.
      *
@@ -516,6 +518,21 @@ public:
         ptr_param<const LinOp> local_matrix_template,
         ptr_param<const LinOp> non_local_matrix_template);
 
+    /**
+     * Creates a local-only distributed matrix with existent LinOp
+     *
+     * @note It use the input to build up the distributed matrix
+     *
+     * @param exec  Executor associated with this matrix.
+     * @param comm  Communicator associated with this matrix.
+     * @param local_linop  the local linop
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Matrix> create(std::shared_ptr<const Executor> exec,
+                                          mpi::communicator comm, dim<2> size,
+                                          std::shared_ptr<LinOp> local_linop);
+
 protected:
     explicit Matrix(std::shared_ptr<const Executor> exec,
                     mpi::communicator comm);
@@ -524,6 +541,10 @@ protected:
                     mpi::communicator comm,
                     ptr_param<const LinOp> local_matrix_template,
                     ptr_param<const LinOp> non_local_matrix_template);
+
+    explicit Matrix(std::shared_ptr<const Executor> exec,
+                    mpi::communicator comm, dim<2> size,
+                    std::shared_ptr<LinOp> local_linop);
 
     /**
      * Starts a non-blocking communication of the values of b that are shared
@@ -546,6 +567,7 @@ private:
     std::vector<comm_index_type> recv_offsets_;
     std::vector<comm_index_type> recv_sizes_;
     array<local_index_type> gather_idxs_;
+    array<local_index_type> recv_gather_idxs_;
     array<global_index_type> non_local_to_global_;
     gko::detail::DenseCache<value_type> one_scalar_;
     gko::detail::DenseCache<value_type> host_send_buffer_;

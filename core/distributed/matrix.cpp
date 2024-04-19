@@ -50,6 +50,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       recv_offsets_(comm.size() + 1),
       recv_sizes_(comm.size()),
       gather_idxs_{exec},
+      recv_gather_idxs_{exec},
       non_local_to_global_{exec},
       one_scalar_{},
       local_mtx_{local_matrix_template->clone(exec)},
@@ -63,6 +64,29 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
             non_local_mtx_.get())));
     one_scalar_.init(exec, dim<2>{1, 1});
     one_scalar_->fill(one<value_type>());
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
+    std::shared_ptr<const Executor> exec, mpi::communicator comm, dim<2> size,
+    std::shared_ptr<LinOp> local_linop)
+    : EnableDistributedLinOp<
+          Matrix<value_type, local_index_type, global_index_type>>{exec},
+      DistributedBase{comm},
+      send_offsets_(comm.size() + 1),
+      send_sizes_(comm.size()),
+      recv_offsets_(comm.size() + 1),
+      recv_sizes_(comm.size()),
+      gather_idxs_{exec},
+      recv_gather_idxs_{exec},
+      non_local_to_global_{exec},
+      one_scalar_{}
+{
+    this->set_size(size);
+    one_scalar_.init(exec, dim<2>{1, 1});
+    one_scalar_->fill(one<value_type>());
+    local_mtx_ = local_linop;
 }
 
 
@@ -94,6 +118,16 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
 {
     return std::unique_ptr<Matrix>{new Matrix{exec, comm, local_matrix_template,
                                               non_local_matrix_template}};
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+std::unique_ptr<Matrix<ValueType, LocalIndexType, GlobalIndexType>>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
+    std::shared_ptr<const Executor> exec, mpi::communicator comm, dim<2> size,
+    std::shared_ptr<LinOp> local_linop)
+{
+    return std::unique_ptr<Matrix>{new Matrix{exec, comm, size, local_linop}};
 }
 
 
@@ -166,7 +200,6 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     array<local_index_type> non_local_row_idxs{exec};
     array<local_index_type> non_local_col_idxs{exec};
     array<value_type> non_local_values{exec};
-    array<local_index_type> recv_gather_idxs{exec};
     array<comm_index_type> recv_sizes_array{exec, num_parts};
 
     // build local, non-local matrix data and communication structures
@@ -174,7 +207,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         data, make_temporary_clone(exec, row_partition).get(),
         make_temporary_clone(exec, col_partition).get(), local_part,
         local_row_idxs, local_col_idxs, local_values, non_local_row_idxs,
-        non_local_col_idxs, non_local_values, recv_gather_idxs,
+        non_local_col_idxs, non_local_values, recv_gather_idxs_,
         recv_sizes_array, non_local_to_global_));
 
     // read the local matrix data
@@ -209,17 +242,18 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     // exchange step 2: exchange gather_idxs from receivers to senders
     auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
     if (use_host_buffer) {
-        recv_gather_idxs.set_executor(exec->get_master());
+        recv_gather_idxs_.set_executor(exec->get_master());
         gather_idxs_.clear();
         gather_idxs_.set_executor(exec->get_master());
     }
     gather_idxs_.resize_and_reset(send_offsets_.back());
     comm.all_to_all_v(use_host_buffer ? exec->get_master() : exec,
-                      recv_gather_idxs.get_const_data(), recv_sizes_.data(),
+                      recv_gather_idxs_.get_const_data(), recv_sizes_.data(),
                       recv_offsets_.data(), gather_idxs_.get_data(),
                       send_sizes_.data(), send_offsets_.data());
     if (use_host_buffer) {
         gather_idxs_.set_executor(exec);
+        recv_gather_idxs_.set_executor(exec);
     }
 }
 
@@ -264,6 +298,9 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 mpi::request Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
     const local_vector_type* local_b) const
 {
+    if (!non_local_mtx_) {
+        return {};
+    }
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto num_cols = local_b->get_size()[1];
@@ -305,6 +342,14 @@ mpi::request Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+dim<2> Matrix<ValueType, LocalIndexType, GlobalIndexType>::get_local_size()
+    const
+{
+    return local_mtx_->get_size();
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
     const LinOp* b, LinOp* x) const
 {
@@ -324,13 +369,15 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
             local_mtx_->apply(dense_b->get_local_vector(), local_x);
             req.wait();
 
-            auto exec = this->get_executor();
-            auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
-            if (use_host_buffer) {
-                recv_buffer_->copy_from(host_recv_buffer_.get());
+            if (non_local_mtx_) {
+                auto exec = this->get_executor();
+                auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+                if (use_host_buffer) {
+                    recv_buffer_->copy_from(host_recv_buffer_.get());
+                }
+                non_local_mtx_->apply(one_scalar_.get(), recv_buffer_.get(),
+                                      one_scalar_.get(), local_x);
             }
-            non_local_mtx_->apply(one_scalar_.get(), recv_buffer_.get(),
-                                  one_scalar_.get(), local_x);
         },
         b, x);
 }
@@ -358,13 +405,15 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                               local_beta, local_x);
             req.wait();
 
-            auto exec = this->get_executor();
-            auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
-            if (use_host_buffer) {
-                recv_buffer_->copy_from(host_recv_buffer_.get());
+            if (non_local_mtx_) {
+                auto exec = this->get_executor();
+                auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+                if (use_host_buffer) {
+                    recv_buffer_->copy_from(host_recv_buffer_.get());
+                }
+                non_local_mtx_->apply(local_alpha, recv_buffer_.get(),
+                                      one_scalar_.get(), local_x);
             }
-            non_local_mtx_->apply(local_alpha, recv_buffer_.get(),
-                                  one_scalar_.get(), local_x);
         },
         alpha, b, beta, x);
 }

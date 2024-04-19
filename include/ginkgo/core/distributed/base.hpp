@@ -55,6 +55,13 @@ public:
      */
     mpi::communicator get_communicator() const { return comm_; }
 
+    /**
+     * get the size of local operator
+     *
+     * @return the size of local operator
+     */
+    virtual dim<2> get_local_size() const = 0;
+
 protected:
     /**
      * Creates a new DistributedBase with the specified mpi::communicator.
