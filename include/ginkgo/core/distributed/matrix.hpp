@@ -518,6 +518,21 @@ public:
         ptr_param<const LinOp> local_matrix_template,
         ptr_param<const LinOp> non_local_matrix_template);
 
+    /**
+     * Creates a local-only distributed matrix with existent LinOp
+     *
+     * @note It use the input to build up the distributed matrix
+     *
+     * @param exec  Executor associated with this matrix.
+     * @param comm  Communicator associated with this matrix.
+     * @param local_linop  the local linop
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Matrix> create(std::shared_ptr<const Executor> exec,
+                                          mpi::communicator comm, dim<2> size,
+                                          std::shared_ptr<LinOp> local_linop);
+
 protected:
     explicit Matrix(std::shared_ptr<const Executor> exec,
                     mpi::communicator comm);
@@ -529,24 +544,7 @@ protected:
 
     explicit Matrix(std::shared_ptr<const Executor> exec,
                     mpi::communicator comm, dim<2> size,
-                    std::shared_ptr<LinOp> local_linop)
-        : EnableDistributedLinOp<
-              Matrix<value_type, local_index_type, global_index_type>>{exec},
-          DistributedBase{comm},
-          send_offsets_(comm.size() + 1),
-          send_sizes_(comm.size()),
-          recv_offsets_(comm.size() + 1),
-          recv_sizes_(comm.size()),
-          gather_idxs_{exec},
-          recv_gather_idxs_{exec},
-          non_local_to_global_{exec},
-          one_scalar_{}
-    {
-        this->set_size(size);
-        one_scalar_.init(exec, dim<2>{1, 1});
-        one_scalar_->fill(one<value_type>());
-        local_mtx_ = local_linop;
-    }
+                    std::shared_ptr<LinOp> local_linop);
 
     /**
      * Starts a non-blocking communication of the values of b that are shared
