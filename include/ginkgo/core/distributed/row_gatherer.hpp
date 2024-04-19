@@ -159,7 +159,8 @@ private:
 
     array<LocalIndexType> send_idxs_;
 
-    detail::AnyDenseCache send_buffer;
+    detail::AnyDenseCache send_buffer_;
+    detail::AnyDenseCache recv_buffer_;
 
     mutable int64 current_id_{0};
     mutable std::atomic<int64> active_id_{0};
