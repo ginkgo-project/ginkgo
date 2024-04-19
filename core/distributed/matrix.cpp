@@ -68,6 +68,29 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
+    std::shared_ptr<const Executor> exec, mpi::communicator comm, dim<2> size,
+    std::shared_ptr<LinOp> local_linop)
+    : EnableDistributedLinOp<
+          Matrix<value_type, local_index_type, global_index_type>>{exec},
+      DistributedBase{comm},
+      send_offsets_(comm.size() + 1),
+      send_sizes_(comm.size()),
+      recv_offsets_(comm.size() + 1),
+      recv_sizes_(comm.size()),
+      gather_idxs_{exec},
+      recv_gather_idxs_{exec},
+      non_local_to_global_{exec},
+      one_scalar_{}
+{
+    this->set_size(size);
+    one_scalar_.init(exec, dim<2>{1, 1});
+    one_scalar_->fill(one<value_type>());
+    local_mtx_ = local_linop;
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 std::unique_ptr<Matrix<ValueType, LocalIndexType, GlobalIndexType>>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
     std::shared_ptr<const Executor> exec, mpi::communicator comm)
@@ -95,6 +118,16 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
 {
     return std::unique_ptr<Matrix>{new Matrix{exec, comm, local_matrix_template,
                                               non_local_matrix_template}};
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+std::unique_ptr<Matrix<ValueType, LocalIndexType, GlobalIndexType>>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
+    std::shared_ptr<const Executor> exec, mpi::communicator comm, dim<2> size,
+    std::shared_ptr<LinOp> local_linop)
+{
+    return std::unique_ptr<Matrix>{new Matrix{exec, comm, size, local_linop}};
 }
 
 
