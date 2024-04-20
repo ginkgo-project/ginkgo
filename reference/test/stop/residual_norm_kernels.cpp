@@ -85,7 +85,8 @@ TYPED_TEST(ResidualNorm, CheckIfResZeroConverges)
     for (auto baseline :
          {mode::rhs_norm, mode::initial_resnorm, mode::absolute}) {
         gko::remove_complex<T> factor =
-            (baseline == mode::absolute) ? 0.0 : r<T>::value;
+            (baseline == mode::absolute) ? gko::zero<gko::remove_complex<T>>()
+                                         : r<T>::value;
         auto criterion = gko::stop::ResidualNorm<T>::build()
                              .with_reduction_factor(factor)
                              .with_baseline(baseline)
@@ -838,7 +839,8 @@ TYPED_TEST(ImplicitResidualNorm, CheckIfResZeroConverges)
     for (auto baseline :
          {mode::rhs_norm, mode::initial_resnorm, mode::absolute}) {
         gko::remove_complex<T> factor =
-            (baseline == mode::absolute) ? 0.0 : r<T>::value;
+            (baseline == mode::absolute) ? gko::zero<gko::remove_complex<T>>()
+                                         : r<T>::value;
         auto criterion = gko::stop::ImplicitResidualNorm<T>::build()
                              .with_reduction_factor(factor)
                              .with_baseline(baseline)
