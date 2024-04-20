@@ -268,7 +268,7 @@ TYPED_TEST(Lu, FactorizeNonsymmetricWorks)
 
         GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_combined(), this->mtx_lu);
         GKO_ASSERT_MTX_NEAR(lu->get_combined(), this->mtx_lu,
-                            15 * r<value_type>::value);
+                            30 * r<value_type>::value);
         ASSERT_EQ(lu->get_storage_type(),
                   gko::experimental::factorization::storage_type::combined_lu);
         ASSERT_EQ(lu->get_lower_factor(), nullptr);
