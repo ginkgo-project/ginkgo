@@ -118,7 +118,7 @@ protected:
                                           0., 2., 3., 0.}},
           final_dual_u{ref, I<real_type>{0., 1., -1., -2., 0., 0.}},
           final_distance{ref, I<real_type>{inf(), inf(), 1., 0., inf(), 1.}},
-          zero_tol{1e-14}
+          zero_tol{1e-4}
     {}
 
     std::pair<std::shared_ptr<const perm_type>,
