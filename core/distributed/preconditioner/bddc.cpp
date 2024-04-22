@@ -193,17 +193,15 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
     std::vector<std::vector<IndexType>> edge_ranks;
     std::vector<std::vector<IndexType>> corner_ranks;
     for (auto const& pair : ranks_to_dofs) {
-        if (pair.first.size() > 0) {
-            if (pair.first[0] == rank) {
-                if (pair.second.size() <= pair.first.size()) {
-                    for (size_type i = 0; i < pair.second.size(); i++) {
-                        corner_dofs.emplace_back(std::vector<IndexType>{pair.second[i]});
-                        corner_ranks.emplace_back(pair.first);
-                    }
-                } else {
-                    edge_dofs.emplace_back(pair.second);
-                    edge_ranks.emplace_back(pair.first);
+        if (pair.first[0] == rank) {
+            if (pair.second.size() <= pair.first.size()) {
+                for (size_type i = 0; i < pair.second.size(); i++) {
+                    corner_dofs.emplace_back(std::vector<IndexType>{pair.second[i]});
+                    corner_ranks.emplace_back(pair.first);
                 }
+            } else {
+                edge_dofs.emplace_back(pair.second);
+                edge_ranks.emplace_back(pair.first);
             }
         }
     }
@@ -251,6 +249,8 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
     std::vector<std::vector<IndexType>> interface_dofs;
     std::vector<std::vector<IndexType>> interface_dof_ranks;
     for (size_type i = 0; i < n_edges; i++) {
+        /* interface_dofs.emplace_back(edge_dofs[i]); */
+        /* interface_dof_ranks.emplace_back(edge_ranks[i]); */
         auto edge = edge_dofs[i];
         auto ranks = edge_ranks[i];
         auto esize = edge.size();
@@ -259,23 +259,33 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
         std::vector<int> edge_map(esize, -1);
         const auto row_ptrs = ematrix->get_const_row_ptrs();
         const auto col_idxs = ematrix->get_const_col_idxs();
-        for (size_type i = 0; i < esize; i++) {
-            if (edge_map[i] == -1) {
-                int cc = -1;
-                for (size_type idx = row_ptrs[i]; idx < row_ptrs[i + 1]; idx++) {
-                    cc = std::max(cc, edge_map[col_idxs[idx]]);
+        std::vector<IndexType> component{};
+        for (size_type j = 0; j < esize; j++) {
+            if (edge_map[j] == -1) {
+                std::set<IndexType> work_set{};
+                std::set<IndexType> component{};
+                for (IndexType idx = row_ptrs[j]; idx < row_ptrs[j + 1]; idx++) {
+                    work_set.insert(col_idxs[idx]);
+                    edge_map[col_idxs[idx]] = connected_components;
                 }
-                if (cc == -1) {
-                    cc = connected_components++;
-                    interface_dofs.emplace_back(std::vector<IndexType>{});
-                    interface_dof_ranks.emplace_back(ranks);
-                }
-                for (size_type idx = row_ptrs[i]; idx < row_ptrs[i + 1]; idx++) {
-                    if (edge_map[col_idxs[idx]] == -1) {
-                        edge_map[col_idxs[idx]] = cc;
-                        interface_dofs[cc].emplace_back(edge[col_idxs[idx]]);
+                while (!work_set.empty()) {
+                    auto current = *work_set.begin();
+                    work_set.erase(current);
+                    component.insert(edge[current]);
+                    for (IndexType idx = row_ptrs[current]; idx < row_ptrs[current + 1]; idx++) {
+                        if (edge_map[col_idxs[idx]] == -1) {
+                            work_set.insert(col_idxs[idx]);
+                            edge_map[col_idxs[idx]] = connected_components;
+                        }
                     }
                 }
+                std::vector<IndexType> component_vec{};
+                for (auto const& idx : component) {
+                    component_vec.emplace_back(idx);
+                }
+                interface_dofs.emplace_back(component_vec);
+                interface_dof_ranks.emplace_back(ranks);
+                connected_components++;
             }
         }
         start += esize;
@@ -286,7 +296,7 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
     }
 
     // Communicate interface dofs and ranks between all ranks
-    std::vector<int> interface_dofs_sizes(comm.size(), 0);
+    std::vector<int> interface_dofs_sizes(interface_dofs.size(), 0);
     int total_interface_dofs = 0;
     for (size_type i = 0; i < interface_dofs.size(); i++) {
         interface_dofs_sizes[i] = interface_dofs[i].size();
@@ -334,7 +344,7 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
             interface_dofs_[i][j] = global_interface_dofs[cnt++];
         }
     }
-    std::vector<int> interface_ranks_sizes(comm.size(), 0);
+    std::vector<int> interface_ranks_sizes(interface_dof_ranks.size(), 0);
     int total_interface_ranks = 0;
     for (size_type i = 0; i < interface_dof_ranks.size(); i++) {
         interface_ranks_sizes[i] = interface_dof_ranks[i].size();
@@ -439,9 +449,35 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
         }
     }
 
+    /* if (comm.rank() % 2 == 0) { */
+    /*     std::ofstream out{"new_inner_" + std::to_string(comm.rank() / 2) + ".mtx"}; */
+    /*     for (size_type i = 0; i < interface_dofs_.size(); i++) { */
+    /*         if (interface_dof_ranks_[i].size() == 2 && */
+    /*             interface_dof_ranks_[i][0] == rank && */ 
+    /*             interface_dof_ranks_[i][1] == rank + 1) { */
+    /*             for (size_type j = 0; j < interface_dofs_[i].size(); j++) { */
+    /*                 out << interface_dofs_[i][j] << std::endl; */
+    /*             } */
+    /*         } */
+    /*     } */
+    /* } */
+
     if (comm.rank() == 0) {
         std::cout << "Coarse Dim: " << n_global_interfaces << std::endl;
         std::cout << "Primal DOFs: " << n_primal << std::endl;
+
+        std::ofstream out{"interfaces.txt"};
+        for (size_type i = 0; i < interface_dofs_.size(); i++) {
+            out << "DOFS: ";
+            for (size_type j = 0; j < interface_dofs_[i].size(); j++) {
+                out << interface_dofs_[i][j] << " ";
+            }
+            out << " / RANKS: ";
+            for (size_type j = 0; j < interface_dof_ranks_[i].size(); j++) {
+                out << interface_dof_ranks_[i][j] << " ";
+            }
+            out << std::endl;
+        }
     }
 }
 
@@ -456,6 +492,9 @@ void Bddc<ValueType, IndexType>::pre_solve(const LinOp* b, LinOp* x) const
     auto rank = comm.rank();
     IDG->apply(rhs, sol);
     R->apply(rhs, intermediate_2);
+    std::ofstream out{"local_rhs_" + std::to_string(rank) + ".mtx"};
+    gko::write(out, intermediate_2->get_local_vector());
+    out.close();
     comm.synchronize();
     auto local_rhs = vec_type::create(
         exec, intermediate_2->get_local_vector()->get_size(),
@@ -869,6 +908,8 @@ void Bddc<ValueType, IndexType>::generate()
     /* out << "Vertices: " << vertices  + n_corners << std::endl; */
     /* out << "Interface idxs: " << n_interface_idxs << std::endl; */
 
+    std::ofstream out{"local_matrix_" + std::to_string(rank) + ".mtx"};
+    gko::write(out, local);
     auto A_ii =
         share(local->create_submatrix(span{0, n_inner}, span{0, n_inner}));
     A_ig = local->create_submatrix(span{0, n_inner},
@@ -1126,6 +1167,11 @@ void Bddc<ValueType, IndexType>::generate()
     global_coarse_matrix_->read_distributed(coarse_data, part.get(), true);
     coarse_solver =
         parameters_.coarse_solver_factory->generate(global_coarse_matrix_);
+
+    if (rank == 0) {
+        std::ofstream out{"coarse_matrix.mtx"};
+        gko::write(out, as<matrix_type>(global_coarse_matrix_->get_local_matrix()));
+    }
 
     // Set up coarse restriction operator
     IndexType coarse_local_size = n_edges + n_corners;
