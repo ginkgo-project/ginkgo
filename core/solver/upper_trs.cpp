@@ -127,9 +127,8 @@ void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
     if (!this->get_system_matrix()) {
         return;
     }
-    precision_dispatch_real_complex<ValueType>(
+    mixed_precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            using Vector = matrix::Dense<ValueType>;
             using ws = workspace_traits<UpperTrs>;
             const auto exec = this->get_executor();
             this->setup_workspace();
@@ -140,12 +139,17 @@ void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
             // The other executors (omp and reference, CUDA) do not use the
             // transpose (trans_x and trans_b) and hence are passed in empty
             // pointers.
-            Vector* trans_b{};
-            Vector* trans_x{};
+            using work_b_type = matrix::Dense<
+                typename std::decay_t<decltype(*dense_b)>::value_type>;
+            using work_x_type = matrix::Dense<
+                typename std::decay_t<decltype(*dense_x)>::value_type>;
+
+            work_b_type* trans_b{};
+            work_x_type* trans_x{};
             if (needs_transpose(exec)) {
-                trans_b = this->template create_workspace_op<Vector>(
+                trans_b = this->template create_workspace_op<work_b_type>(
                     ws::transposed_b, gko::transpose(dense_b->get_size()));
-                trans_x = this->template create_workspace_op<Vector>(
+                trans_x = this->template create_workspace_op<work_x_type>(
                     ws::transposed_x, gko::transpose(dense_x->get_size()));
             }
             exec->run(upper_trs::make_solve(
@@ -166,14 +170,17 @@ void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp* alpha,
     if (!this->get_system_matrix()) {
         return;
     }
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+    mixed_precision_dispatch_real_complex<ValueType>(
+        [this, alpha, beta](auto dense_b, auto dense_x) {
             auto x_clone = dense_x->clone();
+            auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
+            auto dense_beta = make_temporary_conversion<
+                typename std::decay_t<decltype(*dense_x)>::value_type>(beta);
             this->apply_impl(dense_b, x_clone.get());
-            dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, x_clone);
+            dense_x->scale(dense_beta.get());
+            dense_x->add_scaled(dense_alpha.get(), x_clone);
         },
-        alpha, b, beta, x);
+        b, x);
 }
 
 

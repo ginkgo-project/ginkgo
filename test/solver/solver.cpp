@@ -294,7 +294,7 @@ struct LowerTrs : SimpleSolverTest<gko::solver::LowerTrs<solver_value_type>> {
         bool = true)
     {
         return solver_type::build()
-            .with_algorithm(gko::solver::trisolve_algorithm::sparselib)
+            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
             .with_num_rhs(num_rhs);
     }
 
@@ -346,7 +346,7 @@ struct UpperTrs : SimpleSolverTest<gko::solver::UpperTrs<solver_value_type>> {
         bool = true)
     {
         return solver_type::build()
-            .with_algorithm(gko::solver::trisolve_algorithm::sparselib)
+            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
             .with_num_rhs(num_rhs);
     }
 
@@ -379,7 +379,7 @@ struct LowerTrsUnitdiag : LowerTrs {
         bool check_residual = true)
     {
         return solver_type::build()
-            .with_algorithm(gko::solver::trisolve_algorithm::sparselib)
+            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
             .with_num_rhs(num_rhs)
             .with_unit_diagonal(true);
     }
@@ -392,7 +392,7 @@ struct UpperTrsUnitdiag : UpperTrs {
         bool check_residual = true)
     {
         return solver_type::build()
-            .with_algorithm(gko::solver::trisolve_algorithm::sparselib)
+            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
             .with_num_rhs(num_rhs)
             .with_unit_diagonal(true);
     }
