@@ -11,6 +11,7 @@
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/base/workspace_aliases.hpp>
 #include <ginkgo/core/log/logger.hpp>
 
 
@@ -33,13 +34,11 @@ namespace detail {
 template <typename ValueType>
 struct log_data final {
     using real_type = remove_complex<ValueType>;
-    using idx_type = int64;
+    using idx_type = int;
 
     log_data(std::shared_ptr<const Executor> exec, size_type num_batch_items)
         : res_norms(exec), iter_counts(exec)
     {
-        const size_type workspace_size =
-            num_batch_items * (sizeof(real_type) + sizeof(idx_type));
         if (num_batch_items > 0) {
             iter_counts.resize_and_reset(num_batch_items);
             res_norms.resize_and_reset(num_batch_items);
@@ -52,18 +51,22 @@ struct log_data final {
              array<unsigned char>& workspace)
         : res_norms(exec), iter_counts(exec)
     {
-        const size_type workspace_size =
-            num_batch_items * (sizeof(real_type) + sizeof(idx_type));
+        const size_type workspace_size = num_batch_items * 32;
+
         if (num_batch_items > 0 && !workspace.is_owning() &&
             workspace.get_size() >= workspace_size) {
-            iter_counts = array<idx_type>::view(
-                exec, num_batch_items,
-                reinterpret_cast<idx_type*>(workspace.get_data()));
-            res_norms = array<real_type>::view(
-                exec, num_batch_items,
-                reinterpret_cast<real_type*>(
-                    workspace.get_data() +
-                    (sizeof(idx_type) * num_batch_items)));
+            gko::detail::layout<2> workspace_alias;
+            auto slot_1 = workspace_alias.get_slot(0);
+            auto slot_2 = workspace_alias.get_slot(1);
+            auto iter_alias = slot_1->create_alias<idx_type>(num_batch_items);
+            auto res_alias = slot_2->create_alias<real_type>(num_batch_items);
+
+            // Temporary storage mapping
+            workspace_alias.map_to_buffer(workspace.get_data(), workspace_size);
+            iter_counts =
+                array<idx_type>::view(exec, num_batch_items, iter_alias.get());
+            res_norms =
+                array<real_type>::view(exec, num_batch_items, res_alias.get());
         } else {
             GKO_INVALID_STATE("invalid workspace or num batch items passed in");
         }
@@ -100,10 +103,11 @@ template <typename ValueType = default_precision>
 class BatchConvergence final : public gko::log::Logger {
 public:
     using real_type = remove_complex<ValueType>;
+    using index_type = int;
     using mask_type = gko::log::Logger::mask_type;
 
     void on_batch_solver_completed(
-        const array<int64>& iteration_count,
+        const array<index_type>& iteration_count,
         const array<real_type>& residual_norm) const override;
 
     /**
@@ -129,7 +133,7 @@ public:
     /**
      * @return  The number of iterations for entire batch
      */
-    const array<int64>& get_num_iterations() const noexcept
+    const array<index_type>& get_num_iterations() const noexcept
     {
         return iteration_count_;
     }
@@ -149,7 +153,7 @@ protected:
     {}
 
 private:
-    mutable array<int64> iteration_count_{};
+    mutable array<index_type> iteration_count_{};
     mutable array<real_type> residual_norm_{};
 };
 

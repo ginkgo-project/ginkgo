@@ -52,6 +52,7 @@
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/base/version.hpp>
+#include <ginkgo/core/base/workspace_aliases.hpp>
 
 #include <ginkgo/core/config/property_tree.hpp>
 
