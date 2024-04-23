@@ -22,8 +22,10 @@ int main(int argc, char* argv[])
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using ir = gko::solver::Ir<ValueType>;
     using mg = gko::solver::Multigrid;
-    using ic = gko::preconditioner::Ic<gko::solver::LowerTrs<ValueType>>;
-    using mixed_ic = gko::preconditioner::Ic<gko::solver::LowerTrs<MixedType>>;
+    using lower_trs = gko::solver::LowerTrs<ValueType>;
+    using mixed_lower_trs = gko::solver::LowerTrs<MixedType>;
+    using ic = gko::preconditioner::Ic<lower_trs>;
+    using mixed_ic = gko::preconditioner::Ic<mixed_lower_trs>;
     using pgm = gko::multigrid::Pgm<ValueType, IndexType>;
 
     // Print version information
@@ -124,6 +126,11 @@ int main(int argc, char* argv[])
             mixed_ic::build()
                 .with_factorization(
                     gko::factorization::Ic<MixedType, int>::build().on(exec))
+                .with_l_solver_factory(
+                    mixed_lower_trs::build()
+                        .with_algorithm(
+                            gko::solver::trisolve_algorithm::syncfree)
+                        .on(exec))
                 // .with_factorization(
                 //     gko::factorization::Ic<ValueType, int>::build().on(exec))
                 // .with_l_solver_factory(gko::solver::LowerTrs<MixedType>::build().on(exec))
@@ -133,6 +140,11 @@ int main(int argc, char* argv[])
             ic::build()
                 .with_factorization(
                     gko::factorization::Ic<ValueType, int>::build().on(exec))
+                .with_l_solver_factory(
+                    lower_trs::build()
+                        .with_algorithm(
+                            gko::solver::trisolve_algorithm::syncfree)
+                        .on(exec))
                 .on(exec));
     }
     auto smoother_gen = gko::share(gko::solver::build_smoother(
