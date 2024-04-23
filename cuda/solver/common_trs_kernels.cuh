@@ -339,20 +339,39 @@ void solve_kernel(std::shared_ptr<const CudaExecutor> exec,
     }
 }
 
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType,
+          typename = std::enable_if_t<
+              !std::is_same<MatrixValueType, InputValueType>::value ||
+              !std::is_same<MatrixValueType, OutputValueType>::value>>
+void solve_kernel(std::shared_ptr<const CudaExecutor> exec,
+                  const matrix::Csr<MatrixValueType, IndexType>* matrix,
+                  const solver::SolveStruct* solve_struct,
+                  matrix::Dense<InputValueType>* trans_b,
+                  matrix::Dense<OutputValueType>* trans_x,
+                  const matrix::Dense<InputValueType>* b,
+                  matrix::Dense<OutputValueType>* x)
+{
+    // no mixed from cusparse
+    GKO_NOT_IMPLEMENTED;
+}
+
 
 constexpr int default_block_size = 512;
 constexpr int fallback_block_size = 32;
 
 
-template <bool is_upper, typename ValueType, typename IndexType>
+template <bool is_upper, typename arithmetic_type, typename MatrixValueType,
+          typename InputValueType, typename OutputValueType, typename IndexType>
 __global__ void sptrsv_naive_caching_kernel(
     const IndexType* const rowptrs, const IndexType* const colidxs,
-    const ValueType* const vals, const ValueType* const b, size_type b_stride,
-    ValueType* const x, size_type x_stride, const size_type n,
-    const size_type nrhs, bool unit_diag, bool* nan_produced,
+    const MatrixValueType* const vals, const InputValueType* const b,
+    size_type b_stride, OutputValueType* const x, size_type x_stride,
+    const size_type n, const size_type nrhs, bool unit_diag, bool* nan_produced,
     IndexType* atomic_counter)
 {
-    __shared__ uninitialized_array<ValueType, default_block_size> x_s_array;
+    __shared__ uninitialized_array<arithmetic_type, default_block_size>
+        x_s_array;
     __shared__ IndexType block_base_idx;
 
     if (threadIdx.x == 0) {
@@ -372,8 +391,8 @@ __global__ void sptrsv_naive_caching_kernel(
     const auto self_shmem_id = full_gid / default_block_size;
     const auto self_shid = full_gid % default_block_size;
 
-    ValueType* x_s = x_s_array;
-    x_s[self_shid] = nan<ValueType>();
+    arithmetic_type* x_s = x_s_array;
+    x_s[self_shid] = nan<arithmetic_type>();
 
     __syncthreads();
 
@@ -385,20 +404,20 @@ __global__ void sptrsv_naive_caching_kernel(
     const auto row_end = is_upper ? rowptrs[row] - 1 : rowptrs[row + 1];
     const int row_step = is_upper ? -1 : 1;
 
-    auto sum = zero<ValueType>();
+    auto sum = zero<arithmetic_type>();
     auto i = row_begin;
     for (; i != row_end; i += row_step) {
         const auto dependency = colidxs[i];
         if (is_upper ? dependency <= row : dependency >= row) {
             break;
         }
-        auto x_p = &x[dependency * x_stride + rhs];
+        // auto x_p = &x[dependency * x_stride + rhs];
 
         const auto dependency_gid = is_upper ? (n - 1 - dependency) * nrhs + rhs
                                              : dependency * nrhs + rhs;
         const bool shmem_possible =
             (dependency_gid / default_block_size) == self_shmem_id;
-        ValueType val{};
+        arithmetic_type val{};
         if (shmem_possible) {
             const auto dependency_shid = dependency_gid % default_block_size;
             while (is_nan(val = load_relaxed_shared(x_s + dependency_shid))) {
@@ -409,31 +428,34 @@ __global__ void sptrsv_naive_caching_kernel(
             }
         }
 
-        sum += val * vals[i];
+        sum += val * static_cast<arithmetic_type>(vals[i]);
     }
 
     // The first entry past the triangular part will be the diagonal
-    const auto diag = unit_diag ? one<ValueType>() : vals[i];
-    const auto r = (b[row * b_stride + rhs] - sum) / diag;
+    const auto diag = unit_diag ? one<arithmetic_type>()
+                                : static_cast<arithmetic_type>(vals[i]);
+    const auto r =
+        (static_cast<arithmetic_type>(b[row * b_stride + rhs]) - sum) / diag;
 
     store_relaxed_shared(x_s + self_shid, r);
     store_relaxed(x + row * x_stride + rhs, r);
 
     // This check to ensure no infinite loops happen.
     if (is_nan(r)) {
-        store_relaxed_shared(x_s + self_shid, zero<ValueType>());
-        store_relaxed(x + row * x_stride + rhs, zero<ValueType>());
+        store_relaxed_shared(x_s + self_shid, zero<arithmetic_type>());
+        store_relaxed(x + row * x_stride + rhs, zero<OutputValueType>());
         *nan_produced = true;
     }
 }
 
 
-template <bool is_upper, typename ValueType, typename IndexType>
+template <bool is_upper, typename arithmetic_type, typename MatrixValueType,
+          typename InputValueType, typename OutputValueType, typename IndexType>
 __global__ void sptrsv_naive_legacy_kernel(
     const IndexType* const rowptrs, const IndexType* const colidxs,
-    const ValueType* const vals, const ValueType* const b, size_type b_stride,
-    ValueType* const x, size_type x_stride, const size_type n,
-    const size_type nrhs, bool unit_diag, bool* nan_produced,
+    const MatrixValueType* const vals, const InputValueType* const b,
+    size_type b_stride, OutputValueType* const x, size_type x_stride,
+    const size_type n, const size_type nrhs, bool unit_diag, bool* nan_produced,
     IndexType* atomic_counter)
 {
     __shared__ IndexType block_base_idx;
@@ -458,16 +480,18 @@ __global__ void sptrsv_naive_legacy_kernel(
     const int row_step = is_upper ? -1 : 1;
 
     // no constructor from double to thrust<__half>
-    ValueType sum = zero<ValueType>();
+    arithmetic_type sum = zero<arithmetic_type>();
     auto j = row_begin;
     auto col = colidxs[j];
     while (j != row_end) {
-        auto x_val = load_relaxed(x + col * x_stride + rhs);
+        auto x_val = static_cast<arithmetic_type>(
+            load_relaxed(x + col * x_stride + rhs));
         while (!is_nan(x_val)) {
-            sum += vals[j] * x_val;
+            sum += static_cast<arithmetic_type>(vals[j]) * x_val;
             j += row_step;
             col = colidxs[j];
-            x_val = load_relaxed(x + col * x_stride + rhs);
+            x_val = static_cast<arithmetic_type>(
+                load_relaxed(x + col * x_stride + rhs));
         }
         // to avoid the kernel hanging on matrices without diagonal,
         // we bail out if we are past the triangle, even if it's not
@@ -475,14 +499,19 @@ __global__ void sptrsv_naive_legacy_kernel(
         // but prevents an infinite loop.
         if (is_upper ? row >= col : row <= col) {
             // assert(row == col);
-            auto diag = unit_diag ? one<ValueType>() : vals[j];
-            const auto r = (b[row * b_stride + rhs] - sum) / diag;
-            store_relaxed(x + row * x_stride + rhs, r);
+            auto diag = unit_diag ? one<arithmetic_type>()
+                                  : static_cast<arithmetic_type>(vals[j]);
+            const auto r =
+                (static_cast<arithmetic_type>(b[row * b_stride + rhs]) - sum) /
+                diag;
+            store_relaxed(x + row * x_stride + rhs,
+                          static_cast<OutputValueType>(r));
             // after we encountered the diagonal, we are done
             // this also skips entries outside the triangle
             j = row_end;
             if (is_nan(r)) {
-                store_relaxed(x + row * x_stride + rhs, zero<ValueType>());
+                store_relaxed(x + row * x_stride + rhs,
+                              zero<OutputValueType>());
                 *nan_produced = true;
             }
         }
@@ -499,12 +528,16 @@ __global__ void sptrsv_init_kernel(bool* const nan_produced,
 }
 
 
-template <bool is_upper, typename ValueType, typename IndexType>
+template <bool is_upper, typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
 void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
-                          const matrix::Csr<ValueType, IndexType>* matrix,
-                          bool unit_diag, const matrix::Dense<ValueType>* b,
-                          matrix::Dense<ValueType>* x)
+                          const matrix::Csr<MatrixValueType, IndexType>* matrix,
+                          bool unit_diag,
+                          const matrix::Dense<InputValueType>* b,
+                          matrix::Dense<OutputValueType>* x)
 {
+    using arithmetic_type =
+        highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     // Pre-Volta GPUs may deadlock due to missing independent thread scheduling.
     const auto is_fallback_required = exec->get_major_version() < 7;
 
@@ -512,7 +545,7 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
     const auto nrhs = b->get_size()[1];
 
     // Initialize x to all NaNs.
-    dense::fill(exec, x, ValueType(nan<ValueType>()));
+    dense::fill(exec, x, static_cast<OutputValueType>(nan<OutputValueType>()));
 
     array<bool> nan_produced(exec, 1);
     array<IndexType> atomic_counter(exec, 1);
@@ -524,7 +557,7 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
     const dim3 grid_size(ceildiv(n * nrhs, block_size.x), 1, 1);
 
     if (is_fallback_required) {
-        sptrsv_naive_legacy_kernel<is_upper>
+        sptrsv_naive_legacy_kernel<is_upper, cuda_type<arithmetic_type>>
             <<<grid_size, block_size, 0, exec->get_stream()>>>(
                 matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
                 as_device_type(matrix->get_const_values()),
@@ -532,7 +565,7 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
                 as_device_type(x->get_values()), x->get_stride(), n, nrhs,
                 unit_diag, nan_produced.get_data(), atomic_counter.get_data());
     } else {
-        sptrsv_naive_caching_kernel<is_upper>
+        sptrsv_naive_caching_kernel<is_upper, cuda_type<arithmetic_type>>
             <<<grid_size, block_size, 0, exec->get_stream()>>>(
                 matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
                 as_device_type(matrix->get_const_values()),

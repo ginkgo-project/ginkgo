@@ -15,6 +15,7 @@
 
 #include "common/cuda_hip/base/sparselib_bindings.hpp"
 #include "common/cuda_hip/base/types.hpp"
+#include "core/base/mixed_precision_types.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/solver/common_trs_kernels.cuh"
 
@@ -54,23 +55,25 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_LOWER_TRS_GENERATE_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
 void solve(std::shared_ptr<const CudaExecutor> exec,
-           const matrix::Csr<ValueType, IndexType>* matrix,
+           const matrix::Csr<MatrixValueType, IndexType>* matrix,
            const solver::SolveStruct* solve_struct, bool unit_diag,
            const solver::trisolve_algorithm algorithm,
-           matrix::Dense<ValueType>* trans_b, matrix::Dense<ValueType>* trans_x,
-           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
+           matrix::Dense<InputValueType>* trans_b,
+           matrix::Dense<OutputValueType>* trans_x,
+           const matrix::Dense<InputValueType>* b,
+           matrix::Dense<OutputValueType>* x)
 {
     if (algorithm == solver::trisolve_algorithm::sparselib) {
-        solve_kernel<ValueType, IndexType>(exec, matrix, solve_struct, trans_b,
-                                           trans_x, b, x);
+        solve_kernel(exec, matrix, solve_struct, trans_b, trans_x, b, x);
     } else {
         sptrsv_naive_caching<false>(exec, matrix, unit_diag, b, x);
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL);
 
 
