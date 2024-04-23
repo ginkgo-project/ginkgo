@@ -9,7 +9,7 @@ template <typename RealType>
 class SimpleFinalLogger final {
 public:
     using real_type = RealType;
-    using idx_type = int64;
+    using idx_type = int;
 
     SimpleFinalLogger(real_type* const batch_residuals,
                       idx_type* const batch_iters)

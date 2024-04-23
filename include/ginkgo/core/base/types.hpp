@@ -35,6 +35,22 @@
 #endif  // defined(__CUDACC__) || defined(__HIPCC__)
 
 
+// Macros for handling different device error return types uniformly
+#if defined(__CUDACC__)
+#define GKO_DEVICE_ERROR_TYPE cudaError_t
+#define GKO_DEVICE_ERROR_INVALID cudaErrorInvalidValue
+#define GKO_DEVICE_NO_ERROR cudaSuccess
+#elif defined(__HIPCC__)
+#define GKO_DEVICE_ERROR_TYPE hipError_t
+#define GKO_DEVICE_ERROR_INVALID hipErrorInvalidValue
+#define GKO_DEVICE_NO_ERROR hipSuccess
+#else
+#define GKO_DEVICE_ERROR_TYPE int
+#define GKO_DEVICE_ERROR_INVALID 1
+#define GKO_DEVICE_NO_ERROR 0
+#endif
+
+
 #if (defined(__CUDA_ARCH__) && defined(__APPLE__)) || \
     defined(__HIP_DEVICE_COMPILE__)
 
