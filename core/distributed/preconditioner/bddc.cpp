@@ -259,27 +259,30 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
         std::vector<int> edge_map(esize, -1);
         const auto row_ptrs = ematrix->get_const_row_ptrs();
         const auto col_idxs = ematrix->get_const_col_idxs();
-        std::vector<IndexType> component{};
+        std::vector<IndexType> component_vec{};
         for (size_type j = 0; j < esize; j++) {
             if (edge_map[j] == -1) {
                 std::set<IndexType> work_set{};
                 std::set<IndexType> component{};
+                IndexType tag = tag_numbers[edge[j]];
                 for (IndexType idx = row_ptrs[j]; idx < row_ptrs[j + 1]; idx++) {
-                    work_set.insert(col_idxs[idx]);
-                    edge_map[col_idxs[idx]] = connected_components;
+                    if (tag == tag_numbers[edge[col_idxs[idx]]]) {
+                        work_set.insert(col_idxs[idx]);
+                        edge_map[col_idxs[idx]] = connected_components;
+                    }
                 }
                 while (!work_set.empty()) {
                     auto current = *work_set.begin();
                     work_set.erase(current);
                     component.insert(edge[current]);
                     for (IndexType idx = row_ptrs[current]; idx < row_ptrs[current + 1]; idx++) {
-                        if (edge_map[col_idxs[idx]] == -1) {
+                        if (edge_map[col_idxs[idx]] == -1 && tag == tag_numbers[edge[col_idxs[idx]]]) {
                             work_set.insert(col_idxs[idx]);
                             edge_map[col_idxs[idx]] = connected_components;
                         }
                     }
                 }
-                std::vector<IndexType> component_vec{};
+                component_vec.clear();
                 for (auto const& idx : component) {
                     component_vec.emplace_back(idx);
                 }
@@ -713,6 +716,11 @@ void Bddc<ValueType, IndexType>::generate()
         partition = share(
             clone(host, global_system_matrix_->get_row_partition().get()));
     inner_idxs_ = parameters_.interior_dofs;
+    if (parameters_.tag_numbers.size() == 0) {
+        tag_numbers = std::vector<IndexType>(global_system_matrix_->get_size()[0], 0);
+    } else {
+        tag_numbers = parameters_.tag_numbers;
+    }
     generate_interfaces();
     comm.synchronize();
     auto n_inner = inner_idxs_.size();
