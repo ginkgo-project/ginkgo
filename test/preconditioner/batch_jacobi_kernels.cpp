@@ -18,6 +18,7 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/preconditioner/batch_jacobi.hpp>
+#include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/batch_bicgstab.hpp>
 
 
@@ -39,21 +40,33 @@ void is_equivalent_to_ref(
     auto ref = ref_prec->get_executor();
     auto exec = d_prec->get_executor();
     const auto nbatch = ref_prec->get_num_batch_items();
+    const auto num_rows = ref_prec->get_common_size()[0];
     const auto num_blocks = ref_prec->get_num_blocks();
     const auto cumul_block_size =
         ref_prec->get_const_blocks_cumulative_offsets()[num_blocks];
-    const auto block_pointers_ref = ref_prec->get_const_block_pointers();
 
     const auto tol = 10 * r<ValueType>::value;
 
-    GKO_ASSERT_ARRAY_EQ(
+    GKO_EXPECT_ARRAY_EQ(gko::array<int>::const_view(
+                            exec, num_blocks + 1,
+                            d_prec->get_const_blocks_cumulative_offsets()),
+                        gko::array<int>::const_view(
+                            ref, num_blocks + 1,
+                            ref_prec->get_const_blocks_cumulative_offsets()));
+    GKO_EXPECT_ARRAY_EQ(
         gko::array<int>::const_view(exec, num_blocks + 1,
                                     d_prec->get_const_block_pointers()),
-        gko::array<int>::const_view(exec, num_blocks + 1, block_pointers_ref));
+        gko::array<int>::const_view(ref, num_blocks + 1,
+                                    ref_prec->get_const_block_pointers()));
+    GKO_EXPECT_ARRAY_EQ(
+        gko::array<int>::const_view(exec, num_rows,
+                                    d_prec->get_const_map_block_to_row()),
+        gko::array<int>::const_view(ref, num_rows,
+                                    ref_prec->get_const_map_block_to_row()));
     GKO_EXPECT_ARRAY_NEAR(
         gko::array<ValueType>::const_view(exec, nbatch * cumul_block_size,
                                           d_prec->get_const_blocks()),
-        gko::array<ValueType>::const_view(exec, nbatch * cumul_block_size,
+        gko::array<ValueType>::const_view(ref, nbatch * cumul_block_size,
                                           ref_prec->get_const_blocks()),
         tol);
 }
@@ -79,50 +92,20 @@ protected:
     using Logger = gko::batch::log::BatchConvergence<real_type>;
 
     BatchJacobi()
-        : ref_mtx(
-              gko::share(gko::test::generate_diag_dominant_batch_matrix<Mtx>(
-                  ref, nbatch, nrows, false, 4 * nrows - 3))),
-          d_mtx(gko::share(Mtx::create(exec))),
-          ref_b(gko::test::generate_random_batch_matrix<BMVec>(
-              nbatch, nrows, 1, std::uniform_int_distribution<>(nrows, nrows),
-              std::normal_distribution<real_type>(),
-              std::default_random_engine(34), ref)),
-          d_b(BMVec::create(exec,
-                            gko::batch_dim<2>(nbatch, gko::dim<2>(nrows, 1)))),
-          ref_x(BMVec::create(
-              ref, gko::batch_dim<2>(nbatch, gko::dim<2>(nrows, 1)))),
-          d_x(BMVec::create(exec,
-                            gko::batch_dim<2>(nbatch, gko::dim<2>(nrows, 1))))
+        : ref_mtx(gko::share(gko::test::generate_3pt_stencil_batch_matrix<Mtx>(
+              ref, nbatch, nrows, 3 * nrows - 2))),
+          d_mtx(gko::share(Mtx::create(exec)))
     {
         d_mtx->copy_from(ref_mtx.get());
-        d_b->copy_from(ref_b.get());
-        ref_scalar_jacobi_prec =
-            BJ::build().with_max_block_size(1u).on(ref)->generate(ref_mtx);
-        d_scalar_jacobi_prec =
-            BJ::build().with_max_block_size(1u).on(exec)->generate(d_mtx);
         ref_block_jacobi_prec = BJ::build()
                                     .with_max_block_size(max_blk_sz)
                                     .on(ref)
                                     ->generate(ref_mtx);
 
-        // TODO (before merging device kernels): Check if it is the same for
-        // other device kernels
-        // so that the block pointers are exactly the same for ref and device
-        const int* block_pointers_generated_by_ref =
-            ref_block_jacobi_prec->get_const_block_pointers();
-        const auto num_blocks_generated_by_ref =
-            ref_block_jacobi_prec->get_num_blocks();
-
-        gko::array<int> block_pointers_for_device(
-            this->exec, block_pointers_generated_by_ref,
-            block_pointers_generated_by_ref + num_blocks_generated_by_ref + 1);
-
-        d_block_jacobi_prec =
-            BJ::build()
-                .with_max_block_size(max_blk_sz)
-                // .with_block_pointers(block_pointers_for_device)
-                .on(exec)
-                ->generate(d_mtx);
+        d_block_jacobi_prec = BJ::build()
+                                  .with_max_block_size(max_blk_sz)
+                                  .on(exec)
+                                  ->generate(d_mtx);
     }
 
     template <typename MatrixType>
@@ -186,13 +169,7 @@ protected:
     const int nrows = 300;
     std::shared_ptr<Mtx> ref_mtx;
     std::shared_ptr<Mtx> d_mtx;
-    std::unique_ptr<BMVec> ref_b;
-    std::unique_ptr<BMVec> d_b;
-    std::unique_ptr<BMVec> ref_x;
-    std::unique_ptr<BMVec> d_x;
     const gko::uint32 max_blk_sz = 6u;
-    std::unique_ptr<BJ> ref_scalar_jacobi_prec;
-    std::unique_ptr<BJ> d_scalar_jacobi_prec;
     std::unique_ptr<BJ> ref_block_jacobi_prec;
     std::unique_ptr<BJ> d_block_jacobi_prec;
 };

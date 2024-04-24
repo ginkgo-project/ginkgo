@@ -2,17 +2,16 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-
 __global__ void compute_block_storage_kernel(
     const gko::size_type num_blocks,
     const int* const __restrict__ block_pointers,
-    int* const __restrict__ blocks_cumulative_storage)
+    int* const __restrict__ blocks_cumulative_offsets)
 {
     const auto gid = threadIdx.x + blockIdx.x * blockDim.x;
 
     for (int i = gid; i < num_blocks; i += blockDim.x * gridDim.x) {
         const auto bsize = block_pointers[i + 1] - block_pointers[i];
-        blocks_cumulative_storage[i] = bsize * bsize;
+        blocks_cumulative_offsets[i] = bsize * bsize;
     }
 }
 
@@ -39,7 +38,7 @@ __global__
 __launch_bounds__(default_block_size) void extract_common_block_pattern_kernel(
     const int nrows, const int* const __restrict__ sys_row_ptrs,
     const int* const __restrict__ sys_col_idxs, const gko::size_type num_blocks,
-    const int* const __restrict__ blocks_cumulative_storage,
+    const int* const __restrict__ blocks_cumulative_offsets,
     const int* const __restrict__ block_pointers,
     const int* const __restrict__ map_block_to_row, int* const blocks_pattern)
 {
@@ -60,7 +59,7 @@ __launch_bounds__(default_block_size) void extract_common_block_pattern_kernel(
         const int idx_end = block_pointers[block_idx + 1];
         int* __restrict__ pattern_ptr =
             blocks_pattern + gko::detail::batch_jacobi::get_block_offset(
-                                 block_idx, blocks_cumulative_storage);
+                                 block_idx, blocks_cumulative_offsets);
         const auto stride =
             gko::detail::batch_jacobi::get_stride(block_idx, block_pointers);
 
@@ -92,15 +91,11 @@ __device__ __forceinline__ int choose_pivot(
     if (perm > -1) {
         my_abs_ele = -1;
     }
-
     if (subwarp_grp.thread_rank() >= block_size) {
         my_abs_ele = -1;
     }
-
     subwarp_grp.sync();
-
     int my_piv_idx = subwarp_grp.thread_rank();
-
     for (int a = subwarp_grp.size() / 2; a > 0; a /= 2) {
         const auto abs_ele_other = subwarp_grp.shfl_down(my_abs_ele, a);
         const int piv_idx_other = subwarp_grp.shfl_down(my_piv_idx, a);
@@ -110,11 +105,8 @@ __device__ __forceinline__ int choose_pivot(
             my_piv_idx = piv_idx_other;
         }
     }
-
     subwarp_grp.sync();
-
     const int ipiv = subwarp_grp.shfl(my_piv_idx, 0);
-
     return ipiv;
 }
 
@@ -128,23 +120,19 @@ __device__ __forceinline__ void invert_dense_block(Group subwarp_grp,
     // Gauss Jordan Elimination with implicit pivoting
     for (int k = 0; k < block_size; k++) {
         // implicit pivoting
-
         const int ipiv = choose_pivot(subwarp_grp, block_size, block_row, perm,
                                       k);  // pivot index
-
         if (subwarp_grp.thread_rank() == ipiv) {
             perm = k;
         }
-
         const ValueType d = subwarp_grp.shfl(block_row[k], ipiv);
         // scale kth col
         block_row[k] /= -d;
         if (subwarp_grp.thread_rank() == ipiv) {
             block_row[k] = zero<ValueType>();
         }
-
         const ValueType row_val = block_row[k];
-        // GER
+        // rank-1 update
         for (int col = 0; col < block_size; col++) {
             const ValueType col_val = subwarp_grp.shfl(block_row[col], ipiv);
             block_row[col] += row_val * col_val;
@@ -157,7 +145,6 @@ __device__ __forceinline__ void invert_dense_block(Group subwarp_grp,
             for (int i = 0; i < block_size; i++) {
                 block_row[i] /= d;
             }
-
             block_row[k] = one<ValueType>() / d;
         }
     }
@@ -169,7 +156,7 @@ __global__
 __launch_bounds__(default_block_size) void compute_block_jacobi_kernel(
     const gko::size_type nbatch, const int nnz, const ValueType* const A_vals,
     const gko::size_type num_blocks,
-    const int* const __restrict__ blocks_cumulative_storage,
+    const int* const __restrict__ blocks_cumulative_offsets,
     const int* const __restrict__ block_pointers,
     const int* const blocks_pattern, ValueType* const blocks)
 {
@@ -194,11 +181,11 @@ __launch_bounds__(default_block_size) void compute_block_jacobi_kernel(
 
         const int* __restrict__ current_block_pattern =
             blocks_pattern + gko::detail::batch_jacobi::get_block_offset(
-                                 block_idx, blocks_cumulative_storage);
+                                 block_idx, blocks_cumulative_offsets);
         ValueType* __restrict__ current_block_data =
             blocks +
             gko::detail::batch_jacobi::get_global_block_offset(
-                batch_idx, num_blocks, block_idx, blocks_cumulative_storage);
+                batch_idx, num_blocks, block_idx, blocks_cumulative_offsets);
         const auto stride =
             gko::detail::batch_jacobi::get_stride(block_idx, block_pointers);
 
