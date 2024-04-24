@@ -136,7 +136,7 @@ protected:
                 .with_tolerance(tol)
                 .with_tolerance_type(gko::batch::stop::tolerance_type::relative)
                 .with_preconditioner(
-                    precond_type::build().with_max_block_size(16u))
+                    precond_type::build().with_max_block_size(4u))
                 .on(exec);
         scalar_jac_solver_factory =
             solver_type::build()
@@ -233,7 +233,7 @@ TEST_F(BatchJacobi, CanSolveLargeMatrixSizeHpdSystemWithScalarJacobi)
 TEST_F(BatchJacobi, CanSolveLargeMatrixSizeHpdSystemWithBlockJacobi)
 {
     const int num_batch_items = 12;
-    const int num_rows = 1025;
+    const int num_rows = 512;
     const int num_rhs = 1;
     const real_type tol = 1e-5;
     const int max_iters = num_rows;

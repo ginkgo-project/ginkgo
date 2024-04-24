@@ -18,7 +18,6 @@
 #include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/batch_struct.hpp"
 #include "cuda/base/config.hpp"
-#include "cuda/base/exception.cuh"
 #include "cuda/base/types.hpp"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/intrinsics.cuh"
