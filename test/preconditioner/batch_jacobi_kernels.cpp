@@ -50,7 +50,7 @@ void is_equivalent_to_ref(
         gko::array<int>::const_view(exec, num_blocks + 1,
                                     d_prec->get_const_block_pointers()),
         gko::array<int>::const_view(exec, num_blocks + 1, block_pointers_ref));
-    GKO_ASSERT_ARRAY_NEAR(
+    GKO_EXPECT_ARRAY_NEAR(
         gko::array<ValueType>::const_view(exec, nbatch * cumul_block_size,
                                           d_prec->get_const_blocks()),
         gko::array<ValueType>::const_view(exec, nbatch * cumul_block_size,
@@ -120,7 +120,7 @@ protected:
         d_block_jacobi_prec =
             BJ::build()
                 .with_max_block_size(max_blk_sz)
-                .with_block_pointers(block_pointers_for_device)
+                // .with_block_pointers(block_pointers_for_device)
                 .on(exec)
                 ->generate(d_mtx);
     }
@@ -141,13 +141,27 @@ protected:
         };
         solver_settings = Settings{max_iters, tol,
                                    gko::batch::stop::tolerance_type::relative};
+        solver_factory =
+            solver_type::build()
+                .with_max_iterations(max_iters)
+                .with_tolerance(tol)
+                .with_tolerance_type(gko::batch::stop::tolerance_type::relative)
+                .on(exec);
         precond_solver_factory =
             solver_type::build()
                 .with_max_iterations(max_iters)
                 .with_tolerance(tol)
                 .with_tolerance_type(gko::batch::stop::tolerance_type::relative)
                 .with_preconditioner(
-                    precond_type::build().with_max_block_size(2u))
+                    precond_type::build().with_max_block_size(16u))
+                .on(exec);
+        scalar_jac_solver_factory =
+            solver_type::build()
+                .with_max_iterations(max_iters)
+                .with_tolerance(tol)
+                .with_tolerance_type(gko::batch::stop::tolerance_type::relative)
+                .with_preconditioner(
+                    precond_type::build().with_max_block_size(1u))
                 .on(exec);
         scalar_jac_solver_factory =
             solver_type::build()
@@ -164,6 +178,7 @@ protected:
                        const Mtx*, const MVec*, MVec*, LogData&)>
         solve_lambda;
     Settings solver_settings{};
+    std::shared_ptr<typename solver_type::Factory> solver_factory;
     std::shared_ptr<typename solver_type::Factory> precond_solver_factory;
     std::shared_ptr<typename solver_type::Factory> scalar_jac_solver_factory;
 
@@ -192,29 +207,75 @@ TEST_F(BatchJacobi, BatchBlockJacobiGenerationIsEquivalentToRef)
 }
 
 
+TEST_F(BatchJacobi, CanSolveLargeMatrixSizeHpdSystemWithScalarJacobi)
+{
+    const int num_batch_items = 12;
+    const int num_rows = 1025;
+    const int num_rhs = 1;
+    const real_type tol = 1e-5;
+    const int max_iters = num_rows;
+    std::shared_ptr<Logger> plogger = Logger::create();
+    std::shared_ptr<Logger> logger = Logger::create();
+    auto mat =
+        gko::share(gko::test::generate_3pt_stencil_batch_matrix<const CsrMtx>(
+            exec, num_batch_items, num_rows, (3 * num_rows - 2)));
+    auto linear_system = setup_linsys_and_solver(mat, num_rhs, tol, max_iters);
+    auto solver = gko::share(solver_factory->generate(linear_system.matrix));
+    solver->add_logger(logger);
+    auto psolver =
+        gko::share(scalar_jac_solver_factory->generate(linear_system.matrix));
+    psolver->add_logger(plogger);
+    auto res2 = gko::test::solve_linear_system(exec, linear_system, solver);
+
+    auto res = gko::test::solve_linear_system(exec, linear_system, psolver);
+
+    psolver->remove_logger(plogger);
+    solver->remove_logger(logger);
+    auto p_iter_counts = gko::make_temporary_clone(
+        exec->get_master(), &plogger->get_num_iterations());
+    auto iter_counts = gko::make_temporary_clone(exec->get_master(),
+                                                 &logger->get_num_iterations());
+    auto res_norm = gko::make_temporary_clone(exec->get_master(),
+                                              &logger->get_residual_norm());
+    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 500);
+    for (size_t i = 0; i < num_batch_items; i++) {
+        auto comp_res_norm = res.host_res_norm->get_const_values()[i] /
+                             linear_system.host_rhs_norm->get_const_values()[i];
+        ASSERT_LE(iter_counts->get_const_data()[i], max_iters);
+        EXPECT_LE(p_iter_counts->get_const_data()[i],
+                  iter_counts->get_const_data()[i]);
+        EXPECT_LE(res_norm->get_const_data()[i] /
+                      linear_system.host_rhs_norm->get_const_values()[i],
+                  tol);
+        EXPECT_GT(res_norm->get_const_data()[i], real_type{0.0});
+        ASSERT_LE(comp_res_norm, tol * 10);
+    }
+}
+
+
 TEST_F(BatchJacobi, CanSolveLargeMatrixSizeHpdSystemWithBlockJacobi)
 {
     const int num_batch_items = 12;
     const int num_rows = 1025;
     const int num_rhs = 1;
     const real_type tol = 1e-5;
-    const int max_iters = num_rows * 2;
-    std::shared_ptr<Logger> logger = Logger::create();
+    const int max_iters = num_rows;
+    std::shared_ptr<Logger> plogger = Logger::create();
     auto mat =
         gko::share(gko::test::generate_diag_dominant_batch_matrix<const CsrMtx>(
             exec, num_batch_items, num_rows, false, (4 * num_rows - 3)));
     auto linear_system = setup_linsys_and_solver(mat, num_rhs, tol, max_iters);
-    auto solver =
+    auto psolver =
         gko::share(precond_solver_factory->generate(linear_system.matrix));
-    solver->add_logger(logger);
+    psolver->add_logger(plogger);
 
-    auto res = gko::test::solve_linear_system(exec, linear_system, solver);
+    auto res = gko::test::solve_linear_system(exec, linear_system, psolver);
 
-    solver->remove_logger(logger);
-    auto iter_counts = gko::make_temporary_clone(exec->get_master(),
-                                                 &logger->get_num_iterations());
+    psolver->remove_logger(plogger);
+    auto iter_counts = gko::make_temporary_clone(
+        exec->get_master(), &plogger->get_num_iterations());
     auto res_norm = gko::make_temporary_clone(exec->get_master(),
-                                              &logger->get_residual_norm());
+                                              &plogger->get_residual_norm());
     GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 500);
     for (size_t i = 0; i < num_batch_items; i++) {
         auto comp_res_norm = res.host_res_norm->get_const_values()[i] /
