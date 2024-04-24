@@ -119,6 +119,8 @@ public:
 
         std::set<index_type> GKO_FACTORY_PARAMETER_VECTOR(boundary_idxs);
 
+        std::vector<index_type> GKO_FACTORY_PARAMETER_VECTOR(tag_numbers, 0);
+
         bool GKO_FACTORY_PARAMETER_SCALAR(enforce_corner, false);
 
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting_interfaces, false);
@@ -252,6 +254,7 @@ private:
     std::shared_ptr<matrix_type> e_perm_t;
     std::shared_ptr<vec_type> e_buf1;
     std::shared_ptr<vec_type> e_buf2;
+    std::vector<index_type> tag_numbers;
 };
 
 
