@@ -13,7 +13,8 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
-#include <ginkgo/core/distributed/sparse_communicator.hpp>
+#include <ginkgo/core/distributed/neighborhood_communicator.hpp>
+#include <ginkgo/core/distributed/row_gatherer.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -36,24 +37,31 @@ std::vector<matrix_data_entry<ValueType, GlobalIndexType>> get_recv_rows(
     auto host_non_local = make_temporary_clone(
         exec->get_master(), as<Csr>(mtx->get_non_local_matrix()));
 
-    auto& spcomm = mtx->get_sparse_communicator();
-    auto& send_idxs = spcomm.template get_send_idxs<LocalIndexType>();
+    auto row_gatherer = mtx->get_row_gatherer();
+    auto& send_idxs = row_gatherer->get_row_idxs();
     auto host_send_idxs = make_temporary_clone(exec->get_master(), &send_idxs);
+
+    auto coll_comm = row_gatherer->get_collective_communicator();
 
     using mdl = matrix_data<ValueType, GlobalIndexType>;
     mdl global_md;
 
-    auto& send_offsets = spcomm.get_send_offsets();
+    auto send_offsets =
+        make_temporary_clone(exec->get_master(), &send_idxs.get_offsets());
+    auto send_target_ids = coll_comm->get_send_target_ids();
+    auto recv_target_ids = coll_comm->get_recv_target_ids();
 
-    std::vector<comm_index_type> rows_send_sizes(send_offsets.size() - 1);
+    std::vector<comm_index_type> rows_send_sizes(send_target_ids.size());
+    std::vector<comm_index_type> rows_recv_sizes(recv_target_ids.size());
 
     // 1. segmented sum over nnz per row in send_idxs
     // 2. copy full rows for each index in send_idxs
     // 3. map rows and columns to global indices
-    for (size_t pid = 0; pid < send_offsets.size() - 1; ++pid) {
-        auto cur_size = global_md.nonzeros.size();
-        for (size_type i = send_offsets[pid]; i < send_offsets[pid + 1]; ++i) {
-            auto row = host_send_idxs->get_const_data()[i];
+    for (size_t sid = 0; sid < send_offsets->get_size() - 1; ++sid) {
+        auto prev_size = global_md.nonzeros.size();
+        for (size_type i = send_offsets->get_const_data()[sid];
+             i < send_offsets->get_const_data()[sid + 1]; ++i) {
+            auto row = host_send_idxs->get_const_flat_data()[i];
 
             for (LocalIndexType idx = host_local->get_const_row_ptrs()[row];
                  idx < host_local->get_const_row_ptrs()[row + 1]; ++idx) {
@@ -73,24 +81,16 @@ std::vector<matrix_data_entry<ValueType, GlobalIndexType>> get_recv_rows(
                     host_non_local->get_const_values()[idx]);
             }
         }
-        rows_send_sizes[pid] = global_md.nonzeros.size() - cur_size;
+        rows_send_sizes[sid] = global_md.nonzeros.size() - prev_size;
     }
 
-    std::vector<comm_index_type> rows_send_offsets(send_offsets.size());
-    std::partial_sum(rows_send_sizes.begin(), rows_send_sizes.end(),
-                     rows_send_offsets.begin() + 1);
+    coll_comm
+        ->i_all_to_all(exec->get_master(), rows_send_sizes.data(), 1,
+                       rows_recv_sizes.data(), 1)
+        .wait();
 
-    std::vector<comm_index_type> rows_recv_sizes(
-        spcomm.get_recv_offsets().size() - 1);
-    std::vector<comm_index_type> rows_recv_offsets(
-        spcomm.get_recv_offsets().size());
-
-    auto comm = spcomm.get_communicator();
-    GKO_ASSERT_NO_MPI_ERRORS(
-        MPI_Neighbor_alltoall(rows_send_sizes.data(), 1, MPI_INT,
-                              rows_recv_sizes.data(), 1, MPI_INT, comm.get()));
-    std::partial_sum(rows_recv_sizes.begin(), rows_recv_sizes.end(),
-                     rows_recv_offsets.begin() + 1);
+    auto row_comm = coll_comm->create_with_same_type(
+        rows_recv_sizes, recv_target_ids, rows_send_sizes, send_target_ids);
 
     MPI_Datatype non_zero_type;
     {
@@ -103,11 +103,11 @@ std::vector<matrix_data_entry<ValueType, GlobalIndexType>> get_recv_rows(
     }
 
     std::vector<typename mdl::nonzero_type> recv_nonzeros(
-        rows_recv_offsets.back());
-    MPI_Neighbor_alltoallv(global_md.nonzeros.data(), rows_send_sizes.data(),
-                           rows_send_offsets.data(), non_zero_type,
-                           recv_nonzeros.data(), rows_recv_sizes.data(),
-                           rows_recv_offsets.data(), non_zero_type, comm.get());
+        row_comm->get_recv_size());
+    row_comm
+        ->i_all_to_all_v(exec->get_master(), global_md.nonzeros.data(),
+                         non_zero_type, recv_nonzeros.data(), non_zero_type)
+        .wait();
     MPI_Type_free(&non_zero_type);
 
     return recv_nonzeros;
@@ -207,23 +207,28 @@ public:
 
         return std::unique_ptr<OverlappingOperator>(new OverlappingOperator(
             std::move(ovlp_mtx),
-            sparse_communicator{mtx->get_communicator(), imap},
+            RowGatherer<IndexType>::create(
+                mtx->get_executor(),
+                std::make_shared<mpi::neighborhood_communicator>(
+                    mtx->get_communicator(), imap),
+                imap),
             mtx->get_size()));
     }
 
     static std::unique_ptr<OverlappingOperator> create(
-        std::shared_ptr<const LinOp> mtx, sparse_communicator spcomm,
+        std::shared_ptr<const LinOp> mtx,
+        std::shared_ptr<const RowGatherer<IndexType>> row_gatherer,
         dim<2> global_size)
     {
         return std::unique_ptr<OverlappingOperator>(new OverlappingOperator(
-            std::move(mtx), std::move(spcomm), global_size));
+            std::move(mtx), std::move(row_gatherer), global_size));
     }
 
     std::shared_ptr<const LinOp> get_matrix() const { return mtx_; }
 
-    const sparse_communicator& get_sparse_communicator() const
+    std::shared_ptr<const RowGatherer<IndexType>> get_row_gatherer() const
     {
-        return spcomm_;
+        return row_gatherer_;
     }
 
 protected:
@@ -235,8 +240,7 @@ protected:
         init_cache(dense_b, restricted_in_);
         init_cache(dense_x, restricted_out_);
 
-        auto req = restrict(dense_b, restricted_in_.get());
-        req.wait();
+        restrict(dense_b, restricted_in_.get());
 
         mtx_->apply(restricted_in_.get(), restricted_out_.get());
 
@@ -254,19 +258,20 @@ private:
     {}
 
     OverlappingOperator(std::shared_ptr<const LinOp> mtx,
-                        sparse_communicator spcomm, dim<2> global_size)
+                        std::shared_ptr<const RowGatherer<IndexType>> spcomm,
+                        dim<2> global_size)
         : EnableDistributedLinOp<OverlappingOperator>(mtx->get_executor(),
                                                       global_size),
-          DistributedBase(spcomm.get_communicator()),
+          DistributedBase(spcomm->get_communicator()),
           mtx_(std::move(mtx)),
-          spcomm_(std::move(spcomm))
+          row_gatherer_(std::move(spcomm))
     {}
 
     void init_cache(const Vector<ValueType>* template_vec,
                     const detail::DenseCache<value_type>& out) const
     {
-        auto non_local_size =
-            static_cast<size_type>(spcomm_.get_recv_offsets().back());
+        auto non_local_size = static_cast<size_type>(
+            row_gatherer_->get_collective_communicator()->get_recv_size());
         auto local_size = template_vec->get_local_vector()->get_size()[0];
         auto combined_size = local_size + non_local_size;
 
@@ -283,12 +288,12 @@ private:
         }
     }
 
-    mpi::request restrict(const Vec* in, Dense* out) const
+    void restrict(const Vec* in, Dense* out) const
     {
         auto exec = in->get_executor();
 
-        auto non_local_size =
-            static_cast<size_type>(spcomm_.get_recv_offsets().back());
+        auto non_local_size = static_cast<size_type>(
+            row_gatherer_->get_collective_communicator()->get_recv_size());
         auto local_size = in->get_local_vector()->get_size()[0];
 
         if (non_local_size > 0) {
@@ -296,22 +301,17 @@ private:
                 ->copy_from(in->get_local_vector());
         }
 
-        // pre-initialize so that the recv buffer will be a view of out
-        recv_buffer_.init(exec, dim<2>{non_local_size, in->get_size()[1]});
-        recv_buffer_->move_from(out->create_submatrix(
-            {local_size, out->get_size()[0]}, {0, out->get_size()[1]}));
-
-        auto req = spcomm_.communicate(in->get_local_vector(), send_buffer_,
-                                       recv_buffer_);
-        return req;
+        row_gatherer_->apply(
+            in, out->create_submatrix({local_size, out->get_size()[0]},
+                                      {0, out->get_size()[1]}));
     }
 
     void interpolate(const Dense* in, Vec* out) const
     {
         auto exec = out->get_executor();
         auto local_out = out->get_local_vector();
-        auto non_local_size =
-            static_cast<size_type>(spcomm_.get_recv_offsets().back());
+        auto non_local_size = static_cast<size_type>(
+            row_gatherer_->get_collective_communicator()->get_recv_size());
 
         if (non_local_size == 0) {
             return;
@@ -331,12 +331,9 @@ private:
             ->convert_to(mutable_out);
     }
 
-
     std::shared_ptr<const LinOp> mtx_;
-    sparse_communicator spcomm_;
+    std::shared_ptr<const RowGatherer<IndexType>> row_gatherer_;
 
-    detail::DenseCache<value_type> send_buffer_;
-    detail::DenseCache<value_type> recv_buffer_;
     detail::DenseCache<value_type> restricted_in_;
     detail::DenseCache<value_type> restricted_out_;
 };
