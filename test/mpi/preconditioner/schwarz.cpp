@@ -423,10 +423,26 @@ TYPED_TEST(SchwarzPreconditioner, CanApplyIluWithOverlap)
 {
     using value_type = typename TestFixture::value_type;
     using local_index_type = typename TestFixture::local_index_type;
-    using local_prec_type =
-        gko::preconditioner::Jacobi<value_type, local_index_type>;
     using Csr = typename TestFixture::local_matrix_type;
+    using Dense = typename TestFixture::local_vec_type;
     using prec = typename TestFixture::dist_prec_type;
+    auto rank = this->comm.rank();
+    std::shared_ptr<Csr> extended_mat[] = {
+        gko::initialize<Csr>({{2, -1, 0}, {-1, 2, -1}, {0, -1, 2}}, this->exec),
+        gko::initialize<Csr>(
+            {
+                {2, -1, -1, 0},
+                {-1, 2, 0, -1},
+                {-1, 0, 2, 0},
+                {0, -1, 0, 2},
+            },
+            this->exec),
+        gko::initialize<Csr>({{2, -1, 0, 0, -1},
+                              {-1, 2, -1, 0, 0},
+                              {0, -1, 2, -1, 0},
+                              {0, 0, -1, 2, 0},
+                              {-1, 0, 0, 0, 2}},
+                             this->exec)};
     auto local_precond =
         gko::preconditioner::Ilu<
             gko::solver::LowerTrs<value_type, local_index_type>,
@@ -438,20 +454,22 @@ TYPED_TEST(SchwarzPreconditioner, CanApplyIluWithOverlap)
                                     .with_overlap(1u)
                                     .with_local_solver(local_precond)
                                     .on(this->exec);
-    auto precond_factory =
-        prec::build()
-            .with_overlap(0u)
-            .with_local_solver(local_prec_type::build().with_max_block_size(1u))
-            .on(this->exec);
     auto ovlp_precond = ovlp_precond_factory->generate(this->dist_mat);
-    auto precond = precond_factory->generate(this->dist_mat);
-    auto ovlp_dist_x = gko::clone(this->dist_x);
+    auto precond = local_precond.on(this->exec)->generate(extended_mat[rank]);
+    auto extended_local_b = Dense::create(
+        this->exec, gko::dim<2>{extended_mat[rank]->get_size()[0], 1});
+    auto extended_local_x = Dense::create(
+        this->exec, gko::dim<2>{extended_mat[rank]->get_size()[0], 1});
+    this->dist_b->fill(value_type{-1.0});
+    extended_local_b->fill(value_type{-1.0});
 
-    ovlp_precond->apply(this->dist_b.get(), ovlp_dist_x.get());
-    precond->apply(this->dist_b.get(), this->dist_x.get());
+    ovlp_precond->apply(this->dist_b, this->dist_x);
+    precond->apply(extended_local_b, extended_local_x);
 
-    GKO_ASSERT_MTX_NEAR(ovlp_dist_x->get_local_vector(),
-                        this->dist_x->get_local_vector(), 0.0);
+    gko::span local_span[] = {{0, 2}, {0, 2}, {0, 4}};
+    GKO_ASSERT_MTX_NEAR(
+        this->dist_x->get_local_vector(),
+        extended_local_x->create_submatrix(local_span[rank], {0, 1}), 0.0);
 }
 
 class Overlap : public CommonMpiTestFixture {
@@ -474,7 +492,7 @@ public:
     using dense_vec_type = gko::matrix::Dense<value_type>;
     using matrix_data = gko::matrix_data<value_type, global_index_type>;
 
-    Overlap()
+    Overlap() : imap(exec)
     {
         part = part_type::build_from_global_size_uniform(exec, 3, 6);
 
