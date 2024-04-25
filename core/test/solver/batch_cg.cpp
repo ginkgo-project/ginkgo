@@ -102,7 +102,7 @@ TYPED_TEST(BatchCg, CanBeCopied)
     using Solver = typename TestFixture::Solver;
     auto copy = this->solver_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(this->solver.get());
+    copy->copy_from(this->solver);
 
     ASSERT_EQ(copy->get_common_size(),
               gko::dim<2>(this->num_rows, this->num_rows));
@@ -127,6 +127,8 @@ TYPED_TEST(BatchCg, CanBeMoved)
     auto copy_mtx = gko::as<Solver>(copy.get())->get_system_matrix();
     const auto copy_batch_mtx = gko::as<const Mtx>(copy_mtx.get());
     GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), copy_batch_mtx, 0.0);
+    ASSERT_EQ(gko::as<Solver>(this->solver.get())->get_system_matrix(),
+              nullptr);
 }
 
 

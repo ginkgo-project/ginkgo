@@ -27,11 +27,26 @@ GKO_REGISTER_OPERATION(apply, batch_cg::apply);
 
 
 template <typename ValueType>
+Cg<ValueType>::Cg(std::shared_ptr<const Executor> exec)
+    : EnableBatchSolver<Cg, ValueType>(std::move(exec))
+{}
+
+
+template <typename ValueType>
+Cg<ValueType>::Cg(const Factory* factory,
+                  std::shared_ptr<const BatchLinOp> system_matrix)
+    : EnableBatchSolver<Cg, ValueType>(factory->get_executor(),
+                                       std::move(system_matrix),
+                                       factory->get_parameters()),
+      parameters_{factory->get_parameters()}
+{}
+
+
+template <typename ValueType>
 void Cg<ValueType>::solver_apply(
     const MultiVector<ValueType>* b, MultiVector<ValueType>* x,
     log::detail::log_data<remove_complex<ValueType>>* log_data) const
 {
-    using MVec = MultiVector<ValueType>;
     const kernels::batch_cg::settings<remove_complex<ValueType>> settings{
         this->max_iterations_, static_cast<real_type>(this->residual_tol_),
         parameters_.tolerance_type};

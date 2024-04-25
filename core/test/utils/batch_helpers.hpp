@@ -106,11 +106,11 @@ std::unique_ptr<MatrixType> generate_3pt_stencil_batch_matrix(
         {}};
     for (int row = 0; row < num_rows; ++row) {
         if (row > 0) {
-            data.nonzeros.emplace_back(row - 1, row, value_type{-0.5});
+            data.nonzeros.emplace_back(row - 1, row, value_type{-1.0});
         }
-        data.nonzeros.emplace_back(row, row, value_type{5.0});
+        data.nonzeros.emplace_back(row, row, value_type{6.0});
         if (row < num_rows - 1) {
-            data.nonzeros.emplace_back(row, row + 1, value_type{-0.5});
+            data.nonzeros.emplace_back(row, row + 1, value_type{-1.0});
         }
     }
 
@@ -223,7 +223,7 @@ LinearSystem<MatrixType> generate_batch_linear_system(
     auto exec = sys.matrix->get_executor();
     sys.exact_sol = multi_vec::create(
         exec, batch_dim<2>(num_batch_items, gko::dim<2>(num_rows, num_rhs)));
-    sys.exact_sol->fill(value_type{2.0});
+    sys.exact_sol->fill(value_type{2.5});
 
     sys.rhs = multi_vec::create_with_config_of(sys.exact_sol);
     // A * x_{exact} = b

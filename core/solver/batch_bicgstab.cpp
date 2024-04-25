@@ -27,6 +27,22 @@ GKO_REGISTER_OPERATION(apply, batch_bicgstab::apply);
 
 
 template <typename ValueType>
+Bicgstab<ValueType>::Bicgstab(std::shared_ptr<const Executor> exec)
+    : EnableBatchSolver<Bicgstab, ValueType>(std::move(exec))
+{}
+
+
+template <typename ValueType>
+Bicgstab<ValueType>::Bicgstab(const Factory* factory,
+                              std::shared_ptr<const BatchLinOp> system_matrix)
+    : EnableBatchSolver<Bicgstab, ValueType>(factory->get_executor(),
+                                             std::move(system_matrix),
+                                             factory->get_parameters()),
+      parameters_{factory->get_parameters()}
+{}
+
+
+template <typename ValueType>
 void Bicgstab<ValueType>::solver_apply(
     const MultiVector<ValueType>* b, MultiVector<ValueType>* x,
     log::detail::log_data<remove_complex<ValueType>>* log_data) const

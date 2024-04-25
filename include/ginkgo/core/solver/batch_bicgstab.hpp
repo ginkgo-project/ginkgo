@@ -66,17 +66,10 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 private:
-    explicit Bicgstab(std::shared_ptr<const Executor> exec)
-        : EnableBatchSolver<Bicgstab, ValueType>(std::move(exec))
-    {}
+    explicit Bicgstab(std::shared_ptr<const Executor> exec);
 
     explicit Bicgstab(const Factory* factory,
-                      std::shared_ptr<const BatchLinOp> system_matrix)
-        : EnableBatchSolver<Bicgstab, ValueType>(factory->get_executor(),
-                                                 std::move(system_matrix),
-                                                 factory->get_parameters()),
-          parameters_{factory->get_parameters()}
-    {}
+                      std::shared_ptr<const BatchLinOp> system_matrix);
 
     void solver_apply(
         const MultiVector<ValueType>* b, MultiVector<ValueType>* x,
