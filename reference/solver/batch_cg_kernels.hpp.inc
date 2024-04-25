@@ -2,20 +2,28 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-template <typename BatchMatrixType_entry, typename PrecType, typename ValueType>
+template <typename BatchMatrixType_entry, typename ValueType>
 inline void initialize(
     const BatchMatrixType_entry& A_entry,
     const gko::batch::multi_vector::batch_item<const ValueType>& b_entry,
     const gko::batch::multi_vector::batch_item<const ValueType>& x_entry,
+    const gko::batch::multi_vector::batch_item<ValueType>& rho_new_entry,
     const gko::batch::multi_vector::batch_item<ValueType>& rho_old_entry,
     const gko::batch::multi_vector::batch_item<ValueType>& r_entry,
     const gko::batch::multi_vector::batch_item<ValueType>& p_entry,
     const gko::batch::multi_vector::batch_item<ValueType>& z_entry,
-    const PrecType& prec,
+    const gko::batch::multi_vector::batch_item<ValueType>& Ap_entry,
     const gko::batch::multi_vector::batch_item<
         typename gko::remove_complex<ValueType>>& rhs_norms_entry)
 {
+    rho_new_entry.values[0] = zero<ValueType>();
     rho_old_entry.values[0] = one<ValueType>();
+
+    for (int r = 0; r < p_entry.num_rows; r++) {
+        p_entry.values[r * p_entry.stride] = zero<ValueType>();
+        z_entry.values[r * z_entry.stride] = zero<ValueType>();
+        Ap_entry.values[r * Ap_entry.stride] = zero<ValueType>();
+    }
 
     // Compute norms of rhs
     compute_norm2_kernel<ValueType>(b_entry, rhs_norms_entry);
@@ -27,17 +35,6 @@ inline void initialize(
     advanced_apply_kernel(static_cast<ValueType>(-1.0), A_entry,
                           gko::batch::to_const(x_entry),
                           static_cast<ValueType>(1.0), r_entry);
-
-    // z = precond * r
-    prec.apply(gko::batch::to_const(r_entry), z_entry);
-
-    // p = z
-    copy_kernel(gko::batch::to_const(z_entry), p_entry);
-
-    // rho_old = r' * z
-    compute_dot_product_kernel<ValueType>(gko::batch::to_const(r_entry),
-                                          gko::batch::to_const(z_entry),
-                                          rho_old_entry);
 }
 
 
@@ -48,11 +45,15 @@ inline void update_p(
     const gko::batch::multi_vector::batch_item<const ValueType>& z_entry,
     const gko::batch::multi_vector::batch_item<ValueType>& p_entry)
 {
+    if (rho_old_entry.values[0] == zero<ValueType>()) {
+        copy_kernel(z_entry, p_entry);
+        return;
+    }
     const ValueType beta = rho_new_entry.values[0] / rho_old_entry.values[0];
-    for (int r = 0; r < p_entry.num_rows; r++) {
-        p_entry.values[r * p_entry.stride] =
-            z_entry.values[r * z_entry.stride] +
-            beta * p_entry.values[r * p_entry.stride];
+    for (int row = 0; row < p_entry.num_rows; row++) {
+        p_entry.values[row * p_entry.stride] =
+            z_entry.values[row * z_entry.stride] +
+            beta * p_entry.values[row * p_entry.stride];
     }
 }
 
@@ -66,14 +67,14 @@ inline void update_x_and_r(
     const gko::batch::multi_vector::batch_item<ValueType>& x_entry,
     const gko::batch::multi_vector::batch_item<ValueType>& r_entry)
 {
-    compute_dot_product_kernel<ValueType>(p_entry, Ap_entry, alpha_entry);
+    compute_conj_dot_product_kernel<ValueType>(p_entry, Ap_entry, alpha_entry);
 
-    const ValueType alpha = rho_old_entry.values[0] / alpha_entry.values[0];
-    for (int r = 0; r < r_entry.num_rows; r++) {
-        x_entry.values[r * x_entry.stride] +=
-            alpha * p_entry.values[r * p_entry.stride];
-        r_entry.values[r * r_entry.stride] -=
-            alpha * Ap_entry.values[r * Ap_entry.stride];
+    const ValueType temp = rho_old_entry.values[0] / alpha_entry.values[0];
+    for (int row = 0; row < r_entry.num_rows; row++) {
+        x_entry.values[row * x_entry.stride] +=
+            temp * p_entry.values[row * p_entry.stride];
+        r_entry.values[row * r_entry.stride] -=
+            temp * Ap_entry.values[row * Ap_entry.stride];
     }
 }
 
@@ -101,6 +102,7 @@ inline void batch_entry_cg_impl(
     ValueType rho_old[max_num_rhs];
     ValueType rho_new[max_num_rhs];
     ValueType alpha[max_num_rhs];
+    ValueType temp[max_num_rhs];
     real_type norms_rhs[max_num_rhs];
     real_type norms_res[max_num_rhs];
 
@@ -136,50 +138,51 @@ inline void batch_entry_cg_impl(
     // initialization
     // compute b norms
     // r = b - A*x
-    // z = precond*r
-    // rho_old = r' * z (' is for hermitian transpose)
-    // p = z
+    // p = z = Ap = 0
+    // rho_old = 1, rho_new = 0
     initialize(A_entry, b_entry, gko::batch::to_const(x_entry), rho_old_entry,
-               r_entry, p_entry, z_entry, prec, rhs_norms_entry);
+               rho_new_entry, r_entry, p_entry, z_entry, Ap_entry,
+               rhs_norms_entry);
 
     // stopping criterion object
     StopType stop(settings.residual_tol, rhs_norms_entry.values);
 
-    int iter{};
+    int iter = 0;
 
-    for (iter = 0; iter < settings.max_iterations; iter++) {
+    while (true) {
+        // z = precond * r
+        prec.apply(gko::batch::to_const(r_entry), z_entry);
+
+        // rho_new =  < r , z > = (r)' * (z)
+        compute_conj_dot_product_kernel<ValueType>(
+            gko::batch::to_const(r_entry), gko::batch::to_const(z_entry),
+            rho_new_entry);
+        ++iter;
         // use implicit residual norms
-        res_norms_entry.values[0] = sqrt(abs(rho_old_entry.values[0]));
+        res_norms_entry.values[0] = sqrt(abs(rho_new_entry.values[0]));
 
-        if (stop.check_converged(res_norms_entry.values)) {
+        if (iter >= settings.max_iterations ||
+            stop.check_converged(res_norms_entry.values)) {
             logger.log_iteration(batch_item_id, iter,
                                  res_norms_entry.values[0]);
             break;
         }
 
-        // Ap = A * p
-        simple_apply_kernel(A_entry, gko::batch::to_const(p_entry), Ap_entry);
-
-        // alpha = rho_old / (p' * Ap)
-        // x = x + alpha * p
-        // r = r - alpha * Ap
-        update_x_and_r(
-            gko::batch::to_const(rho_old_entry), gko::batch::to_const(p_entry),
-            gko::batch::to_const(Ap_entry), alpha_entry, x_entry, r_entry);
-
-        // p_hat = precond * p
-        prec.apply(gko::batch::to_const(r_entry), z_entry);
-
-        // rho_new =  < r , z > = (r)' * (z)
-        compute_dot_product_kernel<ValueType>(gko::batch::to_const(r_entry),
-                                              gko::batch::to_const(z_entry),
-                                              rho_new_entry);
-
         // beta = (rho_new / rho_old)
         // p = z + beta * p
         update_p(gko::batch::to_const(rho_new_entry),
                  gko::batch::to_const(rho_old_entry),
-                 gko::batch::to_const(r_entry), p_entry);
+                 gko::batch::to_const(z_entry), p_entry);
+
+        // Ap = A * p
+        simple_apply_kernel(A_entry, gko::batch::to_const(p_entry), Ap_entry);
+
+        // temp= rho_old / (p' * Ap)
+        // x = x + temp * p
+        // r = r - temp * Ap
+        update_x_and_r(
+            gko::batch::to_const(rho_new_entry), gko::batch::to_const(p_entry),
+            gko::batch::to_const(Ap_entry), alpha_entry, x_entry, r_entry);
 
         // rho_old = rho_new
         copy_kernel(gko::batch::to_const(rho_new_entry), rho_old_entry);

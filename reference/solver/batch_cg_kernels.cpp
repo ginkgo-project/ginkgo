@@ -67,6 +67,7 @@ public:
         const size_type local_size_bytes =
             gko::kernels::batch_cg::local_memory_requirement<ValueType>(
                 num_rows, num_rhs) +
+            // TODO: return bytes for dynamic work size as well
             PrecType::dynamic_work_size(num_rows,
                                         mat.get_single_item_num_nnz()) *
                 sizeof(ValueType);

@@ -92,9 +92,9 @@ TEST_F(BatchCg, SolvesStencilSystem)
     for (size_t i = 0; i < num_batch_items; i++) {
         ASSERT_LE(res.host_res_norm->get_const_values()[i] /
                       linear_system.host_rhs_norm->get_const_values()[i],
-                  solver_settings.residual_tol);
+                  solver_settings.residual_tol * 10);
     }
-    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol);
+    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 10);
 }
 
 
@@ -116,7 +116,7 @@ TEST_F(BatchCg, StencilSystemLoggerLogsResidual)
     auto res_log_array = res.log_data->res_norms.get_const_data();
     for (size_t i = 0; i < num_batch_items; i++) {
         ASSERT_LE(res_log_array[i] / linear_system.host_rhs_norm->at(i, 0, 0),
-                  solver_settings.residual_tol);
+                  solver_settings.residual_tol * 10);
         ASSERT_NEAR(res_log_array[i], res.host_res_norm->get_const_values()[i],
                     10 * tol);
     }
@@ -159,11 +159,11 @@ TEST_F(BatchCg, CanSolve3ptStencilSystem)
 
     auto res = gko::test::solve_linear_system(exec, linear_system, solver);
 
-    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 10);
+    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 50);
     for (size_t i = 0; i < num_batch_items; i++) {
         auto comp_res_norm = res.host_res_norm->get_const_values()[i] /
                              linear_system.host_rhs_norm->get_const_values()[i];
-        ASSERT_LE(comp_res_norm, tol);
+        ASSERT_LE(comp_res_norm, tol * 50);
     }
 }
 

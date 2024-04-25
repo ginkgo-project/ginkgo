@@ -93,6 +93,7 @@ void set_gmem_stride_bytes(storage_config& sconf,
  *
 The calculation includes multivectors for
  * - r
+ * - z
  * - p
  * - Ap
  * - x
@@ -119,7 +120,7 @@ storage_config compute_shared_storage(const int available_shared_mem,
                                       const int num_rhs)
 {
     using real_type = remove_complex<ValueType>;
-    const int vec_size = num_rows * num_rhs * sizeof(ValueType);
+    const int vec_bytes = num_rows * num_rhs * sizeof(ValueType);
     const int num_main_vecs = 5;
     const int prec_storage =
         Prectype::dynamic_work_size(num_rows, num_nz) * sizeof(ValueType);
@@ -129,20 +130,20 @@ storage_config compute_shared_storage(const int available_shared_mem,
     storage_config sconf{false, 0, num_main_vecs, 0, num_rows};
     // If available shared mem is zero, set all vecs to global.
     if (rem_shared <= 0) {
-        set_gmem_stride_bytes<align_bytes>(sconf, vec_size, prec_storage);
+        set_gmem_stride_bytes<align_bytes>(sconf, vec_bytes, prec_storage);
         return sconf;
     }
     // Compute the number of vecs that can be stored in shared memory and assign
     // the rest to global memory.
-    const int initial_vecs_available = rem_shared / vec_size;
+    const int initial_vecs_available = rem_shared / vec_bytes;
     const int num_vecs_shared = min(initial_vecs_available, num_main_vecs);
     sconf.n_shared += num_vecs_shared;
     sconf.n_global -= num_vecs_shared;
-    rem_shared -= num_vecs_shared * vec_size;
+    rem_shared -= num_vecs_shared * vec_bytes;
     // Set the storage configuration with preconditioner workspace in global if
     // there are any vectors in global memory.
     if (sconf.n_global > 0) {
-        set_gmem_stride_bytes<align_bytes>(sconf, vec_size, prec_storage);
+        set_gmem_stride_bytes<align_bytes>(sconf, vec_bytes, prec_storage);
         return sconf;
     }
     // If more shared memory space is available and preconditioner workspace is
@@ -152,7 +153,7 @@ storage_config compute_shared_storage(const int available_shared_mem,
         rem_shared -= prec_storage;
     }
     // Set the global storage config and align to align_bytes bytes.
-    set_gmem_stride_bytes<align_bytes>(sconf, vec_size, prec_storage);
+    set_gmem_stride_bytes<align_bytes>(sconf, vec_bytes, prec_storage);
     return sconf;
 }
 

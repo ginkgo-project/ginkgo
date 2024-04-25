@@ -37,7 +37,7 @@ namespace solver {
  * used in the stopping criterion can be set via the factory parameters.
  *
  * @note The tolerance check is against the internal residual computed within
- * the solver process. This implicit (internal) residual, can diverge from the
+ * the solver process. This implicit (internal) residual can diverge from the
  * true residual (||b - Ax||). A posterori checks (by computing the true
  * residual, ||b - Ax||) are recommended to ensure that the solution has
  * converged to the desired tolerance.
@@ -65,17 +65,10 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 private:
-    explicit Cg(std::shared_ptr<const Executor> exec)
-        : EnableBatchSolver<Cg, ValueType>(std::move(exec))
-    {}
+    explicit Cg(std::shared_ptr<const Executor> exec);
 
     explicit Cg(const Factory* factory,
-                std::shared_ptr<const BatchLinOp> system_matrix)
-        : EnableBatchSolver<Cg, ValueType>(factory->get_executor(),
-                                           std::move(system_matrix),
-                                           factory->get_parameters()),
-          parameters_{factory->get_parameters()}
-    {}
+                std::shared_ptr<const BatchLinOp> system_matrix);
 
     void solver_apply(
         const MultiVector<ValueType>* b, MultiVector<ValueType>* x,
