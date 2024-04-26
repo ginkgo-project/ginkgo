@@ -77,7 +77,7 @@ public:
         const int num_sg = sg.get_group_range().size();
         const int sg_tid = sg.get_local_id();
 
-        // one subwarp per row
+        // one subgroup per row
         for (int row_idx = sg_id; row_idx < num_rows; row_idx += num_sg) {
             const int block_idx = row_block_map_[row_idx];
             const value_type* dense_block_ptr =

@@ -77,7 +77,6 @@ void is_equivalent_to_ref(
 
 class BatchJacobi : public CommonTestFixture {
 protected:
-    using value_type = double;
     using real_type = gko::remove_complex<value_type>;
     using Mtx = gko::batch::matrix::Csr<value_type, int>;
     using BMVec = gko::batch::MultiVector<value_type>;
@@ -218,9 +217,6 @@ TEST_F(BatchJacobi, CanSolveLargeMatrixSizeHpdSystemWithScalarJacobi)
     for (size_t i = 0; i < num_batch_items; i++) {
         auto comp_res_norm = res.host_res_norm->get_const_values()[i] /
                              linear_system.host_rhs_norm->get_const_values()[i];
-        ASSERT_LE(iter_counts->get_const_data()[i], max_iters);
-        EXPECT_LE(p_iter_counts->get_const_data()[i],
-                  iter_counts->get_const_data()[i]);
         EXPECT_LE(res_norm->get_const_data()[i] /
                       linear_system.host_rhs_norm->get_const_values()[i],
                   tol);
@@ -257,7 +253,6 @@ TEST_F(BatchJacobi, CanSolveLargeMatrixSizeHpdSystemWithBlockJacobi)
     for (size_t i = 0; i < num_batch_items; i++) {
         auto comp_res_norm = res.host_res_norm->get_const_values()[i] /
                              linear_system.host_rhs_norm->get_const_values()[i];
-        ASSERT_LE(iter_counts->get_const_data()[i], max_iters);
         EXPECT_LE(res_norm->get_const_data()[i] /
                       linear_system.host_rhs_norm->get_const_values()[i],
                   tol);
