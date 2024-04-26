@@ -28,9 +28,20 @@ class collective_communicator {
 public:
     virtual ~collective_communicator() = default;
 
+    /**
+     * Creates a collective_communicator.
+     *
+     * @param base  the underlying communicator, without any modifications, such
+     *              as topology information or similar
+     */
     explicit collective_communicator(communicator base) : base_(std::move(base))
     {}
 
+    /**
+     * Get the unmodified base communicator.
+     *
+     * @return  the unmodified base communicator.
+     */
     const communicator& get_base_communicator() const { return base_; }
 
     /**
@@ -79,6 +90,8 @@ public:
      * Get the total number of received elements this communication patterns
      * expects.
      *
+     * This is the sum of get_recv_sizes.
+     *
      * @return  number of received elements.
      */
     virtual comm_index_type get_recv_size() const = 0;
@@ -87,9 +100,39 @@ public:
      * Get the total number of sent elements this communication patterns
      * expects.
      *
+     * This is the sum of get_send_sizes.
+     *
      * @return  number of sent elements.
      */
     virtual comm_index_type get_send_size() const = 0;
+
+    /**
+     * Get the number of received elements per process this communication
+     * pattern extpects.
+     *
+     * The numbering does not necessarily correlate with the natural numbering
+     * of the processes. It should not be expected that the i-th element
+     * denotes the number of elements received from the process with rank i.
+     * Instead the i-th element denotes the number of elements received from
+     * the i-th rank this process communicates with.
+     *
+     * @return  the nubber of received elements per process
+     */
+    virtual std::vector<comm_index_type> get_recv_sizes() const = 0;
+
+    /**
+     * Get the number of sent elements per process this communication
+     * pattern extpects.
+     *
+     * The numbering does not necessarily correlate with the natural numbering
+     * of the processes. It should not be expected that the i-th element
+     * denotes the number of elements sent to the process with rank i.
+     * Instead the i-th element denotes the number of elements sent to the i-th
+     * rank this process communicates with.
+     *
+     * @return  the nubber of received elements per process
+     */
+    virtual std::vector<comm_index_type> get_send_sizes() const = 0;
 
 private:
     communicator base_;
