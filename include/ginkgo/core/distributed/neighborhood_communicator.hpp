@@ -95,6 +95,13 @@ public:
                            void* recv_buffer,
                            MPI_Datatype recv_type) const override;
 
+
+    request i_all_to_all(std::shared_ptr<const Executor> exec,
+                         const void* send_buffer, comm_index_type send_size,
+                         MPI_Datatype send_type, void* recv_buffer,
+                         comm_index_type recv_size,
+                         MPI_Datatype recv_type) const override;
+
     /**
      * Creates the inverse neighborhood_communicator by switching sources
      * and destinations.
@@ -102,6 +109,12 @@ public:
      * @return  collective_communicator with the inverse communication pattern
      */
     std::unique_ptr<collective_communicator> create_inverse() const override;
+
+    std::unique_ptr<collective_communicator> create_with_same_type(
+        const std::vector<comm_index_type>& recv_sizes,
+        const std::vector<comm_index_type>& recv_target_ids,
+        const std::vector<comm_index_type>& send_sizes,
+        const std::vector<comm_index_type>& send_target_ids) const override;
 
     /**
      * @copydoc collective_communicator::get_recv_size
@@ -122,6 +135,10 @@ public:
      * @copydoc collective_communicator::get_send_sizes
      */
     std::vector<comm_index_type> get_send_sizes() const override;
+
+    std::vector<comm_index_type> get_recv_target_ids() const override;
+
+    std::vector<comm_index_type> get_send_target_ids() const override;
 
 private:
     communicator comm_;

@@ -167,6 +167,40 @@ request neighborhood_communicator::i_all_to_all_v(
 }
 
 
+request neighborhood_communicator::i_all_to_all(
+    std::shared_ptr<const Executor> exec, const void* send_buffer,
+    comm_index_type send_size, MPI_Datatype send_type, void* recv_buffer,
+    comm_index_type recv_size, MPI_Datatype recv_type) const
+{
+    auto guard = exec->get_scoped_device_id_guard();
+    request req;
+    GKO_ASSERT_NO_MPI_ERRORS(
+        MPI_Ineighbor_alltoall(send_buffer, send_size, send_type, recv_buffer,
+                               recv_size, recv_type, comm_.get(), req.get()));
+    return req;
+}
+
+
+std::unique_ptr<collective_communicator>
+neighborhood_communicator::create_with_same_type(
+    const std::vector<comm_index_type>& recv_sizes,
+    const std::vector<comm_index_type>& recv_target_ids,
+    const std::vector<comm_index_type>& send_sizes,
+    const std::vector<comm_index_type>& send_target_ids) const
+{
+    std::vector<comm_index_type> recv_offsets(recv_sizes.size() + 1);
+    std::vector<comm_index_type> send_offsets(send_sizes.size() + 1);
+    std::partial_sum(recv_sizes.begin(), recv_sizes.end(),
+                     recv_offsets.begin() + 1);
+    std::partial_sum(send_sizes.begin(), send_sizes.end(),
+                     send_offsets.begin() + 1);
+
+    return std::make_unique<neighborhood_communicator>(
+        this->get_base_communicator(), recv_target_ids, recv_sizes,
+        recv_offsets, send_target_ids, send_sizes, send_offsets);
+}
+
+
 std::vector<comm_index_type> neighborhood_communicator::get_recv_sizes() const
 {
     return recv_sizes_;
@@ -176,6 +210,30 @@ std::vector<comm_index_type> neighborhood_communicator::get_recv_sizes() const
 std::vector<comm_index_type> neighborhood_communicator::get_send_sizes() const
 {
     return send_sizes_;
+}
+
+
+std::vector<comm_index_type> neighborhood_communicator::get_recv_target_ids()
+    const
+{
+    std::vector<comm_index_type> recv_target_ids(recv_sizes_.size());
+    std::vector<comm_index_type> send_target_ids(send_sizes_.size());
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Dist_graph_neighbors(
+        comm_.get(), recv_sizes_.size(), recv_target_ids.data(), MPI_UNWEIGHTED,
+        send_sizes_.size(), send_target_ids.data(), MPI_UNWEIGHTED));
+    return recv_target_ids;
+}
+
+
+std::vector<comm_index_type> neighborhood_communicator::get_send_target_ids()
+    const
+{
+    std::vector<comm_index_type> recv_target_ids(recv_sizes_.size());
+    std::vector<comm_index_type> send_target_ids(send_sizes_.size());
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Dist_graph_neighbors(
+        comm_.get(), recv_sizes_.size(), recv_target_ids.data(), MPI_UNWEIGHTED,
+        send_sizes_.size(), send_target_ids.data(), MPI_UNWEIGHTED));
+    return send_target_ids;
 }
 
 
