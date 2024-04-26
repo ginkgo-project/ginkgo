@@ -128,8 +128,6 @@ template <typename ValueType>
 __dpct_inline__ void compute_block_jacobi_kernel(
     const size_type nbatch, const int nnz, const ValueType* const A_vals,
     const size_type num_blocks,
-    const preconditioner::batched_jacobi_blocks_storage_scheme<int>
-        storage_scheme,
     const int* const __restrict__ blocks_cumulative_storage,
     const int* const __restrict__ block_pointers,
     const int* const blocks_pattern, ValueType* const blocks,

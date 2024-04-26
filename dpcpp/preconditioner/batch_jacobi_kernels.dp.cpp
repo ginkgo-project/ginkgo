@@ -166,8 +166,9 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_compute_block_jacobi_helper,
 template <typename ValueType, typename IndexType>
 void compute_block_jacobi(
     std::shared_ptr<const DefaultExecutor> exec,
-    const batch::matrix::Csr<ValueType, IndexType>* const sys_csr, const uint32,
-    const size_type num_blocks, const IndexType* const cumulative_block_storage,
+    const batch::matrix::Csr<ValueType, IndexType>* const sys_csr,
+    const uint32 user_given_max_block_size, const size_type num_blocks,
+    const IndexType* const cumulative_block_storage,
     const IndexType* const block_pointers,
     const IndexType* const blocks_pattern, ValueType* const blocks)
 {
