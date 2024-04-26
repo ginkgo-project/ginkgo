@@ -113,6 +113,16 @@ public:
      */
     comm_index_type get_send_size() const override;
 
+    /**
+     * @copydoc collective_communicator::get_recv_sizes
+     */
+    std::vector<comm_index_type> get_recv_sizes() const override;
+
+    /**
+     * @copydoc collective_communicator::get_send_sizes
+     */
+    std::vector<comm_index_type> get_send_sizes() const override;
+
 private:
     communicator comm_;
 

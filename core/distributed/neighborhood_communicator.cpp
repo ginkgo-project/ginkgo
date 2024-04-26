@@ -167,6 +167,18 @@ request neighborhood_communicator::i_all_to_all_v(
 }
 
 
+std::vector<comm_index_type> neighborhood_communicator::get_recv_sizes() const
+{
+    return recv_sizes_;
+}
+
+
+std::vector<comm_index_type> neighborhood_communicator::get_send_sizes() const
+{
+    return send_sizes_;
+}
+
+
 template <typename LocalIndexType, typename GlobalIndexType>
 neighborhood_communicator::neighborhood_communicator(
     communicator base,
