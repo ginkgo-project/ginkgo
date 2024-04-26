@@ -76,6 +76,22 @@ public:
                                    MPI_Datatype send_type, void* recv_buffer,
                                    MPI_Datatype recv_type) const = 0;
 
+    template <typename SendType, typename RecvType>
+    request i_all_to_all(std::shared_ptr<const Executor> exec,
+                         const SendType* send_buffer, comm_index_type send_size,
+                         RecvType* recv_buffer, comm_index_type recv_size) const
+    {
+        return this->i_all_to_all(std::move(exec), send_buffer, send_size,
+                                  type_impl<SendType>::get_type(), recv_buffer,
+                                  recv_size, type_impl<RecvType>::get_type());
+    }
+
+    virtual request i_all_to_all(std::shared_ptr<const Executor> exec,
+                                 const void* send_buffer,
+                                 comm_index_type send_size,
+                                 MPI_Datatype send_type, void* recv_buffer,
+                                 comm_index_type recv_size,
+                                 MPI_Datatype recv_type) const = 0;
 
     /**
      * Creates a collective_communicator with the inverse communication pattern
@@ -85,6 +101,12 @@ public:
      * pattern.
      */
     virtual std::unique_ptr<collective_communicator> create_inverse() const = 0;
+
+    virtual std::unique_ptr<collective_communicator> create_with_same_type(
+        const std::vector<comm_index_type>& recv_sizes,
+        const std::vector<comm_index_type>& recv_target_ids,
+        const std::vector<comm_index_type>& send_sizes,
+        const std::vector<comm_index_type>& send_target_ids) const = 0;
 
     /**
      * Get the total number of received elements this communication patterns
@@ -133,6 +155,10 @@ public:
      * @return  the nubber of received elements per process
      */
     virtual std::vector<comm_index_type> get_send_sizes() const = 0;
+
+    virtual std::vector<comm_index_type> get_recv_target_ids() const = 0;
+
+    virtual std::vector<comm_index_type> get_send_target_ids() const = 0;
 
 private:
     communicator base_;
