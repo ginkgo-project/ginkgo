@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
     // Read data
-    auto A = share(gko::read<mtx>(std::ifstream(matrix_string), exec));
+    auto A = share(gko::read_generic<mtx>(std::ifstream(matrix_string), exec));
     // Create RHS as 1 and initial guess as 0
     gko::size_type size = A->get_size()[0];
     auto host_x = vec::create(exec->get_master(), gko::dim<2>(size, 1));
@@ -157,14 +157,14 @@ int main(int argc, char* argv[])
         mg_level_gen.emplace_back(mg_level);
     } else {
         for (unsigned int i = 0; i < max_mg_levels; i++) {
-            auto coarse = share(
-                gko::read<mtx>(std::ifstream(custom_prefix + "_" +
-                                             std::to_string(i + 1) + ".mtx"),
-                               exec));
-            auto rst =
-                share(gko::read<mtx>(std::ifstream(custom_prefix + "_r_" +
-                                                   std::to_string(i) + ".mtx"),
-                                     exec));
+            auto coarse = share(gko::read_generic<mtx>(
+                std::ifstream(custom_prefix + "_" + std::to_string(i + 1) +
+                              ".mtx"),
+                exec));
+            auto rst = share(gko::reread_genericad<mtx>(
+                std::ifstream(custom_prefix + "_r_" + std::to_string(i) +
+                              ".mtx"),
+                exec));
             auto prl = share(rst->conj_transpose());
             auto mg_level =
                 share(gko::multigrid::CustomCoarse<ValueType>::build()
