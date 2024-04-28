@@ -276,11 +276,6 @@ if(GINKGO_BUILD_PAPI_SDE)
     endif()
 endif()
 
-# Bundled third party libraries
-if(GINKGO_BUILD_PYTHON_BINDINGS)
-  find_package(pybind11)
-endif()
-
 add_subdirectory(third_party)    # Third-party tools and libraries
 
 if(MSVC)
@@ -402,7 +397,6 @@ unset(BASH CACHE)
 
 if(GINKGO_BUILD_PYTHON_BINDINGS)
   find_package(Python REQUIRED COMPONENTS Interpreter Development)
-  find_package(pybind11)
   add_subdirectory(bindings/test)
 endif()
 

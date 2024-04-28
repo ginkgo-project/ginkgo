@@ -14,15 +14,14 @@ if(GINKGO_BUILD_PYTHON_BINDINGS)
     else()
         add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
     endif()
-    pybind11_add_module(pygko ${PROJECT_SOURCE_DIR}/bindings/python.cpp)
 
     pybind11_add_module(pygko
       ${PROJECT_SOURCE_DIR}/bindings/python.cpp
       ${PROJECT_SOURCE_DIR}/bindings/dense.cpp
       ${PROJECT_SOURCE_DIR}/bindings/matrix.cpp
-      ${PROJECT_SOURCE_DIR}/bindings/cg.cpp
-      ${PROJECT_SOURCE_DIR}/bindings/preconditioner.cpp
-      ${PROJECT_SOURCE_DIR}/bindings/criteria.cpp
+//      ${PROJECT_SOURCE_DIR}/bindings/cg.cpp
+//      ${PROJECT_SOURCE_DIR}/bindings/preconditioner.cpp
+//      ${PROJECT_SOURCE_DIR}/bindings/criteria.cpp
     )
 
     target_include_directories(pygko PRIVATE ${Ginkgo_BINARY_DIR}/include)

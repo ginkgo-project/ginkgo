@@ -74,13 +74,13 @@ void init_cg(py::module_& module_solver)
             }
 
             return factory_->generate(system_matrix);
-        }))
-        .def("apply",
-             py::overload_cast<const gko::LinOp*, gko::LinOp*>(
-                 &gko::solver::Cg<ValueType>::apply),
-             "")
-        .def("apply",
-             py::overload_cast<const gko::LinOp*, gko::LinOp*>(
-                 &gko::solver::Cg<ValueType>::apply, py::const_),
-             "");
+        }));
+//       .def("apply",
+//            py::overload_cast<const gko::LinOp*, gko::LinOp*>(
+//                &gko::solver::Cg<ValueType>::apply),
+//            "")
+//       .def("apply",
+//            py::overload_cast<const gko::LinOp*, gko::LinOp*>(
+//                &gko::solver::Cg<ValueType>::apply, py::const_),
+//            "");
 }

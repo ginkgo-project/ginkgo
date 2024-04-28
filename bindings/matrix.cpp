@@ -110,4 +110,4 @@ namespace py = pybind11;
             "Applies Name matrix axpy to a vector (or a sequence of vectors)." \
             "Performs the operation x = Name * b + x")
 
-void init_coo(py::module_& module_matrix) { GKO_MATRIX_BINDING(Coo); }
+// void init_coo(py::module_& module_matrix) { GKO_MATRIX_BINDING(Coo); }

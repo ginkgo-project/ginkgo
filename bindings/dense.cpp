@@ -84,25 +84,34 @@ void init_dense(py::module_& module_matrix)
         .def("__repr__",
              [](const gko::matrix::Dense<ValueType>& o) {
                  auto str = std::string("pygko.matrix.Dense object of size ");
-                 str += std::to_string(o.get_num_stored_elements());
+                 auto elems = o.get_num_stored_elements();
+                 str += std::to_string(elems);
+                 if (o.get_executor() == o.get_executor()->get_master()) {
+                     str += " on host";
+                     if (elems < 10) {
+                         str += " [ ";
+                         for (int i = 0; i < elems; i++) {
+                             str += std::to_string(o.at(i));
+                             str += " ";
+                         }
+                     }
+                     str += " ] ";
+                 }
                  return str;
              })
-        .def(
-            "copy_to_host",
-            [](gko::matrix::Dense<ValueType>& m) {
-                if (m.get_executor() != m.get_executor()->get_master()) {
-                    auto host_dense_temp = gko::make_temporary_clone<
-                        gko::matrix::Dense<ValueType>>(
-                        m.get_executor()->get_master(), &m);
-
-                    auto host_dense =
-                        gko::share(gko::matrix::Dense<ValueType>::create(
-                            *host_dense_temp.get()));
-                    return host_dense;
-                } else {
-                    return gko::share(gko::matrix::Dense<ValueType>::create(m));
-                }
-            })
+        .def("copy_to_host",
+             [](gko::matrix::Dense<ValueType>& m) {
+                 auto host_exec = m.get_executor()->get_master();
+                 std::cout << __FILE__ << "Warning creating a copy of dense\n";
+                 if (m.get_executor() != host_exec) {
+                     auto host_dense = gko::share(
+                         gko::matrix::Dense<ValueType>::create(host_exec));
+                     host_dense->operator=(m);
+                     return host_dense;
+                 } else {
+                     return std::make_shared<gko::matrix::Dense<ValueType>>(m);
+                 }
+             })
         .def_buffer([](gko::matrix::Dense<ValueType>& m) -> py::buffer_info {
             // buffer info needs data on host, thus if data is on device it
             // should be copied to host first
@@ -145,8 +154,15 @@ void init_dense(py::module_& module_matrix)
         })
         .def("get_stride", &gko::matrix::Dense<ValueType>::get_stride,
              "Returns the stride of the matrix.")
-        .def("scale", &gko::matrix::Dense<ValueType>::scale,
-             "Scales the matrix with a scalar (aka: BLAS scal).")
+        // TODO checkout
+        // https://pybind11.readthedocs.io/en/stable/advanced/cast/custom.html
+        .def("scale",
+             [](gko::matrix::Dense<ValueType>& m, ValueType s) {
+                 auto o = gko::matrix::Dense<ValueType>::create(
+                     m.get_executor(), gko::dim<2>(1, 1));
+                 o->fill(s);
+                 m.scale(o);
+             })
         .def("inv_scale", &gko::matrix::Dense<ValueType>::inv_scale,
              "Scales the matrix with the inverse of a scalar.")
         .def("add_scaled", &gko::matrix::Dense<ValueType>::add_scaled,
@@ -154,23 +170,30 @@ void init_dense(py::module_& module_matrix)
         .def(
             "sub_scaled", &gko::matrix::Dense<ValueType>::sub_scaled,
             "Subtracts `b` scaled by `alpha` fron the matrix (aka: BLAS axpy).")
-        .def("compute_dot",
-             py::overload_cast<const gko::LinOp*, gko::LinOp*>(
-                 &gko::matrix::Dense<ValueType>::compute_dot, py::const_),
-             "Computes the column-wise dot product of this matrix and `b`")
-        .def("compute_conj_dot",
-             py::overload_cast<const gko::LinOp*, gko::LinOp*>(
-                 &gko::matrix::Dense<ValueType>::compute_conj_dot, py::const_),
-             "Computes the column-wise dot product of `conj(this matrix)` and "
-             "`b`.")
-        .def("compute_norm2",
-             py::overload_cast<gko::LinOp*>(
-                 &gko::matrix::Dense<ValueType>::compute_norm2, py::const_),
-             "Computes the column-wise Euclidian (L^2) norm of this matrix.")
-        .def("compute_norm1",
-             py::overload_cast<gko::LinOp*>(
-                 &gko::matrix::Dense<ValueType>::compute_norm1, py::const_),
-             "Computes the column-wise (L^1) norm of this matrix.")
+        //       .def("compute_dot",
+        //            py::overload_cast<const gko::LinOp*, gko::LinOp*>(
+        //                &gko::matrix::Dense<ValueType>::compute_dot,
+        //                py::const_),
+        //            "Computes the column-wise dot product of this matrix and
+        //            `b`")
+        //        .def("compute_conj_dot",
+        //             py::overload_cast<const gko::LinOp*, gko::LinOp*>(
+        //                 &gko::matrix::Dense<ValueType>::compute_conj_dot,
+        //                 py::const_),
+        //             "Computes the column-wise dot product of `conj(this
+        //             matrix)` and "
+        //             "`b`.")
+        //      .def("compute_norm2",
+        //           py::overload_cast<gko::LinOp*>(
+        //               &gko::matrix::Dense<ValueType>::compute_norm2,
+        //               py::const_),
+        //           "Computes the column-wise Euclidian (L^2) norm of this
+        //           matrix.")
+        //        .def("compute_norm1",
+        //             py::overload_cast<gko::LinOp*>(
+        //                 &gko::matrix::Dense<ValueType>::compute_norm1,
+        //                 py::const_),
+        //             "Computes the column-wise (L^1) norm of this matrix.")
         .def("at",
              static_cast<ValueType& (gko::matrix::Dense<ValueType>::*)(size_t)>(
                  &gko::matrix::Dense<ValueType>::at),
