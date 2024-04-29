@@ -40,9 +40,11 @@ void run_range_for(std::shared_ptr<gko::EXEC_TYPE> exec,
         1, result_array, static_cast<int>(result_array.get_size()));
 }
 
-TEST_F(IndexRange, RunsRangeFor)
+
+TEST_F(IndexRange, KernelRunsRangeFor)
 {
-    for (auto i : gko::irange<int>{static_cast<int>(result_array.get_size())}) {
+    auto size = static_cast<int>(result_array.get_size());
+    for (int i = 0; i < size; i++) {
         expected_array.get_data()[i] = i * i;
     }
 
