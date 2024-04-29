@@ -99,19 +99,20 @@ void init_dense(py::module_& module_matrix)
                  }
                  return str;
              })
-        .def("copy_to_host",
-             [](gko::matrix::Dense<ValueType>& m) {
-                 auto host_exec = m.get_executor()->get_master();
-                 std::cout << __FILE__ << "Warning creating a copy of dense\n";
-                 if (m.get_executor() != host_exec) {
-                     auto host_dense = gko::share(
-                         gko::matrix::Dense<ValueType>::create(host_exec));
-                     host_dense->operator=(m);
-                     return host_dense;
-                 } else {
-                     return std::make_shared<gko::matrix::Dense<ValueType>>(m);
-                 }
-             })
+        // .def("copy_to_host",
+        //      [](gko::matrix::Dense<ValueType>& m) {
+        //          auto host_exec = m.get_executor()->get_master();
+        //          std::cout << __FILE__ << "Warning creating a copy of
+        //          dense\n"; if (m.get_executor() != host_exec) {
+        //              auto host_dense = gko::share(
+        //                  gko::matrix::Dense<ValueType>::create(host_exec));
+        //              host_dense->operator=(m);
+        //              return host_dense;
+        //          } else {
+        //              return
+        //              std::make_shared<gko::matrix::Dense<ValueType>>(m);
+        //          }
+        //      })
         .def_buffer([](gko::matrix::Dense<ValueType>& m) -> py::buffer_info {
             // buffer info needs data on host, thus if data is on device it
             // should be copied to host first

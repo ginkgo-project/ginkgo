@@ -115,11 +115,12 @@ PYBIND11_MODULE(pygko, m)
     //   py::module_ module_stop = m.def_submodule(
     //       "stop", "Submodule for Ginkgos stopping criteria bindings");
     //
-    m.def("read_dense",
-          [](const std::string& fn, std::shared_ptr<gko::Executor> exec) {
-              return gko::read<gko::matrix::Dense<ValueType>>(std::ifstream(fn),
-                                                              exec);
-          });
+    //   m.def("read_dense",
+    //         [](const std::string& fn, std::shared_ptr<gko::Executor> exec) {
+    //             return
+    //             gko::read<gko::matrix::Dense<ValueType>>(std::ifstream(fn),
+    //                                                             exec);
+    //         });
 
     //   m.def("read_coo",
     //         [](const std::string& fn, std::shared_ptr<gko::Executor> exec) {
