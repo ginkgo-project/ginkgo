@@ -18,6 +18,7 @@
 
 #include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"
+#include "core/config/type_descriptor_helper.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/cg_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
@@ -28,15 +29,13 @@ namespace config {
 
 
 template <>
-deferred_factory_parameter<gko::LinOpFactory>
-build_from_config<LinOpFactoryType::Cg>(const pnode& config,
-                                        const registry& context,
-                                        gko::config::type_descriptor td)
+deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Cg>(
+    const pnode& config, const registry& context, const type_descriptor& td)
 {
     auto updated = update_type(config, td);
     return dispatch<gko::LinOpFactory, gko::solver::Cg>(
-        updated.get_value_typestr(), config, context, updated,
-        value_type_list());
+        config, context, updated,
+        make_type_selector(updated.get_value_typestr(), value_type_list()));
 }
 
 
@@ -58,27 +57,26 @@ GKO_REGISTER_OPERATION(step_2, cg::step_2);
 
 
 template <typename ValueType>
-typename Cg<ValueType>::parameters_type Cg<ValueType>::build_from_config(
+typename Cg<ValueType>::parameters_type Cg<ValueType>::parse(
     const config::pnode& config, const config::registry& context,
-    config::type_descriptor td_for_child)
+    const config::type_descriptor& td_for_child)
 {
-    auto factory = solver::Cg<ValueType>::build();
+    auto params = solver::Cg<ValueType>::build();
     // The following will be moved to the common solver function in another pr
     if (auto& obj = config.get("generated_preconditioner")) {
-        factory.with_generated_preconditioner(
-            gko::config::get_pointer<const LinOp>(obj, context, td_for_child));
+        params.with_generated_preconditioner(
+            gko::config::get_stored_obj<const LinOp>(obj, context));
     }
     if (auto& obj = config.get("criteria")) {
-        factory.with_criteria(
+        params.with_criteria(
             gko::config::get_factory_vector<const stop::CriterionFactory>(
                 obj, context, td_for_child));
     }
     if (auto& obj = config.get("preconditioner")) {
-        factory.with_preconditioner(
-            gko::config::get_factory<const LinOpFactory>(obj, context,
-                                                         td_for_child));
+        params.with_preconditioner(gko::config::get_factory<const LinOpFactory>(
+            obj, context, td_for_child));
     }
-    return factory;
+    return params;
 }
 
 

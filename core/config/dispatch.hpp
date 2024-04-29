@@ -18,6 +18,7 @@
 
 
 #include "core/config/config_helper.hpp"
+#include "core/config/type_descriptor_helper.hpp"
 
 
 namespace gko {
@@ -25,55 +26,76 @@ namespace config {
 
 
 /**
+ * type_selector connect the runtime string and the allowed type list together
+ */
+template <typename... T>
+struct type_selector {
+    explicit type_selector(const std::string& input) : runtime(input) {}
+
+    std::string runtime;
+};
+
+
+/**
+ * It is the helper function to create type_selector with the type_list as the
+ * argument.
+ */
+template <typename... T>
+type_selector<T...> make_type_selector(const std::string& runtime_type,
+                                       syn::type_list<T...>)
+{
+    return type_selector<T...>{runtime_type};
+}
+
+
+/**
  * This function is to dispatch the type from runtime parameter.
  * The concrete class need to have static member function
- * build_from_config(pnode, registry, type_descriptor)
+ * parse(pnode, registry, type_descriptor)
  */
 template <typename ReturnType, template <class...> class Base,
           typename... Types>
-deferred_factory_parameter<ReturnType> dispatch(std::string str,
-                                                const pnode& config,
+deferred_factory_parameter<ReturnType> dispatch(const pnode& config,
                                                 const registry& context,
                                                 const type_descriptor& td)
 {
-    return Base<Types...>::build_from_config(config, context, td);
+    return Base<Types...>::parse(config, context, td);
 }
 
 // When the dispatch does not find match from the given list.
 template <typename ReturnType, template <class...> class Base,
-          typename... Types, typename... List>
-deferred_factory_parameter<ReturnType> dispatch(std::string str,
-                                                const pnode& config,
+          typename... Types, typename... Rest>
+deferred_factory_parameter<ReturnType> dispatch(const pnode& config,
                                                 const registry& context,
                                                 const type_descriptor& td,
-                                                syn::type_list<>, List... list)
+                                                type_selector<> selector,
+                                                Rest... rest)
 {
-    GKO_INVALID_STATE("Can not figure out the actual type");
+    GKO_INVALID_STATE("The provided runtime type >" + selector.runtime +
+                      "< doesn't match any of the allowed compile time types.");
 }
 
 /**
- * @param str  the identifier for runtime type: the format is type1,type2,...
  * @param config  the configuration
  * @param context  the registry context
  * @param td  the default type descriptor
- * @param type_list  the type list for checking
- * @param list...  the type list for the rest type
+ * @param selector  the current dispatching type_selector
+ * @param rest...  the type_selector list for the rest
  */
 template <typename ReturnType, template <class...> class Base,
-          typename... Types, typename S, typename... T, typename... List>
+          typename... Types, typename S, typename... AllowedTypes,
+          typename... Rest>
 deferred_factory_parameter<ReturnType> dispatch(
-    std::string str, const pnode& config, const registry& context,
-    const type_descriptor& td, syn::type_list<S, T...>, List... list)
+    const pnode& config, const registry& context, const type_descriptor& td,
+    type_selector<S, AllowedTypes...> selector, Rest... rest)
 {
-    auto pos = str.find(",");
-    auto item = str.substr(0, pos);
-    auto res = (pos == std::string::npos) ? "" : str.substr(pos + 1);
-    if (item == type_string<S>::str()) {
-        return dispatch<ReturnType, Base, Types..., S>(res, config, context, td,
-                                                       list...);
+    if (selector.runtime == type_string<S>::str()) {
+        return dispatch<ReturnType, Base, Types..., S>(config, context, td,
+                                                       rest...);
     } else {
         return dispatch<ReturnType, Base, Types...>(
-            str, config, context, td, syn::type_list<T...>(), list...);
+            config, context, td,
+            type_selector<AllowedTypes...>(selector.runtime), rest...);
     }
 }
 

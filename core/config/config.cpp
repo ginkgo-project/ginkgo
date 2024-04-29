@@ -19,14 +19,15 @@ namespace gko {
 namespace config {
 
 
-buildfromconfig_map generate_config_map()
+configuration_map generate_config_map()
 {
-    return {{"Cg", build_from_config<LinOpFactoryType::Cg>}};
+    return {{"solver::Cg", parse<LinOpFactoryType::Cg>}};
 }
 
 
-deferred_factory_parameter<gko::LinOpFactory> build_from_config(
-    const pnode& config, const registry& context, type_descriptor td)
+deferred_factory_parameter<gko::LinOpFactory> parse(const pnode& config,
+                                                    const registry& context,
+                                                    const type_descriptor& td)
 {
     if (auto& obj = config.get("Type")) {
         auto func = context.get_build_map().at(obj.get_string());
