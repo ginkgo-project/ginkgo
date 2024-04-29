@@ -29,6 +29,15 @@ TEST(IRange, KnowsItsProperties)
 }
 
 
+TEST(IRange, SingleParameterConstructor)
+{
+    gko::irange<int> range(10);
+
+    ASSERT_EQ(range.begin_index(), 0);
+    ASSERT_EQ(range.end_index(), 10);
+}
+
+
 TEST(IRange, RangeFor)
 {
     std::vector<int> v;
