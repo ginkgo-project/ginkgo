@@ -19,7 +19,8 @@ namespace gko {
 
 /**
  * An index_iterator represents an iteration through an integer
- * range. Each increment of the iterator increments the integer it represents.
+ * range/interval `[begin, end)`. Each increment of the iterator increments the
+ * integer it represents.
  *
  * @tparam IndexType  the type of the index, it must be a signed integer type.
  */
