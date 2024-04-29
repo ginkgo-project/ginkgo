@@ -5,55 +5,22 @@
 #include <ginkgo/core/config/registry.hpp>
 
 
+#include <ginkgo/core/config/config.hpp>
+
+
 #include "core/config/config_helper.hpp"
 
 
 namespace gko {
 namespace config {
 
+registry::registry(configuration_map build_map) : build_map_(build_map) {}
 
-using linop_map = std::unordered_map<std::string, std::shared_ptr<LinOp>>;
-using linopfactory_map =
-    std::unordered_map<std::string, std::shared_ptr<LinOpFactory>>;
-using criterionfactory_map =
-    std::unordered_map<std::string, std::shared_ptr<stop::CriterionFactory>>;
-
-
-template <>
-linop_map& registry::get_map_impl<linop_map>()
-{
-    return linop_map_;
-}
-
-template <>
-linopfactory_map& registry::get_map_impl<linopfactory_map>()
-{
-    return linopfactory_map_;
-}
-
-template <>
-criterionfactory_map& registry::get_map_impl<criterionfactory_map>()
-{
-    return criterionfactory_map_;
-}
-
-template <>
-const linop_map& registry::get_map_impl<linop_map>() const
-{
-    return linop_map_;
-}
-
-template <>
-const linopfactory_map& registry::get_map_impl<linopfactory_map>() const
-{
-    return linopfactory_map_;
-}
-
-template <>
-const criterionfactory_map& registry::get_map_impl<criterionfactory_map>() const
-{
-    return criterionfactory_map_;
-}
+registry::registry(
+    std::unordered_map<std::string, detail::allowed_ptr> stored_map,
+    configuration_map build_map)
+    : stored_map_(stored_map), build_map_(build_map)
+{}
 
 
 }  // namespace config

@@ -14,9 +14,11 @@
 #include <utility>
 
 
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
+#include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/property_tree.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
@@ -30,10 +32,112 @@ class registry;
 class type_descriptor;
 
 
-using configuration_map =
-    std::map<std::string,
-             std::function<deferred_factory_parameter<gko::LinOpFactory>(
-                 const pnode&, const registry&, type_descriptor)>>;
+namespace detail {
+
+
+/**
+ * base_type gives the base type according to given type.
+ *
+ * @tparam T  the type
+ */
+template <typename T, typename = void>
+struct base_type {};
+
+template <typename T>
+struct base_type<
+    T, typename std::enable_if<std::is_convertible<T*, LinOp*>::value>::type> {
+    using type = LinOp;
+};
+
+template <typename T>
+struct base_type<T, typename std::enable_if<
+                        std::is_convertible<T*, LinOpFactory*>::value>::type> {
+    using type = LinOpFactory;
+};
+
+template <typename T>
+struct base_type<T, typename std::enable_if<std::is_convertible<
+                        T*, stop::CriterionFactory*>::value>::type> {
+    using type = stop::CriterionFactory;
+};
+
+
+/**
+ * allowed_ptr is a type-erased object for LinOp/LinOpFactory/CriterionFactory
+ * shared_ptr.
+ */
+class allowed_ptr {
+public:
+    /**
+     * The constructor accept any shared pointer whose base type is LinOp,
+     * LinOpFactory, or CriterionFactory. We use template rather than
+     * constructor without template because it allows user to directly use
+     * uninitialized_list in registry constructor without wrapping allowed_ptr
+     * manually.
+     */
+    template <typename Type>
+    allowed_ptr(std::shared_ptr<Type> obj);
+
+    /**
+     * Check whether it contains the Type data
+     *
+     * @tparam Type  the checking type
+     */
+    template <typename Type>
+    bool contains() const;
+
+    /**
+     * Get the shared pointer with Type
+     *
+     * @tparam Type  the desired type
+     *
+     * @return the shared pointer of Type
+     */
+    template <typename Type>
+    std::shared_ptr<Type> get() const;
+
+private:
+    struct generic_container {
+        virtual ~generic_container() = default;
+    };
+
+    template <typename Type>
+    struct concrete_container : generic_container {
+        concrete_container(std::shared_ptr<Type> obj) : ptr{obj} {}
+
+        std::shared_ptr<Type> ptr;
+    };
+
+    std::shared_ptr<generic_container> data_;
+};
+
+
+template <typename Type>
+inline allowed_ptr::allowed_ptr(std::shared_ptr<Type> obj)
+{
+    data_ =
+        std::make_shared<concrete_container<typename base_type<Type>::type>>(
+            obj);
+}
+
+
+template <typename Type>
+inline bool allowed_ptr::contains() const
+{
+    return dynamic_cast<const concrete_container<Type>*>(data_.get());
+}
+
+
+template <typename Type>
+inline std::shared_ptr<Type> allowed_ptr::get() const
+{
+    GKO_THROW_IF_INVALID(this->template contains<Type>(),
+                         "does not hold the requested type.");
+    return dynamic_cast<concrete_container<Type>*>(data_.get())->ptr;
+}
+
+
+}  // namespace detail
 
 
 /**
@@ -50,38 +154,6 @@ using configuration_map =
  * stated types.
  */
 class registry {
-private:
-    /**
-     * map_type gives the map type according to the base type of given type.
-     *
-     * @tparam T  the type
-     */
-    template <typename T, typename = void>
-    struct map_type {
-        using type = void;
-    };
-
-    template <typename T>
-    struct map_type<T, typename std::enable_if<
-                           std::is_convertible<T*, LinOp*>::value>::type> {
-        using type = std::unordered_map<std::string, std::shared_ptr<LinOp>>;
-    };
-
-    template <typename T>
-    struct map_type<T, typename std::enable_if<std::is_convertible<
-                           T*, LinOpFactory*>::value>::type> {
-        using type =
-            std::unordered_map<std::string, std::shared_ptr<LinOpFactory>>;
-    };
-
-    template <typename T>
-    struct map_type<T, typename std::enable_if<std::is_convertible<
-                           T*, stop::CriterionFactory*>::value>::type> {
-        using type =
-            std::unordered_map<std::string,
-                               std::shared_ptr<stop::CriterionFactory>>;
-    };
-
 public:
     /**
      * registry constructor
@@ -90,7 +162,26 @@ public:
      * provides `generate_config_map()` in config.hpp to provide the ginkgo
      * build map. Users can extend this map to fit their own LinOpFactory.
      */
-    registry(configuration_map build_map) : build_map_(build_map) {}
+    registry(configuration_map build_map = generate_config_map());
+
+    /**
+     * registry constructor
+     *
+     * @param stored_map  the map stores the shared pointer of users' objects.
+     * It can hold any type whose base type is
+     * LinOp/LinOpFactory/CriterionFactory. For example,
+     * ```
+     * {{
+     *   {"csr", csr_shared_ptr},
+     *   {"cg", cg_shared_ptr}
+     * }}
+     * ```
+     * @param build_map  the build map to dispatch the class base. Ginkgo
+     * provides `generate_config_map()` in config.hpp to provide the ginkgo
+     * build map. Users can extend this map to fit their own LinOpFactory.
+     */
+    registry(std::unordered_map<std::string, detail::allowed_ptr> stored_map,
+             configuration_map build_map = generate_config_map());
 
     /**
      * insert_data stores the data with the key.
@@ -120,39 +211,8 @@ public:
      */
     const configuration_map& get_build_map() const { return build_map_; }
 
-protected:
-    /**
-     * get_map gets the member map
-     *
-     * @tparam T  the type
-     *
-     * @return the map
-     */
-    template <typename T>
-    typename map_type<T>::type& get_map();
-
-    template <typename T>
-    const typename map_type<T>::type& get_map() const;
-
-    /**
-     * get_map_impl is the implementation of get_map
-     *
-     * @tparam T  the map type
-     *
-     * @return the map
-     */
-    template <typename T>
-    T& get_map_impl();
-
-    template <typename T>
-    const T& get_map_impl() const;
-
 private:
-    std::unordered_map<std::string, std::shared_ptr<LinOp>> linop_map_;
-    std::unordered_map<std::string, std::shared_ptr<LinOpFactory>>
-        linopfactory_map_;
-    std::unordered_map<std::string, std::shared_ptr<stop::CriterionFactory>>
-        criterionfactory_map_;
+    std::unordered_map<std::string, detail::allowed_ptr> stored_map_;
     configuration_map build_map_;
 };
 
@@ -160,7 +220,7 @@ private:
 template <typename T>
 inline bool registry::emplace(std::string key, std::shared_ptr<T> data)
 {
-    auto it = this->get_map<T>().emplace(key, data);
+    auto it = stored_map_.emplace(key, data);
     return it.second;
 }
 
@@ -168,22 +228,9 @@ inline bool registry::emplace(std::string key, std::shared_ptr<T> data)
 template <typename T>
 inline std::shared_ptr<T> registry::search_data(std::string key) const
 {
-    return gko::as<T>(this->get_map<T>().at(key));
+    return gko::as<T>(stored_map_.at(key)
+                          .template get<typename detail::base_type<T>::type>());
 }
-
-
-template <typename T>
-inline typename registry::map_type<T>::type& registry::get_map()
-{
-    return this->get_map_impl<typename map_type<T>::type>();
-}
-
-template <typename T>
-inline const typename registry::map_type<T>::type& registry::get_map() const
-{
-    return this->get_map_impl<typename map_type<T>::type>();
-}
-
 
 }  // namespace config
 }  // namespace gko

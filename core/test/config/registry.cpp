@@ -127,6 +127,32 @@ TEST_F(Registry, SearchDataWithType)
 }
 
 
+TEST_F(Registry, BuildFromConstructor)
+{
+    registry reg_obj{{{"matrix", matrix},
+                      {"solver_factory", solver_factory},
+                      {"stop_factory", stop_factory}}};
+
+    auto found_matrix = reg_obj.search_data<Matrix>("matrix");
+    auto found_solver_factory =
+        reg_obj.search_data<Solver::Factory>("solver_factory");
+    auto found_stop_factory =
+        reg_obj.search_data<Stop::Factory>("stop_factory");
+    // get correct ptrs
+    ASSERT_EQ(found_matrix, matrix);
+    ASSERT_EQ(found_solver_factory, solver_factory);
+    ASSERT_EQ(found_stop_factory, stop_factory);
+    // get correct types
+    ASSERT_TRUE(
+        (std::is_same<decltype(found_matrix), std::shared_ptr<Matrix>>::value));
+    ASSERT_TRUE(
+        (std::is_same<decltype(found_solver_factory),
+                      std::shared_ptr<typename Solver::Factory>>::value));
+    ASSERT_TRUE((std::is_same<decltype(found_stop_factory),
+                              std::shared_ptr<typename Stop::Factory>>::value));
+}
+
+
 TEST_F(Registry, ThrowIfNotFound)
 {
     ASSERT_THROW(reg.search_data<gko::LinOp>("N"), std::out_of_range);
