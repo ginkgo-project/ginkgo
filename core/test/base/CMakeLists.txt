@@ -14,6 +14,7 @@ ginkgo_create_test(exception EXECUTABLE_NAME exception_test) # exception collide
 ginkgo_create_test(exception_helpers)
 ginkgo_create_test(extended_float)
 ginkgo_create_test(executor)
+ginkgo_create_test(index_range)
 ginkgo_create_test(iterator_factory)
 ginkgo_create_test(lin_op)
 ginkgo_create_test(math)
