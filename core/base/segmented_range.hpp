@@ -39,12 +39,18 @@ public:
             : range_{range}, segment_{segment}
         {}
 
-        constexpr segment operator*() const
+        struct enumerated_segment {
+            index_type index;
+            segment segment;
+        };
+
+        constexpr enumerated_segment operator*() const
         {
             assert(segment_ >= 0);
             assert(segment_ < range_.num_segments());
-            return segment{range_.begin_index(segment_),
-                           range_.end_index(segment_)};
+            return enumerated_segment{segment_,
+                                      segment{range_.begin_index(segment_),
+                                              range_.end_index(segment_)}};
         }
 
         constexpr iterator& operator++()
@@ -109,7 +115,7 @@ public:
     {
         assert(segment >= 0);
         assert(segment < num_segments());
-        return *iterator{*this, segment};
+        return (*iterator{*this, segment}).segment;
     }
 
     /** @return the number of segments in this range. */
@@ -193,12 +199,19 @@ public:
             : range_{range}, segment_{segment}
         {}
 
-        constexpr segment operator*() const
+        struct enumerated_segment {
+            index_type index;
+            segment segment;
+        };
+
+        constexpr enumerated_segment operator*() const
         {
             assert(segment_ >= 0);
             assert(segment_ < range_.num_segments());
-            return segment{range_.values() + range_.begin_index(segment_),
-                           range_.values() + range_.end_index(segment_)};
+            return enumerated_segment{
+                segment_,
+                segment{range_.values() + range_.begin_index(segment_),
+                        range_.values() + range_.end_index(segment_)}};
         }
 
         constexpr iterator& operator++()
@@ -272,7 +285,7 @@ public:
     {
         assert(segment >= 0);
         assert(segment < num_segments());
-        return *iterator{*this, segment};
+        return (*iterator{*this, segment}).segment;
     }
 
     /** @return the number of segments in this range. */
