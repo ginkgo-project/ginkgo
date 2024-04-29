@@ -13,13 +13,23 @@
 
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/config/type_descriptor.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 
 
 namespace gko {
 namespace config {
+
+class registry;
+
+
+class pnode;
+
+
+using configuration_map =
+    std::map<std::string,
+             std::function<deferred_factory_parameter<gko::LinOpFactory>(
+                 const pnode&, const registry&, type_descriptor)>>;
 
 
 /**
