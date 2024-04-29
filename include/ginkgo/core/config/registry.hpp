@@ -27,61 +27,27 @@ namespace config {
 
 class registry;
 
-/**
- * type_descriptor gives the initial default type for common type in ginkgo such
- * as ValueType and IndexType. If the factory config does not specify these
- * type, the configuration will use this as the default.
- */
-class type_descriptor {
-public:
-    /**
-     * type_descriptor constructor. The correctness is checked in
-     * factory configuration. There is free function `make_type_descriptor` to
-     * create the object by template.
-     *
-     * @param value_typestr  the value type string. "void" means no default.
-     * @param index_typestr  the index type string. "void" means no default.
-     *
-     * @note there is no way to call the constructor with explicit template, so
-     * we create another free function to handle it.
-     */
-    explicit type_descriptor(std::string value_typestr = "void",
-                             std::string index_typestr = "void");
-
-    /**
-     * Get the value type string.
-     */
-    const std::string& get_value_typestr() const;
-
-    /**
-     * Get the index type string
-     */
-    const std::string& get_index_typestr() const;
-
-private:
-    std::string value_typestr_;
-    std::string index_typestr_;
-};
+class type_descriptor;
 
 
-template <typename ValueType = void, typename IndexType = void>
-type_descriptor make_type_descriptor();
-
-
-using linop_map = std::unordered_map<std::string, std::shared_ptr<LinOp>>;
-using linopfactory_map =
-    std::unordered_map<std::string, std::shared_ptr<LinOpFactory>>;
-using criterionfactory_map =
-    std::unordered_map<std::string, std::shared_ptr<stop::CriterionFactory>>;
-using buildfromconfig_map =
+using configuration_map =
     std::map<std::string,
              std::function<deferred_factory_parameter<gko::LinOpFactory>(
                  const pnode&, const registry&, type_descriptor)>>;
 
 
 /**
- * registry is the storage for file config usage. It stores the building
- * function, linop, linop_factory, criterion
+ * This class stores additional context for creating Ginkgo objects from
+ * configuration files.
+ *
+ * The context can contain user provided objects of the following types:
+ * - LinOp
+ * - LinOpFactory
+ * - CriterionFactory
+ *
+ * Additionally, users can provide mappings from a configuration (provided as
+ * a pnode) to user-defined types that are derived from one of the previous
+ * stated types.
  */
 class registry {
 private:
@@ -98,19 +64,22 @@ private:
     template <typename T>
     struct map_type<T, typename std::enable_if<
                            std::is_convertible<T*, LinOp*>::value>::type> {
-        using type = linop_map;
+        using type = std::unordered_map<std::string, std::shared_ptr<LinOp>>;
     };
 
     template <typename T>
     struct map_type<T, typename std::enable_if<std::is_convertible<
                            T*, LinOpFactory*>::value>::type> {
-        using type = linopfactory_map;
+        using type =
+            std::unordered_map<std::string, std::shared_ptr<LinOpFactory>>;
     };
 
     template <typename T>
     struct map_type<T, typename std::enable_if<std::is_convertible<
                            T*, stop::CriterionFactory*>::value>::type> {
-        using type = criterionfactory_map;
+        using type =
+            std::unordered_map<std::string,
+                               std::shared_ptr<stop::CriterionFactory>>;
     };
 
 public:
@@ -121,7 +90,7 @@ public:
      * provides `generate_config_map()` in config.hpp to provide the ginkgo
      * build map. Users can extend this map to fit their own LinOpFactory.
      */
-    registry(buildfromconfig_map build_map) : build_map_(build_map) {}
+    registry(configuration_map build_map) : build_map_(build_map) {}
 
     /**
      * insert_data stores the data with the key.
@@ -149,7 +118,7 @@ public:
     /**
      * get the stored build map
      */
-    const buildfromconfig_map& get_build_map() const { return build_map_; }
+    const configuration_map& get_build_map() const { return build_map_; }
 
 protected:
     /**
@@ -179,10 +148,12 @@ protected:
     const T& get_map_impl() const;
 
 private:
-    linop_map linop_map_;
-    linopfactory_map linopfactory_map_;
-    criterionfactory_map criterionfactory_map_;
-    buildfromconfig_map build_map_;
+    std::unordered_map<std::string, std::shared_ptr<LinOp>> linop_map_;
+    std::unordered_map<std::string, std::shared_ptr<LinOpFactory>>
+        linopfactory_map_;
+    std::unordered_map<std::string, std::shared_ptr<stop::CriterionFactory>>
+        criterionfactory_map_;
+    configuration_map build_map_;
 };
 
 

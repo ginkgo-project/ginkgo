@@ -34,16 +34,19 @@ type_descriptor update_type(const pnode& config, const type_descriptor& td)
 
 template <>
 deferred_factory_parameter<const LinOpFactory> get_factory<const LinOpFactory>(
-    const pnode& config, const registry& context, type_descriptor td)
+    const pnode& config, const registry& context, const type_descriptor& td)
 {
     deferred_factory_parameter<const LinOpFactory> ptr;
     if (config.get_tag() == pnode::tag_t::string) {
         ptr = context.search_data<LinOpFactory>(config.get_string());
     } else if (config.get_tag() == pnode::tag_t::map) {
-        ptr = build_from_config(config, context, td);
+        ptr = parse(config, context, td);
+    } else {
+        GKO_INVALID_STATE("The data of config is not valid.");
     }
-    assert(!ptr.is_empty());
-    return std::move(ptr);
+    GKO_THROW_IF_INVALID(!ptr.is_empty(), "Parse get nullptr in the end");
+
+    return ptr;
 }
 
 

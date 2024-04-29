@@ -56,6 +56,7 @@
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/property_tree.hpp>
 #include <ginkgo/core/config/registry.hpp>
+#include <ginkgo/core/config/type_descriptor.hpp>
 
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/index_map.hpp>

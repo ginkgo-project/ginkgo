@@ -24,6 +24,7 @@ target_sources(ginkgo
     config/property_tree.cpp
     config/registry.cpp
     config/stop_config.cpp
+    config/type_descriptor.cpp
     distributed/index_map.cpp
     distributed/partition.cpp
     factorization/cholesky.cpp

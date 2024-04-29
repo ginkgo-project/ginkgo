@@ -14,6 +14,7 @@
 
 #include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"
+#include "core/config/type_descriptor_helper.hpp"
 
 
 namespace gko {
@@ -21,7 +22,7 @@ namespace config {
 
 
 inline deferred_factory_parameter<stop::CriterionFactory> configure_time(
-    const pnode& config, const registry& context, type_descriptor td)
+    const pnode& config, const registry& context, const type_descriptor& td)
 {
     auto factory = stop::Time::build();
     if (auto& obj = config.get("time_limit")) {
@@ -32,7 +33,7 @@ inline deferred_factory_parameter<stop::CriterionFactory> configure_time(
 
 
 inline deferred_factory_parameter<stop::CriterionFactory> configure_iter(
-    const pnode& config, const registry& context, type_descriptor td)
+    const pnode& config, const registry& context, const type_descriptor& td)
 {
     auto factory = stop::Iteration::build();
     if (auto& obj = config.get("max_iters")) {
@@ -60,30 +61,30 @@ class ResidualNormConfigurer {
 public:
     static deferred_factory_parameter<
         typename stop::ResidualNorm<ValueType>::Factory>
-    build_from_config(const gko::config::pnode& config,
-                      const gko::config::registry& context,
-                      gko::config::type_descriptor td_for_child)
+    parse(const gko::config::pnode& config,
+          const gko::config::registry& context,
+          const gko::config::type_descriptor& td_for_child)
     {
-        auto factory = stop::ResidualNorm<ValueType>::build();
+        auto params = stop::ResidualNorm<ValueType>::build();
         if (auto& obj = config.get("reduction_factor")) {
-            factory.with_reduction_factor(
+            params.with_reduction_factor(
                 gko::config::get_value<remove_complex<ValueType>>(obj));
         }
         if (auto& obj = config.get("baseline")) {
-            factory.with_baseline(get_mode(obj.get_string()));
+            params.with_baseline(get_mode(obj.get_string()));
         }
-        return factory;
+        return params;
     }
 };
 
 
 inline deferred_factory_parameter<stop::CriterionFactory> configure_residual(
-    const pnode& config, const registry& context, type_descriptor td)
+    const pnode& config, const registry& context, const type_descriptor& td)
 {
     auto updated = update_type(config, td);
     return dispatch<stop::CriterionFactory, ResidualNormConfigurer>(
-        updated.get_value_typestr(), config, context, updated,
-        value_type_list());
+        config, context, updated,
+        make_type_selector(updated.get_value_typestr(), value_type_list()));
 }
 
 
@@ -92,31 +93,31 @@ class ImplicitResidualNormConfigurer {
 public:
     static deferred_factory_parameter<
         typename stop::ImplicitResidualNorm<ValueType>::Factory>
-    build_from_config(const gko::config::pnode& config,
-                      const gko::config::registry& context,
-                      gko::config::type_descriptor td_for_child)
+    parse(const gko::config::pnode& config,
+          const gko::config::registry& context,
+          const gko::config::type_descriptor& td_for_child)
     {
-        auto factory = stop::ImplicitResidualNorm<ValueType>::build();
+        auto params = stop::ImplicitResidualNorm<ValueType>::build();
         if (auto& obj = config.get("reduction_factor")) {
-            factory.with_reduction_factor(
+            params.with_reduction_factor(
                 gko::config::get_value<remove_complex<ValueType>>(obj));
         }
         if (auto& obj = config.get("baseline")) {
-            factory.with_baseline(get_mode(obj.get_string()));
+            params.with_baseline(get_mode(obj.get_string()));
         }
-        return factory;
+        return params;
     }
 };
 
 
 inline deferred_factory_parameter<stop::CriterionFactory>
 configure_implicit_residual(const pnode& config, const registry& context,
-                            type_descriptor td)
+                            const type_descriptor& td)
 {
     auto updated = update_type(config, td);
     return dispatch<stop::CriterionFactory, ImplicitResidualNormConfigurer>(
-        updated.get_value_typestr(), config, context, updated,
-        value_type_list());
+        config, context, updated,
+        make_type_selector(updated.get_value_typestr(), value_type_list()));
 }
 
 
@@ -124,7 +125,7 @@ template <>
 deferred_factory_parameter<const stop::CriterionFactory>
 get_factory<const stop::CriterionFactory>(const pnode& config,
                                           const registry& context,
-                                          type_descriptor td)
+                                          const type_descriptor& td)
 {
     deferred_factory_parameter<const stop::CriterionFactory> ptr;
     if (config.get_tag() == pnode::tag_t::string) {
@@ -142,8 +143,8 @@ get_factory<const stop::CriterionFactory>(const pnode& config,
         return criterion_map.at(config.get("Type").get_string())(config,
                                                                  context, td);
     }
-    assert(!ptr.is_empty());
-    return std::move(ptr);
+    GKO_THROW_IF_INVALID(!ptr.is_empty(), "Parse get nullptr in the end");
+    return ptr;
 }
 
 
