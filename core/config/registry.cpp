@@ -5,6 +5,7 @@
 #include <ginkgo/core/config/registry.hpp>
 
 
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/config/config.hpp>
 
 
@@ -14,13 +15,30 @@
 namespace gko {
 namespace config {
 
-registry::registry(configuration_map build_map) : build_map_(build_map) {}
+
+configuration_map generate_config_map()
+{
+    return {{"solver::Cg", parse<LinOpFactoryType::Cg>}};
+}
+
+
+registry::registry(const configuration_map& additional_map)
+    : registry({}, additional_map)
+{}
+
 
 registry::registry(
-    std::unordered_map<std::string, detail::allowed_ptr> stored_map,
-    configuration_map build_map)
-    : stored_map_(stored_map), build_map_(build_map)
-{}
+    const std::unordered_map<std::string, detail::allowed_ptr>& stored_map,
+    const configuration_map& additional_map)
+    : stored_map_(stored_map), build_map_(generate_config_map())
+{
+    // merge additional_map into build_map_
+    for (auto& item : additional_map) {
+        auto res = build_map_.emplace(item.first, item.second);
+        GKO_THROW_IF_INVALID(res.second,
+                             "failed when adding the key " + item.first);
+    }
+}
 
 
 }  // namespace config

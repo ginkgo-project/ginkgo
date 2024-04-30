@@ -13,16 +13,11 @@
 
 
 #include "core/config/config_helper.hpp"
+#include "core/config/registry_accessor.hpp"
 
 
 namespace gko {
 namespace config {
-
-
-configuration_map generate_config_map()
-{
-    return {{"solver::Cg", parse<LinOpFactoryType::Cg>}};
-}
 
 
 deferred_factory_parameter<gko::LinOpFactory> parse(const pnode& config,
@@ -30,7 +25,8 @@ deferred_factory_parameter<gko::LinOpFactory> parse(const pnode& config,
                                                     const type_descriptor& td)
 {
     if (auto& obj = config.get("Type")) {
-        auto func = context.get_build_map().at(obj.get_string());
+        auto func = detail::registry_accessor::get_build_map(context).at(
+            obj.get_string());
         return func(config, context, td);
     }
     GKO_INVALID_STATE("Should contain Type property");

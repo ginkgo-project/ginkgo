@@ -47,13 +47,9 @@ protected:
 };
 
 
-TEST_F(Config, GenerateMap) { ASSERT_NO_THROW(generate_config_map()); }
-
-
 TEST_F(Config, GenerateObjectWithoutDefault)
 {
-    auto config_map = generate_config_map();
-    auto reg = registry(config_map);
+    auto reg = registry();
 
     pnode p{{{"ValueType", pnode{"double"}}, {"criteria", this->stop_config}}};
     auto obj = parse<LinOpFactoryType::Cg>(p, reg).on(this->exec);
@@ -65,8 +61,7 @@ TEST_F(Config, GenerateObjectWithoutDefault)
 
 TEST_F(Config, GenerateObjectWithData)
 {
-    auto config_map = generate_config_map();
-    auto reg = registry(config_map);
+    auto reg = registry();
     reg.emplace("precond", this->mtx);
 
     pnode p{{{"generated_preconditioner", pnode{"precond"}},
@@ -86,8 +81,7 @@ TEST_F(Config, GenerateObjectWithData)
 
 TEST_F(Config, GenerateObjectWithPreconditioner)
 {
-    auto config_map = generate_config_map();
-    auto reg = registry(config_map);
+    auto reg = registry();
     auto precond_node =
         pnode{{{"Type", pnode{"solver::Cg"}}, {"criteria", this->stop_config}}};
     pnode p{{{"ValueType", pnode{"double"}},
@@ -107,7 +101,7 @@ TEST_F(Config, GenerateObjectWithPreconditioner)
 
 TEST_F(Config, GenerateObjectWithCustomBuild)
 {
-    auto config_map = generate_config_map();
+    configuration_map config_map;
 
     config_map["Custom"] = [](const pnode& config, const registry& context,
                               const type_descriptor& td_for_child) {
