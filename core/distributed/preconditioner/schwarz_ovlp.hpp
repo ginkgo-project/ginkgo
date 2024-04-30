@@ -39,7 +39,8 @@ std::vector<matrix_data_entry<ValueType, GlobalIndexType>> get_recv_rows(
 
     auto row_gatherer = mtx->get_row_gatherer();
     auto& send_idxs = row_gatherer->get_row_idxs();
-    auto host_send_idxs = make_temporary_clone(exec->get_master(), &send_idxs);
+    std::unique_ptr<segmented_array<LocalIndexType>> host_send_idxs;
+    //        = make_temporary_clone(exec->get_master(), &send_idxs);
 
     auto coll_comm = row_gatherer->get_collective_communicator();
 
@@ -123,8 +124,12 @@ std::vector<matrix_data_entry<ValueType, GlobalIndexType>> filter_non_relevant(
     std::copy_if(input.begin(), input.end(), std::back_inserter(result),
                  [&](const auto& a) {
                      auto is = index_space::combined;
-                     return imap.is_within_index_space(a.row, is) &&
-                            imap.is_within_index_space(a.column, is);
+                     return true;
+                     //                     return
+                     //                     imap.is_within_index_space(a.row,
+                     //                     is) &&
+                     //                            imap.is_within_index_space(a.column,
+                     //                            is);
                  });
     return result;
 }
@@ -148,7 +153,7 @@ matrix_data<ValueType, LocalIndexType> combine_overlap(
 
     for (auto& e : non_local.nonzeros) {
         auto is = index_space::non_local;
-        e.column = imap.get_combined_local(e.column, is);
+        //        e.column = imap.get_combined_local(e.column, is);
     }
 
     md local_recv_rows;
@@ -156,9 +161,14 @@ matrix_data<ValueType, LocalIndexType> combine_overlap(
                    std::back_inserter(local_recv_rows.nonzeros),
                    [&](const auto& e) {
                        auto is = index_space::combined;
-                       return matrix_data_entry<ValueType, LocalIndexType>{
-                           imap.get_local(e.row, is),
-                           imap.get_local(e.column, is), e.value};
+                       return typename md::nonzero_type{};
+                       //                       return
+                       //                       matrix_data_entry<ValueType,
+                       //                       LocalIndexType>{
+                       //                           imap.map_to_local(e.row,
+                       //                           is),
+                       //                           imap.map_to_local(e.column,
+                       //                           is), e.value};
                    });
 
     auto combined_size = imap.get_local_size() + imap.get_non_local_size();

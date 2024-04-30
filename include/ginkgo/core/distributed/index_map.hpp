@@ -78,6 +78,18 @@ struct index_map {
      * \return  the mapped local indices. Any global index that is not in the
      *          specified index space is mapped to invalid_index.
      */
+    GlobalIndexType get_global(const LocalIndexType& global_ids,
+                               index_space is = index_space::combined) const;
+
+    /**
+     * \brief Maps global indices to local indices
+     *
+     * \param global_ids the global indices to map
+     * \param is the index space in which the returned local indices are defined
+     *
+     * \return the mapped local indices. Any global index that is not in the
+     *         specified index space is mapped to invalid_index.
+     */
     array<LocalIndexType> map_to_local(
         const array<GlobalIndexType>& global_ids,
         index_space index_space_v = index_space::combined) const;
@@ -156,7 +168,7 @@ struct index_map {
      *
      * \return global partition used by the index map
      */
-    std::shared_ptr<const part_type> get_partition() const
+    std::shared_ptr<const partition_type> get_partition() const
     {
         return partition_;
     }
@@ -177,6 +189,7 @@ struct index_map {
 private:
     std::shared_ptr<const Executor> exec_;
     std::shared_ptr<const partition_type> partition_;
+    array<size_type> local_ranges_;
     comm_index_type rank_;
 
     array<comm_index_type> remote_target_ids_;

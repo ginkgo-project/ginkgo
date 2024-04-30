@@ -77,6 +77,47 @@ size_type index_map<LocalIndexType, GlobalIndexType>::get_global_size() const
 
 
 template <typename LocalIndexType, typename GlobalIndexType>
+GlobalIndexType index_map<LocalIndexType, GlobalIndexType>::get_global(
+    const LocalIndexType& local_id, index_space is) const
+{
+    if (is == index_space::local) {
+        auto host_part = make_temporary_clone(exec_->get_master(), partition_);
+        auto host_local_ranges =
+            make_temporary_clone(exec_->get_master(), &local_ranges_);
+        auto ranges = host_part->get_range_bounds();
+        auto range_start_idxs = host_part->get_range_starting_indices();
+
+        auto local_gid = static_cast<GlobalIndexType>(local_id);
+
+        // find-last
+        auto range_id = static_cast<size_type>(-1);
+        for (size_type i = 0; i < host_local_ranges->get_size(); ++i) {
+            if (range_start_idxs[host_local_ranges->get_const_data()[i]] <=
+                local_gid) {
+                range_id = host_local_ranges->get_const_data()[i];
+            }
+        }
+        GKO_THROW_IF_INVALID(range_id != static_cast<size_type>(-1),
+                             "Index not part of local index space");
+
+        return ranges[range_id] + (local_gid - range_start_idxs[range_id]);
+    }
+    if (is == index_space::non_local) {
+        GKO_THROW_IF_INVALID(local_id < remote_global_idxs_.get_size(),
+                             "Index not part of non-local index space");
+
+        auto host_remote_global_idxs =
+            make_const_array_view(exec_, remote_global_idxs_.get_size(),
+                                  remote_global_idxs_.get_const_flat_data())
+                .copy_to_array();
+        host_remote_global_idxs.set_executor(exec_->get_master());
+        return host_remote_global_idxs.get_const_data()[local_id];
+    }
+    GKO_NOT_IMPLEMENTED;
+}
+
+
+template <typename LocalIndexType, typename GlobalIndexType>
 array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::map_to_local(
     const array<GlobalIndexType>& global_ids, index_space index_space_v) const
 {
@@ -97,6 +138,7 @@ index_map<LocalIndexType, GlobalIndexType>::index_map(
     const array<GlobalIndexType>& recv_connections)
     : exec_(std::move(exec)),
       partition_(std::move(partition)),
+      local_ranges_(exec_),
       rank_(rank),
       remote_target_ids_(exec_),
       remote_local_idxs_(exec_),
@@ -112,6 +154,18 @@ index_map<LocalIndexType, GlobalIndexType>::index_map(
         std::move(flat_remote_local_idxs), remote_sizes);
     remote_global_idxs_ = segmented_array<GlobalIndexType>::create_from_sizes(
         std::move(flat_remote_global_idxs), remote_sizes);
+
+    auto host_part = make_temporary_clone(exec_->get_master(), partition_);
+    auto part_ids = host_part->get_part_ids();
+
+    std::vector<size_type> host_local_ranges;
+    for (size_type i = 0; i < partition_->get_num_ranges(); ++i) {
+        if (part_ids[i] == rank_) {
+            host_local_ranges.push_back(i);
+        }
+    }
+    local_ranges_ = array<size_type>(exec_, host_local_ranges.begin(),
+                                     host_local_ranges.end());
 }
 
 
