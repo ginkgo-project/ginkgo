@@ -146,7 +146,11 @@ mpi::request RowGatherer<LocalIndexType>::apply_async(
                             mpi_exec, send_size[0] * send_size[1],
                             reinterpret_cast<ValueType*>(workspace.get_data())),
                         send_size[1]);
-                    b_local->row_gather(&send_idxs_, send_buffer);
+                    auto send_idxs_view = make_array_view(
+                        send_idxs_.get_executor(), send_idxs_.get_size(),
+                        const_cast<LocalIndexType*>(
+                            send_idxs_.get_const_flat_data()));
+                    b_local->row_gather(&send_idxs_view, send_buffer);
 
                     auto recv_ptr = x_local->get_values();
                     auto send_ptr = send_buffer->get_values();
@@ -161,6 +165,13 @@ mpi::request RowGatherer<LocalIndexType>::apply_async(
                 x.get());
         });
     return req;
+}
+
+template <typename LocalIndexType>
+const segmented_array<LocalIndexType>&
+RowGatherer<LocalIndexType>::get_row_idxs() const
+{
+    return send_idxs_;
 }
 
 
@@ -196,10 +207,13 @@ RowGatherer<LocalIndexType>::RowGatherer(
     auto comm = coll_comm_->get_base_communicator();
     auto inverse_comm = coll_comm_->create_inverse();
 
-    send_idxs_.resize_and_reset(coll_comm_->get_send_size());
+    auto send_sizes = coll_comm_->get_send_sizes();
+    send_idxs_ = segmented_array<LocalIndexType>::create_from_sizes(
+        {this->get_executor(), send_sizes.begin(), send_sizes.end()});
     inverse_comm
-        ->i_all_to_all_v(exec, imap.get_remote_local_idxs().get_flat_data(),
-                         send_idxs_.get_data())
+        ->i_all_to_all_v(exec,
+                         imap.get_remote_local_idxs().get_const_flat_data(),
+                         send_idxs_.get_flat_data())
         .wait();
 }
 

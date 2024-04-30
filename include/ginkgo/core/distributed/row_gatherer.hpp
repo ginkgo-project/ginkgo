@@ -101,6 +101,8 @@ public:
     std::shared_ptr<const mpi::collective_communicator>
     get_collective_communicator() const;
 
+    const segmented_array<LocalIndexType>& get_row_idxs() const;
+
     /**
      * Creates a distributed::RowGatherer from a given collective communicator
      * and index map.
@@ -174,7 +176,7 @@ private:
 
     std::shared_ptr<const mpi::collective_communicator> coll_comm_;
 
-    array<LocalIndexType> send_idxs_;
+    segmented_array<LocalIndexType> send_idxs_;
 
     mutable array<char> send_workspace_;
 
