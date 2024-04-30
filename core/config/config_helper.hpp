@@ -19,6 +19,9 @@
 #include <ginkgo/core/stop/criterion.hpp>
 
 
+#include "core/config/registry_accessor.hpp"
+
+
 namespace gko {
 namespace config {
 
@@ -124,7 +127,8 @@ inline std::shared_ptr<T> get_stored_obj(const pnode& config,
 {
     std::shared_ptr<T> ptr;
     using T_non_const = std::remove_const_t<T>;
-    ptr = context.search_data<T_non_const>(config.get_string());
+    ptr = detail::registry_accessor::get_data<T_non_const>(context,
+                                                           config.get_string());
     GKO_THROW_IF_INVALID(ptr.get() != nullptr, "Do not get the stored data");
     return ptr;
 }

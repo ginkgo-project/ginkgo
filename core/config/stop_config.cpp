@@ -14,6 +14,7 @@
 
 #include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"
+#include "core/config/registry_accessor.hpp"
 #include "core/config/type_descriptor_helper.hpp"
 
 
@@ -129,7 +130,8 @@ get_factory<const stop::CriterionFactory>(const pnode& config,
 {
     deferred_factory_parameter<const stop::CriterionFactory> ptr;
     if (config.get_tag() == pnode::tag_t::string) {
-        return context.search_data<stop::CriterionFactory>(config.get_string());
+        return detail::registry_accessor::get_data<stop::CriterionFactory>(
+            context, config.get_string());
     } else if (config.get_tag() == pnode::tag_t::map) {
         static std::map<std::string,
                         std::function<deferred_factory_parameter<

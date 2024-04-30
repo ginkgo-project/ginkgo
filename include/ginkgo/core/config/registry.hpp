@@ -18,7 +18,6 @@
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
-#include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/property_tree.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
@@ -31,8 +30,16 @@ class registry;
 
 class type_descriptor;
 
+using configuration_map =
+    std::map<std::string,
+             std::function<deferred_factory_parameter<gko::LinOpFactory>(
+                 const pnode&, const registry&, type_descriptor)>>;
+
 
 namespace detail {
+
+
+class registry_accessor;
 
 
 /**
@@ -150,23 +157,26 @@ inline std::shared_ptr<Type> allowed_ptr::get() const
  * - CriterionFactory
  *
  * Additionally, users can provide mappings from a configuration (provided as
- * a pnode) to user-defined types that are derived from one of the previous
- * stated types.
+ * a pnode) to user-defined types that are derived from LinOpFactory
  */
 class registry {
 public:
-    /**
-     * registry constructor
-     *
-     * @param build_map  the build map to dispatch the class base. Ginkgo
-     * provides `generate_config_map()` in config.hpp to provide the ginkgo
-     * build map. Users can extend this map to fit their own LinOpFactory.
-     */
-    registry(configuration_map build_map = generate_config_map());
+    friend class detail::registry_accessor;
+
 
     /**
      * registry constructor
      *
+     * @param additional_map  the additional map to dispatch the class base.
+     * Users can extend this map to fit their own LinOpFactory.
+     */
+    registry(const configuration_map& additional_map = {});
+
+    /**
+     * registry constructor
+     *
+     * @param additional_map  the additional map to dispatch the class base.
+     * Users can extend this map to fit their own LinOpFactory.
      * @param stored_map  the map stores the shared pointer of users' objects.
      * It can hold any type whose base type is
      * LinOp/LinOpFactory/CriterionFactory. For example,
@@ -180,8 +190,9 @@ public:
      * provides `generate_config_map()` in config.hpp to provide the ginkgo
      * build map. Users can extend this map to fit their own LinOpFactory.
      */
-    registry(std::unordered_map<std::string, detail::allowed_ptr> stored_map,
-             configuration_map build_map = generate_config_map());
+    registry(
+        const std::unordered_map<std::string, detail::allowed_ptr>& stored_map,
+        const configuration_map& additional_map = {});
 
     /**
      * insert_data stores the data with the key.
@@ -194,8 +205,9 @@ public:
     template <typename T>
     bool emplace(std::string key, std::shared_ptr<T> data);
 
+protected:
     /**
-     * search_data searches the key on the corresponding map.
+     * get_data searches the key on the corresponding map.
      *
      * @tparam T  the type
      *
@@ -204,7 +216,7 @@ public:
      * @return the shared pointer of the object
      */
     template <typename T>
-    std::shared_ptr<T> search_data(std::string key) const;
+    std::shared_ptr<T> get_data(std::string key) const;
 
     /**
      * get the stored build map
@@ -226,7 +238,7 @@ inline bool registry::emplace(std::string key, std::shared_ptr<T> data)
 
 
 template <typename T>
-inline std::shared_ptr<T> registry::search_data(std::string key) const
+inline std::shared_ptr<T> registry::get_data(std::string key) const
 {
     return gko::as<T>(stored_map_.at(key)
                           .template get<typename detail::base_type<T>::type>());

@@ -26,12 +26,6 @@ class registry;
 class pnode;
 
 
-using configuration_map =
-    std::map<std::string,
-             std::function<deferred_factory_parameter<gko::LinOpFactory>(
-                 const pnode&, const registry&, type_descriptor)>>;
-
-
 /**
  * parse is the main entry point to create an Ginkgo object based on
  * some file configuration. It reads a configuration stored as a property tree
@@ -111,12 +105,6 @@ using configuration_map =
 deferred_factory_parameter<gko::LinOpFactory> parse(
     const pnode& config, const registry& context,
     const type_descriptor& td = make_type_descriptor<>());
-
-
-/**
- * Generate the configuration map.
- */
-configuration_map generate_config_map();
 
 
 }  // namespace config

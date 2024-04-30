@@ -11,6 +11,7 @@
 
 
 #include "core/config/config_helper.hpp"
+#include "core/config/registry_accessor.hpp"
 
 
 namespace gko {
@@ -38,7 +39,8 @@ deferred_factory_parameter<const LinOpFactory> get_factory<const LinOpFactory>(
 {
     deferred_factory_parameter<const LinOpFactory> ptr;
     if (config.get_tag() == pnode::tag_t::string) {
-        ptr = context.search_data<LinOpFactory>(config.get_string());
+        ptr = detail::registry_accessor::get_data<LinOpFactory>(
+            context, config.get_string());
     } else if (config.get_tag() == pnode::tag_t::map) {
         ptr = parse(config, context, td);
     } else {

@@ -22,6 +22,7 @@
 
 
 #include "core/config/config_helper.hpp"
+#include "core/config/registry_accessor.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -80,11 +81,14 @@ TEST_F(Registry, SearchData)
     reg.emplace("solver_factory", solver_factory);
     reg.emplace("stop_factory", stop_factory);
 
-    auto found_matrix = reg.search_data<gko::LinOp>("matrix");
+    auto found_matrix =
+        detail::registry_accessor::get_data<gko::LinOp>(reg, "matrix");
     auto found_solver_factory =
-        reg.search_data<gko::LinOpFactory>("solver_factory");
+        detail::registry_accessor::get_data<gko::LinOpFactory>(
+            reg, "solver_factory");
     auto found_stop_factory =
-        reg.search_data<gko::stop::CriterionFactory>("stop_factory");
+        detail::registry_accessor::get_data<gko::stop::CriterionFactory>(
+            reg, "stop_factory");
 
     // get correct ptrs
     ASSERT_EQ(found_matrix, matrix);
@@ -107,10 +111,13 @@ TEST_F(Registry, SearchDataWithType)
     reg.emplace("solver_factory", solver_factory);
     reg.emplace("stop_factory", stop_factory);
 
-    auto found_matrix = reg.search_data<Matrix>("matrix");
+    auto found_matrix =
+        detail::registry_accessor::get_data<Matrix>(reg, "matrix");
     auto found_solver_factory =
-        reg.search_data<Solver::Factory>("solver_factory");
-    auto found_stop_factory = reg.search_data<Stop::Factory>("stop_factory");
+        detail::registry_accessor::get_data<Solver::Factory>(reg,
+                                                             "solver_factory");
+    auto found_stop_factory =
+        detail::registry_accessor::get_data<Stop::Factory>(reg, "stop_factory");
 
     // get correct ptrs
     ASSERT_EQ(found_matrix, matrix);
@@ -133,11 +140,14 @@ TEST_F(Registry, BuildFromConstructor)
                       {"solver_factory", solver_factory},
                       {"stop_factory", stop_factory}}};
 
-    auto found_matrix = reg_obj.search_data<Matrix>("matrix");
+    auto found_matrix =
+        detail::registry_accessor::get_data<Matrix>(reg_obj, "matrix");
     auto found_solver_factory =
-        reg_obj.search_data<Solver::Factory>("solver_factory");
+        detail::registry_accessor::get_data<Solver::Factory>(reg_obj,
+                                                             "solver_factory");
     auto found_stop_factory =
-        reg_obj.search_data<Stop::Factory>("stop_factory");
+        detail::registry_accessor::get_data<Stop::Factory>(reg_obj,
+                                                           "stop_factory");
     // get correct ptrs
     ASSERT_EQ(found_matrix, matrix);
     ASSERT_EQ(found_solver_factory, solver_factory);
@@ -155,10 +165,15 @@ TEST_F(Registry, BuildFromConstructor)
 
 TEST_F(Registry, ThrowIfNotFound)
 {
-    ASSERT_THROW(reg.search_data<gko::LinOp>("N"), std::out_of_range);
-    ASSERT_THROW(reg.search_data<gko::LinOpFactory>("N"), std::out_of_range);
-    ASSERT_THROW(reg.search_data<gko::stop::CriterionFactory>("N"),
+    ASSERT_THROW(detail::registry_accessor::get_data<gko::LinOp>(reg, "N"),
                  std::out_of_range);
+    ASSERT_THROW(
+        detail::registry_accessor::get_data<gko::LinOpFactory>(reg, "N"),
+        std::out_of_range);
+    ASSERT_THROW(
+        detail::registry_accessor::get_data<gko::stop::CriterionFactory>(reg,
+                                                                         "N"),
+        std::out_of_range);
 }
 
 
@@ -168,12 +183,16 @@ TEST_F(Registry, ThrowWithWrongType)
     reg.emplace("solver_factory", solver_factory);
     reg.emplace("stop_factory", stop_factory);
 
-    ASSERT_THROW(reg.search_data<gko::matrix::Dense<double>>("matrix"),
-                 gko::NotSupported);
     ASSERT_THROW(
-        reg.search_data<gko::solver::Cg<double>::Factory>("solver_factory"),
+        detail::registry_accessor::get_data<gko::matrix::Dense<double>>(
+            reg, "matrix"),
         gko::NotSupported);
-    ASSERT_THROW(reg.search_data<gko::stop::Time::Factory>("stop_factory"),
+    ASSERT_THROW(
+        detail::registry_accessor::get_data<gko::solver::Cg<double>::Factory>(
+            reg, "solver_factory"),
+        gko::NotSupported);
+    ASSERT_THROW(detail::registry_accessor::get_data<gko::stop::Time::Factory>(
+                     reg, "stop_factory"),
                  gko::NotSupported);
 }
 
@@ -181,7 +200,7 @@ TEST_F(Registry, ThrowWithWrongType)
 TEST_F(Registry, GetBuildMap)
 {
     auto factory =
-        reg.get_build_map()
+        detail::registry_accessor::get_build_map(reg)
             .at("func")(pnode{"unused"}, reg, type_descriptor{"void", "void"})
             .on(exec);
 
