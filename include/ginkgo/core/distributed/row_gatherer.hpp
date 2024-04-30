@@ -12,8 +12,6 @@
 #if GINKGO_BUILD_MPI
 
 
-#include <future>
-
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mpi.hpp>
@@ -54,27 +52,42 @@ namespace distributed {
  * @tparam LocalIndexType  the index type for the stored indices
  */
 template <typename LocalIndexType = int32>
-class RowGatherer final
-    : public EnableLinOp<RowGatherer<LocalIndexType>>,
-      public DistributedBase,
-      public std::enable_shared_from_this<RowGatherer<LocalIndexType>> {
+class RowGatherer final : public EnableLinOp<RowGatherer<LocalIndexType>>,
+                          public DistributedBase {
     friend class EnablePolymorphicObject<RowGatherer, LinOp>;
 
 public:
     /**
      * Asynchronous version of LinOp::apply.
      *
-     * It is asynchronous only wrt. the calling thread. Multiple calls to this
-     * function will execute in order, they are not asynchronous with each
-     * other.
+     * @warning Only one mpi::request can be active at any given time. This
+     *          function will throw if another request is already active.
      *
      * @param b  the input distributed::Vector
      * @param x  the output matrix::Dense with the rows gathered from b
-     * @return  a future for this task. The task is guarantueed to completed
-     *          after `.wait()` has been called on the future.
+     * @return  a mpi::request for this task. The task is guaranteed to
+     *          be completed only after `.wait()` has been called on it.
      */
-    std::future<void> apply_async(ptr_param<const LinOp> b,
-                                  ptr_param<LinOp> x) const;
+    mpi::request apply_async(ptr_param<const LinOp> b,
+                             ptr_param<LinOp> x) const;
+
+    /**
+     * Asynchronous version of LinOp::apply.
+     *
+     * @warning Calling this multiple times with the same workspace and without
+     *          waiting on each previous request will lead to incorrect
+     *          data transfers.
+     *
+     * @param b  the input distributed::Vector
+     * @param x  the output matrix::Dense with the rows gathered from b
+     * @param workspace  a workspace to store temporary data for the operation.
+     *                   This might not be modified before the request is
+     *                   waited on.
+     * @return  a mpi::request for this task. The task is guaranteed to
+     *          be completed only after `.wait()` has been called on it.
+     */
+    mpi::request apply_async(ptr_param<const LinOp> b, ptr_param<LinOp> x,
+                             array<char>& workspace) const;
 
     /**
      * Get the used collective communicator.
@@ -159,11 +172,9 @@ private:
 
     array<LocalIndexType> send_idxs_;
 
-    detail::AnyDenseCache send_buffer_;
-    detail::AnyDenseCache recv_buffer_;
+    mutable array<char> send_workspace_;
 
-    mutable int64 current_id_{0};
-    mutable std::atomic<int64> active_id_{0};
+    mutable MPI_Request req_listener_{MPI_REQUEST_NULL};
 };
 
 
