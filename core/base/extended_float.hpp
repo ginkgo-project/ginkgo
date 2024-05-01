@@ -10,7 +10,6 @@
 #include <type_traits>
 
 
-#include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 

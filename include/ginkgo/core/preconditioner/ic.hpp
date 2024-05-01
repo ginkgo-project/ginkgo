@@ -16,7 +16,6 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
-#include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/factorization/par_ic.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/solver_traits.hpp>

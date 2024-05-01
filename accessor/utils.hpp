@@ -5,9 +5,11 @@
 #ifndef GKO_ACCESSOR_UTILS_HPP_
 #define GKO_ACCESSOR_UTILS_HPP_
 
+
 #include <cassert>
 #include <cinttypes>
 #include <complex>
+#include <type_traits>
 
 
 #if defined(__CUDACC__) || defined(__HIPCC__)
@@ -144,7 +146,7 @@ namespace detail {
  * @internal
  * Tests if a member function `Ref::to_arithmetic_type` exists
  */
-template <typename Ref, typename Dummy = xstd::void_t<>>
+template <typename Ref, typename Dummy = std::void_t<>>
 struct has_to_arithmetic_type : std::false_type {
     static_assert(std::is_same<Dummy, void>::value,
                   "Do not modify the Dummy value!");
@@ -153,7 +155,7 @@ struct has_to_arithmetic_type : std::false_type {
 
 template <typename Ref>
 struct has_to_arithmetic_type<
-    Ref, xstd::void_t<decltype(std::declval<Ref>().to_arithmetic_type())>>
+    Ref, std::void_t<decltype(std::declval<Ref>().to_arithmetic_type())>>
     : std::true_type {
     using type = decltype(std::declval<Ref>().to_arithmetic_type());
 };
@@ -163,14 +165,14 @@ struct has_to_arithmetic_type<
  * @internal
  * Tests if the type `Ref::arithmetic_type` exists
  */
-template <typename Ref, typename Dummy = xstd::void_t<>>
+template <typename Ref, typename Dummy = std::void_t<>>
 struct has_arithmetic_type : std::false_type {
     static_assert(std::is_same<Dummy, void>::value,
                   "Do not modify the Dummy value!");
 };
 
 template <typename Ref>
-struct has_arithmetic_type<Ref, xstd::void_t<typename Ref::arithmetic_type>>
+struct has_arithmetic_type<Ref, std::void_t<typename Ref::arithmetic_type>>
     : std::true_type {};
 
 
@@ -236,7 +238,7 @@ struct has_implicit_cast {
 
 template <typename OutType, typename InType>
 struct has_implicit_cast<OutType, InType,
-                         xstd::void_t<decltype(test_for_implicit_cast<OutType>(
+                         std::void_t<decltype(test_for_implicit_cast<OutType>(
                              std::declval<InType>()))>> {
     static constexpr bool value = true;
 };

@@ -18,7 +18,7 @@
 
 Ginkgo is a high-performance numerical linear algebra library for many-core systems, with a
 focus on solution of sparse linear systems. It is implemented using modern C++
-(you will need an at least C++14 compliant compiler to build it), with GPU kernels
+(you will need an at least C++17 compliant compiler to build it), with GPU kernels
 implemented for NVIDIA, AMD and Intel GPUs.
 
 ---
@@ -39,7 +39,7 @@ implemented for NVIDIA, AMD and Intel GPUs.
 For Ginkgo core library:
 
 *   _cmake 3.16+_
-*   C++14 compliant compiler, one of:
+*   C++17 compliant compiler, one of:
     *   _gcc 5.5+_
     *   _clang 3.9+_
     *   _Intel compiler 2019+_
@@ -88,7 +88,7 @@ following:
 ### Windows
 
 *   _cmake 3.13+_
-*   C++14 compliant 64-bit compiler:
+*   C++17 compliant 64-bit compiler:
     *   _MinGW : gcc 5.5+_
     *   _Microsoft Visual Studio : VS 2019+_
 
