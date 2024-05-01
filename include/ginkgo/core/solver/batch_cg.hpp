@@ -24,7 +24,7 @@ namespace solver {
 
 
 /**
- * Cg or the Conjugate Gradient-Stabilized is a Krylov subspace solver.
+ * Cg or the Conjugate Gradient is a Krylov subspace solver.
  * It is a short recurrence solver that is generally used to solve linear
  * systems with SPD matrices.
  *

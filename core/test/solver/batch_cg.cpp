@@ -117,16 +117,16 @@ TYPED_TEST(BatchCg, CanBeMoved)
 {
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
-    auto copy = this->solver_factory->generate(Mtx::create(this->exec));
+    auto move = this->solver_factory->generate(Mtx::create(this->exec));
 
-    copy->move_from(this->solver);
+    move->move_from(this->solver);
 
-    ASSERT_EQ(copy->get_common_size(),
+    ASSERT_EQ(move->get_common_size(),
               gko::dim<2>(this->num_rows, this->num_rows));
-    ASSERT_EQ(copy->get_num_batch_items(), this->num_batch_items);
-    auto copy_mtx = gko::as<Solver>(copy.get())->get_system_matrix();
-    const auto copy_batch_mtx = gko::as<const Mtx>(copy_mtx.get());
-    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), copy_batch_mtx, 0.0);
+    ASSERT_EQ(move->get_num_batch_items(), this->num_batch_items);
+    auto moved_mtx = gko::as<Solver>(move.get())->get_system_matrix();
+    const auto moved_batch_mtx = gko::as<const Mtx>(moved_mtx.get());
+    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), moved_batch_mtx, 0.0);
     ASSERT_EQ(gko::as<Solver>(this->solver.get())->get_system_matrix(),
               nullptr);
 }

@@ -50,44 +50,6 @@ using settings = gko::kernels::batch_cg::settings<T>;
 
 
 template <typename ValueType>
-class KernelCaller {
-public:
-    KernelCaller(std::shared_ptr<const DefaultExecutor> exec,
-                 const settings<remove_complex<ValueType>> settings)
-        : exec_{std::move(exec)}, settings_{settings}
-    {}
-
-    template <typename StopType, const int subgroup_size,
-              const int n_shared_total, typename PrecType, typename LogType,
-              typename BatchMatrixType>
-    __dpct_inline__ void launch_apply_kernel(
-        const gko::kernels::batch_cg::storage_config& sconf, LogType& logger,
-        PrecType& prec, const BatchMatrixType mat,
-        const ValueType* const __restrict__ b_values,
-        ValueType* const __restrict__ x_values,
-        ValueType* const __restrict__ workspace, const int& group_size,
-        const int& shared_size) const
-    {
-        GKO_NOT_IMPLEMENTED;
-    }
-
-    template <typename BatchMatrixType, typename PrecType, typename StopType,
-              typename LogType>
-    void call_kernel(
-        LogType logger, const BatchMatrixType& mat, PrecType prec,
-        const gko::batch::multi_vector::uniform_batch<const ValueType>& b,
-        const gko::batch::multi_vector::uniform_batch<ValueType>& x) const
-    {
-        GKO_NOT_IMPLEMENTED;
-    }
-
-private:
-    std::shared_ptr<const DefaultExecutor> exec_;
-    const settings<remove_complex<ValueType>> settings_;
-};
-
-
-template <typename ValueType>
 void apply(std::shared_ptr<const DefaultExecutor> exec,
            const settings<remove_complex<ValueType>>& settings,
            const batch::BatchLinOp* const mat,

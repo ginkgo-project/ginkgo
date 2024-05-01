@@ -82,8 +82,7 @@ void set_gmem_stride_bytes(storage_config& sconf,
         gmem_stride += prec_storage_bytes;
     }
     // align global memory chunks
-    sconf.gmem_stride_bytes =
-        gmem_stride > 0 ? ceildiv(gmem_stride, align_bytes) * align_bytes : 0;
+    sconf.gmem_stride_bytes = ceildiv(gmem_stride, align_bytes) * align_bytes;
 }
 
 
