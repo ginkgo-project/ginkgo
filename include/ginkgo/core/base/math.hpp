@@ -877,7 +877,7 @@ namespace detail {
  * @note
  * This basically mirrors the accessor functionality
  */
-template <typename Ref, typename Dummy = xstd::void_t<>>
+template <typename Ref, typename Dummy = std::void_t<>>
 struct has_to_arithmetic_type : std::false_type {
     static_assert(std::is_same<Dummy, void>::value,
                   "Do not modify the Dummy value!");
@@ -886,7 +886,7 @@ struct has_to_arithmetic_type : std::false_type {
 
 template <typename Ref>
 struct has_to_arithmetic_type<
-    Ref, xstd::void_t<decltype(std::declval<Ref>().to_arithmetic_type())>>
+    Ref, std::void_t<decltype(std::declval<Ref>().to_arithmetic_type())>>
     : std::true_type {
     using type = decltype(std::declval<Ref>().to_arithmetic_type());
 };
@@ -896,14 +896,14 @@ struct has_to_arithmetic_type<
  * @internal
  * Tests if the type `Ref::arithmetic_type` exists
  */
-template <typename Ref, typename Dummy = xstd::void_t<>>
+template <typename Ref, typename Dummy = std::void_t<>>
 struct has_arithmetic_type : std::false_type {
     static_assert(std::is_same<Dummy, void>::value,
                   "Do not modify the Dummy value!");
 };
 
 template <typename Ref>
-struct has_arithmetic_type<Ref, xstd::void_t<typename Ref::arithmetic_type>>
+struct has_arithmetic_type<Ref, std::void_t<typename Ref::arithmetic_type>>
     : std::true_type {};
 
 
@@ -1070,17 +1070,16 @@ GKO_INLINE GKO_ATTRIBUTES constexpr auto squared_norm(const T& x)
  * @return x >= zero<T>() ? x : -x;
  */
 template <typename T>
-GKO_INLINE
-    GKO_ATTRIBUTES constexpr xstd::enable_if_t<!is_complex_s<T>::value, T>
-    abs(const T& x)
+GKO_INLINE GKO_ATTRIBUTES constexpr std::enable_if_t<!is_complex_s<T>::value, T>
+abs(const T& x)
 {
     return x >= zero<T>() ? x : -x;
 }
 
 
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr xstd::enable_if_t<is_complex_s<T>::value,
-                                                      remove_complex<T>>
+GKO_INLINE GKO_ATTRIBUTES constexpr std::enable_if_t<is_complex_s<T>::value,
+                                                     remove_complex<T>>
 abs(const T& x)
 {
     return sqrt(squared_norm(x));

@@ -12,7 +12,6 @@
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
-#include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 
@@ -99,7 +98,7 @@ template <typename T, typename = void>
 struct is_clonable_impl : std::false_type {};
 
 template <typename T>
-struct is_clonable_impl<T, xstd::void_t<decltype(std::declval<T>().clone())>>
+struct is_clonable_impl<T, std::void_t<decltype(std::declval<T>().clone())>>
     : std::true_type {};
 
 template <typename T>
@@ -114,7 +113,7 @@ struct is_clonable_to_impl : std::false_type {};
 
 template <typename T>
 struct is_clonable_to_impl<
-    T, xstd::void_t<decltype(std::declval<T>().clone(
+    T, std::void_t<decltype(std::declval<T>().clone(
            std::declval<std::shared_ptr<const Executor>>()))>>
     : std::true_type {};
 

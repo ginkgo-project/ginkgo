@@ -16,7 +16,6 @@
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 #include "accessor/range.hpp"

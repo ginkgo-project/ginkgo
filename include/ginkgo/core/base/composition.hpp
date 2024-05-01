@@ -6,6 +6,7 @@
 #define GKO_PUBLIC_CORE_BASE_COMPOSITION_HPP_
 
 
+#include <type_traits>
 #include <vector>
 
 #include <ginkgo/core/base/executor.hpp>
@@ -125,7 +126,7 @@ protected:
      * @param end  iterator pointing behind the last operator
      */
     template <typename Iterator,
-              typename = xstd::void_t<
+              typename = std::void_t<
                   typename std::iterator_traits<Iterator>::iterator_category>>
     explicit Composition(Iterator begin, Iterator end)
         : EnableLinOp<Composition>([&] {

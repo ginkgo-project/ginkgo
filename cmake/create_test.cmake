@@ -37,8 +37,8 @@ function(ginkgo_set_test_target_properties test_target_name test_library_suffix)
     target_compile_features(${test_target_name} PUBLIC cxx_std_14)
     # we set these properties regardless of the enabled backends,
     # because unknown properties are ignored
-    set_target_properties(${test_target_name} PROPERTIES HIP_STANDARD 14)
-    set_target_properties(${test_target_name} PROPERTIES CUDA_STANDARD 14)
+    set_target_properties(${test_target_name} PROPERTIES HIP_STANDARD 17)
+    set_target_properties(${test_target_name} PROPERTIES CUDA_STANDARD 17)
     target_include_directories(${test_target_name} PRIVATE ${Ginkgo_BINARY_DIR} ${set_properties_ADDITIONAL_INCLUDES})
     target_link_libraries(${test_target_name} PRIVATE ginkgo GTest::GTest ${set_properties_ADDITIONAL_LIBRARIES})
 endfunction()

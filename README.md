@@ -18,7 +18,7 @@
 
 Ginkgo is a high-performance numerical linear algebra library for many-core systems, with a
 focus on solution of sparse linear systems. It is implemented using modern C++
-(you will need an at least C++14 compliant compiler to build it), with GPU kernels
+(you will need an at least C++17 compliant compiler to build it), with GPU kernels
 implemented for NVIDIA, AMD and Intel GPUs.
 
 ---
@@ -39,7 +39,7 @@ implemented for NVIDIA, AMD and Intel GPUs.
 For Ginkgo core library:
 
 *   _cmake 3.16+_
-*   C++14 compliant compiler, one of:
+*   C++17 compliant compiler, one of:
     *   _gcc 5.5+_
     *   _clang 3.9+_
     *   _Intel compiler 2019+_
@@ -50,7 +50,7 @@ For Ginkgo core library:
 The Ginkgo CUDA module has the following __additional__ requirements:
 
 *   _cmake 3.18+_ (If CUDA was installed through the NVIDIA HPC Toolkit, we require _cmake 3.22+_)
-*   _CUDA 10.1+_ or _NVHPC Package 22.7+_
+*   _CUDA 11.0+_ or _NVHPC Package 22.7+_
 *   Any host compiler restrictions your version of CUDA may impose also apply
     here. For the newest CUDA version, this information can be found in the
     [CUDA installation guide for Linux](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html)
@@ -88,13 +88,13 @@ following:
 ### Windows
 
 *   _cmake 3.16+_
-*   C++14 compliant 64-bit compiler:
+*   C++17 compliant 64-bit compiler:
     *   _MinGW : gcc 5.5+_
     *   _Microsoft Visual Studio : VS 2019+_
 
 The Ginkgo CUDA module has the following __additional__ requirements:
 
-*   _CUDA 10.1+_
+*   _CUDA 11.0+_
 *   _Microsoft Visual Studio_
 *   Any host compiler restrictions your version of CUDA may impose also apply
     here. For the newest CUDA version, this information can be found in the

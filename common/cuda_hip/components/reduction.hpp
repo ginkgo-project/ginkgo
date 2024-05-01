@@ -141,7 +141,7 @@ __device__ void reduce(const Group& __restrict__ group,
  */
 template <
     typename Group, typename ValueType, typename Operator,
-    typename = xstd::enable_if_t<group::is_synchronizable_group<Group>::value>>
+    typename = std::enable_if_t<group::is_synchronizable_group<Group>::value>>
 __device__ void multireduce(const Group& __restrict__ group,
                             ValueType* __restrict__ data, size_type stride,
                             size_type num, Operator reduce_op = Operator{})
