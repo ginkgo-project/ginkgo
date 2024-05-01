@@ -710,6 +710,7 @@ permute_iterator<IteratorType, PermutationFn> make_permute_iterator(
 }  // namespace detail
 
 
+/** std::get reimplementation for device_tuple. */
 template <std::size_t index, typename... Ts>
 constexpr typename std::tuple_element<index, detail::device_tuple<Ts...>>::type&
 get(detail::device_tuple<Ts...>& tuple)
@@ -718,6 +719,7 @@ get(detail::device_tuple<Ts...>& tuple)
 }
 
 
+/** std::get reimplementation for const device_tuple. */
 template <std::size_t index, typename... Ts>
 constexpr const typename std::tuple_element<index,
                                             detail::device_tuple<Ts...>>::type&
