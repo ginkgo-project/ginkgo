@@ -13,7 +13,7 @@
 #include "core/base/segmented_range.hpp"
 
 
-TEST(SegmentedRange, Works)
+TEST(SegmentedRange, WorksByIndex)
 {
     std::vector<int> begins{3, 1, 4, 9};
     std::vector<int> ends{3, 10, 6, 10};
@@ -21,7 +21,7 @@ TEST(SegmentedRange, Works)
     gko::segmented_range<int> range{begins.data(), ends.data(),
                                     static_cast<int>(begins.size())};
 
-    for (auto row : gko::irange<int>(begins.size())) {
+    for (auto row : range.segment_indices()) {
         for (auto nz : range[row]) {
             result_indices[row].push_back(nz);
         }
@@ -30,6 +30,44 @@ TEST(SegmentedRange, Works)
     ASSERT_EQ(result_indices,
               std::vector<std::vector<int>>(
                   {{}, {1, 2, 3, 4, 5, 6, 7, 8, 9}, {4, 5}, {9}}));
+}
+
+
+TEST(SegmentedRange, WorksByRangeFor)
+{
+    std::vector<int> begins{3, 1, 4, 9};
+    std::vector<int> ends{3, 10, 6, 10};
+    std::vector<std::vector<int>> result_indices(begins.size());
+    gko::segmented_range<int> range{begins.data(), ends.data(),
+                                    static_cast<int>(begins.size())};
+
+    for (auto [row, segment] : range) {
+        for (auto nz : segment) {
+            result_indices[row].push_back(nz);
+        }
+    }
+
+    ASSERT_EQ(result_indices,
+              std::vector<std::vector<int>>(
+                  {{}, {1, 2, 3, 4, 5, 6, 7, 8, 9}, {4, 5}, {9}}));
+}
+
+
+TEST(SegmentedRange, WorksWithPtrsConstructor)
+{
+    std::vector<int> ptrs{0, 2, 4, 5, 9};
+    std::vector<std::vector<int>> result_indices(ptrs.size() - 1);
+    gko::segmented_range<int> range{ptrs.data(),
+                                    static_cast<int>(ptrs.size() - 1)};
+
+    for (auto row : range.segment_indices()) {
+        for (auto nz : range[row]) {
+            result_indices[row].push_back(nz);
+        }
+    }
+
+    ASSERT_EQ(result_indices, std::vector<std::vector<int>>(
+                                  {{0, 1}, {2, 3}, {4}, {5, 6, 7, 8}}));
 }
 
 
@@ -79,6 +117,26 @@ TEST(SegmentedValueRange, WorksByRangeFor)
 }
 
 
+TEST(SegmentedValueRange, WorksWithPtrsConstructor)
+{
+    std::vector<int> ptrs{0, 2, 4, 5, 9};
+    std::vector<int> values(ptrs.back());
+    std::iota(values.begin(), values.end(), 1);
+    std::vector<std::vector<int>> result_values(ptrs.size() - 1);
+    gko::segmented_value_range<int, std::vector<int>::iterator> range{
+        ptrs.data(), values.begin(), static_cast<int>(ptrs.size() - 1)};
+
+    for (auto row : range.segment_indices()) {
+        for (auto nz : range[row]) {
+            result_values[row].push_back(nz);
+        }
+    }
+
+    ASSERT_EQ(result_values, std::vector<std::vector<int>>(
+                                 {{1, 2}, {3, 4}, {5}, {6, 7, 8, 9}}));
+}
+
+
 TEST(SegmentedEnumeratedValueRange, WorksByIndex)
 {
     using gko::get;
@@ -92,7 +150,7 @@ TEST(SegmentedEnumeratedValueRange, WorksByIndex)
         begins.data(), ends.data(), values.begin(),
         static_cast<int>(begins.size())};
 
-    for (auto row : gko::irange<int>(begins.size())) {
+    for (auto row : range.segment_indices()) {
         for (auto tuple : range.enumerated()[row]) {
             result_indices[row].push_back(get<0>(tuple));
             result_values[row].push_back(get<1>(tuple));
