@@ -5,6 +5,12 @@
 #include "core/solver/batch_cg_kernels.hpp"
 
 
+#include <omp.h>
+
+
+#include <ginkgo/core/base/array.hpp>
+
+
 #include "core/solver/batch_dispatch.hpp"
 
 
@@ -66,18 +72,20 @@ public:
             gko::kernels::batch_cg::local_memory_requirement<ValueType>(
                 num_rows, num_rhs) +
             PrecondType::dynamic_work_size(num_rows,
-                                           mat.get_single_item_num_nnz()) *
-                sizeof(ValueType);
-
+                                           mat.get_single_item_num_nnz());
+        int max_threads = omp_get_max_threads();
+        auto local_space =
+            array<unsigned char>(exec_, local_size_bytes * max_threads);
 #pragma omp parallel for
         for (size_type batch_id = 0; batch_id < num_batch_items; batch_id++) {
-            // TODO: Align to cache line boundary
-            // TODO: Allocate and free once per thread rather than once per
-            // work-item.
-            auto local_space = array<unsigned char>(exec_, local_size_bytes);
+            auto thread_local_space = gko::make_array_view(
+                exec_, local_size_bytes,
+                local_space.get_data() +
+                    omp_get_thread_num() * local_size_bytes);
             batch_entry_cg_impl<StopType, PrecondType, LogType, BatchMatrixType,
                                 ValueType>(settings_, logger, precond, mat, b,
-                                           x, batch_id, local_space.get_data());
+                                           x, batch_id,
+                                           thread_local_space.get_data());
         }
     }
 

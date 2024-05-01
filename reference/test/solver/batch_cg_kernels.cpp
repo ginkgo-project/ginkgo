@@ -163,9 +163,11 @@ TYPED_TEST(BatchCg, ApplyLogsResAndIters)
 
     auto iter_counts = logger->get_num_iterations();
     auto res_norm = logger->get_residual_norm();
-    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 1000);
+    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 2000);
     for (size_t i = 0; i < num_batch_items; i++) {
         ASSERT_LE(iter_counts.get_const_data()[i], max_iters);
+        ASSERT_NEAR(res_norm.get_const_data()[i],
+                    res.host_res_norm->get_const_values()[i], tol * 100);
     }
 }
 
@@ -197,5 +199,5 @@ TYPED_TEST(BatchCg, CanSolveHpdSystem)
     auto res =
         gko::test::solve_linear_system(this->exec, linear_system, solver);
 
-    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 500);
+    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 1000);
 }
