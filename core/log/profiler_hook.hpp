@@ -9,6 +9,9 @@
 #include <ginkgo/core/log/profiler_hook.hpp>
 
 
+#include <optional>
+
+
 namespace gko {
 namespace log {
 
