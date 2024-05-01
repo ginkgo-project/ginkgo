@@ -156,6 +156,7 @@ TYPED_TEST(ZipIterator, IteratorReferenceOperatorSmaller2)
 
 TYPED_TEST(ZipIterator, IncreasingIterator)
 {
+    using gko::get;
     using index_type = typename TestFixture::index_type;
     using value_type = typename TestFixture::value_type;
     std::vector<index_type> vec1{this->reversed_index};
@@ -182,8 +183,8 @@ TYPED_TEST(ZipIterator, IncreasingIterator)
     ASSERT_TRUE(increment_pre_2 == increment_post_2);
     ASSERT_TRUE(begin == increment_post_test++);
     ASSERT_TRUE(begin + 1 == ++increment_pre_test);
-    ASSERT_TRUE(std::get<0>(*plus_2) == vec1[2]);
-    ASSERT_TRUE(std::get<1>(*plus_2) == vec2[2]);
+    ASSERT_TRUE(get<0>(*plus_2) == vec1[2]);
+    ASSERT_TRUE(get<1>(*plus_2) == vec2[2]);
     // check other comparison operators and difference
     std::vector<gko::detail::zip_iterator<index_type*, value_type*>> its{
         begin,
@@ -257,6 +258,7 @@ TYPED_TEST(ZipIterator, IncompatibleIteratorDeathTest)
 
 TYPED_TEST(ZipIterator, DecreasingIterator)
 {
+    using gko::get;
     using index_type = typename TestFixture::index_type;
     using value_type = typename TestFixture::value_type;
     std::vector<index_type> vec1{this->reversed_index};
@@ -280,13 +282,14 @@ TYPED_TEST(ZipIterator, DecreasingIterator)
     ASSERT_TRUE(decrement_pre_2 == decrement_post_2);
     ASSERT_TRUE(iter == decrement_post_test--);
     ASSERT_TRUE(iter - 1 == --decrement_pre_test);
-    ASSERT_TRUE(std::get<0>(*minus_2) == vec1[3]);
-    ASSERT_TRUE(std::get<1>(*minus_2) == vec2[3]);
+    ASSERT_TRUE(get<0>(*minus_2) == vec1[3]);
+    ASSERT_TRUE(get<1>(*minus_2) == vec2[3]);
 }
 
 
 TYPED_TEST(ZipIterator, CorrectDereferencing)
 {
+    using gko::get;
     using index_type_it = typename TestFixture::index_type;
     using value_type_it = typename TestFixture::value_type;
     std::vector<index_type_it> vec1{this->reversed_index};
@@ -299,10 +302,10 @@ TYPED_TEST(ZipIterator, CorrectDereferencing)
     auto to_test_ref = *(begin + element_to_test);
     value_type to_test_pair = to_test_ref;  // Testing implicit conversion
 
-    ASSERT_TRUE(std::get<0>(to_test_pair) == vec1[element_to_test]);
-    ASSERT_TRUE(std::get<0>(to_test_pair) == std::get<0>(to_test_ref));
-    ASSERT_TRUE(std::get<1>(to_test_pair) == vec2[element_to_test]);
-    ASSERT_TRUE(std::get<1>(to_test_pair) == std::get<1>(to_test_ref));
+    ASSERT_TRUE(get<0>(to_test_pair) == vec1[element_to_test]);
+    ASSERT_TRUE(get<0>(to_test_pair) == get<0>(to_test_ref));
+    ASSERT_TRUE(get<1>(to_test_pair) == vec2[element_to_test]);
+    ASSERT_TRUE(get<1>(to_test_pair) == get<1>(to_test_ref));
 }
 
 

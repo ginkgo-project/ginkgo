@@ -26,10 +26,9 @@ void sort_by_range_start(
     auto end_it = detail::make_permute_iterator(
         range_start_ends.get_data() + 1, [](const auto i) { return 2 * i; });
     auto sort_it = detail::make_zip_iterator(start_it, end_it, part_ids_d);
-    std::stable_sort(sort_it, sort_it + num_parts,
-                     [](const auto& a, const auto& b) {
-                         return std::get<0>(a) < std::get<0>(b);
-                     });
+    std::stable_sort(
+        sort_it, sort_it + num_parts,
+        [](const auto& a, const auto& b) { return get<0>(a) < get<0>(b); });
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
@@ -51,9 +50,9 @@ void check_consecutive_ranges(std::shared_ptr<const DefaultExecutor> exec,
     auto range_it = detail::make_zip_iterator(start_it, end_it);
 
     if (num_parts) {
-        result = std::all_of(
-            range_it, range_it + num_parts - 1,
-            [](const auto& r) { return std::get<0>(r) == std::get<1>(r); });
+        result =
+            std::all_of(range_it, range_it + num_parts - 1,
+                        [](const auto& r) { return get<0>(r) == get<1>(r); });
     } else {
         result = true;
     }

@@ -1155,9 +1155,8 @@ void sort_by_column_index(std::shared_ptr<const OmpExecutor> exec,
         auto row_nnz = row_ptrs[i + 1] - start_row_idx;
         auto it = detail::make_zip_iterator(col_idxs + start_row_idx,
                                             values + start_row_idx);
-        std::sort(it, it + row_nnz, [](auto t1, auto t2) {
-            return std::get<0>(t1) < std::get<0>(t2);
-        });
+        std::sort(it, it + row_nnz,
+                  [](auto t1, auto t2) { return get<0>(t1) < get<0>(t2); });
     }
 }
 
