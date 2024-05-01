@@ -287,19 +287,17 @@ class zip_iterator_reference
     template <std::size_t... idxs>
     constexpr value_type cast_impl(std::index_sequence<idxs...>) const
     {
-        // gcc 5 throws error as using uninitialized array
-        // std::tuple<int, char> t = { 1, '2' }; is not allowed.
-        // converting to 'std::tuple<...>' from initializer list would use
-        // explicit constructor
-        return value_type(get<idxs>(*this)...);
+        // need to use fully qualified name for nvcc 11.x to not call this->get
+        return value_type(gko::get<idxs>(*this)...);
     }
 
     template <std::size_t... idxs>
     constexpr void assign_impl(std::index_sequence<idxs...>,
                                const value_type& other)
     {
+        // need to use fully qualified name for nvcc 11.x to not call this->get
         (void)std::initializer_list<int>{
-            (get<idxs>(*this) = get<idxs>(other), 0)...};
+            (gko::get<idxs>(*this) = gko::get<idxs>(other), 0)...};
     }
 
     constexpr explicit zip_iterator_reference(Iterators... it)
@@ -709,6 +707,7 @@ permute_iterator<IteratorType, PermutationFn> make_permute_iterator(
 }  // namespace detail
 
 
+/** std::get reimplementation for device_tuple. */
 template <std::size_t index, typename... Ts>
 constexpr typename std::tuple_element<index, detail::device_tuple<Ts...>>::type&
 get(detail::device_tuple<Ts...>& tuple)
@@ -717,6 +716,7 @@ get(detail::device_tuple<Ts...>& tuple)
 }
 
 
+/** std::get reimplementation for const device_tuple. */
 template <std::size_t index, typename... Ts>
 constexpr const typename std::tuple_element<index,
                                             detail::device_tuple<Ts...>>::type&
