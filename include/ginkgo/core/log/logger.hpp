@@ -796,7 +796,7 @@ private:
     template <size_type Event, typename ConcreteLoggableT>
     struct propagate_log_helper<
         Event, ConcreteLoggableT,
-        xstd::void_t<
+        std::void_t<
             decltype(std::declval<ConcreteLoggableT>().get_executor())>> {
         template <typename... Args>
         static void propagate_log(const ConcreteLoggableT* loggable,

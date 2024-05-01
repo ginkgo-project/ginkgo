@@ -6,6 +6,7 @@
 #define GKO_PUBLIC_CORE_BASE_COMBINATION_HPP_
 
 
+#include <type_traits>
 #include <vector>
 
 #include <ginkgo/core/base/lin_op.hpp>
@@ -136,7 +137,7 @@ protected:
      */
     template <
         typename CoefficientIterator, typename OperatorIterator,
-        typename = xstd::void_t<
+        typename = std::void_t<
             typename std::iterator_traits<
                 CoefficientIterator>::iterator_category,
             typename std::iterator_traits<OperatorIterator>::iterator_category>>
