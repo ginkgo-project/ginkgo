@@ -193,3 +193,65 @@ TEST(SegmentedEnumeratedValueRange, WorksByRangeFor)
               std::vector<std::vector<int>>(
                   {{}, {2, 3, 4, 5, 6, 7, 8, 9, 10}, {5, 6}, {10}}));
 }
+
+
+#ifndef NDEBUG
+
+
+bool check_assertion_exit_code(int exit_code)
+{
+#ifdef _MSC_VER
+    // MSVC picks up the exit code incorrectly,
+    // so we can only check that it exits
+    return true;
+#else
+    return exit_code != 0;
+#endif
+}
+
+
+TEST(DeathTest, Assertions)
+{
+    using range_t = gko::segmented_range<int>;
+    using vrange_t = gko::segmented_value_range<int, int*>;
+    using range_it_t = range_t::iterator;
+    using vrange_it_t = vrange_t::iterator;
+    std::vector<int> ptrs{0, 1};
+    std::vector<int> values{0, 1};
+    range_t range{ptrs.data(), static_cast<int>(ptrs.size() - 1)};
+    range_t range2{ptrs.data(), 0};
+    vrange_t vrange{ptrs.data(), values.data(),
+                    static_cast<int>(ptrs.size() - 1)};
+    vrange_t vrange2{ptrs.data(), values.data(), 0};
+    // gko::segmented_range::iterator
+    EXPECT_EXIT((void)*(range_it_t{range, -1}), check_assertion_exit_code, "");
+    EXPECT_EXIT((void)*(range_it_t{range, 1}), check_assertion_exit_code, "");
+    EXPECT_EXIT((void)(range_it_t{range, 0} == range_it_t{range2, 0}),
+                check_assertion_exit_code, "");
+    // gko::segmented_range
+    EXPECT_EXIT((void)(range_t{nullptr, -1}), check_assertion_exit_code, "");
+    EXPECT_EXIT((void)range[-1], check_assertion_exit_code, "");
+    EXPECT_EXIT((void)range[1], check_assertion_exit_code, "");
+    EXPECT_EXIT((void)range.begin_index(-1), check_assertion_exit_code, "");
+    EXPECT_EXIT((void)range.begin_index(1), check_assertion_exit_code, "");
+    EXPECT_EXIT((void)range.end_index(-1), check_assertion_exit_code, "");
+    EXPECT_EXIT((void)range.end_index(1), check_assertion_exit_code, "");
+    // gko::segmented_value_range::iterator
+    EXPECT_EXIT((void)*(vrange_it_t{vrange, -1}), check_assertion_exit_code,
+                "");
+    EXPECT_EXIT((void)*(vrange_it_t{vrange, 1}), check_assertion_exit_code, "");
+    EXPECT_EXIT((void)(vrange_it_t{vrange, 0} == vrange_it_t{vrange2, 0}),
+                check_assertion_exit_code, "");
+    // gko::segmented_value_range
+    EXPECT_EXIT((void)(vrange_t{nullptr, nullptr, -1}),
+                check_assertion_exit_code, "");
+    EXPECT_EXIT((void)vrange[-1], check_assertion_exit_code, "");
+    EXPECT_EXIT((void)vrange[1], check_assertion_exit_code, "");
+    EXPECT_EXIT((void)vrange.begin_index(-1), check_assertion_exit_code, "");
+    EXPECT_EXIT((void)vrange.begin_index(1), check_assertion_exit_code, "");
+    EXPECT_EXIT((void)vrange.end_index(-1), check_assertion_exit_code, "");
+    EXPECT_EXIT((void)vrange.end_index(1), check_assertion_exit_code, "");
+}
+
+
+#endif
