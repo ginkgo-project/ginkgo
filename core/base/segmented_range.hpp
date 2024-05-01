@@ -27,8 +27,8 @@ template <typename IndexType>
 class segmented_range {
 public:
     using index_type = IndexType;
-    using index_iterator = index_iterator<index_type>;
-    using segment = irange<index_type>;
+    using index_iterator_type = index_iterator<index_type>;
+    using segment_type = irange<index_type>;
 
     /**
      * An iterator pointing to (or past) a single segment in the range.
@@ -41,7 +41,7 @@ public:
 
         struct enumerated_segment {
             index_type index;
-            segment segment;
+            segment_type segment;
         };
 
         constexpr enumerated_segment operator*() const
@@ -49,8 +49,8 @@ public:
             assert(segment_ >= 0);
             assert(segment_ < range_.num_segments());
             return enumerated_segment{segment_,
-                                      segment{range_.begin_index(segment_),
-                                              range_.end_index(segment_)}};
+                                      segment_type{range_.begin_index(segment_),
+                                                   range_.end_index(segment_)}};
         }
 
         constexpr iterator& operator++()
@@ -111,7 +111,7 @@ public:
      * @param segment  the index to access. It must be in `[0, num_segments())`.
      * @return  the segment at this index.
      */
-    constexpr segment operator[](index_type segment) const
+    constexpr segment_type operator[](index_type segment) const
     {
         assert(segment >= 0);
         assert(segment < num_segments());
@@ -120,6 +120,12 @@ public:
 
     /** @return the number of segments in this range. */
     constexpr index_type num_segments() const { return num_segments_; }
+
+    /** @return an index range representing all segment indices. */
+    constexpr irange<index_type> segment_indices() const
+    {
+        return irange<index_type>{num_segments()};
+    }
 
     /** @return iterator pointing to the first segment. */
     constexpr iterator begin() const { return iterator{*this, 0}; }
@@ -183,11 +189,11 @@ template <typename IndexType, typename ValueIterator>
 class segmented_value_range {
 public:
     using index_type = IndexType;
-    using index_iterator = index_iterator<index_type>;
+    using index_iterator_type = index_iterator<index_type>;
     using value_iterator = ValueIterator;
-    using segment = iterator_range<ValueIterator>;
+    using segment_type = iterator_range<ValueIterator>;
     using enumerated_range = segmented_value_range<
-        index_type, detail::zip_iterator<index_iterator, value_iterator>>;
+        index_type, detail::zip_iterator<index_iterator_type, value_iterator>>;
 
     /**
      * An iterator pointing to (or past) a single segment in the range.
@@ -201,7 +207,7 @@ public:
 
         struct enumerated_segment {
             index_type index;
-            segment segment;
+            segment_type segment;
         };
 
         constexpr enumerated_segment operator*() const
@@ -210,8 +216,8 @@ public:
             assert(segment_ < range_.num_segments());
             return enumerated_segment{
                 segment_,
-                segment{range_.values() + range_.begin_index(segment_),
-                        range_.values() + range_.end_index(segment_)}};
+                segment_type{range_.values() + range_.begin_index(segment_),
+                             range_.values() + range_.end_index(segment_)}};
         }
 
         constexpr iterator& operator++()
@@ -281,7 +287,7 @@ public:
      * @param segment  the index to access. It must be in `[0, num_segments())`.
      * @return  the segment at this index.
      */
-    constexpr segment operator[](index_type segment) const
+    constexpr segment_type operator[](index_type segment) const
     {
         assert(segment >= 0);
         assert(segment < num_segments());
@@ -290,6 +296,12 @@ public:
 
     /** @return the number of segments in this range. */
     constexpr index_type num_segments() const { return num_segments_; }
+
+    /** @return an index range representing all segment indices. */
+    constexpr irange<index_type> segment_indices() const
+    {
+        return irange<index_type>{num_segments()};
+    }
 
     constexpr enumerated_range enumerated() const
     {
