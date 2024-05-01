@@ -398,9 +398,8 @@ void sort_by_column_index_impl(
         std::vector<IndexType> col_permute(nbnz_brow);
         std::iota(col_permute.begin(), col_permute.end(), 0);
         auto it = detail::make_zip_iterator(brow_col_idxs, col_permute.data());
-        std::sort(it, it + nbnz_brow, [](auto a, auto b) {
-            return std::get<0>(a) < std::get<0>(b);
-        });
+        std::sort(it, it + nbnz_brow,
+                  [](auto a, auto b) { return get<0>(a) < get<0>(b); });
 
         std::vector<ValueType> oldvalues(nbnz_brow * bs2);
         std::copy(brow_vals, brow_vals + nbnz_brow * bs2, oldvalues.begin());

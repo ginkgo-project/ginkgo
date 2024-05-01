@@ -43,8 +43,7 @@ void sort_row_major(std::shared_ptr<const DefaultExecutor> exec, size_type nnz,
 {
     auto it = detail::make_zip_iterator(row_idxs, col_idxs, vals);
     std::stable_sort(it, it + nnz, [](auto a, auto b) {
-        return std::tie(std::get<0>(a), std::get<1>(a)) <
-               std::tie(std::get<0>(b), std::get<1>(b));
+        return std::tie(get<0>(a), get<1>(a)) < std::tie(get<0>(b), get<1>(b));
     });
 }
 
