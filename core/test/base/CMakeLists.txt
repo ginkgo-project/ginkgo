@@ -26,6 +26,7 @@ ginkgo_create_test(polymorphic_object)
 ginkgo_create_test(range)
 ginkgo_create_test(range_accessors)
 ginkgo_create_test(sanitizers ADDITIONAL_LIBRARIES Threads::Threads)
+ginkgo_create_test(segmented_array)
 ginkgo_create_test(types)
 ginkgo_create_test(utils)
 ginkgo_create_test(version EXECUTABLE_NAME version_test) # version collides with C++ stdlib header
