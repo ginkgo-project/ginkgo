@@ -18,6 +18,7 @@ set(GINKGO_HIP_SOURCES
     base/timer.hip.cpp
     base/version.hip.cpp
     components/prefix_sum_kernels.hip.cpp
+    distributed/index_map_kernels.hip.cpp
     distributed/matrix_kernels.hip.cpp
     distributed/partition_helpers_kernels.hip.cpp
     distributed/partition_kernels.hip.cpp
