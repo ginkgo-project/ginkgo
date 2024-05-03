@@ -7,6 +7,7 @@
 
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 
@@ -81,12 +82,14 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       gather_idxs_{exec},
       recv_gather_idxs_{exec},
       non_local_to_global_{exec},
-      one_scalar_{}
+      one_scalar_{},
+      non_local_mtx_(::gko::matrix::Coo<ValueType, LocalIndexType>::create(
+          exec, dim<2>{local_linop->get_size()[0], 0}))
 {
     this->set_size(size);
     one_scalar_.init(exec, dim<2>{1, 1});
     one_scalar_->fill(one<value_type>());
-    local_mtx_ = local_linop;
+    local_mtx_ = std::move(local_linop);
 }
 
 
