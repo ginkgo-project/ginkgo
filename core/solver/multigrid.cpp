@@ -317,9 +317,14 @@ void MultigridState::generate(const LinOp* system_matrix_in,
                     auto current_comm = distributed_fine->get_communicator();
                     auto next_comm = distributed_coarse->get_communicator();
                     auto current_local_nrows =
-                        distributed_fine->get_local_size()[0];
+                        ::gko::detail::run_matrix(fine, [](auto* fine_mat) {
+                            return fine_mat->get_local_matrix()->get_size()[0];
+                        });
                     auto next_local_nrows =
-                        distributed_coarse->get_local_size()[0];
+                        ::gko::detail::run_matrix(coarse, [](auto* coarse_mat) {
+                            return coarse_mat->get_non_local_matrix()
+                                ->get_size()[0];
+                        });
                     this->allocate_memory<VectorType>(
                         i, cycle, current_comm, next_comm, current_nrows,
                         next_nrows, current_local_nrows, next_local_nrows);
