@@ -82,12 +82,12 @@ function(ginkgo_install)
             DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
             COMPONENT Ginkgo_Development
             FILES_MATCHING PATTERN "*.hpp"
-            PATTERN "extensions" EXCLUDE
     )
-    install(FILES "${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp"
-        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/ginkgo"
-        COMPONENT Ginkgo_Development
-        )
+    install(DIRECTORY "${Ginkgo_BINARY_DIR}/include/"
+            DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+            COMPONENT Ginkgo_Development
+            FILES_MATCHING PATTERN "*.hpp"
+    )
 
     if  (GINKGO_HAVE_HWLOC AND NOT HWLOC_FOUND)
         get_filename_component(HWLOC_LIB_PATH ${HWLOC_LIBRARIES} DIRECTORY)
