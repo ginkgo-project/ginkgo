@@ -122,8 +122,6 @@ TYPED_TEST(VectorCreation, CanReadGlobalMatrixData)
     GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_size(), gko::dim<2>(6, 2));
     GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local_vector()->get_size(),
                                 gko::dim<2>(2, 2));
-    GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local_size(),
-                                vec->get_local_vector()->get_size());
     GKO_ASSERT_MTX_NEAR(vec->get_local_vector(), ref_data[rank], 0.0);
 }
 

@@ -282,8 +282,6 @@ TYPED_TEST(MatrixBuilder, BuildLocalOnly)
     ASSERT_NO_THROW(gko::as<empty_non_local_type>(mat->get_non_local_matrix()));
     GKO_ASSERT_EQUAL_DIMENSIONS(mat->get_local_matrix()->get_size(),
                                 gko::dim<2>(local_n, local_n));
-    GKO_ASSERT_EQUAL_DIMENSIONS(mat->get_local_size(),
-                                mat->get_local_matrix()->get_size());
     ASSERT_NO_THROW(mat->apply(a, b));
 }
 
