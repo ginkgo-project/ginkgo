@@ -167,8 +167,6 @@ public:
 
     void compute_absolute_inplace() override;
 
-    dim<2> get_local_size() const override;
-
     /**
      * Creates a complex copy of the original vectors. If the original vectors
      * were real, the imaginary part of the result will be zero.

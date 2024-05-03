@@ -417,14 +417,6 @@ mpi::request Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-dim<2> Matrix<ValueType, LocalIndexType, GlobalIndexType>::get_local_size()
-    const
-{
-    return local_mtx_->get_size();
-}
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
     const LinOp* b, LinOp* x) const
 {
