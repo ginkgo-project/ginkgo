@@ -341,8 +341,6 @@ public:
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             col_partition);
 
-    dim<2> get_local_size() const override;
-
     /**
      * Get read access to the stored local matrix.
      *
