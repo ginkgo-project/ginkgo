@@ -262,6 +262,7 @@ TYPED_TEST(MatrixBuilder, BuildLocalOnly)
     using dist_mtx_type = typename TestFixture::dist_mtx_type;
     using dist_vec_type = typename TestFixture::dist_vec_type;
     using custom_type = CustomLinOp<value_type, index_type>;
+    using empty_non_local_type = gko::matrix::Coo<value_type, index_type>;
     auto local_n = this->comm.rank() + 1;
     // global_size = 1 + 2 + ... + num_rank
     auto global_n = ((1 + this->comm.size()) * this->comm.size()) / 2;
@@ -277,7 +278,8 @@ TYPED_TEST(MatrixBuilder, BuildLocalOnly)
         custom_type::create(this->ref, gko::dim<2>(local_n, local_n)));
 
     ASSERT_NO_THROW(gko::as<custom_type>(mat->get_local_matrix()));
-    ASSERT_EQ(mat->get_non_local_matrix(), nullptr);
+    ASSERT_NE(mat->get_non_local_matrix(), nullptr);
+    ASSERT_NO_THROW(gko::as<empty_non_local_type>(mat->get_non_local_matrix()));
     GKO_ASSERT_EQUAL_DIMENSIONS(mat->get_local_matrix()->get_size(),
                                 gko::dim<2>(local_n, local_n));
     GKO_ASSERT_EQUAL_DIMENSIONS(mat->get_local_size(),

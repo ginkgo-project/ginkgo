@@ -7,6 +7,7 @@
 
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 
@@ -81,12 +82,14 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       gather_idxs_{exec},
       recv_gather_idxs_{exec},
       non_local_to_global_{exec},
-      one_scalar_{}
+      one_scalar_{},
+      non_local_mtx_(::gko::matrix::Coo<ValueType, LocalIndexType>::create(
+          exec, dim<2>{local_linop->get_size()[0], 0}))
 {
     this->set_size(size);
     one_scalar_.init(exec, dim<2>{1, 1});
     one_scalar_->fill(one<value_type>());
-    local_mtx_ = local_linop;
+    local_mtx_ = std::move(local_linop);
 }
 
 
@@ -298,9 +301,11 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 mpi::request Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
     const local_vector_type* local_b) const
 {
-    if (!non_local_mtx_) {
-        return {};
-    }
+    // This function can never return early!
+    // Even if the non-local part is empty, i.e. this process doesn't need
+    // any data from other processes, the used MPI calls are collective
+    // operations. They need to be called on all processes, even if a process
+    // might not communicate any data.
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto num_cols = local_b->get_size()[1];
@@ -369,15 +374,13 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
             local_mtx_->apply(dense_b->get_local_vector(), local_x);
             req.wait();
 
-            if (non_local_mtx_) {
-                auto exec = this->get_executor();
-                auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
-                if (use_host_buffer) {
-                    recv_buffer_->copy_from(host_recv_buffer_.get());
-                }
-                non_local_mtx_->apply(one_scalar_.get(), recv_buffer_.get(),
-                                      one_scalar_.get(), local_x);
+            auto exec = this->get_executor();
+            auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+            if (use_host_buffer) {
+                recv_buffer_->copy_from(host_recv_buffer_.get());
             }
+            non_local_mtx_->apply(one_scalar_.get(), recv_buffer_.get(),
+                                  one_scalar_.get(), local_x);
         },
         b, x);
 }
@@ -405,15 +408,13 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                               local_beta, local_x);
             req.wait();
 
-            if (non_local_mtx_) {
-                auto exec = this->get_executor();
-                auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
-                if (use_host_buffer) {
-                    recv_buffer_->copy_from(host_recv_buffer_.get());
-                }
-                non_local_mtx_->apply(local_alpha, recv_buffer_.get(),
-                                      one_scalar_.get(), local_x);
+            auto exec = this->get_executor();
+            auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+            if (use_host_buffer) {
+                recv_buffer_->copy_from(host_recv_buffer_.get());
             }
+            non_local_mtx_->apply(local_alpha, recv_buffer_.get(),
+                                  one_scalar_.get(), local_x);
         },
         alpha, b, beta, x);
 }
