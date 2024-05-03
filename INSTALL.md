@@ -118,11 +118,6 @@ Ginkgo adds the following additional switches to control what is being built:
     this option see the
     [`ARCHITECTURES` specification list](https://github.com/ginkgo-project/CudaArchitectureSelector/blob/master/CudaArchitectureSelector.cmake#L58)
     section in the documentation of the CudaArchitectureSelector CMake module.
-* `-DGINKGO_EXTENSION_KOKKOS={ON, OFF}` enables an extension that can map simple Ginkgo
-  types (`gko::array`, `gko::matrix::Dense`) to equivalent native Kokkos types. `OFF` by
-  default. Requires Kokkos to be installed if set to `ON`. To use the mapping it is
-  required to additionally link against `Ginkgo::ext::kokkos` (or `Ginkgo::ext` for short).
-  More details on the usage of this extension can be found in the example `kokkos-assembly`.
 
 Additionally, the following CMake options have effect on the build process:
 

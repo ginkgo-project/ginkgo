@@ -32,14 +32,14 @@ endif()
 
 function(create_gtest_main_kokkos)
     add_library(ginkgo_gtest_main_kokkos STATIC kokkos_main.cpp ${PROJECT_SOURCE_DIR}/core/test/gtest/resources.cpp)
-    target_link_libraries(ginkgo_gtest_main_kokkos PUBLIC Ginkgo::ginkgo GTest::GTest Ginkgo::ext::kokkos)
+    target_link_libraries(ginkgo_gtest_main_kokkos PUBLIC Ginkgo::ginkgo GTest::GTest Kokkos::kokkos)
     target_compile_definitions(ginkgo_gtest_main_kokkos PRIVATE ${definitions})
     ginkgo_compile_features(ginkgo_gtest_main_kokkos)
 endfunction()
 create_gtest_main_kokkos()
 
 function(ginkgo_create_test_kokkos test_name)
-    ginkgo_create_test(${test_name} NO_GTEST_MAIN RESOURCE_TYPE ${resource_type} ADDITIONAL_LIBRARIES Ginkgo::ext::kokkos ginkgo_gtest_main_kokkos ${ARGN})
+    ginkgo_create_test(${test_name} NO_GTEST_MAIN RESOURCE_TYPE ${resource_type} ADDITIONAL_LIBRARIES Kokkos::kokkos ginkgo_gtest_main_kokkos ${ARGN})
 endfunction()
 
 ginkgo_create_test_kokkos(types)

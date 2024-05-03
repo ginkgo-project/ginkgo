@@ -206,15 +206,8 @@ if(TARGET hwloc)
 endif()
 ginkgo_print_module_footer(${detailed_log} "")
 
-set(Kokkos_VERSION ${GINKGO_Kokkos_VERSION})
-set(Kokkos_DEVICES ${GINKGO_Kokkos_DEVICES})
-ginkgo_print_generic_header(${minimal_log} "  Extensions:")
 ginkgo_print_generic_header(${detailed_log} "  Extensions:")
-ginkgo_print_variable(${minimal_log} "GINKGO_EXTENSION_KOKKOS")
-ginkgo_print_variable(${detailed_log} "GINKGO_EXTENSION_KOKKOS")
 ginkgo_print_variable(${detailed_log} "GINKGO_EXTENSION_KOKKOS_CHECK_TYPE_ALIGNMENT")
-ginkgo_print_variable(${detailed_log} "Kokkos_VERSION")
-ginkgo_print_variable(${detailed_log} "Kokkos_DEVICES")
 
 _minimal(
     "
