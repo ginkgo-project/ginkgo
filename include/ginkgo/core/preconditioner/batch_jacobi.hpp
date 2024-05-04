@@ -64,7 +64,10 @@ public:
      *        (max_block_size = 1).
      *  @return the block pointers
      */
-    const index_type* get_const_block_pointers() const noexcept;
+    const index_type* get_const_block_pointers() const noexcept
+    {
+        return block_pointers_.get_const_data();
+    }
 
     /**
      * Returns the mapping between the blocks and the row id.
@@ -72,7 +75,10 @@ public:
      * @note Returns nullptr in case of a scalar jacobi preconditioner
      *       (max_block_size = 1).
      */
-    const index_type* get_const_map_block_to_row() const noexcept;
+    const index_type* get_const_map_block_to_row() const noexcept
+    {
+        return map_block_to_row_.get_const_data();
+    }
 
     /**
      *  Returns the cumulative blocks storage array
@@ -80,21 +86,27 @@ public:
      *  @note Returns nullptr in case of a scalar jacobi preconditioner
      *        (max_block_size = 1).
      */
-    const index_type* get_const_blocks_cumulative_offsets() const noexcept;
+    const index_type* get_const_blocks_cumulative_offsets() const noexcept
+    {
+        return blocks_cumulative_offsets_.get_const_data();
+    }
 
     /**
      * Returns the max block size.
      *
      * @return the max block size
      */
-    uint32 get_max_block_size() const noexcept;
+    uint32 get_max_block_size() const noexcept
+    {
+        return parameters_.max_block_size;
+    }
 
     /**
      * Returns the number of blocks in an individual batch entry.
      *
      * @return the number of blocks in an individual batch entry.
      */
-    size_type get_num_blocks() const noexcept;
+    size_type get_num_blocks() const noexcept { return num_blocks_; }
 
     /**
      * Returns the pointer to the memory used for storing the block data.
@@ -114,7 +126,10 @@ public:
      *
      * @return the pointer to the memory used for storing the block data
      */
-    const value_type* get_const_blocks() const noexcept;
+    const value_type* get_const_blocks() const noexcept
+    {
+        return blocks_.get_const_data();
+    }
 
     /**
      * Returns the number of elements explicitly stored in the dense blocks.
@@ -125,7 +140,10 @@ public:
      *
      * @return the number of elements explicitly stored in the dense blocks.
      */
-    size_type get_num_stored_elements() const noexcept;
+    size_type get_num_stored_elements() const noexcept
+    {
+        return blocks_.get_size();
+    }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {

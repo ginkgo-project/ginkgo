@@ -43,57 +43,6 @@ size_type Jacobi<ValueType, IndexType>::compute_storage_space(
 
 
 template <typename ValueType, typename IndexType>
-const IndexType* Jacobi<ValueType, IndexType>::get_const_block_pointers()
-    const noexcept
-{
-    return block_pointers_.get_const_data();
-}
-
-
-template <typename ValueType, typename IndexType>
-const IndexType* Jacobi<ValueType, IndexType>::get_const_map_block_to_row()
-    const noexcept
-{
-    return map_block_to_row_.get_const_data();
-}
-
-
-template <typename ValueType, typename IndexType>
-const IndexType* Jacobi<
-    ValueType, IndexType>::get_const_blocks_cumulative_offsets() const noexcept
-{
-    return blocks_cumulative_offsets_.get_const_data();
-}
-
-
-template <typename ValueType, typename IndexType>
-uint32 Jacobi<ValueType, IndexType>::get_max_block_size() const noexcept
-{
-    return parameters_.max_block_size;
-}
-
-
-template <typename ValueType, typename IndexType>
-size_type Jacobi<ValueType, IndexType>::get_num_blocks() const noexcept
-{
-    return num_blocks_;
-}
-
-template <typename ValueType, typename IndexType>
-const ValueType* Jacobi<ValueType, IndexType>::get_const_blocks() const noexcept
-{
-    return blocks_.get_const_data();
-}
-
-
-template <typename ValueType, typename IndexType>
-size_type Jacobi<ValueType, IndexType>::get_num_stored_elements() const noexcept
-{
-    return blocks_.get_size();
-}
-
-
-template <typename ValueType, typename IndexType>
 Jacobi<ValueType, IndexType>::Jacobi(std::shared_ptr<const Executor> exec)
     : EnableBatchLinOp<Jacobi>(exec),
       num_blocks_{0},
