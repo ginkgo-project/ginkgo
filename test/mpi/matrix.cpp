@@ -203,7 +203,7 @@ TYPED_TEST(MatrixCreation, BuildOnlyLocal)
 }
 
 
-TYPED_TEST(MatrixCreation, BuildFromExistedData)
+TYPED_TEST(MatrixCreation, BuildFromExistingData)
 {
     using value_type = typename TestFixture::value_type;
     using csr = typename TestFixture::local_matrix_type;
