@@ -131,14 +131,22 @@ class Vector;
 template <typename IndexType>
 class MatrixBase {
 public:
-    virtual std::vector<comm_index_type> get_recv_sizes() const = 0;
-    virtual std::vector<comm_index_type> get_send_sizes() const = 0;
-    virtual std::vector<comm_index_type> get_recv_offsets() const = 0;
-    virtual std::vector<comm_index_type> get_send_offsets() const = 0;
+    virtual const std::vector<comm_index_type>& get_recv_sizes() const = 0;
+
+    virtual const std::vector<comm_index_type>& get_send_sizes() const = 0;
+
+    virtual const std::vector<comm_index_type>& get_recv_offsets() const = 0;
+
+    virtual const std::vector<comm_index_type>& get_send_offsets() const = 0;
+
     virtual std::shared_ptr<const LinOp> get_non_local_matrix() const = 0;
+
     virtual std::shared_ptr<const LinOp> get_local_matrix() const = 0;
-    virtual array<IndexType> get_gather_idxs() const = 0;
-    virtual array<IndexType> get_recv_gather_idxs() const = 0;
+
+    virtual const array<IndexType>& get_gather_idxs() const = 0;
+
+    virtual const array<IndexType>& get_recv_gather_idxs() const = 0;
+
     // TODO: use type tag?
     virtual bool is_using_index(size_t index_size) const = 0;
 };
@@ -409,27 +417,32 @@ public:
      */
     Matrix& operator=(Matrix&& other);
 
-    std::vector<comm_index_type> get_recv_sizes() const override
+    const std::vector<comm_index_type>& get_recv_sizes() const override
     {
         return recv_sizes_;
     };
-    std::vector<comm_index_type> get_send_sizes() const override
+
+    const std::vector<comm_index_type>& get_send_sizes() const override
     {
         return send_sizes_;
     };
-    std::vector<comm_index_type> get_recv_offsets() const override
+
+    const std::vector<comm_index_type>& get_recv_offsets() const override
     {
         return recv_offsets_;
     };
-    std::vector<comm_index_type> get_send_offsets() const override
+
+    const std::vector<comm_index_type>& get_send_offsets() const override
     {
         return send_offsets_;
     }
-    array<local_index_type> get_gather_idxs() const override
+
+    const array<local_index_type>& get_gather_idxs() const override
     {
         return gather_idxs_;
     }
-    array<local_index_type> get_recv_gather_idxs() const override
+
+    const array<local_index_type>& get_recv_gather_idxs() const override
     {
         return recv_gather_idxs_;
     }
@@ -587,7 +600,8 @@ public:
 
     /**
      * Creates distributed matrix with existent local and non-local LinOp and
-     * the corresponding mapping.
+     * the corresponding mapping to collect the non-local data from the other
+     * ranks.
      *
      * @note It use the input to build up the distributed matrix
      *
@@ -596,7 +610,7 @@ public:
      * @param size  the global size
      * @param local_linop  the local linop
      * @param non_local_linop  the non-local linop
-     * @param recv_sizes  the size of non-local recevier
+     * @param recv_sizes  the size of non-local receiver
      * @param recv_offset  the offset of non-local receiver
      * @param recv_gather_idxs  the gathering index of non-local receiver
      *

@@ -83,7 +83,7 @@ protected:
 
     std::shared_ptr<dist_mtx_type> dist_mat;
 };
-// using One = ::testing::Types<std::tuple<float, gko::int32, gko::int32>>;
+
 using More =
     ::testing::Types<std::tuple<float, gko::int32, gko::int32>,
                      std::tuple<float, gko::int64, gko::int64>,
