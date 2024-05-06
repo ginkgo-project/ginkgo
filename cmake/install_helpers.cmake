@@ -79,14 +79,15 @@ function(ginkgo_install)
 
     # install the public header files
     install(DIRECTORY "${Ginkgo_SOURCE_DIR}/include/"
-        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
-        COMPONENT Ginkgo_Development
-        FILES_MATCHING PATTERN "*.hpp"
-        )
-    install(FILES "${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp"
-        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/ginkgo"
-        COMPONENT Ginkgo_Development
-        )
+            DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+            COMPONENT Ginkgo_Development
+            FILES_MATCHING PATTERN "*.hpp"
+    )
+    install(DIRECTORY "${Ginkgo_BINARY_DIR}/include/"
+            DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+            COMPONENT Ginkgo_Development
+            FILES_MATCHING PATTERN "*.hpp"
+    )
 
     if  (GINKGO_HAVE_HWLOC AND NOT HWLOC_FOUND)
         get_filename_component(HWLOC_LIB_PATH ${HWLOC_LIBRARIES} DIRECTORY)
