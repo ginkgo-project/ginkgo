@@ -291,7 +291,6 @@ protected:
         }
         const size_type workspace_size =
             system_matrix->get_num_batch_items() * 32;
-        // 2 * (sizeof(real_type) + sizeof(int));
         workspace_.set_executor(exec);
         workspace_.resize_and_reset(workspace_size);
     }
