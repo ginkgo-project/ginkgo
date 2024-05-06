@@ -130,10 +130,9 @@ public:
             get_num_threads_per_block<BatchMatrixType>(exec_, mat.num_rows);
         GKO_ASSERT(block_size >= 2 * config::warp_size);
 
-        const size_t prec_size =
-            PrecType::dynamic_work_size(padded_num_rows,
-                                        mat.get_single_item_num_nnz()) *
-            sizeof(value_type);
+        // Returns amount required in bytes
+        const size_t prec_size = PrecType::dynamic_work_size(
+            padded_num_rows, mat.get_single_item_num_nnz());
         const auto sconf =
             gko::kernels::batch_bicgstab::compute_shared_storage<PrecType,
                                                                  value_type>(

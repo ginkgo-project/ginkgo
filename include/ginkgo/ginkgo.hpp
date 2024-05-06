@@ -120,6 +120,7 @@
 #include <ginkgo/core/reorder/scaled_reordered.hpp>
 
 #include <ginkgo/core/solver/batch_bicgstab.hpp>
+#include <ginkgo/core/solver/batch_cg.hpp>
 #include <ginkgo/core/solver/batch_solver_base.hpp>
 #include <ginkgo/core/solver/bicg.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>

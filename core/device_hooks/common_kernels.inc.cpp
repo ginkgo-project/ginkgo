@@ -49,6 +49,7 @@
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/reorder/rcm_kernels.hpp"
 #include "core/solver/batch_bicgstab_kernels.hpp"
+#include "core/solver/batch_cg_kernels.hpp"
 #include "core/solver/bicg_kernels.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
 #include "core/solver/cb_gmres_kernels.hpp"
@@ -412,6 +413,15 @@ GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL);
 
 
 }  // namespace batch_bicgstab
+
+
+namespace batch_cg {
+
+
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_CG_APPLY_KERNEL);
+
+
+}  // namespace batch_cg
 
 
 namespace cg {

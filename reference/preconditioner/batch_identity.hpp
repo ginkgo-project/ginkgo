@@ -32,7 +32,8 @@ public:
     static constexpr int work_size = 0;
 
     /**
-     * The size of the work vector required in case of dynamic allocation.
+     * The size of the work vector required in case of dynamic allocation in
+     * bytes.
      */
     static int dynamic_work_size(int, int) { return 0; }
 

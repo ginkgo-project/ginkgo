@@ -56,6 +56,7 @@ target_sources(ginkgo_dpcpp
     preconditioner/jacobi_simple_apply_kernel.dp.cpp
     reorder/rcm_kernels.dp.cpp
     solver/batch_bicgstab_kernels.dp.cpp
+    solver/batch_cg_kernels.dp.cpp
     solver/cb_gmres_kernels.dp.cpp
     solver/idr_kernels.dp.cpp
     solver/lower_trs_kernels.dp.cpp
