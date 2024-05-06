@@ -105,7 +105,7 @@ TYPED_TEST(LowerTrs, SolvesTriangularSystem)
 TYPED_TEST(LowerTrs, SolvesTriangularSystemMixed)
 {
     using other_value_type = typename TestFixture::value_type;
-    using value_type = gko::next_precision<other_value_type>;
+    using value_type = next_precision<other_value_type>;
     using Mtx = gko::matrix::Dense<value_type>;
     std::shared_ptr<Mtx> b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
@@ -143,7 +143,7 @@ TYPED_TEST(LowerTrs, SolvesTriangularSystemComplex)
 TYPED_TEST(LowerTrs, SolvesTriangularSystemMixedComplex)
 {
     using other_value_type = typename TestFixture::value_type;
-    using Scalar = gko::matrix::Dense<gko::next_precision<other_value_type>>;
+    using Scalar = gko::matrix::Dense<next_precision<other_value_type>>;
     using Mtx = gko::to_complex<typename TestFixture::Mtx>;
     using value_type = typename Mtx::value_type;
     std::shared_ptr<Mtx> b = gko::initialize<Mtx>(
@@ -214,7 +214,7 @@ TYPED_TEST(LowerTrs, SolvesTriangularSystemUsingAdvancedApply)
 TYPED_TEST(LowerTrs, SolvesTriangularSystemUsingAdvancedApplyMixed)
 {
     using other_value_type = typename TestFixture::value_type;
-    using value_type = gko::next_precision<other_value_type>;
+    using value_type = next_precision<other_value_type>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
     auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
@@ -256,7 +256,7 @@ TYPED_TEST(LowerTrs, SolvesTriangularSystemUsingAdvancedApplyComplex)
 TYPED_TEST(LowerTrs, SolvesTriangularSystemUsingAdvancedApplyMixedComplex)
 {
     using other_value_type = typename TestFixture::value_type;
-    using Scalar = gko::matrix::Dense<gko::next_precision<other_value_type>>;
+    using Scalar = gko::matrix::Dense<next_precision<other_value_type>>;
     using Mtx = gko::to_complex<typename TestFixture::Mtx>;
     using value_type = typename Mtx::value_type;
     auto alpha = gko::initialize<Scalar>({2.0}, this->exec);

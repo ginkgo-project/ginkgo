@@ -9,6 +9,7 @@
 #include <type_traits>
 
 
+#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 
@@ -33,10 +34,46 @@ void atomic_add(ValueType& out, ValueType val)
     // The C++ standard explicitly allows casting complex<double>* to double*
     // [complex.numbers.general]
     auto values = reinterpret_cast<gko::remove_complex<ValueType>*>(&out);
-#pragma omp atomic
-    values[0] += real(val);
-#pragma omp atomic
-    values[1] += imag(val);
+    atomic_add(values[0], real(val));
+    atomic_add(values[1], imag(val));
+}
+
+
+template <typename ResultType, typename ValueType>
+inline ResultType reinterpret(ValueType val)
+{
+    static_assert(sizeof(ValueType) == sizeof(ResultType),
+                  "The type to reinterpret to must be of the same size as the "
+                  "original type.");
+    return reinterpret_cast<ResultType&>(val);
+}
+
+
+template <>
+void atomic_add(half& out, half val)
+{
+#ifdef __NVCOMPILER
+// NVC++ uses atomic capture on uint16 leads the following error.
+// use of undefined value '%L.B*' br label %L.B* !llvm.loop !*, !dbg !*
+#pragma omp critical
+    {
+        out += val;
+    }
+#else
+    // UB?
+    uint16_t* address_as_converter = reinterpret_cast<uint16_t*>(&out);
+    uint16_t old = *address_as_converter;
+    uint16_t assumed;
+    do {
+        assumed = old;
+        auto answer = reinterpret<uint16_t>(reinterpret<half>(assumed) + val);
+#pragma omp atomic capture
+        {
+            old = *address_as_converter;
+            *address_as_converter = (old == assumed) ? answer : old;
+        }
+    } while (assumed != old);
+#endif
 }
 
 

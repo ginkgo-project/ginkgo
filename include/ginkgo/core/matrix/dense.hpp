@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -81,6 +82,9 @@ template <typename ValueType = default_precision>
 class Dense
     : public EnableLinOp<Dense<ValueType>>,
       public ConvertibleTo<Dense<next_precision<ValueType>>>,
+#if GINKGO_ENABLE_HALF
+      public ConvertibleTo<Dense<next_precision<next_precision<ValueType>>>>,
+#endif
       public ConvertibleTo<Coo<ValueType, int32>>,
       public ConvertibleTo<Coo<ValueType, int64>>,
       public ConvertibleTo<Csr<ValueType, int32>>,
@@ -268,11 +272,25 @@ public:
         return other->create_const_view_of_impl();
     }
 
-    friend class Dense<next_precision<ValueType>>;
+    friend class Dense<previous_precision<ValueType>>;
 
     void convert_to(Dense<next_precision<ValueType>>* result) const override;
 
     void move_to(Dense<next_precision<ValueType>>* result) override;
+
+#if GINKGO_ENABLE_HALF
+    friend class Dense<previous_precision<previous_precision<ValueType>>>;
+    using ConvertibleTo<
+        Dense<next_precision<next_precision<ValueType>>>>::convert_to;
+    using ConvertibleTo<
+        Dense<next_precision<next_precision<ValueType>>>>::move_to;
+
+    void convert_to(Dense<next_precision<next_precision<ValueType>>>* result)
+        const override;
+
+    void move_to(
+        Dense<next_precision<next_precision<ValueType>>>* result) override;
+#endif
 
     void convert_to(Coo<ValueType, int32>* result) const override;
 
