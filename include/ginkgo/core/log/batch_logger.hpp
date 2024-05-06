@@ -51,18 +51,20 @@ struct log_data final {
              array<unsigned char>& workspace)
         : res_norms(exec), iter_counts(exec)
     {
-        const size_type workspace_size = num_batch_items * 32;
+        const size_type reqd_workspace_size = num_batch_items * 32;
 
         if (num_batch_items > 0 && !workspace.is_owning() &&
-            workspace.get_size() >= workspace_size) {
-            gko::detail::layout<2> workspace_alias;
+            workspace.get_size() >= reqd_workspace_size) {
+            gko::detail::layout<2, 8> workspace_alias;
             auto slot_1 = workspace_alias.get_slot(0);
             auto slot_2 = workspace_alias.get_slot(1);
             auto iter_alias = slot_1->create_alias<idx_type>(num_batch_items);
             auto res_alias = slot_2->create_alias<real_type>(num_batch_items);
 
             // Temporary storage mapping
-            workspace_alias.map_to_buffer(workspace.get_data(), workspace_size);
+            auto err = workspace_alias.map_to_buffer(workspace.get_data(),
+                                                     reqd_workspace_size);
+            GKO_ASSERT(err == 0);
             iter_counts =
                 array<idx_type>::view(exec, num_batch_items, iter_alias.get());
             res_norms =

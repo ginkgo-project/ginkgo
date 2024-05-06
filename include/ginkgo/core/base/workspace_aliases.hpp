@@ -20,12 +20,11 @@ namespace gko {
 namespace detail {
 
 
-template <int num_allocs>
+template <int num_allocs, int align_bytes = 8>
 GKO_ATTRIBUTES GKO_INLINE GKO_DEVICE_ERROR_TYPE create_workspace_aliases(
     void* workspace_ptr, size_t& num_bytes, void* (&allocations)[num_allocs],
     size_t (&allocation_sizes)[num_allocs])
 {
-    constexpr int align_bytes = 8;
     constexpr int align_mask = ~(align_bytes - 1);
 
     // Compute exclusive prefix sum over allocation requests
@@ -68,14 +67,18 @@ class slot;
 template <typename T>
 class alias;
 
-template <int num_slots>
+template <int num_slots, int align_bytes>
 class layout;
 
+/**
+ * Represents a slot of memory which can be aliased. See @alias and @layout on
+ * how this can be used.
+ */
 class slot {
     template <typename T>
     friend class alias;
 
-    template <int>
+    template <int, int>
     friend class layout;
 
 public:
@@ -182,7 +185,7 @@ GKO_ATTRIBUTES alias<T> slot::create_alias(std::size_t num_elems)
  * double *double_ptr = double_array.get();
  * @endcode
  */
-template <int num_slots>
+template <int num_slots, int align_bytes>
 class layout {
 public:
     layout() = default;
@@ -211,8 +214,8 @@ public:
         this->initialize();
 
         GKO_DEVICE_ERROR_TYPE error = GKO_DEVICE_NO_ERROR;
-        if ((error = create_workspace_aliases(workspace_ptr, num_bytes,
-                                              data_ptrs_, slot_sizes_))) {
+        if ((error = create_workspace_aliases<num_slots, align_bytes>(
+                 workspace_ptr, num_bytes, data_ptrs_, slot_sizes_))) {
             return error;
         }
 
