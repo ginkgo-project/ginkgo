@@ -839,31 +839,11 @@ struct temporary_clone_helper<const array<T>> {
 
 // specialization for non-constant arrays, copying back via assignment
 template <typename T>
-class copy_back_deleter<array<T>> {
+class copy_back_deleter<array<T>>
+    : public copy_back_deleter_from_assignment<array<T>> {
 public:
-    using pointer = array<T>*;
-
-    /**
-     * Creates a new deleter object.
-     *
-     * @param original  the origin object where the data will be copied before
-     *                  deletion
-     */
-    copy_back_deleter(pointer original) : original_{original} {}
-
-    /**
-     * Copies back the pointed-to object to the original and deletes it.
-     *
-     * @param ptr  pointer to the object to be copied back and deleted
-     */
-    void operator()(pointer ptr) const
-    {
-        *original_ = *ptr;
-        delete ptr;
-    }
-
-private:
-    pointer original_;
+    using copy_back_deleter_from_assignment<
+        array<T>>::copy_back_deleter_from_assignment;
 };
 
 
