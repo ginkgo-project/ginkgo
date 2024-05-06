@@ -49,6 +49,25 @@ ReturnType run_impl(T obj, Func&& f, Args&&... args)
 
 
 /**
+ * @copydoc run<typename K, typename... Types, typename T, typename Func,
+ *              typename... Args>
+ *
+ * @note This handle the shared_ptr cases
+ */
+template <typename ReturnType, typename K, typename... Types, typename T,
+          typename Func, typename... Args>
+ReturnType run_impl(std::shared_ptr<T> obj, Func&& f, Args&&... args)
+{
+    if (auto dobj = std::dynamic_pointer_cast<K>(obj)) {
+        return f(dobj, std::forward<Args>(args)...);
+    } else {
+        return run_impl<ReturnType, Types...>(obj, std::forward<Func>(f),
+                                              std::forward<Args>(args)...);
+    }
+}
+
+
+/**
  * run uses template to go through the list and select the valid
  * template and run it.
  *
@@ -126,6 +145,39 @@ auto run(T obj, Func&& f, Args&&... args)
     using ReturnType = std::result_of_t<Func(K, Args...)>;
 #else
     using ReturnType = std::invoke_result_t<Func, K, Args...>;
+#endif
+    return detail::run_impl<ReturnType, K, Types...>(
+        obj, std::forward<Func>(f), std::forward<Args>(args)...);
+}
+
+
+/**
+ * run uses template to go through the list and select the valid
+ * template and run it.
+ *
+ * @tparam K  the current shared_ptr type tried in the conversion
+ * @tparam ...Types  the other types will be tried in the conversion if K fails
+ * @tparam T  the type of input object
+ * @tparam Func  the function will run if the object can be converted to K
+ * @tparam ...Args  the additional arguments for the Func
+ *
+ * @param obj  the input object waiting converted
+ * @param f  the function will run if obj can be converted successfully
+ * @param args  the additional arguments for the function
+ *
+ * @note  This assumes that each invocation of f with types (std::shared_ptr<K>,
+ * std::shared_ptr<Types>...) returns the same type
+ *
+ * @return  the result of f invoked with obj cast to the first matching type
+ */
+template <typename K, typename... Types, typename T, typename Func,
+          typename... Args>
+auto run(std::shared_ptr<T> obj, Func&& f, Args&&... args)
+{
+#if __cplusplus < 201703L
+    using ReturnType = std::result_of_t<Func(std::shared_ptr<K>, Args...)>;
+#else
+    using ReturnType = std::invoke_result_t<Func, std::shared_ptr<K>, Args...>;
 #endif
     return detail::run_impl<ReturnType, K, Types...>(
         obj, std::forward<Func>(f), std::forward<Args>(args)...);

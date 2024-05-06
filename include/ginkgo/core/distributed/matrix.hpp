@@ -29,6 +29,16 @@ class Csr;
 }
 
 
+namespace multigrid {
+
+
+template <typename ValueType, typename IndexType>
+class Pgm;
+
+
+}
+
+
 namespace detail {
 
 
@@ -126,30 +136,6 @@ class Partition;
 template <typename ValueType>
 class Vector;
 
-
-// TODO: move the data into this class
-template <typename IndexType>
-class MatrixBase {
-public:
-    virtual const std::vector<comm_index_type>& get_recv_sizes() const = 0;
-
-    virtual const std::vector<comm_index_type>& get_send_sizes() const = 0;
-
-    virtual const std::vector<comm_index_type>& get_recv_offsets() const = 0;
-
-    virtual const std::vector<comm_index_type>& get_send_offsets() const = 0;
-
-    virtual std::shared_ptr<const LinOp> get_non_local_matrix() const = 0;
-
-    virtual std::shared_ptr<const LinOp> get_local_matrix() const = 0;
-
-    virtual const array<IndexType>& get_gather_idxs() const = 0;
-
-    virtual const array<IndexType>& get_recv_gather_idxs() const = 0;
-
-    // TODO: use type tag?
-    virtual bool is_using_index(size_t index_size) const = 0;
-};
 
 /**
  * The Matrix class defines a (MPI-)distributed matrix.
@@ -262,11 +248,11 @@ class Matrix
           Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
       public ConvertibleTo<
           Matrix<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
-      public DistributedBase,
-      public MatrixBase<LocalIndexType> {
+      public DistributedBase {
     friend class EnableDistributedPolymorphicObject<Matrix, LinOp>;
     friend class Matrix<next_precision<ValueType>, LocalIndexType,
                         GlobalIndexType>;
+    friend class multigrid::Pgm<ValueType, LocalIndexType>;
 
 public:
     using value_type = ValueType;
@@ -368,17 +354,14 @@ public:
      *
      * @return  Shared pointer to the stored local matrix
      */
-    std::shared_ptr<const LinOp> get_local_matrix() const override
-    {
-        return local_mtx_;
-    }
+    std::shared_ptr<const LinOp> get_local_matrix() const { return local_mtx_; }
 
     /**
      * Get read access to the stored non-local matrix.
      *
      * @return  Shared pointer to the stored non-local matrix
      */
-    std::shared_ptr<const LinOp> get_non_local_matrix() const override
+    std::shared_ptr<const LinOp> get_non_local_matrix() const
     {
         return non_local_mtx_;
     }
@@ -416,41 +399,6 @@ public:
      * @return  this.
      */
     Matrix& operator=(Matrix&& other);
-
-    const std::vector<comm_index_type>& get_recv_sizes() const override
-    {
-        return recv_sizes_;
-    };
-
-    const std::vector<comm_index_type>& get_send_sizes() const override
-    {
-        return send_sizes_;
-    };
-
-    const std::vector<comm_index_type>& get_recv_offsets() const override
-    {
-        return recv_offsets_;
-    };
-
-    const std::vector<comm_index_type>& get_send_offsets() const override
-    {
-        return send_offsets_;
-    }
-
-    const array<local_index_type>& get_gather_idxs() const override
-    {
-        return gather_idxs_;
-    }
-
-    const array<local_index_type>& get_recv_gather_idxs() const override
-    {
-        return recv_gather_idxs_;
-    }
-
-    bool is_using_index(size_t index_size) const override
-    {
-        return sizeof(GlobalIndexType) == index_size;
-    };
 
     /**
      * Creates an empty distributed matrix.
