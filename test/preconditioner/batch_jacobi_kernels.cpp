@@ -150,6 +150,14 @@ protected:
                 .with_preconditioner(
                     precond_type::build().with_max_block_size(2u))
                 .on(exec);
+        scalar_jac_solver_factory =
+            solver_type::build()
+                .with_max_iterations(max_iters)
+                .with_tolerance(tol)
+                .with_tolerance_type(gko::batch::stop::tolerance_type::relative)
+                .with_preconditioner(
+                    precond_type::build().with_max_block_size(1u))
+                .on(exec);
         return gko::test::generate_batch_linear_system(mat, num_rhs);
     }
 
@@ -158,6 +166,7 @@ protected:
         solve_lambda;
     Settings solver_settings{};
     std::shared_ptr<typename solver_type::Factory> precond_solver_factory;
+    std::shared_ptr<typename solver_type::Factory> scalar_jac_solver_factory;
 
     const size_t nbatch = 3;
     const int nrows = 300;
@@ -198,6 +207,43 @@ TEST_F(BatchJacobi, CanSolveLargeMatrixSizeHpdSystemWithBlockJacobi)
     auto linear_system = setup_linsys_and_solver(mat, num_rhs, tol, max_iters);
     auto solver =
         gko::share(precond_solver_factory->generate(linear_system.matrix));
+    solver->add_logger(logger);
+
+    auto res = gko::test::solve_linear_system(exec, linear_system, solver);
+
+    solver->remove_logger(logger);
+    auto iter_counts = gko::make_temporary_clone(exec->get_master(),
+                                                 &logger->get_num_iterations());
+    auto res_norm = gko::make_temporary_clone(exec->get_master(),
+                                              &logger->get_residual_norm());
+    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 500);
+    for (size_t i = 0; i < num_batch_items; i++) {
+        auto comp_res_norm = res.host_res_norm->get_const_values()[i] /
+                             linear_system.host_rhs_norm->get_const_values()[i];
+        ASSERT_LE(iter_counts->get_const_data()[i], max_iters);
+        EXPECT_LE(res_norm->get_const_data()[i] /
+                      linear_system.host_rhs_norm->get_const_values()[i],
+                  tol);
+        EXPECT_GT(res_norm->get_const_data()[i], real_type{0.0});
+        ASSERT_LE(comp_res_norm, tol * 10);
+    }
+}
+
+
+TEST_F(BatchJacobi, CanSolveLargeMatrixSizeHpdSystemWithScalarJacobi)
+{
+    const int num_batch_items = 12;
+    const int num_rows = 1025;
+    const int num_rhs = 1;
+    const real_type tol = 1e-5;
+    const int max_iters = num_rows * 2;
+    std::shared_ptr<Logger> logger = Logger::create();
+    auto mat =
+        gko::share(gko::test::generate_diag_dominant_batch_matrix<const CsrMtx>(
+            exec, num_batch_items, num_rows, false, (4 * num_rows - 3)));
+    auto linear_system = setup_linsys_and_solver(mat, num_rhs, tol, max_iters);
+    auto solver =
+        gko::share(scalar_jac_solver_factory->generate(linear_system.matrix));
     solver->add_logger(logger);
 
     auto res = gko::test::solve_linear_system(exec, linear_system, solver);
