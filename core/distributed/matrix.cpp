@@ -51,7 +51,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       recv_offsets_(comm.size() + 1),
       recv_sizes_(comm.size()),
       gather_idxs_{exec},
-      non_local_to_global_{exec},
+      imap_{exec},
       one_scalar_{},
       local_mtx_{local_matrix_template->clone(exec)},
       non_local_mtx_{non_local_matrix_template->clone(exec)}
@@ -79,7 +79,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       recv_offsets_(comm.size() + 1),
       recv_sizes_(comm.size()),
       gather_idxs_{exec},
-      non_local_to_global_{exec},
+      imap_{exec},
       one_scalar_{},
       non_local_mtx_(::gko::matrix::Coo<ValueType, LocalIndexType>::create(
           exec, dim<2>{local_linop->get_size()[0], 0}))
@@ -146,7 +146,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
     result->recv_offsets_ = this->recv_offsets_;
     result->recv_sizes_ = this->recv_sizes_;
     result->send_sizes_ = this->send_sizes_;
-    result->non_local_to_global_ = this->non_local_to_global_;
+    result->imap_ = this->imap_;
     result->set_size(this->get_size());
 }
 
@@ -165,15 +165,14 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
     result->recv_offsets_ = std::move(this->recv_offsets_);
     result->recv_sizes_ = std::move(this->recv_sizes_);
     result->send_sizes_ = std::move(this->send_sizes_);
-    result->non_local_to_global_ = std::move(this->non_local_to_global_);
+    result->imap_ = std::move(this->imap_);
     result->set_size(this->get_size());
     this->set_size({});
 }
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-index_map<LocalIndexType, GlobalIndexType>
-Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const device_matrix_data<value_type, global_index_type>& data,
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
         row_partition,
@@ -218,11 +217,6 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 
     auto non_local_col_idxs =
         imap.map_to_local(global_non_local_col_idxs, index_space::non_local);
-    non_local_to_global_ =
-        make_const_array_view(
-            imap.get_executor(), imap.get_remote_global_idxs().get_size(),
-            imap.get_remote_global_idxs().get_const_flat_data())
-            .copy_to_array();
 
     // read the local matrix data
     const auto num_local_rows =
@@ -280,21 +274,18 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     if (use_host_buffer) {
         gather_idxs_.set_executor(exec);
     }
-
-    return imap;
 }
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-index_map<LocalIndexType, GlobalIndexType>
-Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const matrix_data<value_type, global_index_type>& data,
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
         row_partition,
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
         col_partition)
 {
-    return this->read_distributed(
+    this->read_distributed(
         device_matrix_data<value_type, global_index_type>::create_from_host(
             this->get_executor(), data),
         row_partition, col_partition);
@@ -302,13 +293,12 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-index_map<LocalIndexType, GlobalIndexType>
-Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const matrix_data<ValueType, global_index_type>& data,
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
         partition)
 {
-    return this->read_distributed(
+    this->read_distributed(
         device_matrix_data<value_type, global_index_type>::create_from_host(
             this->get_executor(), data),
         partition, partition);
@@ -316,13 +306,12 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-index_map<LocalIndexType, GlobalIndexType>
-Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const device_matrix_data<ValueType, GlobalIndexType>& data,
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
         partition)
 {
-    return this->read_distributed(data, partition, partition);
+    this->read_distributed(data, partition, partition);
 }
 
 
@@ -445,7 +434,8 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(const Matrix& other)
     : EnableDistributedLinOp<Matrix<value_type, local_index_type,
                                     global_index_type>>{other.get_executor()},
-      DistributedBase{other.get_communicator()}
+      DistributedBase{other.get_communicator()},
+      imap_{other.get_executor()}
 {
     *this = other;
 }
@@ -456,7 +446,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     Matrix&& other) noexcept
     : EnableDistributedLinOp<Matrix<value_type, local_index_type,
                                     global_index_type>>{other.get_executor()},
-      DistributedBase{other.get_communicator()}
+      DistributedBase{other.get_communicator()},
+      imap_{other.get_executor()}
 {
     *this = std::move(other);
 }
@@ -478,7 +469,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         recv_offsets_ = other.recv_offsets_;
         send_sizes_ = other.send_sizes_;
         recv_sizes_ = other.recv_sizes_;
-        non_local_to_global_ = other.non_local_to_global_;
+        imap_ = other.imap_;
         one_scalar_.init(this->get_executor(), dim<2>{1, 1});
         one_scalar_->fill(one<value_type>());
     }
@@ -502,7 +493,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
         recv_offsets_ = std::move(other.recv_offsets_);
         send_sizes_ = std::move(other.send_sizes_);
         recv_sizes_ = std::move(other.recv_sizes_);
-        non_local_to_global_ = std::move(other.non_local_to_global_);
+        imap_ = std::move(other.imap_);
         one_scalar_.init(this->get_executor(), dim<2>{1, 1});
         one_scalar_->fill(one<value_type>());
     }

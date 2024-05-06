@@ -282,7 +282,7 @@ public:
      *
      * @return the index_map induced by the partitions and the matrix structure
      */
-    index_map<LocalIndexType, GlobalIndexType> read_distributed(
+    void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             partition);
@@ -296,7 +296,7 @@ public:
      * @note For efficiency it is advised to use the device_matrix_data
      * overload.
      */
-    index_map<LocalIndexType, GlobalIndexType> read_distributed(
+    void read_distributed(
         const matrix_data<value_type, global_index_type>& data,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             partition);
@@ -318,7 +318,7 @@ public:
      *
      * @return the index_map induced by the partitions and the matrix structure
      */
-    index_map<LocalIndexType, GlobalIndexType> read_distributed(
+    void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             row_partition,
@@ -334,7 +334,7 @@ public:
      * @note For efficiency it is advised to use the device_matrix_data
      * overload.
      */
-    index_map<LocalIndexType, GlobalIndexType> read_distributed(
+    void read_distributed(
         const matrix_data<value_type, global_index_type>& data,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             row_partition,
@@ -356,6 +356,11 @@ public:
     std::shared_ptr<const LinOp> get_non_local_matrix() const
     {
         return non_local_mtx_;
+    }
+
+    const index_map<local_index_type, global_index_type>& get_index_map() const
+    {
+        return imap_;
     }
 
     /**
@@ -570,7 +575,7 @@ private:
     std::vector<comm_index_type> recv_offsets_;
     std::vector<comm_index_type> recv_sizes_;
     array<local_index_type> gather_idxs_;
-    array<global_index_type> non_local_to_global_;
+    index_map<local_index_type, global_index_type> imap_;
     gko::detail::DenseCache<value_type> one_scalar_;
     gko::detail::DenseCache<value_type> host_send_buffer_;
     gko::detail::DenseCache<value_type> host_recv_buffer_;
