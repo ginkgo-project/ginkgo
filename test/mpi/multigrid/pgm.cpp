@@ -84,15 +84,6 @@ protected:
     std::shared_ptr<dist_mtx_type> dist_mat;
 };
 
-using More =
-    ::testing::Types<std::tuple<float, gko::int32, gko::int32>,
-                     std::tuple<float, gko::int64, gko::int64>,
-                     std::tuple<std::complex<float>, gko::int64, gko::int64>,
-                     std::tuple<std::complex<float>, gko::int64, gko::int64>,
-                     std::tuple<double, gko::int32, gko::int32>,
-                     std::tuple<double, gko::int64, gko::int64>,
-                     std::tuple<std::complex<double>, gko::int64, gko::int64>,
-                     std::tuple<std::complex<double>, gko::int64, gko::int64>>;
 TYPED_TEST_SUITE(Pgm, gko::test::ValueLocalGlobalIndexTypes,
                  TupleTypenameNameGenerator);
 
@@ -106,10 +97,13 @@ TYPED_TEST(Pgm, CanGenerateFromDistributedMatrix)
     auto pgm_factory = pgm::build().on(this->exec);
     auto rank = this->comm.rank();
     I<I<value_type>> res_local[] = {{{8}}, {{5, 0}, {0, 5}}, {{6, 0}, {0, 6}}};
-    // the rank 2 part of non local matrix of rank 1 are reordered.
-    // [0 -1 -2 0], 1st and 3rd are aggregated to the first group but the rest
-    // are aggregated to the second group. Thus, the aggregated result should be
-    // [-2 -1] not [-1, -2]
+    // the non_local new index should follow the local matrix
+    // For example, we only store the nonzeros part like [* -1 -2 *] in
+    // matrix[2, 4:8], whose * is not in the storage. The 1st and 3rd elements
+    // are aggregated to the first group but the rest are aggregated to the
+    // second group. Although the stored elements are not aggregated to the same
+    // group, we still need to reorder to fit the local matrix ordering. i.e.
+    // [-1 -2] -> [-2 -1] after aggregation.
     I<I<value_type>> res_non_local[] = {{{-3, -4, 9, 12}},
                                         {{-3, -2, -1}, {-4, 0, -5}},
                                         {{9, -2, 0}, {12, -1, -5}}};

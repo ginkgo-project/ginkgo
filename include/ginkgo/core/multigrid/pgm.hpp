@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/multigrid/multigrid_level.hpp>
@@ -162,10 +163,24 @@ protected:
 
     void generate();
 
+    /**
+     * This function only handles the local matrix coarsening method.
+     *
+     * @return a tuple with prolongation, coarse, and restriction linop
+     */
     std::tuple<std::shared_ptr<LinOp>, std::shared_ptr<LinOp>,
                std::shared_ptr<LinOp>>
     generate_local(
         std::shared_ptr<const matrix::Csr<ValueType, IndexType>> local_matrix);
+
+#if GINKGO_BUILD_MPI
+    template <typename GlobalIndexType>
+    void communicate(std::shared_ptr<const experimental::distributed::Matrix<
+                         ValueType, IndexType, GlobalIndexType>>
+                         matrix,
+                     const array<IndexType>& local_agg,
+                     array<IndexType>& non_local_agg);
+#endif
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
