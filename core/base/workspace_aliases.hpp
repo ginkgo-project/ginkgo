@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_PUBLIC_CORE_BASE_WORKSPACE_ALIASES_HPP_
-#define GKO_PUBLIC_CORE_BASE_WORKSPACE_ALIASES_HPP_
+#ifndef GKO_CORE_BASE_WORKSPACE_ALIASES_HPP_
+#define GKO_CORE_BASE_WORKSPACE_ALIASES_HPP_
 
 
 #include <ginkgo/config.hpp>
@@ -252,4 +252,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_CORE_BASE_WORKSPACE_ALIASES_HPP_
+#endif  // GKO_CORE_BASE_WORKSPACE_ALIASES_HPP_

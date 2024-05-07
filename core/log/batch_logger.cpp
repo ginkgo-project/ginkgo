@@ -10,9 +10,66 @@
 #include <ginkgo/core/base/math.hpp>
 
 
+#include "core/base/workspace_aliases.hpp"
+
+
 namespace gko {
 namespace batch {
 namespace log {
+namespace detail {
+
+
+template <typename ValueType>
+log_data<ValueType>::log_data(std::shared_ptr<const Executor> exec,
+                              size_type num_batch_items)
+    : res_norms(exec), iter_counts(exec)
+{
+    if (num_batch_items > 0) {
+        iter_counts.resize_and_reset(num_batch_items);
+        res_norms.resize_and_reset(num_batch_items);
+    } else {
+        GKO_INVALID_STATE("Invalid num batch items passed in");
+    }
+}
+
+
+template <typename ValueType>
+log_data<ValueType>::log_data(std::shared_ptr<const Executor> exec,
+                              size_type num_batch_items,
+                              array<unsigned char>& workspace)
+    : res_norms(exec), iter_counts(exec)
+{
+    const size_type reqd_workspace_size = num_batch_items * 32;
+
+    if (num_batch_items > 0 && !workspace.is_owning() &&
+        workspace.get_size() >= reqd_workspace_size) {
+        gko::detail::layout<2, 8> workspace_alias;
+        auto slot_1 = workspace_alias.get_slot(0);
+        auto slot_2 = workspace_alias.get_slot(1);
+        auto iter_alias = slot_1->create_alias<idx_type>(num_batch_items);
+        auto res_alias = slot_2->create_alias<real_type>(num_batch_items);
+
+        // Temporary storage mapping
+        auto err = workspace_alias.map_to_buffer(workspace.get_data(),
+                                                 reqd_workspace_size);
+        GKO_ASSERT(err == 0);
+        iter_counts =
+            array<idx_type>::view(exec, num_batch_items, iter_alias.get());
+        res_norms =
+            array<real_type>::view(exec, num_batch_items, res_alias.get());
+    } else {
+        GKO_INVALID_STATE("invalid workspace or num batch items passed in");
+    }
+}
+
+#define GKO_DECLARE_LOG_DATA(_type) class log_data<_type>
+
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(GKO_DECLARE_LOG_DATA);
+
+#undef GKO_DECLARE_LOG_DATA
+
+
+}  // namespace detail
 
 
 template <typename ValueType>
