@@ -11,7 +11,6 @@
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/base/workspace_aliases.hpp>
 #include <ginkgo/core/log/logger.hpp>
 
 
@@ -36,43 +35,10 @@ struct log_data final {
     using real_type = remove_complex<ValueType>;
     using idx_type = int;
 
-    log_data(std::shared_ptr<const Executor> exec, size_type num_batch_items)
-        : res_norms(exec), iter_counts(exec)
-    {
-        if (num_batch_items > 0) {
-            iter_counts.resize_and_reset(num_batch_items);
-            res_norms.resize_and_reset(num_batch_items);
-        } else {
-            GKO_INVALID_STATE("Invalid num batch items passed in");
-        }
-    }
+    log_data(std::shared_ptr<const Executor> exec, size_type num_batch_items);
 
     log_data(std::shared_ptr<const Executor> exec, size_type num_batch_items,
-             array<unsigned char>& workspace)
-        : res_norms(exec), iter_counts(exec)
-    {
-        const size_type reqd_workspace_size = num_batch_items * 32;
-
-        if (num_batch_items > 0 && !workspace.is_owning() &&
-            workspace.get_size() >= reqd_workspace_size) {
-            gko::detail::layout<2, 8> workspace_alias;
-            auto slot_1 = workspace_alias.get_slot(0);
-            auto slot_2 = workspace_alias.get_slot(1);
-            auto iter_alias = slot_1->create_alias<idx_type>(num_batch_items);
-            auto res_alias = slot_2->create_alias<real_type>(num_batch_items);
-
-            // Temporary storage mapping
-            auto err = workspace_alias.map_to_buffer(workspace.get_data(),
-                                                     reqd_workspace_size);
-            GKO_ASSERT(err == 0);
-            iter_counts =
-                array<idx_type>::view(exec, num_batch_items, iter_alias.get());
-            res_norms =
-                array<real_type>::view(exec, num_batch_items, res_alias.get());
-        } else {
-            GKO_INVALID_STATE("invalid workspace or num batch items passed in");
-        }
-    }
+             array<unsigned char>& workspace);
 
     /**
      * Stores residual norm values for every linear system in the batch.
