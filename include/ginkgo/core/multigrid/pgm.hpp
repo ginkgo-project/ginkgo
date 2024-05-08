@@ -164,7 +164,7 @@ protected:
     void generate();
 
     /**
-     * This function only handles the local matrix coarsening method.
+     * This function generates the local matrix coarsening operators.
      *
      * @return a tuple with prolongation, coarse, and restriction linop
      */

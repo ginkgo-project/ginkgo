@@ -328,6 +328,34 @@ TYPED_TEST(Pgm, Renumber)
 }
 
 
+TYPED_TEST(Pgm, GatherIndex)
+{
+    using index_type = typename TestFixture::index_type;
+    gko::size_type num = 5;
+    gko::array<index_type> result(this->exec, num);
+    gko::array<index_type> map(this->exec, num);
+    gko::array<index_type> orig(this->exec, 3);
+    orig.get_data()[0] = 1;
+    orig.get_data()[1] = 2;
+    orig.get_data()[2] = 3;
+    map.get_data()[0] = 1;
+    map.get_data()[1] = 2;
+    map.get_data()[2] = 0;
+    map.get_data()[3] = 2;
+    map.get_data()[4] = 0;
+
+    gko::kernels::reference::pgm::gather_index(
+        this->exec, num, orig.get_const_data(), map.get_const_data(),
+        result.get_data());
+
+    ASSERT_EQ(result.get_const_data()[0], 2);
+    ASSERT_EQ(result.get_const_data()[1], 3);
+    ASSERT_EQ(result.get_const_data()[2], 1);
+    ASSERT_EQ(result.get_const_data()[3], 3);
+    ASSERT_EQ(result.get_const_data()[4], 1);
+}
+
+
 TYPED_TEST(Pgm, Generate)
 {
     auto coarse_fine = this->pgm_factory->generate(this->mtx);
