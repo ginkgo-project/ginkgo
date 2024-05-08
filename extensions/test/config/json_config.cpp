@@ -2,6 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <stdexcept>
+
+
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
@@ -11,6 +14,15 @@
 
 
 #include "core/test/utils.hpp"
+
+
+TEST(JsonConfig, ThrowIfInvalid)
+{
+    const char json[] = R"({"test": null})";
+    auto d = nlohmann::json::parse(json);
+
+    ASSERT_THROW(gko::ext::config::parse_json(d), std::runtime_error);
+}
 
 
 TEST(JsonConfig, ReadMap)

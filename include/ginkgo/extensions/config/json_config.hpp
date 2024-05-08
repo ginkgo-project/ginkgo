@@ -7,6 +7,7 @@
 
 
 #include <fstream>
+#include <stdexcept>
 #include <string>
 
 
@@ -57,7 +58,9 @@ inline gko::config::pnode parse_json(const nlohmann::json& input)
             return gko::config::pnode{
                 std::string(data.template get<std::string>())};
         }
-        return gko::config::pnode{};
+        throw std::runtime_error(
+            "property_tree can not handle the node with content: " +
+            data.dump());
     };
 
     if (dom.is_array()) {
