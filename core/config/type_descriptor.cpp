@@ -12,6 +12,21 @@ namespace gko {
 namespace config {
 
 
+type_descriptor update_type(const pnode& config, const type_descriptor& td)
+{
+    auto value_typestr = td.get_value_typestr();
+    auto index_typestr = td.get_index_typestr();
+
+    if (auto& obj = config.get("value_type")) {
+        value_typestr = obj.get_string();
+    }
+    if (auto& obj = config.get("index_type")) {
+        index_typestr = obj.get_string();
+    }
+    return type_descriptor{value_typestr, index_typestr};
+}
+
+
 template <typename ValueType, typename IndexType>
 type_descriptor make_type_descriptor()
 {

@@ -27,7 +27,7 @@ namespace config {
 
 
 /**
- * LinOpFactoryType enum is to avoid forward declartion, linopfactory header,
+ * LinOpFactoryType enum is to avoid forward declaration, linopfactory header,
  * two template versions of parse
  */
 enum class LinOpFactoryType : int { Cg = 0 };
@@ -42,19 +42,21 @@ deferred_factory_parameter<gko::LinOpFactory> parse(
     const pnode& config, const registry& context,
     const type_descriptor& td = make_type_descriptor<>());
 
-/**
- * This function updates the default type setting from current config. Any type
- * that is not specified in the config will fall back to the type stored in the
- * current type_descriptor.
- */
-type_descriptor update_type(const pnode& config, const type_descriptor& td);
 
 /**
  * get_stored_obj searches the object pointer stored in the registry by string
  */
 template <typename T>
 inline std::shared_ptr<T> get_stored_obj(const pnode& config,
-                                         const registry& context);
+                                         const registry& context)
+{
+    std::shared_ptr<T> ptr;
+    using T_non_const = std::remove_const_t<T>;
+    ptr = detail::registry_accessor::get_data<T_non_const>(context,
+                                                           config.get_string());
+    GKO_THROW_IF_INVALID(ptr.get() != nullptr, "Do not get the stored data");
+    return ptr;
+}
 
 
 /**
@@ -87,55 +89,6 @@ get_factory<const stop::CriterionFactory>(const pnode& config,
  */
 template <typename T>
 inline std::vector<deferred_factory_parameter<T>> get_factory_vector(
-    const pnode& config, const registry& context, const type_descriptor& td);
-
-
-/**
- * get_value gets the corresponding type value from config.
- *
- * This is specialization for integral type
- */
-template <typename IndexType>
-inline
-    typename std::enable_if<std::is_integral<IndexType>::value, IndexType>::type
-    get_value(const pnode& config);
-
-/**
- * get_value gets the corresponding type value from config.
- *
- * This is specialization for floating point type
- */
-template <typename ValueType>
-inline typename std::enable_if<std::is_floating_point<ValueType>::value,
-                               ValueType>::type
-get_value(const pnode& config);
-
-/**
- * get_value gets the corresponding type value from config.
- *
- * This is specialization for complex type
- */
-template <typename ValueType>
-inline typename std::enable_if<gko::is_complex_s<ValueType>::value,
-                               ValueType>::type
-get_value(const pnode& config);
-
-
-template <typename T>
-inline std::shared_ptr<T> get_stored_obj(const pnode& config,
-                                         const registry& context)
-{
-    std::shared_ptr<T> ptr;
-    using T_non_const = std::remove_const_t<T>;
-    ptr = detail::registry_accessor::get_data<T_non_const>(context,
-                                                           config.get_string());
-    GKO_THROW_IF_INVALID(ptr.get() != nullptr, "Do not get the stored data");
-    return ptr;
-}
-
-
-template <typename T>
-inline std::vector<deferred_factory_parameter<T>> get_factory_vector(
     const pnode& config, const registry& context, const type_descriptor& td)
 {
     std::vector<deferred_factory_parameter<T>> res;
@@ -152,6 +105,11 @@ inline std::vector<deferred_factory_parameter<T>> get_factory_vector(
 }
 
 
+/**
+ * get_value gets the corresponding type value from config.
+ *
+ * This is specialization for integral type
+ */
 template <typename IndexType>
 inline
     typename std::enable_if<std::is_integral<IndexType>::value, IndexType>::type
@@ -165,6 +123,12 @@ inline
     return static_cast<IndexType>(val);
 }
 
+
+/**
+ * get_value gets the corresponding type value from config.
+ *
+ * This is specialization for floating point type
+ */
 template <typename ValueType>
 inline typename std::enable_if<std::is_floating_point<ValueType>::value,
                                ValueType>::type
@@ -179,6 +143,11 @@ get_value(const pnode& config)
     return static_cast<ValueType>(val);
 }
 
+/**
+ * get_value gets the corresponding type value from config.
+ *
+ * This is specialization for complex type
+ */
 template <typename ValueType>
 inline typename std::enable_if<gko::is_complex_s<ValueType>::value,
                                ValueType>::type

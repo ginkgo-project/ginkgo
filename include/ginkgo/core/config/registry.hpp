@@ -159,7 +159,7 @@ inline std::shared_ptr<Type> allowed_ptr::get() const
  * Additionally, users can provide mappings from a configuration (provided as
  * a pnode) to user-defined types that are derived from LinOpFactory
  */
-class registry {
+class registry final {
 public:
     friend class detail::registry_accessor;
 
@@ -168,27 +168,27 @@ public:
      * registry constructor
      *
      * @param additional_map  the additional map to dispatch the class base.
-     * Users can extend this map to fit their own LinOpFactory.
+     *                        Users can extend map to fit their own
+     *                        LinOpFactory.
      */
     registry(const configuration_map& additional_map = {});
 
     /**
      * registry constructor
      *
-     * @param additional_map  the additional map to dispatch the class base.
-     * Users can extend this map to fit their own LinOpFactory.
      * @param stored_map  the map stores the shared pointer of users' objects.
-     * It can hold any type whose base type is
-     * LinOp/LinOpFactory/CriterionFactory. For example,
+     *                    It can hold any type whose base type is
+     *                    LinOp/LinOpFactory/CriterionFactory.
+     * For example,
      * ```
      * {{
      *   {"csr", csr_shared_ptr},
      *   {"cg", cg_shared_ptr}
      * }}
      * ```
-     * @param build_map  the build map to dispatch the class base. Ginkgo
-     * provides `generate_config_map()` in config.hpp to provide the ginkgo
-     * build map. Users can extend this map to fit their own LinOpFactory.
+     * @param additional_map  the additional map to dispatch the class base.
+     *                        Users can extend map to fit their own
+     *                        LinOpFactory.
      */
     registry(
         const std::unordered_map<std::string, detail::allowed_ptr>& stored_map,

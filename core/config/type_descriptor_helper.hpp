@@ -42,11 +42,11 @@ struct type_string {};
     }
 
 TYPE_STRING_OVERLOAD(void, "void");
-TYPE_STRING_OVERLOAD(double, "double");
-TYPE_STRING_OVERLOAD(float, "float");
-TYPE_STRING_OVERLOAD(std::complex<double>, "complex<double>");
-TYPE_STRING_OVERLOAD(std::complex<float>, "complex<float>");
-TYPE_STRING_OVERLOAD(int32, "int");
+TYPE_STRING_OVERLOAD(double, "float64");
+TYPE_STRING_OVERLOAD(float, "float32");
+TYPE_STRING_OVERLOAD(std::complex<double>, "complex<float64>");
+TYPE_STRING_OVERLOAD(std::complex<float>, "complex<float32>");
+TYPE_STRING_OVERLOAD(int32, "int32");
 TYPE_STRING_OVERLOAD(int64, "int64");
 
 
