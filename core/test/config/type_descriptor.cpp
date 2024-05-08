@@ -18,24 +18,24 @@ using namespace gko::config;
 TEST(TypeDescriptor, TemplateCreate)
 {
     {
-        SCOPED_TRACE("defaule template");
+        SCOPED_TRACE("default template");
         auto td = make_type_descriptor<>();
 
-        ASSERT_EQ(td.get_value_typestr(), "double");
-        ASSERT_EQ(td.get_index_typestr(), "int");
+        ASSERT_EQ(td.get_value_typestr(), "float64");
+        ASSERT_EQ(td.get_index_typestr(), "int32");
     }
     {
         SCOPED_TRACE("specify valuetype");
         auto td = make_type_descriptor<float>();
 
-        ASSERT_EQ(td.get_value_typestr(), "float");
-        ASSERT_EQ(td.get_index_typestr(), "int");
+        ASSERT_EQ(td.get_value_typestr(), "float32");
+        ASSERT_EQ(td.get_index_typestr(), "int32");
     }
     {
         SCOPED_TRACE("specify all template");
         auto td = make_type_descriptor<std::complex<float>, gko::int64>();
 
-        ASSERT_EQ(td.get_value_typestr(), "complex<float>");
+        ASSERT_EQ(td.get_value_typestr(), "complex<float32>");
         ASSERT_EQ(td.get_index_typestr(), "int64");
     }
     {
@@ -51,18 +51,18 @@ TEST(TypeDescriptor, TemplateCreate)
 TEST(TypeDescriptor, Constructor)
 {
     {
-        SCOPED_TRACE("defaule constructor");
+        SCOPED_TRACE("default constructor");
         type_descriptor td;
 
-        ASSERT_EQ(td.get_value_typestr(), "double");
-        ASSERT_EQ(td.get_index_typestr(), "int");
+        ASSERT_EQ(td.get_value_typestr(), "float64");
+        ASSERT_EQ(td.get_index_typestr(), "int32");
     }
     {
         SCOPED_TRACE("specify valuetype");
-        type_descriptor td("float");
+        type_descriptor td("float32");
 
-        ASSERT_EQ(td.get_value_typestr(), "float");
-        ASSERT_EQ(td.get_index_typestr(), "int");
+        ASSERT_EQ(td.get_value_typestr(), "float32");
+        ASSERT_EQ(td.get_index_typestr(), "int32");
     }
     {
         SCOPED_TRACE("specify all parameters");

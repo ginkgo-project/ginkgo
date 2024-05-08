@@ -76,6 +76,10 @@ deferred_factory_parameter<ReturnType> dispatch(const pnode& config,
 }
 
 /**
+ * This function is to dispatch the type from runtime parameter.
+ * The concrete class need to have static member function
+ * `parse(pnode, registry, type_descriptor)`
+ *
  * @param config  the configuration
  * @param context  the registry context
  * @param td  the default type descriptor

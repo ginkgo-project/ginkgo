@@ -38,7 +38,8 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
-          stop_config({{"Type", pnode{"Iteration"}}, {"max_iters", pnode{1}}})
+          stop_config(
+              {{"type", pnode{"stop::Iteration"}}, {"max_iters", pnode{1}}})
     {}
 
     std::shared_ptr<const gko::Executor> exec;
@@ -51,7 +52,8 @@ TEST_F(Config, GenerateObjectWithoutDefault)
 {
     auto reg = registry();
 
-    pnode p{{{"ValueType", pnode{"double"}}, {"criteria", this->stop_config}}};
+    pnode p{
+        {{"value_type", pnode{"float64"}}, {"criteria", this->stop_config}}};
     auto obj = parse<LinOpFactoryType::Cg>(p, reg).on(this->exec);
 
     ASSERT_NE(dynamic_cast<const gko::solver::Cg<double>::Factory*>(obj.get()),
@@ -67,7 +69,7 @@ TEST_F(Config, GenerateObjectWithData)
     pnode p{{{"generated_preconditioner", pnode{"precond"}},
              {"criteria", this->stop_config}}};
     auto obj =
-        parse<LinOpFactoryType::Cg>(p, reg, type_descriptor{"float", "void"})
+        parse<LinOpFactoryType::Cg>(p, reg, type_descriptor{"float32", "void"})
             .on(this->exec);
 
     ASSERT_NE(dynamic_cast<gko::solver::Cg<float>::Factory*>(obj.get()),
@@ -83,8 +85,8 @@ TEST_F(Config, GenerateObjectWithPreconditioner)
 {
     auto reg = registry();
     auto precond_node =
-        pnode{{{"Type", pnode{"solver::Cg"}}, {"criteria", this->stop_config}}};
-    pnode p{{{"ValueType", pnode{"double"}},
+        pnode{{{"type", pnode{"solver::Cg"}}, {"criteria", this->stop_config}}};
+    pnode p{{{"value_type", pnode{"float64"}},
              {"criteria", this->stop_config},
              {"preconditioner", precond_node}}};
 
@@ -102,7 +104,6 @@ TEST_F(Config, GenerateObjectWithPreconditioner)
 TEST_F(Config, GenerateObjectWithCustomBuild)
 {
     configuration_map config_map;
-
     config_map["Custom"] = [](const pnode& config, const registry& context,
                               const type_descriptor& td_for_child) {
         return gko::solver::Bicg<double>::build().with_criteria(
@@ -110,13 +111,13 @@ TEST_F(Config, GenerateObjectWithCustomBuild)
     };
     auto reg = registry(config_map);
     auto precond_node =
-        pnode{std::map<std::string, pnode>{{"Type", pnode{"Custom"}}}};
-    pnode p{{{"ValueType", pnode{"double"}},
+        pnode{std::map<std::string, pnode>{{"type", pnode{"Custom"}}}};
+    pnode p{{{"value_type", pnode{"float64"}},
              {"criteria", this->stop_config},
              {"preconditioner", precond_node}}};
 
     auto obj =
-        parse<LinOpFactoryType::Cg>(p, reg, type_descriptor{"double", "void"})
+        parse<LinOpFactoryType::Cg>(p, reg, type_descriptor{"float64", "void"})
             .on(this->exec);
 
     ASSERT_NE(dynamic_cast<gko::solver::Cg<double>::Factory*>(obj.get()),

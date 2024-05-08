@@ -18,21 +18,6 @@ namespace gko {
 namespace config {
 
 
-type_descriptor update_type(const pnode& config, const type_descriptor& td)
-{
-    auto value_typestr = td.get_value_typestr();
-    auto index_typestr = td.get_index_typestr();
-
-    if (auto& obj = config.get("ValueType")) {
-        value_typestr = obj.get_string();
-    }
-    if (auto& obj = config.get("IndexType")) {
-        index_typestr = obj.get_string();
-    }
-    return type_descriptor{value_typestr, index_typestr};
-}
-
-
 template <>
 deferred_factory_parameter<const LinOpFactory> get_factory<const LinOpFactory>(
     const pnode& config, const registry& context, const type_descriptor& td)

@@ -24,12 +24,12 @@ deferred_factory_parameter<gko::LinOpFactory> parse(const pnode& config,
                                                     const registry& context,
                                                     const type_descriptor& td)
 {
-    if (auto& obj = config.get("Type")) {
+    if (auto& obj = config.get("type")) {
         auto func = detail::registry_accessor::get_build_map(context).at(
             obj.get_string());
         return func(config, context, td);
     }
-    GKO_INVALID_STATE("Should contain Type property");
+    GKO_INVALID_STATE("Should contain type property");
 }
 
 

@@ -138,11 +138,11 @@ get_factory<const stop::CriterionFactory>(const pnode& config,
                             gko::stop::CriterionFactory>(
                             const pnode&, const registry&, type_descriptor)>>
             criterion_map{
-                {{"Time", configure_time},
-                 {"Iteration", configure_iter},
-                 {"ResidualNorm", configure_residual},
-                 {"ImplicitResidualNorm", configure_implicit_residual}}};
-        return criterion_map.at(config.get("Type").get_string())(config,
+                {{"stop::Time", configure_time},
+                 {"stop::Iteration", configure_iter},
+                 {"stop::ResidualNorm", configure_residual},
+                 {"stop::ImplicitResidualNorm", configure_implicit_residual}}};
+        return criterion_map.at(config.get("type").get_string())(config,
                                                                  context, td);
     }
     GKO_THROW_IF_INVALID(!ptr.is_empty(), "Parse get nullptr in the end");

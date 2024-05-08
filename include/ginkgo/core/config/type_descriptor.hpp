@@ -33,7 +33,7 @@ namespace config {
  * ```
  * these types will take precedence over the type_descriptor.
  */
-class type_descriptor {
+class type_descriptor final {
 public:
     /**
      * type_descriptor constructor. There is free function
@@ -64,6 +64,13 @@ private:
 };
 
 
+/**
+ * make_type_descriptor is a helper function to properly set up the descriptor
+ * from template type directly.
+ *
+ * @tparam ValueType  the value type in descriptor
+ * @tparam IndexType  the index type in descriptor
+ */
 template <typename ValueType = double, typename IndexType = int>
 type_descriptor make_type_descriptor();
 
