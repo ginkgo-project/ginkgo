@@ -59,7 +59,7 @@ GKO_ATTRIBUTES static size_type get_block_offset(
  * @param batch_id  the index of the batch entry in the batch
  * @param num_blocks  number of blocks in an individual matrix entry
  * @param block_id  the id of the block from the perspective of individual
- * batch entry
+ *                  batch entry
  * @param block_storage_cumulative  the cumulative block storage array
  *
  * @return the global offset of the block which belongs to the batch entry
@@ -79,7 +79,7 @@ GKO_ATTRIBUTES static size_type get_global_block_offset(
  * Returns the stride between the rows of the block.
  *
  * @param block_idx  the id of the block from the perspective of individual
- * batch entry
+ *                   batch entry
  * @param block_ptrs  the block pointers array
  *
  * @return stride between rows of the block
