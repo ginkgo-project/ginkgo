@@ -216,9 +216,12 @@ TYPED_TEST(MatrixCreation, BuildFromExistingData)
     auto rank = this->comm.rank();
     I<I<value_type>> res_local[] = {{{2, 0}, {0, 0}}, {{0, 5}, {0, 0}}, {{0}}};
     std::array<gko::dim<2>, 3> size_local{{{2, 2}, {2, 2}, {1, 1}}};
-    std::array<matrix_data, 3> dist_input_local{{{size_local[0], {{0, 0, 2}}},
-                                                 {size_local[1], {{0, 1, 5}}},
-                                                 {size_local[2], {{}}}}};
+    std::array<matrix_data, 3> dist_input_local{
+        {{size_local[0], {{0, 0, 2}}},
+         {size_local[1], {{0, 1, 5}}},
+         {size_local[2],
+          std::initializer_list<
+              gko::detail::input_triple<value_type, local_index_type>>{}}}};
     I<I<value_type>> res_non_local[] = {
         {{1, 0}, {3, 4}}, {{0, 0, 6}, {8, 7, 0}}, {{10, 9}}};
     std::array<gko::dim<2>, 3> size_non_local{{{2, 2}, {2, 3}, {1, 2}}};
