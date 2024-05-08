@@ -240,6 +240,8 @@ if(GINKGO_BUILD_TESTS)
 endif()
 if(GINKGO_BUILD_BENCHMARKS)
     find_package(gflags 2.2.2 QUIET)
+endif()
+if(GINKGO_BUILD_TESTS OR GINKGO_BUILD_BENCHMARKS)
     find_package(nlohmann_json 3.9.1 QUIET)
 endif()
 
