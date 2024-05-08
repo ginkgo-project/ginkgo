@@ -174,14 +174,9 @@ TYPED_TEST(MatrixCreation, BuildOnlyLocal)
         {{size, {{0, 0, 1}, {0, 1, 2}, {1, 1, 3}}},
          {size, {{0, 1, 1}, {1, 0, -1}}},
          {size, {{0, 0, 1}, {1, 1, 1}}}}};
-
     auto local = gko::share(csr::create(this->exec));
     local->read(dist_input[rank]);
-    auto mat =
-        dist_mtx_type::create(this->exec, this->comm, gko::dim<2>{6, 6}, local);
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(mat->get_local_matrix()), res_local[rank],
-                        0);
-
+    // create vector
     auto x = dist_vec_type::create(this->ref, this->comm);
     auto y = dist_vec_type::create(this->ref, this->comm);
     auto vec_md = gko::matrix_data<value_type, global_index_type>{
@@ -197,8 +192,12 @@ TYPED_TEST(MatrixCreation, BuildOnlyLocal)
     x->read_distributed(vec_md, part);
     y->read_distributed(vec_md, part);
 
+    auto mat =
+        dist_mtx_type::create(this->exec, this->comm, gko::dim<2>{6, 6}, local);
     mat->apply(x, y);
 
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(mat->get_local_matrix()), res_local[rank],
+                        0);
     GKO_ASSERT_MTX_NEAR(y->get_local_vector(), result[rank], 0);
 }
 
@@ -233,19 +232,11 @@ TYPED_TEST(MatrixCreation, BuildFromExistingData)
         {{0, 0, 1, 2}, {0, 2, 2, 3}, {0, 1, 2, 2}}};
     std::array<gko::array<local_index_type>, 3> recv_gather_index{
         {{this->exec, {1, 0}}, {this->exec, {0, 1, 0}}, {this->exec, {1, 0}}}};
-
     auto local = gko::share(csr::create(this->exec));
     local->read(dist_input_local[rank]);
     auto non_local = gko::share(csr::create(this->exec));
     non_local->read(dist_input_non_local[rank]);
-    auto mat = dist_mtx_type::create(
-        this->exec, this->comm, gko::dim<2>{5, 5}, local, non_local,
-        recv_sizes[rank], recv_offsets[rank], recv_gather_index[rank]);
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(mat->get_local_matrix()), res_local[rank],
-                        0);
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(mat->get_non_local_matrix()),
-                        res_non_local[rank], 0);
-
+    // create vector
     auto vec_md = gko::matrix_data<value_type, global_index_type>{
         I<I<value_type>>{{1}, {2}, {3}, {4}, {5}}};
     I<I<value_type>> result[3] = {{{10}, {18}}, {{28}, {67}}, {{59}}};
@@ -262,8 +253,15 @@ TYPED_TEST(MatrixCreation, BuildFromExistingData)
     x->read_distributed(vec_md, col_part);
     y->read_distributed(vec_md, row_part);
 
+    auto mat = dist_mtx_type::create(
+        this->exec, this->comm, gko::dim<2>{5, 5}, local, non_local,
+        recv_sizes[rank], recv_offsets[rank], recv_gather_index[rank]);
     mat->apply(x, y);
 
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(mat->get_local_matrix()), res_local[rank],
+                        0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(mat->get_non_local_matrix()),
+                        res_non_local[rank], 0);
     GKO_ASSERT_MTX_NEAR(y->get_local_vector(), result[rank], 0);
 }
 

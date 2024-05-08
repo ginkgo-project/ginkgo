@@ -269,12 +269,19 @@ void Pgm<ValueType, IndexType>::communicate(
 #endif
 
 
+#define GKO_ASSERT_HOST_ARRAY(array) \
+    GKO_ASSERT(array.get_executor() == array.get_executor()->get_master())
+
+
 template <typename IndexType>
 void generate_non_local_map(
     const std::vector<experimental::distributed::comm_index_type>& recv_offsets,
     array<IndexType>& non_local_agg, array<IndexType>& non_local_col_map,
     array<IndexType>& renumber)
 {
+    GKO_ASSERT_HOST_ARRAY(non_local_agg);
+    GKO_ASSERT_HOST_ARRAY(non_local_col_map);
+    GKO_ASSERT_HOST_ARRAY(renumber);
     auto exec = renumber.get_executor();
     auto non_local_size = non_local_agg.get_size();
     array<IndexType> part_id(exec, non_local_size);
@@ -314,6 +321,7 @@ void generate_non_local_map(
     }
 }
 
+
 template <typename IndexType>
 void compute_communication(
     const std::vector<experimental::distributed::comm_index_type> recv_offsets,
@@ -322,6 +330,9 @@ void compute_communication(
     std::vector<experimental::distributed::comm_index_type>& new_recv_offsets,
     array<IndexType>& new_recv_gather_idxs)
 {
+    GKO_ASSERT_HOST_ARRAY(non_local_agg);
+    GKO_ASSERT_HOST_ARRAY(renumber);
+    GKO_ASSERT_HOST_ARRAY(new_recv_gather_idxs);
     new_recv_offsets.at(0) = 0;
     for (int i = 0; i < new_recv_size.size(); i++) {
         new_recv_size.at(i) =
@@ -337,6 +348,9 @@ void compute_communication(
             non_local_agg.get_const_data()[i];
     }
 }
+
+
+#undef GKO_ASSERT_HOST_ARRAY
 
 
 template <typename ValueType, typename IndexType>
@@ -444,7 +458,8 @@ void Pgm<ValueType, IndexType>::generate()
                 agg_, non_local_num_agg, non_local_col_map);
             // use local and non-local to build coarse matrix
             // also restriction and prolongation (Local-only-global matrix)
-            int64 coarse_size = std::get<1>(result)->get_size()[0];
+            auto coarse_size =
+                static_cast<int64>(std::get<1>(result)->get_size()[0]);
             comm.all_reduce(exec->get_master(), &coarse_size, 1, MPI_SUM);
             new_recv_gather_idxs.set_executor(exec);
 
