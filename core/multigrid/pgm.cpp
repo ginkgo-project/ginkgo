@@ -187,22 +187,23 @@ void Pgm<ValueType, IndexType>::generate()
     gko::dim<2>::dimension_type coarse_dim = num_agg;
     auto fine_dim = system_matrix_->get_size()[0];
     // prolong_row_gather is the lightway implementation for prolongation
-    auto prolong_row_gather = share(matrix::RowGatherer<IndexType>::create(
-        exec, gko::dim<2>{fine_dim, coarse_dim}));
-    exec->copy_from(exec, agg_.get_size(), agg_.get_const_data(),
-                    prolong_row_gather->get_row_idxs());
-    auto restrict_sparsity =
-        share(matrix::SparsityCsr<ValueType, IndexType>::create(
-            exec, gko::dim<2>{coarse_dim, fine_dim}, fine_dim));
-    agg_to_restrict(exec, num_agg, agg_, restrict_sparsity->get_row_ptrs(),
-                    restrict_sparsity->get_col_idxs());
+    GKO_NOT_IMPLEMENTED;
+    // auto prolong_row_gather = share(matrix::RowGatherer<IndexType>::create(
+    //     exec, gko::dim<2>{fine_dim, coarse_dim}));
+    // exec->copy_from(exec, agg_.get_size(), agg_.get_const_data(),
+    //                 prolong_row_gather->get_row_idxs());
+    // auto restrict_sparsity =
+    //     share(matrix::SparsityCsr<ValueType, IndexType>::create(
+    //         exec, gko::dim<2>{coarse_dim, fine_dim}, fine_dim));
+    // agg_to_restrict(exec, num_agg, agg_, restrict_sparsity->get_row_ptrs(),
+    //                 restrict_sparsity->get_col_idxs());
 
-    // Construct the coarse matrix
-    // TODO: improve it
-    auto coarse_matrix = generate_coarse(exec, pgm_op, num_agg, agg_);
+    // // Construct the coarse matrix
+    // // TODO: improve it
+    // auto coarse_matrix = generate_coarse(exec, pgm_op, num_agg, agg_);
 
-    this->set_multigrid_level(prolong_row_gather, coarse_matrix,
-                              restrict_sparsity);
+    // this->set_multigrid_level(prolong_row_gather, coarse_matrix,
+    //                           restrict_sparsity);
 }
 
 

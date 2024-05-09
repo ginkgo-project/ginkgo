@@ -107,16 +107,9 @@ public:
      */
     static std::unique_ptr<const RowGatherer> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
-        gko::detail::const_array_view<IndexType>&& row_idxs)
-    {
-        // cast const-ness away, but return a const object afterward,
-        // so we can ensure that no modifications take place.
-        return std::unique_ptr<const RowGatherer>(new RowGatherer{
-            exec, size, gko::detail::array_const_cast(std::move(row_idxs))});
-    }
+        gko::detail::const_array_view<IndexType>&& row_idxs);
 
 protected:
-    RowGatherer(std::shared_ptr<const Executor> exec, const dim<2>& size = {});
 
     /**
      * Creates uninitialized RowGatherer arrays of the specified size.
@@ -124,9 +117,7 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param size  size of the RowGatherable matrix
      */
-    RowGatherer(std::shared_ptr<const Executor> exec, const dim<2>& size)
-        : EnableLinOp<RowGatherer>(exec, size), row_idxs_(exec, size[0])
-    {}
+    RowGatherer(std::shared_ptr<const Executor> exec, const dim<2>& size);
 
     /**
      * Creates a RowGatherer matrix from an already allocated (and initialized)
@@ -142,7 +133,6 @@ protected:
      * IndexType, or is on the wrong executor, an internal copy will be created,
      * and the original array data will not be used in the matrix.
      */
-    template <typename IndicesArray>
     RowGatherer(std::shared_ptr<const Executor> exec, const dim<2>& size,
                 array<index_type> row_idxs);
 
