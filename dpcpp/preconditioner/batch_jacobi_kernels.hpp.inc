@@ -164,7 +164,7 @@ __dpct_inline__ void compute_block_jacobi_kernel(
             const auto idx =
                 current_block_pattern[a * gko::detail::batch_jacobi::get_stride(
                                               block_idx, block_pointers) +
-                                      sg_tid];  // coalseced accesses
+                                      sg_tid];  // coalesced accesses
             ValueType val_to_fill = zero<ValueType>();
             if (idx >= 0) {
                 assert(idx < nnz);
@@ -187,7 +187,7 @@ __dpct_inline__ void compute_block_jacobi_kernel(
                     // index >= block_size are meaningless
     sg.barrier();
 
-    // write back the tranpose of the transposed inverse matrix to block
+    // write back the transpose of the transposed inverse matrix to block
     // array
     for (int a = 0; a < block_size; a++) {
         const int col_inv_transposed_mat = a;

@@ -27,7 +27,7 @@ __global__ __launch_bounds__(default_block_size) void find_row_block_map_kernel(
          block_idx += blockDim.x * gridDim.x) {
         for (int i = block_pointers[block_idx];
              i < block_pointers[block_idx + 1]; i++) {
-            map_block_to_row[i] = block_idx;  // uncoalseced
+            map_block_to_row[i] = block_idx;  // uncoalesced
                                               // accesses
         }
     }
@@ -196,7 +196,7 @@ __launch_bounds__(default_block_size) void compute_block_jacobi_kernel(
                 const auto idx = current_block_pattern
                     [a * gko::detail::batch_jacobi::get_stride(block_idx,
                                                                block_pointers) +
-                     id_within_subwarp];  // coalseced
+                     id_within_subwarp];  // coalesced
                                           // accesses
                 ValueType val_to_fill = zero<ValueType>();
                 if (idx >= 0) {
@@ -221,7 +221,7 @@ __launch_bounds__(default_block_size) void compute_block_jacobi_kernel(
 
         subwarp_grp.sync();
 
-        // write back the tranpose of the transposed inverse matrix to block
+        // write back the transpose of the transposed inverse matrix to block
         // array
         for (int a = 0; a < block_size; a++) {
             const int col_inv_transposed_mat = a;
