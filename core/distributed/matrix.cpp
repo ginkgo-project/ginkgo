@@ -67,7 +67,6 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     one_scalar_->fill(one<value_type>());
 }
 
-
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm, dim<2> size,
@@ -90,6 +89,62 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     one_scalar_.init(exec, dim<2>{1, 1});
     one_scalar_->fill(one<value_type>());
     local_mtx_ = std::move(local_linop);
+}
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
+    std::shared_ptr<const Executor> exec, mpi::communicator comm, dim<2> size,
+    std::shared_ptr<LinOp> local_linop, std::shared_ptr<LinOp> non_local_linop,
+    std::vector<comm_index_type> recv_sizes,
+    std::vector<comm_index_type> recv_offsets,
+    array<local_index_type> recv_gather_idxs)
+    : EnableDistributedLinOp<
+          Matrix<value_type, local_index_type, global_index_type>>{exec},
+      DistributedBase{comm},
+      send_offsets_(comm.size() + 1),
+      send_sizes_(comm.size()),
+      recv_offsets_(comm.size() + 1),
+      recv_sizes_(comm.size()),
+      gather_idxs_{exec},
+      recv_gather_idxs_{exec},
+      non_local_to_global_{exec},
+      one_scalar_{}
+{
+    this->set_size(size);
+    local_mtx_ = local_linop;
+    non_local_mtx_ = non_local_linop;
+    recv_offsets_ = recv_offsets;
+    recv_sizes_ = recv_sizes;
+    recv_gather_idxs_ = recv_gather_idxs;
+    // build send information from recv copy
+    // exchange step 1: determine recv_sizes, send_sizes, send_offsets
+    std::partial_sum(recv_sizes_.begin(), recv_sizes_.end(),
+                     recv_offsets_.begin() + 1);
+    comm.all_to_all(exec, recv_sizes_.data(), 1, send_sizes_.data(), 1);
+    std::partial_sum(send_sizes_.begin(), send_sizes_.end(),
+                     send_offsets_.begin() + 1);
+    send_offsets_[0] = 0;
+    recv_offsets_[0] = 0;
+
+    // exchange step 2: exchange gather_idxs from receivers to senders
+    auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+    if (use_host_buffer) {
+        recv_gather_idxs_.set_executor(exec->get_master());
+        gather_idxs_.clear();
+        gather_idxs_.set_executor(exec->get_master());
+    }
+    gather_idxs_.resize_and_reset(send_offsets_.back());
+    comm.all_to_all_v(use_host_buffer ? exec->get_master() : exec,
+                      recv_gather_idxs_.get_const_data(), recv_sizes_.data(),
+                      recv_offsets_.data(), gather_idxs_.get_data(),
+                      send_sizes_.data(), send_offsets_.data());
+    if (use_host_buffer) {
+        gather_idxs_.set_executor(exec);
+        recv_gather_idxs_.set_executor(exec);
+    }
+
+    one_scalar_.init(exec, dim<2>{1, 1});
+    one_scalar_->fill(one<value_type>());
 }
 
 
@@ -131,6 +186,21 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
     std::shared_ptr<LinOp> local_linop)
 {
     return std::unique_ptr<Matrix>{new Matrix{exec, comm, size, local_linop}};
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+std::unique_ptr<Matrix<ValueType, LocalIndexType, GlobalIndexType>>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
+    std::shared_ptr<const Executor> exec, mpi::communicator comm, dim<2> size,
+    std::shared_ptr<LinOp> local_linop, std::shared_ptr<LinOp> non_local_linop,
+    std::vector<comm_index_type> recv_sizes,
+    std::vector<comm_index_type> recv_offsets,
+    array<local_index_type> recv_gather_idxs)
+{
+    return std::unique_ptr<Matrix>{new Matrix{exec, comm, size, local_linop,
+                                              non_local_linop, recv_sizes,
+                                              recv_offsets, recv_gather_idxs}};
 }
 
 

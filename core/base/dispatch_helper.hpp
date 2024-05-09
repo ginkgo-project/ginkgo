@@ -49,6 +49,25 @@ ReturnType run_impl(T obj, Func&& f, Args&&... args)
 
 
 /**
+ * @copydoc run<typename K, typename... Types, typename T, typename Func,
+ *              typename... Args>
+ *
+ * @note This handle the shared_ptr cases
+ */
+template <typename ReturnType, typename K, typename... Types, typename T,
+          typename Func, typename... Args>
+ReturnType run_impl(std::shared_ptr<T> obj, Func&& f, Args&&... args)
+{
+    if (auto dobj = std::dynamic_pointer_cast<K>(obj)) {
+        return f(dobj, std::forward<Args>(args)...);
+    } else {
+        return run_impl<ReturnType, Types...>(obj, std::forward<Func>(f),
+                                              std::forward<Args>(args)...);
+    }
+}
+
+
+/**
  * run uses template to go through the list and select the valid
  * template and run it.
  *
@@ -75,12 +94,12 @@ ReturnType run_impl(T obj, Func, Args...)
  *            in the conversion.
  * @tparam ...Types  the other types will be tried in the conversion if K fails
  * @tparam T  the type of input object waiting converted
- * @tparam Func  the function will run if the object can be converted to pointer
- *               of const Base<K>
+ * @tparam Func  the function type that is invoked if the object can be
+ *               converted to pointer of const Base<K>
  * @tparam ...Args  the additional arguments for the Func
  *
- * @param obj  the input object waiting converted
- * @param f  the function will run if obj can be converted successfully
+ * @param obj  the input object that should be converted
+ * @param f  the function will get invoked if obj can be converted successfully
  * @param args  the additional arguments for the function
  */
 template <typename ReturnType, template <typename> class Base, typename K,
@@ -106,15 +125,16 @@ ReturnType run_impl(T obj, Func&& f, Args&&... args)
  * @tparam K  the current type tried in the conversion
  * @tparam ...Types  the other types will be tried in the conversion if K fails
  * @tparam T  the type of input object
- * @tparam Func  the function will run if the object can be converted to K
+ * @tparam Func  the function type that is invoked if the object can be
+ *               converted to K
  * @tparam ...Args  the additional arguments for the Func
  *
- * @param obj  the input object waiting converted
- * @param f  the function will run if obj can be converted successfully
+ * @param obj  the input object that should be converted
+ * @param f  the function will get invoked if obj can be converted successfully
  * @param args  the additional arguments for the function
  *
- * @note  This assumes that each invocation of f with types (K, Types...)
- *        returns the same type
+ * @note  This assumes that the return type of f is independent of the input
+ *        types (K, Types...)
  *
  * @return  the result of f invoked with obj cast to the first matching type
  */
@@ -123,9 +143,45 @@ template <typename K, typename... Types, typename T, typename Func,
 auto run(T obj, Func&& f, Args&&... args)
 {
 #if __cplusplus < 201703L
+    // result_of_t is deprecated in C++17
     using ReturnType = std::result_of_t<Func(K, Args...)>;
 #else
     using ReturnType = std::invoke_result_t<Func, K, Args...>;
+#endif
+    return detail::run_impl<ReturnType, K, Types...>(
+        obj, std::forward<Func>(f), std::forward<Args>(args)...);
+}
+
+
+/**
+ * run uses template to go through the list and select the valid
+ * template and run it.
+ *
+ * @tparam K  the current shared_ptr type tried in the conversion
+ * @tparam ...Types  the other types will be tried in the conversion if K fails
+ * @tparam T  the type of input object
+ * @tparam Func  the function type that is invoked if the object can be
+ *               converted to std::shared_ptr<K>
+ * @tparam ...Args  the additional arguments for the Func
+ *
+ * @param obj  the input object that should be converted
+ * @param f  the function will get invoked if obj can be converted successfully
+ * @param args  the additional arguments for the function
+ *
+ * @note  This assumes that the return type of f is independent of the input
+ *        types (std::shared_ptr<K>, std::shared_ptr<Types>...)
+ *
+ * @return  the result of f invoked with obj cast to the first matching type
+ */
+template <typename K, typename... Types, typename T, typename Func,
+          typename... Args>
+auto run(std::shared_ptr<T> obj, Func&& f, Args&&... args)
+{
+#if __cplusplus < 201703L
+    // result_of_t is deprecated in C++17
+    using ReturnType = std::result_of_t<Func(std::shared_ptr<K>, Args...)>;
+#else
+    using ReturnType = std::invoke_result_t<Func, std::shared_ptr<K>, Args...>;
 #endif
     return detail::run_impl<ReturnType, K, Types...>(
         obj, std::forward<Func>(f), std::forward<Args>(args)...);
@@ -141,16 +197,16 @@ auto run(T obj, Func&& f, Args&&... args)
  *            in the conversion.
  * @tparam ...Types  the other types will be tried in the conversion if K fails
  * @tparam T  the type of input object waiting converted
- * @tparam Func  the function will run if the object can be converted to pointer
- *               of const Base<K>
+ * @tparam Func  the function type that is invoked if the object can be
+ *               converted to pointer of const Base<K>
  * @tparam ...Args  the additional arguments for the Func
  *
- * @param obj  the input object waiting converted
- * @param f  the function will run if obj can be converted successfully
+ * @param obj  the input object that should be converted
+ * @param f  the function will get invoked if obj can be converted successfully
  * @param args  the additional arguments for the function
  *
- * @note  This assumes that each invocation of f with types (smart_ptr<Base<K>>,
- *        smart_ptr<Base<Types>>...) returns the same type
+ * @note   This assumes that the return type of f is independent of the input
+ *         types (smart_ptr<Base<K>>, smart_ptr<Base<Types>>...)
  *
  * @return  the result of f invoked with obj cast to the first matching type
  */
@@ -162,6 +218,7 @@ auto run(T obj, Func&& f, Args&&... args)
     // smart pointer. unique_ptr is used because it can be converted into a
     // shared_ptr, but not the other way around.
 #if __cplusplus < 201703L
+    // result_of_t is deprecated in C++17
     using ReturnType =
         std::result_of_t<Func(std::unique_ptr<Base<K>>, Args...)>;
 #else

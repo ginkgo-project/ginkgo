@@ -243,6 +243,28 @@ TEST_F(Pgm, AssignToExistAggUnderteminsticIsEquivalentToRef)
 }
 
 
+TEST_F(Pgm, GatherIndexIsEquivalentToRef)
+{
+    gko::size_type num = 267;
+    gko::size_type orig_num = 123;
+    auto orig = gen_array(orig_num, 0, 63);
+    auto map = gen_array(num, 0, orig_num - 1);
+    gko::array<index_type> result(ref, num);
+    gko::array<index_type> d_orig(exec, orig);
+    gko::array<index_type> d_map(exec, map);
+    gko::array<index_type> d_result(exec, result);
+
+    gko::kernels::reference::pgm::gather_index(ref, num, orig.get_const_data(),
+                                               map.get_const_data(),
+                                               result.get_data());
+    gko::kernels::EXEC_NAMESPACE::pgm::gather_index(
+        exec, num, d_orig.get_const_data(), d_map.get_const_data(),
+        d_result.get_data());
+
+    GKO_ASSERT_ARRAY_EQ(d_result, result);
+}
+
+
 TEST_F(Pgm, GenerateMgLevelIsEquivalentToRef)
 {
     initialize_data();
