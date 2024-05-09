@@ -6,9 +6,6 @@
 #define GKO_CUDA_PRECONDITIONER_BATCH_PRECONDITIONERS_CUH_
 
 
-#include <ginkgo/core/matrix/batch_identity.hpp>
-
-
 #include "core/matrix/batch_struct.hpp"
 #include "core/preconditioner/batch_jacobi_helpers.hpp"
 #include "cuda/components/cooperative_groups.cuh"

@@ -5,11 +5,11 @@
 /**
  * (Scalar) Jacobi preconditioner for batch solvers.
  */
-template <typename ValueType, typename IndexType = int>
+template <typename ValueType>
 class ScalarJacobi final {
 public:
     using value_type = ValueType;
-    using index_type = IndexType;
+    using index_type = int;
 
     /**
      * The size of the work vector required in case of dynamic allocation.
@@ -46,14 +46,14 @@ public:
                 if (col_idx < idx) {
                     break;
                 } else {
-                    const bool found = (col_idx == tidx);
-                    if (found) {
+                    if (col_idx == tidx) {
                         temp = one<ValueType>() / val[ind];
                     }
                 }
             }
             work_[tidx] = temp;
         }
+        __syncthreads();
     }
 
     /**
@@ -80,8 +80,7 @@ public:
         for (int irow = tile_rank; irow < mat.num_rows; irow += num_tiles) {
             for (int j = mat.row_ptrs[irow] + tile.thread_rank();
                  j < mat.row_ptrs[irow + 1]; j += warp_size) {
-                const int found = (mat.col_idxs[j] == irow);
-                if (found) {
+                if (mat.col_idxs[j] == irow) {
                     work_[irow] = (mat.values[j] != zero<ValueType>())
                                       ? one<ValueType>() / mat.values[j]
                                       : one<ValueType>();
