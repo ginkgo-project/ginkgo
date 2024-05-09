@@ -5,11 +5,11 @@
 /**
  * BlockJacobi preconditioner for batch solvers.
  */
-template <typename ValueType, typename IndexType = int>
+template <typename ValueType>
 class BlockJacobi final {
 public:
     using value_type = ValueType;
-    using index_type = IndexType;
+    using index_type = int;
 
 
     /**

@@ -106,7 +106,7 @@ __dpct_inline__ void invert_dense_block(const int block_size,
             block_row[k] = zero<ValueType>();
         }
         const ValueType row_val = block_row[k];
-        // GER
+        // rank-1 update
         for (int col = 0; col < block_size; col++) {
             const ValueType col_val = sg.shuffle(block_row[col], ipiv);
             block_row[col] += row_val * col_val;

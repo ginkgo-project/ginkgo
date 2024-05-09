@@ -190,25 +190,19 @@ TEST_F(BatchJacobi, CanSolveLargeMatrixSizeHpdSystemWithScalarJacobi)
     const int num_rhs = 1;
     const real_type tol = 1e-5;
     const int max_iters = num_rows;
-    std::shared_ptr<Logger> plogger = Logger::create();
     std::shared_ptr<Logger> logger = Logger::create();
     auto mat =
         gko::share(gko::test::generate_3pt_stencil_batch_matrix<const CsrMtx>(
             exec, num_batch_items, num_rows, (3 * num_rows - 2)));
     auto linear_system = setup_linsys_and_solver(mat, num_rhs, tol, max_iters);
-    auto solver = gko::share(solver_factory->generate(linear_system.matrix));
-    solver->add_logger(logger);
-    auto psolver =
+    auto precond_solver =
         gko::share(scalar_jac_solver_factory->generate(linear_system.matrix));
-    psolver->add_logger(plogger);
-    auto res2 = gko::test::solve_linear_system(exec, linear_system, solver);
+    precond_solver->add_logger(logger);
 
-    auto res = gko::test::solve_linear_system(exec, linear_system, psolver);
+    auto res =
+        gko::test::solve_linear_system(exec, linear_system, precond_solver);
 
-    psolver->remove_logger(plogger);
-    solver->remove_logger(logger);
-    auto p_iter_counts = gko::make_temporary_clone(
-        exec->get_master(), &plogger->get_num_iterations());
+    precond_solver->remove_logger(logger);
     auto iter_counts = gko::make_temporary_clone(exec->get_master(),
                                                  &logger->get_num_iterations());
     auto res_norm = gko::make_temporary_clone(exec->get_master(),
@@ -220,6 +214,7 @@ TEST_F(BatchJacobi, CanSolveLargeMatrixSizeHpdSystemWithScalarJacobi)
         EXPECT_LE(res_norm->get_const_data()[i] /
                       linear_system.host_rhs_norm->get_const_values()[i],
                   tol);
+        EXPECT_LT(iter_counts->get_const_data()[i], max_iters);
         EXPECT_GT(res_norm->get_const_data()[i], real_type{0.0});
         ASSERT_LE(comp_res_norm, tol * 10);
     }
@@ -233,26 +228,28 @@ TEST_F(BatchJacobi, CanSolveLargeMatrixSizeHpdSystemWithBlockJacobi)
     const int num_rhs = 1;
     const real_type tol = 1e-5;
     const int max_iters = num_rows;
-    std::shared_ptr<Logger> plogger = Logger::create();
+    std::shared_ptr<Logger> logger = Logger::create();
     auto mat =
         gko::share(gko::test::generate_diag_dominant_batch_matrix<const CsrMtx>(
             exec, num_batch_items, num_rows, false, (4 * num_rows - 3)));
     auto linear_system = setup_linsys_and_solver(mat, num_rhs, tol, max_iters);
-    auto psolver =
+    auto precond_solver =
         gko::share(precond_solver_factory->generate(linear_system.matrix));
-    psolver->add_logger(plogger);
+    precond_solver->add_logger(logger);
 
-    auto res = gko::test::solve_linear_system(exec, linear_system, psolver);
+    auto res =
+        gko::test::solve_linear_system(exec, linear_system, precond_solver);
 
-    psolver->remove_logger(plogger);
-    auto iter_counts = gko::make_temporary_clone(
-        exec->get_master(), &plogger->get_num_iterations());
+    precond_solver->remove_logger(logger);
+    auto iter_counts = gko::make_temporary_clone(exec->get_master(),
+                                                 &logger->get_num_iterations());
     auto res_norm = gko::make_temporary_clone(exec->get_master(),
-                                              &plogger->get_residual_norm());
+                                              &logger->get_residual_norm());
     GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 500);
     for (size_t i = 0; i < num_batch_items; i++) {
         auto comp_res_norm = res.host_res_norm->get_const_values()[i] /
                              linear_system.host_rhs_norm->get_const_values()[i];
+        EXPECT_LT(iter_counts->get_const_data()[i], max_iters);
         EXPECT_LE(res_norm->get_const_data()[i] /
                       linear_system.host_rhs_norm->get_const_values()[i],
                   tol);
