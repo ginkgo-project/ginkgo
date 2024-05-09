@@ -13,42 +13,73 @@ namespace gko {
 
 
 /**
- * Helper struct storing an array segment
+ * Helper struct to handle segmented arrays in device kernels
  *
- * @tparam T  The value type of the array
+ * @TODO: replace by segmented ranges when available
+ *
+ * @tparam T  the value type of the array, maybe const-qualified
  */
 template <typename T>
-struct array_segment {
-    T* begin;
-    T* end;
+struct device_segmented_array {
+    /**
+     * Helper struct storing a single segment
+     */
+    struct segment {
+        T* begin;
+        T* end;
+    };
+
+    constexpr segment get_segment(size_type segment_id)
+    {
+        assert(segment_id < (offsets_end - offsets_begin));
+        return {flat_begin + offsets_begin[segment_id],
+                flat_begin + offsets_begin[segment_id + 1]};
+    }
+
+    T* flat_begin;
+    T* flat_end;
+    const int64* offsets_begin;
+    const int64* offsets_end;
 };
 
-
 /**
- * Helper function to create a device-compatible view of an array segment.
+ * Create device_segmented_array from a segmented_array.
  */
 template <typename T>
-constexpr array_segment<T> get_array_segment(segmented_array<T>& sarr,
-                                             size_type segment_id)
+constexpr device_segmented_array<T> to_device(segmented_array<T>& sarr)
 {
-    assert(segment_id < sarr.get_segment_count());
-    auto offsets = sarr.get_offsets().get_const_data();
-    auto data = sarr.get_flat_data();
-    return {data + offsets[segment_id], data + offsets[segment_id + 1]};
+    return {sarr.get_flat_data(), sarr.get_flat_data() + sarr.get_size(),
+            sarr.get_offsets().get_const_data(),
+            sarr.get_offsets().get_const_data() + sarr.get_segment_count()};
 }
 
 
 /**
- * Helper function to create a device-compatible view of a const array segment.
+ * Create device_segmented_array from a segmented_array.
  */
 template <typename T>
-constexpr array_segment<const T> get_array_segment(
-    const segmented_array<T>& sarr, size_type segment_id)
+constexpr device_segmented_array<const T> to_device(
+    const segmented_array<T>& sarr)
 {
-    assert(segment_id < sarr.get_segment_count());
-    auto offsets = sarr.get_offsets().get_const_data();
-    auto data = sarr.get_const_flat_data();
-    return {data + offsets[segment_id], data + offsets[segment_id + 1]};
+    return {sarr.get_const_flat_data(),
+            sarr.get_const_flat_data() + sarr.get_size(),
+            sarr.get_offsets().get_const_data(),
+            sarr.get_offsets().get_const_data() + sarr.get_segment_count()};
+}
+
+/**
+ * Explicitly create a const version of device_segmented_array.
+ *
+ * This is mostly relevant for tests.
+ */
+template <typename T>
+constexpr device_segmented_array<const T> to_device_const(
+    const segmented_array<T>& sarr)
+{
+    return {sarr.get_const_flat_data(),
+            sarr.get_const_flat_data() + sarr.get_size(),
+            sarr.get_offsets().get_const_data(),
+            sarr.get_offsets().get_const_data() + sarr.get_segment_count()};
 }
 
 
