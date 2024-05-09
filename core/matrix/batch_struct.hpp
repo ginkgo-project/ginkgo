@@ -32,6 +32,12 @@ struct batch_item {
     const index_type* row_ptrs;
     index_type num_rows;
     index_type num_cols;
+    index_type num_nnz_per_item;
+
+    inline size_type get_single_item_num_nnz() const
+    {
+        return static_cast<size_type>(num_nnz_per_item);
+    }
 };
 
 
@@ -75,6 +81,11 @@ struct batch_item {
     int32 stride;
     int32 num_rows;
     int32 num_cols;
+
+    inline size_type get_single_item_num_nnz() const
+    {
+        return static_cast<size_type>(stride * num_rows);
+    }
 };
 
 
@@ -119,6 +130,11 @@ struct batch_item {
     index_type num_rows;
     index_type num_cols;
     index_type num_stored_elems_per_row;
+
+    inline size_type get_single_item_num_nnz() const
+    {
+        return static_cast<size_type>(stride * num_stored_elems_per_row);
+    }
 };
 
 
@@ -153,7 +169,8 @@ template <typename ValueType, typename IndexType>
 GKO_ATTRIBUTES GKO_INLINE csr::batch_item<const ValueType, const IndexType>
 to_const(const csr::batch_item<ValueType, IndexType>& b)
 {
-    return {b.values, b.col_idxs, b.row_ptrs, b.num_rows, b.num_cols};
+    return {b.values,   b.col_idxs, b.row_ptrs,
+            b.num_rows, b.num_cols, b.num_nnz_per_item};
 }
 
 
@@ -171,8 +188,12 @@ GKO_ATTRIBUTES GKO_INLINE csr::batch_item<ValueType, IndexType>
 extract_batch_item(const csr::uniform_batch<ValueType, IndexType>& batch,
                    const size_type batch_idx)
 {
-    return {batch.values + batch_idx * batch.num_nnz_per_item, batch.col_idxs,
-            batch.row_ptrs, batch.num_rows, batch.num_cols};
+    return {batch.values + batch_idx * batch.num_nnz_per_item,
+            batch.col_idxs,
+            batch.row_ptrs,
+            batch.num_rows,
+            batch.num_cols,
+            batch.num_nnz_per_item};
 }
 
 template <typename ValueType, typename IndexType>
@@ -183,8 +204,12 @@ extract_batch_item(ValueType* const batch_values,
                    const int num_cols, int num_nnz_per_item,
                    const size_type batch_idx)
 {
-    return {batch_values + batch_idx * num_nnz_per_item, batch_col_idxs,
-            batch_row_ptrs, num_rows, num_cols};
+    return {batch_values + batch_idx * num_nnz_per_item,
+            batch_col_idxs,
+            batch_row_ptrs,
+            num_rows,
+            num_cols,
+            num_nnz_per_item};
 }
 
 

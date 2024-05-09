@@ -18,7 +18,9 @@ namespace dpcpp {
 namespace batch_preconditioner {
 
 
+#include "dpcpp/preconditioner/batch_block_jacobi.hpp.inc"
 #include "dpcpp/preconditioner/batch_identity.hpp.inc"
+#include "dpcpp/preconditioner/batch_scalar_jacobi.hpp.inc"
 
 
 }  // namespace batch_preconditioner
