@@ -2,6 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+// force-top: on
+#include <ginkgo/core/base/types.hpp>
+// force-top: off
+
+
 #include <ginkgo/core/matrix/identity.hpp>
 
 
@@ -50,6 +55,9 @@ TYPED_TEST(Identity, CanBeConstructedWithSize)
 }
 
 
+GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
+
+
 TYPED_TEST(Identity, CanBeConstructedWithSquareSize)
 {
     using Id = typename TestFixture::Id;
@@ -66,6 +74,9 @@ TYPED_TEST(Identity, FailsConstructionWithRectangularSize)
     ASSERT_THROW(Id::create(this->exec, gko::dim<2>(5, 4)),
                  gko::DimensionMismatch);
 }
+
+
+GKO_END_DISABLE_DEPRECATION_WARNINGS
 
 
 template <typename T>

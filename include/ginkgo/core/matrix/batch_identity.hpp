@@ -29,9 +29,7 @@ namespace matrix {
  * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
-class Identity final : public EnableBatchLinOp<Identity<ValueType>>,
-                       public EnableCreateMethod<Identity<ValueType>> {
-    friend class EnableCreateMethod<Identity>;
+class Identity final : public EnableBatchLinOp<Identity<ValueType>> {
     friend class EnablePolymorphicObject<Identity, BatchLinOp>;
 
 public:
@@ -81,14 +79,19 @@ public:
                           ptr_param<const MultiVector<value_type>> b,
                           ptr_param<const MultiVector<value_type>> beta,
                           ptr_param<MultiVector<value_type>> x) const;
-
-private:
     /**
      * Creates an Identity matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the batch matrices in a batch_dim object
+     *
+     * @return A smart pointer to the newly created matrix.
      */
+    static std::unique_ptr<Identity> create(
+        std::shared_ptr<const Executor> exec,
+        const batch_dim<2>& size = batch_dim<2>{});
+
+private:
     Identity(std::shared_ptr<const Executor> exec,
              const batch_dim<2>& size = batch_dim<2>{});
 

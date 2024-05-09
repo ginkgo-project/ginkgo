@@ -183,6 +183,24 @@ void Fft::apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
 }
 
 
+Fft::Fft(std::shared_ptr<const Executor> exec, size_type size, bool inverse)
+    : EnableLinOp<Fft>(exec, dim<2>{size}), buffer_{exec}, inverse_{inverse}
+{}
+
+
+std::unique_ptr<Fft> Fft::create(std::shared_ptr<const Executor> exec)
+{
+    return std::unique_ptr<Fft>{new Fft{exec}};
+}
+
+
+std::unique_ptr<Fft> Fft::create(std::shared_ptr<const Executor> exec,
+                                 size_type size, bool inverse)
+{
+    return std::unique_ptr<Fft>{new Fft{exec, size, inverse}};
+}
+
+
 std::unique_ptr<LinOp> Fft2::transpose() const
 {
     return Fft2::create(this->get_executor(), fft_size_[0], fft_size_[1],
@@ -258,6 +276,36 @@ void Fft2::apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
         dense_x->add_scaled(alpha, clone_x);
     }
 }
+
+
+std::unique_ptr<Fft2> Fft2::create(std::shared_ptr<const Executor> exec)
+{
+    return std::unique_ptr<Fft2>{new Fft2{exec}};
+}
+
+
+std::unique_ptr<Fft2> Fft2::create(std::shared_ptr<const Executor> exec,
+                                   size_type size)
+{
+    return std::unique_ptr<Fft2>{new Fft2{exec, size}};
+}
+
+
+std::unique_ptr<Fft2> Fft2::create(std::shared_ptr<const Executor> exec,
+                                   size_type size1, size_type size2,
+                                   bool inverse)
+{
+    return std::unique_ptr<Fft2>{new Fft2{exec, size1, size2, inverse}};
+}
+
+
+Fft2::Fft2(std::shared_ptr<const Executor> exec, size_type size1,
+           size_type size2, bool inverse)
+    : EnableLinOp<Fft2>(exec, dim<2>{size1 * size2}),
+      buffer_{exec},
+      fft_size_{size1, size2},
+      inverse_{inverse}
+{}
 
 
 std::unique_ptr<LinOp> Fft3::transpose() const
@@ -341,6 +389,36 @@ void Fft3::apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
         dense_x->add_scaled(alpha, clone_x);
     }
 }
+
+
+std::unique_ptr<Fft3> Fft3::create(std::shared_ptr<const Executor> exec)
+{
+    return std::unique_ptr<Fft3>{new Fft3{exec}};
+}
+
+
+std::unique_ptr<Fft3> Fft3::create(std::shared_ptr<const Executor> exec,
+                                   size_type size)
+{
+    return std::unique_ptr<Fft3>{new Fft3{exec, size}};
+}
+
+
+std::unique_ptr<Fft3> Fft3::create(std::shared_ptr<const Executor> exec,
+                                   size_type size1, size_type size2,
+                                   size_type size3, bool inverse)
+{
+    return std::unique_ptr<Fft3>{new Fft3{exec, size1, size2, size3, inverse}};
+}
+
+
+Fft3::Fft3(std::shared_ptr<const Executor> exec, size_type size1,
+           size_type size2, size_type size3, bool inverse)
+    : EnableLinOp<Fft3>(exec, dim<2>{size1 * size2 * size3}),
+      buffer_{exec},
+      fft_size_{size1, size2, size3},
+      inverse_{inverse}
+{}
 
 
 }  // namespace matrix

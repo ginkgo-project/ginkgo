@@ -41,9 +41,7 @@ namespace matrix {
  * @ingroup LinOp
  */
 template <typename IndexType = int32>
-class RowGatherer : public EnableLinOp<RowGatherer<IndexType>>,
-                    public EnableCreateMethod<RowGatherer<IndexType>> {
-    friend class EnableCreateMethod<RowGatherer>;
+class RowGatherer : public EnableLinOp<RowGatherer<IndexType>> {
     friend class EnablePolymorphicObject<RowGatherer, LinOp>;
 
 public:
@@ -69,6 +67,35 @@ public:
     }
 
     /**
+     * Creates uninitialized RowGatherer arrays of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the RowGatherable matrix
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<RowGatherer> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size = {});
+
+    /**
+     * Creates a RowGatherer matrix from an already allocated (and initialized)
+     * row gathering array
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the rowgatherer array.
+     * @param row_idxs array of rowgatherer array
+     *
+     * @note If `row_idxs` is not an rvalue, not an array of
+     * IndexType, or is on the wrong executor, an internal copy will be created,
+     * and the original array data will not be used in the matrix.
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<RowGatherer> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        array<index_type> row_idxs);
+
+    /**
      * Creates a constant (immutable) RowGatherer matrix from a constant array.
      *
      * @param exec  the executor to create the matrix on
@@ -89,14 +116,7 @@ public:
     }
 
 protected:
-    /**
-     * Creates an uninitialized RowGatherer arrays on the specified executor.
-     *
-     * @param exec  Executor associated to the LinOp
-     */
-    RowGatherer(std::shared_ptr<const Executor> exec)
-        : RowGatherer(std::move(exec), dim<2>{})
-    {}
+    RowGatherer(std::shared_ptr<const Executor> exec, const dim<2>& size = {});
 
     /**
      * Creates uninitialized RowGatherer arrays of the specified size.
@@ -124,12 +144,7 @@ protected:
      */
     template <typename IndicesArray>
     RowGatherer(std::shared_ptr<const Executor> exec, const dim<2>& size,
-                IndicesArray&& row_idxs)
-        : EnableLinOp<RowGatherer>(exec, size),
-          row_idxs_{exec, std::forward<IndicesArray>(row_idxs)}
-    {
-        GKO_ASSERT_EQ(size[0], row_idxs_.get_size());
-    }
+                array<index_type> row_idxs);
 
     void apply_impl(const LinOp* in, LinOp* out) const override;
 

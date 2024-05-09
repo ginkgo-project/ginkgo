@@ -104,7 +104,6 @@ build/cuda101/nompi/clang/cuda_wo_omp/release/shared:
     - .full_test_condition
     - .use_gko-cuda101-openmpi-gnu8-llvm7-intel2019
   variables:
-    C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
@@ -138,7 +137,6 @@ build/cuda101/nompi/clang/all/release/static:
     - .full_test_condition
     - .use_gko-cuda101-openmpi-gnu8-llvm7-intel2019
   variables:
-    C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
@@ -155,7 +153,6 @@ build/cuda101/nompi/clang/all/release/static:
 #    - .quick_test_condition
 #    - .use_gko-cuda101-openmpi-gnu8-llvm13-intel2019
 #  variables:
-#    C_COMPILER: "clang"
 #    CXX_COMPILER: "clang++"
 #    CUDA_COMPILER: "clang++"
 #    BUILD_OMP: "ON"
@@ -173,7 +170,6 @@ build/cuda101/nompi/clang/all/release/static:
 #    - .full_test_condition
 #    - .use_gko-cuda101-openmpi-gnu8-llvm13-intel2019
 #  variables:
-#    C_COMPILER: "clang"
 #    CXX_COMPILER: "clang++"
 #    CUDA_COMPILER: "clang++"
 #    BUILD_OMP: "ON"
@@ -209,7 +205,6 @@ build/cuda102/nompi/clang/all/release/static:
     - .full_test_condition
     - .use_gko-cuda102-nompi-gnu8-llvm8-intel2019
   variables:
-    C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
@@ -217,6 +212,7 @@ build/cuda102/nompi/clang/all/release/static:
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
+    BUILD_HWLOC: "OFF"
 
 build/cuda102/nompi/intel/cuda/debug/static:
   extends:
@@ -225,14 +221,15 @@ build/cuda102/nompi/intel/cuda/debug/static:
     - .full_test_condition
     - .use_gko-cuda102-nompi-gnu8-llvm8-intel2019
   variables:
-    C_COMPILER: "icc"
     CXX_COMPILER: "icpc"
+    CXX_FLAGS: ""
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
+    BUILD_HWLOC: "OFF"
 
 # cuda 11.0 and friends on HoreKa with tests
 build/cuda110/mvapich2/gcc/cuda/debug/shared:
@@ -277,7 +274,6 @@ build/cuda110/nompi/clang/cuda/release/static:
     - .full_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
   variables:
-    C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
@@ -312,8 +308,8 @@ build/cuda110/nompi/intel/cuda/debug/static:
     - .full_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
   variables:
-    C_COMPILER: "icc"
     CXX_COMPILER: "icpc"
+    CXX_FLAGS: ""
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_TYPE: "Debug"
@@ -367,7 +363,6 @@ build/nvhpc233/cuda120/nompi/nvcpp/release/static:
     - .quick_test_condition
     - .use_gko_nvhpc233-cuda120-openmpi-gnu12-llvm16
   variables:
-    C_COMPILER: "nvc"
     CXX_COMPILER: "nvc++"
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
@@ -387,7 +382,6 @@ build/nvhpc227/cuda117/nompi/nvcpp/debug/shared:
     - .quick_test_condition
     - .use_gko_nvhpc227-cuda117-openmpi-gnu11-llvm14
   variables:
-    C_COMPILER: "nvc"
     CXX_COMPILER: "nvc++"
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
@@ -412,6 +406,7 @@ build/amd/nompi/gcc/rocm45/release/shared:
     NONDEFAULT_STREAM: "ON"
     RUN_EXAMPLES: "ON"
     BUILD_TYPE: "Release"
+    BUILD_HWLOC: "OFF"
 
 build/amd/nompi/clang/rocm45/release/static:
   extends:
@@ -420,7 +415,6 @@ build/amd/nompi/clang/rocm45/release/static:
     - .full_test_condition
     - .use_gko-rocm45-nompi-gnu8-llvm8
   variables:
-    C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
@@ -435,7 +429,6 @@ build/amd/nompi/clang/rocm45/debug/shared:
     - .quick_test_condition
     - .use_gko-rocm45-nompi-gnu8-llvm8
   variables:
-    C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
@@ -463,7 +456,6 @@ build/amd/nompi/clang/rocm502/release/shared:
     - .quick_test_condition
     - .use_gko-rocm502-nompi-gnu11-llvm11
   variables:
-    C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
@@ -504,7 +496,6 @@ build/nocuda/nompi/clang/core/release/shared:
     - .quick_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
-    C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
     BUILD_TYPE: "Release"
 
@@ -525,7 +516,6 @@ build/nocuda/openmpi/clang/omp/debug/static:
     - .full_test_condition
     - .use_gko-nocuda-openmpi-gnu9-llvm8
   variables:
-    C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     MPI_AS_ROOT: "ON"
@@ -553,7 +543,6 @@ build/nocuda-nomixed/nompi/clang/omp/release/static:
     - .full_test_condition
     - .use_gko-nocuda-mvapich2-gnu5-llvm39-intel2019
   variables:
-    C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_TYPE: "Release"
@@ -580,7 +569,6 @@ build/nocuda-nomixed/nompi/clang/omp/debug/static:
     - .full_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
-    C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_TYPE: "Debug"
@@ -594,15 +582,15 @@ build/dpcpp/2022-1/cpu/release/shared:
     - .quick_test_condition
     - .use_gko-oneapi-cpu
   variables:
-    C_COMPILER: "gcc"
     CXX_COMPILER: "dpcpp"
+    CXX_FLAGS: "-Wpedantic -ffp-model=precise"
     BUILD_SYCL: "ON"
-    GKO_COMPILER_FLAGS: "-ffp-model=precise"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "ON"
     SYCL_DEVICE_FILTER: "*:cpu"
     SLURM_PARTITION: "cpu"
     SLURM_TIME: "2:00:00"
+    BUILD_HWLOC: "OFF"
     # This job is not in exclusive mode
 
 # It gives two available backends of GPU on tests
@@ -613,14 +601,14 @@ build/dpcpp/igpu/release/shared:
     - .quick_test_condition
     - .use_gko-oneapi-igpu
   variables:
-    C_COMPILER: "gcc"
     CXX_COMPILER: "dpcpp"
+    CXX_FLAGS: "-Wpedantic -ffp-model=precise"
     BUILD_SYCL: "ON"
-    GKO_COMPILER_FLAGS: "-ffp-model=precise"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "ON"
     DPCPP_SINGLE_MODE: "ON"
     ONEAPI_DEVICE_SELECTOR: "*:gpu"
+    BUILD_HWLOC: "OFF"
 
 # TODO: Enable when debug shared library size issues are fixed
 # build/dpcpp/level_zero_igpu/debug/shared:
@@ -630,10 +618,9 @@ build/dpcpp/igpu/release/shared:
 #     - .full_test_condition
 #     - .use_gko-oneapi-igpu
 #   variables:
-#     C_COMPILER: "gcc"
 #     CXX_COMPILER: "dpcpp"
+#     CXX_FLAGS: "-Wpedantic -ffp-model=precise"
 #     BUILD_SYCL: "ON"
-#     GKO_COMPILER_FLAGS: "-ffp-model=precise"
 #     BUILD_TYPE: "Debug"
 #     BUILD_SHARED_LIBS: "ON"
 #     DPCPP_SINGLE_MODE: "ON"
@@ -647,14 +634,14 @@ build/dpcpp/dgpu/release/static:
     - .full_test_condition
     - .use_gko-oneapi-igpu
   variables:
-    C_COMPILER: "gcc"
     CXX_COMPILER: "dpcpp"
+    CXX_FLAGS: "-Wpedantic -ffp-model=precise"
     BUILD_SYCL: "ON"
-    GKO_COMPILER_FLAGS: "-ffp-model=precise"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OF"
     DPCPP_SINGLE_MODE: "ON"
     ONEAPI_DEVICE_SELECTOR: "*:gpu"
+    BUILD_HWLOC: "OFF"
 
 build/dpcpp/level_zero_dgpu/release/shared:
   extends:
@@ -663,13 +650,13 @@ build/dpcpp/level_zero_dgpu/release/shared:
     - .quick_test_condition
     - .use_gko-oneapi-dgpu
   variables:
-    C_COMPILER: "gcc"
     CXX_COMPILER: "dpcpp"
+    CXX_FLAGS: "-Wpedantic -ffp-model=precise"
     BUILD_SYCL: "ON"
-    GKO_COMPILER_FLAGS: "-ffp-model=precise"
     BUILD_TYPE: "Release"
     DPCPP_SINGLE_MODE: "ON"
     ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
+    BUILD_HWLOC: "OFF"
 
 build/icpx/level_zero_dgpu/release/shared:
   extends:
@@ -678,13 +665,13 @@ build/icpx/level_zero_dgpu/release/shared:
     - .quick_test_condition
     - .use_gko-oneapi-dgpu
   variables:
-    C_COMPILER: "icx"
     CXX_COMPILER: "icpx"
+    CXX_FLAGS: "-Wpedantic -ffp-model=precise"
     BUILD_SYCL: "ON"
-    GKO_COMPILER_FLAGS: "-ffp-model=precise"
     BUILD_TYPE: "Release"
     DPCPP_SINGLE_MODE: "ON"
     ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
+    BUILD_HWLOC: "OFF"
 
 # Job with important warnings as error
 warnings:
@@ -698,8 +685,7 @@ warnings:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
-    CXX_FLAGS: "-Werror=pedantic -pedantic-errors"
-    GKO_COMPILER_FLAGS: "-Wpedantic"
+    CXX_FLAGS: "-Werror=pedantic;-pedantic-errors"
   allow_failure: yes
 
 # Ensure kernel modules do not depend on core
@@ -823,7 +809,7 @@ gh-pages:
     # build docs
     - mkdir -p ${CI_JOB_NAME} && pushd ${CI_JOB_NAME}
     - cmake ${CI_PROJECT_DIR}
-        -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
+        -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
         -DCMAKE_CUDA_COMPILER=${CUDA_COMPILER} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
         -DBUILD_SHARED_LIBS=ON ${EXTRA_CMAKE_FLAGS} -DGINKGO_DEVEL_TOOLS=OFF
         -DGINKGO_BUILD_REFERENCE=OFF -DGINKGO_BUILD_OMP=OFF -DGINKGO_BUILD_CUDA=OFF

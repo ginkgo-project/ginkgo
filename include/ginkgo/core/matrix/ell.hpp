@@ -50,7 +50,6 @@ class Hybrid;
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
-            public EnableCreateMethod<Ell<ValueType, IndexType>>,
             public ConvertibleTo<Ell<next_precision<ValueType>, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public ConvertibleTo<Csr<ValueType, IndexType>>,
@@ -59,7 +58,6 @@ class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
             public WritableToMatrixData<ValueType, IndexType>,
             public EnableAbsoluteComputation<
                 remove_complex<Ell<ValueType, IndexType>>> {
-    friend class EnableCreateMethod<Ell>;
     friend class EnablePolymorphicObject<Ell, LinOp>;
     friend class Dense<ValueType>;
     friend class Coo<ValueType, IndexType>;
@@ -224,6 +222,67 @@ public:
     }
 
     /**
+     * Creates an uninitialized Ell matrix of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param num_stored_elements_per_row  the number of stored elements per row
+     * @param stride  stride of the columns. If it is set to 0, size[0] will be
+     *                used instead.
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Ell> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size = {},
+        size_type num_stored_elements_per_row = 0, size_type stride = 0);
+
+    /**
+     * Creates an ELL matrix from already allocated (and initialized)
+     * column index and value arrays.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param values  array of matrix values
+     * @param col_idxs  array of column indexes
+     * @param num_stored_elements_per_row   the number of stored elements per
+     *                                      row
+     * @param stride  stride of the rows
+     *
+     * @note If one of `col_idxs` or `values` is not an rvalue, not an array of
+     *       IndexType and ValueType, respectively, or is on the wrong executor,
+     *       an internal copy of that array will be created, and the original
+     *       array data will not be used in the matrix.
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Ell> create(std::shared_ptr<const Executor> exec,
+                                       const dim<2>& size,
+                                       array<value_type> values,
+                                       array<index_type> col_idxs,
+                                       size_type num_stored_elements_per_row,
+                                       size_type stride);
+
+    /**
+     * @copydoc std::unique_ptr<Ell> create(std::shared_ptr<const Executor>,
+     * const dim<2>&, array<value_type>, array<index_type>, size_type,
+     * size_type)
+     */
+    template <typename InputValueType, typename InputColumnIndexType>
+    GKO_DEPRECATED(
+        "explicitly construct the gko::array argument instead of passing "
+        "initializer lists")
+    static std::unique_ptr<Ell> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        std::initializer_list<InputValueType> values,
+        std::initializer_list<InputColumnIndexType> col_idxs,
+        size_type num_stored_elements_per_row, size_type stride)
+    {
+        return create(exec, size, array<value_type>{exec, std::move(values)},
+                      array<index_type>{exec, std::move(col_idxs)},
+                      num_stored_elements_per_row, stride);
+    }
+
+    /**
      * Creates a constant (immutable) Ell matrix from a set of constant arrays.
      *
      * @param exec  the executor to create the matrix on
@@ -240,15 +299,7 @@ public:
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         gko::detail::const_array_view<ValueType>&& values,
         gko::detail::const_array_view<IndexType>&& col_idxs,
-        size_type num_stored_elements_per_row, size_type stride)
-    {
-        // cast const-ness away, but return a const object afterwards,
-        // so we can ensure that no modifications take place.
-        return std::unique_ptr<const Ell>(new Ell{
-            exec, size, gko::detail::array_const_cast(std::move(values)),
-            gko::detail::array_const_cast(std::move(col_idxs)),
-            num_stored_elements_per_row, stride});
-    }
+        size_type num_stored_elements_per_row, size_type stride);
 
     /**
      * Copy-assigns an Ell matrix. Preserves the executor, reallocates the
@@ -277,87 +328,12 @@ public:
     Ell(Ell&&);
 
 protected:
-    /**
-     * Creates an uninitialized Ell matrix of the specified size.
-     *    (The stride is set to the number of rows of the matrix.
-     *     The num_stored_elements_per_row is set to the number of cols of the
-     * matrix.)
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     */
-    Ell(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{})
-        : Ell(std::move(exec), size, size[1])
-    {}
+    Ell(std::shared_ptr<const Executor> exec, const dim<2>& size = {},
+        size_type num_stored_elements_per_row = 0, size_type stride = 0);
 
-    /**
-     * Creates an uninitialized Ell matrix of the specified size.
-     *    (The stride is set to the number of rows of the matrix.)
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param num_stored_elements_per_row   the number of stored elements per
-     *                                      row
-     */
     Ell(std::shared_ptr<const Executor> exec, const dim<2>& size,
-        size_type num_stored_elements_per_row)
-        : Ell(std::move(exec), size, num_stored_elements_per_row, size[0])
-    {}
-
-    /**
-     * Creates an uninitialized Ell matrix of the specified size.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param num_stored_elements_per_row   the number of stored elements per
-     *                                      row
-     * @param stride                stride of the rows
-     */
-    Ell(std::shared_ptr<const Executor> exec, const dim<2>& size,
-        size_type num_stored_elements_per_row, size_type stride)
-        : EnableLinOp<Ell>(exec, size),
-          values_(exec, stride * num_stored_elements_per_row),
-          col_idxs_(exec, stride * num_stored_elements_per_row),
-          num_stored_elements_per_row_(num_stored_elements_per_row),
-          stride_(stride)
-    {}
-
-
-    /**
-     * Creates an ELL matrix from already allocated (and initialized)
-     * column index and value arrays.
-     *
-     * @tparam ValuesArray  type of `values` array
-     * @tparam ColIdxsArray  type of `col_idxs` array
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param values  array of matrix values
-     * @param col_idxs  array of column indexes
-     * @param num_stored_elements_per_row   the number of stored elements per
-     *                                      row
-     * @param stride  stride of the rows
-     *
-     * @note If one of `col_idxs` or `values` is not an rvalue, not an array of
-     *       IndexType and ValueType, respectively, or is on the wrong executor,
-     *       an internal copy of that array will be created, and the original
-     *       array data will not be used in the matrix.
-     */
-    template <typename ValuesArray, typename ColIdxsArray>
-    Ell(std::shared_ptr<const Executor> exec, const dim<2>& size,
-        ValuesArray&& values, ColIdxsArray&& col_idxs,
-        size_type num_stored_elements_per_row, size_type stride)
-        : EnableLinOp<Ell>(exec, size),
-          values_{exec, std::forward<ValuesArray>(values)},
-          col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
-          num_stored_elements_per_row_{num_stored_elements_per_row},
-          stride_{stride}
-    {
-        GKO_ASSERT_EQ(num_stored_elements_per_row_ * stride_,
-                      values_.get_size());
-        GKO_ASSERT_EQ(num_stored_elements_per_row_ * stride_,
-                      col_idxs_.get_size());
-    }
+        array<value_type> values, array<index_type> col_idxs,
+        size_type num_stored_elements_per_row, size_type stride);
 
     /**
      * Resizes the matrix to the given dimensions and row nonzero count.
@@ -381,10 +357,10 @@ protected:
     }
 
 private:
-    array<value_type> values_;
-    array<index_type> col_idxs_;
     size_type num_stored_elements_per_row_;
     size_type stride_;
+    array<value_type> values_;
+    array<index_type> col_idxs_;
 };
 
 

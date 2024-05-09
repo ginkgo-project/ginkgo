@@ -84,7 +84,6 @@ class SparsityCsr;
 template <typename ValueType = default_precision>
 class Dense
     : public EnableLinOp<Dense<ValueType>>,
-      public EnableCreateMethod<Dense<ValueType>>,
       public ConvertibleTo<Dense<next_precision<ValueType>>>,
       public ConvertibleTo<Coo<ValueType, int32>>,
       public ConvertibleTo<Coo<ValueType, int64>>,
@@ -110,7 +109,6 @@ class Dense
       public Permutable<int64>,
       public EnableAbsoluteComputation<remove_complex<Dense<ValueType>>>,
       public ScaledIdentityAddable {
-    friend class EnableCreateMethod<Dense>;
     friend class EnablePolymorphicObject<Dense, LinOp>;
     friend class Coo<ValueType, int32>;
     friend class Coo<ValueType, int64>;
@@ -1175,6 +1173,59 @@ public:
     std::unique_ptr<const real_type> create_real_view() const;
 
     /**
+     * Creates an uninitialized Dense matrix of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param stride  stride of the rows (i.e. offset between the first
+     *                  elements of two consecutive rows, expressed as the
+     *                  number of matrix elements).
+     *                  If it is set to 0, size[1] will be used instead.
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Dense> create(std::shared_ptr<const Executor> exec,
+                                         const dim<2>& size = {},
+                                         size_type stride = 0);
+
+    /**
+     * Creates a Dense matrix from an already allocated (and initialized) array.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param values  array of matrix values
+     * @param stride  stride of the rows (i.e. offset between the first
+     *                  elements of two consecutive rows, expressed as the
+     *                  number of matrix elements)
+     *
+     * @note If `values` is not an rvalue, not an array of ValueType, or is on
+     *       the wrong executor, an internal copy will be created, and the
+     *       original array data will not be used in the matrix.
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Dense> create(std::shared_ptr<const Executor> exec,
+                                         const dim<2>& size,
+                                         array<value_type> values,
+                                         size_type stride);
+
+    /**
+     * @copydoc std::unique_ptr<Dense> create(std::shared_ptr<const Executor>,
+     * const dim<2>&, array<value_type>, size_type)
+     */
+    template <typename InputValueType>
+    GKO_DEPRECATED(
+        "explicitly construct the gko::array argument instead of passing an"
+        "initializer list")
+    static std::unique_ptr<Dense> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        std::initializer_list<InputValueType> values, size_type stride)
+    {
+        return create(exec, size, array<value_type>{exec, std::move(values)},
+                      stride);
+    }
+
+    /**
      * Creates a constant (immutable) Dense matrix from a constant array.
      *
      * @param exec  the executor to create the matrix on
@@ -1187,14 +1238,7 @@ public:
      */
     static std::unique_ptr<const Dense> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
-        gko::detail::const_array_view<ValueType>&& values, size_type stride)
-    {
-        // cast const-ness away, but return a const object afterwards,
-        // so we can ensure that no modifications take place.
-        return std::unique_ptr<const Dense>(new Dense{
-            exec, size, gko::detail::array_const_cast(std::move(values)),
-            stride});
-    }
+        gko::detail::const_array_view<ValueType>&& values, size_type stride);
 
     /**
      * Copy-assigns a Dense matrix. Preserves the executor, reallocates the
@@ -1223,60 +1267,11 @@ public:
     Dense(Dense&&);
 
 protected:
-    /**
-     * Creates an uninitialized Dense matrix of the specified size.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     */
-    Dense(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{})
-        : Dense(std::move(exec), size, size[1])
-    {}
+    Dense(std::shared_ptr<const Executor> exec, const dim<2>& size = {},
+          size_type stride = 0);
 
-    /**
-     * Creates an uninitialized Dense matrix of the specified size.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param stride  stride of the rows (i.e. offset between the first
-     *                  elements of two consecutive rows, expressed as the
-     *                  number of matrix elements)
-     */
     Dense(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          size_type stride)
-        : EnableLinOp<Dense>(exec, size),
-          values_(exec, size[0] * stride),
-          stride_(stride)
-    {}
-
-    /**
-     * Creates a Dense matrix from an already allocated (and initialized) array.
-     *
-     * @tparam ValuesArray  type of array of values
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param values  array of matrix values
-     * @param stride  stride of the rows (i.e. offset between the first
-     *                  elements of two consecutive rows, expressed as the
-     *                  number of matrix elements)
-     *
-     * @note If `values` is not an rvalue, not an array of ValueType, or is on
-     *       the wrong executor, an internal copy will be created, and the
-     *       original array data will not be used in the matrix.
-     */
-    template <typename ValuesArray>
-    Dense(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          ValuesArray&& values, size_type stride)
-        : EnableLinOp<Dense>(exec, size),
-          values_{exec, std::forward<ValuesArray>(values)},
-          stride_{stride}
-    {
-        if (size[0] > 0 && size[1] > 0) {
-            GKO_ENSURE_IN_BOUNDS((size[0] - 1) * stride + size[1] - 1,
-                                 values_.get_size());
-        }
-    }
+          array<value_type> values, size_type stride);
 
     /**
      * Creates a Dense matrix with the same size and stride as the callers
@@ -1509,8 +1504,8 @@ protected:
                           Dense<OutputType>* target) const;
 
 private:
-    array<value_type> values_;
     size_type stride_;
+    array<value_type> values_;
 
     void add_scaled_identity_impl(const LinOp* a, const LinOp* b) override;
 };

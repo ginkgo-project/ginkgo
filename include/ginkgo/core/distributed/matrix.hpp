@@ -237,12 +237,9 @@ template <typename ValueType = default_precision,
 class Matrix
     : public EnableDistributedLinOp<
           Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
-      public EnableCreateMethod<
-          Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
       public ConvertibleTo<
           Matrix<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
       public DistributedBase {
-    friend class EnableCreateMethod<Matrix>;
     friend class EnableDistributedPolymorphicObject<Matrix, LinOp>;
     friend class Matrix<next_precision<ValueType>, LocalIndexType,
                         GlobalIndexType>;
@@ -414,17 +411,17 @@ public:
      * @return  this.
      */
     Matrix& operator=(Matrix&& other);
-
-protected:
     /**
      * Creates an empty distributed matrix.
      *
      * @param exec  Executor associated with this matrix.
      * @param comm  Communicator associated with this matrix.
      *              The default is the MPI_COMM_WORLD.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
-    explicit Matrix(std::shared_ptr<const Executor> exec,
-                    mpi::communicator comm);
+    static std::unique_ptr<Matrix> create(std::shared_ptr<const Executor> exec,
+                                          mpi::communicator comm);
 
     /**
      * Creates an empty distributed matrix with specified type
@@ -443,16 +440,20 @@ protected:
      * @param matrix_template  the local matrices will be constructed with the
      *                         same type as `create` returns. It should be the
      *                         return value of make_matrix_template.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     template <typename MatrixType,
               typename = std::enable_if_t<detail::is_matrix_type_builder<
                   MatrixType, ValueType, LocalIndexType>::value>>
-    explicit Matrix(std::shared_ptr<const Executor> exec,
-                    mpi::communicator comm, MatrixType matrix_template)
-        : Matrix(
-              exec, comm,
-              matrix_template.template create<ValueType, LocalIndexType>(exec))
-    {}
+    static std::unique_ptr<Matrix> create(std::shared_ptr<const Executor> exec,
+                                          mpi::communicator comm,
+                                          MatrixType matrix_template)
+    {
+        return create(
+            exec, comm,
+            matrix_template.template create<ValueType, LocalIndexType>(exec));
+    }
 
     /**
      * Creates an empty distributed matrix with specified types for the local
@@ -479,6 +480,8 @@ protected:
      *                                   constructed with the same type as
      *                                   `create` returns. It should be the
      *                                   return value of make_matrix_template.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     template <typename LocalMatrixType, typename NonLocalMatrixType,
               typename = std::enable_if_t<
@@ -486,17 +489,18 @@ protected:
                                                  LocalIndexType>::value &&
                   detail::is_matrix_type_builder<NonLocalMatrixType, ValueType,
                                                  LocalIndexType>::value>>
-    explicit Matrix(std::shared_ptr<const Executor> exec,
-                    mpi::communicator comm,
-                    LocalMatrixType local_matrix_template,
-                    NonLocalMatrixType non_local_matrix_template)
-        : Matrix(
-              exec, comm,
-              local_matrix_template.template create<ValueType, LocalIndexType>(
-                  exec),
-              non_local_matrix_template
-                  .template create<ValueType, LocalIndexType>(exec))
-    {}
+    static std::unique_ptr<Matrix> create(
+        std::shared_ptr<const Executor> exec, mpi::communicator comm,
+        LocalMatrixType local_matrix_template,
+        NonLocalMatrixType non_local_matrix_template)
+    {
+        return create(
+            exec, comm,
+            local_matrix_template.template create<ValueType, LocalIndexType>(
+                exec),
+            non_local_matrix_template
+                .template create<ValueType, LocalIndexType>(exec));
+    }
 
     /**
      * Creates an empty distributed matrix with specified type
@@ -509,10 +513,12 @@ protected:
      * @param comm  Communicator associated with this matrix.
      * @param matrix_template  the local matrices will be constructed with the
      *                         same runtime type.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
-    explicit Matrix(std::shared_ptr<const Executor> exec,
-                    mpi::communicator comm,
-                    ptr_param<const LinOp> matrix_template);
+    static std::unique_ptr<Matrix> create(
+        std::shared_ptr<const Executor> exec, mpi::communicator comm,
+        ptr_param<const LinOp> matrix_template);
 
     /**
      * Creates an empty distributed matrix with specified types for the local
@@ -527,7 +533,18 @@ protected:
      *                               with the same runtime type.
      * @param non_local_matrix_template  the non-local matrix will be
      *                                   constructed with the same runtime type.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
+    static std::unique_ptr<Matrix> create(
+        std::shared_ptr<const Executor> exec, mpi::communicator comm,
+        ptr_param<const LinOp> local_matrix_template,
+        ptr_param<const LinOp> non_local_matrix_template);
+
+protected:
+    explicit Matrix(std::shared_ptr<const Executor> exec,
+                    mpi::communicator comm);
+
     explicit Matrix(std::shared_ptr<const Executor> exec,
                     mpi::communicator comm,
                     ptr_param<const LinOp> local_matrix_template,

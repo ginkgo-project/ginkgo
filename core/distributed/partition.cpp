@@ -29,6 +29,37 @@ GKO_REGISTER_OPERATION(has_ordered_parts, partition::has_ordered_parts);
 
 
 template <typename LocalIndexType, typename GlobalIndexType>
+Partition<LocalIndexType, GlobalIndexType>::Partition(
+    std::shared_ptr<const Executor> exec, comm_index_type num_parts,
+    size_type num_ranges)
+    : EnablePolymorphicObject<Partition>{exec},
+      num_parts_{num_parts},
+      num_empty_parts_{0},
+      size_{0},
+      offsets_{exec, num_ranges + 1},
+      starting_indices_{exec, num_ranges},
+      part_sizes_{exec, static_cast<size_type>(num_parts)},
+      part_ids_{exec, num_ranges}
+{
+    offsets_.fill(0);
+    starting_indices_.fill(0);
+    part_sizes_.fill(0);
+    part_ids_.fill(0);
+}
+
+
+template <typename LocalIndexType, typename GlobalIndexType>
+std::unique_ptr<Partition<LocalIndexType, GlobalIndexType>>
+Partition<LocalIndexType, GlobalIndexType>::create(
+    std::shared_ptr<const Executor> exec, comm_index_type num_parts,
+    size_type num_ranges)
+{
+    return std::unique_ptr<Partition>{
+        new Partition{exec, num_parts, num_ranges}};
+}
+
+
+template <typename LocalIndexType, typename GlobalIndexType>
 std::unique_ptr<Partition<LocalIndexType, GlobalIndexType>>
 Partition<LocalIndexType, GlobalIndexType>::build_from_mapping(
     std::shared_ptr<const Executor> exec, const array<comm_index_type>& mapping,

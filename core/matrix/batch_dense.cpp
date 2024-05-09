@@ -73,6 +73,23 @@ Dense<ValueType>::create_const_view_for_item(size_type item_id) const
 
 
 template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create(
+    std::shared_ptr<const Executor> exec, const batch_dim<2>& size)
+{
+    return std::unique_ptr<Dense>(new Dense{exec, size});
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create(
+    std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+    array<value_type> values)
+{
+    return std::unique_ptr<Dense>(new Dense{exec, size, std::move(values)});
+}
+
+
+template <typename ValueType>
 std::unique_ptr<const Dense<ValueType>> Dense<ValueType>::create_const(
     std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
     gko::detail::const_array_view<ValueType>&& values)
@@ -90,6 +107,17 @@ Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
     : EnableBatchLinOp<Dense<ValueType>>(exec, size),
       values_(exec, compute_num_elems(size))
 {}
+
+
+template <typename ValueType>
+Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
+                        const batch_dim<2>& size, array<value_type> values)
+    : EnableBatchLinOp<Dense>(exec, size), values_{exec, std::move(values)}
+{
+    // Ensure that the values array has the correct size
+    auto num_elems = compute_num_elems(size);
+    GKO_ENSURE_IN_BOUNDS(num_elems, values_.get_size() + 1);
+}
 
 
 template <typename ValueType>

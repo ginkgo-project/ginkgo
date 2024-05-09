@@ -78,6 +78,26 @@ Ell<ValueType, IndexType>::create_const_view_for_item(size_type item_id) const
 
 
 template <typename ValueType, typename IndexType>
+std::unique_ptr<Ell<ValueType, IndexType>> Ell<ValueType, IndexType>::create(
+    std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+    const IndexType num_elems_per_row)
+{
+    return std::unique_ptr<Ell>{new Ell{exec, size, num_elems_per_row}};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Ell<ValueType, IndexType>> Ell<ValueType, IndexType>::create(
+    std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+    const IndexType num_elems_per_row, array<value_type> values,
+    array<index_type> col_idxs)
+{
+    return std::unique_ptr<Ell>{new Ell{
+        exec, size, num_elems_per_row, std::move(values), std::move(col_idxs)}};
+}
+
+
+template <typename ValueType, typename IndexType>
 std::unique_ptr<const Ell<ValueType, IndexType>>
 Ell<ValueType, IndexType>::create_const(
     std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
@@ -104,6 +124,25 @@ Ell<ValueType, IndexType>::Ell(std::shared_ptr<const Executor> exec,
       values_(exec, compute_num_elems(size, num_elems_per_row_)),
       col_idxs_(exec, this->get_common_size()[0] * num_elems_per_row_)
 {}
+
+
+template <typename ValueType, typename IndexType>
+Ell<ValueType, IndexType>::Ell(std::shared_ptr<const Executor> exec,
+                               const batch_dim<2>& size,
+                               const IndexType num_elems_per_row,
+                               array<value_type> values,
+                               array<index_type> col_idxs)
+    : EnableBatchLinOp<Ell>(exec, size),
+      num_elems_per_row_{num_elems_per_row},
+      values_{exec, std::move(values)},
+      col_idxs_{exec, std::move(col_idxs)}
+{
+    // Ensure that the value and col_idxs arrays have the correct size
+    auto num_elems = this->get_common_size()[0] * num_elems_per_row *
+                     this->get_num_batch_items();
+    GKO_ASSERT_EQ(num_elems, values_.get_size());
+    GKO_ASSERT_EQ(this->get_num_elements_per_item(), col_idxs_.get_size());
+}
 
 
 template <typename ValueType, typename IndexType>

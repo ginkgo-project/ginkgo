@@ -39,7 +39,6 @@ class Dense;
 template <typename ValueType = default_precision>
 class Diagonal
     : public EnableLinOp<Diagonal<ValueType>>,
-      public EnableCreateMethod<Diagonal<ValueType>>,
       public ConvertibleTo<Csr<ValueType, int32>>,
       public ConvertibleTo<Csr<ValueType, int64>>,
       public ConvertibleTo<Diagonal<next_precision<ValueType>>>,
@@ -50,7 +49,6 @@ class Diagonal
       public ReadableFromMatrixData<ValueType, int64>,
       public EnableAbsoluteComputation<remove_complex<Diagonal<ValueType>>> {
     friend class EnablePolymorphicObject<Diagonal, LinOp>;
-    friend class EnableCreateMethod<Diagonal>;
     friend class Csr<ValueType, int32>;
     friend class Csr<ValueType, int64>;
     friend class Diagonal<to_complex<ValueType>>;
@@ -165,6 +163,50 @@ public:
     void write(mat_data32& data) const override;
 
     /**
+     * Creates an Diagonal matrix of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Diagonal> create(
+        std::shared_ptr<const Executor> exec, size_type size = 0);
+
+    /**
+     * Creates a Diagonal matrix from an already allocated (and initialized)
+     * array.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param values  array of matrix values
+     *
+     * @note If `values` is not an rvalue, not an array of ValueType, or is on
+     *       the wrong executor, an internal copy will be created, and the
+     *       original array data will not be used in the matrix.
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Diagonal> create(
+        std::shared_ptr<const Executor> exec, const size_type size,
+        array<value_type> values);
+
+    /**
+     * @copydoc std::unique_ptr<Diagonal> create(std::shared_ptr<const
+     * Executor>, const size_type, array<value_type>)
+     */
+    template <typename InputValueType>
+    GKO_DEPRECATED(
+        "explicitly construct the gko::array argument instead of passing an"
+        "initializer list")
+    static std::unique_ptr<Diagonal> create(
+        std::shared_ptr<const Executor> exec, const size_type size,
+        std::initializer_list<InputValueType> values)
+    {
+        return create(exec, size, array<value_type>{exec, std::move(values)});
+    }
+
+    /**
      * Creates a constant (immutable) Diagonal matrix from a constant array.
      *
      * @param exec  the executor to create the matrix on
@@ -176,56 +218,13 @@ public:
      */
     static std::unique_ptr<const Diagonal> create_const(
         std::shared_ptr<const Executor> exec, size_type size,
-        gko::detail::const_array_view<ValueType>&& values)
-    {
-        // cast const-ness away, but return a const object afterwards,
-        // so we can ensure that no modifications take place.
-        return std::unique_ptr<const Diagonal>(new Diagonal{
-            exec, size, gko::detail::array_const_cast(std::move(values))});
-    }
+        gko::detail::const_array_view<ValueType>&& values);
 
 protected:
-    /**
-     * Creates an empty Diagonal matrix.
-     *
-     * @param exec  Executor associated to the matrix
-     */
-    explicit Diagonal(std::shared_ptr<const Executor> exec)
-        : Diagonal(std::move(exec), size_type{})
-    {}
+    Diagonal(std::shared_ptr<const Executor> exec, size_type size = 0);
 
-    /**
-     * Creates an Diagonal matrix of the specified size.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     */
-    Diagonal(std::shared_ptr<const Executor> exec, size_type size)
-        : EnableLinOp<Diagonal>(exec, dim<2>{size}), values_(exec, size)
-    {}
-
-    /**
-     * Creates a Diagonal matrix from an already allocated (and initialized)
-     * array.
-     *
-     * @tparam ValuesArray  type of array of values
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param values  array of matrix values
-     *
-     * @note If `values` is not an rvalue, not an array of ValueType, or is on
-     *       the wrong executor, an internal copy will be created, and the
-     *       original array data will not be used in the matrix.
-     */
-    template <typename ValuesArray>
     Diagonal(std::shared_ptr<const Executor> exec, const size_type size,
-             ValuesArray&& values)
-        : EnableLinOp<Diagonal>(exec, dim<2>(size)),
-          values_{exec, std::forward<ValuesArray>(values)}
-    {
-        GKO_ENSURE_IN_BOUNDS(size - 1, values_.get_size());
-    }
+             array<value_type> values);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 

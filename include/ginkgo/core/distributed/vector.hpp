@@ -58,11 +58,9 @@ class Partition;
 template <typename ValueType = double>
 class Vector
     : public EnableDistributedLinOp<Vector<ValueType>>,
-      public EnableCreateMethod<Vector<ValueType>>,
       public ConvertibleTo<Vector<next_precision<ValueType>>>,
       public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
       public DistributedBase {
-    friend class EnableCreateMethod<Vector>;
     friend class EnableDistributedPolymorphicObject<Vector, LinOp>;
     friend class Vector<to_complex<ValueType>>;
     friend class Vector<remove_complex<ValueType>>;
@@ -477,36 +475,6 @@ public:
     size_type get_stride() const noexcept { return local_.get_stride(); }
 
     /**
-     * Creates a constant (immutable) distributed Vector from a constant local
-     * vector.
-     *
-     * @param exec  Executor associated with this vector
-     * @param comm  Communicator associated with this vector
-     * @param global_size  The global size of the vector
-     * @param local_vector  The underlying local vector, of which a view is
-     *                      created
-     */
-    static std::unique_ptr<const Vector> create_const(
-        std::shared_ptr<const Executor> exec, mpi::communicator comm,
-        dim<2> global_size,
-        std::unique_ptr<const local_vector_type> local_vector);
-
-    /**
-     * Creates a constant (immutable) distributed Vector from a constant local
-     * vector. The global size will be deduced from the local sizes, which will
-     * incur a collective communication.
-     *
-     * @param exec  Executor associated with this vector
-     * @param comm  Communicator associated with this vector
-     * @param local_vector  The underlying local vector, of which a view is
-     *                      created
-     */
-    static std::unique_ptr<const Vector> create_const(
-        std::shared_ptr<const Executor> exec, mpi::communicator comm,
-        std::unique_ptr<const local_vector_type> local_vector);
-
-protected:
-    /**
      * Creates an empty distributed vector with a specified size
      *
      * @param exec  Executor associated with vector
@@ -514,9 +482,13 @@ protected:
      * @param global_size  Global size of the vector
      * @param local_size  Processor-local size of the vector
      * @param stride  Stride of the local vector.
+     *
+     * @return A smart pointer to the newly created vector.
      */
-    Vector(std::shared_ptr<const Executor> exec, mpi::communicator comm,
-           dim<2> global_size, dim<2> local_size, size_type stride);
+    static std::unique_ptr<Vector> create(std::shared_ptr<const Executor> exec,
+                                          mpi::communicator comm,
+                                          dim<2> global_size, dim<2> local_size,
+                                          size_type stride);
 
     /**
      * Creates an empty distributed vector with a specified size
@@ -526,10 +498,13 @@ protected:
      * @param global_size  Global size of the vector
      * @param local_size  Processor-local size of the vector, uses local_size[1]
      *                    as the stride
+     *
+     * @return A smart pointer to the newly created vector.
      */
-    explicit Vector(std::shared_ptr<const Executor> exec,
-                    mpi::communicator comm, dim<2> global_size = {},
-                    dim<2> local_size = {});
+    static std::unique_ptr<Vector> create(std::shared_ptr<const Executor> exec,
+                                          mpi::communicator comm,
+                                          dim<2> global_size = {},
+                                          dim<2> local_size = {});
 
     /**
      * Creates a distributed vector from local vectors with a specified size.
@@ -545,9 +520,12 @@ protected:
      * @param global_size  The global size of the vector
      * @param local_vector  The underlying local vector, the data will be moved
      *                      into this
+     *
+     * @return A smart pointer to the newly created vector.
      */
-    Vector(std::shared_ptr<const Executor> exec, mpi::communicator comm,
-           dim<2> global_size, std::unique_ptr<local_vector_type> local_vector);
+    static std::unique_ptr<Vector> create(
+        std::shared_ptr<const Executor> exec, mpi::communicator comm,
+        dim<2> global_size, std::unique_ptr<local_vector_type> local_vector);
 
     /**
      * Creates a distributed vector from local vectors. The global size will
@@ -564,7 +542,57 @@ protected:
      * @param comm  Communicator associated with this vector
      * @param local_vector  The underlying local vector, the data will be moved
      *                      into this.
+     *
+     * @return A smart pointer to the newly created vector.
      */
+    static std::unique_ptr<Vector> create(
+        std::shared_ptr<const Executor> exec, mpi::communicator comm,
+        std::unique_ptr<local_vector_type> local_vector);
+
+    /**
+     * Creates a constant (immutable) distributed Vector from a constant local
+     * vector.
+     *
+     * @param exec  Executor associated with this vector
+     * @param comm  Communicator associated with this vector
+     * @param global_size  The global size of the vector
+     * @param local_vector  The underlying local vector, of which a view is
+     *                      created
+     *
+     * @return A smart pointer to the newly created vector.
+     */
+    static std::unique_ptr<const Vector> create_const(
+        std::shared_ptr<const Executor> exec, mpi::communicator comm,
+        dim<2> global_size,
+        std::unique_ptr<const local_vector_type> local_vector);
+
+    /**
+     * Creates a constant (immutable) distributed Vector from a constant local
+     * vector. The global size will be deduced from the local sizes, which will
+     * incur a collective communication.
+     *
+     * @param exec  Executor associated with this vector
+     * @param comm  Communicator associated with this vector
+     * @param local_vector  The underlying local vector, of which a view is
+     *                      created
+     *
+     * @return A smart pointer to the newly created vector.
+     */
+    static std::unique_ptr<const Vector> create_const(
+        std::shared_ptr<const Executor> exec, mpi::communicator comm,
+        std::unique_ptr<const local_vector_type> local_vector);
+
+protected:
+    Vector(std::shared_ptr<const Executor> exec, mpi::communicator comm,
+           dim<2> global_size, dim<2> local_size, size_type stride);
+
+    explicit Vector(std::shared_ptr<const Executor> exec,
+                    mpi::communicator comm, dim<2> global_size = {},
+                    dim<2> local_size = {});
+
+    Vector(std::shared_ptr<const Executor> exec, mpi::communicator comm,
+           dim<2> global_size, std::unique_ptr<local_vector_type> local_vector);
+
     Vector(std::shared_ptr<const Executor> exec, mpi::communicator comm,
            std::unique_ptr<local_vector_type> local_vector);
 
