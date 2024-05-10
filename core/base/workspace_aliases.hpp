@@ -1,6 +1,8 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2011 - 2023 NVIDIA CORPORATION
+// SPDX-FileCopyrightText: 2021 Duane Merrill
+// SPDX-FileCopyrightText: 2024 The Ginkgo authors
 //
-// SPDX-License-Identifier: BSD-3-Clause
+// SPDX-License-Identifier: BSD-3-Clause AND Apache-2.0
 
 #ifndef GKO_CORE_BASE_WORKSPACE_ALIASES_HPP_
 #define GKO_CORE_BASE_WORKSPACE_ALIASES_HPP_
