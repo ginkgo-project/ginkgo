@@ -19,7 +19,6 @@ __dpct_inline__ void initialize(
     const auto sg_id = sg.get_group_id();
     const auto tid = item_ct1.get_local_linear_id();
     const auto group_size = item_ct1.get_local_range().size();
-    const auto group = item_ct1.get_group();
 
     rho_old = one<ValueType>();
     omega = one<ValueType>();
@@ -296,11 +295,15 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
                p_sh, p_hat_sh, v_sh, norms_rhs_sh[0], norms_res_sh[0],
                item_ct1);
     item_ct1.barrier(sycl::access::fence_space::global_and_local);
+    int iter = 0;
 
     // stopping criterion object
     StopType stop(tol, norms_rhs_sh);
+    if (stop.check_converged(norms_res_sh)) {
+        logger.log_iteration(batch_id, iter, norms_res_sh[0]);
+        return;
+    }
 
-    int iter = 0;
     for (; iter < max_iter; iter++) {
         if (stop.check_converged(norms_res_sh)) {
             logger.log_iteration(batch_id, iter, norms_res_sh[0]);

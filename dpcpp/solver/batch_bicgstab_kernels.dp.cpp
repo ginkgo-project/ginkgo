@@ -59,10 +59,10 @@ __dpct_inline__ int get_group_size(int value,
 
 
 template <typename ValueType>
-class KernelCaller {
+class kernel_caller {
 public:
-    KernelCaller(std::shared_ptr<const DefaultExecutor> exec,
-                 const settings<remove_complex<ValueType>> settings)
+    kernel_caller(std::shared_ptr<const DefaultExecutor> exec,
+                  const settings<remove_complex<ValueType>> settings)
         : exec_{std::move(exec)}, settings_{settings}
     {}
 
@@ -167,8 +167,7 @@ public:
         int n_shared_total = sconf.n_shared + int(sconf.prec_shared);
 
         // template
-        // launch_apply_kernel<StopType, subgroup_size, n_shared_total,
-        // sg_kernel_all>
+        // launch_apply_kernel<StopType, subgroup_size, n_shared_total>
         if (num_rows <= 32 && n_shared_total == 10) {
             launch_apply_kernel<StopType, 32, 10>(
                 sconf, logger, prec, mat, b.values, x.values, workspace_data,
@@ -256,7 +255,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            batch::log::detail::log_data<remove_complex<ValueType>>& logdata)
 {
     auto dispatcher = batch::solver::create_dispatcher<ValueType>(
-        KernelCaller<ValueType>(exec, settings), settings, mat, precond);
+        kernel_caller<ValueType>(exec, settings), settings, mat, precond);
     dispatcher.apply(b, x, logdata);
 }
 
