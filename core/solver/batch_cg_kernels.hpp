@@ -121,8 +121,7 @@ storage_config compute_shared_storage(const int available_shared_mem,
     using real_type = remove_complex<ValueType>;
     const int vec_bytes = num_rows * num_rhs * sizeof(ValueType);
     const int num_main_vecs = 5;
-    const int prec_storage =
-        Prectype::dynamic_work_size(num_rows, num_nz) * sizeof(ValueType);
+    const int prec_storage = Prectype::dynamic_work_size(num_rows, num_nz);
     int rem_shared = available_shared_mem;
     // Set default values. Initially all vecs are in global memory.
     // {prec_shared, n_shared, n_global, gmem_stride_bytes, padded_vec_len}
@@ -160,13 +159,13 @@ storage_config compute_shared_storage(const int available_shared_mem,
 }  // namespace batch_cg
 
 
-#define GKO_DECLARE_BATCH_CG_APPLY_KERNEL(_type)                             \
-    void apply(                                                              \
-        std::shared_ptr<const DefaultExecutor> exec,                         \
-        const gko::kernels::batch_cg::settings<remove_complex<_type>>&       \
-            options,                                                         \
-        const batch::BatchLinOp* a, const batch::BatchLinOp* preconditioner, \
-        const batch::MultiVector<_type>* b, batch::MultiVector<_type>* x,    \
+#define GKO_DECLARE_BATCH_CG_APPLY_KERNEL(_type)                               \
+    void apply(                                                                \
+        std::shared_ptr<const DefaultExecutor> exec,                           \
+        const gko::kernels::batch_cg::settings<remove_complex<_type>>&         \
+            options,                                                           \
+        const batch::BatchLinOp* mat, const batch::BatchLinOp* preconditioner, \
+        const batch::MultiVector<_type>* b, batch::MultiVector<_type>* x,      \
         gko::batch::log::detail::log_data<remove_complex<_type>>& logdata)
 
 
