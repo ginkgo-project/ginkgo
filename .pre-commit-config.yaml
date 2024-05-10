@@ -22,7 +22,8 @@ repos:
       (?x)^(
         third_party/SuiteSparse/AMD/.*|
         third_party/identify_stream_usage/.*|
-        examples/external-lib-interfacing/external-lib-interfacing.cpp
+        examples/external-lib-interfacing/external-lib-interfacing.cpp|
+        core/base/workspace_aliases.hpp
       )$
   - id: format-headers
     name: format headers
@@ -34,7 +35,8 @@ repos:
         (?x)^(
           third_party/SuiteSparse/AMD/.*|
           third_party/identify_stream_usage/.*|
-          include/ginkgo/ginkgo.hpp
+          include/ginkgo/ginkgo.hpp|
+          core/base/workspace_aliases.hpp
         )$
   - id: update-ginkgo-header
     name: update ginkgo header
