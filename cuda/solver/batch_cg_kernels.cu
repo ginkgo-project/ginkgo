@@ -206,6 +206,11 @@ public:
                     sconf, logger, prec, mat, b.values, x.values,
                     workspace_data, block_size, shared_size);
                 break;
+            case 5:
+                launch_apply_kernel<StopType, 5, false>(
+                    sconf, logger, prec, mat, b.values, x.values,
+                    workspace_data, block_size, shared_size);
+                break;
             default:
                 GKO_NOT_IMPLEMENTED;
             }
