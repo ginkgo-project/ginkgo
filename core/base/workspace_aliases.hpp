@@ -9,7 +9,22 @@
 
 
 #include <ginkgo/config.hpp>
-#include <ginkgo/core/base/types.hpp>
+
+
+// Macros for handling different device error return types uniformly
+#if defined(__CUDACC__)
+#define GKO_DEVICE_ERROR_TYPE cudaError_t
+#define GKO_DEVICE_ERROR_INVALID cudaErrorInvalidValue
+#define GKO_DEVICE_NO_ERROR cudaSuccess
+#elif defined(__HIPCC__)
+#define GKO_DEVICE_ERROR_TYPE hipError_t
+#define GKO_DEVICE_ERROR_INVALID hipErrorInvalidValue
+#define GKO_DEVICE_NO_ERROR hipSuccess
+#else
+#define GKO_DEVICE_ERROR_TYPE int
+#define GKO_DEVICE_ERROR_INVALID 1
+#define GKO_DEVICE_NO_ERROR 0
+#endif
 
 
 // This code is a modified version of the code from CCCL

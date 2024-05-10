@@ -33,7 +33,7 @@ namespace detail {
 template <typename ValueType>
 struct log_data final {
     using real_type = remove_complex<ValueType>;
-    using idx_type = int;
+    using index_type = int;
 
     log_data(std::shared_ptr<const Executor> exec, size_type num_batch_items);
 
@@ -48,7 +48,7 @@ struct log_data final {
     /**
      * Stores convergence iteration counts for every matrix in the batch
      */
-    array<idx_type> iter_counts;
+    array<index_type> iter_counts;
 };
 
 
