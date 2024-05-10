@@ -25,7 +25,10 @@ public:
     /**
      * The size of the work vector required in case of dynamic allocation.
      */
-    static int dynamic_work_size(const int nrows, int) { return nrows; }
+    static int dynamic_work_size(const int nrows, int)
+    {
+        return nrows * sizeof(ValueType);
+    }
 
     /**
      * Sets the input and generates the preconditioner by storing the inverse

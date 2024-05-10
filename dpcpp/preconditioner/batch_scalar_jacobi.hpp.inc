@@ -16,7 +16,7 @@ public:
      */
     static constexpr int dynamic_work_size(const int num_rows, int)
     {
-        return num_rows;
+        return num_rows * sizeof(value_type);
     }
 
     /**
