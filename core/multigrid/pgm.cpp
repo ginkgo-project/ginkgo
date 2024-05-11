@@ -28,7 +28,7 @@
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
-#include "core/config/config.hpp"
+#include "core/config/config_helper.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/multigrid/pgm_kernels.hpp"
 
@@ -142,15 +142,24 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
 
 
 typename Pgm<ValueType, IndexType>::parameters_type
-Pgm<ValueType, IndexType>::build_from_config(
-    const config::pnode& config, const config::registry& context,
-    config::type_descriptor td_for_child)
+Pgm<ValueType, IndexType>::parse(const config::pnode& config,
+                                 const config::registry& context,
+                                 const config::type_descriptor& td_for_child)
 {
     auto factory = Pgm<ValueType, IndexType>::build();
-    SET_VALUE(factory, unsigned, max_iterations, config);
-    SET_VALUE(factory, double, max_unassigned_ratio, config);
-    SET_VALUE(factory, bool, deterministic, config);
-    SET_VALUE(factory, bool, skip_sorting, config);
+    if (auto& obj = config.get("max_iterations")) {
+        factory.with_max_iterations(gko::config::get_value<unsigned>(obj));
+    }
+    if (auto& obj = config.get("max_unassigned_ratio")) {
+        factory.with_max_unassigned_ratio(gko::config::get_value<double>(obj));
+    }
+    if (auto& obj = config.get("deterministic")) {
+        factory.with_deterministic(gko::config::get_value<bool>(obj));
+    }
+    if (auto& obj = config.get("skip_sorting")) {
+        factory.with_skip_sorting(gko::config::get_value<bool>(obj));
+    }
+
     return factory;
 }
 

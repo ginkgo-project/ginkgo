@@ -31,6 +31,7 @@
 #include "core/base/dispatch_helper.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/config/config.hpp"
+#include "core/config/config_helper.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/ir_kernels.hpp"
 #include "core/solver/multigrid_kernels.hpp"
@@ -606,28 +607,45 @@ std::function<size_type(const size_type, const LinOp*)> get_selector(
 }
 
 
-typename Multigrid::parameters_type Multigrid::build_from_config(
+typename Multigrid::parameters_type Multigrid::parse(
     const config::pnode& config, const config::registry& context,
-    config::type_descriptor td_for_child)
+    const config::type_descriptor& td_for_child)
 {
     auto factory = Multigrid::build();
-    SET_FACTORY_VECTOR(factory, const stop::CriterionFactory, criteria, config,
-                       context, td_for_child);
-    SET_FACTORY_VECTOR(factory, const gko::LinOpFactory, mg_level, config,
-                       context, td_for_child);
-    if (config.contains("level_selector")) {
-        auto str = config.at("level_selector").get_data<std::string>();
-        factory.with_level_selector(get_selector(str));
+
+    if (auto& obj = config.get("criteria")) {
+        factory.with_criteria(
+            gko::config::get_factory_vector<const stop::CriterionFactory>(
+                obj, context, td_for_child));
     }
-    SET_FACTORY_VECTOR(factory, const LinOpFactory, pre_smoother, config,
-                       context, td_for_child);
-    SET_FACTORY_VECTOR(factory, const LinOpFactory, post_smoother, config,
-                       context, td_for_child);
-    SET_FACTORY_VECTOR(factory, const LinOpFactory, mid_smoother, config,
-                       context, td_for_child);
-    SET_VALUE(factory, bool, post_uses_pre, config);
-    if (config.contains("mid_case")) {
-        auto str = config.at("mid_case").get_data<std::string>();
+    if (auto& obj = config.get("mg_level")) {
+        factory.with_mg_level(
+            gko::config::get_factory_vector<const gko::LinOpFactory>(
+                obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("level_selector")) {
+        factory.with_level_selector(get_selector(obj.get_string()));
+    }
+    if (auto& obj = config.get("pre_smoother")) {
+        factory.with_pre_smoother(
+            gko::config::get_factory_vector<const LinOpFactory>(obj, context,
+                                                                td_for_child));
+    }
+    if (auto& obj = config.get("post_smoother")) {
+        factory.with_post_smoother(
+            gko::config::get_factory_vector<const LinOpFactory>(obj, context,
+                                                                td_for_child));
+    }
+    if (auto& obj = config.get("mid_smoother")) {
+        factory.with_mid_smoother(
+            gko::config::get_factory_vector<const LinOpFactory>(obj, context,
+                                                                td_for_child));
+    }
+    if (auto& obj = config.get("post_uses_pre")) {
+        factory.with_post_uses_pre(gko::config::get_value<bool>(obj));
+    }
+    if (auto& obj = config.get("mid_case")) {
+        auto str = obj.get_string();
         if (str == "both") {
             factory.with_mid_case(multigrid::mid_smooth_type::both);
         } else if (str == "post_smoother") {
@@ -640,16 +658,23 @@ typename Multigrid::parameters_type Multigrid::build_from_config(
             GKO_INVALID_STATE("Not valid mid_smooth_type value");
         }
     }
-    SET_VALUE(factory, size_type, max_levels, config);
-    SET_VALUE(factory, size_type, min_coarse_rows, config);
-    SET_FACTORY_VECTOR(factory, const LinOpFactory, coarsest_solver, config,
-                       context, td_for_child);
-    if (config.contains("solver_selector")) {
-        auto str = config.at("solver_selector").get_data<std::string>();
+    if (auto& obj = config.get("max_levels")) {
+        factory.with_max_levels(gko::config::get_value<size_type>(obj));
+    }
+    if (auto& obj = config.get("min_coarse_rows")) {
+        factory.with_min_coarse_rows(gko::config::get_value<size_type>(obj));
+    }
+    if (auto& obj = config.get("coarsest_solver")) {
+        factory.with_coarsest_solver(
+            gko::config::get_factory_vector<const LinOpFactory>(obj, context,
+                                                                td_for_child));
+    }
+    if (auto& obj = config.get("solver_selector")) {
+        auto str = obj.get_string();
         factory.with_solver_selector(get_selector(str));
     }
-    if (config.contains("cycle")) {
-        auto str = config.at("cycle").get_data<std::string>();
+    if (auto& obj = config.get("cycle")) {
+        auto str = obj.get_string();
         if (str == "v") {
             factory.with_cycle(multigrid::cycle::v);
         } else if (str == "w") {
@@ -660,12 +685,17 @@ typename Multigrid::parameters_type Multigrid::build_from_config(
             GKO_INVALID_STATE("Not valid cycle value");
         }
     }
-    SET_VALUE(factory, size_type, kcycle_base, config);
-    SET_VALUE(factory, double, kcycle_rel_tol, config);
-    SET_VALUE(factory, std::complex<double>, smoother_relax, config);
-    SET_VALUE(factory, size_type, smoother_iters, config);
-    SET_VALUE(factory, solver::initial_guess_mode, default_initial_guess,
-              config);
+    if (auto& obj = config.get("smoother_relax")) {
+        factory.with_smoother_relax(
+            gko::config::get_value<std::complex<double>>(obj));
+    }
+    if (auto& obj = config.get("smoother_iters")) {
+        factory.with_smoother_iters(gko::config::get_value<size_type>(obj));
+    }
+    if (auto& obj = config.get("default_initial_guess")) {
+        factory.with_default_initial_guess(
+            gko::config::get_value<solver::initial_guess_mode>(obj));
+    }
     return factory;
 }
 
