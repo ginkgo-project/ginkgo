@@ -33,15 +33,18 @@ struct MultigridLevelConfigTest {
 
     static void change_template(pnode::map_type& config_map)
     {
-        config_map["ValueType"] = pnode{"float"};
-        config_map["IndexType"] = pnode{"int64"};
+        config_map["value_type"] = pnode{"float32"};
+        config_map["index_type"] = pnode{"int64"};
     }
 };
 
 
 struct Pgm : MultigridLevelConfigTest<gko::multigrid::Pgm<float, gko::int64>,
                                       gko::multigrid::Pgm<double, int>> {
-    static pnode::map_type setup_base() { return {{"Type", pnode{"Pgm"}}}; }
+    static pnode::map_type setup_base()
+    {
+        return {{"type", pnode{"multigrid::Pgm"}}};
+    }
 
     template <typename ParamType>
     static void set(pnode::map_type& config_map, ParamType& param, registry reg,
@@ -77,7 +80,7 @@ struct FixedCoarsening : MultigridLevelConfigTest<
                              gko::multigrid::FixedCoarsening<double, int>> {
     static pnode::map_type setup_base()
     {
-        return {{"Type", pnode{"FixedCoarsening"}}};
+        return {{"type", pnode{"multigrid::FixedCoarsening"}}};
     }
 
     template <typename ParamType>
@@ -109,7 +112,7 @@ protected:
     using Config = T;
 
     MultigridLevel()
-        : exec(gko::ReferenceExecutor::create()), td("double", "int"), reg()
+        : exec(gko::ReferenceExecutor::create()), td("float64", "int32"), reg()
     {}
 
     std::shared_ptr<const gko::Executor> exec;
@@ -173,7 +176,7 @@ using DummyStop = gko::stop::Iteration;
 struct MultigridConfig {
     static pnode::map_type setup_base()
     {
-        return {{"Type", pnode{"Multigrid"}}};
+        return {{"type", pnode{"solver::Multigrid"}}};
     }
 
     template <bool from_reg, typename ParamType>
@@ -231,24 +234,24 @@ struct MultigridConfig {
                     reg, "coarsest_solver"));
         } else {
             config_map["criteria"] =
-                pnode{pnode::map_type{{"Type", pnode{"Iteration"}}}};
+                pnode{pnode::map_type{{"type", pnode{"stop::Iteration"}}}};
             param.with_criteria(DummyStop::build().on(exec));
             config_map["mg_level"] = pnode{std::vector<pnode>{
-                pnode{pnode::map_type{{"Type", pnode{"Pgm"}}}},
-                pnode{pnode::map_type{{"Type", pnode{"Pgm"}}}}}};
+                pnode{pnode::map_type{{"type", pnode{"multigrid::Pgm"}}}},
+                pnode{pnode::map_type{{"type", pnode{"multigrid::Pgm"}}}}}};
             param.with_mg_level(DummyMgLevel::build().on(exec),
                                 DummyMgLevel::build().on(exec));
             config_map["pre_smoother"] =
-                pnode{pnode::map_type{{"Type", pnode{"Ir"}}}};
+                pnode{pnode::map_type{{"type", pnode{"solver::Ir"}}}};
             param.with_pre_smoother(DummySmoother::build().on(exec));
             config_map["post_smoother"] =
-                pnode{pnode::map_type{{"Type", pnode{"Ir"}}}};
+                pnode{pnode::map_type{{"type", pnode{"solver::Ir"}}}};
             param.with_post_smoother(DummySmoother::build().on(exec));
             config_map["mid_smoother"] =
-                pnode{pnode::map_type{{"Type", pnode{"Ir"}}}};
+                pnode{pnode::map_type{{"type", pnode{"solver::Ir"}}}};
             param.with_mid_smoother(DummySmoother::build().on(exec));
             config_map["coarsest_solver"] =
-                pnode{pnode::map_type{{"Type", pnode{"Ir"}}}};
+                pnode{pnode::map_type{{"type", pnode{"solver::Ir"}}}};
             param.with_coarsest_solver(DummySmoother::build().on(exec));
         }
         config_map["level_selector"] = pnode{"first_for_top"};
@@ -341,7 +344,7 @@ protected:
 
     MultigridT()
         : exec(gko::ReferenceExecutor::create()),
-          td("double", "int"),
+          td("float64", "int32"),
           mg_level_0(DummyMgLevel::build().on(exec)),
           mg_level_1(DummyMgLevel::build().on(exec)),
           criterion_factory(DummyStop::build().on(exec)),
